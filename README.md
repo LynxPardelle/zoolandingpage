@@ -160,21 +160,46 @@ zoolandingpage/
 4. 🎨 **[NGX-Angora-CSS](docs/04-ngx-angora-css.md)** - Styling system
 5. 📊 **[Analytics](docs/05-analytics-tracking.md)** - Tracking implementation
 6. 🚀 **[Deployment](docs/06-deployment.md)** - Production deployment
+7. ⚡ **[Angular Latest Features](docs/angular-latest-features-guide.md)** - Angular 17-20 features guide
+8. 📋 **[Requirements Summary](docs/REQUIREMENTS_SUMMARY.md)** - **MANDATORY** development requirements
 
 ## 🎯 Development Commands
 
-### **Docker Development (Recommended)**
+### **Docker Development (Recommended) - Zero Dependencies!**
 
 ```bash
-make dev                # 🔥 Hot-reload development server
-make prod               # 🚀 Production SSR server
-make prod-no-ssr        # ⚡ Static production server
-make test               # 🧪 Run tests in container
-make lint               # 📏 Code quality checks
-make clean              # 🧹 Clean up containers
+# 🚀 Complete setup for new developers (one command!)
+make quick-start            # Setup + start development server
+
+# 🔥 Daily development workflow
+make dev                    # Hot-reload development server
+make dev-logs               # Monitor development logs
+make dev-shell              # Access container shell
+
+# 🧪 Testing commands
+make test                   # Run unit tests
+make test-watch             # Tests in watch mode
+make test-coverage          # Generate coverage report
+make test-e2e               # Run E2E tests
+make code-quality           # All quality checks
+make full-test-suite        # Complete test suite
+
+# 🏗️ Production deployment
+make prod                   # SSR production server
+make prod-no-ssr            # Static production server
+make production-deploy      # Complete deployment workflow
+
+# 🛠️ Container management
+make stop                   # Stop all containers
+make clean                  # Clean up everything
+make rebuild                # Rebuild from scratch
+
+# 📚 Developer experience
+make onboarding             # New developer guide
+make docs-serve             # Serve documentation locally
 ```
 
-### **Local Development**
+### **Local Development (Alternative)**
 
 ```bash
 npm start               # 🔥 Development server
@@ -228,19 +253,24 @@ npm run serve:ssr       # 🚀 SSR server
 
 We welcome contributors! Here's how to get started:
 
-1. **🍴 Fork** this repository
-2. **📋 Read** our [Development Guide](docs/03-development-guide.md)
-3. **🌿 Create** your feature branch: `git checkout -b feature/amazing-feature`
-4. **✅ Test** your changes: `make test`
-5. **📝 Commit** using [Conventional Commits](https://conventionalcommits.org/): `git commit -m 'feat: add amazing feature'`
-6. **🚀 Push** to your branch: `git push origin feature/amazing-feature`
-7. **🔄 Submit** a Pull Request
+1. **📋 READ FIRST** - [**MANDATORY Requirements**](docs/REQUIREMENTS_SUMMARY.md) - **CRITICAL**: Review all development requirements
+2. **🍴 Fork** this repository
+3. **📋 Read** our [Development Guide](docs/03-development-guide.md)
+4. **⚡ Learn** [Angular Latest Features](docs/angular-latest-features-guide.md) - Required Angular 17-20 features
+5. **🌿 Create** your feature branch: `git checkout -b feature/amazing-feature`
+6. **✅ Test** your changes: `make test`
+7. **📝 Commit** using [Conventional Commits](https://conventionalcommits.org/): `git commit -m 'feat: add amazing feature'`
+8. **🚀 Push** to your branch: `git push origin feature/amazing-feature`
+9. **🔄 Submit** a Pull Request
 
-### **Code of Conduct**
+### **Code Standards (ENFORCED)**
 
-- Follow our coding standards (TypeScript strict mode)
-- Use NGX-Angora-CSS for styling
-- Include tests for new features
+- **MANDATORY**: Use `type` definitions only (NO interfaces/enums)
+- **MANDATORY**: Use ngx-angora-css `pushColor` method for all theme changes  
+- **MANDATORY**: Keep files under 80 lines (atomic principle)
+- **MANDATORY**: Use Angular 17-20 latest features (`@if`, `@for`, `@defer`, etc.)
+- **MANDATORY**: All components must be standalone
+- Include tests for new features (90%+ coverage required)
 - Update documentation as needed
 - Be respectful and inclusive
 

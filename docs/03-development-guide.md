@@ -6,10 +6,10 @@ This guide covers development standards, coding practices, and workflows for the
 
 ### TypeScript Guidelines
 
-1. **Use Types Over Interfaces/Enums**
+1. **MANDATORY: Use Types Over Interfaces/Enums**
 
 ```typescript
-// ✅ Preferred - Type definitions
+// ✅ REQUIRED - Type definitions only
 type UserRole = 'admin' | 'user' | 'guest';
 type ApiResponse<T> = {
   data: T;
@@ -17,9 +17,22 @@ type ApiResponse<T> = {
   message: string;
 };
 
-// ❌ Avoid - Interfaces and enums
-interface UserRole { /* ... */ }
-enum UserRole { /* ... */ }
+type ComponentProps = {
+  title: string;
+  subtitle?: string;
+  variant: 'primary' | 'secondary';
+};
+
+type FormState = {
+  isValid: boolean;
+  errors: Record<string, string>;
+  isSubmitting: boolean;
+};
+
+// ❌ FORBIDDEN - Interfaces and enums are not allowed
+interface UserRole { /* NEVER USE */ }
+enum UserRole { /* NEVER USE */ }
+interface ComponentProps { /* NEVER USE */ }
 ```
 
 2. **Strict Mode Configuration**
@@ -70,7 +83,7 @@ export class UserComponent {
 
 ### Component Architecture Standards
 
-1. **Standalone Components**
+1. **MANDATORY: Standalone Components with ngx-angora-css Integration**
 
 ```typescript
 @Component({
@@ -89,21 +102,83 @@ export class UserComponent {
     </section>
   `,
   styles: [`
-    /* Component-specific styles using SCSS */
-    :host {
-      display: block;
-      width: 100%;
-    }
+    /* Minimal component-specific styles (only animations and/or something that ngx-angora-css can not do) - Most styling via ngx-angora-css */
   `]
 })
-export class HeroSectionComponent {
+export class HeroSectionComponent implements AfterRender {
   title = 'Welcome to Zoolandingpage';
   buttonText = 'Get Started';
+  
+  constructor(private _ank: NGXAngoraService) {}
+  
+  ngAfterRender(): void {
+    // REQUIRED: Theme support using pushColor method
+    this.setupThemeColors();
+    this._ank.cssCreate();
+  }
+  
+  private setupThemeColors(): void {
+    // MANDATORY: Use pushColor for dynamic theme changes
+    this._ank.pushColor('hero-bg', '#ffffff');
+    this._ank.pushColor('hero-text', '#333333');
+    this._ank.pushColor('hero-accent', '#1a73e8');
+  }
   
   onActionClick(): void {
     // Handle action
   }
 }
+```
+
+1. **MANDATORY: Atomic File Structure (Keep Files Small)**
+
+Each component should be split into minimal, focused files:
+
+```text
+hero-section/
+├── hero-section.component.ts (max 50-80 lines)
+├── hero-section.types.ts (type definitions only)
+├── hero-section.styles.ts (only animations and/or something that ngx-angora-css can not do)
+└── index.ts (barrel export)
+```
+
+```typescript
+// hero-section.types.ts - REQUIRED: Separate type definitions
+export type HeroSectionProps = {
+  title: string;
+  subtitle?: string;
+  buttonText: string;
+  variant: 'default' | 'minimal' | 'animated';
+};
+
+export type HeroTheme = {
+  background: string;
+  textColor: string;
+  accentColor: string;
+};
+
+// hero-section.styles.ts - REQUIRED: Separate style configurations
+export const HERO_COLORS: Record<string, string> = {
+  'hero-bg-light': '#ffffff',
+  'hero-bg-dark': '#1a1a1a',
+  'hero-text-light': '#333333',
+  'hero-text-dark': '#ffffff',
+  'hero-accent': '#1a73e8'
+};
+
+export const HERO_COMBOS: Record<string, string[]> = {
+  'heroContainer': [
+    'ank-minHeight-100vh',
+    'ank-display-flex',
+    'ank-alignItems-center',
+    'ank-justifyContent-center',
+    'ank-p-20px'
+  ],
+  'heroContent': [
+    'ank-textAlign-center',
+    'ank-maxWidth-800px'
+  ]
+};
 ```
 
 ### Service-Based Architecture
@@ -390,6 +465,139 @@ describe('Landing Page Flow', () => {
 ```
 
 ## 🎨 NGX-Angora-CSS Development Guidelines
+
+### MANDATORY: Theme Management with pushColor Method
+
+1. **REQUIRED: Dynamic Theme Support**
+
+All themes must be implemented using the `pushColor` method for dynamic theme switching:
+
+```typescript
+@Component({
+  selector: 'app-themed-component',
+  standalone: true,
+  template: `
+    <div class="ank-bg-primary ank-color-text ank-p-20px">
+      <h2 class="ank-color-accent">Themed Content</h2>
+      <button 
+        class="ank-bg-accent ank-color-primary ank-p-12px_24px ank-borderRadius-8px"
+        (click)="toggleTheme()"
+      >
+        Toggle Theme
+      </button>
+    </div>
+  `
+})
+export class ThemedComponent implements AfterRender {
+  private currentTheme = signal<'light' | 'dark'>('light');
+  
+  constructor(private _ank: NGXAngoraService) {}
+  
+  ngAfterRender(): void {
+    this.applyTheme();
+  }
+  
+  toggleTheme(): void {
+    const newTheme = this.currentTheme() === 'light' ? 'dark' : 'light';
+    this.currentTheme.set(newTheme);
+    this.applyTheme();
+  }
+  
+  // MANDATORY: Use pushColor for all theme changes
+  private applyTheme(): void {
+    const theme = this.currentTheme();
+    
+    if (theme === 'light') {
+      this._ank.pushColor('primary', '#ffffff');
+      this._ank.pushColor('text', '#333333');
+      this._ank.pushColor('accent', '#1a73e8');
+      this._ank.pushColor('secondary', '#f5f5f5');
+    } else {
+      this._ank.pushColor('primary', '#1a1a1a');
+      this._ank.pushColor('text', '#ffffff');
+      this._ank.pushColor('accent', '#4285f4');
+      this._ank.pushColor('secondary', '#2d2d2d');
+    }
+    
+    this._ank.cssCreate();
+  }
+}
+```
+
+1. **MANDATORY: Global Theme Service**
+
+Create a centralized theme service using pushColor:
+
+```typescript
+@Injectable({
+  providedIn: 'root'
+})
+export class ThemeService {
+  private currentTheme = signal<'light' | 'dark' | 'auto'>('light');
+  private prefersDark = signal(false);
+  
+  readonly theme$ = computed(() => {
+    const theme = this.currentTheme();
+    if (theme === 'auto') {
+      return this.prefersDark() ? 'dark' : 'light';
+    }
+    return theme;
+  });
+  
+  constructor(private _ank: NGXAngoraService) {
+    this.detectSystemPreference();
+    
+    // Apply theme whenever it changes
+    effect(() => {
+      this.applyGlobalTheme(this.theme$());
+    });
+  }
+  
+  setTheme(theme: 'light' | 'dark' | 'auto'): void {
+    this.currentTheme.set(theme);
+    localStorage.setItem('theme-preference', theme);
+  }
+  
+  // REQUIRED: All theme changes must use pushColor
+  private applyGlobalTheme(theme: 'light' | 'dark'): void {
+    const colors = theme === 'light' ? LIGHT_THEME_COLORS : DARK_THEME_COLORS;
+    
+    // Push all theme colors at once for better performance
+    this._ank.pushColors(colors);
+    this._ank.cssCreate();
+  }
+  
+  private detectSystemPreference(): void {
+    if (typeof window !== 'undefined') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      this.prefersDark.set(mediaQuery.matches);
+      
+      mediaQuery.addEventListener('change', (e) => {
+        this.prefersDark.set(e.matches);
+      });
+    }
+  }
+}
+
+// REQUIRED: Define theme color constants
+const LIGHT_THEME_COLORS: Record<string, string> = {
+  'bg': '#ffffff',
+  'text': '#333333',
+  'accent': '#1a73e8',
+  'secondary': '#f5f5f5',
+  'border': '#e0e0e0',
+  'shadow': 'rgba(0, 0, 0, 0.1)'
+};
+
+const DARK_THEME_COLORS: Record<string, string> = {
+  'bg': '#1a1a1a',
+  'text': '#ffffff',
+  'accent': '#4285f4',
+  'secondary': '#2d2d2d',
+  'border': '#404040',
+  'shadow': 'rgba(255, 255, 255, 0.1)'
+};
+```
 
 ### Client-Side Only Usage
 
