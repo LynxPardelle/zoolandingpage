@@ -1,6 +1,6 @@
 # Getting Started 🚀
 
-This guide will help you set up and run the Zoolandingpage project using either Docker (recommended) or local development.
+This guide will help you set up and run the Zoolandingpage project using our **Docker-first development approach** with enhanced developer experience.
 
 ## ✅ Requirements
 
@@ -10,43 +10,65 @@ This guide will help you set up and run the Zoolandingpage project using either 
 - **Node.js 18+** and **npm** (optional, for local development)
 - **Angular CLI 20+** (optional, for local development)
 
-## 🐳 Docker Development (Recommended)
+## � Quick Start (One Command Setup)
 
 This project supports **zero local dependencies** development using Docker:
 
-### 1. Create and setup the project
+### 1. Complete Setup for New Developers
 
 ```bash
 # Clone the repository
 git clone https://github.com/LynxPardelle/zoolandingpage.git
 cd zoolandingpage
 
-# Start development with Docker (zero local dependencies)
-make dev
+# 🚀 Complete setup and start development (one command!)
+make quick-start
 ```
 
 Your app will be available at: [http://localhost:6161](http://localhost:6161)
 
-### 2. Development Commands
+**That's it!** Your development environment is now running with:
+
+- ✅ Hot-reload enabled
+- ✅ All dependencies installed
+- ✅ Docker containers configured
+- ✅ Development server running
+
+### 2. Development Workflow Commands
 
 ```bash
-# Primary development workflow
+# Daily development
 make dev                    # Start development server with hot-reload
-make dev-detached          # Start development server in background
-make dev-logs              # Show development container logs
-make dev-shell             # Access development container shell
+make dev-logs              # Monitor real-time development logs
+make dev-shell             # Access container shell for debugging
 
-# Production testing
+# Testing workflow
+make test                  # Run unit tests
+make test-watch            # Run tests in watch mode
+make test-coverage         # Generate coverage reports
+make code-quality          # Run all quality checks
+make full-test-suite       # Complete testing suite
+
+# Production deployment
 make prod                  # Start production server with SSR
-make prod-no-ssr           # Start production server without SSR (Nginx)
+make prod-no-ssr           # Start static production server
+make production-deploy     # Complete deployment workflow
 
-# Package management in containers
+# Developer experience
+make onboarding            # New developer onboarding guide
+make docs-serve            # Serve documentation locally
+make dev-workflow          # Complete development workflow
+```
+
+### 3. Package Management in Containers
+
+```bash
 make install pkg=ngx-angora-css           # Install runtime package
 make install-dev pkg=@types/node          # Install dev dependency
 make update                               # Update all packages
 ```
 
-### 3. Container Management
+### 4. Container Management
 
 ```bash
 make stop                  # Stop all running containers
