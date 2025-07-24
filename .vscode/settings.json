@@ -1,0 +1,139 @@
+{
+  // Configuración de VSCode para desarrollo Angular con Docker
+  
+  // TypeScript y Angular
+  "typescript.preferences.includePackageJsonAutoImports": "auto",
+  "typescript.suggest.autoImports": true,
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "typescript.format.enable": true,
+  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
+  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingTemplateStringBraces": true,
+  
+  // Angular Language Service
+  "angular.log": "verbose",
+  "angular.enable-strict-mode-prompt": false,
+  
+  // Intellisense y Autocompletado
+  "editor.suggest.snippetsPreventQuickSuggestions": false,
+  "editor.suggestSelection": "first",
+  "editor.wordBasedSuggestions": "matchingDocuments",
+  "editor.quickSuggestions": {
+    "other": true,
+    "comments": false,
+    "strings": true
+  },
+  
+  // Formateo de código
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit",
+    "source.fixAll.eslint": "explicit"
+  },
+  
+  // Configuración específica por tipo de archivo
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[scss]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  
+  // Docker
+  "docker.showStartPage": false,
+  
+  // Terminal
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "terminal.integrated.shell.windows": "pwsh.exe",
+  
+  // Files
+  "files.autoSave": "onFocusChange",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.angular": true,
+    "**/coverage": true
+  },
+  
+  // Search
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.angular": true,
+    "**/coverage": true
+  },
+  
+  // Git
+  "git.autofetch": true,
+  "git.enableSmartCommit": true,
+  
+  // Explorer
+  "explorer.confirmDelete": false,
+  "explorer.confirmDragAndDrop": false,
+  
+  // Prettier
+  "prettier.configPath": "./.prettierrc",
+  "prettier.enable": true,
+  
+  // ESLint
+  "eslint.validate": [
+    "javascript",
+    "typescript",
+    "html"
+  ],
+  
+  // Path Intellisense
+  "path-intellisense.mappings": {
+    "@": "${workspaceFolder}/src",
+    "@core": "${workspaceFolder}/src/app/core",
+    "@shared": "${workspaceFolder}/src/app/shared",
+    "@components": "${workspaceFolder}/src/app/core/components",
+    "@services": "${workspaceFolder}/src/app/core/services",
+    "@types": "${workspaceFolder}/src/app/core/types"
+  },
+  
+  // HTML
+  "html.suggest.html5": true,
+  "emmet.includeLanguages": {
+    "typescript": "html"
+  },
+  
+  // CSS
+  "css.validate": true,
+  "scss.validate": true,
+  
+  // Editor appearance
+  "editor.minimap.enabled": true,
+  "editor.lineNumbers": "on",
+  "editor.rulers": [80, 120],
+  "editor.wordWrap": "wordWrapColumn",
+  "editor.wordWrapColumn": 120,
+  
+  // Workspace trust
+  "security.workspace.trust.untrustedFiles": "open"
+}

@@ -131,35 +131,67 @@ This task focuses on creating the foundational layout and navigation components 
 
 ### MANDATORY Requirements
 
-1. **Types Only**: All type definitions use `type` keyword, NO interfaces/enums
-2. **Atomic File Structure**: Each component split into 50-80 line files maximum
-3. **pushColor Method**: All color management through ngx-angora-css `pushColor`
-4. **Latest Angular Features**: Use `@if`, `@for`, `@defer` with loading states
-5. **Signals**: Use signals for reactive state management
+1. **HTML Template Files Only**: ALL components MUST use `templateUrl`, NO inline templates allowed
+2. **Complete Type Safety**: Type everything including function variables, error objects, and method parameters
+3. **Environment Variables**: ALL configuration must use environment variables (localStorage keys, API URLs, etc.)
+4. **Correct ngx-angora-css Methods**: 
+   - Use `pushColors()` for adding/updating colors
+   - Use `updateClasses()` for CSS class management
+   - Use proper theme integration methods
+5. **Types Only**: All type definitions use `type` keyword, NO interfaces/enums
+6. **Atomic File Structure**: Each component split into 50-80 line files maximum
+7. **Latest Angular Features**: Use `@if`, `@for`, `@defer` with loading states
+8. **Signals**: Use signals for reactive state management
 
-### File Structure Template
+### Component Structure Template
 
-Each component follows this structure:
+Each component follows this MANDATORY structure:
 ```text
 component-name/
-├── component-name.component.ts (max 50-80 lines)
-├── component-name.types.ts (type definitions)
-├── component-name.styles.ts (custom animations only)
+├── component-name.component.ts (max 50-80 lines, uses templateUrl)
+├── component-name.component.html (separate HTML template file)
+├── component-name.types.ts (type definitions only)
 ├── component-name.constants.ts (constants and defaults)
 └── index.ts (barrel export)
 ```
 
-### ngx-angora-css Implementation
-
-#### Theme Management
+### Environment Integration Example
 ```typescript
-// Example theme color setup
-themeService.pushColor({
-  primary: '#2563eb',
-  'primary-dark': '#1d4ed8',
-  secondary: '#64748b',
-  'secondary-dark': '#475569'
-});
+// ✅ REQUIRED - Environment usage in services
+import { environment } from '../../../environments/environment';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class ExampleService {
+  private readonly storageKey: string = environment.localStorage.themeKey;
+  private readonly apiUrl: string = environment.apiUrl;
+  
+  savePreference(value: string): void {
+    const key: string = environment.localStorage.userPreferencesKey;
+    localStorage.setItem(key, value);
+  }
+}
+```
+
+### ngx-angora-css Correct Implementation
+```typescript
+// ✅ REQUIRED - Correct method usage
+export class ThemeService {
+  private applyTheme(): void {
+    // Use pushColors for adding/updating colors
+    this._ank.pushColors({
+      'primary': '#ffffff',
+      'secondary': '#f8fafc',
+      'accent': '#2563eb'
+    });
+    
+    // Use updateClasses for CSS class updates
+    this._ank.updateClasses(['ank-m-5rem']);
+    
+    this._ank.cssCreate();
+  }
+}
 ```
 
 #### Styling Conventions

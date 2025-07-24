@@ -1,0 +1,65 @@
+<footer [class]="computedFooterClasses()">
+  <div [class]="computedContentClasses()">
+    <!-- Contact Information Section -->
+    @if (config().showContactInfo) {
+    <div
+      class="ank-display-flex ank-flexDirection-column ank-alignItems-center ank-gap-8px"
+    >
+      <h3
+        class="ank-fontSize-lg ank-fontWeight-semibold ank-textColor-foreground ank-margin-0"
+      >
+        Contact Information
+      </h3>
+      <div
+        class="ank-display-flex ank-flexDirection-column ank-alignItems-center ank-gap-4px ank-textAlign-center"
+      >
+        @if (contactInfo().email) {
+        <a
+          [href]="'mailto:' + contactInfo().email"
+          class="ank-textColor-muted ank-textDecoration-none ank-fontSize-sm"
+        >
+          📧 {{ contactInfo().email }}
+        </a>
+        } @if (contactInfo().phone) {
+        <a
+          [href]="'tel:' + contactInfo().phone"
+          class="ank-textColor-muted ank-textDecoration-none ank-fontSize-sm"
+        >
+          📞 {{ contactInfo().phone }}
+        </a>
+        } @if (contactInfo().address) {
+        <span class="ank-textColor-muted ank-fontSize-sm">
+          📍 {{ contactInfo().address }}
+        </span>
+        }
+      </div>
+    </div>
+    }
+
+    <!-- Social Links Section -->
+    @if (config().showSocialLinks && socialLinks().length > 0) {
+    <div class="ank-display-flex ank-gap-16px ank-alignItems-center">
+      @for (link of socialLinks(); track link.name) {
+      <a
+        [href]="link.url"
+        [attr.aria-label]="link.ariaLabel"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="ank-textColor-muted ank-textDecoration-none ank-fontSize-lg ank-padding-8px ank-borderRadius-md ank-transition-colors"
+      >
+        {{ link.icon }}
+      </a>
+      }
+    </div>
+    }
+
+    <!-- Copyright Section -->
+    @if (config().showCopyright) {
+    <div class="ank-textAlign-center">
+      <p class="ank-textColor-muted ank-fontSize-sm ank-margin-0">
+        {{ config().copyrightText }}
+      </p>
+    </div>
+    }
+  </div>
+</footer>

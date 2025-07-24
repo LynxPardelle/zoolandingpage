@@ -1,0 +1,43 @@
+{
+  "folders": [
+    {
+      "name": "zoolandingpage",
+      "path": "."
+    }
+  ],
+  "settings": {
+    // Configuración específica del workspace
+    "typescript.preferences.useAliasesForRenames": false,
+    "typescript.suggest.includeCompletionsForImportStatements": true,
+    "typescript.suggest.includeCompletionsForModuleExports": true,
+    "angular.experimental-ivy": true,
+    
+    // Configuración de archivos
+    "files.associations": {
+      "*.component.html": "html",
+      "*.component.ts": "typescript"
+    },
+    
+    // Configuración del terminal para usar Make
+    "terminal.integrated.cwd": "${workspaceFolder}",
+    
+    // Configuración de debugging
+    "launch": {
+      "configurations": [],
+      "compounds": []
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "angular.ng-template",
+      "ms-vscode.vscode-typescript-next",
+      "ms-azuretools.vscode-docker",
+      "esbenp.prettier-vscode",
+      "dbaeumer.vscode-eslint"
+    ]
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": []
+  }
+}

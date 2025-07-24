@@ -306,8 +306,8 @@ restore: ## Restore from backup (interactive)
 # Check if required tools are installed
 check-tools: ## Check if required tools are installed
 	@echo "$(CYAN)🔍 Checking required tools...$(NC)"
-	@command -v docker >/dev/null 2>&1 || (echo "$(RED)❌ Docker not found$(NC)" && exit 1)
-	@command -v docker-compose >/dev/null 2>&1 || (echo "$(RED)❌ Docker Compose not found$(NC)" && exit 1)
+	@docker --version >nul 2>&1 || (echo "$(RED)❌ Docker not found$(NC)" && exit 1)
+	@docker-compose --version >nul 2>&1 || (echo "$(RED)❌ Docker Compose not found$(NC)" && exit 1)
 	@echo "$(GREEN)✅ All required tools are installed$(NC)"
 
 # Environment information
@@ -453,9 +453,55 @@ full-test-suite: ## 🧪 Run complete test suite
 	@$(MAKE) accessibility-test
 	@echo "$(GREEN)✅ Complete test suite finished!$(NC)"
 
+# =============================================================================
+# Docker Development Utilities
+# =============================================================================
+
+sync-deps: ## 🔄 Sincronizar node_modules desde el contenedor para autocompletado
+	@echo "$(CYAN)🔄 Sincronizando dependencias desde el contenedor...$(NC)"
+	@docker ps --format "table {{.Names}}" | findstr "zoolandingpage-dev" >nul 2>&1 || ( \
+		echo "$(RED)❌ El contenedor no está ejecutándose$(NC)" && \
+		echo "$(YELLOW)Ejecuta 'make dev-detached' primero$(NC)" && \
+		exit 1 \
+	)
+	@echo "$(YELLOW)📦 Copiando node_modules...$(NC)"
+	@docker cp zoolandingpage-dev:/app/node_modules ./
+	@echo "$(YELLOW)📄 Copiando package-lock.json...$(NC)"
+	@docker cp zoolandingpage-dev:/app/package-lock.json ./ 2>nul || echo "package-lock.json no encontrado"
+	@echo "$(GREEN)✅ Sincronización completa!$(NC)"
+	@echo "$(CYAN)💡 Ahora tienes autocompletado completo en VSCode$(NC)"
+
+vscode-setup: ## 🎯 Configurar VSCode para desarrollo con Docker
+	@echo "$(CYAN)🎯 Configurando VSCode para desarrollo con Docker...$(NC)"
+	@$(MAKE) sync-deps
+	@echo "$(GREEN)✅ VSCode configurado correctamente!$(NC)"
+	@echo ""
+	@echo "$(YELLOW)🚀 Pasos siguientes:$(NC)"
+	@echo "  1. Instala las extensiones recomendadas (Ctrl+Shift+P -> Extensions: Show Recommended Extensions)"
+	@echo "  2. Reinicia VSCode para cargar la nueva configuración"
+	@echo "  3. Usa F5 para debugging o Ctrl+Shift+P -> Tasks: Run Task"
+
+docker-install: ## 📦 Instalar paquete interactivo
+	@echo "$(CYAN)📦 Instalador de paquetes Docker$(NC)"
+	@echo "$(YELLOW)Ingresa el nombre del paquete:$(NC)"
+	@read -p "Paquete: " pkg; \
+	if [ -z "$$pkg" ]; then \
+		echo "$(RED)❌ Nombre de paquete requerido$(NC)"; \
+		exit 1; \
+	fi; \
+	echo "$(CYAN)¿Es un paquete de desarrollo? (y/N):$(NC)"; \
+	read -p "Dev: " is_dev; \
+	if [ "$$is_dev" = "y" ] || [ "$$is_dev" = "Y" ]; then \
+		$(MAKE) install-dev pkg=$$pkg; \
+	else \
+		$(MAKE) install pkg=$$pkg; \
+	fi; \
+	echo "$(YELLOW)🔄 Sincronizando dependencias...$(NC)"; \
+	$(MAKE) sync-deps
+
 # Mark all targets as PHONY to avoid conflicts with file names
 .PHONY: help dev dev-detached dev-logs dev-shell prod prod-detached prod-no-ssr prod-no-ssr-detached \
         stop restart clean rebuild prune install install-dev update status logs health debug inspect \
         test test-watch test-coverage test-e2e test-component lint build-check backup restore check-tools validate validate-angular env-info \
         quick-start dev-setup code-quality dev-workflow production-deploy onboarding docs-serve \
-        demo-data security-scan performance-test accessibility-test full-test-suite
+        demo-data security-scan performance-test accessibility-test full-test-suite sync-deps vscode-setup docker-install
