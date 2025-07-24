@@ -1,10 +1,16 @@
 {
-  // For more information, visit: https://go.microsoft.com/fwlink/?LinkId=733558
+  // Configuración de tareas para desarrollo con Docker sin Node local
   "version": "2.0.0",
   "tasks": [
     {
-      "type": "npm",
-      "script": "start",
+      "label": "Docker: Start Development Server",
+      "type": "shell",
+      "command": "make",
+      "args": ["dev"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
       "isBackground": true,
       "problemMatcher": {
         "owner": "typescript",
@@ -12,31 +18,165 @@
         "background": {
           "activeOnStart": true,
           "beginsPattern": {
-            "regexp": "(.*?)"
+            "regexp": "Building..."
           },
           "endsPattern": {
-            "regexp": "bundle generation complete"
+            "regexp": "bundle generation complete|Watch mode enabled"
           }
         }
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "new"
       }
     },
     {
-      "type": "npm",
-      "script": "test",
-      "isBackground": true,
-      "problemMatcher": {
-        "owner": "typescript",
-        "pattern": "$tsc",
-        "background": {
-          "activeOnStart": true,
-          "beginsPattern": {
-            "regexp": "(.*?)"
-          },
-          "endsPattern": {
-            "regexp": "bundle generation complete"
-          }
-        }
+      "label": "Docker: Start Development (Detached)",
+      "type": "shell",
+      "command": "make",
+      "args": ["dev-detached"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false
       }
+    },
+    {
+      "label": "Docker: Run Tests",
+      "type": "shell",
+      "command": "make",
+      "args": ["test"],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Docker: Run Tests (Watch)",
+      "type": "shell",
+      "command": "make",
+      "args": ["test-watch"],
+      "group": "test",
+      "isBackground": true,
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Docker: Install Package",
+      "type": "shell",
+      "command": "make",
+      "args": ["install", "pkg=${input:packageName}"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false
+      }
+    },
+    {
+      "label": "Docker: Install Dev Package",
+      "type": "shell",
+      "command": "make",
+      "args": ["install-dev", "pkg=${input:packageName}"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false
+      }
+    },
+    {
+      "label": "Docker: Access Container Shell",
+      "type": "shell",
+      "command": "make",
+      "args": ["dev-shell"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Docker: View Logs",
+      "type": "shell",
+      "command": "make",
+      "args": ["dev-logs"],
+      "group": "build",
+      "isBackground": true,
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Docker: Stop All Containers",
+      "type": "shell",
+      "command": "make",
+      "args": ["stop"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false
+      }
+    },
+    {
+      "label": "Docker: Clean and Rebuild",
+      "type": "shell",
+      "command": "make",
+      "args": ["rebuild"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false
+      }
+    },
+    {
+      "label": "Docker: Run Linting",
+      "type": "shell",
+      "command": "make",
+      "args": ["lint"],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false
+      }
+    },
+    {
+      "label": "Docker: Code Quality Check",
+      "type": "shell",
+      "command": "make",
+      "args": ["code-quality"],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "packageName",
+      "description": "Nombre del paquete a instalar",
+      "default": "",
+      "type": "promptString"
     }
   ]
 }

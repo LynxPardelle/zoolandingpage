@@ -4,6 +4,127 @@ This guide covers development standards, coding practices, and workflows for the
 
 ## 📏 Code Style & Standards
 
+### MANDATORY Development Rules
+
+1. **ABSOLUTE REQUIREMENT: Use HTML Template Files Only**
+
+```typescript
+// ✅ REQUIRED - Always use templateUrl
+@Component({
+  selector: 'app-hero-section',
+  templateUrl: './hero-section.component.html', // MANDATORY
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class HeroSectionComponent {
+  // Component logic
+}
+
+// ❌ FORBIDDEN - Inline templates are not allowed
+@Component({
+  selector: 'app-hero-section',
+  template: `<div>...</div>`, // NEVER USE
+})
+```
+
+2. **ABSOLUTE REQUIREMENT: Complete Type Safety**
+
+```typescript
+// ✅ REQUIRED - Type everything, including function variables
+function processUserData(userData: UserData): ProcessedUser {
+  const isValid: boolean = validateUser(userData);
+  const errors: string[] = [];
+  const processedAt: Date = new Date();
+  
+  try {
+    const result: ProcessedUser = transformUser(userData);
+    return result;
+  } catch (error: unknown) {
+    const errorMessage: string = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Processing failed:', errorMessage);
+    throw new Error(`User processing failed: ${errorMessage}`);
+  }
+}
+
+// ✅ REQUIRED - Type all method parameters and variables
+private validateFormData(formData: FormData): ValidationResult {
+  const errors: Record<string, string> = {};
+  const isEmailValid: boolean = /\S+@\S+\.\S+/.test(formData.email);
+  const isNameValid: boolean = formData.name.length > 2;
+  
+  if (!isEmailValid) {
+    errors.email = 'Invalid email format';
+  }
+  
+  if (!isNameValid) {
+    errors.name = 'Name must be at least 3 characters';
+  }
+  
+  const hasErrors: boolean = Object.keys(errors).length > 0;
+  
+  return {
+    isValid: !hasErrors,
+    errors,
+    timestamp: Date.now()
+  };
+}
+```
+
+3. **ABSOLUTE REQUIREMENT: Environment Variables Integration**
+
+```typescript
+// ✅ REQUIRED - Use environment for all configuration
+import { environment } from '../../../environments/environment';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class ApiService {
+  private readonly baseUrl: string = environment.apiUrl;
+  private readonly apiVersion: string = environment.apiVersion;
+  
+  constructor(private http: HttpClient) {}
+  
+  private getStorageKey(key: string): string {
+    return environment.localStorage.userPreferencesKey + '_' + key;
+  }
+}
+
+// ✅ REQUIRED - Environment configuration structure
+export const environment = {
+  production: boolean,
+  apiUrl: string,
+  localStorage: {
+    themeKey: string,
+    languageKey: string,
+    userPreferencesKey: string
+  },
+  features: {
+    analytics: boolean,
+    debugMode: boolean
+  }
+} as const;
+```
+
+4. **ABSOLUTE REQUIREMENT: Correct ngx-angora-css Methods**
+
+```typescript
+// ✅ REQUIRED - Use pushColors for adding colors
+this._ank.pushColors({
+  'primary': '#ffffff',
+  'secondary': '#f8fafc',
+  'accent': '#2563eb'
+});
+
+// ✅ REQUIRED - Use updateClasses for CSS class updates
+this._ank.updateClasses(['ank-m-5rem']);
+
+// ✅ REQUIRED - Use pushColor for theme integration (single color application)
+const themedClasses: string = this.themeService.pushColor('ank-bg-primary ank-text-foreground');
+
+// ❌ FORBIDDEN - pushColor method does not exist for adding colors
+// this._ank.pushColor('primary', '#ffffff'); // WRONG METHOD
+```
+
 ### TypeScript Guidelines
 
 1. **MANDATORY: Use Types Over Interfaces/Enums**

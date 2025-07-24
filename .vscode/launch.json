@@ -1,20 +1,54 @@
 {
-  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  // Configuración de debugging para desarrollo con Docker
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "ng serve",
+      "name": "Docker: Launch Application",
       "type": "chrome",
       "request": "launch",
-      "preLaunchTask": "npm: start",
-      "url": "http://localhost:4200/"
+      "preLaunchTask": "Docker: Start Development (Detached)",
+      "url": "http://localhost:4200/",
+      "webRoot": "${workspaceFolder}/src",
+      "sourceMapPathOverrides": {
+        "webpack:/*": "${webRoot}/*",
+        "/./*": "${webRoot}/*",
+        "/src/*": "${webRoot}/*",
+        "/*": "*",
+        "/./~/*": "${webRoot}/node_modules/*"
+      },
+      "presentation": {
+        "hidden": false,
+        "group": "Docker",
+        "order": 1
+      }
     },
     {
-      "name": "ng test",
+      "name": "Docker: Launch Tests",
       "type": "chrome",
       "request": "launch",
-      "preLaunchTask": "npm: test",
-      "url": "http://localhost:9876/debug.html"
+      "preLaunchTask": "Docker: Run Tests (Watch)",
+      "url": "http://localhost:9876/debug.html",
+      "webRoot": "${workspaceFolder}/src",
+      "presentation": {
+        "hidden": false,
+        "group": "Docker",
+        "order": 2
+      }
+    },
+    {
+      "name": "Attach to Docker Container",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "restart": true,
+      "localRoot": "${workspaceFolder}",
+      "remoteRoot": "/app",
+      "skipFiles": ["<node_internals>/**"],
+      "presentation": {
+        "hidden": false,
+        "group": "Docker",
+        "order": 3
+      }
     }
   ]
 }

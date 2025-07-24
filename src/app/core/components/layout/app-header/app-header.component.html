@@ -1,0 +1,93 @@
+<header [class]="computedHeaderClasses()">
+  <div [class]="computedContentClasses()">
+    <!-- Logo Section -->
+    @if (config().showLogo) {
+    <div class="ank-display-flex ank-alignItems-center">
+      <a
+        [href]="config().logoUrl"
+        class="ank-fontSize-xl ank-fontWeight-bold ank-textColor-foreground"
+      >
+        {{ config().logoText }}
+      </a>
+    </div>
+    }
+
+    <!-- Desktop Navigation -->
+    @if (config().showNavigation) {
+    <nav
+      class="ank-display-none ank-displayMd-flex ank-alignItems-center ank-gap-24px"
+    >
+      <!-- Navigation items would be rendered here -->
+      <div class="ank-display-flex ank-gap-16px">
+        <!-- Theme Toggle -->
+        @if (config().showThemeToggle) {
+        <button
+          type="button"
+          (click)="themeService.toggleTheme()"
+          class="ank-padding-8px ank-borderRadius-md ank-border-none ank-bg-secondary ank-textColor-foreground"
+        >
+          {{ themeService.currentTheme() === "dark" ? "☀️" : "🌙" }}
+        </button>
+        }
+
+        <!-- Language Toggle -->
+        @if (config().showLanguageToggle) {
+        <button
+          type="button"
+          (click)="languageService.toggleLanguage()"
+          class="ank-padding-8px ank-borderRadius-md ank-border-none ank-bg-secondary ank-textColor-foreground"
+        >
+          {{ languageService.currentLanguage() }}
+        </button>
+        }
+      </div>
+    </nav>
+    }
+
+    <!-- Mobile Menu Button -->
+    @if (config().showNavigation) {
+    <button
+      type="button"
+      (click)="toggleMobileMenu()"
+      class="ank-displayMd-none ank-padding-8px ank-border-none ank-bg-transparent"
+    >
+      <span class="ank-display-block ank-width-24px ank-height-24px">
+        {{ state().isMobileMenuOpen ? "✕" : "☰" }}
+      </span>
+    </button>
+    }
+  </div>
+
+  <!-- Mobile Menu -->
+  @if (state().isMobileMenuOpen) { @defer {
+  <div
+    class="ank-displayMd-none ank-bg-primary ank-borderTop-1px ank-borderColor-border"
+  >
+    <nav
+      class="ank-padding-16px ank-display-flex ank-flexDirection-column ank-gap-16px"
+    >
+      <!-- Mobile navigation items would be rendered here -->
+      <div class="ank-display-flex ank-flexDirection-column ank-gap-12px">
+        @if (config().showThemeToggle) {
+        <button
+          type="button"
+          (click)="themeService.toggleTheme()"
+          class="ank-padding-12px ank-borderRadius-md ank-border-none ank-bg-secondary ank-textColor-foreground ank-textAlign-left"
+        >
+          Theme:
+          {{ themeService.currentTheme() === "dark" ? "Dark ☀️" : "Light 🌙" }}
+        </button>
+        } @if (config().showLanguageToggle) {
+        <button
+          type="button"
+          (click)="languageService.toggleLanguage()"
+          class="ank-padding-12px ank-borderRadius-md ank-border-none ank-bg-secondary ank-textColor-foreground ank-textAlign-left"
+        >
+          Language: {{ languageService.currentLanguage() }}
+        </button>
+        }
+      </div>
+    </nav>
+  </div>
+  } }
+</header>

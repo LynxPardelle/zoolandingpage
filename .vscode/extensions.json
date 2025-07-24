@@ -1,4 +1,41 @@
 {
-  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=827846
-  "recommendations": ["angular.ng-template"]
+  // Extensiones recomendadas para desarrollo Angular con Docker
+  "recommendations": [
+    // Angular
+    "angular.ng-template",
+    "Angular.ng-template",
+    
+    // TypeScript y JavaScript
+    "ms-vscode.vscode-typescript-next",
+    
+    // Docker
+    "ms-vscode-remote.remote-containers",
+    "ms-azuretools.vscode-docker",
+    
+    // Desarrollo Web
+    "bradlc.vscode-tailwindcss",
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+    
+    // Git y Control de Versiones
+    "eamodio.gitlens",
+    
+    // Productividad
+    "ms-vscode.vscode-json",
+    "redhat.vscode-yaml",
+    "formulahendry.auto-rename-tag",
+    "christian-kohler.path-intellisense",
+    
+    // Debugging
+    "ms-vscode.vscode-js-debug",
+    
+    // Utilidades
+    "gruntfuggly.todo-tree",
+    "alefragnani.bookmarks",
+    "wayou.vscode-todo-highlight"
+  ],
+  "unwantedRecommendations": [
+    // Extensiones que pueden causar conflictos en desarrollo con Docker
+    "ms-vscode.vscode-node-azure-pack"
+  ]
 }
