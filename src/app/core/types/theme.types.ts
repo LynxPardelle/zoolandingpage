@@ -1,6 +1,6 @@
 /**
  * Theme Types - Foundation Components
- * 
+ *
  * Core type definitions for theme management following MANDATORY requirements:
  * - Use 'type' keyword only (NO interfaces/enums)
  * - Keep atomic and focused
@@ -10,13 +10,13 @@
 export type ThemeColors = {
   primary: string;
   secondary: string;
+  success: string;
+  info: string;
+  warning: string;
+  danger: string;
+  light: string;
+  dark: string;
   accent: string;
-  background: string;
-  surface: string;
-  text: string;
-  textSecondary: string;
-  border: string;
-  shadow: string;
 };
 
 // Theme configuration
