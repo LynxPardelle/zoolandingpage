@@ -1,7 +1,711 @@
+<!-- Header -->
 <app-header></app-header>
-<app-container>
-  <div class="ank-flex ank-flexDirection-column ank-gap-16px">
-    <router-outlet />
-  </div>
-</app-container>
+
+<!-- Hero Section -->
+<app-section
+  variant="accent"
+  spacing="lg"
+  className="ank-minHeight-100vh ank-display-flex ank-alignItems-center ank-justifyContent-center"
+>
+  <app-container size="xl">
+    <div
+      class="ank-display-grid ank-gridTemplateColumns-1fr ank-gridTemplateColumns-lg-1fr__1fr ank-gap-3rem ank-alignItems-center"
+    >
+      <!-- Hero Content -->
+      <div class="ank-textAlign-center ank-textAlign-lg-left">
+        <h1
+          class="ank-fontSize-3rem ank-fontSize-lg-5rem ank-fontWeight-bold ank-lineHeight-tight ank-mb-1_5rem textGradient"
+        >
+          {{ heroData().title }}
+        </h1>
+        <p class="ank-fontSize-1_25rem ank-color-light ank-mb-1rem ank-fontWeight-medium">
+          {{ heroData().subtitle }}
+        </p>
+        <p class="ank-fontSize-1_125rem ank-color-foreground ank-mb-2rem ank-lineHeight-relaxed">
+          {{ heroData().description }}
+        </p>
+
+        <!-- Hero CTAs -->
+        <div
+          class="ank-display-flex ank-flexDirection-column ank-flexDirection-sm-row ank-gap-1rem ank-justifyContent-center ank-justifyContent-lg-start"
+        >
+          <button
+            class="btnPrimary ank-fontSize-1_125rem ank-px-2rem ank-py-1rem"
+            (click)="openWhatsApp()"
+            (click)="trackCTAClick('primary', 'hero')"
+          >
+            {{ heroData().primaryCta }}
+          </button>
+          <button
+            class="btnSecondary ank-fontSize-1_125rem ank-px-2rem ank-py-1rem"
+            (click)="toggleCalculator()"
+            (click)="trackCTAClick('secondary', 'hero')"
+          >
+            {{ heroData().secondaryCta }}
+          </button>
+        </div>
+
+        <!-- Trust Indicators -->
+        <div
+          class="ank-mt-3rem ank-display-flex ank-flexDirection-column ank-alignItems-center ank-alignItems-lg-start ank-gap-1rem"
+        >
+          <p class="ank-fontSize-sm ank-color-light ank-fontWeight-medium">Tecnologías que usamos:</p>
+          <div class="ank-display-flex ank-gap-24px ank-alignItems-center ank-opacity-60">
+            <span class="ank-fontSize-sm ank-color-light">Angular</span>
+            <span class="ank-fontSize-sm ank-color-light">AWS</span>
+            <span class="ank-fontSize-sm ank-color-light">TypeScript</span>
+            <span class="ank-fontSize-sm ank-color-light">AI</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hero Visual - Enhanced Landing Page Mockup -->
+      <div class="ank-position-relative">
+        <!-- Main Browser Mockup -->
+        <div
+          class="ank-bg-white ank-borderRadius-1rem ank-p-0 cardHover ank-position-relative ank-zIndex-10 ank-boxShadow-0__8px__30px__rgbaSD0COM0COM0COM0_12ED ank-border-1px ank-borderColor-border"
+        >
+          <!-- Browser Header -->
+          <div
+            class="ank-bg-gray-100 ank-borderRadius-1rem__1rem__0__0 ank-p-1rem ank-display-flex ank-alignItems-center ank-gap-0_75rem ank-borderBottom-1px ank-borderColor-border"
+          >
+            <div class="ank-display-flex ank-gap-0_375rem">
+              <div class="ank-bg-danger ank-borderRadius-full ank-width-0_75rem ank-height-0_75rem"></div>
+              <div class="ank-bg-warning ank-borderRadius-full ank-width-0_75rem ank-height-0_75rem"></div>
+              <div class="ank-bg-success ank-borderRadius-full ank-width-0_75rem ank-height-0_75rem"></div>
+            </div>
+            <div
+              class="ank-bg-white ank-borderRadius-0_375rem ank-px-1rem ank-py-0_375rem ank-flexGrow-1 ank-fontSize-xs ank-color-light ank-border-1px ank-borderColor-border ank-color-foreground"
+            >
+              🔒 https://tu-negocio.com
+            </div>
+          </div>
+
+          <!-- Landing Page Content Mockup -->
+          <div class="ank-p-2rem">
+            <!-- Header Navigation -->
+            <div class="ank-display-flex ank-justifyContent-spaceBetween ank-alignItems-center ank-mb-2rem">
+              <div class="ank-display-flex ank-gap-1rem">
+                <div
+                  class="ank-bg-primary ank-borderRadius-0_375rem ank-width-6rem ank-height-2rem ank-display-flex ank-alignItems-center ank-justifyContent-center"
+                >
+                  <span class="ank-color-white ank-fontSize-xs ank-fontWeight-bold">LOGO</span>
+                </div>
+                <div class="ank-bg-gray-200 ank-borderRadius-0_25rem ank-width-4rem ank-height-0_75rem"></div>
+                <div class="ank-bg-gray-200 ank-borderRadius-0_25rem ank-width-4rem ank-height-0_75rem"></div>
+                <div
+                  class="ank-bg-primary ank-borderRadius-0_375rem ank-width-5rem ank-height-2rem ank-display-flex ank-alignItems-center ank-justifyContent-center ank-px-0_75rem"
+                >
+                  <span class="ank-color-white ank-fontSize-xs ank-fontWeight-bold">CONTACTO</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Hero Section Mockup -->
+            <div class="ank-textAlign-center ank-mb-2rem">
+              <div
+                class="ank-bg-gray-300 ank-borderRadius-0_375rem ank-width-80per ank-height-1rem ank-mx-auto ank-mb-0_75rem"
+              ></div>
+              <div
+                class="ank-bg-gray-200 ank-borderRadius-0_375rem ank-width-60per ank-height-0_75rem ank-mx-auto ank-mb-1rem"
+              ></div>
+              <div class="ank-display-flex ank-justifyContent-center ank-gap-1rem ank-mb-1_5rem">
+                <div
+                  class="ank-bg-success ank-borderRadius-0_375rem ank-width-6rem ank-height-2_5rem ank-display-flex ank-alignItems-center ank-justifyContent-center"
+                >
+                  <span class="ank-color-white ank-fontSize-xs ank-fontWeight-bold">COMPRAR</span>
+                </div>
+                <div
+                  class="ank-border-2px ank-borderColor-primary ank-borderRadius-0_375rem ank-width-6rem ank-height-2_5rem ank-display-flex ank-alignItems-center ank-justifyContent-center"
+                >
+                  <span class="ank-color-primary ank-fontSize-xs ank-fontWeight-bold">DEMO</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Features Grid Mockup -->
+            <div class="ank-display-grid ank-gridTemplateColumns-1fr__1fr__1fr ank-gap-1rem ank-mb-1_5rem">
+              <div class="ank-bg-light ank-borderRadius-0_375rem ank-p-1rem ank-textAlign-center">
+                <div
+                  class="ank-bg-primary ank-borderRadius-full ank-width-2rem ank-height-2rem ank-mx-auto ank-mb-0_5rem ank-display-flex ank-alignItems-center ank-justifyContent-center"
+                >
+                  <mat-icon class="ank-color-white ank-fontSize-sm">speed</mat-icon>
+                </div>
+                <div
+                  class="ank-bg-gray-300 ank-borderRadius-0_25rem ank-width-75per ank-height-0_5rem ank-mx-auto ank-mb-0_25rem"
+                ></div>
+                <div
+                  class="ank-bg-gray-200 ank-borderRadius-0_25rem ank-width-50per ank-height-0_375rem ank-mx-auto"
+                ></div>
+              </div>
+              <div class="ank-bg-light ank-borderRadius-0_375rem ank-p-1rem ank-textAlign-center">
+                <div
+                  class="ank-bg-success ank-borderRadius-full ank-width-2rem ank-height-2rem ank-mx-auto ank-mb-0_5rem ank-display-flex ank-alignItems-center ank-justifyContent-center"
+                >
+                  <mat-icon class="ank-color-white ank-fontSize-sm">security</mat-icon>
+                </div>
+                <div
+                  class="ank-bg-gray-300 ank-borderRadius-0_25rem ank-width-75per ank-height-0_5rem ank-mx-auto ank-mb-0_25rem"
+                ></div>
+                <div
+                  class="ank-bg-gray-200 ank-borderRadius-0_25rem ank-width-50per ank-height-0_375rem ank-mx-auto"
+                ></div>
+              </div>
+              <div class="ank-bg-light ank-borderRadius-0_375rem ank-p-1rem ank-textAlign-center">
+                <div
+                  class="ank-bg-info ank-borderRadius-full ank-width-2rem ank-height-2rem ank-mx-auto ank-mb-0_5rem ank-display-flex ank-alignItems-center ank-justifyContent-center"
+                >
+                  <mat-icon class="ank-color-white ank-fontSize-sm">analytics</mat-icon>
+                </div>
+                <div
+                  class="ank-bg-gray-300 ank-borderRadius-0_25rem ank-width-75per ank-height-0_5rem ank-mx-auto ank-mb-0_25rem"
+                ></div>
+                <div
+                  class="ank-bg-gray-200 ank-borderRadius-0_25rem ank-width-50per ank-height-0_375rem ank-mx-auto"
+                ></div>
+              </div>
+            </div>
+
+            <!-- CTA Footer -->
+            <div class="ank-bg-accent ank-borderRadius-0_5rem ank-p-1_5rem ank-textAlign-center">
+              <div
+                class="ank-bg-white ank-borderRadius-0_25rem ank-width-50per ank-height-0_75rem ank-mx-auto ank-mb-0_75rem ank-opacity-90"
+              ></div>
+              <div
+                class="ank-bg-primary ank-borderRadius-0_375rem ank-width-8rem ank-height-3rem ank-mx-auto ank-display-flex ank-alignItems-center ank-justifyContent-center"
+              >
+                <span class="ank-color-white ank-fontSize-sm ank-fontWeight-bold">SOLICITAR INFO</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Animated Background Elements -->
+        <div
+          class="ank-position-absolute ank-top-0 ank-left-0 ank-width-100per ank-height-100per ank-pointerEvents-none ank-zIndex-1"
+        >
+          <!-- Gradient Orbs -->
+          <div
+            class="ank-position-absolute ank-top-10per ank-right-20per ank-width-4rem ank-height-4rem ank-bg-primary ank-borderRadius-full ank-opacity-10 ank-filter-blur-20px"
+          ></div>
+          <div
+            class="ank-position-absolute ank-bottom-20per ank-left-10per ank-width-6rem ank-height-6rem ank-bg-success ank-borderRadius-full ank-opacity-8 ank-filter-blur-30px"
+          ></div>
+          <div
+            class="ank-position-absolute ank-top-30per ank-left-5per ank-width-3rem ank-height-3rem ank-bg-warning ank-borderRadius-full ank-opacity-12 ank-filter-blur-15px"
+          ></div>
+        </div>
+
+        <!-- Enhanced Floating Metrics -->
+        <div
+          class="ank-position-absolute ank-top-MIN1rem ank-right-1rem ank-bg-success ank-color-white ank-px-1_25rem ank-py-0_75rem ank-borderRadius-1rem ank-fontSize-0_875rem ank-fontWeight-bold ank-zIndex-30 ank-display-flex ank-alignItems-center ank-gap-0_5rem ank-boxShadow-0__6px__20px__rgbaSD34COM197COM94COM0_3ED ank-border-2px ank-borderColor-white"
+        >
+          <div class="ank-bg-white ank-borderRadius-full ank-p-0_25rem">
+            <mat-icon class="ank-fontSize-1rem ank-color-success">trending_up</mat-icon>
+          </div>
+          <div class="ank-textAlign-left">
+            <div class="ank-fontSize-xs ank-color-white ank-opacity-90">ROI Promedio</div>
+            <div class="ank-fontSize-lg ank-color-white ank-fontWeight-bold">+250%</div>
+          </div>
+        </div>
+
+        <div
+          class="ank-position-absolute ank-bottom-MIN1rem ank-left-MIN1rem ank-bg-info ank-color-white ank-px-1_25rem ank-py-0_75rem ank-borderRadius-1rem ank-fontSize-0_875rem ank-fontWeight-bold ank-zIndex-30 ank-display-flex ank-alignItems-center ank-gap-0_5rem ank-boxShadow-0__6px__20px__rgbaSD59COM130COM246COM0_3ED ank-border-2px ank-borderColor-white"
+        >
+          <div class="ank-bg-white ank-borderRadius-full ank-p-0_25rem">
+            <mat-icon class="ank-fontSize-1rem ank-color-info">flash_on</mat-icon>
+          </div>
+          <div class="ank-textAlign-left">
+            <div class="ank-fontSize-xs ank-color-white ank-opacity-90">Velocidad</div>
+            <div class="ank-fontSize-lg ank-color-white ank-fontWeight-bold">< 3s</div>
+          </div>
+        </div>
+
+        <!-- Conversion Rate Badge -->
+        <div
+          class="ank-position-absolute ank-top-50per ank-left-MIN1_5rem ank-transform-translateYSDMIN50perED ank-bg-warning ank-color-dark ank-px-1rem ank-py-0_75rem ank-borderRadius-1rem ank-fontSize-0_75rem ank-fontWeight-bold ank-zIndex-30 ank-boxShadow-0__4px__15px__rgbaSD255COM193COM7COM0_3ED ank-border-2px ank-borderColor-white"
+        >
+          <div class="ank-textAlign-center">
+            <div class="ank-fontSize-xs ank-opacity-75 ank-mb-0_125rem">Conversión</div>
+            <div class="ank-fontSize-lg ank-fontWeight-black">+340%</div>
+          </div>
+        </div>
+
+        <!-- Additional Performance Badge -->
+        <div
+          class="ank-position-absolute ank-top-25per ank-right-5per ank-bg-purple-500 ank-color-white ank-px-0_75rem ank-py-0_5rem ank-borderRadius-0_75rem ank-fontSize-xs ank-fontWeight-bold ank-zIndex-25 ank-display-flex ank-alignItems-center ank-gap-0_375rem ank-boxShadow-0__3px__10px__rgbaSD147COM51COM234COM0_25ED ank-border-1px ank-borderColor-white ank-opacity-95"
+        >
+          <mat-icon class="ank-fontSize-sm ank-color-white">verified</mat-icon>
+          <span>SEO Optimizado</span>
+        </div>
+
+        <!-- Mobile Responsive Badge -->
+        <div
+          class="ank-position-absolute ank-bottom-30per ank-right-10per ank-bg-teal-500 ank-color-white ank-px-0_75rem ank-py-0_5rem ank-borderRadius-0_75rem ank-fontSize-xs ank-fontWeight-bold ank-zIndex-25 ank-display-flex ank-alignItems-center ank-gap-0_375rem ank-boxShadow-0__3px__10px__rgbaSD20COM184COM166COM0_25ED ank-border-1px ank-borderColor-white ank-opacity-95"
+        >
+          <mat-icon class="ank-fontSize-sm ank-color-white">phone_android</mat-icon>
+          <span>100% Móvil</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROI Explanation Note -->
+    <div class="ank-textAlign-center ank-mt-4rem">
+      <div
+        class="ank-bg-white ank-borderRadius-1rem ank-p-2rem ank-maxWidth-50rem ank-mx-auto ank-boxShadow-0__4px__20px__rgbaSD0COM0COM0COM0_1ED ank-border-2px ank-borderColor-success ank-borderOpacity-20"
+      >
+        <div class="ank-display-flex ank-alignItems-center ank-justifyContent-center ank-gap-0_75rem ank-mb-1rem">
+          <div class="ank-bg-success ank-borderRadius-full ank-p-0_5rem">
+            <mat-icon class="ank-color-white ank-fontSize-1_5rem">help_outline</mat-icon>
+          </div>
+          <h3 class="ank-fontSize-xl ank-fontWeight-bold ank-color-foreground ank-m-0">¿Qué significa ROI +250%?</h3>
+        </div>
+        <div class="ank-bg-light ank-borderRadius-0_75rem ank-p-1_5rem ank-mb-1rem">
+          <p class="ank-fontSize-lg ank-color-foreground ank-lineHeight-relaxed ank-m-0">
+            El <strong class="ank-color-success">Retorno de Inversión (ROI)</strong> del 250% significa que por cada
+            <strong>$1,000 pesos</strong> que inviertas en tu landing page, obtienes
+            <strong class="ank-color-success">$2,500 pesos adicionales</strong> en ventas.
+          </p>
+        </div>
+        <div class="ank-display-grid ank-gridTemplateColumns-1fr__1fr__1fr ank-gap-1rem ank-textAlign-center">
+          <div class="ank-bg-primary ank-borderRadius-0_5rem ank-p-1rem ank-color-white">
+            <div class="ank-fontSize-sm ank-opacity-90">Inversión</div>
+            <div class="ank-fontSize-lg ank-fontWeight-bold">$1,000</div>
+          </div>
+          <div class="ank-display-flex ank-alignItems-center ank-justifyContent-center">
+            <mat-icon class="ank-color-success ank-fontSize-2rem">arrow_forward</mat-icon>
+          </div>
+          <div class="ank-bg-success ank-borderRadius-0_5rem ank-p-1rem ank-color-white">
+            <div class="ank-fontSize-sm ank-opacity-90">Retorno Total</div>
+            <div class="ank-fontSize-lg ank-fontWeight-bold">$3,500</div>
+          </div>
+        </div>
+        <p class="ank-fontSize-base ank-color-light ank-mt-1rem ank-mb-0">
+          Nuestras landing pages están optimizadas para maximizar este retorno mediante estrategias de conversión
+          probadas y análisis de datos.
+        </p>
+      </div>
+    </div>
+  </app-container>
+</app-section>
+
+<!-- Features Section -->
+<app-section spacing="lg">
+  <app-container size="xl">
+    <div class="ank-textAlign-center ank-mb-4rem">
+      <h2 class="ank-fontSize-3rem ank-fontWeight-bold ank-mb-1rem ank-color-foreground">
+        Tecnologías y Metodologías que Impulsan tu Crecimiento
+      </h2>
+      <p class="ank-fontSize-1_25rem ank-color-light ank-maxWidth-37_5rem ank-mx-auto">
+        Conoce las herramientas y enfoques que utilizamos para crear soluciones web efectivas
+      </p>
+    </div>
+
+    <div class="gridCol3">
+      @for (feature of features(); track feature.title) {
+      <div
+        class="ank-bg-white ank-borderRadius-0_75rem ank-p-2rem cardHover ank-textAlign-center ank-border-1px ank-borderColor-border"
+      >
+        <div class="ank-mb-1_25rem ank-display-flex ank-justifyContent-center">
+          <mat-icon class="ank-fontSize-3rem ank-width-3rem ank-height-3rem ank-color-primary">{{
+            feature.icon
+          }}</mat-icon>
+        </div>
+        <h3 class="ank-fontSize-1_25rem ank-fontWeight-bold ank-mb-1rem ank-color-foreground">
+          {{ feature.title }}
+        </h3>
+        <p class="ank-fontSize-1rem ank-color-light ank-mb-1_5rem ank-lineHeight-relaxed">
+          {{ feature.description }}
+        </p>
+        <ul class="ank-listStyle-none ank-p-0 ank-m-0 ank-textAlign-left">
+          @for (benefit of feature.benefits; track benefit) {
+          <li class="ank-display-flex ank-alignItems-center ank-gap-8px ank-mb-8px">
+            <span>✅</span>
+            <span class="ank-fontSize-sm ank-color-foreground">{{ benefit }}</span>
+          </li>
+          }
+        </ul>
+      </div>
+      }
+    </div>
+  </app-container>
+</app-section>
+
+<!-- Interactive Demo Section -->
+<app-section variant="accent" spacing="lg">
+  <app-container size="xl">
+    <div class="ank-textAlign-center ank-mb-64px">
+      <h2 class="ank-fontSize-3xl ank-fontWeight-bold ank-mb-16px ank-color-foreground">
+        Tutorial en Vivo: Esta Landing Page es Nuestra Demo
+      </h2>
+      <p class="ank-fontSize-xl ank-color-light">
+        Cada sección que estás viendo demuestra nuestras capacidades técnicas
+      </p>
+    </div>
+
+    <div
+      class="ank-display-grid ank-gridTemplateColumns-1fr ank-gridTemplateColumns-lg-1fr__2fr ank-gap-48px ank-alignItems-start"
+    >
+      <!-- Demo Steps -->
+      <div class="ank-bg-white ank-borderRadius-12px ank-p-24px">
+        <h3 class="ank-fontSize-lg ank-fontWeight-bold ank-mb-20px ank-color-foreground">Nuestro Proceso</h3>
+        @for (demo of interactiveDemo(); track demo.step; let i = $index) {
+        <div
+          (click)="setDemoStep(i)"
+          class="ank-p-16px ank-borderRadius-8px ank-mb-12px ank-cursor-pointer ank-transition-all ank-duration-200ms"
+          [class]="
+            demo.isActive ? 'ank-bg-primary ank-color-white' : 'ank-bg-light ank-colorHover-primary ank-bgHover-surface'
+          "
+        >
+          <div class="ank-display-flex ank-alignItems-center ank-gap-12px ank-mb-8px">
+            <div
+              class="ank-width-24px ank-height-24px ank-borderRadius-full ank-display-flex ank-alignItems-center ank-justifyContent-center ank-fontSize-sm ank-fontWeight-bold"
+              [class]="demo.isActive ? 'ank-bg-white ank-color-primary' : 'ank-bg-primary ank-color-white'"
+            >
+              {{ demo.step }}
+            </div>
+            <h4 class="ank-fontSize-base ank-fontWeight-semibold ank-m-0">
+              {{ demo.title }}
+            </h4>
+          </div>
+          <p
+            class="ank-fontSize-sm ank-m-0 ank-lineHeight-relaxed"
+            [class]="demo.isActive ? 'ank-color-white' : 'ank-color-light'"
+          >
+            {{ demo.description }}
+          </p>
+        </div>
+        }
+      </div>
+
+      <!-- Demo Content -->
+      <div class="ank-bg-white ank-borderRadius-12px ank-p-32px ank-minHeight-500px">
+        <div>
+          <div class="ank-display-flex ank-alignItems-center ank-gap-16px ank-mb-24px">
+            <div class="ank-fontSize-4xl">
+              @switch (currentDemoStep()) { @case (0) {
+              <mat-icon class="ank-fontSize-4rem ank-width-4rem ank-height-4rem ank-color-primary">assignment</mat-icon>
+              } @case (1) {
+              <mat-icon class="ank-fontSize-4rem ank-width-4rem ank-height-4rem ank-color-primary">psychology</mat-icon>
+              } @case (2) {
+              <mat-icon class="ank-fontSize-4rem ank-width-4rem ank-height-4rem ank-color-primary">preview</mat-icon>
+              } @case (3) {
+              <mat-icon class="ank-fontSize-4rem ank-width-4rem ank-height-4rem ank-color-primary"
+                >rocket_launch</mat-icon
+              >
+              } @case (4) {
+              <mat-icon class="ank-fontSize-4rem ank-width-4rem ank-height-4rem ank-color-primary">analytics</mat-icon>
+              } @case (5) {
+              <mat-icon class="ank-fontSize-4rem ank-width-4rem ank-height-4rem ank-color-primary">autorenew</mat-icon>
+              } @default {
+              <mat-icon class="ank-fontSize-4rem ank-width-4rem ank-height-4rem ank-color-primary">assignment</mat-icon>
+              } }
+            </div>
+            <div>
+              <h3 class="ank-fontSize-1_5rem ank-fontWeight-bold ank-mb-8px ank-color-foreground">
+                {{ currentDemoData().title }}
+              </h3>
+              <div class="ank-display-flex ank-alignItems-center ank-gap-8px ank-mb-16px">
+                <mat-icon class="ank-fontSize-1rem ank-color-info">schedule</mat-icon>
+                <span class="ank-fontSize-sm ank-color-info ank-fontWeight-medium">{{
+                  currentDemoData().duration
+                }}</span>
+              </div>
+            </div>
+          </div>
+
+          <p class="ank-fontSize-1rem ank-color-light ank-lineHeight-relaxed ank-mb-16px">
+            {{ currentDemoData().description }}
+          </p>
+
+          <div class="ank-mb-24px">
+            <h4 class="ank-fontSize-1_125rem ank-fontWeight-semibold ank-mb-12px ank-color-foreground">
+              Descripción Detallada:
+            </h4>
+            <p class="ank-fontSize-0_875rem ank-color-foreground ank-lineHeight-relaxed">
+              {{ currentDemoData().detailedDescription }}
+            </p>
+          </div>
+
+          <div>
+            <h4 class="ank-fontSize-1_125rem ank-fontWeight-semibold ank-mb-12px ank-color-foreground">Entregables:</h4>
+            <ul class="ank-listStyle-none ank-p-0 ank-m-0">
+              @for (deliverable of currentDemoData().deliverables; track deliverable) {
+              <li class="ank-display-flex ank-alignItems-start ank-gap-8px ank-mb-8px">
+                <mat-icon class="ank-fontSize-1rem ank-color-success ank-mt-2px">check_circle</mat-icon>
+                <span class="ank-fontSize-0_875rem ank-color-foreground ank-lineHeight-relaxed">{{ deliverable }}</span>
+              </li>
+              }
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </app-container>
+</app-section>
+
+<!-- Services Section -->
+<app-section spacing="lg">
+  <app-container size="xl">
+    <div class="ank-textAlign-center ank-mb-64px">
+      <h2 class="ank-fontSize-3xl ank-fontWeight-bold ank-mb-16px ank-color-foreground">
+        Nuestros Servicios Especializados
+      </h2>
+      <p class="ank-fontSize-xl ank-color-light">Todo lo que necesitas para dominar el mundo digital</p>
+    </div>
+
+    <div class="gridCol3">
+      @for (service of services(); track service.title) {
+      <div
+        class="ank-bg-white ank-borderRadius-12px ank-p-32px cardHover ank-border-1px ank-borderColor-border ank-position-relative ank-overflow-hidden"
+      >
+        <!-- Service accent -->
+        <div
+          class="ank-position-absolute ank-top-0 ank-left-0 ank-width-100per ank-height-4px"
+          [class]="'ank-bg-' + service.color"
+        ></div>
+
+        <div class="ank-mb-1_25rem ank-display-flex ank-justifyContent-center">
+          <mat-icon class="ank-fontSize-3rem ank-width-3rem ank-height-3rem ank-color-primary">{{
+            service.icon
+          }}</mat-icon>
+        </div>
+        <h3 class="ank-fontSize-1_25rem ank-fontWeight-bold ank-mb-1rem ank-color-foreground">
+          {{ service.title }}
+        </h3>
+        <p class="ank-fontSize-1rem ank-color-light ank-mb-1_5rem ank-lineHeight-relaxed">
+          {{ service.description }}
+        </p>
+
+        <ul class="ank-listStyle-none ank-p-0 ank-m-0 ank-mb-1_5rem">
+          @for (feature of service.features; track feature) {
+          <li class="ank-display-flex ank-alignItems-center ank-gap-0_5rem ank-mb-0_5rem">
+            <span>✅</span>
+            <span class="ank-fontSize-0_875rem ank-color-foreground">{{ feature }}</span>
+          </li>
+          }
+        </ul>
+
+        <button
+          class="btnSecondary ank-width-100per ank-py-0_75rem"
+          (click)="openWhatsApp()"
+          (click)="trackCTAClick('service', service.title)"
+        >
+          Solicitar Información
+        </button>
+      </div>
+      }
+    </div>
+  </app-container>
+</app-section>
+
+<!-- ROI Calculator Section -->
+<app-section variant="accent" spacing="lg">
+  <app-container size="lg">
+    <div class="ank-textAlign-center ank-mb-48px">
+      <h2 class="ank-fontSize-3xl ank-fontWeight-bold ank-mb-16px ank-color-foreground">
+        Calculadora de Retorno de Inversión (ROI)
+      </h2>
+      <p class="ank-fontSize-xl ank-color-light ank-mb-16px">
+        Descubre cuánto podrías ganar con una landing page optimizada
+      </p>
+      <p class="ank-fontSize-base ank-color-light ank-maxWidth-700px ank-mx-auto">
+        Nuestros cálculos se basan en estadísticas de la industria y casos de éxito reales
+      </p>
+    </div>
+
+    <div class="ank-bg-white ank-borderRadius-16px ank-p-40px ank-boxShadow-lg ank-maxWidth-800px ank-mx-auto">
+      <!-- Calculator Inputs -->
+      <div
+        class="ank-display-grid ank-gridTemplateColumns-1fr ank-gridTemplateColumns-md-1fr__1fr ank-gap-32px ank-mb-32px"
+      >
+        <!-- Left Column -->
+        <div class="ank-space-y-24px">
+          <!-- Business Size -->
+          <div>
+            <label class="ank-display-block ank-fontSize-lg ank-fontWeight-semibold ank-mb-16px ank-color-foreground">
+              Tamaño de tu negocio:
+            </label>
+            <div class="ank-space-y-8px">
+              <button
+                type="button"
+                (click)="updateBusinessSize('nano')"
+                [class]="
+                  calculatorBusinessSize() === 'nano'
+                    ? 'ank-bg-primary ank-color-white ank-border-primary'
+                    : 'ank-bg-light ank-color-foreground ank-border-border ank-bgHover-surface'
+                "
+                class="ank-width-100per ank-px-16px ank-py-12px ank-border-1px ank-borderRadius-8px ank-fontSize-base ank-fontWeight-medium ank-cursor-pointer ank-transition-all ank-textAlign-left"
+              >
+                <div class="ank-fontWeight-semibold">Nano Empresa</div>
+                <div class="ank-fontSize-sm ank-opacity-75">1-2 empleados</div>
+              </button>
+              <button
+                type="button"
+                (click)="updateBusinessSize('micro')"
+                [class]="
+                  calculatorBusinessSize() === 'micro'
+                    ? 'ank-bg-primary ank-color-white ank-border-primary'
+                    : 'ank-bg-light ank-color-foreground ank-border-border ank-bgHover-surface'
+                "
+                class="ank-width-100per ank-px-16px ank-py-12px ank-border-1px ank-borderRadius-8px ank-fontSize-base ank-fontWeight-medium ank-cursor-pointer ank-transition-all ank-textAlign-left"
+              >
+                <div class="ank-fontWeight-semibold">Micro Empresa</div>
+                <div class="ank-fontSize-sm ank-opacity-75">3-10 empleados</div>
+              </button>
+              <button
+                type="button"
+                (click)="updateBusinessSize('small')"
+                [class]="
+                  calculatorBusinessSize() === 'small'
+                    ? 'ank-bg-primary ank-color-white ank-border-primary'
+                    : 'ank-bg-light ank-color-foreground ank-border-border ank-bgHover-surface'
+                "
+                class="ank-width-100per ank-px-16px ank-py-12px ank-border-1px ank-borderRadius-8px ank-fontSize-base ank-fontWeight-medium ank-cursor-pointer ank-transition-all ank-textAlign-left"
+              >
+                <div class="ank-fontWeight-semibold">Pequeña Empresa</div>
+                <div class="ank-fontSize-sm ank-opacity-75">11-50 empleados</div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Industry -->
+          <div>
+            <label class="ank-display-block ank-fontSize-lg ank-fontWeight-semibold ank-mb-16px ank-color-foreground">
+              Industria:
+            </label>
+            <select
+              (change)="updateIndustry($any($event.target).value || 'ecommerce')"
+              [value]="calculatorIndustry()"
+              class="ank-width-full ank-px-16px ank-py-12px ank-border-1px ank-border-border ank-borderRadius-8px ank-fontSize-base ank-color-foreground ank-bg-white ank-focusBorder-primary"
+            >
+              <option value="ecommerce">E-commerce / Tienda Online</option>
+              <option value="services">Servicios Profesionales</option>
+              <option value="restaurant">Restaurante / Comida</option>
+              <option value="health">Salud / Medicina</option>
+              <option value="education">Educación / Capacitación</option>
+              <option value="consulting">Consultoría / Coaching</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Right Column - Results -->
+        <div
+          class="ank-bg-gradient-primary ank-borderRadius-12px ank-p-24px ank-color-white ank-textAlign-center ank-display-flex ank-flexDirection-column ank-justifyContent-center ank-boxShadow-0__8px__25px__rgbaSD0COM123COM255COM0_2ED"
+        >
+          <div class="ank-mb-24px">
+            <div class="ank-bg-white ank-borderRadius-full ank-p-0_75rem ank-display-inline-block ank-mb-16px">
+              <mat-icon class="ank-fontSize-2xl ank-color-primary">trending_up</mat-icon>
+            </div>
+            <h3 class="ank-fontSize-xl ank-fontWeight-bold ank-mb-8px ank-color-foreground">
+              Tu Potencial de Crecimiento
+            </h3>
+            <p class="ank-fontSize-sm ank-opacity-90 ank-m-0 ank-color-foreground">Basado en tu configuración actual</p>
+          </div>
+
+          <div class="ank-space-y-20px">
+            <div class="ank-bg-white ank-bg-opacity-20 ank-borderRadius-0_75rem ank-p-1rem">
+              <div class="ank-fontSize-2_5xl ank-fontWeight-bold ank-mb-4px ank-color-foreground">
+                +${{ calculatedROI().monthlyIncrease.toLocaleString() }}
+              </div>
+              <div class="ank-fontSize-sm ank-opacity-90 ank-color-foreground">Ingresos adicionales mensuales</div>
+            </div>
+
+            <div class="ank-bg-white ank-bg-opacity-15 ank-borderRadius-0_75rem ank-p-1rem">
+              <div class="ank-fontSize-xl ank-fontWeight-semibold ank-mb-4px ank-color-foreground">
+                {{ calculatedROI().roiPercentage }}% ROI
+              </div>
+              <div class="ank-fontSize-sm ank-opacity-90 ank-color-foreground">Retorno de inversión proyectado</div>
+            </div>
+          </div>
+
+          <div class="ank-mt-24px ank-pt-20px ank-borderTop-1px ank-borderColor-white ank-borderOpacity-30">
+            <div class="ank-fontSize-xs ank-opacity-80 ank-color-foreground">
+              💡 Resultados basados en estadísticas reales de la industria
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Note -->
+      <div class="ank-textAlign-center ank-borderTop-1px ank-borderColor-border ank-pt-24px">
+        <p class="ank-fontSize-sm ank-color-light ank-mb-16px">
+          *Proyecciones basadas en estadísticas de la industria y casos de éxito reales
+        </p>
+        <button class="btnPrimary ank-fontSize-base ank-px-32px ank-py-12px" (click)="openWhatsApp()">
+          Solicitar Consultoría Personalizada
+        </button>
+      </div>
+    </div>
+  </app-container>
+</app-section>
+
+<!-- Testimonials Section - Hidden for now -->
+<!--
+<app-section spacing="lg">
+  <app-container size="xl">
+    <div class="ank-textAlign-center ank-mb-64px">
+      <h2 class="ank-fontSize-3xl ank-fontWeight-bold ank-mb-16px ank-color-foreground">
+        Lo que Dicen Nuestros Clientes
+      </h2>
+      <p class="ank-fontSize-xl ank-color-light">Resultados reales de negocios reales</p>
+    </div>
+
+    <div class="gridCol3">
+      @for (testimonial of testimonials(); track testimonial.name) {
+      <div class="ank-bg-white ank-borderRadius-12px ank-p-32px cardHover ank-border-1px ank-borderColor-border">
+        Rating, content, name, etc.
+      </div>
+      }
+    </div>
+  </app-container>
+</app-section>
+-->
+
+<!-- Final CTA Section -->
+<app-section variant="accent" spacing="lg">
+  <app-container size="lg">
+    <div class="ank-textAlign-center">
+      <h2 class="ank-fontSize-3xl ank-fontWeight-bold ank-mb-16px ank-color-foreground">
+        ¿Listo para Potenciar tu Negocio con Tecnología?
+      </h2>
+      <p class="ank-fontSize-xl ank-color-light ank-mb-32px ank-maxWidth-600px ank-mx-auto">
+        Únete a las nano y micro empresas que están creciendo con soluciones tecnológicas inteligentes
+      </p>
+
+      <div
+        class="ank-display-flex ank-flexDirection-column ank-flexDirection-sm-row ank-gap-16px ank-justifyContent-center ank-mb-32px"
+      >
+        <button
+          class="btnPrimary ank-fontSize-lg ank-px-32px ank-py-16px"
+          (click)="openWhatsApp()"
+          (click)="trackCTAClick('primary', 'final-cta')"
+        >
+          Solicitar Consultoría Gratuita
+        </button>
+        <button
+          class="btnSecondary ank-fontSize-lg ank-px-32px ank-py-16px"
+          (click)="toggleCalculator()"
+          (click)="trackCTAClick('secondary', 'final-cta')"
+        >
+          Calcular mi ROI
+        </button>
+      </div>
+
+      <!-- Trust badges -->
+      <div class="ank-display-flex ank-flexDirection-column ank-alignItems-center ank-gap-16px ank-opacity-70">
+        <p class="ank-fontSize-sm ank-color-light ank-m-0">
+          ⭐ Garantía de satisfacción • 🔒 Datos protegidos • ⚡ Entrega rápida y eficiente
+        </p>
+        <div class="ank-display-flex ank-gap-16px ank-alignItems-center ank-fontSize-sm ank-color-light">
+          <span>💬 Soporte continuo</span>
+          <span>📊 Analytics incluidos</span>
+          <span>🌐 Hosting en AWS</span>
+        </div>
+      </div>
+    </div>
+  </app-container>
+</app-section>
+
+<!-- Footer -->
 <app-footer></app-footer>

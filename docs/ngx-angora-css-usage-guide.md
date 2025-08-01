@@ -51,14 +51,14 @@ import { NGXAngoraService } from 'ngx-angora-css';
 
 @Component({
   selector: 'app-root',
-  templateUrl: './app.component.html'
+  templateUrl: './app.component.html',
 })
 export class AppComponent {
   constructor(private _ank_: NGXAngoraService) {
     // Initialize CSS generation
     this._ank.cssCreate();
   }
-  
+
   ngDoCheck(): void {
     // Regenerate CSS when DOM changes
     this._ank.cssCreate();
@@ -68,10 +68,10 @@ export class AppComponent {
 
 ### Setup CSS File
 
-Create a CSS file named `ank-styles.css` and link it to your HTML:
+Create a CSS file named `angora-styles.css` and link it to your HTML:
 
 ```html
-<link rel="stylesheet" href="your/assets/location/ank-styles.css">
+<link rel="stylesheet" href="your/assets/location/angora-styles.css" />
 ```
 
 **Important**: This file is where Angora CSS will inject the generated CSS rules.
@@ -94,9 +94,7 @@ Create a CSS file named `ank-styles.css` and link it to your HTML:
 <p class="ank-lineHeight-1_6 ank-letterSpacing-1px">Styled paragraph</p>
 
 <!-- Layout -->
-<div class="ank-display-flex ank-justifyContent-center ank-alignItems-center">
-  Flexbox centered content
-</div>
+<div class="ank-display-flex ank-justifyContent-center ank-alignItems-center">Flexbox centered content</div>
 ```
 
 ### Responsive Design
@@ -112,21 +110,23 @@ Create a CSS file named `ank-styles.css` and link it to your HTML:
 </div>
 
 <!-- Grid layout responsive -->
-<div class="ank-display-grid ank-gridTemplateColumns-1fr ank-gridTemplateColumns-md-repeatSD2COM1frED ank-gridTemplateColumns-lg-repeatSD3COM1frED ank-gap-20px">
+<div
+  class="ank-display-grid ank-gridTemplateColumns-1fr ank-gridTemplateColumns-md-repeatSD2COM1frED ank-gridTemplateColumns-lg-repeatSD3COM1frED ank-gap-20px"
+>
   Responsive grid: 1 column mobile, 2 columns tablet, 3 columns desktop
 </div>
 ```
 
 ### Available Breakpoints
 
-| Prefix | Breakpoint | Min Width |
-|--------|------------|-----------|
-| `xs` | Extra Small | 0px |
-| `sm` | Small | 576px |
-| `md` | Medium | 768px |
-| `lg` | Large | 992px |
-| `xl` | Extra Large | 1200px |
-| `xxl` | XXL | 1400px |
+| Prefix | Breakpoint  | Min Width |
+| ------ | ----------- | --------- |
+| `xs`   | Extra Small | 0px       |
+| `sm`   | Small       | 576px     |
+| `md`   | Medium      | 768px     |
+| `lg`   | Large       | 992px     |
+| `xl`   | Extra Large | 1200px    |
+| `xxl`  | XXL         | 1400px    |
 
 ## Properties and Values
 
@@ -184,18 +184,18 @@ Create a CSS file named `ank-styles.css` and link it to your HTML:
 
 ```html
 <!-- Hover effects -->
-<div class="ank-colorHover-blue ank-bgHover-red">
-  Changes color and background on hover
-</div>
+<div class="ank-colorHover-blue ank-bgHover-red">Changes color and background on hover</div>
 
 <!-- Focus states -->
-<input class="ank-border-gray-300 ank-borderFocus-blue-500 ank-borderWidthFocus-2px">
+<input class="ank-border-gray-300 ank-borderFocus-blue-500 ank-borderWidthFocus-2px" />
 
 <!-- Active states -->
 <button class="ank-transformActive-scaleSD0_95ED">Press effect</button>
 
 <!-- Complex interactive button -->
-<button class="ank-bg-primary ank-color-white ank-p-12px__24px ank-border-none ank-borderRadius-6px ank-cursor-pointer ank-bgHover-primary-dark ank-transformHover-translateYSDMIN2pxED ank-boxShadowHover-0__4px__8px__rgbaSD0COM0COM0COM0_2ED ank-transformActive-translateYSD0ED ank-boxShadowFocus-0__0__0__3px__rgbaSD0COM123COM255COM0_25ED">
+<button
+  class="ank-bg-primary ank-color-white ank-p-12px__24px ank-border-none ank-borderRadius-6px ank-cursor-pointer ank-bgHover-primary-dark ank-transformHover-translateYSDMIN2pxED ank-boxShadowHover-0__4px__8px__rgbaSD0COM0COM0COM0_2ED ank-transformActive-translateYSD0ED ank-boxShadowFocus-0__0__0__3px__rgbaSD0COM123COM255COM0_25ED"
+>
   Complete Interactive Button
 </button>
 ```
@@ -204,32 +204,26 @@ Create a CSS file named `ank-styles.css` and link it to your HTML:
 
 ```html
 <!-- Checkbox styling -->
-<input type="checkbox" class="ank-bgChecked-green ank-borderChecked-green">
+<input type="checkbox" class="ank-bgChecked-green ank-borderChecked-green" />
 
 <!-- Input validation -->
-<input type="email" class="ank-border-gray-300 ank-borderValid-green ank-borderInvalid-red">
+<input type="email" class="ank-border-gray-300 ank-borderValid-green ank-borderInvalid-red" />
 
 <!-- Disabled states -->
-<button disabled class="ank-opacityDisabled-0_5 ank-cursorDisabled-not-allowed">
-  Disabled Button
-</button>
+<button disabled class="ank-opacityDisabled-0_5 ank-cursorDisabled-not-allowed">Disabled Button</button>
 ```
 
 ### Pseudo-elements
 
 ```html
 <!-- Adding content with pseudo-elements -->
-<div class="ank-contentBefore-CDB★CDB ank-colorBefore-gold">
-  Star before text
-</div>
+<div class="ank-contentBefore-CDB★CDB ank-colorBefore-gold">Star before text</div>
 
 <!-- Placeholder styling -->
-<input placeholder="Enter text" class="ank-colorPlaceholder-gray-400 ank-fontStylePlaceholder-italic">
+<input placeholder="Enter text" class="ank-colorPlaceholder-gray-400 ank-fontStylePlaceholder-italic" />
 
 <!-- Selection styling -->
-<div class="ank-bgSelection-blue ank-colorSelection-white">
-  Select this text to see custom selection colors
-</div>
+<div class="ank-bgSelection-blue ank-colorSelection-white">Select this text to see custom selection colors</div>
 ```
 
 ## Abbreviations System
@@ -239,18 +233,18 @@ Create a CSS file named `ank-styles.css` and link it to your HTML:
 ```typescript
 // Add value abbreviations
 _ank.pushAbreviationsValues({
-  'spaceSmall': '16px',
-  'spaceMedium': '24px',
-  'spaceLarge': '32px',
-  'textSmall': '16px',
-  'textMedium': '18px',
-  'textLarge': '20px'
+  spaceSmall: '16px',
+  spaceMedium: '24px',
+  spaceLarge: '32px',
+  textSmall: '16px',
+  textMedium: '18px',
+  textLarge: '20px',
 });
 
 // Add class abbreviations
 _ank.pushAbreviationsClasses({
-  'alIte': 'ank-alignItems',
-  'alIteCent': 'ank-alignItems-center'
+  alIte: 'ank-alignItems',
+  alIteCent: 'ank-alignItems-center',
 });
 ```
 
@@ -258,9 +252,7 @@ _ank.pushAbreviationsClasses({
 
 ```html
 <!-- Using value abbreviations -->
-<div class="ank-padding-spaceMedium ank-fontSize-textLarge">
-  Padded container with large text
-</div>
+<div class="ank-padding-spaceMedium ank-fontSize-textLarge">Padded container with large text</div>
 
 <!-- Using class abbreviations -->
 <div class="ank-display-flex ank-justifyContent-center alIte-center ank-minHeight-100vh">
@@ -275,8 +267,8 @@ _ank.pushAbreviationsClasses({
 ```typescript
 // Create reusable style combinations
 _ank.pushCombos({
-  'cardBase': 'ank-bg-white ank-borderRadius-8px ank-boxShadow-0__2px__4px__rgbaSD0COM0COM0COM0_1ED ank-p-20px',
-  'btnPrimary': 'ank-bg-primary ank-color-white ank-p-10px_20px ank-border-none ank-borderRadius-5px ank-cursor-pointer'
+  cardBase: 'ank-bg-white ank-borderRadius-8px ank-boxShadow-0__2px__4px__rgbaSD0COM0COM0COM0_1ED ank-p-20px',
+  btnPrimary: 'ank-bg-primary ank-color-white ank-p-10px_20px ank-border-none ank-borderRadius-5px ank-cursor-pointer',
 });
 ```
 
@@ -285,13 +277,13 @@ _ank.pushCombos({
 ```typescript
 // Combos with variable values and defaults
 _ank.pushCombos({
-  'customBox': [
+  customBox: [
     'ank-w-VAL1DEF85perDEF',
     'ank-border-VAL2DEF1px__solid__darkDEF',
     'ank-bg-VAL3DEFsuccessDEF',
     'ank-color-VAL4DEFaquaDEF',
-    'ank-p-VAL5DEF1_5remDEF'
-  ]
+    'ank-p-VAL5DEF1_5remDEF',
+  ],
 });
 ```
 
@@ -317,44 +309,38 @@ _ank.pushCombos({
 
 ### Character Replacements
 
-| Reserved Word | Translates To | Example |
-|---------------|---------------|---------|
-| `per` | `%` | `50per` → `50%` |
-| `COM` | `,` | `redCOMblue` → `red, blue` |
-| `CDB` | `"` | `CDBtextCDB` → `"text"` |
-| `MIN` | `-` | `MIN10px` → `-10px` |
-| `SD` | `(` | `calcSD...` → `calc(...` |
-| `ED` | `)` | `...100pxED` → `...100px)` |
-| `HASH` | `#` | `HASHFF0000` → `#FF0000` |
-| `__` | ` ` | `margin__top` → `margin top` |
-| `_` | `.` | `1_5rem` → `1.5rem` |
+| Reserved Word | Translates To | Example                      |
+| ------------- | ------------- | ---------------------------- |
+| `per`         | `%`           | `50per` → `50%`              |
+| `COM`         | `,`           | `redCOMblue` → `red, blue`   |
+| `CDB`         | `"`           | `CDBtextCDB` → `"text"`      |
+| `MIN`         | `-`           | `MIN10px` → `-10px`          |
+| `SD`          | `(`           | `calcSD...` → `calc(...`     |
+| `ED`          | `)`           | `...100pxED` → `...100px)`   |
+| `HASH`        | `#`           | `HASHFF0000` → `#FF0000`     |
+| `__`          | ` `           | `margin__top` → `margin top` |
+| `_`           | `.`           | `1_5rem` → `1.5rem`          |
 
 ### CSS Selector Delimiters
 
-| Reserved Word | Translates To | Example |
-|---------------|---------------|---------|
-| `CHILD` | ` > ` | `divCHILDspan` → `div > span` |
-| `ADJ` | ` + ` | `pADJdiv` → `p + div` |
-| `SIBL` | ` ~ ` | `h1SIBLp` → `h1 ~ p` |
-| `ALL` | `*` | `ALL` → `*` |
+| Reserved Word | Translates To | Example                       |
+| ------------- | ------------- | ----------------------------- |
+| `CHILD`       | `>`           | `divCHILDspan` → `div > span` |
+| `ADJ`         | `+`           | `pADJdiv` → `p + div`         |
+| `SIBL`        | `~`           | `h1SIBLp` → `h1 ~ p`          |
+| `ALL`         | `*`           | `ALL` → `*`                   |
 
 ### Usage Examples
 
 ```html
 <!-- Complex CSS values -->
-<div class="ank-boxShadow-0__2px__4px__lavenderCOM__inset__2px__0__4px__fairy">
-  Complex box shadow
-</div>
+<div class="ank-boxShadow-0__2px__4px__lavenderCOM__inset__2px__0__4px__fairy">Complex box shadow</div>
 
 <!-- CSS calc() function -->
-<div class="ank-width-calcSD50px__PLUS__10vwED">
-  Width: calc(50px + 10vw)
-</div>
+<div class="ank-width-calcSD50px__PLUS__10vwED">Width: calc(50px + 10vw)</div>
 
 <!-- Child selectors -->
-<div class="ank-colorSELCHILDspan-red">
-  Targets child spans with red color
-</div>
+<div class="ank-colorSELCHILDspan-red">Targets child spans with red color</div>
 ```
 
 ## Methods and API
@@ -368,27 +354,27 @@ _ank.cssCreate(); // Generate CSS for current DOM
 // Color Management
 _ank.pushColors({
   'brand-blue': '#1a73e8',
-  'brand-green': '#34a853'
+  'brand-green': '#34a853',
 });
 
 // Breakpoint Management
 _ank.pushBPS({
-  'tablet': 768,
-  'desktop': 1024
+  tablet: 768,
+  desktop: 1024,
 });
 
 // Abbreviation Management
 _ank.pushAbreviationsValues({
-  'spaceMd': '24px'
+  spaceMd: '24px',
 });
 
 _ank.pushAbreviationsClasses({
-  'flexCol': 'ank-flexDirection-column'
+  flexCol: 'ank-flexDirection-column',
 });
 
 // Combo Management
 _ank.pushCombos({
-  'btn-primary': 'ank-bg-primary ank-color-white ank-p-10px_20px'
+  'btn-primary': 'ank-bg-primary ank-color-white ank-p-10px_20px',
 });
 ```
 
@@ -434,14 +420,16 @@ _ank.changeDebugOption(); // Toggle debug mode
 ### Complete Card Component
 
 ```html
-<div class="ank-bg-white ank-borderRadius-8px ank-boxShadow-0__2px__4px__rgbaSD0COM0COM0COM0_1ED ank-p-30px ank-marginBottom-20px ank-transformHover-translateYSDMIN2pxED ank-boxShadowHover-0__4px__8px__rgbaSD0COM0COM0COM0_15ED">
-  <h3 class="ank-fontSize-24px ank-color-gray-800 ank-marginBottom-15px ank-fontWeight-600">
-    Card Title
-  </h3>
+<div
+  class="ank-bg-white ank-borderRadius-8px ank-boxShadow-0__2px__4px__rgbaSD0COM0COM0COM0_1ED ank-p-30px ank-marginBottom-20px ank-transformHover-translateYSDMIN2pxED ank-boxShadowHover-0__4px__8px__rgbaSD0COM0COM0COM0_15ED"
+>
+  <h3 class="ank-fontSize-24px ank-color-gray-800 ank-marginBottom-15px ank-fontWeight-600">Card Title</h3>
   <p class="ank-fontSize-16px ank-lineHeight-1_6 ank-color-gray-600 ank-marginBottom-20px">
     This is a complete card component with hover effects and proper spacing.
   </p>
-  <button class="ank-bg-primary ank-color-white ank-p-10px_20px ank-border-none ank-borderRadius-5px ank-cursor-pointer ank-bgHover-primary-dark ank-transformHover-translateYSDMIN1pxED">
+  <button
+    class="ank-bg-primary ank-color-white ank-p-10px_20px ank-border-none ank-borderRadius-5px ank-cursor-pointer ank-bgHover-primary-dark ank-transformHover-translateYSDMIN1pxED"
+  >
     Action Button
   </button>
 </div>
@@ -451,16 +439,18 @@ _ank.changeDebugOption(); // Toggle debug mode
 
 ```html
 <nav class="ank-bg-white ank-boxShadow-0__2px__4px__rgbaSD0COM0COM0COM0_1ED ank-p-10px ank-p-md-20px">
-  <div class="ank-display-flex ank-justifyContent-spaceBetween ank-alignItems-center ank-maxWidth-1200px ank-margin-0__auto">
-    <div class="ank-fontSize-20px ank-fontSize-md-24px ank-fontWeight-bold ank-color-primary">
-      Brand
-    </div>
-    
+  <div
+    class="ank-display-flex ank-justifyContent-spaceBetween ank-alignItems-center ank-maxWidth-1200px ank-margin-0__auto"
+  >
+    <div class="ank-fontSize-20px ank-fontSize-md-24px ank-fontWeight-bold ank-color-primary">Brand</div>
+
     <!-- Mobile menu toggle -->
-    <button class="ank-display-block ank-display-md-none ank-bg-transparent ank-border-none ank-fontSize-18px ank-cursor-pointer">
+    <button
+      class="ank-display-block ank-display-md-none ank-bg-transparent ank-border-none ank-fontSize-18px ank-cursor-pointer"
+    >
       ☰
     </button>
-    
+
     <!-- Desktop navigation -->
     <div class="ank-display-none ank-display-md-flex ank-gap-30px">
       <a href="#" class="ank-color-gray-700 ank-textDecoration-none ank-fontWeight-500 ank-colorHover-primary">
@@ -482,30 +472,26 @@ _ank.changeDebugOption(); // Toggle debug mode
 ```html
 <form class="ank-maxWidth-500px ank-margin-0__auto ank-p-20px">
   <div class="ank-marginBottom-20px">
-    <label class="ank-display-block ank-marginBottom-5px ank-fontWeight-600 ank-color-gray-700">
-      Email
-    </label>
-    <input 
-      type="email" 
+    <label class="ank-display-block ank-marginBottom-5px ank-fontWeight-600 ank-color-gray-700"> Email </label>
+    <input
+      type="email"
       required
       class="ank-width-100per ank-p-12px ank-border-1px__solid__gray-300 ank-borderRadius-6px ank-fontSize-16px ank-borderFocus-blue-500 ank-outlineFocus-none ank-borderValid-green-500 ank-borderInvalid-red-500"
       placeholder="Enter your email"
-    >
+    />
   </div>
-  
+
   <div class="ank-marginBottom-20px">
-    <label class="ank-display-block ank-marginBottom-5px ank-fontWeight-600 ank-color-gray-700">
-      Message
-    </label>
-    <textarea 
+    <label class="ank-display-block ank-marginBottom-5px ank-fontWeight-600 ank-color-gray-700"> Message </label>
+    <textarea
       required
       rows="4"
       class="ank-width-100per ank-p-12px ank-border-1px__solid__gray-300 ank-borderRadius-6px ank-fontSize-16px ank-borderFocus-blue-500 ank-outlineFocus-none ank-borderValid-green-500 ank-borderInvalid-red-500 ank-resize-vertical"
       placeholder="Enter your message"
     ></textarea>
   </div>
-  
-  <button 
+
+  <button
     type="submit"
     class="ank-width-100per ank-bg-primary ank-color-white ank-p-12px ank-border-none ank-borderRadius-6px ank-fontSize-16px ank-fontWeight-600 ank-cursor-pointer ank-bgHover-primary-dark ank-transformHover-translateYSDMIN1pxED ank-boxShadowFocus-0__0__0__3px__rgbaSD0COM123COM255COM0_25ED"
   >
