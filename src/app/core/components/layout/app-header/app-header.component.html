@@ -3,10 +3,7 @@
     <!-- Logo Section -->
     @if (config().showLogo) {
     <div class="ank-display-flex ank-alignItems-center">
-      <a
-        [href]="config().logoUrl"
-        class="ank-fontSize-xl ank-fontWeight-bold ank-textColor-foreground"
-      >
+      <a [href]="config().logoUrl" class="ank-fontSize-xl ank-fontWeight-bold ank-color-titleColor">
         {{ config().logoText }}
       </a>
     </div>
@@ -14,9 +11,7 @@
 
     <!-- Desktop Navigation -->
     @if (config().showNavigation) {
-    <nav
-      class="ank-display-none ank-displayMd-flex ank-alignItems-center ank-gap-24px"
-    >
+    <nav class="ank-display-none ank-displayMd-flex ank-alignItems-center ank-gap-24px">
       <!-- Navigation items would be rendered here -->
       <div class="ank-display-flex ank-gap-16px">
         <!-- Theme Toggle -->
@@ -24,7 +19,7 @@
         <button
           type="button"
           (click)="themeService.toggleTheme()"
-          class="ank-padding-8px ank-borderRadius-md ank-border-none ank-bg-secondary ank-textColor-foreground"
+          class="ank-padding-8px ank-borderRadius-md ank-border-none ank-bg-secondaryBgColor ank-color-textColor"
         >
           {{ themeService.currentTheme() === "dark" ? "☀️" : "🌙" }}
         </button>
@@ -35,7 +30,7 @@
         <button
           type="button"
           (click)="languageService.toggleLanguage()"
-          class="ank-padding-8px ank-borderRadius-md ank-border-none ank-bg-secondary ank-textColor-foreground"
+          class="ank-padding-8px ank-borderRadius-md ank-border-none ank-bg-secondaryBgColor ank-color-textColor"
         >
           {{ languageService.currentLanguage() }}
         </button>
@@ -60,19 +55,15 @@
 
   <!-- Mobile Menu -->
   @if (state().isMobileMenuOpen) { @defer {
-  <div
-    class="ank-displayMd-none ank-bg-primary ank-borderTop-1px ank-borderColor-border"
-  >
-    <nav
-      class="ank-padding-16px ank-display-flex ank-flexDirection-column ank-gap-16px"
-    >
+  <div class="ank-displayMd-none ank-bg-bgColor ank-borderTop-1px ank-borderColor-secondaryBgColor">
+    <nav class="ank-padding-16px ank-display-flex ank-flexDirection-column ank-gap-16px">
       <!-- Mobile navigation items would be rendered here -->
       <div class="ank-display-flex ank-flexDirection-column ank-gap-12px">
         @if (config().showThemeToggle) {
         <button
           type="button"
           (click)="themeService.toggleTheme()"
-          class="ank-padding-12px ank-borderRadius-md ank-border-none ank-bg-secondary ank-textColor-foreground ank-textAlign-left"
+          class="ank-padding-12px ank-borderRadius-md ank-border-none ank-bg-secondaryBgColor ank-color-textColor ank-textAlign-left"
         >
           Theme:
           {{ themeService.currentTheme() === "dark" ? "Dark ☀️" : "Light 🌙" }}
@@ -81,7 +72,7 @@
         <button
           type="button"
           (click)="languageService.toggleLanguage()"
-          class="ank-padding-12px ank-borderRadius-md ank-border-none ank-bg-secondary ank-textColor-foreground ank-textAlign-left"
+          class="ank-padding-12px ank-borderRadius-md ank-border-none ank-bg-secondaryBgColor ank-color-textColor ank-textAlign-left"
         >
           Language: {{ languageService.currentLanguage() }}
         </button>

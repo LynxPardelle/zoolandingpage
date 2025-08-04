@@ -8,15 +8,16 @@
 
 // Theme color definitions
 export type ThemeColors = {
-  primary: string;
-  secondary: string;
-  success: string;
-  info: string;
-  warning: string;
-  danger: string;
-  light: string;
-  dark: string;
-  accent: string;
+  bgColor: string;
+  textColor: string;
+  titleColor: string;
+  linkColor: string;
+  accentColor: string;
+  secondaryBgColor: string;
+  secondaryTextColor: string;
+  secondaryTitleColor: string;
+  secondaryLinkColor: string;
+  secondaryAccentColor: string;
 };
 
 // Theme configuration
