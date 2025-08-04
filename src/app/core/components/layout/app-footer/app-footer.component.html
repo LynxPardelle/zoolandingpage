@@ -2,35 +2,25 @@
   <div [class]="computedContentClasses()">
     <!-- Contact Information Section -->
     @if (config().showContactInfo) {
-    <div
-      class="ank-display-flex ank-flexDirection-column ank-alignItems-center ank-gap-8px"
-    >
-      <h3
-        class="ank-fontSize-lg ank-fontWeight-semibold ank-textColor-foreground ank-margin-0"
-      >
-        Contact Information
-      </h3>
-      <div
-        class="ank-display-flex ank-flexDirection-column ank-alignItems-center ank-gap-4px ank-textAlign-center"
-      >
+    <div class="ank-display-flex ank-flexDirection-column ank-alignItems-center ank-gap-8px">
+      <h3 class="ank-fontSize-lg ank-fontWeight-semibold ank-color-titleColor ank-margin-0">Contact Information</h3>
+      <div class="ank-display-flex ank-flexDirection-column ank-alignItems-center ank-gap-4px ank-textAlign-center">
         @if (contactInfo().email) {
         <a
           [href]="'mailto:' + contactInfo().email"
-          class="ank-textColor-muted ank-textDecoration-none ank-fontSize-sm"
+          class="ank-color-secondaryTextColor ank-textDecoration-none ank-fontSize-sm"
         >
           📧 {{ contactInfo().email }}
         </a>
         } @if (contactInfo().phone) {
         <a
           [href]="'tel:' + contactInfo().phone"
-          class="ank-textColor-muted ank-textDecoration-none ank-fontSize-sm"
+          class="ank-color-secondaryTextColor ank-textDecoration-none ank-fontSize-sm"
         >
           📞 {{ contactInfo().phone }}
         </a>
         } @if (contactInfo().address) {
-        <span class="ank-textColor-muted ank-fontSize-sm">
-          📍 {{ contactInfo().address }}
-        </span>
+        <span class="ank-color-secondaryTextColor ank-fontSize-sm"> 📍 {{ contactInfo().address }} </span>
         }
       </div>
     </div>
@@ -45,7 +35,7 @@
         [attr.aria-label]="link.ariaLabel"
         target="_blank"
         rel="noopener noreferrer"
-        class="ank-textColor-muted ank-textDecoration-none ank-fontSize-lg ank-padding-8px ank-borderRadius-md ank-transition-colors"
+        class="ank-color-secondaryTextColor ank-textDecoration-none ank-fontSize-lg ank-padding-8px ank-borderRadius-md ank-transition-colors"
       >
         {{ link.icon }}
       </a>
@@ -56,7 +46,7 @@
     <!-- Copyright Section -->
     @if (config().showCopyright) {
     <div class="ank-textAlign-center">
-      <p class="ank-textColor-muted ank-fontSize-sm ank-margin-0">
+      <p class="ank-color-secondaryTextColor ank-fontSize-sm ank-margin-0">
         {{ config().copyrightText }}
       </p>
     </div>

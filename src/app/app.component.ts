@@ -7,8 +7,9 @@
 
 import { afterNextRender, ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { NgxAngoraService } from 'ngx-angora-css';
+// import { NgxAngoraService } from 'ngx-angora-css';
 import { environment } from '../environments/environment';
+import { NgxAngoraService } from './angora-css/ngx-angora.service';
 import {
   AppContainerComponent,
   AppFooterComponent,
@@ -418,61 +419,51 @@ export class App {
     return demos[currentStep] || demos[0];
   });
 
+  /* Angora CSS */
+  public angoraHasBeenInitialized = false;
+
   constructor() {
     afterNextRender(() => {
-      this._ank.changeDebugOption(true);
-      // Configure ngx-angora-css with project colors
-      this._ank.pushColors({
-        primary: '#0d6efd',
-        secondary: '#6c757d',
-        success: '#198754',
-        info: '#0dcaf0',
-        warning: '#ffc107',
-        danger: '#dc3545',
-        light: '#f8f9fa',
-        dark: '#212529',
-        accent: '#6f42c1',
-        surface: '#ffffff',
-        background: '#f8f9fa',
-        border: '#dee2e6',
-        foreground: '#212529',
-        muted: '#6c757d',
-        // Additional gray scale colors
-        'gray-50': '#f9fafb',
-        'gray-100': '#f3f4f6',
-        'gray-200': '#e5e7eb',
-        'gray-300': '#d1d5db',
-        'gray-400': '#9ca3af',
-        'gray-500': '#6b7280',
-        'gray-600': '#4b5563',
-        'gray-700': '#374151',
-        'gray-800': '#1f2937',
-        'gray-900': '#111827',
-      });
+      if (!this.angoraHasBeenInitialized) {
+        this.initializeAngoraConfiguration();
+      } else {
+        this._ank.cssCreate();
+      }
+    });
+  }
 
+  // Angora CSS
+  initializeAngoraConfiguration(): void {
+    if (!this.angoraHasBeenInitialized) {
+      // this._ank.changeDebugOption(true);
+      this.angoraHasBeenInitialized = true;
+      this.themeService.applyTheme();
       // Configure combos for reusable styles
       this._ank.pushCombos({
-        cardHover:
-          'ank-transition-all ank-duration-300ms ank-transformHover-translateYSDMIN4pxED ank-boxShadowHover-0__8px__25px__rgbaSD0COM0COM0COM0_15ED',
-        btnPrimary:
+        cardHover: [
+          'ank-transition-all ank-td-300ms ank-transformHover-translateYSDMIN4pxED ank-boxShadowHover-0__8px__25px__rgbaSD0COM0COM0COM0_15ED',
+        ],
+        btnPrimary: [
           'ank-bg-primary ank-color-white ank-px-24px ank-py-12px ank-borderRadius-8px ank-fontWeight-semibold ank-transition-all ank-duration-200ms ank-bgHover-primary ank-transformHover-translateYSDMIN1pxED',
-        btnSecondary:
+        ],
+        btnSecondary: [
           'ank-bg-transparent ank-color-primary ank-border-2px ank-borderColor-primary ank-px-24px ank-py-12px ank-borderRadius-8px ank-fontWeight-semibold ank-transition-all ank-duration-200ms ank-bgHover-primary ank-colorHover-white',
-        sectionPadding: 'ank-py-80px ank-px-20px',
-        containerMax: 'ank-maxWidth-1200px ank-mx-auto',
-        gridCol3:
+        ],
+        sectionPadding: ['ank-py-80px ank-px-20px'],
+        containerMax: ['ank-maxWidth-1200px ank-mx-auto'],
+        gridCol3: [
           'ank-display-grid ank-gridTemplateColumns-1fr ank-gridTemplateColumns-md-repeatSD2COM1frED ank-gridTemplateColumns-lg-repeatSD3COM1frED ank-gap-32px',
-        textGradient:
-          'ank-background-linearGradientSD135degCOMaccent 0perCOMprimary 100perED ank-backgroundClip-text ank-color-transparent',
+        ],
+        textGradient: [
+          /* 'ank-background-linearMINgradientSD135degCOMaccent__0perCOMtitleColor__100perED ank-bgcl-text ank-color-transparent', */ 'ank-color-titleColor',
+        ],
         // Additional utility combos
-        'space-y-8px': 'ank-gap-8px',
-        'space-y-16px': 'ank-gap-16px',
-        'space-y-20px': 'ank-gap-20px',
-        'space-y-24px': 'ank-gap-24px',
+        spaceY8px: ['ank-gap-0_5rem'],
+        spaceY16px: ['ank-gap-1rem'],
+        spaceY20px: ['ank-gap-1_25rem'],
+        spaceY24px: ['ank-gap-1_5rem'],
       });
-
-      this._ank.cssCreate();
-    });
+    }
   }
 
   // Interactive methods

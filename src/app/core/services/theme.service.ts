@@ -6,7 +6,8 @@
  */
 
 import { computed, effect, inject, Injectable, signal } from '@angular/core';
-import { NgxAngoraService } from 'ngx-angora-css';
+// import { NgxAngoraService } from 'ngx-angora-css';
+import { NgxAngoraService } from '@/app/angora-css/ngx-angora.service';
 import { environment } from '../../../environments/environment';
 import { ThemeColors, ThemeConfig, ThemeMode } from '../types/theme.types';
 
@@ -34,15 +35,16 @@ export class ThemeService {
     name: 'light',
     isDark: false,
     colors: {
-      primary: '#0d6efd',
-      secondary: '#6c757d',
-      success: '#198754',
-      info: '#0dcaf0',
-      warning: '#ffc107',
-      danger: '#dc3545',
-      light: '#f8f9fa',
-      dark: '#212529',
-      accent: '#6f42c1',
+      bgColor: '#F2EDE1',
+      textColor: '#462F14',
+      titleColor: '#6391F3',
+      linkColor: '#fFf619',
+      accentColor: '#A17246',
+      secondaryBgColor: '#CD9965',
+      secondaryTextColor: '#19363F',
+      secondaryTitleColor: '#59767F',
+      secondaryLinkColor: '#F36391',
+      secondaryAccentColor: '#199F96',
     },
   };
 
@@ -50,15 +52,16 @@ export class ThemeService {
     name: 'dark',
     isDark: true,
     colors: {
-      primary: '#4dabf7',
-      secondary: '#adb5bd',
-      success: '#51cf66',
-      info: '#22b8cf',
-      warning: '#ffd43b',
-      danger: '#ff6b6b',
-      light: '#212529',
-      dark: '#f8f9fa',
-      accent: '#9775fa',
+      bgColor: '#1a1a1a',
+      textColor: '#ffffff',
+      titleColor: '#f8f9fa',
+      linkColor: '#66b3ff',
+      accentColor: '#4dabf7',
+      secondaryBgColor: '#2d2d2d',
+      secondaryTextColor: '#adb5bd',
+      secondaryTitleColor: '#dee2e6',
+      secondaryLinkColor: '#9775fa',
+      secondaryAccentColor: '#51cf66',
     },
   };
 
@@ -68,7 +71,8 @@ export class ThemeService {
 
     // MANDATORY: Apply theme using pushColors whenever theme changes
     effect(() => {
-      this._applyTheme();
+      console.log(`Applying theme: ${this.activeTheme()}`);
+      this.applyTheme();
     });
   }
 
@@ -129,30 +133,25 @@ export class ThemeService {
   }
 
   // MANDATORY: All color changes must use pushColors method
-  private _applyTheme(): void {
+  applyTheme(): void {
     if (typeof window === 'undefined') return; // Skip SSR
     const currentThemeConfig: ThemeConfig =
       this.activeTheme() === 'dark' ? this._darkThemeConfig : this._lightThemeConfig;
     const themeColors: ThemeColors = currentThemeConfig.colors;
+
     // Use ngx-angora-css pushColors for dynamic theme management
     this._ank.pushColors({
-      primary: themeColors.primary,
-      secondary: themeColors.secondary,
-      accent: themeColors.success,
-      background: themeColors.info,
-      surface: themeColors.warning,
-      text: themeColors.danger,
-      'text-secondary': themeColors.light,
-      border: themeColors.dark,
-      shadow: themeColors.accent,
+      bgColor: themeColors.bgColor,
+      textColor: themeColors.textColor,
+      titleColor: themeColors.titleColor,
+      linkColor: themeColors.linkColor,
+      accentColor: themeColors.accentColor,
+      secondaryBgColor: themeColors.secondaryBgColor,
+      secondaryTextColor: themeColors.secondaryTextColor,
+      secondaryTitleColor: themeColors.secondaryTitleColor,
+      secondaryLinkColor: themeColors.secondaryLinkColor,
+      secondaryAccentColor: themeColors.secondaryAccentColor,
     });
-    // Update colors using Object.keys to iterate through theme colors
-    Object.keys(themeColors).forEach(key => {
-      const colorKey = key === 'textSecondary' ? 'text-secondary' : key;
-      this._ank.updateColor(colorKey, themeColors[key as keyof ThemeColors]);
-    });
-
-    // Generate CSS with new colors
-    this._ank.cssCreate();
+    console.log('colors', this._ank.getColors());
   }
 }
