@@ -34,7 +34,7 @@ function processUserData(userData: UserData): ProcessedUser {
   const isValid: boolean = validateUser(userData);
   const errors: string[] = [];
   const processedAt: Date = new Date();
-  
+
   try {
     const result: ProcessedUser = transformUser(userData);
     return result;
@@ -50,17 +50,17 @@ private validateFormData(formData: FormData): ValidationResult {
   const errors: Record<string, string> = {};
   const isEmailValid: boolean = /\S+@\S+\.\S+/.test(formData.email);
   const isNameValid: boolean = formData.name.length > 2;
-  
+
   if (!isEmailValid) {
     errors.email = 'Invalid email format';
   }
-  
+
   if (!isNameValid) {
     errors.name = 'Name must be at least 3 characters';
   }
-  
+
   const hasErrors: boolean = Object.keys(errors).length > 0;
-  
+
   return {
     isValid: !hasErrors,
     errors,
@@ -76,14 +76,14 @@ private validateFormData(formData: FormData): ValidationResult {
 import { environment } from '../../../environments/environment';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ApiService {
   private readonly baseUrl: string = environment.apiUrl;
   private readonly apiVersion: string = environment.apiVersion;
-  
+
   constructor(private http: HttpClient) {}
-  
+
   private getStorageKey(key: string): string {
     return environment.localStorage.userPreferencesKey + '_' + key;
   }
@@ -96,12 +96,12 @@ export const environment = {
   localStorage: {
     themeKey: string,
     languageKey: string,
-    userPreferencesKey: string
+    userPreferencesKey: string,
   },
   features: {
     analytics: boolean,
-    debugMode: boolean
-  }
+    debugMode: boolean,
+  },
 } as const;
 ```
 
@@ -110,9 +110,9 @@ export const environment = {
 ```typescript
 // ✅ REQUIRED - Use pushColors for adding colors
 this._ank.pushColors({
-  'primary': '#ffffff',
-  'secondary': '#f8fafc',
-  'accent': '#2563eb'
+  primary: '#ffffff',
+  secondary: '#f8fafc',
+  accent: '#2563eb',
 });
 
 // ✅ REQUIRED - Use updateClasses for CSS class updates
@@ -151,9 +151,13 @@ type FormState = {
 };
 
 // ❌ FORBIDDEN - Interfaces and enums are not allowed
-interface UserRole { /* NEVER USE */ }
-enum UserRole { /* NEVER USE */ }
-interface ComponentProps { /* NEVER USE */ }
+interface UserRole {
+  /* NEVER USE */
+}
+enum UserRole /* NEVER USE */ {}
+interface ComponentProps {
+  /* NEVER USE */
+}
 ```
 
 2. **Strict Mode Configuration**
@@ -214,8 +218,8 @@ export class UserComponent {
     <section class="ank-minHeight-100vh ank-display-flex ank-alignItems-center">
       <div class="ank-textAlign-center">
         <h1 class="ank-fontSize-48px ank-fontWeight-bold">{{ title }}</h1>
-        <app-generic-button 
-          [text]="buttonText" 
+        <app-generic-button
+          [text]="buttonText"
           [type]="'primary'"
           (click)="onActionClick()">
         </app-generic-button>
@@ -229,22 +233,22 @@ export class UserComponent {
 export class HeroSectionComponent implements AfterRender {
   title = 'Welcome to Zoolandingpage';
   buttonText = 'Get Started';
-  
+
   constructor(private _ank: NGXAngoraService) {}
-  
+
   ngAfterRender(): void {
     // REQUIRED: Theme support using pushColor method
     this.setupThemeColors();
     this._ank.cssCreate();
   }
-  
+
   private setupThemeColors(): void {
     // MANDATORY: Use pushColor for dynamic theme changes
-    this._ank.pushColor('hero-bg', '#ffffff');
-    this._ank.pushColor('hero-text', '#333333');
-    this._ank.pushColor('hero-accent', '#1a73e8');
+    this._ank.pushColors({'hero-bg', '#ffffff'});
+    this._ank.pushColors({'hero-text', '#333333'});
+    this._ank.pushColors({'hero-accent', '#1a73e8'});
   }
-  
+
   onActionClick(): void {
     // Handle action
   }
@@ -284,21 +288,18 @@ export const HERO_COLORS: Record<string, string> = {
   'hero-bg-dark': '#1a1a1a',
   'hero-text-light': '#333333',
   'hero-text-dark': '#ffffff',
-  'hero-accent': '#1a73e8'
+  'hero-accent': '#1a73e8',
 };
 
 export const HERO_COMBOS: Record<string, string[]> = {
-  'heroContainer': [
+  heroContainer: [
     'ank-minHeight-100vh',
     'ank-display-flex',
     'ank-alignItems-center',
     'ank-justifyContent-center',
-    'ank-p-20px'
+    'ank-p-20px',
   ],
-  'heroContent': [
-    'ank-textAlign-center',
-    'ank-maxWidth-800px'
-  ]
+  heroContent: ['ank-textAlign-center', 'ank-maxWidth-800px'],
 };
 ```
 
@@ -308,11 +309,11 @@ export const HERO_COMBOS: Record<string, string[]> = {
 
 ```typescript
 @Injectable({
-  providedIn: 'root' // Singleton across app
+  providedIn: 'root', // Singleton across app
 })
 export class AnalyticsService {
   private events$ = new Subject<AnalyticsEvent>();
-  
+
   trackEvent(event: AnalyticsEvent): void {
     try {
       this.events$.next(event);
@@ -321,7 +322,7 @@ export class AnalyticsService {
       console.error('Analytics tracking failed:', error);
     }
   }
-  
+
   private async sendToServer(event: AnalyticsEvent): Promise<void> {
     // Implementation
   }
@@ -332,18 +333,18 @@ export class AnalyticsService {
 
 ```typescript
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class TutorialService {
   private progress = new BehaviorSubject<TutorialProgress>({ step: 0, completed: false });
-  
+
   readonly progress$ = this.progress.asObservable();
-  
+
   nextStep(): void {
     const current = this.progress.value;
     this.progress.next({ ...current, step: current.step + 1 });
   }
-  
+
   markCompleted(): void {
     this.progress.next({ ...this.progress.value, completed: true });
   }
@@ -397,21 +398,25 @@ feat(api)!: redesign analytics service interface
 ## Pull Request Template
 
 ### Description
+
 Brief description of changes made
 
 ### Type of Change
+
 - [ ] Bug fix
 - [ ] New feature
 - [ ] Breaking change
 - [ ] Documentation update
 
 ### Testing
+
 - [ ] Unit tests pass
 - [ ] Integration tests pass
 - [ ] Manual testing completed
 - [ ] Responsive design tested
 
 ### Checklist
+
 - [ ] Code follows project style guidelines
 - [ ] Self-review completed
 - [ ] Comments added for complex logic
@@ -444,11 +449,7 @@ Brief description of changes made
 ```json
 // .eslintrc.json
 {
-  "extends": [
-    "@angular-eslint/recommended",
-    "@typescript-eslint/recommended",
-    "prettier"
-  ],
+  "extends": ["@angular-eslint/recommended", "@typescript-eslint/recommended", "prettier"],
   "rules": {
     "@typescript-eslint/no-explicit-any": "error",
     "@typescript-eslint/prefer-readonly": "error",
@@ -493,9 +494,7 @@ describe('HeroSectionComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [HeroSectionComponent],
-      providers: [
-        { provide: AnalyticsService, useValue: analyticsSpy }
-      ]
+      providers: [{ provide: AnalyticsService, useValue: analyticsSpy }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(HeroSectionComponent);
@@ -509,9 +508,7 @@ describe('HeroSectionComponent', () => {
 
   it('should track analytics event on action click', () => {
     component.onActionClick();
-    expect(analyticsService.trackEvent).toHaveBeenCalledWith(
-      jasmine.objectContaining({ type: 'hero_cta_click' })
-    );
+    expect(analyticsService.trackEvent).toHaveBeenCalledWith(jasmine.objectContaining({ type: 'hero_cta_click' }));
   });
 });
 ```
@@ -527,7 +524,7 @@ describe('AnalyticsService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
-      providers: [AnalyticsService]
+      providers: [AnalyticsService],
     });
     service = TestBed.inject(AnalyticsService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -541,7 +538,7 @@ describe('AnalyticsService', () => {
     const mockEvent: AnalyticsEvent = {
       type: 'page_view',
       timestamp: Date.now(),
-      data: { page: '/home' }
+      data: { page: '/home' },
     };
 
     service.trackEvent(mockEvent);
@@ -563,22 +560,22 @@ describe('AnalyticsService', () => {
 describe('Landing Page Flow', () => {
   it('should complete tutorial and submit lead form', () => {
     cy.visit('/');
-    
+
     // Test hero section
     cy.get('[data-cy=hero-title]').should('be.visible');
     cy.get('[data-cy=hero-cta]').click();
-    
+
     // Test tutorial interaction
     cy.get('[data-cy=tutorial-section]').scrollIntoView();
     cy.get('[data-cy=tutorial-step-1]').click();
     cy.get('[data-cy=tutorial-progress]').should('contain', '1/4');
-    
+
     // Test form submission
     cy.get('[data-cy=lead-form]').scrollIntoView();
     cy.get('[data-cy=email-input]').type('test@example.com');
     cy.get('[data-cy=message-input]').type('Test message');
     cy.get('[data-cy=submit-button]').click();
-    
+
     // Verify success
     cy.get('[data-cy=success-message]').should('be.visible');
   });
@@ -600,46 +597,43 @@ All themes must be implemented using the `pushColor` method for dynamic theme sw
   template: `
     <div class="ank-bg-primary ank-color-text ank-p-20px">
       <h2 class="ank-color-accent">Themed Content</h2>
-      <button 
-        class="ank-bg-accent ank-color-primary ank-p-12px_24px ank-borderRadius-8px"
-        (click)="toggleTheme()"
-      >
+      <button class="ank-bg-accent ank-color-primary ank-p-12px_24px ank-borderRadius-8px" (click)="toggleTheme()">
         Toggle Theme
       </button>
     </div>
-  `
+  `,
 })
 export class ThemedComponent implements AfterRender {
   private currentTheme = signal<'light' | 'dark'>('light');
-  
+
   constructor(private _ank: NGXAngoraService) {}
-  
+
   ngAfterRender(): void {
     this.applyTheme();
   }
-  
+
   toggleTheme(): void {
     const newTheme = this.currentTheme() === 'light' ? 'dark' : 'light';
     this.currentTheme.set(newTheme);
     this.applyTheme();
   }
-  
+
   // MANDATORY: Use pushColor for all theme changes
   private applyTheme(): void {
     const theme = this.currentTheme();
-    
+
     if (theme === 'light') {
-      this._ank.pushColor('primary', '#ffffff');
-      this._ank.pushColor('text', '#333333');
-      this._ank.pushColor('accent', '#1a73e8');
-      this._ank.pushColor('secondary', '#f5f5f5');
+      this._ank.pushColors({'primary', '#ffffff'});
+      this._ank.pushColors({'text', '#333333'});
+      this._ank.pushColors({'accent', '#1a73e8'});
+      this._ank.pushColors({'secondary', '#f5f5f5'});
     } else {
-      this._ank.pushColor('primary', '#1a1a1a');
-      this._ank.pushColor('text', '#ffffff');
-      this._ank.pushColor('accent', '#4285f4');
-      this._ank.pushColor('secondary', '#2d2d2d');
+      this._ank.pushColors({'primary', '#1a1a1a'});
+      this._ank.pushColors({'text', '#ffffff'});
+      this._ank.pushColors({'accent', '#4285f4'});
+      this._ank.pushColors({'secondary', '#2d2d2d'});
     }
-    
+
     this._ank.cssCreate();
   }
 }
@@ -651,12 +645,12 @@ Create a centralized theme service using pushColor:
 
 ```typescript
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ThemeService {
   private currentTheme = signal<'light' | 'dark' | 'auto'>('light');
   private prefersDark = signal(false);
-  
+
   readonly theme$ = computed(() => {
     const theme = this.currentTheme();
     if (theme === 'auto') {
@@ -664,36 +658,36 @@ export class ThemeService {
     }
     return theme;
   });
-  
+
   constructor(private _ank: NGXAngoraService) {
     this.detectSystemPreference();
-    
+
     // Apply theme whenever it changes
     effect(() => {
       this.applyGlobalTheme(this.theme$());
     });
   }
-  
+
   setTheme(theme: 'light' | 'dark' | 'auto'): void {
     this.currentTheme.set(theme);
     localStorage.setItem('theme-preference', theme);
   }
-  
+
   // REQUIRED: All theme changes must use pushColor
   private applyGlobalTheme(theme: 'light' | 'dark'): void {
     const colors = theme === 'light' ? LIGHT_THEME_COLORS : DARK_THEME_COLORS;
-    
+
     // Push all theme colors at once for better performance
     this._ank.pushColors(colors);
     this._ank.cssCreate();
   }
-  
+
   private detectSystemPreference(): void {
     if (typeof window !== 'undefined') {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
       this.prefersDark.set(mediaQuery.matches);
-      
-      mediaQuery.addEventListener('change', (e) => {
+
+      mediaQuery.addEventListener('change', e => {
         this.prefersDark.set(e.matches);
       });
     }
@@ -702,21 +696,21 @@ export class ThemeService {
 
 // REQUIRED: Define theme color constants
 const LIGHT_THEME_COLORS: Record<string, string> = {
-  'bg': '#ffffff',
-  'text': '#333333',
-  'accent': '#1a73e8',
-  'secondary': '#f5f5f5',
-  'border': '#e0e0e0',
-  'shadow': 'rgba(0, 0, 0, 0.1)'
+  bg: '#ffffff',
+  text: '#333333',
+  accent: '#1a73e8',
+  secondary: '#f5f5f5',
+  border: '#e0e0e0',
+  shadow: 'rgba(0, 0, 0, 0.1)',
 };
 
 const DARK_THEME_COLORS: Record<string, string> = {
-  'bg': '#1a1a1a',
-  'text': '#ffffff',
-  'accent': '#4285f4',
-  'secondary': '#2d2d2d',
-  'border': '#404040',
-  'shadow': 'rgba(255, 255, 255, 0.1)'
+  bg: '#1a1a1a',
+  text: '#ffffff',
+  accent: '#4285f4',
+  secondary: '#2d2d2d',
+  border: '#404040',
+  shadow: 'rgba(255, 255, 255, 0.1)',
 };
 ```
 
@@ -727,25 +721,21 @@ const DARK_THEME_COLORS: Record<string, string> = {
 ```typescript
 @Component({
   selector: 'app-interactive-section',
-  template: `...`
+  template: `...`,
 })
 export class InteractiveSectionComponent implements AfterRender {
   constructor(private _ank: NGXAngoraService) {}
-  
+
   ngAfterRender(): void {
     // ✅ Client-side only
     this.initializeStyles();
   }
-  
+
   private initializeStyles(): void {
     this._ank.pushCombos({
-      'interactiveCard': [
-        'ank-transformHover-scaleSD1_05ED',
-        'ank-transitionDuration-300ms',
-        'ank-cursor-pointer'
-      ]
+      interactiveCard: ['ank-transformHover-scaleSD1_05ED', 'ank-transitionDuration-300ms', 'ank-cursor-pointer'],
     });
-    
+
     this._ank.cssCreate();
   }
 }
@@ -757,14 +747,14 @@ export class InteractiveSectionComponent implements AfterRender {
 @Component({...})
 export class SSRCompatibleComponent implements AfterRender {
   private isClient = false;
-  
+
   constructor(
     private _ank: NGXAngoraService,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
     this.isClient = isPlatformBrowser(this.platformId);
   }
-  
+
   ngAfterRender(): void {
     if (this.isClient) {
       this._ank.cssCreate();
@@ -785,12 +775,12 @@ ngAfterRender(): void {
     'secondary': '#34a853',
     'accent': '#fbbc04'
   });
-  
+
   this._ank.pushCombos({
     'card': ['ank-p-20px', 'ank-borderRadius-8px'],
     'button': ['ank-p-10px_20px', 'ank-cursor-pointer']
   });
-  
+
   // Single CSS generation call
   this._ank.cssCreate();
 }
@@ -799,7 +789,7 @@ ngAfterRender(): void {
 ngAfterRender(): void {
   this._ank.pushColors({ 'primary': '#1a73e8' });
   this._ank.cssCreate(); // Don't do this
-  
+
   this._ank.pushCombos({ 'card': ['ank-p-20px'] });
   this._ank.cssCreate(); // Don't do this either
 }
@@ -815,13 +805,13 @@ ngAfterRender(): void {
 @Component({
   selector: 'app-optimized-component',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `...`
+  template: `...`,
 })
 export class OptimizedComponent {
   @Input() data: any;
-  
+
   constructor(private cdr: ChangeDetectorRef) {}
-  
+
   updateData(newData: any): void {
     this.data = newData;
     this.cdr.markForCheck(); // Manual change detection
@@ -836,8 +826,8 @@ export class OptimizedComponent {
 const routes: Routes = [
   {
     path: 'tutorial',
-    loadComponent: () => import('./tutorial/tutorial.component').then(m => m.TutorialComponent)
-  }
+    loadComponent: () => import('./tutorial/tutorial.component').then(m => m.TutorialComponent),
+  },
 ];
 ```
 
@@ -873,7 +863,7 @@ import { DomSanitizer } from '@angular/platform-browser';
 @Component({...})
 export class SafeComponent {
   constructor(private sanitizer: DomSanitizer) {}
-  
+
   sanitizeHtml(html: string): SafeHtml {
     return this.sanitizer.sanitize(SecurityContext.HTML, html) || '';
   }
