@@ -106,7 +106,7 @@ The project uses Angular standalone components for:
   selector: 'app-hero',
   imports: [CommonModule, GenericButtonComponent],
   template: `...`,
-  styles: [`...`]
+  styles: [`...`],
 })
 export class HeroComponent {
   // Component logic
@@ -119,35 +119,35 @@ export class HeroComponent {
 
 ```typescript
 // Core application services structure
-interface ServiceArchitecture {
+type ServiceArchitecture {
   // User behavior and analytics
   AnalyticsService: {
     trackEvent(event: AnalyticsEvent): void;
     getSessionData(): SessionData;
     generateReport(): AnalyticsReport;
   };
-  
+
   // Real-time communication
   WebSocketService: {
     connect(url: string): Observable<any>;
     send(channel: string, data: any): void;
     subscribe(channel: string): Observable<any>;
   };
-  
+
   // Multi-language support
   TranslationService: {
     setLanguage(lang: 'es' | 'en'): void;
     translate(key: string): string;
     getAvailableLanguages(): Language[];
   };
-  
+
   // SEO and metadata management
   SEOService: {
     updateMetaTags(data: MetaData): void;
     generateStructuredData(): StructuredData;
     updateCanonicalUrl(url: string): void;
   };
-  
+
   // Performance monitoring
   PerformanceService: {
     measureCoreWebVitals(): WebVitals;
@@ -162,14 +162,14 @@ interface ServiceArchitecture {
 ```typescript
 // Reactive service communication using RxJS
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class StateManagementExample {
   private state$ = new BehaviorSubject(initialState);
-  
+
   // Observable state for components to subscribe
   public readonly state = this.state$.asObservable();
-  
+
   // Actions to update state
   updateState(newState: Partial<State>): void {
     this.state$.next({ ...this.state$.value, ...newState });
@@ -198,16 +198,16 @@ export class AppComponent implements AfterRender {
   'brand-dark': '#fbbc04',
   };
   constructor(private _ank: NGXAngoraService) {}
-  
+
   ngAfterRender(): void {
     // Client-side only styling
     this.initializeAngora();
   }
-  
+
   private initializeAngora(): void {
     // Custom brand colors
     this._ank.pushColors(lightTheme);
-    
+
     // Reusable style combinations
     this._ank.pushCombos({
       'heroSection': [
@@ -217,7 +217,7 @@ export class AppComponent implements AfterRender {
         'ank-justifyContent-center'
       ]
     });
-    
+
     // Generate CSS
     this._ank.cssCreate();
   }
@@ -235,11 +235,11 @@ export class AppComponent implements AfterRender {
 
 ```typescript
 // Analytics event flow
-User Interaction 
-  → Component Event Handler 
-  → AnalyticsService.trackEvent() 
-  → WebSocketService.send() 
-  → Analytics Server 
+User Interaction
+  → Component Event Handler
+  → AnalyticsService.trackEvent()
+  → WebSocketService.send()
+  → Analytics Server
   → Real-time Dashboard
 ```
 
@@ -247,11 +247,11 @@ User Interaction
 
 ```typescript
 // Reactive state management pattern
-Component Action 
-  → Service Method 
-  → State Update (BehaviorSubject) 
-  → Observable Emission 
-  → Component State Update 
+Component Action
+  → Service Method
+  → State Update (BehaviorSubject)
+  → Observable Emission
+  → Component State Update
   → UI Re-render
 ```
 
