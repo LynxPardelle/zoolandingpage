@@ -210,7 +210,7 @@ npm run serve:ssr       # 🚀 SSR server
 
 ## 🗺 Roadmap
 
-### **Phase 1: Foundation** *(4-6 weeks)* ✅
+### **Phase 1: Foundation** _(4-6 weeks)_ ✅
 
 - [x] Project setup and Docker configuration
 - [x] Documentation architecture
@@ -218,15 +218,15 @@ npm run serve:ssr       # 🚀 SSR server
 - [ ] Core landing page components
 - [ ] Basic analytics implementation
 
-### **Phase 2: Enhancement** *(3-4 weeks)* 🚧
+### **Phase 2: Enhancement** _(3-4 weeks)_ 🚧
 
 - [ ] Interactive tutorial with animations
-- [ ] WebSocket analytics dashboard  
+- [ ] WebSocket analytics dashboard
 - [ ] Multi-language implementation
 - [ ] Performance optimization
 - [ ] SEO and PWA features
 
-### **Phase 3: Advanced Features** *(6-8 weeks)* 📋
+### **Phase 3: Advanced Features** _(6-8 weeks)_ 📋
 
 - [ ] AI-powered content suggestions
 - [ ] A/B testing framework
@@ -238,7 +238,7 @@ npm run serve:ssr       # 🚀 SSR server
 ### **For Developers**
 
 - **Modern Architecture**: Learn Angular 20+ best practices
-- **Docker Workflow**: Zero-dependency development experience  
+- **Docker Workflow**: Zero-dependency development experience
 - **Real-world Application**: Complete production-ready project
 - **Open Source**: Contribute and learn from community
 
@@ -266,7 +266,7 @@ We welcome contributors! Here's how to get started:
 ### **Code Standards (ENFORCED)**
 
 - **MANDATORY**: Use `type` definitions only (NO interfaces/enums)
-- **MANDATORY**: Use ngx-angora-css `pushColor` method for all theme changes  
+- **MANDATORY**: Use ngx-angora-css `pushColors` method for all theme changes
 - **MANDATORY**: Keep files under 80 lines (atomic principle)
 - **MANDATORY**: Use Angular 17-20 latest features (`@if`, `@for`, `@defer`, etc.)
 - **MANDATORY**: All components must be standalone
@@ -290,7 +290,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 ## 🙏 Acknowledgments
 
 - 🅰️ **Angular Team** - Amazing framework and ecosystem
-- 🐳 **Docker Community** - Containerization excellence  
+- 🐳 **Docker Community** - Containerization excellence
 - 🎨 **NGX-Angora-CSS** - Revolutionary styling approach
 - 🌐 **Open Source Community** - Continuous inspiration and support
 
@@ -300,4 +300,4 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 [**🔥 Start Development**](#-quick-start) | [**📚 Read Docs**](docs/) | [**🤝 Contribute**](#-contributing)
 
-*Built with ❤️ by [@LynxPardelle](https://github.com/LynxPardelle) using Angular and NGX-Angora-CSS*
+_Built with ❤️ by [@LynxPardelle](https://github.com/LynxPardelle) using Angular and NGX-Angora-CSS_

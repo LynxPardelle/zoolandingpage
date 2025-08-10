@@ -34,7 +34,7 @@
 // import { ThemeMode } from '@types/theme.types';
 // import { environment } from '@environments/environment';
 
-// En tipos/interfaces:
+// En tipos:
 // import type { AppHeaderConfig } from '@types/layout.types';
 // import type { NavigationItem } from '@types/navigation.types';
 
