@@ -17,29 +17,33 @@ type ComponentProps = {
 };
 
 // ❌ FORBIDDEN
-interface UserRole { } // NOT ALLOWED
-enum UserRole { } // NOT ALLOWED
+interface UserRole {} // NOT ALLOWED
+enum UserRole {} // NOT ALLOWED
 ```
 
 ### 2. Theme Management Requirements
 
-**MANDATORY**: Use ngx-angora-css `pushColor` method for ALL theme changes
+**MANDATORY**: Use ngx-angora-css `pushColors` method for ALL theme changes
 
 ```typescript
 // ✅ REQUIRED - All components must implement this pattern
-@Component({ standalone: true })
+@Component()
 export class ThemeAwareComponent implements AfterRender {
   constructor(private _ank: NGXAngoraService) {}
-  
+
   ngAfterRender(): void {
-    this._ank.pushColor('component-bg', '#ffffff');
-    this._ank.pushColor('component-text', '#333333');
+    this._ank.pushColors(
+      {
+        componentBg: '#ffffff',
+        componentText: '#333333'
+      }
+    );
     this._ank.cssCreate();
   }
 }
 
 // ❌ FORBIDDEN - Hardcoded colors
-.component { 
+.component {
   background: #ffffff; /* NOT ALLOWED */
 }
 ```
@@ -67,18 +71,17 @@ component/
 ```typescript
 // ✅ REQUIRED - New control flow
 @Component({
-  standalone: true, // MANDATORY
   template: `
     @if (condition) {
       <div>Content</div>
     }
-    
+
     @for (item of items(); track item.id) {
       <div>{{ item.name }}</div>
     } @empty {
       <div>No items</div>
     }
-    
+
     @defer (on viewport) {
       <app-heavy-component />
     } @placeholder {
@@ -102,15 +105,15 @@ component/
   selector: 'app-component',
   imports: [CommonModule], // Explicit imports required
   template: `...`,
-  changeDetection: ChangeDetectionStrategy.OnPush // Recommended
+  changeDetection: ChangeDetectionStrategy.OnPush, // Recommended
 })
 export class Component implements AfterRender {
   // Use signals for state
   state = signal<ComponentState>({});
-  
+
   // Use computed for derived state
   derivedState = computed(() => this.state().someProperty);
-  
+
   // AfterRender for ngx-angora-css
   ngAfterRender(): void {
     this.setupStyles();
@@ -125,13 +128,13 @@ export class Component implements AfterRender {
 export class SignalComponent {
   count = signal(0);
   doubled = computed(() => this.count() * 2);
-  
+
   constructor() {
     effect(() => {
       console.log('Count changed:', this.count());
     });
   }
-  
+
   increment(): void {
     this.count.update(c => c + 1);
   }
@@ -152,20 +155,18 @@ export class OldComponent {
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
   private theme = signal<'light' | 'dark'>('light');
-  
+
   constructor(private _ank: NGXAngoraService) {
     effect(() => this.applyTheme());
   }
-  
+
   setTheme(theme: 'light' | 'dark'): void {
     this.theme.set(theme);
   }
-  
+
   private applyTheme(): void {
-    const colors = this.theme() === 'light' 
-      ? LIGHT_THEME_COLORS 
-      : DARK_THEME_COLORS;
-    
+    const colors = this.theme() === 'light' ? LIGHT_THEME_COLORS : DARK_THEME_COLORS;
+
     this._ank.pushColors(colors); // REQUIRED method
     this._ank.cssCreate();
   }
@@ -174,7 +175,7 @@ export class ThemeService {
 const LIGHT_THEME_COLORS: Record<string, string> = {
   'global-bg': '#ffffff',
   'global-text': '#333333',
-  'global-accent': '#1a73e8'
+  'global-accent': '#1a73e8',
 };
 ```
 
@@ -214,11 +215,11 @@ describe('Component', () => {
   let angoraService: jasmine.SpyObj<NGXAngoraService>;
 
   beforeEach(async () => {
-    const spy = jasmine.createSpyObj('NGXAngoraService', ['pushColor', 'cssCreate']);
-    
+    const spy = jasmine.createSpyObj('NGXAngoraService', ['pushColors', 'cssCreate']);
+
     await TestBed.configureTestingModule({
       imports: [Component],
-      providers: [{ provide: NGXAngoraService, useValue: spy }]
+      providers: [{ provide: NGXAngoraService, useValue: spy }],
     }).compileComponents();
 
     angoraService = TestBed.inject(NGXAngoraService) as jasmine.SpyObj<NGXAngoraService>;
@@ -226,7 +227,7 @@ describe('Component', () => {
 
   it('should apply theme colors on render', () => {
     component.ngAfterRender();
-    expect(angoraService.pushColor).toHaveBeenCalled();
+    expect(angoraService.pushColors).toHaveBeenCalled();
     expect(angoraService.cssCreate).toHaveBeenCalled();
   });
 });
@@ -303,12 +304,14 @@ src/app/
 ### NEVER Use These:
 
 1. **Type System Violations**
+
    ```typescript
-   interface SomeInterface { } // FORBIDDEN
-   enum SomeEnum { } // FORBIDDEN
+   interface SomeInterface {} // FORBIDDEN
+   enum SomeEnum {} // FORBIDDEN
    ```
 
 1. **Hardcoded Styles**
+
    ```css
    .component {
      background: #ffffff; /* FORBIDDEN */
@@ -317,9 +320,12 @@ src/app/
    ```
 
 1. **Old Angular Patterns**
+
    ```html
-   <div *ngIf="condition"> <!-- FORBIDDEN -->
-   <div *ngFor="let item of items"> <!-- FORBIDDEN -->
+   <div *ngIf="condition">
+     <!-- FORBIDDEN -->
+     <div *ngFor="let item of items"><!-- FORBIDDEN --></div>
+   </div>
    ```
 
 1. **Large Files**
@@ -332,7 +338,7 @@ src/app/
 Before submitting any code, verify:
 
 - [ ] All types use `type` keyword (zero interfaces/enums)
-- [ ] All components use `pushColor` for themes
+- [ ] All components use `pushColors` for themes
 - [ ] All files under 80 lines
 - [ ] All components standalone
 - [ ] Use `@if`, `@for`, `@switch`, `@defer`
@@ -344,7 +350,7 @@ Before submitting any code, verify:
 ## 🎯 Success Metrics
 
 - **Type Safety**: 100% type-only definitions
-- **Theme Support**: 100% dynamic theming via pushColor
+- **Theme Support**: 100% dynamic theming via pushColors
 - **File Atomicity**: 100% files under 80 lines
 - **Angular Modern**: 100% latest features usage
 - **Performance**: 90+ Lighthouse scores

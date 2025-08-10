@@ -114,15 +114,6 @@ this._ank.pushColors({
   secondary: '#f8fafc',
   accent: '#2563eb',
 });
-
-// ✅ REQUIRED - Use updateClasses for CSS class updates
-this._ank.updateClasses(['ank-m-5rem']);
-
-// ✅ REQUIRED - Use pushColor for theme integration (single color application)
-const themedClasses: string = this.themeService.pushColor('ank-bg-primary ank-text-foreground');
-
-// ❌ FORBIDDEN - pushColor method does not exist for adding colors
-// this._ank.pushColor('primary', '#ffffff'); // WRONG METHOD
 ```
 
 ### TypeScript Guidelines
@@ -218,17 +209,15 @@ export class UserComponent {
     <section class="ank-minHeight-100vh ank-display-flex ank-alignItems-center">
       <div class="ank-textAlign-center">
         <h1 class="ank-fontSize-48px ank-fontWeight-bold">{{ title }}</h1>
-        <app-generic-button
-          [text]="buttonText"
-          [type]="'primary'"
-          (click)="onActionClick()">
-        </app-generic-button>
+        <app-generic-button [text]="buttonText" [type]="'primary'" (click)="onActionClick()"> </app-generic-button>
       </div>
     </section>
   `,
-  styles: [`
-    /* Minimal component-specific styles (only animations and/or something that ngx-angora-css can not do) - Most styling via ngx-angora-css */
-  `]
+  styles: [
+    `
+      /* Minimal component-specific styles (only animations and/or something that ngx-angora-css can not do) - Most styling via ngx-angora-css */
+    `,
+  ],
 })
 export class HeroSectionComponent implements AfterRender {
   title = 'Welcome to Zoolandingpage';
@@ -237,16 +226,17 @@ export class HeroSectionComponent implements AfterRender {
   constructor(private _ank: NGXAngoraService) {}
 
   ngAfterRender(): void {
-    // REQUIRED: Theme support using pushColor method
     this.setupThemeColors();
     this._ank.cssCreate();
   }
 
   private setupThemeColors(): void {
-    // MANDATORY: Use pushColor for dynamic theme changes
-    this._ank.pushColors({'hero-bg', '#ffffff'});
-    this._ank.pushColors({'hero-text', '#333333'});
-    this._ank.pushColors({'hero-accent', '#1a73e8'});
+    // MANDATORY: Use pushColors for dynamic theme changes
+    this._ank.pushColors({
+      heroBg: '#ffffff',
+      heroText: '#333333',
+      heroAccent: '#1a73e8',
+    });
   }
 
   onActionClick(): void {
@@ -584,16 +574,13 @@ describe('Landing Page Flow', () => {
 
 ## 🎨 NGX-Angora-CSS Development Guidelines
 
-### MANDATORY: Theme Management with pushColor Method
-
 1. **REQUIRED: Dynamic Theme Support**
 
-All themes must be implemented using the `pushColor` method for dynamic theme switching:
+All themes must be implemented using the `pushColors` method for dynamic theme switching:
 
 ```typescript
 @Component({
   selector: 'app-themed-component',
-  standalone: true,
   template: `
     <div class="ank-bg-primary ank-color-text ank-p-20px">
       <h2 class="ank-color-accent">Themed Content</h2>
@@ -618,20 +605,24 @@ export class ThemedComponent implements AfterRender {
     this.applyTheme();
   }
 
-  // MANDATORY: Use pushColor for all theme changes
+  // MANDATORY: Use pushColors for all theme changes
   private applyTheme(): void {
     const theme = this.currentTheme();
 
     if (theme === 'light') {
-      this._ank.pushColors({'primary', '#ffffff'});
-      this._ank.pushColors({'text', '#333333'});
-      this._ank.pushColors({'accent', '#1a73e8'});
-      this._ank.pushColors({'secondary', '#f5f5f5'});
+      this._ank.pushColors({
+        primary: '#ffffff',
+        text: '#333333',
+        accent: '#1a73e8',
+        secondary: '#f5f5f5',
+      });
     } else {
-      this._ank.pushColors({'primary', '#1a1a1a'});
-      this._ank.pushColors({'text', '#ffffff'});
-      this._ank.pushColors({'accent', '#4285f4'});
-      this._ank.pushColors({'secondary', '#2d2d2d'});
+      this._ank.pushColors({
+        primary: '#1a1a1a',
+        text: '#ffffff',
+        accent: '#4285f4',
+        secondary: '#2d2d2d',
+      });
     }
 
     this._ank.cssCreate();
@@ -641,7 +632,7 @@ export class ThemedComponent implements AfterRender {
 
 1. **MANDATORY: Global Theme Service**
 
-Create a centralized theme service using pushColor:
+Create a centralized theme service using pushColors:
 
 ```typescript
 @Injectable({
@@ -673,7 +664,7 @@ export class ThemeService {
     localStorage.setItem('theme-preference', theme);
   }
 
-  // REQUIRED: All theme changes must use pushColor
+  // REQUIRED: All theme changes must use pushColors
   private applyGlobalTheme(theme: 'light' | 'dark'): void {
     const colors = theme === 'light' ? LIGHT_THEME_COLORS : DARK_THEME_COLORS;
 

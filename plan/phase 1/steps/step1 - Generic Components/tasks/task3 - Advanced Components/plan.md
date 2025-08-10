@@ -27,8 +27,10 @@ This task focuses on developing advanced UI components that provide sophisticate
 ### 1. Modal and Overlay Components
 
 #### Modal
+
 **Purpose**: Overlay dialog component for various content types
 **Features**:
+
 - Multiple modal sizes (small, medium, large, full-screen)
 - Header with title and close button
 - Scrollable content area
@@ -37,15 +39,18 @@ This task focuses on developing advanced UI components that provide sophisticate
 - Focus trap and accessibility support
 
 **Technical Requirements**:
+
 - Use Angular CDK Overlay for positioning
 - Implement `@defer` for modal content lazy loading
 - Focus management with proper tab trapping
 - Animation support for enter/exit transitions
-- Theme-aware styling with `pushColor`
+- Theme-aware styling with `pushColors`
 
 #### Accordion
+
 **Purpose**: Expandable content sections for organized information display
 **Features**:
+
 - Multiple expansion modes (single, multiple)
 - Smooth expand/collapse animations
 - Icon rotation and state indicators
@@ -53,14 +58,17 @@ This task focuses on developing advanced UI components that provide sophisticate
 - Nested accordion support
 
 **Technical Requirements**:
+
 - Use `@if` for conditional content rendering
 - CSS Grid/Flexbox for layout management
 - Animation using Angular Animations API
 - Proper ARIA attributes for accessibility
 
 #### Dropdown
+
 **Purpose**: Dropdown menu component for actions and navigation
 **Features**:
+
 - Trigger button with customizable content
 - Positioned dropdown panel
 - Menu items with icons and descriptions
@@ -68,6 +76,7 @@ This task focuses on developing advanced UI components that provide sophisticate
 - Auto-positioning to avoid viewport overflow
 
 **Technical Requirements**:
+
 - Angular CDK Overlay for positioning
 - Focus management and keyboard navigation
 - Theme integration for menu styling
@@ -76,8 +85,10 @@ This task focuses on developing advanced UI components that provide sophisticate
 ### 2. Utility Components
 
 #### LoadingSpinner
+
 **Purpose**: Loading state indicators for various contexts
 **Features**:
+
 - Multiple spinner styles (dots, bars, circular)
 - Size variants (small, medium, large)
 - Color customization via theme
@@ -85,14 +96,17 @@ This task focuses on developing advanced UI components that provide sophisticate
 - Accessibility announcements for screen readers
 
 **Technical Requirements**:
+
 - CSS animations for smooth spinning
 - Theme-aware color management
 - Proper ARIA live regions
 - Performance-optimized animations
 
 #### ProgressBar
+
 **Purpose**: Progress indication for multi-step processes or loading
 **Features**:
+
 - Determinate and indeterminate modes
 - Step-based progress indicators
 - Customizable colors and styling
@@ -100,14 +114,17 @@ This task focuses on developing advanced UI components that provide sophisticate
 - Animation for progress changes
 
 **Technical Requirements**:
+
 - CSS transforms for smooth animations
 - Theme integration for progress colors
 - Accessibility compliance with ARIA attributes
 - Performance optimization for frequent updates
 
 #### Toast
+
 **Purpose**: Notification and alert messages
 **Features**:
+
 - Multiple toast types (success, error, warning, info)
 - Auto-dismiss with customizable timing
 - Manual dismiss option
@@ -115,6 +132,7 @@ This task focuses on developing advanced UI components that provide sophisticate
 - Action buttons within toasts
 
 **Technical Requirements**:
+
 - Angular service for toast management
 - Animation for enter/exit transitions
 - Theme-aware styling for different types
@@ -122,8 +140,10 @@ This task focuses on developing advanced UI components that provide sophisticate
 - Memory-efficient queue management
 
 #### Tooltip
+
 **Purpose**: Contextual help and information display
 **Features**:
+
 - Hover and focus trigger options
 - Multiple positioning options (top, bottom, left, right)
 - Auto-positioning to stay in viewport
@@ -131,6 +151,7 @@ This task focuses on developing advanced UI components that provide sophisticate
 - Customizable delay and duration
 
 **Technical Requirements**:
+
 - Angular CDK Overlay for positioning
 - Event handling for show/hide triggers
 - Performance optimization for frequent triggers
@@ -139,8 +160,10 @@ This task focuses on developing advanced UI components that provide sophisticate
 ### 3. Advanced Interactive Components
 
 #### TabGroup
+
 **Purpose**: Tabbed content organization
 **Features**:
+
 - Horizontal and vertical tab layouts
 - Scrollable tabs for overflow
 - Lazy loading of tab content
@@ -148,14 +171,17 @@ This task focuses on developing advanced UI components that provide sophisticate
 - Custom tab templates
 
 **Technical Requirements**:
+
 - Use `@defer` for tab content lazy loading
 - Focus management for keyboard navigation
 - Theme integration for tab styling
 - Responsive behavior for mobile
 
 #### Stepper
+
 **Purpose**: Multi-step process guidance
 **Features**:
+
 - Linear and non-linear step progression
 - Step validation and error states
 - Custom step templates
@@ -163,14 +189,17 @@ This task focuses on developing advanced UI components that provide sophisticate
 - Progress indication
 
 **Technical Requirements**:
+
 - Form integration for step validation
 - Animation for step transitions
 - Accessibility support for screen readers
 - Mobile-responsive layout
 
 #### SearchBox
+
 **Purpose**: Advanced search input with suggestions
 **Features**:
+
 - Auto-complete suggestions
 - Search history
 - Keyboard navigation in suggestions
@@ -178,6 +207,7 @@ This task focuses on developing advanced UI components that provide sophisticate
 - Loading states for async search
 
 **Technical Requirements**:
+
 - Debounced input handling
 - Angular CDK Overlay for suggestions
 - Performance optimization for large datasets
@@ -189,7 +219,7 @@ This task focuses on developing advanced UI components that provide sophisticate
 
 1. **Types Only**: All type definitions use `type` keyword, NO interfaces/enums
 2. **Atomic File Structure**: Each component split into 50-80 line files maximum
-3. **pushColor Method**: All color management through ngx-angora-css `pushColor`
+3. **pushColors Method**: All color management through ngx-angora-css `pushColors`
 4. **Latest Angular Features**: Use `@if`, `@for`, `@defer` with loading states
 5. **CDK Integration**: Leverage Angular CDK for overlay, focus, and accessibility
 6. **Performance First**: Optimize for bundle size and runtime performance
@@ -213,6 +243,7 @@ component-name/
 ### Angular CDK Integration
 
 #### Overlay Configuration
+
 ```typescript
 // Example overlay configuration for modals
 type OverlayConfig = {
@@ -225,6 +256,7 @@ type OverlayConfig = {
 ```
 
 #### Focus Management
+
 ```typescript
 // Example focus trap implementation
 type FocusTrapConfig = {
@@ -237,6 +269,7 @@ type FocusTrapConfig = {
 ### Accessibility Standards
 
 #### ARIA Implementation
+
 - **Modal**: `role="dialog"`, `aria-modal="true"`, `aria-labelledby`, `aria-describedby`
 - **Accordion**: `role="button"`, `aria-expanded`, `aria-controls`
 - **Dropdown**: `role="menu"`, `role="menuitem"`, `aria-haspopup`
@@ -244,6 +277,7 @@ type FocusTrapConfig = {
 - **Toast**: `role="alert"` or `role="status"`, `aria-live`
 
 #### Keyboard Navigation
+
 - **Modal**: Tab, Shift+Tab, Escape
 - **Accordion**: Enter, Space, Arrow keys
 - **Dropdown**: Arrow keys, Enter, Escape
@@ -253,6 +287,7 @@ type FocusTrapConfig = {
 ## Implementation Tasks
 
 ### Week 3: Modal and Overlay Components (Days 1-3)
+
 1. Create Modal component with CDK Overlay integration
 2. Implement Accordion component with animations
 3. Develop Dropdown component with positioning
@@ -260,6 +295,7 @@ type FocusTrapConfig = {
 5. Implement accessibility features and ARIA attributes
 
 ### Week 3: Utility Components (Days 4-5)
+
 1. Build LoadingSpinner with multiple variants
 2. Create ProgressBar with determinate/indeterminate modes
 3. Implement Toast notification system
@@ -267,6 +303,7 @@ type FocusTrapConfig = {
 5. Add theme integration and performance optimizations
 
 ### Week 3: Advanced Interactive Components (Days 6-7)
+
 1. Create TabGroup component with lazy loading
 2. Implement Stepper component with validation
 3. Build SearchBox with auto-complete
@@ -363,6 +400,7 @@ src/app/shared/components/advanced/
 ## Success Criteria
 
 ### Functional Requirements
+
 - [ ] Modal opens/closes correctly with backdrop and ESC key
 - [ ] Accordion expands/collapses smoothly with animations
 - [ ] Dropdown positions correctly and handles overflow
@@ -375,6 +413,7 @@ src/app/shared/components/advanced/
 - [ ] SearchBox provides auto-complete functionality
 
 ### Technical Requirements
+
 - [ ] All components use Angular CDK appropriately
 - [ ] Focus management works correctly for accessibility
 - [ ] Keyboard navigation follows accessibility guidelines
@@ -384,6 +423,7 @@ src/app/shared/components/advanced/
 - [ ] Memory usage is optimized
 
 ### Quality Requirements
+
 - [ ] Components pass accessibility audits (WCAG 2.1 AA)
 - [ ] Cross-browser compatibility verified
 - [ ] Mobile responsiveness tested
@@ -394,11 +434,13 @@ src/app/shared/components/advanced/
 ## Dependencies
 
 ### Required Libraries
+
 - **Angular CDK**: Overlay, Focus Trap, A11y, Portal
 - **Angular Animations**: For component animations
 - **ngx-angora-css**: Theme and styling integration
 
 ### Development Dependencies
+
 - **Jest**: Unit testing
 - **Cypress**: E2E testing
 - **Axe-core**: Accessibility testing
@@ -406,18 +448,21 @@ src/app/shared/components/advanced/
 ## Performance Considerations
 
 ### Bundle Size Optimization
+
 - Tree-shakable component exports
 - Lazy loading for non-critical components
 - CDK module selective imports
 - Optimize animation bundle size
 
 ### Runtime Performance
+
 - Use OnPush change detection
 - Debounce frequent events (search, resize)
 - Optimize DOM queries and updates
 - Memory leak prevention
 
 ### Accessibility Performance
+
 - Minimize screen reader announcements
 - Optimize focus management
 - Efficient keyboard event handling
@@ -425,12 +470,14 @@ src/app/shared/components/advanced/
 ## Risk Mitigation
 
 ### Technical Risks
+
 - **CDK Version Compatibility**: Test with Angular CDK updates
 - **Performance Impact**: Monitor bundle size and runtime performance
 - **Browser Support**: Test overlay positioning across browsers
 - **Memory Leaks**: Proper cleanup of subscriptions and overlays
 
 ### Accessibility Risks
+
 - **Focus Management**: Comprehensive keyboard navigation testing
 - **Screen Reader Support**: Test with multiple screen readers
 - **Color Contrast**: Verify contrast ratios in all themes
@@ -439,6 +486,7 @@ src/app/shared/components/advanced/
 ## Next Steps
 
 After completing this task:
+
 1. Advanced component library ready for complex applications
 2. Accessibility standards established and implemented
 3. Performance optimization patterns documented

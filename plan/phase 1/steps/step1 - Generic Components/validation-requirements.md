@@ -7,6 +7,7 @@
 **CRITICAL**: All code must use `type` definitions - NO interfaces or enums allowed.
 
 #### Type Definition Requirements
+
 - [ ] All component props use `type` definitions (not interfaces)
 - [ ] All service contracts use `type` definitions
 - [ ] All API response models use `type` definitions
@@ -14,6 +15,7 @@
 - [ ] No `enum` keywords found in codebase
 
 #### Example Validation:
+
 ```typescript
 // ✅ CORRECT - Required format
 type ButtonProps = {
@@ -24,28 +26,36 @@ type ButtonProps = {
 };
 
 // ❌ FORBIDDEN - Must be rejected in code review
-interface ButtonProps { /* NOT ALLOWED */ }
-enum ButtonVariant { /* NOT ALLOWED */ }
+interface ButtonProps {
+  /* NOT ALLOWED */
+}
+enum ButtonVariant /* NOT ALLOWED */ {}
 ```
 
 ### ✅ ngx-angora-css Theme Management Validation
 
-**CRITICAL**: All theme changes must use `pushColor` method.
+**CRITICAL**: All theme changes must use `pushColors` method.
 
 #### Theme Implementation Requirements
+
 - [ ] All components implement `AfterRender` lifecycle hook
-- [ ] Theme colors defined using `pushColor()` method exclusively
+- [ ] Theme colors defined using `pushColors()` method exclusively
 - [ ] No hardcoded colors in CSS/SCSS files
-- [ ] Theme service uses `pushColor()` for global theme management
+- [ ] Theme service uses `pushColors()` for global theme management
 - [ ] All components support dynamic theme switching
 
 #### Example Validation:
+
 ```typescript
 // ✅ CORRECT - Required theme implementation
 ngAfterRender(): void {
-  this._ank.pushColor('component-bg', '#ffffff');
-  this._ank.pushColor('component-text', '#333333');
-  this._ank.pushColor('component-accent', '#1a73e8');
+  this._ank.pushColors(
+    {
+      componentBg: '#ffffff',
+      componentText: '#333333',
+      componentAccent: '#1a73e8'
+    }
+  );
   this._ank.cssCreate();
 }
 
@@ -61,6 +71,7 @@ ngAfterRender(): void {
 **CRITICAL**: Each file must be 50-80 lines maximum, split functionality appropriately.
 
 #### File Size Requirements
+
 - [ ] Component files: 50-80 lines maximum
 - [ ] Type definition files: Separate from component logic
 - [ ] Style configuration files: Separate ngx-angora-css configs
@@ -68,6 +79,7 @@ ngAfterRender(): void {
 - [ ] Index files: Barrel exports for clean imports
 
 #### File Structure Validation:
+
 ```text
 ✅ CORRECT Structure:
 button/
@@ -87,6 +99,7 @@ button/
 **CRITICAL**: Must use Angular 17-20 latest features exclusively.
 
 #### Control Flow Requirements
+
 - [ ] Use `@if` instead of `*ngIf`
 - [ ] Use `@for` with `track` instead of `*ngFor`
 - [ ] Use `@switch` instead of `*ngSwitch`
@@ -94,21 +107,23 @@ button/
 - [ ] Include `@placeholder`, `@error`, and `@loading` states for deferred content
 
 #### Signal Usage Requirements
+
 - [ ] Use `signal()` for reactive state
 - [ ] Use `computed()` for derived state
 - [ ] Use `effect()` for side effects
 - [ ] Replace reactive forms with signal-based state where possible
 
 #### Standalone Component Requirements
+
 - [ ] All components marked as `standalone: true`
 - [ ] Use new `input()` and `output()` APIs where applicable
 - [ ] Avoid NgModules completely
 
 #### Example Validation:
+
 ```typescript
 // ✅ CORRECT - Required Angular latest features
 @Component({
-  standalone: true, // REQUIRED
   template: `
     @if (isLoading()) {
       <div>Loading...</div>
@@ -119,7 +134,7 @@ button/
         <div>No items</div>
       }
     }
-    
+
     @defer (on viewport; prefetch on idle) {
       <app-heavy-component />
     } @placeholder {
@@ -148,6 +163,7 @@ export class ModernComponent {
 ## 🧪 Automated Validation Checks
 
 ### ESLint Rules (ENFORCED)
+
 ```json
 {
   "rules": {
@@ -156,12 +172,13 @@ export class ModernComponent {
     "@angular-eslint/prefer-standalone": "error",
     "max-lines": ["error", { "max": 80 }],
     "custom-rules/no-hardcoded-colors": "error",
-    "custom-rules/require-pushcolor": "error"
+    "custom-rules/require-pushColors": "error"
   }
 }
 ```
 
 ### Unit Test Requirements
+
 - [ ] All components have minimum 90% code coverage
 - [ ] Theme switching functionality tested
 - [ ] Signal reactivity tested
@@ -169,6 +186,7 @@ export class ModernComponent {
 - [ ] Loading states tested
 
 ### Performance Validation
+
 - [ ] OnPush change detection implemented where possible
 - [ ] Proper cleanup of subscriptions and effects
 - [ ] Bundle size impact verified (< 500KB increase per component)
@@ -177,17 +195,21 @@ export class ModernComponent {
 ## 🔍 Manual Validation Procedures
 
 ### Code Review Checklist
+
 1. **Type System Review**
+
    - [ ] Scan for any `interface` or `enum` keywords
    - [ ] Verify all types are properly defined
    - [ ] Check for proper generic type usage
 
 1. **Theme Implementation Review**
-   - [ ] Verify `pushColor` usage in all components
+
+   - [ ] Verify `pushColors` usage in all components
    - [ ] Test theme switching functionality
    - [ ] Confirm no hardcoded colors exist
 
 1. **File Structure Review**
+
    - [ ] Check file line counts (max 80 lines)
    - [ ] Verify proper separation of concerns
    - [ ] Confirm barrel exports are implemented
@@ -198,12 +220,14 @@ export class ModernComponent {
    - [ ] Confirm standalone component structure
 
 ### Browser Testing
+
 - [ ] Test in Chrome, Firefox, Safari, Edge
 - [ ] Test responsive design on mobile, tablet, desktop
 - [ ] Test theme switching in all browsers
 - [ ] Test accessibility with screen readers
 
 ### Performance Testing
+
 - [ ] Lighthouse audit scores (>90 for all metrics)
 - [ ] Bundle size analysis
 - [ ] Memory leak testing
@@ -214,7 +238,7 @@ export class ModernComponent {
 The following will result in automatic rejection during code review:
 
 1. **Any usage of `interface` or `enum` keywords**
-1. **Any hardcoded colors not using `pushColor`**
+1. **Any hardcoded colors not using `pushColors`**
 1. **Files exceeding 80 lines**
 1. **Usage of old Angular patterns (`*ngIf`, `*ngFor`, etc.)**
 1. **Components not marked as standalone**
@@ -226,7 +250,7 @@ The following will result in automatic rejection during code review:
 For Step 1 to be considered complete, ALL of the following must be validated:
 
 - [ ] 100% type-only definitions (zero interfaces/enums)
-- [ ] 100% theme support using `pushColor` method
+- [ ] 100% theme support using `pushColors` method
 - [ ] 100% atomic file structure (50-80 lines max)
 - [ ] 100% latest Angular features implementation
 - [ ] 100% standalone component architecture

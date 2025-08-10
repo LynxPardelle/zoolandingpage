@@ -57,14 +57,14 @@ zoolandingpage/
 
 ### Make Commands Reference
 
-| Command | Purpose | When to Use |
-|---------|---------|-------------|
-| `make quick-start` | Complete setup | First time setup |
-| `make dev` | Development server | Daily development |
-| `make dev-logs` | View logs | Debugging |
-| `make test` | Run tests | Before commits |
-| `make code-quality` | Quality checks | Before PRs |
-| `make clean` | Reset environment | When stuck |
+| Command             | Purpose            | When to Use       |
+| ------------------- | ------------------ | ----------------- |
+| `make quick-start`  | Complete setup     | First time setup  |
+| `make dev`          | Development server | Daily development |
+| `make dev-logs`     | View logs          | Debugging         |
+| `make test`         | Run tests          | Before commits    |
+| `make code-quality` | Quality checks     | Before PRs        |
+| `make clean`        | Reset environment  | When stuck        |
 
 ### Development Workflow
 
@@ -104,17 +104,17 @@ npm run custom-script
    ```typescript
    // ✅ Correct
    type UserRole = 'admin' | 'user';
-   
+
    // ❌ Forbidden
-   interface UserRole { }
-   enum UserRole { }
+   interface UserRole {}
+   enum UserRole {}
    ```
 
-2. **Theming**: Use ngx-angora-css `pushColor` method
+2. **Theming**: Use ngx-angora-css `pushColors` method
 
    ```typescript
    ngAfterRender(): void {
-     this._ank.pushColor('component-bg', '#ffffff');
+     this._ank.pushColors({componentBg: '#ffffff'});
      this._ank.cssCreate();
    }
    ```
@@ -127,7 +127,7 @@ npm run custom-script
    // ✅ New control flow
    @if (condition) { <div>Content</div> }
    @for (item of items(); track item.id) { <div>{{ item.name }}</div> }
-   
+
    // ❌ Old syntax
    *ngIf, *ngFor // Not allowed
    ```
@@ -195,13 +195,13 @@ make docs-serve
 
 ### Common Issues & Solutions
 
-| Issue | Solution |
-|-------|----------|
-| Port already in use | `make stop` then `make clean` |
-| Docker build fails | `make rebuild` |
-| Container won't start | Check Docker is running |
-| Dependencies out of sync | `make clean && make dev-setup` |
-| Tests failing | `make full-test-suite` to identify issues |
+| Issue                    | Solution                                  |
+| ------------------------ | ----------------------------------------- |
+| Port already in use      | `make stop` then `make clean`             |
+| Docker build fails       | `make rebuild`                            |
+| Container won't start    | Check Docker is running                   |
+| Dependencies out of sync | `make clean && make dev-setup`            |
+| Tests failing            | `make full-test-suite` to identify issues |
 
 ### Debug Commands
 
@@ -258,6 +258,7 @@ cp .example.env .env
 ### After Setup
 
 1. **Explore the codebase**
+
    - Start with `src/app/app.component.ts`
    - Review component structure in `src/app/shared/components/`
    - Check out the planning documents in `plan/`
@@ -270,6 +271,7 @@ cp .example.env .env
    ```
 
 3. **Set up your IDE**
+
    - Install Angular Language Service
    - Configure ESLint and Prettier
    - Set up debugging configuration
@@ -302,7 +304,7 @@ Before you start developing, ensure:
 
 ## 🎉 Welcome to the Team
 
-You're now ready to contribute to **Zoolandingpage**! 
+You're now ready to contribute to **Zoolandingpage**!
 
 - **Need help?** Check the documentation or ask questions
 - **Ready to code?** Review the project roadmap and pick a task

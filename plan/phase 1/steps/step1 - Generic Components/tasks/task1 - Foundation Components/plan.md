@@ -7,6 +7,7 @@ This task focuses on creating the foundational layout and navigation components 
 ## Objectives
 
 ### Primary Goals
+
 - Set up the component library structure and organization
 - Create essential layout components (AppHeader, AppFooter, AppContainer, AppSection)
 - Implement primary navigation components with responsive behavior
@@ -14,6 +15,7 @@ This task focuses on creating the foundational layout and navigation components 
 - Set up proper TypeScript types and component architecture
 
 ### Secondary Goals
+
 - Create component documentation templates
 - Implement basic accessibility patterns
 - Set up initial testing infrastructure
@@ -24,8 +26,10 @@ This task focuses on creating the foundational layout and navigation components 
 ### 1. Core Layout Components
 
 #### AppHeader
+
 **Purpose**: Main application header with navigation and branding
 **Features**:
+
 - Responsive navigation menu
 - Logo/branding area
 - Language toggle integration
@@ -34,14 +38,17 @@ This task focuses on creating the foundational layout and navigation components 
 - Sticky positioning option
 
 **Technical Requirements**:
+
 - Use `@defer` for mobile menu with `@placeholder` and `@loading`
-- Implement `pushColor` for theme-aware styling
+- Implement `pushColors` for theme-aware styling
 - Use `@if` for responsive menu display
 - Support keyboard navigation (tab, enter, escape)
 
 #### AppFooter
+
 **Purpose**: Application footer with links and contact information
 **Features**:
+
 - Contact information display
 - Social media links
 - Copyright information
@@ -49,35 +56,42 @@ This task focuses on creating the foundational layout and navigation components 
 - Responsive column layout
 
 **Technical Requirements**:
+
 - Responsive grid layout using ngx-angora-css
 - Dynamic year calculation for copyright
 - Accessible link structure
 - Theme-aware color schemes
 
 #### AppContainer
+
 **Purpose**: Main content wrapper with responsive breakpoints
 **Features**:
+
 - Responsive max-width constraints
 - Consistent padding and margins
 - Flexible content positioning
 - Breakpoint-specific layouts
 
 **Technical Requirements**:
+
 - Use ngx-angora-css breakpoint utilities
 - Implement fluid typography scaling
 - Support multiple layout variants
 - Optimize for Core Web Vitals
 
 #### AppSection
+
 **Purpose**: Reusable section wrapper with consistent spacing
 **Features**:
+
 - Standardized vertical spacing
 - Background color variations
 - Content alignment options
 - Responsive padding adjustments
 
 **Technical Requirements**:
-- Theme-aware background colors via `pushColor`
+
+- Theme-aware background colors via `pushColors`
 - Consistent spacing scale
 - Support for various content types
 - Accessibility-compliant heading structure
@@ -85,8 +99,10 @@ This task focuses on creating the foundational layout and navigation components 
 ### 2. Navigation Components
 
 #### NavMenu
+
 **Purpose**: Primary navigation menu with mobile responsiveness
 **Features**:
+
 - Horizontal desktop layout
 - Mobile slide-out/overlay menu
 - Active state indication
@@ -94,35 +110,42 @@ This task focuses on creating the foundational layout and navigation components 
 - Keyboard navigation support
 
 **Technical Requirements**:
+
 - Use `@if` for responsive menu variants
 - Implement `@defer` for mobile menu components
 - Focus management for accessibility
 - Animation using CSS transitions
 
 #### LanguageToggle
+
 **Purpose**: Spanish/English language switcher
 **Features**:
+
 - Toggle between Spanish and English
 - Persist language preference
 - Smooth transition animations
 - Accessible button states
 
 **Technical Requirements**:
+
 - Use Angular signals for language state
 - Local storage integration
 - ARIA labels for screen readers
 - Theme-aware styling
 
 #### ThemeToggle
+
 **Purpose**: Light/dark mode switcher
 **Features**:
+
 - Toggle between light and dark themes
 - System preference detection
 - Persist theme choice
 - Smooth color transitions
 
 **Technical Requirements**:
-- Integration with ngx-angora-css `pushColor`
+
+- Integration with ngx-angora-css `pushColors`
 - System theme detection
 - Local storage persistence
 - Reduced motion support
@@ -134,7 +157,7 @@ This task focuses on creating the foundational layout and navigation components 
 1. **HTML Template Files Only**: ALL components MUST use `templateUrl`, NO inline templates allowed
 2. **Complete Type Safety**: Type everything including function variables, error objects, and method parameters
 3. **Environment Variables**: ALL configuration must use environment variables (localStorage keys, API URLs, etc.)
-4. **Correct ngx-angora-css Methods**: 
+4. **Correct ngx-angora-css Methods**:
    - Use `pushColors()` for adding/updating colors
    - Use `updateClasses()` for CSS class management
    - Use proper theme integration methods
@@ -146,6 +169,7 @@ This task focuses on creating the foundational layout and navigation components 
 ### Component Structure Template
 
 Each component follows this MANDATORY structure:
+
 ```text
 component-name/
 ├── component-name.component.ts (max 50-80 lines, uses templateUrl)
@@ -156,17 +180,18 @@ component-name/
 ```
 
 ### Environment Integration Example
+
 ```typescript
 // ✅ REQUIRED - Environment usage in services
 import { environment } from '../../../environments/environment';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ExampleService {
   private readonly storageKey: string = environment.localStorage.themeKey;
   private readonly apiUrl: string = environment.apiUrl;
-  
+
   savePreference(value: string): void {
     const key: string = environment.localStorage.userPreferencesKey;
     localStorage.setItem(key, value);
@@ -175,38 +200,42 @@ export class ExampleService {
 ```
 
 ### ngx-angora-css Correct Implementation
+
 ```typescript
 // ✅ REQUIRED - Correct method usage
 export class ThemeService {
   private applyTheme(): void {
     // Use pushColors for adding/updating colors
     this._ank.pushColors({
-      'primary': '#ffffff',
-      'secondary': '#f8fafc',
-      'accent': '#2563eb'
+      primary: '#ffffff',
+      secondary: '#f8fafc',
+      accent: '#2563eb',
     });
-    
+
     // Use updateClasses for CSS class updates
     this._ank.updateClasses(['ank-m-5rem']);
-    
+
     this._ank.cssCreate();
   }
 }
 ```
 
 #### Styling Conventions
+
 - **Spacing**: Use `ank-p-{size}px`, `ank-m-{size}px` for consistent spacing
 - **Colors**: Use `ank-bg-{color}`, `ank-text-{color}` with dynamic theme support
 - **Layout**: Use `ank-flex`, `ank-grid` utilities for responsive layouts
 - **Typography**: Use `ank-text-{size}` with responsive scaling
 
 ### Accessibility Requirements
+
 - **ARIA Labels**: All interactive elements have proper ARIA attributes
 - **Keyboard Navigation**: Full keyboard support with visible focus indicators
 - **Screen Readers**: Semantic HTML structure with proper headings
 - **Color Contrast**: Minimum 4.5:1 contrast ratio for all text
 
 ### Performance Requirements
+
 - **OnPush Strategy**: Use OnPush change detection for all components
 - **Lazy Loading**: Use `@defer` for non-critical component parts
 - **Bundle Size**: Each component <5KB gzipped
@@ -215,6 +244,7 @@ export class ThemeService {
 ## Implementation Tasks
 
 ### Week 1: Core Setup and AppContainer/AppSection (Days 1-2)
+
 1. Set up component library folder structure
 2. Create base TypeScript types and constants
 3. Implement AppContainer with responsive breakpoints
@@ -222,6 +252,7 @@ export class ThemeService {
 5. Create initial documentation templates
 
 ### Week 1: AppHeader Component (Days 3-4)
+
 1. Create AppHeader with responsive navigation
 2. Implement mobile hamburger menu with `@defer`
 3. Add language and theme toggle integration
@@ -229,6 +260,7 @@ export class ThemeService {
 5. Add accessibility attributes and testing
 
 ### Week 1: AppFooter and NavMenu (Days 5-7)
+
 1. Create AppFooter with responsive layout
 2. Implement NavMenu with active state management
 3. Add proper link structure and navigation
@@ -289,6 +321,7 @@ src/app/core/
 ## Success Criteria
 
 ### Functional Requirements
+
 - [ ] AppHeader renders correctly with responsive navigation
 - [ ] AppFooter displays properly across all screen sizes
 - [ ] AppContainer provides consistent content wrapping
@@ -298,14 +331,16 @@ src/app/core/
 - [ ] Theme toggle changes color scheme smoothly
 
 ### Technical Requirements
+
 - [ ] All components use TypeScript strict mode
 - [ ] File size limits maintained (50-80 lines per file)
-- [ ] All colors managed through `pushColor` method
+- [ ] All colors managed through `pushColors` method
 - [ ] Latest Angular features implemented (`@if`, `@defer`, etc.)
 - [ ] Components pass initial unit tests
 - [ ] Bundle size under target limits
 
 ### Quality Requirements
+
 - [ ] Accessibility audit passes WCAG 2.1 AA
 - [ ] Performance metrics meet Core Web Vitals standards
 - [ ] Code follows established conventions
@@ -315,12 +350,14 @@ src/app/core/
 ## Dependencies
 
 ### Required
+
 - Angular 19+ with latest features
 - ngx-angora-css for styling framework
 - TypeScript for type safety
 - RxJS for reactive patterns
 
 ### Development
+
 - Jest for unit testing
 - ESLint and Prettier for code quality
 - Angular DevKit for build tools
@@ -328,11 +365,13 @@ src/app/core/
 ## Risks and Mitigation
 
 ### Technical Risks
+
 - **SSR Issues**: Test all components with server-side rendering from start
 - **Bundle Size**: Monitor component size and optimize early
 - **Browser Support**: Test on all target browsers regularly
 
 ### Development Risks
+
 - **Scope Creep**: Stick to defined component list
 - **Styling Inconsistencies**: Establish clear ngx-angora-css patterns early
 - **Performance Issues**: Regular performance testing and optimization
@@ -340,6 +379,7 @@ src/app/core/
 ## Next Steps
 
 After completing this task:
+
 1. Foundation components will be ready for content components
 2. Styling conventions established for consistent development
 3. Navigation patterns set for user experience

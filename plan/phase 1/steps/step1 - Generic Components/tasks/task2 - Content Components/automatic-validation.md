@@ -9,28 +9,29 @@ This document defines the automated testing strategies and validation criteria f
 ### 1. Unit Tests
 
 #### Hero Section Components
+
 ```typescript
 describe('HeroSectionComponent', () => {
   it('should render with default configuration', () => {
     // Test basic rendering with minimal props
   });
-  
+
   it('should display headline and subheading correctly', () => {
     // Test text content rendering
   });
-  
+
   it('should render call-to-action buttons', () => {
     // Test CTA button integration
   });
-  
+
   it('should handle background image loading', () => {
     // Test @defer implementation for images
   });
-  
+
   it('should apply theme colors correctly', () => {
-    // Test pushColor integration
+    // Test pushColors integration
   });
-  
+
   it('should support multiple layout variants', () => {
     // Test layout switching
   });
@@ -40,15 +41,15 @@ describe('CallToActionComponent', () => {
   it('should render primary action button', () => {
     // Test primary CTA rendering
   });
-  
+
   it('should fire analytics events on click', () => {
     // Test analytics integration
   });
-  
+
   it('should support different visual styles', () => {
     // Test style variants
   });
-  
+
   it('should handle disabled state correctly', () => {
     // Test disabled state behavior
   });
@@ -56,20 +57,21 @@ describe('CallToActionComponent', () => {
 ```
 
 #### Content Display Components
+
 ```typescript
 describe('ContentBlockComponent', () => {
   it('should render text content correctly', () => {
     // Test text rendering
   });
-  
+
   it('should handle image integration', () => {
     // Test image display
   });
-  
+
   it('should support different layout patterns', () => {
     // Test layout variants
   });
-  
+
   it('should implement lazy loading for media', () => {
     // Test @defer for performance
   });
@@ -79,15 +81,15 @@ describe('FeatureCardComponent', () => {
   it('should display feature information', () => {
     // Test feature content rendering
   });
-  
+
   it('should handle icon display', () => {
     // Test icon integration
   });
-  
+
   it('should support hover effects', () => {
     // Test interaction states
   });
-  
+
   it('should work in grid layouts', () => {
     // Test grid compatibility
   });
@@ -97,15 +99,15 @@ describe('TestimonialCardComponent', () => {
   it('should display testimonial content', () => {
     // Test testimonial rendering
   });
-  
+
   it('should handle customer photos', () => {
     // Test image handling
   });
-  
+
   it('should display star ratings', () => {
     // Test rating display
   });
-  
+
   it('should include structured data', () => {
     // Test SEO structured data
   });
@@ -113,28 +115,29 @@ describe('TestimonialCardComponent', () => {
 ```
 
 #### Interactive Components
+
 ```typescript
 describe('ButtonComponent', () => {
   it('should render with default styles', () => {
     // Test default button rendering
   });
-  
+
   it('should support all style variants', () => {
     // Test primary, secondary, outline, ghost variants
   });
-  
+
   it('should handle different sizes', () => {
     // Test size variants
   });
-  
+
   it('should manage loading state', () => {
     // Test loading state behavior
   });
-  
+
   it('should be keyboard accessible', () => {
     // Test keyboard interaction
   });
-  
+
   it('should fire click events correctly', () => {
     // Test event handling
   });
@@ -144,19 +147,19 @@ describe('ContactFormComponent', () => {
   it('should render form fields correctly', () => {
     // Test form rendering
   });
-  
+
   it('should validate required fields', () => {
     // Test form validation
   });
-  
+
   it('should handle form submission', () => {
     // Test submission logic
   });
-  
+
   it('should display error messages', () => {
     // Test error state handling
   });
-  
+
   it('should be accessible to screen readers', () => {
     // Test accessibility compliance
   });
@@ -166,15 +169,15 @@ describe('WhatsAppButtonComponent', () => {
   it('should generate correct WhatsApp URL', () => {
     // Test URL generation
   });
-  
+
   it('should handle pre-filled messages', () => {
     // Test message templating
   });
-  
+
   it('should track analytics events', () => {
     // Test analytics integration
   });
-  
+
   it('should work on mobile devices', () => {
     // Test mobile deep-linking
   });
@@ -182,20 +185,21 @@ describe('WhatsAppButtonComponent', () => {
 ```
 
 #### Utility Components
+
 ```typescript
 describe('StatsCounterComponent', () => {
   it('should animate number counting', () => {
     // Test counter animation
   });
-  
+
   it('should trigger on viewport intersection', () => {
     // Test intersection observer
   });
-  
+
   it('should handle different number formats', () => {
     // Test number formatting
   });
-  
+
   it('should respect reduced motion preferences', () => {
     // Test accessibility motion preferences
   });
@@ -205,15 +209,15 @@ describe('ImageGalleryComponent', () => {
   it('should display images in grid layout', () => {
     // Test grid rendering
   });
-  
+
   it('should implement lazy loading', () => {
     // Test lazy loading behavior
   });
-  
+
   it('should support lightbox functionality', () => {
     // Test lightbox integration
   });
-  
+
   it('should handle touch gestures', () => {
     // Test mobile touch support
   });
@@ -223,20 +227,21 @@ describe('ImageGalleryComponent', () => {
 ### 2. Integration Tests
 
 #### Component Integration
+
 ```typescript
 describe('Content Components Integration', () => {
   it('should work together in landing page layout', () => {
     // Test components working together
   });
-  
+
   it('should share theme state correctly', () => {
     // Test theme integration
   });
-  
+
   it('should handle responsive breakpoints', () => {
     // Test responsive behavior
   });
-  
+
   it('should maintain consistent spacing', () => {
     // Test layout consistency
   });
@@ -244,16 +249,17 @@ describe('Content Components Integration', () => {
 ```
 
 #### Animation Integration
+
 ```typescript
 describe('Animation Integration', () => {
   it('should coordinate animations properly', () => {
     // Test animation coordination
   });
-  
+
   it('should perform smoothly on scroll', () => {
     // Test scroll-triggered animations
   });
-  
+
   it('should respect performance preferences', () => {
     // Test performance optimization
   });
@@ -263,24 +269,25 @@ describe('Animation Integration', () => {
 ### 3. E2E Tests
 
 #### User Journey Tests
+
 ```typescript
 describe('Content Components E2E', () => {
   it('should complete hero section interaction', () => {
     // Test hero CTA flow
   });
-  
+
   it('should submit contact form successfully', () => {
     // Test form submission workflow
   });
-  
+
   it('should open WhatsApp conversation', () => {
     // Test WhatsApp integration
   });
-  
+
   it('should navigate image gallery', () => {
     // Test gallery interaction
   });
-  
+
   it('should animate counters on scroll', () => {
     // Test scroll animation behavior
   });
@@ -290,16 +297,17 @@ describe('Content Components E2E', () => {
 ## Automated Quality Checks
 
 ### 1. Animation Performance Testing
+
 ```typescript
 describe('Animation Performance', () => {
   it('should maintain 60fps during animations', () => {
     // Test animation performance
   });
-  
+
   it('should not cause layout thrashing', () => {
     // Test layout stability
   });
-  
+
   it('should use hardware acceleration', () => {
     // Test GPU acceleration
   });
@@ -307,20 +315,21 @@ describe('Animation Performance', () => {
 ```
 
 ### 2. Form Validation Testing
+
 ```typescript
 describe('Form Validation', () => {
   it('should validate email format correctly', () => {
     // Test email validation
   });
-  
+
   it('should validate phone number format', () => {
     // Test phone validation
   });
-  
+
   it('should handle special characters in text', () => {
     // Test text sanitization
   });
-  
+
   it('should prevent XSS attacks', () => {
     // Test security validation
   });
@@ -328,6 +337,7 @@ describe('Form Validation', () => {
 ```
 
 ### 3. Analytics Integration Testing
+
 ```bash
 # Analytics event tracking validation
 npm run test:analytics
@@ -335,19 +345,21 @@ npm run test:analytics
 # Track button click events
 npm run test:button-analytics
 
-# Track form submission events  
+# Track form submission events
 npm run test:form-analytics
 ```
 
 ## Test Coverage Requirements
 
 ### Minimum Coverage Targets
+
 - **Unit Tests**: 85% line coverage minimum
 - **Branch Coverage**: 80% minimum
 - **Function Coverage**: 90% minimum
 - **Statement Coverage**: 85% minimum
 
 ### Component-Specific Coverage
+
 - **Interactive Components**: 95% coverage (critical for UX)
 - **Content Components**: 85% coverage
 - **Animation Components**: 90% coverage (performance critical)
@@ -355,28 +367,30 @@ npm run test:form-analytics
 ## Performance Validation
 
 ### Bundle Size Testing
+
 ```javascript
 // webpack.config.js - Component bundle limits
 module.exports = {
   performance: {
     maxAssetSize: 200000, // 200KB max per component
     maxEntrypointSize: 400000, // 400KB max total
-    hints: 'error'
-  }
+    hints: 'error',
+  },
 };
 ```
 
 ### Animation Performance Tests
+
 ```typescript
 describe('Animation Performance', () => {
   it('should complete animations within time budget', () => {
     // Test animation duration
   });
-  
+
   it('should not block main thread', () => {
     // Test non-blocking animations
   });
-  
+
   it('should handle rapid state changes', () => {
     // Test animation stability
   });
@@ -384,16 +398,17 @@ describe('Animation Performance', () => {
 ```
 
 ### Image Loading Performance
+
 ```typescript
 describe('Image Performance', () => {
   it('should implement progressive loading', () => {
     // Test progressive enhancement
   });
-  
+
   it('should use appropriate image formats', () => {
     // Test WebP/AVIF support
   });
-  
+
   it('should optimize image sizes', () => {
     // Test responsive images
   });
@@ -403,21 +418,22 @@ describe('Image Performance', () => {
 ## Accessibility Testing
 
 ### Automated Accessibility Tests
+
 ```typescript
 describe('Content Accessibility', () => {
   it('should pass axe accessibility scan', async () => {
     const results = await axe(fixture.nativeElement);
     expect(results).toHaveNoViolations();
   });
-  
+
   it('should support keyboard navigation', () => {
     // Test keyboard accessibility
   });
-  
+
   it('should provide proper ARIA labels', () => {
     // Test ARIA compliance
   });
-  
+
   it('should announce content changes', () => {
     // Test screen reader support
   });
@@ -425,16 +441,17 @@ describe('Content Accessibility', () => {
 ```
 
 ### Form Accessibility
+
 ```typescript
 describe('Form Accessibility', () => {
   it('should associate labels with inputs', () => {
     // Test label association
   });
-  
+
   it('should provide error announcements', () => {
     // Test error accessibility
   });
-  
+
   it('should support form navigation', () => {
     // Test form keyboard navigation
   });
@@ -444,6 +461,7 @@ describe('Form Accessibility', () => {
 ## SEO and Structured Data Testing
 
 ### Structured Data Validation
+
 ```bash
 # Validate structured data markup
 npx @google/structured-data-testing-tool
@@ -456,16 +474,17 @@ npm run test:structured-data:features
 ```
 
 ### Meta Data Testing
+
 ```typescript
 describe('SEO Meta Data', () => {
   it('should generate proper meta descriptions', () => {
     // Test meta tag generation
   });
-  
+
   it('should include Open Graph tags', () => {
     // Test social media integration
   });
-  
+
   it('should support rich snippets', () => {
     // Test structured data
   });
@@ -475,16 +494,17 @@ describe('SEO Meta Data', () => {
 ## Mobile and Touch Testing
 
 ### Mobile Responsiveness
+
 ```typescript
 describe('Mobile Responsiveness', () => {
   it('should adapt to mobile breakpoints', () => {
     // Test mobile layouts
   });
-  
+
   it('should provide adequate touch targets', () => {
     // Test touch target sizes
   });
-  
+
   it('should handle orientation changes', () => {
     // Test orientation support
   });
@@ -492,16 +512,17 @@ describe('Mobile Responsiveness', () => {
 ```
 
 ### Touch Interaction Testing
+
 ```typescript
 describe('Touch Interactions', () => {
   it('should support swipe gestures in gallery', () => {
     // Test swipe support
   });
-  
+
   it('should handle touch form interactions', () => {
     // Test form touch behavior
   });
-  
+
   it('should prevent accidental touches', () => {
     // Test touch prevention
   });
@@ -511,6 +532,7 @@ describe('Touch Interactions', () => {
 ## CI/CD Pipeline Integration
 
 ### GitHub Actions Workflow
+
 ```yaml
 name: Content Components Tests
 
@@ -537,13 +559,14 @@ jobs:
 ## Testing Commands
 
 ### Development Testing
+
 ```bash
 # Run all content component tests
 npm run test:content-components
 
 # Run specific component tests
 npm run test:hero-section
-npm run test:contact-form  
+npm run test:contact-form
 npm run test:button
 
 # Run animation performance tests
@@ -557,6 +580,7 @@ npm run test:forms
 ```
 
 ### Performance Testing
+
 ```bash
 # Test bundle size
 npm run analyze:content-components
@@ -571,13 +595,14 @@ npm run test:image-performance
 ## Mock Data and Test Utilities
 
 ### Mock Content Data
+
 ```typescript
 // test-utils/mock-data/content.mock.ts
 export const mockHeroData = {
   headline: 'Test Headline',
   subheading: 'Test Subheading',
   primaryCTA: { text: 'Get Started', url: '/contact' },
-  backgroundImage: 'test-hero-bg.jpg'
+  backgroundImage: 'test-hero-bg.jpg',
 };
 
 export const mockFeatureData = [
@@ -586,8 +611,8 @@ export const mockFeatureData = [
     title: 'Data Analytics',
     description: 'Transform visitor behavior into business insights',
     actionLabel: 'Learn More',
-    actionUrl: '/analytics'
-  }
+    actionUrl: '/analytics',
+  },
 ];
 
 export const mockTestimonialData = {
@@ -595,11 +620,12 @@ export const mockTestimonialData = {
   company: 'Test Company',
   rating: 5,
   testimonial: 'Excellent service and results!',
-  verified: true
+  verified: true,
 };
 ```
 
 ### Test Component Utilities
+
 ```typescript
 // test-utils/content-test-utils.ts
 export function createHeroSectionWrapper(props: Partial<HeroSectionProps>) {
@@ -618,6 +644,7 @@ export function triggerIntersectionObserver(element: HTMLElement) {
 ## Validation Criteria
 
 ### Must Pass Criteria
+
 - [ ] All unit tests pass with >85% coverage
 - [ ] Animation performance tests pass (60fps target)
 - [ ] Form validation works correctly
@@ -627,7 +654,8 @@ export function triggerIntersectionObserver(element: HTMLElement) {
 - [ ] Analytics events fire correctly
 - [ ] SEO structured data validates
 
-### Quality Assurance Criteria  
+### Quality Assurance Criteria
+
 - [ ] Components integrate smoothly with existing layout
 - [ ] Theme switching works across all components
 - [ ] Responsive behavior is consistent
@@ -639,6 +667,7 @@ export function triggerIntersectionObserver(element: HTMLElement) {
 ## Failure Resolution
 
 ### Common Issues and Solutions
+
 1. **Animation Performance**: Optimize with CSS transforms and GPU acceleration
 2. **Form Validation Failures**: Check validation logic and error messaging
 3. **Accessibility Issues**: Add proper ARIA labels and keyboard support
@@ -646,6 +675,7 @@ export function triggerIntersectionObserver(element: HTMLElement) {
 5. **Mobile Touch Issues**: Adjust touch targets and gesture handling
 
 ### Debugging Tools
+
 ```bash
 # Debug animation performance
 npm run debug:animations

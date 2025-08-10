@@ -23,7 +23,7 @@ export const SECTION_SPACING_CLASSES: Record<SectionSpacing, string> = {
   xl: 'ank-paddingTop-128px ank-paddingBottom-128px',
 } as const;
 
-// Section variant classes (colors set via pushColor in component)
+// Section variant classes (colors set via pushColors in component)
 export const SECTION_VARIANT_CLASSES: Record<SectionVariant, string> = {
   default: 'ank-bg-bgColor',
   accent: 'ank-bg-accentColor',

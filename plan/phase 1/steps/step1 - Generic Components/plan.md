@@ -7,13 +7,15 @@ This step focuses on creating reusable UI components using ngx-angora-css that w
 ## Objectives
 
 ### Primary Goals
+
 - Create a comprehensive component library using ngx-angora-css
 - Establish consistent design patterns and styling conventions
 - Implement responsive design principles across all components
 - Ensure accessibility compliance (WCAG 2.1 AA)
-- Set up proper TypeScript types and interfaces
+- Set up proper TypeScript types
 
 ### Secondary Goals
+
 - Create component documentation and usage examples
 - Implement proper error handling and loading states
 - Set up component testing infrastructure
@@ -22,18 +24,21 @@ This step focuses on creating reusable UI components using ngx-angora-css that w
 ## Components to Develop
 
 ### 1. Layout Components
+
 - **AppHeader**: Main navigation with responsive menu
 - **AppFooter**: Footer with links and contact information
 - **AppContainer**: Main content wrapper with responsive breakpoints
 - **AppSection**: Reusable section wrapper with consistent spacing
 
 ### 2. Navigation Components
+
 - **NavMenu**: Primary navigation menu with mobile responsiveness
 - **Breadcrumb**: Navigation breadcrumb trail
 - **LanguageToggle**: Spanish/English language switcher
 - **ThemeToggle**: Light/dark mode switcher
 
 ### 3. Content Components
+
 - **HeroSection**: Landing page hero with call-to-action
 - **ContentBlock**: Generic content section with various layouts
 - **FeatureCard**: Service/feature showcase cards
@@ -41,6 +46,7 @@ This step focuses on creating reusable UI components using ngx-angora-css that w
 - **StatsCounter**: Animated statistics display
 
 ### 4. Interactive Components
+
 - **Button**: Primary, secondary, and utility buttons with various states
 - **ContactForm**: Lead capture form with validation
 - **WhatsAppButton**: Direct WhatsApp contact integration
@@ -48,6 +54,7 @@ This step focuses on creating reusable UI components using ngx-angora-css that w
 - **Accordion**: Expandable content sections
 
 ### 5. Utility Components
+
 - **LoadingSpinner**: Loading state indicators
 - **ProgressBar**: Progress indication for multi-step processes
 - **Toast**: Notification and alert messages
@@ -60,16 +67,16 @@ This step focuses on creating reusable UI components using ngx-angora-css that w
 
 1. **Types Only - NO Interfaces/Enums**: All type definitions must use `type` keyword
 1. **Atomic File Structure**: Each file should be 50-80 lines max, split functionality into separate files
-1. **pushColor Method**: All theme changes must use ngx-angora-css `pushColor` method for dynamic theming
+1. **pushColors Method**: All theme changes must use ngx-angora-css `pushColors` method for dynamic theming
 1. **Latest Angular Features**: Use `@if`, `@for`, `@switch`, `@defer` with `@placeholder`, `@error`, `@loading`
 
 ### ngx-angora-css Implementation
 
-- **Theme Management**: Use `pushColor()` method for all color definitions and theme switching
+- **Theme Management**: Use `pushColors()` method for all color definitions and theme switching
 - **Abbreviations**: Use size, spacing, and color abbreviations (e.g., `ank-p-20px`, `ank-m-16px`, `ank-bg-primary`)
 - **Combos**: Leverage pre-built component combinations for rapid development
 - **Responsive**: Implement breakpoint-specific styling with ngx-angora-css utilities
-- **Dynamic Colors**: All colors must be defined via `pushColor` to support theme switching
+- **Dynamic Colors**: All colors must be defined via `pushColors` to support theme switching
 
 ### TypeScript Standards (ENFORCED)
 
@@ -100,12 +107,14 @@ component-name/
 ```
 
 ### Accessibility Requirements
+
 - **ARIA Labels**: Proper ARIA attributes for screen readers
 - **Keyboard Navigation**: Full keyboard accessibility support
 - **Focus Management**: Visible focus indicators and logical tab order
 - **Color Contrast**: Minimum 4.5:1 contrast ratio for text
 
 ### Performance Optimization
+
 - **OnPush Strategy**: Use OnPush change detection where possible
 - **Lazy Loading**: Implement lazy loading for non-critical components
 - **Bundle Optimization**: Tree-shakable exports and minimal dependencies
@@ -114,24 +123,28 @@ component-name/
 ## Implementation Strategy
 
 ### Task 1: Foundation Components (Week 1)
+
 1. Set up component library structure
 2. Create base layout components (AppHeader, AppFooter, AppContainer)
 3. Implement primary navigation components
 4. Establish styling conventions and documentation
 
 ### Task 2: Content Components (Week 2)
+
 1. Develop hero section and content blocks
 2. Create feature cards and testimonial components
 3. Implement interactive elements (buttons, forms)
 4. Add animation and transition effects
 
 ### Task 3: Advanced Components (Week 3)
+
 1. Build modal and overlay components
 2. Create utility components (loading, progress, toast)
 3. Implement accessibility enhancements
 4. Optimize performance and bundle size
 
 ### Task 4: Testing and Documentation (Week 4)
+
 1. Write comprehensive unit tests
 2. Create component usage documentation
 3. Perform accessibility testing
@@ -190,6 +203,7 @@ src/app/shared/
 ## Success Criteria
 
 ### Functional Requirements
+
 - [ ] All components render correctly across desktop, tablet, and mobile
 - [ ] Components properly integrate with ngx-angora-css styling system
 - [ ] Language switching works seamlessly across all components
@@ -197,6 +211,7 @@ src/app/shared/
 - [ ] All interactive elements respond to user input correctly
 
 ### Technical Requirements
+
 - [ ] Components pass all unit tests with >90% code coverage
 - [ ] TypeScript compilation without errors or warnings
 - [ ] Accessibility audit shows WCAG 2.1 AA compliance
@@ -204,6 +219,7 @@ src/app/shared/
 - [ ] Components are properly tree-shakable and optimized
 
 ### Quality Requirements
+
 - [ ] Code follows established style guide and conventions
 - [ ] All components have proper documentation and examples
 - [ ] Error handling is implemented for all edge cases
@@ -213,12 +229,14 @@ src/app/shared/
 ## Dependencies
 
 ### Required Libraries
+
 - **Angular 20+**: Core framework
 - **ngx-angora-css**: Primary styling framework
 - **TypeScript**: Type safety and development experience
 - **RxJS**: Reactive programming support
 
 ### Development Dependencies
+
 - **Jest**: Unit testing framework
 - **Testing Library**: Component testing utilities
 - **ESLint**: Code quality and consistency
@@ -228,12 +246,14 @@ src/app/shared/
 ## Risk Mitigation
 
 ### Technical Risks
+
 - **SSR Compatibility**: Test all components with server-side rendering
 - **Performance Impact**: Monitor bundle size and runtime performance
 - **Browser Support**: Test across all supported browsers and versions
 - **Accessibility Issues**: Regular accessibility audits during development
 
 ### Development Risks
+
 - **Scope Creep**: Stick to defined component list and requirements
 - **Styling Inconsistencies**: Establish clear design system early
 - **Testing Gaps**: Maintain high test coverage throughout development
@@ -242,6 +262,7 @@ src/app/shared/
 ## Next Steps
 
 After completing this step:
+
 1. Components will be ready for integration into page layouts
 2. Design system will be established for consistent styling
 3. Development team can begin building page-specific features

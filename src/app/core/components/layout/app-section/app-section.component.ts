@@ -1,28 +1,28 @@
 /**
  * AppSection Component
- * 
+ *
  * Reusable section wrapper with theme support and consistent spacing.
- * MANDATORY: Uses ngx-angora-css pushColor for theme-aware backgrounds.
+ * MANDATORY: Uses ngx-angora-css pushColors for theme-aware backgrounds.
  * File kept under 80 lines following atomic structure requirements.
  */
 
-import { Component, input, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { SectionSpacing, SectionVariant } from './app-section.types';
-import { 
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import {
   APP_SECTION_DEFAULTS,
+  BASE_SECTION_CLASSES,
   SECTION_SPACING_CLASSES,
   SECTION_VARIANT_CLASSES,
-  BASE_SECTION_CLASSES
 } from './app-section.constants';
+import { SectionSpacing, SectionVariant } from './app-section.types';
 
 @Component({
   selector: 'app-section',
   imports: [CommonModule],
   templateUrl: './app-section.component.html',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AppSectionComponent {  
+export class AppSectionComponent {
   // Input signals (MANDATORY Angular 17+ features)
   readonly variant = input<SectionVariant>(APP_SECTION_DEFAULTS.variant);
   readonly spacing = input<SectionSpacing>(APP_SECTION_DEFAULTS.spacing);
@@ -33,16 +33,11 @@ export class AppSectionComponent {
     const currentVariant: SectionVariant = this.variant();
     const currentSpacing: SectionSpacing = this.spacing();
     const customClassName: string = this.className();
-    
+
     const variantClass: string = SECTION_VARIANT_CLASSES[currentVariant];
     const spacingClass: string = SECTION_SPACING_CLASSES[currentSpacing];
 
-    const allClasses: string[] = [
-      ...BASE_SECTION_CLASSES,
-      variantClass,
-      spacingClass,
-      customClassName
-    ].filter(Boolean);
+    const allClasses: string[] = [...BASE_SECTION_CLASSES, variantClass, spacingClass, customClassName].filter(Boolean);
 
     const joinedClasses: string = allClasses.join(' ');
     return joinedClasses;
