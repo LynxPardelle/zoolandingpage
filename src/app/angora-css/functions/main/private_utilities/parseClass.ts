@@ -23,11 +23,6 @@ export const parseClass = async (
   classes2CreateStringed: string,
   updateClasses2Create: string[] | null = null
 ): Promise<IparseClassReturn> => {
-  console.log('parseClass', {
-    class2Create: class2Create,
-    bpsStringed: bpsStringed,
-    updateClasses2Create: updateClasses2Create,
-  });
   // Check if already created CssClass and return if it is
   if (!updateClasses2Create) {
     if (
@@ -46,16 +41,11 @@ export const parseClass = async (
         classes2CreateStringed: classes2CreateStringed,
       };
     } else {
-      console.log('values.alreadyCreatedClasses Post push', values.alreadyCreatedClasses);
-      console.log('values.alreadyCreatedClasses Pre push', values.alreadyCreatedClasses);
       values.alreadyCreatedClasses.push(class2Create);
-      console.log('values.alreadyCreatedClasses Post push', values.alreadyCreatedClasses);
     }
   } else {
-    console.log('values.alreadyCreatedClasses Pre push', values.alreadyCreatedClasses);
     values.alreadyCreatedClasses.push(class2Create);
   }
-  console.log('values.alreadyCreatedClasses', values.alreadyCreatedClasses);
   // Get the class for the final string from the original class2Create after the conversion of the abreviations
   let class2CreateStringed = '.' + class2Create;
   console_log.consoleLog('info', {

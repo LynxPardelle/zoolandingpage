@@ -20,23 +20,13 @@ export const manage_colors = {
         values.colors[key] = cleanedValue;
       });
       let classesToUpdate: string[] = [];
-      console.log('info', {
-        alreadyCreatedClasses: values.alreadyCreatedClasses,
-      });
       for (let color in newColors) {
         for (let createdClass of values.alreadyCreatedClasses) {
-          console.log('info', {
-            color: color,
-            createdClass: createdClass,
-          });
           if (createdClass.includes(color)) {
             classesToUpdate.push(createdClass);
           }
         }
       }
-      console.log('info', {
-        classesToUpdate: classesToUpdate,
-      });
       if (classesToUpdate.length > 0) {
         cssCreate.cssCreate(classesToUpdate);
       }

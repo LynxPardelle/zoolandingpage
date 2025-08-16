@@ -1,6 +1,6 @@
 /**
  * Layout Types - Foundation Components
- * 
+ *
  * Core type definitions for layout components following MANDATORY requirements:
  * - Use 'type' keyword only (NO interfaces/enums)
  * - Keep atomic and focused
@@ -19,7 +19,7 @@ export type ContainerProps = {
 };
 
 // Section component types
-export type SectionVariant = 'default' | 'accent' | 'muted' | 'transparent';
+export type SectionVariant = 'default' | 'secondary' | 'accent' | 'transparent';
 
 export type SectionSpacing = 'none' | 'sm' | 'md' | 'lg' | 'xl';
 
