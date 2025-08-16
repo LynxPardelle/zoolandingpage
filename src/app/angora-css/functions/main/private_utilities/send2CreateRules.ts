@@ -5,9 +5,6 @@ import { manage_CSSRules } from '../../manage_CSSRules';
 const values: ValuesSingleton = ValuesSingleton.getInstance();
 
 export const send2CreateRules = async (classes2CreateStringed: string, bpsStringed: IBPS[]): Promise<void> => {
-  if (classes2CreateStringed.includes('textGradient')) {
-    console.log('classes2CreateStringed', classes2CreateStringed.split(values.separator));
-  }
   bpsStringed = bpsStringed
     .sort((b1, b2) => {
       return parseInt(b1.value.replace('px', '')) - parseInt(b2.value.replace('px', ''));

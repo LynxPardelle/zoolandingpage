@@ -27,7 +27,7 @@ export const SECTION_SPACING_CLASSES: Record<SectionSpacing, string> = {
 export const SECTION_VARIANT_CLASSES: Record<SectionVariant, string> = {
   default: 'ank-bg-bgColor',
   accent: 'ank-bg-accentColor',
-  muted: 'ank-bg-secondaryBgColor',
+  secondary: 'ank-bg-secondaryBgColor',
   transparent: 'ank-bg-transparent',
 } as const;
 

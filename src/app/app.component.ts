@@ -5,7 +5,15 @@
  * Following MANDATORY requirements: Angular 17+, type-only definitions, atomic structure.
  */
 
-import { afterNextRender, ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  afterEveryRender,
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 // import { NgxAngoraService } from 'ngx-angora-css';
 import { environment } from '../environments/environment';
@@ -44,7 +52,7 @@ type TestimonialCard = {
   readonly avatar: string;
 };
 
-type InteractiveDemo = {
+type InteractiveProcess = {
   readonly step: number;
   readonly title: string;
   readonly description: string;
@@ -104,21 +112,17 @@ export class App {
         'Mensaje claro y directo sin distracciones que confundan al visitante',
         'Llamadas a la acción (botones) ubicadas estratégicamente para maximizar clics',
         'Experiencia de usuario optimizada: Carga rápida y fácil navegación',
-        'Medición precisa de resultados: Sabes exactamente cuántas personas realizaron la acción deseada',
       ],
     },
     {
       icon: 'analytics',
-      title: 'Análisis de Datos - Servicio Adicional',
+      title: 'Análisis de Datos',
       description:
         'Ofrecemos servicios especializados de análisis de datos para entender el comportamiento de tus visitantes. Este servicio adicional te permite tomar decisiones basadas en datos reales de tu negocio y optimizar continuamente tu landing page.',
       benefits: [
-        'Recopilación automática: Sistema que registra cada visita, clic y acción (servicio adicional)',
-        'Análisis de comportamiento: Identificamos patrones y puntos de mejora (servicio separado)',
-        'Reportes personalizados: Datos presentados de forma clara y accionable',
-        'Recomendaciones estratégicas: Sugerencias basadas en el análisis de datos',
-        'Dashboards básicos incluidos: Métricas esenciales desde el primer día',
-        'Dashboards en tiempo real: Próximamente disponible como servicio premium',
+        'Recopilación automática: Sistema que registra cada visita, clic y acción',
+        'Análisis de comportamiento: Identificamos patrones y puntos de mejora',
+        'Medición precisa de resultados: Sabes exactamente cuántas personas realizaron la acción deseada',
       ],
     },
     {
@@ -145,8 +149,6 @@ export class App {
         'Creación asistida: Combinamos experiencia humana con eficiencia de IA para resultados superiores',
         'Actualizaciones automáticas: Nuestros sistemas se mejoran constantemente con nuevas funcionalidades',
         'Nuevos productos integrados: Desarrollamos constantemente nuevas herramientas que se conectan con tu landing page',
-        'Análisis predictivo: Identificamos tendencias y oportunidades antes de que sean evidentes',
-        'Mejoras basadas en datos: La IA encuentra patrones en miles de landing pages para optimizar la tuya',
       ],
     },
   ]);
@@ -163,7 +165,7 @@ export class App {
         'Análisis de datos desde el primer día',
         'Entrega ágil sin comprometer calidad',
       ],
-      color: 'primary',
+      color: 'linkColor',
     },
     {
       icon: 'trending_up',
@@ -176,7 +178,7 @@ export class App {
         'Dashboards en tiempo real (próximamente)',
         'Reportes personalizados y recomendaciones',
       ],
-      color: 'success',
+      color: 'secondaryAccentColor',
     },
     {
       icon: 'groups',
@@ -188,7 +190,7 @@ export class App {
         'Capacitación en el uso de herramientas',
         'Soporte técnico especializado continuo',
       ],
-      color: 'info',
+      color: 'accentColor',
     },
   ]);
 
@@ -220,7 +222,7 @@ export class App {
     },
   ]);
 
-  readonly interactiveDemo = signal<readonly InteractiveDemo[]>([
+  readonly interactiveProcess = signal<readonly InteractiveProcess[]>([
     {
       step: 1,
       title: 'Toma de Requerimientos',
@@ -414,7 +416,7 @@ export class App {
   });
 
   readonly currentDemoData = computed(() => {
-    const demos = this.interactiveDemo();
+    const demos = this.interactiveProcess();
     const currentStep = this.currentDemoStep();
     return demos[currentStep] || demos[0];
   });
@@ -430,6 +432,9 @@ export class App {
         this._ank.cssCreate();
       }
     });
+    afterEveryRender(() => {
+      this._ank.cssCreate();
+    });
   }
 
   // Angora CSS
@@ -441,27 +446,19 @@ export class App {
       // Configure combos for reusable styles
       this._ank.pushCombos({
         cardHover: [
-          'ank-transition-all ank-td-300ms ank-transformHover-translateYSDMIN4pxED ank-boxShadowHover-0__8px__25px__rgbaSD0COM0COM0COM0_15ED',
+          'ank-transition-all ank-td-300ms ank-transformHover-translateYSDMIN4pxED ank-boxShadowHover-0__0_5rem__1rem__rgbaSD0COM0COM0COM0_5ED',
         ],
-        btnPrimary: [
-          'ank-bg-primary ank-color-white ank-px-24px ank-py-12px ank-borderRadius-8px ank-fontWeight-semibold ank-transition-all ank-duration-200ms ank-bgHover-primary ank-transformHover-translateYSDMIN1pxED',
-        ],
-        btnSecondary: [
-          'ank-bg-transparent ank-color-primary ank-border-2px ank-borderColor-primary ank-px-24px ank-py-12px ank-borderRadius-8px ank-fontWeight-semibold ank-transition-all ank-duration-200ms ank-bgHover-primary ank-colorHover-white',
+        btnBase: [
+          'ank-px-1_5rem ank-py-0_75rem ank-borderRadius-0_5rem ank-fontWeight-400 ank-transition-all__200ms ank-transformHover-translateYSDMIN1pxED',
         ],
         sectionPadding: ['ank-py-80px ank-px-20px'],
         containerMax: ['ank-maxWidth-1200px ank-mx-auto'],
         gridCol3: [
-          'ank-display-grid ank-gridTemplateColumns-1fr ank-gridTemplateColumns-md-repeatSD2COM1frED ank-gridTemplateColumns-lg-repeatSD3COM1frED ank-gap-32px',
+          'ank-display-grid ank-gridTemplateColumns-1fr ank-gridTemplateColumns-md-repeatSD2COM1frED ank-gridTemplateColumns-lg-repeatSD3COM1frED ank-gap-2rem',
         ],
         textGradient: [
-          /* 'ank-background-linearMINgradientSD135degCOMaccent__0perCOMtitleColor__100perED ank-bgcl-text ank-color-transparent', */ 'ank-color-titleColor',
+          'ank-bgi-linearMINgradientSDVAL1DEF90degDEFCOMVAL2DEFabyssDEFCOMVAL3DEFwhiteDEFED ank-bgcl-text ank-color-transparent',
         ],
-        // Additional utility combos
-        spaceY8px: ['ank-gap-0_5rem'],
-        spaceY16px: ['ank-gap-1rem'],
-        spaceY20px: ['ank-gap-1_25rem'],
-        spaceY24px: ['ank-gap-1_5rem'],
       });
     }
   }
@@ -471,7 +468,7 @@ export class App {
     this.currentDemoStep.set(step);
 
     // Update demo data reactively
-    this.interactiveDemo.update(demos =>
+    this.interactiveProcess.update(demos =>
       demos.map(demo => ({
         ...demo,
         isActive: demo.step === step + 1,
