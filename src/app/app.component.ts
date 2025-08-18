@@ -19,6 +19,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { environment } from '../environments/environment';
 import { NgxAngoraService } from './angora-css/ngx-angora.service';
 import { AppFooterComponent, AppHeaderComponent } from './core/components/layout';
+import type { HeaderNavItem } from './core/components/layout/app-header/app-header.types';
 import { LanguageService } from './core/services/language.service';
 import { ThemeService } from './core/services/theme.service';
 import { FeaturesSectionComponent } from './landingpage/components/features-section/features-section.component';
@@ -29,6 +30,9 @@ import { RoiCalculatorSectionComponent } from './landingpage/components/roi-calc
 import { RoiNoteComponent } from './landingpage/components/roi-note/roi-note.component';
 import { ServicesSectionComponent } from './landingpage/components/services-section/services-section.component';
 import { TestimonialsSectionComponent } from './landingpage/components/testimonials-section/testimonials-section.component';
+import { ModalComponent } from './shared/components/modal';
+import { LoadingSpinnerComponent } from './shared/components/utility/loading-spinner';
+import { ToastComponent, ToastService } from './shared/components/utility/toast';
 
 // Landing page data types
 type FeatureCard = {
@@ -79,6 +83,9 @@ type InteractiveProcess = {
     RoiCalculatorSectionComponent,
     TestimonialsSectionComponent,
     FinalCtaSectionComponent,
+    ModalComponent,
+    ToastComponent,
+    LoadingSpinnerComponent,
   ],
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -88,12 +95,20 @@ export class App {
   private readonly themeService = inject(ThemeService);
   private readonly languageService = inject(LanguageService);
   private readonly _ank = inject(NgxAngoraService);
+  private readonly toast = inject(ToastService);
 
   // App state
   private readonly appTitle = signal<string>(environment.app.name);
 
   // Landing page state
   readonly currentDemoStep = signal<number>(0);
+  readonly navItems = signal<readonly HeaderNavItem[]>([
+    { label: 'Home', href: '#home', isActive: true, isExternal: false },
+    { label: 'Features', href: '#features-section', isActive: false, isExternal: false },
+    { label: 'Process', href: '#process-section', isActive: false, isExternal: false },
+    { label: 'Services', href: '#services-section', isActive: false, isExternal: false },
+    { label: 'Contact', href: '#contact-section', isActive: false, isExternal: false },
+  ]);
   readonly isCalculatorVisible = signal<boolean>(false);
   readonly calculatorBusinessSize = signal<'nano' | 'micro' | 'small' | 'medium'>('micro');
   readonly calculatorIndustry = signal<string>('ecommerce');
@@ -104,6 +119,18 @@ export class App {
   readonly currentLanguage = computed(() => this.languageService.currentLanguage());
   readonly currentTheme = computed(() => this.themeService.getCurrentTheme());
   readonly isProduction = computed(() => environment.production);
+  // Header configuration (reactive)
+  readonly headerConfig = computed(() => ({
+    navItems: this.navItems(),
+    useGradient: true,
+    gradientFromKey: 'bgColor',
+    gradientToKey: 'secondaryBgColor',
+    enableScrollSpy: true,
+    transparentUntilScroll: true,
+    elevateOnScroll: true,
+    showThemeToggle: true,
+    showLanguageToggle: true,
+  }));
 
   // Landing page data
   readonly heroData = signal({
@@ -447,6 +474,16 @@ export class App {
     });
   }
 
+  // Demo triggers (will be removed or replaced with proper examples later)
+  showDemoModal(): void {
+    // For now just push a toast to simulate open; modal service evolution upcoming
+    this.toast.push('info', 'Modal open triggered (placeholder)');
+  }
+
+  showDemoToast(): void {
+    this.toast.push('success', 'This is a demo toast notification');
+  }
+
   // Angora CSS
   initializeAngoraConfiguration(): void {
     if (!this.angoraHasBeenInitialized) {
@@ -522,5 +559,10 @@ export class App {
       console.log(`Section viewed: ${sectionName}`);
       // Here would go actual analytics tracking
     }
+  }
+
+  // Header nav change handler (from scroll spy or click)
+  onNavChange(item: HeaderNavItem): void {
+    this.navItems.update(items => items.map(i => ({ ...i, isActive: i.href === item.href })));
   }
 }

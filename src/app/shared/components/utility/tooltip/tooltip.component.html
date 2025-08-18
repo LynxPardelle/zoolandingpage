@@ -1,0 +1,13 @@
+<ng-template #tooltipTpl>
+  <div
+    class="ank-bg-bgColor ank-color-textColor ank-text-xs ank-px-0_5rem ank-py-0_25rem ank-borderRadius-0_5rem ank-boxShadow-sm tooltip-surface"
+    [id]="id()"
+    role="tooltip"
+  >
+    <ng-container *ngIf="richTemplate; else plain" [ngTemplateOutlet]="richTemplate"></ng-container>
+    <ng-template #plain>{{ content() }}</ng-template>
+    @if (arrow) {
+    <span class="tooltip-arrow" aria-hidden="true"></span>
+    }
+  </div>
+</ng-template>

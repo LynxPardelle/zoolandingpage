@@ -1,25 +1,64 @@
-<header [class]="computedHeaderClasses()">
-  <div [class]="computedContentClasses()">
+<header [class]="computedHeaderClasses()" role="banner" [attr.data-scrolled]="state().isScrolled">
+  <div [class]="computedContentClasses() + ' ank-container ank-maxWidth-7xl ank-marginInline-auto ank-gap-24px'">
     <!-- Logo Section -->
     @if (config().showLogo) {
     <div class="ank-display-flex ank-alignItems-center">
-      <a [href]="config().logoUrl" class="ank-fontSize-xl ank-fontWeight-bold ank-color-titleColor">
+      @if (config().logoImgUrl) {
+      <a [href]="config().logoUrl" [attr.target]="config().logoUrlIsExternal ? '_blank' : null">
+        <img [src]="config().logoImgUrl" [alt]="config().logoText" class="ank-maxWidth-100per ank-height-auto" />
+      </a>
+      } @else {
+      <a
+        [href]="config().logoUrl"
+        class="ank-fontSize-2rem ank-fontWeight-bold ank-color-titleColor ank-ms-1rem ank-tde-none"
+      >
         {{ config().logoText }}
       </a>
+      }
     </div>
     }
 
     <!-- Desktop Navigation -->
     @if (config().showNavigation) {
-    <nav class="ank-display-none ank-displayMd-flex ank-alignItems-center ank-gap-24px">
-      <!-- Navigation items would be rendered here -->
-      <div class="ank-display-flex ank-gap-16px">
+    <nav
+      class="ank-display-none ank-display-md-flex ank-alignItems-center ank-jc-spaceMINbetween ank-gap-32px ank-w-calcSD100per__MIN__2remED ank-mx-1rem"
+      aria-label="Primary"
+    >
+      @if (config().navItems?.length) {
+      <ul class="ank-display-flex ank-gap-28px ank-listStyle-none ank-margin-0 ank-padding-0">
+        @for (item of config().navItems; track trackByNav($index, item)) {
+        <li class="ank-position-relative">
+          <a
+            [href]="item.href"
+            [attr.target]="item.isExternal ? '_blank' : null"
+            class="ank-textDecoration-none ank-fontWeight-500 ank-letterSpacing-05px ank-position-relative ank-paddingInline-4px ank-paddingBlock-4px ank-transition-color ank-duration-200"
+            [class.ank-color-accentColor]="item.isActive"
+            [class.ank-color-textColor]="!item.isActive"
+            [class.ank-fwg-bold]="!item.isActive"
+            [class.ank-opacity-80]="!item.isActive"
+            (click)="$event.preventDefault(); selectNav(item)"
+          >
+            {{ item.label }}
+            @if (item.isExternal) { <span aria-hidden="true">↗</span> }
+            <span
+              class="ank-position-absolute ank-left-0 ank-right-0 ank-bottom-0 ank-height-2px ank-bg-accentColor ank-transform-scaleX-0 ank-transformOrigin-left ank-transition-transform ank-duration-300"
+            ></span>
+          </a>
+        </li>
+        }
+      </ul>
+      }
+      <div class="ank-display-flex ank-gap-12px">
         <!-- Theme Toggle -->
         @if (config().showThemeToggle) {
         <button
+          id="toggleTheme"
           type="button"
-          (click)="themeService.toggleTheme()"
-          class="ank-padding-8px ank-borderRadius-md ank-border-none ank-bg-secondaryBgColor ank-color-textColor"
+          (click)="toggleTheme()"
+          class="{{
+            themeGradientClasses
+          }} ank-p-0_5rem__1_5rem ank-borderRadius-1rem ank-border-none ank-display-flex ank-alignItems-center
+          "
         >
           {{ themeService.currentTheme() === "dark" ? "☀️" : "🌙" }}
         </button>
@@ -29,8 +68,8 @@
         @if (config().showLanguageToggle) {
         <button
           type="button"
-          (click)="languageService.toggleLanguage()"
-          class="ank-padding-8px ank-borderRadius-md ank-border-none ank-bg-secondaryBgColor ank-color-textColor"
+          (click)="toggleLanguage()"
+          class="ank-p-0_5rem__1_5rem ank-borderRadius-1rem ank-border-none ank-bg-accentColor ank-color-secondaryTextColor ank-ts-200 ank-bgHover-secondaryAccentColor ank-colorHover-secondaryTextColor"
         >
           {{ languageService.currentLanguage() }}
         </button>
@@ -44,9 +83,9 @@
     <button
       type="button"
       (click)="toggleMobileMenu()"
-      class="ank-displayMd-none ank-padding-8px ank-border-none ank-bg-transparent"
+      class="ank-display-md-none ank-padding-10px ank-borderRadius-1rem ank-border-none ank-bg-secondaryBgColor ank-color-textColor ank-transition-bgColor ank-duration-200 ank-scaleActive-95 ank-me-2rem"
     >
-      <span class="ank-display-block ank-width-24px ank-height-24px">
+      <span class="ank-display-flex ank-alignItems-center ank-justifyContent-center ank-width-20px ank-height-20px">
         {{ state().isMobileMenuOpen ? "✕" : "☰" }}
       </span>
     </button>
@@ -55,30 +94,51 @@
 
   <!-- Mobile Menu -->
   @if (state().isMobileMenuOpen) { @defer {
-  <div class="ank-displayMd-none ank-bg-bgColor ank-borderTop-1px ank-borderColor-secondaryBgColor">
-    <nav class="ank-padding-16px ank-display-flex ank-flexDirection-column ank-gap-16px">
-      <!-- Mobile navigation items would be rendered here -->
-      <div class="ank-display-flex ank-flexDirection-column ank-gap-12px">
-        @if (config().showThemeToggle) {
-        <button
-          type="button"
-          (click)="themeService.toggleTheme()"
-          class="ank-padding-12px ank-borderRadius-md ank-border-none ank-bg-secondaryBgColor ank-color-textColor ank-textAlign-left"
-        >
-          Theme:
-          {{ themeService.currentTheme() === "dark" ? "Dark ☀️" : "Light 🌙" }}
-        </button>
-        } @if (config().showLanguageToggle) {
-        <button
-          type="button"
-          (click)="languageService.toggleLanguage()"
-          class="ank-padding-12px ank-borderRadius-md ank-border-none ank-bg-secondaryBgColor ank-color-textColor ank-textAlign-left"
-        >
-          Language: {{ languageService.currentLanguage() }}
-        </button>
+  <div
+    class="ank-display-md-none ank-bg-bgColor ank-borderTop-1px ank-borderColor-secondaryBgColor ank-padding-20px ank-space-y-20px ank-animation-fadeInDown"
+  >
+    @if (config().navItems?.length) {
+    <nav>
+      <ul class="ank-listStyle-none ank-padding-0 ank-margin-0 ank-display-flex ank-flexDirection-column ank-gap-8px">
+        @for (item of config().navItems; track trackByNav($index, item)) {
+        <li>
+          <a
+            [href]="item.href"
+            [attr.target]="item.isExternal ? '_blank' : null"
+            class="ank-display-block ank-padding-12px ank-borderRadius-0_75rem ank-textDecoration-none ank-transition-bgColor ank-duration-150"
+            [class.ank-bg-secondaryBgColor]="item.isActive"
+            [class.ank-color-accentColor]="item.isActive"
+            [class.ank-color-textColor]="!item.isActive"
+            (click)="selectNav(item); toggleMobileMenu()"
+          >
+            {{ item.label }}
+            @if (item.isExternal) { <span aria-hidden="true">↗</span> }
+          </a>
+        </li>
         }
-      </div>
+      </ul>
     </nav>
+    }
+    <div class="ank-display-flex ank-flexDirection-column ank-gap-8px">
+      @if (config().showThemeToggle) {
+      <button
+        type="button"
+        (click)="toggleTheme()"
+        class="ank-padding-12px ank-borderRadius-1rem ank-border-none ank-bg-secondaryBgColor ank-color-textColor ank-textAlign-left ank-transition-bgColor ank-duration-200 ank-scaleActive-95 focus:ank-outline-none focus:ank-ring-2 focus:ank-ring-accentColor"
+      >
+        Theme:
+        {{ themeService.currentTheme() === "dark" ? "Dark ☀️" : "Light 🌙" }}
+      </button>
+      } @if (config().showLanguageToggle) {
+      <button
+        type="button"
+        (click)="toggleLanguage()"
+        class="ank-padding-12px ank-borderRadius-1rem ank-border-none ank-bg-secondaryBgColor ank-color-textColor ank-textAlign-left ank-transition-bgColor ank-duration-200 ank-scaleActive-95 focus:ank-outline-none focus:ank-ring-2 focus:ank-ring-accentColor"
+      >
+        Language: {{ languageService.currentLanguage() }}
+      </button>
+      }
+    </div>
   </div>
   } }
 </header>

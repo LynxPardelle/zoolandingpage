@@ -10,7 +10,7 @@ This document tracks all files that will be created, modified, or deleted during
 
 #### AppHeader Component
 
-```
+```text
 src/app/core/components/layout/app-header/
 ├── app-header.component.ts          [NEW] - Main component implementation
 ├── app-header.types.ts              [NEW] - TypeScript type definitions
@@ -22,7 +22,7 @@ src/app/core/components/layout/app-header/
 
 #### AppFooter Component
 
-```
+```text
 src/app/core/components/layout/app-footer/
 ├── app-footer.component.ts          [NEW] - Main component implementation
 ├── app-footer.types.ts              [NEW] - TypeScript type definitions
@@ -34,7 +34,7 @@ src/app/core/components/layout/app-footer/
 
 #### AppContainer Component
 
-```
+```text
 src/app/core/components/layout/app-container/
 ├── app-container.component.ts       [NEW] - Main component implementation
 ├── app-container.types.ts           [NEW] - TypeScript type definitions
@@ -46,7 +46,7 @@ src/app/core/components/layout/app-container/
 
 #### AppSection Component
 
-```
+```text
 src/app/core/components/layout/app-section/
 ├── app-section.component.ts         [NEW] - Main component implementation
 ├── app-section.types.ts             [NEW] - TypeScript type definitions
@@ -60,7 +60,7 @@ src/app/core/components/layout/app-section/
 
 #### NavMenu Component
 
-```
+```text
 src/app/shared/components/navigation/nav-menu/
 ├── nav-menu.component.ts            [NEW] - Main component implementation
 ├── nav-menu.types.ts                [NEW] - TypeScript type definitions
@@ -72,7 +72,7 @@ src/app/shared/components/navigation/nav-menu/
 
 #### LanguageToggle Component
 
-```
+```text
 src/app/shared/components/navigation/language-toggle/
 ├── language-toggle.component.ts     [NEW] - Main component implementation
 ├── language-toggle.types.ts         [NEW] - TypeScript type definitions
@@ -84,7 +84,7 @@ src/app/shared/components/navigation/language-toggle/
 
 #### ThemeToggle Component
 
-```
+```text
 src/app/shared/components/navigation/theme-toggle/
 ├── theme-toggle.component.ts        [NEW] - Main component implementation
 ├── theme-toggle.types.ts            [NEW] - TypeScript type definitions
@@ -98,7 +98,7 @@ src/app/shared/components/navigation/theme-toggle/
 
 #### Shared Types
 
-```
+```text
 src/app/shared/types/
 ├── layout.types.ts                  [NEW] - Layout component types
 ├── navigation.types.ts              [NEW] - Navigation component types
@@ -112,7 +112,7 @@ src/app/shared/types/
 
 #### Core Services
 
-```
+```text
 src/app/core/services/
 ├── theme.service.ts                 [NEW] - Theme management service
 ├── language.service.ts              [NEW] - Language switching service
@@ -123,7 +123,7 @@ src/app/core/services/
 
 #### Unit Tests
 
-```
+```text
 src/app/core/components/layout/app-header/
 ├── app-header.component.spec.ts     [NEW] - Component unit tests
 
@@ -152,17 +152,16 @@ src/app/core/services/
 
 #### Integration Tests
 
-```
+```text
 src/app/core/components/layout/
 ├── layout-integration.spec.ts       [NEW] - Layout components integration tests
-
 src/app/shared/components/navigation/
 ├── navigation-integration.spec.ts   [NEW] - Navigation components integration tests
 ```
 
 #### E2E Tests
 
-```
+```text
 e2e/foundation-components/
 ├── header-navigation.e2e-spec.ts    [NEW] - Header navigation E2E tests
 ├── theme-switching.e2e-spec.ts      [NEW] - Theme switching E2E tests
@@ -173,7 +172,7 @@ e2e/foundation-components/
 
 #### Test Utilities
 
-```
+```text
 src/testing/
 ├── component-test-utils.ts          [NEW] - Component testing utilities
 ├── theme-test-utils.ts              [NEW] - Theme testing utilities
@@ -186,7 +185,7 @@ src/testing/
 
 #### Component Documentation
 
-```
+```text
 docs/components/
 ├── app-header.md                    [NEW] - AppHeader usage documentation
 ├── app-footer.md                    [NEW] - AppFooter usage documentation
@@ -200,7 +199,33 @@ docs/components/
 
 #### API Documentation
 
-```
+## 2025-08-18 Enhancements
+
+### Added
+
+- Dynamic header gradient generation (`buildGradientClasses`) with animated background support.
+- Scroll spy integration in `AppHeader` emitting `navChange` for active section tracking.
+- Transparent-until-scroll + elevation-on-scroll behaviors.
+- Accessibility improvements: focus management hooks (foundation), semantic nav markup (already present earlier; reiterated for completeness).
+- Generic Button component (`shared/components/generic-button`) with dynamic `colorKey` input and variant class builder.
+- Refactored CTA component to delegate to Generic Button for consistency.
+
+### Changed
+
+- Header now accepts `backgroundColorKey` & `textColorKey` allowing any theme color token (removes need for fixed variant set).
+- Variant system for buttons moved from static map to runtime builder to support arbitrary theme tokens.
+
+### Deferred / Not in this increment
+
+- Standalone NavMenu, LanguageToggle, ThemeToggle UI components (still deferred to later tasks).
+- Per-component documentation pages (scheduled for Task 4) and formal accessibility audit.
+
+### Notes
+
+- Ensure Angora combos exist (or are generated) for tokens used with `ank-btn-{colorKey}` and `ank-btnOutline-{colorKey}-bgColor`; otherwise fallback styling may require adding those combos in Theme setup.
+- Subsequent tasks can leverage the dynamic color system to introduce contextual button styles without code changes in components.
+
+```text
 docs/api/
 ├── layout-components.md             [NEW] - Layout components API reference
 ├── navigation-components.md         [NEW] - Navigation components API reference
@@ -212,7 +237,7 @@ docs/api/
 
 #### Project Configuration Updates
 
-```
+```text
 angular.json                         [MODIFIED] - Add component library build config
 package.json                         [MODIFIED] - Add development scripts for components
 tsconfig.json                        [MODIFIED] - Update paths for component imports
@@ -220,7 +245,7 @@ tsconfig.json                        [MODIFIED] - Update paths for component imp
 
 #### Testing Configuration
 
-```
+```text
 jest.config.js                       [MODIFIED] - Add component-specific test configs
 karma.conf.js                        [MODIFIED] - Update Karma config for components
 cypress.config.js                    [MODIFIED] - Add E2E test configurations
@@ -228,7 +253,7 @@ cypress.config.js                    [MODIFIED] - Add E2E test configurations
 
 #### Build Configuration
 
-```
+```text
 webpack.config.js                    [MODIFIED] - Add component bundle optimization
 .eslintrc.json                       [MODIFIED] - Add component-specific linting rules
 ```
@@ -237,7 +262,7 @@ webpack.config.js                    [MODIFIED] - Add component bundle optimizat
 
 #### Main Export Files
 
-```
+```text
 src/app/core/index.ts                [NEW] - Core module barrel exports
 src/app/shared/index.ts              [NEW] - Shared module barrel exports
 src/app/core/components/index.ts     [NEW] - Core components barrel exports
@@ -250,7 +275,7 @@ src/app/shared/components/navigation/index.ts [NEW] - Navigation components barr
 
 ### App Module Updates
 
-```
+```text
 src/app/app.ts                       [MODIFIED] - Import and register foundation components
 src/app/app.html                     [MODIFIED] - Use AppHeader and AppFooter in main layout
 src/app/app.scss                     [MODIFIED] - Add foundation component theme integration
@@ -258,7 +283,7 @@ src/app/app.scss                     [MODIFIED] - Add foundation component theme
 
 ### Main Application Files
 
-```
+```text
 src/main.ts                          [MODIFIED] - Bootstrap theme service initialization
 src/index.html                       [MODIFIED] - Add theme-related meta tags and classes
 src/styles.scss                      [MODIFIED] - Import foundation component styles
@@ -266,7 +291,7 @@ src/styles.scss                      [MODIFIED] - Import foundation component st
 
 ### Environment Configuration
 
-```
+```text
 src/environments/environment.ts      [MODIFIED] - Add theme and language configuration
 src/environments/environment.prod.ts [MODIFIED] - Production theme and language config
 ```

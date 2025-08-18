@@ -1,1 +1,1 @@
-<button type="button" [class]="classes()" (click)="handleClick()">{{ label() }}</button>
+<generic-button [label]="label()" [variant]="variant()" [colorKey]="colorKey()" size="md" (pressed)="handleClick()" />

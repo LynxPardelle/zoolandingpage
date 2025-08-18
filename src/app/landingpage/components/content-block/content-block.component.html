@@ -1,0 +1,22 @@
+<div [class]="hostClasses()">
+  <div class="ank-flex-1">
+    @if (data().title) {
+    <h3 class="ank-fs-1_5rem ank-fontWeight-bold ank-m-0 ank-color-titleColor">{{ data().title }}</h3>
+    } @if (data().subtitle) {
+    <p class="ank-fs-1rem ank-color-secondaryTitleColor ank-mt-4px">{{ data().subtitle }}</p>
+    } @if (data().body) {
+    <p class="ank-fs-1rem ank-color-textColor ank-mt-8px">{{ data().body }}</p>
+    }
+    <ng-content select="[actions]" />
+  </div>
+  @if (showMedia()) {
+  <div class="ank-flex-1">
+    <img
+      [src]="data().mediaUrl"
+      [alt]="data().mediaAlt || data().title || ''"
+      class="ank-width-full ank-borderRadius-1rem ank-display-block"
+      loading="lazy"
+    />
+  </div>
+  }
+</div>

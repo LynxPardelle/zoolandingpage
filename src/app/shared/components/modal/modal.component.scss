@@ -1,0 +1,76 @@
+:host {
+  position: fixed;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+  z-index: 1000;
+}
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  pointer-events: auto;
+  animation: fade 0.15s ease;
+}
+.modal-panel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-height: 80vh;
+  overflow: auto;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 280px;
+  padding: 1.25rem;
+  box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.4);
+  animation: scaleIn 0.2s ease;
+}
+.modal-panel[data-size='sm'] {
+  width: 320px;
+}
+.modal-panel[data-size='md'] {
+  width: 480px;
+}
+.modal-panel[data-size='lg'] {
+  width: 720px;
+}
+.modal-panel[data-size='full'] {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  max-height: none;
+}
+.modal-close {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+@media (prefers-reduced-motion: reduce) {
+  .modal-panel,
+  .modal-backdrop {
+    animation: none;
+  }
+}
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}

@@ -1,0 +1,25 @@
+<div
+  class="toast-host ank-position-fixed ank-bottom-1rem ank-right-1rem ank-display-flex ank-flexDirection-column ank-gap-0_5rem"
+  role="region"
+  aria-label="Notifications"
+>
+  @for (m of service.list(); track m.id){
+  <div
+    class="toast ank-display-flex ank-alignItems-center ank-gap-0_5rem ank-fontSize-0_875rem ank-lineHeight-1_2 ank-px-0_75rem ank-py-0_5rem ank-borderRadius-0_5rem ank-boxShadow-sm"
+    [attr.data-level]="m.level"
+    role="status"
+    aria-live="polite"
+    [class.toast-leave]="m.leaving"
+  >
+    <span>{{ m.text }}</span>
+    <button
+      type="button"
+      (click)="service.dismiss(m.id)"
+      aria-label="Dismiss"
+      class="ank-bgcl-transparent ank-border-0 ank-color-inherit ank-cursor-pointer"
+    >
+      ×
+    </button>
+  </div>
+  }
+</div>

@@ -1,0 +1,21 @@
+<!-- Modal rendered through CDK Overlay; template is projected via TemplatePortal -->
+<ng-template #modalContent>
+  <div
+    class="modal-panel ank-bgColor-bgColor ank-color-fgColor ank-borderRadius-0_75rem"
+    [attr.data-size]="size()"
+    role="dialog"
+    [attr.aria-modal]="true"
+    [attr.aria-label]="config?.ariaLabel"
+    [attr.aria-describedby]="config?.ariaDescribedBy"
+  >
+    <button
+      class="modal-close ank-position-absolute ank-top-0_5rem ank-right-0_5rem"
+      type="button"
+      (click)="close()"
+      aria-label="Close modal"
+    >
+      ×
+    </button>
+    <ng-content />
+  </div>
+</ng-template>

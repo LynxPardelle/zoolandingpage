@@ -1,0 +1,27 @@
+<div
+  class="progress-root ank-bg-secondaryBgColor ank-borderRadius-0_5rem ank-overflow-hidden ank-position-relative"
+  role="progressbar"
+  [attr.aria-valuenow]="mode() === 'determinate' ? pct() : null"
+  [attr.aria-valuemin]="mode() === 'determinate' ? 0 : null"
+  [attr.aria-valuemax]="mode() === 'determinate' ? 100 : null"
+  [attr.aria-valuetext]="ariaValueText()"
+>
+  @if (mode() === 'buffer') {
+  <div class="progress-buffer-track"></div>
+  <div class="progress-buffer-bar" [style.width]="bufferPct() + '%'"></div>
+  }
+  <div
+    class="progress-bar"
+    [class.indeterminate]="mode() === 'indeterminate'"
+    [class.striped]="mode() === 'striped'"
+    [class.buffer]="mode() === 'buffer'"
+    [class.reduced-motion]="false"
+    [class]="'progress-bar ' + colorClass() + (mode() === 'indeterminate' ? ' indeterminate' : '')"
+    [ngStyle]="barStyle()"
+  ></div>
+  <div
+    class="progress-label ank-position-absolute ank-left-50per ank-top-50per ank-translateX--50per ank-translateY--50per ank-text-xs ank-fontWeight-500 ank-color-textColor"
+  >
+    <ng-content></ng-content>
+  </div>
+</div>

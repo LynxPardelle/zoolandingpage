@@ -1,0 +1,20 @@
+<div class="stepper" role="list">
+  @for (s of steps(); track s.id; let idx = $index) {
+  <button
+    type="button"
+    class="step-trigger ank-border-none ank-bg-transparent ank-px-0_5rem ank-py-0_25rem ank-borderRadius-0_5rem"
+    [class.active]="isActive(idx)"
+    [disabled]="!canGo(idx)"
+    (click)="select(idx)"
+    role="listitem"
+    [attr.aria-current]="isActive(idx) ? 'step' : null"
+  >
+    <span class="ank-fontWeight-600">{{ idx + 1 }}</span>
+    {{ s.label }}
+    <span *ngIf="s.optional" class="ank-fontSize-0_75rem ank-color-textSecondary">(optional)</span>
+  </button>
+  }
+</div>
+<div class="step-content ank-mt-0_75rem" role="region" [attr.aria-label]="'Step ' + (activeIndex() + 1) + ' content'">
+  <ng-content select="[step-content]"></ng-content>
+</div>

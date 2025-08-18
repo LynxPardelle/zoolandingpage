@@ -7,3 +7,67 @@ body {
   font-family: 'Roboto', sans-serif;
   overflow-x: hidden;
 }
+
+/* Visually hidden utility (for aria-live regions, etc.) */
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+  border: 0 !important;
+  white-space: nowrap !important;
+}
+
+/* Focus visible ring helper class */
+.focus-visible-ring {
+  outline: 2px solid var(--ank-accentColor, #1976d2);
+  outline-offset: 2px;
+}
+
+.gradientShiftAnimation {
+  animation-name: gradientShift;
+}
+.spinAnimation {
+  animation-name: spin;
+}
+
+/* Unified animation utility classes (paired with Angora duration/timing/iteration helpers):
+   Example composition: spinAnimation ank-and-1s ank-antf-linear ank-anic-infinite */
+
+.fadeUpAnimation {
+  animation-name: fadeUp;
+}
+.scaleInAnimation {
+  animation-name: scaleIn;
+}
+.pulseSoftAnimation {
+  animation-name: pulseSoft;
+}
+.wiggleAnimation {
+  animation-name: wiggle;
+}
+.shimmerAnimation {
+  // This creates a shimmering effect,
+  animation-name: shimmer;
+  /*
+  // Use ank-bgi- to create a linear gradient background.
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.35) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  // Use ank-bgs- to create a background size.
+  background-size: 200% 100%;
+  */
+}
+.growXAnimation {
+  animation-name: growX;
+}
+.breatheAnimation {
+  animation-name: breathe;
+}

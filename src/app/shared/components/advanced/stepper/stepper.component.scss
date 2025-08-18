@@ -1,0 +1,26 @@
+.stepper {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.step-trigger {
+  cursor: pointer;
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+  background: var(--ank-surfaceSubtle);
+  transition: background 0.2s;
+}
+.step-trigger.active {
+  background: var(--ank-secondaryBgColor);
+  font-weight: 600;
+}
+.step-trigger:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+@media (prefers-reduced-motion: reduce) {
+  .step-trigger {
+    transition: none;
+  }
+}

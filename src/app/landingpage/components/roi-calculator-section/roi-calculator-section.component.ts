@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { AppContainerComponent, AppSectionComponent } from '../../../core/components/layout';
+import { BusinessSize, CalculatedRoi } from './roi-calculator-section.types';
 
 @Component({
   selector: 'roi-calculator-section',
@@ -11,17 +12,13 @@ import { AppContainerComponent, AppSectionComponent } from '../../../core/compon
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RoiCalculatorSectionComponent {
-  readonly businessSize = input.required<'nano' | 'micro' | 'small' | 'medium'>();
+  readonly businessSize = input.required<BusinessSize>();
   readonly industry = input.required<string>();
   readonly visitors = input.required<number>();
-  readonly calculatedROI = input.required<{
-    readonly roiPercentage: number;
-    readonly conversionImprovement: number;
-    readonly monthlyIncrease: number;
-  }>();
-  readonly businessSizeChange = output<'nano' | 'micro' | 'small' | 'medium'>();
+  readonly calculatedROI = input.required<CalculatedRoi>();
+  readonly businessSizeChange = output<BusinessSize>();
   readonly industryChange = output<string>();
-  updateBusinessSize(size: 'nano' | 'micro' | 'small' | 'medium') {
+  updateBusinessSize(size: BusinessSize) {
     this.businessSizeChange.emit(size);
   }
   updateIndustry(industry: string) {

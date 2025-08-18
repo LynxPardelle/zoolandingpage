@@ -4,11 +4,62 @@
 
 This document tracks all files created, modified, or deleted during the implementation of Advanced Components including modal, overlay, utility, and complex interactive components.
 
+## Implementation Snapshot (Delta vs Original Spec)
+
+Implemented (Phase 1 updated baseline + recent scaffolds + new enhancements):
+
+- Modal upgraded to Angular CDK Overlay + FocusTrap + TemplatePortal (component / service / types / constants)
+- Toast (service + component + types) with externalized template & styles
+- LoadingSpinner (component + types + constants) externalized template & styles; utility classes introduced
+- Accordion (initial implementation: single/multiple mode, keyboard navigation, a11y attributes)
+- ProgressBar scaffold (determinate/indeterminate structure, styling baseline, angora utility classes on container)
+- Dropdown enhanced: keyboard navigation (Arrow/Home/End), focus management, roving tabindex, aria-activedescendant, focus restoration
+- Shared OverlayPositioningService extracted for reuse (Dropdown now consumes)
+- ProgressBar enhancements: label slot, aria-valuetext, color variants, reduced-motion indeterminate fallback
+- Tooltip scaffold: component + types + fade animation + show/hide delay logic (initial positioning reuse via service)
+- Tooltip enhancements: position variants (top/bottom/left/right), Escape-to-hide, max-width wrapping
+- Toast theming refactor: replaced hard-coded colors with angora alt token vars, enter/exit animations, utility class spacing
+- Accordion animations added (CSS grid row transition, reduced-motion fallback)
+- TabGroup component: scaffold + keyboard navigation (Arrow/Home/End) + roving tabindex + lazy panel loading via @defer
+- Initial unit tests added (TabGroup navigation, Dropdown render)
+- Externalization: GenericButton & StatsCounter templates moved out of inline for atomic compliance
+- SearchBox component scaffold: debounced input, overlay suggestions via shared positioning service, keyboard navigation (ArrowUp/Down, Enter, Escape)
+- ProgressBar buffer + striped variants, aria-valuetext enhancements, reduced-motion fallbacks
+- Accessibility utilities: AriaLiveService, MotionPreferenceService, FocusVisibleDirective
+- Performance baseline script (perf:baseline) added (gzip size reporting)
+- Externalized WhatsAppButton template (removed inline template)
+- Externalized ContentBlock template (removed inline template)
+
+Not Yet Implemented / Pending (Updated):
+
+- Stepper component suite
+- Tooltip advanced a11y/theming + tests
+- SearchBox advanced features (aria-activedescendant, custom template projection, history, loading state integration)
+- Focus management service (beyond existing CDK traps) & keyboard-navigation service (if still deemed necessary)
+- Advanced type aggregation files (overlay.types.ts, utility.types.ts, etc.) – may be deferred or collapsed if redundant
+- Comprehensive keyboard/focus tests (Modal, Accordion, Dropdown, ProgressBar, TabGroup, SearchBox, Tooltip, upcoming Stepper)
+
+Adjustments:
+
+- Simplified initial delivery to reduce risk and enable early integration.
+- CDK Overlay + FocusTrap deferred to next iteration (tracked in plan).
+- Templates currently inline for prototypes; will externalize or justify minimal inline usage where file-size fits atomic rule.
+
+Next Increment Goals (Updated):
+
+1. Implement Stepper (linear + non-linear, validation hook points)
+2. Finalize Tooltip (a11y roles, aria-live strategy for dynamic content, theming variants)
+3. Enhance SearchBox (aria-activedescendant, custom template projection API, optional history management service)
+4. Flesh out keyboard & focus cycle tests across advanced components
+5. Convert remaining raw CSS in tooltip/spinner to angora utility tokens where feasible
+6. Introduce minimal focus management helper (if gaps remain after leveraging CDK)
+
 ## File Structure to be Created
 
 ### Modal and Overlay Components
 
 #### Modal Component
+
 ```text
 src/app/shared/components/modal/modal/
 ├── modal.component.ts               [NEW] - Main component implementation
@@ -21,6 +72,7 @@ src/app/shared/components/modal/modal/
 ```
 
 #### Accordion Component
+
 ```text
 src/app/shared/components/modal/accordion/
 ├── accordion.component.ts           [NEW] - Main component implementation
@@ -32,6 +84,7 @@ src/app/shared/components/modal/accordion/
 ```
 
 #### Dropdown Component
+
 ```text
 src/app/shared/components/modal/dropdown/
 ├── dropdown.component.ts            [NEW] - Main component implementation
@@ -45,6 +98,7 @@ src/app/shared/components/modal/dropdown/
 ### Utility Components
 
 #### LoadingSpinner Component
+
 ```text
 src/app/shared/components/utility/loading-spinner/
 ├── loading-spinner.component.ts     [NEW] - Main component implementation
@@ -56,6 +110,7 @@ src/app/shared/components/utility/loading-spinner/
 ```
 
 #### ProgressBar Component
+
 ```text
 src/app/shared/components/utility/progress-bar/
 ├── progress-bar.component.ts        [NEW] - Main component implementation
@@ -67,6 +122,7 @@ src/app/shared/components/utility/progress-bar/
 ```
 
 #### Toast Component
+
 ```text
 src/app/shared/components/utility/toast/
 ├── toast.component.ts               [NEW] - Main component implementation
@@ -79,6 +135,7 @@ src/app/shared/components/utility/toast/
 ```
 
 #### Tooltip Component
+
 ```text
 src/app/shared/components/utility/tooltip/
 ├── tooltip.component.ts             [NEW] - Main component implementation
@@ -93,6 +150,7 @@ src/app/shared/components/utility/tooltip/
 ### Advanced Interactive Components
 
 #### TabGroup Component
+
 ```text
 src/app/shared/components/advanced/tab-group/
 ├── tab-group.component.ts           [NEW] - Main tab group component
@@ -106,6 +164,7 @@ src/app/shared/components/advanced/tab-group/
 ```
 
 #### Stepper Component
+
 ```text
 src/app/shared/components/advanced/stepper/
 ├── stepper.component.ts             [NEW] - Main stepper component
@@ -119,6 +178,7 @@ src/app/shared/components/advanced/stepper/
 ```
 
 #### SearchBox Component
+
 ```text
 src/app/shared/components/advanced/search-box/
 ├── search-box.component.ts          [NEW] - Main component implementation
@@ -132,6 +192,7 @@ src/app/shared/components/advanced/search-box/
 ### Services and Utilities
 
 #### Advanced Component Services
+
 ```text
 src/app/shared/services/
 ├── overlay.service.ts               [NEW] - Overlay management service
@@ -143,6 +204,7 @@ src/app/shared/services/
 ### Type Definitions
 
 #### Advanced Component Types
+
 ```text
 src/app/shared/types/
 ├── overlay.types.ts                 [NEW] - Overlay and modal types
@@ -154,6 +216,7 @@ src/app/shared/types/
 ### Testing Files
 
 #### Unit Tests
+
 ```text
 src/app/shared/components/modal/modal/
 ├── modal.component.spec.ts          [NEW] - Modal unit tests
@@ -187,6 +250,7 @@ src/app/shared/components/advanced/search-box/
 ```
 
 #### Integration Tests
+
 ```text
 src/app/shared/components/
 ├── advanced-integration.spec.ts     [NEW] - Advanced components integration tests
@@ -195,6 +259,7 @@ src/app/shared/components/
 ```
 
 #### E2E Tests
+
 ```text
 e2e/advanced-components/
 ├── modal-interaction.e2e-spec.ts    [NEW] - Modal E2E tests
@@ -208,24 +273,28 @@ e2e/advanced-components/
 ## Modifications to Existing Files
 
 ### Core Application Updates
+
 ```text
 src/app/app.ts                       [MODIFIED] - Import advanced components
 src/app/app.html                     [MODIFIED] - Use advanced components
 ```
 
 ### Shared Module Updates
+
 ```text
 src/app/shared/index.ts              [MODIFIED] - Export advanced components
 src/app/shared/components/index.ts   [MODIFIED] - Export advanced components
 ```
 
 ### Configuration Updates
+
 ```text
 angular.json                         [MODIFIED] - CDK and overlay configuration
 package.json                         [MODIFIED] - Angular CDK dependencies
 ```
 
 ### Style Updates
+
 ```text
 src/styles.scss                      [MODIFIED] - Global overlay styles
 src/app/shared/styles/
@@ -237,7 +306,9 @@ src/app/shared/styles/
 ## Development Workflow
 
 ### Week 3: Day 1-3 - Modal and Overlay Development
+
 **Files to Create:**
+
 - Modal component files (7 files)
 - Accordion component files (6 files)
 - Dropdown component files (6 files)
@@ -245,7 +316,9 @@ src/app/shared/styles/
 - CDK integration setup
 
 ### Week 3: Day 4-5 - Utility Components
+
 **Files to Create:**
+
 - LoadingSpinner component files (6 files)
 - ProgressBar component files (6 files)
 - Toast component files (7 files)
@@ -253,7 +326,9 @@ src/app/shared/styles/
 - Accessibility service integration
 
 ### Week 3: Day 6-7 - Advanced Interactive Components
+
 **Files to Create:**
+
 - TabGroup component files (8 files)
 - Stepper component files (8 files)
 - SearchBox component files (6 files)
@@ -263,6 +338,7 @@ src/app/shared/styles/
 ## File Count Summary
 
 ### New Files Created
+
 - **Component Files**: 67 files (10 components with varying file counts)
 - **Service Files**: 4 new service files
 - **Type Definition Files**: 4 new type files
@@ -271,6 +347,7 @@ src/app/shared/styles/
 - **Total New Files**: ~98 files
 
 ### Modified Files
+
 - **Core Application Files**: 2 files
 - **Configuration Files**: 2 files
 - **Shared Module Files**: 2 files
@@ -280,14 +357,16 @@ src/app/shared/styles/
 ## Quality Assurance Checklist
 
 ### Code Quality
-- [ ] All components use Angular CDK appropriately
-- [ ] Focus management implemented correctly
+
+- [ ] All components use Angular CDK appropriately (Modal done; Dropdown/Tooltip pending)
+- [ ] Focus management implemented correctly (Modal done; others pending)
 - [ ] Keyboard navigation follows accessibility standards
 - [ ] Overlay positioning works cross-browser
 - [ ] Animation performance optimized
 - [ ] Bundle size impact minimized
 
 ### Testing Coverage
+
 - [ ] Unit tests >90% coverage
 - [ ] CDK integration tests comprehensive
 - [ ] Accessibility tests pass WCAG 2.1 AA
@@ -296,43 +375,51 @@ src/app/shared/styles/
 
 ## Release Notes
 
-### Version 0.3.0 - Advanced Components
+### Version 0.3.0 - Advanced Components (Work In Progress Snapshot)
 
-**New Features:**
-- ✅ Modal with CDK Overlay integration
-- ✅ Accordion with smooth animations
-- ✅ Dropdown with auto-positioning
-- ✅ LoadingSpinner with multiple variants
-- ✅ ProgressBar with animation support
-- ✅ Toast notification system
-- ✅ Tooltip with CDK positioning
-- ✅ TabGroup with lazy loading
-- ✅ Stepper with form validation
-- ✅ SearchBox with auto-complete
+#### Completed So Far
 
-**Technical Improvements:**
-- ✅ Angular CDK integration
-- ✅ Advanced accessibility features
-- ✅ Focus management system
-- ✅ Keyboard navigation enhancements
-- ✅ Performance optimization
+- ✅ Modal with CDK Overlay + FocusTrap + portal
+- ✅ Toast notification host/service (baseline)
+- ✅ LoadingSpinner variants (ring/dots/bars) externalized
+- ✅ Accordion (initial single/multiple + keyboard navigation)
+
+#### Upcoming (Planned for 0.3.0 Final)
+
+- ⏳ Dropdown with auto-positioning
+- ⏳ Tooltip leveraging positioning utility
+- ⏳ ProgressBar (determinate/indeterminate)
+- ⏳ TabGroup with lazy loading (@defer)
+- ⏳ Stepper with form validation
+- ⏳ SearchBox with auto-complete overlay
+
+#### Technical Improvements Progress
+
+- ✅ Angular CDK integration (Modal)
+- ✅ Initial keyboard / a11y patterns (Accordion focus & arrow keys)
+- ⏳ Shared positioning strategy abstraction (planned)
+- ⏳ Tooltip accessible hover/focus management
+- ⏳ Performance tuning & bundle size audit
 
 ### Migration Guide
 
-**From Content Components:**
+#### From Content Components
+
 1. Install Angular CDK dependencies
 2. Import advanced component modules
 3. Configure overlay system
 4. Update accessibility testing
 5. Test keyboard navigation workflows
 
-**Breaking Changes:**
+#### Breaking Changes
+
 - Angular CDK now required dependency
 - Some advanced features require additional setup
 
 ## Rollback Plan
 
 ### Emergency Rollback Procedure
+
 1. **Remove CDK Dependencies**: Uninstall Angular CDK
 2. **Component Removal**: Remove advanced component imports
 3. **Service Cleanup**: Remove overlay and focus services
@@ -340,6 +427,7 @@ src/app/shared/styles/
 5. **Test Validation**: Verify core functionality works
 
 ### Recovery Testing
+
 - Verify application builds without CDK
 - Test existing components still function
 - Confirm no broken imports remain
