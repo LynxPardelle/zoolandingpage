@@ -1,0 +1,98 @@
+<app-section variant="accent" spacing="lg">
+  <app-container size="xl">
+    <div class="ank-textAlign-center ank-mb-64px">
+      <h2 class="ank-fs-2rem ank-fontWeight-bold ank-mb-16px ank-color-titleColor">
+        El Proceso de tu nueva landing page
+      </h2>
+    </div>
+    <div
+      class="ank-display-grid ank-gridTemplateColumns-1fr ank-gridTemplateColumns-lg-1fr__2fr ank-gap-48px ank-alignItems-start"
+    >
+      <div class="ank-bg-secondaryBgColor ank-borderRadius-12px ank-p-24px">
+        <h3 class="ank-fs-1_25rem ank-fontWeight-bold ank-mb-20px ank-color-titleColor">Nuestro Proceso</h3>
+        @for (demo of process(); track demo.step; let i = $index) {
+        <div
+          (click)="choose(i)"
+          class="ank-p-16px ank-borderRadius-8px ank-mb-12px ank-cursor-pointer ank-transition-all ank-duration-200ms"
+          [class]="demo.isActive ? 'ank-bg-accentColor ank-color-textColor' : 'ank-bg-textColor ank-color-accentColor'"
+        >
+          <div class="ank-display-flex ank-alignItems-center ank-gap-12px ank-mb-8px">
+            <div
+              class="ank-width-24px ank-height-24px ank-borderRadius-99rem ank-display-flex ank-alignItems-center ank-justifyContent-center ank-fs-1rem ank-fontWeight-bold"
+              [class]="
+                demo.isActive ? 'ank-bg-textColor ank-color-accentColor' : 'ank-bg-accentColor ank-color-textColor'
+              "
+            >
+              {{ demo.step }}
+            </div>
+            <h4 class="ank-fs-1rem ank-fontWeight-semibold ank-m-0">{{ demo.title }}</h4>
+          </div>
+          <p
+            class="ank-fs-1rem ank-m-0 ank-lineHeight-relaxed"
+            [class]="demo.isActive ? 'ank-color-textColor' : 'ank-color-accentColor'"
+          >
+            {{ demo.description }}
+          </p>
+        </div>
+        }
+      </div>
+      <div class="ank-bg-secondaryBgColor ank-borderRadius-12px ank-p-32px ank-minHeight-500px">
+        <div class="ank-display-flex ank-alignItems-center ank-gap-16px ank-mb-24px">
+          <div class="ank-fs-4xl">
+            @switch (currentStep()) { @case (0) {<mat-icon
+              class="ank-fs-4rem ank-width-4rem ank-height-4rem ank-color-secondaryTitleColor"
+              >assignment</mat-icon
+            >} @case (1) {<mat-icon class="ank-fs-4rem ank-width-4rem ank-height-4rem ank-color-secondaryTitleColor"
+              >psychology</mat-icon
+            >} @case (2) {<mat-icon class="ank-fs-4rem ank-width-4rem ank-height-4rem ank-color-secondaryTitleColor"
+              >preview</mat-icon
+            >} @case (3) {<mat-icon class="ank-fs-4rem ank-width-4rem ank-height-4rem ank-color-secondaryTitleColor"
+              >rocket_launch</mat-icon
+            >} @case (4) {<mat-icon class="ank-fs-4rem ank-width-4rem ank-height-4rem ank-color-secondaryTitleColor"
+              >analytics</mat-icon
+            >} @case (5) {<mat-icon class="ank-fs-4rem ank-width-4rem ank-height-4rem ank-color-secondaryTitleColor"
+              >autorenew</mat-icon
+            >} @default {<mat-icon class="ank-fs-4rem ank-width-4rem ank-height-4rem ank-color-secondaryTitleColor"
+              >assignment</mat-icon
+            >} }
+          </div>
+          <div>
+            <h3 class="ank-fs-1_25rem ank-fontWeight-bold ank-mb-8px ank-color-secondaryTitleColor">
+              {{ currentData().title }}
+            </h3>
+            <div class="ank-display-flex ank-alignItems-center ank-gap-8px ank-mb-16px">
+              <mat-icon class="ank-fs-1rem ank-color-secondaryAccentColor">schedule</mat-icon>
+              <span class="ank-fs-1rem ank-color-secondaryAccentColor ank-fontWeight-medium">{{
+                currentData().duration
+              }}</span>
+            </div>
+          </div>
+        </div>
+        <p class="ank-fs-1rem ank-color-secondaryTextColor ank-lineHeight-relaxed ank-mb-16px">
+          {{ currentData().description }}
+        </p>
+        <div class="ank-mb-24px">
+          <h4 class="ank-fs-1_125rem ank-fontWeight-semibold ank-mb-12px ank-color-secondaryTitleColor">
+            Descripción Detallada:
+          </h4>
+          <p class="ank-fs-0_875rem ank-color-secondaryTextColor ank-lineHeight-relaxed">
+            {{ currentData().detailedDescription }}
+          </p>
+        </div>
+        <div>
+          <h4 class="ank-fs-1_125rem ank-fontWeight-semibold ank-mb-12px ank-color-secondaryTitleColor">
+            Entregables:
+          </h4>
+          <ul class="ank-listStyle-none ank-p-0 ank-m-0">
+            @for (deliverable of currentData().deliverables; track deliverable) {
+            <li class="ank-display-flex ank-alignItems-center ank-gap-8px ank-mb-8px">
+              <mat-icon class="ank-fs-1rem ank-color-success ank-mt-2px">check_circle</mat-icon>
+              <span class="ank-fs-0_875rem ank-color-secondaryTextColor ank-lineHeight-relaxed">{{ deliverable }}</span>
+            </li>
+            }
+          </ul>
+        </div>
+      </div>
+    </div>
+  </app-container>
+</app-section>

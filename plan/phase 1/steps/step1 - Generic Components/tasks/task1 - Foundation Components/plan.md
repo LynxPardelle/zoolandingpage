@@ -159,7 +159,6 @@ This task focuses on creating the foundational layout and navigation components 
 3. **Environment Variables**: ALL configuration must use environment variables (localStorage keys, API URLs, etc.)
 4. **Correct ngx-angora-css Methods**:
    - Use `pushColors()` for adding/updating colors
-   - Use `updateClasses()` for CSS class management
    - Use proper theme integration methods
 5. **Types Only**: All type definitions use `type` keyword, NO interfaces/enums
 6. **Atomic File Structure**: Each component split into 50-80 line files maximum

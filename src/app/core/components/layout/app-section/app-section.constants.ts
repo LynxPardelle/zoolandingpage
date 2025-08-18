@@ -17,10 +17,10 @@ export const APP_SECTION_DEFAULTS = {
 // Section spacing mappings for ngx-angora-css classes
 export const SECTION_SPACING_CLASSES: Record<SectionSpacing, string> = {
   none: '',
-  sm: 'ank-paddingTop-32px ank-paddingBottom-32px',
-  md: 'ank-paddingTop-64px ank-paddingBottom-64px',
-  lg: 'ank-paddingTop-96px ank-paddingBottom-96px',
-  xl: 'ank-paddingTop-128px ank-paddingBottom-128px',
+  sm: 'ank-py-2rem',
+  md: 'ank-py-4rem',
+  lg: 'ank-py-6rem',
+  xl: 'ank-py-12rem',
 } as const;
 
 // Section variant classes (colors set via pushColors in component)

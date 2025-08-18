@@ -1,0 +1,37 @@
+<article
+  class="ank-bg-secondaryBgColor ank-borderRadius-12px ank-p-32px cardHover ank-border-1px ank-borderColor-border"
+  [@fadeIn]
+  itemscope
+  itemtype="https://schema.org/Review"
+>
+  <div class="ank-display-flex ank-alignItems-center ank-gap-12px ank-mb-16px">
+    <div class="ank-fs-2rem" aria-hidden="true">{{ data().avatar || "🧑" }}</div>
+    <div>
+      <h3 class="ank-fs-1rem ank-fontWeight-bold ank-m-0 ank-color-secondaryTitleColor" itemprop="author">
+        {{ data().name }}
+      </h3>
+      <p class="ank-fs-0_75rem ank-m-0 ank-color-secondaryTextColor">{{ data().role }} · {{ data().company }}</p>
+    </div>
+    @if (data().verified) {<mat-icon class="ank-fs-1rem ank-color-success" title="Verificado" aria-label="Verificado"
+      >verified</mat-icon
+    >}
+  </div>
+  <p class="ank-fs-0_875rem ank-color-secondaryTextColor ank-lineHeight-relaxed" itemprop="reviewBody">
+    "{{ data().content }}"
+  </p>
+  <div
+    class="ank-display-flex ank-alignItems-center ank-gap-4px"
+    itemprop="reviewRating"
+    itemscope
+    itemtype="https://schema.org/Rating"
+  >
+    <meta itemprop="worstRating" content="1" /><meta itemprop="bestRating" content="5" /><meta
+      itemprop="ratingValue"
+      [content]="data().rating.toString()"
+    />
+    @for (star of stars(); track star) {<mat-icon class="ank-fs-1rem ank-color-warning" aria-hidden="true">{{
+      star <= data().rating ? "star" : "star_border"
+    }}</mat-icon
+    >}<span class="ank-fs-0_75rem ank-color-secondaryTextColor">{{ data().rating }}/5</span>
+  </div>
+</article>

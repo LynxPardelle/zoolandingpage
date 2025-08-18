@@ -1,0 +1,20 @@
+<div
+  class="ank-bg-secondaryBgColor ank-borderRadius-1rem ank-p-1_5rem cardHover ank-textAlign-center ank-border-1px ank-borderColor-border ank-h-calcSD100per__MIN__3remED"
+  [@fadeIn]
+>
+  <div class="ank-mb-1_25rem ank-display-flex ank-justifyContent-center">
+    <mat-icon class="ank-fs-2rem ank-width-2rem ank-height-2rem ank-color-accentColor">{{ data().icon }}</mat-icon>
+  </div>
+  <h3 class="ank-fs-1_25rem ank-fontWeight-bold ank-mb-1rem ank-color-secondaryTitleColor">{{ data().title }}</h3>
+  <p class="ank-fs-1rem ank-color-secondaryTextColor ank-mb-1_25rem ank-lineHeight-relaxed">{{ data().description }}</p>
+  @if (data().benefits?.length) {
+  <ul class="ank-listStyle-none ank-p-0 ank-m-0 ank-textAlign-left">
+    @for (b of data().benefits; track b) {
+    <li class="ank-display-flex ank-alignItems-center ank-gap-0_25rem ank-mb-0_5rem">
+      <mat-icon class="ank-fs-0_75rem ank-color-secondaryAccentColor">check_circle</mat-icon
+      ><span class="ank-fs-0_75rem ank-color-secondaryTextColor">{{ b }}</span>
+    </li>
+    }
+  </ul>
+  }
+</div>
