@@ -4,6 +4,55 @@
       <h2 class="ank-fs-2rem ank-fontWeight-bold ank-mb-16px ank-color-titleColor">Lo que Dicen Nuestros Clientes</h2>
       <p class="ank-fs-1_5rem ank-color-textColor">Resultados reales de negocios reales</p>
     </div>
+    @defer (on viewport; prefetch on idle) {
     <div class="gridCol2">@for (t of testimonials(); track t.name) { <testimonial-card [data]="t" /> }</div>
+    } @placeholder {
+    <div class="gridCol2">
+      <!-- Testimonial Card Placeholder 1 -->
+      <testimonial-card
+        [data]="{
+          name: 'María González',
+          role: 'CEO',
+          company: 'TechStart',
+          content: 'Increíble trabajo. Nuestras conversiones aumentaron un 300% en solo 2 meses.',
+          rating: 5,
+          avatar: '/assets/testimonials/placeholder-1.jpg'
+        }"
+      />
+      <!-- Testimonial Card Placeholder 2 -->
+      <testimonial-card
+        [data]="{
+          name: 'Carlos Rodríguez',
+          role: 'Director Marketing',
+          company: 'Digital Pro',
+          content: 'El mejor equipo con el que hemos trabajado. Resultados excepcionales.',
+          rating: 5,
+          avatar: '/assets/testimonials/placeholder-2.jpg'
+        }"
+      />
+      <!-- Testimonial Card Placeholder 3 -->
+      <testimonial-card
+        [data]="{
+          name: 'Ana Martínez',
+          role: 'Fundadora',
+          company: 'E-commerce Plus',
+          content: 'ROI increíble. La inversión se pagó sola en el primer mes.',
+          rating: 5,
+          avatar: '/assets/testimonials/placeholder-3.jpg'
+        }"
+      />
+      <!-- Testimonial Card Placeholder 4 -->
+      <testimonial-card
+        [data]="{
+          name: 'Roberto Silva',
+          role: 'Gerente Ventas',
+          company: 'SaaS Solutions',
+          content: 'Landing page que realmente convierte. Altamente recomendado.',
+          rating: 5,
+          avatar: '/assets/testimonials/placeholder-4.jpg'
+        }"
+      />
+    </div>
+    }
   </app-container>
 </app-section>
