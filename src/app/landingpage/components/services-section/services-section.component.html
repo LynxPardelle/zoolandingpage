@@ -1,0 +1,49 @@
+<app-section spacing="lg">
+  <app-container size="xl">
+    <div class="ank-textAlign-center ank-mb-64px">
+      <h2 class="ank-fs-2rem ank-fontWeight-bold ank-mb-16px ank-color-titleColor">
+        Nuestros Servicios Especializados
+      </h2>
+      <p class="ank-fs-1_5rem ank-color-textColor">Todo lo que necesitas para dominar el mundo digital</p>
+    </div>
+    <div class="gridCol2">
+      @for (service of services(); track service.title) {
+      <div
+        class="ank-bg-secondaryBgColor ank-borderRadius-12px ank-p-32px cardHover ank-border-1px ank-borderColor-border ank-position-relative ank-overflow-hidden"
+      >
+        <div
+          class="ank-position-absolute ank-top-0 ank-left-0 ank-width-100per ank-height-4px"
+          [class]="'ank-bg-' + service.color"
+        ></div>
+        <div class="ank-mb-1_25rem ank-display-flex ank-justifyContent-center">
+          <mat-icon class="ank-fs-2rem ank-width-2rem ank-height-2rem ank-color-secondaryAccentColor">{{
+            service.icon
+          }}</mat-icon>
+        </div>
+        <h3 class="ank-fs-1_25rem ank-fontWeight-bold ank-mb-1rem ank-color-secondaryTitleColor">
+          {{ service.title }}
+        </h3>
+        <p class="ank-fs-1rem ank-color-secondaryTextColor ank-mb-1_25rem ank-lineHeight-relaxed">
+          {{ service.description }}
+        </p>
+        <ul class="ank-listStyle-none ank-p-0 ank-m-0 ank-mb-1_25rem">
+          @for (feature of service.features; track feature) {
+          <li class="ank-display-flex ank-alignItems-center ank-justifyContent-start ank-gap-0_25rem ank-mb-0_5rem">
+            <mat-icon class="ank-fs-0_75rem ank-color-secondaryAccentColor">check_circle</mat-icon>
+            <span class="ank-fs-0_75rem ank-color-secondaryTextColor ank-w-calcSD100per__MIN__28pxED">{{
+              feature
+            }}</span>
+          </li>
+          }
+        </ul>
+        <button
+          class="btnBase ank-btnOutline-secondaryLinkColor ank-bg-transparent ank-colorHover-textColor ank-width-100per ank-py-1rem ank-my-1rem"
+          (click)="onCta(service.title)"
+        >
+          Solicitar Información
+        </button>
+      </div>
+      }
+    </div>
+  </app-container>
+</app-section>

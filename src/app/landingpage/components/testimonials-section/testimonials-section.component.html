@@ -1,0 +1,9 @@
+<app-section spacing="lg">
+  <app-container size="xl">
+    <div class="ank-textAlign-center ank-mb-64px">
+      <h2 class="ank-fs-2rem ank-fontWeight-bold ank-mb-16px ank-color-titleColor">Lo que Dicen Nuestros Clientes</h2>
+      <p class="ank-fs-1_5rem ank-color-textColor">Resultados reales de negocios reales</p>
+    </div>
+    <div class="gridCol2">@for (t of testimonials(); track t.name) { <testimonial-card [data]="t" /> }</div>
+  </app-container>
+</app-section>

@@ -18,14 +18,17 @@ import { MatIconModule } from '@angular/material/icon';
 // import { NgxAngoraService } from 'ngx-angora-css';
 import { environment } from '../environments/environment';
 import { NgxAngoraService } from './angora-css/ngx-angora.service';
-import {
-  AppContainerComponent,
-  AppFooterComponent,
-  AppHeaderComponent,
-  AppSectionComponent,
-} from './core/components/layout';
+import { AppFooterComponent, AppHeaderComponent } from './core/components/layout';
 import { LanguageService } from './core/services/language.service';
 import { ThemeService } from './core/services/theme.service';
+import { FeaturesSectionComponent } from './landingpage/components/features-section/features-section.component';
+import { FinalCtaSectionComponent } from './landingpage/components/final-cta-section/final-cta-section.component';
+import { HeroSectionComponent } from './landingpage/components/hero-section';
+import { InteractiveProcessComponent } from './landingpage/components/interactive-process/interactive-process.component';
+import { RoiCalculatorSectionComponent } from './landingpage/components/roi-calculator-section/roi-calculator-section.component';
+import { RoiNoteComponent } from './landingpage/components/roi-note/roi-note.component';
+import { ServicesSectionComponent } from './landingpage/components/services-section/services-section.component';
+import { TestimonialsSectionComponent } from './landingpage/components/testimonials-section/testimonials-section.component';
 
 // Landing page data types
 type FeatureCard = {
@@ -64,7 +67,19 @@ type InteractiveProcess = {
 
 @Component({
   selector: 'app-root',
-  imports: [AppContainerComponent, AppHeaderComponent, AppFooterComponent, AppSectionComponent, MatIconModule],
+  imports: [
+    AppHeaderComponent,
+    AppFooterComponent,
+    MatIconModule,
+    HeroSectionComponent,
+    RoiNoteComponent,
+    FeaturesSectionComponent,
+    InteractiveProcessComponent,
+    ServicesSectionComponent,
+    RoiCalculatorSectionComponent,
+    TestimonialsSectionComponent,
+    FinalCtaSectionComponent,
+  ],
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -96,8 +111,9 @@ export class App {
     subtitle: 'Descubre cómo podemos potenciar tu presencia digital y aumentar tus ventas',
     description:
       'Somos una consultora de tecnología especializada en ayudar a nano y micro empresas a crecer a través de soluciones web inteligentes, cloud computing, análisis de datos e inteligencia artificial. Esta landing page es nuestra demo en vivo.',
-    primaryCta: 'Solicitar Consultoría',
-    secondaryCta: 'Explorar Demo Tutorial',
+    primary: { label: 'Solicitar Consultoría', trackLabel: 'hero_consultoria' },
+    secondary: { label: 'Explorar Demo Tutorial', trackLabel: 'hero_demo' },
+    badges: [{ text: 'Angular' }, { text: 'AWS' }, { text: 'TypeScript' }, { text: 'AI' }],
   });
 
   readonly features = signal<readonly FeatureCard[]>([
@@ -415,12 +431,6 @@ export class App {
     };
   });
 
-  readonly currentDemoData = computed(() => {
-    const demos = this.interactiveProcess();
-    const currentStep = this.currentDemoStep();
-    return demos[currentStep] || demos[0];
-  });
-
   /* Angora CSS */
   public angoraHasBeenInitialized = false;
 
@@ -453,7 +463,7 @@ export class App {
         ],
         sectionPadding: ['ank-py-80px ank-px-20px'],
         containerMax: ['ank-maxWidth-1200px ank-mx-auto'],
-        gridCol3: [
+        gridCol2: [
           'ank-display-grid ank-gridTemplateColumns-1fr ank-gridTemplateColumns-md-repeatSD2COM1frED ank-gridTemplateColumns-lg-repeatSD3COM1frED ank-gap-2rem',
         ],
         textGradient: [
