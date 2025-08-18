@@ -1,5 +1,61 @@
 # Task 4: Testing and Documentation Plan
 
+## Revision Addendum (2025-08-17)
+
+Task 4 timing depends on stabilization of Tasks 2 & 3 primitives. Adjustments & clarifications:
+
+### Status Snapshot
+
+| Area                     | Current State                                            |
+| ------------------------ | -------------------------------------------------------- |
+| Foundation Components    | Implemented (need coverage + docs)                       |
+| Content Components       | Core sections present; primitives pending (Button, etc.) |
+| Advanced Components      | Not started (Task 3)                                     |
+| Unit Test Infra          | Baseline Angular/Jest present (needs utilities)          |
+| Integration/E2E Setup    | Not scaffolded                                           |
+| Accessibility Automation | Not integrated                                           |
+| Performance Budgets      | Angular budgets exist; no CI enforcement                 |
+| Docs Structure           | High-level project docs exist; component docs absent     |
+
+Legend: Implemented / Not started / Pending
+
+### Scope Alignment
+
+- Early unit test stubs will be created in Task 2 for new primitives (Button, WhatsAppButton, StatsCounter) to accelerate ramp here.
+- Full coverage targets (>90%) remain, but phased: foundation/content first, then advanced components post-Task 3.
+- Documentation to leverage auto-generated API references where feasible (consider `compodoc` integration) to reduce manual drift risk.
+
+### Dependency Checklist (Must Be Ready Before Full Execution)
+
+- [ ] Task 2: All section components have `types/constants` (stable public shapes)
+- [ ] Task 2: Generic Button & WhatsAppButton finalized (avoid churn)
+- [ ] Task 3: Modal + Toast + Dropdown initial APIs frozen (for docs & tests)
+- [ ] Analytics event naming convention documented
+- [ ] Theming tokens file (colors) stable (avoid style snapshot rewrites)
+
+### Adjusted Deliverable Sequencing
+
+1. Baseline Coverage Pass: Existing foundation + implemented content sections (raise to ~70%).
+2. API Doc Skeleton: Generate initial docs for implemented components only (mark placeholders for advanced set).
+3. Full Coverage Expansion: After Task 3, add advanced component test suites to push >90% global.
+4. Accessibility Layer: Integrate automated axe checks in unit + Cypress flows; manual audits consolidated after advanced UI is present.
+5. Performance Budget Enforcement: Add size-limit or custom script gating CI after advanced components added (avoid premature false positives).
+
+### Risk Mitigations
+
+| Risk                                    | Impact         | Mitigation                                                               |
+| --------------------------------------- | -------------- | ------------------------------------------------------------------------ |
+| Interface churn causing doc rewrites    | Wasted effort  | Delay full doc prose until APIs frozen per component group               |
+| Overhead of maintaining manual examples | Drift          | Centralize examples in showcase components consumed by docs              |
+| Test flakiness (animations, timers)     | CI instability | Prefer deterministic test utilities + fakeAsync; isolate animation tests |
+
+### Success Criteria Additions
+
+- At least one snapshot or DOM structure assertion per component (guard regressions) plus semantic/a11y assertions.
+- Accessibility smoke test added to CI (axe) before full manual audits.
+
+---
+
 ## Overview
 
 This task focuses on creating comprehensive testing coverage and documentation for all Generic Components developed in previous tasks. This includes unit tests, integration tests, E2E tests, accessibility testing, performance testing, and complete documentation for developers and users.
@@ -27,10 +83,12 @@ This task focuses on creating comprehensive testing coverage and documentation f
 ### 1. Unit Testing
 
 #### Component Unit Tests
+
 **Coverage Target**: >95% for all components
 **Testing Framework**: Jest with Angular Testing Library
 
 **Test Categories**:
+
 - Component rendering with various props
 - Event handling and user interactions
 - State management and data flow
@@ -39,6 +97,7 @@ This task focuses on creating comprehensive testing coverage and documentation f
 - Responsive behavior simulation
 
 **Foundation Components Tests**:
+
 - AppHeader: Navigation, theme toggle, language toggle
 - AppFooter: Content display, responsive layout
 - AppContainer: Content wrapping, responsive breakpoints
@@ -48,6 +107,7 @@ This task focuses on creating comprehensive testing coverage and documentation f
 - ThemeToggle: Theme switching, system detection
 
 **Content Components Tests**:
+
 - HeroSection: Content display, animations, CTA integration
 - CallToAction: Button variants, analytics tracking
 - ContentBlock: Layout variants, media integration
@@ -60,6 +120,7 @@ This task focuses on creating comprehensive testing coverage and documentation f
 - ImageGallery: Grid display, lightbox, touch gestures
 
 **Advanced Components Tests**:
+
 - Modal: Overlay behavior, focus management, escape handling
 - Accordion: Expansion logic, animations, keyboard navigation
 - Dropdown: Positioning, keyboard navigation, selection
@@ -72,9 +133,11 @@ This task focuses on creating comprehensive testing coverage and documentation f
 - SearchBox: Auto-complete, keyboard navigation, results
 
 #### Service Unit Tests
+
 **Coverage Target**: >95% for all services
 
 **Service Tests**:
+
 - ThemeService: Color management, persistence, system detection
 - LanguageService: Language switching, translation loading
 - AnalyticsService: Event tracking, configuration management
@@ -86,9 +149,11 @@ This task focuses on creating comprehensive testing coverage and documentation f
 ### 2. Integration Testing
 
 #### Component Integration Tests
+
 **Focus**: Component interactions and data flow
 
 **Test Scenarios**:
+
 - Header and navigation component integration
 - Theme changes propagating across all components
 - Language changes affecting all text content
@@ -97,9 +162,11 @@ This task focuses on creating comprehensive testing coverage and documentation f
 - Animation coordination between multiple components
 
 #### Service Integration Tests
+
 **Focus**: Service interactions and state management
 
 **Test Scenarios**:
+
 - Theme service integration with all themed components
 - Analytics service tracking across user interactions
 - Form service integration with contact form and validation
@@ -108,10 +175,12 @@ This task focuses on creating comprehensive testing coverage and documentation f
 ### 3. E2E Testing
 
 #### User Journey Testing
+
 **Framework**: Cypress
 **Coverage**: Critical user flows
 
 **Test Scenarios**:
+
 - Complete landing page navigation flow
 - Theme switching and persistence across page reload
 - Language switching and content updates
@@ -121,10 +190,12 @@ This task focuses on creating comprehensive testing coverage and documentation f
 - Accessibility compliance in real browser environment
 
 #### Cross-Browser Testing
+
 **Browsers**: Chrome, Firefox, Safari, Edge
 **Devices**: Desktop, tablet, mobile
 
 **Test Focus**:
+
 - Visual consistency across browsers
 - Functionality compatibility
 - Performance consistency
@@ -133,10 +204,12 @@ This task focuses on creating comprehensive testing coverage and documentation f
 ### 4. Accessibility Testing
 
 #### Automated Accessibility Testing
+
 **Tools**: axe-core, Pa11y, Lighthouse
 **Standard**: WCAG 2.1 AA compliance
 
 **Test Categories**:
+
 - Color contrast ratios
 - Keyboard navigation paths
 - Screen reader compatibility
@@ -144,9 +217,11 @@ This task focuses on creating comprehensive testing coverage and documentation f
 - ARIA attribute compliance
 
 #### Manual Accessibility Testing
+
 **Tools**: Screen readers (NVDA, JAWS, VoiceOver)
 
 **Test Procedures**:
+
 - Complete navigation using only keyboard
 - Screen reader announcement testing
 - High contrast mode compatibility
@@ -155,30 +230,38 @@ This task focuses on creating comprehensive testing coverage and documentation f
 ### 5. Performance Testing
 
 #### Bundle Size Testing
-**Targets**: 
+
+**Targets**:
+
 - Individual components <50KB
 - Complete library <500KB
 - Tree-shaking effectiveness >90%
 
 **Monitoring**:
+
 - Bundle analyzer integration
 - Size limit enforcement in CI
 - Performance budget alerts
 
 #### Runtime Performance Testing
+
 **Metrics**:
+
 - Component render time <16ms
 - Animation frame rate >60fps
 - Memory usage stability
 - CPU usage optimization
 
 **Tools**:
+
 - Chrome DevTools Performance
 - Lighthouse performance audits
 - Custom performance monitoring
 
 #### Core Web Vitals Testing
+
 **Targets**:
+
 - Largest Contentful Paint (LCP) <2.5s
 - First Input Delay (FID) <100ms
 - Cumulative Layout Shift (CLS) <0.1
@@ -188,9 +271,11 @@ This task focuses on creating comprehensive testing coverage and documentation f
 ### 1. Component Documentation
 
 #### API Documentation
+
 **Format**: Markdown with TypeScript examples
 
 **Content Structure**:
+
 - Component overview and purpose
 - Props/inputs with types and descriptions
 - Events/outputs with payload types
@@ -200,9 +285,11 @@ This task focuses on creating comprehensive testing coverage and documentation f
 - Usage examples
 
 #### Usage Guides
+
 **Format**: Step-by-step tutorials
 
 **Content Includes**:
+
 - Basic implementation examples
 - Advanced usage patterns
 - Common customization scenarios
@@ -213,14 +300,18 @@ This task focuses on creating comprehensive testing coverage and documentation f
 ### 2. Developer Documentation
 
 #### Setup and Configuration
+
 **Content**:
+
 - Installation and setup instructions
 - Theme configuration guidelines
 - Build configuration options
 - Development workflow setup
 
 #### Architecture Documentation
+
 **Content**:
+
 - Component design principles
 - File structure conventions
 - Naming conventions
@@ -228,7 +319,9 @@ This task focuses on creating comprehensive testing coverage and documentation f
 - Performance optimization patterns
 
 #### Testing Documentation
+
 **Content**:
+
 - Testing strategy overview
 - Unit testing examples
 - Integration testing patterns
@@ -238,16 +331,20 @@ This task focuses on creating comprehensive testing coverage and documentation f
 ### 3. User Documentation
 
 #### Getting Started Guide
+
 **Content**:
+
 - Quick start tutorial
 - Basic component usage
 - Theme and language setup
 - Common implementation patterns
 
 #### Component Showcase
+
 **Format**: Interactive playground
 
 **Features**:
+
 - Live component demonstrations
 - Interactive prop controls
 - Code generation
@@ -257,7 +354,9 @@ This task focuses on creating comprehensive testing coverage and documentation f
 ## Implementation Tasks
 
 ### Week 4: Testing Infrastructure Setup (Days 1-2)
+
 1. **Docker-based Testing Setup**
+
    - Configure testing environment in Docker containers
    - Add testing commands to Makefile
    - Set up automated test execution with `make test`
@@ -276,6 +375,7 @@ This task focuses on creating comprehensive testing coverage and documentation f
    ```
 
 ### Week 4: Unit Testing Implementation (Days 3-4)
+
 1. Set up comprehensive testing infrastructure using Docker
 2. Write unit tests for all Foundation Components
 3. Write unit tests for all Content Components
@@ -285,6 +385,7 @@ This task focuses on creating comprehensive testing coverage and documentation f
 7. Configure automated testing with Make commands
 
 ### Week 4: Integration and E2E Testing (Days 5-6)
+
 1. Implement component integration tests in Docker environment
 2. Set up Cypress E2E testing with Docker support
 3. Write critical user journey tests
@@ -293,6 +394,7 @@ This task focuses on creating comprehensive testing coverage and documentation f
 6. Add Docker-based testing to CI/CD
 
 ### Week 4: Documentation Creation (Days 7)
+
 1. Write comprehensive API documentation
 2. Create usage guides and tutorials
 3. Build component showcase playground
@@ -334,7 +436,7 @@ e2e/
 ├── support/
 │   ├── commands.ts                  [NEW] - Custom Cypress commands
 │   ├── utilities.ts                 [NEW] - E2E testing utilities
-│   └── accessibility.ts            [NEW] - A11y testing helpers
+│   └── accessibility.ts            [NEW] - A11y testing plugin
 ├── integration/
 │   ├── foundation-components.spec.ts [NEW] - Foundation E2E tests
 │   ├── content-components.spec.ts   [NEW] - Content E2E tests
@@ -430,6 +532,7 @@ src/app/showcase/
 ## Success Criteria
 
 ### Testing Requirements
+
 - [ ] Unit test coverage >95% for all components
 - [ ] Unit test coverage >95% for all services
 - [ ] Integration tests cover component interactions
@@ -439,6 +542,7 @@ src/app/showcase/
 - [ ] Cross-browser tests pass on all supported browsers
 
 ### Documentation Requirements
+
 - [ ] All components have complete API documentation
 - [ ] Usage guides available for all components
 - [ ] Getting started guide is comprehensive
@@ -447,6 +551,7 @@ src/app/showcase/
 - [ ] Component showcase is functional and informative
 
 ### Quality Requirements
+
 - [ ] Documentation is accurate and complete
 - [ ] Examples are tested and functional
 - [ ] Showcase provides interactive experience
@@ -457,29 +562,27 @@ src/app/showcase/
 ## Testing Configuration
 
 ### Jest Configuration
+
 ```javascript
 // jest.config.js
 module.exports = {
   preset: 'jest-preset-angular',
   setupFilesAfterEnv: ['<rootDir>/src/testing/setup/jest.setup.ts'],
   testMatch: ['**/*.spec.ts'],
-  collectCoverageFrom: [
-    'src/app/**/*.ts',
-    '!src/app/**/*.spec.ts',
-    '!src/app/**/*.mock.ts'
-  ],
+  collectCoverageFrom: ['src/app/**/*.ts', '!src/app/**/*.spec.ts', '!src/app/**/*.mock.ts'],
   coverageThreshold: {
     global: {
       branches: 90,
       functions: 95,
       lines: 95,
-      statements: 95
-    }
-  }
+      statements: 95,
+    },
+  },
 };
 ```
 
 ### Cypress Configuration
+
 ```javascript
 // cypress.config.js
 module.exports = {
@@ -488,21 +591,22 @@ module.exports = {
     supportFile: 'e2e/support/commands.ts',
     specPattern: 'e2e/**/*.spec.ts',
     video: true,
-    screenshotOnRunFailure: true
+    screenshotOnRunFailure: true,
   },
   component: {
     devServer: {
       framework: 'angular',
-      bundler: 'webpack'
+      bundler: 'webpack',
     },
-    specPattern: 'src/**/*.cy.ts'
-  }
+    specPattern: 'src/**/*.cy.ts',
+  },
 };
 ```
 
 ## Performance Monitoring
 
 ### Bundle Size Monitoring
+
 ```javascript
 // webpack-bundle-analyzer configuration
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
@@ -512,13 +616,14 @@ module.exports = {
     new BundleAnalyzerPlugin({
       analyzerMode: 'static',
       openAnalyzer: false,
-      reportFilename: 'bundle-report.html'
-    })
-  ]
+      reportFilename: 'bundle-report.html',
+    }),
+  ],
 };
 ```
 
 ### Performance Budgets
+
 ```json
 // angular.json performance budgets
 "budgets": [
@@ -538,6 +643,7 @@ module.exports = {
 ## CI/CD Integration
 
 ### GitHub Actions Workflow
+
 ```yaml
 name: Component Library CI
 
@@ -561,6 +667,7 @@ jobs:
 ## Next Steps
 
 After completing this task:
+
 1. Complete Generic Components library ready for production
 2. Comprehensive testing coverage ensuring quality
 3. Complete documentation for developers and users

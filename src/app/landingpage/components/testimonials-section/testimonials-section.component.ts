@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { AppContainerComponent, AppSectionComponent } from '../../../core/components/layout';
 import { TestimonialCardComponent } from '../testimonial-card';
+import { TestimonialItem } from './testimonials-section.types';
 
 @Component({
   selector: 'testimonials-section',
@@ -11,15 +12,5 @@ import { TestimonialCardComponent } from '../testimonial-card';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TestimonialsSectionComponent {
-  readonly testimonials =
-    input.required<
-      readonly {
-        readonly name: string;
-        readonly role: string;
-        readonly company: string;
-        readonly content: string;
-        readonly rating: number;
-        readonly avatar: string;
-      }[]
-    >();
+  readonly testimonials = input.required<readonly TestimonialItem[]>();
 }

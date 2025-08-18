@@ -1,0 +1,36 @@
+<div class="ank-position-relative">
+  <input
+    type="search"
+    class="search-input ank-borderRadius-0_5rem ank-border-1px-solid ank-borderColor-fgColor ank-px-0_75rem ank-py-0_5rem focus-visible-ring"
+    [attr.placeholder]="config?.placeholder || 'Search'"
+    [attr.aria-label]="config?.ariaLabel || 'Search'"
+    (input)="onInput($event)"
+    (keydown)="onKey($event)"
+    [value]="term()"
+  />
+  <ng-template #resultsTpl>
+    <ul
+      class="suggestions ank-bg-bgColor ank-borderRadius-0_5rem ank-boxShadow-sm"
+      role="listbox"
+      [attr.id]="listboxId"
+    >
+      @for (s of results(); track s.id; let i = $index) {
+      <li role="option">
+        <button
+          type="button"
+          [id]="'sb-opt-' + s.id"
+          (click)="choose(s)"
+          [attr.aria-selected]="i === activeIndex()"
+          class="ank-color-textColor"
+        >
+          {{ s.label }}
+        </button>
+      </li>
+      } @if (!loading() && !results().length && term().length >= minLength()) {
+      <li class="ank-color-textSecondary ank-fontSize-0_75rem ank-px-0_5rem ank-py-0_25rem">No results</li>
+      } @if (loading()) {
+      <li class="ank-color-textSecondary ank-fontSize-0_75rem ank-px-0_5rem ank-py-0_25rem">Loading…</li>
+      }
+    </ul>
+  </ng-template>
+</div>

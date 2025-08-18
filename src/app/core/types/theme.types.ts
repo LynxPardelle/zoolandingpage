@@ -20,6 +20,21 @@ export type ThemeColors = {
   secondaryAccentColor: string;
 };
 
+export type AltThemeColors = {
+  altBgColor: string;
+  altTextColor: string;
+  altTitleColor: string;
+  altLinkColor: string;
+  altAccentColor: string;
+  altSecondaryBgColor: string;
+  altSecondaryTextColor: string;
+  altSecondaryTitleColor: string;
+  altSecondaryLinkColor: string;
+  altSecondaryAccentColor: string;
+};
+
+export type AllThemeColors = ThemeColors & AltThemeColors;
+
 // Theme configuration
 export type ThemeConfig = {
   name: string;

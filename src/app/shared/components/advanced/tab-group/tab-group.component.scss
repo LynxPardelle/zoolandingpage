@@ -1,0 +1,26 @@
+.tab-group {
+  display: flex;
+  gap: 0.25rem;
+}
+.tab-trigger[aria-selected='true'] {
+  background: var(--ank-secondaryBgColor);
+  font-weight: 600;
+}
+.tab-panel {
+  animation: fadeTab 160ms ease;
+}
+@keyframes fadeTab {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tab-panel {
+    animation: none;
+  }
+}

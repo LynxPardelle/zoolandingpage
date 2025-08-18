@@ -39,7 +39,7 @@ export class ThemeService {
       textColor: '#3e3d3dff',
       titleColor: '#292929ff',
       linkColor: '#fFf619',
-      accentColor: '#c5aa25ff',
+      accentColor: '#c1a42fff',
       secondaryBgColor: '#e5d2bfff',
       secondaryTextColor: '#19363F',
       secondaryTitleColor: '#163038ff',
@@ -68,8 +68,6 @@ export class ThemeService {
   constructor() {
     this._detectSystemPreference();
     this._loadSavedTheme();
-
-    // MANDATORY: Apply theme using pushColors whenever theme changes
     effect(() => {
       console.log(`Applying theme: ${this.activeTheme()}`);
       this.applyTheme();
@@ -137,7 +135,9 @@ export class ThemeService {
     if (typeof window === 'undefined') return; // Skip SSR
     const currentThemeConfig: ThemeConfig =
       this.activeTheme() === 'dark' ? this._darkThemeConfig : this._lightThemeConfig;
+    const altThemeConfig: ThemeConfig = this.activeTheme() === 'dark' ? this._lightThemeConfig : this._darkThemeConfig;
     const themeColors: ThemeColors = currentThemeConfig.colors;
+    const altThemeColors: ThemeColors = altThemeConfig.colors;
 
     // Use ngx-angora-css pushColors for dynamic theme management
     this._ank.pushColors({
@@ -151,6 +151,16 @@ export class ThemeService {
       secondaryTitleColor: themeColors.secondaryTitleColor,
       secondaryLinkColor: themeColors.secondaryLinkColor,
       secondaryAccentColor: themeColors.secondaryAccentColor,
+      altBgColor: altThemeColors.bgColor,
+      altTextColor: altThemeColors.textColor,
+      altTitleColor: altThemeColors.titleColor,
+      altLinkColor: altThemeColors.linkColor,
+      altAccentColor: altThemeColors.accentColor,
+      altSecondaryBgColor: altThemeColors.secondaryBgColor,
+      altSecondaryTextColor: altThemeColors.secondaryTextColor,
+      altSecondaryTitleColor: altThemeColors.secondaryTitleColor,
+      altSecondaryLinkColor: altThemeColors.secondaryLinkColor,
+      altSecondaryAccentColor: altThemeColors.secondaryAccentColor,
     });
     console.log('colors', this._ank.getColors());
   }

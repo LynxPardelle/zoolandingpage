@@ -1,0 +1,107 @@
+.spinner {
+  --s: 1.5rem;
+  width: var(--s);
+  height: var(--s);
+  position: relative;
+}
+.spinner[data-size='sm'] {
+  --s: 1rem;
+}
+.spinner[data-size='lg'] {
+  --s: 2.25rem;
+}
+.spinner[data-variant='ring'] {
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  border-top-color: rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+.spinner[data-variant='dots'] {
+  --dot: currentColor;
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+  justify-content: space-between;
+}
+.spinner[data-variant='dots']::before,
+.spinner[data-variant='dots']::after,
+.spinner[data-variant='dots'] > span {
+  content: '';
+  width: calc(var(--s) / 5);
+  height: calc(var(--s) / 5);
+  background: var(--dot);
+  border-radius: 50%;
+  animation: bounce 0.9s ease-in-out infinite;
+}
+.spinner[data-variant='dots'] > span {
+  animation-delay: 0.15s;
+}
+.spinner[data-variant='dots']::after {
+  animation-delay: 0.3s;
+}
+.spinner[data-variant='bars'] {
+  display: flex;
+  align-items: end;
+  gap: 2px;
+}
+.spinner[data-variant='bars']::before,
+.spinner[data-variant='bars']::after,
+.spinner[data-variant='bars'] > span {
+  content: '';
+  width: 3px;
+  height: 40%;
+  background: currentColor;
+  animation: bars 0.9s ease-in-out infinite;
+  border-radius: 1px;
+}
+.spinner[data-variant='bars'] > span {
+  animation-delay: 0.15s;
+}
+.spinner[data-variant='bars']::after {
+  animation-delay: 0.3s;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes bounce {
+  0%,
+  80%,
+  100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes bars {
+  0%,
+  80%,
+  100% {
+    height: 40%;
+  }
+  40% {
+    height: 100%;
+  }
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner,
+  .spinner::before,
+  .spinner::after,
+  .spinner > span {
+    animation: none;
+  }
+}

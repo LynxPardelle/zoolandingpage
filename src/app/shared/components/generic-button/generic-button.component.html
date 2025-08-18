@@ -1,0 +1,15 @@
+<button
+  [attr.type]="type()"
+  [disabled]="disabled() || loading()"
+  [class]="classes()"
+  [attr.aria-busy]="loading() ? 'true' : null"
+  (click)="onClick($event)"
+>
+  @if (loading()) {
+  <span class="{{ spinnerClass }}" aria-hidden="true"></span>
+  } @else if (icon()) {
+  <mat-icon class="{{ iconClass }}" aria-hidden="true">{{ icon() }}</mat-icon>
+  } @if (label()) {<span class="ank-inlineBlock">{{ label() }}</span
+  >}
+  <ng-content />
+</button>

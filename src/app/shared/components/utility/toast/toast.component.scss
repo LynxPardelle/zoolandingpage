@@ -1,0 +1,56 @@
+/* Toast styling now relies on angora utility classes for spacing, radius, shadow.
+   Only variant background mappings + animations live here. */
+.toast {
+  animation: toastIn 180ms ease forwards;
+  position: relative;
+}
+.toast[data-level='success'] {
+  background: var(--ank-altSuccessColor, #1b5e20);
+  color: var(--ank-altOnSuccessColor, #fff);
+}
+.toast[data-level='error'] {
+  background: var(--ank-altErrorColor, #b71c1c);
+  color: var(--ank-altOnErrorColor, #fff);
+}
+.toast[data-level='warning'] {
+  background: var(--ank-altWarningColor, #795548);
+  color: var(--ank-altOnWarningColor, #fff);
+}
+.toast[data-level='info'] {
+  background: var(--ank-altInfoColor, #1565c0);
+  color: var(--ank-altOnInfoColor, #fff);
+}
+
+.toast-leave {
+  animation: toastOut 160ms ease forwards;
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes toastOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+  .toast-leave {
+    animation: none;
+  }
+}

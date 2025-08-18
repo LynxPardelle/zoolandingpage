@@ -10,18 +10,13 @@
       <div
         class="ank-display-flex ank-flexDirection-column ank-flexDirection-sm-row ank-gap-16px ank-justifyContent-center ank-mb-32px"
       >
-        <button
-          class="btnBase ank-btn-accentColor ank-color-textColor ank-fs-1_25rem ank-px-32px ank-py-16px"
-          (click)="primary.emit()"
-        >
-          Solicitar Consultoría Gratuita
-        </button>
-        <button
-          class="btnBase ank-btnOutline-accentColor-secondaryBgColor ank-colorHover-textColor ank-fs-1_25rem ank-px-32px ank-py-16px"
-          (click)="secondary.emit()"
-        >
-          Calcular mi ROI
-        </button>
+        <generic-button
+          label="Solicitar Consultoría Gratuita"
+          variant="secondary"
+          size="lg"
+          (pressed)="primary.emit()"
+        />
+        <generic-button label="Calcular mi ROI" variant="outline" size="lg" (pressed)="secondary.emit()" />
       </div>
       <div class="ank-display-flex ank-flexDirection-column ank-alignItems-center ank-gap-16px ank-opacity-70">
         <p class="ank-fs-1rem ank-color-textColor ank-m-0">

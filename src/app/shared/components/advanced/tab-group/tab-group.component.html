@@ -1,0 +1,33 @@
+<div class="tab-group" role="tablist" aria-orientation="horizontal">
+  @for (t of tabs(); track t.id; let idx = $index) {
+  <button
+    type="button"
+    class="tab-trigger ank-bg-transparent ank-border-none ank-px-0_75rem ank-py-0_5rem ank-borderRadius-0_5rem ank-cursor-pointer"
+    [attr.id]="'tab-' + t.id"
+    role="tab"
+    [attr.aria-selected]="isActive(t.id)"
+    [attr.aria-controls]="'panel-' + t.id"
+    [disabled]="t.disabled"
+    (click)="select(t.id)"
+    [attr.tabindex]="isActive(t.id) ? 0 : -1"
+  >
+    {{ t.label }}
+  </button>
+  }
+</div>
+<div class="tab-panels">
+  @for (t of tabs(); track t.id) { @if (isActive(t.id)) {
+  <div
+    class="tab-panel ank-mt-0_75rem"
+    role="tabpanel"
+    [attr.id]="'panel-' + t.id"
+    [attr.aria-labelledby]="'tab-' + t.id"
+  >
+    @defer (when isActive(t.id)) {
+    <ng-content select="[tab-content-{{ t.id }}]"></ng-content>
+    } @placeholder {
+    <div class="ank-fontSize-0_875rem ank-color-textSecondary">Loading panel…</div>
+    }
+  </div>
+  } }
+</div>

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This task focuses on developing advanced UI components that provide sophisticated functionality and enhanced user interactions. These components will serve as the final layer of the component library, offering modal dialogs, overlay functionality, advanced utility components, and complex interactive elements.
+This task focuses on developing advanced UI components that provide sophisticated functionality and enhanced user interactions. These components serve as the final layer of the component library (modal dialogs, overlay functionality, utility + complex interactive elements). We are proceeding incrementally: Phase 1 (overlay & feedback primitives) has begun with baseline Modal, Toast, and LoadingSpinner implementations (pre-CDK integration).
 
 ## Objectives
 
@@ -24,7 +24,7 @@ This task focuses on developing advanced UI components that provide sophisticate
 
 ## Components to Develop
 
-### 1. Modal and Overlay Components
+### 1. Modal and Overlay Components (Phase 1 IN PROGRESS)
 
 #### Modal
 
@@ -38,13 +38,15 @@ This task focuses on developing advanced UI components that provide sophisticate
 - Backdrop click and ESC key closing
 - Focus trap and accessibility support
 
-**Technical Requirements**:
+**Status**: Upgraded to Angular CDK Overlay + FocusTrap + TemplatePortal; angora utility classes partially applied (panel, close button). Remaining: labeling helper, more utility class refactors.
 
-- Use Angular CDK Overlay for positioning
-- Implement `@defer` for modal content lazy loading
-- Focus management with proper tab trapping
-- Animation support for enter/exit transitions
-- Theme-aware styling with `pushColors`
+**Technical Requirements (Revised)**:
+
+- Replace custom host with Angular CDK Overlay + FocusTrap (pending)
+- Implement `@defer` example for heavy modal content (pending)
+- Add accessible labelling helper (pending)
+- Theme-aware styling using angora combos instead of raw hard-coded styles (partial)
+- Maintain small file size (<80 lines) (met)
 
 #### Accordion
 
@@ -82,9 +84,9 @@ This task focuses on developing advanced UI components that provide sophisticate
 - Theme integration for menu styling
 - Performance optimization for large lists
 
-### 2. Utility Components
+### 2. Utility Components (Phase 1 PARTIAL)
 
-#### LoadingSpinner
+#### LoadingSpinner (Externalized & baseline variants complete)
 
 **Purpose**: Loading state indicators for various contexts
 **Features**:
@@ -120,7 +122,7 @@ This task focuses on developing advanced UI components that provide sophisticate
 - Accessibility compliance with ARIA attributes
 - Performance optimization for frequent updates
 
-#### Toast
+#### Toast (Implemented baseline service + host)
 
 **Purpose**: Notification and alert messages
 **Features**:
@@ -157,7 +159,7 @@ This task focuses on developing advanced UI components that provide sophisticate
 - Performance optimization for frequent triggers
 - Accessibility compliance with ARIA
 
-### 3. Advanced Interactive Components
+### 3. Advanced Interactive Components (Progress)
 
 #### TabGroup
 
@@ -176,6 +178,8 @@ This task focuses on developing advanced UI components that provide sophisticate
 - Focus management for keyboard navigation
 - Theme integration for tab styling
 - Responsive behavior for mobile
+
+Status: Implemented keyboard navigation, roving tabindex, lazy content with @defer. Remaining: vertical orientation, overflow scroll handling, additional theme variants.
 
 #### Stepper
 
@@ -286,141 +290,121 @@ type FocusTrapConfig = {
 
 ## Implementation Tasks
 
-### Week 3: Modal and Overlay Components (Days 1-3)
+### Phase 1 (Updated Progress)
 
-1. Create Modal component with CDK Overlay integration
-2. Implement Accordion component with animations
-3. Develop Dropdown component with positioning
-4. Add keyboard navigation and focus management
-5. Implement accessibility features and ARIA attributes
+1. (Done) Baseline Modal component (manual overlay)
+2. (Done) Toast service + host
+3. (Done) LoadingSpinner variants
+4. (Done) Upgrade Modal to use CDK Overlay & FocusTrap + TemplatePortal
+5. (In Progress) Add angora classes (reduce raw CSS) to modal & toast (panel, close button done; toast levels pending)
+6. (Done) Externalize modal inline template/styles (atomic separation)
+7. (Done) Externalize toast inline template/styles + introduce angora utility classes for layout
+8. (Done) Externalize LoadingSpinner template/styles
+9. (In Progress) Accordion initial implementation (logic + a11y) – animations still pending
+10. (Done) Externalized previously inline advanced component templates (GenericButton, StatsCounter)
+11. (Done) Introduced ProgressBar scaffold (determinate/indeterminate)
+12. (Done) Dropdown: keyboard navigation, focus management, aria-activedescendant (initial a11y pass)
+13. (Pending) Add keyboard & focus cycle tests (Modal, Accordion, Dropdown, ProgressBar)
 
-### Week 3: Utility Components (Days 4-5)
+### Phase 2: Disclosure Components (Adjusted)
 
-1. Build LoadingSpinner with multiple variants
-2. Create ProgressBar with determinate/indeterminate modes
-3. Implement Toast notification system
-4. Develop Tooltip component with positioning
-5. Add theme integration and performance optimizations
+1. (Done) Modal component CDK Overlay integration
+2. (In Progress) Accordion component (animations added; further refinement pending)
+3. (Done) Shared positioning abstraction (OverlayPositioningService extracted)
+4. (Done) Develop Dropdown component with positioning + keyboard nav & a11y
+5. (Pending) Implement Tooltip component (reuse extracted positioning abstraction)
+6. (Pending) Extend keyboard navigation and a11y tests
 
-### Week 3: Advanced Interactive Components (Days 6-7)
+### Phase 3: Remaining Utility Enhancements
 
-1. Create TabGroup component with lazy loading
-2. Implement Stepper component with validation
-3. Build SearchBox with auto-complete
-4. Add responsive behavior and mobile support
-5. Complete testing and performance optimization
+1. Build LoadingSpinner with multiple variants (DONE)
+2. Create ProgressBar with determinate/indeterminate modes (ENHANCED: label slot, aria-valuetext, theme color variants, reduced-motion)
+3. Implement Toast notification system (DONE baseline; theming refactor completed; animations in place)
+4. Develop Tooltip component with positioning (PARTIAL: scaffold + position variants + escape handling)
+5. Add theme integration and performance optimizations (ONGOING)
 
-## File Organization
+### Phase 4: Advanced Interactive Components (Updated Progress – 2025-08-18)
 
-```text
-src/app/shared/components/modal/
-├── modal/
-│   ├── modal.component.ts
-│   ├── modal.types.ts
-│   ├── modal.constants.ts
-│   ├── modal.service.ts
-│   ├── modal.component.html
-│   ├── modal.component.scss
-│   └── index.ts
-├── accordion/
-│   ├── accordion.component.ts
-│   ├── accordion.types.ts
-│   ├── accordion.constants.ts
-│   ├── accordion.component.html
-│   ├── accordion.component.scss
-│   └── index.ts
-└── dropdown/
-    ├── dropdown.component.ts
-    ├── dropdown.types.ts
-    ├── dropdown.constants.ts
-    ├── dropdown.component.html
-    ├── dropdown.component.scss
-    └── index.ts
+1. (Done) TabGroup component with lazy loading (@defer placeholder integrated)
+2. (Pending) Stepper component (validation + linear/non-linear modes)
+3. (Baseline Done) SearchBox with auto-complete (debounce + overlay + keyboard nav)
+4. (In Progress) Tooltip advanced a11y & theming
 
-src/app/shared/components/utility/
-├── loading-spinner/
-│   ├── loading-spinner.component.ts
-│   ├── loading-spinner.types.ts
-│   ├── loading-spinner.constants.ts
-│   ├── loading-spinner.component.html
-│   ├── loading-spinner.component.scss
-│   └── index.ts
-├── progress-bar/
-│   ├── progress-bar.component.ts
-│   ├── progress-bar.types.ts
-│   ├── progress-bar.constants.ts
-│   ├── progress-bar.component.html
-│   ├── progress-bar.component.scss
-│   └── index.ts
-├── toast/
-│   ├── toast.component.ts
-│   ├── toast.types.ts
-│   ├── toast.constants.ts
-│   ├── toast.service.ts
-│   ├── toast.component.html
-│   ├── toast.component.scss
-│   └── index.ts
-└── tooltip/
-    ├── tooltip.component.ts
-    ├── tooltip.types.ts
-    ├── tooltip.constants.ts
-    ├── tooltip.directive.ts
-    ├── tooltip.component.html
-    ├── tooltip.component.scss
-    └── index.ts
+#### SearchBox Implementation Snapshot
 
-src/app/shared/components/advanced/
-├── tab-group/
-│   ├── tab-group.component.ts
-│   ├── tab.component.ts
-│   ├── tab-group.types.ts
-│   ├── tab-group.constants.ts
-│   ├── tab-group.component.html
-│   ├── tab.component.html
-│   ├── tab-group.component.scss
-│   └── index.ts
-├── stepper/
-│   ├── stepper.component.ts
-│   ├── step.component.ts
-│   ├── stepper.types.ts
-│   ├── stepper.constants.ts
-│   ├── stepper.component.html
-│   ├── step.component.html
-│   ├── stepper.component.scss
-│   └── index.ts
-└── search-box/
-    ├── search-box.component.ts
-    ├── search-box.types.ts
-    ├── search-box.constants.ts
-    ├── search-box.component.html
-    ├── search-box.component.scss
-    └── index.ts
-```
+Implemented:
+
+- Debounced fetch scheduling (configurable debounce + minLength)
+- CDK Overlay positioning via shared `OverlayPositioningService`
+- Keyboard navigation (ArrowUp/Down, Enter, Escape) + active option tracking
+- Externalized template & styles; reuse angora utility classes
+
+Pending:
+
+- aria-activedescendant pattern on input (currently custom selection)
+- Custom result template projection support
+- History & recent searches feature
+- Loading spinner integration (optional)
+
+#### Inline Template Elimination Progress
+
+- WhatsAppButton: externalized template (2025-08-18)
+- ContentBlock: externalized template (2025-08-18)
+- Remaining inline production templates: none (spec-only inline templates acceptable)
+
+### Functional Requirements (Progress Summary)
+
+- [ ] Tooltip displays on hover/focus with proper positioning (scaffold present; finalize a11y)
+- [x] TabGroup switches tabs and lazy loads content
+- [ ] Stepper validates steps and shows progress
+- [x] SearchBox provides auto-complete functionality (baseline)
+
+### Technical Requirements (Progress Summary)
+
+- [x] Components using CDK Overlay where appropriate (Modal, Dropdown, SearchBox, Tooltip scaffold)
+- [ ] Keyboard navigation full coverage (Stepper + final Tooltip pending)
+- [ ] Angora utility classes replace raw CSS (pending: tooltip surface full conversion, spinner variant tokenization)
+
+### Deliverables (Incremental – 2025-08-18)
+
+- [x] TabGroup lazy loading
+- [x] SearchBox baseline overlay & navigation
+- [x] Accessibility utilities (AriaLiveService, MotionPreferenceService, FocusVisibleDirective)
+- [x] Performance baseline script
+- [ ] Stepper component
+- [ ] Tooltip full a11y + theming
+- [ ] Keyboard & focus cycle tests (all advanced components)
 
 ## Success Criteria
 
-### Functional Requirements
+### Functional Requirements (Progress)
 
-- [ ] Modal opens/closes correctly with backdrop and ESC key
-- [ ] Accordion expands/collapses smoothly with animations
-- [ ] Dropdown positions correctly and handles overflow
-- [ ] LoadingSpinner shows appropriate loading states
-- [ ] ProgressBar updates smoothly with progress changes
-- [ ] Toast notifications appear and dismiss correctly
+- [x] Modal opens/closes correctly with backdrop and ESC key (baseline)
+- [x] Modal template & styles externalized (no inline template for production)
+- [x] Toast notifications appear and dismiss correctly (auto-dismiss, manual close)
+- [x] Toast template & styles externalized
+- [x] LoadingSpinner shows appropriate loading states (externalized)
+- [x] Accordion basic open/close + keyboard navigation (animations pending)
+
+- [x] Dropdown positions correctly and handles overflow (overlay + service abstraction)
+- [x] ProgressBar updates smoothly with progress changes (determinate + indeterminate, aria-valuetext, label slot)
 - [ ] Tooltip displays on hover/focus with proper positioning
-- [ ] TabGroup switches tabs and lazy loads content
+- [x] TabGroup switches tabs and lazy loads content
 - [ ] Stepper validates steps and shows progress
-- [ ] SearchBox provides auto-complete functionality
+- [x] SearchBox provides auto-complete functionality (baseline)
 
 ### Technical Requirements
 
-- [ ] All components use Angular CDK appropriately
-- [ ] Focus management works correctly for accessibility
-- [ ] Keyboard navigation follows accessibility guidelines
+- [x] Modal uses Angular CDK Overlay & FocusTrap
+- [ ] Remaining components use Angular CDK where appropriate (Dropdown & Tooltip scaffold use CDK Overlay; others pending)
+- [x] Focus management for Modal implemented (trap + restore)
+- [ ] Focus management for other components pending
+- [ ] Keyboard navigation follows accessibility guidelines (Modal/Accordion/Dropdown implemented; others pending)
 - [ ] Components integrate with theme system
 - [ ] Bundle size remains under performance limits
 - [ ] Animation performance is smooth (60fps)
 - [ ] Memory usage is optimized
+- [ ] Angora utility classes replace raw CSS for shared patterns (partial: modal panel & button, spinner uses minimal raw animation CSS, toast levels pending conversion)
 
 ### Quality Requirements
 
@@ -493,20 +477,55 @@ After completing this task:
 4. Component composition guidelines available
 5. Foundation set for application-specific components
 
-## Deliverables
+## Deliverables (Progress Updated)
 
-- [ ] Complete Modal component with CDK Overlay integration
-- [ ] Complete Accordion component with smooth animations
-- [ ] Complete Dropdown component with auto-positioning
-- [ ] Complete LoadingSpinner with multiple variants
-- [ ] Complete ProgressBar with animation support
-- [ ] Complete Toast notification system
+- [x] Complete Modal component with CDK Overlay integration
+      -- [ ] Complete Accordion component with smooth animations (logic done)
+      -- [x] Complete Dropdown component with auto-positioning (keyboard + a11y initial pass)
+      -- [x] Complete LoadingSpinner with multiple variants (externalized)
+      -- [x] Complete ProgressBar with animation support (determinate + indeterminate + reduced motion)
+- [x] Complete Toast notification system (baseline)
 - [ ] Complete Tooltip component with CDK positioning
 - [ ] Complete TabGroup with lazy loading
 - [ ] Complete Stepper with form validation integration
 - [ ] Complete SearchBox with auto-complete functionality
 - [ ] Component documentation with accessibility guidelines
-- [ ] Unit test suite with >90% coverage
+- [ ] Unit test suite with >90% coverage (INITIAL SPECS ADDED)
 - [ ] Accessibility compliance verification
 - [ ] Performance optimization report
 - [ ] CDK integration best practices documentation
+
+## Revision Addendum (2025-08-17)
+
+Prerequisites satisfied from Task 1 & partially Task 2 (foundation + core content sections). Task 3 will NOT start until Task 2 atomic retrofits + generic primitives (Button, StatsCounter, etc.) are in place. Adjustments:
+
+- Scope Confirmation: Keep full advanced set (Modal, Accordion, Dropdown, Toast, Tooltip, TabGroup, Stepper, SearchBox, LoadingSpinner, ProgressBar) but reorder to deliver enabling infrastructure first (Toast/Modal for global UX patterns, then navigation/structure components).
+- Dependencies: Generic Button (Task 2) becomes required for Modal/Toast/Dropdown actions; StatsCounter independent; ContactForm still deferred (so Stepper may rely on simplified form mock initially).
+- Risk Reduction: Introduce a phased milestone approach (see below) to avoid large PRs.
+
+### Phased Milestones
+
+1. Overlay Core: Modal (focus trap), Toast service (basic), LoadingSpinner.
+2. Navigation/Disclosure: Accordion, Dropdown, Tooltip (shared positioning strategy abstraction).
+3. Composition: TabGroup, Stepper.
+4. Advanced Interaction: SearchBox (debounce + overlay suggestions), ProgressBar.
+
+### Success Criteria Adjustments
+
+Add: Reuse Generic Button for all actionable controls. Provide a positioning utility reused by Dropdown + Tooltip (no duplication). Minimum a11y test stub per component (full audits move to Task 4).
+
+### Out-of-Scope Clarification
+
+- No theming overhaul here (only consumption of existing token system).
+- No full animation choreography library (basic enter/exit only; advanced sequencing could be future enhancement).
+
+### Immediate Pre-Start Checklist
+
+- [ ] Task 2: Generic Button merged
+- [ ] Task 2: Atomic retrofits complete
+- [ ] Task 2: JSON-LD helper merged (ensures head manipulation pattern stable)
+- [ ] Task 2: Basic analytics pattern reused (CTA + WhatsAppButton)
+
+If any remain incomplete, defer Task 3 start.
+
+---

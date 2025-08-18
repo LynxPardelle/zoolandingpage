@@ -1,27 +1,31 @@
 <!-- Header -->
-<app-header></app-header>
+<app-header [config]="headerConfig()" (navChange)="onNavChange($event)"></app-header>
 
 <hero-section
+  id="home"
   [data]="heroData()"
   (primary)="openWhatsApp(); trackCTAClick('primary', 'hero')"
   (secondary)="toggleCalculator(); trackCTAClick('secondary', 'hero')"
 ></hero-section>
-<roi-note></roi-note>
+<roi-note id="roi-section"></roi-note>
 
-<features-section [features]="features()"></features-section>
+<features-section id="features-section" [features]="features()"></features-section>
 
 <interactive-process
+  id="process-section"
   [process]="interactiveProcess()"
   [currentStep]="currentDemoStep()"
   (selectStep)="setDemoStep($event)"
 ></interactive-process>
 
 <services-section
+  id="services-section"
   [services]="services()"
   (serviceCta)="trackCTAClick('service', $event); openWhatsApp()"
 ></services-section>
 
 <roi-calculator-section
+  id="roi-calculator-section"
   [businessSize]="calculatorBusinessSize()"
   [industry]="calculatorIndustry()"
   [visitors]="calculatorVisitors()"
@@ -30,12 +34,23 @@
   (industryChange)="updateIndustry($event)"
 ></roi-calculator-section>
 
-<testimonials-section [testimonials]="testimonials()"></testimonials-section>
+<testimonials-section id="testimonials-section" [testimonials]="testimonials()"></testimonials-section>
 
 <final-cta-section
+  id="contact-section"
   (primary)="openWhatsApp(); trackCTAClick('primary', 'final-cta')"
   (secondary)="toggleCalculator(); trackCTAClick('secondary', 'final-cta')"
 ></final-cta-section>
 
 <!-- Footer -->
 <app-footer></app-footer>
+
+<!-- Advanced component hosts -->
+<app-modal-host></app-modal-host>
+<app-toast-host></app-toast-host>
+
+<!-- Demo triggers (temporary) -->
+<div style="position: fixed; bottom: 0; left: 0; padding: 0.5rem; display: flex; gap: 0.5rem; z-index: 1200">
+  <button class="btn btn-sm" (click)="showDemoModal()">Open Modal</button>
+  <button class="btn btn-sm" (click)="showDemoToast()">Toast</button>
+</div>
