@@ -51,8 +51,24 @@
 <app-modal-host></app-modal-host>
 <app-toast-host></app-toast-host>
 
-<!-- Demo triggers (temporary) -->
-<div style="position: fixed; bottom: 0; left: 0; padding: 0.5rem; display: flex; gap: 0.5rem; z-index: 1200">
-  <button class="btn btn-sm" (click)="showDemoModal()">Open Modal</button>
-  <button class="btn btn-sm" (click)="showDemoToast()">Toast</button>
+<!-- Demo triggers (temporary - Task 3 Advanced Components showcase) -->
+<div
+  style="
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    padding: 0.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    z-index: 1200;
+    max-width: 300px;
+  "
+>
+  <button class="btn btn-sm ank-bgcl-primary ank-color-white" (click)="showDemoModal()">Modal</button>
+  <button class="btn btn-sm ank-bgcl-success ank-color-white" (click)="showDemoToast()">Toast</button>
+  <button class="btn btn-sm ank-bgcl-error ank-color-white" (click)="showErrorToast()">Error</button>
+  <button class="btn btn-sm ank-bgcl-warning ank-color-white" (click)="showActionToast()">Actions</button>
+  <button class="btn btn-sm ank-bgcl-info ank-color-white" (click)="showPositionDemo()">Position</button>
+  <button class="btn btn-sm ank-bgcl-secondary ank-color-white" (click)="clearAllToasts()">Clear</button>
 </div>

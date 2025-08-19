@@ -483,8 +483,132 @@ export class App {
   }
 
   showDemoToast(): void {
-    this.toast.push('success', 'This is a demo toast notification');
+    // Cycle through different toast types and features
+    const demos = [
+      () => this.toast.success('Order processed successfully!'),
+      () => this.toast.error('Network connection failed'),
+      () => this.toast.warning('Your session will expire in 5 minutes'),
+      () => this.toast.info('New features available in settings'),
+      () =>
+        this.toast.show({
+          level: 'success',
+          title: 'File Upload Complete',
+          text: 'Your document has been uploaded and processed successfully.',
+          autoCloseMs: 6000,
+        }),
+      () =>
+        this.toast.show({
+          level: 'warning',
+          title: 'Unsaved Changes',
+          text: 'You have unsaved changes. Do you want to save before leaving?',
+          autoCloseMs: 0,
+          actions: [
+            {
+              label: 'Save',
+              action: () => this.toast.success('Changes saved successfully!'),
+              style: 'primary',
+            },
+            {
+              label: 'Discard',
+              action: () => console.log('Changes discarded'),
+              style: 'secondary',
+            },
+          ],
+        }),
+    ];
+
+    // Get random demo
+    const randomDemo = demos[Math.floor(Math.random() * demos.length)];
+    randomDemo();
   }
+
+  showErrorToast(): void {
+    this.toast.show({
+      level: 'error',
+      title: 'Critical Error',
+      text: 'The operation could not be completed. Please contact support if this issue persists.',
+      autoCloseMs: 0, // Errors should not auto-dismiss
+      actions: [
+        {
+          label: 'Contact Support',
+          action: () => {
+            this.toast.info('Opening support chat...');
+            // Add actual support logic here
+          },
+          style: 'primary',
+        },
+        {
+          label: 'Try Again',
+          action: () => {
+            this.toast.warning('Retrying operation...');
+            // Add retry logic here
+          },
+          style: 'secondary',
+        },
+      ],
+    });
+  }
+
+  showActionToast(): void {
+    this.toast.show({
+      level: 'info',
+      title: 'Update Available',
+      text: 'Version 2.1.0 is ready to install with new features and bug fixes.',
+      autoCloseMs: 10000,
+      actions: [
+        {
+          label: 'Update Now',
+          action: () => {
+            this.toast.success('Update started! Application will restart automatically.');
+            // Add update logic here
+          },
+          style: 'primary',
+        },
+        {
+          label: 'View Changes',
+          action: () => {
+            this.toast.info('Opening changelog...');
+            // Add changelog logic here
+          },
+          style: 'secondary',
+        },
+        {
+          label: 'Later',
+          action: () => {
+            this.toast.warning("Update postponed. You'll be reminded in 24 hours.");
+          },
+          style: 'secondary',
+        },
+      ],
+    });
+  }
+
+  showPositionDemo(): void {
+    const positions = [
+      { vertical: 'top' as const, horizontal: 'right' as const, message: 'Top Right' },
+      { vertical: 'top' as const, horizontal: 'left' as const, message: 'Top Left' },
+      { vertical: 'bottom' as const, horizontal: 'center' as const, message: 'Bottom Center' },
+      { vertical: 'bottom' as const, horizontal: 'right' as const, message: 'Bottom Right (default)' },
+    ];
+
+    const currentIndex = this.positionDemoIndex % positions.length;
+    const position = positions[currentIndex];
+
+    this.toast.setPosition({ vertical: position.vertical, horizontal: position.horizontal });
+    this.toast.success(`Position changed to: ${position.message}`);
+
+    this.positionDemoIndex++;
+  }
+
+  clearAllToasts(): void {
+    this.toast.clear();
+    // Show a brief confirmation
+    setTimeout(() => {
+      this.toast.info('All notifications cleared');
+    }, 100);
+  }
+
+  private positionDemoIndex = 0;
 
   // Angora CSS
   initializeAngoraConfiguration(): void {
