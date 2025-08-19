@@ -1,0 +1,50 @@
+<app-section spacing="lg">
+  <app-container size="lg">
+    <div class="ank-textAlign-center ank-mb-64px">
+      <h2 class="ank-fs-2rem ank-fontWeight-bold ank-mb-16px ank-color-titleColor">Preguntas Frecuentes</h2>
+      <p class="ank-fs-1_5rem ank-color-textColor ank-maxWidth-700px ank-mx-auto">
+        Resolvemos las dudas más comunes sobre nuestro servicio de landing pages
+      </p>
+    </div>
+
+    @defer (on viewport; prefetch on idle) {
+    <div class="ank-maxWidth-800px ank-mx-auto">
+      <app-accordion [itemsSource]="faqItems()" [config]="accordionConfig()"></app-accordion>
+    </div>
+    } @placeholder {
+    <div class="ank-maxWidth-800px ank-mx-auto">
+      <div class="faq-placeholder">
+        <div class="faq-item ank-border-1px ank-borderColor-border ank-borderRadius-8px ank-mb-16px ank-p-24px">
+          <div class="ank-fs-1_25rem ank-fontWeight-semibold ank-color-titleColor">
+            ¿Qué es una landing page y por qué la necesito?
+          </div>
+        </div>
+        <div class="faq-item ank-border-1px ank-borderColor-border ank-borderRadius-8px ank-mb-16px ank-p-24px">
+          <div class="ank-fs-1_25rem ank-fontWeight-semibold ank-color-titleColor">
+            ¿Cuánto tiempo toma crear mi landing page?
+          </div>
+        </div>
+        <div class="faq-item ank-border-1px ank-borderColor-border ank-borderRadius-8px ank-mb-16px ank-p-24px">
+          <div class="ank-fs-1_25rem ank-fontWeight-semibold ank-color-titleColor">
+            ¿Qué incluye el servicio completo?
+          </div>
+        </div>
+        <div class="faq-item ank-border-1px ank-borderColor-border ank-borderRadius-8px ank-mb-16px ank-p-24px">
+          <div class="ank-fs-1_25rem ank-fontWeight-semibold ank-color-titleColor">¿Cuál es el rango de precios?</div>
+        </div>
+      </div>
+    </div>
+    }
+
+    <div class="ank-textAlign-center ank-mt-48px">
+      <p class="ank-fs-1rem ank-color-textColor ank-mb-24px">¿Tienes alguna otra pregunta?</p>
+      <generic-button
+        variant="outline"
+        size="lg"
+        label="Contacta con nosotros"
+        [loading]="false"
+        [disabled]="false"
+      ></generic-button>
+    </div>
+  </app-container>
+</app-section>

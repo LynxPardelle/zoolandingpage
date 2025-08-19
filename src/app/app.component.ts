@@ -22,6 +22,7 @@ import { AppFooterComponent, AppHeaderComponent } from './core/components/layout
 import type { HeaderNavItem } from './core/components/layout/app-header/app-header.types';
 import { LanguageService } from './core/services/language.service';
 import { ThemeService } from './core/services/theme.service';
+import { FaqSectionComponent } from './landingpage/components/faq-section/faq-section.component';
 import { FeaturesSectionComponent } from './landingpage/components/features-section/features-section.component';
 import { FinalCtaSectionComponent } from './landingpage/components/final-cta-section/final-cta-section.component';
 import { HeroSectionComponent } from './landingpage/components/hero-section';
@@ -82,6 +83,7 @@ type InteractiveProcess = {
     ServicesSectionComponent,
     RoiCalculatorSectionComponent,
     TestimonialsSectionComponent,
+    FaqSectionComponent,
     FinalCtaSectionComponent,
     ModalComponent,
     ToastComponent,
