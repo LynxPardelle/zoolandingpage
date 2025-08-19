@@ -1,11 +1,7 @@
 .accordion-trigger {
   cursor: pointer;
 }
-.accordion-trigger.focus-visible-ring,
-.accordion-trigger:focus-visible {
-  outline: 2px solid var(--ank-accentColor, #1976d2);
-  outline-offset: 2px;
-}
+
 .accordion-item {
   background: var(--acc-bg, rgba(255, 255, 255, 0.02));
 }

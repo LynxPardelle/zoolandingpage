@@ -1,17 +1,30 @@
 <div class="accordion ank-display-flex ank-flexDirection-column ank-gap-0_25rem" role="group">
   @for (item of items(); track item.id; let idx = $index) {
-  <div class="accordion-item ank-border-1px-solid ank-borderColor-fgColor ank-borderRadius-0_5rem">
+  <div
+    class="ank-border-1px-solid ank-borderColor-fgColor ank-borderRadius-0_5rem ank-transition-all ank-borderColor-accentColor"
+    [class.ank-borderColor-accentColor]="isExpanded(item.id)"
+    [class.ank-bgColor-secondaryBgColor]="isExpanded(item.id)"
+  >
     <button
       type="button"
-      class="accordion-trigger ank-bgColor-transparent ank-border-0 ank-width-100pct ank-textAlign-left ank-padding-0_75rem ank-fontWeight-600 focus-visible-ring"
+      class="ank-outline-2px__solid__secondaryAccentColor ank-m-8px ank-color-textColor ank-borderRadius-0_25rem ank-border-0 ank-width-100pct ank-textAlign-left ank-padding-0_75rem ank-fontWeight-600 ank-transition-all ank-bgHover-secondaryAccentColor ank-colorHover-titleColor"
       [attr.id]="buttonId(item.id)"
       [attr.aria-expanded]="isExpanded(item.id)"
+      [class.ank-bg-secondaryAccentColor]="isExpanded(item.id)"
+      [class.ank-bg-transparent]="!isExpanded(item.id)"
       [attr.aria-controls]="panelId(item.id)"
       [disabled]="item.disabled"
       (click)="toggle(item.id)"
       (keydown)="onKey($event, idx)"
     >
-      <span class="ank-display-inlineBlock">{{ item.title }}</span>
+      <span class="ank-display-flex ank-justifyContent-spaceBetween ank-alignItems-center ank-width-100per">
+        <span class="ank-display-inlineBlock">{{ item.title }}</span>
+        <span
+          class="accordion-icon ank-transition-transform ank-transformOrigin-center ank-fontSize-1_25rem ank-color-accentColor"
+          [class.ank-transform-rotate-180deg]="isExpanded(item.id)"
+        >
+        </span>
+      </span>
     </button>
     <div
       class="accordion-panel-wrapper"
@@ -25,7 +38,7 @@
         role="region"
         [attr.aria-labelledby]="buttonId(item.id)"
       >
-        <p class="ank-marginBlockStart-0 ank-marginBlockEnd-0">{{ item.content }}</p>
+        <p class="ank-marginBlockStart-0 ank-marginBlockEnd-0 ank-color-textColor">{{ item.content }}</p>
       </div>
       }
     </div>
