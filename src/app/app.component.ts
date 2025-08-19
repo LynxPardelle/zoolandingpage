@@ -613,6 +613,7 @@ export class App {
   // Angora CSS
   initializeAngoraConfiguration(): void {
     if (!this.angoraHasBeenInitialized) {
+      // this._ank.changeSections([]);
       // this._ank.changeDebugOption(true);
       this.angoraHasBeenInitialized = true;
       this.themeService.applyTheme();

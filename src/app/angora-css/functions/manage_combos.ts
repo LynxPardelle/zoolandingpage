@@ -3,8 +3,16 @@ import { ValuesSingleton } from '../singletons/valuesSingleton';
 /* Funtions */
 import { console_log } from './console_log';
 import { cssCreate } from './cssCreate';
-
+/* Types */
+import { TLogPartsOptions } from '../types';
+import { manage_cache } from './manage_cache';
 const values: ValuesSingleton = ValuesSingleton.getInstance();
+const log = (t: any, p?: TLogPartsOptions) => {
+  console_log.betterLogV1('manageCombos', t, p);
+};
+const multiLog = (toLog: [any, TLogPartsOptions?][]) => {
+  console_log.multiBetterLogV1('manageCombos', toLog);
+};
 export const manage_combos = {
   pushCombos(combos: any): void {
     try {
@@ -18,10 +26,16 @@ export const manage_combos = {
                   return c.split(' ').flat();
                 })
                 .flat();
+        if (!values.combosKeys.has(key)) {
+          values.combosKeys.add(key);
+        }
         prevIgnoredCombosValues = Array.from(values.alreadyCreatedClasses).filter((aC: any) => {
           return aC.includes(key);
         });
       });
+      if (values.cacheActive) {
+        manage_cache.clearAllNoneEssential();
+      }
       if (prevIgnoredCombosValues.length > 0) {
         cssCreate.cssCreate(prevIgnoredCombosValues);
       } else {
@@ -32,7 +46,7 @@ export const manage_combos = {
     }
   },
   getCombos(): any {
-    console_log.consoleLog('info', { combos: values.combos });
+    log(values.combos, 'combos');
     return values.combos;
   },
   updateCombo(combo: string, newValues: string[]): void {
@@ -55,6 +69,9 @@ export const manage_combos = {
             if (values.alreadyCreatedClasses.has(class2Delete)) {
               values.alreadyCreatedClasses.delete(class2Delete);
             }
+          }
+          if (values.cacheActive) {
+            manage_cache.clearAllNoneEssential();
           }
           cssCreate.cssCreate();
         }

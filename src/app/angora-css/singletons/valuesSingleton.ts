@@ -341,26 +341,73 @@ export class ValuesSingleton {
     convertMap: new Map<string, { regex: RegExp; replacement: string | RegExp }>(),
   };
   /* Time Management*/
-  public lastCSSCreate: number = Date.now();
+  public useTimer: boolean = false;
   public lastTimeAsked2Create: number = new Date().getTime();
   public timesCSSCreated: number = 0;
-  public timeBetweenReCreate: number = 300;
-  public useTimer: boolean = false;
+  public timeBetweenReCreate: number = 1000;
+  public lastTimeCssCreateEnded: number = Date.now();
+  public creationPostponed: boolean = false;
+  public setTimeOutID: ReturnType<typeof setTimeout> | null = null;
   /* Recurrent Strategy */
   public useRecurrentStrategy: boolean = true;
-  public lastTimeCssCreateEnded: number = Date.now();
   public cssCreateIsActive: boolean = false;
   /* Common Properties Values Abreviations */
   public commonPropertiesValuesAbreviations: { [key: string]: string } = commonPropertiesValuesAbreviations;
   public commonPropertiesValuesAbreviationsValues: string[] = Object.values(this.commonPropertiesValuesAbreviations);
-  private constructor() {}
   /* Logging */
   public chosenSectionOptions: TChosenLogSectionOptions = defaultChosenSectionOptions;
-
+  /* Cache */
+  public cacheActive: boolean = true;
+  public cacheSize: number = 1000;
+  public propertyJoinerCache: Map<string, string> = new Map();
+  public regExpCache: Map<string, RegExp> = new Map();
+  public buttonCssCache: Map<string, string> = new Map();
+  public buttonShadeCache: Map<string, string> = new Map();
+  public buttonCorrectionCache: Map<string, string> = new Map();
+  public camelCache: Map<string, string> = new Map();
+  public cssValidCache: Map<string, boolean> = new Map();
+  public colorTransformCache: Map<string, string> = new Map();
+  public comboDecryptCache: Map<string, string> = new Map();
+  public parseClassCache: Map<
+    string,
+    {
+      class2Create: string;
+      bpsStringed: IBPS[];
+      classes2CreateStringed: string;
+    }
+  > = new Map();
+  public getNewClasses2CreateCache: Map<string, string[]> = new Map();
+  public comboParserCache: Map<string, string[]> = new Map();
+  public values4ComboGetterCache: Map<string, string[]> = new Map();
+  private constructor() {}
   public static getInstance(): ValuesSingleton {
     if (!ValuesSingleton.instance) {
       ValuesSingleton.instance = new ValuesSingleton();
+      this.instance.init();
     }
     return ValuesSingleton.instance;
+  }
+  public init() {
+    this.translatorMaps = (() => {
+      const traduceMap = new Map<string, { regex: RegExp; replacement: string }>();
+      const convertMap = new Map<string, { regex: RegExp; replacement: string | RegExp }>();
+      for (const abr of this.abreviationTraductors) {
+        // Cache for "traduce" mode (abbreviation -> traduction)
+        traduceMap.set(abr.abreviation, {
+          regex: abr.abreviationRegExp,
+          replacement: abr.traduction,
+        });
+
+        // Cache for "convert" mode (traduction -> abbreviation)
+        convertMap.set(abr.traduction, {
+          regex: abr.traductionRegExp,
+          replacement: abr.abreviation,
+        });
+      }
+      return {
+        traduceMap,
+        convertMap,
+      };
+    })();
   }
 }
