@@ -26,14 +26,13 @@ export const parseClass = async (
   // Check if already created CssClass and return if it is
   if (!updateClasses2Create) {
     if (
-      values.alreadyCreatedClasses.find((aC: any) => {
-        return aC === class2Create;
-      }) ||
-      [...values.sheet.cssRules].find(i =>
-        i.cssText.split(' ').find((aC: string) => {
-          return aC.replace('.', '') === class2Create;
-        })
-      )
+      values.alreadyCreatedClasses.has(class2Create) ||
+      (values.sheet &&
+        [...values.sheet.cssRules].find((i: CSSRule) =>
+          i.cssText.split(' ').find((aC: string) => {
+            return aC.replace('.', '') === class2Create;
+          })
+        ))
     ) {
       return {
         class2Create: class2Create,
@@ -41,10 +40,10 @@ export const parseClass = async (
         classes2CreateStringed: classes2CreateStringed,
       };
     } else {
-      values.alreadyCreatedClasses.push(class2Create);
+      values.alreadyCreatedClasses.add(class2Create);
     }
   } else {
-    values.alreadyCreatedClasses.push(class2Create);
+    values.alreadyCreatedClasses.add(class2Create);
   }
   // Get the class for the final string from the original class2Create after the conversion of the abreviations
   let class2CreateStringed = '.' + class2Create;

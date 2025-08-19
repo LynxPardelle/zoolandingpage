@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 /* Interfaces */
-import { IAbreviationTraductor, IConsoleParser } from './interfaces';
-import { IPseudo } from './interfaces';
+import { IAbreviationTraductor, IConsoleParser, IPseudo } from './interfaces';
 /* Singleton */
 import { ValuesSingleton } from './singletons/valuesSingleton';
 /* Functions */
@@ -27,18 +26,15 @@ export class NgxAngoraService {
   public values: ValuesSingleton = ValuesSingleton.getInstance();
   public indicatorClass: string = this.values.indicatorClass;
   public colors: { [key: string]: string } = this.values.colors;
-  public abreviationsClasses: { [key: string]: string } =
-    this.values.abreviationsClasses;
-  public abreviationsValues: { [key: string]: string } =
-    this.values.abreviationsValues;
+  public abreviationsClasses: { [key: string]: string } = this.values.abreviationsClasses;
+  public abreviationsValues: { [key: string]: string } = this.values.abreviationsValues;
   public combos: { [key: string]: string[] } = this.values.combos;
   public combosCreated: { [key: string]: string } = this.values.combosCreated;
   public encryptCombo: boolean = this.values.encryptCombo;
   public encryptComboCharacters: string = this.values.encryptComboCharacters;
-  public encryptComboCreatedCharacters: string =
-    this.values.encryptComboCreatedCharacters;
+  public encryptComboCreatedCharacters: string = this.values.encryptComboCreatedCharacters;
   public cssNamesParsed: any = this.values.cssNamesParsed;
-  public alreadyCreatedClasses: string[] = this.values.alreadyCreatedClasses;
+  public alreadyCreatedClasses: Set<string> = this.values.alreadyCreatedClasses;
   public sheet: any = this.values.sheet;
   public isDebug: boolean = this.values.isDebug;
   public bps: any = this.values.bps;
@@ -48,12 +44,11 @@ export class NgxAngoraService {
   public separator: string = this.values.separator;
   public styleConsole: string = this.values.styleConsole;
   public pseudoClasses: string[] = this.values.pseudoClasses;
-  public pseudosHasSDED: string[] = this.values.pseudosHasSDED;
+  public pseudosHasSDED: Set<string> = this.values.pseudosHasSDED;
   public pseudoElements: string[] = this.values.pseudoElements;
   public pseudos: IPseudo[] = this.values.pseudos;
   public importantActive: boolean = this.values.importantActive;
-  public abreviationTraductors: IAbreviationTraductor[] =
-    this.values.abreviationTraductors;
+  public abreviationTraductors: IAbreviationTraductor[] = this.values.abreviationTraductors;
   public lastCSSCreate: number = this.values.lastCSSCreate;
   public lastTimeAsked2Create: number = this.values.lastTimeAsked2Create;
   public timesCSSCreated: number = this.values.timesCSSCreated;
@@ -61,26 +56,20 @@ export class NgxAngoraService {
   public useTimer: boolean = this.values.useTimer;
   constructor() {}
   public checkSheet = () => manage_sheet.checkSheet();
-  public cssCreate = (
-    updateBefs: string[] | null = null,
-    primordial: boolean = false
-  ) => cssCreate.cssCreate(updateBefs, primordial);
-  public createCSSRules = (rule: string) =>
-    manage_CSSRules.createCSSRules(rule);
+  public cssCreate = (updateBefs: string[] | null = null, primordial: boolean = false) =>
+    cssCreate.cssCreate(updateBefs, primordial);
+  public createCSSRules = (rule: string) => manage_CSSRules.createCSSRules(rule);
   public colorToRGB = (color: string) => color_transform.colorToRGB(color);
-  public RGBToRGBA = (rgb: number[], alpha: number) =>
-    color_transform.RGBToRGBA(rgb, alpha);
+  public RGBToRGBA = (rgb: number[], alpha: number) => color_transform.RGBToRGBA(rgb, alpha);
   public parseRGB = (rgba: string) => color_transform.parseRGB(rgba);
   public HexToRGB = (Hex: string) => color_transform.HexToRGB(Hex);
   public HSLToRGB = (HSL: string) => color_transform.HSLToRGB(HSL);
   public HWBToRGB = (HWB: string) => color_transform.HWBToRGB(HWB);
-  public shadeTintColor = (rgb: number[], percent: number) =>
-    color_transform.shadeTintColor(rgb, percent);
+  public shadeTintColor = (rgb: number[], percent: number) => color_transform.shadeTintColor(rgb, percent);
   public cssValidToCamel = (st: string) => css_camel.cssValidToCamel(st);
   public camelToCSSValid = (st: string) => css_camel.camelToCSSValid(st);
   /* CRUD */
-  public pushCssNamesParsed = (cssNamesParsed: any) =>
-    manage_CSSNamesParsed.pushCssNamesParsed(cssNamesParsed);
+  public pushCssNamesParsed = (cssNamesParsed: any) => manage_CSSNamesParsed.pushCssNamesParsed(cssNamesParsed);
   public pushBPS = (bps: any) => manage_bps.pushBPS(bps);
   public pushColors = (newColors: any) => manage_colors.pushColors(newColors);
   public pushAbreviationsValues = (abreviationsValues: any) =>
@@ -91,46 +80,34 @@ export class NgxAngoraService {
   /* Getters */
   public getColors = () => manage_colors.getColors();
   public getBPS = () => manage_bps.getBPS();
-  public getAbreviationsValues = () =>
-    manage_abreviations.getAbreviationsValues();
-  public getAbreviationsClasses = () =>
-    manage_abreviations.getAbreviationsClasses();
+  public getAbreviationsValues = () => manage_abreviations.getAbreviationsValues();
+  public getAbreviationsClasses = () => manage_abreviations.getAbreviationsClasses();
   public getCombos = () => manage_combos.getCombos();
   public getCssNamesParsed = () => manage_CSSNamesParsed.getCssNamesParsed();
   public getColorsNames = () => manage_colors.getColorsNames();
   public getColorValue = (color: string) => manage_colors.getColorValue(color);
-  public getAlreadyCreatedClasses = () =>
-    manage_classes.getAlreadyCreatedClasses();
+  public getAlreadyCreatedClasses = () => manage_classes.getAlreadyCreatedClasses();
   public getSheet = () => manage_sheet.getSheet();
   /* Update */
-  public updateColor = (color: string, value: string) =>
-    manage_colors.updateColor(color, value);
+  public updateColor = (color: string, value: string) => manage_colors.updateColor(color, value);
   public updateAbreviationsClass = (abreviationsClass: string, value: string) =>
     manage_abreviations.updateAbreviationsClass(abreviationsClass, value);
   public updateAbreviationsValue = (abreviationsValue: string, value: string) =>
     manage_abreviations.updateAbreviationsValue(abreviationsValue, value);
-  public updateCombo = (combo: string, values: string[]) =>
-    manage_combos.updateCombo(combo, values);
+  public updateCombo = (combo: string, values: string[]) => manage_combos.updateCombo(combo, values);
   public updateCssNamesParsed = (cssNameParsed: string, value: string) =>
     manage_CSSNamesParsed.updateCssNamesParsed(cssNameParsed, value);
-  public updateClasses = (classesToUpdate: string[]) =>
-    manage_classes.updateClasses(classesToUpdate);
+  public updateClasses = (classesToUpdate: string[]) => manage_classes.updateClasses(classesToUpdate);
   /* Delete */
   public deleteColor = (color: string) => manage_colors.deleteColor(color);
   public clearAllColors = () => manage_colors.clearAllColors();
   /* Utility */
   public changeImportantActive = (active: boolean) =>
-    utility_configurations.changeImportantActive(
-      (active = !this.importantActive)
-    );
-  public changeDebugOption = (active: boolean = !this.isDebug) =>
-    debugg_options.changeDebugOption(active);
-  public changeUseTimerOption = (active: boolean = !this.useTimer) =>
-    debugg_options.changeUseTimerOption(active);
-  public setTimeBetweenReCreate = (time: number) =>
-    debugg_options.setTimeBetweenReCreate(time);
-  public unbefysize = (value: string) =>
-    abreviation_traductors.unbefysize(value);
+    utility_configurations.changeImportantActive((active = !this.importantActive));
+  public changeDebugOption = (active: boolean = !this.isDebug) => debugg_options.changeDebugOption(active);
+  public changeUseTimerOption = (active: boolean = !this.useTimer) => debugg_options.changeUseTimerOption(active);
+  public setTimeBetweenReCreate = (time: number) => debugg_options.setTimeBetweenReCreate(time);
+  public unbefysize = (value: string) => abreviation_traductors.unbefysize(value);
   public befysize = (value: string) => abreviation_traductors.befysize(value);
   public consoleLog = (
     type: 'log' | 'info' | 'trace' | 'error' = 'log',
@@ -139,6 +116,5 @@ export class NgxAngoraService {
     line: string | null = null,
     stoper: boolean = !this.values.isDebug
   ) => console_log.consoleLog(type, thing, style, line, stoper);
-  public consoleParser = (config: IConsoleParser) =>
-    console_log.consoleParser(config);
+  public consoleParser = (config: IConsoleParser) => console_log.consoleParser(config);
 }
