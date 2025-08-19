@@ -18,7 +18,10 @@ import { manage_combos } from './functions/manage_combos';
 import { manage_CSSNamesParsed } from './functions/manage_CSSNamesParsed';
 import { manage_CSSRules } from './functions/manage_CSSRules';
 import { manage_sheet } from './functions/manage_sheet';
+import { managePartsSections } from './functions/managePartsNSectionsToSeeOnLog';
 import { utility_configurations } from './functions/utility_configurations';
+/* Types */
+import { TLogPartsOptions, TLogSectionOptions } from './types';
 @Injectable({
   providedIn: 'root',
 })
@@ -49,14 +52,13 @@ export class NgxAngoraService {
   public pseudos: IPseudo[] = this.values.pseudos;
   public importantActive: boolean = this.values.importantActive;
   public abreviationTraductors: IAbreviationTraductor[] = this.values.abreviationTraductors;
-  public lastCSSCreate: number = this.values.lastCSSCreate;
   public lastTimeAsked2Create: number = this.values.lastTimeAsked2Create;
   public timesCSSCreated: number = this.values.timesCSSCreated;
   public timeBetweenReCreate: number = this.values.timeBetweenReCreate;
   public useTimer: boolean = this.values.useTimer;
   constructor() {}
   public checkSheet = () => manage_sheet.checkSheet();
-  public cssCreate = (updateBefs: string[] | null = null, primordial: boolean = false) =>
+  public cssCreate = (updateBefs: string[] | undefined = undefined, primordial: boolean = false) =>
     cssCreate.cssCreate(updateBefs, primordial);
   public createCSSRules = (rule: string) => manage_CSSRules.createCSSRules(rule);
   public colorToRGB = (color: string) => color_transform.colorToRGB(color);
@@ -117,4 +119,16 @@ export class NgxAngoraService {
     stoper: boolean = !this.values.isDebug
   ) => console_log.consoleLog(type, thing, style, line, stoper);
   public consoleParser = (config: IConsoleParser) => console_log.consoleParser(config);
+  /* ManagePartsNSectionsForLog */
+  public pushSection = (newSection: string) => managePartsSections.pushSection(newSection);
+  public pushPart = (newPart: string) => managePartsSections.pushPart(newPart);
+  public getChosenSectionsOptions = () => managePartsSections.getChosenSectionsOptions();
+  public getChosenSectionsOptionsSections = () => managePartsSections.getChosenSectionsOptionsSections();
+  public getChosenSectionsOptionsParts = () => managePartsSections.getChosenSectionsOptionsParts();
+  public getAllPosibleSections = () => managePartsSections.getAllPosibleSections();
+  public getAllPosibleParts = () => managePartsSections.getAllPosibleParts();
+  public changeSections = (newSections: TLogSectionOptions[]) => managePartsSections.changeSections(newSections);
+  public changeParts = (newParts: TLogPartsOptions[]) => managePartsSections.changeParts(newParts);
+  public deleteSection = (sectionToDelete: TLogSectionOptions) => managePartsSections.deleteSection(sectionToDelete);
+  public deletePart = (partToDelete: TLogPartsOptions) => managePartsSections.deletePart(partToDelete);
 }
