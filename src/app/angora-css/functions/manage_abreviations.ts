@@ -12,7 +12,7 @@ export const manage_abreviations = {
       Object.keys(abreviationsValues).forEach(key => {
         values.abreviationsValues[key] = abreviationsValues[key];
         // Find all classes that include this abreviation
-        prevIgnoredAbreviationsValues = values.alreadyCreatedClasses.filter((aC: any) => {
+        prevIgnoredAbreviationsValues = Array.from(values.alreadyCreatedClasses).filter((aC: any) => {
           return aC.includes(key);
         });
       });
@@ -28,7 +28,7 @@ export const manage_abreviations = {
     try {
       Object.keys(abreviationsClasses).forEach(key => {
         values.abreviationsClasses[key] = abreviationsClasses[key];
-        prevIgnoredAbreviationsValues = values.alreadyCreatedClasses.filter((aC: any) => {
+        prevIgnoredAbreviationsValues = Array.from(values.alreadyCreatedClasses).filter((aC: any) => {
           return aC.includes(key);
         });
       });

@@ -2,9 +2,18 @@
 import { ValuesSingleton } from '../../singletons/valuesSingleton';
 /* Funtions */
 import { console_log } from '../console_log';
-
+/* Types */
+import { TLogPartsOptions } from '../../types';
 const values: ValuesSingleton = ValuesSingleton.getInstance();
+const log = (t: any, p?: TLogPartsOptions) => {
+  console_log.betterLogV1('createSimpleRule', t, p);
+};
+const multiLog = (toLog: [any, TLogPartsOptions?][]) => {
+  console_log.multiBetterLogV1('createSimpleRule', toLog);
+};
 export const createSimpleRule = (rule: string): void => {
+  log(rule, 'rule');
+  if (!values.sheet) return;
   let originalMediaRules: boolean = false;
   let rulesParsed: string[] = rule
     .replace(/{/g, values.separator)
@@ -20,8 +29,8 @@ export const createSimpleRule = (rule: string): void => {
       mediaRule = mediaRule.slice(0, -1);
     }
     rulesParsed.shift();
-    [...values.sheet.cssRules].forEach(css => {
-      if (css.cssText.includes(mediaRule) && css.cssRules) {
+    [...values.sheet.cssRules].forEach((css: CSSRule | CSSGroupingRule) => {
+      if (css.cssText.includes(mediaRule) && css instanceof CSSGroupingRule && css.cssRules) {
         originalMediaRules = true;
         let i = 0;
         while (i <= rulesParsed.length) {
@@ -34,15 +43,15 @@ export const createSimpleRule = (rule: string): void => {
               return false;
             }
           })
-            ? [...css.cssRules].find(i =>
-                i.cssText.split(' ').find((aC: string) => {
+            ? [...css.cssRules].find((cs, i) =>
+                cs.cssText.split(' ').find((aC: string) => {
                   return aC.replace('.', '') === rulesParsed[i];
                 })
               )
             : /* .includes(rulesParsed[i])) */
               /*
             i.cssText.split(' ').find((aC: string) => {
-                return aC.replace('.', '') === class2Create;
+                return aC.replace('.', '') === bef;
               })
             */
               undefined;
@@ -50,7 +59,7 @@ export const createSimpleRule = (rule: string): void => {
             css.deleteRule(index);
           }
           let newRule: string = `${rulesParsed[i]}{${rulesParsed[i + 1]}}`;
-          console_log.consoleLog('info', { newRule: newRule });
+          log(newRule, 'newRule');
           css.insertRule(newRule, css.cssRules.length);
           i = i + 2;
         }
@@ -58,7 +67,7 @@ export const createSimpleRule = (rule: string): void => {
     });
   }
   if (originalMediaRules === false) {
-    console_log.consoleLog('info', { rule: rule });
+    log(rule, 'rule');
     values.sheet.insertRule(rule, values.sheet.cssRules.length);
   }
 };
