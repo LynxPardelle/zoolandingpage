@@ -1,25 +1,87 @@
 <div
-  class="toast-host ank-position-fixed ank-bottom-1rem ank-right-1rem ank-display-flex ank-flexDirection-column ank-gap-0_5rem"
+  class="toast-host ank-position-fixed ank-display-flex ank-flexDirection-column ank-gap-0_5rem ank-zIndex-1000"
+  [class]="getHostPositionClasses()"
   role="region"
   aria-label="Notifications"
 >
-  @for (m of service.list(); track m.id){
+  @for (toast of service.list(); track toast.id) {
   <div
-    class="toast ank-display-flex ank-alignItems-center ank-gap-0_5rem ank-fontSize-0_875rem ank-lineHeight-1_2 ank-px-0_75rem ank-py-0_5rem ank-borderRadius-0_5rem ank-boxShadow-sm"
-    [attr.data-level]="m.level"
+    class="toast ank-position-relative ank-display-flex ank-alignItems-stretch ank-gap-0_75rem ank-p-1rem ank-borderRadius-0_75rem ank-boxShadow-lg ank-border-1 ank-maxWidth-24rem ank-minWidth-20rem"
+    [class]="getToastClasses(toast)"
+    [attr.data-level]="toast.level"
+    [attr.data-entering]="toast.entering"
+    [attr.data-leaving]="toast.leaving"
     role="status"
-    aria-live="polite"
-    [class.toast-leave]="m.leaving"
+    [attr.aria-live]="toast.level === 'error' ? 'assertive' : 'polite'"
+    (mouseenter)="onToastHover(toast.id, true)"
+    (mouseleave)="onToastHover(toast.id, false)"
   >
-    <span>{{ m.text }}</span>
+    <!-- Progress bar for auto-dismiss toasts -->
+    @if (toast.showProgress && toast.autoCloseMs && toast.autoCloseMs > 0) {
+    <div
+      class="toast-progress ank-position-absolute ank-bottom-0 ank-left-0 ank-right-0 ank-height-0_125rem ank-borderRadius-0_125rem ank-overflow-hidden"
+    >
+      <div
+        class="toast-progress-bar ank-height-full ank-transition-all"
+        [style.animation-duration.ms]="toast.autoCloseMs"
+      ></div>
+    </div>
+    }
+
+    <!-- Icon -->
+    <div
+      class="toast-icon ank-display-flex ank-alignItems-center ank-justifyContent-center ank-flexShrink-0 ank-width-1_5rem ank-height-1_5rem ank-borderRadius-50% ank-fontSize-1rem"
+    >
+      @switch (toast.level) { @case ('success') {
+      <span aria-hidden="true">✓</span>
+      } @case ('error') {
+      <span aria-hidden="true">✕</span>
+      } @case ('warning') {
+      <span aria-hidden="true">⚠</span>
+      } @case ('info') {
+      <span aria-hidden="true">ⓘ</span>
+      } }
+    </div>
+
+    <!-- Content -->
+    <div class="toast-content ank-display-flex ank-flexDirection-column ank-gap-0_25rem ank-flex-1 ank-minWidth-0">
+      @if (toast.title) {
+      <div class="toast-title ank-fontSize-0_875rem ank-fontWeight-600 ank-lineHeight-1_2">
+        {{ toast.title }}
+      </div>
+      }
+
+      <div class="toast-text ank-fontSize-0_875rem ank-lineHeight-1_4 ank-color-text-secondary">
+        {{ toast.text }}
+      </div>
+
+      @if (toast.actions && toast.actions.length > 0) {
+      <div class="toast-actions ank-display-flex ank-gap-0_5rem ank-mt-0_5rem">
+        @for (action of toast.actions; track action.label) {
+        <button
+          type="button"
+          class="ank-fontSize-0_75rem ank-px-0_75rem ank-py-0_25rem ank-borderRadius-0_375rem ank-border-0 ank-cursor-pointer ank-fontWeight-500 ank-transition-all"
+          [class]="getActionButtonClasses(action, toast.level)"
+          (click)="handleActionClick(action, toast.id)"
+        >
+          {{ action.label }}
+        </button>
+        }
+      </div>
+      }
+    </div>
+
+    <!-- Dismiss button -->
+    @if (toast.dismissible) {
     <button
       type="button"
-      (click)="service.dismiss(m.id)"
-      aria-label="Dismiss"
-      class="ank-bgcl-transparent ank-border-0 ank-color-inherit ank-cursor-pointer"
+      class="toast-dismiss ank-display-flex ank-alignItems-center ank-justifyContent-center ank-flexShrink-0 ank-width-1_5rem ank-height-1_5rem ank-bgcl-transparent ank-border-0 ank-borderRadius-50% ank-cursor-pointer ank-fontSize-1rem ank-color-text-tertiary ank-transition-all hover:ank-color-text-primary hover:ank-bgcl-surface-secondary"
+      (click)="service.dismiss(toast.id)"
+      [attr.aria-label]="'Dismiss ' + (toast.title || 'notification')"
     >
-      ×
+      <span aria-hidden="true">×</span>
     </button>
+    }
   </div>
   }
 </div>
