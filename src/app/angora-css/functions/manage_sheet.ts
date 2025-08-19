@@ -10,7 +10,7 @@ export const manage_sheet = {
     for (let nsheet of sheets) {
       if (nsheet.href?.includes(values.styleSheetToManage)) {
         values.sheet = nsheet;
-        values.alreadyCreatedClasses = [];
+        values.alreadyCreatedClasses.clear();
         values.combosCreated = {};
       }
     }

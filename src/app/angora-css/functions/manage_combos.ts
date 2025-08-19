@@ -18,7 +18,7 @@ export const manage_combos = {
                   return c.split(' ').flat();
                 })
                 .flat();
-        prevIgnoredCombosValues = values.alreadyCreatedClasses.filter((aC: any) => {
+        prevIgnoredCombosValues = Array.from(values.alreadyCreatedClasses).filter((aC: any) => {
           return aC.includes(key);
         });
       });
@@ -47,14 +47,14 @@ export const manage_combos = {
         }
         if (classes2Delete.length > 0) {
           for (let class2Delete of classes2Delete) {
-            values.sheet.deleteRule(
+            values.sheet?.deleteRule(
               [...values.sheet.cssRules].findIndex(cssRule => {
                 return cssRule.cssText.includes(class2Delete);
               })
             );
-            values.alreadyCreatedClasses = values.alreadyCreatedClasses.filter((aC: string) => {
-              return aC !== class2Delete;
-            });
+            if (values.alreadyCreatedClasses.has(class2Delete)) {
+              values.alreadyCreatedClasses.delete(class2Delete);
+            }
           }
           cssCreate.cssCreate();
         }
