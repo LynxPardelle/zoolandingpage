@@ -63,14 +63,14 @@ const generateShadeArray = (value: string, secondValue: string): TNameVal[] => {
  * @param secondValue - Secondary color value (default: 'transparent', used for outline buttons)
  * @param outline - Whether to create an outline button variant (default: false)
  *
- * @returns Promise resolving to a CSS string containing all button state rules
+ * @returns String resolving to a CSS string containing all button state rules
  *
  * @example
  * ```typescript
  * // Regular button
- * await btnCreator('btn-primary', '', '#007bff', 'transparent', false);
+ * btnCreator('btn-primary', '', '#007bff', 'transparent', false);
  * // Outline button
- * await btnCreator('btn-outline-success', ':hover', '#28a745', 'white', true);
+ * btnCreator('btn-outline-success', ':hover', '#28a745', 'white', true);
  * ```
  *
  * @remarks
@@ -107,13 +107,13 @@ const generateShadeArray = (value: string, secondValue: string): TNameVal[] => {
  * - Same function signature and return type
  * - All existing button styles continue to work correctly
  */
-export const btnCreator = async (
+export const btnCreator = (
   class2Create: string,
   specify: string,
   value: string,
   secondValue: string = 'transparent',
   outline: boolean = false
-): Promise<string> => {
+): string => {
   // Early validation
   if (!class2Create || !value) {
     return '';
@@ -158,24 +158,20 @@ export const btnCreator = async (
   const shadowNumericalValues: string = '0 0 0 0.25rem ';
 
   // Generate correction arrays efficiently with batched processing
-  const correctionTasks: Array<Promise<TNameVal>> = [];
+  const correctionTasks: Array<TNameVal> = [];
 
   // Process base values and shades for CSS properties
   for (const shade of shadesArray) {
     for (const prop of ['background-color', 'color', 'border-color']) {
-      correctionTasks.push(
-        (values.cacheActive
-          ? manage_cache.getCachedPromised<string>(
-              `${prop}|${shade.val}`,
-              'buttonCorrection',
-              async () => await propertyNValueCorrector(prop, shade.val)
-            )
-          : propertyNValueCorrector(prop, shade.val)
-        ).then(correctedVal => ({
-          name: `${shade.name},${prop}`,
-          val: correctedVal,
-        }))
-      );
+      const correctedVal: string = values.cacheActive
+        ? (manage_cache.getCached<string>(`${prop}|${shade.val}`, 'buttonCorrection', () =>
+            propertyNValueCorrector(prop, shade.val)
+          ) as string)
+        : propertyNValueCorrector(prop, shade.val);
+      correctionTasks.push({
+        name: `${shade.name},${prop}`,
+        val: correctedVal,
+      });
     }
   }
 
@@ -189,23 +185,19 @@ export const btnCreator = async (
   ];
 
   for (const shadowVal of shadowValues) {
-    correctionTasks.push(
-      (values.cacheActive
-        ? manage_cache.getCachedPromised<string>(
-            `${'box-shadow'}|${shadowVal.val}`,
-            'buttonCorrection',
-            async () => await propertyNValueCorrector('box-shadow', shadowVal.val)
-          )
-        : propertyNValueCorrector('box-shadow', shadowVal.val)
-      ).then(correctedVal => ({
-        name: `${shadowVal.name}Corrected`,
-        val: correctedVal,
-      }))
-    );
+    const correctedVal = values.cacheActive
+      ? (manage_cache.getCached<string>(`${'box-shadow'}|${shadowVal.val}`, 'buttonCorrection', () =>
+          propertyNValueCorrector('box-shadow', shadowVal.val)
+        ) as string)
+      : propertyNValueCorrector('box-shadow', shadowVal.val);
+    correctionTasks.push({
+      name: `${shadowVal.name}Corrected`,
+      val: correctedVal,
+    });
   }
 
   // Execute all corrections in parallel
-  const allCorrections = await Promise.all(correctionTasks);
+  const allCorrections = correctionTasks;
 
   // Combine results into efficient lookup objects
   const correctVals: { [key: string]: string } = combinators.combineIntoObject(

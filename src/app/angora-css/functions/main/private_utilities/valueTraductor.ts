@@ -25,7 +25,7 @@ const multiLog = (toLog: [any, TLogPartsOptions?][]) => {
  *
  * @param value - The string value to be translated and processed
  * @param property - The property name that determines processing behavior
- * @returns A promise that resolves to the translated and processed string value
+ * @returns A String that resolves to the translated and processed string value
  *
  * @example
  * ```typescript
@@ -40,7 +40,7 @@ const multiLog = (toLog: [any, TLogPartsOptions?][]) => {
  * - Hex colors are converted to rgba format using the color_transform utility
  * - opacity parsing is skipped for properties containing 'content'
  */
-export const valueTraductor = async (value: string, property: string): Promise<string> => {
+export const valueTraductor = (value: string, property: string): string => {
   multiLog([
     [value, 'value'],
     [property, 'property'],

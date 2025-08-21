@@ -12,13 +12,8 @@ const log = (t: any, p?: TLogPartsOptions) => {
 const multiLog = (toLog: [any, TLogPartsOptions?][]) => {
   console_log.multiBetterLogV1('doUseRecurrentStrategy', toLog);
 };
-export const doUseRecurrentStrategy = async (
-  primordial: boolean = false,
-  recurrent: boolean = false,
-  updateClasses2Create?: string[]
-): Promise<void> => {
+export const doUseRecurrentStrategy = (primordial: boolean = false, recurrent: boolean = false): void => {
   multiLog([
-    [updateClasses2Create, 'updateClasses2Create'],
     [primordial, 'primordial'],
     [recurrent, 'recurrent'],
   ]);
@@ -44,14 +39,14 @@ export const doUseRecurrentStrategy = async (
     log(false, 'creationPostponed');
     values.timesCSSCreated++;
     values.cssCreateIsActive = true;
-    values.lastTimeCssCreateEnded = await doCssCreate(updateClasses2Create);
+    values.lastTimeCssCreateEnded = doCssCreate(values.timesCSSCreated);
     values.cssCreateIsActive = false;
     multiLog([
       [values.timesCSSCreated, 'timesCSSCreated after doCssCreate'],
       [values.lastTimeCssCreateEnded, 'lastTimeCssCreateEnded after doCssCreate'],
       [new Date(values.lastTimeCssCreateEnded), 'lastTimeCssCreateEnded as Date after doCssCreate'],
     ]);
-    doUseRecurrentStrategy(false, true, updateClasses2Create);
+    doUseRecurrentStrategy(false, true);
   } else if (!recurrent) {
     log(true, 'creationPostponed');
   }

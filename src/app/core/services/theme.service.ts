@@ -65,6 +65,8 @@ export class ThemeService {
     },
   };
 
+  private initialized: boolean = false;
+
   constructor() {
     this._detectSystemPreference();
     this._loadSavedTheme();
@@ -139,8 +141,8 @@ export class ThemeService {
     const themeColors: ThemeColors = currentThemeConfig.colors;
     const altThemeColors: ThemeColors = altThemeConfig.colors;
 
-    // Use ngx-angora-css pushColors for dynamic theme management
-    this._ank.pushColors({
+    // Use ngx-angora-css pushColors || updateColors for dynamic theme management
+    this._ank[!this.initialized ? 'pushColors' : 'updateColors']({
       bgColor: themeColors.bgColor,
       textColor: themeColors.textColor,
       titleColor: themeColors.titleColor,
@@ -162,6 +164,11 @@ export class ThemeService {
       altSecondaryLinkColor: altThemeColors.secondaryLinkColor,
       altSecondaryAccentColor: altThemeColors.secondaryAccentColor,
     });
-    console.log('colors', this._ank.getColors());
+    if (!this.initialized) this.initialized = true;
+    const angoraColors: { [key: string]: string } = {};
+    for (const [key, value] of Object.entries(themeColors)) {
+      angoraColors[key] = value;
+    }
+    console.log('colors', angoraColors);
   }
 }

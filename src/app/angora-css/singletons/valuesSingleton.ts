@@ -34,6 +34,7 @@ export class ValuesSingleton {
   public cssNamesParsed: { [key: string]: string | string[] } = cssNamesParsed;
   public alreadyCreatedClasses: Set<string> = new Set();
   public sheet?: CSSStyleSheet;
+  public responsiveSheet?: CSSStyleSheet;
   public isDebug: boolean = false;
   public bps: IBPS[] = [
     {
@@ -71,7 +72,8 @@ export class ValuesSingleton {
     '#' + this.indicatorClass + '-bp',
   ];
   public limitBPS: boolean = false;
-  public styleSheetToManage: string = 'angora-styles';
+  public styleSheetToManage: string = 'angora-styles.css';
+  public responsiveStyleSheetToManage: string = 'angora-styles-responsive.css';
   public separator: string = 'þµÞ';
   public specify: string = '🜏🜏🜏';
   /* Console */

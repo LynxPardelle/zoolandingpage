@@ -7,7 +7,7 @@ const multiLog = (toLog: [any, TLogPartsOptions?][]) => {
   console_log.multiBetterLogV1('shadowGradientCreator', toLog);
 };
 
-export const shadowGradientCreator = async (shadow: string, onlyGradient: boolean = false): Promise<string> => {
+export const shadowGradientCreator = (shadow: string, onlyGradient: boolean = false): string => {
   multiLog([
     [shadow, 'shadow'],
     [onlyGradient, 'onlyGradient'],

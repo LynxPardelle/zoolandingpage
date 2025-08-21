@@ -57,7 +57,7 @@ export class NgxAngoraService {
   public timeBetweenReCreate: number = this.values.timeBetweenReCreate;
   public useTimer: boolean = this.values.useTimer;
   constructor() {}
-  public checkSheet = () => manage_sheet.checkSheet();
+  public checkSheet = (option: 'normal' | 'responsive' = 'normal') => manage_sheet.checkSheet(option);
   public cssCreate = (updateBefs: string[] | undefined = undefined, primordial: boolean = false) =>
     cssCreate.cssCreate(updateBefs, primordial);
   public createCSSRules = (rule: string) => manage_CSSRules.createCSSRules(rule);
@@ -92,6 +92,7 @@ export class NgxAngoraService {
   public getSheet = () => manage_sheet.getSheet();
   /* Update */
   public updateColor = (color: string, value: string) => manage_colors.updateColor(color, value);
+  public updateColors = (newColors: any) => manage_colors.updateColors(newColors);
   public updateAbreviationsClass = (abreviationsClass: string, value: string) =>
     manage_abreviations.updateAbreviationsClass(abreviationsClass, value);
   public updateAbreviationsValue = (abreviationsValue: string, value: string) =>

@@ -28,16 +28,16 @@ const CSS_TEMPLATES = {
  * @param propertyValues - Array of property values to apply (default: [''])
  * @param specify - The CSS selector specification (including pseudo-classes/combinators)
  *
- * @returns Promise resolving to a CSS rule string
+ * @returns String resolving to a CSS rule string
  *
  * @example
  * ```typescript
  * // Regular property
- * await property2ValueJoiner('margin', ['bef', 'margin', '10px'], 'bef-margin-10px', ['10px'], '');
+ * property2ValueJoiner('margin', ['bef', 'margin', '10px'], 'bef-margin-10px', ['10px'], '');
  * // Button generation
- * await property2ValueJoiner('btn', ['bef', 'btn', 'primary'], 'bef-btn-primary', ['#007bff'], ':hover');
+ * property2ValueJoiner('btn', ['bef', 'btn', 'primary'], 'bef-btn-primary', ['#007bff'], ':hover');
  * // Link styling
- * await property2ValueJoiner('link', ['bef', 'link', 'blue'], 'bef-link-blue', ['blue'], '');
+ * property2ValueJoiner('link', ['bef', 'link', 'blue'], 'bef-link-blue', ['blue'], '');
  * ```
  *
  * @remarks
@@ -75,13 +75,13 @@ const CSS_TEMPLATES = {
  * - All existing CSS generation patterns continue to work correctly
  * - Full support for all button variants and special cases
  */
-export const property2ValueJoiner = async (
+export const property2ValueJoiner = (
   property: string,
   class2CreateSplited: string[],
   class2Create: string,
   propertyValues: string[] = [''],
   specify: string = ''
-): Promise<string> => {
+): string => {
   // Early validation
   if (!property && !class2CreateSplited[1]) {
     return '';
@@ -130,9 +130,9 @@ export const property2ValueJoiner = async (
     if (propertyType === 'link') {
       result = CSS_TEMPLATES.link(specify, propertyValues[0]);
     } else if (propertyType === 'btnOutline') {
-      result = await btnCreator(class2Create, specify, propertyValues[0], propertyValues[1] || '', true);
+      result = btnCreator(class2Create, specify, propertyValues[0], propertyValues[1] || '', true);
     } else if (propertyType === 'btn') {
-      result = await btnCreator(class2Create, specify, propertyValues[0]);
+      result = btnCreator(class2Create, specify, propertyValues[0]);
     } else {
       // Default case: standard CSS property-value pair
       const cssProperty = css_camel.camelToCSSValid(property);

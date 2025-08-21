@@ -15,7 +15,7 @@ const log = (t: any, p?: TLogPartsOptions) => {
   console_log.betterLogV1('cssCreate', t, p);
 };
 export const cssCreate = {
-  cssCreate(updateClasses2Create: string[] | null = null, primordial: boolean = false): void {
+  cssCreate(updateClasses2Create: string[] | null = null, primordial: boolean = false): number | void {
     try {
       if (!values.pseudos[0]) {
         values.pseudos = values.pseudoClasses
@@ -53,17 +53,25 @@ export const cssCreate = {
         }
         log('Sheet exists', 'manage_sheets');
       }
+      if (!values.responsiveSheet) {
+        log('Checking if responsive sheet exists', 'manage_sheets');
+        manage_sheet.checkSheet('responsive');
+        if (!values.responsiveSheet) {
+          throw new Error(`There is no ${values.responsiveStyleSheetToManage} responsive style sheet!`);
+        }
+        log('Responsive sheet exists', 'manage_sheets');
+      }
       if (!values.colorsRegex) {
         values.colorsRegex = manage_colors.getColorsRegex();
       }
       log('cssCreate');
-      if (!!values.useTimer) {
-        doUseTimer(primordial, true, (updateClasses2Create as string[]) || undefined);
-      } else if (!!values.useRecurrentStrategy) {
-        doUseRecurrentStrategy(primordial, false, (updateClasses2Create as string[]) || undefined);
+      if (!!values.useTimer && !updateClasses2Create) {
+        return doUseTimer(primordial, true);
+      } else if (!!values.useRecurrentStrategy && !updateClasses2Create) {
+        doUseRecurrentStrategy(primordial, false);
       } else {
         log('Using direct cssCreate');
-        doCssCreate((updateClasses2Create as string[]) || undefined);
+        return doCssCreate(values.timesCSSCreated, (updateClasses2Create as string[]) || undefined);
       }
     } catch (err) {
       console_log.consoleLog('error', { err: err });
