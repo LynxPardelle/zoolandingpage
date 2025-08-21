@@ -586,7 +586,9 @@ export class App {
   showPositionDemo(): void {
     const positions = [
       { vertical: 'top' as const, horizontal: 'right' as const, message: 'Top Right' },
+      { vertical: 'top' as const, horizontal: 'center' as const, message: 'Top Center' },
       { vertical: 'top' as const, horizontal: 'left' as const, message: 'Top Left' },
+      { vertical: 'bottom' as const, horizontal: 'left' as const, message: 'Bottom Left' },
       { vertical: 'bottom' as const, horizontal: 'center' as const, message: 'Bottom Center' },
       { vertical: 'bottom' as const, horizontal: 'right' as const, message: 'Bottom Right (default)' },
     ];
@@ -616,14 +618,13 @@ export class App {
       // this._ank.changeSections([]);
       // this._ank.changeDebugOption(true);
       this.angoraHasBeenInitialized = true;
-      this.themeService.applyTheme();
       // Configure combos for reusable styles
       this._ank.pushCombos({
         cardHover: [
           'ank-transition-all ank-td-300ms ank-transformHover-translateYSDMIN4pxED ank-boxShadowHover-0__0_5rem__1rem__rgbaSD0COM0COM0COM0_5ED',
         ],
         btnBase: [
-          'ank-px-1_5rem ank-py-0_75rem ank-borderRadius-0_5rem ank-fontWeight-400 ank-transition-all__200ms ank-transformHover-translateYSDMIN1pxED',
+          'ank-px-VAL1DEF1_5remDEF ank-py-VAL2DEF0_75remDEF ank-borderRadius-VAL3DEF0_5remDEF ank-fontWeight-VAL4DEF550DEF ank-transformHover-translateYSDVAL5DEFMIN1pxDEFED',
         ],
         sectionPadding: ['ank-py-80px ank-px-20px'],
         containerMax: ['ank-maxWidth-1200px ank-mx-auto'],

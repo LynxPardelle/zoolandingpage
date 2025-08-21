@@ -29,12 +29,12 @@ export class ToastComponent {
     }
 
     // Horizontal positioning
-    if (horizontal === 'left') {
-      classes.push('ank-left-1rem');
-    } else if (horizontal === 'right') {
+    if (horizontal === 'right') {
       classes.push('ank-right-1rem');
-    } else {
-      classes.push('ank-left-50%', 'ank-transform-translateX-neg50%');
+    } else if (horizontal === 'left') {
+      classes.push('ank-left-1rem');
+    } else if (horizontal === 'center') {
+      classes.push('ank-left-50per', 'ank-transform-translateXSDMIN50perED');
     }
 
     return classes.join(' ');
