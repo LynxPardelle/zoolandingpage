@@ -11,7 +11,7 @@ const log = (t: any, p?: TLogPartsOptions) => {
 const multiLog = (toLog: [any, TLogPartsOptions?][]) => {
   console_log.multiBetterLogV1('propertyNValueCorrector', toLog);
 };
-export const propertyNValueCorrector = async (property2Use: string, value: string): Promise<string> => {
+export const propertyNValueCorrector = (property2Use: string, value: string): string => {
   multiLog([
     [property2Use, 'property2Use'],
     [value, 'value'],
@@ -36,11 +36,7 @@ export const propertyNValueCorrector = async (property2Use: string, value: strin
       onlyGradient = true;
     }
     log(shadows2Use, 'shadows2Use');
-    let correctedShadows: string[] = await Promise.all(
-      shadows2Use.map(async (a: string) => {
-        return await shadowGradientCreator(a, onlyGradient);
-      })
-    );
+    let correctedShadows: string[] = shadows2Use.map((a: string) => shadowGradientCreator(a, onlyGradient));
     log(correctedShadows, 'correctedShadows');
     let add2NewRule: string = correctedShadows
       .map((a: string, i: number) => {

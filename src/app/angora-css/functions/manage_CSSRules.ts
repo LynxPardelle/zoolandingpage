@@ -41,10 +41,10 @@ export const manage_CSSRules = {
   createCSSRule(rule: string): void {
     log(rule, 'rule');
     try {
-      if (rule && !rule.split('{')[0].includes('@media')) {
-        createMediaRule(rule);
-      } else {
+      if (rule && !rule.startsWith('@media')) {
         createSimpleRule(rule);
+      } else {
+        createMediaRule(rule);
       }
       log(values.sheet, 'sheet');
     } catch (err: any) {
