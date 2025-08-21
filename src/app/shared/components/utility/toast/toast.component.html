@@ -30,7 +30,7 @@
 
     <!-- Icon -->
     <div
-      class="toast-icon ank-display-flex ank-alignItems-center ank-justifyContent-center ank-flexShrink-0 ank-width-1_5rem ank-height-1_5rem ank-borderRadius-50% ank-fontSize-1rem"
+      class="toast-icon ank-display-flex ank-alignItems-center ank-justifyContent-center ank-flexShrink-0 ank-width-1_5rem ank-height-1_5rem ank-borderRadius-50per ank-fontSize-1rem"
     >
       @switch (toast.level) { @case ('success') {
       <span aria-hidden="true">✓</span>
@@ -75,7 +75,7 @@
     @if (toast.dismissible) {
     <button
       type="button"
-      class="toast-dismiss ank-display-flex ank-alignItems-center ank-justifyContent-center ank-flexShrink-0 ank-width-1_5rem ank-height-1_5rem ank-bgcl-transparent ank-border-0 ank-borderRadius-50% ank-cursor-pointer ank-fontSize-1rem ank-color-text-tertiary ank-transition-all hover:ank-color-text-primary hover:ank-bgcl-surface-secondary"
+      class="toast-dismiss ank-display-flex ank-alignItems-center ank-justifyContent-center ank-flexShrink-0 ank-width-1_5rem ank-height-1_5rem ank-bgcl-transparent ank-border-0 ank-borderRadius-50per ank-cursor-pointer ank-fontSize-1rem ank-color-text-tertiary ank-transition-all hover:ank-color-text-primary hover:ank-bgcl-surface-secondary"
       (click)="service.dismiss(toast.id)"
       [attr.aria-label]="'Dismiss ' + (toast.title || 'notification')"
     >
