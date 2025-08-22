@@ -1,19 +1,5 @@
 .tooltip-surface {
   animation: ttFade 120ms ease;
-  max-width: 16rem;
-  word-wrap: break-word;
-  line-height: 1.2;
-}
-.tooltip-arrow {
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  background: inherit;
-  transform: rotate(45deg);
-  left: 50%;
-  top: 100%;
-  translate: -50% -4px;
-  box-shadow: inherit;
 }
 @media (prefers-reduced-motion: reduce) {
   .tooltip-surface {

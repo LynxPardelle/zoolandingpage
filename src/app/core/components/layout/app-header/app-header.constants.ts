@@ -72,7 +72,7 @@ export const APP_HEADER_DEFAULTS: Partial<AppHeaderConfig> = {
 
 // Header base classes using ngx-angora-css
 export const BASE_HEADER_CLASSES = [
-  'ank-width-full',
+  'ank-width-100per',
   'ank-bg-bgColor',
   'ank-borderBottom-1px',
   'ank-borderColor-secondaryBgColor',

@@ -40,6 +40,7 @@ export class TooltipComponent {
 
   readonly id = computed(() => this.config()?.id || `tt-${Math.random().toString(36).slice(2)}`);
   readonly ariaDescription = computed(() => this.config()?.ariaDescription || this.content());
+  readonly ariaLive = computed(() => this.config()?.ariaLive || 'off');
 
   ngOnInit(): void {
     const trigger = this.resolveTrigger();
@@ -58,6 +59,14 @@ export class TooltipComponent {
   ngOnDestroy(): void {
     this.clearTimers();
     this.destroyOverlay();
+    const anchor = this.resolveAnchor();
+    if (anchor) {
+      anchor.removeAttribute('aria-describedby');
+      anchor.removeEventListener('mouseenter', this.scheduleShow);
+      anchor.removeEventListener('mouseleave', this.scheduleHide);
+      anchor.removeEventListener('focus', this.scheduleShow);
+      anchor.removeEventListener('blur', this.scheduleHide);
+    }
   }
 
   private resolveTrigger(): 'hover' | 'focus' | 'both' {

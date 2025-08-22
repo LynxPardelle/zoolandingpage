@@ -1,13 +1,19 @@
 <ng-template #tooltipTpl>
   <div
-    class="ank-bg-bgColor ank-color-textColor ank-text-xs ank-px-0_5rem ank-py-0_25rem ank-borderRadius-0_5rem ank-boxShadow-sm tooltip-surface"
+    class="ank-bg-bgColor ank-color-textColor ank-text-xs ank-px-0_5rem ank-py-0_25rem ank-borderRadius-0_5rem ank-boxShadow-sm tooltip-surface ank-wmx-126rem ank-wordWrap-breakMINword ank-lh-1_2"
     [id]="id()"
     role="tooltip"
+    [attr.aria-live]="ariaLive()"
+    [attr.aria-hidden]="!visible()"
+    [attr.inert]="!visible() ? '' : null"
   >
     <ng-container *ngIf="richTemplate; else plain" [ngTemplateOutlet]="richTemplate"></ng-container>
     <ng-template #plain>{{ content() }}</ng-template>
     @if (arrow) {
-    <span class="tooltip-arrow" aria-hidden="true"></span>
+    <span
+      class="ank-position-absolute ank-w-0_5rem ank-h-0_5rem ank-transform-rotateSD45degED ank-left-50per ank-top-100per ank-translate-MIN50per__MIN0_25rem"
+      aria-hidden="true"
+    ></span>
     }
   </div>
 </ng-template>

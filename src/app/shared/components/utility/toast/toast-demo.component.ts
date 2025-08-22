@@ -16,25 +16,25 @@ import { ToastService } from './toast.service';
         <h3 class="ank-fontSize-1_25rem ank-fontWeight-500 ank-mb-0_75rem">Basic Toast Types</h3>
         <div class="ank-display-flex ank-gap-0_5rem ank-flexWrap-wrap">
           <button
-            class="ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-success ank-color-white ank-border-success"
+            class="ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-success ank-color-bgColor ank-border-success"
             (click)="showSuccess()"
           >
             Success Toast
           </button>
           <button
-            class="ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-error ank-color-white ank-border-error"
+            class="ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-error ank-color-bgColor ank-border-error"
             (click)="showError()"
           >
             Error Toast
           </button>
           <button
-            class="ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-warning ank-color-white ank-border-warning"
+            class="ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-warning ank-color-bgColor ank-border-warning"
             (click)="showWarning()"
           >
             Warning Toast
           </button>
           <button
-            class="ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-info ank-color-white ank-border-info"
+            class="ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-info ank-color-bgColor ank-border-info"
             (click)="showInfo()"
           >
             Info Toast
@@ -47,19 +47,19 @@ import { ToastService } from './toast.service';
         <h3 class="ank-fontSize-1_25rem ank-fontWeight-500 ank-mb-0_75rem">Advanced Features</h3>
         <div class="ank-display-flex ank-gap-0_5rem ank-flexWrap-wrap">
           <button
-            class="ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-primary ank-color-white ank-border-primary"
+            class="ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-primary ank-color-bgColor ank-border-primary"
             (click)="showWithTitle()"
           >
             With Title
           </button>
           <button
-            class="ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-secondary ank-color-white ank-border-secondary"
+            class="ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-secondary ank-color-bgColor ank-border-secondary"
             (click)="showWithActions()"
           >
             With Actions
           </button>
           <button
-            class="ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-accent ank-color-white ank-border-accent"
+            class="ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-accent ank-color-bgColor ank-border-accent"
             (click)="showPersistent()"
           >
             Persistent
@@ -96,7 +96,7 @@ import { ToastService } from './toast.service';
             Bottom Center
           </button>
           <button
-            class="ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-destructive ank-color-white ank-border-destructive"
+            class="ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-destructive ank-color-bgColor ank-border-destructive"
             (click)="clearAll()"
           >
             Clear All

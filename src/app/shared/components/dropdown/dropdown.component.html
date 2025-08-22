@@ -1,34 +1,36 @@
-<button
-  type="button"
-  class="ank-btn-secondaryLinkColor ank-color-textColor"
-  (click)="toggle()"
-  [attr.aria-expanded]="opened()"
-  aria-haspopup="true"
-  [attr.aria-controls]="opened() ? 'dd-menu' : null"
-  [attr.aria-activedescendant]="opened() && activeIndex() > -1 ? 'dd-opt-' + activeIndex() : null"
->
-  <ng-content select="[trigger]"></ng-content>
-</button>
-<ng-template #menuTpl>
-  <ul
-    id="dd-menu"
-    class="ank-listStyle-none ank-m-0 ank-p-4px ank-bg-bgColor ank-borderRadius-0_5rem ank-boxShadow-sm ank-display-flex ank-flexDirection-column ank-gap-2px"
-    role="menu"
+<div class="ank-display-inlineBlock ank-position-relative">
+  <button
+    type="button"
+    class="ank-btn-secondaryLinkColor ank-color-textColor"
+    (click)="toggle()"
+    [attr.aria-expanded]="opened()"
+    aria-haspopup="true"
+    [attr.aria-controls]="opened() ? 'dd-menu' : null"
+    [attr.aria-activedescendant]="opened() && activeIndex() > -1 ? 'dd-opt-' + activeIndex() : null"
   >
-    @for (it of items(); track it.id; let idx = $index) {
-    <li role="none">
-      <button
-        type="button"
-        class="ank-tde-none ank-bg-transparent ank-border-none ank-w-100per ank-textAlign-left ank-px-0_75rem ank-py-0_5rem ank-borderRadius-0_5rem ank-color-textColor ank-transition-bgColor ank-duration-150 ank-bgHover-secondaryBgColor"
-        [disabled]="it.disabled"
-        role="menuitem"
-        [id]="'dd-opt-' + idx"
-        tabindex="-1"
-        (click)="onSelect(it)"
-      >
-        {{ it.label }}
-      </button>
-    </li>
-    }
-  </ul>
-</ng-template>
+    <ng-content select="[trigger]"></ng-content>
+  </button>
+  <ng-template #menuTpl>
+    <ul
+      id="dd-menu"
+      class="ank-listStyle-none ank-m-0 ank-p-4px ank-bg-bgColor ank-borderRadius-0_5rem ank-boxShadow-sm ank-display-flex ank-flexDirection-column ank-gap-2px"
+      role="menu"
+    >
+      @for (it of items(); track it.id; let idx = $index) {
+      <li role="none">
+        <button
+          type="button"
+          class="ank-tde-none ank-bg-transparent ank-border-none ank-w-100per ank-textAlign-left ank-px-0_75rem ank-py-0_5rem ank-borderRadius-0_5rem ank-color-textColor ank-transition-bgColor ank-duration-150 ank-bgHover-secondaryBgColor"
+          [disabled]="it.disabled"
+          role="menuitem"
+          [id]="'dd-opt-' + idx"
+          tabindex="-1"
+          (click)="onSelect(it)"
+        >
+          {{ it.label }}
+        </button>
+      </li>
+      }
+    </ul>
+  </ng-template>
+</div>

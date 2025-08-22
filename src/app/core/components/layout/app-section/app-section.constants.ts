@@ -32,4 +32,4 @@ export const SECTION_VARIANT_CLASSES: Record<SectionVariant, string> = {
 } as const;
 
 // Base section classes using ngx-angora-css
-export const BASE_SECTION_CLASSES = ['ank-width-full', 'ank-position-relative'] as const;
+export const BASE_SECTION_CLASSES = ['ank-width-100per', 'ank-position-relative'] as const;

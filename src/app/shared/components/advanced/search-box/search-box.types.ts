@@ -5,4 +5,6 @@ export type SearchBoxConfig = {
   readonly debounceMs?: number; // default 200
   readonly ariaLabel?: string;
   readonly placeholder?: string;
+  readonly historyEnabled?: boolean; // default false
+  readonly historyLimit?: number; // default 5
 };

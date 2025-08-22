@@ -39,4 +39,33 @@ export class StepperComponent {
   isActive(i: number) {
     return this.activeIndex() === i;
   }
+
+  onKey(ev: KeyboardEvent) {
+    const n = this._steps().length;
+    if (!n) return;
+    let idx = this.activeIndex();
+    switch (ev.key) {
+      case 'ArrowRight':
+      case 'ArrowDown':
+        ev.preventDefault();
+        idx = (idx + 1) % n;
+        break;
+      case 'ArrowLeft':
+      case 'ArrowUp':
+        ev.preventDefault();
+        idx = (idx - 1 + n) % n;
+        break;
+      case 'Home':
+        ev.preventDefault();
+        idx = 0;
+        break;
+      case 'End':
+        ev.preventDefault();
+        idx = n - 1;
+        break;
+      default:
+        return;
+    }
+    if (this.canGo(idx)) this.activeIndex.set(idx);
+  }
 }

@@ -1,5 +1,5 @@
 <div
-  class="progress-root ank-bg-secondaryBgColor ank-borderRadius-0_5rem ank-overflow-hidden ank-position-relative"
+  class="ank-height-0_5rem ank-position-relative ank-bg-secondaryBgColor ank-borderRadius-0_5rem ank-overflow-hidden ank-position-relative"
   role="progressbar"
   [attr.aria-valuenow]="mode() === 'determinate' ? pct() : null"
   [attr.aria-valuemin]="mode() === 'determinate' ? 0 : null"
@@ -7,16 +7,23 @@
   [attr.aria-valuetext]="ariaValueText()"
 >
   @if (mode() === 'buffer') {
-  <div class="progress-buffer-track"></div>
-  <div class="progress-buffer-bar" [style.width]="bufferPct() + '%'"></div>
+  <div class="ank-position-absolute ank-inset-0 ank-backgroundColor-secondaryTextColor__OPA__0_08"></div>
+  <div
+    class="ank-position-absolute ank-inset-0 ank-backgroundColor-secondaryTextColor__OPA__0_2"
+    [style.width]="bufferPct() + '%'"
+  ></div>
   }
   <div
-    class="progress-bar"
-    [class.indeterminate]="mode() === 'indeterminate'"
-    [class.striped]="mode() === 'striped'"
-    [class.buffer]="mode() === 'buffer'"
-    [class.reduced-motion]="false"
-    [class]="'progress-bar ' + colorClass() + (mode() === 'indeterminate' ? ' indeterminate' : '')"
+    class="ank-height-100per ank-transition-width__0_25s__ease"
+    [class.progress-bar-indeterminate-animation]="mode() === 'indeterminate'"
+    [class.progress-bar-striped-animation]="mode() === 'striped'"
+    [class]="
+      colorClass() +
+      (mode() === 'indeterminate' ? ' ank-position-absolute ank-width-40per ank-left-0' : '') +
+      (mode() === 'striped'
+        ? ' ank-backgroundImage-linearGradientSD45degCOMsecondaryTextColor__OPA__0_25__25perCOMtransparent__25perCOMtransparent__50perCOMsecondaryTextColor__OPA__0_25__50perCOMsecondaryTextColor__OPA__0_25__75perCOMtransparent__75perCOMtransparentED ank-backgroundSize-1rem__1rem'
+        : '')
+    "
     [ngStyle]="barStyle()"
   ></div>
   <div
