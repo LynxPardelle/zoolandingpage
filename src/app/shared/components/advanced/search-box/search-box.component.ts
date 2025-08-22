@@ -10,17 +10,19 @@ import {
   TemplateRef,
   ViewChild,
   ViewContainerRef,
+  contentChild,
   inject,
   output,
   signal,
 } from '@angular/core';
 import { OverlayPositioningService } from '../../../services/overlay-positioning.service';
+import { LoadingSpinnerComponent } from '../../utility/loading-spinner';
 import { SearchBoxConfig, SearchBoxFetcher, SearchSuggestion } from './search-box.types';
 
 @Component({
   selector: 'app-search-box',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, LoadingSpinnerComponent],
   templateUrl: './search-box.component.html',
   styleUrls: ['./search-box.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -34,18 +36,24 @@ export class SearchBoxComponent implements OnDestroy {
   private readonly vcr = inject(ViewContainerRef);
   @ViewChild('resultsTpl') resultsTpl!: TemplateRef<any>;
   private overlayRef: OverlayRef | null = null;
+  // Optional custom item template projection
+  itemTemplate = contentChild<TemplateRef<any>>('searchItem');
 
   readonly term = signal('');
   readonly results = signal<readonly SearchSuggestion[]>([]);
   readonly loading = signal(false);
   readonly activeIndex = signal(-1);
   readonly listboxId = 'sb-listbox-' + Math.random().toString(36).slice(2);
+  readonly inputId = 'sb-input-' + Math.random().toString(36).slice(2);
+  private history: SearchSuggestion[] = [];
   private debounceTimer: any;
 
   readonly selectSuggestion = output<SearchSuggestion>();
 
   minLength = () => this.config?.minLength ?? 2;
   debounceMs = () => this.config?.debounceMs ?? 200;
+  historyEnabled = () => !!this.config?.historyEnabled;
+  historyLimit = () => this.config?.historyLimit ?? 5;
 
   onInput(e: Event) {
     const val = (e.target as HTMLInputElement).value;
@@ -96,6 +104,9 @@ export class SearchBoxComponent implements OnDestroy {
     this.term.set(s.label);
     this.results.set([]);
     this.destroyOverlay();
+    if (this.historyEnabled()) {
+      this.addToHistory(s);
+    }
   }
   onKey(ev: KeyboardEvent) {
     if (!this.results().length) return;
@@ -120,6 +131,14 @@ export class SearchBoxComponent implements OnDestroy {
         this.destroyOverlay();
         break;
     }
+  }
+
+  private addToHistory(s: SearchSuggestion) {
+    // dedupe by id, prepend
+    this.history = [s, ...this.history.filter(h => h.id !== s.id)].slice(0, this.historyLimit());
+  }
+  getHistory(): readonly SearchSuggestion[] {
+    return this.history;
   }
 
   ngOnDestroy(): void {

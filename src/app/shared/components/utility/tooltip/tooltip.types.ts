@@ -8,4 +8,5 @@ export type TooltipConfig = {
   readonly trigger?: TooltipTrigger;
   readonly id?: string;
   readonly ariaDescription?: string;
+  readonly ariaLive?: 'off' | 'polite' | 'assertive';
 };

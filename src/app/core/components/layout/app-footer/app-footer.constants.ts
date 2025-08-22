@@ -19,7 +19,7 @@ export const APP_FOOTER_DEFAULTS: Partial<AppFooterConfig> = {
 
 // Footer base classes using ngx-angora-css
 export const BASE_FOOTER_CLASSES: string[] = [
-  'ank-width-full',
+  'ank-width-100per',
   'ank-bg-secondaryBgColor',
   'ank-borderTop-1px',
   'ank-borderColor-secondaryBgColor',

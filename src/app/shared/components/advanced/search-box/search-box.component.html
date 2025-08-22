@@ -1,16 +1,22 @@
 <div class="ank-position-relative">
   <input
     type="search"
-    class="search-input ank-borderRadius-0_5rem ank-border-1px-solid ank-borderColor-fgColor ank-px-0_75rem ank-py-0_5rem focus-visible-ring"
+    class="ank-width-100per ank-borderRadius-0_5rem ank-border-1px-solid ank-borderColor-fgColor ank-px-0_75rem ank-py-0_5rem focus-visible-ring"
     [attr.placeholder]="config?.placeholder || 'Search'"
     [attr.aria-label]="config?.ariaLabel || 'Search'"
+    [attr.role]="'combobox'"
+    [attr.aria-autocomplete]="'list'"
+    [attr.aria-controls]="listboxId"
+    [attr.aria-expanded]="results().length > 0"
+    [attr.aria-activedescendant]="activeIndex() > -1 ? 'sb-opt-' + results()[activeIndex()].id : null"
+    [attr.id]="inputId"
     (input)="onInput($event)"
     (keydown)="onKey($event)"
     [value]="term()"
   />
   <ng-template #resultsTpl>
     <ul
-      class="suggestions ank-bg-bgColor ank-borderRadius-0_5rem ank-boxShadow-sm"
+      class="ank-listStyle-none ank-m-0 ank-p-0_25rem ank-display-flex ank-flexDirection-column ank-gap-2px ank-bg-bgColor ank-borderRadius-0_5rem ank-boxShadow-sm"
       role="listbox"
       [attr.id]="listboxId"
     >
@@ -21,15 +27,22 @@
           [id]="'sb-opt-' + s.id"
           (click)="choose(s)"
           [attr.aria-selected]="i === activeIndex()"
-          class="ank-color-textColor"
+          class="ank-bg-transparent ank-border-none ank-cursor-pointer ank-color-textColor ank-px-0_5rem ank-py-0_25rem ank-text-left ank-width-100per ank-borderRadius-0_5rem ank-bgHover-secondaryBgColor"
         >
-          {{ s.label }}
+          <ng-container
+            *ngIf="itemTemplate(); else defaultItem"
+            [ngTemplateOutlet]="itemTemplate()"
+            [ngTemplateOutletContext]="{ $implicit: s }"
+          ></ng-container>
+          <ng-template #defaultItem>{{ s.label }}</ng-template>
         </button>
       </li>
       } @if (!loading() && !results().length && term().length >= minLength()) {
       <li class="ank-color-textSecondary ank-fontSize-0_75rem ank-px-0_5rem ank-py-0_25rem">No results</li>
       } @if (loading()) {
-      <li class="ank-color-textSecondary ank-fontSize-0_75rem ank-px-0_5rem ank-py-0_25rem">Loading…</li>
+      <li class="ank-color-textSecondary ank-fontSize-0_75rem ank-px-0_5rem ank-py-0_25rem">
+        <app-loading-spinner variant="dots" size="sm" />
+      </li>
       }
     </ul>
   </ng-template>

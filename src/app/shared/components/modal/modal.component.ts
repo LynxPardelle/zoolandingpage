@@ -8,12 +8,12 @@ import {
   effect,
   ElementRef,
   HostListener,
-  Input,
-  ViewChild,
-  TemplateRef,
-  ViewContainerRef,
   inject,
+  Input,
   signal,
+  TemplateRef,
+  ViewChild,
+  ViewContainerRef,
 } from '@angular/core';
 import { DEFAULT_MODAL_CONFIG } from './modal.constants';
 import { ModalService } from './modal.service';
@@ -53,7 +53,16 @@ export class ModalComponent {
   private createOverlay(): OverlayRef {
     return this.overlay.create({
       hasBackdrop: true,
-      backdropClass: 'cdk-overlay-dark-backdrop',
+      backdropClass: [
+        'cdk-overlay-dark-backdrop',
+        'modal-anim-fade',
+        'ank-position-absolute',
+        'ank-inset-0',
+        'ank-d-block',
+        'ank-bg-bgColor',
+        'ank-backdropFilter-blurSD2pxED',
+        'ank-pointerEvents-auto',
+      ],
       panelClass: ['ank-position-fixed'],
       scrollStrategy: this.overlay.scrollStrategies.block(),
       disposeOnNavigation: true,

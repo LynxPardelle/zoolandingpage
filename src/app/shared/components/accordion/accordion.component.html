@@ -1,13 +1,13 @@
 <div class="accordion ank-display-flex ank-flexDirection-column ank-gap-0_25rem" role="group">
   @for (item of items(); track item.id; let idx = $index) {
   <div
-    class="ank-border-1px-solid ank-borderColor-fgColor ank-borderRadius-0_5rem ank-transition-all ank-borderColor-accentColor"
+    class="ank-border-1px-solid ank-borderColor-bgColor ank-borderRadius-0_5rem ank-transition-all ank-borderColor-accentColor ank-bgColor-transparent"
     [class.ank-borderColor-accentColor]="isExpanded(item.id)"
     [class.ank-bgColor-secondaryBgColor]="isExpanded(item.id)"
   >
     <button
       type="button"
-      class="ank-outline-2px__solid__secondaryAccentColor ank-m-8px ank-color-textColor ank-borderRadius-0_25rem ank-border-0 ank-width-100pct ank-textAlign-left ank-padding-0_75rem ank-fontWeight-600 ank-transition-all ank-bgHover-secondaryAccentColor ank-colorHover-titleColor"
+      class="ank-outline-2px__solid__secondaryAccentColor ank-m-8px ank-color-textColor ank-borderRadius-0_25rem ank-border-0 ank-width-100per ank-textAlign-left ank-padding-0_75rem ank-fontWeight-600 ank-transition-all ank-bgHover-secondaryAccentColor ank-colorHover-titleColor ank-cursor-pointer"
       [attr.id]="buttonId(item.id)"
       [attr.aria-expanded]="isExpanded(item.id)"
       [class.ank-bg-secondaryAccentColor]="isExpanded(item.id)"
@@ -27,13 +27,12 @@
       </span>
     </button>
     <div
-      class="accordion-panel-wrapper"
-      [attr.data-open]="isExpanded(item.id)"
-      [style.--acc-open]="isExpanded(item.id) ? 1 : 0"
+      class="accordion-panel-wrapper ank-display-grid ank-overflow-hidden"
+      [class]="isExpanded(item.id) ? 'ank-gridTemplateRows-1fr' : 'ank-gridTemplateRows-0fr'"
     >
       @if (isExpanded(item.id)) {
       <div
-        class="accordion-panel ank-paddingInline-0_75rem ank-paddingBlock-0_5rem"
+        class="accordion-panel ank-overflow-hidden ank-paddingInline-0_75rem ank-paddingBlock-0_5rem"
         [attr.id]="panelId(item.id)"
         role="region"
         [attr.aria-labelledby]="buttonId(item.id)"

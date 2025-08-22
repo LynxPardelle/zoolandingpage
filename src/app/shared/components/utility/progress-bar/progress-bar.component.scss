@@ -1,51 +1,12 @@
-.progress-root {
-  height: 0.5rem;
-  position: relative;
-}
-.progress-bar {
-  height: 100%;
-  transition: width 0.25s ease;
-}
-.progress-buffer-track {
-  position: absolute;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.08);
-}
-.progress-buffer-bar {
-  position: absolute;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.2);
-  pointer-events: none;
-}
-.progress-bar.striped {
-  background-image: linear-gradient(
-    45deg,
-    rgba(255, 255, 255, 0.25) 25%,
-    transparent 25%,
-    transparent 50%,
-    rgba(255, 255, 255, 0.25) 50%,
-    rgba(255, 255, 255, 0.25) 75%,
-    transparent 75%,
-    transparent
-  );
-  background-size: 1rem 1rem;
-  animation: stripesMove 1s linear infinite;
-}
-.progress-bar.buffer {
-  position: relative;
-}
-.progress-bar.indeterminate {
-  position: absolute;
-  width: 40%;
-  left: 0;
+.progress-bar-indeterminate {
   animation: pbSlide 1s ease-in-out infinite;
 }
+.progress-bar-striped-animation {
+  animation: stripesMove 1s linear infinite;
+}
 @media (prefers-reduced-motion: reduce) {
-  .progress-bar.indeterminate {
-    animation: none;
-    width: 100%;
-  }
-  .progress-bar.striped {
+  .progress-bar-indeterminate,
+  .progress-bar-striped-animation {
     animation: none;
   }
 }

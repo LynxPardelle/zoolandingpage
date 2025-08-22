@@ -1,21 +1,5 @@
-.accordion-trigger {
-  cursor: pointer;
-}
-
-.accordion-item {
-  background: var(--acc-bg, rgba(255, 255, 255, 0.02));
-}
 .accordion-panel-wrapper {
-  overflow: hidden;
   transition: grid-template-rows 240ms ease, padding 240ms ease;
-  display: grid;
-  grid-template-rows: 0fr;
-}
-.accordion-panel-wrapper[data-open='true'] {
-  grid-template-rows: 1fr;
-}
-.accordion-panel {
-  overflow: hidden;
 }
 @media (prefers-reduced-motion: reduce) {
   .accordion-panel-wrapper {

@@ -1,4 +1,4 @@
-<div class="stepper" role="list">
+<div class="stepper" role="tablist" (keydown)="onKey($event)">
   @for (s of steps(); track s.id; let idx = $index) {
   <button
     type="button"
@@ -6,8 +6,9 @@
     [class.active]="isActive(idx)"
     [disabled]="!canGo(idx)"
     (click)="select(idx)"
-    role="listitem"
-    [attr.aria-current]="isActive(idx) ? 'step' : null"
+    role="tab"
+    [attr.aria-selected]="isActive(idx)"
+    [attr.tabindex]="isActive(idx) ? 0 : -1"
   >
     <span class="ank-fontWeight-600">{{ idx + 1 }}</span>
     {{ s.label }}
@@ -15,6 +16,6 @@
   </button>
   }
 </div>
-<div class="step-content ank-mt-0_75rem" role="region" [attr.aria-label]="'Step ' + (activeIndex() + 1) + ' content'">
+<div class="step-content ank-mt-0_75rem" role="tabpanel" [attr.aria-label]="'Step ' + (activeIndex() + 1) + ' content'">
   <ng-content select="[step-content]"></ng-content>
 </div>

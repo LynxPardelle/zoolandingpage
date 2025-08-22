@@ -1,21 +1,31 @@
 <!-- Modal rendered through CDK Overlay; template is projected via TemplatePortal -->
 <ng-template #modalContent>
+  <!-- Fullscreen container to center the panel -->
   <div
-    class="modal-panel ank-bgColor-bgColor ank-color-fgColor ank-borderRadius-0_75rem"
-    [attr.data-size]="size()"
-    role="dialog"
-    [attr.aria-modal]="true"
-    [attr.aria-label]="config?.ariaLabel"
-    [attr.aria-describedby]="config?.ariaDescribedBy"
+    class="ank-position-fixed ank-inset-0 ank-display-flex ank-alignItems-center ank-justifyContent-center ank-pointerEvents-none ank-zIndex-1000"
   >
-    <button
-      class="modal-close ank-position-absolute ank-top-0_5rem ank-right-0_5rem"
-      type="button"
-      (click)="close()"
-      aria-label="Close modal"
+    <div
+      class="ank-position-absolute ank-top-50per ank-left-50per ank-transform-translateSDMIN50perCOM__MIN50perED modal-anim-scaleIn ank-pointerEvents-auto ank-display-flex ank-flexDirection-column ank-minWidth-280px ank-maxHeight-80vh ank-overflow-auto ank-p-1_25rem ank-borderRadius-0_75rem ank-bg-bgColor ank-color-fgColor ank-boxShadow-0__0_5rem__2rem__MIN0_25rem__bgColor__OPA__0_4"
+      [ngClass]="{
+        'ank-width-320px': size() === 'sm',
+        'ank-width-480px': size() === 'md',
+        'ank-width-720px': size() === 'lg',
+        'ank-width-100per ank-height-100per ank-borderRadius-0': size() === 'full'
+      }"
+      role="dialog"
+      [attr.aria-modal]="true"
+      [attr.aria-label]="config?.ariaLabel"
+      [attr.aria-describedby]="config?.ariaDescribedBy"
     >
-      ×
-    </button>
-    <ng-content />
+      <button
+        class="modal-close ank-bg-transparent ank-border-0 ank-color-inherit ank-fontSize-1_25rem ank-cursor-pointer ank-position-absolute ank-top-0_5rem ank-right-0_5rem"
+        type="button"
+        (click)="close()"
+        aria-label="Close modal"
+      >
+        ×
+      </button>
+      <ng-content />
+    </div>
   </div>
 </ng-template>
