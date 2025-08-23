@@ -134,7 +134,7 @@ export class App {
 
   // Landing page data
   readonly heroData = signal({
-    title: 'Convierte visitas en clientes con una landing rápida, clara y medible',
+    title: 'Convierte visitas en clientes con una Landing Page rápida, clara y medible',
     subtitle: 'Lanza tu Landing Page Optimizada rápidamente, mide desde el primer día y mejora con datos reales.',
     description:
       'Suscripción desde 900 MXN/mes. Incluye dominio, alojamiento y medición en la nube. Diseño alineado a tu marca, optimización para buscadores y llamados a la acción visibles para impulsar el contacto.',

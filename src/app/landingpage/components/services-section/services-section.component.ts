@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { AppContainerComponent, AppSectionComponent } from '../../../core/components/layout';
+import { AnalyticsService } from '../../../shared/services/analytics.service';
 
 @Component({
   selector: 'services-section',
@@ -11,18 +12,19 @@ import { AppContainerComponent, AppSectionComponent } from '../../../core/compon
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ServicesSectionComponent {
-  readonly services =
-    input.required<
-      readonly {
-        readonly icon: string;
-        readonly title: string;
-        readonly description: string;
-        readonly features: readonly string[];
-        readonly color: string;
-      }[]
-    >();
+  private readonly analytics = inject(AnalyticsService);
+  readonly services = input.required<
+    readonly {
+      readonly icon: string;
+      readonly title: string;
+      readonly description: string;
+      readonly features: readonly string[];
+      readonly color: string;
+    }[]
+  >();
   readonly serviceCta = output<string>();
   onCta(title: string) {
+    this.analytics.track('services_cta_click', { category: 'services', label: title });
     this.serviceCta.emit(title);
   }
 }

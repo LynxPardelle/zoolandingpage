@@ -1,7 +1,7 @@
 <app-section variant="accent" spacing="lg">
   <app-container size="xl">
     <div class="ank-textAlign-center ank-mb-64px">
-  <h2 class="ank-fs-2rem ank-fontWeight-bold ank-mb-16px ank-color-titleColor">Cómo lo hacemos</h2>
+      <h2 class="ank-fs-2rem ank-fontWeight-bold ank-mb-16px ank-color-titleColor">Cómo lo hacemos</h2>
     </div>
     <div
       class="ank-display-grid ank-gridTemplateColumns-1fr ank-gridTemplateColumns-lg-1fr__2fr ank-gap-48px ank-alignItems-start"
@@ -12,13 +12,17 @@
         <div
           (click)="choose(i)"
           class="ank-p-16px ank-borderRadius-8px ank-mb-12px ank-cursor-pointer ank-transition-all ank-duration-200ms"
-          [class]="demo.isActive ? 'ank-bg-accentColor ank-color-textColor' : 'ank-bg-textColor ank-color-accentColor'"
+          [class]="
+            currentStep() === i ? 'ank-bg-accentColor ank-color-textColor' : 'ank-bg-textColor ank-color-accentColor'
+          "
         >
           <div class="ank-display-flex ank-alignItems-center ank-gap-12px ank-mb-8px">
             <div
               class="ank-width-24px ank-height-24px ank-borderRadius-99rem ank-display-flex ank-alignItems-center ank-justifyContent-center ank-fs-1rem ank-fontWeight-bold"
               [class]="
-                demo.isActive ? 'ank-bg-textColor ank-color-accentColor' : 'ank-bg-accentColor ank-color-textColor'
+                currentStep() === i
+                  ? 'ank-bg-textColor ank-color-accentColor'
+                  : 'ank-bg-accentColor ank-color-textColor'
               "
             >
               {{ demo.step }}
@@ -27,7 +31,7 @@
           </div>
           <p
             class="ank-fs-1rem ank-m-0 ank-lineHeight-relaxed"
-            [class]="demo.isActive ? 'ank-color-textColor' : 'ank-color-accentColor'"
+            [class]="currentStep() === i ? 'ank-color-textColor' : 'ank-color-accentColor'"
           >
             {{ demo.description }}
           </p>

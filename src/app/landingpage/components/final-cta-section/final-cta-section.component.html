@@ -2,23 +2,29 @@
   <app-container size="lg">
     <div class="ank-textAlign-center">
       <h2 class="ank-fs-2rem ank-fontWeight-bold ank-mb-16px ank-color-titleColor">
-  Publica una landing que vende y aprende con datos reales
+        Publica una landing que vende y aprende con datos reales
       </h2>
       <p class="ank-fs-1_5rem ank-color-textColor ank-mb-32px ank-maxWidth-600px ank-mx-auto">
-  Empieza hoy con una Landing Page Optimizada: rápida, clara y medible.<br />Suscripción desde 900 MXN/mes.
+        Empieza hoy con una Landing Page Optimizada: rápida, clara y medible.<br />Suscripción desde 900 MXN/mes.
       </p>
       <div
         class="ank-display-flex ank-flexDirection-column ank-flexDirection-sm-row ank-gap-16px ank-justifyContent-center ank-mb-32px"
       >
-        <generic-button label="Hablar por WhatsApp" variant="secondary" size="lg" (pressed)="primary.emit()" />
-        <generic-button label="Empieza a vender con tu nueva Landing Page" variant="outline" size="lg" (pressed)="secondary.emit()" />
+        <generic-button label="Hablar por WhatsApp" variant="secondary" size="lg" (pressed)="onPrimary()" />
+        <generic-button
+          label="Empieza a vender con tu nueva Landing Page"
+          variant="outline"
+          size="lg"
+          (pressed)="onSecondary()"
+        />
       </div>
       <div class="ank-display-flex ank-flexDirection-column ank-alignItems-center ank-gap-16px ank-opacity-70">
         <p class="ank-fs-1rem ank-color-textColor ank-m-0">
           ⭐ Medición desde el día 1 • 🔒 SSL y hosting incluido • ⚡ Entrega rápida
         </p>
         <div class="ank-display-flex ank-gap-16px ank-alignItems-center ank-fs-1rem ank-color-textColor">
-          <span>💬 Soporte continuo</span><span>📊 Reportes simples opcionales</span><span>🌐 Optimización para buscadores</span>
+          <span>💬 Soporte continuo</span><span>📊 Reportes simples opcionales</span
+          ><span>🌐 Optimización para buscadores</span>
         </div>
       </div>
     </div>

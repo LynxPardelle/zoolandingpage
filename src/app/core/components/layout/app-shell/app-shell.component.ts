@@ -96,13 +96,23 @@ export class AppShellComponent {
 
   // Minimal header config until centralized state is introduced
   headerConfig = computed(() => ({
-    navItems: [
-      { label: 'Inicio', href: '#home', isActive: false, isExternal: false },
-      { label: 'Beneficios', href: '#features-section', isActive: false, isExternal: false },
-      { label: 'Proceso', href: '#process-section', isActive: false, isExternal: false },
-      { label: 'Servicios', href: '#services-section', isActive: false, isExternal: false },
-      { label: 'Contacto', href: '#contact-section', isActive: false, isExternal: false },
-    ],
+    // Language-aware navigation labels (doc-first i18n)
+    navItems:
+      this._lang.currentLanguage() === 'en'
+        ? [
+            { label: 'Home', href: '#home', isActive: false, isExternal: false },
+            { label: 'Benefits', href: '#features-section', isActive: false, isExternal: false },
+            { label: 'Process', href: '#process-section', isActive: false, isExternal: false },
+            { label: 'Services', href: '#services-section', isActive: false, isExternal: false },
+            { label: 'Contact', href: '#contact-section', isActive: false, isExternal: false },
+          ]
+        : [
+            { label: 'Inicio', href: '#home', isActive: false, isExternal: false },
+            { label: 'Beneficios', href: '#features-section', isActive: false, isExternal: false },
+            { label: 'Proceso', href: '#process-section', isActive: false, isExternal: false },
+            { label: 'Servicios', href: '#services-section', isActive: false, isExternal: false },
+            { label: 'Contacto', href: '#contact-section', isActive: false, isExternal: false },
+          ],
     useGradient: true,
     gradientFromKey: 'bgColor',
     gradientToKey: 'secondaryBgColor',

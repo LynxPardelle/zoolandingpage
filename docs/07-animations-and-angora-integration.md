@@ -84,3 +84,21 @@ The component sets only `animation-name: spin;`. Duration (1s), timing (linear) 
 ---
 
 **Last updated:** 2025-08-18
+
+## Reduced Motion Integration (Implemented Examples)
+
+- Use `MotionPreferenceService` in components to gate Angular triggers:
+
+```ts
+// component.ts
+import { inject } from '@angular/core';
+import { MotionPreferenceService } from '@/app/shared/services/motion-preference.service';
+readonly motion = inject(MotionPreferenceService);
+```
+
+```html
+<!-- component.html -->
+<div [@fadeIn]="!motion.reduced() ? {} : null"></div>
+```
+
+- For CSS-based transitions, add `ank-transition-none` when `reduced` is true.

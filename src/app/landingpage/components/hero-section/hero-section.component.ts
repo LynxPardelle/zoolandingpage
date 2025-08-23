@@ -5,6 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { NgxAngoraService } from '../../../angora-css/ngx-angora.service';
 import { AppContainerComponent, AppSectionComponent } from '../../../core/components/layout';
 import { AnalyticsService } from '../../../shared/services/analytics.service';
+import { MotionPreferenceService } from '../../../shared/services/motion-preference.service';
 import { CallToActionComponent } from '../call-to-action/call-to-action.component';
 import { HERO_SECTION_BASE_CLASSES, HERO_SECTION_DEFAULT } from './hero-section.constants';
 import { HeroSectionData } from './hero-section.types';
@@ -32,6 +33,7 @@ import { HeroSectionData } from './hero-section.types';
 export class HeroSectionComponent {
   private readonly analytics = inject(AnalyticsService);
   private readonly angora = inject(NgxAngoraService);
+  readonly motion = inject(MotionPreferenceService);
   readonly data = input<HeroSectionData>(HERO_SECTION_DEFAULT);
   readonly primary = output<void>();
   readonly secondary = output<void>();

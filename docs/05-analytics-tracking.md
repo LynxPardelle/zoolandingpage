@@ -690,3 +690,16 @@ export class AnalyticsDashboardComponent implements OnInit {
 ```
 
 This analytics system provides comprehensive tracking while maintaining privacy compliance and demonstrating the power of data-driven landing page optimization.
+
+## Quick Event Catalog (Implemented)
+
+- page_view (category: navigation)
+- hero_primary_click (category: hero)
+- hero_secondary_click (category: hero)
+- final_cta_primary_click (category: cta)
+- final_cta_secondary_click (category: cta)
+- services_cta_click (category: services)
+- roi_size_change (category: roi_calculator)
+- roi_industry_change (category: roi_calculator)
+- modal_open (category: modal)
+- modal_close (category: modal)

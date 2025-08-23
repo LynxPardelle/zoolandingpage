@@ -15,6 +15,7 @@ import {
   ViewChild,
   ViewContainerRef,
 } from '@angular/core';
+import { MotionPreferenceService } from '../../services/motion-preference.service';
 import { DEFAULT_MODAL_CONFIG } from './modal.constants';
 import { ModalService } from './modal.service';
 import { ModalConfig } from './modal.types';
@@ -38,6 +39,8 @@ export class ModalComponent {
   private open = signal(false);
   isOpen = () => this.open();
   size = () => this.config?.size || DEFAULT_MODAL_CONFIG.size;
+  // Motion preference
+  readonly motion = inject(MotionPreferenceService);
 
   constructor(private host: ElementRef<HTMLElement>, private vcr: ViewContainerRef) {
     effect(() => {
@@ -51,18 +54,19 @@ export class ModalComponent {
   }
 
   private createOverlay(): OverlayRef {
+    const backdropClass = [
+      'cdk-overlay-dark-backdrop',
+      'ank-position-absolute',
+      'ank-inset-0',
+      'ank-d-block',
+      'ank-bg-bgColor',
+      'ank-backdropFilter-blurSD2pxED',
+      'ank-pointerEvents-auto',
+    ];
+    if (!this.motion.reduced()) backdropClass.unshift('modal-anim-fade');
     return this.overlay.create({
       hasBackdrop: true,
-      backdropClass: [
-        'cdk-overlay-dark-backdrop',
-        'modal-anim-fade',
-        'ank-position-absolute',
-        'ank-inset-0',
-        'ank-d-block',
-        'ank-bg-bgColor',
-        'ank-backdropFilter-blurSD2pxED',
-        'ank-pointerEvents-auto',
-      ],
+      backdropClass,
       panelClass: ['ank-position-fixed'],
       scrollStrategy: this.overlay.scrollStrategies.block(),
       disposeOnNavigation: true,
