@@ -1,9 +1,12 @@
-<div class="stepper" role="tablist" (keydown)="onKey($event)">
+<div class="ank-display-flex ank-gap-0_5rem ank-flexWrap-wrap" role="tablist" (keydown)="onKey($event)">
   @for (s of steps(); track s.id; let idx = $index) {
   <button
     type="button"
-    class="step-trigger ank-border-none ank-bg-transparent ank-px-0_5rem ank-py-0_25rem ank-borderRadius-0_5rem"
-    [class.active]="isActive(idx)"
+    class="stepper-trigger-anim ank-cursor-pointer ank-display-flex ank-gap-0_25rem ank-alignItems-center ank-bg-accentColor ank-transition-background_0_2s ank-border-none ank-px-0_5rem ank-py-0_25rem ank-borderRadius-0_5rem"
+    [class.ank-bg-secondaryBgColor]="isActive(idx)"
+    [class.ank-fontWeight-600]="isActive(idx)"
+    [class.ank-opacity-40]="!canGo(idx)"
+    [class.ank-cursor-notAllowed]="!canGo(idx)"
     [disabled]="!canGo(idx)"
     (click)="select(idx)"
     role="tab"

@@ -9,7 +9,9 @@
     "test": "ng test",
     "serve:ssr:zoolandingpage": "node dist/zoolandingpage/server/server.mjs",
     "serve:ssr": "npm run serve:ssr:zoolandingpage",
-    "perf:baseline": "node tools/perf-baseline.mjs"
+    "perf:baseline": "node tools/perf-baseline.mjs",
+    "ci:budgets": "ng build --configuration production",
+    "ci:perf": "node tools/perf-baseline.mjs"
   },
   "prettier": {
     "overrides": [

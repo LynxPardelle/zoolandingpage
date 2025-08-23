@@ -872,3 +872,10 @@ export class SafeComponent {
 ```
 
 This development guide ensures consistent, maintainable, and high-quality code across the Zoolandingpage project. Follow these guidelines to maintain code quality and project standards.
+
+## App Shell & Routing Notes
+
+- Root shell is in `src/app/core/components/layout/app-shell/app-shell.component.ts` with header, routed main, and deferred footer.
+- Router is provided in `app.config.ts` with `withInMemoryScrolling` to restore positions and handle anchor navigation.
+- Accessibility: skip-to-content link exists; tests cover focusing `main#main-content`.
+- Analytics: `page_view` tracked on `NavigationEnd`; see `AppShellComponent` constructor.

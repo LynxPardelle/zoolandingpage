@@ -1,12 +1,12 @@
 <div
-  class="toast-host ank-position-fixed ank-display-flex ank-flexDirection-column ank-gap-0_5rem ank-zIndex-1000"
+  class="ank-position-fixed ank-display-flex ank-flexDirection-column ank-gap-0_5rem ank-zIndex-1000 ank-pointerEvents-none"
   [class]="getHostPositionClasses()"
   role="region"
   aria-label="Notifications"
 >
   @for (toast of service.list(); track toast.id) {
   <div
-    class="toast ank-position-relative ank-display-flex ank-alignItems-stretch ank-gap-0_75rem ank-p-1rem ank-borderRadius-0_75rem ank-boxShadow-lg ank-border-1 ank-maxWidth-24rem ank-minWidth-20rem"
+    class="ank-position-relative ank-display-flex ank-alignItems-stretch ank-gap-0_75rem ank-p-1rem ank-borderRadius-0_75rem ank-boxShadow-lg ank-border-1 ank-maxWidth-24rem ank-minWidth-20rem ank-pointerEvents-auto"
     [class]="getToastClasses(toast)"
     [attr.data-level]="toast.level"
     [attr.data-entering]="toast.entering"
@@ -22,7 +22,7 @@
       class="toast-progress ank-position-absolute ank-bottom-0 ank-left-0 ank-right-0 ank-height-0_125rem ank-borderRadius-0_125rem ank-overflow-hidden"
     >
       <div
-        class="toast-progress-bar ank-height-100per ank-transition-all"
+        class="toast-progress-bar ank-height-100per ank-transition-all ank-transformOrigin-left"
         [style.animation-duration.ms]="toast.autoCloseMs"
       ></div>
     </div>
@@ -31,6 +31,7 @@
     <!-- Icon -->
     <div
       class="toast-icon ank-display-flex ank-alignItems-center ank-justifyContent-center ank-flexShrink-0 ank-width-1_5rem ank-height-1_5rem ank-borderRadius-50per ank-fontSize-1rem"
+      [class]="getIconClasses(toast.level)"
     >
       @switch (toast.level) { @case ('success') {
       <span aria-hidden="true">✓</span>

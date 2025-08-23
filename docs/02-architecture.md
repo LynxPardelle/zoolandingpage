@@ -355,3 +355,14 @@ FROM nginx:alpine AS production-static
 - **Network Optimization**: Minimal request overhead
 
 This architecture provides a solid foundation for building a high-performance, scalable, and maintainable landing page application that showcases modern web development practices.
+
+## Application Shell and Routing
+
+The application uses a standalone AppShell (`app-root`) that composes a persistent header, routed main content, and a footer. Routing is defined in `src/app/app.routes.ts` with scroll restoration and anchor scrolling enabled via `withInMemoryScrolling`.
+
+Key points:
+
+- Shell: `src/app/core/components/layout/app-shell/app-shell.component.ts`
+- Accessibility: skip-to-content link focusing `main#main-content`, header banner and primary navigation landmarks
+- Performance: non-critical footer is wrapped in `@defer` with placeholder/loading/error fallbacks
+- Analytics: a `page_view` is tracked on `NavigationEnd`

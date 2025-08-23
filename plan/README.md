@@ -35,8 +35,8 @@ The plan is organized in phases, steps, and tasks:
 
 #### Steps Overview
 
-1. **Generic Components** - Create reusable UI components using ngx-angora-css
-2. **Core Layout Setup** - Implement basic page structure and navigation
+1. **[Generic Components](./phase 1/steps/step1 - Generic Components/plan.md)** - Create reusable UI components using ngx-angora-css
+2. **[Core Layout Setup](./phase 1/steps/step2 - Core Layout Setup/plan.md)** - Implement basic page structure and navigation
 3. **Hero Section** - Develop compelling landing page header
 4. **Content Sections** - Build educational and service sections
 5. **Analytics Integration** - Implement basic tracking and WebSocket integration

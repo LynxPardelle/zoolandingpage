@@ -1,0 +1,328 @@
+{
+  "generatedAt": "2025-08-23T10:35:25.443Z",
+  "project": "test-out",
+  "bundles": [
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\chunk-ISGLPTWH.js",
+      "bytes": 1139441,
+      "gzip": 243049
+    },
+    {
+      "file": "48c738f4-56dc-4766-964d-ec6d82c94879\\chunk-HVYSUGVD.js",
+      "bytes": 1133699,
+      "gzip": 242182
+    },
+    {
+      "file": "52c8f44c-0962-4df1-b0c0-f2839a39aa00\\chunk-HVYSUGVD.js",
+      "bytes": 1133699,
+      "gzip": 242182
+    },
+    {
+      "file": "48c738f4-56dc-4766-964d-ec6d82c94879\\chunk-KZWCVQM6.js",
+      "bytes": 1107800,
+      "gzip": 214173
+    },
+    {
+      "file": "52c8f44c-0962-4df1-b0c0-f2839a39aa00\\chunk-KZWCVQM6.js",
+      "bytes": 1107800,
+      "gzip": 214173
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\chunk-NP2HYQGR.js",
+      "bytes": 1107800,
+      "gzip": 214169
+    },
+    {
+      "file": "48c738f4-56dc-4766-964d-ec6d82c94879\\polyfills.js",
+      "bytes": 1016950,
+      "gzip": 202666
+    },
+    {
+      "file": "52c8f44c-0962-4df1-b0c0-f2839a39aa00\\polyfills.js",
+      "bytes": 1016950,
+      "gzip": 202666
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\polyfills.js",
+      "bytes": 1016950,
+      "gzip": 202666
+    },
+    {
+      "file": "52c8f44c-0962-4df1-b0c0-f2839a39aa00\\spec-app.component.spec.js",
+      "bytes": 631298,
+      "gzip": 125260
+    },
+    {
+      "file": "48c738f4-56dc-4766-964d-ec6d82c94879\\spec-app.component.spec.js",
+      "bytes": 625341,
+      "gzip": 123825
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\chunk-BDNIIS3E.js",
+      "bytes": 390566,
+      "gzip": 73728
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\chunk-AKMGAUJU.js",
+      "bytes": 390565,
+      "gzip": 73732
+    },
+    {
+      "file": "48c738f4-56dc-4766-964d-ec6d82c94879\\chunk-7RDF2FOS.js",
+      "bytes": 235630,
+      "gzip": 52517
+    },
+    {
+      "file": "52c8f44c-0962-4df1-b0c0-f2839a39aa00\\chunk-7RDF2FOS.js",
+      "bytes": 235630,
+      "gzip": 52517
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\chunk-FBXKV22O.js",
+      "bytes": 209910,
+      "gzip": 39952
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\chunk-REVO2DXQ.js",
+      "bytes": 197914,
+      "gzip": 45317
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\chunk-DXR3UWGN.js",
+      "bytes": 182199,
+      "gzip": 36063
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\chunk-V5LULZX7.js",
+      "bytes": 161634,
+      "gzip": 34384
+    },
+    {
+      "file": "48c738f4-56dc-4766-964d-ec6d82c94879\\chunk-GL7DYGN4.js",
+      "bytes": 117499,
+      "gzip": 23307
+    },
+    {
+      "file": "52c8f44c-0962-4df1-b0c0-f2839a39aa00\\chunk-GL7DYGN4.js",
+      "bytes": 117499,
+      "gzip": 23307
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\chunk-NQBUMBI6.js",
+      "bytes": 89803,
+      "gzip": 17857
+    },
+    {
+      "file": "48c738f4-56dc-4766-964d-ec6d82c94879\\jasmine-cleanup-1.js",
+      "bytes": 67202,
+      "gzip": 12654
+    },
+    {
+      "file": "52c8f44c-0962-4df1-b0c0-f2839a39aa00\\jasmine-cleanup-1.js",
+      "bytes": 67202,
+      "gzip": 12654
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\jasmine-cleanup-1.js",
+      "bytes": 67202,
+      "gzip": 12654
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\chunk-LPTBPHIT.js",
+      "bytes": 43230,
+      "gzip": 9770
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\spec-app.component.spec.js",
+      "bytes": 29971,
+      "gzip": 8439
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\test_main.js",
+      "bytes": 21868,
+      "gzip": 4869
+    },
+    {
+      "file": "48c738f4-56dc-4766-964d-ec6d82c94879\\test_main.js",
+      "bytes": 21830,
+      "gzip": 4858
+    },
+    {
+      "file": "52c8f44c-0962-4df1-b0c0-f2839a39aa00\\test_main.js",
+      "bytes": 21830,
+      "gzip": 4858
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\chunk-LR2UMQ52.js",
+      "bytes": 16449,
+      "gzip": 4307
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\spec-search-box.component.spec.js",
+      "bytes": 10541,
+      "gzip": 3166
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\spec-tooltip.component.spec.js",
+      "bytes": 10373,
+      "gzip": 2911
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\spec-dropdown.component.spec.js",
+      "bytes": 8838,
+      "gzip": 2736
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\chunk-7WAGGLM2.js",
+      "bytes": 8451,
+      "gzip": 2628
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\spec-tab-group.component.spec.js",
+      "bytes": 7256,
+      "gzip": 2245
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\chunk-L526B73M.js",
+      "bytes": 6799,
+      "gzip": 2088
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\chunk-HXXXRCWB.js",
+      "bytes": 6362,
+      "gzip": 2073
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\chunk-MNCXB6HA.js",
+      "bytes": 6362,
+      "gzip": 2072
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\spec-stepper.component.spec.js",
+      "bytes": 6288,
+      "gzip": 2002
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\spec-whatsapp-button.component.spec.js",
+      "bytes": 5818,
+      "gzip": 1810
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\spec-content-block.component.spec.js",
+      "bytes": 5390,
+      "gzip": 1625
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\chunk-JUNKPJIW.js",
+      "bytes": 5327,
+      "gzip": 1451
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\chunk-DFTKJ3IU.js",
+      "bytes": 4937,
+      "gzip": 1601
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\spec-stats-counter.component.spec.js",
+      "bytes": 2897,
+      "gzip": 917
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\spec-app-shell.analytics.spec.js",
+      "bytes": 2335,
+      "gzip": 922
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\spec-app-shell.component.spec.js",
+      "bytes": 2084,
+      "gzip": 821
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\chunk-ET3P6TTD.js",
+      "bytes": 2069,
+      "gzip": 793
+    },
+    {
+      "file": "48c738f4-56dc-4766-964d-ec6d82c94879\\chunk-TTULUY32.js",
+      "bytes": 1989,
+      "gzip": 760
+    },
+    {
+      "file": "52c8f44c-0962-4df1-b0c0-f2839a39aa00\\chunk-TTULUY32.js",
+      "bytes": 1989,
+      "gzip": 760
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\chunk-TTULUY32.js",
+      "bytes": 1989,
+      "gzip": 760
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\spec-generic-button.component.spec.js",
+      "bytes": 1909,
+      "gzip": 662
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\chunk-7XSFQRLF.js",
+      "bytes": 1454,
+      "gzip": 545
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\spec-accordion.component.spec.js",
+      "bytes": 1348,
+      "gzip": 601
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\spec-modal.component.spec.js",
+      "bytes": 1155,
+      "gzip": 518
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\spec-it-exists.directive.spec.js",
+      "bytes": 940,
+      "gzip": 477
+    },
+    {
+      "file": "48c738f4-56dc-4766-964d-ec6d82c94879\\spec-it-exists.directive.spec.js",
+      "bytes": 702,
+      "gzip": 369
+    },
+    {
+      "file": "52c8f44c-0962-4df1-b0c0-f2839a39aa00\\spec-it-exists.directive.spec.js",
+      "bytes": 702,
+      "gzip": 369
+    },
+    {
+      "file": "48c738f4-56dc-4766-964d-ec6d82c94879\\spec-ngx-angora.service.spec.js",
+      "bytes": 605,
+      "gzip": 338
+    },
+    {
+      "file": "52c8f44c-0962-4df1-b0c0-f2839a39aa00\\spec-ngx-angora.service.spec.js",
+      "bytes": 605,
+      "gzip": 338
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\spec-ngx-angora.service.spec.js",
+      "bytes": 605,
+      "gzip": 335
+    },
+    {
+      "file": "48c738f4-56dc-4766-964d-ec6d82c94879\\jasmine-cleanup-0.js",
+      "bytes": 519,
+      "gzip": 332
+    },
+    {
+      "file": "52c8f44c-0962-4df1-b0c0-f2839a39aa00\\jasmine-cleanup-0.js",
+      "bytes": 519,
+      "gzip": 332
+    },
+    {
+      "file": "a07e0d95-ad33-4e6d-9a90-63030b50eb95\\jasmine-cleanup-0.js",
+      "bytes": 519,
+      "gzip": 332
+    }
+  ],
+  "totalBytes": 13843037,
+  "totalGzipBytes": 2814444
+}

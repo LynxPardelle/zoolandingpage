@@ -1,12 +1,5 @@
-.tab-group {
-  display: flex;
-  gap: 0.25rem;
-}
-.tab-trigger[aria-selected='true'] {
-  background: var(--ank-secondaryBgColor);
-  font-weight: 600;
-}
-.tab-panel {
+/* Keep animation hooks only; layout and visuals are in the template via angora utilities */
+.tab-panel-anim {
   animation: fadeTab 160ms ease;
 }
 @keyframes fadeTab {
@@ -20,7 +13,7 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .tab-panel {
+  .tab-panel-anim {
     animation: none;
   }
 }
