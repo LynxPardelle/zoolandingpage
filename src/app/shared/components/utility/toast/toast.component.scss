@@ -1,18 +1,6 @@
 /* Advanced Toast Styling with Animations and Level-specific Themes */
-
-.toast-host {
-  pointer-events: none;
-
-  .toast {
-    pointer-events: auto;
-  }
-}
-
 .toast-item {
   animation: toastIn 300ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  transform-origin: center bottom;
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
 
   &.toast-enter {
     animation: toastSlideIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;

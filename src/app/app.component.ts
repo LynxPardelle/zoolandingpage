@@ -32,7 +32,6 @@ import { RoiNoteComponent } from './landingpage/components/roi-note/roi-note.com
 import { ServicesSectionComponent } from './landingpage/components/services-section/services-section.component';
 import { TestimonialsSectionComponent } from './landingpage/components/testimonials-section/testimonials-section.component';
 import { ModalComponent } from './shared/components/modal';
-import { LoadingSpinnerComponent } from './shared/components/utility/loading-spinner';
 import { ToastComponent, ToastService } from './shared/components/utility/toast';
 
 // Landing page data types
@@ -71,7 +70,7 @@ type InteractiveProcess = {
 };
 
 @Component({
-  selector: 'app-root',
+  selector: 'app-legacy-root',
   imports: [
     AppHeaderComponent,
     AppFooterComponent,
@@ -87,7 +86,6 @@ type InteractiveProcess = {
     FinalCtaSectionComponent,
     ModalComponent,
     ToastComponent,
-    LoadingSpinnerComponent,
   ],
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -105,11 +103,11 @@ export class App {
   // Landing page state
   readonly currentDemoStep = signal<number>(0);
   readonly navItems = signal<readonly HeaderNavItem[]>([
-  { label: 'Inicio', href: '#home', isActive: true, isExternal: false },
-  { label: 'Beneficios', href: '#features-section', isActive: false, isExternal: false },
-  { label: 'Proceso', href: '#process-section', isActive: false, isExternal: false },
-  { label: 'Servicios', href: '#services-section', isActive: false, isExternal: false },
-  { label: 'Contacto', href: '#contact-section', isActive: false, isExternal: false },
+    { label: 'Inicio', href: '#home', isActive: true, isExternal: false },
+    { label: 'Beneficios', href: '#features-section', isActive: false, isExternal: false },
+    { label: 'Proceso', href: '#process-section', isActive: false, isExternal: false },
+    { label: 'Servicios', href: '#services-section', isActive: false, isExternal: false },
+    { label: 'Contacto', href: '#contact-section', isActive: false, isExternal: false },
   ]);
   readonly isCalculatorVisible = signal<boolean>(false);
   readonly calculatorBusinessSize = signal<'nano' | 'micro' | 'small' | 'medium'>('micro');
@@ -137,8 +135,7 @@ export class App {
   // Landing page data
   readonly heroData = signal({
     title: 'Convierte visitas en clientes con una landing rápida, clara y medible',
-    subtitle:
-      'Lanza tu Landing Page Optimizada rápidamente, mide desde el primer día y mejora con datos reales.',
+    subtitle: 'Lanza tu Landing Page Optimizada rápidamente, mide desde el primer día y mejora con datos reales.',
     description:
       'Suscripción desde 900 MXN/mes. Incluye dominio, alojamiento y medición en la nube. Diseño alineado a tu marca, optimización para buscadores y llamados a la acción visibles para impulsar el contacto.',
     primary: { label: 'Hablar por WhatsApp', trackLabel: 'cta_whatsapp_hero' },
@@ -248,7 +245,8 @@ export class App {
     {
       icon: 'trending_up',
       title: 'Optimización y análisis',
-      description: 'Mejora continua con base en datos reales: pruebas A/B, ajustes de contenido y priorización por impacto.',
+      description:
+        'Mejora continua con base en datos reales: pruebas A/B, ajustes de contenido y priorización por impacto.',
       features: [
         'Optimización de llamadas a la acción y flujo de ventas',
         'Recomendaciones accionables',
@@ -285,8 +283,7 @@ export class App {
       name: 'Carlos Rodríguez',
       role: 'CEO',
       company: 'Innovate Commerce',
-      content:
-        'En 60 días recuperamos la inversión. La medición nos permitió optimizar campañas sin gastar de más.',
+      content: 'En 60 días recuperamos la inversión. La medición nos permitió optimizar campañas sin gastar de más.',
       rating: 5,
       avatar: '👨‍💼',
     },
@@ -309,11 +306,7 @@ export class App {
       detailedDescription:
         'Reunión breve para conocer tu negocio, propuesta de valor y audiencia. Definimos mensajes y priorizamos lo esencial para lanzar rápido.',
       duration: '1 día hábil',
-      deliverables: [
-        'Resumen claro de objetivos',
-        'Mensajes clave y estructura sugerida',
-        'Checklist de requisitos',
-      ],
+      deliverables: ['Resumen claro de objetivos', 'Mensajes clave y estructura sugerida', 'Checklist de requisitos'],
       isActive: true,
     },
     {
@@ -338,10 +331,7 @@ export class App {
       detailedDescription:
         'Retroalimentación breve, priorizamos cambios de mayor impacto para alinear mensaje y diseño.',
       duration: '1 día hábil',
-      deliverables: [
-        'Lista de cambios priorizados',
-        'Plan breve para implementar mejoras',
-      ],
+      deliverables: ['Lista de cambios priorizados', 'Plan breve para implementar mejoras'],
       isActive: false,
     },
     {
@@ -362,8 +352,7 @@ export class App {
       step: 5,
       title: 'Datos reales',
       description: 'Analizamos resultados y proponemos mejoras accionables.',
-      detailedDescription:
-        'Monitoreamos clics y contactos. Compartimos reporte simple y sugerencias para mejorar.',
+      detailedDescription: 'Monitoreamos clics y contactos. Compartimos reporte simple y sugerencias para mejorar.',
       duration: 'Desde el lanzamiento',
       deliverables: [
         'Métricas de clics y contactos',
@@ -377,13 +366,9 @@ export class App {
       step: 6,
       title: 'Mejora continua (opcional)',
       description: 'Probamos cambios y mejoramos con base en datos.',
-      detailedDescription:
-        'Seguimos probando variantes y aplicando mejoras según resultados para captar más clientes.',
+      detailedDescription: 'Seguimos probando variantes y aplicando mejoras según resultados para captar más clientes.',
       duration: 'Servicio opcional continuo',
-      deliverables: [
-        'Pruebas y resultados documentados',
-        'Lista de mejoras sugeridas',
-      ],
+      deliverables: ['Pruebas y resultados documentados', 'Lista de mejoras sugeridas'],
       isActive: false,
     },
   ]);

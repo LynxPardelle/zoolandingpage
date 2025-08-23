@@ -5,24 +5,14 @@
  * Following MANDATORY requirements: Angular 17+, ngx-angora-css, type-only definitions, atomic structure.
  */
 
-import {
-  Component,
-  ChangeDetectionStrategy,
-  computed,
-  input,
-} from '@angular/core';
-
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import {
   APP_FOOTER_DEFAULTS,
   BASE_FOOTER_CLASSES,
   FOOTER_CONTENT_CLASSES,
   FOOTER_RESPONSIVE_CLASSES,
 } from './app-footer.constants';
-import type {
-  AppFooterConfig,
-  ContactInfo,
-  SocialLink,
-} from './app-footer.types';
+import type { AppFooterConfig, ContactInfo, SocialLink } from './app-footer.types';
 
 @Component({
   selector: 'app-footer',
@@ -79,10 +69,7 @@ export class AppFooterComponent {
   });
 
   readonly computedContentClasses = computed(() => {
-    const contentClasses = [
-      ...FOOTER_CONTENT_CLASSES,
-      ...FOOTER_RESPONSIVE_CLASSES,
-    ];
+    const contentClasses = [...FOOTER_CONTENT_CLASSES, ...FOOTER_RESPONSIVE_CLASSES];
     return contentClasses.join(' ');
   });
 }

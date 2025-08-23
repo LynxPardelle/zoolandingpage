@@ -41,7 +41,12 @@ export class ToastComponent {
   }
 
   getToastClasses(toast: ToastMessage): string {
-    const classes = ['toast-item'];
+    const classes = [
+      'toast-item',
+      'ank-border-1px__solid__secondaryBgColor',
+      'ank-backdropFilter-blurSD0_5remED',
+      'ank-transformOrigin-center__bottom',
+    ];
 
     // Level-specific styling
     classes.push(`toast-${toast.level}`);
@@ -73,6 +78,18 @@ export class ToastComponent {
     }
 
     return baseClasses.join(' ');
+  }
+
+  getIconClasses(level: ToastLevel): string {
+    // Provide minimal per-level overrides via utilities; core theme handled in SCSS animations.
+    switch (level) {
+      case 'success':
+      case 'error':
+      case 'warning':
+      case 'info':
+      default:
+        return '';
+    }
   }
 
   onToastHover(toastId: string, isHovered: boolean): void {
