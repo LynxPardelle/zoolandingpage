@@ -1,10 +1,8 @@
 <app-section spacing="lg">
   <app-container size="xl">
     <div class="ank-textAlign-center ank-mb-64px">
-      <h2 class="ank-fs-2rem ank-fontWeight-bold ank-mb-16px ank-color-titleColor">
-        Nuestros Servicios Especializados
-      </h2>
-      <p class="ank-fs-1_5rem ank-color-textColor">Todo lo que necesitas para dominar el mundo digital</p>
+      <h2 class="ank-fs-2rem ank-fontWeight-bold ank-mb-16px ank-color-titleColor">Servicios para vender más</h2>
+      <p class="ank-fs-1_5rem ank-color-textColor">De la publicación rápida a la mejora continua basada en datos</p>
     </div>
     <div class="gridCol2">
       @for (service of services(); track service.title) {
@@ -40,7 +38,7 @@
           class="btnBase ank-btnOutline-secondaryLinkColor ank-bg-transparent ank-colorHover-textColor ank-width-100per ank-py-1rem ank-my-1rem"
           (click)="onCta(service.title)"
         >
-          Solicitar Información
+          Pedir información
         </button>
       </div>
       }
