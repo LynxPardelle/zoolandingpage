@@ -2,12 +2,12 @@ import { RoiNoteCopy } from './roi-note.types';
 
 export const ROI_NOTE_ID = 'roi-note';
 export const ROI_NOTE_COPY: RoiNoteCopy = {
-  title: '¿Qué significa ROI +250%?',
-  question: '¿Qué significa ROI +250%?',
+  title: '¿Qué significa un ROI proyectado?',
+  question: '¿Qué significa un ROI proyectado?',
   investmentLabel: 'Inversión',
-  investmentValue: '$1,000',
-  totalReturnLabel: 'Retorno Total',
-  totalReturnValue: '$3,500',
+  investmentValue: '$900/mes',
+  totalReturnLabel: 'Retorno estimado',
+  totalReturnValue: '+250%',
   explanation:
-    'Nuestras landing pages están optimizadas para maximizar este retorno mediante estrategias de conversión probadas y análisis de datos.',
+    'Es una estimación basada en estadísticas de la industria y casos comparables. Medimos desde el día 1 para validar con datos reales y priorizar mejoras.',
 };

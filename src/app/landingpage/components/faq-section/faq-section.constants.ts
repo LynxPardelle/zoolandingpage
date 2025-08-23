@@ -3,51 +3,51 @@ import type { AccordionConfig, AccordionItem } from '../../../shared/components/
 export const FAQ_ITEMS: readonly AccordionItem[] = [
   {
     id: 'what-is-landing-page',
-    title: '¿Qué es una landing page y por qué la necesito?',
+    title: '¿Qué es una Landing Page Optimizada?',
     content:
-      'Una landing page es una página web diseñada específicamente para convertir visitantes en clientes. A diferencia de tu sitio web principal, está enfocada en un solo objetivo: generar ventas, leads o suscripciones. Nuestras landing pages aumentan las conversiones hasta un 300% comparado con páginas web tradicionales.',
+      'Es una página rápida, clara y enfocada en un solo objetivo: convertir visitas en clientes. Incluye medición para saber qué funciona y dónde mejorar.',
   },
   {
     id: 'how-long-takes',
-    title: '¿Cuánto tiempo toma crear mi landing page?',
+    title: '¿En cuánto tiempo estará lista?',
     content:
-      'El proceso completo toma entre 7-14 días hábiles. Esto incluye: consultoría inicial (1-2 días), diseño y desarrollo (5-7 días), revisiones (2-3 días), y optimizaciones finales (1-2 días). Te mantenemos informado en cada etapa del proceso.',
+      'En días, según contenidos y ajustes. Trabajamos con prototipos rápidos asistidos por IA y revisiones breves para salir a producción cuanto antes.',
   },
   {
     id: 'what-included',
-    title: '¿Qué incluye el servicio completo?',
+    title: '¿Qué incluye la suscripción?',
     content:
-      'Incluye diseño responsivo, optimización SEO, análisis de conversiones, integración con herramientas de marketing, hosting por 1 año, certificado SSL, soporte técnico, y hasta 3 rondas de revisiones. También configuramos tracking de analytics y píxeles de Facebook/Google.',
+      'Desde 900 MXN/mes: dominio, alojamiento, medición en la nube, soporte y mejoras. Opcionales: versión ES/EN, reportes simples y optimización continua.',
   },
   {
     id: 'price-range',
-    title: '¿Cuál es el rango de precios?',
+    title: '¿Puedo usar mi dominio?',
     content:
-      'Nuestros paquetes van desde $1,500 hasta $5,000 USD, dependiendo de la complejidad y características requeridas. Ofrecemos planes de pago flexibles y garantía de satisfacción. El ROI promedio de nuestros clientes es del 450% en los primeros 6 meses.',
+      'Sí. Conectamos tu dominio actual o te ayudamos a configurarlo desde cero. Incluimos certificado SSL.',
   },
   {
     id: 'support-after',
-    title: '¿Qué soporte recibo después del lanzamiento?',
+    title: '¿Cómo veré resultados?',
     content:
-      'Incluimos 3 meses de soporte técnico gratuito, actualizaciones de seguridad, backup diario, monitoreo de rendimiento, y un reporte mensual de métricas. Después puedes contratar nuestro plan de mantenimiento desde $200/mes.',
+      'Como servicio adicional, puedes recibir reportes simples con métricas clave: visitas, clics en CTAs y contactos por WhatsApp.',
   },
   {
     id: 'can-edit',
-    title: '¿Podré editar el contenido yo mismo?',
+    title: '¿Puedo tener versión en español e inglés?',
     content:
-      'Sí, entregamos un panel de administración intuitivo donde puedes editar textos, imágenes, precios y contenido básico sin conocimientos técnicos. También incluimos un video tutorial personalizado y 1 hora de capacitación en vivo.',
+      'Sí, es opcional. Mostramos el contenido en el idioma preferido del visitante y recordamos su elección.',
   },
   {
-    id: 'guarantee',
-    title: '¿Ofrecen alguna garantía?',
+    id: 'how-measure',
+    title: '¿Qué medimos exactamente?',
     content:
-      'Ofrecemos garantía de satisfacción 100%. Si no estás completamente satisfecho en los primeros 30 días, te devolvemos tu dinero. También garantizamos que tu landing page cargará en menos de 3 segundos y será 100% responsive.',
+      'Clics en botones principales, contactos por WhatsApp, avance de lectura y secciones con mayor atención. Esto guía mejoras con evidencia.',
   },
   {
-    id: 'industries',
-    title: '¿Trabajan con mi industria específica?',
+    id: 'requirements',
+    title: '¿Qué necesito para empezar?',
     content:
-      'Trabajamos con todas las industrias: e-commerce, servicios profesionales, consultorías, coaches, restaurantes, inmobiliarias, salud, educación, y más. Tenemos experiencia creando landing pages para más de 50 nichos diferentes con casos de éxito comprobados.',
+      'Una breve descripción de tu negocio, beneficios a destacar, testimonios si tienes y medios de contacto vigentes. Si cuentas con colores de marca, también ayudarán.',
   },
 ] as const;
 

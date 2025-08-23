@@ -22,7 +22,7 @@ export const buildVariantClass = (variant: ButtonVariant, bg: string, text: stri
       // Treat secondary same as primary but consumer chooses colorKey
       return `ank-btn-${bg} ank-color-${text}`;
     case 'outline':
-      return `ank-btnOutline-${bg}-${text} ank-bg-transparent ank-colorHover-${text}`;
+      return `ank-bg-transparent ank-border-2px__solid__${bg} ank-color-${bg} ank-btnHover-${bg} ank-colorHover-${text}`;
     case 'ghost':
       return `ank-bg-transparent ank-color-${text} ank-opacity-80 ank-opacityHover-100`;
     default:
