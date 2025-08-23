@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { AppContainerComponent, AppSectionComponent } from '../../../core/components/layout';
+import { AnalyticsService } from '../../../shared/services/analytics.service';
 import { StatsCounterComponent } from '../stats-counter/stats-counter.component';
 import type { StatsCounterConfig } from '../stats-counter/stats-counter.types';
 import { BusinessSize, CalculatedRoi } from './roi-calculator-section.types';
@@ -14,6 +15,7 @@ import { BusinessSize, CalculatedRoi } from './roi-calculator-section.types';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RoiCalculatorSectionComponent {
+  private readonly analytics = inject(AnalyticsService);
   readonly businessSize = input.required<BusinessSize>();
   readonly industry = input.required<string>();
   readonly visitors = input.required<number>();
@@ -62,9 +64,11 @@ export class RoiCalculatorSectionComponent {
   };
 
   updateBusinessSize(size: BusinessSize) {
+    this.analytics.track('roi_size_change', { category: 'roi_calculator', label: size });
     this.businessSizeChange.emit(size);
   }
   updateIndustry(industry: string) {
+    this.analytics.track('roi_industry_change', { category: 'roi_calculator', label: industry });
     this.industryChange.emit(industry);
   }
 }

@@ -3,7 +3,7 @@
     <div
       class="ank-display-grid ank-gridTemplateColumns-1fr ank-gridTemplateColumns-lg-1fr__1fr ank-gap-2rem ank-alignItems-center"
     >
-      <div class="ank-textAlign-center ank-textAlign-lg-left" [@fadeIn]>
+      <div class="ank-textAlign-center ank-textAlign-lg-left" [@fadeIn]="!motion.reduced() ? {} : null">
         <h1
           class="ank-fs-2rem ank-fs-lg-5rem ank-fontWeight-bold ank-lh-2rem ank-lh-lg-5rem ank-mb-1_25rem textGradientVALSVAL2NsecondaryAccentColorVAL2NVAL3NsecondaryTitleColorVAL3NVL135degVL"
         >
@@ -20,7 +20,7 @@
         }
         <div
           class="ank-display-flex ank-flexDirection-column ank-flexDirection-sm-row ank-gap-1rem ank-justifyContent-center ank-justifyContent-lg-start"
-          [@fadeInDelay]
+          [@fadeInDelay]="!motion.reduced() ? {} : null"
         >
           <cta-button [label]="data().primary.label" variant="primary" (action)="onPrimary()" />
           @if (data().secondary) {<cta-button
@@ -32,9 +32,11 @@
         @if (data().badges?.length) { @defer (on viewport; prefetch on idle) {
         <div
           class="ank-mt-2rem ank-display-flex ank-flexDirection-column ank-alignItems-center ank-alignItems-lg-start ank-gap-1rem"
-          [@fadeInDelay]
+          [@fadeInDelay]="!motion.reduced() ? {} : null"
         >
-          <p class="ank-fs-1rem ank-color-textColor ank-fontWeight-medium">Los distintivos que tendrá tu nueva landing page:</p>
+          <p class="ank-fs-1rem ank-color-textColor ank-fontWeight-medium">
+            Los distintivos que tendrá tu nueva landing page:
+          </p>
           <div class="ank-display-flex ank-gap-24px ank-alignItems-center ank-opacity-60">
             @for (b of data().badges; track b.text) {<span class="ank-fs-1rem ank-color-textColor">{{ b.text }}</span
             >}
@@ -44,7 +46,9 @@
         <div
           class="ank-mt-2rem ank-display-flex ank-flexDirection-column ank-alignItems-center ank-alignItems-lg-start ank-gap-1rem"
         >
-          <p class="ank-fs-1rem ank-color-textColor ank-fontWeight-medium">Los distintivos que tendrá tu nueva landing page:</p>
+          <p class="ank-fs-1rem ank-color-textColor ank-fontWeight-medium">
+            Los distintivos que tendrá tu nueva landing page:
+          </p>
           <div class="ank-display-flex ank-gap-24px ank-alignItems-center ank-opacity-60">
             <span class="ank-fs-1rem ank-color-textColor">AWS</span>
             <span class="ank-fs-1rem ank-color-textColor">Angular</span>
@@ -53,7 +57,11 @@
         </div>
         } }
       </div>
-      <div class="ank-position-relative ank-wmx-85vw ank-justifySelf-center" [@fadeIn]>
+      <div
+        class="ank-position-relative ank-wmx-85vw ank-justifySelf-center"
+        [@fadeIn]="!motion.reduced() ? {} : null"
+        [class.ank-transition-none]="motion.reduced()"
+      >
         @defer (when data().backgroundImage) {
         <div
           class="ank-position-absolute ank-inset-0 ank-bgCover ank-borderRadius-1rem ank-opacity-15"

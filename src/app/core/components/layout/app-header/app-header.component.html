@@ -71,7 +71,7 @@
           (click)="toggleLanguage()"
           class="ank-p-0_5rem__1_5rem ank-borderRadius-1rem ank-border-none ank-bg-accentColor ank-color-secondaryTextColor ank-ts-200 ank-bgHover-secondaryAccentColor ank-colorHover-secondaryTextColor"
         >
-          {{ languageService.currentLanguage() }}
+          {{ languageService.languageLabel() }}
         </button>
         }
       </div>
@@ -135,7 +135,7 @@
         (click)="toggleLanguage()"
         class="ank-padding-12px ank-borderRadius-1rem ank-border-none ank-bg-secondaryBgColor ank-color-textColor ank-textAlign-left ank-transition-bgColor ank-duration-200 ank-scaleActive-95 focus:ank-outline-none focus:ank-ring-2 focus:ank-ring-accentColor"
       >
-        Language: {{ languageService.currentLanguage() }}
+        Language: {{ languageService.languageLabel() }}
       </button>
       }
     </div>
