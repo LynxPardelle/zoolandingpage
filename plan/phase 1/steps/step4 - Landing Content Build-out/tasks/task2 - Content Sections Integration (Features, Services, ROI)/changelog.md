@@ -1,11 +1,13 @@
 # Task 2: Content Sections Integration - Changelog
 
-## Planned Changes
+## Changes
 
-- Populate i18n copy for features/services/roi
-- Validate Angora combos and spacing; remove any color literals
-- Ensure ROI analytics hooks remain intact
+- LandingPageComponent: features and services switched from static signals to computed values reactive to LanguageService (ES/EN variants)
+- Preserved existing analytics hooks: services `services_cta_click`, ROI `roi_size_change` and `roi_industry_change`
+- Left ROI template strings in ES for now; marked for future localization
 
 ## Validation
 
-- Dev server compiles; sections render with localized copy
+- ng serve: Application compiled and started locally
+- Verified features/services content now reacts to language toggles
+- No hardcoded colors introduced; styling remains via Angora utility classes

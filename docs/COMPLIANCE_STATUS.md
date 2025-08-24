@@ -278,3 +278,32 @@ make quick-start
 
 **📅 Last Updated**: July 23, 2025
 **🏆 Status**: **FULLY COMPLIANT AND READY FOR DEVELOPMENT**
+
+---
+
+## ♿ Accessibility & Compliance (Step 5 Task 2) — Current Status
+
+Status: Partially complete (ongoing improvements)
+
+Implemented:
+
+- Skip link to main content with localized label and focus management
+- `main` landmark and header/footer semantics in place
+- Global `:focus-visible` outline for interactive elements
+- Mobile nav ARIA: `aria-haspopup`, `aria-controls`, `aria-expanded`
+- `html[lang]` and `dir` synchronized with app language
+- Live region announcements for language change; dialog open/close announcements
+- Prefers-reduced-motion respected across key components
+
+Pending:
+
+- Color contrast audit against Angora tokens; adjust any failing pairs
+- Broaden live announcements to other dynamic interactions as needed
+
+How to validate quickly:
+
+1. Keyboard-only Tab/Shift+Tab navigation (focus always visible)
+2. Activate skip link; focus lands in `main`
+3. Toggle mobile menu; SR announces expanded/collapsed
+4. Toggle language; SR hears polite announcement
+5. Open/close modal; SR hears dialog open/close

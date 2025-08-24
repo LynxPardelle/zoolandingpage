@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import { AnalyticsCategories, AnalyticsEvents } from '../../services/analytics.events';
 import { AnalyticsService } from '../../services/analytics.service';
 import { GenericButtonComponent } from '../generic-button';
 import { WHATSAPP_BUTTON_DEFAULT, buildWhatsAppUrl } from './whatsapp-button.constants';
@@ -21,7 +22,7 @@ export class WhatsAppButtonComponent {
   readonly message = computed(() => this.config().message);
   readonly label = computed(() => this.config().label || 'WhatsApp');
   readonly variant = computed(() => this.config().variant || 'outline');
-  readonly colorKey = computed(() => this.config().colorKey || 'successColor');
+  readonly colorKey = computed(() => this.config().colorKey || 'secondaryBgColor');
   readonly size = computed(() => this.config().size || 'md');
   readonly target = computed(() => this.config().target || '_blank');
   readonly url = computed(() => buildWhatsAppUrl(this.phone() || '', this.message()));
@@ -36,8 +37,8 @@ export class WhatsAppButtonComponent {
     } else {
       window.location.href = link;
     }
-    this.analytics.track('whatsapp_click', {
-      category: 'engagement',
+    this.analytics.track(AnalyticsEvents.WhatsAppClick, {
+      category: AnalyticsCategories.Engagement,
       label: this.phone(),
       meta: { hasMessage: !!this.message(), length: (this.message() || '').length },
     });

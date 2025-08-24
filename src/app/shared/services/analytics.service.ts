@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { Observable, Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 export type AnalyticsEvent = {
@@ -16,11 +17,13 @@ export class AnalyticsService {
   private readonly enabled: boolean = Boolean(environment.features.analytics);
   private readonly baseUrl: string = environment.apiUrl;
   private readonly version: string = environment.apiVersion;
+  private readonly events$ = new Subject<AnalyticsEvent>();
 
   track(name: string, data: Omit<AnalyticsEvent, 'name' | 'timestamp'> = {}): void {
     const evt: AnalyticsEvent = { name, timestamp: Date.now(), ...data } as AnalyticsEvent;
     // Always keep local buffer (for potential flush/report)
     this.buffer.push(evt);
+    this.events$.next(evt);
     if (this.enabled || environment.features.debugMode) {
       // eslint-disable-next-line no-console
       console.log('[analytics]', evt);
@@ -30,6 +33,11 @@ export class AnalyticsService {
   }
   flush(): readonly AnalyticsEvent[] {
     return [...this.buffer];
+  }
+
+  // Debug/stream API: subscribe to live events
+  onEvent(): Observable<AnalyticsEvent> {
+    return this.events$.asObservable();
   }
 
   // Placeholder for future server integration

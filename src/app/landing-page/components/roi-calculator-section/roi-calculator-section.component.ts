@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { AppContainerComponent, AppSectionComponent } from '../../../core/components/layout';
+import { AnalyticsCategories, AnalyticsEvents } from '../../../shared/services/analytics.events';
 import { AnalyticsService } from '../../../shared/services/analytics.service';
 import { StatsCounterComponent } from '../stats-counter/stats-counter.component';
 import type { StatsCounterConfig } from '../stats-counter/stats-counter.types';
@@ -22,6 +23,7 @@ export class RoiCalculatorSectionComponent {
   readonly calculatedROI = input.required<CalculatedRoi>();
   readonly businessSizeChange = output<BusinessSize>();
   readonly industryChange = output<string>();
+  readonly visitorsChange = output<number>();
 
   readonly monthlyIncreaseConfig = computed<StatsCounterConfig>(() => ({
     target: this.calculatedROI().monthlyIncrease,
@@ -64,11 +66,20 @@ export class RoiCalculatorSectionComponent {
   };
 
   updateBusinessSize(size: BusinessSize) {
-    this.analytics.track('roi_size_change', { category: 'roi_calculator', label: size });
+    this.analytics.track(AnalyticsEvents.RoiSizeChange, { category: AnalyticsCategories.RoiCalculator, label: size });
     this.businessSizeChange.emit(size);
   }
   updateIndustry(industry: string) {
-    this.analytics.track('roi_industry_change', { category: 'roi_calculator', label: industry });
+    this.analytics.track(AnalyticsEvents.RoiIndustryChange, {
+      category: AnalyticsCategories.RoiCalculator,
+      label: industry,
+    });
     this.industryChange.emit(industry);
+  }
+
+  onVisitorsChange(value: number): void {
+    const v = Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0;
+    // Delegate analytics to parent (LandingPageComponent) for a single source of truth
+    this.visitorsChange.emit(v);
   }
 }

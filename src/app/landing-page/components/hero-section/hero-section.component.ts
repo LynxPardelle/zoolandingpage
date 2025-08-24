@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { AppContainerComponent, AppSectionComponent } from '../../../core/components/layout';
+import { AnalyticsCategories, AnalyticsEvents } from '../../../shared/services/analytics.events';
 import { AnalyticsService } from '../../../shared/services/analytics.service';
 import { MotionPreferenceService } from '../../../shared/services/motion-preference.service';
 import { CallToActionComponent } from '../call-to-action/call-to-action.component';
@@ -27,15 +28,15 @@ export class HeroSectionComponent {
   constructor() {
   }
   onPrimary(): void {
-    this.analytics.track('hero_primary_click', {
-      category: 'hero',
+    this.analytics.track(AnalyticsEvents.HeroPrimaryClick, {
+      category: AnalyticsCategories.Hero,
       label: this.data().primary.trackLabel || this.data().primary.label,
     });
     this.primary.emit();
   }
   onSecondary(): void {
-    this.analytics.track('hero_secondary_click', {
-      category: 'hero',
+    this.analytics.track(AnalyticsEvents.HeroSecondaryClick, {
+      category: AnalyticsCategories.Hero,
       label: this.data().secondary?.trackLabel || this.data().secondary?.label,
     });
     this.secondary.emit();

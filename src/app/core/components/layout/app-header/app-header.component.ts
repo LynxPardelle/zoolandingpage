@@ -17,7 +17,9 @@ import {
   signal,
 } from '@angular/core';
 
+import { AnalyticsCategories, AnalyticsEvents } from '@/app/shared/services/analytics.events';
 import { AnalyticsService } from '@/app/shared/services/analytics.service';
+import { AriaLiveService } from '@/app/shared/services/aria-live.service';
 import { output } from '@angular/core';
 import { LanguageService } from '../../../services/language.service';
 import { ThemeService } from '../../../services/theme.service';
@@ -45,6 +47,7 @@ export class AppHeaderComponent {
   protected readonly languageService = inject(LanguageService);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly analytics = inject(AnalyticsService);
+  private readonly ariaLive = inject(AriaLiveService);
 
   // Configuration input with defaults
   readonly config = input(APP_HEADER_DEFAULTS, {
@@ -124,11 +127,17 @@ export class AppHeaderComponent {
       isMobileMenuOpen: !state.isMobileMenuOpen,
     }));
     const open = this.internalState().isMobileMenuOpen;
-    this.analytics.track(open ? 'mobile_menu_open' : 'mobile_menu_close', { category: 'navigation' });
+    this.analytics.track(open ? AnalyticsEvents.MobileMenuOpen : AnalyticsEvents.MobileMenuClose, {
+      category: AnalyticsCategories.Navigation,
+    });
   }
 
   selectNav(item: HeaderNavItem): void {
-    this.analytics.track('nav_click', { category: 'navigation', label: item.label, meta: { href: item.href } });
+    this.analytics.track(AnalyticsEvents.NavClick, {
+      category: AnalyticsCategories.Navigation,
+      label: item.label,
+      meta: { href: item.href },
+    });
     this.navChange.emit(item);
     if (item.href.startsWith('#')) {
       const el = document.querySelector(item.href);
@@ -140,14 +149,22 @@ export class AppHeaderComponent {
     const before = this.themeService.currentTheme();
     this.themeService.toggleTheme();
     const after = this.themeService.currentTheme();
-    this.analytics.track('theme_toggle', { category: 'theme', label: `${before}->${after}` });
+    this.analytics.track(AnalyticsEvents.ThemeToggle, {
+      category: AnalyticsCategories.Theme,
+      label: `${ before }->${ after }`,
+    });
   }
 
   toggleLanguage(): void {
     const before = this.languageService.currentLanguage();
     this.languageService.toggleLanguage();
     const after = this.languageService.currentLanguage();
-    this.analytics.track('language_toggle', { category: 'i18n', label: `${before}->${after}` });
+    this.analytics.track(AnalyticsEvents.LanguageToggle, {
+      category: AnalyticsCategories.I18N,
+      label: `${ before }->${ after }`,
+    });
+    const msg = after === 'en' ? 'Language changed to English' : 'Idioma cambiado a Español';
+    this.ariaLive.announce(msg, 'polite');
   }
 
   // Setup scroll listener for header effects
@@ -177,7 +194,7 @@ export class AppHeaderComponent {
           }
         }
         if (best?.target?.id) {
-          const id = `#${best.target.id}`;
+          const id = `#${ best.target.id }`;
           const match = anchorItems.find(a => a.href === id);
           if (match) this.navChange.emit(match);
         }

@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 import { GenericButtonComponent } from '../../../shared/components/generic-button';
+import { AnalyticsCategories, AnalyticsEvents } from '../../../shared/services/analytics.events';
 import { AnalyticsService } from '../../../shared/services/analytics.service';
 import { CTAVariant } from './call-to-action.types';
 @Component({
@@ -16,7 +17,7 @@ export class CallToActionComponent {
   readonly colorKey = input<string>('secondaryLinkColor');
   readonly action = output<void>();
   handleClick(): void {
-    this.analytics.track('cta_click', { category: 'cta', label: this.label() });
+    this.analytics.track(AnalyticsEvents.CtaClick, { category: AnalyticsCategories.CTA, label: this.label() });
     this.action.emit();
   }
 }

@@ -83,6 +83,9 @@
     <button
       type="button"
       (click)="toggleMobileMenu()"
+      aria-haspopup="true"
+      aria-controls="mobile-primary-navigation"
+      [attr.aria-expanded]="state().isMobileMenuOpen"
       class="ank-display-md-none ank-padding-10px ank-borderRadius-1rem ank-border-none ank-bg-secondaryBgColor ank-color-textColor ank-transition-bgColor ank-duration-200 ank-scaleActive-95 ank-me-2rem"
     >
       <span class="ank-display-flex ank-alignItems-center ank-justifyContent-center ank-width-20px ank-height-20px">
@@ -95,6 +98,7 @@
   <!-- Mobile Menu -->
   @if (state().isMobileMenuOpen) { @defer {
   <div
+    id="mobile-primary-navigation"
     class="ank-display-md-none ank-bg-bgColor ank-borderTop-1px ank-borderColor-secondaryBgColor ank-padding-20px ank-space-y-20px ank-animation-fadeInDown"
   >
     @if (config().navItems?.length) {

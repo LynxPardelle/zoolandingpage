@@ -693,13 +693,30 @@ This analytics system provides comprehensive tracking while maintaining privacy 
 
 ## Quick Event Catalog (Implemented)
 
+All event names and categories are centralized in `src/app/shared/services/analytics.events.ts`.
+
 - page_view (category: navigation)
+- nav_click (category: navigation)
+- mobile_menu_open / mobile_menu_close (category: navigation)
 - hero_primary_click (category: hero)
 - hero_secondary_click (category: hero)
+- cta_click (category: cta) — generic CTA proxy used in landing page
 - final_cta_primary_click (category: cta)
 - final_cta_secondary_click (category: cta)
 - services_cta_click (category: services)
+- whatsapp_click (category: engagement)
 - roi_size_change (category: roi_calculator)
 - roi_industry_change (category: roi_calculator)
+- roi_visitors_change (category: roi_calculator)
+- roi_calculator_toggle (category: roi_calculator)
+- section_view (category: navigation)
+- process_step_change (category: process)
+- theme_toggle (category: theme)
+- language_toggle (category: i18n)
 - modal_open (category: modal)
 - modal_close (category: modal)
+
+Notes:
+
+- For dev, events are buffered locally and printed when analytics is enabled or debugMode is on.
+- When a server endpoint is ready, implement send() in `AnalyticsService`.

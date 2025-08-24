@@ -5,6 +5,7 @@ import {
   afterEveryRender,
   afterNextRender,
   computed,
+  effect,
   inject,
   input,
   signal,
@@ -17,6 +18,7 @@ import { environment } from '../../../../../environments/environment';
 import { NgxAngoraService } from '../../../../angora-css/ngx-angora.service';
 import { ModalComponent } from '../../../../shared/components/modal/modal.component';
 import { ToastComponent, ToastService } from '../../../../shared/components/utility/toast';
+import { AnalyticsCategories, AnalyticsEvents } from '../../../../shared/services/analytics.events';
 import { AnalyticsService } from '../../../../shared/services/analytics.service';
 import { LanguageService } from '../../../services/language.service';
 import { ThemeService } from '../../../services/theme.service';
@@ -43,6 +45,7 @@ export class AppShellComponent {
   private readonly analytics = inject(AnalyticsService);
   private readonly _ank = inject(NgxAngoraService);
   private readonly toast = inject(ToastService);
+  private readonly events = inject(AnalyticsService);
   private angoraHasBeenInitialized = false;
   // Ensure global Theme/Language services are initialized at shell level
   private readonly _theme = inject(ThemeService);
@@ -50,6 +53,13 @@ export class AppShellComponent {
   private readonly activeHref = signal<string | null>(null);
 
   cfg = input<AppShellConfig>({ skipLinkLabel: 'Skip to content' });
+
+  // Localized skip link label (falls back to provided cfg if any)
+  readonly skipLabel = computed(() => {
+    const provided = this.cfg()?.skipLinkLabel;
+    if (provided && provided.trim().length > 0) return provided;
+    return this._lang.currentLanguage() === 'en' ? 'Skip to content' : 'Saltar al contenido';
+  });
 
   // Minimal header config until centralized state is introduced
   headerConfig = computed(() => ({
@@ -125,7 +135,10 @@ export class AppShellComponent {
   constructor() {
     // Track page views exactly once per navigation end
     this.router.events.pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd)).subscribe(evt => {
-      this.analytics.track('page_view', { category: 'navigation', label: evt.urlAfterRedirects });
+      this.analytics.track(AnalyticsEvents.PageView, {
+        category: AnalyticsCategories.Navigation,
+        label: evt.urlAfterRedirects,
+      });
     });
 
     // Initialize Angora CSS once, then regenerate after every render
@@ -134,6 +147,23 @@ export class AppShellComponent {
       this._ank.cssCreate();
     });
     afterEveryRender(() => this._ank.cssCreate());
+
+    // Keep <html lang> in sync with current language for screen readers/UA
+    // effect() must run within injection context (constructor is OK)
+    effect(() => {
+      const lang = this._lang.currentLanguage();
+      try {
+        if (typeof document !== 'undefined') {
+          document.documentElement.setAttribute('lang', lang);
+          // LTR languages by default (es/en); adjust if RTL added in future
+          document.documentElement.setAttribute('dir', 'ltr');
+        }
+      } catch {
+        // no-op for SSR
+      }
+    });
+
+    this.initDebugOverlay();
   }
 
   focusMain(evt: Event): void {
@@ -306,4 +336,18 @@ export class AppShellComponent {
   }
 
   private positionDemoIndex = 0;
+
+  // Debug overlay: keep last 10 analytics events when debug mode is on
+  readonly recentEvents = signal<readonly string[]>([]);
+  private initDebugOverlay(): void {
+    if (!this.debugMode) return;
+    try {
+      this.events.onEvent().subscribe(evt => {
+        const next = [`${ evt.name } | ${ evt.category || '' } | ${ evt.label || '' }`].concat(this.recentEvents());
+        this.recentEvents.set(next.slice(0, 10));
+      });
+    } catch {
+      // ignore overlay errors
+    }
+  }
 }

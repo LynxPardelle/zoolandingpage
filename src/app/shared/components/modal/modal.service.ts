@@ -1,4 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
+import { AnalyticsCategories, AnalyticsEvents } from '../../services/analytics.events';
 import { AnalyticsService } from '../../services/analytics.service';
 import { ModalConfig, ModalRef } from './modal.types';
 
@@ -10,13 +11,13 @@ export class ModalService {
   open(config: ModalConfig = {}): ModalRef {
     if (this.activeModal()) this.close();
     const ref: ModalRef = {
-      id: config.id || `modal-${Date.now()}`,
+      id: config.id || `modal-${ Date.now() }`,
       close: (result?: unknown) => {
         if (this.activeModal()?.id === ref.id) this.activeModal.set(null);
       },
     };
     this.activeModal.set(ref);
-    this.analytics.track('modal_open', { category: 'modal', label: ref.id });
+    this.analytics.track(AnalyticsEvents.ModalOpen, { category: AnalyticsCategories.Modal, label: ref.id });
     return ref;
   }
 
@@ -24,7 +25,7 @@ export class ModalService {
     if (this.activeModal()) {
       const id = this.activeModal()?.id;
       this.activeModal.set(null);
-      if (id) this.analytics.track('modal_close', { category: 'modal', label: id });
+      if (id) this.analytics.track(AnalyticsEvents.ModalClose, { category: AnalyticsCategories.Modal, label: id });
     }
   }
   modalRef = () => this.activeModal();

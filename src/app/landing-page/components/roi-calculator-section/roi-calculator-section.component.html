@@ -108,6 +108,38 @@
                 <option value="consulting">Consultoría / Coaching</option>
               </select>
             </div>
+
+            <div class="ank-mt-24px">
+              <label
+                class="ank-display-block ank-fs-1_25rem ank-fontWeight-semibold ank-mb-12px ank-color-secondaryTitleColor"
+                >Visitas mensuales estimadas:</label
+              >
+              <input
+                type="range"
+                min="0"
+                max="100000"
+                step="100"
+                [value]="visitors()"
+                (input)="onVisitorsChange($any($event.target).valueAsNumber || 0)"
+                class="ank-width-100per"
+                aria-label="Visitas mensuales"
+              />
+              <div class="ank-fs-1rem ank-color-textColor ank-mt-8px">{{ visitors() | number }} visitas/mes</div>
+              <div class="ank-display-flex ank-gap-0_75rem ank-alignItems-center ank-mt-12px">
+                <label for="visitors-input" class="ank-fs-1rem ank-color-secondaryTitleColor">Ingresar visitas:</label>
+                <input
+                  id="visitors-input"
+                  type="number"
+                  min="0"
+                  max="100000"
+                  step="100"
+                  [value]="visitors()"
+                  (input)="onVisitorsChange($any($event.target).valueAsNumber || 0)"
+                  class="ank-border-1px ank-border-border ank-borderRadius-8px ank-px-12px ank-py-8px ank-bg-textColor ank-color-bgColor"
+                  aria-label="Ingresar visitas mensuales"
+                />
+              </div>
+            </div>
           </div>
           <div
             class="ank-bg-accentColor ank-borderRadius-12px ank-p-24px ank-color-textColor ank-textAlign-center ank-display-flex ank-flexDirection-column ank-justifyContent-center ank-boxShadow-0__8px__25px__rgbaSD0COM123COM255COM0_2ED"

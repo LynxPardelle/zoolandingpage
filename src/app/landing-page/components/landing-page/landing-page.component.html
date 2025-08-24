@@ -6,30 +6,64 @@
 ></hero-section>
 <roi-note id="roi-section"></roi-note>
 <features-section id="features-section" [features]="features()"></features-section>
+@defer (on viewport; prefetch on idle) {
 <interactive-process
   id="process-section"
   [process]="interactiveProcess()"
   [currentStep]="currentDemoStep()"
   (selectStep)="setDemoStep($event)"
 ></interactive-process>
+} @placeholder {
+<section id="process-section" class="ank-py-48px ank-textAlign-center ank-opacity-70">
+  <div class="ank-fs-1_25rem">Cargando proceso…</div>
+</section>
+}
 <services-section
   id="services-section"
   [services]="services()"
   (serviceCta)="trackCTAClick('service', $event); openWhatsApp()"
 ></services-section>
+@defer (on viewport; prefetch on idle) {
 <roi-calculator-section
   id="roi-calculator-section"
   [businessSize]="calculatorBusinessSize()"
   [industry]="calculatorIndustry()"
   [visitors]="calculatorVisitors()"
+  (visitorsChange)="updateVisitors($event)"
   [calculatedROI]="calculatedROI()"
   (businessSizeChange)="updateBusinessSize($event)"
   (industryChange)="updateIndustry($event)"
 ></roi-calculator-section>
-<testimonials-section id="testimonials-section" [testimonials]="testimonials()"></testimonials-section>
+} @placeholder {
+<section id="roi-calculator-section" class="ank-py-48px ank-textAlign-center ank-opacity-70">
+  <div class="ank-fs-1_25rem">Calculando ROI…</div>
+</section>
+} @defer (on viewport; prefetch on idle) {
+<testimonials-section
+  id="testimonials-section"
+  [testimonials]="testimonials()"
+  [title]="testimonialsTitle()"
+  [subtitle]="testimonialsSubtitle()"
+></testimonials-section>
+} @placeholder {
+<section id="testimonials-section" class="ank-py-48px ank-textAlign-center ank-opacity-70">
+  <div class="ank-fs-1_25rem">Cargando testimonios…</div>
+</section>
+} @defer (on viewport; prefetch on idle) {
 <faq-section id="faq-section"></faq-section>
+} @placeholder {
+<section id="faq-section" class="ank-py-48px ank-textAlign-center ank-opacity-70">
+  <div class="ank-fs-1_25rem">Cargando preguntas frecuentes…</div>
+</section>
+}
 <final-cta-section
   id="contact-section"
+  [title]="finalCta().title"
+  [subtitle]="finalCta().subtitle"
+  [primaryLabel]="finalCta().primaryLabel"
+  [secondaryLabel]="finalCta().secondaryLabel"
+  [whatsAppPhone]="'+525522699563'"
+  [whatsAppMessage]="heroData().subtitle"
   (primary)="openWhatsApp(); trackCTAClick('primary', 'final-cta')"
   (secondary)="toggleCalculator(); trackCTAClick('secondary', 'final-cta')"
 ></final-cta-section>

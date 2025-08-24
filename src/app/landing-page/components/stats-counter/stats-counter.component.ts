@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
   NgZone,
   effect,
   inject,
@@ -23,6 +24,7 @@ import type { StatsCounterConfig } from './stats-counter.types';
 export class StatsCounterComponent {
   private readonly zone = inject(NgZone);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly host = inject(ElementRef<HTMLElement>);
 
   readonly config = input<StatsCounterConfig>(STATS_COUNTER_DEFAULT);
 
@@ -31,7 +33,7 @@ export class StatsCounterComponent {
   readonly completed = output<void>();
 
   readonly displayValue = () => this.config().format!(this.internalValue());
-  readonly ariaLabel = () => this.config().ariaLabel || `Counter value ${this.displayValue()}`;
+  readonly ariaLabel = () => this.config().ariaLabel || `Counter value ${ this.displayValue() }`;
 
   private io?: IntersectionObserver;
   private rafId?: number;
@@ -67,8 +69,8 @@ export class StatsCounterComponent {
       { threshold: 0.4 }
     );
     queueMicrotask(() => {
-      const host = (this as any).el?.nativeElement || document.querySelector('stats-counter:last-of-type');
-      if (host) this.io?.observe(host);
+      const el = this.host.nativeElement as HTMLElement | null;
+      if (el) this.io?.observe(el);
     });
     this.destroyRef.onDestroy(() => this.io?.disconnect());
   }
