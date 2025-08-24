@@ -1,7 +1,7 @@
-import { animate, style, transition, trigger } from '@angular/animations';
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
+import { TESTIMONIAL_CARD_ANIMATIONS } from './testimonial-card.styles';
 import { TestimonialCardData } from './testimonial-card.types';
 @Component({
   selector: 'testimonial-card',
@@ -9,11 +9,7 @@ import { TestimonialCardData } from './testimonial-card.types';
   imports: [CommonModule, MatIconModule],
   templateUrl: './testimonial-card.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  animations: [
-    trigger('fadeIn', [
-      transition(':enter', [style({ opacity: 0 }), animate('400ms ease-out', style({ opacity: 1 }))]),
-    ]),
-  ],
+  animations: TESTIMONIAL_CARD_ANIMATIONS,
 })
 export class TestimonialCardComponent {
   readonly data = input.required<TestimonialCardData>();

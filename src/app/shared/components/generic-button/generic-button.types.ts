@@ -5,7 +5,7 @@ export type ButtonSize = 'sm' | 'md' | 'lg';
  * Public inputs for the Generic Button component.
  * Keeping it intentionally small to avoid scope creep.
  */
-export interface GenericButtonInputs {
+export type GenericButtonInputs = {
   readonly variant?: ButtonVariant;
   readonly size?: ButtonSize;
   /** Theme color token key (e.g. accentColor, secondaryLinkColor, linkColor, success, warning ...) */
@@ -15,4 +15,4 @@ export interface GenericButtonInputs {
   readonly loading?: boolean;
   readonly icon?: string; // Material icon name (leading icon)
   readonly type?: 'button' | 'submit' | 'reset';
-}
+};

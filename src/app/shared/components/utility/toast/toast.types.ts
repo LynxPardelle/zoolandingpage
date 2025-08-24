@@ -1,12 +1,12 @@
 export type ToastLevel = 'success' | 'error' | 'warning' | 'info';
 
-export interface ToastAction {
+export type ToastAction = {
   readonly label: string;
   readonly action: () => void;
   readonly style?: 'primary' | 'secondary';
-}
+};
 
-export interface ToastMessage {
+export type ToastMessage = {
   readonly id: string;
   readonly level: ToastLevel;
   readonly title?: string;
@@ -19,16 +19,16 @@ export interface ToastMessage {
   // Runtime flags for animations
   leaving?: boolean;
   entering?: boolean;
-}
+};
 
-export interface ToastPosition {
+export type ToastPosition = {
   readonly vertical: 'top' | 'bottom';
   readonly horizontal: 'left' | 'right' | 'center';
-}
+};
 
-export interface ToastConfig {
+export type ToastConfig = {
   readonly position: ToastPosition;
   readonly maxVisible: number;
   readonly defaultAutoCloseMs: number;
   readonly animationDuration: number;
-}
+};

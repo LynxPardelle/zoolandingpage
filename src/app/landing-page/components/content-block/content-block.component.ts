@@ -7,7 +7,7 @@ import type { ContentBlockData } from './content-block.types';
   selector: 'content-block',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: 'content-block.component.html',
+  templateUrl: './content-block.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ContentBlockComponent {

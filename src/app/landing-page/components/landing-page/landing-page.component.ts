@@ -1,30 +1,19 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { environment } from '../../environments/environment';
-import { ModalComponent } from '../shared/components/modal';
-import { ToastComponent, ToastService } from '../shared/components/utility/toast';
-import { FaqSectionComponent } from './components/faq-section/faq-section.component';
-import { FeaturesSectionComponent } from './components/features-section/features-section.component';
-import { FinalCtaSectionComponent } from './components/final-cta-section/final-cta-section.component';
-import { HeroSectionComponent } from './components/hero-section';
-import { InteractiveProcessComponent } from './components/interactive-process/interactive-process.component';
-import { RoiCalculatorSectionComponent } from './components/roi-calculator-section/roi-calculator-section.component';
-import { RoiNoteComponent } from './components/roi-note/roi-note.component';
-import { ServicesSectionComponent } from './components/services-section/services-section.component';
-import { TestimonialsSectionComponent } from './components/testimonials-section/testimonials-section.component';
+import { environment } from '../../../../environments/environment';
+import { ModalComponent } from '../../../shared/components/modal';
+import { ToastComponent, ToastService } from '../../../shared/components/utility/toast';
+import { FaqSectionComponent } from '../faq-section/faq-section.component';
+import { FeaturesSectionComponent } from '../features-section/features-section.component';
+import { FinalCtaSectionComponent } from '../final-cta-section/final-cta-section.component';
+import { HeroSectionComponent } from '../hero-section';
+import { InteractiveProcessComponent } from '../interactive-process/interactive-process.component';
+import { RoiCalculatorSectionComponent } from '../roi-calculator-section/roi-calculator-section.component';
+import { RoiNoteComponent } from '../roi-note/roi-note.component';
+import { ServicesSectionComponent } from '../services-section/services-section.component';
+import { TestimonialsSectionComponent } from '../testimonials-section/testimonials-section.component';
 
-type FeatureCard = { icon: string; title: string; description: string; benefits: readonly string[] };
-type ServiceCard = { icon: string; title: string; description: string; features: readonly string[]; color: string };
-type TestimonialCard = { name: string; role: string; company: string; content: string; rating: number; avatar: string };
-type InteractiveProcess = {
-  step: number;
-  title: string;
-  description: string;
-  detailedDescription: string;
-  duration: string;
-  deliverables: readonly string[];
-  isActive: boolean;
-};
+import type { FeatureCard, InteractiveProcess, ServiceCard, TestimonialCard } from './landing-page.types';
 
 @Component({
   selector: 'app-landing-page',
@@ -44,47 +33,7 @@ type InteractiveProcess = {
     ModalComponent,
     ToastComponent,
   ],
-  template: `
-    <hero-section
-      id="home"
-      [data]="heroData()"
-      (primary)="openWhatsApp(); trackCTAClick('primary', 'hero')"
-      (secondary)="toggleCalculator(); trackCTAClick('secondary', 'hero')"
-    ></hero-section>
-    <roi-note id="roi-section"></roi-note>
-    <features-section id="features-section" [features]="features()"></features-section>
-    <interactive-process
-      id="process-section"
-      [process]="interactiveProcess()"
-      [currentStep]="currentDemoStep()"
-      (selectStep)="setDemoStep($event)"
-    ></interactive-process>
-    <services-section
-      id="services-section"
-      [services]="services()"
-      (serviceCta)="trackCTAClick('service', $event); openWhatsApp()"
-    ></services-section>
-    <roi-calculator-section
-      id="roi-calculator-section"
-      [businessSize]="calculatorBusinessSize()"
-      [industry]="calculatorIndustry()"
-      [visitors]="calculatorVisitors()"
-      [calculatedROI]="calculatedROI()"
-      (businessSizeChange)="updateBusinessSize($event)"
-      (industryChange)="updateIndustry($event)"
-    ></roi-calculator-section>
-    <testimonials-section id="testimonials-section" [testimonials]="testimonials()"></testimonials-section>
-    <faq-section id="faq-section"></faq-section>
-    <final-cta-section
-      id="contact-section"
-      (primary)="openWhatsApp(); trackCTAClick('primary', 'final-cta')"
-      (secondary)="toggleCalculator(); trackCTAClick('secondary', 'final-cta')"
-    ></final-cta-section>
-
-    <!-- Advanced component hosts -->
-    <app-modal-host></app-modal-host>
-    <app-toast-host></app-toast-host>
-  `,
+  templateUrl: './landing-page.component.html',
 })
 export class LandingPageComponent {
   private readonly toast = inject(ToastService);
@@ -331,13 +280,63 @@ export class LandingPageComponent {
     },
   ]);
 
-  readonly calculatedROI = computed(() => ({ roiPercentage: 150, conversionImprovement: 2, monthlyIncrease: 10000 }));
+  // ROI calculation based on business size, industry and visitors (migrated from legacy App component)
+  readonly calculatedROI = computed(() => {
+    const businessSize = this.calculatorBusinessSize();
+    const industry = this.calculatorIndustry();
+    const visitors = this.calculatorVisitors();
+
+    let baseROI = 150;
+    let conversionRate = 0.02;
+
+    const sizeMultipliers = {
+      nano: { roi: 1.2, conversion: 1.1 },
+      micro: { roi: 1.5, conversion: 1.3 },
+      small: { roi: 1.8, conversion: 1.5 },
+      medium: { roi: 2.2, conversion: 1.7 },
+    } as const;
+
+    const industryMultipliers: Record<string, { roi: number; conversion: number }> = {
+      ecommerce: { roi: 1.8, conversion: 1.6 },
+      services: { roi: 1.5, conversion: 1.4 },
+      restaurant: { roi: 1.3, conversion: 1.2 },
+      health: { roi: 1.6, conversion: 1.5 },
+      education: { roi: 1.4, conversion: 1.3 },
+      'real-estate': { roi: 2.0, conversion: 1.8 },
+      consulting: { roi: 1.7, conversion: 1.5 },
+    };
+
+    const sizeMultiplier = sizeMultipliers[businessSize];
+    const industryMultiplier = industryMultipliers[industry] || industryMultipliers['services'];
+
+    const finalROI = Math.round(baseROI * sizeMultiplier.roi * industryMultiplier.roi);
+    const finalConversion =
+      Math.round(conversionRate * sizeMultiplier.conversion * industryMultiplier.conversion * 100) / 100;
+
+    const averageOrderValue =
+      businessSize === 'nano' ? 500 : businessSize === 'micro' ? 800 : businessSize === 'small' ? 1200 : 2000;
+    const monthlyIncrease = Math.round(visitors * finalConversion * averageOrderValue * 0.3);
+
+    return {
+      roiPercentage: finalROI,
+      monthlyIncrease,
+      conversionImprovement: Math.round((finalConversion / conversionRate) * 10) / 10,
+    };
+  });
 
   toggleCalculator(): void {
     this.isCalculatorVisible.update(v => !v);
   }
   setDemoStep(step: number): void {
     this.currentDemoStep.set(step);
+
+    // Update demo data reactively
+    this.interactiveProcess.update(demos =>
+      demos.map(demo => ({
+        ...demo,
+        isActive: demo.step === step + 1,
+      }))
+    );
   }
   updateBusinessSize(size: 'nano' | 'micro' | 'small' | 'medium'): void {
     this.calculatorBusinessSize.set(size);
@@ -352,12 +351,18 @@ export class LandingPageComponent {
     const message = encodeURIComponent(
       '¡Hola! Me interesa conocer más sobre sus servicios de consultoría tecnológica para landing pages. ¿Podrían ayudarme?'
     );
-    window.open(`https://wa.me/1234567890?text=${message}`, '_blank');
+    window.open(`https://wa.me/+525522699563?text=${ message }`, '_blank');
   }
   trackCTAClick(ctaType: string, location: string): void {
     if (environment.features.analytics) {
       // eslint-disable-next-line no-console
-      console.log(`CTA clicked: ${ctaType} at ${location}`);
+      console.log(`CTA clicked: ${ ctaType } at ${ location }`);
+    }
+  }
+  trackSectionView(sectionName: string): void {
+    if (environment.features.analytics) {
+      console.log(`Section viewed: ${ sectionName }`);
+      // Here would go actual analytics tracking
     }
   }
 }

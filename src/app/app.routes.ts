@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { LandingPageComponent } from './landingpage/landing.page';
+import { LandingPageComponent } from './landing-page/components/landing-page';
 
 export const routes: Routes = [
   {
@@ -8,5 +8,8 @@ export const routes: Routes = [
     component: LandingPageComponent,
     title: 'Landing Page Optimizada',
   },
-  // future routes could go here
+  {
+    path: '**',
+    redirectTo: '',
+  },
 ];

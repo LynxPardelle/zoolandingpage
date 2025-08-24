@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
-import { LandingPageComponent } from '../../../../landingpage/landing.page';
+import { LandingPageComponent } from '../../../../landingpage/components/landing-page/landing-page.component';
 import { AnalyticsService } from '../../../../shared/services/analytics.service';
 import { AppShellComponent } from './app-shell.component';
 
