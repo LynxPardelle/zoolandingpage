@@ -15,7 +15,7 @@ export type ContainerProps = {
   size?: ContainerSize;
   alignment?: ContainerAlignment;
   className?: string;
-  children?: any;
+  children?: unknown;
 };
 
 // Section component types
@@ -27,7 +27,7 @@ export type SectionProps = {
   variant?: SectionVariant;
   spacing?: SectionSpacing;
   className?: string;
-  children?: any;
+  children?: unknown;
 };
 
 // Header component types

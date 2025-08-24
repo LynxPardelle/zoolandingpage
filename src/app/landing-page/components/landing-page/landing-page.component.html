@@ -1,0 +1,39 @@
+<hero-section
+  id="home"
+  [data]="heroData()"
+  (primary)="openWhatsApp(); trackCTAClick('primary', 'hero')"
+  (secondary)="toggleCalculator(); trackCTAClick('secondary', 'hero')"
+></hero-section>
+<roi-note id="roi-section"></roi-note>
+<features-section id="features-section" [features]="features()"></features-section>
+<interactive-process
+  id="process-section"
+  [process]="interactiveProcess()"
+  [currentStep]="currentDemoStep()"
+  (selectStep)="setDemoStep($event)"
+></interactive-process>
+<services-section
+  id="services-section"
+  [services]="services()"
+  (serviceCta)="trackCTAClick('service', $event); openWhatsApp()"
+></services-section>
+<roi-calculator-section
+  id="roi-calculator-section"
+  [businessSize]="calculatorBusinessSize()"
+  [industry]="calculatorIndustry()"
+  [visitors]="calculatorVisitors()"
+  [calculatedROI]="calculatedROI()"
+  (businessSizeChange)="updateBusinessSize($event)"
+  (industryChange)="updateIndustry($event)"
+></roi-calculator-section>
+<testimonials-section id="testimonials-section" [testimonials]="testimonials()"></testimonials-section>
+<faq-section id="faq-section"></faq-section>
+<final-cta-section
+  id="contact-section"
+  (primary)="openWhatsApp(); trackCTAClick('primary', 'final-cta')"
+  (secondary)="toggleCalculator(); trackCTAClick('secondary', 'final-cta')"
+></final-cta-section>
+
+<!-- Advanced component hosts -->
+<app-modal-host></app-modal-host>
+<app-toast-host></app-toast-host>

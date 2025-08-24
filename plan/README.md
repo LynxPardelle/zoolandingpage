@@ -35,12 +35,12 @@ The plan is organized in phases, steps, and tasks:
 
 #### Steps Overview
 
-1. **[Generic Components](./phase 1/steps/step1 - Generic Components/plan.md)** - Create reusable UI components using ngx-angora-css
-2. **[Core Layout Setup](./phase 1/steps/step2 - Core Layout Setup/plan.md)** - Implement basic page structure and navigation
-3. **Hero Section** - Develop compelling landing page header
-4. **Content Sections** - Build educational and service sections
-5. **Analytics Integration** - Implement basic tracking and WebSocket integration
-6. **Internationalization** - Add Spanish/English language support
+1. **[Generic Components](./phase 1/steps/step1 - Generic Components/plan.md)** — Create reusable UI components using ngx-angora-css
+2. **[Core Layout Setup](./phase 1/steps/step2 - Core Layout Setup/plan.md)** — Implement app shell, routing, and layout components
+3. **[Experience Enhancements](./phase 1/steps/step3 - Experience Enhancements/plan.md)** — Theme/Language integration, analytics expansion, accessible animations
+4. **[Landing Content Build-out](./phase 1/steps/step4 - Landing Content Build-out/plan.md)** — Assemble hero, features/services, ROI, social proof, and conversion surfaces
+5. **Analytics Integration** - Implement tracking and Websocket integration
+6. **Internationalization** - Add spanish/English language support
 7. **Contact Integration** - WhatsApp and form contact methods
 
 ### Phase 2: Enhanced Features (3-4 weeks)

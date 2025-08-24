@@ -34,10 +34,10 @@ export class SearchBoxComponent implements OnDestroy {
   private readonly overlaySvc = inject(OverlayPositioningService);
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly vcr = inject(ViewContainerRef);
-  @ViewChild('resultsTpl') resultsTpl!: TemplateRef<any>;
+  @ViewChild('resultsTpl') resultsTpl!: TemplateRef<unknown>;
   private overlayRef: OverlayRef | null = null;
   // Optional custom item template projection
-  itemTemplate = contentChild<TemplateRef<any>>('searchItem');
+  itemTemplate = contentChild<TemplateRef<unknown>>('searchItem');
 
   readonly term = signal('');
   readonly results = signal<readonly SearchSuggestion[]>([]);
@@ -46,7 +46,7 @@ export class SearchBoxComponent implements OnDestroy {
   readonly listboxId = 'sb-listbox-' + Math.random().toString(36).slice(2);
   readonly inputId = 'sb-input-' + Math.random().toString(36).slice(2);
   private history: SearchSuggestion[] = [];
-  private debounceTimer: any;
+  private debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly selectSuggestion = output<SearchSuggestion>();
 
@@ -66,7 +66,7 @@ export class SearchBoxComponent implements OnDestroy {
     this.schedule();
   }
   private schedule() {
-    clearTimeout(this.debounceTimer);
+    if (this.debounceTimer) clearTimeout(this.debounceTimer);
     this.debounceTimer = setTimeout(() => this.perform(), this.debounceMs());
   }
   private async perform() {
@@ -142,7 +142,7 @@ export class SearchBoxComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
-    clearTimeout(this.debounceTimer);
+    if (this.debounceTimer) clearTimeout(this.debounceTimer);
     this.destroyOverlay();
   }
 }

@@ -6,6 +6,7 @@ import {
   Component,
   ElementRef,
   Input,
+  TemplateRef,
   ViewContainerRef,
   computed,
   inject,
@@ -34,11 +35,11 @@ export class TooltipComponent {
   readonly visible = signal(false);
   readonly content = input<string>('');
   @Input() arrow = true;
-  @Input() richTemplate?: any; // optional ng-template for rich content
-  private showTimer: any;
-  private hideTimer: any;
+  @Input() richTemplate?: TemplateRef<unknown>; // optional ng-template for rich content
+  private showTimer: ReturnType<typeof setTimeout> | null = null;
+  private hideTimer: ReturnType<typeof setTimeout> | null = null;
 
-  readonly id = computed(() => this.config()?.id || `tt-${Math.random().toString(36).slice(2)}`);
+  readonly id = computed(() => this.config()?.id || `tt-${ Math.random().toString(36).slice(2) }`);
   readonly ariaDescription = computed(() => this.config()?.ariaDescription || this.content());
   readonly ariaLive = computed(() => this.config()?.ariaLive || 'off');
 
@@ -135,7 +136,10 @@ export class TooltipComponent {
 
   private buildPositions(pos: TooltipPosition) {
     // Provide primary + fallback flip positions
-    const map: Record<TooltipPosition, any[]> = {
+    const map: Record<
+      TooltipPosition,
+      ReadonlyArray<{ originX: 'start' | 'center' | 'end'; originY: 'top' | 'center' | 'bottom'; overlayX: 'start' | 'center' | 'end'; overlayY: 'top' | 'center' | 'bottom'; offsetX?: number; offsetY?: number }>
+    > = {
       top: [
         { originX: 'center', originY: 'top', overlayX: 'center', overlayY: 'bottom', offsetY: -6 },
         { originX: 'center', originY: 'bottom', overlayX: 'center', overlayY: 'top', offsetY: 6 },
@@ -166,5 +170,5 @@ export class TooltipComponent {
     }
   }
 
-  @Input('tooltipTpl') tooltipTpl!: any; // template reference
+  @Input('tooltipTpl') tooltipTpl!: TemplateRef<unknown>; // template reference
 }

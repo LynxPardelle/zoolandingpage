@@ -4,15 +4,16 @@ import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   ElementRef,
   HostListener,
-  Input,
-  ViewContainerRef,
-  computed,
   inject,
+  Input,
   input,
   output,
   signal,
+  TemplateRef,
+  ViewContainerRef
 } from '@angular/core';
 import { OverlayPositioningService } from '../../services/overlay-positioning.service';
 
@@ -43,8 +44,7 @@ export class DropdownComponent {
   readonly activeIndex = signal<number>(-1); // exposed for aria-activedescendant
   private menuButtons: HTMLButtonElement[] = [];
   private triggerBtn!: HTMLButtonElement;
-
-  @Input('menuTpl') menuTpl!: any; // scaffold placeholder (template reference)
+  @Input('menuTpl') menuTpl!: TemplateRef<unknown>; // scaffold placeholder (template reference)
 
   ngAfterViewInit(): void {
     // capture trigger for focus restoration
