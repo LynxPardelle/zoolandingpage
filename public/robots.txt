@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://zoolandingpage.com/sitemap.xml

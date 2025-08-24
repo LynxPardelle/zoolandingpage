@@ -1,22 +1,26 @@
 <app-section variant="accent" spacing="lg">
   <app-container size="lg">
     <div class="ank-textAlign-center">
-      <h2 class="ank-fs-2rem ank-fontWeight-bold ank-mb-16px ank-color-titleColor">
-        Publica una landing que vende y aprende con datos reales
-      </h2>
+      <h2 class="ank-fs-2rem ank-fontWeight-bold ank-mb-16px ank-color-titleColor">{{ title() }}</h2>
       <p class="ank-fs-1_5rem ank-color-textColor ank-mb-32px ank-maxWidth-600px ank-mx-auto">
-        Empieza hoy con una Landing Page Optimizada: rápida, clara y medible.<br />Suscripción desde 900 MXN/mes.
+        {{ subtitle() }}
       </p>
       <div
-        class="ank-display-flex ank-flexDirection-column ank-flexDirection-sm-row ank-gap-16px ank-justifyContent-center ank-mb-32px"
+        class="ank-display-flex ank-flexDirection-column ank-flexDirection-sm-row ank-gap-16px ank-justifyContent-center ank-mb-32px ank-alignItems-stretch"
       >
-        <generic-button label="Hablar por WhatsApp" variant="secondary" size="lg" (pressed)="onPrimary()" />
-        <generic-button
-          label="Empieza a vender con tu nueva Landing Page"
-          variant="outline"
-          size="lg"
-          (pressed)="onSecondary()"
+        <whatsapp-button
+          [config]="{
+            phone: whatsAppPhone(),
+            message: whatsAppMessage(),
+            label: primaryLabel(),
+            variant: 'secondary',
+            size: 'lg',
+            colorKey: 'secondaryAccentColor',
+            target: '_blank'
+          }"
+          (activated)="onWhatsAppActivated()"
         />
+        <generic-button [label]="secondaryLabel()" variant="outline" size="lg" (pressed)="onSecondary()" />
       </div>
       <div class="ank-display-flex ank-flexDirection-column ank-alignItems-center ank-gap-16px ank-opacity-70">
         <p class="ank-fs-1rem ank-color-textColor ank-m-0">

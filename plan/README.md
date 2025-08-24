@@ -39,9 +39,15 @@ The plan is organized in phases, steps, and tasks:
 2. **[Core Layout Setup](./phase 1/steps/step2 - Core Layout Setup/plan.md)** — Implement app shell, routing, and layout components
 3. **[Experience Enhancements](./phase 1/steps/step3 - Experience Enhancements/plan.md)** — Theme/Language integration, analytics expansion, accessible animations
 4. **[Landing Content Build-out](./phase 1/steps/step4 - Landing Content Build-out/plan.md)** — Assemble hero, features/services, ROI, social proof, and conversion surfaces
-5. **Analytics Integration** - Implement tracking and Websocket integration
-6. **Internationalization** - Add spanish/English language support
-7. **Contact Integration** - WhatsApp and form contact methods
+5. **[Launch Readiness & Deployment](./phase 1/steps/step5 - Launch Readiness & Deployment/plan.md)** — Performance, accessibility, SEO/meta, analytics QA, deployment, i18n, final tests/docs
+
+   - [Task 1: Performance & Budgets](./phase 1/steps/step5 - Launch Readiness & Deployment/tasks/task1 - Performance & Budgets/plan.md)
+   - [Task 2: Accessibility & Compliance](./phase 1/steps/step5 - Launch Readiness & Deployment/tasks/task2 - Accessibility & Compliance/plan.md)
+   - [Task 3: SEO & Metadata](./phase 1/steps/step5 - Launch Readiness & Deployment/tasks/task3 - SEO & Metadata/plan.md)
+   - [Task 4: Analytics QA & Event Catalog](./phase 1/steps/step5 - Launch Readiness & Deployment/tasks/task4 - Analytics QA & Event Catalog/plan.md)
+   - [Task 5: Deployment & Ops](./phase 1/steps/step5 - Launch Readiness & Deployment/tasks/task5 - Deployment & Ops/plan.md)
+   - [Task 6: i18n Coverage & Content Freeze](./phase 1/steps/step5 - Launch Readiness & Deployment/tasks/task6 - i18n Coverage & Content Freeze/plan.md)
+   - [Task 7: Final Testing & Docs](./phase 1/steps/step5 - Launch Readiness & Deployment/tasks/task7 - Final Testing & Docs/plan.md)
 
 ### Phase 2: Enhanced Features (3-4 weeks)
 

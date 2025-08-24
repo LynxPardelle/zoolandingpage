@@ -1,31 +1,36 @@
-<a class="ank-position-absolute ank-s-0 ank-t-0 ank-w-1px ank-h-1px ank-overflow-hidden ank-positionFocus-static ank-wFocus-auto ank-hFocus-auto ank-pFocus-0_5rem__1rem ank-bgFocus-abyss ank-colorFocus-white ank-zIndexFocus-1000" [href]="'#main-content'" (click)="focusMain($event)">{{
-  cfg().skipLinkLabel || 'Skip to content'
-}}</a>
+<a
+  class="ank-position-absolute ank-s-0 ank-t-0 ank-w-1px ank-h-1px ank-overflow-hidden ank-positionFocus-static ank-wFocus-auto ank-hFocus-auto ank-pFocus-0_5rem__1rem ank-bgFocus-abyss ank-colorFocus-white ank-zIndexFocus-1000"
+  [href]="'#main-content'"
+  role="link"
+  [attr.aria-label]="skipLabel()"
+  (click)="focusMain($event)"
+  >{{ skipLabel() }}</a
+>
 <app-header [config]="headerConfig()" (navChange)="onNavChange($event)"></app-header>
 <main id="main-content" class="ank-outline-none" #main role="main" tabindex="-1">
   <router-outlet></router-outlet>
 </main>
 @defer {
-  <app-footer></app-footer>
+<app-footer></app-footer>
 } @placeholder {
-  <footer class="ank-bg-secondaryBgColor ank-color-secondaryTextColor ank-py-24px ank-px-16px">
-    <div class="ank-container ank-maxWidth-7xl ank-marginInline-auto ank-display-flex ank-jc-center ank-gap-16px">
-      <div class="ank-width-160px ank-height-12px ank-bg-bgColor ank-opacity-40 ank-borderRadius-8px"></div>
-      <div class="ank-width-200px ank-height-12px ank-bg-bgColor ank-opacity-30 ank-borderRadius-8px"></div>
-    </div>
-  </footer>
+<footer class="ank-bg-secondaryBgColor ank-color-secondaryTextColor ank-py-24px ank-px-16px">
+  <div class="ank-container ank-maxWidth-7xl ank-marginInline-auto ank-display-flex ank-jc-center ank-gap-16px">
+    <div class="ank-width-160px ank-height-12px ank-bg-bgColor ank-opacity-40 ank-borderRadius-8px"></div>
+    <div class="ank-width-200px ank-height-12px ank-bg-bgColor ank-opacity-30 ank-borderRadius-8px"></div>
+  </div>
+</footer>
 } @loading {
-  <footer class="ank-bg-secondaryBgColor ank-py-24px ank-px-16px">
-    <div class="ank-container ank-maxWidth-7xl ank-marginInline-auto ank-textAlign-center ank-color-secondaryTextColor">
-      Cargando pie de página…
-    </div>
-  </footer>
+<footer class="ank-bg-secondaryBgColor ank-py-24px ank-px-16px">
+  <div class="ank-container ank-maxWidth-7xl ank-marginInline-auto ank-textAlign-center ank-color-secondaryTextColor">
+    Cargando pie de página…
+  </div>
+</footer>
 } @error {
-  <footer class="ank-bg-secondaryBgColor ank-py-24px ank-px-16px">
-    <div class="ank-container ank-maxWidth-7xl ank-marginInline-auto ank-textAlign-center ank-color-secondaryTextColor">
-      No se pudo cargar el pie de página.
-    </div>
-  </footer>
+<footer class="ank-bg-secondaryBgColor ank-py-24px ank-px-16px">
+  <div class="ank-container ank-maxWidth-7xl ank-marginInline-auto ank-textAlign-center ank-color-secondaryTextColor">
+    No se pudo cargar el pie de página.
+  </div>
+</footer>
 }
 
 <!-- Advanced component hosts -->
@@ -34,54 +39,79 @@
 
 <!-- Dev-only demo controls -->
 @if (debugMode) {
-  <div
-    style="
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      padding: 0.5rem;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      z-index: 1200;
-      max-width: 300px;
-    "
+<div
+  style="
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    padding: 0.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    z-index: 1200;
+    max-width: 300px;
+  "
+>
+  <button
+    class="btnBaseVALSVL0_5remVL0_5rem ank-fs-0_5rem ank-btn-bgColor ank-bgcl-primary ank-color-textColor"
+    (click)="showDemoModal()"
   >
-    <button
-      class="btnBaseVALSVL0_5remVL0_5rem ank-fs-0_5rem ank-btn-bgColor ank-bgcl-primary ank-color-textColor"
-      (click)="showDemoModal()"
-    >
-      Modal
-    </button>
-    <button
-      class="btnBaseVALSVL0_5remVL0_5rem ank-fs-0_5rem ank-btn-bgColor ank-bgcl-success ank-color-textColor"
-      (click)="showDemoToast()"
-    >
-      Toast
-    </button>
-    <button
-      class="btnBaseVALSVL0_5remVL0_5rem ank-fs-0_5rem ank-btn-bgColor ank-bgcl-error ank-color-textColor"
-      (click)="showErrorToast()"
-    >
-      Error
-    </button>
-    <button
-      class="btnBaseVALSVL0_5remVL0_5rem ank-fs-0_5rem ank-btn-bgColor ank-bgcl-warning ank-color-textColor"
-      (click)="showActionToast()"
-    >
-      Actions
-    </button>
-    <button
-      class="btnBaseVALSVL0_5remVL0_5rem ank-fs-0_5rem ank-btn-bgColor ank-bgcl-info ank-color-textColor"
-      (click)="showPositionDemo()"
-    >
-      Position
-    </button>
-    <button
-      class="btnBaseVALSVL0_5remVL0_5rem ank-fs-0_5rem ank-btn-bgColor ank-bgcl-secondary ank-color-textColor"
-      (click)="clearAllToasts()"
-    >
-      Clear
-    </button>
-  </div>
+    Modal
+  </button>
+  <button
+    class="btnBaseVALSVL0_5remVL0_5rem ank-fs-0_5rem ank-btn-bgColor ank-bgcl-success ank-color-textColor"
+    (click)="showDemoToast()"
+  >
+    Toast
+  </button>
+  <button
+    class="btnBaseVALSVL0_5remVL0_5rem ank-fs-0_5rem ank-btn-bgColor ank-bgcl-error ank-color-textColor"
+    (click)="showErrorToast()"
+  >
+    Error
+  </button>
+  <button
+    class="btnBaseVALSVL0_5remVL0_5rem ank-fs-0_5rem ank-btn-bgColor ank-bgcl-warning ank-color-textColor"
+    (click)="showActionToast()"
+  >
+    Actions
+  </button>
+  <button
+    class="btnBaseVALSVL0_5remVL0_5rem ank-fs-0_5rem ank-btn-bgColor ank-bgcl-info ank-color-textColor"
+    (click)="showPositionDemo()"
+  >
+    Position
+  </button>
+  <button
+    class="btnBaseVALSVL0_5remVL0_5rem ank-fs-0_5rem ank-btn-bgColor ank-bgcl-secondary ank-color-textColor"
+    (click)="clearAllToasts()"
+  >
+    Clear
+  </button>
+</div>
+
+<div
+  style="
+    position: fixed;
+    bottom: 0;
+    right: 50vw;
+    margin: 0.5rem;
+    padding: 0.5rem;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    font-size: 12px;
+    border-radius: 6px;
+    max-width: 360px;
+    max-height: 40vh;
+    overflow: auto;
+    z-index: 1200;
+  "
+>
+  <div style="font-weight: 600; margin-bottom: 0.25rem">Analytics (latest)</div>
+  <ul style="margin: 0; padding-left: 1rem">
+    @for (e of recentEvents(); track $index) {
+    <li>{{ e }}</li>
+    }
+  </ul>
+</div>
 }

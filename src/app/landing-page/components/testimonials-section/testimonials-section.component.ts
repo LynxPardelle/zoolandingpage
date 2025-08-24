@@ -13,4 +13,9 @@ import { TestimonialItem } from './testimonials-section.types';
 })
 export class TestimonialsSectionComponent {
   readonly testimonials = input.required<readonly TestimonialItem[]>();
+  // Localizable section heading with sensible defaults (overridden by parent)
+  readonly title = input<string>('Resultados que generan confianza');
+  readonly subtitle = input<string>(
+    'Historias breves de clientes que ya están captando clientes de una mejor manera y gastan mejor su presupuesto'
+  );
 }

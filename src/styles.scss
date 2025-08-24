@@ -10,6 +10,12 @@ body {
   transition: all 200ms ease-in-out;
 }
 
+/* Default visible focus ring for keyboard nav */
+:where(a, button, [role='button'], input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--ank-accentColor, #1976d2);
+  outline-offset: 2px;
+}
+
 /* Visually hidden utility (for aria-live regions, etc.) */
 .visually-hidden {
   position: absolute !important;

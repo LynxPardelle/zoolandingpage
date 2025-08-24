@@ -1,8 +1,8 @@
 <app-section spacing="lg">
   <app-container size="xl">
     <div class="ank-textAlign-center ank-mb-64px">
-      <h2 class="ank-fs-2rem ank-fontWeight-bold ank-mb-16px ank-color-titleColor">Resultados que generan confianza</h2>
-      <p class="ank-fs-1_5rem ank-color-textColor">Historias breves de clientes que ya están captando clientes de una mejor manera y gastan mejor su presupuesto</p>
+      <h2 class="ank-fs-2rem ank-fontWeight-bold ank-mb-16px ank-color-titleColor">{{ title() }}</h2>
+      <p class="ank-fs-1_5rem ank-color-textColor">{{ subtitle() }}</p>
     </div>
     @defer (on viewport; prefetch on idle) {
     <div class="gridCol2">@for (t of testimonials(); track t.name) { <testimonial-card [data]="t" /> }</div>

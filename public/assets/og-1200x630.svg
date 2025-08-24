@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">ZooLandingPage — Social Preview</title>
+  <desc id="desc">Placeholder Open Graph image for ZoolandingPage</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#111827"/>
+      <stop offset="100%" stop-color="#1f2937"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <g fill="#ffffff">
+    <text x="60" y="200" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="64" font-weight="700">ZooLandingPage</text>
+    <text x="60" y="270" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="36" opacity="0.9">Fast, clear, and measurable landing pages</text>
+  </g>
+  <g transform="translate(60,360)">
+    <rect width="320" height="24" rx="12" fill="#10b981"/>
+    <text x="16" y="18" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="14" fill="#0b1020">Optimized for conversion</text>
+    <rect x="340" width="260" height="24" rx="12" fill="#06b6d4"/>
+  <text x="356" y="18" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="14" fill="#0b1020">Structured data &amp; analytics</text>
+    <rect x="610" width="260" height="24" rx="12" fill="#f59e0b"/>
+  <text x="626" y="18" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="14" fill="#0b1020">Accessible &amp; responsive</text>
+  </g>
+</svg>

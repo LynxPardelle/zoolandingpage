@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">ZooLandingPage — Logo</title>
+  <desc id="desc">Placeholder logo for ZoolandingPage</desc>
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="#0b1020"/>
+  <g transform="translate(96,96)">
+    <circle cx="160" cy="160" r="144" fill="url(#g)" opacity="0.9"/>
+    <path d="M160 80 L220 240 L100 240 Z" fill="#ffffff" opacity="0.9"/>
+  </g>
+</svg>

@@ -15,6 +15,7 @@ import {
   ViewChild,
   ViewContainerRef,
 } from '@angular/core';
+import { AriaLiveService } from '../../services/aria-live.service';
 import { MotionPreferenceService } from '../../services/motion-preference.service';
 import { DEFAULT_MODAL_CONFIG } from './modal.constants';
 import { ModalService } from './modal.service';
@@ -43,12 +44,16 @@ export class ModalComponent {
   readonly motion = inject(MotionPreferenceService);
 
   constructor(private host: ElementRef<HTMLElement>, private vcr: ViewContainerRef) {
+    // Announce open/close changes politely
+    const live = inject(AriaLiveService);
     effect(() => {
       const active = !!this.modalService.modalRef();
       if (active && !this.overlayRef) {
         this.openModal();
+        live.announce('Dialog opened', 'polite');
       } else if (!active && this.overlayRef) {
         this.closeModal();
+        live.announce('Dialog closed', 'polite');
       }
     });
   }

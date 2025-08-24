@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { AppContainerComponent, AppSectionComponent } from '../../../core/components/layout';
+import { AnalyticsCategories, AnalyticsEvents } from '../../../shared/services/analytics.events';
 import { AnalyticsService } from '../../../shared/services/analytics.service';
 
 @Component({
@@ -24,7 +25,10 @@ export class ServicesSectionComponent {
   >();
   readonly serviceCta = output<string>();
   onCta(title: string) {
-    this.analytics.track('services_cta_click', { category: 'services', label: title });
+    this.analytics.track(AnalyticsEvents.ServicesCtaClick, {
+      category: AnalyticsCategories.Services,
+      label: title,
+    });
     this.serviceCta.emit(title);
   }
 }
