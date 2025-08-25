@@ -1,7 +1,1 @@
-export type BusinessSize = 'nano' | 'micro' | 'small' | 'medium';
-
-export type CalculatedRoi = {
-  readonly roiPercentage: number;
-  readonly conversionImprovement: number;
-  readonly monthlyIncrease: number;
-};
+// Deprecated: ROI types removed. Use conversion-calculator-section.types.

@@ -26,7 +26,7 @@
 - **Sketch-style Tutorial**: Hand-drawn animations showing landing page anatomy
 - **Live Demo Builder**: Interactive wireframe creation tool
 - **Real-time Analytics**: Anonymized visitor behavior dashboard
-- **ROI Calculator**: Business impact estimator
+- **Conversion Calculator**: Business impact estimator
 
 ### 🌐 **Multi-language Support**
 

@@ -4,12 +4,12 @@ import { MatIconModule } from '@angular/material/icon';
 import { Meta, Title } from '@angular/platform-browser';
 import { ModalComponent } from '../../../shared/components/modal';
 import { ToastComponent, ToastService } from '../../../shared/components/utility/toast';
+import { ConversionCalculatorSectionComponent } from '../conversion-calculator-section/conversion-calculator-section.component';
 import { FaqSectionComponent } from '../faq-section/faq-section.component';
 import { FeaturesSectionComponent } from '../features-section/features-section.component';
 import { FinalCtaSectionComponent } from '../final-cta-section/final-cta-section.component';
 import { HeroSectionComponent } from '../hero-section';
 import { InteractiveProcessComponent } from '../interactive-process/interactive-process.component';
-import { RoiCalculatorSectionComponent } from '../roi-calculator-section/roi-calculator-section.component';
 import { RoiNoteComponent } from '../roi-note/roi-note.component';
 import { ServicesSectionComponent } from '../services-section/services-section.component';
 import { TestimonialsSectionComponent } from '../testimonials-section/testimonials-section.component';
@@ -32,7 +32,7 @@ import type { FeatureCard, InteractiveProcess, ServiceCard, TestimonialCard } fr
     FeaturesSectionComponent,
     InteractiveProcessComponent,
     ServicesSectionComponent,
-    RoiCalculatorSectionComponent,
+    ConversionCalculatorSectionComponent,
     TestimonialsSectionComponent,
     FaqSectionComponent,
     FinalCtaSectionComponent,
@@ -501,7 +501,7 @@ export class LandingPageComponent {
     },
   ]);
 
-  // ROI calculation based on business size, industry and visitors (migrated from legacy App component)
+  // Conversion/Revenue calculation based on business size, industry and visitors (migrated from legacy App component)
   readonly calculatedROI = computed(() => {
     const businessSize = this.calculatorBusinessSize();
     const industry = this.calculatorIndustry();
@@ -706,11 +706,11 @@ export class LandingPageComponent {
     }
     const ids = [
       'home',
-      'roi-section',
+      'conversion-section',
       'features-section',
       'process-section',
       'services-section',
-      'roi-calculator-section',
+      'conversion-calculator-section',
       'testimonials-section',
       'faq-section',
       'contact-section',

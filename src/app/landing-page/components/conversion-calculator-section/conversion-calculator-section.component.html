@@ -1,0 +1,280 @@
+<app-section variant="accent" spacing="lg">
+  <app-container size="lg">
+    <div class="ank-textAlign-center ank-mb-48px">
+      <h2 class="ank-fs-2rem ank-fontWeight-bold ank-mb-16px ank-color-titleColor">Calculadora de Conversión</h2>
+      <p class="ank-fs-1_5rem ank-color-textColor ank-mb-16px">
+        Estima el impacto en conversiones y ventas con una landing optimizada
+      </p>
+      <p class="ank-fs-1rem ank-color-textColor ank-maxWidth-700px ank-mx-auto">
+        Cálculos basados en promedios de la industria y casos reales
+      </p>
+    </div>
+
+    <!-- Stats Strip -->
+    <div class="ank-bg-accentColor ank-borderRadius-12px ank-p-24px ank-mb-48px ank-color-textColor">
+      <div class="ank-display-flex ank-flex-wrap ank-gap-2rem ank-justifyContent-center">
+        <div class="ank-textAlign-center">
+          <div class="ank-fs-2rem ank-fontWeight-bold ank-mb-8px">
+            <stats-counter [config]="projectsConfig"></stats-counter>
+          </div>
+          <div class="ank-fs-1rem ank-opacity-90">Proyectos Exitosos</div>
+        </div>
+        <div class="ank-textAlign-center">
+          <div class="ank-fs-2rem ank-fontWeight-bold ank-mb-8px">
+            <stats-counter [config]="satisfactionConfig"></stats-counter>
+          </div>
+          <div class="ank-fs-1rem ank-opacity-90">Satisfacción Cliente</div>
+        </div>
+        <div class="ank-textAlign-center">
+          <div class="ank-fs-2rem ank-fontWeight-bold ank-mb-8px">
+            <stats-counter [config]="improvementConfig"></stats-counter>
+          </div>
+          <div class="ank-fs-1rem ank-opacity-90">Mejora Promedio</div>
+        </div>
+      </div>
+    </div>
+    <div
+      class="ank-bg-secondaryBgColor ank-borderRadius-16px ank-p-40px ank-boxShadow-1_25rem ank-maxWidth-800px ank-mx-auto"
+    >
+      @defer (on viewport; prefetch on idle) {
+      <div>
+        <div class="ank-display-flex ank-flex-column ank-flex-md-row ank-gap-2rem ank-mb-2rem">
+          <div class="ank-w-50per">
+            <div class="ank-mb-2rem">
+              <p
+                class="ank-display-block ank-fs-1_25rem ank-fontWeight-semibold ank-mb-16px ank-color-secondaryTitleColor"
+              >
+                Tamaño de tu negocio:
+              </p>
+              <div class="ank-gap-0_5rem">
+                <button
+                  type="button"
+                  (click)="updateBusinessSize('nano')"
+                  [class]="
+                    businessSize() === 'nano'
+                      ? 'ank-bg-accentColor ank-color-textColor ank-border-accentColor'
+                      : 'ank-bg-textColor ank-color-bgColor ank-border-border'
+                  "
+                  class="ank-width-100per ank-px-16px ank-py-12px ank-border-1px ank-borderRadius-8px ank-fs-1rem ank-fontWeight-medium ank-cursor-pointer ank-transition-all ank-textAlign-left"
+                >
+                  <div class="ank-fontWeight-semibold">Nano Empresa</div>
+                  <div class="ank-fs-1rem ank-opacity-75">1-2 empleados</div>
+                </button>
+                <button
+                  type="button"
+                  (click)="updateBusinessSize('micro')"
+                  [class]="
+                    businessSize() === 'micro'
+                      ? 'ank-bg-accentColor ank-color-textColor ank-border-accentColor'
+                      : 'ank-bg-textColor ank-color-bgColor ank-border-border'
+                  "
+                  class="ank-width-100per ank-px-16px ank-py-12px ank-border-1px ank-borderRadius-8px ank-fs-1rem ank-fontWeight-medium ank-cursor-pointer ank-transition-all ank-textAlign-left"
+                >
+                  <div class="ank-fontWeight-semibold">Micro Empresa</div>
+                  <div class="ank-fs-1rem ank-opacity-75">3-10 empleados</div>
+                </button>
+                <button
+                  type="button"
+                  (click)="updateBusinessSize('small')"
+                  [class]="
+                    businessSize() === 'small'
+                      ? 'ank-bg-accentColor ank-color-textColor ank-border-accentColor'
+                      : 'ank-bg-textColor ank-color-bgColor ank-border-border'
+                  "
+                  class="ank-width-100per ank-px-16px ank-py-12px ank-border-1px ank-borderRadius-8px ank-fs-1rem ank-fontWeight-medium ank-cursor-pointer ank-transition-all ank-textAlign-left"
+                >
+                  <div class="ank-fontWeight-semibold">Pequeña Empresa</div>
+                  <div class="ank-fs-1rem ank-opacity-75">11-50 empleados</div>
+                </button>
+              </div>
+            </div>
+            <div>
+              <label
+                class="ank-display-block ank-fs-1_25rem ank-fontWeight-semibold ank-mb-16px ank-color-secondaryTitleColor"
+                >Industria:</label
+              >
+              <select
+                (change)="updateIndustry($any($event.target).value || 'ecommerce')"
+                [value]="industry()"
+                class="ank-width-100per ank-px-16px ank-py-12px ank-border-1px ank-border-border ank-borderRadius-8px ank-fs-1rem ank-color-bgColor ank-bg-textColor ank-focusBorder-accentColor"
+              >
+                <option value="ecommerce">E-commerce / Tienda Online</option>
+                <option value="services">Servicios Profesionales</option>
+                <option value="restaurant">Restaurante / Comida</option>
+                <option value="health">Salud / Medicina</option>
+                <option value="education">Educación / Capacitación</option>
+                <option value="consulting">Consultoría / Coaching</option>
+              </select>
+            </div>
+
+            <div class="ank-mt-24px">
+              <label
+                class="ank-display-block ank-fs-1_25rem ank-fontWeight-semibold ank-mb-12px ank-color-secondaryTitleColor"
+                >Visitas mensuales estimadas:</label
+              >
+              <input
+                type="range"
+                min="0"
+                max="100000"
+                step="100"
+                [value]="visitors()"
+                (input)="onVisitorsChange($any($event.target).valueAsNumber || 0)"
+                class="ank-width-100per"
+                aria-label="Visitas mensuales"
+              />
+              <div class="ank-fs-1rem ank-color-textColor ank-mt-8px">{{ visitors() | number }} visitas/mes</div>
+              <div class="ank-display-flex ank-gap-0_75rem ank-alignItems-center ank-mt-12px">
+                <label for="visitors-input" class="ank-fs-1rem ank-color-secondaryTitleColor">Ingresar visitas:</label>
+                <input
+                  id="visitors-input"
+                  type="number"
+                  min="0"
+                  max="100000"
+                  step="100"
+                  [value]="visitors()"
+                  (input)="onVisitorsChange($any($event.target).valueAsNumber || 0)"
+                  class="ank-border-1px ank-border-border ank-borderRadius-8px ank-px-12px ank-py-8px ank-bg-textColor ank-color-bgColor"
+                  aria-label="Ingresar visitas mensuales"
+                />
+              </div>
+            </div>
+          </div>
+          <div
+            class="ank-bg-accentColor ank-borderRadius-12px ank-p-24px ank-color-textColor ank-textAlign-center ank-display-flex ank-flexDirection-column ank-justifyContent-center ank-boxShadow-0__8px__25px__rgbaSD0COM123COM255COM0_2ED"
+          >
+            <div class="ank-mb-24px">
+              <div
+                class="ank-bg-textColor ank-borderRadius-99rem ank-display-flex ank-w-3rem ank-h-3rem ank-mb-16px ank-mx-auto ank-alignItems-center ank-justifyContent-center"
+              >
+                <mat-icon class="ank-fs-1_5rem ank-color-accentColor">trending_up</mat-icon>
+              </div>
+              <h3 class="ank-fs-1_5rem ank-fontWeight-bold ank-mb-8px ank-color-titleColor">
+                Tu Potencial de Crecimiento
+              </h3>
+              <p class="ank-fs-1rem ank-opacity-90 ank-m-0 ank-color-textColor">Basado en tu configuración actual</p>
+            </div>
+            <div class="ank-gap-1_25rem">
+              <div class="ank-bg-textColor ank-borderRadius-1rem ank-p-1rem">
+                <div class="ank-fs-2_5xl ank-fontWeight-bold ank-mb-4px ank-color-bgColor">
+                  +$<stats-counter [config]="monthlyIncreaseConfig()"></stats-counter>
+                </div>
+                <div class="ank-fs-1rem ank-opacity-90 ank-color-bgColor">Ingresos adicionales mensuales</div>
+              </div>
+              <div class="ank-bg-textColor ank-borderRadius-1rem ank-p-1rem ank-mt-1rem">
+                <div class="ank-fs-1_5rem ank-fontWeight-semibold ank-mb-4px ank-color-bgColor">
+                  <stats-counter [config]="conversionImprovementConfig()"></stats-counter>
+                </div>
+                <div class="ank-fs-1rem ank-opacity-90 ank-color-bgColor">Mejora estimada en conversión</div>
+              </div>
+            </div>
+            <div class="ank-mt-24px ank-pt-20px ank-borderTop-1px ank-bordercolor-textColor ank-borderOpacity-30">
+              <div class="ank-fs-0_75rem ank-opacity-80 ank-color-textColor">
+                💡 Resultados basados en estadísticas reales de la industria
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="ank-textAlign-center ank-borderTop-1px ank-borderColor-border ank-pt-24px">
+          <p class="ank-fs-1rem ank-color-textColor ank-mb-16px">
+            *Proyecciones basadas en estadísticas de la industria y casos de éxito reales
+          </p>
+          <button class="btnBase ank-btn-accentColor ank-color-textColor ank-fs-1rem ank-px-32px ank-py-12px">
+            Solicitar Consultoría Personalizada
+          </button>
+        </div>
+      </div>
+      } @placeholder {
+      <div>
+        <div class="ank-display-flex ank-flex-column ank-flex-md-row ank-gap-2rem ank-mb-2rem">
+          <div class="ank-w-50per">
+            <div class="ank-mb-2rem">
+              <p
+                class="ank-display-block ank-fs-1_25rem ank-fontWeight-semibold ank-mb-16px ank-color-secondaryTitleColor"
+              >
+                Tamaño de tu negocio:
+              </p>
+              <div class="ank-gap-0_5rem">
+                <button
+                  type="button"
+                  class="ank-width-100per ank-px-16px ank-py-12px ank-border-1px ank-borderRadius-8px ank-fs-1rem ank-fontWeight-medium ank-cursor-pointer ank-transition-all ank-textAlign-left ank-bg-textColor ank-color-bgColor ank-border-border"
+                >
+                  <div class="ank-fontWeight-semibold">Nano Empresa</div>
+                  <div class="ank-fs-1rem ank-opacity-75">1-2 empleados</div>
+                </button>
+                <button
+                  type="button"
+                  class="ank-width-100per ank-px-16px ank-py-12px ank-border-1px ank-borderRadius-8px ank-fs-1rem ank-fontWeight-medium ank-cursor-pointer ank-transition-all ank-textAlign-left ank-bg-textColor ank-color-bgColor ank-border-border"
+                >
+                  <div class="ank-fontWeight-semibold">Micro Empresa</div>
+                  <div class="ank-fs-1rem ank-opacity-75">3-10 empleados</div>
+                </button>
+                <button
+                  type="button"
+                  class="ank-width-100per ank-px-16px ank-py-12px ank-border-1px ank-borderRadius-8px ank-fs-1rem ank-fontWeight-medium ank-cursor-pointer ank-transition-all ank-textAlign-left ank-bg-textColor ank-color-bgColor ank-border-border"
+                >
+                  <div class="ank-fontWeight-semibold">Pequeña Empresa</div>
+                  <div class="ank-fs-1rem ank-opacity-75">11-50 empleados</div>
+                </button>
+              </div>
+            </div>
+            <div>
+              <label
+                class="ank-display-block ank-fs-1_25rem ank-fontWeight-semibold ank-mb-16px ank-color-secondaryTitleColor"
+                >Industria:</label
+              >
+              <select
+                class="ank-width-100per ank-px-16px ank-py-12px ank-border-1px ank-border-border ank-borderRadius-8px ank-fs-1rem ank-color-bgColor ank-bg-textColor ank-focusBorder-accentColor"
+              >
+                <option value="ecommerce">E-commerce / Tienda Online</option>
+                <option value="services">Servicios Profesionales</option>
+                <option value="restaurant">Restaurante / Comida</option>
+                <option value="health">Salud / Medicina</option>
+                <option value="education">Educación / Capacitación</option>
+                <option value="consulting">Consultoría / Coaching</option>
+              </select>
+            </div>
+          </div>
+          <div
+            class="ank-bg-accentColor ank-borderRadius-12px ank-p-24px ank-color-textColor ank-textAlign-center ank-display-flex ank-flexDirection-column ank-justifyContent-center ank-boxShadow-0__8px__25px__rgbaSD0COM123COM255COM0_2ED"
+          >
+            <div class="ank-mb-24px">
+              <div
+                class="ank-bg-textColor ank-borderRadius-99rem ank-display-flex ank-w-3rem ank-h-3rem ank-mb-16px ank-mx-auto ank-alignItems-center ank-justifyContent-center"
+              >
+                <div class="ank-fs-1_5rem ank-color-accentColor">📈</div>
+              </div>
+              <h3 class="ank-fs-1_5rem ank-fontWeight-bold ank-mb-8px ank-color-titleColor">
+                Tu Potencial de Crecimiento
+              </h3>
+              <p class="ank-fs-1rem ank-opacity-90 ank-m-0 ank-color-textColor">Basado en tu configuración actual</p>
+            </div>
+            <div class="ank-gap-1_25rem">
+              <div class="ank-bg-textColor ank-borderRadius-1rem ank-p-1rem">
+                <div class="ank-fs-2_5xl ank-fontWeight-bold ank-mb-4px ank-color-bgColor">+$15,000</div>
+                <div class="ank-fs-1rem ank-opacity-90 ank-color-bgColor">Ingresos adicionales mensuales</div>
+              </div>
+              <div class="ank-bg-textColor ank-borderRadius-1rem ank-p-1rem ank-mt-1rem">
+                <div class="ank-fs-1_5rem ank-fontWeight-semibold ank-mb-4px ank-color-bgColor">3.4x</div>
+                <div class="ank-fs-1rem ank-opacity-90 ank-color-bgColor">Mejora estimada en conversión</div>
+              </div>
+            </div>
+            <div class="ank-mt-24px ank-pt-20px ank-borderTop-1px ank-bordercolor-textColor ank-borderOpacity-30">
+              <div class="ank-fs-0_75rem ank-opacity-80 ank-color-textColor">
+                💡 Resultados basados en estadísticas reales de la industria
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="ank-textAlign-center ank-borderTop-1px ank-borderColor-border ank-pt-24px">
+          <p class="ank-fs-1rem ank-color-textColor ank-mb-16px">
+            *Proyecciones basadas en estadísticas de la industria y casos de éxito reales
+          </p>
+          <button class="btnBase ank-btn-accentColor ank-color-textColor ank-fs-1rem ank-px-32px ank-py-12px">
+            Solicitar Consultoría Personalizada
+          </button>
+        </div>
+      </div>
+      }
+    </div>
+  </app-container>
+</app-section>

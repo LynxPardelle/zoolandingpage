@@ -4,7 +4,7 @@
   (primary)="openWhatsApp(); trackCTAClick('primary', 'hero')"
   (secondary)="toggleCalculator(); trackCTAClick('secondary', 'hero')"
 ></hero-section>
-<roi-note id="roi-section"></roi-note>
+<roi-note id="conversion-section"></roi-note>
 <features-section id="features-section" [features]="features()"></features-section>
 @defer (on viewport; prefetch on idle) {
 <interactive-process
@@ -24,8 +24,8 @@
   (serviceCta)="trackCTAClick('service', $event); openWhatsApp()"
 ></services-section>
 @defer (on viewport; prefetch on idle) {
-<roi-calculator-section
-  id="roi-calculator-section"
+<conversion-calculator-section
+  id="conversion-calculator-section"
   [businessSize]="calculatorBusinessSize()"
   [industry]="calculatorIndustry()"
   [visitors]="calculatorVisitors()"
@@ -33,10 +33,10 @@
   [calculatedROI]="calculatedROI()"
   (businessSizeChange)="updateBusinessSize($event)"
   (industryChange)="updateIndustry($event)"
-></roi-calculator-section>
+></conversion-calculator-section>
 } @placeholder {
-<section id="roi-calculator-section" class="ank-py-48px ank-textAlign-center ank-opacity-70">
-  <div class="ank-fs-1_25rem">Calculando ROI…</div>
+<section id="conversion-calculator-section" class="ank-py-48px ank-textAlign-center ank-opacity-70">
+  <div class="ank-fs-1_25rem">Calculando Conversión…</div>
 </section>
 } @defer (on viewport; prefetch on idle) {
 <testimonials-section
