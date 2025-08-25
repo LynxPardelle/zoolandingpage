@@ -1,9 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { AppContainerComponent, AppSectionComponent } from '../../../core/components/layout';
 import { AnalyticsCategories, AnalyticsEvents } from '../../../shared/services/analytics.events';
 import { AnalyticsService } from '../../../shared/services/analytics.service';
+import { LandingPageI18nService } from '../landing-page/landing-page-i18n.service';
 
 @Component({
   selector: 'services-section',
@@ -14,6 +15,8 @@ import { AnalyticsService } from '../../../shared/services/analytics.service';
 })
 export class ServicesSectionComponent {
   private readonly analytics = inject(AnalyticsService);
+  private readonly i18n = inject(LandingPageI18nService);
+
   readonly services = input.required<
     readonly {
       readonly icon: string;
@@ -24,6 +27,11 @@ export class ServicesSectionComponent {
     }[]
   >();
   readonly serviceCta = output<string>();
+
+  // Section titles from centralized translations
+  readonly sectionTitle = computed(() => this.i18n.ui().sections.services.title);
+  readonly sectionSubtitle = computed(() => this.i18n.ui().sections.services.subtitle);
+
   onCta(title: string) {
     this.analytics.track(AnalyticsEvents.ServicesCtaClick, {
       category: AnalyticsCategories.Services,

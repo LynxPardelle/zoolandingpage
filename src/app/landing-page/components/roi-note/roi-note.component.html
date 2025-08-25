@@ -11,27 +11,26 @@
             <mat-icon class="ank-color-textColor ank-fs-1_25rem">help_outline</mat-icon>
           </div>
           <h3 class="ank-fs-1_5rem ank-fontWeight-bold ank-m-0 ank-color-titleColor">
-            ¿Qué significa +350% en conversión?
+            {{ copy().title }}
           </h3>
         </div>
         <div class="ank-bg-textColor ank-borderRadius-1rem ank-p-1_25rem ank-mb-1rem">
-          <p class="ank-fs-1_25rem ank-lineHeight-relaxed ank-m-0 ank-color-bgColor">
-            Un aumento del <strong class="ank-color-secondaryAccentColor">+350%</strong> en conversión indica un
-            rendimiento significativamente mayor de tus visitas: más clics en llamadas a la acción y más contactos
-            reales con el mismo presupuesto.
-          </p>
+          <p
+            class="ank-fs-1_25rem ank-lineHeight-relaxed ank-m-0 ank-color-bgColor"
+            [innerHTML]="copy().conversionDescription"
+          ></p>
         </div>
         <div class="ank-display-grid ank-gridTemplateColumns-1fr__1fr__1fr ank-gap-1rem ank-textAlign-center">
           <div class="ank-bg-accentColor ank-borderRadius-0_75rem ank-p-1rem ank-color-textColor">
-            <div class="ank-fs-1rem ank-opacity-90">Visitas</div>
-            <div class="ank-fs-1_25rem ank-fontWeight-bold">1,000</div>
+            <div class="ank-fs-1rem ank-opacity-90">{{ copy().investmentLabel }}</div>
+            <div class="ank-fs-1_25rem ank-fontWeight-bold">{{ copy().investmentValue }}</div>
           </div>
           <div class="ank-display-flex ank-alignItems-center ank-justifyContent-center">
             <mat-icon class="ank-color-secondaryAccentColor ank-fs-1_5rem">arrow_forward</mat-icon>
           </div>
           <div class="ank-bg-secondaryAccentColor ank-borderRadius-0_75rem ank-p-1rem ank-color-textColor">
-            <div class="ank-fs-1rem ank-opacity-90">Acciones clave</div>
-            <div class="ank-fs-1_25rem ank-fontWeight-bold">3.5x más</div>
+            <div class="ank-fs-1rem ank-opacity-90">{{ copy().totalReturnLabel }}</div>
+            <div class="ank-fs-1_25rem ank-fontWeight-bold">{{ copy().totalReturnValue }}</div>
           </div>
         </div>
       </div>

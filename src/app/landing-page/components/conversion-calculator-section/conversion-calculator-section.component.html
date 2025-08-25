@@ -1,12 +1,12 @@
 <app-section variant="accent" spacing="lg">
   <app-container size="lg">
     <div class="ank-textAlign-center ank-mb-48px">
-      <h2 class="ank-fs-2rem ank-fontWeight-bold ank-mb-16px ank-color-titleColor">Calculadora de Conversión</h2>
+      <h2 class="ank-fs-2rem ank-fontWeight-bold ank-mb-16px ank-color-titleColor">{{ calculatorContent().title }}</h2>
       <p class="ank-fs-1_5rem ank-color-textColor ank-mb-16px">
-        Estima el impacto en conversiones y ventas con una landing optimizada
+        {{ calculatorContent().subtitle }}
       </p>
       <p class="ank-fs-1rem ank-color-textColor ank-maxWidth-700px ank-mx-auto">
-        Cálculos basados en promedios de la industria y casos reales
+        {{ calculatorContent().description }}
       </p>
     </div>
 
@@ -15,21 +15,21 @@
       <div class="ank-display-flex ank-flex-wrap ank-gap-2rem ank-justifyContent-center">
         <div class="ank-textAlign-center">
           <div class="ank-fs-2rem ank-fontWeight-bold ank-mb-8px">
-            <stats-counter [config]="projectsConfig"></stats-counter>
+            <stats-counter [config]="projectsConfig()"></stats-counter>
           </div>
-          <div class="ank-fs-1rem ank-opacity-90">Proyectos Exitosos</div>
+          <div class="ank-fs-1rem ank-opacity-90">{{ calculatorContent().projectsLabel }}</div>
         </div>
         <div class="ank-textAlign-center">
           <div class="ank-fs-2rem ank-fontWeight-bold ank-mb-8px">
-            <stats-counter [config]="satisfactionConfig"></stats-counter>
+            <stats-counter [config]="satisfactionConfig()"></stats-counter>
           </div>
-          <div class="ank-fs-1rem ank-opacity-90">Satisfacción Cliente</div>
+          <div class="ank-fs-1rem ank-opacity-90">{{ calculatorContent().satisfactionLabel }}</div>
         </div>
         <div class="ank-textAlign-center">
           <div class="ank-fs-2rem ank-fontWeight-bold ank-mb-8px">
-            <stats-counter [config]="improvementConfig"></stats-counter>
+            <stats-counter [config]="improvementConfig()"></stats-counter>
           </div>
-          <div class="ank-fs-1rem ank-opacity-90">Mejora Promedio</div>
+          <div class="ank-fs-1rem ank-opacity-90">{{ calculatorContent().improvementLabel }}</div>
         </div>
       </div>
     </div>
