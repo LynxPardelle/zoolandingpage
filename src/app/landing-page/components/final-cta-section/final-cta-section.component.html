@@ -1,9 +1,9 @@
 <app-section variant="accent" spacing="lg">
   <app-container size="lg">
     <div class="ank-textAlign-center">
-      <h2 class="ank-fs-2rem ank-fontWeight-bold ank-mb-16px ank-color-titleColor">{{ title() }}</h2>
+      <h2 class="ank-fs-2rem ank-fontWeight-bold ank-mb-16px ank-color-titleColor">{{ finalTitle() }}</h2>
       <p class="ank-fs-1_5rem ank-color-textColor ank-mb-32px ank-maxWidth-600px ank-mx-auto">
-        {{ subtitle() }}
+        {{ finalSubtitle() }}
       </p>
       <div
         class="ank-display-flex ank-flexDirection-column ank-flexDirection-sm-row ank-gap-16px ank-justifyContent-center ank-mb-32px ank-alignItems-stretch"
@@ -12,7 +12,7 @@
           [config]="{
             phone: whatsAppPhone(),
             message: whatsAppMessage(),
-            label: primaryLabel(),
+            label: finalPrimaryLabel(),
             variant: 'secondary',
             size: 'lg',
             colorKey: 'secondaryAccentColor',
@@ -20,15 +20,16 @@
           }"
           (activated)="onWhatsAppActivated()"
         />
-        <generic-button [label]="secondaryLabel()" variant="outline" size="lg" (pressed)="onSecondary()" />
+        <generic-button [label]="finalSecondaryLabel()" variant="outline" size="lg" (pressed)="onSecondary()" />
       </div>
       <div class="ank-display-flex ank-flexDirection-column ank-alignItems-center ank-gap-16px ank-opacity-70">
         <p class="ank-fs-1rem ank-color-textColor ank-m-0">
-          ⭐ Medición desde el día 1 • 🔒 SSL y hosting incluido • ⚡ Entrega rápida
+          {{ content().trustSignals.first }}
         </p>
         <div class="ank-display-flex ank-gap-16px ank-alignItems-center ank-fs-1rem ank-color-textColor">
-          <span>💬 Soporte continuo</span><span>📊 Reportes simples opcionales</span
-          ><span>🌐 Optimización para buscadores</span>
+          @for (signal of content().trustSignals.second; track signal) {
+          <span>{{ signal }}</span>
+          }
         </div>
       </div>
     </div>

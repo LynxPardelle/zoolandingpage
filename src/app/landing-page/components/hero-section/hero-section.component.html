@@ -3,7 +3,10 @@
     <div
       class="ank-display-grid ank-gridTemplateColumns-1fr ank-gridTemplateColumns-lg-1fr__1fr ank-gap-2rem ank-alignItems-center"
     >
-      <div class="ank-textAlign-center ank-textAlign-lg-left" [@fadeIn]="!motion.reduced() ? {} : null">
+      <div
+        class="ank-textAlign-center ank-textAlign-lg-left ank-width-100per ank-maxWidth-100per ank-overflow-hidden ank-boxSizing-borderBox"
+        [@fadeIn]="!motion.reduced() ? {} : null"
+      >
         <h1
           class="ank-fs-2rem ank-fs-lg-5rem ank-fontWeight-bold ank-lh-2rem ank-lh-lg-5rem ank-mb-1_25rem textGradientVALSVAL2NsecondaryAccentColorVAL2NVAL3NsecondaryTitleColorVAL3NVL135degVL"
         >
@@ -35,11 +38,19 @@
           [@fadeInDelay]="!motion.reduced() ? {} : null"
         >
           <p class="ank-fs-1rem ank-color-textColor ank-fontWeight-medium">
-            Los distintivos que tendrá tu nueva landing page:
+            {{ data().badgesLabel }}
           </p>
-          <div class="ank-display-flex ank-gap-24px ank-alignItems-center ank-opacity-60">
-            @for (b of data().badges; track b.text) {<span class="ank-fs-1rem ank-color-textColor">{{ b.text }}</span
-            >}
+          <div
+            class="ank-display-flex ank-flexDirection-column ank-gap-8px ank-alignItems-center ank-alignItems-lg-start"
+          >
+            @for (b of data().badges; track b.text) {
+            <div
+              class="ank-display-flex ank-alignItems-center ank-gap-8px ank-bg-bgColorOPA__0_8 ank-borderRadius-24px ank-px-12px ank-px-lg-20px ank-py-6px ank-border-1px ank-borderColor-textColorOPA__0_2 ank-backdropFilter-blurSD8pxED ank-minWidth-120px ank-minWidth-lg-160px"
+            >
+              <div class="ank-width-6px ank-height-6px ank-bg-accentColor ank-borderRadius-99rem"></div>
+              <span class="ank-fs-0_875rem ank-color-textColor ank-fontWeight-medium">{{ b.text }}</span>
+            </div>
+            }
           </div>
         </div>
         } @placeholder {
@@ -47,12 +58,29 @@
           class="ank-mt-2rem ank-display-flex ank-flexDirection-column ank-alignItems-center ank-alignItems-lg-start ank-gap-1rem"
         >
           <p class="ank-fs-1rem ank-color-textColor ank-fontWeight-medium">
-            Los distintivos que tendrá tu nueva landing page:
+            {{ data().badgesLabel }}
           </p>
-          <div class="ank-display-flex ank-gap-24px ank-alignItems-center ank-opacity-60">
-            <span class="ank-fs-1rem ank-color-textColor">AWS</span>
-            <span class="ank-fs-1rem ank-color-textColor">Angular</span>
-            <span class="ank-fs-1rem ank-color-textColor">ngx-angora</span>
+          <div
+            class="ank-display-flex ank-flexDirection-column ank-gap-8px ank-alignItems-center ank-alignItems-lg-start"
+          >
+            <div
+              class="ank-display-flex ank-alignItems-center ank-gap-8px ank-bg-bgColorOPA__0_8 ank-borderRadius-24px ank-px-12px ank-px-lg-20px ank-py-6px ank-border-1px ank-borderColor-textColorOPA__0_2 ank-backdropFilter-blurSD8pxED ank-minWidth-120px ank-minWidth-lg-160px"
+            >
+              <div class="ank-width-6px ank-height-6px ank-bg-accentColor ank-borderRadius-99rem"></div>
+              <span class="ank-fs-0_875rem ank-color-textColor ank-fontWeight-medium">AWS</span>
+            </div>
+            <div
+              class="ank-display-flex ank-alignItems-center ank-gap-8px ank-bg-bgColorOPA__0_8 ank-borderRadius-24px ank-px-12px ank-px-lg-20px ank-py-6px ank-border-1px ank-borderColor-textColorOPA__0_2 ank-backdropFilter-blurSD8pxED ank-minWidth-120px ank-minWidth-lg-160px"
+            >
+              <div class="ank-width-6px ank-height-6px ank-bg-secondaryAccentColor ank-borderRadius-99rem"></div>
+              <span class="ank-fs-0_875rem ank-color-textColor ank-fontWeight-medium">Angular</span>
+            </div>
+            <div
+              class="ank-display-flex ank-alignItems-center ank-gap-8px ank-bg-bgColorOPA__0_8 ank-borderRadius-24px ank-px-12px ank-px-lg-20px ank-py-6px ank-border-1px ank-borderColor-textColorOPA__0_2 ank-backdropFilter-blurSD8pxED ank-minWidth-120px ank-minWidth-lg-160px"
+            >
+              <div class="ank-width-6px ank-height-6px ank-bg-linkColor ank-borderRadius-99rem"></div>
+              <span class="ank-fs-0_875rem ank-color-textColor ank-fontWeight-medium">ngx-angora</span>
+            </div>
           </div>
         </div>
         } }
@@ -84,7 +112,7 @@
             <div
               class="ank-bg-textColor ank-borderRadius-0_375rem ank-px-1rem ank-py-0_375rem ank-flexGrow-1 ank-fs-0_75rem ank-color-bgColor"
             >
-              🔒 https://tu-negocio.com
+              {{ data().mockup?.url || "🔒 https://tu-negocio.com" }}
             </div>
           </div>
 
@@ -95,14 +123,18 @@
               <div
                 class="ank-bg-accentColor ank-borderRadius-0_375rem ank-width-6rem ank-height-1_5rem ank-display-flex ank-alignItems-center ank-justifyContent-center"
               >
-                <span class="ank-color-textColor ank-fs-0_75rem ank-fontWeight-bold">LOGO</span>
+                <span class="ank-color-textColor ank-fs-0_75rem ank-fontWeight-bold">{{
+                  data().mockup?.logo || "LOGO"
+                }}</span>
               </div>
               <div class="ank-bg-titleColor ank-borderRadius-0_25rem ank-width-5rem ank-height-1_5rem"></div>
               <div class="ank-bg-titleColor ank-borderRadius-0_25rem ank-width-5rem ank-height-1_5rem"></div>
               <div
                 class="ank-bg-accentColor ank-borderRadius-0_375rem ank-width-5rem ank-height-1_5rem ank-display-flex ank-alignItems-center ank-justifyContent-center ank-px-1rem"
               >
-                <span class="ank-color-textColor ank-fs-0_75rem ank-fontWeight-bold">CONTACTO</span>
+                <span class="ank-color-textColor ank-fs-0_75rem ank-fontWeight-bold">{{
+                  data().mockup?.contact || "CONTACTO"
+                }}</span>
               </div>
             </div>
 
@@ -118,12 +150,16 @@
                 <div
                   class="ank-bg-secondaryAccentColor ank-borderStyle-solid ank-borderColor-secondaryAccentColor ank-borderRadius-0_375rem ank-width-6rem ank-height-1_5rem ank-display-flex ank-alignItems-center ank-justifyContent-center"
                 >
-                  <span class="ank-color-textColor ank-fs-0_75rem ank-fontWeight-bold">COMPRAR</span>
+                  <span class="ank-color-textColor ank-fs-0_75rem ank-fontWeight-bold">{{
+                    data().mockup?.buyButton || "COMPRAR"
+                  }}</span>
                 </div>
                 <div
                   class="ank-border-2px__solid__secondaryAccentColor ank-borderRadius-0_375rem ank-width-6rem ank-height-1_5rem ank-display-flex ank-alignItems-center ank-justifyContent-center"
                 >
-                  <span class="ank-color-secondaryAccentColor ank-fs-0_75rem ank-fontWeight-bold">DEMO</span>
+                  <span class="ank-color-secondaryAccentColor ank-fs-0_75rem ank-fontWeight-bold">{{
+                    data().mockup?.demoButton || "DEMO"
+                  }}</span>
                 </div>
               </div>
             </div>
@@ -179,7 +215,9 @@
               <div
                 class="ank-bg-accentColor ank-borderRadius-0_375rem ank-width-10rem ank-height-2rem ank-mx-auto ank-display-flex ank-alignItems-center ank-justifyContent-center"
               >
-                <span class="ank-color-textColor ank-fs-1rem ank-fontWeight-bold ank-px-1rem">SOLICITAR INFO</span>
+                <span class="ank-color-textColor ank-fs-1rem ank-fontWeight-bold ank-px-1rem">{{
+                  data().mockup?.ctaButton || "SOLICITAR INFO"
+                }}</span>
               </div>
             </div>
           </div>
@@ -201,7 +239,7 @@
             <div
               class="ank-bg-textColor ank-borderRadius-0_375rem ank-px-1rem ank-py-0_375rem ank-flexGrow-1 ank-fs-0_75rem ank-color-bgColor"
             >
-              🔒 https://tu-negocio.com
+              {{ data().mockup?.url || "🔒 https://tu-negocio.com" }}
             </div>
           </div>
           <!-- Landing Page Content Mockup -->
@@ -211,14 +249,18 @@
               <div
                 class="ank-bg-accentColor ank-borderRadius-0_375rem ank-width-6rem ank-height-1_5rem ank-display-flex ank-alignItems-center ank-justifyContent-center"
               >
-                <span class="ank-color-textColor ank-fs-0_75rem ank-fontWeight-bold">LOGO</span>
+                <span class="ank-color-textColor ank-fs-0_75rem ank-fontWeight-bold">{{
+                  data().mockup?.logo || "LOGO"
+                }}</span>
               </div>
               <div class="ank-bg-titleColor ank-borderRadius-0_25rem ank-width-5rem ank-height-1_5rem"></div>
               <div class="ank-bg-titleColor ank-borderRadius-0_25rem ank-width-5rem ank-height-1_5rem"></div>
               <div
                 class="ank-bg-accentColor ank-borderRadius-0_375rem ank-width-5rem ank-height-1_5rem ank-display-flex ank-alignItems-center ank-justifyContent-center ank-px-1rem"
               >
-                <span class="ank-color-textColor ank-fs-0_75rem ank-fontWeight-bold">CONTACTO</span>
+                <span class="ank-color-textColor ank-fs-0_75rem ank-fontWeight-bold">{{
+                  data().mockup?.contact || "CONTACTO"
+                }}</span>
               </div>
             </div>
             <!-- Hero Section Mockup -->
@@ -233,12 +275,16 @@
                 <div
                   class="ank-bg-secondaryAccentColor ank-borderStyle-solid ank-borderColor-secondaryAccentColor ank-borderRadius-0_375rem ank-width-6rem ank-height-1_5rem ank-display-flex ank-alignItems-center ank-justifyContent-center"
                 >
-                  <span class="ank-color-textColor ank-fs-0_75rem ank-fontWeight-bold">COMPRAR</span>
+                  <span class="ank-color-textColor ank-fs-0_75rem ank-fontWeight-bold">{{
+                    data().mockup?.buyButton || "COMPRAR"
+                  }}</span>
                 </div>
                 <div
                   class="ank-border-2px__solid__secondaryAccentColor ank-borderRadius-0_375rem ank-width-6rem ank-height-1_5rem ank-display-flex ank-alignItems-center ank-justifyContent-center"
                 >
-                  <span class="ank-color-secondaryAccentColor ank-fs-0_75rem ank-fontWeight-bold">DEMO</span>
+                  <span class="ank-color-secondaryAccentColor ank-fs-0_75rem ank-fontWeight-bold">{{
+                    data().mockup?.demoButton || "DEMO"
+                  }}</span>
                 </div>
               </div>
             </div>
@@ -292,7 +338,9 @@
               <div
                 class="ank-bg-accentColor ank-borderRadius-0_375rem ank-width-10rem ank-height-2rem ank-mx-auto ank-display-flex ank-alignItems-center ank-justifyContent-center"
               >
-                <span class="ank-color-textColor ank-fs-1rem ank-fontWeight-bold ank-px-1rem">SOLICITAR INFO</span>
+                <span class="ank-color-textColor ank-fs-1rem ank-fontWeight-bold ank-px-1rem">{{
+                  data().mockup?.ctaButton || "SOLICITAR INFO"
+                }}</span>
               </div>
             </div>
           </div>
@@ -350,7 +398,7 @@
             <mat-icon class="ank-fs-1rem ank-color-info">flash_on</mat-icon>
           </div>
           <div class="ank-textAlign-left">
-            <div class="ank-fs-0_75rem ank-color-textColor ank-opacity-90">Velocidad</div>
+            <div class="ank-fs-0_75rem ank-color-textColor ank-opacity-90">{{ floatingMetrics().speed }}</div>
             <div class="ank-fs-1_5rem ank-color-textColor ank-fontWeight-bold">&lt; 3s</div>
           </div>
         </div>
@@ -360,7 +408,7 @@
           class="ank-position-absolute ank-top-30per ank-left-MIN1_5rem ank-transform-translateYSDMIN50perED ank-bg-warning ank-color-textColor ank-px-1rem ank-py-1rem ank-borderRadius-1rem ank-fs-1rem ank-fontWeight-bold ank-zIndex-30 ank-boxShadow-0__4px__15px__rgbaSD255COM193COM7COM0_3ED ank-border-2px__textColor"
         >
           <div class="ank-textAlign-center">
-            <div class="ank-fs-0_75rem ank-opacity-75 ank-mb-0_125rem">Conversión</div>
+            <div class="ank-fs-0_75rem ank-opacity-75 ank-mb-0_125rem">{{ floatingMetrics().conversion }}</div>
             <div class="ank-fs-1_5rem ank-fontWeight-bolder">+340%</div>
           </div>
         </div>
@@ -370,7 +418,7 @@
           class="ank-position-absolute ank-top-30per ank-right-MIN1_5rem ank-bg-purple ank-px-1rem ank-py-0_75rem ank-borderRadius-1rem ank-fs-0_75rem ank-fontWeight-bold ank-zIndex-25 ank-display-flex ank-alignItems-center ank-gap-0_375rem ank-boxShadow-0__3px__10px__rgbaSD147COM51COM234COM0_25ED ank-opacity-95 ank-color-linkColor"
         >
           <mat-icon class="ank-fs-1rem">verified</mat-icon>
-          <span>SEO Optimizado</span>
+          <span>{{ floatingMetrics().seoOptimized }}</span>
         </div>
 
         <!-- Mobile Responsive Badge -->
@@ -378,7 +426,7 @@
           class="ank-position-absolute ank-bottom-20per ank-right-MIN1_5rem ank-bg-teal ank-color-bgColor ank-px-1rem ank-py-0_75rem ank-borderRadius-1rem ank-fs-0_75rem ank-fontWeight-bold ank-zIndex-25 ank-display-flex ank-alignItems-center ank-gap-0_375rem ank-boxShadow-0__3px__10px__rgbaSD20COM184COM166COM0_25ED ank-border-1px__textColor ank-opacity-95"
         >
           <mat-icon class="ank-fs-1rem ank-color-textColor">phone_android</mat-icon>
-          <span>100% Móvil</span>
+          <span>{{ floatingMetrics().mobileResponsive }}</span>
         </div>
         } @placeholder {
         <!-- Enhanced Floating Metrics Placeholders -->
@@ -404,7 +452,7 @@
               <div class="ank-bg-info ank-borderRadius-99rem ank-width-1rem ank-height-1rem"></div>
             </div>
             <div class="ank-textAlign-left">
-              <div class="ank-fs-0_75rem ank-color-textColor ank-opacity-90">Velocidad</div>
+              <div class="ank-fs-0_75rem ank-color-textColor ank-opacity-90">{{ floatingMetrics().speed }}</div>
               <div class="ank-fs-1_5rem ank-color-textColor ank-fontWeight-bold">&lt; 3s</div>
             </div>
           </div>
@@ -414,7 +462,7 @@
             class="ank-position-absolute ank-top-30per ank-left-MIN1_5rem ank-transform-translateYSDMIN50perED ank-bg-warning ank-color-textColor ank-px-1rem ank-py-1rem ank-borderRadius-1rem ank-fs-1rem ank-fontWeight-bold ank-zIndex-30 ank-boxShadow-0__4px__15px__rgbaSD255COM193COM7COM0_3ED ank-border-2px ank-bordercolor-textColor"
           >
             <div class="ank-textAlign-center">
-              <div class="ank-fs-0_75rem ank-opacity-75 ank-mb-0_125rem">Conversión</div>
+              <div class="ank-fs-0_75rem ank-opacity-75 ank-mb-0_125rem">{{ floatingMetrics().conversion }}</div>
               <div class="ank-fs-1_5rem ank-fontWeight-bolder">+340%</div>
             </div>
           </div>
@@ -424,7 +472,7 @@
             class="ank-position-absolute ank-top-30per ank-right-MIN1_5rem ank-bg-purple ank-color-textColor ank-px-1rem ank-py-0_75rem ank-borderRadius-1rem ank-fs-0_75rem ank-fontWeight-bold ank-zIndex-25 ank-display-flex ank-alignItems-center ank-gap-0_375rem ank-boxShadow-0__3px__10px__rgbaSD147COM51COM234COM0_25ED ank-border-1px ank-bordercolor-textColor ank-opacity-95"
           >
             <div class="ank-bg-purple ank-borderRadius-99rem ank-width-1rem ank-height-1rem"></div>
-            <span>SEO Optimizado</span>
+            <span>{{ floatingMetrics().seoOptimized }}</span>
           </div>
 
           <!-- Mobile Responsive Badge -->
@@ -432,7 +480,7 @@
             class="ank-position-absolute ank-bottom-20per ank-right-MIN1_5rem ank-bg-teal ank-color-bgColor ank-px-1rem ank-py-0_75rem ank-borderRadius-1rem ank-fs-0_75rem ank-fontWeight-bold ank-zIndex-25 ank-display-flex ank-alignItems-center ank-gap-0_375rem ank-boxShadow-0__3px__10px__rgbaSD20COM184COM166COM0_25ED ank-border-1px ank-bordercolor-textColor ank-opacity-95"
           >
             <div class="ank-bg-teal ank-borderRadius-99rem ank-width-1rem ank-height-1rem"></div>
-            <span>100% Móvil</span>
+            <span>{{ floatingMetrics().mobileResponsive }}</span>
           </div>
         </div>
         } }

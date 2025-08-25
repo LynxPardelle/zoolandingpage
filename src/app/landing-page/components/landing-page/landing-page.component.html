@@ -36,7 +36,7 @@
 ></conversion-calculator-section>
 } @placeholder {
 <section id="conversion-calculator-section" class="ank-py-48px ank-textAlign-center ank-opacity-70">
-  <div class="ank-fs-1_25rem">Calculando Conversión…</div>
+  <div class="ank-fs-1_25rem">{{ loadingMessages().calculator }}</div>
 </section>
 } @defer (on viewport; prefetch on idle) {
 <testimonials-section
@@ -47,13 +47,13 @@
 ></testimonials-section>
 } @placeholder {
 <section id="testimonials-section" class="ank-py-48px ank-textAlign-center ank-opacity-70">
-  <div class="ank-fs-1_25rem">Cargando testimonios…</div>
+  <div class="ank-fs-1_25rem">{{ loadingMessages().testimonials }}</div>
 </section>
 } @defer (on viewport; prefetch on idle) {
 <faq-section id="faq-section"></faq-section>
 } @placeholder {
 <section id="faq-section" class="ank-py-48px ank-textAlign-center ank-opacity-70">
-  <div class="ank-fs-1_25rem">Cargando preguntas frecuentes…</div>
+  <div class="ank-fs-1_25rem">{{ loadingMessages().faq }}</div>
 </section>
 }
 <final-cta-section
