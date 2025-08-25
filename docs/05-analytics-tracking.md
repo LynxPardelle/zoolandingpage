@@ -705,12 +705,13 @@ All event names and categories are centralized in `src/app/shared/services/analy
 - final_cta_secondary_click (category: cta)
 - services_cta_click (category: services)
 - whatsapp_click (category: engagement)
-- roi_size_change (category: roi_calculator)
-- roi_industry_change (category: roi_calculator)
-- roi_visitors_change (category: roi_calculator)
-- roi_calculator_toggle (category: roi_calculator)
+- conversion_size_change (category: conversion_calculator)
+- conversion_industry_change (category: conversion_calculator)
+- conversion_visitors_change (category: conversion_calculator)
+- conversion_calculator_toggle (category: conversion_calculator)
 - section_view (category: navigation)
 - process_step_change (category: process)
+- scroll_depth (category: navigation)
 - theme_toggle (category: theme)
 - language_toggle (category: i18n)
 - modal_open (category: modal)
@@ -718,5 +719,6 @@ All event names and categories are centralized in `src/app/shared/services/analy
 
 Notes:
 
+- The calculator focuses on conversion-first metrics. We track configuration changes (size/industry/visitors), calculator toggle, section views, and scroll depth.
 - For dev, events are buffered locally and printed when analytics is enabled or debugMode is on.
 - When a server endpoint is ready, implement send() in `AnalyticsService`.

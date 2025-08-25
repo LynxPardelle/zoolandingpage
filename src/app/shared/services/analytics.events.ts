@@ -24,10 +24,10 @@ export const AnalyticsEvents = {
     ServicesCtaClick: 'services_cta_click',
 
     // ROI Calculator
-    RoiSizeChange: 'roi_size_change',
-    RoiIndustryChange: 'roi_industry_change',
-    RoiVisitorsChange: 'roi_visitors_change',
-    RoiToggle: 'roi_calculator_toggle',
+    RoiSizeChange: 'conversion_size_change',
+    RoiIndustryChange: 'conversion_industry_change',
+    RoiVisitorsChange: 'conversion_visitors_change',
+    RoiToggle: 'conversion_calculator_toggle',
 
     // Sections/Process
     SectionView: 'section_view',
@@ -51,7 +51,7 @@ export const AnalyticsCategories = {
     CTA: 'cta',
     Services: 'services',
     Engagement: 'engagement',
-    RoiCalculator: 'roi_calculator',
+    RoiCalculator: 'conversion_calculator',
     Modal: 'modal',
     Theme: 'theme',
     I18N: 'i18n',
