@@ -4,7 +4,7 @@
   (primary)="openWhatsApp(); trackCTAClick('primary', 'hero')"
   (secondary)="toggleCalculator(); trackCTAClick('secondary', 'hero')"
 ></hero-section>
-<roi-note id="conversion-section"></roi-note>
+<conversion-note id="conversion-section"></conversion-note>
 <features-section id="features-section" [features]="features()"></features-section>
 @defer (on viewport; prefetch on idle) {
 <interactive-process
@@ -30,7 +30,7 @@
   [industry]="calculatorIndustry()"
   [visitors]="calculatorVisitors()"
   (visitorsChange)="updateVisitors($event)"
-  [calculatedROI]="calculatedROI()"
+  [calculatedConversion]="calculatedConversion()"
   (businessSizeChange)="updateBusinessSize($event)"
   (industryChange)="updateIndustry($event)"
 ></conversion-calculator-section>
@@ -69,5 +69,3 @@
 ></final-cta-section>
 
 <!-- Advanced component hosts -->
-<app-modal-host></app-modal-host>
-<app-toast-host></app-toast-host>

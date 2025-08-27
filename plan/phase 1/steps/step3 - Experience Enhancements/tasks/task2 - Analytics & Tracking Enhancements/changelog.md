@@ -5,7 +5,7 @@
 - Hero: ensured primary/secondary CTA tracking already present
 - Final CTA: added `final_cta_primary_click` and `final_cta_secondary_click`
 - Services: added `services_cta_click` with service title label
-- ROI Calculator: added `roi_size_change` and `roi_industry_change`
+- Conversion Calculator: added `conversion_size_change` and `conversion_industry_change`
 - Modal: instrumented `modal_open` and `modal_close`
 
 ## Validation

@@ -2,7 +2,7 @@
 
 ## Goal
 
-Introduce accessible microinteractions/animations using ngx-angora-css combos, respecting reduced motion.
+Introduce accessible micconversionnteractions/animations using ngx-angora-css combos, respecting reduced motion.
 
 ## Steps
 

@@ -71,7 +71,7 @@ Updated all components to use centralized translations:
 - All labels and content now from centralized translations
 - Reactive stats counter configurations
 
-#### ROI Note Component
+#### Conversion Note Component
 
 - Uses computed translations from centralized service
 - Template updated to use reactive content
@@ -86,7 +86,7 @@ Updated all components to use centralized translations:
 - 3 testimonials with complete details
 - 6-step interactive process with deliverables
 - 8 FAQ items with questions and answers
-- ROI note explanation content
+- Conversion note explanation content
 - Calculator labels and business size descriptions
 - UI text for loading states, sections, and contact
 
@@ -141,8 +141,8 @@ readonly translations = computed<LandingPageTranslations>(() => {
 - `src/app/landing-page/components/testimonials-section/testimonials-section.component.html`
 - `src/app/landing-page/components/conversion-calculator-section/conversion-calculator-section.component.ts`
 - `src/app/landing-page/components/conversion-calculator-section/conversion-calculator-section.component.html`
-- `src/app/landing-page/components/roi-note/roi-note.component.ts`
-- `src/app/landing-page/components/roi-note/roi-note.component.html`
+- `src/app/landing-page/components/conversion-note/conversion-note.component.ts`
+- `src/app/landing-page/components/conversion-note/conversion-note.component.html`
 
 ## Usage
 

@@ -6,4 +6,4 @@
 
 ## 2025-08-23
 
-- Defer-loaded ROI Calculator and FAQ sections to reduce initial work; added placeholders.
+- Defer-loaded Conversion Calculator and FAQ sections to reduce initial work; added placeholders.

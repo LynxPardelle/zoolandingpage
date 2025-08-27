@@ -10,7 +10,7 @@ Implemented Components / Primitives:
 - WhatsAppButton (deep-link + analytics).
 - ContentBlock (baseline layout abstraction).
 - StatsCounter (intersection + rAF animation).
-- Section Components retrofitted with `*.types.ts` + `*.constants.ts`: features, services, testimonials, interactive-process, roi-calculator, final-cta, roi-note.
+- Section Components retrofitted with `*.types.ts` + `*.constants.ts`: features, services, testimonials, interactive-process, conversion-calculator, final-cta, conversion-note.
 
 Structured Data:
 
@@ -26,9 +26,9 @@ Deferred (Explicit):
 
 Pending (Next Increment):
 
-- `@defer` placeholders for testimonials & ROI heavy content.
+- `@defer` placeholders for testimonials & Conversion heavy content.
 - Minimal spec stubs (primitives + one section) to seed later coverage.
-- StatsCounter embedded into ROI metrics strip.
+- StatsCounter embedded into Conversion metrics strip.
 
 Rationale for Scope Trim:
 

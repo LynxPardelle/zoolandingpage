@@ -6,15 +6,15 @@ import { AppContainerComponent, AppSectionComponent } from '../../../core/compon
 import { LandingPageI18nService } from '../landing-page/landing-page-i18n.service';
 
 @Component({
-  selector: 'roi-note',
+  selector: 'conversion-note',
   standalone: true,
   imports: [CommonModule, AppSectionComponent, AppContainerComponent, MatIconModule],
-  templateUrl: './roi-note.component.html',
+  templateUrl: './conversion-note.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RoiNoteComponent {
   private readonly i18n = inject(LandingPageI18nService);
 
-  // Use centralized ROI note translations
-  readonly copy = computed(() => this.i18n.roiNote());
+  // Use centralized Conversion note translations
+  readonly copy = computed(() => this.i18n.conversionNote());
 }

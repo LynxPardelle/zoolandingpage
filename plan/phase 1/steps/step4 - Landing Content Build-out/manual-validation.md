@@ -4,7 +4,7 @@
 
 - Verify hero headline and subcopy match docs/landing-copy-context.md (EN/ES)
 - Check responsive behavior on mobile, tablet, desktop breakpoints
-- Confirm services/features and ROI sections render expected copy and layouts
+- Confirm services/features and Conversion sections render expected copy and layouts
 
 ## Accessibility
 
@@ -16,7 +16,7 @@
 
 - Click Final CTA primary/secondary → events recorded
 - Click WhatsApp button → `whatsapp_click` recorded and opens intended action
-- Interact with ROI controls → events recorded (size/industry changes)
+- Interact with Conversion controls → events recorded (size/industry changes)
 
 ## Structured Data
 

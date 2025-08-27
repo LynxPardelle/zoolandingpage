@@ -103,7 +103,7 @@ export interface FaqSectionTranslations {
     placeholderQuestions: readonly string[];
 }
 
-// ROI Note Section
+// Conversion Note Section
 export interface RoiNoteTranslations {
     title: string;
     question: string;
@@ -192,7 +192,7 @@ export interface LandingPageTranslations {
     process: readonly ProcessStepTranslations[];
     faqSection: FaqSectionTranslations;
     faq: readonly FaqTranslations[];
-    roiNote: RoiNoteTranslations;
+    conversionNote: RoiNoteTranslations;
     calculator: CalculatorTranslations;
     finalCtaSection: FinalCtaSectionTranslations;
     ui: UiTranslations;
@@ -216,7 +216,7 @@ export type TranslationKeyPath =
     | 'testimonials.0.content'
     | 'process.0.title'
     | 'faq.0.title'
-    | 'roiNote.title'
+    | 'conversionNote.title'
     | 'calculator.title'
     | 'ui.sections.services.title'
     | 'ui.sections.testimonials.title'

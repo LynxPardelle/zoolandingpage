@@ -72,9 +72,9 @@ export class LandingPageI18nService {
     readonly faq = computed(() => this.translations().faq);
 
     /**
-     * ROI Note section translations
+     * Conversion Note section translations
      */
-    readonly roiNote = computed(() => this.translations().roiNote);
+    readonly conversionNote = computed(() => this.translations().conversionNote);
 
     /**
      * Calculator section translations

@@ -16,8 +16,8 @@ Related docs:
 Primary goals
 
 - Global Theme and Language integration (signals, persistence, no hardcoded colors)
-- Analytics instrumentation for key UX flows (CTA clicks, ROI calculator, modal interactions)
-- Accessible animations and microinteractions (reduced motion support, defer when needed)
+- Analytics instrumentation for key UX flows (CTA clicks, Conversion calculator, modal interactions)
+- Accessible animations and micconversionnteractions (reduced motion support, defer when needed)
 
 Secondary goals
 
@@ -55,7 +55,7 @@ Functional
 
 - [ ] Theme toggle updates colors across the app and persists
 - [ ] Language toggle flips between ES/EN and persists
-- [ ] Analytics events recorded for primary CTAs and ROI changes
+- [ ] Analytics events recorded for primary CTAs and Conversion changes
 - [ ] Core animations visible (unless reduced motion is detected)
 
 Technical
@@ -71,7 +71,7 @@ Accessibility & Performance
 
 ## Risks & Mitigations
 
-- Over-animated UI → keep subtle microinteractions; respect reduced motion
+- Over-animated UI → keep subtle micconversionnteractions; respect reduced motion
 - Event noise → keep a minimal analytics event catalog with clear naming
 - Color regressions → enforce `pushColors()` centrally via ThemeService
 

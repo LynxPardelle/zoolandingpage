@@ -2,15 +2,14 @@ import { DOCUMENT } from '@angular/common';
 import { afterNextRender, ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { Meta, Title } from '@angular/platform-browser';
-import { ModalComponent } from '../../../shared/components/modal';
-import { ToastComponent, ToastService } from '../../../shared/components/utility/toast';
+import { ToastService } from '../../../shared/components/utility/toast';
 import { ConversionCalculatorSectionComponent } from '../conversion-calculator-section/conversion-calculator-section.component';
+import { RoiNoteComponent } from '../conversion-note/conversion-note.component';
 import { FaqSectionComponent } from '../faq-section/faq-section.component';
 import { FeaturesSectionComponent } from '../features-section/features-section.component';
 import { FinalCtaSectionComponent } from '../final-cta-section/final-cta-section.component';
 import { HeroSectionComponent } from '../hero-section';
 import { InteractiveProcessComponent } from '../interactive-process/interactive-process.component';
-import { RoiNoteComponent } from '../roi-note/roi-note.component';
 import { ServicesSectionComponent } from '../services-section/services-section.component';
 import { TestimonialsSectionComponent } from '../testimonials-section/testimonials-section.component';
 import { buildTestimonialListSchema } from '../testimonials-section/testimonials-section.constants';
@@ -37,8 +36,6 @@ import type { InteractiveProcess } from './landing-page.types';
     TestimonialsSectionComponent,
     FaqSectionComponent,
     FinalCtaSectionComponent,
-    ModalComponent,
-    ToastComponent,
   ],
   templateUrl: './landing-page.component.html',
 })
@@ -81,44 +78,42 @@ export class LandingPageComponent {
   readonly interactiveProcess = signal<readonly InteractiveProcess[]>(this.i18n.process());
 
   // Conversion/Revenue calculation based on business size, industry and visitors (migrated from legacy App component)
-  readonly calculatedROI = computed(() => {
+  readonly calculatedConversion = computed(() => {
     const businessSize = this.calculatorBusinessSize();
     const industry = this.calculatorIndustry();
     const visitors = this.calculatorVisitors();
 
-    let baseROI = 150;
+    let baseConversion = 150;
     let conversionRate = 0.02;
 
     const sizeMultipliers = {
-      nano: { roi: 1.2, conversion: 1.1 },
-      micro: { roi: 1.5, conversion: 1.3 },
-      small: { roi: 1.8, conversion: 1.5 },
-      medium: { roi: 2.2, conversion: 1.7 },
+      nano: { conversion: 1.2 },
+      micro: { conversion: 1.5 },
+      small: { conversion: 1.8 },
+      medium: { conversion: 2.2 },
     } as const;
 
-    const industryMultipliers: Record<string, { roi: number; conversion: number }> = {
-      ecommerce: { roi: 1.8, conversion: 1.6 },
-      services: { roi: 1.5, conversion: 1.4 },
-      restaurant: { roi: 1.3, conversion: 1.2 },
-      health: { roi: 1.6, conversion: 1.5 },
-      education: { roi: 1.4, conversion: 1.3 },
-      'real-estate': { roi: 2.0, conversion: 1.8 },
-      consulting: { roi: 1.7, conversion: 1.5 },
+    const industryMultipliers: Record<string, { conversion: number; }> = {
+      ecommerce: { conversion: 1.8 },
+      services: { conversion: 1.5 },
+      restaurant: { conversion: 1.3 },
+      health: { conversion: 1.6 },
+      education: { conversion: 1.4 },
+      'real-estate': { conversion: 2.0 },
+      consulting: { conversion: 1.7 },
     };
 
     const sizeMultiplier = sizeMultipliers[businessSize];
     const industryMultiplier = industryMultipliers[industry] || industryMultipliers['services'];
 
-    const finalROI = Math.round(baseROI * sizeMultiplier.roi * industryMultiplier.roi);
-    const finalConversion =
-      Math.round(conversionRate * sizeMultiplier.conversion * industryMultiplier.conversion * 100) / 100;
+    const finalConversion = Math.round(baseConversion * sizeMultiplier.conversion * industryMultiplier.conversion);
 
     const averageOrderValue =
       businessSize === 'nano' ? 500 : businessSize === 'micro' ? 800 : businessSize === 'small' ? 1200 : 2000;
     const monthlyIncrease = Math.round(visitors * finalConversion * averageOrderValue * 0.3);
 
     return {
-      roiPercentage: finalROI,
+      conversionPercentage: finalConversion,
       monthlyIncrease,
       conversionImprovement: Math.round((finalConversion / conversionRate) * 10) / 10,
     };

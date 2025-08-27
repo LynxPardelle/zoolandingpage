@@ -23,7 +23,7 @@ export class ConversionCalculatorSectionComponent {
     readonly businessSize = input.required<BusinessSize>();
     readonly industry = input.required<string>();
     readonly visitors = input.required<number>();
-    readonly calculatedROI = input.required<CalculatedRoi>();
+    readonly calculatedConversion = input.required<CalculatedRoi>();
     readonly businessSizeChange = output<BusinessSize>();
     readonly industryChange = output<string>();
     readonly visitorsChange = output<number>();
@@ -32,7 +32,7 @@ export class ConversionCalculatorSectionComponent {
     readonly calculatorContent = computed(() => this.i18n.calculator());
 
     readonly monthlyIncreaseConfig = computed<StatsCounterConfig>(() => ({
-        target: this.calculatedROI().monthlyIncrease,
+        target: this.calculatedConversion().monthlyIncrease,
         durationMs: 1500,
         startOnVisible: true,
         format: (v: number) => Math.round(v).toLocaleString(),
@@ -41,7 +41,7 @@ export class ConversionCalculatorSectionComponent {
 
     // Conversion improvement multiplier (e.g., 3.4x)
     readonly conversionImprovementConfig = computed<StatsCounterConfig>(() => ({
-        target: this.calculatedROI().conversionImprovement,
+        target: this.calculatedConversion().conversionImprovement,
         durationMs: 1800,
         startOnVisible: true,
         format: (v: number) => (Math.round(v * 10) / 10).toString() + 'x',

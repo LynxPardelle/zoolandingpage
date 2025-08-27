@@ -309,7 +309,7 @@ const SPANISH_TRANSLATIONS: LandingPageTranslations = {
             content: 'Una breve descripción de tu negocio, beneficios a destacar, testimonios si tienes y medios de contacto vigentes. Si cuentas con colores de marca, también ayudarán.',
         },
     ],
-    roiNote: {
+    conversionNote: {
         title: '¿Qué significa una mejora en conversión?',
         question: '¿Qué significa una mejora en conversión?',
         investmentLabel: 'Visitas',
@@ -698,7 +698,7 @@ const ENGLISH_TRANSLATIONS: LandingPageTranslations = {
             content: 'A brief description of your business, benefits to highlight, testimonials if you have them and current contact methods. If you have brand colors, they will also help.',
         },
     ],
-    roiNote: {
+    conversionNote: {
         title: 'What does a conversion improvement mean?',
         question: 'What does a conversion improvement mean?',
         investmentLabel: 'Visits',
