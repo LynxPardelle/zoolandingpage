@@ -23,7 +23,7 @@ export const AnalyticsEvents = {
     // Services
     ServicesCtaClick: 'services_cta_click',
 
-    // ROI Calculator
+    // Conversion Calculator
     RoiSizeChange: 'conversion_size_change',
     RoiIndustryChange: 'conversion_industry_change',
     RoiVisitorsChange: 'conversion_visitors_change',

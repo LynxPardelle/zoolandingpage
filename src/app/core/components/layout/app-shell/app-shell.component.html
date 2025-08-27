@@ -34,7 +34,64 @@
 }
 
 <!-- Advanced component hosts -->
-<app-modal-host></app-modal-host>
+<app-modal-host
+  [config]="{
+    ariaLabel: 'Analytics consent dialog',
+    closeOnBackdrop: false,
+    showCloseButton: false,
+    size: 'sm',
+    showAccentBar: true,
+    accentColor: 'secondaryAccentColor',
+    variant: consentVariant()
+  }"
+>
+  @if (analytics.consentVisible()) {
+  <section class="ank-display-flex ank-flexDirection-column ank-gap-0_75rem ank-minWidth-20rem">
+    <div
+      class="ank-display-flex ank-alignItems-center ank-gap-0_5rem ank-bg-secondaryBgColor ank-border-1px ank-borderColor-border ank-p-0_5rem ank-borderRadius-0_5rem"
+    >
+      <div
+        class="ank-width-2rem ank-height-2rem ank-borderRadius-50per ank-bgcl-accentColor ank-display-flex ank-alignItems-center ank-justifyContent-center ank-color-bgColor ank-fontWeight-700"
+      >
+        ⓘ
+      </div>
+      <h2 class="ank-m-0 ank-fontSize-1_125rem ank-fontWeight-700 ank-color-textColor">{{ t("consent.title") }}</h2>
+    </div>
+
+    <p class="ank-m-0 ank-color-secondaryTextColor">{{ t("consent.intro") }}</p>
+
+    <ul class="ank-m-0 ank-pt-0_25rem ank-pl-1rem ank-color-secondaryTextColor">
+      <li>{{ t("consent.bullets.0") }}</li>
+      <li>{{ t("consent.bullets.1") }}</li>
+      <li>{{ t("consent.bullets.2") }}</li>
+    </ul>
+
+    <div class="ank-display-flex ank-gap-0_5rem ank-justifyContent-end ank-mt-0_75rem">
+      <button
+        type="button"
+        class="btnBaseVALSVL0_75remVL0_5rem ank-btn-bgColor ank-bgcl-secondary ank-color-textColor"
+        (click)="analytics.declineConsent()"
+      >
+        {{ t("consent.actions.decline") }}
+      </button>
+      <button
+        type="button"
+        class="btnBaseVALSVL0_75remVL0_5rem ank-btn-bgColor ank-bgcl-warning ank-color-textColor"
+        (click)="analytics.remindLater(24)"
+      >
+        {{ t("consent.actions.later") }}
+      </button>
+      <button
+        type="button"
+        class="btnBaseVALSVL0_75remVL0_5rem ank-btn-bgColor ank-bgcl-primary ank-color-textColor"
+        (click)="analytics.acceptConsent()"
+      >
+        {{ t("consent.actions.allow") }}
+      </button>
+    </div>
+  </section>
+  }
+</app-modal-host>
 <app-toast-host></app-toast-host>
 
 <!-- Dev-only demo controls -->
