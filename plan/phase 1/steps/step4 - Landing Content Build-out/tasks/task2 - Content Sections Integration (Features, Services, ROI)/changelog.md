@@ -3,8 +3,8 @@
 ## Changes
 
 - LandingPageComponent: features and services switched from static signals to computed values reactive to LanguageService (ES/EN variants)
-- Preserved existing analytics hooks: services `services_cta_click`, ROI `roi_size_change` and `roi_industry_change`
-- Left ROI template strings in ES for now; marked for future localization
+- Preserved existing analytics hooks: services `services_cta_click`, Conversion `conversion_size_change` and `conversion_industry_change`
+- Left Conversion template strings in ES for now; marked for future localization
 
 ## Validation
 

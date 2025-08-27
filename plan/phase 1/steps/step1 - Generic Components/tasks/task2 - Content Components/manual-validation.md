@@ -9,19 +9,23 @@ This document outlines the manual testing procedures for Content Components that
 ### Required Testing Setup
 
 **Devices:**
+
 - Desktop computers (Windows, macOS, Linux)
 - Mobile devices (iOS, Android)
 - Tablets (iPad, Android tablets)
 
 **Browsers:**
+
 - Chrome 90+, Firefox 88+, Safari 14+, Edge 90+
 
 **Screen Sizes:**
+
 - Mobile: 320px - 768px
 - Tablet: 768px - 1024px
 - Desktop: 1024px - 1920px+
 
 **Testing Tools:**
+
 - Screen readers (NVDA, JAWS, VoiceOver)
 - Color contrast analyzers
 - Animation performance monitors
@@ -34,6 +38,7 @@ This document outlines the manual testing procedures for Content Components that
 #### Visual Impact Testing
 
 **Test Steps:**
+
 1. Load page with HeroSection component
 2. Evaluate first impression and visual hierarchy
 3. Check headline and subheading readability
@@ -42,6 +47,7 @@ This document outlines the manual testing procedures for Content Components that
 6. Evaluate overall visual balance
 
 **Expected Results:**
+
 - [ ] Hero section creates strong first impression
 - [ ] Headline captures attention immediately
 - [ ] CTA buttons are clearly visible and compelling
@@ -52,6 +58,7 @@ This document outlines the manual testing procedures for Content Components that
 #### Content Effectiveness Testing
 
 **Test Steps:**
+
 1. Read headline and subheading aloud
 2. Evaluate message clarity and appeal
 3. Test different content lengths
@@ -59,6 +66,7 @@ This document outlines the manual testing procedures for Content Components that
 5. Assess urgency and motivation factors
 
 **Expected Results:**
+
 - [ ] Message is clear and compelling
 - [ ] Value proposition is immediately understood
 - [ ] Content motivates user action
@@ -68,6 +76,7 @@ This document outlines the manual testing procedures for Content Components that
 #### Animation and Interaction Testing
 
 **Test Steps:**
+
 1. Load page and observe entry animations
 2. Test scroll-triggered animations
 3. Verify smooth transitions between states
@@ -75,6 +84,7 @@ This document outlines the manual testing procedures for Content Components that
 5. Test reduced motion preferences
 
 **Expected Results:**
+
 - [ ] Animations enhance rather than distract
 - [ ] Entry animations feel smooth and professional
 - [ ] No jarring or disruptive motion
@@ -86,6 +96,7 @@ This document outlines the manual testing procedures for Content Components that
 #### Conversion Optimization Testing
 
 **Test Steps:**
+
 1. Test various CTA button texts and styles
 2. Evaluate button placement and prominence
 3. Check urgency indicators effectiveness
@@ -93,6 +104,7 @@ This document outlines the manual testing procedures for Content Components that
 5. Assess user motivation factors
 
 **Expected Results:**
+
 - [ ] CTA buttons are immediately noticeable
 - [ ] Button text clearly indicates action
 - [ ] Visual hierarchy emphasizes primary action
@@ -102,6 +114,7 @@ This document outlines the manual testing procedures for Content Components that
 #### User Psychology Testing
 
 **Test Steps:**
+
 1. Have test users interact with CTAs
 2. Observe hesitation points or confusion
 3. Test different messaging approaches
@@ -109,6 +122,7 @@ This document outlines the manual testing procedures for Content Components that
 5. Assess overall conversion likelihood
 
 **Expected Results:**
+
 - [ ] Users understand what will happen when they click
 - [ ] No confusion about the action or outcome
 - [ ] CTA feels trustworthy and legitimate
@@ -120,6 +134,7 @@ This document outlines the manual testing procedures for Content Components that
 #### Information Architecture Testing
 
 **Test Steps:**
+
 1. Test with various content lengths
 2. Evaluate icon and title alignment
 3. Check description readability
@@ -127,6 +142,7 @@ This document outlines the manual testing procedures for Content Components that
 5. Verify hover effects enhance usability
 
 **Expected Results:**
+
 - [ ] Cards maintain consistent height in grid
 - [ ] Icons clearly represent features
 - [ ] Descriptions are concise but informative
@@ -136,6 +152,7 @@ This document outlines the manual testing procedures for Content Components that
 #### Content Comprehension Testing
 
 **Test Steps:**
+
 1. Have users scan feature cards quickly
 2. Test comprehension of feature benefits
 3. Evaluate icon recognition and meaning
@@ -143,6 +160,7 @@ This document outlines the manual testing procedures for Content Components that
 5. Assess overall information hierarchy
 
 **Expected Results:**
+
 - [ ] Features are easily scannable
 - [ ] Benefits are clearly communicated
 - [ ] Icons are intuitive and recognizable
@@ -154,6 +172,7 @@ This document outlines the manual testing procedures for Content Components that
 #### Credibility and Trust Testing
 
 **Test Steps:**
+
 1. Evaluate testimonial authenticity feeling
 2. Check customer photo and information display
 3. Test verification badge effectiveness
@@ -161,6 +180,7 @@ This document outlines the manual testing procedures for Content Components that
 5. Verify star rating display clarity
 
 **Expected Results:**
+
 - [ ] Testimonials feel genuine and authentic
 - [ ] Customer information builds credibility
 - [ ] Photos look professional and real
@@ -170,6 +190,7 @@ This document outlines the manual testing procedures for Content Components that
 #### Social Proof Impact Testing
 
 **Test Steps:**
+
 1. Test different testimonial arrangements
 2. Evaluate emotional impact of testimonials
 3. Check testimonial relevance to target audience
@@ -177,6 +198,7 @@ This document outlines the manual testing procedures for Content Components that
 5. Test testimonial carousel or grid behavior
 
 **Expected Results:**
+
 - [ ] Testimonials create emotional connection
 - [ ] Content resonates with target audience
 - [ ] Arrangement maximizes social proof impact
@@ -188,6 +210,7 @@ This document outlines the manual testing procedures for Content Components that
 #### Usability Testing
 
 **Test Steps:**
+
 1. Test all button variants (primary, secondary, outline, ghost)
 2. Check button sizing and touch targets
 3. Verify loading and disabled states
@@ -195,6 +218,7 @@ This document outlines the manual testing procedures for Content Components that
 5. Evaluate hover and active state feedback
 
 **Expected Results:**
+
 - [ ] All button variants serve clear purposes
 - [ ] Touch targets are adequate (44px minimum)
 - [ ] Loading states provide clear feedback
@@ -205,6 +229,7 @@ This document outlines the manual testing procedures for Content Components that
 #### Accessibility Testing
 
 **Test Steps:**
+
 1. Navigate buttons using only keyboard
 2. Test with screen reader software
 3. Check color contrast ratios
@@ -212,6 +237,7 @@ This document outlines the manual testing procedures for Content Components that
 5. Test with high contrast mode
 
 **Expected Results:**
+
 - [ ] All buttons accessible via keyboard
 - [ ] Screen reader announces button purpose clearly
 - [ ] Color contrast meets accessibility standards
@@ -223,6 +249,7 @@ This document outlines the manual testing procedures for Content Components that
 #### Form Usability Testing
 
 **Test Steps:**
+
 1. Complete form with valid information
 2. Test form with invalid inputs
 3. Check field labeling and instructions
@@ -231,6 +258,7 @@ This document outlines the manual testing procedures for Content Components that
 6. Test form on mobile devices
 
 **Expected Results:**
+
 - [ ] Form fields are clearly labeled
 - [ ] Instructions are helpful and clear
 - [ ] Error messages are specific and actionable
@@ -241,6 +269,7 @@ This document outlines the manual testing procedures for Content Components that
 #### Validation and Error Handling
 
 **Test Steps:**
+
 1. Submit form with missing required fields
 2. Enter invalid email addresses
 3. Test phone number validation
@@ -248,6 +277,7 @@ This document outlines the manual testing procedures for Content Components that
 5. Test special characters and formatting
 
 **Expected Results:**
+
 - [ ] Required field validation is immediate and clear
 - [ ] Email validation catches common errors
 - [ ] Phone validation accepts various formats
@@ -257,6 +287,7 @@ This document outlines the manual testing procedures for Content Components that
 #### Privacy and Trust Testing
 
 **Test Steps:**
+
 1. Review privacy messaging and compliance
 2. Test GDPR consent mechanisms
 3. Evaluate trust indicators in form
@@ -264,6 +295,7 @@ This document outlines the manual testing procedures for Content Components that
 5. Assess user comfort with data sharing
 
 **Expected Results:**
+
 - [ ] Privacy policy is accessible and clear
 - [ ] GDPR compliance elements work properly
 - [ ] Users feel comfortable sharing information
@@ -275,6 +307,7 @@ This document outlines the manual testing procedures for Content Components that
 #### Messaging and Integration Testing
 
 **Test Steps:**
+
 1. Test WhatsApp button on desktop and mobile
 2. Verify pre-filled message accuracy
 3. Check contact number correctness
@@ -282,6 +315,7 @@ This document outlines the manual testing procedures for Content Components that
 5. Verify analytics tracking functionality
 
 **Expected Results:**
+
 - [ ] Button opens WhatsApp correctly on all devices
 - [ ] Pre-filled messages are relevant and helpful
 - [ ] Contact information is accurate
@@ -291,6 +325,7 @@ This document outlines the manual testing procedures for Content Components that
 #### User Experience Testing
 
 **Test Steps:**
+
 1. Test user flow from button click to conversation
 2. Evaluate message template relevance
 3. Check branding consistency
@@ -298,6 +333,7 @@ This document outlines the manual testing procedures for Content Components that
 5. Assess overall conversion likelihood
 
 **Expected Results:**
+
 - [ ] Flow from click to conversation is smooth
 - [ ] Message templates facilitate conversation
 - [ ] WhatsApp branding is respected
@@ -309,6 +345,7 @@ This document outlines the manual testing procedures for Content Components that
 #### Animation and Performance Testing
 
 **Test Steps:**
+
 1. Test counter animations on scroll
 2. Check animation performance on various devices
 3. Verify intersection observer behavior
@@ -316,6 +353,7 @@ This document outlines the manual testing procedures for Content Components that
 5. Check number formatting accuracy
 
 **Expected Results:**
+
 - [ ] Animations trigger correctly on scroll
 - [ ] Performance remains smooth on all devices
 - [ ] Intersection detection is accurate
@@ -325,6 +363,7 @@ This document outlines the manual testing procedures for Content Components that
 #### Content Impact Testing
 
 **Test Steps:**
+
 1. Evaluate statistics relevance and credibility
 2. Test different number sizes and formats
 3. Check visual hierarchy and emphasis
@@ -332,6 +371,7 @@ This document outlines the manual testing procedures for Content Components that
 5. Verify accuracy of displayed statistics
 
 **Expected Results:**
+
 - [ ] Statistics are relevant and impressive
 - [ ] Numbers are formatted for readability
 - [ ] Visual emphasis highlights key metrics
@@ -343,6 +383,7 @@ This document outlines the manual testing procedures for Content Components that
 #### Functionality Testing
 
 **Test Steps:**
+
 1. Test gallery grid layout and responsiveness
 2. Check lightbox functionality
 3. Test touch gestures on mobile
@@ -350,6 +391,7 @@ This document outlines the manual testing procedures for Content Components that
 5. Check image quality and optimization
 
 **Expected Results:**
+
 - [ ] Grid layout adapts well to screen sizes
 - [ ] Lightbox provides good viewing experience
 - [ ] Touch gestures feel natural
@@ -359,6 +401,7 @@ This document outlines the manual testing procedures for Content Components that
 #### User Experience Testing
 
 **Test Steps:**
+
 1. Navigate through gallery using various methods
 2. Test image zoom and pan functionality
 3. Check gallery performance with many images
@@ -366,6 +409,7 @@ This document outlines the manual testing procedures for Content Components that
 5. Evaluate overall browsing experience
 
 **Expected Results:**
+
 - [ ] Navigation methods are intuitive
 - [ ] Zoom and pan work smoothly
 - [ ] Performance remains good with many images
@@ -377,6 +421,7 @@ This document outlines the manual testing procedures for Content Components that
 ### Layout and Spacing Integration
 
 **Test Steps:**
+
 1. Test all components together in full page layout
 2. Check spacing consistency between components
 3. Verify visual hierarchy across components
@@ -384,6 +429,7 @@ This document outlines the manual testing procedures for Content Components that
 5. Check theme consistency across all components
 
 **Expected Results:**
+
 - [ ] Components work harmoniously together
 - [ ] Spacing creates good visual rhythm
 - [ ] Visual hierarchy guides user attention
@@ -393,6 +439,7 @@ This document outlines the manual testing procedures for Content Components that
 ### User Flow Testing
 
 **Test Steps:**
+
 1. Complete full user journey from hero to contact
 2. Test component interactions and transitions
 3. Verify call-to-action effectiveness throughout
@@ -400,6 +447,7 @@ This document outlines the manual testing procedures for Content Components that
 5. Test conversion funnel optimization
 
 **Expected Results:**
+
 - [ ] User flow feels natural and guided
 - [ ] Transitions between sections are smooth
 - [ ] CTAs appear at optimal moments
@@ -411,6 +459,7 @@ This document outlines the manual testing procedures for Content Components that
 ### Loading and Rendering Performance
 
 **Test Steps:**
+
 1. Test page loading on slow network connections
 2. Observe component rendering sequence
 3. Check for layout shift during loading
@@ -418,6 +467,7 @@ This document outlines the manual testing procedures for Content Components that
 5. Verify progressive enhancement behavior
 
 **Expected Results:**
+
 - [ ] Essential content loads first
 - [ ] Progressive enhancement provides good fallbacks
 - [ ] No significant layout shift occurs
@@ -427,6 +477,7 @@ This document outlines the manual testing procedures for Content Components that
 ### Memory and Resource Usage
 
 **Test Steps:**
+
 1. Monitor memory usage during extended browsing
 2. Test with many animated components active
 3. Check for memory leaks in animations
@@ -434,6 +485,7 @@ This document outlines the manual testing procedures for Content Components that
 5. Monitor CPU usage during interactions
 
 **Expected Results:**
+
 - [ ] Memory usage remains stable
 - [ ] No memory leaks detected
 - [ ] CPU usage is reasonable
@@ -445,6 +497,7 @@ This document outlines the manual testing procedures for Content Components that
 ### Screen Reader Testing
 
 **Test Steps:**
+
 1. Navigate all components using screen reader
 2. Test content structure and heading hierarchy
 3. Verify form accessibility and labels
@@ -452,6 +505,7 @@ This document outlines the manual testing procedures for Content Components that
 5. Test dynamic content announcements
 
 **Expected Results:**
+
 - [ ] All content is properly announced
 - [ ] Navigation structure is logical
 - [ ] Forms are fully accessible
@@ -461,6 +515,7 @@ This document outlines the manual testing procedures for Content Components that
 ### Keyboard Navigation Testing
 
 **Test Steps:**
+
 1. Navigate using only keyboard
 2. Test focus indicators and tab order
 3. Check keyboard shortcuts and functionality
@@ -468,6 +523,7 @@ This document outlines the manual testing procedures for Content Components that
 5. Verify escape key and modal behavior
 
 **Expected Results:**
+
 - [ ] All interactive elements are keyboard accessible
 - [ ] Focus indicators are clearly visible
 - [ ] Tab order is logical and efficient
@@ -479,6 +535,7 @@ This document outlines the manual testing procedures for Content Components that
 ### First-Time User Testing
 
 **Test Steps:**
+
 1. Have new users interact with components
 2. Observe points of confusion or hesitation
 3. Test discoverability of interactive elements
@@ -486,6 +543,7 @@ This document outlines the manual testing procedures for Content Components that
 5. Evaluate overall user satisfaction
 
 **Expected Results:**
+
 - [ ] Components are intuitive to new users
 - [ ] No major confusion points exist
 - [ ] Interactive elements are discoverable
@@ -495,6 +553,7 @@ This document outlines the manual testing procedures for Content Components that
 ### Conversion Optimization Testing
 
 **Test Steps:**
+
 1. Test different call-to-action variations
 2. Evaluate user motivation factors
 3. Check conversion funnel effectiveness
@@ -502,6 +561,7 @@ This document outlines the manual testing procedures for Content Components that
 5. Assess overall persuasion impact
 
 **Expected Results:**
+
 - [ ] CTAs motivate user action
 - [ ] Conversion funnel guides users effectively
 - [ ] Form completion feels worthwhile
@@ -513,6 +573,7 @@ This document outlines the manual testing procedures for Content Components that
 ### Usage Documentation Testing
 
 **Test Steps:**
+
 1. Follow component integration instructions
 2. Test provided code examples
 3. Verify API documentation accuracy
@@ -520,6 +581,7 @@ This document outlines the manual testing procedures for Content Components that
 5. Test component customization examples
 
 **Expected Results:**
+
 - [ ] Integration instructions are clear and accurate
 - [ ] Code examples work as documented
 - [ ] API documentation covers all features
@@ -533,12 +595,14 @@ This document outlines the manual testing procedures for Content Components that
 For each component tested, document:
 
 **Component Information:**
+
 - Component Name
 - Test Date and Duration
 - Tester Name and Role
 - Testing Environment Details
 
 **Test Results:**
+
 - Pass/Fail for each test category
 - Detailed findings and observations
 - Screenshots or recordings of issues
@@ -546,6 +610,7 @@ For each component tested, document:
 - Performance measurements
 
 **Issues and Recommendations:**
+
 - High/Medium/Low priority issues
 - Specific improvement recommendations
 - User experience enhancement suggestions
@@ -554,12 +619,14 @@ For each component tested, document:
 ### Quality Metrics
 
 **Usability Metrics:**
+
 - Task completion rate
 - Time to complete tasks
 - Error rate and recovery
 - User satisfaction scores
 
 **Performance Metrics:**
+
 - Loading time measurements
 - Animation smoothness assessment
 - Memory usage observations

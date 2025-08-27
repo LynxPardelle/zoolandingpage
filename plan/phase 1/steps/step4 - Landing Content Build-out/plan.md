@@ -2,7 +2,7 @@
 
 ## Overview
 
-This step assembles and polishes the actual landing content: hero messaging, feature/services sections, ROI calculator copy, social proof, and conversion touchpoints (final CTA and WhatsApp). It builds on Steps 1–3 (components, shell/routing, and experience enhancements) and aligns tightly with the copy in `docs/landing-copy-context.md` and architecture guidelines.
+This step assembles and polishes the actual landing content: hero messaging, feature/services sections, Conversion calculator copy, social proof, and conversion touchpoints (final CTA and WhatsApp). It builds on Steps 1–3 (components, shell/routing, and experience enhancements) and aligns tightly with the copy in `docs/landing-copy-context.md` and architecture guidelines.
 
 Related docs:
 
@@ -18,7 +18,7 @@ Related docs:
 Primary goals
 
 - Implement and refine hero/value proposition and ensure responsive, accessible layout
-- Integrate features/services/ROI sections with finalized copy and i18n
+- Integrate features/services/Conversion sections with finalized copy and i18n
 - Add social proof (testimonials, stats) and JSON-LD structured data
 - Wire conversion surfaces: final CTA and WhatsApp, with analytics
 
@@ -33,7 +33,7 @@ Secondary goals
 Tasks
 
 - Task 1: Hero & Messaging
-- Task 2: Content Sections Integration (Features, Services, ROI)
+- Task 2: Content Sections Integration (Features, Services, Conversion)
 - Task 3: Social Proof & Structured Data
 - Task 4: Contact & Conversion (Final CTA, WhatsApp)
 
@@ -58,7 +58,7 @@ MANDATORY requirements (enforced):
 Functional
 
 - [ ] Hero headline and subcopy render from i18n and match landing-copy-context
-- [ ] Features/Services/ROI content localized and responsive
+- [ ] Features/Services/Conversion content localized and responsive
 - [ ] Testimonials/Stats present; JSON-LD valid (Rich Results Test)
 - [ ] Final CTA and WhatsApp actions work and are tracked
 

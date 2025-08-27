@@ -1,7 +1,7 @@
-import { RoiNoteCopy } from './roi-note.types';
+import { RoiNoteCopy } from './conversion-note.types';
 
-export const ROI_NOTE_ID = 'roi-note';
-export const ROI_NOTE_COPY: RoiNoteCopy = {
+export const Conversion_NOTE_ID = 'conversion-note';
+export const Conversion_NOTE_COPY: RoiNoteCopy = {
   title: '¿Qué significa una mejora en conversión?',
   question: '¿Qué significa una mejora en conversión?',
   investmentLabel: 'Visitas',

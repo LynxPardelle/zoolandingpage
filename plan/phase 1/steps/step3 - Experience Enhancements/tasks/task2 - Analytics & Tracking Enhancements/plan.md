@@ -8,7 +8,7 @@ Instrument primary UX flows with analytics events and minimal assertions.
 
 1. Event catalog
    - CTA clicks (hero, services, final CTA)
-   - ROI calculator interactions (size/industry changes)
+   - Conversion calculator interactions (size/industry changes)
    - Modal open/close events
 2. Implementation
    - Use `AnalyticsService.track(name, { category, label, meta })`

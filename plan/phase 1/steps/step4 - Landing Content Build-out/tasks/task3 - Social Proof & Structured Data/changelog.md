@@ -23,4 +23,4 @@ Validation:
 Notes / Next:
 
 - Consider moving structured data to a dedicated SEO service if multiple pages are added.
-- Add EN copy for ROI note and ROI strings to complete i18n coverage in Step 4.
+- Add EN copy for Conversion note and Conversion strings to complete i18n coverage in Step 4.

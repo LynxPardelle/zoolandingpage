@@ -6,7 +6,7 @@
 - Automatic and manual validation checklists for the step
 - Tasks scaffolding:
   - Task 1: Hero & Messaging (plan, automatic-validation, manual-validation, changelog)
-  - Task 2: Content Sections Integration (Features, Services, ROI) (plan, automatic-validation, manual-validation, changelog)
+  - Task 2: Content Sections Integration (Features, Services, Conversion) (plan, automatic-validation, manual-validation, changelog)
   - Task 3: Social Proof & Structured Data (plan, automatic-validation, manual-validation, changelog)
   - Task 4: Contact & Conversion (Final CTA, WhatsApp) (plan, automatic-validation, manual-validation, changelog)
 
