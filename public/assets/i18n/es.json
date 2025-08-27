@@ -1,1 +1,19 @@
-{}
+{
+  "consent": {
+    "title": "Analítica y Cookies",
+    "intro": "Usamos analítica anónima para entender el uso y mejorar la experiencia. Puedes cambiarlo después en ajustes.",
+    "bullets": [
+      "No se recopilan datos personales.",
+      "Ayuda a corregir problemas y priorizar funciones.",
+      "Puedes desactivarlo en cualquier momento."
+    ],
+    "actions": {
+      "allow": "Permitir",
+      "decline": "Rechazar",
+      "later": "Más tarde"
+    },
+    "feedback": {
+      "snoozed": "Te preguntaremos de nuevo más tarde."
+    }
+  }
+}

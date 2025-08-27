@@ -17,9 +17,11 @@ import { AppFooterComponent, AppHeaderComponent } from '..';
 import { environment } from '../../../../../environments/environment';
 import { NgxAngoraService } from '../../../../angora-css/ngx-angora.service';
 import { ModalComponent } from '../../../../shared/components/modal/modal.component';
+import { ModalService } from '../../../../shared/components/modal/modal.service';
 import { ToastComponent, ToastService } from '../../../../shared/components/utility/toast';
 import { AnalyticsCategories, AnalyticsEvents } from '../../../../shared/services/analytics.events';
 import { AnalyticsService } from '../../../../shared/services/analytics.service';
+import { I18nService } from '../../../../shared/services/i18n.service';
 import { LanguageService } from '../../../services/language.service';
 import { ThemeService } from '../../../services/theme.service';
 import type { HeaderNavItem } from '../app-header/app-header.types';
@@ -42,14 +44,19 @@ export class AppShellComponent {
 
   // Services
   private readonly router = inject(Router);
-  private readonly analytics = inject(AnalyticsService);
+  readonly analytics = inject(AnalyticsService);
   private readonly _ank = inject(NgxAngoraService);
   private readonly toast = inject(ToastService);
   private readonly events = inject(AnalyticsService);
+  private readonly modal = inject(ModalService);
   private angoraHasBeenInitialized = false;
   // Ensure global Theme/Language services are initialized at shell level
   private readonly _theme = inject(ThemeService);
   private readonly _lang = inject(LanguageService);
+  private readonly _i18n = inject(I18nService);
+  // Public alias for template usage
+  readonly lang = this._lang;
+  readonly t = (k: string) => this._i18n.t(k);
   private readonly activeHref = signal<string | null>(null);
 
   cfg = input<AppShellConfig>({ skipLinkLabel: 'Skip to content' });
@@ -59,6 +66,12 @@ export class AppShellComponent {
     const provided = this.cfg()?.skipLinkLabel;
     if (provided && provided.trim().length > 0) return provided;
     return this._lang.currentLanguage() === 'en' ? 'Skip to content' : 'Saltar al contenido';
+  });
+
+  // Consent modal variant based on environment flag
+  readonly consentVariant = computed<"dialog" | "sheet">(() => {
+    const mode = environment.features.analyticsConsentUI;
+    return mode === 'sheet' ? 'sheet' : 'dialog';
   });
 
   // Minimal header config until centralized state is introduced
@@ -133,7 +146,16 @@ export class AppShellComponent {
   readonly mainRef = viewChild<ElementRef<HTMLElement>>('main');
 
   constructor() {
-    // Track page views exactly once per navigation end
+    // Track first page view immediately (queued until consent if needed)
+    afterNextRender(() => {
+      const currentUrl = this.router.url;
+      this.analytics.track(AnalyticsEvents.PageView, {
+        category: AnalyticsCategories.Navigation,
+        label: currentUrl,
+      });
+    });
+
+    // Track subsequent page views on navigation end
     this.router.events.pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd)).subscribe(evt => {
       this.analytics.track(AnalyticsEvents.PageView, {
         category: AnalyticsCategories.Navigation,
@@ -143,6 +165,8 @@ export class AppShellComponent {
 
     // Initialize Angora CSS once, then regenerate after every render
     afterNextRender(() => {
+      // Prompt for analytics consent early if needed
+      this.analytics.promptForConsentIfNeeded();
       this.initializeAngoraConfiguration();
       this._ank.cssCreate();
     });
@@ -164,6 +188,17 @@ export class AppShellComponent {
     });
 
     this.initDebugOverlay();
+
+    // React to consent modal visibility toggles and manage actual overlay
+    effect(() => {
+      const needsConsent = this.analytics.consentVisible();
+      const active = this.modal.modalRef();
+      if (needsConsent && !active) {
+        this.modal.open({ id: 'analytics-consent' });
+      } else if (!needsConsent && active) {
+        this.modal.close();
+      }
+    });
   }
 
   focusMain(evt: Event): void {

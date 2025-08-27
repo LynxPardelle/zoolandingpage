@@ -64,7 +64,8 @@ export class ModalComponent {
       'ank-position-absolute',
       'ank-inset-0',
       'ank-d-block',
-      'ank-bg-bgColor',
+      // Use themed backdrop with opacity via Angora OPA utility
+      'ank-bg-bgColorOPA__0_6',
       'ank-backdropFilter-blurSD2pxED',
       'ank-pointerEvents-auto',
     ];
@@ -81,11 +82,13 @@ export class ModalComponent {
   private openModal(): void {
     this.previousFocused = document.activeElement as HTMLElement | null;
     this.overlayRef = this.createOverlay();
-    // Attach portal
-    if (this.modalTpl && this.overlayRef && !this.overlayRef.hasAttached()) {
-      const portal = new TemplatePortal(this.modalTpl, this.vcr);
-      this.overlayRef.attach(portal);
-    }
+    // Attach portal in a microtask so @ViewChild template is ready
+    queueMicrotask(() => {
+      if (this.modalTpl && this.overlayRef && !this.overlayRef.hasAttached()) {
+        const portal = new TemplatePortal(this.modalTpl, this.vcr);
+        this.overlayRef.attach(portal);
+      }
+    });
     this.open.set(true);
     document.body.style.overflow = 'hidden';
     // Focus trap after next microtask so panel exists

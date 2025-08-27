@@ -1,16 +1,24 @@
 <!-- Modal rendered through CDK Overlay; template is projected via TemplatePortal -->
 <ng-template #modalContent>
-  <!-- Fullscreen container to center the panel -->
+  <!-- Fullscreen container to center the panel or dock it as sheet -->
   <div
-    class="ank-position-fixed ank-inset-0 ank-display-flex ank-alignItems-center ank-justifyContent-center ank-pointerEvents-none ank-zIndex-1000"
+    class="ank-position-fixed ank-inset-0 ank-display-flex ank-pointerEvents-none ank-zIndex-1000"
+    [ngClass]="{
+      'ank-alignItems-center ank-justifyContent-center': (config?.variant ?? 'dialog') === 'dialog',
+      'ank-alignItems-flexEnd ank-justifyContent-center': (config?.variant ?? 'dialog') === 'sheet'
+    }"
   >
     <div
-      class="ank-position-absolute ank-top-50per ank-left-50per ank-transform-translateSDMIN50perCOM__MIN50perED ank-pointerEvents-auto ank-display-flex ank-flexDirection-column ank-minWidth-280px ank-maxHeight-80vh ank-overflow-auto ank-p-1_25rem ank-borderRadius-0_75rem ank-bg-bgColor ank-color-fgColor ank-boxShadow-0__0_5rem__2rem__MIN0_25rem__bgColor__OPA__0_4"
+      class="modal-panel ank-pointerEvents-auto ank-display-flex ank-flexDirection-column ank-minWidth-280px ank-maxHeight-80vh ank-overflow-auto ank-p-1_25rem ank-bg-secondaryBgColor ank-color-textColor ank-border-1px ank-borderColor-border ank-boxShadow-0__0_5rem__2rem__MIN0_25rem__bgColor__OPA__0_35"
       [ngClass]="{
         'modal-anim-scaleIn': !motion.reduced(),
-        'ank-width-320px': size() === 'sm',
-        'ank-width-480px': size() === 'md',
-        'ank-width-720px': size() === 'lg',
+        'ank-position-absolute ank-top-50per ank-left-50per ank-transform-translateSDMIN50perCOM__MIN50perED ank-borderRadius-0_75rem':
+          (config?.variant ?? 'dialog') === 'dialog',
+        'ank-position-relative ank-width-100per ank-borderRadius-1rem__1rem__0__0 ank-pb-1_5rem':
+          (config?.variant ?? 'dialog') === 'sheet',
+        'ank-width-320px': size() === 'sm' && (config?.variant ?? 'dialog') === 'dialog',
+        'ank-width-480px': size() === 'md' && (config?.variant ?? 'dialog') === 'dialog',
+        'ank-width-720px': size() === 'lg' && (config?.variant ?? 'dialog') === 'dialog',
         'ank-width-100per ank-height-100per ank-borderRadius-0': size() === 'full'
       }"
       role="dialog"
@@ -18,6 +26,15 @@
       [attr.aria-label]="config?.ariaLabel"
       [attr.aria-describedby]="config?.ariaDescribedBy"
     >
+      @if (config?.showAccentBar) {
+      <div
+        class="ank-position-absolute ank-top-0 ank-left-0 ank-right-0 ank-height-4px ank-borderRadius-0_75rem__0_75rem__0__0"
+        [ngClass]="{
+          'ank-bg-accentColor': (config?.accentColor ?? 'accentColor') === 'accentColor',
+          'ank-bg-secondaryAccentColor': (config?.accentColor ?? 'accentColor') === 'secondaryAccentColor'
+        }"
+      ></div>
+      } @if (config?.showCloseButton ?? true) {
       <button
         class="modal-close ank-bg-transparent ank-border-0 ank-color-inherit ank-fontSize-1_25rem ank-cursor-pointer ank-position-absolute ank-top-0_5rem ank-right-0_5rem"
         type="button"
@@ -26,6 +43,7 @@
       >
         ×
       </button>
+      }
       <ng-content />
     </div>
   </div>

@@ -1,1 +1,19 @@
-{}
+{
+  "consent": {
+    "title": "Analytics & Cookies",
+    "intro": "We use anonymous analytics to understand usage and improve the experience. You can change this later in settings.",
+    "bullets": [
+      "No personal data collected.",
+      "Helps fix issues and prioritize features.",
+      "You may opt-out at any time."
+    ],
+    "actions": {
+      "allow": "Allow",
+      "decline": "Decline",
+      "later": "Later"
+    },
+    "feedback": {
+      "snoozed": "We'll ask you again later."
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "battery": "{\"charging\":true,\"level\":1,\"chargingTime\":0,\"dischargingTime\":null}",
+  "category": "cta",
+  "colorDepth": 24,
+  "connection": null,
+  "cookies": "",
+  "cookiesEnabled": true,
+  "doNotTrack": null,
+  "geolocationAccuracy": 999,
+  "geolocationLatitude": -999.9999999999999999,
+  "geolocationLongitude": -999.9999999999999999,
+  "ip": "127.0.0.1",
+  "label": "hero:primary",
+  "language": "es",
+  "localId": "361cf121-1022-4a7b-872a-c199dab792f8",
+  "meta": {
+    "location": "hero",
+    "variant": "primary"
+  },
+  "name": "cta_click",
+  "platform": "Win32",
+  "screenHeight": 2160,
+  "screenWidth": 3840,
+  "sessionId": "1d2707fe-2439-40a2-b996-d98ae2e3579a",
+  "timestamp": 1756276595877,
+  "timezone": "America/Mexico_City",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
+  "vendor": "Google Inc.",
+  "appName": "Zoo Landing Page"
+}
