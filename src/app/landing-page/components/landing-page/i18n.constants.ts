@@ -323,7 +323,7 @@ const SPANISH_TRANSLATIONS: LandingPageTranslations = {
         title: 'Calculadora de Conversión',
         subtitle: 'Estima el impacto en conversiones y ventas con una landing optimizada',
         description: 'Cálculos basados en promedios de la industria y casos reales',
-        projectsLabel: 'Proyectos Exitosos',
+        projectsLabel: 'Visitas al sitio',
         satisfactionLabel: 'Satisfacción Cliente',
         improvementLabel: 'Mejora Promedio',
         businessSizeLabels: {
@@ -712,7 +712,7 @@ const ENGLISH_TRANSLATIONS: LandingPageTranslations = {
         title: 'Conversion Calculator',
         subtitle: 'Estimate the impact on conversions and sales with an optimized landing',
         description: 'Calculations based on industry averages and real cases',
-        projectsLabel: 'Successful Projects',
+        projectsLabel: 'Site visits',
         satisfactionLabel: 'Client Satisfaction',
         improvementLabel: 'Average Improvement',
         businessSizeLabels: {

@@ -36,14 +36,14 @@ export class ThemeService {
     isDark: false,
     colors: {
       bgColor: '#f0ede7ff',
-      textColor: '#3e3d3dff',
+      textColor: '#2e2d2dff',
       titleColor: '#292929ff',
-      linkColor: '#fFf619',
+      linkColor: '#ffe819ff',
       accentColor: '#c1a42fff',
       secondaryBgColor: '#e5d2bfff',
       secondaryTextColor: '#19363F',
       secondaryTitleColor: '#163038ff',
-      secondaryLinkColor: '#F36391',
+      secondaryLinkColor: '#C33361',
       secondaryAccentColor: '#199F96',
     },
   };
@@ -71,7 +71,7 @@ export class ThemeService {
     this._detectSystemPreference();
     this._loadSavedTheme();
     effect(() => {
-      console.log(`Applying theme: ${this.activeTheme()}`);
+      console.log(`Applying theme: ${ this.activeTheme() }`);
       this.applyTheme();
     });
   }

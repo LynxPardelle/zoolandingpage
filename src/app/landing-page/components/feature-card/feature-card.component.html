@@ -10,9 +10,12 @@
   @if (data().benefits?.length) {
   <ul class="ank-listStyle-none ank-p-0 ank-m-0 ank-textAlign-left">
     @for (b of data().benefits; track b) {
-    <li class="ank-display-flex ank-alignItems-center ank-gap-0_25rem ank-mb-0_5rem">
-      <mat-icon class="ank-fs-0_75rem ank-color-secondaryAccentColor">check_circle</mat-icon
-      ><span class="ank-fs-0_75rem ank-color-secondaryTextColor">{{ b }}</span>
+    <li class="ank-display-flex ank-alignItems-start ank-gap-0_5rem ank-mb-0_5rem">
+      <mat-icon
+        class="ank-fs-1rem ank-width-1rem ank-height-1rem ank-color-secondaryAccentColor ank-mt-0_125rem ank-flexShrink-0"
+        >check_circle</mat-icon
+      >
+      <span class="ank-fs-0_75rem ank-color-secondaryTextColor ank-lineHeight-relaxed">{{ b }}</span>
     </li>
     }
   </ul>
