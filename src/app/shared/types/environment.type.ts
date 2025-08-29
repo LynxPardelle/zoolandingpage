@@ -16,6 +16,7 @@ export type TEnvironment = {
          * Key used to store a snooze timestamp (epoch ms) to postpone asking for analytics consent again.
          */
         readonly analyticsConsentSnoozeKey: string;
+        readonly pageViewCountKey: string;
     };
     readonly features: {
         readonly analytics: boolean;

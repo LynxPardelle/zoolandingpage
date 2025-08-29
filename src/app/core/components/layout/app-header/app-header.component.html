@@ -1,5 +1,10 @@
 <header [class]="computedHeaderClasses()" role="banner" [attr.data-scrolled]="state().isScrolled">
-  <div [class]="computedContentClasses() + ' ank-container ank-maxWidth-7xl ank-marginInline-auto ank-gap-24px'">
+  <div
+    [class]="
+      computedContentClasses() +
+      ' ank-container ank-maxWidth-7xl ank-marginInline-auto ank-gap-24px ank-justifyContent-spaceBetween'
+    "
+  >
     <!-- Logo Section -->
     @if (config().showLogo) {
     <div class="ank-display-flex ank-alignItems-center">
@@ -17,6 +22,53 @@
       }
     </div>
     }
+
+    <!-- Mobile Controls (Theme, Language, Menu) -->
+    <div class="ank-display-flex ank-display-md-none ank-alignItems-center ank-gap-8px ank-mr-24px">
+      <!-- Mobile Theme Toggle -->
+      @if (config().showThemeToggle) {
+      <button
+        id="toggleThemeMobile"
+        type="button"
+        (click)="toggleTheme()"
+        class="{{
+          themeGradientClasses
+        }} ank-p-8px ank-borderRadius-0_75rem ank-border-none ank-display-flex ank-alignItems-center ank-justifyContent-center ank-width-36px ank-height-36px ank-fs-1rem"
+      >
+        {{ themeService.currentTheme() === "dark" ? "☀️" : "🌙" }}
+      </button>
+      }
+
+      <!-- Mobile Language Toggle -->
+      @if (config().showLanguageToggle) {
+      <button
+        type="button"
+        (click)="toggleLanguage()"
+        class="ank-p-8px ank-borderRadius-0_75rem ank-border-none ank-bg-accentColor ank-color-secondaryTextColor ank-ts-200 ank-bgHover-secondaryAccentColor ank-colorHover-secondaryTextColor ank-display-flex ank-alignItems-center ank-justifyContent-center ank-width-36px ank-height-36px ank-fs-0_75rem ank-fontWeight-bold"
+      >
+        {{ languageService.languageLabel() }}
+      </button>
+      }
+
+      <!-- Separator -->
+      <div class="ank-width-1px ank-height-24px ank-bg-textColorOPA__0_2 ank-mx-8px"></div>
+
+      <!-- Mobile Menu Button -->
+      @if (config().showNavigation) {
+      <button
+        type="button"
+        (click)="toggleMobileMenu()"
+        aria-haspopup="true"
+        aria-controls="mobile-primary-navigation"
+        [attr.aria-expanded]="state().isMobileMenuOpen"
+        class="ank-padding-8px ank-me-12px ank-borderRadius-0_75rem ank-border-none ank-bg-secondaryBgColor ank-color-textColor ank-transition-bgColor ank-duration-200 ank-scaleActive-95 ank-width-36px ank-height-36px ank-display-flex ank-alignItems-center ank-justifyContent-center"
+      >
+        <span class="ank-display-flex ank-alignItems-center ank-justifyContent-center ank-width-20px ank-height-20px">
+          {{ state().isMobileMenuOpen ? "✕" : "☰" }}
+        </span>
+      </button>
+      }
+    </div>
 
     <!-- Desktop Navigation -->
     @if (config().showNavigation) {
@@ -48,8 +100,8 @@
         }
       </ul>
       }
-      <div class="ank-display-flex ank-gap-12px">
-        <!-- Theme Toggle -->
+      <div class="ank-display-none ank-display-md-flex ank-gap-12px">
+        <!-- Desktop Theme Toggle -->
         @if (config().showThemeToggle) {
         <button
           id="toggleTheme"
@@ -64,7 +116,7 @@
         </button>
         }
 
-        <!-- Language Toggle -->
+        <!-- Desktop Language Toggle -->
         @if (config().showLanguageToggle) {
         <button
           type="button"
@@ -76,22 +128,6 @@
         }
       </div>
     </nav>
-    }
-
-    <!-- Mobile Menu Button -->
-    @if (config().showNavigation) {
-    <button
-      type="button"
-      (click)="toggleMobileMenu()"
-      aria-haspopup="true"
-      aria-controls="mobile-primary-navigation"
-      [attr.aria-expanded]="state().isMobileMenuOpen"
-      class="ank-display-md-none ank-padding-10px ank-borderRadius-1rem ank-border-none ank-bg-secondaryBgColor ank-color-textColor ank-transition-bgColor ank-duration-200 ank-scaleActive-95 ank-me-2rem"
-    >
-      <span class="ank-display-flex ank-alignItems-center ank-justifyContent-center ank-width-20px ank-height-20px">
-        {{ state().isMobileMenuOpen ? "✕" : "☰" }}
-      </span>
-    </button>
     }
   </div>
 
@@ -109,7 +145,7 @@
           <a
             [href]="item.href"
             [attr.target]="item.isExternal ? '_blank' : null"
-            class="ank-display-block ank-padding-12px ank-borderRadius-0_75rem ank-textDecoration-none ank-transition-bgColor ank-duration-150"
+            class="ank-display-block ank-padding-8px ank-borderRadius-0_75rem ank-textDecoration-none ank-transition-bgColor ank-duration-50"
             [class.ank-bg-secondaryBgColor]="item.isActive"
             [class.ank-color-accentColor]="item.isActive"
             [class.ank-color-textColor]="!item.isActive"
@@ -119,30 +155,11 @@
             @if (item.isExternal) { <span aria-hidden="true">↗</span> }
           </a>
         </li>
+
         }
       </ul>
     </nav>
     }
-    <div class="ank-display-flex ank-flexDirection-column ank-gap-8px">
-      @if (config().showThemeToggle) {
-      <button
-        type="button"
-        (click)="toggleTheme()"
-        class="ank-padding-12px ank-borderRadius-1rem ank-border-none ank-bg-secondaryBgColor ank-color-textColor ank-textAlign-left ank-transition-bgColor ank-duration-200 ank-scaleActive-95 focus:ank-outline-none focus:ank-ring-2 focus:ank-ring-accentColor"
-      >
-        Theme:
-        {{ themeService.currentTheme() === "dark" ? "Dark ☀️" : "Light 🌙" }}
-      </button>
-      } @if (config().showLanguageToggle) {
-      <button
-        type="button"
-        (click)="toggleLanguage()"
-        class="ank-padding-12px ank-borderRadius-1rem ank-border-none ank-bg-secondaryBgColor ank-color-textColor ank-textAlign-left ank-transition-bgColor ank-duration-200 ank-scaleActive-95 focus:ank-outline-none focus:ank-ring-2 focus:ank-ring-accentColor"
-      >
-        Language: {{ languageService.languageLabel() }}
-      </button>
-      }
-    </div>
   </div>
   } }
 </header>

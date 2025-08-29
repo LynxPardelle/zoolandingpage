@@ -23,7 +23,9 @@ export class AnalyticsService {
   // Timer for re-prompting after snooze (kept in-memory per session)
   private snoozeTimer: ReturnType<typeof setTimeout> | null = null;
   // UI services (optional for test contexts without DI)
-  constructor(private toast?: ToastService, private i18n?: I18nService) { }
+  constructor(private toast?: ToastService, private i18n?: I18nService) {
+    this.initializePersistentCounters();
+  }
 
   // Consent UI state (for modal content visibility)
   readonly consentVisible = signal(false);
@@ -395,6 +397,58 @@ export class AnalyticsService {
       }
     }
     return lang;
+  }
+
+  // Initialize persistent counters from localStorage
+  private initializePersistentCounters(): void {
+    // Track page view on initialization
+    this.incrementPageViewCount();
+  }
+
+  // Persistent counter methods
+  private incrementPageViewCount(): void {
+    if (typeof localStorage === 'undefined') return;
+    try {
+      const currentCount = this.getPageViewCount();
+      localStorage.setItem(environment.localStorage.pageViewCountKey, (currentCount + 1).toString());
+    } catch {
+      // ignore localStorage errors
+    }
+  }
+
+  // Analytics statistics methods (now using persistent storage)
+  getPageViewCount(): number {
+    if (typeof localStorage === 'undefined') return this.buffer.filter(event => event.name === 'page_view').length;
+    try {
+      const stored = localStorage.getItem(environment.localStorage.pageViewCountKey);
+      return stored ? parseInt(stored, 10) : 0;
+    } catch {
+      return this.buffer.filter(event => event.name === 'page_view').length;
+    }
+  }
+
+  getEventCount(eventName: string): number {
+    return this.buffer.filter(event => event.name === eventName).length;
+  }
+
+  getTotalEventsCount(): number {
+    return this.buffer.length;
+  }
+
+  getSessionEventCount(): number {
+    // Get current session events by filtering recent events (e.g., last hour)
+    const oneHourAgo = Date.now() - (60 * 60 * 1000);
+    return this.buffer.filter(event => event.timestamp >= oneHourAgo).length;
+  }
+
+  // Reset persistent counters (useful for testing or reset functionality)
+  resetPageViewCount(): void {
+    if (typeof localStorage === 'undefined') return;
+    try {
+      localStorage.removeItem(environment.localStorage.pageViewCountKey);
+    } catch {
+      // ignore localStorage errors
+    }
   }
 
 }

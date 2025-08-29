@@ -19,7 +19,8 @@ export const environment: TEnvironment = {
     id: 'zoo-landing-id',
     sessionId: 'zoo-landing-session-id',
     allowAnalyticsKey: 'zoo-landing-allow-analytics',
-    analyticsConsentSnoozeKey: 'zoo-landing-allow-analytics-snooze'
+    analyticsConsentSnoozeKey: 'zoo-landing-allow-analytics-snooze',
+    pageViewCountKey: 'zoo-landing-page-view-count'
   },
   features: {
     analytics: false,
