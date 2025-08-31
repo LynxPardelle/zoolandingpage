@@ -3,7 +3,7 @@
 # =============================================================================
 # This Dockerfile creates optimized, secure, and efficient containers for:
 # 1. Development environment with hot-reload
-# 2. Production SSR (Server-Side Rendering) 
+# 2. Production SSR (Server-Side Rendering)
 # 3. Production static build with Nginx
 # =============================================================================
 
@@ -49,7 +49,7 @@ RUN set -e; \
 COPY --chown=appuser:appgroup package*.json ./
 
 # Install Angular CLI globally with specific version for consistency
-RUN npm install -g @angular/cli@19.2.15
+RUN npm install -g @angular/cli@20.2.1
 RUN npm cache clean --force
 
 # Install dependencies with optimizations
