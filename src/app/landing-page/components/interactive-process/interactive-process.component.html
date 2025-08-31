@@ -90,7 +90,7 @@
               <h4 class="ank-fs-1_125rem ank-fontWeight-semibold ank-mb-12px ank-color-secondaryTitleColor">
                 {{ sectionContent().detailedDescriptionLabel }}
               </h4>
-              <p class="ank-fs-0_875rem ank-color-secondaryTextColor ank-lineHeight-relaxed">
+              <p class="ank-fs-1rem ank-color-secondaryTextColor ank-lineHeight-relaxed">
                 {{ currentData().detailedDescription }}
               </p>
             </div>
@@ -104,9 +104,7 @@
                   <mat-icon class="ank-fs-1rem ank-color-success ank-mt-0_125rem ank-flexShrink-0"
                     >check_circle</mat-icon
                   >
-                  <span class="ank-fs-0_875rem ank-color-secondaryTextColor ank-lineHeight-relaxed">{{
-                    deliverable
-                  }}</span>
+                  <span class="ank-fs-1rem ank-color-secondaryTextColor ank-lineHeight-relaxed">{{ deliverable }}</span>
                 </li>
                 }
               </ul>
@@ -196,7 +194,7 @@
           <h4 class="ank-fs-1_125rem ank-fontWeight-semibold ank-mb-12px ank-color-secondaryTitleColor">
             {{ sectionContent().detailedDescriptionLabel }}
           </h4>
-          <p class="ank-fs-0_875rem ank-color-secondaryTextColor ank-lineHeight-relaxed">
+          <p class="ank-fs-1rem ank-color-secondaryTextColor ank-lineHeight-relaxed">
             {{ currentData().detailedDescription }}
           </p>
         </div>
@@ -208,7 +206,7 @@
             @for (deliverable of currentData().deliverables; track deliverable) {
             <li class="ank-display-flex ank-alignItems-start ank-gap-8px ank-mb-8px">
               <mat-icon class="ank-fs-1rem ank-color-success ank-mt-0_125rem ank-flexShrink-0">check_circle</mat-icon>
-              <span class="ank-fs-0_875rem ank-color-secondaryTextColor ank-lineHeight-relaxed">{{ deliverable }}</span>
+              <span class="ank-fs-1rem ank-color-secondaryTextColor ank-lineHeight-relaxed">{{ deliverable }}</span>
             </li>
             }
           </ul>

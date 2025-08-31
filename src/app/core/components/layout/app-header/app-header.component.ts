@@ -141,7 +141,17 @@ export class AppHeaderComponent {
     this.navChange.emit(item);
     if (item.href.startsWith('#')) {
       const el = document.querySelector(item.href);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (el) {
+        // Suppress section_view events during programmatic scroll to avoid noise
+        const suppressMs = 200; // 200ms should be enough for the scroll to finish
+        this.analytics.suppress([AnalyticsEvents.SectionView], Date.now() + suppressMs);
+        // If LandingPageComponent is available, set its lastSectionViewSuppressedUntil
+        const landingPage = document.querySelector('app-landing-page') as any;
+        if (landingPage && typeof landingPage.lastSectionViewSuppressedUntil !== 'undefined') {
+          landingPage.lastSectionViewSuppressedUntil = Date.now() + suppressMs;
+        }
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     }
   }
 

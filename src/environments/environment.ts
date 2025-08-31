@@ -10,7 +10,7 @@ import { TEnvironment } from "@/app/shared/types/environment.type";
 export const environment: TEnvironment = {
   production: false,
   development: true,
-  apiUrl: 'http://localhost:3000/api',
+  apiUrl: 'https://nxk92p5uzc.execute-api.us-east-1.amazonaws.com',
   apiVersion: 'v1',
   localStorage: {
     themeKey: 'zoo-landing-theme',

@@ -11,7 +11,7 @@ import { AppFooterConfig } from './app-footer.types';
 export const APP_FOOTER_DEFAULTS: Partial<AppFooterConfig> = {
   showCopyright: true,
   showSocialLinks: false,
-  showContactInfo: true,
+  showLegalLinks: true,
   className: '',
   copyrightText: '© 2025 Zoo Landing Page. All rights reserved.',
   organizationName: 'Zoo Landing',

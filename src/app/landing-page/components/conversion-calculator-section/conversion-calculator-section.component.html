@@ -1,39 +1,13 @@
 <app-section variant="accent" spacing="lg">
   <app-container size="lg">
-    <div class="ank-textAlign-center ank-mb-48px">
-      <h2 class="ank-fs-2rem ank-fontWeight-bold ank-mb-16px ank-color-titleColor">{{ calculatorContent().title }}</h2>
-      <p class="ank-fs-1_5rem ank-color-textColor ank-mb-16px">
-        {{ calculatorContent().subtitle }}
-      </p>
+    <div class="ank-textAlign-center ank-mb-24px">
+      <h2 class="ank-fs-2rem ank-fontWeight-bold ank-mb-8px ank-color-titleColor">{{ calculatorContent().title }}</h2>
+      <p class="ank-fs-1rem ank-color-textColor ank-mb-4px">{{ calculatorContent().subtitle }}</p>
       <p class="ank-fs-1rem ank-color-textColor ank-maxWidth-700px ank-mx-auto">
         {{ calculatorContent().description }}
       </p>
     </div>
-
-    <!-- Stats Strip -->
-    <div class="ank-bg-accentColor ank-borderRadius-12px ank-p-24px ank-mb-48px ank-color-textColor">
-      <div class="ank-display-flex ank-flex-wrap ank-gap-2rem ank-justifyContent-center">
-        <div class="ank-textAlign-center">
-          <div class="ank-fs-2rem ank-fontWeight-bold ank-mb-8px">
-            <stats-counter [config]="projectsConfig()"></stats-counter>
-          </div>
-          <div class="ank-fs-1rem ank-opacity-90">{{ calculatorContent().projectsLabel }}</div>
-        </div>
-        <div class="ank-textAlign-center">
-          <div class="ank-fs-2rem ank-fontWeight-bold ank-mb-8px">
-            <stats-counter [config]="satisfactionConfig()"></stats-counter>
-          </div>
-          <div class="ank-fs-1rem ank-opacity-90">{{ calculatorContent().satisfactionLabel }}</div>
-        </div>
-        <div class="ank-textAlign-center">
-          <div class="ank-fs-2rem ank-fontWeight-bold ank-mb-8px">
-            <stats-counter [config]="improvementConfig()"></stats-counter>
-          </div>
-          <div class="ank-fs-1rem ank-opacity-90">{{ calculatorContent().improvementLabel }}</div>
-        </div>
-      </div>
-    </div>
-    <!--  <div
+    <div
       class="ank-bg-secondaryBgColor ank-borderRadius-16px ank-p-40px ank-boxShadow-1_25rem ank-maxWidth-800px ank-mx-auto"
     >
       @defer (on viewport; prefetch on idle) {
@@ -168,7 +142,7 @@
               </div>
             </div>
             <div class="ank-mt-24px ank-pt-20px ank-borderTop-1px ank-bordercolor-textColor ank-borderOpacity-30">
-              <div class="ank-fs-0_75rem ank-opacity-80 ank-color-textColor">
+              <div class="ank-fs-1rem ank-opacity-80 ank-color-textColor">
                 💡 Resultados basados en estadísticas reales de la industria
               </div>
             </div>
@@ -259,7 +233,7 @@
               </div>
             </div>
             <div class="ank-mt-24px ank-pt-20px ank-borderTop-1px ank-bordercolor-textColor ank-borderOpacity-30">
-              <div class="ank-fs-0_75rem ank-opacity-80 ank-color-textColor">
+              <div class="ank-fs-1rem ank-opacity-80 ank-color-textColor">
                 💡 Resultados basados en estadísticas reales de la industria
               </div>
             </div>
@@ -275,6 +249,6 @@
         </div>
       </div>
       }
-    </div> -->
+    </div>
   </app-container>
 </app-section>

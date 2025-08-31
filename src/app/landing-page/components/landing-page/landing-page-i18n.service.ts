@@ -82,6 +82,11 @@ export class LandingPageI18nService {
     readonly calculator = computed(() => this.translations().calculator);
 
     /**
+     * Stats strip section translations
+     */
+    readonly statsStrip = computed(() => this.translations().statsStrip);
+
+    /**
      * Final CTA section translations
      */
     readonly finalCtaSection = computed(() => this.translations().finalCtaSection);

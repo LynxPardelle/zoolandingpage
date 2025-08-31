@@ -9,7 +9,7 @@ import { TEnvironment } from "@/app/shared/types/environment.type";
 export const environment: TEnvironment = {
   production: true,
   development: false,
-  apiUrl: 'https://api.zoolanding.com/analytics',
+  apiUrl: 'https://api.zoolanding.com',
   apiVersion: 'v1',
   localStorage: {
     themeKey: 'zoo-landing-theme',

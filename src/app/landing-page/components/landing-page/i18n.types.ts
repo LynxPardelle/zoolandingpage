@@ -120,9 +120,6 @@ export interface CalculatorTranslations {
     title: string;
     subtitle: string;
     description: string;
-    projectsLabel: string;
-    satisfactionLabel: string;
-    improvementLabel: string;
     businessSizeLabels: {
         nano: { title: string; description: string };
         micro: { title: string; description: string };
@@ -134,6 +131,16 @@ export interface CalculatorTranslations {
     resultsTitle: string;
     monthlyIncreaseLabel: string;
     conversionImprovementLabel: string;
+}
+
+// Stats Strip Section
+export interface StatsStripSectionTranslations {
+    title: string;
+    subtitle: string;
+    description: string;
+    visitsLabel: string;
+    ctaInteractionsLabel: string;
+    averageTimeLabel: string;
 }
 
 // Final CTA Section
@@ -193,6 +200,7 @@ export interface LandingPageTranslations {
     faqSection: FaqSectionTranslations;
     faq: readonly FaqTranslations[];
     conversionNote: RoiNoteTranslations;
+    statsStrip: StatsStripSectionTranslations;
     calculator: CalculatorTranslations;
     finalCtaSection: FinalCtaSectionTranslations;
     ui: UiTranslations;

@@ -48,29 +48,7 @@ export class ConversionCalculatorSectionComponent {
         ariaLabel: this.calculatorContent().conversionImprovementLabel,
     }));
 
-    readonly projectsConfig = computed<StatsCounterConfig>(() => ({
-        target: this.analytics.getPageViewCount(),
-        durationMs: 2000,
-        startOnVisible: true,
-        format: (v: number) => Math.round(v) + '+',
-        ariaLabel: this.calculatorContent().projectsLabel,
-    }));
-
-    readonly satisfactionConfig = computed<StatsCounterConfig>(() => ({
-        target: this.analytics.getTotalEventsCount(),
-        durationMs: 1800,
-        startOnVisible: true,
-        format: (v: number) => Math.round(v) + '%',
-        ariaLabel: this.calculatorContent().satisfactionLabel,
-    }));
-
-    readonly improvementConfig = computed<StatsCounterConfig>(() => ({
-        target: this.analytics.getSessionEventCount() * 10,
-        durationMs: 2200,
-        startOnVisible: true,
-        format: (v: number) => Math.round(v) + '%',
-        ariaLabel: this.calculatorContent().improvementLabel,
-    }));
+    // Stats counters moved to StatsStripSectionComponent
 
     updateBusinessSize(size: BusinessSize) {
         this.analytics.track(AnalyticsEvents.RoiSizeChange, { category: AnalyticsCategories.RoiCalculator, label: size });

@@ -1,8 +1,8 @@
 <hero-section
   id="home"
   [data]="heroData()"
-  (primary)="openWhatsApp(); trackCTAClick('primary', 'hero')"
-  (secondary)="toggleCalculator(); trackCTAClick('secondary', 'hero')"
+  (primary)="openWhatsApp()"
+  (secondary)="trackCTAClick('secondary', 'hero')"
 ></hero-section>
 <conversion-note id="conversion-section"></conversion-note>
 <features-section id="features-section" [features]="features()"></features-section>
@@ -18,27 +18,9 @@
   <div class="ank-fs-1_25rem">Cargando proceso…</div>
 </section>
 }
-<services-section
-  id="services-section"
-  [services]="services()"
-  (serviceCta)="trackCTAClick('service', $event); openWhatsApp()"
-></services-section>
+<services-section id="services-section" [services]="services()" (serviceCta)="openWhatsApp(false)"></services-section>
+<stats-strip-section id="stats-strip-section"></stats-strip-section>
 @defer (on viewport; prefetch on idle) {
-<conversion-calculator-section
-  id="conversion-calculator-section"
-  [businessSize]="calculatorBusinessSize()"
-  [industry]="calculatorIndustry()"
-  [visitors]="calculatorVisitors()"
-  (visitorsChange)="updateVisitors($event)"
-  [calculatedROI]="calculatedConversion()"
-  (businessSizeChange)="updateBusinessSize($event)"
-  (industryChange)="updateIndustry($event)"
-></conversion-calculator-section>
-} @placeholder {
-<section id="conversion-calculator-section" class="ank-py-48px ank-textAlign-center ank-opacity-70">
-  <div class="ank-fs-1_25rem">{{ loadingMessages().calculator }}</div>
-</section>
-} @defer (on viewport; prefetch on idle) {
 <testimonials-section
   id="testimonials-section"
   [testimonials]="testimonials()"
@@ -50,7 +32,7 @@
   <div class="ank-fs-1_25rem">{{ loadingMessages().testimonials }}</div>
 </section>
 } @defer (on viewport; prefetch on idle) {
-<faq-section id="faq-section"></faq-section>
+<faq-section id="faq-section" (primary)="openWhatsApp()"></faq-section>
 } @placeholder {
 <section id="faq-section" class="ank-py-48px ank-textAlign-center ank-opacity-70">
   <div class="ank-fs-1_25rem">{{ loadingMessages().faq }}</div>
@@ -64,8 +46,5 @@
   [secondaryLabel]="finalCta().secondaryLabel"
   [whatsAppPhone]="'+525522699563'"
   [whatsAppMessage]="heroData().subtitle"
-  (primary)="openWhatsApp(); trackCTAClick('primary', 'final-cta')"
-  (secondary)="toggleCalculator(); trackCTAClick('secondary', 'final-cta')"
+  (secondary)="openWhatsApp(); trackCTAClick('secondary', 'final-cta')"
 ></final-cta-section>
-
-<!-- Advanced component hosts -->

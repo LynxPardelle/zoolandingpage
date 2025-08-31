@@ -9,7 +9,11 @@
 
     @defer (on viewport; prefetch on idle) {
     <div class="ank-maxWidth-800px ank-mx-auto">
-      <app-accordion [itemsSource]="faqItems()" [config]="accordionConfig()"></app-accordion>
+      <app-accordion
+        [itemsSource]="faqItems()"
+        [config]="accordionConfig()"
+        (toggled)="onToggle($event)"
+      ></app-accordion>
     </div>
     } @placeholder {
     <div class="ank-maxWidth-800px ank-mx-auto">
@@ -33,6 +37,7 @@
         [label]="sectionFooter().footerButtonLabel"
         [loading]="false"
         [disabled]="false"
+        (pressed)="primary.emit()"
       ></generic-button>
     </div>
   </app-container>

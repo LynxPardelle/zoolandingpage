@@ -1,11 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { AnalyticsService } from '../../../shared/services/analytics.service';
 import { FinalCtaSectionComponent } from './final-cta-section.component';
 
 describe('FinalCtaSectionComponent analytics', () => {
   let fixture: ComponentFixture<FinalCtaSectionComponent>;
   let component: FinalCtaSectionComponent;
-  let analytics: AnalyticsService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -13,15 +11,17 @@ describe('FinalCtaSectionComponent analytics', () => {
     });
     fixture = TestBed.createComponent(FinalCtaSectionComponent);
     component = fixture.componentInstance;
-    analytics = TestBed.inject(AnalyticsService);
-    spyOn(analytics, 'track').and.callThrough();
     fixture.detectChanges();
   });
 
-  it('tracks primary/secondary clicks', () => {
+  it('emits primary/secondary outputs on click handlers', () => {
+    const primarySpy = jasmine.createSpy('primary');
+    const secondarySpy = jasmine.createSpy('secondary');
+    component.primary.subscribe(primarySpy);
+    component.secondary.subscribe(secondarySpy);
     component.onPrimary();
     component.onSecondary();
-    expect(analytics.track).toHaveBeenCalledWith('final_cta_primary_click', jasmine.any(Object));
-    expect(analytics.track).toHaveBeenCalledWith('final_cta_secondary_click', jasmine.any(Object));
+    expect(primarySpy).toHaveBeenCalled();
+    expect(secondarySpy).toHaveBeenCalled();
   });
 });

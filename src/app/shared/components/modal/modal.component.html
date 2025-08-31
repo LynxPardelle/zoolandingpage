@@ -16,9 +16,12 @@
           (config?.variant ?? 'dialog') === 'dialog',
         'ank-position-relative ank-width-100per ank-borderRadius-1rem__1rem__0__0 ank-pb-1_5rem':
           (config?.variant ?? 'dialog') === 'sheet',
-        'ank-width-320px': size() === 'sm' && (config?.variant ?? 'dialog') === 'dialog',
-        'ank-width-480px': size() === 'md' && (config?.variant ?? 'dialog') === 'dialog',
-        'ank-width-720px': size() === 'lg' && (config?.variant ?? 'dialog') === 'dialog',
+        'ank-width-clampSD300px__COM__25vw__COM__320pxED':
+          size() === 'sm' && (config?.variant ?? 'dialog') === 'dialog',
+        'ank-width-clampSD300px__COM__50vw__COM__480pxED':
+          size() === 'md' && (config?.variant ?? 'dialog') === 'dialog',
+        'ank-width-clampSD300px__COM__75vw__COM__720pxED':
+          size() === 'lg' && (config?.variant ?? 'dialog') === 'dialog',
         'ank-width-100per ank-height-100per ank-borderRadius-0': size() === 'full'
       }"
       role="dialog"

@@ -10,13 +10,13 @@
       <h3 class="ank-fs-1rem ank-fontWeight-bold ank-m-0 ank-color-secondaryTitleColor" itemprop="author">
         {{ data().name }}
       </h3>
-      <p class="ank-fs-0_75rem ank-m-0 ank-color-secondaryTextColor">{{ data().role }} · {{ data().company }}</p>
+      <p class="ank-fs-1rem ank-m-0 ank-color-secondaryTextColor">{{ data().role }} · {{ data().company }}</p>
     </div>
     @if (data().verified) {<mat-icon class="ank-fs-1rem ank-color-success" title="Verificado" aria-label="Verificado"
       >verified</mat-icon
     >}
   </div>
-  <p class="ank-fs-0_875rem ank-color-secondaryTextColor ank-lineHeight-relaxed" itemprop="reviewBody">
+  <p class="ank-fs-1rem ank-color-secondaryTextColor ank-lineHeight-relaxed" itemprop="reviewBody">
     "{{ data().content }}"
   </p>
   <div
@@ -32,6 +32,6 @@
     @for (star of stars(); track star) {<mat-icon class="ank-fs-1rem ank-color-warning" aria-hidden="true">{{
       star <= data().rating ? "star" : "star_border"
     }}</mat-icon
-    >}<span class="ank-fs-0_75rem ank-color-secondaryTextColor">{{ data().rating }}/5</span>
+    >}<span class="ank-fs-1rem ank-color-secondaryTextColor">{{ data().rating }}/5</span>
   </div>
 </article>

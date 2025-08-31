@@ -15,5 +15,48 @@
     "feedback": {
       "snoozed": "Te preguntaremos de nuevo más tarde."
     }
+  },
+  "footer": {
+    "actions": {
+      "close": "Cerrar"
+    },
+    "legal": {
+      "title": "Legal",
+      "terms": {
+        "link": "Términos de servicio",
+        "title": "Términos de servicio",
+        "intro": "Estos Términos de servicio regulan el uso de la página de {{ org }}. Al continuar navegando o interactuar con este sitio, aceptas estos términos.",
+        "sections": [
+          {
+            "title": "Propósito y contenido",
+            "text": "Esta landing muestra nuestros servicios y ofrece contenido educativo. La información se proporciona tal cual y puede cambiar sin previo aviso."
+          },
+          {
+            "title": "Uso aceptable",
+            "text": "Aceptas no hacer un uso indebido del sitio, intentar accesos no autorizados ni interferir con su operación. Cualquier abuso puede resultar en restricción de acceso."
+          },
+          {
+            "title": "Propiedad intelectual",
+            "text": "Las marcas, logotipos y contenidos mostrados son propiedad de sus respectivos dueños y no pueden reutilizarse sin permiso."
+          },
+          {
+            "title": "Privacidad y analítica",
+            "text": "Usamos analítica anónima, sujeta a tu consentimiento, para mejorar el rendimiento y la experiencia. Revisa 'Uso de datos' para más detalles."
+          }
+        ]
+      },
+      "data": {
+        "link": "Uso de datos",
+        "title": "Uso de datos",
+        "intro": "Recopilamos información mínima y respetuosa de la privacidad para mejorar este sitio. La recopilación inicia solo después de tu consentimiento.",
+        "points": [
+          "Solo analítica anónima: no se requieren datos personales para el uso básico.",
+          "Métricas técnicas (p. ej., dispositivo, idioma, ventana, rendimiento) nos ayudan a corregir problemas y priorizar mejoras.",
+          "Puedes rechazar o posponer el consentimiento. Si se rechaza, no encolamos ni enviamos eventos de analítica.",
+          "Puedes retirar el consentimiento en cualquier momento limpiando los datos del sitio o actualizando preferencias cuando estén disponibles."
+        ],
+        "consentNote": "Al aceptar en el diálogo de consentimiento, nos permites guardar una preferencia y procesar analítica anónima como se describe."
+      }
+    }
   }
 }

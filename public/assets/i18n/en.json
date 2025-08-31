@@ -15,5 +15,48 @@
     "feedback": {
       "snoozed": "We'll ask you again later."
     }
+  },
+  "footer": {
+    "actions": {
+      "close": "Close"
+    },
+    "legal": {
+      "title": "Legal",
+      "terms": {
+        "link": "Terms of Service",
+        "title": "Terms of Service",
+        "intro": "These Terms of Service govern your use of the {{ org }} landing page. By continuing to browse or interact with this website, you agree to these terms.",
+        "sections": [
+          {
+            "title": "Purpose and Content",
+            "text": "This landing page showcases our services and provides educational content. Information is provided as-is and may change without notice."
+          },
+          {
+            "title": "Acceptable Use",
+            "text": "You agree not to misuse the site, attempt unauthorized access, or interfere with its operation. Any abuse may result in restricted access."
+          },
+          {
+            "title": "Intellectual Property",
+            "text": "All trademarks, logos, and content displayed are property of their respective owners and may not be reused without permission."
+          },
+          {
+            "title": "Privacy and Analytics",
+            "text": "We use anonymous analytics, subject to your consent, to improve performance and user experience. See 'Use of Data' for details."
+          }
+        ]
+      },
+      "data": {
+        "link": "Use of Data",
+        "title": "Use of Data",
+        "intro": "We collect minimal, privacy‑respecting information to improve this site. Data collection begins only after you consent.",
+        "points": [
+          "Anonymous analytics only: no personal data is required for basic usage.",
+          "Technical metrics (e.g., device, language, viewport, performance) help us fix issues and prioritize improvements.",
+          "You can decline or snooze consent. If declined, we do not queue or send analytics events.",
+          "You may withdraw consent at any time by clearing site data or updating preferences when available."
+        ],
+        "consentNote": "By accepting in the consent dialog, you allow us to store a preference and process anonymous analytics as described."
+      }
+    }
   }
 }

@@ -15,6 +15,7 @@ import {
   ViewChild,
   ViewContainerRef,
 } from '@angular/core';
+import { NgxAngoraService } from '../../../angora-css/ngx-angora.service';
 import { AriaLiveService } from '../../services/aria-live.service';
 import { MotionPreferenceService } from '../../services/motion-preference.service';
 import { DEFAULT_MODAL_CONFIG } from './modal.constants';
@@ -42,6 +43,7 @@ export class ModalComponent {
   size = () => this.config?.size || DEFAULT_MODAL_CONFIG.size;
   // Motion preference
   readonly motion = inject(MotionPreferenceService);
+  private readonly angora = inject(NgxAngoraService) as NgxAngoraService;
 
   constructor(private host: ElementRef<HTMLElement>, private vcr: ViewContainerRef) {
     // Announce open/close changes politely
@@ -87,6 +89,8 @@ export class ModalComponent {
       if (this.modalTpl && this.overlayRef && !this.overlayRef.hasAttached()) {
         const portal = new TemplatePortal(this.modalTpl, this.vcr);
         this.overlayRef.attach(portal);
+        // Ensure class generation after panel attaches
+        try { setTimeout(() => this.angora.cssCreate(), 350); } catch { /* no-op */ }
       }
     });
     this.open.set(true);
