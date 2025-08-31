@@ -3,8 +3,6 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output } f
 import { AppContainerComponent, AppSectionComponent } from '../../../core/components/layout';
 import { GenericButtonComponent } from '../../../shared/components/generic-button';
 import { WhatsAppButtonComponent } from '../../../shared/components/whatsapp-button';
-import { AnalyticsCategories, AnalyticsEvents } from '../../../shared/services/analytics.events';
-import { AnalyticsService } from '../../../shared/services/analytics.service';
 import { LandingPageI18nService } from '../landing-page/landing-page-i18n.service';
 
 @Component({
@@ -16,7 +14,6 @@ import { LandingPageI18nService } from '../landing-page/landing-page-i18n.servic
 })
 export class FinalCtaSectionComponent {
   private readonly i18n = inject(LandingPageI18nService);
-  private readonly analytics = inject(AnalyticsService);
 
   readonly primary = output<void>();
   readonly secondary = output<void>();
@@ -41,22 +38,14 @@ export class FinalCtaSectionComponent {
   readonly whatsAppMessage = input<string | undefined>(undefined);
 
   onPrimary(): void {
-    this.analytics.track(AnalyticsEvents.FinalCtaPrimaryClick, {
-      category: AnalyticsCategories.CTA,
-      label: this.finalPrimaryLabel(),
-    });
     this.primary.emit();
   }
   onSecondary(): void {
-    this.analytics.track(AnalyticsEvents.FinalCtaSecondaryClick, {
-      category: AnalyticsCategories.CTA,
-      label: this.finalSecondaryLabel(),
-    });
     this.secondary.emit();
   }
 
   onWhatsAppActivated(): void {
-    // Keep our CTA analytics in addition to whatsapp_click emitted by the button component
-    this.onPrimary();
+    // WhatsApp button already tracks the click; only emit the action
+    this.primary.emit();
   }
 }

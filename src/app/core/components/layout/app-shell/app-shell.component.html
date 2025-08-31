@@ -36,22 +36,29 @@
 <!-- Advanced component hosts -->
 <app-modal-host
   [config]="{
-    ariaLabel: 'Analytics consent dialog',
-    closeOnBackdrop: false,
-    showCloseButton: false,
-    size: 'sm',
+    ariaLabel:
+      activeModalRef()?.id === 'analytics-consent'
+        ? 'Analytics consent dialog'
+        : activeModalRef()?.id === 'terms-of-service'
+        ? t('footer.legal.terms.title')
+        : activeModalRef()?.id === 'data-use'
+        ? t('footer.legal.data.title')
+        : 'Dialog',
+    closeOnBackdrop: activeModalRef()?.id === 'analytics-consent' ? false : true,
+    showCloseButton: activeModalRef()?.id === 'analytics-consent' ? false : true,
+    size: activeModalRef()?.id === 'terms-of-service' ? 'lg' : activeModalRef()?.id === 'data-use' ? 'md' : 'sm',
     showAccentBar: true,
     accentColor: 'secondaryAccentColor',
-    variant: consentVariant()
+    variant: activeModalRef()?.id === 'analytics-consent' ? consentVariant() : 'dialog'
   }"
 >
   @if (analytics.consentVisible()) {
-  <section class="ank-display-flex ank-flexDirection-column ank-gap-0_75rem ank-minWidth-20rem">
+  <section class="ank-display-flex ank-flexDirection-column ank-gap-0_75rem ank-w-100per">
     <div
       class="ank-display-flex ank-alignItems-center ank-gap-0_5rem ank-bg-secondaryBgColor ank-border-1px ank-borderColor-border ank-p-0_5rem ank-borderRadius-0_5rem"
     >
       <div
-        class="ank-width-2rem ank-height-2rem ank-borderRadius-50per ank-bgcl-accentColor ank-display-flex ank-alignItems-center ank-justifyContent-center ank-color-bgColor ank-fontWeight-700"
+        class="ank-width-2rem ank-height-2rem ank-borderRadius-50per ank-bg-accentColor ank-display-flex ank-alignItems-center ank-justifyContent-center ank-color-bgColor ank-fontWeight-700"
       >
         ⓘ
       </div>
@@ -66,28 +73,109 @@
       <li>{{ t("consent.bullets.2") }}</li>
     </ul>
 
-    <div class="ank-display-flex ank-gap-0_5rem ank-justifyContent-end ank-mt-0_75rem">
-      <button
-        type="button"
-        class="btnBaseVALSVL0_75remVL0_5rem ank-btn-bgColor ank-bgcl-secondary ank-color-textColor"
-        (click)="analytics.declineConsent()"
+    <div
+      class="ank-display-flex ank-gap-0_5rem ank-justifyContent-end ank-alignItems-stretch ank-mt-0_75rem ank-flexWrap-wrap"
+    >
+      <generic-button
+        [label]="t('consent.actions.decline')"
+        variant="primary"
+        colorKey="secondaryAccentColor"
+        size="md"
+        (pressed)="analytics.declineConsent()"
+      />
+      <generic-button
+        [label]="t('consent.actions.later')"
+        variant="primary"
+        colorKey="warning"
+        size="md"
+        (pressed)="analytics.remindLater(24)"
+      />
+      <generic-button
+        [label]="t('consent.actions.allow')"
+        variant="primary"
+        colorKey="primary"
+        size="md"
+        (pressed)="analytics.acceptConsent()"
+      />
+    </div>
+  </section>
+  } @if (activeModalRef()?.id === 'terms-of-service') {
+  <section class="ank-display-flex ank-flexDirection-column ank-gap-0_75rem ank-w-100per">
+    <header
+      class="ank-display-flex ank-alignItems-center ank-gap-0_5rem ank-bg-secondaryBgColor ank-border-1px ank-borderColor-border ank-p-0_5rem ank-borderRadius-0_5rem"
+    >
+      <div
+        class="ank-width-2rem ank-height-2rem ank-borderRadius-50per ank-bg-secondaryAccentColor ank-display-flex ank-alignItems-center ank-justifyContent-center ank-color-bgColor ank-fontWeight-700"
       >
-        {{ t("consent.actions.decline") }}
-      </button>
-      <button
-        type="button"
-        class="btnBaseVALSVL0_75remVL0_5rem ank-btn-bgColor ank-bgcl-warning ank-color-textColor"
-        (click)="analytics.remindLater(24)"
+        ⚖️
+      </div>
+      <h2 class="ank-m-0 ank-fontSize-1_125rem ank-fontWeight-700 ank-color-textColor">
+        {{ t("footer.legal.terms.title") }}
+      </h2>
+    </header>
+    <p class="ank-m-0 ank-color-secondaryTextColor">{{ t("footer.legal.terms.intro", { org: appName }) }}</p>
+    <ol
+      class="ank-m-0 ank-pl-1rem ank-color-secondaryTextColor ank-display-flex ank-flexDirection-column ank-gap-0_5rem"
+    >
+      <li>
+        <strong>{{ t("footer.legal.terms.sections.0.title") }}</strong>
+        <p class="ank-mt-0_25rem">{{ t("footer.legal.terms.sections.0.text") }}</p>
+      </li>
+      <li>
+        <strong>{{ t("footer.legal.terms.sections.1.title") }}</strong>
+        <p class="ank-mt-0_25rem">{{ t("footer.legal.terms.sections.1.text") }}</p>
+      </li>
+      <li>
+        <strong>{{ t("footer.legal.terms.sections.2.title") }}</strong>
+        <p class="ank-mt-0_25rem">{{ t("footer.legal.terms.sections.2.text") }}</p>
+      </li>
+      <li>
+        <strong>{{ t("footer.legal.terms.sections.3.title") }}</strong>
+        <p class="ank-mt-0_25rem">{{ t("footer.legal.terms.sections.3.text") }}</p>
+      </li>
+    </ol>
+    <div class="ank-display-flex ank-justifyContent-end ank-gap-0_5rem ank-mt-0_75rem">
+      <generic-button
+        [label]="t('footer.actions.close')"
+        variant="primary"
+        colorKey="secondaryAccentColor"
+        size="md"
+        (pressed)="closeModal()"
+      />
+    </div>
+  </section>
+  } @if (activeModalRef()?.id === 'data-use') {
+  <section class="ank-display-flex ank-flexDirection-column ank-gap-0_75rem ank-w-100per">
+    <header
+      class="ank-display-flex ank-alignItems-center ank-gap-0_5rem ank-bg-secondaryBgColor ank-border-1px ank-borderColor-border ank-p-0_5rem ank-borderRadius-0_5rem"
+    >
+      <div
+        class="ank-width-2rem ank-height-2rem ank-borderRadius-50per ank-bg-secondaryAccentColor ank-display-flex ank-alignItems-center ank-justifyContent-center ank-color-bgColor ank-fontWeight-700"
       >
-        {{ t("consent.actions.later") }}
-      </button>
-      <button
-        type="button"
-        class="btnBaseVALSVL0_75remVL0_5rem ank-btn-bgColor ank-bgcl-primary ank-color-textColor"
-        (click)="analytics.acceptConsent()"
-      >
-        {{ t("consent.actions.allow") }}
-      </button>
+        🔒
+      </div>
+      <h2 class="ank-m-0 ank-fontSize-1_125rem ank-fontWeight-700 ank-color-textColor">
+        {{ t("footer.legal.data.title") }}
+      </h2>
+    </header>
+    <p class="ank-m-0 ank-color-secondaryTextColor">{{ t("footer.legal.data.intro") }}</p>
+    <ul
+      class="ank-m-0 ank-pl-1rem ank-color-secondaryTextColor ank-display-flex ank-flexDirection-column ank-gap-0_5rem"
+    >
+      <li>{{ t("footer.legal.data.points.0") }}</li>
+      <li>{{ t("footer.legal.data.points.1") }}</li>
+      <li>{{ t("footer.legal.data.points.2") }}</li>
+      <li>{{ t("footer.legal.data.points.3") }}</li>
+    </ul>
+    <p class="ank-m-0 ank-color-secondaryTextColor">{{ t("footer.legal.data.consentNote") }}</p>
+    <div class="ank-display-flex ank-justifyContent-end ank-gap-0_5rem ank-mt-0_75rem">
+      <generic-button
+        [label]="t('footer.actions.close')"
+        variant="primary"
+        colorKey="secondaryAccentColor"
+        size="md"
+        (pressed)="closeModal()"
+      />
     </div>
   </section>
   }
@@ -97,50 +185,28 @@
 <!-- Dev-only demo controls -->
 @if (debugMode) {
 <div
-  style="
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    padding: 0.5rem;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    z-index: 1200;
-    max-width: 300px;
-  "
+  class="ank-position-md-fixed ank-bottom-0 ank-left-0 ank-p-0_5rem ank-display-flex ank-flexWrap-wrap ank-gap-0_5rem ank-zIndex-1200 ank-maxWidth-300px"
 >
-  <button
-    class="btnBaseVALSVL0_5remVL0_5rem ank-fs-0_5rem ank-btn-bgColor ank-bgcl-primary ank-color-textColor"
-    (click)="showDemoModal()"
-  >
+  <button class="btnBaseVALSVL0_5remVL0_5rem ank-fs-1rem ank-btn-primary ank-color-textColor" (click)="showDemoModal()">
     Modal
   </button>
-  <button
-    class="btnBaseVALSVL0_5remVL0_5rem ank-fs-0_5rem ank-btn-bgColor ank-bgcl-success ank-color-textColor"
-    (click)="showDemoToast()"
-  >
+  <button class="btnBaseVALSVL0_5remVL0_5rem ank-fs-1rem ank-btn-success ank-color-textColor" (click)="showDemoToast()">
     Toast
   </button>
-  <button
-    class="btnBaseVALSVL0_5remVL0_5rem ank-fs-0_5rem ank-btn-bgColor ank-bgcl-error ank-color-textColor"
-    (click)="showErrorToast()"
-  >
+  <button class="btnBaseVALSVL0_5remVL0_5rem ank-fs-1rem ank-btn-error ank-color-textColor" (click)="showErrorToast()">
     Error
   </button>
   <button
-    class="btnBaseVALSVL0_5remVL0_5rem ank-fs-0_5rem ank-btn-bgColor ank-bgcl-warning ank-color-textColor"
+    class="btnBaseVALSVL0_5remVL0_5rem ank-fs-1rem ank-btn-warning ank-color-textColor"
     (click)="showActionToast()"
   >
     Actions
   </button>
-  <button
-    class="btnBaseVALSVL0_5remVL0_5rem ank-fs-0_5rem ank-btn-bgColor ank-bgcl-info ank-color-textColor"
-    (click)="showPositionDemo()"
-  >
+  <button class="btnBaseVALSVL0_5remVL0_5rem ank-fs-1rem ank-btn-info ank-color-textColor" (click)="showPositionDemo()">
     Position
   </button>
   <button
-    class="btnBaseVALSVL0_5remVL0_5rem ank-fs-0_5rem ank-btn-bgColor ank-bgcl-secondary ank-color-textColor"
+    class="btnBaseVALSVL0_5remVL0_5rem ank-fs-1rem ank-btn-secondary ank-color-textColor"
     (click)="clearAllToasts()"
   >
     Clear
@@ -148,24 +214,10 @@
 </div>
 
 <div
-  style="
-    position: fixed;
-    bottom: 0;
-    right: 50vw;
-    margin: 0.5rem;
-    padding: 0.5rem;
-    background: rgba(0, 0, 0, 0.6);
-    color: white;
-    font-size: 12px;
-    border-radius: 6px;
-    max-width: 360px;
-    max-height: 40vh;
-    overflow: auto;
-    z-index: 1200;
-  "
+  class="ank-position-md-fixed ank-bottom-0 ank-right-25vw ank-m-0_5rem ank-p-0_5rem ank-bg-blackOPA__0_6 ank-color-white ank-fs-12px ank-borderRadius-6px ank-maxWidth-360px ank-maxHeight-40vh ank-overflow-auto ank-zIndex-1200"
 >
-  <div style="font-weight: 600; margin-bottom: 0.25rem">Analytics (latest)</div>
-  <ul style="margin: 0; padding-left: 1rem">
+  <div class="ank-fontWeight-600 ank-mb-0_25rem">Analytics (latest)</div>
+  <ul class="ank-m-0 ank-pl-1rem">
     @for (e of recentEvents(); track $index) {
     <li>{{ e }}</li>
     }

@@ -1,9 +1,7 @@
 import { DOCUMENT } from '@angular/common';
 import { afterNextRender, ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
-import { MatIconModule } from '@angular/material/icon';
 import { Meta, Title } from '@angular/platform-browser';
 import { ToastService } from '../../../shared/components/utility/toast';
-import { ConversionCalculatorSectionComponent } from '../conversion-calculator-section/conversion-calculator-section.component';
 import { RoiNoteComponent } from '../conversion-note/conversion-note.component';
 import { FaqSectionComponent } from '../faq-section/faq-section.component';
 import { FeaturesSectionComponent } from '../features-section/features-section.component';
@@ -11,6 +9,7 @@ import { FinalCtaSectionComponent } from '../final-cta-section/final-cta-section
 import { HeroSectionComponent } from '../hero-section';
 import { InteractiveProcessComponent } from '../interactive-process/interactive-process.component';
 import { ServicesSectionComponent } from '../services-section/services-section.component';
+import { StatsStripSectionComponent } from '../stats-strip-section/stats-strip-section.component';
 import { TestimonialsSectionComponent } from '../testimonials-section/testimonials-section.component';
 import { buildTestimonialListSchema } from '../testimonials-section/testimonials-section.constants';
 
@@ -26,13 +25,12 @@ import type { InteractiveProcess } from './landing-page.types';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    MatIconModule,
     HeroSectionComponent,
     RoiNoteComponent,
     FeaturesSectionComponent,
     InteractiveProcessComponent,
     ServicesSectionComponent,
-    ConversionCalculatorSectionComponent,
+    StatsStripSectionComponent,
     TestimonialsSectionComponent,
     FaqSectionComponent,
     FinalCtaSectionComponent,
@@ -119,7 +117,7 @@ export class LandingPageComponent {
     };
   });
 
-  toggleCalculator(): void {
+  /* toggleCalculator(): void {
     this.isCalculatorVisible.update(v => {
       const next = !v;
       this.analytics.track(AnalyticsEvents.RoiToggle, {
@@ -128,7 +126,7 @@ export class LandingPageComponent {
       });
       return next;
     });
-  }
+  } */
   setDemoStep(step: number): void {
     this.currentDemoStep.set(step);
 
@@ -158,17 +156,19 @@ export class LandingPageComponent {
       value: visitors,
     });
   }
-  openWhatsApp(): void {
+  openWhatsApp(track: boolean = true): void {
     const rawMessage = this.i18n.ui().contact.whatsappMessage;
     const message = encodeURIComponent(rawMessage);
     const phone = '+525522699563';
     const link = `https://wa.me/${ phone }?text=${ message }`;
     // Track whatsapp click (hero or other locations using this helper)
-    this.analytics.track(AnalyticsEvents.WhatsAppClick, {
-      category: AnalyticsCategories.Engagement,
-      label: phone,
-      meta: { length: rawMessage.length, location: 'helper' },
-    });
+    if (track) {
+      this.analytics.track(AnalyticsEvents.WhatsAppClick, {
+        category: AnalyticsCategories.Engagement,
+        label: phone,
+        meta: { length: rawMessage.length, location: 'helper' },
+      });
+    }
     window.open(link, '_blank');
   }
   trackCTAClick(ctaType: string, location: string): void {
@@ -279,6 +279,7 @@ export class LandingPageComponent {
     }
   }
 
+  private lastSectionViewSuppressedUntil = 0;
   private setupSectionViewTracking(): void {
     if (typeof window === 'undefined' || typeof document === 'undefined' || !('IntersectionObserver' in window)) {
       return;
@@ -289,6 +290,7 @@ export class LandingPageComponent {
       'features-section',
       'process-section',
       'services-section',
+      'stats-strip-section',
       'conversion-calculator-section',
       'testimonials-section',
       'faq-section',
@@ -304,7 +306,8 @@ export class LandingPageComponent {
             if (!id) continue;
             const now = Date.now();
             const last = lastSeen.get(id) ?? 0;
-            const shouldEmit = now - last > 30_000; // re-emit after 30s since last sighting
+            const suppressWindow = this.lastSectionViewSuppressedUntil;
+            const shouldEmit = (now - last > 3_000) && (now > suppressWindow);
             if (shouldEmit) {
               lastSeen.set(id, now);
               if (!initialSeen.has(id)) initialSeen.add(id);
@@ -321,12 +324,9 @@ export class LandingPageComponent {
         if (el) observer.observe(el);
       });
     };
-    // Initial attempt (some sections might be deferred)
     tryObserve();
-    // Re-attach when new nodes are added (for @defer placeholders loading later)
     const mo = new MutationObserver(() => tryObserve());
     mo.observe(this.doc.body, { childList: true, subtree: true });
-    // Stop mutation observing once all tracked sections have been seen initially
     const interval = setInterval(() => {
       if (ids.every(id => initialSeen.has(id))) {
         mo.disconnect();
@@ -339,12 +339,29 @@ export class LandingPageComponent {
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
     const milestones = [25, 50, 75, 100];
     const hit = new Set<number>();
-    const onScroll = () => {
-      const doc = document.documentElement;
-      const scrollTop = window.pageYOffset || doc.scrollTop;
-      const viewBottom = scrollTop + window.innerHeight;
-      const height = doc.scrollHeight || 1;
-      const depth = Math.min(100, Math.round((viewBottom / height) * 100));
+
+    const scrollEl = (document.scrollingElement || document.documentElement || document.body) as HTMLElement;
+    const computeDepth = (): number => {
+      const docEl = document.documentElement;
+      // Prefer the actual scrolling element for these metrics
+      const scrollTop = scrollEl.scrollTop;
+      const scrollHeight = scrollEl.scrollHeight;
+      const viewport = window.innerHeight || docEl.clientHeight;
+      const denom = Math.max(1, scrollHeight - viewport);
+      const progress = Math.round((scrollTop / denom) * 100);
+      return Math.min(100, Math.max(0, progress));
+    };
+
+    const cleanup = () => {
+      window.removeEventListener('scroll', throttled as any);
+      if (scrollEl) scrollEl.removeEventListener('scroll', throttled as any);
+      window.removeEventListener('resize', throttled as any);
+      window.removeEventListener('orientationchange', throttled as any);
+      try { mo.disconnect(); } catch { }
+    };
+
+    const onScrollOrResize = () => {
+      const depth = computeDepth();
       for (const m of milestones) {
         if (depth >= m && !hit.has(m)) {
           hit.add(m);
@@ -355,20 +372,41 @@ export class LandingPageComponent {
           });
         }
       }
-      if (hit.size === milestones.length) window.removeEventListener('scroll', throttled);
-    };
-    let ticking = false;
-    const throttled = () => {
-      if (!ticking) {
-        ticking = true;
-        requestAnimationFrame(() => {
-          onScroll();
-          ticking = false;
-        });
+      if (hit.size === milestones.length) {
+        cleanup();
       }
     };
+
+    let rafId: number | null = null;
+    const throttled = () => {
+      if (rafId != null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        onScrollOrResize();
+      });
+    };
+
+    const onScrollTarget = throttled;
     window.addEventListener('scroll', throttled, { passive: true });
-    // Trigger initial check
-    onScroll();
+    // Also listen on the actual scroll container in case the app uses a custom scroller
+    if (scrollEl && scrollEl !== (document as any)) {
+      scrollEl.addEventListener('scroll', onScrollTarget, { passive: true });
+    }
+    window.addEventListener('resize', throttled);
+    window.addEventListener('orientationchange', throttled);
+
+    // Observe DOM mutations that may change document height (e.g., late CSS/images/deferred content)
+    const mo = new MutationObserver(() => onScrollOrResize());
+    try { mo.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: false }); } catch { }
+
+    // Allow CSS/layout to settle before first measurement and then run an initial check.
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        // run once even if the user hasn't scrolled, to set the baseline
+        onScrollOrResize();
+      }, 120);
+    });
+
+    // Cleanup is invoked inside onScrollOrResize once all milestones are reached
   }
 }

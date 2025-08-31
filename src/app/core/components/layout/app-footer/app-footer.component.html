@@ -1,27 +1,27 @@
 <footer [class]="computedFooterClasses()">
   <div [class]="computedContentClasses()">
-    <!-- Contact Information Section -->
-    @if (config().showContactInfo) {
-    <div class="ank-display-flex ank-flexDirection-column ank-alignItems-center ank-gap-8px">
-      <h3 class="ank-fontSize-lg ank-fontWeight-semibold ank-color-titleColor ank-margin-0">Contact Information</h3>
-      <div class="ank-display-flex ank-flexDirection-column ank-alignItems-center ank-gap-4px ank-textAlign-center">
-        @if (contactInfo().email) {
-        <a
-          [href]="'mailto:' + contactInfo().email"
-          class="ank-color-secondaryTextColor ank-textDecoration-none ank-fontSize-sm"
+    <!-- Legal Links Section (modals) -->
+    @if (config().showLegalLinks) {
+    <div class="ank-display-flex ank-flexDirection-column ank-alignItems-center ank-gap-8px ank-textAlign-center">
+      <h3 class="ank-fontSize-lg ank-fontWeight-semibold ank-color-titleColor ank-margin-0">
+        {{ t("footer.legal.title") }}
+      </h3>
+      <div class="ank-display-flex ank-gap-12px ank-flexWrap-wrap ank-justifyContent-center">
+        <button
+          type="button"
+          class="ank-bg-transparent ank-border-0 ank-color-secondaryTextColor ank-fontSize-sm ank-textDecoration-underline ank-cursor-pointer"
+          (click)="openTerms()"
         >
-          📧 {{ contactInfo().email }}
-        </a>
-        } @if (contactInfo().phone) {
-        <a
-          [href]="'tel:' + contactInfo().phone"
-          class="ank-color-secondaryTextColor ank-textDecoration-none ank-fontSize-sm"
+          {{ t("footer.legal.terms.link") }}
+        </button>
+        <span class="ank-color-secondaryTextColor">•</span>
+        <button
+          type="button"
+          class="ank-bg-transparent ank-border-0 ank-color-secondaryTextColor ank-fontSize-sm ank-textDecoration-underline ank-cursor-pointer"
+          (click)="openDataUse()"
         >
-          📞 {{ contactInfo().phone }}
-        </a>
-        } @if (contactInfo().address) {
-        <span class="ank-color-secondaryTextColor ank-fontSize-sm"> 📍 {{ contactInfo().address }} </span>
-        }
+          {{ t("footer.legal.data.link") }}
+        </button>
       </div>
     </div>
     }

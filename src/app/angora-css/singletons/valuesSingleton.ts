@@ -77,7 +77,7 @@ export class ValuesSingleton {
   public separator: string = 'þµÞ';
   public specify: string = '🜏🜏🜏';
   /* Console */
-  public styleConsole: string = `padding: 1rem; background-color: ${this.colors['abyss']}; color: ${this.colors['lavenderLP']};`;
+  public styleConsole: string = `padding: 1rem; background-color: ${ this.colors['abyss'] }; color: ${ this.colors['lavenderLP'] };`;
   /* Pseudos */
   public pseudoClasses: string[] = [
     'Active',
@@ -339,14 +339,14 @@ export class ValuesSingleton {
     traduceMap: Map<string, { regex: RegExp; replacement: string }>;
     convertMap: Map<string, { regex: RegExp; replacement: string | RegExp }>;
   } = {
-    traduceMap: new Map<string, { regex: RegExp; replacement: string }>(),
-    convertMap: new Map<string, { regex: RegExp; replacement: string | RegExp }>(),
-  };
+      traduceMap: new Map<string, { regex: RegExp; replacement: string }>(),
+      convertMap: new Map<string, { regex: RegExp; replacement: string | RegExp }>(),
+    };
   /* Time Management*/
   public useTimer: boolean = false;
   public lastTimeAsked2Create: number = new Date().getTime();
   public timesCSSCreated: number = 0;
-  public timeBetweenReCreate: number = 1000;
+  public timeBetweenReCreate: number = 300;
   public lastTimeCssCreateEnded: number = Date.now();
   public creationPostponed: boolean = false;
   public setTimeOutID: ReturnType<typeof setTimeout> | null = null;
@@ -381,7 +381,7 @@ export class ValuesSingleton {
   public getNewClasses2CreateCache: Map<string, string[]> = new Map();
   public comboParserCache: Map<string, string[]> = new Map();
   public values4ComboGetterCache: Map<string, string[]> = new Map();
-  private constructor() {}
+  private constructor() { }
   public static getInstance(): ValuesSingleton {
     if (!ValuesSingleton.instance) {
       ValuesSingleton.instance = new ValuesSingleton();

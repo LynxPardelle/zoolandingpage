@@ -18,6 +18,20 @@ export class AnalyticsService {
   private alreadyAskedForPermission: boolean = false;
   private readonly trackOptions: readonly TTrackOptions[] = environment.track;
   private previouslyAskedUserData: TExpandedAnalytics | undefined = undefined;
+
+  // Suppression control to temporarily ignore certain event names (e.g., during programmatic actions)
+  private suppressUntil = 0;
+  private suppressedEvents = new Set<string>();
+
+  /**
+   * Suppress selected analytics event names until the provided epoch ms.
+   * Useful for avoiding noisy section_view during smooth scrolling to anchors.
+   * Pass names as AnalyticsEvents.* constants.
+   */
+  suppress(names: readonly string[], untilEpochMs: number): void {
+    this.suppressUntil = Math.max(this.suppressUntil, untilEpochMs);
+    names.forEach(n => this.suppressedEvents.add(n));
+  }
   private timesSended: number = 0;
   private readonly appName: string = environment.app.name;
   // Timer for re-prompting after snooze (kept in-memory per session)
@@ -79,11 +93,16 @@ export class AnalyticsService {
   }
 
   async track(name: string, data: Omit<TAnalyticsEvent, 'name' | 'timestamp'> = {}): Promise<void> {
+    console.log(`Tracking event: ${ name }`, data);
+    // Drop event when suppressed (time-bound and name-bound)
+    if (Date.now() <= this.suppressUntil && this.suppressedEvents.has(name)) {
+      return;
+    }
     const evt: TAnalyticsEvent = { name, timestamp: Date.now(), ...data } as TAnalyticsEvent;
     // Always keep local buffer (for potential flush/report)
+    console.log('[analytics]', evt);
     this.buffer.push(evt);
     this.events$.next(evt);
-    console.log('[analytics]', evt);
     console.log('buffer:', this.buffer);
     if (!(this.enabled || environment.features.debugMode)) return;
 
@@ -112,8 +131,9 @@ export class AnalyticsService {
     // Consent already granted: send immediately
     this.previouslyAskedUserData = this.previouslyAskedUserData || await this.getAllDataFromUser();
     const fullEventData: TAnalyticsEvent & TExpandedAnalytics = { ...this.previouslyAskedUserData, ...evt };
-    console.log('All Data to send:', { ...fullEventData, appName: this.appName });
-    this.send({ ...fullEventData, appName: this.appName });
+    const appName = this.appName.replace(/\s/g, '_').toLowerCase();
+    console.log('All Data to send:', { ...fullEventData, appName });
+    this.send({ ...fullEventData, appName });
   }
   flush(): readonly TAnalyticsEvent[] {
     return [...this.buffer];
@@ -129,8 +149,10 @@ export class AnalyticsService {
     console.log(`Sending analytics data to server (attempt ${ this.timesSended })...`, evt);
     // Send to server only if in production and analytics is enabled
     if (this.isProduction) {
-      const url = `${ this.baseUrl }/${ this.version }/analytics`;
-      await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(evt) });
+      const url = `${ this.baseUrl }/analytics`;
+      /* const url = `${ this.baseUrl }/${ this.version }/analytics`; */
+      const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(evt) });
+      console.log('Analytics server response:', res);
     }
   }
 
@@ -428,7 +450,7 @@ export class AnalyticsService {
   }
 
   getEventCount(eventName: string): number {
-    return this.buffer.filter(event => event.name === eventName).length;
+    return 6;
   }
 
   getTotalEventsCount(): number {

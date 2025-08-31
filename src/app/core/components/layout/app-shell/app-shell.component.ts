@@ -16,6 +16,7 @@ import { filter } from 'rxjs/operators';
 import { AppFooterComponent, AppHeaderComponent } from '..';
 import { environment } from '../../../../../environments/environment';
 import { NgxAngoraService } from '../../../../angora-css/ngx-angora.service';
+import { GenericButtonComponent } from '../../../../shared/components/generic-button/generic-button.component';
 import { ModalComponent } from '../../../../shared/components/modal/modal.component';
 import { ModalService } from '../../../../shared/components/modal/modal.service';
 import { ToastComponent, ToastService } from '../../../../shared/components/utility/toast';
@@ -31,13 +32,14 @@ import { AppShellConfig } from './app-shell.types';
   selector: 'app-root',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [AppHeaderComponent, AppFooterComponent, RouterOutlet, ModalComponent, ToastComponent],
+  imports: [AppHeaderComponent, AppFooterComponent, RouterOutlet, ModalComponent, ToastComponent, GenericButtonComponent],
   templateUrl: './app-shell.component.html',
 })
 export class AppShellComponent {
   readonly debugMode = environment.features.debugMode;
   // App state
   private readonly appTitle = signal<string>(environment.app.name);
+  readonly appName = environment.app.name;
 
   // Computed properties with proper typing
   readonly isProduction = computed(() => environment.production);
@@ -56,7 +58,9 @@ export class AppShellComponent {
   private readonly _i18n = inject(I18nService);
   // Public alias for template usage
   readonly lang = this._lang;
-  readonly t = (k: string) => this._i18n.t(k);
+  readonly t = (k: string, p?: Record<string, any>) => this._i18n.t(k, p);
+  // Expose currently active modal reference for template conditionals
+  readonly activeModalRef = computed(() => this.modal.modalRef());
   private readonly activeHref = signal<string | null>(null);
 
   cfg = input<AppShellConfig>({ skipLinkLabel: 'Skip to content' });
@@ -146,15 +150,6 @@ export class AppShellComponent {
   readonly mainRef = viewChild<ElementRef<HTMLElement>>('main');
 
   constructor() {
-    // Track first page view immediately (queued until consent if needed)
-    afterNextRender(() => {
-      const currentUrl = this.router.url;
-      this.analytics.track(AnalyticsEvents.PageView, {
-        category: AnalyticsCategories.Navigation,
-        label: currentUrl,
-      });
-    });
-
     // Track subsequent page views on navigation end
     this.router.events.pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd)).subscribe(evt => {
       this.analytics.track(AnalyticsEvents.PageView, {
@@ -170,7 +165,7 @@ export class AppShellComponent {
       this.initializeAngoraConfiguration();
       this._ank.cssCreate();
     });
-    afterEveryRender(() => this._ank.cssCreate());
+    afterEveryRender(() => setTimeout(() => this._ank.cssCreate(), 350));
 
     // Keep <html lang> in sync with current language for screen readers/UA
     // effect() must run within injection context (constructor is OK)
@@ -195,10 +190,15 @@ export class AppShellComponent {
       const active = this.modal.modalRef();
       if (needsConsent && !active) {
         this.modal.open({ id: 'analytics-consent' });
-      } else if (!needsConsent && active) {
+      } else if (!needsConsent && active?.id === 'analytics-consent') {
         this.modal.close();
       }
     });
+  }
+
+  // Allow template to close the modal
+  closeModal(): void {
+    this.modal.close();
   }
 
   focusMain(evt: Event): void {

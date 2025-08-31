@@ -1,6 +1,6 @@
 /**
  * AppFooter Types
- * 
+ *
  * Type definitions for AppFooter component.
  * Following MANDATORY type-only definitions (no interfaces, no enums).
  */
@@ -9,7 +9,7 @@
 export type AppFooterConfig = {
   readonly showCopyright: boolean;
   readonly showSocialLinks: boolean;
-  readonly showContactInfo: boolean;
+  readonly showLegalLinks: boolean;
   readonly className: string;
   readonly copyrightText: string;
   readonly organizationName: string;

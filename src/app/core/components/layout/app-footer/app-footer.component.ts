@@ -5,7 +5,9 @@
  * Following MANDATORY requirements: Angular 17+, ngx-angora-css, type-only definitions, atomic structure.
  */
 
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { ModalService } from '../../../../shared/components/modal';
+import { I18nService } from '../../../../shared/services/i18n.service';
 import {
   APP_FOOTER_DEFAULTS,
   BASE_FOOTER_CLASSES,
@@ -20,6 +22,10 @@ import type { AppFooterConfig, ContactInfo, SocialLink } from './app-footer.type
   templateUrl: './app-footer.component.html',
 })
 export class AppFooterComponent {
+  // Services
+  private readonly modal = inject(ModalService);
+  private readonly i18n = inject(I18nService);
+
   // Configuration input with defaults
   readonly config = input(APP_FOOTER_DEFAULTS, {
     transform: (value: Partial<AppFooterConfig>) => ({
@@ -30,9 +36,9 @@ export class AppFooterComponent {
 
   // Contact information input
   readonly contactInfo = input<ContactInfo>({
-    email: 'contact@zoolanding.com',
-    phone: '+1 (555) 123-4567',
-    address: '123 Zoo Street, Animal City, AC 12345',
+    email: 'mylandingpage@zoolanding.com',
+    phone: '+52 (55) 2269-9563',
+    address: 'Mexico City, Mexico',
   });
 
   // Social links input
@@ -56,6 +62,31 @@ export class AppFooterComponent {
       ariaLabel: 'Follow us on Instagram',
     },
   ]);
+
+  // i18n helper for template
+  readonly t = (key: string, params?: Record<string, any>) => this.i18n.t(key, params);
+
+  constructor() { }
+
+  openTerms(): void {
+    this.modal.open({
+      id: 'terms-of-service',
+      size: 'lg',
+      ariaLabel: this.t('footer.legal.terms.title'),
+      showAccentBar: true,
+      accentColor: 'secondaryAccentColor',
+    });
+  }
+
+  openDataUse(): void {
+    this.modal.open({
+      id: 'data-use',
+      size: 'md',
+      ariaLabel: this.t('footer.legal.data.title'),
+      showAccentBar: true,
+      accentColor: 'secondaryAccentColor',
+    });
+  }
 
   // Computed classes
   readonly computedFooterClasses = computed(() => {

@@ -15,7 +15,7 @@
       } @else {
       <a
         [href]="config().logoUrl"
-        class="ank-fontSize-2rem ank-fontWeight-bold ank-color-titleColor ank-ms-1rem ank-tde-none"
+        class="ank-fs-1_5rem ank-fs-md-2rem ank-fontWeight-bold ank-color-titleColor ank-ms-1rem ank-tde-none"
       >
         {{ config().logoText }}
       </a>
@@ -44,7 +44,7 @@
       <button
         type="button"
         (click)="toggleLanguage()"
-        class="ank-p-8px ank-borderRadius-0_75rem ank-border-none ank-bg-accentColor ank-color-secondaryTextColor ank-ts-200 ank-bgHover-secondaryAccentColor ank-colorHover-secondaryTextColor ank-display-flex ank-alignItems-center ank-justifyContent-center ank-width-36px ank-height-36px ank-fs-0_75rem ank-fontWeight-bold"
+        class="ank-p-8px ank-borderRadius-0_75rem ank-border-none ank-bg-accentColor ank-color-secondaryTextColor ank-ts-200 ank-bgHover-secondaryAccentColor ank-colorHover-secondaryTextColor ank-display-flex ank-alignItems-center ank-justifyContent-center ank-width-36px ank-height-36px ank-fs-1rem ank-fontWeight-bold"
       >
         {{ languageService.languageLabel() }}
       </button>
@@ -61,7 +61,7 @@
         aria-haspopup="true"
         aria-controls="mobile-primary-navigation"
         [attr.aria-expanded]="state().isMobileMenuOpen"
-        class="ank-padding-8px ank-me-12px ank-borderRadius-0_75rem ank-border-none ank-bg-secondaryBgColor ank-color-textColor ank-transition-bgColor ank-duration-200 ank-scaleActive-95 ank-width-36px ank-height-36px ank-display-flex ank-alignItems-center ank-justifyContent-center"
+        class="ank-padding-8px ank-me-12px ank-borderRadius-0_75rem ank-border-none ank-bg-secondaryBgColor ank-color-textColor ank-width-36px ank-height-36px ank-display-flex ank-alignItems-center ank-justifyContent-center"
       >
         <span class="ank-display-flex ank-alignItems-center ank-justifyContent-center ank-width-20px ank-height-20px">
           {{ state().isMobileMenuOpen ? "✕" : "☰" }}

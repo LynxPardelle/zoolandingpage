@@ -41,6 +41,10 @@ export const AnalyticsEvents = {
     // Modal
     ModalOpen: 'modal_open',
     ModalClose: 'modal_close',
+
+    // FAQ
+    FaqOpen: 'faq_open',
+    FaqClose: 'faq_close',
 } as const;
 
 export type AnalyticsEventName = typeof AnalyticsEvents[keyof typeof AnalyticsEvents];

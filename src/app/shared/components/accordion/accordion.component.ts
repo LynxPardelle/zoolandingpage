@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, Signal, computed, signal } from '@angular/core';
+import { Component, EventEmitter, Input, Output, Signal, computed, signal } from '@angular/core';
 import { DEFAULT_ACCORDION_CONFIG } from './accordion.constants';
 import { AccordionConfig, AccordionItem } from './accordion.types';
 
@@ -20,6 +20,9 @@ export class AccordionComponent {
   items: Signal<readonly AccordionItem[]> = computed(() => this._items());
   private expanded = signal<readonly string[]>([]);
   private idPrefix = 'acc-' + Math.random().toString(36).slice(2) + '-';
+
+  // Emitted when a panel is toggled
+  @Output() toggled = new EventEmitter<{ id: string; expanded: boolean }>();
 
   itemsIds = () => this._items().map(i => i.id);
 
@@ -43,6 +46,7 @@ export class AccordionComponent {
         this.expanded.update(list => [...list, id]);
       }
     }
+    this.toggled.emit({ id, expanded: this.isExpanded(id) });
   }
 
   onKey(ev: KeyboardEvent, idx: number) {
