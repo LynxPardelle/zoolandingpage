@@ -64,9 +64,6 @@ Create `.env` file based on `.example.env`:
 APP_NAME=zoolandingpage
 NODE_ENV=production
 
-# Angular Build Options
-ANGULAR_CREATE_OPTIONS=--routing --style=scss --ssr --standalone --strict
-
 # Port Configuration
 DEV_PORT=6161
 PROD_PORT=6162
@@ -106,20 +103,20 @@ export const environment = {
   defaultLanguage: 'es',
   apiUrl: 'https://api.your-domain.com',
   assetsUrl: 'https://cdn.your-domain.com',
-  
+
   // Feature flags
   features: {
     realTimeAnalytics: true,
     advancedAnimations: true,
-    a11yMode: false
+    a11yMode: false,
   },
-  
+
   // Performance settings
   performance: {
     enableServiceWorker: true,
     enableLazyLoading: true,
-    enablePreloading: true
-  }
+    enablePreloading: true,
+  },
 };
 ```
 
@@ -134,18 +131,18 @@ export const environment = {
   defaultLanguage: 'es',
   apiUrl: 'http://localhost:3000/api',
   assetsUrl: '/assets',
-  
+
   features: {
     realTimeAnalytics: true,
     advancedAnimations: true,
-    a11yMode: true
+    a11yMode: true,
   },
-  
+
   performance: {
     enableServiceWorker: false,
     enableLazyLoading: false,
-    enablePreloading: false
-  }
+    enablePreloading: false,
+  },
 };
 ```
 
@@ -256,9 +253,9 @@ services:
       context: .
       target: development
       dockerfile: Dockerfile
-    profiles: ["dev"]
+    profiles: ['dev']
     ports:
-      - "${DEV_PORT:-6161}:6161"
+      - '${DEV_PORT:-6161}:6161'
     volumes:
       - .:/app
       - /app/node_modules
@@ -267,7 +264,7 @@ services:
       - NG_CLI_ANALYTICS=false
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6161"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:6161']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -278,15 +275,15 @@ services:
       context: .
       target: production
       dockerfile: Dockerfile
-    profiles: ["prod"]
+    profiles: ['prod']
     ports:
-      - "${PROD_PORT:-6162}:6162"
+      - '${PROD_PORT:-6162}:6162'
     environment:
       - NODE_ENV=production
       - PORT=6162
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6162/health"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:6162/health']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -297,12 +294,12 @@ services:
       context: .
       target: production-static
       dockerfile: Dockerfile
-    profiles: ["static"]
+    profiles: ['static']
     ports:
-      - "${PROD_NO_SSR_PORT:-6163}:6163"
+      - '${PROD_NO_SSR_PORT:-6163}:6163'
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6163"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:6163']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -310,13 +307,13 @@ services:
   # Analytics WebSocket Server (Optional)
   analytics-server:
     image: node:18-alpine
-    profiles: ["analytics"]
+    profiles: ['analytics']
     ports:
-      - "3001:3001"
+      - '3001:3001'
     volumes:
       - ./analytics-server:/app
     working_dir: /app
-    command: ["node", "server.js"]
+    command: ['node', 'server.js']
     environment:
       - NODE_ENV=production
       - PORT=3001
@@ -425,50 +422,36 @@ http {
 ```yaml
 # aws-task-definition.json
 {
-  "family": "zoolandingpage",
-  "networkMode": "awsvpc",
-  "requiresCompatibilities": ["FARGATE"],
-  "cpu": "256",
-  "memory": "512",
-  "executionRoleArn": "arn:aws:iam::ACCOUNT:role/ecsTaskExecutionRole",
-  "taskRoleArn": "arn:aws:iam::ACCOUNT:role/ecsTaskRole",
-  "containerDefinitions": [
-    {
-      "name": "zoolandingpage",
-      "image": "your-registry/zoolandingpage:latest",
-      "portMappings": [
-        {
-          "containerPort": 6162,
-          "protocol": "tcp"
-        }
-      ],
-      "environment": [
-        {
-          "name": "NODE_ENV",
-          "value": "production"
-        },
-        {
-          "name": "PORT",
-          "value": "6162"
-        }
-      ],
-      "logConfiguration": {
-        "logDriver": "awslogs",
-        "options": {
-          "awslogs-group": "/ecs/zoolandingpage",
-          "awslogs-region": "us-east-1",
-          "awslogs-stream-prefix": "ecs"
-        }
+  'family': 'zoolandingpage',
+  'networkMode': 'awsvpc',
+  'requiresCompatibilities': ['FARGATE'],
+  'cpu': '256',
+  'memory': '512',
+  'executionRoleArn': 'arn:aws:iam::ACCOUNT:role/ecsTaskExecutionRole',
+  'taskRoleArn': 'arn:aws:iam::ACCOUNT:role/ecsTaskRole',
+  'containerDefinitions':
+    [
+      {
+        'name': 'zoolandingpage',
+        'image': 'your-registry/zoolandingpage:latest',
+        'portMappings': [{ 'containerPort': 6162, 'protocol': 'tcp' }],
+        'environment': [{ 'name': 'NODE_ENV', 'value': 'production' }, { 'name': 'PORT', 'value': '6162' }],
+        'logConfiguration':
+          {
+            'logDriver': 'awslogs',
+            'options':
+              { 'awslogs-group': '/ecs/zoolandingpage', 'awslogs-region': 'us-east-1', 'awslogs-stream-prefix': 'ecs' },
+          },
+        'healthCheck':
+          {
+            'command': ['CMD-SHELL', 'curl -f http://localhost:6162/health || exit 1'],
+            'interval': 30,
+            'timeout': 5,
+            'retries': 3,
+            'startPeriod': 60,
+          },
       },
-      "healthCheck": {
-        "command": ["CMD-SHELL", "curl -f http://localhost:6162/health || exit 1"],
-        "interval": 30,
-        "timeout": 5,
-        "retries": 3,
-        "startPeriod": 60
-      }
-    }
-  ]
+    ],
 }
 ```
 
@@ -483,7 +466,7 @@ Parameters:
   ImageUri:
     Type: String
     Description: ECR Image URI
-  
+
   Environment:
     Type: String
     Default: production
@@ -602,28 +585,28 @@ Outputs:
 # .do/app.yaml
 name: zoolandingpage
 services:
-- name: web
-  source_dir: /
-  github:
-    repo: LynxPardelle/zoolandingpage
-    branch: main
-    deploy_on_push: true
-  build_command: npm run build
-  run_command: npm run serve:ssr
-  environment_slug: node-js
-  instance_count: 1
-  instance_size_slug: basic-xxs
-  routes:
-  - path: /
-  health_check:
-    http_path: /health
-  envs:
-  - key: NODE_ENV
-    value: production
-  - key: PORT
-    value: "8080"
-  - key: ANALYTICS_ENABLED
-    value: "true"
+  - name: web
+    source_dir: /
+    github:
+      repo: LynxPardelle/zoolandingpage
+      branch: main
+      deploy_on_push: true
+    build_command: npm run build
+    run_command: npm run serve:ssr
+    environment_slug: node-js
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    routes:
+      - path: /
+    health_check:
+      http_path: /health
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: '8080'
+      - key: ANALYTICS_ENABLED
+        value: 'true'
 ```
 
 ### Heroku Deployment
@@ -663,10 +646,10 @@ export class HealthController {
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
       memory: process.memoryUsage(),
-      version: require('../../package.json').version
+      version: require('../../package.json').version,
     };
   }
-  
+
   @Get('ready')
   readinessCheck(): ReadinessStatus {
     // Check dependencies (database, external APIs, etc.)
@@ -674,8 +657,8 @@ export class HealthController {
       status: 'ready',
       checks: {
         websocket: this.checkWebSocket(),
-        analytics: this.checkAnalytics()
-      }
+        analytics: this.checkAnalytics(),
+      },
     };
   }
 }
@@ -688,20 +671,20 @@ export class HealthController {
 @Injectable()
 export class MetricsService {
   private metrics = new Map<string, number>();
-  
+
   increment(metric: string, value = 1): void {
     const current = this.metrics.get(metric) || 0;
     this.metrics.set(metric, current + value);
   }
-  
+
   gauge(metric: string, value: number): void {
     this.metrics.set(metric, value);
   }
-  
+
   getMetrics(): Record<string, number> {
     return Object.fromEntries(this.metrics);
   }
-  
+
   @Cron('*/30 * * * * *') // Every 30 seconds
   collectSystemMetrics(): void {
     this.gauge('memory_usage', process.memoryUsage().heapUsed);
@@ -734,22 +717,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Run tests
         run: npm run test -- --watch=false --browsers=ChromeHeadless
-      
+
       - name: Run linting
         run: npm run lint
-      
+
       - name: Build application
         run: npm run build
 
@@ -759,14 +742,14 @@ jobs:
     if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Log in to Container Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -776,7 +759,7 @@ jobs:
             type=ref,event=branch
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
-      
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:

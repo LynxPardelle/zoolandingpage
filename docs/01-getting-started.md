@@ -122,9 +122,8 @@ Customize your project by creating a `.env` file in the root directory. Use `.ex
 ```bash
 # Application Settings
 APP_NAME=zoolandingpage
-ANGULAR_CREATE_OPTIONS=--routing --style=scss --ssr --standalone --strict
 
-# Port Configuration  
+# Port Configuration
 DEV_PORT=6161                             # Development server port
 PROD_PORT=6162                            # Production SSR server port
 PROD_NO_SSR_PORT=6163                     # Production static server port
@@ -141,19 +140,19 @@ GID=1000                                  # Host group ID
 
 ## Quick Commands Reference
 
-| Command | Docker | Local | Description |
-|---------|--------|-------|-------------|
-| **Development** |
-| Start dev server | `make dev` | `npm start` | Hot-reload development |
-| Background dev | `make dev-detached` | - | Background development server |
-| View logs | `make dev-logs` | - | Show container logs |
-| **Production** |
-| SSR build | `make prod` | `npm run serve:ssr` | Server-side rendering |
-| Static build | `make prod-no-ssr` | `npm run build` | Static files only |
-| **Management** |
-| Install package | `make install pkg=<name>` | `npm install <name>` | Add dependency |
-| Health check | `make health` | - | Container health status |
-| Clean up | `make clean` | `rm -rf node_modules` | Clean environment |
+| Command          | Docker                    | Local                 | Description                   |
+| ---------------- | ------------------------- | --------------------- | ----------------------------- |
+| **Development**  |
+| Start dev server | `make dev`                | `npm start`           | Hot-reload development        |
+| Background dev   | `make dev-detached`       | -                     | Background development server |
+| View logs        | `make dev-logs`           | -                     | Show container logs           |
+| **Production**   |
+| SSR build        | `make prod`               | `npm run serve:ssr`   | Server-side rendering         |
+| Static build     | `make prod-no-ssr`        | `npm run build`       | Static files only             |
+| **Management**   |
+| Install package  | `make install pkg=<name>` | `npm install <name>`  | Add dependency                |
+| Health check     | `make health`             | -                     | Container health status       |
+| Clean up         | `make clean`              | `rm -rf node_modules` | Clean environment             |
 
 ## 🔧 Troubleshooting
 
