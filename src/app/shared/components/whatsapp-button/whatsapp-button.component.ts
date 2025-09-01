@@ -29,7 +29,7 @@ export class WhatsAppButtonComponent {
 
   readonly activated = output<string>();
 
-  onPressed(): void {
+  onPressed(location: string): void {
     const link = this.url();
     if (!link) return;
     if (this.target() === '_blank') {
@@ -37,10 +37,10 @@ export class WhatsAppButtonComponent {
     } else {
       window.location.href = link;
     }
-    this.analytics.track(AnalyticsEvents.WhatsAppClick, {
-      category: AnalyticsCategories.Engagement,
+    this.analytics.track(AnalyticsEvents.CtaClick, {
+      category: AnalyticsCategories.CTA,
       label: this.phone(),
-      meta: { hasMessage: !!this.message(), length: (this.message() || '').length },
+      meta: { location },
     });
     this.activated.emit(link);
   }

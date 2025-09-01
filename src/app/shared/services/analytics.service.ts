@@ -93,8 +93,8 @@ export class AnalyticsService {
   }
 
   async track(name: string, data: Omit<TAnalyticsEvent, 'name' | 'timestamp'> = {}): Promise<void> {
-    console.log(`Tracking event: ${ name }`, data);
-    // Drop event when suppressed (time-bound and name-bound)
+    /*     console.log(`Tracking event: ${ name }`, data);
+     */    // Drop event when suppressed (time-bound and name-bound)
     if (Date.now() <= this.suppressUntil && this.suppressedEvents.has(name)) {
       return;
     }
