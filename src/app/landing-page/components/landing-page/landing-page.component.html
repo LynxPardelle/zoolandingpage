@@ -1,8 +1,8 @@
 <hero-section
   id="home"
   [data]="heroData()"
-  (primary)="openWhatsApp()"
-  (secondary)="trackCTAClick('secondary', 'hero')"
+  (primary)="openWhatsApp(true, 'hero_primary', 'hero')"
+  (secondary)="trackCTAClick('secondary', 'hero', 'hero_secondary')"
 ></hero-section>
 <conversion-note id="conversion-section"></conversion-note>
 <features-section id="features-section" [features]="features()"></features-section>
@@ -18,7 +18,11 @@
   <div class="ank-fs-1_25rem">Cargando proceso…</div>
 </section>
 }
-<services-section id="services-section" [services]="services()" (serviceCta)="openWhatsApp(false)"></services-section>
+<services-section
+  id="services-section"
+  [services]="services()"
+  (serviceCta)="openWhatsApp(true, 'services', 'services')"
+></services-section>
 <stats-strip-section id="stats-strip-section"></stats-strip-section>
 @defer (on viewport; prefetch on idle) {
 <testimonials-section
@@ -32,7 +36,7 @@
   <div class="ank-fs-1_25rem">{{ loadingMessages().testimonials }}</div>
 </section>
 } @defer (on viewport; prefetch on idle) {
-<faq-section id="faq-section" (primary)="openWhatsApp()"></faq-section>
+<faq-section id="faq-section" (primary)="openWhatsApp(true, 'faq-section', 'faq-section')"></faq-section>
 } @placeholder {
 <section id="faq-section" class="ank-py-48px ank-textAlign-center ank-opacity-70">
   <div class="ank-fs-1_25rem">{{ loadingMessages().faq }}</div>
@@ -46,5 +50,8 @@
   [secondaryLabel]="finalCta().secondaryLabel"
   [whatsAppPhone]="'+525522699563'"
   [whatsAppMessage]="heroData().subtitle"
-  (secondary)="openWhatsApp(); trackCTAClick('secondary', 'final-cta')"
+  (secondary)="
+    openWhatsApp(true, 'final-cta-primary-click', 'final-cta');
+    trackCTAClick('secondary', 'final-cta', 'final-cta-secondary-click')
+  "
 ></final-cta-section>

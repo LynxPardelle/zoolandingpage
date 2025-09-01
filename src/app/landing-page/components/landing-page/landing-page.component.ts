@@ -156,26 +156,46 @@ export class LandingPageComponent {
       value: visitors,
     });
   }
-  openWhatsApp(track: boolean = true): void {
+
+  nameChooser(name: string) {
+    switch (name) {
+      case 'hero_primary':
+        return AnalyticsEvents.HeroPrimaryClick;
+      case 'hero_secondary':
+        return AnalyticsEvents.HeroSecondaryClick;
+      case 'services':
+        return AnalyticsEvents.ServicesCtaClick;
+      case 'faq-section':
+        return AnalyticsEvents.FaqOpen;
+      case 'final-cta-primary-click':
+        return AnalyticsEvents.FinalCtaPrimaryClick;
+      case 'final-cta-secondary-click':
+        return AnalyticsEvents.FinalCtaSecondaryClick;
+      default:
+        return 'no_name';
+    }
+  }
+
+  openWhatsApp(track: boolean = true, name: string, location: string): void {
+
     const rawMessage = this.i18n.ui().contact.whatsappMessage;
     const message = encodeURIComponent(rawMessage);
     const phone = '+525522699563';
     const link = `https://wa.me/${ phone }?text=${ message }`;
-    // Track whatsapp click (hero or other locations using this helper)
     if (track) {
-      this.analytics.track(AnalyticsEvents.WhatsAppClick, {
-        category: AnalyticsCategories.Engagement,
-        label: phone,
-        meta: { length: rawMessage.length, location: 'helper' },
+      this.analytics.track(this.nameChooser(name), {
+        category: AnalyticsCategories.CTA,
+        label: 'whatsapp-button',
+        meta: { location },
       });
     }
     window.open(link, '_blank');
   }
-  trackCTAClick(ctaType: string, location: string): void {
-    this.analytics.track(AnalyticsEvents.CtaClick, {
+  trackCTAClick(ctaType: string, location: string, name: string): void {
+    this.analytics.track(this.nameChooser(name), {
       category: AnalyticsCategories.CTA,
       label: `${ location }:${ ctaType }`,
-      meta: { location, variant: ctaType },
+      meta: { location },
     });
   }
   trackSectionView(sectionName: string): void {

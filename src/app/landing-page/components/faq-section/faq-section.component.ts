@@ -39,7 +39,7 @@ export class FaqSectionComponent {
 
   onToggle(item: { id: string; expanded: boolean }): void {
     this.analytics.track(item.expanded ? AnalyticsEvents.FaqOpen : AnalyticsEvents.FaqClose, {
-      category: AnalyticsCategories.Engagement,
+      category: AnalyticsCategories.Faq,
       label: item.id,
     });
   }
