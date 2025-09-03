@@ -140,6 +140,20 @@ export class AnalyticsService {
       return;
     }
 
+    this.parseSend(evt);
+    // Fire-and-forget counters to Quick Stats for selected events
+    this.bumpQuickStatsForEvent(name);
+  }
+  flush(): readonly TAnalyticsEvent[] {
+    return [...this.buffer];
+  }
+
+  // Debug/stream API: subscribe to live events
+  onEvent(): Observable<TAnalyticsEvent> {
+    return this.events$.asObservable();
+  }
+
+  private async parseSend(evt: TAnalyticsEvent) {
     // Consent already granted: send immediately
     let payload: any;
     if (this.timesSended === 0) {
@@ -154,16 +168,6 @@ export class AnalyticsService {
     const appName = this.appName.replace(/\s/g, '_').replace(/[^a-zA-Z0-9]+/g, '').toLowerCase();
     /* console.log('Analytics Data to send:', { ...payload, appName }); */
     this.send({ ...payload, appName })?.subscribe({ next: () => { }, error: () => { } });
-    // Fire-and-forget counters to Quick Stats for selected events
-    this.bumpQuickStatsForEvent(name);
-  }
-  flush(): readonly TAnalyticsEvent[] {
-    return [...this.buffer];
-  }
-
-  // Debug/stream API: subscribe to live events
-  onEvent(): Observable<TAnalyticsEvent> {
-    return this.events$.asObservable();
   }
 
   private send(evt: TAnalyticsEvent & TExpandedAnalytics & { appName: string }): Observable<TDataDropResponse> | void {
@@ -324,9 +328,7 @@ export class AnalyticsService {
         const queue = [...this.pendingQueue];
         this.pendingQueue = [];
         for (const evt of queue) {
-          const fullEventData: TAnalyticsEvent & TExpandedAnalytics = { ...(meta || {} as any), ...evt };
-          /* console.log('Flushing queued analytics:', { ...fullEventData, appName: this.appName }); */
-          this.send({ ...fullEventData, appName: this.appName })?.subscribe({ next: () => { }, error: () => { } });
+          await this.parseSend(evt);
         }
       }
 
