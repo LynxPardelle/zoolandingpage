@@ -1,5 +1,6 @@
+import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '@/app/shared/services/analytics.events';
 import { CommonModule } from '@angular/common';
-import { Component, signal } from '@angular/core';
+import { Component, effect, output, signal } from '@angular/core';
 import { ToastService } from './toast.service';
 import { ToastAction, ToastLevel, ToastMessage } from './toast.types';
 
@@ -12,8 +13,22 @@ import { ToastAction, ToastLevel, ToastMessage } from './toast.types';
 })
 export class ToastComponent {
   private hoveredToasts = signal<Set<string>>(new Set());
+  readonly analyticsEvent = output<AnalyticsEventPayload>();
 
-  constructor(public service: ToastService) {}
+  constructor(public service: ToastService) {
+    // Reactive analytics emission for toast lifecycle
+    effect(() => {
+      const list = this.service.list();
+      list.forEach(t => {
+        if (t.entering) {
+          this.analyticsEvent.emit({ name: AnalyticsEvents.ToastShow, category: AnalyticsCategories.CTA, label: t.source || t.title || 'toast' });
+        }
+        if (t.leaving) {
+          this.analyticsEvent.emit({ name: AnalyticsEvents.ToastHide, category: AnalyticsCategories.CTA, label: t.source || t.title || 'toast' });
+        }
+      });
+    });
+  }
 
   getHostPositionClasses(): string {
     const config = this.service.config();
@@ -49,7 +64,7 @@ export class ToastComponent {
     ];
 
     // Level-specific styling
-    classes.push(`toast-${toast.level}`);
+    classes.push(`toast-${ toast.level }`);
 
     // Animation classes
     if (toast.entering) {
@@ -72,7 +87,7 @@ export class ToastComponent {
 
     // Style-specific classes
     if (action.style === 'primary') {
-      baseClasses.push(`toast-action-primary-${level}`);
+      baseClasses.push(`toast-action-primary-${ level }`);
     } else {
       baseClasses.push('toast-action-secondary');
     }
@@ -104,14 +119,25 @@ export class ToastComponent {
     });
   }
 
+  // Legacy noop methods retained (if template still references them)
+  trackToastEnter(_: ToastMessage): void { }
+  trackToastLeave(_: ToastMessage): void { }
+
   handleActionClick(action: ToastAction, toastId: string): void {
     try {
       action.action();
     } catch (error) {
       console.error('Toast action failed:', error);
     }
+    // Emit specific toast action event including the button label
+    this.analyticsEvent.emit({ name: AnalyticsEvents.ActionTrigger, category: AnalyticsCategories.CTA, label: action.label });
 
     // Optionally dismiss the toast after action
+    this.service.dismiss(toastId);
+  }
+
+  dismiss(toastId: string): void {
+    this.analyticsEvent.emit({ name: AnalyticsEvents.ToastHide, category: AnalyticsCategories.CTA, label: 'dismiss' });
     this.service.dismiss(toastId);
   }
 }

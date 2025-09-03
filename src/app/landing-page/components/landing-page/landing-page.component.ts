@@ -1,5 +1,5 @@
 import { DOCUMENT } from '@angular/common';
-import { afterNextRender, ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import { afterNextRender, ChangeDetectionStrategy, Component, computed, effect, inject, output, signal } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { ToastService } from '../../../shared/components/utility/toast';
 import { RoiNoteComponent } from '../conversion-note/conversion-note.component';
@@ -13,9 +13,10 @@ import { StatsStripSectionComponent } from '../stats-strip-section/stats-strip-s
 import { TestimonialsSectionComponent } from '../testimonials-section/testimonials-section.component';
 import { buildTestimonialListSchema } from '../testimonials-section/testimonials-section.constants';
 
+import { buildWhatsAppUrl } from '@/app/shared/components/whatsapp-button/whatsapp-button.constants';
+import { WHATSAPP_PHONE } from '@/app/shared/services/contact.constants';
 import { LanguageService } from '../../../core/services/language.service';
-import { AnalyticsCategories, AnalyticsEvents } from '../../../shared/services/analytics.events';
-import { AnalyticsService } from '../../../shared/services/analytics.service';
+import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '../../../shared/services/analytics.events';
 import { StructuredDataService } from '../../../shared/services/structured-data.service';
 import { LandingPageI18nService } from './landing-page-i18n.service';
 import type { InteractiveProcess } from './landing-page.types';
@@ -46,7 +47,8 @@ export class LandingPageComponent {
   private readonly lang = inject(LanguageService);
   readonly i18n = inject(LandingPageI18nService);
   private readonly structured = inject(StructuredDataService);
-  private readonly analytics = inject(AnalyticsService);
+  readonly analyticsEvent = output<AnalyticsEventPayload>();
+  readonly WHATSAPP_PHONE = WHATSAPP_PHONE;
   readonly currentDemoStep = signal(0);
   readonly isCalculatorVisible = signal(false);
   readonly calculatorBusinessSize = signal<'nano' | 'micro' | 'small' | 'medium'>('micro');
@@ -120,10 +122,7 @@ export class LandingPageComponent {
   /* toggleCalculator(): void {
     this.isCalculatorVisible.update(v => {
       const next = !v;
-      this.analytics.track(AnalyticsEvents.RoiToggle, {
-        category: AnalyticsCategories.RoiCalculator,
-        label: next ? 'open' : 'close',
-      });
+      this.analyticsEvent.emit({ name: AnalyticsEvents.RoiToggle, category: AnalyticsCategories.RoiCalculator, label: next ? 'open' : 'close' });
       return next;
     });
   } */
@@ -137,10 +136,7 @@ export class LandingPageComponent {
         isActive: demo.step === step + 1,
       }))
     );
-    this.analytics.track(AnalyticsEvents.ProcessStepChange, {
-      category: AnalyticsCategories.Process,
-      label: String(step + 1),
-    });
+    this.analyticsEvent.emit({ name: AnalyticsEvents.ProcessStepChange, category: AnalyticsCategories.Process, label: String(step + 1) });
   }
   updateBusinessSize(size: 'nano' | 'micro' | 'small' | 'medium'): void {
     this.calculatorBusinessSize.set(size);
@@ -150,59 +146,53 @@ export class LandingPageComponent {
   }
   updateVisitors(visitors: number): void {
     this.calculatorVisitors.set(visitors);
-    this.analytics.track(AnalyticsEvents.RoiVisitorsChange, {
-      category: AnalyticsCategories.RoiCalculator,
-      label: visitors.toString(),
-      value: visitors,
-    });
+    this.analyticsEvent.emit({ name: AnalyticsEvents.RoiVisitorsChange, category: AnalyticsCategories.RoiCalculator, label: visitors.toString(), value: visitors });
   }
 
-  nameChooser(name: string) {
+  nameChooser(name: string): AnalyticsEventPayload['name'] | null {
     switch (name) {
-      case 'hero_primary':
-        return AnalyticsEvents.HeroPrimaryClick;
-      case 'hero_secondary':
-        return AnalyticsEvents.HeroSecondaryClick;
-      case 'services':
-        return AnalyticsEvents.ServicesCtaClick;
-      case 'faq-section':
-        return AnalyticsEvents.FaqOpen;
-      case 'final-cta-primary-click':
-        return AnalyticsEvents.FinalCtaPrimaryClick;
-      case 'final-cta-secondary-click':
-        return AnalyticsEvents.FinalCtaSecondaryClick;
-      default:
-        return 'no_name';
+      case 'hero_primary': return AnalyticsEvents.HeroPrimaryClick;
+      case 'hero_secondary': return AnalyticsEvents.HeroSecondaryClick;
+      case 'services': return AnalyticsEvents.ServicesCtaClick;
+      case 'faq-section': return AnalyticsEvents.FaqOpen;
+      default: return null;
     }
   }
 
-  openWhatsApp(track: boolean = true, name: string, location: string): void {
+  openWhatsApp(track: boolean = true, name: string, location: string, serviceLabel?: string): void {
 
     const rawMessage = this.i18n.ui().contact.whatsappMessage;
-    const message = encodeURIComponent(rawMessage);
-    const phone = '+525522699563';
-    const link = `https://wa.me/${ phone }?text=${ message }`;
-    if (track) {
-      this.analytics.track(this.nameChooser(name), {
-        category: AnalyticsCategories.CTA,
-        label: 'whatsapp-button',
-        meta: { location },
-      });
+    const phone = WHATSAPP_PHONE;
+    const link = buildWhatsAppUrl(phone, rawMessage);
+    const evtName = this.nameChooser(name);
+    if (track && evtName) {
+      const isService = evtName === AnalyticsEvents.ServicesCtaClick;
+      const comingFromServicesSection = location === 'services';
+      if (isService) {
+        // Emit only if not original services section (avoid duplicates) or if we have an override label
+        if (!comingFromServicesSection) {
+          const label = serviceLabel || 'whatsapp-button';
+          this.analyticsEvent.emit({ name: evtName, category: AnalyticsCategories.CTA, label, meta: { location, via: 'whatsapp_button' } });
+        }
+      } else {
+        this.analyticsEvent.emit({ name: evtName, category: AnalyticsCategories.CTA, label: 'whatsapp-button', meta: { location, forwardedFrom: serviceLabel || null } });
+      }
     }
     window.open(link, '_blank');
   }
   trackCTAClick(ctaType: string, location: string, name: string): void {
-    this.analytics.track(this.nameChooser(name), {
-      category: AnalyticsCategories.CTA,
-      label: `${ location }:${ ctaType }`,
-      meta: { location },
-    });
+    const evtName = this.nameChooser(name);
+    if (evtName) this.analyticsEvent.emit({ name: evtName, category: AnalyticsCategories.CTA, label: `${ location }:${ ctaType }`, meta: { location } });
   }
   trackSectionView(sectionName: string): void {
-    this.analytics.track(AnalyticsEvents.SectionView, {
-      category: AnalyticsCategories.Navigation,
-      label: sectionName,
-    });
+    this.analyticsEvent.emit({ name: AnalyticsEvents.SectionView, category: AnalyticsCategories.Navigation, label: sectionName });
+  }
+
+  // Forward child analytics with debug logging (helps diagnose missing final-cta events)
+  forwardAnalytics(evt: AnalyticsEventPayload): void {
+    try { console.log('[LandingPage] forwardAnalytics called', evt); } catch { }
+    try { if (evt?.name?.startsWith('final_cta')) console.log('[LandingPage] forwarding final_cta event', evt); } catch { }
+    this.analyticsEvent.emit(evt);
   }
 
   // Inject high-level structured data once on component init (browser only)
@@ -336,7 +326,7 @@ export class LandingPageComponent {
           }
         }
       },
-      { rootMargin: '0px 0px -40% 0px', threshold: [0.1, 0.25, 0.5] }
+      { rootMargin: '0px 0px 80% 0px', threshold: [0.5] }
     );
     const tryObserve = () => {
       ids.forEach(id => {
@@ -357,7 +347,8 @@ export class LandingPageComponent {
 
   private setupReadDepthTracking(): void {
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
-    const milestones = [25, 50, 75, 100];
+    // Granular scroll depth milestones (10% increments)
+    const milestones = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
     const hit = new Set<number>();
 
     const scrollEl = (document.scrollingElement || document.documentElement || document.body) as HTMLElement;
@@ -385,10 +376,12 @@ export class LandingPageComponent {
       for (const m of milestones) {
         if (depth >= m && !hit.has(m)) {
           hit.add(m);
-          this.analytics.track(AnalyticsEvents.ScrollDepth, {
+          this.analyticsEvent.emit({
+            name: AnalyticsEvents.ScrollDepth,
             category: AnalyticsCategories.Navigation,
             label: `${ m }%`,
             value: m,
+            meta: { depthPercent: m }
           });
         }
       }

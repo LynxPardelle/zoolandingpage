@@ -11,6 +11,8 @@ export type ToastMessage = {
   readonly level: ToastLevel;
   readonly title?: string;
   readonly text: string;
+  // Source trigger identifier (e.g., which UI button created the toast) for analytics labeling
+  readonly source?: string;
   readonly autoCloseMs?: number;
   readonly persistOnHover?: boolean;
   readonly showProgress?: boolean;

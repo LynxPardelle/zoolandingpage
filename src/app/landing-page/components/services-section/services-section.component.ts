@@ -2,8 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { AppContainerComponent, AppSectionComponent } from '../../../core/components/layout';
-import { AnalyticsCategories, AnalyticsEvents } from '../../../shared/services/analytics.events';
-import { AnalyticsService } from '../../../shared/services/analytics.service';
+import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '../../../shared/services/analytics.events';
 import { LandingPageI18nService } from '../landing-page/landing-page-i18n.service';
 
 @Component({
@@ -14,7 +13,7 @@ import { LandingPageI18nService } from '../landing-page/landing-page-i18n.servic
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ServicesSectionComponent {
-  private readonly analytics = inject(AnalyticsService);
+  readonly analyticsEvent = output<AnalyticsEventPayload>();
   private readonly i18n = inject(LandingPageI18nService);
 
   readonly services = input.required<
@@ -33,9 +32,11 @@ export class ServicesSectionComponent {
   readonly sectionSubtitle = computed(() => this.i18n.ui().sections.services.subtitle);
 
   onCta(title: string) {
-    this.analytics.track(AnalyticsEvents.ServicesCtaClick, {
-      category: AnalyticsCategories.Services,
+    this.analyticsEvent.emit({
+      name: AnalyticsEvents.ServicesCtaClick,
+      category: AnalyticsCategories.CTA,
       label: title,
+      meta: { location: 'services-section' }
     });
     this.serviceCta.emit(title);
   }
