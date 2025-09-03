@@ -228,8 +228,9 @@
 <!-- Dev-only demo controls -->
 @if (debugMode) {
 <div
-  class="ank-position-md-fixed ank-bottom-0 ank-left-0 ank-p-0_5rem ank-display-flex ank-flexWrap-wrap ank-gap-0_5rem ank-zIndex-1200 ank-maxWidth-300px"
+  class="ank-p-0_5rem ank-display-flex ank-flexWrap-wrap ank-gap-0_5rem ank-w-100per ank-justifyContent-spaceMINevenly ank-bg-secondaryBgColor ank-borderTop-1px ank-borderColor-secondaryAccent ank-borderBottom-1px"
 >
+  <h3 class="ank-w-100per ank-textAlign-center ank-color-secondaryTitleColor">{{ t("demo.title") }}</h3>
   <button class="btnBaseVALSVL0_5remVL0_5rem ank-fs-1rem ank-btn-primary ank-color-textColor" (click)="showDemoModal()">
     {{ t("demo.modal.button.open") }}
   </button>
