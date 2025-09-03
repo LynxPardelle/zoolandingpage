@@ -47,3 +47,12 @@ export type TAnalyticsEvent = {
     readonly meta?: Record<string, unknown>;
     readonly timestamp: number;
 };
+
+export type TDataDropResponse = {
+    ok: boolean;
+    error?: string;
+    bucket?: string;
+    key?: string;
+    size?: number;
+    dryRun?: boolean;
+}

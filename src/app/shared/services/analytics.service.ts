@@ -1,11 +1,15 @@
-import { Injectable, signal } from '@angular/core';
-import { Observable, Subject } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { inject, Injectable, signal } from '@angular/core';
+import { Observable, Subject, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ToastService } from '../components/utility/toast';
-import { TAnalyticsEvent, TExpandedAnalytics, TTrackOptions } from '../types/analytics.type';
+import { TAnalyticsEvent, TDataDropResponse, TExpandedAnalytics, TTrackOptions } from '../types/analytics.type';
+import { AnalyticsEvents } from './analytics.events';
 import { I18nService } from './i18n.service';
+import { QuickStatsService } from './quick-stats.service';
 @Injectable({ providedIn: 'root' })
 export class AnalyticsService {
+  private http = inject(HttpClient);
   private readonly buffer: TAnalyticsEvent[] = [];
   // Events captured before consent is granted; flushed in FIFO on acceptance
   private pendingQueue: TAnalyticsEvent[] = [];
@@ -133,7 +137,9 @@ export class AnalyticsService {
     const fullEventData: TAnalyticsEvent & TExpandedAnalytics = { ...this.previouslyAskedUserData, ...evt };
     const appName = this.appName.replace(/\s/g, '_').toLowerCase();
     console.log('All Data to send:', { ...fullEventData, appName });
-    this.send({ ...fullEventData, appName });
+    this.send({ ...fullEventData, appName })?.subscribe({ next: () => { }, error: () => { } });
+    // Fire-and-forget counters to Quick Stats for selected events
+    this.bumpQuickStatsForEvent(name);
   }
   flush(): readonly TAnalyticsEvent[] {
     return [...this.buffer];
@@ -144,15 +150,16 @@ export class AnalyticsService {
     return this.events$.asObservable();
   }
 
-  private async send(evt: TAnalyticsEvent & TExpandedAnalytics & { appName: string }): Promise<void> {
+  private send(evt: TAnalyticsEvent & TExpandedAnalytics & { appName: string }): Observable<TDataDropResponse> | void {
     this.timesSended++;
     console.log(`Sending analytics data to server (attempt ${ this.timesSended })...`, evt);
     // Send to server only if in production and analytics is enabled
     if (this.isProduction) {
       const url = `${ this.baseUrl }/analytics`;
       /* const url = `${ this.baseUrl }/${ this.version }/analytics`; */
-      const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(evt) });
-      console.log('Analytics server response:', res);
+      return this.http.post<TDataDropResponse>(url, evt).pipe(
+        tap(res => console.log('Analytics server response:', res))
+      );
     }
   }
 
@@ -296,7 +303,7 @@ export class AnalyticsService {
         for (const evt of queue) {
           const fullEventData: TAnalyticsEvent & TExpandedAnalytics = { ...(meta || {} as any), ...evt };
           console.log('Flushing queued analytics:', { ...fullEventData, appName: this.appName });
-          await this.send({ ...fullEventData, appName: this.appName });
+          this.send({ ...fullEventData, appName: this.appName })?.subscribe({ next: () => { }, error: () => { } });
         }
       }
 
@@ -425,6 +432,8 @@ export class AnalyticsService {
   private initializePersistentCounters(): void {
     // Track page view on initialization
     this.incrementPageViewCount();
+    // Also bump remote counter (non-blocking)
+    try { this.bumpRemotePageView(); } catch { /* ignore */ }
   }
 
   // Persistent counter methods
@@ -435,6 +444,22 @@ export class AnalyticsService {
       localStorage.setItem(environment.localStorage.pageViewCountKey, (currentCount + 1).toString());
     } catch {
       // ignore localStorage errors
+    }
+  }
+
+  // Quick Stats Lambda integration helpers
+  private _quickStats?: QuickStatsService;
+  private get quickStats(): QuickStatsService {
+    return this._quickStats ??= inject(QuickStatsService);
+  }
+  private bumpRemotePageView(): void {
+    if (!this.isProduction) return;
+    this.quickStats.incPageView().subscribe({ next: () => { }, error: () => { } });
+  }
+  private bumpQuickStatsForEvent(name: string): void {
+    if (!this.isProduction) return;
+    if (name === AnalyticsEvents.CtaClick || name === AnalyticsEvents.FinalCtaPrimaryClick || name === AnalyticsEvents.FinalCtaSecondaryClick) {
+      this.quickStats.incCtaClick().subscribe({ next: () => { }, error: () => { } });
     }
   }
 

@@ -1,3 +1,4 @@
+import { provideHttpClient } from '@angular/common/http';
 import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
 
@@ -13,5 +14,6 @@ export const appConfig: ApplicationConfig = {
     provideClientHydration(withEventReplay()),
     // Enable browser animations (component triggers rely on this)
     provideAnimations(),
+    provideHttpClient(),
   ],
 };
