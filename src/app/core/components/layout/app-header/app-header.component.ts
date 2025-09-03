@@ -152,7 +152,7 @@ export class AppHeaderComponent {
       const el = document.querySelector(href);
       if (el) {
         // Suppress section_view events during programmatic scroll to avoid noise
-        const suppressMs = 200; // 200ms should be enough for the scroll to finish
+        const suppressMs = 500; // 500ms should be enough for the scroll to finish
         // Emit a suppression hint so AppShell can apply it centrally
         this.analyticsEvent.emit({
           name: AnalyticsEvents.SectionView,

@@ -226,9 +226,8 @@
 <app-toast-host></app-toast-host>
 
 <!-- Dev-only demo controls -->
-@if (debugMode) {
 <div
-  class="ank-p-0_5rem ank-display-flex ank-flexWrap-wrap ank-gap-0_5rem ank-w-100per ank-justifyContent-spaceMINevenly ank-bg-secondaryBgColor ank-borderTop-1px ank-borderColor-secondaryAccent ank-borderBottom-1px"
+  class="ank-p-1rem__1rem__3rem__1rem ank-display-flex ank-flexWrap-wrap ank-gap-0_5rem ank-w-100per ank-justifyContent-spaceMINevenly ank-bg-secondaryBgColor ank-borderTop-1px ank-borderColor-secondaryAccent ank-borderBottom-1px"
 >
   <h3 class="ank-w-100per ank-textAlign-center ank-color-secondaryTitleColor">{{ t("demo.title") }}</h3>
   <button class="btnBaseVALSVL0_5remVL0_5rem ank-fs-1rem ank-btn-primary ank-color-textColor" (click)="showDemoModal()">
@@ -256,9 +255,9 @@
     {{ t("demo.toast.button.clear") }}
   </button>
 </div>
-
+@if (debugMode) {
 <div
-  class="ank-position-md-fixed ank-bottom-0 ank-right-25vw ank-m-0_5rem ank-p-0_5rem ank-bg-blackOPA__0_6 ank-color-white ank-fs-12px ank-borderRadius-6px ank-maxWidth-360px ank-maxHeight-40vh ank-overflow-auto ank-zIndex-1200"
+  class="ank-position-md-fixed ank-bottom-6rem ank-right-25vw ank-mx-auto ank-p-0_5rem ank-bg-blackOPA__0_6 ank-color-white ank-fs-12px ank-borderRadius-6px ank-maxWidth-360px ank-maxHeight-40vh ank-overflow-auto ank-zIndex-1200"
 >
   <div class="ank-fontWeight-600 ank-mb-0_25rem">Analytics (latest)</div>
   <ul class="ank-m-0 ank-pl-1rem">
