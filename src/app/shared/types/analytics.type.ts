@@ -18,6 +18,7 @@ export type TExpandedAnalytics = {
     connection?: string;
     localId?: string;
     sessionId?: string;
+    cssCreationTime?: number;
 }
 
 export type TTrackOptions =
