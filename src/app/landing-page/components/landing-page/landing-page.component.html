@@ -4,7 +4,17 @@
   (primary)="openWhatsApp(true, 'hero_primary', 'hero')"
   (secondary)="trackCTAClick('secondary', 'hero', 'hero_secondary')"
 ></hero-section>
+@defer (on viewport; prefetch on idle) {
 <conversion-note id="conversion-section"></conversion-note>
+} @placeholder {
+<section id="conversion-section" class="ank-py-48px ank-textAlign-center ank-opacity-70">
+  <div class="ank-fs-1_25rem">Cargando conversión…</div>
+  <div class="ank-mt-16px ank-display-flex ank-jc-center ank-gap-12px">
+    <div class="ank-width-160px ank-height-12px ank-bg-bgColor ank-opacity-30 ank-borderRadius-8px"></div>
+    <div class="ank-width-120px ank-height-12px ank-bg-bgColor ank-opacity-20 ank-borderRadius-8px"></div>
+  </div>
+</section>
+}
 <features-section id="features-section" [features]="features()"></features-section>
 @defer (on viewport; prefetch on idle) {
 <interactive-process
@@ -21,7 +31,8 @@
 <services-section
   id="services-section"
   [services]="services()"
-  (serviceCta)="openWhatsApp(true, 'services', 'services')"
+  (serviceCta)="openWhatsApp(true, 'services', 'services', $event)"
+  (analyticsEvent)="forwardAnalytics($event)"
 ></services-section>
 <stats-strip-section id="stats-strip-section"></stats-strip-section>
 @defer (on viewport; prefetch on idle) {
@@ -36,7 +47,7 @@
   <div class="ank-fs-1_25rem">{{ loadingMessages().testimonials }}</div>
 </section>
 } @defer (on viewport; prefetch on idle) {
-<faq-section id="faq-section" (primary)="openWhatsApp(true, 'faq-section', 'faq-section')"></faq-section>
+<faq-section id="faq-section" (analyticsEvent)="analyticsEvent.emit($event)"></faq-section>
 } @placeholder {
 <section id="faq-section" class="ank-py-48px ank-textAlign-center ank-opacity-70">
   <div class="ank-fs-1_25rem">{{ loadingMessages().faq }}</div>
@@ -48,10 +59,7 @@
   [subtitle]="finalCta().subtitle"
   [primaryLabel]="finalCta().primaryLabel"
   [secondaryLabel]="finalCta().secondaryLabel"
-  [whatsAppPhone]="'+525522699563'"
+  [whatsAppPhone]="WHATSAPP_PHONE"
   [whatsAppMessage]="heroData().subtitle"
-  (secondary)="
-    openWhatsApp(true, 'final-cta-primary-click', 'final-cta');
-    trackCTAClick('secondary', 'final-cta', 'final-cta-secondary-click')
-  "
+  (analyticsEvent)="forwardAnalytics($event)"
 ></final-cta-section>

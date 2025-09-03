@@ -16,6 +16,25 @@ export const AnalyticsEvents = {
     CtaClick: 'cta_click',
     FinalCtaPrimaryClick: 'final_cta_primary_click',
     FinalCtaSecondaryClick: 'final_cta_secondary_click',
+    // Toast
+    ToastShow: 'toast_show',
+    ToastHide: 'toast_hide',
+
+    // Error
+    ErrorThrow: 'error_throw',
+    ErrorHandle: 'error_handle',
+
+    // Generic Actions
+    ActionTrigger: 'action_trigger',
+
+    // Position (e.g., element position changes / tracking)
+    PositionChange: 'position_change',
+
+    // Clear / reset interactions
+    Clear: 'clear',
+
+    // Custom conversion (WhatsApp) button event (requested spelling)
+    Convertion: 'convertion',
 
     // WhatsApp
     WhatsAppClick: 'whatsapp_click',
@@ -45,6 +64,7 @@ export const AnalyticsEvents = {
     // FAQ
     FaqOpen: 'faq_open',
     FaqClose: 'faq_close',
+    FaqCtaClick: 'faq_cta_click',
 } as const;
 
 export type AnalyticsEventName = typeof AnalyticsEvents[keyof typeof AnalyticsEvents];
@@ -64,3 +84,14 @@ export const AnalyticsCategories = {
 } as const;
 
 export type AnalyticsCategory = typeof AnalyticsCategories[keyof typeof AnalyticsCategories];
+
+// Unified payload interface for component-level analytics event emission.
+// Components now emit this payload via an (analyticsEvent) Output instead of
+// injecting AnalyticsService directly. AppShell centralizes actual tracking.
+export type AnalyticsEventPayload = {
+    readonly name: AnalyticsEventName;
+    readonly category?: AnalyticsCategory;
+    readonly label?: string;
+    readonly value?: number;
+    readonly meta?: any; // Additional contextual metadata
+};

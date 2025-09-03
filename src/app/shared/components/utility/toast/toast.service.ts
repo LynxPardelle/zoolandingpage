@@ -15,7 +15,7 @@ export class ToastService {
   readonly config = () => this._config();
 
   private getNextId(): string {
-    return `t-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    return `t-${ Date.now() }-${ Math.random().toString(36).slice(2) }`;
   }
 
   private addToast(toast: Omit<ToastMessage, 'id'>): string {
@@ -60,9 +60,9 @@ export class ToastService {
     return id;
   }
 
-  // Legacy method for backward compatibility
-  push(level: ToastLevel, text: string, autoCloseMs = 4000) {
-    this.addToast({ level, text, autoCloseMs });
+  // Legacy method for backward compatibility; now accepts optional options (e.g., source)
+  push(level: ToastLevel, text: string, autoCloseMs = 4000, options?: Partial<Omit<ToastMessage, 'id' | 'level' | 'text'>>) {
+    this.addToast({ level, text, autoCloseMs, ...options });
   }
 
   dismiss(id: string) {

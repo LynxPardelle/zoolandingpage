@@ -20,7 +20,7 @@ import { GenericButtonComponent } from '../../../../shared/components/generic-bu
 import { ModalComponent } from '../../../../shared/components/modal/modal.component';
 import { ModalService } from '../../../../shared/components/modal/modal.service';
 import { ToastComponent, ToastService } from '../../../../shared/components/utility/toast';
-import { AnalyticsCategories, AnalyticsEvents } from '../../../../shared/services/analytics.events';
+import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '../../../../shared/services/analytics.events';
 import { AnalyticsService } from '../../../../shared/services/analytics.service';
 import { I18nService } from '../../../../shared/services/i18n.service';
 import { LanguageService } from '../../../services/language.service';
@@ -194,6 +194,11 @@ export class AppShellComponent {
         this.modal.close();
       }
     });
+
+    // Modal service analytics stream
+    try {
+      this.modal.analyticsEvents$?.subscribe(e => this.handleAnalyticsEvent(e));
+    } catch { }
   }
 
   // Allow template to close the modal
@@ -239,22 +244,23 @@ export class AppShellComponent {
   // Demo triggers (will be removed or replaced with proper examples later)
   showDemoModal(): void {
     // For now just push a toast to simulate open; modal service evolution upcoming
-    this.toast.push('info', 'Modal open triggered (placeholder)');
+    this.toast.push('info', 'Modal open triggered (placeholder)', 4000, { source: 'Modal' });
   }
 
   showDemoToast(): void {
     // Cycle through different toast types and features
     const demos = [
-      () => this.toast.success('Order processed successfully!'),
-      () => this.toast.error('Network connection failed'),
-      () => this.toast.warning('Your session will expire in 5 minutes'),
-      () => this.toast.info('New features available in settings'),
+      () => this.toast.success('Order processed successfully!', { source: 'Toast' }),
+      () => this.toast.error('Network connection failed', { source: 'Toast' }),
+      () => this.toast.warning('Your session will expire in 5 minutes', { source: 'Toast' }),
+      () => this.toast.info('New features available in settings', { source: 'Toast' }),
       () =>
         this.toast.show({
           level: 'success',
           title: 'File Upload Complete',
           text: 'Your document has been uploaded and processed successfully.',
           autoCloseMs: 6000,
+          source: 'Toast',
         }),
       () =>
         this.toast.show({
@@ -262,6 +268,7 @@ export class AppShellComponent {
           title: 'Unsaved Changes',
           text: 'You have unsaved changes. Do you want to save before leaving?',
           autoCloseMs: 0,
+          source: 'Toast',
           actions: [
             {
               label: 'Save',
@@ -288,6 +295,7 @@ export class AppShellComponent {
       title: 'Critical Error',
       text: 'The operation could not be completed. Please contact support if this issue persists.',
       autoCloseMs: 0, // Errors should not auto-dismiss
+      source: 'Error',
       actions: [
         {
           label: 'Contact Support',
@@ -315,6 +323,7 @@ export class AppShellComponent {
       title: 'Update Available',
       text: 'Version 2.1.0 is ready to install with new features and bug fixes.',
       autoCloseMs: 10000,
+      source: 'Actions',
       actions: [
         {
           label: 'Update Now',
@@ -357,7 +366,7 @@ export class AppShellComponent {
     const position = positions[currentIndex];
 
     this.toast.setPosition({ vertical: position.vertical, horizontal: position.horizontal });
-    this.toast.success(`Position changed to: ${ position.message }`);
+    this.toast.success(`Position changed to: ${ position.message }`, { source: 'Position' });
 
     this.positionDemoIndex++;
   }
@@ -366,7 +375,7 @@ export class AppShellComponent {
     this.toast.clear();
     // Show a brief confirmation
     setTimeout(() => {
-      this.toast.info('All notifications cleared');
+      this.toast.info('All notifications cleared', { source: 'Clear' });
     }, 100);
   }
 
@@ -385,4 +394,42 @@ export class AppShellComponent {
       // ignore overlay errors
     }
   }
+
+  // Unified analytics event handler (receives from any child component)
+  handleAnalyticsEvent(evt: AnalyticsEventPayload): void {
+    if (!evt?.name) return;
+    try {
+      if (evt.name === AnalyticsEvents.FinalCtaPrimaryClick || evt.name === AnalyticsEvents.FinalCtaSecondaryClick) {
+        console.log('[AppShell] final-cta analytics received', evt);
+      }
+    } catch { }
+    // Apply suppression hints
+    if (evt.label === 'suppress_request' && evt.meta?.suppressForMs && evt.meta?.intent) {
+      const until = Date.now() + Number(evt.meta.suppressForMs || 0);
+      this.analytics.suppress([evt.name], until); // re-use name; SectionView expected
+      return; // do not forward suppression pseudo-event itself
+    }
+    this.analytics.track(evt.name, {
+      category: evt.category,
+      label: evt.label,
+      value: evt.value,
+      meta: evt.meta,
+    });
+  }
+
+  // Router outlet activation: wire outputs dynamically when navigated component exposes analyticsEvent Output
+  onRouteActivate(instance: any): void {
+    // LandingPageComponent emits analyticsEvent using Output; subscribe via monkey patch if needed
+    // Since Outputs are event emitters, we detect presence by method emit or subscribe
+    try {
+      if (instance?.analyticsEvent) {
+        // Angular signals output returns an EventEmitter-like object with subscribe
+        const emitter = instance.analyticsEvent;
+        if (typeof emitter?.subscribe === 'function') {
+          emitter.subscribe((e: AnalyticsEventPayload) => this.handleAnalyticsEvent(e));
+        }
+      }
+    } catch { }
+  }
 }
+
