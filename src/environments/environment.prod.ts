@@ -25,7 +25,7 @@ export const environment: TEnvironment = {
     analytics: true,
     debugMode: false,
     mockData: false,
-    analyticsConsentUI: 'modal',
+    analyticsConsentUI: 'none',
     analyticsConsentSnoozeSeconds: 86400
   },
   app: {
