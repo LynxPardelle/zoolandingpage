@@ -73,11 +73,13 @@
     <!-- Desktop Navigation -->
     @if (config().showNavigation) {
     <nav
-      class="ank-display-none ank-display-md-flex ank-alignItems-center ank-jc-spaceMINbetween ank-gap-32px ank-w-calcSD100per__MIN__2remED ank-mx-1rem"
+      class="ank-display-none ank-display-md-flex ank-alignItems-center ank-jc-spaceMINbetween ank-gap-32px ank-w-calcSD100per__MIN__17remED ank-mx-1rem"
       aria-label="Primary"
     >
       @if (config().navItems?.length) {
-      <ul class="ank-display-flex ank-gap-28px ank-listStyle-none ank-margin-0 ank-padding-0">
+      <ul
+        class="ank-display-flex ank-gap-28px ank-listStyle-none ank-margin-0 ank-padding-0 ank-flexWrap-wrap ank-justifyContent-spaceMINevenly ank-alignItems-center"
+      >
         @for (item of config().navItems; track trackByNav($index, item)) {
         <li class="ank-position-relative">
           <a

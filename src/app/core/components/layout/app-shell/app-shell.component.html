@@ -105,6 +105,36 @@
       />
     </div>
   </section>
+  } @if (activeModalRef()?.id === 'demo-modal') {
+  <section class="ank-display-flex ank-flexDirection-column ank-gap-1rem ank-w-100per">
+    <header
+      class="ank-display-flex ank-alignItems-center ank-gap-0_5rem ank-bg-accentColor ank-color-bgColor ank-p-1rem ank-borderRadius-0_5rem"
+    >
+      <div
+        class="ank-width-2rem ank-height-2rem ank-borderRadius-50per ank-bg-secondaryAccentColor ank-display-flex ank-alignItems-center ank-justifyContent-center ank-color-bgColor ank-fontWeight-700"
+      >
+        🎉
+      </div>
+      <h2 class="ank-m-0 ank-fontSize-1_25rem ank-fontWeight-700">{{ t("demo.modal.header") }}</h2>
+    </header>
+    <p class="ank-m-0 ank-color-secondaryTextColor">
+      {{ t("demo.modal.desc") }}
+    </p>
+    <ul class="ank-m-0 ank-pl-1rem ank-color-secondaryTextColor">
+      <li>{{ t("demo.modal.features.0") }}</li>
+      <li>{{ t("demo.modal.features.1") }}</li>
+      <li>{{ t("demo.modal.features.2") }}</li>
+    </ul>
+    <div class="ank-display-flex ank-justifyContent-end ank-gap-0_5rem ank-mt-1rem">
+      <generic-button
+        [label]="t('demo.modal.close')"
+        variant="primary"
+        colorKey="secondaryAccentColor"
+        size="md"
+        (pressed)="closeModal()"
+      />
+    </div>
+  </section>
   } @if (activeModalRef()?.id === 'terms-of-service') {
   <section class="ank-display-flex ank-flexDirection-column ank-gap-0_75rem ank-w-100per">
     <header
@@ -176,6 +206,13 @@
     <p class="ank-m-0 ank-color-secondaryTextColor">{{ t("footer.legal.data.consentNote") }}</p>
     <div class="ank-display-flex ank-justifyContent-end ank-gap-0_5rem ank-mt-0_75rem">
       <generic-button
+        [label]="t('consent.actions.remove')"
+        variant="outline"
+        colorKey="danger"
+        size="md"
+        (pressed)="onRemoveConsentRequest(); closeModal()"
+      />
+      <generic-button
         [label]="t('footer.actions.close')"
         variant="primary"
         colorKey="secondaryAccentColor"
@@ -194,28 +231,28 @@
   class="ank-position-md-fixed ank-bottom-0 ank-left-0 ank-p-0_5rem ank-display-flex ank-flexWrap-wrap ank-gap-0_5rem ank-zIndex-1200 ank-maxWidth-300px"
 >
   <button class="btnBaseVALSVL0_5remVL0_5rem ank-fs-1rem ank-btn-primary ank-color-textColor" (click)="showDemoModal()">
-    Modal
+    {{ t("demo.modal.button.open") }}
   </button>
   <button class="btnBaseVALSVL0_5remVL0_5rem ank-fs-1rem ank-btn-success ank-color-textColor" (click)="showDemoToast()">
-    Toast
+    {{ t("demo.toast.button.success") }}
   </button>
-  <button class="btnBaseVALSVL0_5remVL0_5rem ank-fs-1rem ank-btn-error ank-color-textColor" (click)="showErrorToast()">
-    Error
+  <button class="btnBaseVALSVL0_5remVL0_5rem ank-fs-1rem ank-btn-danger ank-color-textColor" (click)="showErrorToast()">
+    {{ t("demo.toast.button.error") }}
   </button>
   <button
     class="btnBaseVALSVL0_5remVL0_5rem ank-fs-1rem ank-btn-warning ank-color-textColor"
     (click)="showActionToast()"
   >
-    Actions
+    {{ t("demo.toast.button.action") }}
   </button>
   <button class="btnBaseVALSVL0_5remVL0_5rem ank-fs-1rem ank-btn-info ank-color-textColor" (click)="showPositionDemo()">
-    Position
+    {{ t("demo.toast.button.position") }}
   </button>
   <button
     class="btnBaseVALSVL0_5remVL0_5rem ank-fs-1rem ank-btn-secondary ank-color-textColor"
     (click)="clearAllToasts()"
   >
-    Clear
+    {{ t("demo.toast.button.clear") }}
   </button>
 </div>
 

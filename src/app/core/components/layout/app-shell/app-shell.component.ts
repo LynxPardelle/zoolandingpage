@@ -36,6 +36,30 @@ import { AppShellConfig } from './app-shell.types';
   templateUrl: './app-shell.component.html',
 })
 export class AppShellComponent {
+  // Handler for Remove Consent button
+  onRemoveConsentRequest(): void {
+    const confirmText = this.t('consent.feedback.confirmRemove') || 'Are you sure you want to remove consent?';
+    const yesLabel = this.t('consent.actions.confirm') || 'Yes';
+    const noLabel = this.t('consent.actions.cancel') || 'No';
+    this.toast.show({
+      level: 'warning',
+      title: this.t('consent.title'),
+      text: confirmText,
+      autoCloseMs: 7000,
+      actions: [
+        {
+          label: yesLabel,
+          style: 'primary',
+          action: () => this.analytics.declineConsent(),
+        },
+        {
+          label: noLabel,
+          style: 'secondary',
+          action: () => {/* do nothing */ },
+        },
+      ],
+    });
+  }
   readonly debugMode = environment.features.debugMode;
   // App state
   private readonly appTitle = signal<string>(environment.app.name);
@@ -243,48 +267,51 @@ export class AppShellComponent {
 
   // Demo triggers (will be removed or replaced with proper examples later)
   showDemoModal(): void {
-    // For now just push a toast to simulate open; modal service evolution upcoming
-    this.toast.push('info', 'Modal open triggered (placeholder)', 4000, { source: 'Modal' });
+    this.modal.open({
+      id: 'demo-modal',
+      ariaLabel: this.t('demo.modal.title'),
+      showAccentBar: true,
+      accentColor: 'accentColor',
+      size: 'md',
+      variant: 'dialog',
+    });
   }
 
   showDemoToast(): void {
-    // Cycle through different toast types and features
     const demos = [
-      () => this.toast.success('Order processed successfully!', { source: 'Toast' }),
-      () => this.toast.error('Network connection failed', { source: 'Toast' }),
-      () => this.toast.warning('Your session will expire in 5 minutes', { source: 'Toast' }),
-      () => this.toast.info('New features available in settings', { source: 'Toast' }),
+      () => this.toast.success(this.t('demo.toast.success'), { source: 'Toast' }),
+      () => this.toast.error(this.t('demo.toast.error'), { source: 'Toast' }),
+      () => this.toast.warning(this.t('demo.toast.warning'), { source: 'Toast' }),
+      () => this.toast.info(this.t('demo.toast.info'), { source: 'Toast' }),
       () =>
         this.toast.show({
           level: 'success',
-          title: 'File Upload Complete',
-          text: 'Your document has been uploaded and processed successfully.',
+          title: this.t('demo.toast.fileUploadTitle'),
+          text: this.t('demo.toast.fileUploadText'),
           autoCloseMs: 6000,
           source: 'Toast',
         }),
       () =>
         this.toast.show({
           level: 'warning',
-          title: 'Unsaved Changes',
-          text: 'You have unsaved changes. Do you want to save before leaving?',
+          title: this.t('demo.toast.unsavedTitle'),
+          text: this.t('demo.toast.unsavedText'),
           autoCloseMs: 0,
           source: 'Toast',
           actions: [
             {
-              label: 'Save',
-              action: () => this.toast.success('Changes saved successfully!'),
+              label: this.t('demo.toast.unsavedSave'),
+              action: () => this.toast.success(this.t('demo.toast.changesSaved')),
               style: 'primary',
             },
             {
-              label: 'Discard',
-              action: () => console.log('Changes discarded'),
+              label: this.t('demo.toast.discard'),
+              action: () => this.toast.info(this.t('demo.toast.discard')),
               style: 'secondary',
             },
           ],
         }),
     ];
-
-    // Get random demo
     const randomDemo = demos[Math.floor(Math.random() * demos.length)];
     randomDemo();
   }
@@ -292,24 +319,22 @@ export class AppShellComponent {
   showErrorToast(): void {
     this.toast.show({
       level: 'error',
-      title: 'Critical Error',
-      text: 'The operation could not be completed. Please contact support if this issue persists.',
-      autoCloseMs: 0, // Errors should not auto-dismiss
+      title: this.t('demo.toast.criticalTitle'),
+      text: this.t('demo.toast.criticalText'),
+      autoCloseMs: 0,
       source: 'Error',
       actions: [
         {
-          label: 'Contact Support',
+          label: this.t('demo.toast.contactSupport'),
           action: () => {
-            this.toast.info('Opening support chat...');
-            // Add actual support logic here
+            this.toast.info(this.t('demo.toast.openingSupport'));
           },
           style: 'primary',
         },
         {
-          label: 'Try Again',
+          label: this.t('demo.toast.tryAgain'),
           action: () => {
-            this.toast.warning('Retrying operation...');
-            // Add retry logic here
+            this.toast.warning(this.t('demo.toast.updatePostponed'));
           },
           style: 'secondary',
         },
@@ -320,31 +345,29 @@ export class AppShellComponent {
   showActionToast(): void {
     this.toast.show({
       level: 'info',
-      title: 'Update Available',
-      text: 'Version 2.1.0 is ready to install with new features and bug fixes.',
+      title: this.t('demo.toast.updateTitle'),
+      text: this.t('demo.toast.updateText'),
       autoCloseMs: 10000,
       source: 'Actions',
       actions: [
         {
-          label: 'Update Now',
+          label: this.t('demo.toast.updateNow'),
           action: () => {
-            this.toast.success('Update started! Application will restart automatically.');
-            // Add update logic here
+            this.toast.success(this.t('demo.toast.updateStarted'));
           },
           style: 'primary',
         },
         {
-          label: 'View Changes',
+          label: this.t('demo.toast.viewChanges'),
           action: () => {
-            this.toast.info('Opening changelog...');
-            // Add changelog logic here
+            this.toast.info(this.t('demo.toast.openingChangelog'));
           },
           style: 'secondary',
         },
         {
-          label: 'Later',
+          label: this.t('demo.toast.later'),
           action: () => {
-            this.toast.warning("Update postponed. You'll be reminded in 24 hours.");
+            this.toast.warning(this.t('demo.toast.updatePostponed'));
           },
           style: 'secondary',
         },
@@ -354,28 +377,27 @@ export class AppShellComponent {
 
   showPositionDemo(): void {
     const positions = [
-      { vertical: 'top' as const, horizontal: 'right' as const, message: 'Top Right' },
-      { vertical: 'top' as const, horizontal: 'center' as const, message: 'Top Center' },
-      { vertical: 'top' as const, horizontal: 'left' as const, message: 'Top Left' },
-      { vertical: 'bottom' as const, horizontal: 'left' as const, message: 'Bottom Left' },
-      { vertical: 'bottom' as const, horizontal: 'center' as const, message: 'Bottom Center' },
-      { vertical: 'bottom' as const, horizontal: 'right' as const, message: 'Bottom Right (default)' },
+      { vertical: 'top' as const, horizontal: 'right' as const, message: this.t('demo.toast.positionChanged', { position: 'Top Right' }) },
+      { vertical: 'top' as const, horizontal: 'center' as const, message: this.t('demo.toast.positionChanged', { position: 'Top Center' }) },
+      { vertical: 'top' as const, horizontal: 'left' as const, message: this.t('demo.toast.positionChanged', { position: 'Top Left' }) },
+      { vertical: 'bottom' as const, horizontal: 'left' as const, message: this.t('demo.toast.positionChanged', { position: 'Bottom Left' }) },
+      { vertical: 'bottom' as const, horizontal: 'center' as const, message: this.t('demo.toast.positionChanged', { position: 'Bottom Center' }) },
+      { vertical: 'bottom' as const, horizontal: 'right' as const, message: this.t('demo.toast.positionChanged', { position: 'Bottom Right (default)' }) },
     ];
 
     const currentIndex = this.positionDemoIndex % positions.length;
     const position = positions[currentIndex];
 
     this.toast.setPosition({ vertical: position.vertical, horizontal: position.horizontal });
-    this.toast.success(`Position changed to: ${ position.message }`, { source: 'Position' });
+    this.toast.success(position.message, { source: 'Position' });
 
     this.positionDemoIndex++;
   }
 
   clearAllToasts(): void {
     this.toast.clear();
-    // Show a brief confirmation
     setTimeout(() => {
-      this.toast.info('All notifications cleared', { source: 'Clear' });
+      this.toast.info(this.t('demo.toast.allCleared'), { source: 'Clear' });
     }, 100);
   }
 
@@ -400,7 +422,7 @@ export class AppShellComponent {
     if (!evt?.name) return;
     try {
       if (evt.name === AnalyticsEvents.FinalCtaPrimaryClick || evt.name === AnalyticsEvents.FinalCtaSecondaryClick) {
-        console.log('[AppShell] final-cta analytics received', evt);
+        /* console.log('[AppShell] final-cta analytics received', evt); */
       }
     } catch { }
     // Apply suppression hints
@@ -409,6 +431,7 @@ export class AppShellComponent {
       this.analytics.suppress([evt.name], until); // re-use name; SectionView expected
       return; // do not forward suppression pseudo-event itself
     }
+    /* console.log('[AppShell] analytics event', evt); */
     this.analytics.track(evt.name, {
       category: evt.category,
       label: evt.label,

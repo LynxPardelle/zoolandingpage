@@ -190,8 +190,8 @@ export class LandingPageComponent {
 
   // Forward child analytics with debug logging (helps diagnose missing final-cta events)
   forwardAnalytics(evt: AnalyticsEventPayload): void {
-    try { console.log('[LandingPage] forwardAnalytics called', evt); } catch { }
-    try { if (evt?.name?.startsWith('final_cta')) console.log('[LandingPage] forwarding final_cta event', evt); } catch { }
+    /*  try { console.log('[LandingPage] forwardAnalytics called', evt); } catch { }
+     try { if (evt?.name?.startsWith('final_cta')) console.log('[LandingPage] forwarding final_cta event', evt); } catch { } */
     this.analyticsEvent.emit(evt);
   }
 

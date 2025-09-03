@@ -145,7 +145,7 @@ import { ToastService } from './toast.service';
   ],
 })
 export class ToastDemoComponent {
-  constructor(public toastService: ToastService) {}
+  constructor(public toastService: ToastService) { }
 
   showSuccess(): void {
     this.toastService.success('Operation completed successfully!');
@@ -182,16 +182,16 @@ export class ToastDemoComponent {
         {
           label: 'Update Now',
           action: () => {
-            console.log('Updating application...');
+            /*  console.log('Updating application...'); */
             this.toastService.success('Update started successfully!');
           },
           style: 'primary',
         },
-        {
+        /* {
           label: 'Later',
           action: () => console.log('Update postponed'),
           style: 'secondary',
-        },
+        }, */
       ],
     });
   }
@@ -206,7 +206,7 @@ export class ToastDemoComponent {
         {
           label: 'Retry',
           action: () => {
-            console.log('Retrying connection...');
+            /* console.log('Retrying connection...'); */
             this.toastService.success('Connection restored!');
           },
           style: 'primary',

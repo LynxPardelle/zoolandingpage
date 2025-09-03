@@ -137,10 +137,10 @@ export class AppHeaderComponent {
     if (!item) return;
     // Defensive: ensure href exists
     const href = (item as any).href || '';
-    if (!href) {
+    /* if (!href) {
       // Debug log to trace source of undefined href
       try { console.warn('[AppHeader] nav item without href', item); } catch { }
-    }
+    } */
     this.analyticsEvent.emit({
       name: AnalyticsEvents.NavClick,
       category: AnalyticsCategories.Navigation,
