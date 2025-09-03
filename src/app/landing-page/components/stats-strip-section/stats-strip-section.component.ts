@@ -40,7 +40,7 @@ export class StatsStripSectionComponent {
 
     // CTA interactions (count of CTA click events in buffer)
     readonly ctaInteractionsConfig = computed<StatsCounterConfig>(() => ({
-        target: Number(this.remoteStats()?.['metrics']?.['ctaClicks'] ?? this.analytics.getEventCount('cta_click')),
+        target: Number(this.remoteStats()?.['metrics']?.['ctaClicks'] ?? this.analytics.getEventCount('ctaClicks')),
         durationMs: 1800,
         startOnVisible: true,
         format: (v: number) => Math.max(0, Math.round(v)).toLocaleString(),
