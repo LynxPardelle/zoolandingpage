@@ -480,7 +480,17 @@ export class AnalyticsService {
   }
   private bumpQuickStatsForEvent(name: string): void {
     if (!this.isProduction) return;
-    if (name === AnalyticsEvents.CtaClick || name === AnalyticsEvents.FinalCtaPrimaryClick || name === AnalyticsEvents.FinalCtaSecondaryClick) {
+    if (
+      ([
+        AnalyticsEvents.HeroPrimaryClick,
+        AnalyticsEvents.HeroSecondaryClick,
+        AnalyticsEvents.ServicesCtaClick,
+        AnalyticsEvents.FaqCtaClick,
+        AnalyticsEvents.CtaClick,
+        AnalyticsEvents.FinalCtaPrimaryClick,
+        AnalyticsEvents.FinalCtaSecondaryClick
+      ] as string[]).includes(name)
+    ) {
       this.quickStats.incCtaClick().subscribe({ next: () => { }, error: () => { } });
     }
   }

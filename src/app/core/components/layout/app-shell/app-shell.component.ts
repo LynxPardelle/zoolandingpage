@@ -188,6 +188,9 @@ export class AppShellComponent {
       this.analytics.promptForConsentIfNeeded();
       this.initializeAngoraConfiguration();
       this._ank.cssCreate();
+      if (this.debugMode) {
+        this.removeAnkDNoneFromAnkTimer();
+      }
     });
     afterEveryRender(() => setTimeout(() => this._ank.cssCreate(), 350));
 
@@ -453,6 +456,18 @@ export class AppShellComponent {
         }
       }
     } catch { }
+  }
+
+  removeAnkDNoneFromAnkTimer(): void {
+    // Remove ank-d-none from ank-timer elements to avoid FOUC
+    try {
+      const ankTimer = document.getElementById('ankTimer');
+      if (ankTimer) {
+        ankTimer.classList.remove('ank-d-none');
+      }
+    } catch {
+      // no-op
+    }
   }
 }
 
