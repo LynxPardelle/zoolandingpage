@@ -21,10 +21,10 @@ export class ToastComponent {
       const list = this.service.list();
       list.forEach(t => {
         if (t.entering) {
-          this.analyticsEvent.emit({ name: AnalyticsEvents.ToastShow, category: AnalyticsCategories.CTA, label: t.source || t.title || 'toast' });
+          this.analyticsEvent.emit({ name: AnalyticsEvents.ToastShow, category: AnalyticsCategories.Engagement, label: t.source || t.title || 'toast' });
         }
         if (t.leaving) {
-          this.analyticsEvent.emit({ name: AnalyticsEvents.ToastHide, category: AnalyticsCategories.CTA, label: t.source || t.title || 'toast' });
+          this.analyticsEvent.emit({ name: AnalyticsEvents.ToastHide, category: AnalyticsCategories.Engagement, label: t.source || t.title || 'toast' });
         }
       });
     });

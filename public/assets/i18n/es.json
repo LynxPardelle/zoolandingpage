@@ -1,7 +1,74 @@
 {
+  "demo": {
+    "modal": {
+      "title": "Ejemplo de Diálogo",
+      "header": "Ejemplo de Diálogo",
+      "desc": "Este es un diálogo de ejemplo. Puedes usar esta área para mostrar cualquier contenido, acción o información personalizada para tus usuarios.",
+      "features": [
+        "Contenido totalmente personalizable",
+        "Soporta acciones y UI avanzada",
+        "Cerrar con el botón de abajo"
+      ],
+      "close": "Cerrar",
+      "button": {
+        "open": "Abrir diálogo de ejemplo"
+      },
+      "action": {
+        "confirm": "Confirmar",
+        "cancel": "Cancelar"
+      },
+      "actions": {
+        "primary": "Acción principal",
+        "secondary": "Acción secundaria"
+      },
+      "info": "Este es un diálogo de ejemplo para mostrar acciones y contenido personalizado.",
+      "closeLabel": "Cerrar diálogo"
+  },
+  "toast": {
+    "success": "¡Pedido procesado exitosamente!",
+    "error": "Conexión de red fallida",
+    "warning": "Tu sesión expirará en 5 minutos",
+    "info": "Nuevas funciones disponibles en ajustes",
+    "fileUploadTitle": "Carga de archivo completa",
+    "fileUploadText": "Tu documento ha sido subido y procesado exitosamente.",
+    "unsavedTitle": "Cambios no guardados",
+    "unsavedText": "Tienes cambios sin guardar. ¿Deseas guardar antes de salir?",
+    "unsavedSave": "Guardar",
+    "criticalTitle": "Error crítico",
+    "criticalText": "La operación no pudo completarse. Por favor contacta soporte si el problema persiste.",
+    "contactSupport": "Contactar soporte",
+    "tryAgain": "Intentar de nuevo",
+    "updateTitle": "Actualización disponible",
+    "updateText": "La versión 2.1.0 está lista para instalarse con nuevas funciones y correcciones.",
+    "updateNow": "Actualizar ahora",
+    "viewChanges": "Ver cambios",
+    "later": "Más tarde",
+    "updateStarted": "¡Actualización iniciada! La aplicación se reiniciará automáticamente.",
+    "openingChangelog": "Abriendo registro de cambios...",
+    "updatePostponed": "Actualización pospuesta. Se te recordará en 24 horas.",
+    "positionChanged": "Posición cambiada a: {{position}}",
+    "allCleared": "Todas las notificaciones han sido borradas",
+    "changesSaved": "¡Cambios guardados exitosamente!",
+    "discard": "Descartar",
+    "openingSupport": "Abriendo chat de soporte...",
+    "button": {
+      "success": "Mostrar notificación de éxito",
+      "error": "Mostrar notificación de error",
+      "warning": "Mostrar notificación de advertencia",
+      "info": "Mostrar notificación de información",
+      "fileUpload": "Mostrar notificación de carga de archivo",
+      "unsaved": "Mostrar notificación de cambios no guardados",
+      "critical": "Mostrar notificación de error crítico",
+      "action": "Mostrar notificación de acción",
+      "position": "Mostrar notificación de posición",
+      "clear": "Limpiar todas las notificaciones"
+    }
+
+    }
+  },
   "consent": {
     "title": "Analítica y Cookies",
-    "intro": "Usamos analítica anónima para entender el uso y mejorar la experiencia. Puedes cambiarlo después en ajustes.",
+    "intro": "La analítica anónima está activada por defecto para mejorar la experiencia. Puedes retirar el consentimiento en cualquier momento desde ajustes.",
     "bullets": [
       "No se recopilan datos personales.",
       "Ayuda a corregir problemas y priorizar funciones.",
@@ -10,10 +77,15 @@
     "actions": {
       "allow": "Permitir",
       "decline": "Rechazar",
-      "later": "Más tarde"
+      "remove": "Retirar consentimiento",
+      "later": "Más tarde",
+      "confirm": "Sí, retirar",
+      "cancel": "No, mantener activado"
     },
     "feedback": {
-      "snoozed": "Te preguntaremos de nuevo más tarde."
+      "snoozed": "Te preguntaremos de nuevo más tarde.",
+      "removed": "Consentimiento retirado. Solo se envían eventos esenciales y datos de sesión anónimos.",
+      "confirmRemove": "¿Estás seguro de que deseas retirar el consentimiento? La analítica se desactivará excepto para eventos esenciales."
     }
   },
   "footer": {
@@ -46,16 +118,16 @@
         ]
       },
       "data": {
-        "link": "Uso de datos",
-        "title": "Uso de datos",
-        "intro": "Recopilamos información mínima y respetuosa de la privacidad para mejorar este sitio. La recopilación inicia solo después de tu consentimiento.",
+        "link": "Privacidad de datos",
+        "title": "Privacidad de datos",
+        "intro": "La analítica está activada por defecto. Recopilamos información mínima y respetuosa de la privacidad para mejorar este sitio. Puedes retirar el consentimiento en cualquier momento.",
         "points": [
-          "Solo analítica anónima: no se requieren datos personales para el uso básico.",
+          "La analítica anónima está activada por defecto. No se requieren datos personales para el uso básico.",
           "Métricas técnicas (p. ej., dispositivo, idioma, ventana, rendimiento) nos ayudan a corregir problemas y priorizar mejoras.",
-          "Puedes rechazar o posponer el consentimiento. Si se rechaza, no encolamos ni enviamos eventos de analítica.",
-          "Puedes retirar el consentimiento en cualquier momento limpiando los datos del sitio o actualizando preferencias cuando estén disponibles."
+          "Si retiras el consentimiento, solo se envían eventos esenciales, el ID de sesión y el ID local.",
+          "Puedes retirar el consentimiento en cualquier momento actualizando las preferencias."
         ],
-        "consentNote": "Al aceptar en el diálogo de consentimiento, nos permites guardar una preferencia y procesar analítica anónima como se describe."
+        "consentNote": "La analítica está activada por defecto. Al retirar el consentimiento, solo se envían eventos esenciales y datos de sesión anónimos."
       }
     }
   }

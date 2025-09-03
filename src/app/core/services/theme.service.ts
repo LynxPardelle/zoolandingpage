@@ -71,7 +71,7 @@ export class ThemeService {
     this._detectSystemPreference();
     this._loadSavedTheme();
     effect(() => {
-      console.log(`Applying theme: ${ this.activeTheme() }`);
+      /* console.log(`Applying theme: ${ this.activeTheme() }`); */
       this.applyTheme();
     });
   }
@@ -169,6 +169,6 @@ export class ThemeService {
     for (const [key, value] of Object.entries(themeColors)) {
       angoraColors[key] = value;
     }
-    console.log('colors', angoraColors);
+    /* console.log('colors', angoraColors); */
   }
 }

@@ -27,8 +27,9 @@ export type TEnvironment = {
          * - 'modal': show a blocking modal dialog
          * - 'toast': show an actionable toast notification
          * - 'sheet': show a bottom-sheet-like non-blocking prompt using the toast host (actions: Allow/Decline/Later)
+         * - 'none': disable consent UI entirely; analytics are treated as allowed by default
          */
-        readonly analyticsConsentUI: 'modal' | 'toast' | 'sheet';
+        readonly analyticsConsentUI: 'modal' | 'toast' | 'sheet' | 'none';
         /**
          * Default snooze duration in seconds for the "Later" action on the analytics consent UI.
          * Example: 30 (dev) or 86400 (24h, production)

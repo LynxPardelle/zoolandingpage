@@ -15,6 +15,7 @@ export class AnalyticsService {
   private pendingQueue: TAnalyticsEvent[] = [];
   private readonly enabled: boolean = Boolean(environment.features.analytics);
   private readonly isProduction: boolean = environment.production;
+  private readonly isDebugMode: boolean = environment.features.debugMode;
   private readonly baseUrl: string = environment.apiUrl;
   private readonly version: string = environment.apiVersion;
   private readonly events$ = new Subject<TAnalyticsEvent>();
@@ -57,6 +58,13 @@ export class AnalyticsService {
   promptForConsentIfNeeded(): void {
     try {
       if (typeof localStorage === 'undefined') return;
+      // If consent UI mode is 'none', auto-allow analytics and skip any prompting logic entirely.
+      if (environment.features.analyticsConsentUI === 'none') {
+        this.hasPermission = true;
+        this.alreadyAskedForPermission = true; // prevent any downstream prompt triggers
+        try { localStorage.setItem(environment.localStorage.allowAnalyticsKey, 'true'); } catch { /* ignore */ }
+        return;
+      }
       const stored = localStorage.getItem(environment.localStorage.allowAnalyticsKey);
       // Apply persisted decision first
       if (stored === 'true') {
@@ -104,10 +112,10 @@ export class AnalyticsService {
     }
     const evt: TAnalyticsEvent = { name, timestamp: Date.now(), ...data } as TAnalyticsEvent;
     // Always keep local buffer (for potential flush/report)
-    console.log('[analytics]', evt);
+    /* console.log('[analytics]', evt); */
     this.buffer.push(evt);
     this.events$.next(evt);
-    console.log('buffer:', this.buffer);
+    /* console.log('buffer:', this.buffer); */
     if (!(this.enabled || environment.features.debugMode)) return;
 
     // Respect a persisted decline decision: do not queue or prompt.
@@ -133,11 +141,19 @@ export class AnalyticsService {
     }
 
     // Consent already granted: send immediately
-    this.previouslyAskedUserData = this.previouslyAskedUserData || await this.getAllDataFromUser();
-    const fullEventData: TAnalyticsEvent & TExpandedAnalytics = { ...this.previouslyAskedUserData, ...evt };
+    let payload: any;
+    if (this.timesSended === 0) {
+      // First time: send all user data
+      this.previouslyAskedUserData = this.previouslyAskedUserData || await this.getAllDataFromUser();
+      payload = { ...this.previouslyAskedUserData, ...evt };
+    } else {
+      // Subsequent: only event data + sessionId + localId
+      const { sessionId, localId } = this.previouslyAskedUserData || {};
+      payload = { ...evt, sessionId, localId };
+    }
     const appName = this.appName.replace(/\s/g, '_').toLowerCase();
-    console.log('All Data to send:', { ...fullEventData, appName });
-    this.send({ ...fullEventData, appName })?.subscribe({ next: () => { }, error: () => { } });
+    /* console.log('Analytics Data to send:', { ...payload, appName }); */
+    this.send({ ...payload, appName })?.subscribe({ next: () => { }, error: () => { } });
     // Fire-and-forget counters to Quick Stats for selected events
     this.bumpQuickStatsForEvent(name);
   }
@@ -152,13 +168,13 @@ export class AnalyticsService {
 
   private send(evt: TAnalyticsEvent & TExpandedAnalytics & { appName: string }): Observable<TDataDropResponse> | void {
     this.timesSended++;
-    console.log(`Sending analytics data to server (attempt ${ this.timesSended })...`, evt);
+    if (this.isDebugMode) console.log(`Sending analytics data to server (attempt ${ this.timesSended })...`, evt);
     // Send to server only if in production and analytics is enabled
     if (this.isProduction) {
       const url = `${ this.baseUrl }/analytics`;
       /* const url = `${ this.baseUrl }/${ this.version }/analytics`; */
       return this.http.post<TDataDropResponse>(url, evt).pipe(
-        tap(res => console.log('Analytics server response:', res))
+        tap(res => { if (this.isDebugMode) console.log('Analytics server response:', res) })
       );
     }
   }
@@ -251,6 +267,12 @@ export class AnalyticsService {
 
   private askForPermissionToDoAnalyticsAndStoreCookies(): Promise<boolean> {
     if (typeof localStorage !== 'undefined') {
+      // Short-circuit: consent UI disabled -> treat as accepted
+      if (environment.features.analyticsConsentUI === 'none') {
+        try { localStorage.setItem(environment.localStorage.allowAnalyticsKey, 'true'); } catch { }
+        this.hasPermission = true;
+        return Promise.resolve(true);
+      }
       const allow = localStorage.getItem(environment.localStorage.allowAnalyticsKey);
       if (allow === 'true') {
         return Promise.resolve(true);
@@ -302,7 +324,7 @@ export class AnalyticsService {
         this.pendingQueue = [];
         for (const evt of queue) {
           const fullEventData: TAnalyticsEvent & TExpandedAnalytics = { ...(meta || {} as any), ...evt };
-          console.log('Flushing queued analytics:', { ...fullEventData, appName: this.appName });
+          /* console.log('Flushing queued analytics:', { ...fullEventData, appName: this.appName }); */
           this.send({ ...fullEventData, appName: this.appName })?.subscribe({ next: () => { }, error: () => { } });
         }
       }

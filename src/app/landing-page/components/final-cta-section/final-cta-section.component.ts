@@ -53,7 +53,7 @@ export class FinalCtaSectionComponent {
   }
 
   onPrimary(): void {
-    try { console.log('[FinalCtaSection] onPrimary fired'); } catch { }
+    try { /* console.log('[FinalCtaSection] onPrimary fired'); */ } catch { }
     this.primary.emit();
     this.analyticsEvent.emit({
       name: AnalyticsEvents.FinalCtaPrimaryClick,
@@ -75,7 +75,7 @@ export class FinalCtaSectionComponent {
     } catch { /* noop */ }
   }
   onSecondary(): void {
-    try { console.log('[FinalCtaSection] onSecondary fired'); } catch { }
+    try { /* console.log('[FinalCtaSection] onSecondary fired'); */ } catch { }
     this.secondary.emit();
     this.analyticsEvent.emit({
       name: AnalyticsEvents.FinalCtaSecondaryClick,
