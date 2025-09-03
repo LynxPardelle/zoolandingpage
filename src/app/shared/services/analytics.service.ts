@@ -151,7 +151,7 @@ export class AnalyticsService {
       const { sessionId, localId } = this.previouslyAskedUserData || {};
       payload = { ...evt, sessionId, localId };
     }
-    const appName = this.appName.replace(/\s/g, '_').toLowerCase();
+    const appName = this.appName.replace(/\s/g, '_').replace(/[^a-zA-Z0-9]+/g, '').toLowerCase();
     /* console.log('Analytics Data to send:', { ...payload, appName }); */
     this.send({ ...payload, appName })?.subscribe({ next: () => { }, error: () => { } });
     // Fire-and-forget counters to Quick Stats for selected events

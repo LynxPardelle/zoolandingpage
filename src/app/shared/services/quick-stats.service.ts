@@ -36,7 +36,7 @@ export class QuickStatsService {
     private http = inject(HttpClient);
     // Keep centralized in one place so we can append a path later (e.g., `/v1/quick-stats`)
     private readonly baseUrl = `${ environment.apiUrl }`;
-    private readonly appId = (environment.app.name || 'zoolandingpage').replace(/[^a-zA-Z0-9]+/g, '').toLowerCase();
+    private readonly appId = (environment.app.name || 'zoolandingpage').replace(/\s/g, '_').replace(/[^a-zA-Z0-9]+/g, '').toLowerCase();
     private readonly version: string = environment.apiVersion;
     public readonly remoteStats = signal<Record<string, any> | undefined>(undefined);
 
