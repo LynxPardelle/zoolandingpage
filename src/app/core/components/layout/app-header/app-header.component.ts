@@ -17,8 +17,7 @@ import {
   signal,
 } from '@angular/core';
 
-import { AnalyticsCategories, AnalyticsEvents } from '@/app/shared/services/analytics.events';
-import { AnalyticsService } from '@/app/shared/services/analytics.service';
+import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '@/app/shared/services/analytics.events';
 import { AriaLiveService } from '@/app/shared/services/aria-live.service';
 import { output } from '@angular/core';
 import { LanguageService } from '../../../services/language.service';
@@ -46,7 +45,8 @@ export class AppHeaderComponent {
   protected readonly themeService = inject(ThemeService);
   protected readonly languageService = inject(LanguageService);
   private readonly platformId = inject(PLATFORM_ID);
-  private readonly analytics = inject(AnalyticsService);
+  // Centralized analytics: emit events upward
+  readonly analyticsEvent = output<AnalyticsEventPayload>();
   private readonly ariaLive = inject(AriaLiveService);
 
   // Configuration input with defaults
@@ -127,29 +127,39 @@ export class AppHeaderComponent {
       isMobileMenuOpen: !state.isMobileMenuOpen,
     }));
     const open = this.internalState().isMobileMenuOpen;
-    this.analytics.track(open ? AnalyticsEvents.MobileMenuOpen : AnalyticsEvents.MobileMenuClose, {
+    this.analyticsEvent.emit({
+      name: open ? AnalyticsEvents.MobileMenuOpen : AnalyticsEvents.MobileMenuClose,
       category: AnalyticsCategories.Navigation,
     });
   }
 
   selectNav(item: HeaderNavItem): void {
-    this.analytics.track(AnalyticsEvents.NavClick, {
+    if (!item) return;
+    // Defensive: ensure href exists
+    const href = (item as any).href || '';
+    if (!href) {
+      // Debug log to trace source of undefined href
+      try { console.warn('[AppHeader] nav item without href', item); } catch { }
+    }
+    this.analyticsEvent.emit({
+      name: AnalyticsEvents.NavClick,
       category: AnalyticsCategories.Navigation,
       label: item.label,
-      meta: { href: item.href },
+      meta: { href },
     });
     this.navChange.emit(item);
-    if (item.href.startsWith('#')) {
-      const el = document.querySelector(item.href);
+    if (href.startsWith('#')) {
+      const el = document.querySelector(href);
       if (el) {
         // Suppress section_view events during programmatic scroll to avoid noise
         const suppressMs = 200; // 200ms should be enough for the scroll to finish
-        this.analytics.suppress([AnalyticsEvents.SectionView], Date.now() + suppressMs);
-        // If LandingPageComponent is available, set its lastSectionViewSuppressedUntil
-        const landingPage = document.querySelector('app-landing-page') as any;
-        if (landingPage && typeof landingPage.lastSectionViewSuppressedUntil !== 'undefined') {
-          landingPage.lastSectionViewSuppressedUntil = Date.now() + suppressMs;
-        }
+        // Emit a suppression hint so AppShell can apply it centrally
+        this.analyticsEvent.emit({
+          name: AnalyticsEvents.SectionView,
+          category: AnalyticsCategories.Navigation,
+          label: 'suppress_request',
+          meta: { suppressForMs: suppressMs, intent: 'suppress_section_view_during_programmatic_scroll' }
+        });
         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
@@ -159,9 +169,16 @@ export class AppHeaderComponent {
     const before = this.themeService.currentTheme();
     this.themeService.toggleTheme();
     const after = this.themeService.currentTheme();
-    this.analytics.track(AnalyticsEvents.ThemeToggle, {
+    this.analyticsEvent.emit({
+      name: AnalyticsEvents.ThemeToggle,
       category: AnalyticsCategories.Theme,
       label: `${ before }->${ after }`,
+      meta: {
+        before,
+        after,
+        type: 'theme',
+        action: 'toggle'
+      }
     });
   }
 
@@ -169,9 +186,16 @@ export class AppHeaderComponent {
     const before = this.languageService.currentLanguage();
     this.languageService.toggleLanguage();
     const after = this.languageService.currentLanguage();
-    this.analytics.track(AnalyticsEvents.LanguageToggle, {
+    this.analyticsEvent.emit({
+      name: AnalyticsEvents.LanguageToggle,
       category: AnalyticsCategories.I18N,
       label: `${ before }->${ after }`,
+      meta: {
+        before,
+        after,
+        type: 'language',
+        action: 'toggle'
+      }
     });
     const msg = after === 'en' ? 'Language changed to English' : 'Idioma cambiado a Español';
     this.ariaLive.announce(msg, 'polite');

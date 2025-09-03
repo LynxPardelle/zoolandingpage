@@ -8,17 +8,12 @@
       <div
         class="ank-display-flex ank-flexDirection-column ank-flexDirection-sm-row ank-gap-16px ank-justifyContent-center ank-mb-32px ank-alignItems-stretch"
       >
-        <whatsapp-button
-          [config]="{
-            phone: whatsAppPhone(),
-            message: whatsAppMessage(),
-            label: finalPrimaryLabel(),
-            variant: 'secondary',
-            size: 'lg',
-            colorKey: 'secondaryAccentColor',
-            target: '_blank'
-          }"
-          (activated)="onWhatsAppActivated()"
+        <generic-button
+          [label]="finalPrimaryLabel()"
+          variant="secondary"
+          size="lg"
+          colorKey="secondaryAccentColor"
+          (pressed)="onPrimary()"
         />
         <generic-button [label]="finalSecondaryLabel()" variant="outline" size="lg" (pressed)="onSecondary()" />
       </div>

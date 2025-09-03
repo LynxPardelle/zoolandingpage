@@ -2,8 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { AppContainerComponent, AppSectionComponent } from '../../../core/components/layout';
-import { AnalyticsCategories, AnalyticsEvents } from '../../../shared/services/analytics.events';
-import { AnalyticsService } from '../../../shared/services/analytics.service';
+import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '../../../shared/services/analytics.events';
 import { LandingPageI18nService } from '../landing-page/landing-page-i18n.service';
 import { StatsCounterComponent } from '../stats-counter/stats-counter.component';
 import type { StatsCounterConfig } from '../stats-counter/stats-counter.types';
@@ -17,7 +16,7 @@ import type { BusinessSize, CalculatedRoi } from './conversion-calculator-sectio
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ConversionCalculatorSectionComponent {
-    private readonly analytics = inject(AnalyticsService);
+    readonly analyticsEvent = output<AnalyticsEventPayload>();
     private readonly i18n = inject(LandingPageI18nService);
 
     readonly businessSize = input.required<BusinessSize>();
@@ -51,15 +50,12 @@ export class ConversionCalculatorSectionComponent {
     // Stats counters moved to StatsStripSectionComponent
 
     updateBusinessSize(size: BusinessSize) {
-        this.analytics.track(AnalyticsEvents.RoiSizeChange, { category: AnalyticsCategories.RoiCalculator, label: size });
+        this.analyticsEvent.emit({ name: AnalyticsEvents.RoiSizeChange, category: AnalyticsCategories.RoiCalculator, label: size });
         this.businessSizeChange.emit(size);
     }
 
     updateIndustry(industry: string) {
-        this.analytics.track(AnalyticsEvents.RoiIndustryChange, {
-            category: AnalyticsCategories.RoiCalculator,
-            label: industry,
-        });
+        this.analyticsEvent.emit({ name: AnalyticsEvents.RoiIndustryChange, category: AnalyticsCategories.RoiCalculator, label: industry });
         this.industryChange.emit(industry);
     }
 

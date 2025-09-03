@@ -294,7 +294,7 @@ const SPANISH_TRANSLATIONS: LandingPageTranslations = {
             content: 'Como servicio adicional, puedes recibir reportes simples con métricas clave: visitas, clics en CTAs y contactos por WhatsApp.',
         },
         {
-            id: 'can-edit',
+            id: 'can-change-language',
             title: '¿Puedo tener versión en español e inglés?',
             content: 'Sí, es opcional. Mostramos el contenido en el idioma preferido del visitante y recordamos su elección.',
         },
@@ -688,7 +688,7 @@ const ENGLISH_TRANSLATIONS: LandingPageTranslations = {
             content: 'As an additional service, you can receive simple reports with key metrics: visits, CTA clicks and WhatsApp contacts.',
         },
         {
-            id: 'can-edit',
+            id: 'can-change-language',
             title: 'Can I have a Spanish and English version?',
             content: 'Yes, it\'s optional. We show content in the visitor\'s preferred language and remember their choice.',
         },
