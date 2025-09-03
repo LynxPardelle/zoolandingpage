@@ -212,6 +212,7 @@ export class AnalyticsService {
         if (this.trackOptions.includes('battery')) data['battery'] = await this.getBatteryInfo();
         if (this.trackOptions.includes('connection')) data['connection'] = this.getNetworkInfo();
       }
+      data['cssCreationTime'] = this.getFirstCSSCreationTime();
       data['localId'] = this.getLocalId();
       data['sessionId'] = this.getSessionId();
       return data;
@@ -529,5 +530,26 @@ export class AnalyticsService {
       // ignore localStorage errors
     }
   }
+
+  getFirstCSSCreationTime(): number | undefined {
+    try {
+      if (typeof document === 'undefined') return undefined;
+      const ankTimer = document.getElementById('ankTimer');
+      if (!ankTimer) return undefined;
+      const innerText = ankTimer.innerText;
+      const XXDotXXmsRegex = new RegExp(/(\d+\.\d+)ms/);
+      const match = innerText.match(XXDotXXmsRegex);
+      if (match && match[1]) {
+        const timeMs = parseFloat(match[1]);
+        return timeMs;
+      } else {
+        return undefined;
+      }
+    } catch (error) {
+      console.error('Error getting first CSS creation time:', error);
+      return undefined;
+    }
+  }
+
 
 }
