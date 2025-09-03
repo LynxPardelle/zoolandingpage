@@ -80,6 +80,14 @@ This documentation is organized into focused guides to help new developers quick
 - API reference and examples
 - Advanced patterns and techniques
 
+### 🗃️ [Data Dropper Lambda Integration](./08-data-dropper-lambda.md)
+
+Post raw analytics/events to S3 via the Data Dropper Lambda using `environment.apiUrl`.
+
+### 🧩 [Quick Stats Lambda Integration](./09-quick-stats-lambda.md)
+
+How to use the AWS Lambda–backed endpoint for simple per-app stats updates using `environment.apiUrl`.
+
 ## 🎯 Project Overview
 
 ### What is Zoolandingpage?
@@ -182,12 +190,12 @@ npm run start
 
 - [x] Project setup and architecture
 - [x] Documentation structure
-- [ ] NGX-Angora-CSS integration
-- [ ] Basic landing page structure
-- [ ] Spanish/English translation support
-- [ ] Core analytics implementation
-- [ ] WhatsApp integration
-- [ ] Basic responsive design
+- [x] NGX-Angora-CSS integration
+- [x] Basic landing page structure
+- [x] Spanish/English translation support
+- [x] Core analytics implementation
+- [x] WhatsApp integration
+- [x] Basic responsive design
 
 ### Phase 2 (Enhanced - 3-4 weeks) 🚧
 
