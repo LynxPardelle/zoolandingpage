@@ -165,7 +165,7 @@ export class AnalyticsService {
       const { sessionId, localId } = this.previouslyAskedUserData || {};
       payload = { ...evt, sessionId, localId };
     }
-    const appName = this.appName.replace(/\s/g, '_').replace(/[^a-zA-Z0-9]+/g, '').toLowerCase();
+    const appName = this.appName.replace(/\s/g, '_').replace(/[^a-zA-Z0-9_]+/g, '').toLowerCase();
     /* console.log('Analytics Data to send:', { ...payload, appName }); */
     this.send({ ...payload, appName })?.subscribe({ next: () => { }, error: () => { } });
   }
@@ -500,6 +500,12 @@ export class AnalyticsService {
 
   // Analytics statistics methods (now using persistent storage)
   getPageViewCount(): number {
+    if (this._quickStats?.remoteStats()) {
+      const remote = this._quickStats.remoteStats() || {};
+      if (typeof remote['metrics'] === 'object' && typeof remote['metrics']['pageViews'] === 'number') {
+        return remote['metrics']['pageViews'];
+      }
+    }
     if (typeof localStorage === 'undefined') return this.buffer.filter(event => event.name === 'page_view').length;
     try {
       const stored = localStorage.getItem(environment.localStorage.pageViewCountKey);
@@ -510,6 +516,12 @@ export class AnalyticsService {
   }
 
   getEventCount(eventName: string): number {
+    if (this._quickStats?.remoteStats()) {
+      const remote = this._quickStats.remoteStats() || {};
+      if (typeof remote['metrics'] === 'object' && typeof remote['metrics'][eventName] === 'number') {
+        return remote['metrics'][eventName];
+      }
+    }
     return 6;
   }
 
@@ -518,6 +530,12 @@ export class AnalyticsService {
   }
 
   getSessionEventCount(): number {
+    if (this._quickStats?.remoteStats()) {
+      const remote = this._quickStats.remoteStats() || {};
+      if (typeof remote['metrics'] === 'object' && typeof remote['metrics']['avgTimeSecs'] === 'number') {
+        return remote['metrics']['avgTimeSecs'];
+      }
+    }
     // Get current session events by filtering recent events (e.g., last hour)
     const oneHourAgo = Date.now() - (60 * 60 * 1000);
     return this.buffer.filter(event => event.timestamp >= oneHourAgo).length;
