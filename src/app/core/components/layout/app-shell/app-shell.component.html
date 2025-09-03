@@ -6,12 +6,18 @@
   (click)="focusMain($event)"
   >{{ skipLabel() }}</a
 >
-<app-header [config]="headerConfig()" (navChange)="onNavChange($event)"></app-header>
+<app-header
+  [config]="headerConfig()"
+  (navChange)="onNavChange($event)"
+  (analyticsEvent)="handleAnalyticsEvent($event)"
+></app-header>
 <main id="main-content" class="ank-outline-none" #main role="main" tabindex="-1">
-  <router-outlet></router-outlet>
+  <router-outlet (activate)="onRouteActivate($event)"></router-outlet>
 </main>
 @defer {
 <app-footer></app-footer>
+<!-- Toast host analytics forwarding -->
+<app-toast-host (analyticsEvent)="handleAnalyticsEvent($event)"></app-toast-host>
 } @placeholder {
 <footer class="ank-bg-secondaryBgColor ank-color-secondaryTextColor ank-py-24px ank-px-16px">
   <div class="ank-container ank-maxWidth-7xl ank-marginInline-auto ank-display-flex ank-jc-center ank-gap-16px">

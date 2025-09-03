@@ -1,10 +1,12 @@
+import { buildWhatsAppUrl } from '@/app/shared/components/whatsapp-button/whatsapp-button.constants';
+import { AnalyticsService } from '@/app/shared/services/analytics.service';
+import { WHATSAPP_PHONE } from '@/app/shared/services/contact.constants';
 import { ChangeDetectionStrategy, Component, computed, inject, output, signal } from '@angular/core';
 import { AppContainerComponent, AppSectionComponent } from '../../../core/components/layout';
 import { AccordionComponent } from '../../../shared/components/accordion/accordion.component';
 import type { AccordionConfig, AccordionItem } from '../../../shared/components/accordion/accordion.types';
 import { GenericButtonComponent } from '../../../shared/components/generic-button/generic-button.component';
-import { AnalyticsCategories, AnalyticsEvents } from '../../../shared/services/analytics.events';
-import { AnalyticsService } from '../../../shared/services/analytics.service';
+import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '../../../shared/services/analytics.events';
 import { FAQ_ACCORDION_CONFIG } from '../faq-section/faq-section.constants';
 import { LandingPageI18nService } from '../landing-page/landing-page-i18n.service';
 
@@ -16,8 +18,9 @@ import { LandingPageI18nService } from '../landing-page/landing-page-i18n.servic
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FaqSectionComponent {
-  private readonly analytics = inject(AnalyticsService);
+  readonly analyticsEvent = output<AnalyticsEventPayload>();
   private readonly i18n = inject(LandingPageI18nService);
+  private readonly _analytics = inject(AnalyticsService, { optional: true });
 
   // Use centralized FAQ translations
   readonly faqItems = computed<readonly AccordionItem[]>(() =>
@@ -38,10 +41,21 @@ export class FaqSectionComponent {
   readonly sectionFooter = computed(() => this.i18n.faqSection());
 
   onToggle(item: { id: string; expanded: boolean }): void {
-    this.analytics.track(item.expanded ? AnalyticsEvents.FaqOpen : AnalyticsEvents.FaqClose, {
-      category: AnalyticsCategories.Faq,
-      label: item.id,
-    });
+    if (item.expanded) {
+      this.analyticsEvent.emit({ name: AnalyticsEvents.FaqOpen, category: AnalyticsCategories.Faq, label: item.id });
+    }
   }
   readonly primary = output<void>();
+
+  onFaqCta(): void {
+    // Emit custom FAQ CTA analytics event
+    const phone = WHATSAPP_PHONE;
+    this.analyticsEvent.emit({ name: AnalyticsEvents.FaqCtaClick, category: AnalyticsCategories.CTA, label: 'faq:whatsapp', meta: { location: 'faq-section', channel: 'whatsapp' } });
+    // Open WhatsApp
+    try {
+      const link = buildWhatsAppUrl(phone, this.sectionSubtitle());
+      if (link && typeof window !== 'undefined') window.open(link, '_blank', 'noopener,noreferrer');
+    } catch { }
+    this.primary.emit();
+  }
 }

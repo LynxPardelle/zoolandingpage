@@ -1,11 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { AnalyticsService } from '../../../shared/services/analytics.service';
 import { ServicesSectionComponent } from './services-section.component';
 
 describe('ServicesSectionComponent analytics', () => {
   let fixture: ComponentFixture<ServicesSectionComponent>;
   let component: ServicesSectionComponent;
-  let analytics: AnalyticsService;
+  let emitted: any = null;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -13,8 +12,7 @@ describe('ServicesSectionComponent analytics', () => {
     });
     fixture = TestBed.createComponent(ServicesSectionComponent);
     component = fixture.componentInstance;
-    analytics = TestBed.inject(AnalyticsService);
-    spyOn(analytics, 'track').and.callThrough();
+    component.analyticsEvent.subscribe(e => emitted = e);
     // Provide minimal input
     (component as any).services = () => [
       {
@@ -28,8 +26,11 @@ describe('ServicesSectionComponent analytics', () => {
     fixture.detectChanges();
   });
 
-  it('tracks service CTA clicks', () => {
+  it('emits analytics event for service CTA clicks', () => {
     component.onCta('T1');
-    expect(analytics.track).toHaveBeenCalledWith('services_cta_click', jasmine.any(Object));
+    expect(emitted?.name).toBe('services_cta_click');
+    expect(emitted?.category).toBe('cta');
+    expect(emitted?.label).toBe('T1');
+    expect(emitted?.meta?.location).toBe('services-section');
   });
 });

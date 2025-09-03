@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
-import { AnalyticsCategories, AnalyticsEvents } from '../../services/analytics.events';
-import { AnalyticsService } from '../../services/analytics.service';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '../../services/analytics.events';
 import { GenericButtonComponent } from '../generic-button';
 import { WHATSAPP_BUTTON_DEFAULT, buildWhatsAppUrl } from './whatsapp-button.constants';
 import type { WhatsAppButtonConfig } from './whatsapp-button.types';
@@ -14,7 +13,7 @@ import type { WhatsAppButtonConfig } from './whatsapp-button.types';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class WhatsAppButtonComponent {
-  private readonly analytics = inject(AnalyticsService);
+  readonly analyticsEvent = output<AnalyticsEventPayload>();
 
   readonly config = input<WhatsAppButtonConfig>(WHATSAPP_BUTTON_DEFAULT);
 
@@ -37,11 +36,7 @@ export class WhatsAppButtonComponent {
     } else {
       window.location.href = link;
     }
-    this.analytics.track(AnalyticsEvents.CtaClick, {
-      category: AnalyticsCategories.CTA,
-      label: this.phone(),
-      meta: { location },
-    });
+    this.analyticsEvent.emit({ name: AnalyticsEvents.Convertion, category: AnalyticsCategories.CTA, label: this.phone(), meta: { location, source: 'whatsapp_button' } });
     this.activated.emit(link);
   }
 }
