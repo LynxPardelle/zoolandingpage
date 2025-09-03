@@ -366,6 +366,7 @@ const SPANISH_TRANSLATIONS: LandingPageTranslations = {
             services: {
                 title: 'Servicios para vender más',
                 subtitle: 'De la publicación rápida a la mejora continua basada en datos',
+                cta: 'Pedir información',
             },
             testimonials: {
                 title: 'Resultados que generan confianza',
@@ -760,6 +761,7 @@ const ENGLISH_TRANSLATIONS: LandingPageTranslations = {
             services: {
                 title: 'Services to sell more',
                 subtitle: 'From quick publishing to continuous improvement based on data',
+                cta: 'Request info',
             },
             testimonials: {
                 title: 'Results that inspire trust',

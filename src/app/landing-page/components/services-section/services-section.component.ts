@@ -30,6 +30,7 @@ export class ServicesSectionComponent {
   // Section titles from centralized translations
   readonly sectionTitle = computed(() => this.i18n.ui().sections.services.title);
   readonly sectionSubtitle = computed(() => this.i18n.ui().sections.services.subtitle);
+  readonly sectionCTALabel = computed(() => this.i18n.ui().sections.services.cta);
 
   onCta(title: string) {
     this.analyticsEvent.emit({

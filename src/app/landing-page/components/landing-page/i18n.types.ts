@@ -161,6 +161,7 @@ export interface UiTranslations {
         services: {
             title: string;
             subtitle: string;
+            cta: string;
         };
         testimonials: {
             title: string;
