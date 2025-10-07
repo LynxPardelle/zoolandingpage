@@ -100,7 +100,7 @@ export const environment = {
   analyticsEnabled: true,
   debugMode: false,
   languages: ['es', 'en'],
-  defaultLanguage: 'es',
+  fallbackLang: 'es',
   apiUrl: 'https://api.your-domain.com',
   assetsUrl: 'https://cdn.your-domain.com',
 
@@ -128,7 +128,7 @@ export const environment = {
   analyticsEnabled: true,
   debugMode: true,
   languages: ['es', 'en'],
-  defaultLanguage: 'es',
+  fallbackLang: 'es',
   apiUrl: 'http://localhost:3000/api',
   assetsUrl: '/assets',
 
