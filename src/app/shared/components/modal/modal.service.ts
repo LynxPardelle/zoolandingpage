@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
+import { NgxAngoraService } from 'ngx-angora-css';
 import { Subject } from 'rxjs';
-import { NgxAngoraService } from '../../../angora-css/ngx-angora.service';
 import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '../../services/analytics.events';
 import { ModalConfig, ModalRef } from './modal.types';
 

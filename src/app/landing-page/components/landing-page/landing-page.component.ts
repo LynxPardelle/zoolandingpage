@@ -183,6 +183,12 @@ export class LandingPageComponent {
   trackCTAClick(ctaType: string, location: string, name: string): void {
     const evtName = this.nameChooser(name);
     if (evtName) this.analyticsEvent.emit({ name: evtName, category: AnalyticsCategories.CTA, label: `${ location }:${ ctaType }`, meta: { location } });
+
+    // Navigate to features section
+    const featuresElement = this.doc.getElementById('features-section');
+    if (featuresElement) {
+      featuresElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }
   trackSectionView(sectionName: string): void {
     this.analyticsEvent.emit({ name: AnalyticsEvents.SectionView, category: AnalyticsCategories.Navigation, label: sectionName });

@@ -12,10 +12,10 @@ import {
   viewChild,
 } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { NgxAngoraService } from 'ngx-angora-css';
 import { filter } from 'rxjs/operators';
 import { AppFooterComponent, AppHeaderComponent } from '..';
 import { environment } from '../../../../../environments/environment';
-import { NgxAngoraService } from '../../../../angora-css/ngx-angora.service';
 import { GenericButtonComponent } from '../../../../shared/components/generic-button/generic-button.component';
 import { ModalComponent } from '../../../../shared/components/modal/modal.component';
 import { ModalService } from '../../../../shared/components/modal/modal.service';
