@@ -7,7 +7,7 @@
 
 import { computed, effect, inject, Injectable, signal } from '@angular/core';
 // import { NgxAngoraService } from 'ngx-angora-css';
-import { NgxAngoraService } from '@/app/angora-css/ngx-angora.service';
+import { NgxAngoraService } from 'ngx-angora-css';
 import { environment } from '../../../environments/environment';
 import { ThemeColors, ThemeConfig, ThemeMode } from '../types/theme.types';
 

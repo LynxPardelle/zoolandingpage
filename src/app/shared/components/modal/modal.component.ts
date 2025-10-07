@@ -15,7 +15,7 @@ import {
   ViewChild,
   ViewContainerRef,
 } from '@angular/core';
-import { NgxAngoraService } from '../../../angora-css/ngx-angora.service';
+import { NgxAngoraService } from 'ngx-angora-css';
 import { AriaLiveService } from '../../services/aria-live.service';
 import { MotionPreferenceService } from '../../services/motion-preference.service';
 import { DEFAULT_MODAL_CONFIG } from './modal.constants';
