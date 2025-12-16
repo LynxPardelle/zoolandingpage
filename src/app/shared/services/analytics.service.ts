@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import { Observable, Subject, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ToastService } from '../components/utility/toast';
+import { ToastService } from '../components/generic-toast';
 import { TAnalyticsEvent, TDataDropResponse, TExpandedAnalytics, TTrackOptions } from '../types/analytics.type';
 import { AnalyticsEvents } from './analytics.events';
 import { I18nService } from './i18n.service';

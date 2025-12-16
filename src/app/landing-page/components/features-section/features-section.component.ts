@@ -6,7 +6,6 @@ import { LandingPageI18nService } from '../landing-page/landing-page-i18n.servic
 
 @Component({
   selector: 'features-section',
-  standalone: true,
   imports: [CommonModule, AppSectionComponent, AppContainerComponent, FeatureCardComponent],
   templateUrl: './features-section.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -7,7 +7,6 @@ import { ProcessStep } from './interactive-process.types';
 
 @Component({
   selector: 'interactive-process',
-  standalone: true,
   imports: [CommonModule, AppSectionComponent, AppContainerComponent, MatIconModule],
   templateUrl: './interactive-process.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

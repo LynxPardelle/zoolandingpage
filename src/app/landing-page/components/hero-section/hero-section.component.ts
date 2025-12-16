@@ -11,7 +11,6 @@ import { HERO_ANIMATIONS } from './hero-section.styles';
 import { HeroSectionData } from './hero-section.types';
 @Component({
   selector: 'hero-section',
-  standalone: true,
   imports: [CommonModule, AppSectionComponent, AppContainerComponent, CallToActionComponent, MatIconModule],
   templateUrl: './hero-section.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -7,7 +7,6 @@ import { TestimonialItem } from './testimonials-section.types';
 
 @Component({
   selector: 'testimonials-section',
-  standalone: true,
   imports: [CommonModule, AppSectionComponent, AppContainerComponent, TestimonialCardComponent],
   templateUrl: './testimonials-section.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

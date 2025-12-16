@@ -9,7 +9,6 @@ import type { StatsCounterConfig } from '../stats-counter/stats-counter.types';
 
 @Component({
     selector: 'stats-strip-section',
-    standalone: true,
     imports: [CommonModule, AppSectionComponent, AppContainerComponent, StatsCounterComponent],
     templateUrl: './stats-strip-section.component.html',
     changeDetection: ChangeDetectionStrategy.OnPush,

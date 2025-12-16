@@ -540,7 +540,7 @@ on:
   push:
     paths:
       - 'src/app/shared/components/content/**'
-      - 'src/app/shared/components/interactive/**'
+      - 'src/app/shared/components/**'
 
 jobs:
   test:

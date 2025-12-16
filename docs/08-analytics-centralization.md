@@ -43,7 +43,7 @@ Affected components/services:
 - `FaqSectionComponent`
 - `ConversionCalculatorSectionComponent`
 - `WhatsAppButtonComponent`
-- `ModalService` (via `analyticsEvents$` observable stream)
+- `GenericModalService` (via `analyticsEvents$` observable stream)
 
 ### 3. AppShell Central Handler
 
@@ -93,9 +93,9 @@ this.analyticsEvent.emit({
 
 `AppShell` interprets this (label === 'suppress_request') and applies suppression centrally.
 
-### 5. ModalService Adaptation
+### 5. GenericModalService Adaptation
 
-`ModalService` no longer injects `AnalyticsService`. It pushes events to a private Subject:
+`GenericModalService` no longer injects `AnalyticsService`. It pushes events to a private Subject:
 
 ```
 private readonly _analytics$ = new Subject<AnalyticsEventPayload>();
@@ -115,7 +115,7 @@ component.onCta('T1');
 expect(emitted).toEqual(jasmine.objectContaining({ name: 'services_cta_click', category: 'services', label: 'T1' }));
 ```
 
-`ModalService` spec now listens to the `analyticsEvents$` stream instead of patching internals.
+`GenericModalService` spec now listens to the `analyticsEvents$` stream instead of patching internals.
 
 ### 7. Extension Points
 
@@ -132,7 +132,7 @@ Centralization enables:
 - [x] Replaced direct `analytics.track` calls in components.
 - [x] Added outputs `(analyticsEvent)` and wired in `AppShell`.
 - [x] Added router outlet activation hook for routed components.
-- [x] Converted `ModalService` to emit via Subject.
+- [x] Converted `GenericModalService` to emit via Subject.
 - [x] Implemented suppression relay.
 - [x] Updated affected unit tests.
 
@@ -145,12 +145,12 @@ Centralization enables:
 
 ### 10. Usage Quick Reference
 
-| Scenario               | Component code                                                                                                            | Result                                        |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| Track CTA              | `this.analyticsEvent.emit({ name: AnalyticsEvents.CtaClick, category: AnalyticsCategories.CTA, label: 'hero_primary' });` | AppShell forwards to `AnalyticsService.track` |
-| Suppress SectionView   | emit payload with `label: 'suppress_request'` + `meta.suppressForMs`                                                      | AppShell calls `analytics.suppress`           |
-| Modal open             | `modalService.open({ id: 'x' })`                                                                                          | ModalService emits event, AppShell tracks     |
-| Scroll depth milestone | component emits `{ name: scroll_depth, value: pct }`                                                                      | Central tracking + later enrichment           |
+| Scenario               | Component code                                                                                                            | Result                                           |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| Track CTA              | `this.analyticsEvent.emit({ name: AnalyticsEvents.CtaClick, category: AnalyticsCategories.CTA, label: 'hero_primary' });` | AppShell forwards to `AnalyticsService.track`    |
+| Suppress SectionView   | emit payload with `label: 'suppress_request'` + `meta.suppressForMs`                                                      | AppShell calls `analytics.suppress`              |
+| Modal open             | `GenericModalService.open({ id: 'x' })`                                                                                   | GenericModalService emits event, AppShell tracks |
+| Scroll depth milestone | component emits `{ name: scroll_depth, value: pct }`                                                                      | Central tracking + later enrichment              |
 
 ---
 

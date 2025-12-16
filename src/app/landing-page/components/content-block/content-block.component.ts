@@ -5,7 +5,6 @@ import type { ContentBlockData } from './content-block.types';
 
 @Component({
   selector: 'content-block',
-  standalone: true,
   imports: [CommonModule],
   templateUrl: './content-block.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

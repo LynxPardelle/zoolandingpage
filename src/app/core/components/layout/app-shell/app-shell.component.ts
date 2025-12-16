@@ -17,9 +17,9 @@ import { filter } from 'rxjs/operators';
 import { AppFooterComponent, AppHeaderComponent } from '..';
 import { environment } from '../../../../../environments/environment';
 import { GenericButtonComponent } from '../../../../shared/components/generic-button/generic-button.component';
-import { ModalComponent } from '../../../../shared/components/modal/modal.component';
-import { ModalService } from '../../../../shared/components/modal/modal.service';
-import { ToastComponent, ToastService } from '../../../../shared/components/utility/toast';
+import { GenericModalComponent } from '../../../../shared/components/generic-modal/generic-modal.component';
+import { GenericModalService } from '../../../../shared/components/generic-modal/generic-modal.service';
+import { GenericToastComponent, ToastService } from '../../../../shared/components/generic-toast';
 import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '../../../../shared/services/analytics.events';
 import { AnalyticsService } from '../../../../shared/services/analytics.service';
 import { I18nService } from '../../../../shared/services/i18n.service';
@@ -30,9 +30,8 @@ import { AppShellConfig } from './app-shell.types';
 
 @Component({
   selector: 'app-root',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [AppHeaderComponent, AppFooterComponent, RouterOutlet, ModalComponent, ToastComponent, GenericButtonComponent],
+  imports: [AppHeaderComponent, AppFooterComponent, RouterOutlet, GenericModalComponent, GenericToastComponent, GenericButtonComponent],
   templateUrl: './app-shell.component.html',
 })
 export class AppShellComponent {
@@ -74,7 +73,7 @@ export class AppShellComponent {
   private readonly _ank = inject(NgxAngoraService);
   private readonly toast = inject(ToastService);
   private readonly events = inject(AnalyticsService);
-  private readonly modal = inject(ModalService);
+  private readonly modal = inject(GenericModalService);
   private angoraHasBeenInitialized = false;
   // Ensure global Theme/Language services are initialized at shell level
   private readonly _theme = inject(ThemeService);

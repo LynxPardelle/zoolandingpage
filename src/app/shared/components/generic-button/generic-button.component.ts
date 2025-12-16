@@ -12,7 +12,6 @@ import type { ButtonSize, ButtonVariant } from './generic-button.types';
 
 @Component({
   selector: 'generic-button',
-  standalone: true,
   imports: [CommonModule, MatIconModule],
   templateUrl: './generic-button.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

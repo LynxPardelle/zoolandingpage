@@ -1,10 +1,10 @@
-import { buildWhatsAppUrl } from '@/app/shared/components/whatsapp-button/whatsapp-button.constants';
 import { AnalyticsService } from '@/app/shared/services/analytics.service';
 import { WHATSAPP_PHONE } from '@/app/shared/services/contact.constants';
+import { buildWhatsAppUrl } from '@/app/shared/utility/buildWhatsAppUrl.utility';
 import { ChangeDetectionStrategy, Component, computed, inject, output, signal } from '@angular/core';
 import { AppContainerComponent, AppSectionComponent } from '../../../core/components/layout';
-import { AccordionComponent } from '../../../shared/components/accordion/accordion.component';
-import type { AccordionConfig, AccordionItem } from '../../../shared/components/accordion/accordion.types';
+import { GenericAccordionComponent } from '../../../shared/components/generic-accordion/generic-accordion.component';
+import type { AccordionConfig, AccordionItem } from '../../../shared/components/generic-accordion/generic-accordion.types';
 import { GenericButtonComponent } from '../../../shared/components/generic-button/generic-button.component';
 import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '../../../shared/services/analytics.events';
 import { FAQ_ACCORDION_CONFIG } from '../faq-section/faq-section.constants';
@@ -12,8 +12,7 @@ import { LandingPageI18nService } from '../landing-page/landing-page-i18n.servic
 
 @Component({
   selector: 'faq-section',
-  standalone: true,
-  imports: [AppSectionComponent, AppContainerComponent, AccordionComponent, GenericButtonComponent],
+  imports: [AppSectionComponent, AppContainerComponent, GenericAccordionComponent, GenericButtonComponent],
   templateUrl: './faq-section.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

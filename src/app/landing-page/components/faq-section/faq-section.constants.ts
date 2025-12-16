@@ -1,4 +1,4 @@
-import type { AccordionConfig, AccordionItem } from '../../../shared/components/accordion/accordion.types';
+import type { AccordionConfig, AccordionItem } from '../../../shared/components/generic-accordion/generic-accordion.types';
 
 export const FAQ_ITEMS: readonly AccordionItem[] = [
   {
@@ -54,4 +54,9 @@ export const FAQ_ITEMS: readonly AccordionItem[] = [
 export const FAQ_ACCORDION_CONFIG: AccordionConfig = {
   mode: 'single',
   allowToggle: true,
+  accordionContainerClasses: 'ank-display-flex ank-flexDirection-column ank-gap-0_25rem',
+  accordionDefaultItemContainerClasses: 'ank-borderRadius-0_5rem',
+  accordionDefaultItemContainerIsExpandedClasses: 'ank-bg-accentColor',
+  accordionDefaultItemContainerIsNotExpandedClasses: 'ank-bg-secondaryBgColor',
+  accordionDefaultItemPanelClasses: 'ank-overflow-hidden ank-paddingInline-0_75rem ank-paddingBlock-0_5rem'
 } as const;

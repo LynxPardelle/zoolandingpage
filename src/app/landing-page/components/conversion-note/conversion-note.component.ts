@@ -7,7 +7,6 @@ import { LandingPageI18nService } from '../landing-page/landing-page-i18n.servic
 
 @Component({
   selector: 'conversion-note',
-  standalone: true,
   imports: [CommonModule, AppSectionComponent, AppContainerComponent, MatIconModule],
   templateUrl: './conversion-note.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

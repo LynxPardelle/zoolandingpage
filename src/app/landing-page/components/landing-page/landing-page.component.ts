@@ -1,7 +1,7 @@
 import { DOCUMENT } from '@angular/common';
 import { afterNextRender, ChangeDetectionStrategy, Component, computed, effect, inject, output, signal } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
-import { ToastService } from '../../../shared/components/utility/toast';
+import { ToastService } from '../../../shared/components/generic-toast';
 import { RoiNoteComponent } from '../conversion-note/conversion-note.component';
 import { FaqSectionComponent } from '../faq-section/faq-section.component';
 import { FeaturesSectionComponent } from '../features-section/features-section.component';
@@ -13,8 +13,8 @@ import { StatsStripSectionComponent } from '../stats-strip-section/stats-strip-s
 import { TestimonialsSectionComponent } from '../testimonials-section/testimonials-section.component';
 import { buildTestimonialListSchema } from '../testimonials-section/testimonials-section.constants';
 
-import { buildWhatsAppUrl } from '@/app/shared/components/whatsapp-button/whatsapp-button.constants';
 import { WHATSAPP_PHONE } from '@/app/shared/services/contact.constants';
+import { buildWhatsAppUrl } from '@/app/shared/utility/buildWhatsAppUrl.utility';
 import { LanguageService } from '../../../core/services/language.service';
 import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '../../../shared/services/analytics.events';
 import { StructuredDataService } from '../../../shared/services/structured-data.service';
@@ -23,7 +23,6 @@ import type { InteractiveProcess } from './landing-page.types';
 
 @Component({
   selector: 'app-landing-page',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     HeroSectionComponent,

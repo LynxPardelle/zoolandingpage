@@ -16,7 +16,6 @@ import type { StatsCounterConfig } from './stats-counter.types';
 
 @Component({
   selector: 'stats-counter',
-  standalone: true,
   imports: [CommonModule],
   templateUrl: './stats-counter.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

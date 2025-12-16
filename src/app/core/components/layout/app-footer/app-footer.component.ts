@@ -6,7 +6,7 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
-import { ModalService } from '../../../../shared/components/modal';
+import { GenericModalService } from '../../../../shared/components/generic-modal';
 import { I18nService } from '../../../../shared/services/i18n.service';
 import {
   APP_FOOTER_DEFAULTS,
@@ -23,7 +23,7 @@ import type { AppFooterConfig, ContactInfo, SocialLink } from './app-footer.type
 })
 export class AppFooterComponent {
   // Services
-  private readonly modal = inject(ModalService);
+  private readonly modal = inject(GenericModalService);
   private readonly i18n = inject(I18nService);
 
   // Configuration input with defaults

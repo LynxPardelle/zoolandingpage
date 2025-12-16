@@ -5,7 +5,6 @@ import { TESTIMONIAL_CARD_ANIMATIONS } from './testimonial-card.styles';
 import { TestimonialCardData } from './testimonial-card.types';
 @Component({
   selector: 'testimonial-card',
-  standalone: true,
   imports: [CommonModule, MatIconModule],
   templateUrl: './testimonial-card.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

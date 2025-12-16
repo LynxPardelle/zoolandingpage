@@ -5,7 +5,6 @@ import { FEATURE_CARD_ANIMATIONS } from './feature-card.styles';
 import { FeatureCardData } from './feature-card.types';
 @Component({
   selector: 'feature-card',
-  standalone: true,
   imports: [CommonModule, MatIconModule],
   templateUrl: './feature-card.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

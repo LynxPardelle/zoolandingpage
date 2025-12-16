@@ -10,7 +10,6 @@ import type { BusinessSize, CalculatedRoi } from './conversion-calculator-sectio
 
 @Component({
     selector: 'conversion-calculator-section',
-    standalone: true,
     imports: [CommonModule, AppSectionComponent, AppContainerComponent, MatIconModule, StatsCounterComponent],
     templateUrl: './conversion-calculator-section.component.html',
     changeDetection: ChangeDetectionStrategy.OnPush,
