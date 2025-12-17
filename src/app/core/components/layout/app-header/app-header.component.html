@@ -27,27 +27,27 @@
     <div class="ank-display-flex ank-display-md-none ank-alignItems-center ank-gap-8px ank-mr-24px">
       <!-- Mobile Theme Toggle -->
       @if (config().showThemeToggle) {
-      <button
-        id="toggleThemeMobile"
-        type="button"
-        (click)="toggleTheme()"
-        class="{{
-          themeGradientClasses
-        }} ank-p-8px ank-borderRadius-0_75rem ank-border-none ank-display-flex ank-alignItems-center ank-justifyContent-center ank-width-36px ank-height-36px ank-fs-1rem"
-      >
-        {{ themeService.currentTheme() === "dark" ? "☀️" : "🌙" }}
-      </button>
+      <generic-button
+        (pressed)="toggleTheme()"
+        [config]="{
+          id: 'toggleThemeMobile',
+          label: themeService.currentTheme() === 'dark' ? '☀️' : '🌙',
+          classes:
+            themeGradientClasses + ' btnBaseVALSVAL9N1remVAL9NVL8pxVL8pxVL0_75remVL ank-width-36px ank-height-36px'
+        }"
+      />
       }
 
       <!-- Mobile Language Toggle -->
       @if (config().showLanguageToggle) {
-      <button
-        type="button"
-        (click)="toggleLanguage()"
-        class="ank-p-8px ank-borderRadius-0_75rem ank-border-none ank-bg-accentColor ank-color-secondaryTextColor ank-ts-200 ank-bgHover-secondaryAccentColor ank-colorHover-secondaryTextColor ank-display-flex ank-alignItems-center ank-justifyContent-center ank-width-36px ank-height-36px ank-fs-1rem ank-fontWeight-bold"
-      >
-        {{ languageService.languageLabel() }}
-      </button>
+      <generic-button
+        (pressed)="toggleLanguage()"
+        [config]="{
+          label: languageService.languageLabel(),
+          classes:
+            'btnBaseVALSVAL9N1remVAL9NVL8pxVL8pxVL0_75remVL ank-bg-accentColor ank-color-secondaryTextColor ank-ts-200 ank-bgHover-secondaryAccentColor ank-colorHover-secondaryTextColor ank-width-36px ank-height-36px'
+        }"
+      />
       }
 
       <!-- Separator -->
@@ -55,18 +55,17 @@
 
       <!-- Mobile Menu Button -->
       @if (config().showNavigation) {
-      <button
-        type="button"
-        (click)="toggleMobileMenu()"
-        aria-haspopup="true"
-        aria-controls="mobile-primary-navigation"
-        [attr.aria-expanded]="state().isMobileMenuOpen"
-        class="ank-padding-8px ank-me-12px ank-borderRadius-0_75rem ank-border-none ank-bg-secondaryBgColor ank-color-textColor ank-width-36px ank-height-36px ank-display-flex ank-alignItems-center ank-justifyContent-center"
-      >
-        <span class="ank-display-flex ank-alignItems-center ank-justifyContent-center ank-width-20px ank-height-20px">
-          {{ state().isMobileMenuOpen ? "✕" : "☰" }}
-        </span>
-      </button>
+      <generic-button
+        [config]="{
+          label: state().isMobileMenuOpen ? '✕' : '☰',
+          classes:
+            'btnBaseVALSVAL9N1remVAL9NVL8pxVL8pxVL0_75remVL ank-me-12px ank-bg-secondaryBgColor ank-color-textColor ank-width-36px ank-height-36px',
+          ariaExpanded: state().isMobileMenuOpen,
+          ariaControls: 'mobile-primary-navigation',
+          ariaHaspopup: true
+        }"
+        (pressed)="toggleMobileMenu()"
+      />
       }
     </div>
 
@@ -105,28 +104,26 @@
       <div class="ank-display-none ank-display-md-flex ank-gap-12px">
         <!-- Desktop Theme Toggle -->
         @if (config().showThemeToggle) {
-        <button
-          id="toggleTheme"
-          type="button"
-          (click)="toggleTheme()"
-          class="{{
-            themeGradientClasses
-          }} ank-p-0_5rem__1_5rem ank-borderRadius-1rem ank-border-none ank-display-flex ank-alignItems-center
-          "
-        >
-          {{ themeService.currentTheme() === "dark" ? "☀️" : "🌙" }}
-        </button>
+        <generic-button
+          [config]="{
+            id: 'toggleTheme',
+            label: themeService.currentTheme() === 'dark' ? '☀️' : '🌙',
+            classes: themeGradientClasses + ' btnBaseVALSVAL9N1remVAL9NVL1_5remVL0_5remVL1remVL ank-h-34_4px'
+          }"
+          (pressed)="toggleTheme()"
+        />
         }
 
         <!-- Desktop Language Toggle -->
         @if (config().showLanguageToggle) {
-        <button
-          type="button"
-          (click)="toggleLanguage()"
-          class="ank-p-0_5rem__1_5rem ank-borderRadius-1rem ank-border-none ank-bg-accentColor ank-color-secondaryTextColor ank-ts-200 ank-bgHover-secondaryAccentColor ank-colorHover-secondaryTextColor"
-        >
-          {{ languageService.languageLabel() }}
-        </button>
+        <generic-button
+          [config]="{
+            label: languageService.languageLabel(),
+            classes:
+              'btnBaseVALSVAL9N1remVAL9NVL1_5remVL0_5remVL1remVL ank-bg-accentColor ank-color-secondaryTextColor ank-ts-200 ank-bgHover-secondaryAccentColor ank-colorHover-secondaryTextColor'
+          }"
+          (pressed)="toggleLanguage()"
+        />
         }
       </div>
     </nav>

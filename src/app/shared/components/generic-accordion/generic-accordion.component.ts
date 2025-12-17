@@ -1,11 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output, Signal, computed, signal } from '@angular/core';
+import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { DEFAULT_ACCORDION_CONFIG } from './generic-accordion.constants';
 import { AccordionConfig, AccordionItem } from './generic-accordion.types';
-
 @Component({
   selector: 'generic-accordion',
-  imports: [CommonModule],
+  imports: [CommonModule, GenericButtonComponent],
   templateUrl: './generic-accordion.component.html',
   styleUrls: ['./generic-accordion.component.scss'],
 })

@@ -38,14 +38,16 @@
         }"
       ></div>
       } @if (config?.showCloseButton ?? true) {
-      <button
-        class="modal-close ank-bg-transparent ank-border-0 ank-color-inherit ank-fontSize-1_25rem ank-cursor-pointer ank-position-absolute ank-top-0_5rem ank-right-0_5rem"
-        type="button"
-        (click)="close()"
-        aria-label="Close modal"
+      <generic-button
+        [config]="{
+          classes:
+            'modal-close ank-bg-transparent ank-border-0 ank-color-inherit ank-fontSize-1_25rem ank-cursor-pointer ank-position-absolute ank-top-0_5rem ank-right-0_5rem',
+          ariaLabel: 'Close modal'
+        }"
+        (pressed)="close()"
       >
         ×
-      </button>
+      </generic-button>
       }
       <ng-content />
     </div>

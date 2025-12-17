@@ -6,16 +6,10 @@ import {
   Input,
   Output,
   computed,
-  signal
+  signal,
 } from "@angular/core";
 import { MatIconModule } from "@angular/material/icon";
-import {
-  GENERIC_BUTTON_ICON_CLASS,
-  GENERIC_BUTTON_SPINNER_CLASS,
-} from "./generic-button.constants";
-import type {
-  GenericButtonConfig
-} from "./generic-button.types";
+import type { GenericButtonConfig } from "./generic-button.types";
 
 @Component({
   selector: "generic-button",
@@ -41,16 +35,45 @@ export class GenericButtonComponent {
   readonly type = computed<"button" | "submit" | "reset">(
     () => this._config().type ?? "button"
   );
-  @Output() pressed = new EventEmitter<MouseEvent>();
-
-  readonly classes = computed(() =>
-    this._config().classes || "btnBase" + " " + (this.loading()
-      ? "ank-cursor-wait ank-opacity-80"
-      : "")
+  readonly id = computed<string | undefined>(() => this._config().id);
+  readonly spinnerClasses = computed<string>(
+    () => this._config().spinnerClasses || ""
   );
+  readonly iconClasses = computed<string>(
+    () => this._config().iconClasses || ""
+  );
+  readonly role = computed<string | undefined>(() => this._config().role);
 
-  readonly iconClass = GENERIC_BUTTON_ICON_CLASS;
-  readonly spinnerClass = GENERIC_BUTTON_SPINNER_CLASS;
+  readonly tabIndex = computed<number | undefined>(
+    () => this._config().tabIndex
+  );
+  readonly ariaLabel = computed<string | undefined>(
+    () => this._config().ariaLabel
+  );
+  readonly ariaExpanded = computed<boolean | undefined>(
+    () => this._config().ariaExpanded
+  );
+  readonly ariaHaspopup = computed<boolean | undefined>(
+    () => this._config().ariaHaspopup
+  );
+  readonly ariaSelected = computed<boolean | undefined>(
+    () => this._config().ariaSelected
+  );
+  readonly ariaControls = computed<string | undefined>(
+    () => this._config().ariaControls
+  );
+  readonly classes = computed(
+    () =>
+      (this._config().classes ||
+        "btnBase") + (this.loading() ? " ank-cursor-wait ank-opacity-80" : "")
+  );
+  readonly iconClass = computed<string>(
+    () => this._config().iconClasses || "btnIcon"
+  );
+  readonly spinnerClass = computed<string>(
+    () => this._config().spinnerClasses || "btnSpinner"
+  );
+  @Output() pressed = new EventEmitter<MouseEvent>();
 
   onClick(event: MouseEvent): void {
     if (this.disabled() || this.loading()) {

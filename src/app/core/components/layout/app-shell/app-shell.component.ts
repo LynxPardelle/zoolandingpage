@@ -287,24 +287,47 @@ export class AppShellComponent {
       cardHover: [
         "ank-transition-all ank-td-300ms ank-transformHover-translateYSDMIN4pxED ank-boxShadowHover-0__0_5rem__1rem__rgbaSD0COM0COM0COM0_5ED",
       ],
+      /* Button */
       btnBase: [
-        "ank-px-VAL1DEF1_5remDEF ank-py-VAL2DEF0_75remDEF ank-borderRadius-VAL3DEF0_5remDEF ank-fontWeight-VAL4DEF550DEF ank-transformHover-translateYSDVAL5DEFMIN1pxDEFED",
-        "ank-inlineFlex ank-alignItems-center ank-justifyContent-center",
-        "ank-gap-VAL6DEF0_5remDEF ank-textDecoration-none",
-        "ank-transition-all__200ms ank-position-relative",
+        "ank-px-VAL1DEF1_5remDEF",
+        "ank-py-VAL2DEF0_75remDEF",
+        "ank-borderRadius-VAL3DEF0_5remDEF",
+        "ank-fontWeight-VAL4DEF550DEF",
+        "ank-transformHover-translateYSDVAL5DEFMIN1pxDEFED",
+        "ank-gap-VAL6DEF0_5remDEF",
+        "ank-justifyContent-VAL7DEFcenterDEF",
         "ank-outlineColor-VAL8DEFtransparentDEF",
         "ank-fs-VAL9DEF1_5remDEF",
         "ank-border-VAL10DEFnoneDEF",
+        "ank-d-inlineFlex",
+        "ank-alignItems-center",
+        "ank-textDecoration-none",
+        "ank-transition-all__200ms",
+        "ank-position-relative",
       ],
       btnTypePrimary: [
-        "ank-bg-VAL1DEFbgColorDEF ank-color-VAL2DEFtextColorDEF",
+        "ank-bg-VAL1DEFbgColorDEF",
+        "ank-color-VAL2DEFtextColorDEF",
       ],
       btnTypeOutline: [
-        "ank-bg-transparent ank-border-2px__solid__VAL1DEFbgColorDEF ank-color-VAL1DEFbgColorDEF ank-btnHover-VAL1DEFbgColorDEF ank-colorHover-VAL2DEFtextColorDEF",
+        "ank-border-2px__solid__VAL1DEFbgColorDEF ank-color-VAL1DEFbgColorDEF ank-btnHover-VAL1DEFbgColorDEF", "ank-colorHover-VAL2DEFtextColorDEF",
+        "ank-bg-transparent"
       ],
       btnTypeGhost: [
-        "ank-bg-transparent ank-color-VAL1DEFtextColorDEF ank-opacity-80 ank-opacityHover-100",
+        "ank-color-VAL1DEFtextColorDEF",
+        "ank-bg-transparent ank-opacity-80 ank-opacityHover-100",
       ],
+      btnIcon: ["ank-w-1rem ank-h-1rem ank-me-1rem"],
+      btnSpinner: [
+        "ank-display-inlineBlock ank-width-1rem ank-height-1rem",
+        "ank-border-2px ank-borderStyle-solid ank-borderColor-secondaryLinkColor",
+        "ank-borderTopColor-transparent ank-borderRadius-99rem",
+        "ank-and-1s",
+        "ank-antf-linear",
+        "ank-anic-infinite",
+        "spinAnimation",
+      ],
+      /*  */
       sectionPadding: ["ank-py-80px ank-px-20px"],
       containerMax: ["ank-maxWidth-1200px ank-mx-auto"],
       gridCol2: [

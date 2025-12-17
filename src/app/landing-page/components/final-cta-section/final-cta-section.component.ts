@@ -1,3 +1,4 @@
+import { GenericButtonComponent } from '@/app/shared/components/generic-button/generic-button.component';
 import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '@/app/shared/services/analytics.events';
 import { AnalyticsService } from '@/app/shared/services/analytics.service';
 import { WHATSAPP_PHONE } from '@/app/shared/services/contact.constants';
@@ -6,11 +7,11 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { AppContainerComponent } from '../../../core/components/layout/app-container';
 import { AppSectionComponent } from '../../../core/components/layout/app-section';
-import { GenericButtonComponent } from '../../../shared/components/generic-button';
 import { LandingPageI18nService } from '../landing-page/landing-page-i18n.service';
 
 @Component({
   selector: 'final-cta-section',
+  standalone: true,
   imports: [CommonModule, AppSectionComponent, AppContainerComponent, GenericButtonComponent],
   templateUrl: './final-cta-section.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -52,7 +53,7 @@ export class FinalCtaSectionComponent {
   }
 
   onPrimary(): void {
-    try { /* console.log('[FinalCtaSection] onPrimary fired'); */ } catch { }
+    try { console.log('[FinalCtaSection] onPrimary fired'); } catch { }
     this.primary.emit();
     this.analyticsEvent.emit({
       name: AnalyticsEvents.FinalCtaPrimaryClick,
@@ -74,7 +75,7 @@ export class FinalCtaSectionComponent {
     } catch { /* noop */ }
   }
   onSecondary(): void {
-    try { /* console.log('[FinalCtaSection] onSecondary fired'); */ } catch { }
+    try { console.log('[FinalCtaSection] onSecondary fired'); } catch { }
     this.secondary.emit();
     this.analyticsEvent.emit({
       name: AnalyticsEvents.FinalCtaSecondaryClick,

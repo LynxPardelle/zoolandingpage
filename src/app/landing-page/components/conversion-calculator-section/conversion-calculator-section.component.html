@@ -21,45 +21,45 @@
                 Tamaño de tu negocio:
               </p>
               <div class="ank-gap-0_5rem">
-                <button
-                  type="button"
-                  (click)="updateBusinessSize('nano')"
-                  [class]="
-                    businessSize() === 'nano'
-                      ? 'ank-bg-accentColor ank-color-textColor ank-border-accentColor'
-                      : 'ank-bg-textColor ank-color-bgColor ank-border-border'
-                  "
-                  class="ank-width-100per ank-px-16px ank-py-12px ank-border-1px ank-borderRadius-8px ank-fs-1rem ank-fontWeight-medium ank-cursor-pointer ank-transition-all ank-textAlign-left"
+                <generic-button
+                  [config]="{
+                    classes:
+                      'ank-width-100per ank-px-16px ank-py-12px ank-border-1px ank-borderRadius-8px ank-fs-1rem ank-fontWeight-medium ank-cursor-pointer ank-transition-all ank-textAlign-left' +
+                      (businessSize() === 'nano'
+                        ? 'ank-bg-accentColor ank-color-textColor ank-border-accentColor'
+                        : 'ank-bg-textColor ank-color-bgColor ank-border-border')
+                  }"
+                  (pressed)="updateBusinessSize('nano')"
                 >
                   <div class="ank-fontWeight-semibold">Nano Empresa</div>
                   <div class="ank-fs-1rem ank-opacity-75">1-2 empleados</div>
-                </button>
-                <button
-                  type="button"
-                  (click)="updateBusinessSize('micro')"
-                  [class]="
-                    businessSize() === 'micro'
-                      ? 'ank-bg-accentColor ank-color-textColor ank-border-accentColor'
-                      : 'ank-bg-textColor ank-color-bgColor ank-border-border'
-                  "
-                  class="ank-width-100per ank-px-16px ank-py-12px ank-border-1px ank-borderRadius-8px ank-fs-1rem ank-fontWeight-medium ank-cursor-pointer ank-transition-all ank-textAlign-left"
+                </generic-button>
+                <generic-button
+                  [config]="{
+                    classes:
+                      'ank-width-100per ank-px-16px ank-py-12px ank-border-1px ank-borderRadius-8px ank-fs-1rem ank-fontWeight-medium ank-cursor-pointer ank-transition-all ank-textAlign-left' +
+                      (businessSize() === 'micro'
+                        ? 'ank-bg-accentColor ank-color-textColor ank-border-accentColor'
+                        : 'ank-bg-textColor ank-color-bgColor ank-border-border')
+                  }"
+                  (pressed)="updateBusinessSize('micro')"
                 >
                   <div class="ank-fontWeight-semibold">Micro Empresa</div>
                   <div class="ank-fs-1rem ank-opacity-75">3-10 empleados</div>
-                </button>
-                <button
-                  type="button"
-                  (click)="updateBusinessSize('small')"
-                  [class]="
-                    businessSize() === 'small'
-                      ? 'ank-bg-accentColor ank-color-textColor ank-border-accentColor'
-                      : 'ank-bg-textColor ank-color-bgColor ank-border-border'
-                  "
-                  class="ank-width-100per ank-px-16px ank-py-12px ank-border-1px ank-borderRadius-8px ank-fs-1rem ank-fontWeight-medium ank-cursor-pointer ank-transition-all ank-textAlign-left"
+                </generic-button>
+                <generic-button
+                  [config]="{
+                    classes:
+                      'ank-width-100per ank-px-16px ank-py-12px ank-border-1px ank-borderRadius-8px ank-fs-1rem ank-fontWeight-medium ank-cursor-pointer ank-transition-all ank-textAlign-left' +
+                      (businessSize() === 'micro'
+                        ? 'ank-bg-accentColor ank-color-textColor ank-border-accentColor'
+                        : 'ank-bg-textColor ank-color-bgColor ank-border-border')
+                  }"
+                  (pressed)="updateBusinessSize('small')"
                 >
                   <div class="ank-fontWeight-semibold">Pequeña Empresa</div>
                   <div class="ank-fs-1rem ank-opacity-75">11-50 empleados</div>
-                </button>
+                </generic-button>
               </div>
             </div>
             <div>
@@ -152,9 +152,13 @@
           <p class="ank-fs-1rem ank-color-textColor ank-mb-16px">
             *Proyecciones basadas en estadísticas de la industria y casos de éxito reales
           </p>
-          <button class="btnBase ank-btn-accentColor ank-color-textColor ank-fs-1rem ank-px-32px ank-py-12px">
+          <generic-button
+            [config]="{
+              classes: 'btnBase ank-btn-accentColor ank-color-textColor ank-fs-1rem ank-px-32px ank-py-12px'
+            }"
+          >
             Solicitar Consultoría Personalizada
-          </button>
+          </generic-button>
         </div>
       </div>
       } @placeholder {
@@ -168,27 +172,33 @@
                 Tamaño de tu negocio:
               </p>
               <div class="ank-gap-0_5rem">
-                <button
-                  type="button"
-                  class="ank-width-100per ank-px-16px ank-py-12px ank-border-1px ank-borderRadius-8px ank-fs-1rem ank-fontWeight-medium ank-cursor-pointer ank-transition-all ank-textAlign-left ank-bg-textColor ank-color-bgColor ank-border-border"
+                <generic-button
+                  [config]="{
+                    classes:
+                      'ank-width-100per ank-px-16px ank-py-12px ank-border-1px ank-borderRadius-8px ank-fs-1rem ank-fontWeight-medium ank-cursor-pointer ank-transition-all ank-textAlign-left ank-bg-textColor ank-color-bgColor ank-border-border'
+                  }"
                 >
                   <div class="ank-fontWeight-semibold">Nano Empresa</div>
                   <div class="ank-fs-1rem ank-opacity-75">1-2 empleados</div>
-                </button>
-                <button
-                  type="button"
-                  class="ank-width-100per ank-px-16px ank-py-12px ank-border-1px ank-borderRadius-8px ank-fs-1rem ank-fontWeight-medium ank-cursor-pointer ank-transition-all ank-textAlign-left ank-bg-textColor ank-color-bgColor ank-border-border"
+                </generic-button>
+                <generic-button
+                  [config]="{
+                    classes:
+                      'ank-width-100per ank-px-16px ank-py-12px ank-border-1px ank-borderRadius-8px ank-fs-1rem ank-fontWeight-medium ank-cursor-pointer ank-transition-all ank-textAlign-left ank-bg-textColor ank-color-bgColor ank-border-border'
+                  }"
                 >
                   <div class="ank-fontWeight-semibold">Micro Empresa</div>
                   <div class="ank-fs-1rem ank-opacity-75">3-10 empleados</div>
-                </button>
-                <button
-                  type="button"
-                  class="ank-width-100per ank-px-16px ank-py-12px ank-border-1px ank-borderRadius-8px ank-fs-1rem ank-fontWeight-medium ank-cursor-pointer ank-transition-all ank-textAlign-left ank-bg-textColor ank-color-bgColor ank-border-border"
+                </generic-button>
+                <generic-button
+                  [config]="{
+                    classes:
+                      'ank-width-100per ank-px-16px ank-py-12px ank-border-1px ank-borderRadius-8px ank-fs-1rem ank-fontWeight-medium ank-cursor-pointer ank-transition-all ank-textAlign-left ank-bg-textColor ank-color-bgColor ank-border-border'
+                  }"
                 >
                   <div class="ank-fontWeight-semibold">Pequeña Empresa</div>
                   <div class="ank-fs-1rem ank-opacity-75">11-50 empleados</div>
-                </button>
+                </generic-button>
               </div>
             </div>
             <div>
@@ -243,9 +253,13 @@
           <p class="ank-fs-1rem ank-color-textColor ank-mb-16px">
             *Proyecciones basadas en estadísticas de la industria y casos de éxito reales
           </p>
-          <button class="btnBase ank-btn-accentColor ank-color-textColor ank-fs-1rem ank-px-32px ank-py-12px">
+          <generic-button
+            [config]="{
+              classes: 'btnBase ank-btn-accentColor ank-color-textColor ank-fs-1rem ank-px-32px ank-py-12px'
+            }"
+          >
             Solicitar Consultoría Personalizada
-          </button>
+          </generic-button>
         </div>
       </div>
       }

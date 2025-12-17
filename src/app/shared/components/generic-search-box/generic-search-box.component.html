@@ -22,12 +22,15 @@
     >
       @for (s of results(); track s.id; let i = $index) {
       <li role="option">
-        <button
-          type="button"
-          [id]="'sb-opt-' + s.id"
-          (click)="choose(s)"
-          [attr.aria-selected]="i === activeIndex()"
-          class="ank-bg-transparent ank-border-none ank-cursor-pointer ank-color-textColor ank-px-0_5rem ank-py-0_25rem ank-text-left ank-width-100per ank-borderRadius-0_5rem ank-bgHover-secondaryBgColor"
+        <generic-button
+          [config]="{
+            id: 'sb-opt-' + s.id,
+            classes:
+              'ank-bg-transparent ank-border-none ank-cursor-pointer ank-color-textColor ank-px-0_5rem ank-py-0_25rem ank-text-left ank-width-100per ank-borderRadius-0_5rem ank-bgHover-secondaryBgColor',
+            ariaSelected: i === activeIndex(),
+
+          }"
+          (pressed)="choose(s)"
         >
           <ng-container
             *ngIf="itemTemplate(); else defaultItem"
@@ -35,7 +38,7 @@
             [ngTemplateOutletContext]="{ $implicit: s }"
           ></ng-container>
           <ng-template #defaultItem>{{ s.label }}</ng-template>
-        </button>
+        </generic-button>
       </li>
       } @if (!loading() && !results().length && term().length >= minLength()) {
       <li class="ank-color-textSecondary ank-fontSize-0_75rem ank-px-0_5rem ank-py-0_25rem">No results</li>

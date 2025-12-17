@@ -18,17 +18,19 @@
     >
       @for (it of items(); track it.id; let idx = $index) {
       <li role="none">
-        <button
-          type="button"
-          class="ank-tde-none ank-bg-transparent ank-border-none ank-w-100per ank-textAlign-left ank-px-0_75rem ank-py-0_5rem ank-borderRadius-0_5rem ank-color-textColor ank-transition-bgColor ank-duration-150 ank-bgHover-secondaryBgColor"
-          [disabled]="it.disabled"
-          role="menuitem"
-          [id]="'dd-opt-' + idx"
+        <generic-button
+          [config]="{
+            label: it.label,
+            disabled: it.disabled,
+            role: 'menuitem',
+            id: 'dd-opt-' + idx,
+            classes:
+              'ank-tde-none ank-bg-transparent ank-border-none ank-w-100per ank-textAlign-left ank-px-0_75rem ank-py-0_5rem ank-borderRadius-0_5rem ank-color-textColor ank-transition-bgColor ank-duration-150 ank-bgHover-secondaryBgColor'
+          }"
           tabindex="-1"
-          (click)="onSelect(it)"
+          (pressed)="onSelect(it)"
         >
-          {{ it.label }}
-        </button>
+        </generic-button>
       </li>
       }
     </ul>

@@ -1,20 +1,21 @@
 <div class="tab-group ank-display-flex ank-gap-0_25rem" role="tablist" aria-orientation="horizontal">
   @for (t of tabs(); track t.id; let idx = $index) {
-  <button
-    type="button"
-    class="ank-bg-transparent ank-border-none ank-px-0_75rem ank-py-0_5rem ank-borderRadius-0_5rem ank-cursor-pointer"
-    [class.ank-bg-secondaryBgColor]="isActive(t.id)"
-    [class.ank-fontWeight-600]="isActive(t.id)"
-    [attr.id]="'tab-' + t.id"
-    role="tab"
-    [attr.aria-selected]="isActive(t.id)"
-    [attr.aria-controls]="'panel-' + t.id"
-    [disabled]="t.disabled"
-    (click)="select(t.id)"
-    [attr.tabindex]="isActive(t.id) ? 0 : -1"
+  <generic-button
+    [config]="{
+      label: t.label,
+      classes:
+        'ank-bg-transparent ank-border-none ank-px-0_75rem ank-py-0_5rem ank-borderRadius-0_5rem ank-cursor-pointer' +
+        (isActive(t.id) ? ' ank-bg-secondaryBgColor ank-fontWeight-600' : ''),
+      role: 'tab',
+      disabled: t.disabled,
+      id: 'tab-' + t.id,
+      ariaSelected: isActive(t.id),
+      ariaControls: 'panel-' + t.id,
+      tabIndex: isActive(t.id) ? 0 : -1
+    }"
+    (pressed)="select(t.id)"
   >
-    {{ t.label }}
-  </button>
+  </generic-button>
   }
 </div>
 <div class="tab-panels">

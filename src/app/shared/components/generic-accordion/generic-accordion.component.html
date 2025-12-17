@@ -9,29 +9,30 @@
           ''
     }}"
   >
-    <button
-      type="button"
-      class="ank-outline-2px__solid__secondaryAccentColor ank-m-8px ank-color-textColor ank-borderRadius-0_25rem ank-border-0 ank-width-100per ank-textAlign-left ank-padding-0_75rem ank-fontWeight-600 ank-transition-all ank-bgHover-secondaryAccentColor ank-colorHover-titleColor ank-cursor-pointer"
-      [attr.id]="buttonId(item.id)"
-      [attr.aria-expanded]="isExpanded(item.id)"
-      [class.ank-bg-secondaryAccentColor]="isExpanded(item.id)"
-      [class.ank-bg-transparent]="!isExpanded(item.id)"
-      [attr.aria-controls]="panelId(item.id)"
-      [disabled]="item.disabled"
-      (click)="toggle(item.id)"
+    <generic-button
+      [config]="{
+        id: buttonId(item.id),
+        ariaExpanded: isExpanded(item.id),
+        ariaControls: panelId(item.id),
+        label: item.title,
+        disabled: item.disabled,
+        classes:
+          (item.accordionItemButtonClasses || config?.accordionDefaultItemButtonClasses || '') +
+          (isExpanded(item.id)
+            ? ' ' +
+              (item.accordionItemButtonIsExpandedClasses || config?.accordionDefaultItemButtonIsExpandedClasses || '')
+            : ' ' +
+              (item.accordionItemButtonIsNotExpandedClasses ||
+                config?.accordionDefaultItemButtonIsNotExpandedClasses ||
+                '')),
+        icon: 'arrow_drop_down',
+        iconClasses:
+          'ank-transition-transform ank-transformOrigin-center ank-fontSize-1_25rem ank-color-accentColor' +
+          (isExpanded(item.id) ? ' ank-transform-rotate-180deg' : '')
+      }"
+      (pressed)="toggle(item.id)"
       (keydown)="onKey($event, idx)"
-    >
-      <span
-        class="ank-display-flex ank-justifyContent-spaceBetween ank-alignItems-center ank-width-calcSD100per__MIN__16pxED"
-      >
-        <span class="ank-display-inlineBlock">{{ item.title }}</span>
-        <span
-          class="accordion-icon ank-transition-transform ank-transformOrigin-center ank-fontSize-1_25rem ank-color-accentColor"
-          [class.ank-transform-rotate-180deg]="isExpanded(item.id)"
-        >
-        </span>
-      </span>
-    </button>
+    />
     @if (isExpanded(item.id)) {
     <div
       class="{{ item.accordionItemPanelClasses || config?.accordionDefaultItemPanelClasses || '' }}"
@@ -39,7 +40,9 @@
       role="region"
       [attr.aria-labelledby]="buttonId(item.id)"
     >
-      <p class="ank-marginBlockStart-0 ank-marginBlockEnd-0 ank-color-textColor">{{ item.content }}</p>
+      <p class="ank-marginBlockStart-0 ank-marginBlockEnd-0 ank-color-textColor">
+        {{ item.content }}
+      </p>
     </div>
     }
   </div>

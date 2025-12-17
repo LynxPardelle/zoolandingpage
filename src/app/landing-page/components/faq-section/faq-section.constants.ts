@@ -58,5 +58,8 @@ export const FAQ_ACCORDION_CONFIG: AccordionConfig = {
   accordionDefaultItemContainerClasses: 'ank-borderRadius-0_5rem',
   accordionDefaultItemContainerIsExpandedClasses: 'ank-bg-accentColor',
   accordionDefaultItemContainerIsNotExpandedClasses: 'ank-bg-secondaryBgColor',
-  accordionDefaultItemPanelClasses: 'ank-overflow-hidden ank-paddingInline-0_75rem ank-paddingBlock-0_5rem'
+  accordionDefaultItemPanelClasses: 'ank-overflow-hidden ank-paddingInline-0_75rem ank-paddingBlock-0_5rem',
+  accordionDefaultItemButtonClasses: 'ank-outline-2px__solid__secondaryAccentColor ank-m-8px ank-color-textColor ank-borderRadius-0_25rem ank-border-0 ank-width-100per ank-textAlign-left ank-padding-0_75rem ank-fontWeight-600 ank-transition-all ank-bgHover-secondaryAccentColor ank-colorHover-titleColor ank-cursor-pointer ank-display-flex ank-justifyContent-spaceBetween ank-alignItems-center ank-w-calcSD100per__MIN__16pxED',
+  accordionDefaultItemButtonIsExpandedClasses: 'ank-bg-secondaryAccentColor',
+  accordionDefaultItemButtonIsNotExpandedClasses: 'ank-bg-transparent',
 } as const;

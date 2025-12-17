@@ -2,12 +2,13 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { AppContainerComponent, AppSectionComponent } from '../../../core/components/layout';
+import { GenericButtonComponent } from '../../../shared/components/generic-button/generic-button.component';
 import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '../../../shared/services/analytics.events';
 import { LandingPageI18nService } from '../landing-page/landing-page-i18n.service';
 
 @Component({
   selector: 'services-section',
-  imports: [CommonModule, AppSectionComponent, AppContainerComponent, MatIconModule],
+  imports: [CommonModule, AppSectionComponent, AppContainerComponent, MatIconModule, GenericButtonComponent],
   templateUrl: './services-section.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -29,7 +30,7 @@ export class ServicesSectionComponent {
   // Section titles from centralized translations
   readonly sectionTitle = computed(() => this.i18n.ui().sections.services.title);
   readonly sectionSubtitle = computed(() => this.i18n.ui().sections.services.subtitle);
-  readonly sectionCTALabel = computed(() => this.i18n.ui().sections.services.cta);
+  readonly sectionCTA = computed(() => this.i18n.ui().sections.services.cta);
 
   onCta(title: string) {
     this.analyticsEvent.emit({

@@ -21,10 +21,11 @@ import { MotionPreferenceService } from '../../services/motion-preference.servic
 import { DEFAULT_MODAL_CONFIG } from './generic-modal.constants';
 import { GenericModalService } from './generic-modal.service';
 import { ModalConfig } from './generic-modal.types';
+import { GenericButtonComponent } from '../generic-button/generic-button.component';
 
 @Component({
   selector: 'generic-modal-host',
-  imports: [CommonModule, PortalModule],
+  imports: [CommonModule, PortalModule, GenericButtonComponent],
   templateUrl: './generic-modal.component.html',
   // Externalized styles for lint compliance and atomic separation
   styleUrls: ['./generic-modal.component.scss'],

@@ -16,6 +16,7 @@ import {
   ViewContainerRef
 } from '@angular/core';
 import { OverlayPositioningService } from '../../services/overlay-positioning.service';
+import { GenericButtonComponent } from "../generic-button/generic-button.component";
 
 export type DropdownItem = { readonly id: string; readonly label: string; readonly disabled?: boolean };
 export type DropdownConfig = { readonly closeOnSelect?: boolean; readonly ariaLabel?: string };
@@ -23,7 +24,7 @@ const DROPDOWN_DEFAULT: Required<Pick<DropdownConfig, 'closeOnSelect'>> = { clos
 
 @Component({
   selector: 'generic-dropdown',
-  imports: [CommonModule],
+  imports: [CommonModule, GenericButtonComponent],
   templateUrl: './generic-dropdown.component.html',
   styleUrls: ['./generic-dropdown.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

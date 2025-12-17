@@ -1,11 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
+import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { GenericToastComponent } from './generic-toast.component';
 import { ToastService } from './generic-toast.service';
 
 @Component({
   selector: 'generic-toast-demo',
-  imports: [CommonModule, GenericToastComponent],
+  imports: [CommonModule, GenericToastComponent, GenericButtonComponent],
   template: `
     <div class="toast-demo ank-p-2rem ank-display-flex ank-flexDirection-column ank-gap-1rem ank-maxWidth-48rem">
       <h2 class="ank-fontSize-1_5rem ank-fontWeight-600 ank-mb-1rem">Advanced Toast Notifications Demo</h2>
@@ -14,30 +15,39 @@ import { ToastService } from './generic-toast.service';
       <section class="demo-section">
         <h3 class="ank-fontSize-1_25rem ank-fontWeight-500 ank-mb-0_75rem">Basic Toast Types</h3>
         <div class="ank-display-flex ank-gap-0_5rem ank-flexWrap-wrap">
-          <button
-            class="ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-success ank-color-bgColor ank-border-success"
-            (click)="showSuccess()"
+          <generic-button
+            [config]="{
+              classes:'ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-success ank-color-bgColor ank-border-success'
+            }"
+
+            (pressed)="showSuccess()"
           >
             Success Toast
-          </button>
-          <button
-            class="ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-error ank-color-bgColor ank-border-error"
-            (click)="showError()"
+          </generic-button>
+          <generic-button
+            [config]="{
+              classes:'ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-error ank-color-bgColor ank-border-error'
+            }"
+            (pressed)="showError()"
           >
             Error Toast
-          </button>
-          <button
-            class="ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-warning ank-color-bgColor ank-border-warning"
-            (click)="showWarning()"
+          </generic-button>
+          <generic-button
+            [config]="{
+              classes:'ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-warning ank-color-bgColor ank-border-warning'
+            }"
+            (pressed)="showWarning()"
           >
             Warning Toast
-          </button>
-          <button
-            class="ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-info ank-color-bgColor ank-border-info"
-            (click)="showInfo()"
+          </generic-button>
+          <generic-button
+            [config]="{
+              classes:'ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-info ank-color-bgColor ank-border-info'
+            }"
+            (pressed)="showInfo()"
           >
             Info Toast
-          </button>
+          </generic-button>
         </div>
       </section>
 
@@ -45,30 +55,38 @@ import { ToastService } from './generic-toast.service';
       <section class="demo-section">
         <h3 class="ank-fontSize-1_25rem ank-fontWeight-500 ank-mb-0_75rem">Advanced Features</h3>
         <div class="ank-display-flex ank-gap-0_5rem ank-flexWrap-wrap">
-          <button
-            class="ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-primary ank-color-bgColor ank-border-primary"
-            (click)="showWithTitle()"
+          <generic-button
+            [config]="{
+              classes:'ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-primary ank-color-bgColor ank-border-primary'
+            }"
+            (pressed)="showWithTitle()"
           >
             With Title
-          </button>
-          <button
-            class="ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-secondary ank-color-bgColor ank-border-secondary"
-            (click)="showWithActions()"
+          </generic-button>
+          <generic-button
+            [config]="{
+              classes:'ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-secondary ank-color-bgColor ank-border-secondary'
+            }"
+            (pressed)="showWithActions()"
           >
             With Actions
-          </button>
-          <button
-            class="ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-accent ank-color-bgColor ank-border-accent"
-            (click)="showPersistent()"
+          </generic-button>
+          <generic-button
+            [config]="{
+              classes:'ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-accent ank-color-bgColor ank-border-accent'
+            }"
+            (pressed)="showPersistent()"
           >
             Persistent
-          </button>
-          <button
-            class="ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-surface ank-color-text ank-border-border"
-            (click)="showMultiple()"
+          </generic-button>
+          <generic-button
+            [config]="{
+              classes:'ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-surface ank-color-text ank-border-border'
+            }"
+            (pressed)="showMultiple()"
           >
             Multiple Toasts
-          </button>
+          </generic-button>
         </div>
       </section>
 
@@ -76,30 +94,38 @@ import { ToastService } from './generic-toast.service';
       <section class="demo-section">
         <h3 class="ank-fontSize-1_25rem ank-fontWeight-500 ank-mb-0_75rem">Position & Configuration</h3>
         <div class="ank-display-flex ank-gap-0_5rem ank-flexWrap-wrap">
-          <button
-            class="ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-surface ank-color-text ank-border-border"
-            (click)="setTopRight()"
+          <generic-button
+            [config]="{
+              classes:'ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-surface ank-color-text ank-border-border'
+            }"
+            (pressed)="setTopRight()"
           >
             Top Right
-          </button>
-          <button
-            class="ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-surface ank-color-text ank-border-border"
-            (click)="setTopLeft()"
+          </generic-button>
+          <generic-button
+            [config]="{
+              classes:'ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-surface ank-color-text ank-border-border'
+            }"
+            (pressed)="setTopLeft()"
           >
             Top Left
-          </button>
-          <button
-            class="ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-surface ank-color-text ank-border-border"
-            (click)="setBottomCenter()"
+          </generic-button>
+          <generic-button
+            [config]="{
+              classes:'ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-surface ank-color-text ank-border-border'
+            }"
+            (pressed)="setBottomCenter()"
           >
             Bottom Center
-          </button>
-          <button
-            class="ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-destructive ank-color-bgColor ank-border-destructive"
-            (click)="clearAll()"
+          </generic-button>
+          <generic-button
+            [config]="{
+              classes:'ank-px-1rem ank-py-0_5rem ank-borderRadius-0_375rem ank-border-1 ank-cursor-pointer ank-bgcl-destructive ank-color-bgColor ank-border-destructive'
+            }"
+            (pressed)="clearAll()"
           >
             Clear All
-          </button>
+          </generic-button>
         </div>
       </section>
 
@@ -131,13 +157,13 @@ import { ToastService } from './generic-toast.service';
         border: 1px solid var(--ank-borderColor, #e5e7eb);
       }
 
-      button:hover {
+      generic-button:hover {
         opacity: 0.9;
         transform: translateY(-1px);
         transition: all 200ms ease;
       }
 
-      button:active {
+      generic-button:active {
         transform: translateY(0);
       }
     `,

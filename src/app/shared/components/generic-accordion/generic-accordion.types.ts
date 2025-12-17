@@ -8,6 +8,8 @@ export type AccordionItem = {
   readonly accordionItemContainerIsNotExpandedClasses?: string;
   readonly accordionItemButtonClasses?: string;
   readonly accordionItemPanelClasses?: string;
+  readonly accordionItemButtonIsExpandedClasses?: string;
+  readonly accordionItemButtonIsNotExpandedClasses?: string;
 };
 
 export type AccordionMode = 'single' | 'multiple';
@@ -21,4 +23,6 @@ export type AccordionConfig = {
   readonly accordionDefaultItemContainerIsNotExpandedClasses?: string;
   readonly accordionDefaultItemButtonClasses?: string;
   readonly accordionDefaultItemPanelClasses?: string;
+  readonly accordionDefaultItemButtonIsExpandedClasses?: string;
+  readonly accordionDefaultItemButtonIsNotExpandedClasses?: string;
 };

@@ -18,10 +18,11 @@ import {
 import { OverlayPositioningService } from '../../services/overlay-positioning.service';
 import { GenericLoadingSpinnerComponent } from '../generic-loading-spinner';
 import { SearchBoxConfig, SearchBoxFetcher, SearchSuggestion } from './generic-search-box.types';
+import { GenericButtonComponent } from '../generic-button/generic-button.component';
 
 @Component({
   selector: 'generic-search-box',
-  imports: [CommonModule, GenericLoadingSpinnerComponent],
+  imports: [CommonModule, GenericLoadingSpinnerComponent, GenericButtonComponent],
   templateUrl: './generic-search-box.component.html',
   styleUrls: ['./generic-search-box.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

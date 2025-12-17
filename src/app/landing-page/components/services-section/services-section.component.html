@@ -32,12 +32,15 @@
           </li>
           }
         </ul>
-        <button
-          class="btnBase ank-btnOutline-secondaryLinkColor ank-bg-transparent ank-color-textColor ank-width-100per ank-py-1rem ank-my-1rem ank-fs-1_25rem"
+        <generic-button
+          [config]="{
+            label: sectionCTA(),
+            classes:
+              'btnBase ank-btnOutline-secondaryLinkColor ank-bg-transparent ank-color-textColor ank-width-100per ank-py-1rem ank-my-1rem ank-fs-1_25rem'
+          }"
           (click)="onCta(service.title)"
         >
-          {{ sectionCTALabel() }}
-        </button>
+        </generic-button>
       </div>
       }
     </div>

@@ -7,21 +7,25 @@
         {{ t("footer.legal.title") }}
       </h3>
       <div class="ank-display-flex ank-gap-12px ank-flexWrap-wrap ank-justifyContent-center">
-        <button
-          type="button"
-          class="ank-bg-transparent ank-border-0 ank-color-secondaryTextColor ank-fontSize-sm ank-textDecoration-underline ank-cursor-pointer"
+        <generic-button
+          [config]="{
+            classes:
+              'ank-bg-transparent ank-border-0 ank-color-secondaryTextColor ank-fontSize-sm ank-textDecoration-underline ank-cursor-pointer'
+          }"
           (click)="openTerms()"
         >
           {{ t("footer.legal.terms.link") }}
-        </button>
+        </generic-button>
         <span class="ank-color-secondaryTextColor">•</span>
-        <button
-          type="button"
-          class="ank-bg-transparent ank-border-0 ank-color-secondaryTextColor ank-fontSize-sm ank-textDecoration-underline ank-cursor-pointer"
+        <generic-button
+          [config]="{
+            classes:
+              'ank-bg-transparent ank-border-0 ank-color-secondaryTextColor ank-fontSize-sm ank-textDecoration-underline ank-cursor-pointer'
+          }"
           (click)="openDataUse()"
         >
           {{ t("footer.legal.data.link") }}
-        </button>
+        </generic-button>
       </div>
     </div>
     }

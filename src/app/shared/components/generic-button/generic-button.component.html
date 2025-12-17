@@ -1,14 +1,20 @@
 <button
+  [id]="id() || null"
   [attr.type]="type()"
   [disabled]="disabled() || loading()"
   [class]="classes()"
   [attr.aria-busy]="loading() ? 'true' : null"
+  [attr.role]="role() || null"
+  [attr.aria-label]="ariaLabel() || null"
+  [attr.aria-expanded]="ariaExpanded() || null"
+  [attr.aria-haspopup]="ariaHaspopup() || null"
+  [attr.aria-controls]="ariaControls() || null"
   (click)="onClick($event)"
 >
   @if (loading()) {
-  <span class="{{ spinnerClass }}" aria-hidden="true"></span>
+  <span [class]="spinnerClass()" aria-hidden="true"></span>
   } @else if (icon()) {
-  <mat-icon class="{{ iconClass }}" aria-hidden="true">{{ icon() }}</mat-icon>
+  <mat-icon [class]="iconClass()" aria-hidden="true">{{ icon() }}</mat-icon>
   } @if (label()) {<span>{{ label() }}</span
   >}
   <ng-content />

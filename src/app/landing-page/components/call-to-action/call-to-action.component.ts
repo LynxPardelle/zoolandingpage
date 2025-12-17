@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import { GenericButtonComponent } from '../../../shared/components/generic-button';
+import { GenericButtonComponent } from '../../../shared/components/generic-button/generic-button.component';
 import { CTAVariant } from './call-to-action.types';
 @Component({
   selector: 'cta-button',

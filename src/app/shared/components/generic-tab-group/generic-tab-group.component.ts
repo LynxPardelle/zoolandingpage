@@ -10,11 +10,12 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { TabDefinition, TabGroupConfig } from './generic-tab-group.types';
 
 @Component({
   selector: 'generic-tab-group',
-  imports: [CommonModule],
+  imports: [CommonModule, GenericButtonComponent],
   templateUrl: './generic-tab-group.component.html',
   styleUrls: ['./generic-tab-group.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

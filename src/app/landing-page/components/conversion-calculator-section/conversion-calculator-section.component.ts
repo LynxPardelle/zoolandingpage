@@ -2,15 +2,15 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { AppContainerComponent, AppSectionComponent } from '../../../core/components/layout';
+import { GenericButtonComponent } from '../../../shared/components/generic-button/generic-button.component';
 import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '../../../shared/services/analytics.events';
 import { LandingPageI18nService } from '../landing-page/landing-page-i18n.service';
 import { StatsCounterComponent } from '../stats-counter/stats-counter.component';
 import type { StatsCounterConfig } from '../stats-counter/stats-counter.types';
 import type { BusinessSize, CalculatedRoi } from './conversion-calculator-section.types';
-
 @Component({
     selector: 'conversion-calculator-section',
-    imports: [CommonModule, AppSectionComponent, AppContainerComponent, MatIconModule, StatsCounterComponent],
+    imports: [CommonModule, AppSectionComponent, AppContainerComponent, MatIconModule, StatsCounterComponent, GenericButtonComponent],
     templateUrl: './conversion-calculator-section.component.html',
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
