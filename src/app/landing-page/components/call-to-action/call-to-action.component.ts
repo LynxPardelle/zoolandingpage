@@ -9,7 +9,7 @@ import { CTAVariant } from './call-to-action.types';
 })
 export class CallToActionComponent {
   readonly label = input<string>('CTA');
-  readonly variant = input<CTAVariant>('primary');
+  readonly variant = input<CTAVariant>('Primary');
   /** colorKey forwarded to generic-button for dynamic theme color usage */
   readonly colorKey = input<string>('secondaryLinkColor');
   readonly action = output<void>();

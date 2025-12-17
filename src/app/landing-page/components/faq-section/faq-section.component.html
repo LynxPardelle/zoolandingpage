@@ -32,11 +32,12 @@
     <div class="ank-textAlign-center ank-mt-48px">
       <p class="ank-fs-1rem ank-color-textColor ank-mb-24px">{{ sectionFooter().footerQuestion }}</p>
       <generic-button
-        variant="outline"
-        size="lg"
-        [label]="sectionFooter().footerButtonLabel"
-        [loading]="false"
-        [disabled]="false"
+        [config]="{
+          label: sectionFooter().footerButtonLabel,
+          loading: false,
+          disabled: false,
+          classes: 'btnBaseVALSVL1_5remVL1remVL btnTypeOutlineVALSVLsecondaryAccentColorVLtextColorVL'
+        }"
         (pressed)="onFaqCta()"
       ></generic-button>
     </div>

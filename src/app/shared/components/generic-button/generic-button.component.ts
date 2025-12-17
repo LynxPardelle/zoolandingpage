@@ -1,45 +1,56 @@
-import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, HostBinding, computed, input, output } from '@angular/core';
-import { MatIconModule } from '@angular/material/icon';
+import { CommonModule } from "@angular/common";
 import {
-  GENERIC_BUTTON_BASE,
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  computed,
+  signal
+} from "@angular/core";
+import { MatIconModule } from "@angular/material/icon";
+import {
   GENERIC_BUTTON_ICON_CLASS,
-  GENERIC_BUTTON_SIZES,
   GENERIC_BUTTON_SPINNER_CLASS,
-  buildVariantClass,
-} from './generic-button.constants';
-import type { ButtonSize, ButtonVariant } from './generic-button.types';
+} from "./generic-button.constants";
+import type {
+  GenericButtonConfig
+} from "./generic-button.types";
 
 @Component({
-  selector: 'generic-button',
+  selector: "generic-button",
   imports: [CommonModule, MatIconModule],
-  templateUrl: './generic-button.component.html',
+  templateUrl: "./generic-button.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GenericButtonComponent {
-  readonly variant = input<ButtonVariant>('primary');
-  readonly size = input<ButtonSize>('md');
-  readonly colorKey = input<string>('secondaryLinkColor');
-  readonly label = input<string>('');
-  readonly disabled = input<boolean>(false);
-  readonly loading = input<boolean>(false);
-  readonly icon = input<string | undefined>(undefined);
-  readonly type = input<'button' | 'submit' | 'reset'>('button');
-  readonly pressed = output<MouseEvent>();
+  private readonly _config = signal<GenericButtonConfig>({});
+
+  @Input()
+  get config(): GenericButtonConfig {
+    return this._config();
+  }
+  set config(value: GenericButtonConfig) {
+    this._config.set(value ?? {});
+  }
+
+  readonly label = computed<string>(() => this._config().label ?? "");
+  readonly disabled = computed<boolean>(() => this._config().disabled ?? false);
+  readonly loading = computed<boolean>(() => this._config().loading ?? false);
+  readonly icon = computed<string | undefined>(() => this._config().icon);
+  readonly type = computed<"button" | "submit" | "reset">(
+    () => this._config().type ?? "button"
+  );
+  @Output() pressed = new EventEmitter<MouseEvent>();
 
   readonly classes = computed(() =>
-    [
-      GENERIC_BUTTON_BASE,
-      buildVariantClass(this.variant(), this.colorKey()),
-      GENERIC_BUTTON_SIZES[this.size()],
-      this.loading() ? 'ank-cursor-wait ank-opacity-80' : '',
-    ].join(' ')
+    this._config().classes || "btnBase" + " " + (this.loading()
+      ? "ank-cursor-wait ank-opacity-80"
+      : "")
   );
 
   readonly iconClass = GENERIC_BUTTON_ICON_CLASS;
   readonly spinnerClass = GENERIC_BUTTON_SPINNER_CLASS;
-
-  @HostBinding('class.ank-inlineBlock') hostInline = true;
 
   onClick(event: MouseEvent): void {
     if (this.disabled() || this.loading()) {

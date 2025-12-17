@@ -25,10 +25,10 @@
           class="ank-display-flex ank-flexDirection-column ank-flexDirection-sm-row ank-gap-1rem ank-justifyContent-center ank-justifyContent-lg-start"
           [@fadeInDelay]="!motion.reduced() ? {} : null"
         >
-          <cta-button [label]="data().primary.label" variant="primary" (action)="onPrimary()" />
+          <cta-button [label]="data().primary.label" variant="Primary" (action)="onPrimary()" />
           @if (data().secondary) {<cta-button
             [label]="data().secondary?.label!"
-            variant="outline"
+            variant="Outline"
             (action)="onSecondary()"
           />}
         </div>

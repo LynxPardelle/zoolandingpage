@@ -68,7 +68,9 @@
       >
         ⓘ
       </div>
-      <h2 class="ank-m-0 ank-fontSize-1_125rem ank-fontWeight-700 ank-color-textColor">{{ t("consent.title") }}</h2>
+      <h2 class="ank-m-0 ank-fontSize-1_125rem ank-fontWeight-700 ank-color-textColor">
+        {{ t("consent.title") }}
+      </h2>
     </div>
 
     <p class="ank-m-0 ank-color-secondaryTextColor">{{ t("consent.intro") }}</p>
@@ -83,24 +85,24 @@
       class="ank-display-flex ank-gap-0_5rem ank-justifyContent-end ank-alignItems-stretch ank-mt-0_75rem ank-flexWrap-wrap"
     >
       <generic-button
-        [label]="t('consent.actions.decline')"
-        variant="primary"
-        colorKey="secondaryAccentColor"
-        size="md"
+        [config]="{
+          label: t('consent.actions.decline'),
+          classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL'
+        }"
         (pressed)="analytics.declineConsent()"
       />
       <generic-button
-        [label]="t('consent.actions.later')"
-        variant="primary"
-        colorKey="warning"
-        size="md"
+        [config]="{
+          label: t('consent.actions.later'),
+          classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLwarningVLtextColorVL'
+        }"
         (pressed)="analytics.remindLater(24)"
       />
       <generic-button
-        [label]="t('consent.actions.allow')"
-        variant="primary"
-        colorKey="primary"
-        size="md"
+        [config]="{
+          label: t('consent.actions.allow'),
+          classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLprimaryVLtextColorVL'
+        }"
         (pressed)="analytics.acceptConsent()"
       />
     </div>
@@ -115,7 +117,9 @@
       >
         🎉
       </div>
-      <h2 class="ank-m-0 ank-fontSize-1_25rem ank-fontWeight-700">{{ t("demo.modal.header") }}</h2>
+      <h2 class="ank-m-0 ank-fontSize-1_25rem ank-fontWeight-700">
+        {{ t("demo.modal.header") }}
+      </h2>
     </header>
     <p class="ank-m-0 ank-color-secondaryTextColor">
       {{ t("demo.modal.desc") }}
@@ -127,10 +131,10 @@
     </ul>
     <div class="ank-display-flex ank-justifyContent-end ank-gap-0_5rem ank-mt-1rem">
       <generic-button
-        [label]="t('demo.modal.close')"
-        variant="primary"
-        colorKey="secondaryAccentColor"
-        size="md"
+        [config]="{
+          label: t('demo.modal.close'),
+          classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL'
+        }"
         (pressed)="closeModal()"
       />
     </div>
@@ -149,33 +153,43 @@
         {{ t("footer.legal.terms.title") }}
       </h2>
     </header>
-    <p class="ank-m-0 ank-color-secondaryTextColor">{{ t("footer.legal.terms.intro", { org: appName }) }}</p>
+    <p class="ank-m-0 ank-color-secondaryTextColor">
+      {{ t("footer.legal.terms.intro", { org: appName }) }}
+    </p>
     <ol
       class="ank-m-0 ank-pl-1rem ank-color-secondaryTextColor ank-display-flex ank-flexDirection-column ank-gap-0_5rem"
     >
       <li>
         <strong>{{ t("footer.legal.terms.sections.0.title") }}</strong>
-        <p class="ank-mt-0_25rem">{{ t("footer.legal.terms.sections.0.text") }}</p>
+        <p class="ank-mt-0_25rem">
+          {{ t("footer.legal.terms.sections.0.text") }}
+        </p>
       </li>
       <li>
         <strong>{{ t("footer.legal.terms.sections.1.title") }}</strong>
-        <p class="ank-mt-0_25rem">{{ t("footer.legal.terms.sections.1.text") }}</p>
+        <p class="ank-mt-0_25rem">
+          {{ t("footer.legal.terms.sections.1.text") }}
+        </p>
       </li>
       <li>
         <strong>{{ t("footer.legal.terms.sections.2.title") }}</strong>
-        <p class="ank-mt-0_25rem">{{ t("footer.legal.terms.sections.2.text") }}</p>
+        <p class="ank-mt-0_25rem">
+          {{ t("footer.legal.terms.sections.2.text") }}
+        </p>
       </li>
       <li>
         <strong>{{ t("footer.legal.terms.sections.3.title") }}</strong>
-        <p class="ank-mt-0_25rem">{{ t("footer.legal.terms.sections.3.text") }}</p>
+        <p class="ank-mt-0_25rem">
+          {{ t("footer.legal.terms.sections.3.text") }}
+        </p>
       </li>
     </ol>
     <div class="ank-display-flex ank-justifyContent-end ank-gap-0_5rem ank-mt-0_75rem">
       <generic-button
-        [label]="t('footer.actions.close')"
-        variant="primary"
-        colorKey="secondaryAccentColor"
-        size="md"
+        [config]="{
+          label: t('footer.actions.close'),
+          classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL'
+        }"
         (pressed)="closeModal()"
       />
     </div>
@@ -194,7 +208,9 @@
         {{ t("footer.legal.data.title") }}
       </h2>
     </header>
-    <p class="ank-m-0 ank-color-secondaryTextColor">{{ t("footer.legal.data.intro") }}</p>
+    <p class="ank-m-0 ank-color-secondaryTextColor">
+      {{ t("footer.legal.data.intro") }}
+    </p>
     <ul
       class="ank-m-0 ank-pl-1rem ank-color-secondaryTextColor ank-display-flex ank-flexDirection-column ank-gap-0_5rem"
     >
@@ -203,20 +219,22 @@
       <li>{{ t("footer.legal.data.points.2") }}</li>
       <li>{{ t("footer.legal.data.points.3") }}</li>
     </ul>
-    <p class="ank-m-0 ank-color-secondaryTextColor">{{ t("footer.legal.data.consentNote") }}</p>
+    <p class="ank-m-0 ank-color-secondaryTextColor">
+      {{ t("footer.legal.data.consentNote") }}
+    </p>
     <div class="ank-display-flex ank-justifyContent-end ank-gap-0_5rem ank-mt-0_75rem">
       <generic-button
-        [label]="t('consent.actions.remove')"
-        variant="outline"
-        colorKey="danger"
-        size="md"
+        [config]="{
+          label: t('consent.actions.remove'),
+          classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypeOutlineVALSVLdangerVLtextColorVL'
+        }"
         (pressed)="onRemoveConsentRequest(); closeModal()"
       />
       <generic-button
-        [label]="t('footer.actions.close')"
-        variant="primary"
-        colorKey="secondaryAccentColor"
-        size="md"
+        [config]="{
+          label: t('footer.actions.close'),
+          classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL'
+        }"
         (pressed)="closeModal()"
       />
     </div>
@@ -229,7 +247,9 @@
 <div
   class="ank-p-1rem__1rem__3rem__1rem ank-display-flex ank-flexWrap-wrap ank-gap-0_5rem ank-w-100per ank-justifyContent-spaceMINevenly ank-bg-secondaryBgColor ank-borderTop-1px ank-borderColor-secondaryAccent ank-borderBottom-1px"
 >
-  <h3 class="ank-w-100per ank-textAlign-center ank-color-secondaryTitleColor">{{ t("demo.title") }}</h3>
+  <h3 class="ank-w-100per ank-textAlign-center ank-color-secondaryTitleColor">
+    {{ t("demo.title") }}
+  </h3>
   <button class="btnBaseVALSVL0_5remVL0_5rem ank-fs-1rem ank-btn-primary ank-color-textColor" (click)="showDemoModal()">
     {{ t("demo.modal.button.open") }}
   </button>

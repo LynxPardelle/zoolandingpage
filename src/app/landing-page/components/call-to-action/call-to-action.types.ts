@@ -1,1 +1,1 @@
-export type CTAVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
+export type CTAVariant = 'Primary' | 'Secondary' | 'Outline' | 'Ghost';
