@@ -4,6 +4,8 @@ export type GenericButtonConfig = {
   readonly id?: string;
   /** Button Classes */
   readonly classes?: string;
+  /** Native button type attribute */
+  readonly type?: 'button' | 'submit' | 'reset';
   /** Optional text label; if omitted callers can project their own content */
   readonly label?: string;
   /** Disable pointer interaction and dim the button */
@@ -12,12 +14,12 @@ export type GenericButtonConfig = {
   readonly loading?: boolean;
   /** Leading Material icon name */
   readonly icon?: string;
-  /** Native button type attribute */
-  readonly type?: 'button' | 'submit' | 'reset';
-  /** Additional classes for the spinner element */
-  readonly spinnerClasses?: string;
   /** Additional classes for the icon element */
   readonly iconClasses?: string;
+  /** Position of the icon relative to the label */
+  readonly iconPosition?: 'after' | 'before';
+  /** Additional classes for the spinner element */
+  readonly spinnerClasses?: string;
   /** ARIA role attribute */
   readonly role?: string;
   /** ARIA label attribute */
@@ -32,4 +34,6 @@ export type GenericButtonConfig = {
   readonly ariaHaspopup?: boolean;
   /** ARIA controls attribute */
   readonly ariaControls?: string;
+  /** ARIA activedescendant attribute */
+  readonly ariaActiveDescendant?: string;
 };

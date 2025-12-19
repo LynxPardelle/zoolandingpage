@@ -9,11 +9,7 @@
 
     @defer (on viewport; prefetch on idle) {
     <div class="ank-maxWidth-800px ank-mx-auto">
-      <generic-accordion
-        [itemsSource]="faqItems()"
-        [config]="accordionConfig()"
-        (toggled)="onToggle($event)"
-      ></generic-accordion>
+      <generic-accordion [config]="accordionConfig()" (toggled)="onToggle($event)"></generic-accordion>
     </div>
     } @placeholder {
     <div class="ank-maxWidth-800px ank-mx-auto">
@@ -36,7 +32,8 @@
           label: sectionFooter().footerButtonLabel,
           loading: false,
           disabled: false,
-          classes: 'btnBaseVALSVL1_5remVL1remVL btnTypeOutlineVALSVLsecondaryLinkColorVLtextColorVL'
+          classes:
+            'btnBaseVALSVL1_5remVL1remVL ank-bg-transparent ank-border-2px__solid__secondaryAccentColor ank-color-secondaryAccentColor ank-ts-200 ank-bgHover-secondaryAccentColor ank-colorHover-secondaryTextColor ank-mx-auto'
         }"
         (pressed)="onFaqCta()"
       ></generic-button>

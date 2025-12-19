@@ -1,12 +1,13 @@
 import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '@/app/shared/services/analytics.events';
 import { CommonModule } from '@angular/common';
 import { Component, effect, output, signal } from '@angular/core';
+import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { ToastService } from './generic-toast.service';
 import { ToastAction, ToastLevel, ToastMessage } from './generic-toast.types';
 
 @Component({
   selector: 'generic-toast-host',
-  imports: [CommonModule],
+  imports: [CommonModule, GenericButtonComponent],
   templateUrl: './generic-toast.component.html',
   styleUrls: ['./generic-toast.component.scss'],
 })

@@ -10,20 +10,26 @@ import { AccordionConfig, AccordionItem } from './generic-accordion.types';
   styleUrls: ['./generic-accordion.component.scss'],
 })
 export class GenericAccordionComponent {
-  @Input() set itemsSource(value: readonly AccordionItem[] | null) {
-    this._items.set(value ?? []);
-  }
-  @Input() config: AccordionConfig | null = null;
-
-  private _items = signal<readonly AccordionItem[]>([]);
+  private readonly _config = signal<AccordionConfig>({ items: [] });
+  private readonly _items = signal<readonly AccordionItem[]>([]);
   items: Signal<readonly AccordionItem[]> = computed(() => this._items());
+
+  @Input()
+  get config(): AccordionConfig {
+    return this._config();
+  }
+  set config(value: AccordionConfig) {
+    this._config.set({ ...DEFAULT_ACCORDION_CONFIG, ...(value || {}) } as AccordionConfig);
+    this._items.set(value?.items ?? []);
+  }
+
   private expanded = signal<readonly string[]>([]);
   private idPrefix = 'acc-' + Math.random().toString(36).slice(2) + '-';
 
   // Emitted when a panel is toggled
   @Output() toggled = new EventEmitter<{ id: string; expanded: boolean }>();
 
-  itemsIds = () => this._items().map(i => i.id);
+  itemsIds = () => this._items().map((i: AccordionItem) => i.id);
 
   isExpanded = (id: string) => this.expanded().includes(id);
 
@@ -31,18 +37,17 @@ export class GenericAccordionComponent {
   panelId = (id: string) => this.idPrefix + 'panel-' + id;
 
   toggle(id: string) {
-    const cfg = { ...DEFAULT_ACCORDION_CONFIG, ...(this.config || {}) } as Required<AccordionConfig>;
-    if (cfg.mode === 'single') {
+    if (this._config().mode === 'single') {
       if (this.isExpanded(id)) {
-        if (cfg.allowToggle) this.expanded.set([]);
+        if (this._config().allowToggle) this.expanded.set([]);
       } else {
         this.expanded.set([id]);
       }
     } else {
       if (this.isExpanded(id)) {
-        this.expanded.update(list => list.filter(x => x !== id));
+        this.expanded.update((list: readonly string[]) => list.filter(x => x !== id));
       } else {
-        this.expanded.update(list => [...list, id]);
+        this.expanded.update((list: readonly string[]) => [...list, id]);
       }
     }
     this.toggled.emit({ id, expanded: this.isExpanded(id) });

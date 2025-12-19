@@ -45,7 +45,7 @@
         [config]="{
           label: languageService.languageLabel(),
           classes:
-            'btnBaseVALSVAL9N1remVAL9NVL8pxVL8pxVL0_75remVL ank-bg-accentColor ank-color-secondaryTextColor ank-ts-200 ank-bgHover-secondaryAccentColor ank-colorHover-secondaryTextColor ank-width-36px ank-height-36px'
+            'btnBaseVALSVAL9N1remVAL9NVL8pxVL8pxVL0_75remVL ank-bg-accentColor ank-color-secondaryTextColor ank-ts-200 ank-bgHover-secondaryAccentColor ank-colorHover-secondaryTextColor ank-width-36px ank-height-36px ank-border-none'
         }"
       />
       }
@@ -59,7 +59,7 @@
         [config]="{
           label: state().isMobileMenuOpen ? '✕' : '☰',
           classes:
-            'btnBaseVALSVAL9N1remVAL9NVL8pxVL8pxVL0_75remVL ank-me-12px ank-bg-secondaryBgColor ank-color-textColor ank-width-36px ank-height-36px',
+            'btnBaseVALSVAL9N1remVAL9NVL8pxVL8pxVL0_75remVL ank-me-12px ank-bg-secondaryBgColor ank-color-textColor ank-width-36px ank-height-36px ank-border-none',
           ariaExpanded: state().isMobileMenuOpen,
           ariaControls: 'mobile-primary-navigation',
           ariaHaspopup: true
@@ -108,7 +108,8 @@
           [config]="{
             id: 'toggleTheme',
             label: themeService.currentTheme() === 'dark' ? '☀️' : '🌙',
-            classes: themeGradientClasses + ' btnBaseVALSVAL9N1remVAL9NVL1_5remVL0_5remVL1remVL ank-h-34_4px'
+            classes:
+              themeGradientClasses + ' btnBaseVALSVAL9N1remVAL9NVL1_5remVL0_5remVL1remVL ank-h-34_4px ank-border-none'
           }"
           (pressed)="toggleTheme()"
         />
@@ -120,7 +121,7 @@
           [config]="{
             label: languageService.languageLabel(),
             classes:
-              'btnBaseVALSVAL9N1remVAL9NVL1_5remVL0_5remVL1remVL ank-bg-accentColor ank-color-secondaryTextColor ank-ts-200 ank-bgHover-secondaryAccentColor ank-colorHover-secondaryTextColor'
+              'btnBaseVALSVAL9N1remVAL9NVL1_5remVL0_5remVL1remVL ank-bg-accentColor ank-color-secondaryTextColor ank-ts-200 ank-bgHover-secondaryAccentColor ank-colorHover-secondaryTextColor ank-border-none'
           }"
           (pressed)="toggleLanguage()"
         />

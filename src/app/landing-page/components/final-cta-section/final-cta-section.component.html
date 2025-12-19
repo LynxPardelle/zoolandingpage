@@ -13,14 +13,15 @@
         <generic-button
           [config]="{
             label: finalPrimaryLabel(),
-            classes: 'btnBaseVALSVL1_5remVL1remVL btnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL'
+            classes: 'btnBaseVALSVL1_5remVL1remVL btnTypePrimaryVALSVLsecondaryLinkColorVLtextColorVL'
           }"
           (pressed)="onPrimary()"
         />
         <generic-button
           [config]="{
             label: finalSecondaryLabel(),
-            classes: 'btnBaseVALSVL1_5remVL1remVL btnTypeOutlineVALSVLsecondaryAccentColorVLtextColorVL'
+            classes:
+              'btnBaseVALSVL1_5remVL1remVL ank-bg-transparent ank-border-2px__solid__secondaryLinkColor ank-color-secondaryLinkColor ank-ts-200 ank-bgHover-secondaryLinkColor ank-colorHover-secondaryTextColor'
           }"
           (pressed)="onSecondary()"
         />

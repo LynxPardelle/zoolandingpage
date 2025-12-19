@@ -59,14 +59,15 @@
       @if (toast.actions && toast.actions.length > 0) {
       <div class="toast-actions ank-display-flex ank-gap-0_5rem ank-mt-0_5rem">
         @for (action of toast.actions; track action.label) {
-        <button
-          type="button"
-          class="ank-fontSize-0_75rem ank-px-0_75rem ank-py-0_25rem ank-borderRadius-0_375rem ank-border-0 ank-cursor-pointer ank-fontWeight-500 ank-transition-all"
-          [class]="getActionButtonClasses(action, toast.level)"
-          (click)="handleActionClick(action, toast.id)"
-        >
-          {{ action.label }}
-        </button>
+        <generic-button
+          [config]="{
+            label: action.label,
+            classes:
+              'ank-fontSize-0_75rem ank-px-0_75rem ank-py-0_25rem ank-borderRadius-0_375rem ank-border-0 ank-cursor-pointer ank-fontWeight-500 ank-transition-all' +
+              getActionButtonClasses(action, toast.level)
+          }"
+          (pressed)="handleActionClick(action, toast.id)"
+        />
         }
       </div>
       }
@@ -74,14 +75,16 @@
 
     <!-- Dismiss button -->
     @if (toast.dismissible) {
-    <button
-      type="button"
-      class="toast-dismiss ank-display-flex ank-alignItems-center ank-justifyContent-center ank-flexShrink-0 ank-width-1_5rem ank-height-1_5rem ank-bgcl-transparent ank-border-0 ank-borderRadius-50per ank-cursor-pointer ank-fontSize-1rem ank-color-text-tertiary ank-transition-all hover:ank-color-text-primary hover:ank-bgcl-surface-secondary"
-      (click)="dismiss(toast.id)"
-      [attr.aria-label]="'Dismiss ' + (toast.title || 'notification')"
+    <generic-button
+      [config]="{
+        ariaLabel: 'Dismiss ' + (toast.title || 'notification'),
+        classes:
+          'toast-dismiss ank-display-flex ank-alignItems-center ank-justifyContent-center ank-flexShrink-0 ank-width-1_5rem ank-height-1_5rem ank-bgcl-transparent ank-border-0 ank-borderRadius-50per ank-cursor-pointer ank-fontSize-1rem ank-color-text-tertiary ank-transition-all ank-color-textHover-primary ank-bgclHover-surface-secondary'
+      }"
+      (pressed)="dismiss(toast.id)"
     >
       <span aria-hidden="true">×</span>
-    </button>
+    </generic-button>
     }
   </div>
   }

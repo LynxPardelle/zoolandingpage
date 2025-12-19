@@ -284,8 +284,39 @@ export class AppShellComponent {
     // this._ank.changeSections([]);
     // this._ank.changeDebugOption(true);
     this._ank.pushCombos({
-      cardHover: [
-        "ank-transition-all ank-td-300ms ank-transformHover-translateYSDMIN4pxED ank-boxShadowHover-0__0_5rem__1rem__rgbaSD0COM0COM0COM0_5ED",
+      /* Accordion */
+      accContainer: [
+        'ank-display-flex ank-flexDirection-column ank-gap-0_25rem'
+      ],
+      accItemContainer: [
+        'ank-borderRadius-0_5rem',
+      ],
+      accItemExpandedContainer: [
+        'ank-bg-accentColor'
+      ],
+      accItemNotExpandedContainer: [
+        'ank-bg-secondaryBgColor'
+      ],
+      accItemButton: [
+        'ank-outline-2px__solid__secondaryAccentColor ank-m-8px ank-color-textColor ank-borderRadius-0_25rem ank-border-0 ank-width-100per ank-textAlign-left ank-padding-0_75rem ank-fontWeight-600 ank-transition-all ank-bgHover-secondaryAccentColor ank-colorHover-titleColor ank-cursor-pointer ank-display-flex ank-justifyContent-spaceMINbetween ank-alignItems-center ank-w-calcSD100per__MIN__16pxED'
+      ],
+      accItemButtonIsExpanded: [
+        'ank-bg-secondaryAccentColor'
+      ],
+      accItemButtonIsNotExpanded: [
+        'ank-bg-transparent'
+      ],
+      accItemButtonIcon: [
+        'ank-transition-transform ank-transformOrigin-center ank-fontSize-1_25rem ank-color-textColor'
+      ],
+      accItemButtonIconIsExpanded: [
+        'ank-transform-rotateSD180degED'
+      ],
+      accItemButtonIconIsNotExpanded: [
+        ''
+      ],
+      accItemPanel: [
+        'ank-overflow-hidden ank-paddingInline-0_75rem ank-paddingBlock-0_5rem ank-color-textColor'
       ],
       /* Button */
       btnBase: [
@@ -298,8 +329,7 @@ export class AppShellComponent {
         "ank-justifyContent-VAL7DEFcenterDEF",
         "ank-outlineColor-VAL8DEFtransparentDEF",
         "ank-fs-VAL9DEF1_5remDEF",
-        "ank-border-VAL10DEFnoneDEF",
-        "ank-d-inlineFlex",
+        "ank-d-flex",
         "ank-alignItems-center",
         "ank-textDecoration-none",
         "ank-transition-all__200ms",
@@ -308,10 +338,12 @@ export class AppShellComponent {
       btnTypePrimary: [
         "ank-bg-VAL1DEFbgColorDEF",
         "ank-color-VAL2DEFtextColorDEF",
+        "ank-border-VAL3DEF2pxDEF__VAL4DEFsolidDEF__VAL1DEFnoneDEF",
       ],
       btnTypeOutline: [
-        "ank-border-2px__solid__VAL1DEFbgColorDEF ank-color-VAL1DEFbgColorDEF ank-btnHover-VAL1DEFbgColorDEF", "ank-colorHover-VAL2DEFtextColorDEF",
-        "ank-bg-transparent"
+        "ank-border-2px__solid__VAL1DEFbgColorDEF ank-color-VAL1DEFbgColorDEF ank-bgHover-VAL1DEFbgColorDEF", "ank-colorHover-VAL2DEFtextColorDEF",
+        "ank-bg-transparent",
+        "ank-border-VAL3DEF2pxDEF__VAL4DEFsolidDEF__VAL1DEFnoneDEF",
       ],
       btnTypeGhost: [
         "ank-color-VAL1DEFtextColorDEF",
@@ -327,7 +359,10 @@ export class AppShellComponent {
         "ank-anic-infinite",
         "spinAnimation",
       ],
-      /*  */
+      /* Utility */
+      cardHover: [
+        "ank-transition-all ank-td-300ms ank-transformHover-translateYSDMIN4pxED ank-boxShadowHover-0__0_5rem__1rem__rgbaSD0COM0COM0COM0_5ED",
+      ],
       sectionPadding: ["ank-py-80px ank-px-20px"],
       containerMax: ["ank-maxWidth-1200px ank-mx-auto"],
       gridCol2: [

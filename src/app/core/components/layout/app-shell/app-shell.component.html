@@ -6,6 +6,7 @@
   (click)="focusMain($event)"
   >{{ skipLabel() }}</a
 >
+<div class="accContainer ank-d-none"></div>
 <app-header
   [config]="headerConfig()"
   (navChange)="onNavChange($event)"
@@ -226,7 +227,8 @@
       <generic-button
         [config]="{
           label: t('consent.actions.remove'),
-          classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypeOutlineVALSVLdangerVLtextColorVL'
+          classes:
+            'btnBaseVALSVL1_25remVL0_75remVL ank-bg-transparent ank-border-2px__solid__danger ank-color-danger ank-ts-200 ank-bgHover-danger ank-colorHover-textColor'
         }"
         (pressed)="onRemoveConsentRequest(); closeModal()"
       />
@@ -250,30 +252,48 @@
   <h3 class="ank-w-100per ank-textAlign-center ank-color-secondaryTitleColor">
     {{ t("demo.title") }}
   </h3>
-  <button class="btnBaseVALSVL0_5remVL0_5rem ank-fs-1rem ank-btn-primary ank-color-textColor" (click)="showDemoModal()">
-    {{ t("demo.modal.button.open") }}
-  </button>
-  <button class="btnBaseVALSVL0_5remVL0_5rem ank-fs-1rem ank-btn-success ank-color-textColor" (click)="showDemoToast()">
-    {{ t("demo.toast.button.success") }}
-  </button>
-  <button class="btnBaseVALSVL0_5remVL0_5rem ank-fs-1rem ank-btn-danger ank-color-textColor" (click)="showErrorToast()">
-    {{ t("demo.toast.button.error") }}
-  </button>
-  <button
-    class="btnBaseVALSVL0_5remVL0_5rem ank-fs-1rem ank-btn-warning ank-color-textColor"
-    (click)="showActionToast()"
-  >
-    {{ t("demo.toast.button.action") }}
-  </button>
-  <button class="btnBaseVALSVL0_5remVL0_5rem ank-fs-1rem ank-btn-info ank-color-textColor" (click)="showPositionDemo()">
-    {{ t("demo.toast.button.position") }}
-  </button>
-  <button
-    class="btnBaseVALSVL0_5remVL0_5rem ank-fs-1rem ank-btn-secondary ank-color-textColor"
-    (click)="clearAllToasts()"
-  >
-    {{ t("demo.toast.button.clear") }}
-  </button>
+  <generic-button
+    [config]="{
+      label: t('demo.modal.button.open'),
+      classes: 'btnBaseVALSVL0_5remVL0_5remVL ank-fs-1rem ank-btn-primary ank-color-textColor'
+    }"
+    (pressed)="showDemoModal()"
+  />
+  <generic-button
+    [config]="{
+      label: t('demo.toast.button.success'),
+      classes: 'btnBaseVALSVL0_5remVL0_5remVL ank-fs-1rem ank-btn-success ank-color-textColor'
+    }"
+    (pressed)="showDemoToast()"
+  />
+  <generic-button
+    [config]="{
+      label: t('demo.toast.button.error'),
+      classes: 'btnBaseVALSVL0_5remVL0_5remVL ank-fs-1rem ank-btn-danger ank-color-textColor'
+    }"
+    (pressed)="showErrorToast()"
+  />
+  <generic-button
+    [config]="{
+      label: t('demo.toast.button.action'),
+      classes: 'btnBaseVALSVL0_5remVL0_5remVL ank-fs-1rem ank-btn-warning ank-color-textColor'
+    }"
+    (pressed)="showActionToast()"
+  />
+  <generic-button
+    [config]="{
+      label: t('demo.toast.button.position'),
+      classes: 'btnBaseVALSVL0_5remVL0_5remVL' + 'ank-fs-1rem ank-btn-info ank-color-textColor'
+    }"
+    (pressed)="showPositionDemo()"
+  />
+  <generic-button
+    [config]="{
+      label: t('demo.toast.button.clear'),
+      classes: 'btnBaseVALSVL0_5remVL0_5remVL ank-fs-1rem ank-btn-secondary ank-color-textColor'
+    }"
+    (pressed)="clearAllToasts()"
+  />
 </div>
 @if (debugMode) {
 <div

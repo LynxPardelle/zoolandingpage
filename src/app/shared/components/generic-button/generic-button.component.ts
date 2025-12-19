@@ -32,6 +32,9 @@ export class GenericButtonComponent {
   readonly disabled = computed<boolean>(() => this._config().disabled ?? false);
   readonly loading = computed<boolean>(() => this._config().loading ?? false);
   readonly icon = computed<string | undefined>(() => this._config().icon);
+  readonly iconPosition = computed<"after" | "before">(
+    () => this._config().iconPosition || "before"
+  );
   readonly type = computed<"button" | "submit" | "reset">(
     () => this._config().type ?? "button"
   );
@@ -61,6 +64,9 @@ export class GenericButtonComponent {
   );
   readonly ariaControls = computed<string | undefined>(
     () => this._config().ariaControls
+  );
+  readonly ariaActiveDescendant = computed<string | undefined>(
+    () => this._config().ariaActiveDescendant
   );
   readonly classes = computed(
     () =>

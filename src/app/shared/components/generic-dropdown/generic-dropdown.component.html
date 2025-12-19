@@ -1,15 +1,16 @@
 <div class="ank-display-inlineBlock ank-position-relative">
-  <button
-    type="button"
-    class="ank-btn-secondaryLinkColor ank-color-textColor"
-    (click)="toggle()"
-    [attr.aria-expanded]="opened()"
-    aria-haspopup="true"
-    [attr.aria-controls]="opened() ? 'dd-menu' : null"
-    [attr.aria-activedescendant]="opened() && activeIndex() > -1 ? 'dd-opt-' + activeIndex() : null"
+  <generic-button
+    [config]="{
+      ariaExpanded: opened(),
+      ariaHaspopup: true,
+      ariaControls: opened() ? 'dd-menu' : undefined,
+      ariaActiveDescendant: opened() && activeIndex() > -1 ? 'dd-opt-' + activeIndex() : undefined,
+      classes: 'ank-btn-secondaryLinkColor ank-color-textColor'
+    }"
+    (pressed)="toggle()"
   >
     <ng-content select="[trigger]"></ng-content>
-  </button>
+  </generic-button>
   <ng-template #menuTpl>
     <ul
       id="dd-menu"
@@ -22,15 +23,14 @@
           [config]="{
             label: it.label,
             disabled: it.disabled,
+            tabIndex: -1,
             role: 'menuitem',
             id: 'dd-opt-' + idx,
             classes:
               'ank-tde-none ank-bg-transparent ank-border-none ank-w-100per ank-textAlign-left ank-px-0_75rem ank-py-0_5rem ank-borderRadius-0_5rem ank-color-textColor ank-transition-bgColor ank-duration-150 ank-bgHover-secondaryBgColor'
           }"
-          tabindex="-1"
           (pressed)="onSelect(it)"
-        >
-        </generic-button>
+        />
       </li>
       }
     </ul>
