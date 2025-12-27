@@ -1,5 +1,6 @@
 import { GenericButtonConfig } from "../generic-button/generic-button.types";
 
+
 export type AccordionItem = {
   readonly id: string;
   readonly title: string;
@@ -9,7 +10,7 @@ export type AccordionItem = {
   readonly containerIsExpandedClasses?: string;
   readonly containerIsNotExpandedClasses?: string;
   readonly panelClasses?: string;
-  readonly buttonConfig?: GenericButtonConfig;
+  readonly buttonConfig?: GenericButtonConfig
   readonly buttonIsExpandedClasses?: string;
   readonly buttonIsNotExpandedClasses?: string;
   readonly iconIsExpandedClasses?: string;

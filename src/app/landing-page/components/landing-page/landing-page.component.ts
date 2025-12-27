@@ -54,6 +54,8 @@ export class LandingPageComponent {
   readonly calculatorIndustry = signal('ecommerce');
   readonly calculatorVisitors = signal(1000);
 
+
+
   // Hero content centralized through i18n service
   readonly heroData = this.i18n.hero;
 

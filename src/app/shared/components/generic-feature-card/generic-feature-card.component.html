@@ -3,13 +3,13 @@
   [@fadeIn]
 >
   <div class="ank-mb-1_25rem ank-display-flex ank-justifyContent-center">
-    <mat-icon class="ank-fs-2rem ank-width-2rem ank-height-2rem ank-color-accentColor">{{ data().icon }}</mat-icon>
+    <mat-icon class="ank-fs-2rem ank-width-2rem ank-height-2rem ank-color-accentColor">{{ icon() }}</mat-icon>
   </div>
-  <h3 class="ank-fs-1_25rem ank-fontWeight-bold ank-mb-1rem ank-color-secondaryTitleColor">{{ data().title }}</h3>
-  <p class="ank-fs-1rem ank-color-secondaryTextColor ank-mb-1_25rem ank-lineHeight-relaxed">{{ data().description }}</p>
-  @if (data().benefits?.length) {
+  <h3 class="ank-fs-1_25rem ank-fontWeight-bold ank-mb-1rem ank-color-secondaryTitleColor">{{ title() }}</h3>
+  <p class="ank-fs-1rem ank-color-secondaryTextColor ank-mb-1_25rem ank-lineHeight-relaxed">{{ description() }}</p>
+  @if (benefits().length) {
   <ul class="ank-listStyle-none ank-p-0 ank-m-0 ank-textAlign-left">
-    @for (b of data().benefits; track b) {
+    @for (b of benefits(); track b) {
     <li class="ank-display-flex ank-alignItems-start ank-gap-0_5rem ank-mb-0_5rem">
       <mat-icon
         class="ank-fs-1rem ank-width-1rem ank-height-1rem ank-color-secondaryAccentColor ank-mt-0_125rem ank-flexShrink-0"

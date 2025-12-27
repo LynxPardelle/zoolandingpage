@@ -1,13 +1,13 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { AppContainerComponent, AppSectionComponent } from '../../../core/components/layout';
+import { GenericTestimonialCardComponent } from '../../../shared/components/generic-testimonial-card';
 import { LandingPageI18nService } from '../landing-page/landing-page-i18n.service';
-import { TestimonialCardComponent } from '../testimonial-card';
 import { TestimonialItem } from './testimonials-section.types';
 
 @Component({
   selector: 'testimonials-section',
-  imports: [CommonModule, AppSectionComponent, AppContainerComponent, TestimonialCardComponent],
+  imports: [CommonModule, AppSectionComponent, AppContainerComponent, GenericTestimonialCardComponent],
   templateUrl: './testimonials-section.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

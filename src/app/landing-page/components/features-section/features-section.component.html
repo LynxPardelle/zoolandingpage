@@ -6,6 +6,9 @@
         {{ sectionContent().subtitle }}
       </p>
     </div>
-    <div class="gridCol2">@for (feature of features(); track feature.title) { <feature-card [data]="feature" /> }</div>
+    <div class="gridCol2">
+      @for ( config of config; track config.title) {
+      <generic-feature-card [config]="config"></generic-feature-card> }
+    </div>
   </app-container>
 </app-section>
