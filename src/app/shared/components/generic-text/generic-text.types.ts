@@ -13,7 +13,7 @@ export type GenericTextTag =
     | 'h5'
     | 'h6';
 
-export type GenericTextConfig = {
+export type TGenericTextConfig = {
     tag?: GenericTextTag;
 
     /** Usa text si quieres texto plano (recomendado). */

@@ -1,6 +1,6 @@
-import { AccordionConfig } from './generic-accordion.types';
+import { TAccordionConfig } from './generic-accordion.types';
 
-export const DEFAULT_ACCORDION_CONFIG: Omit<AccordionConfig, 'items'> = {
+export const DEFAULT_ACCORDION_CONFIG: Omit<TAccordionConfig, 'items'> = {
   mode: 'single',
   allowToggle: true,
   containerClasses: 'ank-display-flex ank-flexDirection-column ank-gap-0_25rem',

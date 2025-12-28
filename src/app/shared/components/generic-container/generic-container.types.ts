@@ -1,6 +1,6 @@
 import type { TemplateRef } from '@angular/core';
 
-export type GenericContainerTag =
+export type GenericContainerComponentTag =
     | 'div'
     | 'section'
     | 'main'
@@ -10,8 +10,8 @@ export type GenericContainerTag =
     | 'article'
     | 'aside';
 
-export type GenericContainerConfig = {
-    tag?: GenericContainerTag;
+export type TGenericContainerConfig = {
+    tag?: GenericContainerComponentTag;
 
     id?: string;
     classes?: string;

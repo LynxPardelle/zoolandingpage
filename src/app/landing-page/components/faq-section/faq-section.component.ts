@@ -4,7 +4,7 @@ import { buildWhatsAppUrl } from '@/app/shared/utility/buildWhatsAppUrl.utility'
 import { ChangeDetectionStrategy, Component, computed, inject, output, signal } from '@angular/core';
 import { AppContainerComponent, AppSectionComponent } from '../../../core/components/layout';
 import { GenericAccordionComponent } from '../../../shared/components/generic-accordion/generic-accordion.component';
-import type { AccordionConfig, AccordionItem } from '../../../shared/components/generic-accordion/generic-accordion.types';
+import type { AccordionItem, TAccordionConfig } from '../../../shared/components/generic-accordion/generic-accordion.types';
 import { GenericButtonComponent } from '../../../shared/components/generic-button/generic-button.component';
 import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '../../../shared/services/analytics.events';
 import { FAQ_ACCORDION_CONFIG } from '../faq-section/faq-section.constants';
@@ -30,7 +30,7 @@ export class FaqSectionComponent {
     }))
   );
 
-  readonly accordionConfig = signal<AccordionConfig>(FAQ_ACCORDION_CONFIG);
+  readonly accordionConfig = signal<TAccordionConfig>(FAQ_ACCORDION_CONFIG);
 
   // Section titles from centralized translations
   readonly sectionTitle = computed(() => this.i18n.ui().sections.faq.title);

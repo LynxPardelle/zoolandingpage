@@ -13,23 +13,32 @@
       [config]="{
         id: buttonId(item.id),
         classes:
-          (item.buttonConfig?.classes || config.defaultItemButtonConfig?.classes || 'accItemButton') + ' ' +
+          (item.buttonConfig?.classes || config.defaultItemButtonConfig?.classes || 'accItemButton') +
+          ' ' +
           (isExpanded(item.id)
-            ? (item.buttonIsExpandedClasses || config.defaultItemButtonIsExpandedClasses || 'accItemButtonIsExpanded')
-            : (item.buttonIsNotExpandedClasses || config.defaultItemButtonIsNotExpandedClasses || 'accItemButtonIsNotExpanded')),
+            ? item.buttonIsExpandedClasses || config.defaultItemButtonIsExpandedClasses || 'accItemButtonIsExpanded'
+            : item.buttonIsNotExpandedClasses ||
+              config.defaultItemButtonIsNotExpandedClasses ||
+              'accItemButtonIsNotExpanded'),
         type: 'button',
         label: item.title,
         disabled: item.disabled,
         icon: item.buttonConfig?.icon || config.defaultItemButtonConfig?.icon || 'arrow_drop_down',
         iconClasses:
-          (item.buttonConfig?.iconClasses || config.defaultItemButtonConfig?.iconClasses || 'accItemButtonIcon') + ' ' +
-          (isExpanded(item.id) ? (item.iconIsExpandedClasses || config.defaultItemIconIsExpandedClasses || 'accItemButtonIconIsExpanded') : (item.iconIsNotExpandedClasses || config.defaultItemIconIsNotExpandedClasses || 'accItemButtonIconIsNotExpanded')),
+          (item.buttonConfig?.iconClasses || config.defaultItemButtonConfig?.iconClasses || 'accItemButtonIcon') +
+          ' ' +
+          (isExpanded(item.id)
+            ? item.iconIsExpandedClasses || config.defaultItemIconIsExpandedClasses || 'accItemButtonIconIsExpanded'
+            : item.iconIsNotExpandedClasses ||
+              config.defaultItemIconIsNotExpandedClasses ||
+              'accItemButtonIconIsNotExpanded'),
         iconPosition: item.buttonConfig?.iconPosition || config.defaultItemButtonConfig?.iconPosition || 'after',
         ariaLabel: item.title,
         tabIndex: item.disabled ? -1 : 0,
         ariaSelected: isExpanded(item.id) ? true : false,
         ariaExpanded: isExpanded(item.id),
         ariaControls: panelId(item.id),
+        components: item.buttonConfig?.components || config.defaultItemButtonConfig?.components || []
       }"
       (pressed)="toggle(item.id)"
       (keydown)="onKey($event, idx)"

@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, input, SecurityContext, TemplateRef } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
-import { GenericTextConfig, GenericTextTag } from './generic-text.types';
+import { GenericTextTag, TGenericTextConfig } from './generic-text.types';
 
 @Component({
   selector: 'generic-text',
@@ -9,10 +9,10 @@ import { GenericTextConfig, GenericTextTag } from './generic-text.types';
   templateUrl: './generic-text.html',
   styleUrl: './generic-text.scss'
 })
-export class GenericText {
+export class GenericTextComponent {
   private readonly sanitizer = inject(DomSanitizer);
 
-  readonly config = input<GenericTextConfig>({
+  readonly config = input<TGenericTextConfig>({
     tag: 'p',
     text: '',
   });

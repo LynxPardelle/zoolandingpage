@@ -1,4 +1,4 @@
-import type { AccordionConfig, AccordionItem } from '../../../shared/components/generic-accordion/generic-accordion.types';
+import type { AccordionItem, TAccordionConfig } from '../../../shared/components/generic-accordion/generic-accordion.types';
 
 export const FAQ_ITEMS: readonly AccordionItem[] = [
   {
@@ -51,6 +51,6 @@ export const FAQ_ITEMS: readonly AccordionItem[] = [
   },
 ] as const;
 
-export const FAQ_ACCORDION_CONFIG: AccordionConfig = {
+export const FAQ_ACCORDION_CONFIG: TAccordionConfig = {
   items: FAQ_ITEMS,
 } as const;

@@ -1,0 +1,11 @@
+@switch (component().type) { @case( 'accordion') {
+<!-- <generic-accordion [config]="TAccordionConfig()"></generic-accordion> -->
+} @case ('button') {
+<generic-button [config]="buttonConfig()"></generic-button>
+} @case ('container') {
+<generic-container [config]="containerConfig()"></generic-container>
+} @case ('text') {
+<generic-text [config]="textConfig()"></generic-text>
+} @default {
+<span>Unknown component: {{ component().type }}</span>
+} }

@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import type { TemplateRef } from '@angular/core';
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import type { GenericContainerConfig, GenericContainerTag } from './generic-container.types';
+import type { GenericContainerComponentTag, TGenericContainerConfig } from './generic-container.types';
 
 @Component({
   selector: 'generic-container',
@@ -11,10 +11,10 @@ import type { GenericContainerConfig, GenericContainerTag } from './generic-cont
   styleUrl: './generic-container.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class GenericContainer {
-  readonly config = input<GenericContainerConfig>({ tag: 'div' });
+export class GenericContainerComponent {
+  readonly config = input<TGenericContainerConfig>({ tag: 'div' });
 
-  readonly tag = computed<GenericContainerTag>(() => this.config().tag ?? 'div');
+  readonly tag = computed<GenericContainerComponentTag>(() => this.config().tag ?? 'div');
 
   readonly id = computed(() => this.config().id ?? null);
   readonly classes = computed(() => this.config().classes ?? '');

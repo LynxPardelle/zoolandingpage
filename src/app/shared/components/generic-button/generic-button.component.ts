@@ -3,81 +3,76 @@ import {
   ChangeDetectionStrategy,
   Component,
   EventEmitter,
-  Input,
   Output,
   computed,
-  signal,
+  input
 } from "@angular/core";
 import { MatIconModule } from "@angular/material/icon";
-import type { GenericButtonConfig } from "./generic-button.types";
+import { GenericMultiComponents } from "../generic-multi-components/generic-multi-components";
+import type { TGenericButtonConfig } from "./generic-button.types";
 
 @Component({
   selector: "generic-button",
-  imports: [CommonModule, MatIconModule],
+  imports: [CommonModule, MatIconModule, GenericMultiComponents],
   templateUrl: "./generic-button.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GenericButtonComponent {
-  private readonly _config = signal<GenericButtonConfig>({});
+  readonly config = input.required<TGenericButtonConfig>();
 
-  @Input()
-  get config(): GenericButtonConfig {
-    return this._config();
-  }
-  set config(value: GenericButtonConfig) {
-    this._config.set(value ?? {});
-  }
-
-  readonly label = computed<string>(() => this._config().label ?? "");
-  readonly disabled = computed<boolean>(() => this._config().disabled ?? false);
-  readonly loading = computed<boolean>(() => this._config().loading ?? false);
-  readonly icon = computed<string | undefined>(() => this._config().icon);
+  readonly label = computed<string>(() => this.config().label ?? "");
+  readonly disabled = computed<boolean>(() => this.config().disabled ?? false);
+  readonly loading = computed<boolean>(() => this.config().loading ?? false);
+  readonly icon = computed<string | undefined>(() => this.config().icon);
   readonly iconPosition = computed<"after" | "before">(
-    () => this._config().iconPosition || "before"
+    () => this.config().iconPosition || "before"
   );
   readonly type = computed<"button" | "submit" | "reset">(
-    () => this._config().type ?? "button"
+    () => this.config().type ?? "button"
   );
-  readonly id = computed<string | undefined>(() => this._config().id);
+  readonly id = computed<string | undefined>(() => this.config().id);
   readonly spinnerClasses = computed<string>(
-    () => this._config().spinnerClasses || ""
+    () => this.config().spinnerClasses || ""
   );
   readonly iconClasses = computed<string>(
-    () => this._config().iconClasses || ""
+    () => this.config().iconClasses || ""
   );
-  readonly role = computed<string | undefined>(() => this._config().role);
+  readonly role = computed<string | undefined>(() => this.config().role);
 
   readonly tabIndex = computed<number | undefined>(
-    () => this._config().tabIndex
+    () => this.config().tabIndex
   );
   readonly ariaLabel = computed<string | undefined>(
-    () => this._config().ariaLabel
+    () => this.config().ariaLabel
   );
   readonly ariaExpanded = computed<boolean | undefined>(
-    () => this._config().ariaExpanded
+    () => this.config().ariaExpanded
   );
   readonly ariaHaspopup = computed<boolean | undefined>(
-    () => this._config().ariaHaspopup
+    () => this.config().ariaHaspopup
   );
   readonly ariaSelected = computed<boolean | undefined>(
-    () => this._config().ariaSelected
+    () => this.config().ariaSelected
   );
   readonly ariaControls = computed<string | undefined>(
-    () => this._config().ariaControls
+    () => this.config().ariaControls
   );
   readonly ariaActiveDescendant = computed<string | undefined>(
-    () => this._config().ariaActiveDescendant
+    () => this.config().ariaActiveDescendant
   );
   readonly classes = computed(
     () =>
-      (this._config().classes ||
+      (this.config().classes ||
         "btnBase") + (this.loading() ? " ank-cursor-wait ank-opacity-80" : "")
   );
   readonly iconClass = computed<string>(
-    () => this._config().iconClasses || "btnIcon"
+    () => this.config().iconClasses || "btnIcon"
   );
   readonly spinnerClass = computed<string>(
-    () => this._config().spinnerClasses || "btnSpinner"
+    () => this.config().spinnerClasses || "btnSpinner"
+  );
+  readonly components = computed<readonly string[]>(() =>
+    this.config().components || []
   );
   @Output() pressed = new EventEmitter<MouseEvent>();
 

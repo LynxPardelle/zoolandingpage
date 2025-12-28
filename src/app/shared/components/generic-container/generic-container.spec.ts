@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { GenericContainer } from './generic-container';
+import { GenericContainerComponent } from './generic-container';
 
-describe('GenericContainer', () => {
-  let component: GenericContainer;
-  let fixture: ComponentFixture<GenericContainer>;
+describe('GenericContainerComponent', () => {
+  let component: GenericContainerComponent;
+  let fixture: ComponentFixture<GenericContainerComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [GenericContainer]
+      imports: [GenericContainerComponent]
     })
-    .compileComponents();
+      .compileComponents();
 
-    fixture = TestBed.createComponent(GenericContainer);
+    fixture = TestBed.createComponent(GenericContainerComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

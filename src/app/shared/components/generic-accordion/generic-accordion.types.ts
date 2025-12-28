@@ -1,4 +1,4 @@
-import { GenericButtonConfig } from "../generic-button/generic-button.types";
+import { TGenericButtonConfig } from "../generic-button/generic-button.types";
 
 
 export type AccordionItem = {
@@ -10,7 +10,7 @@ export type AccordionItem = {
   readonly containerIsExpandedClasses?: string;
   readonly containerIsNotExpandedClasses?: string;
   readonly panelClasses?: string;
-  readonly buttonConfig?: GenericButtonConfig
+  readonly buttonConfig?: TGenericButtonConfig
   readonly buttonIsExpandedClasses?: string;
   readonly buttonIsNotExpandedClasses?: string;
   readonly iconIsExpandedClasses?: string;
@@ -19,7 +19,7 @@ export type AccordionItem = {
 
 export type AccordionMode = 'single' | 'multiple';
 
-export type AccordionConfig = {
+export type TAccordionConfig = {
   readonly mode?: AccordionMode;
   readonly allowToggle?: boolean; // if single mode, allow closing the only open item
   readonly items: readonly AccordionItem[];
@@ -27,7 +27,7 @@ export type AccordionConfig = {
   readonly defaultItemContainerClasses?: string;
   readonly defaultItemContainerIsExpandedClasses?: string;
   readonly defaultItemContainerIsNotExpandedClasses?: string;
-  readonly defaultItemButtonConfig?: GenericButtonConfig;
+  readonly defaultItemButtonConfig?: TGenericButtonConfig;
   readonly defaultItemButtonIsExpandedClasses?: string;
   readonly defaultItemButtonIsNotExpandedClasses?: string;
   readonly defaultItemPanelClasses?: string;

@@ -1,4 +1,4 @@
-import { GenericText } from '@/app/shared/components/generic-text/generic-text';
+import { GenericTextComponent } from '@/app/shared/components/generic-text/generic-text';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -17,7 +17,7 @@ import { AnalyticsService } from '../../../shared/services/analytics.service';
 import { MotionPreferenceService } from '../../../shared/services/motion-preference.service';
 import { CallToActionComponent } from '../call-to-action/call-to-action.component';
 import { LandingPageI18nService } from '../landing-page/landing-page-i18n.service';
-import { GenericContainer } from './../../../shared/components/generic-container/generic-container';
+import { GenericContainerComponent } from './../../../shared/components/generic-container/generic-container';
 import { HERO_SECTION_BASE_CLASSES, HERO_SECTION_DEFAULT } from './hero-section.constants';
 import { HERO_ANIMATIONS } from './hero-section.styles';
 import { HeroSectionData } from './hero-section.types';
@@ -30,8 +30,8 @@ import { HeroSectionData } from './hero-section.types';
     AppContainerComponent,
     CallToActionComponent,
     MatIconModule,
-    GenericText,
-    GenericContainer,
+    GenericTextComponent,
+    GenericContainerComponent,
   ],
   templateUrl: './hero-section.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

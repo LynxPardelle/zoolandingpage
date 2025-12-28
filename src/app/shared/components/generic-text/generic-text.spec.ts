@@ -1,6 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { GenericText } from './generic-text';
 
 describe('GenericText', () => {
   let component: GenericText;
@@ -10,7 +9,7 @@ describe('GenericText', () => {
     await TestBed.configureTestingModule({
       imports: [GenericText]
     })
-    .compileComponents();
+      .compileComponents();
 
     fixture = TestBed.createComponent(GenericText);
     component = fixture.componentInstance;

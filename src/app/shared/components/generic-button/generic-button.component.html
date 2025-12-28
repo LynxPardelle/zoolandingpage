@@ -21,4 +21,7 @@
   } @if (label()) {<span>{{ label() }}</span
   >}
   <ng-content />
+  @if (components() && components().length > 0) {
+  <generic-multi-components [components]="components()" />
+  }
 </button>

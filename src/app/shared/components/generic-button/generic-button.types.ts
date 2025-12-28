@@ -1,5 +1,5 @@
 
-export type GenericButtonConfig = {
+export type TGenericButtonConfig = {
   /** Button element ID */
   readonly id?: string;
   /** Button Classes */
@@ -36,4 +36,6 @@ export type GenericButtonConfig = {
   readonly ariaControls?: string;
   /** ARIA activedescendant attribute */
   readonly ariaActiveDescendant?: string;
+  /** IDs of components to render inside the button */
+  readonly components?: string[];
 };

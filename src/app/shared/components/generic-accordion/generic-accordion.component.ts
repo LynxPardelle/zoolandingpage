@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output, Signal, computed, signal } from '@angular/core';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { DEFAULT_ACCORDION_CONFIG } from './generic-accordion.constants';
-import { AccordionConfig, AccordionItem } from './generic-accordion.types';
+import { AccordionItem, TAccordionConfig } from './generic-accordion.types';
 @Component({
   selector: 'generic-accordion',
   imports: [CommonModule, GenericButtonComponent],
@@ -10,16 +10,16 @@ import { AccordionConfig, AccordionItem } from './generic-accordion.types';
   styleUrls: ['./generic-accordion.component.scss'],
 })
 export class GenericAccordionComponent {
-  private readonly _config = signal<AccordionConfig>({ items: [] });
+  private readonly _config = signal<TAccordionConfig>({ items: [] });
   private readonly _items = signal<readonly AccordionItem[]>([]);
   items: Signal<readonly AccordionItem[]> = computed(() => this._items());
 
   @Input()
-  get config(): AccordionConfig {
+  get config(): TAccordionConfig {
     return this._config();
   }
-  set config(value: AccordionConfig) {
-    this._config.set({ ...DEFAULT_ACCORDION_CONFIG, ...(value || {}) } as AccordionConfig);
+  set config(value: TAccordionConfig) {
+    this._config.set({ ...DEFAULT_ACCORDION_CONFIG, ...(value || {}) } as TAccordionConfig);
     this._items.set(value?.items ?? []);
   }
 
