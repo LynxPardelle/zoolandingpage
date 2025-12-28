@@ -13,13 +13,15 @@ import {
   output,
   signal,
   TemplateRef,
+  ViewChild,
   ViewContainerRef
 } from '@angular/core';
 import { OverlayPositioningService } from '../../services/overlay-positioning.service';
 import { GenericButtonComponent } from "../generic-button/generic-button.component";
+import type { DropdownConfig, DropdownItem, MenuTemplateContext } from './generic-dropdown.types';
 
-export type DropdownItem = { readonly id: string; readonly label: string; readonly disabled?: boolean };
-export type DropdownConfig = { readonly closeOnSelect?: boolean; readonly ariaLabel?: string };
+
+
 const DROPDOWN_DEFAULT: Required<Pick<DropdownConfig, 'closeOnSelect'>> = { closeOnSelect: true };
 
 @Component({
@@ -39,13 +41,15 @@ export class GenericDropdown {
   readonly config = input<DropdownConfig | null>(null);
   readonly opened = signal(false);
   readonly selectItem = output<DropdownItem>();
+  readonly classes = computed<string>(() => this.config()?.classes || '');
+  readonly buttonClasses = computed<string>(() => this.config()?.buttonClasses || '');
 
   readonly stateClasses = computed(() => (this.opened() ? 'ank-opacity-100' : 'ank-opacity-80'));
   readonly activeIndex = signal<number>(-1); // exposed for aria-activedescendant
   private menuButtons: HTMLButtonElement[] = [];
   private triggerBtn!: HTMLButtonElement;
   @Input('menuTpl') menuTpl!: TemplateRef<unknown>; // scaffold placeholder (template reference)
-
+  @ViewChild('defaultMenuTpl', { static: true }) private defaultMenuTpl!: TemplateRef<MenuTemplateContext>;
   ngAfterViewInit(): void {
     // capture trigger for focus restoration
     this.triggerBtn = this.host.nativeElement.querySelector('button[aria-haspopup]') as HTMLButtonElement;
@@ -58,11 +62,29 @@ export class GenericDropdown {
   open(): void {
     if (this.overlayRef) return;
     this.overlayRef = this.positioning.createConnected(this.host);
-    const portal = new TemplatePortal(this.menuTpl, this.vcr);
+    const portal = new TemplatePortal(
+      this.menuTpl ?? this.defaultMenuTpl,
+      this.vcr,
+      this.menuContext()
+    );
     this.overlayRef.attach(portal);
     this.overlayRef.backdropClick().subscribe(() => this.close());
     this.opened.set(true);
     queueMicrotask(() => this.captureMenuButtonsAndFocusFirst());
+  }
+
+  handleSelect(it: DropdownItem): void {
+    if (it.disabled) return;
+    this.selectItem.emit(it);
+    const cfg = { ...DROPDOWN_DEFAULT, ...(this.config() || {}) };
+    if (cfg.closeOnSelect) this.close();
+  }
+
+  private menuContext(): MenuTemplateContext {
+    return {
+      items: this.items(),
+      select: (item: DropdownItem) => this.handleSelect(item),
+    };
   }
 
   close(): void {

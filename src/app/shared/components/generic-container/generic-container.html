@@ -1,0 +1,169 @@
+@switch (tag()) { @case ('section') {
+<section
+  [id]="id()"
+  [class]="classes()"
+  [ngClass]="classMap()"
+  [ngStyle]="styles()"
+  [attr.role]="role()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+>
+  @if (hasComponents()) { @if (hasContentToken()) {
+  <ng-content></ng-content>
+  } @for (cid of templateComponentIds(); track cid) { @if (componentTemplates()[cid]) {
+  <ng-container [ngTemplateOutlet]="componentTemplates()[cid]"></ng-container>
+  } } @if (!hasContentToken()) {
+  <ng-content></ng-content>
+  } } @else {
+  <ng-content></ng-content>
+  }
+</section>
+} @case ('main') {
+<main
+  [id]="id()"
+  [class]="classes()"
+  [ngClass]="classMap()"
+  [ngStyle]="styles()"
+  [attr.role]="role()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+>
+  @if (hasComponents()) { @if (hasContentToken()) {
+  <ng-content></ng-content>
+  } @for (cid of templateComponentIds(); track cid) { @if (componentTemplates()[cid]) {
+  <ng-container [ngTemplateOutlet]="componentTemplates()[cid]"></ng-container>
+  } } @if (!hasContentToken()) {
+  <ng-content></ng-content>
+  } } @else {
+  <ng-content></ng-content>
+  }
+</main>
+} @case ('header') {
+<header
+  [id]="id()"
+  [class]="classes()"
+  [ngClass]="classMap()"
+  [ngStyle]="styles()"
+  [attr.role]="role()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+>
+  @if (hasComponents()) { @if (hasContentToken()) {
+  <ng-content></ng-content>
+  } @for (cid of templateComponentIds(); track cid) { @if (componentTemplates()[cid]) {
+  <ng-container [ngTemplateOutlet]="componentTemplates()[cid]"></ng-container>
+  } } @if (!hasContentToken()) {
+  <ng-content></ng-content>
+  } } @else {
+  <ng-content></ng-content>
+  }
+</header>
+} @case ('footer') {
+<footer
+  [id]="id()"
+  [class]="classes()"
+  [ngClass]="classMap()"
+  [ngStyle]="styles()"
+  [attr.role]="role()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+>
+  @if (hasComponents()) { @if (hasContentToken()) {
+  <ng-content></ng-content>
+  } @for (cid of templateComponentIds(); track cid) { @if (componentTemplates()[cid]) {
+  <ng-container [ngTemplateOutlet]="componentTemplates()[cid]"></ng-container>
+  } } @if (!hasContentToken()) {
+  <ng-content></ng-content>
+  } } @else {
+  <ng-content></ng-content>
+  }
+</footer>
+} @case ('nav') {
+<nav
+  [id]="id()"
+  [class]="classes()"
+  [ngClass]="classMap()"
+  [ngStyle]="styles()"
+  [attr.role]="role()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+>
+  @if (hasComponents()) { @if (hasContentToken()) {
+  <ng-content></ng-content>
+  } @for (cid of templateComponentIds(); track cid) { @if (componentTemplates()[cid]) {
+  <ng-container [ngTemplateOutlet]="componentTemplates()[cid]"></ng-container>
+  } } @if (!hasContentToken()) {
+  <ng-content></ng-content>
+  } } @else {
+  <ng-content></ng-content>
+  }
+</nav>
+} @case ('article') {
+<article
+  [id]="id()"
+  [class]="classes()"
+  [ngClass]="classMap()"
+  [ngStyle]="styles()"
+  [attr.role]="role()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+>
+  @if (hasComponents()) { @if (hasContentToken()) {
+  <ng-content></ng-content>
+  } @for (cid of templateComponentIds(); track cid) { @if (componentTemplates()[cid]) {
+  <ng-container [ngTemplateOutlet]="componentTemplates()[cid]"></ng-container>
+  } } @if (!hasContentToken()) {
+  <ng-content></ng-content>
+  } } @else {
+  <ng-content></ng-content>
+  }
+</article>
+} @case ('aside') {
+<aside
+  [id]="id()"
+  [class]="classes()"
+  [ngClass]="classMap()"
+  [ngStyle]="styles()"
+  [attr.role]="role()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+>
+  @if (hasComponents()) { @if (hasContentToken()) {
+  <ng-content></ng-content>
+  } @for (cid of templateComponentIds(); track cid) { @if (componentTemplates()[cid]) {
+  <ng-container [ngTemplateOutlet]="componentTemplates()[cid]"></ng-container>
+  } } @if (!hasContentToken()) {
+  <ng-content></ng-content>
+  } } @else {
+  <ng-content></ng-content>
+  }
+</aside>
+} @default {
+<div
+  [id]="id()"
+  [class]="classes()"
+  [ngClass]="classMap()"
+  [ngStyle]="styles()"
+  [attr.role]="role()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+>
+  @if (hasComponents()) { @if (hasContentToken()) {
+  <ng-content></ng-content>
+  } @for (cid of templateComponentIds(); track cid) { @if (componentTemplates()[cid]) {
+  <ng-container [ngTemplateOutlet]="componentTemplates()[cid]"></ng-container>
+  } } @if (!hasContentToken()) {
+  <ng-content></ng-content>
+  } } @else {
+  <ng-content></ng-content>
+  }
+</div>
+} }

@@ -1,7 +1,13 @@
+import { DropdownItem, } from '@/app/shared/components/generic-dropdown';
+import { WHATSAPP_PHONE } from '@/app/shared/services/contact.constants';
+import { buildWhatsAppUrl } from '@/app/shared/utility/buildWhatsAppUrl.utility';
 import { DOCUMENT } from '@angular/common';
 import { afterNextRender, ChangeDetectionStrategy, Component, computed, effect, inject, output, signal } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
+import { LanguageService } from '../../../core/services/language.service';
 import { ToastService } from '../../../shared/components/generic-toast';
+import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '../../../shared/services/analytics.events';
+import { StructuredDataService } from '../../../shared/services/structured-data.service';
 import { RoiNoteComponent } from '../conversion-note/conversion-note.component';
 import { FaqSectionComponent } from '../faq-section/faq-section.component';
 import { FeaturesSectionComponent } from '../features-section/features-section.component';
@@ -12,12 +18,6 @@ import { ServicesSectionComponent } from '../services-section/services-section.c
 import { StatsStripSectionComponent } from '../stats-strip-section/stats-strip-section.component';
 import { TestimonialsSectionComponent } from '../testimonials-section/testimonials-section.component';
 import { buildTestimonialListSchema } from '../testimonials-section/testimonials-section.constants';
-
-import { WHATSAPP_PHONE } from '@/app/shared/services/contact.constants';
-import { buildWhatsAppUrl } from '@/app/shared/utility/buildWhatsAppUrl.utility';
-import { LanguageService } from '../../../core/services/language.service';
-import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '../../../shared/services/analytics.events';
-import { StructuredDataService } from '../../../shared/services/structured-data.service';
 import { LandingPageI18nService } from './landing-page-i18n.service';
 import type { InteractiveProcess } from './landing-page.types';
 
@@ -34,6 +34,7 @@ import type { InteractiveProcess } from './landing-page.types';
     TestimonialsSectionComponent,
     FaqSectionComponent,
     FinalCtaSectionComponent,
+
   ],
   templateUrl: './landing-page.component.html',
 })
@@ -127,6 +128,18 @@ export class LandingPageComponent {
       return next;
     });
   } */
+
+  handleDropdownSelect(item: DropdownItem): void {
+    if (!item.value) return;
+    this.scrollToSection(item.value);
+  }
+
+  private scrollToSection(id: string): void {
+    const normalized = id.startsWith('#') ? id.slice(1) : id;
+    const el = this.doc.getElementById(normalized);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   setDemoStep(step: number): void {
     this.currentDemoStep.set(step);
 

@@ -1,23 +1,20 @@
-<div class="ank-display-inlineBlock ank-position-relative">
+<div [class]="classes()">
   <generic-button
     [config]="{
+      type: 'button',
       ariaExpanded: opened(),
       ariaHaspopup: true,
       ariaControls: opened() ? 'dd-menu' : undefined,
       ariaActiveDescendant: opened() && activeIndex() > -1 ? 'dd-opt-' + activeIndex() : undefined,
-      classes: 'ank-btn-secondaryLinkColor ank-color-textColor'
+      classes: buttonClasses()
     }"
     (pressed)="toggle()"
   >
     <ng-content select="[trigger]"></ng-content>
   </generic-button>
-  <ng-template #menuTpl>
-    <ul
-      id="dd-menu"
-      class="ank-listStyle-none ank-m-0 ank-p-4px ank-bg-bgColor ank-borderRadius-0_5rem ank-boxShadow-sm ank-display-flex ank-flexDirection-column ank-gap-2px"
-      role="menu"
-    >
-      @for (it of items(); track it.id; let idx = $index) {
+  <ng-template #defaultMenuTpl let-items="items" let-select="select">
+    <ul id="dd-menu" role="menu">
+      @for (it of items; track it.id; let idx = $index) {
       <li role="none">
         <generic-button
           [config]="{
@@ -26,10 +23,9 @@
             tabIndex: -1,
             role: 'menuitem',
             id: 'dd-opt-' + idx,
-            classes:
-              'ank-tde-none ank-bg-transparent ank-border-none ank-w-100per ank-textAlign-left ank-px-0_75rem ank-py-0_5rem ank-borderRadius-0_5rem ank-color-textColor ank-transition-bgColor ank-duration-150 ank-bgHover-secondaryBgColor'
+            classes: ''
           }"
-          (pressed)="onSelect(it)"
+          (pressed)="select(it)"
         />
       </li>
       }

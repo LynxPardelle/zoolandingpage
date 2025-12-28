@@ -25,4 +25,5 @@ export class GenericFeatureCardComponent {
   readonly title = computed<string>(() => this._config().title ?? '');
   readonly description = computed<string>(() => this._config().description ?? '');
   readonly benefits = computed<readonly string[]>(() => this._config().benefits ?? []);
+  readonly classes = computed<string>(() => this._config().classes || '');
 }

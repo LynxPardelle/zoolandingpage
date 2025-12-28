@@ -37,4 +37,5 @@ export class FeaturesSectionComponent {
 
   // Use centralized features section translations
   readonly sectionContent = computed(() => this.i18n.featuresSection());
+
 }

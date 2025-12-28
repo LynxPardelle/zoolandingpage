@@ -4,4 +4,5 @@ export type GenericFeatureCardConfig = {
   readonly title?: string;
   readonly description?: string;
   readonly benefits?: readonly string[];
+  readonly classes?: string;
 };
