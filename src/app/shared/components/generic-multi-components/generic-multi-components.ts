@@ -3,6 +3,7 @@ import { GenericComponentWrapperComponent } from '../generic-component-wrapper/g
 
 @Component({
   selector: 'generic-multi-components',
+  standalone: true,
   imports: [GenericComponentWrapperComponent],
   templateUrl: './generic-multi-components.html'
 })

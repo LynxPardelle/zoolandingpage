@@ -1,51 +1,54 @@
-<div class="{{ config.containerClasses || 'accContainer' }}" role="group">
+<div [class]="_config().containerClasses ?? 'accContainer'" role="group">
   @for (item of items(); track item.id; let idx = $index) {
   <div
-    class="{{ item.containerClasses || config.defaultItemContainerClasses || 'accItemContainer' }} {{
+    [ngClass]="[
+      item.containerClasses ?? _config().defaultItemContainerClasses ?? 'accItemContainer',
       isExpanded(item.id)
-        ? item.containerIsExpandedClasses || config.defaultItemContainerIsExpandedClasses || 'accItemExpandedContainer'
-        : item.containerIsNotExpandedClasses ||
-          config.defaultItemContainerIsNotExpandedClasses ||
+        ? item.containerIsExpandedClasses ??
+          _config().defaultItemContainerIsExpandedClasses ??
+          'accItemExpandedContainer'
+        : item.containerIsNotExpandedClasses ??
+          _config().defaultItemContainerIsNotExpandedClasses ??
           'accItemNotExpandedContainer'
-    }}"
+    ]"
   >
     <generic-button
       [config]="{
         id: buttonId(item.id),
         classes:
-          (item.buttonConfig?.classes || config.defaultItemButtonConfig?.classes || 'accItemButton') +
+          (item.buttonConfig?.classes || _config().defaultItemButtonConfig?.classes || 'accItemButton') +
           ' ' +
           (isExpanded(item.id)
-            ? item.buttonIsExpandedClasses || config.defaultItemButtonIsExpandedClasses || 'accItemButtonIsExpanded'
+            ? item.buttonIsExpandedClasses || _config().defaultItemButtonIsExpandedClasses || 'accItemButtonIsExpanded'
             : item.buttonIsNotExpandedClasses ||
-              config.defaultItemButtonIsNotExpandedClasses ||
+              _config().defaultItemButtonIsNotExpandedClasses ||
               'accItemButtonIsNotExpanded'),
         type: 'button',
         label: item.title,
         disabled: item.disabled,
-        icon: item.buttonConfig?.icon || config.defaultItemButtonConfig?.icon || 'arrow_drop_down',
+        icon: item.buttonConfig?.icon || _config().defaultItemButtonConfig?.icon || 'arrow_drop_down',
         iconClasses:
-          (item.buttonConfig?.iconClasses || config.defaultItemButtonConfig?.iconClasses || 'accItemButtonIcon') +
+          (item.buttonConfig?.iconClasses || _config().defaultItemButtonConfig?.iconClasses || 'accItemButtonIcon') +
           ' ' +
           (isExpanded(item.id)
-            ? item.iconIsExpandedClasses || config.defaultItemIconIsExpandedClasses || 'accItemButtonIconIsExpanded'
+            ? item.iconIsExpandedClasses || _config().defaultItemIconIsExpandedClasses || 'accItemButtonIconIsExpanded'
             : item.iconIsNotExpandedClasses ||
-              config.defaultItemIconIsNotExpandedClasses ||
+              _config().defaultItemIconIsNotExpandedClasses ||
               'accItemButtonIconIsNotExpanded'),
-        iconPosition: item.buttonConfig?.iconPosition || config.defaultItemButtonConfig?.iconPosition || 'after',
+        iconPosition: item.buttonConfig?.iconPosition || _config().defaultItemButtonConfig?.iconPosition || 'after',
         ariaLabel: item.title,
         tabIndex: item.disabled ? -1 : 0,
         ariaSelected: isExpanded(item.id) ? true : false,
         ariaExpanded: isExpanded(item.id),
         ariaControls: panelId(item.id),
-        components: item.buttonConfig?.components || config.defaultItemButtonConfig?.components || []
+        components: item.buttonConfig?.components || _config().defaultItemButtonConfig?.components || []
       }"
       (pressed)="toggle(item.id)"
       (keydown)="onKey($event, idx)"
     />
     @if (isExpanded(item.id)) {
     <p
-      class="accordion-panel-wrapper {{ item.panelClasses || config.defaultItemPanelClasses || 'accItemPanel' }}"
+      class="accordion-panel-wrapper {{ item.panelClasses || _config().defaultItemPanelClasses || 'accItemPanel' }}"
       [attr.id]="panelId(item.id)"
       role="region"
       [attr.aria-labelledby]="buttonId(item.id)"

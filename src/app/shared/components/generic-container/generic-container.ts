@@ -1,14 +1,12 @@
 import { CommonModule } from '@angular/common';
 import type { TemplateRef } from '@angular/core';
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+/* import { GenericMultiComponents } from "../generic-multi-components/generic-multi-components"; */
 import type { GenericContainerComponentTag, TGenericContainerConfig } from './generic-container.types';
-
 @Component({
   selector: 'generic-container',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, /* GenericMultiComponents */],
   templateUrl: './generic-container.html',
-  styleUrl: './generic-container.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GenericContainerComponent {

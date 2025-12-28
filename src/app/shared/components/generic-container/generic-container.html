@@ -18,6 +18,9 @@
   } } @else {
   <ng-content></ng-content>
   }
+  <!-- @if (components() && components().length > 0) {
+  <generic-multi-components [components]="components()" />
+  } -->
 </section>
 } @case ('main') {
 <main
