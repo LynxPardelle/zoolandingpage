@@ -127,6 +127,7 @@ const SPANISH_TRANSLATIONS: LandingPageTranslations = {
                 'WhatsApp y llamadas a la acción estratégicamente ubicados',
             ],
             color: 'linkColor',
+            buttonLabel: 'Pedir información'
         },
         {
             icon: 'trending_up',
@@ -139,6 +140,7 @@ const SPANISH_TRANSLATIONS: LandingPageTranslations = {
                 'Reportes simples con métricas clave (extra)',
             ],
             color: 'secondaryAccentColor',
+            buttonLabel: 'Pedir información'
         },
         {
             icon: 'groups',
@@ -151,6 +153,7 @@ const SPANISH_TRANSLATIONS: LandingPageTranslations = {
                 'Soporte y mejoras constantes.',
             ],
             color: 'accentColor',
+            buttonLabel: 'Pedir información'
         },
     ],
     testimonials: [
@@ -522,6 +525,7 @@ const ENGLISH_TRANSLATIONS: LandingPageTranslations = {
                 'WhatsApp and CTAs placed strategically',
             ],
             color: 'linkColor',
+            buttonLabel: 'Request info'
         },
         {
             icon: 'trending_up',
@@ -534,6 +538,7 @@ const ENGLISH_TRANSLATIONS: LandingPageTranslations = {
                 'Simple reports with key metrics (optional)',
             ],
             color: 'secondaryAccentColor',
+            buttonLabel: 'Request info'
         },
         {
             icon: 'groups',
@@ -546,6 +551,7 @@ const ENGLISH_TRANSLATIONS: LandingPageTranslations = {
                 'Ongoing support and improvements',
             ],
             color: 'accentColor',
+            buttonLabel: 'Request info'
         },
     ],
     testimonials: [

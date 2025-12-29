@@ -1,3 +1,5 @@
+import { inject } from '@angular/core';
+import { NgxAngoraService } from "ngx-angora-css";
 import type { AccordionItem, TAccordionConfig } from '../../../shared/components/generic-accordion/generic-accordion.types';
 
 export const FAQ_ITEMS: readonly AccordionItem[] = [
@@ -54,3 +56,8 @@ export const FAQ_ITEMS: readonly AccordionItem[] = [
 export const FAQ_ACCORDION_CONFIG: TAccordionConfig = {
   items: FAQ_ITEMS,
 } as const;
+
+
+export const FAQ_TITLE_CLASSES = 'ank-textAlign-center ank-mb-64px ank-fsSELCHILDh2-2rem ankfontWeightSELCHILDh2-bold ank-mbSELCHILDh2-16px ank-colorSELCHILDh2-titleColor ank-fsSELCHILDp-1_5rem ank-colorSELCHILDp-textColor ank-maxWidthSELCHILDp-700px ank-mxSELCHILDp-auto';
+export const FAQ_FOOTER_CLASSES = 'ank-textAlign-center ank-mt-48px ank-fsSELCHILDp-1rem ank-colorSELCHILDp-textColor ank-mbSELCHILDp-24px';
+export const FAQ_GENERIC_BUTTON_CLASSES = 'btnBaseVALSVL1_5remVL1remVL ank-bg-transparent ank-border-2px__solid__secondaryAccentColor ank-color-secondaryAccentColor ank-ts-200 ank-bgHover-secondaryAccentColor ank-colorHover-secondaryTextColor ank-mx-auto';

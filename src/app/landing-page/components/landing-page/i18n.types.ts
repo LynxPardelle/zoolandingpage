@@ -57,6 +57,7 @@ export interface ServiceTranslations {
     description: string;
     features: readonly string[];
     color: string;
+    buttonLabel: string;
 }
 
 // Testimonials Section

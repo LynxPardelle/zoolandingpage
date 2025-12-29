@@ -21,3 +21,6 @@ export function buildTestimonialListSchema(items: readonly TestimonialItem[]) {
     })),
   } as const;
 }
+
+export const TESTIMONIALS_SECTION_TITLE_CLASSES = 'ank-textAlign-center ank-mb-64px ank-fsSELCHILDh2-2rem ankfontWeightSELCHILDh2-bold ank-mbSELCHILDh2-16px ank-colorSELCHILDh2-titleColor ank-fsSELCHILDp-1_5rem ank-colorSELCHILDp-textColor ank-maxWidthSELCHILDp-700px ank-mxSELCHILDp-auto';
+export const TESTIMONIALS_SECTION_FOOTER_CLASSES = 'ank-textAlign-center ank-mt-48px ank-fsSELCHILDp-1rem ank-colorSELCHILDp-textColor ank-mbSELCHILDp-24px';

@@ -26,7 +26,7 @@
         type: 'button',
         label: item.title,
         disabled: item.disabled,
-        icon: item.buttonConfig?.icon || _config().defaultItemButtonConfig?.icon || 'arrow_drop_down',
+        icon: item.buttonConfig?.icon || _config().defaultItemButtonConfig?.icon,
         iconClasses:
           (item.buttonConfig?.iconClasses || _config().defaultItemButtonConfig?.iconClasses || 'accItemButtonIcon') +
           ' ' +

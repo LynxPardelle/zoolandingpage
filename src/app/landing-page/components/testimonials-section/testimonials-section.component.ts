@@ -4,6 +4,7 @@ import { AppContainerComponent, AppSectionComponent } from '../../../core/compon
 import { GenericTestimonialCardComponent } from '../../../shared/components/generic-testimonial-card';
 import { LandingPageI18nService } from '../landing-page/landing-page-i18n.service';
 import { TestimonialItem } from './testimonials-section.types';
+import { TESTIMONIALS_SECTION_TITLE_CLASSES } from './testimonials-section.constants';
 
 @Component({
   selector: 'testimonials-section',
@@ -15,6 +16,8 @@ export class TestimonialsSectionComponent {
   private readonly i18n = inject(LandingPageI18nService);
 
   readonly testimonials = input.required<readonly TestimonialItem[]>();
+
+  readonly titleClasses = TESTIMONIALS_SECTION_TITLE_CLASSES;
 
   // Use centralized translations with parent override capability
   readonly title = input<string>();

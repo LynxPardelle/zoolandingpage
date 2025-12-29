@@ -38,4 +38,10 @@ export type TGenericButtonConfig = {
   readonly ariaActiveDescendant?: string;
   /** IDs of components to render inside the button */
   readonly components?: string[];
+
+  /** Optional handler invoked after disabled/loading guards. */
+  readonly pressed?: (event: MouseEvent) => void;
+
+  /** @deprecated Use `pressed` instead. */
+  readonly onPressed?: (event: MouseEvent) => void;
 };

@@ -8,6 +8,7 @@ import type { AccordionItem, TAccordionConfig } from '../../../shared/components
 import { GenericButtonComponent } from '../../../shared/components/generic-button/generic-button.component';
 import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '../../../shared/services/analytics.events';
 import { LandingPageI18nService } from '../landing-page/landing-page-i18n.service';
+import { FAQ_FOOTER_CLASSES, FAQ_GENERIC_BUTTON_CLASSES, FAQ_TITLE_CLASSES } from './faq-section.constants';
 
 @Component({
   selector: 'faq-section',
@@ -19,7 +20,9 @@ export class FaqSectionComponent {
   readonly analyticsEvent = output<AnalyticsEventPayload>();
   private readonly i18n = inject(LandingPageI18nService);
   private readonly _analytics = inject(AnalyticsService, { optional: true });
-
+  titleClasses = FAQ_TITLE_CLASSES;
+  footerClasses = FAQ_FOOTER_CLASSES;
+  buttonClasses = FAQ_GENERIC_BUTTON_CLASSES;
   // Use centralized FAQ translations
   readonly faqItems = computed<readonly AccordionItem[]>(() =>
     this.i18n.faq().map(faqItem => ({
@@ -34,7 +37,7 @@ export class FaqSectionComponent {
     mode: 'single',
     allowToggle: true,
 
-    // defaults de estilos (ajústalos a tus clases reales)
+    // Clases del acordeón
     containerClasses: 'ank-display-flex ank-flexDirection-column ank-gap-0_25rem',
     defaultItemContainerClasses: 'ank-border-1px-solid ank-borderColor-bgColor ank-borderRadius-0_5rem ank-transition-all ank-bgColor-transparent ng-star-inserted',
     defaultItemButtonConfig: {
@@ -42,7 +45,7 @@ export class FaqSectionComponent {
     },
     defaultItemContainerIsExpandedClasses: 'accItemExpandedContainer',
     defaultItemContainerIsNotExpandedClasses: 'accItemNotExpandedContainer',
-    defaultItemPanelClasses: 'accItemPanel',
+    defaultItemPanelClasses: 'ank-marginBlockStart-0 ank-marginBlockEnd-0 ank-color-textColor',
   }));
 
   // Section titles from centralized translations

@@ -1,8 +1,8 @@
 <app-section spacing="lg">
   <app-container size="lg">
-    <div class="ank-textAlign-center ank-mb-64px">
-      <h2 class="ank-fs-2rem ank-fontWeight-bold ank-mb-16px ank-color-titleColor">{{ sectionTitle() }}</h2>
-      <p class="ank-fs-1_5rem ank-color-textColor ank-maxWidth-700px ank-mx-auto">
+    <div class="{{ titleClasses }}">
+      <h2>{{ sectionTitle() }}</h2>
+      <p>
         {{ sectionSubtitle() }}
       </p>
     </div>
@@ -25,15 +25,14 @@
     </div>
     }
 
-    <div class="ank-textAlign-center ank-mt-48px">
-      <p class="ank-fs-1rem ank-color-textColor ank-mb-24px">{{ sectionFooter().footerQuestion }}</p>
+    <div class="{{ footerClasses }}">
+      <p>{{ sectionFooter().footerQuestion }}</p>
       <generic-button
         [config]="{
           label: sectionFooter().footerButtonLabel,
           loading: false,
           disabled: false,
-          classes:
-            'btnBaseVALSVL1_5remVL1remVL ank-bg-transparent ank-border-2px__solid__secondaryAccentColor ank-color-secondaryAccentColor ank-ts-200 ank-bgHover-secondaryAccentColor ank-colorHover-secondaryTextColor ank-mx-auto'
+          classes: buttonClasses
         }"
         (pressed)="onFaqCta()"
       ></generic-button>

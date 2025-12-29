@@ -26,9 +26,26 @@ describe('GenericButtonComponent', () => {
     const component = fixture.componentInstance;
     spyOn(component.pressed, 'emit');
 
+    fixture.componentRef.setInput('config', { label: 'Click me' });
+    fixture.detectChanges();
+
     const button = fixture.nativeElement.querySelector('button');
     button?.click();
 
     expect(component.pressed.emit).toHaveBeenCalled();
+  });
+
+  it('should call config.pressed on click', () => {
+    const fixture = TestBed.createComponent(GenericButtonComponent);
+    const component = fixture.componentInstance;
+    const pressed = jasmine.createSpy('pressed');
+
+    fixture.componentRef.setInput('config', { label: 'Click me', pressed });
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('button');
+    button?.click();
+
+    expect(pressed).toHaveBeenCalled();
   });
 });

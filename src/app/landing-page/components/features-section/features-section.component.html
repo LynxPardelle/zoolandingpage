@@ -7,8 +7,14 @@
       </p>
     </div>
     <div class="gridCol2">
-      @for ( config of config; track config.title) {
-      <generic-feature-card [config]="config" [class]="'ank-bg-secondaryBgColor ank-borderRadius-1rem ank-p-1_5rem cardHover ank-textAlign-center ank-border-1px ank-borderColor-border ank-h-calcSD100per__MIN__3remED'"></generic-feature-card> }
+      @for (item of config; track item.title) {
+      <generic-feature-card
+        [config]="item"
+        [class]="
+          'ank-bg-secondaryBgColor ank-borderRadius-1rem ank-p-1_5rem cardHover ank-textAlign-center ank-border-1px ank-borderColor-border ank-h-calcSD100per__MIN__3remED'
+        "
+      ></generic-feature-card>
+      }
     </div>
   </app-container>
 </app-section>

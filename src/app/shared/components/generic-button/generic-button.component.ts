@@ -82,6 +82,8 @@ export class GenericButtonComponent {
       event.stopPropagation();
       return;
     }
+    this.config().pressed?.(event);
+    this.config().onPressed?.(event);
     this.pressed.emit(event);
   }
 }

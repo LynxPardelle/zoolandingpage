@@ -16,5 +16,14 @@
     </li>
     }
   </ul>
+  } @if (buttonLabel()) {
+  <generic-button
+    [config]="{
+      label: buttonLabel(),
+      pressed: onButtonPressed,
+      classes:
+        'btnBase ank-btnOutline-secondaryLinkColor ank-bg-transparent ank-color-textColor ank-width-100per ank-py-1rem ank-my-1rem ank-fs-1_25rem'
+    }"
+  ></generic-button>
   }
 </div>

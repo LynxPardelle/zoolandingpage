@@ -18,8 +18,9 @@
   <mat-icon [class]="iconClass() + (iconPosition() === 'after' ? ' ank-order-1' : ' ank-order-0')" aria-hidden="true">{{
     icon()
   }}</mat-icon>
-  } @if (label()) {<span>{{ label() }}</span
-  >}
+  } @if (label()) {
+  <span>{{ label() }}</span>
+  }
   <ng-content />
   @if (components() && components().length > 0) {
   <generic-multi-components [components]="components()" />
