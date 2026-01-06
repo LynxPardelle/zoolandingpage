@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { GenericMultiComponents } from './generic-multi-components';
+import { GenericIconComponent } from './generic-icon.component';
 
-describe('GenericMultiComponents', () => {
-  let component: GenericMultiComponents;
-  let fixture: ComponentFixture<GenericMultiComponents>;
+describe('GenericIconComponent', () => {
+  let component: GenericIconComponent;
+  let fixture: ComponentFixture<GenericIconComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [GenericMultiComponents]
+      imports: [GenericIconComponent]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(GenericMultiComponents);
+    fixture = TestBed.createComponent(GenericIconComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

@@ -1,20 +1,12 @@
-<hero-section
+<!-- <hero-section
   id="home"
   [data]="heroData()"
   (primary)="openWhatsApp(true, 'hero_primary', 'hero')"
   (secondary)="trackCTAClick('secondary', 'hero', 'hero_secondary')"
 ></hero-section>
-@defer (on viewport; prefetch on idle) {
-<conversion-note id="conversion-section"></conversion-note>
-} @placeholder {
-<section id="conversion-section" class="ank-py-48px ank-textAlign-center ank-opacity-70">
-  <div class="ank-fs-1_25rem">Cargando conversión…</div>
-  <div class="ank-mt-16px ank-display-flex ank-jc-center ank-gap-12px">
-    <div class="ank-width-160px ank-height-12px ank-bg-bgColor ank-opacity-30 ank-borderRadius-8px"></div>
-    <div class="ank-width-120px ank-height-12px ank-bg-bgColor ank-opacity-20 ank-borderRadius-8px"></div>
-  </div>
-</section>
-}
+<conversion-note id="conversion-section"></conversion-note> -->
+<wrapper-orchestrator [componentsIds]="['heroContainer', 'conversionNoteContainer']"></wrapper-orchestrator>
+
 <features-section id="features-section" [config]="features()"></features-section>
 @defer (on viewport; prefetch on idle) {
 <interactive-process

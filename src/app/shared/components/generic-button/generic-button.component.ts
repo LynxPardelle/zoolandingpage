@@ -7,13 +7,12 @@ import {
   computed,
   input
 } from "@angular/core";
-import { MatIconModule } from "@angular/material/icon";
-import { GenericMultiComponents } from "../generic-multi-components/generic-multi-components";
 import type { TGenericButtonConfig } from "./generic-button.types";
+import { GenericIconComponent } from "../generic-icon/generic-icon.component";
 
 @Component({
   selector: "generic-button",
-  imports: [CommonModule, MatIconModule, GenericMultiComponents],
+  imports: [CommonModule, GenericIconComponent],
   templateUrl: "./generic-button.component.html",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

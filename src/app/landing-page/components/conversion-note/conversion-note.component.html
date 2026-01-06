@@ -1,39 +1,33 @@
-<app-section spacing="sm" variant="secondary">
-  <app-container size="xl">
-    <div class="ank-textAlign-center">
-      <div
-        class="ank-bg-bgColor ank-borderRadius-1rem ank-p-1_5rem ank-maxWidth-50rem ank-mx-auto ank-boxShadow-0__4px__20px__rgbaSD0COM0COM0COM0_1ED ank-border-2px ank-borderColor-success ank-borderOpacity-20"
-      >
-        <div class="ank-display-flex ank-alignItems-center ank-justifyContent-center ank-gap-1rem ank-mb-1rem">
-          <div
-            class="ank-bg-secondaryAccentColor ank-borderRadius-99rem ank-w-50px ank-h-50px ank-d-flex ank-alignItems-center ank-justifyContent-center"
-          >
-            <mat-icon class="ank-color-textColor ank-fs-1_25rem">help_outline</mat-icon>
-          </div>
-          <h3 class="ank-fs-1_5rem ank-fontWeight-bold ank-m-0 ank-color-titleColor">
-            {{ copy().title }}
-          </h3>
-        </div>
-        <div class="ank-bg-textColor ank-borderRadius-1rem ank-p-1_25rem ank-mb-1rem">
-          <p
-            class="ank-fs-1_25rem ank-lineHeight-relaxed ank-m-0 ank-color-bgColor"
-            [innerHTML]="copy().conversionDescription"
-          ></p>
-        </div>
-        <div class="ank-display-grid ank-gridTemplateColumns-1fr__1fr__1fr ank-gap-1rem ank-textAlign-center">
-          <div class="ank-bg-accentColor ank-borderRadius-0_75rem ank-p-1rem ank-color-textColor">
-            <div class="ank-fs-1rem ank-opacity-90">{{ copy().investmentLabel }}</div>
-            <div class="ank-fs-1_25rem ank-fontWeight-bold">{{ copy().investmentValue }}</div>
-          </div>
-          <div class="ank-display-flex ank-alignItems-center ank-justifyContent-center">
-            <mat-icon class="ank-color-secondaryAccentColor ank-fs-1_5rem">arrow_forward</mat-icon>
-          </div>
-          <div class="ank-bg-secondaryAccentColor ank-borderRadius-0_75rem ank-p-1rem ank-color-textColor">
-            <div class="ank-fs-1rem ank-opacity-90">{{ copy().totalReturnLabel }}</div>
-            <div class="ank-fs-1_25rem ank-fontWeight-bold">{{ copy().totalReturnValue }}</div>
-          </div>
-        </div>
-      </div>
+<div
+  class="ank-bg-bgColor ank-borderRadius-1rem ank-p-1_5rem ank-maxWidth-50rem ank-mx-auto ank-boxShadow-0__4px__20px__rgbaSD0COM0COM0COM0_1ED ank-border-2px ank-borderColor-success ank-borderOpacity-20 ank-textAlign-center ank-alignItems-center ank-maxWidth-1280px ank-marginLeft-auto ank-marginRight-auto ank-width-100vw ank-my-2rem ank-px-1rem ank-boxSizing-borderMINbox ank-bg-secondaryBgColor ank-position-relative"
+>
+  <div class="ank-display-flex ank-alignItems-center ank-justifyContent-center ank-gap-1rem ank-mb-1rem">
+    <div
+      class="ank-bg-secondaryAccentColor ank-borderRadius-99rem ank-w-50px ank-h-50px ank-d-flex ank-alignItems-center ank-justifyContent-center"
+    >
+      <mat-icon class="ank-color-textColor ank-fs-1_25rem">help_outline</mat-icon>
     </div>
-  </app-container>
-</app-section>
+    <h3 class="ank-fs-1_5rem ank-fontWeight-bold ank-m-0 ank-color-titleColor">
+      {{ copy().title }}
+    </h3>
+  </div>
+  <div class="ank-bg-textColor ank-borderRadius-1rem ank-p-1_25rem ank-mb-1rem">
+    <p
+      class="ank-fs-1_25rem ank-lineHeight-relaxed ank-m-0 ank-color-bgColor"
+      [innerHTML]="copy().conversionDescription"
+    ></p>
+  </div>
+  <div class="ank-display-grid ank-gridTemplateColumns-1fr__1fr__1fr ank-gap-1rem ank-textAlign-center">
+    <div class="ank-bg-accentColor ank-borderRadius-0_75rem ank-p-1rem ank-color-textColor">
+      <p class="ank-fs-1rem ank-opacity-90">{{ copy().investmentLabel }}</p>
+      <p class="ank-fs-1_25rem ank-fontWeight-bold">{{ copy().investmentValue }}</p>
+    </div>
+    <div class="ank-display-flex ank-alignItems-center ank-justifyContent-center">
+      <mat-icon class="ank-color-secondaryAccentColor ank-fs-1_5rem">arrow_forward</mat-icon>
+    </div>
+    <div class="ank-bg-secondaryAccentColor ank-borderRadius-0_75rem ank-p-1rem ank-color-textColor">
+      <p class="ank-fs-1rem ank-opacity-90">{{ copy().totalReturnLabel }}</p>
+      <p class="ank-fs-1_25rem ank-fontWeight-bold">{{ copy().totalReturnValue }}</p>
+    </div>
+  </div>
+</div>

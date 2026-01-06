@@ -14,15 +14,16 @@
 >
   @if (loading()) {
   <span [class]="spinnerClass()" aria-hidden="true"></span>
-  } @else if (icon()) {
-  <mat-icon [class]="iconClass() + (iconPosition() === 'after' ? ' ank-order-1' : ' ank-order-0')" aria-hidden="true">{{
-    icon()
-  }}</mat-icon>
+  } @else { @if (icon()) {
+  <generic-icon
+    [config]="{
+      classes: iconClass() + (iconPosition() === 'after' ? ' ank-order-1' : ' ank-order-0'),
+      ariaHidden: true,
+      iconName: icon() || 'none'
+    }"
+  />
   } @if (label()) {
   <span>{{ label() }}</span>
   }
-  <ng-content />
-  @if (components() && components().length > 0) {
-  <generic-multi-components [components]="components()" />
-  }
+  <ng-content />}
 </button>

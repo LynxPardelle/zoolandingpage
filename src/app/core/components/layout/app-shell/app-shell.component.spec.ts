@@ -1,6 +1,6 @@
+import { LandingPageComponent } from '@/app/landing-page/components/landing-page';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
-import { LandingPageComponent } from '../../../../landingpage/components/landing-page/landing-page.component';
 import { AppShellComponent } from './app-shell.component';
 
 describe('AppShellComponent', () => {

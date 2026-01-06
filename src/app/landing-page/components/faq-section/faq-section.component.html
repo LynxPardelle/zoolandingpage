@@ -9,7 +9,7 @@
 
     @defer (on viewport; prefetch on idle) {
     <div class="ank-maxWidth-800px ank-mx-auto">
-      <generic-accordion [_config]="accordionConfig()" (toggled)="onToggle($event)"></generic-accordion>
+      <generic-accordion [config]="accordionConfig()" (toggled)="onToggle($event)"></generic-accordion>
     </div>
     } @placeholder {
     <div class="ank-maxWidth-800px ank-mx-auto">

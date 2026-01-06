@@ -1,6 +1,7 @@
 import { TemplateRef } from '@angular/core';
 
 export type GenericTextTag =
+    | ''
     | 'p'
     | 'span'
     | 'small'

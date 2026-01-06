@@ -1,0 +1,66 @@
+<ng-template #wrapperOrchestratorTpl let-component>
+  @if (component?.config?.components && component.config.components.length > 0) { @for(componentId of
+  component.config.components; track (componentId + $index)) {
+  <wrapper-orchestrator [componentsIds]="[componentId]"></wrapper-orchestrator>
+  } }
+</ng-template>
+
+@defer (on viewport; prefetch on idle) { @if (components().length > 0) { @for (component of components(); track
+component.id) { @switch (component.type) { @case('accordion') {
+<generic-accordion
+  [config]="component.config"
+  (toggled)="
+    eventEmitted({
+      component: component.id,
+      meta_title: component.meta_title,
+      eventName: 'toggled',
+      eventData: $event,
+      eventInstructions: component.eventInstructions
+    })
+  "
+>
+</generic-accordion>
+} @case('button') {
+<generic-button
+  [config]="component.config"
+  (pressed)="
+    eventEmitted({
+      component: component.id,
+      meta_title: component.meta_title,
+      eventName: 'pressed',
+      eventData: $event,
+      eventInstructions: component.eventInstructions
+    })
+  "
+>
+  <ng-container
+    [ngTemplateOutlet]="wrapperOrchestratorTpl"
+    [ngTemplateOutletContext]="{ $implicit: component }"
+  ></ng-container>
+</generic-button>
+} @case('container') {
+<generic-container [config]="component.config">
+  <ng-container
+    [ngTemplateOutlet]="wrapperOrchestratorTpl"
+    [ngTemplateOutletContext]="{ $implicit: component }"
+  ></ng-container>
+</generic-container>
+} @case('icon') {
+<generic-icon [config]="component.config">
+  <ng-container
+    [ngTemplateOutlet]="wrapperOrchestratorTpl"
+    [ngTemplateOutletContext]="{ $implicit: component }"
+  ></ng-container>
+</generic-icon>
+}@case('text') {
+<generic-text [config]="component.config">
+  <ng-container
+    [ngTemplateOutlet]="wrapperOrchestratorTpl"
+    [ngTemplateOutletContext]="{ $implicit: component }"
+  ></ng-container>
+</generic-text>
+} @default {
+<span>Unknown component: {{ component.type }}</span>
+} } } } } @placeholder {
+<div>Loading components…</div>
+}

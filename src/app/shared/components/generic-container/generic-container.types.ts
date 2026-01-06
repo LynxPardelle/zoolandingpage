@@ -1,6 +1,7 @@
 import type { TemplateRef } from '@angular/core';
 
 export type GenericContainerComponentTag =
+    | 'span'
     | 'div'
     | 'section'
     | 'main'

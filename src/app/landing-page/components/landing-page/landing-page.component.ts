@@ -1,4 +1,5 @@
 import { DropdownItem, } from '@/app/shared/components/generic-dropdown';
+import { WrapperOrchestrator } from '@/app/shared/components/wrapper-orchestrator/wrapper-orchestrator.component';
 import { WHATSAPP_PHONE } from '@/app/shared/services/contact.constants';
 import { buildWhatsAppUrl } from '@/app/shared/utility/buildWhatsAppUrl.utility';
 import { DOCUMENT } from '@angular/common';
@@ -12,7 +13,7 @@ import { RoiNoteComponent } from '../conversion-note/conversion-note.component';
 import { FaqSectionComponent } from '../faq-section/faq-section.component';
 import { FeaturesSectionComponent } from '../features-section/features-section.component';
 import { FinalCtaSectionComponent } from '../final-cta-section/final-cta-section.component';
-import { HeroSectionComponent } from '../hero-section';
+/* import { HeroSectionComponent } from '../hero-section'; */
 import { InteractiveProcessComponent } from '../interactive-process/interactive-process.component';
 import { ServicesSectionComponent } from '../services-section/services-section.component';
 import { StatsStripSectionComponent } from '../stats-strip-section/stats-strip-section.component';
@@ -25,7 +26,7 @@ import type { InteractiveProcess } from './landing-page.types';
   selector: 'app-landing-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    HeroSectionComponent,
+    /* HeroSectionComponent, */
     RoiNoteComponent,
     FeaturesSectionComponent,
     InteractiveProcessComponent,
@@ -34,6 +35,7 @@ import type { InteractiveProcess } from './landing-page.types';
     TestimonialsSectionComponent,
     FaqSectionComponent,
     FinalCtaSectionComponent,
+    WrapperOrchestrator,
 
   ],
   templateUrl: './landing-page.component.html',
@@ -193,16 +195,6 @@ export class LandingPageComponent {
       }
     }
     window.open(link, '_blank');
-  }
-  trackCTAClick(ctaType: string, location: string, name: string): void {
-    const evtName = this.nameChooser(name);
-    if (evtName) this.analyticsEvent.emit({ name: evtName, category: AnalyticsCategories.CTA, label: `${ location }:${ ctaType }`, meta: { location } });
-
-    // Navigate to features section
-    const featuresElement = this.doc.getElementById('features-section');
-    if (featuresElement) {
-      featuresElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
   }
   trackSectionView(sectionName: string): void {
     this.analyticsEvent.emit({ name: AnalyticsEvents.SectionView, category: AnalyticsCategories.Navigation, label: sectionName });

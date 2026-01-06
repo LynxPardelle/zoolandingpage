@@ -1,3 +1,11 @@
+<ng-template #contentGenericContainerTpl>
+  <ng-content></ng-content>
+
+  @for (cid of templateComponentIds(); track cid) { @if (componentTemplates()[cid]) {
+  <ng-container [ngTemplateOutlet]="componentTemplates()[cid]"></ng-container>
+  } }
+</ng-template>
+
 @switch (tag()) { @case ('section') {
 <section
   [id]="id()"
@@ -9,18 +17,7 @@
   [attr.aria-labelledby]="ariaLabelledby()"
   [attr.aria-describedby]="ariaDescribedby()"
 >
-  @if (hasComponents()) { @if (hasContentToken()) {
-  <ng-content></ng-content>
-  } @for (cid of templateComponentIds(); track cid) { @if (componentTemplates()[cid]) {
-  <ng-container [ngTemplateOutlet]="componentTemplates()[cid]"></ng-container>
-  } } @if (!hasContentToken()) {
-  <ng-content></ng-content>
-  } } @else {
-  <ng-content></ng-content>
-  }
-  <!-- @if (components() && components().length > 0) {
-  <generic-multi-components [components]="components()" />
-  } -->
+  <ng-container [ngTemplateOutlet]="contentGenericContainerTpl"></ng-container>
 </section>
 } @case ('main') {
 <main
@@ -33,15 +30,7 @@
   [attr.aria-labelledby]="ariaLabelledby()"
   [attr.aria-describedby]="ariaDescribedby()"
 >
-  @if (hasComponents()) { @if (hasContentToken()) {
-  <ng-content></ng-content>
-  } @for (cid of templateComponentIds(); track cid) { @if (componentTemplates()[cid]) {
-  <ng-container [ngTemplateOutlet]="componentTemplates()[cid]"></ng-container>
-  } } @if (!hasContentToken()) {
-  <ng-content></ng-content>
-  } } @else {
-  <ng-content></ng-content>
-  }
+  <ng-container [ngTemplateOutlet]="contentGenericContainerTpl"></ng-container>
 </main>
 } @case ('header') {
 <header
@@ -54,15 +43,7 @@
   [attr.aria-labelledby]="ariaLabelledby()"
   [attr.aria-describedby]="ariaDescribedby()"
 >
-  @if (hasComponents()) { @if (hasContentToken()) {
-  <ng-content></ng-content>
-  } @for (cid of templateComponentIds(); track cid) { @if (componentTemplates()[cid]) {
-  <ng-container [ngTemplateOutlet]="componentTemplates()[cid]"></ng-container>
-  } } @if (!hasContentToken()) {
-  <ng-content></ng-content>
-  } } @else {
-  <ng-content></ng-content>
-  }
+  <ng-container [ngTemplateOutlet]="contentGenericContainerTpl"></ng-container>
 </header>
 } @case ('footer') {
 <footer
@@ -75,15 +56,7 @@
   [attr.aria-labelledby]="ariaLabelledby()"
   [attr.aria-describedby]="ariaDescribedby()"
 >
-  @if (hasComponents()) { @if (hasContentToken()) {
-  <ng-content></ng-content>
-  } @for (cid of templateComponentIds(); track cid) { @if (componentTemplates()[cid]) {
-  <ng-container [ngTemplateOutlet]="componentTemplates()[cid]"></ng-container>
-  } } @if (!hasContentToken()) {
-  <ng-content></ng-content>
-  } } @else {
-  <ng-content></ng-content>
-  }
+  <ng-container [ngTemplateOutlet]="contentGenericContainerTpl"></ng-container>
 </footer>
 } @case ('nav') {
 <nav
@@ -96,15 +69,7 @@
   [attr.aria-labelledby]="ariaLabelledby()"
   [attr.aria-describedby]="ariaDescribedby()"
 >
-  @if (hasComponents()) { @if (hasContentToken()) {
-  <ng-content></ng-content>
-  } @for (cid of templateComponentIds(); track cid) { @if (componentTemplates()[cid]) {
-  <ng-container [ngTemplateOutlet]="componentTemplates()[cid]"></ng-container>
-  } } @if (!hasContentToken()) {
-  <ng-content></ng-content>
-  } } @else {
-  <ng-content></ng-content>
-  }
+  <ng-container [ngTemplateOutlet]="contentGenericContainerTpl"></ng-container>
 </nav>
 } @case ('article') {
 <article
@@ -117,15 +82,7 @@
   [attr.aria-labelledby]="ariaLabelledby()"
   [attr.aria-describedby]="ariaDescribedby()"
 >
-  @if (hasComponents()) { @if (hasContentToken()) {
-  <ng-content></ng-content>
-  } @for (cid of templateComponentIds(); track cid) { @if (componentTemplates()[cid]) {
-  <ng-container [ngTemplateOutlet]="componentTemplates()[cid]"></ng-container>
-  } } @if (!hasContentToken()) {
-  <ng-content></ng-content>
-  } } @else {
-  <ng-content></ng-content>
-  }
+  <ng-container [ngTemplateOutlet]="contentGenericContainerTpl"></ng-container>
 </article>
 } @case ('aside') {
 <aside
@@ -138,15 +95,7 @@
   [attr.aria-labelledby]="ariaLabelledby()"
   [attr.aria-describedby]="ariaDescribedby()"
 >
-  @if (hasComponents()) { @if (hasContentToken()) {
-  <ng-content></ng-content>
-  } @for (cid of templateComponentIds(); track cid) { @if (componentTemplates()[cid]) {
-  <ng-container [ngTemplateOutlet]="componentTemplates()[cid]"></ng-container>
-  } } @if (!hasContentToken()) {
-  <ng-content></ng-content>
-  } } @else {
-  <ng-content></ng-content>
-  }
+  <ng-container [ngTemplateOutlet]="contentGenericContainerTpl"></ng-container>
 </aside>
 } @default {
 <div
@@ -159,14 +108,6 @@
   [attr.aria-labelledby]="ariaLabelledby()"
   [attr.aria-describedby]="ariaDescribedby()"
 >
-  @if (hasComponents()) { @if (hasContentToken()) {
-  <ng-content></ng-content>
-  } @for (cid of templateComponentIds(); track cid) { @if (componentTemplates()[cid]) {
-  <ng-container [ngTemplateOutlet]="componentTemplates()[cid]"></ng-container>
-  } } @if (!hasContentToken()) {
-  <ng-content></ng-content>
-  } } @else {
-  <ng-content></ng-content>
-  }
+  <ng-container [ngTemplateOutlet]="contentGenericContainerTpl"></ng-container>
 </div>
 } }

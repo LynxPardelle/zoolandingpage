@@ -10,6 +10,7 @@ export interface HeroTranslations {
     title: string;
     subtitle: string;
     description: string;
+    readonly backgroundImage?: string;
     primary: { label: string; trackLabel: string };
     secondary: { label: string; trackLabel: string };
     badges: readonly { text: string }[];

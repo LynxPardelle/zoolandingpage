@@ -1,11 +1,10 @@
 import { CommonModule } from '@angular/common';
 import type { TemplateRef } from '@angular/core';
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-/* import { GenericMultiComponents } from "../generic-multi-components/generic-multi-components"; */
 import type { GenericContainerComponentTag, TGenericContainerConfig } from './generic-container.types';
 @Component({
   selector: 'generic-container',
-  imports: [CommonModule, /* GenericMultiComponents */],
+  imports: [CommonModule],
   templateUrl: './generic-container.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -14,13 +13,13 @@ export class GenericContainerComponent {
 
   readonly tag = computed<GenericContainerComponentTag>(() => this.config().tag ?? 'div');
 
-  readonly id = computed(() => this.config().id ?? null);
+  readonly id = computed(() => this.config().id ?? undefined);
   readonly classes = computed(() => this.config().classes ?? '');
 
-  readonly role = computed(() => this.config().role ?? null);
-  readonly ariaLabel = computed(() => this.config().ariaLabel ?? null);
-  readonly ariaLabelledby = computed(() => this.config().ariaLabelledby ?? null);
-  readonly ariaDescribedby = computed(() => this.config().ariaDescribedby ?? null);
+  readonly role = computed(() => this.config().role ?? undefined);
+  readonly ariaLabel = computed(() => this.config().ariaLabel ?? undefined);
+  readonly ariaLabelledby = computed(() => this.config().ariaLabelledby ?? undefined);
+  readonly ariaDescribedby = computed(() => this.config().ariaDescribedby ?? undefined);
 
   readonly classMap = computed(() => this.config().classMap ?? null);
   readonly styles = computed(() => this.config().styles ?? null);

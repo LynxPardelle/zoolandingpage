@@ -9,8 +9,8 @@ import { AccordionItem, TAccordionConfig } from './generic-accordion.types';
   styleUrls: ['./generic-accordion.component.scss'],
 })
 export class GenericAccordionComponent {
-  readonly _config = input<TAccordionConfig>({ items: [] });
-  readonly items: Signal<readonly AccordionItem[]> = computed(() => this._config().items ?? []);
+  readonly config = input<TAccordionConfig>({ items: [] });
+  readonly items: Signal<readonly AccordionItem[]> = computed(() => this.config().items ?? []);
 
 
   private expanded = signal<readonly string[]>([]);
@@ -27,9 +27,9 @@ export class GenericAccordionComponent {
   panelId = (id: string) => this.idPrefix + 'panel-' + id;
 
   toggle(id: string) {
-    if (this._config().mode === 'single') {
+    if (this.config().mode === 'single') {
       if (this.isExpanded(id)) {
-        if (this._config().allowToggle) this.expanded.set([]);
+        if (this.config().allowToggle) this.expanded.set([]);
       } else {
         this.expanded.set([id]);
       }
