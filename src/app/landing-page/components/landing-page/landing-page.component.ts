@@ -9,32 +9,15 @@ import { LanguageService } from '../../../core/services/language.service';
 import { ToastService } from '../../../shared/components/generic-toast';
 import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '../../../shared/services/analytics.events';
 import { StructuredDataService } from '../../../shared/services/structured-data.service';
-import { RoiNoteComponent } from '../conversion-note/conversion-note.component';
-import { FaqSectionComponent } from '../faq-section/faq-section.component';
-import { FeaturesSectionComponent } from '../features-section/features-section.component';
-import { FinalCtaSectionComponent } from '../final-cta-section/final-cta-section.component';
 /* import { HeroSectionComponent } from '../hero-section'; */
-import { InteractiveProcessComponent } from '../interactive-process/interactive-process.component';
-import { ServicesSectionComponent } from '../services-section/services-section.component';
-import { StatsStripSectionComponent } from '../stats-strip-section/stats-strip-section.component';
-import { TestimonialsSectionComponent } from '../testimonials-section/testimonials-section.component';
 import { buildTestimonialListSchema } from '../testimonials-section/testimonials-section.constants';
 import { LandingPageI18nService } from './landing-page-i18n.service';
-import type { InteractiveProcess } from './landing-page.types';
 
 @Component({
   selector: 'app-landing-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     /* HeroSectionComponent, */
-    RoiNoteComponent,
-    FeaturesSectionComponent,
-    InteractiveProcessComponent,
-    ServicesSectionComponent,
-    StatsStripSectionComponent,
-    TestimonialsSectionComponent,
-    FaqSectionComponent,
-    FinalCtaSectionComponent,
     WrapperOrchestrator,
 
   ],
@@ -50,8 +33,6 @@ export class LandingPageComponent {
   readonly i18n = inject(LandingPageI18nService);
   private readonly structured = inject(StructuredDataService);
   readonly analyticsEvent = output<AnalyticsEventPayload>();
-  readonly WHATSAPP_PHONE = WHATSAPP_PHONE;
-  readonly currentDemoStep = signal(0);
   readonly isCalculatorVisible = signal(false);
   readonly calculatorBusinessSize = signal<'nano' | 'micro' | 'small' | 'medium'>('micro');
   readonly calculatorIndustry = signal('ecommerce');
@@ -62,24 +43,11 @@ export class LandingPageComponent {
   // Hero content centralized through i18n service
   readonly heroData = this.i18n.hero;
 
-  // Features content centralized through i18n service
-  readonly features = this.i18n.features;
-  // Services content centralized through i18n service
-  readonly services = this.i18n.services;
   // Testimonials content centralized through i18n service
   readonly testimonials = this.i18n.testimonials;
 
-  // UI text centralized through i18n service
-  readonly testimonialsTitle = computed(() => this.i18n.ui().sections.testimonials.title);
-  readonly testimonialsSubtitle = computed(() => this.i18n.ui().sections.testimonials.subtitle);
-
-  // Final CTA content centralized through i18n service
-  readonly finalCta = computed(() => this.i18n.ui().sections.finalCta);
-
   // Loading messages from centralized translations
   readonly loadingMessages = computed(() => this.i18n.ui().loading);
-  // Interactive process content centralized through i18n service (signal for reactivity)
-  readonly interactiveProcess = signal<readonly InteractiveProcess[]>(this.i18n.process());
 
   // Conversion/Revenue calculation based on business size, industry and visitors (migrated from legacy App component)
   readonly calculatedConversion = computed(() => {
@@ -142,18 +110,6 @@ export class LandingPageComponent {
     el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  setDemoStep(step: number): void {
-    this.currentDemoStep.set(step);
-
-    // Update demo data reactively
-    this.interactiveProcess.update(demos =>
-      demos.map(demo => ({
-        ...demo,
-        isActive: demo.step === step + 1,
-      }))
-    );
-    this.analyticsEvent.emit({ name: AnalyticsEvents.ProcessStepChange, category: AnalyticsCategories.Process, label: String(step + 1) });
-  }
   updateBusinessSize(size: 'nano' | 'micro' | 'small' | 'medium'): void {
     this.calculatorBusinessSize.set(size);
   }
@@ -200,21 +156,8 @@ export class LandingPageComponent {
     this.analyticsEvent.emit({ name: AnalyticsEvents.SectionView, category: AnalyticsCategories.Navigation, label: sectionName });
   }
 
-  // Forward child analytics with debug logging (helps diagnose missing final-cta events)
-  forwardAnalytics(evt: AnalyticsEventPayload): void {
-    /*  try { console.log('[LandingPage] forwardAnalytics called', evt); } catch { }
-     try { if (evt?.name?.startsWith('final_cta')) console.log('[LandingPage] forwarding final_cta event', evt); } catch { } */
-    this.analyticsEvent.emit(evt);
-  }
-
   // Inject high-level structured data once on component init (browser only)
   constructor() {
-    // Update interactive process when language changes
-    effect(() => {
-      const processTranslations = this.i18n.process();
-      this.interactiveProcess.set(processTranslations);
-    });
-
     // Reactive SEO/meta updates on language changes
     effect(() => {
       const lang = this.lang.currentLanguage();

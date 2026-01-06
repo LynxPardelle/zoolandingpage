@@ -1,25 +1,5 @@
 <app-section spacing="lg">
   <app-container size="xl">
-    <div class="{{ titleClasses }}">
-      <h2>{{ sectionTitle() }}</h2>
-      <p>{{ sectionSubtitle() }}</p>
-    </div>
-    <div class="gridCol2">
-      @for (service of services(); track service.title) {
-      <generic-feature-card
-        [config]="{
-          icon: service.icon,
-          title: service.title,
-          description: service.description,
-          benefits: service.features,
-          buttonLabel: service.buttonLabel,
-          onCta: onCta
-        }"
-        [class]="
-          'ank-bg-secondaryBgColor ank-borderRadius-1rem ank-p-1_5rem cardHover ank-textAlign-center ank-border-1px ank-borderColor-border ank-h-calcSD100per__MIN__3remED'
-        "
-      ></generic-feature-card>
-      }
-    </div>
+    <wrapper-orchestrator [componentsIds]="['servicesSectionContent']"></wrapper-orchestrator>
   </app-container>
 </app-section>

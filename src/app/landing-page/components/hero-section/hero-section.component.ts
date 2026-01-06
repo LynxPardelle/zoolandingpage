@@ -1,5 +1,3 @@
-import { GenericTextComponent } from '@/app/shared/components/generic-text/generic-text';
-import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -11,13 +9,10 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { MatIconModule } from '@angular/material/icon';
-import { AppContainerComponent, AppSectionComponent } from '../../../core/components/layout';
+import { WrapperOrchestrator } from '../../../shared/components/wrapper-orchestrator/wrapper-orchestrator.component';
 import { AnalyticsService } from '../../../shared/services/analytics.service';
 import { MotionPreferenceService } from '../../../shared/services/motion-preference.service';
-import { CallToActionComponent } from '../call-to-action/call-to-action.component';
 import { LandingPageI18nService } from '../landing-page/landing-page-i18n.service';
-import { GenericContainerComponent } from './../../../shared/components/generic-container/generic-container';
 import { HERO_SECTION_BASE_CLASSES, HERO_SECTION_DEFAULT } from './hero-section.constants';
 import { HERO_ANIMATIONS } from './hero-section.styles';
 import { HeroSectionData } from './hero-section.types';
@@ -25,13 +20,7 @@ import { HeroSectionData } from './hero-section.types';
 @Component({
   selector: 'hero-section',
   imports: [
-    CommonModule,
-    AppSectionComponent,
-    AppContainerComponent,
-    CallToActionComponent,
-    MatIconModule,
-    GenericTextComponent,
-    GenericContainerComponent,
+    WrapperOrchestrator,
   ],
   templateUrl: './hero-section.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

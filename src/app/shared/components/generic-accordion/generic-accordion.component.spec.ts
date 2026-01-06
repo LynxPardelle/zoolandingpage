@@ -8,10 +8,12 @@ describe('GenericAccordionComponent', () => {
     await TestBed.configureTestingModule({ imports: [GenericAccordionComponent] }).compileComponents();
     fixture = TestBed.createComponent(GenericAccordionComponent);
     comp = fixture.componentInstance;
-    comp.itemsSource = [
-      { id: 'a', title: 'A', content: 'aa' },
-      { id: 'b', title: 'B', content: 'bb' },
-    ];
+    fixture.componentRef.setInput('config', {
+      items: [
+        { id: 'a', title: 'A', content: 'aa' },
+        { id: 'b', title: 'B', content: 'bb' },
+      ],
+    });
     fixture.detectChanges();
   });
   it('should render two items', () => {

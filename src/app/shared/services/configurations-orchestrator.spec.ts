@@ -1,13 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 
-import { ConfigurationsOrchestrator } from './configurations-orchestrator';
+import { ConfigurationsOrchestratorService } from './configurations-orchestrator';
 
-describe('ConfigurationsOrchestrator', () => {
-  let service: ConfigurationsOrchestrator;
+describe('ConfigurationsOrchestratorService', () => {
+  let service: ConfigurationsOrchestratorService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({});
-    service = TestBed.inject(ConfigurationsOrchestrator);
+    service = TestBed.inject(ConfigurationsOrchestratorService);
   });
 
   it('should be created', () => {

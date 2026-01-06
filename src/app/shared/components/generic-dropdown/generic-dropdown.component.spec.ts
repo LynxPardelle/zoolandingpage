@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { DropdownItem, GenericDropdown } from './generic-dropdown.component';
+import { GenericDropdown } from './generic-dropdown.component';
+import type { DropdownItem } from './generic-dropdown.types';
 
 @Component({
   template: `<generic-dropdown [items]="items"><span trigger>Menu</span></generic-dropdown>`,

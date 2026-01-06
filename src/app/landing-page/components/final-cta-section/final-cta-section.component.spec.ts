@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FinalCtaSectionComponent } from './final-cta-section.component';
 
-describe('FinalCtaSectionComponent analytics', () => {
+describe('FinalCtaSectionComponent', () => {
   let fixture: ComponentFixture<FinalCtaSectionComponent>;
   let component: FinalCtaSectionComponent;
 
@@ -14,14 +14,9 @@ describe('FinalCtaSectionComponent analytics', () => {
     fixture.detectChanges();
   });
 
-  it('emits primary/secondary outputs on click handlers', () => {
-    const primarySpy = jasmine.createSpy('primary');
-    const secondarySpy = jasmine.createSpy('secondary');
-    component.primary.subscribe(primarySpy);
-    component.secondary.subscribe(secondarySpy);
-    component.onPrimary();
-    component.onSecondary();
-    expect(primarySpy).toHaveBeenCalled();
-    expect(secondarySpy).toHaveBeenCalled();
+  it('renders wrapper-orchestrator', () => {
+    expect(component).toBeTruthy();
+    const el: HTMLElement = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('wrapper-orchestrator')).not.toBeNull();
   });
 });

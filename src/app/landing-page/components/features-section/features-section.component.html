@@ -1,20 +1,5 @@
 <app-section spacing="lg">
   <app-container size="xl">
-    <div class="ank-textAlign-center ank-mb-4rem">
-      <h2 class="ank-fs-2rem ank-fontWeight-bold ank-mb-1rem ank-color-titleColor">{{ sectionContent().title }}</h2>
-      <p class="ank-fs-1_25rem ank-color-textColor ank-maxWidth-37_5rem ank-mx-auto">
-        {{ sectionContent().subtitle }}
-      </p>
-    </div>
-    <div class="gridCol2">
-      @for (item of config; track item.title) {
-      <generic-feature-card
-        [config]="item"
-        [class]="
-          'ank-bg-secondaryBgColor ank-borderRadius-1rem ank-p-1_5rem cardHover ank-textAlign-center ank-border-1px ank-borderColor-border ank-h-calcSD100per__MIN__3remED'
-        "
-      ></generic-feature-card>
-      }
-    </div>
+    <wrapper-orchestrator [componentsIds]="['featuresSectionContent']"></wrapper-orchestrator>
   </app-container>
 </app-section>

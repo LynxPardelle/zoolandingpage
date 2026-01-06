@@ -1,11 +1,14 @@
+import { ProcessStep } from '@/app/landing-page/components/interactive-process/interactive-process.types';
 import { LandingPageI18nService } from '@/app/landing-page/components/landing-page/index.i18n';
+import type { StatsCounterConfig } from '@/app/landing-page/components/stats-counter/stats-counter.types';
 import { MotionPreferenceService } from "@/app/shared/services/motion-preference.service";
-import { DOCUMENT, inject, Injectable } from '@angular/core';
+import { computed, DOCUMENT, inject, Injectable, signal } from '@angular/core';
 import { TGenericComponent } from '../components/wrapper-orchestrator/wrapper-orchestrator.types';
 import { buildWhatsAppUrl } from '../utility/buildWhatsAppUrl.utility';
 import { AnalyticsCategories, AnalyticsEvents } from './analytics.events';
 import { AnalyticsService } from './analytics.service';
 import { WHATSAPP_PHONE } from './contact.constants';
+import { QuickStatsService } from './quick-stats.service';
 @Injectable({
   providedIn: 'root',
 })
@@ -14,9 +17,75 @@ export class ConfigurationsOrchestratorService {
   private readonly motion = inject(MotionPreferenceService);
   private readonly doc: Document = inject(DOCUMENT);
   readonly analytics = inject(AnalyticsService);
+  private readonly quickStats = inject(QuickStatsService);
+
+  private readonly statsStripContent = computed(() => this.i18n.statsStrip());
+  private readonly statsStripRemote = computed(() => this.quickStats.remoteStats());
+
+  private readonly statsStripVisitsConfig = computed<StatsCounterConfig>(() => ({
+    target: Number(this.statsStripRemote()?.['metrics']?.['pageViews'] ?? this.analytics.getPageViewCount()),
+    durationMs: 1600,
+    startOnVisible: true,
+    format: (v: number) => Math.max(0, Math.round(v)).toLocaleString(),
+    ariaLabel: this.statsStripContent().visitsLabel,
+  }));
+
+  private readonly statsStripCtaInteractionsConfig = computed<StatsCounterConfig>(() => ({
+    target: Number(this.statsStripRemote()?.['metrics']?.['ctaClicks'] ?? this.analytics.getEventCount('ctaClicks')),
+    durationMs: 1800,
+    startOnVisible: true,
+    format: (v: number) => Math.max(0, Math.round(v)).toLocaleString(),
+    ariaLabel: this.statsStripContent().ctaInteractionsLabel,
+  }));
+
+  private readonly statsStripAverageTimeConfig = computed<StatsCounterConfig>(() => ({
+    target: Math.min(
+      600,
+      Math.max(
+        284,
+        Number(this.statsStripRemote()?.['metrics']?.['avgTimeSecs'] ?? this.analytics.getSessionEventCount() * 5)
+      )
+    ),
+    durationMs: 2000,
+    startOnVisible: true,
+    format: (v: number) => `${ Math.round(v) }s`,
+    ariaLabel: this.statsStripContent().averageTimeLabel,
+  }));
+
+  private readonly currentProcessStep = signal<number>(0);
+  private readonly interactiveProcessSteps = computed<readonly ProcessStep[]>(() => {
+    const stepIndex = this.currentProcessStep();
+    return this.i18n.process().map((demo) => ({
+      ...demo,
+      isActive: demo.step === stepIndex + 1,
+    }));
+  });
 
 
-  readonly accordions: TGenericComponent[] = [];
+  readonly accordions: TGenericComponent[] = [
+    {
+      id: 'faqAccordion',
+      type: 'accordion',
+      eventInstructions: 'trackFaqToggle:event.eventData',
+      config: {
+        items: this.i18n.faq().map(faqItem => ({
+          id: faqItem.id,
+          title: faqItem.title,
+          content: faqItem.content,
+        })),
+        mode: 'single',
+        allowToggle: true,
+        containerClasses: 'ank-display-flex ank-flexDirection-column ank-gap-0_25rem',
+        defaultItemContainerClasses: 'ank-border-1px-solid ank-borderColor-bgColor ank-borderRadius-0_5rem ank-transition-all ank-bgColor-transparent ng-star-inserted',
+        defaultItemButtonConfig: {
+          classes: 'ank-outline-2px__solid__secondaryAccentColor ank-m-8px ank-color-textColor ank-borderRadius-0_25rem ank-border-0 ank-width-100per ank-textAlign-left ank-padding-0_75rem ank-fontWeight-600 ank-transition-all ank-bgHover-secondaryAccentColor ank-colorHover-titleColor ank-cursor-pointer ank-bg-transparent'
+        },
+        defaultItemContainerIsExpandedClasses: 'accItemExpandedContainer',
+        defaultItemContainerIsNotExpandedClasses: 'accItemNotExpandedContainer',
+        defaultItemPanelClasses: 'ank-marginBlockStart-0 ank-marginBlockEnd-0 ank-color-textColor',
+      },
+    },
+  ];
   readonly buttons: TGenericComponent[] = [
     /* Hero */
     // Primary CTA
@@ -42,6 +111,42 @@ export class ConfigurationsOrchestratorService {
         classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypeOutlineVALSVLsecondaryLinkColorVLtextColorVL',
       }
     },
+
+    /* FAQ Section */
+    {
+      id: 'faqFooterButton',
+      type: 'button',
+      eventInstructions: 'openFaqCtaWhatsApp',
+      config: {
+        label: this.i18n.faqSection().footerButtonLabel,
+        loading: false,
+        disabled: false,
+        classes: 'btnBaseVALSVL1_5remVL1remVL ank-bg-transparent ank-border-2px__solid__secondaryAccentColor ank-color-secondaryAccentColor ank-ts-200 ank-bgHover-secondaryAccentColor ank-colorHover-secondaryTextColor ank-mx-auto',
+      }
+    },
+
+    /* Final CTA Section */
+    {
+      id: 'finalCtaPrimaryButton',
+      type: 'button',
+      eventInstructions: 'openFinalCtaWhatsApp:event.meta_title,primary',
+      meta_title: AnalyticsEvents.FinalCtaPrimaryClick,
+      config: {
+        label: this.i18n.finalCtaSection().primaryLabel,
+        classes: 'btnBaseVALSVL1_5remVL1remVL btnTypePrimaryVALSVLsecondaryLinkColorVLtextColorVL',
+      }
+    },
+    {
+      id: 'finalCtaSecondaryButton',
+      type: 'button',
+      eventInstructions: 'openFinalCtaWhatsApp:event.meta_title,secondary',
+      meta_title: AnalyticsEvents.FinalCtaSecondaryClick,
+      config: {
+        label: this.i18n.finalCtaSection().secondaryLabel,
+        classes:
+          'btnBaseVALSVL1_5remVL1remVL ank-bg-transparent ank-border-2px__solid__secondaryLinkColor ank-color-secondaryLinkColor ank-ts-200 ank-bgHover-secondaryLinkColor ank-colorHover-secondaryTextColor',
+      }
+    },
   ];
   readonly containers: TGenericComponent[] = [
     /* Hero */
@@ -62,7 +167,7 @@ export class ConfigurationsOrchestratorService {
       id: "heroContainerInner",
       type: 'container',
       config: {
-        id: 'home',
+        id: '_home',
         tag: 'div',
         classes:
           'ank-display-grid ank-gridTemplateColumns-1fr ank-gridTemplateColumns-lg-1fr__1fr ank-gap-2rem ank-alignItems-center ank-maxWidth-1280px ank-marginLeft-auto ank-marginRight-auto',
@@ -584,6 +689,371 @@ export class ConfigurationsOrchestratorService {
         components: ['phone_android', 'heroMobileLabel'],
       }
     },
+
+    /* Features Section */
+    {
+      id: 'featuresSection',
+      type: 'container',
+      config: {
+        id: 'features-section',
+        tag: 'section',
+        classes: 'ank-width-100per ank-position-relative ank-bg-bgColor ank-py-6rem',
+        components: ['featuresSectionContainer'],
+      }
+    },
+    {
+      id: 'featuresSectionContainer',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes:
+          'ank-width-100vw ank-px-1rem ank-boxSizing-borderMINbox ank-maxWidth-1280px ank-marginLeft-auto ank-marginRight-auto',
+        components: ['featuresSectionContent'],
+      }
+    },
+    {
+      id: 'featuresSectionContent',
+      type: 'container',
+      config: {
+        tag: 'div',
+        components: ['featuresSectionHeader', 'featuresSectionGrid'],
+      }
+    },
+    {
+      id: 'featuresSectionHeader',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-textAlign-center ank-mb-4rem',
+        components: ['featuresSectionTitle', 'featuresSectionSubtitle'],
+      }
+    },
+    {
+      id: 'featuresSectionGrid',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'gridCol2',
+        components: [...this.i18n.features().map((_, index) => `featuresCard${ index + 1 }`)],
+      }
+    },
+
+    /* Services Section */
+    {
+      id: 'servicesSection',
+      type: 'container',
+      config: {
+        id: 'services-section',
+        tag: 'section',
+        classes: 'ank-width-100per ank-position-relative ank-bg-bgColor ank-py-6rem',
+        components: ['servicesSectionContainer'],
+      }
+    },
+    {
+      id: 'servicesSectionContainer',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes:
+          'ank-width-100vw ank-px-1rem ank-boxSizing-borderMINbox ank-maxWidth-1280px ank-marginLeft-auto ank-marginRight-auto',
+        components: ['servicesSectionContent'],
+      }
+    },
+    {
+      id: 'servicesSectionContent',
+      type: 'container',
+      config: {
+        tag: 'div',
+        components: ['servicesSectionHeader', 'servicesSectionGrid'],
+      }
+    },
+    {
+      id: 'servicesSectionHeader',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-textAlign-center ank-mb-64px ank-fsSELCHILDh2-2rem ankfontWeightSELCHILDh2-bold ank-mbSELCHILDh2-16px ank-colorSELCHILDh2-titleColor ank-fsSELCHILDp-1_5rem ank-colorSELCHILDp-textColor ank-maxWidthSELCHILDp-700px ank-mxSELCHILDp-auto',
+        components: ['servicesSectionTitle', 'servicesSectionSubtitle'],
+      }
+    },
+    {
+      id: 'servicesSectionGrid',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'gridCol2',
+        components: [...this.i18n.services().map((_, index) => `servicesCard${ index + 1 }`)],
+      }
+    },
+
+    /* FAQ Section */
+    {
+      id: 'faqSection',
+      type: 'container',
+      config: {
+        id: 'faq-section',
+        tag: 'section',
+        classes: 'ank-width-100per ank-position-relative ank-bg-bgColor ank-py-6rem',
+        components: ['faqSectionContainer'],
+      }
+    },
+    {
+      id: 'faqSectionContainer',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes:
+          'ank-width-100vw ank-px-1rem ank-boxSizing-borderMINbox ank-maxWidth-1024px ank-marginLeft-auto ank-marginRight-auto',
+        components: ['faqSectionContent'],
+      }
+    },
+    {
+      id: 'faqSectionContent',
+      type: 'container',
+      config: {
+        tag: 'div',
+        components: ['faqSectionHeader', 'faqAccordionWrapper', 'faqSectionFooter'],
+      }
+    },
+    {
+      id: 'faqSectionHeader',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-textAlign-center ank-mb-64px ank-fsSELCHILDh2-2rem ankfontWeightSELCHILDh2-bold ank-mbSELCHILDh2-16px ank-colorSELCHILDh2-titleColor ank-fsSELCHILDp-1_5rem ank-colorSELCHILDp-textColor ank-maxWidthSELCHILDp-700px ank-mxSELCHILDp-auto',
+        components: ['faqSectionTitle', 'faqSectionSubtitle'],
+      }
+    },
+    {
+      id: 'faqAccordionWrapper',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-maxWidth-800px ank-mx-auto',
+        components: ['faqAccordion'],
+      }
+    },
+    {
+      id: 'faqSectionFooter',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-textAlign-center ank-mt-48px ank-fsSELCHILDp-1rem ank-colorSELCHILDp-textColor ank-mbSELCHILDp-24px',
+        components: ['faqFooterQuestion', 'faqFooterButton'],
+      }
+    },
+
+    /* Testimonials Section */
+    {
+      id: 'testimonialsSection',
+      type: 'container',
+      config: {
+        id: 'testimonials-section',
+        tag: 'section',
+        classes: 'ank-width-100per ank-position-relative ank-bg-bgColor ank-py-6rem',
+        components: ['testimonialsSectionContainer'],
+      }
+    },
+    {
+      id: 'testimonialsSectionContainer',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes:
+          'ank-width-100vw ank-px-1rem ank-boxSizing-borderMINbox ank-maxWidth-1280px ank-marginLeft-auto ank-marginRight-auto',
+        components: ['testimonialsSectionContent'],
+      }
+    },
+    {
+      id: 'testimonialsSectionContent',
+      type: 'container',
+      config: {
+        tag: 'div',
+        components: ['testimonialsSectionHeader', 'testimonialsSectionGrid'],
+      }
+    },
+    {
+      id: 'testimonialsSectionHeader',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes:
+          'ank-textAlign-center ank-mb-64px ank-fsSELCHILDh2-2rem ankfontWeightSELCHILDh2-bold ank-mbSELCHILDh2-16px ank-colorSELCHILDh2-titleColor ank-fsSELCHILDp-1_5rem ank-colorSELCHILDp-textColor ank-maxWidthSELCHILDp-700px ank-mxSELCHILDp-auto',
+        components: ['testimonialsSectionTitle', 'testimonialsSectionSubtitle'],
+      }
+    },
+    {
+      id: 'testimonialsSectionGrid',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'gridCol2',
+        components: [...this.i18n.testimonials().map((_, index) => `testimonialsCard${ index + 1 }`)],
+      }
+    },
+
+    /* Final CTA Section */
+    {
+      id: 'finalCtaSection',
+      type: 'container',
+      config: {
+        id: 'contact-section',
+        tag: 'section',
+        classes: 'ank-width-100per ank-position-relative ank-bg-accentColor ank-py-6rem',
+        components: ['finalCtaContainer'],
+      }
+    },
+    {
+      id: 'finalCtaContainer',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes:
+          'ank-width-100vw ank-px-1rem ank-boxSizing-borderMINbox ank-maxWidth-1024px ank-marginLeft-auto ank-marginRight-auto',
+        components: ['finalCtaContent'],
+      }
+    },
+    {
+      id: 'finalCtaContent',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-textAlign-center',
+        components: ['finalCtaTitle', 'finalCtaSubtitle', 'finalCtaButtonsRow', 'finalCtaTrust'],
+      }
+    },
+    {
+      id: 'finalCtaButtonsRow',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes:
+          'ank-display-flex ank-flexDirection-column ank-flexDirection-sm-row ank-gap-16px ank-justifyContent-center ank-mb-32px ank-alignItems-stretch',
+        components: ['finalCtaPrimaryButton', 'finalCtaSecondaryButton'],
+      }
+    },
+    {
+      id: 'finalCtaTrust',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-display-flex ank-flexDirection-column ank-alignItems-center ank-gap-16px ank-opacity-70',
+        components: ['finalCtaTrustFirst', 'finalCtaTrustSecondRow'],
+      }
+    },
+    {
+      id: 'finalCtaTrustSecondRow',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-display-flex ank-gap-16px ank-alignItems-center ank-fs-1rem ank-color-textColor',
+        components: [...this.i18n.finalCtaSection().trustSignals.second.map((_, index) => `finalCtaTrustSignal${ index + 1 }`)],
+      }
+    },
+
+    /* Stats Strip Section */
+    {
+      id: 'statsStripSection',
+      type: 'container',
+      config: {
+        id: 'stats-strip-section',
+        tag: 'section',
+        classes: 'ank-width-100per ank-position-relative ank-bg-accentColor ank-py-6rem',
+        components: ['statsStripContainer'],
+      }
+    },
+    {
+      id: 'statsStripContainer',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes:
+          'ank-width-100vw ank-px-1rem ank-boxSizing-borderMINbox ank-maxWidth-1024px ank-marginLeft-auto ank-marginRight-auto',
+        components: ['statsStripHeader', 'statsStripPanel'],
+      }
+    },
+    {
+      id: 'statsStripHeader',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-textAlign-center ank-mb-48px',
+        components: ['statsStripTitle', 'statsStripSubtitle', 'statsStripDescription'],
+      }
+    },
+    {
+      id: 'statsStripPanel',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-bg-accentColor ank-borderRadius-12px ank-p-24px ank-color-textColor',
+        components: ['statsStripRow'],
+      }
+    },
+    {
+      id: 'statsStripRow',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-display-flex ank-flex-wrap ank-gap-2rem ank-justifyContent-center',
+        components: ['statsStripVisitsBlock', 'statsStripCtaBlock', 'statsStripAvgTimeBlock'],
+      }
+    },
+    {
+      id: 'statsStripVisitsBlock',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-textAlign-center',
+        components: ['statsStripVisitsValue', 'statsStripVisitsLabel'],
+      }
+    },
+    {
+      id: 'statsStripVisitsValue',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-fs-2rem ank-fontWeight-bold ank-mb-8px',
+        components: ['statsStripVisitsCounter'],
+      }
+    },
+    {
+      id: 'statsStripCtaBlock',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-textAlign-center',
+        components: ['statsStripCtaValue', 'statsStripCtaLabel'],
+      }
+    },
+    {
+      id: 'statsStripCtaValue',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-fs-2rem ank-fontWeight-bold ank-mb-8px',
+        components: ['statsStripCtaCounter'],
+      }
+    },
+    {
+      id: 'statsStripAvgTimeBlock',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-textAlign-center',
+        components: ['statsStripAvgTimeValue', 'statsStripAvgTimeLabel'],
+      }
+    },
+    {
+      id: 'statsStripAvgTimeValue',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-fs-2rem ank-fontWeight-bold ank-mb-8px',
+        components: ['statsStripAvgTimeCounter'],
+      }
+    },
+
     /* Conversion Note */
     // Conversion Note Container
     {
@@ -672,7 +1142,69 @@ export class ConfigurationsOrchestratorService {
     }
   ];
   readonly dropdowns: TGenericComponent[] = [];
-  readonly cards: TGenericComponent[] = [];
+  readonly cards: TGenericComponent[] = [
+    /* Features Section */
+    ...this.i18n.features().map((item, index) => ({
+      id: `featuresCard${ index + 1 }`,
+      type: 'feature-card',
+      config: {
+        icon: item.icon,
+        title: item.title,
+        description: item.description,
+        benefits: item.benefits,
+        classes:
+          'ank-bg-secondaryBgColor ank-borderRadius-1rem ank-p-1_5rem cardHover ank-textAlign-center ank-border-1px ank-borderColor-border ank-h-calcSD100per__MIN__3remED',
+      },
+    })) as TGenericComponent[],
+
+    /* Services Section */
+    ...this.i18n.services().map((service, index) => ({
+      id: `servicesCard${ index + 1 }`,
+      type: 'feature-card',
+      config: {
+        icon: service.icon,
+        title: service.title,
+        description: service.description,
+        benefits: service.features,
+        buttonLabel: service.buttonLabel,
+        onCta: (title: string) => this.openWhatsApp(AnalyticsEvents.ServicesCtaClick, 'services', title),
+        classes:
+          'ank-bg-secondaryBgColor ank-borderRadius-1rem ank-p-1_5rem cardHover ank-textAlign-center ank-border-1px ank-borderColor-border ank-h-calcSD100per__MIN__3remED',
+      },
+    })) as TGenericComponent[],
+
+    /* Testimonials Section */
+    ...this.i18n.testimonials().map((t, index) => ({
+      id: `testimonialsCard${ index + 1 }`,
+      type: 'testimonial-card',
+      config: {
+        name: t.name,
+        role: t.role,
+        company: t.company,
+        content: t.content,
+        rating: t.rating,
+        avatar: t.avatar,
+      },
+    })) as TGenericComponent[],
+  ];
+
+  readonly statsCounters: TGenericComponent[] = [
+    {
+      id: 'statsStripVisitsCounter',
+      type: 'stats-counter',
+      config: this.statsStripVisitsConfig,
+    },
+    {
+      id: 'statsStripCtaCounter',
+      type: 'stats-counter',
+      config: this.statsStripCtaInteractionsConfig,
+    },
+    {
+      id: 'statsStripAvgTimeCounter',
+      type: 'stats-counter',
+      config: this.statsStripAverageTimeConfig,
+    },
+  ];
   readonly loadingSpinners: TGenericComponent[] = [];
   readonly icons: TGenericComponent[] = [
     /* Hero */
@@ -916,6 +1448,182 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: { tag: '', text: this.i18n.hero().floatingMetrics.mobileResponsive, }
     },
+
+    /* Features Section */
+    {
+      id: 'featuresSectionTitle',
+      type: 'text',
+      config: {
+        tag: 'h2',
+        text: this.i18n.featuresSection().title,
+        classes: 'ank-fs-2rem ank-fontWeight-bold ank-mb-1rem ank-color-titleColor',
+      }
+    },
+    {
+      id: 'featuresSectionSubtitle',
+      type: 'text',
+      config: {
+        tag: 'p',
+        text: this.i18n.featuresSection().subtitle,
+        classes: 'ank-fs-1_25rem ank-color-textColor ank-maxWidth-37_5rem ank-mx-auto',
+      }
+    },
+
+    /* Services Section */
+    {
+      id: 'servicesSectionTitle',
+      type: 'text',
+      config: {
+        tag: 'h2',
+        text: this.i18n.ui().sections.services.title,
+      }
+    },
+    {
+      id: 'servicesSectionSubtitle',
+      type: 'text',
+      config: {
+        tag: 'p',
+        text: this.i18n.ui().sections.services.subtitle,
+      }
+    },
+
+    /* FAQ Section */
+    {
+      id: 'faqSectionTitle',
+      type: 'text',
+      config: {
+        tag: 'h2',
+        text: this.i18n.ui().sections.faq.title,
+      }
+    },
+    {
+      id: 'faqSectionSubtitle',
+      type: 'text',
+      config: {
+        tag: 'p',
+        text: this.i18n.ui().sections.faq.subtitle,
+      }
+    },
+    {
+      id: 'faqFooterQuestion',
+      type: 'text',
+      config: {
+        tag: 'p',
+        text: this.i18n.faqSection().footerQuestion,
+      }
+    },
+
+    /* Final CTA Section */
+    {
+      id: 'finalCtaTitle',
+      type: 'text',
+      config: {
+        tag: 'h2',
+        text: this.i18n.finalCtaSection().title,
+        classes: 'ank-fs-2rem ank-fontWeight-bold ank-mb-16px ank-color-titleColor',
+      }
+    },
+    {
+      id: 'finalCtaSubtitle',
+      type: 'text',
+      config: {
+        tag: 'p',
+        text: this.i18n.finalCtaSection().subtitle,
+        classes: 'ank-fs-1_5rem ank-color-textColor ank-mb-32px ank-maxWidth-600px ank-mx-auto',
+      }
+    },
+    {
+      id: 'finalCtaTrustFirst',
+      type: 'text',
+      config: {
+        tag: 'p',
+        text: this.i18n.finalCtaSection().trustSignals.first,
+        classes: 'ank-fs-1rem ank-color-textColor ank-m-0',
+      }
+    },
+    ...this.i18n.finalCtaSection().trustSignals.second.map((signal, index) => ({
+      id: `finalCtaTrustSignal${ index + 1 }`,
+      type: 'text',
+      config: {
+        tag: 'span',
+        text: signal,
+      }
+    })) as TGenericComponent[],
+
+    /* Testimonials Section */
+    {
+      id: 'testimonialsSectionTitle',
+      type: 'text',
+      config: {
+        tag: 'h2',
+        text: this.i18n.ui().sections.testimonials.title,
+      }
+    },
+    {
+      id: 'testimonialsSectionSubtitle',
+      type: 'text',
+      config: {
+        tag: 'p',
+        text: this.i18n.ui().sections.testimonials.subtitle,
+      }
+    },
+
+    /* Stats Strip Section */
+    {
+      id: 'statsStripTitle',
+      type: 'text',
+      config: {
+        tag: 'h2',
+        text: this.statsStripContent().title,
+        classes: 'ank-fs-2rem ank-fontWeight-bold ank-mb-16px ank-color-titleColor',
+      }
+    },
+    {
+      id: 'statsStripSubtitle',
+      type: 'text',
+      config: {
+        tag: 'p',
+        text: this.statsStripContent().subtitle,
+        classes: 'ank-fs-1_5rem ank-color-textColor ank-mb-16px',
+      }
+    },
+    {
+      id: 'statsStripDescription',
+      type: 'text',
+      config: {
+        tag: 'p',
+        text: this.statsStripContent().description,
+        classes: 'ank-fs-1rem ank-color-textColor ank-maxWidth-700px ank-mx-auto',
+      }
+    },
+    {
+      id: 'statsStripVisitsLabel',
+      type: 'text',
+      config: {
+        tag: 'p',
+        text: this.statsStripContent().visitsLabel,
+        classes: 'ank-fs-1rem ank-opacity-90',
+      }
+    },
+    {
+      id: 'statsStripCtaLabel',
+      type: 'text',
+      config: {
+        tag: 'p',
+        text: this.statsStripContent().ctaInteractionsLabel,
+        classes: 'ank-fs-1rem ank-opacity-90',
+      }
+    },
+    {
+      id: 'statsStripAvgTimeLabel',
+      type: 'text',
+      config: {
+        tag: 'p',
+        text: this.statsStripContent().averageTimeLabel,
+        classes: 'ank-fs-1rem ank-opacity-90',
+      }
+    },
+
     /* Conversion Note */
     // Conversion Note Header Title
     {
@@ -981,6 +1689,29 @@ export class ConfigurationsOrchestratorService {
   readonly toasts: TGenericComponent[] = [];
   readonly tooltips: TGenericComponent[] = [];
 
+  readonly interactiveProcesses: TGenericComponent[] = [
+    {
+      id: 'interactiveProcessSection',
+      type: 'container',
+      config: {
+        id: 'process-section',
+        tag: 'div',
+        classes: '',
+        components: ['interactiveProcess'],
+      },
+    },
+    {
+      id: 'interactiveProcess',
+      type: 'interactive-process',
+      eventInstructions: 'setInteractiveProcessStep:event.eventData',
+      meta_title: String(AnalyticsEvents.ProcessStepChange),
+      config: {
+        process: this.interactiveProcessSteps,
+        currentStep: this.currentProcessStep,
+      },
+    },
+  ];
+
   readonly components: TGenericComponent[] = [
     ...this.accordions,
     ...this.buttons,
@@ -988,10 +1719,12 @@ export class ConfigurationsOrchestratorService {
     ...this.dropdowns,
     ...this.cards,
     ...this.icons,
+    ...this.interactiveProcesses,
     ...this.loadingSpinners,
     ...this.modals,
     ...this.progressBars,
     ...this.searchBoxes,
+    ...this.statsCounters,
     ...this.steppers,
     ...this.tabGroups,
     ...this.texts,
@@ -1007,10 +1740,16 @@ export class ConfigurationsOrchestratorService {
   }
 
   getComponentById(id: string) {
-    const component = this.components.find(component => component.id === id);
+    let component = this.components.find(component => component.id === id);
     if (!component) {
       console.error(`Component with id "${ id }" not found in ConfigurationsOrchestratorService.`);
     } else {
+      const normalizedType = String((component as any).type ?? '')
+        .trim()
+        .replace(/[\u2010\u2011\u2212]/g, '-');
+      if (normalizedType && normalizedType !== (component as any).type) {
+        component = { ...(component as any), type: normalizedType } as TGenericComponent;
+      }
       this.componentsAlreadyRendered.add(id);
       this.componentsToBeRendered.delete(id);
     }
@@ -1028,47 +1767,103 @@ export class ConfigurationsOrchestratorService {
     return Array.from(classesSet);
   }
 
-  readonly posibleActions = ['openWhatsApp', 'trackCTAClick', 'navigationToSection'];
+  readonly posibleActions = ['openWhatsApp', 'trackCTAClick', 'navigationToSection', 'setInteractiveProcessStep', 'trackFaqToggle', 'openFaqCtaWhatsApp', 'openFinalCtaWhatsApp'];
   handleComponentEvent(event: { componentId: string, meta_title?: string, eventName: string, eventData?: unknown, eventInstructions?: string }): void {
     console.log(`Event "${ event.eventName }" triggered from component with id "${ event.componentId }" with the following data: `, event.eventData, ' // and the following instructions: ', event.eventInstructions);
-    if (event.eventName === 'pressed') {
-      if (!!event.eventInstructions) {
-        const instructions = event.eventInstructions.split(';');
-        instructions.forEach(instruction => {
-          const [action, params] = instruction.split(':');
-          if (this.posibleActions.includes(action)) {
-            let paramList: any[] = params ? params.split(',') : [];
-            paramList = paramList.map(param => {
-              let p = param.trim();
-              if (p.includes('event.')) {
-                console.log('Resolving event param for ', p);
-                const eventKey = p.replace('event.', '');
-                p = (event as any)[eventKey];
-                console.log('Resolved to ', p);
-              }
-              if (p === 'null') return null;
-              if (p === 'undefined') return undefined;
-              if (!isNaN(Number(p))) return Number(p);
-              return p;
-            });
-            switch (action) {
-              case 'openWhatsApp':
-                this.openWhatsApp(...(paramList as [string, string, string?]));
-                break;
-              case 'trackCTAClick':
-                this.trackCTAClick(...(paramList as [string, string, string]));
-                break;
-              case 'navigationToSection':
-                this.navigationToSection(...(paramList as [string]));
-                break;
-              default:
-                console.error(`Action "${ action }" not recognized.`);
-                break;
-            }
+    if (!event.eventInstructions) return;
+    const instructions = event.eventInstructions.split(';');
+    instructions.forEach(instruction => {
+      const [action, params] = instruction.split(':');
+      if (this.posibleActions.includes(action)) {
+        let paramList: any[] = params ? params.split(',') : [];
+        paramList = paramList.map(param => {
+          let p = param.trim();
+          if (p.includes('event.')) {
+            console.log('Resolving event param for ', p);
+            const eventKey = p.replace('event.', '');
+            p = (event as any)[eventKey];
+            console.log('Resolved to ', p);
           }
+          if (p === 'null') return null;
+          if (p === 'undefined') return undefined;
+          if (!isNaN(Number(p))) return Number(p);
+          return p;
         });
+        switch (action) {
+          case 'openWhatsApp':
+            this.openWhatsApp(...(paramList as [string, string, string?]));
+            break;
+          case 'trackCTAClick':
+            this.trackCTAClick(...(paramList as [string, string, string]));
+            break;
+          case 'navigationToSection':
+            this.navigationToSection(...(paramList as [string]));
+            break;
+          case 'setInteractiveProcessStep':
+            this.setInteractiveProcessStep(...(paramList as [number]));
+            break;
+          case 'trackFaqToggle':
+            this.trackFaqToggle(paramList[0] as any);
+            break;
+          case 'openFaqCtaWhatsApp':
+            this.openFaqCtaWhatsApp();
+            break;
+          case 'openFinalCtaWhatsApp':
+            this.openFinalCtaWhatsApp(paramList[0] as any, paramList[1] as any);
+            break;
+          default:
+            console.error(`Action "${ action }" not recognized.`);
+            break;
+        }
       }
+    });
+  }
+
+  trackFaqToggle(eventData: { id?: string; expanded?: boolean } | undefined): void {
+    if (!eventData?.expanded) return;
+    const id = String(eventData.id ?? 'unknown');
+    this.handleAnalyticsEvent({ name: AnalyticsEvents.FaqOpen, category: AnalyticsCategories.Faq, label: id });
+  }
+
+  openFaqCtaWhatsApp(): void {
+    this.handleAnalyticsEvent({
+      name: AnalyticsEvents.FaqCtaClick,
+      category: AnalyticsCategories.CTA,
+      label: 'faq:whatsapp',
+      meta: { location: 'faq-section', channel: 'whatsapp' },
+    });
+    try {
+      const phone = WHATSAPP_PHONE;
+      const link = buildWhatsAppUrl(phone, this.i18n.ui().sections.faq.subtitle);
+      if (link && typeof window !== 'undefined') window.open(link, '_blank', 'noopener,noreferrer');
+    } catch {
+      // no-op
     }
+  }
+
+  openFinalCtaWhatsApp(eventName: string | undefined, variant: 'primary' | 'secondary' | string): void {
+    const name = String(eventName ?? AnalyticsEvents.CtaClick);
+    this.handleAnalyticsEvent({
+      name,
+      category: AnalyticsCategories.CTA,
+      label: `final-cta:${ String(variant || 'primary') }`,
+      meta: { location: 'final-cta', source: 'final_cta_section', channel: 'whatsapp', phone: WHATSAPP_PHONE }
+    });
+    try {
+      const link = buildWhatsAppUrl(WHATSAPP_PHONE, this.i18n.hero().subtitle);
+      if (link && typeof window !== 'undefined') window.open(link, '_blank', 'noopener,noreferrer');
+    } catch {
+      // no-op
+    }
+  }
+
+  setInteractiveProcessStep(step: number): void {
+    this.currentProcessStep.set(step);
+    this.handleAnalyticsEvent({
+      name: AnalyticsEvents.ProcessStepChange,
+      category: AnalyticsCategories.Process,
+      label: String(step + 1),
+    });
   }
 
   openWhatsApp(meta_title: string, location: string, serviceLabel?: string): void {
@@ -1080,7 +1875,7 @@ export class ConfigurationsOrchestratorService {
     const comingFromServicesSection = location === 'services';
     if (isService) {
       // Emit only if not original services section (avoid duplicates) or if we have an override label
-      if (!comingFromServicesSection) {
+      if (!comingFromServicesSection || !!serviceLabel) {
         const label = serviceLabel || 'whatsapp-button';
         this.handleAnalyticsEvent({ name: meta_title, category: AnalyticsCategories.CTA, label, meta: { location, via: 'whatsapp_button' } });
       }

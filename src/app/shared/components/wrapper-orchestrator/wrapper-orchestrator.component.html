@@ -45,6 +45,26 @@ component.id) { @switch (component.type) { @case('accordion') {
     [ngTemplateOutletContext]="{ $implicit: component }"
   ></ng-container>
 </generic-container>
+} @case('feature-card') {
+<generic-feature-card [config]="component.config"></generic-feature-card>
+} @case('interactive-process') {
+<interactive-process-leaf
+  [process]="component.config.process()"
+  [currentStep]="component.config.currentStep()"
+  (selectStep)="
+    eventEmitted({
+      component: component.id,
+      meta_title: component.meta_title,
+      eventName: 'selectStep',
+      eventData: $event,
+      eventInstructions: component.eventInstructions
+    })
+  "
+></interactive-process-leaf>
+} @case('stats-counter') {
+<stats-counter [config]="component.config()"></stats-counter>
+} @case('testimonial-card') {
+<generic-testimonial-card [config]="component.config"></generic-testimonial-card>
 } @case('icon') {
 <generic-icon [config]="component.config">
   <ng-container

@@ -1,17 +1,17 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { GenericTextComponent } from './generic-text';
 
-
-describe('GenericText', () => {
-  let component: GenericText;
-  let fixture: ComponentFixture<GenericText>;
+describe('GenericTextComponent', () => {
+  let component: GenericTextComponent;
+  let fixture: ComponentFixture<GenericTextComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [GenericText]
+      imports: [GenericTextComponent]
     })
       .compileComponents();
 
-    fixture = TestBed.createComponent(GenericText);
+    fixture = TestBed.createComponent(GenericTextComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

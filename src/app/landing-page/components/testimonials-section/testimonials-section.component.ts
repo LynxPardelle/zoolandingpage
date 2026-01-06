@@ -1,34 +1,12 @@
-import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
-import { AppContainerComponent, AppSectionComponent } from '../../../core/components/layout';
-import { GenericTestimonialCardComponent } from '../../../shared/components/generic-testimonial-card';
-import { LandingPageI18nService } from '../landing-page/landing-page-i18n.service';
-import { TestimonialItem } from './testimonials-section.types';
-import { TESTIMONIALS_SECTION_TITLE_CLASSES } from './testimonials-section.constants';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { WrapperOrchestrator } from '../../../shared/components/wrapper-orchestrator/wrapper-orchestrator.component';
 
 @Component({
   selector: 'testimonials-section',
-  imports: [CommonModule, AppSectionComponent, AppContainerComponent, GenericTestimonialCardComponent],
+  standalone: true,
+  imports: [WrapperOrchestrator],
   templateUrl: './testimonials-section.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TestimonialsSectionComponent {
-  private readonly i18n = inject(LandingPageI18nService);
-
-  readonly testimonials = input.required<readonly TestimonialItem[]>();
-
-  readonly titleClasses = TESTIMONIALS_SECTION_TITLE_CLASSES;
-
-  // Use centralized translations with parent override capability
-  readonly title = input<string>();
-  readonly subtitle = input<string>();
-
-  // Computed titles that fall back to centralized translations
-  readonly sectionTitle = computed(() =>
-    this.title() || this.i18n.ui().sections.testimonials.title
-  );
-
-  readonly sectionSubtitle = computed(() =>
-    this.subtitle() || this.i18n.ui().sections.testimonials.subtitle
-  );
 }

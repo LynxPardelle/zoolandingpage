@@ -1,36 +1,29 @@
+import { ConfigurationsOrchestratorService } from '@/app/shared/services/configurations-orchestrator';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ServicesSectionComponent } from './services-section.component';
 
-describe('ServicesSectionComponent analytics', () => {
+describe('ServicesSectionComponent', () => {
   let fixture: ComponentFixture<ServicesSectionComponent>;
-  let component: ServicesSectionComponent;
-  let emitted: any = null;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [ServicesSectionComponent],
+      providers: [
+        {
+          provide: ConfigurationsOrchestratorService,
+          useValue: {
+            getComponentById: () => undefined,
+            handleComponentEvent: () => undefined,
+          },
+        },
+      ],
     });
     fixture = TestBed.createComponent(ServicesSectionComponent);
-    component = fixture.componentInstance;
-    component.analyticsEvent.subscribe(e => emitted = e);
-    // Provide minimal input
-    (component as any).services = () => [
-      {
-        icon: 'check',
-        title: 'T1',
-        description: 'D',
-        features: [],
-        color: 'accentColor',
-      },
-    ];
     fixture.detectChanges();
   });
 
-  it('emits analytics event for service CTA clicks', () => {
-    component.onCta('T1');
-    expect(emitted?.name).toBe('services_cta_click');
-    expect(emitted?.category).toBe('cta');
-    expect(emitted?.label).toBe('T1');
-    expect(emitted?.meta?.location).toBe('services-section');
+  it('renders wrapper orchestrator', () => {
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('wrapper-orchestrator')).not.toBeNull();
   });
 });
