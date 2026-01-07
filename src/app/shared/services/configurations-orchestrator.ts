@@ -1,3 +1,5 @@
+import { LanguageService } from '@/app/core/services/language.service';
+import { ThemeService } from '@/app/core/services/theme.service';
 import { ProcessStep } from '@/app/landing-page/components/interactive-process/interactive-process.types';
 import { LandingPageI18nService } from '@/app/landing-page/components/landing-page/index.i18n';
 import type { StatsCounterConfig } from '@/app/landing-page/components/stats-counter/stats-counter.types';
@@ -18,6 +20,8 @@ export class ConfigurationsOrchestratorService {
   private readonly doc: Document = inject(DOCUMENT);
   readonly analytics = inject(AnalyticsService);
   private readonly quickStats = inject(QuickStatsService);
+  private readonly theme = inject(ThemeService);
+  private readonly language = inject(LanguageService);
 
   private readonly statsStripContent = computed(() => this.i18n.statsStrip());
   private readonly statsStripRemote = computed(() => this.quickStats.remoteStats());
@@ -147,6 +151,137 @@ export class ConfigurationsOrchestratorService {
           'btnBaseVALSVL1_5remVL1remVL ank-bg-transparent ank-border-2px__solid__secondaryLinkColor ank-color-secondaryLinkColor ank-ts-200 ank-bgHover-secondaryLinkColor ank-colorHover-secondaryTextColor',
       }
     },
+
+    /* Header */
+    {
+      id: 'toggleThemeDesktop',
+      type: 'button',
+      eventInstructions: 'toggleTheme',
+      meta_title: String(AnalyticsEvents.ThemeToggle),
+      config: {
+        id: 'toggleTheme',
+        label: this.theme.currentTheme() === 'dark' ? '☀️' : '🌙',
+        classes:
+          'btnBaseVALSVAL9N1remVAL9NVL1_5remVL0_5remVL1remVL ank-h-34_4px ank-border-none ank-bg-secondaryBgColor ank-color-textColor',
+      }
+    },
+    {
+      id: 'toggleLanguageDesktop',
+      type: 'button',
+      eventInstructions: 'toggleLanguage',
+      meta_title: String(AnalyticsEvents.LanguageToggle),
+      config: {
+        id: 'toggleLanguage',
+        label: this.language.currentLanguage() === 'en' ? 'EN' : 'ES',
+        classes:
+          'btnBaseVALSVAL9N1remVAL9NVL1_5remVL0_5remVL1remVL ank-bg-accentColor ank-color-secondaryTextColor ank-ts-200 ank-bgHover-secondaryAccentColor ank-colorHover-secondaryTextColor ank-border-none',
+      }
+    },
+    {
+      id: 'toggleThemeMobile',
+      type: 'button',
+      eventInstructions: 'toggleTheme',
+      meta_title: String(AnalyticsEvents.ThemeToggle),
+      config: {
+        id: 'toggleThemeMobile',
+        label: this.theme.currentTheme() === 'dark' ? '☀️' : '🌙',
+        classes:
+          'btnBaseVALSVAL9N1remVAL9NVL8pxVL8pxVL0_75remVL ank-width-36px ank-height-36px ank-border-none ank-bg-secondaryBgColor ank-color-textColor',
+      }
+    },
+    {
+      id: 'toggleLanguageMobile',
+      type: 'button',
+      eventInstructions: 'toggleLanguage',
+      meta_title: String(AnalyticsEvents.LanguageToggle),
+      config: {
+        id: 'toggleLanguageMobile',
+        label: this.language.currentLanguage() === 'en' ? 'EN' : 'ES',
+        classes:
+          'btnBaseVALSVAL9N1remVAL9NVL8pxVL8pxVL0_75remVL ank-bg-accentColor ank-color-secondaryTextColor ank-ts-200 ank-bgHover-secondaryAccentColor ank-colorHover-secondaryTextColor ank-width-36px ank-height-36px ank-border-none',
+      }
+    },
+  ];
+
+  readonly links: TGenericComponent[] = [
+    /* Header */
+    {
+      id: 'headerLogoImage',
+      type: 'link',
+      config: {
+        id: 'headerLogoImage',
+        href: '#home',
+        ariaLabel: 'Zoo Landing',
+        text: 'Zoo Landing',
+        classes:
+          'ank-fs-1_5rem ank-fs-md-2rem ank-fontWeight-bold ank-color-titleColor ank-ms-1rem ank-tde-none',
+      }
+    },
+    {
+      id: 'headerNavHome',
+      type: 'link',
+      eventInstructions: 'trackNavClick:home,event.eventData;navigationToSection:home',
+      config: {
+        id: 'headerNavHome',
+        href: '#home',
+        text: () => (this.language.currentLanguage() === 'en' ? 'Home' : 'Inicio'),
+        classes:
+          'ank-textDecoration-none ank-fontWeight-500 ank-letterSpacing-05px ank-position-relative ank-paddingInline-4px ank-paddingBlock-4px ank-transition-color ank-duration-200 ank-color-accentColor',
+      }
+    },
+    {
+      id: 'headerNavBenefits',
+      type: 'link',
+      eventInstructions: 'trackNavClick:benefits,event.eventData;navigationToSection:features-section',
+      config: {
+        id: 'headerNavBenefits',
+        href: '#features-section',
+        text: () => (this.language.currentLanguage() === 'en' ? 'Benefits' : 'Beneficios'),
+        classes:
+          'ank-textDecoration-none ank-fontWeight-500 ank-letterSpacing-05px ank-position-relative ank-paddingInline-4px ank-paddingBlock-4px ank-transition-color ank-duration-200 ank-color-textColor ank-opacity-80',
+      }
+    },
+    {
+      id: 'headerNavProcess',
+      type: 'link',
+      eventInstructions: 'trackNavClick:process,event.eventData;navigationToSection:process-section',
+      config: {
+        id: 'headerNavProcess',
+        href: '#process-section',
+        text: () => (this.language.currentLanguage() === 'en' ? 'Process' : 'Proceso'),
+        classes:
+          'ank-textDecoration-none ank-fontWeight-500 ank-letterSpacing-05px ank-position-relative ank-paddingInline-4px ank-paddingBlock-4px ank-transition-color ank-duration-200 ank-color-textColor ank-opacity-80',
+      }
+    },
+    {
+      id: 'headerNavServices',
+      type: 'link',
+      eventInstructions: 'trackNavClick:services,event.eventData;navigationToSection:services-section',
+      config: {
+        id: 'headerNavServices',
+        href: '#services-section',
+        text: () => (this.language.currentLanguage() === 'en' ? 'Services' : 'Servicios'),
+        classes:
+          'ank-textDecoration-none ank-fontWeight-500 ank-letterSpacing-05px ank-position-relative ank-paddingInline-4px ank-paddingBlock-4px ank-transition-color ank-duration-200 ank-color-textColor ank-opacity-80',
+      }
+    },
+    {
+      id: 'headerNavContact',
+      type: 'link',
+      eventInstructions: 'trackNavClick:contact,event.eventData;navigationToSection:contact-section',
+      config: {
+        id: 'headerNavContact',
+        href: '#contact-section',
+        text: () => (this.language.currentLanguage() === 'en' ? 'Contact' : 'Contacto'),
+        classes:
+          'ank-textDecoration-none ank-fontWeight-500 ank-letterSpacing-05px ank-position-relative ank-paddingInline-4px ank-paddingBlock-4px ank-transition-color ank-duration-200 ank-color-textColor ank-opacity-80',
+      }
+    },
+  ];
+
+  readonly media: TGenericComponent[] = [
+    /* Header */
+    // (empty) — header logo is now a text link
   ];
   readonly containers: TGenericComponent[] = [
     /* Hero */
@@ -330,6 +465,122 @@ export class ConfigurationsOrchestratorService {
         components: ['heroBrowserMockupHeaderFakeUrlBarText'],
       }
     },
+
+    {
+      id: 'siteHeader',
+      type: 'container',
+      config: {
+        tag: 'header',
+        role: 'banner',
+        classes:
+          'ank-and-15s ank-anic-infinite ank-antf-ease ank-bg-bgColor ank-bg-transparent ank-bgcl-borderMINbox ank-bgi-linearMINgradientSD90degCOMbgColorCOMsecondaryBgColorED ank-bgs-200per ank-borderBottom-1px ank-borderColor-secondaryBgColor ank-color-textColor ank-position-sticky ank-top-0 ank-width-100per ank-zIndex-50 gradientShiftAnimation',
+        components: ['headerDesktop', 'headerMobile'],
+      }
+    },
+    {
+      id: 'headerDesktop',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes:
+          'ank-alignItems-center ank-container ank-display-flex ank-gap-24px ank-justifyContent-md-start ank-justifyContent-spaceMINbetween ank-marginInline-auto ank-maxWidth-7xl ank-paddingBottom-16px ank-paddingTop-16px ng-star-inserted',
+        components: ['headerLogo', 'headerDesktopNav'],
+      }
+    },
+    {
+      id: 'headerLogo',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-display-flex ank-alignItems-center',
+        components: ['headerLogoImage'],
+      }
+    },
+    {
+      id: 'headerDesktopNav',
+      type: 'container',
+      config: {
+        tag: 'nav',
+        ariaLabel: 'Primary',
+        classes:
+          'ank-display-none ank-display-md-flex ank-alignItems-center ank-jc-spaceMINbetween ank-gap-32px ank-w-calcSD100per__MIN__17remED ank-mx-1rem',
+        components: ['headerDesktopNavLinks', 'headerDesktopNavActions'],
+      }
+    },
+    {
+      id: 'headerDesktopNavLinks',
+      type: 'container',
+      config: {
+        tag: 'ul',
+        classes:
+          'ank-display-flex ank-gap-28px ank-listStyle-none ank-margin-0 ank-padding-0 ank-flexWrap-nowrap ank-whiteSpace-nowrap ank-justifyContent-spaceMINevenly ank-alignItems-center',
+        components: ['headerNavHomeLi', 'headerNavBenefitsLi', 'headerNavProcessLi', 'headerNavServicesLi', 'headerNavContactLi'],
+      }
+    },
+    {
+      id: 'headerNavHomeLi',
+      type: 'container',
+      config: {
+        tag: 'li',
+        classes: 'ank-position-relative',
+        components: ['headerNavHome'],
+      }
+    },
+    {
+      id: 'headerNavBenefitsLi',
+      type: 'container',
+      config: {
+        tag: 'li',
+        classes: 'ank-position-relative',
+        components: ['headerNavBenefits'],
+      }
+    },
+    {
+      id: 'headerNavProcessLi',
+      type: 'container',
+      config: {
+        tag: 'li',
+        classes: 'ank-position-relative',
+        components: ['headerNavProcess'],
+      }
+    },
+    {
+      id: 'headerNavServicesLi',
+      type: 'container',
+      config: {
+        tag: 'li',
+        classes: 'ank-position-relative',
+        components: ['headerNavServices'],
+      }
+    },
+    {
+      id: 'headerNavContactLi',
+      type: 'container',
+      config: {
+        tag: 'li',
+        classes: 'ank-position-relative',
+        components: ['headerNavContact'],
+      }
+    },
+    {
+      id: 'headerDesktopNavActions',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-display-none ank-display-md-flex ank-gap-12px',
+        components: ['toggleThemeDesktop', 'toggleLanguageDesktop'],
+      }
+    },
+    {
+      id: 'headerMobile',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-display-flex ank-display-md-none ank-alignItems-center ank-gap-8px ank-mr-24px',
+        components: ['toggleThemeMobile', 'toggleLanguageMobile'],
+      }
+    },
+
     // Hero Browser Mockup Landing Page
     {
       id: "heroBrowserMockupdLandingPage",
@@ -1715,6 +1966,8 @@ export class ConfigurationsOrchestratorService {
   readonly components: TGenericComponent[] = [
     ...this.accordions,
     ...this.buttons,
+    ...this.links,
+    ...this.media,
     ...this.containers,
     ...this.dropdowns,
     ...this.cards,
@@ -1767,7 +2020,7 @@ export class ConfigurationsOrchestratorService {
     return Array.from(classesSet);
   }
 
-  readonly posibleActions = ['openWhatsApp', 'trackCTAClick', 'navigationToSection', 'setInteractiveProcessStep', 'trackFaqToggle', 'openFaqCtaWhatsApp', 'openFinalCtaWhatsApp'];
+  readonly posibleActions = ['openWhatsApp', 'trackCTAClick', 'trackNavClick', 'navigationToSection', 'setInteractiveProcessStep', 'trackFaqToggle', 'openFaqCtaWhatsApp', 'openFinalCtaWhatsApp', 'toggleTheme', 'toggleLanguage'];
   handleComponentEvent(event: { componentId: string, meta_title?: string, eventName: string, eventData?: unknown, eventInstructions?: string }): void {
     console.log(`Event "${ event.eventName }" triggered from component with id "${ event.componentId }" with the following data: `, event.eventData, ' // and the following instructions: ', event.eventInstructions);
     if (!event.eventInstructions) return;
@@ -1796,6 +2049,9 @@ export class ConfigurationsOrchestratorService {
           case 'trackCTAClick':
             this.trackCTAClick(...(paramList as [string, string, string]));
             break;
+          case 'trackNavClick':
+            this.trackNavClick(paramList[0] as any, paramList[1] as any);
+            break;
           case 'navigationToSection':
             this.navigationToSection(...(paramList as [string]));
             break;
@@ -1811,11 +2067,41 @@ export class ConfigurationsOrchestratorService {
           case 'openFinalCtaWhatsApp':
             this.openFinalCtaWhatsApp(paramList[0] as any, paramList[1] as any);
             break;
+          case 'toggleTheme':
+            this.toggleTheme();
+            break;
+          case 'toggleLanguage':
+            this.toggleLanguage();
+            break;
           default:
             console.error(`Action "${ action }" not recognized.`);
             break;
         }
       }
+    });
+  }
+
+  toggleTheme(): void {
+    const before = this.theme.currentTheme();
+    this.theme.toggleTheme();
+    const after = this.theme.currentTheme();
+    this.handleAnalyticsEvent({
+      name: AnalyticsEvents.ThemeToggle,
+      category: AnalyticsCategories.Theme,
+      label: `${ before }->${ after }`,
+      meta: { before, after, type: 'theme', action: 'toggle' },
+    });
+  }
+
+  toggleLanguage(): void {
+    const before = this.language.currentLanguage();
+    this.language.toggleLanguage();
+    const after = this.language.currentLanguage();
+    this.handleAnalyticsEvent({
+      name: AnalyticsEvents.LanguageToggle,
+      category: AnalyticsCategories.I18N,
+      label: `${ before }->${ after }`,
+      meta: { before, after, type: 'language', action: 'toggle' },
     });
   }
 
@@ -1889,10 +2175,33 @@ export class ConfigurationsOrchestratorService {
   }
 
   navigationToSection(sectionId: string): void {
+    // Suppress SectionView spam during programmatic scroll
+    this.handleAnalyticsEvent({
+      name: AnalyticsEvents.SectionView,
+      category: AnalyticsCategories.Navigation,
+      label: 'suppress_request',
+      meta: { suppressForMs: 500, intent: 'suppress_section_view_during_programmatic_scroll' },
+    });
     const sectionElement = this.doc.getElementById(sectionId);
     if (sectionElement) {
       sectionElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+  }
+
+  trackNavClick(key: string, href: unknown): void {
+    const lang = this.language.currentLanguage();
+    const labels: Record<string, string> =
+      lang === 'en'
+        ? { home: 'Home', benefits: 'Benefits', process: 'Process', services: 'Services', contact: 'Contact' }
+        : { home: 'Inicio', benefits: 'Beneficios', process: 'Proceso', services: 'Servicios', contact: 'Contacto' };
+    const label = labels[String(key ?? '').trim()] ?? String(key ?? 'nav');
+    const hrefStr = String(href ?? '');
+    this.handleAnalyticsEvent({
+      name: AnalyticsEvents.NavClick,
+      category: AnalyticsCategories.Navigation,
+      label,
+      meta: { href: hrefStr },
+    });
   }
 
   // Unified analytics event handler (receives from any child component)

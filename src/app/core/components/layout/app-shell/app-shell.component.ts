@@ -1,3 +1,4 @@
+import { WrapperOrchestrator } from "@/app/shared/components/wrapper-orchestrator/wrapper-orchestrator.component";
 import { ConfigurationsOrchestratorService } from "@/app/shared/services/configurations-orchestrator";
 import {
   ChangeDetectionStrategy,
@@ -15,7 +16,7 @@ import {
 import { NavigationEnd, Router, RouterOutlet } from "@angular/router";
 import { NgxAngoraService } from "ngx-angora-css";
 import { filter } from "rxjs/operators";
-import { AppFooterComponent, AppHeaderComponent } from "..";
+import { AppFooterComponent } from "..";
 import { environment } from "../../../../../environments/environment";
 import { GenericButtonComponent } from "../../../../shared/components/generic-button/generic-button.component";
 import { GenericModalComponent } from "../../../../shared/components/generic-modal/generic-modal.component";
@@ -38,9 +39,10 @@ import { AppShellConfig } from "./app-shell.types";
 
 @Component({
   selector: "app-root",
+  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    AppHeaderComponent,
+    WrapperOrchestrator,
     AppFooterComponent,
     RouterOutlet,
     GenericModalComponent,

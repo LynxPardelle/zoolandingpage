@@ -1,0 +1,17 @@
+<a
+  [id]="config().id"
+  [href]="config().href"
+  [class]="config().classes"
+  [target]="config().target"
+  [rel]="config().rel || 'nofollow noopener noreferrer'"
+  [attr.aria-label]="config().ariaLabel || null"
+  [attr.aria-expanded]="config().ariaExpanded ?? null"
+  [attr.aria-controls]="config().ariaControls"
+  [attr.aria-current]="config().ariaCurrent ?? null"
+  [attr.data-components]="(config().components || []).join(',')"
+  (click)="onClick($event)"
+  >@if( text() ){
+  {{ text() }}
+  }
+  <ng-content></ng-content>
+</a>

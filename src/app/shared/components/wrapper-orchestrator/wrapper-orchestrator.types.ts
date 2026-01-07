@@ -5,6 +5,8 @@ import { TGenericButtonConfig } from "../generic-button/generic-button.types";
 import { TGenericContainerConfig } from "../generic-container/generic-container.types";
 import { GenericFeatureCardConfig } from "../generic-feature-card/generic-feature-card.types";
 import { TGenericIconConfig } from "../generic-icon/generic-icon.types";
+import { TGenericLinkConfig } from "../generic-link/generic-link.types";
+import type { TGenericMediaConfig } from "../generic-media/generic-media.types";
 import type { TestimonialCardConfig } from "../generic-testimonial-card/generic-testimonial-card.types";
 import { TGenericTextConfig } from "../generic-text/generic-text.types";
 
@@ -23,6 +25,8 @@ export type TGenericComponentType =
     | 'feature-card'
     | 'icon'
     | 'interactive-process'
+    | 'link'
+    | 'media'
     | 'loading-spinner'
     | 'modal'
     | 'progress-bar'
@@ -71,6 +75,14 @@ export type TGenericComponent = {
         {
             readonly type: 'text';
             readonly config: TGenericTextConfig;
+        } |
+        {
+            readonly type: 'link';
+            readonly config: TGenericLinkConfig;
+        } |
+        {
+            readonly type: 'media';
+            readonly config: TGenericMediaConfig;
         } |
         {
             readonly type: 'stats-counter';

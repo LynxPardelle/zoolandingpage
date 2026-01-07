@@ -4,6 +4,9 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 import type { GenericContainerComponentTag, TGenericContainerConfig } from './generic-container.types';
 @Component({
   selector: 'generic-container',
+  host: {
+    style: 'display: contents;',
+  },
   imports: [CommonModule],
   templateUrl: './generic-container.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

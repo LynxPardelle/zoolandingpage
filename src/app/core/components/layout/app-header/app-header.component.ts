@@ -20,7 +20,7 @@ import {
 import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '@/app/shared/services/analytics.events';
 import { AriaLiveService } from '@/app/shared/services/aria-live.service';
 import { output } from '@angular/core';
-import { GenericButtonComponent } from '../../../../shared/components/generic-button/generic-button.component';
+import { WrapperOrchestrator } from '../../../../shared/components/wrapper-orchestrator/wrapper-orchestrator.component';
 import { LanguageService } from '../../../services/language.service';
 import { ThemeService } from '../../../services/theme.service';
 import {
@@ -36,9 +36,10 @@ import {
 import type { AppHeaderConfig, AppHeaderState, HeaderNavItem } from './app-header.types';
 @Component({
   selector: 'app-header',
+  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app-header.component.html',
-  imports: [GenericButtonComponent],
+  imports: [WrapperOrchestrator],
 })
 export class AppHeaderComponent {
   // Injected services

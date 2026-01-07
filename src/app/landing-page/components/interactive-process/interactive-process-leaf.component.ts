@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, output } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { AppContainerComponent, AppSectionComponent } from '../../../core/components/layout';
+import { AppContainerComponent } from '../../../core/components/layout/app-container/app-container.component';
+import { AppSectionComponent } from '../../../core/components/layout/app-section/app-section.component';
 import { LandingPageI18nService } from '../landing-page/landing-page-i18n.service';
 import { ProcessStep } from './interactive-process.types';
 

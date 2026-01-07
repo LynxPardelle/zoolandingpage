@@ -1,0 +1,26 @@
+<ng-template #contentTpl>
+  <ng-content></ng-content>
+</ng-template>
+
+@switch (config()?.tag) { @case ('audio') {
+<audio [id]="config()?.id" [class]="config()?.classes" [src]="config()?.src" controls>
+  <ng-container [ngTemplateOutlet]="contentTpl"></ng-container>
+</audio>
+} @case ('video') {
+<video [id]="config()?.id" [class]="config()?.classes" [src]="config()?.src" controls>
+  <ng-container [ngTemplateOutlet]="contentTpl"></ng-container>
+</video>
+} @case ('image') {
+<img [id]="config()?.id" [class]="config()?.classes" [src]="config()?.src" [attr.alt]="config()?.alt" />
+<ng-container [ngTemplateOutlet]="contentTpl"></ng-container>
+} @case ('document') {
+<a [id]="config()?.id" [class]="config()?.classes" [href]="config()?.src" target="_blank" rel="noopener noreferrer">
+  {{ config()?.alt }}
+</a>
+<ng-container [ngTemplateOutlet]="contentTpl"></ng-container>
+} @default {
+<a [id]="config()?.id" [class]="config()?.classes" [href]="config()?.src" target="_blank" rel="noopener noreferrer">
+  {{ config()?.alt }}
+</a>
+<ng-container [ngTemplateOutlet]="contentTpl"></ng-container>
+} }

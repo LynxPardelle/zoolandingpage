@@ -9,6 +9,8 @@ import { GenericButtonComponent } from '../generic-button/generic-button.compone
 import { GenericContainerComponent } from '../generic-container/generic-container';
 import { GenericFeatureCardComponent } from '../generic-feature-card';
 import { GenericIconComponent } from '../generic-icon/generic-icon.component';
+import { GenericLink } from "../generic-link/generic-link";
+import { GenericMedia } from "../generic-media/generic-media";
 import { GenericTestimonialCardComponent } from '../generic-testimonial-card';
 import { GenericTextComponent } from '../generic-text/generic-text';
 import { TGenericComponent } from './wrapper-orchestrator.types';
@@ -16,6 +18,9 @@ import { TGenericComponent } from './wrapper-orchestrator.types';
 @Component({
   selector: 'wrapper-orchestrator',
   standalone: true,
+  host: {
+    style: 'display: contents;',
+  },
   imports: [
     CommonModule,
     GenericAccordionComponent,
@@ -27,7 +32,8 @@ import { TGenericComponent } from './wrapper-orchestrator.types';
     GenericTextComponent,
     InteractiveProcessLeafComponent,
     StatsCounterComponent,
-    // Add other generic components here as needed
+    GenericLink,
+    GenericMedia,
   ],
   templateUrl: './wrapper-orchestrator.component.html',
 })
@@ -36,7 +42,12 @@ export class WrapperOrchestrator {
   // Accepts an array of component IDs to render
   readonly componentsIds = input<readonly string[]>([]);
 
-  readonly components = computed<TGenericComponent[]>(() => this.componentsIds().map(id => this._configurationsOrchestratorService.getComponentById(id)).filter((c): c is TGenericComponent => c !== undefined));
+  readonly components = computed<TGenericComponent[]>(() =>
+    this
+      .componentsIds()
+      .map((id: string) => this._configurationsOrchestratorService.getComponentById(id))
+      .filter((c: TGenericComponent | undefined): c is TGenericComponent => c !== undefined)
+  );
 
   normalizeType(type: unknown): string {
     return String(type ?? '')

@@ -6,12 +6,8 @@
   (click)="focusMain($event)"
   >{{ skipLabel() }}</a
 >
-<div class="accContainer ank-d-none"></div>
-<app-header
-  [config]="headerConfig()"
-  (navChange)="onNavChange($event)"
-  (analyticsEvent)="handleAnalyticsEvent($event)"
-></app-header>
+<!-- <div class="accContainer ank-d-none"></div> -->
+<wrapper-orchestrator [componentsIds]="['siteHeader']"></wrapper-orchestrator>
 <main id="main-content" class="ank-outline-none" #main role="main" tabindex="-1">
   <router-outlet (activate)="onRouteActivate($event)"></router-outlet>
 </main>

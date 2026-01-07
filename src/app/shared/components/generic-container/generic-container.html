@@ -97,6 +97,32 @@
 >
   <ng-container [ngTemplateOutlet]="contentGenericContainerTpl"></ng-container>
 </aside>
+} @case('ul') {
+<ul
+  [id]="id()"
+  [class]="classes()"
+  [ngClass]="classMap()"
+  [ngStyle]="styles()"
+  [attr.role]="role()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+>
+  <ng-container [ngTemplateOutlet]="contentGenericContainerTpl"></ng-container>
+</ul>
+} @case('li') {
+<li
+  [id]="id()"
+  [class]="classes()"
+  [ngClass]="classMap()"
+  [ngStyle]="styles()"
+  [attr.role]="role()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+>
+  <ng-container [ngTemplateOutlet]="contentGenericContainerTpl"></ng-container>
+</li>
 } @default {
 <div
   [id]="id()"

@@ -72,6 +72,31 @@ component.id) { @switch (component.type) { @case('accordion') {
     [ngTemplateOutletContext]="{ $implicit: component }"
   ></ng-container>
 </generic-icon>
+} @case('link') {
+<generic-link
+  [config]="component.config"
+  (clicked)="
+    eventEmitted({
+      component: component.id,
+      meta_title: component.meta_title,
+      eventName: 'clicked',
+      eventData: component.config.href,
+      eventInstructions: component.eventInstructions
+    })
+  "
+>
+  <ng-container
+    [ngTemplateOutlet]="wrapperOrchestratorTpl"
+    [ngTemplateOutletContext]="{ $implicit: component }"
+  ></ng-container>
+</generic-link>
+} @case('media') {
+<generic-media [config]="component.config">
+  <ng-container
+    [ngTemplateOutlet]="wrapperOrchestratorTpl"
+    [ngTemplateOutletContext]="{ $implicit: component }"
+  ></ng-container>
+</generic-media>
 }@case('text') {
 <generic-text [config]="component.config">
   <ng-container

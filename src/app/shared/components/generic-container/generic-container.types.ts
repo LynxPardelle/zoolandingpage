@@ -9,6 +9,8 @@ export type GenericContainerComponentTag =
     | 'footer'
     | 'nav'
     | 'article'
+    | 'ul'
+    | 'li'
     | 'aside';
 
 export type TGenericContainerConfig = {
