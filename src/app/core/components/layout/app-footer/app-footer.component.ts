@@ -6,7 +6,6 @@
  */
 
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
-import { GenericButtonComponent } from '../../../../shared/components/generic-button/generic-button.component';
 import { GenericModalService } from '../../../../shared/components/generic-modal';
 import { I18nService } from '../../../../shared/services/i18n.service';
 import {
@@ -21,7 +20,7 @@ import type { AppFooterConfig, ContactInfo, SocialLink } from './app-footer.type
   selector: 'app-footer',
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app-footer.component.html',
-  imports: [GenericButtonComponent],
+  imports: [],
 })
 export class AppFooterComponent {
   // Services
