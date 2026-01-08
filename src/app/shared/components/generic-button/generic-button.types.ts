@@ -7,7 +7,7 @@ export type TGenericButtonConfig = {
   /** Native button type attribute */
   readonly type?: 'button' | 'submit' | 'reset';
   /** Optional text label; if omitted callers can project their own content */
-  readonly label?: string;
+  readonly label?: string | (() => string);
   /** Disable pointer interaction and dim the button */
   readonly disabled?: boolean;
   /** Show loading state and spinner icon */
@@ -23,7 +23,7 @@ export type TGenericButtonConfig = {
   /** ARIA role attribute */
   readonly role?: string;
   /** ARIA label attribute */
-  readonly ariaLabel?: string;
+  readonly ariaLabel?: string | (() => string);
   /** tabIndex attribute */
   readonly tabIndex?: number;
   /** ARIA pressed attribute */

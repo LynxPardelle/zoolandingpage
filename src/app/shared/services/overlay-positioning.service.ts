@@ -8,6 +8,7 @@ export type OverlayPositioningConfig = {
   readonly positions?: readonly ConnectedPosition[];
   readonly hasBackdrop?: boolean;
   readonly backdropClass?: string;
+  readonly panelClass?: string | string[];
   readonly offsetY?: number;
   readonly push?: boolean;
   readonly disableFlexibleDimensions?: boolean;
@@ -21,7 +22,7 @@ const DEFAULT_POSITIONS: readonly ConnectedPosition[] = [
 
 @Injectable({ providedIn: 'root' })
 export class OverlayPositioningService {
-  constructor(private readonly overlay: Overlay) {}
+  constructor(private readonly overlay: Overlay) { }
 
   createConnected(origin: ElementRef<HTMLElement>, cfg: OverlayPositioningConfig = {}): OverlayRef {
     const positions = (cfg.positions?.length ? cfg.positions : DEFAULT_POSITIONS).map(p => ({
@@ -37,6 +38,7 @@ export class OverlayPositioningService {
     return this.overlay.create({
       hasBackdrop: cfg.hasBackdrop !== false,
       backdropClass: cfg.backdropClass ?? 'cdk-overlay-transparent-backdrop',
+      panelClass: cfg.panelClass,
       positionStrategy,
       scrollStrategy: this.overlay.scrollStrategies.reposition(),
     });

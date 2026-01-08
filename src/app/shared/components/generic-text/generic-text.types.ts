@@ -18,10 +18,10 @@ export type TGenericTextConfig = {
     tag?: GenericTextTag;
 
     /** Usa text si quieres texto plano (recomendado). */
-    text?: string;
+    text?: string | (() => string);
 
     /** Usa html si necesitas markup; se sanitiza antes de renderizar. */
-    html?: string;
+    html?: string | (() => string);
 
     components?: readonly string[];
 

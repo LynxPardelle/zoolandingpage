@@ -1,7 +1,7 @@
-<footer [class]="computedFooterClasses()">
-  <div [class]="computedContentClasses()">
-    <!-- Legal Links Section (modals) -->
-    @if (config().showLegalLinks) {
+<!-- <footer [class]="computedFooterClasses()">
+  <div [class]="computedContentClasses()"> -->
+<!-- Legal Links Section (modals) -->
+<!--  @if (config().showLegalLinks) {
     <div class="ank-display-flex ank-flexDirection-column ank-alignItems-center ank-gap-8px ank-textAlign-center">
       <h3 class="ank-fontSize-lg ank-fontWeight-semibold ank-color-titleColor ank-margin-0">
         {{ t("footer.legal.title") }}
@@ -28,10 +28,10 @@
         </generic-button>
       </div>
     </div>
-    }
+    } -->
 
-    <!-- Social Links Section -->
-    @if (config().showSocialLinks && socialLinks().length > 0) {
+<!-- Social Links Section -->
+<!--    @if (config().showSocialLinks && socialLinks().length > 0) {
     <div class="ank-display-flex ank-gap-16px ank-alignItems-center">
       @for (link of socialLinks(); track link.name) {
       <a
@@ -45,15 +45,15 @@
       </a>
       }
     </div>
-    }
+    } -->
 
-    <!-- Copyright Section -->
-    @if (config().showCopyright) {
+<!-- Copyright Section -->
+<!-- @if (config().showCopyright) {
     <div class="ank-textAlign-center">
       <p class="ank-color-secondaryTextColor ank-fontSize-sm ank-margin-0">
         {{ config().copyrightText }}
       </p>
     </div>
-    }
-  </div>
-</footer>
+    } -->
+<!--   </div>
+</footer> -->

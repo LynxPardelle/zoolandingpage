@@ -5,8 +5,8 @@
   } }
 </ng-template>
 
-@defer (on viewport; prefetch on idle) { @if (components().length > 0) { @for (component of components(); track
-component.id) { @switch (component.type) { @case('accordion') {
+@if (components().length > 0) { @for (component of components(); track component.id) { @switch (component.type) {
+@case('accordion') {
 <generic-accordion
   [config]="component.config"
   (toggled)="
@@ -45,6 +45,27 @@ component.id) { @switch (component.type) { @case('accordion') {
     [ngTemplateOutletContext]="{ $implicit: component }"
   ></ng-container>
 </generic-container>
+} @case('dropdown') {
+<generic-dropdown
+  [items]="component.config.items"
+  [config]="component.config.dropdownConfig || null"
+  (selectItem)="
+    eventEmitted({
+      component: component.id,
+      meta_title: component.meta_title,
+      eventName: 'selectItem',
+      eventData: $event,
+      eventInstructions: component.eventInstructions
+    })
+  "
+>
+  <ng-container trigger>
+    <ng-container
+      [ngTemplateOutlet]="wrapperOrchestratorTpl"
+      [ngTemplateOutletContext]="{ $implicit: component }"
+    ></ng-container>
+  </ng-container>
+</generic-dropdown>
 } @case('feature-card') {
 <generic-feature-card [config]="component.config"></generic-feature-card>
 } @case('interactive-process') {
@@ -106,6 +127,4 @@ component.id) { @switch (component.type) { @case('accordion') {
 </generic-text>
 } @default {
 <span>Unknown component: {{ component.type }}</span>
-} } } } } @placeholder {
-<div>Loading components…</div>
-}
+} } } }

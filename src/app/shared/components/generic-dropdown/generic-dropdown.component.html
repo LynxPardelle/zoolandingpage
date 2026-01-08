@@ -13,22 +13,24 @@
     <ng-content select="[trigger]"></ng-content>
   </generic-button>
   <ng-template #defaultMenuTpl let-items="items" let-select="select">
-    <ul id="dd-menu" role="menu">
-      @for (it of items; track it.id; let idx = $index) {
-      <li role="none">
-        <generic-button
-          [config]="{
-            label: it.label,
-            disabled: it.disabled,
-            tabIndex: -1,
-            role: 'menuitem',
-            id: 'dd-opt-' + idx,
-            classes: ''
-          }"
-          (pressed)="select(it)"
-        />
-      </li>
-      }
-    </ul>
+    <nav [class]="menuNavClasses()">
+      <ul id="dd-menu" role="menu" [class]="menuListClasses()">
+        @for (it of items; track it.id; let idx = $index) {
+        <li role="none">
+          <a
+            [attr.id]="'dd-opt-' + idx"
+            role="menuitem"
+            [attr.aria-disabled]="it.disabled ? 'true' : null"
+            [attr.href]="it.value ? '#' + it.value : '#'"
+            [class]="itemLinkClasses()"
+            tabindex="-1"
+            (click)="$event.preventDefault(); !it.disabled && select(it)"
+          >
+            {{ typeof it.label === 'function' ? it.label() : it.label }}
+          </a>
+        </li>
+        }
+      </ul>
+    </nav>
   </ng-template>
 </div>

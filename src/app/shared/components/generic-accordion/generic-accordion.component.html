@@ -24,7 +24,7 @@
               config().defaultItemButtonIsNotExpandedClasses ||
               'accItemButtonIsNotExpanded'),
         type: 'button',
-        label: item.title,
+        label: titleOf(item),
         disabled: item.disabled,
         icon: item.buttonConfig?.icon || config().defaultItemButtonConfig?.icon,
         iconClasses:
@@ -36,7 +36,7 @@
               config().defaultItemIconIsNotExpandedClasses ||
               'accItemButtonIconIsNotExpanded'),
         iconPosition: item.buttonConfig?.iconPosition || config().defaultItemButtonConfig?.iconPosition || 'after',
-        ariaLabel: item.title,
+        ariaLabel: titleOf(item),
         tabIndex: item.disabled ? -1 : 0,
         ariaSelected: isExpanded(item.id) ? true : false,
         ariaExpanded: isExpanded(item.id),
@@ -53,8 +53,8 @@
       role="region"
       [attr.aria-labelledby]="buttonId(item.id)"
     >
-      @if(item.content) {
-      {{ item.content }}
+      @if(contentOf(item)) {
+      {{ contentOf(item) }}
       }
     </div>
     }

@@ -23,11 +23,23 @@ export class GenericFeatureCardComponent {
   }
 
   readonly icon = computed<string>(() => this._config().icon ?? '');
-  readonly title = computed<string>(() => this._config().title ?? '');
-  readonly description = computed<string>(() => this._config().description ?? '');
-  readonly benefits = computed<readonly string[]>(() => this._config().benefits ?? []);
+  readonly title = computed<string>(() => {
+    const raw = this._config().title ?? '';
+    return typeof raw === 'function' ? raw() : raw;
+  });
+  readonly description = computed<string>(() => {
+    const raw = this._config().description ?? '';
+    return typeof raw === 'function' ? raw() : raw;
+  });
+  readonly benefits = computed<readonly string[]>(() => {
+    const raw = this._config().benefits ?? [];
+    return typeof raw === 'function' ? raw() : raw;
+  });
   readonly classes = computed<string>(() => this._config().classes || '');
-  readonly buttonLabel = computed<string>(() => this._config().buttonLabel || '');
+  readonly buttonLabel = computed<string>(() => {
+    const raw = this._config().buttonLabel ?? '';
+    return typeof raw === 'function' ? raw() : raw;
+  });
 
   readonly onButtonPressed = (_event?: MouseEvent): void => {
     this._config().onCta?.(this.title());

@@ -7,8 +7,8 @@ import {
   computed,
   input
 } from "@angular/core";
-import type { TGenericButtonConfig } from "./generic-button.types";
 import { GenericIconComponent } from "../generic-icon/generic-icon.component";
+import type { TGenericButtonConfig } from "./generic-button.types";
 
 @Component({
   selector: "generic-button",
@@ -19,7 +19,13 @@ import { GenericIconComponent } from "../generic-icon/generic-icon.component";
 export class GenericButtonComponent {
   readonly config = input.required<TGenericButtonConfig>();
 
-  readonly label = computed<string>(() => this.config().label ?? "");
+  readonly label = computed<string>(() => {
+    const label = this.config().label;
+    if (typeof label === 'function') {
+      return label() ?? '';
+    }
+    return label ?? '';
+  });
   readonly disabled = computed<boolean>(() => this.config().disabled ?? false);
   readonly loading = computed<boolean>(() => this.config().loading ?? false);
   readonly icon = computed<string | undefined>(() => this.config().icon);
@@ -42,7 +48,11 @@ export class GenericButtonComponent {
     () => this.config().tabIndex
   );
   readonly ariaLabel = computed<string | undefined>(
-    () => this.config().ariaLabel
+    () => {
+      const raw = this.config().ariaLabel;
+      if (typeof raw === 'function') return raw();
+      return raw;
+    }
   );
   readonly ariaExpanded = computed<boolean | undefined>(
     () => this.config().ariaExpanded

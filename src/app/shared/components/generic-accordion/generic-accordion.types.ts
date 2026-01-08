@@ -3,8 +3,8 @@ import { TGenericButtonConfig } from "../generic-button/generic-button.types";
 
 export type AccordionItem = {
   readonly id: string;
-  readonly title: string;
-  readonly content: string; // For initial simple implementation; can be TemplateRef later
+  readonly title: string | (() => string);
+  readonly content: string | (() => string); // For initial simple implementation; can be TemplateRef later
   readonly disabled?: boolean;
   readonly containerClasses?: string;
   readonly containerIsExpandedClasses?: string;
@@ -22,7 +22,7 @@ export type AccordionMode = 'single' | 'multiple';
 export type TAccordionConfig = {
   readonly mode?: AccordionMode;
   readonly allowToggle?: boolean; // if single mode, allow closing the only open item
-  readonly items: readonly AccordionItem[];
+  readonly items: readonly AccordionItem[] | (() => readonly AccordionItem[]);
   readonly containerClasses?: string;
   readonly defaultItemContainerClasses?: string;
   readonly defaultItemContainerIsExpandedClasses?: string;

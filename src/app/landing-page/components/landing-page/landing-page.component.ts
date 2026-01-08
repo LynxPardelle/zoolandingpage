@@ -1,5 +1,4 @@
 import { DropdownItem, } from '@/app/shared/components/generic-dropdown';
-import { WrapperOrchestrator } from '@/app/shared/components/wrapper-orchestrator/wrapper-orchestrator.component';
 import { WHATSAPP_PHONE } from '@/app/shared/services/contact.constants';
 import { buildWhatsAppUrl } from '@/app/shared/utility/buildWhatsAppUrl.utility';
 import { DOCUMENT } from '@angular/common';
@@ -17,8 +16,7 @@ import { LandingPageI18nService } from './landing-page-i18n.service';
   selector: 'app-landing-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    /* HeroSectionComponent, */
-    WrapperOrchestrator,
+
 
   ],
   templateUrl: './landing-page.component.html',

@@ -3,6 +3,7 @@ import type { StatsCounterConfig } from "@/app/landing-page/components/stats-cou
 import { TAccordionConfig } from "../generic-accordion";
 import { TGenericButtonConfig } from "../generic-button/generic-button.types";
 import { TGenericContainerConfig } from "../generic-container/generic-container.types";
+import type { DropdownConfig, DropdownItem } from "../generic-dropdown/generic-dropdown.types";
 import { GenericFeatureCardConfig } from "../generic-feature-card/generic-feature-card.types";
 import { TGenericIconConfig } from "../generic-icon/generic-icon.types";
 import { TGenericLinkConfig } from "../generic-link/generic-link.types";
@@ -16,6 +17,12 @@ export type TInteractiveProcessConfig = {
 };
 
 export type TStatsCounterOrchestratorConfig = () => StatsCounterConfig;
+
+export type TGenericDropdownOrchestratorConfig = {
+    readonly items: readonly DropdownItem[];
+    readonly dropdownConfig?: DropdownConfig | null;
+    readonly components?: readonly string[];
+};
 
 export type TGenericComponentType =
     | 'accordion'
@@ -43,7 +50,7 @@ export type TGenericComponentType =
 
 export type TGenericComponent = {
     readonly id: string;
-    readonly condition?: boolean | string;
+    readonly condition?: boolean | string | (() => boolean);
     readonly eventInstructions?: string;
     readonly order?: number;
     readonly meta_title?: string;
@@ -63,6 +70,10 @@ export type TGenericComponent = {
         {
             readonly type: 'container';
             readonly config: TGenericContainerConfig;
+        } |
+        {
+            readonly type: 'dropdown';
+            readonly config: TGenericDropdownOrchestratorConfig;
         } |
         {
             readonly type: 'feature-card';

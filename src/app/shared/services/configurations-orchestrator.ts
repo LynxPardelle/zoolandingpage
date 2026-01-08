@@ -5,11 +5,13 @@ import { LandingPageI18nService } from '@/app/landing-page/components/landing-pa
 import type { StatsCounterConfig } from '@/app/landing-page/components/stats-counter/stats-counter.types';
 import { MotionPreferenceService } from "@/app/shared/services/motion-preference.service";
 import { computed, DOCUMENT, inject, Injectable, signal } from '@angular/core';
+import { GenericModalService } from '../components/generic-modal/generic-modal.service';
 import { TGenericComponent } from '../components/wrapper-orchestrator/wrapper-orchestrator.types';
 import { buildWhatsAppUrl } from '../utility/buildWhatsAppUrl.utility';
 import { AnalyticsCategories, AnalyticsEvents } from './analytics.events';
 import { AnalyticsService } from './analytics.service';
 import { WHATSAPP_PHONE } from './contact.constants';
+import { I18nService } from './i18n.service';
 import { QuickStatsService } from './quick-stats.service';
 @Injectable({
   providedIn: 'root',
@@ -22,6 +24,57 @@ export class ConfigurationsOrchestratorService {
   private readonly quickStats = inject(QuickStatsService);
   private readonly theme = inject(ThemeService);
   private readonly language = inject(LanguageService);
+  private readonly modal = inject(GenericModalService);
+  private readonly globalI18n = inject(I18nService);
+
+  private readonly footerConfig = {
+    showCopyright: true,
+    showSocialLinks: false,
+    showLegalLinks: true,
+    organizationName: 'Zoo Landing',
+    copyrightText: '© 2025 Zoo Landing Page. All rights reserved.',
+  } as const;
+
+  private readonly footerTranslations = {
+    en: {
+      legalTitle: 'Legal',
+      termsLink: 'Terms of Service',
+      dataLink: 'Data Privacy',
+      termsAriaLabel: 'Terms of Service',
+      dataAriaLabel: 'Data Privacy',
+    },
+    es: {
+      legalTitle: 'Legal',
+      termsLink: 'Términos de servicio',
+      dataLink: 'Privacidad de datos',
+      termsAriaLabel: 'Términos de servicio',
+      dataAriaLabel: 'Privacidad de datos',
+    },
+  } as const;
+
+  private readonly footerSocialLinks = [
+    {
+      id: 'footerSocialFacebook',
+      name: 'Facebook',
+      url: 'https://facebook.com/zoolanding',
+      icon: '📘',
+      ariaLabel: 'Visit our Facebook page',
+    },
+    {
+      id: 'footerSocialTwitter',
+      name: 'Twitter',
+      url: 'https://twitter.com/zoolanding',
+      icon: '🐦',
+      ariaLabel: 'Follow us on Twitter',
+    },
+    {
+      id: 'footerSocialInstagram',
+      name: 'Instagram',
+      url: 'https://instagram.com/zoolanding',
+      icon: '📷',
+      ariaLabel: 'Follow us on Instagram',
+    },
+  ] as const;
 
   private readonly statsStripContent = computed(() => this.i18n.statsStrip());
   private readonly statsStripRemote = computed(() => this.quickStats.remoteStats());
@@ -72,11 +125,12 @@ export class ConfigurationsOrchestratorService {
       type: 'accordion',
       eventInstructions: 'trackFaqToggle:event.eventData',
       config: {
-        items: this.i18n.faq().map(faqItem => ({
-          id: faqItem.id,
-          title: faqItem.title,
-          content: faqItem.content,
-        })),
+        items: () =>
+          this.i18n.faq().map((faqItem) => ({
+            id: faqItem.id,
+            title: faqItem.title,
+            content: faqItem.content,
+          })),
         mode: 'single',
         allowToggle: true,
         containerClasses: 'ank-display-flex ank-flexDirection-column ank-gap-0_25rem',
@@ -99,19 +153,19 @@ export class ConfigurationsOrchestratorService {
       eventInstructions: "openWhatsApp:event.meta_title,hero_primary,hero",
       meta_title: 'hero_primary_click',
       config: {
-        label: this.i18n.hero().primary.label,
+        label: () => this.i18n.hero().primary.label,
         classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLsecondaryLinkColorVLtextColorVL',
       }
     },
     // Secondary CTA
     {
       id: 'secondaryCTA',
-      condition: !!this.i18n.hero().secondary,
+      condition: () => !!this.i18n.hero().secondary,
       type: 'button',
       eventInstructions: "trackCTAClick:event.meta_title,secondary,hero;navigationToSection:features-section",
       meta_title: 'hero_secondary_click',
       config: {
-        label: this.i18n.hero().secondary.label,
+        label: () => this.i18n.hero().secondary.label,
         classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypeOutlineVALSVLsecondaryLinkColorVLtextColorVL',
       }
     },
@@ -122,7 +176,7 @@ export class ConfigurationsOrchestratorService {
       type: 'button',
       eventInstructions: 'openFaqCtaWhatsApp',
       config: {
-        label: this.i18n.faqSection().footerButtonLabel,
+        label: () => this.i18n.faqSection().footerButtonLabel,
         loading: false,
         disabled: false,
         classes: 'btnBaseVALSVL1_5remVL1remVL ank-bg-transparent ank-border-2px__solid__secondaryAccentColor ank-color-secondaryAccentColor ank-ts-200 ank-bgHover-secondaryAccentColor ank-colorHover-secondaryTextColor ank-mx-auto',
@@ -136,7 +190,7 @@ export class ConfigurationsOrchestratorService {
       eventInstructions: 'openFinalCtaWhatsApp:event.meta_title,primary',
       meta_title: AnalyticsEvents.FinalCtaPrimaryClick,
       config: {
-        label: this.i18n.finalCtaSection().primaryLabel,
+        label: () => this.i18n.finalCtaSection().primaryLabel,
         classes: 'btnBaseVALSVL1_5remVL1remVL btnTypePrimaryVALSVLsecondaryLinkColorVLtextColorVL',
       }
     },
@@ -146,7 +200,7 @@ export class ConfigurationsOrchestratorService {
       eventInstructions: 'openFinalCtaWhatsApp:event.meta_title,secondary',
       meta_title: AnalyticsEvents.FinalCtaSecondaryClick,
       config: {
-        label: this.i18n.finalCtaSection().secondaryLabel,
+        label: () => this.i18n.finalCtaSection().secondaryLabel,
         classes:
           'btnBaseVALSVL1_5remVL1remVL ank-bg-transparent ank-border-2px__solid__secondaryLinkColor ank-color-secondaryLinkColor ank-ts-200 ank-bgHover-secondaryLinkColor ank-colorHover-secondaryTextColor',
       }
@@ -160,9 +214,9 @@ export class ConfigurationsOrchestratorService {
       meta_title: String(AnalyticsEvents.ThemeToggle),
       config: {
         id: 'toggleTheme',
-        label: this.theme.currentTheme() === 'dark' ? '☀️' : '🌙',
+        label: () => (this.theme.currentTheme() === 'dark' ? '☀️' : '🌙'),
         classes:
-          'btnBaseVALSVAL9N1remVAL9NVL1_5remVL0_5remVL1remVL ank-h-34_4px ank-border-none ank-bg-secondaryBgColor ank-color-textColor',
+          'ank-alignItems-center ank-and-7s ank-anic-infinite ank-antf-ease ank-bgcl-borderMINbox ank-bgi-linearMINgradientSD90degCOMaltBgColorCOMaltAccentColorCOMaltSecondaryBgColorED ank-bgs-150per ank-border-none ank-borderRadius-1rem ank-display-flex ank-p-0_5rem__1_5rem gradientShiftAnimation',
       }
     },
     {
@@ -172,7 +226,7 @@ export class ConfigurationsOrchestratorService {
       meta_title: String(AnalyticsEvents.LanguageToggle),
       config: {
         id: 'toggleLanguage',
-        label: this.language.currentLanguage() === 'en' ? 'EN' : 'ES',
+        label: () => (this.language.currentLanguage() === 'en' ? 'EN' : 'ES'),
         classes:
           'btnBaseVALSVAL9N1remVAL9NVL1_5remVL0_5remVL1remVL ank-bg-accentColor ank-color-secondaryTextColor ank-ts-200 ank-bgHover-secondaryAccentColor ank-colorHover-secondaryTextColor ank-border-none',
       }
@@ -184,9 +238,9 @@ export class ConfigurationsOrchestratorService {
       meta_title: String(AnalyticsEvents.ThemeToggle),
       config: {
         id: 'toggleThemeMobile',
-        label: this.theme.currentTheme() === 'dark' ? '☀️' : '🌙',
+        label: () => (this.theme.currentTheme() === 'dark' ? '☀️' : '🌙'),
         classes:
-          'btnBaseVALSVAL9N1remVAL9NVL8pxVL8pxVL0_75remVL ank-width-36px ank-height-36px ank-border-none ank-bg-secondaryBgColor ank-color-textColor',
+          'ank-width-36px ank-height-36px ank-display-flex ank-alignItems-center ank-justifyContent-center ank-and-7s ank-anic-infinite ank-antf-ease ank-bgcl-borderMINbox ank-bgi-linearMINgradientSD90degCOMaltBgColorCOMaltAccentColorCOMaltSecondaryBgColorED ank-bgs-150per ank-border-none ank-borderRadius-1rem ank-p-0 gradientShiftAnimation',
       }
     },
     {
@@ -196,9 +250,45 @@ export class ConfigurationsOrchestratorService {
       meta_title: String(AnalyticsEvents.LanguageToggle),
       config: {
         id: 'toggleLanguageMobile',
-        label: this.language.currentLanguage() === 'en' ? 'EN' : 'ES',
+        label: () => (this.language.currentLanguage() === 'en' ? 'EN' : 'ES'),
         classes:
           'btnBaseVALSVAL9N1remVAL9NVL8pxVL8pxVL0_75remVL ank-bg-accentColor ank-color-secondaryTextColor ank-ts-200 ank-bgHover-secondaryAccentColor ank-colorHover-secondaryTextColor ank-width-36px ank-height-36px ank-border-none',
+      }
+    },
+
+    /* Footer */
+    {
+      id: 'footerTermsButton',
+      type: 'button',
+      eventInstructions: 'openFooterTerms',
+      config: {
+        label: () =>
+          this.language.currentLanguage() === 'en'
+            ? this.footerTranslations.en.termsLink
+            : this.footerTranslations.es.termsLink,
+        ariaLabel: () =>
+          this.language.currentLanguage() === 'en'
+            ? this.footerTranslations.en.termsAriaLabel
+            : this.footerTranslations.es.termsAriaLabel,
+        classes:
+          'ank-bg-transparent ank-border-0 ank-color-secondaryTextColor ank-fontSize-sm ank-textDecoration-underline ank-cursor-pointer',
+      }
+    },
+    {
+      id: 'footerDataButton',
+      type: 'button',
+      eventInstructions: 'openFooterData',
+      config: {
+        label: () =>
+          this.language.currentLanguage() === 'en'
+            ? this.footerTranslations.en.dataLink
+            : this.footerTranslations.es.dataLink,
+        ariaLabel: () =>
+          this.language.currentLanguage() === 'en'
+            ? this.footerTranslations.en.dataAriaLabel
+            : this.footerTranslations.es.dataAriaLabel,
+        classes:
+          'ank-bg-transparent ank-border-0 ank-color-secondaryTextColor ank-fontSize-sm ank-textDecoration-underline ank-cursor-pointer',
       }
     },
   ];
@@ -277,6 +367,21 @@ export class ConfigurationsOrchestratorService {
           'ank-textDecoration-none ank-fontWeight-500 ank-letterSpacing-05px ank-position-relative ank-paddingInline-4px ank-paddingBlock-4px ank-transition-color ank-duration-200 ank-color-textColor ank-opacity-80',
       }
     },
+
+    /* Footer */
+    ...this.footerSocialLinks.map(link => ({
+      id: link.id,
+      type: 'link',
+      config: {
+        id: link.id,
+        href: link.url,
+        text: link.icon,
+        classes: 'ank-color-secondaryTextColor ank-textDecoration-none ank-fontSize-lg ank-padding-8px ank-borderRadius-md ank-transition-colors',
+        target: '_blank',
+        rel: 'noopener noreferrer',
+        ariaLabel: link.ariaLabel,
+      }
+    })) as TGenericComponent[],
   ];
 
   readonly media: TGenericComponent[] = [
@@ -284,6 +389,27 @@ export class ConfigurationsOrchestratorService {
     // (empty) — header logo is now a text link
   ];
   readonly containers: TGenericComponent[] = [
+    /* Landing Page Root */
+    {
+      id: 'landingPage',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-display-flex ank-flexDirection-column',
+        components: [
+          'heroContainer',
+          'conversionNoteContainer',
+          'featuresSection',
+          'interactiveProcessSection',
+          'servicesSection',
+          'statsStripSection',
+          'testimonialsSection',
+          'faqSection',
+          'finalCtaSection'
+        ],
+      }
+    },
+
     /* Hero */
     // Hero Container
     {
@@ -327,7 +453,7 @@ export class ConfigurationsOrchestratorService {
       config: {
         tag: 'div',
         classes:
-          'ank-display-flex ank-flexDirection-column ank-flexDirection-sm-row ank-gap-1rem ank-justifyContent-center ank-justifyContent-lg-start',
+          'ank-display-flex ank-flexDirection-column ank-flexDirection-sm-row ank-gap-1rem ank-justifyContent-center ank-justifyContent-lg-start ank-alignItems-center ng-trigger ng-trigger-fadeInDelay',
         components: ['primaryCTA', 'secondaryCTA'],
       }
     },
@@ -388,7 +514,7 @@ export class ConfigurationsOrchestratorService {
     // Hero Image Mockup
     {
       id: "heroImageMockup",
-      condition: !!this.i18n.hero().backgroundImage,
+      condition: () => !!this.i18n.hero().backgroundImage,
       type: 'container',
       config: {
         tag: 'div',
@@ -483,7 +609,7 @@ export class ConfigurationsOrchestratorService {
       config: {
         tag: 'div',
         classes:
-          'ank-alignItems-center ank-container ank-display-flex ank-gap-24px ank-justifyContent-md-start ank-justifyContent-spaceMINbetween ank-marginInline-auto ank-maxWidth-7xl ank-paddingBottom-16px ank-paddingTop-16px ng-star-inserted',
+          'ank-display-none ank-display-md-flex ank-alignItems-center ank-container ank-gap-24px ank-justifyContent-md-start ank-justifyContent-spaceMINbetween ank-marginInline-auto ank-maxWidth-7xl ank-paddingBottom-16px ank-paddingTop-16px ng-star-inserted',
         components: ['headerLogo', 'headerDesktopNav'],
       }
     },
@@ -576,8 +702,18 @@ export class ConfigurationsOrchestratorService {
       type: 'container',
       config: {
         tag: 'div',
-        classes: 'ank-display-flex ank-display-md-none ank-alignItems-center ank-gap-8px ank-mr-24px',
-        components: ['toggleThemeMobile', 'toggleLanguageMobile'],
+        classes:
+          'ank-display-flex ank-display-md-none ank-alignItems-center ank-container ank-gap-24px ank-justifyContent-spaceMINbetween ank-marginInline-auto ank-maxWidth-7xl ank-paddingBottom-16px ank-paddingTop-16px',
+        components: ['headerLogo', 'headerMobileActions'],
+      }
+    },
+    {
+      id: 'headerMobileActions',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-display-flex ank-alignItems-center ank-gap-12px',
+        components: ['toggleThemeMobile', 'toggleLanguageMobile', 'headerMobileNav'],
       }
     },
 
@@ -1148,7 +1284,7 @@ export class ConfigurationsOrchestratorService {
       id: 'finalCtaSection',
       type: 'container',
       config: {
-        id: 'contact-section',
+        id: 'final-cta-section',
         tag: 'section',
         classes: 'ank-width-100per ank-position-relative ank-bg-accentColor ank-py-6rem',
         components: ['finalCtaContainer'],
@@ -1189,16 +1325,87 @@ export class ConfigurationsOrchestratorService {
       config: {
         tag: 'div',
         classes: 'ank-display-flex ank-flexDirection-column ank-alignItems-center ank-gap-16px ank-opacity-70',
-        components: ['finalCtaTrustFirst', 'finalCtaTrustSecondRow'],
+        components: ['finalCtaTrustLine1', 'finalCtaTrustRow2'],
       }
     },
+
     {
-      id: 'finalCtaTrustSecondRow',
+      id: 'finalCtaTrustRow2',
       type: 'container',
       config: {
         tag: 'div',
         classes: 'ank-display-flex ank-gap-16px ank-alignItems-center ank-fs-1rem ank-color-textColor',
-        components: [...this.i18n.finalCtaSection().trustSignals.second.map((_, index) => `finalCtaTrustSignal${ index + 1 }`)],
+        components: ['finalCtaTrustSpanSupport', 'finalCtaTrustSpanReports', 'finalCtaTrustSpanSeo'],
+      }
+    },
+    {
+      id: 'finalCtaTrustItems',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-display-flex ank-flexDirection-column ank-alignItems-center ank-gap-16px ank-opacity-70',
+        components: [
+          'finalCtaTrustItemMeasurement',
+          'finalCtaTrustItemSsl',
+          'finalCtaTrustItemDelivery',
+          'finalCtaTrustItemSupport',
+          'finalCtaTrustItemReports',
+          'finalCtaTrustItemSeo',
+        ],
+      }
+    },
+    {
+      id: 'finalCtaTrustItemMeasurement',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-display-flex ank-alignItems-center ank-gap-8px ank-fs-1rem ank-color-textColor',
+        components: ['finalCtaTrustIconMeasurement', 'finalCtaTrustTextMeasurement'],
+      }
+    },
+    {
+      id: 'finalCtaTrustItemSsl',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-display-flex ank-alignItems-center ank-gap-8px ank-fs-1rem ank-color-textColor',
+        components: ['finalCtaTrustIconSsl', 'finalCtaTrustTextSsl'],
+      }
+    },
+    {
+      id: 'finalCtaTrustItemDelivery',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-display-flex ank-alignItems-center ank-gap-8px ank-fs-1rem ank-color-textColor',
+        components: ['finalCtaTrustIconDelivery', 'finalCtaTrustTextDelivery'],
+      }
+    },
+    {
+      id: 'finalCtaTrustItemSupport',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-display-flex ank-alignItems-center ank-gap-8px ank-fs-1rem ank-color-textColor',
+        components: ['finalCtaTrustIconSupport', 'finalCtaTrustTextSupport'],
+      }
+    },
+    {
+      id: 'finalCtaTrustItemReports',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-display-flex ank-alignItems-center ank-gap-8px ank-fs-1rem ank-color-textColor',
+        components: ['finalCtaTrustIconReports', 'finalCtaTrustTextReports'],
+      }
+    },
+    {
+      id: 'finalCtaTrustItemSeo',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-display-flex ank-alignItems-center ank-gap-8px ank-fs-1rem ank-color-textColor',
+        components: ['finalCtaTrustIconSeo', 'finalCtaTrustTextSeo'],
       }
     },
 
@@ -1246,7 +1453,7 @@ export class ConfigurationsOrchestratorService {
       type: 'container',
       config: {
         tag: 'div',
-        classes: 'ank-display-flex ank-flex-wrap ank-gap-2rem ank-justifyContent-center',
+        classes: 'ank-display-flex ank-flexWrap-wrap ank-gap-2rem ank-justifyContent-center',
         components: ['statsStripVisitsBlock', 'statsStripCtaBlock', 'statsStripAvgTimeBlock'],
       }
     },
@@ -1390,9 +1597,122 @@ export class ConfigurationsOrchestratorService {
         classes: 'ank-bg-secondaryAccentColor ank-borderRadius-0_75rem ank-p-1rem ank-color-textColor',
         components: ['conversionNoteHint3Label', 'conversionNoteHint3Value'],
       }
-    }
+    },
+
+    /* Footer */
+    {
+      id: 'siteFooter',
+      type: 'container',
+      config: {
+        id: 'contact-section',
+        tag: 'footer',
+        classes:
+          'ank-width-100per ank-bg-secondaryBgColor ank-borderTop-1px ank-borderColor-secondaryBgColor ank-marginTop-auto ank-display-flex ank-justifyContent-center ank-paddingInline-16px ank-paddingBlock-24px',
+        components: ['siteFooterContent'],
+      }
+    },
+    {
+      id: 'siteFooterContent',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes:
+          'ank-display-flex ank-flexDirection-column ank-alignItems-center ank-justifyContent-center ank-gap-16px ank-width-100per ank-maxWidth-1200px ank-flexDirectionMd-row ank-justifyContentMd-spaceBetween ank-alignItemsMd-center',
+        components: ['footerLegalSection', 'footerSocialSection', 'footerCopyrightSection'],
+      }
+    },
+    {
+      id: 'footerLegalSection',
+      condition: this.footerConfig.showLegalLinks,
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes:
+          'ank-display-flex ank-flexDirection-column ank-alignItems-center ank-gap-8px ank-textAlign-center',
+        components: ['footerLegalTitle', 'footerLegalLinks'],
+      }
+    },
+    {
+      id: 'footerLegalLinks',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes:
+          'ank-display-flex ank-gap-12px ank-flexWrap-wrap ank-justifyContent-center',
+        components: ['footerTermsButton', 'footerLegalSeparator', 'footerDataButton'],
+      }
+    },
+    {
+      id: 'footerSocialSection',
+      condition: this.footerConfig.showSocialLinks && this.footerSocialLinks.length > 0,
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-display-flex ank-gap-16px ank-alignItems-center',
+        components: this.footerSocialLinks.map(link => link.id) as readonly string[],
+      }
+    },
+    {
+      id: 'footerCopyrightSection',
+      condition: this.footerConfig.showCopyright,
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-textAlign-center',
+        components: ['footerCopyrightText'],
+      }
+    },
   ];
-  readonly dropdowns: TGenericComponent[] = [];
+  readonly dropdowns: TGenericComponent[] = [
+    /* Header (Mobile) */
+    {
+      id: 'headerMobileNav',
+      type: 'dropdown',
+      eventInstructions: 'trackNavClick:event.eventData.id,event.eventData.value;navigationToSection:event.eventData.value',
+      config: {
+        items: [
+          {
+            id: 'home',
+            value: 'home',
+            label: () => (this.language.currentLanguage() === 'en' ? 'Home' : 'Inicio'),
+          },
+          {
+            id: 'benefits',
+            value: 'features-section',
+            label: () => (this.language.currentLanguage() === 'en' ? 'Benefits' : 'Beneficios'),
+          },
+          {
+            id: 'process',
+            value: 'process-section',
+            label: () => (this.language.currentLanguage() === 'en' ? 'Process' : 'Proceso'),
+          },
+          {
+            id: 'services',
+            value: 'services-section',
+            label: () => (this.language.currentLanguage() === 'en' ? 'Services' : 'Servicios'),
+          },
+          {
+            id: 'contact',
+            value: 'contact-section',
+            label: () => (this.language.currentLanguage() === 'en' ? 'Contact' : 'Contacto'),
+          },
+        ],
+        dropdownConfig: {
+          ariaLabel: 'Mobile navigation menu',
+          classes: '',
+          buttonClasses: 'ank-bg-transparent ank-border-0 ank-p-0 ank-cursor-pointer',
+          itemLinkClasses: 'ank-display-block ank-padding-8px ank-borderRadius-0_75rem ank-textDecoration-none ank-transition-bgColor ank-duration-50 ank-bg-secondaryBgColor ank-color-accentColor',
+          menuContainerClasses: 'ank-display-md-none ank-bg-bgColor ank-borderTop-1px ank-borderColor-secondaryBgColor ank-padding-20px ank-space-y-20px ank-animation-fadeInDown ng-star-inserted',
+          menuNavClasses: 'ng-star-inserted',
+          menuListClasses: 'ank-listStyle-none ank-padding-0 ank-margin-0 ank-display-flex ank-flexDirection-column ank-gap-8px',
+          renderMode: 'inline',
+          menuContainerId: 'mobile-primary-navigation',
+          closeOnSelect: true,
+        },
+        components: ['menu'],
+      }
+    },
+  ];
   readonly cards: TGenericComponent[] = [
     /* Features Section */
     ...this.i18n.features().map((item, index) => ({
@@ -1400,9 +1720,9 @@ export class ConfigurationsOrchestratorService {
       type: 'feature-card',
       config: {
         icon: item.icon,
-        title: item.title,
-        description: item.description,
-        benefits: item.benefits,
+        title: () => this.i18n.features()[index]?.title ?? '',
+        description: () => this.i18n.features()[index]?.description ?? '',
+        benefits: () => this.i18n.features()[index]?.benefits ?? [],
         classes:
           'ank-bg-secondaryBgColor ank-borderRadius-1rem ank-p-1_5rem cardHover ank-textAlign-center ank-border-1px ank-borderColor-border ank-h-calcSD100per__MIN__3remED',
       },
@@ -1414,10 +1734,10 @@ export class ConfigurationsOrchestratorService {
       type: 'feature-card',
       config: {
         icon: service.icon,
-        title: service.title,
-        description: service.description,
-        benefits: service.features,
-        buttonLabel: service.buttonLabel,
+        title: () => this.i18n.services()[index]?.title ?? '',
+        description: () => this.i18n.services()[index]?.description ?? '',
+        benefits: () => this.i18n.services()[index]?.features ?? [],
+        buttonLabel: () => this.i18n.services()[index]?.buttonLabel ?? '',
         onCta: (title: string) => this.openWhatsApp(AnalyticsEvents.ServicesCtaClick, 'services', title),
         classes:
           'ank-bg-secondaryBgColor ank-borderRadius-1rem ank-p-1_5rem cardHover ank-textAlign-center ank-border-1px ank-borderColor-border ank-h-calcSD100per__MIN__3remED',
@@ -1429,10 +1749,10 @@ export class ConfigurationsOrchestratorService {
       id: `testimonialsCard${ index + 1 }`,
       type: 'testimonial-card',
       config: {
-        name: t.name,
-        role: t.role,
-        company: t.company,
-        content: t.content,
+        name: () => this.i18n.testimonials()[index]?.name ?? '',
+        role: () => this.i18n.testimonials()[index]?.role ?? '',
+        company: () => this.i18n.testimonials()[index]?.company ?? '',
+        content: () => this.i18n.testimonials()[index]?.content ?? '',
         rating: t.rating,
         avatar: t.avatar,
       },
@@ -1531,6 +1851,73 @@ export class ConfigurationsOrchestratorService {
         classes: 'ank-color-secondaryAccentColor ank-fs-1_5rem'
       }
     },
+
+    /* Header */
+    {
+      id: 'menu',
+      type: 'icon',
+      config: {
+        iconName: 'menu',
+        ariaLabel: 'Open menu',
+        classes: 'ank-color-textColor ank-fs-1_5rem'
+      }
+    },
+
+    /* Final CTA Trust Icons */
+    {
+      id: 'finalCtaTrustIconMeasurement',
+      type: 'icon',
+      config: {
+        iconName: 'star',
+        ariaHidden: true,
+        classes: 'ank-color-secondaryAccentColor ank-fs-1_25rem'
+      }
+    },
+    {
+      id: 'finalCtaTrustIconSsl',
+      type: 'icon',
+      config: {
+        iconName: 'lock',
+        ariaHidden: true,
+        classes: 'ank-color-secondaryAccentColor ank-fs-1_25rem'
+      }
+    },
+    {
+      id: 'finalCtaTrustIconDelivery',
+      type: 'icon',
+      config: {
+        iconName: 'flash_on',
+        ariaHidden: true,
+        classes: 'ank-color-secondaryAccentColor ank-fs-1_25rem'
+      }
+    },
+    {
+      id: 'finalCtaTrustIconSupport',
+      type: 'icon',
+      config: {
+        iconName: 'support_agent',
+        ariaHidden: true,
+        classes: 'ank-color-secondaryAccentColor ank-fs-1_25rem'
+      }
+    },
+    {
+      id: 'finalCtaTrustIconReports',
+      type: 'icon',
+      config: {
+        iconName: 'bar_chart',
+        ariaHidden: true,
+        classes: 'ank-color-secondaryAccentColor ank-fs-1_25rem'
+      }
+    },
+    {
+      id: 'finalCtaTrustIconSeo',
+      type: 'icon',
+      config: {
+        iconName: 'search',
+        ariaHidden: true,
+        classes: 'ank-color-secondaryAccentColor ank-fs-1_25rem'
+      }
+    },
   ];
   readonly modals: TGenericComponent[] = [];
   readonly progressBars: TGenericComponent[] = [];
@@ -1545,7 +1932,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'h1',
-        text: this.i18n.hero().title,
+        text: () => this.i18n.hero().title,
         classes:
           'ank-fs-3rem ank-fs-lg-5rem ank-fontWeight-bold ank-lh-3_3rem ank-lh-lg-5_5rem ank-mb-1_25rem textGradientVALSVAL2NsecondaryAccentColorVAL2NVAL3NsecondaryTitleColorVAL3NVL135degVL'
       }
@@ -1554,10 +1941,10 @@ export class ConfigurationsOrchestratorService {
     {
       id: 'subtitle',
       type: 'text',
-      condition: !!this.i18n.hero().subtitle,
+      condition: () => !!this.i18n.hero().subtitle,
       config: {
         tag: 'p',
-        text: this.i18n.hero().subtitle,
+        text: () => this.i18n.hero().subtitle,
         classes: 'ank-fs-1_125rem ank-color-secondaryTextColor ank-mb-1_5rem ank-lineHeight-relaxed'
       }
     },
@@ -1567,28 +1954,28 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: this.i18n.hero().description,
+        text: () => this.i18n.hero().description,
         classes: 'ank-fs-1_125rem ank-color-secondaryTextColor ank-mb-1_5rem ank-lineHeight-relaxed'
       }
     },
     // Badges Label
     {
       id: 'badgesLabel',
-      condition: !!this.i18n.hero().badgesLabel,
+      condition: () => !!this.i18n.hero().badgesLabel,
       type: 'text',
       config: {
         tag: 'p',
-        text: this.i18n.hero().badgesLabel ?? '',
+        text: () => this.i18n.hero().badgesLabel ?? '',
         classes: 'ank-fs-1rem ank-color-textColor ank-fontWeight-medium'
       }
     },
     // Badges
-    ...this.i18n.hero().badges.map((badge, index) => ({
+    ...this.i18n.hero().badges.map((_, index) => ({
       id: `badgeText${ index + 1 }`,
       type: 'text',
       config: {
         tag: 'span',
-        text: badge.text,
+        text: () => this.i18n.hero().badges[index]?.text ?? '',
         classes: 'ank-fs-1rem ank-color-textColor ank-fontWeight-medium'
       }
     })) as TGenericComponent[],
@@ -1598,7 +1985,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: '',
-        text: this.i18n.hero().mockup.url,
+        text: () => this.i18n.hero().mockup.url,
       }
     },
     // Hero Landing Mockup Logo Text
@@ -1607,7 +1994,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'span',
-        text: this.i18n.hero().mockup?.logo || 'LOGO',
+        text: () => this.i18n.hero().mockup?.logo || 'LOGO',
         classes: 'ank-color-textColor ank-fs-1rem ank-fontWeight-bold'
       }
     },
@@ -1617,7 +2004,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'span',
-        text: this.i18n.hero().mockup?.contact,
+        text: () => this.i18n.hero().mockup?.contact,
         classes: 'ank-color-textColor ank-fs-1rem ank-fontWeight-bold'
       }
     },
@@ -1627,7 +2014,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'span',
-        text: this.i18n.hero().mockup?.buyButton || 'COMPRAR',
+        text: () => this.i18n.hero().mockup?.buyButton || 'COMPRAR',
         classes: 'ank-color-textColor ank-fs-1rem ank-fontWeight-bold'
       }
     },
@@ -1637,7 +2024,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'span',
-        text: this.i18n.hero().mockup?.demoButton || 'DEMO',
+        text: () => this.i18n.hero().mockup?.demoButton || 'DEMO',
         classes: 'ank-color-secondaryAccentColor ank-fs-1rem ank-fontWeight-bold'
       }
     },
@@ -1647,7 +2034,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'span',
-        text: this.i18n.hero().mockup?.ctaButton || 'SOLICITAR INFO',
+        text: () => this.i18n.hero().mockup?.ctaButton || 'SOLICITAR INFO',
         classes: 'ank-color-textColor ank-fs-1rem ank-fontWeight-bold ank-px-1rem'
       },
     },
@@ -1657,7 +2044,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: '',
-        text: this.i18n.hero().floatingMetrics.speed,
+        text: () => this.i18n.hero().floatingMetrics.speed,
       }
     },
     // Hero Floating Metrics Value Text
@@ -1675,7 +2062,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: '',
-        text: this.i18n.hero().floatingMetrics.conversion,
+        text: () => this.i18n.hero().floatingMetrics.conversion,
       }
     },
     // Hero Conversion Value Text
@@ -1691,13 +2078,13 @@ export class ConfigurationsOrchestratorService {
     {
       id: "heroVerifiedLabel",
       type: 'text',
-      config: { tag: '', text: this.i18n.hero().floatingMetrics.seoOptimized, }
+      config: { tag: '', text: () => this.i18n.hero().floatingMetrics.seoOptimized, }
     },
     // Hero Mobile Label
     {
       id: "heroMobileLabel",
       type: 'text',
-      config: { tag: '', text: this.i18n.hero().floatingMetrics.mobileResponsive, }
+      config: { tag: '', text: () => this.i18n.hero().floatingMetrics.mobileResponsive, }
     },
 
     /* Features Section */
@@ -1706,7 +2093,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'h2',
-        text: this.i18n.featuresSection().title,
+        text: () => this.i18n.featuresSection().title,
         classes: 'ank-fs-2rem ank-fontWeight-bold ank-mb-1rem ank-color-titleColor',
       }
     },
@@ -1715,7 +2102,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: this.i18n.featuresSection().subtitle,
+        text: () => this.i18n.featuresSection().subtitle,
         classes: 'ank-fs-1_25rem ank-color-textColor ank-maxWidth-37_5rem ank-mx-auto',
       }
     },
@@ -1726,7 +2113,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'h2',
-        text: this.i18n.ui().sections.services.title,
+        text: () => this.i18n.ui().sections.services.title,
       }
     },
     {
@@ -1734,7 +2121,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: this.i18n.ui().sections.services.subtitle,
+        text: () => this.i18n.ui().sections.services.subtitle,
       }
     },
 
@@ -1744,7 +2131,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'h2',
-        text: this.i18n.ui().sections.faq.title,
+        text: () => this.i18n.ui().sections.faq.title,
       }
     },
     {
@@ -1752,7 +2139,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: this.i18n.ui().sections.faq.subtitle,
+        text: () => this.i18n.ui().sections.faq.subtitle,
       }
     },
     {
@@ -1760,7 +2147,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: this.i18n.faqSection().footerQuestion,
+        text: () => this.i18n.faqSection().footerQuestion,
       }
     },
 
@@ -1770,7 +2157,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'h2',
-        text: this.i18n.finalCtaSection().title,
+        text: () => this.i18n.finalCtaSection().title,
         classes: 'ank-fs-2rem ank-fontWeight-bold ank-mb-16px ank-color-titleColor',
       }
     },
@@ -1779,27 +2166,104 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: this.i18n.finalCtaSection().subtitle,
+        text: () => this.i18n.finalCtaSection().subtitle,
         classes: 'ank-fs-1_5rem ank-color-textColor ank-mb-32px ank-maxWidth-600px ank-mx-auto',
       }
     },
+
+    // Final CTA Trust (Line 1)
     {
-      id: 'finalCtaTrustFirst',
+      id: 'finalCtaTrustLine1',
       type: 'text',
       config: {
         tag: 'p',
-        text: this.i18n.finalCtaSection().trustSignals.first,
         classes: 'ank-fs-1rem ank-color-textColor ank-m-0',
+        text: () =>
+          this.language.currentLanguage() === 'en'
+            ? '⭐ Measurement from day 1 • 🔒 SSL and hosting included • ⚡ Fast delivery'
+            : '⭐ Medición desde el día 1 • 🔒 SSL y hosting incluido • ⚡ Entrega rápida',
       }
     },
-    ...this.i18n.finalCtaSection().trustSignals.second.map((signal, index) => ({
-      id: `finalCtaTrustSignal${ index + 1 }`,
+
+    // Final CTA Trust (Row 2)
+    {
+      id: 'finalCtaTrustSpanSupport',
       type: 'text',
       config: {
         tag: 'span',
-        text: signal,
+        text: () => (this.language.currentLanguage() === 'en' ? '💬 Continuous support' : '💬 Soporte continuo'),
       }
-    })) as TGenericComponent[],
+    },
+    {
+      id: 'finalCtaTrustSpanReports',
+      type: 'text',
+      config: {
+        tag: 'span',
+        text: () =>
+          this.language.currentLanguage() === 'en'
+            ? '📊 Optional simple reports'
+            : '📊 Reportes simples opcionales',
+      }
+    },
+    {
+      id: 'finalCtaTrustSpanSeo',
+      type: 'text',
+      config: {
+        tag: 'span',
+        text: () =>
+          this.language.currentLanguage() === 'en'
+            ? '🌐 Search engine optimization'
+            : '🌐 Optimización para buscadores',
+      }
+    },
+    {
+      id: 'finalCtaTrustTextMeasurement',
+      type: 'text',
+      config: {
+        tag: 'span',
+        text: () => (this.language.currentLanguage() === 'en' ? 'Measurement from day 1' : 'Medición desde el día 1'),
+      }
+    },
+    {
+      id: 'finalCtaTrustTextSsl',
+      type: 'text',
+      config: {
+        tag: 'span',
+        text: () => (this.language.currentLanguage() === 'en' ? 'SSL and hosting included' : 'SSL y hosting incluido'),
+      }
+    },
+    {
+      id: 'finalCtaTrustTextDelivery',
+      type: 'text',
+      config: {
+        tag: 'span',
+        text: () => (this.language.currentLanguage() === 'en' ? 'Fast delivery' : 'Entrega rápida'),
+      }
+    },
+    {
+      id: 'finalCtaTrustTextSupport',
+      type: 'text',
+      config: {
+        tag: 'span',
+        text: () => (this.language.currentLanguage() === 'en' ? 'Continuous support' : 'Soporte continuo'),
+      }
+    },
+    {
+      id: 'finalCtaTrustTextReports',
+      type: 'text',
+      config: {
+        tag: 'span',
+        text: () => (this.language.currentLanguage() === 'en' ? 'Optional simple reports' : 'Reportes simples opcionales'),
+      }
+    },
+    {
+      id: 'finalCtaTrustTextSeo',
+      type: 'text',
+      config: {
+        tag: 'span',
+        text: () => (this.language.currentLanguage() === 'en' ? 'Search engine optimization' : 'Optimización para buscadores'),
+      }
+    },
 
     /* Testimonials Section */
     {
@@ -1807,7 +2271,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'h2',
-        text: this.i18n.ui().sections.testimonials.title,
+        text: () => this.i18n.ui().sections.testimonials.title,
       }
     },
     {
@@ -1815,7 +2279,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: this.i18n.ui().sections.testimonials.subtitle,
+        text: () => this.i18n.ui().sections.testimonials.subtitle,
       }
     },
 
@@ -1825,7 +2289,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'h2',
-        text: this.statsStripContent().title,
+        text: () => this.statsStripContent().title,
         classes: 'ank-fs-2rem ank-fontWeight-bold ank-mb-16px ank-color-titleColor',
       }
     },
@@ -1834,7 +2298,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: this.statsStripContent().subtitle,
+        text: () => this.statsStripContent().subtitle,
         classes: 'ank-fs-1_5rem ank-color-textColor ank-mb-16px',
       }
     },
@@ -1843,7 +2307,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: this.statsStripContent().description,
+        text: () => this.statsStripContent().description,
         classes: 'ank-fs-1rem ank-color-textColor ank-maxWidth-700px ank-mx-auto',
       }
     },
@@ -1852,7 +2316,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: this.statsStripContent().visitsLabel,
+        text: () => this.statsStripContent().visitsLabel,
         classes: 'ank-fs-1rem ank-opacity-90',
       }
     },
@@ -1861,7 +2325,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: this.statsStripContent().ctaInteractionsLabel,
+        text: () => this.statsStripContent().ctaInteractionsLabel,
         classes: 'ank-fs-1rem ank-opacity-90',
       }
     },
@@ -1870,7 +2334,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: this.statsStripContent().averageTimeLabel,
+        text: () => this.statsStripContent().averageTimeLabel,
         classes: 'ank-fs-1rem ank-opacity-90',
       }
     },
@@ -1882,7 +2346,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'h3',
-        text: this.i18n.conversionNote().title,
+        text: () => this.i18n.conversionNote().title,
         classes: 'ank-fs-1_5rem ank-fontWeight-bold ank-m-0 ank-color-titleColor'
       }
     },
@@ -1892,7 +2356,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        html: this.i18n.conversionNote().conversionDescription,
+        html: () => this.i18n.conversionNote().conversionDescription,
         classes: 'ank-fs-1_25rem ank-lineHeight-relaxed ank-m-0 ank-color-bgColor'
       }
     },
@@ -1902,7 +2366,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: this.i18n.conversionNote().investmentLabel,
+        text: () => this.i18n.conversionNote().investmentLabel,
         classes: 'ank-fs-1rem ank-opacity-90'
       }
     },
@@ -1912,7 +2376,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: this.i18n.conversionNote().investmentValue,
+        text: () => this.i18n.conversionNote().investmentValue,
         classes: 'ank-fs-1_25rem ank-fontWeight-bold'
       }
     },
@@ -1922,7 +2386,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: this.i18n.conversionNote().totalReturnLabel,
+        text: () => this.i18n.conversionNote().totalReturnLabel,
         classes: 'ank-fs-1rem ank-opacity-90'
       }
     },
@@ -1932,8 +2396,43 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: this.i18n.conversionNote().totalReturnValue,
+        text: () => this.i18n.conversionNote().totalReturnValue,
         classes: 'ank-fs-1_25rem ank-fontWeight-bold'
+      }
+    },
+
+    /* Footer */
+    {
+      id: 'footerLegalTitle',
+      type: 'text',
+      config: {
+        tag: 'h3',
+        text: () =>
+          this.language.currentLanguage() === 'en'
+            ? this.footerTranslations.en.legalTitle
+            : this.footerTranslations.es.legalTitle,
+        classes: 'ank-fontSize-lg ank-fontWeight-semibold ank-color-titleColor ank-margin-0',
+      }
+    },
+    {
+      id: 'footerLegalSeparator',
+      type: 'text',
+      config: {
+        tag: 'span',
+        text: '•',
+        classes: 'ank-color-secondaryTextColor',
+      }
+    },
+    {
+      id: 'footerCopyrightText',
+      type: 'text',
+      config: {
+        tag: 'p',
+        text: () =>
+          this.language.currentLanguage() === 'en'
+            ? this.footerConfig.copyrightText
+            : '© 2025 Zoo Landing Page. Todos los derechos reservados.',
+        classes: 'ank-color-secondaryTextColor ank-fontSize-sm ank-margin-0',
       }
     },
   ];
@@ -2011,19 +2510,55 @@ export class ConfigurationsOrchestratorService {
 
   getAllTheClassesFromComponents(): string[] {
     const classesSet: Set<string> = new Set<string>();
+
+    const addClasses = (raw: unknown) => {
+      if (!raw || typeof raw !== 'string') return;
+      raw
+        .split(' ')
+        .map(cls => cls.trim())
+        .filter(cls => cls.length > 0)
+        .forEach(cls => classesSet.add(cls));
+    };
+
     this.components.forEach(component => {
       if (component.config && 'classes' in component.config && component.config.classes) {
-        const classesArray = component.config.classes.split(' ').map(cls => cls.trim()).filter(cls => cls.length > 0);
-        classesArray.forEach(cls => classesSet.add(cls));
+        addClasses((component.config as any).classes);
+      }
+
+      // Also collect classes from dropdownConfig fields (these are not under config.classes)
+      if ((component as any).type === 'dropdown') {
+        const ddCfg = (component as any).config?.dropdownConfig;
+        if (ddCfg) {
+          addClasses(ddCfg.classes);
+          addClasses(ddCfg.buttonClasses);
+          addClasses(ddCfg.itemLinkClasses);
+          addClasses(ddCfg.menuContainerClasses);
+          addClasses(ddCfg.menuNavClasses);
+          addClasses(ddCfg.menuListClasses);
+        }
       }
     });
     return Array.from(classesSet);
   }
 
-  readonly posibleActions = ['openWhatsApp', 'trackCTAClick', 'trackNavClick', 'navigationToSection', 'setInteractiveProcessStep', 'trackFaqToggle', 'openFaqCtaWhatsApp', 'openFinalCtaWhatsApp', 'toggleTheme', 'toggleLanguage'];
+  readonly posibleActions = ['openWhatsApp', 'trackCTAClick', 'trackNavClick', 'navigationToSection', 'setInteractiveProcessStep', 'trackFaqToggle', 'openFaqCtaWhatsApp', 'openFinalCtaWhatsApp', 'toggleTheme', 'toggleLanguage', 'openFooterTerms', 'openFooterData'];
   handleComponentEvent(event: { componentId: string, meta_title?: string, eventName: string, eventData?: unknown, eventInstructions?: string }): void {
     console.log(`Event "${ event.eventName }" triggered from component with id "${ event.componentId }" with the following data: `, event.eventData, ' // and the following instructions: ', event.eventInstructions);
     if (!event.eventInstructions) return;
+
+    const resolveEventPath = (rawPath: string): unknown => {
+      // Supports: event.eventData.id, event.meta_title, etc.
+      const path = rawPath.trim();
+      if (!path.startsWith('event.')) return undefined;
+      const parts = path.replace(/^event\./, '').split('.').filter(Boolean);
+      let cur: any = event as any;
+      for (const part of parts) {
+        if (cur == null) return undefined;
+        cur = cur[part];
+      }
+      return cur;
+    };
+
     const instructions = event.eventInstructions.split(';');
     instructions.forEach(instruction => {
       const [action, params] = instruction.split(':');
@@ -2033,8 +2568,8 @@ export class ConfigurationsOrchestratorService {
           let p = param.trim();
           if (p.includes('event.')) {
             console.log('Resolving event param for ', p);
-            const eventKey = p.replace('event.', '');
-            p = (event as any)[eventKey];
+            const resolved = resolveEventPath(p);
+            p = resolved as any;
             console.log('Resolved to ', p);
           }
           if (p === 'null') return null;
@@ -2072,6 +2607,12 @@ export class ConfigurationsOrchestratorService {
             break;
           case 'toggleLanguage':
             this.toggleLanguage();
+            break;
+          case 'openFooterTerms':
+            this.openFooterTerms();
+            break;
+          case 'openFooterData':
+            this.openFooterData();
             break;
           default:
             console.error(`Action "${ action }" not recognized.`);
@@ -2141,6 +2682,38 @@ export class ConfigurationsOrchestratorService {
     } catch {
       // no-op
     }
+  }
+
+  openFooterTerms(): void {
+    this.modal.open({
+      id: 'terms-of-service',
+      size: 'lg',
+      ariaLabel: this.globalI18n.t('footer.legal.terms.title'),
+      showAccentBar: true,
+      accentColor: 'secondaryAccentColor',
+    });
+    this.handleAnalyticsEvent({
+      name: AnalyticsEvents.ActionTrigger,
+      category: AnalyticsCategories.Engagement,
+      label: 'footer:terms',
+      meta: { location: 'footer', action: 'open_terms_modal' },
+    });
+  }
+
+  openFooterData(): void {
+    this.modal.open({
+      id: 'data-use',
+      size: 'md',
+      ariaLabel: this.globalI18n.t('footer.legal.data.title'),
+      showAccentBar: true,
+      accentColor: 'secondaryAccentColor',
+    });
+    this.handleAnalyticsEvent({
+      name: AnalyticsEvents.ActionTrigger,
+      category: AnalyticsCategories.Engagement,
+      label: 'footer:data',
+      meta: { location: 'footer', action: 'open_data_privacy_modal' },
+    });
   }
 
   setInteractiveProcessStep(step: number): void {

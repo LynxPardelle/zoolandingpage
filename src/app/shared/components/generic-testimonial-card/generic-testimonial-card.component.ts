@@ -22,10 +22,22 @@ export class GenericTestimonialCardComponent {
   set config(value: TestimonialCardConfig) {
     this._config.set(value ?? {});
   }
-  readonly name = computed<string>(() => this._config().name ?? DEFAULT_TESTIMONIAL_CARD_CONFIG.name);
-  readonly role = computed<string>(() => this._config().role ?? DEFAULT_TESTIMONIAL_CARD_CONFIG.role);
-  readonly company = computed<string>(() => this._config().company ?? DEFAULT_TESTIMONIAL_CARD_CONFIG.company);
-  readonly content = computed<string>(() => this._config().content ?? DEFAULT_TESTIMONIAL_CARD_CONFIG.content);
+  readonly name = computed<string>(() => {
+    const raw = this._config().name ?? DEFAULT_TESTIMONIAL_CARD_CONFIG.name;
+    return typeof raw === 'function' ? raw() : raw;
+  });
+  readonly role = computed<string>(() => {
+    const raw = this._config().role ?? DEFAULT_TESTIMONIAL_CARD_CONFIG.role;
+    return typeof raw === 'function' ? raw() : raw;
+  });
+  readonly company = computed<string>(() => {
+    const raw = this._config().company ?? DEFAULT_TESTIMONIAL_CARD_CONFIG.company;
+    return typeof raw === 'function' ? raw() : raw;
+  });
+  readonly content = computed<string>(() => {
+    const raw = this._config().content ?? DEFAULT_TESTIMONIAL_CARD_CONFIG.content;
+    return typeof raw === 'function' ? raw() : raw;
+  });
   readonly avatar = computed<string>(() => this._config().avatar ?? '');
   readonly verified = computed<boolean>(() => this._config().verified ?? false);
   readonly classes = computed<string>(() => this._config().classes ?? '');

@@ -7,6 +7,7 @@ import { ConfigurationsOrchestratorService } from '../../services/configurations
 import { GenericAccordionComponent } from '../generic-accordion';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { GenericContainerComponent } from '../generic-container/generic-container';
+import { GenericDropdown } from '../generic-dropdown';
 import { GenericFeatureCardComponent } from '../generic-feature-card';
 import { GenericIconComponent } from '../generic-icon/generic-icon.component';
 import { GenericLink } from "../generic-link/generic-link";
@@ -26,6 +27,7 @@ import { TGenericComponent } from './wrapper-orchestrator.types';
     GenericAccordionComponent,
     GenericButtonComponent,
     GenericContainerComponent,
+    GenericDropdown,
     GenericFeatureCardComponent,
     GenericIconComponent,
     GenericTestimonialCardComponent,
@@ -42,11 +44,24 @@ export class WrapperOrchestrator {
   // Accepts an array of component IDs to render
   readonly componentsIds = input<readonly string[]>([]);
 
+  private shouldRender(component: TGenericComponent): boolean {
+    const raw = component.condition;
+    if (raw === undefined) return true;
+    if (typeof raw === 'function') return !!raw();
+    if (typeof raw === 'boolean') return raw;
+
+    const normalized = String(raw).trim().toLowerCase();
+    if (normalized === 'false') return false;
+    if (normalized === 'true') return true;
+    return normalized.length > 0;
+  }
+
   readonly components = computed<TGenericComponent[]>(() =>
     this
       .componentsIds()
       .map((id: string) => this._configurationsOrchestratorService.getComponentById(id))
       .filter((c: TGenericComponent | undefined): c is TGenericComponent => c !== undefined)
+      .filter((c: TGenericComponent) => this.shouldRender(c))
   );
 
   normalizeType(type: unknown): string {

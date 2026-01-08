@@ -10,7 +10,11 @@ import { AccordionItem, TAccordionConfig } from './generic-accordion.types';
 })
 export class GenericAccordionComponent {
   readonly config = input<TAccordionConfig>({ items: [] });
-  readonly items: Signal<readonly AccordionItem[]> = computed(() => this.config().items ?? []);
+  readonly items: Signal<readonly AccordionItem[]> = computed(() => {
+    const raw = this.config().items;
+    if (!raw) return [];
+    return typeof raw === 'function' ? raw() : raw;
+  });
 
 
   private expanded = signal<readonly string[]>([]);
@@ -20,6 +24,16 @@ export class GenericAccordionComponent {
   @Output() toggled = new EventEmitter<{ id: string; expanded: boolean }>();
 
   itemsIds = () => this.items().map((i: AccordionItem) => i.id);
+
+  titleOf = (item: AccordionItem) => {
+    const raw = item.title;
+    return typeof raw === 'function' ? raw() : raw;
+  };
+
+  contentOf = (item: AccordionItem) => {
+    const raw = item.content;
+    return typeof raw === 'function' ? raw() : raw;
+  };
 
   isExpanded = (id: string) => this.expanded().includes(id);
 

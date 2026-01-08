@@ -18,7 +18,10 @@ export class GenericTextComponent {
   });
 
   readonly tag = computed<GenericTextTag>(() => this.config().tag ?? 'p');
-  readonly text = computed(() => this.config().text ?? '');
+  readonly text = computed(() => {
+    const raw = this.config().text ?? '';
+    return typeof raw === 'function' ? raw() : raw;
+  });
   readonly classes = computed(() => this.config().classes ?? '');
   readonly id = computed(() => this.config().id ?? null);
   readonly ariaLabel = computed(() => this.config().ariaLabel ?? null);
@@ -28,7 +31,8 @@ export class GenericTextComponent {
   );
 
   readonly safeHtml = computed(() => {
-    const html = this.config().html;
+    const raw = this.config().html;
+    const html = typeof raw === 'function' ? raw() : raw;
     if (!html) return null;
     // Sanitiza HTML (no uses bypassSecurityTrustHtml aquí).
     return this.sanitizer.sanitize(SecurityContext.HTML, html);

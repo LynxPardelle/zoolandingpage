@@ -13,10 +13,9 @@ import {
   signal,
   viewChild,
 } from "@angular/core";
-import { NavigationEnd, Router, RouterOutlet } from "@angular/router";
+import { NavigationEnd, Router } from "@angular/router";
 import { NgxAngoraService } from "ngx-angora-css";
 import { filter } from "rxjs/operators";
-import { AppFooterComponent } from "..";
 import { environment } from "../../../../../environments/environment";
 import { GenericButtonComponent } from "../../../../shared/components/generic-button/generic-button.component";
 import { GenericModalComponent } from "../../../../shared/components/generic-modal/generic-modal.component";
@@ -43,8 +42,6 @@ import { AppShellConfig } from "./app-shell.types";
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     WrapperOrchestrator,
-    AppFooterComponent,
-    RouterOutlet,
     GenericModalComponent,
     GenericToastComponent,
     GenericButtonComponent,
