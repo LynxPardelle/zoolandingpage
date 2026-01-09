@@ -42,7 +42,7 @@ import { TGenericComponent } from './wrapper-orchestrator.types';
 export class WrapperOrchestrator {
   private readonly _configurationsOrchestratorService = inject(ConfigurationsOrchestratorService);
   // Accepts an array of component IDs to render
-  readonly componentsIds = input<readonly string[]>([]);
+  readonly componentsIds = input<readonly (string | TGenericComponent)[]>([]);
 
   private shouldRender(component: TGenericComponent): boolean {
     const raw = component.condition;
@@ -59,7 +59,14 @@ export class WrapperOrchestrator {
   readonly components = computed<TGenericComponent[]>(() =>
     this
       .componentsIds()
-      .map((id: string) => this._configurationsOrchestratorService.getComponentById(id))
+      .map((entry) => {
+        if (typeof entry === 'string') {
+          return this._configurationsOrchestratorService.getComponentById(entry);
+        }
+        // Direct component objects: ensure render-tracking stays accurate.
+        this._configurationsOrchestratorService.markComponentRendered(entry.id);
+        return entry;
+      })
       .filter((c: TGenericComponent | undefined): c is TGenericComponent => c !== undefined)
       .filter((c: TGenericComponent) => this.shouldRender(c))
   );

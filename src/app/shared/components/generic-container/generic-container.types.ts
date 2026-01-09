@@ -10,6 +10,7 @@ export type GenericContainerComponentTag =
     | 'nav'
     | 'article'
     | 'ul'
+    | 'ol'
     | 'li'
     | 'aside';
 

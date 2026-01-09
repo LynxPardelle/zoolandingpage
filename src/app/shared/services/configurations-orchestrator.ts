@@ -4,8 +4,12 @@ import { ProcessStep } from '@/app/landing-page/components/interactive-process/i
 import { LandingPageI18nService } from '@/app/landing-page/components/landing-page/index.i18n';
 import type { StatsCounterConfig } from '@/app/landing-page/components/stats-counter/stats-counter.types';
 import { MotionPreferenceService } from "@/app/shared/services/motion-preference.service";
-import { computed, DOCUMENT, inject, Injectable, signal } from '@angular/core';
+import { computed, DOCUMENT, effect, inject, Injectable, signal } from '@angular/core';
+import { toObservable } from '@angular/core/rxjs-interop';
+import { environment } from '../../../environments/environment';
 import { GenericModalService } from '../components/generic-modal/generic-modal.service';
+import type { ModalConfig } from '../components/generic-modal/generic-modal.types';
+import { ToastService } from '../components/generic-toast';
 import { TGenericComponent } from '../components/wrapper-orchestrator/wrapper-orchestrator.types';
 import { buildWhatsAppUrl } from '../utility/buildWhatsAppUrl.utility';
 import { AnalyticsCategories, AnalyticsEvents } from './analytics.events';
@@ -25,7 +29,170 @@ export class ConfigurationsOrchestratorService {
   private readonly theme = inject(ThemeService);
   private readonly language = inject(LanguageService);
   private readonly modal = inject(GenericModalService);
+  private readonly toast = inject(ToastService);
   private readonly globalI18n = inject(I18nService);
+
+  // [MODALS-1] Centralize modal state/config in orchestrator (moved from AppShell).
+  readonly activeModalRef = computed(() => this.modal.modalRef());
+
+  readonly consentVariant = computed<'dialog' | 'sheet'>(() => {
+    const mode = environment.features.analyticsConsentUI;
+    return mode === 'sheet' ? 'sheet' : 'dialog';
+  });
+
+  readonly modalHostConfig = computed<ModalConfig>(() => {
+    const id = this.activeModalRef()?.id;
+    return {
+      ariaLabel:
+        id === 'analytics-consent'
+          ? 'Analytics consent dialog'
+          : id === 'terms-of-service'
+            ? this.globalI18n.t('footer.legal.terms.title')
+            : id === 'data-use'
+              ? this.globalI18n.t('footer.legal.data.title')
+              : 'Dialog',
+      closeOnBackdrop: id === 'analytics-consent' ? false : true,
+      showCloseButton: id === 'analytics-consent' ? false : true,
+      size: id === 'terms-of-service' ? 'lg' : id === 'data-use' ? 'md' : 'sm',
+      showAccentBar: true,
+      accentColor: 'secondaryAccentColor',
+      variant: id === 'analytics-consent' ? this.consentVariant() : 'dialog',
+    };
+  });
+
+  // Used as a safe fallback while async pipe resolves first emission.
+  readonly fallbackModalHostConfig: ModalConfig = {
+    ariaLabel: 'Dialog',
+    closeOnBackdrop: true,
+    showCloseButton: true,
+    size: 'sm',
+    showAccentBar: true,
+    accentColor: 'secondaryAccentColor',
+    variant: 'dialog',
+  };
+
+  // Template-friendly: emits a plain object so consumers don't need to call a signal.
+  readonly modalHostConfig$ = toObservable(this.modalHostConfig);
+
+  readonly devOnlyComponents: TGenericComponent[] = [
+    {
+      id: 'devDemoControlsRoot',
+      type: 'container',
+      condition: environment.features.debugMode,
+      config: {
+        tag: 'div',
+        classes:
+          'ank-p-1rem__1rem__3rem__1rem ank-display-flex ank-flexWrap-wrap ank-gap-0_5rem ank-w-100per ank-justifyContent-spaceMINevenly ank-bg-secondaryBgColor ank-borderTop-1px ank-borderColor-secondaryAccent ank-borderBottom-1px',
+        components: [
+          'devDemoTitle',
+          'devDemoOpenModalBtn',
+          'devDemoToastSuccessBtn',
+          'devDemoToastErrorBtn',
+          'devDemoToastActionBtn',
+          'devDemoToastPositionBtn',
+          'devDemoToastClearBtn',
+        ],
+      },
+    },
+    {
+      id: 'devDemoTitle',
+      type: 'text',
+      condition: environment.features.debugMode,
+      config: {
+        tag: 'h3',
+        text: () => this.globalI18n.t('demo.title'),
+        classes: 'ank-w-100per ank-textAlign-center ank-color-secondaryTitleColor',
+      },
+    },
+    {
+      id: 'devDemoOpenModalBtn',
+      type: 'button',
+      condition: environment.features.debugMode,
+      eventInstructions: 'showDemoModal',
+      config: {
+        label: () => this.globalI18n.t('demo.modal.button.open'),
+        classes: 'btnBaseVALSVL0_5remVL0_5remVL ank-fs-1rem ank-btn-primary ank-color-textColor',
+      },
+    },
+    {
+      id: 'devDemoToastSuccessBtn',
+      type: 'button',
+      condition: environment.features.debugMode,
+      eventInstructions: 'showDemoToast',
+      config: {
+        label: () => this.globalI18n.t('demo.toast.button.success'),
+        classes: 'btnBaseVALSVL0_5remVL0_5remVL ank-fs-1rem ank-btn-success ank-color-textColor',
+      },
+    },
+    {
+      id: 'devDemoToastErrorBtn',
+      type: 'button',
+      condition: environment.features.debugMode,
+      eventInstructions: 'showErrorToast',
+      config: {
+        label: () => this.globalI18n.t('demo.toast.button.error'),
+        classes: 'btnBaseVALSVL0_5remVL0_5remVL ank-fs-1rem ank-btn-danger ank-color-textColor',
+      },
+    },
+    {
+      id: 'devDemoToastActionBtn',
+      type: 'button',
+      condition: environment.features.debugMode,
+      eventInstructions: 'showActionToast',
+      config: {
+        label: () => this.globalI18n.t('demo.toast.button.action'),
+        classes: 'btnBaseVALSVL0_5remVL0_5remVL ank-fs-1rem ank-btn-warning ank-color-textColor',
+      },
+    },
+    {
+      id: 'devDemoToastPositionBtn',
+      type: 'button',
+      condition: environment.features.debugMode,
+      eventInstructions: 'showPositionDemo',
+      config: {
+        label: () => this.globalI18n.t('demo.toast.button.position'),
+        classes: 'btnBaseVALSVL0_5remVL0_5remVL ank-fs-1rem ank-btn-info ank-color-textColor',
+      },
+    },
+    {
+      id: 'devDemoToastClearBtn',
+      type: 'button',
+      condition: environment.features.debugMode,
+      eventInstructions: 'clearAllToasts',
+      config: {
+        label: () => this.globalI18n.t('demo.toast.button.clear'),
+        classes: 'btnBaseVALSVL0_5remVL0_5remVL ank-fs-1rem ank-btn-secondary ank-color-textColor',
+      },
+    },
+  ];
+
+  // Dev-only demo controls rendered via orchestrator + eventInstructions (no template handlers).
+  get devDemoControlsComponents(): readonly TGenericComponent[] {
+    if (!environment.features.debugMode) return [];
+    return this.devOnlyComponents.filter((c) => c.id === 'devDemoControlsRoot');
+  }
+
+
+
+  constructor() {
+    // [MODALS-2] Keep analytics consent visibility in sync with modal overlay.
+    effect(() => {
+      const needsConsent = this.analytics.consentVisible();
+      const active = this.modal.modalRef();
+      if (needsConsent && !active) {
+        this.modal.open({ id: 'analytics-consent' });
+      } else if (!needsConsent && active?.id === 'analytics-consent') {
+        this.modal.close();
+      }
+    });
+
+    // [MODALS-3] Forward modal analytics events into orchestrator analytics pipeline.
+    try {
+      this.modal.analyticsEvents$?.subscribe((e) => this.handleAnalyticsEvent(e));
+    } catch {
+      // ignore
+    }
+  }
 
   private readonly footerConfig = {
     showCopyright: true,
@@ -294,6 +461,20 @@ export class ConfigurationsOrchestratorService {
   ];
 
   readonly links: TGenericComponent[] = [
+    /* Accessibility */
+    {
+      id: 'skipToMainLink',
+      type: 'link',
+      eventInstructions: 'skipToMain:main-content',
+      config: {
+        id: 'skipToMainLink',
+        href: '#main-content',
+        text: () => (this.language.currentLanguage() === 'en' ? 'Skip to content' : 'Saltar al contenido'),
+        classes:
+          'ank-position-absolute ank-s-0 ank-t-0 ank-w-1px ank-h-1px ank-overflow-hidden ank-positionFocus-static ank-wFocus-auto ank-hFocus-auto ank-pFocus-0_5rem__1rem ank-bgFocus-abyss ank-colorFocus-white ank-zIndexFocus-1000',
+      },
+    },
+
     /* Header */
     {
       id: 'headerLogoImage',
@@ -1919,7 +2100,501 @@ export class ConfigurationsOrchestratorService {
       }
     },
   ];
-  readonly modals: TGenericComponent[] = [];
+  readonly modals: TGenericComponent[] = [
+    // [MODALS-4] Analytics consent modal content
+    {
+      id: 'modalAnalyticsConsentRoot',
+      type: 'container',
+      config: {
+        tag: 'section',
+        classes: 'ank-display-flex ank-flexDirection-column ank-gap-0_75rem ank-w-100per',
+        components: ['modalConsentHeader', 'modalConsentIntro', 'modalConsentBullets', 'modalConsentActions'],
+      },
+    },
+    {
+      id: 'modalConsentHeader',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes:
+          'ank-display-flex ank-alignItems-center ank-gap-0_5rem ank-bg-secondaryBgColor ank-border-1px ank-borderColor-border ank-p-0_5rem ank-borderRadius-0_5rem',
+        components: ['modalConsentHeaderIcon', 'modalConsentHeaderTitle'],
+      },
+    },
+    {
+      id: 'modalConsentHeaderIcon',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes:
+          'ank-width-2rem ank-height-2rem ank-borderRadius-50per ank-bg-accentColor ank-display-flex ank-alignItems-center ank-justifyContent-center ank-color-bgColor ank-fontWeight-700',
+        components: ['modalConsentHeaderIconGlyph'],
+      },
+    },
+    {
+      id: 'modalConsentHeaderIconGlyph',
+      type: 'text',
+      config: { tag: 'span', text: 'ⓘ' },
+    },
+    {
+      id: 'modalConsentHeaderTitle',
+      type: 'text',
+      config: {
+        tag: 'h2',
+        text: () => this.globalI18n.t('consent.title'),
+        classes: 'ank-m-0 ank-fontSize-1_125rem ank-fontWeight-700 ank-color-textColor',
+      },
+    },
+    {
+      id: 'modalConsentIntro',
+      type: 'text',
+      config: { tag: 'p', text: () => this.globalI18n.t('consent.intro'), classes: 'ank-m-0 ank-color-secondaryTextColor' },
+    },
+    {
+      id: 'modalConsentBullets',
+      type: 'container',
+      config: {
+        tag: 'ul',
+        classes: 'ank-m-0 ank-pt-0_25rem ank-pl-1rem ank-color-secondaryTextColor',
+        components: ['modalConsentBullet0', 'modalConsentBullet1', 'modalConsentBullet2'],
+      },
+    },
+    {
+      id: 'modalConsentBullet0',
+      type: 'container',
+      config: { tag: 'li', components: ['modalConsentBullet0Text'] },
+    },
+    {
+      id: 'modalConsentBullet0Text',
+      type: 'text',
+      config: { text: () => this.globalI18n.t('consent.bullets.0') },
+    },
+    {
+      id: 'modalConsentBullet1',
+      type: 'container',
+      config: { tag: 'li', components: ['modalConsentBullet1Text'] },
+    },
+    {
+      id: 'modalConsentBullet1Text',
+      type: 'text',
+      config: { text: () => this.globalI18n.t('consent.bullets.1') },
+    },
+    {
+      id: 'modalConsentBullet2',
+      type: 'container',
+      config: { tag: 'li', components: ['modalConsentBullet2Text'] },
+    },
+    {
+      id: 'modalConsentBullet2Text',
+      type: 'text',
+      config: { text: () => this.globalI18n.t('consent.bullets.2') },
+    },
+    {
+      id: 'modalConsentActions',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes:
+          'ank-display-flex ank-gap-0_5rem ank-justifyContent-end ank-alignItems-stretch ank-mt-0_75rem ank-flexWrap-wrap',
+        components: ['modalConsentDeclineBtn', 'modalConsentLaterBtn', 'modalConsentAllowBtn'],
+      },
+    },
+    {
+      id: 'modalConsentDeclineBtn',
+      type: 'button',
+      eventInstructions: 'declineConsent',
+      config: {
+        label: () => this.globalI18n.t('consent.actions.decline'),
+        classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL',
+      },
+    },
+    {
+      id: 'modalConsentLaterBtn',
+      type: 'button',
+      eventInstructions: 'remindLater:24',
+      config: {
+        label: () => this.globalI18n.t('consent.actions.later'),
+        classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLwarningVLtextColorVL',
+      },
+    },
+    {
+      id: 'modalConsentAllowBtn',
+      type: 'button',
+      eventInstructions: 'acceptConsent',
+      config: {
+        label: () => this.globalI18n.t('consent.actions.allow'),
+        classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLprimaryVLtextColorVL',
+      },
+    },
+
+    // [MODALS-5] Demo modal content
+    {
+      id: 'modalDemoRoot',
+      type: 'container',
+      config: {
+        tag: 'section',
+        classes: 'ank-display-flex ank-flexDirection-column ank-gap-1rem ank-w-100per',
+        components: ['modalDemoHeader', 'modalDemoDesc', 'modalDemoFeatures', 'modalDemoActions'],
+      },
+    },
+    {
+      id: 'modalDemoHeader',
+      type: 'container',
+      config: {
+        tag: 'header',
+        classes:
+          'ank-display-flex ank-alignItems-center ank-gap-0_5rem ank-bg-accentColor ank-color-bgColor ank-p-1rem ank-borderRadius-0_5rem',
+        components: ['modalDemoHeaderIcon', 'modalDemoHeaderTitle'],
+      },
+    },
+    {
+      id: 'modalDemoHeaderIcon',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes:
+          'ank-width-2rem ank-height-2rem ank-borderRadius-50per ank-bg-secondaryAccentColor ank-display-flex ank-alignItems-center ank-justifyContent-center ank-color-bgColor ank-fontWeight-700',
+        components: ['modalDemoHeaderIconGlyph'],
+      },
+    },
+    {
+      id: 'modalDemoHeaderIconGlyph',
+      type: 'text',
+      config: { tag: 'span', text: '🎉' },
+    },
+    {
+      id: 'modalDemoHeaderTitle',
+      type: 'text',
+      config: {
+        tag: 'h2',
+        text: () => this.globalI18n.t('demo.modal.header'),
+        classes: 'ank-m-0 ank-fontSize-1_25rem ank-fontWeight-700',
+      },
+    },
+    {
+      id: 'modalDemoDesc',
+      type: 'text',
+      config: { tag: 'p', text: () => this.globalI18n.t('demo.modal.desc'), classes: 'ank-m-0 ank-color-secondaryTextColor' },
+    },
+    {
+      id: 'modalDemoFeatures',
+      type: 'container',
+      config: {
+        tag: 'ul',
+        classes: 'ank-m-0 ank-pl-1rem ank-color-secondaryTextColor',
+        components: ['modalDemoFeature0', 'modalDemoFeature1', 'modalDemoFeature2'],
+      },
+    },
+    {
+      id: 'modalDemoFeature0',
+      type: 'container',
+      config: { tag: 'li', components: ['modalDemoFeature0Text'] },
+    },
+    {
+      id: 'modalDemoFeature0Text',
+      type: 'text',
+      config: { text: () => this.globalI18n.t('demo.modal.features.0') },
+    },
+    {
+      id: 'modalDemoFeature1',
+      type: 'container',
+      config: { tag: 'li', components: ['modalDemoFeature1Text'] },
+    },
+    {
+      id: 'modalDemoFeature1Text',
+      type: 'text',
+      config: { text: () => this.globalI18n.t('demo.modal.features.1') },
+    },
+    {
+      id: 'modalDemoFeature2',
+      type: 'container',
+      config: { tag: 'li', components: ['modalDemoFeature2Text'] },
+    },
+    {
+      id: 'modalDemoFeature2Text',
+      type: 'text',
+      config: { text: () => this.globalI18n.t('demo.modal.features.2') },
+    },
+    {
+      id: 'modalDemoActions',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-display-flex ank-justifyContent-end ank-gap-0_5rem ank-mt-1rem',
+        components: ['modalDemoCloseBtn'],
+      },
+    },
+    {
+      id: 'modalDemoCloseBtn',
+      type: 'button',
+      eventInstructions: 'closeModal',
+      config: {
+        label: () => this.globalI18n.t('demo.modal.close'),
+        classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL',
+      },
+    },
+
+    // [MODALS-6] Terms of service modal content
+    {
+      id: 'modalTermsRoot',
+      type: 'container',
+      condition: () => this.activeModalRef()?.id === 'terms-of-service',
+      config: {
+        tag: 'section',
+        classes: 'ank-display-flex ank-flexDirection-column ank-gap-0_75rem ank-w-100per',
+        components: ['modalTermsHeader', 'modalTermsIntro', 'modalTermsSections', 'modalTermsActions'],
+      },
+    },
+    {
+      id: 'modalTermsHeader',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes:
+          'ank-display-flex ank-alignItems-center ank-gap-0_5rem ank-bg-secondaryBgColor ank-border-1px ank-borderColor-border ank-p-0_5rem ank-borderRadius-0_5rem',
+        components: ['modalTermsHeaderIcon', 'modalTermsHeaderTitle'],
+      },
+    },
+    {
+      id: 'modalTermsHeaderIcon',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes:
+          'ank-width-2rem ank-height-2rem ank-borderRadius-50per ank-bg-secondaryAccentColor ank-display-flex ank-alignItems-center ank-justifyContent-center ank-color-bgColor ank-fontWeight-700',
+        components: ['modalTermsHeaderIconGlyph'],
+      },
+    },
+    {
+      id: 'modalTermsHeaderIconGlyph',
+      type: 'text',
+      config: { tag: 'span', text: '⚖️' },
+    },
+    {
+      id: 'modalTermsHeaderTitle',
+      type: 'text',
+      config: {
+        tag: 'h2',
+        text: () => this.globalI18n.t('footer.legal.terms.title'),
+        classes: 'ank-m-0 ank-fontSize-1_125rem ank-fontWeight-700 ank-color-textColor',
+      },
+    },
+    {
+      id: 'modalTermsIntro',
+      type: 'text',
+      config: {
+        tag: 'p',
+        text: () => this.globalI18n.t('footer.legal.terms.intro', { org: environment.app.name }),
+        classes: 'ank-m-0 ank-color-secondaryTextColor',
+      },
+    },
+    {
+      id: 'modalTermsSections',
+      type: 'container',
+      config: {
+        tag: 'ol',
+        classes:
+          'ank-m-0 ank-pl-1rem ank-color-secondaryTextColor ank-display-flex ank-flexDirection-column ank-gap-0_5rem',
+        components: ['modalTermsSection0', 'modalTermsSection1', 'modalTermsSection2', 'modalTermsSection3'],
+      },
+    },
+    {
+      id: 'modalTermsSection0',
+      type: 'container',
+      config: { tag: 'li', components: ['modalTermsSection0Title', 'modalTermsSection0Text'] },
+    },
+    {
+      id: 'modalTermsSection0Title',
+      type: 'text',
+      config: { tag: 'strong', text: () => this.globalI18n.t('footer.legal.terms.sections.0.title') },
+    },
+    {
+      id: 'modalTermsSection0Text',
+      type: 'text',
+      config: { tag: 'p', text: () => this.globalI18n.t('footer.legal.terms.sections.0.text'), classes: 'ank-mt-0_25rem' },
+    },
+    {
+      id: 'modalTermsSection1',
+      type: 'container',
+      config: { tag: 'li', components: ['modalTermsSection1Title', 'modalTermsSection1Text'] },
+    },
+    {
+      id: 'modalTermsSection1Title',
+      type: 'text',
+      config: { tag: 'strong', text: () => this.globalI18n.t('footer.legal.terms.sections.1.title') },
+    },
+    {
+      id: 'modalTermsSection1Text',
+      type: 'text',
+      config: { tag: 'p', text: () => this.globalI18n.t('footer.legal.terms.sections.1.text'), classes: 'ank-mt-0_25rem' },
+    },
+    {
+      id: 'modalTermsSection2',
+      type: 'container',
+      config: { tag: 'li', components: ['modalTermsSection2Title', 'modalTermsSection2Text'] },
+    },
+    {
+      id: 'modalTermsSection2Title',
+      type: 'text',
+      config: { tag: 'strong', text: () => this.globalI18n.t('footer.legal.terms.sections.2.title') },
+    },
+    {
+      id: 'modalTermsSection2Text',
+      type: 'text',
+      config: { tag: 'p', text: () => this.globalI18n.t('footer.legal.terms.sections.2.text'), classes: 'ank-mt-0_25rem' },
+    },
+    {
+      id: 'modalTermsSection3',
+      type: 'container',
+      config: { tag: 'li', components: ['modalTermsSection3Title', 'modalTermsSection3Text'] },
+    },
+    {
+      id: 'modalTermsSection3Title',
+      type: 'text',
+      config: { tag: 'strong', text: () => this.globalI18n.t('footer.legal.terms.sections.3.title') },
+    },
+    {
+      id: 'modalTermsSection3Text',
+      type: 'text',
+      config: { tag: 'p', text: () => this.globalI18n.t('footer.legal.terms.sections.3.text'), classes: 'ank-mt-0_25rem' },
+    },
+    {
+      id: 'modalTermsActions',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-display-flex ank-justifyContent-end ank-gap-0_5rem ank-mt-0_75rem',
+        components: ['modalTermsCloseBtn'],
+      },
+    },
+    {
+      id: 'modalTermsCloseBtn',
+      type: 'button',
+      eventInstructions: 'closeModal',
+      config: {
+        label: () => this.globalI18n.t('footer.actions.close'),
+        classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL',
+      },
+    },
+
+    // [MODALS-7] Data use / privacy modal content
+    {
+      id: 'modalDataUseRoot',
+      type: 'container',
+      condition: () => this.activeModalRef()?.id === 'data-use',
+      config: {
+        tag: 'section',
+        classes: 'ank-display-flex ank-flexDirection-column ank-gap-0_75rem ank-w-100per',
+        components: ['modalDataHeader', 'modalDataIntro', 'modalDataPoints', 'modalDataConsentNote', 'modalDataActions'],
+      },
+    },
+    {
+      id: 'modalDataHeader',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes:
+          'ank-display-flex ank-alignItems-center ank-gap-0_5rem ank-bg-secondaryBgColor ank-border-1px ank-borderColor-border ank-p-0_5rem ank-borderRadius-0_5rem',
+        components: ['modalDataHeaderIcon', 'modalDataHeaderTitle'],
+      },
+    },
+    {
+      id: 'modalDataHeaderIcon',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes:
+          'ank-width-2rem ank-height-2rem ank-borderRadius-50per ank-bg-secondaryAccentColor ank-display-flex ank-alignItems-center ank-justifyContent-center ank-color-bgColor ank-fontWeight-700',
+        components: ['modalDataHeaderIconGlyph'],
+      },
+    },
+    {
+      id: 'modalDataHeaderIconGlyph',
+      type: 'text',
+      config: { tag: 'span', text: '🔒' },
+    },
+    {
+      id: 'modalDataHeaderTitle',
+      type: 'text',
+      config: {
+        tag: 'h2',
+        text: () => this.globalI18n.t('footer.legal.data.title'),
+        classes: 'ank-m-0 ank-fontSize-1_125rem ank-fontWeight-700 ank-color-textColor',
+      },
+    },
+    {
+      id: 'modalDataIntro',
+      type: 'text',
+      config: { tag: 'p', text: () => this.globalI18n.t('footer.legal.data.intro'), classes: 'ank-m-0 ank-color-secondaryTextColor' },
+    },
+    {
+      id: 'modalDataPoints',
+      type: 'container',
+      config: {
+        tag: 'ul',
+        classes:
+          'ank-m-0 ank-pl-1rem ank-color-secondaryTextColor ank-display-flex ank-flexDirection-column ank-gap-0_5rem',
+        components: ['modalDataPoint0', 'modalDataPoint1', 'modalDataPoint2', 'modalDataPoint3'],
+      },
+    },
+    {
+      id: 'modalDataPoint0',
+      type: 'container',
+      config: { tag: 'li', components: ['modalDataPoint0Text'] },
+    },
+    { id: 'modalDataPoint0Text', type: 'text', config: { text: () => this.globalI18n.t('footer.legal.data.points.0') } },
+    {
+      id: 'modalDataPoint1',
+      type: 'container',
+      config: { tag: 'li', components: ['modalDataPoint1Text'] },
+    },
+    { id: 'modalDataPoint1Text', type: 'text', config: { text: () => this.globalI18n.t('footer.legal.data.points.1') } },
+    {
+      id: 'modalDataPoint2',
+      type: 'container',
+      config: { tag: 'li', components: ['modalDataPoint2Text'] },
+    },
+    { id: 'modalDataPoint2Text', type: 'text', config: { text: () => this.globalI18n.t('footer.legal.data.points.2') } },
+    {
+      id: 'modalDataPoint3',
+      type: 'container',
+      config: { tag: 'li', components: ['modalDataPoint3Text'] },
+    },
+    { id: 'modalDataPoint3Text', type: 'text', config: { text: () => this.globalI18n.t('footer.legal.data.points.3') } },
+    {
+      id: 'modalDataConsentNote',
+      type: 'text',
+      config: { tag: 'p', text: () => this.globalI18n.t('footer.legal.data.consentNote'), classes: 'ank-m-0 ank-color-secondaryTextColor' },
+    },
+    {
+      id: 'modalDataActions',
+      type: 'container',
+      config: {
+        tag: 'div',
+        classes: 'ank-display-flex ank-justifyContent-end ank-gap-0_5rem ank-mt-0_75rem',
+        components: ['modalDataRemoveConsentBtn', 'modalDataCloseBtn'],
+      },
+    },
+    {
+      id: 'modalDataRemoveConsentBtn',
+      type: 'button',
+      eventInstructions: 'removeConsentRequest;closeModal',
+      config: {
+        label: () => this.globalI18n.t('consent.actions.remove'),
+        classes:
+          'btnBaseVALSVL1_25remVL0_75remVL ank-bg-transparent ank-border-2px__solid__danger ank-color-danger ank-ts-200 ank-bgHover-danger ank-colorHover-textColor',
+      },
+    },
+    {
+      id: 'modalDataCloseBtn',
+      type: 'button',
+      eventInstructions: 'closeModal',
+      config: {
+        label: () => this.globalI18n.t('footer.actions.close'),
+        classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL',
+      },
+    },
+  ];
   readonly progressBars: TGenericComponent[] = [];
   readonly searchBoxes: TGenericComponent[] = [];
   readonly steppers: TGenericComponent[] = [];
@@ -2481,11 +3156,18 @@ export class ConfigurationsOrchestratorService {
     ...this.tabGroups,
     ...this.texts,
     ...this.toasts,
-    ...this.tooltips
+    ...this.tooltips,
+    ...this.devOnlyComponents
   ];
 
   private readonly componentsAlreadyRendered: Set<string> = new Set<string>();
   private readonly componentsToBeRendered: Set<string> = new Set<string>(this.components.map(component => component.id));
+
+  markComponentRendered(id: string): void {
+    if (!id) return;
+    this.componentsAlreadyRendered.add(id);
+    this.componentsToBeRendered.delete(id);
+  }
 
   public allComponentsRendered(): boolean {
     return this.componentsAlreadyRendered.size === this.componentsToBeRendered.size;
@@ -2502,8 +3184,7 @@ export class ConfigurationsOrchestratorService {
       if (normalizedType && normalizedType !== (component as any).type) {
         component = { ...(component as any), type: normalizedType } as TGenericComponent;
       }
-      this.componentsAlreadyRendered.add(id);
-      this.componentsToBeRendered.delete(id);
+      this.markComponentRendered(id);
     }
     return component;
   }
@@ -2541,7 +3222,35 @@ export class ConfigurationsOrchestratorService {
     return Array.from(classesSet);
   }
 
-  readonly posibleActions = ['openWhatsApp', 'trackCTAClick', 'trackNavClick', 'navigationToSection', 'setInteractiveProcessStep', 'trackFaqToggle', 'openFaqCtaWhatsApp', 'openFinalCtaWhatsApp', 'toggleTheme', 'toggleLanguage', 'openFooterTerms', 'openFooterData'];
+  readonly posibleActions = [
+    'openWhatsApp',
+    'trackCTAClick',
+    'trackNavClick',
+    'navigationToSection',
+    'setInteractiveProcessStep',
+    'trackFaqToggle',
+    'openFaqCtaWhatsApp',
+    'openFinalCtaWhatsApp',
+    'toggleTheme',
+    'toggleLanguage',
+    'openFooterTerms',
+    'openFooterData',
+    // [MODALS-8]
+    'closeModal',
+    'showDemoModal',
+    'acceptConsent',
+    'declineConsent',
+    'remindLater',
+    'removeConsentRequest',
+    // Dev-only toast demos (orchestrator-driven)
+    'showDemoToast',
+    'showErrorToast',
+    'showActionToast',
+    'showPositionDemo',
+    'clearAllToasts',
+    // Accessibility
+    'skipToMain',
+  ];
   handleComponentEvent(event: { componentId: string, meta_title?: string, eventName: string, eventData?: unknown, eventInstructions?: string }): void {
     console.log(`Event "${ event.eventName }" triggered from component with id "${ event.componentId }" with the following data: `, event.eventData, ' // and the following instructions: ', event.eventInstructions);
     if (!event.eventInstructions) return;
@@ -2614,11 +3323,271 @@ export class ConfigurationsOrchestratorService {
           case 'openFooterData':
             this.openFooterData();
             break;
+          case 'closeModal':
+            this.closeModal();
+            break;
+          case 'showDemoModal':
+            this.showDemoModal();
+            break;
+          case 'acceptConsent':
+            this.acceptConsent();
+            break;
+          case 'declineConsent':
+            this.declineConsent();
+            break;
+          case 'remindLater':
+            this.remindLater(paramList[0] as any);
+            break;
+          case 'removeConsentRequest':
+            this.removeConsentRequest();
+            break;
+          case 'showDemoToast':
+            this.showDemoToast();
+            break;
+          case 'showErrorToast':
+            this.showErrorToast();
+            break;
+          case 'showActionToast':
+            this.showActionToast();
+            break;
+          case 'showPositionDemo':
+            this.showPositionDemo();
+            break;
+          case 'clearAllToasts':
+            this.clearAllToasts();
+            break;
+          case 'skipToMain':
+            this.skipToMain(paramList[0] as any);
+            break;
           default:
             console.error(`Action "${ action }" not recognized.`);
             break;
         }
       }
+    });
+  }
+
+  // [MODALS-9] Modal actions (moved from AppShell)
+  closeModal(): void {
+    this.modal.close();
+  }
+
+  showDemoModal(): void {
+    this.modal.open({
+      id: 'demo-modal',
+      ariaLabel: this.globalI18n.t('demo.modal.title'),
+      showAccentBar: true,
+      accentColor: 'accentColor',
+      size: 'md',
+      variant: 'dialog',
+    });
+  }
+
+  // Dev-only toast demos (moved from AppShell)
+  private positionDemoIndex = 0;
+
+  showDemoToast(): void {
+    const t = (k: string, p?: Record<string, any>) => this.globalI18n.t(k, p);
+    const demos = [
+      () => this.toast.success(t('demo.toast.success'), { source: 'Toast' }),
+      () => this.toast.error(t('demo.toast.error'), { source: 'Toast' }),
+      () => this.toast.warning(t('demo.toast.warning'), { source: 'Toast' }),
+      () => this.toast.info(t('demo.toast.info'), { source: 'Toast' }),
+      () =>
+        this.toast.show({
+          level: 'success',
+          title: t('demo.toast.fileUploadTitle'),
+          text: t('demo.toast.fileUploadText'),
+          autoCloseMs: 6000,
+          source: 'Toast',
+        }),
+      () =>
+        this.toast.show({
+          level: 'warning',
+          title: t('demo.toast.unsavedTitle'),
+          text: t('demo.toast.unsavedText'),
+          autoCloseMs: 0,
+          source: 'Toast',
+          actions: [
+            {
+              label: t('demo.toast.unsavedSave'),
+              action: () => this.toast.success(t('demo.toast.changesSaved')),
+              style: 'primary',
+            },
+            {
+              label: t('demo.toast.discard'),
+              action: () => this.toast.info(t('demo.toast.discard')),
+              style: 'secondary',
+            },
+          ],
+        }),
+    ];
+    const randomDemo = demos[Math.floor(Math.random() * demos.length)];
+    randomDemo();
+  }
+
+  showErrorToast(): void {
+    const t = (k: string, p?: Record<string, any>) => this.globalI18n.t(k, p);
+    this.toast.show({
+      level: 'error',
+      title: t('demo.toast.criticalTitle'),
+      text: t('demo.toast.criticalText'),
+      autoCloseMs: 0,
+      source: 'Error',
+      actions: [
+        {
+          label: t('demo.toast.contactSupport'),
+          action: () => {
+            this.toast.info(t('demo.toast.openingSupport'));
+          },
+          style: 'primary',
+        },
+        {
+          label: t('demo.toast.tryAgain'),
+          action: () => {
+            this.toast.warning(t('demo.toast.updatePostponed'));
+          },
+          style: 'secondary',
+        },
+      ],
+    });
+  }
+
+  showActionToast(): void {
+    const t = (k: string, p?: Record<string, any>) => this.globalI18n.t(k, p);
+    this.toast.show({
+      level: 'info',
+      title: t('demo.toast.updateTitle'),
+      text: t('demo.toast.updateText'),
+      autoCloseMs: 10000,
+      source: 'Actions',
+      actions: [
+        {
+          label: t('demo.toast.updateNow'),
+          action: () => {
+            this.toast.success(t('demo.toast.updateStarted'));
+          },
+          style: 'primary',
+        },
+        {
+          label: t('demo.toast.viewChanges'),
+          action: () => {
+            this.toast.info(t('demo.toast.openingChangelog'));
+          },
+          style: 'secondary',
+        },
+        {
+          label: t('demo.toast.later'),
+          action: () => {
+            this.toast.warning(t('demo.toast.updatePostponed'));
+          },
+          style: 'secondary',
+        },
+      ],
+    });
+  }
+
+  showPositionDemo(): void {
+    const t = (k: string, p?: Record<string, any>) => this.globalI18n.t(k, p);
+    const positions = [
+      {
+        vertical: 'top' as const,
+        horizontal: 'right' as const,
+        message: t('demo.toast.positionChanged', { position: 'Top Right' }),
+      },
+      {
+        vertical: 'top' as const,
+        horizontal: 'center' as const,
+        message: t('demo.toast.positionChanged', { position: 'Top Center' }),
+      },
+      {
+        vertical: 'top' as const,
+        horizontal: 'left' as const,
+        message: t('demo.toast.positionChanged', { position: 'Top Left' }),
+      },
+      {
+        vertical: 'bottom' as const,
+        horizontal: 'left' as const,
+        message: t('demo.toast.positionChanged', { position: 'Bottom Left' }),
+      },
+      {
+        vertical: 'bottom' as const,
+        horizontal: 'center' as const,
+        message: t('demo.toast.positionChanged', { position: 'Bottom Center' }),
+      },
+      {
+        vertical: 'bottom' as const,
+        horizontal: 'right' as const,
+        message: t('demo.toast.positionChanged', { position: 'Bottom Right (default)' }),
+      },
+    ];
+
+    const currentIndex = this.positionDemoIndex % positions.length;
+    const position = positions[currentIndex];
+    this.toast.setPosition({ vertical: position.vertical, horizontal: position.horizontal });
+    this.toast.success(position.message, { source: 'Position' });
+    this.positionDemoIndex++;
+  }
+
+  clearAllToasts(): void {
+    const t = (k: string, p?: Record<string, any>) => this.globalI18n.t(k, p);
+    this.toast.clear();
+    setTimeout(() => {
+      this.toast.info(t('demo.toast.allCleared'), { source: 'Clear' });
+    }, 100);
+  }
+
+  skipToMain(targetId: string | undefined): void {
+    const id = String(targetId ?? '').trim();
+    if (!id) return;
+    try {
+      const el = this.doc.getElementById(id) as HTMLElement | null;
+      if (!el) return;
+      // Match typical skip-link behavior: jump to main and move focus.
+      el.scrollIntoView({ behavior: 'auto', block: 'start' });
+      el.focus();
+    } catch {
+      // no-op (SSR / non-browser)
+    }
+  }
+
+  acceptConsent(): void {
+    this.analytics.acceptConsent();
+  }
+
+  declineConsent(): void {
+    this.analytics.declineConsent();
+  }
+
+  remindLater(hours: number): void {
+    this.analytics.remindLater(Number(hours));
+  }
+
+  removeConsentRequest(): void {
+    const confirmText =
+      this.globalI18n.t('consent.feedback.confirmRemove') ||
+      'Are you sure you want to remove consent?';
+    const yesLabel = this.globalI18n.t('consent.actions.confirm') || 'Yes';
+    const noLabel = this.globalI18n.t('consent.actions.cancel') || 'No';
+    this.toast.show({
+      level: 'warning',
+      title: this.globalI18n.t('consent.title'),
+      text: confirmText,
+      autoCloseMs: 7000,
+      actions: [
+        {
+          label: yesLabel,
+          style: 'primary',
+          action: () => this.analytics.declineConsent(),
+        },
+        {
+          label: noLabel,
+          style: 'secondary',
+          action: () => {
+            /* no-op */
+          },
+        },
+      ],
     });
   }
 

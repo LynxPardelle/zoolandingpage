@@ -1,83 +1,46 @@
 import { WrapperOrchestrator } from "@/app/shared/components/wrapper-orchestrator/wrapper-orchestrator.component";
 import { ConfigurationsOrchestratorService } from "@/app/shared/services/configurations-orchestrator";
+import { AsyncPipe } from "@angular/common";
 import {
   ChangeDetectionStrategy,
   Component,
-  ElementRef,
   afterEveryRender,
   afterNextRender,
   computed,
   effect,
   inject,
-  input,
   signal,
-  viewChild,
 } from "@angular/core";
 import { NavigationEnd, Router } from "@angular/router";
 import { NgxAngoraService } from "ngx-angora-css";
 import { filter } from "rxjs/operators";
 import { environment } from "../../../../../environments/environment";
-import { GenericButtonComponent } from "../../../../shared/components/generic-button/generic-button.component";
 import { GenericModalComponent } from "../../../../shared/components/generic-modal/generic-modal.component";
-import { GenericModalService } from "../../../../shared/components/generic-modal/generic-modal.service";
-import {
-  GenericToastComponent,
-  ToastService,
-} from "../../../../shared/components/generic-toast";
+import { GenericToastComponent } from "../../../../shared/components/generic-toast";
 import {
   AnalyticsCategories,
   AnalyticsEventPayload,
   AnalyticsEvents,
 } from "../../../../shared/services/analytics.events";
 import { AnalyticsService } from "../../../../shared/services/analytics.service";
-import { I18nService } from "../../../../shared/services/i18n.service";
 import { LanguageService } from "../../../services/language.service";
 import { ThemeService } from "../../../services/theme.service";
 import type { HeaderNavItem } from "../app-header/app-header.types";
-import { AppShellConfig } from "./app-shell.types";
 
 @Component({
   selector: "app-root",
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    AsyncPipe,
     WrapperOrchestrator,
     GenericModalComponent,
     GenericToastComponent,
-    GenericButtonComponent,
   ],
   templateUrl: "./app-shell.component.html",
 })
 export class AppShellComponent {
-  private readonly _configurationsOrchestratorService = inject(ConfigurationsOrchestratorService);
-  // Handler for Remove Consent button
-  onRemoveConsentRequest(): void {
-    const confirmText =
-      this.t("consent.feedback.confirmRemove") ||
-      "Are you sure you want to remove consent?";
-    const yesLabel = this.t("consent.actions.confirm") || "Yes";
-    const noLabel = this.t("consent.actions.cancel") || "No";
-    this.toast.show({
-      level: "warning",
-      title: this.t("consent.title"),
-      text: confirmText,
-      autoCloseMs: 7000,
-      actions: [
-        {
-          label: yesLabel,
-          style: "primary",
-          action: () => this.analytics.declineConsent(),
-        },
-        {
-          label: noLabel,
-          style: "secondary",
-          action: () => {
-            /* do nothing */
-          },
-        },
-      ],
-    });
-  }
+  readonly orchestrator = inject(ConfigurationsOrchestratorService);
   readonly debugMode = environment.features.debugMode;
   // App state
   private readonly appTitle = signal<string>(environment.app.name);
@@ -90,37 +53,15 @@ export class AppShellComponent {
   private readonly router = inject(Router);
   readonly analytics = inject(AnalyticsService);
   private readonly _ank = inject(NgxAngoraService);
-  private readonly toast = inject(ToastService);
   private readonly events = inject(AnalyticsService);
-  private readonly modal = inject(GenericModalService);
   private angoraHasBeenInitialized = false;
   // Ensure global Theme/Language services are initialized at shell level
   private readonly _theme = inject(ThemeService);
   private readonly _lang = inject(LanguageService);
-  private readonly _i18n = inject(I18nService);
   // Public alias for template usage
   readonly lang = this._lang;
-  readonly t = (k: string, p?: Record<string, any>) => this._i18n.t(k, p);
-  // Expose currently active modal reference for template conditionals
-  readonly activeModalRef = computed(() => this.modal.modalRef());
   private readonly activeHref = signal<string | null>(null);
 
-  cfg = input<AppShellConfig>({ skipLinkLabel: "Skip to content" });
-
-  // Localized skip link label (falls back to provided cfg if any)
-  readonly skipLabel = computed(() => {
-    const provided = this.cfg()?.skipLinkLabel;
-    if (provided && provided.trim().length > 0) return provided;
-    return this._lang.currentLanguage() === "en"
-      ? "Skip to content"
-      : "Saltar al contenido";
-  });
-
-  // Consent modal variant based on environment flag
-  readonly consentVariant = computed<"dialog" | "sheet">(() => {
-    const mode = environment.features.analyticsConsentUI;
-    return mode === "sheet" ? "sheet" : "dialog";
-  });
 
   // Minimal header config until centralized state is introduced
   headerConfig = computed(() => ({
@@ -201,7 +142,6 @@ export class AppShellComponent {
     showLanguageToggle: true,
   }));
 
-  readonly mainRef = viewChild<ElementRef<HTMLElement>>("main");
 
   constructor() {
     // Track subsequent page views on navigation end
@@ -224,9 +164,9 @@ export class AppShellComponent {
         this.removeAnkDNoneFromAnkTimer();
       }
       setTimeout(() => {
-        console.log("[AppShell] The followind components wasn't rendered:", this._configurationsOrchestratorService['componentsToBeRendered']);
-        console.log("[AppShell] The followind components was rendered:", this._configurationsOrchestratorService['componentsAlreadyRendered']);
-        const classes: string[] = [...this._configurationsOrchestratorService.getAllTheClassesFromComponents(), 'btnBaseVALSVL1_5remVL1remVL'];
+        console.log("[AppShell] The followind components wasn't rendered:", this.orchestrator['componentsToBeRendered']);
+        console.log("[AppShell] The followind components was rendered:", this.orchestrator['componentsAlreadyRendered']);
+        const classes: string[] = [...this.orchestrator.getAllTheClassesFromComponents(), 'btnBaseVALSVL1_5remVL1remVL'];
         console.log("[AppShell] All the classes used in the app:", classes);
       }, 2000);
     });
@@ -260,38 +200,8 @@ export class AppShellComponent {
     });
 
     this.initDebugOverlay();
-
-    // React to consent modal visibility toggles and manage actual overlay
-    effect(() => {
-      const needsConsent = this.analytics.consentVisible();
-      const active = this.modal.modalRef();
-      if (needsConsent && !active) {
-        this.modal.open({ id: "analytics-consent" });
-      } else if (!needsConsent && active?.id === "analytics-consent") {
-        this.modal.close();
-      }
-    });
-
-    // Modal service analytics stream
-    try {
-      this.modal.analyticsEvents$?.subscribe((e) =>
-        this.handleAnalyticsEvent(e)
-      );
-    } catch { }
   }
 
-  // Allow template to close the modal
-  closeModal(): void {
-    this.modal.close();
-  }
-
-  focusMain(evt: Event): void {
-    evt.preventDefault();
-    const el = this.mainRef()?.nativeElement;
-    if (el) {
-      el.focus();
-    }
-  }
 
   onNavChange(item: HeaderNavItem): void {
     this.activeHref.set(item.href);
@@ -394,184 +304,6 @@ export class AppShellComponent {
       });
     }, 1000);
   }
-
-  // Demo triggers (will be removed or replaced with proper examples later)
-  showDemoModal(): void {
-    this.modal.open({
-      id: "demo-modal",
-      ariaLabel: this.t("demo.modal.title"),
-      showAccentBar: true,
-      accentColor: "accentColor",
-      size: "md",
-      variant: "dialog",
-    });
-  }
-
-  showDemoToast(): void {
-    const demos = [
-      () =>
-        this.toast.success(this.t("demo.toast.success"), { source: "Toast" }),
-      () => this.toast.error(this.t("demo.toast.error"), { source: "Toast" }),
-      () =>
-        this.toast.warning(this.t("demo.toast.warning"), { source: "Toast" }),
-      () => this.toast.info(this.t("demo.toast.info"), { source: "Toast" }),
-      () =>
-        this.toast.show({
-          level: "success",
-          title: this.t("demo.toast.fileUploadTitle"),
-          text: this.t("demo.toast.fileUploadText"),
-          autoCloseMs: 6000,
-          source: "Toast",
-        }),
-      () =>
-        this.toast.show({
-          level: "warning",
-          title: this.t("demo.toast.unsavedTitle"),
-          text: this.t("demo.toast.unsavedText"),
-          autoCloseMs: 0,
-          source: "Toast",
-          actions: [
-            {
-              label: this.t("demo.toast.unsavedSave"),
-              action: () =>
-                this.toast.success(this.t("demo.toast.changesSaved")),
-              style: "primary",
-            },
-            {
-              label: this.t("demo.toast.discard"),
-              action: () => this.toast.info(this.t("demo.toast.discard")),
-              style: "secondary",
-            },
-          ],
-        }),
-    ];
-    const randomDemo = demos[Math.floor(Math.random() * demos.length)];
-    randomDemo();
-  }
-
-  showErrorToast(): void {
-    this.toast.show({
-      level: "error",
-      title: this.t("demo.toast.criticalTitle"),
-      text: this.t("demo.toast.criticalText"),
-      autoCloseMs: 0,
-      source: "Error",
-      actions: [
-        {
-          label: this.t("demo.toast.contactSupport"),
-          action: () => {
-            this.toast.info(this.t("demo.toast.openingSupport"));
-          },
-          style: "primary",
-        },
-        {
-          label: this.t("demo.toast.tryAgain"),
-          action: () => {
-            this.toast.warning(this.t("demo.toast.updatePostponed"));
-          },
-          style: "secondary",
-        },
-      ],
-    });
-  }
-
-  showActionToast(): void {
-    this.toast.show({
-      level: "info",
-      title: this.t("demo.toast.updateTitle"),
-      text: this.t("demo.toast.updateText"),
-      autoCloseMs: 10000,
-      source: "Actions",
-      actions: [
-        {
-          label: this.t("demo.toast.updateNow"),
-          action: () => {
-            this.toast.success(this.t("demo.toast.updateStarted"));
-          },
-          style: "primary",
-        },
-        {
-          label: this.t("demo.toast.viewChanges"),
-          action: () => {
-            this.toast.info(this.t("demo.toast.openingChangelog"));
-          },
-          style: "secondary",
-        },
-        {
-          label: this.t("demo.toast.later"),
-          action: () => {
-            this.toast.warning(this.t("demo.toast.updatePostponed"));
-          },
-          style: "secondary",
-        },
-      ],
-    });
-  }
-
-  showPositionDemo(): void {
-    const positions = [
-      {
-        vertical: "top" as const,
-        horizontal: "right" as const,
-        message: this.t("demo.toast.positionChanged", {
-          position: "Top Right",
-        }),
-      },
-      {
-        vertical: "top" as const,
-        horizontal: "center" as const,
-        message: this.t("demo.toast.positionChanged", {
-          position: "Top Center",
-        }),
-      },
-      {
-        vertical: "top" as const,
-        horizontal: "left" as const,
-        message: this.t("demo.toast.positionChanged", { position: "Top Left" }),
-      },
-      {
-        vertical: "bottom" as const,
-        horizontal: "left" as const,
-        message: this.t("demo.toast.positionChanged", {
-          position: "Bottom Left",
-        }),
-      },
-      {
-        vertical: "bottom" as const,
-        horizontal: "center" as const,
-        message: this.t("demo.toast.positionChanged", {
-          position: "Bottom Center",
-        }),
-      },
-      {
-        vertical: "bottom" as const,
-        horizontal: "right" as const,
-        message: this.t("demo.toast.positionChanged", {
-          position: "Bottom Right (default)",
-        }),
-      },
-    ];
-
-    const currentIndex = this.positionDemoIndex % positions.length;
-    const position = positions[currentIndex];
-
-    this.toast.setPosition({
-      vertical: position.vertical,
-      horizontal: position.horizontal,
-    });
-    this.toast.success(position.message, { source: "Position" });
-
-    this.positionDemoIndex++;
-  }
-
-  clearAllToasts(): void {
-    this.toast.clear();
-    setTimeout(() => {
-      this.toast.info(this.t("demo.toast.allCleared"), { source: "Clear" });
-    }, 100);
-  }
-
-  private positionDemoIndex = 0;
 
   // Debug overlay: keep last 10 analytics events when debug mode is on
   readonly recentEvents = signal<readonly string[]>([]);
