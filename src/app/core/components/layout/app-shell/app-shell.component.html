@@ -31,7 +31,9 @@
 
 <!-- Advanced component hosts -->
 <generic-modal-host [config]="(orchestrator.modalHostConfig$ | async) ?? orchestrator.fallbackModalHostConfig">
-  <wrapper-orchestrator [componentsIds]="[]"></wrapper-orchestrator>
+  <wrapper-orchestrator
+    [componentsIds]="['modalAnalyticsConsentRoot', 'modalDemoRoot', 'modalTermsRoot', 'modalDataUseRoot']"
+  ></wrapper-orchestrator>
 </generic-modal-host>
 <generic-toast-host></generic-toast-host>
 
