@@ -1,33 +1,8 @@
-<wrapper-orchestrator [componentsIds]="['skipToMainLink']"></wrapper-orchestrator>
-<!-- <div class="accContainer ank-d-none"></div> -->
-<wrapper-orchestrator [componentsIds]="['siteHeader']"></wrapper-orchestrator>
-<main id="main-content" class="ank-outline-none" #main role="main" tabindex="-1">
-  <wrapper-orchestrator [componentsIds]="['landingPage']"></wrapper-orchestrator>
-</main>
-@defer {
-<wrapper-orchestrator [componentsIds]="['siteFooter']"></wrapper-orchestrator>
+<wrapper-orchestrator
+  [componentsIds]="['skipToMainLink', 'siteHeader', 'landingPage', 'siteFooter']"
+></wrapper-orchestrator>
 <!-- Toast host analytics forwarding -->
 <generic-toast-host (analyticsEvent)="handleAnalyticsEvent($event)"></generic-toast-host>
-} @placeholder {
-<footer id="contact-section" class="ank-bg-secondaryBgColor ank-color-secondaryTextColor ank-py-24px ank-px-16px">
-  <div class="ank-container ank-maxWidth-7xl ank-marginInline-auto ank-display-flex ank-jc-center ank-gap-16px">
-    <div class="ank-width-160px ank-height-12px ank-bg-bgColor ank-opacity-40 ank-borderRadius-8px"></div>
-    <div class="ank-width-200px ank-height-12px ank-bg-bgColor ank-opacity-30 ank-borderRadius-8px"></div>
-  </div>
-</footer>
-} @loading {
-<footer id="contact-section" class="ank-bg-secondaryBgColor ank-py-24px ank-px-16px">
-  <div class="ank-container ank-maxWidth-7xl ank-marginInline-auto ank-textAlign-center ank-color-secondaryTextColor">
-    Cargando pie de página…
-  </div>
-</footer>
-} @error {
-<footer id="contact-section" class="ank-bg-secondaryBgColor ank-py-24px ank-px-16px">
-  <div class="ank-container ank-maxWidth-7xl ank-marginInline-auto ank-textAlign-center ank-color-secondaryTextColor">
-    No se pudo cargar el pie de página.
-  </div>
-</footer>
-}
 
 <!-- Advanced component hosts -->
 <generic-modal-host [config]="(orchestrator.modalHostConfig$ | async) ?? orchestrator.fallbackModalHostConfig">

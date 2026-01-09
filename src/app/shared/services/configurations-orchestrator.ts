@@ -599,8 +599,11 @@ export class ConfigurationsOrchestratorService {
       id: 'landingPage',
       type: 'container',
       config: {
-        tag: 'div',
-        classes: 'ank-display-flex ank-flexDirection-column',
+        tag: 'main',
+        id: 'main-content',
+        role: 'main',
+        tabindex: -1,
+        classes: 'ank-display-flex ank-flexDirection-column ank-outline-none',
         components: [
           'heroContainer',
           'conversionNoteContainer',
