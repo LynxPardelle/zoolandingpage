@@ -7,7 +7,7 @@
 
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { GenericModalService } from '../../../../shared/components/generic-modal';
-import { I18nService } from '../../../../shared/services/i18n.service';
+import { I18nService } from '../../../services/i18n.service';
 import {
   APP_FOOTER_DEFAULTS,
   BASE_FOOTER_CLASSES,

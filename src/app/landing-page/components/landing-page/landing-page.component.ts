@@ -4,13 +4,15 @@ import { buildWhatsAppUrl } from '@/app/shared/utility/buildWhatsAppUrl.utility'
 import { DOCUMENT } from '@angular/common';
 import { afterNextRender, ChangeDetectionStrategy, Component, computed, effect, inject, output, signal } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
+import { I18nService } from '../../../core/services/i18n.service';
 import { LanguageService } from '../../../core/services/language.service';
 import { ToastService } from '../../../shared/components/generic-toast';
 import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '../../../shared/services/analytics.events';
 import { StructuredDataService } from '../../../shared/services/structured-data.service';
 /* import { HeroSectionComponent } from '../hero-section'; */
 import { buildTestimonialListSchema } from '../testimonials-section/testimonials-section.constants';
-import { LandingPageI18nService } from './landing-page-i18n.service';
+import { getTranslations } from './i18n.constants';
+import type { LandingPageTranslations } from './i18n.types';
 
 @Component({
   selector: 'app-landing-page',
@@ -28,7 +30,7 @@ export class LandingPageComponent {
   private readonly doc: Document = inject(DOCUMENT);
   private readonly toast = inject(ToastService);
   private readonly lang = inject(LanguageService);
-  readonly i18n = inject(LandingPageI18nService);
+  private readonly i18n = inject(I18nService);
   private readonly structured = inject(StructuredDataService);
   readonly analyticsEvent = output<AnalyticsEventPayload>();
   readonly isCalculatorVisible = signal(false);
@@ -38,14 +40,18 @@ export class LandingPageComponent {
 
 
 
-  // Hero content centralized through i18n service
-  readonly heroData = this.i18n.hero;
+  private readonly landingTranslations = computed<LandingPageTranslations>(() =>
+    this.i18n.get<LandingPageTranslations>('landing') ?? getTranslations(this.lang.currentLanguage() as any)
+  );
 
-  // Testimonials content centralized through i18n service
-  readonly testimonials = this.i18n.testimonials;
+  // Hero content centralized through landing namespace
+  readonly heroData = computed(() => this.landingTranslations().hero);
+
+  // Testimonials content centralized through landing namespace
+  readonly testimonials = computed(() => this.landingTranslations().testimonials);
 
   // Loading messages from centralized translations
-  readonly loadingMessages = computed(() => this.i18n.ui().loading);
+  readonly loadingMessages = computed(() => this.landingTranslations().ui.loading);
 
   // Conversion/Revenue calculation based on business size, industry and visitors (migrated from legacy App component)
   readonly calculatedConversion = computed(() => {
@@ -131,7 +137,7 @@ export class LandingPageComponent {
 
   openWhatsApp(track: boolean = true, name: string, location: string, serviceLabel?: string): void {
 
-    const rawMessage = this.i18n.ui().contact.whatsappMessage;
+    const rawMessage = this.landingTranslations().ui.contact.whatsappMessage;
     const phone = WHATSAPP_PHONE;
     const link = buildWhatsAppUrl(phone, rawMessage);
     const evtName = this.nameChooser(name);

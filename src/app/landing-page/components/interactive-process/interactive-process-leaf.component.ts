@@ -3,15 +3,18 @@ import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input
 import { MatIconModule } from '@angular/material/icon';
 import { AppContainerComponent } from '../../../core/components/layout/app-container/app-container.component';
 import { AppSectionComponent } from '../../../core/components/layout/app-section/app-section.component';
-import { LandingPageI18nService } from '../landing-page/landing-page-i18n.service';
+import { I18nService } from '../../../core/services/i18n.service';
+import { LanguageService } from '../../../core/services/language.service';
+import { getTranslations } from '../landing-page/i18n.constants';
+import type { LandingPageTranslations } from '../landing-page/i18n.types';
 import { ProcessStep } from './interactive-process.types';
 
 @Component({
-    selector: 'interactive-process-leaf',
-    imports: [CommonModule, AppSectionComponent, AppContainerComponent, MatIconModule],
-    templateUrl: './interactive-process-leaf.component.html',
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    styles: [`
+  selector: 'interactive-process-leaf',
+  imports: [CommonModule, AppSectionComponent, AppContainerComponent, MatIconModule],
+  templateUrl: './interactive-process-leaf.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  styles: [`
     .accordion-content {
       animation: slideDown 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
       transform-origin: top;
@@ -79,56 +82,61 @@ import { ProcessStep } from './interactive-process.types';
   `],
 })
 export class InteractiveProcessLeafComponent {
-    private readonly i18n = inject(LandingPageI18nService);
-    private readonly elementRef = inject(ElementRef);
+  private readonly i18n = inject(I18nService);
+  private readonly language = inject(LanguageService);
+  private readonly elementRef = inject(ElementRef);
 
-    readonly process = input.required<readonly ProcessStep[]>();
-    readonly currentStep = input.required<number>();
-    readonly selectStep = output<number>();
+  readonly process = input.required<readonly ProcessStep[]>();
+  readonly currentStep = input.required<number>();
+  readonly selectStep = output<number>();
 
-    readonly currentData = computed(() => {
-        const step = this.currentStep();
-        // Si currentStep es -1 (cerrado) o inválido, usar el primer paso como fallback
-        if (step < 0 || step >= this.process().length) {
-            return this.process()[0];
-        }
-        return this.process()[step];
-    });
-
-    // Use centralized process section translations
-    readonly sectionContent = computed(() => this.i18n.processSection());
-
-    choose(i: number) {
-        // Si el paso actual es el mismo que se clickeó, emitir -1 para cerrar
-        // Si es diferente, emitir el nuevo índice para abrir
-        if (this.currentStep() === i) {
-            this.selectStep.emit(-1); // Usamos -1 para indicar "cerrado"
-        } else {
-            this.selectStep.emit(i);
-            // Scroll suave al elemento seleccionado después de un pequeño delay
-            // para permitir que las animaciones comiencen
-            setTimeout(() => {
-                this.scrollToSelectedStep(i);
-            }, 150);
-        }
+  readonly currentData = computed(() => {
+    const step = this.currentStep();
+    // Si currentStep es -1 (cerrado) o inválido, usar el primer paso como fallback
+    if (step < 0 || step >= this.process().length) {
+      return this.process()[0];
     }
+    return this.process()[step];
+  });
 
-    private scrollToSelectedStep(stepIndex: number) {
-        const stepElement = this.elementRef.nativeElement.querySelector(`[data-step="${ stepIndex }"]`);
-        if (stepElement) {
-            const elementRect = stepElement.getBoundingClientRect();
-            const viewportHeight = window.innerHeight;
-            const elementTop = elementRect.top + window.pageYOffset;
+  // Use centralized process section translations
+  private readonly landingTranslations = computed<LandingPageTranslations>(() =>
+    this.i18n.get<LandingPageTranslations>('landing') ?? getTranslations(this.language.currentLanguage() as any)
+  );
 
-            // Calcular la posición de scroll para centrar el elemento
-            // Restamos la mitad de la altura de la viewport para centrarlo
-            const targetScrollPosition = elementTop - viewportHeight / 2 + elementRect.height / 2;
+  readonly sectionContent = computed(() => this.landingTranslations().processSection);
 
-            // Scroll suave
-            window.scrollTo({
-                top: Math.max(0, targetScrollPosition), // No permitir scroll negativo
-                behavior: 'smooth',
-            });
-        }
+  choose(i: number) {
+    // Si el paso actual es el mismo que se clickeó, emitir -1 para cerrar
+    // Si es diferente, emitir el nuevo índice para abrir
+    if (this.currentStep() === i) {
+      this.selectStep.emit(-1); // Usamos -1 para indicar "cerrado"
+    } else {
+      this.selectStep.emit(i);
+      // Scroll suave al elemento seleccionado después de un pequeño delay
+      // para permitir que las animaciones comiencen
+      setTimeout(() => {
+        this.scrollToSelectedStep(i);
+      }, 150);
     }
+  }
+
+  private scrollToSelectedStep(stepIndex: number) {
+    const stepElement = this.elementRef.nativeElement.querySelector(`[data-step="${ stepIndex }"]`);
+    if (stepElement) {
+      const elementRect = stepElement.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const elementTop = elementRect.top + window.pageYOffset;
+
+      // Calcular la posición de scroll para centrar el elemento
+      // Restamos la mitad de la altura de la viewport para centrarlo
+      const targetScrollPosition = elementTop - viewportHeight / 2 + elementRect.height / 2;
+
+      // Scroll suave
+      window.scrollTo({
+        top: Math.max(0, targetScrollPosition), // No permitir scroll negativo
+        behavior: 'smooth',
+      });
+    }
+  }
 }

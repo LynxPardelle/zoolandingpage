@@ -1,10 +1,11 @@
-import { TGenericComponent } from "@/app/shared/components/wrapper-orchestrator/wrapper-orchestrator.types";
-import { MotionPreferenceService } from "@/app/shared/services/motion-preference.service";
-import { inject } from "@angular/core";
-import { LandingPageI18nService } from "../components/landing-page/landing-page-i18n.service";
+import { getTranslations, I18N_CONFIG } from "@/app/landing-page/components/landing-page/i18n.constants";
+import type { TGenericComponent } from "@/app/shared/components/wrapper-orchestrator/wrapper-orchestrator.types";
 
-const i18n = inject(LandingPageI18nService);
-const motion = inject(MotionPreferenceService);
+// NOTE: This file is a legacy static components registry.
+// It must not rely on Angular DI at module-load time.
+const i18n = {
+    hero: () => getTranslations(I18N_CONFIG.currentLanguage).hero,
+} as const;
 
 const accordions: TGenericComponent[] = [];
 const buttons: TGenericComponent[] = [
@@ -20,7 +21,7 @@ const buttons: TGenericComponent[] = [
     },
     // Secondary CTA
     {
-        id: 'primaryCTA',
+        id: 'secondaryCTA',
         condition: !!i18n.hero().secondary,
         type: 'button',
         config: {
@@ -115,7 +116,7 @@ const containers: TGenericComponent[] = [
         config: {
             tag: 'div',
             classes:
-                'ank-position-relative ank-wmx-85vw ank-justifySelf-center' + (motion.reduced() ? ' ank-transition-none' : ''),
+                'ank-position-relative ank-wmx-85vw ank-justifySelf-center',
             components: ['heroImageMockup', 'heroBrowserMockup', 'heroAnimatedElements', 'heroFloatingMetrics', 'heroConversionBadge', 'heroVerifiedBadge', 'heroMobileBadge'],
         }
     },
@@ -332,7 +333,7 @@ const containers: TGenericComponent[] = [
     },
     // Hero Landing Mockup Feature 2
     {
-        id: "heroLandingMockupFeature1",
+        id: "heroLandingMockupFeature2",
         type: 'container',
         config: {
             tag: 'div',
@@ -342,7 +343,7 @@ const containers: TGenericComponent[] = [
     },
     // Hero Landing Mockup Feature 3
     {
-        id: "heroLandingMockupFeature1",
+        id: "heroLandingMockupFeature3",
         type: 'container',
         config: {
             tag: 'div',

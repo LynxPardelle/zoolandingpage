@@ -5,7 +5,8 @@ import { environment } from '../../../environments/environment';
 import { ToastService } from '../components/generic-toast';
 import { TAnalyticsEvent, TDataDropResponse, TExpandedAnalytics, TTrackOptions } from '../types/analytics.type';
 import { AnalyticsEvents } from './analytics.events';
-import { I18nService } from './i18n.service';
+import { I18nService } from '@/app/core/services/i18n.service';
+
 import { QuickStatsService } from './quick-stats.service';
 @Injectable({ providedIn: 'root' })
 export class AnalyticsService {

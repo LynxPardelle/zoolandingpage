@@ -3,9 +3,12 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output } f
 import { MatIconModule } from '@angular/material/icon';
 import { AppContainerComponent } from '../../../core/components/layout/app-container/app-container.component';
 import { AppSectionComponent } from '../../../core/components/layout/app-section/app-section.component';
+import { I18nService } from '../../../core/services/i18n.service';
+import { LanguageService } from '../../../core/services/language.service';
 import { GenericButtonComponent } from '../../../shared/components/generic-button/generic-button.component';
 import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '../../../shared/services/analytics.events';
-import { LandingPageI18nService } from '../landing-page/landing-page-i18n.service';
+import { getTranslations } from '../landing-page/i18n.constants';
+import type { LandingPageTranslations } from '../landing-page/i18n.types';
 import { StatsCounterComponent } from '../stats-counter/stats-counter.component';
 import type { StatsCounterConfig } from '../stats-counter/stats-counter.types';
 import type { BusinessSize, CalculatedRoi } from './conversion-calculator-section.types';
@@ -17,7 +20,8 @@ import type { BusinessSize, CalculatedRoi } from './conversion-calculator-sectio
 })
 export class ConversionCalculatorSectionComponent {
     readonly analyticsEvent = output<AnalyticsEventPayload>();
-    private readonly i18n = inject(LandingPageI18nService);
+    private readonly i18n = inject(I18nService);
+    private readonly language = inject(LanguageService);
 
     readonly businessSize = input.required<BusinessSize>();
     readonly industry = input.required<string>();
@@ -28,7 +32,11 @@ export class ConversionCalculatorSectionComponent {
     readonly visitorsChange = output<number>();
 
     // Section content from centralized translations
-    readonly calculatorContent = computed(() => this.i18n.calculator());
+    private readonly landingTranslations = computed<LandingPageTranslations>(() =>
+        this.i18n.get<LandingPageTranslations>('landing') ?? getTranslations(this.language.currentLanguage() as any)
+    );
+
+    readonly calculatorContent = computed(() => this.landingTranslations().calculator);
 
     readonly monthlyIncreaseConfig = computed<StatsCounterConfig>(() => ({
         target: this.calculatedROI().monthlyIncrease,

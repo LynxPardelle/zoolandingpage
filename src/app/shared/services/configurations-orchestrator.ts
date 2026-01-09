@@ -1,7 +1,9 @@
+import { I18nService } from '@/app/core/services/i18n.service';
 import { LanguageService } from '@/app/core/services/language.service';
 import { ThemeService } from '@/app/core/services/theme.service';
 import { ProcessStep } from '@/app/landing-page/components/interactive-process/interactive-process.types';
-import { LandingPageI18nService } from '@/app/landing-page/components/landing-page/index.i18n';
+import { getTranslations } from '@/app/landing-page/components/landing-page/i18n.constants';
+import type { LandingPageTranslations } from '@/app/landing-page/components/landing-page/i18n.types';
 import type { StatsCounterConfig } from '@/app/landing-page/components/stats-counter/stats-counter.types';
 import { MotionPreferenceService } from "@/app/shared/services/motion-preference.service";
 import { computed, DOCUMENT, effect, inject, Injectable, signal } from '@angular/core';
@@ -15,13 +17,11 @@ import { buildWhatsAppUrl } from '../utility/buildWhatsAppUrl.utility';
 import { AnalyticsCategories, AnalyticsEvents } from './analytics.events';
 import { AnalyticsService } from './analytics.service';
 import { WHATSAPP_PHONE } from './contact.constants';
-import { I18nService } from './i18n.service';
 import { QuickStatsService } from './quick-stats.service';
 @Injectable({
   providedIn: 'root',
 })
 export class ConfigurationsOrchestratorService {
-  private readonly i18n = inject(LandingPageI18nService);
   private readonly motion = inject(MotionPreferenceService);
   private readonly doc: Document = inject(DOCUMENT);
   readonly analytics = inject(AnalyticsService);
@@ -31,6 +31,30 @@ export class ConfigurationsOrchestratorService {
   private readonly modal = inject(GenericModalService);
   private readonly toast = inject(ToastService);
   private readonly globalI18n = inject(I18nService);
+
+  private readonly landingTranslations = computed<LandingPageTranslations>(() => {
+    const fromCore = this.globalI18n.get<LandingPageTranslations>('landing');
+    if (fromCore) return fromCore;
+    return getTranslations(this.language.currentLanguage() as any);
+  });
+
+  // Backwards-compatible facade: matches the old LandingPageI18nService API (signals).
+  readonly i18n = {
+    hero: computed(() => this.landingTranslations().hero),
+    featuresSection: computed(() => this.landingTranslations().featuresSection),
+    features: computed(() => this.landingTranslations().features),
+    services: computed(() => this.landingTranslations().services),
+    testimonials: computed(() => this.landingTranslations().testimonials),
+    processSection: computed(() => this.landingTranslations().processSection),
+    process: computed(() => this.landingTranslations().process),
+    faqSection: computed(() => this.landingTranslations().faqSection),
+    faq: computed(() => this.landingTranslations().faq),
+    conversionNote: computed(() => this.landingTranslations().conversionNote),
+    calculator: computed(() => this.landingTranslations().calculator),
+    statsStrip: computed(() => this.landingTranslations().statsStrip),
+    finalCtaSection: computed(() => this.landingTranslations().finalCtaSection),
+    ui: computed(() => this.landingTranslations().ui),
+  } as const;
 
   // [MODALS-1] Centralize modal state/config in orchestrator (moved from AppShell).
   readonly activeModalRef = computed(() => this.modal.modalRef());

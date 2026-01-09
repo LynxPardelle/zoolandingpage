@@ -9,10 +9,13 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { I18nService } from '../../../core/services/i18n.service';
+import { LanguageService } from '../../../core/services/language.service';
 import { WrapperOrchestrator } from '../../../shared/components/wrapper-orchestrator/wrapper-orchestrator.component';
 import { AnalyticsService } from '../../../shared/services/analytics.service';
 import { MotionPreferenceService } from '../../../shared/services/motion-preference.service';
-import { LandingPageI18nService } from '../landing-page/landing-page-i18n.service';
+import { getTranslations } from '../landing-page/i18n.constants';
+import type { LandingPageTranslations } from '../landing-page/i18n.types';
 import { HERO_SECTION_BASE_CLASSES, HERO_SECTION_DEFAULT } from './hero-section.constants';
 import { HERO_ANIMATIONS } from './hero-section.styles';
 import { HeroSectionData } from './hero-section.types';
@@ -28,7 +31,8 @@ import { HeroSectionData } from './hero-section.types';
 })
 export class HeroSectionComponent {
   private readonly analytics = inject(AnalyticsService);
-  private readonly i18n = inject(LandingPageI18nService);
+  private readonly i18n = inject(I18nService);
+  private readonly language = inject(LanguageService);
   readonly motion = inject(MotionPreferenceService);
 
   readonly data = input<HeroSectionData>(HERO_SECTION_DEFAULT);
@@ -40,8 +44,12 @@ export class HeroSectionComponent {
     this.data().backgroundImage ? `url(${ this.data().backgroundImage })` : 'none'
   );
 
-  readonly heroTranslations = computed(() => this.i18n.hero());
-  readonly floatingMetrics = computed(() => this.i18n.hero().floatingMetrics);
+  private readonly landingTranslations = computed<LandingPageTranslations>(() =>
+    this.i18n.get<LandingPageTranslations>('landing') ?? getTranslations(this.language.currentLanguage() as any)
+  );
+
+  readonly heroTranslations = computed(() => this.landingTranslations().hero);
+  readonly floatingMetrics = computed(() => this.landingTranslations().hero.floatingMetrics);
 
   // ✅ cache del último texto "bueno" para evitar flicker
   private readonly _stableText = signal<Pick<HeroSectionData, 'title' | 'subtitle' | 'description'>>({
