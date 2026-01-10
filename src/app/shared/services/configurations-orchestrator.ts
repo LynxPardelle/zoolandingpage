@@ -6,17 +6,24 @@ import { getTranslations } from '@/app/landing-page/components/landing-page/i18n
 import type { LandingPageTranslations } from '@/app/landing-page/components/landing-page/i18n.types';
 import type { StatsCounterConfig } from '@/app/landing-page/components/stats-counter/stats-counter.types';
 import { MotionPreferenceService } from "@/app/shared/services/motion-preference.service";
-import { computed, DOCUMENT, effect, inject, Injectable, signal } from '@angular/core';
+import { computed, DOCUMENT, effect, inject, Injectable } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { environment } from '../../../environments/environment';
 import { GenericModalService } from '../components/generic-modal/generic-modal.service';
 import type { ModalConfig } from '../components/generic-modal/generic-modal.types';
 import { ToastService } from '../components/generic-toast';
 import { TGenericComponent } from '../components/wrapper-orchestrator/wrapper-orchestrator.types';
-import { buildWhatsAppUrl } from '../utility/buildWhatsAppUrl.utility';
-import { AnalyticsCategories, AnalyticsEvents } from './analytics.events';
+import {
+  collectAllClassesFromComponents,
+  ComponentRenderTracker,
+  findComponentById,
+  normalizeComponentIfNeeded,
+} from '../utility/component-orchestrator.utility';
+import { forwardAnalyticsEvent } from '../utility/forwardAnalyticsEvent.utility';
+import { AnalyticsEvents } from './analytics.events';
 import { AnalyticsService } from './analytics.service';
-import { WHATSAPP_PHONE } from './contact.constants';
+import { ComponentEvent, ComponentEventDispatcherService } from './component-event-dispatcher.service';
+import { InteractiveProcessStoreService } from './interactive-process-store.service';
 import { QuickStatsService } from './quick-stats.service';
 @Injectable({
   providedIn: 'root',
@@ -31,6 +38,8 @@ export class ConfigurationsOrchestratorService {
   private readonly modal = inject(GenericModalService);
   private readonly toast = inject(ToastService);
   private readonly globalI18n = inject(I18nService);
+  private readonly componentEventDispatcher = inject(ComponentEventDispatcherService);
+  private readonly interactiveProcessStore = inject(InteractiveProcessStoreService);
 
   private readonly landingTranslations = computed<LandingPageTranslations>(() => {
     const fromCore = this.globalI18n.get<LandingPageTranslations>('landing');
@@ -212,7 +221,7 @@ export class ConfigurationsOrchestratorService {
 
     // [MODALS-3] Forward modal analytics events into orchestrator analytics pipeline.
     try {
-      this.modal.analyticsEvents$?.subscribe((e) => this.handleAnalyticsEvent(e));
+      this.modal.analyticsEvents$?.subscribe((e) => forwardAnalyticsEvent(this.analytics, e as any));
     } catch {
       // ignore
     }
@@ -300,9 +309,8 @@ export class ConfigurationsOrchestratorService {
     ariaLabel: this.statsStripContent().averageTimeLabel,
   }));
 
-  private readonly currentProcessStep = signal<number>(0);
   private readonly interactiveProcessSteps = computed<readonly ProcessStep[]>(() => {
-    const stepIndex = this.currentProcessStep();
+    const stepIndex = this.interactiveProcessStore.currentStep();
     return this.i18n.process().map((demo) => ({
       ...demo,
       isActive: demo.step === stepIndex + 1,
@@ -1946,7 +1954,14 @@ export class ConfigurationsOrchestratorService {
         description: () => this.i18n.services()[index]?.description ?? '',
         benefits: () => this.i18n.services()[index]?.features ?? [],
         buttonLabel: () => this.i18n.services()[index]?.buttonLabel ?? '',
-        onCta: (title: string) => this.openWhatsApp(AnalyticsEvents.ServicesCtaClick, 'services', title),
+        onCta: (title: string) =>
+          this.handleComponentEvent({
+            componentId: `servicesCard${ index + 1 }`,
+            eventName: 'cta',
+            meta_title: AnalyticsEvents.ServicesCtaClick,
+            eventData: { label: title },
+            eventInstructions: 'openWhatsApp:event.meta_title,services,event.eventData.label',
+          }),
         classes:
           'ank-bg-secondaryBgColor ank-borderRadius-1rem ank-p-1_5rem cardHover ank-textAlign-center ank-border-1px ank-borderColor-border ank-h-calcSD100per__MIN__3remED',
       },
@@ -3159,7 +3174,7 @@ export class ConfigurationsOrchestratorService {
       meta_title: String(AnalyticsEvents.ProcessStepChange),
       config: {
         process: this.interactiveProcessSteps,
-        currentStep: this.currentProcessStep,
+        currentStep: this.interactiveProcessStore.currentStep,
       },
     },
   ];
@@ -3187,616 +3202,31 @@ export class ConfigurationsOrchestratorService {
     ...this.devOnlyComponents
   ];
 
-  private readonly componentsAlreadyRendered: Set<string> = new Set<string>();
-  private readonly componentsToBeRendered: Set<string> = new Set<string>(this.components.map(component => component.id));
+  private readonly componentRenderTracker = new ComponentRenderTracker(this.components.map((c) => c.id));
 
   markComponentRendered(id: string): void {
-    if (!id) return;
-    this.componentsAlreadyRendered.add(id);
-    this.componentsToBeRendered.delete(id);
-  }
-
-  public allComponentsRendered(): boolean {
-    return this.componentsAlreadyRendered.size === this.componentsToBeRendered.size;
+    this.componentRenderTracker.markRendered(id);
   }
 
   getComponentById(id: string) {
-    let component = this.components.find(component => component.id === id);
+    let component = findComponentById(this.components, id);
     if (!component) {
       console.error(`Component with id "${ id }" not found in ConfigurationsOrchestratorService.`);
     } else {
-      const normalizedType = String((component as any).type ?? '')
-        .trim()
-        .replace(/[\u2010\u2011\u2212]/g, '-');
-      if (normalizedType && normalizedType !== (component as any).type) {
-        component = { ...(component as any), type: normalizedType } as TGenericComponent;
-      }
+      component = normalizeComponentIfNeeded(component);
       this.markComponentRendered(id);
     }
     return component;
   }
 
   getAllTheClassesFromComponents(): string[] {
-    const classesSet: Set<string> = new Set<string>();
-
-    const addClasses = (raw: unknown) => {
-      if (!raw || typeof raw !== 'string') return;
-      raw
-        .split(' ')
-        .map(cls => cls.trim())
-        .filter(cls => cls.length > 0)
-        .forEach(cls => classesSet.add(cls));
-    };
-
-    this.components.forEach(component => {
-      if (component.config && 'classes' in component.config && component.config.classes) {
-        addClasses((component.config as any).classes);
-      }
-
-      // Also collect classes from dropdownConfig fields (these are not under config.classes)
-      if ((component as any).type === 'dropdown') {
-        const ddCfg = (component as any).config?.dropdownConfig;
-        if (ddCfg) {
-          addClasses(ddCfg.classes);
-          addClasses(ddCfg.buttonClasses);
-          addClasses(ddCfg.itemLinkClasses);
-          addClasses(ddCfg.menuContainerClasses);
-          addClasses(ddCfg.menuNavClasses);
-          addClasses(ddCfg.menuListClasses);
-        }
-      }
-    });
-    return Array.from(classesSet);
+    return collectAllClassesFromComponents(this.components);
   }
 
-  readonly posibleActions = [
-    'openWhatsApp',
-    'trackCTAClick',
-    'trackNavClick',
-    'navigationToSection',
-    'setInteractiveProcessStep',
-    'trackFaqToggle',
-    'openFaqCtaWhatsApp',
-    'openFinalCtaWhatsApp',
-    'toggleTheme',
-    'toggleLanguage',
-    'openFooterTerms',
-    'openFooterData',
-    // [MODALS-8]
-    'closeModal',
-    'showDemoModal',
-    'acceptConsent',
-    'declineConsent',
-    'remindLater',
-    'removeConsentRequest',
-    // Dev-only toast demos (orchestrator-driven)
-    'showDemoToast',
-    'showErrorToast',
-    'showActionToast',
-    'showPositionDemo',
-    'clearAllToasts',
-    // Accessibility
-    'skipToMain',
-  ];
-  handleComponentEvent(event: { componentId: string, meta_title?: string, eventName: string, eventData?: unknown, eventInstructions?: string }): void {
-    console.log(`Event "${ event.eventName }" triggered from component with id "${ event.componentId }" with the following data: `, event.eventData, ' // and the following instructions: ', event.eventInstructions);
-    if (!event.eventInstructions) return;
-
-    const resolveEventPath = (rawPath: string): unknown => {
-      // Supports: event.eventData.id, event.meta_title, etc.
-      const path = rawPath.trim();
-      if (!path.startsWith('event.')) return undefined;
-      const parts = path.replace(/^event\./, '').split('.').filter(Boolean);
-      let cur: any = event as any;
-      for (const part of parts) {
-        if (cur == null) return undefined;
-        cur = cur[part];
-      }
-      return cur;
-    };
-
-    const instructions = event.eventInstructions.split(';');
-    instructions.forEach(instruction => {
-      const [action, params] = instruction.split(':');
-      if (this.posibleActions.includes(action)) {
-        let paramList: any[] = params ? params.split(',') : [];
-        paramList = paramList.map(param => {
-          let p = param.trim();
-          if (p.includes('event.')) {
-            console.log('Resolving event param for ', p);
-            const resolved = resolveEventPath(p);
-            p = resolved as any;
-            console.log('Resolved to ', p);
-          }
-          if (p === 'null') return null;
-          if (p === 'undefined') return undefined;
-          if (!isNaN(Number(p))) return Number(p);
-          return p;
-        });
-        switch (action) {
-          case 'openWhatsApp':
-            this.openWhatsApp(...(paramList as [string, string, string?]));
-            break;
-          case 'trackCTAClick':
-            this.trackCTAClick(...(paramList as [string, string, string]));
-            break;
-          case 'trackNavClick':
-            this.trackNavClick(paramList[0] as any, paramList[1] as any);
-            break;
-          case 'navigationToSection':
-            this.navigationToSection(...(paramList as [string]));
-            break;
-          case 'setInteractiveProcessStep':
-            this.setInteractiveProcessStep(...(paramList as [number]));
-            break;
-          case 'trackFaqToggle':
-            this.trackFaqToggle(paramList[0] as any);
-            break;
-          case 'openFaqCtaWhatsApp':
-            this.openFaqCtaWhatsApp();
-            break;
-          case 'openFinalCtaWhatsApp':
-            this.openFinalCtaWhatsApp(paramList[0] as any, paramList[1] as any);
-            break;
-          case 'toggleTheme':
-            this.toggleTheme();
-            break;
-          case 'toggleLanguage':
-            this.toggleLanguage();
-            break;
-          case 'openFooterTerms':
-            this.openFooterTerms();
-            break;
-          case 'openFooterData':
-            this.openFooterData();
-            break;
-          case 'closeModal':
-            this.closeModal();
-            break;
-          case 'showDemoModal':
-            this.showDemoModal();
-            break;
-          case 'acceptConsent':
-            this.acceptConsent();
-            break;
-          case 'declineConsent':
-            this.declineConsent();
-            break;
-          case 'remindLater':
-            this.remindLater(paramList[0] as any);
-            break;
-          case 'removeConsentRequest':
-            this.removeConsentRequest();
-            break;
-          case 'showDemoToast':
-            this.showDemoToast();
-            break;
-          case 'showErrorToast':
-            this.showErrorToast();
-            break;
-          case 'showActionToast':
-            this.showActionToast();
-            break;
-          case 'showPositionDemo':
-            this.showPositionDemo();
-            break;
-          case 'clearAllToasts':
-            this.clearAllToasts();
-            break;
-          case 'skipToMain':
-            this.skipToMain(paramList[0] as any);
-            break;
-          default:
-            console.error(`Action "${ action }" not recognized.`);
-            break;
-        }
-      }
-    });
-  }
-
-  // [MODALS-9] Modal actions (moved from AppShell)
-  closeModal(): void {
-    this.modal.close();
-  }
-
-  showDemoModal(): void {
-    this.modal.open({
-      id: 'demo-modal',
-      ariaLabel: this.globalI18n.t('demo.modal.title'),
-      showAccentBar: true,
-      accentColor: 'accentColor',
-      size: 'md',
-      variant: 'dialog',
-    });
-  }
-
-  // Dev-only toast demos (moved from AppShell)
-  private positionDemoIndex = 0;
-
-  showDemoToast(): void {
-    const t = (k: string, p?: Record<string, any>) => this.globalI18n.t(k, p);
-    const demos = [
-      () => this.toast.success(t('demo.toast.success'), { source: 'Toast' }),
-      () => this.toast.error(t('demo.toast.error'), { source: 'Toast' }),
-      () => this.toast.warning(t('demo.toast.warning'), { source: 'Toast' }),
-      () => this.toast.info(t('demo.toast.info'), { source: 'Toast' }),
-      () =>
-        this.toast.show({
-          level: 'success',
-          title: t('demo.toast.fileUploadTitle'),
-          text: t('demo.toast.fileUploadText'),
-          autoCloseMs: 6000,
-          source: 'Toast',
-        }),
-      () =>
-        this.toast.show({
-          level: 'warning',
-          title: t('demo.toast.unsavedTitle'),
-          text: t('demo.toast.unsavedText'),
-          autoCloseMs: 0,
-          source: 'Toast',
-          actions: [
-            {
-              label: t('demo.toast.unsavedSave'),
-              action: () => this.toast.success(t('demo.toast.changesSaved')),
-              style: 'primary',
-            },
-            {
-              label: t('demo.toast.discard'),
-              action: () => this.toast.info(t('demo.toast.discard')),
-              style: 'secondary',
-            },
-          ],
-        }),
-    ];
-    const randomDemo = demos[Math.floor(Math.random() * demos.length)];
-    randomDemo();
-  }
-
-  showErrorToast(): void {
-    const t = (k: string, p?: Record<string, any>) => this.globalI18n.t(k, p);
-    this.toast.show({
-      level: 'error',
-      title: t('demo.toast.criticalTitle'),
-      text: t('demo.toast.criticalText'),
-      autoCloseMs: 0,
-      source: 'Error',
-      actions: [
-        {
-          label: t('demo.toast.contactSupport'),
-          action: () => {
-            this.toast.info(t('demo.toast.openingSupport'));
-          },
-          style: 'primary',
-        },
-        {
-          label: t('demo.toast.tryAgain'),
-          action: () => {
-            this.toast.warning(t('demo.toast.updatePostponed'));
-          },
-          style: 'secondary',
-        },
-      ],
-    });
-  }
-
-  showActionToast(): void {
-    const t = (k: string, p?: Record<string, any>) => this.globalI18n.t(k, p);
-    this.toast.show({
-      level: 'info',
-      title: t('demo.toast.updateTitle'),
-      text: t('demo.toast.updateText'),
-      autoCloseMs: 10000,
-      source: 'Actions',
-      actions: [
-        {
-          label: t('demo.toast.updateNow'),
-          action: () => {
-            this.toast.success(t('demo.toast.updateStarted'));
-          },
-          style: 'primary',
-        },
-        {
-          label: t('demo.toast.viewChanges'),
-          action: () => {
-            this.toast.info(t('demo.toast.openingChangelog'));
-          },
-          style: 'secondary',
-        },
-        {
-          label: t('demo.toast.later'),
-          action: () => {
-            this.toast.warning(t('demo.toast.updatePostponed'));
-          },
-          style: 'secondary',
-        },
-      ],
-    });
-  }
-
-  showPositionDemo(): void {
-    const t = (k: string, p?: Record<string, any>) => this.globalI18n.t(k, p);
-    const positions = [
-      {
-        vertical: 'top' as const,
-        horizontal: 'right' as const,
-        message: t('demo.toast.positionChanged', { position: 'Top Right' }),
-      },
-      {
-        vertical: 'top' as const,
-        horizontal: 'center' as const,
-        message: t('demo.toast.positionChanged', { position: 'Top Center' }),
-      },
-      {
-        vertical: 'top' as const,
-        horizontal: 'left' as const,
-        message: t('demo.toast.positionChanged', { position: 'Top Left' }),
-      },
-      {
-        vertical: 'bottom' as const,
-        horizontal: 'left' as const,
-        message: t('demo.toast.positionChanged', { position: 'Bottom Left' }),
-      },
-      {
-        vertical: 'bottom' as const,
-        horizontal: 'center' as const,
-        message: t('demo.toast.positionChanged', { position: 'Bottom Center' }),
-      },
-      {
-        vertical: 'bottom' as const,
-        horizontal: 'right' as const,
-        message: t('demo.toast.positionChanged', { position: 'Bottom Right (default)' }),
-      },
-    ];
-
-    const currentIndex = this.positionDemoIndex % positions.length;
-    const position = positions[currentIndex];
-    this.toast.setPosition({ vertical: position.vertical, horizontal: position.horizontal });
-    this.toast.success(position.message, { source: 'Position' });
-    this.positionDemoIndex++;
-  }
-
-  clearAllToasts(): void {
-    const t = (k: string, p?: Record<string, any>) => this.globalI18n.t(k, p);
-    this.toast.clear();
-    setTimeout(() => {
-      this.toast.info(t('demo.toast.allCleared'), { source: 'Clear' });
-    }, 100);
-  }
-
-  skipToMain(targetId: string | undefined): void {
-    const id = String(targetId ?? '').trim();
-    if (!id) return;
-    try {
-      const el = this.doc.getElementById(id) as HTMLElement | null;
-      if (!el) return;
-      // Match typical skip-link behavior: jump to main and move focus.
-      el.scrollIntoView({ behavior: 'auto', block: 'start' });
-      el.focus();
-    } catch {
-      // no-op (SSR / non-browser)
-    }
-  }
-
-  acceptConsent(): void {
-    this.analytics.acceptConsent();
-  }
-
-  declineConsent(): void {
-    this.analytics.declineConsent();
-  }
-
-  remindLater(hours: number): void {
-    this.analytics.remindLater(Number(hours));
-  }
-
-  removeConsentRequest(): void {
-    const confirmText =
-      this.globalI18n.t('consent.feedback.confirmRemove') ||
-      'Are you sure you want to remove consent?';
-    const yesLabel = this.globalI18n.t('consent.actions.confirm') || 'Yes';
-    const noLabel = this.globalI18n.t('consent.actions.cancel') || 'No';
-    this.toast.show({
-      level: 'warning',
-      title: this.globalI18n.t('consent.title'),
-      text: confirmText,
-      autoCloseMs: 7000,
-      actions: [
-        {
-          label: yesLabel,
-          style: 'primary',
-          action: () => this.analytics.declineConsent(),
-        },
-        {
-          label: noLabel,
-          style: 'secondary',
-          action: () => {
-            /* no-op */
-          },
-        },
-      ],
-    });
-  }
-
-  toggleTheme(): void {
-    const before = this.theme.currentTheme();
-    this.theme.toggleTheme();
-    const after = this.theme.currentTheme();
-    this.handleAnalyticsEvent({
-      name: AnalyticsEvents.ThemeToggle,
-      category: AnalyticsCategories.Theme,
-      label: `${ before }->${ after }`,
-      meta: { before, after, type: 'theme', action: 'toggle' },
-    });
-  }
-
-  toggleLanguage(): void {
-    const before = this.language.currentLanguage();
-    this.language.toggleLanguage();
-    const after = this.language.currentLanguage();
-    this.handleAnalyticsEvent({
-      name: AnalyticsEvents.LanguageToggle,
-      category: AnalyticsCategories.I18N,
-      label: `${ before }->${ after }`,
-      meta: { before, after, type: 'language', action: 'toggle' },
-    });
-  }
-
-  trackFaqToggle(eventData: { id?: string; expanded?: boolean } | undefined): void {
-    if (!eventData?.expanded) return;
-    const id = String(eventData.id ?? 'unknown');
-    this.handleAnalyticsEvent({ name: AnalyticsEvents.FaqOpen, category: AnalyticsCategories.Faq, label: id });
-  }
-
-  openFaqCtaWhatsApp(): void {
-    this.handleAnalyticsEvent({
-      name: AnalyticsEvents.FaqCtaClick,
-      category: AnalyticsCategories.CTA,
-      label: 'faq:whatsapp',
-      meta: { location: 'faq-section', channel: 'whatsapp' },
-    });
-    try {
-      const phone = WHATSAPP_PHONE;
-      const link = buildWhatsAppUrl(phone, this.i18n.ui().sections.faq.subtitle);
-      if (link && typeof window !== 'undefined') window.open(link, '_blank', 'noopener,noreferrer');
-    } catch {
-      // no-op
-    }
-  }
-
-  openFinalCtaWhatsApp(eventName: string | undefined, variant: 'primary' | 'secondary' | string): void {
-    const name = String(eventName ?? AnalyticsEvents.CtaClick);
-    this.handleAnalyticsEvent({
-      name,
-      category: AnalyticsCategories.CTA,
-      label: `final-cta:${ String(variant || 'primary') }`,
-      meta: { location: 'final-cta', source: 'final_cta_section', channel: 'whatsapp', phone: WHATSAPP_PHONE }
-    });
-    try {
-      const link = buildWhatsAppUrl(WHATSAPP_PHONE, this.i18n.hero().subtitle);
-      if (link && typeof window !== 'undefined') window.open(link, '_blank', 'noopener,noreferrer');
-    } catch {
-      // no-op
-    }
-  }
-
-  openFooterTerms(): void {
-    this.modal.open({
-      id: 'terms-of-service',
-      size: 'lg',
-      ariaLabel: this.globalI18n.t('footer.legal.terms.title'),
-      showAccentBar: true,
-      accentColor: 'secondaryAccentColor',
-    });
-    this.handleAnalyticsEvent({
-      name: AnalyticsEvents.ActionTrigger,
-      category: AnalyticsCategories.Engagement,
-      label: 'footer:terms',
-      meta: { location: 'footer', action: 'open_terms_modal' },
-    });
-  }
-
-  openFooterData(): void {
-    this.modal.open({
-      id: 'data-use',
-      size: 'md',
-      ariaLabel: this.globalI18n.t('footer.legal.data.title'),
-      showAccentBar: true,
-      accentColor: 'secondaryAccentColor',
-    });
-    this.handleAnalyticsEvent({
-      name: AnalyticsEvents.ActionTrigger,
-      category: AnalyticsCategories.Engagement,
-      label: 'footer:data',
-      meta: { location: 'footer', action: 'open_data_privacy_modal' },
-    });
-  }
-
-  setInteractiveProcessStep(step: number): void {
-    this.currentProcessStep.set(step);
-    this.handleAnalyticsEvent({
-      name: AnalyticsEvents.ProcessStepChange,
-      category: AnalyticsCategories.Process,
-      label: String(step + 1),
-    });
-  }
-
-  openWhatsApp(meta_title: string, location: string, serviceLabel?: string): void {
-
-    const rawMessage = this.i18n.ui().contact.whatsappMessage;
-    const phone = WHATSAPP_PHONE;
-    const link = buildWhatsAppUrl(phone, rawMessage);
-    const isService = meta_title === AnalyticsEvents.ServicesCtaClick;
-    const comingFromServicesSection = location === 'services';
-    if (isService) {
-      // Emit only if not original services section (avoid duplicates) or if we have an override label
-      if (!comingFromServicesSection || !!serviceLabel) {
-        const label = serviceLabel || 'whatsapp-button';
-        this.handleAnalyticsEvent({ name: meta_title, category: AnalyticsCategories.CTA, label, meta: { location, via: 'whatsapp_button' } });
-      }
-    } else {
-      this.handleAnalyticsEvent({ name: meta_title, category: AnalyticsCategories.CTA, label: 'whatsapp-button', meta: { location, forwardedFrom: serviceLabel || null } });
-    }
-    window.open(link, '_blank');
-  }
-  trackCTAClick(meta_title: string, ctaType: string, location: string): void {
-    this.handleAnalyticsEvent({ name: meta_title, category: AnalyticsCategories.CTA, label: `${ location }:${ ctaType }`, meta: { location } });
-  }
-
-  navigationToSection(sectionId: string): void {
-    // Suppress SectionView spam during programmatic scroll
-    this.handleAnalyticsEvent({
-      name: AnalyticsEvents.SectionView,
-      category: AnalyticsCategories.Navigation,
-      label: 'suppress_request',
-      meta: { suppressForMs: 500, intent: 'suppress_section_view_during_programmatic_scroll' },
-    });
-    const sectionElement = this.doc.getElementById(sectionId);
-    if (sectionElement) {
-      sectionElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }
-
-  trackNavClick(key: string, href: unknown): void {
-    const lang = this.language.currentLanguage();
-    const labels: Record<string, string> =
-      lang === 'en'
-        ? { home: 'Home', benefits: 'Benefits', process: 'Process', services: 'Services', contact: 'Contact' }
-        : { home: 'Inicio', benefits: 'Beneficios', process: 'Proceso', services: 'Servicios', contact: 'Contacto' };
-    const label = labels[String(key ?? '').trim()] ?? String(key ?? 'nav');
-    const hrefStr = String(href ?? '');
-    this.handleAnalyticsEvent({
-      name: AnalyticsEvents.NavClick,
-      category: AnalyticsCategories.Navigation,
-      label,
-      meta: { href: hrefStr },
-    });
-  }
-
-  // Unified analytics event handler (receives from any child component)
-  handleAnalyticsEvent(evt: {
-    readonly name: string;
-    readonly category?: string;
-    readonly label?: string;
-    readonly value?: number;
-    readonly meta?: any; // Additional contextual metadata
-  }): void {
-    // Apply suppression hints
-    if (
-      evt.label === "suppress_request" &&
-      evt.meta?.suppressForMs &&
-      evt.meta?.intent
-    ) {
-      const until = Date.now() + Number(evt.meta.suppressForMs || 0);
-      this.analytics.suppress([evt.name], until); // re-use name; SectionView expected
-      return; // do not forward suppression pseudo-event itself
-    }
-    /* console.log('[AppShell] analytics event', evt); */
-    this.analytics.track(evt.name, {
-      category: evt.category,
-      label: evt.label,
-      value: evt.value,
-      meta: evt.meta,
-    });
+  handleComponentEvent(event: ComponentEvent): void {
+    this.componentEventDispatcher.dispatch(
+      { event, host: this },
+      {},
+    );
   }
 }

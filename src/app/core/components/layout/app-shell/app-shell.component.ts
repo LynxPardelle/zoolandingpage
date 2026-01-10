@@ -23,6 +23,7 @@ import {
   AnalyticsEvents,
 } from "../../../../shared/services/analytics.events";
 import { AnalyticsService } from "../../../../shared/services/analytics.service";
+import { forwardAnalyticsEvent } from "../../../../shared/utility/forwardAnalyticsEvent.utility";
 import { LanguageService } from "../../../services/language.service";
 import { ThemeService } from "../../../services/theme.service";
 import type { HeaderNavItem } from "../app-header/app-header.types";
@@ -164,8 +165,6 @@ export class AppShellComponent {
         this.removeAnkDNoneFromAnkTimer();
       }
       setTimeout(() => {
-        console.log("[AppShell] The followind components wasn't rendered:", this.orchestrator['componentsToBeRendered']);
-        console.log("[AppShell] The followind components was rendered:", this.orchestrator['componentsAlreadyRendered']);
         const classes: string[] = [...this.orchestrator.getAllTheClassesFromComponents(), 'btnBaseVALSVL1_5remVL1remVL'];
         console.log("[AppShell] All the classes used in the app:", classes);
       }, 2000);
@@ -332,23 +331,7 @@ export class AppShellComponent {
         /* console.log('[AppShell] final-cta analytics received', evt); */
       }
     } catch { }
-    // Apply suppression hints
-    if (
-      evt.label === "suppress_request" &&
-      evt.meta?.suppressForMs &&
-      evt.meta?.intent
-    ) {
-      const until = Date.now() + Number(evt.meta.suppressForMs || 0);
-      this.analytics.suppress([evt.name], until); // re-use name; SectionView expected
-      return; // do not forward suppression pseudo-event itself
-    }
-    /* console.log('[AppShell] analytics event', evt); */
-    this.analytics.track(evt.name, {
-      category: evt.category,
-      label: evt.label,
-      value: evt.value,
-      meta: evt.meta,
-    });
+    forwardAnalyticsEvent(this.analytics, evt);
   }
 
   // Router outlet activation: wire outputs dynamically when navigated component exposes analyticsEvent Output

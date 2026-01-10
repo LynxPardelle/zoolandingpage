@@ -5,6 +5,7 @@ import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { routes } from './app.routes';
+import { provideEventHandlers } from './shared/utility/event-handler/provide-event-handlers';
 
 
 export const appConfig: ApplicationConfig = {
@@ -16,6 +17,8 @@ export const appConfig: ApplicationConfig = {
     // Enable browser animations (component triggers rely on this)
     provideAnimations(),
     provideHttpClient(withFetch()),
+
+    ...provideEventHandlers(),
 
   ],
 };
