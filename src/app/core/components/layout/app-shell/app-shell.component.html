@@ -2,20 +2,18 @@
   [componentsIds]="['skipToMainLink', 'siteHeader', 'landingPage', 'siteFooter']"
 ></wrapper-orchestrator>
 <!-- Toast host analytics forwarding -->
-<generic-toast-host (analyticsEvent)="handleAnalyticsEvent($event)"></generic-toast-host>
 
 <!-- Advanced component hosts -->
+<generic-toast-host (analyticsEvent)="handleAnalyticsEvent($event)"></generic-toast-host>
 <generic-modal-host [config]="(orchestrator.modalHostConfig$ | async) ?? orchestrator.fallbackModalHostConfig">
   <wrapper-orchestrator
     [componentsIds]="['modalAnalyticsConsentRoot', 'modalDemoRoot', 'modalTermsRoot', 'modalDataUseRoot']"
   ></wrapper-orchestrator>
 </generic-modal-host>
-<generic-toast-host></generic-toast-host>
 
 <!-- Dev-only demo controls -->
 @if (debugMode) {
 <wrapper-orchestrator [componentsIds]="orchestrator.devDemoControlsComponents"></wrapper-orchestrator>
-} @if (debugMode) {
 <div
   class="ank-position-md-fixed ank-bottom-6rem ank-right-25vw ank-mx-auto ank-p-0_5rem ank-bg-blackOPA__0_6 ank-color-white ank-fs-12px ank-borderRadius-6px ank-maxWidth-360px ank-maxHeight-40vh ank-overflow-auto ank-zIndex-1200"
 >

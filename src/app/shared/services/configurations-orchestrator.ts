@@ -5,13 +5,11 @@ import { LanguageService } from '@/app/core/services/language.service';
 import { ThemeService } from '@/app/core/services/theme.service';
 import { ProcessStep } from '@/app/landing-page/components/interactive-process/interactive-process-leaf.types';
 import type { TGenericStatsCounterConfig } from '@/app/shared/components/generic-stats-counter/generic-stats-counter.types';
-import { MotionPreferenceService } from "@/app/shared/services/motion-preference.service";
-import { computed, DOCUMENT, effect, inject, Injectable } from '@angular/core';
+import { computed, effect, inject, Injectable } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { environment } from '../../../environments/environment';
 import { GenericModalService } from '../components/generic-modal/generic-modal.service';
 import type { ModalConfig } from '../components/generic-modal/generic-modal.types';
-import { ToastService } from '../components/generic-toast';
 import { TGenericComponent } from '../components/wrapper-orchestrator/wrapper-orchestrator.types';
 import {
   collectAllClassesFromComponents,
@@ -29,14 +27,11 @@ import { QuickStatsService } from './quick-stats.service';
   providedIn: 'root',
 })
 export class ConfigurationsOrchestratorService {
-  private readonly motion = inject(MotionPreferenceService);
-  private readonly doc: Document = inject(DOCUMENT);
   readonly analytics = inject(AnalyticsService);
   private readonly quickStats = inject(QuickStatsService);
   private readonly theme = inject(ThemeService);
   private readonly language = inject(LanguageService);
   private readonly modal = inject(GenericModalService);
-  private readonly toast = inject(ToastService);
   private readonly globalI18n = inject(I18nService);
   private readonly componentEventDispatcher = inject(ComponentEventDispatcherService);
   private readonly interactiveProcessStore = inject(InteractiveProcessStoreService);
@@ -144,7 +139,7 @@ export class ConfigurationsOrchestratorService {
       eventInstructions: 'showDemoModal',
       config: {
         label: () => this.globalI18n.t('demo.modal.button.open'),
-        classes: 'btnBaseVALSVL0_5remVL0_5remVL ank-fs-1rem ank-btn-primary ank-color-textColor',
+        classes: 'btnBaseVALSVL1_25remVL0_75remVL ank-fs-1rem ank-btn-primary ank-color-textColor',
       },
     },
     {
@@ -154,7 +149,7 @@ export class ConfigurationsOrchestratorService {
       eventInstructions: 'showDemoToast',
       config: {
         label: () => this.globalI18n.t('demo.toast.button.success'),
-        classes: 'btnBaseVALSVL0_5remVL0_5remVL ank-fs-1rem ank-btn-success ank-color-textColor',
+        classes: 'btnBaseVALSVL1_25remVL0_75remVL ank-fs-1rem ank-btn-success ank-color-textColor',
       },
     },
     {
@@ -164,7 +159,7 @@ export class ConfigurationsOrchestratorService {
       eventInstructions: 'showErrorToast',
       config: {
         label: () => this.globalI18n.t('demo.toast.button.error'),
-        classes: 'btnBaseVALSVL0_5remVL0_5remVL ank-fs-1rem ank-btn-danger ank-color-textColor',
+        classes: 'btnBaseVALSVL1_25remVL0_75remVL ank-fs-1rem ank-btn-danger ank-color-textColor',
       },
     },
     {
@@ -174,7 +169,7 @@ export class ConfigurationsOrchestratorService {
       eventInstructions: 'showActionToast',
       config: {
         label: () => this.globalI18n.t('demo.toast.button.action'),
-        classes: 'btnBaseVALSVL0_5remVL0_5remVL ank-fs-1rem ank-btn-warning ank-color-textColor',
+        classes: 'btnBaseVALSVL1_25remVL0_75remVL ank-fs-1rem ank-btn-warning ank-color-textColor',
       },
     },
     {
@@ -184,7 +179,7 @@ export class ConfigurationsOrchestratorService {
       eventInstructions: 'showPositionDemo',
       config: {
         label: () => this.globalI18n.t('demo.toast.button.position'),
-        classes: 'btnBaseVALSVL0_5remVL0_5remVL ank-fs-1rem ank-btn-info ank-color-textColor',
+        classes: 'btnBaseVALSVL1_25remVL0_75remVL ank-fs-1rem ank-btn-info ank-color-textColor',
       },
     },
     {
@@ -194,7 +189,7 @@ export class ConfigurationsOrchestratorService {
       eventInstructions: 'clearAllToasts',
       config: {
         label: () => this.globalI18n.t('demo.toast.button.clear'),
-        classes: 'btnBaseVALSVL0_5remVL0_5remVL ank-fs-1rem ank-btn-secondary ank-color-textColor',
+        classes: 'btnBaseVALSVL1_25remVL0_75remVL ank-fs-1rem ank-btn-secondary ank-color-textColor',
       },
     },
   ];
@@ -204,8 +199,6 @@ export class ConfigurationsOrchestratorService {
     if (!environment.features.debugMode) return [];
     return this.devOnlyComponents.filter((c) => c.id === 'devDemoControlsRoot');
   }
-
-
 
   constructor() {
     // [MODALS-2] Keep analytics consent visibility in sync with modal overlay.
@@ -335,11 +328,11 @@ export class ConfigurationsOrchestratorService {
         containerClasses: 'ank-display-flex ank-flexDirection-column ank-gap-0_25rem',
         defaultItemContainerClasses: 'ank-border-1px-solid ank-borderColor-bgColor ank-borderRadius-0_5rem ank-transition-all ank-bgColor-transparent ng-star-inserted',
         defaultItemButtonConfig: {
-          classes: 'ank-outline-2px__solid__secondaryAccentColor ank-m-8px ank-color-textColor ank-borderRadius-0_25rem ank-border-0 ank-width-100per ank-textAlign-left ank-padding-0_75rem ank-fontWeight-600 ank-transition-all ank-bgHover-secondaryAccentColor ank-colorHover-titleColor ank-cursor-pointer ank-bg-transparent'
+          classes: 'ank-outline-2px__solid__secondaryAccentColor ank-m-8px ank-color-textColor ank-borderRadius-0_25rem ank-border-0 ank-width-calcSD100per__MIN__1remED ank-textAlign-left ank-padding-0_75rem ank-fontWeight-600 ank-transition-all ank-bgHover-secondaryAccentColor ank-colorHover-titleColor ank-cursor-pointer ank-bg-transparent'
         },
         defaultItemContainerIsExpandedClasses: 'accItemExpandedContainer',
         defaultItemContainerIsNotExpandedClasses: 'accItemNotExpandedContainer',
-        defaultItemPanelClasses: 'ank-marginBlockStart-0 ank-marginBlockEnd-0 ank-color-textColor',
+        defaultItemPanelClasses: 'ank-margin-1rem ank-color-textColor',
       },
     },
   ];
@@ -378,7 +371,7 @@ export class ConfigurationsOrchestratorService {
         label: () => this.i18n.faqSection().footerButtonLabel,
         loading: false,
         disabled: false,
-        classes: 'btnBaseVALSVL1_5remVL1remVL ank-bg-transparent ank-border-2px__solid__secondaryAccentColor ank-color-secondaryAccentColor ank-ts-200 ank-bgHover-secondaryAccentColor ank-colorHover-secondaryTextColor ank-mx-auto',
+        classes: 'btnBaseVALSVL1_25remVL0_75remVL ank-bg-transparent ank-border-2px__solid__secondaryAccentColor ank-color-secondaryAccentColor ank-ts-200 ank-bgHover-secondaryAccentColor ank-colorHover-secondaryTextColor ank-mx-auto',
       }
     },
 
@@ -390,7 +383,7 @@ export class ConfigurationsOrchestratorService {
       meta_title: AnalyticsEvents.FinalCtaPrimaryClick,
       config: {
         label: () => this.i18n.finalCtaSection().primaryLabel,
-        classes: 'btnBaseVALSVL1_5remVL1remVL btnTypePrimaryVALSVLsecondaryLinkColorVLtextColorVL',
+        classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLsecondaryLinkColorVLtextColorVL',
       }
     },
     {
@@ -401,7 +394,7 @@ export class ConfigurationsOrchestratorService {
       config: {
         label: () => this.i18n.finalCtaSection().secondaryLabel,
         classes:
-          'btnBaseVALSVL1_5remVL1remVL ank-bg-transparent ank-border-2px__solid__secondaryLinkColor ank-color-secondaryLinkColor ank-ts-200 ank-bgHover-secondaryLinkColor ank-colorHover-secondaryTextColor',
+          'btnBaseVALSVL1_25remVL0_75remVL ank-bg-transparent ank-border-2px__solid__secondaryLinkColor ank-color-secondaryLinkColor ank-ts-200 ank-bgHover-secondaryLinkColor ank-colorHover-secondaryTextColor',
       }
     },
 
@@ -723,7 +716,7 @@ export class ConfigurationsOrchestratorService {
       config: {
         tag: 'div',
         classes:
-          'ank-position-relative ank-wmx-85vw ank-justifySelf-center' + (this.motion.reduced() ? ' ank-transition-none' : ''),
+          'ank-position-relative ank-wmx-85vw ank-justifySelf-center',
         components: ['heroImageMockup', 'heroBrowserMockup', 'heroAnimatedElements', 'heroFloatingMetrics', 'heroConversionBadge', 'heroVerifiedBadge', 'heroMobileBadge'],
       }
     },

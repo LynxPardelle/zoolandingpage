@@ -32,7 +32,6 @@ import { ThemeService } from "../../../services/theme.service";
 
 @Component({
   selector: "app-root",
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     AsyncPipe,
@@ -171,7 +170,7 @@ export class AppShellComponent {
           this.removeAnkDNoneFromAnkTimer();
         }
         setTimeout(() => {
-          const classes: string[] = [...this.orchestrator.getAllTheClassesFromComponents(), 'btnBaseVALSVL1_5remVL1remVL'];
+          const classes: string[] = [...this.orchestrator.getAllTheClassesFromComponents(), 'btnBaseVALSVL1_25remVL0_75remVL'];
           console.log("[AppShell] All the classes used in the app:", classes);
         }, 2000);
         // Auto section view tracking (browser only)

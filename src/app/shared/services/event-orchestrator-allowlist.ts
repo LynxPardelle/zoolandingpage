@@ -28,6 +28,7 @@ export const DEFAULT_ALLOWED_EVENT_IDS = [
     'clearAllToasts',
     // Accessibility
     'skipToMain',
+    'scrollToSection',
 ] as const;
 
 /**
