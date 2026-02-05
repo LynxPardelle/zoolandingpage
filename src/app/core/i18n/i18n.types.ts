@@ -106,7 +106,7 @@ export interface FaqSectionTranslations {
 }
 
 // Conversion Note Section
-export interface RoiNoteTranslations {
+export interface ConversionNoteTranslations {
     title: string;
     question: string;
     investmentLabel: string;
@@ -202,7 +202,7 @@ export interface LandingPageTranslations {
     process: readonly ProcessStepTranslations[];
     faqSection: FaqSectionTranslations;
     faq: readonly FaqTranslations[];
-    conversionNote: RoiNoteTranslations;
+    conversionNote: ConversionNoteTranslations;
     statsStrip: StatsStripSectionTranslations;
     calculator: CalculatorTranslations;
     finalCtaSection: FinalCtaSectionTranslations;

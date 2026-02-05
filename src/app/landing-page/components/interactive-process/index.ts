@@ -1,1 +1,2 @@
-export * from './interactive-process.component';
+export * from './interactive-process-leaf.component';
+

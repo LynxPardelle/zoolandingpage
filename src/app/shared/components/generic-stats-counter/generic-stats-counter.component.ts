@@ -11,21 +11,21 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { STATS_COUNTER_DEFAULT, easeOutQuad } from './stats-counter.constants';
-import type { StatsCounterConfig } from './stats-counter.types';
+import { STATS_COUNTER_DEFAULT, easeOutQuad } from './generic-stats-counter.constants';
+import type { TGenericStatsCounterConfig } from './generic-stats-counter.types';
 
 @Component({
-  selector: 'stats-counter',
+  selector: 'generic-stats-counter',
   imports: [CommonModule],
-  templateUrl: './stats-counter.component.html',
+  templateUrl: './generic-stats-counter.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class StatsCounterComponent {
+export class GenericStatsCounterComponent {
   private readonly zone = inject(NgZone);
   private readonly destroyRef = inject(DestroyRef);
   private readonly host = inject(ElementRef<HTMLElement>);
 
-  readonly config = input<StatsCounterConfig>(STATS_COUNTER_DEFAULT);
+  readonly config = input<TGenericStatsCounterConfig>(STATS_COUNTER_DEFAULT);
 
   readonly internalValue = signal(0);
   readonly started = signal(false);

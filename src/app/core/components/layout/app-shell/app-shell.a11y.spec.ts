@@ -1,6 +1,5 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
-import { LandingPageComponent } from '../../../../landing-page/components/landing-page/landing-page.component';
 import { AppShellComponent } from './app-shell.component';
 
 describe('AppShellComponent a11y', () => {
@@ -9,7 +8,7 @@ describe('AppShellComponent a11y', () => {
       imports: [AppShellComponent],
       providers: [
         provideRouter(
-          [{ path: '', component: LandingPageComponent, pathMatch: 'full' }],
+          [{ path: '', component: AppShellComponent, pathMatch: 'full' }],
           withInMemoryScrolling({ scrollPositionRestoration: 'enabled', anchorScrolling: 'enabled' })
         ),
       ],

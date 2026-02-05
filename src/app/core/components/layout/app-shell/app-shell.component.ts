@@ -1,6 +1,8 @@
+import { HeaderNavItem } from "@/app/core/types/layout.types";
 import { WrapperOrchestrator } from "@/app/shared/components/wrapper-orchestrator/wrapper-orchestrator.component";
 import { ConfigurationsOrchestratorService } from "@/app/shared/services/configurations-orchestrator";
-import { AsyncPipe } from "@angular/common";
+import { StructuredDataService } from "@/app/shared/services/structured-data.service";
+import { AsyncPipe, DOCUMENT } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -11,6 +13,7 @@ import {
   inject,
   signal,
 } from "@angular/core";
+import { Meta, Title } from '@angular/platform-browser';
 import { NavigationEnd, Router } from "@angular/router";
 import { NgxAngoraService } from "ngx-angora-css";
 import { filter } from "rxjs/operators";
@@ -26,7 +29,6 @@ import { AnalyticsService } from "../../../../shared/services/analytics.service"
 import { forwardAnalyticsEvent } from "../../../../shared/utility/forwardAnalyticsEvent.utility";
 import { LanguageService } from "../../../services/language.service";
 import { ThemeService } from "../../../services/theme.service";
-import type { HeaderNavItem } from "../app-header/app-header.types";
 
 @Component({
   selector: "app-root",
@@ -41,10 +43,14 @@ import type { HeaderNavItem } from "../app-header/app-header.types";
   templateUrl: "./app-shell.component.html",
 })
 export class AppShellComponent {
+  // SEO services
+  private readonly doc: Document = inject(DOCUMENT);
+  private readonly titleSvc = inject(Title);
+  private readonly meta = inject(Meta);
+  private readonly structured = inject(StructuredDataService);
   readonly orchestrator = inject(ConfigurationsOrchestratorService);
   readonly debugMode = environment.features.debugMode;
   // App state
-  private readonly appTitle = signal<string>(environment.app.name);
   readonly appName = environment.app.name;
 
   // Computed properties with proper typing
@@ -143,7 +149,6 @@ export class AppShellComponent {
     showLanguageToggle: true,
   }));
 
-
   constructor() {
     // Track subsequent page views on navigation end
     this.router.events
@@ -156,19 +161,26 @@ export class AppShellComponent {
       });
 
     // Initialize Angora CSS once, then regenerate after every render
-    afterNextRender(() => {
-      // Prompt for analytics consent early if needed
-      this.analytics.promptForConsentIfNeeded();
-      this.initializeAngoraConfiguration();
-      this._ank.cssCreate();
-      if (this.debugMode) {
-        this.removeAnkDNoneFromAnkTimer();
-      }
-      setTimeout(() => {
-        const classes: string[] = [...this.orchestrator.getAllTheClassesFromComponents(), 'btnBaseVALSVL1_5remVL1remVL'];
-        console.log("[AppShell] All the classes used in the app:", classes);
-      }, 2000);
-    });
+    try {
+      afterNextRender(() => {
+        // Prompt for analytics consent early if needed
+        this.analytics.promptForConsentIfNeeded();
+        this.initializeAngoraConfiguration();
+        this._ank.cssCreate();
+        if (this.debugMode) {
+          this.removeAnkDNoneFromAnkTimer();
+        }
+        setTimeout(() => {
+          const classes: string[] = [...this.orchestrator.getAllTheClassesFromComponents(), 'btnBaseVALSVL1_5remVL1remVL'];
+          console.log("[AppShell] All the classes used in the app:", classes);
+        }, 2000);
+        // Auto section view tracking (browser only)
+        this.setupReadDepthTracking();
+        this.setupSectionViewTracking();
+      });
+    } catch {
+      // no-op for SSR
+    }
     afterEveryRender(() => {
       const waitForIt = (i: number) => {
         setTimeout(() => {
@@ -183,19 +195,89 @@ export class AppShellComponent {
     }
     );
 
-    // Keep <html lang> in sync with current language for screen readers/UA
     // effect() must run within injection context (constructor is OK)
     effect(() => {
+      // Reactive SEO/meta updates on language changes
       const lang = this._lang.currentLanguage();
       try {
         if (typeof document !== "undefined") {
+          // Keep <html lang> in sync with current language for screen readers/UA
           document.documentElement.setAttribute("lang", lang);
           // LTR languages by default (es/en); adjust if RTL added in future
           document.documentElement.setAttribute("dir", "ltr");
+          const isEs = lang === 'es';
+          const seoTitle = isEs
+            ? 'Landing Page Optimizada: Convierte visitas en clientes | ZoolandingPage'
+            : 'Optimized Landing Page: Turn visits into customers | ZoolandingPage';
+          const seoDesc = isEs
+            ? 'Publica una landing rápida, clara y medible. Más cierres de venta, mejores decisiones con datos. Suscripción desde 900 MXN/mes (incluye dominio, alojamiento y medición).'
+            : 'Launch a fast, clear and measurable landing. More conversions, better decisions with data. Plans from 900 MXN/month (domain, hosting and analytics included).';
+
+          this.titleSvc.setTitle(seoTitle);
+          this.meta.updateTag({ name: 'description', content: seoDesc });
+
+          // Open Graph
+          const origin = (typeof location !== 'undefined' && location.origin) ? location.origin : 'https://zoolandingpage.com';
+          const url = origin + '/';
+          const ogLocale = isEs ? 'es_ES' : 'en_US';
+          const ogImage = origin + '/assets/og-1200x630.svg';
+          this.meta.updateTag({ property: 'og:title', content: seoTitle });
+          this.meta.updateTag({ property: 'og:description', content: seoDesc });
+          this.meta.updateTag({ property: 'og:type', content: 'website' });
+          this.meta.updateTag({ property: 'og:url', content: url });
+          this.meta.updateTag({ property: 'og:image', content: ogImage });
+          this.meta.updateTag({ property: 'og:locale', content: ogLocale });
+          this.meta.updateTag({ property: 'og:site_name', content: 'Zoo Landing Page' });
+
+          // Twitter Card
+          this.meta.updateTag({ name: 'twitter:card', content: 'summary_large_image' });
+          this.meta.updateTag({ name: 'twitter:title', content: seoTitle });
+          this.meta.updateTag({ name: 'twitter:description', content: seoDesc });
+          this.meta.updateTag({ name: 'twitter:image', content: ogImage });
+
+          // Canonical link
+          const head = this.doc.head;
+          if (head) {
+            let linkEl = head.querySelector("link[rel='canonical']") as HTMLLinkElement | null;
+            if (!linkEl) {
+              linkEl = this.doc.createElement('link');
+              linkEl.setAttribute('rel', 'canonical');
+              head.appendChild(linkEl);
+            }
+            linkEl.setAttribute('href', url);
+          }
         }
       } catch {
         // no-op for SSR
       }
+    });
+
+    // Inject high-level structured data once on component init (browser only)
+    // Website
+    this.structured.injectOnce('sd:website', {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: 'Zoo Landing Page',
+      url: 'https://zoolandingpage.com/',
+      inLanguage: this.lang.currentLanguage(),
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: 'https://zoolandingpage.com/?q={search_term_string}',
+        'query-input': 'required name=search_term_string',
+      },
+    });
+    // Organization
+    this.structured.injectOnce('sd:org', {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: 'Zoo Landing',
+      url: 'https://zoolandingpage.com/',
+      logo: 'https://zoolandingpage.com/assets/logo-512x512.svg',
+      sameAs: [
+        'https://www.facebook.com/',
+        'https://www.instagram.com/',
+        'https://www.linkedin.com/'
+      ],
     });
 
     this.initDebugOverlay();
@@ -361,5 +443,139 @@ export class AppShellComponent {
     } catch {
       // no-op
     }
+  }
+
+  private setupReadDepthTracking(): void {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+    // Granular scroll depth milestones (10% increments)
+    const milestones = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+    const hit = new Set<number>();
+
+    const scrollEl = (document.scrollingElement || document.documentElement || document.body) as HTMLElement;
+    const computeDepth = (): number => {
+      const docEl = document.documentElement;
+      // Prefer the actual scrolling element for these metrics
+      const scrollTop = scrollEl.scrollTop;
+      const scrollHeight = scrollEl.scrollHeight;
+      const viewport = window.innerHeight || docEl.clientHeight;
+      const denom = Math.max(1, scrollHeight - viewport);
+      const progress = Math.round((scrollTop / denom) * 100);
+      return Math.min(100, Math.max(0, progress));
+    };
+
+    const cleanup = () => {
+      window.removeEventListener('scroll', throttled as any);
+      if (scrollEl) scrollEl.removeEventListener('scroll', throttled as any);
+      window.removeEventListener('resize', throttled as any);
+      window.removeEventListener('orientationchange', throttled as any);
+      try { mo.disconnect(); } catch { }
+    };
+
+    const onScrollOrResize = () => {
+      const depth = computeDepth();
+      for (const m of milestones) {
+        if (depth >= m && !hit.has(m)) {
+          hit.add(m);
+          void this.analytics.track(AnalyticsEvents.ScrollDepth, {
+            category: AnalyticsCategories.Navigation,
+            label: `${ m }%`,
+            value: m,
+            meta: { depthPercent: m },
+          });
+        }
+      }
+      if (hit.size === milestones.length) {
+        cleanup();
+      }
+    };
+
+    let rafId: number | null = null;
+    const throttled = () => {
+      if (rafId != null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        onScrollOrResize();
+      });
+    };
+
+    const onScrollTarget = throttled;
+    window.addEventListener('scroll', throttled, { passive: true });
+    // Also listen on the actual scroll container in case the app uses a custom scroller
+    if (scrollEl && scrollEl !== (document as any)) {
+      scrollEl.addEventListener('scroll', onScrollTarget, { passive: true });
+    }
+    window.addEventListener('resize', throttled);
+    window.addEventListener('orientationchange', throttled);
+
+    // Observe DOM mutations that may change document height (e.g., late CSS/images/deferred content)
+    const mo = new MutationObserver(() => onScrollOrResize());
+    try { mo.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: false }); } catch { }
+
+    // Allow CSS/layout to settle before first measurement and then run an initial check.
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        // run once even if the user hasn't scrolled, to set the baseline
+        onScrollOrResize();
+      }, 120);
+    });
+
+    // Cleanup is invoked inside onScrollOrResize once all milestones are reached
+  }
+  private lastSectionViewSuppressedUntil = 0;
+  private setupSectionViewTracking(): void {
+    if (typeof window === 'undefined' || typeof document === 'undefined' || !('IntersectionObserver' in window)) {
+      return;
+    }
+    const ids = [
+      'home',
+      'conversion-section',
+      'features-section',
+      'process-section',
+      'services-section',
+      'stats-strip-section',
+      'testimonials-section',
+      'faq-section',
+      'contact-section',
+    ];
+    const lastSeen = new Map<string, number>();
+    const initialSeen = new Set<string>();
+    const observer = new IntersectionObserver(
+      entries => {
+        for (const entry of entries) {
+          if (entry.isIntersecting && entry.target instanceof HTMLElement) {
+            const id = entry.target.id;
+            if (!id) continue;
+            const now = Date.now();
+            const last = lastSeen.get(id) ?? 0;
+            const suppressWindow = this.lastSectionViewSuppressedUntil;
+            const shouldEmit = (now - last > 3_000) && (now > suppressWindow);
+            if (shouldEmit) {
+              lastSeen.set(id, now);
+              if (!initialSeen.has(id)) initialSeen.add(id);
+              void this.analytics.track(AnalyticsEvents.SectionView, {
+                category: AnalyticsCategories.Navigation,
+                label: id,
+              });
+            }
+          }
+        }
+      },
+      { rootMargin: '0px 0px 80% 0px', threshold: [0.5] }
+    );
+    const tryObserve = () => {
+      ids.forEach(id => {
+        const el = this.doc.getElementById(id);
+        if (el) observer.observe(el);
+      });
+    };
+    tryObserve();
+    const mo = new MutationObserver(() => tryObserve());
+    mo.observe(this.doc.body, { childList: true, subtree: true });
+    const interval = setInterval(() => {
+      if (ids.every(id => initialSeen.has(id))) {
+        mo.disconnect();
+        clearInterval(interval);
+      }
+    }, 2000);
   }
 }

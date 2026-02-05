@@ -24,7 +24,6 @@ export class GenericLink {
 
   onClick(event: MouseEvent): void {
     const href = this.config().href || '';
-    // For in-page navigation, keep behavior consistent with app-header (smooth scroll handled elsewhere)
     if (href.startsWith('#')) {
       event.preventDefault();
     }

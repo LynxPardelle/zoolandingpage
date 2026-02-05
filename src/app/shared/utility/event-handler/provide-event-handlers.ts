@@ -1,6 +1,6 @@
 import type { Provider } from '@angular/core';
 import { EVENT_HANDLERS } from './event-handlers.token';
-import { skipToMainHandler } from './handlers/accessibility.handlers';
+import { scrollToSectionHandler, skipToMainHandler } from './handlers/accessibility.handlers';
 import {
     navigationToSectionHandler,
     trackCtaClickHandler,
@@ -63,6 +63,7 @@ export const provideEventHandlers = (): Provider[] => {
         { provide: EVENT_HANDLERS, multi: true, useFactory: showActionToastHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: showPositionDemoHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: clearAllToastsHandler },
+        { provide: EVENT_HANDLERS, multi: true, useFactory: scrollToSectionHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: skipToMainHandler },
     ];
 };

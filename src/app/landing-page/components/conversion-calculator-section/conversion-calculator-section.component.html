@@ -1,5 +1,5 @@
-<app-section variant="accent" spacing="lg">
-  <app-container size="lg">
+<section class="ank-bg-accentColor ank-position-relative ank-py-6rem ank-width-100per">
+  <div class="ank-boxSizing-borderMINbox ank-m-auto ank-maxWidth-1280px ank-px-1rem ank-w-100vw">
     <div class="ank-textAlign-center ank-mb-24px">
       <h2 class="ank-fs-2rem ank-fontWeight-bold ank-mb-8px ank-color-titleColor">{{ calculatorContent().title }}</h2>
       <p class="ank-fs-1rem ank-color-textColor ank-mb-4px">{{ calculatorContent().subtitle }}</p>
@@ -130,13 +130,13 @@
             <div class="ank-gap-1_25rem">
               <div class="ank-bg-textColor ank-borderRadius-1rem ank-p-1rem">
                 <div class="ank-fs-2_5xl ank-fontWeight-bold ank-mb-4px ank-color-bgColor">
-                  +$<stats-counter [config]="monthlyIncreaseConfig()"></stats-counter>
+                  +$<generic-stats-counter [config]="monthlyIncreaseConfig()"></generic-stats-counter>
                 </div>
                 <div class="ank-fs-1rem ank-opacity-90 ank-color-bgColor">Ingresos adicionales mensuales</div>
               </div>
               <div class="ank-bg-textColor ank-borderRadius-1rem ank-p-1rem ank-mt-1rem">
                 <div class="ank-fs-1_5rem ank-fontWeight-semibold ank-mb-4px ank-color-bgColor">
-                  <stats-counter [config]="conversionImprovementConfig()"></stats-counter>
+                  <generic-stats-counter [config]="conversionImprovementConfig()"></generic-stats-counter>
                 </div>
                 <div class="ank-fs-1rem ank-opacity-90 ank-color-bgColor">Mejora estimada en conversión</div>
               </div>
@@ -264,5 +264,5 @@
       </div>
       }
     </div>
-  </app-container>
-</app-section>
+  </div>
+</section>

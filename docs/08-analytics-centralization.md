@@ -49,10 +49,6 @@ Affected components/services:
 
 `AppShellComponent` template binds header output:
 
-```
-<app-header ... (analyticsEvent)="handleAnalyticsEvent($event)"></app-header>
-```
-
 Router outlet activation wires any routed component exposing an `analyticsEvent` Output:
 
 ```

@@ -1,11 +1,11 @@
 import { Routes } from '@angular/router';
-import { LandingPageComponent } from './landing-page/components/landing-page';
+import { AppShellComponent } from './core/components/layout';
 
 export const routes: Routes = [
   {
     path: '',
     pathMatch: 'full',
-    component: LandingPageComponent,
+    component: AppShellComponent,
     title: 'Landing Page Optimizada',
   },
   {

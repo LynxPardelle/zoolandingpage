@@ -24,3 +24,24 @@ export const skipToMainHandler = (): EventHandler => {
         },
     };
 };
+
+export const scrollToSectionHandler = (): EventHandler => {
+    const doc = inject(DOCUMENT);
+
+    return {
+        id: 'scrollToSection',
+        handle: (_ctx, args) => {
+            const rawId = String(args[0] ?? '').trim();
+            if (!rawId) return;
+
+            const normalized = rawId.startsWith('#') ? rawId.slice(1) : rawId;
+
+            try {
+                const el = (doc as Document | null)?.getElementById(normalized);
+                el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } catch {
+                // no-op (SSR / non-browser)
+            }
+        },
+    };
+};

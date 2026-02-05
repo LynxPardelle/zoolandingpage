@@ -1,4 +1,4 @@
-export type StatsCounterConfig = {
+export type TGenericStatsCounterConfig = {
   readonly target: number;
   readonly durationMs?: number;
   readonly startOnVisible?: boolean;

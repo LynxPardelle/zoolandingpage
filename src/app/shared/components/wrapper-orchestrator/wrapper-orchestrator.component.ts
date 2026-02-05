@@ -2,7 +2,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, input } from '@angular/core';
 import { InteractiveProcessLeafComponent } from '../../../landing-page/components/interactive-process/interactive-process-leaf.component';
-import { StatsCounterComponent } from '../../../landing-page/components/stats-counter/stats-counter.component';
 import { ConfigurationsOrchestratorService } from '../../services/configurations-orchestrator';
 import { GenericAccordionComponent } from '../generic-accordion';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
@@ -12,6 +11,7 @@ import { GenericFeatureCardComponent } from '../generic-feature-card';
 import { GenericIconComponent } from '../generic-icon/generic-icon.component';
 import { GenericLink } from "../generic-link/generic-link";
 import { GenericMedia } from "../generic-media/generic-media";
+import { GenericStatsCounterComponent } from '../generic-stats-counter/generic-stats-counter.component';
 import { GenericTestimonialCardComponent } from '../generic-testimonial-card';
 import { GenericTextComponent } from '../generic-text/generic-text';
 import { TGenericComponent } from './wrapper-orchestrator.types';
@@ -33,7 +33,7 @@ import { TGenericComponent } from './wrapper-orchestrator.types';
     GenericTestimonialCardComponent,
     GenericTextComponent,
     InteractiveProcessLeafComponent,
-    StatsCounterComponent,
+    GenericStatsCounterComponent,
     GenericLink,
     GenericMedia,
   ],

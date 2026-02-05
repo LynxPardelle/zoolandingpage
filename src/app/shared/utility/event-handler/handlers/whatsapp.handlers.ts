@@ -1,7 +1,7 @@
+import { getTranslations } from '@/app/core/i18n/i18n.constants';
+import type { LandingPageTranslations } from '@/app/core/i18n/i18n.types';
 import { I18nService } from '@/app/core/services/i18n.service';
 import { LanguageService } from '@/app/core/services/language.service';
-import { getTranslations } from '@/app/landing-page/components/landing-page/i18n.constants';
-import type { LandingPageTranslations } from '@/app/landing-page/components/landing-page/i18n.types';
 import { AnalyticsCategories, AnalyticsEvents } from '@/app/shared/services/analytics.events';
 import { AnalyticsService } from '@/app/shared/services/analytics.service';
 import { WHATSAPP_PHONE } from '@/app/shared/services/contact.constants';

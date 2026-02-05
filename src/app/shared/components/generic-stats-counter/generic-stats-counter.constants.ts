@@ -1,6 +1,6 @@
-import { StatsCounterConfig } from './stats-counter.types';
+import { TGenericStatsCounterConfig } from './generic-stats-counter.types';
 
-export const STATS_COUNTER_DEFAULT: StatsCounterConfig = {
+export const STATS_COUNTER_DEFAULT: TGenericStatsCounterConfig = {
   target: 0,
   durationMs: 1200,
   startOnVisible: true,

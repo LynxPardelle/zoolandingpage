@@ -47,3 +47,11 @@ export type FooterProps = {
   showCopyright?: boolean;
   className?: string;
 };
+
+// Header navigation item type
+export type HeaderNavItem = {
+  readonly label: string;
+  readonly href: string;
+  readonly isActive: boolean;
+  readonly isExternal: boolean;
+};

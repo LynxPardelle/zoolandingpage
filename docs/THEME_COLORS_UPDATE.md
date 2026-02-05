@@ -62,14 +62,6 @@ export type ThemeColors = {
 ### Components HTML
 
 - `src/app/app.component.html` - Clases de color actualizadas
-- `src/app/core/components/layout/app-header/app-header.component.html` - Colores de header
-- `src/app/core/components/layout/app-footer/app-footer.component.html` - Colores de footer
-
-### Constants
-
-- `src/app/core/components/layout/app-section/app-section.constants.ts` - Clases de sección
-- `src/app/core/components/layout/app-header/app-header.constants.ts` - Clases de header
-- `src/app/core/components/layout/app-footer/app-footer.constants.ts` - Clases de footer
 
 ## Mapeo de Clases CSS
 

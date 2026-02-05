@@ -1,20 +1,18 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { AppContainerComponent } from '../../../core/components/layout/app-container/app-container.component';
-import { AppSectionComponent } from '../../../core/components/layout/app-section/app-section.component';
+import { getTranslations } from '../../../core/i18n/i18n.constants';
+import type { LandingPageTranslations } from '../../../core/i18n/i18n.types';
 import { I18nService } from '../../../core/services/i18n.service';
 import { LanguageService } from '../../../core/services/language.service';
 import { GenericButtonComponent } from '../../../shared/components/generic-button/generic-button.component';
+import { GenericStatsCounterComponent } from '../../../shared/components/generic-stats-counter/generic-stats-counter.component';
+import type { TGenericStatsCounterConfig } from '../../../shared/components/generic-stats-counter/generic-stats-counter.types';
 import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '../../../shared/services/analytics.events';
-import { getTranslations } from '../landing-page/i18n.constants';
-import type { LandingPageTranslations } from '../landing-page/i18n.types';
-import { StatsCounterComponent } from '../stats-counter/stats-counter.component';
-import type { StatsCounterConfig } from '../stats-counter/stats-counter.types';
 import type { BusinessSize, CalculatedRoi } from './conversion-calculator-section.types';
 @Component({
     selector: 'conversion-calculator-section',
-    imports: [CommonModule, AppSectionComponent, AppContainerComponent, MatIconModule, StatsCounterComponent, GenericButtonComponent],
+    imports: [CommonModule, MatIconModule, GenericStatsCounterComponent, GenericButtonComponent],
     templateUrl: './conversion-calculator-section.component.html',
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -38,7 +36,7 @@ export class ConversionCalculatorSectionComponent {
 
     readonly calculatorContent = computed(() => this.landingTranslations().calculator);
 
-    readonly monthlyIncreaseConfig = computed<StatsCounterConfig>(() => ({
+    readonly monthlyIncreaseConfig = computed<TGenericStatsCounterConfig>(() => ({
         target: this.calculatedROI().monthlyIncrease,
         durationMs: 1500,
         startOnVisible: true,
@@ -47,7 +45,7 @@ export class ConversionCalculatorSectionComponent {
     }));
 
     // Conversion improvement multiplier (e.g., 3.4x)
-    readonly conversionImprovementConfig = computed<StatsCounterConfig>(() => ({
+    readonly conversionImprovementConfig = computed<TGenericStatsCounterConfig>(() => ({
         target: this.calculatedROI().conversionImprovement,
         durationMs: 1800,
         startOnVisible: true,

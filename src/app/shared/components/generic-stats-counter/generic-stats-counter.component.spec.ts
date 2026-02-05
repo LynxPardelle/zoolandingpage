@@ -1,21 +1,21 @@
 import { TestBed } from '@angular/core/testing';
-import { StatsCounterComponent } from './stats-counter.component';
+import { GenericStatsCounterComponent } from './generic-stats-counter.component';
 
-describe('StatsCounterComponent', () => {
+describe('GenericStatsCounterComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [StatsCounterComponent],
+      imports: [GenericStatsCounterComponent],
     }).compileComponents();
   });
 
   it('should create', () => {
-    const fixture = TestBed.createComponent(StatsCounterComponent);
+    const fixture = TestBed.createComponent(GenericStatsCounterComponent);
     const component = fixture.componentInstance;
     expect(component).toBeTruthy();
   });
 
   it('should display initial value', () => {
-    const fixture = TestBed.createComponent(StatsCounterComponent);
+    const fixture = TestBed.createComponent(GenericStatsCounterComponent);
     fixture.componentRef.setInput('config', {
       target: 100,
       durationMs: 0, // No animation for test
@@ -28,7 +28,7 @@ describe('StatsCounterComponent', () => {
   });
 
   it('should emit completed event when animation finishes', () => {
-    const fixture = TestBed.createComponent(StatsCounterComponent);
+    const fixture = TestBed.createComponent(GenericStatsCounterComponent);
     const component = fixture.componentInstance;
     spyOn(component.completed, 'emit');
 
@@ -56,7 +56,7 @@ describe('StatsCounterComponent', () => {
       })),
     });
 
-    const fixture = TestBed.createComponent(StatsCounterComponent);
+    const fixture = TestBed.createComponent(GenericStatsCounterComponent);
     fixture.componentRef.setInput('config', {
       target: 100,
       startOnVisible: true,

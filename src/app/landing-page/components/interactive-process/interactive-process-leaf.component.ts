@@ -1,17 +1,15 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, output } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { AppContainerComponent } from '../../../core/components/layout/app-container/app-container.component';
-import { AppSectionComponent } from '../../../core/components/layout/app-section/app-section.component';
+import { getTranslations } from '../../../core/i18n/i18n.constants';
+import type { LandingPageTranslations } from '../../../core/i18n/i18n.types';
 import { I18nService } from '../../../core/services/i18n.service';
 import { LanguageService } from '../../../core/services/language.service';
-import { getTranslations } from '../landing-page/i18n.constants';
-import type { LandingPageTranslations } from '../landing-page/i18n.types';
-import { ProcessStep } from './interactive-process.types';
+import { ProcessStep } from './interactive-process-leaf.types';
 
 @Component({
   selector: 'interactive-process-leaf',
-  imports: [CommonModule, AppSectionComponent, AppContainerComponent, MatIconModule],
+  imports: [CommonModule, MatIconModule],
   templateUrl: './interactive-process-leaf.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`

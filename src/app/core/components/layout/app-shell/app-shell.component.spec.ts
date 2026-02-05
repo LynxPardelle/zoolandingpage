@@ -1,4 +1,3 @@
-import { LandingPageComponent } from '@/app/landing-page/components/landing-page';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { AppShellComponent } from './app-shell.component';
@@ -9,7 +8,7 @@ describe('AppShellComponent', () => {
       imports: [AppShellComponent],
       providers: [
         provideRouter(
-          [{ path: '', component: LandingPageComponent, pathMatch: 'full' }],
+          [{ path: '', component: AppShellComponent, pathMatch: 'full' }],
           withInMemoryScrolling({ scrollPositionRestoration: 'enabled', anchorScrolling: 'enabled' })
         ),
       ],
@@ -23,7 +22,7 @@ describe('AppShellComponent', () => {
     expect(compiled.querySelector('main#main-content')).toBeTruthy();
     const skip = compiled.querySelector('a[href="#main-content"]');
     expect(skip).toBeTruthy();
-    // Router-outlet should instantiate the landing page on root
-    expect(compiled.querySelector('app-landing-page')).toBeTruthy();
+    // Router-outlet should instantiate the app shell on root
+    expect(compiled.querySelector('app-shell')).toBeTruthy();
   });
 });

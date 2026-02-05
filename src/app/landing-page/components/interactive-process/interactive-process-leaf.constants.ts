@@ -1,4 +1,4 @@
-import { ProcessStep } from './interactive-process.types';
+import { ProcessStep } from './interactive-process-leaf.types';
 
 export const INTERACTIVE_PROCESS_ID = 'process';
 export const INTERACTIVE_PROCESS_TITLE = 'El Proceso de tu nueva landing page';

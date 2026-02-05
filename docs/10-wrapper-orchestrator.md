@@ -1,6 +1,6 @@
 # Configuration-Driven UI (Wrapper Orchestrator) 🧩
 
-This project is transitioning some UI sections from **hand-written Angular component trees** (e.g. `hero-section`, `conversion-note`) to a **configuration-driven rendering model**.
+This project is transitioning some UI sections from **hand-written Angular component trees** (e.g. `app-shell`) to a **configuration-driven rendering model**.
 
 In this model:
 
@@ -23,7 +23,6 @@ In this model:
 - Component renderer template: [src/app/shared/components/wrapper-orchestrator/wrapper-orchestrator.component.html](../src/app/shared/components/wrapper-orchestrator/wrapper-orchestrator.component.html)
 - Component union type: [src/app/shared/components/wrapper-orchestrator/wrapper-orchestrator.types.ts](../src/app/shared/components/wrapper-orchestrator/wrapper-orchestrator.types.ts)
 - Registry + event handling: [src/app/shared/services/configurations-orchestrator.ts](../src/app/shared/services/configurations-orchestrator.ts)
-- Example usage in landing page: [src/app/landing-page/components/landing-page/landing-page.component.html](../src/app/landing-page/components/landing-page/landing-page.component.html)
 
 ## How it works
 

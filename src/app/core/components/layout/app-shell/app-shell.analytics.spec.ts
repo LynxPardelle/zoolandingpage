@@ -1,6 +1,5 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
-import { LandingPageComponent } from '../../../../landing-page/components/landing-page/landing-page.component';
 import { AnalyticsService } from '../../../../shared/services/analytics.service';
 import { AppShellComponent } from './app-shell.component';
 
@@ -14,7 +13,7 @@ describe('AppShellComponent analytics', () => {
       providers: [
         { provide: AnalyticsService, useValue: analyticsSpy },
         provideRouter(
-          [{ path: '', component: LandingPageComponent, pathMatch: 'full' }],
+          [{ path: '', component: AppShellComponent, pathMatch: 'full' }],
           withInMemoryScrolling({ scrollPositionRestoration: 'enabled', anchorScrolling: 'enabled' })
         ),
       ],

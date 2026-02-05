@@ -1,10 +1,10 @@
+import { getTranslations } from '@/app/core/i18n/i18n.constants';
+import type { LandingPageTranslations } from '@/app/core/i18n/i18n.types';
 import { I18nService } from '@/app/core/services/i18n.service';
 import { LanguageService } from '@/app/core/services/language.service';
 import { ThemeService } from '@/app/core/services/theme.service';
-import { ProcessStep } from '@/app/landing-page/components/interactive-process/interactive-process.types';
-import { getTranslations } from '@/app/landing-page/components/landing-page/i18n.constants';
-import type { LandingPageTranslations } from '@/app/landing-page/components/landing-page/i18n.types';
-import type { StatsCounterConfig } from '@/app/landing-page/components/stats-counter/stats-counter.types';
+import { ProcessStep } from '@/app/landing-page/components/interactive-process/interactive-process-leaf.types';
+import type { TGenericStatsCounterConfig } from '@/app/shared/components/generic-stats-counter/generic-stats-counter.types';
 import { MotionPreferenceService } from "@/app/shared/services/motion-preference.service";
 import { computed, DOCUMENT, effect, inject, Injectable } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
@@ -279,7 +279,7 @@ export class ConfigurationsOrchestratorService {
   private readonly statsStripContent = computed(() => this.i18n.statsStrip());
   private readonly statsStripRemote = computed(() => this.quickStats.remoteStats());
 
-  private readonly statsStripVisitsConfig = computed<StatsCounterConfig>(() => ({
+  private readonly statsStripVisitsConfig = computed<TGenericStatsCounterConfig>(() => ({
     target: Number(this.statsStripRemote()?.['metrics']?.['pageViews'] ?? this.analytics.getPageViewCount()),
     durationMs: 1600,
     startOnVisible: true,
@@ -287,7 +287,7 @@ export class ConfigurationsOrchestratorService {
     ariaLabel: this.statsStripContent().visitsLabel,
   }));
 
-  private readonly statsStripCtaInteractionsConfig = computed<StatsCounterConfig>(() => ({
+  private readonly statsStripCtaInteractionsConfig = computed<TGenericStatsCounterConfig>(() => ({
     target: Number(this.statsStripRemote()?.['metrics']?.['ctaClicks'] ?? this.analytics.getEventCount('ctaClicks')),
     durationMs: 1800,
     startOnVisible: true,
@@ -295,7 +295,7 @@ export class ConfigurationsOrchestratorService {
     ariaLabel: this.statsStripContent().ctaInteractionsLabel,
   }));
 
-  private readonly statsStripAverageTimeConfig = computed<StatsCounterConfig>(() => ({
+  private readonly statsStripAverageTimeConfig = computed<TGenericStatsCounterConfig>(() => ({
     target: Math.min(
       600,
       Math.max(
@@ -1311,14 +1311,6 @@ export class ConfigurationsOrchestratorService {
         tag: 'div',
         classes:
           'ank-width-100vw ank-px-1rem ank-boxSizing-borderMINbox ank-maxWidth-1280px ank-marginLeft-auto ank-marginRight-auto',
-        components: ['featuresSectionContent'],
-      }
-    },
-    {
-      id: 'featuresSectionContent',
-      type: 'container',
-      config: {
-        tag: 'div',
         components: ['featuresSectionHeader', 'featuresSectionGrid'],
       }
     },
@@ -1359,14 +1351,6 @@ export class ConfigurationsOrchestratorService {
         tag: 'div',
         classes:
           'ank-width-100vw ank-px-1rem ank-boxSizing-borderMINbox ank-maxWidth-1280px ank-marginLeft-auto ank-marginRight-auto',
-        components: ['servicesSectionContent'],
-      }
-    },
-    {
-      id: 'servicesSectionContent',
-      type: 'container',
-      config: {
-        tag: 'div',
         components: ['servicesSectionHeader', 'servicesSectionGrid'],
       }
     },
