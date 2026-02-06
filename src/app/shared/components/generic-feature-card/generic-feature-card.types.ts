@@ -1,6 +1,6 @@
 
 export type GenericFeatureCardConfig = {
-  readonly icon?: string;
+  readonly icon?: string | (() => string);
   readonly title?: string | (() => string);
   readonly description?: string | (() => string);
   readonly benefits?: readonly string[] | (() => readonly string[]);

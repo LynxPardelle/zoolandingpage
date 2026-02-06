@@ -1,4 +1,4 @@
-import type { TI18nConfig, TLandingPageTranslations, TLanguage } from './i18n.types';
+import type { TI18nConfig, TLandingPageTranslations } from './i18n.types';
 
 /**
  * Spanish translations for all landing page content
@@ -396,6 +396,138 @@ const SPANISH_TRANSLATIONS: TLandingPageTranslations = {
             whatsappMessage: '¡Hola! Me interesa conocer más sobre sus servicios de consultoría tecnológica para landing pages. ¿Podrían ayudarme?',
         },
     },
+    demo: {
+        title: "Demostración de componentes",
+        modal: {
+            title: "Ejemplo de Diálogo",
+            header: "Ejemplo de Diálogo",
+            desc: "Este es un diálogo de ejemplo. Puedes usar esta área para mostrar cualquier contenido, acción o información personalizada para tus usuarios.",
+            features: [
+                "Contenido totalmente personalizable",
+                "Soporta acciones y UI avanzada",
+                "Cerrar con el botón de abajo"
+            ],
+            close: "Cerrar",
+            button: {
+                open: "Abrir diálogo de ejemplo"
+            },
+            action: {
+                confirm: "Confirmar",
+                cancel: "Cancelar"
+            },
+            actions: {
+                primary: "Acción principal",
+                secondary: "Acción secundaria"
+            },
+            info: "Este es un diálogo de ejemplo para mostrar acciones y contenido personalizado.",
+            closeLabel: "Cerrar diálogo"
+        },
+        toast: {
+            success: "¡Pedido procesado exitosamente!",
+            error: "Conexión de red fallida",
+            warning: "Tu sesión expirará en 5 minutos",
+            info: "Nuevas funciones disponibles en ajustes",
+            fileUploadTitle: "Carga de archivo completa",
+            fileUploadText: "Tu documento ha sido subido y procesado exitosamente.",
+            unsavedTitle: "Cambios no guardados",
+            unsavedText: "Tienes cambios sin guardar. ¿Deseas guardar antes de salir?",
+            unsavedSave: "Guardar",
+            criticalTitle: "Error crítico",
+            criticalText: "La operación no pudo completarse. Por favor contacta soporte si el problema persiste.",
+            contactSupport: "Contactar soporte",
+            tryAgain: "Intentar de nuevo",
+            updateTitle: "Actualización disponible",
+            updateText: "La versión 2.1.0 está lista para instalarse con nuevas funciones y correcciones.",
+            updateNow: "Actualizar ahora",
+            viewChanges: "Ver cambios",
+            later: "Más tarde",
+            updateStarted: "¡Actualización iniciada! La aplicación se reiniciará automáticamente.",
+            openingChangelog: "Abriendo registro de cambios...",
+            updatePostponed: "Actualización pospuesta. Se te recordará en 24 horas.",
+            positionChanged: "Posición cambiada a: {{position}}",
+            allCleared: "Todas las notificaciones han sido borradas",
+            changesSaved: "¡Cambios guardados exitosamente!",
+            discard: "Descartar",
+            openingSupport: "Abriendo chat de soporte...",
+            button: {
+                success: "Mostrar notificación de éxito",
+                error: "Mostrar notificación de error",
+                warning: "Mostrar notificación de advertencia",
+                info: "Mostrar notificación de información",
+                fileUpload: "Mostrar notificación de carga de archivo",
+                unsaved: "Mostrar notificación de cambios no guardados",
+                critical: "Mostrar notificación de error crítico",
+                action: "Mostrar notificación de acción",
+                position: "Mostrar notificación de posición",
+                clear: "Limpiar todas las notificaciones"
+            }
+        }
+    },
+    consent: {
+        title: "Analítica y Cookies",
+        intro: "La analítica anónima está activada por defecto para mejorar la experiencia. Puedes retirar el consentimiento en cualquier momento desde ajustes.",
+        bullets: [
+            "No se recopilan datos personales.",
+            "Ayuda a corregir problemas y priorizar funciones.",
+            "Puedes desactivarlo en cualquier momento."
+        ],
+        actions: {
+            allow: "Permitir",
+            decline: "Rechazar",
+            remove: "Retirar consentimiento",
+            later: "Más tarde",
+            confirm: "Sí, retirar",
+            cancel: "No, mantener activado"
+        },
+        feedback: {
+            snoozed: "Te preguntaremos de nuevo más tarde.",
+            removed: "Consentimiento retirado. Solo se envían eventos esenciales y datos de sesión anónimos.",
+            confirmRemove: "¿Estás seguro de que deseas retirar el consentimiento? La analítica se desactivará excepto para eventos esenciales."
+        }
+    },
+    footer: {
+        actions: {
+            close: "Cerrar"
+        },
+        legal: {
+            title: "Legal",
+            terms: {
+                link: "Términos de servicio",
+                title: "Términos de servicio",
+                intro: "Estos Términos de servicio regulan el uso de la página de {{ org }}. Al continuar navegando o interactuar con este sitio, aceptas estos términos.",
+                sections: [
+                    {
+                        title: "Propósito y contenido",
+                        text: "Esta landing muestra nuestros servicios y ofrece contenido educativo. La información se proporciona tal cual y puede cambiar sin previo aviso."
+                    },
+                    {
+                        title: "Uso aceptable",
+                        text: "Aceptas no hacer un uso indebido del sitio, intentar accesos no autorizados ni interferir con su operación. Cualquier abuso puede resultar en restricción de acceso."
+                    },
+                    {
+                        title: "Propiedad intelectual",
+                        text: "Las marcas, logotipos y contenidos mostrados son propiedad de sus respectivos dueños y no pueden reutilizarse sin permiso."
+                    },
+                    {
+                        title: "Privacidad y analítica",
+                        text: "Usamos analítica anónima, sujeta a tu consentimiento, para mejorar el rendimiento y la experiencia. Revisa 'Uso de datos' para más detalles."
+                    }
+                ]
+            },
+            data: {
+                link: "Privacidad de datos",
+                title: "Privacidad de datos",
+                intro: "La analítica está activada por defecto. Recopilamos información mínima y respetuosa de la privacidad para mejorar este sitio. Puedes retirar el consentimiento en cualquier momento.",
+                points: [
+                    "La analítica anónima está activada por defecto. No se requieren datos personales para el uso básico.",
+                    "Métricas técnicas (p. ej., dispositivo, idioma, ventana, rendimiento) nos ayudan a corregir problemas y priorizar mejoras.",
+                    "Si retiras el consentimiento, solo se envían eventos esenciales, el ID de sesión y el ID local.",
+                    "Puedes retirar el consentimiento en cualquier momento actualizando las preferencias."
+                ],
+                consentNote: "La analítica está activada por defecto. Al retirar el consentimiento, solo se envían eventos esenciales y datos de sesión anónimos."
+            }
+        }
+    }
 };
 
 /**
@@ -794,6 +926,134 @@ const ENGLISH_TRANSLATIONS: TLandingPageTranslations = {
             whatsappMessage: 'Hello! I\'m interested in learning more about your technology consulting services for landing pages. Could you help me?',
         },
     },
+    demo: {
+        title: "Components Demo",
+        modal: {
+            title: "Demo Modal",
+            header: "Demo Modal",
+            desc: "This is a demo modal. You can use this area to show any custom content, actions, or information for your users.",
+            features: ["Fully customizable content", "Supports actions and rich UI", "Close with the button below"],
+            close: "Close",
+            button: {
+                open: "Open Demo Modal"
+            },
+            action: {
+                confirm: "Confirm",
+                cancel: "Cancel"
+            },
+            actions: {
+                primary: "Primary Action",
+                secondary: "Secondary Action"
+            },
+            info: "This is a demo modal for showcasing custom actions and content.",
+            closeLabel: "Close Modal"
+        },
+        toast: {
+            success: "Order processed successfully!",
+            error: "Network connection failed",
+            warning: "Your session will expire in 5 minutes",
+            info: "New features available in settings",
+            fileUploadTitle: "File Upload Complete",
+            fileUploadText: "Your document has been uploaded and processed successfully.",
+            unsavedTitle: "Unsaved Changes",
+            unsavedText: "You have unsaved changes. Do you want to save before leaving?",
+            unsavedSave: "Save",
+            criticalTitle: "Critical Error",
+            criticalText: "The operation could not be completed. Please contact support if this issue persists.",
+            contactSupport: "Contact Support",
+            tryAgain: "Try Again",
+            updateTitle: "Update Available",
+            updateText: "Version 2.1.0 is ready to install with new features and bug fixes.",
+            updateNow: "Update Now",
+            viewChanges: "View Changes",
+            later: "Later",
+            updateStarted: "Update started! Application will restart automatically.",
+            openingChangelog: "Opening changelog...",
+            updatePostponed: "Update postponed. You'll be reminded in 24 hours.",
+            positionChanged: "Position changed to: {{position}}",
+            allCleared: "All notifications cleared",
+            changesSaved: "Changes saved successfully!",
+            discard: "Discard",
+            openingSupport: "Opening support chat...",
+            button: {
+                success: "Show Success Toast",
+                error: "Show Error Toast",
+                warning: "Show Warning Toast",
+                info: "Show Info Toast",
+                fileUpload: "Show File Upload Toast",
+                unsaved: "Show Unsaved Changes Toast",
+                critical: "Show Critical Error Toast",
+                action: "Show Action Toast",
+                position: "Show Position Toast",
+                clear: "Clear All Toasts"
+            }
+        }
+    },
+    consent: {
+        title: "Analytics & Cookies",
+        intro: "Anonymous analytics are enabled by default to help us improve the experience. You can remove consent at any time in settings.",
+        bullets: [
+            "No personal data collected.",
+            "Helps fix issues and prioritize features.",
+            "You may opt-out at any time."
+        ],
+        actions: {
+            allow: "Allow",
+            decline: "Decline",
+            remove: "Remove Consent",
+            later: "Later",
+            confirm: "Yes, remove",
+            cancel: "No, keep enabled"
+        },
+        feedback: {
+            snoozed: "We'll ask you again later.",
+            removed: "Consent removed. Only essential events and anonymous session data are sent.",
+            confirmRemove: "Are you sure you want to remove consent? Analytics will be disabled except for essential events."
+        }
+    },
+    footer: {
+        actions: {
+            close: "Close"
+        },
+        legal: {
+            title: "Legal",
+            terms: {
+                link: "Terms of Service",
+                title: "Terms of Service",
+                intro: "These Terms of Service govern your use of the {{ org }} landing page. By continuing to browse or interact with this website, you agree to these terms.",
+                sections: [
+                    {
+                        title: "Purpose and Content",
+                        text: "This landing page showcases our services and provides educational content. Information is provided as-is and may change without notice."
+                    },
+                    {
+                        title: "Acceptable Use",
+                        text: "You agree not to misuse the site, attempt unauthorized access, or interfere with its operation. Any abuse may result in restricted access."
+                    },
+                    {
+                        title: "Intellectual Property",
+                        text: "All trademarks, logos, and content displayed are property of their respective owners and may not be reused without permission."
+                    },
+                    {
+                        title: "Privacy and Analytics",
+                        text: "We use anonymous analytics, subject to your consent, to improve performance and user experience. See 'Use of Data' for details."
+                    }
+                ]
+            },
+            data: {
+                link: "Data Privacy",
+                title: "Data Privacy",
+                intro: "Analytics are enabled by default. We collect minimal, privacy‑respecting information to improve this site. You may remove consent at any time.",
+                points: [
+                    "Anonymous analytics are enabled by default. No personal data is required for basic usage.",
+                    "Technical metrics (e.g., device, language, viewport, performance) help us fix issues and prioritize improvements.",
+                    "If you remove consent, only essential events, session ID, and local ID are sent.",
+                    "You may remove consent at any time by updating preferences."
+                ],
+                consentNote: "Analytics are enabled by default. By removing consent, only essential events and anonymous session data are sent."
+            }
+        }
+    }
 };
 
 /**
@@ -806,33 +1066,3 @@ export const I18N_CONFIG: TI18nConfig = {
         en: ENGLISH_TRANSLATIONS,
     },
 };
-
-/**
- * Get translation for current language
- */
-export function getTranslations(language: TLanguage): TLandingPageTranslations {
-    return I18N_CONFIG.translations[language];
-}
-
-/**
- * Get translation by key path (for type safety)
- */
-export function getTranslation<T>(
-    language: TLanguage,
-    keyPath: string
-): T {
-    const translations = getTranslations(language);
-    const keys = keyPath.split('.');
-
-    let result: any = translations;
-    for (const key of keys) {
-        if (result && typeof result === 'object' && key in result) {
-            result = result[key];
-        } else {
-            console.warn(`Translation key not found: ${ keyPath }`);
-            return keyPath as unknown as T;
-        }
-    }
-
-    return result;
-}

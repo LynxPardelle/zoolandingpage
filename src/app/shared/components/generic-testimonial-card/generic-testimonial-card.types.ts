@@ -3,7 +3,7 @@ export type TestimonialCardConfig = {
   readonly role: string | (() => string);
   readonly company: string | (() => string);
   readonly content: string | (() => string);
-  readonly rating: number;
+  readonly rating: number | (() => number);
   readonly classes?: string;
   readonly avatar?: string;
   readonly verified?: boolean;

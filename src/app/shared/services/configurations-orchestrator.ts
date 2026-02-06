@@ -1,7 +1,5 @@
 import { ProcessStep } from '@/app/landing-page/components/interactive-process/interactive-process-leaf.types';
 import type { TGenericStatsCounterConfig } from '@/app/shared/components/generic-stats-counter/generic-stats-counter.types';
-import { getTranslations } from '@/app/shared/i18n/i18n.constants';
-import type { TLandingPageTranslations } from '@/app/shared/i18n/i18n.types';
 import { I18nService } from '@/app/shared/services/i18n.service';
 import { LanguageService } from '@/app/shared/services/language.service';
 import { ThemeService } from '@/app/shared/services/theme.service';
@@ -36,29 +34,10 @@ export class ConfigurationsOrchestratorService {
   private readonly componentEventDispatcher = inject(ComponentEventDispatcherService);
   private readonly interactiveProcessStore = inject(InteractiveProcessStoreService);
 
-  private readonly landingTranslations = computed<TLandingPageTranslations>(() => {
-    const fromCore = this.globalI18n.get<TLandingPageTranslations>('landing');
-    if (fromCore) return fromCore;
-    return getTranslations(this.language.currentLanguage() as any);
-  });
-
-  // Backwards-compatible facade: matches the old LandingPageI18nService API (signals).
-  readonly i18n = {
-    hero: computed(() => this.landingTranslations().hero),
-    featuresSection: computed(() => this.landingTranslations().featuresSection),
-    features: computed(() => this.landingTranslations().features),
-    services: computed(() => this.landingTranslations().services),
-    testimonials: computed(() => this.landingTranslations().testimonials),
-    processSection: computed(() => this.landingTranslations().processSection),
-    process: computed(() => this.landingTranslations().process),
-    faqSection: computed(() => this.landingTranslations().faqSection),
-    faq: computed(() => this.landingTranslations().faq),
-    conversionNote: computed(() => this.landingTranslations().conversionNote),
-    calculator: computed(() => this.landingTranslations().calculator),
-    statsStrip: computed(() => this.landingTranslations().statsStrip),
-    finalCtaSection: computed(() => this.landingTranslations().finalCtaSection),
-    ui: computed(() => this.landingTranslations().ui),
-  } as const;
+  private static readonly HERO_BADGES_COUNT = 5;
+  private static readonly FEATURES_COUNT = 6;
+  private static readonly SERVICES_COUNT = 3;
+  private static readonly TESTIMONIALS_COUNT = 3;
 
   // [MODALS-1] Centralize modal state/config in orchestrator (moved from AppShell).
   readonly activeModalRef = computed(() => this.modal.modalRef());
@@ -110,9 +89,21 @@ export class ConfigurationsOrchestratorService {
       config: {
         tag: 'div',
         classes:
-          'ank-p-1rem__1rem__3rem__1rem ank-display-flex ank-flexWrap-wrap ank-gap-0_5rem ank-w-100per ank-justifyContent-spaceMINevenly ank-bg-secondaryBgColor ank-borderTop-1px ank-borderColor-secondaryAccent ank-borderBottom-1px',
+          'ank-p-1rem__1rem__3rem__1rem ank-w-100per ank-bg-secondaryBgColor ank-borderTop-1px ank-borderColor-secondaryAccentColor ank-borderBottom-1px ank-pt-5rem ank-pb-15rem',
         components: [
           'devDemoTitle',
+          'devDemoControlsRootContainer',
+        ],
+      },
+    }, {
+      id: 'devDemoControlsRootContainer',
+      type: 'container',
+      condition: environment.features.debugMode,
+      config: {
+        tag: 'div',
+        classes:
+          'ank-p-1rem__1rem__3rem__1rem ank-display-flex ank-flexWrap-wrap ank-gap-0_5rem ank-w-100per ank-justifyContent-spaceMINevenly ank-bg-secondaryBgColor',
+        components: [
           'devDemoOpenModalBtn',
           'devDemoToastSuccessBtn',
           'devDemoToastErrorBtn',
@@ -269,7 +260,6 @@ export class ConfigurationsOrchestratorService {
     },
   ] as const;
 
-  private readonly statsStripContent = computed(() => this.i18n.statsStrip());
   private readonly statsStripRemote = computed(() => this.quickStats.remoteStats());
 
   private readonly statsStripVisitsConfig = computed<TGenericStatsCounterConfig>(() => ({
@@ -277,7 +267,7 @@ export class ConfigurationsOrchestratorService {
     durationMs: 1600,
     startOnVisible: true,
     format: (v: number) => Math.max(0, Math.round(v)).toLocaleString(),
-    ariaLabel: this.statsStripContent().visitsLabel,
+    ariaLabel: this.globalI18n.t('statsStrip.visitsLabel'),
   }));
 
   private readonly statsStripCtaInteractionsConfig = computed<TGenericStatsCounterConfig>(() => ({
@@ -285,7 +275,7 @@ export class ConfigurationsOrchestratorService {
     durationMs: 1800,
     startOnVisible: true,
     format: (v: number) => Math.max(0, Math.round(v)).toLocaleString(),
-    ariaLabel: this.statsStripContent().ctaInteractionsLabel,
+    ariaLabel: this.globalI18n.t('statsStrip.ctaInteractionsLabel'),
   }));
 
   private readonly statsStripAverageTimeConfig = computed<TGenericStatsCounterConfig>(() => ({
@@ -299,12 +289,12 @@ export class ConfigurationsOrchestratorService {
     durationMs: 2000,
     startOnVisible: true,
     format: (v: number) => `${ Math.round(v) }s`,
-    ariaLabel: this.statsStripContent().averageTimeLabel,
+    ariaLabel: this.globalI18n.t('statsStrip.averageTimeLabel'),
   }));
 
   private readonly interactiveProcessSteps = computed<readonly ProcessStep[]>(() => {
     const stepIndex = this.interactiveProcessStore.currentStep();
-    return this.i18n.process().map((demo) => ({
+    return this.globalI18n.getOr<readonly ProcessStep[]>('process', []).map((demo: ProcessStep) => ({
       ...demo,
       isActive: demo.step === stepIndex + 1,
     }));
@@ -318,7 +308,7 @@ export class ConfigurationsOrchestratorService {
       eventInstructions: 'trackFaqToggle:event.eventData',
       config: {
         items: () =>
-          this.i18n.faq().map((faqItem) => ({
+          this.globalI18n.getOr<readonly { id: string; title: string; content: string }[]>('faq', []).map((faqItem) => ({
             id: faqItem.id,
             title: faqItem.title,
             content: faqItem.content,
@@ -345,19 +335,19 @@ export class ConfigurationsOrchestratorService {
       eventInstructions: "openWhatsApp:event.meta_title,hero_primary,hero",
       meta_title: 'hero_primary_click',
       config: {
-        label: () => this.i18n.hero().primary.label,
+        label: () => this.globalI18n.t('hero.primary.label'),
         classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLsecondaryLinkColorVLtextColorVL',
       }
     },
     // Secondary CTA
     {
       id: 'secondaryCTA',
-      condition: () => !!this.i18n.hero().secondary,
+      condition: () => !!this.globalI18n.get('hero.secondary'),
       type: 'button',
       eventInstructions: "trackCTAClick:event.meta_title,secondary,hero;navigationToSection:features-section",
       meta_title: 'hero_secondary_click',
       config: {
-        label: () => this.i18n.hero().secondary.label,
+        label: () => this.globalI18n.t('hero.secondary.label'),
         classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypeOutlineVALSVLsecondaryLinkColorVLtextColorVL',
       }
     },
@@ -368,7 +358,7 @@ export class ConfigurationsOrchestratorService {
       type: 'button',
       eventInstructions: 'openFaqCtaWhatsApp',
       config: {
-        label: () => this.i18n.faqSection().footerButtonLabel,
+        label: () => this.globalI18n.t('faqSection.footerButtonLabel'),
         loading: false,
         disabled: false,
         classes: 'btnBaseVALSVL1_25remVL0_75remVL ank-bg-transparent ank-border-2px__solid__secondaryAccentColor ank-color-secondaryAccentColor ank-ts-200 ank-bgHover-secondaryAccentColor ank-colorHover-secondaryTextColor ank-mx-auto',
@@ -382,7 +372,7 @@ export class ConfigurationsOrchestratorService {
       eventInstructions: 'openFinalCtaWhatsApp:event.meta_title,primary',
       meta_title: AnalyticsEvents.FinalCtaPrimaryClick,
       config: {
-        label: () => this.i18n.finalCtaSection().primaryLabel,
+        label: () => this.globalI18n.t('finalCtaSection.primaryLabel'),
         classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLsecondaryLinkColorVLtextColorVL',
       }
     },
@@ -392,7 +382,7 @@ export class ConfigurationsOrchestratorService {
       eventInstructions: 'openFinalCtaWhatsApp:event.meta_title,secondary',
       meta_title: AnalyticsEvents.FinalCtaSecondaryClick,
       config: {
-        label: () => this.i18n.finalCtaSection().secondaryLabel,
+        label: () => this.globalI18n.t('finalCtaSection.secondaryLabel'),
         classes:
           'btnBaseVALSVL1_25remVL0_75remVL ank-bg-transparent ank-border-2px__solid__secondaryLinkColor ank-color-secondaryLinkColor ank-ts-200 ank-bgHover-secondaryLinkColor ank-colorHover-secondaryTextColor',
       }
@@ -669,7 +659,7 @@ export class ConfigurationsOrchestratorService {
     // Badges Container
     {
       id: "badgesContainer",
-      condition: this.i18n.hero().badges.length > 0,
+      condition: () => this.globalI18n.getOr<readonly unknown[]>('hero.badges', []).length > 0,
       type: 'container',
       config: {
         tag: 'div',
@@ -687,12 +677,13 @@ export class ConfigurationsOrchestratorService {
         tag: 'div',
         classes:
           'ank-display-flex ank-flexDirection-column ank-gap-8px ank-alignItems-center ank-alignItems-lg-start',
-        components: [...this.i18n.hero().badges.map((_, index) => `badgeContainer${ index + 1 }`)],
+        components: Array.from({ length: ConfigurationsOrchestratorService.HERO_BADGES_COUNT }, (_, index) => `badgeContainer${ index + 1 }`),
       },
     },
     // Badge Containers
-    ...this.i18n.hero().badges.map((badge, index) => ({
+    ...Array.from({ length: ConfigurationsOrchestratorService.HERO_BADGES_COUNT }, (_, index) => ({
       id: `badgeContainer${ index + 1 }`,
+      condition: () => !!this.globalI18n.getOr<readonly unknown[]>('hero.badges', [])[index],
       type: 'container',
       config: {
         tag: 'div',
@@ -723,11 +714,11 @@ export class ConfigurationsOrchestratorService {
     // Hero Image Mockup
     {
       id: "heroImageMockup",
-      condition: () => !!this.i18n.hero().backgroundImage,
+      condition: () => !!this.globalI18n.get<string>('hero.backgroundImage'),
       type: 'container',
       config: {
         tag: 'div',
-        classes: 'ank-position-absolute ank-inset-0 ank-bgCover ank-borderRadius-1rem ank-opacity-15 ank-backgroundImage-' + this.i18n.hero().backgroundImage,
+        classes: 'ank-position-absolute ank-inset-0 ank-bgCover ank-borderRadius-1rem ank-opacity-15 ank-backgroundImage-' + (this.globalI18n.get<string>('hero.backgroundImage') ?? ''),
       }
     },
     // Hero Browser Mockup
@@ -1322,7 +1313,7 @@ export class ConfigurationsOrchestratorService {
       config: {
         tag: 'div',
         classes: 'gridCol2',
-        components: [...this.i18n.features().map((_, index) => `featuresCard${ index + 1 }`)],
+        components: Array.from({ length: ConfigurationsOrchestratorService.FEATURES_COUNT }, (_, index) => `featuresCard${ index + 1 }`),
       }
     },
 
@@ -1362,7 +1353,7 @@ export class ConfigurationsOrchestratorService {
       config: {
         tag: 'div',
         classes: 'gridCol2',
-        components: [...this.i18n.services().map((_, index) => `servicesCard${ index + 1 }`)],
+        components: Array.from({ length: ConfigurationsOrchestratorService.SERVICES_COUNT }, (_, index) => `servicesCard${ index + 1 }`),
       }
     },
 
@@ -1468,7 +1459,7 @@ export class ConfigurationsOrchestratorService {
       config: {
         tag: 'div',
         classes: 'gridCol2',
-        components: [...this.i18n.testimonials().map((_, index) => `testimonialsCard${ index + 1 }`)],
+        components: Array.from({ length: ConfigurationsOrchestratorService.TESTIMONIALS_COUNT }, (_, index) => `testimonialsCard${ index + 1 }`),
       }
     },
 
@@ -1908,29 +1899,31 @@ export class ConfigurationsOrchestratorService {
   ];
   readonly cards: TGenericComponent[] = [
     /* Features Section */
-    ...this.i18n.features().map((item, index) => ({
+    ...Array.from({ length: ConfigurationsOrchestratorService.FEATURES_COUNT }, (_unused: unknown, index: number) => ({
       id: `featuresCard${ index + 1 }`,
       type: 'feature-card',
+      condition: () => !!(this.globalI18n.getOr('features', []) as any[])[index],
       config: {
-        icon: item.icon,
-        title: () => this.i18n.features()[index]?.title ?? '',
-        description: () => this.i18n.features()[index]?.description ?? '',
-        benefits: () => this.i18n.features()[index]?.benefits ?? [],
+        icon: () => (this.globalI18n.getOr('features', []) as any[])[index]?.icon ?? '',
+        title: () => (this.globalI18n.getOr('features', []) as any[])[index]?.title ?? '',
+        description: () => (this.globalI18n.getOr('features', []) as any[])[index]?.description ?? '',
+        benefits: () => (this.globalI18n.getOr('features', []) as any[])[index]?.benefits ?? [],
         classes:
           'ank-bg-secondaryBgColor ank-borderRadius-1rem ank-p-1_5rem cardHover ank-textAlign-center ank-border-1px ank-borderColor-border ank-h-calcSD100per__MIN__3remED',
       },
     })) as TGenericComponent[],
 
     /* Services Section */
-    ...this.i18n.services().map((service, index) => ({
+    ...Array.from({ length: ConfigurationsOrchestratorService.SERVICES_COUNT }, (_unused: unknown, index: number) => ({
       id: `servicesCard${ index + 1 }`,
       type: 'feature-card',
+      condition: () => !!(this.globalI18n.getOr('services', []) as any[])[index],
       config: {
-        icon: service.icon,
-        title: () => this.i18n.services()[index]?.title ?? '',
-        description: () => this.i18n.services()[index]?.description ?? '',
-        benefits: () => this.i18n.services()[index]?.features ?? [],
-        buttonLabel: () => this.i18n.services()[index]?.buttonLabel ?? '',
+        icon: () => (this.globalI18n.getOr('services', []) as any[])[index]?.icon ?? '',
+        title: () => (this.globalI18n.getOr('services', []) as any[])[index]?.title ?? '',
+        description: () => (this.globalI18n.getOr('services', []) as any[])[index]?.description ?? '',
+        benefits: () => (this.globalI18n.getOr('services', []) as any[])[index]?.features ?? [],
+        buttonLabel: () => (this.globalI18n.getOr('services', []) as any[])[index]?.buttonLabel ?? '',
         onCta: (title: string) =>
           this.handleComponentEvent({
             componentId: `servicesCard${ index + 1 }`,
@@ -1945,16 +1938,17 @@ export class ConfigurationsOrchestratorService {
     })) as TGenericComponent[],
 
     /* Testimonials Section */
-    ...this.i18n.testimonials().map((t, index) => ({
+    ...Array.from({ length: ConfigurationsOrchestratorService.TESTIMONIALS_COUNT }, (_unused: unknown, index: number) => ({
       id: `testimonialsCard${ index + 1 }`,
       type: 'testimonial-card',
+      condition: () => !!(this.globalI18n.getOr('testimonials', []) as any[])[index],
       config: {
-        name: () => this.i18n.testimonials()[index]?.name ?? '',
-        role: () => this.i18n.testimonials()[index]?.role ?? '',
-        company: () => this.i18n.testimonials()[index]?.company ?? '',
-        content: () => this.i18n.testimonials()[index]?.content ?? '',
-        rating: t.rating,
-        avatar: t.avatar,
+        name: () => (this.globalI18n.getOr('testimonials', []) as any[])[index]?.name ?? '',
+        role: () => (this.globalI18n.getOr('testimonials', []) as any[])[index]?.role ?? '',
+        company: () => (this.globalI18n.getOr('testimonials', []) as any[])[index]?.company ?? '',
+        content: () => (this.globalI18n.getOr('testimonials', []) as any[])[index]?.content ?? '',
+        rating: () => (this.globalI18n.getOr('testimonials', []) as any[])[index]?.rating ?? 5,
+        avatar: (this.globalI18n.getOr('testimonials', []) as any[])[index]?.avatar,
       },
     })) as TGenericComponent[],
   ];
@@ -2626,7 +2620,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'h1',
-        text: () => this.i18n.hero().title,
+        text: () => this.globalI18n.t('hero.title'),
         classes:
           'ank-fs-3rem ank-fs-lg-5rem ank-fontWeight-bold ank-lh-3_3rem ank-lh-lg-5_5rem ank-mb-1_25rem textGradientVALSVAL2NsecondaryAccentColorVAL2NVAL3NsecondaryTitleColorVAL3NVL135degVL'
       }
@@ -2635,10 +2629,10 @@ export class ConfigurationsOrchestratorService {
     {
       id: 'subtitle',
       type: 'text',
-      condition: () => !!this.i18n.hero().subtitle,
+      condition: () => !!this.globalI18n.t('hero.subtitle'),
       config: {
         tag: 'p',
-        text: () => this.i18n.hero().subtitle,
+        text: () => this.globalI18n.t('hero.subtitle'),
         classes: 'ank-fs-1_125rem ank-color-secondaryTextColor ank-mb-1_5rem ank-lineHeight-relaxed'
       }
     },
@@ -2648,28 +2642,29 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: () => this.i18n.hero().description,
+        text: () => this.globalI18n.t('hero.description'),
         classes: 'ank-fs-1_125rem ank-color-secondaryTextColor ank-mb-1_5rem ank-lineHeight-relaxed'
       }
     },
     // Badges Label
     {
       id: 'badgesLabel',
-      condition: () => !!this.i18n.hero().badgesLabel,
+      condition: () => !!this.globalI18n.t('hero.badgesLabel'),
       type: 'text',
       config: {
         tag: 'p',
-        text: () => this.i18n.hero().badgesLabel ?? '',
+        text: () => this.globalI18n.t('hero.badgesLabel'),
         classes: 'ank-fs-1rem ank-color-textColor ank-fontWeight-medium'
       }
     },
     // Badges
-    ...this.i18n.hero().badges.map((_, index) => ({
+    ...Array.from({ length: ConfigurationsOrchestratorService.HERO_BADGES_COUNT }, (_unused: unknown, index: number) => ({
       id: `badgeText${ index + 1 }`,
       type: 'text',
+      condition: () => !!(this.globalI18n.getOr('hero.badges', []) as any[])[index]?.text,
       config: {
         tag: 'span',
-        text: () => this.i18n.hero().badges[index]?.text ?? '',
+        text: () => (this.globalI18n.getOr('hero.badges', []) as any[])[index]?.text ?? '',
         classes: 'ank-fs-1rem ank-color-textColor ank-fontWeight-medium'
       }
     })) as TGenericComponent[],
@@ -2679,7 +2674,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: '',
-        text: () => this.i18n.hero().mockup.url,
+        text: () => this.globalI18n.t('hero.mockup.url'),
       }
     },
     // Hero Landing Mockup Logo Text
@@ -2688,7 +2683,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'span',
-        text: () => this.i18n.hero().mockup?.logo || 'LOGO',
+        text: () => this.globalI18n.t('hero.mockup.logo'),
         classes: 'ank-color-textColor ank-fs-1rem ank-fontWeight-bold'
       }
     },
@@ -2698,7 +2693,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'span',
-        text: () => this.i18n.hero().mockup?.contact,
+        text: () => this.globalI18n.t('hero.mockup.contact'),
         classes: 'ank-color-textColor ank-fs-1rem ank-fontWeight-bold'
       }
     },
@@ -2708,7 +2703,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'span',
-        text: () => this.i18n.hero().mockup?.buyButton || 'COMPRAR',
+        text: () => this.globalI18n.t('hero.mockup.buyButton'),
         classes: 'ank-color-textColor ank-fs-1rem ank-fontWeight-bold'
       }
     },
@@ -2718,7 +2713,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'span',
-        text: () => this.i18n.hero().mockup?.demoButton || 'DEMO',
+        text: () => this.globalI18n.t('hero.mockup.demoButton'),
         classes: 'ank-color-secondaryAccentColor ank-fs-1rem ank-fontWeight-bold'
       }
     },
@@ -2728,7 +2723,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'span',
-        text: () => this.i18n.hero().mockup?.ctaButton || 'SOLICITAR INFO',
+        text: () => this.globalI18n.t('hero.mockup.ctaButton'),
         classes: 'ank-color-textColor ank-fs-1rem ank-fontWeight-bold ank-px-1rem'
       },
     },
@@ -2738,7 +2733,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: '',
-        text: () => this.i18n.hero().floatingMetrics.speed,
+        text: () => this.globalI18n.t('hero.floatingMetrics.speed'),
       }
     },
     // Hero Floating Metrics Value Text
@@ -2756,7 +2751,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: '',
-        text: () => this.i18n.hero().floatingMetrics.conversion,
+        text: () => this.globalI18n.t('hero.floatingMetrics.conversion'),
       }
     },
     // Hero Conversion Value Text
@@ -2772,13 +2767,13 @@ export class ConfigurationsOrchestratorService {
     {
       id: "heroVerifiedLabel",
       type: 'text',
-      config: { tag: '', text: () => this.i18n.hero().floatingMetrics.seoOptimized, }
+      config: { tag: '', text: () => this.globalI18n.t('hero.floatingMetrics.seoOptimized'), }
     },
     // Hero Mobile Label
     {
       id: "heroMobileLabel",
       type: 'text',
-      config: { tag: '', text: () => this.i18n.hero().floatingMetrics.mobileResponsive, }
+      config: { tag: '', text: () => this.globalI18n.t('hero.floatingMetrics.mobileResponsive'), }
     },
 
     /* Features Section */
@@ -2787,7 +2782,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'h2',
-        text: () => this.i18n.featuresSection().title,
+        text: () => this.globalI18n.t('featuresSection.title'),
         classes: 'ank-fs-2rem ank-fontWeight-bold ank-mb-1rem ank-color-titleColor',
       }
     },
@@ -2796,7 +2791,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: () => this.i18n.featuresSection().subtitle,
+        text: () => this.globalI18n.t('featuresSection.subtitle'),
         classes: 'ank-fs-1_25rem ank-color-textColor ank-maxWidth-37_5rem ank-mx-auto',
       }
     },
@@ -2807,7 +2802,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'h2',
-        text: () => this.i18n.ui().sections.services.title,
+        text: () => this.globalI18n.t('ui.sections.services.title'),
       }
     },
     {
@@ -2815,7 +2810,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: () => this.i18n.ui().sections.services.subtitle,
+        text: () => this.globalI18n.t('ui.sections.services.subtitle'),
       }
     },
 
@@ -2825,7 +2820,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'h2',
-        text: () => this.i18n.ui().sections.faq.title,
+        text: () => this.globalI18n.t('ui.sections.faq.title'),
       }
     },
     {
@@ -2833,7 +2828,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: () => this.i18n.ui().sections.faq.subtitle,
+        text: () => this.globalI18n.t('ui.sections.faq.subtitle'),
       }
     },
     {
@@ -2841,7 +2836,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: () => this.i18n.faqSection().footerQuestion,
+        text: () => this.globalI18n.t('faqSection.footerQuestion'),
       }
     },
 
@@ -2851,7 +2846,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'h2',
-        text: () => this.i18n.finalCtaSection().title,
+        text: () => this.globalI18n.t('finalCtaSection.title'),
         classes: 'ank-fs-2rem ank-fontWeight-bold ank-mb-16px ank-color-titleColor',
       }
     },
@@ -2860,7 +2855,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: () => this.i18n.finalCtaSection().subtitle,
+        text: () => this.globalI18n.t('finalCtaSection.subtitle'),
         classes: 'ank-fs-1_5rem ank-color-textColor ank-mb-32px ank-maxWidth-600px ank-mx-auto',
       }
     },
@@ -2965,7 +2960,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'h2',
-        text: () => this.i18n.ui().sections.testimonials.title,
+        text: () => this.globalI18n.t('ui.sections.testimonials.title'),
       }
     },
     {
@@ -2973,7 +2968,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: () => this.i18n.ui().sections.testimonials.subtitle,
+        text: () => this.globalI18n.t('ui.sections.testimonials.subtitle'),
       }
     },
 
@@ -2983,7 +2978,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'h2',
-        text: () => this.statsStripContent().title,
+        text: () => this.globalI18n.t('statsStrip.title'),
         classes: 'ank-fs-2rem ank-fontWeight-bold ank-mb-16px ank-color-titleColor',
       }
     },
@@ -2992,7 +2987,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: () => this.statsStripContent().subtitle,
+        text: () => this.globalI18n.t('statsStrip.subtitle'),
         classes: 'ank-fs-1_5rem ank-color-textColor ank-mb-16px',
       }
     },
@@ -3001,7 +2996,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: () => this.statsStripContent().description,
+        text: () => this.globalI18n.t('statsStrip.description'),
         classes: 'ank-fs-1rem ank-color-textColor ank-maxWidth-700px ank-mx-auto',
       }
     },
@@ -3010,7 +3005,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: () => this.statsStripContent().visitsLabel,
+        text: () => this.globalI18n.t('statsStrip.visitsLabel'),
         classes: 'ank-fs-1rem ank-opacity-90',
       }
     },
@@ -3019,7 +3014,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: () => this.statsStripContent().ctaInteractionsLabel,
+        text: () => this.globalI18n.t('statsStrip.ctaInteractionsLabel'),
         classes: 'ank-fs-1rem ank-opacity-90',
       }
     },
@@ -3028,7 +3023,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: () => this.statsStripContent().averageTimeLabel,
+        text: () => this.globalI18n.t('statsStrip.averageTimeLabel'),
         classes: 'ank-fs-1rem ank-opacity-90',
       }
     },
@@ -3040,7 +3035,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'h3',
-        text: () => this.i18n.conversionNote().title,
+        text: () => this.globalI18n.t('conversionNote.title'),
         classes: 'ank-fs-1_5rem ank-fontWeight-bold ank-m-0 ank-color-titleColor'
       }
     },
@@ -3050,7 +3045,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        html: () => this.i18n.conversionNote().conversionDescription,
+        html: () => this.globalI18n.t('conversionNote.conversionDescription'),
         classes: 'ank-fs-1_25rem ank-lineHeight-relaxed ank-m-0 ank-color-bgColor'
       }
     },
@@ -3060,7 +3055,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: () => this.i18n.conversionNote().investmentLabel,
+        text: () => this.globalI18n.t('conversionNote.investmentLabel'),
         classes: 'ank-fs-1rem ank-opacity-90'
       }
     },
@@ -3070,7 +3065,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: () => this.i18n.conversionNote().investmentValue,
+        text: () => this.globalI18n.t('conversionNote.investmentValue'),
         classes: 'ank-fs-1_25rem ank-fontWeight-bold'
       }
     },
@@ -3080,7 +3075,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: () => this.i18n.conversionNote().totalReturnLabel,
+        text: () => this.globalI18n.t('conversionNote.totalReturnLabel'),
         classes: 'ank-fs-1rem ank-opacity-90'
       }
     },
@@ -3090,7 +3085,7 @@ export class ConfigurationsOrchestratorService {
       type: 'text',
       config: {
         tag: 'p',
-        text: () => this.i18n.conversionNote().totalReturnValue,
+        text: () => this.globalI18n.t('conversionNote.totalReturnValue'),
         classes: 'ank-fs-1_25rem ank-fontWeight-bold'
       }
     },

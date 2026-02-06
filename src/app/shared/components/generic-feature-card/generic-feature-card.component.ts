@@ -22,7 +22,10 @@ export class GenericFeatureCardComponent {
     this._config.set(value ?? {});
   }
 
-  readonly icon = computed<string>(() => this._config().icon ?? '');
+  readonly icon = computed<string>(() => {
+    const raw = this._config().icon ?? '';
+    return typeof raw === 'function' ? raw() : raw;
+  });
   readonly title = computed<string>(() => {
     const raw = this._config().title ?? '';
     return typeof raw === 'function' ? raw() : raw;

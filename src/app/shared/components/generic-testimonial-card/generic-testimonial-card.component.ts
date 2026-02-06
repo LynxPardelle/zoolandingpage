@@ -41,6 +41,9 @@ export class GenericTestimonialCardComponent {
   readonly avatar = computed<string>(() => this._config().avatar ?? '');
   readonly verified = computed<boolean>(() => this._config().verified ?? false);
   readonly classes = computed<string>(() => this._config().classes ?? '');
-  readonly rating = computed<number>(() => this._config().rating ?? DEFAULT_TESTIMONIAL_CARD_CONFIG.rating);
+  readonly rating = computed<number>(() => {
+    const raw = this._config().rating ?? DEFAULT_TESTIMONIAL_CARD_CONFIG.rating;
+    return typeof raw === 'function' ? raw() : raw;
+  });
   readonly stars = computed(() => [1, 2, 3, 4, 5]);
 }

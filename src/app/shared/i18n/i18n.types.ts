@@ -158,7 +158,7 @@ export interface TFinalCtaSectionTranslations {
 }
 
 // Section Titles and General UI
-export interface TUiTranslations {
+export type TUiTranslations = {
     sections: {
         services: {
             title: string;
@@ -191,6 +191,140 @@ export interface TUiTranslations {
     };
 }
 
+// Demo
+export type TDemoTranslations = {
+    title: string,
+    modal: {
+        title: string,
+        header: string,
+        desc: string,
+        features: readonly string[],
+        close: string,
+        button: {
+            open: string;
+        },
+        action: {
+            confirm: string;
+            cancel: string;
+        },
+        actions: {
+            primary: string;
+            secondary: string;
+        },
+        info: string;
+        closeLabel: string;
+    },
+    toast: {
+        success: string,
+        error: string,
+        warning: string,
+        info: string,
+        fileUploadTitle: string,
+        fileUploadText: string,
+        unsavedTitle: string,
+        unsavedText: string,
+        unsavedSave: string,
+        criticalTitle: string,
+        criticalText: string,
+        contactSupport: string,
+        tryAgain: string,
+        updateTitle: string,
+        updateText: string,
+        updateNow: string,
+        viewChanges: string,
+        later: string,
+        updateStarted: string,
+        openingChangelog: string,
+        updatePostponed: string,
+        positionChanged: string,
+        allCleared: string,
+        changesSaved: string,
+        discard: string,
+        openingSupport: string,
+        button: {
+            success: string,
+            error: string,
+            warning: string,
+            info: string,
+            fileUpload: string,
+            unsaved: string,
+            critical: string,
+            action: string,
+            position: string,
+            clear: string
+        }
+    }
+}
+
+// Consent
+export type TConsentTranslations = {
+    title: string,
+    intro: string,
+    bullets: [
+        string,
+        string,
+        string
+    ],
+    actions: {
+        allow: string,
+        decline: string,
+        remove: string,
+        later: string,
+        confirm: string,
+        cancel: string
+    },
+    feedback: {
+        snoozed: string,
+        removed: string,
+        confirmRemove: string
+    }
+}
+
+// Footer
+export type TFooterTranslations = {
+    actions: {
+        close: string
+    },
+    legal: {
+        title: string,
+        terms: {
+            link: string,
+            title: string,
+            intro: string,
+            sections: [
+                {
+                    title: string,
+                    text: string
+                },
+                {
+                    title: string,
+                    text: string
+                },
+                {
+                    title: string,
+                    text: string
+                },
+                {
+                    title: string,
+                    text: string
+                }
+            ]
+        },
+        data: {
+            link: string,
+            title: string,
+            intro: string,
+            points: [
+                string,
+                string,
+                string,
+                string
+            ],
+            consentNote: string
+        }
+    }
+}
+
 // Complete translation interface
 export interface TLandingPageTranslations {
     hero: THeroTranslations;
@@ -207,6 +341,9 @@ export interface TLandingPageTranslations {
     calculator: TCalculatorTranslations;
     finalCtaSection: TFinalCtaSectionTranslations;
     ui: TUiTranslations;
+    demo: TDemoTranslations;
+    consent: TConsentTranslations;
+    footer: TFooterTranslations;
 }
 
 // Translation configuration

@@ -1,4 +1,6 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { TLanguage } from '../i18n/i18n.types';
+import { I18N_CONFIG } from '../i18n/index.i18n';
 import { LanguageService } from './language.service';
 
 type TDictionary = Record<string, unknown>;
@@ -16,13 +18,14 @@ export class I18nService {
 
     private loadSeq = 0;
     private inFlight?: AbortController;
-    private loader: TI18nLoader = async (lang: string, ctx: { signal?: AbortSignal }) => {
-        const res = await fetch(`assets/i18n/${ lang }.json`, {
-            cache: 'no-cache',
-            signal: ctx.signal,
-        });
-        if (!res.ok) throw new Error(`Failed to load i18n for ${ lang }`);
-        return (await res.json()) as TDictionary;
+    private loader: TI18nLoader = async (lang: string, ctx: { signal?: AbortSignal }): Promise<TDictionary> => {
+        const I18N_CONFIGLang: TDictionary = I18N_CONFIG.translations[lang as TLanguage] as unknown as TDictionary;
+        console.log(`Loading i18n for language "${ lang }" using default loader...`);
+        console.log('Available languages in config:', Object.keys(I18N_CONFIG.translations));
+        console.log('Requested language:', lang);
+        console.log('I18N_CONFIG for requested language:', I18N_CONFIGLang);
+        if (!I18N_CONFIGLang) throw new Error(`No i18n configuration found for language: ${ lang }`);
+        return I18N_CONFIGLang;
     };
 
     readonly currentLang = computed(() => this._language.currentLanguage());
@@ -66,6 +69,15 @@ export class I18nService {
         });
     }
 
+    useI18nAssetsFile = async (lang: string, ctx: { signal?: AbortSignal }) => {
+        const res = await fetch(`assets/i18n/${ lang }.json`, {
+            cache: 'no-cache',
+            signal: ctx.signal,
+        });
+        if (!res.ok) throw new Error(`Failed to load i18n for ${ lang }`);
+        return (await res.json()) as TDictionary;
+    };
+
     /**
      * Register a namespaced set of translations (per language).
      * Example: namespace='landing', translationsByLang={ en: {...}, es: {...} }
@@ -101,6 +113,9 @@ export class I18nService {
 
     t(key: string, params?: TInterpolationParams): string {
         const value = this.getValue(key, this.dict());
+        if (value === undefined) {
+            console.log(`Translating key "${ key }" with params`, params, '->', value);
+        }
         if (value == null) return key;
         if (typeof value === 'string') return this.interpolate(value, params);
         // Non-string values (arrays/objects) are returned JSON-stringified for simplicity
