@@ -9,7 +9,7 @@ import { computed, effect, inject, Injectable, signal } from '@angular/core';
 // import { NgxAngoraService } from 'ngx-angora-css';
 import { NgxAngoraService } from 'ngx-angora-css';
 import { environment } from '../../../environments/environment';
-import { ThemeColors, ThemeConfig, ThemeMode } from '../types/theme.types';
+import { ThemeConfig, ThemeMode, TThemeColors } from '../types/theme.types';
 
 @Injectable({
   providedIn: 'root',
@@ -138,8 +138,8 @@ export class ThemeService {
     const currentThemeConfig: ThemeConfig =
       this.activeTheme() === 'dark' ? this._darkThemeConfig : this._lightThemeConfig;
     const altThemeConfig: ThemeConfig = this.activeTheme() === 'dark' ? this._lightThemeConfig : this._darkThemeConfig;
-    const themeColors: ThemeColors = currentThemeConfig.colors;
-    const altThemeColors: ThemeColors = altThemeConfig.colors;
+    const themeColors: TThemeColors = currentThemeConfig.colors;
+    const altThemeColors: TThemeColors = altThemeConfig.colors;
 
     // Use ngx-angora-css pushColors || updateColors for dynamic theme management
     this._ank[!this.initialized ? 'pushColors' : 'updateColors']({

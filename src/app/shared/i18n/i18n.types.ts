@@ -3,10 +3,10 @@
  * Centralizes all translatable content for Spanish/English support
  */
 
-export type Language = 'es' | 'en';
+export type TLanguage = 'es' | 'en';
 
 // Hero Section
-export interface HeroTranslations {
+export interface THeroTranslations {
     title: string;
     subtitle: string;
     description: string;
@@ -38,7 +38,7 @@ export interface HeroTranslations {
 }
 
 // Features Section
-export interface FeatureTranslations {
+export interface TFeatureTranslations {
     icon: string;
     title: string;
     description: string;
@@ -46,13 +46,13 @@ export interface FeatureTranslations {
 }
 
 // Features Section Header
-export interface FeaturesSectionTranslations {
+export interface TFeaturesSectionTranslations {
     title: string;
     subtitle: string;
 }
 
 // Services Section
-export interface ServiceTranslations {
+export interface TServiceTranslations {
     icon: string;
     title: string;
     description: string;
@@ -62,7 +62,7 @@ export interface ServiceTranslations {
 }
 
 // Testimonials Section
-export interface TestimonialTranslations {
+export interface TTestimonialTranslations {
     name: string;
     role: string;
     company: string;
@@ -73,7 +73,7 @@ export interface TestimonialTranslations {
 }
 
 // Interactive Process Section
-export interface ProcessStepTranslations {
+export interface TProcessStepTranslations {
     step: number;
     title: string;
     description: string;
@@ -84,7 +84,7 @@ export interface ProcessStepTranslations {
 }
 
 // Process Section Header
-export interface ProcessSectionTranslations {
+export interface TProcessSectionTranslations {
     title: string;
     sidebarTitle: string;
     detailedDescriptionLabel: string;
@@ -92,21 +92,21 @@ export interface ProcessSectionTranslations {
 }
 
 // FAQ Section
-export interface FaqTranslations {
+export interface TFaqTranslations {
     id: string;
     title: string;
     content: string;
 }
 
 // FAQ Section Footer
-export interface FaqSectionTranslations {
+export interface TFaqSectionTranslations {
     footerQuestion: string;
     footerButtonLabel: string;
     placeholderQuestions: readonly string[];
 }
 
 // Conversion Note Section
-export interface ConversionNoteTranslations {
+export interface TConversionNoteTranslations {
     title: string;
     question: string;
     investmentLabel: string;
@@ -118,7 +118,7 @@ export interface ConversionNoteTranslations {
 }
 
 // Conversion Calculator Section
-export interface CalculatorTranslations {
+export interface TCalculatorTranslations {
     title: string;
     subtitle: string;
     description: string;
@@ -136,7 +136,7 @@ export interface CalculatorTranslations {
 }
 
 // Stats Strip Section
-export interface StatsStripSectionTranslations {
+export interface TStatsStripSectionTranslations {
     title: string;
     subtitle: string;
     description: string;
@@ -146,7 +146,7 @@ export interface StatsStripSectionTranslations {
 }
 
 // Final CTA Section
-export interface FinalCtaSectionTranslations {
+export interface TFinalCtaSectionTranslations {
     title: string;
     subtitle: string;
     primaryLabel: string;
@@ -158,7 +158,7 @@ export interface FinalCtaSectionTranslations {
 }
 
 // Section Titles and General UI
-export interface UiTranslations {
+export interface TUiTranslations {
     sections: {
         services: {
             title: string;
@@ -192,45 +192,25 @@ export interface UiTranslations {
 }
 
 // Complete translation interface
-export interface LandingPageTranslations {
-    hero: HeroTranslations;
-    featuresSection: FeaturesSectionTranslations;
-    features: readonly FeatureTranslations[];
-    services: readonly ServiceTranslations[];
-    testimonials: readonly TestimonialTranslations[];
-    processSection: ProcessSectionTranslations;
-    process: readonly ProcessStepTranslations[];
-    faqSection: FaqSectionTranslations;
-    faq: readonly FaqTranslations[];
-    conversionNote: ConversionNoteTranslations;
-    statsStrip: StatsStripSectionTranslations;
-    calculator: CalculatorTranslations;
-    finalCtaSection: FinalCtaSectionTranslations;
-    ui: UiTranslations;
+export interface TLandingPageTranslations {
+    hero: THeroTranslations;
+    featuresSection: TFeaturesSectionTranslations;
+    features: readonly TFeatureTranslations[];
+    services: readonly TServiceTranslations[];
+    testimonials: readonly TTestimonialTranslations[];
+    processSection: TProcessSectionTranslations;
+    process: readonly TProcessStepTranslations[];
+    faqSection: TFaqSectionTranslations;
+    faq: readonly TFaqTranslations[];
+    conversionNote: TConversionNoteTranslations;
+    statsStrip: TStatsStripSectionTranslations;
+    calculator: TCalculatorTranslations;
+    finalCtaSection: TFinalCtaSectionTranslations;
+    ui: TUiTranslations;
 }
 
 // Translation configuration
-export interface I18nConfig {
-    currentLanguage: Language;
-    translations: Record<Language, LandingPageTranslations>;
+export interface TI18nConfig {
+    currentLanguage: TLanguage;
+    translations: Record<TLanguage, TLandingPageTranslations>;
 }
-
-// Translation key paths for type safety
-export type TranslationKeyPath =
-    | 'hero.title'
-    | 'hero.subtitle'
-    | 'hero.description'
-    | 'hero.primary.label'
-    | 'hero.secondary.label'
-    | 'features.0.title'
-    | 'services.0.title'
-    | 'testimonials.0.content'
-    | 'process.0.title'
-    | 'faq.0.title'
-    | 'conversionNote.title'
-    | 'calculator.title'
-    | 'ui.sections.services.title'
-    | 'ui.sections.testimonials.title'
-    | 'ui.sections.faq.title'
-    | 'ui.loading.calculator'
-    | 'ui.contact.whatsappMessage';

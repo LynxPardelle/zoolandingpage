@@ -1,7 +1,7 @@
-import { LanguageService } from '@/app/core/services/language.service';
-import { ThemeService } from '@/app/core/services/theme.service';
 import { AnalyticsCategories, AnalyticsEvents } from '@/app/shared/services/analytics.events';
 import { AnalyticsService } from '@/app/shared/services/analytics.service';
+import { LanguageService } from '@/app/shared/services/language.service';
+import { ThemeService } from '@/app/shared/services/theme.service';
 import { inject } from '@angular/core';
 import type { EventHandler } from '../event-handler.types';
 

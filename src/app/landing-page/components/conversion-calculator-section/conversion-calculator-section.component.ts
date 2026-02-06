@@ -1,14 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { getTranslations } from '../../../core/i18n/i18n.constants';
-import type { LandingPageTranslations } from '../../../core/i18n/i18n.types';
-import { I18nService } from '../../../core/services/i18n.service';
-import { LanguageService } from '../../../core/services/language.service';
 import { GenericButtonComponent } from '../../../shared/components/generic-button/generic-button.component';
 import { GenericStatsCounterComponent } from '../../../shared/components/generic-stats-counter/generic-stats-counter.component';
 import type { TGenericStatsCounterConfig } from '../../../shared/components/generic-stats-counter/generic-stats-counter.types';
 import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '../../../shared/services/analytics.events';
+import { I18nService } from '../../../shared/services/i18n.service';
 import type { BusinessSize, CalculatedRoi } from './conversion-calculator-section.types';
 @Component({
     selector: 'conversion-calculator-section',
@@ -19,7 +16,6 @@ import type { BusinessSize, CalculatedRoi } from './conversion-calculator-sectio
 export class ConversionCalculatorSectionComponent {
     readonly analyticsEvent = output<AnalyticsEventPayload>();
     private readonly i18n = inject(I18nService);
-    private readonly language = inject(LanguageService);
 
     readonly businessSize = input.required<BusinessSize>();
     readonly industry = input.required<string>();
@@ -29,12 +25,17 @@ export class ConversionCalculatorSectionComponent {
     readonly industryChange = output<string>();
     readonly visitorsChange = output<number>();
 
-    // Section content from centralized translations
-    private readonly landingTranslations = computed<LandingPageTranslations>(() =>
-        this.i18n.get<LandingPageTranslations>('landing') ?? getTranslations(this.language.currentLanguage() as any)
-    );
-
-    readonly calculatorContent = computed(() => this.landingTranslations().calculator);
+    // Calculator translations via I18nService.t() (DB/API-ready) with safe fallbacks.
+    readonly calculatorContent = computed(() => ({
+        title: this.i18n.tOr('landing.calculator.title', 'Calculadora de Conversión'),
+        subtitle: this.i18n.tOr('landing.calculator.subtitle', 'Estima tu potencial de crecimiento'),
+        description: this.i18n.tOr(
+            'landing.calculator.description',
+            'Ajusta los parámetros y revisa el impacto estimado en ingresos y conversión.'
+        ),
+        monthlyIncreaseLabel: this.i18n.tOr('landing.calculator.monthlyIncreaseLabel', 'Ingresos adicionales mensuales'),
+        conversionImprovementLabel: this.i18n.tOr('landing.calculator.conversionImprovementLabel', 'Mejora estimada en conversión'),
+    }));
 
     readonly monthlyIncreaseConfig = computed<TGenericStatsCounterConfig>(() => ({
         target: this.calculatedROI().monthlyIncrease,

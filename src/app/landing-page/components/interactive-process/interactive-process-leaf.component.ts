@@ -1,10 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, output } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { getTranslations } from '../../../core/i18n/i18n.constants';
-import type { LandingPageTranslations } from '../../../core/i18n/i18n.types';
-import { I18nService } from '../../../core/services/i18n.service';
-import { LanguageService } from '../../../core/services/language.service';
+import { I18nService } from '../../../shared/services/i18n.service';
 import { ProcessStep } from './interactive-process-leaf.types';
 
 @Component({
@@ -81,7 +78,6 @@ import { ProcessStep } from './interactive-process-leaf.types';
 })
 export class InteractiveProcessLeafComponent {
   private readonly i18n = inject(I18nService);
-  private readonly language = inject(LanguageService);
   private readonly elementRef = inject(ElementRef);
 
   readonly process = input.required<readonly ProcessStep[]>();
@@ -89,20 +85,25 @@ export class InteractiveProcessLeafComponent {
   readonly selectStep = output<number>();
 
   readonly currentData = computed(() => {
+    const steps = this.process();
+    if (!steps?.length) {
+      return undefined;
+    }
+
     const step = this.currentStep();
     // Si currentStep es -1 (cerrado) o inválido, usar el primer paso como fallback
-    if (step < 0 || step >= this.process().length) {
-      return this.process()[0];
+    if (step < 0 || step >= steps.length) {
+      return steps[0];
     }
-    return this.process()[step];
+    return steps[step];
   });
 
-  // Use centralized process section translations
-  private readonly landingTranslations = computed<LandingPageTranslations>(() =>
-    this.i18n.get<LandingPageTranslations>('landing') ?? getTranslations(this.language.currentLanguage() as any)
-  );
-
-  readonly sectionContent = computed(() => this.landingTranslations().processSection);
+  readonly sectionContent = computed(() => ({
+    title: this.i18n.tOr('landing.processSection.title', 'Cómo lo hacemos'),
+    sidebarTitle: this.i18n.tOr('landing.processSection.sidebarTitle', 'Nuestro Proceso'),
+    detailedDescriptionLabel: this.i18n.tOr('landing.processSection.detailedDescriptionLabel', 'Descripción Detallada:'),
+    deliverablesLabel: this.i18n.tOr('landing.processSection.deliverablesLabel', 'Entregables:'),
+  }));
 
   choose(i: number) {
     // Si el paso actual es el mismo que se clickeó, emitir -1 para cerrar

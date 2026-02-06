@@ -1,10 +1,10 @@
-import { getTranslations } from '@/app/core/i18n/i18n.constants';
-import type { LandingPageTranslations } from '@/app/core/i18n/i18n.types';
-import { I18nService } from '@/app/core/services/i18n.service';
-import { LanguageService } from '@/app/core/services/language.service';
-import { ThemeService } from '@/app/core/services/theme.service';
 import { ProcessStep } from '@/app/landing-page/components/interactive-process/interactive-process-leaf.types';
 import type { TGenericStatsCounterConfig } from '@/app/shared/components/generic-stats-counter/generic-stats-counter.types';
+import { getTranslations } from '@/app/shared/i18n/i18n.constants';
+import type { TLandingPageTranslations } from '@/app/shared/i18n/i18n.types';
+import { I18nService } from '@/app/shared/services/i18n.service';
+import { LanguageService } from '@/app/shared/services/language.service';
+import { ThemeService } from '@/app/shared/services/theme.service';
 import { computed, effect, inject, Injectable } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { environment } from '../../../environments/environment';
@@ -36,8 +36,8 @@ export class ConfigurationsOrchestratorService {
   private readonly componentEventDispatcher = inject(ComponentEventDispatcherService);
   private readonly interactiveProcessStore = inject(InteractiveProcessStoreService);
 
-  private readonly landingTranslations = computed<LandingPageTranslations>(() => {
-    const fromCore = this.globalI18n.get<LandingPageTranslations>('landing');
+  private readonly landingTranslations = computed<TLandingPageTranslations>(() => {
+    const fromCore = this.globalI18n.get<TLandingPageTranslations>('landing');
     if (fromCore) return fromCore;
     return getTranslations(this.language.currentLanguage() as any);
   });

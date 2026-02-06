@@ -6,50 +6,8 @@
  * - Keep atomic and focused
  */
 
-// Container component types
-export type ContainerSize = 'sm' | 'md' | 'lg' | 'xl' | 'full';
-
-export type ContainerAlignment = 'left' | 'center' | 'right';
-
-export type ContainerProps = {
-  size?: ContainerSize;
-  alignment?: ContainerAlignment;
-  className?: string;
-  children?: unknown;
-};
-
-// Section component types
-export type SectionVariant = 'default' | 'secondary' | 'accent' | 'transparent';
-
-export type SectionSpacing = 'none' | 'sm' | 'md' | 'lg' | 'xl';
-
-export type SectionProps = {
-  variant?: SectionVariant;
-  spacing?: SectionSpacing;
-  className?: string;
-  children?: unknown;
-};
-
-// Header component types
-export type HeaderProps = {
-  showLogo?: boolean;
-  showNavigation?: boolean;
-  showLanguageToggle?: boolean;
-  showThemeToggle?: boolean;
-  isSticky?: boolean;
-  className?: string;
-};
-
-// Footer component types
-export type FooterProps = {
-  showSocialLinks?: boolean;
-  showContactInfo?: boolean;
-  showCopyright?: boolean;
-  className?: string;
-};
-
 // Header navigation item type
-export type HeaderNavItem = {
+export type THeaderNavItem = {
   readonly label: string;
   readonly href: string;
   readonly isActive: boolean;

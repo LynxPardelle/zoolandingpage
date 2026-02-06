@@ -52,6 +52,7 @@
           <div
             class="ank-bg-secondaryBgColor ank-borderRadius-12px ank-p-32px ank-mt-16px ank-border-2px ank-borderColor-accentColor accordion-content"
           >
+            @if (currentData(); as data) {
             <div class="ank-display-flex ank-alignItems-center ank-gap-16px ank-mb-24px">
               <div class="ank-fs-4xl">
                 @switch (i) { @case (0) {<mat-icon
@@ -73,25 +74,25 @@
               </div>
               <div>
                 <h3 class="ank-fs-1_25rem ank-fontWeight-bold ank-mb-8px ank-color-secondaryTitleColor">
-                  {{ currentData().title }}
+                  {{ data.title }}
                 </h3>
                 <div class="ank-display-flex ank-alignItems-center ank-gap-8px ank-mb-16px">
                   <mat-icon class="ank-fs-1rem ank-color-secondaryAccentColor">schedule</mat-icon>
                   <span class="ank-fs-1rem ank-color-secondaryAccentColor ank-fontWeight-medium">{{
-                    currentData().duration
+                    data.duration
                   }}</span>
                 </div>
               </div>
             </div>
             <p class="ank-fs-1rem ank-color-secondaryTextColor ank-lineHeight-relaxed ank-mb-16px">
-              {{ currentData().description }}
+              {{ data.description }}
             </p>
             <div class="ank-mb-24px">
               <h4 class="ank-fs-1_125rem ank-fontWeight-semibold ank-mb-12px ank-color-secondaryTitleColor">
                 {{ sectionContent().detailedDescriptionLabel }}
               </h4>
               <p class="ank-fs-1rem ank-color-secondaryTextColor ank-lineHeight-relaxed">
-                {{ currentData().detailedDescription }}
+                {{ data.detailedDescription }}
               </p>
             </div>
             <div>
@@ -99,7 +100,7 @@
                 {{ sectionContent().deliverablesLabel }}
               </h4>
               <ul class="ank-listStyle-none ank-p-0 ank-m-0">
-                @for (deliverable of currentData().deliverables; track deliverable) {
+                @for (deliverable of data.deliverables; track deliverable) {
                 <li class="ank-display-flex ank-alignItems-start ank-gap-8px ank-mb-8px">
                   <mat-icon class="ank-fs-1rem ank-color-success ank-mt-0_125rem ank-flexShrink-0"
                     >check_circle</mat-icon
@@ -109,6 +110,7 @@
                 }
               </ul>
             </div>
+            }
           </div>
           }
         </div>
@@ -156,6 +158,7 @@
         }
       </div>
       <div class="ank-bg-secondaryBgColor ank-borderRadius-12px ank-p-32px ank-minHeight-500px">
+        @if (currentData(); as data) {
         <div class="ank-display-flex ank-alignItems-center ank-gap-16px ank-mb-24px">
           <div class="ank-fs-4xl">
             @switch (currentStep()) { @case (0) {<mat-icon
@@ -177,25 +180,23 @@
           </div>
           <div>
             <h3 class="ank-fs-1_25rem ank-fontWeight-bold ank-mb-8px ank-color-secondaryTitleColor">
-              {{ currentData().title }}
+              {{ data.title }}
             </h3>
             <div class="ank-display-flex ank-alignItems-center ank-gap-8px ank-mb-16px">
               <mat-icon class="ank-fs-1rem ank-color-secondaryAccentColor">schedule</mat-icon>
-              <span class="ank-fs-1rem ank-color-secondaryAccentColor ank-fontWeight-medium">{{
-                currentData().duration
-              }}</span>
+              <span class="ank-fs-1rem ank-color-secondaryAccentColor ank-fontWeight-medium">{{ data.duration }}</span>
             </div>
           </div>
         </div>
         <p class="ank-fs-1rem ank-color-secondaryTextColor ank-lineHeight-relaxed ank-mb-16px">
-          {{ currentData().description }}
+          {{ data.description }}
         </p>
         <div class="ank-mb-24px">
           <h4 class="ank-fs-1_125rem ank-fontWeight-semibold ank-mb-12px ank-color-secondaryTitleColor">
             {{ sectionContent().detailedDescriptionLabel }}
           </h4>
           <p class="ank-fs-1rem ank-color-secondaryTextColor ank-lineHeight-relaxed">
-            {{ currentData().detailedDescription }}
+            {{ data.detailedDescription }}
           </p>
         </div>
         <div>
@@ -203,7 +204,7 @@
             {{ sectionContent().deliverablesLabel }}
           </h4>
           <ul class="ank-listStyle-none ank-p-0 ank-m-0">
-            @for (deliverable of currentData().deliverables; track deliverable) {
+            @for (deliverable of data.deliverables; track deliverable) {
             <li class="ank-display-flex ank-alignItems-start ank-gap-8px ank-mb-8px">
               <mat-icon class="ank-fs-1rem ank-color-success ank-mt-0_125rem ank-flexShrink-0">check_circle</mat-icon>
               <span class="ank-fs-1rem ank-color-secondaryTextColor ank-lineHeight-relaxed">{{ deliverable }}</span>
@@ -211,6 +212,7 @@
             }
           </ul>
         </div>
+        }
       </div>
     </div>
   </div>

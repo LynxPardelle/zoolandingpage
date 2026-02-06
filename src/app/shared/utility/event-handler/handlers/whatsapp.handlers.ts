@@ -1,19 +1,10 @@
-import { getTranslations } from '@/app/core/i18n/i18n.constants';
-import type { LandingPageTranslations } from '@/app/core/i18n/i18n.types';
-import { I18nService } from '@/app/core/services/i18n.service';
-import { LanguageService } from '@/app/core/services/language.service';
 import { AnalyticsCategories, AnalyticsEvents } from '@/app/shared/services/analytics.events';
 import { AnalyticsService } from '@/app/shared/services/analytics.service';
 import { WHATSAPP_PHONE } from '@/app/shared/services/contact.constants';
+import { I18nService } from '@/app/shared/services/i18n.service';
 import { buildWhatsAppUrl } from '@/app/shared/utility/buildWhatsAppUrl.utility';
 import { inject } from '@angular/core';
 import type { EventHandler } from '../event-handler.types';
-
-const landingTranslations = (globalI18n: I18nService, language: LanguageService): LandingPageTranslations => {
-    const fromCore = globalI18n.get<LandingPageTranslations>('landing');
-    if (fromCore) return fromCore;
-    return getTranslations(language.currentLanguage() as any);
-};
 
 const safeOpen = (url: string): void => {
     try {
@@ -28,7 +19,6 @@ const safeOpen = (url: string): void => {
 export const openWhatsAppHandler = (): EventHandler => {
     const analytics = inject(AnalyticsService);
     const globalI18n = inject(I18nService);
-    const language = inject(LanguageService);
 
     return {
         id: 'openWhatsApp',
@@ -37,8 +27,8 @@ export const openWhatsAppHandler = (): EventHandler => {
             const location = String(args[1] ?? '');
             const serviceLabel = args[2] == null ? undefined : String(args[2]);
 
-            const t = landingTranslations(globalI18n, language);
-            const rawMessage = t.ui?.contact?.whatsappMessage;
+            const rawMessage = globalI18n.t(
+                'landing.ui.contact.whatsappMessage');
 
             const link = buildWhatsAppUrl(WHATSAPP_PHONE, rawMessage);
 
@@ -70,7 +60,6 @@ export const openWhatsAppHandler = (): EventHandler => {
 export const openFaqCtaWhatsAppHandler = (): EventHandler => {
     const analytics = inject(AnalyticsService);
     const globalI18n = inject(I18nService);
-    const language = inject(LanguageService);
 
     return {
         id: 'openFaqCtaWhatsApp',
@@ -81,8 +70,9 @@ export const openFaqCtaWhatsAppHandler = (): EventHandler => {
                 meta: { location: 'faq-section', channel: 'whatsapp' },
             });
 
-            const t = landingTranslations(globalI18n, language);
-            const message = t.ui?.sections?.faq?.subtitle;
+            const message = globalI18n.t(
+                'landing.ui.sections.faq.subtitle',
+            );
             const link = buildWhatsAppUrl(WHATSAPP_PHONE, message);
             safeOpen(link);
         },
@@ -92,7 +82,6 @@ export const openFaqCtaWhatsAppHandler = (): EventHandler => {
 export const openFinalCtaWhatsAppHandler = (): EventHandler => {
     const analytics = inject(AnalyticsService);
     const globalI18n = inject(I18nService);
-    const language = inject(LanguageService);
 
     return {
         id: 'openFinalCtaWhatsApp',
@@ -114,8 +103,9 @@ export const openFinalCtaWhatsAppHandler = (): EventHandler => {
                 },
             });
 
-            const t = landingTranslations(globalI18n, language);
-            const message = t.hero?.subtitle;
+            const message = globalI18n.t(
+                'landing.hero.subtitle'
+            );
             const link = buildWhatsAppUrl(WHATSAPP_PHONE, message);
             safeOpen(link);
         },

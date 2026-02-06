@@ -1,9 +1,9 @@
-import type { I18nConfig, LandingPageTranslations, Language } from './i18n.types';
+import type { TI18nConfig, TLandingPageTranslations, TLanguage } from './i18n.types';
 
 /**
  * Spanish translations for all landing page content
  */
-const SPANISH_TRANSLATIONS: LandingPageTranslations = {
+const SPANISH_TRANSLATIONS: TLandingPageTranslations = {
     hero: {
         title: 'Convierte visitas en clientes con una Landing Page rápida, clara y medible',
         subtitle: 'Lanza tu Landing Page Optimizada rápidamente, mide desde el primer día y mejora con datos reales.',
@@ -401,7 +401,7 @@ const SPANISH_TRANSLATIONS: LandingPageTranslations = {
 /**
  * English translations for all landing page content
  */
-const ENGLISH_TRANSLATIONS: LandingPageTranslations = {
+const ENGLISH_TRANSLATIONS: TLandingPageTranslations = {
     hero: {
         title: 'Turn visits into customers with a fast, clear and measurable Landing Page',
         subtitle: 'Launch your Optimized Landing Page quickly, measure from day one, and improve with real data.',
@@ -799,7 +799,7 @@ const ENGLISH_TRANSLATIONS: LandingPageTranslations = {
 /**
  * Complete internationalization configuration
  */
-export const I18N_CONFIG: I18nConfig = {
+export const I18N_CONFIG: TI18nConfig = {
     currentLanguage: 'es',
     translations: {
         es: SPANISH_TRANSLATIONS,
@@ -810,7 +810,7 @@ export const I18N_CONFIG: I18nConfig = {
 /**
  * Get translation for current language
  */
-export function getTranslations(language: Language): LandingPageTranslations {
+export function getTranslations(language: TLanguage): TLandingPageTranslations {
     return I18N_CONFIG.translations[language];
 }
 
@@ -818,7 +818,7 @@ export function getTranslations(language: Language): LandingPageTranslations {
  * Get translation by key path (for type safety)
  */
 export function getTranslation<T>(
-    language: Language,
+    language: TLanguage,
     keyPath: string
 ): T {
     const translations = getTranslations(language);

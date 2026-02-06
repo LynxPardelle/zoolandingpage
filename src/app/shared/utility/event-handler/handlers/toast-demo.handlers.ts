@@ -1,5 +1,5 @@
-import { I18nService } from '@/app/core/services/i18n.service';
 import { ToastService } from '@/app/shared/components/generic-toast';
+import { I18nService } from '@/app/shared/services/i18n.service';
 import { inject } from '@angular/core';
 import type { EventHandler } from '../event-handler.types';
 

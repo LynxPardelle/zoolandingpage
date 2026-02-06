@@ -105,7 +105,7 @@ The system uses Angular signals for reactive updates:
 readonly currentLanguage = this.languageService.currentLanguage;
 
 // Current translations based on selected language
-readonly translations = computed<LandingPageTranslations>(() => {
+readonly translations = computed<TLandingPageTranslations>(() => {
   const lang = this.currentLanguage();
   return getTranslations(lang);
 });

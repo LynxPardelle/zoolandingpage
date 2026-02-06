@@ -4,10 +4,10 @@
 
 Se ha actualizado el sistema de colores del tema para usar una estructura más semántica y versátil que funciona mejor para landing pages y aplicaciones web.
 
-## Nuevo Tipo ThemeColors
+## Nuevo Tipo TThemeColors
 
 ```typescript
-export type ThemeColors = {
+export type TThemeColors = {
   bgColor: string; // Color de fondo principal
   textColor: string; // Color de texto principal
   titleColor: string; // Color para títulos y encabezados
@@ -53,7 +53,7 @@ export type ThemeColors = {
 
 ### Core Types
 
-- `src/app/core/types/theme.types.ts` - Actualizado tipo ThemeColors
+- `src/app/core/types/theme.types.ts` - Actualizado tipo TThemeColors
 
 ### Services
 

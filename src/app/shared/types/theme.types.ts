@@ -7,7 +7,7 @@
  */
 
 // Theme color definitions
-export type ThemeColors = {
+export type TThemeColors = {
   bgColor: string;
   textColor: string;
   titleColor: string;
@@ -20,7 +20,7 @@ export type ThemeColors = {
   secondaryAccentColor: string;
 };
 
-export type AltThemeColors = {
+export type TAltThemeColors = {
   altBgColor: string;
   altTextColor: string;
   altTitleColor: string;
@@ -33,12 +33,12 @@ export type AltThemeColors = {
   altSecondaryAccentColor: string;
 };
 
-export type AllThemeColors = ThemeColors & AltThemeColors;
+export type TAllThemeColors = TThemeColors & TAltThemeColors;
 
 // Theme configuration
 export type ThemeConfig = {
   name: string;
-  colors: ThemeColors;
+  colors: TThemeColors;
   isDark: boolean;
 };
 

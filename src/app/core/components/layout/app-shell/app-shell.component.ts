@@ -1,4 +1,4 @@
-import { HeaderNavItem } from "@/app/core/types/layout.types";
+import { THeaderNavItem } from "@/app/core/types/layout.types";
 import { WrapperOrchestrator } from "@/app/shared/components/wrapper-orchestrator/wrapper-orchestrator.component";
 import { ConfigurationsOrchestratorService } from "@/app/shared/services/configurations-orchestrator";
 import { StructuredDataService } from "@/app/shared/services/structured-data.service";
@@ -26,9 +26,9 @@ import {
   AnalyticsEvents,
 } from "../../../../shared/services/analytics.events";
 import { AnalyticsService } from "../../../../shared/services/analytics.service";
+import { LanguageService } from "../../../../shared/services/language.service";
+import { ThemeService } from "../../../../shared/services/theme.service";
 import { forwardAnalyticsEvent } from "../../../../shared/utility/forwardAnalyticsEvent.utility";
-import { LanguageService } from "../../../services/language.service";
-import { ThemeService } from "../../../services/theme.service";
 
 @Component({
   selector: "app-root",
@@ -283,7 +283,7 @@ export class AppShellComponent {
   }
 
 
-  onNavChange(item: HeaderNavItem): void {
+  onNavChange(item: THeaderNavItem): void {
     this.activeHref.set(item.href);
   }
 
