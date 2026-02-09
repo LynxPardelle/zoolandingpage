@@ -21,7 +21,7 @@ export type TGenericContainerConfig = {
     classes?: string;
     tabindex?: number;
     role?: string;
-    ariaLabel?: string;
+    ariaLabel?: string | (() => string);
     ariaLabelledby?: string;
     ariaDescribedby?: string;
 

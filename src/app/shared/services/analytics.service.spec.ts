@@ -1,10 +1,23 @@
+import { HttpClient } from '@angular/common/http';
+import { TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
 import { AnalyticsService } from './analytics.service';
 
 describe('AnalyticsService', () => {
   it('tracks events and buffers them', () => {
-    const svc = new AnalyticsService();
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: HttpClient,
+          useValue: {
+            post: jasmine.createSpy('post').and.returnValue(of({ ok: true })),
+          } as any,
+        },
+      ],
+    });
+    const svc = TestBed.inject(AnalyticsService);
     spyOn(console, 'log');
-    svc.track('test_event', { category: 'test', label: 'A' });
+    void svc.track('test_event', { category: 'test', label: 'A' });
     const buf = svc.flush();
     expect(buf.length).toBe(1);
     expect(buf[0].name).toBe('test_event');

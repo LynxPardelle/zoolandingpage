@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, input } from '@angular/core';
 import { InteractiveProcessLeafComponent } from '../../../landing-page/components/interactive-process/interactive-process-leaf.component';
 import { ConfigurationsOrchestratorService } from '../../services/configurations-orchestrator';
+import { ValueOrchestrator } from '../../services/value-orchestrator';
 import { GenericAccordionComponent } from '../generic-accordion';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { GenericContainerComponent } from '../generic-container/generic-container';
@@ -41,6 +42,7 @@ import { TGenericComponent } from './wrapper-orchestrator.types';
 })
 export class WrapperOrchestrator {
   private readonly _configurationsOrchestratorService = inject(ConfigurationsOrchestratorService);
+  private readonly valueOrchestrator = inject(ValueOrchestrator);
   // Accepts an array of component IDs to render
   readonly componentsIds = input<readonly (string | TGenericComponent)[]>([]);
 
@@ -68,6 +70,7 @@ export class WrapperOrchestrator {
         return entry;
       })
       .filter((c: TGenericComponent | undefined): c is TGenericComponent => c !== undefined)
+      .map((c: TGenericComponent) => this.valueOrchestrator.apply(c, { host: this._configurationsOrchestratorService }))
       .filter((c: TGenericComponent) => this.shouldRender(c))
   );
 

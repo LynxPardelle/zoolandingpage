@@ -18,7 +18,7 @@ describe('GenericStepperComponent', () => {
   });
   it('should render steps and enforce linear navigation', () => {
     const el = fixture.nativeElement as HTMLElement;
-    const buttons = Array.from(el.querySelectorAll('button.step-trigger')) as HTMLButtonElement[];
+    const buttons = Array.from(el.querySelectorAll('button.stepper-trigger-anim')) as HTMLButtonElement[];
     expect(buttons.length).toBe(3);
     expect(buttons[0].disabled).toBe(false);
     expect(buttons[1].disabled).toBe(false); // next incomplete allowed
@@ -26,7 +26,7 @@ describe('GenericStepperComponent', () => {
   });
   it('should select active step on click if allowed', () => {
     const el = fixture.nativeElement as HTMLElement;
-    const buttons = Array.from(el.querySelectorAll('button.step-trigger')) as HTMLButtonElement[];
+    const buttons = Array.from(el.querySelectorAll('button.stepper-trigger-anim')) as HTMLButtonElement[];
     buttons[1].click();
     fixture.detectChanges();
     expect(comp.isActive(1)).toBe(true);

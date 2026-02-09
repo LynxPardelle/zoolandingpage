@@ -1,29 +1,68 @@
+import { AsyncPipe } from '@angular/common';
+import { Component, Input } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter, withInMemoryScrolling } from '@angular/router';
+import { provideRouter, Router, withInMemoryScrolling } from '@angular/router';
+import { NgxAngoraService } from 'ngx-angora-css';
+import { of } from 'rxjs';
+import { WrapperOrchestrator } from '../../../../shared/components/wrapper-orchestrator/wrapper-orchestrator.component';
 import { AnalyticsService } from '../../../../shared/services/analytics.service';
+import { ConfigurationsOrchestratorService } from '../../../../shared/services/configurations-orchestrator';
 import { AppShellComponent } from './app-shell.component';
+
+@Component({
+  selector: 'wrapper-orchestrator',
+  standalone: true,
+  template: `<main id="main-content"></main>`,
+})
+class WrapperOrchestratorStub {
+  @Input() componentsIds: readonly unknown[] = [];
+}
+
+const ORCHESTRATOR_STUB = {
+  modalHostConfig$: of(null),
+  fallbackModalHostConfig: {},
+  devDemoControlsComponents: [] as string[],
+};
 
 describe('AppShellComponent analytics', () => {
   let analyticsSpy: jasmine.SpyObj<AnalyticsService>;
 
   beforeEach(async () => {
-    analyticsSpy = jasmine.createSpyObj('AnalyticsService', ['track', 'flush']);
+    analyticsSpy = jasmine.createSpyObj('AnalyticsService', ['track', 'flush', 'promptForConsentIfNeeded']);
     await TestBed.configureTestingModule({
       imports: [AppShellComponent],
       providers: [
         { provide: AnalyticsService, useValue: analyticsSpy },
+        { provide: ConfigurationsOrchestratorService, useValue: ORCHESTRATOR_STUB },
+        {
+          provide: NgxAngoraService,
+          useValue: {
+            cssCreate: () => { },
+            timeBetweenReCreate: 0,
+            pushColors: () => { },
+            updateColors: () => { },
+          } as any,
+        },
         provideRouter(
           [{ path: '', component: AppShellComponent, pathMatch: 'full' }],
           withInMemoryScrolling({ scrollPositionRestoration: 'enabled', anchorScrolling: 'enabled' })
         ),
       ],
     }).compileComponents();
+
+    TestBed.overrideComponent(AppShellComponent, {
+      remove: { imports: [WrapperOrchestrator] },
+      add: { imports: [WrapperOrchestratorStub, AsyncPipe] },
+    });
   });
 
   it('fires one page_view on initial navigation', async () => {
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
+    const router = TestBed.inject(Router);
+    await router.navigateByUrl('/');
     await fixture.whenStable();
+
     expect(analyticsSpy.track).toHaveBeenCalled();
     const calls = analyticsSpy.track.calls.all();
     // Filter for page_view

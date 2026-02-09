@@ -1,8 +1,6 @@
 import { ProcessStep } from '@/app/landing-page/components/interactive-process/interactive-process-leaf.types';
 import type { TGenericStatsCounterConfig } from '@/app/shared/components/generic-stats-counter/generic-stats-counter.types';
 import { I18nService } from '@/app/shared/services/i18n.service';
-import { LanguageService } from '@/app/shared/services/language.service';
-import { ThemeService } from '@/app/shared/services/theme.service';
 import { computed, effect, inject, Injectable } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { environment } from '../../../environments/environment';
@@ -27,8 +25,6 @@ import { QuickStatsService } from './quick-stats.service';
 export class ConfigurationsOrchestratorService {
   readonly analytics = inject(AnalyticsService);
   private readonly quickStats = inject(QuickStatsService);
-  private readonly theme = inject(ThemeService);
-  private readonly language = inject(LanguageService);
   private readonly modal = inject(GenericModalService);
   private readonly globalI18n = inject(I18nService);
   private readonly componentEventDispatcher = inject(ComponentEventDispatcherService);
@@ -117,9 +113,10 @@ export class ConfigurationsOrchestratorService {
       id: 'devDemoTitle',
       type: 'text',
       condition: environment.features.debugMode,
+      valueInstructions: 'set:config.text,i18n,demo.title',
       config: {
         tag: 'h3',
-        text: () => this.globalI18n.t('demo.title'),
+        text: '',
         classes: 'ank-w-100per ank-textAlign-center ank-color-secondaryTitleColor',
       },
     },
@@ -128,8 +125,9 @@ export class ConfigurationsOrchestratorService {
       type: 'button',
       condition: environment.features.debugMode,
       eventInstructions: 'showDemoModal',
+      valueInstructions: 'set:config.label,i18n,demo.modal.button.open',
       config: {
-        label: () => this.globalI18n.t('demo.modal.button.open'),
+        label: '',
         classes: 'btnBaseVALSVL1_25remVL0_75remVL ank-fs-1rem ank-btn-primary ank-color-textColor',
       },
     },
@@ -138,8 +136,9 @@ export class ConfigurationsOrchestratorService {
       type: 'button',
       condition: environment.features.debugMode,
       eventInstructions: 'showDemoToast',
+      valueInstructions: 'set:config.label,i18n,demo.toast.button.success',
       config: {
-        label: () => this.globalI18n.t('demo.toast.button.success'),
+        label: '',
         classes: 'btnBaseVALSVL1_25remVL0_75remVL ank-fs-1rem ank-btn-success ank-color-textColor',
       },
     },
@@ -148,8 +147,9 @@ export class ConfigurationsOrchestratorService {
       type: 'button',
       condition: environment.features.debugMode,
       eventInstructions: 'showErrorToast',
+      valueInstructions: 'set:config.label,i18n,demo.toast.button.error',
       config: {
-        label: () => this.globalI18n.t('demo.toast.button.error'),
+        label: '',
         classes: 'btnBaseVALSVL1_25remVL0_75remVL ank-fs-1rem ank-btn-danger ank-color-textColor',
       },
     },
@@ -158,8 +158,9 @@ export class ConfigurationsOrchestratorService {
       type: 'button',
       condition: environment.features.debugMode,
       eventInstructions: 'showActionToast',
+      valueInstructions: 'set:config.label,i18n,demo.toast.button.action',
       config: {
-        label: () => this.globalI18n.t('demo.toast.button.action'),
+        label: '',
         classes: 'btnBaseVALSVL1_25remVL0_75remVL ank-fs-1rem ank-btn-warning ank-color-textColor',
       },
     },
@@ -168,8 +169,9 @@ export class ConfigurationsOrchestratorService {
       type: 'button',
       condition: environment.features.debugMode,
       eventInstructions: 'showPositionDemo',
+      valueInstructions: 'set:config.label,i18n,demo.toast.button.position',
       config: {
-        label: () => this.globalI18n.t('demo.toast.button.position'),
+        label: '',
         classes: 'btnBaseVALSVL1_25remVL0_75remVL ank-fs-1rem ank-btn-info ank-color-textColor',
       },
     },
@@ -178,8 +180,9 @@ export class ConfigurationsOrchestratorService {
       type: 'button',
       condition: environment.features.debugMode,
       eventInstructions: 'clearAllToasts',
+      valueInstructions: 'set:config.label,i18n,demo.toast.button.clear',
       config: {
-        label: () => this.globalI18n.t('demo.toast.button.clear'),
+        label: '',
         classes: 'btnBaseVALSVL1_25remVL0_75remVL ank-fs-1rem ank-btn-secondary ank-color-textColor',
       },
     },
@@ -334,8 +337,9 @@ export class ConfigurationsOrchestratorService {
       type: 'button',
       eventInstructions: "openWhatsApp:event.meta_title,hero_primary,hero",
       meta_title: 'hero_primary_click',
+      valueInstructions: 'set:config.label,i18n,hero.primary.label',
       config: {
-        label: () => this.globalI18n.t('hero.primary.label'),
+        label: '',
         classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLsecondaryLinkColorVLtextColorVL',
       }
     },
@@ -346,8 +350,9 @@ export class ConfigurationsOrchestratorService {
       type: 'button',
       eventInstructions: "trackCTAClick:event.meta_title,secondary,hero;navigationToSection:features-section",
       meta_title: 'hero_secondary_click',
+      valueInstructions: 'set:config.label,i18n,hero.secondary.label',
       config: {
-        label: () => this.globalI18n.t('hero.secondary.label'),
+        label: '',
         classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypeOutlineVALSVLsecondaryLinkColorVLtextColorVL',
       }
     },
@@ -357,8 +362,9 @@ export class ConfigurationsOrchestratorService {
       id: 'faqFooterButton',
       type: 'button',
       eventInstructions: 'openFaqCtaWhatsApp',
+      valueInstructions: 'set:config.label,i18n,faqSection.footerButtonLabel',
       config: {
-        label: () => this.globalI18n.t('faqSection.footerButtonLabel'),
+        label: '',
         loading: false,
         disabled: false,
         classes: 'btnBaseVALSVL1_25remVL0_75remVL ank-bg-transparent ank-border-2px__solid__secondaryAccentColor ank-color-secondaryAccentColor ank-ts-200 ank-bgHover-secondaryAccentColor ank-colorHover-secondaryTextColor ank-mx-auto',
@@ -371,8 +377,9 @@ export class ConfigurationsOrchestratorService {
       type: 'button',
       eventInstructions: 'openFinalCtaWhatsApp:event.meta_title,primary',
       meta_title: AnalyticsEvents.FinalCtaPrimaryClick,
+      valueInstructions: 'set:config.label,i18n,finalCtaSection.primaryLabel',
       config: {
-        label: () => this.globalI18n.t('finalCtaSection.primaryLabel'),
+        label: '',
         classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLsecondaryLinkColorVLtextColorVL',
       }
     },
@@ -381,8 +388,9 @@ export class ConfigurationsOrchestratorService {
       type: 'button',
       eventInstructions: 'openFinalCtaWhatsApp:event.meta_title,secondary',
       meta_title: AnalyticsEvents.FinalCtaSecondaryClick,
+      valueInstructions: 'set:config.label,i18n,finalCtaSection.secondaryLabel',
       config: {
-        label: () => this.globalI18n.t('finalCtaSection.secondaryLabel'),
+        label: '',
         classes:
           'btnBaseVALSVL1_25remVL0_75remVL ank-bg-transparent ank-border-2px__solid__secondaryLinkColor ank-color-secondaryLinkColor ank-ts-200 ank-bgHover-secondaryLinkColor ank-colorHover-secondaryTextColor',
       }
@@ -394,9 +402,10 @@ export class ConfigurationsOrchestratorService {
       type: 'button',
       eventInstructions: 'toggleTheme',
       meta_title: String(AnalyticsEvents.ThemeToggle),
+      valueInstructions: 'set:config.label,themePick,☀️,🌙',
       config: {
         id: 'toggleTheme',
-        label: () => (this.theme.currentTheme() === 'dark' ? '☀️' : '🌙'),
+        label: '',
         classes:
           'ank-alignItems-center ank-and-7s ank-anic-infinite ank-antf-ease ank-bgcl-borderMINbox ank-bgi-linearMINgradientSD90degCOMaltBgColorCOMaltAccentColorCOMaltSecondaryBgColorED ank-bgs-150per ank-border-none ank-borderRadius-1rem ank-display-flex ank-p-0_5rem__1_5rem gradientShiftAnimation',
       }
@@ -406,9 +415,10 @@ export class ConfigurationsOrchestratorService {
       type: 'button',
       eventInstructions: 'toggleLanguage',
       meta_title: String(AnalyticsEvents.LanguageToggle),
+      valueInstructions: 'set:config.label,langPick,EN,ES',
       config: {
         id: 'toggleLanguage',
-        label: () => (this.language.currentLanguage() === 'en' ? 'EN' : 'ES'),
+        label: '',
         classes:
           'btnBaseVALSVAL9N1remVAL9NVL1_5remVL0_5remVL1remVL ank-bg-accentColor ank-color-secondaryTextColor ank-ts-200 ank-bgHover-secondaryAccentColor ank-colorHover-secondaryTextColor ank-border-none',
       }
@@ -418,9 +428,10 @@ export class ConfigurationsOrchestratorService {
       type: 'button',
       eventInstructions: 'toggleTheme',
       meta_title: String(AnalyticsEvents.ThemeToggle),
+      valueInstructions: 'set:config.label,themePick,☀️,🌙',
       config: {
         id: 'toggleThemeMobile',
-        label: () => (this.theme.currentTheme() === 'dark' ? '☀️' : '🌙'),
+        label: '',
         classes:
           'ank-width-36px ank-height-36px ank-display-flex ank-alignItems-center ank-justifyContent-center ank-and-7s ank-anic-infinite ank-antf-ease ank-bgcl-borderMINbox ank-bgi-linearMINgradientSD90degCOMaltBgColorCOMaltAccentColorCOMaltSecondaryBgColorED ank-bgs-150per ank-border-none ank-borderRadius-1rem ank-p-0 gradientShiftAnimation',
       }
@@ -430,9 +441,10 @@ export class ConfigurationsOrchestratorService {
       type: 'button',
       eventInstructions: 'toggleLanguage',
       meta_title: String(AnalyticsEvents.LanguageToggle),
+      valueInstructions: 'set:config.label,langPick,EN,ES',
       config: {
         id: 'toggleLanguageMobile',
-        label: () => (this.language.currentLanguage() === 'en' ? 'EN' : 'ES'),
+        label: '',
         classes:
           'btnBaseVALSVAL9N1remVAL9NVL8pxVL8pxVL0_75remVL ank-bg-accentColor ank-color-secondaryTextColor ank-ts-200 ank-bgHover-secondaryAccentColor ank-colorHover-secondaryTextColor ank-width-36px ank-height-36px ank-border-none',
       }
@@ -443,15 +455,10 @@ export class ConfigurationsOrchestratorService {
       id: 'footerTermsButton',
       type: 'button',
       eventInstructions: 'openFooterTerms',
+      valueInstructions: 'set:config.label,langPick,host.footerTranslations.en.termsLink,host.footerTranslations.es.termsLink; set:config.ariaLabel,langPick,host.footerTranslations.en.termsAriaLabel,host.footerTranslations.es.termsAriaLabel',
       config: {
-        label: () =>
-          this.language.currentLanguage() === 'en'
-            ? this.footerTranslations.en.termsLink
-            : this.footerTranslations.es.termsLink,
-        ariaLabel: () =>
-          this.language.currentLanguage() === 'en'
-            ? this.footerTranslations.en.termsAriaLabel
-            : this.footerTranslations.es.termsAriaLabel,
+        label: '',
+        ariaLabel: '',
         classes:
           'ank-bg-transparent ank-border-0 ank-color-secondaryTextColor ank-fontSize-sm ank-textDecoration-underline ank-cursor-pointer',
       }
@@ -460,15 +467,10 @@ export class ConfigurationsOrchestratorService {
       id: 'footerDataButton',
       type: 'button',
       eventInstructions: 'openFooterData',
+      valueInstructions: 'set:config.label,langPick,host.footerTranslations.en.dataLink,host.footerTranslations.es.dataLink; set:config.ariaLabel,langPick,host.footerTranslations.en.dataAriaLabel,host.footerTranslations.es.dataAriaLabel',
       config: {
-        label: () =>
-          this.language.currentLanguage() === 'en'
-            ? this.footerTranslations.en.dataLink
-            : this.footerTranslations.es.dataLink,
-        ariaLabel: () =>
-          this.language.currentLanguage() === 'en'
-            ? this.footerTranslations.en.dataAriaLabel
-            : this.footerTranslations.es.dataAriaLabel,
+        label: '',
+        ariaLabel: '',
         classes:
           'ank-bg-transparent ank-border-0 ank-color-secondaryTextColor ank-fontSize-sm ank-textDecoration-underline ank-cursor-pointer',
       }
@@ -481,10 +483,11 @@ export class ConfigurationsOrchestratorService {
       id: 'skipToMainLink',
       type: 'link',
       eventInstructions: 'skipToMain:main-content',
+      valueInstructions: 'set:config.text,langPick,Skip to content,Saltar al contenido',
       config: {
         id: 'skipToMainLink',
         href: '#main-content',
-        text: () => (this.language.currentLanguage() === 'en' ? 'Skip to content' : 'Saltar al contenido'),
+        text: '',
         classes:
           'ank-position-absolute ank-s-0 ank-t-0 ank-w-1px ank-h-1px ank-overflow-hidden ank-positionFocus-static ank-wFocus-auto ank-hFocus-auto ank-pFocus-0_5rem__1rem ank-bgFocus-abyss ank-colorFocus-white ank-zIndexFocus-1000',
       },
@@ -507,10 +510,11 @@ export class ConfigurationsOrchestratorService {
       id: 'headerNavHome',
       type: 'link',
       eventInstructions: 'trackNavClick:home,event.eventData;navigationToSection:home',
+      valueInstructions: 'set:config.text,langPick,Home,Inicio',
       config: {
         id: 'headerNavHome',
         href: '#home',
-        text: () => (this.language.currentLanguage() === 'en' ? 'Home' : 'Inicio'),
+        text: '',
         classes:
           'ank-textDecoration-none ank-fontWeight-500 ank-letterSpacing-05px ank-position-relative ank-paddingInline-4px ank-paddingBlock-4px ank-transition-color ank-duration-200 ank-color-accentColor',
       }
@@ -519,10 +523,11 @@ export class ConfigurationsOrchestratorService {
       id: 'headerNavBenefits',
       type: 'link',
       eventInstructions: 'trackNavClick:benefits,event.eventData;navigationToSection:features-section',
+      valueInstructions: 'set:config.text,langPick,Benefits,Beneficios',
       config: {
         id: 'headerNavBenefits',
         href: '#features-section',
-        text: () => (this.language.currentLanguage() === 'en' ? 'Benefits' : 'Beneficios'),
+        text: '',
         classes:
           'ank-textDecoration-none ank-fontWeight-500 ank-letterSpacing-05px ank-position-relative ank-paddingInline-4px ank-paddingBlock-4px ank-transition-color ank-duration-200 ank-color-textColor ank-opacity-80',
       }
@@ -531,10 +536,11 @@ export class ConfigurationsOrchestratorService {
       id: 'headerNavProcess',
       type: 'link',
       eventInstructions: 'trackNavClick:process,event.eventData;navigationToSection:process-section',
+      valueInstructions: 'set:config.text,langPick,Process,Proceso',
       config: {
         id: 'headerNavProcess',
         href: '#process-section',
-        text: () => (this.language.currentLanguage() === 'en' ? 'Process' : 'Proceso'),
+        text: '',
         classes:
           'ank-textDecoration-none ank-fontWeight-500 ank-letterSpacing-05px ank-position-relative ank-paddingInline-4px ank-paddingBlock-4px ank-transition-color ank-duration-200 ank-color-textColor ank-opacity-80',
       }
@@ -543,10 +549,11 @@ export class ConfigurationsOrchestratorService {
       id: 'headerNavServices',
       type: 'link',
       eventInstructions: 'trackNavClick:services,event.eventData;navigationToSection:services-section',
+      valueInstructions: 'set:config.text,langPick,Services,Servicios',
       config: {
         id: 'headerNavServices',
         href: '#services-section',
-        text: () => (this.language.currentLanguage() === 'en' ? 'Services' : 'Servicios'),
+        text: '',
         classes:
           'ank-textDecoration-none ank-fontWeight-500 ank-letterSpacing-05px ank-position-relative ank-paddingInline-4px ank-paddingBlock-4px ank-transition-color ank-duration-200 ank-color-textColor ank-opacity-80',
       }
@@ -555,10 +562,11 @@ export class ConfigurationsOrchestratorService {
       id: 'headerNavContact',
       type: 'link',
       eventInstructions: 'trackNavClick:contact,event.eventData;navigationToSection:contact-section',
+      valueInstructions: 'set:config.text,langPick,Contact,Contacto',
       config: {
         id: 'headerNavContact',
         href: '#contact-section',
-        text: () => (this.language.currentLanguage() === 'en' ? 'Contact' : 'Contacto'),
+        text: '',
         classes:
           'ank-textDecoration-none ank-fontWeight-500 ank-letterSpacing-05px ank-position-relative ank-paddingInline-4px ank-paddingBlock-4px ank-transition-color ank-duration-200 ank-color-textColor ank-opacity-80',
       }
@@ -1853,32 +1861,33 @@ export class ConfigurationsOrchestratorService {
       id: 'headerMobileNav',
       type: 'dropdown',
       eventInstructions: 'trackNavClick:event.eventData.id,event.eventData.value;navigationToSection:event.eventData.value',
+      valueInstructions: 'set:config.items.0.label,langPick,Home,Inicio; set:config.items.1.label,langPick,Benefits,Beneficios; set:config.items.2.label,langPick,Process,Proceso; set:config.items.3.label,langPick,Services,Servicios; set:config.items.4.label,langPick,Contact,Contacto',
       config: {
         items: [
           {
             id: 'home',
             value: 'home',
-            label: () => (this.language.currentLanguage() === 'en' ? 'Home' : 'Inicio'),
+            label: '',
           },
           {
             id: 'benefits',
             value: 'features-section',
-            label: () => (this.language.currentLanguage() === 'en' ? 'Benefits' : 'Beneficios'),
+            label: '',
           },
           {
             id: 'process',
             value: 'process-section',
-            label: () => (this.language.currentLanguage() === 'en' ? 'Process' : 'Proceso'),
+            label: '',
           },
           {
             id: 'services',
             value: 'services-section',
-            label: () => (this.language.currentLanguage() === 'en' ? 'Services' : 'Servicios'),
+            label: '',
           },
           {
             id: 'contact',
             value: 'contact-section',
-            label: () => (this.language.currentLanguage() === 'en' ? 'Contact' : 'Contacto'),
+            label: '',
           },
         ],
         dropdownConfig: {
@@ -1903,11 +1912,12 @@ export class ConfigurationsOrchestratorService {
       id: `featuresCard${ index + 1 }`,
       type: 'feature-card',
       condition: () => !!(this.globalI18n.getOr('features', []) as any[])[index],
+      valueInstructions: `set:config.icon,i18nGetIndex,features,${ index },icon; set:config.title,i18nGetIndex,features,${ index },title; set:config.description,i18nGetIndex,features,${ index },description; set:config.benefits,i18nGetIndex,features,${ index },benefits`,
       config: {
-        icon: () => (this.globalI18n.getOr('features', []) as any[])[index]?.icon ?? '',
-        title: () => (this.globalI18n.getOr('features', []) as any[])[index]?.title ?? '',
-        description: () => (this.globalI18n.getOr('features', []) as any[])[index]?.description ?? '',
-        benefits: () => (this.globalI18n.getOr('features', []) as any[])[index]?.benefits ?? [],
+        icon: '',
+        title: '',
+        description: '',
+        benefits: [],
         classes:
           'ank-bg-secondaryBgColor ank-borderRadius-1rem ank-p-1_5rem cardHover ank-textAlign-center ank-border-1px ank-borderColor-border ank-h-calcSD100per__MIN__3remED',
       },
@@ -1918,12 +1928,13 @@ export class ConfigurationsOrchestratorService {
       id: `servicesCard${ index + 1 }`,
       type: 'feature-card',
       condition: () => !!(this.globalI18n.getOr('services', []) as any[])[index],
+      valueInstructions: `set:config.icon,i18nGetIndex,services,${ index },icon; set:config.title,i18nGetIndex,services,${ index },title; set:config.description,i18nGetIndex,services,${ index },description; set:config.benefits,i18nGetIndex,services,${ index },features; set:config.buttonLabel,i18nGetIndex,services,${ index },buttonLabel`,
       config: {
-        icon: () => (this.globalI18n.getOr('services', []) as any[])[index]?.icon ?? '',
-        title: () => (this.globalI18n.getOr('services', []) as any[])[index]?.title ?? '',
-        description: () => (this.globalI18n.getOr('services', []) as any[])[index]?.description ?? '',
-        benefits: () => (this.globalI18n.getOr('services', []) as any[])[index]?.features ?? [],
-        buttonLabel: () => (this.globalI18n.getOr('services', []) as any[])[index]?.buttonLabel ?? '',
+        icon: '',
+        title: '',
+        description: '',
+        benefits: [],
+        buttonLabel: '',
         onCta: (title: string) =>
           this.handleComponentEvent({
             componentId: `servicesCard${ index + 1 }`,
@@ -1942,12 +1953,13 @@ export class ConfigurationsOrchestratorService {
       id: `testimonialsCard${ index + 1 }`,
       type: 'testimonial-card',
       condition: () => !!(this.globalI18n.getOr('testimonials', []) as any[])[index],
+      valueInstructions: `set:config.name,i18nGetIndex,testimonials,${ index },name; set:config.role,i18nGetIndex,testimonials,${ index },role; set:config.company,i18nGetIndex,testimonials,${ index },company; set:config.content,i18nGetIndex,testimonials,${ index },content; set:config.rating,i18nGetIndex,testimonials,${ index },rating,5`,
       config: {
-        name: () => (this.globalI18n.getOr('testimonials', []) as any[])[index]?.name ?? '',
-        role: () => (this.globalI18n.getOr('testimonials', []) as any[])[index]?.role ?? '',
-        company: () => (this.globalI18n.getOr('testimonials', []) as any[])[index]?.company ?? '',
-        content: () => (this.globalI18n.getOr('testimonials', []) as any[])[index]?.content ?? '',
-        rating: () => (this.globalI18n.getOr('testimonials', []) as any[])[index]?.rating ?? 5,
+        name: '',
+        role: '',
+        company: '',
+        content: '',
+        rating: 5,
         avatar: (this.globalI18n.getOr('testimonials', []) as any[])[index]?.avatar,
       },
     })) as TGenericComponent[],
@@ -2152,16 +2164,18 @@ export class ConfigurationsOrchestratorService {
     {
       id: 'modalConsentHeaderTitle',
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,consent.title',
       config: {
         tag: 'h2',
-        text: () => this.globalI18n.t('consent.title'),
+        text: '',
         classes: 'ank-m-0 ank-fontSize-1_125rem ank-fontWeight-700 ank-color-textColor',
       },
     },
     {
       id: 'modalConsentIntro',
       type: 'text',
-      config: { tag: 'p', text: () => this.globalI18n.t('consent.intro'), classes: 'ank-m-0 ank-color-secondaryTextColor' },
+      valueInstructions: 'set:config.text,i18n,consent.intro',
+      config: { tag: 'p', text: '', classes: 'ank-m-0 ank-color-secondaryTextColor' },
     },
     {
       id: 'modalConsentBullets',
@@ -2180,7 +2194,8 @@ export class ConfigurationsOrchestratorService {
     {
       id: 'modalConsentBullet0Text',
       type: 'text',
-      config: { text: () => this.globalI18n.t('consent.bullets.0') },
+      valueInstructions: 'set:config.text,i18n,consent.bullets.0',
+      config: { text: '' },
     },
     {
       id: 'modalConsentBullet1',
@@ -2190,7 +2205,8 @@ export class ConfigurationsOrchestratorService {
     {
       id: 'modalConsentBullet1Text',
       type: 'text',
-      config: { text: () => this.globalI18n.t('consent.bullets.1') },
+      valueInstructions: 'set:config.text,i18n,consent.bullets.1',
+      config: { text: '' },
     },
     {
       id: 'modalConsentBullet2',
@@ -2200,7 +2216,8 @@ export class ConfigurationsOrchestratorService {
     {
       id: 'modalConsentBullet2Text',
       type: 'text',
-      config: { text: () => this.globalI18n.t('consent.bullets.2') },
+      valueInstructions: 'set:config.text,i18n,consent.bullets.2',
+      config: { text: '' },
     },
     {
       id: 'modalConsentActions',
@@ -2216,8 +2233,9 @@ export class ConfigurationsOrchestratorService {
       id: 'modalConsentDeclineBtn',
       type: 'button',
       eventInstructions: 'declineConsent',
+      valueInstructions: 'set:config.label,i18n,consent.actions.decline',
       config: {
-        label: () => this.globalI18n.t('consent.actions.decline'),
+        label: '',
         classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL',
       },
     },
@@ -2225,8 +2243,9 @@ export class ConfigurationsOrchestratorService {
       id: 'modalConsentLaterBtn',
       type: 'button',
       eventInstructions: 'remindLater:24',
+      valueInstructions: 'set:config.label,i18n,consent.actions.later',
       config: {
-        label: () => this.globalI18n.t('consent.actions.later'),
+        label: '',
         classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLwarningVLtextColorVL',
       },
     },
@@ -2234,8 +2253,9 @@ export class ConfigurationsOrchestratorService {
       id: 'modalConsentAllowBtn',
       type: 'button',
       eventInstructions: 'acceptConsent',
+      valueInstructions: 'set:config.label,i18n,consent.actions.allow',
       config: {
-        label: () => this.globalI18n.t('consent.actions.allow'),
+        label: '',
         classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLprimaryVLtextColorVL',
       },
     },
@@ -2278,16 +2298,18 @@ export class ConfigurationsOrchestratorService {
     {
       id: 'modalDemoHeaderTitle',
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,demo.modal.header',
       config: {
         tag: 'h2',
-        text: () => this.globalI18n.t('demo.modal.header'),
+        text: '',
         classes: 'ank-m-0 ank-fontSize-1_25rem ank-fontWeight-700',
       },
     },
     {
       id: 'modalDemoDesc',
       type: 'text',
-      config: { tag: 'p', text: () => this.globalI18n.t('demo.modal.desc'), classes: 'ank-m-0 ank-color-secondaryTextColor' },
+      valueInstructions: 'set:config.text,i18n,demo.modal.desc',
+      config: { tag: 'p', text: '', classes: 'ank-m-0 ank-color-secondaryTextColor' },
     },
     {
       id: 'modalDemoFeatures',
@@ -2306,7 +2328,8 @@ export class ConfigurationsOrchestratorService {
     {
       id: 'modalDemoFeature0Text',
       type: 'text',
-      config: { text: () => this.globalI18n.t('demo.modal.features.0') },
+      valueInstructions: 'set:config.text,i18n,demo.modal.features.0',
+      config: { text: '' },
     },
     {
       id: 'modalDemoFeature1',
@@ -2316,7 +2339,8 @@ export class ConfigurationsOrchestratorService {
     {
       id: 'modalDemoFeature1Text',
       type: 'text',
-      config: { text: () => this.globalI18n.t('demo.modal.features.1') },
+      valueInstructions: 'set:config.text,i18n,demo.modal.features.1',
+      config: { text: '' },
     },
     {
       id: 'modalDemoFeature2',
@@ -2326,7 +2350,8 @@ export class ConfigurationsOrchestratorService {
     {
       id: 'modalDemoFeature2Text',
       type: 'text',
-      config: { text: () => this.globalI18n.t('demo.modal.features.2') },
+      valueInstructions: 'set:config.text,i18n,demo.modal.features.2',
+      config: { text: '' },
     },
     {
       id: 'modalDemoActions',
@@ -2341,8 +2366,9 @@ export class ConfigurationsOrchestratorService {
       id: 'modalDemoCloseBtn',
       type: 'button',
       eventInstructions: 'closeModal',
+      valueInstructions: 'set:config.label,i18n,demo.modal.close',
       config: {
-        label: () => this.globalI18n.t('demo.modal.close'),
+        label: '',
         classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL',
       },
     },
@@ -2386,18 +2412,20 @@ export class ConfigurationsOrchestratorService {
     {
       id: 'modalTermsHeaderTitle',
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,footer.legal.terms.title',
       config: {
         tag: 'h2',
-        text: () => this.globalI18n.t('footer.legal.terms.title'),
+        text: '',
         classes: 'ank-m-0 ank-fontSize-1_125rem ank-fontWeight-700 ank-color-textColor',
       },
     },
     {
       id: 'modalTermsIntro',
       type: 'text',
+      valueInstructions: 'set:config.text,i18nParams,footer.legal.terms.intro,org,env.app.name',
       config: {
         tag: 'p',
-        text: () => this.globalI18n.t('footer.legal.terms.intro', { org: environment.app.name }),
+        text: '',
         classes: 'ank-m-0 ank-color-secondaryTextColor',
       },
     },
@@ -2419,12 +2447,14 @@ export class ConfigurationsOrchestratorService {
     {
       id: 'modalTermsSection0Title',
       type: 'text',
-      config: { tag: 'strong', text: () => this.globalI18n.t('footer.legal.terms.sections.0.title') },
+      valueInstructions: 'set:config.text,i18n,footer.legal.terms.sections.0.title',
+      config: { tag: 'strong', text: '' },
     },
     {
       id: 'modalTermsSection0Text',
       type: 'text',
-      config: { tag: 'p', text: () => this.globalI18n.t('footer.legal.terms.sections.0.text'), classes: 'ank-mt-0_25rem' },
+      valueInstructions: 'set:config.text,i18n,footer.legal.terms.sections.0.text',
+      config: { tag: 'p', text: '', classes: 'ank-mt-0_25rem' },
     },
     {
       id: 'modalTermsSection1',
@@ -2434,12 +2464,14 @@ export class ConfigurationsOrchestratorService {
     {
       id: 'modalTermsSection1Title',
       type: 'text',
-      config: { tag: 'strong', text: () => this.globalI18n.t('footer.legal.terms.sections.1.title') },
+      valueInstructions: 'set:config.text,i18n,footer.legal.terms.sections.1.title',
+      config: { tag: 'strong', text: '' },
     },
     {
       id: 'modalTermsSection1Text',
       type: 'text',
-      config: { tag: 'p', text: () => this.globalI18n.t('footer.legal.terms.sections.1.text'), classes: 'ank-mt-0_25rem' },
+      valueInstructions: 'set:config.text,i18n,footer.legal.terms.sections.1.text',
+      config: { tag: 'p', text: '', classes: 'ank-mt-0_25rem' },
     },
     {
       id: 'modalTermsSection2',
@@ -2449,12 +2481,14 @@ export class ConfigurationsOrchestratorService {
     {
       id: 'modalTermsSection2Title',
       type: 'text',
-      config: { tag: 'strong', text: () => this.globalI18n.t('footer.legal.terms.sections.2.title') },
+      valueInstructions: 'set:config.text,i18n,footer.legal.terms.sections.2.title',
+      config: { tag: 'strong', text: '' },
     },
     {
       id: 'modalTermsSection2Text',
       type: 'text',
-      config: { tag: 'p', text: () => this.globalI18n.t('footer.legal.terms.sections.2.text'), classes: 'ank-mt-0_25rem' },
+      valueInstructions: 'set:config.text,i18n,footer.legal.terms.sections.2.text',
+      config: { tag: 'p', text: '', classes: 'ank-mt-0_25rem' },
     },
     {
       id: 'modalTermsSection3',
@@ -2464,12 +2498,14 @@ export class ConfigurationsOrchestratorService {
     {
       id: 'modalTermsSection3Title',
       type: 'text',
-      config: { tag: 'strong', text: () => this.globalI18n.t('footer.legal.terms.sections.3.title') },
+      valueInstructions: 'set:config.text,i18n,footer.legal.terms.sections.3.title',
+      config: { tag: 'strong', text: '' },
     },
     {
       id: 'modalTermsSection3Text',
       type: 'text',
-      config: { tag: 'p', text: () => this.globalI18n.t('footer.legal.terms.sections.3.text'), classes: 'ank-mt-0_25rem' },
+      valueInstructions: 'set:config.text,i18n,footer.legal.terms.sections.3.text',
+      config: { tag: 'p', text: '', classes: 'ank-mt-0_25rem' },
     },
     {
       id: 'modalTermsActions',
@@ -2484,8 +2520,9 @@ export class ConfigurationsOrchestratorService {
       id: 'modalTermsCloseBtn',
       type: 'button',
       eventInstructions: 'closeModal',
+      valueInstructions: 'set:config.label,i18n,footer.actions.close',
       config: {
-        label: () => this.globalI18n.t('footer.actions.close'),
+        label: '',
         classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL',
       },
     },
@@ -2529,16 +2566,18 @@ export class ConfigurationsOrchestratorService {
     {
       id: 'modalDataHeaderTitle',
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,footer.legal.data.title',
       config: {
         tag: 'h2',
-        text: () => this.globalI18n.t('footer.legal.data.title'),
+        text: '',
         classes: 'ank-m-0 ank-fontSize-1_125rem ank-fontWeight-700 ank-color-textColor',
       },
     },
     {
       id: 'modalDataIntro',
       type: 'text',
-      config: { tag: 'p', text: () => this.globalI18n.t('footer.legal.data.intro'), classes: 'ank-m-0 ank-color-secondaryTextColor' },
+      valueInstructions: 'set:config.text,i18n,footer.legal.data.intro',
+      config: { tag: 'p', text: '', classes: 'ank-m-0 ank-color-secondaryTextColor' },
     },
     {
       id: 'modalDataPoints',
@@ -2555,29 +2594,30 @@ export class ConfigurationsOrchestratorService {
       type: 'container',
       config: { tag: 'li', components: ['modalDataPoint0Text'] },
     },
-    { id: 'modalDataPoint0Text', type: 'text', config: { text: () => this.globalI18n.t('footer.legal.data.points.0') } },
+    { id: 'modalDataPoint0Text', type: 'text', valueInstructions: 'set:config.text,i18n,footer.legal.data.points.0', config: { text: '' } },
     {
       id: 'modalDataPoint1',
       type: 'container',
       config: { tag: 'li', components: ['modalDataPoint1Text'] },
     },
-    { id: 'modalDataPoint1Text', type: 'text', config: { text: () => this.globalI18n.t('footer.legal.data.points.1') } },
+    { id: 'modalDataPoint1Text', type: 'text', valueInstructions: 'set:config.text,i18n,footer.legal.data.points.1', config: { text: '' } },
     {
       id: 'modalDataPoint2',
       type: 'container',
       config: { tag: 'li', components: ['modalDataPoint2Text'] },
     },
-    { id: 'modalDataPoint2Text', type: 'text', config: { text: () => this.globalI18n.t('footer.legal.data.points.2') } },
+    { id: 'modalDataPoint2Text', type: 'text', valueInstructions: 'set:config.text,i18n,footer.legal.data.points.2', config: { text: '' } },
     {
       id: 'modalDataPoint3',
       type: 'container',
       config: { tag: 'li', components: ['modalDataPoint3Text'] },
     },
-    { id: 'modalDataPoint3Text', type: 'text', config: { text: () => this.globalI18n.t('footer.legal.data.points.3') } },
+    { id: 'modalDataPoint3Text', type: 'text', valueInstructions: 'set:config.text,i18n,footer.legal.data.points.3', config: { text: '' } },
     {
       id: 'modalDataConsentNote',
       type: 'text',
-      config: { tag: 'p', text: () => this.globalI18n.t('footer.legal.data.consentNote'), classes: 'ank-m-0 ank-color-secondaryTextColor' },
+      valueInstructions: 'set:config.text,i18n,footer.legal.data.consentNote',
+      config: { tag: 'p', text: '', classes: 'ank-m-0 ank-color-secondaryTextColor' },
     },
     {
       id: 'modalDataActions',
@@ -2592,8 +2632,9 @@ export class ConfigurationsOrchestratorService {
       id: 'modalDataRemoveConsentBtn',
       type: 'button',
       eventInstructions: 'removeConsentRequest;closeModal',
+      valueInstructions: 'set:config.label,i18n,consent.actions.remove',
       config: {
-        label: () => this.globalI18n.t('consent.actions.remove'),
+        label: '',
         classes:
           'btnBaseVALSVL1_25remVL0_75remVL ank-bg-transparent ank-border-2px__solid__danger ank-color-danger ank-ts-200 ank-bgHover-danger ank-colorHover-textColor',
       },
@@ -2602,8 +2643,9 @@ export class ConfigurationsOrchestratorService {
       id: 'modalDataCloseBtn',
       type: 'button',
       eventInstructions: 'closeModal',
+      valueInstructions: 'set:config.label,i18n,footer.actions.close',
       config: {
-        label: () => this.globalI18n.t('footer.actions.close'),
+        label: '',
         classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL',
       },
     },
@@ -2618,9 +2660,10 @@ export class ConfigurationsOrchestratorService {
     {
       id: 'mainTitle',
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,hero.title',
       config: {
         tag: 'h1',
-        text: () => this.globalI18n.t('hero.title'),
+        text: '',
         classes:
           'ank-fs-3rem ank-fs-lg-5rem ank-fontWeight-bold ank-lh-3_3rem ank-lh-lg-5_5rem ank-mb-1_25rem textGradientVALSVAL2NsecondaryAccentColorVAL2NVAL3NsecondaryTitleColorVAL3NVL135degVL'
       }
@@ -2630,9 +2673,10 @@ export class ConfigurationsOrchestratorService {
       id: 'subtitle',
       type: 'text',
       condition: () => !!this.globalI18n.t('hero.subtitle'),
+      valueInstructions: 'set:config.text,i18n,hero.subtitle',
       config: {
         tag: 'p',
-        text: () => this.globalI18n.t('hero.subtitle'),
+        text: '',
         classes: 'ank-fs-1_125rem ank-color-secondaryTextColor ank-mb-1_5rem ank-lineHeight-relaxed'
       }
     },
@@ -2640,9 +2684,10 @@ export class ConfigurationsOrchestratorService {
     {
       id: 'description',
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,hero.description',
       config: {
         tag: 'p',
-        text: () => this.globalI18n.t('hero.description'),
+        text: '',
         classes: 'ank-fs-1_125rem ank-color-secondaryTextColor ank-mb-1_5rem ank-lineHeight-relaxed'
       }
     },
@@ -2651,9 +2696,10 @@ export class ConfigurationsOrchestratorService {
       id: 'badgesLabel',
       condition: () => !!this.globalI18n.t('hero.badgesLabel'),
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,hero.badgesLabel',
       config: {
         tag: 'p',
-        text: () => this.globalI18n.t('hero.badgesLabel'),
+        text: '',
         classes: 'ank-fs-1rem ank-color-textColor ank-fontWeight-medium'
       }
     },
@@ -2662,9 +2708,10 @@ export class ConfigurationsOrchestratorService {
       id: `badgeText${ index + 1 }`,
       type: 'text',
       condition: () => !!(this.globalI18n.getOr('hero.badges', []) as any[])[index]?.text,
+      valueInstructions: `set:config.text,i18nGetIndex,hero.badges,${ index },text`,
       config: {
         tag: 'span',
-        text: () => (this.globalI18n.getOr('hero.badges', []) as any[])[index]?.text ?? '',
+        text: '',
         classes: 'ank-fs-1rem ank-color-textColor ank-fontWeight-medium'
       }
     })) as TGenericComponent[],
@@ -2672,18 +2719,20 @@ export class ConfigurationsOrchestratorService {
     {
       id: "heroBrowserMockupHeaderFakeUrlBarText",
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,hero.mockup.url',
       config: {
         tag: '',
-        text: () => this.globalI18n.t('hero.mockup.url'),
+        text: '',
       }
     },
     // Hero Landing Mockup Logo Text
     {
       id: "heroLandingMockupLogoText",
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,hero.mockup.logo',
       config: {
         tag: 'span',
-        text: () => this.globalI18n.t('hero.mockup.logo'),
+        text: '',
         classes: 'ank-color-textColor ank-fs-1rem ank-fontWeight-bold'
       }
     },
@@ -2691,9 +2740,10 @@ export class ConfigurationsOrchestratorService {
     {
       id: "heroLandingMockupNavCtaText",
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,hero.mockup.contact',
       config: {
         tag: 'span',
-        text: () => this.globalI18n.t('hero.mockup.contact'),
+        text: '',
         classes: 'ank-color-textColor ank-fs-1rem ank-fontWeight-bold'
       }
     },
@@ -2701,9 +2751,10 @@ export class ConfigurationsOrchestratorService {
     {
       id: "heroLandingMockupContentCTA1Text",
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,hero.mockup.buyButton',
       config: {
         tag: 'span',
-        text: () => this.globalI18n.t('hero.mockup.buyButton'),
+        text: '',
         classes: 'ank-color-textColor ank-fs-1rem ank-fontWeight-bold'
       }
     },
@@ -2711,9 +2762,10 @@ export class ConfigurationsOrchestratorService {
     {
       id: "heroLandingMockupContentCTA2Text",
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,hero.mockup.demoButton',
       config: {
         tag: 'span',
-        text: () => this.globalI18n.t('hero.mockup.demoButton'),
+        text: '',
         classes: 'ank-color-secondaryAccentColor ank-fs-1rem ank-fontWeight-bold'
       }
     },
@@ -2721,9 +2773,10 @@ export class ConfigurationsOrchestratorService {
     {
       id: "heroLandingMockupFooterLinkText",
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,hero.mockup.ctaButton',
       config: {
         tag: 'span',
-        text: () => this.globalI18n.t('hero.mockup.ctaButton'),
+        text: '',
         classes: 'ank-color-textColor ank-fs-1rem ank-fontWeight-bold ank-px-1rem'
       },
     },
@@ -2731,9 +2784,10 @@ export class ConfigurationsOrchestratorService {
     {
       id: "heroFloatingMetricsLabelText",
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,hero.floatingMetrics.speed',
       config: {
         tag: '',
-        text: () => this.globalI18n.t('hero.floatingMetrics.speed'),
+        text: '',
       }
     },
     // Hero Floating Metrics Value Text
@@ -2749,9 +2803,10 @@ export class ConfigurationsOrchestratorService {
     {
       id: "heroConversionLabelText",
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,hero.floatingMetrics.conversion',
       config: {
         tag: '',
-        text: () => this.globalI18n.t('hero.floatingMetrics.conversion'),
+        text: '',
       }
     },
     // Hero Conversion Value Text
@@ -2767,31 +2822,35 @@ export class ConfigurationsOrchestratorService {
     {
       id: "heroVerifiedLabel",
       type: 'text',
-      config: { tag: '', text: () => this.globalI18n.t('hero.floatingMetrics.seoOptimized'), }
+      valueInstructions: 'set:config.text,i18n,hero.floatingMetrics.seoOptimized',
+      config: { tag: '', text: '' }
     },
     // Hero Mobile Label
     {
       id: "heroMobileLabel",
       type: 'text',
-      config: { tag: '', text: () => this.globalI18n.t('hero.floatingMetrics.mobileResponsive'), }
+      valueInstructions: 'set:config.text,i18n,hero.floatingMetrics.mobileResponsive',
+      config: { tag: '', text: '' }
     },
 
     /* Features Section */
     {
       id: 'featuresSectionTitle',
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,featuresSection.title',
       config: {
         tag: 'h2',
-        text: () => this.globalI18n.t('featuresSection.title'),
+        text: '',
         classes: 'ank-fs-2rem ank-fontWeight-bold ank-mb-1rem ank-color-titleColor',
       }
     },
     {
       id: 'featuresSectionSubtitle',
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,featuresSection.subtitle',
       config: {
         tag: 'p',
-        text: () => this.globalI18n.t('featuresSection.subtitle'),
+        text: '',
         classes: 'ank-fs-1_25rem ank-color-textColor ank-maxWidth-37_5rem ank-mx-auto',
       }
     },
@@ -2800,17 +2859,19 @@ export class ConfigurationsOrchestratorService {
     {
       id: 'servicesSectionTitle',
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,ui.sections.services.title',
       config: {
         tag: 'h2',
-        text: () => this.globalI18n.t('ui.sections.services.title'),
+        text: '',
       }
     },
     {
       id: 'servicesSectionSubtitle',
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,ui.sections.services.subtitle',
       config: {
         tag: 'p',
-        text: () => this.globalI18n.t('ui.sections.services.subtitle'),
+        text: '',
       }
     },
 
@@ -2818,25 +2879,28 @@ export class ConfigurationsOrchestratorService {
     {
       id: 'faqSectionTitle',
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,ui.sections.faq.title',
       config: {
         tag: 'h2',
-        text: () => this.globalI18n.t('ui.sections.faq.title'),
+        text: '',
       }
     },
     {
       id: 'faqSectionSubtitle',
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,ui.sections.faq.subtitle',
       config: {
         tag: 'p',
-        text: () => this.globalI18n.t('ui.sections.faq.subtitle'),
+        text: '',
       }
     },
     {
       id: 'faqFooterQuestion',
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,faqSection.footerQuestion',
       config: {
         tag: 'p',
-        text: () => this.globalI18n.t('faqSection.footerQuestion'),
+        text: '',
       }
     },
 
@@ -2844,18 +2908,20 @@ export class ConfigurationsOrchestratorService {
     {
       id: 'finalCtaTitle',
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,finalCtaSection.title',
       config: {
         tag: 'h2',
-        text: () => this.globalI18n.t('finalCtaSection.title'),
+        text: '',
         classes: 'ank-fs-2rem ank-fontWeight-bold ank-mb-16px ank-color-titleColor',
       }
     },
     {
       id: 'finalCtaSubtitle',
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,finalCtaSection.subtitle',
       config: {
         tag: 'p',
-        text: () => this.globalI18n.t('finalCtaSection.subtitle'),
+        text: '',
         classes: 'ank-fs-1_5rem ank-color-textColor ank-mb-32px ank-maxWidth-600px ank-mx-auto',
       }
     },
@@ -2864,13 +2930,11 @@ export class ConfigurationsOrchestratorService {
     {
       id: 'finalCtaTrustLine1',
       type: 'text',
+      valueInstructions: 'set:config.text,langPick,⭐ Measurement from day 1 • 🔒 SSL and hosting included • ⚡ Fast delivery,⭐ Medición desde el día 1 • 🔒 SSL y hosting incluido • ⚡ Entrega rápida',
       config: {
         tag: 'p',
         classes: 'ank-fs-1rem ank-color-textColor ank-m-0',
-        text: () =>
-          this.language.currentLanguage() === 'en'
-            ? '⭐ Measurement from day 1 • 🔒 SSL and hosting included • ⚡ Fast delivery'
-            : '⭐ Medición desde el día 1 • 🔒 SSL y hosting incluido • ⚡ Entrega rápida',
+        text: '',
       }
     },
 
@@ -2878,79 +2942,82 @@ export class ConfigurationsOrchestratorService {
     {
       id: 'finalCtaTrustSpanSupport',
       type: 'text',
+      valueInstructions: 'set:config.text,langPick,💬 Continuous support,💬 Soporte continuo',
       config: {
         tag: 'span',
-        text: () => (this.language.currentLanguage() === 'en' ? '💬 Continuous support' : '💬 Soporte continuo'),
+        text: '',
       }
     },
     {
       id: 'finalCtaTrustSpanReports',
       type: 'text',
+      valueInstructions: 'set:config.text,langPick,📊 Optional simple reports,📊 Reportes simples opcionales',
       config: {
         tag: 'span',
-        text: () =>
-          this.language.currentLanguage() === 'en'
-            ? '📊 Optional simple reports'
-            : '📊 Reportes simples opcionales',
+        text: '',
       }
     },
     {
       id: 'finalCtaTrustSpanSeo',
       type: 'text',
+      valueInstructions: 'set:config.text,langPick,🌐 Search engine optimization,🌐 Optimización para buscadores',
       config: {
         tag: 'span',
-        text: () =>
-          this.language.currentLanguage() === 'en'
-            ? '🌐 Search engine optimization'
-            : '🌐 Optimización para buscadores',
+        text: '',
       }
     },
     {
       id: 'finalCtaTrustTextMeasurement',
       type: 'text',
+      valueInstructions: 'set:config.text,langPick,Measurement from day 1,Medición desde el día 1',
       config: {
         tag: 'span',
-        text: () => (this.language.currentLanguage() === 'en' ? 'Measurement from day 1' : 'Medición desde el día 1'),
+        text: '',
       }
     },
     {
       id: 'finalCtaTrustTextSsl',
       type: 'text',
+      valueInstructions: 'set:config.text,langPick,SSL and hosting included,SSL y hosting incluido',
       config: {
         tag: 'span',
-        text: () => (this.language.currentLanguage() === 'en' ? 'SSL and hosting included' : 'SSL y hosting incluido'),
+        text: '',
       }
     },
     {
       id: 'finalCtaTrustTextDelivery',
       type: 'text',
+      valueInstructions: 'set:config.text,langPick,Fast delivery,Entrega rápida',
       config: {
         tag: 'span',
-        text: () => (this.language.currentLanguage() === 'en' ? 'Fast delivery' : 'Entrega rápida'),
+        text: '',
       }
     },
     {
       id: 'finalCtaTrustTextSupport',
       type: 'text',
+      valueInstructions: 'set:config.text,langPick,Continuous support,Soporte continuo',
       config: {
         tag: 'span',
-        text: () => (this.language.currentLanguage() === 'en' ? 'Continuous support' : 'Soporte continuo'),
+        text: '',
       }
     },
     {
       id: 'finalCtaTrustTextReports',
       type: 'text',
+      valueInstructions: 'set:config.text,langPick,Optional simple reports,Reportes simples opcionales',
       config: {
         tag: 'span',
-        text: () => (this.language.currentLanguage() === 'en' ? 'Optional simple reports' : 'Reportes simples opcionales'),
+        text: '',
       }
     },
     {
       id: 'finalCtaTrustTextSeo',
       type: 'text',
+      valueInstructions: 'set:config.text,langPick,Search engine optimization,Optimización para buscadores',
       config: {
         tag: 'span',
-        text: () => (this.language.currentLanguage() === 'en' ? 'Search engine optimization' : 'Optimización para buscadores'),
+        text: '',
       }
     },
 
@@ -2958,17 +3025,19 @@ export class ConfigurationsOrchestratorService {
     {
       id: 'testimonialsSectionTitle',
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,ui.sections.testimonials.title',
       config: {
         tag: 'h2',
-        text: () => this.globalI18n.t('ui.sections.testimonials.title'),
+        text: '',
       }
     },
     {
       id: 'testimonialsSectionSubtitle',
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,ui.sections.testimonials.subtitle',
       config: {
         tag: 'p',
-        text: () => this.globalI18n.t('ui.sections.testimonials.subtitle'),
+        text: '',
       }
     },
 
@@ -2976,54 +3045,60 @@ export class ConfigurationsOrchestratorService {
     {
       id: 'statsStripTitle',
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,statsStrip.title',
       config: {
         tag: 'h2',
-        text: () => this.globalI18n.t('statsStrip.title'),
+        text: '',
         classes: 'ank-fs-2rem ank-fontWeight-bold ank-mb-16px ank-color-titleColor',
       }
     },
     {
       id: 'statsStripSubtitle',
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,statsStrip.subtitle',
       config: {
         tag: 'p',
-        text: () => this.globalI18n.t('statsStrip.subtitle'),
+        text: '',
         classes: 'ank-fs-1_5rem ank-color-textColor ank-mb-16px',
       }
     },
     {
       id: 'statsStripDescription',
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,statsStrip.description',
       config: {
         tag: 'p',
-        text: () => this.globalI18n.t('statsStrip.description'),
+        text: '',
         classes: 'ank-fs-1rem ank-color-textColor ank-maxWidth-700px ank-mx-auto',
       }
     },
     {
       id: 'statsStripVisitsLabel',
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,statsStrip.visitsLabel',
       config: {
         tag: 'p',
-        text: () => this.globalI18n.t('statsStrip.visitsLabel'),
+        text: '',
         classes: 'ank-fs-1rem ank-opacity-90',
       }
     },
     {
       id: 'statsStripCtaLabel',
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,statsStrip.ctaInteractionsLabel',
       config: {
         tag: 'p',
-        text: () => this.globalI18n.t('statsStrip.ctaInteractionsLabel'),
+        text: '',
         classes: 'ank-fs-1rem ank-opacity-90',
       }
     },
     {
       id: 'statsStripAvgTimeLabel',
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,statsStrip.averageTimeLabel',
       config: {
         tag: 'p',
-        text: () => this.globalI18n.t('statsStrip.averageTimeLabel'),
+        text: '',
         classes: 'ank-fs-1rem ank-opacity-90',
       }
     },
@@ -3033,9 +3108,10 @@ export class ConfigurationsOrchestratorService {
     {
       id: "conversionNoteHeaderTitle",
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,conversionNote.title',
       config: {
         tag: 'h3',
-        text: () => this.globalI18n.t('conversionNote.title'),
+        text: '',
         classes: 'ank-fs-1_5rem ank-fontWeight-bold ank-m-0 ank-color-titleColor'
       }
     },
@@ -3043,9 +3119,10 @@ export class ConfigurationsOrchestratorService {
     {
       id: "conversionNoteDescriptionText",
       type: 'text',
+      valueInstructions: 'set:config.html,i18n,conversionNote.conversionDescription',
       config: {
         tag: 'p',
-        html: () => this.globalI18n.t('conversionNote.conversionDescription'),
+        html: '',
         classes: 'ank-fs-1_25rem ank-lineHeight-relaxed ank-m-0 ank-color-bgColor'
       }
     },
@@ -3053,9 +3130,10 @@ export class ConfigurationsOrchestratorService {
     {
       id: "conversionNoteHint1Label",
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,conversionNote.investmentLabel',
       config: {
         tag: 'p',
-        text: () => this.globalI18n.t('conversionNote.investmentLabel'),
+        text: '',
         classes: 'ank-fs-1rem ank-opacity-90'
       }
     },
@@ -3063,9 +3141,10 @@ export class ConfigurationsOrchestratorService {
     {
       id: "conversionNoteHint1Value",
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,conversionNote.investmentValue',
       config: {
         tag: 'p',
-        text: () => this.globalI18n.t('conversionNote.investmentValue'),
+        text: '',
         classes: 'ank-fs-1_25rem ank-fontWeight-bold'
       }
     },
@@ -3073,9 +3152,10 @@ export class ConfigurationsOrchestratorService {
     {
       id: "conversionNoteHint3Label",
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,conversionNote.totalReturnLabel',
       config: {
         tag: 'p',
-        text: () => this.globalI18n.t('conversionNote.totalReturnLabel'),
+        text: '',
         classes: 'ank-fs-1rem ank-opacity-90'
       }
     },
@@ -3083,9 +3163,10 @@ export class ConfigurationsOrchestratorService {
     {
       id: "conversionNoteHint3Value",
       type: 'text',
+      valueInstructions: 'set:config.text,i18n,conversionNote.totalReturnValue',
       config: {
         tag: 'p',
-        text: () => this.globalI18n.t('conversionNote.totalReturnValue'),
+        text: '',
         classes: 'ank-fs-1_25rem ank-fontWeight-bold'
       }
     },
@@ -3094,12 +3175,10 @@ export class ConfigurationsOrchestratorService {
     {
       id: 'footerLegalTitle',
       type: 'text',
+      valueInstructions: 'set:config.text,langPick,host.footerTranslations.en.legalTitle,host.footerTranslations.es.legalTitle',
       config: {
         tag: 'h3',
-        text: () =>
-          this.language.currentLanguage() === 'en'
-            ? this.footerTranslations.en.legalTitle
-            : this.footerTranslations.es.legalTitle,
+        text: '',
         classes: 'ank-fontSize-lg ank-fontWeight-semibold ank-color-titleColor ank-margin-0',
       }
     },
@@ -3115,12 +3194,10 @@ export class ConfigurationsOrchestratorService {
     {
       id: 'footerCopyrightText',
       type: 'text',
+      valueInstructions: 'set:config.text,langPick,host.footerConfig.copyrightText,© 2025 Zoo Landing Page. Todos los derechos reservados.',
       config: {
         tag: 'p',
-        text: () =>
-          this.language.currentLanguage() === 'en'
-            ? this.footerConfig.copyrightText
-            : '© 2025 Zoo Landing Page. Todos los derechos reservados.',
+        text: '',
         classes: 'ank-color-secondaryTextColor ank-fontSize-sm ank-margin-0',
       }
     },

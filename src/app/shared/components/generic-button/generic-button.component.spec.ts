@@ -16,6 +16,7 @@ describe('GenericButtonComponent', () => {
 
   it('should render with default variant', () => {
     const fixture = TestBed.createComponent(GenericButtonComponent);
+    fixture.componentRef.setInput('config', { label: 'Default' });
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('button')).toBeTruthy();

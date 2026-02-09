@@ -1,0 +1,66 @@
+# AI Authoring Checklist (Configuration Only)
+
+Use this checklist when asking an AI assistant to generate a new landing page configuration.
+
+## Hard rules (must follow)
+
+- Only author configuration objects (`TGenericComponent` entries).
+- No inline functions inside `config.*`.
+- Dynamic values MUST use `valueInstructions` with allowlisted resolver IDs.
+- Reuse existing generic component types only.
+- Use existing class tokens / Angora design system conventions.
+
+## Naming / structure
+
+- Use stable IDs with clear prefixes by section: `hero*`, `features*`, `services*`, `faq*`, `footer*`.
+- One root container per section.
+- Containers should list children by ID in `config.components`.
+
+## Dynamic text
+
+- For translated strings: use `i18n` / `i18nParams`.
+  - Example: `set:config.text,i18n,hero.title`
+- For language toggles (2 strings): use `langPick`.
+  - Example: `set:config.label,langPick,Home,Inicio`
+- For i18n arrays with index: use `i18nGetIndex`.
+
+## Events
+
+- Put all interaction wiring in `eventInstructions`.
+- Prefer semicolon-separated composed instructions.
+
+## Validation steps (developer)
+
+- Render locally with the wrapper orchestrator.
+- Ensure there are no missing IDs.
+- Ensure `valueInstructions` only uses allowlisted IDs.
+- Ensure no config contains function values.
+
+## Prompt template for an AI assistant
+
+Copy/paste and fill in:
+
+---
+
+You are generating a landing page configuration for Zoolandingpage.
+
+Constraints:
+
+- Output only `TGenericComponent` configs.
+- No inline functions in config.
+- Use `valueInstructions` for any dynamic values.
+- Allowed resolver IDs: i18n, i18nParams, i18nGetIndex, literal, concat, coalesce, upper, lower, language, langPick, theme, themePick, env, envOr.
+- Use existing generic components only.
+
+Deliverable:
+
+- A list (or map) of components with stable IDs.
+- Provide a root ID list for the page.
+
+Landing page content:
+
+- Language: es + en
+- Sections: Hero, Benefits, Process, Services, FAQ, Final CTA, Footer
+- CTAs: WhatsApp + secondary scroll
+
+---

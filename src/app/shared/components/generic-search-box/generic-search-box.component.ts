@@ -16,9 +16,9 @@ import {
   signal,
 } from '@angular/core';
 import { OverlayPositioningService } from '../../services/overlay-positioning.service';
+import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { GenericLoadingSpinnerComponent } from '../generic-loading-spinner';
 import { SearchBoxConfig, SearchBoxFetcher, SearchSuggestion } from './generic-search-box.types';
-import { GenericButtonComponent } from '../generic-button/generic-button.component';
 
 @Component({
   selector: 'generic-search-box',
@@ -60,6 +60,7 @@ export class GenericSearchBoxComponent implements OnDestroy {
     this.term.set(val);
     if (val.length < this.minLength()) {
       this.results.set([]);
+      this.activeIndex.set(-1);
       this.destroyOverlay();
       return;
     }
@@ -103,6 +104,7 @@ export class GenericSearchBoxComponent implements OnDestroy {
     this.selectSuggestion.emit(s);
     this.term.set(s.label);
     this.results.set([]);
+    this.activeIndex.set(-1);
     this.destroyOverlay();
     if (this.historyEnabled()) {
       this.addToHistory(s);
@@ -128,6 +130,7 @@ export class GenericSearchBoxComponent implements OnDestroy {
       }
       case 'Escape':
         this.results.set([]);
+        this.activeIndex.set(-1);
         this.destroyOverlay();
         break;
     }

@@ -8,7 +8,7 @@ This documentation is organized into focused guides to help new developers quick
 
 ### 🚀 [Getting Started](./01-getting-started.md)
 
-**Essential setup guide for new developers**
+Essential setup guide for new developers.
 
 - Requirements and prerequisites
 - Docker development (recommended)
@@ -19,7 +19,7 @@ This documentation is organized into focused guides to help new developers quick
 
 ### 🏗 [Project Architecture](./02-architecture.md)
 
-**Technical architecture and project structure**
+Technical architecture and project structure.
 
 - Component hierarchy and organization
 - Service architecture patterns
@@ -30,7 +30,7 @@ This documentation is organized into focused guides to help new developers quick
 
 ### 💻 [Development Guide](./03-development-guide.md)
 
-**Coding standards and development workflow**
+Coding standards and development workflow.
 
 - TypeScript guidelines and best practices
 - Component architecture standards
@@ -41,7 +41,7 @@ This documentation is organized into focused guides to help new developers quick
 
 ### 🎨 [NGX-Angora-CSS Integration](./04-ngx-angora-css.md)
 
-**Comprehensive styling system guide**
+Comprehensive styling system guide.
 
 - Project-specific integration patterns
 - Brand color system and custom combos
@@ -52,7 +52,7 @@ This documentation is organized into focused guides to help new developers quick
 
 ### 📊 [Analytics & Tracking](./05-analytics-tracking.md)
 
-**User behavior and performance monitoring**
+User behavior and performance monitoring.
 
 - Analytics architecture and event types
 - Real-time WebSocket integration
@@ -63,7 +63,7 @@ This documentation is organized into focused guides to help new developers quick
 
 ### 🚀 [Deployment Guide](./06-deployment.md)
 
-**Production deployment and operations**
+Production deployment and operations.
 
 - Docker deployment strategies
 - Cloud deployment (AWS, Digital Ocean, Heroku)
@@ -74,7 +74,7 @@ This documentation is organized into focused guides to help new developers quick
 
 ### 📖 [NGX-Angora-CSS Reference](./ngx-angora-css-usage-guide.md)
 
-**Complete NGX-Angora-CSS documentation**
+Complete NGX-Angora-CSS documentation.
 
 - Comprehensive usage guide
 - API reference and examples
@@ -88,6 +88,16 @@ Post raw analytics/events to S3 via the Data Dropper Lambda using `environment.a
 
 How to use the AWS Lambda–backed endpoint for simple per-app stats updates using `environment.apiUrl`.
 
+### 🧱 [API‑Driven Configuration (Generic App Mode)](./api-driven-config/README.md)
+
+How to build landing pages from **configuration only** (AI-friendly):
+
+- `TGenericComponent` data model
+- `valueInstructions` (dynamic values without JS)
+- handler allowlist/catalog
+- `eventInstructions` patterns
+- example payload shape for storing/loading configs from an API
+
 ## 🎯 Project Overview
 
 ### What is Zoolandingpage?
@@ -99,7 +109,7 @@ Zoolandingpage serves dual purposes:
 
 ### Core Value Proposition
 
-**"Experience the power of effective landing pages while learning why your business needs one"**
+> "Experience the power of effective landing pages while learning why your business needs one"
 
 ## ✨ Key Features
 
@@ -247,6 +257,6 @@ For questions about landing page services or this project:
 
 ---
 
-**Built with ❤️ using Angular and NGX-Angora-CSS**
+Built with ❤️ using Angular and NGX-Angora-CSS.
 
 _This documentation serves as both comprehensive guides and a demonstration of clear, organized project documentation - a key component of professional web development._

@@ -31,5 +31,5 @@ export type TGenericTextConfig = {
     classes?: string;
     id?: string;
 
-    ariaLabel?: string;
+    ariaLabel?: string | (() => string);
 };

@@ -10,10 +10,11 @@ describe('GenericIconComponent', () => {
     await TestBed.configureTestingModule({
       imports: [GenericIconComponent]
     })
-    .compileComponents();
+      .compileComponents();
 
     fixture = TestBed.createComponent(GenericIconComponent);
     component = fixture.componentInstance;
+    fixture.componentRef.setInput('config', { iconName: 'home', ariaHidden: true });
     fixture.detectChanges();
   });
 

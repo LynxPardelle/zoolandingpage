@@ -22,6 +22,12 @@ export class GenericLink {
     return typeof t === 'function' ? t() : t;
   }
 
+  ariaLabel(): string | null {
+    const raw = this.config().ariaLabel;
+    if (!raw) return null;
+    return typeof raw === 'function' ? raw() : raw;
+  }
+
   onClick(event: MouseEvent): void {
     const href = this.config().href || '';
     if (href.startsWith('#')) {

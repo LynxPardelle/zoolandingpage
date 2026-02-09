@@ -52,6 +52,11 @@ export type TGenericComponent = {
     readonly id: string;
     readonly condition?: boolean | string | (() => boolean);
     readonly eventInstructions?: string;
+    /**
+     * String DSL for resolving dynamic config values (labels/text/etc) via ValueOrchestrator.
+     * Example: set:config.label,i18n,hero.primary.label
+     */
+    readonly valueInstructions?: string;
     readonly order?: number;
     readonly meta_title?: string;
 } & (

@@ -4,7 +4,7 @@
   [class]="config().classes"
   [target]="config().target"
   [rel]="config().rel || 'nofollow noopener noreferrer'"
-  [attr.aria-label]="config().ariaLabel || null"
+  [attr.aria-label]="ariaLabel()"
   [attr.aria-expanded]="config().ariaExpanded ?? null"
   [attr.aria-controls]="config().ariaControls"
   [attr.aria-current]="config().ariaCurrent ?? null"

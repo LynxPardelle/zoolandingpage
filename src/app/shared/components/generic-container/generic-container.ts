@@ -20,7 +20,11 @@ export class GenericContainerComponent {
   readonly classes = computed(() => this.config().classes ?? '');
 
   readonly role = computed(() => this.config().role ?? undefined);
-  readonly ariaLabel = computed(() => this.config().ariaLabel ?? undefined);
+  readonly ariaLabel = computed(() => {
+    const raw = this.config().ariaLabel;
+    if (!raw) return undefined;
+    return typeof raw === 'function' ? raw() : raw;
+  });
   readonly ariaLabelledby = computed(() => this.config().ariaLabelledby ?? undefined);
   readonly ariaDescribedby = computed(() => this.config().ariaDescribedby ?? undefined);
 

@@ -18,6 +18,6 @@ describe('GenericAccordionComponent', () => {
   });
   it('should render two items', () => {
     const host = fixture.nativeElement as HTMLElement;
-    expect(host.querySelectorAll('[role="button"]').length).toBe(2);
+    expect(host.querySelectorAll('button').length).toBe(2);
   });
 });

@@ -24,7 +24,11 @@ export class GenericTextComponent {
   });
   readonly classes = computed(() => this.config().classes ?? '');
   readonly id = computed(() => this.config().id ?? null);
-  readonly ariaLabel = computed(() => this.config().ariaLabel ?? null);
+  readonly ariaLabel = computed(() => {
+    const raw = this.config().ariaLabel;
+    if (!raw) return null;
+    return typeof raw === 'function' ? raw() : raw;
+  });
   readonly components = computed<readonly string[]>(() => this.config().components ?? []);
   readonly componentTemplates = computed<Readonly<Record<string, TemplateRef<unknown>>>>(
     () => this.config().componentTemplates ?? {}

@@ -1,0 +1,96 @@
+# Component Model
+
+This doc describes how to author `TGenericComponent` definitions so they are compatible with:
+
+- configuration-driven rendering (`wrapper-orchestrator`)
+- future API storage (JSON)
+- dynamic values via `valueInstructions`
+
+## Source of truth
+
+- Type union: `src/app/shared/components/wrapper-orchestrator/wrapper-orchestrator.types.ts`
+
+## Common fields
+
+### `id` (required)
+
+- Must be unique across the entire configuration space.
+- Should be stable over time (treat as a primary key).
+- Use a clear prefix by section: `hero*`, `faq*`, `footer*`, etc.
+
+### `type` (required)
+
+Determines which generic Angular component renders.
+
+### `config` (required)
+
+Type-specific payload.
+
+Rule of thumb for API mode:
+
+- `config` should be JSON-serializable.
+- If you need runtime changes, use `valueInstructions`.
+
+### `valueInstructions` (optional)
+
+A semicolon-separated DSL that can set _dynamic_ values at paths like `config.label`.
+
+See: [03-value-instructions.md](03-value-instructions.md)
+
+### `eventInstructions` (optional)
+
+A semicolon-separated DSL for centralized event handling.
+
+See: [05-event-instructions.md](05-event-instructions.md)
+
+## Composition / nesting
+
+A common pattern is:
+
+- A `container` has `config.components: string[]`.
+- Children are referenced by ID.
+
+Example:
+
+```ts
+{
+  id: 'heroCtas',
+  type: 'container',
+  config: {
+    tag: 'div',
+    classes: 'ank-display-flex ank-gap-1rem',
+    components: ['primaryCTA', 'secondaryCTA'],
+  },
+}
+```
+
+## Configuration authoring rules (API-friendly)
+
+### Avoid inline lambdas
+
+If you see any of these inside config, it is _not_ API-safe:
+
+- `text: () => ...`
+- `label: () => ...`
+- `items: () => ...`
+- `condition: () => ...`
+
+Some of these may still exist in the TS registry today, but the API-target format should not require them.
+
+### Prefer `valueInstructions` for dynamic strings
+
+Common cases:
+
+- i18n labels
+- language/theme switches
+- env-based values
+
+### Prefer IDs over deep copies
+
+Avoid duplicating component objects. Compose with IDs.
+
+## Debugging authoring mistakes
+
+- Missing ID: renderer will warn on lookup.
+- Wrong `type`: renderer will not find a matching case.
+- Dynamic value not applied: check resolver ID allowlist.

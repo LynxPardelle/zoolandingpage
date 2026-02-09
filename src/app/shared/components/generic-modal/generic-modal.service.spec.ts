@@ -1,8 +1,18 @@
+import { TestBed } from '@angular/core/testing';
+import { NgxAngoraService } from 'ngx-angora-css';
 import { GenericModalService } from './generic-modal.service';
 
 describe('GenericModalService analytics', () => {
   it('emits open/close analytics events via stream', (done) => {
-    const svc = new GenericModalService();
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: NgxAngoraService,
+          useValue: { cssCreate: () => { }, timeBetweenReCreate: 0 } satisfies Partial<NgxAngoraService>,
+        },
+      ],
+    });
+    const svc = TestBed.inject(GenericModalService);
     const seen: any[] = [];
     const sub = svc.analyticsEvents$.subscribe(e => {
       seen.push(e);

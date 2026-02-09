@@ -6,6 +6,7 @@ import { provideClientHydration, withEventReplay } from '@angular/platform-brows
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { routes } from './app.routes';
 import { provideEventHandlers } from './shared/utility/event-handler/provide-event-handlers';
+import { provideValueHandlers } from './shared/utility/value-handler/provide-value-handlers';
 
 
 export const appConfig: ApplicationConfig = {
@@ -19,6 +20,7 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withFetch()),
 
     ...provideEventHandlers(),
+    ...provideValueHandlers(),
 
   ],
 };

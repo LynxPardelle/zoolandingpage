@@ -111,7 +111,11 @@ export class ThemeService {
       this._systemPreference.set(e.matches ? 'dark' : 'light');
     };
 
-    mediaQuery.addEventListener('change', handleChange);
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', handleChange);
+    } else if (typeof (mediaQuery as any).addListener === 'function') {
+      (mediaQuery as any).addListener(handleChange);
+    }
   }
 
   private _loadSavedTheme(): void {

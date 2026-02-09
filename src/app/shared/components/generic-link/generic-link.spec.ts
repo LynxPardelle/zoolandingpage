@@ -10,10 +10,11 @@ describe('GenericLink', () => {
     await TestBed.configureTestingModule({
       imports: [GenericLink]
     })
-    .compileComponents();
+      .compileComponents();
 
     fixture = TestBed.createComponent(GenericLink);
     component = fixture.componentInstance;
+    fixture.componentRef.setInput('config', { id: 'spec', href: '#home', text: 'Home' });
     fixture.detectChanges();
   });
 

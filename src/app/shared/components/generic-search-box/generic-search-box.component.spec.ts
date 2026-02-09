@@ -25,9 +25,10 @@ describe('SearchBoxComponent', () => {
     input.value = 'a';
     input.dispatchEvent(new Event('input'));
     fixture.detectChanges();
-    // simulate ArrowDown and Enter
-    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
+    // debounceMs=0 still uses setTimeout(0); wait for results
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
     fixture.detectChanges();
+    // simulate ArrowDown and Enter
     input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
     fixture.detectChanges();
     expect(comp.term()).toBe('Alpha');

@@ -31,7 +31,10 @@ export class GenericStatsCounterComponent {
   readonly started = signal(false);
   readonly completed = output<void>();
 
-  readonly displayValue = () => this.config().format!(this.internalValue());
+  readonly displayValue = () => {
+    const format = this.config().format ?? ((v: number) => String(Math.round(v)));
+    return format(this.internalValue());
+  };
   readonly ariaLabel = () => this.config().ariaLabel || `Counter value ${ this.displayValue() }`;
 
   private io?: IntersectionObserver;
