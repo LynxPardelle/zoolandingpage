@@ -91,7 +91,9 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/styles.scss"]
+            "styles": ["src/styles.scss"],
+            "watch": false,
+            "browsers": "ChromeHeadless"
           }
         }
       }

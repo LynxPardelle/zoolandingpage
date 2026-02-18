@@ -1,0 +1,517 @@
+import { TGenericComponent } from "../../components/wrapper-orchestrator/wrapper-orchestrator.types";
+
+export const modals: TGenericComponent[] = [
+    // [MODALS-4] Analytics consent modal content
+    {
+        id: 'modalAnalyticsConsentRoot',
+        type: 'container',
+        config: {
+            tag: 'section',
+            classes: 'ank-display-flex ank-flexDirection-column ank-gap-0_75rem ank-w-100per',
+            components: ['modalConsentHeader', 'modalConsentIntro', 'modalConsentBullets', 'modalConsentActions'],
+        },
+    },
+    {
+        id: 'modalConsentHeader',
+        type: 'container',
+        config: {
+            tag: 'div',
+            classes:
+                'ank-display-flex ank-alignItems-center ank-gap-0_5rem ank-bg-secondaryBgColor ank-border-1px ank-borderColor-border ank-p-0_5rem ank-borderRadius-0_5rem',
+            components: ['modalConsentHeaderIcon', 'modalConsentHeaderTitle'],
+        },
+    },
+    {
+        id: 'modalConsentHeaderIcon',
+        type: 'container',
+        config: {
+            tag: 'div',
+            classes:
+                'ank-width-2rem ank-height-2rem ank-borderRadius-50per ank-bg-accentColor ank-display-flex ank-alignItems-center ank-justifyContent-center ank-color-bgColor ank-fontWeight-700',
+            components: ['modalConsentHeaderIconGlyph'],
+        },
+    },
+    {
+        id: 'modalConsentHeaderIconGlyph',
+        type: 'text',
+        config: { tag: 'span', text: 'ⓘ' },
+    },
+    {
+        id: 'modalConsentHeaderTitle',
+        type: 'text',
+        valueInstructions: 'set:config.text,i18n,consent.title',
+        config: {
+            tag: 'h2',
+            text: '',
+            classes: 'ank-m-0 ank-fontSize-1_125rem ank-fontWeight-700 ank-color-textColor',
+        },
+    },
+    {
+        id: 'modalConsentIntro',
+        type: 'text',
+        valueInstructions: 'set:config.text,i18n,consent.intro',
+        config: { tag: 'p', text: '', classes: 'ank-m-0 ank-color-secondaryTextColor' },
+    },
+    {
+        id: 'modalConsentBullets',
+        type: 'container',
+        config: {
+            tag: 'ul',
+            classes: 'ank-m-0 ank-pt-0_25rem ank-pl-1rem ank-color-secondaryTextColor',
+            components: ['modalConsentBullet0', 'modalConsentBullet1', 'modalConsentBullet2'],
+        },
+    },
+    {
+        id: 'modalConsentBullet0',
+        type: 'container',
+        config: { tag: 'li', components: ['modalConsentBullet0Text'] },
+    },
+    {
+        id: 'modalConsentBullet0Text',
+        type: 'text',
+        valueInstructions: 'set:config.text,i18n,consent.bullets.0',
+        config: { text: '' },
+    },
+    {
+        id: 'modalConsentBullet1',
+        type: 'container',
+        config: { tag: 'li', components: ['modalConsentBullet1Text'] },
+    },
+    {
+        id: 'modalConsentBullet1Text',
+        type: 'text',
+        valueInstructions: 'set:config.text,i18n,consent.bullets.1',
+        config: { text: '' },
+    },
+    {
+        id: 'modalConsentBullet2',
+        type: 'container',
+        config: { tag: 'li', components: ['modalConsentBullet2Text'] },
+    },
+    {
+        id: 'modalConsentBullet2Text',
+        type: 'text',
+        valueInstructions: 'set:config.text,i18n,consent.bullets.2',
+        config: { text: '' },
+    },
+    {
+        id: 'modalConsentActions',
+        type: 'container',
+        config: {
+            tag: 'div',
+            classes:
+                'ank-display-flex ank-gap-0_5rem ank-justifyContent-end ank-alignItems-stretch ank-mt-0_75rem ank-flexWrap-wrap',
+            components: ['modalConsentDeclineBtn', 'modalConsentLaterBtn', 'modalConsentAllowBtn'],
+        },
+    },
+    {
+        id: 'modalConsentDeclineBtn',
+        type: 'button',
+        eventInstructions: 'declineConsent',
+        valueInstructions: 'set:config.label,i18n,consent.actions.decline',
+        config: {
+            label: '',
+            classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL',
+        },
+    },
+    {
+        id: 'modalConsentLaterBtn',
+        type: 'button',
+        eventInstructions: 'remindLater:24',
+        valueInstructions: 'set:config.label,i18n,consent.actions.later',
+        config: {
+            label: '',
+            classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLwarningVLtextColorVL',
+        },
+    },
+    {
+        id: 'modalConsentAllowBtn',
+        type: 'button',
+        eventInstructions: 'acceptConsent',
+        valueInstructions: 'set:config.label,i18n,consent.actions.allow',
+        config: {
+            label: '',
+            classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLprimaryVLtextColorVL',
+        },
+    },
+
+    // [MODALS-5] Demo modal content
+    {
+        id: 'modalDemoRoot',
+        type: 'container',
+        config: {
+            tag: 'section',
+            classes: 'ank-display-flex ank-flexDirection-column ank-gap-1rem ank-w-100per',
+            components: ['modalDemoHeader', 'modalDemoDesc', 'modalDemoFeatures', 'modalDemoActions'],
+        },
+    },
+    {
+        id: 'modalDemoHeader',
+        type: 'container',
+        config: {
+            tag: 'header',
+            classes:
+                'ank-display-flex ank-alignItems-center ank-gap-0_5rem ank-bg-accentColor ank-color-bgColor ank-p-1rem ank-borderRadius-0_5rem',
+            components: ['modalDemoHeaderIcon', 'modalDemoHeaderTitle'],
+        },
+    },
+    {
+        id: 'modalDemoHeaderIcon',
+        type: 'container',
+        config: {
+            tag: 'div',
+            classes:
+                'ank-width-2rem ank-height-2rem ank-borderRadius-50per ank-bg-secondaryAccentColor ank-display-flex ank-alignItems-center ank-justifyContent-center ank-color-bgColor ank-fontWeight-700',
+            components: ['modalDemoHeaderIconGlyph'],
+        },
+    },
+    {
+        id: 'modalDemoHeaderIconGlyph',
+        type: 'text',
+        config: { tag: 'span', text: '🎉' },
+    },
+    {
+        id: 'modalDemoHeaderTitle',
+        type: 'text',
+        valueInstructions: 'set:config.text,i18n,demo.modal.header',
+        config: {
+            tag: 'h2',
+            text: '',
+            classes: 'ank-m-0 ank-fontSize-1_25rem ank-fontWeight-700',
+        },
+    },
+    {
+        id: 'modalDemoDesc',
+        type: 'text',
+        valueInstructions: 'set:config.text,i18n,demo.modal.desc',
+        config: { tag: 'p', text: '', classes: 'ank-m-0 ank-color-secondaryTextColor' },
+    },
+    {
+        id: 'modalDemoFeatures',
+        type: 'container',
+        config: {
+            tag: 'ul',
+            classes: 'ank-m-0 ank-pl-1rem ank-color-secondaryTextColor',
+            components: ['modalDemoFeature0', 'modalDemoFeature1', 'modalDemoFeature2'],
+        },
+    },
+    {
+        id: 'modalDemoFeature0',
+        type: 'container',
+        config: { tag: 'li', components: ['modalDemoFeature0Text'] },
+    },
+    {
+        id: 'modalDemoFeature0Text',
+        type: 'text',
+        valueInstructions: 'set:config.text,i18n,demo.modal.features.0',
+        config: { text: '' },
+    },
+    {
+        id: 'modalDemoFeature1',
+        type: 'container',
+        config: { tag: 'li', components: ['modalDemoFeature1Text'] },
+    },
+    {
+        id: 'modalDemoFeature1Text',
+        type: 'text',
+        valueInstructions: 'set:config.text,i18n,demo.modal.features.1',
+        config: { text: '' },
+    },
+    {
+        id: 'modalDemoFeature2',
+        type: 'container',
+        config: { tag: 'li', components: ['modalDemoFeature2Text'] },
+    },
+    {
+        id: 'modalDemoFeature2Text',
+        type: 'text',
+        valueInstructions: 'set:config.text,i18n,demo.modal.features.2',
+        config: { text: '' },
+    },
+    {
+        id: 'modalDemoActions',
+        type: 'container',
+        config: {
+            tag: 'div',
+            classes: 'ank-display-flex ank-justifyContent-end ank-gap-0_5rem ank-mt-1rem',
+            components: ['modalDemoCloseBtn'],
+        },
+    },
+    {
+        id: 'modalDemoCloseBtn',
+        type: 'button',
+        eventInstructions: 'closeModal',
+        valueInstructions: 'set:config.label,i18n,demo.modal.close',
+        config: {
+            label: '',
+            classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL',
+        },
+    },
+
+    // [MODALS-6] Terms of service modal content
+    {
+        id: 'modalTermsRoot',
+        type: 'container',
+        condition: 'all:modalRefId,terms-of-service',
+        config: {
+            tag: 'section',
+            classes: 'ank-display-flex ank-flexDirection-column ank-gap-0_75rem ank-w-100per',
+            components: ['modalTermsHeader', 'modalTermsIntro', 'modalTermsSections', 'modalTermsActions'],
+        },
+    },
+    {
+        id: 'modalTermsHeader',
+        type: 'container',
+        config: {
+            tag: 'div',
+            classes:
+                'ank-display-flex ank-alignItems-center ank-gap-0_5rem ank-bg-secondaryBgColor ank-border-1px ank-borderColor-border ank-p-0_5rem ank-borderRadius-0_5rem',
+            components: ['modalTermsHeaderIcon', 'modalTermsHeaderTitle'],
+        },
+    },
+    {
+        id: 'modalTermsHeaderIcon',
+        type: 'container',
+        config: {
+            tag: 'div',
+            classes:
+                'ank-width-2rem ank-height-2rem ank-borderRadius-50per ank-bg-secondaryAccentColor ank-display-flex ank-alignItems-center ank-justifyContent-center ank-color-bgColor ank-fontWeight-700',
+            components: ['modalTermsHeaderIconGlyph'],
+        },
+    },
+    {
+        id: 'modalTermsHeaderIconGlyph',
+        type: 'text',
+        config: { tag: 'span', text: '⚖️' },
+    },
+    {
+        id: 'modalTermsHeaderTitle',
+        type: 'text',
+        valueInstructions: 'set:config.text,i18n,footer.legal.terms.title',
+        config: {
+            tag: 'h2',
+            text: '',
+            classes: 'ank-m-0 ank-fontSize-1_125rem ank-fontWeight-700 ank-color-textColor',
+        },
+    },
+    {
+        id: 'modalTermsIntro',
+        type: 'text',
+        valueInstructions: 'set:config.text,i18n,footer.legal.terms.intro',
+        config: { tag: 'p', text: '', classes: 'ank-m-0 ank-color-secondaryTextColor' },
+    },
+    {
+        id: 'modalTermsSections',
+        type: 'container',
+        config: {
+            tag: 'div',
+            classes: 'ank-display-flex ank-flexDirection-column ank-gap-1rem',
+            components: ['modalTermsSection0', 'modalTermsSection1', 'modalTermsSection2'],
+        },
+    },
+    {
+        id: 'modalTermsSection0',
+        type: 'container',
+        config: {
+            tag: 'div',
+            classes: 'ank-display-flex ank-flexDirection-column ank-gap-0_25rem',
+            components: ['modalTermsSection0Title', 'modalTermsSection0Body'],
+        },
+    },
+    {
+        id: 'modalTermsSection0Title',
+        type: 'text',
+        valueInstructions: 'set:config.text,i18n,footer.legal.terms.sections.0.title',
+        config: { tag: 'h3', text: '', classes: 'ank-m-0 ank-fontSize-1rem ank-fontWeight-700 ank-color-titleColor' },
+    },
+    {
+        id: 'modalTermsSection0Body',
+        type: 'text',
+        valueInstructions: 'set:config.text,i18n,footer.legal.terms.sections.0.body',
+        config: { tag: 'p', text: '', classes: 'ank-m-0 ank-color-secondaryTextColor' },
+    },
+    {
+        id: 'modalTermsSection1',
+        type: 'container',
+        config: {
+            tag: 'div',
+            classes: 'ank-display-flex ank-flexDirection-column ank-gap-0_25rem',
+            components: ['modalTermsSection1Title', 'modalTermsSection1Body'],
+        },
+    },
+    {
+        id: 'modalTermsSection1Title',
+        type: 'text',
+        valueInstructions: 'set:config.text,i18n,footer.legal.terms.sections.1.title',
+        config: { tag: 'h3', text: '', classes: 'ank-m-0 ank-fontSize-1rem ank-fontWeight-700 ank-color-titleColor' },
+    },
+    {
+        id: 'modalTermsSection1Body',
+        type: 'text',
+        valueInstructions: 'set:config.text,i18n,footer.legal.terms.sections.1.body',
+        config: { tag: 'p', text: '', classes: 'ank-m-0 ank-color-secondaryTextColor' },
+    },
+    {
+        id: 'modalTermsSection2',
+        type: 'container',
+        config: {
+            tag: 'div',
+            classes: 'ank-display-flex ank-flexDirection-column ank-gap-0_25rem',
+            components: ['modalTermsSection2Title', 'modalTermsSection2Body'],
+        },
+    },
+    {
+        id: 'modalTermsSection2Title',
+        type: 'text',
+        valueInstructions: 'set:config.text,i18n,footer.legal.terms.sections.2.title',
+        config: { tag: 'h3', text: '', classes: 'ank-m-0 ank-fontSize-1rem ank-fontWeight-700 ank-color-titleColor' },
+    },
+    {
+        id: 'modalTermsSection2Body',
+        type: 'text',
+        valueInstructions: 'set:config.text,i18n,footer.legal.terms.sections.2.body',
+        config: { tag: 'p', text: '', classes: 'ank-m-0 ank-color-secondaryTextColor' },
+    },
+    {
+        id: 'modalTermsActions',
+        type: 'container',
+        config: {
+            tag: 'div',
+            classes: 'ank-display-flex ank-justifyContent-end ank-gap-0_5rem ank-mt-0_75rem',
+            components: ['modalTermsCloseBtn'],
+        },
+    },
+    {
+        id: 'modalTermsCloseBtn',
+        type: 'button',
+        eventInstructions: 'closeModal',
+        valueInstructions: 'set:config.label,i18n,footer.actions.close',
+        config: {
+            label: '',
+            classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL',
+        },
+    },
+
+    // [MODALS-7] Data use / privacy modal content
+    {
+        id: 'modalDataUseRoot',
+        type: 'container',
+        condition: 'all:modalRefId,data-use',
+        config: {
+            tag: 'section',
+            classes: 'ank-display-flex ank-flexDirection-column ank-gap-0_75rem ank-w-100per',
+            components: ['modalDataHeader', 'modalDataIntro', 'modalDataPoints', 'modalDataConsentNote', 'modalDataActions'],
+        },
+    },
+    {
+        id: 'modalDataHeader',
+        type: 'container',
+        config: {
+            tag: 'div',
+            classes:
+                'ank-display-flex ank-alignItems-center ank-gap-0_5rem ank-bg-secondaryBgColor ank-border-1px ank-borderColor-border ank-p-0_5rem ank-borderRadius-0_5rem',
+            components: ['modalDataHeaderIcon', 'modalDataHeaderTitle'],
+        },
+    },
+    {
+        id: 'modalDataHeaderIcon',
+        type: 'container',
+        config: {
+            tag: 'div',
+            classes:
+                'ank-width-2rem ank-height-2rem ank-borderRadius-50per ank-bg-secondaryAccentColor ank-display-flex ank-alignItems-center ank-justifyContent-center ank-color-bgColor ank-fontWeight-700',
+            components: ['modalDataHeaderIconGlyph'],
+        },
+    },
+    {
+        id: 'modalDataHeaderIconGlyph',
+        type: 'text',
+        config: { tag: 'span', text: '🔒' },
+    },
+    {
+        id: 'modalDataHeaderTitle',
+        type: 'text',
+        valueInstructions: 'set:config.text,i18n,footer.legal.data.title',
+        config: {
+            tag: 'h2',
+            text: '',
+            classes: 'ank-m-0 ank-fontSize-1_125rem ank-fontWeight-700 ank-color-textColor',
+        },
+    },
+    {
+        id: 'modalDataIntro',
+        type: 'text',
+        valueInstructions: 'set:config.text,i18n,footer.legal.data.intro',
+        config: { tag: 'p', text: '', classes: 'ank-m-0 ank-color-secondaryTextColor' },
+    },
+    {
+        id: 'modalDataPoints',
+        type: 'container',
+        config: {
+            tag: 'ul',
+            classes:
+                'ank-m-0 ank-pl-1rem ank-color-secondaryTextColor ank-display-flex ank-flexDirection-column ank-gap-0_5rem',
+            components: ['modalDataPoint0', 'modalDataPoint1', 'modalDataPoint2', 'modalDataPoint3'],
+        },
+    },
+    {
+        id: 'modalDataPoint0',
+        type: 'container',
+        config: { tag: 'li', components: ['modalDataPoint0Text'] },
+    },
+    { id: 'modalDataPoint0Text', type: 'text', valueInstructions: 'set:config.text,i18n,footer.legal.data.points.0', config: { text: '' } },
+    {
+        id: 'modalDataPoint1',
+        type: 'container',
+        config: { tag: 'li', components: ['modalDataPoint1Text'] },
+    },
+    { id: 'modalDataPoint1Text', type: 'text', valueInstructions: 'set:config.text,i18n,footer.legal.data.points.1', config: { text: '' } },
+    {
+        id: 'modalDataPoint2',
+        type: 'container',
+        config: { tag: 'li', components: ['modalDataPoint2Text'] },
+    },
+    { id: 'modalDataPoint2Text', type: 'text', valueInstructions: 'set:config.text,i18n,footer.legal.data.points.2', config: { text: '' } },
+    {
+        id: 'modalDataPoint3',
+        type: 'container',
+        config: { tag: 'li', components: ['modalDataPoint3Text'] },
+    },
+    { id: 'modalDataPoint3Text', type: 'text', valueInstructions: 'set:config.text,i18n,footer.legal.data.points.3', config: { text: '' } },
+    {
+        id: 'modalDataConsentNote',
+        type: 'text',
+        valueInstructions: 'set:config.text,i18n,footer.legal.data.consentNote',
+        config: { tag: 'p', text: '', classes: 'ank-m-0 ank-color-secondaryTextColor' },
+    },
+    {
+        id: 'modalDataActions',
+        type: 'container',
+        config: {
+            tag: 'div',
+            classes: 'ank-display-flex ank-justifyContent-end ank-gap-0_5rem ank-mt-0_75rem',
+            components: ['modalDataRemoveConsentBtn', 'modalDataCloseBtn'],
+        },
+    },
+    {
+        id: 'modalDataRemoveConsentBtn',
+        type: 'button',
+        eventInstructions: 'removeConsentRequest;closeModal',
+        valueInstructions: 'set:config.label,i18n,consent.actions.remove',
+        config: {
+            label: '',
+            classes:
+                'btnBaseVALSVL1_25remVL0_75remVL ank-bg-transparent ank-border-2px__solid__danger ank-color-danger ank-ts-200 ank-bgHover-danger ank-colorHover-textColor',
+        },
+    },
+    {
+        id: 'modalDataCloseBtn',
+        type: 'button',
+        eventInstructions: 'closeModal',
+        valueInstructions: 'set:config.label,i18n,footer.actions.close',
+        config: {
+            label: '',
+            classes: 'btnBaseVALSVL1_25remVL0_75remVL btnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL',
+        },
+    },
+];

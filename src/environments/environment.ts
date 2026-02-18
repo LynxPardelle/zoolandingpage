@@ -12,6 +12,16 @@ export const environment: TEnvironment = {
   development: true,
   apiUrl: 'https://nxk92p5uzc.execute-api.us-east-1.amazonaws.com',
   apiVersion: 'v1',
+  domain: {
+    defaultDomain: 'zoolandingpage.com.mx',
+    devOverride: 'zoolandingpage.com.mx'
+  },
+  drafts: {
+    enabled: true,
+    basePath: 'assets/drafts',
+    defaultDomain: 'zoolandingpage.com.mx',
+    defaultPageId: 'default'
+  },
   localStorage: {
     themeKey: 'zoo-landing-theme',
     languageKey: 'zoo-landing-language',

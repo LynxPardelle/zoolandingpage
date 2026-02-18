@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AnalyticsConfigPayload",
+  "type": "object",
+  "required": ["version", "pageId", "domain", "sectionIds", "scrollMilestones"],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "pageId": { "type": "string" },
+    "domain": { "type": "string" },
+    "sectionIds": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "scrollMilestones": {
+      "type": "array",
+      "items": { "type": "number" }
+    },
+    "consentMode": { "type": "string" }
+  },
+  "additionalProperties": false
+}

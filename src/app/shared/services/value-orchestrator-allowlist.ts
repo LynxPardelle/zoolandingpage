@@ -15,6 +15,8 @@ export const DEFAULT_ALLOWED_VALUE_IDS = [
     'themePick',
     'env',
     'envOr',
+    'var',
+    'varOr',
 ] as const;
 
 /**

@@ -7,6 +7,7 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Only author configuration objects (`TGenericComponent` entries).
 - No inline functions inside `config.*`.
 - Dynamic values MUST use `valueInstructions` with allowlisted resolver IDs.
+- Conditions MUST use the `condition` DSL with allowlisted handler IDs.
 - Reuse existing generic component types only.
 - Use existing class tokens / Angora design system conventions.
 
@@ -28,6 +29,12 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 
 - Put all interaction wiring in `eventInstructions`.
 - Prefer semicolon-separated composed instructions.
+
+## Conditions
+
+- Use the condition DSL (no inline lambdas).
+- Prefer `all:` unless you need `any:` or `not:`.
+- Allowed handler IDs: env, i18n, footerConfig, footerSocialLinks, modalRefId, host, hostEq, hostNeq, hostIncludes, hostGt, hostGte, hostLt, hostLte, hostStartsWith, hostEndsWith, hostRegex, hostLenEq, hostLenGt, hostLenGte, hostLenLt, hostLenLte, true, false, always, never, exists, empty, eq, neq, gt, lt, gte, lte, type.
 
 ## Validation steps (developer)
 

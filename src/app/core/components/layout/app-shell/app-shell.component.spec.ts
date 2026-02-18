@@ -6,6 +6,7 @@ import { NgxAngoraService } from 'ngx-angora-css';
 import { of } from 'rxjs';
 import { WrapperOrchestrator } from '../../../../shared/components/wrapper-orchestrator/wrapper-orchestrator.component';
 import { AnalyticsService } from '../../../../shared/services/analytics.service';
+import { ConfigBootstrapService } from '../../../../shared/services/config-bootstrap.service';
 import { ConfigurationsOrchestratorService } from '../../../../shared/services/configurations-orchestrator';
 import { AppShellComponent } from './app-shell.component';
 
@@ -27,6 +28,14 @@ const ORCHESTRATOR_STUB = {
   modalHostConfig$: of(null),
   fallbackModalHostConfig: {},
   devDemoControlsComponents: [] as string[],
+  getAllTheClassesFromComponents: () => [],
+  setExternalComponentsFromPayload: () => { },
+  exportDraftComponentsPayload: () => ({
+    version: 1,
+    pageId: 'default',
+    domain: 'zoolandingpage.com.mx',
+    components: {},
+  }),
 };
 
 describe('AppShellComponent', () => {
@@ -37,6 +46,28 @@ describe('AppShellComponent', () => {
         {
           provide: AnalyticsService,
           useValue: { track: async () => { }, flush: () => [], promptForConsentIfNeeded: () => { } } as any,
+        },
+        {
+          provide: ConfigBootstrapService,
+          useValue: {
+            load: async () => ({
+              domain: 'zoolandingpage.com.mx',
+              pageId: 'default',
+              structuredDataApplied: true,
+              components: {
+                version: 1,
+                pageId: 'default',
+                domain: 'zoolandingpage.com.mx',
+                components: {
+                  draftStub: {
+                    id: 'draftStub',
+                    type: 'text',
+                    config: { text: '' },
+                  },
+                },
+              },
+            }),
+          },
         },
         { provide: ConfigurationsOrchestratorService, useValue: ORCHESTRATOR_STUB },
         {

@@ -66,6 +66,8 @@ Dynamic values are restricted by an allowlist:
 
 - `src/app/shared/services/value-orchestrator-allowlist.ts`
 
+Conditional rendering also relies on allowlisted handler IDs (see condition handler catalog).
+
 If a resolver ID is not allowlisted, it won’t be applied.
 
 ## Mental model

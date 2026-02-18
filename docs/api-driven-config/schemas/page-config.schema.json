@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PageConfigPayload",
+  "type": "object",
+  "required": ["version", "pageId", "domain", "rootIds"],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "pageId": { "type": "string" },
+    "domain": { "type": "string" },
+    "rootIds": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "modalRootIds": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "routes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "rootIds"],
+        "properties": {
+          "path": { "type": "string" },
+          "rootIds": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

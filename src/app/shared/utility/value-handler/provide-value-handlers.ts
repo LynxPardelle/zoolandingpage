@@ -8,6 +8,7 @@ import { langPickValueHandler, languageValueHandler } from './handlers/language.
 import { literalValueHandler } from './handlers/literal.value-handlers';
 import { coalesceValueHandler, lowerValueHandler, upperValueHandler } from './handlers/string.value-handlers';
 import { themePickValueHandler, themeValueHandler } from './handlers/theme.value-handlers';
+import { variableOrValueHandler, variableValueHandler } from './handlers/variable.value-handlers';
 import { VALUE_HANDLERS } from './value-handlers.token';
 
 export const provideValueHandlers = (): Provider[] => {
@@ -29,5 +30,8 @@ export const provideValueHandlers = (): Provider[] => {
 
         { provide: VALUE_HANDLERS, multi: true, useFactory: envValueHandler },
         { provide: VALUE_HANDLERS, multi: true, useFactory: envOrValueHandler },
+
+        { provide: VALUE_HANDLERS, multi: true, useFactory: variableValueHandler },
+        { provide: VALUE_HANDLERS, multi: true, useFactory: variableOrValueHandler },
     ];
 };

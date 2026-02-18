@@ -5,3 +5,4 @@ This folder is reserved for tooling/docs that help generate `TGenericComponent` 
 If your goal is to have an AI assistant generate configs that can be stored in an API, start here:
 
 - [../api-driven-config/README.md](../api-driven-config/README.md)
+- Condition DSL and handler catalog: [../api-driven-config/09-condition-instructions.md](../api-driven-config/09-condition-instructions.md)

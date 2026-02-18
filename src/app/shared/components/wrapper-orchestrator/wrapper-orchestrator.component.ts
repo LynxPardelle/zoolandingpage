@@ -15,7 +15,9 @@ import { GenericMedia } from "../generic-media/generic-media";
 import { GenericStatsCounterComponent } from '../generic-stats-counter/generic-stats-counter.component';
 import { GenericTestimonialCardComponent } from '../generic-testimonial-card';
 import { GenericTextComponent } from '../generic-text/generic-text';
-import { TGenericComponent } from './wrapper-orchestrator.types';
+
+import { ConditionOrchestrator } from '../../services/condition-orchestrator';
+import type { TGenericComponent } from './wrapper-orchestrator.types';
 
 @Component({
   selector: 'wrapper-orchestrator',
@@ -43,19 +45,27 @@ import { TGenericComponent } from './wrapper-orchestrator.types';
 export class WrapperOrchestrator {
   private readonly _configurationsOrchestratorService = inject(ConfigurationsOrchestratorService);
   private readonly valueOrchestrator = inject(ValueOrchestrator);
+  private readonly conditionOrchestrator = inject(ConditionOrchestrator);
   // Accepts an array of component IDs to render
   readonly componentsIds = input<readonly (string | TGenericComponent)[]>([]);
 
   private shouldRender(component: TGenericComponent): boolean {
-    const raw = component.condition;
-    if (raw === undefined) return true;
-    if (typeof raw === 'function') return !!raw();
-    if (typeof raw === 'boolean') return raw;
-
-    const normalized = String(raw).trim().toLowerCase();
-    if (normalized === 'false') return false;
-    if (normalized === 'true') return true;
-    return normalized.length > 0;
+    const cond = component.condition;
+    if (cond === undefined) return true;
+    if (typeof cond === 'function') return !!cond();
+    if (typeof cond === 'boolean') return cond;
+    if (typeof cond === 'string') {
+      // If the string looks like a DSL (contains colon or comma), use ConditionOrchestrator
+      if (cond.includes(':') || cond.includes(',')) {
+        return this.conditionOrchestrator.evaluate({ ...component, condition: cond }, { host: this._configurationsOrchestratorService });
+      }
+      // Otherwise, treat as legacy string boolean
+      const normalized = cond.trim().toLowerCase();
+      if (normalized === 'false') return false;
+      if (normalized === 'true') return true;
+      return normalized.length > 0;
+    }
+    return true;
   }
 
   readonly components = computed<TGenericComponent[]>(() =>

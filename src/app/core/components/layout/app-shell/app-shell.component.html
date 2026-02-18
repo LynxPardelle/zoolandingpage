@@ -1,14 +1,10 @@
-<wrapper-orchestrator
-  [componentsIds]="['skipToMainLink', 'siteHeader', 'landingPage', 'siteFooter']"
-></wrapper-orchestrator>
+<wrapper-orchestrator [componentsIds]="rootComponentsIds()"></wrapper-orchestrator>
 <!-- Toast host analytics forwarding -->
 
 <!-- Advanced component hosts -->
 <generic-toast-host (analyticsEvent)="handleAnalyticsEvent($event)"></generic-toast-host>
 <generic-modal-host [config]="(orchestrator.modalHostConfig$ | async) ?? orchestrator.fallbackModalHostConfig">
-  <wrapper-orchestrator
-    [componentsIds]="['modalAnalyticsConsentRoot', 'modalDemoRoot', 'modalTermsRoot', 'modalDataUseRoot']"
-  ></wrapper-orchestrator>
+  <wrapper-orchestrator [componentsIds]="modalRootIds()"></wrapper-orchestrator>
 </generic-modal-host>
 
 <!-- Dev-only demo controls -->
@@ -17,6 +13,26 @@
 <div
   class="ank-position-md-fixed ank-bottom-6rem ank-right-25vw ank-mx-auto ank-p-0_5rem ank-bg-blackOPA__0_6 ank-color-white ank-fs-12px ank-borderRadius-6px ank-maxWidth-360px ank-maxHeight-40vh ank-overflow-auto ank-zIndex-1200"
 >
+  <button
+    class="ank-mb-0_5rem ank-bg-transparent ank-border-1px__solid__white ank-color-white ank-borderRadius-4px ank-px-0_5rem ank-py-0_25rem ank-cursor-pointer"
+    (click)="downloadDraftPayloads()"
+  >
+    Download draft payloads
+  </button>
+  <button
+    class="ank-mb-0_5rem ank-bg-transparent ank-border-1px__solid__white ank-color-white ank-borderRadius-4px ank-px-0_5rem ank-py-0_25rem ank-cursor-pointer"
+    (click)="writeDraftPayloadsToDisk()"
+  >
+    Write drafts to disk
+  </button>
+  @if (configIssues().length > 0) {
+  <div class="ank-fontWeight-600 ank-mb-0_25rem">Config issues</div>
+  <ul class="ank-m-0 ank-pl-1rem ank-mb-0_5rem">
+    @for (issue of configIssues(); track $index) {
+    <li>{{ issue }}</li>
+    }
+  </ul>
+  }
   <div class="ank-fontWeight-600 ank-mb-0_25rem">Analytics (latest)</div>
   <ul class="ank-m-0 ank-pl-1rem">
     @for (e of recentEvents(); track $index) {

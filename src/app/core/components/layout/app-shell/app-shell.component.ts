@@ -1,7 +1,13 @@
 import { THeaderNavItem } from "@/app/core/types/layout.types";
 import { WrapperOrchestrator } from "@/app/shared/components/wrapper-orchestrator/wrapper-orchestrator.component";
+import { TGenericComponent } from "@/app/shared/components/wrapper-orchestrator/wrapper-orchestrator.types";
+import { AngoraCombosService } from "@/app/shared/services/angora-combos.service";
+import { ConfigBootstrapService } from "@/app/shared/services/config-bootstrap.service";
+import { ConfigStoreService } from "@/app/shared/services/config-store.service";
 import { ConfigurationsOrchestratorService } from "@/app/shared/services/configurations-orchestrator";
+import { DomainResolverService } from "@/app/shared/services/domain-resolver.service";
 import { StructuredDataService } from "@/app/shared/services/structured-data.service";
+import type { TAnalyticsConfigPayload, TSeoPayload } from "@/app/shared/types/config-payloads.types";
 import { AsyncPipe, DOCUMENT } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -67,6 +73,39 @@ export class AppShellComponent {
   // Public alias for template usage
   readonly lang = this._lang;
   private readonly activeHref = signal<string | null>(null);
+  private readonly configBootstrap = inject(ConfigBootstrapService);
+  private readonly configStore = inject(ConfigStoreService);
+  private readonly domainResolver = inject(DomainResolverService);
+  private readonly combosService = inject(AngoraCombosService);
+
+  private readonly draftSeo = signal<TSeoPayload | null>(null);
+  private readonly draftAnalytics = signal<TAnalyticsConfigPayload | null>(null);
+  private readonly readDepthMilestones = signal<readonly number[]>([10, 20, 30, 40, 50, 60, 70, 80, 90, 100]);
+  private readonly sectionViewIds = signal<readonly string[]>([
+    'home',
+    'conversion-section',
+    'features-section',
+    'process-section',
+    'services-section',
+    'stats-strip-section',
+    'testimonials-section',
+    'faq-section',
+    'contact-section',
+  ]);
+
+  readonly rootComponentsIds = signal<readonly (string | TGenericComponent)[]>([
+    'skipToMainLink',
+    'siteHeader',
+    'landingPage',
+    'siteFooter'
+  ]);
+
+  readonly modalRootIds = signal<readonly string[]>([
+    'modalAnalyticsConsentRoot',
+    'modalDemoRoot',
+    'modalTermsRoot',
+    'modalDataUseRoot'
+  ]);
 
 
   // Minimal header config until centralized state is introduced
@@ -161,10 +200,11 @@ export class AppShellComponent {
 
     // Initialize Angora CSS once, then regenerate after every render
     try {
-      afterNextRender(() => {
+      afterNextRender(async () => {
         // Prompt for analytics consent early if needed
         this.analytics.promptForConsentIfNeeded();
         this.initializeAngoraConfiguration();
+        await this.applyConfigOverrides();
         this._ank.cssCreate();
         if (this.debugMode) {
           this.removeAnkDNoneFromAnkTimer();
@@ -198,6 +238,7 @@ export class AppShellComponent {
     effect(() => {
       // Reactive SEO/meta updates on language changes
       const lang = this._lang.currentLanguage();
+      const draftSeo = this.draftSeo();
       try {
         if (typeof document !== "undefined") {
           // Keep <html lang> in sync with current language for screen readers/UA
@@ -205,12 +246,18 @@ export class AppShellComponent {
           // LTR languages by default (es/en); adjust if RTL added in future
           document.documentElement.setAttribute("dir", "ltr");
           const isEs = lang === 'es';
-          const seoTitle = isEs
+          const draftTitle = typeof draftSeo?.title === 'string' && draftSeo.title.trim().length > 0
+            ? draftSeo.title
+            : undefined;
+          const draftDescription = typeof draftSeo?.description === 'string' && draftSeo.description.trim().length > 0
+            ? draftSeo.description
+            : undefined;
+          const seoTitle = draftTitle || (isEs
             ? 'Landing Page Optimizada: Convierte visitas en clientes | ZoolandingPage'
-            : 'Optimized Landing Page: Turn visits into customers | ZoolandingPage';
-          const seoDesc = isEs
+            : 'Optimized Landing Page: Turn visits into customers | ZoolandingPage');
+          const seoDesc = draftDescription || (isEs
             ? 'Publica una landing rápida, clara y medible. Más cierres de venta, mejores decisiones con datos. Suscripción desde 900 MXN/mes (incluye dominio, alojamiento y medición).'
-            : 'Launch a fast, clear and measurable landing. More conversions, better decisions with data. Plans from 900 MXN/month (domain, hosting and analytics included).';
+            : 'Launch a fast, clear and measurable landing. More conversions, better decisions with data. Plans from 900 MXN/month (domain, hosting and analytics included).');
 
           this.titleSvc.setTitle(seoTitle);
           this.meta.updateTag({ name: 'description', content: seoDesc });
@@ -220,19 +267,21 @@ export class AppShellComponent {
           const url = origin + '/';
           const ogLocale = isEs ? 'es_ES' : 'en_US';
           const ogImage = origin + '/assets/og-1200x630.svg';
-          this.meta.updateTag({ property: 'og:title', content: seoTitle });
-          this.meta.updateTag({ property: 'og:description', content: seoDesc });
-          this.meta.updateTag({ property: 'og:type', content: 'website' });
-          this.meta.updateTag({ property: 'og:url', content: url });
-          this.meta.updateTag({ property: 'og:image', content: ogImage });
-          this.meta.updateTag({ property: 'og:locale', content: ogLocale });
-          this.meta.updateTag({ property: 'og:site_name', content: 'Zoo Landing Page' });
+          const og = draftSeo?.openGraph ?? {};
+          this.meta.updateTag({ property: 'og:title', content: String(og['title'] ?? seoTitle) });
+          this.meta.updateTag({ property: 'og:description', content: String(og['description'] ?? seoDesc) });
+          this.meta.updateTag({ property: 'og:type', content: String(og['type'] ?? 'website') });
+          this.meta.updateTag({ property: 'og:url', content: String(og['url'] ?? url) });
+          this.meta.updateTag({ property: 'og:image', content: String(og['image'] ?? ogImage) });
+          this.meta.updateTag({ property: 'og:locale', content: String(og['locale'] ?? ogLocale) });
+          this.meta.updateTag({ property: 'og:site_name', content: String(og['site_name'] ?? 'Zoo Landing Page') });
 
           // Twitter Card
-          this.meta.updateTag({ name: 'twitter:card', content: 'summary_large_image' });
-          this.meta.updateTag({ name: 'twitter:title', content: seoTitle });
-          this.meta.updateTag({ name: 'twitter:description', content: seoDesc });
-          this.meta.updateTag({ name: 'twitter:image', content: ogImage });
+          const tw = draftSeo?.twitter ?? {};
+          this.meta.updateTag({ name: 'twitter:card', content: String(tw['card'] ?? 'summary_large_image') });
+          this.meta.updateTag({ name: 'twitter:title', content: String(tw['title'] ?? seoTitle) });
+          this.meta.updateTag({ name: 'twitter:description', content: String(tw['description'] ?? seoDesc) });
+          this.meta.updateTag({ name: 'twitter:image', content: String(tw['image'] ?? ogImage) });
 
           // Canonical link
           const head = this.doc.head;
@@ -243,7 +292,7 @@ export class AppShellComponent {
               linkEl.setAttribute('rel', 'canonical');
               head.appendChild(linkEl);
             }
-            linkEl.setAttribute('href', url);
+            linkEl.setAttribute('href', String(draftSeo?.canonical ?? url));
           }
         }
       } catch {
@@ -251,8 +300,41 @@ export class AppShellComponent {
       }
     });
 
-    // Inject high-level structured data once on component init (browser only)
-    // Website
+    this.initDebugOverlay();
+  }
+
+  private async applyConfigOverrides(): Promise<void> {
+    const pageId = environment.drafts.defaultPageId;
+    const boot = await this.configBootstrap.load({ pageId, lang: this._lang.currentLanguage() });
+    const domain = boot.domain || environment.drafts.defaultDomain;
+    const pageConfig = boot.pageConfig;
+    if (pageConfig?.rootIds?.length) {
+      this.rootComponentsIds.set(pageConfig.rootIds);
+    }
+    if (pageConfig?.modalRootIds?.length) {
+      this.modalRootIds.set(pageConfig.modalRootIds);
+    }
+
+    const componentsPayload = boot.components;
+    if (componentsPayload && Object.keys(componentsPayload.components ?? {}).length > 0) {
+      this.orchestrator.setExternalComponentsFromPayload(componentsPayload);
+    } else if (this.debugMode) {
+      const exportPayload = this.orchestrator.exportDraftComponentsPayload(domain, pageId);
+      console.log('[Drafts] Components payload export:', exportPayload);
+    }
+
+    this.combosService.applyPayload(boot.combos);
+
+    if (boot.seo) this.draftSeo.set(boot.seo);
+    if (boot.analytics) {
+      this.draftAnalytics.set(boot.analytics);
+      if (boot.analytics.sectionIds?.length) this.sectionViewIds.set(boot.analytics.sectionIds);
+      if (boot.analytics.scrollMilestones?.length) this.readDepthMilestones.set(boot.analytics.scrollMilestones);
+    }
+    if (!boot.structuredDataApplied) this.applyDefaultStructuredData();
+  }
+
+  private applyDefaultStructuredData(): void {
     this.structured.injectOnce('sd:website', {
       '@context': 'https://schema.org',
       '@type': 'WebSite',
@@ -265,7 +347,6 @@ export class AppShellComponent {
         'query-input': 'required name=search_term_string',
       },
     });
-    // Organization
     this.structured.injectOnce('sd:org', {
       '@context': 'https://schema.org',
       '@type': 'Organization',
@@ -278,8 +359,6 @@ export class AppShellComponent {
         'https://www.linkedin.com/'
       ],
     });
-
-    this.initDebugOverlay();
   }
 
 
@@ -293,7 +372,7 @@ export class AppShellComponent {
     // this._ank.changeSections([]);
     // this._ank.changeDebugOption(true);
     setTimeout(() => {
-      this._ank.pushCombos({
+      this.combosService.setBaseCombos({
         /* Accordion */
         accContainer: [
           'ank-display-flex ank-flexDirection-column ank-gap-0_25rem'
@@ -387,6 +466,7 @@ export class AppShellComponent {
 
   // Debug overlay: keep last 10 analytics events when debug mode is on
   readonly recentEvents = signal<readonly string[]>([]);
+  readonly configIssues = computed(() => this.configStore.validationIssues());
   private initDebugOverlay(): void {
     if (!this.debugMode) return;
     try {
@@ -399,6 +479,92 @@ export class AppShellComponent {
     } catch {
       // ignore overlay errors
     }
+  }
+
+  downloadDraftPayloads(): void {
+    if (!this.debugMode || typeof document === 'undefined') return;
+    const resolved = this.domainResolver.resolveDomain();
+    const domain = resolved.domain || environment.drafts.defaultDomain;
+    const pageId = environment.drafts.defaultPageId;
+    const payloads = this.buildDraftPayloads(domain, pageId);
+
+    payloads.forEach((payload) => {
+      const blob = new Blob([JSON.stringify(payload.data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = payload.name;
+      link.click();
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  async writeDraftPayloadsToDisk(): Promise<void> {
+    if (!this.debugMode || typeof window === 'undefined') return;
+    const picker = (window as any).showDirectoryPicker;
+    if (typeof picker !== 'function') {
+      this.downloadDraftPayloads();
+      return;
+    }
+
+    const resolved = this.domainResolver.resolveDomain();
+    const domain = resolved.domain || environment.drafts.defaultDomain;
+    const pageId = environment.drafts.defaultPageId;
+    const payloads = this.buildDraftPayloads(domain, pageId);
+
+    try {
+      const dirHandle = await picker();
+      for (const payload of payloads) {
+        await this.writeFileToDir(dirHandle, payload.name, JSON.stringify(payload.data, null, 2));
+      }
+    } catch {
+      this.downloadDraftPayloads();
+    }
+  }
+
+  private buildDraftPayloads(domain: string, pageId: string): { name: string; data: unknown }[] {
+    const pageConfig = this.configStore.pageConfig() ?? {
+      version: 1,
+      pageId,
+      domain,
+      rootIds: this.rootComponentsIds(),
+      modalRootIds: this.modalRootIds(),
+    };
+    const componentsPayload = this.configStore.components() ?? this.orchestrator.exportDraftComponentsPayload(domain, pageId);
+    const variables = this.configStore.variables();
+    const combos = this.configStore.combos();
+    const seo = this.configStore.seo();
+    const structured = this.configStore.structuredData();
+    const analytics = this.configStore.analytics();
+    const i18n = this.configStore.i18n();
+
+    const payloads: { name: string; data: unknown }[] = [
+      { name: 'page-config.json', data: pageConfig },
+      { name: 'components.json', data: componentsPayload },
+    ];
+
+    if (variables) payloads.push({ name: 'variables.json', data: variables });
+    if (combos) payloads.push({ name: 'angora-combos.json', data: combos });
+    if (seo) payloads.push({ name: 'seo.json', data: seo });
+    if (structured) payloads.push({ name: 'structured-data.json', data: structured });
+    if (analytics) payloads.push({ name: 'analytics-config.json', data: analytics });
+    if (i18n) payloads.push({ name: `i18n/${ i18n.lang }.json`, data: i18n });
+
+    return payloads;
+  }
+
+  private async writeFileToDir(dirHandle: any, name: string, contents: string): Promise<void> {
+    const parts = name.split('/').filter(Boolean);
+    let current = dirHandle;
+    while (parts.length > 1) {
+      const part = parts.shift() as string;
+      current = await current.getDirectoryHandle(part, { create: true });
+    }
+    const fileName = parts[0];
+    const fileHandle = await current.getFileHandle(fileName, { create: true });
+    const writable = await fileHandle.createWritable();
+    await writable.write(contents);
+    await writable.close();
   }
 
   // Unified analytics event handler (receives from any child component)
@@ -447,7 +613,7 @@ export class AppShellComponent {
   private setupReadDepthTracking(): void {
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
     // Granular scroll depth milestones (10% increments)
-    const milestones = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+    const milestones = [...this.readDepthMilestones()];
     const hit = new Set<number>();
 
     const scrollEl = (document.scrollingElement || document.documentElement || document.body) as HTMLElement;
@@ -525,17 +691,7 @@ export class AppShellComponent {
     if (typeof window === 'undefined' || typeof document === 'undefined' || !('IntersectionObserver' in window)) {
       return;
     }
-    const ids = [
-      'home',
-      'conversion-section',
-      'features-section',
-      'process-section',
-      'services-section',
-      'stats-strip-section',
-      'testimonials-section',
-      'faq-section',
-      'contact-section',
-    ];
+    const ids = [...this.sectionViewIds()];
     const lastSeen = new Map<string, number>();
     const initialSeen = new Set<string>();
     const observer = new IntersectionObserver(

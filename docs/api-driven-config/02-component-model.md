@@ -43,6 +43,12 @@ A semicolon-separated DSL for centralized event handling.
 
 See: [05-event-instructions.md](05-event-instructions.md)
 
+### `condition` (optional)
+
+A semicolon-separated DSL for conditional rendering.
+
+See: [09-condition-instructions.md](09-condition-instructions.md)
+
 ## Composition / nesting
 
 A common pattern is:
