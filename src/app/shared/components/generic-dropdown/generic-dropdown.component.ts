@@ -92,7 +92,7 @@ export class GenericDropdown {
       this.inlineOutlet = new DomPortalOutlet(menuRoot, this.appRef, this.injector);
       this.inlinePortal = new TemplatePortal(this.defaultMenuTpl, this.vcr, {
         items: this.items(),
-        select: (item: DropdownItem) => this.onSelect(item),
+        select: (item: DropdownItem) => this.handleSelect(item),
       });
       this.inlineOutlet.attach(this.inlinePortal);
       this.opened.set(true);
@@ -172,9 +172,12 @@ export class GenericDropdown {
 
   handleSelect(it: DropdownItem): void {
     if (it.disabled) return;
-    this.selectItem.emit(it);
+
+    const normalized = this.normalizedItem(it);
+    this.selectItem.emit(normalized);
+
     const cfg = { ...DROPDOWN_DEFAULT, ...(this.config() || {}) };
-    if (cfg.closeOnSelect) this.close();
+    if (cfg.closeOnSelect) this.close(false);
   }
 
   private menuContext(): MenuTemplateContext {
@@ -184,7 +187,7 @@ export class GenericDropdown {
     };
   }
 
-  close(): void {
+  close(restoreFocus = true): void {
     if (this.renderMode() === 'inline') {
       try {
         this.inlineOutlet?.detach();
@@ -202,7 +205,7 @@ export class GenericDropdown {
       this.inlineMenuRoot = null;
       this.opened.set(false);
       this.activeIndex.set(-1);
-      this.triggerBtn?.focus();
+      if (restoreFocus) this.triggerBtn?.focus();
       queueMicrotask(() => {
         try {
           setTimeout(() => this.angora.cssCreate(), 350);
@@ -218,7 +221,7 @@ export class GenericDropdown {
     this.opened.set(false);
     this.activeIndex.set(-1);
     // restore focus to trigger
-    this.triggerBtn?.focus();
+    if (restoreFocus) this.triggerBtn?.focus();
     // Recompute styles after closing as well (safe no-op if none changed)
     queueMicrotask(() => {
       try {
@@ -230,29 +233,7 @@ export class GenericDropdown {
   }
 
   onSelect(it: DropdownItem): void {
-    if (it.disabled) return;
-    this.selectItem.emit(it);
-
-    const sectionId = String(it.value ?? '').trim();
-    if (sectionId && typeof document !== 'undefined') {
-      try {
-        // Keep URL consistent with anchor navigation without forcing a full jump.
-        if (typeof history !== 'undefined' && typeof history.replaceState === 'function') {
-          history.replaceState(null, '', `#${ sectionId }`);
-        }
-      } catch {
-        /* no-op */
-      }
-      try {
-        const el = document.getElementById(sectionId);
-        el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } catch {
-        /* no-op */
-      }
-    }
-
-    const cfg = { ...DROPDOWN_DEFAULT, ...(this.config() || {}) };
-    if (cfg.closeOnSelect) this.close();
+    this.handleSelect(it);
   }
 
   @HostListener('keydown', ['$event']) onHostKey(e: KeyboardEvent): void {
@@ -320,5 +301,35 @@ export class GenericDropdown {
   private isDisabled(el: Element | null | undefined): boolean {
     if (!el) return true;
     return el.getAttribute('aria-disabled') === 'true';
+  }
+
+  resolveMaybeThunk(value: unknown): unknown {
+    if (typeof value === 'function' && (value as (...args: unknown[]) => unknown).length === 0) {
+      return (value as () => unknown)();
+    }
+    return value;
+  }
+
+  itemLabel(item: DropdownItem): string {
+    const raw = this.resolveMaybeThunk(item.label);
+    return typeof raw === 'string' ? raw : String(raw ?? '');
+  }
+
+  itemValue(item: DropdownItem): string {
+    const raw = this.resolveMaybeThunk(item.value);
+    return typeof raw === 'string' ? raw : String(raw ?? '');
+  }
+
+  itemHref(item: DropdownItem): string {
+    const value = this.itemValue(item).trim();
+    return value ? `#${ value }` : '#';
+  }
+
+  normalizedItem(item: DropdownItem): DropdownItem {
+    return {
+      ...item,
+      label: this.itemLabel(item),
+      value: this.itemValue(item),
+    };
   }
 }

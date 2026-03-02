@@ -1,5 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Output, Signal, computed, input, signal } from '@angular/core';
+import { Component, EventEmitter, Output, Signal, computed, inject, input, signal } from '@angular/core';
+import { I18nService } from '../../services/i18n.service';
+import { VariableStoreService } from '../../services/variable-store.service';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { AccordionItem, TAccordionConfig } from './generic-accordion.types';
 @Component({
@@ -9,9 +11,29 @@ import { AccordionItem, TAccordionConfig } from './generic-accordion.types';
   styleUrls: ['./generic-accordion.component.scss'],
 })
 export class GenericAccordionComponent {
-  readonly config = input<TAccordionConfig>({ items: [] });
+  private readonly i18n = inject(I18nService);
+  private readonly variableStore = inject(VariableStoreService);
+  readonly config = input<TAccordionConfig>({});
   readonly items: Signal<readonly AccordionItem[]> = computed(() => {
-    const raw = this.config().items;
+    const cfg = this.config();
+    const source = cfg.itemsSource;
+    if (source?.path) {
+      const data = source.source === 'var'
+        ? this.variableStore.get(source.path)
+        : this.i18n.get(source.path);
+
+      if (Array.isArray(data)) {
+        return data
+          .filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object')
+          .map((entry, index) => ({
+            id: String(entry['id'] ?? `accordion-item-${ index + 1 }`),
+            title: String(entry['title'] ?? ''),
+            content: String(entry['content'] ?? ''),
+          }));
+      }
+    }
+
+    const raw = cfg.items;
     if (!raw) return [];
     return typeof raw === 'function' ? raw() : raw;
   });

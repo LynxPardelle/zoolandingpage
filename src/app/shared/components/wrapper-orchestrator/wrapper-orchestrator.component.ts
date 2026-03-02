@@ -90,6 +90,14 @@ export class WrapperOrchestrator {
       // Normalize some common non-ASCII hyphen/minus characters to '-'
       .replace(/[\u2010\u2011\u2212]/g, '-');
   }
+
+  resolveMaybeThunk(value: unknown): unknown {
+    if (typeof value === 'function' && (value as (...args: unknown[]) => unknown).length === 0) {
+      return (value as () => unknown)();
+    }
+    return value;
+  }
+
   eventEmitted(event: { component: string; meta_title?: string; eventName: string; eventData?: unknown; eventInstructions?: string; }) {
     this._configurationsOrchestratorService.handleComponentEvent({
       componentId: event.component,

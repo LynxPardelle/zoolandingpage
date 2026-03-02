@@ -58,6 +58,32 @@ Checks:
 - Verify `structured-data.json` contains a non-empty `entries` array.
 - Confirm entries are valid schema.org JSON objects.
 
+### loopConfig does not render generated children
+
+Symptoms:
+
+- Container renders but expected repeated items are missing.
+
+Checks:
+
+- Verify `loopConfig.templateId` exists in `components.json`.
+- Verify `loopConfig.source` and required fields (`path` or `count`) are present.
+- For `var`/`i18n` sources, ensure the resolved value is an array.
+- Check console warnings from `ConfigurationsOrchestrator` for invalid loop sources/template IDs.
+
+### Footer social links not visible
+
+Symptoms:
+
+- Footer social section is hidden or empty.
+
+Checks:
+
+- Verify `variables.footerConfig.showSocialLinks` is true.
+- Verify `variables.footerSocialLinks` exists and is a non-empty array.
+- Confirm each social entry has usable `url` and `ariaLabel` values.
+- Check for one-time warning: `variables.footerSocialLinks is empty. Footer social links will not render.`
+
 ## Debug Tips
 
 - Enable `environment.features.debugMode` in development.

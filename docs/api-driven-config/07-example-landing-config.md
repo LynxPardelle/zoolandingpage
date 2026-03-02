@@ -92,3 +92,55 @@ A map is the easiest API payload, since `id` is the natural key:
 
 - The exact `config` keys depend on the specific generic component type.
 - In API mode, any field that needs runtime values should be populated via `valueInstructions` and left as a placeholder in `config`.
+
+## Example: loopConfig-driven section
+
+```json
+{
+  "components": {
+    "featuresSectionGrid": {
+      "id": "featuresSectionGrid",
+      "type": "container",
+      "loopConfig": {
+        "source": "i18n",
+        "path": "features",
+        "templateId": "featuresCardTemplate",
+        "idPrefix": "featuresCard"
+      },
+      "config": {
+        "tag": "div",
+        "classes": "gridCol2",
+        "components": []
+      }
+    },
+    "featuresCardTemplate": {
+      "id": "featuresCardTemplate",
+      "type": "feature-card",
+      "config": {
+        "icon": "",
+        "title": "",
+        "description": "",
+        "benefits": []
+      }
+    }
+  }
+}
+```
+
+## Example: variables-driven footer social links
+
+```json
+{
+  "variables": {
+    "footerSocialLinks": [
+      {
+        "id": "footerSocialFacebook",
+        "name": "Facebook",
+        "url": "https://facebook.com/zoolanding",
+        "icon": "📘",
+        "ariaLabel": "Visit our Facebook page"
+      }
+    ]
+  }
+}
+```

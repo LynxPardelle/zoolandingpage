@@ -21,12 +21,12 @@
             [attr.id]="'dd-opt-' + idx"
             role="menuitem"
             [attr.aria-disabled]="it.disabled ? 'true' : null"
-            [attr.href]="it.value ? '#' + it.value : '#'"
+            [attr.href]="itemHref(it)"
             [class]="itemLinkClasses()"
             tabindex="-1"
             (click)="$event.preventDefault(); !it.disabled && select(it)"
           >
-            {{ typeof it.label === 'function' ? it.label() : it.label }}
+            {{ itemLabel(it) }}
           </a>
         </li>
         }

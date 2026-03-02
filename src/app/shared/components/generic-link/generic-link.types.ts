@@ -2,7 +2,7 @@
 
 export type TGenericLinkConfig = {
     readonly id: string;
-    readonly href: string;
+    readonly href: string | (() => string);
     readonly text?: string | (() => string);
     readonly classes?: string;
     readonly target?: '_self' | '_blank' | '_parent' | '_top';

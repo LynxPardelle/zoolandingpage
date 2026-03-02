@@ -24,6 +24,20 @@ export type TGenericDropdownOrchestratorConfig = {
     readonly components?: readonly string[];
 };
 
+export type TLoopConfig =
+    | {
+        readonly source: 'var' | 'i18n';
+        readonly path: string;
+        readonly templateId: string;
+        readonly idPrefix?: string;
+    }
+    | {
+        readonly source: 'repeat';
+        readonly count: number;
+        readonly templateId: string;
+        readonly idPrefix?: string;
+    };
+
 export type TGenericComponentType =
     | 'accordion'
     | 'button'
@@ -63,6 +77,11 @@ export type TGenericComponent = {
      * Example: set:config.label,i18n,hero.primary.label
      */
     readonly valueInstructions?: string;
+    /**
+     * Optional loop materialization config.
+     * Used by the orchestrator to generate component IDs/components from data sources.
+     */
+    readonly loopConfig?: TLoopConfig;
     readonly order?: number;
     readonly meta_title?: string;
 } & (

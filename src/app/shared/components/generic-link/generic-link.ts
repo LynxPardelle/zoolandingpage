@@ -28,8 +28,14 @@ export class GenericLink {
     return typeof raw === 'function' ? raw() : raw;
   }
 
+  href(): string {
+    const raw = this.config().href;
+    const resolved = typeof raw === 'function' ? raw() : raw;
+    return typeof resolved === 'string' ? resolved : String(resolved ?? '');
+  }
+
   onClick(event: MouseEvent): void {
-    const href = this.config().href || '';
+    const href = this.href();
     if (href.startsWith('#')) {
       event.preventDefault();
     }

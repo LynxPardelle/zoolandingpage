@@ -8,6 +8,8 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - No inline functions inside `config.*`.
 - Dynamic values MUST use `valueInstructions` with allowlisted resolver IDs.
 - Conditions MUST use the `condition` DSL with allowlisted handler IDs.
+- Repeated components should use `loopConfig` (object model) instead of hardcoded `Array.from(...)` IDs.
+- Dynamic accordion items should use `config.itemsSource` (`i18n` or `var`) instead of inline `items: () => ...` lambdas.
 - Reuse existing generic component types only.
 - Use existing class tokens / Angora design system conventions.
 
@@ -30,11 +32,26 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Put all interaction wiring in `eventInstructions`.
 - Prefer semicolon-separated composed instructions.
 
+## Loops
+
+- Use `loopConfig` on containers that must generate child components from payload data.
+- Current supported sources: `var`, `i18n`, `repeat`.
+- Example:
+
+```ts
+{
+  id: 'featuresSectionGrid',
+  type: 'container',
+  loopConfig: { source: 'i18n', path: 'features', templateId: 'featuresCardTemplate', idPrefix: 'featuresCard' },
+  config: { tag: 'div', classes: 'gridCol2', components: [] }
+}
+```
+
 ## Conditions
 
 - Use the condition DSL (no inline lambdas).
 - Prefer `all:` unless you need `any:` or `not:`.
-- Allowed handler IDs: env, i18n, footerConfig, footerSocialLinks, modalRefId, host, hostEq, hostNeq, hostIncludes, hostGt, hostGte, hostLt, hostLte, hostStartsWith, hostEndsWith, hostRegex, hostLenEq, hostLenGt, hostLenGte, hostLenLt, hostLenLte, true, false, always, never, exists, empty, eq, neq, gt, lt, gte, lte, type.
+- Allowed handler IDs: env, i18n, footerConfig, footerSocialLinks, modalRefId, host, hostEq, hostNeq, hostIncludes, hostGt, hostGte, hostLt, hostLte, hostStartsWith, hostEndsWith, hostRegex, hostLenEq, hostLenGt, hostLenGte, hostLenLt, hostLenLte, var, varEq, varNeq, varGt, varGte, varLt, varLte, varIncludes, varLenEq, varLenGt, varLenGte, varLenLt, varLenLte, true, false, always, never, exists, empty, eq, neq, gt, lt, gte, lte, type.
 
 ## Validation steps (developer)
 
@@ -56,7 +73,7 @@ Constraints:
 - Output only `TGenericComponent` configs.
 - No inline functions in config.
 - Use `valueInstructions` for any dynamic values.
-- Allowed resolver IDs: i18n, i18nParams, i18nGetIndex, literal, concat, coalesce, upper, lower, language, langPick, theme, themePick, env, envOr.
+- Allowed resolver IDs: i18n, i18nParams, i18nGetIndex, literal, concat, coalesce, upper, lower, language, langPick, theme, themePick, env, envOr, var, varOr.
 - Use existing generic components only.
 
 Deliverable:

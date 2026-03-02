@@ -9,7 +9,58 @@
     "domain": { "type": "string" },
     "components": {
       "type": "object",
-      "additionalProperties": { "type": "object" }
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "type": { "type": "string" },
+          "condition": { "type": ["string", "boolean"] },
+          "valueInstructions": { "type": "string" },
+          "eventInstructions": { "type": "string" },
+          "loopConfig": {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": ["source", "path", "templateId"],
+                "properties": {
+                  "source": { "enum": ["var", "i18n"] },
+                  "path": { "type": "string" },
+                  "templateId": { "type": "string" },
+                  "idPrefix": { "type": "string" }
+                },
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "required": ["source", "count", "templateId"],
+                "properties": {
+                  "source": { "const": "repeat" },
+                  "count": { "type": "integer", "minimum": 0 },
+                  "templateId": { "type": "string" },
+                  "idPrefix": { "type": "string" }
+                },
+                "additionalProperties": false
+              }
+            ]
+          },
+          "config": {
+            "type": "object",
+            "properties": {
+              "itemsSource": {
+                "type": "object",
+                "required": ["source", "path"],
+                "properties": {
+                  "source": { "enum": ["i18n", "var"] },
+                  "path": { "type": "string" }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      }
     }
   },
   "additionalProperties": false

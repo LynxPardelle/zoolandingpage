@@ -83,7 +83,8 @@ export const navigationToSectionHandler = (): EventHandler => {
     return {
         id: 'navigationToSection',
         handle: (_ctx, args) => {
-            const sectionId = String(args[0] ?? '').trim();
+            const sectionArg = String(args[0] ?? '').trim();
+            const sectionId = sectionArg.replace(/^#/, '');
             if (!sectionId) return;
 
             // Keep parity with legacy behavior: suppress SectionView spam during programmatic scroll.

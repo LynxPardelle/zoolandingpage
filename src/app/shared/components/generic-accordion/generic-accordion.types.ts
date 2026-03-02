@@ -19,10 +19,16 @@ export type AccordionItem = {
 
 export type AccordionMode = 'single' | 'multiple';
 
+export type AccordionItemsSource = {
+  readonly source: 'i18n' | 'var';
+  readonly path: string;
+};
+
 export type TAccordionConfig = {
   readonly mode?: AccordionMode;
   readonly allowToggle?: boolean; // if single mode, allow closing the only open item
-  readonly items: readonly AccordionItem[] | (() => readonly AccordionItem[]);
+  readonly items?: readonly AccordionItem[] | (() => readonly AccordionItem[]);
+  readonly itemsSource?: AccordionItemsSource;
   readonly containerClasses?: string;
   readonly defaultItemContainerClasses?: string;
   readonly defaultItemContainerIsExpandedClasses?: string;

@@ -28,6 +28,32 @@ This is the allowlisted set of condition handlers for `condition` instructions.
   - True when the active modal ref ID matches.
   - Example: `all:modalRefId,terms-of-service`
 
+## Variable handlers
+
+- `var,<path>`
+
+  - Truthy check for variable/computed value by path.
+  - Example: `all:var,footerConfig.showSocialLinks`
+
+- `varEq,<path>,<value>` / `varNeq,<path>,<value>`
+
+  - Equality / inequality checks.
+  - Example: `all:varEq,theme.default,dark`
+
+- `varGt,<path>,<value>` / `varGte,<path>,<value>` / `varLt,<path>,<value>` / `varLte,<path>,<value>`
+
+  - Numeric comparisons.
+  - Example: `all:varGt,metrics.minCards,0`
+
+- `varIncludes,<path>,<value>`
+
+  - Checks inclusion on array/string variables.
+  - Example: `all:varIncludes,enabledSections,services`
+
+- `varLenEq,<path>,<value>` / `varLenGt,<path>,<value>` / `varLenGte,<path>,<value>` / `varLenLt,<path>,<value>` / `varLenLte,<path>,<value>`
+  - Length checks for arrays/strings.
+  - Example: `all:varLenGt,footerSocialLinks,0`
+
 ## Host helpers
 
 - `host,<path>`

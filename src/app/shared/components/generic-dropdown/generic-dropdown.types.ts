@@ -2,7 +2,7 @@ export type DropdownItem = {
     readonly id: string;
     readonly label: string | (() => string);
     readonly disabled?: boolean;
-    readonly value?: string;
+    readonly value?: string | (() => string);
 };
 
 export type MenuTemplateContext = {

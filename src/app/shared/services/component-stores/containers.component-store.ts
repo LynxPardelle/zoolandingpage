@@ -1,6 +1,5 @@
 import { TGenericComponent } from "../../components/wrapper-orchestrator/wrapper-orchestrator.types";
 import { I18nService } from "../i18n.service";
-import { footerSocialLinks } from "./data/footerSocialLinks";
 
 export const createContainers = (globalI18n: I18nService): TGenericComponent[] => {
     return [
@@ -89,24 +88,29 @@ export const createContainers = (globalI18n: I18nService): TGenericComponent[] =
         {
             id: "badgesListContainer",
             type: 'container',
+            loopConfig: {
+                source: 'i18n',
+                path: 'hero.badges',
+                templateId: 'badgeContainerTemplate',
+                idPrefix: 'badgeContainer',
+            },
             config: {
                 tag: 'div',
                 classes:
                     'ank-display-flex ank-flexDirection-column ank-gap-8px ank-alignItems-center ank-alignItems-lg-start',
-                components: Array.from({ length: 5 }, (_, index) => `badgeContainer${ index + 1 }`),
+                components: [],
             },
         },
-        // Badge Containers
-        ...Array.from({ length: 5 }, (_, index) => ({
-            id: `badgeContainer${ index + 1 }`,
-            condition: `all:i18n,hero.badges.${ index }`,
+        // Badge Container Template
+        {
+            id: 'badgeContainerTemplate',
             type: 'container',
             config: {
                 tag: 'div',
                 classes: 'ank-display-flex ank-alignItems-center ank-gap-8px ank-bg-bgColorOPA__0_8 ank-borderRadius-24px ank-px-12px ank-px-lg-20px ank-py-6px ank-border-1px ank-borderColor-textColorOPA__0_2 ank-backdropFilter-blurSD8pxED ank-minWidth-120px ank-minWidth-lg-160px',
-                components: [`badgePoint`, `badgeText${ index + 1 }`]
+                components: ['badgePoint', 'badgeTextTemplate']
             },
-        })) as TGenericComponent[],
+        },
         // Badge Points
         {
             id: `badgePoint`,
@@ -726,10 +730,16 @@ export const createContainers = (globalI18n: I18nService): TGenericComponent[] =
         {
             id: 'featuresSectionGrid',
             type: 'container',
+            loopConfig: {
+                source: 'i18n',
+                path: 'features',
+                templateId: 'featuresCardTemplate',
+                idPrefix: 'featuresCard',
+            },
             config: {
                 tag: 'div',
                 classes: 'gridCol2',
-                components: Array.from({ length: 6 }, (_, index) => `featuresCard${ index + 1 }`),
+                components: [],
             }
         },
 
@@ -766,10 +776,16 @@ export const createContainers = (globalI18n: I18nService): TGenericComponent[] =
         {
             id: 'servicesSectionGrid',
             type: 'container',
+            loopConfig: {
+                source: 'i18n',
+                path: 'services',
+                templateId: 'servicesCardTemplate',
+                idPrefix: 'servicesCard',
+            },
             config: {
                 tag: 'div',
                 classes: 'gridCol2',
-                components: Array.from({ length: 3 }, (_, index) => `servicesCard${ index + 1 }`),
+                components: [],
             }
         },
 
@@ -872,10 +888,16 @@ export const createContainers = (globalI18n: I18nService): TGenericComponent[] =
         {
             id: 'testimonialsSectionGrid',
             type: 'container',
+            loopConfig: {
+                source: 'i18n',
+                path: 'testimonials',
+                templateId: 'testimonialsCardTemplate',
+                idPrefix: 'testimonialsCard',
+            },
             config: {
                 tag: 'div',
                 classes: 'gridCol2',
-                components: Array.from({ length: 3 }, (_, index) => `testimonialsCard${ index + 1 }`),
+                components: [],
             }
         },
 
@@ -1246,10 +1268,16 @@ export const createContainers = (globalI18n: I18nService): TGenericComponent[] =
             id: 'footerSocialSection',
             condition: 'all:footerConfig,showSocialLinks; all:footerSocialLinks,exists',
             type: 'container',
+            loopConfig: {
+                source: 'var',
+                path: 'footerSocialLinks',
+                templateId: 'footerSocialLinkTemplate',
+                idPrefix: 'footerSocialLink',
+            },
             config: {
                 tag: 'div',
                 classes: 'ank-display-flex ank-gap-16px ank-alignItems-center',
-                components: footerSocialLinks.map(link => link.id) as readonly string[],
+                components: [],
             }
         },
         {

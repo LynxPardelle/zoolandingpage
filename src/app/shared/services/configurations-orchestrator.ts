@@ -1,5 +1,6 @@
 import { ProcessStep } from '@/app/landing-page/components/interactive-process/interactive-process-leaf.types';
 import type { TGenericStatsCounterConfig } from '@/app/shared/components/generic-stats-counter/generic-stats-counter.types';
+import { I18N_CONFIG } from '@/app/shared/i18n/index.i18n';
 import { I18nService } from '@/app/shared/services/i18n.service';
 import type { TComponentsPayload } from '@/app/shared/types/config-payloads.types';
 import { computed, effect, inject, Injectable } from '@angular/core';
@@ -17,7 +18,7 @@ import {
 import { forwardAnalyticsEvent } from '../utility/forwardAnalyticsEvent.utility';
 import { AnalyticsService } from './analytics.service';
 import { ComponentEvent, ComponentEventDispatcherService } from './component-event-dispatcher.service';
-import { createAccordions } from './component-stores/accordions.component-store';
+import { accordions } from './component-stores/accordions.component-store';
 import { buttons } from './component-stores/buttons.component-store';
 import { createCards } from './component-stores/cards.component-store';
 import { createComponents } from './component-stores/components.component-store';
@@ -40,6 +41,7 @@ import { toasts } from './component-stores/toasts.component-store';
 import { tooltips } from './component-stores/tooltips.component-store';
 import { InteractiveProcessStoreService } from './interactive-process-store.service';
 import { QuickStatsService } from './quick-stats.service';
+import { VariableStoreService } from './variable-store.service';
 @Injectable({
     providedIn: 'root',
 })
@@ -50,6 +52,10 @@ export class ConfigurationsOrchestratorService {
     private readonly globalI18n = inject(I18nService);
     private readonly componentEventDispatcher = inject(ComponentEventDispatcherService);
     private readonly interactiveProcessStore = inject(InteractiveProcessStoreService);
+    private readonly variableStore = inject(VariableStoreService);
+    private warnedFooterSocialLinksMissing = false;
+    private warnedFooterSocialLinksEmpty = false;
+    private warnedNavigationMissing = false;
 
     // [MODALS-1] Centralize modal state/config in orchestrator (moved from AppShell).
     readonly activeModalRef = computed(() => this.modal.modalRef());
@@ -119,31 +125,6 @@ export class ConfigurationsOrchestratorService {
         }
     }
 
-    private readonly footerConfig = {
-        showCopyright: true,
-        showSocialLinks: false,
-        showLegalLinks: true,
-        organizationName: 'Zoo Landing',
-        copyrightText: '© 2025 Zoo Landing Page. All rights reserved.',
-    } as const;
-
-    private readonly footerTranslations = {
-        en: {
-            legalTitle: 'Legal',
-            termsLink: 'Terms of Service',
-            dataLink: 'Data Privacy',
-            termsAriaLabel: 'Terms of Service',
-            dataAriaLabel: 'Data Privacy',
-        },
-        es: {
-            legalTitle: 'Legal',
-            termsLink: 'Términos de servicio',
-            dataLink: 'Privacidad de datos',
-            termsAriaLabel: 'Términos de servicio',
-            dataAriaLabel: 'Privacidad de datos',
-        },
-    } as const;
-
     private readonly statsStripRemote = computed(() => this.quickStats.remoteStats());
 
     private readonly statsStripVisitsConfig = computed<TGenericStatsCounterConfig>(() => ({
@@ -183,11 +164,7 @@ export class ConfigurationsOrchestratorService {
             isActive: demo.step === stepIndex + 1,
         }));
     });
-    readonly cards: TGenericComponent[] = createCards({
-        globalI18n: this.globalI18n,
-        onComponentEvent: (event) => this.handleComponentEvent(event),
-    });
-    readonly accordions: TGenericComponent[] = createAccordions(this.globalI18n);
+    readonly cards: TGenericComponent[] = createCards();
     readonly containers: TGenericComponent[] = createContainers(this.globalI18n);
     readonly statsCounters: TGenericComponent[] = createStatsCounters({
         statsStripVisitsConfig: this.statsStripVisitsConfig,
@@ -199,7 +176,7 @@ export class ConfigurationsOrchestratorService {
         currentStep: this.interactiveProcessStore.currentStep,
     });
     readonly components: TGenericComponent[] = createComponents({
-        accordions: this.accordions,
+        accordions: accordions,
         buttons: buttons,
         links: links,
         media: media,
@@ -220,6 +197,74 @@ export class ConfigurationsOrchestratorService {
         tooltips: tooltips,
         devOnlyComponents: devOnlyComponents,
     });
+
+    get footerSocialLinks(): readonly Record<string, unknown>[] {
+        const raw = this.variableStore.get('footerSocialLinks');
+        if (!Array.isArray(raw)) {
+            if (!this.warnedFooterSocialLinksMissing) {
+                console.warn('[ConfigurationsOrchestrator] Expected variables.footerSocialLinks to be an array.');
+                this.warnedFooterSocialLinksMissing = true;
+            }
+            return [];
+        }
+        if (raw.length === 0 && !this.warnedFooterSocialLinksEmpty) {
+            console.warn('[ConfigurationsOrchestrator] variables.footerSocialLinks is empty. Footer social links will not render.');
+            this.warnedFooterSocialLinksEmpty = true;
+        }
+        return raw.filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object');
+    }
+
+    get footerConfig(): Record<string, unknown> {
+        const fallback = {
+            showLegalLinks: true,
+            showSocialLinks: true,
+            showCopyright: true,
+            copyrightText: '© 2025 Zoo Landing Page. Todos los derechos reservados.',
+        };
+        return this.variableStore.getOr<Record<string, unknown>>('footerConfig', fallback);
+    }
+
+    get footerTranslations(): Record<string, Record<string, string>> {
+        const esFooter = (I18N_CONFIG.translations.es as any)?.footer?.legal;
+        const enFooter = (I18N_CONFIG.translations.en as any)?.footer?.legal;
+        return {
+            en: {
+                legalTitle: String(enFooter?.title ?? 'Legal'),
+                termsLink: String(enFooter?.terms?.link ?? 'Terms of Service'),
+                dataLink: String(enFooter?.data?.link ?? 'Data Privacy'),
+                termsAriaLabel: String(enFooter?.terms?.link ?? 'Terms of Service'),
+                dataAriaLabel: String(enFooter?.data?.link ?? 'Data Privacy'),
+            },
+            es: {
+                legalTitle: String(esFooter?.title ?? 'Legal'),
+                termsLink: String(esFooter?.terms?.link ?? 'Terminos de servicio'),
+                dataLink: String(esFooter?.data?.link ?? 'Privacidad de datos'),
+                termsAriaLabel: String(esFooter?.terms?.link ?? 'Terminos de servicio'),
+                dataAriaLabel: String(esFooter?.data?.link ?? 'Privacidad de datos'),
+            },
+        };
+    }
+
+    get navigation(): readonly Record<string, unknown>[] {
+        const fallback: readonly Record<string, unknown>[] = [
+            { id: 'home', sectionId: 'home', href: '#home', analyticsKey: 'home', labelEn: 'Home', labelEs: 'Inicio' },
+            { id: 'benefits', sectionId: 'features-section', href: '#features-section', analyticsKey: 'benefits', labelEn: 'Benefits', labelEs: 'Beneficios' },
+            { id: 'process', sectionId: 'process-section', href: '#process-section', analyticsKey: 'process', labelEn: 'Process', labelEs: 'Proceso' },
+            { id: 'services', sectionId: 'services-section', href: '#services-section', analyticsKey: 'services', labelEn: 'Services', labelEs: 'Servicios' },
+            { id: 'contact', sectionId: 'contact-section', href: '#contact-section', analyticsKey: 'contact', labelEn: 'Contact', labelEs: 'Contacto' },
+        ];
+
+        const raw = this.variableStore.get('navigation');
+        if (!Array.isArray(raw)) {
+            if (!this.warnedNavigationMissing) {
+                console.warn('[ConfigurationsOrchestrator] Expected variables.navigation to be an array. Using fallback navigation.');
+                this.warnedNavigationMissing = true;
+            }
+            return fallback;
+        }
+
+        return raw.filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object');
+    }
 
     private externalComponents: TGenericComponent[] | null = null;
     private externalComponentsMap = new Map<string, TGenericComponent>();
@@ -268,7 +313,8 @@ export class ConfigurationsOrchestratorService {
     }
 
     getComponentById(id: string) {
-        let component = this.externalComponentsMap.get(id) ?? findComponentById(this.components, id);
+        const resolved = this.resolveLoopComponents();
+        let component = resolved.get(id) ?? this.externalComponentsMap.get(id) ?? findComponentById(this.components, id);
         if (!component) {
             console.error(`Component with id "${ id }" not found in ConfigurationsOrchestratorService.`);
         } else {
@@ -279,7 +325,7 @@ export class ConfigurationsOrchestratorService {
     }
 
     getAllTheClassesFromComponents(): string[] {
-        return collectAllClassesFromComponents(this.externalComponents ?? this.components);
+        return collectAllClassesFromComponents(Array.from(this.resolveLoopComponents().values()));
     }
 
     handleComponentEvent(event: ComponentEvent): void {
@@ -293,5 +339,156 @@ export class ConfigurationsOrchestratorService {
         return JSON.parse(
             JSON.stringify(component, (_key, value) => (typeof value === 'function' ? undefined : value))
         ) as Record<string, unknown>;
+    }
+
+    private resolveLoopComponents(): Map<string, TGenericComponent> {
+        const source = this.externalComponents ?? this.components;
+        const resolved = new Map<string, TGenericComponent>(source.map((component) => [component.id, component]));
+
+        for (const component of source) {
+            const loop = (component as any).loopConfig;
+            if (!loop) continue;
+
+            const templateId = String(loop.templateId ?? '').trim();
+            if (!templateId) continue;
+
+            const template = resolved.get(templateId) ?? source.find((item) => item.id === templateId);
+            if (!template) {
+                console.warn(`[ConfigurationsOrchestrator] loopConfig template not found: ${ templateId }`);
+                continue;
+            }
+
+            const items = this.resolveLoopItems(loop);
+            const prefix = String(loop.idPrefix ?? templateId).trim() || templateId;
+            const generatedIds = items.map((_, index) => `${ prefix }__${ index + 1 }`);
+
+            if (component.type === 'container') {
+                const nextContainer = {
+                    ...component,
+                    config: {
+                        ...component.config,
+                        components: generatedIds,
+                    },
+                } as TGenericComponent;
+                resolved.set(component.id, nextContainer);
+            }
+
+            items.forEach((item, index) => {
+                const generatedId = generatedIds[index];
+                resolved.set(generatedId, this.materializeLoopComponent(template, generatedId, item));
+            });
+        }
+
+        return resolved;
+    }
+
+    private resolveLoopItems(loop: any): readonly unknown[] {
+        const source = String(loop?.source ?? '').trim();
+        if (source === 'repeat') {
+            const count = Number(loop?.count ?? 0);
+            if (!Number.isFinite(count) || count <= 0) return [];
+            return Array.from({ length: Math.floor(count) }, (_, index) => ({ index: index + 1 }));
+        }
+
+        const path = String(loop?.path ?? '').trim();
+        if (!path) return [];
+
+        if (source === 'var') {
+            const raw = this.variableStore.get(path);
+            if (!Array.isArray(raw)) {
+                console.warn(`[ConfigurationsOrchestrator] loopConfig var source is not an array at path: ${ path }`);
+                return [];
+            }
+            return raw;
+        }
+
+        if (source === 'i18n') {
+            const raw = this.globalI18n.get(path);
+            if (!Array.isArray(raw)) {
+                console.warn(`[ConfigurationsOrchestrator] loopConfig i18n source is not an array at path: ${ path }`);
+                return [];
+            }
+            return raw;
+        }
+
+        return [];
+    }
+
+    private materializeLoopComponent(template: TGenericComponent, generatedId: string, item: unknown): TGenericComponent {
+        const nextComponent: any = {
+            ...template,
+            id: generatedId,
+            config: {
+                ...(template as any).config,
+            },
+        };
+
+        if (template.type === 'link' && item && typeof item === 'object') {
+            const record = item as Record<string, unknown>;
+            nextComponent.config.id = generatedId;
+            if (typeof record['url'] === 'string') nextComponent.config.href = record['url'];
+            if (typeof record['icon'] === 'string') nextComponent.config.text = record['icon'];
+            if (typeof record['ariaLabel'] === 'string') nextComponent.config.ariaLabel = record['ariaLabel'];
+            if (typeof record['target'] === 'string') nextComponent.config.target = record['target'];
+            if (typeof record['rel'] === 'string') nextComponent.config.rel = record['rel'];
+        }
+
+        if (template.type === 'feature-card' && item && typeof item === 'object') {
+            const record = item as Record<string, unknown>;
+            if (typeof record['icon'] === 'string') nextComponent.config.icon = record['icon'];
+            if (typeof record['title'] === 'string') nextComponent.config.title = record['title'];
+            if (typeof record['description'] === 'string') nextComponent.config.description = record['description'];
+
+            const benefits = Array.isArray(record['benefits'])
+                ? record['benefits']
+                : Array.isArray(record['features'])
+                    ? record['features']
+                    : undefined;
+            if (Array.isArray(benefits)) nextComponent.config.benefits = benefits;
+
+            if (typeof record['buttonLabel'] === 'string') {
+                nextComponent.config.buttonLabel = record['buttonLabel'];
+                nextComponent.config.onCta = (title: string) => {
+                    this.handleComponentEvent({
+                        componentId: generatedId,
+                        eventName: 'cta',
+                        meta_title: String((template as any).meta_title ?? 'services_cta_click'),
+                        eventData: { label: title },
+                        eventInstructions: String((template as any).eventInstructions ?? ''),
+                    });
+                };
+            }
+        }
+
+        if (template.type === 'testimonial-card' && item && typeof item === 'object') {
+            const record = item as Record<string, unknown>;
+            if (typeof record['name'] === 'string') nextComponent.config.name = record['name'];
+            if (typeof record['role'] === 'string') nextComponent.config.role = record['role'];
+            if (typeof record['company'] === 'string') nextComponent.config.company = record['company'];
+            if (typeof record['content'] === 'string') nextComponent.config.content = record['content'];
+            if (typeof record['avatar'] === 'string') nextComponent.config.avatar = record['avatar'];
+            if (typeof record['rating'] === 'number' && Number.isFinite(record['rating'])) {
+                nextComponent.config.rating = record['rating'];
+            }
+        }
+
+        if (template.type === 'text' && item && typeof item === 'object') {
+            const record = item as Record<string, unknown>;
+            if (typeof record['text'] === 'string') {
+                nextComponent.config.text = record['text'];
+            }
+        }
+
+        if (template.type === 'container' && Array.isArray(nextComponent.config?.components)) {
+            nextComponent.config.components = nextComponent.config.components.map((componentId: unknown) => {
+                if (componentId === 'badgeTextTemplate') {
+                    const suffix = generatedId.split('__').pop() ?? '';
+                    return `badgeText__${ suffix }`;
+                }
+                return componentId;
+            });
+        }
+
+        return nextComponent as TGenericComponent;
     }
 }

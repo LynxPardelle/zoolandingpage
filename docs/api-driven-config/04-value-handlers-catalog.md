@@ -87,6 +87,24 @@ set:config.href,env,links.whatsApp
 
 - Purpose: read `env.<path>` and fallback.
 
+### `var`
+
+- Purpose: read a value from `variables` payload using dot-path.
+- Typical usage:
+
+```text
+set:config.ariaLabel,var,ui.mobileMenuAriaLabel
+```
+
+### `varOr`
+
+- Purpose: read a value from `variables` payload and fallback when missing/null.
+- Typical usage:
+
+```text
+set:config.text,varOr,ui.brandTextFallback,Zoo Landing
+```
+
 ## Adding a new handler (developer workflow)
 
 1. Create a handler factory under:

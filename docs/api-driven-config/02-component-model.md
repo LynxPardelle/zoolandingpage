@@ -49,6 +49,28 @@ A semicolon-separated DSL for conditional rendering.
 
 See: [09-condition-instructions.md](09-condition-instructions.md)
 
+### `loopConfig` (optional)
+
+Object-based loop materialization for containers that should generate child IDs from data.
+
+Supported source kinds:
+
+- `var` with `path`
+- `i18n` with `path`
+- `repeat` with `count`
+
+See: [13-loop-config.md](13-loop-config.md)
+
+### `config.itemsSource` for accordion (optional)
+
+`generic-accordion` supports an API-safe item source model:
+
+```ts
+itemsSource: { source: 'i18n' | 'var', path: 'faq' }
+```
+
+Use this instead of inline `items: () => ...` lambdas in API mode.
+
 ## Composition / nesting
 
 A common pattern is:

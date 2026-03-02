@@ -20,6 +20,8 @@ It is written to be **friendly for an AI assistant** generating new landing page
 - Events (`eventInstructions`) DSL: [05-event-instructions.md](05-event-instructions.md)
 - Conditions (`condition`) DSL: [09-condition-instructions.md](09-condition-instructions.md)
 - Condition handler catalog: [10-condition-handlers-catalog.md](10-condition-handlers-catalog.md)
+- Loop object model (`loopConfig`): [13-loop-config.md](13-loop-config.md)
+- Loop materialization behaviors/catalog: [14-loop-resolution-catalog.md](14-loop-resolution-catalog.md)
 - AI authoring checklist + guardrails: [06-authoring-checklist.md](06-authoring-checklist.md)
 - End-to-end example config: [07-example-landing-config.md](07-example-landing-config.md)
 - Suggested API payload shape (no endpoints assumed): [08-upload-to-api.md](08-upload-to-api.md)
@@ -41,7 +43,7 @@ It is written to be **friendly for an AI assistant** generating new landing page
 
 In development, a draft interceptor can redirect API config requests to:
 
-```
+```text
 public/assets/drafts/{domain}/{pageId}/...
 ```
 

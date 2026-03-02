@@ -49,18 +49,22 @@ export const texts: TGenericComponent[] = [
             classes: 'ank-fs-1rem ank-color-textColor ank-fontWeight-medium'
         }
     },
-    // Badges
-    ...Array.from({ length: 5 }, (_unused: unknown, index: number) => ({
-        id: `badgeText${ index + 1 }`,
+    // Badge Text Template (materialized via loopConfig)
+    {
+        id: 'badgeTextTemplate',
         type: 'text',
-        condition: `all:i18n,hero.badges.${ index }.text`,
-        valueInstructions: `set:config.text,i18nGetIndex,hero.badges,${ index },text`,
+        loopConfig: {
+            source: 'i18n',
+            path: 'hero.badges',
+            templateId: 'badgeTextTemplate',
+            idPrefix: 'badgeText',
+        },
         config: {
             tag: 'span',
             text: '',
             classes: 'ank-fs-1rem ank-color-textColor ank-fontWeight-medium'
         }
-    })) as TGenericComponent[],
+    },
     // Hero Browser Mockup Header Fake URL Bar Text
     {
         id: "heroBrowserMockupHeaderFakeUrlBarText",
