@@ -1,6 +1,5 @@
 import { AnalyticsCategories, AnalyticsEvents } from '@/app/shared/services/analytics.events';
 import { AnalyticsService } from '@/app/shared/services/analytics.service';
-import { LanguageService } from '@/app/shared/services/language.service';
 import { DOCUMENT } from '@angular/common';
 import { inject } from '@angular/core';
 import type { EventHandler } from '../event-handler.types';
@@ -31,21 +30,14 @@ export const trackCtaClickHandler = (): EventHandler => {
 
 export const trackNavClickHandler = (): EventHandler => {
     const analytics = inject(AnalyticsService);
-    const language = inject(LanguageService);
 
     return {
         id: 'trackNavClick',
         handle: (_ctx, args) => {
             const key = String(args[0] ?? '').trim();
             const hrefStr = String(args[1] ?? '');
-
-            const lang = language.currentLanguage();
-            const labels: Record<string, string> =
-                lang === 'en'
-                    ? { home: 'Home', benefits: 'Benefits', process: 'Process', services: 'Services', contact: 'Contact' }
-                    : { home: 'Inicio', benefits: 'Beneficios', process: 'Proceso', services: 'Servicios', contact: 'Contacto' };
-
-            const label = labels[key] ?? (key || 'nav');
+            const normalizedHref = hrefStr.replace(/^#/, '').trim();
+            const label = key || normalizedHref || 'nav';
 
             void analytics.track(AnalyticsEvents.NavClick, {
                 category: AnalyticsCategories.Navigation,

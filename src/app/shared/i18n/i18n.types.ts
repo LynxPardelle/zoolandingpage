@@ -130,6 +130,18 @@ export interface TCalculatorTranslations {
     };
     industryLabels: Record<string, string>;
     visitorsLabel: string;
+    visitsPerMonthSuffix: string;
+    inputVisitorsLabel: string;
+    inputVisitorsAriaLabel: string;
+    businessSizeLabel: string;
+    industryLabel: string;
+    growthPotentialTitle: string;
+    basedOnCurrentConfig: string;
+    resultsBasedHint: string;
+    projectionsDisclaimer: string;
+    requestConsultingCta: string;
+    placeholderMonthlyIncreaseValue: string;
+    placeholderConversionImprovementValue: string;
     resultsTitle: string;
     monthlyIncreaseLabel: string;
     conversionImprovementLabel: string;
@@ -189,6 +201,35 @@ export type TUiTranslations = {
         label: string;
         whatsappMessage: string;
     };
+    accessibility: {
+        skipToContent: string;
+        openMenu: string;
+        mobileMenuAriaLabel: string;
+        primaryNavigation: string;
+        dialog: string;
+        analyticsConsentDialog: string;
+        dialogOpened: string;
+        dialogClosed: string;
+    };
+    controls: {
+        languageToggle: string;
+    };
+    debugPanel: {
+        downloadDraftPayloads: string;
+        writeDraftsToDisk: string;
+        configIssues: string;
+        analyticsLatest: string;
+        unknownComponentPrefix: string;
+    };
+    common: {
+        loading: string;
+        search: string;
+        noResults: string;
+        loadingPanel: string;
+        notifications: string;
+        dismissNotification: string;
+        verified: string;
+    };
 }
 
 // Demo
@@ -215,10 +256,20 @@ export type TDemoTranslations = {
         closeLabel: string;
     },
     toast: {
+        demoTitle: string,
+        basicTypesTitle: string,
+        advancedFeaturesTitle: string,
+        positionConfigTitle: string,
+        currentConfigurationTitle: string,
+        positionLabel: string,
+        maxVisibleLabel: string,
+        defaultAutoCloseLabel: string,
+        activeToastsLabel: string,
         success: string,
         error: string,
         warning: string,
         info: string,
+        multipleMessages: readonly string[],
         fileUploadTitle: string,
         fileUploadText: string,
         unsavedTitle: string,
@@ -234,9 +285,13 @@ export type TDemoTranslations = {
         viewChanges: string,
         later: string,
         updateStarted: string,
+        connectionRestored: string,
         openingChangelog: string,
         updatePostponed: string,
         positionChanged: string,
+        positionTopRight: string,
+        positionTopLeft: string,
+        positionBottomCenter: string,
         allCleared: string,
         changesSaved: string,
         discard: string,
@@ -246,11 +301,17 @@ export type TDemoTranslations = {
             error: string,
             warning: string,
             info: string,
+            withTitle: string,
             fileUpload: string,
             unsaved: string,
             critical: string,
             action: string,
+            persistent: string,
+            multiple: string,
             position: string,
+            topRight: string,
+            topLeft: string,
+            bottomCenter: string,
             clear: string
         }
     }

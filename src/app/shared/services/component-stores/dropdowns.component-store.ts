@@ -5,36 +5,11 @@ export const dropdowns: TGenericComponent[] = [
     {
         id: 'headerMobileNav',
         type: 'dropdown',
-        eventInstructions: 'trackNavClick:event.eventData.id,event.eventData.value;navigationToSection:event.eventData.value',
-        valueInstructions: 'set:config.items.0.id,var,navigation.0.id; set:config.items.0.value,var,navigation.0.sectionId; set:config.items.0.label,langPick,host.navigation.0.labelEn,host.navigation.0.labelEs; set:config.items.1.id,var,navigation.1.id; set:config.items.1.value,var,navigation.1.sectionId; set:config.items.1.label,langPick,host.navigation.1.labelEn,host.navigation.1.labelEs; set:config.items.2.id,var,navigation.2.id; set:config.items.2.value,var,navigation.2.sectionId; set:config.items.2.label,langPick,host.navigation.2.labelEn,host.navigation.2.labelEs; set:config.items.3.id,var,navigation.3.id; set:config.items.3.value,var,navigation.3.sectionId; set:config.items.3.label,langPick,host.navigation.3.labelEn,host.navigation.3.labelEs; set:config.items.4.id,var,navigation.4.id; set:config.items.4.value,var,navigation.4.sectionId; set:config.items.4.label,langPick,host.navigation.4.labelEn,host.navigation.4.labelEs; set:config.dropdownConfig.ariaLabel,varOr,ui.mobileMenuAriaLabel,Mobile navigation menu',
+        condition: 'all:navigation,exists',
+        eventInstructions: 'trackNavClick:event.eventData.label,event.eventData.value;navigationToSection:event.eventData.value',
+        valueInstructions: 'set:config.items,var,navigation; set:config.dropdownConfig.ariaLabel,i18n,ui.accessibility.mobileMenuAriaLabel',
         config: {
-            items: [
-                {
-                    id: 'home',
-                    value: 'home',
-                    label: '',
-                },
-                {
-                    id: 'benefits',
-                    value: 'features-section',
-                    label: '',
-                },
-                {
-                    id: 'process',
-                    value: 'process-section',
-                    label: '',
-                },
-                {
-                    id: 'services',
-                    value: 'services-section',
-                    label: '',
-                },
-                {
-                    id: 'contact',
-                    value: 'contact-section',
-                    label: '',
-                },
-            ],
+            items: [],
             dropdownConfig: {
                 ariaLabel: '',
                 classes: '',

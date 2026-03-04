@@ -17,6 +17,7 @@ import { GenericTestimonialCardComponent } from '../generic-testimonial-card';
 import { GenericTextComponent } from '../generic-text/generic-text';
 
 import { ConditionOrchestrator } from '../../services/condition-orchestrator';
+import { I18nService } from '../../services/i18n.service';
 import type { TGenericComponent } from './wrapper-orchestrator.types';
 
 @Component({
@@ -46,6 +47,7 @@ export class WrapperOrchestrator {
   private readonly _configurationsOrchestratorService = inject(ConfigurationsOrchestratorService);
   private readonly valueOrchestrator = inject(ValueOrchestrator);
   private readonly conditionOrchestrator = inject(ConditionOrchestrator);
+  private readonly i18n = inject(I18nService);
   // Accepts an array of component IDs to render
   readonly componentsIds = input<readonly (string | TGenericComponent)[]>([]);
 
@@ -104,5 +106,9 @@ export class WrapperOrchestrator {
       meta_title: event.meta_title,
       eventName: event.eventName, eventData: event.eventData, eventInstructions: event.eventInstructions
     });
+  }
+
+  unknownComponentLabel(type: unknown): string {
+    return `${ this.i18n.t('ui.debugPanel.unknownComponentPrefix') }: ${ String(type ?? '') }`;
   }
 }

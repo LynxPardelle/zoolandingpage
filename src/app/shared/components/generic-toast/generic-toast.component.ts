@@ -1,6 +1,7 @@
 import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '@/app/shared/services/analytics.events';
 import { CommonModule } from '@angular/common';
-import { Component, effect, output, signal } from '@angular/core';
+import { Component, computed, effect, inject, output, signal } from '@angular/core';
+import { I18nService } from '../../services/i18n.service';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { ToastService } from './generic-toast.service';
 import { ToastAction, ToastLevel, ToastMessage } from './generic-toast.types';
@@ -13,7 +14,9 @@ import { ToastAction, ToastLevel, ToastMessage } from './generic-toast.types';
 })
 export class GenericToastComponent {
   private hoveredToasts = signal<Set<string>>(new Set());
+  private readonly i18n = inject(I18nService);
   readonly analyticsEvent = output<AnalyticsEventPayload>();
+  readonly notificationsAriaLabel = computed(() => this.i18n.t('ui.common.notifications'));
 
   constructor(public service: ToastService) {
     // Reactive analytics emission for toast lifecycle
@@ -139,5 +142,10 @@ export class GenericToastComponent {
   dismiss(toastId: string): void {
     this.analyticsEvent.emit({ name: AnalyticsEvents.ToastHide, category: AnalyticsCategories.CTA, label: 'dismiss' });
     this.service.dismiss(toastId);
+  }
+
+  getDismissAriaLabel(title?: string | null): string {
+    const base = this.i18n.t('ui.common.dismissNotification');
+    return title ? `${ base }: ${ title }` : base;
   }
 }

@@ -29,7 +29,7 @@
     @defer (when isActive(t.id)) {
     <ng-content select="[tab-content-{{ t.id }}]"></ng-content>
     } @placeholder {
-    <div class="ank-fontSize-0_875rem ank-color-textSecondary">Loading panel…</div>
+    <div class="ank-fontSize-0_875rem ank-color-textSecondary">{{ i18n.t("ui.common.loadingPanel") }}</div>
     }
   </div>
   } }

@@ -18,7 +18,7 @@
               <p
                 class="ank-display-block ank-fs-1_25rem ank-fontWeight-semibold ank-mb-16px ank-color-secondaryTitleColor"
               >
-                Tamaño de tu negocio:
+                {{ calculatorContent().businessSizeLabel }}:
               </p>
               <div class="ank-gap-0_5rem">
                 <generic-button
@@ -31,8 +31,10 @@
                   }"
                   (pressed)="updateBusinessSize('nano')"
                 >
-                  <div class="ank-fontWeight-semibold">Nano Empresa</div>
-                  <div class="ank-fs-1rem ank-opacity-75">1-2 empleados</div>
+                  <div class="ank-fontWeight-semibold">{{ calculatorContent().businessSizeLabels.nano.title }}</div>
+                  <div class="ank-fs-1rem ank-opacity-75">
+                    {{ calculatorContent().businessSizeLabels.nano.description }}
+                  </div>
                 </generic-button>
                 <generic-button
                   [config]="{
@@ -44,47 +46,48 @@
                   }"
                   (pressed)="updateBusinessSize('micro')"
                 >
-                  <div class="ank-fontWeight-semibold">Micro Empresa</div>
-                  <div class="ank-fs-1rem ank-opacity-75">3-10 empleados</div>
+                  <div class="ank-fontWeight-semibold">{{ calculatorContent().businessSizeLabels.micro.title }}</div>
+                  <div class="ank-fs-1rem ank-opacity-75">
+                    {{ calculatorContent().businessSizeLabels.micro.description }}
+                  </div>
                 </generic-button>
                 <generic-button
                   [config]="{
                     classes:
                       'ank-width-100per ank-px-16px ank-py-12px ank-border-1px ank-borderRadius-8px ank-fs-1rem ank-fontWeight-medium ank-cursor-pointer ank-transition-all ank-textAlign-left' +
-                      (businessSize() === 'micro'
+                      (businessSize() === 'small'
                         ? 'ank-bg-accentColor ank-color-textColor ank-border-accentColor'
                         : 'ank-bg-textColor ank-color-bgColor ank-border-border')
                   }"
                   (pressed)="updateBusinessSize('small')"
                 >
-                  <div class="ank-fontWeight-semibold">Pequeña Empresa</div>
-                  <div class="ank-fs-1rem ank-opacity-75">11-50 empleados</div>
+                  <div class="ank-fontWeight-semibold">{{ calculatorContent().businessSizeLabels.small.title }}</div>
+                  <div class="ank-fs-1rem ank-opacity-75">
+                    {{ calculatorContent().businessSizeLabels.small.description }}
+                  </div>
                 </generic-button>
               </div>
             </div>
             <div>
               <label
                 class="ank-display-block ank-fs-1_25rem ank-fontWeight-semibold ank-mb-16px ank-color-secondaryTitleColor"
-                >Industria:</label
+                >{{ calculatorContent().industryLabel }}:</label
               >
               <select
                 (change)="updateIndustry($any($event.target).value || 'ecommerce')"
                 [value]="industry()"
                 class="ank-width-100per ank-px-16px ank-py-12px ank-border-1px ank-border-border ank-borderRadius-8px ank-fs-1rem ank-color-bgColor ank-bg-textColor ank-focusBorder-accentColor"
               >
-                <option value="ecommerce">E-commerce / Tienda Online</option>
-                <option value="services">Servicios Profesionales</option>
-                <option value="restaurant">Restaurante / Comida</option>
-                <option value="health">Salud / Medicina</option>
-                <option value="education">Educación / Capacitación</option>
-                <option value="consulting">Consultoría / Coaching</option>
+                @for (industryId of industryIds; track industryId) {
+                <option [value]="industryId">{{ calculatorContent().industryLabels[industryId] }}</option>
+                }
               </select>
             </div>
 
             <div class="ank-mt-24px">
               <label
                 class="ank-display-block ank-fs-1_25rem ank-fontWeight-semibold ank-mb-12px ank-color-secondaryTitleColor"
-                >Visitas mensuales estimadas:</label
+                >{{ calculatorContent().visitorsLabel }}:</label
               >
               <input
                 type="range"
@@ -94,11 +97,15 @@
                 [value]="visitors()"
                 (input)="onVisitorsChange($any($event.target).valueAsNumber || 0)"
                 class="ank-width-100per"
-                aria-label="Visitas mensuales"
+                [attr.aria-label]="calculatorContent().visitorsLabel"
               />
-              <div class="ank-fs-1rem ank-color-textColor ank-mt-8px">{{ visitors() | number }} visitas/mes</div>
+              <div class="ank-fs-1rem ank-color-textColor ank-mt-8px">
+                {{ visitors() | number }} {{ calculatorContent().visitsPerMonthSuffix }}
+              </div>
               <div class="ank-display-flex ank-gap-0_75rem ank-alignItems-center ank-mt-12px">
-                <label for="visitors-input" class="ank-fs-1rem ank-color-secondaryTitleColor">Ingresar visitas:</label>
+                <label for="visitors-input" class="ank-fs-1rem ank-color-secondaryTitleColor">{{
+                  calculatorContent().inputVisitorsLabel
+                }}</label>
                 <input
                   id="visitors-input"
                   type="number"
@@ -108,7 +115,7 @@
                   [value]="visitors()"
                   (input)="onVisitorsChange($any($event.target).valueAsNumber || 0)"
                   class="ank-border-1px ank-border-border ank-borderRadius-8px ank-px-12px ank-py-8px ank-bg-textColor ank-color-bgColor"
-                  aria-label="Ingresar visitas mensuales"
+                  [attr.aria-label]="calculatorContent().inputVisitorsAriaLabel"
                 />
               </div>
             </div>
@@ -123,41 +130,47 @@
                 <mat-icon class="ank-fs-1_5rem ank-color-accentColor">trending_up</mat-icon>
               </div>
               <h3 class="ank-fs-1_5rem ank-fontWeight-bold ank-mb-8px ank-color-titleColor">
-                Tu Potencial de Crecimiento
+                {{ calculatorContent().growthPotentialTitle }}
               </h3>
-              <p class="ank-fs-1rem ank-opacity-90 ank-m-0 ank-color-textColor">Basado en tu configuración actual</p>
+              <p class="ank-fs-1rem ank-opacity-90 ank-m-0 ank-color-textColor">
+                {{ calculatorContent().basedOnCurrentConfig }}
+              </p>
             </div>
             <div class="ank-gap-1_25rem">
               <div class="ank-bg-textColor ank-borderRadius-1rem ank-p-1rem">
                 <div class="ank-fs-2_5xl ank-fontWeight-bold ank-mb-4px ank-color-bgColor">
                   +$<generic-stats-counter [config]="monthlyIncreaseConfig()"></generic-stats-counter>
                 </div>
-                <div class="ank-fs-1rem ank-opacity-90 ank-color-bgColor">Ingresos adicionales mensuales</div>
+                <div class="ank-fs-1rem ank-opacity-90 ank-color-bgColor">
+                  {{ calculatorContent().monthlyIncreaseLabel }}
+                </div>
               </div>
               <div class="ank-bg-textColor ank-borderRadius-1rem ank-p-1rem ank-mt-1rem">
                 <div class="ank-fs-1_5rem ank-fontWeight-semibold ank-mb-4px ank-color-bgColor">
                   <generic-stats-counter [config]="conversionImprovementConfig()"></generic-stats-counter>
                 </div>
-                <div class="ank-fs-1rem ank-opacity-90 ank-color-bgColor">Mejora estimada en conversión</div>
+                <div class="ank-fs-1rem ank-opacity-90 ank-color-bgColor">
+                  {{ calculatorContent().conversionImprovementLabel }}
+                </div>
               </div>
             </div>
             <div class="ank-mt-24px ank-pt-20px ank-borderTop-1px ank-bordercolor-textColor ank-borderOpacity-30">
               <div class="ank-fs-1rem ank-opacity-80 ank-color-textColor">
-                💡 Resultados basados en estadísticas reales de la industria
+                💡 {{ calculatorContent().resultsBasedHint }}
               </div>
             </div>
           </div>
         </div>
         <div class="ank-textAlign-center ank-borderTop-1px ank-borderColor-border ank-pt-24px">
           <p class="ank-fs-1rem ank-color-textColor ank-mb-16px">
-            *Proyecciones basadas en estadísticas de la industria y casos de éxito reales
+            {{ calculatorContent().projectionsDisclaimer }}
           </p>
           <generic-button
             [config]="{
               classes: 'btnBase ank-btn-accentColor ank-color-textColor ank-fs-1rem ank-px-32px ank-py-12px'
             }"
           >
-            Solicitar Consultoría Personalizada
+            {{ calculatorContent().requestConsultingCta }}
           </generic-button>
         </div>
       </div>
@@ -169,7 +182,7 @@
               <p
                 class="ank-display-block ank-fs-1_25rem ank-fontWeight-semibold ank-mb-16px ank-color-secondaryTitleColor"
               >
-                Tamaño de tu negocio:
+                {{ calculatorContent().businessSizeLabel }}:
               </p>
               <div class="ank-gap-0_5rem">
                 <generic-button
@@ -178,8 +191,10 @@
                       'ank-width-100per ank-px-16px ank-py-12px ank-border-1px ank-borderRadius-8px ank-fs-1rem ank-fontWeight-medium ank-cursor-pointer ank-transition-all ank-textAlign-left ank-bg-textColor ank-color-bgColor ank-border-border'
                   }"
                 >
-                  <div class="ank-fontWeight-semibold">Nano Empresa</div>
-                  <div class="ank-fs-1rem ank-opacity-75">1-2 empleados</div>
+                  <div class="ank-fontWeight-semibold">{{ calculatorContent().businessSizeLabels.nano.title }}</div>
+                  <div class="ank-fs-1rem ank-opacity-75">
+                    {{ calculatorContent().businessSizeLabels.nano.description }}
+                  </div>
                 </generic-button>
                 <generic-button
                   [config]="{
@@ -187,8 +202,10 @@
                       'ank-width-100per ank-px-16px ank-py-12px ank-border-1px ank-borderRadius-8px ank-fs-1rem ank-fontWeight-medium ank-cursor-pointer ank-transition-all ank-textAlign-left ank-bg-textColor ank-color-bgColor ank-border-border'
                   }"
                 >
-                  <div class="ank-fontWeight-semibold">Micro Empresa</div>
-                  <div class="ank-fs-1rem ank-opacity-75">3-10 empleados</div>
+                  <div class="ank-fontWeight-semibold">{{ calculatorContent().businessSizeLabels.micro.title }}</div>
+                  <div class="ank-fs-1rem ank-opacity-75">
+                    {{ calculatorContent().businessSizeLabels.micro.description }}
+                  </div>
                 </generic-button>
                 <generic-button
                   [config]="{
@@ -196,25 +213,24 @@
                       'ank-width-100per ank-px-16px ank-py-12px ank-border-1px ank-borderRadius-8px ank-fs-1rem ank-fontWeight-medium ank-cursor-pointer ank-transition-all ank-textAlign-left ank-bg-textColor ank-color-bgColor ank-border-border'
                   }"
                 >
-                  <div class="ank-fontWeight-semibold">Pequeña Empresa</div>
-                  <div class="ank-fs-1rem ank-opacity-75">11-50 empleados</div>
+                  <div class="ank-fontWeight-semibold">{{ calculatorContent().businessSizeLabels.small.title }}</div>
+                  <div class="ank-fs-1rem ank-opacity-75">
+                    {{ calculatorContent().businessSizeLabels.small.description }}
+                  </div>
                 </generic-button>
               </div>
             </div>
             <div>
               <label
                 class="ank-display-block ank-fs-1_25rem ank-fontWeight-semibold ank-mb-16px ank-color-secondaryTitleColor"
-                >Industria:</label
+                >{{ calculatorContent().industryLabel }}:</label
               >
               <select
                 class="ank-width-100per ank-px-16px ank-py-12px ank-border-1px ank-border-border ank-borderRadius-8px ank-fs-1rem ank-color-bgColor ank-bg-textColor ank-focusBorder-accentColor"
               >
-                <option value="ecommerce">E-commerce / Tienda Online</option>
-                <option value="services">Servicios Profesionales</option>
-                <option value="restaurant">Restaurante / Comida</option>
-                <option value="health">Salud / Medicina</option>
-                <option value="education">Educación / Capacitación</option>
-                <option value="consulting">Consultoría / Coaching</option>
+                @for (industryId of industryIds; track industryId) {
+                <option [value]="industryId">{{ calculatorContent().industryLabels[industryId] }}</option>
+                }
               </select>
             </div>
           </div>
@@ -228,37 +244,47 @@
                 <div class="ank-fs-1_5rem ank-color-accentColor">📈</div>
               </div>
               <h3 class="ank-fs-1_5rem ank-fontWeight-bold ank-mb-8px ank-color-titleColor">
-                Tu Potencial de Crecimiento
+                {{ calculatorContent().growthPotentialTitle }}
               </h3>
-              <p class="ank-fs-1rem ank-opacity-90 ank-m-0 ank-color-textColor">Basado en tu configuración actual</p>
+              <p class="ank-fs-1rem ank-opacity-90 ank-m-0 ank-color-textColor">
+                {{ calculatorContent().basedOnCurrentConfig }}
+              </p>
             </div>
             <div class="ank-gap-1_25rem">
               <div class="ank-bg-textColor ank-borderRadius-1rem ank-p-1rem">
-                <div class="ank-fs-2_5xl ank-fontWeight-bold ank-mb-4px ank-color-bgColor">+$15,000</div>
-                <div class="ank-fs-1rem ank-opacity-90 ank-color-bgColor">Ingresos adicionales mensuales</div>
+                <div class="ank-fs-2_5xl ank-fontWeight-bold ank-mb-4px ank-color-bgColor">
+                  {{ calculatorContent().placeholderMonthlyIncreaseValue }}
+                </div>
+                <div class="ank-fs-1rem ank-opacity-90 ank-color-bgColor">
+                  {{ calculatorContent().monthlyIncreaseLabel }}
+                </div>
               </div>
               <div class="ank-bg-textColor ank-borderRadius-1rem ank-p-1rem ank-mt-1rem">
-                <div class="ank-fs-1_5rem ank-fontWeight-semibold ank-mb-4px ank-color-bgColor">3.4x</div>
-                <div class="ank-fs-1rem ank-opacity-90 ank-color-bgColor">Mejora estimada en conversión</div>
+                <div class="ank-fs-1_5rem ank-fontWeight-semibold ank-mb-4px ank-color-bgColor">
+                  {{ calculatorContent().placeholderConversionImprovementValue }}
+                </div>
+                <div class="ank-fs-1rem ank-opacity-90 ank-color-bgColor">
+                  {{ calculatorContent().conversionImprovementLabel }}
+                </div>
               </div>
             </div>
             <div class="ank-mt-24px ank-pt-20px ank-borderTop-1px ank-bordercolor-textColor ank-borderOpacity-30">
               <div class="ank-fs-1rem ank-opacity-80 ank-color-textColor">
-                💡 Resultados basados en estadísticas reales de la industria
+                💡 {{ calculatorContent().resultsBasedHint }}
               </div>
             </div>
           </div>
         </div>
         <div class="ank-textAlign-center ank-borderTop-1px ank-borderColor-border ank-pt-24px">
           <p class="ank-fs-1rem ank-color-textColor ank-mb-16px">
-            *Proyecciones basadas en estadísticas de la industria y casos de éxito reales
+            {{ calculatorContent().projectionsDisclaimer }}
           </p>
           <generic-button
             [config]="{
               classes: 'btnBase ank-btn-accentColor ank-color-textColor ank-fs-1rem ank-px-32px ank-py-12px'
             }"
           >
-            Solicitar Consultoría Personalizada
+            {{ calculatorContent().requestConsultingCta }}
           </generic-button>
         </div>
       </div>

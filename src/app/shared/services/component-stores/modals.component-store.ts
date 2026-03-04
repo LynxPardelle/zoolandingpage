@@ -282,7 +282,8 @@ export const modals: TGenericComponent[] = [
     {
         id: 'modalTermsHeaderIconGlyph',
         type: 'text',
-        config: { tag: 'span', text: '⚖️' },
+        valueInstructions: 'set:config.text,i18n,footer.legal.terms.icon',
+        config: { tag: 'span', text: '' },
     },
     {
         id: 'modalTermsHeaderTitle',
@@ -303,74 +304,26 @@ export const modals: TGenericComponent[] = [
     {
         id: 'modalTermsSections',
         type: 'container',
+        loopConfig: {
+            source: 'i18n',
+            path: 'footer.legal.terms.sections',
+            templateId: 'modalTermsSectionTemplate',
+            idPrefix: 'modalTermsSection',
+        },
         config: {
             tag: 'div',
             classes: 'ank-display-flex ank-flexDirection-column ank-gap-1rem',
-            components: ['modalTermsSection0', 'modalTermsSection1', 'modalTermsSection2'],
+            components: [],
         },
     },
     {
-        id: 'modalTermsSection0',
-        type: 'container',
+        id: 'modalTermsSectionTemplate',
+        type: 'text',
         config: {
-            tag: 'div',
-            classes: 'ank-display-flex ank-flexDirection-column ank-gap-0_25rem',
-            components: ['modalTermsSection0Title', 'modalTermsSection0Body'],
+            tag: 'p',
+            text: '',
+            classes: 'ank-m-0 ank-color-secondaryTextColor',
         },
-    },
-    {
-        id: 'modalTermsSection0Title',
-        type: 'text',
-        valueInstructions: 'set:config.text,i18n,footer.legal.terms.sections.0.title',
-        config: { tag: 'h3', text: '', classes: 'ank-m-0 ank-fontSize-1rem ank-fontWeight-700 ank-color-titleColor' },
-    },
-    {
-        id: 'modalTermsSection0Body',
-        type: 'text',
-        valueInstructions: 'set:config.text,i18n,footer.legal.terms.sections.0.body',
-        config: { tag: 'p', text: '', classes: 'ank-m-0 ank-color-secondaryTextColor' },
-    },
-    {
-        id: 'modalTermsSection1',
-        type: 'container',
-        config: {
-            tag: 'div',
-            classes: 'ank-display-flex ank-flexDirection-column ank-gap-0_25rem',
-            components: ['modalTermsSection1Title', 'modalTermsSection1Body'],
-        },
-    },
-    {
-        id: 'modalTermsSection1Title',
-        type: 'text',
-        valueInstructions: 'set:config.text,i18n,footer.legal.terms.sections.1.title',
-        config: { tag: 'h3', text: '', classes: 'ank-m-0 ank-fontSize-1rem ank-fontWeight-700 ank-color-titleColor' },
-    },
-    {
-        id: 'modalTermsSection1Body',
-        type: 'text',
-        valueInstructions: 'set:config.text,i18n,footer.legal.terms.sections.1.body',
-        config: { tag: 'p', text: '', classes: 'ank-m-0 ank-color-secondaryTextColor' },
-    },
-    {
-        id: 'modalTermsSection2',
-        type: 'container',
-        config: {
-            tag: 'div',
-            classes: 'ank-display-flex ank-flexDirection-column ank-gap-0_25rem',
-            components: ['modalTermsSection2Title', 'modalTermsSection2Body'],
-        },
-    },
-    {
-        id: 'modalTermsSection2Title',
-        type: 'text',
-        valueInstructions: 'set:config.text,i18n,footer.legal.terms.sections.2.title',
-        config: { tag: 'h3', text: '', classes: 'ank-m-0 ank-fontSize-1rem ank-fontWeight-700 ank-color-titleColor' },
-    },
-    {
-        id: 'modalTermsSection2Body',
-        type: 'text',
-        valueInstructions: 'set:config.text,i18n,footer.legal.terms.sections.2.body',
-        config: { tag: 'p', text: '', classes: 'ank-m-0 ank-color-secondaryTextColor' },
     },
     {
         id: 'modalTermsActions',
@@ -426,7 +379,8 @@ export const modals: TGenericComponent[] = [
     {
         id: 'modalDataHeaderIconGlyph',
         type: 'text',
-        config: { tag: 'span', text: '🔒' },
+        valueInstructions: 'set:config.text,i18n,footer.legal.data.icon',
+        config: { tag: 'span', text: '' },
     },
     {
         id: 'modalDataHeaderTitle',
@@ -447,37 +401,24 @@ export const modals: TGenericComponent[] = [
     {
         id: 'modalDataPoints',
         type: 'container',
+        loopConfig: {
+            source: 'i18n',
+            path: 'footer.legal.data.points',
+            templateId: 'modalDataPointTemplate',
+            idPrefix: 'modalDataPoint',
+        },
         config: {
-            tag: 'ul',
+            tag: 'div',
             classes:
                 'ank-m-0 ank-pl-1rem ank-color-secondaryTextColor ank-display-flex ank-flexDirection-column ank-gap-0_5rem',
-            components: ['modalDataPoint0', 'modalDataPoint1', 'modalDataPoint2', 'modalDataPoint3'],
+            components: [],
         },
     },
     {
-        id: 'modalDataPoint0',
-        type: 'container',
-        config: { tag: 'li', components: ['modalDataPoint0Text'] },
+        id: 'modalDataPointTemplate',
+        type: 'text',
+        config: { tag: 'p', text: '' },
     },
-    { id: 'modalDataPoint0Text', type: 'text', valueInstructions: 'set:config.text,i18n,footer.legal.data.points.0', config: { text: '' } },
-    {
-        id: 'modalDataPoint1',
-        type: 'container',
-        config: { tag: 'li', components: ['modalDataPoint1Text'] },
-    },
-    { id: 'modalDataPoint1Text', type: 'text', valueInstructions: 'set:config.text,i18n,footer.legal.data.points.1', config: { text: '' } },
-    {
-        id: 'modalDataPoint2',
-        type: 'container',
-        config: { tag: 'li', components: ['modalDataPoint2Text'] },
-    },
-    { id: 'modalDataPoint2Text', type: 'text', valueInstructions: 'set:config.text,i18n,footer.legal.data.points.2', config: { text: '' } },
-    {
-        id: 'modalDataPoint3',
-        type: 'container',
-        config: { tag: 'li', components: ['modalDataPoint3Text'] },
-    },
-    { id: 'modalDataPoint3Text', type: 'text', valueInstructions: 'set:config.text,i18n,footer.legal.data.points.3', config: { text: '' } },
     {
         id: 'modalDataConsentNote',
         type: 'text',

@@ -87,7 +87,7 @@ export const buttons: TGenericComponent[] = [
         type: 'button',
         eventInstructions: 'toggleLanguage',
         meta_title: String(AnalyticsEvents.LanguageToggle),
-        valueInstructions: 'set:config.label,langPick,EN,ES',
+        valueInstructions: 'set:config.label,i18n,ui.controls.languageToggle',
         config: {
             id: 'toggleLanguage',
             label: '',
@@ -113,7 +113,7 @@ export const buttons: TGenericComponent[] = [
         type: 'button',
         eventInstructions: 'toggleLanguage',
         meta_title: String(AnalyticsEvents.LanguageToggle),
-        valueInstructions: 'set:config.label,langPick,EN,ES',
+        valueInstructions: 'set:config.label,i18n,ui.controls.languageToggle',
         config: {
             id: 'toggleLanguageMobile',
             label: '',
@@ -127,7 +127,7 @@ export const buttons: TGenericComponent[] = [
         id: 'footerTermsButton',
         type: 'button',
         eventInstructions: 'openFooterTerms',
-        valueInstructions: 'set:config.label,langPick,host.footerTranslations.en.termsLink,host.footerTranslations.es.termsLink; set:config.ariaLabel,langPick,host.footerTranslations.en.termsAriaLabel,host.footerTranslations.es.termsAriaLabel',
+        valueInstructions: 'set:config.label,i18n,footer.legal.terms.link; set:config.ariaLabel,i18n,footer.legal.terms.link',
         config: {
             label: '',
             ariaLabel: '',
@@ -139,7 +139,7 @@ export const buttons: TGenericComponent[] = [
         id: 'footerDataButton',
         type: 'button',
         eventInstructions: 'openFooterData',
-        valueInstructions: 'set:config.label,langPick,host.footerTranslations.en.dataLink,host.footerTranslations.es.dataLink; set:config.ariaLabel,langPick,host.footerTranslations.en.dataAriaLabel,host.footerTranslations.es.dataAriaLabel',
+        valueInstructions: 'set:config.label,i18n,footer.legal.data.link; set:config.ariaLabel,i18n,footer.legal.data.link',
         config: {
             label: '',
             ariaLabel: '',

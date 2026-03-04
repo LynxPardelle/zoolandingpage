@@ -144,9 +144,10 @@ export const texts: TGenericComponent[] = [
     {
         id: "heroFloatingMetricsValueText",
         type: 'text',
+        valueInstructions: 'set:config.text,var,hero.floatingMetrics.speedValue',
         config: {
             tag: '',
-            text: '< 3s',
+            text: '',
         }
     },
     // Hero Conversion Label Text
@@ -163,9 +164,10 @@ export const texts: TGenericComponent[] = [
     {
         id: "heroConversionValueText",
         type: 'text',
+        valueInstructions: 'set:config.text,var,hero.floatingMetrics.conversionValue',
         config: {
             tag: '',
-            text: '+340%',
+            text: '',
         }
     },
     // Hero Verified Label
@@ -280,7 +282,7 @@ export const texts: TGenericComponent[] = [
     {
         id: 'finalCtaTrustLine1',
         type: 'text',
-        valueInstructions: 'set:config.text,langPick,⭐ Measurement from day 1 • 🔒 SSL and hosting included • ⚡ Fast delivery,⭐ Medición desde el día 1 • 🔒 SSL y hosting incluido • ⚡ Entrega rápida',
+        valueInstructions: 'set:config.text,i18n,finalCtaSection.trustSignals.first',
         config: {
             tag: 'p',
             classes: 'ank-fs-1rem ank-color-textColor ank-m-0',
@@ -292,7 +294,7 @@ export const texts: TGenericComponent[] = [
     {
         id: 'finalCtaTrustSpanSupport',
         type: 'text',
-        valueInstructions: 'set:config.text,langPick,💬 Continuous support,💬 Soporte continuo',
+        valueInstructions: 'set:config.text,i18n,finalCtaSection.trustSignals.second.0',
         config: {
             tag: 'span',
             text: '',
@@ -301,7 +303,7 @@ export const texts: TGenericComponent[] = [
     {
         id: 'finalCtaTrustSpanReports',
         type: 'text',
-        valueInstructions: 'set:config.text,langPick,📊 Optional simple reports,📊 Reportes simples opcionales',
+        valueInstructions: 'set:config.text,i18n,finalCtaSection.trustSignals.second.1',
         config: {
             tag: 'span',
             text: '',
@@ -310,67 +312,12 @@ export const texts: TGenericComponent[] = [
     {
         id: 'finalCtaTrustSpanSeo',
         type: 'text',
-        valueInstructions: 'set:config.text,langPick,🌐 Search engine optimization,🌐 Optimización para buscadores',
+        valueInstructions: 'set:config.text,i18n,finalCtaSection.trustSignals.second.2',
         config: {
             tag: 'span',
             text: '',
         }
     },
-    {
-        id: 'finalCtaTrustTextMeasurement',
-        type: 'text',
-        valueInstructions: 'set:config.text,langPick,Measurement from day 1,Medición desde el día 1',
-        config: {
-            tag: 'span',
-            text: '',
-        }
-    },
-    {
-        id: 'finalCtaTrustTextSsl',
-        type: 'text',
-        valueInstructions: 'set:config.text,langPick,SSL and hosting included,SSL y hosting incluido',
-        config: {
-            tag: 'span',
-            text: '',
-        }
-    },
-    {
-        id: 'finalCtaTrustTextDelivery',
-        type: 'text',
-        valueInstructions: 'set:config.text,langPick,Fast delivery,Entrega rápida',
-        config: {
-            tag: 'span',
-            text: '',
-        }
-    },
-    {
-        id: 'finalCtaTrustTextSupport',
-        type: 'text',
-        valueInstructions: 'set:config.text,langPick,Continuous support,Soporte continuo',
-        config: {
-            tag: 'span',
-            text: '',
-        }
-    },
-    {
-        id: 'finalCtaTrustTextReports',
-        type: 'text',
-        valueInstructions: 'set:config.text,langPick,Optional simple reports,Reportes simples opcionales',
-        config: {
-            tag: 'span',
-            text: '',
-        }
-    },
-    {
-        id: 'finalCtaTrustTextSeo',
-        type: 'text',
-        valueInstructions: 'set:config.text,langPick,Search engine optimization,Optimización para buscadores',
-        config: {
-            tag: 'span',
-            text: '',
-        }
-    },
-
     /* Testimonials Section */
     {
         id: 'testimonialsSectionTitle',

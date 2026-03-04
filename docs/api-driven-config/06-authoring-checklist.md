@@ -12,6 +12,8 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Dynamic accordion items should use `config.itemsSource` (`i18n` or `var`) instead of inline `items: () => ...` lambdas.
 - Reuse existing generic component types only.
 - Use existing class tokens / Angora design system conventions.
+- Footer and footer legal modal content must be API-owned (no local fallback assumptions).
+- Do not author hardcoded footer/legal text in app source when generating payload instructions.
 
 ## Naming / structure
 
@@ -23,9 +25,10 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 
 - For translated strings: use `i18n` / `i18nParams`.
   - Example: `set:config.text,i18n,hero.title`
-- For language toggles (2 strings): use `langPick`.
-  - Example: `set:config.label,langPick,Home,Inicio`
+- For language toggles (2 strings): use `langPick` only when API cannot provide key-based text.
+  - Preferred approach: `set:config.label,i18n,<key>`
 - For i18n arrays with index: use `i18nGetIndex`.
+- For footer social links from variables, prefer `labelKey` and `ariaLabelKey` in payload entries.
 
 ## Events
 
@@ -51,7 +54,7 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 
 - Use the condition DSL (no inline lambdas).
 - Prefer `all:` unless you need `any:` or `not:`.
-- Allowed handler IDs: env, i18n, footerConfig, footerSocialLinks, modalRefId, host, hostEq, hostNeq, hostIncludes, hostGt, hostGte, hostLt, hostLte, hostStartsWith, hostEndsWith, hostRegex, hostLenEq, hostLenGt, hostLenGte, hostLenLt, hostLenLte, var, varEq, varNeq, varGt, varGte, varLt, varLte, varIncludes, varLenEq, varLenGt, varLenGte, varLenLt, varLenLte, true, false, always, never, exists, empty, eq, neq, gt, lt, gte, lte, type.
+- Allowed handler IDs: env, i18n, footerConfig, footerSocialLinks, navigation, modalRefId, host, hostEq, hostNeq, hostIncludes, hostGt, hostGte, hostLt, hostLte, hostStartsWith, hostEndsWith, hostRegex, hostLenEq, hostLenGt, hostLenGte, hostLenLt, hostLenLte, var, varEq, varNeq, varGt, varGte, varLt, varLte, varIncludes, varLenEq, varLenGt, varLenGte, varLenLt, varLenLte, true, false, always, never, exists, empty, eq, neq, gt, lt, gte, lte, type.
 
 ## Validation steps (developer)
 
@@ -59,6 +62,21 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Ensure there are no missing IDs.
 - Ensure `valueInstructions` only uses allowlisted IDs.
 - Ensure no config contains function values.
+- Verify footer/legal modal sections can render from API payload only.
+- Verify local fallback dictionaries are not required for footer/legal behavior.
+
+## Footer and legal modal API-only checklist
+
+- `page-config.rootIds` includes `siteFooter` only when footer should render.
+- Footer structure is provided in `components` payload (`siteFooter`, `siteFooterContent`, legal/social/copyright blocks).
+- `variables.footerConfig` exists and follows the expected boolean/text contract.
+- `variables.footerSocialLinks[]` entries include `url`, `icon`, and key-based labels (`labelKey`, `ariaLabelKey`).
+- i18n includes required legal keys:
+  - `footer.legal.title`
+  - `footer.legal.terms.link`, `footer.legal.terms.title`, `footer.legal.terms.intro`, `footer.legal.terms.sections`
+  - `footer.legal.data.link`, `footer.legal.data.title`, `footer.legal.data.intro`, `footer.legal.data.points`, `footer.legal.data.consentNote`
+  - `footer.actions.close`
+  - `footer.legal.terms.icon`, `footer.legal.data.icon`
 
 ## Prompt template for an AI assistant
 

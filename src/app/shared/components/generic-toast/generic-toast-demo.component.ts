@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
+import { I18nService } from '../../services/i18n.service';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { GenericToastComponent } from './generic-toast.component';
 import { ToastService } from './generic-toast.service';
@@ -9,11 +10,11 @@ import { ToastService } from './generic-toast.service';
   imports: [CommonModule, GenericToastComponent, GenericButtonComponent],
   template: `
     <div class="toast-demo ank-p-2rem ank-display-flex ank-flexDirection-column ank-gap-1rem ank-maxWidth-48rem">
-      <h2 class="ank-fontSize-1_5rem ank-fontWeight-600 ank-mb-1rem">Advanced Toast Notifications Demo</h2>
+      <h2 class="ank-fontSize-1_5rem ank-fontWeight-600 ank-mb-1rem">{{ i18n.t('demo.toast.demoTitle') }}</h2>
 
       <!-- Basic Toast Types -->
       <section class="demo-section">
-        <h3 class="ank-fontSize-1_25rem ank-fontWeight-500 ank-mb-0_75rem">Basic Toast Types</h3>
+        <h3 class="ank-fontSize-1_25rem ank-fontWeight-500 ank-mb-0_75rem">{{ i18n.t('demo.toast.basicTypesTitle') }}</h3>
         <div class="ank-display-flex ank-gap-0_5rem ank-flexWrap-wrap">
           <generic-button
             [config]="{
@@ -22,7 +23,7 @@ import { ToastService } from './generic-toast.service';
 
             (pressed)="showSuccess()"
           >
-            Success Toast
+            {{ i18n.t('demo.toast.button.success') }}
           </generic-button>
           <generic-button
             [config]="{
@@ -30,7 +31,7 @@ import { ToastService } from './generic-toast.service';
             }"
             (pressed)="showError()"
           >
-            Error Toast
+            {{ i18n.t('demo.toast.button.error') }}
           </generic-button>
           <generic-button
             [config]="{
@@ -38,7 +39,7 @@ import { ToastService } from './generic-toast.service';
             }"
             (pressed)="showWarning()"
           >
-            Warning Toast
+            {{ i18n.t('demo.toast.button.warning') }}
           </generic-button>
           <generic-button
             [config]="{
@@ -46,14 +47,14 @@ import { ToastService } from './generic-toast.service';
             }"
             (pressed)="showInfo()"
           >
-            Info Toast
+            {{ i18n.t('demo.toast.button.info') }}
           </generic-button>
         </div>
       </section>
 
       <!-- Advanced Features -->
       <section class="demo-section">
-        <h3 class="ank-fontSize-1_25rem ank-fontWeight-500 ank-mb-0_75rem">Advanced Features</h3>
+        <h3 class="ank-fontSize-1_25rem ank-fontWeight-500 ank-mb-0_75rem">{{ i18n.t('demo.toast.advancedFeaturesTitle') }}</h3>
         <div class="ank-display-flex ank-gap-0_5rem ank-flexWrap-wrap">
           <generic-button
             [config]="{
@@ -61,7 +62,7 @@ import { ToastService } from './generic-toast.service';
             }"
             (pressed)="showWithTitle()"
           >
-            With Title
+            {{ i18n.t('demo.toast.button.withTitle') }}
           </generic-button>
           <generic-button
             [config]="{
@@ -69,7 +70,7 @@ import { ToastService } from './generic-toast.service';
             }"
             (pressed)="showWithActions()"
           >
-            With Actions
+            {{ i18n.t('demo.toast.button.action') }}
           </generic-button>
           <generic-button
             [config]="{
@@ -77,7 +78,7 @@ import { ToastService } from './generic-toast.service';
             }"
             (pressed)="showPersistent()"
           >
-            Persistent
+            {{ i18n.t('demo.toast.button.persistent') }}
           </generic-button>
           <generic-button
             [config]="{
@@ -85,14 +86,14 @@ import { ToastService } from './generic-toast.service';
             }"
             (pressed)="showMultiple()"
           >
-            Multiple Toasts
+            {{ i18n.t('demo.toast.button.multiple') }}
           </generic-button>
         </div>
       </section>
 
       <!-- Configuration -->
       <section class="demo-section">
-        <h3 class="ank-fontSize-1_25rem ank-fontWeight-500 ank-mb-0_75rem">Position & Configuration</h3>
+        <h3 class="ank-fontSize-1_25rem ank-fontWeight-500 ank-mb-0_75rem">{{ i18n.t('demo.toast.positionConfigTitle') }}</h3>
         <div class="ank-display-flex ank-gap-0_5rem ank-flexWrap-wrap">
           <generic-button
             [config]="{
@@ -100,7 +101,7 @@ import { ToastService } from './generic-toast.service';
             }"
             (pressed)="setTopRight()"
           >
-            Top Right
+            {{ i18n.t('demo.toast.button.topRight') }}
           </generic-button>
           <generic-button
             [config]="{
@@ -108,7 +109,7 @@ import { ToastService } from './generic-toast.service';
             }"
             (pressed)="setTopLeft()"
           >
-            Top Left
+            {{ i18n.t('demo.toast.button.topLeft') }}
           </generic-button>
           <generic-button
             [config]="{
@@ -116,7 +117,7 @@ import { ToastService } from './generic-toast.service';
             }"
             (pressed)="setBottomCenter()"
           >
-            Bottom Center
+            {{ i18n.t('demo.toast.button.bottomCenter') }}
           </generic-button>
           <generic-button
             [config]="{
@@ -124,19 +125,19 @@ import { ToastService } from './generic-toast.service';
             }"
             (pressed)="clearAll()"
           >
-            Clear All
+            {{ i18n.t('demo.toast.button.clear') }}
           </generic-button>
         </div>
       </section>
 
       <!-- Current Configuration -->
       <section class="demo-info ank-p-1rem ank-bgcl-surface-secondary ank-borderRadius-0_5rem">
-        <h4 class="ank-fontSize-1rem ank-fontWeight-500 ank-mb-0_5rem">Current Configuration</h4>
+        <h4 class="ank-fontSize-1rem ank-fontWeight-500 ank-mb-0_5rem">{{ i18n.t('demo.toast.currentConfigurationTitle') }}</h4>
         <div class="ank-fontSize-0_875rem ank-color-text-secondary">
-          <p>Position: {{ toastService.config().position.vertical }} {{ toastService.config().position.horizontal }}</p>
-          <p>Max Visible: {{ toastService.config().maxVisible }}</p>
-          <p>Default Auto-close: {{ toastService.config().defaultAutoCloseMs }}ms</p>
-          <p>Active Toasts: {{ toastService.list().length }}</p>
+          <p>{{ i18n.t('demo.toast.positionLabel') }}: {{ toastService.config().position.vertical }} {{ toastService.config().position.horizontal }}</p>
+          <p>{{ i18n.t('demo.toast.maxVisibleLabel') }}: {{ toastService.config().maxVisible }}</p>
+          <p>{{ i18n.t('demo.toast.defaultAutoCloseLabel') }}: {{ toastService.config().defaultAutoCloseMs }}ms</p>
+          <p>{{ i18n.t('demo.toast.activeToastsLabel') }}: {{ toastService.list().length }}</p>
         </div>
       </section>
     </div>
@@ -170,29 +171,31 @@ import { ToastService } from './generic-toast.service';
   ],
 })
 export class GenericToastDemoComponent {
+  readonly i18n = inject(I18nService);
+
   constructor(public toastService: ToastService) { }
 
   showSuccess(): void {
-    this.toastService.success('Operation completed successfully!');
+    this.toastService.success(this.i18n.t('demo.toast.success'));
   }
 
   showError(): void {
-    this.toastService.error('Something went wrong. Please try again.');
+    this.toastService.error(this.i18n.t('demo.toast.error'));
   }
 
   showWarning(): void {
-    this.toastService.warning('This action cannot be undone.');
+    this.toastService.warning(this.i18n.t('demo.toast.warning'));
   }
 
   showInfo(): void {
-    this.toastService.info('New features are available in the latest update.');
+    this.toastService.info(this.i18n.t('demo.toast.info'));
   }
 
   showWithTitle(): void {
     this.toastService.show({
       level: 'success',
-      title: 'File Uploaded',
-      text: 'Your document has been successfully uploaded to the server.',
+      title: this.i18n.t('demo.toast.fileUploadTitle'),
+      text: this.i18n.t('demo.toast.fileUploadText'),
       autoCloseMs: 6000,
     });
   }
@@ -200,15 +203,15 @@ export class GenericToastDemoComponent {
   showWithActions(): void {
     this.toastService.show({
       level: 'info',
-      title: 'Update Available',
-      text: 'A new version of the application is ready to install.',
+      title: this.i18n.t('demo.toast.updateTitle'),
+      text: this.i18n.t('demo.toast.updateText'),
       autoCloseMs: 0,
       actions: [
         {
-          label: 'Update Now',
+          label: this.i18n.t('demo.toast.updateNow'),
           action: () => {
             /*  console.log('Updating application...'); */
-            this.toastService.success('Update started successfully!');
+            this.toastService.success(this.i18n.t('demo.toast.updateStarted'));
           },
           style: 'primary',
         },
@@ -224,15 +227,15 @@ export class GenericToastDemoComponent {
   showPersistent(): void {
     this.toastService.show({
       level: 'error',
-      title: 'Connection Lost',
-      text: 'Unable to connect to the server. Please check your internet connection.',
+      title: this.i18n.t('demo.toast.criticalTitle'),
+      text: this.i18n.t('demo.toast.criticalText'),
       autoCloseMs: 0,
       actions: [
         {
-          label: 'Retry',
+          label: this.i18n.t('demo.toast.tryAgain'),
           action: () => {
             /* console.log('Retrying connection...'); */
-            this.toastService.success('Connection restored!');
+            this.toastService.success(this.i18n.t('demo.toast.connectionRestored'));
           },
           style: 'primary',
         },
@@ -241,7 +244,7 @@ export class GenericToastDemoComponent {
   }
 
   showMultiple(): void {
-    const messages = ['First notification', 'Second notification', 'Third notification', 'Fourth notification'];
+    const messages = this.i18n.getOr<string[]>('demo.toast.multipleMessages', []);
 
     messages.forEach((message, index) => {
       setTimeout(() => {
@@ -254,20 +257,27 @@ export class GenericToastDemoComponent {
 
   setTopRight(): void {
     this.toastService.setPosition({ vertical: 'top', horizontal: 'right' });
-    this.toastService.info('Position changed to top-right');
+    this.toastService.info(this.i18n.t('demo.toast.positionChanged', {
+      position: this.i18n.t('demo.toast.positionTopRight'),
+    }));
   }
 
   setTopLeft(): void {
     this.toastService.setPosition({ vertical: 'top', horizontal: 'left' });
-    this.toastService.info('Position changed to top-left');
+    this.toastService.info(this.i18n.t('demo.toast.positionChanged', {
+      position: this.i18n.t('demo.toast.positionTopLeft'),
+    }));
   }
 
   setBottomCenter(): void {
     this.toastService.setPosition({ vertical: 'bottom', horizontal: 'center' });
-    this.toastService.info('Position changed to bottom-center');
+    this.toastService.info(this.i18n.t('demo.toast.positionChanged', {
+      position: this.i18n.t('demo.toast.positionBottomCenter'),
+    }));
   }
 
   clearAll(): void {
     this.toastService.clear();
+    this.toastService.info(this.i18n.t('demo.toast.allCleared'));
   }
 }

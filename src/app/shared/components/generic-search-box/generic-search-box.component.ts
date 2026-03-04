@@ -15,6 +15,7 @@ import {
   output,
   signal,
 } from '@angular/core';
+import { I18nService } from '../../services/i18n.service';
 import { OverlayPositioningService } from '../../services/overlay-positioning.service';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { GenericLoadingSpinnerComponent } from '../generic-loading-spinner';
@@ -32,6 +33,7 @@ export class GenericSearchBoxComponent implements OnDestroy {
   @Input() config: SearchBoxConfig | null = null;
 
   private readonly overlaySvc = inject(OverlayPositioningService);
+  readonly i18n = inject(I18nService);
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly vcr = inject(ViewContainerRef);
   @ViewChild('resultsTpl') resultsTpl!: TemplateRef<unknown>;

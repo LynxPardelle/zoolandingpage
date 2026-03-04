@@ -12,7 +12,10 @@
       </h3>
       <p class="ank-fs-1rem ank-m-0 ank-color-secondaryTextColor">{{ role() }} · {{ company() }}</p>
     </div>
-    @if (verified()) {<mat-icon class="ank-fs-1rem ank-color-success" title="Verificado" aria-label="Verificado"
+    @if (verified()) {<mat-icon
+      class="ank-fs-1rem ank-color-success"
+      [attr.title]="verifiedLabel()"
+      [attr.aria-label]="verifiedLabel()"
       >verified</mat-icon
     >}
   </div>

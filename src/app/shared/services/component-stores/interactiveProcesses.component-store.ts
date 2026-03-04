@@ -14,6 +14,7 @@ export const createInteractiveProcesses = ({
         {
             id: 'interactiveProcessSection',
             type: 'container',
+            condition: 'all:i18n,process',
             config: {
                 id: 'process-section',
                 tag: 'div',

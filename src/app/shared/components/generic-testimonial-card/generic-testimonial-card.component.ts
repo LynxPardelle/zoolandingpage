@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, Input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, Input, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
+import { I18nService } from '../../services/i18n.service';
 import { DEFAULT_TESTIMONIAL_CARD_CONFIG } from './generic-testimonial-card.constants';
 import { TESTIMONIAL_CARD_ANIMATIONS } from './generic-testimonial-card.styles';
 import { TestimonialCardConfig } from './generic-testimonial-card.types';
@@ -12,6 +13,7 @@ import { TestimonialCardConfig } from './generic-testimonial-card.types';
   animations: TESTIMONIAL_CARD_ANIMATIONS,
 })
 export class GenericTestimonialCardComponent {
+  private readonly i18n = inject(I18nService);
 
 
   private readonly _config = signal<TestimonialCardConfig>(DEFAULT_TESTIMONIAL_CARD_CONFIG);
@@ -46,4 +48,5 @@ export class GenericTestimonialCardComponent {
     return typeof raw === 'function' ? raw() : raw;
   });
   readonly stars = computed(() => [1, 2, 3, 4, 5]);
+  readonly verifiedLabel = computed(() => this.i18n.t('ui.common.verified'));
 }

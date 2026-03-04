@@ -17,11 +17,12 @@ import {
 } from '@angular/core';
 import { NgxAngoraService } from 'ngx-angora-css';
 import { AriaLiveService } from '../../services/aria-live.service';
+import { I18nService } from '../../services/i18n.service';
 import { MotionPreferenceService } from '../../services/motion-preference.service';
+import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { DEFAULT_MODAL_CONFIG } from './generic-modal.constants';
 import { GenericModalService } from './generic-modal.service';
 import { ModalConfig } from './generic-modal.types';
-import { GenericButtonComponent } from '../generic-button/generic-button.component';
 
 @Component({
   selector: 'generic-modal-host',
@@ -44,6 +45,7 @@ export class GenericModalComponent {
   size = () => this.config?.size || DEFAULT_MODAL_CONFIG.size;
   // Motion preference
   readonly motion = inject(MotionPreferenceService);
+  private readonly i18n = inject(I18nService);
   private readonly angora = inject(NgxAngoraService) as NgxAngoraService;
 
   constructor(private host: ElementRef<HTMLElement>, private vcr: ViewContainerRef) {
@@ -53,10 +55,10 @@ export class GenericModalComponent {
       const active = !!this.GenericModalService.modalRef();
       if (active && !this.overlayRef) {
         this.openModal();
-        live.announce('Dialog opened', 'polite');
+        live.announce(this.i18n.tOr('ui.accessibility.dialogOpened', ''), 'polite');
       } else if (!active && this.overlayRef) {
         this.closeModal();
-        live.announce('Dialog closed', 'polite');
+        live.announce(this.i18n.tOr('ui.accessibility.dialogClosed', ''), 'polite');
       }
     });
   }

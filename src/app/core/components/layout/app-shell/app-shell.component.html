@@ -17,23 +17,23 @@
     class="ank-mb-0_5rem ank-bg-transparent ank-border-1px__solid__white ank-color-white ank-borderRadius-4px ank-px-0_5rem ank-py-0_25rem ank-cursor-pointer"
     (click)="downloadDraftPayloads()"
   >
-    Download draft payloads
+    {{ i18n.t("ui.debugPanel.downloadDraftPayloads") }}
   </button>
   <button
     class="ank-mb-0_5rem ank-bg-transparent ank-border-1px__solid__white ank-color-white ank-borderRadius-4px ank-px-0_5rem ank-py-0_25rem ank-cursor-pointer"
     (click)="writeDraftPayloadsToDisk()"
   >
-    Write drafts to disk
+    {{ i18n.t("ui.debugPanel.writeDraftsToDisk") }}
   </button>
   @if (configIssues().length > 0) {
-  <div class="ank-fontWeight-600 ank-mb-0_25rem">Config issues</div>
+  <div class="ank-fontWeight-600 ank-mb-0_25rem">{{ i18n.t("ui.debugPanel.configIssues") }}</div>
   <ul class="ank-m-0 ank-pl-1rem ank-mb-0_5rem">
     @for (issue of configIssues(); track $index) {
     <li>{{ issue }}</li>
     }
   </ul>
   }
-  <div class="ank-fontWeight-600 ank-mb-0_25rem">Analytics (latest)</div>
+  <div class="ank-fontWeight-600 ank-mb-0_25rem">{{ i18n.t("ui.debugPanel.analyticsLatest") }}</div>
   <ul class="ank-m-0 ank-pl-1rem">
     @for (e of recentEvents(); track $index) {
     <li>{{ e }}</li>

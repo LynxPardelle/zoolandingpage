@@ -14,9 +14,13 @@ export const i18nExistsConditionHandler: ConditionHandler = {
         const key = first === 'exists' ? String(args[1] ?? '') : first;
         if (!key) return false;
 
-        const tValue = typeof i18n.t === 'function' ? i18n.t(key) : undefined;
         const getValue = typeof (i18n as any).getOr === 'function' ? (i18n as any).getOr(key, undefined) : undefined;
-        const value = tValue ?? getValue;
+        const tValue = typeof i18n.t === 'function' ? i18n.t(key) : undefined;
+
+        // Prefer direct dictionary lookup. If i18n.t returns the key itself, treat it as missing.
+        const value = getValue !== undefined
+            ? getValue
+            : (typeof tValue === 'string' && tValue === key ? undefined : tValue);
 
         if (value == null) return false;
         if (typeof value === 'string') return value.trim().length > 0;

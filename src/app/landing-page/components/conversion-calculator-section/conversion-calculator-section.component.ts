@@ -24,17 +24,38 @@ export class ConversionCalculatorSectionComponent {
     readonly businessSizeChange = output<BusinessSize>();
     readonly industryChange = output<string>();
     readonly visitorsChange = output<number>();
+    readonly industryIds: readonly string[] = ['ecommerce', 'services', 'restaurant', 'health', 'education', 'consulting'];
 
-    // Calculator translations via I18nService.t() (DB/API-ready) with safe fallbacks.
+    // Calculator translations via API/i18n keys without embedded local copy fallbacks.
     readonly calculatorContent = computed(() => ({
-        title: this.i18n.tOr('landing.calculator.title', 'Calculadora de Conversión'),
-        subtitle: this.i18n.tOr('landing.calculator.subtitle', 'Estima tu potencial de crecimiento'),
+        title: this.i18n.tOr('landing.calculator.title', this.i18n.tOr('calculator.title', '')),
+        subtitle: this.i18n.tOr('landing.calculator.subtitle', this.i18n.tOr('calculator.subtitle', '')),
         description: this.i18n.tOr(
             'landing.calculator.description',
-            'Ajusta los parámetros y revisa el impacto estimado en ingresos y conversión.'
+            this.i18n.tOr('calculator.description', '')
         ),
-        monthlyIncreaseLabel: this.i18n.tOr('landing.calculator.monthlyIncreaseLabel', 'Ingresos adicionales mensuales'),
-        conversionImprovementLabel: this.i18n.tOr('landing.calculator.conversionImprovementLabel', 'Mejora estimada en conversión'),
+        visitorsLabel: this.i18n.tOr('landing.calculator.visitorsLabel', this.i18n.tOr('calculator.visitorsLabel', '')),
+        visitsPerMonthSuffix: this.i18n.tOr('landing.calculator.visitsPerMonthSuffix', this.i18n.tOr('calculator.visitsPerMonthSuffix', '')),
+        inputVisitorsLabel: this.i18n.tOr('landing.calculator.inputVisitorsLabel', this.i18n.tOr('calculator.inputVisitorsLabel', '')),
+        inputVisitorsAriaLabel: this.i18n.tOr('landing.calculator.inputVisitorsAriaLabel', this.i18n.tOr('calculator.inputVisitorsAriaLabel', '')),
+        businessSizeLabel: this.i18n.tOr('landing.calculator.businessSizeLabel', this.i18n.tOr('calculator.businessSizeLabel', '')),
+        industryLabel: this.i18n.tOr('landing.calculator.industryLabel', this.i18n.tOr('calculator.industryLabel', '')),
+        growthPotentialTitle: this.i18n.tOr('landing.calculator.growthPotentialTitle', this.i18n.tOr('calculator.growthPotentialTitle', '')),
+        basedOnCurrentConfig: this.i18n.tOr('landing.calculator.basedOnCurrentConfig', this.i18n.tOr('calculator.basedOnCurrentConfig', '')),
+        resultsBasedHint: this.i18n.tOr('landing.calculator.resultsBasedHint', this.i18n.tOr('calculator.resultsBasedHint', '')),
+        projectionsDisclaimer: this.i18n.tOr('landing.calculator.projectionsDisclaimer', this.i18n.tOr('calculator.projectionsDisclaimer', '')),
+        requestConsultingCta: this.i18n.tOr('landing.calculator.requestConsultingCta', this.i18n.tOr('calculator.requestConsultingCta', '')),
+        placeholderMonthlyIncreaseValue: this.i18n.tOr('landing.calculator.placeholderMonthlyIncreaseValue', this.i18n.tOr('calculator.placeholderMonthlyIncreaseValue', '')),
+        placeholderConversionImprovementValue: this.i18n.tOr('landing.calculator.placeholderConversionImprovementValue', this.i18n.tOr('calculator.placeholderConversionImprovementValue', '')),
+        businessSizeLabels: this.i18n.getOr('landing.calculator.businessSizeLabels', this.i18n.getOr('calculator.businessSizeLabels', {
+            nano: { title: '', description: '' },
+            micro: { title: '', description: '' },
+            small: { title: '', description: '' },
+            medium: { title: '', description: '' },
+        })),
+        industryLabels: this.i18n.getOr('landing.calculator.industryLabels', this.i18n.getOr('calculator.industryLabels', {} as Record<string, string>)),
+        monthlyIncreaseLabel: this.i18n.tOr('landing.calculator.monthlyIncreaseLabel', this.i18n.tOr('calculator.monthlyIncreaseLabel', '')),
+        conversionImprovementLabel: this.i18n.tOr('landing.calculator.conversionImprovementLabel', this.i18n.tOr('calculator.conversionImprovementLabel', '')),
     }));
 
     readonly monthlyIncreaseConfig = computed<TGenericStatsCounterConfig>(() => ({

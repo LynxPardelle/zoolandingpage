@@ -1,4 +1,3 @@
-import { THeaderNavItem } from "@/app/core/types/layout.types";
 import { WrapperOrchestrator } from "@/app/shared/components/wrapper-orchestrator/wrapper-orchestrator.component";
 import { TGenericComponent } from "@/app/shared/components/wrapper-orchestrator/wrapper-orchestrator.types";
 import { AngoraCombosService } from "@/app/shared/services/angora-combos.service";
@@ -32,6 +31,7 @@ import {
   AnalyticsEvents,
 } from "../../../../shared/services/analytics.events";
 import { AnalyticsService } from "../../../../shared/services/analytics.service";
+import { I18nService } from "../../../../shared/services/i18n.service";
 import { LanguageService } from "../../../../shared/services/language.service";
 import { ThemeService } from "../../../../shared/services/theme.service";
 import { forwardAnalyticsEvent } from "../../../../shared/utility/forwardAnalyticsEvent.utility";
@@ -57,6 +57,7 @@ export class AppShellComponent {
   readonly debugMode = environment.features.debugMode;
   // App state
   readonly appName = environment.app.name;
+  readonly appDescription = environment.app.description;
 
   // Computed properties with proper typing
   readonly isProduction = computed(() => environment.production);
@@ -72,7 +73,7 @@ export class AppShellComponent {
   private readonly _lang = inject(LanguageService);
   // Public alias for template usage
   readonly lang = this._lang;
-  private readonly activeHref = signal<string | null>(null);
+  readonly i18n = inject(I18nService);
   private readonly configBootstrap = inject(ConfigBootstrapService);
   private readonly configStore = inject(ConfigStoreService);
   private readonly domainResolver = inject(DomainResolverService);
@@ -96,8 +97,7 @@ export class AppShellComponent {
   readonly rootComponentsIds = signal<readonly (string | TGenericComponent)[]>([
     'skipToMainLink',
     'siteHeader',
-    'landingPage',
-    'siteFooter'
+    'landingPage'
   ]);
 
   readonly modalRootIds = signal<readonly string[]>([
@@ -106,86 +106,6 @@ export class AppShellComponent {
     'modalTermsRoot',
     'modalDataUseRoot'
   ]);
-
-
-  // Minimal header config until centralized state is introduced
-  headerConfig = computed(() => ({
-    // Language-aware navigation labels (doc-first i18n)
-    navItems:
-      this._lang.currentLanguage() === "en"
-        ? [
-          {
-            label: "Home",
-            href: "#home",
-            isActive: this.activeHref() === "#home",
-            isExternal: false,
-          },
-          {
-            label: "Benefits",
-            href: "#features-section",
-            isActive: this.activeHref() === "#features-section",
-            isExternal: false,
-          },
-          {
-            label: "Process",
-            href: "#process-section",
-            isActive: this.activeHref() === "#process-section",
-            isExternal: false,
-          },
-          {
-            label: "Services",
-            href: "#services-section",
-            isActive: this.activeHref() === "#services-section",
-            isExternal: false,
-          },
-          {
-            label: "Contact",
-            href: "#contact-section",
-            isActive: this.activeHref() === "#contact-section",
-            isExternal: false,
-          },
-        ]
-        : [
-          {
-            label: "Inicio",
-            href: "#home",
-            isActive: this.activeHref() === "#home",
-            isExternal: false,
-          },
-          {
-            label: "Beneficios",
-            href: "#features-section",
-            isActive: this.activeHref() === "#features-section",
-            isExternal: false,
-          },
-          {
-            label: "Proceso",
-            href: "#process-section",
-            isActive: this.activeHref() === "#process-section",
-            isExternal: false,
-          },
-          {
-            label: "Servicios",
-            href: "#services-section",
-            isActive: this.activeHref() === "#services-section",
-            isExternal: false,
-          },
-          {
-            label: "Contacto",
-            href: "#contact-section",
-            isActive: this.activeHref() === "#contact-section",
-            isExternal: false,
-          },
-        ],
-    useGradient: true,
-    gradientFromKey: "bgColor",
-    gradientToKey: "secondaryBgColor",
-    enableScrollSpy: true,
-    transparentUntilScroll: true,
-    elevateOnScroll: true,
-    showThemeToggle: true,
-    showLanguageToggle: true,
-  }));
 
   constructor() {
     // Track subsequent page views on navigation end
@@ -252,18 +172,16 @@ export class AppShellComponent {
           const draftDescription = typeof draftSeo?.description === 'string' && draftSeo.description.trim().length > 0
             ? draftSeo.description
             : undefined;
-          const seoTitle = draftTitle || (isEs
-            ? 'Landing Page Optimizada: Convierte visitas en clientes | ZoolandingPage'
-            : 'Optimized Landing Page: Turn visits into customers | ZoolandingPage');
-          const seoDesc = draftDescription || (isEs
-            ? 'Publica una landing rápida, clara y medible. Más cierres de venta, mejores decisiones con datos. Suscripción desde 900 MXN/mes (incluye dominio, alojamiento y medición).'
-            : 'Launch a fast, clear and measurable landing. More conversions, better decisions with data. Plans from 900 MXN/month (domain, hosting and analytics included).');
+          const seoTitle = draftTitle || this.appName;
+          const seoDesc = draftDescription || this.appDescription;
 
           this.titleSvc.setTitle(seoTitle);
           this.meta.updateTag({ name: 'description', content: seoDesc });
 
           // Open Graph
-          const origin = (typeof location !== 'undefined' && location.origin) ? location.origin : 'https://zoolandingpage.com';
+          const origin = (typeof location !== 'undefined' && location.origin)
+            ? location.origin
+            : this.defaultOrigin();
           const url = origin + '/';
           const ogLocale = isEs ? 'es_ES' : 'en_US';
           const ogImage = origin + '/assets/og-1200x630.svg';
@@ -274,7 +192,7 @@ export class AppShellComponent {
           this.meta.updateTag({ property: 'og:url', content: String(og['url'] ?? url) });
           this.meta.updateTag({ property: 'og:image', content: String(og['image'] ?? ogImage) });
           this.meta.updateTag({ property: 'og:locale', content: String(og['locale'] ?? ogLocale) });
-          this.meta.updateTag({ property: 'og:site_name', content: String(og['site_name'] ?? 'Zoo Landing Page') });
+          this.meta.updateTag({ property: 'og:site_name', content: String(og['site_name'] ?? this.appName) });
 
           // Twitter Card
           const tw = draftSeo?.twitter ?? {};
@@ -335,24 +253,25 @@ export class AppShellComponent {
   }
 
   private applyDefaultStructuredData(): void {
+    const origin = this.defaultOrigin();
     this.structured.injectOnce('sd:website', {
       '@context': 'https://schema.org',
       '@type': 'WebSite',
-      name: 'Zoo Landing Page',
-      url: 'https://zoolandingpage.com/',
+      name: this.appName,
+      url: `${ origin }/`,
       inLanguage: this.lang.currentLanguage(),
       potentialAction: {
         '@type': 'SearchAction',
-        target: 'https://zoolandingpage.com/?q={search_term_string}',
+        target: `${ origin }/?q={search_term_string}`,
         'query-input': 'required name=search_term_string',
       },
     });
     this.structured.injectOnce('sd:org', {
       '@context': 'https://schema.org',
       '@type': 'Organization',
-      name: 'Zoo Landing',
-      url: 'https://zoolandingpage.com/',
-      logo: 'https://zoolandingpage.com/assets/logo-512x512.svg',
+      name: this.appName,
+      url: `${ origin }/`,
+      logo: `${ origin }/assets/logo-512x512.svg`,
       sameAs: [
         'https://www.facebook.com/',
         'https://www.instagram.com/',
@@ -361,11 +280,10 @@ export class AppShellComponent {
     });
   }
 
-
-  onNavChange(item: THeaderNavItem): void {
-    this.activeHref.set(item.href);
+  private defaultOrigin(): string {
+    const resolved = this.domainResolver.resolveDomain().domain || environment.domain.defaultDomain;
+    return `https://${ resolved }`;
   }
-
   private initializeAngoraConfiguration(): void {
     if (this.angoraHasBeenInitialized) return;
     this.angoraHasBeenInitialized = true;

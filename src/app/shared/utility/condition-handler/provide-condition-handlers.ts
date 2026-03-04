@@ -27,6 +27,7 @@ import {
 import { i18nExistsConditionHandler } from './handlers/i18n.condition-handler';
 import { createLogicHandlers } from './handlers/logic.condition-handler';
 import { modalRefIdConditionHandler } from './handlers/modal-ref.condition-handler';
+import { navigationConditionHandler } from './handlers/navigation.condition-handler';
 import { variableConditionHandlers } from './handlers/variable.condition-handler';
 
 export function provideConditionHandlers(): Provider[] {
@@ -36,6 +37,7 @@ export function provideConditionHandlers(): Provider[] {
         i18nExistsConditionHandler,
         footerConfigConditionHandler,
         footerSocialLinksConditionHandler,
+        navigationConditionHandler,
         ...variableConditionHandlers(),
         hostConditionHandler,
         hostEqConditionHandler,

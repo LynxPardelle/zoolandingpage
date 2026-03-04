@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, Input, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, Input, input } from '@angular/core';
+import { I18nService } from '../../services/i18n.service';
 
 export type ProgressBarMode = 'determinate' | 'indeterminate' | 'buffer' | 'striped';
 
@@ -11,6 +12,7 @@ export type ProgressBarMode = 'determinate' | 'indeterminate' | 'buffer' | 'stri
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GenericProgressBarComponent {
+  private readonly i18n = inject(I18nService);
   readonly value = input<number>(0);
   readonly bufferValue = input<number>(100); // for buffer mode secondary track fill
   readonly mode = input<ProgressBarMode>('determinate');
@@ -32,10 +34,10 @@ export class GenericProgressBarComponent {
       (this.mode() === 'determinate'
         ? this.pct() + '%'
         : this.mode() === 'buffer'
-          ? `Loading ${ this.pct() }% (buffer ${ this.bufferPct() }%)`
+          ? `${ this.i18n.t('ui.common.loading') } ${ this.pct() }% (${ this.bufferPct() }%)`
           : this.mode() === 'striped'
             ? this.pct() + '%'
-            : 'Loading')
+            : this.i18n.t('ui.common.loading'))
   );
   readonly colorClass = computed(() => {
     switch (this.color) {

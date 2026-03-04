@@ -2,7 +2,7 @@
   class="ank-position-fixed ank-display-flex ank-flexDirection-column ank-gap-0_5rem ank-zIndex-1000 ank-pointerEvents-none"
   [class]="getHostPositionClasses()"
   role="region"
-  aria-label="Notifications"
+  [attr.aria-label]="notificationsAriaLabel()"
 >
   @for (toast of service.list(); track toast.id) {
   <div
@@ -77,7 +77,7 @@
     @if (toast.dismissible) {
     <generic-button
       [config]="{
-        ariaLabel: 'Dismiss ' + (toast.title || 'notification'),
+        ariaLabel: getDismissAriaLabel(toast.title),
         classes:
           'toast-dismiss ank-display-flex ank-alignItems-center ank-justifyContent-center ank-flexShrink-0 ank-width-1_5rem ank-height-1_5rem ank-bgcl-transparent ank-border-0 ank-borderRadius-50per ank-cursor-pointer ank-fontSize-1rem ank-color-text-tertiary ank-transition-all ank-color-textHover-primary ank-bgclHover-surface-secondary'
       }"

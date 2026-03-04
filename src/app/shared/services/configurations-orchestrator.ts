@@ -1,6 +1,5 @@
 import { ProcessStep } from '@/app/landing-page/components/interactive-process/interactive-process-leaf.types';
 import type { TGenericStatsCounterConfig } from '@/app/shared/components/generic-stats-counter/generic-stats-counter.types';
-import { I18N_CONFIG } from '@/app/shared/i18n/index.i18n';
 import { I18nService } from '@/app/shared/services/i18n.service';
 import type { TComponentsPayload } from '@/app/shared/types/config-payloads.types';
 import { computed, effect, inject, Injectable } from '@angular/core';
@@ -40,6 +39,7 @@ import { texts } from './component-stores/texts.component-store';
 import { toasts } from './component-stores/toasts.component-store';
 import { tooltips } from './component-stores/tooltips.component-store';
 import { InteractiveProcessStoreService } from './interactive-process-store.service';
+import { LanguageService } from './language.service';
 import { QuickStatsService } from './quick-stats.service';
 import { VariableStoreService } from './variable-store.service';
 @Injectable({
@@ -52,10 +52,15 @@ export class ConfigurationsOrchestratorService {
     private readonly globalI18n = inject(I18nService);
     private readonly componentEventDispatcher = inject(ComponentEventDispatcherService);
     private readonly interactiveProcessStore = inject(InteractiveProcessStoreService);
+    private readonly language = inject(LanguageService);
     private readonly variableStore = inject(VariableStoreService);
     private warnedFooterSocialLinksMissing = false;
     private warnedFooterSocialLinksEmpty = false;
+    private warnedFooterConfigMissing = false;
+    private warnedFooterLegalMissing = false;
+    private warnedFooterCopyrightMissing = false;
     private warnedNavigationMissing = false;
+    private warnedLoopPaths = new Set<string>();
 
     // [MODALS-1] Centralize modal state/config in orchestrator (moved from AppShell).
     readonly activeModalRef = computed(() => this.modal.modalRef());
@@ -70,12 +75,12 @@ export class ConfigurationsOrchestratorService {
         return {
             ariaLabel:
                 id === 'analytics-consent'
-                    ? 'Analytics consent dialog'
+                    ? this.globalI18n.t('ui.accessibility.analyticsConsentDialog')
                     : id === 'terms-of-service'
                         ? this.globalI18n.t('footer.legal.terms.title')
                         : id === 'data-use'
                             ? this.globalI18n.t('footer.legal.data.title')
-                            : 'Dialog',
+                            : this.globalI18n.t('ui.accessibility.dialog'),
             closeOnBackdrop: id === 'analytics-consent' ? false : true,
             showCloseButton: id === 'analytics-consent' ? false : true,
             size: id === 'terms-of-service' ? 'lg' : id === 'data-use' ? 'md' : 'sm',
@@ -87,7 +92,7 @@ export class ConfigurationsOrchestratorService {
 
     // Used as a safe fallback while async pipe resolves first emission.
     readonly fallbackModalHostConfig: ModalConfig = {
-        ariaLabel: 'Dialog',
+        ariaLabel: '',
         closeOnBackdrop: true,
         showCloseButton: true,
         size: 'sm',
@@ -215,52 +220,68 @@ export class ConfigurationsOrchestratorService {
     }
 
     get footerConfig(): Record<string, unknown> {
-        const fallback = {
-            showLegalLinks: true,
-            showSocialLinks: true,
-            showCopyright: true,
-            copyrightText: '© 2025 Zoo Landing Page. Todos los derechos reservados.',
+        const raw = this.variableStore.get('footerConfig');
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+            if (!this.warnedFooterConfigMissing) {
+                console.warn('[ConfigurationsOrchestrator] Expected variables.footerConfig to be an object. Footer sections will remain hidden.');
+                this.warnedFooterConfigMissing = true;
+            }
+            return {
+                showLegalLinks: false,
+                showSocialLinks: false,
+                showCopyright: false,
+                copyrightText: '',
+            };
+        }
+
+        const footerConfig = raw as Record<string, unknown>;
+        const legalRequested = Boolean(footerConfig['showLegalLinks']);
+        const socialRequested = Boolean(footerConfig['showSocialLinks']);
+        const copyrightRequested = Boolean(footerConfig['showCopyright']);
+        const legalReady = this.hasFooterLegalI18n();
+        const copyrightText = typeof footerConfig['copyrightText'] === 'string'
+            ? footerConfig['copyrightText'].trim()
+            : '';
+
+        if (legalRequested && !legalReady && !this.warnedFooterLegalMissing) {
+            console.warn('[ConfigurationsOrchestrator] Missing API i18n footer legal keys. Legal links will remain hidden.');
+            this.warnedFooterLegalMissing = true;
+        }
+
+        if (copyrightRequested && copyrightText.length === 0 && !this.warnedFooterCopyrightMissing) {
+            console.warn('[ConfigurationsOrchestrator] Missing variables.footerConfig.copyrightText. Copyright will remain hidden.');
+            this.warnedFooterCopyrightMissing = true;
+        }
+
+        return {
+            showLegalLinks: legalRequested && legalReady,
+            showSocialLinks: socialRequested,
+            showCopyright: copyrightRequested && copyrightText.length > 0,
+            copyrightText,
         };
-        return this.variableStore.getOr<Record<string, unknown>>('footerConfig', fallback);
     }
 
-    get footerTranslations(): Record<string, Record<string, string>> {
-        const esFooter = (I18N_CONFIG.translations.es as any)?.footer?.legal;
-        const enFooter = (I18N_CONFIG.translations.en as any)?.footer?.legal;
-        return {
-            en: {
-                legalTitle: String(enFooter?.title ?? 'Legal'),
-                termsLink: String(enFooter?.terms?.link ?? 'Terms of Service'),
-                dataLink: String(enFooter?.data?.link ?? 'Data Privacy'),
-                termsAriaLabel: String(enFooter?.terms?.link ?? 'Terms of Service'),
-                dataAriaLabel: String(enFooter?.data?.link ?? 'Data Privacy'),
-            },
-            es: {
-                legalTitle: String(esFooter?.title ?? 'Legal'),
-                termsLink: String(esFooter?.terms?.link ?? 'Terminos de servicio'),
-                dataLink: String(esFooter?.data?.link ?? 'Privacidad de datos'),
-                termsAriaLabel: String(esFooter?.terms?.link ?? 'Terminos de servicio'),
-                dataAriaLabel: String(esFooter?.data?.link ?? 'Privacidad de datos'),
-            },
-        };
+    private hasFooterLegalI18n(): boolean {
+        const legalTitle = this.globalI18n.get('footer.legal.title');
+        const termsLink = this.globalI18n.get('footer.legal.terms.link');
+        const dataLink = this.globalI18n.get('footer.legal.data.link');
+        const termsSections = this.globalI18n.get('footer.legal.terms.sections');
+        const dataPoints = this.globalI18n.get('footer.legal.data.points');
+
+        const hasStrings = [legalTitle, termsLink, dataLink].every((value) => typeof value === 'string' && value.trim().length > 0);
+        const hasSections = Array.isArray(termsSections) && termsSections.length > 0;
+        const hasPoints = Array.isArray(dataPoints) && dataPoints.length > 0;
+        return hasStrings && hasSections && hasPoints;
     }
 
     get navigation(): readonly Record<string, unknown>[] {
-        const fallback: readonly Record<string, unknown>[] = [
-            { id: 'home', sectionId: 'home', href: '#home', analyticsKey: 'home', labelEn: 'Home', labelEs: 'Inicio' },
-            { id: 'benefits', sectionId: 'features-section', href: '#features-section', analyticsKey: 'benefits', labelEn: 'Benefits', labelEs: 'Beneficios' },
-            { id: 'process', sectionId: 'process-section', href: '#process-section', analyticsKey: 'process', labelEn: 'Process', labelEs: 'Proceso' },
-            { id: 'services', sectionId: 'services-section', href: '#services-section', analyticsKey: 'services', labelEn: 'Services', labelEs: 'Servicios' },
-            { id: 'contact', sectionId: 'contact-section', href: '#contact-section', analyticsKey: 'contact', labelEn: 'Contact', labelEs: 'Contacto' },
-        ];
-
         const raw = this.variableStore.get('navigation');
         if (!Array.isArray(raw)) {
             if (!this.warnedNavigationMissing) {
-                console.warn('[ConfigurationsOrchestrator] Expected variables.navigation to be an array. Using fallback navigation.');
+                console.warn('[ConfigurationsOrchestrator] Expected variables.navigation to be an array. Navigation will remain hidden.');
                 this.warnedNavigationMissing = true;
             }
-            return fallback;
+            return [];
         }
 
         return raw.filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object');
@@ -396,7 +417,7 @@ export class ConfigurationsOrchestratorService {
         if (source === 'var') {
             const raw = this.variableStore.get(path);
             if (!Array.isArray(raw)) {
-                console.warn(`[ConfigurationsOrchestrator] loopConfig var source is not an array at path: ${ path }`);
+                this.warnLoopPathOnce('var', path);
                 return [];
             }
             return raw;
@@ -405,13 +426,38 @@ export class ConfigurationsOrchestratorService {
         if (source === 'i18n') {
             const raw = this.globalI18n.get(path);
             if (!Array.isArray(raw)) {
-                console.warn(`[ConfigurationsOrchestrator] loopConfig i18n source is not an array at path: ${ path }`);
+                this.warnLoopPathOnce('i18n', path);
                 return [];
             }
             return raw;
         }
 
         return [];
+    }
+
+    private warnLoopPathOnce(source: 'var' | 'i18n', path: string): void {
+        const key = `${ source }:${ path }`;
+        if (this.warnedLoopPaths.has(key)) return;
+        this.warnedLoopPaths.add(key);
+        console.warn(`[ConfigurationsOrchestrator] loopConfig ${ source } source is not an array at path: ${ path }`);
+    }
+
+    private resolveI18nKeyString(key: unknown): string | undefined {
+        if (typeof key !== 'string') return undefined;
+        const normalized = key.trim();
+        if (!normalized) return undefined;
+
+        const direct = this.globalI18n.get(normalized);
+        if (typeof direct === 'string' && direct.trim().length > 0) {
+            return direct;
+        }
+
+        const translated = this.globalI18n.t(normalized);
+        if (typeof translated === 'string' && translated.trim().length > 0 && translated !== normalized) {
+            return translated;
+        }
+
+        return undefined;
     }
 
     private materializeLoopComponent(template: TGenericComponent, generatedId: string, item: unknown): TGenericComponent {
@@ -425,12 +471,47 @@ export class ConfigurationsOrchestratorService {
 
         if (template.type === 'link' && item && typeof item === 'object') {
             const record = item as Record<string, unknown>;
+            const sectionId = typeof record['sectionId'] === 'string'
+                ? record['sectionId'].trim()
+                : typeof record['value'] === 'string'
+                    ? record['value'].trim()
+                    : undefined;
+            const href = typeof record['href'] === 'string'
+                ? record['href'].trim()
+                : sectionId && sectionId.length > 0
+                    ? `#${ sectionId }`
+                    : undefined;
+
+            const lang = this.language.currentLanguage();
+            const labelFromKey = this.resolveI18nKeyString(record['labelKey']);
+            const ariaFromKey = this.resolveI18nKeyString(record['ariaLabelKey']);
+            const localizedLabel = lang === 'es'
+                ? (record['labelEs'] ?? record['label'])
+                : (record['labelEn'] ?? record['label']);
+
             nextComponent.config.id = generatedId;
-            if (typeof record['url'] === 'string') nextComponent.config.href = record['url'];
+            if (typeof href === 'string' && href.length > 0) {
+                nextComponent.config.href = href;
+            } else if (typeof record['url'] === 'string') {
+                nextComponent.config.href = record['url'];
+            }
+            if (typeof labelFromKey === 'string' && labelFromKey.trim().length > 0) {
+                nextComponent.config.text = labelFromKey;
+            } else if (typeof localizedLabel === 'string' && localizedLabel.trim().length > 0) {
+                nextComponent.config.text = localizedLabel;
+            }
             if (typeof record['icon'] === 'string') nextComponent.config.text = record['icon'];
-            if (typeof record['ariaLabel'] === 'string') nextComponent.config.ariaLabel = record['ariaLabel'];
+            if (typeof ariaFromKey === 'string' && ariaFromKey.trim().length > 0) {
+                nextComponent.config.ariaLabel = ariaFromKey;
+            } else if (typeof record['ariaLabel'] === 'string') {
+                nextComponent.config.ariaLabel = record['ariaLabel'];
+            }
             if (typeof record['target'] === 'string') nextComponent.config.target = record['target'];
             if (typeof record['rel'] === 'string') nextComponent.config.rel = record['rel'];
+
+            if (!nextComponent.config.ariaLabel && typeof nextComponent.config.text === 'string') {
+                nextComponent.config.ariaLabel = nextComponent.config.text;
+            }
         }
 
         if (template.type === 'feature-card' && item && typeof item === 'object') {
@@ -474,9 +555,23 @@ export class ConfigurationsOrchestratorService {
 
         if (template.type === 'text' && item && typeof item === 'object') {
             const record = item as Record<string, unknown>;
-            if (typeof record['text'] === 'string') {
-                nextComponent.config.text = record['text'];
+            const recordText = typeof record['text'] === 'string' ? record['text'] : undefined;
+            const recordBody = typeof record['body'] === 'string' ? record['body'] : undefined;
+            const recordTitle = typeof record['title'] === 'string' ? record['title'] : undefined;
+
+            if (recordText != null) {
+                nextComponent.config.text = recordText;
+            } else if (recordBody != null && recordTitle != null) {
+                nextComponent.config.text = `${ recordTitle }: ${ recordBody }`;
+            } else if (recordBody != null) {
+                nextComponent.config.text = recordBody;
+            } else if (recordTitle != null) {
+                nextComponent.config.text = recordTitle;
             }
+        }
+
+        if (template.type === 'text' && typeof item === 'string') {
+            nextComponent.config.text = item;
         }
 
         if (template.type === 'container' && Array.isArray(nextComponent.config?.components)) {

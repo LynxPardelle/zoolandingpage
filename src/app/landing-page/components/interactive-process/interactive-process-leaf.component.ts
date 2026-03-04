@@ -91,7 +91,7 @@ export class InteractiveProcessLeafComponent {
     }
 
     const step = this.currentStep();
-    // Si currentStep es -1 (cerrado) o inválido, usar el primer paso como fallback
+    // If currentStep is -1 (closed) or invalid, use the first step as fallback.
     if (step < 0 || step >= steps.length) {
       return steps[0];
     }
@@ -99,21 +99,20 @@ export class InteractiveProcessLeafComponent {
   });
 
   readonly sectionContent = computed(() => ({
-    title: this.i18n.tOr('landing.processSection.title', 'Cómo lo hacemos'),
-    sidebarTitle: this.i18n.tOr('landing.processSection.sidebarTitle', 'Nuestro Proceso'),
-    detailedDescriptionLabel: this.i18n.tOr('landing.processSection.detailedDescriptionLabel', 'Descripción Detallada:'),
-    deliverablesLabel: this.i18n.tOr('landing.processSection.deliverablesLabel', 'Entregables:'),
+    title: this.i18n.tOr('landing.processSection.title', this.i18n.tOr('processSection.title', '')),
+    sidebarTitle: this.i18n.tOr('landing.processSection.sidebarTitle', this.i18n.tOr('processSection.sidebarTitle', '')),
+    detailedDescriptionLabel: this.i18n.tOr('landing.processSection.detailedDescriptionLabel', this.i18n.tOr('processSection.detailedDescriptionLabel', '')),
+    deliverablesLabel: this.i18n.tOr('landing.processSection.deliverablesLabel', this.i18n.tOr('processSection.deliverablesLabel', '')),
   }));
 
   choose(i: number) {
-    // Si el paso actual es el mismo que se clickeó, emitir -1 para cerrar
-    // Si es diferente, emitir el nuevo índice para abrir
+    // If the current step is clicked again, emit -1 to close.
+    // If a different step is clicked, emit that index to open it.
     if (this.currentStep() === i) {
-      this.selectStep.emit(-1); // Usamos -1 para indicar "cerrado"
+      this.selectStep.emit(-1); // Use -1 to represent a closed state.
     } else {
       this.selectStep.emit(i);
-      // Scroll suave al elemento seleccionado después de un pequeño delay
-      // para permitir que las animaciones comiencen
+      // Smooth scroll after a short delay so animations can begin.
       setTimeout(() => {
         this.scrollToSelectedStep(i);
       }, 150);
@@ -127,13 +126,12 @@ export class InteractiveProcessLeafComponent {
       const viewportHeight = window.innerHeight;
       const elementTop = elementRect.top + window.pageYOffset;
 
-      // Calcular la posición de scroll para centrar el elemento
-      // Restamos la mitad de la altura de la viewport para centrarlo
+      // Compute the scroll offset to center the selected step.
       const targetScrollPosition = elementTop - viewportHeight / 2 + elementRect.height / 2;
 
-      // Scroll suave
+      // Smooth scroll.
       window.scrollTo({
-        top: Math.max(0, targetScrollPosition), // No permitir scroll negativo
+        top: Math.max(0, targetScrollPosition), // Prevent negative scroll values.
         behavior: 'smooth',
       });
     }

@@ -79,66 +79,12 @@ export const icons: TGenericComponent[] = [
     {
         id: 'menu',
         type: 'icon',
+        valueInstructions: 'set:config.ariaLabel,i18n,ui.accessibility.openMenu',
         config: {
             iconName: 'menu',
-            ariaLabel: 'Open menu',
+            ariaLabel: '',
             classes: 'ank-color-textColor ank-fs-1_5rem'
         }
     },
 
-    /* Final CTA Trust Icons */
-    {
-        id: 'finalCtaTrustIconMeasurement',
-        type: 'icon',
-        config: {
-            iconName: 'star',
-            ariaHidden: true,
-            classes: 'ank-color-secondaryAccentColor ank-fs-1_25rem'
-        }
-    },
-    {
-        id: 'finalCtaTrustIconSsl',
-        type: 'icon',
-        config: {
-            iconName: 'lock',
-            ariaHidden: true,
-            classes: 'ank-color-secondaryAccentColor ank-fs-1_25rem'
-        }
-    },
-    {
-        id: 'finalCtaTrustIconDelivery',
-        type: 'icon',
-        config: {
-            iconName: 'flash_on',
-            ariaHidden: true,
-            classes: 'ank-color-secondaryAccentColor ank-fs-1_25rem'
-        }
-    },
-    {
-        id: 'finalCtaTrustIconSupport',
-        type: 'icon',
-        config: {
-            iconName: 'support_agent',
-            ariaHidden: true,
-            classes: 'ank-color-secondaryAccentColor ank-fs-1_25rem'
-        }
-    },
-    {
-        id: 'finalCtaTrustIconReports',
-        type: 'icon',
-        config: {
-            iconName: 'bar_chart',
-            ariaHidden: true,
-            classes: 'ank-color-secondaryAccentColor ank-fs-1_25rem'
-        }
-    },
-    {
-        id: 'finalCtaTrustIconSeo',
-        type: 'icon',
-        config: {
-            iconName: 'search',
-            ariaHidden: true,
-            classes: 'ank-color-secondaryAccentColor ank-fs-1_25rem'
-        }
-    },
 ];

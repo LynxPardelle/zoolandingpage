@@ -10,6 +10,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { I18nService } from '../../services/i18n.service';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { TabDefinition, TabGroupConfig } from './generic-tab-group.types';
 
@@ -21,6 +22,7 @@ import { TabDefinition, TabGroupConfig } from './generic-tab-group.types';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GenericTabGroupComponent {
+  readonly i18n = inject(I18nService);
   @Input() set tabsSource(v: readonly TabDefinition[] | null) {
     this._tabs.set(v ?? []);
   }

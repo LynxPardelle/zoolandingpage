@@ -245,9 +245,10 @@ export const createContainers = (globalI18n: I18nService): TGenericComponent[] =
         {
             id: 'headerDesktopNav',
             type: 'container',
+            valueInstructions: 'set:config.ariaLabel,i18n,ui.accessibility.primaryNavigation',
             config: {
                 tag: 'nav',
-                ariaLabel: 'Primary',
+                ariaLabel: '',
                 classes:
                     'ank-display-none ank-display-md-flex ank-alignItems-center ank-jc-spaceMINbetween ank-gap-32px ank-w-calcSD100per__MIN__17remED ank-mx-1rem',
                 components: ['headerDesktopNavLinks', 'headerDesktopNavActions'],
@@ -256,56 +257,18 @@ export const createContainers = (globalI18n: I18nService): TGenericComponent[] =
         {
             id: 'headerDesktopNavLinks',
             type: 'container',
+            condition: 'all:navigation,exists',
+            loopConfig: {
+                source: 'var',
+                path: 'navigation',
+                templateId: 'headerNavLinkTemplate',
+                idPrefix: 'headerNavLink',
+            },
             config: {
                 tag: 'ul',
                 classes:
                     'ank-display-flex ank-gap-28px ank-listStyle-none ank-margin-0 ank-padding-0 ank-flexWrap-nowrap ank-whiteSpace-nowrap ank-justifyContent-spaceMINevenly ank-alignItems-center',
-                components: ['headerNavHomeLi', 'headerNavBenefitsLi', 'headerNavProcessLi', 'headerNavServicesLi', 'headerNavContactLi'],
-            }
-        },
-        {
-            id: 'headerNavHomeLi',
-            type: 'container',
-            config: {
-                tag: 'li',
-                classes: 'ank-position-relative',
-                components: ['headerNavHome'],
-            }
-        },
-        {
-            id: 'headerNavBenefitsLi',
-            type: 'container',
-            config: {
-                tag: 'li',
-                classes: 'ank-position-relative',
-                components: ['headerNavBenefits'],
-            }
-        },
-        {
-            id: 'headerNavProcessLi',
-            type: 'container',
-            config: {
-                tag: 'li',
-                classes: 'ank-position-relative',
-                components: ['headerNavProcess'],
-            }
-        },
-        {
-            id: 'headerNavServicesLi',
-            type: 'container',
-            config: {
-                tag: 'li',
-                classes: 'ank-position-relative',
-                components: ['headerNavServices'],
-            }
-        },
-        {
-            id: 'headerNavContactLi',
-            type: 'container',
-            config: {
-                tag: 'li',
-                classes: 'ank-position-relative',
-                components: ['headerNavContact'],
+                components: [],
             }
         },
         {
@@ -617,6 +580,7 @@ export const createContainers = (globalI18n: I18nService): TGenericComponent[] =
         {
             id: "heroFloatingMetrics",
             type: 'container',
+            condition: 'all:var,hero.floatingMetrics.speedValue',
             config: {
                 tag: 'div',
                 classes:
@@ -655,6 +619,7 @@ export const createContainers = (globalI18n: I18nService): TGenericComponent[] =
         {
             id: "heroConversionBadge",
             type: 'container',
+            condition: 'all:var,hero.floatingMetrics.conversionValue',
             config: {
                 tag: 'div',
                 classes:
@@ -701,6 +666,7 @@ export const createContainers = (globalI18n: I18nService): TGenericComponent[] =
         {
             id: 'featuresSection',
             type: 'container',
+            condition: 'all:i18n,features',
             config: {
                 id: 'features-section',
                 tag: 'section',
@@ -747,6 +713,7 @@ export const createContainers = (globalI18n: I18nService): TGenericComponent[] =
         {
             id: 'servicesSection',
             type: 'container',
+            condition: 'all:i18n,services',
             config: {
                 id: 'services-section',
                 tag: 'section',
@@ -850,6 +817,7 @@ export const createContainers = (globalI18n: I18nService): TGenericComponent[] =
         {
             id: 'testimonialsSection',
             type: 'container',
+            condition: 'all:i18n,testimonials',
             config: {
                 id: 'testimonials-section',
                 tag: 'section',
@@ -905,6 +873,7 @@ export const createContainers = (globalI18n: I18nService): TGenericComponent[] =
         {
             id: 'finalCtaSection',
             type: 'container',
+            condition: 'all:i18n,finalCtaSection.title; all:i18n,finalCtaSection.subtitle; all:i18n,finalCtaSection.primaryLabel; all:i18n,finalCtaSection.secondaryLabel',
             config: {
                 id: 'final-cta-section',
                 tag: 'section',
@@ -944,6 +913,7 @@ export const createContainers = (globalI18n: I18nService): TGenericComponent[] =
         {
             id: 'finalCtaTrust',
             type: 'container',
+            condition: 'all:i18n,finalCtaSection.trustSignals.first; all:i18n,finalCtaSection.trustSignals.second.0; all:i18n,finalCtaSection.trustSignals.second.1; all:i18n,finalCtaSection.trustSignals.second.2',
             config: {
                 tag: 'div',
                 classes: 'ank-display-flex ank-flexDirection-column ank-alignItems-center ank-gap-16px ank-opacity-70',
@@ -960,77 +930,6 @@ export const createContainers = (globalI18n: I18nService): TGenericComponent[] =
                 components: ['finalCtaTrustSpanSupport', 'finalCtaTrustSpanReports', 'finalCtaTrustSpanSeo'],
             }
         },
-        {
-            id: 'finalCtaTrustItems',
-            type: 'container',
-            config: {
-                tag: 'div',
-                classes: 'ank-display-flex ank-flexDirection-column ank-alignItems-center ank-gap-16px ank-opacity-70',
-                components: [
-                    'finalCtaTrustItemMeasurement',
-                    'finalCtaTrustItemSsl',
-                    'finalCtaTrustItemDelivery',
-                    'finalCtaTrustItemSupport',
-                    'finalCtaTrustItemReports',
-                    'finalCtaTrustItemSeo',
-                ],
-            }
-        },
-        {
-            id: 'finalCtaTrustItemMeasurement',
-            type: 'container',
-            config: {
-                tag: 'div',
-                classes: 'ank-display-flex ank-alignItems-center ank-gap-8px ank-fs-1rem ank-color-textColor',
-                components: ['finalCtaTrustIconMeasurement', 'finalCtaTrustTextMeasurement'],
-            }
-        },
-        {
-            id: 'finalCtaTrustItemSsl',
-            type: 'container',
-            config: {
-                tag: 'div',
-                classes: 'ank-display-flex ank-alignItems-center ank-gap-8px ank-fs-1rem ank-color-textColor',
-                components: ['finalCtaTrustIconSsl', 'finalCtaTrustTextSsl'],
-            }
-        },
-        {
-            id: 'finalCtaTrustItemDelivery',
-            type: 'container',
-            config: {
-                tag: 'div',
-                classes: 'ank-display-flex ank-alignItems-center ank-gap-8px ank-fs-1rem ank-color-textColor',
-                components: ['finalCtaTrustIconDelivery', 'finalCtaTrustTextDelivery'],
-            }
-        },
-        {
-            id: 'finalCtaTrustItemSupport',
-            type: 'container',
-            config: {
-                tag: 'div',
-                classes: 'ank-display-flex ank-alignItems-center ank-gap-8px ank-fs-1rem ank-color-textColor',
-                components: ['finalCtaTrustIconSupport', 'finalCtaTrustTextSupport'],
-            }
-        },
-        {
-            id: 'finalCtaTrustItemReports',
-            type: 'container',
-            config: {
-                tag: 'div',
-                classes: 'ank-display-flex ank-alignItems-center ank-gap-8px ank-fs-1rem ank-color-textColor',
-                components: ['finalCtaTrustIconReports', 'finalCtaTrustTextReports'],
-            }
-        },
-        {
-            id: 'finalCtaTrustItemSeo',
-            type: 'container',
-            config: {
-                tag: 'div',
-                classes: 'ank-display-flex ank-alignItems-center ank-gap-8px ank-fs-1rem ank-color-textColor',
-                components: ['finalCtaTrustIconSeo', 'finalCtaTrustTextSeo'],
-            }
-        },
-
         /* Stats Strip Section */
         {
             id: 'statsStripSection',
@@ -1261,7 +1160,7 @@ export const createContainers = (globalI18n: I18nService): TGenericComponent[] =
                 tag: 'div',
                 classes:
                     'ank-display-flex ank-gap-12px ank-flexWrap-wrap ank-justifyContent-center',
-                components: ['footerTermsButton', 'footerLegalSeparator', 'footerDataButton'],
+                components: ['footerTermsButton', 'footerDataButton'],
             }
         },
         {

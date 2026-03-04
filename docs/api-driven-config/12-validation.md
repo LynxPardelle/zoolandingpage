@@ -81,8 +81,46 @@ Checks:
 
 - Verify `variables.footerConfig.showSocialLinks` is true.
 - Verify `variables.footerSocialLinks` exists and is a non-empty array.
-- Confirm each social entry has usable `url` and `ariaLabel` values.
+- Confirm each social entry has usable `url` and either `ariaLabelKey`/`labelKey` or fallback labels.
 - Check for one-time warning: `variables.footerSocialLinks is empty. Footer social links will not render.`
+
+### Footer/legal text missing after migration
+
+Symptoms:
+
+- Footer legal text/buttons are missing.
+- Legal modal text or icons are empty.
+
+Checks:
+
+- Verify API i18n payload includes `footer.legal.*` and `footer.actions.close` keys.
+- Verify legal modal icon keys exist: `footer.legal.terms.icon` and `footer.legal.data.icon`.
+- Verify local fallback is intentionally not expected for footer/legal keys.
+- Check orchestrator warning: `Missing API i18n footer legal keys. Legal links will remain hidden.`
+
+### Footer does not render at all
+
+Symptoms:
+
+- Entire footer section is absent.
+
+Checks:
+
+- Verify `page-config.rootIds` includes `siteFooter`.
+- Verify footer components are present in `components` payload.
+- Verify `variables.footerConfig` is present and valid.
+
+### labelKey / ariaLabelKey not applied
+
+Symptoms:
+
+- Social links show fallback labels instead of translated key values.
+
+Checks:
+
+- Verify each social link has valid `labelKey` / `ariaLabelKey`.
+- Verify those keys exist in API i18n dictionary.
+- If key values are absent, expected fallback precedence is used: `labelEs` / `labelEn` / `label`.
 
 ## Debug Tips
 

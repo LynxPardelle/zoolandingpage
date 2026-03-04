@@ -19,6 +19,7 @@ import {
   ViewContainerRef
 } from '@angular/core';
 import { NgxAngoraService } from 'ngx-angora-css';
+import { LanguageService } from '../../services/language.service';
 import { OverlayPositioningService } from '../../services/overlay-positioning.service';
 import { GenericButtonComponent } from "../generic-button/generic-button.component";
 import type { DropdownConfig, DropdownItem, MenuTemplateContext } from './generic-dropdown.types';
@@ -38,6 +39,7 @@ export class GenericDropdown {
   private readonly positioning = inject(OverlayPositioningService);
   private readonly vcr = inject(ViewContainerRef);
   private readonly angora = inject(NgxAngoraService) as NgxAngoraService;
+  private readonly language = inject(LanguageService);
   private readonly appRef = inject(ApplicationRef);
   private readonly injector = inject(Injector);
   private overlayRef: OverlayRef | null = null;
@@ -58,6 +60,21 @@ export class GenericDropdown {
   readonly menuListClasses = computed<string>(() => this.config()?.menuListClasses || '');
   readonly renderMode = computed<'overlay' | 'inline'>(() => this.config()?.renderMode ?? 'overlay');
   readonly menuContainerId = computed<string | null>(() => this.config()?.menuContainerId ?? null);
+  readonly normalizedItems = computed<readonly DropdownItem[]>(() => {
+    const raw = this.resolveMaybeThunk(this.items() as unknown);
+
+    if (Array.isArray(raw)) {
+      return raw.filter((item): item is DropdownItem => !!item && typeof item === 'object');
+    }
+
+    if (raw && typeof raw === 'object') {
+      return Object.values(raw as Record<string, unknown>).filter(
+        (item): item is DropdownItem => !!item && typeof item === 'object'
+      );
+    }
+
+    return [];
+  });
 
   readonly stateClasses = computed(() => (this.opened() ? 'ank-opacity-100' : 'ank-opacity-80'));
   readonly activeIndex = signal<number>(-1); // exposed for aria-activedescendant
@@ -91,7 +108,7 @@ export class GenericDropdown {
 
       this.inlineOutlet = new DomPortalOutlet(menuRoot, this.appRef, this.injector);
       this.inlinePortal = new TemplatePortal(this.defaultMenuTpl, this.vcr, {
-        items: this.items(),
+        items: this.normalizedItems(),
         select: (item: DropdownItem) => this.handleSelect(item),
       });
       this.inlineOutlet.attach(this.inlinePortal);
@@ -182,7 +199,7 @@ export class GenericDropdown {
 
   private menuContext(): MenuTemplateContext {
     return {
-      items: this.items(),
+      items: this.normalizedItems(),
       select: (item: DropdownItem) => this.handleSelect(item),
     };
   }
@@ -312,12 +329,31 @@ export class GenericDropdown {
 
   itemLabel(item: DropdownItem): string {
     const raw = this.resolveMaybeThunk(item.label);
-    return typeof raw === 'string' ? raw : String(raw ?? '');
+    if (typeof raw === 'string' && raw.trim().length > 0) return raw;
+
+    const record = item as unknown as Record<string, unknown>;
+    const lang = this.language.currentLanguage();
+    const localized = lang === 'es'
+      ? record['labelEs'] ?? record['label']
+      : record['labelEn'] ?? record['label'];
+
+    if (typeof localized === 'string' && localized.trim().length > 0) return localized;
+    if (typeof record['id'] === 'string' && record['id'].trim().length > 0) return record['id'];
+    return '';
   }
 
   itemValue(item: DropdownItem): string {
     const raw = this.resolveMaybeThunk(item.value);
-    return typeof raw === 'string' ? raw : String(raw ?? '');
+    if (typeof raw === 'string' && raw.trim().length > 0) return raw;
+
+    const record = item as unknown as Record<string, unknown>;
+    const sectionId = record['sectionId'];
+    if (typeof sectionId === 'string' && sectionId.trim().length > 0) return sectionId;
+
+    const href = record['href'];
+    if (typeof href === 'string' && href.trim().length > 0) return href.replace(/^#/, '');
+
+    return '';
   }
 
   itemHref(item: DropdownItem): string {

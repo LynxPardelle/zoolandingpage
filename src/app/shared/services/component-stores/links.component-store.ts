@@ -6,7 +6,7 @@ export const links: TGenericComponent[] = [
         id: 'skipToMainLink',
         type: 'link',
         eventInstructions: 'skipToMain:main-content',
-        valueInstructions: 'set:config.text,langPick,Skip to content,Saltar al contenido',
+        valueInstructions: 'set:config.text,i18n,ui.accessibility.skipToContent',
         config: {
             id: 'skipToMainLink',
             href: '#main-content',
@@ -20,7 +20,7 @@ export const links: TGenericComponent[] = [
     {
         id: 'headerLogoImage',
         type: 'link',
-        valueInstructions: 'set:config.text,varOr,ui.brandTextFallback,Zoo Landing; set:config.ariaLabel,varOr,ui.brandTextFallback,Zoo Landing',
+        valueInstructions: 'set:config.text,var,ui.brandTextFallback; set:config.ariaLabel,var,ui.brandTextFallback',
         config: {
             id: 'headerLogoImage',
             href: '#home',
@@ -31,64 +31,11 @@ export const links: TGenericComponent[] = [
         }
     },
     {
-        id: 'headerNavHome',
+        id: 'headerNavLinkTemplate',
         type: 'link',
-        eventInstructions: 'trackNavClick:home,event.eventData;navigationToSection:event.eventData',
-        valueInstructions: 'set:config.text,langPick,host.navigation.0.labelEn,host.navigation.0.labelEs; set:config.href,concat,#,host.navigation.0.sectionId',
+        eventInstructions: 'trackNavClick:event.eventData,event.eventData;navigationToSection:event.eventData',
         config: {
-            id: 'headerNavHome',
-            href: '',
-            text: '',
-            classes:
-                'ank-textDecoration-none ank-fontWeight-500 ank-letterSpacing-05px ank-position-relative ank-paddingInline-4px ank-paddingBlock-4px ank-transition-color ank-duration-200 ank-color-accentColor',
-        }
-    },
-    {
-        id: 'headerNavBenefits',
-        type: 'link',
-        eventInstructions: 'trackNavClick:benefits,event.eventData;navigationToSection:event.eventData',
-        valueInstructions: 'set:config.text,langPick,host.navigation.1.labelEn,host.navigation.1.labelEs; set:config.href,concat,#,host.navigation.1.sectionId',
-        config: {
-            id: 'headerNavBenefits',
-            href: '',
-            text: '',
-            classes:
-                'ank-textDecoration-none ank-fontWeight-500 ank-letterSpacing-05px ank-position-relative ank-paddingInline-4px ank-paddingBlock-4px ank-transition-color ank-duration-200 ank-color-textColor ank-opacity-80',
-        }
-    },
-    {
-        id: 'headerNavProcess',
-        type: 'link',
-        eventInstructions: 'trackNavClick:process,event.eventData;navigationToSection:event.eventData',
-        valueInstructions: 'set:config.text,langPick,host.navigation.2.labelEn,host.navigation.2.labelEs; set:config.href,concat,#,host.navigation.2.sectionId',
-        config: {
-            id: 'headerNavProcess',
-            href: '',
-            text: '',
-            classes:
-                'ank-textDecoration-none ank-fontWeight-500 ank-letterSpacing-05px ank-position-relative ank-paddingInline-4px ank-paddingBlock-4px ank-transition-color ank-duration-200 ank-color-textColor ank-opacity-80',
-        }
-    },
-    {
-        id: 'headerNavServices',
-        type: 'link',
-        eventInstructions: 'trackNavClick:services,event.eventData;navigationToSection:event.eventData',
-        valueInstructions: 'set:config.text,langPick,host.navigation.3.labelEn,host.navigation.3.labelEs; set:config.href,concat,#,host.navigation.3.sectionId',
-        config: {
-            id: 'headerNavServices',
-            href: '',
-            text: '',
-            classes:
-                'ank-textDecoration-none ank-fontWeight-500 ank-letterSpacing-05px ank-position-relative ank-paddingInline-4px ank-paddingBlock-4px ank-transition-color ank-duration-200 ank-color-textColor ank-opacity-80',
-        }
-    },
-    {
-        id: 'headerNavContact',
-        type: 'link',
-        eventInstructions: 'trackNavClick:contact,event.eventData;navigationToSection:event.eventData',
-        valueInstructions: 'set:config.text,langPick,host.navigation.4.labelEn,host.navigation.4.labelEs; set:config.href,concat,#,host.navigation.4.sectionId',
-        config: {
-            id: 'headerNavContact',
+            id: 'headerNavLinkTemplate',
             href: '',
             text: '',
             classes:

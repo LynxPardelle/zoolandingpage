@@ -2,8 +2,8 @@
   <input
     type="search"
     class="ank-width-100per ank-borderRadius-0_5rem ank-border-1px-solid ank-borderColor-fgColor ank-px-0_75rem ank-py-0_5rem focus-visible-ring"
-    [attr.placeholder]="config?.placeholder || 'Search'"
-    [attr.aria-label]="config?.ariaLabel || 'Search'"
+    [attr.placeholder]="config?.placeholder || i18n.t('ui.common.search')"
+    [attr.aria-label]="config?.ariaLabel || i18n.t('ui.common.search')"
     [attr.role]="'combobox'"
     [attr.aria-autocomplete]="'list'"
     [attr.aria-controls]="listboxId"
@@ -41,7 +41,9 @@
         </generic-button>
       </li>
       } @if (!loading() && !results().length && term().length >= minLength()) {
-      <li class="ank-color-textSecondary ank-fontSize-0_75rem ank-px-0_5rem ank-py-0_25rem">No results</li>
+      <li class="ank-color-textSecondary ank-fontSize-0_75rem ank-px-0_5rem ank-py-0_25rem">
+        {{ i18n.t("ui.common.noResults") }}
+      </li>
       } @if (loading()) {
       <li class="ank-color-textSecondary ank-fontSize-0_75rem ank-px-0_5rem ank-py-0_25rem">
         <app-loading-spinner variant="dots" size="sm" />

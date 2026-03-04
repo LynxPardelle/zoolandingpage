@@ -13,6 +13,7 @@ import { VariableStoreService } from './variable-store.service';
 describe('ConfigurationsOrchestratorService', () => {
   let service: ConfigurationsOrchestratorService;
   let variables: VariableStoreService;
+  let i18n: I18nService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -69,6 +70,7 @@ describe('ConfigurationsOrchestratorService', () => {
     });
     service = TestBed.inject(ConfigurationsOrchestratorService);
     variables = TestBed.inject(VariableStoreService);
+    i18n = TestBed.inject(I18nService);
   });
 
   it('should be created', () => {
@@ -160,5 +162,200 @@ describe('ConfigurationsOrchestratorService', () => {
 
     const features = service.getComponentById('featuresSection') as any;
     expect(features?.config?.components).toEqual(['featureText__1', 'featureText__2']);
+  });
+
+  it('keeps footer sections hidden when footerConfig payload is missing', () => {
+    variables.setPayload(null);
+
+    const footerConfig = service.footerConfig;
+    expect(footerConfig['showLegalLinks']).toBeFalse();
+    expect(footerConfig['showSocialLinks']).toBeFalse();
+    expect(footerConfig['showCopyright']).toBeFalse();
+  });
+
+  it('materializes dynamic text loops from i18n strings and objects', () => {
+    spyOn(i18n, 'get').and.callFake(((key: string) => {
+      if (key === 'footer.legal.data.points') {
+        return ['Point A', 'Point B'];
+      }
+      if (key === 'footer.legal.terms.sections') {
+        return [
+          { title: 'Section 1', text: 'Body 1' },
+          { title: 'Section 2', body: 'Body 2' },
+        ];
+      }
+      if (key === 'features') {
+        return [
+          { title: 'Feature 1', description: 'Desc 1' },
+          { title: 'Feature 2', description: 'Desc 2' },
+        ];
+      }
+      return undefined;
+    }) as any);
+
+    service.setExternalComponentsFromPayload({
+      version: 1,
+      pageId: 'default',
+      domain: 'zoolandingpage.com.mx',
+      components: {
+        textTemplate: {
+          id: 'textTemplate',
+          type: 'text',
+          config: { tag: 'p', text: '' },
+        },
+        pointsSection: {
+          id: 'pointsSection',
+          type: 'container',
+          loopConfig: { source: 'i18n', path: 'footer.legal.data.points', templateId: 'textTemplate', idPrefix: 'pointText' },
+          config: { tag: 'ul', components: [] },
+        },
+        sectionsSection: {
+          id: 'sectionsSection',
+          type: 'container',
+          loopConfig: { source: 'i18n', path: 'footer.legal.terms.sections', templateId: 'textTemplate', idPrefix: 'sectionText' },
+          config: { tag: 'div', components: [] },
+        },
+      },
+    });
+
+    const pointOne = service.getComponentById('pointText__1') as any;
+    const pointTwo = service.getComponentById('pointText__2') as any;
+    expect(pointOne?.config?.text).toBe('Point A');
+    expect(pointTwo?.config?.text).toBe('Point B');
+
+    const sectionOne = service.getComponentById('sectionText__1') as any;
+    const sectionTwo = service.getComponentById('sectionText__2') as any;
+    expect(sectionOne?.config?.text).toBe('Body 1');
+    expect(sectionTwo?.config?.text).toBe('Section 2: Body 2');
+  });
+
+  it('returns empty navigation when API navigation payload is missing', () => {
+    variables.setPayload({
+      version: 1,
+      pageId: 'default',
+      domain: 'zoolandingpage.com.mx',
+      variables: {},
+    });
+
+    expect(service.navigation).toEqual([]);
+  });
+
+  it('materializes header navigation link template from variable navigation payload', () => {
+    variables.setPayload({
+      version: 1,
+      pageId: 'default',
+      domain: 'zoolandingpage.com.mx',
+      variables: {
+        navigation: [
+          { id: 'home', sectionId: 'home', labelEn: 'Home', labelEs: 'Inicio' },
+        ],
+      },
+    });
+
+    service.setExternalComponentsFromPayload({
+      version: 1,
+      pageId: 'default',
+      domain: 'zoolandingpage.com.mx',
+      components: {
+        headerNavLinkTemplate: {
+          id: 'headerNavLinkTemplate',
+          type: 'link',
+          eventInstructions: 'trackNavClick:event.eventData,event.eventData;navigationToSection:event.eventData',
+          config: {
+            id: 'headerNavLinkTemplate',
+            href: '',
+            text: '',
+          },
+        },
+        headerDesktopNavLinks: {
+          id: 'headerDesktopNavLinks',
+          type: 'container',
+          loopConfig: {
+            source: 'var',
+            path: 'navigation',
+            templateId: 'headerNavLinkTemplate',
+            idPrefix: 'headerNavLink',
+          },
+          config: {
+            tag: 'ul',
+            components: [],
+          },
+        },
+      },
+    });
+
+    const generated = service.getComponentById('headerNavLink__1') as any;
+    expect(generated?.config?.href).toBe('#home');
+    expect(generated?.config?.text).toBe('Inicio');
+  });
+
+  it('uses labelKey and ariaLabelKey for loop-materialized links when available', () => {
+    spyOn(i18n, 'get').and.callFake(((key: string) => {
+      if (key === 'navigation.links.home.label') return 'Inicio API';
+      if (key === 'navigation.links.home.aria') return 'Ir a inicio';
+      if (key === 'features') {
+        return [
+          { title: 'Feature 1', description: 'Desc 1' },
+          { title: 'Feature 2', description: 'Desc 2' },
+        ];
+      }
+      return undefined;
+    }) as any);
+
+    variables.setPayload({
+      version: 1,
+      pageId: 'default',
+      domain: 'zoolandingpage.com.mx',
+      variables: {
+        navigation: [
+          {
+            id: 'home',
+            sectionId: 'home',
+            labelKey: 'navigation.links.home.label',
+            ariaLabelKey: 'navigation.links.home.aria',
+            labelEn: 'Home Fallback',
+            labelEs: 'Inicio Fallback',
+          },
+        ],
+      },
+    });
+
+    service.setExternalComponentsFromPayload({
+      version: 1,
+      pageId: 'default',
+      domain: 'zoolandingpage.com.mx',
+      components: {
+        headerNavLinkTemplate: {
+          id: 'headerNavLinkTemplate',
+          type: 'link',
+          eventInstructions: 'trackNavClick:event.eventData,event.eventData;navigationToSection:event.eventData',
+          config: {
+            id: 'headerNavLinkTemplate',
+            href: '',
+            text: '',
+            ariaLabel: '',
+          },
+        },
+        headerDesktopNavLinks: {
+          id: 'headerDesktopNavLinks',
+          type: 'container',
+          loopConfig: {
+            source: 'var',
+            path: 'navigation',
+            templateId: 'headerNavLinkTemplate',
+            idPrefix: 'headerNavLink',
+          },
+          config: {
+            tag: 'ul',
+            components: [],
+          },
+        },
+      },
+    });
+
+    const generated = service.getComponentById('headerNavLink__1') as any;
+    expect(generated?.config?.href).toBe('#home');
+    expect(generated?.config?.text).toBe('Inicio API');
+    expect(generated?.config?.ariaLabel).toBe('Ir a inicio');
   });
 });

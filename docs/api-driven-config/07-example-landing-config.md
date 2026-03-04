@@ -4,11 +4,12 @@ This is an _illustrative_ example showing the intended shape for API storage.
 
 It is written in a JSON-ish style, but references existing component types.
 
-## Root list
+## Root list (page-config payload)
 
 ```json
 {
-  "rootIds": ["heroContainer", "featuresContainer", "finalCtaContainer"]
+  "rootIds": ["skipToMainLink", "siteHeader", "landingPage", "siteFooter"],
+  "modalRootIds": ["modalAnalyticsConsentRoot", "modalDemoRoot", "modalTermsRoot", "modalDataUseRoot"]
 }
 ```
 
@@ -127,20 +128,156 @@ A map is the easiest API payload, since `id` is the natural key:
 }
 ```
 
-## Example: variables-driven footer social links
+## Example: API-owned footer contract
+
+This project now treats footer and legal modal content as API-only. Do not rely on local fallback dictionaries.
+
+### Variables payload
 
 ```json
 {
   "variables": {
+    "footerConfig": {
+      "showLegalLinks": true,
+      "showSocialLinks": true,
+      "showCopyright": true,
+      "copyrightText": "© 2026 Zoo Landing Page. All rights reserved."
+    },
     "footerSocialLinks": [
       {
-        "id": "footerSocialFacebook",
-        "name": "Facebook",
+        "id": "facebook",
         "url": "https://facebook.com/zoolanding",
+        "target": "_blank",
+        "rel": "noopener noreferrer",
         "icon": "📘",
-        "ariaLabel": "Visit our Facebook page"
+        "labelKey": "footer.social.facebook.label",
+        "ariaLabelKey": "footer.social.facebook.ariaLabel"
+      },
+      {
+        "id": "instagram",
+        "url": "https://instagram.com/zoolanding",
+        "target": "_blank",
+        "rel": "noopener noreferrer",
+        "icon": "📸",
+        "labelKey": "footer.social.instagram.label",
+        "ariaLabelKey": "footer.social.instagram.ariaLabel"
       }
     ]
   }
 }
 ```
+
+### Components payload (footer + legal modal icon examples)
+
+```json
+{
+  "components": {
+    "siteFooter": {
+      "id": "siteFooter",
+      "type": "container",
+      "config": {
+        "id": "contact-section",
+        "tag": "footer",
+        "classes": "ank-width-100per ank-bg-secondaryBgColor ank-borderTop-1px ank-borderColor-secondaryBgColor ank-marginTop-auto ank-display-flex ank-justifyContent-center ank-paddingInline-16px ank-paddingBlock-24px",
+        "components": ["siteFooterContent"]
+      }
+    },
+    "siteFooterContent": {
+      "id": "siteFooterContent",
+      "type": "container",
+      "config": {
+        "tag": "div",
+        "classes": "ank-display-flex ank-flexDirection-column ank-alignItems-center ank-justifyContent-center ank-gap-16px ank-width-100per ank-maxWidth-1200px ank-flexDirectionMd-row ank-justifyContentMd-spaceBetween ank-alignItemsMd-center",
+        "components": ["footerLegalSection", "footerSocialSection", "footerCopyrightSection"]
+      }
+    },
+    "footerSocialSection": {
+      "id": "footerSocialSection",
+      "type": "container",
+      "condition": "all:footerConfig,showSocialLinks; all:footerSocialLinks,exists",
+      "loopConfig": {
+        "source": "var",
+        "path": "footerSocialLinks",
+        "templateId": "footerSocialLinkTemplate",
+        "idPrefix": "footerSocialLink"
+      },
+      "config": {
+        "tag": "div",
+        "classes": "ank-display-flex ank-gap-16px ank-alignItems-center",
+        "components": []
+      }
+    },
+    "footerSocialLinkTemplate": {
+      "id": "footerSocialLinkTemplate",
+      "type": "link",
+      "config": {
+        "id": "footerSocialLinkTemplate",
+        "href": "#",
+        "text": "",
+        "ariaLabel": "",
+        "target": "_blank",
+        "rel": "noopener noreferrer",
+        "classes": "ank-color-secondaryTextColor ank-textDecoration-none ank-fontSize-lg ank-padding-8px ank-borderRadius-md ank-transition-colors"
+      }
+    },
+    "modalTermsHeaderIconGlyph": {
+      "id": "modalTermsHeaderIconGlyph",
+      "type": "text",
+      "valueInstructions": "set:config.text,i18n,footer.legal.terms.icon",
+      "config": { "tag": "span", "text": "" }
+    },
+    "modalDataHeaderIconGlyph": {
+      "id": "modalDataHeaderIconGlyph",
+      "type": "text",
+      "valueInstructions": "set:config.text,i18n,footer.legal.data.icon",
+      "config": { "tag": "span", "text": "" }
+    }
+  }
+}
+```
+
+### i18n payload fragment (required footer/legal keys)
+
+```json
+{
+  "dictionary": {
+    "footer": {
+      "actions": { "close": "Close" },
+      "legal": {
+        "title": "Legal",
+        "terms": {
+          "icon": "⚖️",
+          "link": "Terms of Service",
+          "title": "Terms of Service",
+          "intro": "These Terms of Service govern your use...",
+          "sections": [{ "title": "Purpose", "text": "..." }]
+        },
+        "data": {
+          "icon": "🔒",
+          "link": "Data Privacy",
+          "title": "Data Privacy",
+          "intro": "Analytics are enabled by default...",
+          "points": ["..."],
+          "consentNote": "..."
+        }
+      },
+      "social": {
+        "facebook": {
+          "label": "Facebook",
+          "ariaLabel": "Visit our Facebook page"
+        },
+        "instagram": {
+          "label": "Instagram",
+          "ariaLabel": "Visit our Instagram profile"
+        }
+      }
+    }
+  }
+}
+```
+
+## Notes for migration
+
+- Preferred social label resolution: `labelKey` / `ariaLabelKey`.
+- Temporary compatibility is available during rollout: `labelEs` / `labelEn` / `label`.
+- After rollout stabilization, remove compatibility fields and keep key-only payloads.
