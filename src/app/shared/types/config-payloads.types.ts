@@ -30,6 +30,46 @@ export type TVariablesPayload = {
     readonly computed?: Record<string, unknown>;
 };
 
+export type TInteractiveProcessVariableStep = {
+    readonly step?: number;
+    readonly icon?: string;
+    readonly title?: string;
+    readonly titleKey?: string;
+    readonly description?: string;
+    readonly descriptionKey?: string;
+    readonly detailedDescription?: string;
+    readonly detailedDescriptionKey?: string;
+    readonly duration?: string;
+    readonly durationKey?: string;
+    readonly deliverables?: readonly string[];
+    readonly deliverablesKey?: string;
+    readonly deliverableKeys?: readonly string[];
+};
+
+export type TInteractiveProcessSectionVariableConfig = {
+    readonly titleKey?: string;
+    readonly sidebarTitleKey?: string;
+    readonly detailedDescriptionLabelKey?: string;
+    readonly deliverablesLabelKey?: string;
+    readonly steps: readonly TInteractiveProcessVariableStep[];
+};
+
+export type TStatsCounterVariableConfig = {
+    readonly target?: number;
+    readonly durationMs?: number;
+    readonly min?: number;
+    readonly max?: number;
+    readonly formatMode?: 'number' | 'suffix' | 'percent' | 'prefix' | 'prefixSuffix' | string;
+    readonly formatPrefix?: string;
+    readonly formatSuffix?: string;
+};
+
+export type TStatsCountersVariableConfig = {
+    readonly visits?: TStatsCounterVariableConfig;
+    readonly cta?: TStatsCounterVariableConfig;
+    readonly avgTime?: TStatsCounterVariableConfig;
+};
+
 export type TI18nPayload = {
     readonly version: number;
     readonly pageId: string;

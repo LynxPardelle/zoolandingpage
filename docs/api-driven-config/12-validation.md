@@ -110,6 +110,42 @@ Checks:
 - Verify footer components are present in `components` payload.
 - Verify `variables.footerConfig` is present and valid.
 
+### Interactive process section is hidden
+
+Symptoms:
+
+- Process section does not render.
+
+Checks:
+
+- Verify `variables.processSection.steps` exists and is a non-empty array.
+- Verify each step has either literal text or i18n keys for:
+- `title` / `titleKey`
+- `description` / `descriptionKey`
+- `detailedDescription` / `detailedDescriptionKey`
+- `duration` / `durationKey`
+- `deliverables` / `deliverablesKey` / `deliverableKeys`
+- Verify any `*Key` values resolve in the active i18n dictionary.
+- Check console warnings:
+- `Expected variables.processSection.steps to be a non-empty array. Interactive process will remain hidden.`
+- `variables.processSection.steps does not contain valid step records. Interactive process will remain hidden.`
+
+### Stats counters are not updating from variables
+
+Symptoms:
+
+- Stats counters show fallback values only.
+- Stats counters stop rendering expected number formats.
+
+Checks:
+
+- Verify `variables.statsCounters` exists as an object.
+- Verify each section (`visits`, `cta`, `avgTime`) uses numeric `target` and `durationMs`.
+- Verify `formatMode` is a string (`number`, `suffix`, or `percent`).
+- Verify `formatSuffix` is a string when `formatMode` is `suffix`.
+- Verify stats counter `valueInstructions` include `varOr` + host fallback chain.
+- Verify allowlist includes `numberClamp` and `statsFormatVar`.
+
 ### labelKey / ariaLabelKey not applied
 
 Symptoms:

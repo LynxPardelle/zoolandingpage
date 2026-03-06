@@ -72,6 +72,10 @@
 <interactive-process-leaf
   [process]="component.config.process()"
   [currentStep]="component.config.currentStep()"
+  [sectionTitleKey]="resolveMaybeThunk(component.config.sectionTitleKey)"
+  [sectionSidebarTitleKey]="resolveMaybeThunk(component.config.sectionSidebarTitleKey)"
+  [sectionDetailedDescriptionLabelKey]="resolveMaybeThunk(component.config.sectionDetailedDescriptionLabelKey)"
+  [sectionDeliverablesLabelKey]="resolveMaybeThunk(component.config.sectionDeliverablesLabelKey)"
   (selectStep)="
     eventEmitted({
       component: component.id,
@@ -83,7 +87,7 @@
   "
 ></interactive-process-leaf>
 } @case('stats-counter') {
-<generic-stats-counter [config]="component.config()"></generic-stats-counter>
+<generic-stats-counter [config]="resolveStatsCounterConfig(component.config)"></generic-stats-counter>
 } @case('testimonial-card') {
 <generic-testimonial-card [config]="component.config"></generic-testimonial-card>
 } @case('icon') {

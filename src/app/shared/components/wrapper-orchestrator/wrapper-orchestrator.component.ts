@@ -13,6 +13,7 @@ import { GenericIconComponent } from '../generic-icon/generic-icon.component';
 import { GenericLink } from "../generic-link/generic-link";
 import { GenericMedia } from "../generic-media/generic-media";
 import { GenericStatsCounterComponent } from '../generic-stats-counter/generic-stats-counter.component';
+import type { TGenericStatsCounterConfig } from '../generic-stats-counter/generic-stats-counter.types';
 import { GenericTestimonialCardComponent } from '../generic-testimonial-card';
 import { GenericTextComponent } from '../generic-text/generic-text';
 
@@ -98,6 +99,27 @@ export class WrapperOrchestrator {
       return (value as () => unknown)();
     }
     return value;
+  }
+
+  resolveStatsCounterConfig(config: unknown): TGenericStatsCounterConfig {
+    const base = this.resolveMaybeThunk(config) as TGenericStatsCounterConfig | undefined;
+    if (!base || typeof base !== 'object') {
+      return { target: 0 };
+    }
+
+    const rawTarget = this.resolveMaybeThunk((base as any).target);
+    const rawDuration = this.resolveMaybeThunk((base as any).durationMs);
+    const rawStartOnVisible = this.resolveMaybeThunk((base as any).startOnVisible);
+    const rawAriaLabel = this.resolveMaybeThunk((base as any).ariaLabel);
+    const resolvedFormat = this.resolveMaybeThunk((base as any).format);
+
+    return {
+      target: Number(rawTarget ?? 0),
+      durationMs: rawDuration == null ? undefined : Number(rawDuration),
+      startOnVisible: rawStartOnVisible == null ? undefined : Boolean(rawStartOnVisible),
+      ariaLabel: rawAriaLabel == null ? undefined : String(rawAriaLabel),
+      format: typeof resolvedFormat === 'function' ? (resolvedFormat as (value: number) => string) : undefined,
+    };
   }
 
   eventEmitted(event: { component: string; meta_title?: string; eventName: string; eventData?: unknown; eventInstructions?: string; }) {

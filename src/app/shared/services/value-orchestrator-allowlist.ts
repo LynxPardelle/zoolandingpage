@@ -6,6 +6,7 @@ export const DEFAULT_ALLOWED_VALUE_IDS = [
     'i18nParams',
     'literal',
     'concat',
+    'classJoin',
     'coalesce',
     'upper',
     'lower',
@@ -17,6 +18,8 @@ export const DEFAULT_ALLOWED_VALUE_IDS = [
     'envOr',
     'var',
     'varOr',
+    'numberClamp',
+    'statsFormatVar',
 ] as const;
 
 /**

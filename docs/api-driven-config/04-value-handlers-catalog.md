@@ -45,6 +45,21 @@ set:config.title,i18nGetIndex,features,0,title,''
 
 - Purpose: concatenate args into a string.
 
+### `classJoin`
+
+- Purpose: compose CSS classes from multiple arguments, removing empty values and duplicate tokens.
+- Typical usage:
+
+```text
+set:config.classes,classJoin,literal,ank-display-flex ank-gap-1rem,var,hero.extraClasses
+```
+
+- Works well with intermediate values created by earlier `set:` commands:
+
+```text
+set:config.classes,classJoin,literal,ank-position-relative ank-inset-0,var,hero.dynamicClasses
+```
+
 ### `coalesce`
 
 - Purpose: return the first non-empty value.
@@ -103,6 +118,34 @@ set:config.ariaLabel,var,ui.mobileMenuAriaLabel
 
 ```text
 set:config.text,varOr,ui.brandTextFallback,Zoo Landing
+```
+
+### `numberClamp`
+
+- Purpose: clamp a numeric value between min/max bounds.
+- Typical usage:
+
+```text
+set:config.target,numberClamp,eval:config.target,284,600
+```
+
+### `statsFormatVar`
+
+- Purpose: build a stats-counter formatter function from variables payload paths.
+- Args:
+  - `modePath` (variables path for mode: `number`, `suffix`, `percent`, `prefix`, `prefixSuffix`)
+  - `fallbackMode`
+  - `suffixPath` (variables path for suffix)
+  - `fallbackSuffix`
+  - `prefixPath` (variables path for prefix)
+  - `fallbackPrefix`
+- Notes:
+  - `number` mode preserves localized number formatting and appends suffix when present.
+  - Numeric HTML entities in suffix (for example `&#43;`) are decoded.
+- Typical usage:
+
+```text
+set:config.format,statsFormatVar,statsCounters.avgTime.formatMode,suffix,statsCounters.avgTime.formatSuffix,s
 ```
 
 ## Adding a new handler (developer workflow)

@@ -136,6 +136,70 @@ set:config.label,langPick,Home,Inicio
 set:config.classes,themePick,'btnLightClasses','btnDarkClasses'
 ```
 
+### Dynamic classes with `classJoin`
+
+Use `classJoin` when you need to compose base classes and optional dynamic class fragments.
+
+```text
+set:config.classes,classJoin,literal,ank-position-absolute ank-inset-0 ank-bgCover ank-borderRadius-1rem,var,hero.extraClasses
+```
+
+### Stats counters with variables + fallback chain
+
+Use `varOr` with host fallbacks to keep counters resilient when the variables payload is incomplete.
+
+```text
+set:config.target,varOr,statsCounters.visits.target,eval:host.statsStripVisitsFallback;
+set:config.durationMs,varOr,statsCounters.visits.durationMs,1600;
+set:config.ariaLabel,i18n,statsStrip.visitsLabel;
+set:config.format,statsFormatVar,statsCounters.visits.formatMode,number,statsCounters.visits.formatSuffix
+```
+
+Average-time counters can apply normalization after target resolution:
+
+```text
+set:config.target,varOr,statsCounters.avgTime.target,eval:host.statsStripAverageTimeFallback;
+set:config.minClamp,varOr,statsCounters.avgTime.min,0;
+set:config.maxClamp,varOr,statsCounters.avgTime.max,999999;
+set:config.target,numberClamp,eval:config.target,eval:config.minClamp,eval:config.maxClamp;
+set:config.format,statsFormatVar,statsCounters.avgTime.formatMode,suffix,statsCounters.avgTime.formatSuffix,s
+```
+
+Recommended variables payload shape:
+
+```json
+{
+  "statsCounters": {
+    "visits": {
+      "target": 12450,
+      "durationMs": 1600,
+      "formatMode": "number",
+      "formatSuffix": ""
+    },
+    "cta": {
+      "target": 370,
+      "durationMs": 1800,
+      "formatMode": "number",
+      "formatSuffix": ""
+    },
+    "avgTime": {
+      "target": 312,
+      "durationMs": 2000,
+      "min": 0,
+      "max": 999999,
+      "formatMode": "suffix",
+      "formatSuffix": "s"
+    }
+  }
+}
+```
+
+Why this pattern:
+
+- keeps component stores declarative (no service calls inside config stores)
+- avoids malformed class strings when one fragment is empty
+- scales to multiple dynamic class fragments with stable output
+
 ## Authoring rules
 
 - Prefer one `valueInstructions` string per component.

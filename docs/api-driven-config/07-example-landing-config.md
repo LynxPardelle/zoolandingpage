@@ -281,3 +281,71 @@ This project now treats footer and legal modal content as API-only. Do not rely 
 - Preferred social label resolution: `labelKey` / `ariaLabelKey`.
 - Temporary compatibility is available during rollout: `labelEs` / `labelEn` / `label`.
 - After rollout stabilization, remove compatibility fields and keep key-only payloads.
+
+## Example: Variable-driven interactive process
+
+Interactive process content is now controlled by `variables.processSection` and resolved through
+`valueInstructions` + i18n keys.
+
+### Variables payload fragment
+
+```json
+{
+  "variables": {
+    "processSection": {
+      "titleKey": "processSection.title",
+      "sidebarTitleKey": "processSection.sidebarTitle",
+      "detailedDescriptionLabelKey": "processSection.detailedDescriptionLabel",
+      "deliverablesLabelKey": "processSection.deliverablesLabel",
+      "steps": [
+        {
+          "step": 1,
+          "icon": "assignment",
+          "titleKey": "process.0.title",
+          "descriptionKey": "process.0.description",
+          "detailedDescriptionKey": "process.0.detailedDescription",
+          "durationKey": "process.0.duration",
+          "deliverablesKey": "process.0.deliverables"
+        }
+      ]
+    }
+  }
+}
+```
+
+### Component payload fragment
+
+```json
+{
+  "components": {
+    "interactiveProcessSection": {
+      "id": "interactiveProcessSection",
+      "type": "container",
+      "condition": "all:host,hasValidInteractiveProcessConfig",
+      "config": {
+        "id": "process-section",
+        "tag": "div",
+        "components": ["interactiveProcess"]
+      }
+    },
+    "interactiveProcess": {
+      "id": "interactiveProcess",
+      "type": "interactive-process",
+      "valueInstructions": "set:config.process,var,processSection.steps; set:config.sectionTitleKey,varOr,processSection.titleKey,landing.processSection.title; set:config.sectionSidebarTitleKey,varOr,processSection.sidebarTitleKey,landing.processSection.sidebarTitle; set:config.sectionDetailedDescriptionLabelKey,varOr,processSection.detailedDescriptionLabelKey,landing.processSection.detailedDescriptionLabel; set:config.sectionDeliverablesLabelKey,varOr,processSection.deliverablesLabelKey,landing.processSection.deliverablesLabel",
+      "config": {
+        "process": [],
+        "sectionTitleKey": "landing.processSection.title",
+        "sectionSidebarTitleKey": "landing.processSection.sidebarTitle",
+        "sectionDetailedDescriptionLabelKey": "landing.processSection.detailedDescriptionLabel",
+        "sectionDeliverablesLabelKey": "landing.processSection.deliverablesLabel"
+      }
+    }
+  }
+}
+```
+
+Notes:
+
+- If `variables.processSection.steps` is missing or invalid, the section stays hidden.
+- Keep step content in i18n and pass only keys from variables.
+- `deliverablesKey` should point to an i18n string array.

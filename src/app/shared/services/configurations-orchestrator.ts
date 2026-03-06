@@ -1,5 +1,3 @@
-import { ProcessStep } from '@/app/landing-page/components/interactive-process/interactive-process-leaf.types';
-import type { TGenericStatsCounterConfig } from '@/app/shared/components/generic-stats-counter/generic-stats-counter.types';
 import { I18nService } from '@/app/shared/services/i18n.service';
 import type { TComponentsPayload } from '@/app/shared/types/config-payloads.types';
 import { computed, effect, inject, Injectable } from '@angular/core';
@@ -19,9 +17,9 @@ import { AnalyticsService } from './analytics.service';
 import { ComponentEvent, ComponentEventDispatcherService } from './component-event-dispatcher.service';
 import { accordions } from './component-stores/accordions.component-store';
 import { buttons } from './component-stores/buttons.component-store';
-import { createCards } from './component-stores/cards.component-store';
+import { cards } from './component-stores/cards.component-store';
 import { createComponents } from './component-stores/components.component-store';
-import { createContainers } from './component-stores/containers.component-store';
+import { containers } from './component-stores/containers.component-store';
 import { devOnlyComponents } from './component-stores/devOnlyComponents.component-store';
 import { dropdowns } from './component-stores/dropdowns.component-store';
 import { icons } from './component-stores/icons.component-store';
@@ -60,6 +58,8 @@ export class ConfigurationsOrchestratorService {
     private warnedFooterLegalMissing = false;
     private warnedFooterCopyrightMissing = false;
     private warnedNavigationMissing = false;
+    private warnedProcessSectionMissing = false;
+    private warnedProcessSectionInvalid = false;
     private warnedLoopPaths = new Set<string>();
 
     // [MODALS-1] Centralize modal state/config in orchestrator (moved from AppShell).
@@ -132,52 +132,47 @@ export class ConfigurationsOrchestratorService {
 
     private readonly statsStripRemote = computed(() => this.quickStats.remoteStats());
 
-    private readonly statsStripVisitsConfig = computed<TGenericStatsCounterConfig>(() => ({
-        target: Number(this.statsStripRemote()?.['metrics']?.['pageViews'] ?? this.analytics.getPageViewCount()),
-        durationMs: 1600,
-        startOnVisible: true,
-        format: (v: number) => Math.max(0, Math.round(v)).toLocaleString(),
-        ariaLabel: this.globalI18n.t('statsStrip.visitsLabel'),
-    }));
+    readonly statsStripVisitsFallback = computed(() => Number(
+        this.statsStripRemote()?.['metrics']?.['pageViews'] ?? this.analytics.getPageViewCount()
+    ));
 
-    private readonly statsStripCtaInteractionsConfig = computed<TGenericStatsCounterConfig>(() => ({
-        target: Number(this.statsStripRemote()?.['metrics']?.['ctaClicks'] ?? this.analytics.getEventCount('ctaClicks')),
-        durationMs: 1800,
-        startOnVisible: true,
-        format: (v: number) => Math.max(0, Math.round(v)).toLocaleString(),
-        ariaLabel: this.globalI18n.t('statsStrip.ctaInteractionsLabel'),
-    }));
+    readonly statsStripCtaFallback = computed(() => Number(
+        this.statsStripRemote()?.['metrics']?.['ctaClicks'] ?? this.analytics.getEventCount('ctaClicks')
+    ));
 
-    private readonly statsStripAverageTimeConfig = computed<TGenericStatsCounterConfig>(() => ({
-        target: Math.min(
-            600,
-            Math.max(
-                284,
-                Number(this.statsStripRemote()?.['metrics']?.['avgTimeSecs'] ?? this.analytics.getSessionEventCount() * 5)
-            )
-        ),
-        durationMs: 2000,
-        startOnVisible: true,
-        format: (v: number) => `${ Math.round(v) }s`,
-        ariaLabel: this.globalI18n.t('statsStrip.averageTimeLabel'),
-    }));
+    readonly statsStripAverageTimeFallback = computed(() => Math.min(
+        600,
+        Math.max(
+            284,
+            Number(this.statsStripRemote()?.['metrics']?.['avgTimeSecs'] ?? this.analytics.getSessionEventCount() * 5)
+        )
+    ));
 
-    private readonly interactiveProcessSteps = computed<readonly ProcessStep[]>(() => {
-        const stepIndex = this.interactiveProcessStore.currentStep();
-        return this.globalI18n.getOr<readonly ProcessStep[]>('process', []).map((demo: ProcessStep) => ({
-            ...demo,
-            isActive: demo.step === stepIndex + 1,
-        }));
+    private readonly interactiveProcessVariableSteps = computed<readonly Record<string, unknown>[]>(() => {
+        const raw = this.variableStore.get('processSection.steps');
+        if (!Array.isArray(raw)) {
+            if (!this.warnedProcessSectionMissing) {
+                console.warn('[ConfigurationsOrchestrator] Expected variables.processSection.steps to be a non-empty array. Interactive process will remain hidden.');
+                this.warnedProcessSectionMissing = true;
+            }
+            return [];
+        }
+
+        const valid = raw.filter((entry): entry is Record<string, unknown> => this.isInteractiveProcessStepConfig(entry));
+        if (valid.length === 0 && !this.warnedProcessSectionInvalid) {
+            console.warn('[ConfigurationsOrchestrator] variables.processSection.steps does not contain valid step records. Interactive process will remain hidden.');
+            this.warnedProcessSectionInvalid = true;
+        }
+
+        return valid;
     });
-    readonly cards: TGenericComponent[] = createCards();
-    readonly containers: TGenericComponent[] = createContainers(this.globalI18n);
-    readonly statsCounters: TGenericComponent[] = createStatsCounters({
-        statsStripVisitsConfig: this.statsStripVisitsConfig,
-        statsStripCtaInteractionsConfig: this.statsStripCtaInteractionsConfig,
-        statsStripAverageTimeConfig: this.statsStripAverageTimeConfig,
-    });
+
+    get hasValidInteractiveProcessConfig(): boolean {
+        return this.interactiveProcessVariableSteps().length > 0;
+    }
+
+    readonly statsCounters: TGenericComponent[] = createStatsCounters();
     readonly interactiveProcesses: TGenericComponent[] = createInteractiveProcesses({
-        process: this.interactiveProcessSteps,
         currentStep: this.interactiveProcessStore.currentStep,
     });
     readonly components: TGenericComponent[] = createComponents({
@@ -185,9 +180,9 @@ export class ConfigurationsOrchestratorService {
         buttons: buttons,
         links: links,
         media: media,
-        containers: this.containers,
+        containers: containers,
         dropdowns: dropdowns,
-        cards: this.cards,
+        cards: cards,
         icons: icons,
         interactiveProcesses: this.interactiveProcesses,
         loadingSpinners: loadingSpinners,
@@ -458,6 +453,22 @@ export class ConfigurationsOrchestratorService {
         }
 
         return undefined;
+    }
+
+    private isInteractiveProcessStepConfig(entry: unknown): entry is Record<string, unknown> {
+        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return false;
+        const record = entry as Record<string, unknown>;
+
+        const hasTitle = typeof record['title'] === 'string' || typeof record['titleKey'] === 'string';
+        const hasDescription = typeof record['description'] === 'string' || typeof record['descriptionKey'] === 'string';
+        const hasDetailed = typeof record['detailedDescription'] === 'string' || typeof record['detailedDescriptionKey'] === 'string';
+        const hasDuration = typeof record['duration'] === 'string' || typeof record['durationKey'] === 'string';
+        const hasDeliverables =
+            Array.isArray(record['deliverables']) ||
+            typeof record['deliverablesKey'] === 'string' ||
+            Array.isArray(record['deliverableKeys']);
+
+        return hasTitle && hasDescription && hasDetailed && hasDuration && hasDeliverables;
     }
 
     private materializeLoopComponent(template: TGenericComponent, generatedId: string, item: unknown): TGenericComponent {

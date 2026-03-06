@@ -9,7 +9,7 @@
         <h3 class="ank-fs-1_25rem ank-fontWeight-bold ank-mb-20px ank-color-titleColor">
           {{ sectionContent().sidebarTitle }}
         </h3>
-        @for (demo of process(); track demo.step; let i = $index) {
+        @for (demo of resolvedProcess(); track demo.step; let i = $index) {
         <div class="ank-mb-12px" [attr.data-step]="i">
           <!-- Step Header -->
           <div
@@ -55,22 +55,9 @@
             @if (currentData(); as data) {
             <div class="ank-display-flex ank-alignItems-center ank-gap-16px ank-mb-24px">
               <div class="ank-fs-4xl">
-                @switch (i) { @case (0) {<mat-icon
-                  class="ank-fs-4rem ank-width-4rem ank-height-4rem ank-color-secondaryTitleColor"
-                  >assignment</mat-icon
-                >} @case (1) {<mat-icon class="ank-fs-4rem ank-width-4rem ank-height-4rem ank-color-secondaryTitleColor"
-                  >psychology</mat-icon
-                >} @case (2) {<mat-icon class="ank-fs-4rem ank-width-4rem ank-height-4rem ank-color-secondaryTitleColor"
-                  >preview</mat-icon
-                >} @case (3) {<mat-icon class="ank-fs-4rem ank-width-4rem ank-height-4rem ank-color-secondaryTitleColor"
-                  >rocket_launch</mat-icon
-                >} @case (4) {<mat-icon class="ank-fs-4rem ank-width-4rem ank-height-4rem ank-color-secondaryTitleColor"
-                  >analytics</mat-icon
-                >} @case (5) {<mat-icon class="ank-fs-4rem ank-width-4rem ank-height-4rem ank-color-secondaryTitleColor"
-                  >autorenew</mat-icon
-                >} @default {<mat-icon class="ank-fs-4rem ank-width-4rem ank-height-4rem ank-color-secondaryTitleColor"
-                  >assignment</mat-icon
-                >} }
+                <mat-icon class="ank-fs-4rem ank-width-4rem ank-height-4rem ank-color-secondaryTitleColor">
+                  {{ iconForStep(i, data) }}
+                </mat-icon>
               </div>
               <div>
                 <h3 class="ank-fs-1_25rem ank-fontWeight-bold ank-mb-8px ank-color-secondaryTitleColor">
@@ -126,7 +113,7 @@
         <h3 class="ank-fs-1_25rem ank-fontWeight-bold ank-mb-20px ank-color-titleColor">
           {{ sectionContent().sidebarTitle }}
         </h3>
-        @for (demo of process(); track demo.step; let i = $index) {
+        @for (demo of resolvedProcess(); track demo.step; let i = $index) {
         <div
           (click)="choose(i)"
           [attr.data-step]="i"
@@ -161,22 +148,9 @@
         @if (currentData(); as data) {
         <div class="ank-display-flex ank-alignItems-center ank-gap-16px ank-mb-24px">
           <div class="ank-fs-4xl">
-            @switch (currentStep()) { @case (0) {<mat-icon
-              class="ank-fs-4rem ank-width-4rem ank-height-4rem ank-color-secondaryTitleColor"
-              >assignment</mat-icon
-            >} @case (1) {<mat-icon class="ank-fs-4rem ank-width-4rem ank-height-4rem ank-color-secondaryTitleColor"
-              >psychology</mat-icon
-            >} @case (2) {<mat-icon class="ank-fs-4rem ank-width-4rem ank-height-4rem ank-color-secondaryTitleColor"
-              >preview</mat-icon
-            >} @case (3) {<mat-icon class="ank-fs-4rem ank-width-4rem ank-height-4rem ank-color-secondaryTitleColor"
-              >rocket_launch</mat-icon
-            >} @case (4) {<mat-icon class="ank-fs-4rem ank-width-4rem ank-height-4rem ank-color-secondaryTitleColor"
-              >analytics</mat-icon
-            >} @case (5) {<mat-icon class="ank-fs-4rem ank-width-4rem ank-height-4rem ank-color-secondaryTitleColor"
-              >autorenew</mat-icon
-            >} @default {<mat-icon class="ank-fs-4rem ank-width-4rem ank-height-4rem ank-color-secondaryTitleColor"
-              >assignment</mat-icon
-            >} }
+            <mat-icon class="ank-fs-4rem ank-width-4rem ank-height-4rem ank-color-secondaryTitleColor">
+              {{ iconForStep(currentStep(), data) }}
+            </mat-icon>
           </div>
           <div>
             <h3 class="ank-fs-1_25rem ank-fontWeight-bold ank-mb-8px ank-color-secondaryTitleColor">

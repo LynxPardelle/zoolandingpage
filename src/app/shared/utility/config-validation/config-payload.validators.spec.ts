@@ -38,10 +38,135 @@ describe('config-payload.validators', () => {
             version: 1,
             pageId: 'default',
             domain: 'zoolandingpage.com.mx',
-            variables: { a: 1 },
+            variables: {
+                a: 1,
+                processSection: {
+                    titleKey: 'landing.processSection.title',
+                    steps: [
+                        {
+                            step: 1,
+                            titleKey: 'landing.process.0.title',
+                            descriptionKey: 'landing.process.0.description',
+                            detailedDescriptionKey: 'landing.process.0.detailedDescription',
+                            durationKey: 'landing.process.0.duration',
+                            deliverablesKey: 'landing.process.0.deliverables',
+                        },
+                    ],
+                },
+            },
             computed: { b: 2 },
         };
         expect(isVariablesPayload(valid)).toBeTrue();
+    });
+
+    it('rejects invalid variables.processSection shape', () => {
+        const invalid = {
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            variables: {
+                processSection: {
+                    steps: [
+                        {
+                            step: 1,
+                            titleKey: 'landing.process.0.title',
+                        },
+                    ],
+                },
+            },
+        };
+
+        expect(isVariablesPayload(invalid)).toBeFalse();
+    });
+
+    it('accepts valid variables.statsCounters shape', () => {
+        const valid = {
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            variables: {
+                statsCounters: {
+                    visits: {
+                        target: 12450,
+                        durationMs: 1600,
+                        formatPrefix: '+',
+                        formatMode: 'number',
+                        formatSuffix: '',
+                    },
+                    cta: {
+                        target: 370,
+                        durationMs: 1800,
+                        formatMode: 'percent',
+                        formatSuffix: '',
+                    },
+                    avgTime: {
+                        target: 312,
+                        durationMs: 2000,
+                        min: 120,
+                        max: 9999,
+                        formatMode: 'suffix',
+                        formatSuffix: 's',
+                    },
+                },
+            },
+        };
+
+        expect(isVariablesPayload(valid)).toBeTrue();
+    });
+
+    it('rejects invalid variables.statsCounters shape', () => {
+        const invalid = {
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            variables: {
+                statsCounters: {
+                    visits: {
+                        target: 'not-a-number',
+                        durationMs: 1600,
+                    },
+                },
+            },
+        };
+
+        expect(isVariablesPayload(invalid)).toBeFalse();
+    });
+
+    it('rejects invalid statsCounters min/max values', () => {
+        const invalid = {
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            variables: {
+                statsCounters: {
+                    avgTime: {
+                        target: 312,
+                        min: 'bad-min',
+                        max: 9999,
+                    },
+                },
+            },
+        };
+
+        expect(isVariablesPayload(invalid)).toBeFalse();
+    });
+
+    it('rejects non-string formatPrefix in statsCounters', () => {
+        const invalid = {
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            variables: {
+                statsCounters: {
+                    visits: {
+                        target: 100,
+                        formatPrefix: 123,
+                    },
+                },
+            },
+        };
+
+        expect(isVariablesPayload(invalid)).toBeFalse();
     });
 
     it('validates angora combos payloads', () => {

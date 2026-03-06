@@ -1,4 +1,4 @@
-import { ProcessStep } from "@/app/landing-page/components/interactive-process/interactive-process-leaf.types";
+import { ProcessStep, ProcessStepVariableConfig } from "@/app/landing-page/components/interactive-process/interactive-process-leaf.types";
 import type { TGenericStatsCounterConfig } from "@/app/shared/components/generic-stats-counter/generic-stats-counter.types";
 import { TAccordionConfig } from "../generic-accordion";
 import { TGenericButtonConfig } from "../generic-button/generic-button.types";
@@ -12,11 +12,16 @@ import type { TestimonialCardConfig } from "../generic-testimonial-card/generic-
 import { TGenericTextConfig } from "../generic-text/generic-text.types";
 
 export type TInteractiveProcessConfig = {
-    readonly process: () => readonly ProcessStep[];
+    readonly process: () => readonly ProcessStep[] | readonly ProcessStepVariableConfig[];
     readonly currentStep: () => number;
+    readonly sectionTitleKey?: unknown;
+    readonly sectionSidebarTitleKey?: unknown;
+    readonly sectionDetailedDescriptionLabelKey?: unknown;
+    readonly sectionDeliverablesLabelKey?: unknown;
 };
 
 export type TGenericStatsCounterOrchestratorConfig = () => TGenericStatsCounterConfig;
+export type TGenericStatsCounterConfigInput = TGenericStatsCounterConfig | (() => TGenericStatsCounterConfig);
 
 export type TGenericDropdownOrchestratorConfig = {
     readonly items: readonly DropdownItem[];
@@ -127,7 +132,7 @@ export type TGenericComponent = {
         } |
         {
             readonly type: 'stats-counter';
-            readonly config: TGenericStatsCounterOrchestratorConfig;
+            readonly config: TGenericStatsCounterConfigInput;
         } |
         {
             readonly type: 'testimonial-card';

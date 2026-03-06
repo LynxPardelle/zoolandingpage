@@ -8,6 +8,16 @@ For comprehensive NGX-Angora-CSS documentation, see the [complete usage guide](.
 
 ## 🔧 Project-Specific Integration
 
+### Dynamic classes in component stores
+
+When a class depends on i18n, theme, or variable state, resolve it through `valueInstructions` in the wrapper-orchestrator pipeline instead of calling services directly inside component-store files. This keeps NGX-Angora-CSS class authoring declarative and compatible with API-driven configuration.
+
+Example:
+
+```text
+set:config.classes,classJoin,literal,ank-position-absolute ank-inset-0 ank-bgCover,var,hero.dynamicClasses
+```
+
 ### Service Setup
 
 ```typescript

@@ -164,6 +164,42 @@ describe('ConfigurationsOrchestratorService', () => {
     expect(features?.config?.components).toEqual(['featureText__1', 'featureText__2']);
   });
 
+  it('returns false when interactive process variable config is missing', () => {
+    variables.setPayload({
+      version: 1,
+      pageId: 'default',
+      domain: 'zoolandingpage.com.mx',
+      variables: {},
+    });
+
+    expect(service.hasValidInteractiveProcessConfig).toBeFalse();
+  });
+
+  it('returns true when interactive process variable config is valid', () => {
+    variables.setPayload({
+      version: 1,
+      pageId: 'default',
+      domain: 'zoolandingpage.com.mx',
+      variables: {
+        processSection: {
+          titleKey: 'landing.processSection.title',
+          steps: [
+            {
+              step: 1,
+              titleKey: 'landing.process.0.title',
+              descriptionKey: 'landing.process.0.description',
+              detailedDescriptionKey: 'landing.process.0.detailedDescription',
+              durationKey: 'landing.process.0.duration',
+              deliverablesKey: 'landing.process.0.deliverables',
+            },
+          ],
+        },
+      },
+    });
+
+    expect(service.hasValidInteractiveProcessConfig).toBeTrue();
+  });
+
   it('keeps footer sections hidden when footerConfig payload is missing', () => {
     variables.setPayload(null);
 
