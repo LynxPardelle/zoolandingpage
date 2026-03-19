@@ -114,6 +114,124 @@ describe('config-payload.validators', () => {
         expect(isVariablesPayload(valid)).toBeTrue();
     });
 
+    it('accepts valid variables.theme shape', () => {
+        const valid = {
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            variables: {
+                theme: {
+                    defaultMode: 'dark',
+                    palettes: {
+                        light: {
+                            bgColor: '#ffffff',
+                            textColor: '#111111',
+                            titleColor: '#222222',
+                            linkColor: '#333333',
+                            accentColor: '#444444',
+                            secondaryBgColor: '#f5f5f5',
+                            secondaryTextColor: '#555555',
+                            secondaryTitleColor: '#666666',
+                            secondaryLinkColor: '#777777',
+                            secondaryAccentColor: '#888888',
+                        },
+                        dark: {
+                            bgColor: '#000000',
+                            textColor: '#fefefe',
+                            titleColor: '#efefef',
+                            linkColor: '#dddddd',
+                            accentColor: '#cccccc',
+                            secondaryBgColor: '#111111',
+                            secondaryTextColor: '#bbbbbb',
+                            secondaryTitleColor: '#aaaaaa',
+                            secondaryLinkColor: '#999999',
+                            secondaryAccentColor: '#888888',
+                        },
+                    },
+                    ui: {
+                        modalAccentColor: 'secondaryAccentColor',
+                        legalModalAccentColor: 'secondaryAccentColor',
+                        demoModalAccentColor: 'accentColor',
+                    },
+                },
+            },
+        };
+
+        expect(isVariablesPayload(valid)).toBeTrue();
+    });
+
+    it('rejects variables.theme with missing palette keys', () => {
+        const invalid = {
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            variables: {
+                theme: {
+                    palettes: {
+                        light: {
+                            bgColor: '#ffffff',
+                        },
+                        dark: {
+                            bgColor: '#000000',
+                            textColor: '#fefefe',
+                            titleColor: '#efefef',
+                            linkColor: '#dddddd',
+                            accentColor: '#cccccc',
+                            secondaryBgColor: '#111111',
+                            secondaryTextColor: '#bbbbbb',
+                            secondaryTitleColor: '#aaaaaa',
+                            secondaryLinkColor: '#999999',
+                            secondaryAccentColor: '#888888',
+                        },
+                    },
+                },
+            },
+        };
+
+        expect(isVariablesPayload(invalid)).toBeFalse();
+    });
+
+    it('rejects variables.theme with invalid defaultMode', () => {
+        const invalid = {
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            variables: {
+                theme: {
+                    defaultMode: 'sepia',
+                    palettes: {
+                        light: {
+                            bgColor: '#ffffff',
+                            textColor: '#111111',
+                            titleColor: '#222222',
+                            linkColor: '#333333',
+                            accentColor: '#444444',
+                            secondaryBgColor: '#f5f5f5',
+                            secondaryTextColor: '#555555',
+                            secondaryTitleColor: '#666666',
+                            secondaryLinkColor: '#777777',
+                            secondaryAccentColor: '#888888',
+                        },
+                        dark: {
+                            bgColor: '#000000',
+                            textColor: '#fefefe',
+                            titleColor: '#efefef',
+                            linkColor: '#dddddd',
+                            accentColor: '#cccccc',
+                            secondaryBgColor: '#111111',
+                            secondaryTextColor: '#bbbbbb',
+                            secondaryTitleColor: '#aaaaaa',
+                            secondaryLinkColor: '#999999',
+                            secondaryAccentColor: '#888888',
+                        },
+                    },
+                },
+            },
+        };
+
+        expect(isVariablesPayload(invalid)).toBeFalse();
+    });
+
     it('rejects invalid variables.statsCounters shape', () => {
         const invalid = {
             version: 1,

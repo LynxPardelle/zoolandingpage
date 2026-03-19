@@ -1,3 +1,5 @@
+import type { TThemeAccentColorToken } from '../../types/theme.types';
+
 export type ModalSize = 'sm' | 'md' | 'lg' | 'full';
 
 export type ModalConfig = {
@@ -10,7 +12,7 @@ export type ModalConfig = {
   /** Shows a thin accent bar at the top of the modal panel for branding emphasis */
   readonly showAccentBar?: boolean;
   /** Theme accent key to use for the accent bar background */
-  readonly accentColor?: 'accentColor' | 'secondaryAccentColor'; // deprecate in future
+  readonly accentColor?: TThemeAccentColorToken; // deprecate in future
   /** Visual presentation: centered dialog (default) or bottom sheet */
   readonly variant?: 'dialog' | 'sheet';
   /* Classes */

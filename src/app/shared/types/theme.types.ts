@@ -6,6 +6,22 @@
  * - Keep atomic and focused
  */
 
+export const THEME_COLOR_KEYS = [
+  'bgColor',
+  'textColor',
+  'titleColor',
+  'linkColor',
+  'accentColor',
+  'secondaryBgColor',
+  'secondaryTextColor',
+  'secondaryTitleColor',
+  'secondaryLinkColor',
+  'secondaryAccentColor',
+] as const;
+
+export const THEME_MODES = ['light', 'dark', 'auto'] as const;
+export const THEME_ACCENT_COLOR_TOKENS = ['accentColor', 'secondaryAccentColor'] as const;
+
 // Theme color definitions
 export type TThemeColors = {
   bgColor: string;
@@ -35,9 +51,29 @@ export type TAltThemeColors = {
 
 export type TAllThemeColors = TThemeColors & TAltThemeColors;
 
+export type TThemePaletteName = 'light' | 'dark';
+export type TThemeAccentColorToken = (typeof THEME_ACCENT_COLOR_TOKENS)[number];
+
+export type TThemePalettes = {
+  light: TThemeColors;
+  dark: TThemeColors;
+};
+
+export type TThemeUiConfig = {
+  modalAccentColor?: TThemeAccentColorToken;
+  legalModalAccentColor?: TThemeAccentColorToken;
+  demoModalAccentColor?: TThemeAccentColorToken;
+};
+
+export type TThemeVariableConfig = {
+  defaultMode?: ThemeMode;
+  palettes: TThemePalettes;
+  ui?: TThemeUiConfig;
+};
+
 // Theme configuration
 export type ThemeConfig = {
-  name: string;
+  name: TThemePaletteName;
   colors: TThemeColors;
   isDark: boolean;
 };
@@ -50,4 +86,4 @@ export type ThemeState = {
 };
 
 // Import from navigation types
-export type ThemeMode = 'light' | 'dark' | 'auto';
+export type ThemeMode = (typeof THEME_MODES)[number];

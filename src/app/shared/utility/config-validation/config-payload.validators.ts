@@ -8,6 +8,14 @@ import type {
     TStructuredDataPayload,
     TVariablesPayload,
 } from '@/app/shared/types/config-payloads.types';
+import {
+    THEME_ACCENT_COLOR_TOKENS,
+    THEME_COLOR_KEYS,
+    THEME_MODES,
+    type TThemeAccentColorToken,
+    type TThemeColors,
+    type TThemeVariableConfig,
+} from '@/app/shared/types/theme.types';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     !!value && typeof value === 'object' && !Array.isArray(value);
@@ -72,6 +80,42 @@ const isStatsCountersVariableConfig = (value: unknown): boolean => {
     });
 };
 
+const isThemeColorToken = (value: unknown): value is TThemeAccentColorToken =>
+    typeof value === 'string' && (THEME_ACCENT_COLOR_TOKENS as readonly string[]).includes(value);
+
+const isThemeColors = (value: unknown): value is TThemeColors => {
+    if (!isRecord(value)) return false;
+    return THEME_COLOR_KEYS.every((key) => typeof value[key] === 'string');
+};
+
+const isThemeUiConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+
+    if (value['modalAccentColor'] !== undefined && !isThemeColorToken(value['modalAccentColor'])) return false;
+    if (value['legalModalAccentColor'] !== undefined && !isThemeColorToken(value['legalModalAccentColor'])) return false;
+    if (value['demoModalAccentColor'] !== undefined && !isThemeColorToken(value['demoModalAccentColor'])) return false;
+
+    return true;
+};
+
+export const isThemeVariableConfig = (value: unknown): value is TThemeVariableConfig => {
+    if (!isRecord(value)) return false;
+
+    const defaultMode = value['defaultMode'];
+    if (defaultMode !== undefined && (typeof defaultMode !== 'string' || !(THEME_MODES as readonly string[]).includes(defaultMode))) {
+        return false;
+    }
+
+    const palettes = value['palettes'];
+    if (!isRecord(palettes)) return false;
+    if (!isThemeColors(palettes['light'])) return false;
+    if (!isThemeColors(palettes['dark'])) return false;
+
+    if (value['ui'] !== undefined && !isThemeUiConfig(value['ui'])) return false;
+
+    return true;
+};
+
 export const isPageConfigPayload = (value: unknown): value is TPageConfigPayload => {
     if (!isRecord(value)) return false;
     if (typeof value['version'] !== 'number') return false;
@@ -116,6 +160,11 @@ export const isVariablesPayload = (value: unknown): value is TVariablesPayload =
 
     const statsCounters = (value['variables'] as Record<string, unknown>)['statsCounters'];
     if (statsCounters !== undefined && !isStatsCountersVariableConfig(statsCounters)) {
+        return false;
+    }
+
+    const theme = (value['variables'] as Record<string, unknown>)['theme'];
+    if (theme !== undefined && !isThemeVariableConfig(theme)) {
         return false;
     }
 

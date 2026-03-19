@@ -6,6 +6,7 @@ import { environment } from '../../../environments/environment';
 import { GenericModalService } from '../components/generic-modal/generic-modal.service';
 import type { ModalConfig } from '../components/generic-modal/generic-modal.types';
 import { TGenericComponent } from '../components/wrapper-orchestrator/wrapper-orchestrator.types';
+import type { TThemeAccentColorToken } from '../types/theme.types';
 import {
     collectAllClassesFromComponents,
     ComponentRenderTracker,
@@ -85,7 +86,7 @@ export class ConfigurationsOrchestratorService {
             showCloseButton: id === 'analytics-consent' ? false : true,
             size: id === 'terms-of-service' ? 'lg' : id === 'data-use' ? 'md' : 'sm',
             showAccentBar: true,
-            accentColor: 'secondaryAccentColor',
+            accentColor: this.resolveModalAccentColor(id),
             variant: id === 'analytics-consent' ? this.consentVariant() : 'dialog',
         };
     });
@@ -100,6 +101,21 @@ export class ConfigurationsOrchestratorService {
         accentColor: 'secondaryAccentColor',
         variant: 'dialog',
     };
+
+    private resolveAccentToken(path: string, fallback: TThemeAccentColorToken): TThemeAccentColorToken {
+        const value = this.variableStore.get(path);
+        return value === 'accentColor' || value === 'secondaryAccentColor' ? value : fallback;
+    }
+
+    private resolveModalAccentColor(modalId?: string): TThemeAccentColorToken {
+        if (modalId === 'demo-modal') {
+            return this.resolveAccentToken('theme.ui.demoModalAccentColor', 'accentColor');
+        }
+        if (modalId === 'terms-of-service' || modalId === 'data-use') {
+            return this.resolveAccentToken('theme.ui.legalModalAccentColor', 'secondaryAccentColor');
+        }
+        return this.resolveAccentToken('theme.ui.modalAccentColor', 'secondaryAccentColor');
+    }
 
     // Template-friendly: emits a plain object so consumers don't need to call a signal.
     readonly modalHostConfig$ = toObservable(this.modalHostConfig);

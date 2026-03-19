@@ -6,20 +6,57 @@
  */
 
 import { computed, effect, inject, Injectable, signal } from '@angular/core';
-// import { NgxAngoraService } from 'ngx-angora-css';
 import { NgxAngoraService } from 'ngx-angora-css';
 import { environment } from '../../../environments/environment';
-import { ThemeConfig, ThemeMode, TThemeColors } from '../types/theme.types';
+import { ThemeConfig, ThemeMode, TThemeAccentColorToken, TThemeColors, TThemeVariableConfig } from '../types/theme.types';
+import { isThemeVariableConfig } from '../utility/config-validation/config-payload.validators';
+import { VariableStoreService } from './variable-store.service';
+
+const FALLBACK_LIGHT_THEME_CONFIG: ThemeConfig = {
+  name: 'light',
+  isDark: false,
+  colors: {
+    bgColor: '#f0ede7ff',
+    textColor: '#2e2d2dff',
+    titleColor: '#292929ff',
+    linkColor: '#ffe819ff',
+    accentColor: '#c1a42fff',
+    secondaryBgColor: '#e5d2bfff',
+    secondaryTextColor: '#19363F',
+    secondaryTitleColor: '#163038ff',
+    secondaryLinkColor: '#C33361',
+    secondaryAccentColor: '#199F96',
+  },
+};
+
+const FALLBACK_DARK_THEME_CONFIG: ThemeConfig = {
+  name: 'dark',
+  isDark: true,
+  colors: {
+    bgColor: '#1a1a1a',
+    textColor: '#ffffff',
+    titleColor: '#d8dadbff',
+    linkColor: '#66b3ff',
+    accentColor: '#225783ff',
+    secondaryBgColor: '#2d2d2d',
+    secondaryTextColor: '#d9dcdfff',
+    secondaryTitleColor: '#6cc3e6ff',
+    secondaryLinkColor: '#30a464ff',
+    secondaryAccentColor: '#20673cff',
+  },
+};
 
 @Injectable({
   providedIn: 'root',
 })
 export class ThemeService {
   private readonly _ank = inject(NgxAngoraService);
+  private readonly variableStore = inject(VariableStoreService);
 
   // Theme state using signals (MANDATORY Angular 17+ features)
   private readonly _currentTheme = signal<ThemeMode>('light');
   private readonly _systemPreference = signal<'light' | 'dark'>('light');
+  private readonly _hasStoredThemePreference = signal(false);
 
   // Computed theme based on current selection and system preference
   readonly activeTheme = computed(() => {
@@ -30,40 +67,22 @@ export class ThemeService {
     return theme;
   });
 
-  // Theme configurations using ThemeConfig type
-  private readonly _lightThemeConfig: ThemeConfig = {
+  private readonly _draftThemeConfig = computed<TThemeVariableConfig | null>(() => {
+    const value = this.variableStore.get('theme');
+    return isThemeVariableConfig(value) ? value : null;
+  });
+
+  private readonly _lightThemeConfig = computed<ThemeConfig>(() => ({
     name: 'light',
     isDark: false,
-    colors: {
-      bgColor: '#f0ede7ff',
-      textColor: '#2e2d2dff',
-      titleColor: '#292929ff',
-      linkColor: '#ffe819ff',
-      accentColor: '#c1a42fff',
-      secondaryBgColor: '#e5d2bfff',
-      secondaryTextColor: '#19363F',
-      secondaryTitleColor: '#163038ff',
-      secondaryLinkColor: '#C33361',
-      secondaryAccentColor: '#199F96',
-    },
-  };
+    colors: this._draftThemeConfig()?.palettes.light ?? FALLBACK_LIGHT_THEME_CONFIG.colors,
+  }));
 
-  private readonly _darkThemeConfig: ThemeConfig = {
+  private readonly _darkThemeConfig = computed<ThemeConfig>(() => ({
     name: 'dark',
     isDark: true,
-    colors: {
-      bgColor: '#1a1a1a',
-      textColor: '#ffffff',
-      titleColor: '#d8dadbff',
-      linkColor: '#66b3ff',
-      accentColor: '#225783ff',
-      secondaryBgColor: '#2d2d2d',
-      secondaryTextColor: '#d9dcdfff',
-      secondaryTitleColor: '#6cc3e6ff',
-      secondaryLinkColor: '#30a464ff',
-      secondaryAccentColor: '#20673cff',
-    },
-  };
+    colors: this._draftThemeConfig()?.palettes.dark ?? FALLBACK_DARK_THEME_CONFIG.colors,
+  }));
 
   private initialized: boolean = false;
 
@@ -71,13 +90,22 @@ export class ThemeService {
     this._detectSystemPreference();
     this._loadSavedTheme();
     effect(() => {
-      /* console.log(`Applying theme: ${ this.activeTheme() }`); */
+      if (this._hasStoredThemePreference()) return;
+      const configuredMode = this._draftThemeConfig()?.defaultMode ?? 'light';
+      if (this._currentTheme() !== configuredMode) {
+        this._currentTheme.set(configuredMode);
+      }
+    });
+    effect(() => {
+      this._draftThemeConfig();
+      this.activeTheme();
       this.applyTheme();
     });
   }
 
   // Public methods
   setTheme(theme: ThemeMode): void {
+    this._hasStoredThemePreference.set(true);
     this._currentTheme.set(theme);
     this._saveTheme(theme);
   }
@@ -97,7 +125,12 @@ export class ThemeService {
   }
 
   getCurrentThemeConfig(): ThemeConfig {
-    return this.activeTheme() === 'dark' ? this._darkThemeConfig : this._lightThemeConfig;
+    return this.activeTheme() === 'dark' ? this._darkThemeConfig() : this._lightThemeConfig();
+  }
+
+  getUiAccentColor(key: 'modalAccentColor' | 'legalModalAccentColor' | 'demoModalAccentColor', fallback: TThemeAccentColorToken): TThemeAccentColorToken {
+    const configured = this._draftThemeConfig()?.ui?.[key];
+    return configured ?? fallback;
   }
 
   // Private methods
@@ -126,6 +159,7 @@ export class ThemeService {
     const savedTheme = saved as ThemeMode;
 
     if (saved && ['light', 'dark', 'auto'].includes(saved)) {
+      this._hasStoredThemePreference.set(true);
       this._currentTheme.set(savedTheme);
     }
   }
@@ -140,8 +174,8 @@ export class ThemeService {
   applyTheme(): void {
     if (typeof window === 'undefined') return; // Skip SSR
     const currentThemeConfig: ThemeConfig =
-      this.activeTheme() === 'dark' ? this._darkThemeConfig : this._lightThemeConfig;
-    const altThemeConfig: ThemeConfig = this.activeTheme() === 'dark' ? this._lightThemeConfig : this._darkThemeConfig;
+      this.activeTheme() === 'dark' ? this._darkThemeConfig() : this._lightThemeConfig();
+    const altThemeConfig: ThemeConfig = this.activeTheme() === 'dark' ? this._lightThemeConfig() : this._darkThemeConfig();
     const themeColors: TThemeColors = currentThemeConfig.colors;
     const altThemeColors: TThemeColors = altThemeConfig.colors;
 

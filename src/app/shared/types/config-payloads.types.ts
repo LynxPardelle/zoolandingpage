@@ -1,3 +1,5 @@
+import type { TThemeVariableConfig } from './theme.types';
+
 export type TPageConfigPayload = {
     readonly version: number;
     readonly pageId: string;
@@ -26,7 +28,9 @@ export type TVariablesPayload = {
     readonly version: number;
     readonly pageId: string;
     readonly domain: string;
-    readonly variables: Record<string, unknown>;
+    readonly variables: Record<string, unknown> & {
+        readonly theme?: TThemeVariableConfig;
+    };
     readonly computed?: Record<string, unknown>;
 };
 

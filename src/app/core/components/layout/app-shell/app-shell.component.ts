@@ -81,6 +81,8 @@ export class AppShellComponent {
 
   private readonly draftSeo = signal<TSeoPayload | null>(null);
   private readonly draftAnalytics = signal<TAnalyticsConfigPayload | null>(null);
+  readonly activeDraftDomain = computed(() => this.domainResolver.resolveDomain().domain || environment.drafts.defaultDomain);
+  readonly activeDraftPageId = computed(() => this.resolveDraftPageId());
   private readonly readDepthMilestones = signal<readonly number[]>([10, 20, 30, 40, 50, 60, 70, 80, 90, 100]);
   private readonly sectionViewIds = signal<readonly string[]>([
     'home',
@@ -93,6 +95,39 @@ export class AppShellComponent {
     'faq-section',
     'contact-section',
   ]);
+
+  private resolveDraftPageId(): string {
+    const fallback = environment.drafts.defaultPageId;
+    if (typeof window === 'undefined' || !window.location?.search) {
+      return fallback;
+    }
+
+    const value = new URLSearchParams(window.location.search).get('draftPageId');
+    const next = String(value ?? '').trim();
+    return next.length > 0 ? next : fallback;
+  }
+
+  draftPreviewUrl(domain: string, pageId: string): string {
+    const normalizedDomain = String(domain).trim() || environment.drafts.defaultDomain;
+    const normalizedPageId = String(pageId).trim() || environment.drafts.defaultPageId;
+
+    if (typeof window === 'undefined' || !window.location) {
+      return `/?draftDomain=${ encodeURIComponent(normalizedDomain) }&draftPageId=${ encodeURIComponent(normalizedPageId) }`;
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.set('draftDomain', normalizedDomain);
+    url.searchParams.set('draftPageId', normalizedPageId);
+    return `${ url.pathname }${ url.search }${ url.hash }`;
+  }
+
+  defaultDraftPreviewUrl(): string {
+    return this.draftPreviewUrl(environment.drafts.defaultDomain, environment.drafts.defaultPageId);
+  }
+
+  musicDraftPreviewUrl(): string {
+    return this.draftPreviewUrl('music.lynxpardelle.com', 'default');
+  }
 
   readonly rootComponentsIds = signal<readonly (string | TGenericComponent)[]>([
     'skipToMainLink',
@@ -222,7 +257,7 @@ export class AppShellComponent {
   }
 
   private async applyConfigOverrides(): Promise<void> {
-    const pageId = environment.drafts.defaultPageId;
+    const pageId = this.resolveDraftPageId();
     const boot = await this.configBootstrap.load({ pageId, lang: this._lang.currentLanguage() });
     const domain = boot.domain || environment.drafts.defaultDomain;
     const pageConfig = boot.pageConfig;
@@ -376,7 +411,7 @@ export class AppShellComponent {
           "ank-display-grid ank-gridTemplateColumns-1fr ank-gridTemplateColumns-md-repeatSD2COM1frED ank-gridTemplateColumns-lg-repeatSD3COM1frED ank-gap-2rem",
         ],
         textGradient: [
-          "ank-bgi-linearMINgradientSDVAL1DEF90degDEFCOMVAL2DEFabyssDEFCOMVAL3DEFwhiteDEFED ank-bgcl-text ank-color-transparent",
+          "ank-bgi-linearMINgradientSDVAL1DEF90degDEFCOMVAL2DEFsecondaryAccentColorDEFCOMVAL3DEFsecondaryTitleColorDEFED ank-bgcl-text ank-color-transparent",
         ],
       });
     }, 1000);
@@ -403,7 +438,7 @@ export class AppShellComponent {
     if (!this.debugMode || typeof document === 'undefined') return;
     const resolved = this.domainResolver.resolveDomain();
     const domain = resolved.domain || environment.drafts.defaultDomain;
-    const pageId = environment.drafts.defaultPageId;
+    const pageId = this.resolveDraftPageId();
     const payloads = this.buildDraftPayloads(domain, pageId);
 
     payloads.forEach((payload) => {
@@ -427,7 +462,7 @@ export class AppShellComponent {
 
     const resolved = this.domainResolver.resolveDomain();
     const domain = resolved.domain || environment.drafts.defaultDomain;
-    const pageId = environment.drafts.defaultPageId;
+    const pageId = this.resolveDraftPageId();
     const payloads = this.buildDraftPayloads(domain, pageId);
 
     try {

@@ -2,8 +2,13 @@ import { GenericModalService } from '@/app/shared/components/generic-modal/gener
 import { AnalyticsCategories, AnalyticsEvents } from '@/app/shared/services/analytics.events';
 import { AnalyticsService } from '@/app/shared/services/analytics.service';
 import { I18nService } from '@/app/shared/services/i18n.service';
+import { VariableStoreService } from '@/app/shared/services/variable-store.service';
+import type { TThemeAccentColorToken } from '@/app/shared/types/theme.types';
 import { inject } from '@angular/core';
 import type { EventHandler } from '../event-handler.types';
+
+const resolveAccentToken = (value: unknown, fallback: TThemeAccentColorToken): TThemeAccentColorToken =>
+    value === 'accentColor' || value === 'secondaryAccentColor' ? value : fallback;
 
 export const closeModalHandler = (): EventHandler => {
     const modal = inject(GenericModalService);
@@ -18,6 +23,7 @@ export const openFooterTermsHandler = (): EventHandler => {
     const modal = inject(GenericModalService);
     const i18n = inject(I18nService);
     const analytics = inject(AnalyticsService);
+    const variables = inject(VariableStoreService);
 
     return {
         id: 'openFooterTerms',
@@ -27,7 +33,7 @@ export const openFooterTermsHandler = (): EventHandler => {
                 size: 'lg',
                 ariaLabel: i18n.t('footer.legal.terms.title'),
                 showAccentBar: true,
-                accentColor: 'secondaryAccentColor',
+                accentColor: resolveAccentToken(variables.get('theme.ui.legalModalAccentColor'), 'secondaryAccentColor'),
             });
 
             void analytics.track(AnalyticsEvents.ActionTrigger, {
@@ -43,6 +49,7 @@ export const openFooterDataHandler = (): EventHandler => {
     const modal = inject(GenericModalService);
     const i18n = inject(I18nService);
     const analytics = inject(AnalyticsService);
+    const variables = inject(VariableStoreService);
 
     return {
         id: 'openFooterData',
@@ -52,7 +59,7 @@ export const openFooterDataHandler = (): EventHandler => {
                 size: 'md',
                 ariaLabel: i18n.t('footer.legal.data.title'),
                 showAccentBar: true,
-                accentColor: 'secondaryAccentColor',
+                accentColor: resolveAccentToken(variables.get('theme.ui.legalModalAccentColor'), 'secondaryAccentColor'),
             });
 
             void analytics.track(AnalyticsEvents.ActionTrigger, {

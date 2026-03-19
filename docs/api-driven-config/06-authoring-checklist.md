@@ -12,6 +12,9 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Dynamic accordion items should use `config.itemsSource` (`i18n` or `var`) instead of inline `items: () => ...` lambdas.
 - Reuse existing generic component types only.
 - Use existing class tokens / Angora design system conventions.
+- Put global palette data in `variables.theme.palettes.light` and `variables.theme.palettes.dark`.
+- Keep modal accent defaults in `variables.theme.ui` when a draft needs them to differ from the default brand behavior.
+- Put reusable visual class bundles in `angora-combos.json` instead of hardcoding repeated appearance strings in app code.
 - Footer and footer legal modal content must be API-owned (no local fallback assumptions).
 - Do not author hardcoded footer/legal text in app source when generating payload instructions.
 
@@ -62,6 +65,7 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Ensure there are no missing IDs.
 - Ensure `valueInstructions` only uses allowlisted IDs.
 - Ensure no config contains function values.
+- Verify `variables.theme` includes complete `light` and `dark` palettes when the draft owns branding.
 - Verify footer/legal modal sections can render from API payload only.
 - Verify local fallback dictionaries are not required for footer/legal behavior.
 

@@ -36,6 +36,21 @@ Checks:
 - Verify `angora-combos.json` is valid and non-empty.
 - Ensure each combo entry is an array of class strings.
 
+### Theme palette not applied
+
+Symptoms:
+
+- The draft renders with fallback Zoo colors instead of the draft brand palette.
+- Theme toggle works, but the colors do not match the draft.
+
+Checks:
+
+- Verify `variables.theme.palettes.light` and `variables.theme.palettes.dark` both exist.
+- Verify every palette includes all required keys: `bgColor`, `textColor`, `titleColor`, `linkColor`, `accentColor`, `secondaryBgColor`, `secondaryTextColor`, `secondaryTitleColor`, `secondaryLinkColor`, `secondaryAccentColor`.
+- Verify `variables.theme.defaultMode` is `light`, `dark`, or `auto`.
+- Verify modal accent overrides, if used, stay within `accentColor` or `secondaryAccentColor`.
+- Hard refresh after switching drafts to confirm there is no stale palette state from a previous draft.
+
 ### i18n not loading
 
 Symptoms:

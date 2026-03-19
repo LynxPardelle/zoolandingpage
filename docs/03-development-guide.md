@@ -2,6 +2,68 @@
 
 This guide covers development standards, coding practices, and workflows for the Zoolandingpage project.
 
+## Draft Testing Workflow
+
+When `environment.drafts.enabled` is `true`, the app can load configuration payloads from:
+
+```text
+public/assets/drafts/{domain}/{pageId}/...
+```
+
+### URL Overrides for Local Testing
+
+In development, you can switch drafts without editing source code by using query parameters:
+
+- `draftDomain`: selects the draft domain folder under `public/assets/drafts/`
+- `draftPageId`: selects the page ID folder inside that domain
+
+Example URLs after starting the app locally with `npm start`:
+
+```text
+http://localhost:4200/?draftDomain=music.lynxpardelle.com&draftPageId=default
+http://localhost:4200/?draftDomain=zoolandingpage.com.mx&draftPageId=default
+http://localhost:4200/
+```
+
+Behavior:
+
+- The first URL opens the music draft.
+- The second URL returns to the default Zoolanding draft.
+- The third URL uses the environment fallback behavior.
+
+### Debug Draft Badge
+
+When debug mode is enabled, the app shows a small badge with:
+
+- the active draft domain
+- the active page ID
+- quick links to the music draft and the default Zoolanding draft
+
+This badge is intended to make draft QA faster and reversible during local development.
+
+### Manual QA Checklist for a Draft
+
+1. Start the app locally with `npm start`.
+2. Open the draft URL you want to test.
+3. Confirm the active draft badge matches the expected domain and page ID.
+4. Open browser devtools and verify draft payload requests resolve under `assets/drafts/{domain}/{pageId}/`.
+5. Check section rendering: Hero, Benefits, Process, Offers, Stats, Social Proof, FAQ, Final CTA, Footer.
+6. Check CTA behavior and outbound links.
+7. Check language switching and translated content availability.
+8. Check footer legal actions and modal behavior.
+9. Toggle the active theme and verify both the light and dark palettes match the current draft branding.
+10. Refresh the page and confirm the saved user theme still wins over the draft default mode.
+11. Check analytics-related interactions in the console/network when applicable.
+12. Hard refresh after switching between drafts to avoid stale state.
+
+### Recommended Quick-Switch Test Sequence
+
+1. Open the music draft URL.
+2. Review all sections and interactions.
+3. Click the badge link for the Zoo Draft.
+4. Confirm the app returns to the original Zoolanding draft cleanly.
+5. Repeat after a hard refresh.
+
 ## 📏 Code Style & Standards
 
 ### MANDATORY Development Rules

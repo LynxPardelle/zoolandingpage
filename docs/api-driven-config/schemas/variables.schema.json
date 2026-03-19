@@ -2,6 +2,75 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "VariablesPayload",
   "type": "object",
+  "definitions": {
+    "themeColors": {
+      "type": "object",
+      "required": [
+        "bgColor",
+        "textColor",
+        "titleColor",
+        "linkColor",
+        "accentColor",
+        "secondaryBgColor",
+        "secondaryTextColor",
+        "secondaryTitleColor",
+        "secondaryLinkColor",
+        "secondaryAccentColor"
+      ],
+      "properties": {
+        "bgColor": { "type": "string" },
+        "textColor": { "type": "string" },
+        "titleColor": { "type": "string" },
+        "linkColor": { "type": "string" },
+        "accentColor": { "type": "string" },
+        "secondaryBgColor": { "type": "string" },
+        "secondaryTextColor": { "type": "string" },
+        "secondaryTitleColor": { "type": "string" },
+        "secondaryLinkColor": { "type": "string" },
+        "secondaryAccentColor": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "themeUi": {
+      "type": "object",
+      "properties": {
+        "modalAccentColor": {
+          "type": "string",
+          "enum": ["accentColor", "secondaryAccentColor"]
+        },
+        "legalModalAccentColor": {
+          "type": "string",
+          "enum": ["accentColor", "secondaryAccentColor"]
+        },
+        "demoModalAccentColor": {
+          "type": "string",
+          "enum": ["accentColor", "secondaryAccentColor"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "themeConfig": {
+      "type": "object",
+      "required": ["palettes"],
+      "properties": {
+        "defaultMode": {
+          "type": "string",
+          "enum": ["light", "dark", "auto"]
+        },
+        "palettes": {
+          "type": "object",
+          "required": ["light", "dark"],
+          "properties": {
+            "light": { "$ref": "#/definitions/themeColors" },
+            "dark": { "$ref": "#/definitions/themeColors" }
+          },
+          "additionalProperties": false
+        },
+        "ui": { "$ref": "#/definitions/themeUi" }
+      },
+      "additionalProperties": false
+    }
+  },
   "required": ["version", "pageId", "domain", "variables"],
   "properties": {
     "version": { "type": "integer", "minimum": 1 },
@@ -9,6 +78,9 @@
     "domain": { "type": "string" },
     "variables": {
       "type": "object",
+      "properties": {
+        "theme": { "$ref": "#/definitions/themeConfig" }
+      },
       "additionalProperties": true
     },
     "computed": {

@@ -12,7 +12,7 @@ export const links: TGenericComponent[] = [
             href: '#main-content',
             text: '',
             classes:
-                'ank-position-absolute ank-s-0 ank-t-0 ank-w-1px ank-h-1px ank-overflow-hidden ank-positionFocus-static ank-wFocus-auto ank-hFocus-auto ank-pFocus-0_5rem__1rem ank-bgFocus-abyss ank-colorFocus-white ank-zIndexFocus-1000',
+                'ank-position-absolute ank-s-0 ank-t-0 ank-w-1px ank-h-1px ank-overflow-hidden ank-positionFocus-static ank-wFocus-auto ank-hFocus-auto ank-pFocus-0_5rem__1rem ank-bgFocus-secondaryAccentColor ank-colorFocus-secondaryTextColor ank-zIndexFocus-1000',
         },
     },
 

@@ -10,6 +10,15 @@ It is written to be **friendly for an AI assistant** generating new landing page
 - Compose pages by listing component IDs (root list) and letting containers declare children.
 - Centralize interaction behavior using `eventInstructions`.
 - Replace inline functions (e.g. `label: () => ...`) with `valueInstructions` (a safe, allowlisted DSL).
+- Define per-draft global light and dark palettes through `variables.theme.palettes` without changing app code.
+- Move reusable visual bundles into `angora-combos.json` so different drafts can share structure but keep distinct appearance.
+
+## Appearance ownership
+
+- `variables.theme`: semantic global palette data and modal accent defaults.
+- `angora-combos.json`: reusable class bundles and shared visual patterns.
+- `components.json`: per-component layout and class composition.
+- `i18n`: copy, labels, and other translatable content.
 
 ## Start here
 
@@ -48,6 +57,35 @@ public/assets/drafts/{domain}/{pageId}/...
 ```
 
 This is enabled when `environment.drafts.enabled` is true. It only affects GET requests to config endpoints.
+
+### Local Draft Selection via URL
+
+For local development and QA, draft resolution can be overridden from the browser URL without editing environment files.
+
+Supported query parameters:
+
+- `draftDomain`: selects the draft domain folder
+- `draftPageId`: selects the draft page ID folder
+
+Examples:
+
+```text
+http://localhost:4200/?draftDomain=music.lynxpardelle.com&draftPageId=default
+http://localhost:4200/?draftDomain=zoolandingpage.com.mx&draftPageId=default
+```
+
+This allows AI-authored drafts and the default Zoolanding draft to be tested side by side using the same application build.
+
+### Manual Draft QA Flow
+
+1. Start the app locally.
+2. Open the target draft URL with `draftDomain` and `draftPageId`.
+3. Verify network requests load payloads from the expected draft path.
+4. Toggle the theme and verify both light and dark palettes match the active draft.
+5. Refresh once to confirm saved theme preference wins over the draft default mode.
+6. Review rendering and interactions.
+7. Switch back to the default Zoolanding draft using the corresponding URL.
+8. Hard refresh after switching drafts when validating state-dependent behavior.
 
 ## Related docs
 

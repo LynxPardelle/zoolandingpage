@@ -137,6 +137,40 @@ This project now treats footer and legal modal content as API-only. Do not rely 
 ```json
 {
   "variables": {
+    "theme": {
+      "defaultMode": "dark",
+      "palettes": {
+        "light": {
+          "bgColor": "#f0ede7",
+          "textColor": "#2e2d2d",
+          "titleColor": "#292929",
+          "linkColor": "#ffe819",
+          "accentColor": "#c1a42f",
+          "secondaryBgColor": "#e5d2bf",
+          "secondaryTextColor": "#19363f",
+          "secondaryTitleColor": "#163038",
+          "secondaryLinkColor": "#c33361",
+          "secondaryAccentColor": "#199f96"
+        },
+        "dark": {
+          "bgColor": "#1a1a1a",
+          "textColor": "#ffffff",
+          "titleColor": "#d8dadb",
+          "linkColor": "#66b3ff",
+          "accentColor": "#225783",
+          "secondaryBgColor": "#2d2d2d",
+          "secondaryTextColor": "#d9dcdf",
+          "secondaryTitleColor": "#6cc3e6",
+          "secondaryLinkColor": "#30a464",
+          "secondaryAccentColor": "#20673c"
+        }
+      },
+      "ui": {
+        "modalAccentColor": "secondaryAccentColor",
+        "legalModalAccentColor": "secondaryAccentColor",
+        "demoModalAccentColor": "accentColor"
+      }
+    },
     "footerConfig": {
       "showLegalLinks": true,
       "showSocialLinks": true,
@@ -166,6 +200,8 @@ This project now treats footer and legal modal content as API-only. Do not rely 
   }
 }
 ```
+
+Use `variables.theme.palettes` for global semantic colors only. Keep reusable class bundles in `angora-combos.json`, section/component layout in `components.json`, and text/icon copy in `i18n`.
 
 ### Components payload (footer + legal modal icon examples)
 
