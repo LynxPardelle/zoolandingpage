@@ -1,9 +1,11 @@
-import type { TLanguage } from '@/app/shared/i18n/i18n.types';
 import { I18N_CONFIG } from '@/app/shared/i18n/index.i18n';
+import { formatLocaleLabel, normalizeLocaleCode } from '@/app/shared/i18n/locale.utils';
 import type {
     TAnalyticsConfigPayload,
     TAngoraCombosPayload,
     TComponentsPayload,
+    TDraftI18nVariableConfig,
+    TDraftLanguageDefinition,
     TI18nPayload,
     TPageConfigPayload,
     TSeoPayload,
@@ -27,6 +29,7 @@ import { ConfigStoreService, TConfigBootstrapStage } from './config-store.servic
 import { DomainResolverService } from './domain-resolver.service';
 import { DraftConfigLoaderService } from './draft-config-loader.service';
 import { I18nService } from './i18n.service';
+import { LanguageService } from './language.service';
 import { StructuredDataService } from './structured-data.service';
 import { VariableStoreService } from './variable-store.service';
 
@@ -53,6 +56,7 @@ export class ConfigBootstrapService {
     private readonly drafts = inject(DraftConfigLoaderService);
     private readonly resolver = inject(DomainResolverService);
     private readonly i18n = inject(I18nService);
+    private readonly language = inject(LanguageService);
     private readonly structured = inject(StructuredDataService);
     private readonly variablesStore = inject(VariableStoreService);
 
@@ -63,11 +67,107 @@ export class ConfigBootstrapService {
     }
 
     private getFallbackI18n(lang: string): Record<string, unknown> {
-        const key = String(lang ?? '').trim() as TLanguage;
-        const fallback = I18N_CONFIG.translations[key]
-            ?? I18N_CONFIG.translations['es']
-            ?? I18N_CONFIG.translations['en'];
+        const translations = I18N_CONFIG.translations as Record<string, unknown>;
+        const normalized = normalizeLocaleCode(lang);
+        const primary = normalized.split('-')[0];
+        const fallback = translations[normalized]
+            ?? translations[primary]
+            ?? translations['es']
+            ?? translations['en'];
         return (fallback ?? {}) as unknown as Record<string, unknown>;
+    }
+
+    private normalizeDraftLanguageDefinition(entry: string | TDraftLanguageDefinition): TDraftLanguageDefinition | null {
+        if (typeof entry === 'string') {
+            const code = normalizeLocaleCode(entry);
+            return code ? { code, label: formatLocaleLabel(code) } : null;
+        }
+
+        const code = normalizeLocaleCode(entry.code);
+        if (!code) return null;
+
+        return {
+            code,
+            label: typeof entry.label === 'string' && entry.label.trim().length > 0 ? entry.label.trim() : formatLocaleLabel(code),
+            dir: entry.dir,
+            ogLocale: typeof entry.ogLocale === 'string' && entry.ogLocale.trim().length > 0 ? entry.ogLocale.trim() : undefined,
+            aliases: Array.isArray(entry.aliases)
+                ? entry.aliases.map((alias) => normalizeLocaleCode(alias)).filter(Boolean)
+                : undefined,
+        };
+    }
+
+    private extractDraftI18nConfig(variables: TVariablesPayload | null): TDraftI18nVariableConfig | null {
+        const config = variables?.variables?.['i18n'];
+        return this.isRecord(config) ? (config as TDraftI18nVariableConfig) : null;
+    }
+
+    private buildDraftLanguageDefinitions(variables: TVariablesPayload | null): readonly TDraftLanguageDefinition[] {
+        const i18nConfig = this.extractDraftI18nConfig(variables);
+        const fromConfig = Array.isArray(i18nConfig?.supportedLanguages)
+            ? i18nConfig.supportedLanguages
+                .map((entry) => this.normalizeDraftLanguageDefinition(entry))
+                .filter((entry): entry is TDraftLanguageDefinition => !!entry)
+            : [];
+
+        if (fromConfig.length > 0) return fromConfig;
+
+        const ui = variables?.variables?.['ui'];
+        const languageOptions = this.isRecord(ui) ? ui['languageOptions'] : undefined;
+        if (Array.isArray(languageOptions)) {
+            const fromOptions = languageOptions
+                .map((option): TDraftLanguageDefinition | null => {
+                    if (!this.isRecord(option)) return null;
+                    const code = normalizeLocaleCode(option['value']);
+                    if (!code) return null;
+                    const label = typeof option['label'] === 'string' && option['label'].trim().length > 0
+                        ? option['label'].trim()
+                        : formatLocaleLabel(code);
+                    return { code, label };
+                })
+                .filter((entry): entry is TDraftLanguageDefinition => entry !== null);
+
+            if (fromOptions.length > 0) return fromOptions;
+        }
+
+        return [
+            { code: 'es', label: 'ES' },
+            { code: 'en', label: 'EN' },
+        ];
+    }
+
+    private defaultDraftLanguage(variables: TVariablesPayload | null, languages: readonly TDraftLanguageDefinition[]): string {
+        const configured = normalizeLocaleCode(this.extractDraftI18nConfig(variables)?.defaultLanguage);
+        if (configured && languages.some((entry) => entry.code === configured)) return configured;
+        return languages[0]?.code ?? 'es';
+    }
+
+    private ensureLanguageOptions(variables: TVariablesPayload | null, languages: readonly TDraftLanguageDefinition[]): TVariablesPayload | null {
+        if (!variables) return null;
+
+        const currentUi = this.isRecord(variables.variables['ui']) ? variables.variables['ui'] as Record<string, unknown> : {};
+        const currentOptions = currentUi['languageOptions'];
+        if (Array.isArray(currentOptions) && currentOptions.length > 0) return variables;
+
+        return {
+            ...variables,
+            variables: {
+                ...variables.variables,
+                ui: {
+                    ...currentUi,
+                    languageOptions: languages.map((entry) => ({
+                        id: `lang-${ entry.code.toLowerCase().replace(/[^a-z0-9]+/g, '-') }`,
+                        label: entry.label ?? formatLocaleLabel(entry.code),
+                        value: entry.code,
+                    })),
+                },
+            },
+        };
+    }
+
+    private secondaryLanguage(primary: string, languages: readonly TDraftLanguageDefinition[]): string | null {
+        const secondary = languages.find((entry) => entry.code !== primary);
+        return secondary?.code ?? null;
     }
 
     private withoutFooterFallback(dictionary: Record<string, unknown>): Record<string, unknown> {
@@ -134,11 +234,13 @@ export class ConfigBootstrapService {
         const resolved = this.resolver.resolveDomain();
         const domain = resolved.domain || environment.domain.defaultDomain;
         const pageId = String(opts?.pageId ?? environment.drafts.defaultPageId ?? 'default');
-        const lang = String(opts?.lang ?? 'es');
+        const requestedLang = String(
+            opts?.lang
+            ?? (typeof window !== 'undefined' ? this.language.currentLanguage() : '')
+            ?? 'es'
+        );
 
         this.configureI18nLoader(domain, pageId);
-        const fallbackLang = lang === 'es' ? 'en' : 'es';
-        void this.i18n.prefetch(fallbackLang);
 
         this.store.reset();
         this.store.setStage('page-config');
@@ -152,7 +254,17 @@ export class ConfigBootstrapService {
         this.store.setComponents(components);
 
         this.store.setStage('variables');
-        const variables = await this.loadVariables(domain, pageId);
+        const loadedVariables = await this.loadVariables(domain, pageId);
+        const draftLanguages = this.buildDraftLanguageDefinitions(loadedVariables);
+        const defaultLanguage = this.defaultDraftLanguage(loadedVariables, draftLanguages);
+        this.language.configureLanguages(
+            draftLanguages.map((entry) => entry.code),
+            { defaultLanguage, requestedLanguage: requestedLang }
+        );
+        const lang = this.language.currentLanguage();
+        const fallbackLang = this.secondaryLanguage(lang, draftLanguages);
+
+        const variables = this.ensureLanguageOptions(loadedVariables, draftLanguages);
         const combos = await this.loadCombos(domain, pageId);
         this.store.setVariables(variables);
         this.store.setCombos(combos);
@@ -161,6 +273,10 @@ export class ConfigBootstrapService {
         this.store.setStage('i18n');
         const i18nPayload = await this.loadI18n(domain, pageId, lang);
         this.store.setI18n(i18nPayload);
+
+        if (fallbackLang) {
+            void this.i18n.prefetch(fallbackLang);
+        }
 
         const seo = await this.loadSeo(domain, pageId);
         const structuredData = await this.loadStructuredData(domain, pageId);
@@ -186,14 +302,16 @@ export class ConfigBootstrapService {
             this.i18n.setTranslations(lang, fallbackDict, { cache: true, applyIfCurrent: true });
         }
 
-        const secondary = await this.loadI18n(domain, pageId, fallbackLang);
-        if (secondary?.dictionary && Object.keys(secondary.dictionary).length > 0) {
-            const fallbackSecondary = this.withoutApiDrivenFallback(this.getFallbackI18n(secondary.lang ?? fallbackLang));
-            const mergedSecondary = this.mergeI18n(fallbackSecondary, secondary.dictionary);
-            this.i18n.setTranslations(secondary.lang, mergedSecondary, { cache: true, applyIfCurrent: false });
-        } else {
-            const fallbackSecondary = this.withoutApiDrivenFallback(this.getFallbackI18n(fallbackLang));
-            this.i18n.setTranslations(fallbackLang, fallbackSecondary, { cache: true, applyIfCurrent: false });
+        if (fallbackLang) {
+            const secondary = await this.loadI18n(domain, pageId, fallbackLang);
+            if (secondary?.dictionary && Object.keys(secondary.dictionary).length > 0) {
+                const fallbackSecondary = this.withoutApiDrivenFallback(this.getFallbackI18n(secondary.lang ?? fallbackLang));
+                const mergedSecondary = this.mergeI18n(fallbackSecondary, secondary.dictionary);
+                this.i18n.setTranslations(secondary.lang, mergedSecondary, { cache: true, applyIfCurrent: false });
+            } else {
+                const fallbackSecondary = this.withoutApiDrivenFallback(this.getFallbackI18n(fallbackLang));
+                this.i18n.setTranslations(fallbackLang, fallbackSecondary, { cache: true, applyIfCurrent: false });
+            }
         }
 
         this.store.setStage('done');

@@ -8,6 +8,7 @@ import { WrapperOrchestrator } from '../../../../shared/components/wrapper-orche
 import { AnalyticsService } from '../../../../shared/services/analytics.service';
 import { ConfigBootstrapService } from '../../../../shared/services/config-bootstrap.service';
 import { ConfigurationsOrchestratorService } from '../../../../shared/services/configurations-orchestrator';
+import { DraftRegistryService } from '../../../../shared/services/draft-registry.service';
 import { AppShellComponent } from './app-shell.component';
 
 @Component({
@@ -64,12 +65,19 @@ describe('AppShellComponent analytics', () => {
             }),
           },
         },
+        {
+          provide: DraftRegistryService,
+          useValue: {
+            listDrafts: () => of([{ domain: 'zoolandingpage.com.mx', pageId: 'default' }]),
+          },
+        },
         { provide: ConfigurationsOrchestratorService, useValue: ORCHESTRATOR_STUB },
         {
           provide: NgxAngoraService,
           useValue: {
             cssCreate: () => { },
             timeBetweenReCreate: 0,
+            pushCombos: () => { },
             pushColors: () => { },
             updateColors: () => { },
           } as any,
@@ -92,7 +100,6 @@ describe('AppShellComponent analytics', () => {
     fixture.detectChanges();
     const router = TestBed.inject(Router);
     await router.navigateByUrl('/');
-    await fixture.whenStable();
 
     expect(analyticsSpy.track).toHaveBeenCalled();
     const calls = analyticsSpy.track.calls.all();

@@ -2,8 +2,6 @@
 export const ALLOWED_CONDITION_IDS: ReadonlyArray<string> = [
     'env',
     'i18n',
-    'footerConfig',
-    'footerSocialLinks',
     'navigation',
     'modalRefId',
     'host',

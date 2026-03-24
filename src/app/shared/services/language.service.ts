@@ -1,7 +1,7 @@
 /**
  * Language Service - Foundation Component Support with ngx-translate
  *
- * Manages language switching between Spanish and English using ngx-translate.
+ * Manages runtime language switching for the supported draft locales.
  * Uses Angular signals for reactive state management.
  */
 
@@ -9,7 +9,11 @@ import { computed, Injectable, signal } from '@angular/core';
 // TODO: Install @ngx-translate/core package
 // import { TranslateService } from '@ngx-translate/core';
 import { environment } from '../../../environments/environment';
+import { formatLocaleLabel, normalizeLocaleCode, resolveBestLocaleMatch } from '../i18n/locale.utils';
 import { SupportedLanguage } from '../types/navigation.types';
+
+const DEFAULT_LANGUAGES = ['es', 'en'] as const;
+const DEFAULT_LANGUAGE = 'es';
 
 @Injectable({
   providedIn: 'root'
@@ -19,26 +23,27 @@ export class LanguageService {
   // private readonly translateService = inject(TranslateService);
 
   // Language state using signals (MANDATORY Angular 17+ features)
-  private readonly _currentLanguage = signal<SupportedLanguage>('es');
-  private readonly _availableLanguages = signal<readonly SupportedLanguage[]>(['es', 'en'] as const);
+  private readonly _currentLanguage = signal<SupportedLanguage>(DEFAULT_LANGUAGE);
+  private readonly _defaultLanguage = signal<SupportedLanguage>(DEFAULT_LANGUAGE);
+  private readonly _availableLanguages = signal<readonly SupportedLanguage[]>([...DEFAULT_LANGUAGES]);
 
   // Public readonly signals
   readonly currentLanguage = computed(() => this._currentLanguage());
   readonly availableLanguages = this._availableLanguages.asReadonly();
+  readonly hasMultipleLanguages = computed(() => this._availableLanguages().length > 1);
 
   // Computed properties with proper typing
-  readonly languageLabel = computed(() => {
-    const current: SupportedLanguage = this._currentLanguage();
-    const labels: Record<SupportedLanguage, string> = {
-      'es': 'ES',
-      'en': 'EN'
-    };
-    return labels[current];
-  });
+  readonly languageLabel = computed(() => formatLocaleLabel(this._currentLanguage()));
 
   readonly nextLanguage = computed(() => {
-    const current: SupportedLanguage = this._currentLanguage();
-    return current === 'es' ? 'en' : 'es';
+    const available = this._availableLanguages();
+    const current = this._currentLanguage();
+    if (available.length <= 1) return current;
+
+    const currentIndex = available.findIndex((lang) => lang === current);
+    if (currentIndex < 0) return available[0];
+
+    return available[(currentIndex + 1) % available.length];
   });
 
   constructor() {
@@ -48,13 +53,36 @@ export class LanguageService {
   }
 
   // Public methods
+  configureLanguages(
+    languages: readonly string[],
+    opts?: { defaultLanguage?: string; requestedLanguage?: string }
+  ): void {
+    const normalized = this.normalizeLanguages(languages);
+    const fallback = this.normalizeSingleLanguage(opts?.defaultLanguage)
+      ?? normalized[0]
+      ?? DEFAULT_LANGUAGE;
+
+    const nextAvailable = normalized.length > 0 ? normalized : [fallback];
+    this._availableLanguages.set(nextAvailable);
+    this._defaultLanguage.set(nextAvailable.includes(fallback) ? fallback : nextAvailable[0]);
+
+    const requested = this.normalizeSingleLanguage(opts?.requestedLanguage);
+    const preferred = requested
+      ?? this.getSavedLanguage()
+      ?? this._detectBrowserLanguage()
+      ?? this._defaultLanguage();
+
+    const resolved = this.resolvePreferredLanguage(preferred);
+    this._currentLanguage.set(resolved);
+    this._saveLanguage(resolved);
+  }
+
   setLanguage(language: SupportedLanguage): void {
-    if (this._availableLanguages().includes(language)) {
-      this._currentLanguage.set(language);
-      this._saveLanguage(language);
-      // TODO: Update TranslateService when available
-      // this.translateService.use(language);
-    }
+    const resolved = this.resolvePreferredLanguage(language);
+    this._currentLanguage.set(resolved);
+    this._saveLanguage(resolved);
+    // TODO: Update TranslateService when available
+    // this.translateService.use(resolved);
   }
 
   toggleLanguage(): void {
@@ -64,6 +92,10 @@ export class LanguageService {
 
   getCurrentLanguage(): SupportedLanguage {
     return this._currentLanguage();
+  }
+
+  getAvailableLanguages(): readonly SupportedLanguage[] {
+    return this._availableLanguages();
   }
 
   // TODO: Implement when ngx-translate is available
@@ -78,23 +110,8 @@ export class LanguageService {
 
   // Private methods
   private _loadSavedLanguage(): void {
-    if (typeof localStorage === 'undefined') return;
-
-    const storageKey: string = environment.localStorage.languageKey;
-    const saved: string | null = localStorage.getItem(storageKey);
-    const savedLanguage = saved as SupportedLanguage;
-
-    if (saved && this._availableLanguages().includes(savedLanguage)) {
-      this._currentLanguage.set(savedLanguage);
-    } else {
-      // Detect browser language
-      const browserLang: string = this._detectBrowserLanguage();
-      const detectedLang = browserLang as SupportedLanguage;
-
-      if (this._availableLanguages().includes(detectedLang)) {
-        this._currentLanguage.set(detectedLang);
-      }
-    }
+    const preferred = this.getSavedLanguage() ?? this._detectBrowserLanguage() ?? this._defaultLanguage();
+    this._currentLanguage.set(this.resolvePreferredLanguage(preferred));
   }
 
   private _saveLanguage(language: SupportedLanguage): void {
@@ -103,11 +120,40 @@ export class LanguageService {
     localStorage.setItem(storageKey, language);
   }
 
-  private _detectBrowserLanguage(): string {
-    if (typeof navigator === 'undefined') return 'es';
+  private getSavedLanguage(): SupportedLanguage | null {
+    if (typeof localStorage === 'undefined') return null;
+    const storageKey: string = environment.localStorage.languageKey;
+    return this.normalizeSingleLanguage(localStorage.getItem(storageKey));
+  }
 
-    const browserLang: string | undefined = navigator.language?.split('-')[0];
-    return browserLang || 'es';
+  private _detectBrowserLanguage(): SupportedLanguage | null {
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') return null;
+    return this.normalizeSingleLanguage(navigator.language);
+  }
+
+  private normalizeLanguages(languages: readonly string[]): readonly SupportedLanguage[] {
+    const seen = new Set<string>();
+    const normalized: SupportedLanguage[] = [];
+
+    for (const language of languages) {
+      const next = this.normalizeSingleLanguage(language);
+      if (!next || seen.has(next)) continue;
+      seen.add(next);
+      normalized.push(next);
+    }
+
+    return normalized;
+  }
+
+  private normalizeSingleLanguage(language: unknown): SupportedLanguage | null {
+    const normalized = normalizeLocaleCode(language);
+    return normalized ? normalized : null;
+  }
+
+  private resolvePreferredLanguage(language: unknown): SupportedLanguage {
+    const available = this._availableLanguages();
+    const match = resolveBestLocaleMatch(language, available);
+    return match ?? this._defaultLanguage() ?? available[0] ?? DEFAULT_LANGUAGE;
   }
 
   // TODO: Initialize TranslateService when available

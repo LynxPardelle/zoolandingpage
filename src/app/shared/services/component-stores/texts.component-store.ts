@@ -467,35 +467,4 @@ export const texts: TGenericComponent[] = [
             classes: 'ank-fs-1_25rem ank-fontWeight-bold'
         }
     },
-
-    /* Footer */
-    {
-        id: 'footerLegalTitle',
-        type: 'text',
-        valueInstructions: 'set:config.text,langPick,host.footerTranslations.en.legalTitle,host.footerTranslations.es.legalTitle',
-        config: {
-            tag: 'h3',
-            text: '',
-            classes: 'ank-fontSize-lg ank-fontWeight-semibold ank-color-titleColor ank-margin-0',
-        }
-    },
-    {
-        id: 'footerLegalSeparator',
-        type: 'text',
-        config: {
-            tag: 'span',
-            text: '•',
-            classes: 'ank-color-secondaryTextColor',
-        }
-    },
-    {
-        id: 'footerCopyrightText',
-        type: 'text',
-        valueInstructions: 'set:config.text,langPick,host.footerConfig.copyrightText,© 2025 Zoo Landing Page. Todos los derechos reservados.',
-        config: {
-            tag: 'p',
-            text: '',
-            classes: 'ank-color-secondaryTextColor ank-fontSize-sm ank-margin-0',
-        }
-    },
 ];

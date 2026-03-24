@@ -4,8 +4,6 @@ import type { Provider } from '@angular/core';
 import type { ConditionExecutionContext, ConditionHandler } from './condition-handler.types';
 import { CONDITION_HANDLERS } from './condition-handlers.token';
 import { envConditionHandler } from './handlers/env.condition-handler';
-import { footerConfigConditionHandler } from './handlers/footer-config.condition-handler';
-import { footerSocialLinksConditionHandler } from './handlers/footer-social-links.condition-handler';
 import {
     hostConditionHandler,
     hostEndsWithConditionHandler,
@@ -28,17 +26,14 @@ import { i18nExistsConditionHandler } from './handlers/i18n.condition-handler';
 import { createLogicHandlers } from './handlers/logic.condition-handler';
 import { modalRefIdConditionHandler } from './handlers/modal-ref.condition-handler';
 import { navigationConditionHandler } from './handlers/navigation.condition-handler';
-import { variableConditionHandlers } from './handlers/variable.condition-handler';
+import { provideVariableConditionHandlers } from './handlers/variable.condition-handler';
 
 export function provideConditionHandlers(): Provider[] {
     // Registry for logic handlers (self-referential, so must be built after all others)
     const baseHandlers: ConditionHandler[] = [
         envConditionHandler,
         i18nExistsConditionHandler,
-        footerConfigConditionHandler,
-        footerSocialLinksConditionHandler,
         navigationConditionHandler,
-        ...variableConditionHandlers(),
         hostConditionHandler,
         hostEqConditionHandler,
         hostIncludesConditionHandler,
@@ -80,5 +75,6 @@ export function provideConditionHandlers(): Provider[] {
     return [
         ...baseHandlers.map((h) => ({ provide: CONDITION_HANDLERS, multi: true, useValue: h })),
         ...logicHandlers.map((h) => ({ provide: CONDITION_HANDLERS, multi: true, useValue: h })),
+        ...provideVariableConditionHandlers(),
     ];
 }

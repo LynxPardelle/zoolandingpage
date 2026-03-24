@@ -20,6 +20,96 @@ It is written to be **friendly for an AI assistant** generating new landing page
 - `components.json`: per-component layout and class composition.
 - `i18n`: copy, labels, and other translatable content.
 
+## Draft Locale Configuration
+
+Drafts can now declare their supported locales directly in `variables.json`.
+
+Use `variables.i18n.defaultLanguage` to define the initial locale for the draft, and `variables.i18n.supportedLanguages` to list every locale the draft supports.
+
+Example: single-language draft
+
+```json
+{
+  "variables": {
+    "i18n": {
+      "defaultLanguage": "it",
+      "supportedLanguages": [
+        {
+          "code": "it",
+          "label": "IT"
+        }
+      ]
+    }
+  }
+}
+```
+
+Example: dialect-aware draft
+
+```json
+{
+  "variables": {
+    "i18n": {
+      "defaultLanguage": "pt-BR",
+      "supportedLanguages": [
+        {
+          "code": "pt-BR",
+          "label": "PT-BR",
+          "ogLocale": "pt_BR"
+        },
+        {
+          "code": "pt-PT",
+          "label": "PT-PT",
+          "ogLocale": "pt_PT"
+        },
+        {
+          "code": "en",
+          "label": "EN"
+        }
+      ]
+    }
+  }
+}
+```
+
+For config-driven items that are not using i18n keys yet, you can also store locale maps directly in payloads.
+
+Example: legacy navigation or dropdown item labels
+
+```json
+{
+  "id": "contact",
+  "href": "#contact",
+  "labels": {
+    "pt-BR": "Contato",
+    "pt": "Contacto",
+    "en": "Contact",
+    "default": "Contact"
+  }
+}
+```
+
+Example: locale map consumed by `langPick`
+
+```text
+set:config.text,langPick,var,footerConfig.copyrightText,Copyright Example. All rights reserved.
+```
+
+```json
+{
+  "variables": {
+    "footerConfig": {
+      "copyrightText": {
+        "es": "Copyright Example. Todos los derechos reservados.",
+        "pt-BR": "Copyright Example. Todos os direitos reservados.",
+        "en": "Copyright Example. All rights reserved.",
+        "default": "Copyright Example. All rights reserved."
+      }
+    }
+  }
+}
+```
+
 ## Start here
 
 - Concepts and the overall model: [01-concepts.md](01-concepts.md)

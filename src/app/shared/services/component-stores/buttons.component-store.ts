@@ -121,30 +121,4 @@ export const buttons: TGenericComponent[] = [
                 'btnBaseVALSVAL9N1remVAL9NVL8pxVL8pxVL0_75remVL ank-bg-accentColor ank-color-secondaryTextColor ank-ts-200 ank-bgHover-secondaryAccentColor ank-colorHover-secondaryTextColor ank-width-36px ank-height-36px ank-border-none',
         }
     },
-
-    /* Footer */
-    {
-        id: 'footerTermsButton',
-        type: 'button',
-        eventInstructions: 'openFooterTerms',
-        valueInstructions: 'set:config.label,i18n,footer.legal.terms.link; set:config.ariaLabel,i18n,footer.legal.terms.link',
-        config: {
-            label: '',
-            ariaLabel: '',
-            classes:
-                'ank-bg-transparent ank-border-0 ank-color-secondaryTextColor ank-fontSize-sm ank-textDecoration-underline ank-cursor-pointer',
-        }
-    },
-    {
-        id: 'footerDataButton',
-        type: 'button',
-        eventInstructions: 'openFooterData',
-        valueInstructions: 'set:config.label,i18n,footer.legal.data.link; set:config.ariaLabel,i18n,footer.legal.data.link',
-        config: {
-            label: '',
-            ariaLabel: '',
-            classes:
-                'ank-bg-transparent ank-border-0 ank-color-secondaryTextColor ank-fontSize-sm ank-textDecoration-underline ank-cursor-pointer',
-        }
-    },
 ];

@@ -19,4 +19,23 @@ describe('GenericTextComponent', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('should ignore nested component objects when resolving template component ids', () => {
+    fixture.componentRef.setInput('config', {
+      tag: 'p',
+      text: 'Hello',
+      components: [
+        'named-template',
+        {
+          id: 'nested-child',
+          type: 'text',
+          config: { text: 'Nested child' },
+        } as any,
+      ],
+    });
+
+    fixture.detectChanges();
+
+    expect(component.components()).toEqual(['named-template']);
+  });
 });

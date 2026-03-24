@@ -1,6 +1,8 @@
+import type { TLanguage } from '../i18n/i18n.types';
+
 /**
  * Navigation Types - Foundation Components
- * 
+ *
  * Core type definitions for navigation components following MANDATORY requirements:
  * - Use 'type' keyword only (NO interfaces/enums)
  * - Keep atomic and focused
@@ -23,7 +25,7 @@ export type NavMenuProps = {
 };
 
 // Language toggle types
-export type SupportedLanguage = 'es' | 'en';
+export type SupportedLanguage = TLanguage;
 
 export type LanguageToggleProps = {
   currentLanguage: SupportedLanguage;

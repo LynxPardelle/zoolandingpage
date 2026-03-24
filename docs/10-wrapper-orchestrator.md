@@ -8,7 +8,7 @@ In this model:
 - The orchestrator receives a list of component IDs (`componentsIds`).
 - Those IDs are resolved via a registry (`ConfigurationsOrchestratorService`).
 - Each resolved entry is a typed `TGenericComponent` that drives which generic component renders (`generic-container`, `generic-button`, etc.).
-- Containers can nest other components by listing child IDs in `config.components`, allowing an entire UI tree to be declared as data.
+- Runtime component configs can nest other components through `config.components`, using child IDs or inline `TGenericComponent` objects, allowing an entire UI tree to be declared as data.
 
 ## Why this exists
 
@@ -53,15 +53,37 @@ The service returns a `TGenericComponent` union which includes:
 
 The orchestrator template uses `@switch(component.type)` to decide which generic component to render.
 
-### 4) Nesting happens through container children
+### 4) Nesting happens through component children
 
-If a rendered component’s config includes a `components: string[]` field (commonly on containers), the template recursively renders:
+If a rendered component’s config includes a `components` field (commonly on containers), the template recursively renders child entries. In runtime TypeScript composition, each child entry can be either:
+
+- a string component ID resolved through the registry
+- an inline `TGenericComponent` object rendered directly
+
+Example runtime child list:
+
+```ts
+config: {
+  tag: 'div',
+  classes: 'ank-display-flex ank-gap-8px',
+  components: [
+    'primaryCTA',
+    {
+      id: 'inlineDraftHint',
+      type: 'text',
+      config: { tag: 'small', text: 'Preview only', classes: 'ank-color-whiteOPA__0_6' },
+    },
+  ],
+}
+```
+
+The recursive renderer still walks children through:
 
 ```html
 <wrapper-orchestrator [componentsIds]="[componentId]"></wrapper-orchestrator>
 ```
 
-This is how large trees like Hero become just a list of entries in the registry.
+For JSON payload authoring, keep `config.components` ID-based only. Inline child component objects are intended for in-memory TypeScript composition, not `components.json` drafts.
 
 ### 5) Events are centralized
 
@@ -98,6 +120,8 @@ A container typically drives layout and lists its children:
   },
 }
 ```
+
+When authoring `components.json`, this ID-based form remains the supported shape.
 
 ### Conditional components
 
@@ -155,13 +179,13 @@ A page template wires behavior directly:
 ### After
 
 1. Create component config entries in `ConfigurationsOrchestratorService` (containers + leaf nodes).
-2. Replace the subtree with a single orchestrator invocation:
+1. Replace the subtree with a single orchestrator invocation:
 
 ```html
 <wrapper-orchestrator [componentsIds]="['heroContainer', 'conversionNoteContainer']"></wrapper-orchestrator>
 ```
 
-3. Move event wiring into `eventInstructions` and/or service handlers.
+1. Move event wiring into `eventInstructions` and/or service handlers.
 
 ## Debugging & validation
 

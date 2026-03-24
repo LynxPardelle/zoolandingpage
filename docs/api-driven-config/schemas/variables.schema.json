@@ -69,6 +69,38 @@
         "ui": { "$ref": "#/definitions/themeUi" }
       },
       "additionalProperties": false
+    },
+    "draftLanguageDefinition": {
+      "type": "object",
+      "required": ["code"],
+      "properties": {
+        "code": { "type": "string", "minLength": 1 },
+        "label": { "type": "string" },
+        "dir": {
+          "type": "string",
+          "enum": ["ltr", "rtl", "auto"]
+        },
+        "ogLocale": { "type": "string" },
+        "aliases": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "draftI18nConfig": {
+      "type": "object",
+      "properties": {
+        "defaultLanguage": { "type": "string" },
+        "supportedLanguages": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "anyOf": [{ "type": "string", "minLength": 1 }, { "$ref": "#/definitions/draftLanguageDefinition" }]
+          }
+        }
+      },
+      "additionalProperties": false
     }
   },
   "required": ["version", "pageId", "domain", "variables"],
@@ -79,7 +111,8 @@
     "variables": {
       "type": "object",
       "properties": {
-        "theme": { "$ref": "#/definitions/themeConfig" }
+        "theme": { "$ref": "#/definitions/themeConfig" },
+        "i18n": { "$ref": "#/definitions/draftI18nConfig" }
       },
       "additionalProperties": true
     },

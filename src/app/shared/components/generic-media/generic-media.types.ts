@@ -1,4 +1,6 @@
 
+import type { TComponentChild } from '../component-children.types';
+
 
 export type GenericMediaTag =
     | 'audio'
@@ -13,6 +15,6 @@ export type TGenericMediaConfig = {
     readonly tag: GenericMediaTag;
     readonly alt?: string;
     readonly classes?: string;
-    readonly components?: readonly string[];
+    readonly components?: readonly TComponentChild[];
 };
 

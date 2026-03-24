@@ -5,9 +5,55 @@ import {
   writeResponseToNodeResponse,
 } from '@angular/ssr/node';
 import express from 'express';
+import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
+
+type TDraftRegistryEntry = {
+  readonly domain: string;
+  readonly pageId: string;
+};
+
+function isDirectory(path: string): boolean {
+  try {
+    return readdirSync(path, { withFileTypes: true }).length >= 0;
+  } catch {
+    return false;
+  }
+}
+
+function resolveDraftsFolder(): string | null {
+  const candidates = [
+    join(process.cwd(), 'public', 'assets', 'drafts'),
+    join(browserDistFolder, 'assets', 'drafts'),
+  ];
+
+  return candidates.find((candidate) => existsSync(candidate) && isDirectory(candidate)) ?? null;
+}
+
+function listDraftRegistryEntries(): readonly TDraftRegistryEntry[] {
+  const draftsFolder = resolveDraftsFolder();
+  if (!draftsFolder) {
+    return [];
+  }
+
+  const domains = readdirSync(draftsFolder, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort((left, right) => left.localeCompare(right));
+
+  return domains.flatMap((domain) => {
+    const domainFolder = join(draftsFolder, domain);
+    return readdirSync(domainFolder, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => ({
+        domain,
+        pageId: entry.name,
+      }))
+      .sort((left, right) => left.pageId.localeCompare(right.pageId));
+  });
+}
 
 const app = express();
 const angularApp = new AngularNodeAppEngine();
@@ -23,6 +69,10 @@ const angularApp = new AngularNodeAppEngine();
  * });
  * ```
  */
+
+app.get('/api/debug/drafts', (_req, res) => {
+  res.json({ drafts: listDraftRegistryEntries() });
+});
 
 /**
  * Serve static files from /browser
@@ -58,7 +108,7 @@ if (isMainModule(import.meta.url)) {
       throw error;
     }
 
-    console.log(`Node Express server listening on http://localhost:${port}`);
+    console.log(`Node Express server listening on http://localhost:${ port }`);
   });
 }
 

@@ -19,6 +19,7 @@ import {
   ViewContainerRef
 } from '@angular/core';
 import { NgxAngoraService } from 'ngx-angora-css';
+import { getLocaleCandidates } from '../../i18n/locale.utils';
 import { LanguageService } from '../../services/language.service';
 import { OverlayPositioningService } from '../../services/overlay-positioning.service';
 import { GenericButtonComponent } from "../generic-button/generic-button.component";
@@ -333,6 +334,14 @@ export class GenericDropdown {
 
     const record = item as unknown as Record<string, unknown>;
     const lang = this.language.currentLanguage();
+    const localizedLabels = record['labels'];
+    if (localizedLabels && typeof localizedLabels === 'object') {
+      for (const candidate of getLocaleCandidates(lang)) {
+        const localized = (localizedLabels as Record<string, unknown>)[candidate];
+        if (typeof localized === 'string' && localized.trim().length > 0) return localized;
+      }
+    }
+
     const localized = lang === 'es'
       ? record['labelEs'] ?? record['label']
       : record['labelEn'] ?? record['label'];

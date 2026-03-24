@@ -6,6 +6,7 @@ import { provideClientHydration, withEventReplay } from '@angular/platform-brows
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { routes } from './app.routes';
 import { draftConfigInterceptor } from './shared/interceptors/draft-config.interceptor';
+import { provideConditionHandlers } from './shared/utility/condition-handler/provide-condition-handlers';
 import { provideEventHandlers } from './shared/utility/event-handler/provide-event-handlers';
 import { provideValueHandlers } from './shared/utility/value-handler/provide-value-handlers';
 
@@ -20,6 +21,7 @@ export const appConfig: ApplicationConfig = {
     provideAnimations(),
     provideHttpClient(withFetch(), withInterceptors([draftConfigInterceptor])),
 
+    ...provideConditionHandlers(),
     ...provideEventHandlers(),
     ...provideValueHandlers(),
 

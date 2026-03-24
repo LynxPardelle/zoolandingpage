@@ -11,6 +11,7 @@ export const DEFAULT_ALLOWED_EVENT_IDS = [
     'openFinalCtaWhatsApp',
     'toggleTheme',
     'toggleLanguage',
+    'setLanguage',
     'openFooterTerms',
     'openFooterData',
     // [MODALS-8]

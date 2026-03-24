@@ -3,7 +3,7 @@
  * Centralizes all translatable content for Spanish/English support
  */
 
-export type TLanguage = 'es' | 'en';
+export type TLanguage = string;
 
 // Hero Section
 export interface THeroTranslations {

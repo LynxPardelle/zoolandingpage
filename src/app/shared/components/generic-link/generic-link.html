@@ -1,14 +1,14 @@
 <a
-  [id]="config().id"
+  [id]="id()"
   [href]="href()"
-  [class]="config().classes"
-  [target]="config().target"
-  [rel]="config().rel || 'nofollow noopener noreferrer'"
+  [class]="classes()"
+  [target]="target()"
+  [rel]="rel()"
   [attr.aria-label]="ariaLabel()"
   [attr.aria-expanded]="config().ariaExpanded ?? null"
   [attr.aria-controls]="config().ariaControls"
   [attr.aria-current]="config().ariaCurrent ?? null"
-  [attr.data-components]="(config().components || []).join(',')"
+  [attr.data-components]="componentTokens().join(',')"
   (click)="onClick($event)"
   >@if( text() ){
   {{ text() }}

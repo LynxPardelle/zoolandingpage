@@ -20,4 +20,25 @@ describe('GenericContainerComponent', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('should ignore nested component objects in internal slot token normalization', () => {
+    fixture.componentRef.setInput('config', {
+      tag: 'div',
+      components: [
+        '__content__',
+        {
+          id: 'nested-child',
+          type: 'text',
+          config: { text: 'Nested child' },
+        } as any,
+        'named-template',
+      ],
+    });
+
+    fixture.detectChanges();
+
+    expect(component.components()).toEqual(['__content__', 'named-template']);
+    expect(component.templateComponentIds()).toEqual(['named-template']);
+    expect(component.hasContentToken()).toBeTrue();
+  });
 });

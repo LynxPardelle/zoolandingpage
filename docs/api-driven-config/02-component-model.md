@@ -75,7 +75,7 @@ Use this instead of inline `items: () => ...` lambdas in API mode.
 
 A common pattern is:
 
-- A `container` has `config.components: string[]`.
+- In API payloads, a `container` has `config.components: string[]`.
 - Children are referenced by ID.
 
 Example:
@@ -91,6 +91,12 @@ Example:
   },
 }
 ```
+
+Runtime note:
+
+- The in-memory TypeScript registry can also compose child trees with inline `TGenericComponent` objects.
+- That capability is for local/runtime composition only.
+- `components.json` should continue using string IDs so payloads stay serializable and stable.
 
 ## Configuration authoring rules (API-friendly)
 
@@ -116,6 +122,11 @@ Common cases:
 ### Prefer IDs over deep copies
 
 Avoid duplicating component objects. Compose with IDs.
+
+Exception:
+
+- Direct nested component objects are acceptable in runtime TypeScript-only composition when a local shell or service needs to assemble a small UI tree without adding registry IDs.
+- Do not use that pattern in API payloads.
 
 ## Debugging authoring mistakes
 

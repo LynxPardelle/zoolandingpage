@@ -37,9 +37,12 @@ When debug mode is enabled, the app shows a small badge with:
 
 - the active draft domain
 - the active page ID
-- quick links to the music draft and the default Zoolanding draft
+- a dropdown with all detected draft domain/page combinations
+- a manual refresh button for immediate re-scan during QA
 
 This badge is intended to make draft QA faster and reversible during local development.
+
+The draft list is populated from the runtime endpoint `GET /api/debug/drafts`, which scans the draft folders. New draft folders should appear in the dropdown automatically after the next refresh cycle, or immediately after using the refresh button.
 
 ### Manual QA Checklist for a Draft
 

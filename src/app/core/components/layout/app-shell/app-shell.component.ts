@@ -11,6 +11,8 @@ import { AsyncPipe, DOCUMENT } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
+  REQUEST,
   afterEveryRender,
   afterNextRender,
   computed,
@@ -25,12 +27,14 @@ import { filter } from "rxjs/operators";
 import { environment } from "../../../../../environments/environment";
 import { GenericModalComponent } from "../../../../shared/components/generic-modal/generic-modal.component";
 import { GenericToastComponent } from "../../../../shared/components/generic-toast";
+import { toOpenGraphLocale } from '../../../../shared/i18n/locale.utils';
 import {
   AnalyticsCategories,
   AnalyticsEventPayload,
   AnalyticsEvents,
 } from "../../../../shared/services/analytics.events";
 import { AnalyticsService } from "../../../../shared/services/analytics.service";
+import { DraftRegistryService, TDraftRegistryEntry } from '../../../../shared/services/draft-registry.service';
 import { I18nService } from "../../../../shared/services/i18n.service";
 import { LanguageService } from "../../../../shared/services/language.service";
 import { ThemeService } from "../../../../shared/services/theme.service";
@@ -48,8 +52,13 @@ import { forwardAnalyticsEvent } from "../../../../shared/utility/forwardAnalyti
   templateUrl: "./app-shell.component.html",
 })
 export class AppShellComponent {
+  private readonly draftRefreshIntervalMs = 5000;
+  private readonly debugDraftPanelId = 'debugDraftPanelRoot';
+  private readonly defaultRootComponentIds = ['skipToMainLink', 'siteHeader', 'landingPage'] as const;
+  private readonly defaultModalRootComponentIds = ['modalAnalyticsConsentRoot', 'modalDemoRoot', 'modalTermsRoot', 'modalDataUseRoot'] as const;
   // SEO services
   private readonly doc: Document = inject(DOCUMENT);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly titleSvc = inject(Title);
   private readonly meta = inject(Meta);
   private readonly structured = inject(StructuredDataService);
@@ -76,13 +85,115 @@ export class AppShellComponent {
   readonly i18n = inject(I18nService);
   private readonly configBootstrap = inject(ConfigBootstrapService);
   private readonly configStore = inject(ConfigStoreService);
+  private readonly draftRegistry = inject(DraftRegistryService);
   private readonly domainResolver = inject(DomainResolverService);
   private readonly combosService = inject(AngoraCombosService);
+  private readonly request = inject(REQUEST, { optional: true });
 
   private readonly draftSeo = signal<TSeoPayload | null>(null);
   private readonly draftAnalytics = signal<TAnalyticsConfigPayload | null>(null);
+  readonly availableDrafts = signal<readonly TDraftRegistryEntry[]>([]);
+  readonly draftRegistryLoading = signal<boolean>(false);
   readonly activeDraftDomain = computed(() => this.domainResolver.resolveDomain().domain || environment.drafts.defaultDomain);
   readonly activeDraftPageId = computed(() => this.resolveDraftPageId());
+  readonly selectedDraftKey = computed(() => this.composeDraftKey(this.activeDraftDomain(), this.activeDraftPageId()));
+  readonly activeDraftLabel = computed(() => this.formatDraftLabel({
+    domain: this.activeDraftDomain(),
+    pageId: this.activeDraftPageId(),
+  }));
+  readonly draftOptions = computed(() => {
+    const entries = [...this.availableDrafts()];
+    const active = {
+      domain: this.activeDraftDomain(),
+      pageId: this.activeDraftPageId(),
+    };
+    const activeKey = this.composeDraftKey(active.domain, active.pageId);
+    if (!entries.some((entry) => this.composeDraftKey(entry.domain, entry.pageId) === activeKey)) {
+      entries.push(active);
+    }
+
+    return entries
+      .map((entry) => ({
+        ...entry,
+        key: this.composeDraftKey(entry.domain, entry.pageId),
+        label: this.formatDraftLabel(entry),
+      }))
+      .sort((left, right) => left.label.localeCompare(right.label));
+  });
+  readonly debugDraftPanelComponents = computed<readonly TGenericComponent[]>(() => {
+    if (!this.debugMode) {
+      return [];
+    }
+
+    const draftButtons = this.draftOptions().map((entry, index) => this.createDraftButtonComponent(entry, index));
+
+    return [
+      this.createContainerComponent(
+        this.debugDraftPanelId,
+        'aside',
+        'ank-position-fixed ank-bottom-16px ank-left-16px ank-zIndex-1300 ank-display-flex ank-flexDirection-column ank-gap-12px ank-p-16px ank-borderRadius-16px ank-maxWidth-420px ank-color-white ank-bg-bgColorOPA__0_92 ank-border-1px ank-borderColor-textColorOPA__0_12 ank-backdropFilter-blurSD8pxED ank-boxShadow-0__8px__30px__rgbaSD0COM0COM0COM0_24ED',
+        [
+          this.createTextComponent(
+            'debugDraftPanelEyebrow',
+            'small',
+            () => `${ this.draftOptions().length } draft${ this.draftOptions().length === 1 ? '' : 's' } detected`,
+            'ank-display-inlineFlex ank-alignItems-center ank-gap-6px ank-width-fitMINcontent ank-px-10px ank-py-4px ank-borderRadius-24px ank-bg-accentColor ank-color-textColor ank-fontWeight-700 ank-fontSize-11px ank-letterSpacing-0_08em ank-textTransform-uppercase'
+          ),
+          this.createTextComponent(
+            'debugDraftPanelTitle',
+            'h3',
+            'Draft Workspace',
+            'ank-m-0 ank-fontSize-18px ank-lineHeight-1_2'
+          ),
+          this.createTextComponent(
+            'debugDraftPanelDescription',
+            'p',
+            'Switch the live preview to any detected draft without editing query params manually.',
+            'ank-m-0 ank-color-whiteOPA__0_72 ank-fontSize-13px ank-lineHeight-1_4'
+          ),
+          this.createContainerComponent(
+            'debugDraftPanelActiveDraftCard',
+            'div',
+            'ank-display-flex ank-flexDirection-column ank-gap-4px ank-p-12px ank-borderRadius-12px ank-bg-textColorOPA__0_08 ank-border-1px ank-borderColor-textColorOPA__0_08',
+            [
+              this.createTextComponent(
+                'debugDraftPanelActiveLabel',
+                'small',
+                'Current preview',
+                'ank-m-0 ank-color-whiteOPA__0_56 ank-fontSize-11px ank-textTransform-uppercase ank-letterSpacing-0_08em'
+              ),
+              this.createTextComponent(
+                'debugDraftPanelActiveValue',
+                'p',
+                () => this.activeDraftLabel(),
+                'ank-m-0 ank-fontSize-14px ank-fontWeight-700 ank-lineHeight-1_35'
+              ),
+            ]
+          ),
+          this.createContainerComponent(
+            'debugDraftPanelDraftButtons',
+            'div',
+            'ank-display-flex ank-flexWrap-wrap ank-gap-8px',
+            draftButtons
+          ),
+          this.createContainerComponent(
+            'debugDraftPanelFooterRow',
+            'div',
+            'ank-display-flex ank-alignItems-center ank-justifyContent-spaceMINbetween ank-gap-12px ank-flexWrap-wrap',
+            [
+              this.createTextComponent(
+                'debugDraftPanelHint',
+                'small',
+                () => this.draftRegistryLoading() ? 'Refreshing draft registry...' : 'The list auto-refreshes while debug mode is enabled.',
+                'ank-m-0 ank-color-whiteOPA__0_56 ank-fontSize-12px ank-lineHeight-1_4 ank-flex-1'
+              ),
+              this.createRefreshDraftsButtonComponent(),
+            ]
+          ),
+        ]
+      ),
+    ];
+  });
   private readonly readDepthMilestones = signal<readonly number[]>([10, 20, 30, 40, 50, 60, 70, 80, 90, 100]);
   private readonly sectionViewIds = signal<readonly string[]>([
     'home',
@@ -99,7 +210,18 @@ export class AppShellComponent {
   private resolveDraftPageId(): string {
     const fallback = environment.drafts.defaultPageId;
     if (typeof window === 'undefined' || !window.location?.search) {
-      return fallback;
+      const requestUrl = String(this.request?.url ?? '').trim();
+      if (!requestUrl) {
+        return fallback;
+      }
+
+      try {
+        const value = new URL(requestUrl).searchParams.get('draftPageId');
+        const next = String(value ?? '').trim();
+        return next.length > 0 ? next : fallback;
+      } catch {
+        return fallback;
+      }
     }
 
     const value = new URLSearchParams(window.location.search).get('draftPageId');
@@ -121,28 +243,153 @@ export class AppShellComponent {
     return `${ url.pathname }${ url.search }${ url.hash }`;
   }
 
-  defaultDraftPreviewUrl(): string {
-    return this.draftPreviewUrl(environment.drafts.defaultDomain, environment.drafts.defaultPageId);
+  private composeDraftKey(domain: string, pageId: string): string {
+    return `${ String(domain).trim() }::${ String(pageId).trim() }`;
   }
 
-  musicDraftPreviewUrl(): string {
-    return this.draftPreviewUrl('music.lynxpardelle.com', 'default');
+  private parseDraftKey(key: string): TDraftRegistryEntry | null {
+    const [domain = '', pageId = ''] = String(key).split('::');
+    const normalizedDomain = domain.trim();
+    const normalizedPageId = pageId.trim();
+
+    if (!normalizedDomain || !normalizedPageId) {
+      return null;
+    }
+
+    return {
+      domain: normalizedDomain,
+      pageId: normalizedPageId,
+    };
   }
 
-  readonly rootComponentsIds = signal<readonly (string | TGenericComponent)[]>([
-    'skipToMainLink',
-    'siteHeader',
-    'landingPage'
-  ]);
+  private formatDraftLabel(entry: TDraftRegistryEntry): string {
+    return `${ entry.domain } / ${ entry.pageId }`;
+  }
 
-  readonly modalRootIds = signal<readonly string[]>([
-    'modalAnalyticsConsentRoot',
-    'modalDemoRoot',
-    'modalTermsRoot',
-    'modalDataUseRoot'
-  ]);
+  private createTextComponent(id: string, tag: 'small' | 'p' | 'h3', text: string | (() => string), classes: string): TGenericComponent {
+    return {
+      id,
+      type: 'text',
+      config: {
+        tag,
+        text,
+        classes,
+      },
+    };
+  }
+
+  private createContainerComponent(id: string, tag: 'aside' | 'div', classes: string, children: readonly TGenericComponent[]): TGenericComponent {
+    return {
+      id,
+      type: 'container',
+      config: {
+        tag,
+        classes,
+        components: children,
+      },
+    };
+  }
+
+  private createButtonComponent(
+    id: string,
+    label: string | (() => string),
+    classes: string | (() => string),
+    pressed: (event: MouseEvent) => void,
+    options?: { icon?: string; ariaLabel?: string | (() => string); loading?: boolean | (() => boolean) }
+  ): TGenericComponent {
+    return {
+      id,
+      type: 'button',
+      config: {
+        type: 'button',
+        label,
+        classes,
+        pressed,
+        icon: options?.icon,
+        ariaLabel: options?.ariaLabel,
+        loading: options?.loading,
+      },
+    };
+  }
+
+  private draftButtonClasses(entryKey: string): string {
+    const isActive = this.selectedDraftKey() === entryKey;
+    const base = 'ank-display-inlineFlex ank-alignItems-center ank-justifyContent-center ank-gap-6px ank-minHeight-40px ank-px-12px ank-py-8px ank-borderRadius-12px ank-border-1px ank-fontSize-12px ank-fontWeight-700 ank-lineHeight-1_3 ank-transition-all ank-td-200ms';
+
+    if (isActive) {
+      return `${ base } ank-bg-accentColor ank-color-textColor ank-borderColor-accentColor ank-boxShadow-0__6px__18px__rgbaSD0COM123COM255COM0_22ED`;
+    }
+
+    return `${ base } ank-bg-transparent ank-color-white ank-borderColor-textColorOPA__0_2 ank-hover-bg-textColorOPA__0_08`;
+  }
+
+  private createDraftButtonComponent(entry: { key: string; label: string }, index: number): TGenericComponent {
+    return this.createButtonComponent(
+      `debugDraftButton${ index }`,
+      entry.label,
+      () => this.draftButtonClasses(entry.key),
+      () => this.selectDraftByKey(entry.key),
+      {
+        ariaLabel: () => `Open draft ${ entry.label }`,
+      }
+    );
+  }
+
+  private createRefreshDraftsButtonComponent(): TGenericComponent {
+    return this.createButtonComponent(
+      'debugDraftRefreshButton',
+      () => this.draftRegistryLoading() ? 'Refreshing' : 'Refresh',
+      'ank-display-inlineFlex ank-alignItems-center ank-justifyContent-center ank-gap-6px ank-minHeight-40px ank-px-14px ank-py-8px ank-borderRadius-12px ank-border-1px ank-borderColor-textColorOPA__0_14 ank-bg-secondaryAccentColor ank-color-textColor ank-fontSize-12px ank-fontWeight-700 ank-lineHeight-1_3 ank-transition-all ank-td-200ms',
+      () => this.refreshDraftRegistry(),
+      {
+        icon: 'refresh',
+        ariaLabel: 'Refresh available drafts',
+        loading: () => this.draftRegistryLoading(),
+      }
+    );
+  }
+
+  refreshDraftRegistry(): void {
+    if (!this.debugMode || typeof window === 'undefined') return;
+
+    this.draftRegistryLoading.set(true);
+    this.draftRegistry.listDrafts().subscribe({
+      next: (entries: readonly TDraftRegistryEntry[]) => {
+        this.availableDrafts.set(entries);
+        this.draftRegistryLoading.set(false);
+      },
+      error: () => {
+        this.draftRegistryLoading.set(false);
+      },
+    });
+  }
+
+  selectDraftByKey(key: string): void {
+    const selected = this.parseDraftKey(key);
+    if (!selected) return;
+
+    const nextUrl = this.draftPreviewUrl(selected.domain, selected.pageId);
+    if (typeof window === 'undefined') return;
+    if (nextUrl === `${ window.location.pathname }${ window.location.search }${ window.location.hash }`) return;
+    window.location.assign(nextUrl);
+  }
+
+  private initDraftRegistry(): void {
+    if (!this.debugMode || typeof window === 'undefined') return;
+
+    this.refreshDraftRegistry();
+    const timerId = window.setInterval(() => this.refreshDraftRegistry(), this.draftRefreshIntervalMs);
+    this.destroyRef.onDestroy(() => window.clearInterval(timerId));
+  }
+
+  readonly rootComponentsIds = signal<readonly (string | TGenericComponent)[]>([]);
+
+  readonly modalRootIds = signal<readonly string[]>([]);
+  private configOverridesReady: Promise<void> = Promise.resolve();
 
   constructor() {
+    this.configOverridesReady = this.applyConfigOverrides();
+
     // Track subsequent page views on navigation end
     this.router.events
       .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
@@ -159,15 +406,17 @@ export class AppShellComponent {
         // Prompt for analytics consent early if needed
         this.analytics.promptForConsentIfNeeded();
         this.initializeAngoraConfiguration();
-        await this.applyConfigOverrides();
+        await this.configOverridesReady;
         this._ank.cssCreate();
         if (this.debugMode) {
           this.removeAnkDNoneFromAnkTimer();
         }
-        setTimeout(() => {
-          const classes: string[] = [...this.orchestrator.getAllTheClassesFromComponents(), 'btnBaseVALSVL1_25remVL0_75remVL'];
-          console.log("[AppShell] All the classes used in the app:", classes);
-        }, 2000);
+        if (this.debugMode) {
+          setTimeout(() => {
+            const classes: string[] = [...this.orchestrator.getAllTheClassesFromComponents(), 'btnBaseVALSVL1_25remVL0_75remVL'];
+            console.log("[AppShell] All the classes used in the app:", classes);
+          }, 2000);
+        }
         // Auto section view tracking (browser only)
         this.setupReadDepthTracking();
         this.setupSectionViewTracking();
@@ -200,7 +449,6 @@ export class AppShellComponent {
           document.documentElement.setAttribute("lang", lang);
           // LTR languages by default (es/en); adjust if RTL added in future
           document.documentElement.setAttribute("dir", "ltr");
-          const isEs = lang === 'es';
           const draftTitle = typeof draftSeo?.title === 'string' && draftSeo.title.trim().length > 0
             ? draftSeo.title
             : undefined;
@@ -218,7 +466,7 @@ export class AppShellComponent {
             ? location.origin
             : this.defaultOrigin();
           const url = origin + '/';
-          const ogLocale = isEs ? 'es_ES' : 'en_US';
+          const ogLocale = toOpenGraphLocale(lang) || 'en_US';
           const ogImage = origin + '/assets/og-1200x630.svg';
           const og = draftSeo?.openGraph ?? {};
           this.meta.updateTag({ property: 'og:title', content: String(og['title'] ?? seoTitle) });
@@ -254,24 +502,40 @@ export class AppShellComponent {
     });
 
     this.initDebugOverlay();
+    this.initDraftRegistry();
   }
 
   private async applyConfigOverrides(): Promise<void> {
     const pageId = this.resolveDraftPageId();
-    const boot = await this.configBootstrap.load({ pageId, lang: this._lang.currentLanguage() });
+    const boot = await this.configBootstrap.load({
+      pageId,
+      lang: typeof window !== 'undefined' ? this._lang.currentLanguage() : undefined,
+    });
     const domain = boot.domain || environment.drafts.defaultDomain;
     const pageConfig = boot.pageConfig;
-    if (pageConfig?.rootIds?.length) {
-      this.rootComponentsIds.set(pageConfig.rootIds);
-    }
-    if (pageConfig?.modalRootIds?.length) {
-      this.modalRootIds.set(pageConfig.modalRootIds);
+    const componentsPayload = boot.components;
+    const hasRenderableComponents = !!componentsPayload && Object.keys(componentsPayload.components ?? {}).length > 0;
+    const rootIds = pageConfig?.rootIds ?? [];
+    const modalRootIds = pageConfig?.modalRootIds ?? [];
+
+    if (!hasRenderableComponents || rootIds.length === 0) {
+      this.clearRenderedDraft();
+      if (this.debugMode) {
+        console.error('[Drafts] Draft render aborted because page-config or components payload is invalid.', {
+          domain,
+          pageId,
+          hasRenderableComponents,
+          rootIds,
+        });
+      }
+      return;
     }
 
-    const componentsPayload = boot.components;
-    if (componentsPayload && Object.keys(componentsPayload.components ?? {}).length > 0) {
-      this.orchestrator.setExternalComponentsFromPayload(componentsPayload);
-    } else if (this.debugMode) {
+    this.orchestrator.setExternalComponentsFromPayload(componentsPayload);
+    this.rootComponentsIds.set(rootIds);
+    this.modalRootIds.set(modalRootIds);
+
+    if (this.debugMode) {
       const exportPayload = this.orchestrator.exportDraftComponentsPayload(domain, pageId);
       console.log('[Drafts] Components payload export:', exportPayload);
     }
@@ -285,6 +549,12 @@ export class AppShellComponent {
       if (boot.analytics.scrollMilestones?.length) this.readDepthMilestones.set(boot.analytics.scrollMilestones);
     }
     if (!boot.structuredDataApplied) this.applyDefaultStructuredData();
+  }
+
+  private clearRenderedDraft(): void {
+    this.rootComponentsIds.set([]);
+    this.modalRootIds.set([]);
+    this.orchestrator.setExternalComponentsFromPayload(null);
   }
 
   private applyDefaultStructuredData(): void {

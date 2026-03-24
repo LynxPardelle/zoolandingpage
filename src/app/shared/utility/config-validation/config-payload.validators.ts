@@ -2,6 +2,7 @@ import type {
     TAnalyticsConfigPayload,
     TAngoraCombosPayload,
     TComponentsPayload,
+    TDraftLanguageDefinition,
     TI18nPayload,
     TPageConfigPayload,
     TSeoPayload,
@@ -22,6 +23,34 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const isStringArray = (value: unknown): value is readonly string[] =>
     Array.isArray(value) && value.every((item) => typeof item === 'string');
+
+const isDraftLanguageDefinition = (value: unknown): value is TDraftLanguageDefinition => {
+    if (!isRecord(value)) return false;
+    if (typeof value['code'] !== 'string' || value['code'].trim().length === 0) return false;
+    if (value['label'] !== undefined && typeof value['label'] !== 'string') return false;
+    if (value['dir'] !== undefined && value['dir'] !== 'ltr' && value['dir'] !== 'rtl' && value['dir'] !== 'auto') return false;
+    if (value['ogLocale'] !== undefined && typeof value['ogLocale'] !== 'string') return false;
+    if (value['aliases'] !== undefined && !isStringArray(value['aliases'])) return false;
+    return true;
+};
+
+const isDraftI18nVariableConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (value['defaultLanguage'] !== undefined && typeof value['defaultLanguage'] !== 'string') return false;
+
+    const supportedLanguages = value['supportedLanguages'];
+    if (supportedLanguages !== undefined) {
+        if (!Array.isArray(supportedLanguages) || supportedLanguages.length === 0) return false;
+        const allValid = supportedLanguages.every((entry) =>
+            typeof entry === 'string'
+                ? entry.trim().length > 0
+                : isDraftLanguageDefinition(entry)
+        );
+        if (!allValid) return false;
+    }
+
+    return true;
+};
 
 const isNumberArray = (value: unknown): value is readonly number[] =>
     Array.isArray(value) && value.every((item) => typeof item === 'number' && Number.isFinite(item));
@@ -165,6 +194,11 @@ export const isVariablesPayload = (value: unknown): value is TVariablesPayload =
 
     const theme = (value['variables'] as Record<string, unknown>)['theme'];
     if (theme !== undefined && !isThemeVariableConfig(theme)) {
+        return false;
+    }
+
+    const i18n = (value['variables'] as Record<string, unknown>)['i18n'];
+    if (i18n !== undefined && !isDraftI18nVariableConfig(i18n)) {
         return false;
     }
 

@@ -1,3 +1,4 @@
+import { getLocaleCandidates } from '@/app/shared/i18n/locale.utils';
 import type {
     TAnalyticsConfigPayload,
     TAngoraCombosPayload,
@@ -86,8 +87,16 @@ export class DraftConfigLoaderService {
 
     async loadI18n(domain: string, pageId: string, lang: string): Promise<TI18nPayload | null> {
         const base = this.getDraftBase(domain, pageId);
-        const url = `${ base }/i18n/${ encodeURIComponent(lang) }.json`;
-        const payload = await this.getJson<TI18nPayload>(url);
-        return isI18nPayload(payload) ? payload : null;
+        const candidates = getLocaleCandidates(lang);
+
+        for (const candidate of candidates) {
+            const url = `${ base }/i18n/${ encodeURIComponent(candidate) }.json`;
+            const payload = await this.getJson<TI18nPayload>(url);
+            if (isI18nPayload(payload)) {
+                return payload;
+            }
+        }
+
+        return null;
     }
 }

@@ -23,6 +23,7 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Use stable IDs with clear prefixes by section: `hero*`, `features*`, `services*`, `faq*`, `footer*`.
 - One root container per section.
 - Containers should list children by ID in `config.components`.
+- Do not inline nested component objects in `components.json`; that shortcut is only for runtime TypeScript composition.
 
 ## Dynamic text
 

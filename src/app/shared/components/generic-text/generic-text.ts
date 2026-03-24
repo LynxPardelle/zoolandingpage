@@ -17,30 +17,44 @@ export class GenericTextComponent {
     text: '',
   });
 
-  readonly tag = computed<GenericTextTag>(() => this.config().tag ?? 'p');
+  readonly tag = computed<GenericTextTag>(() => {
+    const resolved = this.resolveMaybeThunk(this.config().tag);
+    return (resolved as GenericTextTag) ?? 'p';
+  });
   readonly text = computed(() => {
-    const raw = this.config().text ?? '';
-    return typeof raw === 'function' ? raw() : raw;
+    return this.resolveMaybeThunk(this.config().text) ?? '';
   });
-  readonly classes = computed(() => this.config().classes ?? '');
-  readonly id = computed(() => this.config().id ?? null);
+  readonly classes = computed(() => this.resolveMaybeThunk(this.config().classes) ?? '');
+  readonly id = computed(() => this.resolveMaybeThunk(this.config().id) ?? null);
   readonly ariaLabel = computed(() => {
-    const raw = this.config().ariaLabel;
+    const raw = this.resolveMaybeThunk(this.config().ariaLabel);
     if (!raw) return null;
-    return typeof raw === 'function' ? raw() : raw;
+    return raw;
   });
-  readonly components = computed<readonly string[]>(() => this.config().components ?? []);
+  readonly components = computed<readonly string[]>(() =>
+    (this.config().components ?? [])
+      .filter((entry): entry is string => typeof entry === 'string')
+      .map((entry) => entry.trim())
+      .filter(Boolean)
+  );
   readonly componentTemplates = computed<Readonly<Record<string, TemplateRef<unknown>>>>(
     () => this.config().componentTemplates ?? {}
   );
 
   readonly safeHtml = computed(() => {
-    const raw = this.config().html;
-    const html = typeof raw === 'function' ? raw() : raw;
+    const html = this.resolveMaybeThunk(this.config().html);
     if (!html) return null;
     // Sanitiza HTML (no uses bypassSecurityTrustHtml aquí).
-    return this.sanitizer.sanitize(SecurityContext.HTML, html);
+    return this.sanitizer.sanitize(SecurityContext.HTML, String(html));
   });
 
   readonly useHtml = computed(() => !!this.safeHtml());
+
+  private resolveMaybeThunk(value: unknown): unknown {
+    if (typeof value === 'function' && (value as (...args: unknown[]) => unknown).length === 0) {
+      return (value as () => unknown)();
+    }
+
+    return value;
+  }
 }

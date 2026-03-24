@@ -42,19 +42,4 @@ export const links: TGenericComponent[] = [
                 'ank-textDecoration-none ank-fontWeight-500 ank-letterSpacing-05px ank-position-relative ank-paddingInline-4px ank-paddingBlock-4px ank-transition-color ank-duration-200 ank-color-textColor ank-opacity-80',
         }
     },
-
-    /* Footer */
-    {
-        id: 'footerSocialLinkTemplate',
-        type: 'link',
-        config: {
-            id: 'footerSocialLinkTemplate',
-            href: '#',
-            text: '',
-            classes: 'ank-color-secondaryTextColor ank-textDecoration-none ank-fontSize-lg ank-padding-8px ank-borderRadius-md ank-transition-colors',
-            target: '_blank',
-            rel: 'noopener noreferrer',
-            ariaLabel: '',
-        }
-    },
 ];

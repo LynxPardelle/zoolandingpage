@@ -1,4 +1,6 @@
 
+import type { TComponentChild } from '../component-children.types';
+
 
 export type TGenericLinkConfig = {
     readonly id: string;
@@ -11,5 +13,5 @@ export type TGenericLinkConfig = {
     readonly ariaExpanded?: boolean;
     readonly ariaControls?: string;
     readonly ariaCurrent?: boolean | 'page' | 'step' | 'location' | 'true' | 'false';
-    readonly components?: readonly string[];
+    readonly components?: readonly TComponentChild[];
 };

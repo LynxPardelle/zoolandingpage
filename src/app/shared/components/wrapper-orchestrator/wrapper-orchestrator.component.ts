@@ -17,8 +17,10 @@ import type { TGenericStatsCounterConfig } from '../generic-stats-counter/generi
 import { GenericTestimonialCardComponent } from '../generic-testimonial-card';
 import { GenericTextComponent } from '../generic-text/generic-text';
 
+import type { ProcessStep, ProcessStepVariableConfig } from '../../../landing-page/components/interactive-process/interactive-process-leaf.types';
 import { ConditionOrchestrator } from '../../services/condition-orchestrator';
 import { I18nService } from '../../services/i18n.service';
+import { InteractiveProcessStoreService } from '../../services/interactive-process-store.service';
 import type { TGenericComponent } from './wrapper-orchestrator.types';
 
 @Component({
@@ -49,6 +51,7 @@ export class WrapperOrchestrator {
   private readonly valueOrchestrator = inject(ValueOrchestrator);
   private readonly conditionOrchestrator = inject(ConditionOrchestrator);
   private readonly i18n = inject(I18nService);
+  private readonly interactiveProcessStore = inject(InteractiveProcessStoreService);
   // Accepts an array of component IDs to render
   readonly componentsIds = input<readonly (string | TGenericComponent)[]>([]);
 
@@ -99,6 +102,18 @@ export class WrapperOrchestrator {
       return (value as () => unknown)();
     }
     return value;
+  }
+
+  resolveInteractiveProcessProcess(config: unknown): readonly ProcessStep[] | readonly ProcessStepVariableConfig[] {
+    const raw = this.resolveMaybeThunk((config as { process?: unknown } | null | undefined)?.process);
+    return Array.isArray(raw) ? raw as readonly ProcessStep[] | readonly ProcessStepVariableConfig[] : [];
+  }
+
+  resolveInteractiveProcessCurrentStep(config: unknown): number {
+    const raw = this.resolveMaybeThunk((config as { currentStep?: unknown } | null | undefined)?.currentStep);
+    return typeof raw === 'number' && Number.isFinite(raw)
+      ? raw
+      : this.interactiveProcessStore.currentStep();
   }
 
   resolveStatsCounterConfig(config: unknown): TGenericStatsCounterConfig {

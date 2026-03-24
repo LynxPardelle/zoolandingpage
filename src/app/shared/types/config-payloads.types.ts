@@ -1,5 +1,18 @@
 import type { TThemeVariableConfig } from './theme.types';
 
+export type TDraftLanguageDefinition = {
+    readonly code: string;
+    readonly label?: string;
+    readonly dir?: 'ltr' | 'rtl' | 'auto';
+    readonly ogLocale?: string;
+    readonly aliases?: readonly string[];
+};
+
+export type TDraftI18nVariableConfig = {
+    readonly defaultLanguage?: string;
+    readonly supportedLanguages?: readonly (string | TDraftLanguageDefinition)[];
+};
+
 export type TPageConfigPayload = {
     readonly version: number;
     readonly pageId: string;
@@ -30,6 +43,7 @@ export type TVariablesPayload = {
     readonly domain: string;
     readonly variables: Record<string, unknown> & {
         readonly theme?: TThemeVariableConfig;
+        readonly i18n?: TDraftI18nVariableConfig;
     };
     readonly computed?: Record<string, unknown>;
 };

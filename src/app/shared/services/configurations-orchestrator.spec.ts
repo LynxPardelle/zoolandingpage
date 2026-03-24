@@ -394,4 +394,62 @@ describe('ConfigurationsOrchestratorService', () => {
     expect(generated?.config?.text).toBe('Inicio API');
     expect(generated?.config?.ariaLabel).toBe('Ir a inicio');
   });
+
+  it('allows external draft components to override built-in ids while keeping missing built-in ids available', () => {
+    spyOn(console, 'error');
+
+    service.setExternalComponentsFromPayload({
+      version: 1,
+      pageId: 'default',
+      domain: 'despacholegalastralex.com',
+      components: {
+        siteFooter: {
+          id: 'siteFooter',
+          type: 'text',
+          config: { tag: 'p', text: 'External footer override' },
+        },
+      },
+    });
+
+    expect((service.getComponentById('siteFooter') as any)?.config?.text).toBe('External footer override');
+    expect(service.getComponentById('siteHeader')).toBeDefined();
+    expect(console.error).not.toHaveBeenCalled();
+  });
+
+  it('does not warn about unresolved loop sources when only collecting classes', () => {
+    const warnSpy = spyOn(console, 'warn');
+
+    service.setExternalComponentsFromPayload({
+      version: 1,
+      pageId: 'default',
+      domain: 'zoolandingpage.com.mx',
+      components: {
+        missingLoopTemplate: {
+          id: 'missingLoopTemplate',
+          type: 'text',
+          config: { tag: 'span', text: '', classes: 'ank-color-textColor' },
+        },
+        missingLoopSection: {
+          id: 'missingLoopSection',
+          type: 'container',
+          loopConfig: {
+            source: 'i18n',
+            path: 'hero.badges',
+            templateId: 'missingLoopTemplate',
+            idPrefix: 'missingLoopItem',
+          },
+          config: {
+            tag: 'div',
+            components: [],
+            classes: 'ank-display-flex',
+          },
+        },
+      },
+    });
+
+    const classes = service.getAllTheClassesFromComponents();
+
+    expect(classes).toContain('ank-display-flex');
+    expect(warnSpy).not.toHaveBeenCalledWith('[ConfigurationsOrchestrator] loopConfig i18n source is not an array at path: hero.badges');
+  });
 });

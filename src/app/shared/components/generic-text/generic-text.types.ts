@@ -1,4 +1,5 @@
 import { TemplateRef } from '@angular/core';
+import type { TComponentChild } from '../component-children.types';
 
 export type GenericTextTag =
     | ''
@@ -23,7 +24,7 @@ export type TGenericTextConfig = {
     /** Usa html si necesitas markup; se sanitiza antes de renderizar. */
     html?: string | (() => string);
 
-    components?: readonly string[];
+    components?: readonly TComponentChild[];
 
     /** Registro id -> plantilla (definida en el padre con <ng-template #...>) */
     componentTemplates?: Readonly<Record<string, TemplateRef<unknown>>>;

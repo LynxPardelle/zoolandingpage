@@ -1,7 +1,3 @@
-<mat-icon
-  [title]="config().title || undefined"
-  [class]="config().classes"
-  [attr.aria-label]="config().ariaLabel || config().title || null"
-  [attr.aria-hidden]="config().ariaHidden ? 'true' : null"
-  >{{ config().iconName }}</mat-icon
->
+<mat-icon [title]="title()" [class]="classes()" [attr.aria-label]="ariaLabel()" [attr.aria-hidden]="ariaHidden()">{{
+  iconName()
+}}</mat-icon>

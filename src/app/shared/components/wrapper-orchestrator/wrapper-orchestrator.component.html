@@ -70,8 +70,8 @@
 <generic-feature-card [config]="component.config"></generic-feature-card>
 } @case('interactive-process') {
 <interactive-process-leaf
-  [process]="component.config.process()"
-  [currentStep]="component.config.currentStep()"
+  [process]="resolveInteractiveProcessProcess(component.config)"
+  [currentStep]="resolveInteractiveProcessCurrentStep(component.config)"
   [sectionTitleKey]="resolveMaybeThunk(component.config.sectionTitleKey)"
   [sectionSidebarTitleKey]="resolveMaybeThunk(component.config.sectionSidebarTitleKey)"
   [sectionDetailedDescriptionLabelKey]="resolveMaybeThunk(component.config.sectionDetailedDescriptionLabelKey)"

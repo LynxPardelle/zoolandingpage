@@ -9,27 +9,7 @@
 
 <!-- Dev-only demo controls -->
 @if (debugMode) {
-<div
-  class="ank-position-fixed ank-top-12px ank-right-12px ank-zIndex-1300 ank-display-flex ank-flexDirection-column ank-gap-8px ank-padding-12px ank-borderRadius-8px ank-bg-blackOPA__0_78 ank-color-white ank-maxWidth-320px ank-fontSize-12px"
->
-  <div class="ank-fontWeight-700">Active Draft</div>
-  <div>Domain: {{ activeDraftDomain() }}</div>
-  <div>Page: {{ activeDraftPageId() }}</div>
-  <div class="ank-display-flex ank-flexWrap-wrap ank-gap-8px ank-mt-4px">
-    <a
-      class="ank-color-white ank-textDecoration-none ank-border-1px__solid__white ank-borderRadius-4px ank-px-8px ank-py-4px"
-      [href]="musicDraftPreviewUrl()"
-    >
-      Music Draft
-    </a>
-    <a
-      class="ank-color-white ank-textDecoration-none ank-border-1px__solid__white ank-borderRadius-4px ank-px-8px ank-py-4px"
-      [href]="defaultDraftPreviewUrl()"
-    >
-      Zoo Draft
-    </a>
-  </div>
-</div>
+<wrapper-orchestrator [componentsIds]="debugDraftPanelComponents()"></wrapper-orchestrator>
 <wrapper-orchestrator [componentsIds]="orchestrator.devDemoControlsComponents"></wrapper-orchestrator>
 <div
   class="ank-position-md-fixed ank-bottom-6rem ank-right-25vw ank-mx-auto ank-p-0_5rem ank-bg-blackOPA__0_6 ank-color-white ank-fs-12px ank-borderRadius-6px ank-maxWidth-360px ank-maxHeight-40vh ank-overflow-auto ank-zIndex-1200"

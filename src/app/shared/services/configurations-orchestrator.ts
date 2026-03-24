@@ -1,3 +1,4 @@
+import { getLocaleCandidates } from '@/app/shared/i18n/locale.utils';
 import { I18nService } from '@/app/shared/services/i18n.service';
 import type { TComponentsPayload } from '@/app/shared/types/config-payloads.types';
 import { computed, effect, inject, Injectable } from '@angular/core';
@@ -16,27 +17,7 @@ import {
 import { forwardAnalyticsEvent } from '../utility/forwardAnalyticsEvent.utility';
 import { AnalyticsService } from './analytics.service';
 import { ComponentEvent, ComponentEventDispatcherService } from './component-event-dispatcher.service';
-import { accordions } from './component-stores/accordions.component-store';
-import { buttons } from './component-stores/buttons.component-store';
-import { cards } from './component-stores/cards.component-store';
-import { createComponents } from './component-stores/components.component-store';
-import { containers } from './component-stores/containers.component-store';
 import { devOnlyComponents } from './component-stores/devOnlyComponents.component-store';
-import { dropdowns } from './component-stores/dropdowns.component-store';
-import { icons } from './component-stores/icons.component-store';
-import { createInteractiveProcesses } from './component-stores/interactiveProcesses.component-store';
-import { links } from './component-stores/links.component-store';
-import { loadingSpinners } from './component-stores/loadingSpinners.component-store';
-import { media } from './component-stores/media.component-store';
-import { modals } from './component-stores/modals.component-store';
-import { progressBars } from './component-stores/progressBars.component-store';
-import { searchBoxes } from './component-stores/searchBoxes.component-store';
-import { createStatsCounters } from './component-stores/statsCounters.component-store';
-import { steppers } from './component-stores/steppers.component-store';
-import { tabGroups } from './component-stores/tabGroups.component-store';
-import { texts } from './component-stores/texts.component-store';
-import { toasts } from './component-stores/toasts.component-store';
-import { tooltips } from './component-stores/tooltips.component-store';
 import { InteractiveProcessStoreService } from './interactive-process-store.service';
 import { LanguageService } from './language.service';
 import { QuickStatsService } from './quick-stats.service';
@@ -187,11 +168,10 @@ export class ConfigurationsOrchestratorService {
         return this.interactiveProcessVariableSteps().length > 0;
     }
 
-    readonly statsCounters: TGenericComponent[] = createStatsCounters();
-    readonly interactiveProcesses: TGenericComponent[] = createInteractiveProcesses({
+    /* readonly interactiveProcesses: TGenericComponent[] = createInteractiveProcesses({
         currentStep: this.interactiveProcessStore.currentStep,
-    });
-    readonly components: TGenericComponent[] = createComponents({
+    }); */
+    readonly components: TGenericComponent[] = [...devOnlyComponents];/* createComponents({
         accordions: accordions,
         buttons: buttons,
         links: links,
@@ -205,14 +185,14 @@ export class ConfigurationsOrchestratorService {
         modals: modals,
         progressBars: progressBars,
         searchBoxes: searchBoxes,
-        statsCounters: this.statsCounters,
+        statsCounters: statsCounters,
         steppers: steppers,
         tabGroups: tabGroups,
         texts: texts,
         toasts: toasts,
         tooltips: tooltips,
         devOnlyComponents: devOnlyComponents,
-    });
+    }); */
 
     get footerSocialLinks(): readonly Record<string, unknown>[] {
         const raw = this.variableStore.get('footerSocialLinks');
@@ -302,6 +282,18 @@ export class ConfigurationsOrchestratorService {
     private externalComponentsMap = new Map<string, TGenericComponent>();
     private componentRenderTracker = new ComponentRenderTracker(this.components.map((c) => c.id));
 
+    private getActiveComponentSource(): readonly TGenericComponent[] {
+        if (!this.externalComponents || this.externalComponents.length === 0) {
+            return this.components;
+        }
+
+        const overridden = new Set(this.externalComponents.map((component) => component.id));
+        return [
+            ...this.components.filter((component) => !overridden.has(component.id)),
+            ...this.externalComponents,
+        ];
+    }
+
     setExternalComponentsFromPayload(payload: TComponentsPayload | null): void {
         const record = payload?.components ?? {};
         const entries = Object.entries(record)
@@ -321,7 +313,7 @@ export class ConfigurationsOrchestratorService {
 
         this.externalComponents = entries;
         this.externalComponentsMap = new Map(entries.map((component) => [component.id, component]));
-        this.componentRenderTracker = new ComponentRenderTracker(entries.map((component) => component.id));
+        this.componentRenderTracker = new ComponentRenderTracker(this.getActiveComponentSource().map((component) => component.id));
     }
 
     exportDraftComponentsPayload(domain: string, pageId: string): TComponentsPayload {
@@ -345,8 +337,8 @@ export class ConfigurationsOrchestratorService {
     }
 
     getComponentById(id: string) {
-        const resolved = this.resolveLoopComponents();
-        let component = resolved.get(id) ?? this.externalComponentsMap.get(id) ?? findComponentById(this.components, id);
+        const resolved = this.resolveLoopComponents(false);
+        let component = resolved.get(id) ?? findComponentById(this.getActiveComponentSource(), id);
         if (!component) {
             console.error(`Component with id "${ id }" not found in ConfigurationsOrchestratorService.`);
         } else {
@@ -357,7 +349,7 @@ export class ConfigurationsOrchestratorService {
     }
 
     getAllTheClassesFromComponents(): string[] {
-        return collectAllClassesFromComponents(Array.from(this.resolveLoopComponents().values()));
+        return collectAllClassesFromComponents(Array.from(this.resolveLoopComponents(false).values()));
     }
 
     handleComponentEvent(event: ComponentEvent): void {
@@ -373,8 +365,8 @@ export class ConfigurationsOrchestratorService {
         ) as Record<string, unknown>;
     }
 
-    private resolveLoopComponents(): Map<string, TGenericComponent> {
-        const source = this.externalComponents ?? this.components;
+    private resolveLoopComponents(warnOnMissingSource: boolean): Map<string, TGenericComponent> {
+        const source = this.getActiveComponentSource();
         const resolved = new Map<string, TGenericComponent>(source.map((component) => [component.id, component]));
 
         for (const component of source) {
@@ -390,7 +382,7 @@ export class ConfigurationsOrchestratorService {
                 continue;
             }
 
-            const items = this.resolveLoopItems(loop);
+            const items = this.resolveLoopItems(loop, warnOnMissingSource);
             const prefix = String(loop.idPrefix ?? templateId).trim() || templateId;
             const generatedIds = items.map((_, index) => `${ prefix }__${ index + 1 }`);
 
@@ -414,7 +406,7 @@ export class ConfigurationsOrchestratorService {
         return resolved;
     }
 
-    private resolveLoopItems(loop: any): readonly unknown[] {
+    private resolveLoopItems(loop: any, warnOnMissingSource: boolean): readonly unknown[] {
         const source = String(loop?.source ?? '').trim();
         if (source === 'repeat') {
             const count = Number(loop?.count ?? 0);
@@ -428,7 +420,7 @@ export class ConfigurationsOrchestratorService {
         if (source === 'var') {
             const raw = this.variableStore.get(path);
             if (!Array.isArray(raw)) {
-                this.warnLoopPathOnce('var', path);
+                if (warnOnMissingSource) this.warnLoopPathOnce('var', path);
                 return [];
             }
             return raw;
@@ -437,7 +429,7 @@ export class ConfigurationsOrchestratorService {
         if (source === 'i18n') {
             const raw = this.globalI18n.get(path);
             if (!Array.isArray(raw)) {
-                this.warnLoopPathOnce('i18n', path);
+                if (warnOnMissingSource) this.warnLoopPathOnce('i18n', path);
                 return [];
             }
             return raw;
@@ -512,6 +504,14 @@ export class ConfigurationsOrchestratorService {
             const lang = this.language.currentLanguage();
             const labelFromKey = this.resolveI18nKeyString(record['labelKey']);
             const ariaFromKey = this.resolveI18nKeyString(record['ariaLabelKey']);
+            const localizedLabels = record['labels'] && typeof record['labels'] === 'object' && !Array.isArray(record['labels'])
+                ? record['labels'] as Record<string, unknown>
+                : null;
+            const localizedLabelFromMap = localizedLabels
+                ? getLocaleCandidates(lang)
+                    .map((candidate) => localizedLabels[candidate])
+                    .find((value) => typeof value === 'string' && value.trim().length > 0)
+                : undefined;
             const localizedLabel = lang === 'es'
                 ? (record['labelEs'] ?? record['label'])
                 : (record['labelEn'] ?? record['label']);
@@ -524,6 +524,8 @@ export class ConfigurationsOrchestratorService {
             }
             if (typeof labelFromKey === 'string' && labelFromKey.trim().length > 0) {
                 nextComponent.config.text = labelFromKey;
+            } else if (typeof localizedLabelFromMap === 'string' && localizedLabelFromMap.trim().length > 0) {
+                nextComponent.config.text = localizedLabelFromMap;
             } else if (typeof localizedLabel === 'string' && localizedLabel.trim().length > 0) {
                 nextComponent.config.text = localizedLabel;
             }

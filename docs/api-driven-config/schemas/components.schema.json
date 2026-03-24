@@ -1,6 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ComponentsPayload",
+  "description": "Schema for API or draft JSON component payloads. Child composition in JSON should stay ID-based; inline nested component objects are a runtime TypeScript composition feature and are intentionally out of scope for this payload schema.",
   "type": "object",
   "required": ["version", "pageId", "domain", "components"],
   "properties": {
@@ -45,6 +46,7 @@
           },
           "config": {
             "type": "object",
+            "description": "Type-specific JSON config. For payload authoring, config.components should remain an array of component ID strings even though the in-memory runtime can compose inline child component objects.",
             "properties": {
               "itemsSource": {
                 "type": "object",

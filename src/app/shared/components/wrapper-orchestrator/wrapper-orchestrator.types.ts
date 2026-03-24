@@ -1,5 +1,6 @@
 import { ProcessStep, ProcessStepVariableConfig } from "@/app/landing-page/components/interactive-process/interactive-process-leaf.types";
 import type { TGenericStatsCounterConfig } from "@/app/shared/components/generic-stats-counter/generic-stats-counter.types";
+import type { TComponentChild } from '../component-children.types';
 import { TAccordionConfig } from "../generic-accordion";
 import { TGenericButtonConfig } from "../generic-button/generic-button.types";
 import { TGenericContainerConfig } from "../generic-container/generic-container.types";
@@ -12,8 +13,8 @@ import type { TestimonialCardConfig } from "../generic-testimonial-card/generic-
 import { TGenericTextConfig } from "../generic-text/generic-text.types";
 
 export type TInteractiveProcessConfig = {
-    readonly process: () => readonly ProcessStep[] | readonly ProcessStepVariableConfig[];
-    readonly currentStep: () => number;
+    readonly process?: readonly ProcessStep[] | readonly ProcessStepVariableConfig[] | (() => readonly ProcessStep[] | readonly ProcessStepVariableConfig[]);
+    readonly currentStep?: number | (() => number);
     readonly sectionTitleKey?: unknown;
     readonly sectionSidebarTitleKey?: unknown;
     readonly sectionDetailedDescriptionLabelKey?: unknown;
@@ -26,7 +27,7 @@ export type TGenericStatsCounterConfigInput = TGenericStatsCounterConfig | (() =
 export type TGenericDropdownOrchestratorConfig = {
     readonly items: readonly DropdownItem[];
     readonly dropdownConfig?: DropdownConfig | null;
-    readonly components?: readonly string[];
+    readonly components?: readonly TComponentChild[];
 };
 
 export type TLoopConfig =

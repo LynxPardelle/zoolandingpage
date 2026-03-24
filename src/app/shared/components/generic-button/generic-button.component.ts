@@ -20,70 +20,104 @@ export class GenericButtonComponent {
   readonly config = input.required<TGenericButtonConfig>();
 
   readonly label = computed<string>(() => {
-    const label = this.config().label;
-    if (typeof label === 'function') {
-      return label() ?? '';
-    }
-    return label ?? '';
+    const label = this.resolveMaybeThunk(this.config().label);
+    return typeof label === 'string' ? label : String(label ?? '');
   });
-  readonly disabled = computed<boolean>(() => this.config().disabled ?? false);
-  readonly loading = computed<boolean>(() => this.config().loading ?? false);
-  readonly icon = computed<string | undefined>(() => this.config().icon);
+  readonly disabled = computed<boolean>(() => Boolean(this.resolveMaybeThunk(this.config().disabled) ?? false));
+  readonly loading = computed<boolean>(() => Boolean(this.resolveMaybeThunk(this.config().loading) ?? false));
+  readonly icon = computed<string | undefined>(() => {
+    const raw = this.resolveMaybeThunk(this.config().icon);
+    return raw ? String(raw) : undefined;
+  });
   readonly iconPosition = computed<"after" | "before">(
-    () => this.config().iconPosition || "before"
+    () => (this.resolveMaybeThunk(this.config().iconPosition) as "after" | "before" | undefined) || "before"
   );
   readonly type = computed<"button" | "submit" | "reset">(
-    () => this.config().type ?? "button"
+    () => (this.resolveMaybeThunk(this.config().type) as "button" | "submit" | "reset" | undefined) ?? "button"
   );
-  readonly id = computed<string | undefined>(() => this.config().id);
+  readonly id = computed<string | undefined>(() => {
+    const raw = this.resolveMaybeThunk(this.config().id);
+    return raw ? String(raw) : undefined;
+  });
   readonly spinnerClasses = computed<string>(
-    () => this.config().spinnerClasses || ""
+    () => String(this.resolveMaybeThunk(this.config().spinnerClasses) || "")
   );
   readonly iconClasses = computed<string>(
-    () => this.config().iconClasses || ""
+    () => String(this.resolveMaybeThunk(this.config().iconClasses) || "")
   );
-  readonly role = computed<string | undefined>(() => this.config().role);
+  readonly role = computed<string | undefined>(() => {
+    const raw = this.resolveMaybeThunk(this.config().role);
+    return raw ? String(raw) : undefined;
+  });
 
   readonly tabIndex = computed<number | undefined>(
-    () => this.config().tabIndex
+    () => {
+      const raw = this.resolveMaybeThunk(this.config().tabIndex);
+      return typeof raw === 'number' ? raw : undefined;
+    }
   );
   readonly ariaLabel = computed<string | undefined>(
     () => {
-      const raw = this.config().ariaLabel;
-      if (typeof raw === 'function') return raw();
-      return raw;
+      const raw = this.resolveMaybeThunk(this.config().ariaLabel);
+      return raw ? String(raw) : undefined;
     }
   );
   readonly ariaExpanded = computed<boolean | undefined>(
-    () => this.config().ariaExpanded
+    () => {
+      const raw = this.resolveMaybeThunk(this.config().ariaExpanded);
+      return typeof raw === 'boolean' ? raw : undefined;
+    }
   );
   readonly ariaHaspopup = computed<boolean | undefined>(
-    () => this.config().ariaHaspopup
+    () => {
+      const raw = this.resolveMaybeThunk(this.config().ariaHaspopup);
+      return typeof raw === 'boolean' ? raw : undefined;
+    }
   );
   readonly ariaSelected = computed<boolean | undefined>(
-    () => this.config().ariaSelected
+    () => {
+      const raw = this.resolveMaybeThunk(this.config().ariaSelected);
+      return typeof raw === 'boolean' ? raw : undefined;
+    }
   );
   readonly ariaControls = computed<string | undefined>(
-    () => this.config().ariaControls
+    () => {
+      const raw = this.resolveMaybeThunk(this.config().ariaControls);
+      return raw ? String(raw) : undefined;
+    }
   );
   readonly ariaActiveDescendant = computed<string | undefined>(
-    () => this.config().ariaActiveDescendant
+    () => {
+      const raw = this.resolveMaybeThunk(this.config().ariaActiveDescendant);
+      return raw ? String(raw) : undefined;
+    }
   );
   readonly classes = computed(
     () =>
-      (this.config().classes ||
-        "btnBase") + (this.loading() ? " ank-cursor-wait ank-opacity-80" : "")
+    (String(this.resolveMaybeThunk(this.config().classes) ||
+      "btnBase") + (this.loading() ? " ank-cursor-wait ank-opacity-80" : ""))
   );
   readonly iconClass = computed<string>(
-    () => this.config().iconClasses || "btnIcon"
+    () => String(this.resolveMaybeThunk(this.config().iconClasses) || "btnIcon")
   );
   readonly spinnerClass = computed<string>(
-    () => this.config().spinnerClasses || "btnSpinner"
+    () => String(this.resolveMaybeThunk(this.config().spinnerClasses) || "btnSpinner")
   );
   readonly components = computed<readonly string[]>(() =>
-    this.config().components || []
+    (this.config().components ?? [])
+      .filter((entry): entry is string => typeof entry === 'string')
+      .map((entry) => entry.trim())
+      .filter(Boolean)
   );
   @Output() pressed = new EventEmitter<MouseEvent>();
+
+  private resolveMaybeThunk(value: unknown): unknown {
+    if (typeof value === 'function' && (value as (...args: unknown[]) => unknown).length === 0) {
+      return (value as () => unknown)();
+    }
+
+    return value;
+  }
 
   onClick(event: MouseEvent): void {
     if (this.disabled() || this.loading()) {

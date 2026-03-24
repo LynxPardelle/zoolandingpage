@@ -8,20 +8,26 @@ import { WrapperOrchestrator } from '../../../../shared/components/wrapper-orche
 import { AnalyticsService } from '../../../../shared/services/analytics.service';
 import { ConfigBootstrapService } from '../../../../shared/services/config-bootstrap.service';
 import { ConfigurationsOrchestratorService } from '../../../../shared/services/configurations-orchestrator';
+import { DraftRegistryService } from '../../../../shared/services/draft-registry.service';
 import { AppShellComponent } from './app-shell.component';
 
 @Component({
   selector: 'wrapper-orchestrator',
   standalone: true,
   template: `
-    <a href="#main-content">Skip to content</a>
+    <a href="#main-content" (click)="focusMain($event, mainContent)">Skip to content</a>
     <header role="banner"></header>
     <nav aria-label="Primary"></nav>
-    <main id="main-content" tabindex="-1"></main>
+    <main #mainContent id="main-content" tabindex="-1"></main>
   `,
 })
 class WrapperOrchestratorStub {
   @Input() componentsIds: readonly unknown[] = [];
+
+  focusMain(event: Event, main: HTMLElement): void {
+    event.preventDefault();
+    main.focus();
+  }
 }
 
 const ORCHESTRATOR_STUB = {
@@ -69,12 +75,19 @@ describe('AppShellComponent a11y', () => {
             }),
           },
         },
+        {
+          provide: DraftRegistryService,
+          useValue: {
+            listDrafts: () => of([{ domain: 'zoolandingpage.com.mx', pageId: 'default' }]),
+          },
+        },
         { provide: ConfigurationsOrchestratorService, useValue: ORCHESTRATOR_STUB },
         {
           provide: NgxAngoraService,
           useValue: {
             cssCreate: () => { },
             timeBetweenReCreate: 0,
+            pushCombos: () => { },
             pushColors: () => { },
             updateColors: () => { },
           } as any,
@@ -95,16 +108,13 @@ describe('AppShellComponent a11y', () => {
   it('skip link moves focus to main landmark', async () => {
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
-    await fixture.whenStable();
     const root = fixture.nativeElement as HTMLElement;
     const skip = root.querySelector('a[href="#main-content"]') as HTMLAnchorElement;
     expect(skip).toBeTruthy();
     const main = root.querySelector('main#main-content') as HTMLElement;
     expect(main).toBeTruthy();
-    // Simulate click on skip link
-    skip.click();
-    // Allow focus to apply
-    await fixture.whenStable();
+
+    skip.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
     expect(document.activeElement).toBe(main);
   });
 

@@ -74,12 +74,26 @@ set:config.classes,classJoin,literal,ank-position-relative ank-inset-0,var,hero.
 
 ### `langPick`
 
-- Purpose: pick between two strings based on current language.
-- Typical usage:
+- Purpose: pick a localized value based on current language.
+- Supports legacy two-argument mode `(enValue, esValue)`.
+- Supports locale-map mode when the first argument resolves to an object keyed by locale code.
+- Typical legacy usage:
 
 ```text
 set:config.label,langPick,Home,Inicio
 ```
+
+- Typical locale-map usage:
+
+```text
+set:config.text,langPick,var,footerConfig.copyrightText,Copyright Example. All rights reserved.
+```
+
+- Locale-map behavior:
+  - checks exact locale first, for example `pt-BR`
+  - falls back to base language, for example `pt`
+  - then checks `default` or `fallback`
+  - finally uses the optional second argument as the last fallback
 
 ### `theme`
 

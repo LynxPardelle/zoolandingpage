@@ -27,7 +27,7 @@ import {
     showErrorToastHandler,
     showPositionDemoHandler,
 } from './handlers/toast-demo.handlers';
-import { toggleLanguageHandler, toggleThemeHandler } from './handlers/ui.handlers';
+import { setLanguageHandler, toggleLanguageHandler, toggleThemeHandler } from './handlers/ui.handlers';
 import {
     openFaqCtaWhatsAppHandler,
     openFinalCtaWhatsAppHandler,
@@ -49,6 +49,7 @@ export const provideEventHandlers = (): Provider[] => {
         // Migrated off ConfigurationsOrchestratorService (no host dependency)
         { provide: EVENT_HANDLERS, multi: true, useFactory: toggleThemeHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: toggleLanguageHandler },
+        { provide: EVENT_HANDLERS, multi: true, useFactory: setLanguageHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: openFooterTermsHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: openFooterDataHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: closeModalHandler },

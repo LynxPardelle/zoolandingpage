@@ -1,4 +1,5 @@
 import type { TemplateRef } from '@angular/core';
+import type { TComponentChild } from '../component-children.types';
 
 export type GenericContainerComponentTag =
     | 'span'
@@ -26,7 +27,7 @@ export type TGenericContainerConfig = {
     ariaDescribedby?: string;
 
     /** orden de renderizado de slots (incluye '__content__') */
-    components?: readonly string[];
+    components?: readonly TComponentChild[];
 
     /** templates por id */
     componentTemplates?: Readonly<Record<string, TemplateRef<unknown>>>;

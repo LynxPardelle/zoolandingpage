@@ -17,21 +17,55 @@ export class GenericLink {
   @Output() clicked = new EventEmitter<MouseEvent>();
 
   text(): string {
-    const t = this.config().text;
+    const t = this.resolveMaybeThunk(this.config().text);
     if (!t) return '';
-    return typeof t === 'function' ? t() : t;
+    return String(t);
+  }
+
+  id(): string | null {
+    const raw = this.resolveMaybeThunk(this.config().id);
+    return raw ? String(raw) : null;
+  }
+
+  classes(): string {
+    const raw = this.resolveMaybeThunk(this.config().classes);
+    return typeof raw === 'string' ? raw : String(raw ?? '');
   }
 
   ariaLabel(): string | null {
-    const raw = this.config().ariaLabel;
+    const raw = this.resolveMaybeThunk(this.config().ariaLabel);
     if (!raw) return null;
-    return typeof raw === 'function' ? raw() : raw;
+    return String(raw);
   }
 
   href(): string {
-    const raw = this.config().href;
-    const resolved = typeof raw === 'function' ? raw() : raw;
+    const resolved = this.resolveMaybeThunk(this.config().href);
     return typeof resolved === 'string' ? resolved : String(resolved ?? '');
+  }
+
+  target(): string | null {
+    const raw = this.resolveMaybeThunk(this.config().target);
+    return raw ? String(raw) : null;
+  }
+
+  rel(): string {
+    const raw = this.resolveMaybeThunk(this.config().rel);
+    return raw ? String(raw) : 'nofollow noopener noreferrer';
+  }
+
+  componentTokens(): readonly string[] {
+    return (this.config().components ?? [])
+      .filter((entry): entry is string => typeof entry === 'string')
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+  }
+
+  private resolveMaybeThunk(value: unknown): unknown {
+    if (typeof value === 'function' && (value as (...args: unknown[]) => unknown).length === 0) {
+      return (value as () => unknown)();
+    }
+
+    return value;
   }
 
   onClick(event: MouseEvent): void {
