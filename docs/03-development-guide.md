@@ -940,7 +940,12 @@ This development guide ensures consistent, maintainable, and high-quality code a
 
 ## App Shell & Routing Notes
 
-- Root shell is in `src/app/core/components/layout/app-shell/app-shell.component.ts` with header, routed main, and deferred footer.
+- Root shell is in `src/app/core/components/layout/app-shell/app-shell.component.ts` and acts as a thin runtime host for the wrapper orchestrators, modal host, and toast host.
+- Shell-specific runtime state lives in `src/app/core/services/runtime.service.ts`.
+- Draft preview resolution and draft-registry polling live in `src/app/shared/services/draft-runtime.service.ts`.
+- Dev-only draft/debug UI lives in `src/app/core/components/layout/debug-workspace/debug-workspace.component.ts`.
+- Reusable `TGenericComponent` factory helpers live in `src/app/shared/utility/generic-component-builder.utility.ts`, and debug-workspace-specific panel builders stay in the same feature folder as the component.
+- Runtime metadata application lives in `src/app/shared/services/seo-metadata.service.ts`.
 - Router is provided in `app.config.ts` with `withInMemoryScrolling` to restore positions and handle anchor navigation.
 - Accessibility: skip-to-content link exists; tests cover focusing `main#main-content`.
 - Analytics: `page_view` tracked on `NavigationEnd`; see `AppShellComponent` constructor.

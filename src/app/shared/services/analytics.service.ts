@@ -3,7 +3,7 @@ import type { TAnalyticsConfigPayload } from '@/app/shared/types/config-payloads
 import { DOCUMENT } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
-import { Observable, Subject, tap } from 'rxjs';
+import { Observable, ReplaySubject, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ToastService } from '../components/generic-toast';
 import { TAnalyticsEvent, TDataDropResponse, TExpandedAnalytics, TTrackOptions } from '../types/analytics.type';
@@ -12,6 +12,7 @@ import { AnalyticsCategories, AnalyticsEvents } from './analytics.events';
 import { QuickStatsService } from './quick-stats.service';
 @Injectable({ providedIn: 'root' })
 export class AnalyticsService {
+  private readonly debugEventReplaySize = 10;
   private http = inject(HttpClient);
   private readonly doc = inject(DOCUMENT);
   private readonly buffer: TAnalyticsEvent[] = [];
@@ -22,7 +23,7 @@ export class AnalyticsService {
   private readonly isDebugMode: boolean = environment.features.debugMode;
   private readonly baseUrl: string = environment.apiUrl;
   private readonly version: string = environment.apiVersion;
-  private readonly events$ = new Subject<TAnalyticsEvent>();
+  private readonly events$ = new ReplaySubject<TAnalyticsEvent>(this.debugEventReplaySize);
   private trackingTeardowns: Array<() => void> = [];
   private hasPermission: boolean = false;
   private alreadyAskedForPermission: boolean = false;

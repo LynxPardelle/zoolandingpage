@@ -9,6 +9,7 @@ import { AnalyticsService } from '../../../../shared/services/analytics.service'
 import { ConfigBootstrapService } from '../../../../shared/services/config-bootstrap.service';
 import { ConfigurationsOrchestratorService } from '../../../../shared/services/configurations-orchestrator';
 import { DraftRegistryService } from '../../../../shared/services/draft-registry.service';
+import { DebugWorkspaceComponent } from '../debug-workspace/debug-workspace.component';
 import { AppShellComponent } from './app-shell.component';
 
 @Component({
@@ -24,6 +25,13 @@ import { AppShellComponent } from './app-shell.component';
 class WrapperOrchestratorStub {
   @Input() componentsIds: readonly unknown[] = [];
 }
+
+@Component({
+  selector: 'debug-workspace',
+  standalone: true,
+  template: '',
+})
+class DebugWorkspaceStub { }
 
 let bootstrapResult: any;
 let bootstrapLoadArgs: Array<{ pageId?: string; lang?: string }>;
@@ -127,8 +135,8 @@ describe('AppShellComponent', () => {
     }).compileComponents();
 
     TestBed.overrideComponent(AppShellComponent, {
-      remove: { imports: [WrapperOrchestrator] },
-      add: { imports: [WrapperOrchestratorStub, AsyncPipe] },
+      remove: { imports: [WrapperOrchestrator, DebugWorkspaceComponent] },
+      add: { imports: [WrapperOrchestratorStub, DebugWorkspaceStub, AsyncPipe] },
     });
   });
 
@@ -150,36 +158,11 @@ describe('AppShellComponent', () => {
     expect(fixture.componentInstance.modalRootIds()).toEqual([]);
   });
 
-  it('should build the debug draft panel with dynamic draft buttons', () => {
-    const fixture = TestBed.createComponent(AppShellComponent);
-    fixture.detectChanges();
-    const component = fixture.componentInstance;
-    const panel = component.debugDraftPanelComponents()[0] as any;
-    const children = panel.config.components as any[];
-    const draftButtonsContainer = children.find((entry) => entry.id === 'debugDraftPanelDraftButtons');
-    const footerRow = children.find((entry) => entry.id === 'debugDraftPanelFooterRow');
-    const draftButtons = draftButtonsContainer.config.components as any[];
-    const refreshButton = (footerRow.config.components as any[]).find((entry) => entry.id === 'debugDraftRefreshButton');
-
-    expect(panel.id).toBe('debugDraftPanelRoot');
-    expect(draftButtons.map((entry) => entry.config.label)).toEqual([
-      'despacholegalastralex.com / default',
-      'music.lynxpardelle.com / default',
-      'zoolandingpage.com.mx / default',
-    ]);
-    expect(refreshButton.config.icon).toBe('refresh');
-  });
-
-  it('wraps the debug UI into a single orchestrated root component', () => {
+  it('renders the extracted debug workspace host in debug mode', () => {
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
 
-    const debugWorkspace = fixture.componentInstance.debugWorkspaceComponents()[0] as any;
-    const children = debugWorkspace.config.components as any[];
-
-    expect(debugWorkspace.id).toBe('debugWorkspaceRoot');
-    expect(children.some((entry) => entry.id === 'debugDraftPanelRoot')).toBeTrue();
-    expect(children.some((entry) => entry.id === 'debugDiagnosticsPanelRoot')).toBeTrue();
+    expect(fixture.nativeElement.querySelector('debug-workspace')).toBeTruthy();
   });
 
   it('clears rendered roots when draft components are invalid', async () => {

@@ -9,6 +9,7 @@ import { AnalyticsService } from '../../../../shared/services/analytics.service'
 import { ConfigBootstrapService } from '../../../../shared/services/config-bootstrap.service';
 import { ConfigurationsOrchestratorService } from '../../../../shared/services/configurations-orchestrator';
 import { DraftRegistryService } from '../../../../shared/services/draft-registry.service';
+import { DebugWorkspaceComponent } from '../debug-workspace/debug-workspace.component';
 import { AppShellComponent } from './app-shell.component';
 
 @Component({
@@ -19,6 +20,13 @@ import { AppShellComponent } from './app-shell.component';
 class WrapperOrchestratorStub {
   @Input() componentsIds: readonly unknown[] = [];
 }
+
+@Component({
+  selector: 'debug-workspace',
+  standalone: true,
+  template: '',
+})
+class DebugWorkspaceStub { }
 
 const ORCHESTRATOR_STUB = {
   modalHostConfig$: of(null),
@@ -111,8 +119,8 @@ describe('AppShellComponent analytics', () => {
     }).compileComponents();
 
     TestBed.overrideComponent(AppShellComponent, {
-      remove: { imports: [WrapperOrchestrator] },
-      add: { imports: [WrapperOrchestratorStub, AsyncPipe] },
+      remove: { imports: [WrapperOrchestrator, DebugWorkspaceComponent] },
+      add: { imports: [WrapperOrchestratorStub, DebugWorkspaceStub, AsyncPipe] },
     });
   });
 

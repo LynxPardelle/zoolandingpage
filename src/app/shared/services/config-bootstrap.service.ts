@@ -23,10 +23,9 @@ import {
 } from '@/app/shared/utility/config-validation/config-payload.validators';
 import { environment } from '@/environments/environment';
 import { inject, Injectable, signal } from '@angular/core';
-import { ConfigApiService } from './config-api.service';
+import { ConfigSourceService } from './config-source.service';
 import { ConfigStoreService, TConfigBootstrapStage } from './config-store.service';
 import { DomainResolverService } from './domain-resolver.service';
-import { DraftConfigLoaderService } from './draft-config-loader.service';
 import { I18nService } from './i18n.service';
 import { LanguageService } from './language.service';
 import { StructuredDataService } from './structured-data.service';
@@ -50,9 +49,8 @@ const EXPECTED_CONFIG_VERSION = 1;
 
 @Injectable({ providedIn: 'root' })
 export class ConfigBootstrapService {
-    private readonly api = inject(ConfigApiService);
     private readonly store = inject(ConfigStoreService);
-    private readonly drafts = inject(DraftConfigLoaderService);
+    private readonly source = inject(ConfigSourceService);
     private readonly resolver = inject(DomainResolverService);
     private readonly i18n = inject(I18nService);
     private readonly language = inject(LanguageService);
@@ -259,9 +257,7 @@ export class ConfigBootstrapService {
 
     private async loadPageConfig(domain: string, pageId: string): Promise<TPageConfigPayload | null> {
         try {
-            const payload = environment.drafts.enabled
-                ? await this.drafts.loadPageConfig(domain, pageId)
-                : await this.api.getPageConfig(domain, pageId);
+            const payload = await this.source.loadPageConfig(domain, pageId);
             return payload && isPageConfigPayload(payload) ? payload : null;
         } catch (error) {
             this.captureError('page-config', error);
@@ -271,9 +267,7 @@ export class ConfigBootstrapService {
 
     private async loadComponents(domain: string, pageId: string): Promise<TComponentsPayload | null> {
         try {
-            const payload = environment.drafts.enabled
-                ? await this.drafts.loadComponents(domain, pageId)
-                : await this.api.getComponents(domain, pageId);
+            const payload = await this.source.loadComponents(domain, pageId);
             return payload && isComponentsPayload(payload) ? payload : null;
         } catch (error) {
             this.captureError('components', error);
@@ -283,9 +277,7 @@ export class ConfigBootstrapService {
 
     private async loadVariables(domain: string, pageId: string): Promise<TVariablesPayload | null> {
         try {
-            const payload = environment.drafts.enabled
-                ? await this.drafts.loadVariables(domain, pageId)
-                : await this.api.getVariables(domain, pageId);
+            const payload = await this.source.loadVariables(domain, pageId);
             return payload && isVariablesPayload(payload) ? payload : null;
         } catch (error) {
             this.captureError('variables', error);
@@ -295,9 +287,7 @@ export class ConfigBootstrapService {
 
     private async loadCombos(domain: string, pageId: string): Promise<TAngoraCombosPayload | null> {
         try {
-            const payload = environment.drafts.enabled
-                ? await this.drafts.loadAngoraCombos(domain, pageId)
-                : await this.api.getAngoraCombos(domain, pageId);
+            const payload = await this.source.loadCombos(domain, pageId);
             return payload && isAngoraCombosPayload(payload) ? payload : null;
         } catch (error) {
             this.captureError('angora-combos', error);
@@ -307,9 +297,7 @@ export class ConfigBootstrapService {
 
     private async loadI18n(domain: string, pageId: string, lang: string): Promise<TI18nPayload | null> {
         try {
-            const payload = environment.drafts.enabled
-                ? await this.drafts.loadI18n(domain, pageId, lang)
-                : await this.api.getI18n(domain, lang, pageId);
+            const payload = await this.source.loadI18n(domain, pageId, lang);
             return payload && isI18nPayload(payload) ? payload : null;
         } catch (error) {
             this.captureError('i18n', error);
@@ -319,9 +307,7 @@ export class ConfigBootstrapService {
 
     private async loadSeo(domain: string, pageId: string): Promise<TSeoPayload | null> {
         try {
-            const payload = environment.drafts.enabled
-                ? await this.drafts.loadSeo(domain, pageId)
-                : await this.api.getSeo(domain, pageId);
+            const payload = await this.source.loadSeo(domain, pageId);
             return payload && isSeoPayload(payload) ? payload : null;
         } catch (error) {
             this.captureError('seo', error);
@@ -331,9 +317,7 @@ export class ConfigBootstrapService {
 
     private async loadStructuredData(domain: string, pageId: string): Promise<TStructuredDataPayload | null> {
         try {
-            const payload = environment.drafts.enabled
-                ? await this.drafts.loadStructuredData(domain, pageId)
-                : await this.api.getStructuredData(domain, pageId);
+            const payload = await this.source.loadStructuredData(domain, pageId);
             return payload && isStructuredDataPayload(payload) ? payload : null;
         } catch (error) {
             this.captureError('structured-data', error);
@@ -343,9 +327,7 @@ export class ConfigBootstrapService {
 
     private async loadAnalytics(domain: string, pageId: string): Promise<TAnalyticsConfigPayload | null> {
         try {
-            const payload = environment.drafts.enabled
-                ? await this.drafts.loadAnalyticsConfig(domain, pageId)
-                : await this.api.getAnalyticsConfig(domain, pageId);
+            const payload = await this.source.loadAnalytics(domain, pageId);
             return payload && isAnalyticsConfigPayload(payload) ? payload : null;
         } catch (error) {
             this.captureError('analytics-config', error);
@@ -404,22 +386,13 @@ export class ConfigBootstrapService {
     }
 
     private configureI18nLoader(domain: string, pageId: string): void {
-        const useDrafts = environment.drafts.enabled;
         this.i18n.setLoader(
             async (lang) => {
                 try {
-                    if (useDrafts) {
-                        const payload = await this.drafts.loadI18n(domain, pageId, lang);
-                        const dict = payload?.dictionary as Record<string, unknown> | undefined;
-                        if (dict && Object.keys(dict).length > 0) {
-                            return dict;
-                        }
-                    } else {
-                        const payload = await this.api.getI18n(domain, lang, pageId);
-                        const dict = payload?.dictionary as Record<string, unknown> | undefined;
-                        if (dict && Object.keys(dict).length > 0) {
-                            return dict;
-                        }
+                    const payload = await this.source.loadI18n(domain, pageId, lang);
+                    const dict = payload?.dictionary as Record<string, unknown> | undefined;
+                    if (dict && Object.keys(dict).length > 0) {
+                        return dict;
                     }
                 } catch {
                     // Fall through to an empty dictionary when the draft/API payload is unavailable.

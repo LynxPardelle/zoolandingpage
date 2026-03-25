@@ -25,4 +25,31 @@ describe('AnalyticsService', () => {
     expect(buf[0].label).toBe('A');
     expect(typeof buf[0].timestamp).toBe('number');
   });
+
+  it('replays recent events to late subscribers', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: HttpClient,
+          useValue: {
+            post: jasmine.createSpy('post').and.returnValue(of({ ok: true })),
+          } as any,
+        },
+      ],
+    });
+
+    const svc = TestBed.inject(AnalyticsService);
+    const received: string[] = [];
+
+    await svc.track('first_event', { category: 'test', label: 'one' });
+    await svc.track('second_event', { category: 'test', label: 'two' });
+
+    const subscription = svc.onEvent().subscribe((evt) => {
+      received.push(evt.name);
+    });
+
+    expect(received).toEqual(['first_event', 'second_event']);
+
+    subscription.unsubscribe();
+  });
 });

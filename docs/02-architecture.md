@@ -21,35 +21,34 @@ zoolandingpage/
 ├── public/                        # Static assets
 ├── src/
 │   ├── app/
-│   │   ├── components/           # Feature components
-│   │   │   ├── header/
-│   │   │   ├── hero/
-│   │   │   ├── education-section/
-│   │   │   ├── interactive-tutorial/
-│   │   │   ├── social-proof/
-│   │   │   ├── cta/
-│   │   │   └── footer/
-│   │   ├── shared/              # Shared module
-│   │   │   ├── components/      # Reusable UI components
-│   │   │   │   ├── generic-button/
+│   │   ├── core/                        # App shell, routing hosts, and core runtime services
+│   │   │   ├── components/layout/
+│   │   │   │   ├── app-shell/
+│   │   │   │   │   └── app-shell.component.ts
+│   │   │   │   └── debug-workspace/
+│   │   │   │       └── debug-workspace.component.ts
+│   │   │   └── services/
+│   │   │       └── runtime.service.ts
+│   │   ├── landing-page/                # Landing/page-specific presentational components
+│   │   ├── shared/
+│   │   │   ├── components/              # Generic renderable components and hosts
+│   │   │   │   ├── wrapper-orchestrator/
 │   │   │   │   ├── generic-modal/
-│   │   │   │   └── generic-form/
-│   │   │   ├── services/        # Utility services
-│   │   │   ├── directives/      # Custom directives
-│   │   │   └── pipes/           # Custom pipes
-│   │   ├── services/            # Core application services
-│   │   │   ├── analytics.service.ts
-│   │   │   ├── websocket.service.ts
-│   │   │   ├── translation.service.ts
-│   │   │   ├── seo.service.ts
-│   │   │   └── performance.service.ts
-│   │   └── types/               # TypeScript type definitions
-│   ├── assets/                  # Application assets
-│   │   ├── images/
-│   │   ├── icons/
-│   │   └── data/
-│   ├── environments/            # Environment configurations
-│   └── styles/                  # Global styles and SCSS architecture
+│   │   │   │   └── generic-toast/
+│   │   │   ├── services/                # Cross-cutting runtime services
+│   │   │   │   ├── config-bootstrap.service.ts
+│   │   │   │   ├── config-source.service.ts
+│   │   │   │   ├── config-store.service.ts
+│   │   │   │   ├── draft-runtime.service.ts
+│   │   │   │   ├── draft-registry.service.ts
+│   │   │   │   ├── seo-metadata.service.ts
+│   │   │   │   ├── analytics.service.ts
+│   │   │   │   └── angora-combos.service.ts
+│   │   │   ├── utility/                 # Config DSL handlers, validation, and event forwarding
+│   │   │   └── types/                   # Shared payload and runtime types
+│   │   └── environments/                # Environment flags for dev/prod runtime selection
+│   ├── assets/                          # Public assets and generated runtime files
+│   └── styles/                          # Global styles and SCSS architecture
 ├── docker-compose.yml           # Multi-environment Docker configuration
 ├── Dockerfile                   # Multi-stage Docker build
 ├── Makefile                     # Build automation and development tools
@@ -60,35 +59,21 @@ zoolandingpage/
 
 ## 🏗 Component Architecture
 
-### Component Hierarchy
+### Runtime Hierarchy
 
 ```
-AppComponent (Root)
-├── HeaderComponent
-│   ├── NavigationComponent
-│   └── LanguageSwitcherComponent
-├── HeroComponent
-│   ├── InteractiveAnimationComponent
-│   └── CTAButtonComponent
-├── EducationSectionComponent
-│   ├── LandingPageInfoComponent
-│   ├── DataAnalyticsComponent
-│   ├── CloudSecurityComponent
-│   └── AIIntegrationComponent
-├── InteractiveTutorialComponent
-│   ├── SketchAnimationComponent
-│   ├── WireframeBuilderComponent
-│   └── ProgressTrackerComponent
-├── SocialProofComponent
-│   ├── TestimonialsComponent
-│   ├── CaseStudiesComponent
-│   └── ConversionMetricsComponent
-├── CTAComponent
-│   ├── WhatsAppButtonComponent
-│   └── LeadCaptureFormComponent
-└── FooterComponent
-    ├── ContactInfoComponent
-    └── SocialLinksComponent
+AppShellComponent (Root Host)
+├── WrapperOrchestrator (main runtime rootIds)
+├── GenericToastHost
+├── GenericModalHost
+│   └── WrapperOrchestrator (modalRootIds)
+└── DebugWorkspaceComponent (development only)
+  └── WrapperOrchestrator (debug/dev-only components)
+
+WrapperOrchestrator
+├── reads external components from ConfigurationsOrchestratorService
+├── resolves valueInstructions / eventInstructions / conditions / loops
+└── renders generic component trees defined in payloads
 ```
 
 ### Standalone Components Strategy
@@ -100,81 +85,42 @@ The project uses Angular standalone components for:
 - **Improved Testing**: Easier to isolate and test
 - **Performance**: Lazy loading at component level
 
-```typescript
-// Example standalone component
-@Component({
-  selector: 'app-hero',
-  imports: [CommonModule, GenericButtonComponent],
-  template: `...`,
-  styles: [`...`],
-})
-export class HeroComponent {
-  // Component logic
-}
-```
+- Components stay in `src/app/core/components`, while shell-specific runtime services live in `src/app/core/services`.
+- Generic `TGenericComponent` factory helpers live in `src/app/shared/utility/generic-component-builder.utility.ts`, while debug-workspace-specific panel builders stay beside the feature component.
+- Cross-cutting runtime services live under `src/app/shared/services` so draft/API loading, metadata, analytics, i18n, and DSL execution remain reusable.
+- Feature sections remain standalone, but the current production path is primarily config-driven rather than hard-wired by the shell.
 
 ## 🔧 Service Architecture
 
-### Core Services
+### Core Runtime Services
 
-```typescript
-// Core application services structure
-type ServiceArchitecture {
-  // User behavior and analytics
-  AnalyticsService: {
-    trackEvent(event: AnalyticsEvent): void;
-    getSessionData(): SessionData;
-    generateReport(): AnalyticsReport;
-  };
-
-  // Real-time communication
-  WebSocketService: {
-    connect(url: string): Observable<any>;
-    send(channel: string, data: any): void;
-    subscribe(channel: string): Observable<any>;
-  };
-
-  // Multi-language support
-  TranslationService: {
-    setLanguage(lang: 'es' | 'en'): void;
-    translate(key: string): string;
-    getAvailableLanguages(): Language[];
-  };
-
-  // SEO and metadata management
-  SEOService: {
-    updateMetaTags(data: MetaData): void;
-    generateStructuredData(): StructuredData;
-    updateCanonicalUrl(url: string): void;
-  };
-
-  // Performance monitoring
-  PerformanceService: {
-    measureCoreWebVitals(): WebVitals;
-    trackLoadTimes(): LoadMetrics;
-    reportPerformanceIssues(): void;
-  };
-}
-```
+| Service                             | Responsibility                                                                                                                                                                        |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ConfigSourceService`               | Selects the active payload source. Draft assets are used in development; API payloads are used when drafts are disabled.                                                              |
+| `ConfigBootstrapService`            | Loads payloads in sequence, configures i18n, applies structured data, validates versions, and fills `ConfigStoreService`.                                                             |
+| `ConfigStoreService`                | Signal-based store for loaded payloads, bootstrap stage, validation issues, and runtime readiness.                                                                                    |
+| `RuntimeService`                    | Lives in `src/app/core/services`, owns the shell render roots (`rootComponentsIds`, `modalRootIds`), and applies the loaded component payload to `ConfigurationsOrchestratorService`. |
+| `DraftRuntimeService`               | Resolves active draft context from URL/SSR request data and refreshes the development draft registry.                                                                                 |
+| `DraftRegistryService`              | Lists available development drafts from `/api/debug/drafts`.                                                                                                                          |
+| `SeoMetadataService`                | Applies title, description, Open Graph, Twitter, canonical, and `<html lang>` metadata from payloads.                                                                                 |
+| `AnalyticsService`                  | Tracks events, handles consent, publishes debug streams, and manages page engagement observers.                                                                                       |
+| `AngoraCombosService`               | Registers base combo classes and applies payload-provided combo definitions.                                                                                                          |
+| `ConfigurationsOrchestratorService` | Stores the external component tree, exports draft payloads, and feeds `WrapperOrchestrator`.                                                                                          |
 
 ### Service Communication Pattern
 
-```typescript
-// Reactive service communication using RxJS
-@Injectable({
-  providedIn: 'root',
-})
-export class StateManagementExample {
-  private state$ = new BehaviorSubject(initialState);
+```text
+AppShellComponent
+  -> RuntimeService.initialize()
+  -> ConfigBootstrapService.load()
+  -> ConfigSourceService (drafts or API)
+  -> ConfigStoreService / VariableStoreService / StructuredDataService
+  -> RuntimeService applies component payload to ConfigurationsOrchestratorService
+  -> WrapperOrchestrator renders rootIds and modalRootIds
 
-  // Observable state for components to subscribe
-  public readonly state = this.state$.asObservable();
-
-  // Actions to update state
-  updateState(newState: Partial<State>): void {
-    this.state$.next({ ...this.state$.value, ...newState });
-  }
-}
+Development-only additions:
+  -> DraftRuntimeService resolves preview context and polls DraftRegistryService
+  -> DebugWorkspaceComponent renders draft/debug controls
 ```
 
 ## 🎨 Styling Architecture
@@ -231,48 +177,46 @@ export class AppComponent implements AfterRender {
 
 ## 📊 Data Flow Architecture
 
-### Analytics Data Flow
+### Config Data Flow
 
-```typescript
-// Analytics event flow
-User Interaction
-  → Component Event Handler
-  → AnalyticsService.trackEvent()
-  → WebSocketService.send()
-  → Analytics Server
-  → Real-time Dashboard
+```text
+Environment Flag
+  -> ConfigSourceService chooses draft assets or API
+  -> ConfigBootstrapService loads page-config/components/variables/i18n/seo/structured-data/analytics
+  -> ConfigStoreService captures validated payloads
+  -> RuntimeService applies roots + external component payload
+  -> WrapperOrchestrator renders the configured page
 ```
 
-### State Management Flow
+### Analytics Data Flow
 
-```typescript
-// Reactive state management pattern
-Component Action
-  → Service Method
-  → State Update (BehaviorSubject)
-  → Observable Emission
-  → Component State Update
-  → UI Re-render
+```text
+User Interaction
+  -> Component or DSL event handler
+  -> AppShellComponent.handleAnalyticsEvent()
+  -> AnalyticsService.track(...)
+  -> optional consent workflow / buffered event queue / server send
+  -> debug stream available to DebugWorkspaceComponent
 ```
 
 ## 🔄 Application Lifecycle
 
 ### Initialization Sequence
 
-1. **Bootstrap**: App module loads with SSR configuration
-2. **Services**: Core services initialize (Analytics, WebSocket, Translation)
-3. **NGX-Angora**: Client-side styling system initializes
-4. **Components**: Standalone components load lazily
-5. **Analytics**: User session tracking begins
-6. **Real-time**: WebSocket connections establish
+1. **Bootstrap**: Angular starts the standalone shell with SSR-safe providers.
+2. **Draft Context**: `DraftRuntimeService` resolves `draftDomain` and `draftPageId` when drafts are enabled.
+3. **Config Load**: `RuntimeService` triggers `ConfigBootstrapService` to load the current page payload set.
+4. **State Fill**: `ConfigStoreService`, `VariableStoreService`, and i18n caches are populated.
+5. **Render Roots**: `RuntimeService` applies root IDs and external components to the orchestrator.
+6. **Styling and Tracking**: Angora CSS regenerates, metadata is applied, and page engagement observers start.
 
 ### Runtime Operations
 
-- **Route Changes**: SEO service updates meta tags
-- **User Interactions**: Analytics service tracks events
-- **Language Switch**: Translation service updates content
-- **Responsive Changes**: NGX-Angora handles styling updates
-- **Performance**: Background monitoring of Core Web Vitals
+- **Route Changes**: `AppShellComponent` tracks `page_view` on `NavigationEnd`.
+- **Language Changes**: `SeoMetadataService` reapplies metadata from the active SEO payload.
+- **Draft Refreshes**: development draft list refreshes through `DraftRuntimeService` and `DraftRegistryService`.
+- **Payload-driven Rendering**: `WrapperOrchestrator` re-evaluates value/event/condition DSL instructions against the active stores.
+- **Styling Updates**: NGX-Angora regenerates classes after render and after combo updates.
 
 ## 🔧 Build Architecture
 
@@ -358,11 +302,15 @@ This architecture provides a solid foundation for building a high-performance, s
 
 ## Application Shell and Routing
 
-The application uses a standalone AppShell (`app-root`) that composes a persistent header, routed main content, and a footer. Routing is defined in `src/app/app.routes.ts` with scroll restoration and anchor scrolling enabled via `withInMemoryScrolling`.
+The standalone shell is intentionally thin. `AppShellComponent` owns top-level hosts, route analytics wiring, Angora regeneration, and forwarding child analytics events. It does not own draft selection UI, metadata rules, or payload-to-root mapping anymore.
 
-Key points:
+Current ownership boundaries:
 
-- Shell: `src/app/core/components/layout/app-shell/app-shell.component.ts`
-- Accessibility: skip-to-content link focusing `main#main-content`, header banner and primary navigation landmarks
-- Performance: non-critical footer is wrapped in `@defer` with placeholder/loading/error fallbacks
-- Analytics: a `page_view` is tracked on `NavigationEnd`
+- Shell host: `src/app/core/components/layout/app-shell/app-shell.component.ts`
+- Shell runtime store: `src/app/core/services/runtime.service.ts`
+- Dev-only draft/debug workspace: `src/app/core/components/layout/debug-workspace/debug-workspace.component.ts`
+- Draft preview context: `src/app/shared/services/draft-runtime.service.ts`
+- Metadata application: `src/app/shared/services/seo-metadata.service.ts`
+- Payload orchestration: `src/app/shared/services/config-bootstrap.service.ts`
+
+Routing remains configured with scroll restoration and anchor scrolling. The shell keeps the accessibility contract intact: skip link, `main#main-content`, header/banner, and primary navigation landmarks remain covered by focused tests.
