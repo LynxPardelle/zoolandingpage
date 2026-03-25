@@ -1,7 +1,7 @@
 <ng-template #wrapperOrchestratorTpl let-component>
   @if (component?.config?.components && component.config.components.length > 0) { @for(componentId of
   component.config.components; track (componentId + $index)) {
-  <wrapper-orchestrator [componentsIds]="[componentId]"></wrapper-orchestrator>
+  <wrapper-orchestrator [componentsIds]="[componentId]" [hostContext]="effectiveHost()"></wrapper-orchestrator>
   } }
 </ng-template>
 
@@ -68,6 +68,35 @@
 </generic-dropdown>
 } @case('feature-card') {
 <generic-feature-card [config]="component.config"></generic-feature-card>
+} @case('input') {
+<generic-input
+  [config]="component.config"
+  (valueChanged)="
+    eventEmitted({
+      component: component.id,
+      meta_title: component.meta_title,
+      eventName: 'valueChanged',
+      eventData: $event,
+      eventInstructions: component.eventInstructions
+    })
+  "
+  (blurred)="
+    eventEmitted({
+      component: component.id,
+      meta_title: component.meta_title,
+      eventName: 'blurred',
+      eventData: $event,
+      eventInstructions: component.eventInstructions
+    })
+  "
+></generic-input>
+} @case('interaction-scope') {
+<interaction-scope
+  [config]="component.config"
+  [parentHost]="effectiveHost()"
+  [componentId]="component.id"
+  [metaTitle]="component.meta_title"
+></interaction-scope>
 } @case('interactive-process') {
 <interactive-process-leaf
   [process]="resolveInteractiveProcessProcess(component.config)"

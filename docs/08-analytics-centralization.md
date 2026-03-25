@@ -41,7 +41,8 @@ Affected components/services:
 - `LandingPageComponent`
 - `ServicesSectionComponent`
 - `FaqSectionComponent`
-- `ConversionCalculatorSectionComponent`
+- `InteractionScopeComponent`
+- `GenericInputComponent`
 - `WhatsAppButtonComponent`
 - `GenericModalService` (via `analyticsEvents$` observable stream)
 

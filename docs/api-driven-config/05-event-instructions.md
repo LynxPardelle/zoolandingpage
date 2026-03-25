@@ -34,6 +34,26 @@ eventInstructions: 'openWhatsApp:event.meta_title,hero_primary,hero;navigationTo
 trackCTAClick:event.meta_title,secondary,hero;navigationToSection:features-section
 ```
 
+- Scoped interaction submit:
+
+```text
+submitScope;trackCTAClick:event.meta_title,submit,lead-form
+```
+
+- Scoped interaction reset:
+
+```text
+resetScope
+```
+
+- Set a field value from another control:
+
+```text
+setScopeValue:planTier,premium
+```
+
+These actions only affect the nearest `interaction-scope` host in the wrapper subtree.
+
 ## Adding new actions
 
 Actions are implemented in the centralized event handler (see `ConfigurationsOrchestratorService.handleComponentEvent` and related utilities).

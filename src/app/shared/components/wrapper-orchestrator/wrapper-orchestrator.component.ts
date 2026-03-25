@@ -10,12 +10,14 @@ import { GenericContainerComponent } from '../generic-container/generic-containe
 import { GenericDropdown } from '../generic-dropdown';
 import { GenericFeatureCardComponent } from '../generic-feature-card';
 import { GenericIconComponent } from '../generic-icon/generic-icon.component';
+import { GenericInputComponent } from '../generic-input/generic-input.component';
 import { GenericLink } from "../generic-link/generic-link";
 import { GenericMedia } from "../generic-media/generic-media";
 import { GenericStatsCounterComponent } from '../generic-stats-counter/generic-stats-counter.component';
 import type { TGenericStatsCounterConfig } from '../generic-stats-counter/generic-stats-counter.types';
 import { GenericTestimonialCardComponent } from '../generic-testimonial-card';
 import { GenericTextComponent } from '../generic-text/generic-text';
+import { InteractionScopeComponent } from '../interaction-scope/interaction-scope.component';
 
 import type { ProcessStep, ProcessStepVariableConfig } from '../../../landing-page/components/interactive-process/interactive-process-leaf.types';
 import { ConditionOrchestrator } from '../../services/condition-orchestrator';
@@ -37,6 +39,8 @@ import type { TGenericComponent } from './wrapper-orchestrator.types';
     GenericDropdown,
     GenericFeatureCardComponent,
     GenericIconComponent,
+    GenericInputComponent,
+    InteractionScopeComponent,
     GenericTestimonialCardComponent,
     GenericTextComponent,
     InteractiveProcessLeafComponent,
@@ -54,6 +58,9 @@ export class WrapperOrchestrator {
   private readonly interactiveProcessStore = inject(InteractiveProcessStoreService);
   // Accepts an array of component IDs to render
   readonly componentsIds = input<readonly (string | TGenericComponent)[]>([]);
+  readonly hostContext = input<unknown>();
+
+  readonly effectiveHost = computed<unknown>(() => this.hostContext() ?? this._configurationsOrchestratorService);
 
   private shouldRender(component: TGenericComponent): boolean {
     const cond = component.condition;
@@ -86,7 +93,7 @@ export class WrapperOrchestrator {
         return entry;
       })
       .filter((c: TGenericComponent | undefined): c is TGenericComponent => c !== undefined)
-      .map((c: TGenericComponent) => this.valueOrchestrator.apply(c, { host: this._configurationsOrchestratorService }))
+      .map((c: TGenericComponent) => this.valueOrchestrator.apply(c, { host: this.effectiveHost() }))
       .filter((c: TGenericComponent) => this.shouldRender(c))
   );
 
@@ -142,7 +149,7 @@ export class WrapperOrchestrator {
       componentId: event.component,
       meta_title: event.meta_title,
       eventName: event.eventName, eventData: event.eventData, eventInstructions: event.eventInstructions
-    });
+    }, this.effectiveHost());
   }
 
   unknownComponentLabel(type: unknown): string {

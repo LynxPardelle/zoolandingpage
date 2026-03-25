@@ -26,6 +26,8 @@ import { GenericButtonComponent } from "../generic-button/generic-button.compone
 import type { DropdownConfig, DropdownItem, MenuTemplateContext } from './generic-dropdown.types';
 
 
+let dropdownMenuIdCounter = 0;
+
 
 const DROPDOWN_DEFAULT: Required<Pick<DropdownConfig, 'closeOnSelect'>> = { closeOnSelect: true };
 
@@ -48,6 +50,7 @@ export class GenericDropdown {
   private inlinePortal: TemplatePortal | null = null;
   private inlineMenuRoot: HTMLElement | null = null;
   private host = inject(ElementRef<HTMLElement>);
+  private readonly defaultMenuId = `dd-menu-${ ++dropdownMenuIdCounter }`;
 
   readonly items = input<readonly DropdownItem[]>([]);
   readonly config = input<DropdownConfig | null>(null);
@@ -56,9 +59,20 @@ export class GenericDropdown {
   readonly classes = computed<string>(() => this.config()?.classes || '');
   readonly buttonClasses = computed<string>(() => this.config()?.buttonClasses || '');
   readonly itemLinkClasses = computed<string>(() => this.config()?.itemLinkClasses || '');
+  readonly selectedItemClasses = computed<string>(() => this.config()?.selectedItemClasses || '');
+  readonly disabledItemClasses = computed<string>(() => this.config()?.disabledItemClasses || '');
   readonly menuContainerClasses = computed<string>(() => this.config()?.menuContainerClasses || '');
   readonly menuNavClasses = computed<string>(() => this.config()?.menuNavClasses || '');
   readonly menuListClasses = computed<string>(() => this.config()?.menuListClasses || '');
+  readonly triggerRole = computed<string | undefined>(() => this.config()?.triggerRole || undefined);
+  readonly ariaLabel = computed<string | undefined>(() => this.config()?.ariaLabel || undefined);
+  readonly menuId = computed<string>(() => this.config()?.menuId?.trim() || this.defaultMenuId);
+  readonly menuRole = computed<'menu' | 'listbox'>(() => this.config()?.menuRole ?? 'menu');
+  readonly itemRole = computed<'menuitem' | 'option'>(() => this.config()?.itemRole ?? 'menuitem');
+  readonly selectedItemId = computed<string>(() => {
+    const raw = this.resolveMaybeThunk(this.config()?.selectedItemId);
+    return raw == null ? '' : String(raw).trim();
+  });
   readonly renderMode = computed<'overlay' | 'inline'>(() => this.config()?.renderMode ?? 'overlay');
   readonly menuContainerId = computed<string | null>(() => this.config()?.menuContainerId ?? null);
   readonly normalizedItems = computed<readonly DropdownItem[]>(() => {
@@ -90,6 +104,15 @@ export class GenericDropdown {
 
   toggle(): void {
     this.opened() ? this.close() : this.open();
+  }
+
+  private classTokens(value: string | null | undefined): string[] | undefined {
+    const tokens = String(value ?? '')
+      .split(/\s+/)
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+
+    return tokens.length > 0 ? tokens : undefined;
   }
 
   open(): void {
@@ -156,7 +179,7 @@ export class GenericDropdown {
       // For full-viewport menus, avoid CDK "push" adjusting our left alignment.
       push: matchWidth === 'viewport' ? false : undefined,
       disableFlexibleDimensions: matchWidth === 'viewport' ? true : undefined,
-      panelClass: (cfg?.menuContainerClasses || '').trim() || undefined,
+      panelClass: this.classTokens(cfg?.menuContainerClasses),
     });
 
     const portal = new TemplatePortal(
@@ -189,7 +212,7 @@ export class GenericDropdown {
   }
 
   handleSelect(it: DropdownItem): void {
-    if (it.disabled) return;
+    if (this.itemDisabled(it)) return;
 
     const normalized = this.normalizedItem(it);
     this.selectItem.emit(normalized);
@@ -319,6 +342,25 @@ export class GenericDropdown {
   private isDisabled(el: Element | null | undefined): boolean {
     if (!el) return true;
     return el.getAttribute('aria-disabled') === 'true';
+  }
+
+  itemDisabled(item: DropdownItem): boolean {
+    return Boolean(this.resolveMaybeThunk(item.disabled) ?? false);
+  }
+
+  isSelectedItem(item: DropdownItem): boolean {
+    const selected = this.selectedItemId();
+    if (!selected) return false;
+
+    return selected === this.itemValue(item) || selected === item.id;
+  }
+
+  itemClasses(item: DropdownItem): string {
+    return [
+      this.itemLinkClasses(),
+      this.isSelectedItem(item) ? this.selectedItemClasses() : '',
+      this.itemDisabled(item) ? this.disabledItemClasses() : '',
+    ].filter(Boolean).join(' ');
   }
 
   resolveMaybeThunk(value: unknown): unknown {

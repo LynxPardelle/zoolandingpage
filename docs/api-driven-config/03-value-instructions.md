@@ -200,6 +200,31 @@ Why this pattern:
 - avoids malformed class strings when one fragment is empty
 - scales to multiple dynamic class fragments with stable output
 
+### Scoped interaction state
+
+Use `scope` or `scopeOr` inside an `interaction-scope` subtree when a component needs live field values, validation state, or computed outputs.
+
+Examples:
+
+```text
+set:config.helperText,scopeOr,fields.email.errors.0,''
+set:config.text,scopeOr,computed.monthlyIncrease,0
+set:config.ariaLabel,scope,meta.scopeId
+```
+
+Available path roots inside a scope:
+
+- `values.<fieldId>`
+- `fields.<fieldId>.value`
+- `fields.<fieldId>.errors`
+- `fields.<fieldId>.valid`
+- `computed.<resultId>`
+- `meta.scopeId`
+- `meta.submitted`
+- `meta.valid`
+
+If there is no active `interaction-scope` host, `scope` resolves to `undefined` and `scopeOr` falls back to its second argument.
+
 ## Authoring rules
 
 - Prefer one `valueInstructions` string per component.

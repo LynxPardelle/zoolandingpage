@@ -132,12 +132,12 @@ The foundation is now rock-solid and ready for building upon!
 
 - Initial browser total: ~636.44 kB (warn vs budget 500 kB)
 - Initial transfer size (est.): ~170.68 kB
-- Lazy chunks created: conversion-calculator (~12.4 kB), faq-section (~4 kB)
+- Lazy chunks created: faq-section (~4 kB) plus other non-critical interactive sections
 - anyComponentStyle warning: toast.component.scss exceeded by ~9 bytes
 
 ### Actions
 
-- Deferred Conversion Calculator, FAQ, Interactive Process, and Testimonials with placeholders to move work off the initial path.
+- Deferred FAQ, Interactive Process, and Testimonials with placeholders to move work off the initial path.
 - Kept budgets as-is to drive further improvements; next iteration can target trimming styles and splitting non-critical modules.
 
 ### Next

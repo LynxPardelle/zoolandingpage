@@ -1,3 +1,5 @@
+import type { TGenericInputConfig } from '../components/generic-input/generic-input.types';
+import type { TInteractionScopeConfig } from '../components/interaction-scope/interaction-scope.types';
 import type { TThemeVariableConfig } from './theme.types';
 
 export type TDraftLanguageDefinition = {
@@ -29,6 +31,9 @@ export type TComponentsPayload = {
     readonly domain: string;
     readonly components: Record<string, unknown>;
 };
+
+export type TInputComponentPayload = TGenericInputConfig;
+export type TInteractionScopeComponentPayload = TInteractionScopeConfig;
 
 export type TAngoraCombosPayload = {
     readonly version: number;

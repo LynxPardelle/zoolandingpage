@@ -294,7 +294,6 @@ This revision reflects the recent refactor where the monolithic `AppComponent` l
 - ✅ FeaturesSection (`features-section` wrapping multiple `feature-card`)
 - ✅ InteractiveProcess (`interactive-process`)
 - ✅ ServicesSection (`services-section`)
-- ✅ RoiCalculatorSection (`conversion-calculator-section`)
 - ✅ TestimonialsSection (`testimonials-section`)
 - ✅ FinalCtaSection (`final-cta-section`)
 - ✅ FeatureCard / TestimonialCard (card-level components consumed inside sections)
@@ -342,7 +341,7 @@ Action: Create a retrofit sub-task to add these artifacts without changing runti
 
 - Each implemented component has: types/constants files and <80 line main component file.
 - No direct analytics console logs in UI components (service abstraction instead).
-- Button component centralizes variants (primary/secondary/outline) consumed by Hero, Final CTA, Conversion calculator CTA.
+- Button component centralizes variants (primary/secondary/outline) consumed by Hero, Final CTA, and future authored interaction CTAs.
 - Lint & type checks pass after refactor of atomic files.
 
 ### H. Risks / Mitigation (New)
@@ -355,7 +354,7 @@ Action: Create a retrofit sub-task to add these artifacts without changing runti
 
 ### I. Immediate Next Actions (Actionable To-Do)
 
-1. Generate types/constants skeleton for: conversion-note, features-section, interactive-process, services-section, conversion-calculator-section, testimonials-section, final-cta-section.
+1. Generate types/constants skeleton for: conversion-note, features-section, interactive-process, services-section, testimonials-section, final-cta-section.
 2. Create `button` component (variants + size + disabled + loading props) and migrate existing buttons.
 3. Add analytics service + directive scaffolding (no external provider yet – just console with structured payload to ease future integration).
 4. Update plan documents for Task 1 & Task 2 to reference newly added components (pending after skeleton creation to keep alignment).

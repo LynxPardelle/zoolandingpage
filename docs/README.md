@@ -127,7 +127,7 @@ Zoolandingpage serves dual purposes:
 - **Sketch-style Animations**: Hand-drawn feel for tutorial sections
 - **Interactive Wireframe Builder**: Let visitors create mini landing pages
 - **Live Analytics Dashboard**: Real-time visitor behavior (anonymized)
-- **Conversion Calculator**: Conversion estimator based on business metrics
+- **Generic Interaction Scopes**: Reusable local state system for authored forms, calculators, and other dynamic experiences
 
 ### 🔧 Technical Features
 

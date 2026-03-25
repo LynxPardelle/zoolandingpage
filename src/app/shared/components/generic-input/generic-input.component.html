@@ -1,0 +1,131 @@
+<div [class]="classes()">
+  @if (label()) {
+  <generic-text [config]="labelTextConfig()"></generic-text>
+  } @if (description()) {
+  <generic-text [config]="descriptionTextConfig()"></generic-text>
+  } @switch (controlType()) { @case ('button-group') {
+  <div [class]="optionContainerClasses()">
+    @for (option of options(); track option.value) {
+    <generic-button
+      [config]="{
+        type: 'button',
+        classes: optionClasses() + (isOptionSelected(option) ? ' ' + activeOptionClasses() : ''),
+        disabled: optionDisabled(option),
+        ariaLabel: optionLabel(option),
+        ariaSelected: isOptionSelected(option)
+      }"
+      (pressed)="onButtonGroupSelect(option)"
+    >
+      <generic-text [config]="{ tag: 'span', text: optionLabel(option) }"></generic-text>
+      @if (optionDescription(option)) {
+      <generic-text [config]="{ tag: 'small', text: optionDescription(option) }"></generic-text>
+      }
+    </generic-button>
+    }
+  </div>
+  } @case ('select') {
+  <div [class]="fieldClasses() || 'ank-width-100per'">
+    <generic-dropdown [items]="dropdownItems()" [config]="dropdownConfig()" (selectItem)="onDropdownSelect($event)">
+      <div
+        trigger
+        class="ank-width-100per ank-display-flex ank-alignItems-center ank-justifyContent-spaceBetween ank-gap-12px"
+      >
+        <generic-text [config]="dropdownTriggerTextConfig()"></generic-text>
+        <span
+          class="ank-display-inlineFlex ank-alignItems-center ank-justifyContent-center ank-flexShrink-0 ank-fontSize-0_9rem ank-color-secondaryTitleColor"
+          aria-hidden="true"
+          >▾</span
+        >
+      </div>
+    </generic-dropdown>
+  </div>
+  } @case ('checkbox') {
+  <label [class]="fieldClasses()">
+    <input
+      [id]="fieldId()"
+      [name]="name()"
+      type="checkbox"
+      [checked]="currentBooleanValue()"
+      [disabled]="disabled()"
+      [class]="inputClasses()"
+      [attr.aria-label]="ariaLabel() || label()"
+      (change)="onCheckboxInput($event)"
+      (blur)="onBlur()"
+    />
+    <generic-text [config]="checkboxTextConfig()"></generic-text>
+  </label>
+  } @case ('range') {
+  <div [class]="fieldClasses()">
+    <input
+      [id]="fieldId()"
+      [name]="name()"
+      type="range"
+      [value]="currentNumberValue()"
+      [min]="min()"
+      [max]="max()"
+      [step]="step()"
+      [disabled]="disabled()"
+      [class]="inputClasses()"
+      [attr.aria-label]="ariaLabel() || label()"
+      (input)="onNumberInput($event)"
+      (blur)="onBlur()"
+    />
+    @if (showRangeValue()) {
+    <generic-text [config]="rangeValueTextConfig()"></generic-text>
+    }
+  </div>
+  } @case ('number') {
+  <input
+    [id]="fieldId()"
+    [name]="name()"
+    type="number"
+    [value]="currentNumberValue()"
+    [min]="min()"
+    [max]="max()"
+    [step]="step()"
+    [disabled]="disabled()"
+    [readOnly]="readOnly()"
+    [placeholder]="placeholder()"
+    [class]="fieldClasses() + ' ' + inputClasses()"
+    [attr.aria-label]="ariaLabel() || label()"
+    (input)="onNumberInput($event)"
+    (blur)="onBlur()"
+  />
+  } @case ('textarea') {
+  <textarea
+    [id]="fieldId()"
+    [name]="name()"
+    [value]="currentTextValue()"
+    [rows]="rows() ?? 4"
+    [disabled]="disabled()"
+    [readOnly]="readOnly()"
+    [placeholder]="placeholder()"
+    [class]="fieldClasses() + ' ' + inputClasses()"
+    [attr.aria-label]="ariaLabel() || label()"
+    (input)="onTextInput($event)"
+    (blur)="onBlur()"
+  ></textarea>
+  } @default {
+  <input
+    [id]="fieldId()"
+    [name]="name()"
+    [type]="inputType()"
+    [value]="currentTextValue()"
+    [disabled]="disabled()"
+    [readOnly]="readOnly()"
+    [placeholder]="placeholder()"
+    [class]="fieldClasses() + ' ' + inputClasses()"
+    [attr.aria-label]="ariaLabel() || label()"
+    (input)="onTextInput($event)"
+    (blur)="onBlur()"
+  />
+  } } @if (helperText() && controlType() !== 'checkbox') {
+  <generic-text [config]="helperTextConfig()"></generic-text>
+  } @if (visibleErrors().length > 0) {
+  <div [class]="errorClasses()">
+    @for (error of visibleErrors(); track error) {
+    <generic-text [config]="errorTextConfig(error)"></generic-text>
+    }
+  </div>
+  }
+</div>

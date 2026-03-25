@@ -463,9 +463,9 @@ export class ConfigurationsOrchestratorService {
         return collectAllClassesFromComponents(Array.from(this.resolveLoopComponents(false).values()));
     }
 
-    handleComponentEvent(event: ComponentEvent): void {
+    handleComponentEvent(event: ComponentEvent, host?: unknown): void {
         this.componentEventDispatcher.dispatch(
-            { event, host: this },
+            { event, host: host ?? this },
             {},
         );
     }

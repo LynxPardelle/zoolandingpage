@@ -12,6 +12,9 @@ export const DEFAULT_ALLOWED_EVENT_IDS = [
     'toggleTheme',
     'toggleLanguage',
     'setLanguage',
+    'setScopeValue',
+    'resetScope',
+    'submitScope',
     'openFooterTerms',
     'openFooterData',
     // [MODALS-8]

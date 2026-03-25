@@ -34,7 +34,7 @@ Zoolandingpage is a meta-landing page designed to showcase landing page creation
 - **Sketch-style Animations**: Hand-drawn feel for tutorial sections
 - **Interactive Wireframe Builder**: Let visitors create a mini landing page
 - **Live Analytics Dashboard**: Show real-time visitor behavior (anonymized)
-- **Conversion Calculator**: Conversion estimator based on business size and industry
+- **Generic Interaction Foundation**: Local-scope state model for authored calculators, forms, and future dynamic experiences
 
 ## Technical Architecture
 

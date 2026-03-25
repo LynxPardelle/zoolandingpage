@@ -3,6 +3,241 @@
   "title": "ComponentsPayload",
   "description": "Schema for API or draft JSON component payloads. Child composition in JSON should stay ID-based; inline nested component objects are a runtime TypeScript composition feature and are intentionally out of scope for this payload schema.",
   "type": "object",
+  "definitions": {
+    "interactionNumericSource": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["source", "fieldId"],
+          "properties": {
+            "source": { "const": "field" },
+            "fieldId": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["source", "value"],
+          "properties": {
+            "source": { "const": "literal" },
+            "value": { "type": "number" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "interactionComputationStep": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["op", "value"],
+          "properties": {
+            "op": { "enum": ["add", "subtract", "multiply", "divide", "min", "max"] },
+            "value": { "$ref": "#/definitions/interactionNumericSource" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["op"],
+          "properties": {
+            "op": { "const": "clamp" },
+            "min": { "type": "number" },
+            "max": { "type": "number" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["op"],
+          "properties": {
+            "op": { "const": "round" },
+            "precision": { "type": "number" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["op"],
+          "properties": {
+            "op": { "enum": ["abs", "floor", "ceil"] }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "interactionComputedDefinition": {
+      "type": "object",
+      "required": ["resultId", "initial"],
+      "properties": {
+        "resultId": { "type": "string" },
+        "initial": { "$ref": "#/definitions/interactionNumericSource" },
+        "steps": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/interactionComputationStep" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "interactionValidationRule": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": { "enum": ["required", "email"] },
+            "message": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["type", "value"],
+          "properties": {
+            "type": { "enum": ["min", "max", "minLength", "maxLength"] },
+            "value": { "type": "number" },
+            "message": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["type", "value"],
+          "properties": {
+            "type": { "const": "pattern" },
+            "value": { "type": "string" },
+            "flags": { "type": "string" },
+            "message": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "genericInputOption": {
+      "type": "object",
+      "required": ["value", "label"],
+      "properties": {
+        "value": { "type": ["string", "number", "boolean"] },
+        "label": { "type": "string" },
+        "description": { "type": "string" },
+        "disabled": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "genericInputConfig": {
+      "type": "object",
+      "required": ["fieldId", "controlType"],
+      "properties": {
+        "fieldId": { "type": "string" },
+        "controlType": { "enum": ["text", "textarea", "number", "range", "checkbox", "select", "button-group"] },
+        "inputType": { "enum": ["text", "email", "password", "search", "tel", "url"] },
+        "name": { "type": "string" },
+        "label": { "type": "string" },
+        "description": { "type": "string" },
+        "helperText": { "type": "string" },
+        "placeholder": { "type": "string" },
+        "ariaLabel": { "type": "string" },
+        "classes": { "type": "string" },
+        "labelClasses": { "type": "string" },
+        "descriptionClasses": { "type": "string" },
+        "helperTextClasses": { "type": "string" },
+        "fieldClasses": { "type": "string" },
+        "inputClasses": { "type": "string" },
+        "optionContainerClasses": { "type": "string" },
+        "optionClasses": { "type": "string" },
+        "activeOptionClasses": { "type": "string" },
+        "errorClasses": { "type": "string" },
+        "valuePrefix": { "type": "string" },
+        "valueSuffix": { "type": "string" },
+        "showRangeValue": { "type": "boolean" },
+        "options": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/genericInputOption" }
+        },
+        "min": { "type": "number" },
+        "max": { "type": "number" },
+        "step": { "type": "number" },
+        "rows": { "type": "number" },
+        "required": { "type": "boolean" },
+        "disabled": { "type": "boolean" },
+        "readOnly": { "type": "boolean" },
+        "validation": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/interactionValidationRule" }
+        }
+      },
+      "additionalProperties": true
+    },
+    *** Add File: c:\Users\lince\Documents\GitHub\zoolandingpage\src\app\shared\utility\value-handler\handlers\json.value-handlers.ts
+    import type { ValueHandler } from '../value-handler.types';
+
+    const escapeHtml = (value: string): string =>
+      value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+    export const jsonValueHandler = (): ValueHandler => ({
+      id: 'json',
+      resolve: (_ctx, args) => {
+        const value = args?.[0];
+        const spacingArg = args?.[1];
+        const shouldEscape = Boolean(args?.[2] ?? false);
+        const spacing = Number.isFinite(Number(spacingArg))
+          ? Math.max(0, Math.min(8, Number(spacingArg)))
+          : 0;
+
+        if (value === undefined) return '';
+
+        try {
+          const serialized = JSON.stringify(value, null, spacing);
+          if (serialized == null) return '';
+          return shouldEscape ? escapeHtml(serialized) : serialized;
+        } catch {
+          return '';
+        }
+      },
+    });
+    *** Add File: c:\Users\lince\Documents\GitHub\zoolandingpage\src\app\shared\utility\value-handler\handlers\json.value-handlers.spec.ts
+    import { jsonValueHandler } from './json.value-handlers';
+
+    describe('json.value-handlers', () => {
+      it('stringifies values with spacing and optional HTML escaping', () => {
+        const handler = jsonValueHandler();
+
+        const escaped = handler.resolve({} as never, [{ note: '<strong>test</strong>' }, 2, true]);
+        const raw = handler.resolve({} as never, [{ ok: true }, 0, false]);
+
+        expect(String(escaped)).toContain('&lt;strong&gt;test&lt;/strong&gt;');
+        expect(String(escaped)).toContain('&quot;note&quot;');
+        expect(raw).toBe('{"ok":true}');
+      });
+    });
+    "interactionScopeConfig": {
+      "type": "object",
+      "properties": {
+        "scopeId": { "type": "string" },
+        "id": { "type": "string" },
+        "tag": { "enum": ["div", "section", "form"] },
+        "classes": { "type": "string" },
+        "role": { "type": "string" },
+        "ariaLabel": { "type": "string" },
+        "components": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "initialValues": { "type": "object" },
+        "computations": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/interactionComputedDefinition" }
+        },
+        "submitEventInstructions": { "type": "string" }
+      },
+      "additionalProperties": true
+    }
+  },
   "required": ["version", "pageId", "domain", "components"],
   "properties": {
     "version": { "type": "integer", "minimum": 1 },
@@ -61,6 +296,34 @@
             "additionalProperties": true
           }
         },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "type": { "const": "input" }
+              }
+            },
+            "then": {
+              "properties": {
+                "config": { "$ref": "#/definitions/genericInputConfig" }
+              },
+              "required": ["config"]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": { "const": "interaction-scope" }
+              }
+            },
+            "then": {
+              "properties": {
+                "config": { "$ref": "#/definitions/interactionScopeConfig" }
+              },
+              "required": ["config"]
+            }
+          }
+        ],
         "additionalProperties": true
       }
     }

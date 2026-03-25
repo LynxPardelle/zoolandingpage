@@ -5,6 +5,9 @@ export type DropdownItem = {
     readonly value?: string | (() => string);
 };
 
+export type DropdownMenuRole = 'menu' | 'listbox';
+export type DropdownItemRole = 'menuitem' | 'option';
+
 export type MenuTemplateContext = {
     readonly items: readonly DropdownItem[];
     readonly select: (item: DropdownItem) => void;
@@ -15,8 +18,11 @@ export type DropdownConfig = {
     readonly ariaLabel?: string;
     readonly classes?: string;
     readonly buttonClasses?: string;
+    readonly triggerRole?: string;
     /** Classes applied to the <a role="menuitem"> element. */
     readonly itemLinkClasses?: string;
+    readonly selectedItemClasses?: string;
+    readonly disabledItemClasses?: string;
 
     /** Classes applied to the dropdown menu container (wraps nav+ul). */
     readonly menuContainerClasses?: string;
@@ -24,6 +30,10 @@ export type DropdownConfig = {
     readonly menuNavClasses?: string;
     /** Classes applied to the <ul> list element inside the menu. */
     readonly menuListClasses?: string;
+    readonly menuId?: string;
+    readonly menuRole?: DropdownMenuRole;
+    readonly itemRole?: DropdownItemRole;
+    readonly selectedItemId?: string | (() => string);
 
     /** Rendering mode: overlay (CDK overlay) or inline (in-place DOM). */
     readonly renderMode?: 'overlay' | 'inline';

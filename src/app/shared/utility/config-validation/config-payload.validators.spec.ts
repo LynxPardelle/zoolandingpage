@@ -33,6 +33,84 @@ describe('config-payload.validators', () => {
         expect(isComponentsPayload(valid)).toBeTrue();
     });
 
+    it('accepts interaction-scope and input component payloads', () => {
+        const valid = {
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            components: {
+                leadScope: {
+                    id: 'leadScope',
+                    type: 'interaction-scope',
+                    config: {
+                        scopeId: 'leadForm',
+                        tag: 'form',
+                        components: ['emailField'],
+                        computations: [
+                            {
+                                resultId: 'score',
+                                initial: { source: 'literal', value: 10 },
+                                steps: [{ op: 'multiply', value: { source: 'literal', value: 2 } }],
+                            },
+                        ],
+                    },
+                },
+                emailField: {
+                    id: 'emailField',
+                    type: 'input',
+                    config: {
+                        fieldId: 'email',
+                        controlType: 'text',
+                        validation: [{ type: 'email' }],
+                    },
+                },
+            },
+        };
+
+        expect(isComponentsPayload(valid)).toBeTrue();
+    });
+
+    it('accepts textarea input payloads', () => {
+        const valid = {
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            components: {
+                messageField: {
+                    id: 'messageField',
+                    type: 'input',
+                    config: {
+                        fieldId: 'message',
+                        controlType: 'textarea',
+                        rows: 6,
+                        validation: [{ type: 'minLength', value: 20 }],
+                    },
+                },
+            },
+        };
+
+        expect(isComponentsPayload(valid)).toBeTrue();
+    });
+
+    it('rejects invalid input payload shape', () => {
+        const invalid = {
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            components: {
+                brokenField: {
+                    id: 'brokenField',
+                    type: 'input',
+                    config: {
+                        controlType: 'text',
+                    },
+                },
+            },
+        };
+
+        expect(isComponentsPayload(invalid)).toBeFalse();
+    });
+
     it('validates variables payloads', () => {
         const valid = {
             version: 1,

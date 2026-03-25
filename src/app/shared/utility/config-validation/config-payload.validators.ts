@@ -55,6 +55,135 @@ const isDraftI18nVariableConfig = (value: unknown): boolean => {
 const isNumberArray = (value: unknown): value is readonly number[] =>
     Array.isArray(value) && value.every((item) => typeof item === 'number' && Number.isFinite(item));
 
+const isStringThunkFriendly = (value: unknown): boolean =>
+    value === undefined || typeof value === 'string';
+
+const isInteractionValidationRule = (value: unknown): boolean => {
+    if (!isRecord(value) || typeof value['type'] !== 'string') return false;
+
+    switch (value['type']) {
+        case 'required':
+        case 'email':
+            return value['message'] === undefined || typeof value['message'] === 'string';
+        case 'min':
+        case 'max':
+        case 'minLength':
+        case 'maxLength':
+            return typeof value['value'] === 'number' && Number.isFinite(value['value']);
+        case 'pattern':
+            return typeof value['value'] === 'string' && (value['flags'] === undefined || typeof value['flags'] === 'string');
+        default:
+            return false;
+    }
+};
+
+const isInteractionNumericSource = (value: unknown): boolean => {
+    if (!isRecord(value) || typeof value['source'] !== 'string') return false;
+    if (value['source'] === 'field') {
+        return typeof value['fieldId'] === 'string' && value['fieldId'].trim().length > 0;
+    }
+    if (value['source'] === 'literal') {
+        return typeof value['value'] === 'number' && Number.isFinite(value['value']);
+    }
+    return false;
+};
+
+const isInteractionComputationStep = (value: unknown): boolean => {
+    if (!isRecord(value) || typeof value['op'] !== 'string') return false;
+    switch (value['op']) {
+        case 'add':
+        case 'subtract':
+        case 'multiply':
+        case 'divide':
+        case 'min':
+        case 'max':
+            return isInteractionNumericSource(value['value']);
+        case 'clamp':
+            return (
+                (value['min'] === undefined || (typeof value['min'] === 'number' && Number.isFinite(value['min']))) &&
+                (value['max'] === undefined || (typeof value['max'] === 'number' && Number.isFinite(value['max'])))
+            );
+        case 'round':
+            return value['precision'] === undefined || (typeof value['precision'] === 'number' && Number.isFinite(value['precision']));
+        case 'abs':
+        case 'floor':
+        case 'ceil':
+            return true;
+        default:
+            return false;
+    }
+};
+
+const isInteractionComputedDefinition = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (typeof value['resultId'] !== 'string' || value['resultId'].trim().length === 0) return false;
+    if (!isInteractionNumericSource(value['initial'])) return false;
+    if (value['steps'] !== undefined && (!Array.isArray(value['steps']) || !value['steps'].every(isInteractionComputationStep))) {
+        return false;
+    }
+    return true;
+};
+
+const isGenericInputOptionConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!isStringThunkFriendly(value['label'])) return false;
+    if (value['description'] !== undefined && !isStringThunkFriendly(value['description'])) return false;
+    return 'value' in value;
+};
+
+const isGenericInputConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (typeof value['fieldId'] !== 'string' || value['fieldId'].trim().length === 0) return false;
+
+    const controlType = value['controlType'];
+    if (!['text', 'textarea', 'number', 'range', 'checkbox', 'select', 'button-group'].includes(String(controlType ?? ''))) {
+        return false;
+    }
+
+    if (value['options'] !== undefined && (!Array.isArray(value['options']) || !value['options'].every(isGenericInputOptionConfig))) {
+        return false;
+    }
+
+    if (value['validation'] !== undefined && (!Array.isArray(value['validation']) || !value['validation'].every(isInteractionValidationRule))) {
+        return false;
+    }
+
+    return true;
+};
+
+const isInteractionScopeConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (value['scopeId'] !== undefined && typeof value['scopeId'] !== 'string') return false;
+    if (value['id'] !== undefined && typeof value['id'] !== 'string') return false;
+    if (value['tag'] !== undefined && !['div', 'section', 'form'].includes(String(value['tag']))) return false;
+    if (value['components'] !== undefined && !isStringArray(value['components'])) return false;
+    if (value['initialValues'] !== undefined && !isRecord(value['initialValues'])) return false;
+    if (value['submitEventInstructions'] !== undefined && typeof value['submitEventInstructions'] !== 'string') return false;
+    if (value['computations'] !== undefined && (!Array.isArray(value['computations']) || !value['computations'].every(isInteractionComputedDefinition))) {
+        return false;
+    }
+    return true;
+};
+
+const isComponentPayloadRecord = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (typeof value['id'] !== 'string' || value['id'].trim().length === 0) return false;
+    if (typeof value['type'] !== 'string' || value['type'].trim().length === 0) return false;
+    if (value['condition'] !== undefined && typeof value['condition'] !== 'string' && typeof value['condition'] !== 'boolean') return false;
+    if (value['valueInstructions'] !== undefined && typeof value['valueInstructions'] !== 'string') return false;
+    if (value['eventInstructions'] !== undefined && typeof value['eventInstructions'] !== 'string') return false;
+
+    if (value['type'] === 'input') {
+        return isGenericInputConfig(value['config']);
+    }
+
+    if (value['type'] === 'interaction-scope') {
+        return isInteractionScopeConfig(value['config']);
+    }
+
+    return true;
+};
+
 const isInteractiveProcessStepVariableConfig = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
 
@@ -162,7 +291,7 @@ export const isComponentsPayload = (value: unknown): value is TComponentsPayload
     if (typeof value['pageId'] !== 'string') return false;
     if (typeof value['domain'] !== 'string') return false;
     if (!isRecord(value['components'])) return false;
-    return true;
+    return Object.values(value['components']).every(isComponentPayloadRecord);
 };
 
 export const isAngoraCombosPayload = (value: unknown): value is TAngoraCombosPayload => {

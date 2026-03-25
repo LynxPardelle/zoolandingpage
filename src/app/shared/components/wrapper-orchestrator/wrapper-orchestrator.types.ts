@@ -7,10 +7,12 @@ import { TGenericContainerConfig } from "../generic-container/generic-container.
 import type { DropdownConfig, DropdownItem } from "../generic-dropdown/generic-dropdown.types";
 import { GenericFeatureCardConfig } from "../generic-feature-card/generic-feature-card.types";
 import { TGenericIconConfig } from "../generic-icon/generic-icon.types";
+import type { TGenericInputConfig } from "../generic-input/generic-input.types";
 import { TGenericLinkConfig } from "../generic-link/generic-link.types";
 import type { TGenericMediaConfig } from "../generic-media/generic-media.types";
 import type { TestimonialCardConfig } from "../generic-testimonial-card/generic-testimonial-card.types";
 import { TGenericTextConfig } from "../generic-text/generic-text.types";
+import type { TInteractionScopeConfig } from "../interaction-scope/interaction-scope.types";
 
 export type TInteractiveProcessConfig = {
     readonly process?: readonly ProcessStep[] | readonly ProcessStepVariableConfig[] | (() => readonly ProcessStep[] | readonly ProcessStepVariableConfig[]);
@@ -51,6 +53,7 @@ export type TGenericComponentType =
     | 'dropdown'
     | 'feature-card'
     | 'icon'
+    | 'interaction-scope'
     | 'interactive-process'
     | 'link'
     | 'media'
@@ -102,6 +105,14 @@ export type TGenericComponent = {
         {
             readonly type: 'icon';
             readonly config: TGenericIconConfig;
+        } |
+        {
+            readonly type: 'input';
+            readonly config: TGenericInputConfig;
+        } |
+        {
+            readonly type: 'interaction-scope';
+            readonly config: TInteractionScopeConfig;
         } |
         {
             readonly type: 'container';

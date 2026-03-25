@@ -15,6 +15,7 @@ import {
 } from './handlers/consent.handlers';
 import { downloadDraftPayloadsHandler, writeDraftsToDiskHandler } from './handlers/debug-drafts.handlers';
 import { showDemoModalHandler } from './handlers/demo-modal.handlers';
+import { resetScopeHandler, setScopeValueHandler, submitScopeHandler } from './handlers/interaction-scope.handlers';
 import { setInteractiveProcessStepHandler } from './handlers/interactive-process.handlers';
 import {
     closeModalHandler,
@@ -51,6 +52,9 @@ export const provideEventHandlers = (): Provider[] => {
         { provide: EVENT_HANDLERS, multi: true, useFactory: toggleThemeHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: toggleLanguageHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: setLanguageHandler },
+        { provide: EVENT_HANDLERS, multi: true, useFactory: setScopeValueHandler },
+        { provide: EVENT_HANDLERS, multi: true, useFactory: resetScopeHandler },
+        { provide: EVENT_HANDLERS, multi: true, useFactory: submitScopeHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: openFooterTermsHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: openFooterDataHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: closeModalHandler },

@@ -1,1 +1,12 @@
-/* Empty: layout handled by Angora classes in template; keep for animations/media-only if needed. */
+.dropdown-menu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dropdown-menu-item {
+  display: block;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}

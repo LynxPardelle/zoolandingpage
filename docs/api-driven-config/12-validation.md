@@ -173,6 +173,42 @@ Checks:
 - Verify stats counter `valueInstructions` include `varOr` + host fallback chain.
 - Verify allowlist includes `numberClamp` and `statsFormatVar`.
 
+### Input fields do not react to each other
+
+Symptoms:
+
+- One field updates, but sibling outputs or helper text do not react.
+
+Checks:
+
+- Verify the related components are rendered inside the same `interaction-scope` subtree.
+- Verify `valueInstructions` use `scope` / `scopeOr` rather than `var` / `varOr` for local interaction state.
+- Verify each `input` config has a non-empty `fieldId`.
+
+### Interaction scope submission does nothing
+
+Symptoms:
+
+- Submit button renders, but no submit-side effects happen.
+
+Checks:
+
+- Verify the host component type is `interaction-scope` with `config.tag = 'form'` when using native submit buttons.
+- Verify `config.submitEventInstructions` is present when submit should trigger orchestrated actions.
+- Verify the relevant event handler IDs are allowlisted (`submitScope`, `resetScope`, `setScopeValue` when used).
+
+### Computed outputs stay at zero or produce invalid values
+
+Symptoms:
+
+- Result text or stats counters never move off fallback values.
+
+Checks:
+
+- Verify each computation definition includes `resultId` and `initial`.
+- Verify numeric steps use valid `field` or `literal` sources.
+- Verify divide steps do not depend on a zero denominator unless the fallback behavior is intentional.
+
 ### labelKey / ariaLabelKey not applied
 
 Symptoms:

@@ -98,6 +98,36 @@ Runtime note:
 - That capability is for local/runtime composition only.
 - `components.json` should continue using string IDs so payloads stay serializable and stable.
 
+## Interaction scopes and inputs
+
+Stateful authored interactions should use an `interaction-scope` component as the local runtime boundary.
+
+- `interaction-scope` owns local field state, validation state, and computed outputs for one wrapper subtree.
+- `input` components should live inside the nearest `interaction-scope` so sibling components can react to shared local state without using global runtime services.
+- Existing display components such as `text`, `stats-counter`, `button`, and `container` can read scoped values through `valueInstructions`.
+
+Recommended pattern:
+
+```ts
+{
+  id: 'leadFormScope',
+  type: 'interaction-scope',
+  config: {
+    scopeId: 'leadForm',
+    tag: 'form',
+    classes: 'ank-display-flex ank-flex-column ank-gap-1rem',
+    components: ['leadNameInput', 'leadEmailInput', 'leadSubmitButton'],
+    submitEventInstructions: 'trackCTAClick:event.meta_title,submit,lead-form',
+  },
+}
+```
+
+For API mode:
+
+- Keep field configs JSON-serializable.
+- Use `valueInstructions` for labels, helper text, defaults, and computed output binding.
+- Keep user-entered values inside the local interaction scope rather than `variables.json` unless the value is a true persisted default.
+
 ## Configuration authoring rules (API-friendly)
 
 ### Avoid inline lambdas
@@ -118,6 +148,7 @@ Common cases:
 - i18n labels
 - language/theme switches
 - env-based values
+- scoped interaction state (`scope`, `scopeOr`) inside `interaction-scope`
 
 ### Prefer IDs over deep copies
 

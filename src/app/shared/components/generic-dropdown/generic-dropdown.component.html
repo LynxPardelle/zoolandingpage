@@ -2,9 +2,11 @@
   <generic-button
     [config]="{
       type: 'button',
+      role: triggerRole(),
+      ariaLabel: ariaLabel(),
       ariaExpanded: opened(),
       ariaHaspopup: true,
-      ariaControls: opened() ? 'dd-menu' : undefined,
+      ariaControls: opened() ? menuId() : undefined,
       ariaActiveDescendant: opened() && activeIndex() > -1 ? 'dd-opt-' + activeIndex() : undefined,
       classes: buttonClasses()
     }"
@@ -13,18 +15,19 @@
     <ng-content select="[trigger]"></ng-content>
   </generic-button>
   <ng-template #defaultMenuTpl let-items="items" let-select="select">
-    <nav [class]="menuNavClasses()">
-      <ul id="dd-menu" role="menu" [class]="menuListClasses()">
+    <nav [class]="menuNavClasses()" [attr.aria-label]="ariaLabel() || null">
+      <ul [id]="menuId()" [attr.role]="menuRole()" [class]="'dropdown-menu-list ' + menuListClasses()">
         @for (it of items; track it.id; let idx = $index) {
-        <li role="none">
+        <li role="none" class="dropdown-menu-item">
           <a
             [attr.id]="'dd-opt-' + idx"
-            role="menuitem"
-            [attr.aria-disabled]="it.disabled ? 'true' : null"
+            [attr.role]="itemRole()"
+            [attr.aria-disabled]="itemDisabled(it) ? 'true' : null"
+            [attr.aria-selected]="menuRole() === 'listbox' ? (isSelectedItem(it) ? 'true' : 'false') : null"
             [attr.href]="itemHref(it)"
-            [class]="itemLinkClasses()"
+            [class]="itemClasses(it)"
             tabindex="-1"
-            (click)="$event.preventDefault(); !it.disabled && select(it)"
+            (click)="$event.preventDefault(); !itemDisabled(it) && select(it)"
           >
             {{ itemLabel(it) }}
           </a>

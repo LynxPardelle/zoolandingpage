@@ -9,7 +9,7 @@ Add minimal, high-value tests for Step 3 features (theme/language, analytics, mo
 - Tests
   - Header: theme/language toggles emit analytics
   - Final CTA / Services: CTA analytics events
-  - Conversion Calculator: size/industry change analytics
+  - Interaction scope flows: submit/reset/value-change analytics where configured
   - Modal Service: open/close analytics
 - Docs
   - Update analytics event catalog and usage guidance
