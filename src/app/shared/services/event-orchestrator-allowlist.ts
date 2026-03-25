@@ -27,6 +27,8 @@ export const DEFAULT_ALLOWED_EVENT_IDS = [
     'showActionToast',
     'showPositionDemo',
     'clearAllToasts',
+    'downloadDraftPayloads',
+    'writeDraftsToDisk',
     // Accessibility
     'skipToMain',
     'scrollToSection',

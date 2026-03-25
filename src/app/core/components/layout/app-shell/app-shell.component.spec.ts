@@ -33,6 +33,7 @@ const ORCHESTRATOR_STUB = {
   fallbackModalHostConfig: {},
   devDemoControlsComponents: [] as string[],
   getAllTheClassesFromComponents: () => [],
+  setDraftExportContext: jasmine.createSpy('setDraftExportContext'),
   setExternalComponentsFromPayload: jasmine.createSpy('setExternalComponentsFromPayload'),
   exportDraftComponentsPayload: () => ({
     version: 1,
@@ -70,6 +71,7 @@ describe('AppShellComponent', () => {
       },
     };
     ORCHESTRATOR_STUB.setExternalComponentsFromPayload.calls.reset();
+    ORCHESTRATOR_STUB.setDraftExportContext.calls.reset();
 
     await TestBed.configureTestingModule({
       imports: [AppShellComponent],
@@ -160,6 +162,18 @@ describe('AppShellComponent', () => {
       'zoolandingpage.com.mx / default',
     ]);
     expect(refreshButton.config.icon).toBe('refresh');
+  });
+
+  it('wraps the debug UI into a single orchestrated root component', () => {
+    const fixture = TestBed.createComponent(AppShellComponent);
+    fixture.detectChanges();
+
+    const debugWorkspace = fixture.componentInstance.debugWorkspaceComponents()[0] as any;
+    const children = debugWorkspace.config.components as any[];
+
+    expect(debugWorkspace.id).toBe('debugWorkspaceRoot');
+    expect(children.some((entry) => entry.id === 'debugDraftPanelRoot')).toBeTrue();
+    expect(children.some((entry) => entry.id === 'debugDiagnosticsPanelRoot')).toBeTrue();
   });
 
   it('clears rendered roots when draft components are invalid', async () => {
@@ -269,6 +283,12 @@ describe('AppShellComponent', () => {
     expect(fixture.componentInstance.rootComponentsIds()).toEqual(['skipToMainLink', 'siteHeader', 'landingPage', 'siteFooter']);
     expect(fixture.componentInstance.modalRootIds()).toEqual(['modalAnalyticsConsentRoot', 'modalDemoRoot', 'modalTermsRoot', 'modalDataUseRoot']);
     expect(ORCHESTRATOR_STUB.setExternalComponentsFromPayload).toHaveBeenCalledWith(bootstrapResult.components);
+    expect(ORCHESTRATOR_STUB.setDraftExportContext).toHaveBeenCalledWith({
+      domain: 'zoolandingpage.com.mx',
+      pageId: 'default',
+      rootIds: ['skipToMainLink', 'siteHeader', 'landingPage', 'siteFooter'],
+      modalRootIds: ['modalAnalyticsConsentRoot', 'modalDemoRoot', 'modalTermsRoot', 'modalDataUseRoot'],
+    });
   });
 
   it('uses REQUEST query params when resolving the draft during SSR', async () => {

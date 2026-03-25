@@ -1,3 +1,6 @@
+import type { TComponentChild } from "@/app/shared/components/component-children.types";
+import type { GenericContainerComponentTag } from "@/app/shared/components/generic-container/generic-container.types";
+import type { GenericTextTag } from "@/app/shared/components/generic-text/generic-text.types";
 import { WrapperOrchestrator } from "@/app/shared/components/wrapper-orchestrator/wrapper-orchestrator.component";
 import { TGenericComponent } from "@/app/shared/components/wrapper-orchestrator/wrapper-orchestrator.types";
 import { AngoraCombosService } from "@/app/shared/services/angora-combos.service";
@@ -53,7 +56,9 @@ import { forwardAnalyticsEvent } from "../../../../shared/utility/forwardAnalyti
 })
 export class AppShellComponent {
   private readonly draftRefreshIntervalMs = 5000;
+  private readonly debugWorkspaceRootId = 'debugWorkspaceRoot';
   private readonly debugDraftPanelId = 'debugDraftPanelRoot';
+  private readonly debugDiagnosticsPanelId = 'debugDiagnosticsPanelRoot';
   private readonly defaultRootComponentIds = ['skipToMainLink', 'siteHeader', 'landingPage'] as const;
   private readonly defaultModalRootComponentIds = ['modalAnalyticsConsentRoot', 'modalDemoRoot', 'modalTermsRoot', 'modalDataUseRoot'] as const;
   // SEO services
@@ -194,6 +199,26 @@ export class AppShellComponent {
       ),
     ];
   });
+  readonly debugWorkspaceComponents = computed<readonly TGenericComponent[]>(() => {
+    if (!this.debugMode) {
+      return [];
+    }
+
+    const children: readonly TComponentChild[] = [
+      ...this.debugDraftPanelComponents(),
+      ...this.orchestrator.devDemoControlsComponents,
+      this.createDebugDiagnosticsPanelComponent(),
+    ];
+
+    return [
+      this.createContainerComponent(
+        this.debugWorkspaceRootId,
+        'div',
+        '',
+        children,
+      ),
+    ];
+  });
   private readonly readDepthMilestones = signal<readonly number[]>([10, 20, 30, 40, 50, 60, 70, 80, 90, 100]);
   private readonly sectionViewIds = signal<readonly string[]>([
     'home',
@@ -266,7 +291,7 @@ export class AppShellComponent {
     return `${ entry.domain } / ${ entry.pageId }`;
   }
 
-  private createTextComponent(id: string, tag: 'small' | 'p' | 'h3', text: string | (() => string), classes: string): TGenericComponent {
+  private createTextComponent(id: string, tag: GenericTextTag, text: string | (() => string), classes: string): TGenericComponent {
     return {
       id,
       type: 'text',
@@ -278,7 +303,20 @@ export class AppShellComponent {
     };
   }
 
-  private createContainerComponent(id: string, tag: 'aside' | 'div', classes: string, children: readonly TGenericComponent[]): TGenericComponent {
+  private createTranslatedTextComponent(id: string, tag: GenericTextTag, key: string, classes: string): TGenericComponent {
+    return {
+      id,
+      type: 'text',
+      valueInstructions: `set:config.text,i18n,${ key }`,
+      config: {
+        tag,
+        text: '',
+        classes,
+      },
+    };
+  }
+
+  private createContainerComponent(id: string, tag: GenericContainerComponentTag, classes: string, children: readonly TComponentChild[]): TGenericComponent {
     return {
       id,
       type: 'container',
@@ -294,12 +332,13 @@ export class AppShellComponent {
     id: string,
     label: string | (() => string),
     classes: string | (() => string),
-    pressed: (event: MouseEvent) => void,
-    options?: { icon?: string; ariaLabel?: string | (() => string); loading?: boolean | (() => boolean) }
+    pressed?: (event: MouseEvent) => void,
+    options?: { icon?: string; ariaLabel?: string | (() => string); loading?: boolean | (() => boolean); eventInstructions?: string }
   ): TGenericComponent {
     return {
       id,
       type: 'button',
+      eventInstructions: options?.eventInstructions,
       config: {
         type: 'button',
         label,
@@ -310,6 +349,83 @@ export class AppShellComponent {
         loading: options?.loading,
       },
     };
+  }
+
+  private createTranslatedEventButtonComponent(id: string, key: string, eventInstructions: string, classes: string): TGenericComponent {
+    return {
+      id,
+      type: 'button',
+      eventInstructions,
+      valueInstructions: `set:config.label,i18n,${ key }`,
+      config: {
+        type: 'button',
+        label: '',
+        classes,
+      },
+    };
+  }
+
+  private createDebugListItemComponent(id: string, text: string): TGenericComponent {
+    return this.createContainerComponent(id, 'li', '', [
+      this.createTextComponent(`${ id }Text`, 'span', text, ''),
+    ]);
+  }
+
+  private createDebugDiagnosticsPanelComponent(): TGenericComponent {
+    const actionButtonClasses = 'ank-mb-0_5rem ank-bg-transparent ank-border-1px__solid__white ank-color-white ank-borderRadius-4px ank-px-0_5rem ank-py-0_25rem ank-cursor-pointer';
+    const children: TComponentChild[] = [
+      this.createTranslatedEventButtonComponent(
+        'debugDownloadDraftPayloadsButton',
+        'ui.debugPanel.downloadDraftPayloads',
+        'downloadDraftPayloads',
+        actionButtonClasses,
+      ),
+      this.createTranslatedEventButtonComponent(
+        'debugWriteDraftsToDiskButton',
+        'ui.debugPanel.writeDraftsToDisk',
+        'writeDraftsToDisk',
+        actionButtonClasses,
+      ),
+    ];
+
+    if (this.configIssues().length > 0) {
+      children.push(
+        this.createTranslatedTextComponent(
+          'debugConfigIssuesTitle',
+          'p',
+          'ui.debugPanel.configIssues',
+          'ank-fontWeight-600 ank-mb-0_25rem',
+        ),
+        this.createContainerComponent(
+          'debugConfigIssuesList',
+          'ul',
+          'ank-m-0 ank-pl-1rem ank-mb-0_5rem',
+          this.configIssues().map((issue, index) => this.createDebugListItemComponent(`debugConfigIssue${ index }`, issue)),
+        ),
+      );
+    }
+
+    children.push(
+      this.createTranslatedTextComponent(
+        'debugAnalyticsLatestTitle',
+        'p',
+        'ui.debugPanel.analyticsLatest',
+        'ank-fontWeight-600 ank-mb-0_25rem',
+      ),
+      this.createContainerComponent(
+        'debugAnalyticsEventsList',
+        'ul',
+        'ank-m-0 ank-pl-1rem',
+        this.recentEvents().map((eventLabel, index) => this.createDebugListItemComponent(`debugAnalyticsEvent${ index }`, eventLabel)),
+      ),
+    );
+
+    return this.createContainerComponent(
+      this.debugDiagnosticsPanelId,
+      'div',
+      'ank-position-md-fixed ank-bottom-6rem ank-right-25vw ank-mx-auto ank-p-0_5rem ank-bg-blackOPA__0_6 ank-color-white ank-fs-12px ank-borderRadius-6px ank-maxWidth-360px ank-maxHeight-40vh ank-overflow-auto ank-zIndex-1200',
+      children,
+    );
   }
 
   private draftButtonClasses(entryKey: string): string {
@@ -519,7 +635,7 @@ export class AppShellComponent {
     const modalRootIds = pageConfig?.modalRootIds ?? [];
 
     if (!hasRenderableComponents || rootIds.length === 0) {
-      this.clearRenderedDraft();
+      this.clearRenderedDraft(domain, pageId);
       if (this.debugMode) {
         console.error('[Drafts] Draft render aborted because page-config or components payload is invalid.', {
           domain,
@@ -534,6 +650,7 @@ export class AppShellComponent {
     this.orchestrator.setExternalComponentsFromPayload(componentsPayload);
     this.rootComponentsIds.set(rootIds);
     this.modalRootIds.set(modalRootIds);
+    this.orchestrator.setDraftExportContext({ domain, pageId, rootIds, modalRootIds });
 
     if (this.debugMode) {
       const exportPayload = this.orchestrator.exportDraftComponentsPayload(domain, pageId);
@@ -551,10 +668,16 @@ export class AppShellComponent {
     if (!boot.structuredDataApplied) this.applyDefaultStructuredData();
   }
 
-  private clearRenderedDraft(): void {
+  private clearRenderedDraft(domain: string, pageId: string): void {
     this.rootComponentsIds.set([]);
     this.modalRootIds.set([]);
     this.orchestrator.setExternalComponentsFromPayload(null);
+    this.orchestrator.setDraftExportContext({
+      domain,
+      pageId,
+      rootIds: [],
+      modalRootIds: [],
+    });
   }
 
   private applyDefaultStructuredData(): void {
@@ -702,92 +825,6 @@ export class AppShellComponent {
     } catch {
       // ignore overlay errors
     }
-  }
-
-  downloadDraftPayloads(): void {
-    if (!this.debugMode || typeof document === 'undefined') return;
-    const resolved = this.domainResolver.resolveDomain();
-    const domain = resolved.domain || environment.drafts.defaultDomain;
-    const pageId = this.resolveDraftPageId();
-    const payloads = this.buildDraftPayloads(domain, pageId);
-
-    payloads.forEach((payload) => {
-      const blob = new Blob([JSON.stringify(payload.data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = payload.name;
-      link.click();
-      URL.revokeObjectURL(url);
-    });
-  }
-
-  async writeDraftPayloadsToDisk(): Promise<void> {
-    if (!this.debugMode || typeof window === 'undefined') return;
-    const picker = (window as any).showDirectoryPicker;
-    if (typeof picker !== 'function') {
-      this.downloadDraftPayloads();
-      return;
-    }
-
-    const resolved = this.domainResolver.resolveDomain();
-    const domain = resolved.domain || environment.drafts.defaultDomain;
-    const pageId = this.resolveDraftPageId();
-    const payloads = this.buildDraftPayloads(domain, pageId);
-
-    try {
-      const dirHandle = await picker();
-      for (const payload of payloads) {
-        await this.writeFileToDir(dirHandle, payload.name, JSON.stringify(payload.data, null, 2));
-      }
-    } catch {
-      this.downloadDraftPayloads();
-    }
-  }
-
-  private buildDraftPayloads(domain: string, pageId: string): { name: string; data: unknown }[] {
-    const pageConfig = this.configStore.pageConfig() ?? {
-      version: 1,
-      pageId,
-      domain,
-      rootIds: this.rootComponentsIds(),
-      modalRootIds: this.modalRootIds(),
-    };
-    const componentsPayload = this.configStore.components() ?? this.orchestrator.exportDraftComponentsPayload(domain, pageId);
-    const variables = this.configStore.variables();
-    const combos = this.configStore.combos();
-    const seo = this.configStore.seo();
-    const structured = this.configStore.structuredData();
-    const analytics = this.configStore.analytics();
-    const i18n = this.configStore.i18n();
-
-    const payloads: { name: string; data: unknown }[] = [
-      { name: 'page-config.json', data: pageConfig },
-      { name: 'components.json', data: componentsPayload },
-    ];
-
-    if (variables) payloads.push({ name: 'variables.json', data: variables });
-    if (combos) payloads.push({ name: 'angora-combos.json', data: combos });
-    if (seo) payloads.push({ name: 'seo.json', data: seo });
-    if (structured) payloads.push({ name: 'structured-data.json', data: structured });
-    if (analytics) payloads.push({ name: 'analytics-config.json', data: analytics });
-    if (i18n) payloads.push({ name: `i18n/${ i18n.lang }.json`, data: i18n });
-
-    return payloads;
-  }
-
-  private async writeFileToDir(dirHandle: any, name: string, contents: string): Promise<void> {
-    const parts = name.split('/').filter(Boolean);
-    let current = dirHandle;
-    while (parts.length > 1) {
-      const part = parts.shift() as string;
-      current = await current.getDirectoryHandle(part, { create: true });
-    }
-    const fileName = parts[0];
-    const fileHandle = await current.getFileHandle(fileName, { create: true });
-    const writable = await fileHandle.createWritable();
-    await writable.write(contents);
-    await writable.close();
   }
 
   // Unified analytics event handler (receives from any child component)

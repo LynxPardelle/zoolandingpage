@@ -9,36 +9,5 @@
 
 <!-- Dev-only demo controls -->
 @if (debugMode) {
-<wrapper-orchestrator [componentsIds]="debugDraftPanelComponents()"></wrapper-orchestrator>
-<wrapper-orchestrator [componentsIds]="orchestrator.devDemoControlsComponents"></wrapper-orchestrator>
-<div
-  class="ank-position-md-fixed ank-bottom-6rem ank-right-25vw ank-mx-auto ank-p-0_5rem ank-bg-blackOPA__0_6 ank-color-white ank-fs-12px ank-borderRadius-6px ank-maxWidth-360px ank-maxHeight-40vh ank-overflow-auto ank-zIndex-1200"
->
-  <button
-    class="ank-mb-0_5rem ank-bg-transparent ank-border-1px__solid__white ank-color-white ank-borderRadius-4px ank-px-0_5rem ank-py-0_25rem ank-cursor-pointer"
-    (click)="downloadDraftPayloads()"
-  >
-    {{ i18n.t("ui.debugPanel.downloadDraftPayloads") }}
-  </button>
-  <button
-    class="ank-mb-0_5rem ank-bg-transparent ank-border-1px__solid__white ank-color-white ank-borderRadius-4px ank-px-0_5rem ank-py-0_25rem ank-cursor-pointer"
-    (click)="writeDraftPayloadsToDisk()"
-  >
-    {{ i18n.t("ui.debugPanel.writeDraftsToDisk") }}
-  </button>
-  @if (configIssues().length > 0) {
-  <div class="ank-fontWeight-600 ank-mb-0_25rem">{{ i18n.t("ui.debugPanel.configIssues") }}</div>
-  <ul class="ank-m-0 ank-pl-1rem ank-mb-0_5rem">
-    @for (issue of configIssues(); track $index) {
-    <li>{{ issue }}</li>
-    }
-  </ul>
-  }
-  <div class="ank-fontWeight-600 ank-mb-0_25rem">{{ i18n.t("ui.debugPanel.analyticsLatest") }}</div>
-  <ul class="ank-m-0 ank-pl-1rem">
-    @for (e of recentEvents(); track $index) {
-    <li>{{ e }}</li>
-    }
-  </ul>
-</div>
+<wrapper-orchestrator [componentsIds]="debugWorkspaceComponents()"></wrapper-orchestrator>
 }

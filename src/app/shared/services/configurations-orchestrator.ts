@@ -1,7 +1,7 @@
 import { getLocaleCandidates } from '@/app/shared/i18n/locale.utils';
 import { I18nService } from '@/app/shared/services/i18n.service';
 import type { TComponentsPayload } from '@/app/shared/types/config-payloads.types';
-import { computed, effect, inject, Injectable } from '@angular/core';
+import { computed, effect, inject, Injectable, signal } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { environment } from '../../../environments/environment';
 import { GenericModalService } from '../components/generic-modal/generic-modal.service';
@@ -18,6 +18,8 @@ import { forwardAnalyticsEvent } from '../utility/forwardAnalyticsEvent.utility'
 import { AnalyticsService } from './analytics.service';
 import { ComponentEvent, ComponentEventDispatcherService } from './component-event-dispatcher.service';
 import { devOnlyComponents } from './component-stores/devOnlyComponents.component-store';
+import { ConfigStoreService } from './config-store.service';
+import { DomainResolverService } from './domain-resolver.service';
 import { InteractiveProcessStoreService } from './interactive-process-store.service';
 import { LanguageService } from './language.service';
 import { QuickStatsService } from './quick-stats.service';
@@ -31,6 +33,8 @@ export class ConfigurationsOrchestratorService {
     private readonly modal = inject(GenericModalService);
     private readonly globalI18n = inject(I18nService);
     private readonly componentEventDispatcher = inject(ComponentEventDispatcherService);
+    private readonly configStore = inject(ConfigStoreService);
+    private readonly domainResolver = inject(DomainResolverService);
     private readonly interactiveProcessStore = inject(InteractiveProcessStoreService);
     private readonly language = inject(LanguageService);
     private readonly variableStore = inject(VariableStoreService);
@@ -43,6 +47,12 @@ export class ConfigurationsOrchestratorService {
     private warnedProcessSectionMissing = false;
     private warnedProcessSectionInvalid = false;
     private warnedLoopPaths = new Set<string>();
+    private readonly draftExportContext = signal({
+        domain: environment.drafts.defaultDomain,
+        pageId: environment.drafts.defaultPageId,
+        rootIds: [] as readonly string[],
+        modalRootIds: [] as readonly string[],
+    });
 
     // [MODALS-1] Centralize modal state/config in orchestrator (moved from AppShell).
     readonly activeModalRef = computed(() => this.modal.modalRef());
@@ -105,6 +115,59 @@ export class ConfigurationsOrchestratorService {
     get devDemoControlsComponents(): readonly TGenericComponent[] {
         if (!environment.features.debugMode) return [];
         return devOnlyComponents.filter((c) => c.id === 'devDemoControlsRoot');
+    }
+
+    setDraftExportContext(context: {
+        domain: string;
+        pageId: string;
+        rootIds: readonly string[];
+        modalRootIds: readonly string[];
+    }): void {
+        this.draftExportContext.set({
+            domain: String(context.domain).trim() || environment.drafts.defaultDomain,
+            pageId: String(context.pageId).trim() || environment.drafts.defaultPageId,
+            rootIds: [...context.rootIds],
+            modalRootIds: [...context.modalRootIds],
+        });
+    }
+
+    downloadDraftPayloads(): void {
+        if (!environment.features.debugMode || typeof document === 'undefined') return;
+
+        const context = this.draftExportContext();
+        const payloads = this.buildDraftPayloads(context.domain, context.pageId);
+
+        payloads.forEach((payload) => {
+            const blob = new Blob([JSON.stringify(payload.data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = payload.name;
+            link.click();
+            URL.revokeObjectURL(url);
+        });
+    }
+
+    async writeDraftPayloadsToDisk(): Promise<void> {
+        if (!environment.features.debugMode || typeof window === 'undefined') return;
+
+        const picker = (window as Window & { showDirectoryPicker?: () => Promise<any> }).showDirectoryPicker;
+        if (typeof picker !== 'function') {
+            this.downloadDraftPayloads();
+            return;
+        }
+
+        const context = this.draftExportContext();
+        const payloads = this.buildDraftPayloads(context.domain, context.pageId);
+
+        try {
+            const dirHandle = await picker();
+            for (const payload of payloads) {
+                await this.writeFileToDir(dirHandle, payload.name, JSON.stringify(payload.data, null, 2));
+            }
+        } catch {
+            this.downloadDraftPayloads();
+        }
     }
 
     constructor() {
@@ -330,6 +393,54 @@ export class ConfigurationsOrchestratorService {
             pageId,
             components,
         };
+    }
+
+    private buildDraftPayloads(domain: string, pageId: string): { name: string; data: unknown }[] {
+        const context = this.draftExportContext();
+        const resolvedDomain = String(domain).trim() || this.domainResolver.resolveDomain().domain || environment.drafts.defaultDomain;
+        const resolvedPageId = String(pageId).trim() || context.pageId || environment.drafts.defaultPageId;
+        const pageConfig = this.configStore.pageConfig() ?? {
+            version: 1,
+            pageId: resolvedPageId,
+            domain: resolvedDomain,
+            rootIds: context.rootIds,
+            modalRootIds: context.modalRootIds,
+        };
+        const componentsPayload = this.configStore.components() ?? this.exportDraftComponentsPayload(resolvedDomain, resolvedPageId);
+        const variables = this.configStore.variables();
+        const combos = this.configStore.combos();
+        const seo = this.configStore.seo();
+        const structured = this.configStore.structuredData();
+        const analytics = this.configStore.analytics();
+        const i18n = this.configStore.i18n();
+
+        const payloads: { name: string; data: unknown }[] = [
+            { name: 'page-config.json', data: pageConfig },
+            { name: 'components.json', data: componentsPayload },
+        ];
+
+        if (variables) payloads.push({ name: 'variables.json', data: variables });
+        if (combos) payloads.push({ name: 'angora-combos.json', data: combos });
+        if (seo) payloads.push({ name: 'seo.json', data: seo });
+        if (structured) payloads.push({ name: 'structured-data.json', data: structured });
+        if (analytics) payloads.push({ name: 'analytics-config.json', data: analytics });
+        if (i18n) payloads.push({ name: `i18n/${ i18n.lang }.json`, data: i18n });
+
+        return payloads;
+    }
+
+    private async writeFileToDir(dirHandle: any, name: string, contents: string): Promise<void> {
+        const parts = name.split('/').filter(Boolean);
+        let current = dirHandle;
+        while (parts.length > 1) {
+            const part = parts.shift() as string;
+            current = await current.getDirectoryHandle(part, { create: true });
+        }
+        const fileName = parts[0];
+        const fileHandle = await current.getFileHandle(fileName, { create: true });
+        const writable = await fileHandle.createWritable();
+        await writable.write(contents);
+        await writable.close();
     }
 
     markComponentRendered(id: string): void {

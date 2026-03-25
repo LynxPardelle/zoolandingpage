@@ -13,6 +13,7 @@ import {
     remindLaterHandler,
     removeConsentRequestHandler,
 } from './handlers/consent.handlers';
+import { downloadDraftPayloadsHandler, writeDraftsToDiskHandler } from './handlers/debug-drafts.handlers';
 import { showDemoModalHandler } from './handlers/demo-modal.handlers';
 import { setInteractiveProcessStepHandler } from './handlers/interactive-process.handlers';
 import {
@@ -64,6 +65,8 @@ export const provideEventHandlers = (): Provider[] => {
         { provide: EVENT_HANDLERS, multi: true, useFactory: showActionToastHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: showPositionDemoHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: clearAllToastsHandler },
+        { provide: EVENT_HANDLERS, multi: true, useFactory: downloadDraftPayloadsHandler },
+        { provide: EVENT_HANDLERS, multi: true, useFactory: writeDraftsToDiskHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: scrollToSectionHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: skipToMainHandler },
     ];
