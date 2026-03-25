@@ -555,7 +555,7 @@ const SPANISH_TRANSLATIONS: TLandingPageTranslations = {
             terms: {
                 link: "Términos de servicio",
                 title: "Términos de servicio",
-                intro: "Estos Términos de servicio regulan el uso de la página de {{ org }}. Al continuar navegando o interactuar con este sitio, aceptas estos términos.",
+                intro: "Estos Términos de servicio regulan el uso de esta página. Al continuar navegando o interactuar con este sitio, aceptas estos términos.",
                 sections: [
                     {
                         title: "Propósito y contenido",
@@ -1142,7 +1142,7 @@ const ENGLISH_TRANSLATIONS: TLandingPageTranslations = {
             terms: {
                 link: "Terms of Service",
                 title: "Terms of Service",
-                intro: "These Terms of Service govern your use of the {{ org }} landing page. By continuing to browse or interact with this website, you agree to these terms.",
+                intro: "These Terms of Service govern your use of this landing page. By continuing to browse or interact with this website, you agree to these terms.",
                 sections: [
                     {
                         title: "Purpose and Content",

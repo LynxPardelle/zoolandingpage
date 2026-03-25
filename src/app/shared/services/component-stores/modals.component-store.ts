@@ -5,6 +5,7 @@ export const modals: TGenericComponent[] = [
     {
         id: 'modalAnalyticsConsentRoot',
         type: 'container',
+        condition: 'all:modalRefId,analytics-consent',
         config: {
             tag: 'section',
             classes: 'ank-display-flex ank-flexDirection-column ank-gap-0_75rem ank-w-100per',
@@ -139,6 +140,7 @@ export const modals: TGenericComponent[] = [
     {
         id: 'modalDemoRoot',
         type: 'container',
+        condition: 'all:modalRefId,demo-modal',
         config: {
             tag: 'section',
             classes: 'ank-display-flex ank-flexDirection-column ank-gap-1rem ank-w-100per',
