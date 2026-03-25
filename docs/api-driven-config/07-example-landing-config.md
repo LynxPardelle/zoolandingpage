@@ -130,7 +130,7 @@ A map is the easiest API payload, since `id` is the natural key:
 
 ## Example: API-owned footer contract
 
-This project now treats footer and legal modal content as API-only. Do not rely on local fallback dictionaries.
+This project now treats footer, legal modal, accessibility, and debug-panel content as draft/API-only. Do not rely on local fallback dictionaries.
 
 ### Variables payload
 
@@ -367,13 +367,13 @@ Interactive process content is now controlled by `variables.processSection` and 
     "interactiveProcess": {
       "id": "interactiveProcess",
       "type": "interactive-process",
-      "valueInstructions": "set:config.process,var,processSection.steps; set:config.sectionTitleKey,varOr,processSection.titleKey,landing.processSection.title; set:config.sectionSidebarTitleKey,varOr,processSection.sidebarTitleKey,landing.processSection.sidebarTitle; set:config.sectionDetailedDescriptionLabelKey,varOr,processSection.detailedDescriptionLabelKey,landing.processSection.detailedDescriptionLabel; set:config.sectionDeliverablesLabelKey,varOr,processSection.deliverablesLabelKey,landing.processSection.deliverablesLabel",
+      "valueInstructions": "set:config.process,var,processSection.steps; set:config.sectionTitleKey,varOr,processSection.titleKey,processSection.title; set:config.sectionSidebarTitleKey,varOr,processSection.sidebarTitleKey,processSection.sidebarTitle; set:config.sectionDetailedDescriptionLabelKey,varOr,processSection.detailedDescriptionLabelKey,processSection.detailedDescriptionLabel; set:config.sectionDeliverablesLabelKey,varOr,processSection.deliverablesLabelKey,processSection.deliverablesLabel",
       "config": {
         "process": [],
-        "sectionTitleKey": "landing.processSection.title",
-        "sectionSidebarTitleKey": "landing.processSection.sidebarTitle",
-        "sectionDetailedDescriptionLabelKey": "landing.processSection.detailedDescriptionLabel",
-        "sectionDeliverablesLabelKey": "landing.processSection.deliverablesLabel"
+        "sectionTitleKey": "processSection.title",
+        "sectionSidebarTitleKey": "processSection.sidebarTitle",
+        "sectionDetailedDescriptionLabelKey": "processSection.detailedDescriptionLabel",
+        "sectionDeliverablesLabelKey": "processSection.deliverablesLabel"
       }
     }
   }
@@ -385,3 +385,4 @@ Notes:
 - If `variables.processSection.steps` is missing or invalid, the section stays hidden.
 - Keep step content in i18n and pass only keys from variables.
 - `deliverablesKey` should point to an i18n string array.
+- Since the runtime is draft-only, the `processSection.*` keys shown above must exist in the active draft dictionary.

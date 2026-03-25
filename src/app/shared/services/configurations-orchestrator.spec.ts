@@ -395,7 +395,7 @@ describe('ConfigurationsOrchestratorService', () => {
     expect(generated?.config?.ariaLabel).toBe('Ir a inicio');
   });
 
-  it('allows external draft components to override built-in ids while keeping missing built-in ids available', () => {
+  it('uses only external draft components when built-in component stores are removed', () => {
     spyOn(console, 'error');
 
     service.setExternalComponentsFromPayload({
@@ -412,8 +412,8 @@ describe('ConfigurationsOrchestratorService', () => {
     });
 
     expect((service.getComponentById('siteFooter') as any)?.config?.text).toBe('External footer override');
-    expect(service.getComponentById('siteHeader')).toBeDefined();
-    expect(console.error).not.toHaveBeenCalled();
+    expect(service.getComponentById('siteHeader')).toBeUndefined();
+    expect(console.error).toHaveBeenCalled();
   });
 
   it('does not warn about unresolved loop sources when only collecting classes', () => {

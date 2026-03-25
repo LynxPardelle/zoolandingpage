@@ -110,8 +110,20 @@ Checks:
 
 - Verify API i18n payload includes `footer.legal.*` and `footer.actions.close` keys.
 - Verify legal modal icon keys exist: `footer.legal.terms.icon` and `footer.legal.data.icon`.
-- Verify local fallback is intentionally not expected for footer/legal keys.
+- Verify local fallback is intentionally not expected. Missing keys now surface directly as raw i18n key text or empty modal labels.
 - Check orchestrator warning: `Missing API i18n footer legal keys. Legal links will remain hidden.`
+
+### Raw i18n key text appears in the UI
+
+Symptoms:
+
+- Buttons, labels, or debug UI render values like `ui.debugPanel.analyticsLatest` or `ui.controls.languageToggle`.
+
+Checks:
+
+- Verify the active draft dictionary includes the exact key path being rendered.
+- Verify `components.json` and handler-owned lookups still reference the intended key path (`processSection.*`, `ui.accessibility.*`, `ui.debugPanel.*`, etc.).
+- Do not expect the runtime to fill missing keys from local TypeScript constants. Missing draft keys must be fixed in the draft payload itself.
 
 ### Footer does not render at all
 

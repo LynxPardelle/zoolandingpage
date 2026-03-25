@@ -78,7 +78,13 @@ describe('AppShellComponent', () => {
       providers: [
         {
           provide: AnalyticsService,
-          useValue: { track: async () => { }, flush: () => [], promptForConsentIfNeeded: () => { } } as any,
+          useValue: {
+            track: async () => { },
+            flush: () => [],
+            promptForConsentIfNeeded: () => { },
+            startPageEngagementTracking: () => { },
+            stopPageEngagementTracking: () => { },
+          } as any,
         },
         {
           provide: ConfigBootstrapService,

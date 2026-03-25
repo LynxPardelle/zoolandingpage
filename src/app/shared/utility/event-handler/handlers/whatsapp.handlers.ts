@@ -28,7 +28,7 @@ export const openWhatsAppHandler = (): EventHandler => {
             const serviceLabel = args[2] == null ? undefined : String(args[2]);
 
             const rawMessage = globalI18n.t(
-                'landing.ui.contact.whatsappMessage');
+                'ui.contact.whatsappMessage');
 
             const link = buildWhatsAppUrl(WHATSAPP_PHONE, rawMessage);
 
@@ -71,7 +71,7 @@ export const openFaqCtaWhatsAppHandler = (): EventHandler => {
             });
 
             const message = globalI18n.t(
-                'landing.ui.sections.faq.subtitle',
+                'ui.sections.faq.subtitle',
             );
             const link = buildWhatsAppUrl(WHATSAPP_PHONE, message);
             safeOpen(link);
@@ -104,7 +104,7 @@ export const openFinalCtaWhatsAppHandler = (): EventHandler => {
             });
 
             const message = globalI18n.t(
-                'landing.hero.subtitle'
+                'hero.subtitle'
             );
             const link = buildWhatsAppUrl(WHATSAPP_PHONE, message);
             safeOpen(link);

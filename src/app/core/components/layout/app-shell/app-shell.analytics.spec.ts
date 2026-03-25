@@ -25,6 +25,7 @@ const ORCHESTRATOR_STUB = {
   fallbackModalHostConfig: {},
   devDemoControlsComponents: [] as string[],
   getAllTheClassesFromComponents: () => [],
+  setDraftExportContext: () => { },
   setExternalComponentsFromPayload: () => { },
   exportDraftComponentsPayload: () => ({
     version: 1,
@@ -38,7 +39,13 @@ describe('AppShellComponent analytics', () => {
   let analyticsSpy: jasmine.SpyObj<AnalyticsService>;
 
   beforeEach(async () => {
-    analyticsSpy = jasmine.createSpyObj('AnalyticsService', ['track', 'flush', 'promptForConsentIfNeeded']);
+    analyticsSpy = jasmine.createSpyObj('AnalyticsService', [
+      'track',
+      'flush',
+      'promptForConsentIfNeeded',
+      'startPageEngagementTracking',
+      'stopPageEngagementTracking',
+    ]);
     await TestBed.configureTestingModule({
       imports: [AppShellComponent],
       providers: [
@@ -50,6 +57,20 @@ describe('AppShellComponent analytics', () => {
               domain: 'zoolandingpage.com.mx',
               pageId: 'default',
               structuredDataApplied: true,
+              pageConfig: {
+                version: 1,
+                pageId: 'default',
+                domain: 'zoolandingpage.com.mx',
+                rootIds: ['skipToMainLink', 'siteHeader', 'landingPage'],
+                modalRootIds: ['modalAnalyticsConsentRoot', 'modalTermsRoot', 'modalDataUseRoot'],
+              },
+              analytics: {
+                version: 1,
+                pageId: 'default',
+                domain: 'zoolandingpage.com.mx',
+                sectionIds: ['home'],
+                scrollMilestones: [25, 50, 75, 100],
+              },
               components: {
                 version: 1,
                 pageId: 'default',
@@ -106,5 +127,14 @@ describe('AppShellComponent analytics', () => {
     // Filter for page_view
     const pageViews = calls.filter(c => c.args[0] === 'page_view');
     expect(pageViews.length).toBe(1);
+  });
+
+  it('delegates draft engagement observers to the analytics service', async () => {
+    const fixture = TestBed.createComponent(AppShellComponent);
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    fixture.detectChanges();
+
+    expect(analyticsSpy.startPageEngagementTracking).toHaveBeenCalled();
   });
 });

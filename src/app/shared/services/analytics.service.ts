@@ -1,16 +1,19 @@
 import { I18nService } from '@/app/shared/services/i18n.service';
+import type { TAnalyticsConfigPayload } from '@/app/shared/types/config-payloads.types';
+import { DOCUMENT } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import { Observable, Subject, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ToastService } from '../components/generic-toast';
 import { TAnalyticsEvent, TDataDropResponse, TExpandedAnalytics, TTrackOptions } from '../types/analytics.type';
-import { AnalyticsEvents } from './analytics.events';
+import { AnalyticsCategories, AnalyticsEvents } from './analytics.events';
 
 import { QuickStatsService } from './quick-stats.service';
 @Injectable({ providedIn: 'root' })
 export class AnalyticsService {
   private http = inject(HttpClient);
+  private readonly doc = inject(DOCUMENT);
   private readonly buffer: TAnalyticsEvent[] = [];
   // Events captured before consent is granted; flushed in FIFO on acceptance
   private pendingQueue: TAnalyticsEvent[] = [];
@@ -20,6 +23,7 @@ export class AnalyticsService {
   private readonly baseUrl: string = environment.apiUrl;
   private readonly version: string = environment.apiVersion;
   private readonly events$ = new Subject<TAnalyticsEvent>();
+  private trackingTeardowns: Array<() => void> = [];
   private hasPermission: boolean = false;
   private alreadyAskedForPermission: boolean = false;
   private readonly trackOptions: readonly TTrackOptions[] = environment.track;
@@ -37,6 +41,195 @@ export class AnalyticsService {
   suppress(names: readonly string[], untilEpochMs: number): void {
     this.suppressUntil = Math.max(this.suppressUntil, untilEpochMs);
     names.forEach(n => this.suppressedEvents.add(n));
+  }
+
+  startPageEngagementTracking(config?: TAnalyticsConfigPayload | null, doc: Document = this.doc): void {
+    this.stopPageEngagementTracking();
+
+    if (typeof window === 'undefined' || typeof document === 'undefined' || !doc) {
+      return;
+    }
+
+    this.startReadDepthTracking(config?.scrollMilestones ?? [], doc);
+    this.startSectionViewTracking(config?.sectionIds ?? [], doc);
+  }
+
+  stopPageEngagementTracking(): void {
+    const teardowns = [...this.trackingTeardowns];
+    this.trackingTeardowns = [];
+    teardowns.forEach((teardown) => {
+      try {
+        teardown();
+      } catch {
+        // ignore cleanup errors
+      }
+    });
+  }
+
+  private registerTrackingCleanup(teardown: () => void): void {
+    this.trackingTeardowns.push(teardown);
+  }
+
+  private startReadDepthTracking(milestones: readonly number[], doc: Document): void {
+    const normalizedMilestones = [...new Set(
+      (milestones ?? [])
+        .map((value) => Number(value))
+        .filter((value) => Number.isFinite(value) && value >= 0 && value <= 100)
+    )].sort((left, right) => left - right);
+
+    if (normalizedMilestones.length === 0) return;
+
+    const scrollEl = (doc.scrollingElement || doc.documentElement || doc.body) as HTMLElement | null;
+    if (!scrollEl) return;
+
+    const hit = new Set<number>();
+    let rafId: number | null = null;
+    let active = true;
+
+    const computeDepth = (): number => {
+      const docEl = doc.documentElement;
+      const scrollTop = scrollEl.scrollTop;
+      const scrollHeight = scrollEl.scrollHeight;
+      const viewport = window.innerHeight || docEl.clientHeight;
+      const denom = Math.max(1, scrollHeight - viewport);
+      const progress = Math.round((scrollTop / denom) * 100);
+      return Math.min(100, Math.max(0, progress));
+    };
+
+    const cleanup = () => {
+      if (!active) return;
+      active = false;
+      window.removeEventListener('scroll', throttled as EventListener);
+      scrollEl.removeEventListener('scroll', throttled as EventListener);
+      window.removeEventListener('resize', throttled as EventListener);
+      window.removeEventListener('orientationchange', throttled as EventListener);
+      if (rafId != null) {
+        cancelAnimationFrame(rafId);
+      }
+      try { mutationObserver.disconnect(); } catch { }
+    };
+
+    const onScrollOrResize = () => {
+      if (!active) return;
+
+      const depth = computeDepth();
+      for (const milestone of normalizedMilestones) {
+        if (depth >= milestone && !hit.has(milestone)) {
+          hit.add(milestone);
+          void this.track(AnalyticsEvents.ScrollDepth, {
+            category: AnalyticsCategories.Navigation,
+            label: `${ milestone }%`,
+            value: milestone,
+            meta: { depthPercent: milestone },
+          });
+        }
+      }
+
+      if (hit.size === normalizedMilestones.length) {
+        cleanup();
+      }
+    };
+
+    const throttled = () => {
+      if (!active || rafId != null) return;
+
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        onScrollOrResize();
+      });
+    };
+
+    const mutationObserver = new MutationObserver(() => onScrollOrResize());
+
+    window.addEventListener('scroll', throttled, { passive: true });
+    scrollEl.addEventListener('scroll', throttled, { passive: true });
+    window.addEventListener('resize', throttled);
+    window.addEventListener('orientationchange', throttled);
+
+    try {
+      mutationObserver.observe(doc.body, { childList: true, subtree: true, attributes: true, characterData: false });
+    } catch {
+      // no-op when the document is not ready yet
+    }
+
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        onScrollOrResize();
+      }, 120);
+    });
+
+    this.registerTrackingCleanup(cleanup);
+  }
+
+  private startSectionViewTracking(sectionIds: readonly string[], doc: Document): void {
+    const ids = [...new Set(
+      (sectionIds ?? [])
+        .map((value) => String(value).trim())
+        .filter((value) => value.length > 0)
+    )];
+
+    if (ids.length === 0 || !('IntersectionObserver' in window)) {
+      return;
+    }
+
+    const lastSeen = new Map<string, number>();
+    const initialSeen = new Set<string>();
+    const observedElements = new Set<Element>();
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting && entry.target instanceof HTMLElement) {
+            const id = entry.target.id;
+            if (!id) continue;
+
+            const now = Date.now();
+            const last = lastSeen.get(id) ?? 0;
+            if (now - last <= 3_000) continue;
+
+            lastSeen.set(id, now);
+            initialSeen.add(id);
+            void this.track(AnalyticsEvents.SectionView, {
+              category: AnalyticsCategories.Navigation,
+              label: id,
+            });
+          }
+        }
+      },
+      { rootMargin: '0px 0px 80% 0px', threshold: [0.5] }
+    );
+
+    const tryObserve = () => {
+      ids.forEach((id) => {
+        const element = doc.getElementById(id);
+        if (element && !observedElements.has(element)) {
+          observedElements.add(element);
+          observer.observe(element);
+        }
+      });
+    };
+
+    tryObserve();
+
+    const mutationObserver = new MutationObserver(() => tryObserve());
+    try {
+      mutationObserver.observe(doc.body, { childList: true, subtree: true });
+    } catch {
+      // ignore DOM timing issues
+    }
+
+    const intervalId = setInterval(() => {
+      if (ids.every((id) => initialSeen.has(id))) {
+        mutationObserver.disconnect();
+        clearInterval(intervalId);
+      }
+    }, 2_000);
+
+    this.registerTrackingCleanup(() => {
+      observer.disconnect();
+      mutationObserver.disconnect();
+      clearInterval(intervalId);
+    });
   }
   private timesSended: number = 0;
   private readonly appName: string = environment.app.name;

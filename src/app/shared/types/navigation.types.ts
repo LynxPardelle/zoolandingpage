@@ -1,5 +1,3 @@
-import type { TLanguage } from '../i18n/i18n.types';
-
 /**
  * Navigation Types - Foundation Components
  *
@@ -25,7 +23,7 @@ export type NavMenuProps = {
 };
 
 // Language toggle types
-export type SupportedLanguage = TLanguage;
+export type SupportedLanguage = string;
 
 export type LanguageToggleProps = {
   currentLanguage: SupportedLanguage;

@@ -8,7 +8,6 @@ import { ConfigBootstrapService } from "@/app/shared/services/config-bootstrap.s
 import { ConfigStoreService } from "@/app/shared/services/config-store.service";
 import { ConfigurationsOrchestratorService } from "@/app/shared/services/configurations-orchestrator";
 import { DomainResolverService } from "@/app/shared/services/domain-resolver.service";
-import { StructuredDataService } from "@/app/shared/services/structured-data.service";
 import type { TAnalyticsConfigPayload, TSeoPayload } from "@/app/shared/types/config-payloads.types";
 import { AsyncPipe, DOCUMENT } from '@angular/common';
 import {
@@ -59,14 +58,11 @@ export class AppShellComponent {
   private readonly debugWorkspaceRootId = 'debugWorkspaceRoot';
   private readonly debugDraftPanelId = 'debugDraftPanelRoot';
   private readonly debugDiagnosticsPanelId = 'debugDiagnosticsPanelRoot';
-  private readonly defaultRootComponentIds = ['skipToMainLink', 'siteHeader', 'landingPage'] as const;
-  private readonly defaultModalRootComponentIds = ['modalAnalyticsConsentRoot', 'modalDemoRoot', 'modalTermsRoot', 'modalDataUseRoot'] as const;
   // SEO services
   private readonly doc: Document = inject(DOCUMENT);
   private readonly destroyRef = inject(DestroyRef);
   private readonly titleSvc = inject(Title);
   private readonly meta = inject(Meta);
-  private readonly structured = inject(StructuredDataService);
   readonly orchestrator = inject(ConfigurationsOrchestratorService);
   readonly debugMode = environment.features.debugMode;
   // App state
@@ -219,18 +215,6 @@ export class AppShellComponent {
       ),
     ];
   });
-  private readonly readDepthMilestones = signal<readonly number[]>([10, 20, 30, 40, 50, 60, 70, 80, 90, 100]);
-  private readonly sectionViewIds = signal<readonly string[]>([
-    'home',
-    'conversion-section',
-    'features-section',
-    'process-section',
-    'services-section',
-    'stats-strip-section',
-    'testimonials-section',
-    'faq-section',
-    'contact-section',
-  ]);
 
   private resolveDraftPageId(): string {
     const fallback = environment.drafts.defaultPageId;
@@ -505,6 +489,7 @@ export class AppShellComponent {
 
   constructor() {
     this.configOverridesReady = this.applyConfigOverrides();
+    this.destroyRef.onDestroy(() => this.analytics.stopPageEngagementTracking());
 
     // Track subsequent page views on navigation end
     this.router.events
@@ -533,9 +518,7 @@ export class AppShellComponent {
             console.log("[AppShell] All the classes used in the app:", classes);
           }, 2000);
         }
-        // Auto section view tracking (browser only)
-        this.setupReadDepthTracking();
-        this.setupSectionViewTracking();
+        this.analytics.startPageEngagementTracking(this.draftAnalytics(), this.doc);
       });
     } catch {
       // no-op for SSR
@@ -662,10 +645,7 @@ export class AppShellComponent {
     if (boot.seo) this.draftSeo.set(boot.seo);
     if (boot.analytics) {
       this.draftAnalytics.set(boot.analytics);
-      if (boot.analytics.sectionIds?.length) this.sectionViewIds.set(boot.analytics.sectionIds);
-      if (boot.analytics.scrollMilestones?.length) this.readDepthMilestones.set(boot.analytics.scrollMilestones);
     }
-    if (!boot.structuredDataApplied) this.applyDefaultStructuredData();
   }
 
   private clearRenderedDraft(domain: string, pageId: string): void {
@@ -680,34 +660,6 @@ export class AppShellComponent {
     });
   }
 
-  private applyDefaultStructuredData(): void {
-    const origin = this.defaultOrigin();
-    this.structured.injectOnce('sd:website', {
-      '@context': 'https://schema.org',
-      '@type': 'WebSite',
-      name: this.appName,
-      url: `${ origin }/`,
-      inLanguage: this.lang.currentLanguage(),
-      potentialAction: {
-        '@type': 'SearchAction',
-        target: `${ origin }/?q={search_term_string}`,
-        'query-input': 'required name=search_term_string',
-      },
-    });
-    this.structured.injectOnce('sd:org', {
-      '@context': 'https://schema.org',
-      '@type': 'Organization',
-      name: this.appName,
-      url: `${ origin }/`,
-      logo: `${ origin }/assets/logo-512x512.svg`,
-      sameAs: [
-        'https://www.facebook.com/',
-        'https://www.instagram.com/',
-        'https://www.linkedin.com/'
-      ],
-    });
-  }
-
   private defaultOrigin(): string {
     const resolved = this.domainResolver.resolveDomain().domain || environment.domain.defaultDomain;
     return `https://${ resolved }`;
@@ -715,99 +667,7 @@ export class AppShellComponent {
   private initializeAngoraConfiguration(): void {
     if (this.angoraHasBeenInitialized) return;
     this.angoraHasBeenInitialized = true;
-    // this._ank.changeSections([]);
-    // this._ank.changeDebugOption(true);
-    setTimeout(() => {
-      this.combosService.setBaseCombos({
-        /* Accordion */
-        accContainer: [
-          'ank-display-flex ank-flexDirection-column ank-gap-0_25rem'
-        ],
-        accItemContainer: [
-          'ank-borderRadius-0_5rem',
-        ],
-        accItemExpandedContainer: [
-          'ank-bg-accentColor'
-        ],
-        accItemNotExpandedContainer: [
-          'ank-bg-secondaryBgColor'
-        ],
-        accItemButton: [
-          'ank-outline-2px__solid__secondaryAccentColor ank-m-8px ank-color-textColor ank-borderRadius-0_25rem ank-border-0 ank-width-100per ank-textAlign-left ank-padding-0_75rem ank-fontWeight-600 ank-transition-all ank-bgHover-secondaryAccentColor ank-colorHover-titleColor ank-cursor-pointer ank-display-flex ank-justifyContent-spaceMINbetween ank-alignItems-center ank-w-calcSD100per__MIN__16pxED'
-        ],
-        accItemButtonIsExpanded: [
-          'ank-bg-secondaryAccentColor'
-        ],
-        accItemButtonIsNotExpanded: [
-          'ank-bg-transparent'
-        ],
-        accItemButtonIcon: [
-          'ank-transition-transform ank-transformOrigin-center ank-fontSize-1_25rem ank-color-textColor'
-        ],
-        accItemButtonIconIsExpanded: [
-          'ank-transform-rotateSD180degED'
-        ],
-        accItemButtonIconIsNotExpanded: [
-          ''
-        ],
-        accItemPanel: [
-          'ank-overflow-hidden ank-paddingInline-0_75rem ank-paddingBlock-0_5rem ank-color-textColor'
-        ],
-        /* Button */
-        btnBase: [
-          "ank-px-VAL1DEF1_5remDEF",
-          "ank-py-VAL2DEF0_75remDEF",
-          "ank-borderRadius-VAL3DEF0_5remDEF",
-          "ank-fontWeight-VAL4DEF550DEF",
-          "ank-transformHover-translateYSDVAL5DEFMIN1pxDEFED",
-          "ank-gap-VAL6DEF0_5remDEF",
-          "ank-justifyContent-VAL7DEFcenterDEF",
-          "ank-outlineColor-VAL8DEFtransparentDEF",
-          "ank-fs-VAL9DEF1_5remDEF",
-          "ank-d-flex",
-          "ank-alignItems-center",
-          "ank-textDecoration-none",
-          "ank-transition-all__200ms",
-          "ank-position-relative",
-        ],
-        btnTypePrimary: [
-          "ank-bg-VAL1DEFbgColorDEF",
-          "ank-color-VAL2DEFtextColorDEF",
-          "ank-border-VAL3DEF2pxDEF__VAL4DEFsolidDEF__VAL1DEFnoneDEF",
-        ],
-        btnTypeOutline: [
-          "ank-border-2px__solid__VAL1DEFbgColorDEF ank-color-VAL1DEFbgColorDEF ank-bgHover-VAL1DEFbgColorDEF", "ank-colorHover-VAL2DEFtextColorDEF",
-          "ank-bg-transparent",
-          "ank-border-VAL3DEF2pxDEF__VAL4DEFsolidDEF__VAL1DEFnoneDEF",
-        ],
-        btnTypeGhost: [
-          "ank-color-VAL1DEFtextColorDEF",
-          "ank-bg-transparent ank-opacity-80 ank-opacityHover-100",
-        ],
-        btnIcon: ["ank-w-1rem ank-h-1rem ank-me-1rem"],
-        btnSpinner: [
-          "ank-display-inlineBlock ank-width-1rem ank-height-1rem",
-          "ank-border-2px ank-borderStyle-solid ank-borderColor-secondaryLinkColor",
-          "ank-borderTopColor-transparent ank-borderRadius-99rem",
-          "ank-and-1s",
-          "ank-antf-linear",
-          "ank-anic-infinite",
-          "spinAnimation",
-        ],
-        /* Utility */
-        cardHover: [
-          "ank-transition-all ank-td-300ms ank-transformHover-translateYSDMIN4pxED ank-boxShadowHover-0__0_5rem__1rem__rgbaSD0COM0COM0COM0_5ED",
-        ],
-        sectionPadding: ["ank-py-80px ank-px-20px"],
-        containerMax: ["ank-maxWidth-1200px ank-mx-auto"],
-        gridCol2: [
-          "ank-display-grid ank-gridTemplateColumns-1fr ank-gridTemplateColumns-md-repeatSD2COM1frED ank-gridTemplateColumns-lg-repeatSD3COM1frED ank-gap-2rem",
-        ],
-        textGradient: [
-          "ank-bgi-linearMINgradientSDVAL1DEF90degDEFCOMVAL2DEFsecondaryAccentColorDEFCOMVAL3DEFsecondaryTitleColorDEFED ank-bgcl-text ank-color-transparent",
-        ],
-      });
-    }, 1000);
+    this.combosService.initializeBaseCombos(1000);
   }
 
   // Debug overlay: keep last 10 analytics events when debug mode is on
@@ -868,129 +728,5 @@ export class AppShellComponent {
     } catch {
       // no-op
     }
-  }
-
-  private setupReadDepthTracking(): void {
-    if (typeof window === 'undefined' || typeof document === 'undefined') return;
-    // Granular scroll depth milestones (10% increments)
-    const milestones = [...this.readDepthMilestones()];
-    const hit = new Set<number>();
-
-    const scrollEl = (document.scrollingElement || document.documentElement || document.body) as HTMLElement;
-    const computeDepth = (): number => {
-      const docEl = document.documentElement;
-      // Prefer the actual scrolling element for these metrics
-      const scrollTop = scrollEl.scrollTop;
-      const scrollHeight = scrollEl.scrollHeight;
-      const viewport = window.innerHeight || docEl.clientHeight;
-      const denom = Math.max(1, scrollHeight - viewport);
-      const progress = Math.round((scrollTop / denom) * 100);
-      return Math.min(100, Math.max(0, progress));
-    };
-
-    const cleanup = () => {
-      window.removeEventListener('scroll', throttled as any);
-      if (scrollEl) scrollEl.removeEventListener('scroll', throttled as any);
-      window.removeEventListener('resize', throttled as any);
-      window.removeEventListener('orientationchange', throttled as any);
-      try { mo.disconnect(); } catch { }
-    };
-
-    const onScrollOrResize = () => {
-      const depth = computeDepth();
-      for (const m of milestones) {
-        if (depth >= m && !hit.has(m)) {
-          hit.add(m);
-          void this.analytics.track(AnalyticsEvents.ScrollDepth, {
-            category: AnalyticsCategories.Navigation,
-            label: `${ m }%`,
-            value: m,
-            meta: { depthPercent: m },
-          });
-        }
-      }
-      if (hit.size === milestones.length) {
-        cleanup();
-      }
-    };
-
-    let rafId: number | null = null;
-    const throttled = () => {
-      if (rafId != null) return;
-      rafId = requestAnimationFrame(() => {
-        rafId = null;
-        onScrollOrResize();
-      });
-    };
-
-    const onScrollTarget = throttled;
-    window.addEventListener('scroll', throttled, { passive: true });
-    // Also listen on the actual scroll container in case the app uses a custom scroller
-    if (scrollEl && scrollEl !== (document as any)) {
-      scrollEl.addEventListener('scroll', onScrollTarget, { passive: true });
-    }
-    window.addEventListener('resize', throttled);
-    window.addEventListener('orientationchange', throttled);
-
-    // Observe DOM mutations that may change document height (e.g., late CSS/images/deferred content)
-    const mo = new MutationObserver(() => onScrollOrResize());
-    try { mo.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: false }); } catch { }
-
-    // Allow CSS/layout to settle before first measurement and then run an initial check.
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        // run once even if the user hasn't scrolled, to set the baseline
-        onScrollOrResize();
-      }, 120);
-    });
-
-    // Cleanup is invoked inside onScrollOrResize once all milestones are reached
-  }
-  private lastSectionViewSuppressedUntil = 0;
-  private setupSectionViewTracking(): void {
-    if (typeof window === 'undefined' || typeof document === 'undefined' || !('IntersectionObserver' in window)) {
-      return;
-    }
-    const ids = [...this.sectionViewIds()];
-    const lastSeen = new Map<string, number>();
-    const initialSeen = new Set<string>();
-    const observer = new IntersectionObserver(
-      entries => {
-        for (const entry of entries) {
-          if (entry.isIntersecting && entry.target instanceof HTMLElement) {
-            const id = entry.target.id;
-            if (!id) continue;
-            const now = Date.now();
-            const last = lastSeen.get(id) ?? 0;
-            const suppressWindow = this.lastSectionViewSuppressedUntil;
-            const shouldEmit = (now - last > 3_000) && (now > suppressWindow);
-            if (shouldEmit) {
-              lastSeen.set(id, now);
-              if (!initialSeen.has(id)) initialSeen.add(id);
-              void this.analytics.track(AnalyticsEvents.SectionView, {
-                category: AnalyticsCategories.Navigation,
-                label: id,
-              });
-            }
-          }
-        }
-      },
-      { rootMargin: '0px 0px 80% 0px', threshold: [0.5] }
-    );
-    const tryObserve = () => {
-      ids.forEach(id => {
-        const el = this.doc.getElementById(id);
-        if (el) observer.observe(el);
-      });
-    };
-    tryObserve();
-    const mo = new MutationObserver(() => tryObserve());
-    mo.observe(this.doc.body, { childList: true, subtree: true });
-    const interval = setInterval(() => {
-      if (ids.every(id => initialSeen.has(id))) {
-        mo.disconnect();
-        clearInterval(interval);
-      }
-    }, 2000);
   }
 }

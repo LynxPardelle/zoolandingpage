@@ -15,7 +15,7 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Put global palette data in `variables.theme.palettes.light` and `variables.theme.palettes.dark`.
 - Keep modal accent defaults in `variables.theme.ui` when a draft needs them to differ from the default brand behavior.
 - Put reusable visual class bundles in `angora-combos.json` instead of hardcoding repeated appearance strings in app code.
-- Footer and footer legal modal content must be API-owned (no local fallback assumptions).
+- Footer, legal modal, accessibility, and debug-panel content must be API-owned (no local fallback assumptions anywhere in the runtime).
 - Do not author hardcoded footer/legal text in app source when generating payload instructions.
 
 ## Naming / structure
@@ -33,6 +33,7 @@ Use this checklist when asking an AI assistant to generate a new landing page co
   - Preferred approach: `set:config.label,i18n,<key>`
 - For i18n arrays with index: use `i18nGetIndex`.
 - For footer social links from variables, prefer `labelKey` and `ariaLabelKey` in payload entries.
+- Every key referenced by `components.json`, `valueInstructions`, handlers, or shell-owned debug UI must exist in the draft i18n payload. Raw key text in the UI means the draft is missing that translation.
 
 ## Events
 
@@ -68,7 +69,17 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Ensure no config contains function values.
 - Verify `variables.theme` includes complete `light` and `dark` palettes when the draft owns branding.
 - Verify footer/legal modal sections can render from API payload only.
-- Verify local fallback dictionaries are not required for footer/legal behavior.
+- Verify shared runtime keys are present in draft i18n when used by the page. Common examples:
+  - `ui.accessibility.analyticsConsentDialog`
+  - `ui.accessibility.dialog`
+  - `ui.accessibility.dialogOpened`
+  - `ui.accessibility.dialogClosed`
+  - `ui.debugPanel.downloadDraftPayloads`
+  - `ui.debugPanel.writeDraftsToDisk`
+  - `ui.debugPanel.configIssues`
+  - `ui.debugPanel.analyticsLatest`
+  - `ui.debugPanel.unknownComponentPrefix`
+- Verify local fallback dictionaries are not required, because the runtime does not inject them anymore.
 
 ## Footer and legal modal API-only checklist
 

@@ -35,6 +35,7 @@ const ORCHESTRATOR_STUB = {
   fallbackModalHostConfig: {},
   devDemoControlsComponents: [] as string[],
   getAllTheClassesFromComponents: () => [],
+  setDraftExportContext: () => { },
   setExternalComponentsFromPayload: () => { },
   exportDraftComponentsPayload: () => ({
     version: 1,
@@ -51,7 +52,13 @@ describe('AppShellComponent a11y', () => {
       providers: [
         {
           provide: AnalyticsService,
-          useValue: { track: async () => { }, flush: () => [], promptForConsentIfNeeded: () => { } } as any,
+          useValue: {
+            track: async () => { },
+            flush: () => [],
+            promptForConsentIfNeeded: () => { },
+            startPageEngagementTracking: () => { },
+            stopPageEngagementTracking: () => { },
+          } as any,
         },
         {
           provide: ConfigBootstrapService,
@@ -60,6 +67,13 @@ describe('AppShellComponent a11y', () => {
               domain: 'zoolandingpage.com.mx',
               pageId: 'default',
               structuredDataApplied: true,
+              pageConfig: {
+                version: 1,
+                pageId: 'default',
+                domain: 'zoolandingpage.com.mx',
+                rootIds: ['skipToMainLink', 'siteHeader', 'landingPage'],
+                modalRootIds: ['modalAnalyticsConsentRoot', 'modalTermsRoot', 'modalDataUseRoot'],
+              },
               components: {
                 version: 1,
                 pageId: 'default',

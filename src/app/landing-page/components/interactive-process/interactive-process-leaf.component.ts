@@ -90,10 +90,10 @@ export class InteractiveProcessLeafComponent {
 
   readonly process = input.required<readonly ProcessStep[] | readonly ProcessStepVariableConfig[]>();
   readonly currentStep = input.required<number>();
-  readonly sectionTitleKey = input<unknown>('landing.processSection.title');
-  readonly sectionSidebarTitleKey = input<unknown>('landing.processSection.sidebarTitle');
-  readonly sectionDetailedDescriptionLabelKey = input<unknown>('landing.processSection.detailedDescriptionLabel');
-  readonly sectionDeliverablesLabelKey = input<unknown>('landing.processSection.deliverablesLabel');
+  readonly sectionTitleKey = input<unknown>('processSection.title');
+  readonly sectionSidebarTitleKey = input<unknown>('processSection.sidebarTitle');
+  readonly sectionDetailedDescriptionLabelKey = input<unknown>('processSection.detailedDescriptionLabel');
+  readonly sectionDeliverablesLabelKey = input<unknown>('processSection.deliverablesLabel');
   readonly selectStep = output<number>();
 
   readonly resolvedProcess = computed<readonly ProcessStep[]>(() => {

@@ -1,5 +1,4 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
-import { I18N_CONFIG } from '../i18n/index.i18n';
 import { LanguageService } from './language.service';
 
 type TDictionary = Record<string, unknown>;
@@ -17,15 +16,8 @@ export class I18nService {
 
     private loadSeq = 0;
     private inFlight?: AbortController;
-    private loader: TI18nLoader = async (lang: string, ctx: { signal?: AbortSignal }): Promise<TDictionary> => {
-        const translations = I18N_CONFIG.translations as Record<string, unknown>;
-        const I18N_CONFIGLang: TDictionary = (translations[lang] ?? {}) as TDictionary;
-        console.log(`Loading i18n for language "${ lang }" using default loader...`);
-        console.log('Available languages in config:', Object.keys(I18N_CONFIG.translations));
-        console.log('Requested language:', lang);
-        console.log('I18N_CONFIG for requested language:', I18N_CONFIGLang);
-        if (!I18N_CONFIGLang) throw new Error(`No i18n configuration found for language: ${ lang }`);
-        return I18N_CONFIGLang;
+    private loader: TI18nLoader = async (_lang: string, _ctx: { signal?: AbortSignal }): Promise<TDictionary> => {
+        return {};
     };
 
     readonly currentLang = computed(() => this._language.currentLanguage());

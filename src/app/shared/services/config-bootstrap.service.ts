@@ -1,4 +1,3 @@
-import { I18N_CONFIG } from '@/app/shared/i18n/index.i18n';
 import { formatLocaleLabel, normalizeLocaleCode } from '@/app/shared/i18n/locale.utils';
 import type {
     TAnalyticsConfigPayload,
@@ -64,17 +63,6 @@ export class ConfigBootstrapService {
 
     private isRecord(value: unknown): value is Record<string, unknown> {
         return !!value && typeof value === 'object' && !Array.isArray(value);
-    }
-
-    private getFallbackI18n(lang: string): Record<string, unknown> {
-        const translations = I18N_CONFIG.translations as Record<string, unknown>;
-        const normalized = normalizeLocaleCode(lang);
-        const primary = normalized.split('-')[0];
-        const fallback = translations[normalized]
-            ?? translations[primary]
-            ?? translations['es']
-            ?? translations['en'];
-        return (fallback ?? {}) as unknown as Record<string, unknown>;
     }
 
     private normalizeDraftLanguageDefinition(entry: string | TDraftLanguageDefinition): TDraftLanguageDefinition | null {
@@ -170,66 +158,6 @@ export class ConfigBootstrapService {
         return secondary?.code ?? null;
     }
 
-    private withoutFooterFallback(dictionary: Record<string, unknown>): Record<string, unknown> {
-        if (!this.isRecord(dictionary)) return {};
-        const next = { ...dictionary };
-        delete next['footer'];
-        return next;
-    }
-
-    private removePath(root: Record<string, unknown>, path: string): void {
-        const parts = String(path ?? '').split('.').map((p) => p.trim()).filter(Boolean);
-        if (parts.length === 0) return;
-
-        let current: any = root;
-        for (let index = 0; index < parts.length - 1; index += 1) {
-            const key = parts[index];
-            if (!current || typeof current !== 'object' || !(key in current)) return;
-            current = current[key];
-        }
-
-        const leaf = parts[parts.length - 1];
-        if (current && typeof current === 'object') {
-            delete current[leaf];
-        }
-    }
-
-    private withoutApiDrivenFallback(dictionary: Record<string, unknown>): Record<string, unknown> {
-        if (!this.isRecord(dictionary)) return {};
-        const next = this.withoutFooterFallback(dictionary);
-
-        // These sections are API-driven and should not fall back to static in-app content.
-        this.removePath(next, 'featuresSection');
-        this.removePath(next, 'features');
-        this.removePath(next, 'services');
-        this.removePath(next, 'testimonials');
-        this.removePath(next, 'processSection');
-        this.removePath(next, 'process');
-        this.removePath(next, 'finalCtaSection');
-        this.removePath(next, 'ui.sections.services');
-        this.removePath(next, 'ui.sections.testimonials');
-        this.removePath(next, 'ui.sections.finalCta');
-        this.removePath(next, 'landing.processSection');
-
-        return next;
-    }
-
-    private mergeI18n(base: Record<string, unknown>, override: Record<string, unknown>): Record<string, unknown> {
-        if (!this.isRecord(base)) return { ...override };
-        if (!this.isRecord(override)) return { ...base };
-
-        const merged: Record<string, unknown> = { ...base };
-        for (const [key, value] of Object.entries(override)) {
-            const baseValue = merged[key];
-            if (this.isRecord(baseValue) && this.isRecord(value)) {
-                merged[key] = this.mergeI18n(baseValue, value);
-                continue;
-            }
-            merged[key] = value;
-        }
-        return merged;
-    }
-
     async load(opts?: { pageId?: string; lang?: string }): Promise<TBootstrapResult> {
         const resolved = this.resolver.resolveDomain();
         const domain = resolved.domain || environment.domain.defaultDomain;
@@ -285,33 +213,21 @@ export class ConfigBootstrapService {
         this.store.setStructuredData(structuredData);
         this.store.setAnalytics(analytics);
 
-        let structuredDataApplied = false;
-        if (structuredData?.entries?.length) {
-            structuredData.entries.forEach((entry, index) => {
-                this.structured.injectOnce(`sd:bootstrap:${ index }`, entry);
-            });
-            structuredDataApplied = true;
-        }
+        const structuredDataApplied = this.structured.applyEntries(structuredData?.entries, 'sd:bootstrap');
 
-        if (i18nPayload?.dictionary && Object.keys(i18nPayload.dictionary).length > 0) {
-            const fallbackDict = this.withoutApiDrivenFallback(this.getFallbackI18n(i18nPayload.lang ?? lang));
-            const merged = this.mergeI18n(fallbackDict, i18nPayload.dictionary);
-            this.i18n.setTranslations(i18nPayload.lang, merged, { cache: true, applyIfCurrent: true });
-        } else {
-            const fallbackDict = this.withoutApiDrivenFallback(this.getFallbackI18n(lang));
-            this.i18n.setTranslations(lang, fallbackDict, { cache: true, applyIfCurrent: true });
-        }
+        this.i18n.setTranslations(
+            i18nPayload?.lang ?? lang,
+            i18nPayload?.dictionary ?? {},
+            { cache: true, applyIfCurrent: true }
+        );
 
         if (fallbackLang) {
             const secondary = await this.loadI18n(domain, pageId, fallbackLang);
-            if (secondary?.dictionary && Object.keys(secondary.dictionary).length > 0) {
-                const fallbackSecondary = this.withoutApiDrivenFallback(this.getFallbackI18n(secondary.lang ?? fallbackLang));
-                const mergedSecondary = this.mergeI18n(fallbackSecondary, secondary.dictionary);
-                this.i18n.setTranslations(secondary.lang, mergedSecondary, { cache: true, applyIfCurrent: false });
-            } else {
-                const fallbackSecondary = this.withoutApiDrivenFallback(this.getFallbackI18n(fallbackLang));
-                this.i18n.setTranslations(fallbackLang, fallbackSecondary, { cache: true, applyIfCurrent: false });
-            }
+            this.i18n.setTranslations(
+                secondary?.lang ?? fallbackLang,
+                secondary?.dictionary ?? {},
+                { cache: true, applyIfCurrent: false }
+            );
         }
 
         this.store.setStage('done');
@@ -496,20 +412,20 @@ export class ConfigBootstrapService {
                         const payload = await this.drafts.loadI18n(domain, pageId, lang);
                         const dict = payload?.dictionary as Record<string, unknown> | undefined;
                         if (dict && Object.keys(dict).length > 0) {
-                            return this.mergeI18n(this.withoutApiDrivenFallback(this.getFallbackI18n(lang)), dict);
+                            return dict;
                         }
                     } else {
                         const payload = await this.api.getI18n(domain, lang, pageId);
                         const dict = payload?.dictionary as Record<string, unknown> | undefined;
                         if (dict && Object.keys(dict).length > 0) {
-                            return this.mergeI18n(this.withoutApiDrivenFallback(this.getFallbackI18n(lang)), dict);
+                            return dict;
                         }
                     }
                 } catch {
-                    // Fall through to static i18n when API/drafts fail.
+                    // Fall through to an empty dictionary when the draft/API payload is unavailable.
                 }
 
-                return this.withoutApiDrivenFallback(this.getFallbackI18n(lang));
+                return {};
             },
             { clearCache: true, reload: false }
         );

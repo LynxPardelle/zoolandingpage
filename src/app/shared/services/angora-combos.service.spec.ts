@@ -25,6 +25,18 @@ describe('AngoraCombosService', () => {
         TestBed.resetTestingModule();
     });
 
+    it('initializes the built-in base combos once', () => {
+        const service = configure('browser');
+
+        service.initializeBaseCombos();
+        service.initializeBaseCombos();
+
+        expect(pushCombos.calls.count()).toBe(1);
+        const pushed = pushCombos.calls.argsFor(0)[0] as Record<string, readonly string[]>;
+        expect(pushed['btnBase']).toBeDefined();
+        expect(pushed['accContainer']).toBeDefined();
+    });
+
     it('pushes base and draft combos in the browser', () => {
         const service = configure('browser');
         const payload: TAngoraCombosPayload = {
