@@ -10,6 +10,7 @@ export const routes: Routes = [
   },
   {
     path: '**',
-    redirectTo: '',
+    component: AppShellComponent,
+    title: 'Landing Page Optimizada',
   },
 ];

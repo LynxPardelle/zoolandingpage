@@ -5,6 +5,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
+  HostListener,
   Input,
   OnDestroy,
   TemplateRef,
@@ -37,6 +38,7 @@ export class GenericSearchBoxComponent implements OnDestroy {
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly vcr = inject(ViewContainerRef);
   @ViewChild('resultsTpl') resultsTpl!: TemplateRef<unknown>;
+  @ViewChild('searchInput') searchInput?: ElementRef<HTMLInputElement>;
   private overlayRef: OverlayRef | null = null;
   // Optional custom item template projection
   itemTemplate = contentChild<TemplateRef<unknown>>('searchItem');
@@ -45,6 +47,7 @@ export class GenericSearchBoxComponent implements OnDestroy {
   readonly results = signal<readonly SearchSuggestion[]>([]);
   readonly loading = signal(false);
   readonly activeIndex = signal(-1);
+  readonly panelOpen = signal(false);
   readonly listboxId = 'sb-listbox-' + Math.random().toString(36).slice(2);
   readonly inputId = 'sb-input-' + Math.random().toString(36).slice(2);
   private history: SearchSuggestion[] = [];
@@ -56,8 +59,41 @@ export class GenericSearchBoxComponent implements OnDestroy {
   debounceMs = () => this.config?.debounceMs ?? 200;
   historyEnabled = () => !!this.config?.historyEnabled;
   historyLimit = () => this.config?.historyLimit ?? 5;
+  maxResults = () => this.config?.maxResults ?? 10;
+  collapsed = () => !!this.config?.collapsed;
+  classes = () => this.config?.classes ?? '';
+  inputClasses = () => this.config?.inputClasses ?? 'ank-width-100per ank-borderRadius-0_5rem ank-border-1px-solid ank-borderColor-fgColor ank-px-0_75rem ank-py-0_5rem focus-visible-ring';
+  resultsClasses = () => this.config?.resultsClasses ?? 'ank-listStyle-none ank-m-0 ank-p-0_25rem ank-display-flex ank-flexDirection-column ank-gap-2px ank-bg-bgColor ank-borderRadius-0_5rem ank-boxShadow-sm';
+  panelClasses = () => this.config?.panelClasses ?? 'ank-position-absolute ank-top-calcSD100per__PLUS__8pxED ank-right-0 ank-zIndex-1200 ank-w-100per';
+  panelContentClasses = () => this.config?.panelContentClasses ?? 'ank-width-100per ank-display-flex ank-alignItems-center ank-gap-16px';
+  panelInputWrapperClasses = () => this.config?.panelInputWrapperClasses ?? '';
+  triggerClasses = () => this.config?.triggerClasses ?? 'ank-display-inlineFlex ank-alignItems-center ank-justifyContent-center ank-bg-transparent ank-border-none ank-cursor-pointer ank-color-titleColor';
+  triggerAriaLabel = () => this.config?.triggerAriaLabel ?? this.i18n.t('ui.common.search');
+  closeAriaLabel = () => this.config?.closeAriaLabel ?? 'Close search';
+  triggerIcon = () => this.config?.triggerIcon ?? 'search';
+  closeIcon = () => this.config?.closeIcon ?? 'arrow_back';
+
+  openPanel() {
+    if (!this.collapsed() || this.panelOpen()) return;
+
+    this.panelOpen.set(true);
+    queueMicrotask(() => {
+      this.searchInput?.nativeElement.focus();
+    });
+  }
+
+  closePanel() {
+    if (!this.collapsed() || !this.panelOpen()) return;
+
+    this.panelOpen.set(false);
+    this.resetTransientState();
+  }
 
   onInput(e: Event) {
+    if (this.collapsed() && !this.panelOpen()) {
+      this.openPanel();
+    }
+
     const val = (e.target as HTMLInputElement).value;
     this.term.set(val);
     if (val.length < this.minLength()) {
@@ -79,7 +115,7 @@ export class GenericSearchBoxComponent implements OnDestroy {
     try {
       this.loading.set(true);
       const r = await Promise.resolve(this.fetcher(q));
-      this.results.set(r.slice(0, 10));
+      this.results.set(r.slice(0, this.maxResults()));
       this.activeIndex.set(r.length ? 0 : -1);
       if (r.length) this.ensureOverlay();
       else this.destroyOverlay();
@@ -89,10 +125,11 @@ export class GenericSearchBoxComponent implements OnDestroy {
   }
   private ensureOverlay() {
     if (this.overlayRef) return;
+    const origin = this.searchInput ?? this.host;
     const positions: ConnectedPosition[] = [
       { originX: 'start', originY: 'bottom', overlayX: 'start', overlayY: 'top', offsetY: 4 },
     ];
-    this.overlayRef = this.overlaySvc.createConnected(this.host, { positions, hasBackdrop: false });
+    this.overlayRef = this.overlaySvc.createConnected(origin, { positions, hasBackdrop: false });
     const portal = new TemplatePortal(this.resultsTpl, this.vcr);
     this.overlayRef.attach(portal);
   }
@@ -108,6 +145,9 @@ export class GenericSearchBoxComponent implements OnDestroy {
     this.results.set([]);
     this.activeIndex.set(-1);
     this.destroyOverlay();
+    if (this.collapsed()) {
+      this.closePanel();
+    }
     if (this.historyEnabled()) {
       this.addToHistory(s);
     }
@@ -131,11 +171,25 @@ export class GenericSearchBoxComponent implements OnDestroy {
         break;
       }
       case 'Escape':
-        this.results.set([]);
-        this.activeIndex.set(-1);
-        this.destroyOverlay();
+        if (this.collapsed()) {
+          this.closePanel();
+          break;
+        }
+        this.resetTransientState();
         break;
     }
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.collapsed() || !this.panelOpen()) return;
+
+    const target = event.target as Node | null;
+    if (target && this.host.nativeElement.contains(target)) {
+      return;
+    }
+
+    this.closePanel();
   }
 
   private addToHistory(s: SearchSuggestion) {
@@ -148,6 +202,12 @@ export class GenericSearchBoxComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     if (this.debounceTimer) clearTimeout(this.debounceTimer);
+    this.destroyOverlay();
+  }
+
+  private resetTransientState(): void {
+    this.results.set([]);
+    this.activeIndex.set(-1);
     this.destroyOverlay();
   }
 }

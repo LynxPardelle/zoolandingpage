@@ -1,13 +1,9 @@
 <wrapper-orchestrator [componentsIds]="rootComponentsIds()"></wrapper-orchestrator>
-<!-- Toast host analytics forwarding -->
-
-<!-- Advanced component hosts -->
+@if (showClientOnlyHosts) {
 <generic-toast-host (analyticsEvent)="handleAnalyticsEvent($event)"></generic-toast-host>
 <generic-modal-host [config]="(orchestrator.modalHostConfig$ | async) ?? orchestrator.fallbackModalHostConfig">
   <wrapper-orchestrator [componentsIds]="modalRootIds()"></wrapper-orchestrator>
 </generic-modal-host>
-
-<!-- Dev-only demo controls -->
-@if (debugMode) {
+} @if (showDebugWorkspace) {
 <debug-workspace></debug-workspace>
 }

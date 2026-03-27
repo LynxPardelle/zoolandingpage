@@ -5,7 +5,8 @@
  * REQUIRED: All theme changes must use pushColors (NO hardcoded colors)
  */
 
-import { computed, effect, inject, Injectable, signal } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { computed, effect, inject, Injectable, PLATFORM_ID, REQUEST, signal } from '@angular/core';
 import { NgxAngoraService } from 'ngx-angora-css';
 import { environment } from '../../../environments/environment';
 import { ThemeConfig, ThemeMode, TThemeAccentColorToken, TThemeColors, TThemeVariableConfig } from '../types/theme.types';
@@ -50,8 +51,11 @@ const FALLBACK_DARK_THEME_CONFIG: ThemeConfig = {
   providedIn: 'root',
 })
 export class ThemeService {
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly request = inject(REQUEST, { optional: true });
   private readonly _ank = inject(NgxAngoraService);
   private readonly variableStore = inject(VariableStoreService);
+  private readonly isBrowser = isPlatformBrowser(this.platformId) && !this.request;
 
   // Theme state using signals (MANDATORY Angular 17+ features)
   private readonly _currentTheme = signal<ThemeMode>('light');
@@ -135,7 +139,7 @@ export class ThemeService {
 
   // Private methods
   private _detectSystemPreference(): void {
-    if (typeof window === 'undefined') return;
+    if (!this.isBrowser) return;
 
     const mediaQuery: MediaQueryList = window.matchMedia('(prefers-color-scheme: dark)');
     this._systemPreference.set(mediaQuery.matches ? 'dark' : 'light');
@@ -172,7 +176,7 @@ export class ThemeService {
 
   // MANDATORY: All color changes must use pushColors method
   applyTheme(): void {
-    if (typeof window === 'undefined') return; // Skip SSR
+    if (!this.isBrowser) return; // Skip SSR
     const currentThemeConfig: ThemeConfig =
       this.activeTheme() === 'dark' ? this._darkThemeConfig() : this._lightThemeConfig();
     const altThemeConfig: ThemeConfig = this.activeTheme() === 'dark' ? this._lightThemeConfig() : this._darkThemeConfig();
@@ -207,6 +211,5 @@ export class ThemeService {
     for (const [key, value] of Object.entries(themeColors)) {
       angoraColors[key] = value;
     }
-    /* console.log('colors', angoraColors); */
   }
 }

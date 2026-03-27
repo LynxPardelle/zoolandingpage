@@ -356,24 +356,50 @@ Interactive process content is now controlled by `variables.processSection` and 
   "components": {
     "interactiveProcessSection": {
       "id": "interactiveProcessSection",
-      "type": "container",
-      "condition": "all:host,hasValidInteractiveProcessConfig",
+      "type": "interaction-scope",
+      "condition": "all:varLenGt,processSection.steps,0",
       "config": {
+        "scopeId": "interactiveProcessSection",
         "id": "process-section",
-        "tag": "div",
-        "components": ["interactiveProcess"]
+        "tag": "section",
+        "initialValues": {
+          "activeStepId": "1"
+        },
+        "components": [
+          "interactiveProcessTitle",
+          "interactiveProcessMobileAccordion",
+          "interactiveProcessDesktopTabs"
+        ]
       }
     },
-    "interactiveProcess": {
-      "id": "interactiveProcess",
-      "type": "interactive-process",
-      "valueInstructions": "set:config.process,var,processSection.steps; set:config.sectionTitleKey,varOr,processSection.titleKey,processSection.title; set:config.sectionSidebarTitleKey,varOr,processSection.sidebarTitleKey,processSection.sidebarTitle; set:config.sectionDetailedDescriptionLabelKey,varOr,processSection.detailedDescriptionLabelKey,processSection.detailedDescriptionLabel; set:config.sectionDeliverablesLabelKey,varOr,processSection.deliverablesLabelKey,processSection.deliverablesLabel",
+    "interactiveProcessTitle": {
+      "id": "interactiveProcessTitle",
+      "type": "text",
+      "valueInstructions": "set:config.text,i18n,processSection.title",
       "config": {
-        "process": [],
-        "sectionTitleKey": "processSection.title",
-        "sectionSidebarTitleKey": "processSection.sidebarTitle",
-        "sectionDetailedDescriptionLabelKey": "processSection.detailedDescriptionLabel",
-        "sectionDeliverablesLabelKey": "processSection.deliverablesLabel"
+        "tag": "h2",
+        "text": ""
+      }
+    },
+    "interactiveProcessMobileAccordion": {
+      "id": "interactiveProcessMobileAccordion",
+      "type": "accordion",
+      "eventInstructions": "setScopeValue:activeStepId,event.eventData.activeId;trackProcessStepChange:event.eventData.activeId",
+      "valueInstructions": "set:config.items,var,processSection.steps; set:config.activeId,scope,values.activeStepId; set:config.detailContentLabel,i18n,processSection.detailedDescriptionLabel; set:config.detailItemsLabel,i18n,processSection.deliverablesLabel",
+      "config": {
+        "renderMode": "detail",
+        "mode": "single",
+        "allowToggle": true
+      }
+    },
+    "interactiveProcessDesktopTabs": {
+      "id": "interactiveProcessDesktopTabs",
+      "type": "tab-group",
+      "eventInstructions": "setScopeValue:activeStepId,event.eventData.id;trackProcessStepChange:event.eventData.id",
+      "valueInstructions": "set:config.tabs,var,processSection.steps; set:config.activeId,scope,values.activeStepId; set:config.listHeaderLabel,i18n,processSection.sidebarTitle; set:config.detailContentLabel,i18n,processSection.detailedDescriptionLabel; set:config.detailItemsLabel,i18n,processSection.deliverablesLabel",
+      "config": {
+        "layout": "split-detail",
+        "orientation": "vertical"
       }
     }
   }
@@ -382,7 +408,8 @@ Interactive process content is now controlled by `variables.processSection` and 
 
 Notes:
 
-- If `variables.processSection.steps` is missing or invalid, the section stays hidden.
-- Keep step content in i18n and pass only keys from variables.
+- The process section is now authored as shared composition, not a dedicated `interactive-process` runtime type.
+- Keep step content in i18n and pass only keys plus stable item IDs from variables.
+- `variables.processSection.steps[*].id` should be stable so accordion, tab-group, and analytics stay synchronized.
 - `deliverablesKey` should point to an i18n string array.
 - Since the runtime is draft-only, the `processSection.*` keys shown above must exist in the active draft dictionary.

@@ -1,5 +1,6 @@
 import { environment } from '@/environments/environment';
-import { inject, Injectable, REQUEST } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { inject, Injectable, PLATFORM_ID, REQUEST } from '@angular/core';
 
 export type TResolvedDomain = {
     readonly domain: string;
@@ -8,10 +9,25 @@ export type TResolvedDomain = {
 
 @Injectable({ providedIn: 'root' })
 export class DomainResolverService {
+    private readonly platformId = inject(PLATFORM_ID);
     private readonly request = inject(REQUEST, { optional: true });
+    private readonly isBrowser = isPlatformBrowser(this.platformId) && !this.request;
+
+    private parseRequestUrl(): URL | null {
+        const requestUrl = String(this.request?.url ?? '').trim();
+        if (requestUrl.length === 0) {
+            return null;
+        }
+
+        try {
+            return new URL(requestUrl, 'http://localhost');
+        } catch {
+            return null;
+        }
+    }
 
     resolveDomain(): TResolvedDomain {
-        if (typeof window !== 'undefined' && window.location?.search) {
+        if (this.isBrowser && window.location?.search) {
             const fromQuery = new URLSearchParams(window.location.search).get('draftDomain');
             const queryDomain = String(fromQuery ?? '').trim();
             if (queryDomain.length > 0) {
@@ -19,16 +35,12 @@ export class DomainResolverService {
             }
         }
 
-        const requestUrl = String(this.request?.url ?? '').trim();
-        if (requestUrl.length > 0) {
-            try {
-                const fromRequest = new URL(requestUrl).searchParams.get('draftDomain');
-                const requestDomain = String(fromRequest ?? '').trim();
-                if (requestDomain.length > 0) {
-                    return { domain: requestDomain, source: 'queryParam' };
-                }
-            } catch {
-                // Ignore malformed request URLs and continue with standard fallbacks.
+        const requestUrl = this.parseRequestUrl();
+        if (requestUrl) {
+            const fromRequest = requestUrl.searchParams.get('draftDomain');
+            const requestDomain = String(fromRequest ?? '').trim();
+            if (requestDomain.length > 0) {
+                return { domain: requestDomain, source: 'queryParam' };
             }
         }
 
@@ -37,7 +49,7 @@ export class DomainResolverService {
             return { domain: devOverride, source: 'devOverride' };
         }
 
-        if (typeof window !== 'undefined' && window.location?.hostname) {
+        if (this.isBrowser && window.location?.hostname) {
             const host = window.location.hostname.trim();
             if (host.length > 0) {
                 return { domain: host, source: 'urlHost' };

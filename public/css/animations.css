@@ -92,6 +92,20 @@
   }
 }
 
+/* Inline reveal with width */
+@keyframes revealWidth {
+  0% {
+    width: 0vw;
+    opacity: 0;
+    overflow-x: hidden;
+  }
+  100% {
+    width: 100vw;
+    opacity: 1;
+    overflow-x: hidden;
+  }
+}
+
 /* Opacity breathing */
 @keyframes breathe {
   0%,

@@ -6,6 +6,7 @@ import {
     trackCtaClickHandler,
     trackFaqToggleHandler,
     trackNavClickHandler,
+    trackProcessStepChangeHandler,
 } from './handlers/analytics.handlers';
 import {
     acceptConsentHandler,
@@ -16,7 +17,6 @@ import {
 import { downloadDraftPayloadsHandler, writeDraftsToDiskHandler } from './handlers/debug-drafts.handlers';
 import { showDemoModalHandler } from './handlers/demo-modal.handlers';
 import { resetScopeHandler, setScopeValueHandler, submitScopeHandler } from './handlers/interaction-scope.handlers';
-import { setInteractiveProcessStepHandler } from './handlers/interactive-process.handlers';
 import {
     closeModalHandler,
     openFooterDataHandler,
@@ -29,7 +29,7 @@ import {
     showErrorToastHandler,
     showPositionDemoHandler,
 } from './handlers/toast-demo.handlers';
-import { setLanguageHandler, toggleLanguageHandler, toggleThemeHandler } from './handlers/ui.handlers';
+import { navigateToUrlHandler, setLanguageHandler, toggleLanguageHandler, toggleThemeHandler } from './handlers/ui.handlers';
 import {
     openFaqCtaWhatsAppHandler,
     openFinalCtaWhatsAppHandler,
@@ -43,8 +43,8 @@ export const provideEventHandlers = (): Provider[] => {
         { provide: EVENT_HANDLERS, multi: true, useFactory: trackCtaClickHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: trackNavClickHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: navigationToSectionHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: setInteractiveProcessStepHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: trackFaqToggleHandler },
+        { provide: EVENT_HANDLERS, multi: true, useFactory: trackProcessStepChangeHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: openFaqCtaWhatsAppHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: openFinalCtaWhatsAppHandler },
 
@@ -52,6 +52,7 @@ export const provideEventHandlers = (): Provider[] => {
         { provide: EVENT_HANDLERS, multi: true, useFactory: toggleThemeHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: toggleLanguageHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: setLanguageHandler },
+        { provide: EVENT_HANDLERS, multi: true, useFactory: navigateToUrlHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: setScopeValueHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: resetScopeHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: submitScopeHandler },

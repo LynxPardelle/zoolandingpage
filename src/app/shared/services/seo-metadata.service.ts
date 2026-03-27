@@ -35,7 +35,8 @@ export class SeoMetadataService {
             this.meta.updateTag({ name: 'description', content: seoDescription });
 
             const origin = this.doc.defaultView?.location?.origin || this.defaultOrigin();
-            const url = `${ origin }/`;
+            const pathname = this.doc.defaultView?.location?.pathname || '/';
+            const url = `${ origin }${ pathname || '/' }`;
             const ogLocale = toOpenGraphLocale(lang) || 'en_US';
             const ogImage = `${ origin }/assets/og-1200x630.svg`;
             const openGraph = seo?.openGraph ?? {};

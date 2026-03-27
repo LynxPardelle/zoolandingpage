@@ -1,8 +1,12 @@
+@if (routableInternalHref()) {
 <a
   [id]="id()"
   [href]="href()"
+  [routerLink]="routerLinkPath()"
+  [queryParams]="routerLinkQueryParams()"
+  [fragment]="routerLinkFragment()"
   [class]="classes()"
-  [target]="target()"
+  [attr.target]="target()"
   [rel]="rel()"
   [attr.aria-label]="ariaLabel()"
   [attr.aria-expanded]="config().ariaExpanded ?? null"
@@ -15,3 +19,22 @@
   }
   <ng-content></ng-content>
 </a>
+} @else {
+<a
+  [id]="id()"
+  [href]="href()"
+  [class]="classes()"
+  [attr.target]="target()"
+  [rel]="rel()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-expanded]="config().ariaExpanded ?? null"
+  [attr.aria-controls]="config().ariaControls"
+  [attr.aria-current]="config().ariaCurrent ?? null"
+  [attr.data-components]="componentTokens().join(',')"
+  (click)="onClick($event)"
+  >@if( text() ){
+  {{ text() }}
+  }
+  <ng-content></ng-content>
+</a>
+}

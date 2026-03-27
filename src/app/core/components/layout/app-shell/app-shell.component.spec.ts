@@ -7,6 +7,7 @@ import { of } from 'rxjs';
 import { WrapperOrchestrator } from '../../../../shared/components/wrapper-orchestrator/wrapper-orchestrator.component';
 import { AnalyticsService } from '../../../../shared/services/analytics.service';
 import { ConfigBootstrapService } from '../../../../shared/services/config-bootstrap.service';
+import { ConfigSourceService } from '../../../../shared/services/config-source.service';
 import { ConfigurationsOrchestratorService } from '../../../../shared/services/configurations-orchestrator';
 import { DraftRegistryService } from '../../../../shared/services/draft-registry.service';
 import { DebugWorkspaceComponent } from '../debug-workspace/debug-workspace.component';
@@ -34,7 +35,7 @@ class WrapperOrchestratorStub {
 class DebugWorkspaceStub { }
 
 let bootstrapResult: any;
-let bootstrapLoadArgs: Array<{ pageId?: string; lang?: string }>;
+let bootstrapLoadArgs: Array<{ domain?: string; pageId?: string; lang?: string }>;
 
 const ORCHESTRATOR_STUB = {
   modalHostConfig$: of(null),
@@ -53,6 +54,7 @@ const ORCHESTRATOR_STUB = {
 
 describe('AppShellComponent', () => {
   beforeEach(async () => {
+    window.history.replaceState({}, '', '/?draftDomain=despacholegalastralex.com&draftPageId=default');
     bootstrapLoadArgs = [];
     bootstrapResult = {
       domain: 'zoolandingpage.com.mx',
@@ -97,10 +99,16 @@ describe('AppShellComponent', () => {
         {
           provide: ConfigBootstrapService,
           useValue: {
-            load: async (opts?: { pageId?: string; lang?: string }) => {
+            load: async (opts?: { domain?: string; pageId?: string; lang?: string }) => {
               bootstrapLoadArgs.push(opts ?? {});
               return bootstrapResult;
             },
+          },
+        },
+        {
+          provide: ConfigSourceService,
+          useValue: {
+            loadSiteConfig: async () => null,
           },
         },
         {
@@ -140,6 +148,11 @@ describe('AppShellComponent', () => {
     });
   });
 
+  afterEach(() => {
+    window.history.replaceState({}, '', '/context.html');
+    TestBed.resetTestingModule();
+  });
+
   it('should render main with id main-content and skip link', () => {
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
@@ -158,11 +171,11 @@ describe('AppShellComponent', () => {
     expect(fixture.componentInstance.modalRootIds()).toEqual([]);
   });
 
-  it('renders the extracted debug workspace host in debug mode', () => {
+  it('does not render the debug workspace during SSR', () => {
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('debug-workspace')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('debug-workspace')).toBeFalsy();
   });
 
   it('clears rendered roots when draft components are invalid', async () => {
@@ -309,6 +322,7 @@ describe('AppShellComponent', () => {
     TestBed.overrideProvider(REQUEST, {
       useValue: new Request('https://example.test/?draftDomain=despacholegalastralex.com&draftPageId=legal-home'),
     });
+    window.history.replaceState({}, '', '/?draftDomain=despacholegalastralex.com&draftPageId=legal-home');
 
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();

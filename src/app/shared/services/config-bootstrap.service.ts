@@ -22,7 +22,8 @@ import {
     isVariablesPayload,
 } from '@/app/shared/utility/config-validation/config-payload.validators';
 import { environment } from '@/environments/environment';
-import { inject, Injectable, signal } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { inject, Injectable, PLATFORM_ID, REQUEST, signal } from '@angular/core';
 import { ConfigSourceService } from './config-source.service';
 import { ConfigStoreService, TConfigBootstrapStage } from './config-store.service';
 import { DomainResolverService } from './domain-resolver.service';
@@ -49,6 +50,8 @@ const EXPECTED_CONFIG_VERSION = 1;
 
 @Injectable({ providedIn: 'root' })
 export class ConfigBootstrapService {
+    private readonly platformId = inject(PLATFORM_ID);
+    private readonly request = inject(REQUEST, { optional: true });
     private readonly store = inject(ConfigStoreService);
     private readonly source = inject(ConfigSourceService);
     private readonly resolver = inject(DomainResolverService);
@@ -56,6 +59,7 @@ export class ConfigBootstrapService {
     private readonly language = inject(LanguageService);
     private readonly structured = inject(StructuredDataService);
     private readonly variablesStore = inject(VariableStoreService);
+    private readonly isBrowser = isPlatformBrowser(this.platformId) && !this.request;
 
     readonly error = signal<string | null>(null);
 
@@ -156,16 +160,17 @@ export class ConfigBootstrapService {
         return secondary?.code ?? null;
     }
 
-    async load(opts?: { pageId?: string; lang?: string }): Promise<TBootstrapResult> {
+    async load(opts?: { domain?: string; pageId?: string; lang?: string }): Promise<TBootstrapResult> {
         const resolved = this.resolver.resolveDomain();
-        const domain = resolved.domain || environment.domain.defaultDomain;
+        const domain = String(opts?.domain ?? resolved.domain ?? environment.domain.defaultDomain).trim() || environment.domain.defaultDomain;
         const pageId = String(opts?.pageId ?? environment.drafts.defaultPageId ?? 'default');
         const requestedLang = String(
             opts?.lang
-            ?? (typeof window !== 'undefined' ? this.language.currentLanguage() : '')
+            ?? (this.isBrowser ? this.language.currentLanguage() : '')
             ?? 'es'
         );
 
+        this.i18n.disableAutoLoad();
         this.configureI18nLoader(domain, pageId);
 
         this.store.reset();
@@ -227,6 +232,8 @@ export class ConfigBootstrapService {
                 { cache: true, applyIfCurrent: false }
             );
         }
+
+        this.i18n.enableAutoLoad();
 
         this.store.setStage('done');
         this.store.setValidationIssues(this.buildValidationIssues({

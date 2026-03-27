@@ -3,6 +3,7 @@ import type {
     TAnalyticsConfigPayload,
     TAngoraCombosPayload,
     TComponentsPayload,
+    TDraftSiteConfigPayload,
     TI18nPayload,
     TPageConfigPayload,
     TSeoPayload,
@@ -12,35 +13,53 @@ import type {
 import {
     isAnalyticsConfigPayload,
     isAngoraCombosPayload,
-    isComponentsPayload,
+    isDraftSiteConfigPayload,
     isI18nPayload,
     isPageConfigPayload,
     isSeoPayload,
     isStructuredDataPayload,
-    isVariablesPayload,
+    isVariablesPayload
 } from '@/app/shared/utility/config-validation/config-payload.validators';
 import { environment } from '@/environments/environment';
-import { HttpClient } from '@angular/common/http';
-import { inject, Injectable } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { Injectable } from '@angular/core';
 
 @Injectable({ providedIn: 'root' })
 export class DraftConfigLoaderService {
-    private readonly http = inject(HttpClient);
-
-    private getDraftBase(domain?: string, pageId?: string): string {
+    private getDomainBase(domain?: string): string {
         const base = String(environment.drafts.basePath ?? 'assets/drafts').replace(/\/$/, '');
         const d = String(domain ?? environment.drafts.defaultDomain ?? '').trim();
+        return `${ base }/${ encodeURIComponent(d) }`;
+    }
+
+    private getDraftBase(domain?: string, pageId?: string): string {
+        const base = this.getDomainBase(domain);
         const p = String(pageId ?? environment.drafts.defaultPageId ?? '').trim();
-        return `${ base }/${ encodeURIComponent(d) }/${ encodeURIComponent(p) }`;
+        return `${ base }/${ encodeURIComponent(p) }`;
     }
 
     private async getJson<T>(path: string): Promise<T | null> {
         try {
-            return await firstValueFrom(this.http.get<T>(path));
+            const response = await fetch(path, {
+                headers: {
+                    Accept: 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                return null;
+            }
+
+            const raw = await response.text();
+            return JSON.parse(raw) as T;
         } catch {
             return null;
         }
+    }
+
+    async loadSiteConfig(domain?: string): Promise<TDraftSiteConfigPayload | null> {
+        const url = `${ this.getDomainBase(domain) }/site-config.json`;
+        const payload = await this.getJson<TDraftSiteConfigPayload>(url);
+        return isDraftSiteConfigPayload(payload) ? payload : null;
     }
 
     async loadPageConfig(domain?: string, pageId?: string): Promise<TPageConfigPayload | null> {
@@ -52,7 +71,7 @@ export class DraftConfigLoaderService {
     async loadComponents(domain?: string, pageId?: string): Promise<TComponentsPayload | null> {
         const url = `${ this.getDraftBase(domain, pageId) }/components.json`;
         const payload = await this.getJson<TComponentsPayload>(url);
-        return isComponentsPayload(payload) ? payload : null;
+        return payload && typeof payload === 'object' ? (payload as TComponentsPayload) : null;
     }
 
     async loadVariables(domain?: string, pageId?: string): Promise<TVariablesPayload | null> {

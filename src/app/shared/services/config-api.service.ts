@@ -2,6 +2,7 @@ import type {
     TAnalyticsConfigPayload,
     TAngoraCombosPayload,
     TComponentsPayload,
+    TDraftSiteConfigPayload,
     TI18nPayload,
     TPageConfigPayload,
     TSeoPayload,
@@ -29,6 +30,10 @@ export class ConfigApiService {
     private async getJson<T>(path: string, params: Record<string, string | undefined>): Promise<T> {
         const url = this.buildUrl(path, params);
         return await firstValueFrom(this.http.get<T>(url));
+    }
+
+    getSiteConfig(domain: string): Promise<TDraftSiteConfigPayload> {
+        return this.getJson<TDraftSiteConfigPayload>('site-config', { domain });
     }
 
     getPageConfig(domain: string, pageId?: string): Promise<TPageConfigPayload> {

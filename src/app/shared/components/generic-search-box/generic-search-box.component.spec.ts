@@ -33,4 +33,32 @@ describe('SearchBoxComponent', () => {
     fixture.detectChanges();
     expect(comp.term()).toBe('Alpha');
   });
+
+  it('should toggle the collapsed panel from the trigger button', () => {
+    comp.config = { minLength: 1, debounceMs: 0, collapsed: true, triggerIcon: 'search', closeIcon: 'arrow_back' };
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    button.click();
+    fixture.detectChanges();
+
+    expect(comp.panelOpen()).toBeTrue();
+    expect(fixture.nativeElement.querySelector('input')).toBeTruthy();
+  });
+
+  it('should close the collapsed panel from the back button', () => {
+    comp.config = { minLength: 1, debounceMs: 0, collapsed: true, triggerIcon: 'search', closeIcon: 'arrow_back' };
+    fixture.detectChanges();
+
+    let button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    button.click();
+    fixture.detectChanges();
+
+    button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    button.click();
+    fixture.detectChanges();
+
+    expect(comp.panelOpen()).toBeFalse();
+    expect(fixture.nativeElement.querySelector('input')).toBeFalsy();
+  });
 });

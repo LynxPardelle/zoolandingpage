@@ -2,6 +2,7 @@ import type {
     TAnalyticsConfigPayload,
     TAngoraCombosPayload,
     TComponentsPayload,
+    TDraftSiteConfigPayload,
     TI18nPayload,
     TPageConfigPayload,
     TSeoPayload,
@@ -14,6 +15,7 @@ import { ConfigApiService } from './config-api.service';
 import { DraftConfigLoaderService } from './draft-config-loader.service';
 
 type TConfigSource = {
+    readonly loadSiteConfig: (domain: string) => Promise<TDraftSiteConfigPayload | null>;
     readonly loadPageConfig: (domain: string, pageId: string) => Promise<TPageConfigPayload | null>;
     readonly loadComponents: (domain: string, pageId: string) => Promise<TComponentsPayload | null>;
     readonly loadVariables: (domain: string, pageId: string) => Promise<TVariablesPayload | null>;
@@ -30,6 +32,7 @@ export class ConfigSourceService {
     private readonly drafts = inject(DraftConfigLoaderService);
 
     private readonly draftSource: TConfigSource = {
+        loadSiteConfig: (domain) => this.drafts.loadSiteConfig(domain),
         loadPageConfig: (domain, pageId) => this.drafts.loadPageConfig(domain, pageId),
         loadComponents: (domain, pageId) => this.drafts.loadComponents(domain, pageId),
         loadVariables: (domain, pageId) => this.drafts.loadVariables(domain, pageId),
@@ -41,6 +44,7 @@ export class ConfigSourceService {
     };
 
     private readonly apiSource: TConfigSource = {
+        loadSiteConfig: (domain) => this.api.getSiteConfig(domain),
         loadPageConfig: (domain, pageId) => this.api.getPageConfig(domain, pageId),
         loadComponents: (domain, pageId) => this.api.getComponents(domain, pageId),
         loadVariables: (domain, pageId) => this.api.getVariables(domain, pageId),
@@ -53,6 +57,10 @@ export class ConfigSourceService {
 
     private get source(): TConfigSource {
         return environment.drafts.enabled ? this.draftSource : this.apiSource;
+    }
+
+    loadSiteConfig(domain: string): Promise<TDraftSiteConfigPayload | null> {
+        return this.source.loadSiteConfig(domain);
     }
 
     loadPageConfig(domain: string, pageId: string): Promise<TPageConfigPayload | null> {

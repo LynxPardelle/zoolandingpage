@@ -8,12 +8,14 @@ describe('GenericTabGroupComponent', () => {
     await TestBed.configureTestingModule({ imports: [GenericTabGroupComponent] }).compileComponents();
     fixture = TestBed.createComponent(GenericTabGroupComponent);
     comp = fixture.componentInstance;
-    comp.tabsSource = [
-      { id: 'a', label: 'A' },
-      { id: 'b', label: 'B' },
-      { id: 'c', label: 'C', disabled: true },
-      { id: 'd', label: 'D' },
-    ];
+    fixture.componentRef.setInput('config', {
+      tabs: [
+        { id: 'a', label: 'A' },
+        { id: 'b', label: 'B' },
+        { id: 'c', label: 'C', disabled: true },
+        { id: 'd', label: 'D' },
+      ],
+    });
     fixture.detectChanges();
   });
   it('should activate first enabled tab', () => {

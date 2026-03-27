@@ -5,6 +5,8 @@ import { LanguageService } from '@/app/shared/services/language.service';
 import { ThemeService } from '@/app/shared/services/theme.service';
 import type { SupportedLanguage } from '@/app/shared/types/navigation.types';
 import { inject } from '@angular/core';
+import { Router } from '@angular/router';
+import { resolveNavigationTarget } from '../../navigation/navigation-target.utility';
 import type { EventHandler } from '../event-handler.types';
 
 const resolveLanguageArg = (value: unknown): SupportedLanguage | null => {
@@ -74,6 +76,33 @@ export const setLanguageHandler = (): EventHandler => {
                 label: `${ before }->${ after }`,
                 meta: { before, after, type: 'language', action: 'set' },
             });
+        },
+    };
+};
+
+export const navigateToUrlHandler = (): EventHandler => {
+    const router = inject(Router);
+
+    return {
+        id: 'navigateToUrl',
+        handle: (_ctx, args) => {
+            const resolved = resolveNavigationTarget(String(args?.[0] ?? ''));
+            const href = resolved.href;
+            const target = String(args?.[1] ?? '_self').trim() || '_self';
+
+            if (!href || typeof window === 'undefined') return;
+
+            if (target === '_blank' && !resolved.internal) {
+                window.open(href, '_blank', 'noopener,noreferrer');
+                return;
+            }
+
+            if (!resolved.internal && /^[a-z][a-z0-9+.-]*:/i.test(href)) {
+                window.location.assign(href);
+                return;
+            }
+
+            void router.navigateByUrl(href).catch(() => window.location.assign(href));
         },
     };
 };

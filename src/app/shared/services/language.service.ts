@@ -5,7 +5,8 @@
  * Uses Angular signals for reactive state management.
  */
 
-import { computed, Injectable, signal } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { computed, inject, Injectable, PLATFORM_ID, REQUEST, signal } from '@angular/core';
 // TODO: Install @ngx-translate/core package
 // import { TranslateService } from '@ngx-translate/core';
 import { environment } from '../../../environments/environment';
@@ -19,6 +20,9 @@ const DEFAULT_LANGUAGE = 'es';
   providedIn: 'root'
 })
 export class LanguageService {
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly request = inject(REQUEST, { optional: true });
+  private readonly isBrowser = isPlatformBrowser(this.platformId) && !this.request;
   // TODO: Inject TranslateService once package is installed
   // private readonly translateService = inject(TranslateService);
 
@@ -127,7 +131,7 @@ export class LanguageService {
   }
 
   private _detectBrowserLanguage(): SupportedLanguage | null {
-    if (typeof window === 'undefined' || typeof navigator === 'undefined') return null;
+    if (!this.isBrowser || typeof navigator === 'undefined') return null;
     return this.normalizeSingleLanguage(navigator.language);
   }
 

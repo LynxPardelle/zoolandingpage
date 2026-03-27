@@ -14,14 +14,27 @@ export class RuntimeService {
 
     readonly rootComponentsIds = signal<readonly string[]>([]);
     readonly modalRootIds = signal<readonly string[]>([]);
+    private initializeQueue: Promise<void> = Promise.resolve();
 
     async initialize(lang?: string): Promise<void> {
-        const pageId = this.draftRuntime.activeDraftPageId();
+        const nextLanguage = lang;
+        this.initializeQueue = this.initializeQueue
+            .catch(() => undefined)
+            .then(() => this.doInitialize(nextLanguage));
+
+        return this.initializeQueue;
+    }
+
+    private async doInitialize(lang?: string): Promise<void> {
+        const context = await this.draftRuntime.resolveActiveDraftContext();
+        const pageId = context.pageId;
         const boot = await this.configBootstrap.load({
+            domain: context.domain,
             pageId,
             lang,
         });
-        const domain = boot.domain || environment.drafts.defaultDomain;
+
+        const domain = boot.domain || context.domain || environment.drafts.defaultDomain;
         const pageConfig = boot.pageConfig;
         const componentsPayload = boot.components;
         const hasRenderableComponents = !!componentsPayload && Object.keys(componentsPayload.components ?? {}).length > 0;
@@ -45,11 +58,6 @@ export class RuntimeService {
         this.rootComponentsIds.set(rootIds);
         this.modalRootIds.set(modalRootIds);
         this.orchestrator.setDraftExportContext({ domain, pageId, rootIds, modalRootIds });
-
-        if (environment.features.debugMode) {
-            const exportPayload = this.orchestrator.exportDraftComponentsPayload(domain, pageId);
-            console.log('[Drafts] Components payload export:', exportPayload);
-        }
 
         this.combosService.applyPayload(boot.combos);
     }

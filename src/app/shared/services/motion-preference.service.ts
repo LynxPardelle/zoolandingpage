@@ -1,11 +1,15 @@
-import { Injectable, signal } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { Injectable, PLATFORM_ID, REQUEST, inject, signal } from '@angular/core';
 
 @Injectable({ providedIn: 'root' })
 export class MotionPreferenceService {
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly request = inject(REQUEST, { optional: true });
   readonly reduced = signal<boolean>(false);
+  private readonly isBrowser = isPlatformBrowser(this.platformId) && !this.request;
 
   constructor() {
-    if (typeof window !== 'undefined') {
+    if (this.isBrowser) {
       const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
       this.reduced.set(mq.matches);
 

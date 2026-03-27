@@ -1,4 +1,7 @@
-import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { DEFAULT_FRAMEWORK_TRANSLATIONS } from '@/app/shared/i18n/default-framework-translations';
+import { environment } from '@/environments/environment';
+import { isPlatformBrowser } from '@angular/common';
+import { Injectable, PLATFORM_ID, REQUEST, computed, effect, inject, signal } from '@angular/core';
 import { LanguageService } from './language.service';
 
 type TDictionary = Record<string, unknown>;
@@ -8,11 +11,16 @@ export type TI18nLoader = (lang: string, ctx: { signal?: AbortSignal }) => Promi
 
 @Injectable({ providedIn: 'root' })
 export class I18nService {
+    private readonly platformId = inject(PLATFORM_ID);
+    private readonly request = inject(REQUEST, { optional: true });
     private readonly _language = inject(LanguageService);
+    private readonly isBrowser = isPlatformBrowser(this.platformId) && !this.request;
 
-    private readonly dict = signal<TDictionary>({});
+    private readonly baseDict = signal<TDictionary>(this.withFrameworkFallback(this._language.currentLanguage(), {}));
+    private readonly autoLoadEnabled = signal(false);
     private readonly cache = new Map<string, TDictionary>();
-    private readonly namespaces = new Map<string, TNamespaceTranslations>();
+    private readonly namespaces = signal(new Map<string, TNamespaceTranslations>());
+    private readonly missingKeysLogged = new Set<string>();
 
     private loadSeq = 0;
     private inFlight?: AbortController;
@@ -21,11 +29,19 @@ export class I18nService {
     };
 
     readonly currentLang = computed(() => this._language.currentLanguage());
+    private readonly dict = computed(() => this.applyNamespacesToDictionary(
+        this.baseDict(),
+        String(this.currentLang() ?? '').trim()
+    ));
     readonly ready = computed(() => Object.keys(this.dict()).length > 0);
 
     constructor() {
         // Load dictionary when language changes
         effect(() => {
+            if (!this.autoLoadEnabled()) {
+                return;
+            }
+
             const lang = this.currentLang();
             void this.reload(lang);
         });
@@ -38,7 +54,18 @@ export class I18nService {
     setLoader(loader: TI18nLoader, opts?: { clearCache?: boolean; reload?: boolean }): void {
         this.loader = loader;
         if (opts?.clearCache) this.clearCache();
-        if (opts?.reload !== false) void this.reload();
+        if (opts?.reload !== false) {
+            this.autoLoadEnabled.set(true);
+            void this.reload();
+        }
+    }
+
+    enableAutoLoad(): void {
+        this.autoLoadEnabled.set(true);
+    }
+
+    disableAutoLoad(): void {
+        this.autoLoadEnabled.set(false);
     }
 
     /**
@@ -77,16 +104,19 @@ export class I18nService {
     registerNamespace(namespace: string, translationsByLang: TNamespaceTranslations): void {
         const ns = String(namespace ?? '').trim();
         if (!ns) return;
-        this.namespaces.set(ns, translationsByLang ?? {});
-        this.applyNamespacesToCurrentDict();
+        const next = new Map(this.namespaces());
+        next.set(ns, translationsByLang ?? {});
+        this.namespaces.set(next);
     }
 
     unregisterNamespace(namespace: string): void {
         const ns = String(namespace ?? '').trim();
         if (!ns) return;
-        if (!this.namespaces.has(ns)) return;
-        this.namespaces.delete(ns);
-        this.applyNamespacesToCurrentDict();
+        const current = this.namespaces();
+        if (!current.has(ns)) return;
+        const next = new Map(current);
+        next.delete(ns);
+        this.namespaces.set(next);
     }
 
     /**
@@ -105,8 +135,12 @@ export class I18nService {
 
     t(key: string, params?: TInterpolationParams): string {
         const value = this.getValue(key, this.dict());
-        if (value === undefined) {
-            console.log(`Translating key "${ key }" with params`, params, '->', value);
+        if (value === undefined && environment.features.debugMode && this.isBrowser) {
+            const cacheKey = `${ this.currentLang() }::${ key }`;
+            if (!this.missingKeysLogged.has(cacheKey)) {
+                this.missingKeysLogged.add(cacheKey);
+                console.warn(`[I18n] Missing translation for key "${ key }" in language "${ this.currentLang() }".`, params);
+            }
         }
         if (value == null) return key;
         if (typeof value === 'string') return this.interpolate(value, params);
@@ -135,13 +169,12 @@ export class I18nService {
     setTranslations(lang: string, dictionary: TDictionary, opts?: { cache?: boolean; applyIfCurrent?: boolean }): void {
         const l = String(lang ?? '').trim();
         if (!l) return;
-        const dict = (dictionary ?? {}) as TDictionary;
+        const dict = this.withFrameworkFallback(l, (dictionary ?? {}) as TDictionary);
         const cache = opts?.cache !== false;
         const apply = opts?.applyIfCurrent !== false;
         if (cache) this.cache.set(l, dict);
         if (apply && l === String(this.currentLang() ?? '').trim()) {
-            this.dict.set(dict);
-            this.applyNamespacesToCurrentDict();
+            this.baseDict.set(dict);
         }
     }
 
@@ -170,10 +203,10 @@ export class I18nService {
         const l = String(lang ?? '').trim();
         if (!l) return;
         if (this.cache.has(l)) return;
-        if (typeof window === 'undefined') return;
+        if (!this.isBrowser) return;
         try {
             const json = await this.loader(l, {});
-            this.cache.set(l, json);
+            this.cache.set(l, this.withFrameworkFallback(l, json));
         } catch {
             // ignore prefetch failures
         }
@@ -181,10 +214,10 @@ export class I18nService {
 
     private async load(lang: string): Promise<void> {
         const runId = ++this.loadSeq;
+        this.baseDict.set(this.withFrameworkFallback(lang, {}));
 
         if (this.cache.has(lang)) {
-            this.dict.set(this.cache.get(lang)!);
-            this.applyNamespacesToCurrentDict();
+            this.baseDict.set(this.cache.get(lang)!);
             return;
         }
 
@@ -196,42 +229,69 @@ export class I18nService {
             // SSR note:
             // - If you want SSR translations, call setLoader() with an SSR-safe loader,
             //   or call setTranslations() before render.
-            // - Otherwise we behave like a no-op, but still apply registered namespaces.
-            if (typeof window === 'undefined') {
-                this.applyNamespacesToCurrentDict();
+            // - Otherwise we behave like a no-op, while computed namespaces remain available.
+            if (!this.isBrowser) {
                 return;
             }
 
             const json = await this.loader(lang, { signal: controller.signal });
+            const merged = this.withFrameworkFallback(lang, json);
 
             // Ignore stale responses if language changed quickly.
             if (runId !== this.loadSeq) return;
 
-            this.cache.set(lang, json);
-            this.dict.set(json);
-            this.applyNamespacesToCurrentDict();
+            this.cache.set(lang, merged);
+            this.baseDict.set(merged);
         } catch {
             if (runId !== this.loadSeq) return;
-            this.dict.set({});
-            this.applyNamespacesToCurrentDict();
+            this.baseDict.set(this.withFrameworkFallback(lang, {}));
         } finally {
             if (this.inFlight) this.inFlight = undefined;
         }
     }
 
-    private applyNamespacesToCurrentDict(): void {
-        const current = this.dict();
-        if (this.namespaces.size === 0) return;
+    private applyNamespacesToDictionary(current: TDictionary, lang: string): TDictionary {
+        const namespaces = this.namespaces();
+        if (namespaces.size === 0) return current;
 
-        const lang = String(this.currentLang() ?? '').trim();
         const merged: TDictionary = { ...current };
 
-        for (const [ns, byLang] of this.namespaces.entries()) {
+        for (const [ns, byLang] of namespaces.entries()) {
             const best = byLang?.[lang] ?? byLang?.['en'] ?? byLang?.['es'] ?? {};
             merged[ns] = best;
         }
 
-        this.dict.set(merged);
+        return merged;
+    }
+
+    private withFrameworkFallback(lang: string, dictionary: TDictionary): TDictionary {
+        const fallback = this.frameworkFallbackFor(lang);
+        return this.mergeDictionaries(fallback, dictionary);
+    }
+
+    private frameworkFallbackFor(lang: string): TDictionary {
+        const normalized = String(lang ?? '').trim().toLowerCase();
+        return (DEFAULT_FRAMEWORK_TRANSLATIONS[normalized] ?? DEFAULT_FRAMEWORK_TRANSLATIONS[normalized.split('-')[0]] ?? DEFAULT_FRAMEWORK_TRANSLATIONS['en'] ?? {}) as TDictionary;
+    }
+
+    private mergeDictionaries(base: TDictionary, override: TDictionary): TDictionary {
+        const result: TDictionary = { ...base };
+
+        Object.entries(override ?? {}).forEach(([key, value]) => {
+            const current = result[key];
+            if (this.isPlainRecord(current) && this.isPlainRecord(value)) {
+                result[key] = this.mergeDictionaries(current as TDictionary, value as TDictionary);
+                return;
+            }
+
+            result[key] = value;
+        });
+
+        return result;
+    }
+
+    private isPlainRecord(value: unknown): value is Record<string, unknown> {
+        return !!value && typeof value === 'object' && !Array.isArray(value);
     }
 
     private interpolate(str: string, params?: TInterpolationParams): string {

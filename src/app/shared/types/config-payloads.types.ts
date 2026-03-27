@@ -15,6 +15,20 @@ export type TDraftI18nVariableConfig = {
     readonly supportedLanguages?: readonly (string | TDraftLanguageDefinition)[];
 };
 
+export type TDraftSiteRouteEntry = {
+    readonly path: string;
+    readonly pageId: string;
+    readonly label?: string;
+    readonly labelKey?: string;
+};
+
+export type TDraftSiteConfigPayload = {
+    readonly version: number;
+    readonly domain: string;
+    readonly defaultPageId?: string;
+    readonly routes: readonly TDraftSiteRouteEntry[];
+};
+
 export type TPageConfigPayload = {
     readonly version: number;
     readonly pageId: string;

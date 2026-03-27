@@ -2,33 +2,35 @@ import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ConfigurationsOrchestratorService } from '../../services/configurations-orchestrator';
-import { InteractiveProcessStoreService } from '../../services/interactive-process-store.service';
 import { ValueOrchestrator } from '../../services/value-orchestrator';
 import { WrapperOrchestrator } from './wrapper-orchestrator.component';
+import type { TGenericComponent } from './wrapper-orchestrator.types';
 
 describe('WrapperOrchestrator', () => {
   let component: WrapperOrchestrator;
   let fixture: ComponentFixture<WrapperOrchestrator>;
+  let componentsRevision: ReturnType<typeof signal<number>>;
+  let componentsById: Record<string, TGenericComponent>;
 
   beforeEach(async () => {
+    componentsRevision = signal(0);
+    componentsById = {};
+
     await TestBed.configureTestingModule({
       imports: [WrapperOrchestrator],
       providers: [
         {
           provide: ConfigurationsOrchestratorService,
           useValue: {
-            getComponentById: () => undefined,
+            getComponentById: (id: string) => componentsById[id],
             markComponentRendered: () => { },
             handleComponentEvent: () => { },
+            componentsRevision,
           } satisfies Partial<ConfigurationsOrchestratorService>,
         },
         {
           provide: ValueOrchestrator,
           useValue: { apply: (c: any) => c } satisfies Partial<ValueOrchestrator>,
-        },
-        {
-          provide: InteractiveProcessStoreService,
-          useValue: { currentStep: signal(2) } satisfies Partial<InteractiveProcessStoreService>,
         },
       ],
     })
@@ -44,14 +46,32 @@ describe('WrapperOrchestrator', () => {
     expect(component).toBeTruthy();
   });
 
-  it('resolves interactive-process arrays from draft JSON config', () => {
-    expect(component.resolveInteractiveProcessProcess({ process: [{ step: 1, title: 'A' }] } as any)).toEqual([
-      { step: 1, title: 'A' },
-    ]);
-  });
+  it('re-resolves component ids when the orchestrator payload revision changes', () => {
+    componentsById = {
+      pageRoot: {
+        id: 'pageRoot',
+        type: 'text',
+        config: { tag: 'p', text: 'First page' },
+      },
+    };
 
-  it('falls back to the interactive process store when currentStep is not a function', () => {
-    expect(component.resolveInteractiveProcessCurrentStep({})).toBe(2);
-    expect(component.resolveInteractiveProcessCurrentStep({ currentStep: 4 })).toBe(4);
+    fixture.componentRef.setInput('componentsIds', ['pageRoot']);
+    fixture.detectChanges();
+
+    const firstComponent = component.components()[0] as Extract<TGenericComponent, { type: 'text' }> | undefined;
+    expect(firstComponent?.config.text).toBe('First page');
+
+    componentsById = {
+      pageRoot: {
+        id: 'pageRoot',
+        type: 'text',
+        config: { tag: 'p', text: 'Second page' },
+      },
+    };
+    componentsRevision.update((value: number) => value + 1);
+    fixture.detectChanges();
+
+    const secondComponent = component.components()[0] as Extract<TGenericComponent, { type: 'text' }> | undefined;
+    expect(secondComponent?.config.text).toBe('Second page');
   });
 });

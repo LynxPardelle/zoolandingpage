@@ -1,8 +1,8 @@
 import { getLocaleCandidates } from '@/app/shared/i18n/locale.utils';
 import { I18nService } from '@/app/shared/services/i18n.service';
 import type { TComponentsPayload } from '@/app/shared/types/config-payloads.types';
-import { computed, effect, inject, Injectable, signal } from '@angular/core';
-import { toObservable } from '@angular/core/rxjs-interop';
+import { computed, DestroyRef, effect, inject, Injectable, signal } from '@angular/core';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { environment } from '../../../environments/environment';
 import { GenericModalService } from '../components/generic-modal/generic-modal.service';
 import type { ModalConfig } from '../components/generic-modal/generic-modal.types';
@@ -20,7 +20,6 @@ import { ComponentEvent, ComponentEventDispatcherService } from './component-eve
 import { devOnlyComponents } from './component-stores/devOnlyComponents.component-store';
 import { ConfigStoreService } from './config-store.service';
 import { DomainResolverService } from './domain-resolver.service';
-import { InteractiveProcessStoreService } from './interactive-process-store.service';
 import { LanguageService } from './language.service';
 import { QuickStatsService } from './quick-stats.service';
 import { VariableStoreService } from './variable-store.service';
@@ -29,13 +28,13 @@ import { VariableStoreService } from './variable-store.service';
 })
 export class ConfigurationsOrchestratorService {
     readonly analytics = inject(AnalyticsService);
+    private readonly destroyRef = inject(DestroyRef);
     private readonly quickStats = inject(QuickStatsService);
     private readonly modal = inject(GenericModalService);
     private readonly globalI18n = inject(I18nService);
     private readonly componentEventDispatcher = inject(ComponentEventDispatcherService);
     private readonly configStore = inject(ConfigStoreService);
     private readonly domainResolver = inject(DomainResolverService);
-    private readonly interactiveProcessStore = inject(InteractiveProcessStoreService);
     private readonly language = inject(LanguageService);
     private readonly variableStore = inject(VariableStoreService);
     private warnedFooterSocialLinksMissing = false;
@@ -44,8 +43,6 @@ export class ConfigurationsOrchestratorService {
     private warnedFooterLegalMissing = false;
     private warnedFooterCopyrightMissing = false;
     private warnedNavigationMissing = false;
-    private warnedProcessSectionMissing = false;
-    private warnedProcessSectionInvalid = false;
     private warnedLoopPaths = new Set<string>();
     private readonly draftExportContext = signal({
         domain: environment.drafts.defaultDomain,
@@ -184,7 +181,9 @@ export class ConfigurationsOrchestratorService {
 
         // [MODALS-3] Forward modal analytics events into orchestrator analytics pipeline.
         try {
-            this.modal.analyticsEvents$?.subscribe((e) => forwardAnalyticsEvent(this.analytics, e as any));
+            this.modal.analyticsEvents$
+                ?.pipe(takeUntilDestroyed(this.destroyRef))
+                .subscribe((e) => forwardAnalyticsEvent(this.analytics, e as any));
         } catch {
             // ignore
         }
@@ -208,32 +207,6 @@ export class ConfigurationsOrchestratorService {
         )
     ));
 
-    private readonly interactiveProcessVariableSteps = computed<readonly Record<string, unknown>[]>(() => {
-        const raw = this.variableStore.get('processSection.steps');
-        if (!Array.isArray(raw)) {
-            if (!this.warnedProcessSectionMissing) {
-                console.warn('[ConfigurationsOrchestrator] Expected variables.processSection.steps to be a non-empty array. Interactive process will remain hidden.');
-                this.warnedProcessSectionMissing = true;
-            }
-            return [];
-        }
-
-        const valid = raw.filter((entry): entry is Record<string, unknown> => this.isInteractiveProcessStepConfig(entry));
-        if (valid.length === 0 && !this.warnedProcessSectionInvalid) {
-            console.warn('[ConfigurationsOrchestrator] variables.processSection.steps does not contain valid step records. Interactive process will remain hidden.');
-            this.warnedProcessSectionInvalid = true;
-        }
-
-        return valid;
-    });
-
-    get hasValidInteractiveProcessConfig(): boolean {
-        return this.interactiveProcessVariableSteps().length > 0;
-    }
-
-    /* readonly interactiveProcesses: TGenericComponent[] = createInteractiveProcesses({
-        currentStep: this.interactiveProcessStore.currentStep,
-    }); */
     readonly components: TGenericComponent[] = [...devOnlyComponents];/* createComponents({
         accordions: accordions,
         buttons: buttons,
@@ -344,6 +317,9 @@ export class ConfigurationsOrchestratorService {
     private externalComponents: TGenericComponent[] | null = null;
     private externalComponentsMap = new Map<string, TGenericComponent>();
     private componentRenderTracker = new ComponentRenderTracker(this.components.map((c) => c.id));
+    private readonly externalComponentsRevision = signal(0);
+
+    readonly componentsRevision = computed(() => this.externalComponentsRevision());
 
     private getActiveComponentSource(): readonly TGenericComponent[] {
         if (!this.externalComponents || this.externalComponents.length === 0) {
@@ -371,12 +347,14 @@ export class ConfigurationsOrchestratorService {
             this.externalComponents = null;
             this.externalComponentsMap = new Map();
             this.componentRenderTracker = new ComponentRenderTracker(this.components.map((c) => c.id));
+            this.externalComponentsRevision.update((value) => value + 1);
             return;
         }
 
         this.externalComponents = entries;
         this.externalComponentsMap = new Map(entries.map((component) => [component.id, component]));
         this.componentRenderTracker = new ComponentRenderTracker(this.getActiveComponentSource().map((component) => component.id));
+        this.externalComponentsRevision.update((value) => value + 1);
     }
 
     exportDraftComponentsPayload(domain: string, pageId: string): TComponentsPayload {
@@ -572,22 +550,6 @@ export class ConfigurationsOrchestratorService {
         }
 
         return undefined;
-    }
-
-    private isInteractiveProcessStepConfig(entry: unknown): entry is Record<string, unknown> {
-        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return false;
-        const record = entry as Record<string, unknown>;
-
-        const hasTitle = typeof record['title'] === 'string' || typeof record['titleKey'] === 'string';
-        const hasDescription = typeof record['description'] === 'string' || typeof record['descriptionKey'] === 'string';
-        const hasDetailed = typeof record['detailedDescription'] === 'string' || typeof record['detailedDescriptionKey'] === 'string';
-        const hasDuration = typeof record['duration'] === 'string' || typeof record['durationKey'] === 'string';
-        const hasDeliverables =
-            Array.isArray(record['deliverables']) ||
-            typeof record['deliverablesKey'] === 'string' ||
-            Array.isArray(record['deliverableKeys']);
-
-        return hasTitle && hasDescription && hasDetailed && hasDuration && hasDeliverables;
     }
 
     private materializeLoopComponent(template: TGenericComponent, generatedId: string, item: unknown): TGenericComponent {

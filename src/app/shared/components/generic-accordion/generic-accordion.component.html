@@ -1,9 +1,10 @@
 <div [class]="config().containerClasses ?? 'accContainer'" role="group">
   @for (item of items(); track item.id; let idx = $index) {
   <div
+    [attr.data-accordion-item]="itemId(item)"
     [ngClass]="[
       item.containerClasses ?? config().defaultItemContainerClasses ?? 'accItemContainer',
-      isExpanded(item.id)
+      isExpanded(itemId(item))
         ? item.containerIsExpandedClasses ??
           config().defaultItemContainerIsExpandedClasses ??
           'accItemExpandedContainer'
@@ -14,23 +15,23 @@
   >
     <generic-button
       [config]="{
-        id: buttonId(item.id),
+        id: buttonId(itemId(item)),
         classes:
           (item.buttonConfig?.classes || config().defaultItemButtonConfig?.classes || 'accItemButton') +
           ' ' +
-          (isExpanded(item.id)
+          (isExpanded(itemId(item))
             ? item.buttonIsExpandedClasses || config().defaultItemButtonIsExpandedClasses || 'accItemButtonIsExpanded'
             : item.buttonIsNotExpandedClasses ||
               config().defaultItemButtonIsNotExpandedClasses ||
               'accItemButtonIsNotExpanded'),
         type: 'button',
-        label: titleOf(item),
+        label: buttonLabelFor(item),
         disabled: item.disabled,
-        icon: item.buttonConfig?.icon || config().defaultItemButtonConfig?.icon,
+        icon: buttonIconFor(item),
         iconClasses:
           (item.buttonConfig?.iconClasses || config().defaultItemButtonConfig?.iconClasses || 'accItemButtonIcon') +
           ' ' +
-          (isExpanded(item.id)
+          (isExpanded(itemId(item))
             ? item.iconIsExpandedClasses || config().defaultItemIconIsExpandedClasses || 'accItemButtonIconIsExpanded'
             : item.iconIsNotExpandedClasses ||
               config().defaultItemIconIsNotExpandedClasses ||
@@ -38,22 +39,85 @@
         iconPosition: item.buttonConfig?.iconPosition || config().defaultItemButtonConfig?.iconPosition || 'after',
         ariaLabel: titleOf(item),
         tabIndex: item.disabled ? -1 : 0,
-        ariaSelected: isExpanded(item.id) ? true : false,
-        ariaExpanded: isExpanded(item.id),
-        ariaControls: panelId(item.id),
+        ariaSelected: isExpanded(itemId(item)) ? true : false,
+        ariaExpanded: isExpanded(itemId(item)),
+        ariaControls: panelId(itemId(item)),
         components: item.buttonConfig?.components || config().defaultItemButtonConfig?.components || []
       }"
-      (pressed)="toggle(item.id)"
+      (pressed)="toggle(itemId(item))"
       (keydown)="onKey($event, idx)"
-    />
-    @if (isExpanded(item.id)) {
+    >
+      @if (itemHasRichHeader(item)) {
+      <div [class]="config().buttonContentClasses || 'accItemButtonContent'">
+        @if (indexLabelOf(item)) {
+        <span [class]="indexLabelClasses(item)">{{ indexLabelOf(item) }}</span>
+        }
+        <span class="ank-display-flex ank-flexDirection-column ank-flex-1 ank-textAlign-left">
+          <span [class]="config().titleClasses || 'accItemTitle'">{{ titleOf(item) }}</span>
+          @if (summaryOf(item)) {
+          <span [class]="config().summaryClasses || 'accItemSummary'">{{ summaryOf(item) }}</span>
+          }
+        </span>
+      </div>
+      }
+    </generic-button>
+    @if (isExpanded(itemId(item))) {
     <div
       class="accordion-panel-wrapper {{ item.panelClasses || config().defaultItemPanelClasses || 'accItemPanel' }}"
-      [attr.id]="panelId(item.id)"
+      [attr.id]="panelId(itemId(item))"
       role="region"
-      [attr.aria-labelledby]="buttonId(item.id)"
+      [attr.aria-labelledby]="buttonId(itemId(item))"
     >
-      @if(contentOf(item)) {
+      @if (itemHasRichPanel(item)) {
+      <div [class]="config().detailContainerClasses || 'accDetailContainer'">
+        <div [class]="config().detailHeaderClasses || 'accDetailHeader'">
+          @if (iconOf(item)) {
+          <generic-icon
+            [config]="{
+              iconName: iconOf(item) || '',
+              ariaHidden: true,
+              classes: config().detailIconClasses || 'accDetailIcon'
+            }"
+          ></generic-icon>
+          }
+          <div class="ank-display-flex ank-flexDirection-column ank-gap-8px">
+            <h3 [class]="config().detailTitleClasses || 'accDetailTitle'">{{ titleOf(item) }}</h3>
+            @if (metaOf(item)) {
+            <div [class]="config().detailMetaClasses || 'accDetailMeta'">
+              <generic-icon
+                [config]="{ iconName: 'schedule', ariaHidden: true, classes: 'ank-width-1rem ank-height-1rem ank-fontSize-1rem' }"
+              ></generic-icon>
+              <span>{{ metaOf(item) }}</span>
+            </div>
+            }
+          </div>
+        </div>
+        @if (summaryOf(item)) {
+        <p [class]="config().detailSummaryClasses || 'accDetailSummary'">{{ summaryOf(item) }}</p>
+        }
+        @if (detailContentLabel()) {
+        <h4 [class]="config().detailContentLabelClasses || 'accDetailSectionLabel'">{{ detailContentLabel() }}</h4>
+        }
+        @if (contentOf(item)) {
+        <p [class]="config().detailContentClasses || 'accDetailContent'">{{ contentOf(item) }}</p>
+        }
+        @if (detailItemsOf(item).length > 0) {
+          @if (detailItemsLabel()) {
+          <h4 [class]="config().detailItemsLabelClasses || 'accDetailSectionLabel'">{{ detailItemsLabel() }}</h4>
+          }
+          <ul [class]="config().detailListClasses || 'accDetailList'">
+            @for (detailItem of detailItemsOf(item); track detailItem) {
+            <li [class]="config().detailListItemClasses || 'accDetailListItem'">
+              <generic-icon
+                [config]="{ iconName: 'check_circle', ariaHidden: true, classes: 'ank-width-1rem ank-height-1rem ank-fontSize-1rem ank-flexShrink-0' }"
+              ></generic-icon>
+              <span>{{ detailItem }}</span>
+            </li>
+            }
+          </ul>
+        }
+      </div>
+      } @else if(contentOf(item)) {
       {{ contentOf(item) }}
       }
     </div>

@@ -1,6 +1,92 @@
 .accordion-panel-wrapper {
   transition: grid-template-rows 240ms ease, padding 240ms ease;
 }
+
+.accItemButtonContent {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+  text-align: left;
+}
+
+.accItemIndexLabel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  font-weight: 700;
+}
+
+.accItemTitle {
+  display: block;
+  font-weight: 700;
+}
+
+.accItemSummary {
+  display: block;
+  margin-top: 4px;
+  line-height: 1.5;
+  opacity: 0.85;
+}
+
+.accDetailContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.accDetailHeader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.accDetailIcon {
+  width: 4rem;
+  height: 4rem;
+  font-size: 4rem;
+  flex-shrink: 0;
+}
+
+.accDetailTitle {
+  margin: 0;
+}
+
+.accDetailMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.accDetailSummary,
+.accDetailContent {
+  margin: 0;
+  line-height: 1.65;
+}
+
+.accDetailSectionLabel {
+  margin: 0 0 12px;
+}
+
+.accDetailList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.accDetailListItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .accordion-panel-wrapper {
     transition: none;

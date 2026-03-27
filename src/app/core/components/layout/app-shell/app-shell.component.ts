@@ -4,16 +4,20 @@ import { AngoraCombosService } from "@/app/shared/services/angora-combos.service
 import { ConfigStoreService } from "@/app/shared/services/config-store.service";
 import { ConfigurationsOrchestratorService } from "@/app/shared/services/configurations-orchestrator";
 import { SeoMetadataService } from "@/app/shared/services/seo-metadata.service";
-import { AsyncPipe } from '@angular/common';
+import { AsyncPipe, isPlatformBrowser } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
-  afterEveryRender,
+  ElementRef,
+  NgZone,
+  PLATFORM_ID,
+  REQUEST,
   afterNextRender,
   effect,
   inject,
 } from "@angular/core";
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from "@angular/router";
 import { NgxAngoraService } from "ngx-angora-css";
 import { filter } from "rxjs/operators";
@@ -45,8 +49,15 @@ import { DebugWorkspaceComponent } from "../debug-workspace/debug-workspace.comp
 })
 export class AppShellComponent {
   private readonly destroyRef = inject(DestroyRef);
+  private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly request = inject(REQUEST, { optional: true });
+  private readonly zone = inject(NgZone);
   readonly orchestrator = inject(ConfigurationsOrchestratorService);
   readonly debugMode = environment.features.debugMode;
+  private readonly isBrowser = isPlatformBrowser(this.platformId) && !this.request;
+  readonly showClientOnlyHosts = this.isBrowser;
+  readonly showDebugWorkspace = this.debugMode && this.isBrowser && this.hasDebugWorkspaceEnabled();
 
   private readonly router = inject(Router);
   readonly analytics = inject(AnalyticsService);
@@ -58,60 +69,64 @@ export class AppShellComponent {
   private readonly configStore = inject(ConfigStoreService);
   private readonly combosService = inject(AngoraCombosService);
   private readonly seo = inject(SeoMetadataService);
-  private readonly runtime = inject(RuntimeService);
+  readonly runtime = inject(RuntimeService);
 
   readonly rootComponentsIds = this.runtime.rootComponentsIds;
   readonly modalRootIds = this.runtime.modalRootIds;
   private configOverridesReady: Promise<void> = Promise.resolve();
+  private cssCreateTimer: number | null = null;
+  private cssCreateDueAt: number | null = null;
+  private cssMutationObserver: MutationObserver | null = null;
+  private navigationRefreshBound = false;
 
   constructor() {
-    this.configOverridesReady = this.runtime.initialize(
-      typeof window !== 'undefined' ? this._lang.currentLanguage() : undefined,
-    );
-    this.destroyRef.onDestroy(() => this.analytics.stopPageEngagementTracking());
+    this.destroyRef.onDestroy(() => {
+      this.analytics.stopPageEngagementTracking();
+      if (this.cssCreateTimer !== null) {
+        clearTimeout(this.cssCreateTimer);
+        this.cssCreateTimer = null;
+        this.cssCreateDueAt = null;
+      }
+      try {
+        this.cssMutationObserver?.disconnect();
+      } catch {
+        // no-op
+      }
+      this.cssMutationObserver = null;
+    });
 
-    // Track subsequent page views on navigation end
-    this.router.events
-      .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
-      .subscribe((evt) => {
-        this.analytics.track(AnalyticsEvents.PageView, {
-          category: AnalyticsCategories.Navigation,
-          label: evt.urlAfterRedirects,
-        });
-      });
-
-    // Initialize Angora CSS once, then regenerate after every render
-    try {
+    if (this.isBrowser) {
       afterNextRender(async () => {
         // Prompt for analytics consent early if needed
         this.analytics.promptForConsentIfNeeded();
         this.initializeAngoraConfiguration();
+        this.configOverridesReady = this.runtime.initialize(this._lang.currentLanguage())
+          .catch((error) => {
+            console.error('[AppShell] Runtime initialization failed after bootstrap.', error);
+          });
         await this.configOverridesReady;
-        this._ank.cssCreate();
-        if (this.debugMode) {
+        this.scheduleCssCreate();
+        this.bindCssMutationRefresh();
+        if (this.showDebugWorkspace) {
           this.removeAnkDNoneFromAnkTimer();
-          setTimeout(() => {
-            const classes: string[] = [...this.orchestrator.getAllTheClassesFromComponents()];
-            console.log("[AppShell] All the classes used in the app:", classes);
-          }, 2000);
         }
         this.analytics.startPageEngagementTracking(this.configStore.analytics());
+        this.bindNavigationRefresh();
       });
-    } catch {
-      // no-op for SSR
     }
-    afterEveryRender(() => {
-      const waitForIt = (i: number) => {
-        setTimeout(() => {
-          this._ank.cssCreate();
-          if (i > 0) {
-            waitForIt(i - 1);
-          }
-        }, this._ank.timeBetweenReCreate + 150)
+
+    effect(() => {
+      if (!this.isBrowser) return;
+
+      const rootCount = this.rootComponentsIds().length;
+      const modalCount = this.modalRootIds().length;
+
+      if (rootCount === 0 && modalCount === 0) {
+        return;
       }
-      waitForIt(1);
-    }
-    );
+
+      this.scheduleCssCreate();
+    });
 
     effect(() => {
       this.seo.apply(this._lang.currentLanguage(), this.configStore.seo());
@@ -122,6 +137,103 @@ export class AppShellComponent {
     if (this.angoraHasBeenInitialized) return;
     this.angoraHasBeenInitialized = true;
     this.combosService.initializeBaseCombos(1000);
+  }
+
+  private hasDebugWorkspaceEnabled(): boolean {
+    if (!this.isBrowser || !window.location?.search) return false;
+    return new URLSearchParams(window.location.search).has('debugWorkspace');
+  }
+
+  private scheduleCssCreate(delay = 0): void {
+    if (!this.isBrowser) return;
+
+    const normalizedDelay = Math.max(0, delay);
+    const dueAt = Date.now() + normalizedDelay;
+
+    if (this.cssCreateTimer !== null && this.cssCreateDueAt !== null && this.cssCreateDueAt <= dueAt) {
+      return;
+    }
+
+    if (this.cssCreateTimer !== null) {
+      clearTimeout(this.cssCreateTimer);
+    }
+
+    this.cssCreateDueAt = dueAt;
+
+    this.zone.runOutsideAngular(() => {
+      this.cssCreateTimer = window.setTimeout(() => {
+        this.cssCreateTimer = null;
+        this.cssCreateDueAt = null;
+        this._ank.cssCreate();
+      }, normalizedDelay);
+    });
+  }
+
+  private bindNavigationRefresh(): void {
+    if (!this.isBrowser || this.navigationRefreshBound) {
+      return;
+    }
+
+    this.navigationRefreshBound = true;
+    this.router.events
+      .pipe(
+        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((evt) => {
+        this.analytics.track(AnalyticsEvents.PageView, {
+          category: AnalyticsCategories.Navigation,
+          label: evt.urlAfterRedirects,
+        });
+
+        void this.runtime.initialize(this._lang.currentLanguage())
+          .then(() => {
+            this.scheduleCssCreate();
+            this.analytics.startPageEngagementTracking(this.configStore.analytics());
+          })
+          .catch((error) => {
+            console.error('[AppShell] Runtime refresh failed after navigation.', error);
+          });
+      });
+  }
+
+  private bindCssMutationRefresh(): void {
+    if (!this.isBrowser || this.cssMutationObserver) {
+      return;
+    }
+
+    const root = this.host.nativeElement;
+    this.zone.runOutsideAngular(() => {
+      const observer = new MutationObserver((mutations) => {
+        if (!this.hasRelevantCssMutation(mutations)) {
+          return;
+        }
+
+        this.scheduleCssCreate();
+      });
+
+      try {
+        observer.observe(root, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ['class'],
+        });
+        this.cssMutationObserver = observer;
+      } catch {
+        observer.disconnect();
+      }
+    });
+  }
+
+  private hasRelevantCssMutation(mutations: readonly MutationRecord[]): boolean {
+    return mutations.some((mutation) => {
+      if (mutation.type === 'attributes') {
+        return mutation.target instanceof HTMLElement;
+      }
+
+      return mutation.addedNodes.length > 0 || mutation.removedNodes.length > 0;
+    });
   }
 
   // Unified analytics event handler (receives from any child component)

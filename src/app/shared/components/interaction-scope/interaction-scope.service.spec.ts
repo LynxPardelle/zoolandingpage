@@ -62,4 +62,9 @@ describe('InteractionScopeService', () => {
         expect(service.snapshot().values['email']).toBe('');
         expect(service.submitted()).toBeFalse();
     });
+
+    it('exposes unregistered initial values through scope values', () => {
+        expect(service.snapshot().values['visitors']).toBe(1000);
+        expect(service.resolvePath('values.visitors')).toBe(1000);
+    });
 });

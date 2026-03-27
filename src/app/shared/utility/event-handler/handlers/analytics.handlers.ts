@@ -9,6 +9,20 @@ const asRecord = (v: unknown): Record<string, unknown> | undefined => {
     return undefined;
 };
 
+const normalizeAnalyticsLabel = (value: unknown): string | undefined => {
+    if (value == null) return undefined;
+
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return String(value);
+    }
+
+    const normalized = String(value).trim();
+    if (!normalized) return undefined;
+
+    const numericSuffix = normalized.match(/(\d+)$/);
+    return numericSuffix?.[1] ?? normalized;
+};
+
 export const trackCtaClickHandler = (): EventHandler => {
     const analytics = inject(AnalyticsService);
 
@@ -63,6 +77,23 @@ export const trackFaqToggleHandler = (): EventHandler => {
             void analytics.track(AnalyticsEvents.FaqOpen, {
                 category: AnalyticsCategories.Faq,
                 label: id,
+            });
+        },
+    };
+};
+
+export const trackProcessStepChangeHandler = (): EventHandler => {
+    const analytics = inject(AnalyticsService);
+
+    return {
+        id: 'trackProcessStepChange',
+        handle: (_ctx, args) => {
+            const label = normalizeAnalyticsLabel(args?.[0]);
+            if (!label) return;
+
+            void analytics.track(AnalyticsEvents.ProcessStepChange, {
+                category: AnalyticsCategories.Process,
+                label,
             });
         },
     };

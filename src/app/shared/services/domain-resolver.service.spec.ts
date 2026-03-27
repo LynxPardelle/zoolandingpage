@@ -21,4 +21,23 @@ describe('DomainResolverService', () => {
       source: 'queryParam',
     });
   });
+
+  it('supports relative SSR request URLs', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        DomainResolverService,
+        {
+          provide: REQUEST,
+          useValue: { url: '/?draftDomain=despacholegalastralex.com' },
+        },
+      ],
+    });
+
+    const service = TestBed.inject(DomainResolverService);
+
+    expect(service.resolveDomain()).toEqual({
+      domain: 'despacholegalastralex.com',
+      source: 'queryParam',
+    });
+  });
 });

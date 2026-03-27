@@ -1,27 +1,20 @@
-import { ProcessStep, ProcessStepVariableConfig } from "@/app/landing-page/components/interactive-process/interactive-process-leaf.types";
 import type { TGenericStatsCounterConfig } from "@/app/shared/components/generic-stats-counter/generic-stats-counter.types";
 import type { TComponentChild } from '../component-children.types';
 import { TAccordionConfig } from "../generic-accordion";
 import { TGenericButtonConfig } from "../generic-button/generic-button.types";
 import { TGenericContainerConfig } from "../generic-container/generic-container.types";
 import type { DropdownConfig, DropdownItem } from "../generic-dropdown/generic-dropdown.types";
+import type { TGenericEmbedFrameConfig } from '../generic-embed-frame/generic-embed-frame.types';
 import { GenericFeatureCardConfig } from "../generic-feature-card/generic-feature-card.types";
 import { TGenericIconConfig } from "../generic-icon/generic-icon.types";
 import type { TGenericInputConfig } from "../generic-input/generic-input.types";
 import { TGenericLinkConfig } from "../generic-link/generic-link.types";
 import type { TGenericMediaConfig } from "../generic-media/generic-media.types";
+import type { SearchBoxConfig } from '../generic-search-box/generic-search-box.types';
+import type { TabGroupConfig } from "../generic-tab-group/generic-tab-group.types";
 import type { TestimonialCardConfig } from "../generic-testimonial-card/generic-testimonial-card.types";
 import { TGenericTextConfig } from "../generic-text/generic-text.types";
 import type { TInteractionScopeConfig } from "../interaction-scope/interaction-scope.types";
-
-export type TInteractiveProcessConfig = {
-    readonly process?: readonly ProcessStep[] | readonly ProcessStepVariableConfig[] | (() => readonly ProcessStep[] | readonly ProcessStepVariableConfig[]);
-    readonly currentStep?: number | (() => number);
-    readonly sectionTitleKey?: unknown;
-    readonly sectionSidebarTitleKey?: unknown;
-    readonly sectionDetailedDescriptionLabelKey?: unknown;
-    readonly sectionDeliverablesLabelKey?: unknown;
-};
 
 export type TGenericStatsCounterOrchestratorConfig = () => TGenericStatsCounterConfig;
 export type TGenericStatsCounterConfigInput = TGenericStatsCounterConfig | (() => TGenericStatsCounterConfig);
@@ -31,6 +24,8 @@ export type TGenericDropdownOrchestratorConfig = {
     readonly dropdownConfig?: DropdownConfig | null;
     readonly components?: readonly TComponentChild[];
 };
+
+export type TGenericSearchBoxConfig = SearchBoxConfig;
 
 export type TLoopConfig =
     | {
@@ -51,10 +46,10 @@ export type TGenericComponentType =
     | 'button'
     | 'container'
     | 'dropdown'
+    | 'embed-frame'
     | 'feature-card'
     | 'icon'
     | 'interaction-scope'
-    | 'interactive-process'
     | 'link'
     | 'media'
     | 'loading-spinner'
@@ -123,12 +118,16 @@ export type TGenericComponent = {
             readonly config: TGenericDropdownOrchestratorConfig;
         } |
         {
+            readonly type: 'embed-frame';
+            readonly config: TGenericEmbedFrameConfig;
+        } |
+        {
             readonly type: 'feature-card';
             readonly config: GenericFeatureCardConfig;
         } |
         {
-            readonly type: 'interactive-process';
-            readonly config: TInteractiveProcessConfig;
+            readonly type: 'search-box';
+            readonly config: TGenericSearchBoxConfig;
         } |
         {
             readonly type: 'text';
@@ -149,6 +148,10 @@ export type TGenericComponent = {
         {
             readonly type: 'testimonial-card';
             readonly config: TestimonialCardConfig;
+        } |
+        {
+            readonly type: 'tab-group';
+            readonly config: TabGroupConfig;
         } |
         {
             readonly type: 'none';

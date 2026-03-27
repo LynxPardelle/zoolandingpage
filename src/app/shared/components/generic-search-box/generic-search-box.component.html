@@ -1,7 +1,54 @@
-<div class="ank-position-relative">
+<div [class]="'ank-position-relative ' + classes()">
+  @if (collapsed()) { @if (!panelOpen()) {
+  <generic-button
+    [config]="{
+      type: 'button',
+      classes: triggerClasses(),
+      ariaLabel: triggerAriaLabel(),
+      ariaExpanded: panelOpen(),
+      icon: triggerIcon()
+    }"
+    (pressed)="openPanel()"
+  ></generic-button>
+  } @if (panelOpen()) {
+  <div class="search-box-panel" [class]="panelClasses()">
+    <div class="search-box-panel-content" [class]="panelContentClasses()">
+      <generic-button
+        [config]="{
+          type: 'button',
+          classes: triggerClasses(),
+          ariaLabel: closeAriaLabel(),
+          ariaExpanded: true,
+          icon: closeIcon()
+        }"
+        (pressed)="closePanel()"
+      ></generic-button>
+
+      <div class="search-box-panel-input-wrapper" [class]="panelInputWrapperClasses()">
+        <input
+          #searchInput
+          type="search"
+          [class]="inputClasses()"
+          [attr.placeholder]="config?.placeholder || i18n.t('ui.common.search')"
+          [attr.aria-label]="config?.ariaLabel || i18n.t('ui.common.search')"
+          [attr.role]="'combobox'"
+          [attr.aria-autocomplete]="'list'"
+          [attr.aria-controls]="listboxId"
+          [attr.aria-expanded]="results().length > 0"
+          [attr.aria-activedescendant]="activeIndex() > -1 ? 'sb-opt-' + results()[activeIndex()].id : null"
+          [attr.id]="inputId"
+          (input)="onInput($event)"
+          (keydown)="onKey($event)"
+          [value]="term()"
+        />
+      </div>
+    </div>
+  </div>
+  } } @else {
   <input
+    #searchInput
     type="search"
-    class="ank-width-100per ank-borderRadius-0_5rem ank-border-1px-solid ank-borderColor-fgColor ank-px-0_75rem ank-py-0_5rem focus-visible-ring"
+    [class]="inputClasses()"
     [attr.placeholder]="config?.placeholder || i18n.t('ui.common.search')"
     [attr.aria-label]="config?.ariaLabel || i18n.t('ui.common.search')"
     [attr.role]="'combobox'"
@@ -14,12 +61,9 @@
     (keydown)="onKey($event)"
     [value]="term()"
   />
+  }
   <ng-template #resultsTpl>
-    <ul
-      class="ank-listStyle-none ank-m-0 ank-p-0_25rem ank-display-flex ank-flexDirection-column ank-gap-2px ank-bg-bgColor ank-borderRadius-0_5rem ank-boxShadow-sm"
-      role="listbox"
-      [attr.id]="listboxId"
-    >
+    <ul [class]="resultsClasses()" role="listbox" [attr.id]="listboxId">
       @for (s of results(); track s.id; let i = $index) {
       <li role="option">
         <generic-button

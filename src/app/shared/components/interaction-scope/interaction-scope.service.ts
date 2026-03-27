@@ -153,10 +153,15 @@ export class InteractionScopeService {
     });
 
     readonly values = computed<Readonly<Record<string, unknown>>>(() => {
+        const initialValues = this.initialValues();
         const states = this.fieldStates();
-        return Object.fromEntries(
-            Object.entries(states).map(([fieldId, state]) => [fieldId, state.value])
-        );
+
+        return {
+            ...initialValues,
+            ...Object.fromEntries(
+                Object.entries(states).map(([fieldId, state]) => [fieldId, state.value])
+            ),
+        };
     });
 
     readonly snapshot = computed<TInteractionScopeSnapshot>(() => {

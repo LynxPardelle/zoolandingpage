@@ -66,6 +66,8 @@
     ></ng-container>
   </ng-container>
 </generic-dropdown>
+} @case('embed-frame') {
+<generic-embed-frame [config]="component.config"></generic-embed-frame>
 } @case('feature-card') {
 <generic-feature-card [config]="component.config"></generic-feature-card>
 } @case('input') {
@@ -97,26 +99,35 @@
   [componentId]="component.id"
   [metaTitle]="component.meta_title"
 ></interaction-scope>
-} @case('interactive-process') {
-<interactive-process-leaf
-  [process]="resolveInteractiveProcessProcess(component.config)"
-  [currentStep]="resolveInteractiveProcessCurrentStep(component.config)"
-  [sectionTitleKey]="resolveMaybeThunk(component.config.sectionTitleKey)"
-  [sectionSidebarTitleKey]="resolveMaybeThunk(component.config.sectionSidebarTitleKey)"
-  [sectionDetailedDescriptionLabelKey]="resolveMaybeThunk(component.config.sectionDetailedDescriptionLabelKey)"
-  [sectionDeliverablesLabelKey]="resolveMaybeThunk(component.config.sectionDeliverablesLabelKey)"
-  (selectStep)="
+} @case('search-box') {
+<generic-search-box
+  [fetcher]="resolveSearchFetcher(component.config)"
+  [config]="resolveSearchConfig(component.config)"
+  (selectSuggestion)="
     eventEmitted({
       component: component.id,
       meta_title: component.meta_title,
-      eventName: 'selectStep',
+      eventName: 'selectSuggestion',
       eventData: $event,
       eventInstructions: component.eventInstructions
     })
   "
-></interactive-process-leaf>
+></generic-search-box>
 } @case('stats-counter') {
 <generic-stats-counter [config]="resolveStatsCounterConfig(component.config)"></generic-stats-counter>
+} @case('tab-group') {
+<generic-tab-group
+  [config]="component.config"
+  (selected)="
+    eventEmitted({
+      component: component.id,
+      meta_title: component.meta_title,
+      eventName: 'selected',
+      eventData: $event,
+      eventInstructions: component.eventInstructions
+    })
+  "
+></generic-tab-group>
 } @case('testimonial-card') {
 <generic-testimonial-card [config]="component.config"></generic-testimonial-card>
 } @case('icon') {

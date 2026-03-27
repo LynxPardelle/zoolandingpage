@@ -3,7 +3,7 @@ import { TGenericComponent } from '@/app/shared/components/wrapper-orchestrator/
 import { TDraftOption } from '@/app/shared/services/draft-runtime.service';
 import { GenericComponentBuilder } from '@/app/shared/utility/generic-component-builder.utility';
 
-const DRAFT_PANEL_CLASSES = 'ank-position-fixed ank-bottom-16px ank-left-16px ank-zIndex-1300 ank-display-flex ank-flexDirection-column ank-gap-14px ank-p-16px ank-borderRadius-18px ank-maxWidth-420px ank-color-white ank-bg-bgColorOPA__0_92 ank-border-1px ank-borderColor-textColorOPA__0_12 ank-backdropFilter-blurSD8pxED ank-boxShadow-0__12px__40px__rgbaSD0COM0COM0COM0_28ED';
+const DRAFT_PANEL_CLASSES = 'ank-position-fixed ank-bottom-16px ank-left-16px ank-zIndex-1300 ank-display-flex ank-flexDirection-column ank-gap-14px ank-p-16px ank-borderRadius-18px ank-maxWidth-420px ank-color-textColor ank-bg-bgColorOPA__0_92 ank-border-1px ank-borderColor-textColorOPA__0_12 ank-backdropFilter-blurSD8pxED ank-boxShadow-0__12px__40px__rgbaSD0COM0COM0COM0_28ED';
 const HEADER_ROW_CLASSES = 'ank-display-flex ank-alignItems-center ank-justifyContent-spaceMINbetween ank-gap-12px';
 const HEADER_COPY_CLASSES = 'ank-display-flex ank-flexDirection-column ank-gap-8px ank-flex-1';
 const TITLE_BLOCK_CLASSES = 'ank-display-flex ank-flexDirection-column ank-gap-4px';
@@ -11,17 +11,17 @@ const ACTIVE_CARD_CLASSES = 'ank-display-flex ank-flexDirection-column ank-gap-4
 const BUTTON_CONTAINER_CLASSES = 'ank-display-flex ank-flexWrap-wrap ank-gap-8px';
 const FOOTER_ROW_CLASSES = 'ank-display-flex ank-alignItems-center ank-justifyContent-spaceMINbetween ank-gap-12px ank-flexWrap-wrap';
 const COLLAPSED_SUMMARY_CLASSES = 'ank-display-flex ank-flexDirection-column ank-gap-4px ank-p-12px ank-borderRadius-12px ank-bg-textColorOPA__0_06 ank-border-1px ank-borderColor-textColorOPA__0_08';
-const PANEL_EYEBROW_CLASSES = 'ank-display-inlineFlex ank-alignItems-center ank-gap-6px ank-width-fitMINcontent ank-px-10px ank-py-4px ank-borderRadius-24px ank-bg-accentColor ank-color-textColor ank-fontWeight-700 ank-fontSize-11px ank-letterSpacing-0_08em ank-textTransform-uppercase';
-const PANEL_TOGGLE_BUTTON_CLASSES = 'ank-display-inlineFlex ank-alignItems-center ank-justifyContent-center ank-minHeight-36px ank-px-12px ank-py-6px ank-borderRadius-999px ank-border-1px ank-borderColor-textColorOPA__0_14 ank-bg-textColorOPA__0_04 ank-color-white ank-fontSize-11px ank-fontWeight-700 ank-letterSpacing-0_04em ank-textTransform-uppercase';
-const REFRESH_BUTTON_CLASSES = 'ank-display-inlineFlex ank-alignItems-center ank-justifyContent-center ank-gap-6px ank-minHeight-40px ank-px-14px ank-py-8px ank-borderRadius-12px ank-border-1px ank-borderColor-textColorOPA__0_14 ank-bg-secondaryAccentColor ank-color-textColor ank-fontSize-12px ank-fontWeight-700 ank-lineHeight-1_3 ank-transition-all ank-td-200ms';
+const PANEL_EYEBROW_CLASSES = 'ank-display-inlineFlex ank-alignItems-center ank-gap-6px ank-width-fitMINcontent ank-px-10px ank-py-4px ank-borderRadius-24px ank-bg-accentColor ank-color-bgColor ank-fontWeight-700 ank-fontSize-11px ank-letterSpacing-0_08em ank-textTransform-uppercase';
+const PANEL_TOGGLE_BUTTON_CLASSES = 'ank-display-inlineFlex ank-alignItems-center ank-justifyContent-center ank-minHeight-36px ank-px-12px ank-py-6px ank-borderRadius-999px ank-border-1px ank-borderColor-textColorOPA__0_14 ank-bg-textColorOPA__0_04 ank-color-textColor ank-fontSize-11px ank-fontWeight-700 ank-letterSpacing-0_04em ank-textTransform-uppercase';
+const REFRESH_BUTTON_CLASSES = 'ank-display-inlineFlex ank-alignItems-center ank-justifyContent-center ank-gap-6px ank-minHeight-40px ank-px-14px ank-py-8px ank-borderRadius-12px ank-border-1px ank-borderColor-textColorOPA__0_14 ank-bg-secondaryAccentColor ank-color-bgColor ank-fontSize-12px ank-fontWeight-700 ank-lineHeight-1_3 ank-transition-all ank-td-200ms';
 const DRAFT_BUTTON_BASE_CLASSES = 'ank-display-inlineFlex ank-alignItems-center ank-justifyContent-center ank-gap-6px ank-minHeight-40px ank-px-12px ank-py-8px ank-borderRadius-12px ank-border-1px ank-fontSize-12px ank-fontWeight-700 ank-lineHeight-1_3 ank-transition-all ank-td-200ms';
 
 const draftButtonClasses = (entryKey: string, selectedDraftKey: string): string => {
     if (selectedDraftKey === entryKey) {
-        return `${ DRAFT_BUTTON_BASE_CLASSES } ank-bg-accentColor ank-color-textColor ank-borderColor-accentColor ank-boxShadow-0__6px__18px__rgbaSD0COM123COM255COM0_22ED`;
+        return `${ DRAFT_BUTTON_BASE_CLASSES } ank-bg-accentColor ank-color-bgColor ank-borderColor-accentColor ank-boxShadow-0__6px__18px__rgbaSD0COM123COM255COM0_22ED`;
     }
 
-    return `${ DRAFT_BUTTON_BASE_CLASSES } ank-bg-transparent ank-color-white ank-borderColor-textColorOPA__0_2 ank-hover-bg-textColorOPA__0_08`;
+    return `${ DRAFT_BUTTON_BASE_CLASSES } ank-bg-transparent ank-color-textColor ank-borderColor-textColorOPA__0_2 ank-bgHover-textColorOPA__0_08`;
 };
 
 const buildDraftButton = (
@@ -78,7 +78,7 @@ export const buildDebugWorkspaceDraftPanel = (
                                 params.collapsed
                                     ? 'Current preview and draft availability at a glance.'
                                     : 'Switch the live preview to any detected draft without editing query params manually.',
-                                'ank-m-0 ank-color-whiteOPA__0_72 ank-fontSize-13px ank-lineHeight-1_4',
+                                'ank-m-0 ank-color-textColorOPA__0_72 ank-fontSize-13px ank-lineHeight-1_4',
                             ),
                         ],
                     ),
@@ -105,7 +105,7 @@ export const buildDebugWorkspaceDraftPanel = (
                 'debugDraftPanelCollapsedLabel',
                 'small',
                 'Current preview',
-                'ank-m-0 ank-color-whiteOPA__0_56 ank-fontSize-11px ank-textTransform-uppercase ank-letterSpacing-0_08em',
+                'ank-m-0 ank-color-textColorOPA__0_56 ank-fontSize-11px ank-textTransform-uppercase ank-letterSpacing-0_08em',
             ),
             GenericComponentBuilder.text(
                 'debugDraftPanelCollapsedValue',
@@ -117,7 +117,7 @@ export const buildDebugWorkspaceDraftPanel = (
                 'debugDraftPanelCollapsedMeta',
                 'small',
                 `${ params.draftOptions.length } option${ params.draftOptions.length === 1 ? '' : 's' } ready`,
-                'ank-m-0 ank-color-whiteOPA__0_56 ank-fontSize-12px ank-lineHeight-1_4',
+                'ank-m-0 ank-color-textColorOPA__0_56 ank-fontSize-12px ank-lineHeight-1_4',
             ),
         ],
     );
@@ -132,7 +132,7 @@ export const buildDebugWorkspaceDraftPanel = (
                     'debugDraftPanelActiveLabel',
                     'small',
                     'Current preview',
-                    'ank-m-0 ank-color-whiteOPA__0_56 ank-fontSize-11px ank-textTransform-uppercase ank-letterSpacing-0_08em',
+                    'ank-m-0 ank-color-textColorOPA__0_56 ank-fontSize-11px ank-textTransform-uppercase ank-letterSpacing-0_08em',
                 ),
                 GenericComponentBuilder.text(
                     'debugDraftPanelActiveValue',
@@ -157,7 +157,7 @@ export const buildDebugWorkspaceDraftPanel = (
                     'debugDraftPanelHint',
                     'small',
                     params.draftRegistryLoading ? 'Refreshing draft registry...' : 'The list auto-refreshes while debug mode is enabled.',
-                    'ank-m-0 ank-color-whiteOPA__0_56 ank-fontSize-12px ank-lineHeight-1_4 ank-flex-1',
+                    'ank-m-0 ank-color-textColorOPA__0_56 ank-fontSize-12px ank-lineHeight-1_4 ank-flex-1',
                 ),
                 GenericComponentBuilder.button(
                     'debugDraftRefreshButton',

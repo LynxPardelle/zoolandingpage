@@ -1,12 +1,14 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, EventEmitter, Output, input } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { resolveNavigationTarget } from '../../utility/navigation/navigation-target.utility';
 
 import { TGenericLinkConfig } from './generic-link.types';
 
 @Component({
   selector: 'generic-link',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './generic-link.html',
   styleUrl: './generic-link.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -39,13 +41,36 @@ export class GenericLink {
   }
 
   href(): string {
-    const resolved = this.resolveMaybeThunk(this.config().href);
-    return typeof resolved === 'string' ? resolved : String(resolved ?? '');
+    return this.navigationTarget().href;
+  }
+
+  routableInternalHref(): boolean {
+    const target = this.navigationTarget();
+    return target.internal && !target.hashOnly && !!target.path;
+  }
+
+  routerLinkPath(): string | undefined {
+    return this.routableInternalHref() ? this.navigationTarget().path ?? undefined : undefined;
+  }
+
+  routerLinkQueryParams(): Readonly<Record<string, string>> | undefined {
+    return this.routableInternalHref() ? this.navigationTarget().queryParams ?? undefined : undefined;
+  }
+
+  routerLinkFragment(): string | undefined {
+    return this.routableInternalHref() ? this.navigationTarget().fragment ?? undefined : undefined;
   }
 
   target(): string | null {
     const raw = this.resolveMaybeThunk(this.config().target);
-    return raw ? String(raw) : null;
+    if (!raw) return null;
+
+    const next = String(raw);
+    if (next === '_blank' && this.navigationTarget().internal) {
+      return null;
+    }
+
+    return next;
   }
 
   rel(): string {
@@ -66,6 +91,12 @@ export class GenericLink {
     }
 
     return value;
+  }
+
+  private navigationTarget() {
+    const resolved = this.resolveMaybeThunk(this.config().href);
+    const next = typeof resolved === 'string' ? resolved : String(resolved ?? '');
+    return resolveNavigationTarget(next);
   }
 
   onClick(event: MouseEvent): void {

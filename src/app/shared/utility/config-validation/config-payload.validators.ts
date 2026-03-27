@@ -3,6 +3,7 @@ import type {
     TAngoraCombosPayload,
     TComponentsPayload,
     TDraftLanguageDefinition,
+    TDraftSiteConfigPayload,
     TI18nPayload,
     TPageConfigPayload,
     TSeoPayload,
@@ -49,6 +50,15 @@ const isDraftI18nVariableConfig = (value: unknown): boolean => {
         if (!allValid) return false;
     }
 
+    return true;
+};
+
+const isDraftSiteRouteEntry = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (typeof value['path'] !== 'string' || value['path'].trim().length === 0) return false;
+    if (typeof value['pageId'] !== 'string' || value['pageId'].trim().length === 0) return false;
+    if (value['label'] !== undefined && typeof value['label'] !== 'string') return false;
+    if (value['labelKey'] !== undefined && typeof value['labelKey'] !== 'string') return false;
     return true;
 };
 
@@ -285,13 +295,29 @@ export const isPageConfigPayload = (value: unknown): value is TPageConfigPayload
     return true;
 };
 
+export const isDraftSiteConfigPayload = (value: unknown): value is TDraftSiteConfigPayload => {
+    if (!isRecord(value)) return false;
+    if (typeof value['version'] !== 'number') return false;
+    if (typeof value['domain'] !== 'string') return false;
+    if (value['defaultPageId'] !== undefined && typeof value['defaultPageId'] !== 'string') return false;
+    if (!Array.isArray(value['routes']) || !value['routes'].every(isDraftSiteRouteEntry)) return false;
+    return true;
+};
+
 export const isComponentsPayload = (value: unknown): value is TComponentsPayload => {
     if (!isRecord(value)) return false;
     if (typeof value['version'] !== 'number') return false;
     if (typeof value['pageId'] !== 'string') return false;
     if (typeof value['domain'] !== 'string') return false;
     if (!isRecord(value['components'])) return false;
-    return Object.values(value['components']).every(isComponentPayloadRecord);
+
+    for (const [id, component] of Object.entries(value['components'])) {
+        if (!isComponentPayloadRecord(component)) {
+            return false;
+        }
+    }
+
+    return true;
 };
 
 export const isAngoraCombosPayload = (value: unknown): value is TAngoraCombosPayload => {
