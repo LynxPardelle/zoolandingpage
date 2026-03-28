@@ -86,6 +86,10 @@ export class GenericAccordionComponent {
 
   detailItemsLabel = () => this.resolveTextValue(this.config().detailItemsLabel);
 
+  detailMetaIconName = () => this.config().detailMetaIconName ?? 'schedule';
+
+  detailItemIconName = () => this.config().detailItemIconName ?? 'check_circle';
+
   itemHasRichHeader = (item: AccordionItem) => this.detailMode() || !!this.indexLabelOf(item) || !!this.summaryOf(item);
 
   itemHasRichPanel = (item: AccordionItem) => {
@@ -217,19 +221,14 @@ export class GenericAccordionComponent {
     const stepNumber = Number(record['step']);
     const indexLabel = this.resolveTranslatedText(record['indexLabel'])
       ?? (Number.isFinite(stepNumber) && stepNumber > 0 ? String(Math.floor(stepNumber)) : undefined);
-    const content = this.resolveTranslatedText(record['content'], record['contentKey'])
-      ?? this.resolveTranslatedText(record['detailedDescription'], record['detailedDescriptionKey']);
-    const summary = this.resolveTranslatedText(record['summary'], record['summaryKey'])
-      ?? this.resolveTranslatedText(record['description'], record['descriptionKey']);
-    const meta = this.resolveTranslatedText(record['meta'], record['metaKey'])
-      ?? this.resolveTranslatedText(record['duration'], record['durationKey']);
+    const content = this.resolveTranslatedText(record['content'], record['contentKey']);
+    const summary = this.resolveTranslatedText(record['summary'], record['summaryKey']);
+    const meta = this.resolveTranslatedText(record['meta'], record['metaKey']);
     const detailItems = this.resolveTranslatedList(
       record['detailItems'],
       record['detailItemsKey'],
       record['detailItemKeys']
-    )
-      ?? this.resolveTranslatedList(record['deliverables'], record['deliverablesKey'], record['deliverableKeys'])
-      ?? [];
+    ) ?? [];
 
     return {
       ...(record as AccordionItem),

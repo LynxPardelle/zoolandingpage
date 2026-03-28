@@ -1,4 +1,5 @@
 import type { TGenericInputConfig } from '../components/generic-input/generic-input.types';
+import type { ModalConfig, ModalSize } from '../components/generic-modal/generic-modal.types';
 import type { TInteractionScopeConfig } from '../components/interaction-scope/interaction-scope.types';
 import type { TThemeVariableConfig } from './theme.types';
 
@@ -13,6 +14,28 @@ export type TDraftLanguageDefinition = {
 export type TDraftI18nVariableConfig = {
     readonly defaultLanguage?: string;
     readonly supportedLanguages?: readonly (string | TDraftLanguageDefinition)[];
+};
+
+export type TDraftContactVariableConfig = {
+    readonly whatsappPhone: string;
+};
+
+export type TDraftModalUiConfig = {
+    readonly size?: ModalSize;
+    readonly closeOnBackdrop?: boolean;
+    readonly showCloseButton?: boolean;
+    readonly showAccentBar?: boolean;
+    readonly accentColor?: ModalConfig['accentColor'];
+    readonly variant?: ModalConfig['variant'];
+    readonly ariaLabel?: string;
+    readonly ariaLabelKey?: string;
+};
+
+export type TDraftUiVariableConfig = {
+    readonly mobileMenuAriaLabel?: string;
+    readonly brandTextFallback?: string;
+    readonly modals?: Record<string, TDraftModalUiConfig>;
+    readonly languageOptions?: readonly Record<string, unknown>[];
 };
 
 export type TDraftSiteRouteEntry = {
@@ -63,32 +86,10 @@ export type TVariablesPayload = {
     readonly variables: Record<string, unknown> & {
         readonly theme?: TThemeVariableConfig;
         readonly i18n?: TDraftI18nVariableConfig;
+        readonly contact?: TDraftContactVariableConfig;
+        readonly ui?: TDraftUiVariableConfig;
     };
     readonly computed?: Record<string, unknown>;
-};
-
-export type TInteractiveProcessVariableStep = {
-    readonly step?: number;
-    readonly icon?: string;
-    readonly title?: string;
-    readonly titleKey?: string;
-    readonly description?: string;
-    readonly descriptionKey?: string;
-    readonly detailedDescription?: string;
-    readonly detailedDescriptionKey?: string;
-    readonly duration?: string;
-    readonly durationKey?: string;
-    readonly deliverables?: readonly string[];
-    readonly deliverablesKey?: string;
-    readonly deliverableKeys?: readonly string[];
-};
-
-export type TInteractiveProcessSectionVariableConfig = {
-    readonly titleKey?: string;
-    readonly sidebarTitleKey?: string;
-    readonly detailedDescriptionLabelKey?: string;
-    readonly deliverablesLabelKey?: string;
-    readonly steps: readonly TInteractiveProcessVariableStep[];
 };
 
 export type TStatsCounterVariableConfig = {

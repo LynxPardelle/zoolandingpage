@@ -4,12 +4,12 @@ import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { provideRouter, Router, withInMemoryScrolling } from '@angular/router';
 import { NgxAngoraService } from 'ngx-angora-css';
 import { of } from 'rxjs';
-import { WrapperOrchestrator } from '../../../../shared/components/wrapper-orchestrator/wrapper-orchestrator.component';
-import { AnalyticsService } from '../../../../shared/services/analytics.service';
-import { ConfigBootstrapService } from '../../../../shared/services/config-bootstrap.service';
-import { ConfigSourceService } from '../../../../shared/services/config-source.service';
-import { ConfigurationsOrchestratorService } from '../../../../shared/services/configurations-orchestrator';
-import { DraftRegistryService } from '../../../../shared/services/draft-registry.service';
+import { WrapperOrchestrator } from '../../../shared/components/wrapper-orchestrator/wrapper-orchestrator.component';
+import { AnalyticsService } from '../../../shared/services/analytics.service';
+import { ConfigBootstrapService } from '../../../shared/services/config-bootstrap.service';
+import { ConfigSourceService } from '../../../shared/services/config-source.service';
+import { ConfigurationsOrchestratorService } from '../../../shared/services/configurations-orchestrator';
+import { DraftRegistryService } from '../../../shared/services/draft-registry.service';
 import { DebugWorkspaceComponent } from '../debug-workspace/debug-workspace.component';
 import { AppShellComponent } from './app-shell.component';
 
@@ -159,16 +159,16 @@ describe('AppShellComponent analytics', () => {
 
   it('keeps the earliest pending cssCreate request instead of postponing it', fakeAsync(() => {
     const fixture = TestBed.createComponent(AppShellComponent);
-    const component = fixture.componentInstance as any;
+    const component = fixture.componentInstance;
 
-    component.scheduleCssCreate(0);
-    component.scheduleCssCreate(angoraSpy.timeBetweenReCreate + 150);
+    component.runtime.requestCssCreate(0);
+    component.runtime.requestCssCreate(angoraSpy.timeBetweenReCreate + 150);
     tick();
 
     expect(angoraSpy.cssCreate).toHaveBeenCalledTimes(1);
   }));
 
-  it('continues requesting cssCreate when the rendered subtree mutates after bootstrap', fakeAsync(() => {
+  it('continues requesting cssCreate after bootstrap through the runtime refresh API', fakeAsync(() => {
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
     tick();
@@ -176,10 +176,7 @@ describe('AppShellComponent analytics', () => {
 
     angoraSpy.cssCreate.calls.reset();
 
-    const wrapper = fixture.nativeElement.querySelector('wrapper-orchestrator') as HTMLElement;
-    const lateNode = document.createElement('div');
-    lateNode.className = 'ank-display-flex';
-    wrapper.appendChild(lateNode);
+    fixture.componentInstance.runtime.requestCssCreate();
     tick();
 
     expect(angoraSpy.cssCreate).toHaveBeenCalledTimes(1);

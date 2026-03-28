@@ -2,8 +2,11 @@ import type {
     TAnalyticsConfigPayload,
     TAngoraCombosPayload,
     TComponentsPayload,
+    TDraftContactVariableConfig,
     TDraftLanguageDefinition,
+    TDraftModalUiConfig,
     TDraftSiteConfigPayload,
+    TDraftUiVariableConfig,
     TI18nPayload,
     TPageConfigPayload,
     TSeoPayload,
@@ -50,6 +53,12 @@ const isDraftI18nVariableConfig = (value: unknown): boolean => {
         if (!allValid) return false;
     }
 
+    return true;
+};
+
+const isDraftContactVariableConfig = (value: unknown): value is TDraftContactVariableConfig => {
+    if (!isRecord(value)) return false;
+    if (typeof value['whatsappPhone'] !== 'string' || value['whatsappPhone'].trim().length === 0) return false;
     return true;
 };
 
@@ -194,27 +203,6 @@ const isComponentPayloadRecord = (value: unknown): boolean => {
     return true;
 };
 
-const isInteractiveProcessStepVariableConfig = (value: unknown): boolean => {
-    if (!isRecord(value)) return false;
-
-    const hasTitle = typeof value['title'] === 'string' || typeof value['titleKey'] === 'string';
-    const hasDescription = typeof value['description'] === 'string' || typeof value['descriptionKey'] === 'string';
-    const hasDetailed = typeof value['detailedDescription'] === 'string' || typeof value['detailedDescriptionKey'] === 'string';
-    const hasDuration = typeof value['duration'] === 'string' || typeof value['durationKey'] === 'string';
-    const hasDeliverables =
-        isStringArray(value['deliverables']) ||
-        typeof value['deliverablesKey'] === 'string' ||
-        isStringArray(value['deliverableKeys']);
-
-    return hasTitle && hasDescription && hasDetailed && hasDuration && hasDeliverables;
-};
-
-const isInteractiveProcessSectionVariableConfig = (value: unknown): boolean => {
-    if (!isRecord(value)) return false;
-    if (!Array.isArray(value['steps'])) return false;
-    return value['steps'].every((step) => isInteractiveProcessStepVariableConfig(step));
-};
-
 const isStatsCounterVariableConfig = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
 
@@ -262,6 +250,41 @@ const isThemeUiConfig = (value: unknown): boolean => {
     if (value['modalAccentColor'] !== undefined && !isThemeColorToken(value['modalAccentColor'])) return false;
     if (value['legalModalAccentColor'] !== undefined && !isThemeColorToken(value['legalModalAccentColor'])) return false;
     if (value['demoModalAccentColor'] !== undefined && !isThemeColorToken(value['demoModalAccentColor'])) return false;
+
+    return true;
+};
+
+const isModalSize = (value: unknown): boolean => value === 'sm' || value === 'md' || value === 'lg' || value === 'full';
+
+const isDraftModalUiConfig = (value: unknown): value is TDraftModalUiConfig => {
+    if (!isRecord(value)) return false;
+
+    if (value['size'] !== undefined && !isModalSize(value['size'])) return false;
+    if (value['closeOnBackdrop'] !== undefined && typeof value['closeOnBackdrop'] !== 'boolean') return false;
+    if (value['showCloseButton'] !== undefined && typeof value['showCloseButton'] !== 'boolean') return false;
+    if (value['showAccentBar'] !== undefined && typeof value['showAccentBar'] !== 'boolean') return false;
+    if (value['accentColor'] !== undefined && !isThemeColorToken(value['accentColor'])) return false;
+    if (value['variant'] !== undefined && value['variant'] !== 'dialog' && value['variant'] !== 'sheet') return false;
+    if (value['ariaLabel'] !== undefined && typeof value['ariaLabel'] !== 'string') return false;
+    if (value['ariaLabelKey'] !== undefined && typeof value['ariaLabelKey'] !== 'string') return false;
+
+    return true;
+};
+
+const isDraftUiVariableConfig = (value: unknown): value is TDraftUiVariableConfig => {
+    if (!isRecord(value)) return false;
+
+    if (value['mobileMenuAriaLabel'] !== undefined && typeof value['mobileMenuAriaLabel'] !== 'string') return false;
+    if (value['brandTextFallback'] !== undefined && typeof value['brandTextFallback'] !== 'string') return false;
+
+    const modals = value['modals'];
+    if (modals !== undefined) {
+        if (!isRecord(modals)) return false;
+        if (!Object.values(modals).every((entry) => isDraftModalUiConfig(entry))) return false;
+    }
+
+    const languageOptions = value['languageOptions'];
+    if (languageOptions !== undefined && !Array.isArray(languageOptions)) return false;
 
     return true;
 };
@@ -337,11 +360,6 @@ export const isVariablesPayload = (value: unknown): value is TVariablesPayload =
     if (!isRecord(value['variables'])) return false;
     if (value['computed'] && !isRecord(value['computed'])) return false;
 
-    const processSection = (value['variables'] as Record<string, unknown>)['processSection'];
-    if (processSection !== undefined && !isInteractiveProcessSectionVariableConfig(processSection)) {
-        return false;
-    }
-
     const statsCounters = (value['variables'] as Record<string, unknown>)['statsCounters'];
     if (statsCounters !== undefined && !isStatsCountersVariableConfig(statsCounters)) {
         return false;
@@ -354,6 +372,16 @@ export const isVariablesPayload = (value: unknown): value is TVariablesPayload =
 
     const i18n = (value['variables'] as Record<string, unknown>)['i18n'];
     if (i18n !== undefined && !isDraftI18nVariableConfig(i18n)) {
+        return false;
+    }
+
+    const contact = (value['variables'] as Record<string, unknown>)['contact'];
+    if (contact !== undefined && !isDraftContactVariableConfig(contact)) {
+        return false;
+    }
+
+    const ui = (value['variables'] as Record<string, unknown>)['ui'];
+    if (ui !== undefined && !isDraftUiVariableConfig(ui)) {
         return false;
     }
 

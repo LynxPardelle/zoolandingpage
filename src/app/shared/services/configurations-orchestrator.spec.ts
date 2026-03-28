@@ -13,6 +13,7 @@ describe('ConfigurationsOrchestratorService', () => {
   let service: ConfigurationsOrchestratorService;
   let variables: VariableStoreService;
   let i18n: I18nService;
+  const modalRefSignal = signal<any>(null);
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -35,7 +36,7 @@ describe('ConfigurationsOrchestratorService', () => {
         {
           provide: GenericModalService,
           useValue: {
-            modalRef: () => null,
+            modalRef: () => modalRefSignal(),
             open: () => ({ id: 'test-modal', close: () => { } }),
             close: () => { },
             analyticsEvents$: undefined,
@@ -66,6 +67,7 @@ describe('ConfigurationsOrchestratorService', () => {
     service = TestBed.inject(ConfigurationsOrchestratorService);
     variables = TestBed.inject(VariableStoreService);
     i18n = TestBed.inject(I18nService);
+    modalRefSignal.set(null);
   });
 
   it('should be created', () => {
@@ -126,6 +128,66 @@ describe('ConfigurationsOrchestratorService', () => {
     expect(firstLink?.config?.ariaLabel).toBe('A label');
   });
 
+  it('uses key-based footer social aria labels while keeping icon text', () => {
+    spyOn(i18n, 'get').and.callFake(((key: string) => {
+      if (key === 'footer.social.facebook.label') return 'Facebook';
+      if (key === 'footer.social.facebook.ariaLabel') return 'Visit our Facebook page';
+      return undefined;
+    }) as any);
+
+    variables.setPayload({
+      version: 1,
+      pageId: 'default',
+      domain: 'zoolandingpage.com.mx',
+      variables: {
+        footerSocialLinks: [
+          {
+            url: 'https://example.com/facebook',
+            icon: '📘',
+            labelKey: 'footer.social.facebook.label',
+            ariaLabelKey: 'footer.social.facebook.ariaLabel',
+          },
+        ],
+      },
+    });
+
+    service.setExternalComponentsFromPayload({
+      version: 1,
+      pageId: 'default',
+      domain: 'zoolandingpage.com.mx',
+      components: {
+        footerSocialLinkTemplate: {
+          id: 'footerSocialLinkTemplate',
+          type: 'link',
+          config: {
+            id: 'footerSocialLinkTemplate',
+            href: '#',
+            text: '',
+            ariaLabel: '',
+          },
+        },
+        footerSocialSection: {
+          id: 'footerSocialSection',
+          type: 'container',
+          loopConfig: {
+            source: 'var',
+            path: 'footerSocialLinks',
+            templateId: 'footerSocialLinkTemplate',
+            idPrefix: 'footerSocialLink',
+          },
+          config: {
+            tag: 'div',
+            components: [],
+          },
+        },
+      },
+    });
+
+    const firstLink = service.getComponentById('footerSocialLink__1') as any;
+    expect(firstLink?.config?.text).toBe('📘');
+    expect(firstLink?.config?.ariaLabel).toBe('Visit our Facebook page');
+  });
+
   it('materializes repeat and i18n loop sources', () => {
     service.setExternalComponentsFromPayload({
       version: 1,
@@ -166,6 +228,50 @@ describe('ConfigurationsOrchestratorService', () => {
     expect(footerConfig['showLegalLinks']).toBeFalse();
     expect(footerConfig['showSocialLinks']).toBeFalse();
     expect(footerConfig['showCopyright']).toBeFalse();
+  });
+
+  it('uses live analytics time fallback without an arbitrary minimum floor', () => {
+    (service as any).analytics.getSessionEventCount = () => 7;
+
+    expect(service.statsStripAverageTimeFallback()).toBe(35);
+  });
+
+  it('resolves legal modal host config from the variables payload', () => {
+    spyOn(i18n, 't').and.callFake(((key: string) => key === 'footer.legal.terms.title' ? 'Terms of Service' : key) as any);
+    modalRefSignal.set({ id: 'terms-of-service', close: () => { } });
+
+    variables.setPayload({
+      version: 1,
+      pageId: 'default',
+      domain: 'zoolandingpage.com.mx',
+      variables: {
+        ui: {
+          modals: {
+            'terms-of-service': {
+              size: 'lg',
+              ariaLabelKey: 'footer.legal.terms.title',
+            },
+          },
+        },
+      },
+    });
+
+    const config = service.modalHostConfig();
+
+    expect(config.size).toBe('lg');
+    expect(config.ariaLabel).toBe('Terms of Service');
+    expect(config.showCloseButton).toBeTrue();
+    expect(config.closeOnBackdrop).toBeTrue();
+  });
+
+  it('keeps analytics consent modal safeguards as framework defaults', () => {
+    modalRefSignal.set({ id: 'analytics-consent', close: () => { } });
+
+    const config = service.modalHostConfig();
+
+    expect(config.showCloseButton).toBeFalse();
+    expect(config.closeOnBackdrop).toBeFalse();
+    expect(config.variant).toBe('dialog');
   });
 
   it('materializes dynamic text loops from i18n strings and objects', () => {

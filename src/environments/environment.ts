@@ -13,8 +13,7 @@ export const environment: TEnvironment = {
   apiUrl: 'https://nxk92p5uzc.execute-api.us-east-1.amazonaws.com',
   apiVersion: 'v1',
   domain: {
-    defaultDomain: 'zoolandingpage.com.mx',
-    devOverride: 'zoolandingpage.com.mx'
+    defaultDomain: 'zoolandingpage.com.mx'
   },
   drafts: {
     enabled: true,

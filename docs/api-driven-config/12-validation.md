@@ -148,14 +148,12 @@ Checks:
 - Verify `variables.processSection.steps` exists and is a non-empty array.
 - Verify each step has either literal text or i18n keys for:
 - `title` / `titleKey`
-- `description` / `descriptionKey`
-- `detailedDescription` / `detailedDescriptionKey`
-- `duration` / `durationKey`
-- `deliverables` / `deliverablesKey` / `deliverableKeys`
+- `summary` / `summaryKey`
+- `content` / `contentKey`
+- `meta` / `metaKey`
+- `detailItems` / `detailItemsKey` / `detailItemKeys`
 - Verify any `*Key` values resolve in the active i18n dictionary.
-- Check console warnings:
-- `Expected variables.processSection.steps to be a non-empty array. Interactive process will remain hidden.`
-- `variables.processSection.steps does not contain valid step records. Interactive process will remain hidden.`
+- Verify `components.json` uses `config.itemsSource` / `config.tabsSource` for the process renderers instead of inline `set:config.items` or `set:config.tabs` mutations.
 
 ### Stats counters are not updating from variables
 

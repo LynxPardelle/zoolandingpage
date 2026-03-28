@@ -27,7 +27,12 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/styles.scss"],
+            "styles": [
+              "public/css/animations.css",
+              "public/css/angora-styles.css",
+              "public/css/angora-styles-responsive.css",
+              "src/styles.scss"
+            ],
             "server": "src/main.server.ts",
             "outputMode": "server",
             "ssr": {
@@ -91,7 +96,12 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/styles.scss"],
+            "styles": [
+              "public/css/animations.css",
+              "public/css/angora-styles.css",
+              "public/css/angora-styles-responsive.css",
+              "src/styles.scss"
+            ],
             "watch": false,
             "browsers": "ChromeHeadless"
           }

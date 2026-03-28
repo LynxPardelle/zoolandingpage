@@ -1,10 +1,13 @@
 import { AnalyticsEvents } from '@/app/shared/services/analytics.events';
 import { AnalyticsService } from '@/app/shared/services/analytics.service';
+import { I18nService } from '@/app/shared/services/i18n.service';
 import { LanguageService } from '@/app/shared/services/language.service';
+import { VariableStoreService } from '@/app/shared/services/variable-store.service';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import type { EventExecutionContext } from '../event-handler.types';
 import { navigateToUrlHandler, setLanguageHandler } from './ui.handlers';
+import { openFaqCtaWhatsAppHandler, openFinalCtaWhatsAppHandler, openWhatsAppHandler } from './whatsapp.handlers';
 
 describe('setLanguageHandler', () => {
     let analytics: jasmine.SpyObj<AnalyticsService>;
@@ -129,5 +132,103 @@ describe('navigateToUrlHandler', () => {
 
         expect(openSpy).toHaveBeenCalledOnceWith('https://example.com/profile', '_blank', 'noopener,noreferrer');
         expect(router.navigateByUrl).not.toHaveBeenCalled();
+    });
+});
+
+describe('whatsapp handlers', () => {
+    let analytics: jasmine.SpyObj<AnalyticsService>;
+    let variables: VariableStoreService;
+    let context: EventExecutionContext;
+    let openSpy: jasmine.Spy<(url?: string | URL, target?: string, features?: string) => Window | null>;
+
+    beforeEach(() => {
+        analytics = jasmine.createSpyObj<AnalyticsService>('AnalyticsService', ['track']);
+        analytics.track.and.returnValue(Promise.resolve());
+
+        TestBed.configureTestingModule({
+            providers: [
+                VariableStoreService,
+                LanguageService,
+                I18nService,
+                { provide: AnalyticsService, useValue: analytics }
+            ]
+        });
+
+        variables = TestBed.inject(VariableStoreService);
+        variables.setPayload({
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            variables: {
+                contact: {
+                    whatsappPhone: '+525522699563'
+                }
+            }
+        } as any);
+
+        const i18n = TestBed.inject(I18nService);
+        i18n.setTranslations('es', {
+            ui: {
+                contact: {
+                    whatsappMessage: 'Hola desde WhatsApp'
+                },
+                sections: {
+                    faq: {
+                        subtitle: 'Preguntas frecuentes'
+                    }
+                }
+            },
+            hero: {
+                subtitle: 'Hero subtitle'
+            }
+        }, { applyIfCurrent: true });
+
+        context = {
+            event: {
+                componentId: 'ctaButton',
+                eventName: 'clicked'
+            },
+            host: null
+        };
+        openSpy = spyOn(window, 'open').and.returnValue(null);
+    });
+
+    it('should resolve the WhatsApp destination from draft variables', () => {
+        const handler = TestBed.runInInjectionContext(() => openWhatsAppHandler());
+
+        handler.handle(context, [AnalyticsEvents.CtaClick, 'hero', undefined]);
+
+        expect(openSpy).toHaveBeenCalledOnceWith(
+            'https://wa.me/525522699563?text=Hola%20desde%20WhatsApp',
+            '_blank',
+            'noopener,noreferrer'
+        );
+    });
+
+    it('should no-op when the draft omits the WhatsApp destination', () => {
+        variables.setPayload({
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            variables: {}
+        } as any);
+
+        const handler = TestBed.runInInjectionContext(() => openFinalCtaWhatsAppHandler());
+
+        handler.handle(context, [AnalyticsEvents.CtaClick, 'primary']);
+
+        expect(openSpy).not.toHaveBeenCalled();
+    });
+
+    it('should reuse the configured phone for FAQ CTA events', () => {
+        const handler = TestBed.runInInjectionContext(() => openFaqCtaWhatsAppHandler());
+
+        handler.handle(context, []);
+
+        expect(openSpy).toHaveBeenCalledOnceWith(
+            'https://wa.me/525522699563?text=Preguntas%20frecuentes',
+            '_blank',
+            'noopener,noreferrer'
+        );
     });
 });

@@ -38,7 +38,6 @@ describe('GenericButtonComponent', () => {
 
   it('should call config.pressed on click', () => {
     const fixture = TestBed.createComponent(GenericButtonComponent);
-    const component = fixture.componentInstance;
     const pressed = jasmine.createSpy('pressed');
 
     fixture.componentRef.setInput('config', { label: 'Click me', pressed });
@@ -48,5 +47,77 @@ describe('GenericButtonComponent', () => {
     button?.click();
 
     expect(pressed).toHaveBeenCalled();
+  });
+
+  it('should resolve thunk-backed config values into DOM attributes', () => {
+    const fixture = TestBed.createComponent(GenericButtonComponent);
+
+    fixture.componentRef.setInput('config', {
+      label: () => 'Dynamic label',
+      type: () => 'submit',
+      tabIndex: () => 2,
+      ariaSelected: () => true,
+      ariaLabel: () => 'Submit dynamic label',
+    });
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+
+    expect(button.textContent).toContain('Dynamic label');
+    expect(button.getAttribute('type')).toBe('submit');
+    expect(button.getAttribute('tabindex')).toBe('2');
+    expect(button.getAttribute('aria-selected')).toBe('true');
+    expect(button.getAttribute('aria-label')).toBe('Submit dynamic label');
+  });
+
+  it('should not invoke handlers when disabled', () => {
+    const fixture = TestBed.createComponent(GenericButtonComponent);
+    const component = fixture.componentInstance;
+    const pressed = jasmine.createSpy('pressed');
+    spyOn(component.pressed, 'emit');
+
+    fixture.componentRef.setInput('config', { label: 'Disabled', disabled: true, pressed });
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    button.click();
+
+    expect(pressed).not.toHaveBeenCalled();
+    expect(component.pressed.emit).not.toHaveBeenCalled();
+  });
+
+  it('should not invoke handlers when loading', () => {
+    const fixture = TestBed.createComponent(GenericButtonComponent);
+    const component = fixture.componentInstance;
+    const pressed = jasmine.createSpy('pressed');
+    spyOn(component.pressed, 'emit');
+
+    fixture.componentRef.setInput('config', { label: 'Loading', loading: true, pressed });
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    button.click();
+
+    expect(pressed).not.toHaveBeenCalled();
+    expect(component.pressed.emit).not.toHaveBeenCalled();
+    expect(button.getAttribute('aria-busy')).toBe('true');
+  });
+
+  it('should render the icon after the label when iconPosition is after', () => {
+    const fixture = TestBed.createComponent(GenericButtonComponent);
+
+    fixture.componentRef.setInput('config', {
+      label: 'More',
+      icon: 'expand_more',
+      iconPosition: 'after',
+    });
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    const firstChild = button.firstElementChild as HTMLElement | null;
+    const lastChild = button.lastElementChild as HTMLElement | null;
+
+    expect(firstChild?.tagName).toBe('SPAN');
+    expect(lastChild?.tagName.toLowerCase()).toBe('generic-icon');
   });
 });

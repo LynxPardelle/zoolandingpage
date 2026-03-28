@@ -67,6 +67,10 @@ export class ConfigBootstrapService {
         return !!value && typeof value === 'object' && !Array.isArray(value);
     }
 
+    private isNonEmptyString(value: unknown): value is string {
+        return typeof value === 'string' && value.trim().length > 0;
+    }
+
     private normalizeDraftLanguageDefinition(entry: string | TDraftLanguageDefinition): TDraftLanguageDefinition | null {
         if (typeof entry === 'string') {
             const code = normalizeLocaleCode(entry);
@@ -364,6 +368,9 @@ export class ConfigBootstrapService {
         const addMissing = (label: string, value: unknown) => {
             if (!value) issues.push(`Missing or invalid ${ label } payload.`);
         };
+        const addIssue = (condition: boolean, message: string) => {
+            if (condition) issues.push(message);
+        };
         const addVersionMismatch = (label: string, value: { version?: number } | null) => {
             if (!value || typeof value.version !== 'number') return;
             if (value.version !== EXPECTED_CONFIG_VERSION) {
@@ -388,6 +395,36 @@ export class ConfigBootstrapService {
         addVersionMismatch('seo', payloads.seo as any);
         addVersionMismatch('structured-data', payloads.structuredData as any);
         addVersionMismatch('analytics-config', payloads.analytics as any);
+
+        const pageConfig = payloads.pageConfig;
+        addIssue(!pageConfig || pageConfig.rootIds.length === 0, 'page-config.rootIds must include at least one render root.');
+
+        const components = payloads.components?.components ?? {};
+        addIssue(Object.keys(components).length === 0, 'components.json must include at least one component entry.');
+
+        const variables = payloads.variables?.variables ?? {};
+        const theme = this.isRecord(variables['theme']) ? variables['theme'] : null;
+        const i18n = this.isRecord(variables['i18n']) ? variables['i18n'] : null;
+        const contact = this.isRecord(variables['contact']) ? variables['contact'] : null;
+
+        addIssue(!theme, 'variables.theme is required.');
+        addIssue(!i18n, 'variables.i18n is required.');
+        addIssue(!this.isNonEmptyString(i18n?.['defaultLanguage']), 'variables.i18n.defaultLanguage is required.');
+        addIssue(!Array.isArray(i18n?.['supportedLanguages']) || i18n['supportedLanguages'].length === 0, 'variables.i18n.supportedLanguages must include at least one language.');
+
+        const requiresWhatsAppContact = Object.values(components).some((component) => {
+            if (!this.isRecord(component)) return false;
+            const instructions = component['eventInstructions'];
+            if (typeof instructions !== 'string') return false;
+            return /(^|;)(openWhatsApp|openFaqCtaWhatsApp|openFinalCtaWhatsApp)(:|;|$)/.test(instructions);
+        });
+
+        addIssue(requiresWhatsAppContact && !contact, 'variables.contact is required when WhatsApp handlers are used.');
+        addIssue(requiresWhatsAppContact && !this.isNonEmptyString(contact?.['whatsappPhone']), 'variables.contact.whatsappPhone is required when WhatsApp handlers are used.');
+
+        addIssue(!this.isNonEmptyString(payloads.seo?.title), 'seo.title is required.');
+        addIssue(!this.isNonEmptyString(payloads.seo?.description), 'seo.description is required.');
+        addIssue(!this.isNonEmptyString(payloads.seo?.canonical), 'seo.canonical is required.');
 
         return issues;
     }

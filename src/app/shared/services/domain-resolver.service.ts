@@ -4,7 +4,7 @@ import { inject, Injectable, PLATFORM_ID, REQUEST } from '@angular/core';
 
 export type TResolvedDomain = {
     readonly domain: string;
-    readonly source: 'queryParam' | 'devOverride' | 'urlHost' | 'fallback';
+    readonly source: 'queryParam' | 'draftDefault' | 'urlHost' | 'fallback';
 };
 
 @Injectable({ providedIn: 'root' })
@@ -26,6 +26,11 @@ export class DomainResolverService {
         }
     }
 
+    private isLocalHost(hostname: string): boolean {
+        const normalized = String(hostname ?? '').trim().toLowerCase();
+        return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1';
+    }
+
     resolveDomain(): TResolvedDomain {
         if (this.isBrowser && window.location?.search) {
             const fromQuery = new URLSearchParams(window.location.search).get('draftDomain');
@@ -44,13 +49,15 @@ export class DomainResolverService {
             }
         }
 
-        const devOverride = String(environment.domain.devOverride ?? '').trim();
-        if (environment.development && devOverride.length > 0) {
-            return { domain: devOverride, source: 'devOverride' };
-        }
-
         if (this.isBrowser && window.location?.hostname) {
             const host = window.location.hostname.trim();
+            if (environment.drafts.enabled && this.isLocalHost(host)) {
+                const draftDefault = String(environment.drafts.defaultDomain ?? '').trim();
+                if (draftDefault.length > 0) {
+                    return { domain: draftDefault, source: 'draftDefault' };
+                }
+            }
+
             if (host.length > 0) {
                 return { domain: host, source: 'urlHost' };
             }

@@ -9,22 +9,13 @@ export type TabDefinition = {
   readonly titleKey?: string;
   readonly summary?: TabGroupTextValue;
   readonly summaryKey?: string;
-  readonly description?: TabGroupTextValue;
-  readonly descriptionKey?: string;
   readonly content?: TabGroupTextValue;
   readonly contentKey?: string;
-  readonly detailedDescription?: TabGroupTextValue;
-  readonly detailedDescriptionKey?: string;
   readonly meta?: TabGroupTextValue;
   readonly metaKey?: string;
-  readonly duration?: TabGroupTextValue;
-  readonly durationKey?: string;
   readonly detailItems?: TabGroupStringListValue;
   readonly detailItemsKey?: string;
   readonly detailItemKeys?: readonly string[];
-  readonly deliverables?: TabGroupStringListValue;
-  readonly deliverablesKey?: string;
-  readonly deliverableKeys?: readonly string[];
   readonly indexLabel?: TabGroupTextValue;
   readonly step?: number;
   readonly icon?: TabGroupTextValue;
@@ -67,6 +58,7 @@ export type TabGroupConfig = {
   readonly detailTitleClasses?: string;
   readonly detailMetaClasses?: string;
   readonly detailSummaryClasses?: string;
+  readonly detailMetaIconName?: string;
   readonly detailContentLabel?: TabGroupTextValue;
   readonly detailContentLabelClasses?: string;
   readonly detailContentClasses?: string;
@@ -74,4 +66,5 @@ export type TabGroupConfig = {
   readonly detailItemsLabelClasses?: string;
   readonly detailListClasses?: string;
   readonly detailListItemClasses?: string;
+  readonly detailItemIconName?: string;
 };

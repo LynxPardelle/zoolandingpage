@@ -717,7 +717,7 @@ export class AnalyticsService {
         return remote['metrics'][eventName];
       }
     }
-    return 6;
+    return 0;
   }
 
   getTotalEventsCount(): number {

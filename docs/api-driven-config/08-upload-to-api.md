@@ -13,6 +13,16 @@ export type LandingPageConfigPayload = {
   version: 1;
   pageId: string;
   rootIds: readonly string[];
+  variables?: {
+    theme?: unknown;
+    i18n?: {
+      defaultLanguage: string;
+      supportedLanguages: readonly unknown[];
+    };
+    contact?: {
+      whatsappPhone: string;
+    };
+  };
   components: Record<
     string,
     {
@@ -42,6 +52,7 @@ Why a map?
   - `type` in allowed set
   - `valueInstructions` only uses allowlisted resolver IDs
   - no function values (JSON can’t represent them anyway)
+  - required nested contracts such as `variables.theme`, `variables.i18n.defaultLanguage`, `variables.i18n.supportedLanguages`, and `variables.contact.whatsappPhone` when WhatsApp handlers are used
 
 ## Client loading strategy (future)
 
@@ -57,3 +68,4 @@ A future client-side loader can:
 - `valueInstructions` is allowlisted; unknown resolver IDs are ignored.
 - Avoid exposing secrets through `env.*`.
 - Keep handlers deterministic and side-effect-free.
+- Treat missing required payload sections as validation failures rather than relying on local runtime fallbacks.

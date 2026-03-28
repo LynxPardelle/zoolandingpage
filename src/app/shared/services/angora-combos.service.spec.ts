@@ -6,15 +6,17 @@ import { AngoraCombosService } from './angora-combos.service';
 
 describe('AngoraCombosService', () => {
     let pushCombos: jasmine.Spy;
+    let cssCreate: jasmine.Spy;
 
     const configure = (platformId: 'browser' | 'server'): AngoraCombosService => {
         pushCombos = jasmine.createSpy('pushCombos');
+        cssCreate = jasmine.createSpy('cssCreate');
 
         TestBed.configureTestingModule({
             providers: [
                 AngoraCombosService,
                 { provide: PLATFORM_ID, useValue: platformId },
-                { provide: NgxAngoraService, useValue: { pushCombos } },
+                { provide: NgxAngoraService, useValue: { pushCombos, cssCreate } },
             ],
         });
 
@@ -116,5 +118,48 @@ describe('AngoraCombosService', () => {
         expect(pushCombos.calls.count()).toBe(2);
         expect(pushCombos.calls.argsFor(0)).toEqual([{ base: ['ank-display-flex'] }]);
         expect(pushCombos.calls.argsFor(1)).toEqual([{ base: ['ank-display-flex'], hero: ['ank-bg-primary'] }]);
+    });
+
+    it('keeps the earliest pending cssCreate request', () => {
+        jasmine.clock().install();
+        try {
+            const service = configure('browser');
+
+            service.scheduleCssCreate(0);
+            service.scheduleCssCreate(250);
+            jasmine.clock().tick(0);
+
+            expect(cssCreate).toHaveBeenCalledTimes(1);
+        } finally {
+            jasmine.clock().uninstall();
+        }
+    });
+
+    it('reruns cssCreate after delayed combo registration completes', () => {
+        jasmine.clock().install();
+        try {
+            const service = configure('browser');
+
+            service.initializeBaseCombos(1000);
+            service.applyPayload({
+                version: 1,
+                pageId: 'default',
+                domain: 'zoolandingpage.com.mx',
+                combos: {
+                    hero: ['ank-bg-primary'],
+                },
+            });
+            service.scheduleCssCreate(0);
+
+            jasmine.clock().tick(0);
+            expect(cssCreate).toHaveBeenCalledTimes(1);
+
+            jasmine.clock().tick(1000);
+            jasmine.clock().tick(0);
+            expect(pushCombos.calls.count()).toBe(2);
+            expect(cssCreate).toHaveBeenCalledTimes(2);
+        } finally {
+            jasmine.clock().uninstall();
+        }
     });
 });

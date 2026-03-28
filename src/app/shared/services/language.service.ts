@@ -1,14 +1,9 @@
 /**
- * Language Service - Foundation Component Support with ngx-translate
- *
- * Manages runtime language switching for the supported draft locales.
- * Uses Angular signals for reactive state management.
+ * Manages runtime language switching for the locales declared by the active payload.
  */
 
 import { isPlatformBrowser } from '@angular/common';
 import { computed, inject, Injectable, PLATFORM_ID, REQUEST, signal } from '@angular/core';
-// TODO: Install @ngx-translate/core package
-// import { TranslateService } from '@ngx-translate/core';
 import { environment } from '../../../environments/environment';
 import { formatLocaleLabel, normalizeLocaleCode, resolveBestLocaleMatch } from '../i18n/locale.utils';
 import { SupportedLanguage } from '../types/navigation.types';
@@ -23,10 +18,7 @@ export class LanguageService {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly request = inject(REQUEST, { optional: true });
   private readonly isBrowser = isPlatformBrowser(this.platformId) && !this.request;
-  // TODO: Inject TranslateService once package is installed
-  // private readonly translateService = inject(TranslateService);
 
-  // Language state using signals (MANDATORY Angular 17+ features)
   private readonly _currentLanguage = signal<SupportedLanguage>(DEFAULT_LANGUAGE);
   private readonly _defaultLanguage = signal<SupportedLanguage>(DEFAULT_LANGUAGE);
   private readonly _availableLanguages = signal<readonly SupportedLanguage[]>([...DEFAULT_LANGUAGES]);
@@ -52,8 +44,6 @@ export class LanguageService {
 
   constructor() {
     this._loadSavedLanguage();
-    // TODO: Initialize TranslateService when available
-    // this._initializeTranslateService();
   }
 
   // Public methods
@@ -85,8 +75,6 @@ export class LanguageService {
     const resolved = this.resolvePreferredLanguage(language);
     this._currentLanguage.set(resolved);
     this._saveLanguage(resolved);
-    // TODO: Update TranslateService when available
-    // this.translateService.use(resolved);
   }
 
   toggleLanguage(): void {
@@ -102,17 +90,6 @@ export class LanguageService {
     return this._availableLanguages();
   }
 
-  // TODO: Implement when ngx-translate is available
-  // translate(key: string, params?: Record<string, any>): Observable<string> {
-  //   return this.translateService.get(key, params);
-  // }
-
-  // TODO: Implement when ngx-translate is available
-  // instant(key: string, params?: Record<string, any>): string {
-  //   return this.translateService.instant(key, params);
-  // }
-
-  // Private methods
   private _loadSavedLanguage(): void {
     const preferred = this.getSavedLanguage() ?? this._detectBrowserLanguage() ?? this._defaultLanguage();
     this._currentLanguage.set(this.resolvePreferredLanguage(preferred));
@@ -159,11 +136,4 @@ export class LanguageService {
     const match = resolveBestLocaleMatch(language, available);
     return match ?? this._defaultLanguage() ?? available[0] ?? DEFAULT_LANGUAGE;
   }
-
-  // TODO: Initialize TranslateService when available
-  // private _initializeTranslateService(): void {
-  //   this.translateService.addLangs(this._availableLanguages());
-  //   this.translateService.setDefaultLang('es');
-  //   this.translateService.use(this._currentLanguage());
-  // }
 }

@@ -26,6 +26,7 @@ with the downloaded `components.json` file.
 
 - The exported payload is sanitized: inline functions are removed.
 - Use `valueInstructions` and `condition` DSLs to replace any runtime logic.
+- Draft-owned modal host behavior should live in `variables.ui.modals`, for example legal modal sizes and aria-label translation keys keyed by modal ref ID.
 - Validate the payload against:
 
 ```

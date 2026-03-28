@@ -1,6 +1,6 @@
 import { getLocaleCandidates } from '@/app/shared/i18n/locale.utils';
 import { I18nService } from '@/app/shared/services/i18n.service';
-import type { TComponentsPayload } from '@/app/shared/types/config-payloads.types';
+import type { TComponentsPayload, TDraftModalUiConfig } from '@/app/shared/types/config-payloads.types';
 import { computed, DestroyRef, effect, inject, Injectable, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { environment } from '../../../environments/environment';
@@ -27,6 +27,7 @@ import { VariableStoreService } from './variable-store.service';
     providedIn: 'root',
 })
 export class ConfigurationsOrchestratorService {
+    private static readonly LEGAL_MODAL_IDS = new Set(['terms-of-service', 'data-use']);
     readonly analytics = inject(AnalyticsService);
     private readonly destroyRef = inject(DestroyRef);
     private readonly quickStats = inject(QuickStatsService);
@@ -60,23 +61,7 @@ export class ConfigurationsOrchestratorService {
     });
 
     readonly modalHostConfig = computed<ModalConfig>(() => {
-        const id = this.activeModalRef()?.id;
-        return {
-            ariaLabel:
-                id === 'analytics-consent'
-                    ? this.globalI18n.t('ui.accessibility.analyticsConsentDialog')
-                    : id === 'terms-of-service'
-                        ? this.globalI18n.t('footer.legal.terms.title')
-                        : id === 'data-use'
-                            ? this.globalI18n.t('footer.legal.data.title')
-                            : this.globalI18n.t('ui.accessibility.dialog'),
-            closeOnBackdrop: id === 'analytics-consent' ? false : true,
-            showCloseButton: id === 'analytics-consent' ? false : true,
-            size: id === 'terms-of-service' ? 'lg' : id === 'data-use' ? 'md' : 'sm',
-            showAccentBar: true,
-            accentColor: this.resolveModalAccentColor(id),
-            variant: id === 'analytics-consent' ? this.consentVariant() : 'dialog',
-        };
+        return this.resolveModalHostConfig(this.activeModalRef()?.id);
     });
 
     // Used as a safe fallback while async pipe resolves first emission.
@@ -95,11 +80,52 @@ export class ConfigurationsOrchestratorService {
         return value === 'accentColor' || value === 'secondaryAccentColor' ? value : fallback;
     }
 
+    private getPayloadModalConfig(modalId?: string): TDraftModalUiConfig | null {
+        if (!modalId) return null;
+
+        const value = this.variableStore.get(`ui.modals.${ modalId }`);
+        if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+
+        return value as TDraftModalUiConfig;
+    }
+
+    private resolveModalAriaLabel(modalId: string | undefined, payloadConfig: TDraftModalUiConfig | null): string {
+        if (typeof payloadConfig?.ariaLabel === 'string' && payloadConfig.ariaLabel.trim().length > 0) {
+            return payloadConfig.ariaLabel.trim();
+        }
+
+        if (typeof payloadConfig?.ariaLabelKey === 'string' && payloadConfig.ariaLabelKey.trim().length > 0) {
+            return this.globalI18n.t(payloadConfig.ariaLabelKey);
+        }
+
+        if (modalId === 'analytics-consent') {
+            return this.globalI18n.t('ui.accessibility.analyticsConsentDialog');
+        }
+
+        return this.globalI18n.t('ui.accessibility.dialog');
+    }
+
+    private resolveModalHostConfig(modalId?: string): ModalConfig {
+        const payloadConfig = this.getPayloadModalConfig(modalId);
+
+        return {
+            ariaLabel: this.resolveModalAriaLabel(modalId, payloadConfig),
+            closeOnBackdrop: payloadConfig?.closeOnBackdrop ?? (modalId === 'analytics-consent' ? false : true),
+            showCloseButton: payloadConfig?.showCloseButton ?? (modalId === 'analytics-consent' ? false : true),
+            size: payloadConfig?.size ?? 'sm',
+            showAccentBar: payloadConfig?.showAccentBar ?? true,
+            accentColor: payloadConfig?.accentColor ?? this.resolveModalAccentColor(modalId),
+            variant: modalId === 'analytics-consent'
+                ? this.consentVariant()
+                : payloadConfig?.variant ?? 'dialog',
+        };
+    }
+
     private resolveModalAccentColor(modalId?: string): TThemeAccentColorToken {
         if (modalId === 'demo-modal') {
             return this.resolveAccentToken('theme.ui.demoModalAccentColor', 'accentColor');
         }
-        if (modalId === 'terms-of-service' || modalId === 'data-use') {
+        if (modalId && ConfigurationsOrchestratorService.LEGAL_MODAL_IDS.has(modalId)) {
             return this.resolveAccentToken('theme.ui.legalModalAccentColor', 'secondaryAccentColor');
         }
         return this.resolveAccentToken('theme.ui.modalAccentColor', 'secondaryAccentColor');
@@ -199,36 +225,12 @@ export class ConfigurationsOrchestratorService {
         this.statsStripRemote()?.['metrics']?.['ctaClicks'] ?? this.analytics.getEventCount('ctaClicks')
     ));
 
-    readonly statsStripAverageTimeFallback = computed(() => Math.min(
-        600,
-        Math.max(
-            284,
-            Number(this.statsStripRemote()?.['metrics']?.['avgTimeSecs'] ?? this.analytics.getSessionEventCount() * 5)
-        )
+    readonly statsStripAverageTimeFallback = computed(() => Math.max(
+        0,
+        Number(this.statsStripRemote()?.['metrics']?.['avgTimeSecs'] ?? this.analytics.getSessionEventCount() * 5)
     ));
 
-    readonly components: TGenericComponent[] = [...devOnlyComponents];/* createComponents({
-        accordions: accordions,
-        buttons: buttons,
-        links: links,
-        media: media,
-        containers: containers,
-        dropdowns: dropdowns,
-        cards: cards,
-        icons: icons,
-        interactiveProcesses: this.interactiveProcesses,
-        loadingSpinners: loadingSpinners,
-        modals: modals,
-        progressBars: progressBars,
-        searchBoxes: searchBoxes,
-        statsCounters: statsCounters,
-        steppers: steppers,
-        tabGroups: tabGroups,
-        texts: texts,
-        toasts: toasts,
-        tooltips: tooltips,
-        devOnlyComponents: devOnlyComponents,
-    }); */
+    readonly components: TGenericComponent[] = [...devOnlyComponents];
 
     get footerSocialLinks(): readonly Record<string, unknown>[] {
         const raw = this.variableStore.get('footerSocialLinks');

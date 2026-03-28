@@ -3,11 +3,11 @@ import type { TComponentChild } from '../component-children.types';
 
 export type TGenericButtonConfig = {
   /** Button element ID */
-  readonly id?: string;
+  readonly id?: string | (() => string);
   /** Button Classes */
   readonly classes?: string | (() => string);
   /** Native button type attribute */
-  readonly type?: 'button' | 'submit' | 'reset';
+  readonly type?: 'button' | 'submit' | 'reset' | (() => 'button' | 'submit' | 'reset');
   /** Optional text label; if omitted callers can project their own content */
   readonly label?: string | (() => string);
   /** Disable pointer interaction and dim the button */
@@ -43,7 +43,4 @@ export type TGenericButtonConfig = {
 
   /** Optional handler invoked after disabled/loading guards. */
   readonly pressed?: (event: MouseEvent) => void;
-
-  /** @deprecated Use `pressed` instead. */
-  readonly onPressed?: (event: MouseEvent) => void;
 };

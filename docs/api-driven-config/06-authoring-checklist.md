@@ -10,9 +10,11 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Conditions MUST use the `condition` DSL with allowlisted handler IDs.
 - Repeated components should use `loopConfig` (object model) instead of hardcoded `Array.from(...)` IDs.
 - Dynamic accordion items should use `config.itemsSource` (`i18n` or `var`) instead of inline `items: () => ...` lambdas.
+- Dynamic tab-group items should use `config.tabsSource` (`i18n` or `var`) instead of inline `tabs: () => ...` lambdas.
 - Reuse existing generic component types only.
 - Use existing class tokens / Angora design system conventions.
 - Put global palette data in `variables.theme.palettes.light` and `variables.theme.palettes.dark`.
+- Put page-owned contact targets in `variables.contact`.
 - Keep modal accent defaults in `variables.theme.ui` when a draft needs them to differ from the default brand behavior.
 - Put reusable visual class bundles in `angora-combos.json` instead of hardcoding repeated appearance strings in app code.
 - Footer, legal modal, accessibility, and debug-panel content must be API-owned (no local fallback assumptions anywhere in the runtime).
@@ -33,12 +35,15 @@ Use this checklist when asking an AI assistant to generate a new landing page co
   - Preferred approach: `set:config.label,i18n,<key>`
 - For i18n arrays with index: use `i18nGetIndex`.
 - For footer social links from variables, prefer `labelKey` and `ariaLabelKey` in payload entries.
+- For accordion and tab-group detail content, author canonical item keys only: `summary`, `content`, `meta`, and `detailItems`.
+- Do not author legacy process-only aliases such as `description`, `detailedDescription`, `duration`, or `deliverables`.
 - Every key referenced by `components.json`, `valueInstructions`, handlers, or shell-owned debug UI must exist in the draft i18n payload. Raw key text in the UI means the draft is missing that translation.
 
 ## Events
 
 - Put all interaction wiring in `eventInstructions`.
 - Prefer semicolon-separated composed instructions.
+- If a CTA opens WhatsApp through `openWhatsApp`, `openFaqCtaWhatsApp`, or `openFinalCtaWhatsApp`, the payload must include `variables.contact.whatsappPhone`.
 
 ## Loops
 
@@ -68,6 +73,8 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Ensure `valueInstructions` only uses allowlisted IDs.
 - Ensure no config contains function values.
 - Verify `variables.theme` includes complete `light` and `dark` palettes when the draft owns branding.
+- Verify `variables.i18n.defaultLanguage` and `variables.i18n.supportedLanguages` are present.
+- Verify `variables.contact.whatsappPhone` is present whenever any WhatsApp handler is referenced.
 - Verify footer/legal modal sections can render from API payload only.
 - Verify shared runtime keys are present in draft i18n when used by the page. Common examples:
   - `ui.accessibility.analyticsConsentDialog`
@@ -87,6 +94,7 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Footer structure is provided in `components` payload (`siteFooter`, `siteFooterContent`, legal/social/copyright blocks).
 - `variables.footerConfig` exists and follows the expected boolean/text contract.
 - `variables.footerSocialLinks[]` entries include `url`, `icon`, and key-based labels (`labelKey`, `ariaLabelKey`).
+- `variables.contact.whatsappPhone` exists when the page exposes WhatsApp CTAs.
 - i18n includes required legal keys:
   - `footer.legal.title`
   - `footer.legal.terms.link`, `footer.legal.terms.title`, `footer.legal.terms.intro`, `footer.legal.terms.sections`

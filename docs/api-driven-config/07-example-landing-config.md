@@ -320,8 +320,8 @@ Use `variables.theme.palettes` for global semantic colors only. Keep reusable cl
 
 ## Example: Variable-driven interactive process
 
-Interactive process content is now controlled by `variables.processSection` and resolved through
-`valueInstructions` + i18n keys.
+Interactive process content is now controlled by `variables.processSection.steps` using the canonical
+accordion/tab item fields, and rendered through `itemsSource` / `tabsSource` plus i18n keys.
 
 ### Variables payload fragment
 
@@ -329,19 +329,15 @@ Interactive process content is now controlled by `variables.processSection` and 
 {
   "variables": {
     "processSection": {
-      "titleKey": "processSection.title",
-      "sidebarTitleKey": "processSection.sidebarTitle",
-      "detailedDescriptionLabelKey": "processSection.detailedDescriptionLabel",
-      "deliverablesLabelKey": "processSection.deliverablesLabel",
       "steps": [
         {
           "step": 1,
           "icon": "assignment",
           "titleKey": "process.0.title",
-          "descriptionKey": "process.0.description",
-          "detailedDescriptionKey": "process.0.detailedDescription",
-          "durationKey": "process.0.duration",
-          "deliverablesKey": "process.0.deliverables"
+          "summaryKey": "process.0.description",
+          "contentKey": "process.0.detailedDescription",
+          "metaKey": "process.0.duration",
+          "detailItemsKey": "process.0.deliverables"
         }
       ]
     }
@@ -365,11 +361,7 @@ Interactive process content is now controlled by `variables.processSection` and 
         "initialValues": {
           "activeStepId": "1"
         },
-        "components": [
-          "interactiveProcessTitle",
-          "interactiveProcessMobileAccordion",
-          "interactiveProcessDesktopTabs"
-        ]
+        "components": ["interactiveProcessTitle", "interactiveProcessMobileAccordion", "interactiveProcessDesktopTabs"]
       }
     },
     "interactiveProcessTitle": {
@@ -385,21 +377,27 @@ Interactive process content is now controlled by `variables.processSection` and 
       "id": "interactiveProcessMobileAccordion",
       "type": "accordion",
       "eventInstructions": "setScopeValue:activeStepId,event.eventData.activeId;trackProcessStepChange:event.eventData.activeId",
-      "valueInstructions": "set:config.items,var,processSection.steps; set:config.activeId,scope,values.activeStepId; set:config.detailContentLabel,i18n,processSection.detailedDescriptionLabel; set:config.detailItemsLabel,i18n,processSection.deliverablesLabel",
+      "valueInstructions": "set:config.activeId,scope,values.activeStepId; set:config.detailContentLabel,i18n,processSection.detailedDescriptionLabel; set:config.detailItemsLabel,i18n,processSection.deliverablesLabel",
       "config": {
+        "itemsSource": { "source": "var", "path": "processSection.steps" },
         "renderMode": "detail",
         "mode": "single",
-        "allowToggle": true
+        "allowToggle": true,
+        "detailMetaIconName": "schedule",
+        "detailItemIconName": "check_circle"
       }
     },
     "interactiveProcessDesktopTabs": {
       "id": "interactiveProcessDesktopTabs",
       "type": "tab-group",
       "eventInstructions": "setScopeValue:activeStepId,event.eventData.id;trackProcessStepChange:event.eventData.id",
-      "valueInstructions": "set:config.tabs,var,processSection.steps; set:config.activeId,scope,values.activeStepId; set:config.listHeaderLabel,i18n,processSection.sidebarTitle; set:config.detailContentLabel,i18n,processSection.detailedDescriptionLabel; set:config.detailItemsLabel,i18n,processSection.deliverablesLabel",
+      "valueInstructions": "set:config.activeId,scope,values.activeStepId; set:config.listHeaderLabel,i18n,processSection.sidebarTitle; set:config.detailContentLabel,i18n,processSection.detailedDescriptionLabel; set:config.detailItemsLabel,i18n,processSection.deliverablesLabel",
       "config": {
+        "tabsSource": { "source": "var", "path": "processSection.steps" },
         "layout": "split-detail",
-        "orientation": "vertical"
+        "orientation": "vertical",
+        "detailMetaIconName": "schedule",
+        "detailItemIconName": "check_circle"
       }
     }
   }
@@ -409,7 +407,7 @@ Interactive process content is now controlled by `variables.processSection` and 
 Notes:
 
 - The process section is now authored as shared composition, not a dedicated `interactive-process` runtime type.
-- Keep step content in i18n and pass only keys plus stable item IDs from variables.
+- Keep step content in i18n and pass only canonical item keys plus stable item IDs from variables.
 - `variables.processSection.steps[*].id` should be stable so accordion, tab-group, and analytics stay synchronized.
-- `deliverablesKey` should point to an i18n string array.
+- `detailItemsKey` should point to an i18n string array.
 - Since the runtime is draft-only, the `processSection.*` keys shown above must exist in the active draft dictionary.

@@ -1,5 +1,5 @@
 import { routes } from './app.routes';
-import { AppShellComponent } from './core/components/layout/app-shell/app-shell.component';
+import { AppShellComponent } from './core/components/app-shell/app-shell.component';
 
 describe('app routes', () => {
     it('keeps wildcard paths on the app shell instead of redirecting them away', () => {

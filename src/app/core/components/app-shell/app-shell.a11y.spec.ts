@@ -4,11 +4,12 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { NgxAngoraService } from 'ngx-angora-css';
 import { of } from 'rxjs';
-import { WrapperOrchestrator } from '../../../../shared/components/wrapper-orchestrator/wrapper-orchestrator.component';
-import { AnalyticsService } from '../../../../shared/services/analytics.service';
-import { ConfigBootstrapService } from '../../../../shared/services/config-bootstrap.service';
-import { ConfigurationsOrchestratorService } from '../../../../shared/services/configurations-orchestrator';
-import { DraftRegistryService } from '../../../../shared/services/draft-registry.service';
+import { WrapperOrchestrator } from '../../../shared/components/wrapper-orchestrator/wrapper-orchestrator.component';
+import { AnalyticsService } from '../../../shared/services/analytics.service';
+import { ConfigBootstrapService } from '../../../shared/services/config-bootstrap.service';
+import { ConfigSourceService } from '../../../shared/services/config-source.service';
+import { ConfigurationsOrchestratorService } from '../../../shared/services/configurations-orchestrator';
+import { DraftRegistryService } from '../../../shared/services/draft-registry.service';
 import { DebugWorkspaceComponent } from '../debug-workspace/debug-workspace.component';
 import { AppShellComponent } from './app-shell.component';
 
@@ -103,6 +104,12 @@ describe('AppShellComponent a11y', () => {
             listDrafts: () => of([{ domain: 'zoolandingpage.com.mx', pageId: 'default' }]),
           },
         },
+        {
+          provide: ConfigSourceService,
+          useValue: {
+            loadSiteConfig: async () => null,
+          },
+        },
         { provide: ConfigurationsOrchestratorService, useValue: ORCHESTRATOR_STUB },
         {
           provide: NgxAngoraService,
@@ -129,6 +136,8 @@ describe('AppShellComponent a11y', () => {
 
   it('skip link moves focus to main landmark', async () => {
     const fixture = TestBed.createComponent(AppShellComponent);
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, 0));
     fixture.detectChanges();
     const root = fixture.nativeElement as HTMLElement;
     const skip = root.querySelector('a[href="#main-content"]') as HTMLAnchorElement;

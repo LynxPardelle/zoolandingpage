@@ -118,18 +118,8 @@ describe('config-payload.validators', () => {
             domain: 'zoolandingpage.com.mx',
             variables: {
                 a: 1,
-                processSection: {
-                    titleKey: 'landing.processSection.title',
-                    steps: [
-                        {
-                            step: 1,
-                            titleKey: 'landing.process.0.title',
-                            descriptionKey: 'landing.process.0.description',
-                            detailedDescriptionKey: 'landing.process.0.detailedDescription',
-                            durationKey: 'landing.process.0.duration',
-                            deliverablesKey: 'landing.process.0.deliverables',
-                        },
-                    ],
+                contact: {
+                    whatsappPhone: '+525522699563',
                 },
             },
             computed: { b: 2 },
@@ -137,26 +127,20 @@ describe('config-payload.validators', () => {
         expect(isVariablesPayload(valid)).toBeTrue();
     });
 
-    it('rejects invalid variables.processSection shape', () => {
+    it('rejects invalid variables.contact shape', () => {
         const invalid = {
             version: 1,
             pageId: 'default',
             domain: 'zoolandingpage.com.mx',
             variables: {
-                processSection: {
-                    steps: [
-                        {
-                            step: 1,
-                            titleKey: 'landing.process.0.title',
-                        },
-                    ],
+                contact: {
+                    whatsappPhone: '',
                 },
             },
         };
 
         expect(isVariablesPayload(invalid)).toBeFalse();
     });
-
     it('accepts valid variables.statsCounters shape', () => {
         const valid = {
             version: 1,
@@ -238,6 +222,35 @@ describe('config-payload.validators', () => {
         expect(isVariablesPayload(valid)).toBeTrue();
     });
 
+    it('accepts valid variables.ui.modals shape', () => {
+        const valid = {
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            variables: {
+                ui: {
+                    mobileMenuAriaLabel: 'Open navigation',
+                    brandTextFallback: 'Zoo Landing',
+                    modals: {
+                        'terms-of-service': {
+                            size: 'lg',
+                            ariaLabelKey: 'footer.legal.terms.title',
+                            showCloseButton: true,
+                        },
+                        'data-use': {
+                            size: 'md',
+                            ariaLabel: 'Data Use',
+                            closeOnBackdrop: true,
+                            accentColor: 'secondaryAccentColor',
+                        },
+                    },
+                },
+            },
+        };
+
+        expect(isVariablesPayload(valid)).toBeTrue();
+    });
+
     it('rejects variables.theme with missing palette keys', () => {
         const invalid = {
             version: 1,
@@ -301,6 +314,25 @@ describe('config-payload.validators', () => {
                             secondaryTitleColor: '#aaaaaa',
                             secondaryLinkColor: '#999999',
                             secondaryAccentColor: '#888888',
+                        },
+                    },
+                },
+            },
+        };
+
+        expect(isVariablesPayload(invalid)).toBeFalse();
+    });
+
+    it('rejects invalid variables.ui.modals shape', () => {
+        const invalid = {
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            variables: {
+                ui: {
+                    modals: {
+                        'terms-of-service': {
+                            size: 'xl',
                         },
                     },
                 },

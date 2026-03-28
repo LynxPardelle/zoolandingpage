@@ -85,7 +85,11 @@
             @if (metaOf(item)) {
             <div [class]="config().detailMetaClasses || 'accDetailMeta'">
               <generic-icon
-                [config]="{ iconName: 'schedule', ariaHidden: true, classes: 'ank-width-1rem ank-height-1rem ank-fontSize-1rem' }"
+                [config]="{
+                  iconName: detailMetaIconName(),
+                  ariaHidden: true,
+                  classes: 'ank-width-1rem ank-height-1rem ank-fontSize-1rem'
+                }"
               ></generic-icon>
               <span>{{ metaOf(item) }}</span>
             </div>
@@ -94,27 +98,27 @@
         </div>
         @if (summaryOf(item)) {
         <p [class]="config().detailSummaryClasses || 'accDetailSummary'">{{ summaryOf(item) }}</p>
-        }
-        @if (detailContentLabel()) {
+        } @if (detailContentLabel()) {
         <h4 [class]="config().detailContentLabelClasses || 'accDetailSectionLabel'">{{ detailContentLabel() }}</h4>
-        }
-        @if (contentOf(item)) {
+        } @if (contentOf(item)) {
         <p [class]="config().detailContentClasses || 'accDetailContent'">{{ contentOf(item) }}</p>
+        } @if (detailItemsOf(item).length > 0) { @if (detailItemsLabel()) {
+        <h4 [class]="config().detailItemsLabelClasses || 'accDetailSectionLabel'">{{ detailItemsLabel() }}</h4>
         }
-        @if (detailItemsOf(item).length > 0) {
-          @if (detailItemsLabel()) {
-          <h4 [class]="config().detailItemsLabelClasses || 'accDetailSectionLabel'">{{ detailItemsLabel() }}</h4>
+        <ul [class]="config().detailListClasses || 'accDetailList'">
+          @for (detailItem of detailItemsOf(item); track detailItem) {
+          <li [class]="config().detailListItemClasses || 'accDetailListItem'">
+            <generic-icon
+              [config]="{
+                iconName: detailItemIconName(),
+                ariaHidden: true,
+                classes: 'ank-width-1rem ank-height-1rem ank-fontSize-1rem ank-flexShrink-0'
+              }"
+            ></generic-icon>
+            <span>{{ detailItem }}</span>
+          </li>
           }
-          <ul [class]="config().detailListClasses || 'accDetailList'">
-            @for (detailItem of detailItemsOf(item); track detailItem) {
-            <li [class]="config().detailListItemClasses || 'accDetailListItem'">
-              <generic-icon
-                [config]="{ iconName: 'check_circle', ariaHidden: true, classes: 'ank-width-1rem ank-height-1rem ank-fontSize-1rem ank-flexShrink-0' }"
-              ></generic-icon>
-              <span>{{ detailItem }}</span>
-            </li>
-            }
-          </ul>
+        </ul>
         }
       </div>
       } @else if(contentOf(item)) {

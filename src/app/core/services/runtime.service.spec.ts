@@ -1,3 +1,4 @@
+import { AnalyticsService } from '@/app/shared/services/analytics.service';
 import { AngoraCombosService } from '@/app/shared/services/angora-combos.service';
 import { ConfigBootstrapService } from '@/app/shared/services/config-bootstrap.service';
 import { ConfigSourceService } from '@/app/shared/services/config-source.service';
@@ -14,6 +15,7 @@ describe('RuntimeService', () => {
     const setExternalComponentsFromPayload = jasmine.createSpy('setExternalComponentsFromPayload');
     const setDraftExportContext = jasmine.createSpy('setDraftExportContext');
     const applyPayload = jasmine.createSpy('applyPayload');
+    const scheduleCssCreate = jasmine.createSpy('scheduleCssCreate');
     let loadSiteConfig: jasmine.Spy;
     let bootstrapLoad: jasmine.Spy;
 
@@ -57,6 +59,7 @@ describe('RuntimeService', () => {
         setExternalComponentsFromPayload.calls.reset();
         setDraftExportContext.calls.reset();
         applyPayload.calls.reset();
+        scheduleCssCreate.calls.reset();
 
         TestBed.configureTestingModule({
             providers: [
@@ -97,6 +100,16 @@ describe('RuntimeService', () => {
                     provide: AngoraCombosService,
                     useValue: {
                         applyPayload,
+                        scheduleCssCreate,
+                    },
+                },
+                {
+                    provide: AnalyticsService,
+                    useValue: {
+                        track: async () => undefined,
+                        promptForConsentIfNeeded: () => undefined,
+                        startPageEngagementTracking: () => undefined,
+                        stopPageEngagementTracking: () => undefined,
                     },
                 },
             ],

@@ -16,6 +16,7 @@ It is written to be **friendly for an AI assistant** generating new landing page
 ## Appearance ownership
 
 - `variables.theme`: semantic global palette data and modal accent defaults.
+- `variables.ui.modals`: modal host behavior owned by the draft, such as size and accessible labels for payload-rendered modal IDs.
 - `angora-combos.json`: reusable class bundles and shared visual patterns.
 - `components.json`: per-component layout and class composition.
 - `i18n`: copy, labels, and other translatable content.

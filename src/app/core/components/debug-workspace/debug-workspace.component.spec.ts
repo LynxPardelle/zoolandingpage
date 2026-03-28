@@ -1,10 +1,10 @@
 import { Component, Input } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { of, Subject } from 'rxjs';
-import { WrapperOrchestrator } from '../../../../shared/components/wrapper-orchestrator/wrapper-orchestrator.component';
-import { AnalyticsService } from '../../../../shared/services/analytics.service';
-import { ConfigurationsOrchestratorService } from '../../../../shared/services/configurations-orchestrator';
-import { DraftRegistryService } from '../../../../shared/services/draft-registry.service';
+import { WrapperOrchestrator } from '../../../shared/components/wrapper-orchestrator/wrapper-orchestrator.component';
+import { AnalyticsService } from '../../../shared/services/analytics.service';
+import { ConfigurationsOrchestratorService } from '../../../shared/services/configurations-orchestrator';
+import { DraftRegistryService } from '../../../shared/services/draft-registry.service';
 import { DebugWorkspaceComponent } from './debug-workspace.component';
 
 @Component({

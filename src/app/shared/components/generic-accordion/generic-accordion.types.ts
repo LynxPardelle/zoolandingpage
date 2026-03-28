@@ -11,18 +11,11 @@ export type AccordionItem = {
   readonly contentKey?: string;
   readonly summary?: AccordionTextValue;
   readonly summaryKey?: string;
-  readonly description?: AccordionTextValue;
-  readonly descriptionKey?: string;
   readonly meta?: AccordionTextValue;
   readonly metaKey?: string;
-  readonly duration?: AccordionTextValue;
-  readonly durationKey?: string;
   readonly detailItems?: AccordionStringListValue;
   readonly detailItemsKey?: string;
   readonly detailItemKeys?: readonly string[];
-  readonly deliverables?: AccordionStringListValue;
-  readonly deliverablesKey?: string;
-  readonly deliverableKeys?: readonly string[];
   readonly indexLabel?: AccordionTextValue;
   readonly step?: number;
   readonly icon?: AccordionTextValue;
@@ -76,6 +69,7 @@ export type TAccordionConfig = {
   readonly detailTitleClasses?: string;
   readonly detailMetaClasses?: string;
   readonly detailSummaryClasses?: string;
+  readonly detailMetaIconName?: string;
   readonly detailContentLabel?: AccordionTextValue;
   readonly detailContentLabelClasses?: string;
   readonly detailContentClasses?: string;
@@ -83,5 +77,6 @@ export type TAccordionConfig = {
   readonly detailItemsLabelClasses?: string;
   readonly detailListClasses?: string;
   readonly detailListItemClasses?: string;
+  readonly detailItemIconName?: string;
   readonly toggleIconName?: string;
 };

@@ -7,7 +7,6 @@ export type TEnvironment = {
     readonly apiVersion: string;
     readonly domain: {
         readonly defaultDomain: string;
-        readonly devOverride?: string;
     };
     readonly drafts: {
         readonly enabled: boolean;

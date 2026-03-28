@@ -3,7 +3,13 @@
     @if (listHeaderLabel()) {
     <h3 [class]="config().listHeaderClasses || 'tabGroupListHeader'">{{ listHeaderLabel() }}</h3>
     }
-    <div [class]="config().tabListClasses || (detailMode() ? 'tabGroupDetailList' : 'tab-group ank-display-flex ank-gap-0_25rem')" role="tablist" [attr.aria-orientation]="orientation()">
+    <div
+      [class]="
+        config().tabListClasses || (detailMode() ? 'tabGroupDetailList' : 'tab-group ank-display-flex ank-gap-0_25rem')
+      "
+      role="tablist"
+      [attr.aria-orientation]="orientation()"
+    >
       @for (t of tabs(); track t.id; let idx = $index) {
       <div [attr.data-tab-id]="t.id">
         <generic-button
@@ -38,57 +44,73 @@
     </div>
   </div>
 
-  @if (detailMode()) {
-    @if (activeTab(); as t) {
-    <div [class]="config().panelClasses || 'tabGroupDetailPanel tab-panel-anim'" role="tabpanel" [attr.id]="'panel-' + t.id" [attr.aria-labelledby]="'tab-' + t.id">
-      <div [class]="config().detailHeaderClasses || 'tabGroupDetailHeader'">
-        @if (iconOf(t)) {
-        <generic-icon
-          [config]="{ iconName: iconOf(t) || '', ariaHidden: true, classes: config().detailIconClasses || 'tabGroupDetailIcon' }"
-        ></generic-icon>
-        }
-        <div class="ank-display-flex ank-flexDirection-column ank-gap-8px">
-          <h3 [class]="config().detailTitleClasses || 'tabGroupDetailTitle'">{{ labelOf(t) }}</h3>
-          @if (metaOf(t)) {
-          <div [class]="config().detailMetaClasses || 'tabGroupDetailMeta'">
-            <generic-icon
-              [config]="{ iconName: 'schedule', ariaHidden: true, classes: 'ank-width-1rem ank-height-1rem ank-fontSize-1rem' }"
-            ></generic-icon>
-            <span>{{ metaOf(t) }}</span>
-          </div>
-          }
+  @if (detailMode()) { @if (activeTab(); as t) {
+  <div
+    [class]="config().panelClasses || 'tabGroupDetailPanel tab-panel-anim'"
+    role="tabpanel"
+    [attr.id]="'panel-' + t.id"
+    [attr.aria-labelledby]="'tab-' + t.id"
+  >
+    <div [class]="config().detailHeaderClasses || 'tabGroupDetailHeader'">
+      @if (iconOf(t)) {
+      <generic-icon
+        [config]="{
+          iconName: iconOf(t) || '',
+          ariaHidden: true,
+          classes: config().detailIconClasses || 'tabGroupDetailIcon'
+        }"
+      ></generic-icon>
+      }
+      <div class="ank-display-flex ank-flexDirection-column ank-gap-8px">
+        <h3 [class]="config().detailTitleClasses || 'tabGroupDetailTitle'">{{ labelOf(t) }}</h3>
+        @if (metaOf(t)) {
+        <div [class]="config().detailMetaClasses || 'tabGroupDetailMeta'">
+          <generic-icon
+            [config]="{
+              iconName: detailMetaIconName(),
+              ariaHidden: true,
+              classes: 'ank-width-1rem ank-height-1rem ank-fontSize-1rem'
+            }"
+          ></generic-icon>
+          <span>{{ metaOf(t) }}</span>
         </div>
-      </div>
-      @if (summaryOf(t)) {
-      <p [class]="config().detailSummaryClasses || 'tabGroupDetailSummary'">{{ summaryOf(t) }}</p>
-      }
-      @if (detailContentLabel()) {
-      <h4 [class]="config().detailContentLabelClasses || 'tabGroupDetailSectionLabel'">{{ detailContentLabel() }}</h4>
-      }
-      @if (contentOf(t)) {
-      <p [class]="config().detailContentClasses || 'tabGroupDetailContent'">{{ contentOf(t) }}</p>
-      }
-      @if (detailItemsOf(t).length > 0) {
-        @if (detailItemsLabel()) {
-        <h4 [class]="config().detailItemsLabelClasses || 'tabGroupDetailSectionLabel'">{{ detailItemsLabel() }}</h4>
         }
-        <ul [class]="config().detailListClasses || 'tabGroupDetailListItems'">
-          @for (detailItem of detailItemsOf(t); track detailItem) {
-          <li [class]="config().detailListItemClasses || 'tabGroupDetailListItem'">
-            <generic-icon
-              [config]="{ iconName: 'check_circle', ariaHidden: true, classes: 'ank-width-1rem ank-height-1rem ank-fontSize-1rem ank-flexShrink-0' }"
-            ></generic-icon>
-            <span>{{ detailItem }}</span>
-          </li>
-          }
-        </ul>
-      }
+      </div>
     </div>
+    @if (summaryOf(t)) {
+    <p [class]="config().detailSummaryClasses || 'tabGroupDetailSummary'">{{ summaryOf(t) }}</p>
+    } @if (detailContentLabel()) {
+    <h4 [class]="config().detailContentLabelClasses || 'tabGroupDetailSectionLabel'">{{ detailContentLabel() }}</h4>
+    } @if (contentOf(t)) {
+    <p [class]="config().detailContentClasses || 'tabGroupDetailContent'">{{ contentOf(t) }}</p>
+    } @if (detailItemsOf(t).length > 0) { @if (detailItemsLabel()) {
+    <h4 [class]="config().detailItemsLabelClasses || 'tabGroupDetailSectionLabel'">{{ detailItemsLabel() }}</h4>
     }
-  } @else {
+    <ul [class]="config().detailListClasses || 'tabGroupDetailListItems'">
+      @for (detailItem of detailItemsOf(t); track detailItem) {
+      <li [class]="config().detailListItemClasses || 'tabGroupDetailListItem'">
+        <generic-icon
+          [config]="{
+            iconName: detailItemIconName(),
+            ariaHidden: true,
+            classes: 'ank-width-1rem ank-height-1rem ank-fontSize-1rem ank-flexShrink-0'
+          }"
+        ></generic-icon>
+        <span>{{ detailItem }}</span>
+      </li>
+      }
+    </ul>
+    }
+  </div>
+  } } @else {
   <div class="tab-panels">
     @for (t of tabs(); track t.id) { @if (isActive(t.id || '')) {
-    <div class="tab-panel tab-panel-anim ank-mt-0_75rem" role="tabpanel" [attr.id]="'panel-' + t.id" [attr.aria-labelledby]="'tab-' + t.id">
+    <div
+      class="tab-panel tab-panel-anim ank-mt-0_75rem"
+      role="tabpanel"
+      [attr.id]="'panel-' + t.id"
+      [attr.aria-labelledby]="'tab-' + t.id"
+    >
       @defer (when isActive(t.id || '')) {
       <ng-content select="[tab-content-{{ t.id }}]"></ng-content>
       } @placeholder {

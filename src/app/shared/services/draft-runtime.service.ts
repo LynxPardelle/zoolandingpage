@@ -177,6 +177,19 @@ export class DraftRuntimeService {
         return `${ url.pathname }${ url.search }${ url.hash }`;
     }
 
+    hasDebugWorkspaceEnabled(): boolean {
+        if (!this.isBrowser || !window.location?.search) {
+            const requestUrl = this.parseRequestUrl();
+            if (!requestUrl) {
+                return false;
+            }
+
+            return requestUrl.searchParams.has('debugWorkspace');
+        }
+
+        return new URLSearchParams(window.location.search).has('debugWorkspace');
+    }
+
     private invalidateLocationState(): void {
         this.locationRevision.update((value) => value + 1);
     }

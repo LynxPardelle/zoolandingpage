@@ -1,6 +1,6 @@
 import type { TAngoraCombosPayload } from '@/app/shared/types/config-payloads.types';
 import { isPlatformBrowser } from '@angular/common';
-import { inject, Injectable, PLATFORM_ID } from '@angular/core';
+import { inject, Injectable, NgZone, PLATFORM_ID } from '@angular/core';
 import { NgxAngoraService } from 'ngx-angora-css';
 
 export type TAngoraCombosMap = Record<string, readonly string[]>;
@@ -96,12 +96,15 @@ const DEFAULT_BASE_COMBOS: TAngoraCombosMap = {
 @Injectable({ providedIn: 'root' })
 export class AngoraCombosService {
     private readonly ank = inject(NgxAngoraService);
+    private readonly zone = inject(NgZone);
     private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
     private baseCombos: TAngoraCombosMap = {};
     private baseCombosInitialized = false;
     private baseCombosTimer: ReturnType<typeof setTimeout> | null = null;
     private lastAppliedSignature = '';
     private pendingPayload: TAngoraCombosPayload | null = null;
+    private cssCreateTimer: number | null = null;
+    private cssCreateDueAt: number | null = null;
 
     initializeBaseCombos(delayMs = 0): void {
         if (this.baseCombosInitialized || this.baseCombosTimer) return;
@@ -123,8 +126,7 @@ export class AngoraCombosService {
         this.baseCombos = this.sanitizeCombos(combos);
         this.baseCombosInitialized = true;
         if (!this.isBrowser) return;
-        this.lastAppliedSignature = this.signatureFor(this.baseCombos);
-        this.ank.pushCombos(this.baseCombos);
+        this.pushCombosAndRefresh(this.baseCombos);
 
         if (this.pendingPayload) {
             const payload = this.pendingPayload;
@@ -146,8 +148,58 @@ export class AngoraCombosService {
         if (!this.isBrowser) return;
         const signature = this.signatureFor(merged);
         if (signature === this.lastAppliedSignature) return;
+        this.pushCombosAndRefresh(merged, signature);
+    }
+
+    scheduleCssCreate(delayMs = 0): void {
+        if (!this.isBrowser) return;
+
+        const normalizedDelay = Math.max(0, delayMs);
+        const dueAt = Date.now() + normalizedDelay;
+
+        if (this.cssCreateTimer !== null && this.cssCreateDueAt !== null && this.cssCreateDueAt <= dueAt) {
+            return;
+        }
+
+        if (this.cssCreateTimer !== null) {
+            window.clearTimeout(this.cssCreateTimer);
+        }
+
+        this.cssCreateDueAt = dueAt;
+        this.zone.runOutsideAngular(() => {
+            this.cssCreateTimer = window.setTimeout(() => {
+                this.cssCreateTimer = null;
+                this.cssCreateDueAt = null;
+                this.ank.cssCreate();
+            }, normalizedDelay);
+        });
+    }
+
+    stopCssRuntime(): void {
+        if (this.cssCreateTimer !== null) {
+            window.clearTimeout(this.cssCreateTimer);
+            this.cssCreateTimer = null;
+        }
+        this.cssCreateDueAt = null;
+    }
+
+    revealCssTimer(): void {
+        if (!this.isBrowser || typeof document === 'undefined') return;
+
+        try {
+            const ankTimer = document.getElementById('ankTimer');
+            if (ankTimer) {
+                ankTimer.classList.remove('ank-d-none');
+            }
+        } catch {
+            // no-op
+        }
+    }
+
+    private pushCombosAndRefresh(combos: TAngoraCombosMap, signature = this.signatureFor(combos)): void {
         this.lastAppliedSignature = signature;
-        this.ank.pushCombos(merged);
+        this.ank.pushCombos(combos);
+        this.scheduleCssCreate();
     }
 
     private sanitizeCombos(combos: TAngoraCombosMap): TAngoraCombosMap {

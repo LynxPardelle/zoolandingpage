@@ -4,12 +4,12 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { NgxAngoraService } from 'ngx-angora-css';
 import { of } from 'rxjs';
-import { WrapperOrchestrator } from '../../../../shared/components/wrapper-orchestrator/wrapper-orchestrator.component';
-import { AnalyticsService } from '../../../../shared/services/analytics.service';
-import { ConfigBootstrapService } from '../../../../shared/services/config-bootstrap.service';
-import { ConfigSourceService } from '../../../../shared/services/config-source.service';
-import { ConfigurationsOrchestratorService } from '../../../../shared/services/configurations-orchestrator';
-import { DraftRegistryService } from '../../../../shared/services/draft-registry.service';
+import { WrapperOrchestrator } from '../../../shared/components/wrapper-orchestrator/wrapper-orchestrator.component';
+import { AnalyticsService } from '../../../shared/services/analytics.service';
+import { ConfigBootstrapService } from '../../../shared/services/config-bootstrap.service';
+import { ConfigSourceService } from '../../../shared/services/config-source.service';
+import { ConfigurationsOrchestratorService } from '../../../shared/services/configurations-orchestrator';
+import { DraftRegistryService } from '../../../shared/services/draft-registry.service';
 import { DebugWorkspaceComponent } from '../debug-workspace/debug-workspace.component';
 import { AppShellComponent } from './app-shell.component';
 
@@ -110,10 +110,6 @@ describe('AppShellComponent', () => {
           useValue: {
             loadSiteConfig: async () => null,
           },
-        },
-        {
-          provide: REQUEST,
-          useValue: new Request('https://example.test/?draftDomain=despacholegalastralex.com&draftPageId=default'),
         },
         {
           provide: DraftRegistryService,

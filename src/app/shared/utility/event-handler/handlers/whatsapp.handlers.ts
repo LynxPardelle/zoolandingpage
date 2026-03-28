@@ -1,7 +1,7 @@
 import { AnalyticsCategories, AnalyticsEvents } from '@/app/shared/services/analytics.events';
 import { AnalyticsService } from '@/app/shared/services/analytics.service';
-import { WHATSAPP_PHONE } from '@/app/shared/services/contact.constants';
 import { I18nService } from '@/app/shared/services/i18n.service';
+import { VariableStoreService } from '@/app/shared/services/variable-store.service';
 import { buildWhatsAppUrl } from '@/app/shared/utility/buildWhatsAppUrl.utility';
 import { inject } from '@angular/core';
 import type { EventHandler } from '../event-handler.types';
@@ -16,9 +16,15 @@ const safeOpen = (url: string): void => {
     }
 };
 
+const resolveWhatsAppPhone = (variables: VariableStoreService): string => {
+    const raw = variables.get('contact.whatsappPhone');
+    return typeof raw === 'string' ? raw.trim() : '';
+};
+
 export const openWhatsAppHandler = (): EventHandler => {
     const analytics = inject(AnalyticsService);
     const globalI18n = inject(I18nService);
+    const variables = inject(VariableStoreService);
 
     return {
         id: 'openWhatsApp',
@@ -30,7 +36,8 @@ export const openWhatsAppHandler = (): EventHandler => {
             const rawMessage = globalI18n.t(
                 'ui.contact.whatsappMessage');
 
-            const link = buildWhatsAppUrl(WHATSAPP_PHONE, rawMessage);
+            const link = buildWhatsAppUrl(resolveWhatsAppPhone(variables), rawMessage);
+            if (!link) return;
 
             const isService = metaTitle === AnalyticsEvents.ServicesCtaClick;
             const comingFromServicesSection = location === 'services';
@@ -60,6 +67,7 @@ export const openWhatsAppHandler = (): EventHandler => {
 export const openFaqCtaWhatsAppHandler = (): EventHandler => {
     const analytics = inject(AnalyticsService);
     const globalI18n = inject(I18nService);
+    const variables = inject(VariableStoreService);
 
     return {
         id: 'openFaqCtaWhatsApp',
@@ -73,7 +81,8 @@ export const openFaqCtaWhatsAppHandler = (): EventHandler => {
             const message = globalI18n.t(
                 'ui.sections.faq.subtitle',
             );
-            const link = buildWhatsAppUrl(WHATSAPP_PHONE, message);
+            const link = buildWhatsAppUrl(resolveWhatsAppPhone(variables), message);
+            if (!link) return;
             safeOpen(link);
         },
     };
@@ -82,6 +91,7 @@ export const openFaqCtaWhatsAppHandler = (): EventHandler => {
 export const openFinalCtaWhatsAppHandler = (): EventHandler => {
     const analytics = inject(AnalyticsService);
     const globalI18n = inject(I18nService);
+    const variables = inject(VariableStoreService);
 
     return {
         id: 'openFinalCtaWhatsApp',
@@ -99,14 +109,15 @@ export const openFinalCtaWhatsAppHandler = (): EventHandler => {
                     location: 'final-cta',
                     source: 'final_cta_section',
                     channel: 'whatsapp',
-                    phone: WHATSAPP_PHONE,
+                    phone: resolveWhatsAppPhone(variables),
                 },
             });
 
             const message = globalI18n.t(
                 'hero.subtitle'
             );
-            const link = buildWhatsAppUrl(WHATSAPP_PHONE, message);
+            const link = buildWhatsAppUrl(resolveWhatsAppPhone(variables), message);
+            if (!link) return;
             safeOpen(link);
         },
     };

@@ -71,6 +71,38 @@ itemsSource: { source: 'i18n' | 'var', path: 'faq' }
 
 Use this instead of inline `items: () => ...` lambdas in API mode.
 
+Canonical accordion item fields:
+
+- `id`
+- `title` / `titleKey`
+- `summary` / `summaryKey`
+- `content` / `contentKey`
+- `meta` / `metaKey`
+- `detailItems` / `detailItemsKey` / `detailItemKeys`
+- `indexLabel`
+- `icon`
+
+Legacy process-only aliases such as `description`, `detailedDescription`, `duration`, and `deliverables` are no longer part of the authored contract.
+
+### `config.tabsSource` for tab group (optional)
+
+`generic-tab-group` supports the same API-safe source model for authored tabs:
+
+```ts
+tabsSource: { source: 'i18n' | 'var', path: 'processSection.steps' }
+```
+
+Canonical tab item fields:
+
+- `id`
+- `label` / `labelKey` or `title` / `titleKey`
+- `summary` / `summaryKey`
+- `content` / `contentKey`
+- `meta` / `metaKey`
+- `detailItems` / `detailItemsKey` / `detailItemKeys`
+- `indexLabel`
+- `icon`
+
 ## Composition / nesting
 
 A common pattern is:

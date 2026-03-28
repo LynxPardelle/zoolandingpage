@@ -3,21 +3,23 @@
   [attr.type]="type()"
   [disabled]="disabled() || loading()"
   [class]="classes()"
+  [attr.tabindex]="tabIndex() ?? null"
   [attr.aria-busy]="loading() ? 'true' : null"
   [attr.role]="role() || null"
   [attr.aria-label]="ariaLabel() || null"
   [attr.aria-expanded]="ariaExpanded() || null"
   [attr.aria-haspopup]="ariaHaspopup() || null"
+  [attr.aria-selected]="ariaSelected() ?? null"
   [attr.aria-controls]="ariaControls() || null"
   [attr.aria-activedescendant]="ariaActiveDescendant() || null"
   (click)="onClick($event)"
 >
   @if (loading()) {
   <span [class]="spinnerClass()" aria-hidden="true"></span>
-  } @else { @if (icon()) {
+  } @else { @if (icon() && iconPosition() === 'before') {
   <generic-icon
     [config]="{
-      classes: iconClass() + (iconPosition() === 'after' ? ' ank-order-1' : ' ank-order-0'),
+      classes: iconClass(),
       ariaHidden: true,
       iconName: icon() || 'none'
     }"
@@ -25,5 +27,14 @@
   } @if (label()) {
   <span>{{ label() }}</span>
   }
-  <ng-content />}
+  <ng-content />
+  @if (icon() && iconPosition() === 'after') {
+  <generic-icon
+    [config]="{
+      classes: iconClass(),
+      ariaHidden: true,
+      iconName: icon() || 'none'
+    }"
+  />
+  }}
 </button>

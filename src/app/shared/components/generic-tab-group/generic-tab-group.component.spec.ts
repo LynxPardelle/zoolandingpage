@@ -4,6 +4,7 @@ import { GenericTabGroupComponent } from './generic-tab-group.component';
 describe('GenericTabGroupComponent', () => {
   let fixture: ComponentFixture<GenericTabGroupComponent>;
   let comp: GenericTabGroupComponent;
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({ imports: [GenericTabGroupComponent] }).compileComponents();
     fixture = TestBed.createComponent(GenericTabGroupComponent);
@@ -29,5 +30,29 @@ describe('GenericTabGroupComponent', () => {
     el.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
     fixture.detectChanges();
     expect(comp.activeId()).toBe('d');
+  });
+
+  it('renders canonical detail fields in split-detail layout', () => {
+    fixture.componentRef.setInput('config', {
+      layout: 'split-detail',
+      tabs: [
+        {
+          id: 'overview',
+          label: 'Overview',
+          summary: 'Summary text',
+          content: 'Long-form content',
+          meta: '2 days',
+          detailItems: ['Item A', 'Item B'],
+        },
+      ],
+    });
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.textContent).toContain('Summary text');
+    expect(host.textContent).toContain('Long-form content');
+    expect(host.textContent).toContain('2 days');
+    expect(host.textContent).toContain('Item A');
+    expect(host.textContent).toContain('Item B');
   });
 });
