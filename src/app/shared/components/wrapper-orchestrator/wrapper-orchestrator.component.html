@@ -68,8 +68,8 @@
 </generic-dropdown>
 } @case('embed-frame') {
 <generic-embed-frame [config]="component.config"></generic-embed-frame>
-} @case('feature-card') {
-<generic-feature-card [config]="component.config"></generic-feature-card>
+} @case('generic-card') {
+<generic-card [config]="component.config"></generic-card>
 } @case('input') {
 <generic-input
   [config]="component.config"
@@ -128,8 +128,6 @@
     })
   "
 ></generic-tab-group>
-} @case('testimonial-card') {
-<generic-testimonial-card [config]="component.config"></generic-testimonial-card>
 } @case('icon') {
 <generic-icon [config]="component.config">
   <ng-container

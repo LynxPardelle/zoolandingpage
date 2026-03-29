@@ -38,17 +38,19 @@ export class QuickStatsService {
     private readonly domainResolver = inject(DomainResolverService);
     // Keep centralized in one place so we can append a path later (e.g., `/v1/quick-stats`)
     private readonly baseUrl = `${ environment.apiUrl }`;
-    private readonly version: string = environment.apiVersion;
     public readonly remoteStats = signal<Record<string, any> | undefined>(undefined);
 
-    private normalizeAppName(value: unknown): string {
-        const normalized = String(value ?? '')
+    private sanitizeAppName(value: unknown): string {
+        return String(value ?? '')
             .trim()
             .replace(/\s/g, '_')
             .replace(/[^a-zA-Z0-9_]+/g, '')
             .toLowerCase();
+    }
 
-        return normalized || 'zoolandingpage';
+    private normalizeAppName(value: unknown): string {
+        const normalized = this.sanitizeAppName(value);
+        return normalized || this.sanitizeAppName(environment.app.name) || 'app';
     }
 
     private resolveAppId(): string {

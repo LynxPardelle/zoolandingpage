@@ -16,6 +16,7 @@ import {
 } from '../utility/component-orchestrator.utility';
 import { forwardAnalyticsEvent } from '../utility/forwardAnalyticsEvent.utility';
 import { toNavigationHref } from '../utility/navigation/navigation-target.utility';
+import { AnalyticsEvents } from './analytics.events';
 import { AnalyticsService } from './analytics.service';
 import { ComponentEvent, ComponentEventDispatcherService } from './component-event-dispatcher.service';
 import { devOnlyComponents } from './component-stores/devOnlyComponents.component-store';
@@ -482,7 +483,6 @@ export class ConfigurationsOrchestratorService {
             const labelFromKey = this.resolveI18nKeyString(record['labelKey']);
             const ariaFromKey = this.resolveI18nKeyString(record['ariaLabelKey']);
             const localizedLabelFromValue = resolveLocaleMapValue(record['label'], lang);
-            const localizedLabelFromLabels = resolveLocaleMapValue(record['labels'], lang);
             const fallbackLabel = typeof record['label'] === 'string' ? record['label'].trim() : undefined;
             const localizedAriaLabel = resolveLocaleMapValue(record['ariaLabel'], lang);
 
@@ -494,8 +494,6 @@ export class ConfigurationsOrchestratorService {
                 nextComponent.config.text = labelFromKey;
             } else if (typeof localizedLabelFromValue === 'string' && localizedLabelFromValue.trim().length > 0) {
                 nextComponent.config.text = localizedLabelFromValue;
-            } else if (typeof localizedLabelFromLabels === 'string' && localizedLabelFromLabels.trim().length > 0) {
-                nextComponent.config.text = localizedLabelFromLabels;
             } else if (typeof fallbackLabel === 'string' && fallbackLabel.length > 0) {
                 nextComponent.config.text = fallbackLabel;
             }
@@ -515,42 +513,41 @@ export class ConfigurationsOrchestratorService {
             }
         }
 
-        if (template.type === 'feature-card' && item && typeof item === 'object') {
+        if (template.type === 'generic-card' && item && typeof item === 'object') {
             const record = item as Record<string, unknown>;
-            if (typeof record['icon'] === 'string') nextComponent.config.icon = record['icon'];
-            if (typeof record['title'] === 'string') nextComponent.config.title = record['title'];
-            if (typeof record['description'] === 'string') nextComponent.config.description = record['description'];
+            const variant = String(nextComponent.config.variant ?? '').trim();
 
-            const benefits = Array.isArray(record['benefits'])
-                ? record['benefits']
-                : Array.isArray(record['features'])
-                    ? record['features']
-                    : undefined;
-            if (Array.isArray(benefits)) nextComponent.config.benefits = benefits;
+            if (variant === 'testimonial') {
+                if (typeof record['name'] === 'string') nextComponent.config.name = record['name'];
+                if (typeof record['role'] === 'string') nextComponent.config.role = record['role'];
+                if (typeof record['company'] === 'string') nextComponent.config.company = record['company'];
+                if (typeof record['content'] === 'string') nextComponent.config.content = record['content'];
+                if (typeof record['avatar'] === 'string') nextComponent.config.avatar = record['avatar'];
+                if (typeof record['verified'] === 'boolean') nextComponent.config.verified = record['verified'];
+                if (typeof record['rating'] === 'number' && Number.isFinite(record['rating'])) {
+                    nextComponent.config.rating = record['rating'];
+                }
+            } else {
+                nextComponent.config.variant = 'feature';
+                if (typeof record['icon'] === 'string') nextComponent.config.icon = record['icon'];
+                if (typeof record['title'] === 'string') nextComponent.config.title = record['title'];
+                if (typeof record['description'] === 'string') nextComponent.config.description = record['description'];
 
-            if (typeof record['buttonLabel'] === 'string') {
-                nextComponent.config.buttonLabel = record['buttonLabel'];
-                nextComponent.config.onCta = (title: string) => {
-                    this.handleComponentEvent({
-                        componentId: generatedId,
-                        eventName: 'cta',
-                        meta_title: String((template as any).meta_title ?? 'services_cta_click'),
-                        eventData: { label: title },
-                        eventInstructions: String((template as any).eventInstructions ?? ''),
-                    });
-                };
-            }
-        }
+                const benefits = Array.isArray(record['benefits']) ? record['benefits'] : undefined;
+                if (Array.isArray(benefits)) nextComponent.config.benefits = benefits;
 
-        if (template.type === 'testimonial-card' && item && typeof item === 'object') {
-            const record = item as Record<string, unknown>;
-            if (typeof record['name'] === 'string') nextComponent.config.name = record['name'];
-            if (typeof record['role'] === 'string') nextComponent.config.role = record['role'];
-            if (typeof record['company'] === 'string') nextComponent.config.company = record['company'];
-            if (typeof record['content'] === 'string') nextComponent.config.content = record['content'];
-            if (typeof record['avatar'] === 'string') nextComponent.config.avatar = record['avatar'];
-            if (typeof record['rating'] === 'number' && Number.isFinite(record['rating'])) {
-                nextComponent.config.rating = record['rating'];
+                if (typeof record['buttonLabel'] === 'string') {
+                    nextComponent.config.buttonLabel = record['buttonLabel'];
+                    nextComponent.config.onCta = (title: string) => {
+                        this.handleComponentEvent({
+                            componentId: generatedId,
+                            eventName: 'cta',
+                            meta_title: String((template as any).meta_title ?? AnalyticsEvents.CtaClick),
+                            eventData: { label: title },
+                            eventInstructions: String((template as any).eventInstructions ?? ''),
+                        });
+                    };
+                }
             }
         }
 

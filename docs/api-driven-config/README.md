@@ -117,7 +117,10 @@ set:config.text,langPick,i18n,footer.copyright,Copyright Example. All rights res
   "variables": {
     "ui": {
       "contact": {
-        "whatsappPhone": "+525522699563"
+        "whatsappPhone": "+525522699563",
+        "whatsappMessageKey": "ui.contact.whatsappMessage",
+        "faqMessageKey": "ui.sections.faq.subtitle",
+        "finalCtaMessageKey": "hero.subtitle"
       },
       "footer": {
         "socialLinks": [

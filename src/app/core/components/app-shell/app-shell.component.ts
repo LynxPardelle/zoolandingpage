@@ -81,13 +81,9 @@ export class AppShellComponent {
     forwardAnalyticsEvent(this.analytics, evt);
   }
 
-  // Router outlet activation: wire outputs dynamically when navigated component exposes analyticsEvent Output
   onRouteActivate(instance: any): void {
-    // LandingPageComponent emits analyticsEvent using Output; subscribe via monkey patch if needed
-    // Since Outputs are event emitters, we detect presence by method emit or subscribe
     try {
       if (instance?.analyticsEvent) {
-        // Angular signals output returns an EventEmitter-like object with subscribe
         const emitter = instance.analyticsEvent;
         if (typeof emitter?.subscribe === "function") {
           emitter.subscribe((e: AnalyticsEventPayload) =>

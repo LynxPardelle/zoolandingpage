@@ -22,11 +22,11 @@ If `idPrefix` is not provided, `templateId` is used.
 
 - `link`
   - maps `url`, `icon`, `ariaLabel`, `target`, `rel`
-- `feature-card`
-  - maps `icon`, `title`, `description`, `benefits|features`, `buttonLabel`
+- `generic-card` with `config.variant = "feature"`
+  - maps `icon`, `title`, `description`, `benefits`, `buttonLabel`
   - if `buttonLabel` exists, binds CTA callback through orchestrator event dispatch
-- `testimonial-card`
-  - maps `name`, `role`, `company`, `content`, `rating`, `avatar`
+- `generic-card` with `config.variant = "testimonial"`
+  - maps `name`, `role`, `company`, `content`, `rating`, `avatar`, `verified`
 
 ## Warnings and fallback behavior
 

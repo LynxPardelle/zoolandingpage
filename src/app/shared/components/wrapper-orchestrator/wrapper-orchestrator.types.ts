@@ -2,17 +2,16 @@ import type { TGenericStatsCounterConfig } from "@/app/shared/components/generic
 import type { TComponentChild } from '../component-children.types';
 import { TAccordionConfig } from "../generic-accordion";
 import { TGenericButtonConfig } from "../generic-button/generic-button.types";
+import type { TGenericCardConfig } from '../generic-card/generic-card.types';
 import { TGenericContainerConfig } from "../generic-container/generic-container.types";
 import type { DropdownConfig, DropdownItem } from "../generic-dropdown/generic-dropdown.types";
 import type { TGenericEmbedFrameConfig } from '../generic-embed-frame/generic-embed-frame.types';
-import { GenericFeatureCardConfig } from "../generic-feature-card/generic-feature-card.types";
 import { TGenericIconConfig } from "../generic-icon/generic-icon.types";
 import type { TGenericInputConfig } from "../generic-input/generic-input.types";
 import { TGenericLinkConfig } from "../generic-link/generic-link.types";
 import type { TGenericMediaConfig } from "../generic-media/generic-media.types";
 import type { SearchBoxConfig } from '../generic-search-box/generic-search-box.types';
 import type { TabGroupConfig } from "../generic-tab-group/generic-tab-group.types";
-import type { TestimonialCardConfig } from "../generic-testimonial-card/generic-testimonial-card.types";
 import { TGenericTextConfig } from "../generic-text/generic-text.types";
 import type { TInteractionScopeConfig } from "../interaction-scope/interaction-scope.types";
 
@@ -44,10 +43,10 @@ export type TLoopConfig =
 export type TGenericComponentType =
     | 'accordion'
     | 'button'
+    | 'generic-card'
     | 'container'
     | 'dropdown'
     | 'embed-frame'
-    | 'feature-card'
     | 'icon'
     | 'interaction-scope'
     | 'link'
@@ -59,7 +58,6 @@ export type TGenericComponentType =
     | 'stepper'
     | 'stats-counter'
     | 'tab-group'
-    | 'testimonial-card'
     | 'text'
     | 'toast'
     | 'tooltip'
@@ -98,6 +96,10 @@ export type TGenericComponent = {
             readonly config: TGenericButtonConfig;
         } |
         {
+            readonly type: 'generic-card';
+            readonly config: TGenericCardConfig;
+        } |
+        {
             readonly type: 'icon';
             readonly config: TGenericIconConfig;
         } |
@@ -122,10 +124,6 @@ export type TGenericComponent = {
             readonly config: TGenericEmbedFrameConfig;
         } |
         {
-            readonly type: 'feature-card';
-            readonly config: GenericFeatureCardConfig;
-        } |
-        {
             readonly type: 'search-box';
             readonly config: TGenericSearchBoxConfig;
         } |
@@ -144,10 +142,6 @@ export type TGenericComponent = {
         {
             readonly type: 'stats-counter';
             readonly config: TGenericStatsCounterConfigInput;
-        } |
-        {
-            readonly type: 'testimonial-card';
-            readonly config: TestimonialCardConfig;
         } |
         {
             readonly type: 'tab-group';

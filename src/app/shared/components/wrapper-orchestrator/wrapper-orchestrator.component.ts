@@ -5,10 +5,10 @@ import { ConfigurationsOrchestratorService } from '../../services/configurations
 import { ValueOrchestrator } from '../../services/value-orchestrator';
 import { GenericAccordionComponent } from '../generic-accordion';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
+import { GenericCardComponent } from '../generic-card';
 import { GenericContainerComponent } from '../generic-container/generic-container';
 import { GenericDropdown } from '../generic-dropdown';
 import { GenericEmbedFrameComponent } from '../generic-embed-frame/generic-embed-frame.component';
-import { GenericFeatureCardComponent } from '../generic-feature-card';
 import { GenericIconComponent } from '../generic-icon/generic-icon.component';
 import { GenericInputComponent } from '../generic-input/generic-input.component';
 import { GenericLink } from "../generic-link/generic-link";
@@ -18,7 +18,6 @@ import type { SearchBoxConfig, SearchBoxFetcher, SearchSuggestion } from '../gen
 import { GenericStatsCounterComponent } from '../generic-stats-counter/generic-stats-counter.component';
 import type { TGenericStatsCounterConfig } from '../generic-stats-counter/generic-stats-counter.types';
 import { GenericTabGroupComponent } from '../generic-tab-group/generic-tab-group.component';
-import { GenericTestimonialCardComponent } from '../generic-testimonial-card';
 import { GenericTextComponent } from '../generic-text/generic-text';
 import { InteractionScopeComponent } from '../interaction-scope/interaction-scope.component';
 
@@ -36,15 +35,14 @@ import type { TGenericComponent } from './wrapper-orchestrator.types';
     CommonModule,
     GenericAccordionComponent,
     GenericButtonComponent,
+    GenericCardComponent,
     GenericContainerComponent,
     GenericDropdown,
     GenericEmbedFrameComponent,
-    GenericFeatureCardComponent,
     GenericIconComponent,
     GenericInputComponent,
     InteractionScopeComponent,
     GenericSearchBoxComponent,
-    GenericTestimonialCardComponent,
     GenericTextComponent,
     GenericStatsCounterComponent,
     GenericLink,
@@ -70,15 +68,7 @@ export class WrapperOrchestrator {
     if (typeof cond === 'function') return !!cond();
     if (typeof cond === 'boolean') return cond;
     if (typeof cond === 'string') {
-      // If the string looks like a DSL (contains colon or comma), use ConditionOrchestrator
-      if (cond.includes(':') || cond.includes(',')) {
-        return this.conditionOrchestrator.evaluate({ ...component, condition: cond }, { host: this._configurationsOrchestratorService });
-      }
-      // Otherwise, treat as legacy string boolean
-      const normalized = cond.trim().toLowerCase();
-      if (normalized === 'false') return false;
-      if (normalized === 'true') return true;
-      return normalized.length > 0;
+      return this.conditionOrchestrator.evaluate({ ...component, condition: cond }, { host: this._configurationsOrchestratorService });
     }
     return true;
   }

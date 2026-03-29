@@ -43,7 +43,8 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 
 - Put all interaction wiring in `eventInstructions`.
 - Prefer semicolon-separated composed instructions.
-- If a CTA opens WhatsApp through `openWhatsApp`, `openFaqCtaWhatsApp`, or `openFinalCtaWhatsApp`, the payload must include `variables.ui.contact.whatsappPhone`.
+- If a CTA opens WhatsApp through `openWhatsApp`, `openFaqCtaWhatsApp`, or `openFinalCtaWhatsApp`, the payload must include `variables.ui.contact.whatsappPhone` and `variables.ui.contact.whatsappMessageKey`.
+- For FAQ and final CTA WhatsApp flows, prefer explicit `variables.ui.contact.faqMessageKey` and `variables.ui.contact.finalCtaMessageKey` instead of reusing one generic message.
 
 ## Loops
 
@@ -74,7 +75,9 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Ensure no config contains function values.
 - Verify `variables.theme` includes complete `light` and `dark` palettes when the draft owns branding.
 - Verify `variables.i18n.defaultLanguage` and `variables.i18n.supportedLanguages` are present.
-- Verify `variables.ui.contact.whatsappPhone` is present whenever any WhatsApp handler is referenced.
+- Verify `variables.ui.contact.whatsappPhone` and `variables.ui.contact.whatsappMessageKey` are present whenever any WhatsApp handler is referenced.
+- Verify `variables.ui.contact.faqMessageKey` is present when `openFaqCtaWhatsApp` is referenced unless the generic WhatsApp message key is intentionally reused.
+- Verify `variables.ui.contact.finalCtaMessageKey` is present when `openFinalCtaWhatsApp` is referenced unless the generic WhatsApp message key is intentionally reused.
 - Verify footer/legal modal sections can render from API payload only.
 - Verify shared runtime keys are present in draft i18n when used by the page. Common examples:
   - `ui.accessibility.analyticsConsentDialog`
@@ -94,7 +97,7 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Footer structure is provided in `components` payload (`siteFooter`, `siteFooterContent`, legal/social/copyright blocks).
 - Footer visibility should come from i18n / standard variable conditions, not a specialized footer runtime object.
 - `variables.socialLinks[]` entries include `url` or `href`, plus key-based labels (`labelKey`, `ariaLabelKey`) when the footer renders social links.
-- `variables.ui.contact.whatsappPhone` exists when the page exposes WhatsApp CTAs.
+- `variables.ui.contact.whatsappPhone` and `variables.ui.contact.whatsappMessageKey` exist when the page exposes WhatsApp CTAs.
 - i18n includes required legal keys:
   - `footer.legal.title`
   - `footer.legal.terms.link`, `footer.legal.terms.title`, `footer.legal.terms.intro`, `footer.legal.terms.sections`

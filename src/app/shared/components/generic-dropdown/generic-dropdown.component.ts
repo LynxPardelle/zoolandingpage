@@ -363,9 +363,6 @@ export class GenericDropdown {
     const label = this.resolveText(item.label);
     if (label) return label;
 
-    const legacyLabels = this.resolveText((item as Record<string, unknown>)['labels']);
-    if (legacyLabels) return legacyLabels;
-
     if (typeof item.id === 'string' && item.id.trim().length > 0) return item.id;
     return '';
   }

@@ -70,6 +70,67 @@ describe('config-payload.validators', () => {
         expect(isComponentsPayload(valid)).toBeTrue();
     });
 
+    it('accepts generic-card payloads', () => {
+        const valid = {
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            components: {
+                serviceCardTemplate: {
+                    id: 'serviceCardTemplate',
+                    type: 'generic-card',
+                    config: {
+                        variant: 'feature',
+                        icon: 'rocket_launch',
+                        title: 'Launch faster',
+                        description: 'A reusable feature card.',
+                        benefits: ['One', 'Two'],
+                        buttonLabel: 'Request info',
+                        classes: 'featureCard',
+                    },
+                },
+                reviewCardTemplate: {
+                    id: 'reviewCardTemplate',
+                    type: 'generic-card',
+                    config: {
+                        variant: 'testimonial',
+                        name: 'Ada',
+                        role: 'Founder',
+                        company: 'Example Co',
+                        content: 'Excellent work.',
+                        rating: 5,
+                        avatar: 'A',
+                        verified: true,
+                    },
+                },
+            },
+        };
+
+        expect(isComponentsPayload(valid)).toBeTrue();
+    });
+
+    it('rejects retired feature-card and testimonial-card payloads', () => {
+        const invalid = {
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            components: {
+                oldFeatureCard: {
+                    id: 'oldFeatureCard',
+                    type: 'feature-card',
+                    config: {},
+                },
+                oldTestimonialCard: {
+                    id: 'oldTestimonialCard',
+                    type: 'testimonial-card',
+                    config: {},
+                },
+            },
+        };
+
+        expect(isComponentsPayload(invalid)).toBeFalse();
+    });
+
     it('accepts textarea input payloads', () => {
         const valid = {
             version: 1,
@@ -111,6 +172,27 @@ describe('config-payload.validators', () => {
         expect(isComponentsPayload(invalid)).toBeFalse();
     });
 
+    it('rejects generic-card payloads with runtime-only fields', () => {
+        const invalid = {
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            components: {
+                serviceCardTemplate: {
+                    id: 'serviceCardTemplate',
+                    type: 'generic-card',
+                    config: {
+                        variant: 'feature',
+                        title: 'Launch faster',
+                        onCta: 'not-allowed-in-json',
+                    },
+                },
+            },
+        };
+
+        expect(isComponentsPayload(invalid)).toBeFalse();
+    });
+
     it('validates variables payloads', () => {
         const valid = {
             version: 1,
@@ -121,12 +203,33 @@ describe('config-payload.validators', () => {
                 ui: {
                     contact: {
                         whatsappPhone: '+525522699563',
+                        whatsappMessageKey: 'ui.contact.whatsappMessage',
+                        faqMessageKey: 'ui.sections.faq.subtitle',
+                        finalCtaMessageKey: 'hero.subtitle',
                     },
                 },
             },
             computed: { b: 2 },
         };
         expect(isVariablesPayload(valid)).toBeTrue();
+    });
+
+    it('rejects invalid optional variables.ui.contact message keys', () => {
+        const invalid = {
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            variables: {
+                ui: {
+                    contact: {
+                        whatsappPhone: '+525522699563',
+                        faqMessageKey: 123,
+                    },
+                },
+            },
+        };
+
+        expect(isVariablesPayload(invalid)).toBeFalse();
     });
 
     it('rejects invalid variables.ui.contact shape', () => {

@@ -219,7 +219,10 @@ describe('whatsapp handlers', () => {
             variables: {
                 ui: {
                     contact: {
-                        whatsappPhone: '+525522699563'
+                        whatsappPhone: '+525522699563',
+                        whatsappMessageKey: 'ui.contact.whatsappMessage',
+                        faqMessageKey: 'ui.sections.faq.subtitle',
+                        finalCtaMessageKey: 'hero.subtitle'
                     }
                 }
             }
@@ -277,6 +280,31 @@ describe('whatsapp handlers', () => {
         handler.handle(context, [AnalyticsEvents.CtaClick, 'primary']);
 
         expect(openSpy).not.toHaveBeenCalled();
+    });
+
+    it('should still open the WhatsApp phone link when the draft omits the configured message key', () => {
+        variables.setPayload({
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            variables: {
+                ui: {
+                    contact: {
+                        whatsappPhone: '+525522699563'
+                    }
+                }
+            }
+        } as any);
+
+        const handler = TestBed.runInInjectionContext(() => openWhatsAppHandler());
+
+        handler.handle(context, [AnalyticsEvents.CtaClick, 'hero', undefined]);
+
+        expect(openSpy).toHaveBeenCalledOnceWith(
+            'https://wa.me/525522699563',
+            '_blank',
+            'noopener,noreferrer'
+        );
     });
 
     it('should reuse the configured phone for FAQ CTA events', () => {

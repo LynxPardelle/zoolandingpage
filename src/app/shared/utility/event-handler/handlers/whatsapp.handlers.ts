@@ -21,6 +21,19 @@ const resolveWhatsAppPhone = (variables: VariableStoreService): string => {
     return typeof raw === 'string' ? raw.trim() : '';
 };
 
+const resolveMessageKey = (variables: VariableStoreService, path: string): string => {
+    const raw = variables.get(path);
+    return typeof raw === 'string' ? raw.trim() : '';
+};
+
+const resolveMessage = (variables: VariableStoreService, i18n: I18nService, path: string, fallbackPath?: string): string => {
+    const key = resolveMessageKey(variables, path) || (fallbackPath ? resolveMessageKey(variables, fallbackPath) : '');
+    if (!key) return '';
+
+    const resolved = i18n.t(key);
+    return typeof resolved === 'string' ? resolved.trim() : '';
+};
+
 export const openWhatsAppHandler = (): EventHandler => {
     const analytics = inject(AnalyticsService);
     const globalI18n = inject(I18nService);
@@ -33,8 +46,7 @@ export const openWhatsAppHandler = (): EventHandler => {
             const location = String(args[1] ?? '');
             const serviceLabel = args[2] == null ? undefined : String(args[2]);
 
-            const rawMessage = globalI18n.t(
-                'ui.contact.whatsappMessage');
+            const rawMessage = resolveMessage(variables, globalI18n, 'ui.contact.whatsappMessageKey');
 
             const link = buildWhatsAppUrl(resolveWhatsAppPhone(variables), rawMessage);
             if (!link) return;
@@ -78,9 +90,7 @@ export const openFaqCtaWhatsAppHandler = (): EventHandler => {
                 meta: { location: 'faq-section', channel: 'whatsapp' },
             });
 
-            const message = globalI18n.t(
-                'ui.sections.faq.subtitle',
-            );
+            const message = resolveMessage(variables, globalI18n, 'ui.contact.faqMessageKey', 'ui.contact.whatsappMessageKey');
             const link = buildWhatsAppUrl(resolveWhatsAppPhone(variables), message);
             if (!link) return;
             safeOpen(link);
@@ -113,9 +123,7 @@ export const openFinalCtaWhatsAppHandler = (): EventHandler => {
                 },
             });
 
-            const message = globalI18n.t(
-                'hero.subtitle'
-            );
+            const message = resolveMessage(variables, globalI18n, 'ui.contact.finalCtaMessageKey', 'ui.contact.whatsappMessageKey');
             const link = buildWhatsAppUrl(resolveWhatsAppPhone(variables), message);
             if (!link) return;
             safeOpen(link);

@@ -26,6 +26,31 @@ import {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     !!value && typeof value === 'object' && !Array.isArray(value);
 
+const ALLOWED_COMPONENT_TYPES = new Set([
+    'accordion',
+    'button',
+    'container',
+    'dropdown',
+    'embed-frame',
+    'generic-card',
+    'icon',
+    'input',
+    'interaction-scope',
+    'link',
+    'media',
+    'modal',
+    'loading-spinner',
+    'progress-bar',
+    'search-box',
+    'stats-counter',
+    'stepper',
+    'tab-group',
+    'text',
+    'toast',
+    'tooltip',
+    'none',
+]);
+
 const isStringArray = (value: unknown): value is readonly string[] =>
     Array.isArray(value) && value.every((item) => typeof item === 'string');
 
@@ -60,6 +85,9 @@ const isDraftI18nVariableConfig = (value: unknown): boolean => {
 const isDraftContactVariableConfig = (value: unknown): value is TDraftContactVariableConfig => {
     if (!isRecord(value)) return false;
     if (typeof value['whatsappPhone'] !== 'string' || value['whatsappPhone'].trim().length === 0) return false;
+    if (value['whatsappMessageKey'] !== undefined && typeof value['whatsappMessageKey'] !== 'string') return false;
+    if (value['faqMessageKey'] !== undefined && typeof value['faqMessageKey'] !== 'string') return false;
+    if (value['finalCtaMessageKey'] !== undefined && typeof value['finalCtaMessageKey'] !== 'string') return false;
     return true;
 };
 
@@ -101,6 +129,31 @@ const isNumberArray = (value: unknown): value is readonly number[] =>
 
 const isStringThunkFriendly = (value: unknown): boolean =>
     value === undefined || typeof value === 'string';
+
+const isGenericCardConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+
+    if (value['variant'] !== undefined && value['variant'] !== 'feature' && value['variant'] !== 'testimonial') {
+        return false;
+    }
+
+    if (value['classes'] !== undefined && typeof value['classes'] !== 'string') return false;
+    if (value['icon'] !== undefined && typeof value['icon'] !== 'string') return false;
+    if (value['title'] !== undefined && typeof value['title'] !== 'string') return false;
+    if (value['description'] !== undefined && typeof value['description'] !== 'string') return false;
+    if (value['buttonLabel'] !== undefined && typeof value['buttonLabel'] !== 'string') return false;
+    if (value['name'] !== undefined && typeof value['name'] !== 'string') return false;
+    if (value['role'] !== undefined && typeof value['role'] !== 'string') return false;
+    if (value['company'] !== undefined && typeof value['company'] !== 'string') return false;
+    if (value['content'] !== undefined && typeof value['content'] !== 'string') return false;
+    if (value['avatar'] !== undefined && typeof value['avatar'] !== 'string') return false;
+    if (value['verified'] !== undefined && typeof value['verified'] !== 'boolean') return false;
+    if (value['rating'] !== undefined && (typeof value['rating'] !== 'number' || !Number.isFinite(value['rating']))) return false;
+    if (value['benefits'] !== undefined && !isStringArray(value['benefits'])) return false;
+    if (value['onCta'] !== undefined) return false;
+
+    return true;
+};
 
 const isInteractionValidationRule = (value: unknown): boolean => {
     if (!isRecord(value) || typeof value['type'] !== 'string') return false;
@@ -213,9 +266,14 @@ const isComponentPayloadRecord = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
     if (typeof value['id'] !== 'string' || value['id'].trim().length === 0) return false;
     if (typeof value['type'] !== 'string' || value['type'].trim().length === 0) return false;
+    if (!ALLOWED_COMPONENT_TYPES.has(value['type'])) return false;
     if (value['condition'] !== undefined && typeof value['condition'] !== 'string' && typeof value['condition'] !== 'boolean') return false;
     if (value['valueInstructions'] !== undefined && typeof value['valueInstructions'] !== 'string') return false;
     if (value['eventInstructions'] !== undefined && typeof value['eventInstructions'] !== 'string') return false;
+
+    if (value['type'] === 'generic-card') {
+        return isGenericCardConfig(value['config']);
+    }
 
     if (value['type'] === 'input') {
         return isGenericInputConfig(value['config']);

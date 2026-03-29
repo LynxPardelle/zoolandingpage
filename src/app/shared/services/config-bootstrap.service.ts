@@ -71,6 +71,20 @@ export class ConfigBootstrapService {
         return typeof value === 'string' && value.trim().length > 0;
     }
 
+    private collectChildComponentIds(component: unknown): readonly string[] {
+        if (!this.isRecord(component)) return [];
+        const config = this.isRecord(component['config']) ? component['config'] : null;
+        if (!config || !Array.isArray(config['components'])) return [];
+        return config['components'].filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0);
+    }
+
+    private resolveLoopTemplateId(component: unknown): string | null {
+        if (!this.isRecord(component)) return null;
+        const loopConfig = this.isRecord(component['loopConfig']) ? component['loopConfig'] : null;
+        const templateId = loopConfig?.['templateId'];
+        return typeof templateId === 'string' && templateId.trim().length > 0 ? templateId.trim() : null;
+    }
+
     private normalizeDraftLanguageDefinition(entry: string | TDraftLanguageDefinition): TDraftLanguageDefinition | null {
         if (typeof entry === 'string') {
             const code = normalizeLocaleCode(entry);
@@ -352,6 +366,34 @@ export class ConfigBootstrapService {
         const components = payloads.components?.components ?? {};
         addIssue(Object.keys(components).length === 0, 'components.json must include at least one component entry.');
 
+        const componentIds = new Set(Object.keys(components));
+        const addMissingReferenceIssue = (message: string) => {
+            if (!issues.includes(message)) {
+                issues.push(message);
+            }
+        };
+
+        for (const rootId of pageConfig?.rootIds ?? []) {
+            addIssue(!componentIds.has(rootId), `page-config.rootIds references missing component "${ rootId }".`);
+        }
+
+        for (const modalRootId of pageConfig?.modalRootIds ?? []) {
+            addIssue(!componentIds.has(modalRootId), `page-config.modalRootIds references missing component "${ modalRootId }".`);
+        }
+
+        for (const [componentId, component] of Object.entries(components)) {
+            for (const childId of this.collectChildComponentIds(component)) {
+                if (!componentIds.has(childId)) {
+                    addMissingReferenceIssue(`Component "${ componentId }" references missing child component "${ childId }".`);
+                }
+            }
+
+            const templateId = this.resolveLoopTemplateId(component);
+            if (templateId && !componentIds.has(templateId)) {
+                addMissingReferenceIssue(`Component "${ componentId }" references missing loop template "${ templateId }".`);
+            }
+        }
+
         const variables = payloads.variables?.variables ?? {};
         const theme = this.isRecord(variables['theme']) ? variables['theme'] : null;
         const i18n = this.isRecord(variables['i18n']) ? variables['i18n'] : null;
@@ -370,8 +412,23 @@ export class ConfigBootstrapService {
             return /(^|;)(openWhatsApp|openFaqCtaWhatsApp|openFinalCtaWhatsApp)(:|;|$)/.test(instructions);
         });
 
+        const requiresFaqWhatsAppMessage = Object.values(components).some((component) => {
+            if (!this.isRecord(component)) return false;
+            const instructions = component['eventInstructions'];
+            return typeof instructions === 'string' && /(^|;)openFaqCtaWhatsApp(:|;|$)/.test(instructions);
+        });
+
+        const requiresFinalCtaWhatsAppMessage = Object.values(components).some((component) => {
+            if (!this.isRecord(component)) return false;
+            const instructions = component['eventInstructions'];
+            return typeof instructions === 'string' && /(^|;)openFinalCtaWhatsApp(:|;|$)/.test(instructions);
+        });
+
         addIssue(requiresWhatsAppContact && !contact, 'variables.ui.contact is required when WhatsApp handlers are used.');
         addIssue(requiresWhatsAppContact && !this.isNonEmptyString(contact?.['whatsappPhone']), 'variables.ui.contact.whatsappPhone is required when WhatsApp handlers are used.');
+        addIssue(requiresWhatsAppContact && !this.isNonEmptyString(contact?.['whatsappMessageKey']), 'variables.ui.contact.whatsappMessageKey is required when WhatsApp handlers are used.');
+        addIssue(requiresFaqWhatsAppMessage && !this.isNonEmptyString(contact?.['faqMessageKey']) && !this.isNonEmptyString(contact?.['whatsappMessageKey']), 'variables.ui.contact.faqMessageKey or variables.ui.contact.whatsappMessageKey is required when FAQ WhatsApp handlers are used.');
+        addIssue(requiresFinalCtaWhatsAppMessage && !this.isNonEmptyString(contact?.['finalCtaMessageKey']) && !this.isNonEmptyString(contact?.['whatsappMessageKey']), 'variables.ui.contact.finalCtaMessageKey or variables.ui.contact.whatsappMessageKey is required when final CTA WhatsApp handlers are used.');
 
         addIssue(!this.isNonEmptyString(payloads.seo?.title), 'seo.title is required.');
         addIssue(!this.isNonEmptyString(payloads.seo?.description), 'seo.description is required.');

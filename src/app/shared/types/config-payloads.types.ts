@@ -18,6 +18,9 @@ export type TDraftI18nVariableConfig = {
 
 export type TDraftContactVariableConfig = {
     readonly whatsappPhone: string;
+    readonly whatsappMessageKey?: string;
+    readonly faqMessageKey?: string;
+    readonly finalCtaMessageKey?: string;
 };
 
 export type TDraftSocialLinkConfig = {

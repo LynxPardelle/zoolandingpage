@@ -116,8 +116,9 @@ A map is the easiest API payload, since `id` is the natural key:
     },
     "featuresCardTemplate": {
       "id": "featuresCardTemplate",
-      "type": "feature-card",
+      "type": "generic-card",
       "config": {
+        "variant": "feature",
         "icon": "",
         "title": "",
         "description": "",
@@ -173,7 +174,10 @@ This project now treats footer, legal modal, accessibility, and debug-panel cont
     },
     "ui": {
       "contact": {
-        "whatsappPhone": "+525522699563"
+        "whatsappPhone": "+525522699563",
+        "whatsappMessageKey": "ui.contact.whatsappMessage",
+        "faqMessageKey": "ui.sections.faq.subtitle",
+        "finalCtaMessageKey": "hero.subtitle"
       },
       "footer": {
         "socialLinks": [
