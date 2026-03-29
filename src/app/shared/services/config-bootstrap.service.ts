@@ -424,11 +424,17 @@ export class ConfigBootstrapService {
             return typeof instructions === 'string' && /(^|;)openFinalCtaWhatsApp(:|;|$)/.test(instructions);
         });
 
+        const requiresGeneralWhatsAppMessage = Object.values(components).some((component) => {
+            if (!this.isRecord(component)) return false;
+            const instructions = component['eventInstructions'];
+            return typeof instructions === 'string' && /(^|;)openWhatsApp(:|;|$)/.test(instructions);
+        });
+
         addIssue(requiresWhatsAppContact && !contact, 'variables.ui.contact is required when WhatsApp handlers are used.');
         addIssue(requiresWhatsAppContact && !this.isNonEmptyString(contact?.['whatsappPhone']), 'variables.ui.contact.whatsappPhone is required when WhatsApp handlers are used.');
-        addIssue(requiresWhatsAppContact && !this.isNonEmptyString(contact?.['whatsappMessageKey']), 'variables.ui.contact.whatsappMessageKey is required when WhatsApp handlers are used.');
-        addIssue(requiresFaqWhatsAppMessage && !this.isNonEmptyString(contact?.['faqMessageKey']) && !this.isNonEmptyString(contact?.['whatsappMessageKey']), 'variables.ui.contact.faqMessageKey or variables.ui.contact.whatsappMessageKey is required when FAQ WhatsApp handlers are used.');
-        addIssue(requiresFinalCtaWhatsAppMessage && !this.isNonEmptyString(contact?.['finalCtaMessageKey']) && !this.isNonEmptyString(contact?.['whatsappMessageKey']), 'variables.ui.contact.finalCtaMessageKey or variables.ui.contact.whatsappMessageKey is required when final CTA WhatsApp handlers are used.');
+        addIssue(requiresGeneralWhatsAppMessage && !this.isNonEmptyString(contact?.['whatsappMessageKey']), 'variables.ui.contact.whatsappMessageKey is required when openWhatsApp handlers are used.');
+        addIssue(requiresFaqWhatsAppMessage && !this.isNonEmptyString(contact?.['faqMessageKey']), 'variables.ui.contact.faqMessageKey is required when FAQ WhatsApp handlers are used.');
+        addIssue(requiresFinalCtaWhatsAppMessage && !this.isNonEmptyString(contact?.['finalCtaMessageKey']), 'variables.ui.contact.finalCtaMessageKey is required when final CTA WhatsApp handlers are used.');
 
         addIssue(!this.isNonEmptyString(payloads.seo?.title), 'seo.title is required.');
         addIssue(!this.isNonEmptyString(payloads.seo?.description), 'seo.description is required.');

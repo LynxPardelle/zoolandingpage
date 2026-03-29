@@ -9,10 +9,10 @@
   [attr.target]="target()"
   [rel]="rel()"
   [attr.aria-label]="ariaLabel()"
-  [attr.aria-expanded]="config().ariaExpanded ?? null"
-  [attr.aria-controls]="config().ariaControls"
-  [attr.aria-current]="config().ariaCurrent ?? null"
-  [attr.data-components]="componentTokens().join(',')"
+  [attr.aria-expanded]="ariaExpanded()"
+  [attr.aria-controls]="ariaControls()"
+  [attr.aria-current]="ariaCurrent()"
+  [attr.data-components]="componentTokensAttribute()"
   (click)="onClick($event)"
   >@if( text() ){
   {{ text() }}
@@ -27,10 +27,10 @@
   [attr.target]="target()"
   [rel]="rel()"
   [attr.aria-label]="ariaLabel()"
-  [attr.aria-expanded]="config().ariaExpanded ?? null"
-  [attr.aria-controls]="config().ariaControls"
-  [attr.aria-current]="config().ariaCurrent ?? null"
-  [attr.data-components]="componentTokens().join(',')"
+  [attr.aria-expanded]="ariaExpanded()"
+  [attr.aria-controls]="ariaControls()"
+  [attr.aria-current]="ariaCurrent()"
+  [attr.data-components]="componentTokensAttribute()"
   (click)="onClick($event)"
   >@if( text() ){
   {{ text() }}

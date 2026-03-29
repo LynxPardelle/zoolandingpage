@@ -101,7 +101,6 @@
 ></interaction-scope>
 } @case('search-box') {
 <generic-search-box
-  [fetcher]="resolveSearchFetcher(component.config)"
   [config]="resolveSearchConfig(component.config)"
   (selectSuggestion)="
     eventEmitted({

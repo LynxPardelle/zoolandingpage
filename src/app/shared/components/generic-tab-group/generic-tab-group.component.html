@@ -65,13 +65,15 @@
         <h3 [class]="config().detailTitleClasses || 'tabGroupDetailTitle'">{{ labelOf(t) }}</h3>
         @if (metaOf(t)) {
         <div [class]="config().detailMetaClasses || 'tabGroupDetailMeta'">
+          @if (detailMetaIconName()) {
           <generic-icon
             [config]="{
-              iconName: detailMetaIconName(),
+              iconName: detailMetaIconName() || '',
               ariaHidden: true,
               classes: 'ank-width-1rem ank-height-1rem ank-fontSize-1rem'
             }"
           ></generic-icon>
+          }
           <span>{{ metaOf(t) }}</span>
         </div>
         }
@@ -89,13 +91,15 @@
     <ul [class]="config().detailListClasses || 'tabGroupDetailListItems'">
       @for (detailItem of detailItemsOf(t); track detailItem) {
       <li [class]="config().detailListItemClasses || 'tabGroupDetailListItem'">
+        @if (detailItemIconName()) {
         <generic-icon
           [config]="{
-            iconName: detailItemIconName(),
+            iconName: detailItemIconName() || '',
             ariaHidden: true,
             classes: 'ank-width-1rem ank-height-1rem ank-fontSize-1rem ank-flexShrink-0'
           }"
         ></generic-icon>
+        }
         <span>{{ detailItem }}</span>
       </li>
       }

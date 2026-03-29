@@ -9,6 +9,8 @@ import {
     isVariablesPayload,
 } from './config-payload.validators';
 
+const TEST_DOMAIN = 'preview.example.test';
+
 describe('config-payload.validators', () => {
     it('validates page-config payloads', () => {
         const valid = {
@@ -145,6 +147,139 @@ describe('config-payload.validators', () => {
                         controlType: 'textarea',
                         rows: 6,
                         validation: [{ type: 'minLength', value: 20 }],
+                    },
+                },
+            },
+        };
+
+        expect(isComponentsPayload(valid)).toBeTrue();
+    });
+
+    it('accepts select input payloads with draft-owned dropdown presentation config', () => {
+        const valid = {
+            version: 1,
+            pageId: 'default',
+            domain: TEST_DOMAIN,
+            components: {
+                matterTypeField: {
+                    id: 'matterTypeField',
+                    type: 'input',
+                    config: {
+                        fieldId: 'matterType',
+                        controlType: 'select',
+                        fieldClasses: 'ank-width-100per',
+                        inputClasses: 'formInput formSelectTrigger',
+                        dropdownTriggerClasses: 'ank-width-100per ank-display-flex ank-alignItems-center ank-justifyContent-spaceBetween ank-gap-12px',
+                        dropdownIndicatorText: '▾',
+                        dropdownIndicatorClasses: 'ank-display-inlineFlex ank-alignItems-center',
+                        dropdownTriggerTextConfig: {
+                            classes: 'ank-display-block ank-flex-1 ank-overflow-hidden formSelectTriggerText',
+                        },
+                        dropdownConfig: {
+                            classes: 'formDropdown',
+                            menuContainerClasses: 'formDropdownMenu',
+                            menuRole: 'listbox',
+                            itemRole: 'option',
+                            triggerRole: 'combobox',
+                            overlayMatchWidth: 'origin',
+                            overlayOffsetY: 8,
+                        },
+                        options: [
+                            { value: 'contract-review', label: 'Contract review' },
+                            { value: 'corporate-advisory', label: 'Corporate advisory' },
+                        ],
+                    },
+                },
+            },
+        };
+
+        expect(isComponentsPayload(valid)).toBeTrue();
+    });
+
+    it('accepts search-box payloads with authored suggestions and trigger config', () => {
+        const valid = {
+            version: 1,
+            pageId: 'default',
+            domain: TEST_DOMAIN,
+            components: {
+                headerSearch: {
+                    id: 'headerSearch',
+                    type: 'search-box',
+                    config: {
+                        minLength: 1,
+                        debounceMs: 0,
+                        collapsed: true,
+                        triggerIcon: 'search',
+                        closeIcon: 'arrow_back',
+                        triggerAriaLabel: 'Open search',
+                        closeAriaLabel: 'Close search',
+                        suggestions: [
+                            { id: 'services', label: 'Services', href: '/services' },
+                            { id: 'contact', label: 'Contact', href: '/contact', target: '_self' },
+                        ],
+                    },
+                },
+            },
+        };
+
+        expect(isComponentsPayload(valid)).toBeTrue();
+    });
+
+    it('accepts accordion payloads with detail-mode authored icons', () => {
+        const valid = {
+            version: 1,
+            pageId: 'default',
+            domain: TEST_DOMAIN,
+            components: {
+                faqAccordion: {
+                    id: 'faqAccordion',
+                    type: 'accordion',
+                    config: {
+                        renderMode: 'detail',
+                        toggleIconName: 'expand_more',
+                        detailMetaIconName: 'schedule',
+                        detailItemIconName: 'check_circle',
+                        items: [
+                            {
+                                id: 'faq-1',
+                                title: 'Question',
+                                summary: 'Short answer',
+                                content: 'Long answer',
+                                meta: '2 days',
+                                detailItems: ['One', 'Two'],
+                            },
+                        ],
+                    },
+                },
+            },
+        };
+
+        expect(isComponentsPayload(valid)).toBeTrue();
+    });
+
+    it('accepts tab-group payloads with split-detail authored icons', () => {
+        const valid = {
+            version: 1,
+            pageId: 'default',
+            domain: TEST_DOMAIN,
+            components: {
+                processTabs: {
+                    id: 'processTabs',
+                    type: 'tab-group',
+                    config: {
+                        layout: 'split-detail',
+                        detailMetaIconName: 'schedule',
+                        detailItemIconName: 'check_circle',
+                        tabs: [
+                            {
+                                id: 'step-1',
+                                label: 'Step 1',
+                                summary: 'Summary',
+                                content: 'Details',
+                                meta: '48 hours',
+                                detailItems: ['First action'],
+                            },
+                        ],
                     },
                 },
             },

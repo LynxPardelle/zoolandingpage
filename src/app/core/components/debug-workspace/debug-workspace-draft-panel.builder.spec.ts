@@ -1,5 +1,8 @@
 import { buildDebugWorkspaceDraftPanel } from './debug-workspace-draft-panel.builder';
 
+const PRIMARY_DOMAIN = 'preview.example.test';
+const SECONDARY_DOMAIN = 'music.example.test';
+
 describe('buildDebugWorkspaceDraftPanel', () => {
     it('builds the draft selection panel with buttons and refresh control', () => {
         const onSelectDraft = jasmine.createSpy('onSelectDraft');
@@ -10,12 +13,12 @@ describe('buildDebugWorkspaceDraftPanel', () => {
             panelId: 'debugDraftPanelRoot',
             collapsed: false,
             draftOptions: [
-                { domain: 'zoolandingpage.com.mx', pageId: 'default', key: 'zoolandingpage.com.mx::default', label: 'zoolandingpage.com.mx / default' },
-                { domain: 'music.lynxpardelle.com', pageId: 'default', key: 'music.lynxpardelle.com::default', label: 'music.lynxpardelle.com / default' },
+                { domain: PRIMARY_DOMAIN, pageId: 'default', key: `${ PRIMARY_DOMAIN }::default`, label: `${ PRIMARY_DOMAIN } / default` },
+                { domain: SECONDARY_DOMAIN, pageId: 'default', key: `${ SECONDARY_DOMAIN }::default`, label: `${ SECONDARY_DOMAIN } / default` },
             ],
-            activeDraftLabel: 'zoolandingpage.com.mx / default',
+            activeDraftLabel: `${ PRIMARY_DOMAIN } / default`,
             draftRegistryLoading: false,
-            selectedDraftKey: 'zoolandingpage.com.mx::default',
+            selectedDraftKey: `${ PRIMARY_DOMAIN }::default`,
             onSelectDraft,
             onRefreshDrafts,
             onToggleCollapsed,
@@ -31,8 +34,8 @@ describe('buildDebugWorkspaceDraftPanel', () => {
 
         expect(panel.id).toBe('debugDraftPanelRoot');
         expect(buttons.map((entry) => entry.config.label)).toEqual([
-            'zoolandingpage.com.mx / default',
-            'music.lynxpardelle.com / default',
+            `${ PRIMARY_DOMAIN } / default`,
+            `${ SECONDARY_DOMAIN } / default`,
         ]);
         expect(buttons[0].config.classes).toContain('ank-bg-accentColor');
         expect(buttons[1].config.classes).toContain('ank-bg-transparent');
@@ -49,11 +52,11 @@ describe('buildDebugWorkspaceDraftPanel', () => {
             panelId: 'debugDraftPanelRoot',
             collapsed: true,
             draftOptions: [
-                { domain: 'zoolandingpage.com.mx', pageId: 'default', key: 'zoolandingpage.com.mx::default', label: 'zoolandingpage.com.mx / default' },
+                { domain: PRIMARY_DOMAIN, pageId: 'default', key: `${ PRIMARY_DOMAIN }::default`, label: `${ PRIMARY_DOMAIN } / default` },
             ],
-            activeDraftLabel: 'zoolandingpage.com.mx / default',
+            activeDraftLabel: `${ PRIMARY_DOMAIN } / default`,
             draftRegistryLoading: false,
-            selectedDraftKey: 'zoolandingpage.com.mx::default',
+            selectedDraftKey: `${ PRIMARY_DOMAIN }::default`,
             onSelectDraft: jasmine.createSpy('onSelectDraft'),
             onRefreshDrafts: jasmine.createSpy('onRefreshDrafts'),
             onToggleCollapsed: jasmine.createSpy('onToggleCollapsed'),

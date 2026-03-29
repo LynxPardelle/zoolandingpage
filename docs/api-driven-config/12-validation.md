@@ -153,6 +153,20 @@ Checks:
 - `detailItems` / `detailItemsKey` / `detailItemKeys`
 - Verify any `*Key` values resolve in the active i18n dictionary.
 - Verify `components.json` uses `config.itemsSource` / `config.tabsSource` for the process renderers instead of inline `set:config.items` or `set:config.tabs` mutations.
+- Verify detail-mode icon fields are authored when the current design expects them: `toggleIconName`, `detailMetaIconName`, and `detailItemIconName` for accordion; `detailMetaIconName` and `detailItemIconName` for tab-group.
+
+### Search-box trigger or close button is missing its icon
+
+Symptoms:
+
+- The collapsed search button renders without an icon.
+- The close button opens the panel but shows no icon.
+
+Checks:
+
+- Verify the active draft authored `config.triggerIcon` and `config.closeIcon` for the `search-box` component.
+- Verify `config.suggestions` is present and contains valid entries when search results are expected.
+- Do not expect the wrapper runtime to provide a separate search fetcher anymore.
 
 ### Stats counters are not updating from variables
 

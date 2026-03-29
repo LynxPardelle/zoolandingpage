@@ -1,17 +1,18 @@
 
+import type { TDynamicValue } from '../../utility/component-orchestrator.utility';
 import type { TComponentChild } from '../component-children.types';
 
 
 export type TGenericLinkConfig = {
-    readonly id: string;
-    readonly href: string | (() => string);
-    readonly text?: string | (() => string);
-    readonly classes?: string;
-    readonly target?: '_self' | '_blank' | '_parent' | '_top';
-    readonly rel?: string;
-    readonly ariaLabel?: string | (() => string);
-    readonly ariaExpanded?: boolean;
-    readonly ariaControls?: string;
-    readonly ariaCurrent?: boolean | 'page' | 'step' | 'location' | 'true' | 'false';
+    readonly id: TDynamicValue<string>;
+    readonly href: TDynamicValue<string>;
+    readonly text?: TDynamicValue<string>;
+    readonly classes?: TDynamicValue<string>;
+    readonly target?: TDynamicValue<'_self' | '_blank' | '_parent' | '_top'>;
+    readonly rel?: TDynamicValue<string>;
+    readonly ariaLabel?: TDynamicValue<string>;
+    readonly ariaExpanded?: TDynamicValue<boolean>;
+    readonly ariaControls?: TDynamicValue<string>;
+    readonly ariaCurrent?: TDynamicValue<boolean | 'page' | 'step' | 'location' | 'true' | 'false'>;
     readonly components?: readonly TComponentChild[];
 };

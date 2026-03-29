@@ -1,4 +1,7 @@
-const STICKY_QUERY_PARAMS = ['debugWorkspace'] as const;
+export type TResolveNavigationTargetOptions = {
+    readonly currentHref?: string;
+    readonly stickyQueryParams?: readonly string[];
+};
 
 export type TResolvedNavigationTarget = {
     readonly href: string;
@@ -60,7 +63,10 @@ export const toNavigationHref = (value: unknown): string => {
     return `#${ normalized.replace(/^#/, '') }`;
 };
 
-export const resolveNavigationTarget = (href: string): TResolvedNavigationTarget => {
+export const resolveNavigationTarget = (
+    href: string,
+    options?: TResolveNavigationTargetOptions,
+): TResolvedNavigationTarget => {
     const value = String(href ?? '').trim();
     if (!value) {
         return { href: '', internal: false, hashOnly: false, path: null, queryParams: null, fragment: null };
@@ -82,7 +88,7 @@ export const resolveNavigationTarget = (href: string): TResolvedNavigationTarget
     }
 
     try {
-        const currentUrl = new URL(currentLocationHref());
+        const currentUrl = new URL(String(options?.currentHref ?? currentLocationHref()));
         const targetUrl = new URL(value, currentUrl);
         const internal = targetUrl.origin === currentUrl.origin;
 
@@ -90,7 +96,7 @@ export const resolveNavigationTarget = (href: string): TResolvedNavigationTarget
             return { href: value, internal: false, hashOnly: false, path: null, queryParams: null, fragment: null };
         }
 
-        for (const key of STICKY_QUERY_PARAMS) {
+        for (const key of options?.stickyQueryParams ?? []) {
             if (targetUrl.searchParams.has(key) || !currentUrl.searchParams.has(key)) {
                 continue;
             }

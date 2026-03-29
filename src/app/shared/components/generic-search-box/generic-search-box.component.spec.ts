@@ -8,11 +8,14 @@ describe('SearchBoxComponent', () => {
     await TestBed.configureTestingModule({ imports: [GenericSearchBoxComponent] }).compileComponents();
     fixture = TestBed.createComponent(GenericSearchBoxComponent);
     comp = fixture.componentInstance;
-    comp.fetcher = (q: string) => [
-      { id: '1', label: 'Alpha' },
-      { id: '2', label: 'Beta' },
-    ];
-    comp.config = { minLength: 1, debounceMs: 0 };
+    fixture.componentRef.setInput('config', {
+      minLength: 1,
+      debounceMs: 0,
+      suggestions: [
+        { id: '1', label: 'Alpha' },
+        { id: '2', label: 'Beta' },
+      ],
+    });
     fixture.detectChanges();
   });
   it('should set combobox aria attributes', () => {
@@ -35,7 +38,14 @@ describe('SearchBoxComponent', () => {
   });
 
   it('should toggle the collapsed panel from the trigger button', () => {
-    comp.config = { minLength: 1, debounceMs: 0, collapsed: true, triggerIcon: 'search', closeIcon: 'arrow_back' };
+    fixture.componentRef.setInput('config', {
+      minLength: 1,
+      debounceMs: 0,
+      collapsed: true,
+      triggerIcon: 'search',
+      closeIcon: 'arrow_back',
+      suggestions: [],
+    });
     fixture.detectChanges();
 
     const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
@@ -47,7 +57,14 @@ describe('SearchBoxComponent', () => {
   });
 
   it('should close the collapsed panel from the back button', () => {
-    comp.config = { minLength: 1, debounceMs: 0, collapsed: true, triggerIcon: 'search', closeIcon: 'arrow_back' };
+    fixture.componentRef.setInput('config', {
+      minLength: 1,
+      debounceMs: 0,
+      collapsed: true,
+      triggerIcon: 'search',
+      closeIcon: 'arrow_back',
+      suggestions: [],
+    });
     fixture.detectChanges();
 
     let button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;

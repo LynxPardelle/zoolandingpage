@@ -3,8 +3,10 @@ import { TestBed } from '@angular/core/testing';
 import { of, Subject } from 'rxjs';
 import { WrapperOrchestrator } from '../../../shared/components/wrapper-orchestrator/wrapper-orchestrator.component';
 import { AnalyticsService } from '../../../shared/services/analytics.service';
+import { ConfigStoreService } from '../../../shared/services/config-store.service';
 import { ConfigurationsOrchestratorService } from '../../../shared/services/configurations-orchestrator';
 import { DraftRegistryService } from '../../../shared/services/draft-registry.service';
+import { DraftRuntimeService } from '../../../shared/services/draft-runtime.service';
 import { DebugWorkspaceComponent } from './debug-workspace.component';
 
 @Component({
@@ -19,6 +21,10 @@ class WrapperOrchestratorStub {
 const ORCHESTRATOR_STUB = {
     devDemoControlsComponents: [] as string[],
 };
+
+const PRIMARY_DOMAIN = 'preview.example.test';
+const SECONDARY_DOMAIN = 'music.example.test';
+const LEGAL_DOMAIN = 'legal.example.test';
 
 describe('DebugWorkspaceComponent', () => {
     let analyticsEvents$: Subject<any>;
@@ -36,12 +42,34 @@ describe('DebugWorkspaceComponent', () => {
                     },
                 },
                 {
+                    provide: ConfigStoreService,
+                    useValue: {
+                        validationIssues: () => [],
+                    },
+                },
+                {
+                    provide: DraftRuntimeService,
+                    useValue: {
+                        draftOptions: () => [
+                            { domain: PRIMARY_DOMAIN, pageId: 'default', key: `${ PRIMARY_DOMAIN }::default`, label: `${ PRIMARY_DOMAIN } / default` },
+                            { domain: SECONDARY_DOMAIN, pageId: 'default', key: `${ SECONDARY_DOMAIN }::default`, label: `${ SECONDARY_DOMAIN } / default` },
+                            { domain: LEGAL_DOMAIN, pageId: 'default', key: `${ LEGAL_DOMAIN }::default`, label: `${ LEGAL_DOMAIN } / default` },
+                        ],
+                        activeDraftLabel: () => `${ PRIMARY_DOMAIN } / default`,
+                        draftRegistryLoading: () => false,
+                        selectedDraftKey: () => `${ PRIMARY_DOMAIN }::default`,
+                        selectDraftByKey: () => undefined,
+                        refreshRegistry: () => undefined,
+                        initRegistryAutoRefresh: () => undefined,
+                    },
+                },
+                {
                     provide: DraftRegistryService,
                     useValue: {
                         listDrafts: () => of([
-                            { domain: 'zoolandingpage.com.mx', pageId: 'default' },
-                            { domain: 'music.lynxpardelle.com', pageId: 'default' },
-                            { domain: 'despacholegalastralex.com', pageId: 'default' },
+                            { domain: PRIMARY_DOMAIN, pageId: 'default' },
+                            { domain: SECONDARY_DOMAIN, pageId: 'default' },
+                            { domain: LEGAL_DOMAIN, pageId: 'default' },
                         ]),
                     },
                 },
@@ -92,9 +120,9 @@ describe('DebugWorkspaceComponent', () => {
 
         expect(panel.id).toBe('debugDraftPanelRoot');
         expect(draftButtons.map((entry) => entry.config.label)).toEqual([
-            'despacholegalastralex.com / default',
-            'music.lynxpardelle.com / default',
-            'zoolandingpage.com.mx / default',
+            `${ PRIMARY_DOMAIN } / default`,
+            `${ SECONDARY_DOMAIN } / default`,
+            `${ LEGAL_DOMAIN } / default`,
         ]);
         expect(refreshButton.config.icon).toBe('refresh');
     });

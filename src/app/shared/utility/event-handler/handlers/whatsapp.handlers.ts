@@ -26,8 +26,8 @@ const resolveMessageKey = (variables: VariableStoreService, path: string): strin
     return typeof raw === 'string' ? raw.trim() : '';
 };
 
-const resolveMessage = (variables: VariableStoreService, i18n: I18nService, path: string, fallbackPath?: string): string => {
-    const key = resolveMessageKey(variables, path) || (fallbackPath ? resolveMessageKey(variables, fallbackPath) : '');
+const resolveMessage = (variables: VariableStoreService, i18n: I18nService, path: string): string => {
+    const key = resolveMessageKey(variables, path);
     if (!key) return '';
 
     const resolved = i18n.t(key);
@@ -90,7 +90,8 @@ export const openFaqCtaWhatsAppHandler = (): EventHandler => {
                 meta: { location: 'faq-section', channel: 'whatsapp' },
             });
 
-            const message = resolveMessage(variables, globalI18n, 'ui.contact.faqMessageKey', 'ui.contact.whatsappMessageKey');
+            const message = resolveMessage(variables, globalI18n, 'ui.contact.faqMessageKey');
+            if (!message) return;
             const link = buildWhatsAppUrl(resolveWhatsAppPhone(variables), message);
             if (!link) return;
             safeOpen(link);
@@ -123,7 +124,8 @@ export const openFinalCtaWhatsAppHandler = (): EventHandler => {
                 },
             });
 
-            const message = resolveMessage(variables, globalI18n, 'ui.contact.finalCtaMessageKey', 'ui.contact.whatsappMessageKey');
+            const message = resolveMessage(variables, globalI18n, 'ui.contact.finalCtaMessageKey');
+            if (!message) return;
             const link = buildWhatsAppUrl(resolveWhatsAppPhone(variables), message);
             if (!link) return;
             safeOpen(link);

@@ -29,6 +29,8 @@ class WrapperOrchestratorStub {
 })
 class DebugWorkspaceStub { }
 
+const PRIMARY_DOMAIN = 'preview.example.test';
+
 const ORCHESTRATOR_STUB = {
   modalHostConfig$: of(null),
   fallbackModalHostConfig: {},
@@ -39,7 +41,7 @@ const ORCHESTRATOR_STUB = {
   exportDraftComponentsPayload: () => ({
     version: 1,
     pageId: 'default',
-    domain: 'zoolandingpage.com.mx',
+    domain: PRIMARY_DOMAIN,
     components: {},
   }),
 };
@@ -49,6 +51,7 @@ describe('AppShellComponent analytics', () => {
   let angoraSpy: jasmine.SpyObj<NgxAngoraService>;
 
   beforeEach(async () => {
+    window.history.replaceState({}, '', `/?draftDomain=${ PRIMARY_DOMAIN }&draftPageId=default`);
     analyticsSpy = jasmine.createSpyObj('AnalyticsService', [
       'track',
       'flush',
@@ -71,27 +74,27 @@ describe('AppShellComponent analytics', () => {
           provide: ConfigBootstrapService,
           useValue: {
             load: async () => ({
-              domain: 'zoolandingpage.com.mx',
+              domain: PRIMARY_DOMAIN,
               pageId: 'default',
               structuredDataApplied: true,
               pageConfig: {
                 version: 1,
                 pageId: 'default',
-                domain: 'zoolandingpage.com.mx',
+                domain: PRIMARY_DOMAIN,
                 rootIds: ['skipToMainLink', 'siteHeader', 'landingPage'],
                 modalRootIds: ['modalAnalyticsConsentRoot', 'modalTermsRoot', 'modalDataUseRoot'],
               },
               analytics: {
                 version: 1,
                 pageId: 'default',
-                domain: 'zoolandingpage.com.mx',
+                domain: PRIMARY_DOMAIN,
                 sectionIds: ['home'],
                 scrollMilestones: [25, 50, 75, 100],
               },
               components: {
                 version: 1,
                 pageId: 'default',
-                domain: 'zoolandingpage.com.mx',
+                domain: PRIMARY_DOMAIN,
                 components: {
                   draftStub: {
                     id: 'draftStub',
@@ -106,7 +109,7 @@ describe('AppShellComponent analytics', () => {
         {
           provide: DraftRegistryService,
           useValue: {
-            listDrafts: () => of([{ domain: 'zoolandingpage.com.mx', pageId: 'default' }]),
+            listDrafts: () => of([{ domain: PRIMARY_DOMAIN, pageId: 'default' }]),
           },
         },
         {
@@ -131,6 +134,11 @@ describe('AppShellComponent analytics', () => {
       remove: { imports: [WrapperOrchestrator, DebugWorkspaceComponent] },
       add: { imports: [WrapperOrchestratorStub, DebugWorkspaceStub, AsyncPipe] },
     });
+  });
+
+  afterEach(() => {
+    window.history.replaceState({}, '', '/context.html');
+    TestBed.resetTestingModule();
   });
 
   it('fires one page_view on initial navigation', async () => {

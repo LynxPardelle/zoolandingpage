@@ -11,12 +11,14 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Repeated components should use `loopConfig` (object model) instead of hardcoded `Array.from(...)` IDs.
 - Dynamic accordion items should use `config.itemsSource` (`i18n` or `var`) instead of inline `items: () => ...` lambdas.
 - Dynamic tab-group items should use `config.tabsSource` (`i18n` or `var`) instead of inline `tabs: () => ...` lambdas.
+- Search-box suggestions should live in `config.suggestions`; do not author or depend on a runtime fetcher function.
 - Reuse existing generic component types only.
 - Use existing class tokens / Angora design system conventions.
 - Put global palette data in `variables.theme.palettes.light` and `variables.theme.palettes.dark`.
 - Put page-owned contact targets in `variables.ui.contact`.
 - Keep modal accent defaults in `variables.theme.ui` when a draft needs them to differ from the default brand behavior.
 - Put reusable visual class bundles in `angora-combos.json` instead of hardcoding repeated appearance strings in app code.
+- For `input` components, author select/dropdown presentation in payload fields such as `fieldClasses`, `dropdownTriggerClasses`, `dropdownIndicatorText`, `dropdownIndicatorClasses`, `dropdownTriggerTextConfig`, and `dropdownConfig` instead of relying on shared runtime defaults.
 - Footer, legal modal, accessibility, and debug-panel content must be API-owned (no local fallback assumptions anywhere in the runtime).
 - Do not author hardcoded footer/legal text in app source when generating payload instructions.
 
@@ -36,6 +38,8 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - For i18n arrays with index: use `i18nGetIndex`.
 - For footer social links from variables, prefer `labelKey` and `ariaLabelKey` in payload entries.
 - For accordion and tab-group detail content, author canonical item keys only: `summary`, `content`, `meta`, and `detailItems`.
+- For accordion and tab-group detail layouts, explicitly author `detailMetaIconName`, `detailItemIconName`, and `toggleIconName` when the design needs those icons.
+- For search-box components, explicitly author `triggerIcon`, `closeIcon`, `triggerAriaLabel`, and `closeAriaLabel` when the UI exposes the collapsed search trigger.
 - Do not author legacy process-only aliases such as `description`, `detailedDescription`, `duration`, or `deliverables`.
 - Every key referenced by `components.json`, `valueInstructions`, handlers, or shell-owned debug UI must exist in the draft i18n payload. Raw key text in the UI means the draft is missing that translation.
 

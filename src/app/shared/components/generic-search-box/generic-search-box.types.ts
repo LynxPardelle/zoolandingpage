@@ -5,7 +5,6 @@ export type SearchSuggestion = {
   readonly href?: string;
   readonly target?: '_self' | '_blank' | '_parent' | '_top';
 };
-export type SearchBoxFetcher = (term: string) => Promise<readonly SearchSuggestion[]> | readonly SearchSuggestion[];
 export type SearchBoxConfig = {
   readonly minLength?: number; // default 2
   readonly debounceMs?: number; // default 200

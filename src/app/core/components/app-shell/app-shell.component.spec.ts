@@ -34,6 +34,11 @@ class WrapperOrchestratorStub {
 })
 class DebugWorkspaceStub { }
 
+const PRIMARY_DOMAIN = 'preview.example.test';
+const SECONDARY_DOMAIN = 'music.example.test';
+const LEGAL_DOMAIN = 'legal.example.test';
+const DEBUG_MODAL_ROOT_IDS = ['modalDemoRoot'];
+
 let bootstrapResult: any;
 let bootstrapLoadArgs: Array<{ domain?: string; pageId?: string; lang?: string }>;
 
@@ -47,30 +52,30 @@ const ORCHESTRATOR_STUB = {
   exportDraftComponentsPayload: () => ({
     version: 1,
     pageId: 'default',
-    domain: 'zoolandingpage.com.mx',
+    domain: PRIMARY_DOMAIN,
     components: {},
   }),
 };
 
 describe('AppShellComponent', () => {
   beforeEach(async () => {
-    window.history.replaceState({}, '', '/?draftDomain=despacholegalastralex.com&draftPageId=default');
+    window.history.replaceState({}, '', `/?draftDomain=${ LEGAL_DOMAIN }&draftPageId=default`);
     bootstrapLoadArgs = [];
     bootstrapResult = {
-      domain: 'zoolandingpage.com.mx',
+      domain: PRIMARY_DOMAIN,
       pageId: 'default',
       structuredDataApplied: true,
       pageConfig: {
         version: 1,
         pageId: 'default',
-        domain: 'zoolandingpage.com.mx',
+        domain: PRIMARY_DOMAIN,
         rootIds: ['skipToMainLink', 'siteHeader', 'landingPage'],
         modalRootIds: ['modalAnalyticsConsentRoot', 'modalTermsRoot', 'modalDataUseRoot'],
       },
       components: {
         version: 1,
         pageId: 'default',
-        domain: 'zoolandingpage.com.mx',
+        domain: PRIMARY_DOMAIN,
         components: {
           draftStub: {
             id: 'draftStub',
@@ -115,8 +120,8 @@ describe('AppShellComponent', () => {
           provide: DraftRegistryService,
           useValue: {
             listDrafts: () => of([
-              { domain: 'zoolandingpage.com.mx', pageId: 'default' },
-              { domain: 'music.lynxpardelle.com', pageId: 'default' },
+              { domain: PRIMARY_DOMAIN, pageId: 'default' },
+              { domain: SECONDARY_DOMAIN, pageId: 'default' },
             ]),
           },
         },
@@ -177,7 +182,7 @@ describe('AppShellComponent', () => {
   it('clears rendered roots when draft components are invalid', async () => {
     bootstrapResult = {
       ...bootstrapResult,
-      domain: 'despacholegalastralex.com',
+      domain: LEGAL_DOMAIN,
       pageId: 'default',
       components: null,
     };
@@ -188,25 +193,25 @@ describe('AppShellComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.componentInstance.rootComponentsIds()).toEqual([]);
-    expect(fixture.componentInstance.modalRootIds()).toEqual([]);
+    expect(fixture.componentInstance.modalRootIds()).toEqual(DEBUG_MODAL_ROOT_IDS);
     expect(ORCHESTRATOR_STUB.setExternalComponentsFromPayload).toHaveBeenCalledWith(null);
   });
 
-  it('clears rendered roots when the default Zoolandingpage draft has no external components', async () => {
+  it('clears rendered roots when the default preview draft has no external components', async () => {
     bootstrapResult = {
       ...bootstrapResult,
-      domain: 'zoolandingpage.com.mx',
+      domain: PRIMARY_DOMAIN,
       pageId: 'default',
       components: {
         version: 1,
         pageId: 'default',
-        domain: 'zoolandingpage.com.mx',
+        domain: PRIMARY_DOMAIN,
         components: {},
       },
       pageConfig: {
         version: 1,
         pageId: 'default',
-        domain: 'zoolandingpage.com.mx',
+        domain: PRIMARY_DOMAIN,
         rootIds: ['skipToMainLink', 'siteHeader', 'landingPage', 'siteFooter'],
         modalRootIds: ['modalAnalyticsConsentRoot', 'modalDemoRoot', 'modalTermsRoot', 'modalDataUseRoot'],
       },
@@ -218,19 +223,19 @@ describe('AppShellComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.componentInstance.rootComponentsIds()).toEqual([]);
-    expect(fixture.componentInstance.modalRootIds()).toEqual([]);
+    expect(fixture.componentInstance.modalRootIds()).toEqual(DEBUG_MODAL_ROOT_IDS);
     expect(ORCHESTRATOR_STUB.setExternalComponentsFromPayload).toHaveBeenCalledWith(null);
   });
 
-  it('uses the full default Zoolandingpage draft payload when external components are present', async () => {
+  it('uses the full default preview draft payload when external components are present', async () => {
     bootstrapResult = {
       ...bootstrapResult,
-      domain: 'zoolandingpage.com.mx',
+      domain: PRIMARY_DOMAIN,
       pageId: 'default',
       components: {
         version: 1,
         pageId: 'default',
-        domain: 'zoolandingpage.com.mx',
+        domain: PRIMARY_DOMAIN,
         components: {
           skipToMainLink: {
             id: 'skipToMainLink',
@@ -267,7 +272,7 @@ describe('AppShellComponent', () => {
       pageConfig: {
         version: 1,
         pageId: 'default',
-        domain: 'zoolandingpage.com.mx',
+        domain: PRIMARY_DOMAIN,
         rootIds: ['skipToMainLink', 'siteHeader', 'landingPage', 'siteFooter'],
         modalRootIds: ['modalAnalyticsConsentRoot', 'modalDemoRoot', 'modalTermsRoot', 'modalDataUseRoot'],
       },
@@ -282,7 +287,7 @@ describe('AppShellComponent', () => {
     expect(fixture.componentInstance.modalRootIds()).toEqual(['modalAnalyticsConsentRoot', 'modalDemoRoot', 'modalTermsRoot', 'modalDataUseRoot']);
     expect(ORCHESTRATOR_STUB.setExternalComponentsFromPayload).toHaveBeenCalledWith(bootstrapResult.components);
     expect(ORCHESTRATOR_STUB.setDraftExportContext).toHaveBeenCalledWith({
-      domain: 'zoolandingpage.com.mx',
+      domain: PRIMARY_DOMAIN,
       pageId: 'default',
       rootIds: ['skipToMainLink', 'siteHeader', 'landingPage', 'siteFooter'],
       modalRootIds: ['modalAnalyticsConsentRoot', 'modalDemoRoot', 'modalTermsRoot', 'modalDataUseRoot'],
@@ -292,19 +297,19 @@ describe('AppShellComponent', () => {
   it('uses REQUEST query params when resolving the draft during SSR', async () => {
     bootstrapResult = {
       ...bootstrapResult,
-      domain: 'despacholegalastralex.com',
+      domain: LEGAL_DOMAIN,
       pageId: 'legal-home',
       pageConfig: {
         version: 1,
         pageId: 'legal-home',
-        domain: 'despacholegalastralex.com',
+        domain: LEGAL_DOMAIN,
         rootIds: ['skipToMainLink', 'siteHeader', 'landingPage', 'siteFooter'],
         modalRootIds: ['modalAnalyticsConsentRoot', 'modalTermsRoot', 'modalDataUseRoot'],
       },
       components: {
         version: 1,
         pageId: 'legal-home',
-        domain: 'despacholegalastralex.com',
+        domain: LEGAL_DOMAIN,
         components: {
           landingPage: {
             id: 'landingPage',
@@ -316,9 +321,9 @@ describe('AppShellComponent', () => {
     };
 
     TestBed.overrideProvider(REQUEST, {
-      useValue: new Request('https://example.test/?draftDomain=despacholegalastralex.com&draftPageId=legal-home'),
+      useValue: new Request(`https://example.test/?draftDomain=${ LEGAL_DOMAIN }&draftPageId=legal-home`),
     });
-    window.history.replaceState({}, '', '/?draftDomain=despacholegalastralex.com&draftPageId=legal-home');
+    window.history.replaceState({}, '', `/?draftDomain=${ LEGAL_DOMAIN }&draftPageId=legal-home`);
 
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();

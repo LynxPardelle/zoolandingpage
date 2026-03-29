@@ -14,7 +14,7 @@ import { GenericInputComponent } from '../generic-input/generic-input.component'
 import { GenericLink } from "../generic-link/generic-link";
 import { GenericMedia } from "../generic-media/generic-media";
 import { GenericSearchBoxComponent } from '../generic-search-box/generic-search-box.component';
-import type { SearchBoxConfig, SearchBoxFetcher, SearchSuggestion } from '../generic-search-box/generic-search-box.types';
+import type { SearchBoxConfig } from '../generic-search-box/generic-search-box.types';
 import { GenericStatsCounterComponent } from '../generic-stats-counter/generic-stats-counter.component';
 import type { TGenericStatsCounterConfig } from '../generic-stats-counter/generic-stats-counter.types';
 import { GenericTabGroupComponent } from '../generic-tab-group/generic-tab-group.component';
@@ -113,29 +113,6 @@ export class WrapperOrchestrator {
     }
 
     return resolved as SearchBoxConfig;
-  }
-
-  resolveSearchFetcher(config: unknown): SearchBoxFetcher | null {
-    const resolved = this.resolveSearchConfig(config);
-    const suggestions = Array.isArray(resolved?.suggestions)
-      ? resolved.suggestions.filter((entry): entry is SearchSuggestion => !!entry && typeof entry.label === 'string')
-      : [];
-    const limit = Number(resolved?.maxResults ?? 10);
-
-    return (term: string) => {
-      const normalized = String(term ?? '').trim().toLowerCase();
-      if (!normalized) return [];
-
-      return suggestions
-        .filter((entry) => {
-          const haystack = [entry.label, entry.description, entry.href]
-            .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
-            .join(' ')
-            .toLowerCase();
-          return haystack.includes(normalized);
-        })
-        .slice(0, Number.isFinite(limit) && limit > 0 ? limit : 10);
-    };
   }
 
   resolveStatsCounterConfig(config: unknown): TGenericStatsCounterConfig {

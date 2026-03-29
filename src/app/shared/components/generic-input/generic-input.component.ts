@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output } from '@angular/core';
+import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { GenericDropdown } from '../generic-dropdown/generic-dropdown.component';
 import type { DropdownConfig, DropdownItem } from '../generic-dropdown/generic-dropdown.types';
@@ -21,28 +22,20 @@ export class GenericInputComponent {
     readonly valueChanged = output<TGenericInputValueChange>();
     readonly blurred = output<{ fieldId: string }>();
 
-    private readonly scope = inject(InteractionScopeService, { optional: true });
-    private readonly localValue = signal<unknown>('');
-    private readonly localTouched = signal(false);
+    private readonly scope = inject(InteractionScopeService);
 
     constructor() {
         effect(() => {
-            const initialValue = this.resolveMaybeThunk(this.config().value);
             const registeredConfig = {
                 fieldId: this.fieldId(),
-                initialValue,
+                initialValue: this.initialValue(),
                 required: this.required(),
                 disabled: this.disabled(),
                 readOnly: this.readOnly(),
                 validation: this.validationRules(),
             };
 
-            if (this.scope) {
-                this.scope.registerField(registeredConfig);
-                return;
-            }
-
-            this.localValue.set(initialValue ?? this.defaultValue());
+            this.scope.registerField(registeredConfig);
         });
     }
 
@@ -61,6 +54,9 @@ export class GenericInputComponent {
     readonly helperTextClasses = computed(() => this.asString(this.config().helperTextClasses));
     readonly fieldClasses = computed(() => this.asString(this.config().fieldClasses));
     readonly inputClasses = computed(() => this.asString(this.config().inputClasses));
+    readonly dropdownTriggerClasses = computed(() => this.asString(this.config().dropdownTriggerClasses));
+    readonly dropdownIndicatorText = computed(() => this.asString(this.config().dropdownIndicatorText));
+    readonly dropdownIndicatorClasses = computed(() => this.asString(this.config().dropdownIndicatorClasses));
     readonly optionContainerClasses = computed(() => this.asString(this.config().optionContainerClasses));
     readonly optionClasses = computed(() => this.asString(this.config().optionClasses));
     readonly activeOptionClasses = computed(() => this.asString(this.config().activeOptionClasses));
@@ -75,6 +71,7 @@ export class GenericInputComponent {
     readonly max = computed<number | undefined>(() => this.asNumber(this.config().max));
     readonly step = computed<number | undefined>(() => this.asNumber(this.config().step));
     readonly rows = computed<number | undefined>(() => this.asNumber(this.config().rows));
+    readonly initialValue = computed<unknown>(() => this.normalizeValue(this.resolveMaybeThunk(this.config().value)));
     readonly validationRules = computed<readonly TInteractionValidationRule[]>(() => {
         const resolved = this.resolveMaybeThunk(this.config().validation);
         return Array.isArray(resolved)
@@ -95,22 +92,12 @@ export class GenericInputComponent {
     );
 
     readonly fieldState = computed(() => {
-        if (this.scope) {
-            return this.scope.getFieldState(this.fieldId()) ?? {
-                value: this.defaultValue(),
-                touched: false,
-                dirty: false,
-                errors: [],
-                valid: true,
-            };
-        }
-
-        const value = this.localValue();
+        const value = this.initialValue();
         const errors = validateInteractionValue(value, this.validationRules(), this.required());
 
-        return {
+        return this.scope.getFieldState(this.fieldId()) ?? {
             value,
-            touched: this.localTouched(),
+            touched: false,
             dirty: false,
             errors,
             valid: errors.length === 0,
@@ -161,36 +148,23 @@ export class GenericInputComponent {
     readonly dropdownTriggerTextConfig = computed<TGenericTextConfig>(() => this.buildTextConfig(
         this.selectedOptionLabel(),
         this.config().dropdownTriggerTextConfig,
-        { tag: 'span', classes: 'ank-display-block ank-flex-1 ank-overflow-hidden', ariaLabel: this.ariaLabel() || this.label() || undefined }
+        { tag: 'span', classes: '', ariaLabel: this.ariaLabel() || this.label() || undefined }
     ));
     readonly dropdownConfig = computed<DropdownConfig>(() => {
         const override = this.asRecord(this.resolveMaybeThunk(this.config().dropdownConfig));
 
         return {
-            classes: this.joinClasses('ank-width-100per', this.asString(override?.['classes'])),
+            classes: this.asString(override?.['classes']),
             buttonClasses: this.joinClasses(
                 this.inputClasses(),
-                'ank-width-100per ank-display-flex ank-alignItems-center ank-justifyContent-spaceBetween ank-gap-12px ank-cursor-pointer',
                 this.asString(override?.['buttonClasses'])
             ),
-            itemLinkClasses: this.joinClasses(
-                'ank-display-flex ank-width-100per ank-alignItems-center ank-textDecoration-none ank-paddingInline-14px ank-paddingBlock-12px ank-lineHeight-1_4 ank-color-titleColor',
-                this.asString(override?.['itemLinkClasses'])
-            ),
-            selectedItemClasses: this.joinClasses(
-                'ank-bg-secondaryBgColor ank-fontWeight-700',
-                this.asString(override?.['selectedItemClasses'])
-            ),
-            disabledItemClasses: this.joinClasses(
-                'ank-opacity-50 ank-cursor-notAllowed',
-                this.asString(override?.['disabledItemClasses'])
-            ),
-            menuContainerClasses: this.joinClasses(
-                'ank-border-1px__solid__secondaryAccentColor ank-borderRadius-14px ank-bg-bgColor ank-overflow-hidden ank-boxShadow-0__18px__40px__bgColor__OPA__0_18',
-                this.asString(override?.['menuContainerClasses'])
-            ),
-            menuNavClasses: this.joinClasses('ank-width-100per', this.asString(override?.['menuNavClasses'])),
-            menuListClasses: this.joinClasses('ank-display-flex ank-flexDirection-column ank-gap-0', this.asString(override?.['menuListClasses'])),
+            itemLinkClasses: this.asString(override?.['itemLinkClasses']),
+            selectedItemClasses: this.asString(override?.['selectedItemClasses']),
+            disabledItemClasses: this.asString(override?.['disabledItemClasses']),
+            menuContainerClasses: this.asString(override?.['menuContainerClasses']),
+            menuNavClasses: this.asString(override?.['menuNavClasses']),
+            menuListClasses: this.asString(override?.['menuListClasses']),
             menuRole: (override?.['menuRole'] as 'menu' | 'listbox' | undefined) ?? 'listbox',
             itemRole: (override?.['itemRole'] as 'menuitem' | 'option' | undefined) ?? 'option',
             triggerRole: typeof override?.['triggerRole'] === 'string' ? String(override['triggerRole']) : 'combobox',
@@ -211,10 +185,7 @@ export class GenericInputComponent {
         };
     });
     readonly showErrors = computed(() => {
-        if (this.scope) {
-            return this.fieldState().touched || this.scope.submitted();
-        }
-        return this.fieldState().touched;
+        return this.fieldState().touched || this.scope.submitted();
     });
     readonly visibleErrors = computed(() => (this.showErrors() ? this.fieldState().errors : []));
 
@@ -242,11 +213,7 @@ export class GenericInputComponent {
     }
 
     onBlur(): void {
-        if (this.scope) {
-            this.scope.markTouched(this.fieldId());
-        } else {
-            this.localTouched.set(true);
-        }
+        this.scope.markTouched(this.fieldId());
         this.blurred.emit({ fieldId: this.fieldId() });
     }
 
@@ -275,11 +242,7 @@ export class GenericInputComponent {
         const normalized = this.normalizeValue(nextValue);
         const previousValue = this.currentValue();
 
-        if (this.scope) {
-            this.scope.setFieldValue(this.fieldId(), normalized, { markTouched: true });
-        } else {
-            this.localValue.set(normalized);
-        }
+        this.scope.setFieldValue(this.fieldId(), normalized, { markTouched: true });
 
         this.valueChanged.emit({
             fieldId: this.fieldId(),
@@ -353,10 +316,7 @@ export class GenericInputComponent {
     }
 
     private resolveMaybeThunk(value: unknown): unknown {
-        if (typeof value === 'function' && (value as (...args: unknown[]) => unknown).length === 0) {
-            return (value as () => unknown)();
-        }
-        return value;
+        return resolveDynamicValue(value as never);
     }
 
     private asString(value: unknown): string {

@@ -1,5 +1,6 @@
 import { Component, computed, input } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
+import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
 import { TGenericIconConfig } from './generic-icon.types';
 
 @Component({
@@ -11,17 +12,27 @@ import { TGenericIconConfig } from './generic-icon.types';
 export class GenericIconComponent {
   readonly config = input.required<TGenericIconConfig>();
 
-  readonly title = computed(() => this.resolveMaybeThunk(this.config().title) || undefined);
-  readonly classes = computed(() => this.resolveMaybeThunk(this.config().classes) || '');
-  readonly ariaLabel = computed(() => this.resolveMaybeThunk(this.config().ariaLabel || this.config().title) || null);
-  readonly ariaHidden = computed(() => this.resolveMaybeThunk(this.config().ariaHidden) ? 'true' : null);
-  readonly iconName = computed(() => String(this.resolveMaybeThunk(this.config().iconName) || ''));
+  readonly title = computed(() => this.optionalString(this.config().title));
+  readonly classes = computed(() => this.stringValue(this.config().classes));
+  readonly ariaLabel = computed(() => this.optionalString(this.config().ariaLabel) ?? this.title() ?? null);
+  readonly ariaHidden = computed(() => this.booleanValue(this.config().ariaHidden) ? 'true' : null);
+  readonly iconName = computed(() => this.stringValue(this.config().iconName));
 
-  private resolveMaybeThunk(value: unknown): unknown {
-    if (typeof value === 'function' && (value as (...args: unknown[]) => unknown).length === 0) {
-      return (value as () => unknown)();
+  private stringValue(value: unknown): string {
+    return String(resolveDynamicValue(value) ?? '');
+  }
+
+  private optionalString(value: unknown): string | undefined {
+    const resolved = resolveDynamicValue(value);
+    if (resolved == null) {
+      return undefined;
     }
 
-    return value;
+    const normalized = String(resolved);
+    return normalized.length > 0 ? normalized : undefined;
+  }
+
+  private booleanValue(value: unknown): boolean {
+    return resolveDynamicValue(value) === true;
   }
 }

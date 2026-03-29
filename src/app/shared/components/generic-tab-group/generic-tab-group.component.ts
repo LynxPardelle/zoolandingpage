@@ -133,9 +133,9 @@ export class GenericTabGroupComponent {
 
   detailItemsLabel = () => this.resolveTextValue(this.config().detailItemsLabel);
 
-  detailMetaIconName = () => this.config().detailMetaIconName ?? 'schedule';
+  detailMetaIconName = () => this.resolveTextValue(this.config().detailMetaIconName);
 
-  detailItemIconName = () => this.config().detailItemIconName ?? 'check_circle';
+  detailItemIconName = () => this.resolveTextValue(this.config().detailItemIconName);
 
   tabHasRichHeader(tab: TabDefinition): boolean {
     return this.detailMode() || !!this.indexLabelOf(tab) || !!this.summaryOf(tab);

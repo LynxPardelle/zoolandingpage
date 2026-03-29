@@ -8,6 +8,7 @@ import { environment } from '../../../environments/environment';
 import { ToastService } from '../components/generic-toast';
 import { TAnalyticsEvent, TDataDropResponse, TExpandedAnalytics, TTrackOptions } from '../types/analytics.type';
 import { AnalyticsCategories, AnalyticsEvents } from './analytics.events';
+import { DomainResolverService } from './domain-resolver.service';
 
 import { QuickStatsService } from './quick-stats.service';
 @Injectable({ providedIn: 'root' })
@@ -23,6 +24,7 @@ export class AnalyticsService {
   private readonly isDebugMode: boolean = environment.features.debugMode;
   private readonly baseUrl: string = environment.apiUrl;
   private readonly version: string = environment.apiVersion;
+  private readonly domainResolver = inject(DomainResolverService);
   private readonly events$ = new ReplaySubject<TAnalyticsEvent>(this.debugEventReplaySize);
   private trackingTeardowns: Array<() => void> = [];
   private hasPermission: boolean = false;
@@ -233,7 +235,6 @@ export class AnalyticsService {
     });
   }
   private timesSended: number = 0;
-  private readonly appName: string = environment.app.name;
   // Timer for re-prompting after snooze (kept in-memory per session)
   private snoozeTimer: ReturnType<typeof setTimeout> | null = null;
   // UI services (optional for test contexts without DI)
@@ -360,9 +361,22 @@ export class AnalyticsService {
       const { sessionId, localId } = this.previouslyAskedUserData || {};
       payload = { ...evt, sessionId, localId };
     }
-    const appName = this.appName.replace(/\s/g, '_').replace(/[^a-zA-Z0-9_]+/g, '').toLowerCase();
+    const appName = this.resolveAppName();
     /* console.log('Analytics Data to send:', { ...payload, appName }); */
     this.send({ ...payload, appName })?.subscribe({ next: () => { }, error: () => { } });
+  }
+
+  private sanitizeAppName(value: unknown): string {
+    return String(value ?? '')
+      .trim()
+      .replace(/\s/g, '_')
+      .replace(/[^a-zA-Z0-9_]+/g, '')
+      .toLowerCase();
+  }
+
+  private resolveAppName(): string {
+    const runtimeDomain = this.domainResolver.resolveDomain().domain;
+    return this.sanitizeAppName(runtimeDomain) || this.sanitizeAppName(environment.app.name) || 'app';
   }
 
   private send(evt: TAnalyticsEvent & TExpandedAnalytics & { appName: string }): Observable<TDataDropResponse> | void {

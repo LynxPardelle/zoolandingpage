@@ -86,9 +86,9 @@ export class GenericAccordionComponent {
 
   detailItemsLabel = () => this.resolveTextValue(this.config().detailItemsLabel);
 
-  detailMetaIconName = () => this.config().detailMetaIconName ?? 'schedule';
+  detailMetaIconName = () => this.resolveTextValue(this.config().detailMetaIconName);
 
-  detailItemIconName = () => this.config().detailItemIconName ?? 'check_circle';
+  detailItemIconName = () => this.resolveTextValue(this.config().detailItemIconName);
 
   itemHasRichHeader = (item: AccordionItem) => this.detailMode() || !!this.indexLabelOf(item) || !!this.summaryOf(item);
 
@@ -105,7 +105,7 @@ export class GenericAccordionComponent {
   buttonIconFor = (item: AccordionItem) => {
     const configured = item.buttonConfig?.icon || this.config().defaultItemButtonConfig?.icon;
     if (configured) return configured;
-    return this.detailMode() ? this.config().toggleIconName ?? 'expand_more' : undefined;
+    return this.detailMode() ? this.resolveTextValue(this.config().toggleIconName) : undefined;
   };
 
   isExpanded = (id: string) => this.expandedIds().includes(id);

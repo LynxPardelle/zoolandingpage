@@ -1,5 +1,15 @@
 import type { TGenericComponent } from '@/app/shared/components/wrapper-orchestrator/wrapper-orchestrator.types';
 
+export type TDynamicValue<TValue> = TValue | (() => TValue);
+
+export function resolveDynamicValue<TValue>(value: TDynamicValue<TValue> | null | undefined): TValue | null {
+    if (typeof value === 'function' && (value as (...args: unknown[]) => unknown).length === 0) {
+        return (value as () => TValue)();
+    }
+
+    return (value ?? null) as TValue | null;
+}
+
 export function normalizeComponentType(rawType: unknown): string {
     return String(rawType ?? '')
         .trim()
@@ -44,6 +54,37 @@ export function findComponentById(
 
 export function collectAllClassesFromComponents(components: readonly TGenericComponent[]): string[] {
     const classesSet: Set<string> = new Set<string>();
+    const dropdownClassKeys = [
+        'classes',
+        'buttonClasses',
+        'itemLinkClasses',
+        'selectedItemClasses',
+        'disabledItemClasses',
+        'menuContainerClasses',
+        'menuNavClasses',
+        'menuListClasses',
+    ] as const;
+    const inputClassKeys = [
+        'classes',
+        'labelClasses',
+        'descriptionClasses',
+        'helperTextClasses',
+        'fieldClasses',
+        'inputClasses',
+        'dropdownTriggerClasses',
+        'dropdownIndicatorClasses',
+        'optionContainerClasses',
+        'optionClasses',
+        'activeOptionClasses',
+        'errorClasses',
+    ] as const;
+    const nestedTextConfigKeys = [
+        'labelTextConfig',
+        'descriptionTextConfig',
+        'helperTextConfig',
+        'errorTextConfig',
+        'dropdownTriggerTextConfig',
+    ] as const;
 
     const addClasses = (raw: unknown) => {
         if (!raw || typeof raw !== 'string') return;
@@ -54,6 +95,10 @@ export function collectAllClassesFromComponents(components: readonly TGenericCom
             .forEach((cls) => classesSet.add(cls));
     };
 
+    const addClassProperties = (record: Record<string, unknown>, keys: readonly string[]) => {
+        keys.forEach((key) => addClasses(record[key]));
+    };
+
     components.forEach((component) => {
         if (component.config && 'classes' in component.config && (component.config as any).classes) {
             addClasses((component.config as any).classes);
@@ -62,14 +107,30 @@ export function collectAllClassesFromComponents(components: readonly TGenericCom
         // Also collect classes from dropdownConfig fields (these are not under config.classes)
         if ((component as any).type === 'dropdown') {
             const ddCfg = (component as any).config?.dropdownConfig;
-            if (ddCfg) {
-                addClasses(ddCfg.classes);
-                addClasses(ddCfg.buttonClasses);
-                addClasses(ddCfg.itemLinkClasses);
-                addClasses(ddCfg.menuContainerClasses);
-                addClasses(ddCfg.menuNavClasses);
-                addClasses(ddCfg.menuListClasses);
+            if (ddCfg && typeof ddCfg === 'object' && !Array.isArray(ddCfg)) {
+                addClassProperties(ddCfg as Record<string, unknown>, dropdownClassKeys);
             }
+        }
+
+        if ((component as any).type === 'input') {
+            const inputConfig = (component as any).config;
+            if (!inputConfig || typeof inputConfig !== 'object' || Array.isArray(inputConfig)) {
+                return;
+            }
+
+            addClassProperties(inputConfig as Record<string, unknown>, inputClassKeys);
+
+            const dropdownConfig = (inputConfig as Record<string, unknown>)['dropdownConfig'];
+            if (dropdownConfig && typeof dropdownConfig === 'object' && !Array.isArray(dropdownConfig)) {
+                addClassProperties(dropdownConfig as Record<string, unknown>, dropdownClassKeys);
+            }
+
+            nestedTextConfigKeys.forEach((key) => {
+                const textConfig = (inputConfig as Record<string, unknown>)[key];
+                if (textConfig && typeof textConfig === 'object' && !Array.isArray(textConfig)) {
+                    addClasses((textConfig as Record<string, unknown>)['classes']);
+                }
+            });
         }
     });
 

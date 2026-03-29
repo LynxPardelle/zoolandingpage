@@ -1,5 +1,4 @@
 export type TGenericIconConfig = {
-    readonly id?: string;
     readonly title?: string;
     readonly classes?: string;
     readonly iconName: string;

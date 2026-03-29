@@ -24,18 +24,13 @@
     }
   </div>
   } @case ('select') {
-  <div [class]="fieldClasses() || 'ank-width-100per'">
+  <div [class]="fieldClasses()">
     <generic-dropdown [items]="dropdownItems()" [config]="dropdownConfig()" (selectItem)="onDropdownSelect($event)">
-      <div
-        trigger
-        class="ank-width-100per ank-display-flex ank-alignItems-center ank-justifyContent-spaceBetween ank-gap-12px"
-      >
+      <div trigger [class]="dropdownTriggerClasses()">
         <generic-text [config]="dropdownTriggerTextConfig()"></generic-text>
-        <span
-          class="ank-display-inlineFlex ank-alignItems-center ank-justifyContent-center ank-flexShrink-0 ank-fontSize-0_9rem ank-color-secondaryTitleColor"
-          aria-hidden="true"
-          >▾</span
-        >
+        @if (dropdownIndicatorText()) {
+        <span [class]="dropdownIndicatorClasses()" aria-hidden="true">{{ dropdownIndicatorText() }}</span>
+        }
       </div>
     </generic-dropdown>
   </div>

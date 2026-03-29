@@ -121,4 +121,34 @@ describe('GenericLink', () => {
     expect(component.target()).toBe('_blank');
     expect(anchor.getAttribute('target')).toBe('_blank');
   });
+
+  it('should resolve dynamic link metadata without hardcoded component styling assumptions', () => {
+    fixture.componentRef.setInput('config', {
+      id: () => 'dynamic-link',
+      href: () => '#faq',
+      text: () => 'FAQ',
+      classes: () => 'faqLink',
+      ariaLabel: () => 'Open FAQ section',
+      ariaExpanded: () => true,
+      ariaControls: () => 'faq-panel',
+      ariaCurrent: () => 'page',
+    });
+    fixture.detectChanges();
+
+    const anchor = fixture.nativeElement.querySelector('a') as HTMLAnchorElement;
+
+    expect(component.id()).toBe('dynamic-link');
+    expect(component.text()).toBe('FAQ');
+    expect(component.classes()).toBe('faqLink');
+    expect(component.ariaLabel()).toBe('Open FAQ section');
+    expect(component.ariaExpanded()).toBeTrue();
+    expect(component.ariaControls()).toBe('faq-panel');
+    expect(component.ariaCurrent()).toBe('page');
+    expect(anchor.getAttribute('id')).toBe('dynamic-link');
+    expect(anchor.getAttribute('class')).toContain('faqLink');
+    expect(anchor.getAttribute('aria-label')).toBe('Open FAQ section');
+    expect(anchor.getAttribute('aria-expanded')).toBe('true');
+    expect(anchor.getAttribute('aria-controls')).toBe('faq-panel');
+    expect(anchor.getAttribute('aria-current')).toBe('page');
+  });
 });

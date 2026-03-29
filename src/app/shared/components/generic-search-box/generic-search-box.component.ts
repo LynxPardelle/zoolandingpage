@@ -4,23 +4,24 @@ import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  contentChild,
   ElementRef,
   HostListener,
+  inject,
   Input,
   OnDestroy,
+  output,
+  signal,
   TemplateRef,
   ViewChild,
   ViewContainerRef,
-  contentChild,
-  inject,
-  output,
-  signal,
 } from '@angular/core';
 import { I18nService } from '../../services/i18n.service';
 import { OverlayPositioningService } from '../../services/overlay-positioning.service';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { GenericLoadingSpinnerComponent } from '../generic-loading-spinner';
-import { SearchBoxConfig, SearchBoxFetcher, SearchSuggestion } from './generic-search-box.types';
+import { filterSearchSuggestions, SEARCH_BOX_MAX_RESULTS } from './generic-search-box.constants';
+import { SearchBoxConfig, SearchSuggestion } from './generic-search-box.types';
 
 @Component({
   selector: 'generic-search-box',
@@ -30,7 +31,6 @@ import { SearchBoxConfig, SearchBoxFetcher, SearchSuggestion } from './generic-s
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GenericSearchBoxComponent implements OnDestroy {
-  @Input() fetcher: SearchBoxFetcher | null = null;
   @Input() config: SearchBoxConfig | null = null;
 
   private readonly overlaySvc = inject(OverlayPositioningService);
@@ -59,7 +59,7 @@ export class GenericSearchBoxComponent implements OnDestroy {
   debounceMs = () => this.config?.debounceMs ?? 200;
   historyEnabled = () => !!this.config?.historyEnabled;
   historyLimit = () => this.config?.historyLimit ?? 5;
-  maxResults = () => this.config?.maxResults ?? 10;
+  maxResults = () => this.config?.maxResults ?? SEARCH_BOX_MAX_RESULTS;
   collapsed = () => !!this.config?.collapsed;
   classes = () => this.config?.classes ?? '';
   inputClasses = () => this.config?.inputClasses ?? 'ank-width-100per ank-borderRadius-0_5rem ank-border-1px-solid ank-borderColor-fgColor ank-px-0_75rem ank-py-0_5rem focus-visible-ring';
@@ -69,9 +69,9 @@ export class GenericSearchBoxComponent implements OnDestroy {
   panelInputWrapperClasses = () => this.config?.panelInputWrapperClasses ?? '';
   triggerClasses = () => this.config?.triggerClasses ?? 'ank-display-inlineFlex ank-alignItems-center ank-justifyContent-center ank-bg-transparent ank-border-none ank-cursor-pointer ank-color-titleColor';
   triggerAriaLabel = () => this.config?.triggerAriaLabel ?? this.i18n.t('ui.common.search');
-  closeAriaLabel = () => this.config?.closeAriaLabel ?? 'Close search';
-  triggerIcon = () => this.config?.triggerIcon ?? 'search';
-  closeIcon = () => this.config?.closeIcon ?? 'arrow_back';
+  closeAriaLabel = () => this.config?.closeAriaLabel ?? this.config?.ariaLabel ?? this.i18n.t('ui.common.search');
+  triggerIcon = () => this.config?.triggerIcon ?? '';
+  closeIcon = () => this.config?.closeIcon ?? '';
 
   openPanel() {
     if (!this.collapsed() || this.panelOpen()) return;
@@ -108,20 +108,18 @@ export class GenericSearchBoxComponent implements OnDestroy {
     if (this.debounceTimer) clearTimeout(this.debounceTimer);
     this.debounceTimer = setTimeout(() => this.perform(), this.debounceMs());
   }
-  private async perform() {
-    if (!this.fetcher) return;
+
+  private perform() {
     const q = this.term();
     if (q.length < this.minLength()) return;
-    try {
-      this.loading.set(true);
-      const r = await Promise.resolve(this.fetcher(q));
-      this.results.set(r.slice(0, this.maxResults()));
-      this.activeIndex.set(r.length ? 0 : -1);
-      if (r.length) this.ensureOverlay();
-      else this.destroyOverlay();
-    } finally {
-      this.loading.set(false);
-    }
+
+    this.loading.set(true);
+    const results = filterSearchSuggestions(this.suggestions(), q, this.maxResults());
+    this.results.set(results);
+    this.activeIndex.set(results.length ? 0 : -1);
+    if (results.length) this.ensureOverlay();
+    else this.destroyOverlay();
+    this.loading.set(false);
   }
   private ensureOverlay() {
     if (this.overlayRef) return;
@@ -198,6 +196,12 @@ export class GenericSearchBoxComponent implements OnDestroy {
   }
   getHistory(): readonly SearchSuggestion[] {
     return this.history;
+  }
+
+  private suggestions(): readonly SearchSuggestion[] {
+    return Array.isArray(this.config?.suggestions)
+      ? this.config.suggestions.filter((entry): entry is SearchSuggestion => !!entry && typeof entry.label === 'string')
+      : [];
   }
 
   ngOnDestroy(): void {

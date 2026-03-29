@@ -19,6 +19,12 @@ config: { label: '' }
 
 The value orchestrator will clone the component and set `config.label` to a **thunk** function that resolves at call-time.
 
+Important distinction:
+
+- Payload authors still provide JSON-serializable placeholders in `config`.
+- The runtime thunk is created by the orchestrator after load.
+- Shared render components may resolve those runtime thunks, but authored drafts and API payloads must never include functions directly.
+
 ## Implementation
 
 - Orchestrator: `src/app/shared/services/value-orchestrator.ts`

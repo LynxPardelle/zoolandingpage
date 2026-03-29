@@ -49,4 +49,28 @@ describe('GenericAccordionComponent', () => {
     expect(host.textContent).toContain('Item A');
     expect(host.textContent).toContain('Item B');
   });
+
+  it('does not render fallback detail icons when the config omits them', () => {
+    fixture.componentRef.setInput('config', {
+      renderMode: 'detail',
+      mode: 'single',
+      items: [
+        {
+          id: 'step-1',
+          title: 'Step 1',
+          summary: 'Summary text',
+          content: 'Long-form content',
+          meta: '2 days',
+          detailItems: ['Item A'],
+        },
+      ],
+    });
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    host.querySelector('button')?.click();
+    fixture.detectChanges();
+
+    expect(host.querySelectorAll('mat-icon').length).toBe(0);
+  });
 });

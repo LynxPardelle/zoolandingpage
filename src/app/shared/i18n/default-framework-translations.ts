@@ -111,19 +111,6 @@ export const DEFAULT_FRAMEWORK_TRANSLATIONS: Readonly<Record<string, Record<stri
                 },
             },
         },
-        footer: {
-            actions: {
-                close: 'Cerrar',
-            },
-            legal: {
-                terms: {
-                    title: 'Términos del servicio',
-                },
-                data: {
-                    title: 'Uso de datos',
-                },
-            },
-        },
     },
     en: {
         consent: {
@@ -234,19 +221,6 @@ export const DEFAULT_FRAMEWORK_TRANSLATIONS: Readonly<Record<string, Record<stri
                     topLeft: 'Move top left',
                     bottomCenter: 'Move bottom center',
                     clear: 'Clear toasts',
-                },
-            },
-        },
-        footer: {
-            actions: {
-                close: 'Close',
-            },
-            legal: {
-                terms: {
-                    title: 'Terms of service',
-                },
-                data: {
-                    title: 'Data usage',
                 },
             },
         },

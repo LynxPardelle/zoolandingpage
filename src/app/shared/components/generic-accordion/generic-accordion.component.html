@@ -84,13 +84,15 @@
             <h3 [class]="config().detailTitleClasses || 'accDetailTitle'">{{ titleOf(item) }}</h3>
             @if (metaOf(item)) {
             <div [class]="config().detailMetaClasses || 'accDetailMeta'">
+              @if (detailMetaIconName()) {
               <generic-icon
                 [config]="{
-                  iconName: detailMetaIconName(),
+                  iconName: detailMetaIconName() || '',
                   ariaHidden: true,
                   classes: 'ank-width-1rem ank-height-1rem ank-fontSize-1rem'
                 }"
               ></generic-icon>
+              }
               <span>{{ metaOf(item) }}</span>
             </div>
             }
@@ -108,13 +110,15 @@
         <ul [class]="config().detailListClasses || 'accDetailList'">
           @for (detailItem of detailItemsOf(item); track detailItem) {
           <li [class]="config().detailListItemClasses || 'accDetailListItem'">
+            @if (detailItemIconName()) {
             <generic-icon
               [config]="{
-                iconName: detailItemIconName(),
+                iconName: detailItemIconName() || '',
                 ariaHidden: true,
                 classes: 'ank-width-1rem ank-height-1rem ank-fontSize-1rem ank-flexShrink-0'
               }"
             ></generic-icon>
+            }
             <span>{{ detailItem }}</span>
           </li>
           }

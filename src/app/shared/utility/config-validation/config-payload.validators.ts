@@ -130,6 +130,55 @@ const isNumberArray = (value: unknown): value is readonly number[] =>
 const isStringThunkFriendly = (value: unknown): boolean =>
     value === undefined || typeof value === 'string';
 
+const isTextLikeValue = (value: unknown): boolean =>
+    value === undefined || typeof value === 'string' || (typeof value === 'number' && Number.isFinite(value));
+
+const isBooleanThunkFriendly = (value: unknown): boolean =>
+    value === undefined || typeof value === 'boolean';
+
+const isNumberThunkFriendly = (value: unknown): boolean =>
+    value === undefined || (typeof value === 'number' && Number.isFinite(value));
+
+const isDropdownConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+
+    const stringFields = [
+        'ariaLabel',
+        'classes',
+        'buttonClasses',
+        'triggerRole',
+        'itemLinkClasses',
+        'selectedItemClasses',
+        'disabledItemClasses',
+        'menuContainerClasses',
+        'menuNavClasses',
+        'menuListClasses',
+        'menuId',
+        'menuContainerId',
+        'inlinePortalTargetSelector',
+    ] as const;
+
+    if (stringFields.some((field) => value[field] !== undefined && typeof value[field] !== 'string')) return false;
+    if (value['closeOnSelect'] !== undefined && typeof value['closeOnSelect'] !== 'boolean') return false;
+    if (value['menuRole'] !== undefined && value['menuRole'] !== 'menu' && value['menuRole'] !== 'listbox') return false;
+    if (value['itemRole'] !== undefined && value['itemRole'] !== 'menuitem' && value['itemRole'] !== 'option') return false;
+    if (value['renderMode'] !== undefined && value['renderMode'] !== 'overlay' && value['renderMode'] !== 'inline') return false;
+    if (value['overlayOrigin'] !== undefined && !['host', 'closestHeader', 'closestContainer'].includes(String(value['overlayOrigin']))) return false;
+    if (value['overlayMatchWidth'] !== undefined && !['none', 'origin', 'viewport'].includes(String(value['overlayMatchWidth']))) return false;
+    if (value['overlayOffsetY'] !== undefined && !isNumberThunkFriendly(value['overlayOffsetY'])) return false;
+
+    return true;
+};
+
+const isGenericInputTextConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (value['tag'] !== undefined && typeof value['tag'] !== 'string') return false;
+    if (value['classes'] !== undefined && typeof value['classes'] !== 'string') return false;
+    if (value['id'] !== undefined && typeof value['id'] !== 'string') return false;
+    if (value['ariaLabel'] !== undefined && typeof value['ariaLabel'] !== 'string') return false;
+    return true;
+};
+
 const isGenericCardConfig = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
 
@@ -245,6 +294,260 @@ const isGenericInputConfig = (value: unknown): boolean => {
         return false;
     }
 
+    const stringFields = [
+        'name',
+        'label',
+        'description',
+        'helperText',
+        'placeholder',
+        'ariaLabel',
+        'classes',
+        'labelClasses',
+        'descriptionClasses',
+        'helperTextClasses',
+        'fieldClasses',
+        'inputClasses',
+        'dropdownTriggerClasses',
+        'dropdownIndicatorText',
+        'dropdownIndicatorClasses',
+        'optionContainerClasses',
+        'optionClasses',
+        'activeOptionClasses',
+        'errorClasses',
+        'valuePrefix',
+        'valueSuffix',
+    ] as const;
+
+    if (stringFields.some((field) => !isStringThunkFriendly(value[field]))) {
+        return false;
+    }
+
+    const numberFields = ['min', 'max', 'step', 'rows'] as const;
+    if (numberFields.some((field) => !isNumberThunkFriendly(value[field]))) {
+        return false;
+    }
+
+    const booleanFields = ['showRangeValue', 'required', 'disabled', 'readOnly'] as const;
+    if (booleanFields.some((field) => !isBooleanThunkFriendly(value[field]))) {
+        return false;
+    }
+
+    const textConfigFields = ['labelTextConfig', 'descriptionTextConfig', 'helperTextConfig', 'errorTextConfig', 'dropdownTriggerTextConfig'] as const;
+    if (textConfigFields.some((field) => value[field] !== undefined && !isGenericInputTextConfig(value[field]))) {
+        return false;
+    }
+
+    if (value['dropdownConfig'] !== undefined && !isDropdownConfig(value['dropdownConfig'])) {
+        return false;
+    }
+
+    return true;
+};
+
+const isSearchSuggestion = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (typeof value['id'] !== 'string' || value['id'].trim().length === 0) return false;
+    if (typeof value['label'] !== 'string' || value['label'].trim().length === 0) return false;
+    if (value['description'] !== undefined && typeof value['description'] !== 'string') return false;
+    if (value['href'] !== undefined && typeof value['href'] !== 'string') return false;
+    if (value['target'] !== undefined && !['_self', '_blank', '_parent', '_top'].includes(String(value['target']))) return false;
+    return true;
+};
+
+const isSearchBoxConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+
+    const stringFields = [
+        'ariaLabel',
+        'placeholder',
+        'classes',
+        'inputClasses',
+        'resultsClasses',
+        'triggerIcon',
+        'closeIcon',
+        'triggerAriaLabel',
+        'closeAriaLabel',
+        'triggerClasses',
+        'panelClasses',
+        'panelContentClasses',
+        'panelInputWrapperClasses',
+    ] as const;
+
+    if (stringFields.some((field) => value[field] !== undefined && typeof value[field] !== 'string')) {
+        return false;
+    }
+
+    const numberFields = ['minLength', 'debounceMs', 'historyLimit', 'maxResults'] as const;
+    if (numberFields.some((field) => value[field] !== undefined && !isNumberThunkFriendly(value[field]))) {
+        return false;
+    }
+
+    const booleanFields = ['collapsed', 'historyEnabled'] as const;
+    if (booleanFields.some((field) => value[field] !== undefined && typeof value[field] !== 'boolean')) {
+        return false;
+    }
+
+    if (value['suggestions'] !== undefined && (!Array.isArray(value['suggestions']) || !value['suggestions'].every(isSearchSuggestion))) {
+        return false;
+    }
+
+    return true;
+};
+
+const isAccordionItemsSource = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (value['source'] !== 'i18n' && value['source'] !== 'var') return false;
+    return typeof value['path'] === 'string' && value['path'].trim().length > 0;
+};
+
+const isAccordionItem = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+
+    const textFields = ['title', 'content', 'summary', 'meta', 'indexLabel', 'icon'] as const;
+    if (textFields.some((field) => !isTextLikeValue(value[field]))) return false;
+
+    const stringFields = [
+        'id',
+        'titleKey',
+        'contentKey',
+        'summaryKey',
+        'metaKey',
+        'detailItemsKey',
+        'containerClasses',
+        'containerIsExpandedClasses',
+        'containerIsNotExpandedClasses',
+        'panelClasses',
+        'buttonIsExpandedClasses',
+        'buttonIsNotExpandedClasses',
+        'iconIsExpandedClasses',
+        'iconIsNotExpandedClasses',
+    ] as const;
+    if (stringFields.some((field) => value[field] !== undefined && typeof value[field] !== 'string')) return false;
+
+    if (value['detailItems'] !== undefined && !isStringArray(value['detailItems'])) return false;
+    if (value['detailItemKeys'] !== undefined && !isStringArray(value['detailItemKeys'])) return false;
+    if (value['step'] !== undefined && !isNumberThunkFriendly(value['step'])) return false;
+    if (value['disabled'] !== undefined && typeof value['disabled'] !== 'boolean') return false;
+    if (value['buttonConfig'] !== undefined && !isRecord(value['buttonConfig'])) return false;
+
+    return true;
+};
+
+const isAccordionConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+
+    const stringFields = [
+        'containerClasses',
+        'defaultItemContainerClasses',
+        'defaultItemContainerIsExpandedClasses',
+        'defaultItemContainerIsNotExpandedClasses',
+        'defaultItemButtonIsExpandedClasses',
+        'defaultItemButtonIsNotExpandedClasses',
+        'defaultItemPanelClasses',
+        'defaultItemIconIsExpandedClasses',
+        'defaultItemIconIsNotExpandedClasses',
+        'buttonContentClasses',
+        'indexLabelClasses',
+        'indexLabelIsExpandedClasses',
+        'indexLabelIsNotExpandedClasses',
+        'titleClasses',
+        'summaryClasses',
+        'detailContainerClasses',
+        'detailHeaderClasses',
+        'detailIconClasses',
+        'detailTitleClasses',
+        'detailMetaClasses',
+        'detailSummaryClasses',
+        'detailContentLabelClasses',
+        'detailContentClasses',
+        'detailItemsLabelClasses',
+        'detailListClasses',
+        'detailListItemClasses',
+        'detailMetaIconName',
+        'detailItemIconName',
+        'toggleIconName',
+    ] as const;
+    if (stringFields.some((field) => value[field] !== undefined && typeof value[field] !== 'string')) return false;
+
+    const textFields = ['detailContentLabel', 'detailItemsLabel'] as const;
+    if (textFields.some((field) => !isTextLikeValue(value[field]))) return false;
+
+    if (value['mode'] !== undefined && value['mode'] !== 'single' && value['mode'] !== 'multiple') return false;
+    if (value['allowToggle'] !== undefined && typeof value['allowToggle'] !== 'boolean') return false;
+    if (value['items'] !== undefined && (!Array.isArray(value['items']) || !value['items'].every(isAccordionItem))) return false;
+    if (value['itemsSource'] !== undefined && !isAccordionItemsSource(value['itemsSource'])) return false;
+    if (value['renderMode'] !== undefined && value['renderMode'] !== 'default' && value['renderMode'] !== 'detail') return false;
+    if (value['activeId'] !== undefined && typeof value['activeId'] !== 'string') return false;
+    if (value['activeIds'] !== undefined && !isStringArray(value['activeIds'])) return false;
+    if (value['scrollBehavior'] !== undefined && value['scrollBehavior'] !== 'none' && value['scrollBehavior'] !== 'center') return false;
+    if (value['defaultItemButtonConfig'] !== undefined && !isRecord(value['defaultItemButtonConfig'])) return false;
+
+    return true;
+};
+
+const isTabItemsSource = (value: unknown): boolean => isAccordionItemsSource(value);
+
+const isTabDefinition = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+
+    const textFields = ['label', 'title', 'summary', 'content', 'meta', 'indexLabel', 'icon'] as const;
+    if (textFields.some((field) => !isTextLikeValue(value[field]))) return false;
+
+    const stringFields = ['id', 'labelKey', 'titleKey', 'summaryKey', 'contentKey', 'metaKey', 'detailItemsKey'] as const;
+    if (stringFields.some((field) => value[field] !== undefined && typeof value[field] !== 'string')) return false;
+
+    if (value['detailItems'] !== undefined && !isStringArray(value['detailItems'])) return false;
+    if (value['detailItemKeys'] !== undefined && !isStringArray(value['detailItemKeys'])) return false;
+    if (value['step'] !== undefined && !isNumberThunkFriendly(value['step'])) return false;
+    if (value['disabled'] !== undefined && typeof value['disabled'] !== 'boolean') return false;
+    if (value['lazy'] !== undefined && typeof value['lazy'] !== 'boolean') return false;
+
+    return true;
+};
+
+const isTabGroupConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+
+    const stringFields = [
+        'containerClasses',
+        'listContainerClasses',
+        'listHeaderClasses',
+        'tabListClasses',
+        'tabButtonClasses',
+        'activeTabButtonClasses',
+        'inactiveTabButtonClasses',
+        'buttonContentClasses',
+        'indexLabelClasses',
+        'activeIndexLabelClasses',
+        'inactiveIndexLabelClasses',
+        'titleClasses',
+        'summaryClasses',
+        'panelClasses',
+        'detailHeaderClasses',
+        'detailIconClasses',
+        'detailTitleClasses',
+        'detailMetaClasses',
+        'detailSummaryClasses',
+        'detailMetaIconName',
+        'detailContentLabelClasses',
+        'detailContentClasses',
+        'detailItemsLabelClasses',
+        'detailListClasses',
+        'detailListItemClasses',
+        'detailItemIconName',
+    ] as const;
+    if (stringFields.some((field) => value[field] !== undefined && typeof value[field] !== 'string')) return false;
+
+    const textFields = ['listHeaderLabel', 'detailContentLabel', 'detailItemsLabel'] as const;
+    if (textFields.some((field) => !isTextLikeValue(value[field]))) return false;
+
+    if (value['activeId'] !== undefined && typeof value['activeId'] !== 'string') return false;
+    if (value['tabs'] !== undefined && (!Array.isArray(value['tabs']) || !value['tabs'].every(isTabDefinition))) return false;
+    if (value['tabsSource'] !== undefined && !isTabItemsSource(value['tabsSource'])) return false;
+    if (value['layout'] !== undefined && value['layout'] !== 'default' && value['layout'] !== 'split-detail') return false;
+    if (value['orientation'] !== undefined && value['orientation'] !== 'horizontal' && value['orientation'] !== 'vertical') return false;
+    if (value['scrollBehavior'] !== undefined && value['scrollBehavior'] !== 'none' && value['scrollBehavior'] !== 'center') return false;
+
     return true;
 };
 
@@ -275,12 +578,24 @@ const isComponentPayloadRecord = (value: unknown): boolean => {
         return isGenericCardConfig(value['config']);
     }
 
+    if (value['type'] === 'accordion') {
+        return isAccordionConfig(value['config']);
+    }
+
     if (value['type'] === 'input') {
         return isGenericInputConfig(value['config']);
     }
 
     if (value['type'] === 'interaction-scope') {
         return isInteractionScopeConfig(value['config']);
+    }
+
+    if (value['type'] === 'search-box') {
+        return isSearchBoxConfig(value['config']);
+    }
+
+    if (value['type'] === 'tab-group') {
+        return isTabGroupConfig(value['config']);
     }
 
     return true;

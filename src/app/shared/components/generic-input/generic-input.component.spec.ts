@@ -73,13 +73,18 @@ describe('GenericInputComponent', () => {
         expect(textarea.value).toBe('Initial summary');
     });
 
-    it('renders the selected option label for select controls', () => {
+    it('renders the selected option label and payload-owned select indicator for select controls', () => {
         const fixture = TestBed.createComponent(GenericInputComponent);
 
         fixture.componentRef.setInput('config', {
             fieldId: 'matterType',
             controlType: 'select',
             value: 'corporate-advisory',
+            fieldClasses: 'selectField',
+            dropdownTriggerClasses: 'selectTrigger',
+            dropdownIndicatorText: 'v',
+            dropdownIndicatorClasses: 'selectIndicator',
+            dropdownTriggerTextConfig: { classes: 'selectTriggerText' },
             options: [
                 { value: 'contract-review', label: 'Contract review' },
                 { value: 'corporate-advisory', label: 'Corporate advisory' },
@@ -90,6 +95,9 @@ describe('GenericInputComponent', () => {
         const dropdown = fixture.nativeElement.querySelector('generic-dropdown');
         expect(dropdown).toBeTruthy();
         expect(fixture.nativeElement.textContent).toContain('Corporate advisory');
+        expect(fixture.nativeElement.textContent).toContain('v');
+        expect(fixture.nativeElement.querySelector('.selectTrigger')).toBeTruthy();
+        expect(fixture.nativeElement.querySelector('.selectIndicator')).toBeTruthy();
     });
 
     it('updates select-like controls through the generic dropdown adapter', () => {

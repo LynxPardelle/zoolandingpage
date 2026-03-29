@@ -143,6 +143,15 @@
         "helperTextClasses": { "type": "string" },
         "fieldClasses": { "type": "string" },
         "inputClasses": { "type": "string" },
+        "dropdownTriggerClasses": { "type": "string" },
+        "dropdownIndicatorText": { "type": "string" },
+        "dropdownIndicatorClasses": { "type": "string" },
+        "dropdownConfig": { "type": "object" },
+        "labelTextConfig": { "type": "object" },
+        "descriptionTextConfig": { "type": "object" },
+        "helperTextConfig": { "type": "object" },
+        "errorTextConfig": { "type": "object" },
+        "dropdownTriggerTextConfig": { "type": "object" },
         "optionContainerClasses": { "type": "string" },
         "optionClasses": { "type": "string" },
         "activeOptionClasses": { "type": "string" },
@@ -165,6 +174,167 @@
           "type": "array",
           "items": { "$ref": "#/definitions/interactionValidationRule" }
         }
+      },
+      "additionalProperties": true
+    },
+    "searchSuggestion": {
+      "type": "object",
+      "required": ["id", "label"],
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": "string" },
+        "description": { "type": "string" },
+        "href": { "type": "string" },
+        "target": { "enum": ["_self", "_blank", "_parent", "_top"] }
+      },
+      "additionalProperties": true
+    },
+    "searchBoxConfig": {
+      "type": "object",
+      "properties": {
+        "minLength": { "type": "number" },
+        "debounceMs": { "type": "number" },
+        "ariaLabel": { "type": "string" },
+        "placeholder": { "type": "string" },
+        "classes": { "type": "string" },
+        "inputClasses": { "type": "string" },
+        "resultsClasses": { "type": "string" },
+        "collapsed": { "type": "boolean" },
+        "triggerIcon": { "type": "string" },
+        "closeIcon": { "type": "string" },
+        "triggerAriaLabel": { "type": "string" },
+        "closeAriaLabel": { "type": "string" },
+        "triggerClasses": { "type": "string" },
+        "panelClasses": { "type": "string" },
+        "panelContentClasses": { "type": "string" },
+        "panelInputWrapperClasses": { "type": "string" },
+        "historyEnabled": { "type": "boolean" },
+        "historyLimit": { "type": "number" },
+        "maxResults": { "type": "number" },
+        "suggestions": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/searchSuggestion" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "accordionItem": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": ["string", "number"] },
+        "titleKey": { "type": "string" },
+        "content": { "type": ["string", "number"] },
+        "contentKey": { "type": "string" },
+        "summary": { "type": ["string", "number"] },
+        "summaryKey": { "type": "string" },
+        "meta": { "type": ["string", "number"] },
+        "metaKey": { "type": "string" },
+        "detailItems": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "detailItemsKey": { "type": "string" },
+        "detailItemKeys": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "indexLabel": { "type": ["string", "number"] },
+        "step": { "type": "number" },
+        "icon": { "type": ["string", "number"] },
+        "disabled": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "accordionConfig": {
+      "type": "object",
+      "properties": {
+        "mode": { "enum": ["single", "multiple"] },
+        "allowToggle": { "type": "boolean" },
+        "items": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/accordionItem" }
+        },
+        "itemsSource": {
+          "type": "object",
+          "required": ["source", "path"],
+          "properties": {
+            "source": { "enum": ["i18n", "var"] },
+            "path": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "renderMode": { "enum": ["default", "detail"] },
+        "activeId": { "type": "string" },
+        "activeIds": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "scrollBehavior": { "enum": ["none", "center"] },
+        "detailMetaIconName": { "type": "string" },
+        "detailItemIconName": { "type": "string" },
+        "toggleIconName": { "type": "string" },
+        "detailContentLabel": { "type": ["string", "number"] },
+        "detailItemsLabel": { "type": ["string", "number"] }
+      },
+      "additionalProperties": true
+    },
+    "tabDefinition": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": ["string", "number"] },
+        "labelKey": { "type": "string" },
+        "title": { "type": ["string", "number"] },
+        "titleKey": { "type": "string" },
+        "summary": { "type": ["string", "number"] },
+        "summaryKey": { "type": "string" },
+        "content": { "type": ["string", "number"] },
+        "contentKey": { "type": "string" },
+        "meta": { "type": ["string", "number"] },
+        "metaKey": { "type": "string" },
+        "detailItems": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "detailItemsKey": { "type": "string" },
+        "detailItemKeys": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "indexLabel": { "type": ["string", "number"] },
+        "step": { "type": "number" },
+        "icon": { "type": ["string", "number"] },
+        "disabled": { "type": "boolean" },
+        "lazy": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "tabGroupConfig": {
+      "type": "object",
+      "properties": {
+        "activeId": { "type": "string" },
+        "tabs": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/tabDefinition" }
+        },
+        "tabsSource": {
+          "type": "object",
+          "required": ["source", "path"],
+          "properties": {
+            "source": { "enum": ["i18n", "var"] },
+            "path": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "layout": { "enum": ["default", "split-detail"] },
+        "orientation": { "enum": ["horizontal", "vertical"] },
+        "scrollBehavior": { "enum": ["none", "center"] },
+        "listHeaderLabel": { "type": ["string", "number"] },
+        "detailMetaIconName": { "type": "string" },
+        "detailContentLabel": { "type": ["string", "number"] },
+        "detailItemsLabel": { "type": ["string", "number"] },
+        "detailItemIconName": { "type": "string" }
       },
       "additionalProperties": true
     },
@@ -272,6 +442,45 @@
             "then": {
               "properties": {
                 "config": { "$ref": "#/definitions/interactionScopeConfig" }
+              },
+              "required": ["config"]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": { "const": "search-box" }
+              }
+            },
+            "then": {
+              "properties": {
+                "config": { "$ref": "#/definitions/searchBoxConfig" }
+              },
+              "required": ["config"]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": { "const": "accordion" }
+              }
+            },
+            "then": {
+              "properties": {
+                "config": { "$ref": "#/definitions/accordionConfig" }
+              },
+              "required": ["config"]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": { "const": "tab-group" }
+              }
+            },
+            "then": {
+              "properties": {
+                "config": { "$ref": "#/definitions/tabGroupConfig" }
               },
               "required": ["config"]
             }

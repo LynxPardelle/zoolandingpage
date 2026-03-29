@@ -39,6 +39,8 @@ class WrapperOrchestratorStub {
 })
 class DebugWorkspaceStub { }
 
+const PRIMARY_DOMAIN = 'preview.example.test';
+
 const ORCHESTRATOR_STUB = {
   modalHostConfig$: of(null),
   fallbackModalHostConfig: {},
@@ -49,13 +51,14 @@ const ORCHESTRATOR_STUB = {
   exportDraftComponentsPayload: () => ({
     version: 1,
     pageId: 'default',
-    domain: 'zoolandingpage.com.mx',
+    domain: PRIMARY_DOMAIN,
     components: {},
   }),
 };
 
 describe('AppShellComponent a11y', () => {
   beforeEach(async () => {
+    window.history.replaceState({}, '', `/?draftDomain=${ PRIMARY_DOMAIN }&draftPageId=default`);
     await TestBed.configureTestingModule({
       imports: [AppShellComponent],
       providers: [
@@ -73,20 +76,20 @@ describe('AppShellComponent a11y', () => {
           provide: ConfigBootstrapService,
           useValue: {
             load: async () => ({
-              domain: 'zoolandingpage.com.mx',
+              domain: PRIMARY_DOMAIN,
               pageId: 'default',
               structuredDataApplied: true,
               pageConfig: {
                 version: 1,
                 pageId: 'default',
-                domain: 'zoolandingpage.com.mx',
+                domain: PRIMARY_DOMAIN,
                 rootIds: ['skipToMainLink', 'siteHeader', 'landingPage'],
                 modalRootIds: ['modalAnalyticsConsentRoot', 'modalTermsRoot', 'modalDataUseRoot'],
               },
               components: {
                 version: 1,
                 pageId: 'default',
-                domain: 'zoolandingpage.com.mx',
+                domain: PRIMARY_DOMAIN,
                 components: {
                   draftStub: {
                     id: 'draftStub',
@@ -101,7 +104,7 @@ describe('AppShellComponent a11y', () => {
         {
           provide: DraftRegistryService,
           useValue: {
-            listDrafts: () => of([{ domain: 'zoolandingpage.com.mx', pageId: 'default' }]),
+            listDrafts: () => of([{ domain: PRIMARY_DOMAIN, pageId: 'default' }]),
           },
         },
         {
@@ -132,6 +135,11 @@ describe('AppShellComponent a11y', () => {
       remove: { imports: [WrapperOrchestrator, DebugWorkspaceComponent] },
       add: { imports: [WrapperOrchestratorStub, DebugWorkspaceStub, AsyncPipe] },
     });
+  });
+
+  afterEach(() => {
+    window.history.replaceState({}, '', '/context.html');
+    TestBed.resetTestingModule();
   });
 
   it('skip link moves focus to main landmark', async () => {

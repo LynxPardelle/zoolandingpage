@@ -282,7 +282,7 @@ describe('whatsapp handlers', () => {
         expect(openSpy).not.toHaveBeenCalled();
     });
 
-    it('should still open the WhatsApp phone link when the draft omits the configured message key', () => {
+    it('should still open the WhatsApp phone link when the general CTA omits its configured message key', () => {
         variables.setPayload({
             version: 1,
             pageId: 'default',
@@ -307,6 +307,28 @@ describe('whatsapp handlers', () => {
         );
     });
 
+    it('should no-op when the FAQ CTA message key is missing', () => {
+        variables.setPayload({
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            variables: {
+                ui: {
+                    contact: {
+                        whatsappPhone: '+525522699563',
+                        whatsappMessageKey: 'ui.contact.whatsappMessage'
+                    }
+                }
+            }
+        } as any);
+
+        const handler = TestBed.runInInjectionContext(() => openFaqCtaWhatsAppHandler());
+
+        handler.handle(context, []);
+
+        expect(openSpy).not.toHaveBeenCalled();
+    });
+
     it('should reuse the configured phone for FAQ CTA events', () => {
         const handler = TestBed.runInInjectionContext(() => openFaqCtaWhatsAppHandler());
 
@@ -317,5 +339,27 @@ describe('whatsapp handlers', () => {
             '_blank',
             'noopener,noreferrer'
         );
+    });
+
+    it('should no-op when the final CTA message key is missing', () => {
+        variables.setPayload({
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            variables: {
+                ui: {
+                    contact: {
+                        whatsappPhone: '+525522699563',
+                        whatsappMessageKey: 'ui.contact.whatsappMessage'
+                    }
+                }
+            }
+        } as any);
+
+        const handler = TestBed.runInInjectionContext(() => openFinalCtaWhatsAppHandler());
+
+        handler.handle(context, [AnalyticsEvents.CtaClick, 'primary']);
+
+        expect(openSpy).not.toHaveBeenCalled();
     });
 });

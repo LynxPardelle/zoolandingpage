@@ -55,4 +55,24 @@ describe('GenericTabGroupComponent', () => {
     expect(host.textContent).toContain('Item A');
     expect(host.textContent).toContain('Item B');
   });
+
+  it('does not render fallback detail icons when the config omits them', () => {
+    fixture.componentRef.setInput('config', {
+      layout: 'split-detail',
+      tabs: [
+        {
+          id: 'overview',
+          label: 'Overview',
+          summary: 'Summary text',
+          content: 'Long-form content',
+          meta: '2 days',
+          detailItems: ['Item A'],
+        },
+      ],
+    });
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelectorAll('mat-icon').length).toBe(0);
+  });
 });

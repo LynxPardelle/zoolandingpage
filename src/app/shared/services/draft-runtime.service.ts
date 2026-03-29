@@ -7,6 +7,8 @@ import { ConfigSourceService } from './config-source.service';
 import { DomainResolverService } from './domain-resolver.service';
 import { DraftRegistryService, TDraftRegistryEntry } from './draft-registry.service';
 
+export const DRAFT_RUNTIME_STICKY_QUERY_PARAMS = ['debugWorkspace'] as const;
+
 export type TDraftOption = TDraftRegistryEntry & {
     readonly key: string;
     readonly label: string;

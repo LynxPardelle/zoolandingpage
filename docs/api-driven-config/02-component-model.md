@@ -30,6 +30,7 @@ Rule of thumb for API mode:
 
 - `config` should be JSON-serializable.
 - If you need runtime changes, use `valueInstructions`.
+- The runtime may still materialize orchestrator-owned thunks after `valueInstructions` runs, but those are an internal render detail, not something authors should place in payload JSON.
 
 ### `valueInstructions` (optional)
 
@@ -84,6 +85,12 @@ Canonical accordion item fields:
 
 Legacy process-only aliases such as `description`, `detailedDescription`, `duration`, and `deliverables` are no longer part of the authored contract.
 
+When using detail mode:
+
+- `detailMetaIconName`, `detailItemIconName`, and `toggleIconName` are payload-owned.
+- Shared components do not inject fallback icons anymore.
+- If a draft omits those fields, the related icons are simply not rendered.
+
 ### `config.tabsSource` for tab group (optional)
 
 `generic-tab-group` supports the same API-safe source model for authored tabs:
@@ -102,6 +109,25 @@ Canonical tab item fields:
 - `detailItems` / `detailItemsKey` / `detailItemKeys`
 - `indexLabel`
 - `icon`
+
+When using `layout: 'split-detail'`:
+
+- `detailMetaIconName` and `detailItemIconName` are payload-owned.
+- Shared components do not inject fallback icons anymore.
+
+### `search-box` config
+
+`generic-search-box` is now draft-native and filters the authored `config.suggestions` array directly.
+
+Author these fields in payloads when needed:
+
+- `suggestions`
+- `triggerIcon`
+- `closeIcon`
+- `triggerAriaLabel`
+- `closeAriaLabel`
+
+Do not rely on a separate runtime fetcher function in API mode.
 
 ## Composition / nesting
 
@@ -136,6 +162,7 @@ Stateful authored interactions should use an `interaction-scope` component as th
 
 - `interaction-scope` owns local field state, validation state, and computed outputs for one wrapper subtree.
 - `input` components should live inside the nearest `interaction-scope` so sibling components can react to shared local state without using global runtime services.
+- Shared input renderers no longer inject select/dropdown appearance defaults; authored payloads should provide `fieldClasses`, `dropdownTriggerClasses`, `dropdownIndicatorText`, `dropdownIndicatorClasses`, `dropdownTriggerTextConfig`, and `dropdownConfig` when the design depends on them.
 - Existing display components such as `text`, `stats-counter`, `button`, and `container` can read scoped values through `valueInstructions`.
 
 Recommended pattern:

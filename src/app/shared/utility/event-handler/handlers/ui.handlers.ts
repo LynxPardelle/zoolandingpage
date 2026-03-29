@@ -1,6 +1,7 @@
 import { normalizeLocaleCode } from '@/app/shared/i18n/locale.utils';
 import { AnalyticsCategories, AnalyticsEvents } from '@/app/shared/services/analytics.events';
 import { AnalyticsService } from '@/app/shared/services/analytics.service';
+import { DRAFT_RUNTIME_STICKY_QUERY_PARAMS } from '@/app/shared/services/draft-runtime.service';
 import { LanguageService } from '@/app/shared/services/language.service';
 import { ThemeService } from '@/app/shared/services/theme.service';
 import type { SupportedLanguage } from '@/app/shared/types/navigation.types';
@@ -86,7 +87,9 @@ export const navigateToUrlHandler = (): EventHandler => {
     return {
         id: 'navigateToUrl',
         handle: (_ctx, args) => {
-            const resolved = resolveNavigationTarget(String(args?.[0] ?? ''));
+            const resolved = resolveNavigationTarget(String(args?.[0] ?? ''), {
+                stickyQueryParams: DRAFT_RUNTIME_STICKY_QUERY_PARAMS,
+            });
             const href = resolved.href;
             const target = String(args?.[1] ?? '_self').trim() || '_self';
 
