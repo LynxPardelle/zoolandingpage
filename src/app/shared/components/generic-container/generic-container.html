@@ -97,6 +97,19 @@
 >
   <ng-container [ngTemplateOutlet]="contentGenericContainerTpl"></ng-container>
 </aside>
+} @case('ol') {
+<ol
+  [id]="id()"
+  [class]="classes()"
+  [ngClass]="classMap()"
+  [ngStyle]="styles()"
+  [attr.role]="role()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+>
+  <ng-container [ngTemplateOutlet]="contentGenericContainerTpl"></ng-container>
+</ol>
 } @case('ul') {
 <ul
   [id]="id()"
@@ -123,6 +136,19 @@
 >
   <ng-container [ngTemplateOutlet]="contentGenericContainerTpl"></ng-container>
 </li>
+} @case('span') {
+<span
+  [id]="id()"
+  [class]="classes()"
+  [ngClass]="classMap()"
+  [ngStyle]="styles()"
+  [attr.role]="role()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+>
+  <ng-container [ngTemplateOutlet]="contentGenericContainerTpl"></ng-container>
+</span>
 } @default {
 <div
   [id]="id()"

@@ -1,3 +1,4 @@
+import { GenericModalService } from '@/app/shared/components/generic-modal/generic-modal.service';
 import { AnalyticsEvents } from '@/app/shared/services/analytics.events';
 import { AnalyticsService } from '@/app/shared/services/analytics.service';
 import { I18nService } from '@/app/shared/services/i18n.service';
@@ -6,6 +7,7 @@ import { VariableStoreService } from '@/app/shared/services/variable-store.servi
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import type { EventExecutionContext } from '../event-handler.types';
+import { openModalHandler } from './legal-modal.handlers';
 import { navigateToUrlHandler, setLanguageHandler } from './ui.handlers';
 import { openFaqCtaWhatsAppHandler, openFinalCtaWhatsAppHandler, openWhatsAppHandler } from './whatsapp.handlers';
 
@@ -132,6 +134,61 @@ describe('navigateToUrlHandler', () => {
 
         expect(openSpy).toHaveBeenCalledOnceWith('https://example.com/profile', '_blank', 'noopener,noreferrer');
         expect(router.navigateByUrl).not.toHaveBeenCalled();
+    });
+});
+
+describe('openModalHandler', () => {
+    let analytics: jasmine.SpyObj<AnalyticsService>;
+    let modal: jasmine.SpyObj<GenericModalService>;
+    let context: EventExecutionContext;
+
+    beforeEach(() => {
+        analytics = jasmine.createSpyObj<AnalyticsService>('AnalyticsService', ['track']);
+        analytics.track.and.returnValue(Promise.resolve());
+        modal = jasmine.createSpyObj<GenericModalService>('GenericModalService', ['open', 'close']);
+
+        TestBed.configureTestingModule({
+            providers: [
+                { provide: AnalyticsService, useValue: analytics },
+                { provide: GenericModalService, useValue: modal },
+            ]
+        });
+
+        context = {
+            event: {
+                componentId: 'footerTermsButton',
+                eventName: 'clicked'
+            },
+            host: null
+        };
+    });
+
+    it('should open a payload-specified modal and optionally track it', () => {
+        const handler = TestBed.runInInjectionContext(() => openModalHandler());
+
+        handler.handle(context, ['terms-of-service', 'footer:terms', 'open_terms_modal', 'footer']);
+
+        expect(modal.open).toHaveBeenCalledOnceWith({ id: 'terms-of-service' });
+        expect(analytics.track).toHaveBeenCalledOnceWith(
+            AnalyticsEvents.ActionTrigger,
+            jasmine.objectContaining({
+                label: 'footer:terms',
+                meta: jasmine.objectContaining({
+                    modalId: 'terms-of-service',
+                    action: 'open_terms_modal',
+                    location: 'footer',
+                })
+            })
+        );
+    });
+
+    it('should no-op when the modal id is missing', () => {
+        const handler = TestBed.runInInjectionContext(() => openModalHandler());
+
+        handler.handle(context, []);
+
+        expect(modal.open).not.toHaveBeenCalled();
+        expect(analytics.track).not.toHaveBeenCalled();
     });
 });
 

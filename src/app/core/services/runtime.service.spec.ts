@@ -123,6 +123,7 @@ describe('RuntimeService', () => {
 
     it('reinitializes the rendered draft when client navigation changes the route path', async () => {
         const service = TestBed.inject(RuntimeService);
+        const expectedModalRootIds = ['modalDemoRoot'];
 
         window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.preview');
         await service.initialize('es');
@@ -147,12 +148,13 @@ describe('RuntimeService', () => {
             domain: 'pamelabetancourt.preview',
             pageId: 'servicios',
             rootIds: ['servicios-root'],
-            modalRootIds: [],
+            modalRootIds: expectedModalRootIds,
         });
     });
 
     it('queues a fresh draft initialization when navigation changes during an active load', async () => {
         const service = TestBed.inject(RuntimeService);
+        const expectedModalRootIds = ['modalDemoRoot'];
         let resolveFirstLoad!: () => void;
         let hasResolveFirstLoad = false;
         let firstLoadPending = true;
@@ -231,7 +233,32 @@ describe('RuntimeService', () => {
             domain: 'pamelabetancourt.preview',
             pageId: 'servicios',
             rootIds: ['servicios-root'],
-            modalRootIds: [],
+            modalRootIds: expectedModalRootIds,
+        });
+    });
+
+    it('skips bootstrap when no draft identity is resolved yet', async () => {
+        const service = TestBed.inject(RuntimeService);
+        const draftRuntime = TestBed.inject(DraftRuntimeService);
+        const expectedModalRootIds = ['modalDemoRoot'];
+        spyOn(draftRuntime, 'resolveActiveDraftContext').and.resolveTo({
+            domain: '',
+            pageId: '',
+            path: '/',
+            route: null,
+            explicitPageId: false,
+        });
+
+        await service.initialize('es');
+
+        expect(bootstrapLoad).not.toHaveBeenCalled();
+        expect(service.rootComponentsIds()).toEqual([]);
+        expect(service.modalRootIds()).toEqual(expectedModalRootIds);
+        expect(setDraftExportContext).toHaveBeenCalledWith({
+            domain: '',
+            pageId: '',
+            rootIds: [],
+            modalRootIds: expectedModalRootIds,
         });
     });
 });

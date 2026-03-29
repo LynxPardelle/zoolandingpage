@@ -38,6 +38,14 @@ export const DEFAULT_FRAMEWORK_TRANSLATIONS: Readonly<Record<string, Record<stri
             title: 'Controles de demostración',
             modal: {
                 title: 'Modal de demostración',
+                header: 'Modal de demostración',
+                desc: 'Este modal verifica que el flujo genérico de eventos y el host de modales estén activos incluso antes de cargar un draft.',
+                features: [
+                    'Usa la misma instrucción openModal que los payloads del draft.',
+                    'Se renderiza mediante el host modal compartido.',
+                    'Permite validar la UI local sin depender de un fallback de entorno.',
+                ],
+                close: 'Cerrar modal',
                 button: {
                     open: 'Abrir modal de demostración',
                 },
@@ -156,6 +164,14 @@ export const DEFAULT_FRAMEWORK_TRANSLATIONS: Readonly<Record<string, Record<stri
             title: 'Demo controls',
             modal: {
                 title: 'Demo modal',
+                header: 'Demo modal',
+                desc: 'This modal verifies that the generic event flow and shared modal host are active even before a draft is loaded.',
+                features: [
+                    'Uses the same openModal instruction as draft payloads.',
+                    'Renders through the shared modal host.',
+                    'Lets you validate the local UI without an environment fallback.',
+                ],
+                close: 'Close modal',
                 button: {
                     open: 'Open demo modal',
                 },

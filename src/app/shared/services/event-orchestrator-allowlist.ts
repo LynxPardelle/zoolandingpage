@@ -1,6 +1,7 @@
 import { InjectionToken } from '@angular/core';
 
 export const DEFAULT_ALLOWED_EVENT_IDS = [
+    'openModal',
     'openWhatsApp',
     'trackCTAClick',
     'trackNavClick',
@@ -16,11 +17,8 @@ export const DEFAULT_ALLOWED_EVENT_IDS = [
     'setScopeValue',
     'resetScope',
     'submitScope',
-    'openFooterTerms',
-    'openFooterData',
     // [MODALS-8]
     'closeModal',
-    'showDemoModal',
     'acceptConsent',
     'declineConsent',
     'remindLater',

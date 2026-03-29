@@ -1,10 +1,9 @@
-import { environment } from '@/environments/environment';
 import { isPlatformBrowser } from '@angular/common';
 import { inject, Injectable, PLATFORM_ID, REQUEST } from '@angular/core';
 
 export type TResolvedDomain = {
     readonly domain: string;
-    readonly source: 'queryParam' | 'draftDefault' | 'urlHost' | 'fallback';
+    readonly source: 'queryParam' | 'urlHost' | 'unresolved';
 };
 
 @Injectable({ providedIn: 'root' })
@@ -49,20 +48,20 @@ export class DomainResolverService {
             }
         }
 
-        if (this.isBrowser && window.location?.hostname) {
-            const host = window.location.hostname.trim();
-            if (environment.drafts.enabled && this.isLocalHost(host)) {
-                const draftDefault = String(environment.drafts.defaultDomain ?? '').trim();
-                if (draftDefault.length > 0) {
-                    return { domain: draftDefault, source: 'draftDefault' };
-                }
-            }
-
-            if (host.length > 0) {
+        if (requestUrl?.hostname) {
+            const host = requestUrl.hostname.trim();
+            if (host.length > 0 && !this.isLocalHost(host)) {
                 return { domain: host, source: 'urlHost' };
             }
         }
 
-        return { domain: environment.domain.defaultDomain, source: 'fallback' };
+        if (this.isBrowser && window.location?.hostname) {
+            const host = window.location.hostname.trim();
+            if (host.length > 0 && !this.isLocalHost(host)) {
+                return { domain: host, source: 'urlHost' };
+            }
+        }
+
+        return { domain: '', source: 'unresolved' };
     }
 }

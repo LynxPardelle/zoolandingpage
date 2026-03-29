@@ -183,4 +183,15 @@ describe('DraftRuntimeService', () => {
     expect(service.activeDraftPageId()).toBe('default');
   });
 
+  it('auto-enables the debug workspace on localhost when no draft identity is resolved', () => {
+    const { service } = configure(
+      'http://localhost:4200/',
+      null,
+      { browserMode: true },
+    );
+
+    expect(service.hasResolvedActiveDraftIdentity()).toBeFalse();
+    expect(service.hasDebugWorkspaceEnabled()).toBeTrue();
+  });
+
 });

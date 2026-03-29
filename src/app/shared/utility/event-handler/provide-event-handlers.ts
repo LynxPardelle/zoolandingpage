@@ -15,12 +15,10 @@ import {
     removeConsentRequestHandler,
 } from './handlers/consent.handlers';
 import { downloadDraftPayloadsHandler, writeDraftsToDiskHandler } from './handlers/debug-drafts.handlers';
-import { showDemoModalHandler } from './handlers/demo-modal.handlers';
 import { resetScopeHandler, setScopeValueHandler, submitScopeHandler } from './handlers/interaction-scope.handlers';
 import {
     closeModalHandler,
-    openFooterDataHandler,
-    openFooterTermsHandler,
+    openModalHandler,
 } from './handlers/legal-modal.handlers';
 import {
     clearAllToastsHandler,
@@ -56,11 +54,9 @@ export const provideEventHandlers = (): Provider[] => {
         { provide: EVENT_HANDLERS, multi: true, useFactory: setScopeValueHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: resetScopeHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: submitScopeHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: openFooterTermsHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: openFooterDataHandler },
+        { provide: EVENT_HANDLERS, multi: true, useFactory: openModalHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: closeModalHandler },
 
-        { provide: EVENT_HANDLERS, multi: true, useFactory: showDemoModalHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: acceptConsentHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: declineConsentHandler },
         { provide: EVENT_HANDLERS, multi: true, useFactory: remindLaterHandler },

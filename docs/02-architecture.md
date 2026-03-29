@@ -100,7 +100,7 @@ The project uses Angular standalone components for:
 | `ConfigBootstrapService`            | Loads payloads in sequence, configures i18n, applies structured data, validates versions, and fills `ConfigStoreService`.                                                             |
 | `ConfigStoreService`                | Signal-based store for loaded payloads, bootstrap stage, validation issues, and runtime readiness.                                                                                    |
 | `RuntimeService`                    | Lives in `src/app/core/services`, owns the shell render roots (`rootComponentsIds`, `modalRootIds`), and applies the loaded component payload to `ConfigurationsOrchestratorService`. |
-| `DraftRuntimeService`               | Resolves active draft context from URL/SSR request data and refreshes the development draft registry.                                                                                 |
+| `DraftRuntimeService`               | Resolves active draft context from URL/SSR request data, site-config routing, and explicit draft query params; it no longer falls back to environment-owned page identity defaults.   |
 | `DraftRegistryService`              | Lists available development drafts from `/api/debug/drafts`.                                                                                                                          |
 | `SeoMetadataService`                | Applies title, description, Open Graph, Twitter, canonical, and `<html lang>` metadata from payloads.                                                                                 |
 | `AnalyticsService`                  | Tracks events, handles consent, publishes debug streams, and manages page engagement observers.                                                                                       |
@@ -217,6 +217,12 @@ User Interaction
 - **Draft Refreshes**: development draft list refreshes through `DraftRuntimeService` and `DraftRegistryService`.
 - **Payload-driven Rendering**: `WrapperOrchestrator` re-evaluates value/event/condition DSL instructions against the active stores.
 - **Styling Updates**: NGX-Angora regenerates classes after render and after combo updates.
+
+### Draft Identity Rules
+
+- The runtime no longer uses environment defaults to decide which domain or page to load.
+- On localhost, draft mode expects either explicit `draftDomain` and `draftPageId` query parameters or a resolvable site-config path.
+- Modal host behavior is draft-owned through `variables.ui.modals`, while modal content still comes from `components.json`.
 
 ## 🔧 Build Architecture
 

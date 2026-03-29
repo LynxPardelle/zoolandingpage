@@ -264,8 +264,26 @@ describe('ConfigurationsOrchestratorService', () => {
     expect(config.closeOnBackdrop).toBeTrue();
   });
 
-  it('keeps analytics consent modal safeguards as framework defaults', () => {
+  it('reads analytics consent modal behavior from payload-owned ui.modals config', () => {
     modalRefSignal.set({ id: 'analytics-consent', close: () => { } });
+
+    variables.setPayload({
+      version: 1,
+      pageId: 'default',
+      domain: 'zoolandingpage.com.mx',
+      variables: {
+        ui: {
+          modals: {
+            'analytics-consent': {
+              closeOnBackdrop: false,
+              showCloseButton: false,
+              variant: 'dialog',
+              ariaLabelKey: 'ui.accessibility.analyticsConsentDialog',
+            },
+          },
+        },
+      },
+    });
 
     const config = service.modalHostConfig();
 

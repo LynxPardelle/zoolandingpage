@@ -5,14 +5,9 @@ export type TEnvironment = {
     readonly development: boolean;
     readonly apiUrl: string;
     readonly apiVersion: string;
-    readonly domain: {
-        readonly defaultDomain: string;
-    };
     readonly drafts: {
         readonly enabled: boolean;
         readonly basePath: string;
-        readonly defaultDomain: string;
-        readonly defaultPageId: string;
     };
     readonly localStorage: {
         readonly themeKey: string;

@@ -16,7 +16,7 @@ export type EventExecutionContext = {
 export type EventHandler = {
     /**
      * Stable string identifier for the handler (matches the DSL action token).
-     * Example: "toggleTheme", "openFooterTerms".
+    * Example: "toggleTheme", "openModal".
      */
     id: string;
     /**

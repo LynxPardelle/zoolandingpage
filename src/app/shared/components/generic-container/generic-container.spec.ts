@@ -41,4 +41,19 @@ describe('GenericContainerComponent', () => {
     expect(component.templateComponentIds()).toEqual(['named-template']);
     expect(component.hasContentToken()).toBeTrue();
   });
+
+  it('should render supported semantic tags from the typed contract', () => {
+    fixture.componentRef.setInput('config', {
+      tag: 'ol',
+      id: 'ordered-list',
+      classes: 'ordered-list',
+    });
+
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement.querySelector('ol');
+    expect(element).toBeTruthy();
+    expect(element?.id).toBe('ordered-list');
+    expect(element?.className).toContain('ordered-list');
+  });
 });

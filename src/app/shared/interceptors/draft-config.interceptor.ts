@@ -14,8 +14,12 @@ const CONFIG_ENDPOINTS = new Set([
 
 const getDraftUrl = (endpoint: string, params: URLSearchParams): string => {
     const base = String(environment.drafts.basePath ?? 'assets/drafts').replace(/^\/+/, '');
-    const domain = params.get('domain') || environment.drafts.defaultDomain;
-    const pageId = params.get('pageId') || environment.drafts.defaultPageId;
+    const domain = String(params.get('domain') ?? '').trim();
+    const pageId = String(params.get('pageId') ?? '').trim();
+
+    if (!domain || !pageId) {
+        return '';
+    }
 
     if (endpoint === 'i18n') {
         const lang = params.get('lang') || 'es';
@@ -52,6 +56,7 @@ export const draftConfigInterceptor: HttpInterceptorFn = (req, next) => {
     if (!CONFIG_ENDPOINTS.has(endpoint)) return next(req);
 
     const draftUrl = getDraftUrl(endpoint, url.searchParams);
+    if (!draftUrl) return next(req);
     const redirected = req.clone({ url: draftUrl });
     return next(redirected);
 };

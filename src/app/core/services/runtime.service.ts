@@ -14,6 +14,7 @@ import { filter } from 'rxjs/operators';
 
 @Injectable({ providedIn: 'root' })
 export class RuntimeService {
+    private static readonly DEBUG_MODAL_ROOT_ID = 'modalDemoRoot';
     private readonly configBootstrap = inject(ConfigBootstrapService);
     private readonly orchestrator = inject(ConfigurationsOrchestratorService);
     private readonly draftRuntime = inject(DraftRuntimeService);
@@ -89,6 +90,18 @@ export class RuntimeService {
 
     private async doInitialize(lang?: string): Promise<void> {
         const context = await this.draftRuntime.resolveActiveDraftContext();
+        if (!context.domain || !context.pageId) {
+            this.clearRenderedDraft(context.domain, context.pageId);
+            if (environment.features.debugMode) {
+                console.warn('[Runtime] Skipping page bootstrap until a draft domain and page are selected.', {
+                    domain: context.domain,
+                    pageId: context.pageId,
+                    path: context.path,
+                });
+            }
+            return;
+        }
+
         const pageId = context.pageId;
         const boot = await this.configBootstrap.load({
             domain: context.domain,
@@ -96,13 +109,13 @@ export class RuntimeService {
             lang,
         });
 
-        const domain = boot.domain || context.domain || environment.drafts.defaultDomain;
+        const domain = boot.domain || context.domain;
         const pageConfig = boot.pageConfig;
         const componentsPayload = boot.components;
         const validationIssues = this.configStore.validationIssues();
         const hasRenderableComponents = !!componentsPayload && Object.keys(componentsPayload.components ?? {}).length > 0;
         const rootIds = pageConfig?.rootIds ?? [];
-        const modalRootIds = pageConfig?.modalRootIds ?? [];
+        const modalRootIds = this.resolveModalRootIds(pageConfig?.modalRootIds ?? []);
 
         if (validationIssues.length > 0 || !hasRenderableComponents || rootIds.length === 0) {
             this.clearRenderedDraft(domain, pageId);
@@ -130,14 +143,22 @@ export class RuntimeService {
 
     clearRenderedDraft(domain: string, pageId: string): void {
         this.rootComponentsIds.set([]);
-        this.modalRootIds.set([]);
+        this.modalRootIds.set(this.resolveModalRootIds([]));
         this.orchestrator.setExternalComponentsFromPayload(null);
         this.orchestrator.setDraftExportContext({
             domain,
             pageId,
             rootIds: [],
-            modalRootIds: [],
+            modalRootIds: this.resolveModalRootIds([]),
         });
+    }
+
+    private resolveModalRootIds(modalRootIds: readonly string[]): readonly string[] {
+        if (!environment.features.debugMode) {
+            return [...modalRootIds];
+        }
+
+        return Array.from(new Set([...modalRootIds, RuntimeService.DEBUG_MODAL_ROOT_ID]));
     }
 
     private bindNavigationRefresh(): void {

@@ -1,5 +1,4 @@
 import type { TSeoPayload } from '@/app/shared/types/config-payloads.types';
-import { environment } from '@/environments/environment';
 import { DOCUMENT } from '@angular/common';
 import { inject, Injectable } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
@@ -75,7 +74,7 @@ export class SeoMetadataService {
     }
 
     private defaultOrigin(): string {
-        const resolved = this.domainResolver.resolveDomain().domain || environment.domain.defaultDomain;
-        return `https://${ resolved }`;
+        const resolved = this.domainResolver.resolveDomain().domain;
+        return resolved ? `https://${ resolved }` : 'https://localhost';
     }
 }

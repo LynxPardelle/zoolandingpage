@@ -34,6 +34,19 @@ eventInstructions: 'openWhatsApp:event.meta_title,hero_primary,hero;navigationTo
 trackCTAClick:event.meta_title,secondary,hero;navigationToSection:features-section
 ```
 
+- Open a payload-owned modal:
+
+```text
+openModal:terms-of-service,footer:terms,open_terms_modal,footer
+```
+
+Argument order for `openModal` is:
+
+- modal id
+- analytics label (optional)
+- analytics action (optional)
+- analytics location (optional)
+
 - Scoped interaction submit:
 
 ```text
@@ -63,3 +76,5 @@ When adding a new action, keep it:
 - idempotent where possible
 - side-effect bounded (analytics/navigation only)
 - safe for API-provided inputs
+
+Prefer parameterized generic actions over page-specific handler IDs. If a behavior can be expressed by passing a modal id, analytics label, section id, or message key from payloads, keep the handler generic and move the page-specific values into the draft or API payload.

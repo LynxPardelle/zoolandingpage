@@ -16,10 +16,15 @@ It is written to be **friendly for an AI assistant** generating new landing page
 ## Appearance ownership
 
 - `variables.theme`: semantic global palette data and modal accent defaults.
-- `variables.ui.modals`: modal host behavior owned by the draft, such as size and accessible labels for payload-rendered modal IDs.
+- `variables.ui.modals`: modal host behavior owned by the draft, such as size, variant, close behavior, accent color, and accessible labels for payload-rendered modal IDs.
 - `angora-combos.json`: reusable class bundles and shared visual patterns.
 - `components.json`: per-component layout and class composition.
 - `i18n`: copy, labels, and other translatable content.
+
+Modal content and modal host behavior are separate concerns:
+
+- `components.json` owns the rendered modal tree and the `modalRefId` conditions that decide which modal body is shown.
+- `variables.ui.modals.{id}` owns how that modal host behaves once opened.
 
 ## Draft Locale Configuration
 
@@ -151,7 +156,7 @@ This is enabled when `environment.drafts.enabled` is true. It only affects GET r
 
 ### Local Draft Selection via URL
 
-For local development and QA, draft resolution can be overridden from the browser URL without editing environment files.
+For local development and QA, draft resolution is driven from the browser URL and site-config payloads rather than environment-owned default domains or page IDs.
 
 Supported query parameters:
 
@@ -166,6 +171,8 @@ http://localhost:4200/?draftDomain=zoolandingpage.com.mx&draftPageId=default
 ```
 
 This allows AI-authored drafts and the default Zoolanding draft to be tested side by side using the same application build.
+
+If you are running on localhost and omit `draftDomain`, the runtime no longer assumes a default draft identity. Provide `draftDomain` explicitly or navigate from a runtime path that can resolve the active site through `site-config.json`.
 
 ### Manual Draft QA Flow
 

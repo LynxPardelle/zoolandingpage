@@ -40,7 +40,7 @@ export class DraftRuntimeService {
     readonly resolvedDraftRoute = signal<TDraftSiteRouteEntry | null>(null);
     readonly activeDraftDomain = computed(() => {
         this.locationRevision();
-        return this.domainResolver.resolveDomain().domain || environment.drafts.defaultDomain;
+        return this.domainResolver.resolveDomain().domain;
     });
     readonly requestedDraftPageId = computed(() => {
         this.locationRevision();
@@ -60,7 +60,7 @@ export class DraftRuntimeService {
         };
         const activeKey = this.composeDraftKey(active.domain, active.pageId);
 
-        if (!entries.some((entry) => this.composeDraftKey(entry.domain, entry.pageId) === activeKey)) {
+        if (activeKey && !entries.some((entry) => this.composeDraftKey(entry.domain, entry.pageId) === activeKey)) {
             entries.push(active);
         }
 
@@ -164,8 +164,8 @@ export class DraftRuntimeService {
     }
 
     draftPreviewUrl(domain: string, pageId: string): string {
-        const normalizedDomain = String(domain).trim() || environment.drafts.defaultDomain;
-        const normalizedPageId = String(pageId).trim() || environment.drafts.defaultPageId;
+        const normalizedDomain = String(domain).trim();
+        const normalizedPageId = String(pageId).trim();
 
         if (!this.isBrowser || !window.location) {
             return `/?draftDomain=${ encodeURIComponent(normalizedDomain) }&draftPageId=${ encodeURIComponent(normalizedPageId) }`;
@@ -178,6 +178,10 @@ export class DraftRuntimeService {
     }
 
     hasDebugWorkspaceEnabled(): boolean {
+        if (environment.features.debugMode && environment.drafts.enabled && this.isLocalDraftSelectionRequired()) {
+            return true;
+        }
+
         if (!this.isBrowser || !window.location?.search) {
             const requestUrl = this.parseRequestUrl();
             if (!requestUrl) {
@@ -190,26 +194,49 @@ export class DraftRuntimeService {
         return new URLSearchParams(window.location.search).has('debugWorkspace');
     }
 
+    hasResolvedActiveDraftIdentity(): boolean {
+        return this.resolveDraftIdentityCandidate().resolved;
+    }
+
     private invalidateLocationState(): void {
         this.locationRevision.update((value) => value + 1);
     }
 
+    private resolveDraftIdentityCandidate(): { resolved: boolean; localHost: boolean } {
+        const resolvedDomain = this.domainResolver.resolveDomain().domain;
+        const requestedPageId = this.resolveRequestedDraftPageId();
+        const requestUrl = this.parseRequestUrl();
+        const browserHost = this.isBrowser ? String(window.location?.hostname ?? '').trim() : '';
+        const requestHost = String(requestUrl?.hostname ?? '').trim();
+        const host = browserHost || requestHost;
+        const localHost = host.length > 0 && (host === 'localhost' || host === '127.0.0.1' || host === '::1');
+
+        return {
+            resolved: resolvedDomain.length > 0 && requestedPageId.length > 0,
+            localHost,
+        };
+    }
+
+    private isLocalDraftSelectionRequired(): boolean {
+        const candidate = this.resolveDraftIdentityCandidate();
+        return candidate.localHost && !candidate.resolved;
+    }
+
     private resolveRequestedDraftPageId(): string {
-        const fallback = environment.drafts.defaultPageId;
         if (!this.isBrowser || !window.location?.search) {
             const requestUrl = this.parseRequestUrl();
             if (!requestUrl) {
-                return fallback;
+                return '';
             }
 
             const value = requestUrl.searchParams.get('draftPageId');
             const next = String(value ?? '').trim();
-            return next.length > 0 ? next : fallback;
+            return next;
         }
 
         const value = new URLSearchParams(window.location.search).get('draftPageId');
         const next = String(value ?? '').trim();
-        return next.length > 0 ? next : fallback;
+        return next;
     }
 
     private hasExplicitDraftPageId(): boolean {
@@ -261,6 +288,10 @@ export class DraftRuntimeService {
     }
 
     private async loadSiteConfig(domain: string): Promise<TDraftSiteConfigPayload | null> {
+        if (!domain) {
+            return null;
+        }
+
         return this.configSource.loadSiteConfig(domain);
     }
 
@@ -280,7 +311,13 @@ export class DraftRuntimeService {
     }
 
     private composeDraftKey(domain: string, pageId: string): string {
-        return `${ String(domain).trim() }::${ String(pageId).trim() }`;
+        const normalizedDomain = String(domain).trim();
+        const normalizedPageId = String(pageId).trim();
+        if (!normalizedDomain || !normalizedPageId) {
+            return '';
+        }
+
+        return `${ normalizedDomain }::${ normalizedPageId }`;
     }
 
     private parseDraftKey(key: string): TDraftRegistryEntry | null {
@@ -299,6 +336,10 @@ export class DraftRuntimeService {
     }
 
     private formatDraftLabel(entry: TDraftRegistryEntry): string {
+        if (!entry.domain || !entry.pageId) {
+            return 'Unresolved draft';
+        }
+
         return `${ entry.domain } / ${ entry.pageId }`;
     }
 }

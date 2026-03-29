@@ -19,26 +19,12 @@ export class GenericContainerComponent {
     return (resolved as GenericContainerComponentTag) ?? 'div';
   });
 
-  readonly id = computed<string | undefined>(() => {
-    const resolved = this.resolveMaybeThunk(this.config().id);
-    return resolved ? String(resolved) : undefined;
-  });
-  readonly classes = computed<string>(() => {
-    const resolved = this.resolveMaybeThunk(this.config().classes);
-    return typeof resolved === 'string' ? resolved : String(resolved ?? '');
-  });
-
-  readonly role = computed<string | undefined>(() => {
-    const resolved = this.resolveMaybeThunk(this.config().role);
-    return resolved ? String(resolved) : undefined;
-  });
-  readonly ariaLabel = computed(() => {
-    const raw = this.resolveMaybeThunk(this.config().ariaLabel);
-    if (!raw) return undefined;
-    return raw;
-  });
-  readonly ariaLabelledby = computed(() => this.resolveMaybeThunk(this.config().ariaLabelledby) ?? undefined);
-  readonly ariaDescribedby = computed(() => this.resolveMaybeThunk(this.config().ariaDescribedby) ?? undefined);
+  readonly id = computed<string | undefined>(() => this.resolveOptionalString(this.config().id));
+  readonly classes = computed<string>(() => this.resolveString(this.config().classes));
+  readonly role = computed<string | undefined>(() => this.resolveOptionalString(this.config().role));
+  readonly ariaLabel = computed<string | undefined>(() => this.resolveOptionalString(this.config().ariaLabel));
+  readonly ariaLabelledby = computed<string | undefined>(() => this.resolveOptionalString(this.config().ariaLabelledby));
+  readonly ariaDescribedby = computed<string | undefined>(() => this.resolveOptionalString(this.config().ariaDescribedby));
 
   readonly classMap = computed(() => this.config().classMap ?? null);
   readonly styles = computed(() => this.config().styles ?? null);
@@ -57,8 +43,17 @@ export class GenericContainerComponent {
   readonly hasComponents = computed(() => this.components().length > 0);
   readonly hasContentToken = computed(() => this.components().includes('__content__'));
 
-  // Renderiza solo templates (excluye __content__)
+  // Render only named templates here. Projected content keeps the __content__ token.
   readonly templateComponentIds = computed(() => this.components().filter((c) => c !== '__content__'));
+
+  private resolveString(value: unknown): string {
+    return String(this.resolveMaybeThunk(value) ?? '');
+  }
+
+  private resolveOptionalString(value: unknown): string | undefined {
+    const resolved = this.resolveString(value).trim();
+    return resolved.length > 0 ? resolved : undefined;
+  }
 
   private resolveMaybeThunk(value: unknown): unknown {
     if (typeof value === 'function' && (value as (...args: unknown[]) => unknown).length === 0) {

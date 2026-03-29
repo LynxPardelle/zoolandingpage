@@ -166,13 +166,17 @@ export class ConfigBootstrapService {
 
     async load(opts?: { domain?: string; pageId?: string; lang?: string }): Promise<TBootstrapResult> {
         const resolved = this.resolver.resolveDomain();
-        const domain = String(opts?.domain ?? resolved.domain ?? environment.domain.defaultDomain).trim() || environment.domain.defaultDomain;
-        const pageId = String(opts?.pageId ?? environment.drafts.defaultPageId ?? 'default');
+        const domain = String(opts?.domain ?? resolved.domain ?? '').trim();
+        const pageId = String(opts?.pageId ?? '').trim();
         const requestedLang = String(
             opts?.lang
             ?? (this.isBrowser ? this.language.currentLanguage() : '')
             ?? 'es'
         );
+
+        if (!domain || !pageId) {
+            throw new Error(`[ConfigBootstrap] Missing active config identity. domain="${ domain }" pageId="${ pageId }".`);
+        }
 
         this.i18n.disableAutoLoad();
         this.configureI18nLoader(domain, pageId);

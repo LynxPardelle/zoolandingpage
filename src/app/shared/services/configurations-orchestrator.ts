@@ -27,7 +27,6 @@ import { VariableStoreService } from './variable-store.service';
     providedIn: 'root',
 })
 export class ConfigurationsOrchestratorService {
-    private static readonly LEGAL_MODAL_IDS = new Set(['terms-of-service', 'data-use']);
     readonly analytics = inject(AnalyticsService);
     private readonly destroyRef = inject(DestroyRef);
     private readonly quickStats = inject(QuickStatsService);
@@ -46,19 +45,14 @@ export class ConfigurationsOrchestratorService {
     private warnedNavigationMissing = false;
     private warnedLoopPaths = new Set<string>();
     private readonly draftExportContext = signal({
-        domain: environment.drafts.defaultDomain,
-        pageId: environment.drafts.defaultPageId,
+        domain: '',
+        pageId: '',
         rootIds: [] as readonly string[],
         modalRootIds: [] as readonly string[],
     });
 
     // [MODALS-1] Centralize modal state/config in orchestrator (moved from AppShell).
     readonly activeModalRef = computed(() => this.modal.modalRef());
-
-    readonly consentVariant = computed<'dialog' | 'sheet'>(() => {
-        const mode = environment.features.analyticsConsentUI;
-        return mode === 'sheet' ? 'sheet' : 'dialog';
-    });
 
     readonly modalHostConfig = computed<ModalConfig>(() => {
         return this.resolveModalHostConfig(this.activeModalRef()?.id);
@@ -98,10 +92,6 @@ export class ConfigurationsOrchestratorService {
             return this.globalI18n.t(payloadConfig.ariaLabelKey);
         }
 
-        if (modalId === 'analytics-consent') {
-            return this.globalI18n.t('ui.accessibility.analyticsConsentDialog');
-        }
-
         return this.globalI18n.t('ui.accessibility.dialog');
     }
 
@@ -110,24 +100,16 @@ export class ConfigurationsOrchestratorService {
 
         return {
             ariaLabel: this.resolveModalAriaLabel(modalId, payloadConfig),
-            closeOnBackdrop: payloadConfig?.closeOnBackdrop ?? (modalId === 'analytics-consent' ? false : true),
-            showCloseButton: payloadConfig?.showCloseButton ?? (modalId === 'analytics-consent' ? false : true),
+            closeOnBackdrop: payloadConfig?.closeOnBackdrop ?? true,
+            showCloseButton: payloadConfig?.showCloseButton ?? true,
             size: payloadConfig?.size ?? 'sm',
             showAccentBar: payloadConfig?.showAccentBar ?? true,
             accentColor: payloadConfig?.accentColor ?? this.resolveModalAccentColor(modalId),
-            variant: modalId === 'analytics-consent'
-                ? this.consentVariant()
-                : payloadConfig?.variant ?? 'dialog',
+            variant: payloadConfig?.variant ?? 'dialog',
         };
     }
 
     private resolveModalAccentColor(modalId?: string): TThemeAccentColorToken {
-        if (modalId === 'demo-modal') {
-            return this.resolveAccentToken('theme.ui.demoModalAccentColor', 'accentColor');
-        }
-        if (modalId && ConfigurationsOrchestratorService.LEGAL_MODAL_IDS.has(modalId)) {
-            return this.resolveAccentToken('theme.ui.legalModalAccentColor', 'secondaryAccentColor');
-        }
         return this.resolveAccentToken('theme.ui.modalAccentColor', 'secondaryAccentColor');
     }
 
@@ -147,8 +129,8 @@ export class ConfigurationsOrchestratorService {
         modalRootIds: readonly string[];
     }): void {
         this.draftExportContext.set({
-            domain: String(context.domain).trim() || environment.drafts.defaultDomain,
-            pageId: String(context.pageId).trim() || environment.drafts.defaultPageId,
+            domain: String(context.domain).trim(),
+            pageId: String(context.pageId).trim(),
             rootIds: [...context.rootIds],
             modalRootIds: [...context.modalRootIds],
         });
@@ -377,8 +359,8 @@ export class ConfigurationsOrchestratorService {
 
     private buildDraftPayloads(domain: string, pageId: string): { name: string; data: unknown }[] {
         const context = this.draftExportContext();
-        const resolvedDomain = String(domain).trim() || this.domainResolver.resolveDomain().domain || environment.drafts.defaultDomain;
-        const resolvedPageId = String(pageId).trim() || context.pageId || environment.drafts.defaultPageId;
+        const resolvedDomain = String(domain).trim() || context.domain || this.domainResolver.resolveDomain().domain;
+        const resolvedPageId = String(pageId).trim() || context.pageId;
         const pageConfig = this.configStore.pageConfig() ?? {
             version: 1,
             pageId: resolvedPageId,

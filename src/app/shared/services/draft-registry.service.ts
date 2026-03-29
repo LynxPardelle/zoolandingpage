@@ -1,4 +1,3 @@
-import { environment } from '@/environments/environment';
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { catchError, map, Observable, of } from 'rxjs';
@@ -27,13 +26,6 @@ export class DraftRegistryService {
         return { domain, pageId };
     }
 
-    private defaultEntry(): TDraftRegistryEntry {
-        return {
-            domain: environment.drafts.defaultDomain,
-            pageId: environment.drafts.defaultPageId,
-        };
-    }
-
     listDrafts(): Observable<readonly TDraftRegistryEntry[]> {
         return this.http.get<TDraftRegistryResponse>('/api/debug/drafts').pipe(
             map((response) => {
@@ -51,16 +43,12 @@ export class DraftRegistryService {
                     return true;
                 });
 
-                if (unique.length === 0) {
-                    return [this.defaultEntry()];
-                }
-
                 return unique.sort((left, right) => {
                     const domainCompare = left.domain.localeCompare(right.domain);
                     return domainCompare !== 0 ? domainCompare : left.pageId.localeCompare(right.pageId);
                 });
             }),
-            catchError(() => of([this.defaultEntry()])),
+            catchError(() => of([])),
         );
     }
 }
