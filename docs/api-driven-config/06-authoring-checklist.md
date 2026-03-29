@@ -14,7 +14,7 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Reuse existing generic component types only.
 - Use existing class tokens / Angora design system conventions.
 - Put global palette data in `variables.theme.palettes.light` and `variables.theme.palettes.dark`.
-- Put page-owned contact targets in `variables.contact`.
+- Put page-owned contact targets in `variables.ui.contact`.
 - Keep modal accent defaults in `variables.theme.ui` when a draft needs them to differ from the default brand behavior.
 - Put reusable visual class bundles in `angora-combos.json` instead of hardcoding repeated appearance strings in app code.
 - Footer, legal modal, accessibility, and debug-panel content must be API-owned (no local fallback assumptions anywhere in the runtime).
@@ -43,7 +43,7 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 
 - Put all interaction wiring in `eventInstructions`.
 - Prefer semicolon-separated composed instructions.
-- If a CTA opens WhatsApp through `openWhatsApp`, `openFaqCtaWhatsApp`, or `openFinalCtaWhatsApp`, the payload must include `variables.contact.whatsappPhone`.
+- If a CTA opens WhatsApp through `openWhatsApp`, `openFaqCtaWhatsApp`, or `openFinalCtaWhatsApp`, the payload must include `variables.ui.contact.whatsappPhone`.
 
 ## Loops
 
@@ -64,7 +64,7 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 
 - Use the condition DSL (no inline lambdas).
 - Prefer `all:` unless you need `any:` or `not:`.
-- Allowed handler IDs: env, i18n, footerConfig, footerSocialLinks, navigation, modalRefId, host, hostEq, hostNeq, hostIncludes, hostGt, hostGte, hostLt, hostLte, hostStartsWith, hostEndsWith, hostRegex, hostLenEq, hostLenGt, hostLenGte, hostLenLt, hostLenLte, var, varEq, varNeq, varGt, varGte, varLt, varLte, varIncludes, varLenEq, varLenGt, varLenGte, varLenLt, varLenLte, true, false, always, never, exists, empty, eq, neq, gt, lt, gte, lte, type.
+- Allowed handler IDs: env, i18n, navigation, modalRefId, host, hostEq, hostNeq, hostIncludes, hostGt, hostGte, hostLt, hostLte, hostStartsWith, hostEndsWith, hostRegex, hostLenEq, hostLenGt, hostLenGte, hostLenLt, hostLenLte, var, varEq, varNeq, varGt, varGte, varLt, varLte, varIncludes, varLenEq, varLenGt, varLenGte, varLenLt, varLenLte, true, false, always, never, exists, empty, eq, neq, gt, lt, gte, lte, type.
 
 ## Validation steps (developer)
 
@@ -74,7 +74,7 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Ensure no config contains function values.
 - Verify `variables.theme` includes complete `light` and `dark` palettes when the draft owns branding.
 - Verify `variables.i18n.defaultLanguage` and `variables.i18n.supportedLanguages` are present.
-- Verify `variables.contact.whatsappPhone` is present whenever any WhatsApp handler is referenced.
+- Verify `variables.ui.contact.whatsappPhone` is present whenever any WhatsApp handler is referenced.
 - Verify footer/legal modal sections can render from API payload only.
 - Verify shared runtime keys are present in draft i18n when used by the page. Common examples:
   - `ui.accessibility.analyticsConsentDialog`
@@ -92,9 +92,9 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 
 - `page-config.rootIds` includes `siteFooter` only when footer should render.
 - Footer structure is provided in `components` payload (`siteFooter`, `siteFooterContent`, legal/social/copyright blocks).
-- `variables.footerConfig` exists and follows the expected boolean/text contract.
-- `variables.footerSocialLinks[]` entries include `url`, `icon`, and key-based labels (`labelKey`, `ariaLabelKey`).
-- `variables.contact.whatsappPhone` exists when the page exposes WhatsApp CTAs.
+- Footer visibility should come from i18n / standard variable conditions, not a specialized footer runtime object.
+- `variables.socialLinks[]` entries include `url` or `href`, plus key-based labels (`labelKey`, `ariaLabelKey`) when the footer renders social links.
+- `variables.ui.contact.whatsappPhone` exists when the page exposes WhatsApp CTAs.
 - i18n includes required legal keys:
   - `footer.legal.title`
   - `footer.legal.terms.link`, `footer.legal.terms.title`, `footer.legal.terms.intro`, `footer.legal.terms.sections`

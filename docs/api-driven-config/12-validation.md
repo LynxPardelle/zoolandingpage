@@ -94,10 +94,9 @@ Symptoms:
 
 Checks:
 
-- Verify `variables.footerConfig.showSocialLinks` is true.
-- Verify `variables.footerSocialLinks` exists and is a non-empty array.
+- Verify `variables.socialLinks` exists and is a non-empty array.
 - Confirm each social entry has usable `url` and either `ariaLabelKey`/`labelKey` or fallback labels.
-- Check for one-time warning: `variables.footerSocialLinks is empty. Footer social links will not render.`
+- Check the active `condition` and `loopConfig.path` values in `components.json`; they should point at `socialLinks`.
 
 ### Footer/legal text missing after migration
 
@@ -135,7 +134,7 @@ Checks:
 
 - Verify `page-config.rootIds` includes `siteFooter`.
 - Verify footer components are present in `components` payload.
-- Verify `variables.footerConfig` is present and valid.
+- Verify footer visibility conditions now reference real i18n/variable paths, for example `footer.legal.*`, `footer.copyright`, or `socialLinks`.
 
 ### Interactive process section is hidden
 
@@ -217,7 +216,7 @@ Checks:
 
 - Verify each social link has valid `labelKey` / `ariaLabelKey`.
 - Verify those keys exist in API i18n dictionary.
-- If key values are absent, expected fallback precedence is used: `labelEs` / `labelEn` / `label`.
+- If key values are absent, verify the payload provides `label` as a usable string or locale map.
 
 ## Debug Tips
 

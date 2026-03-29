@@ -118,8 +118,10 @@ describe('config-payload.validators', () => {
             domain: 'zoolandingpage.com.mx',
             variables: {
                 a: 1,
-                contact: {
-                    whatsappPhone: '+525522699563',
+                ui: {
+                    contact: {
+                        whatsappPhone: '+525522699563',
+                    },
                 },
             },
             computed: { b: 2 },
@@ -127,14 +129,16 @@ describe('config-payload.validators', () => {
         expect(isVariablesPayload(valid)).toBeTrue();
     });
 
-    it('rejects invalid variables.contact shape', () => {
+    it('rejects invalid variables.ui.contact shape', () => {
         const invalid = {
             version: 1,
             pageId: 'default',
             domain: 'zoolandingpage.com.mx',
             variables: {
-                contact: {
-                    whatsappPhone: '',
+                ui: {
+                    contact: {
+                        whatsappPhone: '',
+                    },
                 },
             },
         };
@@ -228,9 +232,20 @@ describe('config-payload.validators', () => {
             pageId: 'default',
             domain: 'zoolandingpage.com.mx',
             variables: {
+                socialLinks: [
+                    {
+                        url: 'https://example.com/facebook',
+                        icon: '📘',
+                        labelKey: 'footer.social.facebook.label',
+                        ariaLabelKey: 'footer.social.facebook.ariaLabel',
+                    },
+                ],
                 ui: {
                     mobileMenuAriaLabel: 'Open navigation',
                     brandTextFallback: 'Zoo Landing',
+                    contact: {
+                        whatsappPhone: '+525522699563',
+                    },
                     modals: {
                         'terms-of-service': {
                             size: 'lg',
@@ -336,6 +351,23 @@ describe('config-payload.validators', () => {
                         },
                     },
                 },
+            },
+        };
+
+        expect(isVariablesPayload(invalid)).toBeFalse();
+    });
+
+    it('rejects invalid variables.socialLinks shape', () => {
+        const invalid = {
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            variables: {
+                socialLinks: [
+                    {
+                        icon: '📘',
+                    },
+                ],
             },
         };
 

@@ -101,6 +101,48 @@
         }
       },
       "additionalProperties": false
+    },
+    "localizedTextMap": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "draftContactConfig": {
+      "type": "object",
+      "required": ["whatsappPhone"],
+      "properties": {
+        "whatsappPhone": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "draftSocialLink": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "url": { "type": "string" },
+        "href": { "type": "string" },
+        "icon": { "type": "string" },
+        "label": {
+          "anyOf": [{ "type": "string" }, { "$ref": "#/definitions/localizedTextMap" }]
+        },
+        "labelKey": { "type": "string" },
+        "ariaLabel": {
+          "anyOf": [{ "type": "string" }, { "$ref": "#/definitions/localizedTextMap" }]
+        },
+        "ariaLabelKey": { "type": "string" },
+        "target": { "type": "string" },
+        "rel": { "type": "string" }
+      },
+      "anyOf": [{ "required": ["url"] }, { "required": ["href"] }],
+      "additionalProperties": false
+    },
+    "draftUiConfig": {
+      "type": "object",
+      "properties": {
+        "mobileMenuAriaLabel": { "type": "string" },
+        "brandTextFallback": { "type": "string" },
+        "contact": { "$ref": "#/definitions/draftContactConfig" }
+      },
+      "additionalProperties": true
     }
   },
   "required": ["version", "pageId", "domain", "variables"],
@@ -111,8 +153,13 @@
     "variables": {
       "type": "object",
       "properties": {
+        "socialLinks": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/draftSocialLink" }
+        },
         "theme": { "$ref": "#/definitions/themeConfig" },
-        "i18n": { "$ref": "#/definitions/draftI18nConfig" }
+        "i18n": { "$ref": "#/definitions/draftI18nConfig" },
+        "ui": { "$ref": "#/definitions/draftUiConfig" }
       },
       "additionalProperties": true
     },

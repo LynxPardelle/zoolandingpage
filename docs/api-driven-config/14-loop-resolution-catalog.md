@@ -32,7 +32,7 @@ If `idPrefix` is not provided, `templateId` is used.
 
 - Missing template ID: warning + skip.
 - `var`/`i18n` source not array: warning + skip.
-- `footerSocialLinks` missing/empty: warning + no social links rendered.
+- `socialLinks` missing/empty: warning + no social links rendered.
 
 ## Authoring guidance
 

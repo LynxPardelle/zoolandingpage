@@ -98,65 +98,17 @@ export class ConfigBootstrapService {
 
     private buildDraftLanguageDefinitions(variables: TVariablesPayload | null): readonly TDraftLanguageDefinition[] {
         const i18nConfig = this.extractDraftI18nConfig(variables);
-        const fromConfig = Array.isArray(i18nConfig?.supportedLanguages)
+        return Array.isArray(i18nConfig?.supportedLanguages)
             ? i18nConfig.supportedLanguages
                 .map((entry) => this.normalizeDraftLanguageDefinition(entry))
                 .filter((entry): entry is TDraftLanguageDefinition => !!entry)
             : [];
-
-        if (fromConfig.length > 0) return fromConfig;
-
-        const ui = variables?.variables?.['ui'];
-        const languageOptions = this.isRecord(ui) ? ui['languageOptions'] : undefined;
-        if (Array.isArray(languageOptions)) {
-            const fromOptions = languageOptions
-                .map((option): TDraftLanguageDefinition | null => {
-                    if (!this.isRecord(option)) return null;
-                    const code = normalizeLocaleCode(option['value']);
-                    if (!code) return null;
-                    const label = typeof option['label'] === 'string' && option['label'].trim().length > 0
-                        ? option['label'].trim()
-                        : formatLocaleLabel(code);
-                    return { code, label };
-                })
-                .filter((entry): entry is TDraftLanguageDefinition => entry !== null);
-
-            if (fromOptions.length > 0) return fromOptions;
-        }
-
-        return [
-            { code: 'es', label: 'ES' },
-            { code: 'en', label: 'EN' },
-        ];
     }
 
     private defaultDraftLanguage(variables: TVariablesPayload | null, languages: readonly TDraftLanguageDefinition[]): string {
         const configured = normalizeLocaleCode(this.extractDraftI18nConfig(variables)?.defaultLanguage);
         if (configured && languages.some((entry) => entry.code === configured)) return configured;
         return languages[0]?.code ?? 'es';
-    }
-
-    private ensureLanguageOptions(variables: TVariablesPayload | null, languages: readonly TDraftLanguageDefinition[]): TVariablesPayload | null {
-        if (!variables) return null;
-
-        const currentUi = this.isRecord(variables.variables['ui']) ? variables.variables['ui'] as Record<string, unknown> : {};
-        const currentOptions = currentUi['languageOptions'];
-        if (Array.isArray(currentOptions) && currentOptions.length > 0) return variables;
-
-        return {
-            ...variables,
-            variables: {
-                ...variables.variables,
-                ui: {
-                    ...currentUi,
-                    languageOptions: languages.map((entry) => ({
-                        id: `lang-${ entry.code.toLowerCase().replace(/[^a-z0-9]+/g, '-') }`,
-                        label: entry.label ?? formatLocaleLabel(entry.code),
-                        value: entry.code,
-                    })),
-                },
-            },
-        };
     }
 
     private secondaryLanguage(primary: string, languages: readonly TDraftLanguageDefinition[]): string | null {
@@ -203,7 +155,7 @@ export class ConfigBootstrapService {
         const lang = this.language.currentLanguage();
         const fallbackLang = this.secondaryLanguage(lang, draftLanguages);
 
-        const variables = this.ensureLanguageOptions(loadedVariables, draftLanguages);
+        const variables = loadedVariables;
         const combos = await this.loadCombos(domain, pageId);
         this.store.setVariables(variables);
         this.store.setCombos(combos);
@@ -385,20 +337,14 @@ export class ConfigBootstrapService {
         addMissing('page-config', payloads.pageConfig);
         addMissing('components', payloads.components);
         addMissing('variables', payloads.variables);
-        addMissing('angora-combos', payloads.combos);
         addMissing('i18n', payloads.i18n);
         addMissing('seo', payloads.seo);
-        addMissing('structured-data', payloads.structuredData);
-        addMissing('analytics-config', payloads.analytics);
 
         addVersionMismatch('page-config', payloads.pageConfig);
         addVersionMismatch('components', payloads.components as any);
         addVersionMismatch('variables', payloads.variables as any);
-        addVersionMismatch('angora-combos', payloads.combos as any);
         addVersionMismatch('i18n', payloads.i18n as any);
         addVersionMismatch('seo', payloads.seo as any);
-        addVersionMismatch('structured-data', payloads.structuredData as any);
-        addVersionMismatch('analytics-config', payloads.analytics as any);
 
         const pageConfig = payloads.pageConfig;
         addIssue(!pageConfig || pageConfig.rootIds.length === 0, 'page-config.rootIds must include at least one render root.');
@@ -409,7 +355,8 @@ export class ConfigBootstrapService {
         const variables = payloads.variables?.variables ?? {};
         const theme = this.isRecord(variables['theme']) ? variables['theme'] : null;
         const i18n = this.isRecord(variables['i18n']) ? variables['i18n'] : null;
-        const contact = this.isRecord(variables['contact']) ? variables['contact'] : null;
+        const ui = this.isRecord(variables['ui']) ? variables['ui'] : null;
+        const contact = this.isRecord(ui?.['contact']) ? ui['contact'] : null;
 
         addIssue(!theme, 'variables.theme is required.');
         addIssue(!i18n, 'variables.i18n is required.');
@@ -423,8 +370,8 @@ export class ConfigBootstrapService {
             return /(^|;)(openWhatsApp|openFaqCtaWhatsApp|openFinalCtaWhatsApp)(:|;|$)/.test(instructions);
         });
 
-        addIssue(requiresWhatsAppContact && !contact, 'variables.contact is required when WhatsApp handlers are used.');
-        addIssue(requiresWhatsAppContact && !this.isNonEmptyString(contact?.['whatsappPhone']), 'variables.contact.whatsappPhone is required when WhatsApp handlers are used.');
+        addIssue(requiresWhatsAppContact && !contact, 'variables.ui.contact is required when WhatsApp handlers are used.');
+        addIssue(requiresWhatsAppContact && !this.isNonEmptyString(contact?.['whatsappPhone']), 'variables.ui.contact.whatsappPhone is required when WhatsApp handlers are used.');
 
         addIssue(!this.isNonEmptyString(payloads.seo?.title), 'seo.title is required.');
         addIssue(!this.isNonEmptyString(payloads.seo?.description), 'seo.description is required.');

@@ -1,4 +1,4 @@
-import { getLocaleCandidates } from '@/app/shared/i18n/locale.utils';
+import { resolveLocaleMapValue } from '@/app/shared/i18n/locale.utils';
 import { LanguageService } from '@/app/shared/services/language.service';
 import { inject } from '@angular/core';
 import type { ValueHandler } from '../value-handler.types';
@@ -10,22 +10,6 @@ export const languageValueHandler = (): ValueHandler => {
         id: 'language',
         resolve: () => language.currentLanguage(),
     };
-};
-
-const resolveFromLocaleMap = (source: unknown, lang: string): unknown => {
-    if (!source || typeof source !== 'object' || Array.isArray(source)) return undefined;
-
-    const record = source as Record<string, unknown>;
-    for (const candidate of getLocaleCandidates(lang)) {
-        const value = record[candidate];
-        if (value !== undefined && value !== null && value !== '') return value;
-    }
-
-    const fallback = record['default'] ?? record['fallback'];
-    if (fallback !== undefined && fallback !== null && fallback !== '') return fallback;
-
-    const firstNonEmpty = Object.values(record).find((value) => value !== undefined && value !== null && value !== '');
-    return firstNonEmpty;
 };
 
 /**
@@ -42,7 +26,7 @@ export const langPickValueHandler = (): ValueHandler => {
         id: 'langPick',
         resolve: (_ctx, args) => {
             const lang = language.currentLanguage();
-            const localeMapValue = resolveFromLocaleMap(args?.[0], lang);
+            const localeMapValue = resolveLocaleMapValue(args?.[0], lang);
             if (localeMapValue !== undefined) return localeMapValue;
 
             const enValue = args?.[0];

@@ -1,8 +1,16 @@
+export type DropdownLocalizedText = {
+    readonly [locale: string]: string;
+};
+
+export type DropdownTextValue = string | DropdownLocalizedText;
+
 export type DropdownItem = {
     readonly id: string;
-    readonly label: string | (() => string);
-    readonly disabled?: boolean;
+    readonly label: DropdownTextValue | (() => DropdownTextValue);
+    readonly disabled?: boolean | (() => boolean);
     readonly value?: string | (() => string);
+    readonly href?: string | (() => string);
+    readonly ariaLabel?: DropdownTextValue | (() => DropdownTextValue);
 };
 
 export type DropdownMenuRole = 'menu' | 'listbox';
@@ -39,7 +47,7 @@ export type DropdownConfig = {
     readonly renderMode?: 'overlay' | 'inline';
     /** Optional id for the inline menu container div (matches legacy header DOM). */
     readonly menuContainerId?: string;
-    /** Where to insert the inline menu in the DOM (CSS selector, relative to dropdown host). Defaults to 'header'. */
+    /** Where to insert the inline menu in the DOM (CSS selector, relative to dropdown host). */
     readonly inlinePortalTargetSelector?: string;
     /** Overlay anchoring/sizing (useful for mobile full-width menus) */
     readonly overlayOrigin?: 'host' | 'closestHeader' | 'closestContainer';

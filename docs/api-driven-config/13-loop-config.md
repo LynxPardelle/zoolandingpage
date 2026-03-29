@@ -32,10 +32,10 @@ loopConfig:
 {
   id: 'footerSocialSection',
   type: 'container',
-  condition: 'all:footerConfig,showSocialLinks; all:footerSocialLinks,exists',
+  condition: 'all:varLenGt,socialLinks,0',
   loopConfig: {
     source: 'var',
-    path: 'footerSocialLinks',
+    path: 'socialLinks',
     templateId: 'footerSocialLinkTemplate',
     idPrefix: 'footerSocialLink',
   },

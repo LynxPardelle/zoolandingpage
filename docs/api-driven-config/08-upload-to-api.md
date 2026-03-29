@@ -52,7 +52,7 @@ Why a map?
   - `type` in allowed set
   - `valueInstructions` only uses allowlisted resolver IDs
   - no function values (JSON can’t represent them anyway)
-  - required nested contracts such as `variables.theme`, `variables.i18n.defaultLanguage`, `variables.i18n.supportedLanguages`, and `variables.contact.whatsappPhone` when WhatsApp handlers are used
+  - required nested contracts such as `variables.theme`, `variables.i18n.defaultLanguage`, `variables.i18n.supportedLanguages`, and `variables.ui.contact.whatsappPhone` when WhatsApp handlers are used
 
 ## Client loading strategy (future)
 

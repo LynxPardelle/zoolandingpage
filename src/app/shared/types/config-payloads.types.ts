@@ -20,6 +20,19 @@ export type TDraftContactVariableConfig = {
     readonly whatsappPhone: string;
 };
 
+export type TDraftSocialLinkConfig = {
+    readonly id?: string;
+    readonly url?: string;
+    readonly href?: string;
+    readonly icon?: string;
+    readonly label?: string | Record<string, string>;
+    readonly labelKey?: string;
+    readonly ariaLabel?: string | Record<string, string>;
+    readonly ariaLabelKey?: string;
+    readonly target?: string;
+    readonly rel?: string;
+};
+
 export type TDraftModalUiConfig = {
     readonly size?: ModalSize;
     readonly closeOnBackdrop?: boolean;
@@ -34,6 +47,7 @@ export type TDraftModalUiConfig = {
 export type TDraftUiVariableConfig = {
     readonly mobileMenuAriaLabel?: string;
     readonly brandTextFallback?: string;
+    readonly contact?: TDraftContactVariableConfig;
     readonly modals?: Record<string, TDraftModalUiConfig>;
     readonly languageOptions?: readonly Record<string, unknown>[];
 };
@@ -84,9 +98,9 @@ export type TVariablesPayload = {
     readonly pageId: string;
     readonly domain: string;
     readonly variables: Record<string, unknown> & {
+        readonly socialLinks?: readonly TDraftSocialLinkConfig[];
         readonly theme?: TThemeVariableConfig;
         readonly i18n?: TDraftI18nVariableConfig;
-        readonly contact?: TDraftContactVariableConfig;
         readonly ui?: TDraftUiVariableConfig;
     };
     readonly computed?: Record<string, unknown>;

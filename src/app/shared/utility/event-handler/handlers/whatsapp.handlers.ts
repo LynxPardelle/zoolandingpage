@@ -17,7 +17,7 @@ const safeOpen = (url: string): void => {
 };
 
 const resolveWhatsAppPhone = (variables: VariableStoreService): string => {
-    const raw = variables.get('contact.whatsappPhone');
+    const raw = variables.get('ui.contact.whatsappPhone');
     return typeof raw === 'string' ? raw.trim() : '';
 };
 

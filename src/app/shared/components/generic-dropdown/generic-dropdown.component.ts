@@ -18,10 +18,11 @@ import {
   ViewChild,
   ViewContainerRef
 } from '@angular/core';
-import { NgxAngoraService } from 'ngx-angora-css';
-import { getLocaleCandidates } from '../../i18n/locale.utils';
+import { resolveLocaleMapValue } from '../../i18n/locale.utils';
+import { AngoraCombosService } from '../../services/angora-combos.service';
 import { LanguageService } from '../../services/language.service';
 import { OverlayPositioningService } from '../../services/overlay-positioning.service';
+import { toNavigationHref } from '../../utility/navigation/navigation-target.utility';
 import { GenericButtonComponent } from "../generic-button/generic-button.component";
 import type { DropdownConfig, DropdownItem, MenuTemplateContext } from './generic-dropdown.types';
 
@@ -41,7 +42,7 @@ const DROPDOWN_DEFAULT: Required<Pick<DropdownConfig, 'closeOnSelect'>> = { clos
 export class GenericDropdown {
   private readonly positioning = inject(OverlayPositioningService);
   private readonly vcr = inject(ViewContainerRef);
-  private readonly angora = inject(NgxAngoraService) as NgxAngoraService;
+  private readonly combos = inject(AngoraCombosService);
   private readonly language = inject(LanguageService);
   private readonly appRef = inject(ApplicationRef);
   private readonly injector = inject(Injector);
@@ -78,17 +79,15 @@ export class GenericDropdown {
   readonly normalizedItems = computed<readonly DropdownItem[]>(() => {
     const raw = this.resolveMaybeThunk(this.items() as unknown);
 
-    if (Array.isArray(raw)) {
-      return raw.filter((item): item is DropdownItem => !!item && typeof item === 'object');
-    }
+    const entries = Array.isArray(raw)
+      ? raw.filter((item): item is DropdownItem => !!item && typeof item === 'object')
+      : raw && typeof raw === 'object'
+        ? Object.values(raw as Record<string, unknown>).filter(
+          (item): item is DropdownItem => !!item && typeof item === 'object'
+        )
+        : [];
 
-    if (raw && typeof raw === 'object') {
-      return Object.values(raw as Record<string, unknown>).filter(
-        (item): item is DropdownItem => !!item && typeof item === 'object'
-      );
-    }
-
-    return [];
+    return entries.map((item) => this.normalizedItem(item));
   });
 
   readonly stateClasses = computed(() => (this.opened() ? 'ank-opacity-100' : 'ank-opacity-80'));
@@ -119,8 +118,12 @@ export class GenericDropdown {
     // Inline menus render into a normal DOM container (no cdk-overlay-* wrappers)
     if (this.renderMode() === 'inline') {
       if (this.inlineOutlet) return;
-      const selector = (this.config()?.inlinePortalTargetSelector || 'header').trim() || 'header';
-      const target = (this.host.nativeElement.closest(selector) as HTMLElement | null) ?? document.body;
+      const selector = String(this.config()?.inlinePortalTargetSelector ?? '').trim();
+      const target = selector
+        ? ((this.host.nativeElement.closest(selector) as HTMLElement | null)
+          ?? document.querySelector<HTMLElement>(selector)
+          ?? document.body)
+        : this.host.nativeElement.parentElement ?? document.body;
 
       const menuRoot = document.createElement('div');
       const id = this.menuContainerId();
@@ -137,13 +140,7 @@ export class GenericDropdown {
       });
       this.inlineOutlet.attach(this.inlinePortal);
       this.opened.set(true);
-      queueMicrotask(() => {
-        try {
-          setTimeout(() => this.angora.cssCreate(), 350);
-        } catch {
-          /* no-op */
-        }
-      });
+      this.scheduleCssRefresh();
       queueMicrotask(() => this.captureMenuItemsAndFocusFirst());
       return;
     }
@@ -198,14 +195,7 @@ export class GenericDropdown {
       this.overlayRef.updatePosition();
     }
 
-    // Ensure Angora generates styles for classes inside the CDK overlay
-    queueMicrotask(() => {
-      try {
-        setTimeout(() => this.angora.cssCreate(), 350);
-      } catch {
-        /* no-op */
-      }
-    });
+    this.scheduleCssRefresh();
     this.overlayRef.backdropClick().subscribe(() => this.close());
     this.opened.set(true);
     queueMicrotask(() => this.captureMenuItemsAndFocusFirst());
@@ -247,13 +237,7 @@ export class GenericDropdown {
       this.opened.set(false);
       this.activeIndex.set(-1);
       if (restoreFocus) this.triggerBtn?.focus();
-      queueMicrotask(() => {
-        try {
-          setTimeout(() => this.angora.cssCreate(), 350);
-        } catch {
-          /* no-op */
-        }
-      });
+      this.scheduleCssRefresh();
       return;
     }
 
@@ -263,14 +247,7 @@ export class GenericDropdown {
     this.activeIndex.set(-1);
     // restore focus to trigger
     if (restoreFocus) this.triggerBtn?.focus();
-    // Recompute styles after closing as well (safe no-op if none changed)
-    queueMicrotask(() => {
-      try {
-        setTimeout(() => this.angora.cssCreate(), 350);
-      } catch {
-        /* no-op */
-      }
-    });
+    this.scheduleCssRefresh();
   }
 
   onSelect(it: DropdownItem): void {
@@ -370,26 +347,26 @@ export class GenericDropdown {
     return value;
   }
 
-  itemLabel(item: DropdownItem): string {
-    const raw = this.resolveMaybeThunk(item.label);
+  private scheduleCssRefresh(delayMs = 350): void {
+    this.combos.scheduleCssCreate(delayMs);
+  }
+
+  private resolveText(value: unknown): string {
+    const raw = this.resolveMaybeThunk(value);
     if (typeof raw === 'string' && raw.trim().length > 0) return raw;
 
-    const record = item as unknown as Record<string, unknown>;
-    const lang = this.language.currentLanguage();
-    const localizedLabels = record['labels'];
-    if (localizedLabels && typeof localizedLabels === 'object') {
-      for (const candidate of getLocaleCandidates(lang)) {
-        const localized = (localizedLabels as Record<string, unknown>)[candidate];
-        if (typeof localized === 'string' && localized.trim().length > 0) return localized;
-      }
-    }
+    const localized = resolveLocaleMapValue(raw, this.language.currentLanguage());
+    return typeof localized === 'string' && localized.trim().length > 0 ? localized : '';
+  }
 
-    const localized = lang === 'es'
-      ? record['labelEs'] ?? record['label']
-      : record['labelEn'] ?? record['label'];
+  itemLabel(item: DropdownItem): string {
+    const label = this.resolveText(item.label);
+    if (label) return label;
 
-    if (typeof localized === 'string' && localized.trim().length > 0) return localized;
-    if (typeof record['id'] === 'string' && record['id'].trim().length > 0) return record['id'];
+    const legacyLabels = this.resolveText((item as Record<string, unknown>)['labels']);
+    if (legacyLabels) return legacyLabels;
+
+    if (typeof item.id === 'string' && item.id.trim().length > 0) return item.id;
     return '';
   }
 
@@ -397,26 +374,34 @@ export class GenericDropdown {
     const raw = this.resolveMaybeThunk(item.value);
     if (typeof raw === 'string' && raw.trim().length > 0) return raw;
 
-    const record = item as unknown as Record<string, unknown>;
-    const sectionId = record['sectionId'];
-    if (typeof sectionId === 'string' && sectionId.trim().length > 0) return sectionId;
-
-    const href = record['href'];
-    if (typeof href === 'string' && href.trim().length > 0) return href.replace(/^#/, '');
-
-    return '';
+    return typeof item.id === 'string' ? item.id.trim() : '';
   }
 
   itemHref(item: DropdownItem): string {
+    const explicitHref = this.resolveMaybeThunk((item as Record<string, unknown>)['href']);
+    if (typeof explicitHref === 'string' && explicitHref.trim().length > 0) {
+      return toNavigationHref(explicitHref) || '#';
+    }
+
     const value = this.itemValue(item).trim();
-    return value ? `#${ value }` : '#';
+    return toNavigationHref(value) || '#';
+  }
+
+  itemAriaLabel(item: DropdownItem): string {
+    const ariaLabel = this.resolveText((item as Record<string, unknown>)['ariaLabel']);
+    return ariaLabel || this.itemLabel(item);
   }
 
   normalizedItem(item: DropdownItem): DropdownItem {
+    const href = this.itemHref(item);
+
     return {
       ...item,
       label: this.itemLabel(item),
       value: this.itemValue(item),
+      href: href === '#' ? undefined : href,
+      ariaLabel: this.itemAriaLabel(item),
+      disabled: this.itemDisabled(item),
     };
   }
 }

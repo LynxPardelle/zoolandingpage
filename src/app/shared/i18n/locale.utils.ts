@@ -23,6 +23,21 @@ export const getLocaleCandidates = (value: unknown): readonly string[] => {
     return language && language !== normalized ? [normalized, language] : [normalized];
 };
 
+export const resolveLocaleMapValue = (source: unknown, lang: unknown): unknown => {
+    if (!source || typeof source !== 'object' || Array.isArray(source)) return undefined;
+
+    const record = source as Record<string, unknown>;
+    for (const candidate of getLocaleCandidates(lang)) {
+        const value = record[candidate];
+        if (value !== undefined && value !== null && value !== '') return value;
+    }
+
+    const fallback = record['default'] ?? record['fallback'];
+    if (fallback !== undefined && fallback !== null && fallback !== '') return fallback;
+
+    return Object.values(record).find((value) => value !== undefined && value !== null && value !== '');
+};
+
 export const resolveBestLocaleMatch = (preferred: unknown, available: readonly string[]): string | null => {
     const normalizedAvailable = available
         .map((code) => normalizeLocaleCode(code))

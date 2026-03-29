@@ -217,8 +217,10 @@ describe('whatsapp handlers', () => {
             pageId: 'default',
             domain: 'zoolandingpage.com.mx',
             variables: {
-                contact: {
-                    whatsappPhone: '+525522699563'
+                ui: {
+                    contact: {
+                        whatsappPhone: '+525522699563'
+                    }
                 }
             }
         } as any);

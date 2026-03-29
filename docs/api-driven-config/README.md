@@ -80,13 +80,13 @@ Example: dialect-aware draft
 
 For config-driven items that are not using i18n keys yet, you can also store locale maps directly in payloads.
 
-Example: legacy navigation or dropdown item labels
+Example: navigation or dropdown item labels stored directly in payload data
 
 ```json
 {
   "id": "contact",
-  "href": "#contact",
-  "labels": {
+  "value": "contact",
+  "label": {
     "pt-BR": "Contato",
     "pt": "Contacto",
     "en": "Contact",
@@ -95,21 +95,39 @@ Example: legacy navigation or dropdown item labels
 }
 ```
 
+For dropdown and loop-generated navigation items, the runtime now expects draft-native fields only:
+
+- `value` for the target section or navigation value.
+- `href` only when you need an explicit URL instead of deriving `#${value}`.
+- `label` as either a plain string or a locale map.
+- `labelKey` / `ariaLabelKey` when the text should come from i18n payloads.
+
+Legacy item fields such as `labelEs`, `labelEn`, and `sectionId` are no longer part of the runtime contract.
+
+The runtime no longer synthesizes `variables.ui.languageOptions`. If a draft still uses a dropdown-based language selector, author `ui.languageOptions` explicitly in the payload or point the dropdown at another explicit payload source.
+
 Example: locale map consumed by `langPick`
 
 ```text
-set:config.text,langPick,var,footerConfig.copyrightText,Copyright Example. All rights reserved.
+set:config.text,langPick,i18n,footer.copyright,Copyright Example. All rights reserved.
 ```
 
 ```json
 {
   "variables": {
-    "footerConfig": {
-      "copyrightText": {
-        "es": "Copyright Example. Todos los derechos reservados.",
-        "pt-BR": "Copyright Example. Todos os direitos reservados.",
-        "en": "Copyright Example. All rights reserved.",
-        "default": "Copyright Example. All rights reserved."
+    "ui": {
+      "contact": {
+        "whatsappPhone": "+525522699563"
+      },
+      "footer": {
+        "socialLinks": [
+          {
+            "id": "instagram",
+            "url": "https://instagram.com/example",
+            "labelKey": "footer.social.instagram.label",
+            "ariaLabelKey": "footer.social.instagram.ariaLabel"
+          }
+        ]
       }
     }
   }

@@ -14,16 +14,6 @@ This is the allowlisted set of condition handlers for `condition` instructions.
   - True when the translated value exists and is not empty.
   - Example: `all:i18n,hero.subtitle`
 
-- `footerConfig,<prop>`
-
-  - Reads from the orchestrator's `footerConfig` object.
-  - Example: `all:footerConfig,showLegalLinks`
-
-- `footerSocialLinks,exists`
-
-  - True when the footer social links array is non-empty.
-  - Example: `all:footerSocialLinks,exists`
-
 - `modalRefId,<id>`
   - True when the active modal ref ID matches.
   - Example: `all:modalRefId,terms-of-service`
@@ -33,7 +23,7 @@ This is the allowlisted set of condition handlers for `condition` instructions.
 - `var,<path>`
 
   - Truthy check for variable/computed value by path.
-  - Example: `all:var,footerConfig.showSocialLinks`
+  - Example: `all:var,ui.contact.whatsappPhone`
 
 - `varEq,<path>,<value>` / `varNeq,<path>,<value>`
 
@@ -52,29 +42,29 @@ This is the allowlisted set of condition handlers for `condition` instructions.
 
 - `varLenEq,<path>,<value>` / `varLenGt,<path>,<value>` / `varLenGte,<path>,<value>` / `varLenLt,<path>,<value>` / `varLenLte,<path>,<value>`
   - Length checks for arrays/strings.
-  - Example: `all:varLenGt,footerSocialLinks,0`
+  - Example: `all:varLenGt,socialLinks,0`
 
 ## Host helpers
 
 - `host,<path>`
 
   - Checks truthiness of a host value (dot-path or array index).
-  - Example: `all:host,footerSocialLinks`
+  - Example: `all:host,statsStripRemote.metrics`
 
 - `hostEq,<path>,<value>`
 
   - Strict equality check against a parsed primitive.
-  - Example: `all:hostEq,footerConfig.showCopyright,true`
+  - Example: `all:hostEq,modalHostConfig.showCloseButton,true`
 
 - `hostIncludes,<path>,<value>`
 
   - Checks `includes()` on string or array values.
-  - Example: `all:hostIncludes,footerSocialLinks,Instagram`
+  - Example: `all:hostIncludes,modalHostConfig.ariaLabel,Legal`
 
 - `hostNeq,<path>,<value>`
 
   - Strict inequality check against a parsed primitive.
-  - Example: `all:hostNeq,footerConfig.showLegalLinks,false`
+  - Example: `all:hostNeq,modalHostConfig.variant,sheet`
 
 - `hostGt,<path>,<value>`
 
@@ -114,26 +104,26 @@ This is the allowlisted set of condition handlers for `condition` instructions.
 - `hostLenEq,<path>,<value>`
 
   - Length equals (string or array).
-  - Example: `all:hostLenEq,footerSocialLinks,3`
+  - Example: `all:hostLenEq,devDemoControlsComponents,1`
 
 - `hostLenGt,<path>,<value>`
 
   - Length greater than (string or array).
-  - Example: `all:hostLenGt,footerSocialLinks,0`
+  - Example: `all:hostLenGt,devDemoControlsComponents,0`
 
 - `hostLenGte,<path>,<value>`
 
   - Length greater than or equal (string or array).
-  - Example: `all:hostLenGte,footerSocialLinks,1`
+  - Example: `all:hostLenGte,devDemoControlsComponents,1`
 
 - `hostLenLt,<path>,<value>`
 
   - Length less than (string or array).
-  - Example: `all:hostLenLt,footerSocialLinks,5`
+  - Example: `all:hostLenLt,devDemoControlsComponents,5`
 
 - `hostLenLte,<path>,<value>`
   - Length less than or equal (string or array).
-  - Example: `all:hostLenLte,footerSocialLinks,5`
+  - Example: `all:hostLenLte,devDemoControlsComponents,5`
 
 ## Utility handlers
 

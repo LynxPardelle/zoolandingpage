@@ -44,6 +44,22 @@ const normalizeInternalPathname = (value: string): string => {
     return normalized || '/';
 };
 
+export const toNavigationHref = (value: unknown): string => {
+    const normalized = String(value ?? '').trim();
+    if (!normalized) return '';
+
+    if (
+        normalized.startsWith('#')
+        || normalized.startsWith('/')
+        || /^(mailto:|tel:|sms:)/i.test(normalized)
+        || /^[a-z][a-z0-9+.-]*:/i.test(normalized)
+    ) {
+        return normalized;
+    }
+
+    return `#${ normalized.replace(/^#/, '') }`;
+};
+
 export const resolveNavigationTarget = (href: string): TResolvedNavigationTarget => {
     const value = String(href ?? '').trim();
     if (!value) {

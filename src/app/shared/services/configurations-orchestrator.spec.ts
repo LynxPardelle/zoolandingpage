@@ -80,7 +80,7 @@ describe('ConfigurationsOrchestratorService', () => {
       pageId: 'default',
       domain: 'zoolandingpage.com.mx',
       variables: {
-        footerSocialLinks: [
+        socialLinks: [
           { url: 'https://example.com/a', icon: 'A', ariaLabel: 'A label' },
           { url: 'https://example.com/b', icon: 'B', ariaLabel: 'B label' },
         ],
@@ -107,7 +107,7 @@ describe('ConfigurationsOrchestratorService', () => {
           type: 'container',
           loopConfig: {
             source: 'var',
-            path: 'footerSocialLinks',
+            path: 'socialLinks',
             templateId: 'footerSocialLinkTemplate',
             idPrefix: 'footerSocialLink',
           },
@@ -140,7 +140,7 @@ describe('ConfigurationsOrchestratorService', () => {
       pageId: 'default',
       domain: 'zoolandingpage.com.mx',
       variables: {
-        footerSocialLinks: [
+        socialLinks: [
           {
             url: 'https://example.com/facebook',
             icon: '📘',
@@ -171,7 +171,7 @@ describe('ConfigurationsOrchestratorService', () => {
           type: 'container',
           loopConfig: {
             source: 'var',
-            path: 'footerSocialLinks',
+            path: 'socialLinks',
             templateId: 'footerSocialLinkTemplate',
             idPrefix: 'footerSocialLink',
           },
@@ -219,15 +219,6 @@ describe('ConfigurationsOrchestratorService', () => {
 
     const features = service.getComponentById('featuresSection') as any;
     expect(features?.config?.components).toEqual(['featureText__1', 'featureText__2']);
-  });
-
-  it('keeps footer sections hidden when footerConfig payload is missing', () => {
-    variables.setPayload(null);
-
-    const footerConfig = service.footerConfig;
-    expect(footerConfig['showLegalLinks']).toBeFalse();
-    expect(footerConfig['showSocialLinks']).toBeFalse();
-    expect(footerConfig['showCopyright']).toBeFalse();
   });
 
   it('uses live analytics time fallback without an arbitrary minimum floor', () => {
@@ -366,7 +357,7 @@ describe('ConfigurationsOrchestratorService', () => {
       domain: 'zoolandingpage.com.mx',
       variables: {
         navigation: [
-          { id: 'home', sectionId: 'home', labelEn: 'Home', labelEs: 'Inicio' },
+          { id: 'home', value: 'home', label: { en: 'Home', es: 'Inicio', default: 'Home' } },
         ],
       },
     });
@@ -429,11 +420,10 @@ describe('ConfigurationsOrchestratorService', () => {
         navigation: [
           {
             id: 'home',
-            sectionId: 'home',
+            value: 'home',
             labelKey: 'navigation.links.home.label',
             ariaLabelKey: 'navigation.links.home.aria',
-            labelEn: 'Home Fallback',
-            labelEs: 'Inicio Fallback',
+            label: { en: 'Home Fallback', es: 'Inicio Fallback', default: 'Home Fallback' },
           },
         ],
       },

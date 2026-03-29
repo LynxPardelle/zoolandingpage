@@ -6,7 +6,7 @@ The `condition` field supports a small DSL so components can be shown/hidden wit
 
 `condition` is a semicolon-separated list of commands:
 
-```
+```text
 all:<handlerId>,<arg1>,<arg2>; any:<handlerId>,<arg1>; not:<handlerId>,<arg1>
 ```
 
@@ -24,14 +24,14 @@ condition: 'all:i18n,hero.subtitle';
 // Modal content when a specific modal is open
 condition: 'all:modalRefId,terms-of-service';
 
-// Show social links only when enabled + links exist
-condition: 'all:footerConfig,showSocialLinks; all:footerSocialLinks,exists';
+// Show social links only when the draft payload exposes entries
+condition: 'all:varLenGt,socialLinks,0';
 
 // Host property truthy
-condition: 'all:host,footerSocialLinks';
+condition: 'all:host,statsStripRemote.metrics';
 
 // Host property equals
-condition: 'all:hostEq,footerConfig.showCopyright,true';
+condition: 'all:hostEq,modalHostConfig.showCloseButton,true';
 
 // Host property numeric comparisons
 condition: 'all:hostGte,statsStripRemote.metrics.pageViews,100';
@@ -44,7 +44,7 @@ condition: 'all:hostEndsWith,footerTranslations.en.termsLink,Service';
 condition: 'all:hostRegex,footerTranslations.en.termsLink,^Terms,i';
 
 // Host length checks (string or array)
-condition: 'all:hostLenGt,footerSocialLinks,0';
+condition: 'all:hostLenGt,devDemoControlsComponents,0';
 ```
 
 ## Notes

@@ -1,6 +1,7 @@
 import { OverlayContainer } from '@angular/cdk/overlay';
 import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { LanguageService } from '../../services/language.service';
 import { GenericDropdown } from './generic-dropdown.component';
 import type { DropdownItem } from './generic-dropdown.types';
 
@@ -51,5 +52,20 @@ describe('GenericDropdown', () => {
 
     const panel = overlayContainer.getContainerElement().querySelector('.menu-shell.menu-theme');
     expect(panel).not.toBeNull();
+  });
+
+  it('resolves locale-map labels from draft-native items', () => {
+    const language = TestBed.inject(LanguageService);
+    language.setLanguage('es');
+
+    fixture.componentInstance.items = [
+      { id: 'contact', value: 'contact', label: { en: 'Contact', es: 'Contacto', default: 'Contact' } },
+    ];
+    fixture.detectChanges();
+
+    const component = fixture.debugElement.children[0].componentInstance as GenericDropdown;
+    expect(component.normalizedItems()[0]?.label).toBe('Contacto');
+    expect(component.normalizedItems()[0]?.value).toBe('contact');
+    expect(component.itemHref(component.normalizedItems()[0])).toBe('#contact');
   });
 });

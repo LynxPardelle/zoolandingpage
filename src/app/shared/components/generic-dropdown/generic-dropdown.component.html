@@ -24,6 +24,7 @@
             [attr.role]="itemRole()"
             [attr.aria-disabled]="itemDisabled(it) ? 'true' : null"
             [attr.aria-selected]="menuRole() === 'listbox' ? (isSelectedItem(it) ? 'true' : 'false') : null"
+            [attr.aria-label]="itemAriaLabel(it) || null"
             [attr.href]="itemHref(it)"
             [class]="itemClasses(it)"
             tabindex="-1"

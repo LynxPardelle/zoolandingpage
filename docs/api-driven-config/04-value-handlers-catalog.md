@@ -86,7 +86,7 @@ set:config.label,langPick,Home,Inicio
 - Typical locale-map usage:
 
 ```text
-set:config.text,langPick,var,footerConfig.copyrightText,Copyright Example. All rights reserved.
+set:config.text,langPick,i18n,footer.copyright,Copyright Example. All rights reserved.
 ```
 
 - Locale-map behavior:

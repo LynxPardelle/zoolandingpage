@@ -6,6 +6,7 @@ import type {
     TDraftLanguageDefinition,
     TDraftModalUiConfig,
     TDraftSiteConfigPayload,
+    TDraftSocialLinkConfig,
     TDraftUiVariableConfig,
     TI18nPayload,
     TPageConfigPayload,
@@ -59,6 +60,30 @@ const isDraftI18nVariableConfig = (value: unknown): boolean => {
 const isDraftContactVariableConfig = (value: unknown): value is TDraftContactVariableConfig => {
     if (!isRecord(value)) return false;
     if (typeof value['whatsappPhone'] !== 'string' || value['whatsappPhone'].trim().length === 0) return false;
+    return true;
+};
+
+const isLocalizedStringRecord = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    return Object.values(value).every((entry) => typeof entry === 'string');
+};
+
+const isDraftSocialLinkConfig = (value: unknown): value is TDraftSocialLinkConfig => {
+    if (!isRecord(value)) return false;
+
+    const href = typeof value['href'] === 'string' ? value['href'].trim() : '';
+    const url = typeof value['url'] === 'string' ? value['url'].trim() : '';
+    if (!href && !url) return false;
+
+    if (value['id'] !== undefined && typeof value['id'] !== 'string') return false;
+    if (value['icon'] !== undefined && typeof value['icon'] !== 'string') return false;
+    if (value['label'] !== undefined && typeof value['label'] !== 'string' && !isLocalizedStringRecord(value['label'])) return false;
+    if (value['labelKey'] !== undefined && typeof value['labelKey'] !== 'string') return false;
+    if (value['ariaLabel'] !== undefined && typeof value['ariaLabel'] !== 'string' && !isLocalizedStringRecord(value['ariaLabel'])) return false;
+    if (value['ariaLabelKey'] !== undefined && typeof value['ariaLabelKey'] !== 'string') return false;
+    if (value['target'] !== undefined && typeof value['target'] !== 'string') return false;
+    if (value['rel'] !== undefined && typeof value['rel'] !== 'string') return false;
+
     return true;
 };
 
@@ -276,6 +301,7 @@ const isDraftUiVariableConfig = (value: unknown): value is TDraftUiVariableConfi
 
     if (value['mobileMenuAriaLabel'] !== undefined && typeof value['mobileMenuAriaLabel'] !== 'string') return false;
     if (value['brandTextFallback'] !== undefined && typeof value['brandTextFallback'] !== 'string') return false;
+    if (value['contact'] !== undefined && !isDraftContactVariableConfig(value['contact'])) return false;
 
     const modals = value['modals'];
     if (modals !== undefined) {
@@ -375,13 +401,13 @@ export const isVariablesPayload = (value: unknown): value is TVariablesPayload =
         return false;
     }
 
-    const contact = (value['variables'] as Record<string, unknown>)['contact'];
-    if (contact !== undefined && !isDraftContactVariableConfig(contact)) {
+    const ui = (value['variables'] as Record<string, unknown>)['ui'];
+    if (ui !== undefined && !isDraftUiVariableConfig(ui)) {
         return false;
     }
 
-    const ui = (value['variables'] as Record<string, unknown>)['ui'];
-    if (ui !== undefined && !isDraftUiVariableConfig(ui)) {
+    const socialLinks = (value['variables'] as Record<string, unknown>)['socialLinks'];
+    if (socialLinks !== undefined && (!Array.isArray(socialLinks) || !socialLinks.every((entry) => isDraftSocialLinkConfig(entry)))) {
         return false;
     }
 

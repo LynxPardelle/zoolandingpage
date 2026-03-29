@@ -27,6 +27,7 @@ with the downloaded `components.json` file.
 - The exported payload is sanitized: inline functions are removed.
 - Use `valueInstructions` and `condition` DSLs to replace any runtime logic.
 - Draft-owned modal host behavior should live in `variables.ui.modals`, for example legal modal sizes and aria-label translation keys keyed by modal ref ID.
+- Navigation and dropdown entries should be authored in draft-native form. Prefer `value` plus `label` locale maps or `labelKey` / `ariaLabelKey`. Do not rely on legacy compatibility fields such as `labelEs`, `labelEn`, or `sectionId`.
 - Validate the payload against:
 
 ```
@@ -36,5 +37,6 @@ docs/api-driven-config/schemas/components.schema.json
 ## Next Steps
 
 - Move remaining page roots (rootIds + modalRootIds) into `page-config.json`.
+- Keep locale availability under `variables.i18n.defaultLanguage` and `variables.i18n.supportedLanguages`; if a draft renders a language dropdown, define `ui.languageOptions` explicitly instead of relying on runtime backfills.
 - Add SEO, structured data, and analytics configs per domain.
 - Update the config in the API when ready for production.

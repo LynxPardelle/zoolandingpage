@@ -171,32 +171,33 @@ This project now treats footer, legal modal, accessibility, and debug-panel cont
         "demoModalAccentColor": "accentColor"
       }
     },
-    "footerConfig": {
-      "showLegalLinks": true,
-      "showSocialLinks": true,
-      "showCopyright": true,
-      "copyrightText": "© 2026 Zoo Landing Page. All rights reserved."
-    },
-    "footerSocialLinks": [
-      {
-        "id": "facebook",
-        "url": "https://facebook.com/zoolanding",
-        "target": "_blank",
-        "rel": "noopener noreferrer",
-        "icon": "📘",
-        "labelKey": "footer.social.facebook.label",
-        "ariaLabelKey": "footer.social.facebook.ariaLabel"
+    "ui": {
+      "contact": {
+        "whatsappPhone": "+525522699563"
       },
-      {
-        "id": "instagram",
-        "url": "https://instagram.com/zoolanding",
-        "target": "_blank",
-        "rel": "noopener noreferrer",
-        "icon": "📸",
-        "labelKey": "footer.social.instagram.label",
-        "ariaLabelKey": "footer.social.instagram.ariaLabel"
+      "footer": {
+        "socialLinks": [
+          {
+            "id": "facebook",
+            "url": "https://facebook.com/zoolanding",
+            "target": "_blank",
+            "rel": "noopener noreferrer",
+            "icon": "📘",
+            "labelKey": "footer.social.facebook.label",
+            "ariaLabelKey": "footer.social.facebook.ariaLabel"
+          },
+          {
+            "id": "instagram",
+            "url": "https://instagram.com/zoolanding",
+            "target": "_blank",
+            "rel": "noopener noreferrer",
+            "icon": "📸",
+            "labelKey": "footer.social.instagram.label",
+            "ariaLabelKey": "footer.social.instagram.ariaLabel"
+          }
+        ]
       }
-    ]
+    }
   }
 }
 ```
@@ -230,10 +231,10 @@ Use `variables.theme.palettes` for global semantic colors only. Keep reusable cl
     "footerSocialSection": {
       "id": "footerSocialSection",
       "type": "container",
-      "condition": "all:footerConfig,showSocialLinks; all:footerSocialLinks,exists",
+      "condition": "all:varLenGt,socialLinks,0",
       "loopConfig": {
         "source": "var",
-        "path": "footerSocialLinks",
+        "path": "socialLinks",
         "templateId": "footerSocialLinkTemplate",
         "idPrefix": "footerSocialLink"
       },
@@ -315,8 +316,8 @@ Use `variables.theme.palettes` for global semantic colors only. Keep reusable cl
 ## Notes for migration
 
 - Preferred social label resolution: `labelKey` / `ariaLabelKey`.
-- Temporary compatibility is available during rollout: `labelEs` / `labelEn` / `label`.
-- After rollout stabilization, remove compatibility fields and keep key-only payloads.
+- If a payload entry must carry text directly, use `label` as a plain string or locale map.
+- Avoid legacy compatibility fields such as `labelEs` and `labelEn`.
 
 ## Example: Variable-driven interactive process
 

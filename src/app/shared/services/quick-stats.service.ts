@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { DomainResolverService } from './domain-resolver.service';
 
 // Minimal types based on docs/09-quick-stats-lambda.md
 export type StatsOp =
@@ -34,11 +35,26 @@ export interface ApplyOpsResponse {
 @Injectable({ providedIn: 'root' })
 export class QuickStatsService {
     private http = inject(HttpClient);
+    private readonly domainResolver = inject(DomainResolverService);
     // Keep centralized in one place so we can append a path later (e.g., `/v1/quick-stats`)
     private readonly baseUrl = `${ environment.apiUrl }`;
-    private readonly appId = (environment.app.name || 'zoolandingpage').replace(/\s/g, '_').replace(/[^a-zA-Z0-9_]+/g, '').toLowerCase();
     private readonly version: string = environment.apiVersion;
     public readonly remoteStats = signal<Record<string, any> | undefined>(undefined);
+
+    private normalizeAppName(value: unknown): string {
+        const normalized = String(value ?? '')
+            .trim()
+            .replace(/\s/g, '_')
+            .replace(/[^a-zA-Z0-9_]+/g, '')
+            .toLowerCase();
+
+        return normalized || 'zoolandingpage';
+    }
+
+    private resolveAppId(): string {
+        const runtimeDomain = this.domainResolver.resolveDomain().domain;
+        return this.normalizeAppName(runtimeDomain || environment.app.name);
+    }
 
     /** Send raw ops to the backend */
     applyOps(req: ApplyOpsRequest): Observable<ApplyOpsResponse> {
@@ -53,27 +69,27 @@ export class QuickStatsService {
 
     /** Convenience: fetch current stats document (no write) */
     readStats(ifMatchEtag?: string): Observable<ApplyOpsResponse> {
-        return this.applyOps({ appName: this.appId, ops: [], dryRun: true, ifMatchEtag });
+        return this.applyOps({ appName: this.resolveAppId(), ops: [], dryRun: true, ifMatchEtag });
     }
 
     /** Convenience: increment a counter path by N (default 1) */
     inc(path: string, by = 1): Observable<ApplyOpsResponse> {
-        return this.applyOps({ appName: this.appId, ops: [{ op: 'inc', path, by }] });
+        return this.applyOps({ appName: this.resolveAppId(), ops: [{ op: 'inc', path, by }] });
     }
 
     /** Convenience: set a value at a path */
     set(path: string, value: any): Observable<ApplyOpsResponse> {
-        return this.applyOps({ appName: this.appId, ops: [{ op: 'set', path, value }] });
+        return this.applyOps({ appName: this.resolveAppId(), ops: [{ op: 'set', path, value }] });
     }
 
     /** Convenience: deep-merge an object at a path */
     merge(path: string, value: Record<string, any>): Observable<ApplyOpsResponse> {
-        return this.applyOps({ appName: this.appId, ops: [{ op: 'merge', path, value }] });
+        return this.applyOps({ appName: this.resolveAppId(), ops: [{ op: 'merge', path, value }] });
     }
 
     /** Convenience: append a value into an array at a path */
     append(path: string, value: any): Observable<ApplyOpsResponse> {
-        return this.applyOps({ appName: this.appId, ops: [{ op: 'append', path, value }] });
+        return this.applyOps({ appName: this.resolveAppId(), ops: [{ op: 'append', path, value }] });
     }
 
     /** Specific helpers used by the app */

@@ -1,4 +1,4 @@
-import { getLocaleCandidates } from '@/app/shared/i18n/locale.utils';
+import { resolveLocaleMapValue } from '@/app/shared/i18n/locale.utils';
 import { I18nService } from '@/app/shared/services/i18n.service';
 import type { TComponentsPayload, TDraftModalUiConfig } from '@/app/shared/types/config-payloads.types';
 import { computed, DestroyRef, effect, inject, Injectable, signal } from '@angular/core';
@@ -15,6 +15,7 @@ import {
     normalizeComponentIfNeeded,
 } from '../utility/component-orchestrator.utility';
 import { forwardAnalyticsEvent } from '../utility/forwardAnalyticsEvent.utility';
+import { toNavigationHref } from '../utility/navigation/navigation-target.utility';
 import { AnalyticsService } from './analytics.service';
 import { ComponentEvent, ComponentEventDispatcherService } from './component-event-dispatcher.service';
 import { devOnlyComponents } from './component-stores/devOnlyComponents.component-store';
@@ -37,11 +38,6 @@ export class ConfigurationsOrchestratorService {
     private readonly domainResolver = inject(DomainResolverService);
     private readonly language = inject(LanguageService);
     private readonly variableStore = inject(VariableStoreService);
-    private warnedFooterSocialLinksMissing = false;
-    private warnedFooterSocialLinksEmpty = false;
-    private warnedFooterConfigMissing = false;
-    private warnedFooterLegalMissing = false;
-    private warnedFooterCopyrightMissing = false;
     private warnedNavigationMissing = false;
     private warnedLoopPaths = new Set<string>();
     private readonly draftExportContext = signal({
@@ -213,77 +209,6 @@ export class ConfigurationsOrchestratorService {
     ));
 
     readonly components: TGenericComponent[] = [...devOnlyComponents];
-
-    get footerSocialLinks(): readonly Record<string, unknown>[] {
-        const raw = this.variableStore.get('footerSocialLinks');
-        if (!Array.isArray(raw)) {
-            if (!this.warnedFooterSocialLinksMissing) {
-                console.warn('[ConfigurationsOrchestrator] Expected variables.footerSocialLinks to be an array.');
-                this.warnedFooterSocialLinksMissing = true;
-            }
-            return [];
-        }
-        if (raw.length === 0 && !this.warnedFooterSocialLinksEmpty) {
-            console.warn('[ConfigurationsOrchestrator] variables.footerSocialLinks is empty. Footer social links will not render.');
-            this.warnedFooterSocialLinksEmpty = true;
-        }
-        return raw.filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object');
-    }
-
-    get footerConfig(): Record<string, unknown> {
-        const raw = this.variableStore.get('footerConfig');
-        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-            if (!this.warnedFooterConfigMissing) {
-                console.warn('[ConfigurationsOrchestrator] Expected variables.footerConfig to be an object. Footer sections will remain hidden.');
-                this.warnedFooterConfigMissing = true;
-            }
-            return {
-                showLegalLinks: false,
-                showSocialLinks: false,
-                showCopyright: false,
-                copyrightText: '',
-            };
-        }
-
-        const footerConfig = raw as Record<string, unknown>;
-        const legalRequested = Boolean(footerConfig['showLegalLinks']);
-        const socialRequested = Boolean(footerConfig['showSocialLinks']);
-        const copyrightRequested = Boolean(footerConfig['showCopyright']);
-        const legalReady = this.hasFooterLegalI18n();
-        const copyrightText = typeof footerConfig['copyrightText'] === 'string'
-            ? footerConfig['copyrightText'].trim()
-            : '';
-
-        if (legalRequested && !legalReady && !this.warnedFooterLegalMissing) {
-            console.warn('[ConfigurationsOrchestrator] Missing API i18n footer legal keys. Legal links will remain hidden.');
-            this.warnedFooterLegalMissing = true;
-        }
-
-        if (copyrightRequested && copyrightText.length === 0 && !this.warnedFooterCopyrightMissing) {
-            console.warn('[ConfigurationsOrchestrator] Missing variables.footerConfig.copyrightText. Copyright will remain hidden.');
-            this.warnedFooterCopyrightMissing = true;
-        }
-
-        return {
-            showLegalLinks: legalRequested && legalReady,
-            showSocialLinks: socialRequested,
-            showCopyright: copyrightRequested && copyrightText.length > 0,
-            copyrightText,
-        };
-    }
-
-    private hasFooterLegalI18n(): boolean {
-        const legalTitle = this.globalI18n.get('footer.legal.title');
-        const termsLink = this.globalI18n.get('footer.legal.terms.link');
-        const dataLink = this.globalI18n.get('footer.legal.data.link');
-        const termsSections = this.globalI18n.get('footer.legal.terms.sections');
-        const dataPoints = this.globalI18n.get('footer.legal.data.points');
-
-        const hasStrings = [legalTitle, termsLink, dataLink].every((value) => typeof value === 'string' && value.trim().length > 0);
-        const hasSections = Array.isArray(termsSections) && termsSections.length > 0;
-        const hasPoints = Array.isArray(dataPoints) && dataPoints.length > 0;
-        return hasStrings && hasSections && hasPoints;
-    }
 
     get navigation(): readonly Record<string, unknown>[] {
         const raw = this.variableStore.get('navigation');
@@ -547,48 +472,38 @@ export class ConfigurationsOrchestratorService {
 
         if (template.type === 'link' && item && typeof item === 'object') {
             const record = item as Record<string, unknown>;
-            const sectionId = typeof record['sectionId'] === 'string'
-                ? record['sectionId'].trim()
-                : typeof record['value'] === 'string'
-                    ? record['value'].trim()
-                    : undefined;
             const href = typeof record['href'] === 'string'
                 ? record['href'].trim()
-                : sectionId && sectionId.length > 0
-                    ? `#${ sectionId }`
-                    : undefined;
+                : typeof record['url'] === 'string'
+                    ? record['url'].trim()
+                    : toNavigationHref(record['value']);
 
             const lang = this.language.currentLanguage();
             const labelFromKey = this.resolveI18nKeyString(record['labelKey']);
             const ariaFromKey = this.resolveI18nKeyString(record['ariaLabelKey']);
-            const localizedLabels = record['labels'] && typeof record['labels'] === 'object' && !Array.isArray(record['labels'])
-                ? record['labels'] as Record<string, unknown>
-                : null;
-            const localizedLabelFromMap = localizedLabels
-                ? getLocaleCandidates(lang)
-                    .map((candidate) => localizedLabels[candidate])
-                    .find((value) => typeof value === 'string' && value.trim().length > 0)
-                : undefined;
-            const localizedLabel = lang === 'es'
-                ? (record['labelEs'] ?? record['label'])
-                : (record['labelEn'] ?? record['label']);
+            const localizedLabelFromValue = resolveLocaleMapValue(record['label'], lang);
+            const localizedLabelFromLabels = resolveLocaleMapValue(record['labels'], lang);
+            const fallbackLabel = typeof record['label'] === 'string' ? record['label'].trim() : undefined;
+            const localizedAriaLabel = resolveLocaleMapValue(record['ariaLabel'], lang);
 
             nextComponent.config.id = generatedId;
             if (typeof href === 'string' && href.length > 0) {
                 nextComponent.config.href = href;
-            } else if (typeof record['url'] === 'string') {
-                nextComponent.config.href = record['url'];
             }
             if (typeof labelFromKey === 'string' && labelFromKey.trim().length > 0) {
                 nextComponent.config.text = labelFromKey;
-            } else if (typeof localizedLabelFromMap === 'string' && localizedLabelFromMap.trim().length > 0) {
-                nextComponent.config.text = localizedLabelFromMap;
-            } else if (typeof localizedLabel === 'string' && localizedLabel.trim().length > 0) {
-                nextComponent.config.text = localizedLabel;
+            } else if (typeof localizedLabelFromValue === 'string' && localizedLabelFromValue.trim().length > 0) {
+                nextComponent.config.text = localizedLabelFromValue;
+            } else if (typeof localizedLabelFromLabels === 'string' && localizedLabelFromLabels.trim().length > 0) {
+                nextComponent.config.text = localizedLabelFromLabels;
+            } else if (typeof fallbackLabel === 'string' && fallbackLabel.length > 0) {
+                nextComponent.config.text = fallbackLabel;
             }
             if (typeof record['icon'] === 'string') nextComponent.config.text = record['icon'];
             if (typeof ariaFromKey === 'string' && ariaFromKey.trim().length > 0) {
                 nextComponent.config.ariaLabel = ariaFromKey;
+            } else if (typeof localizedAriaLabel === 'string' && localizedAriaLabel.trim().length > 0) {
+                nextComponent.config.ariaLabel = localizedAriaLabel;
             } else if (typeof record['ariaLabel'] === 'string') {
                 nextComponent.config.ariaLabel = record['ariaLabel'];
             }
