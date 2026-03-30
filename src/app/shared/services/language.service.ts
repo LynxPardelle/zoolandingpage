@@ -4,12 +4,11 @@
 
 import { isPlatformBrowser } from '@angular/common';
 import { computed, inject, Injectable, PLATFORM_ID, REQUEST, signal } from '@angular/core';
-import { environment } from '../../../environments/environment';
 import { formatLocaleLabel, normalizeLocaleCode, resolveBestLocaleMatch } from '../i18n/locale.utils';
 import { SupportedLanguage } from '../types/navigation.types';
+import { DomainResolverService } from './domain-resolver.service';
 
-const DEFAULT_LANGUAGES = ['es', 'en'] as const;
-const DEFAULT_LANGUAGE = 'es';
+const FRAMEWORK_DEFAULT_LANGUAGE = 'en';
 
 @Injectable({
   providedIn: 'root'
@@ -18,10 +17,11 @@ export class LanguageService {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly request = inject(REQUEST, { optional: true });
   private readonly isBrowser = isPlatformBrowser(this.platformId) && !this.request;
+  private readonly domainResolver = inject(DomainResolverService);
 
-  private readonly _currentLanguage = signal<SupportedLanguage>(DEFAULT_LANGUAGE);
-  private readonly _defaultLanguage = signal<SupportedLanguage>(DEFAULT_LANGUAGE);
-  private readonly _availableLanguages = signal<readonly SupportedLanguage[]>([...DEFAULT_LANGUAGES]);
+  private readonly _currentLanguage = signal<SupportedLanguage>(FRAMEWORK_DEFAULT_LANGUAGE);
+  private readonly _defaultLanguage = signal<SupportedLanguage>(FRAMEWORK_DEFAULT_LANGUAGE);
+  private readonly _availableLanguages = signal<readonly SupportedLanguage[]>([FRAMEWORK_DEFAULT_LANGUAGE]);
 
   // Public readonly signals
   readonly currentLanguage = computed(() => this._currentLanguage());
@@ -54,7 +54,7 @@ export class LanguageService {
     const normalized = this.normalizeLanguages(languages);
     const fallback = this.normalizeSingleLanguage(opts?.defaultLanguage)
       ?? normalized[0]
-      ?? DEFAULT_LANGUAGE;
+      ?? FRAMEWORK_DEFAULT_LANGUAGE;
 
     const nextAvailable = normalized.length > 0 ? normalized : [fallback];
     this._availableLanguages.set(nextAvailable);
@@ -97,13 +97,13 @@ export class LanguageService {
 
   private _saveLanguage(language: SupportedLanguage): void {
     if (typeof localStorage === 'undefined') return;
-    const storageKey: string = environment.localStorage.languageKey;
+    const storageKey = this.storageKey();
     localStorage.setItem(storageKey, language);
   }
 
   private getSavedLanguage(): SupportedLanguage | null {
     if (typeof localStorage === 'undefined') return null;
-    const storageKey: string = environment.localStorage.languageKey;
+    const storageKey = this.storageKey();
     return this.normalizeSingleLanguage(localStorage.getItem(storageKey));
   }
 
@@ -134,6 +134,10 @@ export class LanguageService {
   private resolvePreferredLanguage(language: unknown): SupportedLanguage {
     const available = this._availableLanguages();
     const match = resolveBestLocaleMatch(language, available);
-    return match ?? this._defaultLanguage() ?? available[0] ?? DEFAULT_LANGUAGE;
+    return match ?? this._defaultLanguage() ?? available[0] ?? FRAMEWORK_DEFAULT_LANGUAGE;
+  }
+
+  private storageKey(): string {
+    return this.domainResolver.resolveStorageKey('language');
   }
 }

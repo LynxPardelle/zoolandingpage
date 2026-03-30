@@ -40,4 +40,41 @@ describe('DomainResolverService', () => {
       source: 'queryParam',
     });
   });
+
+  it('derives runtime-safe identifiers and storage keys from the resolved domain', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        DomainResolverService,
+        {
+          provide: REQUEST,
+          useValue: new Request('https://example.test/?draftDomain=zoolandingpage.com.mx'),
+        },
+      ],
+    });
+
+    const service = TestBed.inject(DomainResolverService);
+
+    expect(service.resolveAppIdentifier()).toBe('zoolandingpagecommx');
+    expect(service.resolveStorageNamespace()).toBe('zoolandingpage-com-mx');
+    expect(service.resolveStorageKey('theme')).toBe('zoolandingpage-com-mx:theme');
+  });
+
+  it('recovers draft domains from malformed encoded query-param keys', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        DomainResolverService,
+        {
+          provide: REQUEST,
+          useValue: new Request('https://example.test/?debugWorkspace=true&draftDomain%3Dzoolandingpage.com.mx=&draftPageId=default'),
+        },
+      ],
+    });
+
+    const service = TestBed.inject(DomainResolverService);
+
+    expect(service.resolveDomain()).toEqual({
+      domain: 'zoolandingpage.com.mx',
+      source: 'queryParam',
+    });
+  });
 });

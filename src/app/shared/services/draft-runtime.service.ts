@@ -88,6 +88,63 @@ export class DraftRuntimeService {
         }
     }
 
+    private readSearchParam(params: URLSearchParams, key: string): string {
+        const direct = String(params.get(key) ?? '').trim();
+        if (direct.length > 0) {
+            return direct;
+        }
+
+        for (const [entryKey] of params.entries()) {
+            const normalizedKey = String(entryKey ?? '').trim();
+            if (!normalizedKey.startsWith(`${ key }=`)) {
+                continue;
+            }
+
+            const value = normalizedKey.slice(key.length + 1).trim();
+            if (value.length > 0) {
+                return value;
+            }
+        }
+
+        return '';
+    }
+
+    private collectMalformedParamKeys(params: URLSearchParams, key: string): string[] {
+        return Array.from(new Set(
+            Array.from(params.keys()).filter((entryKey) => String(entryKey ?? '').trim().startsWith(`${ key }=`))
+        ));
+    }
+
+    private normalizeMalformedDraftQueryParams(): void {
+        if (!this.isBrowser || !window.location?.href) {
+            return;
+        }
+
+        const url = new URL(window.location.href);
+        const malformedDraftDomainKeys = this.collectMalformedParamKeys(url.searchParams, 'draftDomain');
+        const malformedDraftPageIdKeys = this.collectMalformedParamKeys(url.searchParams, 'draftPageId');
+
+        if (malformedDraftDomainKeys.length === 0 && malformedDraftPageIdKeys.length === 0) {
+            return;
+        }
+
+        const draftDomain = this.readSearchParam(url.searchParams, 'draftDomain');
+        const draftPageId = this.readSearchParam(url.searchParams, 'draftPageId');
+
+        malformedDraftDomainKeys.forEach((key) => url.searchParams.delete(key));
+        malformedDraftPageIdKeys.forEach((key) => url.searchParams.delete(key));
+
+        if (draftDomain) {
+            url.searchParams.set('draftDomain', draftDomain);
+        }
+
+        if (draftPageId) {
+            url.searchParams.set('draftPageId', draftPageId);
+        }
+
+        window.history.replaceState({}, '', `${ url.pathname }${ url.search }${ url.hash }`);
+    }
+
     initRegistryAutoRefresh(destroyRef: DestroyRef): void {
         if (!environment.features.debugMode || !environment.drafts.enabled || !this.isBrowser) {
             return;
@@ -119,6 +176,7 @@ export class DraftRuntimeService {
     }
 
     async resolveActiveDraftContext(): Promise<TResolvedDraftContext> {
+        this.normalizeMalformedDraftQueryParams();
         this.invalidateLocationState();
         const domain = this.activeDraftDomain();
         const explicitPageId = this.hasExplicitDraftPageId();
@@ -174,6 +232,8 @@ export class DraftRuntimeService {
         }
 
         const url = new URL(window.location.href);
+        this.collectMalformedParamKeys(url.searchParams, 'draftDomain').forEach((key) => url.searchParams.delete(key));
+        this.collectMalformedParamKeys(url.searchParams, 'draftPageId').forEach((key) => url.searchParams.delete(key));
         url.searchParams.set('draftDomain', normalizedDomain);
         url.searchParams.set('draftPageId', normalizedPageId);
         return `${ url.pathname }${ url.search }${ url.hash }`;
@@ -231,14 +291,10 @@ export class DraftRuntimeService {
                 return '';
             }
 
-            const value = requestUrl.searchParams.get('draftPageId');
-            const next = String(value ?? '').trim();
-            return next;
+            return this.readSearchParam(requestUrl.searchParams, 'draftPageId');
         }
 
-        const value = new URLSearchParams(window.location.search).get('draftPageId');
-        const next = String(value ?? '').trim();
-        return next;
+        return this.readSearchParam(new URLSearchParams(window.location.search), 'draftPageId');
     }
 
     private hasExplicitDraftPageId(): boolean {

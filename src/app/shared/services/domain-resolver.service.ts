@@ -30,10 +30,46 @@ export class DomainResolverService {
         return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1';
     }
 
+    private sanitizeToken(value: unknown): string {
+        return String(value ?? '')
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+    }
+
+    private sanitizeIdentifier(value: unknown): string {
+        return String(value ?? '')
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, '_')
+            .replace(/[^a-z0-9_]+/g, '');
+    }
+
+    private readSearchParam(params: URLSearchParams, key: string): string {
+        const direct = String(params.get(key) ?? '').trim();
+        if (direct.length > 0) {
+            return direct;
+        }
+
+        for (const [entryKey] of params.entries()) {
+            const normalizedKey = String(entryKey ?? '').trim();
+            if (!normalizedKey.startsWith(`${ key }=`)) {
+                continue;
+            }
+
+            const value = normalizedKey.slice(key.length + 1).trim();
+            if (value.length > 0) {
+                return value;
+            }
+        }
+
+        return '';
+    }
+
     resolveDomain(): TResolvedDomain {
         if (this.isBrowser && window.location?.search) {
-            const fromQuery = new URLSearchParams(window.location.search).get('draftDomain');
-            const queryDomain = String(fromQuery ?? '').trim();
+            const queryDomain = this.readSearchParam(new URLSearchParams(window.location.search), 'draftDomain');
             if (queryDomain.length > 0) {
                 return { domain: queryDomain, source: 'queryParam' };
             }
@@ -41,8 +77,7 @@ export class DomainResolverService {
 
         const requestUrl = this.parseRequestUrl();
         if (requestUrl) {
-            const fromRequest = requestUrl.searchParams.get('draftDomain');
-            const requestDomain = String(fromRequest ?? '').trim();
+            const requestDomain = this.readSearchParam(requestUrl.searchParams, 'draftDomain');
             if (requestDomain.length > 0) {
                 return { domain: requestDomain, source: 'queryParam' };
             }
@@ -63,5 +98,18 @@ export class DomainResolverService {
         }
 
         return { domain: '', source: 'unresolved' };
+    }
+
+    resolveAppIdentifier(): string {
+        return this.sanitizeIdentifier(this.resolveDomain().domain) || 'app';
+    }
+
+    resolveStorageNamespace(): string {
+        return this.sanitizeToken(this.resolveDomain().domain) || 'app';
+    }
+
+    resolveStorageKey(suffix: string): string {
+        const normalizedSuffix = this.sanitizeToken(suffix) || 'value';
+        return `${ this.resolveStorageNamespace() }:${ normalizedSuffix }`;
     }
 }

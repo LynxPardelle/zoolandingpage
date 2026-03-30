@@ -40,22 +40,8 @@ export class QuickStatsService {
     private readonly baseUrl = `${ environment.apiUrl }`;
     public readonly remoteStats = signal<Record<string, any> | undefined>(undefined);
 
-    private sanitizeAppName(value: unknown): string {
-        return String(value ?? '')
-            .trim()
-            .replace(/\s/g, '_')
-            .replace(/[^a-zA-Z0-9_]+/g, '')
-            .toLowerCase();
-    }
-
-    private normalizeAppName(value: unknown): string {
-        const normalized = this.sanitizeAppName(value);
-        return normalized || this.sanitizeAppName(environment.app.name) || 'app';
-    }
-
     private resolveAppId(): string {
-        const runtimeDomain = this.domainResolver.resolveDomain().domain;
-        return this.normalizeAppName(runtimeDomain || environment.app.name);
+        return this.domainResolver.resolveAppIdentifier();
     }
 
     /** Send raw ops to the backend */

@@ -8,44 +8,10 @@
 import { isPlatformBrowser } from '@angular/common';
 import { computed, effect, inject, Injectable, PLATFORM_ID, REQUEST, signal } from '@angular/core';
 import { NgxAngoraService } from 'ngx-angora-css';
-import { environment } from '../../../environments/environment';
 import { ThemeConfig, ThemeMode, TThemeAccentColorToken, TThemeColors, TThemeVariableConfig } from '../types/theme.types';
 import { isThemeVariableConfig } from '../utility/config-validation/config-payload.validators';
+import { DomainResolverService } from './domain-resolver.service';
 import { VariableStoreService } from './variable-store.service';
-
-const FALLBACK_LIGHT_THEME_CONFIG: ThemeConfig = {
-  name: 'light',
-  isDark: false,
-  colors: {
-    bgColor: '#f0ede7ff',
-    textColor: '#2e2d2dff',
-    titleColor: '#292929ff',
-    linkColor: '#ffe819ff',
-    accentColor: '#c1a42fff',
-    secondaryBgColor: '#e5d2bfff',
-    secondaryTextColor: '#19363F',
-    secondaryTitleColor: '#163038ff',
-    secondaryLinkColor: '#C33361',
-    secondaryAccentColor: '#199F96',
-  },
-};
-
-const FALLBACK_DARK_THEME_CONFIG: ThemeConfig = {
-  name: 'dark',
-  isDark: true,
-  colors: {
-    bgColor: '#1a1a1a',
-    textColor: '#ffffff',
-    titleColor: '#d8dadbff',
-    linkColor: '#66b3ff',
-    accentColor: '#225783ff',
-    secondaryBgColor: '#2d2d2d',
-    secondaryTextColor: '#d9dcdfff',
-    secondaryTitleColor: '#6cc3e6ff',
-    secondaryLinkColor: '#30a464ff',
-    secondaryAccentColor: '#20673cff',
-  },
-};
 
 @Injectable({
   providedIn: 'root',
@@ -55,6 +21,7 @@ export class ThemeService {
   private readonly request = inject(REQUEST, { optional: true });
   private readonly _ank = inject(NgxAngoraService);
   private readonly variableStore = inject(VariableStoreService);
+  private readonly domainResolver = inject(DomainResolverService);
   private readonly isBrowser = isPlatformBrowser(this.platformId) && !this.request;
 
   // Theme state using signals (MANDATORY Angular 17+ features)
@@ -76,17 +43,27 @@ export class ThemeService {
     return isThemeVariableConfig(value) ? value : null;
   });
 
-  private readonly _lightThemeConfig = computed<ThemeConfig>(() => ({
-    name: 'light',
-    isDark: false,
-    colors: this._draftThemeConfig()?.palettes.light ?? FALLBACK_LIGHT_THEME_CONFIG.colors,
-  }));
+  private readonly _lightThemeConfig = computed<ThemeConfig | null>(() => {
+    const config = this._draftThemeConfig();
+    if (!config) return null;
 
-  private readonly _darkThemeConfig = computed<ThemeConfig>(() => ({
-    name: 'dark',
-    isDark: true,
-    colors: this._draftThemeConfig()?.palettes.dark ?? FALLBACK_DARK_THEME_CONFIG.colors,
-  }));
+    return {
+      name: 'light',
+      isDark: false,
+      colors: config.palettes.light,
+    };
+  });
+
+  private readonly _darkThemeConfig = computed<ThemeConfig | null>(() => {
+    const config = this._draftThemeConfig();
+    if (!config) return null;
+
+    return {
+      name: 'dark',
+      isDark: true,
+      colors: config.palettes.dark,
+    };
+  });
 
   private initialized: boolean = false;
 
@@ -129,7 +106,9 @@ export class ThemeService {
   }
 
   getCurrentThemeConfig(): ThemeConfig {
-    return this.activeTheme() === 'dark' ? this._darkThemeConfig() : this._lightThemeConfig();
+    return this.activeTheme() === 'dark'
+      ? this.requireThemeConfig(this._darkThemeConfig(), 'dark')
+      : this.requireThemeConfig(this._lightThemeConfig(), 'light');
   }
 
   getUiAccentColor(key: 'modalAccentColor' | 'legalModalAccentColor' | 'demoModalAccentColor', fallback: TThemeAccentColorToken): TThemeAccentColorToken {
@@ -158,7 +137,7 @@ export class ThemeService {
   private _loadSavedTheme(): void {
     if (typeof localStorage === 'undefined') return;
 
-    const storageKey: string = environment.localStorage.themeKey;
+    const storageKey = this.storageKey();
     const saved: string | null = localStorage.getItem(storageKey);
     const savedTheme = saved as ThemeMode;
 
@@ -170,16 +149,18 @@ export class ThemeService {
 
   private _saveTheme(theme: ThemeMode): void {
     if (typeof localStorage === 'undefined') return;
-    const storageKey: string = environment.localStorage.themeKey;
+    const storageKey = this.storageKey();
     localStorage.setItem(storageKey, theme);
   }
 
   // MANDATORY: All color changes must use pushColors method
   applyTheme(): void {
     if (!this.isBrowser) return; // Skip SSR
-    const currentThemeConfig: ThemeConfig =
-      this.activeTheme() === 'dark' ? this._darkThemeConfig() : this._lightThemeConfig();
-    const altThemeConfig: ThemeConfig = this.activeTheme() === 'dark' ? this._lightThemeConfig() : this._darkThemeConfig();
+    const currentThemeConfig = this.activeTheme() === 'dark' ? this._darkThemeConfig() : this._lightThemeConfig();
+    const altThemeConfig = this.activeTheme() === 'dark' ? this._lightThemeConfig() : this._darkThemeConfig();
+    if (!currentThemeConfig || !altThemeConfig) {
+      return;
+    }
     const themeColors: TThemeColors = currentThemeConfig.colors;
     const altThemeColors: TThemeColors = altThemeConfig.colors;
 
@@ -211,5 +192,17 @@ export class ThemeService {
     for (const [key, value] of Object.entries(themeColors)) {
       angoraColors[key] = value;
     }
+  }
+
+  private storageKey(): string {
+    return this.domainResolver.resolveStorageKey('theme');
+  }
+
+  private requireThemeConfig(config: ThemeConfig | null, mode: 'light' | 'dark'): ThemeConfig {
+    if (config) {
+      return config;
+    }
+
+    throw new Error(`Theme payload is required before reading the ${ mode } theme config.`);
   }
 }

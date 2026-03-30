@@ -20,22 +20,17 @@ describe('GenericTextComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should ignore nested component objects when resolving template component ids', () => {
+  it('renders sanitized authored html when html is provided', () => {
     fixture.componentRef.setInput('config', {
       tag: 'p',
-      text: 'Hello',
-      components: [
-        'named-template',
-        {
-          id: 'nested-child',
-          type: 'text',
-          config: { text: 'Nested child' },
-        } as any,
-      ],
+      html: '<strong>Hello</strong><script>alert(1)</script>',
     });
 
     fixture.detectChanges();
 
-    expect(component.components()).toEqual(['named-template']);
+    const paragraph = fixture.nativeElement.querySelector('p');
+
+    expect(paragraph.innerHTML).toContain('<strong>Hello</strong>');
+    expect(paragraph.innerHTML).not.toContain('<script>');
   });
 });

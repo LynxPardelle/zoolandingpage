@@ -194,4 +194,29 @@ describe('DraftRuntimeService', () => {
     expect(service.hasDebugWorkspaceEnabled()).toBeTrue();
   });
 
+  it('recovers malformed encoded draftDomain keys on the client and normalizes the URL', async () => {
+    const { service, loadSiteConfig } = configure(
+      'http://localhost:4200/?debugWorkspace=true&draftDomain%3Dzoolandingpage.com.mx=&draftPageId=default',
+      {
+        version: 1,
+        domain: 'zoolandingpage.com.mx',
+        defaultPageId: 'default',
+        routes: [
+          { path: '/', pageId: 'default' },
+        ],
+      },
+      { browserMode: true },
+    );
+
+    const context = await service.resolveActiveDraftContext();
+    const params = new URLSearchParams(window.location.search);
+
+    expect(loadSiteConfig).not.toHaveBeenCalled();
+    expect(context.domain).toBe('zoolandingpage.com.mx');
+    expect(context.pageId).toBe('default');
+    expect(service.activeDraftDomain()).toBe('zoolandingpage.com.mx');
+    expect(params.get('draftDomain')).toBe('zoolandingpage.com.mx');
+    expect(Array.from(params.keys()).some((key) => key.startsWith('draftDomain='))).toBeFalse();
+  });
+
 });

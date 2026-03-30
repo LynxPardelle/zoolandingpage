@@ -1,6 +1,3 @@
-import { TemplateRef } from '@angular/core';
-import type { TComponentChild } from '../component-children.types';
-
 export type GenericTextTag =
     | ''
     | 'p'
@@ -18,16 +15,11 @@ export type GenericTextTag =
 export type TGenericTextConfig = {
     tag?: GenericTextTag;
 
-    /** Usa text si quieres texto plano (recomendado). */
+    /** Use text for plain content. */
     text?: string | (() => string);
 
-    /** Usa html si necesitas markup; se sanitiza antes de renderizar. */
+    /** Use html only when authored markup is required. */
     html?: string | (() => string);
-
-    components?: readonly TComponentChild[];
-
-    /** Registro id -> plantilla (definida en el padre con <ng-template #...>) */
-    componentTemplates?: Readonly<Record<string, TemplateRef<unknown>>>;
 
     classes?: string;
     id?: string;

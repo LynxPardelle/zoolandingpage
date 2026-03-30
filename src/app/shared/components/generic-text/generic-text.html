@@ -3,9 +3,7 @@
   <span [innerHTML]="safeHtml()"></span>
   } @else {
   {{ text() }}
-  } @for (cid of components(); track cid) { @if (componentTemplates()[cid]) {
-  <ng-container [ngTemplateOutlet]="componentTemplates()[cid]"></ng-container>
-  } }
+  }
 </ng-template>
 
 @switch (tag()) { @case ('h1') {

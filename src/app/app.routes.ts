@@ -6,11 +6,9 @@ export const routes: Routes = [
     path: '',
     pathMatch: 'full',
     component: AppShellComponent,
-    title: 'Landing Page Optimizada',
   },
   {
     path: '**',
     component: AppShellComponent,
-    title: 'Landing Page Optimizada',
   },
 ];

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, input, SecurityContext, TemplateRef } from '@angular/core';
+import { Component, computed, inject, input, SecurityContext } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { GenericTextTag, TGenericTextConfig } from './generic-text.types';
 
@@ -31,20 +31,10 @@ export class GenericTextComponent {
     if (!raw) return null;
     return raw;
   });
-  readonly components = computed<readonly string[]>(() =>
-    (this.config().components ?? [])
-      .filter((entry): entry is string => typeof entry === 'string')
-      .map((entry) => entry.trim())
-      .filter(Boolean)
-  );
-  readonly componentTemplates = computed<Readonly<Record<string, TemplateRef<unknown>>>>(
-    () => this.config().componentTemplates ?? {}
-  );
 
   readonly safeHtml = computed(() => {
     const html = this.resolveMaybeThunk(this.config().html);
     if (!html) return null;
-    // Sanitiza HTML (no uses bypassSecurityTrustHtml aquí).
     return this.sanitizer.sanitize(SecurityContext.HTML, String(html));
   });
 

@@ -2,7 +2,7 @@ import type { DropdownConfig } from '../generic-dropdown/generic-dropdown.types'
 import type { TGenericTextConfig } from '../generic-text/generic-text.types';
 import type { TInteractionValidationRule } from '../interaction-scope/interaction-scope.types';
 
-export type TGenericInputTextConfig = Omit<TGenericTextConfig, 'text' | 'html' | 'components' | 'componentTemplates'>;
+export type TGenericInputTextConfig = Omit<TGenericTextConfig, 'text' | 'html'>;
 
 export type TGenericInputOptionValue = string | number | boolean;
 

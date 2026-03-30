@@ -258,10 +258,10 @@ export class AnalyticsService {
       if (environment.features.analyticsConsentUI === 'none') {
         this.hasPermission = true;
         this.alreadyAskedForPermission = true; // prevent any downstream prompt triggers
-        try { localStorage.setItem(environment.localStorage.allowAnalyticsKey, 'true'); } catch { /* ignore */ }
+        try { localStorage.setItem(this.storageKey('allowAnalyticsKey'), 'true'); } catch { /* ignore */ }
         return;
       }
-      const stored = localStorage.getItem(environment.localStorage.allowAnalyticsKey);
+      const stored = localStorage.getItem(this.storageKey('allowAnalyticsKey'));
       // Apply persisted decision first
       if (stored === 'true') {
         this.hasPermission = true;
@@ -274,7 +274,7 @@ export class AnalyticsService {
         return;
       }
       // Respect snooze timestamp
-      const snoozeKey = environment.localStorage.analyticsConsentSnoozeKey;
+      const snoozeKey = this.storageKey('analyticsConsentSnoozeKey');
       const snooze = localStorage.getItem(snoozeKey);
       const snoozedUntil = snooze ? Number(snooze) : 0;
       const now = Date.now();
@@ -317,7 +317,7 @@ export class AnalyticsService {
     // Respect a persisted decline decision: do not queue or prompt.
     try {
       if (typeof localStorage !== 'undefined') {
-        const stored = localStorage.getItem(environment.localStorage.allowAnalyticsKey);
+        const stored = localStorage.getItem(this.storageKey('allowAnalyticsKey'));
         if (stored === 'false') return;
         if (stored === 'true') this.hasPermission = true;
       }
@@ -366,17 +366,12 @@ export class AnalyticsService {
     this.send({ ...payload, appName })?.subscribe({ next: () => { }, error: () => { } });
   }
 
-  private sanitizeAppName(value: unknown): string {
-    return String(value ?? '')
-      .trim()
-      .replace(/\s/g, '_')
-      .replace(/[^a-zA-Z0-9_]+/g, '')
-      .toLowerCase();
+  private resolveAppName(): string {
+    return this.domainResolver.resolveAppIdentifier();
   }
 
-  private resolveAppName(): string {
-    const runtimeDomain = this.domainResolver.resolveDomain().domain;
-    return this.sanitizeAppName(runtimeDomain) || this.sanitizeAppName(environment.app.name) || 'app';
+  private storageKey(key: keyof typeof environment.localStorage): string {
+    return this.domainResolver.resolveStorageKey(environment.localStorage[key]);
   }
 
   private send(evt: TAnalyticsEvent & TExpandedAnalytics & { appName: string }): Observable<TDataDropResponse> | void {
@@ -483,11 +478,11 @@ export class AnalyticsService {
     if (typeof localStorage !== 'undefined') {
       // Short-circuit: consent UI disabled -> treat as accepted
       if (environment.features.analyticsConsentUI === 'none') {
-        try { localStorage.setItem(environment.localStorage.allowAnalyticsKey, 'true'); } catch { }
+        try { localStorage.setItem(this.storageKey('allowAnalyticsKey'), 'true'); } catch { }
         this.hasPermission = true;
         return Promise.resolve(true);
       }
-      const allow = localStorage.getItem(environment.localStorage.allowAnalyticsKey);
+      const allow = localStorage.getItem(this.storageKey('allowAnalyticsKey'));
       if (allow === 'true') {
         return Promise.resolve(true);
       } else {
@@ -519,9 +514,9 @@ export class AnalyticsService {
   private async finishConsent(accepted: boolean): Promise<void> {
     try {
       if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(environment.localStorage.allowAnalyticsKey, accepted ? 'true' : 'false');
+        localStorage.setItem(this.storageKey('allowAnalyticsKey'), accepted ? 'true' : 'false');
         // Clear any pending snooze stamp once a final decision is made
-        try { localStorage.removeItem(environment.localStorage.analyticsConsentSnoozeKey); } catch { }
+        try { localStorage.removeItem(this.storageKey('analyticsConsentSnoozeKey')); } catch { }
       }
       this.hasPermission = accepted;
       // Close modal if visible
@@ -597,7 +592,7 @@ export class AnalyticsService {
     const until = Date.now() + secs * 1000;
     try {
       if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(environment.localStorage.analyticsConsentSnoozeKey, String(until));
+        localStorage.setItem(this.storageKey('analyticsConsentSnoozeKey'), String(until));
       }
     } catch { }
     // Dismiss UI but do not resolve as accept/decline
@@ -628,10 +623,11 @@ export class AnalyticsService {
 
   private getLocalId(): string | undefined {
     if (typeof localStorage !== 'undefined') {
-      let id = localStorage.getItem(environment.localStorage.id) || undefined;
+      const storageKey = this.storageKey('id');
+      let id = localStorage.getItem(storageKey) || undefined;
       if (!id) {
         id = crypto.randomUUID();
-        localStorage.setItem(environment.localStorage.id, id);
+        localStorage.setItem(storageKey, id);
       }
       return id;
     }
@@ -640,10 +636,11 @@ export class AnalyticsService {
 
   private getSessionId(): string | undefined {
     if (typeof sessionStorage !== 'undefined') {
-      let id = sessionStorage.getItem(environment.localStorage.sessionId) || undefined;
+      const storageKey = this.storageKey('sessionId');
+      let id = sessionStorage.getItem(storageKey) || undefined;
       if (!id) {
         id = crypto.randomUUID();
-        sessionStorage.setItem(environment.localStorage.sessionId, id);
+        sessionStorage.setItem(storageKey, id);
       }
       return id;
     }
@@ -655,7 +652,7 @@ export class AnalyticsService {
     if (typeof navigator !== 'undefined') {
       lang = navigator.language || undefined;
       if (typeof localStorage !== 'undefined') {
-        const storedLang = localStorage.getItem(environment.localStorage.languageKey);
+        const storedLang = localStorage.getItem(this.storageKey('languageKey'));
         lang = storedLang || lang;
       }
     }
@@ -675,7 +672,7 @@ export class AnalyticsService {
     if (typeof localStorage === 'undefined') return;
     try {
       const currentCount = this.getPageViewCount();
-      localStorage.setItem(environment.localStorage.pageViewCountKey, (currentCount + 1).toString());
+      localStorage.setItem(this.storageKey('pageViewCountKey'), (currentCount + 1).toString());
     } catch {
       // ignore localStorage errors
     }
@@ -717,7 +714,7 @@ export class AnalyticsService {
     }
     if (typeof localStorage === 'undefined') return this.buffer.filter(event => event.name === 'page_view').length;
     try {
-      const stored = localStorage.getItem(environment.localStorage.pageViewCountKey);
+      const stored = localStorage.getItem(this.storageKey('pageViewCountKey'));
       return stored ? parseInt(stored, 10) : 0;
     } catch {
       return this.buffer.filter(event => event.name === 'page_view').length;
@@ -754,7 +751,7 @@ export class AnalyticsService {
   resetPageViewCount(): void {
     if (typeof localStorage === 'undefined') return;
     try {
-      localStorage.removeItem(environment.localStorage.pageViewCountKey);
+      localStorage.removeItem(this.storageKey('pageViewCountKey'));
     } catch {
       // ignore localStorage errors
     }
