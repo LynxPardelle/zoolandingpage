@@ -32,9 +32,9 @@ Modal content and modal host behavior are separate concerns:
 
 ## Runtime ownership
 
-- `site-config.json`: domain-level routing plus shared runtime settings under `runtime.app`, `runtime.localStorage`, and `runtime.features`.
+- `site-config.json`: domain-level routing plus shared runtime settings under `runtime.localStorage`, `runtime.features`, and domain-wide `runtime.analytics`.
 - `analytics-config.json`: page-level analytics behavior, taxonomy, and `track` collection options.
-- `variables.json`: page and UI data only. Do not place shared app metadata, storage keys, or analytics collection policy here.
+- `variables.json`: page and UI data, including page-owned `appIdentity`. Do not place storage keys or shared analytics collection policy here.
 
 ## Draft Locale Configuration
 

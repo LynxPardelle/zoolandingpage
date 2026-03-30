@@ -120,8 +120,7 @@ export class DebugWorkspaceComponent {
     }
 
     private getUiString(path: string): string {
-        const value = this.variableStore.get(path);
-        return typeof value === 'string' ? value.trim() : '';
+        return this.variableStore.getString(path);
     }
 
     private initDebugOverlay(): void {

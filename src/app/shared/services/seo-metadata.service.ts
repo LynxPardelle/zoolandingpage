@@ -4,6 +4,7 @@ import { inject, Injectable } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { toOpenGraphLocale } from '../i18n/locale.utils';
 import { DomainResolverService } from './domain-resolver.service';
+import { RuntimeConfigService } from './runtime-config.service';
 
 @Injectable({ providedIn: 'root' })
 export class SeoMetadataService {
@@ -11,6 +12,7 @@ export class SeoMetadataService {
     private readonly title = inject(Title);
     private readonly meta = inject(Meta);
     private readonly domainResolver = inject(DomainResolverService);
+    private readonly runtimeConfig = inject(RuntimeConfigService);
 
     apply(lang: string, seo: TSeoPayload | null): void {
         try {
@@ -28,8 +30,9 @@ export class SeoMetadataService {
                 ? seo.description
                 : undefined;
             const fallbackSiteName = this.resolveFallbackSiteName();
+            const fallbackDescription = this.runtimeConfig.appDescription();
             const seoTitle = draftTitle || fallbackSiteName;
-            const seoDescription = draftDescription || '';
+            const seoDescription = draftDescription || fallbackDescription || '';
 
             this.title.setTitle(seoTitle);
             this.meta.updateTag({ name: 'description', content: seoDescription });
@@ -76,6 +79,11 @@ export class SeoMetadataService {
     }
 
     private resolveFallbackSiteName(): string {
+        const configuredName = this.runtimeConfig.appName();
+        if (configuredName) {
+            return configuredName;
+        }
+
         const resolvedDomain = this.domainResolver.resolveDomain().domain;
         if (resolvedDomain) {
             return resolvedDomain;

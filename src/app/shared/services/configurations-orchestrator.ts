@@ -193,7 +193,7 @@ export class ConfigurationsOrchestratorService {
     }
 
     get navigation(): readonly Record<string, unknown>[] {
-        const raw = this.variableStore.get('navigation');
+        const raw = this.variableStore.navigation();
         if (!Array.isArray(raw)) {
             if (!this.warnedNavigationMissing) {
                 console.warn('[ConfigurationsOrchestrator] Expected variables.navigation to be an array. Navigation will remain hidden.');

@@ -39,7 +39,7 @@ export class ThemeService {
   });
 
   private readonly _draftThemeConfig = computed<TThemeVariableConfig | null>(() => {
-    const value = this.variableStore.get('theme');
+    const value = this.variableStore.theme();
     return isThemeVariableConfig(value) ? value : null;
   });
 

@@ -14,16 +14,6 @@
       },
       "additionalProperties": false
     },
-    "appRuntime": {
-      "type": "object",
-      "properties": {
-        "identifier": { "type": "string" },
-        "name": { "type": "string" },
-        "version": { "type": "string" },
-        "description": { "type": "string" }
-      },
-      "additionalProperties": false
-    },
     "localStorageRuntime": {
       "type": "object",
       "properties": {
@@ -125,7 +115,6 @@
     "runtimeConfig": {
       "type": "object",
       "properties": {
-        "app": { "$ref": "#/definitions/appRuntime" },
         "localStorage": { "$ref": "#/definitions/localStorageRuntime" },
         "features": { "$ref": "#/definitions/featureRuntime" },
         "analytics": { "$ref": "#/definitions/analyticsRuntime" }

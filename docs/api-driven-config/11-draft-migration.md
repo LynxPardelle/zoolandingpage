@@ -34,6 +34,7 @@ with the downloaded `components.json` file.
 - The exported payload is sanitized: inline functions are removed.
 - Use `valueInstructions` and `condition` DSLs to replace any runtime logic.
 - Move authored combo bundles into `angora-combos.json`. The runtime no longer carries hardcoded Zoolanding combo defaults in TypeScript.
+- Move page identity into `variables.appIdentity`. Do not keep page names or analytics identifiers in `site-config.json`.
 - For debug workspace controls, use `host` conditions and `host` loop sources instead of inline builder callbacks.
 - Draft-owned modal host behavior should live in `variables.ui.modals`, for example legal modal sizes and aria-label translation keys keyed by modal ref ID.
 - Shared modal defaults can live in `variables.ui.modals._default`; per-modal entries should override only what differs.

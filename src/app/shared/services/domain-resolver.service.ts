@@ -41,24 +41,6 @@ export class DomainResolverService {
             .replace(/^-+|-+$/g, '');
     }
 
-    private sanitizeIdentifier(value: unknown): string {
-        return String(value ?? '')
-            .trim()
-            .toLowerCase()
-            .replace(/\s+/g, '_')
-            .replace(/[^a-z0-9_]+/g, '');
-    }
-
-    private configuredAppIdentifier(): string {
-        const appConfig = this.configStore.siteConfig()?.runtime?.app;
-        const explicitIdentifier = this.sanitizeIdentifier(appConfig?.identifier);
-        if (explicitIdentifier) {
-            return explicitIdentifier;
-        }
-
-        return this.sanitizeIdentifier(appConfig?.name);
-    }
-
     private configuredStorageSuffix(slotOrSuffix: string): string {
         const localStorageConfig = this.configStore.siteConfig()?.runtime?.localStorage;
         const normalizedSlot = String(slotOrSuffix ?? '').trim() as TDraftLocalStorageSlot;
@@ -120,10 +102,6 @@ export class DomainResolverService {
         }
 
         return { domain: '', source: 'unresolved' };
-    }
-
-    resolveAppIdentifier(): string {
-        return this.configuredAppIdentifier() || this.sanitizeIdentifier(this.resolveDomain().domain) || 'app';
     }
 
     resolveStorageNamespace(): string {

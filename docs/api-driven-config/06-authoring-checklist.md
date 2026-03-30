@@ -85,7 +85,8 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Verify `variables.ui.contact.faqMessageKey` is present when `openFaqCtaWhatsApp` is referenced unless the generic WhatsApp message key is intentionally reused.
 - Verify `variables.ui.contact.finalCtaMessageKey` is present when `openFinalCtaWhatsApp` is referenced unless the generic WhatsApp message key is intentionally reused.
 - Verify every modal referenced by `openModal:*` or `modalRefId,*` has a matching `variables.ui.modals.<modalId>` entry with `ariaLabel` or `ariaLabelKey`.
-- Verify `site-config.json` includes `runtime.app`, `runtime.localStorage`, and `runtime.features` for each active domain.
+- Verify `variables.appIdentity` is present for each active page, with at least `identifier` or `name`.
+- Verify `site-config.json` includes `runtime.localStorage` and `runtime.features` for each active domain.
 - Verify `analytics-config.json` includes `track` when analytics collection should enrich events with browser metadata.
 - Verify `seo.json` is present and complete for every active draft.
 - Verify footer/legal modal sections can render from API payload only.

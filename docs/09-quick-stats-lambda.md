@@ -19,7 +19,7 @@ The API URL will be provided via environment configuration when ready. In the An
 
 Top-level payload:
 
-- `appName` (string, required): Use a stable identifier, e.g. `"zoolandingpage"`.
+- `appName` (string, required): Use a stable page/app identifier. In the current runtime this comes from `variables.appIdentity.identifier` via `RuntimeConfigService.appIdentifier()`.
 - `ops` (array, required): List of operations to apply in order.
 - `createIfMissing` (boolean, optional, default `true`): If `false` and the S3 JSON doesn't exist, the request fails.
 - `dryRun` (boolean, optional, default `false`): If `true`, returns the computed result without writing to S3.
@@ -48,7 +48,9 @@ On success (200):
   "ok": true,
   "bucket": "zoolanding-quick-stats",
   "key": "zoolandingpage/stats.json",
-  "stats": { /* updated document */ },
+  "stats": {
+    /* updated document */
+  },
   "etag": "\"abc123...\"",
   "versionId": "...", // if versioning enabled
   "dryRun": false
@@ -68,7 +70,7 @@ Notes:
 
 ## Angular usage
 
-Always get the endpoint from `environment.apiUrl`. If deployment later requires a specific subpath (e.g., `/v1/quick-stats`), append it in a single place in your service.
+Always get the endpoint from `environment.apiUrl`. If deployment later requires a specific subpath (for example, `/quick-stats` or `/v1/quick-stats`), append it in a single place in your service.
 
 ### Minimal types (optional)
 
@@ -111,7 +113,7 @@ import { environment } from '@/environments/environment';
 export class StatsService {
   private http = inject(HttpClient);
   // Keep this centralized so we can adjust the path later if needed
-  private readonly endpoint = `${environment.apiUrl}`; // append path here if required
+  private readonly endpoint = `${environment.apiUrl}/quick-stats`;
 
   applyOps(req: ApplyOpsRequest) {
     return this.http.post<ApplyOpsResponse>(this.endpoint, req);
@@ -124,31 +126,37 @@ export class StatsService {
 1. Increment a counter
 
 ```ts
-statsService.applyOps({
-  appName: 'zoolandingpage',
-  ops: [ { op: 'inc', path: 'metrics.pageViews', by: 1 } ]
-}).subscribe();
+statsService
+  .applyOps({
+    appName: 'zoolandingpage',
+    ops: [{ op: 'inc', path: 'metrics.pageViews', by: 1 }],
+  })
+  .subscribe();
 ```
 
 1. Append an event to an array
 
 ```ts
-statsService.applyOps({
-  appName: 'zoolandingpage',
-  ops: [ { op: 'append', path: 'events', value: { type: 'visit', ts: Date.now() } } ]
-}).subscribe();
+statsService
+  .applyOps({
+    appName: 'zoolandingpage',
+    ops: [{ op: 'append', path: 'events', value: { type: 'visit', ts: Date.now() } }],
+  })
+  .subscribe();
 ```
 
 1. Set/merge structured data
 
 ```ts
-statsService.applyOps({
-  appName: 'zoolandingpage',
-  ops: [
-    { op: 'set', path: 'user.agent', value: navigator.userAgent },
-    { op: 'merge', path: 'flags', value: { betaEnabled: true } }
-  ]
-}).subscribe();
+statsService
+  .applyOps({
+    appName: 'zoolandingpage',
+    ops: [
+      { op: 'set', path: 'user.agent', value: navigator.userAgent },
+      { op: 'merge', path: 'flags', value: { betaEnabled: true } },
+    ],
+  })
+  .subscribe();
 ```
 
 1. Use optimistic concurrency
@@ -157,11 +165,13 @@ statsService.applyOps({
 // First read/update to get the current etag from response
 statsService.applyOps({ appName: 'zoolandingpage', ops: [], dryRun: true }).subscribe(res => {
   const etag = res.etag;
-  statsService.applyOps({
-    appName: 'zoolandingpage',
-    ifMatchEtag: etag,
-    ops: [ { op: 'inc', path: 'metrics.saves', by: 1 } ]
-  }).subscribe();
+  statsService
+    .applyOps({
+      appName: 'zoolandingpage',
+      ifMatchEtag: etag,
+      ops: [{ op: 'inc', path: 'metrics.saves', by: 1 }],
+    })
+    .subscribe();
 });
 ```
 
@@ -169,12 +179,12 @@ statsService.applyOps({ appName: 'zoolandingpage', ops: [], dryRun: true }).subs
 
 ```ts
 statsService.applyOps({ appName: 'zoolandingpage', ops: [] }).subscribe({
-  next: (res) => {
+  next: res => {
     if (!res.ok) {
       console.warn('Stats error', res.error);
     }
   },
-  error: (err) => console.error('Network error', err)
+  error: err => console.error('Network error', err),
 });
 ```
 
@@ -182,6 +192,7 @@ statsService.applyOps({ appName: 'zoolandingpage', ops: [] }).subscribe({
 
 - Set `apiUrl` in `environment.ts` (and production environments) to the Lambda's API Gateway URL when it is available.
 - Keep any path segments centralized in the `StatsService` so we can change them without touching callers.
+- Prefer runtime-owned app identifiers from draft payloads (`variables.appIdentity.identifier`) instead of hardcoded project strings in callers.
 
 Example (development):
 
@@ -197,7 +208,7 @@ export const environment = {
 
 - Ensure the API Gateway exposes CORS headers for `POST` from your app origin.
 - Do not send PII. Prefer aggregate metrics and anonymized events.
-- Use a stable `appName` for this project, e.g., `zoolandingpage`.
+- Use a stable `appName` per page/app identity, sourced from draft payloads rather than hardcoded literals.
 
 ## Local and dry-run testing
 

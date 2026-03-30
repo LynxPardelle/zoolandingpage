@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { AnalyticsService } from './analytics.service';
 import { ConfigStoreService } from './config-store.service';
+import { RuntimeConfigService } from './runtime-config.service';
 
 describe('AnalyticsService', () => {
   it('tracks events and buffers them', () => {
@@ -91,5 +92,33 @@ describe('AnalyticsService', () => {
 
     expect(resolved.name).toBe('api_test_event');
     expect(resolved.category).toBe('api_test');
+  });
+
+  it('resolves the analytics app identifier from runtime config', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: RuntimeConfigService,
+          useValue: {
+            appIdentifier: () => 'zoolandingpagecommx',
+            isAnalyticsEnabled: () => false,
+            isDebugMode: () => false,
+            analyticsConsentMode: () => 'none',
+            resolveStorageKey: (slot: string) => slot,
+            track: () => [],
+          },
+        },
+        {
+          provide: HttpClient,
+          useValue: {
+            post: jasmine.createSpy('post').and.returnValue(of({ ok: true })),
+          } as any,
+        },
+      ],
+    });
+
+    const svc = TestBed.inject(AnalyticsService) as any;
+
+    expect(svc.resolveAppName()).toBe('zoolandingpagecommx');
   });
 });

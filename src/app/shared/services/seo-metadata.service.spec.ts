@@ -2,6 +2,7 @@ import { DOCUMENT } from '@angular/common';
 import { TestBed } from '@angular/core/testing';
 import { Meta, Title } from '@angular/platform-browser';
 import { DomainResolverService } from './domain-resolver.service';
+import { RuntimeConfigService } from './runtime-config.service';
 import { SeoMetadataService } from './seo-metadata.service';
 
 describe('SeoMetadataService', () => {
@@ -25,17 +26,24 @@ describe('SeoMetadataService', () => {
                         resolveDomain: () => ({ domain: 'zoolandingpage.com.mx' }),
                     },
                 },
+                {
+                    provide: RuntimeConfigService,
+                    useValue: {
+                        appName: () => 'Zoo Landing Page',
+                        appDescription: () => 'Draft-driven landing pages.',
+                    },
+                },
             ],
         });
 
         service = TestBed.inject(SeoMetadataService);
     });
 
-    it('uses the resolved domain as the fallback site identity instead of a hardcoded shell title', () => {
+    it('uses page identity as the fallback site metadata instead of shell defaults', () => {
         service.apply('es', null);
 
-        expect(title.setTitle).toHaveBeenCalledWith('zoolandingpage.com.mx');
-        expect(meta.updateTag).toHaveBeenCalledWith({ name: 'description', content: '' });
-        expect(meta.updateTag).toHaveBeenCalledWith({ property: 'og:site_name', content: 'zoolandingpage.com.mx' });
+        expect(title.setTitle).toHaveBeenCalledWith('Zoo Landing Page');
+        expect(meta.updateTag).toHaveBeenCalledWith({ name: 'description', content: 'Draft-driven landing pages.' });
+        expect(meta.updateTag).toHaveBeenCalledWith({ property: 'og:site_name', content: 'Zoo Landing Page' });
     });
 });

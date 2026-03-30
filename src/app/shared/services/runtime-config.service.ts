@@ -2,7 +2,7 @@ import type { TTrackOptions } from '@/app/shared/types/analytics.type';
 import type {
     TDraftAnalyticsConsentUiMode,
     TDraftAnalyticsRuntimeConfig,
-    TDraftAppRuntimeConfig,
+    TDraftAppIdentityVariableConfig,
     TDraftFeatureRuntimeConfig,
     TDraftLocalStorageRuntimeConfig,
     TDraftLocalStorageSlot,
@@ -10,6 +10,7 @@ import type {
 import { computed, inject, Injectable } from '@angular/core';
 import { ConfigStoreService } from './config-store.service';
 import { DomainResolverService } from './domain-resolver.service';
+import { VariableStoreService } from './variable-store.service';
 
 const DEFAULT_FEATURES: Required<TDraftFeatureRuntimeConfig> = {
     debugMode: false,
@@ -29,9 +30,15 @@ const DEFAULT_ANALYTICS: Required<Pick<TDraftAnalyticsRuntimeConfig,
 export class RuntimeConfigService {
     private readonly configStore = inject(ConfigStoreService);
     private readonly domainResolver = inject(DomainResolverService);
+    private readonly variableStore = inject(VariableStoreService);
 
     readonly siteRuntime = computed(() => this.configStore.siteConfig()?.runtime ?? null);
-    readonly app = computed<TDraftAppRuntimeConfig | null>(() => this.siteRuntime()?.app ?? null);
+    readonly appIdentity = computed<TDraftAppIdentityVariableConfig | null>(() => this.variableStore.appIdentity());
+    readonly brand = computed(() => this.variableStore.brand());
+    readonly heroAssets = computed(() => this.variableStore.heroAssets());
+    readonly ctaTargets = computed(() => this.variableStore.ctaTargets());
+    readonly navigation = computed(() => this.variableStore.navigation());
+    readonly socialLinks = computed(() => this.variableStore.socialLinks());
     readonly localStorage = computed<TDraftLocalStorageRuntimeConfig>(() => this.siteRuntime()?.localStorage ?? {});
     readonly features = computed<Required<TDraftFeatureRuntimeConfig>>(() => ({
         ...DEFAULT_FEATURES,
@@ -64,14 +71,39 @@ export class RuntimeConfigService {
     }
 
     appIdentifier(): string {
-        return this.domainResolver.resolveAppIdentifier();
+        const appIdentity = this.appIdentity();
+
+        return this.sanitizeIdentifier(appIdentity?.identifier)
+            || this.sanitizeIdentifier(appIdentity?.name)
+            || this.sanitizeIdentifier(this.domainResolver.resolveDomain().domain)
+            || 'app';
     }
 
-    appMetadata(): TDraftAppRuntimeConfig {
-        return this.app() ?? {};
+    appName(): string {
+        const name = this.cleanString(this.appIdentity()?.name);
+        return name || this.domainResolver.resolveDomain().domain || 'app';
+    }
+
+    appDescription(): string {
+        return this.cleanString(this.appIdentity()?.description);
+    }
+
+    appMetadata(): TDraftAppIdentityVariableConfig {
+        return this.appIdentity() ?? {};
     }
 
     resolveStorageKey(slot: TDraftLocalStorageSlot): string {
         return this.domainResolver.resolveStorageKey(slot);
+    }
+
+    private cleanString(value: unknown): string {
+        return typeof value === 'string' ? value.trim() : '';
+    }
+
+    private sanitizeIdentifier(value: unknown): string {
+        return this.cleanString(value)
+            .toLowerCase()
+            .replace(/\s+/g, '_')
+            .replace(/[^a-z0-9_]+/g, '');
     }
 }

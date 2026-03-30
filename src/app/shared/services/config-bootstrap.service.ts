@@ -522,6 +522,7 @@ export class ConfigBootstrapService {
         }
 
         const variables = payloads.variables?.variables ?? {};
+        const appIdentity = this.isRecord(variables['appIdentity']) ? variables['appIdentity'] : null;
         const theme = this.isRecord(variables['theme']) ? variables['theme'] : null;
         const i18n = this.isRecord(variables['i18n']) ? variables['i18n'] : null;
         const ui = this.isRecord(variables['ui']) ? variables['ui'] : null;
@@ -529,6 +530,13 @@ export class ConfigBootstrapService {
         const modalConfigs = this.isRecord(ui?.['modals']) ? ui['modals'] as Record<string, unknown> : null;
         const referencedModalIds = this.collectReferencedModalIds(components);
 
+        addIssue(!appIdentity, 'variables.appIdentity is required.');
+        addIssue(
+            !!appIdentity
+            && !this.isNonEmptyString(appIdentity['identifier'])
+            && !this.isNonEmptyString(appIdentity['name']),
+            'variables.appIdentity.identifier or variables.appIdentity.name is required.'
+        );
         addIssue(!theme, 'variables.theme is required.');
         addIssue(!i18n, 'variables.i18n is required.');
         addIssue(!this.isNonEmptyString(i18n?.['defaultLanguage']), 'variables.i18n.defaultLanguage is required.');

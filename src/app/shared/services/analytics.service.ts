@@ -14,7 +14,6 @@ import { ToastService } from '../components/generic-toast';
 import { TAnalyticsEvent, TDataDropResponse, TExpandedAnalytics } from '../types/analytics.type';
 import { AnalyticsCategories, AnalyticsEvents } from './analytics.events';
 import { ConfigStoreService } from './config-store.service';
-import { DomainResolverService } from './domain-resolver.service';
 import { RuntimeConfigService } from './runtime-config.service';
 
 import { QuickStatsService } from './quick-stats.service';
@@ -28,9 +27,9 @@ export class AnalyticsService {
   private pendingQueue: TAnalyticsEvent[] = [];
   private readonly isProduction: boolean = environment.production;
   private readonly baseUrl: string = environment.apiUrl;
-  private readonly domainResolver = inject(DomainResolverService);
   private readonly configStore = inject(ConfigStoreService);
   private readonly runtimeConfig = inject(RuntimeConfigService);
+  private readonly quickStats = inject(QuickStatsService);
   private readonly events$ = new ReplaySubject<TAnalyticsEvent>(this.debugEventReplaySize);
   private trackingTeardowns: Array<() => void> = [];
   private hasPermission: boolean = false;
@@ -413,7 +412,7 @@ export class AnalyticsService {
   }
 
   private resolveAppName(): string {
-    return this.domainResolver.resolveAppIdentifier();
+    return this.runtimeConfig.appIdentifier();
   }
 
   private storageKey(key: TDraftLocalStorageSlot): string {
@@ -726,12 +725,6 @@ export class AnalyticsService {
     }
   }
 
-  // Quick Stats Lambda integration helpers
-  private _quickStats?: QuickStatsService;
-  private get quickStats(): QuickStatsService {
-    return this._quickStats ??= inject(QuickStatsService);
-  }
-
   private remotePageViewConfig(): TAnalyticsQuickStatsPageViewConfig | null {
     const pageView = this.configStore.analytics()?.quickStats?.pageView;
     return pageView && typeof pageView.path === 'string' && pageView.path.trim().length > 0 ? pageView : null;
@@ -746,7 +739,14 @@ export class AnalyticsService {
     if (!this.isProduction) return;
     const pageView = this.remotePageViewConfig();
     if (!pageView) return;
-    this.quickStats.inc(pageView.path, pageView.by ?? 1).subscribe({ next: () => { }, error: () => { } });
+    this.quickStats.inc(pageView.path, pageView.by ?? 1).subscribe({
+      next: () => { },
+      error: () => {
+        if (this.runtimeConfig.isDebugMode()) {
+          console.warn('Quick stats page view increment failed.');
+        }
+      },
+    });
   }
 
   private bumpQuickStatsForEvent(name: string): void {
@@ -757,17 +757,23 @@ export class AnalyticsService {
     }
 
     bindings.forEach((entry) => {
-      this.quickStats.inc(entry.path, entry.by ?? 1).subscribe({ next: () => { }, error: () => { } });
+      this.quickStats.inc(entry.path, entry.by ?? 1).subscribe({
+        next: () => { },
+        error: () => {
+          if (this.runtimeConfig.isDebugMode()) {
+            console.warn(`Quick stats increment failed for event "${ name }".`);
+          }
+        },
+      });
     });
   }
 
   // Analytics statistics methods (now using persistent storage)
   getPageViewCount(): number {
-    if (this._quickStats?.remoteStats()) {
-      const remote = this._quickStats.remoteStats() || {};
-      if (typeof remote['metrics'] === 'object' && typeof remote['metrics']['pageViews'] === 'number') {
-        return remote['metrics']['pageViews'];
-      }
+    const pageView = this.remotePageViewConfig();
+    const remoteCount = pageView ? this.quickStats.getNumber(pageView.path) : undefined;
+    if (typeof remoteCount === 'number') {
+      return remoteCount;
     }
     if (typeof localStorage === 'undefined') return this.buffer.filter(event => event.name === 'page_view').length;
     try {
@@ -779,11 +785,9 @@ export class AnalyticsService {
   }
 
   getEventCount(eventName: string): number {
-    if (this._quickStats?.remoteStats()) {
-      const remote = this._quickStats.remoteStats() || {};
-      if (typeof remote['metrics'] === 'object' && typeof remote['metrics'][eventName] === 'number') {
-        return remote['metrics'][eventName];
-      }
+    const matchingBindings = this.remoteEventQuickStats().filter((entry) => entry.name === eventName);
+    if (matchingBindings.length > 0) {
+      return matchingBindings.reduce((count, entry) => count + (this.quickStats.getNumber(entry.path) ?? 0), 0);
     }
     return 0;
   }
@@ -793,13 +797,6 @@ export class AnalyticsService {
   }
 
   getSessionEventCount(): number {
-    if (this._quickStats?.remoteStats()) {
-      const remote = this._quickStats.remoteStats() || {};
-      if (typeof remote['metrics'] === 'object' && typeof remote['metrics']['avgTimeSecs'] === 'number') {
-        return remote['metrics']['avgTimeSecs'];
-      }
-    }
-    // Get current session events by filtering recent events (e.g., last hour)
     const oneHourAgo = Date.now() - (60 * 60 * 1000);
     return this.buffer.filter(event => event.timestamp >= oneHourAgo).length;
   }

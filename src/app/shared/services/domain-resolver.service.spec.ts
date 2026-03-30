@@ -41,7 +41,7 @@ describe('DomainResolverService', () => {
     });
   });
 
-  it('derives runtime-safe identifiers and storage keys from the resolved domain', () => {
+  it('derives runtime-safe storage keys from the resolved domain', () => {
     TestBed.configureTestingModule({
       providers: [
         DomainResolverService,
@@ -54,7 +54,6 @@ describe('DomainResolverService', () => {
 
     const service = TestBed.inject(DomainResolverService);
 
-    expect(service.resolveAppIdentifier()).toBe('zoolandingpagecommx');
     expect(service.resolveStorageNamespace()).toBe('zoolandingpage-com-mx');
     expect(service.resolveStorageKey('theme')).toBe('zoolandingpage-com-mx:theme');
   });

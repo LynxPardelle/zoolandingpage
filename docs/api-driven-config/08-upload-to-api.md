@@ -21,12 +21,6 @@ If an API response omits `angora-combos`, the page still loads, but it runs with
   "defaultPageId": "default",
   "routes": [{ "path": "/", "pageId": "default", "label": "Home" }],
   "runtime": {
-    "app": {
-      "identifier": "examplecom",
-      "name": "Example Landing",
-      "version": "1.0.0",
-      "description": "Example landing page"
-    },
     "localStorage": {
       "theme": "example-theme",
       "language": "example-language",
@@ -56,9 +50,9 @@ If an API response omits `angora-combos`, the page still loads, but it runs with
 
 Rules:
 
-- Keep `runtime.app` domain-shared.
 - Keep `runtime.localStorage` limited to logical slot names, not arbitrary keys.
 - Keep `runtime.features` focused on runtime behavior flags, not component content.
+- Keep page identity in `variables.appIdentity`, not in `site-config.json`.
 
 ## Recommended payload shape
 
@@ -70,6 +64,12 @@ export type LandingPageConfigPayload = {
   pageId: string;
   rootIds: readonly string[];
   variables?: {
+    appIdentity?: {
+      identifier?: string;
+      name?: string;
+      version?: string;
+      description?: string;
+    };
     theme?: unknown;
     i18n?: {
       defaultLanguage: string;
@@ -112,7 +112,7 @@ Why a map?
   - `valueInstructions` only uses allowlisted resolver IDs
   - no function values (JSON can’t represent them anyway)
   - `angora-combos` present whenever the page depends on authored combo keys for appearance
-  - required nested contracts such as `variables.theme`, `variables.i18n.defaultLanguage`, `variables.i18n.supportedLanguages`, `variables.ui.contact.whatsappPhone`, and `variables.ui.contact.whatsappMessageKey` when WhatsApp handlers are used
+  - required nested contracts such as `variables.appIdentity`, `variables.theme`, `variables.i18n.defaultLanguage`, `variables.i18n.supportedLanguages`, `variables.ui.contact.whatsappPhone`, and `variables.ui.contact.whatsappMessageKey` when WhatsApp handlers are used
 
 ## Client loading strategy (future)
 

@@ -38,6 +38,22 @@ export type TDraftSocialLinkConfig = {
     readonly rel?: string;
 };
 
+export type TDraftBrandVariableConfig = {
+    readonly displayName?: string;
+    readonly tagline?: string;
+    readonly logoUrl?: string;
+};
+
+export type TDraftHeroAssetsVariableConfig = {
+    readonly heroImageUrl?: string;
+    readonly heroImageAlt?: string;
+    readonly heroBackdropUrl?: string;
+};
+
+export type TDraftCtaTargetsVariableConfig = Record<string, string>;
+
+export type TDraftNavigationVariableConfig = readonly Record<string, unknown>[];
+
 export type TDraftModalUiConfig = Pick<ModalConfig,
     'size'
     | 'closeOnBackdrop'
@@ -80,7 +96,7 @@ export type TDraftSiteRouteEntry = {
     readonly labelKey?: string;
 };
 
-export type TDraftAppRuntimeConfig = {
+export type TDraftAppIdentityVariableConfig = {
     readonly identifier?: string;
     readonly name?: string;
     readonly version?: string;
@@ -140,7 +156,6 @@ export type TDraftFeatureRuntimeConfig = {
 };
 
 export type TDraftSiteRuntimeConfig = {
-    readonly app?: TDraftAppRuntimeConfig;
     readonly localStorage?: TDraftLocalStorageRuntimeConfig;
     readonly features?: TDraftFeatureRuntimeConfig;
     readonly analytics?: TDraftAnalyticsRuntimeConfig;
@@ -186,6 +201,11 @@ export type TVariablesPayload = {
     readonly pageId: string;
     readonly domain: string;
     readonly variables: Record<string, unknown> & {
+        readonly appIdentity?: TDraftAppIdentityVariableConfig;
+        readonly brand?: TDraftBrandVariableConfig;
+        readonly heroAssets?: TDraftHeroAssetsVariableConfig;
+        readonly ctaTargets?: TDraftCtaTargetsVariableConfig;
+        readonly navigation?: TDraftNavigationVariableConfig;
         readonly socialLinks?: readonly TDraftSocialLinkConfig[];
         readonly theme?: TThemeVariableConfig;
         readonly i18n?: TDraftI18nVariableConfig;

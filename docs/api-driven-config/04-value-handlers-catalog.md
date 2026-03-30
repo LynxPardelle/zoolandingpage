@@ -140,10 +140,11 @@ The `stats-counter` runtime now handles clamping and display formatting from tho
 
 ## Runtime settings
 
-Shared runtime settings such as app metadata, feature flags, and storage slot names now live in `site-config.json`, not in `valueInstructions`.
+Shared runtime settings such as feature flags and storage slot names live in `site-config.json`, not in `valueInstructions`.
 
 - Use `var` / `varOr` for page-owned values from `variables.json`.
-- Use `site-config.json` for `runtime.app`, `runtime.localStorage`, and `runtime.features`.
+- Use `variables.appIdentity` for page-owned app metadata.
+- Use `site-config.json` for `runtime.localStorage` and `runtime.features`.
 
 ## Adding a new handler (developer workflow)
 

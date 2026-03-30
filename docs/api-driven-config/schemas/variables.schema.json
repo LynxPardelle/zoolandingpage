@@ -110,7 +110,39 @@
       "type": "object",
       "required": ["whatsappPhone"],
       "properties": {
-        "whatsappPhone": { "type": "string", "minLength": 1 }
+        "whatsappPhone": { "type": "string", "minLength": 1 },
+        "whatsappMessageKey": { "type": "string" },
+        "faqMessageKey": { "type": "string" },
+        "finalCtaMessageKey": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "appIdentityConfig": {
+      "type": "object",
+      "properties": {
+        "identifier": { "type": "string" },
+        "name": { "type": "string" },
+        "version": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "anyOf": [{ "required": ["identifier"] }, { "required": ["name"] }],
+      "additionalProperties": false
+    },
+    "brandConfig": {
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string" },
+        "tagline": { "type": "string" },
+        "logoUrl": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "heroAssetsConfig": {
+      "type": "object",
+      "properties": {
+        "heroImageUrl": { "type": "string" },
+        "heroImageAlt": { "type": "string" },
+        "heroBackdropUrl": { "type": "string" }
       },
       "additionalProperties": false
     },
@@ -165,7 +197,22 @@
     "domain": { "type": "string" },
     "variables": {
       "type": "object",
+      "required": ["appIdentity"],
       "properties": {
+        "appIdentity": { "$ref": "#/definitions/appIdentityConfig" },
+        "brand": { "$ref": "#/definitions/brandConfig" },
+        "heroAssets": { "$ref": "#/definitions/heroAssetsConfig" },
+        "ctaTargets": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "navigation": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
         "socialLinks": {
           "type": "array",
           "items": { "$ref": "#/definitions/draftSocialLink" }

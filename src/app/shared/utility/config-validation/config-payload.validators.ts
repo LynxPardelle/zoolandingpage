@@ -7,7 +7,7 @@ import type {
     TAngoraCombosPayload,
     TComponentsPayload,
     TDraftAnalyticsRuntimeConfig,
-    TDraftAppRuntimeConfig,
+    TDraftAppIdentityVariableConfig,
     TDraftContactVariableConfig,
     TDraftFeatureRuntimeConfig,
     TDraftLanguageDefinition,
@@ -213,7 +213,7 @@ const isDraftSiteRouteEntry = (value: unknown): boolean => {
     return true;
 };
 
-const isDraftAppRuntimeConfig = (value: unknown): value is TDraftAppRuntimeConfig => {
+const isDraftAppIdentityVariableConfig = (value: unknown): value is TDraftAppIdentityVariableConfig => {
     if (!isRecord(value)) return false;
     if (value['identifier'] !== undefined && typeof value['identifier'] !== 'string') return false;
     if (value['name'] !== undefined && typeof value['name'] !== 'string') return false;
@@ -289,7 +289,7 @@ const isDraftAnalyticsRuntimeConfig = (value: unknown): value is TDraftAnalytics
 
 const isDraftSiteRuntimeConfig = (value: unknown): value is TDraftSiteRuntimeConfig => {
     if (!isRecord(value)) return false;
-    if (value['app'] !== undefined && !isDraftAppRuntimeConfig(value['app'])) return false;
+    if (value['app'] !== undefined) return false;
     if (value['localStorage'] !== undefined && !isDraftLocalStorageRuntimeConfig(value['localStorage'])) return false;
     if (value['features'] !== undefined && !isDraftFeatureRuntimeConfig(value['features'])) return false;
     if (value['analytics'] !== undefined && !isDraftAnalyticsRuntimeConfig(value['analytics'])) return false;
@@ -1073,6 +1073,11 @@ export const isVariablesPayload = (value: unknown): value is TVariablesPayload =
 
     const i18n = (value['variables'] as Record<string, unknown>)['i18n'];
     if (i18n !== undefined && !isDraftI18nVariableConfig(i18n)) {
+        return false;
+    }
+
+    const appIdentity = (value['variables'] as Record<string, unknown>)['appIdentity'];
+    if (appIdentity !== undefined && !isDraftAppIdentityVariableConfig(appIdentity)) {
         return false;
     }
 

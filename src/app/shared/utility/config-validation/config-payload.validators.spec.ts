@@ -463,6 +463,11 @@ describe('config-payload.validators', () => {
             domain: 'zoolandingpage.com.mx',
             variables: {
                 a: 1,
+                appIdentity: {
+                    identifier: 'zoolandingpagecommx',
+                    name: 'Zoo Landing Page',
+                    description: 'Draft-driven landing page.',
+                },
                 ui: {
                     contact: {
                         whatsappPhone: '+525522699563',
@@ -475,6 +480,21 @@ describe('config-payload.validators', () => {
             computed: { b: 2 },
         };
         expect(isVariablesPayload(valid)).toBeTrue();
+    });
+
+    it('rejects invalid variables.appIdentity shape', () => {
+        const invalid = {
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            variables: {
+                appIdentity: {
+                    identifier: 123,
+                },
+            },
+        };
+
+        expect(isVariablesPayload(invalid)).toBeFalse();
     });
 
     it('rejects invalid optional variables.ui.contact message keys', () => {
