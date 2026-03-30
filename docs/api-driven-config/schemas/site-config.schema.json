@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SiteConfigPayload",
+  "type": "object",
+  "definitions": {
+    "siteRouteEntry": {
+      "type": "object",
+      "required": ["path", "pageId"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "pageId": { "type": "string", "minLength": 1 },
+        "label": { "type": "string" },
+        "labelKey": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "appRuntime": {
+      "type": "object",
+      "properties": {
+        "identifier": { "type": "string" },
+        "name": { "type": "string" },
+        "version": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "localStorageRuntime": {
+      "type": "object",
+      "properties": {
+        "theme": { "type": "string", "minLength": 1 },
+        "language": { "type": "string", "minLength": 1 },
+        "userPreferences": { "type": "string", "minLength": 1 },
+        "id": { "type": "string", "minLength": 1 },
+        "sessionId": { "type": "string", "minLength": 1 },
+        "allowAnalytics": { "type": "string", "minLength": 1 },
+        "analyticsConsentSnooze": { "type": "string", "minLength": 1 },
+        "pageViewCount": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "featureRuntime": {
+      "type": "object",
+      "properties": {
+        "analytics": { "type": "boolean" },
+        "debugMode": { "type": "boolean" },
+        "analyticsConsentUI": {
+          "type": "string",
+          "enum": ["modal", "toast", "sheet", "none"]
+        },
+        "analyticsConsentSnoozeSeconds": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "runtimeConfig": {
+      "type": "object",
+      "properties": {
+        "app": { "$ref": "#/definitions/appRuntime" },
+        "localStorage": { "$ref": "#/definitions/localStorageRuntime" },
+        "features": { "$ref": "#/definitions/featureRuntime" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["version", "domain", "routes"],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "domain": { "type": "string", "minLength": 1 },
+    "defaultPageId": { "type": "string" },
+    "routes": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/siteRouteEntry" }
+    },
+    "runtime": { "$ref": "#/definitions/runtimeConfig" }
+  },
+  "additionalProperties": false
+}

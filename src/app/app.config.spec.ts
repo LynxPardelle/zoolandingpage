@@ -17,7 +17,7 @@ describe('appConfig condition handlers', () => {
             id: 'test',
             type: 'container',
             config: {},
-            condition: 'all:hostEq,expected.example;all:modalRefId,terms-of-service;all:env,production',
+            condition: 'all:hostEq,expected.example;all:modalRefId,terms-of-service',
         } as unknown as TGenericComponent;
 
         const result = orchestrator.evaluate(component, {

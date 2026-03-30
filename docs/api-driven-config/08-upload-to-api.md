@@ -4,7 +4,50 @@ This repo does not assume a specific backend implementation, but the config syst
 
 This document describes a suggested payload shape that works well with `wrapper-orchestrator` and is easy for an AI assistant to generate.
 
-For the current runtime, treat `page-config.json`, `components.json`, `variables.json`, `i18n/*.json`, `seo.json`, `structured-data.json`, and `analytics-config.json` as separate payloads. Do not bundle debug-only UI into production page payloads unless the page explicitly owns that experience.
+For the current runtime, treat `site-config.json`, `page-config.json`, `components.json`, `variables.json`, `i18n/*.json`, `seo.json`, `structured-data.json`, and `analytics-config.json` as separate payloads. Do not bundle debug-only UI into production page payloads unless the page explicitly owns that experience.
+
+## Site config payload
+
+`site-config.json` owns domain routing plus shared runtime settings.
+
+```json
+{
+  "version": 1,
+  "domain": "example.com",
+  "defaultPageId": "default",
+  "routes": [{ "path": "/", "pageId": "default", "label": "Home" }],
+  "runtime": {
+    "app": {
+      "identifier": "examplecom",
+      "name": "Example Landing",
+      "version": "1.0.0",
+      "description": "Example landing page"
+    },
+    "localStorage": {
+      "theme": "example-theme",
+      "language": "example-language",
+      "userPreferences": "example-preferences",
+      "id": "example-id",
+      "sessionId": "example-session-id",
+      "allowAnalytics": "example-allow-analytics",
+      "analyticsConsentSnooze": "example-allow-analytics-snooze",
+      "pageViewCount": "example-page-view-count"
+    },
+    "features": {
+      "analytics": false,
+      "debugMode": true,
+      "analyticsConsentUI": "none",
+      "analyticsConsentSnoozeSeconds": 30
+    }
+  }
+}
+```
+
+Rules:
+
+- Keep `runtime.app` domain-shared.
+- Keep `runtime.localStorage` limited to logical slot names, not arbitrary keys.
+- Keep `runtime.features` focused on runtime behavior flags, not component content.
 
 ## Recommended payload shape
 
@@ -80,6 +123,7 @@ A future client-side loader can:
   "sectionIds": ["home", "features"],
   "scrollMilestones": [25, 50, 75, 100],
   "consentMode": "default",
+  "track": ["ip", "language", "screenWidth"],
   "events": {
     "page_view": "page_view"
   },
@@ -95,11 +139,12 @@ Rules:
 - `events` maps canonical framework event IDs to the names sent to the analytics sink.
 - `categories` maps canonical framework categories to sink-specific category values.
 - `quickStatsCtaEvents` lists the canonical CTA event IDs that should increment quick stats counters.
+- `track` lists the optional extra browser fields collected after consent.
 - Keep handler IDs and `eventInstructions` action names in code; only emitted taxonomy belongs in payloads.
 
 ## Security model
 
 - `valueInstructions` is allowlisted; unknown resolver IDs are ignored.
-- Avoid exposing secrets through `env.*`.
+- Do not rely on `env.*`; shared runtime settings belong in `site-config.json`.
 - Keep handlers deterministic and side-effect-free.
 - Treat missing required payload sections as validation failures rather than relying on local runtime fallbacks.

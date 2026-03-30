@@ -1,7 +1,6 @@
 import type { Provider } from '@angular/core';
 import { classJoinValueHandler } from './handlers/class.value-handlers';
 import { concatValueHandler } from './handlers/concat.value-handlers';
-import { envOrValueHandler, envValueHandler } from './handlers/env.value-handlers';
 import { i18nValueHandler } from './handlers/i18n.value-handlers';
 import { i18nGetIndexValueHandler } from './handlers/i18nGetIndex.value-handlers';
 import { i18nParamsValueHandler } from './handlers/i18nParams.value-handlers';
@@ -32,9 +31,6 @@ export const provideValueHandlers = (): Provider[] => {
 
         { provide: VALUE_HANDLERS, multi: true, useFactory: themeValueHandler },
         { provide: VALUE_HANDLERS, multi: true, useFactory: themePickValueHandler },
-
-        { provide: VALUE_HANDLERS, multi: true, useFactory: envValueHandler },
-        { provide: VALUE_HANDLERS, multi: true, useFactory: envOrValueHandler },
 
         { provide: VALUE_HANDLERS, multi: true, useFactory: scopeValueHandler },
         { provide: VALUE_HANDLERS, multi: true, useFactory: scopeOrValueHandler },

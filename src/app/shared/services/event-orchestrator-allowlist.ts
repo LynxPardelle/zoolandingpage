@@ -1,5 +1,4 @@
 import { InjectionToken } from '@angular/core';
-import { environment } from '../../../environments/environment';
 
 const BASE_ALLOWED_EVENT_IDS = [
     'openModal',
@@ -46,7 +45,7 @@ const DEBUG_ALLOWED_EVENT_IDS = [
 
 export const DEFAULT_ALLOWED_EVENT_IDS: readonly string[] = [
     ...BASE_ALLOWED_EVENT_IDS,
-    ...(environment.features.debugMode ? DEBUG_ALLOWED_EVENT_IDS : []),
+    ...DEBUG_ALLOWED_EVENT_IDS,
 ];
 
 /**

@@ -3,7 +3,6 @@ import type { Provider } from '@angular/core';
 
 import type { ConditionExecutionContext, ConditionHandler } from './condition-handler.types';
 import { CONDITION_HANDLERS } from './condition-handlers.token';
-import { envConditionHandler } from './handlers/env.condition-handler';
 import {
     hostConditionHandler,
     hostEndsWithConditionHandler,
@@ -31,7 +30,6 @@ import { provideVariableConditionHandlers } from './handlers/variable.condition-
 export function provideConditionHandlers(): Provider[] {
     // Registry for logic handlers (self-referential, so must be built after all others)
     const baseHandlers: ConditionHandler[] = [
-        envConditionHandler,
         i18nExistsConditionHandler,
         navigationConditionHandler,
         hostConditionHandler,

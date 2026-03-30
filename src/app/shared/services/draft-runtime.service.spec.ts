@@ -101,7 +101,7 @@ describe('DraftRuntimeService', () => {
 
     const context = await service.resolveActiveDraftContext();
 
-    expect(loadSiteConfig).not.toHaveBeenCalled();
+    expect(loadSiteConfig).toHaveBeenCalledOnceWith('pamelabetancourt.preview');
     expect(context.pageId).toBe('contactame');
     expect(context.explicitPageId).toBeTrue();
     expect(service.activeDraftPageId()).toBe('contactame');
@@ -211,7 +211,7 @@ describe('DraftRuntimeService', () => {
     const context = await service.resolveActiveDraftContext();
     const params = new URLSearchParams(window.location.search);
 
-    expect(loadSiteConfig).not.toHaveBeenCalled();
+    expect(loadSiteConfig).toHaveBeenCalledOnceWith('zoolandingpage.com.mx');
     expect(context.domain).toBe('zoolandingpage.com.mx');
     expect(context.pageId).toBe('default');
     expect(service.activeDraftDomain()).toBe('zoolandingpage.com.mx');

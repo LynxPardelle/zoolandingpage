@@ -2,7 +2,6 @@ import { I18nService } from '@/app/shared/services/i18n.service';
 import type { TComponentsPayload, TDraftModalUiConfig } from '@/app/shared/types/config-payloads.types';
 import { computed, DestroyRef, effect, inject, Injectable, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
-import { environment } from '../../../environments/environment';
 import { GenericModalService } from '../components/generic-modal/generic-modal.service';
 import type { ModalConfig } from '../components/generic-modal/generic-modal.types';
 import type { TGenericComponent } from '../components/wrapper-orchestrator/wrapper-orchestrator.types';
@@ -20,6 +19,7 @@ import { ComponentEvent, ComponentEventDispatcherService } from './component-eve
 import { ConfigStoreService } from './config-store.service';
 import { DomainResolverService } from './domain-resolver.service';
 import { LanguageService } from './language.service';
+import { RuntimeConfigService } from './runtime-config.service';
 import { VariableStoreService } from './variable-store.service';
 
 @Injectable({
@@ -34,6 +34,7 @@ export class ConfigurationsOrchestratorService {
     private readonly configStore = inject(ConfigStoreService);
     private readonly domainResolver = inject(DomainResolverService);
     private readonly language = inject(LanguageService);
+    private readonly runtimeConfig = inject(RuntimeConfigService);
     private readonly variableStore = inject(VariableStoreService);
     private warnedNavigationMissing = false;
     private warnedLoopPaths = new Set<string>();
@@ -131,7 +132,7 @@ export class ConfigurationsOrchestratorService {
     }
 
     downloadDraftPayloads(): void {
-        if (!environment.features.debugMode || typeof document === 'undefined') return;
+        if (!this.runtimeConfig.isDebugMode() || typeof document === 'undefined') return;
 
         const context = this.draftExportContext();
         const payloads = this.buildDraftPayloads(context.domain, context.pageId);
@@ -148,7 +149,7 @@ export class ConfigurationsOrchestratorService {
     }
 
     async writeDraftPayloadsToDisk(): Promise<void> {
-        if (!environment.features.debugMode || typeof window === 'undefined') return;
+        if (!this.runtimeConfig.isDebugMode() || typeof window === 'undefined') return;
 
         const picker = (window as Window & { showDirectoryPicker?: () => Promise<any> }).showDirectoryPicker;
         if (typeof picker !== 'function') {

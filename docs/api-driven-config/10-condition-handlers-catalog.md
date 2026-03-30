@@ -4,11 +4,6 @@ This is the allowlisted set of condition handlers for `condition` instructions.
 
 ## Core handlers
 
-- `env,<path>`
-
-  - Reads from environment config using dot-path.
-  - Example: `all:env,features.debugMode`
-
 - `i18n,<key>`
 
   - True when the translated value exists and is not empty.

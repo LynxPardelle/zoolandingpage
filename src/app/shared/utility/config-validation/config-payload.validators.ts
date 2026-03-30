@@ -1,11 +1,17 @@
+import type { TTrackOptions } from '@/app/shared/types/analytics.type';
 import type {
     TAnalyticsConfigPayload,
     TAngoraCombosPayload,
     TComponentsPayload,
+    TDraftAppRuntimeConfig,
     TDraftContactVariableConfig,
+    TDraftFeatureRuntimeConfig,
     TDraftLanguageDefinition,
+    TDraftLocalStorageRuntimeConfig,
+    TDraftLocalStorageSlot,
     TDraftModalUiConfig,
     TDraftSiteConfigPayload,
+    TDraftSiteRuntimeConfig,
     TDraftSocialLinkConfig,
     TDraftToastUiConfig,
     TDraftUiVariableConfig,
@@ -26,6 +32,37 @@ import {
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     !!value && typeof value === 'object' && !Array.isArray(value);
+
+const ALLOWED_TRACK_OPTIONS = new Set<TTrackOptions>([
+    'ip',
+    'userAgent',
+    'language',
+    'platform',
+    'vendor',
+    'cookiesEnabled',
+    'doNotTrack',
+    'screenWidth',
+    'screenHeight',
+    'colorDepth',
+    'timezone',
+    'geolocationLatitude',
+    'geolocationLongitude',
+    'geolocationAccuracy',
+    'cookies',
+    'battery',
+    'connection',
+]);
+
+const ALLOWED_LOCAL_STORAGE_SLOTS = new Set<TDraftLocalStorageSlot>([
+    'theme',
+    'language',
+    'userPreferences',
+    'id',
+    'sessionId',
+    'allowAnalytics',
+    'analyticsConsentSnooze',
+    'pageViewCount',
+]);
 
 const ALLOWED_COMPONENT_TYPES = new Set([
     'accordion',
@@ -169,6 +206,47 @@ const isDraftSiteRouteEntry = (value: unknown): boolean => {
     if (typeof value['pageId'] !== 'string' || value['pageId'].trim().length === 0) return false;
     if (value['label'] !== undefined && typeof value['label'] !== 'string') return false;
     if (value['labelKey'] !== undefined && typeof value['labelKey'] !== 'string') return false;
+    return true;
+};
+
+const isDraftAppRuntimeConfig = (value: unknown): value is TDraftAppRuntimeConfig => {
+    if (!isRecord(value)) return false;
+    if (value['identifier'] !== undefined && typeof value['identifier'] !== 'string') return false;
+    if (value['name'] !== undefined && typeof value['name'] !== 'string') return false;
+    if (value['version'] !== undefined && typeof value['version'] !== 'string') return false;
+    if (value['description'] !== undefined && typeof value['description'] !== 'string') return false;
+    return true;
+};
+
+const isDraftLocalStorageRuntimeConfig = (value: unknown): value is TDraftLocalStorageRuntimeConfig => {
+    if (!isRecord(value)) return false;
+
+    return Object.entries(value).every(([key, entry]) =>
+        ALLOWED_LOCAL_STORAGE_SLOTS.has(key as TDraftLocalStorageSlot)
+        && typeof entry === 'string'
+        && entry.trim().length > 0
+    );
+};
+
+const isDraftFeatureRuntimeConfig = (value: unknown): value is TDraftFeatureRuntimeConfig => {
+    if (!isRecord(value)) return false;
+    if (value['analytics'] !== undefined && typeof value['analytics'] !== 'boolean') return false;
+    if (value['debugMode'] !== undefined && typeof value['debugMode'] !== 'boolean') return false;
+    if (value['analyticsConsentUI'] !== undefined
+        && value['analyticsConsentUI'] !== 'modal'
+        && value['analyticsConsentUI'] !== 'toast'
+        && value['analyticsConsentUI'] !== 'sheet'
+        && value['analyticsConsentUI'] !== 'none') return false;
+    if (value['analyticsConsentSnoozeSeconds'] !== undefined
+        && (typeof value['analyticsConsentSnoozeSeconds'] !== 'number' || !Number.isFinite(value['analyticsConsentSnoozeSeconds']))) return false;
+    return true;
+};
+
+const isDraftSiteRuntimeConfig = (value: unknown): value is TDraftSiteRuntimeConfig => {
+    if (!isRecord(value)) return false;
+    if (value['app'] !== undefined && !isDraftAppRuntimeConfig(value['app'])) return false;
+    if (value['localStorage'] !== undefined && !isDraftLocalStorageRuntimeConfig(value['localStorage'])) return false;
+    if (value['features'] !== undefined && !isDraftFeatureRuntimeConfig(value['features'])) return false;
     return true;
 };
 
@@ -900,6 +978,7 @@ export const isDraftSiteConfigPayload = (value: unknown): value is TDraftSiteCon
     if (typeof value['domain'] !== 'string') return false;
     if (value['defaultPageId'] !== undefined && typeof value['defaultPageId'] !== 'string') return false;
     if (!Array.isArray(value['routes']) || !value['routes'].every(isDraftSiteRouteEntry)) return false;
+    if (value['runtime'] !== undefined && !isDraftSiteRuntimeConfig(value['runtime'])) return false;
     return true;
 };
 
@@ -1002,5 +1081,10 @@ export const isAnalyticsConfigPayload = (value: unknown): value is TAnalyticsCon
     if (value['events'] !== undefined && !isStringRecord(value['events'])) return false;
     if (value['categories'] !== undefined && !isStringRecord(value['categories'])) return false;
     if (value['quickStatsCtaEvents'] !== undefined && !isStringArray(value['quickStatsCtaEvents'])) return false;
+    if (value['track'] !== undefined
+        && (!Array.isArray(value['track'])
+            || !value['track'].every((entry) => typeof entry === 'string' && ALLOWED_TRACK_OPTIONS.has(entry as TTrackOptions)))) {
+        return false;
+    }
     return true;
 };

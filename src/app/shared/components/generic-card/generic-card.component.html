@@ -27,7 +27,7 @@
       itemprop="ratingValue"
       [content]="rating().toString()"
     />
-    @for (star of stars(); track star) {<mat-icon [class]="classValue('testimonialStarClasses')" aria-hidden="true">{{
+    @for (star of stars(); track $index) {<mat-icon [class]="classValue('testimonialStarClasses')" aria-hidden="true">{{
       star <= rating() ? "star" : "star_border"
     }}</mat-icon
     >}<span [class]="classValue('testimonialRatingTextClasses')">{{ rating() }}/5</span>
@@ -42,10 +42,10 @@
   <p [class]="classValue('featureDescriptionClasses')">{{ description() }}</p>
   @if (benefits().length) {
   <ul [class]="classValue('benefitsListClasses')">
-    @for (benefit of benefits(); track benefit) {
+    @for (benefit of keyedBenefits(); track benefit.key) {
     <li [class]="classValue('benefitItemClasses')">
       <mat-icon [class]="classValue('benefitIconClasses')">check_circle</mat-icon>
-      <span [class]="classValue('benefitTextClasses')">{{ benefit }}</span>
+      <span [class]="classValue('benefitTextClasses')">{{ benefit.value }}</span>
     </li>
     }
   </ul>

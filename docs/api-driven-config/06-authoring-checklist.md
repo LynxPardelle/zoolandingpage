@@ -71,7 +71,7 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 
 - Use the condition DSL (no inline lambdas).
 - Prefer `all:` unless you need `any:` or `not:`.
-- Allowed handler IDs: env, i18n, navigation, modalRefId, host, hostEq, hostNeq, hostIncludes, hostGt, hostGte, hostLt, hostLte, hostStartsWith, hostEndsWith, hostRegex, hostLenEq, hostLenGt, hostLenGte, hostLenLt, hostLenLte, var, varEq, varNeq, varGt, varGte, varLt, varLte, varIncludes, varLenEq, varLenGt, varLenGte, varLenLt, varLenLte, true, false, always, never, exists, empty, eq, neq, gt, lt, gte, lte, type.
+- Allowed handler IDs: i18n, navigation, modalRefId, host, hostEq, hostNeq, hostIncludes, hostGt, hostGte, hostLt, hostLte, hostStartsWith, hostEndsWith, hostRegex, hostLenEq, hostLenGt, hostLenGte, hostLenLt, hostLenLte, var, varEq, varNeq, varGt, varGte, varLt, varLte, varIncludes, varLenEq, varLenGt, varLenGte, varLenLt, varLenLte, true, false, always, never, exists, empty, eq, neq, gt, lt, gte, lte, type.
 
 ## Validation steps (developer)
 
@@ -85,6 +85,8 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Verify `variables.ui.contact.faqMessageKey` is present when `openFaqCtaWhatsApp` is referenced unless the generic WhatsApp message key is intentionally reused.
 - Verify `variables.ui.contact.finalCtaMessageKey` is present when `openFinalCtaWhatsApp` is referenced unless the generic WhatsApp message key is intentionally reused.
 - Verify every modal referenced by `openModal:*` or `modalRefId,*` has a matching `variables.ui.modals.<modalId>` entry with `ariaLabel` or `ariaLabelKey`.
+- Verify `site-config.json` includes `runtime.app`, `runtime.localStorage`, and `runtime.features` for each active domain.
+- Verify `analytics-config.json` includes `track` when analytics collection should enrich events with browser metadata.
 - Verify `seo.json` is present and complete for every active draft.
 - Verify footer/legal modal sections can render from API payload only.
 - Verify shared runtime keys are present in draft i18n when used by the page. Common examples:
@@ -127,7 +129,7 @@ Constraints:
 - Output only `TGenericComponent` configs.
 - No inline functions in config.
 - Use `valueInstructions` for any dynamic values.
-- Allowed resolver IDs: i18n, i18nParams, i18nGetIndex, literal, concat, coalesce, upper, lower, language, langPick, theme, themePick, env, envOr, var, varOr.
+- Allowed resolver IDs: i18n, i18nParams, i18nGetIndex, literal, concat, coalesce, upper, lower, language, langPick, theme, themePick, var, varOr.
 - Use existing generic components only.
 
 Deliverable:

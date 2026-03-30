@@ -21,7 +21,6 @@ import {
     isStructuredDataPayload,
     isVariablesPayload,
 } from '@/app/shared/utility/config-validation/config-payload.validators';
-import { environment } from '@/environments/environment';
 import { isPlatformBrowser } from '@angular/common';
 import { inject, Injectable, PLATFORM_ID, REQUEST, signal } from '@angular/core';
 import { ConfigSourceService } from './config-source.service';
@@ -29,6 +28,7 @@ import { ConfigStoreService, TConfigBootstrapStage } from './config-store.servic
 import { DomainResolverService } from './domain-resolver.service';
 import { I18nService } from './i18n.service';
 import { LanguageService } from './language.service';
+import { RuntimeConfigService } from './runtime-config.service';
 import { StructuredDataService } from './structured-data.service';
 import { VariableStoreService } from './variable-store.service';
 
@@ -58,6 +58,7 @@ export class ConfigBootstrapService {
     private readonly resolver = inject(DomainResolverService);
     private readonly i18n = inject(I18nService);
     private readonly language = inject(LanguageService);
+    private readonly runtimeConfig = inject(RuntimeConfigService);
     private readonly structured = inject(StructuredDataService);
     private readonly variablesStore = inject(VariableStoreService);
     private readonly isBrowser = isPlatformBrowser(this.platformId) && !this.request;
@@ -220,7 +221,7 @@ export class ConfigBootstrapService {
         this.i18n.disableAutoLoad();
         this.configureI18nLoader(domain, pageId);
 
-        this.store.reset();
+        this.store.resetPagePayloads();
         this.store.setStage('page-config');
         this.error.set(null);
 
@@ -396,7 +397,7 @@ export class ConfigBootstrapService {
     private captureError(stage: TConfigBootstrapStage, error: unknown): void {
         this.store.setStage('error');
         this.error.set(`Failed to load ${ stage }`);
-        if (environment.features.debugMode) {
+        if (this.runtimeConfig.isDebugMode()) {
             console.error('[ConfigBootstrap]', stage, error);
         }
     }

@@ -15,8 +15,6 @@ export const DEFAULT_ALLOWED_VALUE_IDS = [
     'langPick',
     'theme',
     'themePick',
-    'env',
-    'envOr',
     'scope',
     'scopeOr',
     'var',

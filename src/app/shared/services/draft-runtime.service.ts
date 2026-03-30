@@ -4,8 +4,10 @@ import { computed, DestroyRef, inject, Injectable, NgZone, PLATFORM_ID, REQUEST,
 import { Router } from '@angular/router';
 import type { TDraftSiteConfigPayload, TDraftSiteRouteEntry } from '../types/config-payloads.types';
 import { ConfigSourceService } from './config-source.service';
+import { ConfigStoreService } from './config-store.service';
 import { DomainResolverService } from './domain-resolver.service';
 import { DraftRegistryService, TDraftRegistryEntry } from './draft-registry.service';
+import { RuntimeConfigService } from './runtime-config.service';
 
 export const DRAFT_RUNTIME_STICKY_QUERY_PARAMS = ['debugWorkspace'] as const;
 const INTERNAL_DEBUG_DRAFT_DOMAIN = '_debug';
@@ -33,7 +35,9 @@ export class DraftRuntimeService {
     private readonly router = inject(Router);
     private readonly draftRegistry = inject(DraftRegistryService);
     private readonly domainResolver = inject(DomainResolverService);
+    private readonly configStore = inject(ConfigStoreService);
     private readonly configSource = inject(ConfigSourceService);
+    private readonly runtimeConfig = inject(RuntimeConfigService);
     private readonly isBrowser = isPlatformBrowser(this.platformId) && !this.request;
 
     readonly availableDrafts = signal<readonly TDraftRegistryEntry[]>([]);
@@ -148,7 +152,7 @@ export class DraftRuntimeService {
     }
 
     initRegistryAutoRefresh(destroyRef: DestroyRef): void {
-        if (!environment.features.debugMode || !environment.drafts.enabled || !this.isBrowser) {
+        if (!this.runtimeConfig.isDebugMode() || !environment.drafts.enabled || !this.isBrowser) {
             return;
         }
 
@@ -161,7 +165,7 @@ export class DraftRuntimeService {
     }
 
     refreshRegistry(): void {
-        if (!environment.features.debugMode || !environment.drafts.enabled || !this.isBrowser) {
+        if (!this.runtimeConfig.isDebugMode() || !environment.drafts.enabled || !this.isBrowser) {
             return;
         }
 
@@ -183,6 +187,8 @@ export class DraftRuntimeService {
         const domain = this.activeDraftDomain();
         const explicitPageId = this.hasExplicitDraftPageId();
         const path = this.resolvePathname();
+        const siteConfig = await this.loadSiteConfig(domain);
+        this.configStore.setSiteConfig(siteConfig);
 
         if (explicitPageId) {
             const explicitContext = {
@@ -196,7 +202,6 @@ export class DraftRuntimeService {
             return explicitContext;
         }
 
-        const siteConfig = await this.loadSiteConfig(domain);
         const route = this.matchRoute(siteConfig, path);
         const resolvedContext = {
             domain,
@@ -242,7 +247,11 @@ export class DraftRuntimeService {
     }
 
     hasDebugWorkspaceEnabled(): boolean {
-        if (environment.features.debugMode && environment.drafts.enabled && this.isLocalDraftSelectionRequired()) {
+        if (environment.drafts.enabled && this.isLocalDraftSelectionRequired()) {
+            return true;
+        }
+
+        if (this.runtimeConfig.isDebugMode()) {
             return true;
         }
 

@@ -48,6 +48,7 @@ const ORCHESTRATOR_STUB = {
   getAllTheClassesFromComponents: () => [],
   setDraftExportContext: jasmine.createSpy('setDraftExportContext'),
   setExternalComponentsFromPayload: jasmine.createSpy('setExternalComponentsFromPayload'),
+  setAuxiliaryComponentsFromPayload: jasmine.createSpy('setAuxiliaryComponentsFromPayload'),
   exportDraftComponentsPayload: () => ({
     version: 1,
     pageId: 'default',
@@ -85,6 +86,7 @@ describe('AppShellComponent', () => {
       },
     };
     ORCHESTRATOR_STUB.setExternalComponentsFromPayload.calls.reset();
+    ORCHESTRATOR_STUB.setAuxiliaryComponentsFromPayload.calls.reset();
     ORCHESTRATOR_STUB.setDraftExportContext.calls.reset();
 
     await TestBed.configureTestingModule({
@@ -93,6 +95,7 @@ describe('AppShellComponent', () => {
         {
           provide: AnalyticsService,
           useValue: {
+            initializeRuntimeState: () => { },
             track: async () => { },
             flush: () => [],
             promptForConsentIfNeeded: () => { },
@@ -192,7 +195,7 @@ describe('AppShellComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.componentInstance.rootComponentsIds()).toEqual([]);
-    expect(fixture.componentInstance.modalRootIds()).toEqual(DEBUG_MODAL_ROOT_IDS);
+    expect(fixture.componentInstance.modalRootIds()).toEqual([]);
     expect(ORCHESTRATOR_STUB.setExternalComponentsFromPayload).toHaveBeenCalledWith(null);
   });
 
@@ -222,7 +225,7 @@ describe('AppShellComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.componentInstance.rootComponentsIds()).toEqual([]);
-    expect(fixture.componentInstance.modalRootIds()).toEqual(DEBUG_MODAL_ROOT_IDS);
+    expect(fixture.componentInstance.modalRootIds()).toEqual([]);
     expect(ORCHESTRATOR_STUB.setExternalComponentsFromPayload).toHaveBeenCalledWith(null);
   });
 

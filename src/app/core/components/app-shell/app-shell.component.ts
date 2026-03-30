@@ -5,17 +5,17 @@ import { ConfigurationsOrchestratorService } from "@/app/shared/services/configu
 import { SeoMetadataService } from "@/app/shared/services/seo-metadata.service";
 import { AsyncPipe, isPlatformBrowser } from '@angular/common';
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
+  computed,
   DestroyRef,
+  effect,
   ElementRef,
+  inject,
   PLATFORM_ID,
   REQUEST,
-  afterNextRender,
-  effect,
-  inject,
 } from "@angular/core";
-import { environment } from "../../../../environments/environment";
 import { GenericModalComponent } from "../../../shared/components/generic-modal/generic-modal.component";
 import { GenericToastComponent } from "../../../shared/components/generic-toast";
 import {
@@ -46,10 +46,13 @@ export class AppShellComponent {
   private readonly request = inject(REQUEST, { optional: true });
   private readonly draftRuntime = inject(DraftRuntimeService);
   readonly orchestrator = inject(ConfigurationsOrchestratorService);
-  readonly debugMode = environment.features.debugMode;
   private readonly isBrowser = isPlatformBrowser(this.platformId) && !this.request;
   readonly showClientOnlyHosts = this.isBrowser;
-  readonly showDebugWorkspace = this.debugMode && this.isBrowser && this.draftRuntime.hasDebugWorkspaceEnabled();
+  readonly showDebugWorkspace = computed(() => {
+    this.draftRuntime.activeDraftDomain();
+    this.draftRuntime.requestedDraftPageId();
+    return this.isBrowser && this.draftRuntime.hasDebugWorkspaceEnabled();
+  });
   readonly analytics = inject(AnalyticsService);
   private readonly _lang = inject(LanguageService);
   readonly lang = this._lang;
@@ -65,7 +68,7 @@ export class AppShellComponent {
       this.runtime.connect({
         host: this.host.nativeElement,
         destroyRef: this.destroyRef,
-        showDebugWorkspace: this.showDebugWorkspace,
+        showDebugWorkspace: () => this.showDebugWorkspace(),
         currentLanguage: () => this._lang.currentLanguage(),
       });
     });

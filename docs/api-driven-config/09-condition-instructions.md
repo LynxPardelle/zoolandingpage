@@ -15,9 +15,6 @@ Each command resolves a boolean using a registered condition handler.
 ## Examples
 
 ```ts
-// Env flag
-condition: 'all:env,features.debugMode';
-
 // i18n key exists
 condition: 'all:i18n,hero.subtitle';
 
@@ -26,6 +23,9 @@ condition: 'all:modalRefId,terms-of-service';
 
 // Show social links only when the draft payload exposes entries
 condition: 'all:varLenGt,socialLinks,0';
+
+// Show draft-owned CTA only when the payload exposes a target
+condition: 'all:var,ctaTargets.primaryUrl';
 
 // Host property truthy
 condition: 'all:host,statsStripRemote.metrics';

@@ -6,7 +6,7 @@ import { ConfigSourceService } from '@/app/shared/services/config-source.service
 import { ConfigStoreService } from '@/app/shared/services/config-store.service';
 import { ConfigurationsOrchestratorService } from '@/app/shared/services/configurations-orchestrator';
 import { DraftRuntimeService } from '@/app/shared/services/draft-runtime.service';
-import { environment } from '@/environments/environment';
+import { RuntimeConfigService } from '@/app/shared/services/runtime-config.service';
 import { isPlatformBrowser } from '@angular/common';
 import { DestroyRef, inject, Injectable, PLATFORM_ID, REQUEST, signal } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
@@ -22,6 +22,7 @@ export class RuntimeService {
     private readonly combosService = inject(AngoraCombosService);
     private readonly analytics = inject(AnalyticsService);
     private readonly configStore = inject(ConfigStoreService);
+    private readonly runtimeConfig = inject(RuntimeConfigService);
     private readonly router = inject(Router, { optional: true });
     private readonly platformId = inject(PLATFORM_ID);
     private readonly request = inject(REQUEST, { optional: true });
@@ -37,22 +38,23 @@ export class RuntimeService {
     private cssMutationObserver: MutationObserver | null = null;
     private navigationSubscription: Subscription | null = null;
     private currentLanguageResolver: (() => string) | null = null;
+    private showDebugWorkspaceResolver: (() => boolean) | null = null;
 
     connect(options: {
         host: HTMLElement;
         destroyRef: DestroyRef;
-        showDebugWorkspace: boolean;
+        showDebugWorkspace: () => boolean;
         currentLanguage: () => string;
     }): void {
         this.currentLanguageResolver = options.currentLanguage;
-        this.debugWorkspaceEnabled = options.showDebugWorkspace;
+        this.showDebugWorkspaceResolver = options.showDebugWorkspace;
+        this.debugWorkspaceEnabled = options.showDebugWorkspace();
         if (this.isBrowser) {
-            this.analytics.promptForConsentIfNeeded();
             this.combosService.initializeBaseCombos(1000);
             this.bindCssMutationRefresh(options.host);
             this.bindNavigationRefresh();
 
-            if (options.showDebugWorkspace) {
+            if (options.showDebugWorkspace()) {
                 this.combosService.revealCssTimer();
             }
         }
@@ -79,6 +81,7 @@ export class RuntimeService {
 
         this.cssMutationObserver = null;
         this.currentLanguageResolver = null;
+        this.showDebugWorkspaceResolver = null;
     }
 
     requestCssCreate(delayMs = 0): void {
@@ -90,6 +93,7 @@ export class RuntimeService {
         this.initializeQueue = this.initializeQueue
             .catch(() => undefined)
             .then(async () => {
+                this.debugWorkspaceEnabled = this.showDebugWorkspaceResolver?.() ?? false;
                 await this.ensureDebugWorkspaceConfigured();
                 await this.doInitialize(nextLanguage);
             });
@@ -128,7 +132,7 @@ export class RuntimeService {
         const context = await this.draftRuntime.resolveActiveDraftContext();
         if (!context.domain || !context.pageId) {
             this.clearRenderedDraft(context.domain, context.pageId);
-            if (environment.features.debugMode) {
+            if (this.runtimeConfig.isDebugMode()) {
                 console.warn('[Runtime] Skipping page bootstrap until a draft domain and page are selected.', {
                     domain: context.domain,
                     pageId: context.pageId,
@@ -155,7 +159,7 @@ export class RuntimeService {
 
         if (validationIssues.length > 0 || !hasRenderableComponents || rootIds.length === 0) {
             this.clearRenderedDraft(domain, pageId);
-            if (environment.features.debugMode) {
+            if (this.runtimeConfig.isDebugMode()) {
                 console.error('[Drafts] Draft render aborted because the active payload set is invalid.', {
                     domain,
                     pageId,
@@ -174,6 +178,7 @@ export class RuntimeService {
 
         this.combosService.applyPayload(boot.combos);
         this.combosService.scheduleCssCreate();
+        this.analytics.initializeRuntimeState();
         this.analytics.startPageEngagementTracking(this.configStore.analytics());
     }
 

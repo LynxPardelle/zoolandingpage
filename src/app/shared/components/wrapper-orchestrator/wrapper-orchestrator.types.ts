@@ -87,7 +87,7 @@ export type TGenericComponent = {
      * Condition for rendering the component. Can be:
      * - boolean: static show/hide
      * - function: () => boolean
-     * - string: DSL for ConditionOrchestrator (e.g. all:env,features.debugMode)
+        * - string: DSL for ConditionOrchestrator (e.g. all:varEq,theme.defaultMode,dark)
      */
     readonly condition?: boolean | string | (() => boolean);
     readonly eventInstructions?: string;

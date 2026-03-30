@@ -1,15 +1,16 @@
 import { I18nService } from '@/app/shared/services/i18n.service';
-import type { TAnalyticsConfigPayload } from '@/app/shared/types/config-payloads.types';
+import type { TAnalyticsConfigPayload, TDraftLocalStorageSlot } from '@/app/shared/types/config-payloads.types';
 import { DOCUMENT } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import { Observable, ReplaySubject, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ToastService } from '../components/generic-toast';
-import { TAnalyticsEvent, TDataDropResponse, TExpandedAnalytics, TTrackOptions } from '../types/analytics.type';
+import { TAnalyticsEvent, TDataDropResponse, TExpandedAnalytics } from '../types/analytics.type';
 import { AnalyticsCategories, AnalyticsEvents, DEFAULT_QUICK_STATS_CTA_EVENTS } from './analytics.events';
 import { ConfigStoreService } from './config-store.service';
 import { DomainResolverService } from './domain-resolver.service';
+import { RuntimeConfigService } from './runtime-config.service';
 
 import { QuickStatsService } from './quick-stats.service';
 @Injectable({ providedIn: 'root' })
@@ -20,19 +21,17 @@ export class AnalyticsService {
   private readonly buffer: TAnalyticsEvent[] = [];
   // Events captured before consent is granted; flushed in FIFO on acceptance
   private pendingQueue: TAnalyticsEvent[] = [];
-  private readonly enabled: boolean = Boolean(environment.features.analytics);
   private readonly isProduction: boolean = environment.production;
-  private readonly isDebugMode: boolean = environment.features.debugMode;
   private readonly baseUrl: string = environment.apiUrl;
-  private readonly version: string = environment.apiVersion;
   private readonly domainResolver = inject(DomainResolverService);
   private readonly configStore = inject(ConfigStoreService);
+  private readonly runtimeConfig = inject(RuntimeConfigService);
   private readonly events$ = new ReplaySubject<TAnalyticsEvent>(this.debugEventReplaySize);
   private trackingTeardowns: Array<() => void> = [];
   private hasPermission: boolean = false;
   private alreadyAskedForPermission: boolean = false;
-  private readonly trackOptions: readonly TTrackOptions[] = environment.track;
   private previouslyAskedUserData: TExpandedAnalytics | undefined = undefined;
+  private runtimeStateInitialized = false;
 
   // Suppression control to temporarily ignore certain event names (e.g., during programmatic actions)
   private suppressUntil = 0;
@@ -264,7 +263,6 @@ export class AnalyticsService {
   private snoozeTimer: ReturnType<typeof setTimeout> | null = null;
   // UI services (optional for test contexts without DI)
   constructor(private toast?: ToastService, private i18n?: I18nService) {
-    this.initializePersistentCounters();
   }
 
   // Consent UI state (for modal content visibility)
@@ -275,18 +273,28 @@ export class AnalyticsService {
     toastId?: string;
   };
 
+  initializeRuntimeState(): void {
+    if (this.runtimeStateInitialized) {
+      return;
+    }
+
+    this.runtimeStateInitialized = true;
+    this.initializePersistentCounters();
+    this.promptForConsentIfNeeded();
+  }
+
   // Proactively ask for consent on app start if needed
   promptForConsentIfNeeded(): void {
     try {
       if (typeof localStorage === 'undefined') return;
       // If consent UI mode is 'none', auto-allow analytics and skip any prompting logic entirely.
-      if (environment.features.analyticsConsentUI === 'none') {
+      if (this.runtimeConfig.analyticsConsentMode() === 'none') {
         this.hasPermission = true;
         this.alreadyAskedForPermission = true; // prevent any downstream prompt triggers
-        try { localStorage.setItem(this.storageKey('allowAnalyticsKey'), 'true'); } catch { /* ignore */ }
+        try { localStorage.setItem(this.storageKey('allowAnalytics'), 'true'); } catch { /* ignore */ }
         return;
       }
-      const stored = localStorage.getItem(this.storageKey('allowAnalyticsKey'));
+      const stored = localStorage.getItem(this.storageKey('allowAnalytics'));
       // Apply persisted decision first
       if (stored === 'true') {
         this.hasPermission = true;
@@ -299,14 +307,14 @@ export class AnalyticsService {
         return;
       }
       // Respect snooze timestamp
-      const snoozeKey = this.storageKey('analyticsConsentSnoozeKey');
+      const snoozeKey = this.storageKey('analyticsConsentSnooze');
       const snooze = localStorage.getItem(snoozeKey);
       const snoozedUntil = snooze ? Number(snooze) : 0;
       const now = Date.now();
 
       if (stored === null && !this.alreadyAskedForPermission && now >= snoozedUntil) {
         this.alreadyAskedForPermission = true;
-        const mode = environment.features.analyticsConsentUI;
+        const mode = this.runtimeConfig.analyticsConsentMode();
         if (mode === 'modal') {
           // Non-blocking prompt
           this.promptConsentWithModal();
@@ -337,12 +345,12 @@ export class AnalyticsService {
     this.buffer.push(evt);
     this.events$.next(evt);
     /* console.log('buffer:', this.buffer); */
-    if (!(this.enabled || environment.features.debugMode)) return;
+    if (!(this.runtimeConfig.isAnalyticsEnabled() || this.runtimeConfig.isDebugMode())) return;
 
     // Respect a persisted decline decision: do not queue or prompt.
     try {
       if (typeof localStorage !== 'undefined') {
-        const stored = localStorage.getItem(this.storageKey('allowAnalyticsKey'));
+        const stored = localStorage.getItem(this.storageKey('allowAnalytics'));
         if (stored === 'false') return;
         if (stored === 'true') this.hasPermission = true;
       }
@@ -396,19 +404,18 @@ export class AnalyticsService {
     return this.domainResolver.resolveAppIdentifier();
   }
 
-  private storageKey(key: keyof typeof environment.localStorage): string {
-    return this.domainResolver.resolveStorageKey(environment.localStorage[key]);
+  private storageKey(key: TDraftLocalStorageSlot): string {
+    return this.runtimeConfig.resolveStorageKey(key);
   }
 
   private send(evt: TAnalyticsEvent & TExpandedAnalytics & { appName: string }): Observable<TDataDropResponse> | void {
     this.timesSended++;
-    if (this.isDebugMode) console.log(`Sending analytics data to server (attempt ${ this.timesSended })...`, evt);
+    if (this.runtimeConfig.isDebugMode()) console.log(`Sending analytics data to server (attempt ${ this.timesSended })...`, evt);
     // Send to server only if in production and analytics is enabled
     if (this.isProduction) {
       const url = `${ this.baseUrl }/analytics`;
-      /* const url = `${ this.baseUrl }/${ this.version }/analytics`; */
       return this.http.post<TDataDropResponse>(url, evt).pipe(
-        tap(res => { if (this.isDebugMode) console.log('Analytics server response:', res) })
+        tap(res => { if (this.runtimeConfig.isDebugMode()) console.log('Analytics server response:', res) })
       );
     }
   }
@@ -416,35 +423,36 @@ export class AnalyticsService {
   async getAllDataFromUser(): Promise<TExpandedAnalytics | undefined> {
     // Get all the data collected from the user from the browser
     const data: TExpandedAnalytics = {};
+    const trackOptions = this.runtimeConfig.track();
     // Get browser, OS, device info, etc from the user agent
     if (typeof navigator !== 'undefined' && typeof window !== 'undefined') {
       if (this.hasPermission) {
-        if (this.trackOptions.includes('ip')) data['ip'] = await this.getIp();
-        if (this.trackOptions.includes('userAgent')) data['userAgent'] = navigator.userAgent;
-        if (this.trackOptions.includes('language')) data['language'] = this.getLanguage();
-        if (this.trackOptions.includes('platform')) data['platform'] = navigator.platform;
-        if (this.trackOptions.includes('vendor')) data['vendor'] = navigator.vendor;
-        if (this.trackOptions.includes('cookiesEnabled')) data['cookiesEnabled'] = navigator.cookieEnabled;
-        if (this.trackOptions.includes('doNotTrack')) data['doNotTrack'] = navigator.doNotTrack;
-        if (this.trackOptions.includes('screenWidth')) data['screenWidth'] = window.screen.width;
-        if (this.trackOptions.includes('screenHeight')) data['screenHeight'] = window.screen.height;
-        if (this.trackOptions.includes('colorDepth')) data['colorDepth'] = window.screen.colorDepth;
-        if (this.trackOptions.includes('timezone')) data['timezone'] = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        if (navigator.geolocation && (this.trackOptions.includes('geolocationLatitude') || this.trackOptions.includes('geolocationLongitude') || this.trackOptions.includes('geolocationAccuracy'))) {
+        if (trackOptions.includes('ip')) data['ip'] = await this.getIp();
+        if (trackOptions.includes('userAgent')) data['userAgent'] = navigator.userAgent;
+        if (trackOptions.includes('language')) data['language'] = this.getLanguage();
+        if (trackOptions.includes('platform')) data['platform'] = navigator.platform;
+        if (trackOptions.includes('vendor')) data['vendor'] = navigator.vendor;
+        if (trackOptions.includes('cookiesEnabled')) data['cookiesEnabled'] = navigator.cookieEnabled;
+        if (trackOptions.includes('doNotTrack')) data['doNotTrack'] = navigator.doNotTrack;
+        if (trackOptions.includes('screenWidth')) data['screenWidth'] = window.screen.width;
+        if (trackOptions.includes('screenHeight')) data['screenHeight'] = window.screen.height;
+        if (trackOptions.includes('colorDepth')) data['colorDepth'] = window.screen.colorDepth;
+        if (trackOptions.includes('timezone')) data['timezone'] = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (navigator.geolocation && (trackOptions.includes('geolocationLatitude') || trackOptions.includes('geolocationLongitude') || trackOptions.includes('geolocationAccuracy'))) {
           navigator.geolocation.getCurrentPosition(
             (position) => {
-              if (this.trackOptions.includes('geolocationLatitude')) data['geolocationLatitude'] = position.coords.latitude;
-              if (this.trackOptions.includes('geolocationLongitude')) data['geolocationLongitude'] = position.coords.longitude;
-              if (this.trackOptions.includes('geolocationAccuracy')) data['geolocationAccuracy'] = position.coords.accuracy;
+              if (trackOptions.includes('geolocationLatitude')) data['geolocationLatitude'] = position.coords.latitude;
+              if (trackOptions.includes('geolocationLongitude')) data['geolocationLongitude'] = position.coords.longitude;
+              if (trackOptions.includes('geolocationAccuracy')) data['geolocationAccuracy'] = position.coords.accuracy;
             },
             (error) => {
               console.error('Error getting geolocation:', error);
             }
           );
         }
-        if (this.trackOptions.includes('cookies')) data['cookies'] = document.cookie;
-        if (this.trackOptions.includes('battery')) data['battery'] = await this.getBatteryInfo();
-        if (this.trackOptions.includes('connection')) data['connection'] = this.getNetworkInfo();
+        if (trackOptions.includes('cookies')) data['cookies'] = document.cookie;
+        if (trackOptions.includes('battery')) data['battery'] = await this.getBatteryInfo();
+        if (trackOptions.includes('connection')) data['connection'] = this.getNetworkInfo();
       }
       data['cssCreationTime'] = this.getFirstCSSCreationTime();
       data['localId'] = this.getLocalId();
@@ -503,17 +511,17 @@ export class AnalyticsService {
   private askForPermissionToDoAnalyticsAndStoreCookies(): Promise<boolean> {
     if (typeof localStorage !== 'undefined') {
       // Short-circuit: consent UI disabled -> treat as accepted
-      if (environment.features.analyticsConsentUI === 'none') {
-        try { localStorage.setItem(this.storageKey('allowAnalyticsKey'), 'true'); } catch { }
+      if (this.runtimeConfig.analyticsConsentMode() === 'none') {
+        try { localStorage.setItem(this.storageKey('allowAnalytics'), 'true'); } catch { }
         this.hasPermission = true;
         return Promise.resolve(true);
       }
-      const allow = localStorage.getItem(this.storageKey('allowAnalyticsKey'));
+      const allow = localStorage.getItem(this.storageKey('allowAnalytics'));
       if (allow === 'true') {
         return Promise.resolve(true);
       } else {
         // Implement proper UI prompt (toast or modal based on environment)
-        const mode = environment.features.analyticsConsentUI;
+        const mode = this.runtimeConfig.analyticsConsentMode();
         if (mode === 'modal') {
           return this.promptConsentWithModal();
         }
@@ -533,16 +541,16 @@ export class AnalyticsService {
 
   // Expose a reminder action to UI (e.g., "Later")
   remindLater(seconds?: number): void {
-    const secs = typeof seconds === 'number' ? seconds : environment.features.analyticsConsentSnoozeSeconds;
+    const secs = typeof seconds === 'number' ? seconds : this.runtimeConfig.analyticsConsentSnoozeSeconds();
     this.snoozeConsent(secs);
   }
 
   private async finishConsent(accepted: boolean): Promise<void> {
     try {
       if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(this.storageKey('allowAnalyticsKey'), accepted ? 'true' : 'false');
+        localStorage.setItem(this.storageKey('allowAnalytics'), accepted ? 'true' : 'false');
         // Clear any pending snooze stamp once a final decision is made
-        try { localStorage.removeItem(this.storageKey('analyticsConsentSnoozeKey')); } catch { }
+        try { localStorage.removeItem(this.storageKey('analyticsConsentSnooze')); } catch { }
       }
       this.hasPermission = accepted;
       // Close modal if visible
@@ -552,7 +560,7 @@ export class AnalyticsService {
       this.consentPending?.resolve(accepted);
 
       // On accept, flush pending events in order
-      if (accepted && (this.enabled || environment.features.debugMode)) {
+      if (accepted && (this.runtimeConfig.isAnalyticsEnabled() || this.runtimeConfig.isDebugMode())) {
         this.previouslyAskedUserData = this.previouslyAskedUserData || await this.getAllDataFromUser();
         const meta = this.previouslyAskedUserData;
         const queue = [...this.pendingQueue];
@@ -620,7 +628,7 @@ export class AnalyticsService {
     const until = Date.now() + secs * 1000;
     try {
       if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(this.storageKey('analyticsConsentSnoozeKey'), String(until));
+        localStorage.setItem(this.storageKey('analyticsConsentSnooze'), String(until));
       }
     } catch { }
     // Dismiss UI but do not resolve as accept/decline
@@ -680,7 +688,7 @@ export class AnalyticsService {
     if (typeof navigator !== 'undefined') {
       lang = navigator.language || undefined;
       if (typeof localStorage !== 'undefined') {
-        const storedLang = localStorage.getItem(this.storageKey('languageKey'));
+        const storedLang = localStorage.getItem(this.storageKey('language'));
         lang = storedLang || lang;
       }
     }
@@ -700,7 +708,7 @@ export class AnalyticsService {
     if (typeof localStorage === 'undefined') return;
     try {
       const currentCount = this.getPageViewCount();
-      localStorage.setItem(this.storageKey('pageViewCountKey'), (currentCount + 1).toString());
+      localStorage.setItem(this.storageKey('pageViewCount'), (currentCount + 1).toString());
     } catch {
       // ignore localStorage errors
     }
@@ -737,7 +745,7 @@ export class AnalyticsService {
     }
     if (typeof localStorage === 'undefined') return this.buffer.filter(event => event.name === 'page_view').length;
     try {
-      const stored = localStorage.getItem(this.storageKey('pageViewCountKey'));
+      const stored = localStorage.getItem(this.storageKey('pageViewCount'));
       return stored ? parseInt(stored, 10) : 0;
     } catch {
       return this.buffer.filter(event => event.name === 'page_view').length;
@@ -774,7 +782,7 @@ export class AnalyticsService {
   resetPageViewCount(): void {
     if (typeof localStorage === 'undefined') return;
     try {
-      localStorage.removeItem(this.storageKey('pageViewCountKey'));
+      localStorage.removeItem(this.storageKey('pageViewCount'));
     } catch {
       // ignore localStorage errors
     }

@@ -27,6 +27,31 @@
     "quickStatsCtaEvents": {
       "type": "array",
       "items": { "type": "string" }
+    },
+    "track": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "ip",
+          "userAgent",
+          "language",
+          "platform",
+          "vendor",
+          "cookiesEnabled",
+          "doNotTrack",
+          "screenWidth",
+          "screenHeight",
+          "colorDepth",
+          "timezone",
+          "geolocationLatitude",
+          "geolocationLongitude",
+          "geolocationAccuracy",
+          "cookies",
+          "battery",
+          "connection"
+        ]
+      }
     }
   },
   "additionalProperties": false

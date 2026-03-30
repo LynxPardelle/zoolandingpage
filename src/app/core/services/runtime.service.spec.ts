@@ -114,6 +114,7 @@ describe('RuntimeService', () => {
                 {
                     provide: AnalyticsService,
                     useValue: {
+                        initializeRuntimeState: () => undefined,
                         track: async () => undefined,
                         promptForConsentIfNeeded: () => undefined,
                         startPageEngagementTracking: () => undefined,
@@ -298,7 +299,7 @@ describe('RuntimeService', () => {
         service.connect({
             host,
             destroyRef: { onDestroy: () => undefined } as any,
-            showDebugWorkspace: true,
+            showDebugWorkspace: () => true,
             currentLanguage: () => 'es',
         });
 

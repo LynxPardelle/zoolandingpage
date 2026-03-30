@@ -2,6 +2,7 @@ import type {
     TAnalyticsConfigPayload,
     TAngoraCombosPayload,
     TComponentsPayload,
+    TDraftSiteConfigPayload,
     TI18nPayload,
     TPageConfigPayload,
     TSeoPayload,
@@ -25,6 +26,7 @@ export type TConfigBootstrapStage =
 
 @Injectable({ providedIn: 'root' })
 export class ConfigStoreService {
+    private readonly _siteConfig = signal<TDraftSiteConfigPayload | null>(null);
     private readonly _pageConfig = signal<TPageConfigPayload | null>(null);
     private readonly _components = signal<TComponentsPayload | null>(null);
     private readonly _variables = signal<TVariablesPayload | null>(null);
@@ -36,6 +38,7 @@ export class ConfigStoreService {
     private readonly _stage = signal<TConfigBootstrapStage>('idle');
     private readonly _validationIssues = signal<readonly string[]>([]);
 
+    readonly siteConfig = this._siteConfig.asReadonly();
     readonly pageConfig = this._pageConfig.asReadonly();
     readonly components = this._components.asReadonly();
     readonly variables = this._variables.asReadonly();
@@ -51,6 +54,10 @@ export class ConfigStoreService {
 
     setStage(stage: TConfigBootstrapStage): void {
         this._stage.set(stage);
+    }
+
+    setSiteConfig(payload: TDraftSiteConfigPayload | null): void {
+        this._siteConfig.set(payload);
     }
 
     setPageConfig(payload: TPageConfigPayload | null): void {
@@ -89,7 +96,7 @@ export class ConfigStoreService {
         this._validationIssues.set(issues);
     }
 
-    reset(): void {
+    resetPagePayloads(): void {
         this._pageConfig.set(null);
         this._components.set(null);
         this._variables.set(null);
@@ -100,5 +107,10 @@ export class ConfigStoreService {
         this._analytics.set(null);
         this._stage.set('idle');
         this._validationIssues.set([]);
+    }
+
+    reset(): void {
+        this._siteConfig.set(null);
+        this.resetPagePayloads();
     }
 }

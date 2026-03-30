@@ -13,7 +13,7 @@ import { CONDITION_HANDLERS } from '../utility/condition-handler/condition-handl
  * - all:<handlerId>,<arg1>,<arg2>...; any:<handlerId>,<arg1>,<arg2>...; not:<handlerId>,<arg1>,...
  *
  * Example:
- *   all:env,features.debugMode; not:env,features.production
+ *   all:hostEq,modalHostConfig.variant,dialog; not:modalRefId,terms-of-service
  */
 @Injectable({ providedIn: 'root' })
 export class ConditionOrchestrator {

@@ -1,5 +1,4 @@
 import type { Provider } from '@angular/core';
-import { environment } from '../../../../environments/environment';
 import { EVENT_HANDLERS } from './event-handlers.token';
 import { scrollToSectionHandler, skipToMainHandler } from './handlers/accessibility.handlers';
 import {
@@ -86,6 +85,6 @@ export const provideEventHandlers = (): Provider[] => {
     // NOTE: Each handler id maps 1:1 with the DSL action token used in `eventInstructions`.
     return [
         ...baseEventHandlerProviders,
-        ...(environment.features.debugMode ? debugEventHandlerProviders : []),
+        ...debugEventHandlerProviders,
     ];
 };

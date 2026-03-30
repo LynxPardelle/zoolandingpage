@@ -1,5 +1,7 @@
 import { isPlatformBrowser } from '@angular/common';
 import { inject, Injectable, PLATFORM_ID, REQUEST } from '@angular/core';
+import type { TDraftLocalStorageSlot } from '../types/config-payloads.types';
+import { ConfigStoreService } from './config-store.service';
 
 export type TResolvedDomain = {
     readonly domain: string;
@@ -10,6 +12,7 @@ export type TResolvedDomain = {
 export class DomainResolverService {
     private readonly platformId = inject(PLATFORM_ID);
     private readonly request = inject(REQUEST, { optional: true });
+    private readonly configStore = inject(ConfigStoreService);
     private readonly isBrowser = isPlatformBrowser(this.platformId) && !this.request;
 
     private parseRequestUrl(): URL | null {
@@ -44,6 +47,25 @@ export class DomainResolverService {
             .toLowerCase()
             .replace(/\s+/g, '_')
             .replace(/[^a-z0-9_]+/g, '');
+    }
+
+    private configuredAppIdentifier(): string {
+        const appConfig = this.configStore.siteConfig()?.runtime?.app;
+        const explicitIdentifier = this.sanitizeIdentifier(appConfig?.identifier);
+        if (explicitIdentifier) {
+            return explicitIdentifier;
+        }
+
+        return this.sanitizeIdentifier(appConfig?.name);
+    }
+
+    private configuredStorageSuffix(slotOrSuffix: string): string {
+        const localStorageConfig = this.configStore.siteConfig()?.runtime?.localStorage;
+        const normalizedSlot = String(slotOrSuffix ?? '').trim() as TDraftLocalStorageSlot;
+        const configured = localStorageConfig?.[normalizedSlot];
+        return typeof configured === 'string' && configured.trim().length > 0
+            ? configured.trim()
+            : String(slotOrSuffix ?? '').trim();
     }
 
     private readSearchParam(params: URLSearchParams, key: string): string {
@@ -101,7 +123,7 @@ export class DomainResolverService {
     }
 
     resolveAppIdentifier(): string {
-        return this.sanitizeIdentifier(this.resolveDomain().domain) || 'app';
+        return this.configuredAppIdentifier() || this.sanitizeIdentifier(this.resolveDomain().domain) || 'app';
     }
 
     resolveStorageNamespace(): string {
@@ -109,7 +131,7 @@ export class DomainResolverService {
     }
 
     resolveStorageKey(suffix: string): string {
-        const normalizedSuffix = this.sanitizeToken(suffix) || 'value';
+        const normalizedSuffix = this.sanitizeToken(this.configuredStorageSuffix(suffix)) || 'value';
         return `${ this.resolveStorageNamespace() }:${ normalizedSuffix }`;
     }
 }

@@ -26,6 +26,12 @@ Modal content and modal host behavior are separate concerns:
 - `components.json` owns the rendered modal tree and the `modalRefId` conditions that decide which modal body is shown.
 - `variables.ui.modals.{id}` owns how that modal host behaves once opened.
 
+## Runtime ownership
+
+- `site-config.json`: domain-level routing plus shared runtime settings under `runtime.app`, `runtime.localStorage`, and `runtime.features`.
+- `analytics-config.json`: page-level analytics behavior, taxonomy, and `track` collection options.
+- `variables.json`: page and UI data only. Do not place shared app metadata, storage keys, or analytics collection policy here.
+
 ## Draft Locale Configuration
 
 Drafts can now declare their supported locales directly in `variables.json`.
@@ -157,6 +163,7 @@ set:config.text,langPick,i18n,footer.copyright,Copyright Example. All rights res
 ## Schemas (Phase 2, Step 1)
 
 - Page config: [schemas/page-config.schema.json](schemas/page-config.schema.json)
+- Site config: [schemas/site-config.schema.json](schemas/site-config.schema.json)
 - Components: [schemas/components.schema.json](schemas/components.schema.json)
 - Variables: [schemas/variables.schema.json](schemas/variables.schema.json)
 - Angora combos: [schemas/angora-combos.schema.json](schemas/angora-combos.schema.json)

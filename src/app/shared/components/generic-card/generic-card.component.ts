@@ -17,6 +17,7 @@ import { TGenericCardConfig } from './generic-card.types';
 export class GenericCardComponent {
     private readonly i18n = inject(I18nService);
     private readonly _config = signal<TGenericCardConfig>({});
+    readonly stars = signal<readonly number[]>([1, 2, 3, 4, 5]);
 
     @Input()
     get config(): TGenericCardConfig {
@@ -45,7 +46,10 @@ export class GenericCardComponent {
     readonly rating = computed(() => Number(resolveDynamicValue(this._config().rating) ?? 0));
     readonly avatar = computed(() => String(resolveDynamicValue(this._config().avatar) ?? ''));
     readonly verified = computed(() => Boolean(resolveDynamicValue(this._config().verified) ?? false));
-    readonly stars = computed(() => [1, 2, 3, 4, 5]);
+    readonly keyedBenefits = computed(() => this.benefits().map((benefit, index) => ({
+        key: `${ index }:${ benefit }`,
+        value: benefit,
+    })));
     readonly verifiedLabel = computed(() => this.i18n.t('ui.common.verified'));
     readonly classValue = (key: keyof TGenericCardConfig): string => String(resolveDynamicValue(this._config()[key] as never) ?? '').trim();
 

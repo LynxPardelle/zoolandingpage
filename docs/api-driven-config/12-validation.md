@@ -260,6 +260,6 @@ Checks:
 
 ## Debug Tips
 
-- Enable `environment.features.debugMode` in development.
+- Ensure the active draft `site-config.json` sets `runtime.features.debugMode` when you need debug-only tooling.
 - Watch console for `[ConfigBootstrap]` errors.
 - Use the debug overlay to download draft payloads.

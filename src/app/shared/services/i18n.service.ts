@@ -1,8 +1,8 @@
 import { DEFAULT_FRAMEWORK_TRANSLATIONS } from '@/app/shared/i18n/default-framework-translations';
-import { environment } from '@/environments/environment';
 import { isPlatformBrowser } from '@angular/common';
 import { Injectable, PLATFORM_ID, REQUEST, computed, effect, inject, signal } from '@angular/core';
 import { LanguageService } from './language.service';
+import { RuntimeConfigService } from './runtime-config.service';
 
 type TDictionary = Record<string, unknown>;
 type TInterpolationParams = Record<string, unknown>;
@@ -14,6 +14,7 @@ export class I18nService {
     private readonly platformId = inject(PLATFORM_ID);
     private readonly request = inject(REQUEST, { optional: true });
     private readonly _language = inject(LanguageService);
+    private readonly runtimeConfig = inject(RuntimeConfigService);
     private readonly isBrowser = isPlatformBrowser(this.platformId) && !this.request;
 
     private readonly baseDict = signal<TDictionary>(this.withFrameworkFallback(this._language.currentLanguage(), {}));
@@ -135,7 +136,7 @@ export class I18nService {
 
     t(key: string, params?: TInterpolationParams): string {
         const value = this.getValue(key, this.dict());
-        if (value === undefined && environment.features.debugMode && this.isBrowser) {
+        if (value === undefined && this.runtimeConfig.isDebugMode() && this.isBrowser) {
             const cacheKey = `${ this.currentLang() }::${ key }`;
             if (!this.missingKeysLogged.has(cacheKey)) {
                 this.missingKeysLogged.add(cacheKey);

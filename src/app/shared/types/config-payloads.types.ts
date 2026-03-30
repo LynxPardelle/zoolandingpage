@@ -2,6 +2,7 @@ import type { TGenericInputConfig } from '../components/generic-input/generic-in
 import type { ModalConfig } from '../components/generic-modal/generic-modal.types';
 import type { ToastUiConfig } from '../components/generic-toast/generic-toast.types';
 import type { TInteractionScopeConfig } from '../components/interaction-scope/interaction-scope.types';
+import type { TTrackOptions } from './analytics.type';
 import type { TThemeVariableConfig } from './theme.types';
 
 export type TDraftLanguageDefinition = {
@@ -79,11 +80,46 @@ export type TDraftSiteRouteEntry = {
     readonly labelKey?: string;
 };
 
+export type TDraftAppRuntimeConfig = {
+    readonly identifier?: string;
+    readonly name?: string;
+    readonly version?: string;
+    readonly description?: string;
+};
+
+export type TDraftLocalStorageSlot =
+    | 'theme'
+    | 'language'
+    | 'userPreferences'
+    | 'id'
+    | 'sessionId'
+    | 'allowAnalytics'
+    | 'analyticsConsentSnooze'
+    | 'pageViewCount';
+
+export type TDraftLocalStorageRuntimeConfig = Partial<Record<TDraftLocalStorageSlot, string>>;
+
+export type TDraftAnalyticsConsentUiMode = 'modal' | 'toast' | 'sheet' | 'none';
+
+export type TDraftFeatureRuntimeConfig = {
+    readonly analytics?: boolean;
+    readonly debugMode?: boolean;
+    readonly analyticsConsentUI?: TDraftAnalyticsConsentUiMode;
+    readonly analyticsConsentSnoozeSeconds?: number;
+};
+
+export type TDraftSiteRuntimeConfig = {
+    readonly app?: TDraftAppRuntimeConfig;
+    readonly localStorage?: TDraftLocalStorageRuntimeConfig;
+    readonly features?: TDraftFeatureRuntimeConfig;
+};
+
 export type TDraftSiteConfigPayload = {
     readonly version: number;
     readonly domain: string;
     readonly defaultPageId?: string;
     readonly routes: readonly TDraftSiteRouteEntry[];
+    readonly runtime?: TDraftSiteRuntimeConfig;
 };
 
 export type TPageConfigPayload = {
@@ -180,4 +216,5 @@ export type TAnalyticsConfigPayload = {
     readonly events?: TAnalyticsTaxonomyMap;
     readonly categories?: TAnalyticsTaxonomyMap;
     readonly quickStatsCtaEvents?: readonly string[];
+    readonly track?: readonly TTrackOptions[];
 };
