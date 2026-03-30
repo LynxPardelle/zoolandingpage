@@ -135,6 +135,19 @@
       "anyOf": [{ "required": ["url"] }, { "required": ["href"] }],
       "additionalProperties": false
     },
+    "statsCounterVariableConfig": {
+      "type": "object",
+      "properties": {
+        "target": { "type": "number" },
+        "durationMs": { "type": "number" },
+        "min": { "type": "number" },
+        "max": { "type": "number" },
+        "formatMode": { "type": "string" },
+        "formatPrefix": { "type": "string" },
+        "formatSuffix": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
     "draftUiConfig": {
       "type": "object",
       "properties": {
@@ -156,6 +169,10 @@
         "socialLinks": {
           "type": "array",
           "items": { "$ref": "#/definitions/draftSocialLink" }
+        },
+        "statsCounters": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/definitions/statsCounterVariableConfig" }
         },
         "theme": { "$ref": "#/definitions/themeConfig" },
         "i18n": { "$ref": "#/definitions/draftI18nConfig" },

@@ -124,6 +124,32 @@ Checks:
 - Verify `components.json` and handler-owned lookups still reference the intended key path (`processSection.*`, `ui.accessibility.*`, `ui.debugPanel.*`, etc.).
 - Do not expect the runtime to fill missing keys from local TypeScript constants. Missing draft keys must be fixed in the draft payload itself.
 
+### Referenced modals fail validation
+
+Symptoms:
+
+- The draft does not render and the validation panel reports missing modal configuration.
+- Buttons using `openModal:*` stop being considered valid even though modal body components exist.
+
+Checks:
+
+- Verify every modal referenced by `openModal:<modalId>` has a matching `variables.ui.modals.<modalId>` entry.
+- Verify every modal rendered behind `condition: "all:modalRefId,<modalId>"` also has a matching `variables.ui.modals.<modalId>` entry.
+- Verify each modal config includes either `ariaLabel` or `ariaLabelKey`.
+
+### SEO payload falls back to the domain only
+
+Symptoms:
+
+- The page title becomes the current domain or hostname.
+- The description meta tag is empty.
+
+Checks:
+
+- Verify `seo.json` exists in the active draft or API payload.
+- Verify `seo.title`, `seo.description`, and `seo.canonical` are all non-empty strings.
+- Do not expect the runtime to inject the old shell title or shell description anymore.
+
 ### Footer does not render at all
 
 Symptoms:
@@ -178,11 +204,11 @@ Symptoms:
 Checks:
 
 - Verify `variables.statsCounters` exists as an object.
-- Verify each section (`visits`, `cta`, `avgTime`) uses numeric `target` and `durationMs`.
-- Verify `formatMode` is a string (`number`, `suffix`, or `percent`).
-- Verify `formatSuffix` is a string when `formatMode` is `suffix`.
-- Verify stats counter `valueInstructions` include `varOr` + host fallback chain.
-- Verify allowlist includes `numberClamp` and `statsFormatVar`.
+- Verify each authored stats entry uses numeric `target` and `durationMs`.
+- Verify `formatMode` is a string and any `formatPrefix` / `formatSuffix` values are strings.
+- Verify optional `min` and `max` values are numeric when present.
+- Verify stats counter `valueInstructions` bind plain config fields such as `target`, `durationMs`, `formatMode`, `formatPrefix`, `formatSuffix`, `min`, and `max`.
+- Verify stats counter `config` objects do not include temporary fields such as `rawTarget`, `minClamp`, or `maxClamp`.
 
 ### Input fields do not react to each other
 

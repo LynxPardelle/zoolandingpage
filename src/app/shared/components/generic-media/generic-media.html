@@ -1,26 +1,15 @@
-<ng-template #contentTpl>
-  <ng-content></ng-content>
-</ng-template>
-
 @switch (tag()) { @case ('audio') {
-<audio [id]="id()" [class]="classes()" [src]="src()" controls>
-  <ng-container [ngTemplateOutlet]="contentTpl"></ng-container>
-</audio>
+<audio [id]="id()" [class]="classes()" [src]="src()" controls></audio>
 } @case ('video') {
-<video [id]="id()" [class]="classes()" [src]="src()" controls>
-  <ng-container [ngTemplateOutlet]="contentTpl"></ng-container>
-</video>
+<video [id]="id()" [class]="classes()" [src]="src()" controls></video>
 } @case ('image') {
 <img [id]="id()" [class]="classes()" [src]="src()" [attr.alt]="alt()" />
-<ng-container [ngTemplateOutlet]="contentTpl"></ng-container>
 } @case ('document') {
 <a [id]="id()" [class]="classes()" [href]="src()" target="_blank" rel="noopener noreferrer">
-  {{ alt() }}
+  {{ linkLabel() }}
 </a>
-<ng-container [ngTemplateOutlet]="contentTpl"></ng-container>
 } @default {
 <a [id]="id()" [class]="classes()" [href]="src()" target="_blank" rel="noopener noreferrer">
-  {{ alt() }}
+  {{ linkLabel() }}
 </a>
-<ng-container [ngTemplateOutlet]="contentTpl"></ng-container>
 } }

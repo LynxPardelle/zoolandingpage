@@ -16,6 +16,7 @@ import { GenericMedia } from "../generic-media/generic-media";
 import { GenericSearchBoxComponent } from '../generic-search-box/generic-search-box.component';
 import type { SearchBoxConfig } from '../generic-search-box/generic-search-box.types';
 import { GenericStatsCounterComponent } from '../generic-stats-counter/generic-stats-counter.component';
+import { normalizeStatsCounterConfig } from '../generic-stats-counter/generic-stats-counter.constants';
 import type { TGenericStatsCounterConfig } from '../generic-stats-counter/generic-stats-counter.types';
 import { GenericTabGroupComponent } from '../generic-tab-group/generic-tab-group.component';
 import { GenericTextComponent } from '../generic-text/generic-text';
@@ -116,24 +117,22 @@ export class WrapperOrchestrator {
   }
 
   resolveStatsCounterConfig(config: unknown): TGenericStatsCounterConfig {
-    const base = this.resolveMaybeThunk(config) as TGenericStatsCounterConfig | undefined;
+    const base = this.resolveMaybeThunk(config) as Record<string, unknown> | undefined;
     if (!base || typeof base !== 'object') {
-      return { target: 0 };
+      return normalizeStatsCounterConfig(undefined);
     }
 
-    const rawTarget = this.resolveMaybeThunk((base as any).target);
-    const rawDuration = this.resolveMaybeThunk((base as any).durationMs);
-    const rawStartOnVisible = this.resolveMaybeThunk((base as any).startOnVisible);
-    const rawAriaLabel = this.resolveMaybeThunk((base as any).ariaLabel);
-    const resolvedFormat = this.resolveMaybeThunk((base as any).format);
-
-    return {
-      target: Number(rawTarget ?? 0),
-      durationMs: rawDuration == null ? undefined : Number(rawDuration),
-      startOnVisible: rawStartOnVisible == null ? undefined : Boolean(rawStartOnVisible),
-      ariaLabel: rawAriaLabel == null ? undefined : String(rawAriaLabel),
-      format: typeof resolvedFormat === 'function' ? (resolvedFormat as (value: number) => string) : undefined,
-    };
+    return normalizeStatsCounterConfig({
+      target: this.resolveMaybeThunk(base['target']),
+      durationMs: this.resolveMaybeThunk(base['durationMs']),
+      startOnVisible: this.resolveMaybeThunk(base['startOnVisible']),
+      ariaLabel: this.resolveMaybeThunk(base['ariaLabel']),
+      min: this.resolveMaybeThunk(base['min']),
+      max: this.resolveMaybeThunk(base['max']),
+      formatMode: this.resolveMaybeThunk(base['formatMode']),
+      formatPrefix: this.resolveMaybeThunk(base['formatPrefix']),
+      formatSuffix: this.resolveMaybeThunk(base['formatSuffix']),
+    } as Partial<TGenericStatsCounterConfig>);
   }
 
   eventEmitted(event: { component: string; meta_title?: string; eventName: string; eventData?: unknown; eventInstructions?: string; }) {

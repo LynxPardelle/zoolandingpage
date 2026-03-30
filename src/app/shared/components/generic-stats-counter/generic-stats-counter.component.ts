@@ -5,13 +5,19 @@ import {
   DestroyRef,
   ElementRef,
   NgZone,
+  computed,
   effect,
   inject,
   input,
   output,
   signal,
 } from '@angular/core';
-import { STATS_COUNTER_DEFAULT, easeOutQuad } from './generic-stats-counter.constants';
+import {
+  STATS_COUNTER_DEFAULT,
+  easeOutQuad,
+  formatStatsCounterValue,
+  normalizeStatsCounterConfig,
+} from './generic-stats-counter.constants';
 import type { TGenericStatsCounterConfig } from './generic-stats-counter.types';
 
 @Component({
@@ -30,19 +36,25 @@ export class GenericStatsCounterComponent {
   readonly internalValue = signal(0);
   readonly started = signal(false);
   readonly completed = output<void>();
+  readonly normalizedConfig = computed(() => normalizeStatsCounterConfig(this.config()));
 
-  readonly displayValue = () => {
-    const format = this.config().format ?? ((v: number) => String(Math.round(v)));
-    return format(this.internalValue());
-  };
-  readonly ariaLabel = () => this.config().ariaLabel || `Counter value ${ this.displayValue() }`;
+  readonly displayValue = computed(() => formatStatsCounterValue(this.internalValue(), this.normalizedConfig()));
+  readonly ariaLabel = computed(() => this.normalizedConfig().ariaLabel || `Counter value ${ this.displayValue() }`);
 
   private io?: IntersectionObserver;
   private rafId?: number;
 
   constructor() {
+    this.destroyRef.onDestroy(() => {
+      this.io?.disconnect();
+
+      if (this.rafId !== undefined) {
+        cancelAnimationFrame(this.rafId);
+      }
+    });
+
     effect(() => {
-      const cfg = this.config();
+      const cfg = this.normalizedConfig();
       if (!cfg.startOnVisible) {
         this.start();
       } else {
@@ -56,7 +68,7 @@ export class GenericStatsCounterComponent {
     if (typeof window === 'undefined') return;
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReduced) {
-      this.internalValue.set(this.config().target || 0);
+      this.internalValue.set(this.normalizedConfig().target);
       return;
     }
     this.io = new IntersectionObserver(
@@ -74,14 +86,14 @@ export class GenericStatsCounterComponent {
       const el = this.host.nativeElement as HTMLElement | null;
       if (el) this.io?.observe(el);
     });
-    this.destroyRef.onDestroy(() => this.io?.disconnect());
   }
 
   private start(): void {
     if (this.started()) return;
     this.started.set(true);
-    const target = this.config().target || 0;
-    const duration = this.config().durationMs ?? 0;
+    const cfg = this.normalizedConfig();
+    const target = cfg.target;
+    const duration = cfg.durationMs ?? 0;
     if (duration <= 0) {
       this.internalValue.set(target);
       this.completed.emit();
@@ -102,9 +114,6 @@ export class GenericStatsCounterComponent {
     };
     this.zone.runOutsideAngular(() => {
       this.rafId = requestAnimationFrame(animate);
-    });
-    this.destroyRef.onDestroy(() => {
-      if (this.rafId) cancelAnimationFrame(this.rafId);
     });
   }
 }

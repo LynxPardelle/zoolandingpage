@@ -5,10 +5,6 @@ import { Meta, Title } from '@angular/platform-browser';
 import { toOpenGraphLocale } from '../i18n/locale.utils';
 import { DomainResolverService } from './domain-resolver.service';
 
-const DEFAULT_SHELL_TITLE = 'Landing Runtime';
-const DEFAULT_SHELL_DESCRIPTION = 'Configuration-driven landing runtime.';
-const DEFAULT_SHELL_SITE_NAME = 'Landing Runtime';
-
 @Injectable({ providedIn: 'root' })
 export class SeoMetadataService {
     private readonly doc = inject(DOCUMENT);
@@ -31,8 +27,9 @@ export class SeoMetadataService {
             const draftDescription = typeof seo?.description === 'string' && seo.description.trim().length > 0
                 ? seo.description
                 : undefined;
-            const seoTitle = draftTitle || DEFAULT_SHELL_TITLE;
-            const seoDescription = draftDescription || DEFAULT_SHELL_DESCRIPTION;
+            const fallbackSiteName = this.resolveFallbackSiteName();
+            const seoTitle = draftTitle || fallbackSiteName;
+            const seoDescription = draftDescription || '';
 
             this.title.setTitle(seoTitle);
             this.meta.updateTag({ name: 'description', content: seoDescription });
@@ -50,7 +47,7 @@ export class SeoMetadataService {
             this.meta.updateTag({ property: 'og:url', content: String(openGraph['url'] ?? url) });
             this.meta.updateTag({ property: 'og:image', content: String(openGraph['image'] ?? ogImage) });
             this.meta.updateTag({ property: 'og:locale', content: String(openGraph['locale'] ?? ogLocale) });
-            this.meta.updateTag({ property: 'og:site_name', content: String(openGraph['site_name'] ?? DEFAULT_SHELL_SITE_NAME) });
+            this.meta.updateTag({ property: 'og:site_name', content: String(openGraph['site_name'] ?? fallbackSiteName) });
 
             const twitter = seo?.twitter ?? {};
             this.meta.updateTag({ name: 'twitter:card', content: String(twitter['card'] ?? 'summary_large_image') });
@@ -76,5 +73,14 @@ export class SeoMetadataService {
     private defaultOrigin(): string {
         const resolved = this.domainResolver.resolveDomain().domain;
         return resolved ? `https://${ resolved }` : 'https://localhost';
+    }
+
+    private resolveFallbackSiteName(): string {
+        const resolvedDomain = this.domainResolver.resolveDomain().domain;
+        if (resolvedDomain) {
+            return resolvedDomain;
+        }
+
+        return this.doc.defaultView?.location?.hostname || 'localhost';
     }
 }

@@ -16,11 +16,13 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Use existing class tokens / Angora design system conventions.
 - Put global palette data in `variables.theme.palettes.light` and `variables.theme.palettes.dark`.
 - Put page-owned contact targets in `variables.ui.contact`.
+- Put modal presentation and accessible labels in `variables.ui.modals.<modalId>` for every modal referenced by `openModal:*` or `modalRefId,*`.
 - Keep modal accent defaults in `variables.theme.ui` when a draft needs them to differ from the default brand behavior.
 - Put reusable visual class bundles in `angora-combos.json` instead of hardcoding repeated appearance strings in app code.
 - For `input` components, author select/dropdown presentation in payload fields such as `fieldClasses`, `dropdownTriggerClasses`, `dropdownIndicatorText`, `dropdownIndicatorClasses`, `dropdownTriggerTextConfig`, and `dropdownConfig` instead of relying on shared runtime defaults.
 - Footer, legal modal, accessibility, and debug-panel content must be API-owned (no local fallback assumptions anywhere in the runtime).
 - Do not author hardcoded footer/legal text in app source when generating payload instructions.
+- Treat `seo.json` as required for active pages; the runtime no longer ships a branded shell fallback title or description.
 
 ## Naming / structure
 
@@ -49,6 +51,7 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Prefer semicolon-separated composed instructions.
 - If a CTA opens WhatsApp through `openWhatsApp`, `openFaqCtaWhatsApp`, or `openFinalCtaWhatsApp`, the payload must include `variables.ui.contact.whatsappPhone` and `variables.ui.contact.whatsappMessageKey`.
 - For FAQ and final CTA WhatsApp flows, prefer explicit `variables.ui.contact.faqMessageKey` and `variables.ui.contact.finalCtaMessageKey` instead of reusing one generic message.
+- If an event uses `openModal:<modalId>`, author `variables.ui.modals.<modalId>.ariaLabel` or `variables.ui.modals.<modalId>.ariaLabelKey`.
 
 ## Loops
 
@@ -82,6 +85,8 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Verify `variables.ui.contact.whatsappPhone` and `variables.ui.contact.whatsappMessageKey` are present whenever any WhatsApp handler is referenced.
 - Verify `variables.ui.contact.faqMessageKey` is present when `openFaqCtaWhatsApp` is referenced unless the generic WhatsApp message key is intentionally reused.
 - Verify `variables.ui.contact.finalCtaMessageKey` is present when `openFinalCtaWhatsApp` is referenced unless the generic WhatsApp message key is intentionally reused.
+- Verify every modal referenced by `openModal:*` or `modalRefId,*` has a matching `variables.ui.modals.<modalId>` entry with `ariaLabel` or `ariaLabelKey`.
+- Verify `seo.json` is present and complete for every active draft.
 - Verify footer/legal modal sections can render from API payload only.
 - Verify shared runtime keys are present in draft i18n when used by the page. Common examples:
   - `ui.accessibility.analyticsConsentDialog`

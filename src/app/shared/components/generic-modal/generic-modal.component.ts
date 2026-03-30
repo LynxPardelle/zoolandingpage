@@ -15,12 +15,23 @@ import {
   ViewChild,
   ViewContainerRef,
 } from '@angular/core';
-import { NgxAngoraService } from 'ngx-angora-css';
 import { AriaLiveService } from '../../services/aria-live.service';
 import { I18nService } from '../../services/i18n.service';
 import { MotionPreferenceService } from '../../services/motion-preference.service';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
-import { DEFAULT_MODAL_CONFIG } from './generic-modal.constants';
+import {
+  DEFAULT_MODAL_ACCENT_BAR_CLASSES,
+  DEFAULT_MODAL_CLOSE_BUTTON_CLASSES,
+  DEFAULT_MODAL_CONFIG,
+  DEFAULT_MODAL_CONTAINER_CLASSES,
+  DEFAULT_MODAL_CONTAINER_DIALOG_CLASSES,
+  DEFAULT_MODAL_CONTAINER_SHEET_CLASSES,
+  DEFAULT_MODAL_PANEL_CLASSES,
+  DEFAULT_MODAL_PANEL_DIALOG_CLASSES,
+  DEFAULT_MODAL_PANEL_MOTION_CLASSES,
+  DEFAULT_MODAL_PANEL_SHEET_CLASSES,
+  DEFAULT_MODAL_PANEL_SIZE_CLASSES,
+} from './generic-modal.constants';
 import { GenericModalService } from './generic-modal.service';
 import { ModalConfig } from './generic-modal.types';
 
@@ -33,7 +44,7 @@ import { ModalConfig } from './generic-modal.types';
 })
 export class GenericModalComponent {
   @Input() config: ModalConfig | null = null;
-  private readonly GenericModalService = inject(GenericModalService);
+  private readonly modalService = inject(GenericModalService);
   private readonly overlay = inject(Overlay);
   private readonly focusTrapFactory = inject(FocusTrapFactory);
   private readonly destroyRef = inject(DestroyRef);
@@ -46,13 +57,12 @@ export class GenericModalComponent {
   // Motion preference
   readonly motion = inject(MotionPreferenceService);
   private readonly i18n = inject(I18nService);
-  private readonly angora = inject(NgxAngoraService) as NgxAngoraService;
 
   constructor(private host: ElementRef<HTMLElement>, private vcr: ViewContainerRef) {
     // Announce open/close changes politely
     const live = inject(AriaLiveService);
     effect(() => {
-      const active = !!this.GenericModalService.modalRef();
+      const active = !!this.modalService.modalRef();
       if (active && !this.overlayRef) {
         this.openModal();
         live.announce(this.i18n.tOr('ui.accessibility.dialogOpened', ''), 'polite');
@@ -92,8 +102,6 @@ export class GenericModalComponent {
       if (this.modalTpl && this.overlayRef && !this.overlayRef.hasAttached()) {
         const portal = new TemplatePortal(this.modalTpl, this.vcr);
         this.overlayRef.attach(portal);
-        // Ensure class generation after panel attaches
-        try { setTimeout(() => this.angora.cssCreate(), 350); } catch { /* no-op */ }
       }
     });
     this.open.set(true);
@@ -125,12 +133,71 @@ export class GenericModalComponent {
   }
 
   close(): void {
-    this.GenericModalService.close();
+    this.modalService.close();
   }
   onBackdrop(): void {
     if (this.config?.closeOnBackdrop ?? DEFAULT_MODAL_CONFIG.closeOnBackdrop) this.close();
   }
   @HostListener('document:keydown.escape') onEsc(): void {
     if (this.isOpen()) this.close();
+  }
+
+  variant(): 'dialog' | 'sheet' {
+    return this.config?.variant ?? DEFAULT_MODAL_CONFIG.variant;
+  }
+
+  containerClasses(): string[] {
+    return [
+      DEFAULT_MODAL_CONTAINER_CLASSES,
+      this.variant() === 'dialog'
+        ? (this.config?.containerDialogClasses ?? DEFAULT_MODAL_CONTAINER_DIALOG_CLASSES)
+        : (this.config?.containerSheetClasses ?? DEFAULT_MODAL_CONTAINER_SHEET_CLASSES),
+      this.config?.containerClasses ?? '',
+    ].filter(Boolean);
+  }
+
+  panelClasses(): string[] {
+    const classes = [
+      DEFAULT_MODAL_PANEL_CLASSES,
+      this.config?.panelClasses ?? '',
+      this.variant() === 'dialog'
+        ? (this.config?.panelDialogClasses ?? DEFAULT_MODAL_PANEL_DIALOG_CLASSES)
+        : (this.config?.panelSheetClasses ?? DEFAULT_MODAL_PANEL_SHEET_CLASSES),
+      this.motion.reduced() ? (this.config?.panelNoMotionClasses ?? '') : (this.config?.panelMotionClasses ?? DEFAULT_MODAL_PANEL_MOTION_CLASSES),
+    ];
+
+    if (this.size() === 'full') {
+      classes.push(DEFAULT_MODAL_PANEL_SIZE_CLASSES.full);
+    } else if (this.variant() === 'dialog') {
+      const sizeKey = this.size();
+      const sizeDefaults = sizeKey === 'sm'
+        ? (this.config?.panelSMClasses ?? DEFAULT_MODAL_PANEL_SIZE_CLASSES.sm)
+        : sizeKey === 'md'
+          ? (this.config?.panelMDClasses ?? DEFAULT_MODAL_PANEL_SIZE_CLASSES.md)
+          : (this.config?.panelLGClasses ?? DEFAULT_MODAL_PANEL_SIZE_CLASSES.lg);
+      classes.push(sizeDefaults);
+    }
+
+    return classes.filter(Boolean);
+  }
+
+  accentBarClasses(): string[] {
+    const accentClass = (this.config?.accentColor ?? DEFAULT_MODAL_CONFIG.accentColor) === 'accentColor'
+      ? 'ank-bg-accentColor'
+      : 'ank-bg-secondaryAccentColor';
+
+    return [
+      DEFAULT_MODAL_ACCENT_BAR_CLASSES,
+      accentClass,
+      this.config?.accentBarClasses ?? '',
+    ].filter(Boolean);
+  }
+
+  closeButtonClasses(): string {
+    return this.config?.closeButtonClasses ?? DEFAULT_MODAL_CLOSE_BUTTON_CLASSES;
+  }
+
+  closeButtonAriaLabel(): string {
+    return this.i18n.tOr('ui.accessibility.close', 'Close modal');
   }
 }

@@ -20,7 +20,7 @@ export type ModalConfig = {
   readonly containerDialogClasses?: string;
   readonly containerSheetClasses?: string;
   readonly panelClasses?: string;
-  readonly panlelDialogClasses?: string;
+  readonly panelDialogClasses?: string;
   readonly panelSheetClasses?: string;
   readonly panelMotionClasses?: string;
   readonly panelNoMotionClasses?: string;

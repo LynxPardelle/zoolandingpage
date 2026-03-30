@@ -26,19 +26,36 @@ export type TGenericDropdownOrchestratorConfig = {
 
 export type TGenericSearchBoxConfig = SearchBoxConfig;
 
-export type TLoopConfig =
+export type TLoopBindingTransform = 'i18nKey' | 'locale' | 'navigationHref';
+
+export type TLoopBindingSource =
+    | string
     | {
+        readonly from: string;
+        readonly transform?: TLoopBindingTransform;
+    };
+
+export type TLoopBinding = {
+    readonly to: string;
+    readonly sources: readonly TLoopBindingSource[];
+    readonly fallback?: unknown;
+};
+
+type TBaseLoopConfig = {
+    readonly templateId: string;
+    readonly idPrefix?: string;
+    readonly bindings?: readonly TLoopBinding[];
+};
+
+export type TLoopConfig =
+    | (TBaseLoopConfig & {
         readonly source: 'var' | 'i18n';
         readonly path: string;
-        readonly templateId: string;
-        readonly idPrefix?: string;
-    }
-    | {
+    })
+    | (TBaseLoopConfig & {
         readonly source: 'repeat';
         readonly count: number;
-        readonly templateId: string;
-        readonly idPrefix?: string;
-    };
+    });
 
 export type TGenericComponentType =
     | 'accordion'

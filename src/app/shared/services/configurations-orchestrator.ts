@@ -6,7 +6,14 @@ import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { environment } from '../../../environments/environment';
 import { GenericModalService } from '../components/generic-modal/generic-modal.service';
 import type { ModalConfig } from '../components/generic-modal/generic-modal.types';
-import { TGenericComponent } from '../components/wrapper-orchestrator/wrapper-orchestrator.types';
+import type {
+    TGenericComponent,
+    TGenericComponentType,
+    TLoopBinding,
+    TLoopBindingSource,
+    TLoopBindingTransform,
+    TLoopConfig,
+} from '../components/wrapper-orchestrator/wrapper-orchestrator.types';
 import type { TThemeAccentColorToken } from '../types/theme.types';
 import {
     collectAllClassesFromComponents,
@@ -23,15 +30,20 @@ import { devOnlyComponents } from './component-stores/devOnlyComponents.componen
 import { ConfigStoreService } from './config-store.service';
 import { DomainResolverService } from './domain-resolver.service';
 import { LanguageService } from './language.service';
-import { QuickStatsService } from './quick-stats.service';
 import { VariableStoreService } from './variable-store.service';
+
+const LOOP_INDEX_TOKEN = '{{index}}';
+const LOOP_WHOLE_ITEM_TOKEN = '$item';
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+    !!value && typeof value === 'object' && !Array.isArray(value);
+
 @Injectable({
     providedIn: 'root',
 })
 export class ConfigurationsOrchestratorService {
     readonly analytics = inject(AnalyticsService);
     private readonly destroyRef = inject(DestroyRef);
-    private readonly quickStats = inject(QuickStatsService);
     private readonly modal = inject(GenericModalService);
     private readonly globalI18n = inject(I18nService);
     private readonly componentEventDispatcher = inject(ComponentEventDispatcherService);
@@ -41,6 +53,22 @@ export class ConfigurationsOrchestratorService {
     private readonly variableStore = inject(VariableStoreService);
     private warnedNavigationMissing = false;
     private warnedLoopPaths = new Set<string>();
+    private readonly loopComponentFinalizers: Partial<Record<
+        TGenericComponentType,
+        (nextComponent: any, template: TGenericComponent, generatedId: string) => void
+    >> = {
+            container: (nextComponent, _template, generatedId) => {
+                this.materializeContainerLoopComponent(nextComponent, generatedId);
+            },
+            'generic-card': (nextComponent, template, generatedId) => {
+                this.attachGeneratedCardCta(nextComponent, template, generatedId);
+            },
+            link: (nextComponent) => {
+                if (!nextComponent.config?.ariaLabel && typeof nextComponent.config?.text === 'string') {
+                    nextComponent.config.ariaLabel = nextComponent.config.text;
+                }
+            },
+        };
     private readonly draftExportContext = signal({
         domain: '',
         pageId: '',
@@ -56,28 +84,30 @@ export class ConfigurationsOrchestratorService {
     });
 
     // Used as a safe fallback while async pipe resolves first emission.
-    readonly fallbackModalHostConfig: ModalConfig = {
-        ariaLabel: '',
-        closeOnBackdrop: true,
-        showCloseButton: true,
-        size: 'sm',
-        showAccentBar: true,
-        accentColor: 'secondaryAccentColor',
-        variant: 'dialog',
-    };
+    readonly fallbackModalHostConfig: ModalConfig = this.resolveModalHostConfig();
 
     private resolveAccentToken(path: string, fallback: TThemeAccentColorToken): TThemeAccentColorToken {
         const value = this.variableStore.get(path);
         return value === 'accentColor' || value === 'secondaryAccentColor' ? value : fallback;
     }
 
+    private getModalDefaultsConfig(): TDraftModalUiConfig | null {
+        const value = this.variableStore.get('ui.modals._default');
+        if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+        return value as TDraftModalUiConfig;
+    }
+
     private getPayloadModalConfig(modalId?: string): TDraftModalUiConfig | null {
-        if (!modalId) return null;
+        const defaults = this.getModalDefaultsConfig();
+        if (!modalId) return defaults;
 
         const value = this.variableStore.get(`ui.modals.${ modalId }`);
-        if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+        if (!value || typeof value !== 'object' || Array.isArray(value)) return defaults;
 
-        return value as TDraftModalUiConfig;
+        return {
+            ...(defaults ?? {}),
+            ...(value as TDraftModalUiConfig),
+        };
     }
 
     private resolveModalAriaLabel(modalId: string | undefined, payloadConfig: TDraftModalUiConfig | null): string {
@@ -97,16 +127,38 @@ export class ConfigurationsOrchestratorService {
 
         return {
             ariaLabel: this.resolveModalAriaLabel(modalId, payloadConfig),
+            ariaDescribedBy: payloadConfig?.ariaDescribedBy,
             closeOnBackdrop: payloadConfig?.closeOnBackdrop ?? true,
             showCloseButton: payloadConfig?.showCloseButton ?? true,
             size: payloadConfig?.size ?? 'sm',
             showAccentBar: payloadConfig?.showAccentBar ?? true,
             accentColor: payloadConfig?.accentColor ?? this.resolveModalAccentColor(modalId),
             variant: payloadConfig?.variant ?? 'dialog',
+            containerClasses: payloadConfig?.containerClasses,
+            containerDialogClasses: payloadConfig?.containerDialogClasses,
+            containerSheetClasses: payloadConfig?.containerSheetClasses,
+            panelClasses: payloadConfig?.panelClasses,
+            panelDialogClasses: payloadConfig?.panelDialogClasses,
+            panelSheetClasses: payloadConfig?.panelSheetClasses,
+            panelMotionClasses: payloadConfig?.panelMotionClasses,
+            panelNoMotionClasses: payloadConfig?.panelNoMotionClasses,
+            panelSMClasses: payloadConfig?.panelSMClasses,
+            panelMDClasses: payloadConfig?.panelMDClasses,
+            panelLGClasses: payloadConfig?.panelLGClasses,
+            accentBarClasses: payloadConfig?.accentBarClasses,
+            closeButtonClasses: payloadConfig?.closeButtonClasses,
         };
     }
 
     private resolveModalAccentColor(modalId?: string): TThemeAccentColorToken {
+        if (modalId === 'demo-modal') {
+            return this.resolveAccentToken('theme.ui.demoModalAccentColor', 'accentColor');
+        }
+
+        if (modalId === 'terms-of-service' || modalId === 'data-use') {
+            return this.resolveAccentToken('theme.ui.legalModalAccentColor', 'secondaryAccentColor');
+        }
+
         return this.resolveAccentToken('theme.ui.modalAccentColor', 'secondaryAccentColor');
     }
 
@@ -193,21 +245,6 @@ export class ConfigurationsOrchestratorService {
             // ignore
         }
     }
-
-    private readonly statsStripRemote = computed(() => this.quickStats.remoteStats());
-
-    readonly statsStripVisitsFallback = computed(() => Number(
-        this.statsStripRemote()?.['metrics']?.['pageViews'] ?? this.analytics.getPageViewCount()
-    ));
-
-    readonly statsStripCtaFallback = computed(() => Number(
-        this.statsStripRemote()?.['metrics']?.['ctaClicks'] ?? this.analytics.getEventCount('ctaClicks')
-    ));
-
-    readonly statsStripAverageTimeFallback = computed(() => Math.max(
-        0,
-        Number(this.statsStripRemote()?.['metrics']?.['avgTimeSecs'] ?? this.analytics.getSessionEventCount() * 5)
-    ));
 
     readonly components: TGenericComponent[] = [...devOnlyComponents];
 
@@ -398,7 +435,7 @@ export class ConfigurationsOrchestratorService {
 
             items.forEach((item, index) => {
                 const generatedId = generatedIds[index];
-                resolved.set(generatedId, this.materializeLoopComponent(template, generatedId, item));
+                resolved.set(generatedId, this.materializeLoopComponent(template, generatedId, item, loop as TLoopConfig));
             });
         }
 
@@ -462,7 +499,147 @@ export class ConfigurationsOrchestratorService {
         return undefined;
     }
 
-    private materializeLoopComponent(template: TGenericComponent, generatedId: string, item: unknown): TGenericComponent {
+    private resolveGeneratedLoopIndex(generatedId: string): string {
+        return String(generatedId.split('__').pop() ?? '').trim();
+    }
+
+    private getLoopBindingSourcePath(source: TLoopBindingSource): string {
+        return typeof source === 'string' ? source : source.from;
+    }
+
+    private getLoopBindingSourceTransform(source: TLoopBindingSource): TLoopBindingTransform | undefined {
+        return typeof source === 'string' ? undefined : source.transform;
+    }
+
+    private getLoopItemValue(item: unknown, path: string): unknown {
+        const normalizedPath = path.trim();
+        if (!normalizedPath) return undefined;
+        if (normalizedPath === LOOP_WHOLE_ITEM_TOKEN) return item;
+
+        let current: unknown = item;
+        for (const segment of normalizedPath.split('.').map((entry) => entry.trim()).filter(Boolean)) {
+            if (Array.isArray(current)) {
+                const index = Number(segment);
+                if (!Number.isInteger(index) || index < 0 || index >= current.length) return undefined;
+                current = current[index];
+                continue;
+            }
+
+            if (!isRecord(current) || !(segment in current)) return undefined;
+            current = current[segment];
+        }
+
+        return current;
+    }
+
+    private hasResolvedLoopBindingValue(value: unknown): boolean {
+        if (value == null) return false;
+        if (typeof value === 'string') return value.trim().length > 0;
+        return true;
+    }
+
+    private applyLoopBindingTransform(value: unknown, transform?: TLoopBindingTransform): unknown {
+        if (transform === undefined) return value;
+
+        switch (transform) {
+            case 'i18nKey':
+                return this.resolveI18nKeyString(value);
+            case 'locale':
+                if (typeof value === 'string') return value.trim();
+                if (isRecord(value)) {
+                    return resolveLocaleMapValue(value, this.language.currentLanguage());
+                }
+                return undefined;
+            case 'navigationHref':
+                return value == null ? undefined : toNavigationHref(value);
+            default:
+                return value;
+        }
+    }
+
+    private resolveLoopBindingValue(binding: TLoopBinding, item: unknown): unknown {
+        for (const source of binding.sources) {
+            const rawValue = this.getLoopItemValue(item, this.getLoopBindingSourcePath(source));
+            const transformedValue = this.applyLoopBindingTransform(rawValue, this.getLoopBindingSourceTransform(source));
+            if (this.hasResolvedLoopBindingValue(transformedValue)) {
+                return transformedValue;
+            }
+        }
+
+        if (Object.prototype.hasOwnProperty.call(binding, 'fallback')) {
+            return binding.fallback;
+        }
+
+        return undefined;
+    }
+
+    private assignLoopBindingValue(target: Record<string, unknown>, path: string, value: unknown): void {
+        const segments = path.split('.').map((entry) => entry.trim()).filter(Boolean);
+        if (segments.length === 0) return;
+
+        let current = target;
+        for (const segment of segments.slice(0, -1)) {
+            const existing = current[segment];
+            const next = Array.isArray(existing)
+                ? [...existing]
+                : isRecord(existing)
+                    ? { ...existing }
+                    : {};
+
+            current[segment] = next;
+            current = next as Record<string, unknown>;
+        }
+
+        current[segments.at(-1)!] = value;
+    }
+
+    private applyLoopBindings(nextComponent: any, bindings: readonly TLoopBinding[] | undefined, item: unknown): void {
+        if (!Array.isArray(bindings) || bindings.length === 0) return;
+
+        for (const binding of bindings) {
+            const resolvedValue = this.resolveLoopBindingValue(binding, item);
+            if (resolvedValue === undefined && !Object.prototype.hasOwnProperty.call(binding, 'fallback')) {
+                continue;
+            }
+
+            this.assignLoopBindingValue(nextComponent as Record<string, unknown>, binding.to, resolvedValue);
+        }
+    }
+
+    private replaceLoopIndexToken(value: unknown, generatedId: string): unknown {
+        if (typeof value !== 'string' || !value.includes(LOOP_INDEX_TOKEN)) return value;
+
+        const index = this.resolveGeneratedLoopIndex(generatedId);
+        if (!index) return value;
+
+        return value.split(LOOP_INDEX_TOKEN).join(index);
+    }
+
+    private materializeContainerLoopComponent(nextComponent: any, generatedId: string): void {
+        if (!Array.isArray(nextComponent.config?.components)) return;
+
+        nextComponent.config.components = nextComponent.config.components.map((componentId: unknown) => {
+            return this.replaceLoopIndexToken(componentId, generatedId);
+        });
+    }
+
+    private attachGeneratedCardCta(nextComponent: any, template: TGenericComponent, generatedId: string): void {
+        if (typeof nextComponent.config?.buttonLabel !== 'string' || nextComponent.config.buttonLabel.trim().length === 0) {
+            return;
+        }
+
+        nextComponent.config.onCta = (title: string) => {
+            this.handleComponentEvent({
+                componentId: generatedId,
+                eventName: 'cta',
+                meta_title: String((template as any).meta_title ?? AnalyticsEvents.CtaClick),
+                eventData: { label: title },
+                eventInstructions: String((template as any).eventInstructions ?? ''),
+            });
+        };
+    }
+
+    private materializeLoopComponent(template: TGenericComponent, generatedId: string, item: unknown, loop: TLoopConfig): TGenericComponent {
         const nextComponent: any = {
             ...template,
             id: generatedId,
@@ -471,115 +648,15 @@ export class ConfigurationsOrchestratorService {
             },
         };
 
-        if (template.type === 'link' && item && typeof item === 'object') {
-            const record = item as Record<string, unknown>;
-            const href = typeof record['href'] === 'string'
-                ? record['href'].trim()
-                : typeof record['url'] === 'string'
-                    ? record['url'].trim()
-                    : toNavigationHref(record['value']);
-
-            const lang = this.language.currentLanguage();
-            const labelFromKey = this.resolveI18nKeyString(record['labelKey']);
-            const ariaFromKey = this.resolveI18nKeyString(record['ariaLabelKey']);
-            const localizedLabelFromValue = resolveLocaleMapValue(record['label'], lang);
-            const fallbackLabel = typeof record['label'] === 'string' ? record['label'].trim() : undefined;
-            const localizedAriaLabel = resolveLocaleMapValue(record['ariaLabel'], lang);
-
+        if (typeof nextComponent.config?.id === 'string') {
             nextComponent.config.id = generatedId;
-            if (typeof href === 'string' && href.length > 0) {
-                nextComponent.config.href = href;
-            }
-            if (typeof labelFromKey === 'string' && labelFromKey.trim().length > 0) {
-                nextComponent.config.text = labelFromKey;
-            } else if (typeof localizedLabelFromValue === 'string' && localizedLabelFromValue.trim().length > 0) {
-                nextComponent.config.text = localizedLabelFromValue;
-            } else if (typeof fallbackLabel === 'string' && fallbackLabel.length > 0) {
-                nextComponent.config.text = fallbackLabel;
-            }
-            if (typeof record['icon'] === 'string') nextComponent.config.text = record['icon'];
-            if (typeof ariaFromKey === 'string' && ariaFromKey.trim().length > 0) {
-                nextComponent.config.ariaLabel = ariaFromKey;
-            } else if (typeof localizedAriaLabel === 'string' && localizedAriaLabel.trim().length > 0) {
-                nextComponent.config.ariaLabel = localizedAriaLabel;
-            } else if (typeof record['ariaLabel'] === 'string') {
-                nextComponent.config.ariaLabel = record['ariaLabel'];
-            }
-            if (typeof record['target'] === 'string') nextComponent.config.target = record['target'];
-            if (typeof record['rel'] === 'string') nextComponent.config.rel = record['rel'];
-
-            if (!nextComponent.config.ariaLabel && typeof nextComponent.config.text === 'string') {
-                nextComponent.config.ariaLabel = nextComponent.config.text;
-            }
         }
 
-        if (template.type === 'generic-card' && item && typeof item === 'object') {
-            const record = item as Record<string, unknown>;
-            const variant = String(nextComponent.config.variant ?? '').trim();
+        this.applyLoopBindings(nextComponent, loop.bindings, item);
 
-            if (variant === 'testimonial') {
-                if (typeof record['name'] === 'string') nextComponent.config.name = record['name'];
-                if (typeof record['role'] === 'string') nextComponent.config.role = record['role'];
-                if (typeof record['company'] === 'string') nextComponent.config.company = record['company'];
-                if (typeof record['content'] === 'string') nextComponent.config.content = record['content'];
-                if (typeof record['avatar'] === 'string') nextComponent.config.avatar = record['avatar'];
-                if (typeof record['verified'] === 'boolean') nextComponent.config.verified = record['verified'];
-                if (typeof record['rating'] === 'number' && Number.isFinite(record['rating'])) {
-                    nextComponent.config.rating = record['rating'];
-                }
-            } else {
-                nextComponent.config.variant = 'feature';
-                if (typeof record['icon'] === 'string') nextComponent.config.icon = record['icon'];
-                if (typeof record['title'] === 'string') nextComponent.config.title = record['title'];
-                if (typeof record['description'] === 'string') nextComponent.config.description = record['description'];
-
-                const benefits = Array.isArray(record['benefits']) ? record['benefits'] : undefined;
-                if (Array.isArray(benefits)) nextComponent.config.benefits = benefits;
-
-                if (typeof record['buttonLabel'] === 'string') {
-                    nextComponent.config.buttonLabel = record['buttonLabel'];
-                    nextComponent.config.onCta = (title: string) => {
-                        this.handleComponentEvent({
-                            componentId: generatedId,
-                            eventName: 'cta',
-                            meta_title: String((template as any).meta_title ?? AnalyticsEvents.CtaClick),
-                            eventData: { label: title },
-                            eventInstructions: String((template as any).eventInstructions ?? ''),
-                        });
-                    };
-                }
-            }
-        }
-
-        if (template.type === 'text' && item && typeof item === 'object') {
-            const record = item as Record<string, unknown>;
-            const recordText = typeof record['text'] === 'string' ? record['text'] : undefined;
-            const recordBody = typeof record['body'] === 'string' ? record['body'] : undefined;
-            const recordTitle = typeof record['title'] === 'string' ? record['title'] : undefined;
-
-            if (recordText != null) {
-                nextComponent.config.text = recordText;
-            } else if (recordBody != null && recordTitle != null) {
-                nextComponent.config.text = `${ recordTitle }: ${ recordBody }`;
-            } else if (recordBody != null) {
-                nextComponent.config.text = recordBody;
-            } else if (recordTitle != null) {
-                nextComponent.config.text = recordTitle;
-            }
-        }
-
-        if (template.type === 'text' && typeof item === 'string') {
-            nextComponent.config.text = item;
-        }
-
-        if (template.type === 'container' && Array.isArray(nextComponent.config?.components)) {
-            nextComponent.config.components = nextComponent.config.components.map((componentId: unknown) => {
-                if (componentId === 'badgeTextTemplate') {
-                    const suffix = generatedId.split('__').pop() ?? '';
-                    return `badgeText__${ suffix }`;
-                }
-                return componentId;
-            });
+        const finalizeComponent = this.loopComponentFinalizers[template.type];
+        if (finalizeComponent) {
+            finalizeComponent(nextComponent, template, generatedId);
         }
 
         return nextComponent as TGenericComponent;

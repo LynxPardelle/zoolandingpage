@@ -24,6 +24,7 @@ export const DEFAULT_FRAMEWORK_TRANSLATIONS: Readonly<Record<string, Record<stri
                 dialog: 'Diálogo',
                 dialogOpened: 'Diálogo abierto',
                 dialogClosed: 'Diálogo cerrado',
+                close: 'Cerrar modal',
                 analyticsConsentDialog: 'Consentimiento de analítica',
             },
             debugPanel: {
@@ -137,6 +138,7 @@ export const DEFAULT_FRAMEWORK_TRANSLATIONS: Readonly<Record<string, Record<stri
                 dialog: 'Dialog',
                 dialogOpened: 'Dialog opened',
                 dialogClosed: 'Dialog closed',
+                close: 'Close modal',
                 analyticsConsentDialog: 'Analytics consent',
             },
             debugPanel: {

@@ -6,6 +6,13 @@ describe('GenericMedia', () => {
   let component: GenericMedia;
   let fixture: ComponentFixture<GenericMedia>;
 
+  const defaultConfig = {
+    id: 'default-media',
+    tag: 'image' as const,
+    src: '/assets/default-image.webp',
+    alt: 'Default media',
+  };
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [GenericMedia]
@@ -14,6 +21,7 @@ describe('GenericMedia', () => {
 
     fixture = TestBed.createComponent(GenericMedia);
     component = fixture.componentInstance;
+    fixture.componentRef.setInput('config', defaultConfig);
     fixture.detectChanges();
   });
 
@@ -44,5 +52,38 @@ describe('GenericMedia', () => {
     expect(image?.getAttribute('class')).toBe('hero-image spotlight');
     expect(image?.getAttribute('src')).toBe('/assets/music/hero-cover.webp');
     expect(image?.getAttribute('alt')).toBe('Lynx Pardelle portrait');
+  });
+
+  it('renders document media as an external link using alt text when available', () => {
+    fixture.componentRef.setInput('config', {
+      id: 'legal-pdf',
+      tag: 'document',
+      classes: 'legal-link',
+      src: '/assets/legal/privacy.pdf',
+      alt: 'Privacy notice',
+    });
+
+    fixture.detectChanges();
+
+    const link: HTMLAnchorElement | null = fixture.nativeElement.querySelector('a');
+
+    expect(link).not.toBeNull();
+    expect(link?.id).toBe('legal-pdf');
+    expect(link?.getAttribute('href')).toBe('/assets/legal/privacy.pdf');
+    expect(link?.textContent?.trim()).toBe('Privacy notice');
+  });
+
+  it('falls back to the source when link-style media has no alt text', () => {
+    fixture.componentRef.setInput('config', {
+      id: 'asset-link',
+      tag: 'other',
+      src: '/assets/files/brief.pdf',
+    });
+
+    fixture.detectChanges();
+
+    const link: HTMLAnchorElement | null = fixture.nativeElement.querySelector('a');
+
+    expect(link?.textContent?.trim()).toBe('/assets/files/brief.pdf');
   });
 });

@@ -4,9 +4,7 @@
     <h3 [class]="config().listHeaderClasses || 'tabGroupListHeader'">{{ listHeaderLabel() }}</h3>
     }
     <div
-      [class]="
-        config().tabListClasses || (detailMode() ? 'tabGroupDetailList' : 'tab-group ank-display-flex ank-gap-0_25rem')
-      "
+      [class]="config().tabListClasses || (detailMode() ? 'tabGroupDetailList' : 'tabGroupList tabGroupListHorizontal')"
       role="tablist"
       [attr.aria-orientation]="orientation()"
     >
@@ -30,7 +28,7 @@
             @if (indexLabelOf(t)) {
             <span [class]="indexLabelClasses(t)">{{ indexLabelOf(t) }}</span>
             }
-            <span class="ank-display-flex ank-flexDirection-column ank-flex-1 ank-textAlign-left">
+            <span class="tabGroupTextStack">
               <span [class]="config().titleClasses || 'tabGroupTitle'">{{ labelOf(t) }}</span>
               @if (summaryOf(t)) {
               <span [class]="config().summaryClasses || 'tabGroupSummary'">{{ summaryOf(t) }}</span>
@@ -61,7 +59,7 @@
         }"
       ></generic-icon>
       }
-      <div class="ank-display-flex ank-flexDirection-column ank-gap-8px">
+      <div class="tabGroupDetailTextStack">
         <h3 [class]="config().detailTitleClasses || 'tabGroupDetailTitle'">{{ labelOf(t) }}</h3>
         @if (metaOf(t)) {
         <div [class]="config().detailMetaClasses || 'tabGroupDetailMeta'">
@@ -70,7 +68,7 @@
             [config]="{
               iconName: detailMetaIconName() || '',
               ariaHidden: true,
-              classes: 'ank-width-1rem ank-height-1rem ank-fontSize-1rem'
+              classes: 'tabGroupInlineIcon'
             }"
           ></generic-icon>
           }
@@ -96,7 +94,7 @@
           [config]="{
             iconName: detailItemIconName() || '',
             ariaHidden: true,
-            classes: 'ank-width-1rem ank-height-1rem ank-fontSize-1rem ank-flexShrink-0'
+            classes: 'tabGroupInlineIcon tabGroupListItemIcon'
           }"
         ></generic-icon>
         }
@@ -110,7 +108,7 @@
   <div class="tab-panels">
     @for (t of tabs(); track t.id) { @if (isActive(t.id || '')) {
     <div
-      class="tab-panel tab-panel-anim ank-mt-0_75rem"
+      class="tab-panel tab-panel-anim tabGroupPanel"
       role="tabpanel"
       [attr.id]="'panel-' + t.id"
       [attr.aria-labelledby]="'tab-' + t.id"
@@ -118,7 +116,7 @@
       @defer (when isActive(t.id || '')) {
       <ng-content select="[tab-content-{{ t.id }}]"></ng-content>
       } @placeholder {
-      <div class="ank-fontSize-0_875rem ank-color-textSecondary">{{ i18n.t("ui.common.loadingPanel") }}</div>
+      <div class="tabGroupPanelLoading">{{ i18n.t("ui.common.loadingPanel") }}</div>
       }
     </div>
     } }

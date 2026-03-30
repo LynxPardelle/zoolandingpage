@@ -111,6 +111,83 @@ describe('config-payload.validators', () => {
         expect(isComponentsPayload(valid)).toBeTrue();
     });
 
+    it('accepts explicit loopConfig bindings in components payloads', () => {
+        const valid = {
+            version: 1,
+            pageId: 'default',
+            domain: TEST_DOMAIN,
+            components: {
+                socialLinkTemplate: {
+                    id: 'socialLinkTemplate',
+                    type: 'link',
+                    config: {
+                        id: 'socialLinkTemplate',
+                        href: '#',
+                        text: '',
+                        ariaLabel: '',
+                    },
+                },
+                socialLinks: {
+                    id: 'socialLinks',
+                    type: 'container',
+                    loopConfig: {
+                        source: 'var',
+                        path: 'socialLinks',
+                        templateId: 'socialLinkTemplate',
+                        idPrefix: 'socialLink',
+                        bindings: [
+                            {
+                                to: 'config.href',
+                                sources: ['href', 'url', { from: 'value', transform: 'navigationHref' }],
+                            },
+                            {
+                                to: 'config.text',
+                                sources: ['icon', { from: 'labelKey', transform: 'i18nKey' }, { from: 'label', transform: 'locale' }],
+                            },
+                        ],
+                    },
+                    config: {
+                        tag: 'div',
+                        components: [],
+                    },
+                },
+            },
+        };
+
+        expect(isComponentsPayload(valid)).toBeTrue();
+    });
+
+    it('rejects loopConfig bindings with unknown transforms', () => {
+        const invalid = {
+            version: 1,
+            pageId: 'default',
+            domain: TEST_DOMAIN,
+            components: {
+                badLoop: {
+                    id: 'badLoop',
+                    type: 'container',
+                    loopConfig: {
+                        source: 'i18n',
+                        path: 'items',
+                        templateId: 'itemTemplate',
+                        bindings: [
+                            {
+                                to: 'config.text',
+                                sources: [{ from: 'label', transform: 'unknownTransform' }],
+                            },
+                        ],
+                    },
+                    config: {
+                        tag: 'div',
+                        components: [],
+                    },
+                },
+            },
+        };
+
+        expect(isComponentsPayload(invalid)).toBeFalse();
+    });
+
     it('rejects retired feature-card and testimonial-card payloads', () => {
         const invalid = {
             version: 1,
@@ -255,6 +332,52 @@ describe('config-payload.validators', () => {
         };
 
         expect(isComponentsPayload(valid)).toBeTrue();
+    });
+
+    it('accepts stats-counter payloads with plain authored formatting fields', () => {
+        const valid = {
+            version: 1,
+            pageId: 'default',
+            domain: TEST_DOMAIN,
+            components: {
+                visitsCounter: {
+                    id: 'visitsCounter',
+                    type: 'stats-counter',
+                    valueInstructions: 'set:config.target,var,statsCounters.visits.target; set:config.formatMode,var,statsCounters.visits.formatMode',
+                    config: {
+                        target: 0,
+                        durationMs: 1600,
+                        startOnVisible: true,
+                        ariaLabel: 'Visits',
+                        formatMode: 'prefix',
+                        formatPrefix: '+',
+                        formatSuffix: '',
+                    },
+                },
+            },
+        };
+
+        expect(isComponentsPayload(valid)).toBeTrue();
+    });
+
+    it('rejects stats-counter payloads with temporary config fields', () => {
+        const invalid = {
+            version: 1,
+            pageId: 'default',
+            domain: TEST_DOMAIN,
+            components: {
+                avgTimeCounter: {
+                    id: 'avgTimeCounter',
+                    type: 'stats-counter',
+                    config: {
+                        target: 120,
+                        rawTarget: 300,
+                    },
+                },
+            },
+        };
+
+        expect(isComponentsPayload(invalid)).toBeFalse();
     });
 
     it('accepts tab-group payloads with split-detail authored icons', () => {
@@ -485,16 +608,24 @@ describe('config-payload.validators', () => {
                         whatsappPhone: '+525522699563',
                     },
                     modals: {
+                        _default: {
+                            closeOnBackdrop: true,
+                            showCloseButton: true,
+                            panelClasses: 'modal-shell',
+                            closeButtonClasses: 'modal-close-btn',
+                        },
                         'terms-of-service': {
                             size: 'lg',
                             ariaLabelKey: 'footer.legal.terms.title',
                             showCloseButton: true,
+                            panelDialogClasses: 'modal-panel-dialog',
                         },
                         'data-use': {
                             size: 'md',
                             ariaLabel: 'Data Use',
                             closeOnBackdrop: true,
                             accentColor: 'secondaryAccentColor',
+                            ariaDescribedBy: 'data-use-description',
                         },
                     },
                 },

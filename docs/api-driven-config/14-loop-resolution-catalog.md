@@ -18,25 +18,51 @@ Generated IDs are:
 
 If `idPrefix` is not provided, `templateId` is used.
 
-## Implemented template materializers
+Generated container children can reference a sibling generated component by using `{{index}}` in the child ID. Example:
 
+```text
+badgeText__{{index}}
+```
+
+When `badgeContainer__2` is materialized, that child reference becomes `badgeText__2`.
+
+## Binding-driven materialization
+
+- Repeated content mapping is now draft-owned through `loopConfig.bindings`.
+- Each binding writes to an explicit target path on the generated component.
+- Each binding can declare an ordered list of sources, so fallback behavior is also authored in the payload.
+
+Supported transforms:
+
+- `i18nKey`
+- `locale`
+- `navigationHref`
+
+Example:
+
+```text
+config.text <= icon | labelKey(i18nKey) | label(locale)
+```
+
+This means the runtime no longer guesses how a `link`, `text`, or `generic-card` loop should be shaped for a specific page.
+
+## Remaining generic finalizers
+
+- `container`
+  - replaces `{{index}}` tokens in child component IDs using the generated component suffix
+- `generic-card`
+  - if `config.buttonLabel` resolves to a non-empty string, binds the CTA callback through orchestrator event dispatch
 - `link`
-  - maps `url`, `icon`, `ariaLabel`, `target`, `rel`
-- `generic-card` with `config.variant = "feature"`
-  - maps `icon`, `title`, `description`, `benefits`, `buttonLabel`
-  - if `buttonLabel` exists, binds CTA callback through orchestrator event dispatch
-- `generic-card` with `config.variant = "testimonial"`
-  - maps `name`, `role`, `company`, `content`, `rating`, `avatar`, `verified`
+  - if no explicit `ariaLabel` resolves but `config.text` does, reuses the rendered text as the aria label
 
 ## Warnings and fallback behavior
 
 - Missing template ID: warning + skip.
 - `var`/`i18n` source not array: warning + skip.
-- `socialLinks` missing/empty: warning + no social links rendered.
 
 ## Authoring guidance
 
 - Keep templates minimal and deterministic.
 - Put shared visual classes in template config.
-- Keep dynamic content in source arrays (`variables` or `i18n`).
+- Keep dynamic content and fallback order in source arrays plus `loopConfig.bindings`.
 - Prefer `loopConfig` for repeated sections over hardcoded IDs.

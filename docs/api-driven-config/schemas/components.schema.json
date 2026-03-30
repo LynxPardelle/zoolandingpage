@@ -338,6 +338,22 @@
       },
       "additionalProperties": true
     },
+    "statsCounterConfig": {
+      "type": "object",
+      "required": ["target"],
+      "properties": {
+        "target": { "type": "number" },
+        "durationMs": { "type": "number" },
+        "startOnVisible": { "type": "boolean" },
+        "ariaLabel": { "type": "string" },
+        "min": { "type": "number" },
+        "max": { "type": "number" },
+        "formatMode": { "type": "string" },
+        "formatPrefix": { "type": "string" },
+        "formatSuffix": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
     "interactionScopeConfig": {
       "type": "object",
       "properties": {
@@ -468,6 +484,19 @@
             "then": {
               "properties": {
                 "config": { "$ref": "#/definitions/accordionConfig" }
+              },
+              "required": ["config"]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": { "const": "stats-counter" }
+              }
+            },
+            "then": {
+              "properties": {
+                "config": { "$ref": "#/definitions/statsCounterConfig" }
               },
               "required": ["config"]
             }

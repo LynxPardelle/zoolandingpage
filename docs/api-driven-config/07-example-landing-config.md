@@ -339,10 +339,10 @@ accordion/tab item fields, and rendered through `itemsSource` / `tabsSource` plu
           "step": 1,
           "icon": "assignment",
           "titleKey": "process.0.title",
-          "summaryKey": "process.0.description",
-          "contentKey": "process.0.detailedDescription",
-          "metaKey": "process.0.duration",
-          "detailItemsKey": "process.0.deliverables"
+          "summaryKey": "process.0.summary",
+          "contentKey": "process.0.content",
+          "metaKey": "process.0.meta",
+          "detailItemsKey": "process.0.detailItems"
         }
       ]
     }

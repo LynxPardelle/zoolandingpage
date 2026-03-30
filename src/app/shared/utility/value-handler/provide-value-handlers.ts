@@ -9,7 +9,6 @@ import { jsonValueHandler } from './handlers/json.value-handlers';
 import { langPickValueHandler, languageValueHandler } from './handlers/language.value-handlers';
 import { literalValueHandler } from './handlers/literal.value-handlers';
 import { scopeOrValueHandler, scopeValueHandler } from './handlers/scope.value-handlers';
-import { numberClampValueHandler, statsFormatVarValueHandler } from './handlers/stats.value-handlers';
 import { coalesceValueHandler, lowerValueHandler, upperValueHandler } from './handlers/string.value-handlers';
 import { themePickValueHandler, themeValueHandler } from './handlers/theme.value-handlers';
 import { variableOrValueHandler, variableValueHandler } from './handlers/variable.value-handlers';
@@ -42,8 +41,5 @@ export const provideValueHandlers = (): Provider[] => {
 
         { provide: VALUE_HANDLERS, multi: true, useFactory: variableValueHandler },
         { provide: VALUE_HANDLERS, multi: true, useFactory: variableOrValueHandler },
-
-        { provide: VALUE_HANDLERS, multi: true, useFactory: numberClampValueHandler },
-        { provide: VALUE_HANDLERS, multi: true, useFactory: statsFormatVarValueHandler },
     ];
 };

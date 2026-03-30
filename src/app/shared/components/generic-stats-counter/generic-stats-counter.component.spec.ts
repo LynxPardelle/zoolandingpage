@@ -20,11 +20,40 @@ describe('GenericStatsCounterComponent', () => {
       target: 100,
       durationMs: 0, // No animation for test
       startOnVisible: false,
-      format: (v: number) => v.toString(),
     });
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent?.trim()).toBe('100');
+  });
+
+  it('should render prefix and suffix formatting from plain config fields', () => {
+    const fixture = TestBed.createComponent(GenericStatsCounterComponent);
+    fixture.componentRef.setInput('config', {
+      target: 1240,
+      durationMs: 0,
+      startOnVisible: false,
+      formatMode: 'prefixSuffix',
+      formatPrefix: '&#43;',
+      formatSuffix: '%',
+    });
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent?.trim()).toBe('+1,240%');
+  });
+
+  it('should clamp target using min and max config fields', () => {
+    const fixture = TestBed.createComponent(GenericStatsCounterComponent);
+    fixture.componentRef.setInput('config', {
+      target: 150,
+      min: 0,
+      max: 100,
+      durationMs: 0,
+      startOnVisible: false,
+    });
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.internalValue()).toBe(100);
   });
 
   it('should emit completed event when animation finishes', () => {

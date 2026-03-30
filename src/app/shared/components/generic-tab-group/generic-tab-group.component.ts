@@ -13,6 +13,15 @@ import {
 } from '@angular/core';
 import { I18nService } from '../../services/i18n.service';
 import { VariableStoreService } from '../../services/variable-store.service';
+import {
+  normalizeCanonicalContentItemId,
+  resolveConfigSourceValue,
+  resolveDynamicValue,
+  resolveTextValue,
+  resolveTranslatedStringList,
+  resolveTranslatedText,
+  scrollElementIntoViewportCenter,
+} from '../../utility/component-orchestrator.utility';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { GenericIconComponent } from '../generic-icon/generic-icon.component';
 import { TabDefinition, TabGroupConfig, TabGroupStringListValue, TabGroupTextValue } from './generic-tab-group.types';
@@ -36,10 +45,10 @@ export class GenericTabGroupComponent {
   readonly orientation = computed(() => this.config().orientation ?? (this.detailMode() ? 'vertical' : 'horizontal'));
   readonly tabs = computed<readonly TabDefinition[]>(() => {
     const cfg = this.config();
-    const source = cfg.tabsSource;
-    const raw = source?.path
-      ? (source.source === 'var' ? this.variableStore.get(source.path) : this.i18n.get(source.path))
-      : this.resolveMaybeThunk(cfg.tabs);
+    const raw = resolveConfigSourceValue(cfg.tabsSource, cfg.tabs, {
+      getVariable: (path) => this.variableStore.get(path),
+      getI18n: (path) => this.i18n.get(path),
+    });
 
     if (!Array.isArray(raw)) return [];
 
@@ -51,7 +60,7 @@ export class GenericTabGroupComponent {
     const cfg = this.config();
     if (cfg.activeId === undefined) return undefined;
 
-    const resolved = this.resolveMaybeThunk(cfg.activeId);
+    const resolved = resolveDynamicValue(cfg.activeId);
     const normalized = String(resolved ?? '').trim();
     return normalized.length > 0 ? normalized : null;
   });
@@ -100,42 +109,42 @@ export class GenericTabGroupComponent {
   }
 
   labelOf(tab: TabDefinition): string {
-    return this.resolveTextValue(tab.label ?? tab.title) ?? '';
+    return resolveTextValue(tab.label ?? tab.title) ?? '';
   }
 
   summaryOf(tab: TabDefinition): string | undefined {
-    return this.resolveTextValue(tab.summary);
+    return resolveTextValue(tab.summary);
   }
 
   contentOf(tab: TabDefinition): string | undefined {
-    return this.resolveTextValue(tab.content);
+    return resolveTextValue(tab.content);
   }
 
   metaOf(tab: TabDefinition): string | undefined {
-    return this.resolveTextValue(tab.meta);
+    return resolveTextValue(tab.meta);
   }
 
   iconOf(tab: TabDefinition): string | undefined {
-    return this.resolveTextValue(tab.icon);
+    return resolveTextValue(tab.icon);
   }
 
   indexLabelOf(tab: TabDefinition): string | undefined {
-    return this.resolveTextValue(tab.indexLabel);
+    return resolveTextValue(tab.indexLabel);
   }
 
   detailItemsOf(tab: TabDefinition): readonly string[] {
     return this.resolveStringListValue(tab.detailItems);
   }
 
-  listHeaderLabel = () => this.resolveTextValue(this.config().listHeaderLabel);
+  listHeaderLabel = () => resolveTextValue(this.config().listHeaderLabel);
 
-  detailContentLabel = () => this.resolveTextValue(this.config().detailContentLabel);
+  detailContentLabel = () => resolveTextValue(this.config().detailContentLabel);
 
-  detailItemsLabel = () => this.resolveTextValue(this.config().detailItemsLabel);
+  detailItemsLabel = () => resolveTextValue(this.config().detailItemsLabel);
 
-  detailMetaIconName = () => this.resolveTextValue(this.config().detailMetaIconName);
+  detailMetaIconName = () => resolveTextValue(this.config().detailMetaIconName);
 
-  detailItemIconName = () => this.resolveTextValue(this.config().detailItemIconName);
+  detailItemIconName = () => resolveTextValue(this.config().detailItemIconName);
 
   tabHasRichHeader(tab: TabDefinition): boolean {
     return this.detailMode() || !!this.indexLabelOf(tab) || !!this.summaryOf(tab);
@@ -209,28 +218,25 @@ export class GenericTabGroupComponent {
     const tab = this.host.nativeElement.querySelector(`[data-tab-id="${ id }"]`) as HTMLElement | null;
     if (!tab) return;
 
-    const rect = tab.getBoundingClientRect();
-    const viewportHeight = window.innerHeight;
-    const target = rect.top + window.pageYOffset - viewportHeight / 2 + rect.height / 2;
-
-    window.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
+    scrollElementIntoViewportCenter(tab);
   }
 
   private normalizeTab(entry: unknown, index: number): TabDefinition | null {
     if (!entry || typeof entry !== 'object') return null;
 
     const record = entry as Record<string, unknown>;
-    const label = this.resolveTranslatedText(record['label'], record['labelKey'])
-      ?? this.resolveTranslatedText(record['title'], record['titleKey']);
+    const label = resolveTranslatedText(this.i18n, record['label'], record['labelKey'])
+      ?? resolveTranslatedText(this.i18n, record['title'], record['titleKey']);
     if (!label) return null;
 
     const stepNumber = Number(record['step']);
-    const indexLabel = this.resolveTranslatedText(record['indexLabel'])
+    const indexLabel = resolveTranslatedText(this.i18n, record['indexLabel'])
       ?? (Number.isFinite(stepNumber) && stepNumber > 0 ? String(Math.floor(stepNumber)) : undefined);
-    const content = this.resolveTranslatedText(record['content'], record['contentKey']);
-    const summary = this.resolveTranslatedText(record['summary'], record['summaryKey']);
-    const meta = this.resolveTranslatedText(record['meta'], record['metaKey']);
-    const detailItems = this.resolveTranslatedList(
+    const content = resolveTranslatedText(this.i18n, record['content'], record['contentKey']);
+    const summary = resolveTranslatedText(this.i18n, record['summary'], record['summaryKey']);
+    const meta = resolveTranslatedText(this.i18n, record['meta'], record['metaKey']);
+    const detailItems = resolveTranslatedStringList(
+      this.i18n,
       record['detailItems'],
       record['detailItemsKey'],
       record['detailItemKeys']
@@ -238,7 +244,7 @@ export class GenericTabGroupComponent {
 
     return {
       ...(record as TabDefinition),
-      id: this.normalizeTabId(record, index),
+      id: normalizeCanonicalContentItemId(record, index),
       label,
       title: label,
       indexLabel,
@@ -246,85 +252,12 @@ export class GenericTabGroupComponent {
       content,
       meta,
       detailItems,
-      icon: this.resolveTextValue(record['icon'] as TabGroupTextValue | undefined),
+      icon: resolveTextValue(record['icon'] as TabGroupTextValue | undefined),
       disabled: Boolean(record['disabled'] ?? false),
     };
   }
 
-  private normalizeTabId(record: Record<string, unknown>, index: number): string {
-    const explicit = this.resolveTextValue(record['id'] as TabGroupTextValue | undefined);
-    if (explicit) return explicit;
-
-    const stepNumber = Number(record['step']);
-    if (Number.isFinite(stepNumber) && stepNumber > 0) {
-      return `item-${ Math.floor(stepNumber) }`;
-    }
-
-    return `item-${ index + 1 }`;
-  }
-
-  private resolveTranslatedText(value: unknown, key?: unknown): string | undefined {
-    const literal = this.resolveTextValue(value as TabGroupTextValue | undefined);
-    if (literal) return literal;
-
-    const normalizedKey = String(this.resolveMaybeThunk(key) ?? '').trim();
-    if (!normalizedKey) return undefined;
-
-    const direct = this.i18n.get(normalizedKey);
-    if (typeof direct === 'string' && direct.trim().length > 0) {
-      return direct.trim();
-    }
-
-    const translated = this.i18n.tOr(normalizedKey, '');
-    return translated.trim().length > 0 ? translated.trim() : undefined;
-  }
-
-  private resolveTranslatedList(value: unknown, key?: unknown, keys?: unknown): readonly string[] | undefined {
-    const literal = this.resolveStringListValue(value as TabGroupStringListValue | undefined);
-    if (literal.length > 0) return literal;
-
-    const normalizedKey = String(this.resolveMaybeThunk(key) ?? '').trim();
-    if (normalizedKey) {
-      const direct = this.i18n.get(normalizedKey);
-      const fromKey = this.normalizeStringArray(direct);
-      if (fromKey.length > 0) return fromKey;
-    }
-
-    if (Array.isArray(keys)) {
-      const fromKeys = keys
-        .map((entry) => this.resolveTranslatedText(undefined, entry))
-        .filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0);
-      if (fromKeys.length > 0) return fromKeys;
-    }
-
-    return undefined;
-  }
-
-  private resolveTextValue(value: TabGroupTextValue | undefined): string | undefined {
-    const resolved = this.resolveMaybeThunk(value);
-    if (resolved == null) return undefined;
-
-    const normalized = String(resolved).trim();
-    return normalized.length > 0 ? normalized : undefined;
-  }
-
   private resolveStringListValue(value: TabGroupStringListValue | undefined): readonly string[] {
-    return this.normalizeStringArray(this.resolveMaybeThunk(value));
-  }
-
-  private normalizeStringArray(value: unknown): readonly string[] {
-    if (!Array.isArray(value)) return [];
-
-    return value
-      .map((entry) => String(entry ?? '').trim())
-      .filter(Boolean);
-  }
-
-  private resolveMaybeThunk(value: unknown): unknown {
-    if (typeof value === 'function' && (value as (...args: unknown[]) => unknown).length === 0) {
-      return (value as () => unknown)();
-    }
-
-    return value;
+    return resolveTranslatedStringList(this.i18n, value) ?? [];
   }
 }

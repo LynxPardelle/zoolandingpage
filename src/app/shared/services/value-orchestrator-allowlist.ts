@@ -21,8 +21,6 @@ export const DEFAULT_ALLOWED_VALUE_IDS = [
     'scopeOr',
     'var',
     'varOr',
-    'numberClamp',
-    'statsFormatVar',
 ] as const;
 
 /**

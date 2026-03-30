@@ -150,25 +150,28 @@ Use `classJoin` when you need to compose base classes and optional dynamic class
 set:config.classes,classJoin,literal,ank-position-absolute ank-inset-0 ank-bgCover ank-borderRadius-1rem,var,hero.extraClasses
 ```
 
-### Stats counters with variables + fallback chain
+### Stats counters with variables
 
-Use `varOr` with host fallbacks to keep counters resilient when the variables payload is incomplete.
+Bind plain stats-counter config fields directly from `variables.statsCounters`.
 
 ```text
-set:config.target,varOr,statsCounters.visits.target,eval:host.statsStripVisitsFallback;
-set:config.durationMs,varOr,statsCounters.visits.durationMs,1600;
+set:config.target,var,statsCounters.visits.target;
+set:config.durationMs,var,statsCounters.visits.durationMs;
 set:config.ariaLabel,i18n,statsStrip.visitsLabel;
-set:config.format,statsFormatVar,statsCounters.visits.formatMode,number,statsCounters.visits.formatSuffix
+set:config.formatMode,var,statsCounters.visits.formatMode;
+set:config.formatPrefix,var,statsCounters.visits.formatPrefix;
+set:config.formatSuffix,var,statsCounters.visits.formatSuffix
 ```
 
-Average-time counters can apply normalization after target resolution:
+Average-time counters can bind clamp bounds directly as part of the component config:
 
 ```text
-set:config.target,varOr,statsCounters.avgTime.target,eval:host.statsStripAverageTimeFallback;
-set:config.minClamp,varOr,statsCounters.avgTime.min,0;
-set:config.maxClamp,varOr,statsCounters.avgTime.max,999999;
-set:config.target,numberClamp,eval:config.target,eval:config.minClamp,eval:config.maxClamp;
-set:config.format,statsFormatVar,statsCounters.avgTime.formatMode,suffix,statsCounters.avgTime.formatSuffix,s
+set:config.target,var,statsCounters.avgTime.target;
+set:config.min,var,statsCounters.avgTime.min;
+set:config.max,var,statsCounters.avgTime.max;
+set:config.durationMs,var,statsCounters.avgTime.durationMs;
+set:config.formatMode,var,statsCounters.avgTime.formatMode;
+set:config.formatSuffix,var,statsCounters.avgTime.formatSuffix
 ```
 
 Recommended variables payload shape:
@@ -203,8 +206,8 @@ Recommended variables payload shape:
 Why this pattern:
 
 - keeps component stores declarative (no service calls inside config stores)
-- avoids malformed class strings when one fragment is empty
-- scales to multiple dynamic class fragments with stable output
+- keeps stats-counter payloads JSON-safe end to end
+- avoids draft-specific host fallback bridges or temporary config fields
 
 ### Scoped interaction state
 

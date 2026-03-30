@@ -51,8 +51,55 @@ const ALLOWED_COMPONENT_TYPES = new Set([
     'none',
 ]);
 
+const ALLOWED_LOOP_BINDING_TRANSFORMS = new Set([
+    'i18nKey',
+    'locale',
+    'navigationHref',
+]);
+
 const isStringArray = (value: unknown): value is readonly string[] =>
     Array.isArray(value) && value.every((item) => typeof item === 'string');
+
+const isLoopBindingSource = (value: unknown): boolean => {
+    if (typeof value === 'string') return value.trim().length > 0;
+    if (!isRecord(value)) return false;
+    if (typeof value['from'] !== 'string' || value['from'].trim().length === 0) return false;
+    if (value['transform'] !== undefined && !ALLOWED_LOOP_BINDING_TRANSFORMS.has(String(value['transform']))) {
+        return false;
+    }
+    return true;
+};
+
+const isLoopBinding = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (typeof value['to'] !== 'string' || value['to'].trim().length === 0) return false;
+
+    const sources = value['sources'];
+    if (!Array.isArray(sources) || sources.length === 0 || !sources.every(isLoopBindingSource)) return false;
+
+    return true;
+};
+
+const isLoopConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (typeof value['templateId'] !== 'string' || value['templateId'].trim().length === 0) return false;
+    if (value['idPrefix'] !== undefined && typeof value['idPrefix'] !== 'string') return false;
+
+    const bindings = value['bindings'];
+    if (bindings !== undefined && (!Array.isArray(bindings) || !bindings.every(isLoopBinding))) {
+        return false;
+    }
+
+    if (value['source'] === 'repeat') {
+        return typeof value['count'] === 'number' && Number.isFinite(value['count']);
+    }
+
+    if (value['source'] === 'var' || value['source'] === 'i18n') {
+        return typeof value['path'] === 'string' && value['path'].trim().length > 0;
+    }
+
+    return false;
+};
 
 const isDraftLanguageDefinition = (value: unknown): value is TDraftLanguageDefinition => {
     if (!isRecord(value)) return false;
@@ -551,6 +598,35 @@ const isTabGroupConfig = (value: unknown): boolean => {
     return true;
 };
 
+const isStatsCounterConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+
+    const allowedKeys = new Set([
+        'target',
+        'durationMs',
+        'startOnVisible',
+        'ariaLabel',
+        'min',
+        'max',
+        'formatMode',
+        'formatPrefix',
+        'formatSuffix',
+    ]);
+
+    if (Object.keys(value).some((key) => !allowedKeys.has(key))) return false;
+    if (value['target'] !== undefined && !isNumberThunkFriendly(value['target'])) return false;
+    if (value['durationMs'] !== undefined && !isNumberThunkFriendly(value['durationMs'])) return false;
+    if (value['startOnVisible'] !== undefined && typeof value['startOnVisible'] !== 'boolean') return false;
+    if (value['ariaLabel'] !== undefined && typeof value['ariaLabel'] !== 'string') return false;
+    if (value['min'] !== undefined && !isNumberThunkFriendly(value['min'])) return false;
+    if (value['max'] !== undefined && !isNumberThunkFriendly(value['max'])) return false;
+    if (value['formatMode'] !== undefined && typeof value['formatMode'] !== 'string') return false;
+    if (value['formatPrefix'] !== undefined && typeof value['formatPrefix'] !== 'string') return false;
+    if (value['formatSuffix'] !== undefined && typeof value['formatSuffix'] !== 'string') return false;
+
+    return true;
+};
+
 const isInteractionScopeConfig = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
     if (value['scopeId'] !== undefined && typeof value['scopeId'] !== 'string') return false;
@@ -573,6 +649,7 @@ const isComponentPayloadRecord = (value: unknown): boolean => {
     if (value['condition'] !== undefined && typeof value['condition'] !== 'string' && typeof value['condition'] !== 'boolean') return false;
     if (value['valueInstructions'] !== undefined && typeof value['valueInstructions'] !== 'string') return false;
     if (value['eventInstructions'] !== undefined && typeof value['eventInstructions'] !== 'string') return false;
+    if (value['loopConfig'] !== undefined && !isLoopConfig(value['loopConfig'])) return false;
 
     if (value['type'] === 'generic-card') {
         return isGenericCardConfig(value['config']);
@@ -592,6 +669,10 @@ const isComponentPayloadRecord = (value: unknown): boolean => {
 
     if (value['type'] === 'search-box') {
         return isSearchBoxConfig(value['config']);
+    }
+
+    if (value['type'] === 'stats-counter') {
+        return isStatsCounterConfig(value['config']);
     }
 
     if (value['type'] === 'tab-group') {
@@ -623,16 +704,8 @@ const isStatsCounterVariableConfig = (value: unknown): boolean => {
     return true;
 };
 
-const isStatsCountersVariableConfig = (value: unknown): boolean => {
-    if (!isRecord(value)) return false;
-
-    const sections = ['visits', 'cta', 'avgTime'] as const;
-    return sections.every((key) => {
-        const sectionValue = value[key];
-        if (sectionValue === undefined) return true;
-        return isStatsCounterVariableConfig(sectionValue);
-    });
-};
+const isStatsCountersVariableConfig = (value: unknown): boolean =>
+    isRecord(value) && Object.values(value).every((entry) => entry === undefined || isStatsCounterVariableConfig(entry));
 
 const isThemeColorToken = (value: unknown): value is TThemeAccentColorToken =>
     typeof value === 'string' && (THEME_ACCENT_COLOR_TOKENS as readonly string[]).includes(value);
@@ -657,14 +730,32 @@ const isModalSize = (value: unknown): boolean => value === 'sm' || value === 'md
 const isDraftModalUiConfig = (value: unknown): value is TDraftModalUiConfig => {
     if (!isRecord(value)) return false;
 
+    const stringFields = [
+        'ariaLabel',
+        'ariaLabelKey',
+        'ariaDescribedBy',
+        'containerClasses',
+        'containerDialogClasses',
+        'containerSheetClasses',
+        'panelClasses',
+        'panelDialogClasses',
+        'panelSheetClasses',
+        'panelMotionClasses',
+        'panelNoMotionClasses',
+        'panelSMClasses',
+        'panelMDClasses',
+        'panelLGClasses',
+        'accentBarClasses',
+        'closeButtonClasses',
+    ] as const;
+
     if (value['size'] !== undefined && !isModalSize(value['size'])) return false;
     if (value['closeOnBackdrop'] !== undefined && typeof value['closeOnBackdrop'] !== 'boolean') return false;
     if (value['showCloseButton'] !== undefined && typeof value['showCloseButton'] !== 'boolean') return false;
     if (value['showAccentBar'] !== undefined && typeof value['showAccentBar'] !== 'boolean') return false;
     if (value['accentColor'] !== undefined && !isThemeColorToken(value['accentColor'])) return false;
     if (value['variant'] !== undefined && value['variant'] !== 'dialog' && value['variant'] !== 'sheet') return false;
-    if (value['ariaLabel'] !== undefined && typeof value['ariaLabel'] !== 'string') return false;
-    if (value['ariaLabelKey'] !== undefined && typeof value['ariaLabelKey'] !== 'string') return false;
+    if (stringFields.some((key) => value[key] !== undefined && typeof value[key] !== 'string')) return false;
 
     return true;
 };

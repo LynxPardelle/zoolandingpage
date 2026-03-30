@@ -134,33 +134,22 @@ set:config.ariaLabel,var,ui.mobileMenuAriaLabel
 set:config.text,varOr,ui.brandTextFallback,Zoo Landing
 ```
 
-### `numberClamp`
+### Stats counters
 
-- Purpose: clamp a numeric value between min/max bounds.
-- Typical usage:
+Stats counters no longer need dedicated value handlers.
 
-```text
-set:config.target,numberClamp,eval:config.target,284,600
-```
-
-### `statsFormatVar`
-
-- Purpose: build a stats-counter formatter function from variables payload paths.
-- Args:
-  - `modePath` (variables path for mode: `number`, `suffix`, `percent`, `prefix`, `prefixSuffix`)
-  - `fallbackMode`
-  - `suffixPath` (variables path for suffix)
-  - `fallbackSuffix`
-  - `prefixPath` (variables path for prefix)
-  - `fallbackPrefix`
-- Notes:
-  - `number` mode preserves localized number formatting and appends suffix when present.
-  - Numeric HTML entities in suffix (for example `&#43;`) are decoded.
-- Typical usage:
+Author plain config fields directly with `var` or `varOr`:
 
 ```text
-set:config.format,statsFormatVar,statsCounters.avgTime.formatMode,suffix,statsCounters.avgTime.formatSuffix,s
+set:config.target,var,statsCounters.avgTime.target;
+set:config.min,var,statsCounters.avgTime.min;
+set:config.max,var,statsCounters.avgTime.max;
+set:config.formatMode,var,statsCounters.avgTime.formatMode;
+set:config.formatPrefix,var,statsCounters.avgTime.formatPrefix;
+set:config.formatSuffix,var,statsCounters.avgTime.formatSuffix
 ```
+
+The `stats-counter` runtime now handles clamping and display formatting from those plain fields.
 
 ## Adding a new handler (developer workflow)
 

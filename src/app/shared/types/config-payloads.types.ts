@@ -1,5 +1,5 @@
 import type { TGenericInputConfig } from '../components/generic-input/generic-input.types';
-import type { ModalConfig, ModalSize } from '../components/generic-modal/generic-modal.types';
+import type { ModalConfig } from '../components/generic-modal/generic-modal.types';
 import type { TInteractionScopeConfig } from '../components/interaction-scope/interaction-scope.types';
 import type { TThemeVariableConfig } from './theme.types';
 
@@ -36,14 +36,29 @@ export type TDraftSocialLinkConfig = {
     readonly rel?: string;
 };
 
-export type TDraftModalUiConfig = {
-    readonly size?: ModalSize;
-    readonly closeOnBackdrop?: boolean;
-    readonly showCloseButton?: boolean;
-    readonly showAccentBar?: boolean;
-    readonly accentColor?: ModalConfig['accentColor'];
-    readonly variant?: ModalConfig['variant'];
-    readonly ariaLabel?: string;
+export type TDraftModalUiConfig = Pick<ModalConfig,
+    'size'
+    | 'closeOnBackdrop'
+    | 'showCloseButton'
+    | 'showAccentBar'
+    | 'accentColor'
+    | 'variant'
+    | 'ariaLabel'
+    | 'ariaDescribedBy'
+    | 'containerClasses'
+    | 'containerDialogClasses'
+    | 'containerSheetClasses'
+    | 'panelClasses'
+    | 'panelDialogClasses'
+    | 'panelSheetClasses'
+    | 'panelMotionClasses'
+    | 'panelNoMotionClasses'
+    | 'panelSMClasses'
+    | 'panelMDClasses'
+    | 'panelLGClasses'
+    | 'accentBarClasses'
+    | 'closeButtonClasses'
+> & {
     readonly ariaLabelKey?: string;
 };
 
@@ -120,9 +135,7 @@ export type TStatsCounterVariableConfig = {
 };
 
 export type TStatsCountersVariableConfig = {
-    readonly visits?: TStatsCounterVariableConfig;
-    readonly cta?: TStatsCounterVariableConfig;
-    readonly avgTime?: TStatsCounterVariableConfig;
+    readonly [key: string]: TStatsCounterVariableConfig | undefined;
 };
 
 export type TI18nPayload = {

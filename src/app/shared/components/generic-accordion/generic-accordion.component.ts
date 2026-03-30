@@ -2,6 +2,15 @@ import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Output, Signal, computed, inject, input, signal } from '@angular/core';
 import { I18nService } from '../../services/i18n.service';
 import { VariableStoreService } from '../../services/variable-store.service';
+import {
+  normalizeCanonicalContentItemId,
+  resolveConfigSourceValue,
+  resolveDynamicValue,
+  resolveTextValue,
+  resolveTranslatedStringList,
+  resolveTranslatedText,
+  scrollElementIntoViewportCenter,
+} from '../../utility/component-orchestrator.utility';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { GenericIconComponent } from '../generic-icon/generic-icon.component';
 import { AccordionItem, AccordionStringListValue, AccordionTextValue, TAccordionConfig } from './generic-accordion.types';
@@ -17,10 +26,10 @@ export class GenericAccordionComponent {
   readonly config = input<TAccordionConfig>({});
   readonly items: Signal<readonly AccordionItem[]> = computed(() => {
     const cfg = this.config();
-    const source = cfg.itemsSource;
-    const sourceData = source?.path
-      ? (source.source === 'var' ? this.variableStore.get(source.path) : this.i18n.get(source.path))
-      : this.resolveMaybeThunk(cfg.items);
+    const sourceData = resolveConfigSourceValue(cfg.itemsSource, cfg.items, {
+      getVariable: (path) => this.variableStore.get(path),
+      getI18n: (path) => this.i18n.get(path),
+    });
 
     if (!Array.isArray(sourceData)) return [];
 
@@ -46,27 +55,27 @@ export class GenericAccordionComponent {
   itemId = (item: AccordionItem) => item.id ?? '';
 
   titleOf = (item: AccordionItem) => {
-    return this.resolveTextValue(item.title);
+    return resolveTextValue(item.title);
   };
 
   summaryOf = (item: AccordionItem) => {
-    return this.resolveTextValue(item.summary);
+    return resolveTextValue(item.summary);
   };
 
   contentOf = (item: AccordionItem) => {
-    return this.resolveTextValue(item.content);
+    return resolveTextValue(item.content);
   };
 
   metaOf = (item: AccordionItem) => {
-    return this.resolveTextValue(item.meta);
+    return resolveTextValue(item.meta);
   };
 
   iconOf = (item: AccordionItem) => {
-    return this.resolveTextValue(item.icon);
+    return resolveTextValue(item.icon);
   };
 
   indexLabelOf = (item: AccordionItem) => {
-    return this.resolveTextValue(item.indexLabel);
+    return resolveTextValue(item.indexLabel);
   };
 
   indexLabelClasses = (item: AccordionItem) => {
@@ -82,13 +91,13 @@ export class GenericAccordionComponent {
     return this.resolveStringListValue(item.detailItems);
   };
 
-  detailContentLabel = () => this.resolveTextValue(this.config().detailContentLabel);
+  detailContentLabel = () => resolveTextValue(this.config().detailContentLabel);
 
-  detailItemsLabel = () => this.resolveTextValue(this.config().detailItemsLabel);
+  detailItemsLabel = () => resolveTextValue(this.config().detailItemsLabel);
 
-  detailMetaIconName = () => this.resolveTextValue(this.config().detailMetaIconName);
+  detailMetaIconName = () => resolveTextValue(this.config().detailMetaIconName);
 
-  detailItemIconName = () => this.resolveTextValue(this.config().detailItemIconName);
+  detailItemIconName = () => resolveTextValue(this.config().detailItemIconName);
 
   itemHasRichHeader = (item: AccordionItem) => this.detailMode() || !!this.indexLabelOf(item) || !!this.summaryOf(item);
 
@@ -105,7 +114,7 @@ export class GenericAccordionComponent {
   buttonIconFor = (item: AccordionItem) => {
     const configured = item.buttonConfig?.icon || this.config().defaultItemButtonConfig?.icon;
     if (configured) return configured;
-    return this.detailMode() ? this.resolveTextValue(this.config().toggleIconName) : undefined;
+    return this.detailMode() ? resolveTextValue(this.config().toggleIconName) : undefined;
   };
 
   isExpanded = (id: string) => this.expandedIds().includes(id);
@@ -185,16 +194,12 @@ export class GenericAccordionComponent {
     const element = document.querySelector(`[data-accordion-item="${ id }"]`) as HTMLElement | null;
     if (!element) return;
 
-    const rect = element.getBoundingClientRect();
-    const viewportHeight = window.innerHeight;
-    const target = rect.top + window.pageYOffset - viewportHeight / 2 + rect.height / 2;
-
-    window.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
+    scrollElementIntoViewportCenter(element);
   }
 
   private resolveExpandedIds(): readonly string[] | undefined {
     const cfg = this.config();
-    const activeIds = this.resolveMaybeThunk(cfg.activeIds);
+    const activeIds = resolveDynamicValue(cfg.activeIds);
     if (Array.isArray(activeIds)) {
       const normalized = activeIds
         .map((entry) => String(entry ?? '').trim())
@@ -203,7 +208,7 @@ export class GenericAccordionComponent {
     }
 
     if (cfg.activeId !== undefined) {
-      const activeId = this.resolveMaybeThunk(cfg.activeId);
+      const activeId = resolveDynamicValue(cfg.activeId);
       const normalized = String(activeId ?? '').trim();
       return normalized ? [normalized] : [];
     }
@@ -215,16 +220,17 @@ export class GenericAccordionComponent {
     if (!entry || typeof entry !== 'object') return null;
 
     const record = entry as Record<string, unknown>;
-    const title = this.resolveTranslatedText(record['title'], record['titleKey']);
+    const title = resolveTranslatedText(this.i18n, record['title'], record['titleKey']);
     if (!title) return null;
 
     const stepNumber = Number(record['step']);
-    const indexLabel = this.resolveTranslatedText(record['indexLabel'])
+    const indexLabel = resolveTranslatedText(this.i18n, record['indexLabel'])
       ?? (Number.isFinite(stepNumber) && stepNumber > 0 ? String(Math.floor(stepNumber)) : undefined);
-    const content = this.resolveTranslatedText(record['content'], record['contentKey']);
-    const summary = this.resolveTranslatedText(record['summary'], record['summaryKey']);
-    const meta = this.resolveTranslatedText(record['meta'], record['metaKey']);
-    const detailItems = this.resolveTranslatedList(
+    const content = resolveTranslatedText(this.i18n, record['content'], record['contentKey']);
+    const summary = resolveTranslatedText(this.i18n, record['summary'], record['summaryKey']);
+    const meta = resolveTranslatedText(this.i18n, record['meta'], record['metaKey']);
+    const detailItems = resolveTranslatedStringList(
+      this.i18n,
       record['detailItems'],
       record['detailItemsKey'],
       record['detailItemKeys']
@@ -232,92 +238,19 @@ export class GenericAccordionComponent {
 
     return {
       ...(record as AccordionItem),
-      id: this.normalizeItemId(record, index),
+      id: normalizeCanonicalContentItemId(record, index),
       title,
       indexLabel,
       content,
       summary,
       meta,
       detailItems,
-      icon: this.resolveTextValue(record['icon'] as AccordionTextValue | undefined),
+      icon: resolveTextValue(record['icon'] as AccordionTextValue | undefined),
       disabled: Boolean(record['disabled'] ?? false),
     };
   }
 
-  private normalizeItemId(record: Record<string, unknown>, index: number): string {
-    const explicit = this.resolveTextValue(record['id'] as AccordionTextValue | undefined);
-    if (explicit) return explicit;
-
-    const stepNumber = Number(record['step']);
-    if (Number.isFinite(stepNumber) && stepNumber > 0) {
-      return `item-${ Math.floor(stepNumber) }`;
-    }
-
-    return `item-${ index + 1 }`;
-  }
-
-  private resolveTranslatedText(value: unknown, key?: unknown): string | undefined {
-    const literal = this.resolveTextValue(value as AccordionTextValue | undefined);
-    if (literal) return literal;
-
-    const normalizedKey = String(this.resolveMaybeThunk(key) ?? '').trim();
-    if (!normalizedKey) return undefined;
-
-    const direct = this.i18n.get(normalizedKey);
-    if (typeof direct === 'string' && direct.trim().length > 0) {
-      return direct.trim();
-    }
-
-    const translated = this.i18n.tOr(normalizedKey, '');
-    return translated.trim().length > 0 ? translated.trim() : undefined;
-  }
-
-  private resolveTranslatedList(value: unknown, key?: unknown, keys?: unknown): readonly string[] | undefined {
-    const literal = this.resolveStringListValue(value as AccordionStringListValue | undefined);
-    if (literal.length > 0) return literal;
-
-    const normalizedKey = String(this.resolveMaybeThunk(key) ?? '').trim();
-    if (normalizedKey) {
-      const direct = this.i18n.get(normalizedKey);
-      const fromKey = this.normalizeStringArray(direct);
-      if (fromKey.length > 0) return fromKey;
-    }
-
-    if (Array.isArray(keys)) {
-      const fromKeys = keys
-        .map((entry) => this.resolveTranslatedText(undefined, entry))
-        .filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0);
-      if (fromKeys.length > 0) return fromKeys;
-    }
-
-    return undefined;
-  }
-
-  private resolveTextValue(value: AccordionTextValue | undefined): string | undefined {
-    const resolved = this.resolveMaybeThunk(value);
-    if (resolved == null) return undefined;
-
-    const normalized = String(resolved).trim();
-    return normalized.length > 0 ? normalized : undefined;
-  }
-
   private resolveStringListValue(value: AccordionStringListValue | undefined): readonly string[] {
-    return this.normalizeStringArray(this.resolveMaybeThunk(value));
-  }
-
-  private normalizeStringArray(value: unknown): readonly string[] {
-    if (!Array.isArray(value)) return [];
-
-    return value
-      .map((entry) => String(entry ?? '').trim())
-      .filter(Boolean);
-  }
-
-  private resolveMaybeThunk(value: unknown): unknown {
-    if (typeof value === 'function' && (value as (...args: unknown[]) => unknown).length === 0) {
-      return (value as () => unknown)();
-    }
-
-    return value;
+    return resolveTranslatedStringList(this.i18n, value) ?? [];
   }
 }

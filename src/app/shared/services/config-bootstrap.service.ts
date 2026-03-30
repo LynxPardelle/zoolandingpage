@@ -47,6 +47,7 @@ export type TBootstrapResult = {
 };
 
 const EXPECTED_CONFIG_VERSION = 1;
+const LOOP_INDEX_TOKEN = '{{index}}';
 
 @Injectable({ providedIn: 'root' })
 export class ConfigBootstrapService {
@@ -78,11 +79,83 @@ export class ConfigBootstrapService {
         return config['components'].filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0);
     }
 
+    private collectReferencedModalIds(components: Record<string, unknown>): readonly string[] {
+        const modalIds = new Set<string>();
+
+        Object.values(components).forEach((component) => {
+            if (!this.isRecord(component)) return;
+
+            const eventInstructions = component['eventInstructions'];
+            if (typeof eventInstructions === 'string') {
+                eventInstructions
+                    .split(';')
+                    .map((segment) => segment.trim())
+                    .filter(Boolean)
+                    .forEach((segment) => {
+                        const [action, ...rawArgs] = segment.split(':');
+                        if (action.trim() !== 'openModal') return;
+
+                        const modalId = rawArgs.join(':').split(',')[0]?.trim();
+                        if (modalId) {
+                            modalIds.add(modalId);
+                        }
+                    });
+            }
+
+            const condition = component['condition'];
+            if (typeof condition === 'string') {
+                const matches = condition.matchAll(/(?:^|;)\s*(?:all|any|not):modalRefId,([^,;]+)/g);
+                for (const match of matches) {
+                    const modalId = match[1]?.trim();
+                    if (modalId) {
+                        modalIds.add(modalId);
+                    }
+                }
+            }
+        });
+
+        return [...modalIds];
+    }
+
     private resolveLoopTemplateId(component: unknown): string | null {
         if (!this.isRecord(component)) return null;
         const loopConfig = this.isRecord(component['loopConfig']) ? component['loopConfig'] : null;
         const templateId = loopConfig?.['templateId'];
         return typeof templateId === 'string' && templateId.trim().length > 0 ? templateId.trim() : null;
+    }
+
+    private resolveLoopIdPrefix(component: unknown): string | null {
+        if (!this.isRecord(component)) return null;
+        const loopConfig = this.isRecord(component['loopConfig']) ? component['loopConfig'] : null;
+        const explicitIdPrefix = loopConfig?.['idPrefix'];
+        if (typeof explicitIdPrefix === 'string' && explicitIdPrefix.trim().length > 0) {
+            return explicitIdPrefix.trim();
+        }
+
+        return this.resolveLoopTemplateId(component);
+    }
+
+    private collectGeneratedLoopPrefixes(components: Record<string, unknown>): ReadonlySet<string> {
+        const prefixes = new Set<string>();
+
+        Object.values(components).forEach((component) => {
+            const prefix = this.resolveLoopIdPrefix(component);
+            if (prefix) prefixes.add(prefix);
+        });
+
+        return prefixes;
+    }
+
+    private isGeneratedLoopReference(childId: string, generatedPrefixes: ReadonlySet<string>): boolean {
+        if (!childId.includes(LOOP_INDEX_TOKEN)) return false;
+
+        for (const prefix of generatedPrefixes) {
+            if (childId === `${ prefix }__${ LOOP_INDEX_TOKEN }`) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private normalizeDraftLanguageDefinition(entry: string | TDraftLanguageDefinition): TDraftLanguageDefinition | null {
@@ -170,6 +243,7 @@ export class ConfigBootstrapService {
         const fallbackLang = this.secondaryLanguage(lang, draftLanguages);
 
         const variables = loadedVariables;
+        this.store.setStage('angora-combos');
         const combos = await this.loadCombos(domain, pageId);
         this.store.setVariables(variables);
         this.store.setCombos(combos);
@@ -183,8 +257,11 @@ export class ConfigBootstrapService {
             void this.i18n.prefetch(fallbackLang);
         }
 
+        this.store.setStage('seo');
         const seo = await this.loadSeo(domain, pageId);
+        this.store.setStage('structured-data');
         const structuredData = await this.loadStructuredData(domain, pageId);
+        this.store.setStage('analytics-config');
         const analytics = await this.loadAnalytics(domain, pageId);
         this.store.setSeo(seo);
         this.store.setStructuredData(structuredData);
@@ -367,6 +444,7 @@ export class ConfigBootstrapService {
         addIssue(Object.keys(components).length === 0, 'components.json must include at least one component entry.');
 
         const componentIds = new Set(Object.keys(components));
+        const generatedLoopPrefixes = this.collectGeneratedLoopPrefixes(components);
         const addMissingReferenceIssue = (message: string) => {
             if (!issues.includes(message)) {
                 issues.push(message);
@@ -383,6 +461,10 @@ export class ConfigBootstrapService {
 
         for (const [componentId, component] of Object.entries(components)) {
             for (const childId of this.collectChildComponentIds(component)) {
+                if (this.isGeneratedLoopReference(childId, generatedLoopPrefixes)) {
+                    continue;
+                }
+
                 if (!componentIds.has(childId)) {
                     addMissingReferenceIssue(`Component "${ componentId }" references missing child component "${ childId }".`);
                 }
@@ -399,11 +481,25 @@ export class ConfigBootstrapService {
         const i18n = this.isRecord(variables['i18n']) ? variables['i18n'] : null;
         const ui = this.isRecord(variables['ui']) ? variables['ui'] : null;
         const contact = this.isRecord(ui?.['contact']) ? ui['contact'] : null;
+        const modalConfigs = this.isRecord(ui?.['modals']) ? ui['modals'] as Record<string, unknown> : null;
+        const referencedModalIds = this.collectReferencedModalIds(components);
 
         addIssue(!theme, 'variables.theme is required.');
         addIssue(!i18n, 'variables.i18n is required.');
         addIssue(!this.isNonEmptyString(i18n?.['defaultLanguage']), 'variables.i18n.defaultLanguage is required.');
         addIssue(!Array.isArray(i18n?.['supportedLanguages']) || i18n['supportedLanguages'].length === 0, 'variables.i18n.supportedLanguages must include at least one language.');
+
+        referencedModalIds.forEach((modalId) => {
+            const modalConfig = modalConfigs && this.isRecord(modalConfigs[modalId]) ? modalConfigs[modalId] as Record<string, unknown> : null;
+
+            addIssue(!modalConfig, `variables.ui.modals.${ modalId } is required when modal "${ modalId }" is referenced.`);
+            addIssue(
+                !!modalConfig
+                && !this.isNonEmptyString(modalConfig['ariaLabel'])
+                && !this.isNonEmptyString(modalConfig['ariaLabelKey']),
+                `variables.ui.modals.${ modalId }.ariaLabel or ariaLabelKey is required when modal "${ modalId }" is referenced.`
+            );
+        });
 
         const requiresWhatsAppContact = Object.values(components).some((component) => {
             if (!this.isRecord(component)) return false;

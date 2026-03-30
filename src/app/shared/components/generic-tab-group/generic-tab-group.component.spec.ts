@@ -1,14 +1,20 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { I18nService } from '../../services/i18n.service';
+import { VariableStoreService } from '../../services/variable-store.service';
 import { GenericTabGroupComponent } from './generic-tab-group.component';
 
 describe('GenericTabGroupComponent', () => {
   let fixture: ComponentFixture<GenericTabGroupComponent>;
   let comp: GenericTabGroupComponent;
+  let i18n: I18nService;
+  let variables: VariableStoreService;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({ imports: [GenericTabGroupComponent] }).compileComponents();
     fixture = TestBed.createComponent(GenericTabGroupComponent);
     comp = fixture.componentInstance;
+    i18n = TestBed.inject(I18nService);
+    variables = TestBed.inject(VariableStoreService);
     fixture.componentRef.setInput('config', {
       tabs: [
         { id: 'a', label: 'A' },
@@ -74,5 +80,55 @@ describe('GenericTabGroupComponent', () => {
 
     const host = fixture.nativeElement as HTMLElement;
     expect(host.querySelectorAll('mat-icon').length).toBe(0);
+  });
+
+  it('resolves split-detail tabs from draft-native var and i18n payloads', () => {
+    variables.setPayload({
+      version: 1,
+      pageId: 'default',
+      domain: 'zoolandingpage.com.mx',
+      variables: {
+        processSection: {
+          steps: [
+            {
+              id: '1',
+              step: 1,
+              titleKey: 'process.0.title',
+              summaryKey: 'process.0.summary',
+              contentKey: 'process.0.content',
+              metaKey: 'process.0.meta',
+              detailItemsKey: 'process.0.detailItems',
+            },
+          ],
+        },
+      },
+      computed: {},
+    });
+    i18n.setTranslations('es', {
+      process: [
+        {
+          title: 'Discovery',
+          summary: 'Understand the business goals',
+          content: 'Detailed description',
+          meta: '2 days',
+          detailItems: ['Item A', 'Item B'],
+        },
+      ],
+    }, { applyIfCurrent: true });
+
+    fixture.componentRef.setInput('config', {
+      layout: 'split-detail',
+      tabsSource: {
+        source: 'var',
+        path: 'processSection.steps',
+      },
+    });
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    expect(comp.tabs()[0]?.title).toBe('Discovery');
+    expect(host.textContent).toContain('Understand the business goals');
+    expect(host.textContent).toContain('Detailed description');
+    expect(host.textContent).toContain('Item A');
   });
 });

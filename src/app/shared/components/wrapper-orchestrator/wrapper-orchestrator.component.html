@@ -153,12 +153,7 @@
   ></ng-container>
 </generic-link>
 } @case('media') {
-<generic-media [config]="component.config">
-  <ng-container
-    [ngTemplateOutlet]="wrapperOrchestratorTpl"
-    [ngTemplateOutletContext]="{ $implicit: component }"
-  ></ng-container>
-</generic-media>
+<generic-media [config]="component.config"></generic-media>
 }@case('text') {
 <generic-text [config]="component.config">
   <ng-container

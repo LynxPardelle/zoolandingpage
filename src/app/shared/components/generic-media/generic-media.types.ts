@@ -1,7 +1,4 @@
 
-import type { TComponentChild } from '../component-children.types';
-
-
 export type GenericMediaTag =
     | 'audio'
     | 'video'
@@ -9,12 +6,13 @@ export type GenericMediaTag =
     | 'document'
     | 'other';
 
+type TDynamicMediaValue<TValue> = TValue | (() => TValue);
+
 export type TGenericMediaConfig = {
-    readonly id: string;
-    readonly src: string;
-    readonly tag: GenericMediaTag;
-    readonly alt?: string;
-    readonly classes?: string;
-    readonly components?: readonly TComponentChild[];
+    readonly id?: TDynamicMediaValue<string>;
+    readonly src: TDynamicMediaValue<string>;
+    readonly tag: TDynamicMediaValue<GenericMediaTag>;
+    readonly alt?: TDynamicMediaValue<string>;
+    readonly classes?: TDynamicMediaValue<string>;
 };
 

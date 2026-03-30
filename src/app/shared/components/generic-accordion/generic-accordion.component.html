@@ -52,7 +52,7 @@
         @if (indexLabelOf(item)) {
         <span [class]="indexLabelClasses(item)">{{ indexLabelOf(item) }}</span>
         }
-        <span class="ank-display-flex ank-flexDirection-column ank-flex-1 ank-textAlign-left">
+        <span class="accItemTextStack">
           <span [class]="config().titleClasses || 'accItemTitle'">{{ titleOf(item) }}</span>
           @if (summaryOf(item)) {
           <span [class]="config().summaryClasses || 'accItemSummary'">{{ summaryOf(item) }}</span>
@@ -80,7 +80,7 @@
             }"
           ></generic-icon>
           }
-          <div class="ank-display-flex ank-flexDirection-column ank-gap-8px">
+          <div class="accDetailTextStack">
             <h3 [class]="config().detailTitleClasses || 'accDetailTitle'">{{ titleOf(item) }}</h3>
             @if (metaOf(item)) {
             <div [class]="config().detailMetaClasses || 'accDetailMeta'">
@@ -89,7 +89,7 @@
                 [config]="{
                   iconName: detailMetaIconName() || '',
                   ariaHidden: true,
-                  classes: 'ank-width-1rem ank-height-1rem ank-fontSize-1rem'
+                  classes: 'accInlineIcon'
                 }"
               ></generic-icon>
               }
@@ -115,7 +115,7 @@
               [config]="{
                 iconName: detailItemIconName() || '',
                 ariaHidden: true,
-                classes: 'ank-width-1rem ank-height-1rem ank-fontSize-1rem ank-flexShrink-0'
+                classes: 'accInlineIcon accListItemIcon'
               }"
             ></generic-icon>
             }
