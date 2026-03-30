@@ -98,18 +98,6 @@ export class GenericToastComponent {
     return baseClasses.join(' ');
   }
 
-  getIconClasses(level: ToastLevel): string {
-    // Provide minimal per-level overrides via utilities; core theme handled in SCSS animations.
-    switch (level) {
-      case 'success':
-      case 'error':
-      case 'warning':
-      case 'info':
-      default:
-        return '';
-    }
-  }
-
   onToastHover(toastId: string, isHovered: boolean): void {
     this.hoveredToasts.update(set => {
       const newSet = new Set(set);
@@ -121,10 +109,6 @@ export class GenericToastComponent {
       return newSet;
     });
   }
-
-  // Legacy noop methods retained (if template still references them)
-  trackToastEnter(_: ToastMessage): void { }
-  trackToastLeave(_: ToastMessage): void { }
 
   handleActionClick(action: ToastAction, toastId: string): void {
     try {

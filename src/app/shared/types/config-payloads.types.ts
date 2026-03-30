@@ -63,8 +63,6 @@ export type TDraftModalUiConfig = Pick<ModalConfig,
 };
 
 export type TDraftUiVariableConfig = {
-    readonly mobileMenuAriaLabel?: string;
-    readonly brandTextFallback?: string;
     readonly contact?: TDraftContactVariableConfig;
     readonly modals?: Record<string, TDraftModalUiConfig>;
     readonly languageOptions?: readonly Record<string, unknown>[];
@@ -164,6 +162,10 @@ export type TStructuredDataPayload = {
     readonly entries: readonly Record<string, unknown>[];
 };
 
+export type TAnalyticsTaxonomyMap = {
+    readonly [key: string]: string;
+};
+
 export type TAnalyticsConfigPayload = {
     readonly version: number;
     readonly pageId: string;
@@ -171,4 +173,7 @@ export type TAnalyticsConfigPayload = {
     readonly sectionIds: readonly string[];
     readonly scrollMilestones: readonly number[];
     readonly consentMode?: string;
+    readonly events?: TAnalyticsTaxonomyMap;
+    readonly categories?: TAnalyticsTaxonomyMap;
+    readonly quickStatsCtaEvents?: readonly string[];
 };

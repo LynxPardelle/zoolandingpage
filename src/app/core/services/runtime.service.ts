@@ -2,6 +2,7 @@ import { AnalyticsCategories, AnalyticsEvents } from '@/app/shared/services/anal
 import { AnalyticsService } from '@/app/shared/services/analytics.service';
 import { AngoraCombosService } from '@/app/shared/services/angora-combos.service';
 import { ConfigBootstrapService } from '@/app/shared/services/config-bootstrap.service';
+import { ConfigSourceService } from '@/app/shared/services/config-source.service';
 import { ConfigStoreService } from '@/app/shared/services/config-store.service';
 import { ConfigurationsOrchestratorService } from '@/app/shared/services/configurations-orchestrator';
 import { DraftRuntimeService } from '@/app/shared/services/draft-runtime.service';
@@ -14,8 +15,8 @@ import { filter } from 'rxjs/operators';
 
 @Injectable({ providedIn: 'root' })
 export class RuntimeService {
-    private static readonly DEBUG_MODAL_ROOT_ID = 'modalDemoRoot';
     private readonly configBootstrap = inject(ConfigBootstrapService);
+    private readonly configSource = inject(ConfigSourceService);
     private readonly orchestrator = inject(ConfigurationsOrchestratorService);
     private readonly draftRuntime = inject(DraftRuntimeService);
     private readonly combosService = inject(AngoraCombosService);
@@ -28,7 +29,11 @@ export class RuntimeService {
 
     readonly rootComponentsIds = signal<readonly string[]>([]);
     readonly modalRootIds = signal<readonly string[]>([]);
+    readonly debugWorkspaceRootIds = signal<readonly string[]>([]);
+    readonly debugWorkspaceModalRootIds = signal<readonly string[]>([]);
     private initializeQueue: Promise<void> = Promise.resolve();
+    private debugWorkspaceEnabled = false;
+    private debugWorkspaceInit: Promise<void> | null = null;
     private cssMutationObserver: MutationObserver | null = null;
     private navigationSubscription: Subscription | null = null;
     private currentLanguageResolver: (() => string) | null = null;
@@ -40,6 +45,7 @@ export class RuntimeService {
         currentLanguage: () => string;
     }): void {
         this.currentLanguageResolver = options.currentLanguage;
+        this.debugWorkspaceEnabled = options.showDebugWorkspace;
         if (this.isBrowser) {
             this.analytics.promptForConsentIfNeeded();
             this.combosService.initializeBaseCombos(1000);
@@ -83,9 +89,39 @@ export class RuntimeService {
         const nextLanguage = lang;
         this.initializeQueue = this.initializeQueue
             .catch(() => undefined)
-            .then(() => this.doInitialize(nextLanguage));
+            .then(async () => {
+                await this.ensureDebugWorkspaceConfigured();
+                await this.doInitialize(nextLanguage);
+            });
 
         return this.initializeQueue;
+    }
+
+    private async ensureDebugWorkspaceConfigured(): Promise<void> {
+        if (!this.debugWorkspaceEnabled) {
+            this.debugWorkspaceInit = null;
+            this.debugWorkspaceRootIds.set([]);
+            this.debugWorkspaceModalRootIds.set([]);
+            this.orchestrator.setAuxiliaryComponentsFromPayload('debug-workspace', null);
+            return;
+        }
+
+        if (!this.debugWorkspaceInit) {
+            this.debugWorkspaceInit = this.loadDebugWorkspacePayloads();
+        }
+
+        await this.debugWorkspaceInit;
+    }
+
+    private async loadDebugWorkspacePayloads(): Promise<void> {
+        const [pageConfig, components] = await Promise.all([
+            this.configSource.loadDebugWorkspacePageConfig(),
+            this.configSource.loadDebugWorkspaceComponents(),
+        ]);
+
+        this.orchestrator.setAuxiliaryComponentsFromPayload('debug-workspace', components);
+        this.debugWorkspaceRootIds.set(pageConfig?.rootIds ?? []);
+        this.debugWorkspaceModalRootIds.set(pageConfig?.modalRootIds ?? []);
     }
 
     private async doInitialize(lang?: string): Promise<void> {
@@ -154,11 +190,11 @@ export class RuntimeService {
     }
 
     private resolveModalRootIds(modalRootIds: readonly string[]): readonly string[] {
-        if (!environment.features.debugMode) {
+        if (!this.debugWorkspaceEnabled) {
             return [...modalRootIds];
         }
 
-        return Array.from(new Set([...modalRootIds, RuntimeService.DEBUG_MODAL_ROOT_ID]));
+        return Array.from(new Set([...modalRootIds, ...this.debugWorkspaceModalRootIds()]));
     }
 
     private bindNavigationRefresh(): void {

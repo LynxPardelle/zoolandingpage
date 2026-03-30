@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { ToastConfig, ToastLevel, ToastMessage, ToastPosition } from './generic-toast.types';
+import { ToastConfig, ToastMessage, ToastPosition } from './generic-toast.types';
 
 @Injectable({ providedIn: 'root' })
 export class ToastService {
@@ -58,11 +58,6 @@ export class ToastService {
     }
 
     return id;
-  }
-
-  // Legacy method for backward compatibility; now accepts optional options (e.g., source)
-  push(level: ToastLevel, text: string, autoCloseMs = 4000, options?: Partial<Omit<ToastMessage, 'id' | 'level' | 'text'>>) {
-    this.addToast({ level, text, autoCloseMs, ...options });
   }
 
   dismiss(id: string) {

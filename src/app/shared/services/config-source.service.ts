@@ -94,4 +94,16 @@ export class ConfigSourceService {
     loadAnalytics(domain: string, pageId: string): Promise<TAnalyticsConfigPayload | null> {
         return this.source.loadAnalytics(domain, pageId);
     }
+
+    loadDebugWorkspacePageConfig(): Promise<TPageConfigPayload | null> {
+        return environment.drafts.enabled
+            ? this.drafts.loadDebugWorkspacePageConfig()
+            : this.api.getDebugWorkspacePageConfig();
+    }
+
+    loadDebugWorkspaceComponents(): Promise<TComponentsPayload | null> {
+        return environment.drafts.enabled
+            ? this.drafts.loadDebugWorkspaceComponents()
+            : this.api.getDebugWorkspaceComponents();
+    }
 }

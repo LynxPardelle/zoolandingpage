@@ -15,13 +15,13 @@ This document explains the unified analytics event flow after the refactor on br
 
 Defined in `shared/services/analytics.events.ts`:
 
-```
+```ts
 export interface AnalyticsEventPayload {
-  readonly name: AnalyticsEventName;        // required canonical event id
-  readonly category?: AnalyticsCategory;    // high‑level grouping
-  readonly label?: string;                  // small string descriptor
-  readonly value?: number;                  // numeric metric (e.g. scroll depth %)
-  readonly meta?: any;                      // arbitrary contextual data
+  readonly name: AnalyticsEventName; // required canonical event id
+  readonly category?: AnalyticsCategory; // high-level grouping
+  readonly label?: string; // small string descriptor
+  readonly value?: number; // numeric metric (e.g. scroll depth %)
+  readonly meta?: any; // arbitrary contextual data
 }
 ```
 
@@ -29,7 +29,7 @@ export interface AnalyticsEventPayload {
 
 Components now expose an `analyticsEvent` Output instead of calling `analytics.track(...)`:
 
-```
+```ts
 readonly analyticsEvent = output<AnalyticsEventPayload>();
 ...
 this.analyticsEvent.emit({ name: AnalyticsEvents.ServicesCtaClick, category: AnalyticsCategories.Services, label: title });
@@ -48,17 +48,17 @@ Affected components/services:
 
 ### 3. AppShell Central Handler
 
-`AppShellComponent` template binds header output:
+`AppShellComponent` template binds header output.
 
 Router outlet activation wires any routed component exposing an `analyticsEvent` Output:
 
-```
+```html
 <router-outlet (activate)="onRouteActivate($event)"></router-outlet>
 ```
 
 Implementation snippet:
 
-```
+```ts
 handleAnalyticsEvent(evt: AnalyticsEventPayload) {
   if (!evt?.name) return;
   if (evt.label === 'suppress_request' && evt.meta?.suppressForMs) {
@@ -71,7 +71,7 @@ handleAnalyticsEvent(evt: AnalyticsEventPayload) {
 
 Modal events are subscribed in the constructor:
 
-```
+```ts
 this.modal.analyticsEvents$?.subscribe(e => this.handleAnalyticsEvent(e));
 ```
 
@@ -79,22 +79,22 @@ this.modal.analyticsEvents$?.subscribe(e => this.handleAnalyticsEvent(e));
 
 Previously components called `analytics.suppress(...)`. Now they emit a synthetic suppression request:
 
-```
+```ts
 this.analyticsEvent.emit({
   name: AnalyticsEvents.SectionView,
   category: AnalyticsCategories.Navigation,
   label: 'suppress_request',
-  meta: { suppressForMs: 200, intent: 'suppress_section_view_during_programmatic_scroll' }
+  meta: { suppressForMs: 200, intent: 'suppress_section_view_during_programmatic_scroll' },
 });
 ```
 
-`AppShell` interprets this (label === 'suppress_request') and applies suppression centrally.
+`AppShell` interprets this (`label === 'suppress_request'`) and applies suppression centrally.
 
 ### 5. GenericModalService Adaptation
 
 `GenericModalService` no longer injects `AnalyticsService`. It pushes events to a private Subject:
 
-```
+```ts
 private readonly _analytics$ = new Subject<AnalyticsEventPayload>();
 analyticsEvents$ = this._analytics$.asObservable();
 ```
@@ -106,8 +106,8 @@ analyticsEvents$ = this._analytics$.asObservable();
 Unit tests that previously spied on `AnalyticsService.track` inside components now subscribe to the `analyticsEvent` Output.
 Example (`services-section.component.spec.ts`):
 
-```
-component.analyticsEvent.subscribe(e => emitted = e);
+```ts
+component.analyticsEvent.subscribe(e => (emitted = e));
 component.onCta('T1');
 expect(emitted).toEqual(jasmine.objectContaining({ name: 'services_cta_click', category: 'services', label: 'T1' }));
 ```
@@ -119,9 +119,10 @@ expect(emitted).toEqual(jasmine.objectContaining({ name: 'services_cta_click', c
 Centralization enables:
 
 - Enriching all outgoing events with session/page context in one place.
-- Routing events to multiple sinks (e.g., server + console + A/B framework).
-- Batch/queue management & rate limiting centrally.
+- Routing events to multiple sinks (e.g. server + console + A/B framework).
+- Batch/queue management and rate limiting centrally.
 - Adding user consent gating without touching producers.
+- Remapping canonical framework event/category IDs through `analytics-config.json` before transport, so draft/API payloads own sink-facing taxonomy without forcing emitter changes.
 
 ### 8. Migration Checklist (applied)
 
@@ -145,9 +146,18 @@ Centralization enables:
 | Scenario               | Component code                                                                                                            | Result                                           |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
 | Track CTA              | `this.analyticsEvent.emit({ name: AnalyticsEvents.CtaClick, category: AnalyticsCategories.CTA, label: 'hero_primary' });` | AppShell forwards to `AnalyticsService.track`    |
-| Suppress SectionView   | emit payload with `label: 'suppress_request'` + `meta.suppressForMs`                                                      | AppShell calls `analytics.suppress`              |
+| Suppress SectionView   | emit payload with `label: 'suppress_request'` and `meta.suppressForMs`                                                    | AppShell calls `analytics.suppress`              |
 | Modal open             | `GenericModalService.open({ id: 'x' })`                                                                                   | GenericModalService emits event, AppShell tracks |
-| Scroll depth milestone | component emits `{ name: scroll_depth, value: pct }`                                                                      | Central tracking + later enrichment              |
+| Scroll depth milestone | component emits `{ name: 'scroll_depth', value: pct }`                                                                    | Central tracking plus later enrichment           |
+
+### 11. Payload-owned taxonomy
+
+`AnalyticsService` now treats `AnalyticsEvents.*` and `AnalyticsCategories.*` as canonical runtime IDs. Before sending data to the analytics sink, it consults `analytics-config.json` and remaps:
+
+- `events[canonicalEventName] -> transportEventName`
+- `categories[canonicalCategoryName] -> transportCategoryName`
+
+This keeps emitters stable while letting draft or API payloads define the external taxonomy expected by a backend or reporting pipeline.
 
 ---
 

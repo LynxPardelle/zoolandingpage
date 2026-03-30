@@ -8,6 +8,8 @@ import { DomainResolverService } from './domain-resolver.service';
 import { DraftRegistryService, TDraftRegistryEntry } from './draft-registry.service';
 
 export const DRAFT_RUNTIME_STICKY_QUERY_PARAMS = ['debugWorkspace'] as const;
+const INTERNAL_DEBUG_DRAFT_DOMAIN = '_debug';
+const INTERNAL_DEBUG_DRAFT_PAGE_ID = 'debug-workspace';
 
 export type TDraftOption = TDraftRegistryEntry & {
     readonly key: string;
@@ -42,11 +44,11 @@ export class DraftRuntimeService {
     readonly resolvedDraftRoute = signal<TDraftSiteRouteEntry | null>(null);
     readonly activeDraftDomain = computed(() => {
         this.locationRevision();
-        return this.domainResolver.resolveDomain().domain;
+        return this.resolveSanitizedRequestedDraftIdentity().domain;
     });
     readonly requestedDraftPageId = computed(() => {
         this.locationRevision();
-        return this.resolveRequestedDraftPageId();
+        return this.resolveSanitizedRequestedDraftIdentity().pageId;
     });
     readonly activeDraftPageId = computed(() => this.resolvedDraftPageId() || this.requestedDraftPageId());
     readonly selectedDraftKey = computed(() => this.composeDraftKey(this.activeDraftDomain(), this.activeDraftPageId()));
@@ -55,14 +57,14 @@ export class DraftRuntimeService {
         pageId: this.activeDraftPageId(),
     }));
     readonly draftOptions = computed<readonly TDraftOption[]>(() => {
-        const entries = [...this.availableDrafts()];
+        const entries = [...this.availableDrafts()].filter((entry) => this.isSelectableDraftEntry(entry));
         const active = {
             domain: this.activeDraftDomain(),
             pageId: this.activeDraftPageId(),
         };
         const activeKey = this.composeDraftKey(active.domain, active.pageId);
 
-        if (activeKey && !entries.some((entry) => this.composeDraftKey(entry.domain, entry.pageId) === activeKey)) {
+        if (activeKey && this.isSelectableDraftEntry(active) && !entries.some((entry) => this.composeDraftKey(entry.domain, entry.pageId) === activeKey)) {
             entries.push(active);
         }
 
@@ -210,7 +212,7 @@ export class DraftRuntimeService {
 
     selectDraftByKey(key: string): void {
         const selected = this.parseDraftKey(key);
-        if (!selected || !this.isBrowser) {
+        if (!selected || !this.isBrowser || !this.isSelectableDraftEntry(selected)) {
             return;
         }
 
@@ -265,8 +267,9 @@ export class DraftRuntimeService {
     }
 
     private resolveDraftIdentityCandidate(): { resolved: boolean; localHost: boolean } {
-        const resolvedDomain = this.domainResolver.resolveDomain().domain;
-        const requestedPageId = this.resolveRequestedDraftPageId();
+        const sanitizedIdentity = this.resolveSanitizedRequestedDraftIdentity();
+        const resolvedDomain = sanitizedIdentity.domain;
+        const requestedPageId = sanitizedIdentity.pageId;
         const requestUrl = this.parseRequestUrl();
         const browserHost = this.isBrowser ? String(window.location?.hostname ?? '').trim() : '';
         const requestHost = String(requestUrl?.hostname ?? '').trim();
@@ -298,6 +301,11 @@ export class DraftRuntimeService {
     }
 
     private hasExplicitDraftPageId(): boolean {
+        const identity = this.resolveSanitizedRequestedDraftIdentity();
+        if (!identity.pageId) {
+            return false;
+        }
+
         if (!this.isBrowser || !window.location?.search) {
             const requestUrl = this.parseRequestUrl();
             if (!requestUrl) {
@@ -309,6 +317,26 @@ export class DraftRuntimeService {
         }
 
         return String(new URLSearchParams(window.location.search).get('draftPageId') ?? '').trim().length > 0;
+    }
+
+    private resolveSanitizedRequestedDraftIdentity(): TDraftRegistryEntry {
+        const domain = this.domainResolver.resolveDomain().domain;
+        const pageId = this.resolveRequestedDraftPageId();
+
+        if (this.isInternalDebugDraft(domain, pageId)) {
+            return { domain: '', pageId: '' };
+        }
+
+        return { domain, pageId };
+    }
+
+    private isSelectableDraftEntry(entry: TDraftRegistryEntry): boolean {
+        return !this.isInternalDebugDraft(entry.domain, entry.pageId);
+    }
+
+    private isInternalDebugDraft(domain: string, pageId: string): boolean {
+        return String(domain).trim() === INTERNAL_DEBUG_DRAFT_DOMAIN
+            && String(pageId).trim() === INTERNAL_DEBUG_DRAFT_PAGE_ID;
     }
 
     private resolvePathname(): string {

@@ -94,7 +94,7 @@ const isLoopConfig = (value: unknown): boolean => {
         return typeof value['count'] === 'number' && Number.isFinite(value['count']);
     }
 
-    if (value['source'] === 'var' || value['source'] === 'i18n') {
+    if (value['source'] === 'var' || value['source'] === 'i18n' || value['source'] === 'host') {
         return typeof value['path'] === 'string' && value['path'].trim().length > 0;
     }
 
@@ -173,6 +173,11 @@ const isDraftSiteRouteEntry = (value: unknown): boolean => {
 
 const isNumberArray = (value: unknown): value is readonly number[] =>
     Array.isArray(value) && value.every((item) => typeof item === 'number' && Number.isFinite(item));
+
+const isStringRecord = (value: unknown): value is Record<string, string> => {
+    if (!isRecord(value)) return false;
+    return Object.values(value).every((item) => typeof item === 'string');
+};
 
 const isStringThunkFriendly = (value: unknown): boolean =>
     value === undefined || typeof value === 'string';
@@ -715,16 +720,6 @@ const isThemeColors = (value: unknown): value is TThemeColors => {
     return THEME_COLOR_KEYS.every((key) => typeof value[key] === 'string');
 };
 
-const isThemeUiConfig = (value: unknown): boolean => {
-    if (!isRecord(value)) return false;
-
-    if (value['modalAccentColor'] !== undefined && !isThemeColorToken(value['modalAccentColor'])) return false;
-    if (value['legalModalAccentColor'] !== undefined && !isThemeColorToken(value['legalModalAccentColor'])) return false;
-    if (value['demoModalAccentColor'] !== undefined && !isThemeColorToken(value['demoModalAccentColor'])) return false;
-
-    return true;
-};
-
 const isModalSize = (value: unknown): boolean => value === 'sm' || value === 'md' || value === 'lg' || value === 'full';
 
 const isDraftModalUiConfig = (value: unknown): value is TDraftModalUiConfig => {
@@ -763,8 +758,6 @@ const isDraftModalUiConfig = (value: unknown): value is TDraftModalUiConfig => {
 const isDraftUiVariableConfig = (value: unknown): value is TDraftUiVariableConfig => {
     if (!isRecord(value)) return false;
 
-    if (value['mobileMenuAriaLabel'] !== undefined && typeof value['mobileMenuAriaLabel'] !== 'string') return false;
-    if (value['brandTextFallback'] !== undefined && typeof value['brandTextFallback'] !== 'string') return false;
     if (value['contact'] !== undefined && !isDraftContactVariableConfig(value['contact'])) return false;
 
     const modals = value['modals'];
@@ -791,8 +784,6 @@ export const isThemeVariableConfig = (value: unknown): value is TThemeVariableCo
     if (!isRecord(palettes)) return false;
     if (!isThemeColors(palettes['light'])) return false;
     if (!isThemeColors(palettes['dark'])) return false;
-
-    if (value['ui'] !== undefined && !isThemeUiConfig(value['ui'])) return false;
 
     return true;
 };
@@ -912,5 +903,9 @@ export const isAnalyticsConfigPayload = (value: unknown): value is TAnalyticsCon
     if (typeof value['domain'] !== 'string') return false;
     if (!isStringArray(value['sectionIds'])) return false;
     if (!isNumberArray(value['scrollMilestones'])) return false;
+    if (value['consentMode'] !== undefined && typeof value['consentMode'] !== 'string') return false;
+    if (value['events'] !== undefined && !isStringRecord(value['events'])) return false;
+    if (value['categories'] !== undefined && !isStringRecord(value['categories'])) return false;
+    if (value['quickStatsCtaEvents'] !== undefined && !isStringArray(value['quickStatsCtaEvents'])) return false;
     return true;
 };

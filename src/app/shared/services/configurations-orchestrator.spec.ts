@@ -6,12 +6,14 @@ import { AnalyticsService } from './analytics.service';
 import { ComponentEventDispatcherService } from './component-event-dispatcher.service';
 import { ConfigurationsOrchestratorService } from './configurations-orchestrator';
 import { I18nService } from './i18n.service';
+import { LanguageService } from './language.service';
 import { VariableStoreService } from './variable-store.service';
 
 describe('ConfigurationsOrchestratorService', () => {
   let service: ConfigurationsOrchestratorService;
   let variables: VariableStoreService;
   let i18n: I18nService;
+  let language: LanguageService;
   const modalRefSignal = signal<any>(null);
 
   beforeEach(() => {
@@ -62,6 +64,7 @@ describe('ConfigurationsOrchestratorService', () => {
     service = TestBed.inject(ConfigurationsOrchestratorService);
     variables = TestBed.inject(VariableStoreService);
     i18n = TestBed.inject(I18nService);
+    language = TestBed.inject(LanguageService);
     modalRefSignal.set(null);
   });
 
@@ -230,6 +233,70 @@ describe('ConfigurationsOrchestratorService', () => {
     expect(features?.config?.components).toEqual(['featureText__1', 'featureText__2']);
   });
 
+  it('materializes host loop sources against the provided render host', () => {
+    service.setAuxiliaryComponentsFromPayload('debug-workspace', {
+      version: 1,
+      pageId: 'default',
+      domain: 'debug-workspace',
+      components: {
+        debugDraftButtonTemplate: {
+          id: 'debugDraftButtonTemplate',
+          type: 'button',
+          config: {
+            label: '',
+            classes: '',
+            ariaLabel: '',
+          },
+        },
+        debugDraftButtons: {
+          id: 'debugDraftButtons',
+          type: 'container',
+          loopConfig: {
+            source: 'host',
+            path: 'draftOptions',
+            templateId: 'debugDraftButtonTemplate',
+            idPrefix: 'debugDraftButton',
+            bindings: [
+              { to: 'config.label', sources: ['label'] },
+              { to: 'config.classes', sources: ['buttonClasses'] },
+              { to: 'config.ariaLabel', sources: ['ariaLabel'] },
+              { to: 'meta_title', sources: ['key'] },
+            ],
+          },
+          config: {
+            tag: 'div',
+            components: [],
+          },
+        },
+      },
+    });
+
+    const host = {
+      draftOptions: [
+        {
+          key: 'preview.example.test::default',
+          label: 'Preview / default',
+          buttonClasses: 'active',
+          ariaLabel: 'Open draft Preview / default',
+        },
+        {
+          key: 'music.example.test::default',
+          label: 'Music / default',
+          buttonClasses: 'inactive',
+          ariaLabel: 'Open draft Music / default',
+        },
+      ],
+    };
+
+    const section = service.getComponentById('debugDraftButtons', host) as any;
+    expect(section?.config?.components).toEqual(['debugDraftButton__1', 'debugDraftButton__2']);
+
+    const firstButton = service.getComponentById('debugDraftButton__1', host) as any;
+    expect(firstButton?.config?.label).toBe('Preview / default');
+    expect(firstButton?.config?.classes).toBe('active');
+    expect(firstButton?.meta_title).toBe('preview.example.test::default');
+  });
+
   it('resolves legal modal host config from the variables payload', () => {
     spyOn(i18n, 't').and.callFake(((key: string) => key === 'footer.legal.terms.title' ? 'Terms of Service' : key) as any);
     modalRefSignal.set({ id: 'terms-of-service', close: () => { } });
@@ -293,9 +360,6 @@ describe('ConfigurationsOrchestratorService', () => {
               secondaryLinkColor: '#999999',
               secondaryAccentColor: '#123456',
             },
-          },
-          ui: {
-            legalModalAccentColor: 'secondaryAccentColor',
           },
         },
         ui: {
@@ -618,6 +682,8 @@ describe('ConfigurationsOrchestratorService', () => {
   });
 
   it('materializes header navigation link template from variable navigation payload', () => {
+    language.configureLanguages(['es', 'en'], { defaultLanguage: 'es', requestedLanguage: 'es' });
+
     variables.setPayload({
       version: 1,
       pageId: 'default',

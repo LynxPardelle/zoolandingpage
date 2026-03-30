@@ -10,8 +10,22 @@ import type {
     TInteractionValidationRule,
 } from './interaction-scope.types';
 
+const DEFAULT_EMPTY_VALUE = '';
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     !!value && typeof value === 'object' && !Array.isArray(value);
+
+const normalizeKey = (value: unknown): string => String(value ?? '').trim();
+
+const resolveRecordPath = (root: unknown, path: string): unknown =>
+    path
+        .split('.')
+        .filter(Boolean)
+        .reduce<unknown>((current, segment) => {
+            if (!isRecord(current) && !Array.isArray(current)) return undefined;
+            return (current as Record<string, unknown>)[segment];
+        }, root);
 
 const normalizeValidationRules = (rules: unknown): readonly TInteractionValidationRule[] =>
     Array.isArray(rules)
@@ -97,8 +111,7 @@ export const validateInteractionValue = (
         }
 
         if (rule.type === 'email') {
-            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailPattern.test(String(value))) {
+            if (!EMAIL_PATTERN.test(String(value))) {
                 errors.push(rule.message ?? 'Please enter a valid email address.');
             }
         }
@@ -139,6 +152,9 @@ export class InteractionScopeService {
     readonly submitted = signal(false);
 
     readonly scopeId: Signal<string> = computed(() => this.scopeIdSignal());
+    readonly valid: Signal<boolean> = computed(() =>
+        Object.values(this.fieldStates()).every((field) => field.valid)
+    );
 
     readonly computedValues = computed<Readonly<Record<string, number>>>(() => {
         const definitions = this.computations();
@@ -164,23 +180,32 @@ export class InteractionScopeService {
         };
     });
 
+    readonly scopeState = computed(() => ({
+        values: this.values(),
+        fields: this.fieldStates(),
+        computed: this.computedValues(),
+        meta: {
+            scopeId: this.scopeId(),
+            submitted: this.submitted(),
+            valid: this.valid(),
+        },
+    }));
+
     readonly snapshot = computed<TInteractionScopeSnapshot>(() => {
-        const fields = this.fieldStates();
-        const computedValues = this.computedValues();
-        const valid = Object.values(fields).every((field) => field.valid);
+        const state = this.scopeState();
 
         return {
             scopeId: this.scopeId(),
             submitted: this.submitted(),
-            valid,
-            values: this.values(),
-            fields,
-            computed: computedValues,
+            valid: state.meta.valid,
+            values: state.values,
+            fields: state.fields,
+            computed: state.computed,
         };
     });
 
     configure(config: TInteractionScopeConfig): void {
-        this.scopeIdSignal.set(String(config.scopeId ?? config.id ?? '').trim());
+        this.scopeIdSignal.set(normalizeKey(config.scopeId ?? config.id));
         this.initialValues.set(config.initialValues ?? {});
         this.computations.set(
             Object.fromEntries((config.computations ?? []).map((definition) => [definition.resultId, definition]))
@@ -188,7 +213,7 @@ export class InteractionScopeService {
     }
 
     registerField(config: TInteractionRegisteredFieldConfig): void {
-        const fieldId = String(config.fieldId ?? '').trim();
+        const fieldId = normalizeKey(config.fieldId);
         if (!fieldId) return;
 
         this.fieldDefinitions.update((current) => ({
@@ -198,7 +223,7 @@ export class InteractionScopeService {
 
         this.fieldStates.update((current) => {
             const existing = current[fieldId];
-            const initialValue = config.initialValue ?? this.initialValues()[fieldId] ?? '';
+            const initialValue = config.initialValue ?? this.initialValues()[fieldId] ?? DEFAULT_EMPTY_VALUE;
             const nextState = this.buildFieldState(
                 existing?.value ?? initialValue,
                 config,
@@ -213,10 +238,10 @@ export class InteractionScopeService {
     }
 
     setFieldValue(fieldId: string, value: unknown, opts?: { markTouched?: boolean }): void {
-        const normalizedFieldId = String(fieldId ?? '').trim();
+        const normalizedFieldId = normalizeKey(fieldId);
         if (!normalizedFieldId) return;
 
-        const definition = this.fieldDefinitions()[normalizedFieldId] ?? { fieldId: normalizedFieldId };
+        const definition = this.getFieldDefinition(normalizedFieldId);
 
         this.fieldStates.update((current) => {
             const previous = current[normalizedFieldId];
@@ -232,10 +257,10 @@ export class InteractionScopeService {
     }
 
     markTouched(fieldId: string): void {
-        const normalizedFieldId = String(fieldId ?? '').trim();
+        const normalizedFieldId = normalizeKey(fieldId);
         if (!normalizedFieldId) return;
 
-        const definition = this.fieldDefinitions()[normalizedFieldId] ?? { fieldId: normalizedFieldId };
+        const definition = this.getFieldDefinition(normalizedFieldId);
 
         this.fieldStates.update((current) => {
             const previous = current[normalizedFieldId];
@@ -260,7 +285,7 @@ export class InteractionScopeService {
             Object.fromEntries(
                 Object.entries(definitions).map(([fieldId, definition]) => [
                     fieldId,
-                    this.buildFieldState(definition.initialValue ?? initialValues[fieldId] ?? '', definition),
+                    this.buildFieldState(definition.initialValue ?? initialValues[fieldId] ?? DEFAULT_EMPTY_VALUE, definition),
                 ])
             )
         );
@@ -274,7 +299,7 @@ export class InteractionScopeService {
             Object.fromEntries(
                 Object.entries(current).map(([fieldId, state]) => [
                     fieldId,
-                    this.buildFieldState(state.value, definitions[fieldId] ?? { fieldId }, {
+                    this.buildFieldState(state.value, this.getFieldDefinition(fieldId), {
                         ...state,
                         touched: true,
                     }),
@@ -290,24 +315,14 @@ export class InteractionScopeService {
     }
 
     resolvePath(path: string): unknown {
-        const normalized = String(path ?? '').trim();
+        const normalized = normalizeKey(path);
         if (!normalized) return this.snapshot();
 
-        const snapshot = {
-            values: this.values(),
-            fields: this.fieldStates(),
-            computed: this.computedValues(),
-            meta: {
-                scopeId: this.scopeId(),
-                submitted: this.submitted(),
-                valid: this.snapshot().valid,
-            },
-        };
+        return resolveRecordPath(this.scopeState(), normalized);
+    }
 
-        return normalized.split('.').filter(Boolean).reduce<unknown>((current, segment) => {
-            if (!isRecord(current) && !Array.isArray(current)) return undefined;
-            return (current as Record<string, unknown>)[segment];
-        }, snapshot);
+    private getFieldDefinition(fieldId: string): TInteractionRegisteredFieldConfig {
+        return this.fieldDefinitions()[fieldId] ?? { fieldId };
     }
 
     private buildFieldState(

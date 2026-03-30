@@ -44,7 +44,6 @@ const PRIMARY_DOMAIN = 'preview.example.test';
 const ORCHESTRATOR_STUB = {
   modalHostConfig$: of(null),
   fallbackModalHostConfig: {},
-  devDemoControlsComponents: [] as string[],
   getAllTheClassesFromComponents: () => [],
   setDraftExportContext: () => { },
   setExternalComponentsFromPayload: () => { },

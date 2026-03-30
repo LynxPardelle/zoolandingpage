@@ -7,7 +7,8 @@ import { Observable, ReplaySubject, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ToastService } from '../components/generic-toast';
 import { TAnalyticsEvent, TDataDropResponse, TExpandedAnalytics, TTrackOptions } from '../types/analytics.type';
-import { AnalyticsCategories, AnalyticsEvents } from './analytics.events';
+import { AnalyticsCategories, AnalyticsEvents, DEFAULT_QUICK_STATS_CTA_EVENTS } from './analytics.events';
+import { ConfigStoreService } from './config-store.service';
 import { DomainResolverService } from './domain-resolver.service';
 
 import { QuickStatsService } from './quick-stats.service';
@@ -25,6 +26,7 @@ export class AnalyticsService {
   private readonly baseUrl: string = environment.apiUrl;
   private readonly version: string = environment.apiVersion;
   private readonly domainResolver = inject(DomainResolverService);
+  private readonly configStore = inject(ConfigStoreService);
   private readonly events$ = new ReplaySubject<TAnalyticsEvent>(this.debugEventReplaySize);
   private trackingTeardowns: Array<() => void> = [];
   private hasPermission: boolean = false;
@@ -71,6 +73,29 @@ export class AnalyticsService {
 
   private registerTrackingCleanup(teardown: () => void): void {
     this.trackingTeardowns.push(teardown);
+  }
+
+  private resolveTransportEventName(name: string): string {
+    const mapped = this.configStore.analytics()?.events?.[name];
+    return typeof mapped === 'string' && mapped.trim().length > 0 ? mapped.trim() : name;
+  }
+
+  private resolveTransportCategory(category?: string): string | undefined {
+    if (!category) return category;
+    const mapped = this.configStore.analytics()?.categories?.[category];
+    return typeof mapped === 'string' && mapped.trim().length > 0 ? mapped.trim() : category;
+  }
+
+  private resolveTransportEvent(evt: TAnalyticsEvent): TAnalyticsEvent {
+    return {
+      ...evt,
+      name: this.resolveTransportEventName(evt.name),
+      category: this.resolveTransportCategory(evt.category),
+    };
+  }
+
+  private consentText(key: string): string {
+    return this.i18n?.t(key) ?? key;
   }
 
   private startReadDepthTracking(milestones: readonly number[], doc: Document): void {
@@ -351,15 +376,16 @@ export class AnalyticsService {
 
   private async parseSend(evt: TAnalyticsEvent) {
     // Consent already granted: send immediately
+    const transportEvent = this.resolveTransportEvent(evt);
     let payload: any;
     if (this.timesSended === 0) {
       // First time: send all user data
       this.previouslyAskedUserData = this.previouslyAskedUserData || await this.getAllDataFromUser();
-      payload = { ...this.previouslyAskedUserData, ...evt };
+      payload = { ...this.previouslyAskedUserData, ...transportEvent };
     } else {
       // Subsequent: only event data + sessionId + localId
       const { sessionId, localId } = this.previouslyAskedUserData || {};
-      payload = { ...evt, sessionId, localId };
+      payload = { ...transportEvent, sessionId, localId };
     }
     const appName = this.resolveAppName();
     /* console.log('Analytics Data to send:', { ...payload, appName }); */
@@ -549,9 +575,11 @@ export class AnalyticsService {
     if (this.consentPending) return new Promise(resolve => this.consentPending!.resolve = resolve);
     return new Promise<boolean>((resolve, reject) => {
       this.consentPending = { resolve, reject };
-      const title = 'Allow Analytics?';
-      const text =
-        'We use anonymous analytics to improve our services. You can change this later in your settings.';
+      const title = this.consentText('consent.title');
+      const text = this.consentText('consent.intro');
+      const allowLabel = this.consentText('consent.actions.allow');
+      const declineLabel = this.consentText('consent.actions.decline');
+      const laterLabel = this.consentText('consent.actions.later');
       if (!this.toast) {
         // Fallback (e.g., unit tests without DI/UI)
         const ok = typeof confirm !== 'undefined' ? confirm(`${ title }\n\n${ text }`) : false;
@@ -564,9 +592,9 @@ export class AnalyticsService {
         text,
         autoCloseMs: 0,
         actions: [
-          { label: 'Allow', style: 'primary', action: () => this.acceptConsent() },
-          { label: 'Decline', style: 'secondary', action: () => this.declineConsent() },
-          { label: 'Later', style: 'secondary', action: () => this.remindLater() },
+          { label: allowLabel, style: 'primary', action: () => this.acceptConsent() },
+          { label: declineLabel, style: 'secondary', action: () => this.declineConsent() },
+          { label: laterLabel, style: 'secondary', action: () => this.remindLater() },
         ],
       });
       this.consentPending.toastId = toastId;
@@ -600,7 +628,7 @@ export class AnalyticsService {
     if (this.consentPending?.toastId) this.toast?.dismiss(this.consentPending.toastId);
     this.consentPending = undefined;
     // Give user feedback so it doesn't look like nothing happened
-    const msg = this.i18n?.t('consent.feedback.snoozed') || "We'll ask you again later.";
+    const msg = this.consentText('consent.feedback.snoozed');
     this.toast?.info(msg, { autoCloseMs: 4000 });
     // Keep alreadyAskedForPermission true until the snooze ends, then reset and prompt
     this.scheduleRePrompt(secs * 1000);
@@ -689,17 +717,12 @@ export class AnalyticsService {
   }
   private bumpQuickStatsForEvent(name: string): void {
     if (!this.isProduction) return;
-    if (
-      ([
-        AnalyticsEvents.HeroPrimaryClick,
-        AnalyticsEvents.HeroSecondaryClick,
-        AnalyticsEvents.ServicesCtaClick,
-        AnalyticsEvents.FaqCtaClick,
-        AnalyticsEvents.CtaClick,
-        AnalyticsEvents.FinalCtaPrimaryClick,
-        AnalyticsEvents.FinalCtaSecondaryClick
-      ] as string[]).includes(name)
-    ) {
+    const configuredEvents = this.configStore.analytics()?.quickStatsCtaEvents;
+    const trackedEvents: readonly string[] = Array.isArray(configuredEvents) && configuredEvents.length > 0
+      ? configuredEvents
+      : DEFAULT_QUICK_STATS_CTA_EVENTS;
+
+    if (trackedEvents.includes(name)) {
       this.quickStats.incCtaClick().subscribe({ next: () => { }, error: () => { } });
     }
   }

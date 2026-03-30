@@ -1,6 +1,7 @@
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
+import { ConditionOrchestrator } from '../../services/condition-orchestrator';
 import { ConfigurationsOrchestratorService } from '../../services/configurations-orchestrator';
 import { ValueOrchestrator } from '../../services/value-orchestrator';
 import { WrapperOrchestrator } from './wrapper-orchestrator.component';
@@ -11,10 +12,12 @@ describe('WrapperOrchestrator', () => {
   let fixture: ComponentFixture<WrapperOrchestrator>;
   let componentsRevision: ReturnType<typeof signal<number>>;
   let componentsById: Record<string, TGenericComponent>;
+  let evaluateCondition: jasmine.Spy;
 
   beforeEach(async () => {
     componentsRevision = signal(0);
     componentsById = {};
+    evaluateCondition = jasmine.createSpy('evaluateCondition').and.returnValue(true);
 
     await TestBed.configureTestingModule({
       imports: [WrapperOrchestrator],
@@ -31,6 +34,10 @@ describe('WrapperOrchestrator', () => {
         {
           provide: ValueOrchestrator,
           useValue: { apply: (c: any) => c } satisfies Partial<ValueOrchestrator>,
+        },
+        {
+          provide: ConditionOrchestrator,
+          useValue: { evaluate: evaluateCondition } satisfies Partial<ConditionOrchestrator>,
         },
       ],
     })
@@ -73,5 +80,28 @@ describe('WrapperOrchestrator', () => {
 
     const secondComponent = component.components()[0] as Extract<TGenericComponent, { type: 'text' }> | undefined;
     expect(secondComponent?.config.text).toBe('Second page');
+  });
+
+  it('evaluates string conditions against the provided host context', () => {
+    const hostContext = { draftPanelCollapsed: true };
+    componentsById = {
+      debugDraftPanelToggleButton: {
+        id: 'debugDraftPanelToggleButton',
+        type: 'button',
+        condition: 'all:hostEq,draftPanelCollapsed,true',
+        config: { label: 'Show' },
+      },
+    };
+    evaluateCondition.and.callFake((_component: TGenericComponent, ctx: { host: unknown }) => ctx.host === hostContext);
+
+    fixture.componentRef.setInput('hostContext', hostContext);
+    fixture.componentRef.setInput('componentsIds', ['debugDraftPanelToggleButton']);
+    fixture.detectChanges();
+
+    expect(evaluateCondition).toHaveBeenCalledWith(jasmine.objectContaining({
+      id: 'debugDraftPanelToggleButton',
+      condition: 'all:hostEq,draftPanelCollapsed,true',
+    }), { host: hostContext });
+    expect(component.components().map((entry) => entry.id)).toEqual(['debugDraftPanelToggleButton']);
   });
 });

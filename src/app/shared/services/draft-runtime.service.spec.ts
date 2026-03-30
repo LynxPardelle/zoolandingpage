@@ -219,4 +219,52 @@ describe('DraftRuntimeService', () => {
     expect(Array.from(params.keys()).some((key) => key.startsWith('draftDomain='))).toBeFalse();
   });
 
+  it('ignores the internal debug workspace payload when it appears as the active draft identity', async () => {
+    const { service, loadSiteConfig } = configure(
+      'http://localhost:4200/?debugWorkspace=true&draftDomain=_debug&draftPageId=debug-workspace',
+      null,
+      { browserMode: true },
+    );
+
+    const context = await service.resolveActiveDraftContext();
+
+    expect(loadSiteConfig).not.toHaveBeenCalled();
+    expect(context.domain).toBe('');
+    expect(context.pageId).toBe('');
+    expect(service.activeDraftDomain()).toBe('');
+    expect(service.activeDraftPageId()).toBe('');
+    expect(service.hasResolvedActiveDraftIdentity()).toBeFalse();
+  });
+
+  it('filters the internal debug workspace payload out of draft options', () => {
+    const { service } = configure(
+      'http://localhost:4200/?debugWorkspace=true&draftDomain=zoolandingpage.com.mx&draftPageId=default',
+      null,
+      { browserMode: true },
+    );
+
+    service.availableDrafts.set([
+      { domain: '_debug', pageId: 'debug-workspace' },
+      { domain: 'zoolandingpage.com.mx', pageId: 'default' },
+      { domain: 'music.lynxpardelle.com', pageId: 'default' },
+    ]);
+
+    expect(service.draftOptions().map((entry) => entry.key)).toEqual([
+      'music.lynxpardelle.com::default',
+      'zoolandingpage.com.mx::default',
+    ]);
+  });
+
+  it('does not navigate when asked to select the internal debug workspace payload', () => {
+    const { service } = configure(
+      'http://localhost:4200/?debugWorkspace=true&draftDomain=zoolandingpage.com.mx&draftPageId=default',
+      null,
+      { browserMode: true },
+    );
+
+    service.selectDraftByKey('_debug::debug-workspace');
+
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+  });
+
 });

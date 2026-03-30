@@ -14,7 +14,6 @@ import type {
     TLoopBindingTransform,
     TLoopConfig,
 } from '../components/wrapper-orchestrator/wrapper-orchestrator.types';
-import type { TThemeAccentColorToken } from '../types/theme.types';
 import {
     collectAllClassesFromComponents,
     ComponentRenderTracker,
@@ -26,7 +25,6 @@ import { toNavigationHref } from '../utility/navigation/navigation-target.utilit
 import { AnalyticsEvents } from './analytics.events';
 import { AnalyticsService } from './analytics.service';
 import { ComponentEvent, ComponentEventDispatcherService } from './component-event-dispatcher.service';
-import { devOnlyComponents } from './component-stores/devOnlyComponents.component-store';
 import { ConfigStoreService } from './config-store.service';
 import { DomainResolverService } from './domain-resolver.service';
 import { LanguageService } from './language.service';
@@ -86,11 +84,6 @@ export class ConfigurationsOrchestratorService {
     // Used as a safe fallback while async pipe resolves first emission.
     readonly fallbackModalHostConfig: ModalConfig = this.resolveModalHostConfig();
 
-    private resolveAccentToken(path: string, fallback: TThemeAccentColorToken): TThemeAccentColorToken {
-        const value = this.variableStore.get(path);
-        return value === 'accentColor' || value === 'secondaryAccentColor' ? value : fallback;
-    }
-
     private getModalDefaultsConfig(): TDraftModalUiConfig | null {
         const value = this.variableStore.get('ui.modals._default');
         if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
@@ -132,7 +125,7 @@ export class ConfigurationsOrchestratorService {
             showCloseButton: payloadConfig?.showCloseButton ?? true,
             size: payloadConfig?.size ?? 'sm',
             showAccentBar: payloadConfig?.showAccentBar ?? true,
-            accentColor: payloadConfig?.accentColor ?? this.resolveModalAccentColor(modalId),
+            accentColor: payloadConfig?.accentColor ?? 'secondaryAccentColor',
             variant: payloadConfig?.variant ?? 'dialog',
             containerClasses: payloadConfig?.containerClasses,
             containerDialogClasses: payloadConfig?.containerDialogClasses,
@@ -150,26 +143,8 @@ export class ConfigurationsOrchestratorService {
         };
     }
 
-    private resolveModalAccentColor(modalId?: string): TThemeAccentColorToken {
-        if (modalId === 'demo-modal') {
-            return this.resolveAccentToken('theme.ui.demoModalAccentColor', 'accentColor');
-        }
-
-        if (modalId === 'terms-of-service' || modalId === 'data-use') {
-            return this.resolveAccentToken('theme.ui.legalModalAccentColor', 'secondaryAccentColor');
-        }
-
-        return this.resolveAccentToken('theme.ui.modalAccentColor', 'secondaryAccentColor');
-    }
-
     // Template-friendly: emits a plain object so consumers don't need to call a signal.
     readonly modalHostConfig$ = toObservable(this.modalHostConfig);
-
-    // Dev-only demo controls rendered via orchestrator + eventInstructions (no template handlers).
-    get devDemoControlsComponents(): readonly TGenericComponent[] {
-        if (!environment.features.debugMode) return [];
-        return devOnlyComponents.filter((c) => c.id === 'devDemoControlsRoot');
-    }
 
     setDraftExportContext(context: {
         domain: string;
@@ -246,7 +221,7 @@ export class ConfigurationsOrchestratorService {
         }
     }
 
-    readonly components: TGenericComponent[] = [...devOnlyComponents];
+    readonly components: TGenericComponent[] = [];
 
     get navigation(): readonly Record<string, unknown>[] {
         const raw = this.variableStore.get('navigation');
@@ -261,47 +236,68 @@ export class ConfigurationsOrchestratorService {
         return raw.filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object');
     }
 
-    private externalComponents: TGenericComponent[] | null = null;
-    private externalComponentsMap = new Map<string, TGenericComponent>();
+    private externalComponents: readonly TGenericComponent[] | null = null;
+    private readonly auxiliaryComponentGroups = new Map<string, readonly TGenericComponent[]>();
     private componentRenderTracker = new ComponentRenderTracker(this.components.map((c) => c.id));
     private readonly externalComponentsRevision = signal(0);
 
     readonly componentsRevision = computed(() => this.externalComponentsRevision());
 
-    private getActiveComponentSource(): readonly TGenericComponent[] {
-        if (!this.externalComponents || this.externalComponents.length === 0) {
-            return this.components;
-        }
-
-        const overridden = new Set(this.externalComponents.map((component) => component.id));
-        return [
-            ...this.components.filter((component) => !overridden.has(component.id)),
-            ...this.externalComponents,
-        ];
-    }
-
-    setExternalComponentsFromPayload(payload: TComponentsPayload | null): void {
+    private parseComponentsPayload(payload: TComponentsPayload | null): readonly TGenericComponent[] {
         const record = payload?.components ?? {};
-        const entries = Object.entries(record)
+        return Object.entries(record)
             .map(([id, value]) => {
                 if (!value || typeof value !== 'object') return null;
                 const component = value as TGenericComponent;
                 return component.id ? component : { ...component, id };
             })
             .filter((component): component is TGenericComponent => !!component);
+    }
+
+    private auxiliaryComponents(): readonly TGenericComponent[] {
+        return Array.from(this.auxiliaryComponentGroups.values()).flat();
+    }
+
+    private resetComponentTracking(): void {
+        this.componentRenderTracker = new ComponentRenderTracker(this.getActiveComponentSource().map((component) => component.id));
+        this.externalComponentsRevision.update((value) => value + 1);
+    }
+
+    private getActiveComponentSource(): readonly TGenericComponent[] {
+        const merged = new Map<string, TGenericComponent>();
+
+        [...this.components, ...(this.externalComponents ?? []), ...this.auxiliaryComponents()]
+            .forEach((component) => merged.set(component.id, component));
+
+        return Array.from(merged.values());
+    }
+
+    setExternalComponentsFromPayload(payload: TComponentsPayload | null): void {
+        const entries = this.parseComponentsPayload(payload);
 
         if (entries.length === 0) {
             this.externalComponents = null;
-            this.externalComponentsMap = new Map();
-            this.componentRenderTracker = new ComponentRenderTracker(this.components.map((c) => c.id));
-            this.externalComponentsRevision.update((value) => value + 1);
+            this.resetComponentTracking();
             return;
         }
 
         this.externalComponents = entries;
-        this.externalComponentsMap = new Map(entries.map((component) => [component.id, component]));
-        this.componentRenderTracker = new ComponentRenderTracker(this.getActiveComponentSource().map((component) => component.id));
-        this.externalComponentsRevision.update((value) => value + 1);
+        this.resetComponentTracking();
+    }
+
+    setAuxiliaryComponentsFromPayload(groupId: string, payload: TComponentsPayload | null): void {
+        const normalizedGroupId = String(groupId ?? '').trim();
+        if (!normalizedGroupId) return;
+
+        const entries = this.parseComponentsPayload(payload);
+        if (entries.length === 0) {
+            this.auxiliaryComponentGroups.delete(normalizedGroupId);
+            this.resetComponentTracking();
+            return;
+        }
+
+        this.auxiliaryComponentGroups.set(normalizedGroupId, entries);
+        this.resetComponentTracking();
     }
 
     exportDraftComponentsPayload(domain: string, pageId: string): TComponentsPayload {
@@ -372,8 +368,8 @@ export class ConfigurationsOrchestratorService {
         this.componentRenderTracker.markRendered(id);
     }
 
-    getComponentById(id: string) {
-        const resolved = this.resolveLoopComponents(false);
+    getComponentById(id: string, host?: unknown) {
+        const resolved = this.resolveLoopComponents(false, host);
         let component = resolved.get(id) ?? findComponentById(this.getActiveComponentSource(), id);
         if (!component) {
             console.error(`Component with id "${ id }" not found in ConfigurationsOrchestratorService.`);
@@ -401,7 +397,7 @@ export class ConfigurationsOrchestratorService {
         ) as Record<string, unknown>;
     }
 
-    private resolveLoopComponents(warnOnMissingSource: boolean): Map<string, TGenericComponent> {
+    private resolveLoopComponents(warnOnMissingSource: boolean, host?: unknown): Map<string, TGenericComponent> {
         const source = this.getActiveComponentSource();
         const resolved = new Map<string, TGenericComponent>(source.map((component) => [component.id, component]));
 
@@ -418,7 +414,7 @@ export class ConfigurationsOrchestratorService {
                 continue;
             }
 
-            const items = this.resolveLoopItems(loop, warnOnMissingSource);
+            const items = this.resolveLoopItems(loop, warnOnMissingSource, host);
             const prefix = String(loop.idPrefix ?? templateId).trim() || templateId;
             const generatedIds = items.map((_, index) => `${ prefix }__${ index + 1 }`);
 
@@ -442,7 +438,7 @@ export class ConfigurationsOrchestratorService {
         return resolved;
     }
 
-    private resolveLoopItems(loop: any, warnOnMissingSource: boolean): readonly unknown[] {
+    private resolveLoopItems(loop: any, warnOnMissingSource: boolean, host?: unknown): readonly unknown[] {
         const source = String(loop?.source ?? '').trim();
         if (source === 'repeat') {
             const count = Number(loop?.count ?? 0);
@@ -471,10 +467,38 @@ export class ConfigurationsOrchestratorService {
             return raw;
         }
 
+        if (source === 'host') {
+            const raw = this.resolveHostPath(host, path);
+            if (!Array.isArray(raw)) {
+                if (warnOnMissingSource) this.warnLoopPathOnce('host', path);
+                return [];
+            }
+            return raw;
+        }
+
         return [];
     }
 
-    private warnLoopPathOnce(source: 'var' | 'i18n', path: string): void {
+    private resolveHostPath(host: unknown, path: string): unknown {
+        const normalizedPath = String(path ?? '').trim();
+        if (!normalizedPath) return undefined;
+
+        return normalizedPath
+            .split('.')
+            .map((entry) => entry.trim())
+            .filter(Boolean)
+            .reduce<unknown>((current, segment) => {
+                if (current == null) return undefined;
+                if (Array.isArray(current)) {
+                    const index = Number(segment);
+                    return Number.isInteger(index) ? current[index] : undefined;
+                }
+                if (!isRecord(current) || !(segment in current)) return undefined;
+                return current[segment];
+            }, host);
+    }
+
+    private warnLoopPathOnce(source: 'var' | 'i18n' | 'host', path: string): void {
         const key = `${ source }:${ path }`;
         if (this.warnedLoopPaths.has(key)) return;
         this.warnedLoopPaths.add(key);

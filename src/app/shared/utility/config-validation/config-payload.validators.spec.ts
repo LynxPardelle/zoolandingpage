@@ -602,8 +602,6 @@ describe('config-payload.validators', () => {
                     },
                 ],
                 ui: {
-                    mobileMenuAriaLabel: 'Open navigation',
-                    brandTextFallback: 'Zoo Landing',
                     contact: {
                         whatsappPhone: '+525522699563',
                     },
@@ -853,6 +851,13 @@ describe('config-payload.validators', () => {
             domain: 'zoolandingpage.com.mx',
             sectionIds: ['home'],
             scrollMilestones: [10, 20],
+            events: {
+                page_view: 'page_view',
+            },
+            categories: {
+                navigation: 'navigation',
+            },
+            quickStatsCtaEvents: ['cta_click'],
         };
         expect(isAnalyticsConfigPayload(valid)).toBeTrue();
     });

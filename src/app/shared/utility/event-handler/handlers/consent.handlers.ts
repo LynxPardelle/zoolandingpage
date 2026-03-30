@@ -42,23 +42,19 @@ export const removeConsentRequestHandler = (): EventHandler => {
     return {
         id: 'removeConsentRequest',
         handle: () => {
-            const confirmText = i18n.t('consent.feedback.confirmRemove') || 'Are you sure you want to remove consent?';
-            const yesLabel = i18n.t('consent.actions.confirm') || 'Yes';
-            const noLabel = i18n.t('consent.actions.cancel') || 'No';
-
             toast.show({
                 level: 'warning',
                 title: i18n.t('consent.title'),
-                text: confirmText,
+                text: i18n.t('consent.feedback.confirmRemove'),
                 autoCloseMs: 7000,
                 actions: [
                     {
-                        label: yesLabel,
+                        label: i18n.t('consent.actions.confirm'),
                         style: 'primary',
                         action: () => analytics.declineConsent(),
                     },
                     {
-                        label: noLabel,
+                        label: i18n.t('consent.actions.cancel'),
                         style: 'secondary',
                         action: () => {
                             /* no-op */

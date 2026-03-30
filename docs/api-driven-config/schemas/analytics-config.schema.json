@@ -15,7 +15,19 @@
       "type": "array",
       "items": { "type": "number" }
     },
-    "consentMode": { "type": "string" }
+    "consentMode": { "type": "string" },
+    "events": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "categories": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "quickStatsCtaEvents": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
   },
   "additionalProperties": false
 }

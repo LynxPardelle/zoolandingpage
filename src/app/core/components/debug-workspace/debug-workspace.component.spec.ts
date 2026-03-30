@@ -1,11 +1,10 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { of, Subject } from 'rxjs';
+import { Subject } from 'rxjs';
+import { RuntimeService } from '../../../core/services/runtime.service';
 import { WrapperOrchestrator } from '../../../shared/components/wrapper-orchestrator/wrapper-orchestrator.component';
 import { AnalyticsService } from '../../../shared/services/analytics.service';
 import { ConfigStoreService } from '../../../shared/services/config-store.service';
-import { ConfigurationsOrchestratorService } from '../../../shared/services/configurations-orchestrator';
-import { DraftRegistryService } from '../../../shared/services/draft-registry.service';
 import { DraftRuntimeService } from '../../../shared/services/draft-runtime.service';
 import { DebugWorkspaceComponent } from './debug-workspace.component';
 
@@ -16,11 +15,8 @@ import { DebugWorkspaceComponent } from './debug-workspace.component';
 })
 class WrapperOrchestratorStub {
     @Input() componentsIds: readonly unknown[] = [];
+    @Input() hostContext: unknown;
 }
-
-const ORCHESTRATOR_STUB = {
-    devDemoControlsComponents: [] as string[],
-};
 
 const PRIMARY_DOMAIN = 'preview.example.test';
 const SECONDARY_DOMAIN = 'music.example.test';
@@ -28,9 +24,14 @@ const LEGAL_DOMAIN = 'legal.example.test';
 
 describe('DebugWorkspaceComponent', () => {
     let analyticsEvents$: Subject<any>;
+    let selectDraftByKey: jasmine.Spy;
+    let refreshRegistry: jasmine.Spy;
+    const debugWorkspaceRootIds = signal<readonly string[]>(['debugWorkspaceRoot']);
 
     beforeEach(async () => {
         analyticsEvents$ = new Subject();
+        selectDraftByKey = jasmine.createSpy('selectDraftByKey');
+        refreshRegistry = jasmine.createSpy('refreshRegistry');
 
         await TestBed.configureTestingModule({
             imports: [DebugWorkspaceComponent],
@@ -58,22 +59,17 @@ describe('DebugWorkspaceComponent', () => {
                         activeDraftLabel: () => `${ PRIMARY_DOMAIN } / default`,
                         draftRegistryLoading: () => false,
                         selectedDraftKey: () => `${ PRIMARY_DOMAIN }::default`,
-                        selectDraftByKey: () => undefined,
-                        refreshRegistry: () => undefined,
+                        selectDraftByKey,
+                        refreshRegistry,
                         initRegistryAutoRefresh: () => undefined,
                     },
                 },
                 {
-                    provide: DraftRegistryService,
+                    provide: RuntimeService,
                     useValue: {
-                        listDrafts: () => of([
-                            { domain: PRIMARY_DOMAIN, pageId: 'default' },
-                            { domain: SECONDARY_DOMAIN, pageId: 'default' },
-                            { domain: LEGAL_DOMAIN, pageId: 'default' },
-                        ]),
+                        debugWorkspaceRootIds,
                     },
                 },
-                { provide: ConfigurationsOrchestratorService, useValue: ORCHESTRATOR_STUB },
             ],
         }).compileComponents();
 
@@ -83,60 +79,42 @@ describe('DebugWorkspaceComponent', () => {
         });
     });
 
-    it('starts with both debug panels collapsed', () => {
-        const fixture = TestBed.createComponent(DebugWorkspaceComponent);
-        fixture.detectChanges();
-        const component = fixture.componentInstance;
-        const panel = component.debugDraftPanelComponents()[0] as any;
-        const children = panel.config.components as any[];
-        const diagnosticsPanel = component.debugWorkspaceComponents()[0] as any;
-        const workspaceChildren = diagnosticsPanel.config.components as any[];
-        const diagnosticsRoot = workspaceChildren.find((entry) => entry.id === 'debugDiagnosticsPanelRoot');
-        const diagnosticsChildren = diagnosticsRoot.config.components as any[];
-
-        expect(panel.id).toBe('debugDraftPanelRoot');
-        expect(component.draftPanelCollapsed()).toBeTrue();
-        expect(component.diagnosticsPanelCollapsed()).toBeTrue();
-        expect(children.some((entry) => entry.id === 'debugDraftPanelCollapsedSummary')).toBeTrue();
-        expect(children.some((entry) => entry.id === 'debugDraftPanelDraftButtons')).toBeFalse();
-        expect(diagnosticsChildren.some((entry) => entry.id === 'debugDiagnosticsPanelCollapsedSummary')).toBeTrue();
-        expect(diagnosticsChildren.some((entry) => entry.id === 'debugAnalyticsEventsSection')).toBeFalse();
-    });
-
-    it('builds the debug draft panel with dynamic draft buttons when expanded', () => {
+    it('exposes derived host state for the payload-driven debug panel', () => {
         const fixture = TestBed.createComponent(DebugWorkspaceComponent);
         fixture.detectChanges();
         const component = fixture.componentInstance;
 
-        component.draftPanelCollapsed.set(false);
-        fixture.detectChanges();
-
-        const panel = component.debugDraftPanelComponents()[0] as any;
-        const children = panel.config.components as any[];
-        const draftButtonsContainer = children.find((entry) => entry.id === 'debugDraftPanelDraftButtons');
-        const footerRow = children.find((entry) => entry.id === 'debugDraftPanelFooterRow');
-        const draftButtons = draftButtonsContainer.config.components as any[];
-        const refreshButton = (footerRow.config.components as any[]).find((entry) => entry.id === 'debugDraftRefreshButton');
-
-        expect(panel.id).toBe('debugDraftPanelRoot');
-        expect(draftButtons.map((entry) => entry.config.label)).toEqual([
-            `${ PRIMARY_DOMAIN } / default`,
-            `${ SECONDARY_DOMAIN } / default`,
-            `${ LEGAL_DOMAIN } / default`,
-        ]);
-        expect(refreshButton.config.icon).toBe('refresh');
+        expect(component.draftPanelCollapsed).toBeTrue();
+        expect(component.diagnosticsPanelCollapsed).toBeTrue();
+        expect(component.draftOptionsEyebrow).toBe('3 drafts detected');
+        expect(component.draftOptionsReadyLabel).toBe('3 options ready');
+        expect(component.draftOptions[0]['buttonClasses']).toEqual(jasmine.stringContaining('ank-bg-accentColor'));
+        expect(component.draftOptions[1]['buttonClasses']).toEqual(jasmine.stringContaining('ank-bg-transparent'));
     });
 
-    it('wraps the debug UI into a single orchestrated root component', () => {
+    it('delegates debug workspace actions to the draft runtime and local panel state', () => {
         const fixture = TestBed.createComponent(DebugWorkspaceComponent);
         fixture.detectChanges();
+        const component = fixture.componentInstance;
 
-        const debugWorkspace = fixture.componentInstance.debugWorkspaceComponents()[0] as any;
-        const children = debugWorkspace.config.components as any[];
+        component.toggleDebugDraftPanel();
+        component.toggleDebugDiagnosticsPanel();
+        component.selectDebugDraft(`${ SECONDARY_DOMAIN }::default`);
+        component.refreshDebugDraftRegistry();
 
-        expect(debugWorkspace.id).toBe('debugWorkspaceRoot');
-        expect(children.some((entry) => entry.id === 'debugDraftPanelRoot')).toBeTrue();
-        expect(children.some((entry) => entry.id === 'debugDiagnosticsPanelRoot')).toBeTrue();
+        expect(component.draftPanelCollapsed).toBeFalse();
+        expect(component.diagnosticsPanelCollapsed).toBeFalse();
+        expect(selectDraftByKey).toHaveBeenCalledOnceWith(`${ SECONDARY_DOMAIN }::default`);
+        expect(refreshRegistry).toHaveBeenCalledOnceWith();
+    });
+
+    it('passes runtime-owned roots and itself as hostContext to the wrapper', () => {
+        const fixture = TestBed.createComponent(DebugWorkspaceComponent);
+        fixture.detectChanges();
+        const wrapper = fixture.debugElement.children[0].componentInstance as WrapperOrchestratorStub;
+
+        expect(wrapper.componentsIds).toEqual(['debugWorkspaceRoot']);
+        expect(wrapper.hostContext).toBe(fixture.componentInstance);
     });
 
     it('captures recent analytics events for the diagnostics panel', () => {
@@ -145,6 +123,6 @@ describe('DebugWorkspaceComponent', () => {
 
         analyticsEvents$.next({ name: 'page_view', category: 'navigation', label: '/home' });
 
-        expect(fixture.componentInstance.recentEvents()).toEqual(['page_view | navigation | /home']);
+        expect(fixture.componentInstance.recentEvents).toEqual(['page_view | navigation | /home']);
     });
 });

@@ -17,10 +17,9 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Put global palette data in `variables.theme.palettes.light` and `variables.theme.palettes.dark`.
 - Put page-owned contact targets in `variables.ui.contact`.
 - Put modal presentation and accessible labels in `variables.ui.modals.<modalId>` for every modal referenced by `openModal:*` or `modalRefId,*`.
-- Keep modal accent defaults in `variables.theme.ui` when a draft needs them to differ from the default brand behavior.
 - Put reusable visual class bundles in `angora-combos.json` instead of hardcoding repeated appearance strings in app code.
 - For `input` components, author select/dropdown presentation in payload fields such as `fieldClasses`, `dropdownTriggerClasses`, `dropdownIndicatorText`, `dropdownIndicatorClasses`, `dropdownTriggerTextConfig`, and `dropdownConfig` instead of relying on shared runtime defaults.
-- Footer, legal modal, accessibility, and debug-panel content must be API-owned (no local fallback assumptions anywhere in the runtime).
+- Footer, legal modal, accessibility, and debug-panel content must be payload-owned (no local fallback assumptions anywhere in the runtime).
 - Do not author hardcoded footer/legal text in app source when generating payload instructions.
 - Treat `seo.json` as required for active pages; the runtime no longer ships a branded shell fallback title or description.
 
@@ -56,7 +55,7 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 ## Loops
 
 - Use `loopConfig` on containers that must generate child components from payload data.
-- Current supported sources: `var`, `i18n`, `repeat`.
+- Current supported sources: `var`, `i18n`, `host`, `repeat`.
 - Example:
 
 ```ts
@@ -99,6 +98,7 @@ Use this checklist when asking an AI assistant to generate a new landing page co
   - `ui.debugPanel.analyticsLatest`
   - `ui.debugPanel.unknownComponentPrefix`
 - Verify local fallback dictionaries are not required, because the runtime does not inject them anymore.
+- Verify debug workspace payloads live in the dedicated `_debug/debug-workspace` config set instead of active page `components.json` / `page-config.json`.
 
 ## Footer and legal modal API-only checklist
 

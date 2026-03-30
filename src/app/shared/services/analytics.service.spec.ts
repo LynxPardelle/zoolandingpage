@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { AnalyticsService } from './analytics.service';
+import { ConfigStoreService } from './config-store.service';
 
 describe('AnalyticsService', () => {
   it('tracks events and buffers them', () => {
@@ -51,5 +52,41 @@ describe('AnalyticsService', () => {
     expect(received).toEqual(['first_event', 'second_event']);
 
     subscription.unsubscribe();
+  });
+
+  it('resolves transport taxonomy from analytics config', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        ConfigStoreService,
+        {
+          provide: HttpClient,
+          useValue: {
+            post: jasmine.createSpy('post').and.returnValue(of({ ok: true })),
+          } as any,
+        },
+      ],
+    });
+
+    const store = TestBed.inject(ConfigStoreService);
+    store.setAnalytics({
+      version: 1,
+      pageId: 'default',
+      domain: 'zoolandingpage.com.mx',
+      sectionIds: [],
+      scrollMilestones: [],
+      events: { test_event: 'api_test_event' },
+      categories: { test: 'api_test' },
+    });
+
+    const svc = TestBed.inject(AnalyticsService) as any;
+    const resolved = svc.resolveTransportEvent({
+      name: 'test_event',
+      category: 'test',
+      label: 'A',
+      timestamp: Date.now(),
+    });
+
+    expect(resolved.name).toBe('api_test_event');
+    expect(resolved.category).toBe('api_test');
   });
 });

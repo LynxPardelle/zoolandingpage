@@ -59,16 +59,9 @@ export type TThemePalettes = {
   dark: TThemeColors;
 };
 
-export type TThemeUiConfig = {
-  modalAccentColor?: TThemeAccentColorToken;
-  legalModalAccentColor?: TThemeAccentColorToken;
-  demoModalAccentColor?: TThemeAccentColorToken;
-};
-
 export type TThemeVariableConfig = {
   defaultMode?: ThemeMode;
   palettes: TThemePalettes;
-  ui?: TThemeUiConfig;
 };
 
 // Theme configuration

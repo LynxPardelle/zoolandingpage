@@ -25,6 +25,8 @@ import { Injectable } from '@angular/core';
 
 @Injectable({ providedIn: 'root' })
 export class DraftConfigLoaderService {
+    private readonly debugWorkspaceBase = `${ String(environment.drafts.basePath ?? 'assets/drafts').replace(/\/$/, '') }/_debug/debug-workspace`;
+
     private getDomainBase(domain?: string): string {
         const base = String(environment.drafts.basePath ?? 'assets/drafts').replace(/\/$/, '');
         const d = String(domain ?? '').trim();
@@ -150,6 +152,16 @@ export class DraftConfigLoaderService {
         const url = `${ draftBase }/analytics-config.json`;
         const payload = await this.getJson<TAnalyticsConfigPayload>(url);
         return isAnalyticsConfigPayload(payload) ? payload : null;
+    }
+
+    async loadDebugWorkspacePageConfig(): Promise<TPageConfigPayload | null> {
+        const payload = await this.getJson<TPageConfigPayload>(`${ this.debugWorkspaceBase }/page-config.json`);
+        return isPageConfigPayload(payload) ? payload : null;
+    }
+
+    async loadDebugWorkspaceComponents(): Promise<TComponentsPayload | null> {
+        const payload = await this.getJson<TComponentsPayload>(`${ this.debugWorkspaceBase }/components.json`);
+        return payload && typeof payload === 'object' ? (payload as TComponentsPayload) : null;
     }
 
     async loadI18n(domain: string, pageId: string, lang: string): Promise<TI18nPayload | null> {

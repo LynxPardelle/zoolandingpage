@@ -1,4 +1,5 @@
 import type { Provider } from '@angular/core';
+import { environment } from '../../../../environments/environment';
 import { EVENT_HANDLERS } from './event-handlers.token';
 import { scrollToSectionHandler, skipToMainHandler } from './handlers/accessibility.handlers';
 import {
@@ -14,7 +15,14 @@ import {
     remindLaterHandler,
     removeConsentRequestHandler,
 } from './handlers/consent.handlers';
-import { downloadDraftPayloadsHandler, writeDraftsToDiskHandler } from './handlers/debug-drafts.handlers';
+import {
+    downloadDraftPayloadsHandler,
+    refreshDebugDraftRegistryHandler,
+    selectDebugDraftHandler,
+    toggleDebugDiagnosticsPanelHandler,
+    toggleDebugDraftPanelHandler,
+    writeDraftsToDiskHandler,
+} from './handlers/debug-drafts.handlers';
 import { resetScopeHandler, setScopeValueHandler, submitScopeHandler } from './handlers/interaction-scope.handlers';
 import {
     closeModalHandler,
@@ -34,41 +42,50 @@ import {
     openWhatsAppHandler,
 } from './handlers/whatsapp.handlers';
 
+const baseEventHandlerProviders: Provider[] = [
+    { provide: EVENT_HANDLERS, multi: true, useFactory: openWhatsAppHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: trackCtaClickHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: trackNavClickHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: navigationToSectionHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: trackFaqToggleHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: trackProcessStepChangeHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: openFaqCtaWhatsAppHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: openFinalCtaWhatsAppHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: toggleThemeHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: toggleLanguageHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: setLanguageHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: navigateToUrlHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: setScopeValueHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: resetScopeHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: submitScopeHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: openModalHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: closeModalHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: acceptConsentHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: declineConsentHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: remindLaterHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: removeConsentRequestHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: scrollToSectionHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: skipToMainHandler },
+];
+
+const debugEventHandlerProviders: Provider[] = [
+    { provide: EVENT_HANDLERS, multi: true, useFactory: showDemoToastHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: showErrorToastHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: showActionToastHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: showPositionDemoHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: clearAllToastsHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: downloadDraftPayloadsHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: writeDraftsToDiskHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: selectDebugDraftHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: refreshDebugDraftRegistryHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: toggleDebugDraftPanelHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: toggleDebugDiagnosticsPanelHandler },
+];
+
 export const provideEventHandlers = (): Provider[] => {
     // NOTE: Each handler id maps 1:1 with the DSL action token used in `eventInstructions`.
     return [
-        { provide: EVENT_HANDLERS, multi: true, useFactory: openWhatsAppHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: trackCtaClickHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: trackNavClickHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: navigationToSectionHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: trackFaqToggleHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: trackProcessStepChangeHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: openFaqCtaWhatsAppHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: openFinalCtaWhatsAppHandler },
-
-        // Migrated off ConfigurationsOrchestratorService (no host dependency)
-        { provide: EVENT_HANDLERS, multi: true, useFactory: toggleThemeHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: toggleLanguageHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: setLanguageHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: navigateToUrlHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: setScopeValueHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: resetScopeHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: submitScopeHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: openModalHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: closeModalHandler },
-
-        { provide: EVENT_HANDLERS, multi: true, useFactory: acceptConsentHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: declineConsentHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: remindLaterHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: removeConsentRequestHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: showDemoToastHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: showErrorToastHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: showActionToastHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: showPositionDemoHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: clearAllToastsHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: downloadDraftPayloadsHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: writeDraftsToDiskHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: scrollToSectionHandler },
-        { provide: EVENT_HANDLERS, multi: true, useFactory: skipToMainHandler },
+        ...baseEventHandlerProviders,
+        ...(environment.features.debugMode ? debugEventHandlerProviders : []),
     ];
 };

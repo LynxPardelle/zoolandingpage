@@ -1,6 +1,7 @@
 import { InjectionToken } from '@angular/core';
+import { environment } from '../../../environments/environment';
 
-export const DEFAULT_ALLOWED_EVENT_IDS = [
+const BASE_ALLOWED_EVENT_IDS = [
     'openModal',
     'openWhatsApp',
     'trackCTAClick',
@@ -23,6 +24,12 @@ export const DEFAULT_ALLOWED_EVENT_IDS = [
     'declineConsent',
     'remindLater',
     'removeConsentRequest',
+    // Accessibility
+    'skipToMain',
+    'scrollToSection',
+] as const;
+
+const DEBUG_ALLOWED_EVENT_IDS = [
     // Dev-only toast demos
     'showDemoToast',
     'showErrorToast',
@@ -31,10 +38,16 @@ export const DEFAULT_ALLOWED_EVENT_IDS = [
     'clearAllToasts',
     'downloadDraftPayloads',
     'writeDraftsToDisk',
-    // Accessibility
-    'skipToMain',
-    'scrollToSection',
+    'selectDebugDraft',
+    'refreshDebugDraftRegistry',
+    'toggleDebugDraftPanel',
+    'toggleDebugDiagnosticsPanel',
 ] as const;
+
+export const DEFAULT_ALLOWED_EVENT_IDS: readonly string[] = [
+    ...BASE_ALLOWED_EVENT_IDS,
+    ...(environment.features.debugMode ? DEBUG_ALLOWED_EVENT_IDS : []),
+];
 
 /**
  * Global allowlist for EventOrchestrator action IDs.

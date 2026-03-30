@@ -13,6 +13,7 @@ import { RuntimeService } from './runtime.service';
 describe('RuntimeService', () => {
     const originalUrl = window.location.pathname + window.location.search + window.location.hash;
     const setExternalComponentsFromPayload = jasmine.createSpy('setExternalComponentsFromPayload');
+    const setAuxiliaryComponentsFromPayload = jasmine.createSpy('setAuxiliaryComponentsFromPayload');
     const setDraftExportContext = jasmine.createSpy('setDraftExportContext');
     const applyPayload = jasmine.createSpy('applyPayload');
     const scheduleCssCreate = jasmine.createSpy('scheduleCssCreate');
@@ -57,6 +58,7 @@ describe('RuntimeService', () => {
         }));
 
         setExternalComponentsFromPayload.calls.reset();
+        setAuxiliaryComponentsFromPayload.calls.reset();
         setDraftExportContext.calls.reset();
         applyPayload.calls.reset();
         scheduleCssCreate.calls.reset();
@@ -75,6 +77,8 @@ describe('RuntimeService', () => {
                     provide: ConfigSourceService,
                     useValue: {
                         loadSiteConfig,
+                        loadDebugWorkspacePageConfig: jasmine.createSpy('loadDebugWorkspacePageConfig').and.resolveTo(null),
+                        loadDebugWorkspaceComponents: jasmine.createSpy('loadDebugWorkspaceComponents').and.resolveTo(null),
                     },
                 },
                 {
@@ -93,6 +97,7 @@ describe('RuntimeService', () => {
                     provide: ConfigurationsOrchestratorService,
                     useValue: {
                         setExternalComponentsFromPayload,
+                        setAuxiliaryComponentsFromPayload,
                         setDraftExportContext,
                     },
                 },
@@ -101,6 +106,9 @@ describe('RuntimeService', () => {
                     useValue: {
                         applyPayload,
                         scheduleCssCreate,
+                        initializeBaseCombos: () => undefined,
+                        revealCssTimer: () => undefined,
+                        stopCssRuntime: () => undefined,
                     },
                 },
                 {
@@ -123,7 +131,7 @@ describe('RuntimeService', () => {
 
     it('reinitializes the rendered draft when client navigation changes the route path', async () => {
         const service = TestBed.inject(RuntimeService);
-        const expectedModalRootIds = ['modalDemoRoot'];
+        const expectedModalRootIds: string[] = [];
 
         window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.preview');
         await service.initialize('es');
@@ -154,7 +162,7 @@ describe('RuntimeService', () => {
 
     it('queues a fresh draft initialization when navigation changes during an active load', async () => {
         const service = TestBed.inject(RuntimeService);
-        const expectedModalRootIds = ['modalDemoRoot'];
+        const expectedModalRootIds: string[] = [];
         let resolveFirstLoad!: () => void;
         let hasResolveFirstLoad = false;
         let firstLoadPending = true;
@@ -240,7 +248,7 @@ describe('RuntimeService', () => {
     it('skips bootstrap when no draft identity is resolved yet', async () => {
         const service = TestBed.inject(RuntimeService);
         const draftRuntime = TestBed.inject(DraftRuntimeService);
-        const expectedModalRootIds = ['modalDemoRoot'];
+        const expectedModalRootIds: string[] = [];
         spyOn(draftRuntime, 'resolveActiveDraftContext').and.resolveTo({
             domain: '',
             pageId: '',
@@ -260,5 +268,46 @@ describe('RuntimeService', () => {
             rootIds: [],
             modalRootIds: expectedModalRootIds,
         });
+    });
+
+    it('loads authored debug workspace roots when debug workspace is enabled', async () => {
+        const service = TestBed.inject(RuntimeService);
+        const configSource = TestBed.inject(ConfigSourceService) as jasmine.SpyObj<ConfigSourceService>;
+        const host = document.createElement('div');
+
+        configSource.loadDebugWorkspacePageConfig.and.resolveTo({
+            version: 1,
+            domain: 'debug-workspace',
+            pageId: 'default',
+            rootIds: ['debugWorkspaceRoot'],
+            modalRootIds: ['modalDemoRoot'],
+        });
+        configSource.loadDebugWorkspaceComponents.and.resolveTo({
+            version: 1,
+            domain: 'debug-workspace',
+            pageId: 'default',
+            components: {
+                debugWorkspaceRoot: {
+                    id: 'debugWorkspaceRoot',
+                    type: 'container',
+                    config: { tag: 'div', components: [] },
+                },
+            },
+        });
+
+        service.connect({
+            host,
+            destroyRef: { onDestroy: () => undefined } as any,
+            showDebugWorkspace: true,
+            currentLanguage: () => 'es',
+        });
+
+        await service.initialize('es');
+
+        expect(service.debugWorkspaceRootIds()).toEqual(['debugWorkspaceRoot']);
+        expect(service.modalRootIds()).toEqual(['modalDemoRoot']);
+        expect(setAuxiliaryComponentsFromPayload).toHaveBeenCalledWith('debug-workspace', jasmine.objectContaining({
+            components: jasmine.any(Object),
+        }));
     });
 });

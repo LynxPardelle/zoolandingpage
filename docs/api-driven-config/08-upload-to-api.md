@@ -4,6 +4,8 @@ This repo does not assume a specific backend implementation, but the config syst
 
 This document describes a suggested payload shape that works well with `wrapper-orchestrator` and is easy for an AI assistant to generate.
 
+For the current runtime, treat `page-config.json`, `components.json`, `variables.json`, `i18n/*.json`, `seo.json`, `structured-data.json`, and `analytics-config.json` as separate payloads. Do not bundle debug-only UI into production page payloads unless the page explicitly owns that experience.
+
 ## Recommended payload shape
 
 Use a **map** keyed by component `id`:
@@ -65,6 +67,35 @@ A future client-side loader can:
 2. Store it in an in-memory registry (instead of TS-defined arrays).
 3. Provide `getComponentById(id)` and root ID lists.
 4. Render via `<wrapper-orchestrator [componentsIds]="payload.rootIds" />`.
+
+## Analytics payload
+
+`analytics-config.json` can now carry both behavioral and taxonomy data:
+
+```json
+{
+  "version": 1,
+  "pageId": "default",
+  "domain": "example.com",
+  "sectionIds": ["home", "features"],
+  "scrollMilestones": [25, 50, 75, 100],
+  "consentMode": "default",
+  "events": {
+    "page_view": "page_view"
+  },
+  "categories": {
+    "navigation": "navigation"
+  },
+  "quickStatsCtaEvents": ["cta_click"]
+}
+```
+
+Rules:
+
+- `events` maps canonical framework event IDs to the names sent to the analytics sink.
+- `categories` maps canonical framework categories to sink-specific category values.
+- `quickStatsCtaEvents` lists the canonical CTA event IDs that should increment quick stats counters.
+- Keep handler IDs and `eventInstructions` action names in code; only emitted taxonomy belongs in payloads.
 
 ## Security model
 

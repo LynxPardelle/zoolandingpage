@@ -155,6 +155,7 @@ Runtime note:
 - The in-memory TypeScript registry can also compose child trees with inline `TGenericComponent` objects.
 - That capability is for local/runtime composition only.
 - `components.json` should continue using string IDs so payloads stay serializable and stable.
+- Debug workspace tooling is now authored as a separate payload set under `public/assets/drafts/_debug/debug-workspace/` or the equivalent API endpoints. Keep those component IDs out of active page payloads unless the page explicitly owns the same UI.
 
 ## Interaction scopes and inputs
 

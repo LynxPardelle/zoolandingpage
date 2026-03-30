@@ -49,7 +49,7 @@ type TBaseLoopConfig = {
 
 export type TLoopConfig =
     | (TBaseLoopConfig & {
-        readonly source: 'var' | 'i18n';
+        readonly source: 'var' | 'i18n' | 'host';
         readonly path: string;
     })
     | (TBaseLoopConfig & {

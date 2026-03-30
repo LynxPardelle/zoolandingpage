@@ -67,4 +67,12 @@ export class ConfigApiService {
     getAnalyticsConfig(domain: string, pageId?: string): Promise<TAnalyticsConfigPayload> {
         return this.getJson<TAnalyticsConfigPayload>('analytics-config', { domain, pageId });
     }
+
+    getDebugWorkspacePageConfig(): Promise<TPageConfigPayload> {
+        return this.getJson<TPageConfigPayload>('debug-workspace/page-config', {});
+    }
+
+    getDebugWorkspaceComponents(): Promise<TComponentsPayload> {
+        return this.getJson<TComponentsPayload>('debug-workspace/components', {});
+    }
 }

@@ -10,6 +10,13 @@ Replace TS-defined component constants with JSON drafts stored in:
 public/assets/drafts/{domain}/{pageId}/components.json
 ```
 
+Debug tooling now follows the same rule, but through a dedicated shared payload set:
+
+```
+public/assets/drafts/_debug/debug-workspace/components.json
+public/assets/drafts/_debug/debug-workspace/page-config.json
+```
+
 ## How to Export
 
 1. Run the app in development.
@@ -26,6 +33,7 @@ with the downloaded `components.json` file.
 
 - The exported payload is sanitized: inline functions are removed.
 - Use `valueInstructions` and `condition` DSLs to replace any runtime logic.
+- For debug workspace controls, use `host` conditions and `host` loop sources instead of inline builder callbacks.
 - Draft-owned modal host behavior should live in `variables.ui.modals`, for example legal modal sizes and aria-label translation keys keyed by modal ref ID.
 - Shared modal defaults can live in `variables.ui.modals._default`; per-modal entries should override only what differs.
 - Navigation and dropdown entries should be authored in draft-native form. Prefer `value` plus `label` locale maps or `labelKey` / `ariaLabelKey`. Do not rely on legacy compatibility fields such as `labelEs`, `labelEn`, or `sectionId`.
@@ -38,7 +46,7 @@ docs/api-driven-config/schemas/components.schema.json
 ## Next Steps
 
 - Move remaining page roots (rootIds + modalRootIds) into `page-config.json`.
-- Keep debug-only modal roots out of production draft payloads when runtime debug tooling already injects them.
+- Keep debug workspace roots and modal roots inside the dedicated `_debug/debug-workspace/page-config.json` payload instead of injecting them from runtime constants.
 - Keep locale availability under `variables.i18n.defaultLanguage` and `variables.i18n.supportedLanguages`; if a draft renders a language dropdown, define `ui.languageOptions` explicitly instead of relying on runtime backfills.
 - Add SEO, structured data, and analytics configs per domain.
 - Update the config in the API when ready for production.

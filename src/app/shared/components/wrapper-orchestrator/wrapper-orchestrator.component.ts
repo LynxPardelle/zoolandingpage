@@ -69,7 +69,7 @@ export class WrapperOrchestrator {
     if (typeof cond === 'function') return !!cond();
     if (typeof cond === 'boolean') return cond;
     if (typeof cond === 'string') {
-      return this.conditionOrchestrator.evaluate({ ...component, condition: cond }, { host: this._configurationsOrchestratorService });
+      return this.conditionOrchestrator.evaluate({ ...component, condition: cond }, { host: this.effectiveHost() });
     }
     return true;
   }
@@ -81,7 +81,7 @@ export class WrapperOrchestrator {
       .componentsIds()
       .map((entry) => {
         if (typeof entry === 'string') {
-          return this._configurationsOrchestratorService.getComponentById(entry);
+          return this._configurationsOrchestratorService.getComponentById(entry, this.effectiveHost());
         }
 
         // Direct component objects: ensure render-tracking stays accurate.

@@ -3,14 +3,34 @@ import { I18nService } from '@/app/shared/services/i18n.service';
 import { inject } from '@angular/core';
 import type { EventHandler } from '../event-handler.types';
 
+type TToastTranslator = (key: string, params?: Record<string, unknown>) => string;
+
+type TToastPositionDemo = {
+    readonly vertical: 'top' | 'bottom';
+    readonly horizontal: 'left' | 'center' | 'right';
+    readonly labelKey: string;
+};
+
+const TOAST_POSITION_DEMOS: readonly TToastPositionDemo[] = [
+    { vertical: 'top', horizontal: 'right', labelKey: 'demo.toast.positionTopRight' },
+    { vertical: 'top', horizontal: 'center', labelKey: 'demo.toast.positionTopCenter' },
+    { vertical: 'top', horizontal: 'left', labelKey: 'demo.toast.positionTopLeft' },
+    { vertical: 'bottom', horizontal: 'left', labelKey: 'demo.toast.positionBottomLeft' },
+    { vertical: 'bottom', horizontal: 'center', labelKey: 'demo.toast.positionBottomCenter' },
+    { vertical: 'bottom', horizontal: 'right', labelKey: 'demo.toast.positionBottomRightDefault' },
+];
+
+const createTranslator = (i18n: I18nService): TToastTranslator =>
+    (key: string, params?: Record<string, unknown>) => i18n.t(key, params);
+
 export const showDemoToastHandler = (): EventHandler => {
     const toast = inject(ToastService);
     const i18n = inject(I18nService);
+    const t = createTranslator(i18n);
 
     return {
         id: 'showDemoToast',
         handle: () => {
-            const t = (k: string, p?: Record<string, any>) => i18n.t(k, p);
             const demos = [
                 () => toast.success(t('demo.toast.success'), { source: 'Toast' }),
                 () => toast.error(t('demo.toast.error'), { source: 'Toast' }),
@@ -54,11 +74,11 @@ export const showDemoToastHandler = (): EventHandler => {
 export const showErrorToastHandler = (): EventHandler => {
     const toast = inject(ToastService);
     const i18n = inject(I18nService);
+    const t = createTranslator(i18n);
 
     return {
         id: 'showErrorToast',
         handle: () => {
-            const t = (k: string, p?: Record<string, any>) => i18n.t(k, p);
             toast.show({
                 level: 'error',
                 title: t('demo.toast.criticalTitle'),
@@ -89,11 +109,11 @@ export const showErrorToastHandler = (): EventHandler => {
 export const showActionToastHandler = (): EventHandler => {
     const toast = inject(ToastService);
     const i18n = inject(I18nService);
+    const t = createTranslator(i18n);
 
     return {
         id: 'showActionToast',
         handle: () => {
-            const t = (k: string, p?: Record<string, any>) => i18n.t(k, p);
             toast.show({
                 level: 'info',
                 title: t('demo.toast.updateTitle'),
@@ -131,49 +151,16 @@ export const showActionToastHandler = (): EventHandler => {
 export const showPositionDemoHandler = (): EventHandler => {
     const toast = inject(ToastService);
     const i18n = inject(I18nService);
+    const t = createTranslator(i18n);
     let positionDemoIndex = 0;
 
     return {
         id: 'showPositionDemo',
         handle: () => {
-            const t = (k: string, p?: Record<string, any>) => i18n.t(k, p);
-            const positions = [
-                {
-                    vertical: 'top' as const,
-                    horizontal: 'right' as const,
-                    message: t('demo.toast.positionChanged', { position: 'Top Right' }),
-                },
-                {
-                    vertical: 'top' as const,
-                    horizontal: 'center' as const,
-                    message: t('demo.toast.positionChanged', { position: 'Top Center' }),
-                },
-                {
-                    vertical: 'top' as const,
-                    horizontal: 'left' as const,
-                    message: t('demo.toast.positionChanged', { position: 'Top Left' }),
-                },
-                {
-                    vertical: 'bottom' as const,
-                    horizontal: 'left' as const,
-                    message: t('demo.toast.positionChanged', { position: 'Bottom Left' }),
-                },
-                {
-                    vertical: 'bottom' as const,
-                    horizontal: 'center' as const,
-                    message: t('demo.toast.positionChanged', { position: 'Bottom Center' }),
-                },
-                {
-                    vertical: 'bottom' as const,
-                    horizontal: 'right' as const,
-                    message: t('demo.toast.positionChanged', { position: 'Bottom Right (default)' }),
-                },
-            ];
-
-            const currentIndex = positionDemoIndex % positions.length;
-            const position = positions[currentIndex];
+            const currentIndex = positionDemoIndex % TOAST_POSITION_DEMOS.length;
+            const position = TOAST_POSITION_DEMOS[currentIndex];
             toast.setPosition({ vertical: position.vertical, horizontal: position.horizontal });
-            toast.success(position.message, { source: 'Position' });
+            toast.success(t('demo.toast.positionChanged', { position: t(position.labelKey) }), { source: 'Position' });
             positionDemoIndex++;
         },
     };
@@ -182,11 +169,11 @@ export const showPositionDemoHandler = (): EventHandler => {
 export const clearAllToastsHandler = (): EventHandler => {
     const toast = inject(ToastService);
     const i18n = inject(I18nService);
+    const t = createTranslator(i18n);
 
     return {
         id: 'clearAllToasts',
         handle: () => {
-            const t = (k: string, p?: Record<string, any>) => i18n.t(k, p);
             toast.clear();
             setTimeout(() => {
                 toast.info(t('demo.toast.allCleared'), { source: 'Clear' });

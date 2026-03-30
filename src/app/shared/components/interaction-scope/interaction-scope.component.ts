@@ -1,9 +1,21 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, Injector, OnInit, computed, effect, forwardRef, inject, input } from '@angular/core';
 import { ConfigurationsOrchestratorService } from '../../services/configurations-orchestrator';
+import { resolveDynamicValue, resolveTextValue } from '../../utility/component-orchestrator.utility';
 import { WrapperOrchestrator } from '../wrapper-orchestrator/wrapper-orchestrator.component';
 import { InteractionScopeService, type TInteractionScopeHost } from './interaction-scope.service';
 import type { TInteractionScopeConfig, TInteractionScopeTag } from './interaction-scope.types';
+
+const normalizeComponentIds = (components: TInteractionScopeConfig['components']): readonly string[] =>
+    (components ?? [])
+        .filter((entry): entry is string => typeof entry === 'string')
+        .map((entry) => entry.trim())
+        .filter(Boolean);
+
+const resolveScopeTag = (value: TInteractionScopeConfig['tag']): TInteractionScopeTag => {
+    const resolved = resolveDynamicValue(value);
+    return resolved === 'div' || resolved === 'section' || resolved === 'form' ? resolved : 'div';
+};
 
 @Component({
     selector: 'interaction-scope',
@@ -29,37 +41,17 @@ export class InteractionScopeComponent implements OnInit {
         }, { injector: this.injector });
     }
 
-    readonly tag = computed<TInteractionScopeTag>(() => {
-        const resolved = this.resolveMaybeThunk(this.config().tag);
-        return (resolved as TInteractionScopeTag) ?? 'div';
-    });
+    readonly tag = computed<TInteractionScopeTag>(() => resolveScopeTag(this.config().tag));
 
-    readonly id = computed<string | undefined>(() => {
-        const resolved = this.resolveMaybeThunk(this.config().id);
-        return resolved ? String(resolved) : undefined;
-    });
+    readonly id = computed<string | undefined>(() => resolveTextValue(this.config().id));
 
-    readonly classes = computed<string>(() => {
-        const resolved = this.resolveMaybeThunk(this.config().classes);
-        return typeof resolved === 'string' ? resolved : String(resolved ?? '');
-    });
+    readonly classes = computed<string>(() => resolveTextValue(this.config().classes) ?? '');
 
-    readonly role = computed<string | undefined>(() => {
-        const resolved = this.resolveMaybeThunk(this.config().role);
-        return resolved ? String(resolved) : undefined;
-    });
+    readonly role = computed<string | undefined>(() => resolveTextValue(this.config().role));
 
-    readonly ariaLabel = computed<string | undefined>(() => {
-        const resolved = this.resolveMaybeThunk(this.config().ariaLabel);
-        return resolved ? String(resolved) : undefined;
-    });
+    readonly ariaLabel = computed<string | undefined>(() => resolveTextValue(this.config().ariaLabel));
 
-    readonly components = computed<readonly string[]>(() =>
-        (this.config().components ?? [])
-            .filter((entry): entry is string => typeof entry === 'string')
-            .map((entry) => entry.trim())
-            .filter(Boolean)
-    );
+    readonly components = computed<readonly string[]>(() => normalizeComponentIds(this.config().components));
 
     readonly hostContext = computed<TInteractionScopeHost>(() => {
         return {
@@ -93,12 +85,5 @@ export class InteractionScopeComponent implements OnInit {
             );
         }
         return snapshot;
-    }
-
-    private resolveMaybeThunk(value: unknown): unknown {
-        if (typeof value === 'function' && (value as (...args: unknown[]) => unknown).length === 0) {
-            return (value as () => unknown)();
-        }
-        return value;
     }
 }

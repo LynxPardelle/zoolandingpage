@@ -45,7 +45,6 @@ let bootstrapLoadArgs: Array<{ domain?: string; pageId?: string; lang?: string }
 const ORCHESTRATOR_STUB = {
   modalHostConfig$: of(null),
   fallbackModalHostConfig: {},
-  devDemoControlsComponents: [] as string[],
   getAllTheClassesFromComponents: () => [],
   setDraftExportContext: jasmine.createSpy('setDraftExportContext'),
   setExternalComponentsFromPayload: jasmine.createSpy('setExternalComponentsFromPayload'),

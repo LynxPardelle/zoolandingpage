@@ -50,11 +50,6 @@ describe('ThemeService', () => {
                         secondaryAccentColor: '#900c3f',
                     },
                 },
-                ui: {
-                    modalAccentColor: 'secondaryAccentColor',
-                    legalModalAccentColor: 'secondaryAccentColor',
-                    demoModalAccentColor: 'accentColor',
-                },
             },
         },
     });
@@ -92,7 +87,6 @@ describe('ThemeService', () => {
         expect(applied['bgColor']).toBe('#090909');
         expect(applied['accentColor']).toBe('#c7a900');
         expect(applied['altBgColor']).toBe('#f9f5ef');
-        expect(service.getUiAccentColor('legalModalAccentColor', 'accentColor')).toBe('secondaryAccentColor');
         expect(setItemSpy).not.toHaveBeenCalled();
     });
 

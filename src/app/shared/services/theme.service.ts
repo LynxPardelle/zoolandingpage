@@ -8,7 +8,7 @@
 import { isPlatformBrowser } from '@angular/common';
 import { computed, effect, inject, Injectable, PLATFORM_ID, REQUEST, signal } from '@angular/core';
 import { NgxAngoraService } from 'ngx-angora-css';
-import { ThemeConfig, ThemeMode, TThemeAccentColorToken, TThemeColors, TThemeVariableConfig } from '../types/theme.types';
+import { ThemeConfig, ThemeMode, TThemeColors, TThemeVariableConfig } from '../types/theme.types';
 import { isThemeVariableConfig } from '../utility/config-validation/config-payload.validators';
 import { DomainResolverService } from './domain-resolver.service';
 import { VariableStoreService } from './variable-store.service';
@@ -109,11 +109,6 @@ export class ThemeService {
     return this.activeTheme() === 'dark'
       ? this.requireThemeConfig(this._darkThemeConfig(), 'dark')
       : this.requireThemeConfig(this._lightThemeConfig(), 'light');
-  }
-
-  getUiAccentColor(key: 'modalAccentColor' | 'legalModalAccentColor' | 'demoModalAccentColor', fallback: TThemeAccentColorToken): TThemeAccentColorToken {
-    const configured = this._draftThemeConfig()?.ui?.[key];
-    return configured ?? fallback;
   }
 
   // Private methods
