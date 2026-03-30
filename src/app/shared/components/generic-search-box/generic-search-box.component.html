@@ -69,8 +69,7 @@
         <generic-button
           [config]="{
             id: 'sb-opt-' + s.id,
-            classes:
-              'ank-bg-transparent ank-border-none ank-cursor-pointer ank-color-textColor ank-px-0_5rem ank-py-0_25rem ank-text-left ank-width-100per ank-borderRadius-0_5rem ank-bgHover-secondaryBgColor',
+            classes: resultItemClasses(),
             ariaSelected: i === activeIndex(),
 
           }"
@@ -85,11 +84,11 @@
         </generic-button>
       </li>
       } @if (!loading() && !results().length && term().length >= minLength()) {
-      <li class="ank-color-textSecondary ank-fontSize-0_75rem ank-px-0_5rem ank-py-0_25rem">
+      <li [class]="statusItemClasses()">
         {{ i18n.t("ui.common.noResults") }}
       </li>
       } @if (loading()) {
-      <li class="ank-color-textSecondary ank-fontSize-0_75rem ank-px-0_5rem ank-py-0_25rem">
+      <li [class]="statusItemClasses()">
         <app-loading-spinner variant="dots" size="sm" />
       </li>
       }

@@ -44,9 +44,9 @@ export class GenericProgressBarComponent {
       case 'secondary':
         return 'ank-bg-secondaryLinkColor';
       case 'success':
-        return 'ank-bg-altSuccessColor';
+        return 'ank-bg-successColor';
       case 'warn':
-        return 'ank-bg-altWarningColor';
+        return 'ank-bg-warningColor';
       default:
         return 'ank-bg-accentColor';
     }

@@ -156,16 +156,16 @@ export class GenericTabGroupComponent {
 
   buttonClasses(tab: TabDefinition): string {
     return [
-      this.config().tabButtonClasses || 'tabGroupButton',
+      this.config().tabButtonClasses || '',
       this.isActive(tab.id ?? '')
-        ? this.config().activeTabButtonClasses || 'tabGroupButtonActive'
-        : this.config().inactiveTabButtonClasses || 'tabGroupButtonInactive',
+        ? this.config().activeTabButtonClasses || ''
+        : this.config().inactiveTabButtonClasses || '',
     ].filter(Boolean).join(' ');
   }
 
   indexLabelClasses(tab: TabDefinition): string {
     return [
-      this.config().indexLabelClasses || 'tabGroupIndexLabel',
+      this.config().indexLabelClasses || '',
       this.isActive(tab.id ?? '')
         ? this.config().activeIndexLabelClasses || ''
         : this.config().inactiveIndexLabelClasses || '',

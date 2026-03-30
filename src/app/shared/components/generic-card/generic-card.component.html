@@ -1,21 +1,24 @@
 @if (isTestimonial()) {
-<article [class]="testimonialClasses()" [@testimonialFadeIn] itemscope itemtype="https://schema.org/Review">
-  <div class="ank-display-flex ank-alignItems-center ank-gap-12px ank-mb-16px">
-    <div class="ank-fs-2rem" aria-hidden="true">{{ avatar() || "🧑" }}</div>
-    <div>
-      <h3 class="ank-fs-1rem ank-fontWeight-bold ank-m-0 ank-color-secondaryTitleColor" itemprop="author">
+<article [class]="classes()" [@testimonialFadeIn] itemscope itemtype="https://schema.org/Review">
+  <div [class]="classValue('testimonialHeaderClasses')">
+    <div [class]="classValue('testimonialAvatarClasses')" aria-hidden="true">{{ avatar() || "🧑" }}</div>
+    <div [class]="classValue('testimonialAuthorClasses')">
+      <h3 [class]="classValue('testimonialNameClasses')" itemprop="author">
         {{ name() }}
       </h3>
-      <p class="ank-fs-1rem ank-m-0 ank-color-secondaryTextColor">{{ role() }} · {{ company() }}</p>
+      <p [class]="classValue('testimonialRoleClasses')">{{ role() }} · {{ company() }}</p>
     </div>
     @if (verified()) {
-    <mat-icon class="ank-fs-1rem ank-color-success" [attr.title]="verifiedLabel()" [attr.aria-label]="verifiedLabel()"
+    <mat-icon
+      [class]="classValue('testimonialVerifiedIconClasses')"
+      [attr.title]="verifiedLabel()"
+      [attr.aria-label]="verifiedLabel()"
       >verified</mat-icon
     >}
   </div>
-  <p class="ank-fs-1rem ank-color-secondaryTextColor ank-lineHeight-relaxed" itemprop="reviewBody">"{{ content() }}"</p>
+  <p [class]="classValue('testimonialContentClasses')" itemprop="reviewBody">"{{ content() }}"</p>
   <div
-    class="ank-display-flex ank-alignItems-center ank-gap-4px"
+    [class]="classValue('testimonialRatingClasses')"
     itemprop="reviewRating"
     itemscope
     itemtype="https://schema.org/Rating"
@@ -24,28 +27,25 @@
       itemprop="ratingValue"
       [content]="rating().toString()"
     />
-    @for (star of stars(); track star) {<mat-icon class="ank-fs-1rem ank-color-warning" aria-hidden="true">{{
+    @for (star of stars(); track star) {<mat-icon [class]="classValue('testimonialStarClasses')" aria-hidden="true">{{
       star <= rating() ? "star" : "star_border"
     }}</mat-icon
-    >}<span class="ank-fs-1rem ank-color-secondaryTextColor">{{ rating() }}/5</span>
+    >}<span [class]="classValue('testimonialRatingTextClasses')">{{ rating() }}/5</span>
   </div>
 </article>
 } @else {
 <div [class]="classes()" [@featureFadeIn]>
-  <div class="ank-mb-1_25rem ank-display-flex ank-justifyContent-center">
-    <mat-icon class="ank-fs-2rem ank-width-2rem ank-height-2rem ank-color-accentColor">{{ icon() }}</mat-icon>
+  <div [class]="classValue('featureIconContainerClasses')">
+    <mat-icon [class]="classValue('featureIconClasses')">{{ icon() }}</mat-icon>
   </div>
-  <h3 class="ank-fs-1_25rem ank-fontWeight-bold ank-mb-1rem ank-color-secondaryTitleColor">{{ title() }}</h3>
-  <p class="ank-fs-1rem ank-color-secondaryTextColor ank-mb-1_25rem ank-lineHeight-relaxed">{{ description() }}</p>
+  <h3 [class]="classValue('featureTitleClasses')">{{ title() }}</h3>
+  <p [class]="classValue('featureDescriptionClasses')">{{ description() }}</p>
   @if (benefits().length) {
-  <ul class="ank-listStyle-none ank-p-0 ank-m-0 ank-textAlign-left">
+  <ul [class]="classValue('benefitsListClasses')">
     @for (benefit of benefits(); track benefit) {
-    <li class="ank-display-flex ank-alignItems-start ank-gap-0_5rem ank-mb-0_5rem">
-      <mat-icon
-        class="ank-fs-1rem ank-width-1rem ank-height-1rem ank-color-secondaryAccentColor ank-mt-0_125rem ank-flexShrink-0"
-        >check_circle</mat-icon
-      >
-      <span class="ank-fs-1rem ank-color-secondaryTextColor ank-lineHeight-relaxed">{{ benefit }}</span>
+    <li [class]="classValue('benefitItemClasses')">
+      <mat-icon [class]="classValue('benefitIconClasses')">check_circle</mat-icon>
+      <span [class]="classValue('benefitTextClasses')">{{ benefit }}</span>
     </li>
     }
   </ul>
@@ -54,8 +54,7 @@
     [config]="{
       label: buttonLabel(),
       pressed: onButtonPressed,
-      classes:
-        'btnBase ank-btnOutline-secondaryLinkColor ank-bg-transparent ank-color-textColor ank-width-100per ank-py-1rem ank-my-1rem ank-fs-1_25rem'
+      classes: buttonClasses()
     }"
   ></generic-button>
   }

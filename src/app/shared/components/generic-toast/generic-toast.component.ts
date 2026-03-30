@@ -2,9 +2,10 @@ import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '@/a
 import { CommonModule } from '@angular/common';
 import { Component, computed, effect, inject, output, signal } from '@angular/core';
 import { I18nService } from '../../services/i18n.service';
+import { VariableStoreService } from '../../services/variable-store.service';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { ToastService } from './generic-toast.service';
-import { ToastAction, ToastLevel, ToastMessage } from './generic-toast.types';
+import { ToastAction, ToastMessage, ToastUiConfig } from './generic-toast.types';
 
 @Component({
   selector: 'generic-toast-host',
@@ -15,8 +16,13 @@ import { ToastAction, ToastLevel, ToastMessage } from './generic-toast.types';
 export class GenericToastComponent {
   private hoveredToasts = signal<Set<string>>(new Set());
   private readonly i18n = inject(I18nService);
+  private readonly variableStore = inject(VariableStoreService);
   readonly analyticsEvent = output<AnalyticsEventPayload>();
   readonly notificationsAriaLabel = computed(() => this.i18n.t('ui.common.notifications'));
+  readonly uiConfig = computed<ToastUiConfig>(() => {
+    const value = this.variableStore.get('ui.toast');
+    return this.isRecord(value) ? value as ToastUiConfig : {};
+  });
 
   constructor(public service: ToastService) {
     // Reactive analytics emission for toast lifecycle
@@ -37,37 +43,32 @@ export class GenericToastComponent {
     const config = this.service.config();
     const { vertical, horizontal } = config.position;
 
-    const classes = [];
+    const classes = [this.uiClass('hostClasses')];
 
     // Vertical positioning
     if (vertical === 'top') {
-      classes.push('ank-top-1rem');
+      classes.push(this.uiClass('hostTopClasses'));
     } else {
-      classes.push('ank-bottom-1rem');
+      classes.push(this.uiClass('hostBottomClasses'));
     }
 
     // Horizontal positioning
     if (horizontal === 'right') {
-      classes.push('ank-right-1rem');
+      classes.push(this.uiClass('hostRightClasses'));
     } else if (horizontal === 'left') {
-      classes.push('ank-left-1rem');
+      classes.push(this.uiClass('hostLeftClasses'));
     } else if (horizontal === 'center') {
-      classes.push('ank-left-50per', 'ank-transform-translateXSDMIN50perED');
+      classes.push(this.uiClass('hostCenterClasses'));
     }
 
-    return classes.join(' ');
+    return classes.filter(Boolean).join(' ');
   }
 
   getToastClasses(toast: ToastMessage): string {
-    const classes = [
-      'toast-item',
-      'ank-border-1px__solid__secondaryBgColor',
-      'ank-backdropFilter-blurSD0_5remED',
-      'ank-transformOrigin-center__bottom',
-    ];
+    const classes = [this.uiClass('itemClasses')];
 
     // Level-specific styling
-    classes.push(`toast-${ toast.level }`);
+    classes.push(this.levelClasses(toast.level));
 
     // Animation classes
     if (toast.entering) {
@@ -79,23 +80,25 @@ export class GenericToastComponent {
 
     // Hover state
     if (this.hoveredToasts().has(toast.id)) {
-      classes.push('toast-hovered');
+      classes.push(this.uiClass('hoveredItemClasses'));
     }
 
     return classes.join(' ');
   }
 
-  getActionButtonClasses(action: ToastAction, level: ToastLevel): string {
-    const baseClasses = ['toast-action-btn'];
+  getIconClasses(toast: ToastMessage): string {
+    return [this.uiClass('iconSurfaceClasses'), this.uiClass('iconContainerClasses'), this.iconLevelClasses(toast.level)].filter(Boolean).join(' ');
+  }
 
-    // Style-specific classes
-    if (action.style === 'primary') {
-      baseClasses.push(`toast-action-primary-${ level }`);
-    } else {
-      baseClasses.push('toast-action-secondary');
-    }
+  getProgressBarClasses(toast: ToastMessage): string {
+    return [this.uiClass('progressBarSurfaceClasses'), this.uiClass('progressBarClasses'), 'toast-progress-bar-anim'].filter(Boolean).join(' ');
+  }
 
-    return baseClasses.join(' ');
+  getActionButtonClasses(action: ToastAction): string {
+    return [
+      this.uiClass('actionButtonClasses'),
+      action.style === 'primary' ? this.uiClass('actionPrimaryClasses') : this.uiClass('actionSecondaryClasses'),
+    ].filter(Boolean).join(' ');
   }
 
   onToastHover(toastId: string, isHovered: boolean): void {
@@ -131,5 +134,40 @@ export class GenericToastComponent {
   getDismissAriaLabel(title?: string | null): string {
     const base = this.i18n.t('ui.common.dismissNotification');
     return title ? `${ base }: ${ title }` : base;
+  }
+
+  uiClass(key: keyof ToastUiConfig): string {
+    const value = this.uiConfig()[key];
+    return typeof value === 'string' ? value.trim() : '';
+  }
+
+  private levelClasses(level: ToastMessage['level']): string {
+    switch (level) {
+      case 'success':
+        return this.uiClass('levelSuccessClasses');
+      case 'error':
+        return this.uiClass('levelErrorClasses');
+      case 'warning':
+        return this.uiClass('levelWarningClasses');
+      default:
+        return this.uiClass('levelInfoClasses');
+    }
+  }
+
+  private iconLevelClasses(level: ToastMessage['level']): string {
+    switch (level) {
+      case 'success':
+        return this.uiClass('iconSuccessClasses');
+      case 'error':
+        return this.uiClass('iconErrorClasses');
+      case 'warning':
+        return this.uiClass('iconWarningClasses');
+      default:
+        return this.uiClass('iconInfoClasses');
+    }
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return !!value && typeof value === 'object' && !Array.isArray(value);
   }
 }

@@ -80,10 +80,10 @@ export class GenericAccordionComponent {
 
   indexLabelClasses = (item: AccordionItem) => {
     return [
-      this.config().indexLabelClasses || 'accItemIndexLabel',
+      this.config().indexLabelClasses ?? '',
       this.isExpanded(this.itemId(item))
-        ? this.config().indexLabelIsExpandedClasses || ''
-        : this.config().indexLabelIsNotExpandedClasses || '',
+        ? this.config().indexLabelIsExpandedClasses ?? ''
+        : this.config().indexLabelIsNotExpandedClasses ?? '',
     ].filter(Boolean).join(' ');
   };
 

@@ -19,6 +19,8 @@ export type SearchBoxConfig = {
   readonly triggerAriaLabel?: string;
   readonly closeAriaLabel?: string;
   readonly triggerClasses?: string;
+  readonly resultItemClasses?: string;
+  readonly statusItemClasses?: string;
   readonly panelClasses?: string;
   readonly panelContentClasses?: string;
   readonly panelInputWrapperClasses?: string;

@@ -34,3 +34,35 @@ export type ToastConfig = {
   readonly defaultAutoCloseMs: number;
   readonly animationDuration: number;
 };
+
+export type ToastUiConfig = {
+  readonly hostClasses?: string;
+  readonly hostTopClasses?: string;
+  readonly hostBottomClasses?: string;
+  readonly hostLeftClasses?: string;
+  readonly hostRightClasses?: string;
+  readonly hostCenterClasses?: string;
+  readonly itemClasses?: string;
+  readonly hoveredItemClasses?: string;
+  readonly levelSuccessClasses?: string;
+  readonly levelErrorClasses?: string;
+  readonly levelWarningClasses?: string;
+  readonly levelInfoClasses?: string;
+  readonly progressClasses?: string;
+  readonly progressBarClasses?: string;
+  readonly progressBarSurfaceClasses?: string;
+  readonly iconSurfaceClasses?: string;
+  readonly iconContainerClasses?: string;
+  readonly iconSuccessClasses?: string;
+  readonly iconErrorClasses?: string;
+  readonly iconWarningClasses?: string;
+  readonly iconInfoClasses?: string;
+  readonly contentClasses?: string;
+  readonly titleClasses?: string;
+  readonly textClasses?: string;
+  readonly actionsClasses?: string;
+  readonly actionButtonClasses?: string;
+  readonly actionPrimaryClasses?: string;
+  readonly actionSecondaryClasses?: string;
+  readonly dismissButtonClasses?: string;
+};

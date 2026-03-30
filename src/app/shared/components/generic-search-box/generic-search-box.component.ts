@@ -64,6 +64,8 @@ export class GenericSearchBoxComponent implements OnDestroy {
   classes = () => this.config?.classes ?? '';
   inputClasses = () => this.config?.inputClasses ?? 'ank-width-100per ank-borderRadius-0_5rem ank-border-1px-solid ank-borderColor-fgColor ank-px-0_75rem ank-py-0_5rem focus-visible-ring';
   resultsClasses = () => this.config?.resultsClasses ?? 'ank-listStyle-none ank-m-0 ank-p-0_25rem ank-display-flex ank-flexDirection-column ank-gap-2px ank-bg-bgColor ank-borderRadius-0_5rem ank-boxShadow-sm';
+  resultItemClasses = () => this.config?.resultItemClasses ?? 'ank-bg-transparent ank-border-none ank-cursor-pointer ank-color-textColor ank-px-0_5rem ank-py-0_25rem ank-text-left ank-width-100per ank-borderRadius-0_5rem ank-bgHover-secondaryBgColor';
+  statusItemClasses = () => this.config?.statusItemClasses ?? 'ank-color-textSecondary ank-fontSize-0_75rem ank-px-0_5rem ank-py-0_25rem';
   panelClasses = () => this.config?.panelClasses ?? 'ank-position-absolute ank-top-calcSD100per__PLUS__8pxED ank-right-0 ank-zIndex-1200 ank-w-100per';
   panelContentClasses = () => this.config?.panelContentClasses ?? 'ank-width-100per ank-display-flex ank-alignItems-center ank-gap-16px';
   panelInputWrapperClasses = () => this.config?.panelInputWrapperClasses ?? '';

@@ -5,7 +5,7 @@ import { I18nService } from '../../services/i18n.service';
 import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { GENERIC_CARD_ANIMATIONS } from './generic-card.styles';
-import { DEFAULT_GENERIC_CARD_CONFIG, TGenericCardConfig } from './generic-card.types';
+import { TGenericCardConfig } from './generic-card.types';
 
 @Component({
     selector: 'generic-card',
@@ -16,7 +16,7 @@ import { DEFAULT_GENERIC_CARD_CONFIG, TGenericCardConfig } from './generic-card.
 })
 export class GenericCardComponent {
     private readonly i18n = inject(I18nService);
-    private readonly _config = signal<TGenericCardConfig>(DEFAULT_GENERIC_CARD_CONFIG);
+    private readonly _config = signal<TGenericCardConfig>({});
 
     @Input()
     get config(): TGenericCardConfig {
@@ -24,33 +24,30 @@ export class GenericCardComponent {
     }
 
     set config(value: TGenericCardConfig) {
-        this._config.set({ ...DEFAULT_GENERIC_CARD_CONFIG, ...(value ?? {}) });
+        this._config.set(value ?? {});
     }
 
-    readonly variant = computed(() => resolveDynamicValue(this._config().variant) || DEFAULT_GENERIC_CARD_CONFIG.variant);
+    readonly variant = computed(() => resolveDynamicValue(this._config().variant) === 'testimonial' ? 'testimonial' : 'feature');
     readonly isTestimonial = computed(() => this.variant() === 'testimonial');
-    readonly classes = computed(() => resolveDynamicValue(this._config().classes) ?? DEFAULT_GENERIC_CARD_CONFIG.classes);
-    readonly testimonialClasses = computed(() => {
-        const base = 'ank-bg-secondaryBgColor ank-borderRadius-12px ank-p-32px cardHover ank-border-1px ank-borderColor-border';
-        const extra = this.classes().trim();
-        return extra ? `${ base } ${ extra }` : base;
-    });
+    readonly classes = computed(() => String(resolveDynamicValue(this._config().classes) ?? '').trim());
+    readonly buttonClasses = computed(() => String(resolveDynamicValue(this._config().buttonClasses) ?? '').trim());
 
     readonly icon = computed(() => resolveDynamicValue(this._config().icon) ?? '');
-    readonly title = computed(() => resolveDynamicValue(this._config().title) ?? DEFAULT_GENERIC_CARD_CONFIG.title);
-    readonly description = computed(() => resolveDynamicValue(this._config().description) ?? DEFAULT_GENERIC_CARD_CONFIG.description);
-    readonly benefits = computed<readonly string[]>(() => resolveDynamicValue(this._config().benefits) ?? DEFAULT_GENERIC_CARD_CONFIG.benefits);
-    readonly buttonLabel = computed(() => resolveDynamicValue(this._config().buttonLabel) ?? DEFAULT_GENERIC_CARD_CONFIG.buttonLabel);
+    readonly title = computed(() => String(resolveDynamicValue(this._config().title) ?? ''));
+    readonly description = computed(() => String(resolveDynamicValue(this._config().description) ?? ''));
+    readonly benefits = computed<readonly string[]>(() => resolveDynamicValue(this._config().benefits) ?? []);
+    readonly buttonLabel = computed(() => String(resolveDynamicValue(this._config().buttonLabel) ?? ''));
 
-    readonly name = computed(() => resolveDynamicValue(this._config().name) ?? DEFAULT_GENERIC_CARD_CONFIG.name);
-    readonly role = computed(() => resolveDynamicValue(this._config().role) ?? DEFAULT_GENERIC_CARD_CONFIG.role);
-    readonly company = computed(() => resolveDynamicValue(this._config().company) ?? DEFAULT_GENERIC_CARD_CONFIG.company);
-    readonly content = computed(() => resolveDynamicValue(this._config().content) ?? DEFAULT_GENERIC_CARD_CONFIG.content);
-    readonly rating = computed(() => resolveDynamicValue(this._config().rating) ?? DEFAULT_GENERIC_CARD_CONFIG.rating);
-    readonly avatar = computed(() => resolveDynamicValue(this._config().avatar) ?? DEFAULT_GENERIC_CARD_CONFIG.avatar);
-    readonly verified = computed(() => resolveDynamicValue(this._config().verified) ?? DEFAULT_GENERIC_CARD_CONFIG.verified);
+    readonly name = computed(() => String(resolveDynamicValue(this._config().name) ?? ''));
+    readonly role = computed(() => String(resolveDynamicValue(this._config().role) ?? ''));
+    readonly company = computed(() => String(resolveDynamicValue(this._config().company) ?? ''));
+    readonly content = computed(() => String(resolveDynamicValue(this._config().content) ?? ''));
+    readonly rating = computed(() => Number(resolveDynamicValue(this._config().rating) ?? 0));
+    readonly avatar = computed(() => String(resolveDynamicValue(this._config().avatar) ?? ''));
+    readonly verified = computed(() => Boolean(resolveDynamicValue(this._config().verified) ?? false));
     readonly stars = computed(() => [1, 2, 3, 4, 5]);
     readonly verifiedLabel = computed(() => this.i18n.t('ui.common.verified'));
+    readonly classValue = (key: keyof TGenericCardConfig): string => String(resolveDynamicValue(this._config()[key] as never) ?? '').trim();
 
     readonly onButtonPressed = (_event?: MouseEvent): void => {
         this._config().onCta?.(this.title());

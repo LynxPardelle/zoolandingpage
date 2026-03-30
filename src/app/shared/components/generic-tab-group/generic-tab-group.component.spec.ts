@@ -104,7 +104,7 @@ describe('GenericTabGroupComponent', () => {
       },
       computed: {},
     });
-    i18n.setTranslations('es', {
+    const processTranslations = {
       process: [
         {
           title: 'Discovery',
@@ -114,7 +114,9 @@ describe('GenericTabGroupComponent', () => {
           detailItems: ['Item A', 'Item B'],
         },
       ],
-    }, { applyIfCurrent: true });
+    };
+    i18n.setTranslations('es', processTranslations, { applyIfCurrent: true });
+    i18n.setTranslations('en', processTranslations, { applyIfCurrent: true });
 
     fixture.componentRef.setInput('config', {
       layout: 'split-detail',

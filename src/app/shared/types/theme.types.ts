@@ -17,6 +17,14 @@ export const THEME_COLOR_KEYS = [
   'secondaryTitleColor',
   'secondaryLinkColor',
   'secondaryAccentColor',
+  'successColor',
+  'onSuccessColor',
+  'errorColor',
+  'onErrorColor',
+  'warningColor',
+  'onWarningColor',
+  'infoColor',
+  'onInfoColor',
 ] as const;
 
 export const THEME_MODES = ['light', 'dark', 'auto'] as const;
@@ -34,6 +42,14 @@ export type TThemeColors = {
   secondaryTitleColor: string;
   secondaryLinkColor: string;
   secondaryAccentColor: string;
+  successColor: string;
+  onSuccessColor: string;
+  errorColor: string;
+  onErrorColor: string;
+  warningColor: string;
+  onWarningColor: string;
+  infoColor: string;
+  onInfoColor: string;
 };
 
 export type TAltThemeColors = {
@@ -47,6 +63,14 @@ export type TAltThemeColors = {
   altSecondaryTitleColor: string;
   altSecondaryLinkColor: string;
   altSecondaryAccentColor: string;
+  altSuccessColor: string;
+  altOnSuccessColor: string;
+  altErrorColor: string;
+  altOnErrorColor: string;
+  altWarningColor: string;
+  altOnWarningColor: string;
+  altInfoColor: string;
+  altOnInfoColor: string;
 };
 
 export type TAllThemeColors = TThemeColors & TAltThemeColors;

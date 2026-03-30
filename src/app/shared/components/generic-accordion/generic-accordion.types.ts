@@ -58,6 +58,7 @@ export type TAccordionConfig = {
   readonly defaultItemIconIsExpandedClasses?: string;
   readonly defaultItemIconIsNotExpandedClasses?: string;
   readonly buttonContentClasses?: string;
+  readonly textStackClasses?: string;
   readonly indexLabelClasses?: string;
   readonly indexLabelIsExpandedClasses?: string;
   readonly indexLabelIsNotExpandedClasses?: string;
@@ -66,8 +67,10 @@ export type TAccordionConfig = {
   readonly detailContainerClasses?: string;
   readonly detailHeaderClasses?: string;
   readonly detailIconClasses?: string;
+  readonly detailTextStackClasses?: string;
   readonly detailTitleClasses?: string;
   readonly detailMetaClasses?: string;
+  readonly detailMetaIconClasses?: string;
   readonly detailSummaryClasses?: string;
   readonly detailMetaIconName?: string;
   readonly detailContentLabel?: AccordionTextValue;
@@ -77,6 +80,7 @@ export type TAccordionConfig = {
   readonly detailItemsLabelClasses?: string;
   readonly detailListClasses?: string;
   readonly detailListItemClasses?: string;
+  readonly detailListItemIconClasses?: string;
   readonly detailItemIconName?: string;
   readonly toggleIconName?: string;
 };

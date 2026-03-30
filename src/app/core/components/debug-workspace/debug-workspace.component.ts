@@ -3,17 +3,8 @@ import { WrapperOrchestrator } from '@/app/shared/components/wrapper-orchestrato
 import { AnalyticsService } from '@/app/shared/services/analytics.service';
 import { ConfigStoreService } from '@/app/shared/services/config-store.service';
 import { DraftRuntimeService } from '@/app/shared/services/draft-runtime.service';
+import { VariableStoreService } from '@/app/shared/services/variable-store.service';
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
-
-const DRAFT_BUTTON_BASE_CLASSES = 'ank-display-inlineFlex ank-alignItems-center ank-justifyContent-center ank-gap-6px ank-minHeight-40px ank-px-12px ank-py-8px ank-borderRadius-12px ank-border-1px ank-fontSize-12px ank-fontWeight-700 ank-lineHeight-1_3 ank-transition-all ank-td-200ms';
-
-const resolveDraftButtonClasses = (entryKey: string, selectedDraftKey: string): string => {
-    if (selectedDraftKey === entryKey) {
-        return `${ DRAFT_BUTTON_BASE_CLASSES } ank-bg-accentColor ank-color-bgColor ank-borderColor-accentColor ank-boxShadow-0__6px__18px__rgbaSD0COM123COM255COM0_22ED`;
-    }
-
-    return `${ DRAFT_BUTTON_BASE_CLASSES } ank-bg-transparent ank-color-textColor ank-borderColor-textColorOPA__0_2 ank-bgHover-textColorOPA__0_08`;
-};
 
 @Component({
     selector: 'debug-workspace',
@@ -26,6 +17,7 @@ export class DebugWorkspaceComponent {
     private readonly destroyRef = inject(DestroyRef);
     private readonly analytics = inject(AnalyticsService);
     private readonly configStore = inject(ConfigStoreService);
+    private readonly variableStore = inject(VariableStoreService);
     readonly draftRuntime = inject(DraftRuntimeService);
     readonly runtime = inject(RuntimeService);
     readonly hostContext = this;
@@ -50,7 +42,7 @@ export class DebugWorkspaceComponent {
         const selectedDraftKey = this.draftRuntime.selectedDraftKey();
         return this.draftRuntime.draftOptions().map((entry) => ({
             ...entry,
-            buttonClasses: resolveDraftButtonClasses(entry.key, selectedDraftKey),
+            buttonClasses: this.resolveDraftButtonClasses(entry.key, selectedDraftKey),
             ariaLabel: `Open draft ${ entry.label }`,
         }));
     }
@@ -116,6 +108,20 @@ export class DebugWorkspaceComponent {
 
     refreshDebugDraftRegistry(): void {
         this.draftRuntime.refreshRegistry();
+    }
+
+    private resolveDraftButtonClasses(entryKey: string, selectedDraftKey: string): string {
+        const baseClasses = this.getUiString('ui.debug.draftButtons.baseClasses');
+        const stateClasses = selectedDraftKey === entryKey
+            ? this.getUiString('ui.debug.draftButtons.selectedClasses')
+            : this.getUiString('ui.debug.draftButtons.unselectedClasses');
+
+        return [baseClasses, stateClasses].filter(Boolean).join(' ');
+    }
+
+    private getUiString(path: string): string {
+        const value = this.variableStore.get(path);
+        return typeof value === 'string' ? value.trim() : '';
     }
 
     private initDebugOverlay(): void {

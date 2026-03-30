@@ -9,4 +9,7 @@ export type TooltipConfig = {
   readonly id?: string;
   readonly ariaDescription?: string;
   readonly ariaLive?: 'off' | 'polite' | 'assertive';
+  readonly surfaceClasses?: string;
+  readonly arrowClasses?: string;
+  readonly motionClasses?: string;
 };

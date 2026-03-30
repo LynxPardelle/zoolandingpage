@@ -19,19 +19,6 @@ import { AriaLiveService } from '../../services/aria-live.service';
 import { I18nService } from '../../services/i18n.service';
 import { MotionPreferenceService } from '../../services/motion-preference.service';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
-import {
-  DEFAULT_MODAL_ACCENT_BAR_CLASSES,
-  DEFAULT_MODAL_CLOSE_BUTTON_CLASSES,
-  DEFAULT_MODAL_CONFIG,
-  DEFAULT_MODAL_CONTAINER_CLASSES,
-  DEFAULT_MODAL_CONTAINER_DIALOG_CLASSES,
-  DEFAULT_MODAL_CONTAINER_SHEET_CLASSES,
-  DEFAULT_MODAL_PANEL_CLASSES,
-  DEFAULT_MODAL_PANEL_DIALOG_CLASSES,
-  DEFAULT_MODAL_PANEL_MOTION_CLASSES,
-  DEFAULT_MODAL_PANEL_SHEET_CLASSES,
-  DEFAULT_MODAL_PANEL_SIZE_CLASSES,
-} from './generic-modal.constants';
 import { GenericModalService } from './generic-modal.service';
 import { ModalConfig } from './generic-modal.types';
 
@@ -53,7 +40,7 @@ export class GenericModalComponent {
   private previousFocused: HTMLElement | null = null;
   private open = signal(false);
   isOpen = () => this.open();
-  size = () => this.config?.size || DEFAULT_MODAL_CONFIG.size;
+  size = () => this.config?.size;
   // Motion preference
   readonly motion = inject(MotionPreferenceService);
   private readonly i18n = inject(I18nService);
@@ -136,68 +123,61 @@ export class GenericModalComponent {
     this.modalService.close();
   }
   onBackdrop(): void {
-    if (this.config?.closeOnBackdrop ?? DEFAULT_MODAL_CONFIG.closeOnBackdrop) this.close();
+    if (this.config?.closeOnBackdrop ?? true) this.close();
   }
   @HostListener('document:keydown.escape') onEsc(): void {
     if (this.isOpen()) this.close();
   }
 
   variant(): 'dialog' | 'sheet' {
-    return this.config?.variant ?? DEFAULT_MODAL_CONFIG.variant;
+    return this.config?.variant === 'sheet' ? 'sheet' : 'dialog';
   }
 
   containerClasses(): string[] {
-    return [
-      DEFAULT_MODAL_CONTAINER_CLASSES,
-      this.variant() === 'dialog'
-        ? (this.config?.containerDialogClasses ?? DEFAULT_MODAL_CONTAINER_DIALOG_CLASSES)
-        : (this.config?.containerSheetClasses ?? DEFAULT_MODAL_CONTAINER_SHEET_CLASSES),
-      this.config?.containerClasses ?? '',
-    ].filter(Boolean);
+    return this.joinClasses(
+      this.config?.containerClasses,
+      this.variant() === 'dialog' ? this.config?.containerDialogClasses : this.config?.containerSheetClasses,
+    );
   }
 
   panelClasses(): string[] {
-    const classes = [
-      DEFAULT_MODAL_PANEL_CLASSES,
-      this.config?.panelClasses ?? '',
-      this.variant() === 'dialog'
-        ? (this.config?.panelDialogClasses ?? DEFAULT_MODAL_PANEL_DIALOG_CLASSES)
-        : (this.config?.panelSheetClasses ?? DEFAULT_MODAL_PANEL_SHEET_CLASSES),
-      this.motion.reduced() ? (this.config?.panelNoMotionClasses ?? '') : (this.config?.panelMotionClasses ?? DEFAULT_MODAL_PANEL_MOTION_CLASSES),
-    ];
+    const sizeKey = this.size();
+    const sizeClasses = sizeKey === 'sm'
+      ? this.config?.panelSMClasses
+      : sizeKey === 'md'
+        ? this.config?.panelMDClasses
+        : sizeKey === 'lg'
+          ? this.config?.panelLGClasses
+          : '';
 
-    if (this.size() === 'full') {
-      classes.push(DEFAULT_MODAL_PANEL_SIZE_CLASSES.full);
-    } else if (this.variant() === 'dialog') {
-      const sizeKey = this.size();
-      const sizeDefaults = sizeKey === 'sm'
-        ? (this.config?.panelSMClasses ?? DEFAULT_MODAL_PANEL_SIZE_CLASSES.sm)
-        : sizeKey === 'md'
-          ? (this.config?.panelMDClasses ?? DEFAULT_MODAL_PANEL_SIZE_CLASSES.md)
-          : (this.config?.panelLGClasses ?? DEFAULT_MODAL_PANEL_SIZE_CLASSES.lg);
-      classes.push(sizeDefaults);
-    }
-
-    return classes.filter(Boolean);
+    return this.joinClasses(
+      this.config?.panelClasses,
+      this.variant() === 'dialog' ? this.config?.panelDialogClasses : this.config?.panelSheetClasses,
+      this.motion.reduced() ? this.config?.panelNoMotionClasses : this.config?.panelMotionClasses,
+      sizeClasses,
+    );
   }
 
   accentBarClasses(): string[] {
-    const accentClass = (this.config?.accentColor ?? DEFAULT_MODAL_CONFIG.accentColor) === 'accentColor'
+    const accentColor = this.config?.accentColor;
+    const accentClass = accentColor === 'accentColor'
       ? 'ank-bg-accentColor'
-      : 'ank-bg-secondaryAccentColor';
+      : accentColor === 'secondaryAccentColor'
+        ? 'ank-bg-secondaryAccentColor'
+        : '';
 
-    return [
-      DEFAULT_MODAL_ACCENT_BAR_CLASSES,
-      accentClass,
-      this.config?.accentBarClasses ?? '',
-    ].filter(Boolean);
+    return this.joinClasses(this.config?.accentBarClasses, accentClass);
   }
 
   closeButtonClasses(): string {
-    return this.config?.closeButtonClasses ?? DEFAULT_MODAL_CLOSE_BUTTON_CLASSES;
+    return this.config?.closeButtonClasses ?? '';
   }
 
   closeButtonAriaLabel(): string {
     return this.i18n.tOr('ui.accessibility.close', 'Close modal');
+  }
+
+  private joinClasses(...values: Array<string | undefined>): string[] {
+    return values.filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
   }
 }

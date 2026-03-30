@@ -7,6 +7,7 @@ import type {
     TDraftModalUiConfig,
     TDraftSiteConfigPayload,
     TDraftSocialLinkConfig,
+    TDraftToastUiConfig,
     TDraftUiVariableConfig,
     TI18nPayload,
     TPageConfigPayload,
@@ -243,12 +244,31 @@ const isGenericCardConfig = (value: unknown): boolean => {
     if (value['title'] !== undefined && typeof value['title'] !== 'string') return false;
     if (value['description'] !== undefined && typeof value['description'] !== 'string') return false;
     if (value['buttonLabel'] !== undefined && typeof value['buttonLabel'] !== 'string') return false;
+    if (value['buttonClasses'] !== undefined && typeof value['buttonClasses'] !== 'string') return false;
+    if (value['featureIconContainerClasses'] !== undefined && typeof value['featureIconContainerClasses'] !== 'string') return false;
+    if (value['featureIconClasses'] !== undefined && typeof value['featureIconClasses'] !== 'string') return false;
+    if (value['featureTitleClasses'] !== undefined && typeof value['featureTitleClasses'] !== 'string') return false;
+    if (value['featureDescriptionClasses'] !== undefined && typeof value['featureDescriptionClasses'] !== 'string') return false;
+    if (value['benefitsListClasses'] !== undefined && typeof value['benefitsListClasses'] !== 'string') return false;
+    if (value['benefitItemClasses'] !== undefined && typeof value['benefitItemClasses'] !== 'string') return false;
+    if (value['benefitIconClasses'] !== undefined && typeof value['benefitIconClasses'] !== 'string') return false;
+    if (value['benefitTextClasses'] !== undefined && typeof value['benefitTextClasses'] !== 'string') return false;
     if (value['name'] !== undefined && typeof value['name'] !== 'string') return false;
     if (value['role'] !== undefined && typeof value['role'] !== 'string') return false;
     if (value['company'] !== undefined && typeof value['company'] !== 'string') return false;
     if (value['content'] !== undefined && typeof value['content'] !== 'string') return false;
     if (value['avatar'] !== undefined && typeof value['avatar'] !== 'string') return false;
     if (value['verified'] !== undefined && typeof value['verified'] !== 'boolean') return false;
+    if (value['testimonialHeaderClasses'] !== undefined && typeof value['testimonialHeaderClasses'] !== 'string') return false;
+    if (value['testimonialAvatarClasses'] !== undefined && typeof value['testimonialAvatarClasses'] !== 'string') return false;
+    if (value['testimonialAuthorClasses'] !== undefined && typeof value['testimonialAuthorClasses'] !== 'string') return false;
+    if (value['testimonialNameClasses'] !== undefined && typeof value['testimonialNameClasses'] !== 'string') return false;
+    if (value['testimonialRoleClasses'] !== undefined && typeof value['testimonialRoleClasses'] !== 'string') return false;
+    if (value['testimonialVerifiedIconClasses'] !== undefined && typeof value['testimonialVerifiedIconClasses'] !== 'string') return false;
+    if (value['testimonialContentClasses'] !== undefined && typeof value['testimonialContentClasses'] !== 'string') return false;
+    if (value['testimonialRatingClasses'] !== undefined && typeof value['testimonialRatingClasses'] !== 'string') return false;
+    if (value['testimonialStarClasses'] !== undefined && typeof value['testimonialStarClasses'] !== 'string') return false;
+    if (value['testimonialRatingTextClasses'] !== undefined && typeof value['testimonialRatingTextClasses'] !== 'string') return false;
     if (value['rating'] !== undefined && (typeof value['rating'] !== 'number' || !Number.isFinite(value['rating']))) return false;
     if (value['benefits'] !== undefined && !isStringArray(value['benefits'])) return false;
     if (value['onCta'] !== undefined) return false;
@@ -420,6 +440,8 @@ const isSearchBoxConfig = (value: unknown): boolean => {
         'triggerAriaLabel',
         'closeAriaLabel',
         'triggerClasses',
+        'resultItemClasses',
+        'statusItemClasses',
         'panelClasses',
         'panelContentClasses',
         'panelInputWrapperClasses',
@@ -499,6 +521,7 @@ const isAccordionConfig = (value: unknown): boolean => {
         'defaultItemIconIsExpandedClasses',
         'defaultItemIconIsNotExpandedClasses',
         'buttonContentClasses',
+        'textStackClasses',
         'indexLabelClasses',
         'indexLabelIsExpandedClasses',
         'indexLabelIsNotExpandedClasses',
@@ -507,14 +530,17 @@ const isAccordionConfig = (value: unknown): boolean => {
         'detailContainerClasses',
         'detailHeaderClasses',
         'detailIconClasses',
+        'detailTextStackClasses',
         'detailTitleClasses',
         'detailMetaClasses',
+        'detailMetaIconClasses',
         'detailSummaryClasses',
         'detailContentLabelClasses',
         'detailContentClasses',
         'detailItemsLabelClasses',
         'detailListClasses',
         'detailListItemClasses',
+        'detailListItemIconClasses',
         'detailMetaIconName',
         'detailItemIconName',
         'toggleIconName',
@@ -569,16 +595,22 @@ const isTabGroupConfig = (value: unknown): boolean => {
         'activeTabButtonClasses',
         'inactiveTabButtonClasses',
         'buttonContentClasses',
+        'textStackClasses',
         'indexLabelClasses',
         'activeIndexLabelClasses',
         'inactiveIndexLabelClasses',
         'titleClasses',
         'summaryClasses',
+        'panelsClasses',
+        'panelBodyClasses',
+        'panelLoadingClasses',
         'panelClasses',
         'detailHeaderClasses',
         'detailIconClasses',
+        'detailTextStackClasses',
         'detailTitleClasses',
         'detailMetaClasses',
+        'detailMetaIconClasses',
         'detailSummaryClasses',
         'detailMetaIconName',
         'detailContentLabelClasses',
@@ -586,6 +618,7 @@ const isTabGroupConfig = (value: unknown): boolean => {
         'detailItemsLabelClasses',
         'detailListClasses',
         'detailListItemClasses',
+        'detailListItemIconClasses',
         'detailItemIconName',
     ] as const;
     if (stringFields.some((field) => value[field] !== undefined && typeof value[field] !== 'string')) return false;
@@ -599,6 +632,21 @@ const isTabGroupConfig = (value: unknown): boolean => {
     if (value['layout'] !== undefined && value['layout'] !== 'default' && value['layout'] !== 'split-detail') return false;
     if (value['orientation'] !== undefined && value['orientation'] !== 'horizontal' && value['orientation'] !== 'vertical') return false;
     if (value['scrollBehavior'] !== undefined && value['scrollBehavior'] !== 'none' && value['scrollBehavior'] !== 'center') return false;
+
+    return true;
+};
+
+const isTooltipConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+
+    const stringFields = ['id', 'ariaDescription', 'surfaceClasses', 'arrowClasses', 'motionClasses'] as const;
+    if (stringFields.some((field) => value[field] !== undefined && typeof value[field] !== 'string')) return false;
+
+    if (value['position'] !== undefined && !['top', 'bottom', 'left', 'right'].includes(String(value['position']))) return false;
+    if (value['trigger'] !== undefined && !['hover', 'focus', 'both'].includes(String(value['trigger']))) return false;
+    if (value['showDelayMs'] !== undefined && !isNumberThunkFriendly(value['showDelayMs'])) return false;
+    if (value['hideDelayMs'] !== undefined && !isNumberThunkFriendly(value['hideDelayMs'])) return false;
+    if (value['ariaLive'] !== undefined && !['off', 'polite', 'assertive'].includes(String(value['ariaLive']))) return false;
 
     return true;
 };
@@ -684,6 +732,10 @@ const isComponentPayloadRecord = (value: unknown): boolean => {
         return isTabGroupConfig(value['config']);
     }
 
+    if (value['type'] === 'tooltip') {
+        return isTooltipConfig(value['config']);
+    }
+
     return true;
 };
 
@@ -766,8 +818,51 @@ const isDraftUiVariableConfig = (value: unknown): value is TDraftUiVariableConfi
         if (!Object.values(modals).every((entry) => isDraftModalUiConfig(entry))) return false;
     }
 
+    const toast = value['toast'];
+    if (toast !== undefined && !isDraftToastUiConfig(toast)) return false;
+
     const languageOptions = value['languageOptions'];
     if (languageOptions !== undefined && !Array.isArray(languageOptions)) return false;
+
+    return true;
+};
+
+const isDraftToastUiConfig = (value: unknown): value is TDraftToastUiConfig => {
+    if (!isRecord(value)) return false;
+
+    const stringFields = [
+        'hostClasses',
+        'hostTopClasses',
+        'hostBottomClasses',
+        'hostLeftClasses',
+        'hostRightClasses',
+        'hostCenterClasses',
+        'itemClasses',
+        'hoveredItemClasses',
+        'levelSuccessClasses',
+        'levelErrorClasses',
+        'levelWarningClasses',
+        'levelInfoClasses',
+        'progressClasses',
+        'progressBarClasses',
+        'progressBarSurfaceClasses',
+        'iconSurfaceClasses',
+        'iconContainerClasses',
+        'iconSuccessClasses',
+        'iconErrorClasses',
+        'iconWarningClasses',
+        'iconInfoClasses',
+        'contentClasses',
+        'titleClasses',
+        'textClasses',
+        'actionsClasses',
+        'actionButtonClasses',
+        'actionPrimaryClasses',
+        'actionSecondaryClasses',
+        'dismissButtonClasses',
+    ] as const;
+
+    if (stringFields.some((key) => value[key] !== undefined && typeof value[key] !== 'string')) return false;
 
     return true;
 };

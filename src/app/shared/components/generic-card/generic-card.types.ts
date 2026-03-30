@@ -5,6 +5,25 @@ export type TGenericCardVariant = 'feature' | 'testimonial';
 export type TGenericCardConfig = {
     readonly variant?: TGenericCardVariant;
     readonly classes?: string;
+    readonly buttonClasses?: string;
+    readonly featureIconContainerClasses?: string;
+    readonly featureIconClasses?: string;
+    readonly featureTitleClasses?: string;
+    readonly featureDescriptionClasses?: string;
+    readonly benefitsListClasses?: string;
+    readonly benefitItemClasses?: string;
+    readonly benefitIconClasses?: string;
+    readonly benefitTextClasses?: string;
+    readonly testimonialHeaderClasses?: string;
+    readonly testimonialAvatarClasses?: string;
+    readonly testimonialAuthorClasses?: string;
+    readonly testimonialNameClasses?: string;
+    readonly testimonialRoleClasses?: string;
+    readonly testimonialVerifiedIconClasses?: string;
+    readonly testimonialContentClasses?: string;
+    readonly testimonialRatingClasses?: string;
+    readonly testimonialStarClasses?: string;
+    readonly testimonialRatingTextClasses?: string;
 
     readonly icon?: TDynamicValue<string>;
     readonly title?: TDynamicValue<string>;
@@ -20,33 +39,4 @@ export type TGenericCardConfig = {
     readonly rating?: TDynamicValue<number>;
     readonly avatar?: TDynamicValue<string>;
     readonly verified?: TDynamicValue<boolean>;
-};
-
-export const DEFAULT_GENERIC_CARD_CONFIG: Readonly<Required<Pick<TGenericCardConfig, 'variant' | 'classes'>>> &
-    Readonly<{
-        title: string;
-        description: string;
-        benefits: readonly string[];
-        buttonLabel: string;
-        name: string;
-        role: string;
-        company: string;
-        content: string;
-        rating: number;
-        avatar: string;
-        verified: boolean;
-    }> = {
-    variant: 'feature',
-    classes: '',
-    title: '',
-    description: '',
-    benefits: [],
-    buttonLabel: '',
-    name: '',
-    role: '',
-    company: '',
-    content: '',
-    rating: 0,
-    avatar: '',
-    verified: false,
 };

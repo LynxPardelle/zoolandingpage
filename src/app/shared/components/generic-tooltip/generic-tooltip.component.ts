@@ -41,6 +41,8 @@ export class GenericTooltipComponent {
   readonly id = computed(() => this.config()?.id || `tt-${ Math.random().toString(36).slice(2) }`);
   readonly ariaDescription = computed(() => this.config()?.ariaDescription || this.content());
   readonly ariaLive = computed(() => this.config()?.ariaLive || 'off');
+  readonly surfaceClasses = computed(() => [this.config()?.surfaceClasses, this.config()?.motionClasses].filter(Boolean).join(' '));
+  readonly arrowClasses = computed(() => this.config()?.arrowClasses || '');
 
   ngOnInit(): void {
     const trigger = this.resolveTrigger();

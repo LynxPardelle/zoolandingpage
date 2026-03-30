@@ -1,5 +1,6 @@
 import type { TGenericInputConfig } from '../components/generic-input/generic-input.types';
 import type { ModalConfig } from '../components/generic-modal/generic-modal.types';
+import type { ToastUiConfig } from '../components/generic-toast/generic-toast.types';
 import type { TInteractionScopeConfig } from '../components/interaction-scope/interaction-scope.types';
 import type { TThemeVariableConfig } from './theme.types';
 
@@ -62,9 +63,12 @@ export type TDraftModalUiConfig = Pick<ModalConfig,
     readonly ariaLabelKey?: string;
 };
 
+export type TDraftToastUiConfig = ToastUiConfig;
+
 export type TDraftUiVariableConfig = {
     readonly contact?: TDraftContactVariableConfig;
     readonly modals?: Record<string, TDraftModalUiConfig>;
+    readonly toast?: TDraftToastUiConfig;
     readonly languageOptions?: readonly Record<string, unknown>[];
 };
 

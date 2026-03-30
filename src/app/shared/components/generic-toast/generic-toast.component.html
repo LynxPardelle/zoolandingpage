@@ -1,12 +1,6 @@
-<div
-  class="ank-position-fixed ank-display-flex ank-flexDirection-column ank-gap-0_5rem ank-zIndex-1000 ank-pointerEvents-none"
-  [class]="getHostPositionClasses()"
-  role="region"
-  [attr.aria-label]="notificationsAriaLabel()"
->
+<div [class]="getHostPositionClasses()" role="region" [attr.aria-label]="notificationsAriaLabel()">
   @for (toast of service.list(); track toast.id) {
   <div
-    class="ank-position-relative ank-display-flex ank-alignItems-stretch ank-gap-0_75rem ank-p-1rem ank-borderRadius-0_75rem ank-boxShadow-lg ank-border-1 ank-maxWidth-24rem ank-minWidth-20rem ank-pointerEvents-auto"
     [class]="getToastClasses(toast)"
     [attr.data-level]="toast.level"
     [attr.data-entering]="toast.entering"
@@ -18,20 +12,13 @@
   >
     <!-- Progress bar for auto-dismiss toasts -->
     @if (toast.showProgress && toast.autoCloseMs && toast.autoCloseMs > 0) {
-    <div
-      class="toast-progress ank-position-absolute ank-bottom-0 ank-left-0 ank-right-0 ank-height-0_125rem ank-borderRadius-0_125rem ank-overflow-hidden"
-    >
-      <div
-        class="toast-progress-bar ank-height-100per ank-transition-all ank-transformOrigin-left"
-        [style.animation-duration.ms]="toast.autoCloseMs"
-      ></div>
+    <div [class]="uiClass('progressClasses')">
+      <div [class]="getProgressBarClasses(toast)" [style.animation-duration.ms]="toast.autoCloseMs"></div>
     </div>
     }
 
     <!-- Icon -->
-    <div
-      class="toast-icon ank-display-flex ank-alignItems-center ank-justifyContent-center ank-flexShrink-0 ank-width-1_5rem ank-height-1_5rem ank-borderRadius-50per ank-fontSize-1rem"
-    >
+    <div [class]="getIconClasses(toast)">
       @switch (toast.level) { @case ('success') {
       <span aria-hidden="true">✓</span>
       } @case ('error') {
@@ -44,26 +31,24 @@
     </div>
 
     <!-- Content -->
-    <div class="toast-content ank-display-flex ank-flexDirection-column ank-gap-0_25rem ank-flex-1 ank-minWidth-0">
+    <div [class]="uiClass('contentClasses')">
       @if (toast.title) {
-      <div class="toast-title ank-fontSize-0_875rem ank-fontWeight-600 ank-lineHeight-1_2">
+      <div [class]="uiClass('titleClasses')">
         {{ toast.title }}
       </div>
       }
 
-      <div class="toast-text ank-fontSize-0_875rem ank-lineHeight-1_4 ank-color-text-secondary">
+      <div [class]="uiClass('textClasses')">
         {{ toast.text }}
       </div>
 
       @if (toast.actions && toast.actions.length > 0) {
-      <div class="toast-actions ank-display-flex ank-gap-0_5rem ank-mt-0_5rem">
+      <div [class]="uiClass('actionsClasses')">
         @for (action of toast.actions; track action.label) {
         <generic-button
           [config]="{
             label: action.label,
-            classes:
-              'ank-fontSize-0_75rem ank-px-0_75rem ank-py-0_25rem ank-borderRadius-0_375rem ank-border-0 ank-cursor-pointer ank-fontWeight-500 ank-transition-all' +
-              getActionButtonClasses(action, toast.level)
+            classes: getActionButtonClasses(action)
           }"
           (pressed)="handleActionClick(action, toast.id)"
         />
@@ -77,8 +62,7 @@
     <generic-button
       [config]="{
         ariaLabel: getDismissAriaLabel(toast.title),
-        classes:
-          'toast-dismiss ank-display-flex ank-alignItems-center ank-justifyContent-center ank-flexShrink-0 ank-width-1_5rem ank-height-1_5rem ank-bgcl-transparent ank-border-0 ank-borderRadius-50per ank-cursor-pointer ank-fontSize-1rem ank-color-text-tertiary ank-transition-all ank-color-textHover-primary ank-bgclHover-surface-secondary'
+        classes: uiClass('dismissButtonClasses')
       }"
       (pressed)="dismiss(toast.id)"
     >

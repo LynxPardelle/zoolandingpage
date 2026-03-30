@@ -36,6 +36,14 @@ describe('ThemeService', () => {
                         secondaryTitleColor: '#312923',
                         secondaryLinkColor: '#8f1f3a',
                         secondaryAccentColor: '#176d68',
+                        successColor: '#198754',
+                        onSuccessColor: '#052e1c',
+                        errorColor: '#dc3545',
+                        onErrorColor: '#3b0a10',
+                        warningColor: '#f59e0b',
+                        onWarningColor: '#3a2400',
+                        infoColor: '#0d6efd',
+                        onInfoColor: '#041b44',
                     },
                     dark: {
                         bgColor: '#090909',
@@ -48,6 +56,14 @@ describe('ThemeService', () => {
                         secondaryTitleColor: '#f6d98b',
                         secondaryLinkColor: '#e44970',
                         secondaryAccentColor: '#900c3f',
+                        successColor: '#32d583',
+                        onSuccessColor: '#f3fff8',
+                        errorColor: '#ff6b6b',
+                        onErrorColor: '#fff5f5',
+                        warningColor: '#f5b942',
+                        onWarningColor: '#fff7e6',
+                        infoColor: '#58a6ff',
+                        onInfoColor: '#f5fbff',
                     },
                 },
             },
@@ -86,7 +102,9 @@ describe('ThemeService', () => {
         const applied = latestAppliedColors();
         expect(applied['bgColor']).toBe('#090909');
         expect(applied['accentColor']).toBe('#c7a900');
+        expect(applied['successColor']).toBe('#32d583');
         expect(applied['altBgColor']).toBe('#f9f5ef');
+        expect(applied['altSuccessColor']).toBe('#198754');
         expect(setItemSpy).not.toHaveBeenCalled();
     });
 
