@@ -1,4 +1,6 @@
 
+import type { TDynamicValue } from '@/app/shared/types/component-runtime.types';
+
 export type GenericMediaTag =
     | 'audio'
     | 'video'
@@ -6,13 +8,11 @@ export type GenericMediaTag =
     | 'document'
     | 'other';
 
-type TDynamicMediaValue<TValue> = TValue | (() => TValue);
-
 export type TGenericMediaConfig = {
-    readonly id?: TDynamicMediaValue<string>;
-    readonly src: TDynamicMediaValue<string>;
-    readonly tag: TDynamicMediaValue<GenericMediaTag>;
-    readonly alt?: TDynamicMediaValue<string>;
-    readonly classes?: TDynamicMediaValue<string>;
+    readonly id?: TDynamicValue<string>;
+    readonly src: TDynamicValue<string>;
+    readonly tag: TDynamicValue<GenericMediaTag>;
+    readonly alt?: TDynamicValue<string>;
+    readonly classes?: TDynamicValue<string>;
 };
 

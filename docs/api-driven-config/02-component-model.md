@@ -58,6 +58,7 @@ Supported source kinds:
 
 - `var` with `path`
 - `i18n` with `path`
+- `host` with `path`
 - `repeat` with `count`
 
 See: [13-loop-config.md](13-loop-config.md)
@@ -152,9 +153,8 @@ Example:
 
 Runtime note:
 
-- The in-memory TypeScript registry can also compose child trees with inline `TGenericComponent` objects.
-- That capability is for local/runtime composition only.
-- `components.json` should continue using string IDs so payloads stay serializable and stable.
+- Child composition is ID-only.
+- `components.json` should use string IDs so payloads stay serializable, stable, and export-safe.
 - Debug workspace tooling is now authored as a separate payload set under `public/assets/drafts/_debug/debug-workspace/` or the equivalent API endpoints. Keep those component IDs out of active page payloads unless the page explicitly owns the same UI.
 
 ## Interaction scopes and inputs

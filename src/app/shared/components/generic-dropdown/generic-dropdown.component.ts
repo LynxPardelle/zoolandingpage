@@ -22,6 +22,7 @@ import { resolveLocaleMapValue } from '../../i18n/locale.utils';
 import { AngoraCombosService } from '../../services/angora-combos.service';
 import { LanguageService } from '../../services/language.service';
 import { OverlayPositioningService } from '../../services/overlay-positioning.service';
+import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
 import { toNavigationHref } from '../../utility/navigation/navigation-target.utility';
 import { GenericButtonComponent } from "../generic-button/generic-button.component";
 import type { DropdownConfig, DropdownItem, MenuTemplateContext } from './generic-dropdown.types';
@@ -57,27 +58,27 @@ export class GenericDropdown {
   readonly config = input<DropdownConfig | null>(null);
   readonly opened = signal(false);
   readonly selectItem = output<DropdownItem>();
-  readonly classes = computed<string>(() => this.config()?.classes || '');
-  readonly buttonClasses = computed<string>(() => this.config()?.buttonClasses || '');
-  readonly itemLinkClasses = computed<string>(() => this.config()?.itemLinkClasses || '');
-  readonly selectedItemClasses = computed<string>(() => this.config()?.selectedItemClasses || '');
-  readonly disabledItemClasses = computed<string>(() => this.config()?.disabledItemClasses || '');
-  readonly menuContainerClasses = computed<string>(() => this.config()?.menuContainerClasses || '');
-  readonly menuNavClasses = computed<string>(() => this.config()?.menuNavClasses || '');
-  readonly menuListClasses = computed<string>(() => this.config()?.menuListClasses || '');
-  readonly triggerRole = computed<string | undefined>(() => this.config()?.triggerRole || undefined);
-  readonly ariaLabel = computed<string | undefined>(() => this.config()?.ariaLabel || undefined);
-  readonly menuId = computed<string>(() => this.config()?.menuId?.trim() || this.defaultMenuId);
+  readonly classes = computed<string>(() => this.resolveString(this.config()?.classes));
+  readonly buttonClasses = computed<string>(() => this.resolveString(this.config()?.buttonClasses));
+  readonly itemLinkClasses = computed<string>(() => this.resolveString(this.config()?.itemLinkClasses));
+  readonly selectedItemClasses = computed<string>(() => this.resolveString(this.config()?.selectedItemClasses));
+  readonly disabledItemClasses = computed<string>(() => this.resolveString(this.config()?.disabledItemClasses));
+  readonly menuContainerClasses = computed<string>(() => this.resolveString(this.config()?.menuContainerClasses));
+  readonly menuNavClasses = computed<string>(() => this.resolveString(this.config()?.menuNavClasses));
+  readonly menuListClasses = computed<string>(() => this.resolveString(this.config()?.menuListClasses));
+  readonly triggerRole = computed<string | undefined>(() => this.resolveOptionalString(this.config()?.triggerRole));
+  readonly ariaLabel = computed<string | undefined>(() => this.resolveOptionalString(this.config()?.ariaLabel));
+  readonly menuId = computed<string>(() => this.resolveOptionalString(this.config()?.menuId) ?? this.defaultMenuId);
   readonly menuRole = computed<'menu' | 'listbox'>(() => this.config()?.menuRole ?? 'menu');
   readonly itemRole = computed<'menuitem' | 'option'>(() => this.config()?.itemRole ?? 'menuitem');
   readonly selectedItemId = computed<string>(() => {
-    const raw = this.resolveMaybeThunk(this.config()?.selectedItemId);
+    const raw = this.resolveValue(this.config()?.selectedItemId);
     return raw == null ? '' : String(raw).trim();
   });
   readonly renderMode = computed<'overlay' | 'inline'>(() => this.config()?.renderMode ?? 'overlay');
-  readonly menuContainerId = computed<string | null>(() => this.config()?.menuContainerId ?? null);
+  readonly menuContainerId = computed<string | null>(() => this.resolveOptionalString(this.config()?.menuContainerId) ?? null);
   readonly normalizedItems = computed<readonly DropdownItem[]>(() => {
-    const raw = this.resolveMaybeThunk(this.items() as unknown);
+    const raw = this.resolveValue(this.items() as unknown);
 
     const entries = Array.isArray(raw)
       ? raw.filter((item): item is DropdownItem => !!item && typeof item === 'object')
@@ -118,7 +119,7 @@ export class GenericDropdown {
     // Inline menus render into a normal DOM container (no cdk-overlay-* wrappers)
     if (this.renderMode() === 'inline') {
       if (this.inlineOutlet) return;
-      const selector = String(this.config()?.inlinePortalTargetSelector ?? '').trim();
+      const selector = this.resolveOptionalString(this.config()?.inlinePortalTargetSelector) ?? '';
       const target = selector
         ? ((this.host.nativeElement.closest(selector) as HTMLElement | null)
           ?? document.querySelector<HTMLElement>(selector)
@@ -176,7 +177,7 @@ export class GenericDropdown {
       // For full-viewport menus, avoid CDK "push" adjusting our left alignment.
       push: matchWidth === 'viewport' ? false : undefined,
       disableFlexibleDimensions: matchWidth === 'viewport' ? true : undefined,
-      panelClass: this.classTokens(cfg?.menuContainerClasses),
+      panelClass: this.classTokens(this.resolveOptionalString(cfg?.menuContainerClasses)),
     });
 
     const portal = new TemplatePortal(
@@ -322,7 +323,7 @@ export class GenericDropdown {
   }
 
   itemDisabled(item: DropdownItem): boolean {
-    return Boolean(this.resolveMaybeThunk(item.disabled) ?? false);
+    return Boolean(this.resolveValue(item.disabled) ?? false);
   }
 
   isSelectedItem(item: DropdownItem): boolean {
@@ -340,11 +341,18 @@ export class GenericDropdown {
     ].filter(Boolean).join(' ');
   }
 
-  resolveMaybeThunk(value: unknown): unknown {
-    if (typeof value === 'function' && (value as (...args: unknown[]) => unknown).length === 0) {
-      return (value as () => unknown)();
-    }
-    return value;
+  resolveValue(value: unknown): unknown {
+    return resolveDynamicValue(value as never);
+  }
+
+  private resolveString(value: unknown): string {
+    const resolved = this.resolveValue(value);
+    return resolved == null ? '' : String(resolved);
+  }
+
+  private resolveOptionalString(value: unknown): string | undefined {
+    const resolved = this.resolveString(value).trim();
+    return resolved.length > 0 ? resolved : undefined;
   }
 
   private scheduleCssRefresh(delayMs = 350): void {
@@ -352,7 +360,7 @@ export class GenericDropdown {
   }
 
   private resolveText(value: unknown): string {
-    const raw = this.resolveMaybeThunk(value);
+    const raw = this.resolveValue(value);
     if (typeof raw === 'string' && raw.trim().length > 0) return raw;
 
     const localized = resolveLocaleMapValue(raw, this.language.currentLanguage());
@@ -368,14 +376,14 @@ export class GenericDropdown {
   }
 
   itemValue(item: DropdownItem): string {
-    const raw = this.resolveMaybeThunk(item.value);
+    const raw = this.resolveValue(item.value);
     if (typeof raw === 'string' && raw.trim().length > 0) return raw;
 
     return typeof item.id === 'string' ? item.id.trim() : '';
   }
 
   itemHref(item: DropdownItem): string {
-    const explicitHref = this.resolveMaybeThunk((item as Record<string, unknown>)['href']);
+    const explicitHref = this.resolveValue((item as Record<string, unknown>)['href']);
     if (typeof explicitHref === 'string' && explicitHref.trim().length > 0) {
       return toNavigationHref(explicitHref) || '#';
     }

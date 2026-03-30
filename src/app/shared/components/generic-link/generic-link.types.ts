@@ -1,5 +1,5 @@
 
-import type { TDynamicValue } from '../../utility/component-orchestrator.utility';
+import type { TDynamicValue } from '@/app/shared/types/component-runtime.types';
 import type { TComponentChild } from '../component-children.types';
 
 

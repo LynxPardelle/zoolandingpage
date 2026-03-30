@@ -24,6 +24,7 @@ import { InteractionScopeComponent } from '../interaction-scope/interaction-scop
 
 import { ConditionOrchestrator } from '../../services/condition-orchestrator';
 import { I18nService } from '../../services/i18n.service';
+import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
 import type { TGenericComponent } from './wrapper-orchestrator.types';
 
 @Component({
@@ -57,8 +58,7 @@ export class WrapperOrchestrator {
   private readonly valueOrchestrator = inject(ValueOrchestrator);
   private readonly conditionOrchestrator = inject(ConditionOrchestrator);
   private readonly i18n = inject(I18nService);
-  // Accepts an array of component IDs to render
-  readonly componentsIds = input<readonly (string | TGenericComponent)[]>([]);
+  readonly componentsIds = input<readonly string[]>([]);
   readonly hostContext = input<unknown>();
 
   readonly effectiveHost = computed<unknown>(() => this.hostContext() ?? this._configurationsOrchestratorService);
@@ -79,36 +79,18 @@ export class WrapperOrchestrator {
 
     return this
       .componentsIds()
-      .map((entry) => {
-        if (typeof entry === 'string') {
-          return this._configurationsOrchestratorService.getComponentById(entry, this.effectiveHost());
-        }
-
-        // Direct component objects: ensure render-tracking stays accurate.
-        this._configurationsOrchestratorService.markComponentRendered(entry.id);
-        return entry;
-      })
+      .map((entry) => this._configurationsOrchestratorService.getComponentById(entry, this.effectiveHost()))
       .filter((c: TGenericComponent | undefined): c is TGenericComponent => c !== undefined)
       .map((c: TGenericComponent) => this.valueOrchestrator.apply(c, { host: this.effectiveHost() }))
       .filter((c: TGenericComponent) => this.shouldRender(c));
   });
 
-  normalizeType(type: unknown): string {
-    return String(type ?? '')
-      .trim()
-      // Normalize some common non-ASCII hyphen/minus characters to '-'
-      .replace(/[\u2010\u2011\u2212]/g, '-');
-  }
-
-  resolveMaybeThunk(value: unknown): unknown {
-    if (typeof value === 'function' && (value as (...args: unknown[]) => unknown).length === 0) {
-      return (value as () => unknown)();
-    }
-    return value;
+  resolveValue(value: unknown): unknown {
+    return resolveDynamicValue(value as never);
   }
 
   resolveSearchConfig(config: unknown): SearchBoxConfig | null {
-    const resolved = this.resolveMaybeThunk(config);
+    const resolved = this.resolveValue(config);
     if (!resolved || typeof resolved !== 'object') {
       return null;
     }
@@ -117,21 +99,21 @@ export class WrapperOrchestrator {
   }
 
   resolveStatsCounterConfig(config: unknown): TGenericStatsCounterConfig {
-    const base = this.resolveMaybeThunk(config) as Record<string, unknown> | undefined;
+    const base = this.resolveValue(config) as Record<string, unknown> | undefined;
     if (!base || typeof base !== 'object') {
       return normalizeStatsCounterConfig(undefined);
     }
 
     return normalizeStatsCounterConfig({
-      target: this.resolveMaybeThunk(base['target']),
-      durationMs: this.resolveMaybeThunk(base['durationMs']),
-      startOnVisible: this.resolveMaybeThunk(base['startOnVisible']),
-      ariaLabel: this.resolveMaybeThunk(base['ariaLabel']),
-      min: this.resolveMaybeThunk(base['min']),
-      max: this.resolveMaybeThunk(base['max']),
-      formatMode: this.resolveMaybeThunk(base['formatMode']),
-      formatPrefix: this.resolveMaybeThunk(base['formatPrefix']),
-      formatSuffix: this.resolveMaybeThunk(base['formatSuffix']),
+      target: this.resolveValue(base['target']),
+      durationMs: this.resolveValue(base['durationMs']),
+      startOnVisible: this.resolveValue(base['startOnVisible']),
+      ariaLabel: this.resolveValue(base['ariaLabel']),
+      min: this.resolveValue(base['min']),
+      max: this.resolveValue(base['max']),
+      formatMode: this.resolveValue(base['formatMode']),
+      formatPrefix: this.resolveValue(base['formatPrefix']),
+      formatSuffix: this.resolveValue(base['formatSuffix']),
     } as Partial<TGenericStatsCounterConfig>);
   }
 

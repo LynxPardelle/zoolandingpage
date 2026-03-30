@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, input, SecurityContext } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
+import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
 import { GenericTextTag, TGenericTextConfig } from './generic-text.types';
 
 @Component({
@@ -18,33 +19,25 @@ export class GenericTextComponent {
   });
 
   readonly tag = computed<GenericTextTag>(() => {
-    const resolved = this.resolveMaybeThunk(this.config().tag);
+    const resolved = resolveDynamicValue(this.config().tag);
     return (resolved as GenericTextTag) ?? 'p';
   });
   readonly text = computed(() => {
-    return this.resolveMaybeThunk(this.config().text) ?? '';
+    return resolveDynamicValue(this.config().text) ?? '';
   });
-  readonly classes = computed(() => this.resolveMaybeThunk(this.config().classes) ?? '');
-  readonly id = computed(() => this.resolveMaybeThunk(this.config().id) ?? null);
+  readonly classes = computed(() => resolveDynamicValue(this.config().classes) ?? '');
+  readonly id = computed(() => resolveDynamicValue(this.config().id) ?? null);
   readonly ariaLabel = computed(() => {
-    const raw = this.resolveMaybeThunk(this.config().ariaLabel);
+    const raw = resolveDynamicValue(this.config().ariaLabel);
     if (!raw) return null;
     return raw;
   });
 
   readonly safeHtml = computed(() => {
-    const html = this.resolveMaybeThunk(this.config().html);
+    const html = resolveDynamicValue(this.config().html);
     if (!html) return null;
     return this.sanitizer.sanitize(SecurityContext.HTML, String(html));
   });
 
   readonly useHtml = computed(() => !!this.safeHtml());
-
-  private resolveMaybeThunk(value: unknown): unknown {
-    if (typeof value === 'function' && (value as (...args: unknown[]) => unknown).length === 0) {
-      return (value as () => unknown)();
-    }
-
-    return value;
-  }
 }

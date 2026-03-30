@@ -28,12 +28,12 @@ describe('GenericComponentBuilder', () => {
 
     it('builds a container component', () => {
         const child = GenericComponentBuilder.text('child', 'span', 'Label', '');
-        const component = GenericComponentBuilder.container('wrapper', 'div', 'wrapper-classes', [child]);
+        const component = GenericComponentBuilder.container('wrapper', 'div', 'wrapper-classes', [child.id]);
 
         expect(component.config).toEqual({
             tag: 'div',
             classes: 'wrapper-classes',
-            components: [child],
+            components: [child.id],
         });
     });
 

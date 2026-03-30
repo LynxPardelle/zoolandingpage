@@ -1,3 +1,4 @@
+import type { TDynamicStringValue, TDynamicValue } from '@/app/shared/types/component-runtime.types';
 import type { TemplateRef } from '@angular/core';
 import type { TComponentChild } from '../component-children.types';
 
@@ -16,15 +17,15 @@ export type GenericContainerComponentTag =
     | 'aside';
 
 export type TGenericContainerConfig = {
-    tag?: GenericContainerComponentTag;
+    tag?: TDynamicValue<GenericContainerComponentTag>;
 
-    id?: string;
-    classes?: string;
+    id?: TDynamicStringValue;
+    classes?: TDynamicStringValue;
     tabindex?: number;
-    role?: string;
-    ariaLabel?: string | (() => string);
-    ariaLabelledby?: string;
-    ariaDescribedby?: string;
+    role?: TDynamicStringValue;
+    ariaLabel?: TDynamicStringValue;
+    ariaLabelledby?: TDynamicStringValue;
+    ariaDescribedby?: TDynamicStringValue;
 
     /** orden de renderizado de slots (incluye '__content__') */
     components?: readonly TComponentChild[];

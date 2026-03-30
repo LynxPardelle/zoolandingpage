@@ -4,7 +4,7 @@ This document defines the object-based loop model used to generate repeated comp
 
 ## Why `loopConfig`
 
-`loopConfig` replaces hardcoded `Array.from(...)` ID generation in stores and lets API payload data drive repeated UI blocks.
+`loopConfig` replaces hardcoded `Array.from(...)` ID generation in stores and lets payload data or host-owned runtime data drive repeated UI blocks.
 
 ## Location
 
@@ -15,7 +15,7 @@ This document defines the object-based loop model used to generate repeated comp
 ```ts
 loopConfig:
   | {
-      source: 'var' | 'i18n';
+  source: 'var' | 'i18n' | 'host';
       path: string;
       templateId: string;
       idPrefix?: string;
@@ -41,7 +41,7 @@ loopConfig:
 ## Fields
 
 - `source`: where loop items come from.
-- `path`: required for `var` and `i18n`.
+- `path`: required for `var`, `i18n`, and `host`.
 - `count`: required for `repeat`.
 - `templateId`: component ID used as the materialization template.
 - `idPrefix`: optional generated ID prefix. Defaults to `templateId`.

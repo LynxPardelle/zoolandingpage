@@ -142,7 +142,7 @@
       component: component.id,
       meta_title: component.meta_title,
       eventName: 'clicked',
-      eventData: resolveMaybeThunk(component.config.href),
+      eventData: resolveValue(component.config.href),
       eventInstructions: component.eventInstructions
     })
   "

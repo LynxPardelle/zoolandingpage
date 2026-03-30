@@ -1,3 +1,5 @@
+import type { TDynamicStringValue, TDynamicValue } from '@/app/shared/types/component-runtime.types';
+
 export type GenericTextTag =
     | ''
     | 'p'
@@ -13,16 +15,16 @@ export type GenericTextTag =
     | 'h6';
 
 export type TGenericTextConfig = {
-    tag?: GenericTextTag;
+    tag?: TDynamicValue<GenericTextTag>;
 
     /** Use text for plain content. */
-    text?: string | (() => string);
+    text?: TDynamicStringValue;
 
     /** Use html only when authored markup is required. */
-    html?: string | (() => string);
+    html?: TDynamicStringValue;
 
-    classes?: string;
-    id?: string;
+    classes?: TDynamicStringValue;
+    id?: TDynamicStringValue;
 
-    ariaLabel?: string | (() => string);
+    ariaLabel?: TDynamicStringValue;
 };

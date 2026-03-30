@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import type { TemplateRef } from '@angular/core';
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
 import type { GenericContainerComponentTag, TGenericContainerConfig } from './generic-container.types';
 @Component({
   selector: 'generic-container',
@@ -15,7 +16,7 @@ export class GenericContainerComponent {
   readonly config = input<TGenericContainerConfig>({ tag: 'div' });
 
   readonly tag = computed<GenericContainerComponentTag>(() => {
-    const resolved = this.resolveMaybeThunk(this.config().tag);
+    const resolved = resolveDynamicValue(this.config().tag);
     return (resolved as GenericContainerComponentTag) ?? 'div';
   });
 
@@ -47,19 +48,11 @@ export class GenericContainerComponent {
   readonly templateComponentIds = computed(() => this.components().filter((c) => c !== '__content__'));
 
   private resolveString(value: unknown): string {
-    return String(this.resolveMaybeThunk(value) ?? '');
+    return String(resolveDynamicValue(value as never) ?? '');
   }
 
   private resolveOptionalString(value: unknown): string | undefined {
     const resolved = this.resolveString(value).trim();
     return resolved.length > 0 ? resolved : undefined;
-  }
-
-  private resolveMaybeThunk(value: unknown): unknown {
-    if (typeof value === 'function' && (value as (...args: unknown[]) => unknown).length === 0) {
-      return (value as () => unknown)();
-    }
-
-    return value;
   }
 }

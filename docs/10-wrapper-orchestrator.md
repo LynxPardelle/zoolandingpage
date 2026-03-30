@@ -8,7 +8,7 @@ In this model:
 - The orchestrator receives a list of component IDs (`componentsIds`).
 - Those IDs are resolved via a registry (`ConfigurationsOrchestratorService`).
 - Each resolved entry is a typed `TGenericComponent` that drives which generic component renders (`generic-container`, `generic-button`, etc.).
-- Runtime component configs can nest other components through `config.components`, using child IDs or inline `TGenericComponent` objects, allowing an entire UI tree to be declared as data.
+- Runtime component configs can nest other components through `config.components` using child IDs, allowing an entire UI tree to be declared as data.
 
 ## Why this exists
 
@@ -55,10 +55,9 @@ The orchestrator template uses `@switch(component.type)` to decide which generic
 
 ### 4) Nesting happens through component children
 
-If a rendered component’s config includes a `components` field (commonly on containers), the template recursively renders child entries. In runtime TypeScript composition, each child entry can be either:
+If a rendered component’s config includes a `components` field (commonly on containers), the template recursively renders child IDs resolved through the registry.
 
-- a string component ID resolved through the registry
-- an inline `TGenericComponent` object rendered directly
+Child composition is ID-only so the runtime contract stays aligned with draft/API payloads and exported component graphs remain upload-safe.
 
 Example runtime child list:
 
@@ -68,22 +67,18 @@ config: {
   classes: 'ank-display-flex ank-gap-8px',
   components: [
     'primaryCTA',
-    {
-      id: 'inlineDraftHint',
-      type: 'text',
-      config: { tag: 'small', text: 'Preview only', classes: 'ank-color-whiteOPA__0_6' },
-    },
+    'secondaryCTA',
   ],
 }
 ```
 
-The recursive renderer still walks children through:
+The recursive renderer walks children through:
 
 ```html
 <wrapper-orchestrator [componentsIds]="[componentId]"></wrapper-orchestrator>
 ```
 
-For JSON payload authoring, keep `config.components` ID-based only. Inline child component objects are intended for in-memory TypeScript composition, not `components.json` drafts.
+`config.components` is ID-based for both payload authoring and runtime rendering.
 
 ### 5) Events are centralized
 

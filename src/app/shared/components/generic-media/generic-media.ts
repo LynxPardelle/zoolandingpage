@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
 import type { GenericMediaTag, TGenericMediaConfig } from './generic-media.types';
 
 @Component({
@@ -15,7 +16,7 @@ export class GenericMedia {
 
   readonly id = computed(() => this.resolveOptionalString(this.config().id));
   readonly tag = computed<GenericMediaTag>(() => {
-    const resolved = this.resolveMaybeThunk(this.config().tag);
+    const resolved = resolveDynamicValue(this.config().tag);
     return (resolved as GenericMediaTag) ?? 'image';
   });
   readonly classes = computed(() => this.resolveOptionalString(this.config().classes) ?? '');
@@ -24,24 +25,16 @@ export class GenericMedia {
   readonly linkLabel = computed(() => this.alt() ?? this.src());
 
   private resolveRequiredString(value: unknown): string {
-    return String(this.resolveMaybeThunk(value) ?? '');
+    return String(resolveDynamicValue(value as never) ?? '');
   }
 
   private resolveOptionalString(value: unknown): string | null {
-    const resolved = this.resolveMaybeThunk(value);
+    const resolved = resolveDynamicValue(value as never);
     if (resolved == null || resolved === '') {
       return null;
     }
 
     return String(resolved);
-  }
-
-  private resolveMaybeThunk(value: unknown): unknown {
-    if (typeof value === 'function' && (value as (...args: unknown[]) => unknown).length === 0) {
-      return (value as () => unknown)();
-    }
-
-    return value;
   }
 
 }

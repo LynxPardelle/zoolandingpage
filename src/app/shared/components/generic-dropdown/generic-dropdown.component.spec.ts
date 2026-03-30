@@ -56,6 +56,7 @@ describe('GenericDropdown', () => {
 
   it('resolves locale-map labels from draft-native items', () => {
     const language = TestBed.inject(LanguageService);
+    language.configureLanguages(['en', 'es'], { defaultLanguage: 'en' });
     language.setLanguage('es');
 
     fixture.componentInstance.items = [

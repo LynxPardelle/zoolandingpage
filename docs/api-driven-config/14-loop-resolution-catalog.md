@@ -6,6 +6,7 @@ This page describes currently implemented loop materialization behavior.
 
 - `var`: reads an array from `VariableStoreService` by `path`.
 - `i18n`: reads an array from `I18nService` by `path`.
+- `host`: reads an array from the current render host by `path`.
 - `repeat`: generates `count` items.
 
 ## ID strategy
@@ -58,7 +59,7 @@ This means the runtime no longer guesses how a `link`, `text`, or `generic-card`
 ## Warnings and fallback behavior
 
 - Missing template ID: warning + skip.
-- `var`/`i18n` source not array: warning + skip.
+- `var`/`i18n`/`host` source not array: warning + skip.
 
 ## Authoring guidance
 

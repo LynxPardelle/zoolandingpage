@@ -1,8 +1,8 @@
+import type { TDynamicValue } from '@/app/shared/types/component-runtime.types';
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
 import type { TGenericEmbedFrameConfig } from './generic-embed-frame.types';
-
-type TDynamicValue<TValue> = TValue | (() => TValue);
 
 @Component({
   selector: 'generic-embed-frame',
@@ -23,21 +23,14 @@ export class GenericEmbedFrameComponent {
   readonly allow = computed(() => this.optionalString(this.config().allow));
   readonly referrerPolicy = computed(() => this.optionalString(this.config().referrerPolicy));
   readonly sandbox = computed(() => this.optionalString(this.config().sandbox));
-  readonly allowFullscreen = computed(() => this.resolveDynamicValue(this.config().allowFullscreen) === true);
-
-  private resolveDynamicValue<TValue>(value: TDynamicValue<TValue> | null | undefined): TValue | null {
-    if (value == null) return null;
-    return typeof value === 'function'
-      ? (value as () => TValue)()
-      : value;
-  }
+  readonly allowFullscreen = computed(() => resolveDynamicValue(this.config().allowFullscreen) === true);
 
   private requiredString(value: TDynamicValue<string>): string {
-    return String(this.resolveDynamicValue(value) ?? '');
+    return String(resolveDynamicValue(value) ?? '');
   }
 
   private optionalString(value: TDynamicValue<unknown> | null | undefined): string | null {
-    const resolvedValue = this.resolveDynamicValue(value);
+    const resolvedValue = resolveDynamicValue(value);
     if (resolvedValue == null || resolvedValue === '') return null;
     return String(resolvedValue);
   }

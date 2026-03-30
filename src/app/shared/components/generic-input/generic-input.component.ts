@@ -42,7 +42,7 @@ export class GenericInputComponent {
     readonly fieldId = computed<string>(() => String(this.config().fieldId ?? '').trim());
     readonly controlType = computed(() => this.config().controlType);
     readonly inputType = computed(() => this.config().inputType ?? 'text');
-    readonly name = computed(() => String(this.resolveMaybeThunk(this.config().name) ?? this.fieldId()));
+    readonly name = computed(() => String(this.resolveValue(this.config().name) ?? this.fieldId()));
     readonly label = computed(() => this.asString(this.config().label));
     readonly description = computed(() => this.asString(this.config().description));
     readonly helperText = computed(() => this.asString(this.config().helperText));
@@ -63,23 +63,23 @@ export class GenericInputComponent {
     readonly errorClasses = computed(() => this.asString(this.config().errorClasses));
     readonly valuePrefix = computed(() => this.asString(this.config().valuePrefix));
     readonly valueSuffix = computed(() => this.asString(this.config().valueSuffix));
-    readonly showRangeValue = computed(() => Boolean(this.resolveMaybeThunk(this.config().showRangeValue) ?? false));
-    readonly required = computed(() => Boolean(this.resolveMaybeThunk(this.config().required) ?? false));
-    readonly disabled = computed(() => Boolean(this.resolveMaybeThunk(this.config().disabled) ?? false));
-    readonly readOnly = computed(() => Boolean(this.resolveMaybeThunk(this.config().readOnly) ?? false));
+    readonly showRangeValue = computed(() => Boolean(this.resolveValue(this.config().showRangeValue) ?? false));
+    readonly required = computed(() => Boolean(this.resolveValue(this.config().required) ?? false));
+    readonly disabled = computed(() => Boolean(this.resolveValue(this.config().disabled) ?? false));
+    readonly readOnly = computed(() => Boolean(this.resolveValue(this.config().readOnly) ?? false));
     readonly min = computed<number | undefined>(() => this.asNumber(this.config().min));
     readonly max = computed<number | undefined>(() => this.asNumber(this.config().max));
     readonly step = computed<number | undefined>(() => this.asNumber(this.config().step));
     readonly rows = computed<number | undefined>(() => this.asNumber(this.config().rows));
-    readonly initialValue = computed<unknown>(() => this.normalizeValue(this.resolveMaybeThunk(this.config().value)));
+    readonly initialValue = computed<unknown>(() => this.normalizeValue(this.resolveValue(this.config().value)));
     readonly validationRules = computed<readonly TInteractionValidationRule[]>(() => {
-        const resolved = this.resolveMaybeThunk(this.config().validation);
+        const resolved = this.resolveValue(this.config().validation);
         return Array.isArray(resolved)
             ? resolved.filter((entry): entry is TInteractionValidationRule => !!entry && typeof entry === 'object' && 'type' in entry)
             : [];
     });
     readonly options = computed<readonly TGenericInputOption[]>(() => {
-        const resolved = this.resolveMaybeThunk(this.config().options);
+        const resolved = this.resolveValue(this.config().options);
         return Array.isArray(resolved) ? resolved.filter((entry): entry is TGenericInputOption => !!entry && typeof entry === 'object') : [];
     });
     readonly dropdownItems = computed<readonly DropdownItem[]>(() =>
@@ -151,7 +151,7 @@ export class GenericInputComponent {
         { tag: 'span', classes: '', ariaLabel: this.ariaLabel() || this.label() || undefined }
     ));
     readonly dropdownConfig = computed<DropdownConfig>(() => {
-        const override = this.asRecord(this.resolveMaybeThunk(this.config().dropdownConfig));
+        const override = this.asRecord(this.resolveValue(this.config().dropdownConfig));
 
         return {
             classes: this.asString(override?.['classes']),
@@ -231,7 +231,7 @@ export class GenericInputComponent {
     }
 
     optionDisabled(option: TGenericInputOption): boolean {
-        return Boolean(this.resolveMaybeThunk(option.disabled) ?? false);
+        return Boolean(this.resolveValue(option.disabled) ?? false);
     }
 
     isOptionSelected(option: TGenericInputOption): boolean {
@@ -291,7 +291,7 @@ export class GenericInputComponent {
         overrideValue: unknown,
         base: Omit<TGenericTextConfig, 'text'>,
     ): TGenericTextConfig {
-        const override = this.asRecord(this.resolveMaybeThunk(overrideValue));
+        const override = this.asRecord(this.resolveValue(overrideValue));
 
         return {
             tag: typeof override?.['tag'] === 'string' ? override['tag'] as TGenericTextConfig['tag'] : base.tag,
@@ -315,17 +315,17 @@ export class GenericInputComponent {
         return values.map((value) => String(value ?? '').trim()).filter(Boolean).join(' ');
     }
 
-    private resolveMaybeThunk(value: unknown): unknown {
+    private resolveValue(value: unknown): unknown {
         return resolveDynamicValue(value as never);
     }
 
     private asString(value: unknown): string {
-        const resolved = this.resolveMaybeThunk(value);
+        const resolved = this.resolveValue(value);
         return resolved == null ? '' : String(resolved);
     }
 
     private asNumber(value: unknown): number | undefined {
-        const resolved = this.resolveMaybeThunk(value);
+        const resolved = this.resolveValue(value);
         return typeof resolved === 'number' && Number.isFinite(resolved) ? resolved : undefined;
     }
 }

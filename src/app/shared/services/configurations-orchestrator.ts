@@ -1,4 +1,3 @@
-import { resolveLocaleMapValue } from '@/app/shared/i18n/locale.utils';
 import { I18nService } from '@/app/shared/services/i18n.service';
 import type { TComponentsPayload, TDraftModalUiConfig } from '@/app/shared/types/config-payloads.types';
 import { computed, DestroyRef, effect, inject, Injectable, signal } from '@angular/core';
@@ -6,22 +5,15 @@ import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { environment } from '../../../environments/environment';
 import { GenericModalService } from '../components/generic-modal/generic-modal.service';
 import type { ModalConfig } from '../components/generic-modal/generic-modal.types';
-import type {
-    TGenericComponent,
-    TGenericComponentType,
-    TLoopBinding,
-    TLoopBindingSource,
-    TLoopBindingTransform,
-    TLoopConfig,
-} from '../components/wrapper-orchestrator/wrapper-orchestrator.types';
+import type { TGenericComponent } from '../components/wrapper-orchestrator/wrapper-orchestrator.types';
 import {
     collectAllClassesFromComponents,
     ComponentRenderTracker,
     findComponentById,
+    materializeLoopComponents,
     normalizeComponentIfNeeded,
 } from '../utility/component-orchestrator.utility';
 import { forwardAnalyticsEvent } from '../utility/forwardAnalyticsEvent.utility';
-import { toNavigationHref } from '../utility/navigation/navigation-target.utility';
 import { AnalyticsEvents } from './analytics.events';
 import { AnalyticsService } from './analytics.service';
 import { ComponentEvent, ComponentEventDispatcherService } from './component-event-dispatcher.service';
@@ -29,12 +21,6 @@ import { ConfigStoreService } from './config-store.service';
 import { DomainResolverService } from './domain-resolver.service';
 import { LanguageService } from './language.service';
 import { VariableStoreService } from './variable-store.service';
-
-const LOOP_INDEX_TOKEN = '{{index}}';
-const LOOP_WHOLE_ITEM_TOKEN = '$item';
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-    !!value && typeof value === 'object' && !Array.isArray(value);
 
 @Injectable({
     providedIn: 'root',
@@ -51,22 +37,6 @@ export class ConfigurationsOrchestratorService {
     private readonly variableStore = inject(VariableStoreService);
     private warnedNavigationMissing = false;
     private warnedLoopPaths = new Set<string>();
-    private readonly loopComponentFinalizers: Partial<Record<
-        TGenericComponentType,
-        (nextComponent: any, template: TGenericComponent, generatedId: string) => void
-    >> = {
-            container: (nextComponent, _template, generatedId) => {
-                this.materializeContainerLoopComponent(nextComponent, generatedId);
-            },
-            'generic-card': (nextComponent, template, generatedId) => {
-                this.attachGeneratedCardCta(nextComponent, template, generatedId);
-            },
-            link: (nextComponent) => {
-                if (!nextComponent.config?.ariaLabel && typeof nextComponent.config?.text === 'string') {
-                    nextComponent.config.ariaLabel = nextComponent.config.text;
-                }
-            },
-        };
     private readonly draftExportContext = signal({
         domain: '',
         pageId: '',
@@ -221,8 +191,6 @@ export class ConfigurationsOrchestratorService {
         }
     }
 
-    readonly components: TGenericComponent[] = [];
-
     get navigation(): readonly Record<string, unknown>[] {
         const raw = this.variableStore.get('navigation');
         if (!Array.isArray(raw)) {
@@ -238,7 +206,7 @@ export class ConfigurationsOrchestratorService {
 
     private externalComponents: readonly TGenericComponent[] | null = null;
     private readonly auxiliaryComponentGroups = new Map<string, readonly TGenericComponent[]>();
-    private componentRenderTracker = new ComponentRenderTracker(this.components.map((c) => c.id));
+    private componentRenderTracker = new ComponentRenderTracker([]);
     private readonly externalComponentsRevision = signal(0);
 
     readonly componentsRevision = computed(() => this.externalComponentsRevision());
@@ -266,7 +234,7 @@ export class ConfigurationsOrchestratorService {
     private getActiveComponentSource(): readonly TGenericComponent[] {
         const merged = new Map<string, TGenericComponent>();
 
-        [...this.components, ...(this.externalComponents ?? []), ...this.auxiliaryComponents()]
+        [...(this.externalComponents ?? []), ...this.auxiliaryComponents()]
             .forEach((component) => merged.set(component.id, component));
 
         return Array.from(merged.values());
@@ -301,7 +269,7 @@ export class ConfigurationsOrchestratorService {
     }
 
     exportDraftComponentsPayload(domain: string, pageId: string): TComponentsPayload {
-        const source = this.externalComponents ?? this.components;
+        const source = this.externalComponents ?? [];
         const components: Record<string, unknown> = {};
 
         source.forEach((component) => {
@@ -398,104 +366,27 @@ export class ConfigurationsOrchestratorService {
     }
 
     private resolveLoopComponents(warnOnMissingSource: boolean, host?: unknown): Map<string, TGenericComponent> {
-        const source = this.getActiveComponentSource();
-        const resolved = new Map<string, TGenericComponent>(source.map((component) => [component.id, component]));
-
-        for (const component of source) {
-            const loop = (component as any).loopConfig;
-            if (!loop) continue;
-
-            const templateId = String(loop.templateId ?? '').trim();
-            if (!templateId) continue;
-
-            const template = resolved.get(templateId) ?? source.find((item) => item.id === templateId);
-            if (!template) {
+        return materializeLoopComponents({
+            sourceComponents: this.getActiveComponentSource(),
+            warnOnMissingSource,
+            host,
+            getVariable: (path) => this.variableStore.get(path),
+            getI18n: (path) => this.globalI18n.get(path),
+            getCurrentLanguage: () => this.language.currentLanguage(),
+            resolveI18nKey: (key) => this.resolveI18nKeyString(key),
+            onMissingTemplate: (templateId) => {
                 console.warn(`[ConfigurationsOrchestrator] loopConfig template not found: ${ templateId }`);
-                continue;
-            }
-
-            const items = this.resolveLoopItems(loop, warnOnMissingSource, host);
-            const prefix = String(loop.idPrefix ?? templateId).trim() || templateId;
-            const generatedIds = items.map((_, index) => `${ prefix }__${ index + 1 }`);
-
-            if (component.type === 'container') {
-                const nextContainer = {
-                    ...component,
-                    config: {
-                        ...component.config,
-                        components: generatedIds,
-                    },
-                } as TGenericComponent;
-                resolved.set(component.id, nextContainer);
-            }
-
-            items.forEach((item, index) => {
-                const generatedId = generatedIds[index];
-                resolved.set(generatedId, this.materializeLoopComponent(template, generatedId, item, loop as TLoopConfig));
-            });
-        }
-
-        return resolved;
-    }
-
-    private resolveLoopItems(loop: any, warnOnMissingSource: boolean, host?: unknown): readonly unknown[] {
-        const source = String(loop?.source ?? '').trim();
-        if (source === 'repeat') {
-            const count = Number(loop?.count ?? 0);
-            if (!Number.isFinite(count) || count <= 0) return [];
-            return Array.from({ length: Math.floor(count) }, (_, index) => ({ index: index + 1 }));
-        }
-
-        const path = String(loop?.path ?? '').trim();
-        if (!path) return [];
-
-        if (source === 'var') {
-            const raw = this.variableStore.get(path);
-            if (!Array.isArray(raw)) {
-                if (warnOnMissingSource) this.warnLoopPathOnce('var', path);
-                return [];
-            }
-            return raw;
-        }
-
-        if (source === 'i18n') {
-            const raw = this.globalI18n.get(path);
-            if (!Array.isArray(raw)) {
-                if (warnOnMissingSource) this.warnLoopPathOnce('i18n', path);
-                return [];
-            }
-            return raw;
-        }
-
-        if (source === 'host') {
-            const raw = this.resolveHostPath(host, path);
-            if (!Array.isArray(raw)) {
-                if (warnOnMissingSource) this.warnLoopPathOnce('host', path);
-                return [];
-            }
-            return raw;
-        }
-
-        return [];
-    }
-
-    private resolveHostPath(host: unknown, path: string): unknown {
-        const normalizedPath = String(path ?? '').trim();
-        if (!normalizedPath) return undefined;
-
-        return normalizedPath
-            .split('.')
-            .map((entry) => entry.trim())
-            .filter(Boolean)
-            .reduce<unknown>((current, segment) => {
-                if (current == null) return undefined;
-                if (Array.isArray(current)) {
-                    const index = Number(segment);
-                    return Number.isInteger(index) ? current[index] : undefined;
+            },
+            onMissingSource: (source, path) => {
+                this.warnLoopPathOnce(source, path);
+            },
+            finalizeComponent: (component, template, generatedId) => {
+                if (template.type === 'generic-card') {
+                    this.attachGeneratedCardCta(component as any, template, generatedId);
                 }
-                if (!isRecord(current) || !(segment in current)) return undefined;
-                return current[segment];
-            }, host);
+                return component;
+            },
+        });
     }
 
     private warnLoopPathOnce(source: 'var' | 'i18n' | 'host', path: string): void {
@@ -523,130 +414,6 @@ export class ConfigurationsOrchestratorService {
         return undefined;
     }
 
-    private resolveGeneratedLoopIndex(generatedId: string): string {
-        return String(generatedId.split('__').pop() ?? '').trim();
-    }
-
-    private getLoopBindingSourcePath(source: TLoopBindingSource): string {
-        return typeof source === 'string' ? source : source.from;
-    }
-
-    private getLoopBindingSourceTransform(source: TLoopBindingSource): TLoopBindingTransform | undefined {
-        return typeof source === 'string' ? undefined : source.transform;
-    }
-
-    private getLoopItemValue(item: unknown, path: string): unknown {
-        const normalizedPath = path.trim();
-        if (!normalizedPath) return undefined;
-        if (normalizedPath === LOOP_WHOLE_ITEM_TOKEN) return item;
-
-        let current: unknown = item;
-        for (const segment of normalizedPath.split('.').map((entry) => entry.trim()).filter(Boolean)) {
-            if (Array.isArray(current)) {
-                const index = Number(segment);
-                if (!Number.isInteger(index) || index < 0 || index >= current.length) return undefined;
-                current = current[index];
-                continue;
-            }
-
-            if (!isRecord(current) || !(segment in current)) return undefined;
-            current = current[segment];
-        }
-
-        return current;
-    }
-
-    private hasResolvedLoopBindingValue(value: unknown): boolean {
-        if (value == null) return false;
-        if (typeof value === 'string') return value.trim().length > 0;
-        return true;
-    }
-
-    private applyLoopBindingTransform(value: unknown, transform?: TLoopBindingTransform): unknown {
-        if (transform === undefined) return value;
-
-        switch (transform) {
-            case 'i18nKey':
-                return this.resolveI18nKeyString(value);
-            case 'locale':
-                if (typeof value === 'string') return value.trim();
-                if (isRecord(value)) {
-                    return resolveLocaleMapValue(value, this.language.currentLanguage());
-                }
-                return undefined;
-            case 'navigationHref':
-                return value == null ? undefined : toNavigationHref(value);
-            default:
-                return value;
-        }
-    }
-
-    private resolveLoopBindingValue(binding: TLoopBinding, item: unknown): unknown {
-        for (const source of binding.sources) {
-            const rawValue = this.getLoopItemValue(item, this.getLoopBindingSourcePath(source));
-            const transformedValue = this.applyLoopBindingTransform(rawValue, this.getLoopBindingSourceTransform(source));
-            if (this.hasResolvedLoopBindingValue(transformedValue)) {
-                return transformedValue;
-            }
-        }
-
-        if (Object.prototype.hasOwnProperty.call(binding, 'fallback')) {
-            return binding.fallback;
-        }
-
-        return undefined;
-    }
-
-    private assignLoopBindingValue(target: Record<string, unknown>, path: string, value: unknown): void {
-        const segments = path.split('.').map((entry) => entry.trim()).filter(Boolean);
-        if (segments.length === 0) return;
-
-        let current = target;
-        for (const segment of segments.slice(0, -1)) {
-            const existing = current[segment];
-            const next = Array.isArray(existing)
-                ? [...existing]
-                : isRecord(existing)
-                    ? { ...existing }
-                    : {};
-
-            current[segment] = next;
-            current = next as Record<string, unknown>;
-        }
-
-        current[segments.at(-1)!] = value;
-    }
-
-    private applyLoopBindings(nextComponent: any, bindings: readonly TLoopBinding[] | undefined, item: unknown): void {
-        if (!Array.isArray(bindings) || bindings.length === 0) return;
-
-        for (const binding of bindings) {
-            const resolvedValue = this.resolveLoopBindingValue(binding, item);
-            if (resolvedValue === undefined && !Object.prototype.hasOwnProperty.call(binding, 'fallback')) {
-                continue;
-            }
-
-            this.assignLoopBindingValue(nextComponent as Record<string, unknown>, binding.to, resolvedValue);
-        }
-    }
-
-    private replaceLoopIndexToken(value: unknown, generatedId: string): unknown {
-        if (typeof value !== 'string' || !value.includes(LOOP_INDEX_TOKEN)) return value;
-
-        const index = this.resolveGeneratedLoopIndex(generatedId);
-        if (!index) return value;
-
-        return value.split(LOOP_INDEX_TOKEN).join(index);
-    }
-
-    private materializeContainerLoopComponent(nextComponent: any, generatedId: string): void {
-        if (!Array.isArray(nextComponent.config?.components)) return;
-
-        nextComponent.config.components = nextComponent.config.components.map((componentId: unknown) => {
-            return this.replaceLoopIndexToken(componentId, generatedId);
-        });
-    }
-
     private attachGeneratedCardCta(nextComponent: any, template: TGenericComponent, generatedId: string): void {
         if (typeof nextComponent.config?.buttonLabel !== 'string' || nextComponent.config.buttonLabel.trim().length === 0) {
             return;
@@ -661,28 +428,5 @@ export class ConfigurationsOrchestratorService {
                 eventInstructions: String((template as any).eventInstructions ?? ''),
             });
         };
-    }
-
-    private materializeLoopComponent(template: TGenericComponent, generatedId: string, item: unknown, loop: TLoopConfig): TGenericComponent {
-        const nextComponent: any = {
-            ...template,
-            id: generatedId,
-            config: {
-                ...(template as any).config,
-            },
-        };
-
-        if (typeof nextComponent.config?.id === 'string') {
-            nextComponent.config.id = generatedId;
-        }
-
-        this.applyLoopBindings(nextComponent, loop.bindings, item);
-
-        const finalizeComponent = this.loopComponentFinalizers[template.type];
-        if (finalizeComponent) {
-            finalizeComponent(nextComponent, template, generatedId);
-        }
-
-        return nextComponent as TGenericComponent;
     }
 }

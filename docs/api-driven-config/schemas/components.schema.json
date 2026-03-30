@@ -398,7 +398,7 @@
                 "type": "object",
                 "required": ["source", "path", "templateId"],
                 "properties": {
-                  "source": { "enum": ["var", "i18n"] },
+                  "source": { "enum": ["var", "i18n", "host"] },
                   "path": { "type": "string" },
                   "templateId": { "type": "string" },
                   "idPrefix": { "type": "string" }
@@ -420,7 +420,7 @@
           },
           "config": {
             "type": "object",
-            "description": "Type-specific JSON config. For payload authoring, config.components should remain an array of component ID strings even though the in-memory runtime can compose inline child component objects.",
+            "description": "Type-specific JSON config. config.components must remain an array of component ID strings so draft and API payloads stay stable and serializable.",
             "properties": {
               "itemsSource": {
                 "type": "object",

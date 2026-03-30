@@ -1,16 +1,18 @@
-type TDynamicString = string | (() => string);
-type TDynamicBoolean = boolean | (() => boolean);
-type TDynamicNumber = number | string | (() => number | string);
+import type {
+    TDynamicBooleanValue,
+    TDynamicStringLikeValue,
+    TDynamicStringValue,
+} from '@/app/shared/types/component-runtime.types';
 
 export type TGenericEmbedFrameConfig = {
-    readonly id?: TDynamicString;
-    readonly src: TDynamicString;
-    readonly title: TDynamicString;
-    readonly classes?: TDynamicString;
-    readonly height?: TDynamicNumber;
+    readonly id?: TDynamicStringValue;
+    readonly src: TDynamicStringValue;
+    readonly title: TDynamicStringValue;
+    readonly classes?: TDynamicStringValue;
+    readonly height?: TDynamicStringLikeValue;
     readonly loading?: 'eager' | 'lazy';
-    readonly allow?: TDynamicString;
-    readonly referrerPolicy?: TDynamicString;
-    readonly sandbox?: TDynamicString;
-    readonly allowFullscreen?: TDynamicBoolean;
+    readonly allow?: TDynamicStringValue;
+    readonly referrerPolicy?: TDynamicStringValue;
+    readonly sandbox?: TDynamicStringValue;
+    readonly allowFullscreen?: TDynamicBooleanValue;
 };
