@@ -99,6 +99,10 @@ export class GenericAccordionComponent {
 
   detailItemIconName = () => resolveTextValue(this.config().detailItemIconName);
 
+  detailItemTrackKey = (index: number, detailItem: string) => {
+    return `${ index }::${ detailItem }`;
+  };
+
   itemHasRichHeader = (item: AccordionItem) => this.detailMode() || !!this.indexLabelOf(item) || !!this.summaryOf(item);
 
   itemHasRichPanel = (item: AccordionItem) => {

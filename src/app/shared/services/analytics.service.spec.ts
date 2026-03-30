@@ -74,6 +74,9 @@ describe('AnalyticsService', () => {
       domain: 'zoolandingpage.com.mx',
       sectionIds: [],
       scrollMilestones: [],
+      enabled: false,
+      consentUI: 'none',
+      consentSnoozeSeconds: 86400,
       events: { test_event: 'api_test_event' },
       categories: { test: 'api_test' },
     });

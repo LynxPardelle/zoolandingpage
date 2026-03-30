@@ -3,10 +3,9 @@ import { EVENT_HANDLERS } from './event-handlers.token';
 import { scrollToSectionHandler, skipToMainHandler } from './handlers/accessibility.handlers';
 import {
     navigationToSectionHandler,
-    trackCtaClickHandler,
-    trackFaqToggleHandler,
-    trackNavClickHandler,
-    trackProcessStepChangeHandler,
+    trackEventHandler,
+    trackEventWhenHandler,
+    trackNumericSuffixEventHandler,
 } from './handlers/analytics.handlers';
 import {
     acceptConsentHandler,
@@ -43,11 +42,10 @@ import {
 
 const baseEventHandlerProviders: Provider[] = [
     { provide: EVENT_HANDLERS, multi: true, useFactory: openWhatsAppHandler },
-    { provide: EVENT_HANDLERS, multi: true, useFactory: trackCtaClickHandler },
-    { provide: EVENT_HANDLERS, multi: true, useFactory: trackNavClickHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: trackEventHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: trackEventWhenHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: trackNumericSuffixEventHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: navigationToSectionHandler },
-    { provide: EVENT_HANDLERS, multi: true, useFactory: trackFaqToggleHandler },
-    { provide: EVENT_HANDLERS, multi: true, useFactory: trackProcessStepChangeHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: openFaqCtaWhatsAppHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: openFinalCtaWhatsAppHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: toggleThemeHandler },

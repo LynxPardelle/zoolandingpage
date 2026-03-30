@@ -1,10 +1,10 @@
 import type {
-    TAnalyticsConfigPayload,
     TAngoraCombosPayload,
     TComponentsPayload,
     TDraftSiteConfigPayload,
     TI18nPayload,
     TPageConfigPayload,
+    TResolvedAnalyticsConfig,
     TSeoPayload,
     TStructuredDataPayload,
     TVariablesPayload,
@@ -34,7 +34,7 @@ export class ConfigStoreService {
     private readonly _i18n = signal<TI18nPayload | null>(null);
     private readonly _seo = signal<TSeoPayload | null>(null);
     private readonly _structuredData = signal<TStructuredDataPayload | null>(null);
-    private readonly _analytics = signal<TAnalyticsConfigPayload | null>(null);
+    private readonly _analytics = signal<TResolvedAnalyticsConfig | null>(null);
     private readonly _stage = signal<TConfigBootstrapStage>('idle');
     private readonly _validationIssues = signal<readonly string[]>([]);
 
@@ -88,7 +88,7 @@ export class ConfigStoreService {
         this._structuredData.set(payload);
     }
 
-    setAnalytics(payload: TAnalyticsConfigPayload | null): void {
+    setAnalytics(payload: TResolvedAnalyticsConfig | null): void {
         this._analytics.set(payload);
     }
 

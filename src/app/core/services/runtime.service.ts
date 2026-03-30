@@ -1,4 +1,4 @@
-import { AnalyticsCategories, AnalyticsEvents } from '@/app/shared/services/analytics.events';
+import { AnalyticsCategories } from '@/app/shared/services/analytics.events';
 import { AnalyticsService } from '@/app/shared/services/analytics.service';
 import { AngoraCombosService } from '@/app/shared/services/angora-combos.service';
 import { ConfigBootstrapService } from '@/app/shared/services/config-bootstrap.service';
@@ -210,7 +210,7 @@ export class RuntimeService {
         this.navigationSubscription = this.router.events
             .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
             .subscribe((event) => {
-                void this.analytics.track(AnalyticsEvents.PageView, {
+                void this.analytics.track(this.analytics.pageViewEventName(), {
                     category: AnalyticsCategories.Navigation,
                     label: event.urlAfterRedirects,
                 });

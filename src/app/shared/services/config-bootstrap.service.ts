@@ -3,10 +3,12 @@ import type {
     TAnalyticsConfigPayload,
     TAngoraCombosPayload,
     TComponentsPayload,
+    TDraftAnalyticsRuntimeConfig,
     TDraftI18nVariableConfig,
     TDraftLanguageDefinition,
     TI18nPayload,
     TPageConfigPayload,
+    TResolvedAnalyticsConfig,
     TSeoPayload,
     TStructuredDataPayload,
     TVariablesPayload,
@@ -42,7 +44,7 @@ export type TBootstrapResult = {
     readonly i18n?: TI18nPayload | null;
     readonly seo?: TSeoPayload | null;
     readonly structuredData?: TStructuredDataPayload | null;
-    readonly analytics?: TAnalyticsConfigPayload | null;
+    readonly analytics?: TResolvedAnalyticsConfig | null;
     readonly structuredDataApplied: boolean;
 };
 
@@ -204,6 +206,42 @@ export class ConfigBootstrapService {
         return secondary?.code ?? null;
     }
 
+    private buildResolvedAnalyticsConfig(
+        domain: string,
+        pageId: string,
+        siteAnalytics: TDraftAnalyticsRuntimeConfig | null | undefined,
+        pageAnalytics: TAnalyticsConfigPayload | null,
+    ): TResolvedAnalyticsConfig | null {
+        if (!siteAnalytics && !pageAnalytics) {
+            return null;
+        }
+
+        return {
+            version: pageAnalytics?.version ?? EXPECTED_CONFIG_VERSION,
+            pageId,
+            domain,
+            sectionIds: pageAnalytics?.sectionIds ?? [],
+            scrollMilestones: pageAnalytics?.scrollMilestones ?? [],
+            enabled: siteAnalytics?.enabled ?? false,
+            consentUI: siteAnalytics?.consentUI ?? 'none',
+            consentSnoozeSeconds: siteAnalytics?.consentSnoozeSeconds ?? 86400,
+            track: pageAnalytics?.track ?? siteAnalytics?.track,
+            events: {
+                ...(siteAnalytics?.events ?? {}),
+                ...(pageAnalytics?.events ?? {}),
+            },
+            categories: {
+                ...(siteAnalytics?.categories ?? {}),
+                ...(pageAnalytics?.categories ?? {}),
+            },
+            quickStats: {
+                ...(siteAnalytics?.quickStats ?? {}),
+                ...(pageAnalytics?.quickStats ?? {}),
+                events: pageAnalytics?.quickStats?.events ?? siteAnalytics?.quickStats?.events,
+            },
+        };
+    }
+
     async load(opts?: { domain?: string; pageId?: string; lang?: string }): Promise<TBootstrapResult> {
         const resolved = this.resolver.resolveDomain();
         const domain = String(opts?.domain ?? resolved.domain ?? '').trim();
@@ -263,7 +301,13 @@ export class ConfigBootstrapService {
         this.store.setStage('structured-data');
         const structuredData = await this.loadStructuredData(domain, pageId);
         this.store.setStage('analytics-config');
-        const analytics = await this.loadAnalytics(domain, pageId);
+        const loadedAnalytics = await this.loadAnalytics(domain, pageId);
+        const analytics = this.buildResolvedAnalyticsConfig(
+            domain,
+            pageId,
+            this.store.siteConfig()?.runtime?.analytics,
+            loadedAnalytics,
+        );
         this.store.setSeo(seo);
         this.store.setStructuredData(structuredData);
         this.store.setAnalytics(analytics);

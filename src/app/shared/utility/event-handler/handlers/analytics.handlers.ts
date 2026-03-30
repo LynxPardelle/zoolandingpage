@@ -1,13 +1,8 @@
-import { AnalyticsCategories, AnalyticsEvents } from '@/app/shared/services/analytics.events';
+import { AnalyticsEvents } from '@/app/shared/services/analytics.events';
 import { AnalyticsService } from '@/app/shared/services/analytics.service';
 import { DOCUMENT } from '@angular/common';
 import { inject } from '@angular/core';
 import type { EventHandler } from '../event-handler.types';
-
-const asRecord = (v: unknown): Record<string, unknown> | undefined => {
-    if (v && typeof v === 'object') return v as Record<string, unknown>;
-    return undefined;
-};
 
 const normalizeAnalyticsLabel = (value: unknown): string | undefined => {
     if (value == null) return undefined;
@@ -23,77 +18,91 @@ const normalizeAnalyticsLabel = (value: unknown): string | undefined => {
     return numericSuffix?.[1] ?? normalized;
 };
 
-export const trackCtaClickHandler = (): EventHandler => {
-    const analytics = inject(AnalyticsService);
-
-    return {
-        id: 'trackCTAClick',
-        handle: (_ctx, args) => {
-            const metaTitle = String(args[0] ?? '');
-            const ctaType = String(args[1] ?? '');
-            const location = String(args[2] ?? '');
-
-            void analytics.track(metaTitle, {
-                category: AnalyticsCategories.CTA,
-                label: `${ location }:${ ctaType }`,
-                meta: { location },
-            });
-        },
-    };
+const normalizeString = (value: unknown): string | undefined => {
+    if (typeof value !== 'string') return normalizeAnalyticsLabel(value);
+    const normalized = value.trim();
+    return normalized.length > 0 ? normalized : undefined;
 };
 
-export const trackNavClickHandler = (): EventHandler => {
+const buildMeta = (args: readonly unknown[], startIndex: number): Record<string, unknown> | undefined => {
+    const meta: Record<string, unknown> = {};
+
+    for (let index = startIndex; index < args.length; index += 2) {
+        const key = normalizeString(args[index]);
+        if (!key) continue;
+        meta[key] = args[index + 1];
+    }
+
+    return Object.keys(meta).length > 0 ? meta : undefined;
+};
+
+export const trackEventHandler = (): EventHandler => {
     const analytics = inject(AnalyticsService);
 
     return {
-        id: 'trackNavClick',
+        id: 'trackEvent',
         handle: (_ctx, args) => {
-            const key = String(args[0] ?? '').trim();
-            const hrefStr = String(args[1] ?? '');
-            const normalizedHref = hrefStr.replace(/^#/, '').trim();
-            const label = key || normalizedHref || 'nav';
+            const name = normalizeString(args[0]);
+            if (!name) return;
 
-            void analytics.track(AnalyticsEvents.NavClick, {
-                category: AnalyticsCategories.Navigation,
+            const category = normalizeString(args[1]);
+            const label = normalizeString(args[2]);
+            const meta = buildMeta(args, 3);
+
+            void analytics.track(name, {
+                category,
                 label,
-                meta: { href: hrefStr },
+                meta,
             });
         },
     };
 };
 
-export const trackFaqToggleHandler = (): EventHandler => {
+export const trackEventWhenHandler = (): EventHandler => {
     const analytics = inject(AnalyticsService);
 
     return {
-        id: 'trackFaqToggle',
+        id: 'trackEventWhen',
         handle: (_ctx, args) => {
-            const evt = asRecord(args[0]);
-            const expanded = Boolean(evt?.['expanded']);
-            if (!expanded) return;
+            const actual = args[0];
+            const expected = args[1];
+            if (actual !== expected) return;
 
-            const id = String(evt?.['id'] ?? 'unknown');
+            const name = normalizeString(args[2]);
+            if (!name) return;
 
-            void analytics.track(AnalyticsEvents.FaqOpen, {
-                category: AnalyticsCategories.Faq,
-                label: id,
+            const category = normalizeString(args[3]);
+            const label = normalizeString(args[4]);
+            const meta = buildMeta(args, 5);
+
+            void analytics.track(name, {
+                category,
+                label,
+                meta,
             });
         },
     };
 };
 
-export const trackProcessStepChangeHandler = (): EventHandler => {
+export const trackNumericSuffixEventHandler = (): EventHandler => {
     const analytics = inject(AnalyticsService);
 
     return {
-        id: 'trackProcessStepChange',
+        id: 'trackNumericSuffixEvent',
         handle: (_ctx, args) => {
-            const label = normalizeAnalyticsLabel(args?.[0]);
+            const name = normalizeString(args[0]);
+            if (!name) return;
+
+            const category = normalizeString(args[1]);
+            const label = normalizeAnalyticsLabel(args[2]);
             if (!label) return;
 
-            void analytics.track(AnalyticsEvents.ProcessStepChange, {
-                category: AnalyticsCategories.Process,
+            const meta = buildMeta(args, 3);
+
+            void analytics.track(name, {
+                category,
                 label,
+                meta,
             });
         },
     };

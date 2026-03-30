@@ -101,17 +101,49 @@ export type TDraftLocalStorageRuntimeConfig = Partial<Record<TDraftLocalStorageS
 
 export type TDraftAnalyticsConsentUiMode = 'modal' | 'toast' | 'sheet' | 'none';
 
+export type TAnalyticsTaxonomyMap = {
+    readonly [key: string]: string;
+};
+
+export type TAnalyticsQuickStatsEventConfig = {
+    readonly name: string;
+    readonly path: string;
+    readonly by?: number;
+};
+
+export type TAnalyticsQuickStatsPageViewConfig = {
+    readonly event?: string;
+    readonly path: string;
+    readonly by?: number;
+};
+
+export type TAnalyticsQuickStatsConfig = {
+    readonly pageView?: TAnalyticsQuickStatsPageViewConfig;
+    readonly events?: readonly TAnalyticsQuickStatsEventConfig[];
+};
+
+export type TAnalyticsSharedConfig = {
+    readonly events?: TAnalyticsTaxonomyMap;
+    readonly categories?: TAnalyticsTaxonomyMap;
+    readonly track?: readonly TTrackOptions[];
+    readonly quickStats?: TAnalyticsQuickStatsConfig;
+};
+
+export type TDraftAnalyticsRuntimeConfig = TAnalyticsSharedConfig & {
+    readonly enabled?: boolean;
+    readonly consentUI?: TDraftAnalyticsConsentUiMode;
+    readonly consentSnoozeSeconds?: number;
+};
+
 export type TDraftFeatureRuntimeConfig = {
-    readonly analytics?: boolean;
     readonly debugMode?: boolean;
-    readonly analyticsConsentUI?: TDraftAnalyticsConsentUiMode;
-    readonly analyticsConsentSnoozeSeconds?: number;
 };
 
 export type TDraftSiteRuntimeConfig = {
     readonly app?: TDraftAppRuntimeConfig;
     readonly localStorage?: TDraftLocalStorageRuntimeConfig;
     readonly features?: TDraftFeatureRuntimeConfig;
+    readonly analytics?: TDraftAnalyticsRuntimeConfig;
 };
 
 export type TDraftSiteConfigPayload = {
@@ -202,19 +234,16 @@ export type TStructuredDataPayload = {
     readonly entries: readonly Record<string, unknown>[];
 };
 
-export type TAnalyticsTaxonomyMap = {
-    readonly [key: string]: string;
-};
-
-export type TAnalyticsConfigPayload = {
+export type TAnalyticsConfigPayload = TAnalyticsSharedConfig & {
     readonly version: number;
     readonly pageId: string;
     readonly domain: string;
     readonly sectionIds: readonly string[];
     readonly scrollMilestones: readonly number[];
-    readonly consentMode?: string;
-    readonly events?: TAnalyticsTaxonomyMap;
-    readonly categories?: TAnalyticsTaxonomyMap;
-    readonly quickStatsCtaEvents?: readonly string[];
-    readonly track?: readonly TTrackOptions[];
+};
+
+export type TResolvedAnalyticsConfig = TAnalyticsConfigPayload & {
+    readonly enabled: boolean;
+    readonly consentUI: TDraftAnalyticsConsentUiMode;
+    readonly consentSnoozeSeconds: number;
 };

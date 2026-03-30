@@ -31,7 +31,13 @@ eventInstructions: 'openWhatsApp:event.meta_title,hero_primary,hero;navigationTo
 - Track + navigate:
 
 ```text
-trackCTAClick:event.meta_title,secondary,hero;navigationToSection:features-section
+trackEvent:event.meta_title,cta,hero:secondary,location,hero;navigationToSection:features-section
+```
+
+- Conditional tracking from event state:
+
+```text
+trackEventWhen:event.eventData.expanded,true,faq_open,faq,event.eventData.id
 ```
 
 - Open a payload-owned modal:
@@ -50,7 +56,7 @@ Argument order for `openModal` is:
 - Scoped interaction submit:
 
 ```text
-submitScope;trackCTAClick:event.meta_title,submit,lead-form
+submitScope;trackEvent:event.meta_title,cta,lead-form:submit,location,lead-form
 ```
 
 - Scoped interaction reset:

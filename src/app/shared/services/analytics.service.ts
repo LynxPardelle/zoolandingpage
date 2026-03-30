@@ -1,5 +1,10 @@
 import { I18nService } from '@/app/shared/services/i18n.service';
-import type { TAnalyticsConfigPayload, TDraftLocalStorageSlot } from '@/app/shared/types/config-payloads.types';
+import type {
+  TAnalyticsConfigPayload,
+  TAnalyticsQuickStatsEventConfig,
+  TAnalyticsQuickStatsPageViewConfig,
+  TDraftLocalStorageSlot,
+} from '@/app/shared/types/config-payloads.types';
 import { DOCUMENT } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
@@ -7,7 +12,7 @@ import { Observable, ReplaySubject, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ToastService } from '../components/generic-toast';
 import { TAnalyticsEvent, TDataDropResponse, TExpandedAnalytics } from '../types/analytics.type';
-import { AnalyticsCategories, AnalyticsEvents, DEFAULT_QUICK_STATS_CTA_EVENTS } from './analytics.events';
+import { AnalyticsCategories, AnalyticsEvents } from './analytics.events';
 import { ConfigStoreService } from './config-store.service';
 import { DomainResolverService } from './domain-resolver.service';
 import { RuntimeConfigService } from './runtime-config.service';
@@ -91,6 +96,13 @@ export class AnalyticsService {
       name: this.resolveTransportEventName(evt.name),
       category: this.resolveTransportCategory(evt.category),
     };
+  }
+
+  pageViewEventName(): string {
+    const configured = this.configStore.analytics()?.quickStats?.pageView?.event;
+    return typeof configured === 'string' && configured.trim().length > 0
+      ? configured.trim()
+      : AnalyticsEvents.PageView;
   }
 
   private consentText(key: string): string {
@@ -719,20 +731,34 @@ export class AnalyticsService {
   private get quickStats(): QuickStatsService {
     return this._quickStats ??= inject(QuickStatsService);
   }
+
+  private remotePageViewConfig(): TAnalyticsQuickStatsPageViewConfig | null {
+    const pageView = this.configStore.analytics()?.quickStats?.pageView;
+    return pageView && typeof pageView.path === 'string' && pageView.path.trim().length > 0 ? pageView : null;
+  }
+
+  private remoteEventQuickStats(): readonly TAnalyticsQuickStatsEventConfig[] {
+    const events = this.configStore.analytics()?.quickStats?.events;
+    return Array.isArray(events) ? events.filter((entry) => typeof entry.path === 'string' && entry.path.trim().length > 0) : [];
+  }
+
   private bumpRemotePageView(): void {
     if (!this.isProduction) return;
-    this.quickStats.incPageView().subscribe({ next: () => { }, error: () => { } });
+    const pageView = this.remotePageViewConfig();
+    if (!pageView) return;
+    this.quickStats.inc(pageView.path, pageView.by ?? 1).subscribe({ next: () => { }, error: () => { } });
   }
+
   private bumpQuickStatsForEvent(name: string): void {
     if (!this.isProduction) return;
-    const configuredEvents = this.configStore.analytics()?.quickStatsCtaEvents;
-    const trackedEvents: readonly string[] = Array.isArray(configuredEvents) && configuredEvents.length > 0
-      ? configuredEvents
-      : DEFAULT_QUICK_STATS_CTA_EVENTS;
-
-    if (trackedEvents.includes(name)) {
-      this.quickStats.incCtaClick().subscribe({ next: () => { }, error: () => { } });
+    const bindings = this.remoteEventQuickStats().filter((entry) => entry.name === name);
+    if (bindings.length === 0) {
+      return;
     }
+
+    bindings.forEach((entry) => {
+      this.quickStats.inc(entry.path, entry.by ?? 1).subscribe({ next: () => { }, error: () => { } });
+    });
   }
 
   // Analytics statistics methods (now using persistent storage)

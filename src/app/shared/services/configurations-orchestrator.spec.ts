@@ -720,7 +720,7 @@ describe('ConfigurationsOrchestratorService', () => {
         headerNavLinkTemplate: {
           id: 'headerNavLinkTemplate',
           type: 'link',
-          eventInstructions: 'trackNavClick:event.eventData,event.eventData;navigationToSection:event.eventData',
+          eventInstructions: 'trackEvent:nav_click,navigation,event.eventData,href,event.eventData;navigationToSection:event.eventData',
           config: {
             id: 'headerNavLinkTemplate',
             href: '',
@@ -792,7 +792,7 @@ describe('ConfigurationsOrchestratorService', () => {
         headerNavLinkTemplate: {
           id: 'headerNavLinkTemplate',
           type: 'link',
-          eventInstructions: 'trackNavClick:event.eventData,event.eventData;navigationToSection:event.eventData',
+          eventInstructions: 'trackEvent:nav_click,navigation,event.eventData,href,event.eventData;navigationToSection:event.eventData',
           config: {
             id: 'headerNavLinkTemplate',
             href: '',

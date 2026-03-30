@@ -177,7 +177,7 @@ Recommended pattern:
     tag: 'form',
     classes: 'ank-display-flex ank-flex-column ank-gap-1rem',
     components: ['leadNameInput', 'leadEmailInput', 'leadSubmitButton'],
-    submitEventInstructions: 'trackCTAClick:event.meta_title,submit,lead-form',
+    submitEventInstructions: 'trackEvent:event.meta_title,cta,lead-form:submit,location,lead-form',
   },
 }
 ```

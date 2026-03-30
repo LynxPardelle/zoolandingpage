@@ -41,13 +41,84 @@
     "featureRuntime": {
       "type": "object",
       "properties": {
-        "analytics": { "type": "boolean" },
-        "debugMode": { "type": "boolean" },
-        "analyticsConsentUI": {
+        "debugMode": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "analyticsQuickStatsEvent": {
+      "type": "object",
+      "required": ["name", "path"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "by": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "analyticsQuickStatsPageView": {
+      "type": "object",
+      "required": ["path"],
+      "properties": {
+        "event": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "by": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "analyticsQuickStats": {
+      "type": "object",
+      "properties": {
+        "pageView": { "$ref": "#/definitions/analyticsQuickStatsPageView" },
+        "events": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/analyticsQuickStatsEvent" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "analyticsRuntime": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "consentUI": {
           "type": "string",
           "enum": ["modal", "toast", "sheet", "none"]
         },
-        "analyticsConsentSnoozeSeconds": { "type": "number" }
+        "consentSnoozeSeconds": { "type": "number" },
+        "events": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "categories": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "quickStats": { "$ref": "#/definitions/analyticsQuickStats" },
+        "track": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "ip",
+              "userAgent",
+              "language",
+              "platform",
+              "vendor",
+              "cookiesEnabled",
+              "doNotTrack",
+              "screenWidth",
+              "screenHeight",
+              "colorDepth",
+              "timezone",
+              "geolocationLatitude",
+              "geolocationLongitude",
+              "geolocationAccuracy",
+              "cookies",
+              "battery",
+              "connection"
+            ]
+          }
+        }
       },
       "additionalProperties": false
     },
@@ -56,7 +127,8 @@
       "properties": {
         "app": { "$ref": "#/definitions/appRuntime" },
         "localStorage": { "$ref": "#/definitions/localStorageRuntime" },
-        "features": { "$ref": "#/definitions/featureRuntime" }
+        "features": { "$ref": "#/definitions/featureRuntime" },
+        "analytics": { "$ref": "#/definitions/analyticsRuntime" }
       },
       "additionalProperties": false
     }

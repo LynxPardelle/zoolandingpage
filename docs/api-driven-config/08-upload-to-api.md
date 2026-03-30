@@ -34,10 +34,17 @@ For the current runtime, treat `site-config.json`, `page-config.json`, `componen
       "pageViewCount": "example-page-view-count"
     },
     "features": {
-      "analytics": false,
-      "debugMode": true,
-      "analyticsConsentUI": "none",
-      "analyticsConsentSnoozeSeconds": 30
+      "debugMode": true
+    },
+    "analytics": {
+      "enabled": false,
+      "consentUI": "none",
+      "consentSnoozeSeconds": 30,
+      "track": ["ip", "language", "screenWidth"],
+      "quickStats": {
+        "pageView": { "event": "page_view", "path": "metrics.pageViews", "by": 1 },
+        "events": [{ "name": "cta_click", "path": "metrics.ctaClicks", "by": 1 }]
+      }
     }
   }
 }
@@ -113,7 +120,7 @@ A future client-side loader can:
 
 ## Analytics payload
 
-`analytics-config.json` can now carry both behavioral and taxonomy data:
+`analytics-config.json` now carries page-level engagement behavior plus optional page-specific overrides:
 
 ```json
 {
@@ -122,24 +129,26 @@ A future client-side loader can:
   "domain": "example.com",
   "sectionIds": ["home", "features"],
   "scrollMilestones": [25, 50, 75, 100],
-  "consentMode": "default",
-  "track": ["ip", "language", "screenWidth"],
   "events": {
     "page_view": "page_view"
   },
   "categories": {
     "navigation": "navigation"
   },
-  "quickStatsCtaEvents": ["cta_click"]
+  "quickStats": {
+    "events": [{ "name": "cta_click", "path": "metrics.ctaClicks", "by": 1 }]
+  }
 }
 ```
 
 Rules:
 
+- Put domain-wide analytics policy in `site-config.json` under `runtime.analytics`.
+- Keep `analytics-config.json` page-owned: `sectionIds`, `scrollMilestones`, and only page-specific analytics overrides.
 - `events` maps canonical framework event IDs to the names sent to the analytics sink.
 - `categories` maps canonical framework categories to sink-specific category values.
-- `quickStatsCtaEvents` lists the canonical CTA event IDs that should increment quick stats counters.
-- `track` lists the optional extra browser fields collected after consent.
+- `quickStats.events` maps canonical event IDs to metric paths and increments.
+- `track` belongs in `site-config.json` unless a page truly needs to override it.
 - Keep handler IDs and `eventInstructions` action names in code; only emitted taxonomy belongs in payloads.
 
 ## Security model

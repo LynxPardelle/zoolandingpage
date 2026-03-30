@@ -94,6 +94,8 @@ export class EventOrchestrator {
       return this.resolveEventPath(trimmed, event);
     }
 
+    if (trimmed === 'true') return true;
+    if (trimmed === 'false') return false;
     if (trimmed === 'null') return null;
     if (trimmed === 'undefined') return undefined;
 

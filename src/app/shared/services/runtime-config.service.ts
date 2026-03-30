@@ -1,6 +1,7 @@
 import type { TTrackOptions } from '@/app/shared/types/analytics.type';
 import type {
     TDraftAnalyticsConsentUiMode,
+    TDraftAnalyticsRuntimeConfig,
     TDraftAppRuntimeConfig,
     TDraftFeatureRuntimeConfig,
     TDraftLocalStorageRuntimeConfig,
@@ -11,10 +12,17 @@ import { ConfigStoreService } from './config-store.service';
 import { DomainResolverService } from './domain-resolver.service';
 
 const DEFAULT_FEATURES: Required<TDraftFeatureRuntimeConfig> = {
-    analytics: false,
     debugMode: false,
-    analyticsConsentUI: 'none',
-    analyticsConsentSnoozeSeconds: 86400,
+};
+
+const DEFAULT_ANALYTICS: Required<Pick<TDraftAnalyticsRuntimeConfig,
+    'enabled'
+    | 'consentUI'
+    | 'consentSnoozeSeconds'
+>> = {
+    enabled: false,
+    consentUI: 'none',
+    consentSnoozeSeconds: 86400,
 };
 
 @Injectable({ providedIn: 'root' })
@@ -29,13 +37,18 @@ export class RuntimeConfigService {
         ...DEFAULT_FEATURES,
         ...(this.siteRuntime()?.features ?? {}),
     }));
+    readonly analytics = computed(() => ({
+        ...DEFAULT_ANALYTICS,
+        ...(this.siteRuntime()?.analytics ?? {}),
+        ...(this.configStore.analytics() ?? {}),
+    }));
     readonly track = computed<readonly TTrackOptions[]>(() => {
-        const value = this.configStore.analytics()?.track;
+        const value = this.analytics().track;
         return Array.isArray(value) ? value : [];
     });
 
     isAnalyticsEnabled(): boolean {
-        return this.features().analytics;
+        return this.analytics().enabled;
     }
 
     isDebugMode(): boolean {
@@ -43,11 +56,11 @@ export class RuntimeConfigService {
     }
 
     analyticsConsentMode(): TDraftAnalyticsConsentUiMode {
-        return this.features().analyticsConsentUI;
+        return this.analytics().consentUI;
     }
 
     analyticsConsentSnoozeSeconds(): number {
-        return this.features().analyticsConsentSnoozeSeconds;
+        return this.analytics().consentSnoozeSeconds;
     }
 
     appIdentifier(): string {

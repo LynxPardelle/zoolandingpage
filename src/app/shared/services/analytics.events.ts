@@ -78,16 +78,6 @@ export const AnalyticsCategories = {
 
 export type AnalyticsCategory = typeof AnalyticsCategories[keyof typeof AnalyticsCategories];
 
-export const DEFAULT_QUICK_STATS_CTA_EVENTS = [
-    AnalyticsEvents.HeroPrimaryClick,
-    AnalyticsEvents.HeroSecondaryClick,
-    AnalyticsEvents.ServicesCtaClick,
-    AnalyticsEvents.FaqCtaClick,
-    AnalyticsEvents.CtaClick,
-    AnalyticsEvents.FinalCtaPrimaryClick,
-    AnalyticsEvents.FinalCtaSecondaryClick,
-] as const;
-
 // Unified payload interface for component-level analytics event emission.
 // Components now emit this payload via an (analyticsEvent) Output instead of
 // injecting AnalyticsService directly. AppShell centralizes actual tracking.

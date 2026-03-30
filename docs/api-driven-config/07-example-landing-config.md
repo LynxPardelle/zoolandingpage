@@ -78,7 +78,7 @@ A map is the easiest API payload, since `id` is the natural key:
       "id": "secondaryCTA",
       "type": "button",
       "meta_title": "hero_secondary_click",
-      "eventInstructions": "trackCTAClick:event.meta_title,secondary,hero;navigationToSection:features-section",
+      "eventInstructions": "trackEvent:event.meta_title,cta,hero:secondary,location,hero;navigationToSection:features-section",
       "valueInstructions": "set:config.label,i18n,hero.secondary.label",
       "config": {
         "label": "",
@@ -381,7 +381,7 @@ accordion/tab item fields, and rendered through `itemsSource` / `tabsSource` plu
     "interactiveProcessMobileAccordion": {
       "id": "interactiveProcessMobileAccordion",
       "type": "accordion",
-      "eventInstructions": "setScopeValue:activeStepId,event.eventData.activeId;trackProcessStepChange:event.eventData.activeId",
+      "eventInstructions": "setScopeValue:activeStepId,event.eventData.activeId;trackNumericSuffixEvent:process_step_change,process,event.eventData.activeId",
       "valueInstructions": "set:config.activeId,scope,values.activeStepId; set:config.detailContentLabel,i18n,processSection.detailedDescriptionLabel; set:config.detailItemsLabel,i18n,processSection.deliverablesLabel",
       "config": {
         "itemsSource": { "source": "var", "path": "processSection.steps" },
@@ -395,7 +395,7 @@ accordion/tab item fields, and rendered through `itemsSource` / `tabsSource` plu
     "interactiveProcessDesktopTabs": {
       "id": "interactiveProcessDesktopTabs",
       "type": "tab-group",
-      "eventInstructions": "setScopeValue:activeStepId,event.eventData.id;trackProcessStepChange:event.eventData.id",
+      "eventInstructions": "setScopeValue:activeStepId,event.eventData.id;trackNumericSuffixEvent:process_step_change,process,event.eventData.id",
       "valueInstructions": "set:config.activeId,scope,values.activeStepId; set:config.listHeaderLabel,i18n,processSection.sidebarTitle; set:config.detailContentLabel,i18n,processSection.detailedDescriptionLabel; set:config.detailItemsLabel,i18n,processSection.deliverablesLabel",
       "config": {
         "tabsSource": { "source": "var", "path": "processSection.steps" },

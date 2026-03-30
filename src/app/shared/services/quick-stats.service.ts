@@ -79,13 +79,4 @@ export class QuickStatsService {
     append(path: string, value: any): Observable<ApplyOpsResponse> {
         return this.applyOps({ appName: this.resolveAppId(), ops: [{ op: 'append', path, value }] });
     }
-
-    /** Specific helpers used by the app */
-    incPageView(): Observable<ApplyOpsResponse> {
-        return this.inc('metrics.pageViews', 1);
-    }
-
-    incCtaClick(): Observable<ApplyOpsResponse> {
-        return this.inc('metrics.ctaClicks', 1);
-    }
 }

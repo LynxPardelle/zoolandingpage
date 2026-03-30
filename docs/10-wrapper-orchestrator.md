@@ -147,7 +147,8 @@ Buttons (and other interactive components) can define `eventInstructions`, which
 - Each instruction is `action:param1,param2,...`
 - Supported actions (current):
   - `openWhatsApp`
-  - `trackCTAClick`
+  - `trackEvent`
+  - `trackEventWhen`
   - `navigationToSection`
 
 ### Dynamic event param binding

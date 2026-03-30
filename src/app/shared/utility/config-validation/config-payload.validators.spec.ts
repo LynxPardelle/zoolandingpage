@@ -912,7 +912,16 @@ describe('config-payload.validators', () => {
             categories: {
                 navigation: 'navigation',
             },
-            quickStatsCtaEvents: ['cta_click'],
+            quickStats: {
+                pageView: {
+                    event: 'page_view',
+                    path: 'metrics.pageViews',
+                    by: 1,
+                },
+                events: [
+                    { name: 'cta_click', path: 'metrics.ctaClicks', by: 1 },
+                ],
+            },
         };
         expect(isAnalyticsConfigPayload(valid)).toBeTrue();
     });
