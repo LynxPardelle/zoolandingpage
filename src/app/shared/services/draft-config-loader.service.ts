@@ -164,6 +164,11 @@ export class DraftConfigLoaderService {
         return payload && typeof payload === 'object' ? (payload as TComponentsPayload) : null;
     }
 
+    async loadDebugWorkspaceCombos(): Promise<TAngoraCombosPayload | null> {
+        const payload = await this.getJson<TAngoraCombosPayload>(`${ this.debugWorkspaceBase }/angora-combos.json`);
+        return isAngoraCombosPayload(payload) ? payload : null;
+    }
+
     async loadI18n(domain: string, pageId: string, lang: string): Promise<TI18nPayload | null> {
         const base = this.getDraftBase(domain, pageId);
         if (!base) {

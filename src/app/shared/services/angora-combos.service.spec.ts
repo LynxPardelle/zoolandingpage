@@ -3,23 +3,29 @@ import { PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { NgxAngoraService } from 'ngx-angora-css';
 import { AngoraCombosService } from './angora-combos.service';
+import { ConfigStoreService } from './config-store.service';
 
 describe('AngoraCombosService', () => {
     let pushCombos: jasmine.Spy;
+    let updateCombo: jasmine.Spy;
     let cssCreate: jasmine.Spy;
+    let store: ConfigStoreService;
 
     const configure = (platformId: 'browser' | 'server'): AngoraCombosService => {
         pushCombos = jasmine.createSpy('pushCombos');
+        updateCombo = jasmine.createSpy('updateCombo');
         cssCreate = jasmine.createSpy('cssCreate');
 
         TestBed.configureTestingModule({
             providers: [
                 AngoraCombosService,
+                ConfigStoreService,
                 { provide: PLATFORM_ID, useValue: platformId },
-                { provide: NgxAngoraService, useValue: { pushCombos, cssCreate } },
+                { provide: NgxAngoraService, useValue: { pushCombos, updateCombo, cssCreate } },
             ],
         });
 
+        store = TestBed.inject(ConfigStoreService);
         return TestBed.inject(AngoraCombosService);
     };
 
@@ -27,20 +33,8 @@ describe('AngoraCombosService', () => {
         TestBed.resetTestingModule();
     });
 
-    it('initializes the built-in base combos once', () => {
-        const service = configure('browser');
-
-        service.initializeBaseCombos();
-        service.initializeBaseCombos();
-
-        expect(pushCombos.calls.count()).toBe(1);
-        const pushed = pushCombos.calls.argsFor(0)[0] as Record<string, readonly string[]>;
-        expect(pushed['btnBase']).toBeDefined();
-        expect(pushed['accContainer']).toBeDefined();
-    });
-
-    it('pushes base and draft combos in the browser', () => {
-        const service = configure('browser');
+    it('pushes authored combos in the browser', () => {
+        configure('browser');
         const payload: TAngoraCombosPayload = {
             version: 1,
             pageId: 'default',
@@ -50,23 +44,18 @@ describe('AngoraCombosService', () => {
             },
         };
 
-        service.setBaseCombos({
-            base: ['ank-display-flex'],
-        });
-        service.applyPayload(payload);
+        store.setCombos(payload);
+        TestBed.flushEffects();
 
-        expect(pushCombos.calls.count()).toBe(2);
-        expect(pushCombos.calls.argsFor(0)).toEqual([{ base: ['ank-display-flex'] }]);
-        expect(pushCombos.calls.argsFor(1)).toEqual([{ base: ['ank-display-flex'], hero: ['ank-bg-primary'] }]);
+        expect(pushCombos.calls.count()).toBe(1);
+        expect(pushCombos.calls.argsFor(0)).toEqual([{ hero: ['ank-bg-primary'] }]);
+        expect(updateCombo).not.toHaveBeenCalled();
     });
 
     it('skips DOM-dependent combo pushes during SSR', () => {
-        const service = configure('server');
+        configure('server');
 
-        service.setBaseCombos({
-            base: ['ank-display-flex'],
-        });
-        service.applyPayload({
+        store.setCombos({
             version: 1,
             pageId: 'default',
             domain: 'zoolandingpage.com.mx',
@@ -74,33 +63,56 @@ describe('AngoraCombosService', () => {
                 hero: ['ank-bg-primary'],
             },
         });
+        TestBed.flushEffects();
 
         expect(pushCombos).not.toHaveBeenCalled();
+        expect(updateCombo).not.toHaveBeenCalled();
     });
 
-    it('does not push the same merged combos twice', () => {
-        const service = configure('browser');
+    it('does not inject fallback combos when payload is missing', () => {
+        configure('browser');
 
-        service.setBaseCombos({
-            base: ['ank-display-flex'],
-        });
-        service.applyPayload({
+        store.setCombos(null);
+        TestBed.flushEffects();
+
+        expect(pushCombos).not.toHaveBeenCalled();
+        expect(updateCombo).not.toHaveBeenCalled();
+    });
+
+    it('does not push the same payload twice', () => {
+        configure('browser');
+        const payload: TAngoraCombosPayload = {
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            combos: {
+                hero: ['ank-bg-primary'],
+            },
+        };
+
+        store.setCombos(payload);
+        TestBed.flushEffects();
+        store.setCombos(payload);
+        TestBed.flushEffects();
+
+        expect(pushCombos.calls.count()).toBe(1);
+        expect(updateCombo).not.toHaveBeenCalled();
+    });
+
+    it('clears combos removed by a later payload', () => {
+        configure('browser');
+
+        store.setCombos({
             version: 1,
             pageId: 'default',
             domain: 'zoolandingpage.com.mx',
             combos: {
                 base: ['ank-display-flex'],
+                hero: ['ank-bg-primary'],
             },
         });
-
-        expect(pushCombos.calls.count()).toBe(1);
-        expect(pushCombos.calls.argsFor(0)).toEqual([{ base: ['ank-display-flex'] }]);
-    });
-
-    it('waits for base combos before pushing a draft payload', () => {
-        const service = configure('browser');
-
-        service.applyPayload({
+        TestBed.flushEffects();
+        store.setCombos({
             version: 1,
             pageId: 'default',
             domain: 'zoolandingpage.com.mx',
@@ -108,16 +120,38 @@ describe('AngoraCombosService', () => {
                 hero: ['ank-bg-primary'],
             },
         });
+        TestBed.flushEffects();
 
-        expect(pushCombos).not.toHaveBeenCalled();
+        expect(pushCombos.calls.count()).toBe(2);
+        expect(pushCombos.calls.argsFor(0)).toEqual([{ base: ['ank-display-flex'], hero: ['ank-bg-primary'] }]);
+        expect(pushCombos.calls.argsFor(1)).toEqual([{ hero: ['ank-bg-primary'] }]);
+        expect(updateCombo).toHaveBeenCalledOnceWith('base', []);
+    });
 
-        service.setBaseCombos({
-            base: ['ank-display-flex'],
+    it('merges auxiliary combos without replacing draft combos', () => {
+        const service = configure('browser');
+
+        store.setCombos({
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            combos: {
+                hero: ['ank-bg-primary'],
+            },
+        });
+        TestBed.flushEffects();
+
+        service.setAuxiliaryCombos('debug-workspace', {
+            version: 1,
+            pageId: 'default',
+            domain: 'debug-workspace',
+            combos: {
+                debugBtnBase: ['ank-display-flex'],
+            },
         });
 
         expect(pushCombos.calls.count()).toBe(2);
-        expect(pushCombos.calls.argsFor(0)).toEqual([{ base: ['ank-display-flex'] }]);
-        expect(pushCombos.calls.argsFor(1)).toEqual([{ base: ['ank-display-flex'], hero: ['ank-bg-primary'] }]);
+        expect(pushCombos.calls.argsFor(1)).toEqual([{ hero: ['ank-bg-primary'], debugBtnBase: ['ank-display-flex'] }]);
     });
 
     it('keeps the earliest pending cssCreate request', () => {
@@ -135,13 +169,12 @@ describe('AngoraCombosService', () => {
         }
     });
 
-    it('reruns cssCreate after delayed combo registration completes', () => {
+    it('schedules cssCreate after payload updates', () => {
         jasmine.clock().install();
         try {
-            const service = configure('browser');
+            configure('browser');
 
-            service.initializeBaseCombos(1000);
-            service.applyPayload({
+            store.setCombos({
                 version: 1,
                 pageId: 'default',
                 domain: 'zoolandingpage.com.mx',
@@ -149,14 +182,14 @@ describe('AngoraCombosService', () => {
                     hero: ['ank-bg-primary'],
                 },
             });
-            service.scheduleCssCreate(0);
-
+            TestBed.flushEffects();
             jasmine.clock().tick(0);
             expect(cssCreate).toHaveBeenCalledTimes(1);
 
-            jasmine.clock().tick(1000);
+            store.setCombos(null);
+            TestBed.flushEffects();
             jasmine.clock().tick(0);
-            expect(pushCombos.calls.count()).toBe(2);
+            expect(updateCombo).toHaveBeenCalledOnceWith('hero', []);
             expect(cssCreate).toHaveBeenCalledTimes(2);
         } finally {
             jasmine.clock().uninstall();

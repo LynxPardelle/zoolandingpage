@@ -21,6 +21,10 @@ It is written to be **friendly for an AI assistant** generating new landing page
 - `components.json`: per-component layout and class composition.
 - `i18n`: copy, labels, and other translatable content.
 
+The runtime no longer injects hardcoded Zoolanding combo defaults. If a page needs combo-based appearance, author it in `angora-combos.json` and upload the same payload through the API.
+
+Missing `angora-combos.json` is allowed, but it means the page runs without authored combo bundles for that draft.
+
 Modal content and modal host behavior are separate concerns:
 
 - `components.json` owns the rendered modal tree and the `modalRefId` conditions that decide which modal body is shown.

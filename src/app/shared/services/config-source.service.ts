@@ -106,4 +106,10 @@ export class ConfigSourceService {
             ? this.drafts.loadDebugWorkspaceComponents()
             : this.api.getDebugWorkspaceComponents();
     }
+
+    loadDebugWorkspaceCombos(): Promise<TAngoraCombosPayload | null> {
+        return environment.drafts.enabled
+            ? this.drafts.loadDebugWorkspaceCombos()
+            : this.api.getDebugWorkspaceAngoraCombos();
+    }
 }

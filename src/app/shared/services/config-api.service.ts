@@ -75,4 +75,8 @@ export class ConfigApiService {
     getDebugWorkspaceComponents(): Promise<TComponentsPayload> {
         return this.getJson<TComponentsPayload>('debug-workspace/components', {});
     }
+
+    getDebugWorkspaceAngoraCombos(): Promise<TAngoraCombosPayload> {
+        return this.getJson<TAngoraCombosPayload>('debug-workspace/angora-combos', {});
+    }
 }

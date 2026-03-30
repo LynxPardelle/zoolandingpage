@@ -4,7 +4,11 @@ This repo does not assume a specific backend implementation, but the config syst
 
 This document describes a suggested payload shape that works well with `wrapper-orchestrator` and is easy for an AI assistant to generate.
 
-For the current runtime, treat `site-config.json`, `page-config.json`, `components.json`, `variables.json`, `i18n/*.json`, `seo.json`, `structured-data.json`, and `analytics-config.json` as separate payloads. Do not bundle debug-only UI into production page payloads unless the page explicitly owns that experience.
+For the current runtime, treat `site-config.json`, `page-config.json`, `components.json`, `variables.json`, `angora-combos.json`, `i18n/*.json`, `seo.json`, `structured-data.json`, and `analytics-config.json` as separate payloads. Do not bundle debug-only UI into production page payloads unless the page explicitly owns that experience.
+
+`angora-combos.json` is the runtime source of truth for reusable visual bundles. The client no longer recreates Zoolanding-specific combos from TypeScript fallback code.
+
+If an API response omits `angora-combos`, the page still loads, but it runs without authored combo bundles for that draft.
 
 ## Site config payload
 
@@ -107,6 +111,7 @@ Why a map?
   - `type` in allowed set
   - `valueInstructions` only uses allowlisted resolver IDs
   - no function values (JSON can’t represent them anyway)
+  - `angora-combos` present whenever the page depends on authored combo keys for appearance
   - required nested contracts such as `variables.theme`, `variables.i18n.defaultLanguage`, `variables.i18n.supportedLanguages`, `variables.ui.contact.whatsappPhone`, and `variables.ui.contact.whatsappMessageKey` when WhatsApp handlers are used
 
 ## Client loading strategy (future)

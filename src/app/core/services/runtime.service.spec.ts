@@ -2,6 +2,7 @@ import { AnalyticsService } from '@/app/shared/services/analytics.service';
 import { AngoraCombosService } from '@/app/shared/services/angora-combos.service';
 import { ConfigBootstrapService } from '@/app/shared/services/config-bootstrap.service';
 import { ConfigSourceService } from '@/app/shared/services/config-source.service';
+import { ConfigStoreService } from '@/app/shared/services/config-store.service';
 import { ConfigurationsOrchestratorService } from '@/app/shared/services/configurations-orchestrator';
 import { DomainResolverService } from '@/app/shared/services/domain-resolver.service';
 import { DraftRegistryService } from '@/app/shared/services/draft-registry.service';
@@ -15,10 +16,14 @@ describe('RuntimeService', () => {
     const setExternalComponentsFromPayload = jasmine.createSpy('setExternalComponentsFromPayload');
     const setAuxiliaryComponentsFromPayload = jasmine.createSpy('setAuxiliaryComponentsFromPayload');
     const setDraftExportContext = jasmine.createSpy('setDraftExportContext');
-    const applyPayload = jasmine.createSpy('applyPayload');
     const scheduleCssCreate = jasmine.createSpy('scheduleCssCreate');
+    const setAuxiliaryCombos = jasmine.createSpy('setAuxiliaryCombos');
+    const clearAuxiliaryCombos = jasmine.createSpy('clearAuxiliaryCombos');
+    const revealCssTimer = jasmine.createSpy('revealCssTimer');
     let loadSiteConfig: jasmine.Spy;
     let bootstrapLoad: jasmine.Spy;
+    let setCombos: jasmine.Spy;
+    let store: ConfigStoreService;
 
     beforeEach(() => {
         loadSiteConfig = jasmine.createSpy('loadSiteConfig').and.resolveTo({
@@ -31,37 +36,52 @@ describe('RuntimeService', () => {
             ],
         });
 
-        bootstrapLoad = jasmine.createSpy('load').and.callFake(async ({ domain, pageId, lang }: { domain?: string; pageId?: string; lang?: string }) => ({
-            domain: domain ?? 'pamelabetancourt.preview',
-            pageId: pageId ?? 'home',
-            structuredDataApplied: false,
-            pageConfig: {
+        bootstrapLoad = jasmine.createSpy('load').and.callFake(async ({ domain, pageId, lang }: { domain?: string; pageId?: string; lang?: string }) => {
+            const combos = lang ? {
                 version: 1,
                 domain: domain ?? 'pamelabetancourt.preview',
                 pageId: pageId ?? 'home',
-                rootIds: [`${ pageId ?? 'home' }-root`],
-                modalRootIds: [],
-            },
-            components: {
-                version: 1,
+                combos: {
+                    hero: ['ank-bg-primary'],
+                },
+            } : null;
+
+            store?.setCombos(combos);
+
+            return {
                 domain: domain ?? 'pamelabetancourt.preview',
                 pageId: pageId ?? 'home',
+                structuredDataApplied: false,
+                pageConfig: {
+                    version: 1,
+                    domain: domain ?? 'pamelabetancourt.preview',
+                    pageId: pageId ?? 'home',
+                    rootIds: [`${ pageId ?? 'home' }-root`],
+                    modalRootIds: [],
+                },
                 components: {
-                    [`${ pageId ?? 'home' }Root`]: {
-                        id: `${ pageId ?? 'home' }Root`,
-                        type: 'container',
-                        config: { components: [] },
+                    version: 1,
+                    domain: domain ?? 'pamelabetancourt.preview',
+                    pageId: pageId ?? 'home',
+                    components: {
+                        [`${ pageId ?? 'home' }Root`]: {
+                            id: `${ pageId ?? 'home' }Root`,
+                            type: 'container',
+                            config: { components: [] },
+                        },
                     },
                 },
-            },
-            combos: lang ? { version: 1, tokens: [] } : null,
-        }));
+                combos,
+            };
+        });
 
         setExternalComponentsFromPayload.calls.reset();
         setAuxiliaryComponentsFromPayload.calls.reset();
         setDraftExportContext.calls.reset();
-        applyPayload.calls.reset();
         scheduleCssCreate.calls.reset();
+        setAuxiliaryCombos.calls.reset();
+        clearAuxiliaryCombos.calls.reset();
+        revealCssTimer.calls.reset();
 
         TestBed.configureTestingModule({
             providers: [
@@ -79,6 +99,7 @@ describe('RuntimeService', () => {
                         loadSiteConfig,
                         loadDebugWorkspacePageConfig: jasmine.createSpy('loadDebugWorkspacePageConfig').and.resolveTo(null),
                         loadDebugWorkspaceComponents: jasmine.createSpy('loadDebugWorkspaceComponents').and.resolveTo(null),
+                        loadDebugWorkspaceCombos: jasmine.createSpy('loadDebugWorkspaceCombos').and.resolveTo(null),
                     },
                 },
                 {
@@ -104,10 +125,10 @@ describe('RuntimeService', () => {
                 {
                     provide: AngoraCombosService,
                     useValue: {
-                        applyPayload,
                         scheduleCssCreate,
-                        initializeBaseCombos: () => undefined,
-                        revealCssTimer: () => undefined,
+                        setAuxiliaryCombos,
+                        clearAuxiliaryCombos,
+                        revealCssTimer,
                         stopCssRuntime: () => undefined,
                     },
                 },
@@ -123,6 +144,9 @@ describe('RuntimeService', () => {
                 },
             ],
         });
+
+        store = TestBed.inject(ConfigStoreService);
+        setCombos = spyOn(store, 'setCombos').and.callThrough();
     });
 
     afterEach(() => {
@@ -141,6 +165,14 @@ describe('RuntimeService', () => {
             domain: 'pamelabetancourt.preview',
             pageId: 'home',
             lang: 'es',
+        });
+        expect(setCombos).toHaveBeenCalledWith({
+            version: 1,
+            domain: 'pamelabetancourt.preview',
+            pageId: 'home',
+            combos: {
+                hero: ['ank-bg-primary'],
+            },
         });
         expect(service.rootComponentsIds()).toEqual(['home-root']);
 
@@ -169,31 +201,44 @@ describe('RuntimeService', () => {
         let firstLoadPending = true;
 
         bootstrapLoad.and.callFake(({ domain, pageId, lang }: { domain?: string; pageId?: string; lang?: string }) => {
-            const createBootPayload = () => ({
-                domain: domain ?? 'pamelabetancourt.preview',
-                pageId: pageId ?? 'home',
-                structuredDataApplied: false,
-                pageConfig: {
+            const createBootPayload = () => {
+                const combos = lang ? {
                     version: 1,
                     domain: domain ?? 'pamelabetancourt.preview',
                     pageId: pageId ?? 'home',
-                    rootIds: [`${ pageId ?? 'home' }-root`],
-                    modalRootIds: [],
-                },
-                components: {
-                    version: 1,
+                    combos: {
+                        hero: ['ank-bg-primary'],
+                    },
+                } : null;
+
+                store?.setCombos(combos);
+
+                return {
                     domain: domain ?? 'pamelabetancourt.preview',
                     pageId: pageId ?? 'home',
+                    structuredDataApplied: false,
+                    pageConfig: {
+                        version: 1,
+                        domain: domain ?? 'pamelabetancourt.preview',
+                        pageId: pageId ?? 'home',
+                        rootIds: [`${ pageId ?? 'home' }-root`],
+                        modalRootIds: [],
+                    },
                     components: {
-                        [`${ pageId ?? 'home' }Root`]: {
-                            id: `${ pageId ?? 'home' }Root`,
-                            type: 'container',
-                            config: { components: [] },
+                        version: 1,
+                        domain: domain ?? 'pamelabetancourt.preview',
+                        pageId: pageId ?? 'home',
+                        components: {
+                            [`${ pageId ?? 'home' }Root`]: {
+                                id: `${ pageId ?? 'home' }Root`,
+                                type: 'container',
+                                config: { components: [] },
+                            },
                         },
                     },
-                },
-                combos: lang ? { version: 1, tokens: [] } : null,
-            });
+                    combos,
+                };
+            };
 
             if (firstLoadPending && pageId === 'home') {
                 firstLoadPending = false;
@@ -295,6 +340,14 @@ describe('RuntimeService', () => {
                 },
             },
         });
+        configSource.loadDebugWorkspaceCombos.and.resolveTo({
+            version: 1,
+            domain: 'debug-workspace',
+            pageId: 'default',
+            combos: {
+                debugBtnBase: ['ank-display-flex'],
+            },
+        });
 
         service.connect({
             host,
@@ -310,5 +363,13 @@ describe('RuntimeService', () => {
         expect(setAuxiliaryComponentsFromPayload).toHaveBeenCalledWith('debug-workspace', jasmine.objectContaining({
             components: jasmine.any(Object),
         }));
+        expect(setAuxiliaryCombos).toHaveBeenCalledWith('debug-workspace', {
+            version: 1,
+            domain: 'debug-workspace',
+            pageId: 'default',
+            combos: {
+                debugBtnBase: ['ank-display-flex'],
+            },
+        });
     });
 });

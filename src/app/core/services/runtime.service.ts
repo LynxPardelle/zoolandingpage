@@ -50,7 +50,6 @@ export class RuntimeService {
         this.showDebugWorkspaceResolver = options.showDebugWorkspace;
         this.debugWorkspaceEnabled = options.showDebugWorkspace();
         if (this.isBrowser) {
-            this.combosService.initializeBaseCombos(1000);
             this.bindCssMutationRefresh(options.host);
             this.bindNavigationRefresh();
 
@@ -107,6 +106,7 @@ export class RuntimeService {
             this.debugWorkspaceRootIds.set([]);
             this.debugWorkspaceModalRootIds.set([]);
             this.orchestrator.setAuxiliaryComponentsFromPayload('debug-workspace', null);
+            this.combosService.clearAuxiliaryCombos('debug-workspace');
             return;
         }
 
@@ -118,12 +118,14 @@ export class RuntimeService {
     }
 
     private async loadDebugWorkspacePayloads(): Promise<void> {
-        const [pageConfig, components] = await Promise.all([
+        const [pageConfig, components, combos] = await Promise.all([
             this.configSource.loadDebugWorkspacePageConfig(),
             this.configSource.loadDebugWorkspaceComponents(),
+            this.configSource.loadDebugWorkspaceCombos(),
         ]);
 
         this.orchestrator.setAuxiliaryComponentsFromPayload('debug-workspace', components);
+        this.combosService.setAuxiliaryCombos('debug-workspace', combos);
         this.debugWorkspaceRootIds.set(pageConfig?.rootIds ?? []);
         this.debugWorkspaceModalRootIds.set(pageConfig?.modalRootIds ?? []);
     }
@@ -176,7 +178,6 @@ export class RuntimeService {
         this.modalRootIds.set(modalRootIds);
         this.orchestrator.setDraftExportContext({ domain, pageId, rootIds, modalRootIds });
 
-        this.combosService.applyPayload(boot.combos);
         this.combosService.scheduleCssCreate();
         this.analytics.initializeRuntimeState();
         this.analytics.startPageEngagementTracking(this.configStore.analytics());
