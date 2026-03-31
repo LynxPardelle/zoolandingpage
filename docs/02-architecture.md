@@ -1,342 +1,256 @@
-# Project Architecture 🏗
+# Project Architecture
 
-This document outlines the technical architecture and structure of the Zoolandingpage project.
+This document explains how the Zoolanding platform is split across the Angular frontend, the config APIs, the public asset upload flow, and the analytics services.
 
-## 📁 Project Structure
+## Platform overview
 
-```text
-zoolandingpage/
-├── docs/                          # Documentation
-│   ├── README.md                  # Main project documentation
-│   ├── 01-getting-started.md      # Setup and installation guide
-│   ├── 02-architecture.md         # This file - architecture overview
-│   ├── 03-development-guide.md    # Development guidelines and standards
-│   ├── 04-ngx-angora-css.md      # NGX-Angora-CSS integration guide
-│   ├── 05-analytics-tracking.md   # Analytics and tracking implementation
-│   ├── 06-deployment.md           # Deployment strategies and configuration
-│   └── ngx-angora-css-usage-guide.md  # Comprehensive NGX-Angora-CSS reference
-├── plan/                          # Project planning and specifications
-│   ├── project.idea.md           # Enhanced project specification
-│   └── phase 1/                  # Phase-specific planning
-├── public/                        # Static assets
-├── src/
-│   ├── app/
-│   │   ├── core/                        # App shell, routing hosts, and core runtime services
-│   │   │   ├── components/layout/
-│   │   │   │   ├── app-shell/
-│   │   │   │   │   └── app-shell.component.ts
-│   │   │   │   └── debug-workspace/
-│   │   │   │       └── debug-workspace.component.ts
-│   │   │   └── services/
-│   │   │       └── runtime.service.ts
-│   │   ├── landing-page/                # Landing/page-specific presentational components
-│   │   ├── shared/
-│   │   │   ├── components/              # Generic renderable components and hosts
-│   │   │   │   ├── wrapper-orchestrator/
-│   │   │   │   ├── generic-modal/
-│   │   │   │   └── generic-toast/
-│   │   │   ├── services/                # Cross-cutting runtime services
-│   │   │   │   ├── config-bootstrap.service.ts
-│   │   │   │   ├── config-source.service.ts
-│   │   │   │   ├── config-store.service.ts
-│   │   │   │   ├── draft-runtime.service.ts
-│   │   │   │   ├── draft-registry.service.ts
-│   │   │   │   ├── seo-metadata.service.ts
-│   │   │   │   ├── analytics.service.ts
-│   │   │   │   └── angora-combos.service.ts
-│   │   │   ├── utility/                 # Config DSL handlers, validation, and event forwarding
-│   │   │   └── types/                   # Shared payload and runtime types
-│   │   └── environments/                # Environment flags for dev/prod runtime selection
-│   ├── assets/                          # Public assets and generated runtime files
-│   └── styles/                          # Global styles and SCSS architecture
-├── docker-compose.yml           # Multi-environment Docker configuration
-├── Dockerfile                   # Multi-stage Docker build
-├── Makefile                     # Build automation and development tools
-├── nginx.conf                   # Production web server configuration
-├── .env                         # Environment variables
-├── .example.env                 # Environment template
-└── tools/                       # Node-based local authoring and maintenance scripts
-```
+Zoolandingpage is a config-driven Angular application.
 
-### Related Workspace Repositories
+The same landing page can exist in three forms:
 
-- `../zoolanding-config-runtime-read`: runtime bundle Lambda for production reads.
-- `../zoolanding-config-authoring`: draft create, pull, update, publish, and lifecycle Lambda.
-- `../zoolanding-image-upload`: presigned public image upload Lambda.
+1. `Local draft files` in the repo under `public/assets/drafts/{domain}/...`.
+2. `Authoring draft state` stored by the config authoring API.
+3. `Published runtime state` returned by the runtime API for live traffic.
 
-## 🏗 Component Architecture
+The frontend renders the same internal component model in both local and production modes. What changes is the source of the payloads.
 
-### Runtime Hierarchy
+## Repository boundaries
+
+### Main frontend repo
+
+`zoolandingpage` owns:
+
+- Angular rendering and SSR shell.
+- Local draft preview and QA.
+- Runtime payload validation and store/bootstrap flow.
+- Frontend analytics and quick-stats integration.
+- The draft round-trip CLI in `tools/config-draft-sync.mjs`.
+
+### Related config platform repos
+
+- `zoolanding-config-authoring`: create, pull, update, and publish draft packages.
+- `zoolanding-config-runtime-read`: resolve `domain + path + lang` into one runtime bundle.
+- `zoolanding-image-upload`: issue presigned upload URLs for public assets.
+
+### Related analytics repos
+
+- `zoolanding-data-dropper-lambda`: store raw analytics events in S3.
+- `zoolanding-quick-stats-lambda`: update per-app counters and small stats documents.
+
+## Request flows
+
+### Local draft flow
 
 ```text
-AppShellComponent (Root Host)
-├── WrapperOrchestrator (main runtime rootIds)
-├── GenericToastHost
-├── GenericModalHost
-│   └── WrapperOrchestrator (modalRootIds)
-└── DebugWorkspaceComponent (development only)
-  └── WrapperOrchestrator (debug/dev-only components)
-
-WrapperOrchestrator
-├── reads external components from ConfigurationsOrchestratorService
-├── resolves valueInstructions / eventInstructions / conditions / loops
-└── renders generic component trees defined in payloads
+Browser URL
+  -> draftDomain + draftPageId
+  -> DraftRuntimeService
+  -> local files in public/assets/drafts/{domain}/...
+  -> ConfigBootstrapService
+  -> ConfigStoreService
+  -> RuntimeService
+  -> ConfigurationsOrchestratorService
+  -> WrapperOrchestrator
 ```
 
-### Standalone Components Strategy
-
-The project uses Angular standalone components for:
-
-- **Better Tree Shaking**: Only import what you need
-- **Simplified Module Structure**: Reduced boilerplate
-- **Improved Testing**: Easier to isolate and test
-- **Performance**: Lazy loading at component level
-
-- Components stay in `src/app/core/components`, while shell-specific runtime services live in `src/app/core/services`.
-- Generic `TGenericComponent` factory helpers live in `src/app/shared/utility/generic-component-builder.utility.ts`, while debug-workspace-specific panel builders stay beside the feature component.
-- Cross-cutting runtime services live under `src/app/shared/services` so draft/API loading, metadata, analytics, i18n, and DSL execution remain reusable.
-- Feature sections remain standalone, but the current production path is primarily config-driven rather than hard-wired by the shell.
-
-## 🔧 Service Architecture
-
-### Core Runtime Services
-
-| Service                             | Responsibility                                                                                                                                                                        |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ConfigSourceService`               | Selects the active payload source. Draft assets are used in development; API payloads are used when drafts are disabled.                                                              |
-| `ConfigBootstrapService`            | Loads payloads in sequence, configures i18n, applies structured data, validates versions, and fills `ConfigStoreService`.                                                             |
-| `ConfigStoreService`                | Signal-based store for loaded payloads, bootstrap stage, validation issues, and runtime readiness.                                                                                    |
-| `RuntimeService`                    | Lives in `src/app/core/services`, owns the shell render roots (`rootComponentsIds`, `modalRootIds`), and applies the loaded component payload to `ConfigurationsOrchestratorService`. |
-| `DraftRuntimeService`               | Resolves active draft context from URL/SSR request data, site-config routing, and explicit draft query params; it no longer falls back to environment-owned page identity defaults.   |
-| `DraftRegistryService`              | Lists available development drafts from `/api/debug/drafts`.                                                                                                                          |
-| `SeoMetadataService`                | Applies title, description, Open Graph, Twitter, canonical, and `<html lang>` metadata from payloads.                                                                                 |
-| `AnalyticsService`                  | Tracks events, handles consent, publishes debug streams, and manages page engagement observers.                                                                                       |
-| `AngoraCombosService`               | Registers base combo classes and applies payload-provided combo definitions.                                                                                                          |
-| `ConfigurationsOrchestratorService` | Stores the external component tree, exports draft payloads, and feeds `WrapperOrchestrator`.                                                                                          |
-
-### Runtime Bundle Boundary
-
-- The new production-read contract is a single `TRuntimeBundlePayload` returned by the config runtime Lambda.
-- The bundle contains `siteConfig`, `pageConfig`, merged `components`, optional `variables`, optional `angoraCombos`, optional `i18n`, and lifecycle metadata.
-- Angular keeps the existing internal bootstrap/store/orchestrator model, but production transport is expected to collapse multiple remote reads into one bundle.
-- Development still treats `public/assets/drafts/{domain}/...` as the local authoring source of truth.
-
-### Authoring Pipeline Boundary
-
-- The config platform now lives in three sibling repositories: `zoolanding-config-runtime-read`, `zoolanding-config-authoring`, and `zoolanding-image-upload`.
-- The config authoring Lambda works with `TAuthoringDraftPackage`, a file-oriented transport that intentionally mirrors the local draft folder structure.
-- The Node CLI in `tools/config-draft-sync.mjs` is the first IDE-friendly round-trip mechanism for packing, pulling, pushing, creating, and publishing draft packages.
-
-### Service Communication Pattern
+### Production runtime flow
 
 ```text
-AppShellComponent
-  -> RuntimeService.initialize()
-  -> ConfigBootstrapService.load()
-  -> ConfigSourceService (drafts or API)
-  -> ConfigStoreService / VariableStoreService / StructuredDataService
-  -> RuntimeService applies component payload to ConfigurationsOrchestratorService
-  -> WrapperOrchestrator renders rootIds and modalRootIds
-
-Development-only additions:
-  -> DraftRuntimeService resolves preview context and polls DraftRegistryService
-  -> DebugWorkspaceComponent renders draft/debug controls
+Live request
+  -> frontend app
+  -> runtime API request for one TRuntimeBundlePayload
+  -> ConfigBootstrapService adapts bundle to store/bootstrap model
+  -> RuntimeService applies roots and component registry
+  -> WrapperOrchestrator renders the page
 ```
 
-## 🎨 Styling Architecture
-
-### NGX-Angora-CSS Integration
-
-```typescript
-// Service integration pattern
-export class AppComponent implements AfterRender {
-  public theme: 'dark' | 'light' = 'light';
-  public lightTheme = {
-  'brand-primary': '#1a73e8',
-  'brand-secondary': '#34a853',
-  'brand-accent': '#fbbc04',
-  'brand-dark': '#202124'
-  };
-  public darkTheme = {
-  'brand-primary': '#e8731a',
-  'brand-secondary': '#5334a8',
-  'brand-accent': '#202124'
-  'brand-dark': '#fbbc04',
-  };
-  constructor(private _ank: NGXAngoraService) {}
-
-  ngAfterRender(): void {
-    // Client-side only styling
-    this.initializeAngora();
-  }
-
-  private initializeAngora(): void {
-    // Custom brand colors
-    this._ank.pushColors(lightTheme);
-
-    // Reusable style combinations
-    this._ank.pushCombos({
-      'heroSection': [
-        'ank-minHeight-100vh',
-        'ank-display-flex',
-        'ank-alignItems-center',
-        'ank-justifyContent-center'
-      ]
-    });
-
-    // Generate CSS
-    this._ank.cssCreate();
-  }
-
-  public changeTheme(theme: 'dark' | 'light'): void {
-    this.theme = theme;
-    this._ank.pushColors(theme === 'light' ? this.lightTheme : this.darkTheme):
-  }
-}
-```
-
-## 📊 Data Flow Architecture
-
-### Config Data Flow
+### Authoring flow
 
 ```text
-Environment Flag
-  -> ConfigSourceService chooses draft assets or API
-  -> ConfigBootstrapService loads site-config/page-config/components/variables/i18n and derives seo/structuredData/analytics from site/page payloads
-  -> ConfigStoreService captures validated payloads
-  -> RuntimeService applies roots + external component payload
-  -> WrapperOrchestrator renders the configured page
+Local draft files
+  -> tools/config-draft-sync.mjs
+  -> config authoring API
+  -> draft stored in authoring platform
+  -> publish action
+  -> runtime bundle becomes available to live domains
 ```
 
-### Analytics Data Flow
+### Public asset flow
 
 ```text
-User Interaction
-  -> Component or DSL event handler
-  -> AppShellComponent.handleAnalyticsEvent()
-  -> AnalyticsService.track(...)
-  -> optional consent workflow / buffered event queue / server send
-  -> debug stream available to DebugWorkspaceComponent
+Author requests presign
+  -> image-upload API
+  -> presigned PUT URL + final publicUrl
+  -> browser or tool uploads file to S3
+  -> draft JSON references returned publicUrl
 ```
 
-## 🔄 Application Lifecycle
+## Angular runtime layers
 
-### Initialization Sequence
+### Source selection
 
-1. **Bootstrap**: Angular starts the standalone shell with SSR-safe providers.
-2. **Draft Context**: `DraftRuntimeService` resolves `draftDomain` and `draftPageId` when drafts are enabled.
-3. **Config Load**: `RuntimeService` triggers `ConfigBootstrapService` to load the current page payload set.
-4. **State Fill**: `ConfigStoreService`, `VariableStoreService`, and i18n caches are populated.
-5. **Render Roots**: `RuntimeService` applies root IDs and external components to the orchestrator.
-6. **Styling and Tracking**: Angora CSS regenerates, metadata is applied, and page engagement observers start.
+- `ConfigSourceService`: decides whether the app reads local drafts or API-backed config.
+- `DraftRuntimeService`: resolves active draft identity in local mode.
 
-### Runtime Operations
+### Loading and validation
 
-- **Route Changes**: `AppShellComponent` tracks `page_view` on `NavigationEnd`.
-- **Language Changes**: `SeoMetadataService` reapplies metadata from the active SEO payload.
-- **Draft Refreshes**: development draft list refreshes through `DraftRuntimeService` and `DraftRegistryService`.
-- **Payload-driven Rendering**: `WrapperOrchestrator` re-evaluates value/event/condition DSL instructions against the active stores.
-- **Styling Updates**: NGX-Angora regenerates classes after render and after combo updates.
+- `ConfigBootstrapService`: loads payloads, validates structure, applies i18n and SEO metadata, and fills the store.
+- `ConfigStoreService`: holds the active payloads and bootstrap state.
 
-### Draft Identity Rules
+### Rendering
 
-- The runtime no longer uses environment defaults to decide which domain or page to load.
-- On localhost, draft mode expects either explicit `draftDomain` and `draftPageId` query parameters or a resolvable site-config path.
-- Modal host behavior is draft-owned through `variables.ui.modals`, while modal content still comes from `components.json`.
+- `RuntimeService`: connects loaded payloads to the shell and the orchestrator.
+- `ConfigurationsOrchestratorService`: stores the active component tree keyed by `id`.
+- `WrapperOrchestrator`: renders the configured root IDs and resolves DSL-driven values, events, conditions, and loops.
 
-## 🔧 Build Architecture
+### Cross-cutting frontend services
 
-### Multi-Stage Docker Build
+- `SeoMetadataService`: applies title, description, Open Graph, Twitter, canonical, and locale metadata.
+- `AnalyticsService`: sends analytics events, manages consent, and integrates with backend analytics services.
+- `QuickStatsService`: talks to the quick-stats API when enabled by runtime config.
+- `AngoraCombosService`: applies authored combo bundles from payloads.
 
-```dockerfile
-# Development stage
-FROM node:18-alpine AS development
-# Hot-reload development environment
+## Config ownership model
 
-# Build stage
-FROM node:18-alpine AS build
-# Production build with optimizations
+The runtime now assumes clear ownership boundaries between payload files.
 
-# SSR Production stage
-FROM node:18-alpine AS production
-# Server-side rendering with Express
+### Domain-owned files
 
-# Static Production stage
-FROM nginx:alpine AS production-static
-# Static files with Nginx
+- `site-config.json`
+- domain-root `components.json`
+- domain-root `variables.json`
+- domain-root `angora-combos.json`
+- domain-root `i18n/{lang}.json`
+
+These files define shared site metadata, routing, runtime defaults, shared components, shared variables, shared combos, and shared translations.
+
+### Page-owned files
+
+- `{pageId}/page-config.json`
+- `{pageId}/components.json`
+- `{pageId}/variables.json`
+- `{pageId}/angora-combos.json`
+- `{pageId}/i18n/{lang}.json`
+
+These files define page roots, page SEO and analytics, page-specific component overrides, and page-specific variable/combo/i18n overrides.
+
+### Merge rules
+
+- Shared components load first; page components win on `id` collision.
+- Shared variables, combos, and i18n dictionaries load first; page values win on collision.
+- `site-config.json` defines domain-level routing and defaults; `page-config.json` defines render roots and page-specific metadata.
+
+## Draft filesystem layout
+
+```text
+public/assets/drafts/
+  {domain}/
+    site-config.json
+    components.json
+    variables.json
+    angora-combos.json
+    i18n/{lang}.json
+    {pageId}/
+      page-config.json
+      components.json
+      variables.json
+      angora-combos.json
+      i18n/{lang}.json
+  _debug/
+    debug-workspace/
+      page-config.json
+      components.json
 ```
 
-### Build Optimization Strategies
+The local filesystem layout is still the authoring source of truth for developer and AI-assisted editing.
 
-- **Tree Shaking**: Remove unused code
-- **Code Splitting**: Lazy load route components
-- **Bundle Analysis**: Monitor bundle size
-- **Image Optimization**: WebP/AVIF format support
-- **Caching**: Aggressive caching for static assets
+## Transport contracts
 
-## 🔒 Security Architecture
+### Authoring contract
 
-### Client-Side Security
+The authoring API works with `TAuthoringDraftPackage`, a file-oriented payload that mirrors the draft filesystem layout.
 
-- **Content Security Policy**: Prevent XSS attacks
-- **Input Sanitization**: Clean user inputs
-- **HTTPS Enforcement**: Secure data transmission
-- **Error Handling**: Prevent information leakage
+That contract is used for:
 
-### Container Security
+- create
+- pull
+- push/update
+- publish
 
-- **Non-root User**: Container runs as non-privileged user
-- **Minimal Image**: Alpine Linux base for smaller attack surface
-- **Security Scanning**: Automated vulnerability checking
-- **Network Isolation**: Container network segregation
+### Runtime contract
 
-## 📈 Performance Architecture
+The runtime API returns `TRuntimeBundlePayload`, one effective bundle for the requested domain, route, and language.
 
-### Optimization Strategies
+That bundle contains:
 
-- **Server-Side Rendering**: Faster initial page load
-- **Progressive Web App**: Offline functionality
-- **Lazy Loading**: Load components on demand
-- **Image Lazy Loading**: Load images as needed
-- **Caching Strategy**: Multi-level caching approach
+- `siteConfig`
+- `pageConfig`
+- merged `components`
+- optional merged `variables`
+- optional merged `angoraCombos`
+- optional merged `i18n`
+- lifecycle metadata and version information
 
-### Monitoring Points
+## Analytics and stats integration
 
-- **Core Web Vitals**: LCP, FID, CLS tracking
-- **Bundle Size**: Monitor JavaScript payload
-- **Network Requests**: Track API call performance
-- **Memory Usage**: Monitor client-side memory
-- **Error Rates**: Track and alert on errors
+The frontend talks to two separate backend services for behavioral data:
 
-## 🔮 Scalability Considerations
+### Data Dropper
 
-### Horizontal Scaling
+- Endpoint path: `/analytics`
+- Purpose: store raw analytics events as submitted.
+- Storage pattern: `s3://zoolanding-data-raw/{appName}/YYYY/MM/DD/{timestamp}-{id}.json`
 
-- **Containerized Deployment**: Easy scaling with orchestration
-- **Stateless Design**: No server-side session storage
-- **CDN Integration**: Global content distribution
-- **Microservices Ready**: Modular service architecture
+### Quick Stats
 
-### Vertical Scaling
+- Endpoint path: `/quick-stats`
+- Purpose: apply compact stat operations such as `inc`, `set`, `merge`, `append`, and `delete`.
+- Storage pattern: `s3://zoolanding-quick-stats/{appName}/stats.json`
 
-- **Memory Optimization**: Efficient bundle sizes
-- **CPU Optimization**: Minimal computational overhead
-- **Storage Optimization**: Compressed assets
-- **Network Optimization**: Minimal request overhead
+Those services are related to runtime analytics behavior but are not part of the config authoring or runtime bundle transport.
 
-This architecture provides a solid foundation for building a high-performance, scalable, and maintainable landing page application that showcases modern web development practices.
+## Public assets and uploaded files
 
-## Application Shell and Routing
+Uploaded landing-page media is not stored in the config payload bucket.
 
-The standalone shell is intentionally thin. `AppShellComponent` owns top-level hosts, route analytics wiring, Angora regeneration, and forwarding child analytics events. It does not own draft selection UI, metadata rules, or payload-to-root mapping anymore.
+Instead:
 
-Current ownership boundaries:
+- config JSON lives in `zoolanding-config-payloads`
+- public media lives in `zoolandingpage-public-files`
+- the public URL base is expected to be `https://assets.zoolandingpage.com.mx`
 
-- Shell host: `src/app/core/components/layout/app-shell/app-shell.component.ts`
-- Shell runtime store: `src/app/core/services/runtime.service.ts`
-- Dev-only draft/debug workspace: `src/app/core/components/layout/debug-workspace/debug-workspace.component.ts`
-- Draft preview context: `src/app/shared/services/draft-runtime.service.ts`
-- Metadata application: `src/app/shared/services/seo-metadata.service.ts`
-- Payload orchestration: `src/app/shared/services/config-bootstrap.service.ts`
+The image upload API returns a presigned upload URL and a final `publicUrl` that should be written into the relevant draft payload field.
 
-Routing remains configured with scroll restoration and anchor scrolling. The shell keeps the accessibility contract intact: skip link, `main#main-content`, header/banner, and primary navigation landmarks remain covered by focused tests.
+## Common debugging boundary
+
+When a contributor says “the site is wrong,” determine which layer is wrong first:
+
+1. local draft files
+2. authoring draft state
+3. published runtime bundle
+4. deployed frontend app or cache
+
+Most operational confusion disappears once that boundary is clear.
+
+## Key files in this repo
+
+- `src/app/shared/services/config-source.service.ts`
+- `src/app/shared/services/config-bootstrap.service.ts`
+- `src/app/shared/services/config-store.service.ts`
+- `src/app/shared/services/draft-runtime.service.ts`
+- `src/app/shared/services/seo-metadata.service.ts`
+- `src/app/shared/services/analytics.service.ts`
+- `src/app/shared/services/quick-stats.service.ts`
+- `src/app/shared/services/configurations-orchestrator.ts`
+- `src/app/shared/components/wrapper-orchestrator/wrapper-orchestrator.component.ts`
+- `src/app/shared/types/config-payloads.types.ts`
+- `tools/config-draft-sync.mjs`
+
+## Related docs
+
+- [03-development-guide.md](03-development-guide.md)
+- [06-deployment.md](06-deployment.md)
+- [11-draft-lifecycle.md](11-draft-lifecycle.md)
+- [12-public-assets-and-file-uploads.md](12-public-assets-and-file-uploads.md)
+- [api-driven-config/README.md](api-driven-config/README.md)
+- [10-wrapper-orchestrator.md](10-wrapper-orchestrator.md)

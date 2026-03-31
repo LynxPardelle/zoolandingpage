@@ -6,14 +6,14 @@ This guide explains how Zoolandingpage posts raw analytics/events to the "Zoolan
 - Purpose: accept arbitrary analytics JSON, validate basics, and persist as-is for later processing
 - Storage pattern: `s3://<bucket>/<appName>/YYYY/MM/DD/<timestampMs>-<shortReqId>.json`
 
-The API URL will be provided via environment configuration when ready. In the Angular app, always use `environment.apiUrl` for the endpoint base.
+Use `environment.apiUrl` as the frontend base URL. In the current platform, the stable custom domain is `https://api.zoolandingpage.com.mx`, and the analytics path is `/analytics`.
 
 ## Endpoint
 
 - Base URL: `environment.apiUrl`
 - Method: `POST`
 - Headers: `Content-Type: application/json`
-- Path: Determined by deployment (may be base or include a subpath). Centralize the path in a service so it’s easy to change.
+- Path: `/analytics`
 
 ## Request body
 
@@ -157,7 +157,7 @@ this.dataDropper.drop({ appName: runtimeConfig.appIdentifier(), timestamp: Date.
 
 ## Environment configuration
 
-- Set `apiUrl` in `environment.ts` (and prod env files) to the Lambda’s API Gateway URL when available.
+- Set `apiUrl` in `environment.ts` and production environment files to the stable API base URL.
 - Keep subpaths centralized in the service so callers don’t need to change.
 
 Example (development):
@@ -165,7 +165,7 @@ Example (development):
 ```ts
 export const environment = {
   // ...
-  apiUrl: 'https://<api-id>.execute-api.<region>.amazonaws.com',
+  apiUrl: 'https://api.zoolandingpage.com.mx',
 };
 ```
 
@@ -184,3 +184,4 @@ export const environment = {
 ---
 
 For full Lambda implementation details, see the backend repository `zoolanding-data-dropper-lambda`.
+For platform context, also see `02-architecture.md` and `05-analytics-tracking.md` in this repo.

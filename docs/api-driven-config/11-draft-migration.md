@@ -1,80 +1,95 @@
-# Draft Migration Guide (Step 5)
+# Draft Filesystem Reference
 
-This guide explains how to migrate the current TypeScript component registry into draft JSON files.
+This document explains the current local draft structure and how it maps to the authoring package used by the backend.
 
-## Goal
+The original migration from TypeScript-owned component constants to JSON drafts is complete enough that new work should treat the draft filesystem as the normal authoring model, not as a temporary export target.
 
-Replace TS-defined component constants with JSON drafts stored in:
-
-```text
-public/assets/drafts/{domain}/components.json
-public/assets/drafts/{domain}/{pageId}/components.json
-```
-
-Use the domain-root file for shared site components and the page file for route-specific components.
-
-Debug tooling now follows the same rule, but through a dedicated shared payload set:
+## Draft root layout
 
 ```text
-public/assets/drafts/_debug/debug-workspace/components.json
-public/assets/drafts/_debug/debug-workspace/page-config.json
+public/assets/drafts/
+  {domain}/
+    site-config.json
+    components.json
+    variables.json
+    angora-combos.json
+    i18n/{lang}.json
+    {pageId}/
+      page-config.json
+      components.json
+      variables.json
+      angora-combos.json
+      i18n/{lang}.json
 ```
 
-## How to Export
+## Shared versus page-owned files
 
-1. Run the app in development.
-1. Prefer the debug overlay action that writes drafts to disk and choose:
+### Shared domain files
 
-```text
-public/assets/drafts
-```
+Use the domain root for values reused across multiple routes in the same site:
 
-1. The exporter now writes page-owned payloads directly into:
+- `site-config.json`
+- domain-root `components.json`
+- domain-root `variables.json`
+- domain-root `angora-combos.json`
+- domain-root `i18n/{lang}.json`
 
-```text
-public/assets/drafts/{domain}/{pageId}/page-config.json
-public/assets/drafts/{domain}/{pageId}/components.json
-```
+### Page-owned files
 
-and, when shared entries exist, it also writes:
+Use the page root for route-specific data:
 
-```text
-public/assets/drafts/{domain}/components.json
-```
+- `{pageId}/page-config.json`
+- `{pageId}/components.json`
+- `{pageId}/variables.json`
+- `{pageId}/angora-combos.json`
+- `{pageId}/i18n/{lang}.json`
 
-1. If the browser cannot write to disk, use the download fallback. Downloaded filenames flatten folder separators as `--`, for example:
+## Practical minimum for a new site
 
-```text
-zoolandingpage.com.mx--default--components.json
-zoolandingpage.com.mx--components.json
-```
+In practice, start with these files:
 
-1. Keep using the domain-root file for shared site components and the page file for route-specific components.
+- `{domain}/site-config.json`
+- `{domain}/{pageId}/page-config.json`
+- `{domain}/{pageId}/components.json`
 
-## Notes
+Then add these as needed:
 
-- The exported payload is sanitized: inline functions are removed.
-- `components.json.components` is now an array of component objects; do not convert it back to a map keyed by id.
-- Use `valueInstructions` and `condition` DSLs to replace any runtime logic.
-- Move authored combo bundles into `angora-combos.json`. The runtime no longer carries hardcoded Zoolanding combo defaults in TypeScript.
-- Move always-required site metadata into `site-config.json.site`: `appIdentity`, `theme`, and `i18n`.
-- For multi-page domains, move repeated optional values into `site-config.json.defaults` and keep each page `variables.json` as a route-specific delta only.
-- For debug workspace controls, use `host` conditions and `host` loop sources instead of inline builder callbacks.
-- Draft-owned modal host behavior can live in `variables.ui.modals` when it is page-specific, but repeated modal host config should move to `site-config.json.defaults.ui.modals`.
-- Shared modal defaults should now prefer `site-config.json.defaults.ui.modals._default`; per-page `variables.ui.modals` should override only what differs.
-- Shared component drafts should use top-level `pageId: "allPages"` when authored at the domain root.
-- Navigation and dropdown entries should be authored in draft-native form. Prefer `value` plus `label` locale maps or `labelKey` / `ariaLabelKey`. Do not rely on legacy compatibility fields such as `labelEs`, `labelEn`, or `sectionId`.
-- If a page uses combo names in component classes, export and upload `angora-combos.json` together with the rest of the draft payloads.
-- Validate the payload against:
+- shared `components.json` when the site has common header/footer/shared UI
+- `variables.json` when the draft uses structured data instead of hardcoded content in components
+- `angora-combos.json` when classes refer to authored combo keys
+- `i18n/{lang}.json` when the page uses translated copy
 
-```text
-docs/api-driven-config/schemas/components.schema.json
-```
+## Merge behavior
 
-## Next Steps
+- shared components are loaded first; page components win on `id` collision
+- shared variables, combos, and i18n dictionaries are loaded first; page values win on collision
+- `site-config.json` does not get replaced by `page-config.json`; they have separate responsibilities
 
-- Move remaining page roots (rootIds + modalRootIds) into `page-config.json`.
-- Keep debug workspace roots and modal roots inside the dedicated `_debug/debug-workspace/page-config.json` payload instead of injecting them from runtime constants.
-- Keep locale availability under `site-config.json.site.i18n.defaultLanguage` and `site-config.json.site.i18n.supportedLanguages`; if a page needs route-specific locale behavior, override it explicitly in `variables.json`.
-- Add SEO, structured data, and analytics configs per domain.
-- Update the config in the API when ready for production.
+## Export and import alignment
+
+The local CLI and the backend authoring API now assume the same file-oriented model.
+
+That means the filesystem layout above maps directly to `TAuthoringDraftPackage.files[]` entries. Each JSON file keeps its own path and content instead of being flattened into one custom transport bundle.
+
+## Legacy export note
+
+If you still use the debug/export tooling in the browser, treat it as a convenience path only. The normal long-term workflow is:
+
+1. author local files in `public/assets/drafts`
+2. preview locally
+3. push with `tools/config-draft-sync.mjs`
+4. publish when ready
+
+## Validation reminders
+
+- keep component IDs unique after shared and page files are merged
+- keep page roots in `page-config.json`, not in runtime code
+- keep binary assets out of config files
+- keep site-wide routing and runtime defaults in `site-config.json`
+- keep page-specific SEO and analytics in `page-config.json`
+
+## Related docs
+
+- [../11-draft-lifecycle.md](../11-draft-lifecycle.md)
+- [08-upload-to-api.md](08-upload-to-api.md)
+- [12-validation.md](12-validation.md)

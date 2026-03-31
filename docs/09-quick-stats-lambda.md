@@ -6,14 +6,14 @@ This guide explains how Zoolandingpage integrates with the "Zoolanding Quick Sta
 - Purpose: increment counters, append events, set flags, merge partial objects, and delete paths using a compact operations list
 - Storage: `s3://<bucket>/<appName>/stats.json`
 
-The API URL will be provided via environment configuration when ready. In the Angular app, always use `environment.apiUrl` for the endpoint base instead of hardcoding URLs.
+Use `environment.apiUrl` as the frontend base URL. In the current platform, the stable custom domain is `https://api.zoolandingpage.com.mx`, and the quick-stats path is `/quick-stats`.
 
 ## Endpoint
 
 - Base URL: `environment.apiUrl`
 - Method: `POST`
 - Headers: `Content-Type: application/json`
-- Path: Determined by deployment (could be base or with a path segment). Keep it configurable. In examples below, we use the base `environment.apiUrl` directly; append any specific path once infra confirms it.
+- Path: `/quick-stats`
 
 ## Request body
 
@@ -190,7 +190,7 @@ statsService.applyOps({ appName: 'zoolandingpage', ops: [] }).subscribe({
 
 ## Environment configuration
 
-- Set `apiUrl` in `environment.ts` (and production environments) to the Lambda's API Gateway URL when it is available.
+- Set `apiUrl` in `environment.ts` and production environments to the stable API base URL.
 - Keep any path segments centralized in the `StatsService` so we can change them without touching callers.
 - Prefer runtime-owned app identifiers from draft payloads (`variables.appIdentity.identifier`) instead of hardcoded project strings in callers.
 
@@ -199,7 +199,7 @@ Example (development):
 ```ts
 export const environment = {
   // ...
-  apiUrl: 'https://<api-id>.execute-api.<region>.amazonaws.com',
+  apiUrl: 'https://api.zoolandingpage.com.mx',
   // apiVersion: 'v1' // optional, if infra uses versioned paths
 };
 ```
@@ -218,6 +218,10 @@ For safe testing from the app without writing to S3, set `dryRun: true` in the r
 
 - 400 "Body is not valid JSON": Make sure you're sending a JSON string body with the fields described above.
 - 400 "Missing or invalid appName/ops": Validate types (`appName` string, `ops` array).
+- Empty read requests: an empty `ops` array is valid and returns the current `stats` document without modifying it.
+
+For platform context, also see `02-architecture.md` and `05-analytics-tracking.md` in this repo.
+
 - ETag mismatch: Remove `ifMatchEtag` or retry after fetching the latest ETag.
 - CORS errors: Confirm API Gateway CORS settings allow your origin and the `POST` method.
 

@@ -1,951 +1,165 @@
-# Development Guide 💻
+# Development Guide
 
-This guide covers development standards, coding practices, and workflows for the Zoolandingpage project.
+This guide covers the current day-to-day development workflow for Zoolandingpage.
 
-## Draft Testing Workflow
+## Development modes
 
-When `environment.drafts.enabled` is `true`, the app can load configuration payloads from:
+The frontend can work in two different config modes:
 
-```text
-public/assets/drafts/{domain}/{pageId}/...
-```
+1. `Local draft mode`
+   The app loads JSON from `public/assets/drafts/{domain}/...`.
+2. `Runtime API mode`
+   The app loads one `TRuntimeBundlePayload` from the runtime API.
 
-### URL Overrides for Local Testing
+For most feature work, local draft mode is the safest place to start.
 
-In development, you can switch drafts without editing source code by using query parameters:
+## Recommended local workflow
 
-- `draftDomain`: selects the draft domain folder under `public/assets/drafts/`
-- `draftPageId`: selects the page ID folder inside that domain
+1. Start the app locally.
+2. Open the target draft with explicit `draftDomain` and `draftPageId` query parameters.
+3. Edit the local draft files under `public/assets/drafts`.
+4. Refresh and verify the page locally.
+5. If needed, pull from or push to the authoring API with `tools/config-draft-sync.mjs`.
+6. Publish only after the authoring draft is correct.
 
-Example URLs after starting the app locally with `npm start`:
+## Local draft preview
 
-```text
-http://localhost:4200/?draftDomain=music.lynxpardelle.com&draftPageId=default
-http://localhost:4200/?draftDomain=zoolandingpage.com.mx&draftPageId=default
-http://localhost:4200/
-```
+The runtime resolves draft identity from the browser URL.
 
-Behavior:
+Supported query parameters:
 
-- The first URL opens the music draft.
-- The second URL returns to the default Zoolanding draft.
-- The third URL uses the environment fallback behavior.
+- `draftDomain`
+- `draftPageId`
 
-### Debug Draft Badge
-
-When debug mode is enabled, the app shows a small badge with:
-
-- the active draft domain
-- the active page ID
-- a dropdown with all detected draft domain/page combinations
-- a manual refresh button for immediate re-scan during QA
-
-This badge is intended to make draft QA faster and reversible during local development.
-
-The draft list is populated from the runtime endpoint `GET /api/debug/drafts`, which scans the draft folders. New draft folders should appear in the dropdown automatically after the next refresh cycle, or immediately after using the refresh button.
-
-### Manual QA Checklist for a Draft
-
-1. Start the app locally with `npm start`.
-2. Open the draft URL you want to test.
-3. Confirm the active draft badge matches the expected domain and page ID.
-4. Open browser devtools and verify draft payload requests resolve under `assets/drafts/{domain}/{pageId}/`.
-5. Check section rendering: Hero, Benefits, Process, Offers, Stats, Social Proof, FAQ, Final CTA, Footer.
-6. Check CTA behavior and outbound links.
-7. Check language switching and translated content availability.
-8. Check footer legal actions and modal behavior.
-9. Toggle the active theme and verify both the light and dark palettes match the current draft branding.
-10. Refresh the page and confirm the saved user theme still wins over the draft default mode.
-11. Check analytics-related interactions in the console/network when applicable.
-12. Hard refresh after switching between drafts to avoid stale state.
-
-### Recommended Quick-Switch Test Sequence
-
-1. Open the music draft URL.
-2. Review all sections and interactions.
-3. Click the badge link for the Zoo Draft.
-4. Confirm the app returns to the original Zoolanding draft cleanly.
-5. Repeat after a hard refresh.
-
-## 📏 Code Style & Standards
-
-### MANDATORY Development Rules
-
-1. **ABSOLUTE REQUIREMENT: Use HTML Template Files Only**
-
-```typescript
-// ✅ REQUIRED - Always use templateUrl
-@Component({
-  selector: 'app-hero-section',
-  templateUrl: './hero-section.component.html', // MANDATORY
-  changeDetection: ChangeDetectionStrategy.OnPush
-})
-export class HeroSectionComponent {
-  // Component logic
-}
-
-// ❌ FORBIDDEN - Inline templates are not allowed
-@Component({
-  selector: 'app-hero-section',
-  template: `<div>...</div>`, // NEVER USE
-})
-```
-
-2. **ABSOLUTE REQUIREMENT: Complete Type Safety**
-
-```typescript
-// ✅ REQUIRED - Type everything, including function variables
-function processUserData(userData: UserData): ProcessedUser {
-  const isValid: boolean = validateUser(userData);
-  const errors: string[] = [];
-  const processedAt: Date = new Date();
-
-  try {
-    const result: ProcessedUser = transformUser(userData);
-    return result;
-  } catch (error: unknown) {
-    const errorMessage: string = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Processing failed:', errorMessage);
-    throw new Error(`User processing failed: ${errorMessage}`);
-  }
-}
-
-// ✅ REQUIRED - Type all method parameters and variables
-private validateFormData(formData: FormData): ValidationResult {
-  const errors: Record<string, string> = {};
-  const isEmailValid: boolean = /\S+@\S+\.\S+/.test(formData.email);
-  const isNameValid: boolean = formData.name.length > 2;
-
-  if (!isEmailValid) {
-    errors.email = 'Invalid email format';
-  }
-
-  if (!isNameValid) {
-    errors.name = 'Name must be at least 3 characters';
-  }
-
-  const hasErrors: boolean = Object.keys(errors).length > 0;
-
-  return {
-    isValid: !hasErrors,
-    errors,
-    timestamp: Date.now()
-  };
-}
-```
-
-3. **ABSOLUTE REQUIREMENT: Environment Variables Integration**
-
-```typescript
-// ✅ REQUIRED - Use environment for all configuration
-import { environment } from '../../../environments/environment';
-
-@Injectable({
-  providedIn: 'root',
-})
-export class ApiService {
-  private readonly baseUrl: string = environment.apiUrl;
-  private readonly apiVersion: string = environment.apiVersion;
-
-  constructor(private http: HttpClient) {}
-
-  private getStorageKey(key: string): string {
-    return environment.localStorage.userPreferencesKey + '_' + key;
-  }
-}
-
-// ✅ REQUIRED - Environment configuration structure
-export const environment = {
-  production: boolean,
-  apiUrl: string,
-  localStorage: {
-    themeKey: string,
-    languageKey: string,
-    userPreferencesKey: string,
-  },
-  features: {
-    analytics: boolean,
-    debugMode: boolean,
-  },
-} as const;
-```
-
-4. **ABSOLUTE REQUIREMENT: Correct ngx-angora-css Methods**
-
-```typescript
-// ✅ REQUIRED - Use pushColors for adding colors
-this._ank.pushColors({
-  primary: '#ffffff',
-  secondary: '#f8fafc',
-  accent: '#2563eb',
-});
-```
-
-### TypeScript Guidelines
-
-1. **MANDATORY: Use Types Over Interfaces/Enums**
-
-```typescript
-// ✅ REQUIRED - Type definitions only
-type UserRole = 'admin' | 'user' | 'guest';
-type ApiResponse<T> = {
-  data: T;
-  status: number;
-  message: string;
-};
-
-type ComponentProps = {
-  title: string;
-  subtitle?: string;
-  variant: 'primary' | 'secondary';
-};
-
-type FormState = {
-  isValid: boolean;
-  errors: Record<string, string>;
-  isSubmitting: boolean;
-};
-
-// ❌ FORBIDDEN - Interfaces and enums are not allowed
-interface UserRole {
-  /* NEVER USE */
-}
-enum UserRole /* NEVER USE */ {}
-interface ComponentProps {
-  /* NEVER USE */
-}
-```
-
-2. **Strict Mode Configuration**
-
-```typescript
-// tsconfig.json
-{
-  "compilerOptions": {
-    "strict": true,
-    "noImplicitReturns": true,
-    "noImplicitOverride": true,
-    "noUncheckedIndexedAccess": true
-  }
-}
-```
-
-3. **Error Handling with Try-Catch and Async/Await**
-
-```typescript
-// ✅ Comprehensive error handling
-async function fetchUserData(userId: string): Promise<User | null> {
-  try {
-    const response = await this.http.get<ApiResponse<User>>(`/api/users/${userId}`);
-    return response.data;
-  } catch (error) {
-    console.error('Failed to fetch user data:', error);
-    this.errorService.handleError(error);
-    return null;
-  }
-}
-
-// ✅ Component error handling
-@Component({...})
-export class UserComponent {
-  async loadUser(id: string): Promise<void> {
-    try {
-      this.loading = true;
-      this.user = await this.userService.fetchUserData(id);
-    } catch (error) {
-      this.errorMessage = 'Failed to load user data';
-      console.error('Component error:', error);
-    } finally {
-      this.loading = false;
-    }
-  }
-}
-```
-
-### Component Architecture Standards
-
-1. **MANDATORY: Standalone Components with ngx-angora-css Integration**
-
-```typescript
-@Component({
-  selector: 'app-hero-section',
-  imports: [CommonModule, GenericButtonComponent],
-  template: `
-    <section class="ank-minHeight-100vh ank-display-flex ank-alignItems-center">
-      <div class="ank-textAlign-center">
-        <h1 class="ank-fontSize-48px ank-fontWeight-bold">{{ title }}</h1>
-        <app-generic-button [text]="buttonText" [type]="'primary'" (click)="onActionClick()"> </app-generic-button>
-      </div>
-    </section>
-  `,
-  styles: [
-    `
-      /* Minimal component-specific styles (only animations and/or something that ngx-angora-css can not do) - Most styling via ngx-angora-css */
-    `,
-  ],
-})
-export class HeroSectionComponent implements AfterRender {
-  title = 'Welcome to Zoolandingpage';
-  buttonText = 'Get Started';
-
-  constructor(private _ank: NGXAngoraService) {}
-
-  ngAfterRender(): void {
-    this.setupThemeColors();
-    this._ank.cssCreate();
-  }
-
-  private setupThemeColors(): void {
-    // MANDATORY: Use pushColors for dynamic theme changes
-    this._ank.pushColors({
-      heroBg: '#ffffff',
-      heroText: '#333333',
-      heroAccent: '#1a73e8',
-    });
-  }
-
-  onActionClick(): void {
-    // Handle action
-  }
-}
-```
-
-1. **MANDATORY: Atomic File Structure (Keep Files Small)**
-
-Each component should be split into minimal, focused files:
+Examples:
 
 ```text
-hero-section/
-├── hero-section.component.ts (max 50-80 lines)
-├── hero-section.types.ts (type definitions only)
-├── hero-section.styles.ts (only animations and/or something that ngx-angora-css can not do)
-└── index.ts (barrel export)
+http://127.0.0.1:4200/?draftDomain=zoolandingpage.com.mx&draftPageId=default
+http://127.0.0.1:4200/?draftDomain=test.zoolandingpage.com.mx&draftPageId=default
 ```
 
-```typescript
-// hero-section.types.ts - REQUIRED: Separate type definitions
-export type HeroSectionProps = {
-  title: string;
-  subtitle?: string;
-  buttonText: string;
-  variant: 'default' | 'minimal' | 'animated';
-};
+If you omit `draftDomain` on localhost, you can end up exercising fallback behavior instead of the draft you intended to test.
 
-export type HeroTheme = {
-  background: string;
-  textColor: string;
-  accentColor: string;
-};
+## Draft file ownership
 
-// hero-section.styles.ts - REQUIRED: Separate style configurations
-export const HERO_COLORS: Record<string, string> = {
-  'hero-bg-light': '#ffffff',
-  'hero-bg-dark': '#1a1a1a',
-  'hero-text-light': '#333333',
-  'hero-text-dark': '#ffffff',
-  'hero-accent': '#1a73e8',
-};
+Use the domain root for shared defaults and the page root for route-specific data.
 
-export const HERO_COMBOS: Record<string, string[]> = {
-  heroContainer: [
-    'ank-minHeight-100vh',
-    'ank-display-flex',
-    'ank-alignItems-center',
-    'ank-justifyContent-center',
-    'ank-p-20px',
-  ],
-  heroContent: ['ank-textAlign-center', 'ank-maxWidth-800px'],
-};
+```text
+public/assets/drafts/
+  {domain}/
+    site-config.json
+    components.json
+    variables.json
+    angora-combos.json
+    i18n/{lang}.json
+    {pageId}/
+      page-config.json
+      components.json
+      variables.json
+      angora-combos.json
+      i18n/{lang}.json
 ```
 
-### Service-Based Architecture
+Practical ownership rules:
 
-1. **Injectable Services with Proper Scoping**
+- `site-config.json`: domain routing, site metadata, runtime settings, shared defaults.
+- Domain-root `components.json`: shared components used across pages.
+- `page-config.json`: page roots plus page-level SEO, structured data, and analytics.
+- Page-root `components.json`: page-specific component overrides.
+- `variables.json`, `angora-combos.json`, `i18n/*.json`: shared at domain root, overridden at page root.
 
-```typescript
-@Injectable({
-  providedIn: 'root', // Singleton across app
-})
-export class AnalyticsService {
-  private events$ = new Subject<AnalyticsEvent>();
+## Canonical draft CLI
 
-  trackEvent(event: AnalyticsEvent): void {
-    try {
-      this.events$.next(event);
-      this.sendToServer(event);
-    } catch (error) {
-      console.error('Analytics tracking failed:', error);
-    }
-  }
-
-  private async sendToServer(event: AnalyticsEvent): Promise<void> {
-    // Implementation
-  }
-}
-```
-
-2. **Feature-Specific Services**
-
-```typescript
-@Injectable({
-  providedIn: 'root',
-})
-export class TutorialService {
-  private progress = new BehaviorSubject<TutorialProgress>({ step: 0, completed: false });
-
-  readonly progress$ = this.progress.asObservable();
-
-  nextStep(): void {
-    const current = this.progress.value;
-    this.progress.next({ ...current, step: current.step + 1 });
-  }
-
-  markCompleted(): void {
-    this.progress.next({ ...this.progress.value, completed: true });
-  }
-}
-```
-
-## 🔄 Development Workflow
-
-### Git Workflow & Commit Convention
-
-1. **Branch Naming Convention**
+The canonical CLI is:
 
 ```bash
-# Feature branches
-feature/hero-section-animations
-feature/websocket-analytics
-feature/spanish-translation
-
-# Bug fixes
-fix/header-responsive-layout
-fix/analytics-data-validation
-
-# Documentation
-docs/api-reference-update
-docs/deployment-guide
-
-# Refactoring
-refactor/service-architecture
-refactor/component-optimization
+node tools/config-draft-sync.mjs help
 ```
 
-2. **Conventional Commits**
+Supported commands:
+
+- `pack`
+- `unpack`
+- `pull`
+- `push`
+- `create`
+- `publish`
+
+The `package.json` scripts wrap the same commands, but the direct `node` form is the clearest way to supply explicit endpoint and domain arguments.
+
+## Common authoring operations
+
+### Pull a draft from the authoring API
 
 ```bash
-# Format: type(scope): description
-feat(hero): add interactive animations with sketch-style effects
-fix(analytics): resolve websocket connection timeout issues
-docs(readme): update installation instructions for Docker
-style(header): improve responsive navigation layout
-refactor(services): optimize analytics service performance
-test(components): add unit tests for hero section
-chore(deps): update Angular to version 20.1.0
-
-# Breaking changes
-feat(api)!: redesign analytics service interface
+node tools/config-draft-sync.mjs pull --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx
 ```
 
-3. **Pull Request Process**
+### Push the current local draft back to the authoring API
 
-```markdown
-## Pull Request Template
-
-### Description
-
-Brief description of changes made
-
-### Type of Change
-
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Breaking change
-- [ ] Documentation update
-
-### Testing
-
-- [ ] Unit tests pass
-- [ ] Integration tests pass
-- [ ] Manual testing completed
-- [ ] Responsive design tested
-
-### Checklist
-
-- [ ] Code follows project style guidelines
-- [ ] Self-review completed
-- [ ] Comments added for complex logic
-- [ ] Documentation updated
-- [ ] NGX-Angora-CSS client-side only usage verified
+```bash
+node tools/config-draft-sync.mjs push --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --updated-by="Your Name"
 ```
 
-### Development Environment Setup
+### Create a new site in the authoring API from an existing local draft tree
 
-1. **Pre-commit Hooks with Husky**
-
-```json
-// package.json
-{
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged",
-      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
-    }
-  },
-  "lint-staged": {
-    "*.{ts,js}": ["eslint --fix", "prettier --write"],
-    "*.{html,scss,css}": ["prettier --write"]
-  }
-}
+```bash
+node tools/config-draft-sync.mjs create --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=newsite.example --publish-on-create=false
 ```
 
-2. **ESLint Configuration**
+### Publish the current authoring draft
 
-```json
-// .eslintrc.json
-{
-  "extends": ["@angular-eslint/recommended", "@typescript-eslint/recommended", "prettier"],
-  "rules": {
-    "@typescript-eslint/no-explicit-any": "error",
-    "@typescript-eslint/prefer-readonly": "error",
-    "@angular-eslint/component-class-suffix": "error",
-    "@angular-eslint/directive-class-suffix": "error",
-    "prefer-const": "error",
-    "no-var": "error"
-  }
-}
+```bash
+node tools/config-draft-sync.mjs publish --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --updated-by="Your Name"
 ```
 
-3. **Prettier Configuration**
+## When to use each command
 
-```json
-// .prettierrc
-{
-  "singleQuote": true,
-  "trailingComma": "es5",
-  "tabWidth": 2,
-  "semi": true,
-  "printWidth": 100,
-  "bracketSpacing": true,
-  "arrowParens": "avoid"
-}
+- `pull`: replace your local draft tree with the current draft or published state from the API.
+- `pack`: build a local `TAuthoringDraftPackage` JSON file from the draft tree.
+- `push`: update the authoring draft stored by the API.
+- `create`: create a new site in the authoring system from a local draft tree.
+- `publish`: promote the current authoring draft to published runtime state.
+
+## Local QA checklist
+
+1. Confirm the URL points at the intended `draftDomain` and `draftPageId`.
+2. Confirm shared and page-specific sections render correctly.
+3. Confirm language switching and localized SEO behave as expected.
+4. Confirm CTA actions and modal actions still work.
+5. Confirm the page looks correct in light and dark themes.
+6. Confirm uploaded public assets load through their final public URLs.
+
+## Troubleshooting state mismatches
+
+Use this order when a change is “missing”:
+
+1. Check the local file under `public/assets/drafts`.
+2. Check whether the authoring draft was pushed.
+3. Check whether that draft was published.
+4. Check the runtime bundle response for the live domain.
+5. Check whether the deployed frontend build or cache is still serving stale assets.
+
+This distinction matters because a successful publish does not guarantee that the live app tier is already serving the newest frontend assets or cache state.
+
+## Working with public assets
+
+Public media is uploaded separately from config payloads. Do not try to store binary files inside draft packages.
+
+Use the image upload presign endpoint:
+
+```text
+POST https://api.zoolandingpage.com.mx/image-upload/presign
 ```
 
-## 🧪 Testing Strategy
+Then upload the file with the returned `uploadUrl` and save the returned `publicUrl` into the draft payload field that needs it.
 
-### Unit Testing with Jasmine & Karma
+For the full flow, read [11-draft-lifecycle.md](11-draft-lifecycle.md) and [12-public-assets-and-file-uploads.md](12-public-assets-and-file-uploads.md).
 
-1. **Component Testing**
+## Related references
 
-```typescript
-// hero-section.component.spec.ts
-describe('HeroSectionComponent', () => {
-  let component: HeroSectionComponent;
-  let fixture: ComponentFixture<HeroSectionComponent>;
-  let analyticsService: jasmine.SpyObj<AnalyticsService>;
-
-  beforeEach(async () => {
-    const analyticsSpy = jasmine.createSpyObj('AnalyticsService', ['trackEvent']);
-
-    await TestBed.configureTestingModule({
-      imports: [HeroSectionComponent],
-      providers: [{ provide: AnalyticsService, useValue: analyticsSpy }],
-    }).compileComponents();
-
-    fixture = TestBed.createComponent(HeroSectionComponent);
-    component = fixture.componentInstance;
-    analyticsService = TestBed.inject(AnalyticsService) as jasmine.SpyObj<AnalyticsService>;
-  });
-
-  it('should create', () => {
-    expect(component).toBeTruthy();
-  });
-
-  it('should track analytics event on action click', () => {
-    component.onActionClick();
-    expect(analyticsService.trackEvent).toHaveBeenCalledWith(jasmine.objectContaining({ type: 'hero_cta_click' }));
-  });
-});
-```
-
-2. **Service Testing**
-
-```typescript
-// analytics.service.spec.ts
-describe('AnalyticsService', () => {
-  let service: AnalyticsService;
-  let httpMock: HttpTestingController;
-
-  beforeEach(() => {
-    TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule],
-      providers: [AnalyticsService],
-    });
-    service = TestBed.inject(AnalyticsService);
-    httpMock = TestBed.inject(HttpTestingController);
-  });
-
-  afterEach(() => {
-    httpMock.verify();
-  });
-
-  it('should track events successfully', () => {
-    const mockEvent: AnalyticsEvent = {
-      type: 'page_view',
-      timestamp: Date.now(),
-      data: { page: '/home' },
-    };
-
-    service.trackEvent(mockEvent);
-
-    const req = httpMock.expectOne('/api/analytics');
-    expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual(mockEvent);
-    req.flush({ success: true });
-  });
-});
-```
-
-### Integration Testing
-
-1. **E2E Testing Strategy**
-
-```typescript
-// cypress/integration/landing-page.spec.ts
-describe('Landing Page Flow', () => {
-  it('should complete tutorial and submit lead form', () => {
-    cy.visit('/');
-
-    // Test hero section
-    cy.get('[data-cy=hero-title]').should('be.visible');
-    cy.get('[data-cy=hero-cta]').click();
-
-    // Test tutorial interaction
-    cy.get('[data-cy=tutorial-section]').scrollIntoView();
-    cy.get('[data-cy=tutorial-step-1]').click();
-    cy.get('[data-cy=tutorial-progress]').should('contain', '1/4');
-
-    // Test form submission
-    cy.get('[data-cy=lead-form]').scrollIntoView();
-    cy.get('[data-cy=email-input]').type('test@example.com');
-    cy.get('[data-cy=message-input]').type('Test message');
-    cy.get('[data-cy=submit-button]').click();
-
-    // Verify success
-    cy.get('[data-cy=success-message]').should('be.visible');
-  });
-});
-```
-
-## 🎨 NGX-Angora-CSS Development Guidelines
-
-1. **REQUIRED: Dynamic Theme Support**
-
-All themes must be implemented using the `pushColors` method for dynamic theme switching:
-
-```typescript
-@Component({
-  selector: 'app-themed-component',
-  template: `
-    <div class="ank-bg-primary ank-color-text ank-p-20px">
-      <h2 class="ank-color-accent">Themed Content</h2>
-      <button class="ank-bg-accent ank-color-primary ank-p-12px_24px ank-borderRadius-8px" (click)="toggleTheme()">
-        Toggle Theme
-      </button>
-    </div>
-  `,
-})
-export class ThemedComponent implements AfterRender {
-  private currentTheme = signal<'light' | 'dark'>('light');
-
-  constructor(private _ank: NGXAngoraService) {}
-
-  ngAfterRender(): void {
-    this.applyTheme();
-  }
-
-  toggleTheme(): void {
-    const newTheme = this.currentTheme() === 'light' ? 'dark' : 'light';
-    this.currentTheme.set(newTheme);
-    this.applyTheme();
-  }
-
-  // MANDATORY: Use pushColors for all theme changes
-  private applyTheme(): void {
-    const theme = this.currentTheme();
-
-    if (theme === 'light') {
-      this._ank.pushColors({
-        primary: '#ffffff',
-        text: '#333333',
-        accent: '#1a73e8',
-        secondary: '#f5f5f5',
-      });
-    } else {
-      this._ank.pushColors({
-        primary: '#1a1a1a',
-        text: '#ffffff',
-        accent: '#4285f4',
-        secondary: '#2d2d2d',
-      });
-    }
-
-    this._ank.cssCreate();
-  }
-}
-```
-
-1. **MANDATORY: Global Theme Service**
-
-Create a centralized theme service using pushColors:
-
-```typescript
-@Injectable({
-  providedIn: 'root',
-})
-export class ThemeService {
-  private currentTheme = signal<'light' | 'dark' | 'auto'>('light');
-  private prefersDark = signal(false);
-
-  readonly theme$ = computed(() => {
-    const theme = this.currentTheme();
-    if (theme === 'auto') {
-      return this.prefersDark() ? 'dark' : 'light';
-    }
-    return theme;
-  });
-
-  constructor(private _ank: NGXAngoraService) {
-    this.detectSystemPreference();
-
-    // Apply theme whenever it changes
-    effect(() => {
-      this.applyGlobalTheme(this.theme$());
-    });
-  }
-
-  setTheme(theme: 'light' | 'dark' | 'auto'): void {
-    this.currentTheme.set(theme);
-    localStorage.setItem('theme-preference', theme);
-  }
-
-  // REQUIRED: All theme changes must use pushColors
-  private applyGlobalTheme(theme: 'light' | 'dark'): void {
-    const colors = theme === 'light' ? LIGHT_THEME_COLORS : DARK_THEME_COLORS;
-
-    // Push all theme colors at once for better performance
-    this._ank.pushColors(colors);
-    this._ank.cssCreate();
-  }
-
-  private detectSystemPreference(): void {
-    if (typeof window !== 'undefined') {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      this.prefersDark.set(mediaQuery.matches);
-
-      mediaQuery.addEventListener('change', e => {
-        this.prefersDark.set(e.matches);
-      });
-    }
-  }
-}
-
-// REQUIRED: Define theme color constants
-const LIGHT_THEME_COLORS: Record<string, string> = {
-  bg: '#ffffff',
-  text: '#333333',
-  accent: '#1a73e8',
-  secondary: '#f5f5f5',
-  border: '#e0e0e0',
-  shadow: 'rgba(0, 0, 0, 0.1)',
-};
-
-const DARK_THEME_COLORS: Record<string, string> = {
-  bg: '#1a1a1a',
-  text: '#ffffff',
-  accent: '#4285f4',
-  secondary: '#2d2d2d',
-  border: '#404040',
-  shadow: 'rgba(255, 255, 255, 0.1)',
-};
-```
-
-### Client-Side Only Usage
-
-1. **Correct Implementation**
-
-```typescript
-@Component({
-  selector: 'app-interactive-section',
-  template: `...`,
-})
-export class InteractiveSectionComponent implements AfterRender {
-  constructor(private _ank: NGXAngoraService) {}
-
-  ngAfterRender(): void {
-    // ✅ Client-side only
-    this.initializeStyles();
-  }
-
-  private initializeStyles(): void {
-    this._ank.pushCombos({
-      interactiveCard: ['ank-transformHover-scaleSD1_05ED', 'ank-transitionDuration-300ms', 'ank-cursor-pointer'],
-    });
-
-    this._ank.cssCreate();
-  }
-}
-```
-
-2. **SSR Compatibility**
-
-```typescript
-@Component({...})
-export class SSRCompatibleComponent implements AfterRender {
-  private isClient = false;
-
-  constructor(
-    private _ank: NGXAngoraService,
-    @Inject(PLATFORM_ID) private platformId: Object
-  ) {
-    this.isClient = isPlatformBrowser(this.platformId);
-  }
-
-  ngAfterRender(): void {
-    if (this.isClient) {
-      this._ank.cssCreate();
-    }
-  }
-}
-```
-
-### Performance Best Practices
-
-1. **Efficient Style Management**
-
-```typescript
-// ✅ Batch style operations
-ngAfterRender(): void {
-  this._ank.pushColors({
-    'primary': '#1a73e8',
-    'secondary': '#34a853',
-    'accent': '#fbbc04'
-  });
-
-  this._ank.pushCombos({
-    'card': ['ank-p-20px', 'ank-borderRadius-8px'],
-    'button': ['ank-p-10px_20px', 'ank-cursor-pointer']
-  });
-
-  // Single CSS generation call
-  this._ank.cssCreate();
-}
-
-// ❌ Avoid multiple CSS generation calls
-ngAfterRender(): void {
-  this._ank.pushColors({ 'primary': '#1a73e8' });
-  this._ank.cssCreate(); // Don't do this
-
-  this._ank.pushCombos({ 'card': ['ank-p-20px'] });
-  this._ank.cssCreate(); // Don't do this either
-}
-```
-
-## 📊 Performance Guidelines
-
-### Component Optimization
-
-1. **OnPush Change Detection**
-
-```typescript
-@Component({
-  selector: 'app-optimized-component',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `...`,
-})
-export class OptimizedComponent {
-  @Input() data: any;
-
-  constructor(private cdr: ChangeDetectorRef) {}
-
-  updateData(newData: any): void {
-    this.data = newData;
-    this.cdr.markForCheck(); // Manual change detection
-  }
-}
-```
-
-2. **Lazy Loading**
-
-```typescript
-// Route configuration with lazy loading
-const routes: Routes = [
-  {
-    path: 'tutorial',
-    loadComponent: () => import('./tutorial/tutorial.component').then(m => m.TutorialComponent),
-  },
-];
-```
-
-### Bundle Optimization
-
-1. **Tree Shaking**
-
-```typescript
-// ✅ Import only what you need
-import { map, filter } from 'rxjs/operators';
-
-// ❌ Avoid importing entire libraries
-import * as rxjs from 'rxjs';
-```
-
-2. **Dynamic Imports**
-
-```typescript
-// Dynamic feature loading
-async loadAdvancedFeature(): Promise<void> {
-  const { AdvancedFeatureComponent } = await import('./advanced-feature.component');
-  // Use component
-}
-```
-
-## 🔒 Security Guidelines
-
-### Input Sanitization
-
-```typescript
-import { DomSanitizer } from '@angular/platform-browser';
-
-@Component({...})
-export class SafeComponent {
-  constructor(private sanitizer: DomSanitizer) {}
-
-  sanitizeHtml(html: string): SafeHtml {
-    return this.sanitizer.sanitize(SecurityContext.HTML, html) || '';
-  }
-}
-```
-
-### XSS Prevention
-
-```typescript
-// ✅ Safe property binding
-<div [textContent]="userInput"></div>
-
-// ❌ Dangerous innerHTML
-<div [innerHTML]="userInput"></div>
-```
-
-This development guide ensures consistent, maintainable, and high-quality code across the Zoolandingpage project. Follow these guidelines to maintain code quality and project standards.
-
-## App Shell & Routing Notes
-
-- Root shell is in `src/app/core/components/layout/app-shell/app-shell.component.ts` and acts as a thin runtime host for the wrapper orchestrators, modal host, and toast host.
-- Shell-specific runtime state lives in `src/app/core/services/runtime.service.ts`.
-- Draft preview resolution and draft-registry polling live in `src/app/shared/services/draft-runtime.service.ts`.
-- Dev-only draft/debug UI lives in `src/app/core/components/layout/debug-workspace/debug-workspace.component.ts`.
-- Reusable `TGenericComponent` factory helpers live in `src/app/shared/utility/generic-component-builder.utility.ts`, and debug-workspace-specific panel builders stay in the same feature folder as the component.
-- Runtime metadata application lives in `src/app/shared/services/seo-metadata.service.ts`.
-- Router is provided in `app.config.ts` with `withInMemoryScrolling` to restore positions and handle anchor navigation.
-- Accessibility: skip-to-content link exists; tests cover focusing `main#main-content`.
-- Analytics: `page_view` tracked on `NavigationEnd`; see `AppShellComponent` constructor.
+- [02-architecture.md](02-architecture.md)
+- [06-deployment.md](06-deployment.md)
+- [11-draft-lifecycle.md](11-draft-lifecycle.md)
+- [12-public-assets-and-file-uploads.md](12-public-assets-and-file-uploads.md)
+- [api-driven-config/README.md](api-driven-config/README.md)

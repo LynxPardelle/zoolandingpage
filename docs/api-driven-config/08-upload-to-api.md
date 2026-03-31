@@ -1,315 +1,218 @@
-# Suggested API Payload (No Endpoints Assumed)
+# Authoring Package and Upload Reference
 
-This repo does not assume a specific backend implementation, but the config system becomes most useful when a backend can store and return page configs.
+This document describes the current authoring API shape and the local CLI workflow used to move drafts between the repo and the backend.
 
-This document describes a suggested payload shape that works well with `wrapper-orchestrator` and is easy for an AI assistant to generate.
+## What this document covers
 
-For the current runtime, treat `site-config.json`, `page-config.json`, `components.json`, `variables.json`, `angora-combos.json`, and `i18n/*.json` as the authored payload set. `page-config.json` now owns page-level `seo`, `structuredData`, and `analytics` sections. Do not bundle debug-only UI into production page payloads unless the page explicitly owns that experience.
+Use this document when you need to:
 
-The first implementation slice now uses two transport contracts in code:
+- create a new site from a local draft tree
+- pull the current draft or published state into the repo
+- push local changes back to the authoring API
+- publish the current authoring draft
 
-- `TRuntimeBundlePayload`: one effective production-read payload returned by the runtime Lambda.
-- `TAuthoringDraftPackage`: a file-oriented authoring payload used for create, pull, update, and publish flows.
+For the higher-level workflow, read [../11-draft-lifecycle.md](../11-draft-lifecycle.md) first.
 
-The deployed endpoint implementations now live in sibling repositories in the shared workspace:
+## Current endpoints
 
-- `../zoolanding-config-runtime-read`
-- `../zoolanding-config-authoring`
-- `../zoolanding-image-upload`
+Stable custom domain:
 
-`angora-combos.json` is the runtime source of truth for reusable visual bundles. The client no longer recreates Zoolanding-specific combos from TypeScript fallback code.
+```text
+https://api.zoolandingpage.com.mx/config-authoring
+https://api.zoolandingpage.com.mx/runtime-bundle
+https://api.zoolandingpage.com.mx/image-upload/presign
+```
 
-If an API response omits `angora-combos`, the page still loads, but it runs without authored combo bundles for that draft.
+The runtime and authoring APIs serve different purposes:
 
-`variables.json`, `angora-combos.json`, and `i18n/{lang}.json` can now exist both at the domain root and at the page root. Domain-level files act as shared defaults for every page in the domain, and page-level files override them.
+- `config-authoring`: create, read, update, and publish drafts
+- `runtime-bundle`: serve one effective published bundle to live pages
+- `image-upload/presign`: issue presigned upload URLs for public assets
 
-## Site config payload
+## Current local CLI
 
-`site-config.json` owns domain routing, shared runtime settings, and the always-required site metadata used by every page in that domain.
+The canonical CLI is:
+
+```bash
+node tools/config-draft-sync.mjs help
+```
+
+Supported commands today:
+
+- `pack`
+- `unpack`
+- `pull`
+- `push`
+- `create`
+- `publish`
+
+The direct `node tools/config-draft-sync.mjs ...` form is recommended for explicit endpoint arguments.
+
+## Current authoring actions
+
+The authoring API currently supports these actions through the CLI or direct POST requests:
+
+- `getSite`
+- `createSite`
+- `upsertDraft`
+- `publishDraft`
+
+### `getSite`
+
+Read either the current authoring draft or the published state for one domain.
+
+Example request body:
+
+```json
+{
+  "action": "getSite",
+  "domain": "zoolandingpage.com.mx",
+  "stage": "draft"
+}
+```
+
+### `createSite`
+
+Create a new site in the authoring system from a local `TAuthoringDraftPackage` file set.
+
+### `upsertDraft`
+
+Replace the current authoring draft for a domain with the local file set you send.
+
+### `publishDraft`
+
+Promote the current authoring draft to the published runtime state.
+
+## The two important transport contracts
+
+### `TAuthoringDraftPackage`
+
+This is the authoring-side package used by `pull`, `push`, and `create`.
 
 ```json
 {
   "version": 1,
-  "domain": "example.com",
-  "aliases": ["test.example.com", "preview.example.net"],
-  "defaultPageId": "default",
-  "routes": [{ "path": "/", "pageId": "default", "label": "Home" }],
-  "lifecycle": {
-    "status": "active",
-    "fallbackMode": "system"
-  },
-  "site": {
-    "appIdentity": {
-      "identifier": "examplecom",
-      "name": "Example",
-      "version": "1.0.0",
-      "description": "Example landing site"
-    },
-    "seo": {
-      "siteName": "Example",
-      "title": "Example",
-      "description": "Shared SEO defaults for the Example site.",
-      "canonicalOrigin": "https://example.com",
-      "defaultImage": "https://example.com/assets/og-default.png",
-      "openGraph": {
-        "type": "website",
-        "site_name": "Example"
-      },
-      "twitter": {
-        "card": "summary_large_image"
-      }
-    },
-    "theme": {
-      "defaultMode": "light",
-      "palettes": {
-        "light": {
-          "bgColor": "#ffffff",
-          "textColor": "#111111",
-          "titleColor": "#222222",
-          "linkColor": "#333333",
-          "accentColor": "#444444",
-          "secondaryBgColor": "#f5f5f5",
-          "secondaryTextColor": "#555555",
-          "secondaryTitleColor": "#666666",
-          "secondaryLinkColor": "#777777",
-          "secondaryAccentColor": "#888888"
-        },
-        "dark": {
-          "bgColor": "#111111",
-          "textColor": "#f5f5f5",
-          "titleColor": "#fefefe",
-          "linkColor": "#dddddd",
-          "accentColor": "#cccccc",
-          "secondaryBgColor": "#1b1b1b",
-          "secondaryTextColor": "#bbbbbb",
-          "secondaryTitleColor": "#aaaaaa",
-          "secondaryLinkColor": "#999999",
-          "secondaryAccentColor": "#888888"
-        }
-      }
-    },
-    "i18n": {
-      "defaultLanguage": "en",
-      "supportedLanguages": ["en", "es"]
+  "domain": "zoolandingpage.com.mx",
+  "stage": "draft",
+  "files": [
+    {
+      "path": "zoolandingpage.com.mx/site-config.json",
+      "kind": "site-config",
+      "content": {}
     }
-  },
-  "defaults": {
-    "ui": {
-      "modals": {
-        "_default": {
-          "size": "sm"
-        }
-      }
-    }
-  },
-  "runtime": {
-    "localStorage": {
-      "theme": "example-theme",
-      "language": "example-language",
-      "userPreferences": "example-preferences",
-      "id": "example-id",
-      "sessionId": "example-session-id",
-      "allowAnalytics": "example-allow-analytics",
-      "analyticsConsentSnooze": "example-allow-analytics-snooze",
-      "pageViewCount": "example-page-view-count"
-    },
-    "features": {
-      "debugMode": true
-    },
-    "analytics": {
-      "enabled": false,
-      "consentUI": "none",
-      "consentSnoozeSeconds": 30,
-      "track": ["ip", "language", "screenWidth"],
-      "quickStats": {
-        "pageView": { "event": "page_view", "path": "metrics.pageViews", "by": 1 },
-        "events": [{ "name": "cta_click", "path": "metrics.ctaClicks", "by": 1 }]
-      }
-    }
-  }
+  ]
 }
 ```
 
-Rules:
+Important fields in each file entry:
 
-- `aliases` is optional and should list preview or alternate hostnames that must resolve to the canonical `domain`.
-- `aliases` belongs to site ownership, not page ownership.
-- `lifecycle.status` should currently be one of `active`, `maintenance`, or `suspended`.
-- `lifecycle` belongs to site ownership, not page ownership.
-- `maintenance` and `suspended` should resolve to a professional fallback experience through the runtime Lambda rather than forcing the client to hard-code the final text.
-- Keep `runtime.localStorage` limited to logical slot names, not arbitrary keys.
-- Keep `runtime.features` focused on runtime behavior flags, not component content.
-- Keep always-required site metadata in `site-config.json.site`.
-- Keep site-wide SEO defaults in `site-config.json.site.seo` and reserve `page-config.json.seo` for page-specific metadata.
-- Use `site-config.json.defaults` for optional shared values that multiple pages in the same domain reuse.
-- Multi-page domains should centralize repeated values in `site-config.json` and keep per-page `variables.json` files as route-specific deltas.
+- `path`: path relative to the drafts root
+- `kind`: file role such as `site-config`, `page-config`, `page-components`, `variables`, `angora-combos`, `i18n`
+- `pageId`: present for page-owned files
+- `lang`: present for i18n files
+- `content`: JSON object stored in that file
 
-## Recommended payload shape
+### `TRuntimeBundlePayload`
 
-Use a **components array** in transport payloads and drafts:
+This is the runtime-side bundle returned to live sites.
 
-```ts
-export type LandingPageConfigPayload = {
-  version: 1;
-  domain: string;
-  pageId: string;
-  rootIds: readonly string[];
-  variables?: {
-    contact?: {
-      whatsappPhone: string;
-      whatsappMessageKey?: string;
-      faqMessageKey?: string;
-      finalCtaMessageKey?: string;
-    };
-  };
-  components: Array<{
-    id: string;
-    type: string;
-    config: unknown;
-    domain?: string;
-    pageId?: string;
-    valueInstructions?: string;
-    eventInstructions?: string;
-    order?: number;
-    meta_title?: string;
-  }>;
-};
+It contains one effective published page state, including merged shared and page-level payloads.
+
+Core fields:
+
+- `domain`
+- `pageId`
+- `sourceStage`
+- `versionId`
+- `siteConfig`
+- `pageConfig`
+- `components`
+- `variables`
+- `angoraCombos`
+- `i18n`
+
+## Recommended workflows
+
+### Pull the current authoring draft into the repo
+
+```bash
+node tools/config-draft-sync.mjs pull --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx
 ```
 
-Draft storage rules:
+### Pack the current local draft tree
 
-- Shared site components can live in `public/assets/drafts/{domain}/components.json` with top-level `pageId: "allPages"`.
-- Shared site variables can live in `public/assets/drafts/{domain}/variables.json` with top-level `pageId: "allPages"`.
-- Shared site angora combos can live in `public/assets/drafts/{domain}/angora-combos.json` with top-level `pageId: "allPages"`.
-- Shared site i18n dictionaries can live in `public/assets/drafts/{domain}/i18n/{lang}.json` with top-level `pageId: "allPages"`.
-- Page-owned components stay in `public/assets/drafts/{domain}/{pageId}/components.json`.
-- Page-owned variables stay in `public/assets/drafts/{domain}/{pageId}/variables.json`.
-- Page-owned angora combos stay in `public/assets/drafts/{domain}/{pageId}/angora-combos.json`.
-- Page-owned i18n dictionaries stay in `public/assets/drafts/{domain}/{pageId}/i18n/{lang}.json`.
-- The debug authoring exporter should emit those same two files directly instead of flattening shared and page-owned entries back into one page payload.
-- The runtime merges shared plus page-owned draft components by `id`, and the page-owned component wins on collision.
-- The runtime deep-merges shared plus page-owned variables and i18n dictionaries, and page-owned values win on collision.
-- The runtime merges shared plus page-owned angora combos by combo key, and the page-owned combo wins on collision.
-
-API storage rules:
-
-- Persist `domain` and `pageId` for each stored component record.
-- Use `pageId: "allPages"` for shared components.
-- The lambda should return only the effective component array for the requested `domain` and `pageId`; the client should not need to merge `allPages` records itself.
-
-## Transport considerations
-
-- Store configs as JSON.
-- Validate on write (server-side):
-  - unique IDs
-  - `type` in allowed set
-  - `valueInstructions` only uses allowlisted resolver IDs
-  - no function values (JSON can’t represent them anyway)
-  - `angora-combos` present whenever the page depends on authored combo keys for appearance
-  - required nested contracts such as `site.appIdentity`, `site.theme`, `site.i18n.defaultLanguage`, `site.i18n.supportedLanguages`, and `config.ui.contact.whatsappPhone` / `config.ui.contact.whatsappMessageKey` when WhatsApp handlers are used through shared defaults or page variables
-
-## Client loading strategy
-
-The runtime Lambda now targets a single effective bundle for production reads:
-
-```ts
-export type TRuntimeBundlePayload = {
-  version: 1;
-  domain: string;
-  {domain}/variables.json
-  {domain}/angora-combos.json
-  {domain}/i18n/{lang}.json
-  pageId: string;
-  sourceStage: 'published' | 'draft' | 'fallback';
-  versionId?: string;
-  lang?: string;
-  lifecycle?: TSiteLifecycleConfig;
-  siteConfig: TDraftSiteConfigPayload;
-  pageConfig: TPageConfigPayload;
-  components: TComponentsPayload;
-  variables?: TVariablesPayload | null;
-  angoraCombos?: TAngoraCombosPayload | null;
-  i18n?: TI18nPayload | null;
-};
+```bash
+node tools/config-draft-sync.mjs pack --domain=zoolandingpage.com.mx --output=.tmp-zoolanding-draft-package.json
 ```
 
-The Angular client can then:
+### Push local changes to the authoring draft
 
-1. Fetch `TRuntimeBundlePayload` for the requested domain and route.
-2. Adapt the bundle into the existing bootstrap and store flow.
-3. Store the merged component array in an in-memory registry keyed by component `id`.
-4. Provide `getComponentById(id)` and root ID lists.
-5. Render via `<wrapper-orchestrator [componentsIds]="pageConfig.rootIds" />`.
-
-## Authoring package strategy
-
-The authoring Lambda uses a file-oriented transport instead of a flattened page bundle so the IDE and AI workflow can stay aligned with local drafts:
-
-```ts
-export type TAuthoringDraftPackage = {
-  version: 1;
-  domain: string;
-  stage: 'draft' | 'published';
-  versionId?: string;
-  files: Array<{
-    path: string;
-    kind:
-      | 'site-config'
-      | 'shared-components'
-      | 'page-config'
-      | 'page-components'
-      | 'variables'
-      | 'angora-combos'
-      | 'i18n';
-    pageId?: string;
-    lang?: string;
-    content: Record<string, unknown>;
-  }>;
-};
+```bash
+node tools/config-draft-sync.mjs push --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --updated-by="Your Name"
 ```
 
-The first local CLI entry point is `tools/config-draft-sync.mjs`, exposed through:
+### Create a new site from a local draft tree
 
-- `npm run config:pack`
-- `npm run config:unpack`
-- `npm run config:pull`
-- `npm run config:push`
-- `npm run config:create`
-- `npm run config:publish`
-
-## Page-owned analytics payload
-
-`page-config.json.analytics` now carries page-level engagement behavior plus optional page-specific overrides:
-
-```json
-{
-  "version": 1,
-  "pageId": "default",
-  "domain": "example.com",
-  "rootIds": ["siteHeader", "landingPage", "siteFooter"],
-  "analytics": {
-    "sectionIds": ["home", "features"],
-    "scrollMilestones": [25, 50, 75, 100],
-    "quickStats": {
-      "events": [{ "name": "cta_click", "path": "metrics.ctaClicks", "by": 1 }]
-    }
-  }
-}
+```bash
+node tools/config-draft-sync.mjs create --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=newsite.example --publish-on-create=false
 ```
 
-Rules:
+### Publish the current draft
 
-- Put domain-wide analytics policy in `site-config.json` under `runtime.analytics`.
-- Keep `page-config.json.analytics` page-owned: `sectionIds`, `scrollMilestones`, and only page-specific analytics overrides.
-- `events` maps canonical framework event IDs to the names sent to the analytics sink.
-- `categories` maps canonical framework categories to sink-specific category values.
-- `quickStats.events` maps canonical event IDs to metric paths and increments.
-- `track` belongs in `site-config.json` unless a page truly needs to override it.
-- Keep handler IDs and `eventInstructions` action names in code; only emitted taxonomy belongs in payloads.
+```bash
+node tools/config-draft-sync.mjs publish --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --updated-by="Your Name"
+```
 
-## Security model
+## Direct API examples
 
-- `valueInstructions` is allowlisted; unknown resolver IDs are ignored.
-- Do not rely on `env.*`; shared runtime settings belong in `site-config.json`.
-- Keep handlers deterministic and side-effect-free.
-- Treat missing required payload sections as validation failures rather than relying on local runtime fallbacks.
+### Read the published state
+
+```bash
+curl -X POST "https://api.zoolandingpage.com.mx/config-authoring" \
+  -H "Content-Type: application/json" \
+  -d '{"action":"getSite","domain":"zoolandingpage.com.mx","stage":"published"}'
+```
+
+### Publish the current draft
+
+```bash
+curl -X POST "https://api.zoolandingpage.com.mx/config-authoring" \
+  -H "Content-Type: application/json" \
+  -d '{"action":"publishDraft","domain":"zoolandingpage.com.mx","updatedBy":"Your Name"}'
+```
+
+## What belongs in the authoring package
+
+The package should contain config JSON only.
+
+Included:
+
+- `site-config.json`
+- shared and page `components.json`
+- shared and page `variables.json`
+- shared and page `angora-combos.json`
+- shared and page `i18n/*.json`
+- page `page-config.json`
+
+Excluded:
+
+- binary files
+- images
+- videos
+- PDFs
+
+Public assets must be uploaded separately through `image-upload/presign` and then referenced from config JSON by URL.
+
+## Common mistakes
+
+- pushing local drafts without first verifying the local preview
+- publishing without confirming the authoring draft is the one you just pushed
+- assuming a successful publish means the app tier has already refreshed its frontend assets or caches
+- trying to store media files inside config payloads instead of the public asset flow
+
+## Related docs
+
+- [../11-draft-lifecycle.md](../11-draft-lifecycle.md)
+- [../12-public-assets-and-file-uploads.md](../12-public-assets-and-file-uploads.md)
+- [11-draft-migration.md](11-draft-migration.md)
+- [12-validation.md](12-validation.md)

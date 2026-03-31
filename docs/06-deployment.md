@@ -2,6 +2,14 @@
 
 This document covers deployment strategies, configuration, and operations for the Zoolandingpage project.
 
+For the everyday authoring workflows, use these companion guides first:
+
+- [11-draft-lifecycle.md](11-draft-lifecycle.md)
+- [12-public-assets-and-file-uploads.md](12-public-assets-and-file-uploads.md)
+- [api-driven-config/08-upload-to-api.md](api-driven-config/08-upload-to-api.md)
+
+This deployment guide is the operational companion for infrastructure, API routing, and production validation.
+
 ## 🎯 Deployment Overview
 
 The project supports multiple deployment strategies to accommodate different needs:
