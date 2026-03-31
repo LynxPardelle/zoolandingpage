@@ -94,6 +94,12 @@ help: ## Show this help message with all available commands
 	@echo "  docs-serve        - 📖 Serve documentation locally"
 	@echo "  demo-data         - 🎭 Setup demo data for development"
 	@echo "  dev-workflow      - 🔄 Complete development workflow"
+	@echo "  config-pack       - 🧳 Pack local draft files into an authoring package"
+	@echo "  config-unpack     - 📂 Unpack an authoring package into local drafts"
+	@echo "  config-pull       - ⬇️ Pull a draft or published package from the authoring API"
+	@echo "  config-push       - ⬆️ Push local drafts to the authoring API as a new draft version"
+	@echo "  config-create     - 🏗️ Create a site from local drafts via the authoring API"
+	@echo "  config-publish    - 🚀 Publish the current draft version via the authoring API"
 	@echo ""
 	@echo "$(GREEN)💾 Backup & Restore:$(NC)"
 	@echo "  backup            - Backup project data and configuration"
@@ -450,6 +456,30 @@ full-test-suite: ## 🧪 Run complete test suite
 	@$(MAKE) test
 	@$(MAKE) security-scan
 	@$(MAKE) performance-test
+
+config-pack: ## Pack local draft files into an authoring package (use: make config-pack ARGS="--domain=example.com")
+	@echo "$(CYAN)🧳 Packing local draft files...$(NC)"
+	node tools/config-draft-sync.mjs pack $(ARGS)
+
+config-unpack: ## Unpack an authoring package into local drafts (use: make config-unpack ARGS="--input=package.json")
+	@echo "$(CYAN)📂 Unpacking authoring package...$(NC)"
+	node tools/config-draft-sync.mjs unpack $(ARGS)
+
+config-pull: ## Pull a draft or published package from the authoring API (use: make config-pull ARGS="--endpoint=https://... --domain=example.com")
+	@echo "$(CYAN)⬇️ Pulling draft package...$(NC)"
+	node tools/config-draft-sync.mjs pull $(ARGS)
+
+config-push: ## Push local drafts to the authoring API (use: make config-push ARGS="--endpoint=https://... --domain=example.com")
+	@echo "$(CYAN)⬆️ Pushing draft package...$(NC)"
+	node tools/config-draft-sync.mjs push $(ARGS)
+
+config-create: ## Create a site from local drafts via the authoring API (use: make config-create ARGS="--endpoint=https://... --domain=example.com")
+	@echo "$(CYAN)🏗️ Creating site from local drafts...$(NC)"
+	node tools/config-draft-sync.mjs create $(ARGS)
+
+config-publish: ## Publish the current draft version via the authoring API (use: make config-publish ARGS="--endpoint=https://... --domain=example.com")
+	@echo "$(CYAN)🚀 Publishing current draft...$(NC)"
+	node tools/config-draft-sync.mjs publish $(ARGS)
 	@$(MAKE) accessibility-test
 	@echo "$(GREEN)✅ Complete test suite finished!$(NC)"
 

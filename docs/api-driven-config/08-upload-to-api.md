@@ -6,9 +6,22 @@ This document describes a suggested payload shape that works well with `wrapper-
 
 For the current runtime, treat `site-config.json`, `page-config.json`, `components.json`, `variables.json`, `angora-combos.json`, and `i18n/*.json` as the authored payload set. `page-config.json` now owns page-level `seo`, `structuredData`, and `analytics` sections. Do not bundle debug-only UI into production page payloads unless the page explicitly owns that experience.
 
+The first implementation slice now uses two transport contracts in code:
+
+- `TRuntimeBundlePayload`: one effective production-read payload returned by the runtime Lambda.
+- `TAuthoringDraftPackage`: a file-oriented authoring payload used for create, pull, update, and publish flows.
+
+The deployed endpoint implementations now live in sibling repositories in the shared workspace:
+
+- `../zoolanding-config-runtime-read`
+- `../zoolanding-config-authoring`
+- `../zoolanding-image-upload`
+
 `angora-combos.json` is the runtime source of truth for reusable visual bundles. The client no longer recreates Zoolanding-specific combos from TypeScript fallback code.
 
 If an API response omits `angora-combos`, the page still loads, but it runs without authored combo bundles for that draft.
+
+`variables.json`, `angora-combos.json`, and `i18n/{lang}.json` can now exist both at the domain root and at the page root. Domain-level files act as shared defaults for every page in the domain, and page-level files override them.
 
 ## Site config payload
 
@@ -18,8 +31,13 @@ If an API response omits `angora-combos`, the page still loads, but it runs with
 {
   "version": 1,
   "domain": "example.com",
+  "aliases": ["test.example.com", "preview.example.net"],
   "defaultPageId": "default",
   "routes": [{ "path": "/", "pageId": "default", "label": "Home" }],
+  "lifecycle": {
+    "status": "active",
+    "fallbackMode": "system"
+  },
   "site": {
     "appIdentity": {
       "identifier": "examplecom",
@@ -114,6 +132,11 @@ If an API response omits `angora-combos`, the page still loads, but it runs with
 
 Rules:
 
+- `aliases` is optional and should list preview or alternate hostnames that must resolve to the canonical `domain`.
+- `aliases` belongs to site ownership, not page ownership.
+- `lifecycle.status` should currently be one of `active`, `maintenance`, or `suspended`.
+- `lifecycle` belongs to site ownership, not page ownership.
+- `maintenance` and `suspended` should resolve to a professional fallback experience through the runtime Lambda rather than forcing the client to hard-code the final text.
 - Keep `runtime.localStorage` limited to logical slot names, not arbitrary keys.
 - Keep `runtime.features` focused on runtime behavior flags, not component content.
 - Keep always-required site metadata in `site-config.json.site`.
@@ -156,9 +179,17 @@ export type LandingPageConfigPayload = {
 Draft storage rules:
 
 - Shared site components can live in `public/assets/drafts/{domain}/components.json` with top-level `pageId: "allPages"`.
+- Shared site variables can live in `public/assets/drafts/{domain}/variables.json` with top-level `pageId: "allPages"`.
+- Shared site angora combos can live in `public/assets/drafts/{domain}/angora-combos.json` with top-level `pageId: "allPages"`.
+- Shared site i18n dictionaries can live in `public/assets/drafts/{domain}/i18n/{lang}.json` with top-level `pageId: "allPages"`.
 - Page-owned components stay in `public/assets/drafts/{domain}/{pageId}/components.json`.
+- Page-owned variables stay in `public/assets/drafts/{domain}/{pageId}/variables.json`.
+- Page-owned angora combos stay in `public/assets/drafts/{domain}/{pageId}/angora-combos.json`.
+- Page-owned i18n dictionaries stay in `public/assets/drafts/{domain}/{pageId}/i18n/{lang}.json`.
 - The debug authoring exporter should emit those same two files directly instead of flattening shared and page-owned entries back into one page payload.
 - The runtime merges shared plus page-owned draft components by `id`, and the page-owned component wins on collision.
+- The runtime deep-merges shared plus page-owned variables and i18n dictionaries, and page-owned values win on collision.
+- The runtime merges shared plus page-owned angora combos by combo key, and the page-owned combo wins on collision.
 
 API storage rules:
 
@@ -177,15 +208,74 @@ API storage rules:
   - `angora-combos` present whenever the page depends on authored combo keys for appearance
   - required nested contracts such as `site.appIdentity`, `site.theme`, `site.i18n.defaultLanguage`, `site.i18n.supportedLanguages`, and `config.ui.contact.whatsappPhone` / `config.ui.contact.whatsappMessageKey` when WhatsApp handlers are used through shared defaults or page variables
 
-## Client loading strategy (future)
+## Client loading strategy
 
-A future client-side loader can:
+The runtime Lambda now targets a single effective bundle for production reads:
 
-1. Fetch `LandingPageConfigPayload` for the requested `domain` and `pageId`.
-2. Receive one merged array of components already filtered for that page.
-3. Store it in an in-memory registry keyed by component `id`.
+```ts
+export type TRuntimeBundlePayload = {
+  version: 1;
+  domain: string;
+  {domain}/variables.json
+  {domain}/angora-combos.json
+  {domain}/i18n/{lang}.json
+  pageId: string;
+  sourceStage: 'published' | 'draft' | 'fallback';
+  versionId?: string;
+  lang?: string;
+  lifecycle?: TSiteLifecycleConfig;
+  siteConfig: TDraftSiteConfigPayload;
+  pageConfig: TPageConfigPayload;
+  components: TComponentsPayload;
+  variables?: TVariablesPayload | null;
+  angoraCombos?: TAngoraCombosPayload | null;
+  i18n?: TI18nPayload | null;
+};
+```
+
+The Angular client can then:
+
+1. Fetch `TRuntimeBundlePayload` for the requested domain and route.
+2. Adapt the bundle into the existing bootstrap and store flow.
+3. Store the merged component array in an in-memory registry keyed by component `id`.
 4. Provide `getComponentById(id)` and root ID lists.
-5. Render via `<wrapper-orchestrator [componentsIds]="payload.rootIds" />`.
+5. Render via `<wrapper-orchestrator [componentsIds]="pageConfig.rootIds" />`.
+
+## Authoring package strategy
+
+The authoring Lambda uses a file-oriented transport instead of a flattened page bundle so the IDE and AI workflow can stay aligned with local drafts:
+
+```ts
+export type TAuthoringDraftPackage = {
+  version: 1;
+  domain: string;
+  stage: 'draft' | 'published';
+  versionId?: string;
+  files: Array<{
+    path: string;
+    kind:
+      | 'site-config'
+      | 'shared-components'
+      | 'page-config'
+      | 'page-components'
+      | 'variables'
+      | 'angora-combos'
+      | 'i18n';
+    pageId?: string;
+    lang?: string;
+    content: Record<string, unknown>;
+  }>;
+};
+```
+
+The first local CLI entry point is `tools/config-draft-sync.mjs`, exposed through:
+
+- `npm run config:pack`
+- `npm run config:unpack`
+- `npm run config:pull`
+- `npm run config:push`
+- `npm run config:create`
+- `npm run config:publish`
 
 ## Page-owned analytics payload
 

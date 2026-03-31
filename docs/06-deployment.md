@@ -11,6 +11,361 @@ The project supports multiple deployment strategies to accommodate different nee
 3. **Docker Production Static**: Static files with Nginx
 4. **Cloud Deployment**: Scalable production deployment
 
+## Config Platform Services
+
+The config-driven production path depends on three Lambda repositories that are deployed separately from the Angular app:
+
+- `../zoolanding-config-runtime-read`
+- `../zoolanding-config-authoring`
+- `../zoolanding-image-upload`
+
+Recommended AWS resource names:
+
+- DynamoDB table: `zoolanding-config-registry`
+- Config payload bucket: `zoolanding-config-payloads`
+- Public asset bucket: `zoolandingpage-public-files`
+- Public asset CDN domain: `https://assets.zoolandingpage.com.mx`
+- API custom domain: `https://api.zoolandingpage.com.mx`
+
+Recommended deployment order:
+
+1. Use the existing `zoolanding-config-payloads`, `zoolandingpage-public-files`, and `zoolanding-config-registry` resources.
+2. Configure S3 CORS on `zoolandingpage-public-files` for browser `PUT` uploads from `https://zoolandingpage.com.mx` and `https://test.zoolandingpage.com.mx`.
+3. Create or reuse a CloudFront distribution in front of `zoolandingpage-public-files` and attach the alias `assets.zoolandingpage.com.mx`.
+4. Deploy `zoolanding-config-runtime-read` behind API Gateway and map `/runtime-bundle` under `https://api.zoolandingpage.com.mx`.
+5. Deploy `zoolanding-config-authoring` behind API Gateway and map `/config-authoring` under `https://api.zoolandingpage.com.mx`.
+6. Deploy `zoolanding-image-upload` behind API Gateway and map `/image-upload/presign` under `https://api.zoolandingpage.com.mx`.
+7. Seed or update the canonical production site under `zoolandingpage.com.mx`, and declare any preview or alternate hosts in `site-config.json.aliases`.
+8. Build and deploy the Dokploy containers for `zoolandingpage.com.mx` and `test.zoolandingpage.com.mx` from the same codebase. Both can call `https://api.zoolandingpage.com.mx`, and the test host will reuse the canonical production config resources.
+
+Notes for preview and alternate domains:
+
+- Put preview or alternate hosts in `site-config.json.aliases`, for example `"aliases": ["test.zoolandingpage.com.mx", "landing-preview.zoolandingpage.com.mx"]`.
+- The authoring Lambda persists alias lookup records in DynamoDB, and the runtime Lambda resolves those aliases back to the canonical site domain at request time.
+- You do not need a second DynamoDB site entry just for a preview host when it should reuse the canonical site's config.
+- The REST APIs currently answer CORS preflight with `Access-Control-Allow-Origin: *`, `Content-Type,Authorization`, and the expected route methods.
+- The CloudFront distribution for `api.zoolandingpage.com.mx` must forward `Origin`, `Access-Control-Request-Method`, `Access-Control-Request-Headers`, query strings, and `OPTIONS` requests to preserve browser CORS behavior.
+- Browser uploads to S3 still require bucket-level CORS on `zoolandingpage-public-files`.
+- The public files bucket already allows `GET`, `HEAD`, and `PUT` from `https://zoolandingpage.com.mx` and `https://test.zoolandingpage.com.mx`.
+
+## SAM Deployment For Config Platform
+
+`sam` is now installed locally and the three Lambda stacks were deployed from this workspace into `us-east-1`.
+
+Current deployed stack outputs:
+
+- `zoolanding-config-authoring`: `https://2dvjmiwjod.execute-api.us-east-1.amazonaws.com/Prod/config-authoring`
+- `zoolanding-config-runtime-read`: `https://y84vk0v44l.execute-api.us-east-1.amazonaws.com/Prod/runtime-bundle`
+- `zoolanding-image-upload`: `https://sots05zp69.execute-api.us-east-1.amazonaws.com/Prod/image-upload/presign`
+
+Current smoke-test status before the first site upload:
+
+- authoring endpoint is live and returns `404 Site metadata not found` for `zoolandingpage.com.mx`, which is expected before `createSite`
+- runtime endpoint is live and returns `404 Site metadata not found` for `zoolandingpage.com.mx`, which is expected before the first upload and publish
+- image-upload endpoint is live and returns `200` with a presigned upload URL
+
+Current custom-domain routing through CloudFront:
+
+- distribution id: `E28Y8KTE8ZVWY9`
+- alias: `api.zoolandingpage.com.mx`
+- `/runtime-bundle*` -> `y84vk0v44l.execute-api.us-east-1.amazonaws.com` with origin path `/Prod`
+- `/config-authoring*` -> `2dvjmiwjod.execute-api.us-east-1.amazonaws.com` with origin path `/Prod`
+- `/image-upload/presign*` -> `sots05zp69.execute-api.us-east-1.amazonaws.com` with origin path `/Prod`
+- the existing default behavior remains in place for older API routes already using the same distribution
+
+Use `https://api.zoolandingpage.com.mx` as the stable frontend base URL. Keep the raw execute-api endpoints only for low-level troubleshooting.
+
+Future redeploys can use the repo-local `samconfig.toml` files added to each Lambda repository.
+
+### Recommended first-time bootstrap order
+
+If `zoolandingpage.com.mx` has not been uploaded yet, use this order instead of trying to wire everything at once:
+
+1. Deploy `zoolanding-config-authoring`.
+2. Deploy `zoolanding-image-upload` if you need media uploads during authoring.
+3. Use the authoring endpoint to create the `zoolandingpage.com.mx` site from the local draft.
+4. Publish the current draft.
+5. Deploy `zoolanding-config-runtime-read`.
+6. Test `GET /runtime-bundle` with both `zoolandingpage.com.mx` and `test.zoolandingpage.com.mx`.
+7. Point Dokploy traffic to the app after the API responses are stable.
+
+### 1. Deploy with SAM
+
+From each Lambda repository, run `sam deploy`. The checked-in `samconfig.toml` files already contain the stack name, region, and parameter overrides.
+
+Windows PowerShell commands:
+
+```powershell
+Set-Location "C:\Users\lince\Documents\GitHub\zoolanding-config-authoring"
+sam deploy
+
+Set-Location "C:\Users\lince\Documents\GitHub\zoolanding-config-runtime-read"
+sam deploy
+
+Set-Location "C:\Users\lince\Documents\GitHub\zoolanding-image-upload"
+sam deploy
+```
+
+The non-interactive commands actually used for the first deployment were:
+
+```powershell
+Set-Location "C:\Users\lince\Documents\GitHub\zoolanding-config-authoring"
+sam deploy --stack-name zoolanding-config-authoring --region us-east-1 --capabilities CAPABILITY_IAM --resolve-s3 --no-confirm-changeset --no-fail-on-empty-changeset --parameter-overrides ConfigTableName=zoolanding-config-registry ConfigPayloadsBucketName=zoolanding-config-payloads LogLevel=INFO
+
+Set-Location "C:\Users\lince\Documents\GitHub\zoolanding-config-runtime-read"
+sam deploy --stack-name zoolanding-config-runtime-read --region us-east-1 --capabilities CAPABILITY_IAM --resolve-s3 --no-confirm-changeset --no-fail-on-empty-changeset --parameter-overrides ConfigTableName=zoolanding-config-registry ConfigPayloadsBucketName=zoolanding-config-payloads LogLevel=INFO
+
+Set-Location "C:\Users\lince\Documents\GitHub\zoolanding-image-upload"
+sam deploy --stack-name zoolanding-image-upload --region us-east-1 --capabilities CAPABILITY_IAM --resolve-s3 --no-confirm-changeset --no-fail-on-empty-changeset --parameter-overrides PublicFilesBucketName=zoolandingpage-public-files PublicFilesBaseUrl=https://assets.zoolandingpage.com.mx PresignExpirationSeconds=900 LogLevel=INFO
+```
+
+### 2. Prepare deployment zip files
+
+If you ever need to fall back to manual console uploads, create zip files with the Python files at the zip root:
+
+- `lambda_function.py`
+- `zoolanding_lambda_common.py`
+
+Do not put the files inside a nested folder in the zip, or Lambda will not find `lambda_function.lambda_handler`.
+
+On Windows PowerShell, you can create the zip files like this:
+
+```powershell
+Set-Location "C:\Users\lince\Documents\GitHub\zoolanding-config-authoring"
+Compress-Archive -Path .\lambda_function.py, .\zoolanding_lambda_common.py -DestinationPath .\zoolanding-config-authoring.zip -Force
+
+Set-Location "C:\Users\lince\Documents\GitHub\zoolanding-config-runtime-read"
+Compress-Archive -Path .\lambda_function.py, .\zoolanding_lambda_common.py -DestinationPath .\zoolanding-config-runtime-read.zip -Force
+
+Set-Location "C:\Users\lince\Documents\GitHub\zoolanding-image-upload"
+Compress-Archive -Path .\lambda_function.py, .\zoolanding_lambda_common.py -DestinationPath .\zoolanding-image-upload.zip -Force
+```
+
+After creating each zip, open it once and verify the files are at the root of the archive, not inside another folder.
+
+### 3. Runtime stack settings
+
+In AWS Lambda:
+
+1. Create a new function named `zoolanding-config-runtime-read`.
+2. Runtime: Python 3.13.
+3. Handler: `lambda_function.lambda_handler`.
+4. Upload the runtime-read zip from `../zoolanding-config-runtime-read`.
+
+Set environment variables:
+
+- `CONFIG_TABLE_NAME=zoolanding-config-registry`
+- `CONFIG_PAYLOADS_BUCKET_NAME=zoolanding-config-payloads`
+- `LOG_LEVEL=INFO`
+
+Attach permissions:
+
+- `dynamodb:GetItem` on `zoolanding-config-registry`
+- `s3:GetObject` on `zoolanding-config-payloads/*`
+
+Suggested execution settings:
+
+- Memory: `256 MB`
+- Timeout: `10 seconds`
+- Architecture: `x86_64` is fine for this first pass
+- Enable CloudWatch Logs with the default Lambda execution role permissions
+
+### 4. Authoring stack settings
+
+In AWS Lambda:
+
+1. Create a new function named `zoolanding-config-authoring`.
+2. Runtime: Python 3.13.
+3. Handler: `lambda_function.lambda_handler`.
+4. Upload the authoring zip from `../zoolanding-config-authoring`.
+
+Set environment variables:
+
+- `CONFIG_TABLE_NAME=zoolanding-config-registry`
+- `CONFIG_PAYLOADS_BUCKET_NAME=zoolanding-config-payloads`
+- `LOG_LEVEL=INFO`
+
+Attach permissions:
+
+- `dynamodb:GetItem`
+- `dynamodb:PutItem`
+- `s3:GetObject`
+- `s3:PutObject`
+- `s3:ListBucket`
+
+Suggested execution settings:
+
+- Memory: `256 MB`
+- Timeout: `20 seconds`
+- Architecture: `x86_64`
+
+Important first-upload note:
+
+- This Lambda writes the canonical site metadata record and the alias lookup records for every hostname listed in `site-config.json.aliases`.
+- Because your local draft already includes `test.zoolandingpage.com.mx` as an alias, the first `createSite` or `upsertDraft` call will create the lookup the runtime Lambda needs.
+
+### 5. Image upload stack settings
+
+In AWS Lambda:
+
+1. Create a new function named `zoolanding-image-upload`.
+2. Runtime: Python 3.13.
+3. Handler: `lambda_function.lambda_handler`.
+4. Upload the zip from `../zoolanding-image-upload`.
+
+Set environment variables:
+
+- `PUBLIC_FILES_BUCKET_NAME=zoolandingpage-public-files`
+- `PUBLIC_FILES_BASE_URL=https://assets.zoolandingpage.com.mx`
+- `PRESIGN_EXPIRATION_SECONDS=900`
+- `LOG_LEVEL=INFO`
+
+Attach permissions:
+
+- `s3:PutObject` on `zoolandingpage-public-files/*`
+
+Suggested execution settings:
+
+- Memory: `256 MB`
+- Timeout: `10 seconds`
+- Architecture: `x86_64`
+
+### 6. Wire the CloudFront API front door
+
+The current production setup uses one existing CloudFront distribution for `api.zoolandingpage.com.mx` and routes each config-platform path to its own REST API origin:
+
+- `GET /runtime-bundle` -> `zoolanding-config-runtime-read`
+- `POST /config-authoring` -> `zoolanding-config-authoring`
+- `POST /image-upload/presign` -> `zoolanding-image-upload`
+- `OPTIONS` for the same routes if you configure CORS manually
+
+Current distribution details:
+
+- distribution id: `E28Y8KTE8ZVWY9`
+- alias: `api.zoolandingpage.com.mx`
+- viewer certificate: ACM certificate already attached to the distribution
+
+Current origin and behavior mapping:
+
+1. Add one CloudFront origin per execute-api hostname.
+2. Use origin path `/Prod` for each of the three new origins so the public route stays clean.
+3. Add cache behavior `/runtime-bundle*` pointing to the runtime API origin.
+4. Add cache behavior `/config-authoring*` pointing to the authoring API origin.
+5. Add cache behavior `/image-upload/presign*` pointing to the image-upload API origin.
+6. Keep the existing default behavior untouched so older API routes continue working.
+7. Reuse the distribution's disabled-cache policy and the origin-request policy that forwards viewer headers except `Host`.
+
+CORS requirements through CloudFront:
+
+1. Allow `OPTIONS` in every relevant CloudFront behavior.
+2. Forward `Origin`, `Access-Control-Request-Method`, and `Access-Control-Request-Headers` to the origin.
+3. Forward query strings for `/runtime-bundle` so `domain`, `path`, and `lang` reach the runtime API.
+4. Keep API Gateway route-level preflight enabled for the three APIs.
+5. Keep Lambda proxy responses returning `Access-Control-Allow-Origin`.
+6. Keep S3 bucket CORS for presigned browser uploads.
+
+### 7. Seed payload data
+
+The published S3 structure now supports shared and page-specific files:
+
+```text
+sites/{domain}/versions/{versionId}/
+  {domain}/site-config.json
+  {domain}/components.json
+  {domain}/variables.json
+  {domain}/angora-combos.json
+  {domain}/i18n/{lang}.json
+  {domain}/{pageId}/page-config.json
+  {domain}/{pageId}/components.json
+  {domain}/{pageId}/variables.json
+  {domain}/{pageId}/angora-combos.json
+  {domain}/{pageId}/i18n/{lang}.json
+```
+
+The runtime merges shared files first and then page-specific overrides.
+
+The canonical site config can also declare reusable aliases:
+
+```json
+{
+  "version": 1,
+  "domain": "zoolandingpage.com.mx",
+  "aliases": ["test.zoolandingpage.com.mx", "landing-preview.zoolandingpage.com.mx"]
+}
+```
+
+### 7.1 First upload from the local draft
+
+Once the authoring Lambda is live, create the site from your local draft before testing the runtime Lambda.
+
+If you prefer using the local Node CLI in this repo:
+
+```powershell
+Set-Location "C:\Users\lince\Documents\GitHub\zoolandingpage"
+node .\tools\config-draft-sync.mjs create --endpoint=https://2dvjmiwjod.execute-api.us-east-1.amazonaws.com/Prod/config-authoring --domain=zoolandingpage.com.mx --publish-on-create=true
+
+# Preferred through the stable custom domain
+node .\tools\config-draft-sync.mjs create --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --publish-on-create=true
+```
+
+If you prefer a direct API call, first pack the local draft into a JSON file:
+
+```powershell
+Set-Location "C:\Users\lince\Documents\GitHub\zoolandingpage"
+node .\tools\config-draft-sync.mjs pack --domain=zoolandingpage.com.mx --output=.\zoolandingpage-draft-package.json
+```
+
+Then use that package body in a `createSite` call through your preferred REST client. The CLI path is simpler because it assembles the `files` payload for you.
+
+After that first upload, confirm in DynamoDB that you have:
+
+- one `SITE#zoolandingpage.com.mx` metadata item
+- one `ALIAS#test.zoolandingpage.com.mx` lookup item
+
+### 7. Dokploy application setup
+
+For the production and test containers:
+
+1. Use the same image and the same codebase.
+2. Keep `configApiUrl` pointing to `https://api.zoolandingpage.com.mx`.
+3. Manage preview-domain routing through authored `site-config.json.aliases`, not frontend environment files.
+4. Point both domains to the Dokploy app.
+5. Validate that `https://test.zoolandingpage.com.mx` renders the same authored config as `https://zoolandingpage.com.mx`.
+
+### 8. Smoke tests
+
+Runtime bundle through the custom domain:
+
+```bash
+curl "https://api.zoolandingpage.com.mx/runtime-bundle?domain=zoolandingpage.com.mx&path=/&lang=es"
+```
+
+Runtime bundle through alias:
+
+```bash
+curl "https://api.zoolandingpage.com.mx/runtime-bundle?domain=test.zoolandingpage.com.mx&path=/&lang=es"
+```
+
+Authoring get site:
+
+```bash
+curl -X POST "https://api.zoolandingpage.com.mx/config-authoring" \
+  -H "Content-Type: application/json" \
+  -d '{"action":"getSite","domain":"zoolandingpage.com.mx","stage":"published"}'
+```
+
+Image upload presign:
+
+```bash
+curl -X POST "https://api.zoolandingpage.com.mx/image-upload/presign" \
+  -H "Content-Type: application/json" \
+  -d '{"domain":"zoolandingpage.com.mx","pageId":"default","assetKind":"hero-images","assetId":"headline-art","fileName":"headline-art.png","contentType":"image/png"}'
+```
+
+### 9. AWS Console fallback
+
+If SAM is unavailable on another machine, keep the manual AWS Console path below as the fallback process.
+
 ## 🐳 Docker Deployment
 
 ### Development Environment
@@ -626,7 +981,7 @@ services:
 }
 ```
 
-```
+```text
 # Procfile
 web: npm run serve:ssr
 ```

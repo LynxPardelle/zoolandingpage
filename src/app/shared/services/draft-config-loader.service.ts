@@ -23,6 +23,26 @@ import { Injectable } from '@angular/core';
 export class DraftConfigLoaderService {
     private readonly debugWorkspaceBase = `${ String(environment.drafts.basePath ?? 'assets/drafts').replace(/\/$/, '') }/_debug/debug-workspace`;
 
+    private isRecord(value: unknown): value is Record<string, unknown> {
+        return !!value && typeof value === 'object' && !Array.isArray(value);
+    }
+
+    private deepMergeRecord<T extends Record<string, unknown>>(base: T, override: T): T {
+        const merged: Record<string, unknown> = { ...base };
+
+        Object.entries(override).forEach(([key, value]) => {
+            const existing = merged[key];
+            if (this.isRecord(existing) && this.isRecord(value)) {
+                merged[key] = this.deepMergeRecord(existing, value);
+                return;
+            }
+
+            merged[key] = value;
+        });
+
+        return merged as T;
+    }
+
     private getDomainBase(domain?: string): string {
         const base = String(environment.drafts.basePath ?? 'assets/drafts').replace(/\/$/, '');
         const d = String(domain ?? '').trim();
@@ -101,6 +121,87 @@ export class DraftConfigLoaderService {
         };
     }
 
+    private mergeVariablesPayloads(
+        domain: string,
+        pageId: string,
+        payloads: readonly (TVariablesPayload | null)[],
+    ): TVariablesPayload | null {
+        const availablePayloads = payloads.filter((payload): payload is TVariablesPayload => !!payload);
+        if (availablePayloads.length === 0) {
+            return null;
+        }
+
+        return availablePayloads.reduce<TVariablesPayload>((merged, payload) => ({
+            version: payload.version ?? merged.version,
+            domain,
+            pageId,
+            variables: this.deepMergeRecord(merged.variables, payload.variables),
+            computed: this.isRecord(merged.computed) || this.isRecord(payload.computed)
+                ? this.deepMergeRecord(
+                    this.isRecord(merged.computed) ? merged.computed : {},
+                    this.isRecord(payload.computed) ? payload.computed : {},
+                )
+                : undefined,
+        }), {
+            version: availablePayloads[0].version,
+            domain,
+            pageId,
+            variables: {},
+        });
+    }
+
+    private mergeCombosPayloads(
+        domain: string,
+        pageId: string,
+        payloads: readonly (TAngoraCombosPayload | null)[],
+    ): TAngoraCombosPayload | null {
+        const availablePayloads = payloads.filter((payload): payload is TAngoraCombosPayload => !!payload);
+        if (availablePayloads.length === 0) {
+            return null;
+        }
+
+        return availablePayloads.reduce<TAngoraCombosPayload>((merged, payload) => ({
+            version: payload.version ?? merged.version,
+            domain,
+            pageId,
+            combos: {
+                ...merged.combos,
+                ...payload.combos,
+            },
+        }), {
+            version: availablePayloads[0].version,
+            domain,
+            pageId,
+            combos: {},
+        });
+    }
+
+    private mergeI18nPayloads(
+        domain: string,
+        pageId: string,
+        lang: string,
+        payloads: readonly (TI18nPayload | null)[],
+    ): TI18nPayload | null {
+        const availablePayloads = payloads.filter((payload): payload is TI18nPayload => !!payload);
+        if (availablePayloads.length === 0) {
+            return null;
+        }
+
+        return availablePayloads.reduce<TI18nPayload>((merged, payload) => ({
+            version: payload.version ?? merged.version,
+            domain,
+            pageId,
+            lang: payload.lang || merged.lang,
+            dictionary: this.deepMergeRecord(merged.dictionary, payload.dictionary),
+        }), {
+            version: availablePayloads[0].version,
+            domain,
+            pageId,
+            lang,
+            dictionary: {},
+        });
+    }
+
     async loadSiteConfig(domain?: string): Promise<TDraftSiteConfigPayload | null> {
         const domainBase = this.getDomainBase(domain);
         if (!domainBase) {
@@ -141,25 +242,51 @@ export class DraftConfigLoaderService {
     }
 
     async loadVariables(domain?: string, pageId?: string): Promise<TVariablesPayload | null> {
+        const domainBase = this.getDomainBase(domain);
         const draftBase = this.getDraftBase(domain, pageId);
-        if (!draftBase) {
+        const normalizedDomain = String(domain ?? '').trim();
+        const normalizedPageId = String(pageId ?? '').trim();
+        if (!domainBase || !draftBase || !normalizedDomain || !normalizedPageId) {
             return null;
         }
 
-        const url = `${ draftBase }/variables.json`;
-        const payload = await this.getJson<TVariablesPayload>(url);
-        return isVariablesPayload(payload) ? payload : null;
+        const [sitePayload, pagePayload] = await Promise.all([
+            this.getJson<TVariablesPayload>(`${ domainBase }/variables.json`),
+            this.getJson<TVariablesPayload>(`${ draftBase }/variables.json`),
+        ]);
+
+        return this.mergeVariablesPayloads(
+            normalizedDomain,
+            normalizedPageId,
+            [
+                isVariablesPayload(sitePayload) ? sitePayload : null,
+                isVariablesPayload(pagePayload) ? pagePayload : null,
+            ],
+        );
     }
 
     async loadAngoraCombos(domain?: string, pageId?: string): Promise<TAngoraCombosPayload | null> {
+        const domainBase = this.getDomainBase(domain);
         const draftBase = this.getDraftBase(domain, pageId);
-        if (!draftBase) {
+        const normalizedDomain = String(domain ?? '').trim();
+        const normalizedPageId = String(pageId ?? '').trim();
+        if (!domainBase || !draftBase || !normalizedDomain || !normalizedPageId) {
             return null;
         }
 
-        const url = `${ draftBase }/angora-combos.json`;
-        const payload = await this.getJson<TAngoraCombosPayload>(url);
-        return isAngoraCombosPayload(payload) ? payload : null;
+        const [sitePayload, pagePayload] = await Promise.all([
+            this.getJson<TAngoraCombosPayload>(`${ domainBase }/angora-combos.json`),
+            this.getJson<TAngoraCombosPayload>(`${ draftBase }/angora-combos.json`),
+        ]);
+
+        return this.mergeCombosPayloads(
+            normalizedDomain,
+            normalizedPageId,
+            [
+                isAngoraCombosPayload(sitePayload) ? sitePayload : null,
+                isAngoraCombosPayload(pagePayload) ? pagePayload : null,
+            ],
+        );
     }
 
     async loadDebugWorkspacePageConfig(): Promise<TPageConfigPayload | null> {
@@ -177,18 +304,27 @@ export class DraftConfigLoaderService {
     }
 
     async loadI18n(domain: string, pageId: string, lang: string): Promise<TI18nPayload | null> {
+        const domainBase = this.getDomainBase(domain);
         const base = this.getDraftBase(domain, pageId);
-        if (!base) {
+        if (!domainBase || !base) {
             return null;
         }
 
         const candidates = getLocaleCandidates(lang);
 
         for (const candidate of candidates) {
-            const url = `${ base }/i18n/${ encodeURIComponent(candidate) }.json`;
-            const payload = await this.getJson<TI18nPayload>(url);
-            if (isI18nPayload(payload)) {
-                return payload;
+            const [sitePayload, pagePayload] = await Promise.all([
+                this.getJson<TI18nPayload>(`${ domainBase }/i18n/${ encodeURIComponent(candidate) }.json`),
+                this.getJson<TI18nPayload>(`${ base }/i18n/${ encodeURIComponent(candidate) }.json`),
+            ]);
+
+            const merged = this.mergeI18nPayloads(domain, pageId, candidate, [
+                isI18nPayload(sitePayload) ? sitePayload : null,
+                isI18nPayload(pagePayload) ? pagePayload : null,
+            ]);
+
+            if (merged) {
+                return merged;
             }
         }
 

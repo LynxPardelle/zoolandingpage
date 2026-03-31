@@ -10,6 +10,12 @@
     "serve:ssr:zoolandingpage": "node dist/zoolandingpage/server/server.mjs",
     "serve:ssr": "npm run serve:ssr:zoolandingpage",
     "perf:baseline": "node tools/perf-baseline.mjs",
+    "config:pack": "node tools/config-draft-sync.mjs pack",
+    "config:unpack": "node tools/config-draft-sync.mjs unpack",
+    "config:pull": "node tools/config-draft-sync.mjs pull",
+    "config:push": "node tools/config-draft-sync.mjs push",
+    "config:create": "node tools/config-draft-sync.mjs create",
+    "config:publish": "node tools/config-draft-sync.mjs publish",
     "ci:budgets": "ng build --configuration production",
     "ci:perf": "node tools/perf-baseline.mjs"
   },

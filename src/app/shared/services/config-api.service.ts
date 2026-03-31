@@ -4,20 +4,42 @@ import type {
     TDraftSiteConfigPayload,
     TI18nPayload,
     TPageConfigPayload,
+    TRuntimeBundlePayload,
     TVariablesPayload,
 } from '@/app/shared/types/config-payloads.types';
 import { environment } from '@/environments/environment';
 import { HttpClient } from '@angular/common/http';
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, REQUEST } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class ConfigApiService {
     private readonly http = inject(HttpClient);
+    private readonly request = inject(REQUEST, { optional: true });
+
+    private resolveOrigin(): string {
+        const requestUrl = String(this.request?.url ?? '').trim();
+        if (requestUrl) {
+            try {
+                return new URL(requestUrl, 'http://localhost').origin;
+            } catch {
+                // Fall through to browser or localhost origin.
+            }
+        }
+
+        if (typeof window !== 'undefined' && window.location?.origin) {
+            return window.location.origin;
+        }
+
+        return 'http://localhost';
+    }
 
     private buildUrl(path: string, params: Record<string, string | undefined>): string {
-        const base = String(environment.apiUrl ?? '').replace(/\/$/, '');
-        const url = new URL(`${ base }/${ path.replace(/^\//, '') }`);
+        const base = String(environment.configApiUrl ?? environment.apiUrl ?? '').trim().replace(/\/$/, '');
+        const target = `${ base }/${ path.replace(/^\//, '') }`;
+        const url = /^[a-zA-Z][a-zA-Z\d+.-]*:\/\//.test(base)
+            ? new URL(target)
+            : new URL(target, this.resolveOrigin());
         Object.entries(params).forEach(([key, value]) => {
             if (value) url.searchParams.set(key, value);
         });
@@ -51,6 +73,19 @@ export class ConfigApiService {
 
     getI18n(domain: string, lang: string, pageId?: string): Promise<TI18nPayload> {
         return this.getJson<TI18nPayload>('i18n', { domain, lang, pageId });
+    }
+
+    getRuntimeBundle(domain: string, opts?: {
+        pageId?: string;
+        lang?: string;
+        path?: string;
+    }): Promise<TRuntimeBundlePayload> {
+        return this.getJson<TRuntimeBundlePayload>('runtime-bundle', {
+            domain,
+            pageId: opts?.pageId,
+            lang: opts?.lang,
+            path: opts?.path,
+        });
     }
 
     getDebugWorkspacePageConfig(): Promise<TPageConfigPayload> {

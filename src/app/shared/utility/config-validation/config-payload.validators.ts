@@ -5,7 +5,11 @@ import type {
     TAnalyticsQuickStatsEventConfig,
     TAnalyticsQuickStatsPageViewConfig,
     TAngoraCombosPayload,
+    TAuthoringDraftFile,
+    TAuthoringDraftPackage,
     TComponentsPayload,
+    TConfigRegistryPayload,
+    TConfigVersionPointer,
     TDraftAnalyticsRuntimeConfig,
     TDraftAppIdentityVariableConfig,
     TDraftContactVariableConfig,
@@ -24,7 +28,9 @@ import type {
     TDraftUiVariableConfig,
     TI18nPayload,
     TPageConfigPayload,
+    TRuntimeBundlePayload,
     TSeoPayload,
+    TSiteLifecycleConfig,
     TStructuredDataPayload,
     TVariablesPayload,
 } from '@/app/shared/types/config-payloads.types';
@@ -94,6 +100,23 @@ const ALLOWED_COMPONENT_TYPES = new Set([
     'toast',
     'tooltip',
     'none',
+]);
+
+const ALLOWED_SITE_LIFECYCLE_STATUSES = new Set(['active', 'maintenance', 'suspended']);
+const ALLOWED_SITE_FALLBACK_MODES = new Set(['system', 'custom-message', 'redirect']);
+const ALLOWED_RUNTIME_BUNDLE_SOURCE_STAGES = new Set(['draft', 'published', 'fallback']);
+const ALLOWED_AUTHORING_DRAFT_STAGES = new Set(['draft', 'published']);
+const ALLOWED_AUTHORING_FILE_KINDS = new Set([
+    'site-config',
+    'shared-components',
+    'shared-variables',
+    'shared-angora-combos',
+    'shared-i18n',
+    'page-config',
+    'page-components',
+    'variables',
+    'angora-combos',
+    'i18n',
 ]);
 
 const ALLOWED_LOOP_BINDING_TRANSFORMS = new Set([
@@ -214,6 +237,34 @@ const isDraftSiteRouteEntry = (value: unknown): boolean => {
     if (value['label'] !== undefined && typeof value['label'] !== 'string') return false;
     if (value['labelKey'] !== undefined && typeof value['labelKey'] !== 'string') return false;
     return true;
+};
+
+const isSiteLifecycleConfig = (value: unknown): value is TSiteLifecycleConfig => {
+    if (!isRecord(value)) return false;
+    if (typeof value['status'] !== 'string' || !ALLOWED_SITE_LIFECYCLE_STATUSES.has(value['status'])) return false;
+    if (value['fallbackMode'] !== undefined && (typeof value['fallbackMode'] !== 'string' || !ALLOWED_SITE_FALLBACK_MODES.has(value['fallbackMode']))) return false;
+
+    const optionalStrings = [
+        'fallbackPageId',
+        'fallbackDomain',
+        'fallbackUrl',
+        'message',
+        'reason',
+        'supportEmail',
+        'supportPhone',
+        'updatedAt',
+        'updatedBy',
+    ] as const;
+
+    return optionalStrings.every((key) => value[key] === undefined || typeof value[key] === 'string');
+};
+
+const isConfigVersionPointer = (value: unknown): value is TConfigVersionPointer => {
+    if (!isRecord(value)) return false;
+    if (typeof value['versionId'] !== 'string' || value['versionId'].trim().length === 0) return false;
+
+    const optionalStrings = ['prefix', 'updatedAt', 'updatedBy'] as const;
+    return optionalStrings.every((key) => value[key] === undefined || typeof value[key] === 'string');
 };
 
 const isDraftAppIdentityVariableConfig = (value: unknown): value is TDraftAppIdentityVariableConfig => {
@@ -1105,11 +1156,27 @@ export const isDraftSiteConfigPayload = (value: unknown): value is TDraftSiteCon
     if (!isRecord(value)) return false;
     if (typeof value['version'] !== 'number') return false;
     if (typeof value['domain'] !== 'string') return false;
+    if (value['aliases'] !== undefined && !isStringArray(value['aliases'])) return false;
     if (value['defaultPageId'] !== undefined && typeof value['defaultPageId'] !== 'string') return false;
     if (!Array.isArray(value['routes']) || !value['routes'].every(isDraftSiteRouteEntry)) return false;
+    if (value['lifecycle'] !== undefined && !isSiteLifecycleConfig(value['lifecycle'])) return false;
     if (value['runtime'] !== undefined && !isDraftSiteRuntimeConfig(value['runtime'])) return false;
     if (!isDraftSiteSharedConfig(value['site'])) return false;
     if (value['defaults'] !== undefined && !isDraftSiteDefaultsConfig(value['defaults'])) return false;
+    return true;
+};
+
+export const isConfigRegistryPayload = (value: unknown): value is TConfigRegistryPayload => {
+    if (!isRecord(value)) return false;
+    if (typeof value['version'] !== 'number') return false;
+    if (typeof value['domain'] !== 'string') return false;
+    if (value['aliases'] !== undefined && !isStringArray(value['aliases'])) return false;
+    if (value['defaultPageId'] !== undefined && typeof value['defaultPageId'] !== 'string') return false;
+    if (!Array.isArray(value['routes']) || !value['routes'].every(isDraftSiteRouteEntry)) return false;
+    if (!isSiteLifecycleConfig(value['lifecycle'])) return false;
+    if (value['draft'] !== undefined && !isConfigVersionPointer(value['draft'])) return false;
+    if (value['published'] !== undefined && !isConfigVersionPointer(value['published'])) return false;
+    if (value['metadata'] !== undefined && !isRecord(value['metadata'])) return false;
     return true;
 };
 
@@ -1164,6 +1231,48 @@ export const isI18nPayload = (value: unknown): value is TI18nPayload => {
     if (typeof value['domain'] !== 'string') return false;
     if (typeof value['lang'] !== 'string') return false;
     if (!isRecord(value['dictionary'])) return false;
+    return true;
+};
+
+const isAuthoringDraftFile = (value: unknown): value is TAuthoringDraftFile => {
+    if (!isRecord(value)) return false;
+    if (typeof value['path'] !== 'string' || value['path'].trim().length === 0) return false;
+    if (typeof value['kind'] !== 'string' || !ALLOWED_AUTHORING_FILE_KINDS.has(value['kind'])) return false;
+    if (value['pageId'] !== undefined && typeof value['pageId'] !== 'string') return false;
+    if (value['lang'] !== undefined && typeof value['lang'] !== 'string') return false;
+    if (!isRecord(value['content'])) return false;
+    return true;
+};
+
+export const isAuthoringDraftPackage = (value: unknown): value is TAuthoringDraftPackage => {
+    if (!isRecord(value)) return false;
+    if (typeof value['version'] !== 'number') return false;
+    if (typeof value['domain'] !== 'string') return false;
+    if (typeof value['stage'] !== 'string' || !ALLOWED_AUTHORING_DRAFT_STAGES.has(value['stage'])) return false;
+    if (value['versionId'] !== undefined && typeof value['versionId'] !== 'string') return false;
+    if (!Array.isArray(value['files']) || !value['files'].every(isAuthoringDraftFile)) return false;
+    if (value['metadata'] !== undefined && !isRecord(value['metadata'])) return false;
+    return true;
+};
+
+export const isRuntimeBundlePayload = (value: unknown): value is TRuntimeBundlePayload => {
+    if (!isRecord(value)) return false;
+    if (typeof value['version'] !== 'number') return false;
+    if (typeof value['domain'] !== 'string') return false;
+    if (typeof value['pageId'] !== 'string') return false;
+    if (typeof value['sourceStage'] !== 'string' || !ALLOWED_RUNTIME_BUNDLE_SOURCE_STAGES.has(value['sourceStage'])) return false;
+    if (value['versionId'] !== undefined && typeof value['versionId'] !== 'string') return false;
+    if (value['lang'] !== undefined && typeof value['lang'] !== 'string') return false;
+    if (value['generatedAt'] !== undefined && typeof value['generatedAt'] !== 'string') return false;
+    if (value['route'] !== undefined && !isDraftSiteRouteEntry(value['route'])) return false;
+    if (value['lifecycle'] !== undefined && !isSiteLifecycleConfig(value['lifecycle'])) return false;
+    if (!isDraftSiteConfigPayload(value['siteConfig'])) return false;
+    if (!isPageConfigPayload(value['pageConfig'])) return false;
+    if (!isComponentsPayload(value['components'])) return false;
+    if (value['variables'] !== undefined && value['variables'] !== null && !isVariablesPayload(value['variables'])) return false;
+    if (value['angoraCombos'] !== undefined && value['angoraCombos'] !== null && !isAngoraCombosPayload(value['angoraCombos'])) return false;
+    if (value['i18n'] !== undefined && value['i18n'] !== null && !isI18nPayload(value['i18n'])) return false;
+    if (value['metadata'] !== undefined && !isRecord(value['metadata'])) return false;
     return true;
 };
 

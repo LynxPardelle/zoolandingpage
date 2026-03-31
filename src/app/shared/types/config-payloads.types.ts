@@ -128,6 +128,31 @@ export type TDraftSiteRouteEntry = {
     readonly labelKey?: string;
 };
 
+export type TSiteLifecycleStatus = 'active' | 'maintenance' | 'suspended';
+
+export type TSiteFallbackMode = 'system' | 'custom-message' | 'redirect';
+
+export type TSiteLifecycleConfig = {
+    readonly status: TSiteLifecycleStatus;
+    readonly fallbackMode?: TSiteFallbackMode;
+    readonly fallbackPageId?: string;
+    readonly fallbackDomain?: string;
+    readonly fallbackUrl?: string;
+    readonly message?: string;
+    readonly reason?: string;
+    readonly supportEmail?: string;
+    readonly supportPhone?: string;
+    readonly updatedAt?: string;
+    readonly updatedBy?: string;
+};
+
+export type TConfigVersionPointer = {
+    readonly versionId: string;
+    readonly prefix?: string;
+    readonly updatedAt?: string;
+    readonly updatedBy?: string;
+};
+
 export type TDraftAppIdentityVariableConfig = {
     readonly identifier?: string;
     readonly name?: string;
@@ -196,11 +221,25 @@ export type TDraftSiteRuntimeConfig = {
 export type TDraftSiteConfigPayload = {
     readonly version: number;
     readonly domain: string;
+    readonly aliases?: readonly string[];
     readonly defaultPageId?: string;
     readonly routes: readonly TDraftSiteRouteEntry[];
+    readonly lifecycle?: TSiteLifecycleConfig;
     readonly runtime?: TDraftSiteRuntimeConfig;
     readonly site: TDraftSiteSharedConfig;
     readonly defaults?: TDraftSiteDefaultsConfig;
+};
+
+export type TConfigRegistryPayload = {
+    readonly version: number;
+    readonly domain: string;
+    readonly aliases?: readonly string[];
+    readonly defaultPageId?: string;
+    readonly routes: readonly TDraftSiteRouteEntry[];
+    readonly lifecycle: TSiteLifecycleConfig;
+    readonly draft?: TConfigVersionPointer;
+    readonly published?: TConfigVersionPointer;
+    readonly metadata?: Record<string, unknown>;
 };
 
 export type TSeoPayload = {
@@ -285,6 +324,58 @@ export type TI18nPayload = {
     readonly domain: string;
     readonly lang: string;
     readonly dictionary: Record<string, unknown>;
+};
+
+export type TRuntimeBundleSourceStage = 'draft' | 'published' | 'fallback';
+
+export type TRuntimeBundlePayload = {
+    readonly version: number;
+    readonly domain: string;
+    readonly pageId: string;
+    readonly sourceStage: TRuntimeBundleSourceStage;
+    readonly versionId?: string;
+    readonly lang?: string;
+    readonly generatedAt?: string;
+    readonly route?: TDraftSiteRouteEntry;
+    readonly lifecycle?: TSiteLifecycleConfig;
+    readonly siteConfig: TDraftSiteConfigPayload;
+    readonly pageConfig: TPageConfigPayload;
+    readonly components: TComponentsPayload;
+    readonly variables?: TVariablesPayload | null;
+    readonly angoraCombos?: TAngoraCombosPayload | null;
+    readonly i18n?: TI18nPayload | null;
+    readonly metadata?: Record<string, unknown>;
+};
+
+export type TAuthoringDraftStage = 'draft' | 'published';
+
+export type TAuthoringDraftFileKind =
+    | 'site-config'
+    | 'shared-components'
+    | 'shared-variables'
+    | 'shared-angora-combos'
+    | 'shared-i18n'
+    | 'page-config'
+    | 'page-components'
+    | 'variables'
+    | 'angora-combos'
+    | 'i18n';
+
+export type TAuthoringDraftFile = {
+    readonly path: string;
+    readonly kind: TAuthoringDraftFileKind;
+    readonly pageId?: string;
+    readonly lang?: string;
+    readonly content: Record<string, unknown>;
+};
+
+export type TAuthoringDraftPackage = {
+    readonly version: number;
+    readonly domain: string;
+    readonly stage: TAuthoringDraftStage;
+    readonly versionId?: string;
+    readonly files: readonly TAuthoringDraftFile[];
+    readonly metadata?: Record<string, unknown>;
 };
 
 export type TAnalyticsConfigPayload = TPageAnalyticsConfig;

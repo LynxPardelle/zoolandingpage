@@ -4,7 +4,7 @@ This document outlines the technical architecture and structure of the Zoolandin
 
 ## 📁 Project Structure
 
-```
+```text
 zoolandingpage/
 ├── docs/                          # Documentation
 │   ├── README.md                  # Main project documentation
@@ -54,14 +54,21 @@ zoolandingpage/
 ├── Makefile                     # Build automation and development tools
 ├── nginx.conf                   # Production web server configuration
 ├── .env                         # Environment variables
-└── .example.env                 # Environment template
+├── .example.env                 # Environment template
+└── tools/                       # Node-based local authoring and maintenance scripts
 ```
+
+### Related Workspace Repositories
+
+- `../zoolanding-config-runtime-read`: runtime bundle Lambda for production reads.
+- `../zoolanding-config-authoring`: draft create, pull, update, publish, and lifecycle Lambda.
+- `../zoolanding-image-upload`: presigned public image upload Lambda.
 
 ## 🏗 Component Architecture
 
 ### Runtime Hierarchy
 
-```
+```text
 AppShellComponent (Root Host)
 ├── WrapperOrchestrator (main runtime rootIds)
 ├── GenericToastHost
@@ -106,6 +113,19 @@ The project uses Angular standalone components for:
 | `AnalyticsService`                  | Tracks events, handles consent, publishes debug streams, and manages page engagement observers.                                                                                       |
 | `AngoraCombosService`               | Registers base combo classes and applies payload-provided combo definitions.                                                                                                          |
 | `ConfigurationsOrchestratorService` | Stores the external component tree, exports draft payloads, and feeds `WrapperOrchestrator`.                                                                                          |
+
+### Runtime Bundle Boundary
+
+- The new production-read contract is a single `TRuntimeBundlePayload` returned by the config runtime Lambda.
+- The bundle contains `siteConfig`, `pageConfig`, merged `components`, optional `variables`, optional `angoraCombos`, optional `i18n`, and lifecycle metadata.
+- Angular keeps the existing internal bootstrap/store/orchestrator model, but production transport is expected to collapse multiple remote reads into one bundle.
+- Development still treats `public/assets/drafts/{domain}/...` as the local authoring source of truth.
+
+### Authoring Pipeline Boundary
+
+- The config platform now lives in three sibling repositories: `zoolanding-config-runtime-read`, `zoolanding-config-authoring`, and `zoolanding-image-upload`.
+- The config authoring Lambda works with `TAuthoringDraftPackage`, a file-oriented transport that intentionally mirrors the local draft folder structure.
+- The Node CLI in `tools/config-draft-sync.mjs` is the first IDE-friendly round-trip mechanism for packing, pulling, pushing, creating, and publishing draft packages.
 
 ### Service Communication Pattern
 
