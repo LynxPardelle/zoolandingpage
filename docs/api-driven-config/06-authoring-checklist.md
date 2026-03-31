@@ -18,6 +18,8 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Put page-owned contact targets in `variables.ui.contact`.
 - Put modal presentation and accessible labels in `variables.ui.modals.<modalId>` for every modal referenced by `openModal:*` or `modalRefId,*`.
 - Put reusable visual class bundles in `angora-combos.json` instead of hardcoding repeated appearance strings in app code.
+- Do not nest combo names inside other combo definitions. Author full utility strings inside each combo entry.
+- Until the combo parser is fixed, prefer raw `ank-*` utility classes in `components.json` for structural layout properties such as `flexDirection`, `justifyContent`, and similar camelCase utility tokens.
 - For `input` components, author select/dropdown presentation in payload fields such as `fieldClasses`, `dropdownTriggerClasses`, `dropdownIndicatorText`, `dropdownIndicatorClasses`, `dropdownTriggerTextConfig`, and `dropdownConfig` instead of relying on shared runtime defaults.
 - Footer, legal modal, accessibility, and debug-panel content must be payload-owned (no local fallback assumptions anywhere in the runtime).
 - Do not author hardcoded footer/legal text in app source when generating payload instructions.
