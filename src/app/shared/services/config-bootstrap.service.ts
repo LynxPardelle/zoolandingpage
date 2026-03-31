@@ -73,6 +73,19 @@ export class ConfigBootstrapService {
         return typeof value === 'string' && value.trim().length > 0;
     }
 
+    private hasLocalizedTextValue(value: unknown): boolean {
+        if (this.isNonEmptyString(value)) {
+            return true;
+        }
+
+        if (!this.isRecord(value)) {
+            return false;
+        }
+
+        const entries = Object.values(value);
+        return entries.length > 0 && entries.some((entry) => this.isNonEmptyString(entry));
+    }
+
     private collectChildComponentIds(component: unknown): readonly string[] {
         if (!this.isRecord(component)) return [];
         const config = this.isRecord(component['config']) ? component['config'] : null;
@@ -558,9 +571,9 @@ export class ConfigBootstrapService {
         addIssue(requiresFaqWhatsAppMessage && !this.isNonEmptyString(contact?.['faqMessageKey']), 'config.ui.contact.faqMessageKey is required when FAQ WhatsApp handlers are used.');
         addIssue(requiresFinalCtaWhatsAppMessage && !this.isNonEmptyString(contact?.['finalCtaMessageKey']), 'config.ui.contact.finalCtaMessageKey is required when final CTA WhatsApp handlers are used.');
 
-        addIssue(!this.isNonEmptyString(payloads.seo?.title), 'seo.title is required.');
-        addIssue(!this.isNonEmptyString(payloads.seo?.description), 'seo.description is required.');
-        addIssue(!this.isNonEmptyString(payloads.seo?.canonical), 'seo.canonical is required.');
+        addIssue(!this.hasLocalizedTextValue(payloads.seo?.title), 'seo.title is required.');
+        addIssue(!this.hasLocalizedTextValue(payloads.seo?.description), 'seo.description is required.');
+        addIssue(!this.hasLocalizedTextValue(payloads.seo?.canonical), 'seo.canonical is required.');
 
         return issues;
     }

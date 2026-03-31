@@ -2,7 +2,7 @@ import type { TSeoPayload } from '@/app/shared/types/config-payloads.types';
 import { DOCUMENT } from '@angular/common';
 import { inject, Injectable } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
-import { toOpenGraphLocale } from '../i18n/locale.utils';
+import { normalizeLocaleCode, resolveLocaleMapValue, toOpenGraphLocale } from '../i18n/locale.utils';
 import { DomainResolverService } from './domain-resolver.service';
 import { RuntimeConfigService } from './runtime-config.service';
 
@@ -23,12 +23,8 @@ export class SeoMetadataService {
             document.documentElement.setAttribute('lang', lang);
             document.documentElement.setAttribute('dir', 'ltr');
 
-            const draftTitle = typeof seo?.title === 'string' && seo.title.trim().length > 0
-                ? seo.title
-                : undefined;
-            const draftDescription = typeof seo?.description === 'string' && seo.description.trim().length > 0
-                ? seo.description
-                : undefined;
+            const draftTitle = this.resolveLocalizedText(seo?.title, lang);
+            const draftDescription = this.resolveLocalizedText(seo?.description, lang);
             const siteSeo = this.runtimeConfig.seoDefaults();
             const fallbackSiteName = this.cleanString(siteSeo?.siteName) || this.resolveFallbackSiteName();
             const fallbackDescription = this.cleanString(siteSeo?.description) || this.runtimeConfig.appDescription();
@@ -42,16 +38,16 @@ export class SeoMetadataService {
             const pathname = this.doc.defaultView?.location?.pathname || '/';
             const url = `${ origin }${ pathname || '/' }`;
             const ogLocale = toOpenGraphLocale(lang) || 'en_US';
-            const openGraphDefaults = this.asRecord(siteSeo?.openGraph);
-            const twitterDefaults = this.asRecord(siteSeo?.twitter);
-            const openGraph = {
+            const openGraphDefaults = this.resolveLocalizedRecord(this.asRecord(siteSeo?.openGraph), lang);
+            const twitterDefaults = this.resolveLocalizedRecord(this.asRecord(siteSeo?.twitter), lang);
+            const openGraph = this.resolveLocalizedRecord({
                 ...openGraphDefaults,
                 ...this.asRecord(seo?.openGraph),
-            };
-            const twitter = {
+            }, lang);
+            const twitter = this.resolveLocalizedRecord({
                 ...twitterDefaults,
                 ...this.asRecord(seo?.twitter),
-            };
+            }, lang);
             const defaultImage = this.cleanString(siteSeo?.defaultImage)
                 || this.cleanString(openGraphDefaults['image'])
                 || this.cleanString(twitterDefaults['image'])
@@ -78,15 +74,72 @@ export class SeoMetadataService {
                     linkEl.setAttribute('rel', 'canonical');
                     head.appendChild(linkEl);
                 }
-                linkEl.setAttribute('href', String(seo?.canonical ?? url));
+                linkEl.setAttribute('href', this.resolveLocalizedText(seo?.canonical, lang) || url);
             }
         } catch {
             // no-op for SSR
         }
     }
 
+    private resolveLocalizedRecord(record: Record<string, unknown>, lang: string): Record<string, unknown> {
+        const resolved: Record<string, unknown> = {};
+
+        Object.entries(record).forEach(([key, value]) => {
+            resolved[key] = this.resolveLocalizedValue(value, lang);
+        });
+
+        return resolved;
+    }
+
+    private resolveLocalizedValue(value: unknown, lang: string): unknown {
+        if (Array.isArray(value)) {
+            return value.map((entry) => this.resolveLocalizedValue(entry, lang));
+        }
+
+        if (this.isLocaleMapRecord(value)) {
+            const resolved = resolveLocaleMapValue(value, lang);
+            return typeof resolved === 'string' ? resolved.trim() : resolved;
+        }
+
+        if (this.isRecord(value)) {
+            return this.resolveLocalizedRecord(value, lang);
+        }
+
+        return value;
+    }
+
+    private resolveLocalizedText(value: unknown, lang: string): string {
+        if (typeof value === 'string') {
+            return value.trim();
+        }
+
+        if (this.isLocaleMapRecord(value)) {
+            const resolved = resolveLocaleMapValue(value, lang);
+            return typeof resolved === 'string' ? resolved.trim() : '';
+        }
+
+        return '';
+    }
+
     private asRecord(value: unknown): Record<string, unknown> {
-        return !!value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+        return this.isRecord(value) ? value : {};
+    }
+
+    private isRecord(value: unknown): value is Record<string, unknown> {
+        return !!value && typeof value === 'object' && !Array.isArray(value);
+    }
+
+    private isLocaleMapRecord(value: unknown): value is Record<string, unknown> {
+        if (!this.isRecord(value)) return false;
+
+        const keys = Object.keys(value);
+        if (keys.length === 0) return false;
+
+        return keys.every((key) => {
+            if (key === 'default' || key === 'fallback') return true;
+            const normalized = normalizeLocaleCode(key);
+            return /^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/.test(normalized);
+        });
     }
 
     private cleanString(value: unknown): string {

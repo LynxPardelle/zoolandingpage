@@ -93,4 +93,24 @@ describe('SeoMetadataService', () => {
         expect(meta.updateTag).toHaveBeenCalledWith({ property: 'og:image', content: 'https://example.com/og-default.png' });
         expect(meta.updateTag).toHaveBeenCalledWith({ name: 'twitter:card', content: 'summary' });
     });
+
+    it('resolves localized seo values using the active language', () => {
+        service.apply('en', {
+            title: { es: 'Titulo ES', en: 'Title EN' },
+            description: { es: 'Descripcion ES', en: 'Description EN' },
+            openGraph: {
+                title: { es: 'OG ES', en: 'OG EN' },
+                description: { es: 'OG Desc ES', en: 'OG Desc EN' },
+            },
+            twitter: {
+                title: { es: 'TW ES', en: 'TW EN' },
+            },
+        });
+
+        expect(title.setTitle).toHaveBeenCalledWith('Title EN');
+        expect(meta.updateTag).toHaveBeenCalledWith({ name: 'description', content: 'Description EN' });
+        expect(meta.updateTag).toHaveBeenCalledWith({ property: 'og:title', content: 'OG EN' });
+        expect(meta.updateTag).toHaveBeenCalledWith({ property: 'og:description', content: 'OG Desc EN' });
+        expect(meta.updateTag).toHaveBeenCalledWith({ name: 'twitter:title', content: 'TW EN' });
+    });
 });

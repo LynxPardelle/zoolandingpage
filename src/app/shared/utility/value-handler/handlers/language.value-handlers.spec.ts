@@ -1,6 +1,6 @@
 import { LanguageService } from '@/app/shared/services/language.service';
 import { TestBed } from '@angular/core/testing';
-import { langPickValueHandler } from './language.value-handlers';
+import { langPickValueHandler, languageLabelValueHandler } from './language.value-handlers';
 
 describe('langPickValueHandler', () => {
     let language: LanguageService;
@@ -33,5 +33,16 @@ describe('langPickValueHandler', () => {
             pt: 'Ola base',
             en: 'Hello'
         }])).toBe('Ola Brasil');
+    });
+
+    it('should resolve the formatted current language label', () => {
+        language.configureLanguages(['es', 'en'], {
+            defaultLanguage: 'es',
+            requestedLanguage: 'en'
+        });
+
+        const handler = TestBed.runInInjectionContext(() => languageLabelValueHandler());
+
+        expect(handler.resolve({ component: {} as any, host: null }, [])).toBe('EN');
     });
 });

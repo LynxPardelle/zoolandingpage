@@ -1,4 +1,4 @@
-import { resolveLocaleMapValue } from '@/app/shared/i18n/locale.utils';
+import { formatLocaleLabel, resolveLocaleMapValue } from '@/app/shared/i18n/locale.utils';
 import { LanguageService } from '@/app/shared/services/language.service';
 import { inject } from '@angular/core';
 import type { ValueHandler } from '../value-handler.types';
@@ -9,6 +9,15 @@ export const languageValueHandler = (): ValueHandler => {
     return {
         id: 'language',
         resolve: () => language.currentLanguage(),
+    };
+};
+
+export const languageLabelValueHandler = (): ValueHandler => {
+    const language = inject(LanguageService);
+
+    return {
+        id: 'languageLabel',
+        resolve: () => formatLocaleLabel(language.currentLanguage()),
     };
 };
 

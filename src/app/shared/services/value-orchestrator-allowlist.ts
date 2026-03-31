@@ -12,6 +12,7 @@ export const DEFAULT_ALLOWED_VALUE_IDS = [
     'upper',
     'lower',
     'language',
+    'languageLabel',
     'langPick',
     'theme',
     'themePick',

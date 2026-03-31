@@ -303,4 +303,55 @@ describe('ConfigBootstrapService', () => {
 
         expect(issues.some((issue: string) => issue.includes('badgeText__{{index}}'))).toBeFalse();
     });
+
+    it('accepts localized seo values during bootstrap validation', () => {
+        const issues = (service as any).buildValidationIssues({
+            siteConfig: createSiteConfig(),
+            pageConfig: {
+                version: 1,
+                pageId: 'default',
+                domain: 'zoolandingpage.com.mx',
+                rootIds: ['landingPage'],
+            },
+            components: createComponentsPayload({
+                landingPage: {
+                    id: 'landingPage',
+                    type: 'container',
+                    config: { tag: 'main', components: [] },
+                },
+            }),
+            variables: null,
+            combos: null,
+            i18n: {
+                version: 1,
+                pageId: 'default',
+                domain: 'zoolandingpage.com.mx',
+                lang: 'es',
+                dictionary: {},
+            },
+            seo: {
+                version: 1,
+                pageId: 'default',
+                domain: 'zoolandingpage.com.mx',
+                title: {
+                    es: 'Titulo SEO',
+                    en: 'SEO title',
+                },
+                description: {
+                    es: 'Descripcion SEO',
+                    en: 'SEO description',
+                },
+                canonical: {
+                    es: 'https://zoolandingpage.com.mx/',
+                    en: 'https://zoolandingpage.com.mx/en',
+                },
+            },
+            structuredData: null,
+            analytics: null,
+        });
+
+        expect(issues).not.toContain('seo.title is required.');
+        expect(issues).not.toContain('seo.description is required.');
+        expect(issues).not.toContain('seo.canonical is required.');
+    });
 });

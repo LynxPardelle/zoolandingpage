@@ -242,12 +242,14 @@ export type TConfigRegistryPayload = {
     readonly metadata?: Record<string, unknown>;
 };
 
+export type TLocalizedTextValue = string | Record<string, string>;
+
 export type TSeoPayload = {
-    readonly title?: string;
-    readonly description?: string;
+    readonly title?: TLocalizedTextValue;
+    readonly description?: TLocalizedTextValue;
     readonly openGraph?: Record<string, unknown>;
     readonly twitter?: Record<string, unknown>;
-    readonly canonical?: string;
+    readonly canonical?: TLocalizedTextValue;
 };
 
 export type TStructuredDataPayload = {

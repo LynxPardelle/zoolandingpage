@@ -5,7 +5,7 @@ import { i18nValueHandler } from './handlers/i18n.value-handlers';
 import { i18nGetIndexValueHandler } from './handlers/i18nGetIndex.value-handlers';
 import { i18nParamsValueHandler } from './handlers/i18nParams.value-handlers';
 import { jsonValueHandler } from './handlers/json.value-handlers';
-import { langPickValueHandler, languageValueHandler } from './handlers/language.value-handlers';
+import { langPickValueHandler, languageLabelValueHandler, languageValueHandler } from './handlers/language.value-handlers';
 import { literalValueHandler } from './handlers/literal.value-handlers';
 import { scopeOrValueHandler, scopeValueHandler } from './handlers/scope.value-handlers';
 import { coalesceValueHandler, lowerValueHandler, upperValueHandler } from './handlers/string.value-handlers';
@@ -27,6 +27,7 @@ export const provideValueHandlers = (): Provider[] => {
         { provide: VALUE_HANDLERS, multi: true, useFactory: lowerValueHandler },
 
         { provide: VALUE_HANDLERS, multi: true, useFactory: languageValueHandler },
+        { provide: VALUE_HANDLERS, multi: true, useFactory: languageLabelValueHandler },
         { provide: VALUE_HANDLERS, multi: true, useFactory: langPickValueHandler },
 
         { provide: VALUE_HANDLERS, multi: true, useFactory: themeValueHandler },

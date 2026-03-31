@@ -1278,11 +1278,11 @@ export const isRuntimeBundlePayload = (value: unknown): value is TRuntimeBundleP
 
 export const isSeoPayload = (value: unknown): value is TSeoPayload => {
     if (!isRecord(value)) return false;
-    if (value['title'] !== undefined && typeof value['title'] !== 'string') return false;
-    if (value['description'] !== undefined && typeof value['description'] !== 'string') return false;
+    if (value['title'] !== undefined && typeof value['title'] !== 'string' && !isStringRecord(value['title'])) return false;
+    if (value['description'] !== undefined && typeof value['description'] !== 'string' && !isStringRecord(value['description'])) return false;
     if (value['openGraph'] !== undefined && !isRecord(value['openGraph'])) return false;
     if (value['twitter'] !== undefined && !isRecord(value['twitter'])) return false;
-    if (value['canonical'] !== undefined && typeof value['canonical'] !== 'string') return false;
+    if (value['canonical'] !== undefined && typeof value['canonical'] !== 'string' && !isStringRecord(value['canonical'])) return false;
     return true;
 };
 
