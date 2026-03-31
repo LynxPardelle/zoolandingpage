@@ -80,4 +80,4 @@ If a resolver ID is not allowlisted, it won’t be applied.
 
 - Prefer the smallest config that achieves the UI.
 - Reuse existing generic components.
-- Keep raw color values centralized in `variables.theme.palettes` and reference them through existing Angora keys/classes instead of scattering literal colors across component configs.
+- Keep raw color values centralized in `site-config.json.site.theme.palettes` and reference them through existing Angora keys/classes instead of scattering literal colors across component configs.

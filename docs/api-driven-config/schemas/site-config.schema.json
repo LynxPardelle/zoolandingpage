@@ -120,9 +120,253 @@
         "analytics": { "$ref": "#/definitions/analyticsRuntime" }
       },
       "additionalProperties": false
+    },
+    "themeColors": {
+      "type": "object",
+      "required": [
+        "bgColor",
+        "textColor",
+        "titleColor",
+        "linkColor",
+        "accentColor",
+        "secondaryBgColor",
+        "secondaryTextColor",
+        "secondaryTitleColor",
+        "secondaryLinkColor",
+        "secondaryAccentColor"
+      ],
+      "properties": {
+        "bgColor": { "type": "string" },
+        "textColor": { "type": "string" },
+        "titleColor": { "type": "string" },
+        "linkColor": { "type": "string" },
+        "accentColor": { "type": "string" },
+        "secondaryBgColor": { "type": "string" },
+        "secondaryTextColor": { "type": "string" },
+        "secondaryTitleColor": { "type": "string" },
+        "secondaryLinkColor": { "type": "string" },
+        "secondaryAccentColor": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "themeUi": {
+      "type": "object",
+      "properties": {
+        "modalAccentColor": {
+          "type": "string",
+          "enum": ["accentColor", "secondaryAccentColor"]
+        },
+        "legalModalAccentColor": {
+          "type": "string",
+          "enum": ["accentColor", "secondaryAccentColor"]
+        },
+        "demoModalAccentColor": {
+          "type": "string",
+          "enum": ["accentColor", "secondaryAccentColor"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "themeConfig": {
+      "type": "object",
+      "required": ["palettes"],
+      "properties": {
+        "defaultMode": {
+          "type": "string",
+          "enum": ["light", "dark", "auto"]
+        },
+        "palettes": {
+          "type": "object",
+          "required": ["light", "dark"],
+          "properties": {
+            "light": { "$ref": "#/definitions/themeColors" },
+            "dark": { "$ref": "#/definitions/themeColors" }
+          },
+          "additionalProperties": false
+        },
+        "ui": { "$ref": "#/definitions/themeUi" }
+      },
+      "additionalProperties": false
+    },
+    "draftLanguageDefinition": {
+      "type": "object",
+      "required": ["code"],
+      "properties": {
+        "code": { "type": "string", "minLength": 1 },
+        "label": { "type": "string" },
+        "dir": {
+          "type": "string",
+          "enum": ["ltr", "rtl", "auto"]
+        },
+        "ogLocale": { "type": "string" },
+        "aliases": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "draftI18nConfig": {
+      "type": "object",
+      "properties": {
+        "defaultLanguage": { "type": "string" },
+        "supportedLanguages": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "anyOf": [{ "type": "string", "minLength": 1 }, { "$ref": "#/definitions/draftLanguageDefinition" }]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "appIdentityConfig": {
+      "type": "object",
+      "properties": {
+        "identifier": { "type": "string" },
+        "name": { "type": "string" },
+        "version": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "anyOf": [{ "required": ["identifier"] }, { "required": ["name"] }],
+      "additionalProperties": false
+    },
+    "siteSeoConfig": {
+      "type": "object",
+      "properties": {
+        "siteName": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "canonicalOrigin": { "type": "string" },
+        "defaultImage": { "type": "string" },
+        "openGraph": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "twitter": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "draftContactConfig": {
+      "type": "object",
+      "required": ["whatsappPhone"],
+      "properties": {
+        "whatsappPhone": { "type": "string", "minLength": 1 },
+        "whatsappMessageKey": { "type": "string" },
+        "faqMessageKey": { "type": "string" },
+        "finalCtaMessageKey": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "brandConfig": {
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string" },
+        "tagline": { "type": "string" },
+        "logoUrl": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "heroAssetsConfig": {
+      "type": "object",
+      "properties": {
+        "heroImageUrl": { "type": "string" },
+        "heroImageAlt": { "type": "string" },
+        "heroBackdropUrl": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "localizedTextMap": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "draftSocialLink": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "url": { "type": "string" },
+        "href": { "type": "string" },
+        "icon": { "type": "string" },
+        "label": {
+          "anyOf": [{ "type": "string" }, { "$ref": "#/definitions/localizedTextMap" }]
+        },
+        "labelKey": { "type": "string" },
+        "ariaLabel": {
+          "anyOf": [{ "type": "string" }, { "$ref": "#/definitions/localizedTextMap" }]
+        },
+        "ariaLabelKey": { "type": "string" },
+        "target": { "type": "string" },
+        "rel": { "type": "string" }
+      },
+      "anyOf": [{ "required": ["url"] }, { "required": ["href"] }],
+      "additionalProperties": false
+    },
+    "statsCounterVariableConfig": {
+      "type": "object",
+      "properties": {
+        "target": { "type": "number" },
+        "durationMs": { "type": "number" },
+        "min": { "type": "number" },
+        "max": { "type": "number" },
+        "formatMode": { "type": "string" },
+        "formatPrefix": { "type": "string" },
+        "formatSuffix": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "draftUiConfig": {
+      "type": "object",
+      "properties": {
+        "mobileMenuAriaLabel": { "type": "string" },
+        "brandTextFallback": { "type": "string" },
+        "contact": { "$ref": "#/definitions/draftContactConfig" }
+      },
+      "additionalProperties": true
+    },
+    "siteSharedConfig": {
+      "type": "object",
+      "required": ["appIdentity", "theme", "i18n"],
+      "properties": {
+        "appIdentity": { "$ref": "#/definitions/appIdentityConfig" },
+        "theme": { "$ref": "#/definitions/themeConfig" },
+        "i18n": { "$ref": "#/definitions/draftI18nConfig" },
+        "seo": { "$ref": "#/definitions/siteSeoConfig" }
+      },
+      "additionalProperties": false
+    },
+    "siteDefaultsConfig": {
+      "type": "object",
+      "properties": {
+        "brand": { "$ref": "#/definitions/brandConfig" },
+        "heroAssets": { "$ref": "#/definitions/heroAssetsConfig" },
+        "ctaTargets": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "navigation": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "socialLinks": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/draftSocialLink" }
+        },
+        "statsCounters": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/definitions/statsCounterVariableConfig" }
+        },
+        "ui": { "$ref": "#/definitions/draftUiConfig" }
+      },
+      "additionalProperties": true
     }
   },
-  "required": ["version", "domain", "routes"],
+  "required": ["version", "domain", "routes", "site"],
   "properties": {
     "version": { "type": "integer", "minimum": 1 },
     "domain": { "type": "string", "minLength": 1 },
@@ -131,6 +375,8 @@
       "type": "array",
       "items": { "$ref": "#/definitions/siteRouteEntry" }
     },
+    "site": { "$ref": "#/definitions/siteSharedConfig" },
+    "defaults": { "$ref": "#/definitions/siteDefaultsConfig" },
     "runtime": { "$ref": "#/definitions/runtimeConfig" }
   },
   "additionalProperties": false

@@ -10,12 +10,13 @@ It is written to be **friendly for an AI assistant** generating new landing page
 - Compose pages by listing component IDs (root list) and letting containers declare children.
 - Centralize interaction behavior using `eventInstructions`.
 - Replace inline functions (e.g. `label: () => ...`) with `valueInstructions` (a safe, allowlisted DSL).
-- Define per-draft global light and dark palettes through `variables.theme.palettes` without changing app code.
+- Define per-site global light and dark palettes through `site-config.json.site.theme.palettes` without changing app code.
 - Move reusable visual bundles into `angora-combos.json` so different drafts can share structure but keep distinct appearance.
 
 ## Appearance ownership
 
-- `variables.theme`: semantic global palette data and modal accent defaults.
+- `site-config.json.site.theme`: semantic global palette data and modal accent defaults.
+- `site-config.json.site.seo`: shared SEO defaults such as site name, canonical origin, social-card defaults, and default OG image.
 - `variables.ui.modals`: modal host behavior owned by the draft, such as size, variant, close behavior, accent color, and accessible labels for payload-rendered modal IDs.
 - `angora-combos.json`: reusable class bundles and shared visual patterns.
 - `components.json`: per-component layout and class composition.
@@ -32,21 +33,21 @@ Modal content and modal host behavior are separate concerns:
 
 ## Runtime ownership
 
-- `site-config.json`: domain-level routing plus shared runtime settings under `runtime.localStorage`, `runtime.features`, and domain-wide `runtime.analytics`.
-- `analytics-config.json`: page-level analytics behavior, taxonomy, and `track` collection options.
-- `variables.json`: page and UI data, including page-owned `appIdentity`. Do not place storage keys or shared analytics collection policy here.
+- `site-config.json`: domain-level routing, required shared site metadata under `site`, optional cross-page defaults under `defaults`, plus shared runtime settings under `runtime.localStorage`, `runtime.features`, and domain-wide `runtime.analytics`.
+- `page-config.json`: page render roots plus page-owned `seo`, `structuredData`, and `analytics` sections.
+- `variables.json`: page and UI data plus optional per-page overrides. Do not place storage keys or shared analytics collection policy here.
 
 ## Draft Locale Configuration
 
-Drafts can now declare their supported locales directly in `variables.json`.
+Drafts can now declare their supported locales directly in `site-config.json` and optionally override them in `variables.json` when a page truly differs.
 
-Use `variables.i18n.defaultLanguage` to define the initial locale for the draft, and `variables.i18n.supportedLanguages` to list every locale the draft supports.
+Use `site-config.json.site.i18n.defaultLanguage` to define the initial locale for the site, and `site-config.json.site.i18n.supportedLanguages` to list every locale the site supports.
 
 Example: single-language draft
 
 ```json
 {
-  "variables": {
+  "site": {
     "i18n": {
       "defaultLanguage": "it",
       "supportedLanguages": [
@@ -64,7 +65,7 @@ Example: dialect-aware draft
 
 ```json
 {
-  "variables": {
+  "site": {
     "i18n": {
       "defaultLanguage": "pt-BR",
       "supportedLanguages": [
@@ -172,9 +173,6 @@ set:config.text,langPick,i18n,footer.copyright,Copyright Example. All rights res
 - Variables: [schemas/variables.schema.json](schemas/variables.schema.json)
 - Angora combos: [schemas/angora-combos.schema.json](schemas/angora-combos.schema.json)
 - i18n: [schemas/i18n.schema.json](schemas/i18n.schema.json)
-- SEO: [schemas/seo.schema.json](schemas/seo.schema.json)
-- Structured data: [schemas/structured-data.schema.json](schemas/structured-data.schema.json)
-- Analytics config: [schemas/analytics-config.schema.json](schemas/analytics-config.schema.json)
 
 ## Draft Interceptor (Step 7)
 

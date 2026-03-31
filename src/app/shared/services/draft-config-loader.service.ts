@@ -1,23 +1,17 @@
 import { getLocaleCandidates } from '@/app/shared/i18n/locale.utils';
 import type {
-    TAnalyticsConfigPayload,
     TAngoraCombosPayload,
     TComponentsPayload,
     TDraftSiteConfigPayload,
     TI18nPayload,
     TPageConfigPayload,
-    TSeoPayload,
-    TStructuredDataPayload,
     TVariablesPayload,
 } from '@/app/shared/types/config-payloads.types';
 import {
-    isAnalyticsConfigPayload,
     isAngoraCombosPayload,
     isDraftSiteConfigPayload,
     isI18nPayload,
     isPageConfigPayload,
-    isSeoPayload,
-    isStructuredDataPayload,
     isVariablesPayload
 } from '@/app/shared/utility/config-validation/config-payload.validators';
 import { environment } from '@/environments/environment';
@@ -119,39 +113,6 @@ export class DraftConfigLoaderService {
         const url = `${ draftBase }/angora-combos.json`;
         const payload = await this.getJson<TAngoraCombosPayload>(url);
         return isAngoraCombosPayload(payload) ? payload : null;
-    }
-
-    async loadSeo(domain?: string, pageId?: string): Promise<TSeoPayload | null> {
-        const draftBase = this.getDraftBase(domain, pageId);
-        if (!draftBase) {
-            return null;
-        }
-
-        const url = `${ draftBase }/seo.json`;
-        const payload = await this.getJson<TSeoPayload>(url);
-        return isSeoPayload(payload) ? payload : null;
-    }
-
-    async loadStructuredData(domain?: string, pageId?: string): Promise<TStructuredDataPayload | null> {
-        const draftBase = this.getDraftBase(domain, pageId);
-        if (!draftBase) {
-            return null;
-        }
-
-        const url = `${ draftBase }/structured-data.json`;
-        const payload = await this.getJson<TStructuredDataPayload>(url);
-        return isStructuredDataPayload(payload) ? payload : null;
-    }
-
-    async loadAnalyticsConfig(domain?: string, pageId?: string): Promise<TAnalyticsConfigPayload | null> {
-        const draftBase = this.getDraftBase(domain, pageId);
-        if (!draftBase) {
-            return null;
-        }
-
-        const url = `${ draftBase }/analytics-config.json`;
-        const payload = await this.getJson<TAnalyticsConfigPayload>(url);
-        return isAnalyticsConfigPayload(payload) ? payload : null;
     }
 
     async loadDebugWorkspacePageConfig(): Promise<TPageConfigPayload | null> {

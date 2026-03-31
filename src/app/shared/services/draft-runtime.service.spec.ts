@@ -127,6 +127,27 @@ describe('DraftRuntimeService', () => {
     expect(service.activeDraftPageId()).toBe('contactame');
   });
 
+  it('falls back to defaultPageId when the current route is not mapped in site-config', async () => {
+    const { service } = configure(
+      'https://example.test/no-existe?draftDomain=pamelabetancourt.preview',
+      {
+        version: 1,
+        domain: 'pamelabetancourt.preview',
+        defaultPageId: 'home',
+        routes: [
+          { path: '/', pageId: 'home' },
+          { path: '/servicios', pageId: 'servicios' },
+        ],
+      },
+    );
+
+    const context = await service.resolveActiveDraftContext();
+
+    expect(context.pageId).toBe('home');
+    expect(context.path).toBe('/no-existe');
+    expect(service.activeDraftPageId()).toBe('home');
+  });
+
   it('uses Angular Router for draft selection on the client', () => {
     const { service } = configure(
       'https://example.test/home?draftDomain=pamelabetancourt.preview&debugWorkspace=true',

@@ -6,6 +6,7 @@ import type {
     TDraftFeatureRuntimeConfig,
     TDraftLocalStorageRuntimeConfig,
     TDraftLocalStorageSlot,
+    TDraftSiteSeoConfig,
 } from '@/app/shared/types/config-payloads.types';
 import { computed, inject, Injectable } from '@angular/core';
 import { ConfigStoreService } from './config-store.service';
@@ -34,6 +35,7 @@ export class RuntimeConfigService {
 
     readonly siteRuntime = computed(() => this.configStore.siteConfig()?.runtime ?? null);
     readonly appIdentity = computed<TDraftAppIdentityVariableConfig | null>(() => this.variableStore.appIdentity());
+    readonly siteSeo = computed<TDraftSiteSeoConfig | null>(() => this.configStore.siteConfig()?.site?.seo ?? null);
     readonly brand = computed(() => this.variableStore.brand());
     readonly heroAssets = computed(() => this.variableStore.heroAssets());
     readonly ctaTargets = computed(() => this.variableStore.ctaTargets());
@@ -90,6 +92,10 @@ export class RuntimeConfigService {
 
     appMetadata(): TDraftAppIdentityVariableConfig {
         return this.appIdentity() ?? {};
+    }
+
+    seoDefaults(): TDraftSiteSeoConfig | null {
+        return this.siteSeo();
     }
 
     resolveStorageKey(slot: TDraftLocalStorageSlot): string {

@@ -197,7 +197,6 @@
     "domain": { "type": "string" },
     "variables": {
       "type": "object",
-      "required": ["appIdentity"],
       "properties": {
         "appIdentity": { "$ref": "#/definitions/appIdentityConfig" },
         "brand": { "$ref": "#/definitions/brandConfig" },

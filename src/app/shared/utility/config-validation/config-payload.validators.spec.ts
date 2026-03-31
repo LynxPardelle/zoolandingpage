@@ -2,6 +2,7 @@ import {
     isAnalyticsConfigPayload,
     isAngoraCombosPayload,
     isComponentsPayload,
+    isDraftSiteConfigPayload,
     isI18nPayload,
     isPageConfigPayload,
     isSeoPayload,
@@ -23,6 +24,93 @@ describe('config-payload.validators', () => {
 
         expect(isPageConfigPayload(valid)).toBeTrue();
         expect(isPageConfigPayload(invalid)).toBeFalse();
+    });
+
+    it('validates site-config payloads with required site metadata', () => {
+        const valid = {
+            version: 1,
+            domain: 'zoolandingpage.com.mx',
+            defaultPageId: 'default',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: {
+                appIdentity: {
+                    identifier: 'zoolandingpagecommx',
+                    name: 'Zoo Landing Page',
+                },
+                theme: {
+                    palettes: {
+                        light: {
+                            bgColor: '#ffffff',
+                            textColor: '#111111',
+                            titleColor: '#222222',
+                            linkColor: '#333333',
+                            accentColor: '#444444',
+                            secondaryBgColor: '#f5f5f5',
+                            secondaryTextColor: '#555555',
+                            secondaryTitleColor: '#666666',
+                            secondaryLinkColor: '#777777',
+                            secondaryAccentColor: '#888888',
+                            successColor: '#198754',
+                            onSuccessColor: '#052e1c',
+                            errorColor: '#dc3545',
+                            onErrorColor: '#3b0a10',
+                            warningColor: '#f59e0b',
+                            onWarningColor: '#3a2400',
+                            infoColor: '#0d6efd',
+                            onInfoColor: '#041b44',
+                        },
+                        dark: {
+                            bgColor: '#000000',
+                            textColor: '#fefefe',
+                            titleColor: '#efefef',
+                            linkColor: '#dddddd',
+                            accentColor: '#cccccc',
+                            secondaryBgColor: '#111111',
+                            secondaryTextColor: '#bbbbbb',
+                            secondaryTitleColor: '#aaaaaa',
+                            secondaryLinkColor: '#999999',
+                            secondaryAccentColor: '#888888',
+                            successColor: '#32d583',
+                            onSuccessColor: '#f3fff8',
+                            errorColor: '#ff6b6b',
+                            onErrorColor: '#fff5f5',
+                            warningColor: '#f5b942',
+                            onWarningColor: '#fff7e6',
+                            infoColor: '#58a6ff',
+                            onInfoColor: '#f5fbff',
+                        },
+                    },
+                },
+                i18n: {
+                    defaultLanguage: 'es',
+                    supportedLanguages: ['es', 'en'],
+                },
+            },
+            defaults: {
+                ui: {
+                    toast: {
+                        hostClasses: 'toast-host',
+                    },
+                },
+            },
+        };
+
+        expect(isDraftSiteConfigPayload(valid)).toBeTrue();
+    });
+
+    it('rejects site-config payloads without required site metadata', () => {
+        const invalid = {
+            version: 1,
+            domain: 'zoolandingpage.com.mx',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: {
+                appIdentity: {
+                    identifier: 'zoolandingpagecommx',
+                },
+            },
+        };
+
+        expect(isDraftSiteConfigPayload(invalid)).toBeFalse();
     });
 
     it('validates components payloads', () => {
@@ -479,6 +567,30 @@ describe('config-payload.validators', () => {
             },
             computed: { b: 2 },
         };
+        expect(isVariablesPayload(valid)).toBeTrue();
+    });
+
+    it('accepts variables payloads without site-owned metadata', () => {
+        const valid = {
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            variables: {
+                ui: {
+                    modals: {
+                        _default: {
+                            closeOnBackdrop: true,
+                        },
+                    },
+                },
+                statsCounters: {
+                    visits: {
+                        target: 12450,
+                    },
+                },
+            },
+        };
+
         expect(isVariablesPayload(valid)).toBeTrue();
     });
 

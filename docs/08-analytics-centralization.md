@@ -122,7 +122,7 @@ Centralization enables:
 - Routing events to multiple sinks (e.g. server + console + A/B framework).
 - Batch/queue management and rate limiting centrally.
 - Adding user consent gating without touching producers.
-- Remapping canonical framework event/category IDs through `analytics-config.json` before transport, so draft/API payloads own sink-facing taxonomy without forcing emitter changes.
+- Remapping canonical framework event/category IDs through the merged site/page analytics config before transport, so draft/API payloads own sink-facing taxonomy without forcing emitter changes.
 
 ### 8. Migration Checklist (applied)
 
@@ -152,7 +152,7 @@ Centralization enables:
 
 ### 11. Payload-owned taxonomy
 
-`AnalyticsService` now treats `AnalyticsEvents.*` and `AnalyticsCategories.*` as canonical runtime IDs. Before sending data to the analytics sink, it consults `analytics-config.json` and remaps:
+`AnalyticsService` now treats `AnalyticsEvents.*` and `AnalyticsCategories.*` as canonical runtime IDs. Before sending data to the analytics sink, it consults the merged site/page analytics config and remaps:
 
 - `events[canonicalEventName] -> transportEventName`
 - `categories[canonicalCategoryName] -> transportCategoryName`

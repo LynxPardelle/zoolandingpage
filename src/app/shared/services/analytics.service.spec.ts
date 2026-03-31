@@ -70,9 +70,6 @@ describe('AnalyticsService', () => {
 
     const store = TestBed.inject(ConfigStoreService);
     store.setAnalytics({
-      version: 1,
-      pageId: 'default',
-      domain: 'zoolandingpage.com.mx',
       sectionIds: [],
       scrollMilestones: [],
       enabled: false,

@@ -9,6 +9,66 @@ import { LanguageService } from './language.service';
 import { StructuredDataService } from './structured-data.service';
 import { VariableStoreService } from './variable-store.service';
 
+const createSiteConfig = () => ({
+    version: 1,
+    domain: 'zoolandingpage.com.mx',
+    routes: [{ path: '/', pageId: 'default' }],
+    site: {
+        appIdentity: {
+            identifier: 'zoolandingpagecommx',
+            name: 'Zoo Landing Page',
+        },
+        theme: {
+            palettes: {
+                light: {
+                    bgColor: '#ffffff',
+                    textColor: '#111111',
+                    titleColor: '#222222',
+                    linkColor: '#333333',
+                    accentColor: '#444444',
+                    secondaryBgColor: '#f5f5f5',
+                    secondaryTextColor: '#555555',
+                    secondaryTitleColor: '#666666',
+                    secondaryLinkColor: '#777777',
+                    secondaryAccentColor: '#888888',
+                    successColor: '#198754',
+                    onSuccessColor: '#052e1c',
+                    errorColor: '#dc3545',
+                    onErrorColor: '#3b0a10',
+                    warningColor: '#f59e0b',
+                    onWarningColor: '#3a2400',
+                    infoColor: '#0d6efd',
+                    onInfoColor: '#041b44',
+                },
+                dark: {
+                    bgColor: '#000000',
+                    textColor: '#fefefe',
+                    titleColor: '#efefef',
+                    linkColor: '#dddddd',
+                    accentColor: '#cccccc',
+                    secondaryBgColor: '#111111',
+                    secondaryTextColor: '#bbbbbb',
+                    secondaryTitleColor: '#aaaaaa',
+                    secondaryLinkColor: '#999999',
+                    secondaryAccentColor: '#888888',
+                    successColor: '#32d583',
+                    onSuccessColor: '#f3fff8',
+                    errorColor: '#ff6b6b',
+                    onErrorColor: '#fff5f5',
+                    warningColor: '#f5b942',
+                    onWarningColor: '#fff7e6',
+                    infoColor: '#58a6ff',
+                    onInfoColor: '#f5fbff',
+                },
+            },
+        },
+        i18n: {
+            defaultLanguage: 'es',
+            supportedLanguages: ['es', 'en'],
+        },
+    },
+});
+
 describe('ConfigBootstrapService', () => {
     let service: ConfigBootstrapService;
 
@@ -60,6 +120,7 @@ describe('ConfigBootstrapService', () => {
 
     it('reports missing modal config when a payload references a modal-owned dialog', () => {
         const issues = (service as any).buildValidationIssues({
+            siteConfig: createSiteConfig(),
             pageConfig: {
                 version: 1,
                 pageId: 'default',
@@ -91,54 +152,6 @@ describe('ConfigBootstrapService', () => {
                 pageId: 'default',
                 domain: 'zoolandingpage.com.mx',
                 variables: {
-                    theme: {
-                        palettes: {
-                            light: {
-                                bgColor: '#ffffff',
-                                textColor: '#111111',
-                                titleColor: '#222222',
-                                linkColor: '#333333',
-                                accentColor: '#444444',
-                                secondaryBgColor: '#f5f5f5',
-                                secondaryTextColor: '#555555',
-                                secondaryTitleColor: '#666666',
-                                secondaryLinkColor: '#777777',
-                                secondaryAccentColor: '#888888',
-                                successColor: '#198754',
-                                onSuccessColor: '#052e1c',
-                                errorColor: '#dc3545',
-                                onErrorColor: '#3b0a10',
-                                warningColor: '#f59e0b',
-                                onWarningColor: '#3a2400',
-                                infoColor: '#0d6efd',
-                                onInfoColor: '#041b44',
-                            },
-                            dark: {
-                                bgColor: '#000000',
-                                textColor: '#fefefe',
-                                titleColor: '#efefef',
-                                linkColor: '#dddddd',
-                                accentColor: '#cccccc',
-                                secondaryBgColor: '#111111',
-                                secondaryTextColor: '#bbbbbb',
-                                secondaryTitleColor: '#aaaaaa',
-                                secondaryLinkColor: '#999999',
-                                secondaryAccentColor: '#888888',
-                                successColor: '#32d583',
-                                onSuccessColor: '#f3fff8',
-                                errorColor: '#ff6b6b',
-                                onErrorColor: '#fff5f5',
-                                warningColor: '#f5b942',
-                                onWarningColor: '#fff7e6',
-                                infoColor: '#58a6ff',
-                                onInfoColor: '#f5fbff',
-                            },
-                        },
-                    },
-                    i18n: {
-                        defaultLanguage: 'es',
-                        supportedLanguages: ['es', 'en'],
-                    },
                     ui: {},
                 },
             },
@@ -162,11 +175,12 @@ describe('ConfigBootstrapService', () => {
             analytics: null,
         });
 
-        expect(issues).toContain('variables.ui.modals.terms-of-service is required when modal "terms-of-service" is referenced.');
+        expect(issues).toContain('config.ui.modals.terms-of-service is required when modal "terms-of-service" is referenced.');
     });
 
     it('reports missing modal aria labels when a referenced modal config is incomplete', () => {
         const issues = (service as any).buildValidationIssues({
+            siteConfig: createSiteConfig(),
             pageConfig: {
                 version: 1,
                 pageId: 'default',
@@ -198,54 +212,6 @@ describe('ConfigBootstrapService', () => {
                 pageId: 'default',
                 domain: 'zoolandingpage.com.mx',
                 variables: {
-                    theme: {
-                        palettes: {
-                            light: {
-                                bgColor: '#ffffff',
-                                textColor: '#111111',
-                                titleColor: '#222222',
-                                linkColor: '#333333',
-                                accentColor: '#444444',
-                                secondaryBgColor: '#f5f5f5',
-                                secondaryTextColor: '#555555',
-                                secondaryTitleColor: '#666666',
-                                secondaryLinkColor: '#777777',
-                                secondaryAccentColor: '#888888',
-                                successColor: '#198754',
-                                onSuccessColor: '#052e1c',
-                                errorColor: '#dc3545',
-                                onErrorColor: '#3b0a10',
-                                warningColor: '#f59e0b',
-                                onWarningColor: '#3a2400',
-                                infoColor: '#0d6efd',
-                                onInfoColor: '#041b44',
-                            },
-                            dark: {
-                                bgColor: '#000000',
-                                textColor: '#fefefe',
-                                titleColor: '#efefef',
-                                linkColor: '#dddddd',
-                                accentColor: '#cccccc',
-                                secondaryBgColor: '#111111',
-                                secondaryTextColor: '#bbbbbb',
-                                secondaryTitleColor: '#aaaaaa',
-                                secondaryLinkColor: '#999999',
-                                secondaryAccentColor: '#888888',
-                                successColor: '#32d583',
-                                onSuccessColor: '#f3fff8',
-                                errorColor: '#ff6b6b',
-                                onErrorColor: '#fff5f5',
-                                warningColor: '#f5b942',
-                                onWarningColor: '#fff7e6',
-                                infoColor: '#58a6ff',
-                                onInfoColor: '#f5fbff',
-                            },
-                        },
-                    },
-                    i18n: {
-                        defaultLanguage: 'es',
-                        supportedLanguages: ['es', 'en'],
-                    },
                     ui: {
                         modals: {
                             'terms-of-service': {
@@ -275,11 +241,12 @@ describe('ConfigBootstrapService', () => {
             analytics: null,
         });
 
-        expect(issues).toContain('variables.ui.modals.terms-of-service.ariaLabel or ariaLabelKey is required when modal "terms-of-service" is referenced.');
+        expect(issues).toContain('config.ui.modals.terms-of-service.ariaLabel or ariaLabelKey is required when modal "terms-of-service" is referenced.');
     });
 
     it('allows loop-generated child references that use the {{index}} placeholder', () => {
         const issues = (service as any).buildValidationIssues({
+            siteConfig: createSiteConfig(),
             pageConfig: {
                 version: 1,
                 pageId: 'default',
@@ -320,61 +287,7 @@ describe('ConfigBootstrapService', () => {
                     },
                 },
             },
-            variables: {
-                version: 1,
-                pageId: 'default',
-                domain: 'zoolandingpage.com.mx',
-                variables: {
-                    theme: {
-                        palettes: {
-                            light: {
-                                bgColor: '#ffffff',
-                                textColor: '#111111',
-                                titleColor: '#222222',
-                                linkColor: '#333333',
-                                accentColor: '#444444',
-                                secondaryBgColor: '#f5f5f5',
-                                secondaryTextColor: '#555555',
-                                secondaryTitleColor: '#666666',
-                                secondaryLinkColor: '#777777',
-                                secondaryAccentColor: '#888888',
-                                successColor: '#198754',
-                                onSuccessColor: '#052e1c',
-                                errorColor: '#dc3545',
-                                onErrorColor: '#3b0a10',
-                                warningColor: '#f59e0b',
-                                onWarningColor: '#3a2400',
-                                infoColor: '#0d6efd',
-                                onInfoColor: '#041b44',
-                            },
-                            dark: {
-                                bgColor: '#000000',
-                                textColor: '#fefefe',
-                                titleColor: '#efefef',
-                                linkColor: '#dddddd',
-                                accentColor: '#cccccc',
-                                secondaryBgColor: '#111111',
-                                secondaryTextColor: '#bbbbbb',
-                                secondaryTitleColor: '#aaaaaa',
-                                secondaryLinkColor: '#999999',
-                                secondaryAccentColor: '#888888',
-                                successColor: '#32d583',
-                                onSuccessColor: '#f3fff8',
-                                errorColor: '#ff6b6b',
-                                onErrorColor: '#fff5f5',
-                                warningColor: '#f5b942',
-                                onWarningColor: '#fff7e6',
-                                infoColor: '#58a6ff',
-                                onInfoColor: '#f5fbff',
-                            },
-                        },
-                    },
-                    i18n: {
-                        defaultLanguage: 'es',
-                        supportedLanguages: ['es'],
-                    },
-                },
-            },
+            variables: null,
             combos: null,
             i18n: {
                 version: 1,

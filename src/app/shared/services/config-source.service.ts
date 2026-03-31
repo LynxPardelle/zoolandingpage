@@ -1,12 +1,9 @@
 import type {
-    TAnalyticsConfigPayload,
     TAngoraCombosPayload,
     TComponentsPayload,
     TDraftSiteConfigPayload,
     TI18nPayload,
     TPageConfigPayload,
-    TSeoPayload,
-    TStructuredDataPayload,
     TVariablesPayload,
 } from '@/app/shared/types/config-payloads.types';
 import { environment } from '@/environments/environment';
@@ -21,9 +18,6 @@ type TConfigSource = {
     readonly loadVariables: (domain: string, pageId: string) => Promise<TVariablesPayload | null>;
     readonly loadCombos: (domain: string, pageId: string) => Promise<TAngoraCombosPayload | null>;
     readonly loadI18n: (domain: string, pageId: string, lang: string) => Promise<TI18nPayload | null>;
-    readonly loadSeo: (domain: string, pageId: string) => Promise<TSeoPayload | null>;
-    readonly loadStructuredData: (domain: string, pageId: string) => Promise<TStructuredDataPayload | null>;
-    readonly loadAnalytics: (domain: string, pageId: string) => Promise<TAnalyticsConfigPayload | null>;
 };
 
 @Injectable({ providedIn: 'root' })
@@ -38,9 +32,6 @@ export class ConfigSourceService {
         loadVariables: (domain, pageId) => this.drafts.loadVariables(domain, pageId),
         loadCombos: (domain, pageId) => this.drafts.loadAngoraCombos(domain, pageId),
         loadI18n: (domain, pageId, lang) => this.drafts.loadI18n(domain, pageId, lang),
-        loadSeo: (domain, pageId) => this.drafts.loadSeo(domain, pageId),
-        loadStructuredData: (domain, pageId) => this.drafts.loadStructuredData(domain, pageId),
-        loadAnalytics: (domain, pageId) => this.drafts.loadAnalyticsConfig(domain, pageId),
     };
 
     private readonly apiSource: TConfigSource = {
@@ -50,9 +41,6 @@ export class ConfigSourceService {
         loadVariables: (domain, pageId) => this.api.getVariables(domain, pageId),
         loadCombos: (domain, pageId) => this.api.getAngoraCombos(domain, pageId),
         loadI18n: (domain, pageId, lang) => this.api.getI18n(domain, lang, pageId),
-        loadSeo: (domain, pageId) => this.api.getSeo(domain, pageId),
-        loadStructuredData: (domain, pageId) => this.api.getStructuredData(domain, pageId),
-        loadAnalytics: (domain, pageId) => this.api.getAnalyticsConfig(domain, pageId),
     };
 
     private get source(): TConfigSource {
@@ -81,18 +69,6 @@ export class ConfigSourceService {
 
     loadI18n(domain: string, pageId: string, lang: string): Promise<TI18nPayload | null> {
         return this.source.loadI18n(domain, pageId, lang);
-    }
-
-    loadSeo(domain: string, pageId: string): Promise<TSeoPayload | null> {
-        return this.source.loadSeo(domain, pageId);
-    }
-
-    loadStructuredData(domain: string, pageId: string): Promise<TStructuredDataPayload | null> {
-        return this.source.loadStructuredData(domain, pageId);
-    }
-
-    loadAnalytics(domain: string, pageId: string): Promise<TAnalyticsConfigPayload | null> {
-        return this.source.loadAnalytics(domain, pageId);
     }
 
     loadDebugWorkspacePageConfig(): Promise<TPageConfigPayload | null> {

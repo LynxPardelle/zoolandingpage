@@ -29,6 +29,7 @@ describe('SeoMetadataService', () => {
                 {
                     provide: RuntimeConfigService,
                     useValue: {
+                        seoDefaults: () => null,
                         appName: () => 'Zoo Landing Page',
                         appDescription: () => 'Draft-driven landing pages.',
                     },
@@ -45,5 +46,51 @@ describe('SeoMetadataService', () => {
         expect(title.setTitle).toHaveBeenCalledWith('Zoo Landing Page');
         expect(meta.updateTag).toHaveBeenCalledWith({ name: 'description', content: 'Draft-driven landing pages.' });
         expect(meta.updateTag).toHaveBeenCalledWith({ property: 'og:site_name', content: 'Zoo Landing Page' });
+    });
+
+    it('uses site-config seo defaults for shared metadata fallbacks', () => {
+        TestBed.resetTestingModule();
+
+        title = jasmine.createSpyObj<Title>('Title', ['setTitle']);
+        meta = jasmine.createSpyObj<Meta>('Meta', ['updateTag']);
+
+        TestBed.configureTestingModule({
+            providers: [
+                SeoMetadataService,
+                { provide: DOCUMENT, useValue: document },
+                { provide: Title, useValue: title },
+                { provide: Meta, useValue: meta },
+                {
+                    provide: DomainResolverService,
+                    useValue: {
+                        resolveDomain: () => ({ domain: 'example.com' }),
+                    },
+                },
+                {
+                    provide: RuntimeConfigService,
+                    useValue: {
+                        seoDefaults: () => ({
+                            siteName: 'Example Site',
+                            title: 'Example Site',
+                            description: 'Shared site description.',
+                            canonicalOrigin: 'https://example.com',
+                            defaultImage: 'https://example.com/og-default.png',
+                            openGraph: { type: 'website', site_name: 'Example Site' },
+                            twitter: { card: 'summary' },
+                        }),
+                        appName: () => 'Ignored App Name',
+                        appDescription: () => 'Ignored app description.',
+                    },
+                },
+            ],
+        });
+
+        service = TestBed.inject(SeoMetadataService);
+        service.apply('en', null);
+
+        expect(title.setTitle).toHaveBeenCalledWith('Example Site');
+        expect(meta.updateTag).toHaveBeenCalledWith({ name: 'description', content: 'Shared site description.' });
+        expect(meta.updateTag).toHaveBeenCalledWith({ property: 'og:image', content: 'https://example.com/og-default.png' });
+        expect(meta.updateTag).toHaveBeenCalledWith({ name: 'twitter:card', content: 'summary' });
     });
 });

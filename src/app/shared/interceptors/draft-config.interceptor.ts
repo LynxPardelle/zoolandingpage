@@ -7,9 +7,6 @@ const CONFIG_ENDPOINTS = new Set([
     'variables',
     'angora-combos',
     'i18n',
-    'seo',
-    'structured-data',
-    'analytics-config',
 ]);
 
 const getDraftUrl = (endpoint: string, params: URLSearchParams): string => {

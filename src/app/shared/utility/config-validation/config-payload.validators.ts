@@ -15,7 +15,10 @@ import type {
     TDraftLocalStorageSlot,
     TDraftModalUiConfig,
     TDraftSiteConfigPayload,
+    TDraftSiteDefaultsConfig,
     TDraftSiteRuntimeConfig,
+    TDraftSiteSeoConfig,
+    TDraftSiteSharedConfig,
     TDraftSocialLinkConfig,
     TDraftToastUiConfig,
     TDraftUiVariableConfig,
@@ -222,6 +225,30 @@ const isDraftAppIdentityVariableConfig = (value: unknown): value is TDraftAppIde
     return true;
 };
 
+const isDraftBrandVariableConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (value['displayName'] !== undefined && typeof value['displayName'] !== 'string') return false;
+    if (value['tagline'] !== undefined && typeof value['tagline'] !== 'string') return false;
+    if (value['logoUrl'] !== undefined && typeof value['logoUrl'] !== 'string') return false;
+    return true;
+};
+
+const isDraftHeroAssetsVariableConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (value['heroImageUrl'] !== undefined && typeof value['heroImageUrl'] !== 'string') return false;
+    if (value['heroImageAlt'] !== undefined && typeof value['heroImageAlt'] !== 'string') return false;
+    if (value['heroBackdropUrl'] !== undefined && typeof value['heroBackdropUrl'] !== 'string') return false;
+    return true;
+};
+
+const isDraftCtaTargetsVariableConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    return Object.values(value).every((entry) => typeof entry === 'string');
+};
+
+const isDraftNavigationVariableConfig = (value: unknown): boolean =>
+    Array.isArray(value) && value.every((entry) => isRecord(entry));
+
 const isDraftLocalStorageRuntimeConfig = (value: unknown): value is TDraftLocalStorageRuntimeConfig => {
     if (!isRecord(value)) return false;
 
@@ -235,6 +262,18 @@ const isDraftLocalStorageRuntimeConfig = (value: unknown): value is TDraftLocalS
 const isDraftFeatureRuntimeConfig = (value: unknown): value is TDraftFeatureRuntimeConfig => {
     if (!isRecord(value)) return false;
     if (value['debugMode'] !== undefined && typeof value['debugMode'] !== 'boolean') return false;
+    return true;
+};
+
+const isDraftSiteSeoConfig = (value: unknown): value is TDraftSiteSeoConfig => {
+    if (!isRecord(value)) return false;
+    if (value['siteName'] !== undefined && typeof value['siteName'] !== 'string') return false;
+    if (value['title'] !== undefined && typeof value['title'] !== 'string') return false;
+    if (value['description'] !== undefined && typeof value['description'] !== 'string') return false;
+    if (value['canonicalOrigin'] !== undefined && typeof value['canonicalOrigin'] !== 'string') return false;
+    if (value['defaultImage'] !== undefined && typeof value['defaultImage'] !== 'string') return false;
+    if (value['openGraph'] !== undefined && !isRecord(value['openGraph'])) return false;
+    if (value['twitter'] !== undefined && !isRecord(value['twitter'])) return false;
     return true;
 };
 
@@ -951,6 +990,45 @@ const isDraftUiVariableConfig = (value: unknown): value is TDraftUiVariableConfi
     return true;
 };
 
+const isDraftVariableConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+
+    if (value['statsCounters'] !== undefined && !isStatsCountersVariableConfig(value['statsCounters'])) return false;
+    if (value['theme'] !== undefined && !isThemeVariableConfig(value['theme'])) return false;
+    if (value['i18n'] !== undefined && !isDraftI18nVariableConfig(value['i18n'])) return false;
+    if (value['appIdentity'] !== undefined && !isDraftAppIdentityVariableConfig(value['appIdentity'])) return false;
+    if (value['ui'] !== undefined && !isDraftUiVariableConfig(value['ui'])) return false;
+    if (value['brand'] !== undefined && !isDraftBrandVariableConfig(value['brand'])) return false;
+    if (value['heroAssets'] !== undefined && !isDraftHeroAssetsVariableConfig(value['heroAssets'])) return false;
+    if (value['ctaTargets'] !== undefined && !isDraftCtaTargetsVariableConfig(value['ctaTargets'])) return false;
+    if (value['navigation'] !== undefined && !isDraftNavigationVariableConfig(value['navigation'])) return false;
+
+    const socialLinks = value['socialLinks'];
+    if (socialLinks !== undefined && (!Array.isArray(socialLinks) || !socialLinks.every((entry) => isDraftSocialLinkConfig(entry)))) {
+        return false;
+    }
+
+    return true;
+};
+
+const isDraftSiteSharedConfig = (value: unknown): value is TDraftSiteSharedConfig => {
+    if (!isRecord(value)) return false;
+    if (!isDraftAppIdentityVariableConfig(value['appIdentity'])) return false;
+    if (!isThemeVariableConfig(value['theme'])) return false;
+    if (!isDraftI18nVariableConfig(value['i18n'])) return false;
+    if (value['seo'] !== undefined && !isDraftSiteSeoConfig(value['seo'])) return false;
+    return true;
+};
+
+const isDraftSiteDefaultsConfig = (value: unknown): value is TDraftSiteDefaultsConfig => {
+    if (!isDraftVariableConfig(value)) return false;
+    if (!isRecord(value)) return false;
+    if (value['appIdentity'] !== undefined) return false;
+    if (value['theme'] !== undefined) return false;
+    if (value['i18n'] !== undefined) return false;
+    return true;
+};
+
 const isDraftToastUiConfig = (value: unknown): value is TDraftToastUiConfig => {
     if (!isRecord(value)) return false;
 
@@ -1015,6 +1093,9 @@ export const isPageConfigPayload = (value: unknown): value is TPageConfigPayload
     if (!isStringArray(value['rootIds'])) return false;
     if (value['modalRootIds'] && !isStringArray(value['modalRootIds'])) return false;
     if (value['routes'] && !Array.isArray(value['routes'])) return false;
+    if (value['seo'] !== undefined && !isSeoPayload(value['seo'])) return false;
+    if (value['structuredData'] !== undefined && !isStructuredDataPayload(value['structuredData'])) return false;
+    if (value['analytics'] !== undefined && !isAnalyticsConfigPayload(value['analytics'])) return false;
     return true;
 };
 
@@ -1025,6 +1106,8 @@ export const isDraftSiteConfigPayload = (value: unknown): value is TDraftSiteCon
     if (value['defaultPageId'] !== undefined && typeof value['defaultPageId'] !== 'string') return false;
     if (!Array.isArray(value['routes']) || !value['routes'].every(isDraftSiteRouteEntry)) return false;
     if (value['runtime'] !== undefined && !isDraftSiteRuntimeConfig(value['runtime'])) return false;
+    if (!isDraftSiteSharedConfig(value['site'])) return false;
+    if (value['defaults'] !== undefined && !isDraftSiteDefaultsConfig(value['defaults'])) return false;
     return true;
 };
 
@@ -1061,37 +1144,7 @@ export const isVariablesPayload = (value: unknown): value is TVariablesPayload =
     if (!isRecord(value['variables'])) return false;
     if (value['computed'] && !isRecord(value['computed'])) return false;
 
-    const statsCounters = (value['variables'] as Record<string, unknown>)['statsCounters'];
-    if (statsCounters !== undefined && !isStatsCountersVariableConfig(statsCounters)) {
-        return false;
-    }
-
-    const theme = (value['variables'] as Record<string, unknown>)['theme'];
-    if (theme !== undefined && !isThemeVariableConfig(theme)) {
-        return false;
-    }
-
-    const i18n = (value['variables'] as Record<string, unknown>)['i18n'];
-    if (i18n !== undefined && !isDraftI18nVariableConfig(i18n)) {
-        return false;
-    }
-
-    const appIdentity = (value['variables'] as Record<string, unknown>)['appIdentity'];
-    if (appIdentity !== undefined && !isDraftAppIdentityVariableConfig(appIdentity)) {
-        return false;
-    }
-
-    const ui = (value['variables'] as Record<string, unknown>)['ui'];
-    if (ui !== undefined && !isDraftUiVariableConfig(ui)) {
-        return false;
-    }
-
-    const socialLinks = (value['variables'] as Record<string, unknown>)['socialLinks'];
-    if (socialLinks !== undefined && (!Array.isArray(socialLinks) || !socialLinks.every((entry) => isDraftSocialLinkConfig(entry)))) {
-        return false;
-    }
-
-    return true;
+    return isDraftVariableConfig(value['variables']);
 };
 
 export const isI18nPayload = (value: unknown): value is TI18nPayload => {
@@ -1106,28 +1159,25 @@ export const isI18nPayload = (value: unknown): value is TI18nPayload => {
 
 export const isSeoPayload = (value: unknown): value is TSeoPayload => {
     if (!isRecord(value)) return false;
-    if (typeof value['version'] !== 'number') return false;
-    if (typeof value['pageId'] !== 'string') return false;
-    if (typeof value['domain'] !== 'string') return false;
+    if (value['title'] !== undefined && typeof value['title'] !== 'string') return false;
+    if (value['description'] !== undefined && typeof value['description'] !== 'string') return false;
+    if (value['openGraph'] !== undefined && !isRecord(value['openGraph'])) return false;
+    if (value['twitter'] !== undefined && !isRecord(value['twitter'])) return false;
+    if (value['canonical'] !== undefined && typeof value['canonical'] !== 'string') return false;
     return true;
 };
 
 export const isStructuredDataPayload = (value: unknown): value is TStructuredDataPayload => {
     if (!isRecord(value)) return false;
-    if (typeof value['version'] !== 'number') return false;
-    if (typeof value['pageId'] !== 'string') return false;
-    if (typeof value['domain'] !== 'string') return false;
     if (!Array.isArray(value['entries'])) return false;
+    if (!value['entries'].every((entry) => isRecord(entry))) return false;
     return true;
 };
 
 export const isAnalyticsConfigPayload = (value: unknown): value is TAnalyticsConfigPayload => {
     if (!isRecord(value)) return false;
-    if (typeof value['version'] !== 'number') return false;
-    if (typeof value['pageId'] !== 'string') return false;
-    if (typeof value['domain'] !== 'string') return false;
-    if (!isStringArray(value['sectionIds'])) return false;
-    if (!isNumberArray(value['scrollMilestones'])) return false;
+    if (value['sectionIds'] !== undefined && !isStringArray(value['sectionIds'])) return false;
+    if (value['scrollMilestones'] !== undefined && !isNumberArray(value['scrollMilestones'])) return false;
     if (value['events'] !== undefined && !isStringRecord(value['events'])) return false;
     if (value['categories'] !== undefined && !isStringRecord(value['categories'])) return false;
     if (value['quickStats'] !== undefined && !isAnalyticsQuickStatsConfig(value['quickStats'])) return false;

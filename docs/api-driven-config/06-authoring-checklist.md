@@ -14,14 +14,14 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Search-box suggestions should live in `config.suggestions`; do not author or depend on a runtime fetcher function.
 - Reuse existing generic component types only.
 - Use existing class tokens / Angora design system conventions.
-- Put global palette data in `variables.theme.palettes.light` and `variables.theme.palettes.dark`.
+- Put global palette data in `site-config.json.site.theme.palettes.light` and `site-config.json.site.theme.palettes.dark`.
 - Put page-owned contact targets in `variables.ui.contact`.
 - Put modal presentation and accessible labels in `variables.ui.modals.<modalId>` for every modal referenced by `openModal:*` or `modalRefId,*`.
 - Put reusable visual class bundles in `angora-combos.json` instead of hardcoding repeated appearance strings in app code.
 - For `input` components, author select/dropdown presentation in payload fields such as `fieldClasses`, `dropdownTriggerClasses`, `dropdownIndicatorText`, `dropdownIndicatorClasses`, `dropdownTriggerTextConfig`, and `dropdownConfig` instead of relying on shared runtime defaults.
 - Footer, legal modal, accessibility, and debug-panel content must be payload-owned (no local fallback assumptions anywhere in the runtime).
 - Do not author hardcoded footer/legal text in app source when generating payload instructions.
-- Treat `seo.json` as required for active pages; the runtime no longer ships a branded shell fallback title or description.
+- Treat `page-config.json.seo` as required for active pages; the runtime no longer ships a branded shell fallback title or description.
 
 ## Naming / structure
 
@@ -79,7 +79,7 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Ensure there are no missing IDs.
 - Ensure `valueInstructions` only uses allowlisted IDs.
 - Ensure no config contains function values.
-- Verify `variables.theme` includes complete `light` and `dark` palettes when the draft owns branding.
+- Verify `site-config.json.site.theme` includes complete `light` and `dark` palettes when the draft owns branding.
 - Verify `variables.i18n.defaultLanguage` and `variables.i18n.supportedLanguages` are present.
 - Verify `variables.ui.contact.whatsappPhone` and `variables.ui.contact.whatsappMessageKey` are present whenever any WhatsApp handler is referenced.
 - Verify `variables.ui.contact.faqMessageKey` is present when `openFaqCtaWhatsApp` is referenced unless the generic WhatsApp message key is intentionally reused.
@@ -87,8 +87,8 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Verify every modal referenced by `openModal:*` or `modalRefId,*` has a matching `variables.ui.modals.<modalId>` entry with `ariaLabel` or `ariaLabelKey`.
 - Verify `variables.appIdentity` is present for each active page, with at least `identifier` or `name`.
 - Verify `site-config.json` includes `runtime.localStorage` and `runtime.features` for each active domain.
-- Verify `analytics-config.json` includes `track` when analytics collection should enrich events with browser metadata.
-- Verify `seo.json` is present and complete for every active draft.
+- Verify `site-config.json.runtime.analytics.track` is present when analytics collection should enrich events with browser metadata.
+- Verify `page-config.json.seo` is present and complete for every active draft.
 - Verify footer/legal modal sections can render from API payload only.
 - Verify shared runtime keys are present in draft i18n when used by the page. Common examples:
   - `ui.accessibility.analyticsConsentDialog`

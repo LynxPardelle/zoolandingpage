@@ -18,9 +18,6 @@ export type TConfigBootstrapStage =
     | 'variables'
     | 'angora-combos'
     | 'i18n'
-    | 'seo'
-    | 'structured-data'
-    | 'analytics-config'
     | 'done'
     | 'error';
 

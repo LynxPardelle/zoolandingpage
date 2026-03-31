@@ -45,9 +45,9 @@ Symptoms:
 
 Checks:
 
-- Verify `variables.theme.palettes.light` and `variables.theme.palettes.dark` both exist.
+- Verify `site-config.json.site.theme.palettes.light` and `site-config.json.site.theme.palettes.dark` both exist.
 - Verify every palette includes all required keys: `bgColor`, `textColor`, `titleColor`, `linkColor`, `accentColor`, `secondaryBgColor`, `secondaryTextColor`, `secondaryTitleColor`, `secondaryLinkColor`, `secondaryAccentColor`.
-- Verify `variables.theme.defaultMode` is `light`, `dark`, or `auto`.
+- Verify `site-config.json.site.theme.defaultMode` is `light`, `dark`, or `auto`.
 - Verify modal accent overrides, if used, stay within `accentColor` or `secondaryAccentColor`.
 - Hard refresh after switching drafts to confirm there is no stale palette state from a previous draft.
 
@@ -70,7 +70,7 @@ Symptoms:
 
 Checks:
 
-- Verify `structured-data.json` contains a non-empty `entries` array.
+- Verify `page-config.json.structuredData.entries` is present and contains valid schema objects for pages that author structured data.
 - Confirm entries are valid schema.org JSON objects.
 
 ### loopConfig does not render generated children
@@ -146,8 +146,8 @@ Symptoms:
 
 Checks:
 
-- Verify `seo.json` exists in the active draft or API payload.
-- Verify `seo.title`, `seo.description`, and `seo.canonical` are all non-empty strings.
+- Verify `page-config.json.seo` exists in the active draft or API payload.
+- Verify `page-config.json.seo.title`, `page-config.json.seo.description`, and `page-config.json.seo.canonical` are all non-empty strings.
 - Do not expect the runtime to inject the old shell title or shell description anymore.
 
 ### Footer does not render at all

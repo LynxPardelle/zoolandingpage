@@ -1,12 +1,9 @@
 import type {
-    TAnalyticsConfigPayload,
     TAngoraCombosPayload,
     TComponentsPayload,
     TDraftSiteConfigPayload,
     TI18nPayload,
     TPageConfigPayload,
-    TSeoPayload,
-    TStructuredDataPayload,
     TVariablesPayload,
 } from '@/app/shared/types/config-payloads.types';
 import { environment } from '@/environments/environment';
@@ -54,18 +51,6 @@ export class ConfigApiService {
 
     getI18n(domain: string, lang: string, pageId?: string): Promise<TI18nPayload> {
         return this.getJson<TI18nPayload>('i18n', { domain, lang, pageId });
-    }
-
-    getSeo(domain: string, pageId?: string): Promise<TSeoPayload> {
-        return this.getJson<TSeoPayload>('seo', { domain, pageId });
-    }
-
-    getStructuredData(domain: string, pageId?: string): Promise<TStructuredDataPayload> {
-        return this.getJson<TStructuredDataPayload>('structured-data', { domain, pageId });
-    }
-
-    getAnalyticsConfig(domain: string, pageId?: string): Promise<TAnalyticsConfigPayload> {
-        return this.getJson<TAnalyticsConfigPayload>('analytics-config', { domain, pageId });
     }
 
     getDebugWorkspacePageConfig(): Promise<TPageConfigPayload> {

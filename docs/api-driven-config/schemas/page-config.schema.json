@@ -2,6 +2,97 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "PageConfigPayload",
   "type": "object",
+  "definitions": {
+    "seoConfig": {
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "openGraph": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "twitter": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "canonical": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "structuredDataConfig": {
+      "type": "object",
+      "required": ["entries"],
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "analyticsQuickStatsEvent": {
+      "type": "object",
+      "required": ["name", "path"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "by": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "analyticsQuickStatsPageView": {
+      "type": "object",
+      "required": ["path"],
+      "properties": {
+        "event": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "by": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "analyticsQuickStats": {
+      "type": "object",
+      "properties": {
+        "pageView": { "$ref": "#/definitions/analyticsQuickStatsPageView" },
+        "events": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/analyticsQuickStatsEvent" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "pageAnalyticsConfig": {
+      "type": "object",
+      "properties": {
+        "sectionIds": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "scrollMilestones": {
+          "type": "array",
+          "items": { "type": "number" }
+        },
+        "events": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "categories": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "track": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "quickStats": { "$ref": "#/definitions/analyticsQuickStats" }
+      },
+      "additionalProperties": false
+    }
+  },
   "required": ["version", "pageId", "domain", "rootIds"],
   "properties": {
     "version": { "type": "integer", "minimum": 1 },
@@ -18,6 +109,15 @@
     "metadata": {
       "type": "object",
       "additionalProperties": true
+    },
+    "seo": {
+      "$ref": "#/definitions/seoConfig"
+    },
+    "structuredData": {
+      "$ref": "#/definitions/structuredDataConfig"
+    },
+    "analytics": {
+      "$ref": "#/definitions/pageAnalyticsConfig"
     },
     "routes": {
       "type": "array",

@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { GenericModalService } from '../components/generic-modal/generic-modal.service';
 import { AnalyticsService } from './analytics.service';
 import { ComponentEventDispatcherService } from './component-event-dispatcher.service';
+import { ConfigStoreService } from './config-store.service';
 import { ConfigurationsOrchestratorService } from './configurations-orchestrator';
 import { I18nService } from './i18n.service';
 import { LanguageService } from './language.service';
@@ -11,6 +12,7 @@ import { VariableStoreService } from './variable-store.service';
 
 describe('ConfigurationsOrchestratorService', () => {
   let service: ConfigurationsOrchestratorService;
+  let configStore: ConfigStoreService;
   let variables: VariableStoreService;
   let i18n: I18nService;
   let language: LanguageService;
@@ -62,6 +64,7 @@ describe('ConfigurationsOrchestratorService', () => {
       ],
     });
     service = TestBed.inject(ConfigurationsOrchestratorService);
+    configStore = TestBed.inject(ConfigStoreService);
     variables = TestBed.inject(VariableStoreService);
     i18n = TestBed.inject(I18nService);
     language = TestBed.inject(LanguageService);
@@ -70,6 +73,77 @@ describe('ConfigurationsOrchestratorService', () => {
 
   it('should be created', () => {
     expect(service).toBeTruthy();
+  });
+
+  it('exports merged page-config sections without recreating legacy companion files', () => {
+    configStore.setPageConfig({
+      version: 1,
+      pageId: 'default',
+      domain: 'zoolandingpage.com.mx',
+      rootIds: ['landingPage'],
+      modalRootIds: ['modalTermsRoot'],
+      seo: {
+        title: 'Zoo Landing Page',
+        description: 'Draft-driven landing pages.',
+        canonical: 'https://zoolandingpage.com.mx/',
+      },
+      structuredData: {
+        entries: [{ '@type': 'WebSite' }],
+      },
+      analytics: {
+        sectionIds: ['home'],
+        scrollMilestones: [50],
+      },
+    });
+    configStore.setComponents({
+      version: 1,
+      pageId: 'default',
+      domain: 'zoolandingpage.com.mx',
+      components: {},
+    });
+    service.setDraftExportContext({
+      domain: 'zoolandingpage.com.mx',
+      pageId: 'default',
+      rootIds: ['landingPage'],
+      modalRootIds: ['modalTermsRoot'],
+    });
+
+    const payloads = (service as any).buildDraftPayloads('zoolandingpage.com.mx', 'default') as Array<{ name: string; data: any }>;
+    const pageConfigPayload = payloads.find((payload) => payload.name === 'page-config.json')?.data;
+
+    expect(payloads.map((payload) => payload.name)).toEqual(['page-config.json', 'components.json']);
+    expect(pageConfigPayload.seo?.title).toBe('Zoo Landing Page');
+    expect(pageConfigPayload.structuredData?.entries?.length).toBe(1);
+    expect(pageConfigPayload.analytics).toEqual({
+      sectionIds: ['home'],
+      scrollMilestones: [50],
+    });
+  });
+
+  it('does not leak site-owned analytics flags into exported page-config analytics', () => {
+    configStore.setAnalytics({
+      sectionIds: ['home'],
+      scrollMilestones: [25, 50],
+      enabled: false,
+      consentUI: 'none',
+      consentSnoozeSeconds: 86400,
+    });
+    service.setDraftExportContext({
+      domain: 'zoolandingpage.com.mx',
+      pageId: 'default',
+      rootIds: ['landingPage'],
+      modalRootIds: [],
+    });
+
+    const payloads = (service as any).buildDraftPayloads('zoolandingpage.com.mx', 'default') as Array<{ name: string; data: any }>;
+    const pageConfigPayload = payloads.find((payload) => payload.name === 'page-config.json')?.data;
+
+    expect(pageConfigPayload.analytics).toEqual({
+      sectionIds: ['home'],
+      scrollMilestones: [25, 50],
+    });
+    expect(pageConfigPayload.analytics.enabled).toBeUndefined();
+    expect(pageConfigPayload.analytics.consentUI).toBeUndefined();
   });
 
   it('materializes loopConfig from variables into generated link components', () => {

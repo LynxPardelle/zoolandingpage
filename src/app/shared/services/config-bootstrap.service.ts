@@ -6,6 +6,7 @@ import type {
     TDraftAnalyticsRuntimeConfig,
     TDraftI18nVariableConfig,
     TDraftLanguageDefinition,
+    TDraftSiteConfigPayload,
     TI18nPayload,
     TPageConfigPayload,
     TResolvedAnalyticsConfig,
@@ -14,13 +15,10 @@ import type {
     TVariablesPayload,
 } from '@/app/shared/types/config-payloads.types';
 import {
-    isAnalyticsConfigPayload,
     isAngoraCombosPayload,
     isComponentsPayload,
     isI18nPayload,
     isPageConfigPayload,
-    isSeoPayload,
-    isStructuredDataPayload,
     isVariablesPayload,
 } from '@/app/shared/utility/config-validation/config-payload.validators';
 import { isPlatformBrowser } from '@angular/common';
@@ -181,13 +179,17 @@ export class ConfigBootstrapService {
         };
     }
 
-    private extractDraftI18nConfig(variables: TVariablesPayload | null): TDraftI18nVariableConfig | null {
-        const config = variables?.variables?.['i18n'];
+    private buildEffectiveVariables(siteConfig: TDraftSiteConfigPayload | null, variables: TVariablesPayload | null): Record<string, unknown> {
+        return this.variablesStore.buildEffectiveVariables(variables, siteConfig);
+    }
+
+    private extractDraftI18nConfig(siteConfig: TDraftSiteConfigPayload | null, variables: TVariablesPayload | null): TDraftI18nVariableConfig | null {
+        const config = this.buildEffectiveVariables(siteConfig, variables)['i18n'];
         return this.isRecord(config) ? (config as TDraftI18nVariableConfig) : null;
     }
 
-    private buildDraftLanguageDefinitions(variables: TVariablesPayload | null): readonly TDraftLanguageDefinition[] {
-        const i18nConfig = this.extractDraftI18nConfig(variables);
+    private buildDraftLanguageDefinitions(siteConfig: TDraftSiteConfigPayload | null, variables: TVariablesPayload | null): readonly TDraftLanguageDefinition[] {
+        const i18nConfig = this.extractDraftI18nConfig(siteConfig, variables);
         return Array.isArray(i18nConfig?.supportedLanguages)
             ? i18nConfig.supportedLanguages
                 .map((entry) => this.normalizeDraftLanguageDefinition(entry))
@@ -195,8 +197,8 @@ export class ConfigBootstrapService {
             : [];
     }
 
-    private defaultDraftLanguage(variables: TVariablesPayload | null, languages: readonly TDraftLanguageDefinition[]): string {
-        const configured = normalizeLocaleCode(this.extractDraftI18nConfig(variables)?.defaultLanguage);
+    private defaultDraftLanguage(siteConfig: TDraftSiteConfigPayload | null, variables: TVariablesPayload | null, languages: readonly TDraftLanguageDefinition[]): string {
+        const configured = normalizeLocaleCode(this.extractDraftI18nConfig(siteConfig, variables)?.defaultLanguage);
         if (configured && languages.some((entry) => entry.code === configured)) return configured;
         return languages[0]?.code ?? 'es';
     }
@@ -207,8 +209,6 @@ export class ConfigBootstrapService {
     }
 
     private buildResolvedAnalyticsConfig(
-        domain: string,
-        pageId: string,
         siteAnalytics: TDraftAnalyticsRuntimeConfig | null | undefined,
         pageAnalytics: TAnalyticsConfigPayload | null,
     ): TResolvedAnalyticsConfig | null {
@@ -217,9 +217,6 @@ export class ConfigBootstrapService {
         }
 
         return {
-            version: pageAnalytics?.version ?? EXPECTED_CONFIG_VERSION,
-            pageId,
-            domain,
             sectionIds: pageAnalytics?.sectionIds ?? [],
             scrollMilestones: pageAnalytics?.scrollMilestones ?? [],
             enabled: siteAnalytics?.enabled ?? false,
@@ -244,6 +241,7 @@ export class ConfigBootstrapService {
 
     async load(opts?: { domain?: string; pageId?: string; lang?: string }): Promise<TBootstrapResult> {
         const resolved = this.resolver.resolveDomain();
+        const siteConfig = this.store.siteConfig();
         const domain = String(opts?.domain ?? resolved.domain ?? '').trim();
         const pageId = String(opts?.pageId ?? '').trim();
         const requestedLang = String(
@@ -272,8 +270,8 @@ export class ConfigBootstrapService {
 
         this.store.setStage('variables');
         const loadedVariables = await this.loadVariables(domain, pageId);
-        const draftLanguages = this.buildDraftLanguageDefinitions(loadedVariables);
-        const defaultLanguage = this.defaultDraftLanguage(loadedVariables, draftLanguages);
+        const draftLanguages = this.buildDraftLanguageDefinitions(siteConfig, loadedVariables);
+        const defaultLanguage = this.defaultDraftLanguage(siteConfig, loadedVariables, draftLanguages);
         this.language.configureLanguages(
             draftLanguages.map((entry) => entry.code),
             { defaultLanguage, requestedLanguage: requestedLang }
@@ -286,7 +284,7 @@ export class ConfigBootstrapService {
         const combos = await this.loadCombos(domain, pageId);
         this.store.setVariables(variables);
         this.store.setCombos(combos);
-        this.variablesStore.setPayload(variables);
+        this.variablesStore.setPayload(variables, siteConfig);
 
         this.store.setStage('i18n');
         const i18nPayload = await this.loadI18n(domain, pageId, lang);
@@ -296,15 +294,10 @@ export class ConfigBootstrapService {
             void this.i18n.prefetch(fallbackLang);
         }
 
-        this.store.setStage('seo');
-        const seo = await this.loadSeo(domain, pageId);
-        this.store.setStage('structured-data');
-        const structuredData = await this.loadStructuredData(domain, pageId);
-        this.store.setStage('analytics-config');
-        const loadedAnalytics = await this.loadAnalytics(domain, pageId);
+        const seo = pageConfig?.seo ?? null;
+        const structuredData = pageConfig?.structuredData ?? null;
+        const loadedAnalytics = pageConfig?.analytics ?? null;
         const analytics = this.buildResolvedAnalyticsConfig(
-            domain,
-            pageId,
             this.store.siteConfig()?.runtime?.analytics,
             loadedAnalytics,
         );
@@ -333,6 +326,7 @@ export class ConfigBootstrapService {
 
         this.store.setStage('done');
         this.store.setValidationIssues(this.buildValidationIssues({
+            siteConfig,
             pageConfig,
             components,
             variables,
@@ -408,36 +402,6 @@ export class ConfigBootstrapService {
         }
     }
 
-    private async loadSeo(domain: string, pageId: string): Promise<TSeoPayload | null> {
-        try {
-            const payload = await this.source.loadSeo(domain, pageId);
-            return payload && isSeoPayload(payload) ? payload : null;
-        } catch (error) {
-            this.captureError('seo', error);
-            return null;
-        }
-    }
-
-    private async loadStructuredData(domain: string, pageId: string): Promise<TStructuredDataPayload | null> {
-        try {
-            const payload = await this.source.loadStructuredData(domain, pageId);
-            return payload && isStructuredDataPayload(payload) ? payload : null;
-        } catch (error) {
-            this.captureError('structured-data', error);
-            return null;
-        }
-    }
-
-    private async loadAnalytics(domain: string, pageId: string): Promise<TAnalyticsConfigPayload | null> {
-        try {
-            const payload = await this.source.loadAnalytics(domain, pageId);
-            return payload && isAnalyticsConfigPayload(payload) ? payload : null;
-        } catch (error) {
-            this.captureError('analytics-config', error);
-            return null;
-        }
-    }
-
     private captureError(stage: TConfigBootstrapStage, error: unknown): void {
         this.store.setStage('error');
         this.error.set(`Failed to load ${ stage }`);
@@ -447,6 +411,7 @@ export class ConfigBootstrapService {
     }
 
     private buildValidationIssues(payloads: {
+        siteConfig: TDraftSiteConfigPayload | null;
         pageConfig: TPageConfigPayload | null;
         components: TComponentsPayload | null;
         variables: TVariablesPayload | null;
@@ -470,17 +435,16 @@ export class ConfigBootstrapService {
             }
         };
 
+        addMissing('site-config', payloads.siteConfig);
         addMissing('page-config', payloads.pageConfig);
         addMissing('components', payloads.components);
-        addMissing('variables', payloads.variables);
         addMissing('i18n', payloads.i18n);
-        addMissing('seo', payloads.seo);
 
+        addVersionMismatch('site-config', payloads.siteConfig);
         addVersionMismatch('page-config', payloads.pageConfig);
         addVersionMismatch('components', payloads.components as any);
         addVersionMismatch('variables', payloads.variables as any);
         addVersionMismatch('i18n', payloads.i18n as any);
-        addVersionMismatch('seo', payloads.seo as any);
 
         const pageConfig = payloads.pageConfig;
         addIssue(!pageConfig || pageConfig.rootIds.length === 0, 'page-config.rootIds must include at least one render root.');
@@ -521,7 +485,8 @@ export class ConfigBootstrapService {
             }
         }
 
-        const variables = payloads.variables?.variables ?? {};
+        const variables = this.buildEffectiveVariables(payloads.siteConfig, payloads.variables);
+        const site = this.isRecord(payloads.siteConfig?.site) ? payloads.siteConfig.site : null;
         const appIdentity = this.isRecord(variables['appIdentity']) ? variables['appIdentity'] : null;
         const theme = this.isRecord(variables['theme']) ? variables['theme'] : null;
         const i18n = this.isRecord(variables['i18n']) ? variables['i18n'] : null;
@@ -530,27 +495,28 @@ export class ConfigBootstrapService {
         const modalConfigs = this.isRecord(ui?.['modals']) ? ui['modals'] as Record<string, unknown> : null;
         const referencedModalIds = this.collectReferencedModalIds(components);
 
-        addIssue(!appIdentity, 'variables.appIdentity is required.');
+        addIssue(!site, 'site-config.site is required.');
+        addIssue(!appIdentity, 'site-config.site.appIdentity is required.');
         addIssue(
             !!appIdentity
             && !this.isNonEmptyString(appIdentity['identifier'])
             && !this.isNonEmptyString(appIdentity['name']),
-            'variables.appIdentity.identifier or variables.appIdentity.name is required.'
+            'site-config.site.appIdentity.identifier or site-config.site.appIdentity.name is required.'
         );
-        addIssue(!theme, 'variables.theme is required.');
-        addIssue(!i18n, 'variables.i18n is required.');
-        addIssue(!this.isNonEmptyString(i18n?.['defaultLanguage']), 'variables.i18n.defaultLanguage is required.');
-        addIssue(!Array.isArray(i18n?.['supportedLanguages']) || i18n['supportedLanguages'].length === 0, 'variables.i18n.supportedLanguages must include at least one language.');
+        addIssue(!theme, 'site-config.site.theme is required.');
+        addIssue(!i18n, 'site-config.site.i18n is required.');
+        addIssue(!this.isNonEmptyString(i18n?.['defaultLanguage']), 'site-config.site.i18n.defaultLanguage is required.');
+        addIssue(!Array.isArray(i18n?.['supportedLanguages']) || i18n['supportedLanguages'].length === 0, 'site-config.site.i18n.supportedLanguages must include at least one language.');
 
         referencedModalIds.forEach((modalId) => {
             const modalConfig = modalConfigs && this.isRecord(modalConfigs[modalId]) ? modalConfigs[modalId] as Record<string, unknown> : null;
 
-            addIssue(!modalConfig, `variables.ui.modals.${ modalId } is required when modal "${ modalId }" is referenced.`);
+            addIssue(!modalConfig, `config.ui.modals.${ modalId } is required when modal "${ modalId }" is referenced.`);
             addIssue(
                 !!modalConfig
                 && !this.isNonEmptyString(modalConfig['ariaLabel'])
                 && !this.isNonEmptyString(modalConfig['ariaLabelKey']),
-                `variables.ui.modals.${ modalId }.ariaLabel or ariaLabelKey is required when modal "${ modalId }" is referenced.`
+                `config.ui.modals.${ modalId }.ariaLabel or ariaLabelKey is required when modal "${ modalId }" is referenced.`
             );
         });
 
@@ -579,11 +545,11 @@ export class ConfigBootstrapService {
             return typeof instructions === 'string' && /(^|;)openWhatsApp(:|;|$)/.test(instructions);
         });
 
-        addIssue(requiresWhatsAppContact && !contact, 'variables.ui.contact is required when WhatsApp handlers are used.');
-        addIssue(requiresWhatsAppContact && !this.isNonEmptyString(contact?.['whatsappPhone']), 'variables.ui.contact.whatsappPhone is required when WhatsApp handlers are used.');
-        addIssue(requiresGeneralWhatsAppMessage && !this.isNonEmptyString(contact?.['whatsappMessageKey']), 'variables.ui.contact.whatsappMessageKey is required when openWhatsApp handlers are used.');
-        addIssue(requiresFaqWhatsAppMessage && !this.isNonEmptyString(contact?.['faqMessageKey']), 'variables.ui.contact.faqMessageKey is required when FAQ WhatsApp handlers are used.');
-        addIssue(requiresFinalCtaWhatsAppMessage && !this.isNonEmptyString(contact?.['finalCtaMessageKey']), 'variables.ui.contact.finalCtaMessageKey is required when final CTA WhatsApp handlers are used.');
+        addIssue(requiresWhatsAppContact && !contact, 'config.ui.contact is required when WhatsApp handlers are used.');
+        addIssue(requiresWhatsAppContact && !this.isNonEmptyString(contact?.['whatsappPhone']), 'config.ui.contact.whatsappPhone is required when WhatsApp handlers are used.');
+        addIssue(requiresGeneralWhatsAppMessage && !this.isNonEmptyString(contact?.['whatsappMessageKey']), 'config.ui.contact.whatsappMessageKey is required when openWhatsApp handlers are used.');
+        addIssue(requiresFaqWhatsAppMessage && !this.isNonEmptyString(contact?.['faqMessageKey']), 'config.ui.contact.faqMessageKey is required when FAQ WhatsApp handlers are used.');
+        addIssue(requiresFinalCtaWhatsAppMessage && !this.isNonEmptyString(contact?.['finalCtaMessageKey']), 'config.ui.contact.finalCtaMessageKey is required when final CTA WhatsApp handlers are used.');
 
         addIssue(!this.isNonEmptyString(payloads.seo?.title), 'seo.title is required.');
         addIssue(!this.isNonEmptyString(payloads.seo?.description), 'seo.description is required.');

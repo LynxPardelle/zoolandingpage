@@ -289,7 +289,7 @@ export class ConfigurationsOrchestratorService {
         const context = this.draftExportContext();
         const resolvedDomain = String(domain).trim() || context.domain || this.domainResolver.resolveDomain().domain;
         const resolvedPageId = String(pageId).trim() || context.pageId;
-        const pageConfig = this.configStore.pageConfig() ?? {
+        const basePageConfig = this.configStore.pageConfig() ?? {
             version: 1,
             pageId: resolvedPageId,
             domain: resolvedDomain,
@@ -303,6 +303,17 @@ export class ConfigurationsOrchestratorService {
         const structured = this.configStore.structuredData();
         const analytics = this.configStore.analytics();
         const i18n = this.configStore.i18n();
+        const pageConfig = {
+            ...basePageConfig,
+            ...(seo ? { seo } : {}),
+            ...(structured ? { structuredData: structured } : {}),
+            ...(!basePageConfig.analytics && analytics ? {
+                analytics: {
+                    sectionIds: analytics.sectionIds,
+                    scrollMilestones: analytics.scrollMilestones,
+                },
+            } : {}),
+        };
 
         const payloads: { name: string; data: unknown }[] = [
             { name: 'page-config.json', data: pageConfig },
@@ -311,9 +322,6 @@ export class ConfigurationsOrchestratorService {
 
         if (variables) payloads.push({ name: 'variables.json', data: variables });
         if (combos) payloads.push({ name: 'angora-combos.json', data: combos });
-        if (seo) payloads.push({ name: 'seo.json', data: seo });
-        if (structured) payloads.push({ name: 'structured-data.json', data: structured });
-        if (analytics) payloads.push({ name: 'analytics-config.json', data: analytics });
         if (i18n) payloads.push({ name: `i18n/${ i18n.lang }.json`, data: i18n });
 
         return payloads;

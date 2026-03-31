@@ -182,7 +182,7 @@ export class AppComponent implements AfterRender {
 ```text
 Environment Flag
   -> ConfigSourceService chooses draft assets or API
-  -> ConfigBootstrapService loads page-config/components/variables/i18n/seo/structured-data/analytics
+  -> ConfigBootstrapService loads site-config/page-config/components/variables/i18n and derives seo/structuredData/analytics from site/page payloads
   -> ConfigStoreService captures validated payloads
   -> RuntimeService applies roots + external component payload
   -> WrapperOrchestrator renders the configured page

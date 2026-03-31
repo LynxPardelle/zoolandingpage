@@ -29,34 +29,46 @@ export class SeoMetadataService {
             const draftDescription = typeof seo?.description === 'string' && seo.description.trim().length > 0
                 ? seo.description
                 : undefined;
-            const fallbackSiteName = this.resolveFallbackSiteName();
-            const fallbackDescription = this.runtimeConfig.appDescription();
-            const seoTitle = draftTitle || fallbackSiteName;
+            const siteSeo = this.runtimeConfig.seoDefaults();
+            const fallbackSiteName = this.cleanString(siteSeo?.siteName) || this.resolveFallbackSiteName();
+            const fallbackDescription = this.cleanString(siteSeo?.description) || this.runtimeConfig.appDescription();
+            const seoTitle = draftTitle || this.cleanString(siteSeo?.title) || fallbackSiteName;
             const seoDescription = draftDescription || fallbackDescription || '';
 
             this.title.setTitle(seoTitle);
             this.meta.updateTag({ name: 'description', content: seoDescription });
 
-            const origin = this.doc.defaultView?.location?.origin || this.defaultOrigin();
+            const origin = this.doc.defaultView?.location?.origin || this.cleanString(siteSeo?.canonicalOrigin) || this.defaultOrigin();
             const pathname = this.doc.defaultView?.location?.pathname || '/';
             const url = `${ origin }${ pathname || '/' }`;
             const ogLocale = toOpenGraphLocale(lang) || 'en_US';
-            const ogImage = `${ origin }/assets/og-1200x630.svg`;
-            const openGraph = seo?.openGraph ?? {};
+            const openGraphDefaults = this.asRecord(siteSeo?.openGraph);
+            const twitterDefaults = this.asRecord(siteSeo?.twitter);
+            const openGraph = {
+                ...openGraphDefaults,
+                ...this.asRecord(seo?.openGraph),
+            };
+            const twitter = {
+                ...twitterDefaults,
+                ...this.asRecord(seo?.twitter),
+            };
+            const defaultImage = this.cleanString(siteSeo?.defaultImage)
+                || this.cleanString(openGraphDefaults['image'])
+                || this.cleanString(twitterDefaults['image'])
+                || `${ origin }/assets/og-1200x630.svg`;
 
             this.meta.updateTag({ property: 'og:title', content: String(openGraph['title'] ?? seoTitle) });
             this.meta.updateTag({ property: 'og:description', content: String(openGraph['description'] ?? seoDescription) });
             this.meta.updateTag({ property: 'og:type', content: String(openGraph['type'] ?? 'website') });
             this.meta.updateTag({ property: 'og:url', content: String(openGraph['url'] ?? url) });
-            this.meta.updateTag({ property: 'og:image', content: String(openGraph['image'] ?? ogImage) });
+            this.meta.updateTag({ property: 'og:image', content: String(openGraph['image'] ?? defaultImage) });
             this.meta.updateTag({ property: 'og:locale', content: String(openGraph['locale'] ?? ogLocale) });
             this.meta.updateTag({ property: 'og:site_name', content: String(openGraph['site_name'] ?? fallbackSiteName) });
 
-            const twitter = seo?.twitter ?? {};
             this.meta.updateTag({ name: 'twitter:card', content: String(twitter['card'] ?? 'summary_large_image') });
             this.meta.updateTag({ name: 'twitter:title', content: String(twitter['title'] ?? seoTitle) });
             this.meta.updateTag({ name: 'twitter:description', content: String(twitter['description'] ?? seoDescription) });
-            this.meta.updateTag({ name: 'twitter:image', content: String(twitter['image'] ?? ogImage) });
+            this.meta.updateTag({ name: 'twitter:image', content: String(twitter['image'] ?? defaultImage) });
 
             const head = this.doc.head;
             if (head) {
@@ -71,6 +83,14 @@ export class SeoMetadataService {
         } catch {
             // no-op for SSR
         }
+    }
+
+    private asRecord(value: unknown): Record<string, unknown> {
+        return !!value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+    }
+
+    private cleanString(value: unknown): string {
+        return typeof value === 'string' ? value.trim() : '';
     }
 
     private defaultOrigin(): string {

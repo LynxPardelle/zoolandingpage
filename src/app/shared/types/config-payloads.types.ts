@@ -89,6 +89,38 @@ export type TDraftUiVariableConfig = {
     readonly languageOptions?: readonly Record<string, unknown>[];
 };
 
+export type TDraftSiteSeoConfig = {
+    readonly siteName?: string;
+    readonly title?: string;
+    readonly description?: string;
+    readonly canonicalOrigin?: string;
+    readonly defaultImage?: string;
+    readonly openGraph?: Record<string, unknown>;
+    readonly twitter?: Record<string, unknown>;
+};
+
+export type TDraftVariableConfig = Record<string, unknown> & {
+    readonly appIdentity?: TDraftAppIdentityVariableConfig;
+    readonly brand?: TDraftBrandVariableConfig;
+    readonly heroAssets?: TDraftHeroAssetsVariableConfig;
+    readonly ctaTargets?: TDraftCtaTargetsVariableConfig;
+    readonly navigation?: TDraftNavigationVariableConfig;
+    readonly socialLinks?: readonly TDraftSocialLinkConfig[];
+    readonly theme?: TThemeVariableConfig;
+    readonly i18n?: TDraftI18nVariableConfig;
+    readonly ui?: TDraftUiVariableConfig;
+    readonly statsCounters?: TStatsCountersVariableConfig;
+};
+
+export type TDraftSiteSharedConfig = {
+    readonly appIdentity: TDraftAppIdentityVariableConfig;
+    readonly theme: TThemeVariableConfig;
+    readonly i18n: TDraftI18nVariableConfig;
+    readonly seo?: TDraftSiteSeoConfig;
+};
+
+export type TDraftSiteDefaultsConfig = Omit<TDraftVariableConfig, 'appIdentity' | 'theme' | 'i18n'>;
+
 export type TDraftSiteRouteEntry = {
     readonly path: string;
     readonly pageId: string;
@@ -167,6 +199,25 @@ export type TDraftSiteConfigPayload = {
     readonly defaultPageId?: string;
     readonly routes: readonly TDraftSiteRouteEntry[];
     readonly runtime?: TDraftSiteRuntimeConfig;
+    readonly site: TDraftSiteSharedConfig;
+    readonly defaults?: TDraftSiteDefaultsConfig;
+};
+
+export type TSeoPayload = {
+    readonly title?: string;
+    readonly description?: string;
+    readonly openGraph?: Record<string, unknown>;
+    readonly twitter?: Record<string, unknown>;
+    readonly canonical?: string;
+};
+
+export type TStructuredDataPayload = {
+    readonly entries: readonly Record<string, unknown>[];
+};
+
+export type TPageAnalyticsConfig = TAnalyticsSharedConfig & {
+    readonly sectionIds?: readonly string[];
+    readonly scrollMilestones?: readonly number[];
 };
 
 export type TPageConfigPayload = {
@@ -177,6 +228,9 @@ export type TPageConfigPayload = {
     readonly modalRootIds?: readonly string[];
     readonly metadata?: Record<string, unknown>;
     readonly routes?: readonly { path: string; rootIds: readonly string[] }[];
+    readonly seo?: TSeoPayload;
+    readonly structuredData?: TStructuredDataPayload;
+    readonly analytics?: TPageAnalyticsConfig;
 };
 
 export type TComponentsPayload = {
@@ -200,17 +254,7 @@ export type TVariablesPayload = {
     readonly version: number;
     readonly pageId: string;
     readonly domain: string;
-    readonly variables: Record<string, unknown> & {
-        readonly appIdentity?: TDraftAppIdentityVariableConfig;
-        readonly brand?: TDraftBrandVariableConfig;
-        readonly heroAssets?: TDraftHeroAssetsVariableConfig;
-        readonly ctaTargets?: TDraftCtaTargetsVariableConfig;
-        readonly navigation?: TDraftNavigationVariableConfig;
-        readonly socialLinks?: readonly TDraftSocialLinkConfig[];
-        readonly theme?: TThemeVariableConfig;
-        readonly i18n?: TDraftI18nVariableConfig;
-        readonly ui?: TDraftUiVariableConfig;
-    };
+    readonly variables: TDraftVariableConfig;
     readonly computed?: Record<string, unknown>;
 };
 
@@ -236,31 +280,7 @@ export type TI18nPayload = {
     readonly dictionary: Record<string, unknown>;
 };
 
-export type TSeoPayload = {
-    readonly version: number;
-    readonly pageId: string;
-    readonly domain: string;
-    readonly title?: string;
-    readonly description?: string;
-    readonly openGraph?: Record<string, unknown>;
-    readonly twitter?: Record<string, unknown>;
-    readonly canonical?: string;
-};
-
-export type TStructuredDataPayload = {
-    readonly version: number;
-    readonly pageId: string;
-    readonly domain: string;
-    readonly entries: readonly Record<string, unknown>[];
-};
-
-export type TAnalyticsConfigPayload = TAnalyticsSharedConfig & {
-    readonly version: number;
-    readonly pageId: string;
-    readonly domain: string;
-    readonly sectionIds: readonly string[];
-    readonly scrollMilestones: readonly number[];
-};
+export type TAnalyticsConfigPayload = TPageAnalyticsConfig;
 
 export type TResolvedAnalyticsConfig = TAnalyticsConfigPayload & {
     readonly enabled: boolean;

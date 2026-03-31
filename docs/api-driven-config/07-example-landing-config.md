@@ -8,6 +8,18 @@ It is written in a JSON-ish style, but references existing component types.
 
 ```json
 {
+  "seo": {
+    "title": "Example | Landing Page",
+    "description": "An example page-level SEO payload.",
+    "canonical": "https://example.com/"
+  },
+  "structuredData": {
+    "entries": []
+  },
+  "analytics": {
+    "sectionIds": ["hero", "features", "contact"],
+    "scrollMilestones": [25, 50, 75, 100]
+  },
   "rootIds": ["skipToMainLink", "siteHeader", "landingPage", "siteFooter"],
   "modalRootIds": ["modalAnalyticsConsentRoot", "modalDemoRoot", "modalTermsRoot", "modalDataUseRoot"]
 }
@@ -206,7 +218,7 @@ This project now treats footer, legal modal, accessibility, and debug-panel cont
 }
 ```
 
-Use `variables.theme.palettes` for global semantic colors only. Keep reusable class bundles in `angora-combos.json`, section/component layout in `components.json`, and text/icon copy in `i18n`.
+Use `site-config.json.site.theme.palettes` for global semantic colors only. Keep reusable class bundles in `angora-combos.json`, section/component layout in `components.json`, and text/icon copy in `i18n`.
 
 ### Components payload (footer + legal modal icon examples)
 
