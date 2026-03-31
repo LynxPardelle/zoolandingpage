@@ -9,6 +9,8 @@ This doc describes how to author `TGenericComponent` definitions so they are com
 ## Source of truth
 
 - Type union: `src/app/shared/components/wrapper-orchestrator/wrapper-orchestrator.types.ts`
+- Authored storage: `components.json` now stores `components` as an array of component objects, not a map keyed by id.
+- Draft scope: shared site components can live at `public/assets/drafts/{domain}/components.json`, while page-owned components stay at `public/assets/drafts/{domain}/{pageId}/components.json`.
 
 ## Common fields
 
@@ -136,6 +138,7 @@ A common pattern is:
 
 - In API payloads, a `container` has `config.components: string[]`.
 - Children are referenced by ID.
+- The top-level `components.json.components` payload is an array; runtime lookup is still id-based after load.
 
 Example:
 

@@ -1,5 +1,6 @@
 import { PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import type { TComponentPayloadEntry, TComponentsPayload } from '../types/config-payloads.types';
 import { ConfigBootstrapService } from './config-bootstrap.service';
 import { ConfigSourceService } from './config-source.service';
 import { ConfigStoreService } from './config-store.service';
@@ -69,6 +70,13 @@ const createSiteConfig = () => ({
     },
 });
 
+const createComponentsPayload = (components: Record<string, TComponentPayloadEntry>): TComponentsPayload => ({
+    version: 1,
+    pageId: 'default',
+    domain: 'zoolandingpage.com.mx',
+    components: Object.values(components) as TComponentPayloadEntry[],
+});
+
 describe('ConfigBootstrapService', () => {
     let service: ConfigBootstrapService;
 
@@ -128,25 +136,20 @@ describe('ConfigBootstrapService', () => {
                 rootIds: ['landingPage'],
                 modalRootIds: ['modalTermsRoot'],
             },
-            components: {
-                version: 1,
-                pageId: 'default',
-                domain: 'zoolandingpage.com.mx',
-                components: {
-                    landingPage: {
-                        id: 'landingPage',
-                        type: 'button',
-                        eventInstructions: 'openModal:terms-of-service,footer:terms,open_terms_modal,footer',
-                        config: { label: 'Open terms' },
-                    },
-                    modalTermsRoot: {
-                        id: 'modalTermsRoot',
-                        type: 'container',
-                        condition: 'all:modalRefId,terms-of-service',
-                        config: { tag: 'section', components: [] },
-                    },
+            components: createComponentsPayload({
+                landingPage: {
+                    id: 'landingPage',
+                    type: 'button',
+                    eventInstructions: 'openModal:terms-of-service,footer:terms,open_terms_modal,footer',
+                    config: { label: 'Open terms' },
                 },
-            },
+                modalTermsRoot: {
+                    id: 'modalTermsRoot',
+                    type: 'container',
+                    condition: 'all:modalRefId,terms-of-service',
+                    config: { tag: 'section', components: [] },
+                },
+            }),
             variables: {
                 version: 1,
                 pageId: 'default',
@@ -188,25 +191,20 @@ describe('ConfigBootstrapService', () => {
                 rootIds: ['landingPage'],
                 modalRootIds: ['modalTermsRoot'],
             },
-            components: {
-                version: 1,
-                pageId: 'default',
-                domain: 'zoolandingpage.com.mx',
-                components: {
-                    landingPage: {
-                        id: 'landingPage',
-                        type: 'button',
-                        eventInstructions: 'openModal:terms-of-service',
-                        config: { label: 'Open terms' },
-                    },
-                    modalTermsRoot: {
-                        id: 'modalTermsRoot',
-                        type: 'container',
-                        condition: 'all:modalRefId,terms-of-service',
-                        config: { tag: 'section', components: [] },
-                    },
+            components: createComponentsPayload({
+                landingPage: {
+                    id: 'landingPage',
+                    type: 'button',
+                    eventInstructions: 'openModal:terms-of-service',
+                    config: { label: 'Open terms' },
                 },
-            },
+                modalTermsRoot: {
+                    id: 'modalTermsRoot',
+                    type: 'container',
+                    condition: 'all:modalRefId,terms-of-service',
+                    config: { tag: 'section', components: [] },
+                },
+            }),
             variables: {
                 version: 1,
                 pageId: 'default',
@@ -253,40 +251,35 @@ describe('ConfigBootstrapService', () => {
                 domain: 'zoolandingpage.com.mx',
                 rootIds: ['badgesListContainer'],
             },
-            components: {
-                version: 1,
-                pageId: 'default',
-                domain: 'zoolandingpage.com.mx',
-                components: {
-                    badgesListContainer: {
-                        id: 'badgesListContainer',
-                        type: 'container',
-                        loopConfig: {
-                            source: 'i18n',
-                            path: 'hero.badges',
-                            templateId: 'badgeContainerTemplate',
-                            idPrefix: 'badgeContainer',
-                        },
-                        config: { tag: 'div', components: [] },
+            components: createComponentsPayload({
+                badgesListContainer: {
+                    id: 'badgesListContainer',
+                    type: 'container',
+                    loopConfig: {
+                        source: 'i18n',
+                        path: 'hero.badges',
+                        templateId: 'badgeContainerTemplate',
+                        idPrefix: 'badgeContainer',
                     },
-                    badgeContainerTemplate: {
-                        id: 'badgeContainerTemplate',
-                        type: 'container',
-                        config: { tag: 'div', components: ['badgeText__{{index}}'] },
-                    },
-                    badgeTextTemplate: {
-                        id: 'badgeTextTemplate',
-                        type: 'text',
-                        loopConfig: {
-                            source: 'i18n',
-                            path: 'hero.badges',
-                            templateId: 'badgeTextTemplate',
-                            idPrefix: 'badgeText',
-                        },
-                        config: { tag: 'span', text: '' },
-                    },
+                    config: { tag: 'div', components: [] },
                 },
-            },
+                badgeContainerTemplate: {
+                    id: 'badgeContainerTemplate',
+                    type: 'container',
+                    config: { tag: 'div', components: ['badgeText__{{index}}'] },
+                },
+                badgeTextTemplate: {
+                    id: 'badgeTextTemplate',
+                    type: 'text',
+                    loopConfig: {
+                        source: 'i18n',
+                        path: 'hero.badges',
+                        templateId: 'badgeTextTemplate',
+                        idPrefix: 'badgeText',
+                    },
+                    config: { tag: 'span', text: '' },
+                },
+            }),
             variables: null,
             combos: null,
             i18n: {

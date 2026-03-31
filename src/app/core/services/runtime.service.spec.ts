@@ -7,9 +7,20 @@ import { ConfigurationsOrchestratorService } from '@/app/shared/services/configu
 import { DomainResolverService } from '@/app/shared/services/domain-resolver.service';
 import { DraftRegistryService } from '@/app/shared/services/draft-registry.service';
 import { DraftRuntimeService } from '@/app/shared/services/draft-runtime.service';
+import type { TComponentPayloadEntry, TComponentsPayload } from '@/app/shared/types/config-payloads.types';
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { RuntimeService } from './runtime.service';
+
+const createComponentsPayload = (
+    components: Record<string, TComponentPayloadEntry>,
+    overrides: Partial<{ domain: string; pageId: string }> = {},
+): TComponentsPayload => ({
+    version: 1,
+    domain: overrides.domain ?? 'pamelabetancourt.preview',
+    pageId: overrides.pageId ?? 'home',
+    components: Object.values(components) as TComponentPayloadEntry[],
+});
 
 describe('RuntimeService', () => {
     const originalUrl = window.location.pathname + window.location.search + window.location.hash;
@@ -59,18 +70,16 @@ describe('RuntimeService', () => {
                     rootIds: [`${ pageId ?? 'home' }-root`],
                     modalRootIds: [],
                 },
-                components: {
-                    version: 1,
+                components: createComponentsPayload({
+                    [`${ pageId ?? 'home' }Root`]: {
+                        id: `${ pageId ?? 'home' }Root`,
+                        type: 'container',
+                        config: { components: [] },
+                    },
+                }, {
                     domain: domain ?? 'pamelabetancourt.preview',
                     pageId: pageId ?? 'home',
-                    components: {
-                        [`${ pageId ?? 'home' }Root`]: {
-                            id: `${ pageId ?? 'home' }Root`,
-                            type: 'container',
-                            config: { components: [] },
-                        },
-                    },
-                },
+                }),
                 combos,
             };
         });
@@ -224,18 +233,16 @@ describe('RuntimeService', () => {
                         rootIds: [`${ pageId ?? 'home' }-root`],
                         modalRootIds: [],
                     },
-                    components: {
-                        version: 1,
+                    components: createComponentsPayload({
+                        [`${ pageId ?? 'home' }Root`]: {
+                            id: `${ pageId ?? 'home' }Root`,
+                            type: 'container',
+                            config: { components: [] },
+                        },
+                    }, {
                         domain: domain ?? 'pamelabetancourt.preview',
                         pageId: pageId ?? 'home',
-                        components: {
-                            [`${ pageId ?? 'home' }Root`]: {
-                                id: `${ pageId ?? 'home' }Root`,
-                                type: 'container',
-                                config: { components: [] },
-                            },
-                        },
-                    },
+                    }),
                     combos,
                 };
             };
@@ -332,13 +339,13 @@ describe('RuntimeService', () => {
             version: 1,
             domain: 'debug-workspace',
             pageId: 'default',
-            components: {
-                debugWorkspaceRoot: {
+            components: [
+                {
                     id: 'debugWorkspaceRoot',
                     type: 'container',
                     config: { tag: 'div', components: [] },
                 },
-            },
+            ],
         });
         configSource.loadDebugWorkspaceCombos.and.resolveTo({
             version: 1,
@@ -361,7 +368,7 @@ describe('RuntimeService', () => {
         expect(service.debugWorkspaceRootIds()).toEqual(['debugWorkspaceRoot']);
         expect(service.modalRootIds()).toEqual(['modalDemoRoot']);
         expect(setAuxiliaryComponentsFromPayload).toHaveBeenCalledWith('debug-workspace', jasmine.objectContaining({
-            components: jasmine.any(Object),
+            components: jasmine.any(Array),
         }));
         expect(setAuxiliaryCombos).toHaveBeenCalledWith('debug-workspace', {
             version: 1,

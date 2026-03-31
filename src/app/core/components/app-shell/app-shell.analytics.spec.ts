@@ -10,6 +10,7 @@ import { ConfigBootstrapService } from '../../../shared/services/config-bootstra
 import { ConfigSourceService } from '../../../shared/services/config-source.service';
 import { ConfigurationsOrchestratorService } from '../../../shared/services/configurations-orchestrator';
 import { DraftRegistryService } from '../../../shared/services/draft-registry.service';
+import type { TComponentPayloadEntry, TComponentsPayload } from '../../../shared/types/config-payloads.types';
 import { DebugWorkspaceComponent } from '../debug-workspace/debug-workspace.component';
 import { AppShellComponent } from './app-shell.component';
 
@@ -31,17 +32,25 @@ class DebugWorkspaceStub { }
 
 const PRIMARY_DOMAIN = 'preview.example.test';
 
+const createComponentsPayload = (components: Record<string, TComponentPayloadEntry>): TComponentsPayload => ({
+  version: 1,
+  pageId: 'default',
+  domain: PRIMARY_DOMAIN,
+  components: Object.values(components) as TComponentPayloadEntry[],
+});
+
 const ORCHESTRATOR_STUB = {
   modalHostConfig$: of(null),
   fallbackModalHostConfig: {},
   getAllTheClassesFromComponents: () => [],
   setDraftExportContext: () => { },
   setExternalComponentsFromPayload: () => { },
+  setAuxiliaryComponentsFromPayload: () => { },
   exportDraftComponentsPayload: () => ({
     version: 1,
     pageId: 'default',
     domain: PRIMARY_DOMAIN,
-    components: {},
+    components: [],
   }),
 };
 
@@ -52,12 +61,15 @@ describe('AppShellComponent analytics', () => {
   beforeEach(async () => {
     window.history.replaceState({}, '', `/?draftDomain=${ PRIMARY_DOMAIN }&draftPageId=default`);
     analyticsSpy = jasmine.createSpyObj('AnalyticsService', [
+      'initializeRuntimeState',
       'track',
       'flush',
+      'pageViewEventName',
       'promptForConsentIfNeeded',
       'startPageEngagementTracking',
       'stopPageEngagementTracking',
     ]);
+    analyticsSpy.pageViewEventName.and.returnValue('page_view');
     angoraSpy = jasmine.createSpyObj<NgxAngoraService>('NgxAngoraService', [
       'cssCreate',
       'pushCombos',
@@ -90,18 +102,13 @@ describe('AppShellComponent analytics', () => {
                 sectionIds: ['home'],
                 scrollMilestones: [25, 50, 75, 100],
               },
-              components: {
-                version: 1,
-                pageId: 'default',
-                domain: PRIMARY_DOMAIN,
-                components: {
-                  draftStub: {
-                    id: 'draftStub',
-                    type: 'text',
-                    config: { text: '' },
-                  },
+              components: createComponentsPayload({
+                draftStub: {
+                  id: 'draftStub',
+                  type: 'text',
+                  config: { text: '' },
                 },
-              },
+              }),
             }),
           },
         },

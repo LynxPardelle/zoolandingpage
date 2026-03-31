@@ -2,6 +2,7 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
 import { GenericModalService } from '../components/generic-modal/generic-modal.service';
+import type { TComponentPayloadEntry, TComponentsPayload } from '../types/config-payloads.types';
 import { AnalyticsService } from './analytics.service';
 import { ComponentEventDispatcherService } from './component-event-dispatcher.service';
 import { ConfigStoreService } from './config-store.service';
@@ -9,6 +10,16 @@ import { ConfigurationsOrchestratorService } from './configurations-orchestrator
 import { I18nService } from './i18n.service';
 import { LanguageService } from './language.service';
 import { VariableStoreService } from './variable-store.service';
+
+const createComponentsPayload = (
+  components: Record<string, TComponentPayloadEntry>,
+  overrides: Partial<{ domain: string; pageId: string }> = {},
+): TComponentsPayload => ({
+  version: 1,
+  pageId: overrides.pageId ?? 'default',
+  domain: overrides.domain ?? 'zoolandingpage.com.mx',
+  components: Object.values(components) as TComponentPayloadEntry[],
+});
 
 describe('ConfigurationsOrchestratorService', () => {
   let service: ConfigurationsOrchestratorService;
@@ -95,12 +106,7 @@ describe('ConfigurationsOrchestratorService', () => {
         scrollMilestones: [50],
       },
     });
-    configStore.setComponents({
-      version: 1,
-      pageId: 'default',
-      domain: 'zoolandingpage.com.mx',
-      components: {},
-    });
+    configStore.setComponents(createComponentsPayload({}));
     service.setDraftExportContext({
       domain: 'zoolandingpage.com.mx',
       pageId: 'default',
@@ -108,15 +114,81 @@ describe('ConfigurationsOrchestratorService', () => {
       modalRootIds: ['modalTermsRoot'],
     });
 
-    const payloads = (service as any).buildDraftPayloads('zoolandingpage.com.mx', 'default') as Array<{ name: string; data: any }>;
-    const pageConfigPayload = payloads.find((payload) => payload.name === 'page-config.json')?.data;
+    const payloads = (service as any).buildDraftPayloads('zoolandingpage.com.mx', 'default') as Array<{ name: string; downloadName: string; data: any }>;
+    const pageConfigPayload = payloads.find((payload) => payload.name === 'zoolandingpage.com.mx/default/page-config.json')?.data;
 
-    expect(payloads.map((payload) => payload.name)).toEqual(['page-config.json', 'components.json']);
+    expect(payloads.map((payload) => payload.name)).toEqual([
+      'zoolandingpage.com.mx/default/page-config.json',
+      'zoolandingpage.com.mx/default/components.json',
+    ]);
+    expect(payloads.map((payload) => payload.downloadName)).toEqual([
+      'zoolandingpage.com.mx--default--page-config.json',
+      'zoolandingpage.com.mx--default--components.json',
+    ]);
     expect(pageConfigPayload.seo?.title).toBe('Zoo Landing Page');
     expect(pageConfigPayload.structuredData?.entries?.length).toBe(1);
     expect(pageConfigPayload.analytics).toEqual({
       sectionIds: ['home'],
       scrollMilestones: [50],
+    });
+  });
+
+  it('exports shared allPages components into the domain root and page-owned components into the page folder', () => {
+    configStore.setComponents(createComponentsPayload({
+      siteHeader: {
+        id: 'siteHeader',
+        domain: 'zoolandingpage.com.mx',
+        pageId: 'allPages',
+        type: 'container',
+        config: { components: [] },
+      },
+      landingPage: {
+        id: 'landingPage',
+        domain: 'zoolandingpage.com.mx',
+        pageId: 'default',
+        type: 'container',
+        config: { components: ['heroSection'] },
+      },
+    }));
+    service.setDraftExportContext({
+      domain: 'zoolandingpage.com.mx',
+      pageId: 'default',
+      rootIds: ['landingPage'],
+      modalRootIds: [],
+    });
+
+    const payloads = (service as any).buildDraftPayloads('zoolandingpage.com.mx', 'default') as Array<{ name: string; downloadName: string; data: any }>;
+    const sharedComponentsPayload = payloads.find((payload) => payload.name === 'zoolandingpage.com.mx/components.json')?.data;
+    const pageComponentsPayload = payloads.find((payload) => payload.name === 'zoolandingpage.com.mx/default/components.json')?.data;
+
+    expect(payloads.map((payload) => payload.name)).toEqual([
+      'zoolandingpage.com.mx/default/page-config.json',
+      'zoolandingpage.com.mx/components.json',
+      'zoolandingpage.com.mx/default/components.json',
+    ]);
+    expect(sharedComponentsPayload).toEqual({
+      version: 1,
+      domain: 'zoolandingpage.com.mx',
+      pageId: 'allPages',
+      components: [
+        {
+          id: 'siteHeader',
+          type: 'container',
+          config: { components: [] },
+        },
+      ],
+    });
+    expect(pageComponentsPayload).toEqual({
+      version: 1,
+      domain: 'zoolandingpage.com.mx',
+      pageId: 'default',
+      components: [
+        {
+          id: 'landingPage',
+          type: 'container',
+          config: { components: ['heroSection'] },
+        },
+      ],
     });
   });
 
@@ -135,8 +207,8 @@ describe('ConfigurationsOrchestratorService', () => {
       modalRootIds: [],
     });
 
-    const payloads = (service as any).buildDraftPayloads('zoolandingpage.com.mx', 'default') as Array<{ name: string; data: any }>;
-    const pageConfigPayload = payloads.find((payload) => payload.name === 'page-config.json')?.data;
+    const payloads = (service as any).buildDraftPayloads('zoolandingpage.com.mx', 'default') as Array<{ name: string; downloadName: string; data: any }>;
+    const pageConfigPayload = payloads.find((payload) => payload.name === 'zoolandingpage.com.mx/default/page-config.json')?.data;
 
     expect(pageConfigPayload.analytics).toEqual({
       sectionIds: ['home'],
@@ -159,44 +231,39 @@ describe('ConfigurationsOrchestratorService', () => {
       },
     });
 
-    service.setExternalComponentsFromPayload({
-      version: 1,
-      pageId: 'default',
-      domain: 'zoolandingpage.com.mx',
-      components: {
-        footerSocialLinkTemplate: {
+    service.setExternalComponentsFromPayload(createComponentsPayload({
+      footerSocialLinkTemplate: {
+        id: 'footerSocialLinkTemplate',
+        type: 'link',
+        config: {
           id: 'footerSocialLinkTemplate',
-          type: 'link',
-          config: {
-            id: 'footerSocialLinkTemplate',
-            href: '#',
-            text: '',
-            ariaLabel: '',
-          },
-        },
-        footerSocialSection: {
-          id: 'footerSocialSection',
-          type: 'container',
-          loopConfig: {
-            source: 'var',
-            path: 'socialLinks',
-            templateId: 'footerSocialLinkTemplate',
-            idPrefix: 'footerSocialLink',
-            bindings: [
-              { to: 'config.href', sources: ['href', 'url', { from: 'value', transform: 'navigationHref' }] },
-              { to: 'config.text', sources: ['icon', { from: 'labelKey', transform: 'i18nKey' }, { from: 'label', transform: 'locale' }] },
-              { to: 'config.ariaLabel', sources: [{ from: 'ariaLabelKey', transform: 'i18nKey' }, { from: 'ariaLabel', transform: 'locale' }, { from: 'labelKey', transform: 'i18nKey' }, { from: 'label', transform: 'locale' }] },
-              { to: 'config.target', sources: ['target'] },
-              { to: 'config.rel', sources: ['rel'] },
-            ],
-          },
-          config: {
-            tag: 'div',
-            components: [],
-          },
+          href: '#',
+          text: '',
+          ariaLabel: '',
         },
       },
-    });
+      footerSocialSection: {
+        id: 'footerSocialSection',
+        type: 'container',
+        loopConfig: {
+          source: 'var',
+          path: 'socialLinks',
+          templateId: 'footerSocialLinkTemplate',
+          idPrefix: 'footerSocialLink',
+          bindings: [
+            { to: 'config.href', sources: ['href', 'url', { from: 'value', transform: 'navigationHref' }] },
+            { to: 'config.text', sources: ['icon', { from: 'labelKey', transform: 'i18nKey' }, { from: 'label', transform: 'locale' }] },
+            { to: 'config.ariaLabel', sources: [{ from: 'ariaLabelKey', transform: 'i18nKey' }, { from: 'ariaLabel', transform: 'locale' }, { from: 'labelKey', transform: 'i18nKey' }, { from: 'label', transform: 'locale' }] },
+            { to: 'config.target', sources: ['target'] },
+            { to: 'config.rel', sources: ['rel'] },
+          ],
+        },
+        config: {
+          tag: 'div',
+          components: [],
+        },
+      },
+    }));
 
     const section = service.getComponentById('footerSocialSection') as any;
     expect(section?.config?.components).toEqual(['footerSocialLink__1', 'footerSocialLink__2']);
@@ -230,44 +297,39 @@ describe('ConfigurationsOrchestratorService', () => {
       },
     });
 
-    service.setExternalComponentsFromPayload({
-      version: 1,
-      pageId: 'default',
-      domain: 'zoolandingpage.com.mx',
-      components: {
-        footerSocialLinkTemplate: {
+    service.setExternalComponentsFromPayload(createComponentsPayload({
+      footerSocialLinkTemplate: {
+        id: 'footerSocialLinkTemplate',
+        type: 'link',
+        config: {
           id: 'footerSocialLinkTemplate',
-          type: 'link',
-          config: {
-            id: 'footerSocialLinkTemplate',
-            href: '#',
-            text: '',
-            ariaLabel: '',
-          },
-        },
-        footerSocialSection: {
-          id: 'footerSocialSection',
-          type: 'container',
-          loopConfig: {
-            source: 'var',
-            path: 'socialLinks',
-            templateId: 'footerSocialLinkTemplate',
-            idPrefix: 'footerSocialLink',
-            bindings: [
-              { to: 'config.href', sources: ['href', 'url', { from: 'value', transform: 'navigationHref' }] },
-              { to: 'config.text', sources: ['icon', { from: 'labelKey', transform: 'i18nKey' }, { from: 'label', transform: 'locale' }] },
-              { to: 'config.ariaLabel', sources: [{ from: 'ariaLabelKey', transform: 'i18nKey' }, { from: 'ariaLabel', transform: 'locale' }, { from: 'labelKey', transform: 'i18nKey' }, { from: 'label', transform: 'locale' }] },
-              { to: 'config.target', sources: ['target'] },
-              { to: 'config.rel', sources: ['rel'] },
-            ],
-          },
-          config: {
-            tag: 'div',
-            components: [],
-          },
+          href: '#',
+          text: '',
+          ariaLabel: '',
         },
       },
-    });
+      footerSocialSection: {
+        id: 'footerSocialSection',
+        type: 'container',
+        loopConfig: {
+          source: 'var',
+          path: 'socialLinks',
+          templateId: 'footerSocialLinkTemplate',
+          idPrefix: 'footerSocialLink',
+          bindings: [
+            { to: 'config.href', sources: ['href', 'url', { from: 'value', transform: 'navigationHref' }] },
+            { to: 'config.text', sources: ['icon', { from: 'labelKey', transform: 'i18nKey' }, { from: 'label', transform: 'locale' }] },
+            { to: 'config.ariaLabel', sources: [{ from: 'ariaLabelKey', transform: 'i18nKey' }, { from: 'ariaLabel', transform: 'locale' }, { from: 'labelKey', transform: 'i18nKey' }, { from: 'label', transform: 'locale' }] },
+            { to: 'config.target', sources: ['target'] },
+            { to: 'config.rel', sources: ['rel'] },
+          ],
+        },
+        config: {
+          tag: 'div',
+          components: [],
+        },
+      },
+    }));
 
     const firstLink = service.getComponentById('footerSocialLink__1') as any;
     expect(firstLink?.config?.text).toBe('📘');
@@ -275,30 +337,25 @@ describe('ConfigurationsOrchestratorService', () => {
   });
 
   it('materializes repeat and i18n loop sources', () => {
-    service.setExternalComponentsFromPayload({
-      version: 1,
-      pageId: 'default',
-      domain: 'zoolandingpage.com.mx',
-      components: {
-        textTemplate: {
-          id: 'textTemplate',
-          type: 'text',
-          config: { tag: 'span', text: '' },
-        },
-        repeatSection: {
-          id: 'repeatSection',
-          type: 'container',
-          loopConfig: { source: 'repeat', count: 3, templateId: 'textTemplate', idPrefix: 'repeatText' },
-          config: { tag: 'div', components: [] },
-        },
-        featuresSection: {
-          id: 'featuresSection',
-          type: 'container',
-          loopConfig: { source: 'i18n', path: 'features', templateId: 'textTemplate', idPrefix: 'featureText' },
-          config: { tag: 'div', components: [] },
-        },
+    service.setExternalComponentsFromPayload(createComponentsPayload({
+      textTemplate: {
+        id: 'textTemplate',
+        type: 'text',
+        config: { tag: 'span', text: '' },
       },
-    });
+      repeatSection: {
+        id: 'repeatSection',
+        type: 'container',
+        loopConfig: { source: 'repeat', count: 3, templateId: 'textTemplate', idPrefix: 'repeatText' },
+        config: { tag: 'div', components: [] },
+      },
+      featuresSection: {
+        id: 'featuresSection',
+        type: 'container',
+        loopConfig: { source: 'i18n', path: 'features', templateId: 'textTemplate', idPrefix: 'featureText' },
+        config: { tag: 'div', components: [] },
+      },
+    }));
 
     const repeat = service.getComponentById('repeatSection') as any;
     expect(repeat?.config?.components).toEqual(['repeatText__1', 'repeatText__2', 'repeatText__3']);
@@ -308,42 +365,37 @@ describe('ConfigurationsOrchestratorService', () => {
   });
 
   it('materializes host loop sources against the provided render host', () => {
-    service.setAuxiliaryComponentsFromPayload('debug-workspace', {
-      version: 1,
-      pageId: 'default',
-      domain: 'debug-workspace',
-      components: {
-        debugDraftButtonTemplate: {
-          id: 'debugDraftButtonTemplate',
-          type: 'button',
-          config: {
-            label: '',
-            classes: '',
-            ariaLabel: '',
-          },
-        },
-        debugDraftButtons: {
-          id: 'debugDraftButtons',
-          type: 'container',
-          loopConfig: {
-            source: 'host',
-            path: 'draftOptions',
-            templateId: 'debugDraftButtonTemplate',
-            idPrefix: 'debugDraftButton',
-            bindings: [
-              { to: 'config.label', sources: ['label'] },
-              { to: 'config.classes', sources: ['buttonClasses'] },
-              { to: 'config.ariaLabel', sources: ['ariaLabel'] },
-              { to: 'meta_title', sources: ['key'] },
-            ],
-          },
-          config: {
-            tag: 'div',
-            components: [],
-          },
+    service.setAuxiliaryComponentsFromPayload('debug-workspace', createComponentsPayload({
+      debugDraftButtonTemplate: {
+        id: 'debugDraftButtonTemplate',
+        type: 'button',
+        config: {
+          label: '',
+          classes: '',
+          ariaLabel: '',
         },
       },
-    });
+      debugDraftButtons: {
+        id: 'debugDraftButtons',
+        type: 'container',
+        loopConfig: {
+          source: 'host',
+          path: 'draftOptions',
+          templateId: 'debugDraftButtonTemplate',
+          idPrefix: 'debugDraftButton',
+          bindings: [
+            { to: 'config.label', sources: ['label'] },
+            { to: 'config.classes', sources: ['buttonClasses'] },
+            { to: 'config.ariaLabel', sources: ['ariaLabel'] },
+            { to: 'meta_title', sources: ['key'] },
+          ],
+        },
+        config: {
+          tag: 'div',
+          components: [],
+        },
+      },
+    }, { domain: 'debug-workspace' }));
 
     const host = {
       draftOptions: [
@@ -528,42 +580,37 @@ describe('ConfigurationsOrchestratorService', () => {
       return undefined;
     }) as any);
 
-    service.setExternalComponentsFromPayload({
-      version: 1,
-      pageId: 'default',
-      domain: 'zoolandingpage.com.mx',
-      components: {
-        textTemplate: {
-          id: 'textTemplate',
-          type: 'text',
-          config: { tag: 'p', text: '' },
-        },
-        pointsSection: {
-          id: 'pointsSection',
-          type: 'container',
-          loopConfig: {
-            source: 'i18n',
-            path: 'footer.legal.data.points',
-            templateId: 'textTemplate',
-            idPrefix: 'pointText',
-            bindings: [{ to: 'config.text', sources: ['$item'] }],
-          },
-          config: { tag: 'ul', components: [] },
-        },
-        sectionsSection: {
-          id: 'sectionsSection',
-          type: 'container',
-          loopConfig: {
-            source: 'i18n',
-            path: 'footer.legal.terms.sections',
-            templateId: 'textTemplate',
-            idPrefix: 'sectionText',
-            bindings: [{ to: 'config.text', sources: ['body'] }],
-          },
-          config: { tag: 'div', components: [] },
-        },
+    service.setExternalComponentsFromPayload(createComponentsPayload({
+      textTemplate: {
+        id: 'textTemplate',
+        type: 'text',
+        config: { tag: 'p', text: '' },
       },
-    });
+      pointsSection: {
+        id: 'pointsSection',
+        type: 'container',
+        loopConfig: {
+          source: 'i18n',
+          path: 'footer.legal.data.points',
+          templateId: 'textTemplate',
+          idPrefix: 'pointText',
+          bindings: [{ to: 'config.text', sources: ['$item'] }],
+        },
+        config: { tag: 'ul', components: [] },
+      },
+      sectionsSection: {
+        id: 'sectionsSection',
+        type: 'container',
+        loopConfig: {
+          source: 'i18n',
+          path: 'footer.legal.terms.sections',
+          templateId: 'textTemplate',
+          idPrefix: 'sectionText',
+          bindings: [{ to: 'config.text', sources: ['body'] }],
+        },
+        config: { tag: 'div', components: [] },
+      },
+    }));
 
     const pointOne = service.getComponentById('pointText__1') as any;
     const pointTwo = service.getComponentById('pointText__2') as any;
@@ -610,79 +657,74 @@ describe('ConfigurationsOrchestratorService', () => {
       return undefined;
     }) as any);
 
-    service.setExternalComponentsFromPayload({
-      version: 1,
-      pageId: 'default',
-      domain: 'zoolandingpage.com.mx',
-      components: {
-        servicesCardTemplate: {
-          id: 'servicesCardTemplate',
-          type: 'generic-card',
-          meta_title: 'services_cta_click',
-          eventInstructions: 'openWhatsApp:event.meta_title,services,event.eventData.label',
-          config: {
-            variant: 'feature',
-            icon: '',
-            title: '',
-            description: '',
-            benefits: [],
-            buttonLabel: '',
-          },
-        },
-        servicesSectionGrid: {
-          id: 'servicesSectionGrid',
-          type: 'container',
-          loopConfig: {
-            source: 'i18n',
-            path: 'services',
-            templateId: 'servicesCardTemplate',
-            idPrefix: 'servicesCard',
-            bindings: [
-              { to: 'config.icon', sources: ['icon'] },
-              { to: 'config.title', sources: ['title'] },
-              { to: 'config.description', sources: ['description'] },
-              { to: 'config.benefits', sources: ['benefits'] },
-              { to: 'config.buttonLabel', sources: ['buttonLabel'] },
-            ],
-          },
-          config: { tag: 'div', components: [] },
-        },
-        testimonialsCardTemplate: {
-          id: 'testimonialsCardTemplate',
-          type: 'generic-card',
-          config: {
-            variant: 'testimonial',
-            name: '',
-            role: '',
-            company: '',
-            content: '',
-            rating: 0,
-            avatar: '',
-            verified: false,
-          },
-        },
-        testimonialsSectionGrid: {
-          id: 'testimonialsSectionGrid',
-          type: 'container',
-          loopConfig: {
-            source: 'i18n',
-            path: 'testimonials',
-            templateId: 'testimonialsCardTemplate',
-            idPrefix: 'testimonialsCard',
-            bindings: [
-              { to: 'config.name', sources: ['name'] },
-              { to: 'config.role', sources: ['role'] },
-              { to: 'config.company', sources: ['company'] },
-              { to: 'config.content', sources: ['content'] },
-              { to: 'config.rating', sources: ['rating'] },
-              { to: 'config.avatar', sources: ['avatar'] },
-              { to: 'config.verified', sources: ['verified'] },
-            ],
-          },
-          config: { tag: 'div', components: [] },
+    service.setExternalComponentsFromPayload(createComponentsPayload({
+      servicesCardTemplate: {
+        id: 'servicesCardTemplate',
+        type: 'generic-card',
+        meta_title: 'services_cta_click',
+        eventInstructions: 'openWhatsApp:event.meta_title,services,event.eventData.label',
+        config: {
+          variant: 'feature',
+          icon: '',
+          title: '',
+          description: '',
+          benefits: [],
+          buttonLabel: '',
         },
       },
-    });
+      servicesSectionGrid: {
+        id: 'servicesSectionGrid',
+        type: 'container',
+        loopConfig: {
+          source: 'i18n',
+          path: 'services',
+          templateId: 'servicesCardTemplate',
+          idPrefix: 'servicesCard',
+          bindings: [
+            { to: 'config.icon', sources: ['icon'] },
+            { to: 'config.title', sources: ['title'] },
+            { to: 'config.description', sources: ['description'] },
+            { to: 'config.benefits', sources: ['benefits'] },
+            { to: 'config.buttonLabel', sources: ['buttonLabel'] },
+          ],
+        },
+        config: { tag: 'div', components: [] },
+      },
+      testimonialsCardTemplate: {
+        id: 'testimonialsCardTemplate',
+        type: 'generic-card',
+        config: {
+          variant: 'testimonial',
+          name: '',
+          role: '',
+          company: '',
+          content: '',
+          rating: 0,
+          avatar: '',
+          verified: false,
+        },
+      },
+      testimonialsSectionGrid: {
+        id: 'testimonialsSectionGrid',
+        type: 'container',
+        loopConfig: {
+          source: 'i18n',
+          path: 'testimonials',
+          templateId: 'testimonialsCardTemplate',
+          idPrefix: 'testimonialsCard',
+          bindings: [
+            { to: 'config.name', sources: ['name'] },
+            { to: 'config.role', sources: ['role'] },
+            { to: 'config.company', sources: ['company'] },
+            { to: 'config.content', sources: ['content'] },
+            { to: 'config.rating', sources: ['rating'] },
+            { to: 'config.avatar', sources: ['avatar'] },
+            { to: 'config.verified', sources: ['verified'] },
+          ],
+        },
+        config: { tag: 'div', components: [] },
+      },
+    }));
 
     const serviceCard = service.getComponentById('servicesCard__1') as any;
     expect(serviceCard?.config?.title).toBe('Launch faster');
@@ -707,52 +749,47 @@ describe('ConfigurationsOrchestratorService', () => {
       return undefined;
     }) as any);
 
-    service.setExternalComponentsFromPayload({
-      version: 1,
-      pageId: 'default',
-      domain: 'zoolandingpage.com.mx',
-      components: {
-        badgesListContainer: {
-          id: 'badgesListContainer',
-          type: 'container',
-          loopConfig: {
-            source: 'i18n',
-            path: 'hero.badges',
-            templateId: 'badgeContainerTemplate',
-            idPrefix: 'badgeContainer',
-          },
-          config: {
-            tag: 'div',
-            components: [],
-          },
+    service.setExternalComponentsFromPayload(createComponentsPayload({
+      badgesListContainer: {
+        id: 'badgesListContainer',
+        type: 'container',
+        loopConfig: {
+          source: 'i18n',
+          path: 'hero.badges',
+          templateId: 'badgeContainerTemplate',
+          idPrefix: 'badgeContainer',
         },
-        badgeContainerTemplate: {
-          id: 'badgeContainerTemplate',
-          type: 'container',
-          config: {
-            tag: 'div',
-            components: ['badgePoint', 'badgeText__{{index}}'],
-          },
-        },
-        badgePoint: {
-          id: 'badgePoint',
-          type: 'container',
-          config: { tag: 'span' },
-        },
-        badgeTextTemplate: {
-          id: 'badgeTextTemplate',
-          type: 'text',
-          loopConfig: {
-            source: 'i18n',
-            path: 'hero.badges',
-            templateId: 'badgeTextTemplate',
-            idPrefix: 'badgeText',
-            bindings: [{ to: 'config.text', sources: ['$item'] }],
-          },
-          config: { tag: 'span', text: '' },
+        config: {
+          tag: 'div',
+          components: [],
         },
       },
-    });
+      badgeContainerTemplate: {
+        id: 'badgeContainerTemplate',
+        type: 'container',
+        config: {
+          tag: 'div',
+          components: ['badgePoint', 'badgeText__{{index}}'],
+        },
+      },
+      badgePoint: {
+        id: 'badgePoint',
+        type: 'container',
+        config: { tag: 'span' },
+      },
+      badgeTextTemplate: {
+        id: 'badgeTextTemplate',
+        type: 'text',
+        loopConfig: {
+          source: 'i18n',
+          path: 'hero.badges',
+          templateId: 'badgeTextTemplate',
+          idPrefix: 'badgeText',
+          bindings: [{ to: 'config.text', sources: ['$item'] }],
+        },
+        config: { tag: 'span', text: '' },
+      },
+    }));
 
     const firstBadge = service.getComponentById('badgeContainer__1') as any;
     const secondBadgeText = service.getComponentById('badgeText__2') as any;
@@ -786,42 +823,37 @@ describe('ConfigurationsOrchestratorService', () => {
       },
     });
 
-    service.setExternalComponentsFromPayload({
-      version: 1,
-      pageId: 'default',
-      domain: 'zoolandingpage.com.mx',
-      components: {
-        headerNavLinkTemplate: {
+    service.setExternalComponentsFromPayload(createComponentsPayload({
+      headerNavLinkTemplate: {
+        id: 'headerNavLinkTemplate',
+        type: 'link',
+        eventInstructions: 'trackEvent:nav_click,navigation,event.eventData,href,event.eventData;navigationToSection:event.eventData',
+        config: {
           id: 'headerNavLinkTemplate',
-          type: 'link',
-          eventInstructions: 'trackEvent:nav_click,navigation,event.eventData,href,event.eventData;navigationToSection:event.eventData',
-          config: {
-            id: 'headerNavLinkTemplate',
-            href: '',
-            text: '',
-          },
-        },
-        headerDesktopNavLinks: {
-          id: 'headerDesktopNavLinks',
-          type: 'container',
-          loopConfig: {
-            source: 'var',
-            path: 'navigation',
-            templateId: 'headerNavLinkTemplate',
-            idPrefix: 'headerNavLink',
-            bindings: [
-              { to: 'config.href', sources: ['href', 'url', { from: 'value', transform: 'navigationHref' }] },
-              { to: 'config.text', sources: [{ from: 'labelKey', transform: 'i18nKey' }, { from: 'label', transform: 'locale' }] },
-              { to: 'config.ariaLabel', sources: [{ from: 'ariaLabelKey', transform: 'i18nKey' }, { from: 'ariaLabel', transform: 'locale' }, { from: 'labelKey', transform: 'i18nKey' }, { from: 'label', transform: 'locale' }] },
-            ],
-          },
-          config: {
-            tag: 'ul',
-            components: [],
-          },
+          href: '',
+          text: '',
         },
       },
-    });
+      headerDesktopNavLinks: {
+        id: 'headerDesktopNavLinks',
+        type: 'container',
+        loopConfig: {
+          source: 'var',
+          path: 'navigation',
+          templateId: 'headerNavLinkTemplate',
+          idPrefix: 'headerNavLink',
+          bindings: [
+            { to: 'config.href', sources: ['href', 'url', { from: 'value', transform: 'navigationHref' }] },
+            { to: 'config.text', sources: [{ from: 'labelKey', transform: 'i18nKey' }, { from: 'label', transform: 'locale' }] },
+            { to: 'config.ariaLabel', sources: [{ from: 'ariaLabelKey', transform: 'i18nKey' }, { from: 'ariaLabel', transform: 'locale' }, { from: 'labelKey', transform: 'i18nKey' }, { from: 'label', transform: 'locale' }] },
+          ],
+        },
+        config: {
+          tag: 'ul',
+          components: [],
+        },
+      },
+    }));
 
     const generated = service.getComponentById('headerNavLink__1') as any;
     expect(generated?.config?.href).toBe('#home');
@@ -858,43 +890,38 @@ describe('ConfigurationsOrchestratorService', () => {
       },
     });
 
-    service.setExternalComponentsFromPayload({
-      version: 1,
-      pageId: 'default',
-      domain: 'zoolandingpage.com.mx',
-      components: {
-        headerNavLinkTemplate: {
+    service.setExternalComponentsFromPayload(createComponentsPayload({
+      headerNavLinkTemplate: {
+        id: 'headerNavLinkTemplate',
+        type: 'link',
+        eventInstructions: 'trackEvent:nav_click,navigation,event.eventData,href,event.eventData;navigationToSection:event.eventData',
+        config: {
           id: 'headerNavLinkTemplate',
-          type: 'link',
-          eventInstructions: 'trackEvent:nav_click,navigation,event.eventData,href,event.eventData;navigationToSection:event.eventData',
-          config: {
-            id: 'headerNavLinkTemplate',
-            href: '',
-            text: '',
-            ariaLabel: '',
-          },
-        },
-        headerDesktopNavLinks: {
-          id: 'headerDesktopNavLinks',
-          type: 'container',
-          loopConfig: {
-            source: 'var',
-            path: 'navigation',
-            templateId: 'headerNavLinkTemplate',
-            idPrefix: 'headerNavLink',
-            bindings: [
-              { to: 'config.href', sources: ['href', 'url', { from: 'value', transform: 'navigationHref' }] },
-              { to: 'config.text', sources: [{ from: 'labelKey', transform: 'i18nKey' }, { from: 'label', transform: 'locale' }] },
-              { to: 'config.ariaLabel', sources: [{ from: 'ariaLabelKey', transform: 'i18nKey' }, { from: 'ariaLabel', transform: 'locale' }, { from: 'labelKey', transform: 'i18nKey' }, { from: 'label', transform: 'locale' }] },
-            ],
-          },
-          config: {
-            tag: 'ul',
-            components: [],
-          },
+          href: '',
+          text: '',
+          ariaLabel: '',
         },
       },
-    });
+      headerDesktopNavLinks: {
+        id: 'headerDesktopNavLinks',
+        type: 'container',
+        loopConfig: {
+          source: 'var',
+          path: 'navigation',
+          templateId: 'headerNavLinkTemplate',
+          idPrefix: 'headerNavLink',
+          bindings: [
+            { to: 'config.href', sources: ['href', 'url', { from: 'value', transform: 'navigationHref' }] },
+            { to: 'config.text', sources: [{ from: 'labelKey', transform: 'i18nKey' }, { from: 'label', transform: 'locale' }] },
+            { to: 'config.ariaLabel', sources: [{ from: 'ariaLabelKey', transform: 'i18nKey' }, { from: 'ariaLabel', transform: 'locale' }, { from: 'labelKey', transform: 'i18nKey' }, { from: 'label', transform: 'locale' }] },
+          ],
+        },
+        config: {
+          tag: 'ul',
+          components: [],
+        },
+      },
+    }));
 
     const generated = service.getComponentById('headerNavLink__1') as any;
     expect(generated?.config?.href).toBe('#home');
@@ -905,18 +932,13 @@ describe('ConfigurationsOrchestratorService', () => {
   it('uses only external draft components when built-in component stores are removed', () => {
     spyOn(console, 'error');
 
-    service.setExternalComponentsFromPayload({
-      version: 1,
-      pageId: 'default',
-      domain: 'despacholegalastralex.com',
-      components: {
-        siteFooter: {
-          id: 'siteFooter',
-          type: 'text',
-          config: { tag: 'p', text: 'External footer override' },
-        },
+    service.setExternalComponentsFromPayload(createComponentsPayload({
+      siteFooter: {
+        id: 'siteFooter',
+        type: 'text',
+        config: { tag: 'p', text: 'External footer override' },
       },
-    });
+    }, { domain: 'despacholegalastralex.com' }));
 
     expect((service.getComponentById('siteFooter') as any)?.config?.text).toBe('External footer override');
     expect(service.getComponentById('siteHeader')).toBeUndefined();
@@ -926,33 +948,28 @@ describe('ConfigurationsOrchestratorService', () => {
   it('does not warn about unresolved loop sources when only collecting classes', () => {
     const warnSpy = spyOn(console, 'warn');
 
-    service.setExternalComponentsFromPayload({
-      version: 1,
-      pageId: 'default',
-      domain: 'zoolandingpage.com.mx',
-      components: {
-        missingLoopTemplate: {
-          id: 'missingLoopTemplate',
-          type: 'text',
-          config: { tag: 'span', text: '', classes: 'ank-color-textColor' },
+    service.setExternalComponentsFromPayload(createComponentsPayload({
+      missingLoopTemplate: {
+        id: 'missingLoopTemplate',
+        type: 'text',
+        config: { tag: 'span', text: '', classes: 'ank-color-textColor' },
+      },
+      missingLoopSection: {
+        id: 'missingLoopSection',
+        type: 'container',
+        loopConfig: {
+          source: 'i18n',
+          path: 'hero.badges',
+          templateId: 'missingLoopTemplate',
+          idPrefix: 'missingLoopItem',
         },
-        missingLoopSection: {
-          id: 'missingLoopSection',
-          type: 'container',
-          loopConfig: {
-            source: 'i18n',
-            path: 'hero.badges',
-            templateId: 'missingLoopTemplate',
-            idPrefix: 'missingLoopItem',
-          },
-          config: {
-            tag: 'div',
-            components: [],
-            classes: 'ank-display-flex',
-          },
+        config: {
+          tag: 'div',
+          components: [],
+          classes: 'ank-display-flex',
         },
       },
-    });
+    }));
 
     const classes = service.getAllTheClassesFromComponents();
 

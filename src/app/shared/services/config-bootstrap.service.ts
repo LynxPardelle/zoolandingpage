@@ -80,10 +80,10 @@ export class ConfigBootstrapService {
         return config['components'].filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0);
     }
 
-    private collectReferencedModalIds(components: Record<string, unknown>): readonly string[] {
+    private collectReferencedModalIds(components: readonly Record<string, unknown>[]): readonly string[] {
         const modalIds = new Set<string>();
 
-        Object.values(components).forEach((component) => {
+        components.forEach((component) => {
             if (!this.isRecord(component)) return;
 
             const eventInstructions = component['eventInstructions'];
@@ -136,10 +136,10 @@ export class ConfigBootstrapService {
         return this.resolveLoopTemplateId(component);
     }
 
-    private collectGeneratedLoopPrefixes(components: Record<string, unknown>): ReadonlySet<string> {
+    private collectGeneratedLoopPrefixes(components: readonly Record<string, unknown>[]): ReadonlySet<string> {
         const prefixes = new Set<string>();
 
-        Object.values(components).forEach((component) => {
+        components.forEach((component) => {
             const prefix = this.resolveLoopIdPrefix(component);
             if (prefix) prefixes.add(prefix);
         });
@@ -449,10 +449,16 @@ export class ConfigBootstrapService {
         const pageConfig = payloads.pageConfig;
         addIssue(!pageConfig || pageConfig.rootIds.length === 0, 'page-config.rootIds must include at least one render root.');
 
-        const components = payloads.components?.components ?? {};
-        addIssue(Object.keys(components).length === 0, 'components.json must include at least one component entry.');
+        const components = payloads.components?.components ?? [];
+        addIssue(components.length === 0, 'components.json must include at least one component entry.');
 
-        const componentIds = new Set(Object.keys(components));
+        const componentEntries: readonly Record<string, unknown>[] = components;
+        const componentIds = new Set(
+            componentEntries
+                .map((component) => component['id'])
+                .filter((id): id is string => this.isNonEmptyString(id))
+                .map((id) => id.trim())
+        );
         const generatedLoopPrefixes = this.collectGeneratedLoopPrefixes(components);
         const addMissingReferenceIssue = (message: string) => {
             if (!issues.includes(message)) {
@@ -468,7 +474,8 @@ export class ConfigBootstrapService {
             addIssue(!componentIds.has(modalRootId), `page-config.modalRootIds references missing component "${ modalRootId }".`);
         }
 
-        for (const [componentId, component] of Object.entries(components)) {
+        for (const component of componentEntries) {
+            const componentId = String(component['id']).trim();
             for (const childId of this.collectChildComponentIds(component)) {
                 if (this.isGeneratedLoopReference(childId, generatedLoopPrefixes)) {
                     continue;
@@ -493,7 +500,7 @@ export class ConfigBootstrapService {
         const ui = this.isRecord(variables['ui']) ? variables['ui'] : null;
         const contact = this.isRecord(ui?.['contact']) ? ui['contact'] : null;
         const modalConfigs = this.isRecord(ui?.['modals']) ? ui['modals'] as Record<string, unknown> : null;
-        const referencedModalIds = this.collectReferencedModalIds(components);
+        const referencedModalIds = this.collectReferencedModalIds(componentEntries);
 
         addIssue(!site, 'site-config.site is required.');
         addIssue(!appIdentity, 'site-config.site.appIdentity is required.');
@@ -520,26 +527,26 @@ export class ConfigBootstrapService {
             );
         });
 
-        const requiresWhatsAppContact = Object.values(components).some((component) => {
+        const requiresWhatsAppContact = componentEntries.some((component) => {
             if (!this.isRecord(component)) return false;
             const instructions = component['eventInstructions'];
             if (typeof instructions !== 'string') return false;
             return /(^|;)(openWhatsApp|openFaqCtaWhatsApp|openFinalCtaWhatsApp)(:|;|$)/.test(instructions);
         });
 
-        const requiresFaqWhatsAppMessage = Object.values(components).some((component) => {
+        const requiresFaqWhatsAppMessage = componentEntries.some((component) => {
             if (!this.isRecord(component)) return false;
             const instructions = component['eventInstructions'];
             return typeof instructions === 'string' && /(^|;)openFaqCtaWhatsApp(:|;|$)/.test(instructions);
         });
 
-        const requiresFinalCtaWhatsAppMessage = Object.values(components).some((component) => {
+        const requiresFinalCtaWhatsAppMessage = componentEntries.some((component) => {
             if (!this.isRecord(component)) return false;
             const instructions = component['eventInstructions'];
             return typeof instructions === 'string' && /(^|;)openFinalCtaWhatsApp(:|;|$)/.test(instructions);
         });
 
-        const requiresGeneralWhatsAppMessage = Object.values(components).some((component) => {
+        const requiresGeneralWhatsAppMessage = componentEntries.some((component) => {
             if (!this.isRecord(component)) return false;
             const instructions = component['eventInstructions'];
             return typeof instructions === 'string' && /(^|;)openWhatsApp(:|;|$)/.test(instructions);

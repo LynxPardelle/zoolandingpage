@@ -10,6 +10,7 @@ import { ConfigBootstrapService } from '../../../shared/services/config-bootstra
 import { ConfigSourceService } from '../../../shared/services/config-source.service';
 import { ConfigurationsOrchestratorService } from '../../../shared/services/configurations-orchestrator';
 import { DraftRegistryService } from '../../../shared/services/draft-registry.service';
+import type { TComponentPayloadEntry, TComponentsPayload } from '../../../shared/types/config-payloads.types';
 import { DebugWorkspaceComponent } from '../debug-workspace/debug-workspace.component';
 import { AppShellComponent } from './app-shell.component';
 
@@ -39,6 +40,16 @@ const SECONDARY_DOMAIN = 'music.example.test';
 const LEGAL_DOMAIN = 'legal.example.test';
 const DEBUG_MODAL_ROOT_IDS = ['modalDemoRoot'];
 
+const createComponentsPayload = (
+  components: Record<string, TComponentPayloadEntry>,
+  overrides: Partial<{ domain: string; pageId: string }> = {},
+): TComponentsPayload => ({
+  version: 1,
+  pageId: overrides.pageId ?? 'default',
+  domain: overrides.domain ?? PRIMARY_DOMAIN,
+  components: Object.values(components) as TComponentPayloadEntry[],
+});
+
 let bootstrapResult: any;
 let bootstrapLoadArgs: Array<{ domain?: string; pageId?: string; lang?: string }>;
 
@@ -53,7 +64,7 @@ const ORCHESTRATOR_STUB = {
     version: 1,
     pageId: 'default',
     domain: PRIMARY_DOMAIN,
-    components: {},
+    components: [],
   }),
 };
 
@@ -72,18 +83,13 @@ describe('AppShellComponent', () => {
         rootIds: ['skipToMainLink', 'siteHeader', 'landingPage'],
         modalRootIds: ['modalAnalyticsConsentRoot', 'modalTermsRoot', 'modalDataUseRoot'],
       },
-      components: {
-        version: 1,
-        pageId: 'default',
-        domain: PRIMARY_DOMAIN,
-        components: {
-          draftStub: {
-            id: 'draftStub',
-            type: 'text',
-            config: { text: '' },
-          },
+      components: createComponentsPayload({
+        draftStub: {
+          id: 'draftStub',
+          type: 'text',
+          config: { text: '' },
         },
-      },
+      }),
     };
     ORCHESTRATOR_STUB.setExternalComponentsFromPayload.calls.reset();
     ORCHESTRATOR_STUB.setAuxiliaryComponentsFromPayload.calls.reset();
@@ -98,6 +104,7 @@ describe('AppShellComponent', () => {
             initializeRuntimeState: () => { },
             track: async () => { },
             flush: () => [],
+            pageViewEventName: () => 'page_view',
             promptForConsentIfNeeded: () => { },
             startPageEngagementTracking: () => { },
             stopPageEngagementTracking: () => { },
@@ -204,12 +211,7 @@ describe('AppShellComponent', () => {
       ...bootstrapResult,
       domain: PRIMARY_DOMAIN,
       pageId: 'default',
-      components: {
-        version: 1,
-        pageId: 'default',
-        domain: PRIMARY_DOMAIN,
-        components: {},
-      },
+      components: createComponentsPayload({}),
       pageConfig: {
         version: 1,
         pageId: 'default',
@@ -234,43 +236,38 @@ describe('AppShellComponent', () => {
       ...bootstrapResult,
       domain: PRIMARY_DOMAIN,
       pageId: 'default',
-      components: {
-        version: 1,
-        pageId: 'default',
-        domain: PRIMARY_DOMAIN,
-        components: {
-          skipToMainLink: {
-            id: 'skipToMainLink',
-            type: 'link',
-            config: { href: '#landing-main', text: 'Skip' },
-          },
-          siteHeader: {
-            id: 'siteHeader',
-            type: 'container',
-            config: { components: [] },
-          },
-          landingPage: {
-            id: 'landingPage',
-            type: 'container',
-            config: { components: [] },
-          },
-          siteFooter: {
-            id: 'siteFooter',
-            type: 'container',
-            config: { components: ['siteFooterContent'] },
-          },
-          siteFooterContent: {
-            id: 'siteFooterContent',
-            type: 'container',
-            config: { components: [] },
-          },
-          modalTermsRoot: {
-            id: 'modalTermsRoot',
-            type: 'container',
-            config: { components: [] },
-          },
+      components: createComponentsPayload({
+        skipToMainLink: {
+          id: 'skipToMainLink',
+          type: 'link',
+          config: { href: '#landing-main', text: 'Skip' },
         },
-      },
+        siteHeader: {
+          id: 'siteHeader',
+          type: 'container',
+          config: { components: [] },
+        },
+        landingPage: {
+          id: 'landingPage',
+          type: 'container',
+          config: { components: [] },
+        },
+        siteFooter: {
+          id: 'siteFooter',
+          type: 'container',
+          config: { components: ['siteFooterContent'] },
+        },
+        siteFooterContent: {
+          id: 'siteFooterContent',
+          type: 'container',
+          config: { components: [] },
+        },
+        modalTermsRoot: {
+          id: 'modalTermsRoot',
+          type: 'container',
+          config: { components: [] },
+        },
+      }),
       pageConfig: {
         version: 1,
         pageId: 'default',
@@ -308,18 +305,13 @@ describe('AppShellComponent', () => {
         rootIds: ['skipToMainLink', 'siteHeader', 'landingPage', 'siteFooter'],
         modalRootIds: ['modalAnalyticsConsentRoot', 'modalTermsRoot', 'modalDataUseRoot'],
       },
-      components: {
-        version: 1,
-        pageId: 'legal-home',
-        domain: LEGAL_DOMAIN,
-        components: {
-          landingPage: {
-            id: 'landingPage',
-            type: 'container',
-            config: { components: [] },
-          },
+      components: createComponentsPayload({
+        landingPage: {
+          id: 'landingPage',
+          type: 'container',
+          config: { components: [] },
         },
-      },
+      }, { domain: LEGAL_DOMAIN, pageId: 'legal-home' }),
     };
 
     TestBed.overrideProvider(REQUEST, {

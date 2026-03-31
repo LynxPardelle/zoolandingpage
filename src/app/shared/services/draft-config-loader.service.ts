@@ -1,6 +1,7 @@
 import { getLocaleCandidates } from '@/app/shared/i18n/locale.utils';
 import type {
     TAngoraCombosPayload,
+    TComponentPayloadEntry,
     TComponentsPayload,
     TDraftSiteConfigPayload,
     TI18nPayload,
@@ -9,6 +10,7 @@ import type {
 } from '@/app/shared/types/config-payloads.types';
 import {
     isAngoraCombosPayload,
+    isComponentsPayload,
     isDraftSiteConfigPayload,
     isI18nPayload,
     isPageConfigPayload,
@@ -60,6 +62,45 @@ export class DraftConfigLoaderService {
         }
     }
 
+    private async loadComponentsPayload(path: string): Promise<TComponentsPayload | null> {
+        const payload = await this.getJson<TComponentsPayload>(path);
+        return isComponentsPayload(payload) ? payload : null;
+    }
+
+    private mergeComponentsPayloads(
+        domain: string,
+        pageId: string,
+        payloads: readonly (TComponentsPayload | null)[],
+    ): TComponentsPayload | null {
+        const entries = new Map<string, TComponentPayloadEntry>();
+
+        payloads.forEach((payload) => {
+            payload?.components.forEach((component) => {
+                const componentDomain = String(component.domain ?? payload.domain ?? domain).trim() || domain;
+                const componentPageId = String(component.pageId ?? payload.pageId ?? pageId).trim() || pageId;
+
+                entries.set(component.id, {
+                    ...component,
+                    domain: componentDomain,
+                    pageId: componentPageId,
+                });
+            });
+        });
+
+        if (entries.size === 0) {
+            return null;
+        }
+
+        const version = payloads.find((payload) => payload)?.version ?? 1;
+
+        return {
+            version,
+            domain,
+            pageId,
+            components: Array.from(entries.values()),
+        };
+    }
+
     async loadSiteConfig(domain?: string): Promise<TDraftSiteConfigPayload | null> {
         const domainBase = this.getDomainBase(domain);
         if (!domainBase) {
@@ -83,14 +124,20 @@ export class DraftConfigLoaderService {
     }
 
     async loadComponents(domain?: string, pageId?: string): Promise<TComponentsPayload | null> {
+        const domainBase = this.getDomainBase(domain);
         const draftBase = this.getDraftBase(domain, pageId);
-        if (!draftBase) {
+        const normalizedDomain = String(domain ?? '').trim();
+        const normalizedPageId = String(pageId ?? '').trim();
+        if (!domainBase || !draftBase || !normalizedDomain || !normalizedPageId) {
             return null;
         }
 
-        const url = `${ draftBase }/components.json`;
-        const payload = await this.getJson<TComponentsPayload>(url);
-        return payload && typeof payload === 'object' ? (payload as TComponentsPayload) : null;
+        const [sitePayload, pagePayload] = await Promise.all([
+            this.loadComponentsPayload(`${ domainBase }/components.json`),
+            this.loadComponentsPayload(`${ draftBase }/components.json`),
+        ]);
+
+        return this.mergeComponentsPayloads(normalizedDomain, normalizedPageId, [sitePayload, pagePayload]);
     }
 
     async loadVariables(domain?: string, pageId?: string): Promise<TVariablesPayload | null> {
@@ -121,8 +168,7 @@ export class DraftConfigLoaderService {
     }
 
     async loadDebugWorkspaceComponents(): Promise<TComponentsPayload | null> {
-        const payload = await this.getJson<TComponentsPayload>(`${ this.debugWorkspaceBase }/components.json`);
-        return payload && typeof payload === 'object' ? (payload as TComponentsPayload) : null;
+        return this.loadComponentsPayload(`${ this.debugWorkspaceBase }/components.json`);
     }
 
     async loadDebugWorkspaceCombos(): Promise<TAngoraCombosPayload | null> {

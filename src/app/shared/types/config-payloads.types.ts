@@ -233,11 +233,18 @@ export type TPageConfigPayload = {
     readonly analytics?: TPageAnalyticsConfig;
 };
 
+export type TComponentPayloadEntry = Record<string, unknown> & {
+    readonly id: string;
+    readonly type: string;
+    readonly domain?: string;
+    readonly pageId?: string;
+};
+
 export type TComponentsPayload = {
     readonly version: number;
     readonly pageId: string;
     readonly domain: string;
-    readonly components: Record<string, unknown>;
+    readonly components: readonly TComponentPayloadEntry[];
 };
 
 export type TInputComponentPayload = TGenericInputConfig;

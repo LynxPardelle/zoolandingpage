@@ -861,6 +861,8 @@ const isComponentPayloadRecord = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
     if (typeof value['id'] !== 'string' || value['id'].trim().length === 0) return false;
     if (typeof value['type'] !== 'string' || value['type'].trim().length === 0) return false;
+    if (value['domain'] !== undefined && typeof value['domain'] !== 'string') return false;
+    if (value['pageId'] !== undefined && typeof value['pageId'] !== 'string') return false;
     if (!ALLOWED_COMPONENT_TYPES.has(value['type'])) return false;
     if (value['condition'] !== undefined && typeof value['condition'] !== 'string' && typeof value['condition'] !== 'boolean') return false;
     if (value['valueInstructions'] !== undefined && typeof value['valueInstructions'] !== 'string') return false;
@@ -1116,12 +1118,20 @@ export const isComponentsPayload = (value: unknown): value is TComponentsPayload
     if (typeof value['version'] !== 'number') return false;
     if (typeof value['pageId'] !== 'string') return false;
     if (typeof value['domain'] !== 'string') return false;
-    if (!isRecord(value['components'])) return false;
+    if (!Array.isArray(value['components'])) return false;
 
-    for (const [id, component] of Object.entries(value['components'])) {
+    const ids = new Set<string>();
+
+    for (const component of value['components']) {
         if (!isComponentPayloadRecord(component)) {
             return false;
         }
+
+        const id = String(component['id']).trim();
+        if (ids.has(id)) {
+            return false;
+        }
+        ids.add(id);
     }
 
     return true;

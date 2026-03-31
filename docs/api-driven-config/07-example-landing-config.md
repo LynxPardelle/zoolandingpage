@@ -224,8 +224,8 @@ Use `site-config.json.site.theme.palettes` for global semantic colors only. Keep
 
 ```json
 {
-  "components": {
-    "siteFooter": {
+  "components": [
+    {
       "id": "siteFooter",
       "type": "container",
       "config": {
@@ -235,7 +235,7 @@ Use `site-config.json.site.theme.palettes` for global semantic colors only. Keep
         "components": ["siteFooterContent"]
       }
     },
-    "siteFooterContent": {
+    {
       "id": "siteFooterContent",
       "type": "container",
       "config": {
@@ -244,7 +244,7 @@ Use `site-config.json.site.theme.palettes` for global semantic colors only. Keep
         "components": ["footerLegalSection", "footerSocialSection", "footerCopyrightSection"]
       }
     },
-    "footerSocialSection": {
+    {
       "id": "footerSocialSection",
       "type": "container",
       "condition": "all:varLenGt,socialLinks,0",
@@ -260,7 +260,7 @@ Use `site-config.json.site.theme.palettes` for global semantic colors only. Keep
         "components": []
       }
     },
-    "footerSocialLinkTemplate": {
+    {
       "id": "footerSocialLinkTemplate",
       "type": "link",
       "config": {
@@ -273,19 +273,19 @@ Use `site-config.json.site.theme.palettes` for global semantic colors only. Keep
         "classes": "ank-color-secondaryTextColor ank-textDecoration-none ank-fontSize-lg ank-padding-8px ank-borderRadius-md ank-transition-colors"
       }
     },
-    "modalTermsHeaderIconGlyph": {
+    {
       "id": "modalTermsHeaderIconGlyph",
       "type": "text",
       "valueInstructions": "set:config.text,i18n,footer.legal.terms.icon",
       "config": { "tag": "span", "text": "" }
     },
-    "modalDataHeaderIconGlyph": {
+    {
       "id": "modalDataHeaderIconGlyph",
       "type": "text",
       "valueInstructions": "set:config.text,i18n,footer.legal.data.icon",
       "config": { "tag": "span", "text": "" }
     }
-  }
+  ]
 }
 ```
 

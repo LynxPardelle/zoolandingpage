@@ -123,11 +123,12 @@ Rules:
 
 ## Recommended payload shape
 
-Use a **map** keyed by component `id`:
+Use a **components array** in transport payloads and drafts:
 
 ```ts
 export type LandingPageConfigPayload = {
   version: 1;
+  domain: string;
   pageId: string;
   rootIds: readonly string[];
   variables?: {
@@ -138,26 +139,32 @@ export type LandingPageConfigPayload = {
       finalCtaMessageKey?: string;
     };
   };
-  components: Record<
-    string,
-    {
-      id: string;
-      type: string;
-      config: unknown;
-      valueInstructions?: string;
-      eventInstructions?: string;
-      order?: number;
-      meta_title?: string;
-    }
-  >;
+  components: Array<{
+    id: string;
+    type: string;
+    config: unknown;
+    domain?: string;
+    pageId?: string;
+    valueInstructions?: string;
+    eventInstructions?: string;
+    order?: number;
+    meta_title?: string;
+  }>;
 };
 ```
 
-Why a map?
+Draft storage rules:
 
-- IDs are already primary keys.
-- Diffing and merging is simpler.
-- Updating a single component doesn’t require rewriting a large array.
+- Shared site components can live in `public/assets/drafts/{domain}/components.json` with top-level `pageId: "allPages"`.
+- Page-owned components stay in `public/assets/drafts/{domain}/{pageId}/components.json`.
+- The debug authoring exporter should emit those same two files directly instead of flattening shared and page-owned entries back into one page payload.
+- The runtime merges shared plus page-owned draft components by `id`, and the page-owned component wins on collision.
+
+API storage rules:
+
+- Persist `domain` and `pageId` for each stored component record.
+- Use `pageId: "allPages"` for shared components.
+- The lambda should return only the effective component array for the requested `domain` and `pageId`; the client should not need to merge `allPages` records itself.
 
 ## Transport considerations
 
@@ -174,10 +181,11 @@ Why a map?
 
 A future client-side loader can:
 
-1. Fetch `LandingPageConfigPayload` by `pageId`.
-2. Store it in an in-memory registry (instead of TS-defined arrays).
-3. Provide `getComponentById(id)` and root ID lists.
-4. Render via `<wrapper-orchestrator [componentsIds]="payload.rootIds" />`.
+1. Fetch `LandingPageConfigPayload` for the requested `domain` and `pageId`.
+2. Receive one merged array of components already filtered for that page.
+3. Store it in an in-memory registry keyed by component `id`.
+4. Provide `getComponentById(id)` and root ID lists.
+5. Render via `<wrapper-orchestrator [componentsIds]="payload.rootIds" />`.
 
 ## Page-owned analytics payload
 

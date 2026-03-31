@@ -22,6 +22,12 @@ import { LanguageService } from './language.service';
 import { RuntimeConfigService } from './runtime-config.service';
 import { VariableStoreService } from './variable-store.service';
 
+type TDraftExportFile = {
+    readonly name: string;
+    readonly downloadName: string;
+    readonly data: unknown;
+};
+
 @Injectable({
     providedIn: 'root',
 })
@@ -142,7 +148,7 @@ export class ConfigurationsOrchestratorService {
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = payload.name;
+            link.download = payload.downloadName;
             link.click();
             URL.revokeObjectURL(url);
         });
@@ -213,12 +219,12 @@ export class ConfigurationsOrchestratorService {
     readonly componentsRevision = computed(() => this.externalComponentsRevision());
 
     private parseComponentsPayload(payload: TComponentsPayload | null): readonly TGenericComponent[] {
-        const record = payload?.components ?? {};
-        return Object.entries(record)
-            .map(([id, value]) => {
-                if (!value || typeof value !== 'object') return null;
-                const component = value as TGenericComponent;
-                return component.id ? component : { ...component, id };
+        const entries = Array.isArray(payload?.components) ? payload.components : [];
+        return entries
+            .map((entry) => {
+                if (!entry || typeof entry !== 'object') return null;
+                const component = entry as TGenericComponent;
+                return typeof component.id === 'string' && component.id.trim().length > 0 ? component : null;
             })
             .filter((component): component is TGenericComponent => !!component);
     }
@@ -270,22 +276,10 @@ export class ConfigurationsOrchestratorService {
     }
 
     exportDraftComponentsPayload(domain: string, pageId: string): TComponentsPayload {
-        const source = this.externalComponents ?? [];
-        const components: Record<string, unknown> = {};
-
-        source.forEach((component) => {
-            components[component.id] = this.sanitizeComponentForPayload(component);
-        });
-
-        return {
-            version: 1,
-            domain,
-            pageId,
-            components,
-        };
+        return this.createDraftComponentsPayload(domain, pageId, this.externalComponents ?? []);
     }
 
-    private buildDraftPayloads(domain: string, pageId: string): { name: string; data: unknown }[] {
+    private buildDraftPayloads(domain: string, pageId: string): TDraftExportFile[] {
         const context = this.draftExportContext();
         const resolvedDomain = String(domain).trim() || context.domain || this.domainResolver.resolveDomain().domain;
         const resolvedPageId = String(pageId).trim() || context.pageId;
@@ -296,7 +290,6 @@ export class ConfigurationsOrchestratorService {
             rootIds: context.rootIds,
             modalRootIds: context.modalRootIds,
         };
-        const componentsPayload = this.configStore.components() ?? this.exportDraftComponentsPayload(resolvedDomain, resolvedPageId);
         const variables = this.configStore.variables();
         const combos = this.configStore.combos();
         const seo = this.configStore.seo();
@@ -314,17 +307,97 @@ export class ConfigurationsOrchestratorService {
                 },
             } : {}),
         };
-
-        const payloads: { name: string; data: unknown }[] = [
-            { name: 'page-config.json', data: pageConfig },
-            { name: 'components.json', data: componentsPayload },
+        const pageRoot = `${ resolvedDomain }/${ resolvedPageId }`;
+        const payloads: TDraftExportFile[] = [
+            {
+                name: `${ pageRoot }/page-config.json`,
+                downloadName: this.toDownloadFileName(`${ pageRoot }/page-config.json`),
+                data: pageConfig,
+            },
+            ...this.buildDraftComponentsFiles(resolvedDomain, resolvedPageId),
         ];
 
-        if (variables) payloads.push({ name: 'variables.json', data: variables });
-        if (combos) payloads.push({ name: 'angora-combos.json', data: combos });
-        if (i18n) payloads.push({ name: `i18n/${ i18n.lang }.json`, data: i18n });
+        if (variables) {
+            payloads.push({
+                name: `${ pageRoot }/variables.json`,
+                downloadName: this.toDownloadFileName(`${ pageRoot }/variables.json`),
+                data: variables,
+            });
+        }
+        if (combos) {
+            payloads.push({
+                name: `${ pageRoot }/angora-combos.json`,
+                downloadName: this.toDownloadFileName(`${ pageRoot }/angora-combos.json`),
+                data: combos,
+            });
+        }
+        if (i18n) {
+            payloads.push({
+                name: `${ pageRoot }/i18n/${ i18n.lang }.json`,
+                downloadName: this.toDownloadFileName(`${ pageRoot }/i18n/${ i18n.lang }.json`),
+                data: i18n,
+            });
+        }
 
         return payloads;
+    }
+
+    private buildDraftComponentsFiles(domain: string, pageId: string): TDraftExportFile[] {
+        const sourcePayload = this.configStore.components() ?? {
+            version: 1,
+            domain,
+            pageId,
+            components: (this.externalComponents ?? []) as readonly Record<string, unknown>[],
+        };
+        const sharedComponents: Record<string, unknown>[] = [];
+        const pageComponents: Record<string, unknown>[] = [];
+
+        sourcePayload.components.forEach((component) => {
+            const componentDomain = String(component['domain'] ?? sourcePayload.domain ?? domain).trim() || domain;
+            const componentPageId = String(component['pageId'] ?? sourcePayload.pageId ?? pageId).trim() || pageId;
+
+            if (componentDomain === domain && componentPageId === 'allPages') {
+                sharedComponents.push(component);
+                return;
+            }
+
+            pageComponents.push(component);
+        });
+
+        const payloads: TDraftExportFile[] = [];
+        if (sharedComponents.length > 0) {
+            payloads.push({
+                name: `${ domain }/components.json`,
+                downloadName: this.toDownloadFileName(`${ domain }/components.json`),
+                data: this.createDraftComponentsPayload(domain, 'allPages', sharedComponents),
+            });
+        }
+
+        const pagePath = `${ domain }/${ pageId }/components.json`;
+        payloads.push({
+            name: pagePath,
+            downloadName: this.toDownloadFileName(pagePath),
+            data: this.createDraftComponentsPayload(domain, pageId, pageComponents),
+        });
+
+        return payloads;
+    }
+
+    private createDraftComponentsPayload(
+        domain: string,
+        pageId: string,
+        source: readonly unknown[],
+    ): TComponentsPayload {
+        return {
+            version: 1,
+            domain,
+            pageId,
+            components: source.map((component) => this.sanitizeComponentForPayload(component) as any),
+        };
+    }
+
+    private toDownloadFileName(path: string): string {
+        return path.replace(/[\\/]+/g, '--');
     }
 
     private async writeFileToDir(dirHandle: any, name: string, contents: string): Promise<void> {
@@ -368,10 +441,15 @@ export class ConfigurationsOrchestratorService {
         );
     }
 
-    private sanitizeComponentForPayload(component: TGenericComponent): Record<string, unknown> {
-        return JSON.parse(
+    private sanitizeComponentForPayload(component: unknown): Record<string, unknown> {
+        const sanitized = JSON.parse(
             JSON.stringify(component, (_key, value) => (typeof value === 'function' ? undefined : value))
         ) as Record<string, unknown>;
+
+        delete sanitized['domain'];
+        delete sanitized['pageId'];
+
+        return sanitized;
     }
 
     private resolveLoopComponents(warnOnMissingSource: boolean, host?: unknown): Map<string, TGenericComponent> {
