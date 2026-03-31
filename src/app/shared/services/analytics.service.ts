@@ -298,6 +298,11 @@ export class AnalyticsService {
   promptForConsentIfNeeded(): void {
     try {
       if (typeof localStorage === 'undefined') return;
+      if (!this.isRemoteAnalyticsEnabled()) {
+        this.hasPermission = false;
+        this.alreadyAskedForPermission = true;
+        return;
+      }
       // If consent UI mode is 'none', auto-allow analytics and skip any prompting logic entirely.
       if (this.runtimeConfig.analyticsConsentMode() === 'none') {
         this.hasPermission = true;
@@ -356,7 +361,7 @@ export class AnalyticsService {
     this.buffer.push(evt);
     this.events$.next(evt);
     /* console.log('buffer:', this.buffer); */
-    if (!(this.runtimeConfig.isAnalyticsEnabled() || this.runtimeConfig.isDebugMode())) return;
+    if (!this.isRemoteAnalyticsEnabled()) return;
 
     // Respect a persisted decline decision: do not queue or prompt.
     try {
@@ -419,11 +424,23 @@ export class AnalyticsService {
     return this.runtimeConfig.resolveStorageKey(key);
   }
 
+  private isRemoteAnalyticsEnabled(): boolean {
+    return this.runtimeConfig.isAnalyticsEnabled();
+  }
+
+  private canSendRemoteQuickStats(): boolean {
+    if (!this.isProduction || !this.isRemoteAnalyticsEnabled()) {
+      return false;
+    }
+
+    return this.hasPermission || this.runtimeConfig.analyticsConsentMode() === 'none';
+  }
+
   private send(evt: TAnalyticsEvent & TExpandedAnalytics & { appName: string }): Observable<TDataDropResponse> | void {
     this.timesSended++;
     if (this.runtimeConfig.isDebugMode()) console.log(`Sending analytics data to server (attempt ${ this.timesSended })...`, evt);
     // Send to server only if in production and analytics is enabled
-    if (this.isProduction) {
+    if (this.isProduction && this.isRemoteAnalyticsEnabled()) {
       const url = `${ this.baseUrl }/analytics`;
       return this.http.post<TDataDropResponse>(url, evt).pipe(
         tap(res => { if (this.runtimeConfig.isDebugMode()) console.log('Analytics server response:', res) })
@@ -571,7 +588,7 @@ export class AnalyticsService {
       this.consentPending?.resolve(accepted);
 
       // On accept, flush pending events in order
-      if (accepted && (this.runtimeConfig.isAnalyticsEnabled() || this.runtimeConfig.isDebugMode())) {
+      if (accepted && this.isRemoteAnalyticsEnabled()) {
         this.previouslyAskedUserData = this.previouslyAskedUserData || await this.getAllDataFromUser();
         const meta = this.previouslyAskedUserData;
         const queue = [...this.pendingQueue];
@@ -736,7 +753,7 @@ export class AnalyticsService {
   }
 
   private bumpRemotePageView(): void {
-    if (!this.isProduction) return;
+    if (!this.canSendRemoteQuickStats()) return;
     const pageView = this.remotePageViewConfig();
     if (!pageView) return;
     this.quickStats.inc(pageView.path, pageView.by ?? 1).subscribe({
@@ -750,7 +767,7 @@ export class AnalyticsService {
   }
 
   private bumpQuickStatsForEvent(name: string): void {
-    if (!this.isProduction) return;
+    if (!this.canSendRemoteQuickStats()) return;
     const bindings = this.remoteEventQuickStats().filter((entry) => entry.name === name);
     if (bindings.length === 0) {
       return;

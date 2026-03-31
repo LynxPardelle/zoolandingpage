@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { AnalyticsService } from './analytics.service';
 import { ConfigStoreService } from './config-store.service';
+import { QuickStatsService } from './quick-stats.service';
 import { RuntimeConfigService } from './runtime-config.service';
 
 describe('AnalyticsService', () => {
@@ -117,5 +118,85 @@ describe('AnalyticsService', () => {
     const svc = TestBed.inject(AnalyticsService) as any;
 
     expect(svc.resolveAppName()).toBe('zoolandingpagecommx');
+  });
+
+  it('does not send remote analytics when debug mode is enabled but analytics is disabled', async () => {
+    const post = jasmine.createSpy('post').and.returnValue(of({ ok: true }));
+
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: RuntimeConfigService,
+          useValue: {
+            appIdentifier: () => 'zoolandingpagecommx',
+            isAnalyticsEnabled: () => false,
+            isDebugMode: () => true,
+            analyticsConsentMode: () => 'none',
+            resolveStorageKey: (slot: string) => slot,
+            track: () => [],
+          },
+        },
+        {
+          provide: HttpClient,
+          useValue: { post } as any,
+        },
+      ],
+    });
+
+    const svc = TestBed.inject(AnalyticsService);
+
+    await svc.track('test_event', { category: 'test', label: 'A' });
+
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it('does not bump remote quick stats when analytics is disabled', () => {
+    const quickStats = jasmine.createSpyObj<QuickStatsService>('QuickStatsService', ['inc', 'getNumber']);
+    quickStats.inc.and.returnValue(of({ ok: true }));
+    quickStats.getNumber.and.returnValue(undefined);
+
+    TestBed.configureTestingModule({
+      providers: [
+        ConfigStoreService,
+        {
+          provide: QuickStatsService,
+          useValue: quickStats,
+        },
+        {
+          provide: RuntimeConfigService,
+          useValue: {
+            appIdentifier: () => 'zoolandingpagecommx',
+            isAnalyticsEnabled: () => false,
+            isDebugMode: () => false,
+            analyticsConsentMode: () => 'none',
+            resolveStorageKey: (slot: string) => slot,
+            track: () => [],
+          },
+        },
+        {
+          provide: HttpClient,
+          useValue: {
+            post: jasmine.createSpy('post').and.returnValue(of({ ok: true })),
+          } as any,
+        },
+      ],
+    });
+
+    const store = TestBed.inject(ConfigStoreService);
+    store.setAnalytics({
+      sectionIds: [],
+      scrollMilestones: [],
+      enabled: false,
+      consentUI: 'none',
+      consentSnoozeSeconds: 86400,
+      quickStats: {
+        pageView: { event: 'page_view', path: 'metrics.pageViews', by: 1 },
+      },
+    });
+
+    const svc = TestBed.inject(AnalyticsService);
+    svc.initializeRuntimeState();
+
+    expect(quickStats.inc).not.toHaveBeenCalled();
   });
 });
