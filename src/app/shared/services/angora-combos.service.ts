@@ -94,6 +94,24 @@ export class AngoraCombosService {
         });
     }
 
+    updateClasses(classes: readonly string[]): void {
+        if (!this.isBrowser) return;
+
+        const normalized = Array.from(new Set(
+            (classes ?? [])
+                .map((entry) => String(entry).trim())
+                .filter((entry) => entry.length > 0)
+        ));
+
+        if (normalized.length === 0) {
+            return;
+        }
+
+        normalized.forEach((className) => {
+            this.ank.updateClasses([className]);
+        });
+    }
+
     stopCssRuntime(): void {
         if (this.cssCreateTimer !== null) {
             window.clearTimeout(this.cssCreateTimer);

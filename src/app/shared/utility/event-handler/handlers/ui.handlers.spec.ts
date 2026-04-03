@@ -75,7 +75,7 @@ describe('navigateToUrlHandler', () => {
     let openSpy: jasmine.Spy<(url?: string | URL, target?: string, features?: string) => Window | null>;
 
     beforeEach(() => {
-        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.preview&debugWorkspace=true');
+        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com&debugWorkspace=true');
         router = jasmine.createSpyObj<Router>('Router', ['navigateByUrl']);
         router.navigateByUrl.and.returnValue(Promise.resolve(true));
 
@@ -102,29 +102,29 @@ describe('navigateToUrlHandler', () => {
     it('should keep internal _blank URLs in the same tab', async () => {
         const handler = TestBed.runInInjectionContext(() => navigateToUrlHandler());
 
-        handler.handle(context, ['/servicios?draftDomain=pamelabetancourt.preview', '_blank']);
+        handler.handle(context, ['/servicios?draftDomain=pamelabetancourt.com', '_blank']);
         await Promise.resolve();
 
         expect(openSpy).not.toHaveBeenCalled();
-        expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/servicios?draftDomain=pamelabetancourt.preview&debugWorkspace=true');
+        expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true');
     });
 
     it('should preserve debugWorkspace on internal same-tab navigation', async () => {
         const handler = TestBed.runInInjectionContext(() => navigateToUrlHandler());
 
-        handler.handle(context, ['/acerca-de-mi?draftDomain=pamelabetancourt.preview']);
+        handler.handle(context, ['/acerca-de-mi?draftDomain=pamelabetancourt.com']);
         await Promise.resolve();
 
-        expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/acerca-de-mi?draftDomain=pamelabetancourt.preview&debugWorkspace=true');
+        expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/acerca-de-mi?draftDomain=pamelabetancourt.com&debugWorkspace=true');
     });
 
     it('should avoid double-encoding unicode internal routes', async () => {
         const handler = TestBed.runInInjectionContext(() => navigateToUrlHandler());
 
-        handler.handle(context, ['/cont%C3%A1ctame?draftDomain=pamelabetancourt.preview']);
+        handler.handle(context, ['/cont%C3%A1ctame?draftDomain=pamelabetancourt.com']);
         await Promise.resolve();
 
-        expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/cont%C3%A1ctame?draftDomain=pamelabetancourt.preview&debugWorkspace=true');
+        expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/cont%C3%A1ctame?draftDomain=pamelabetancourt.com&debugWorkspace=true');
     });
 
     it('should still open external _blank URLs in a new tab', () => {

@@ -27,13 +27,13 @@ export type TGenericContainerConfig = {
     ariaLabelledby?: TDynamicStringValue;
     ariaDescribedby?: TDynamicStringValue;
 
-    /** orden de renderizado de slots (incluye '__content__') */
+    /** Render order for slots, including '__content__'. */
     components?: readonly TComponentChild[];
 
-    /** templates por id */
+    /** Templates keyed by component id. */
     componentTemplates?: Readonly<Record<string, TemplateRef<unknown>>>;
 
-    /** opcional */
+    /** Optional inline styles and class map. */
     styles?: Readonly<Record<string, string | null | undefined>>;
     classMap?: Readonly<Record<string, boolean>>;
 };

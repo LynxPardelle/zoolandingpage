@@ -42,7 +42,7 @@ const createComponentsPayload = (components: Record<string, TComponentPayloadEnt
 const ORCHESTRATOR_STUB = {
   modalHostConfig$: of(null),
   fallbackModalHostConfig: {},
-  getAllTheClassesFromComponents: () => [],
+  getAllTheClassesFromComponents: () => ['ank-display-flex'],
   setDraftExportContext: () => { },
   setExternalComponentsFromPayload: () => { },
   setAuxiliaryComponentsFromPayload: () => { },
@@ -74,6 +74,7 @@ describe('AppShellComponent analytics', () => {
       'cssCreate',
       'pushCombos',
       'pushColors',
+      'updateClasses',
       'updateColors',
     ]);
     angoraSpy.timeBetweenReCreate = 300;
@@ -194,5 +195,18 @@ describe('AppShellComponent analytics', () => {
     tick();
 
     expect(angoraSpy.cssCreate).toHaveBeenCalledTimes(1);
+  }));
+
+  it('requests cssCreate again after the dynamic roots render on initial bootstrap', fakeAsync(() => {
+    const fixture = TestBed.createComponent(AppShellComponent);
+
+    fixture.detectChanges();
+    tick();
+    fixture.detectChanges();
+    tick();
+    tick();
+
+    expect(angoraSpy.updateClasses).toHaveBeenCalled();
+    expect(angoraSpy.updateClasses.calls.mostRecent().args[0].length).toBeGreaterThan(0);
   }));
 });

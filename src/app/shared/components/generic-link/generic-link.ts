@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, EventEmitter, Output, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DRAFT_RUNTIME_STICKY_QUERY_PARAMS } from '../../services/draft-runtime.service';
-import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
+import { composeDomId, resolveComponentRootDomId, resolveDynamicValue } from '../../utility/component-orchestrator.utility';
 import { resolveNavigationTarget } from '../../utility/navigation/navigation-target.utility';
 
 import { TGenericLinkConfig } from './generic-link.types';
@@ -17,6 +17,7 @@ import { TGenericLinkConfig } from './generic-link.types';
 })
 export class GenericLink {
   readonly config = input.required<TGenericLinkConfig>();
+  readonly componentId = input<string | undefined>(undefined);
 
   @Output() clicked = new EventEmitter<MouseEvent>();
 
@@ -27,8 +28,19 @@ export class GenericLink {
   }
 
   id(): string | null {
-    const raw = resolveDynamicValue(this.config().id);
-    return raw ? String(raw) : null;
+    return resolveComponentRootDomId(this.config().id, this.componentId(), 'link') ?? null;
+  }
+
+  contentId(): string | null {
+    return composeDomId(this.id(), 'content') ?? null;
+  }
+
+  textId(): string | null {
+    return composeDomId(this.contentId(), 'text') ?? null;
+  }
+
+  projectedContentId(): string | null {
+    return composeDomId(this.contentId(), 'projected') ?? null;
   }
 
   classes(): string {

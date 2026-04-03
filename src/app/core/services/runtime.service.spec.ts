@@ -17,7 +17,7 @@ const createComponentsPayload = (
     overrides: Partial<{ domain: string; pageId: string }> = {},
 ): TComponentsPayload => ({
     version: 1,
-    domain: overrides.domain ?? 'pamelabetancourt.preview',
+    domain: overrides.domain ?? 'pamelabetancourt.com',
     pageId: overrides.pageId ?? 'home',
     components: Object.values(components) as TComponentPayloadEntry[],
 });
@@ -39,7 +39,7 @@ describe('RuntimeService', () => {
     beforeEach(() => {
         loadSiteConfig = jasmine.createSpy('loadSiteConfig').and.resolveTo({
             version: 1,
-            domain: 'pamelabetancourt.preview',
+            domain: 'pamelabetancourt.com',
             defaultPageId: 'home',
             routes: [
                 { path: '/home', pageId: 'home' },
@@ -50,7 +50,7 @@ describe('RuntimeService', () => {
         bootstrapLoad = jasmine.createSpy('load').and.callFake(async ({ domain, pageId, lang }: { domain?: string; pageId?: string; lang?: string }) => {
             const combos = lang ? {
                 version: 1,
-                domain: domain ?? 'pamelabetancourt.preview',
+                domain: domain ?? 'pamelabetancourt.com',
                 pageId: pageId ?? 'home',
                 combos: {
                     hero: ['ank-bg-primary'],
@@ -60,12 +60,12 @@ describe('RuntimeService', () => {
             store?.setCombos(combos);
 
             return {
-                domain: domain ?? 'pamelabetancourt.preview',
+                domain: domain ?? 'pamelabetancourt.com',
                 pageId: pageId ?? 'home',
                 structuredDataApplied: false,
                 pageConfig: {
                     version: 1,
-                    domain: domain ?? 'pamelabetancourt.preview',
+                    domain: domain ?? 'pamelabetancourt.com',
                     pageId: pageId ?? 'home',
                     rootIds: [`${ pageId ?? 'home' }-root`],
                     modalRootIds: [],
@@ -77,7 +77,7 @@ describe('RuntimeService', () => {
                         config: { components: [] },
                     },
                 }, {
-                    domain: domain ?? 'pamelabetancourt.preview',
+                    domain: domain ?? 'pamelabetancourt.com',
                     pageId: pageId ?? 'home',
                 }),
                 combos,
@@ -99,7 +99,7 @@ describe('RuntimeService', () => {
                 {
                     provide: DomainResolverService,
                     useValue: {
-                        resolveDomain: () => ({ domain: 'pamelabetancourt.preview' }),
+                        resolveDomain: () => ({ domain: 'pamelabetancourt.com' }),
                     },
                 },
                 {
@@ -167,17 +167,17 @@ describe('RuntimeService', () => {
         const service = TestBed.inject(RuntimeService);
         const expectedModalRootIds: string[] = [];
 
-        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.preview');
+        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com');
         await service.initialize('es');
 
         expect(bootstrapLoad).toHaveBeenCalledWith({
-            domain: 'pamelabetancourt.preview',
+            domain: 'pamelabetancourt.com',
             pageId: 'home',
             lang: 'es',
         });
         expect(setCombos).toHaveBeenCalledWith({
             version: 1,
-            domain: 'pamelabetancourt.preview',
+            domain: 'pamelabetancourt.com',
             pageId: 'home',
             combos: {
                 hero: ['ank-bg-primary'],
@@ -185,17 +185,17 @@ describe('RuntimeService', () => {
         });
         expect(service.rootComponentsIds()).toEqual(['home-root']);
 
-        window.history.replaceState({}, '', '/servicios?draftDomain=pamelabetancourt.preview');
+        window.history.replaceState({}, '', '/servicios?draftDomain=pamelabetancourt.com');
         await service.initialize('es');
 
         expect(bootstrapLoad).toHaveBeenCalledWith({
-            domain: 'pamelabetancourt.preview',
+            domain: 'pamelabetancourt.com',
             pageId: 'servicios',
             lang: 'es',
         });
         expect(service.rootComponentsIds()).toEqual(['servicios-root']);
         expect(setDraftExportContext).toHaveBeenCalledWith({
-            domain: 'pamelabetancourt.preview',
+            domain: 'pamelabetancourt.com',
             pageId: 'servicios',
             rootIds: ['servicios-root'],
             modalRootIds: expectedModalRootIds,
@@ -213,7 +213,7 @@ describe('RuntimeService', () => {
             const createBootPayload = () => {
                 const combos = lang ? {
                     version: 1,
-                    domain: domain ?? 'pamelabetancourt.preview',
+                    domain: domain ?? 'pamelabetancourt.com',
                     pageId: pageId ?? 'home',
                     combos: {
                         hero: ['ank-bg-primary'],
@@ -223,12 +223,12 @@ describe('RuntimeService', () => {
                 store?.setCombos(combos);
 
                 return {
-                    domain: domain ?? 'pamelabetancourt.preview',
+                    domain: domain ?? 'pamelabetancourt.com',
                     pageId: pageId ?? 'home',
                     structuredDataApplied: false,
                     pageConfig: {
                         version: 1,
-                        domain: domain ?? 'pamelabetancourt.preview',
+                        domain: domain ?? 'pamelabetancourt.com',
                         pageId: pageId ?? 'home',
                         rootIds: [`${ pageId ?? 'home' }-root`],
                         modalRootIds: [],
@@ -240,7 +240,7 @@ describe('RuntimeService', () => {
                             config: { components: [] },
                         },
                     }, {
-                        domain: domain ?? 'pamelabetancourt.preview',
+                        domain: domain ?? 'pamelabetancourt.com',
                         pageId: pageId ?? 'home',
                     }),
                     combos,
@@ -258,20 +258,20 @@ describe('RuntimeService', () => {
             return Promise.resolve(createBootPayload());
         });
 
-        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.preview');
+        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com');
         const firstInitialize = service.initialize('es');
         await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
 
         expect(hasResolveFirstLoad).withContext('first draft load resolver should be captured').toBeTrue();
         expect(bootstrapLoad.calls.allArgs()).toEqual([[
             {
-                domain: 'pamelabetancourt.preview',
+                domain: 'pamelabetancourt.com',
                 pageId: 'home',
                 lang: 'es',
             },
         ]]);
 
-        window.history.replaceState({}, '', '/servicios?draftDomain=pamelabetancourt.preview');
+        window.history.replaceState({}, '', '/servicios?draftDomain=pamelabetancourt.com');
         const secondInitialize = service.initialize('es');
 
         resolveFirstLoad();
@@ -279,19 +279,19 @@ describe('RuntimeService', () => {
 
         expect(bootstrapLoad.calls.allArgs()).toEqual([
             [{
-                domain: 'pamelabetancourt.preview',
+                domain: 'pamelabetancourt.com',
                 pageId: 'home',
                 lang: 'es',
             }],
             [{
-                domain: 'pamelabetancourt.preview',
+                domain: 'pamelabetancourt.com',
                 pageId: 'servicios',
                 lang: 'es',
             }],
         ]);
         expect(service.rootComponentsIds()).toEqual(['servicios-root']);
         expect(setDraftExportContext).toHaveBeenCalledWith({
-            domain: 'pamelabetancourt.preview',
+            domain: 'pamelabetancourt.com',
             pageId: 'servicios',
             rootIds: ['servicios-root'],
             modalRootIds: expectedModalRootIds,

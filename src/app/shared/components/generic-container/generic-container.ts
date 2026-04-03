@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import type { TemplateRef } from '@angular/core';
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
+import { resolveComponentRootDomId, resolveDynamicValue } from '../../utility/component-orchestrator.utility';
 import type { GenericContainerComponentTag, TGenericContainerConfig } from './generic-container.types';
 @Component({
   selector: 'generic-container',
@@ -14,14 +14,17 @@ import type { GenericContainerComponentTag, TGenericContainerConfig } from './ge
 })
 export class GenericContainerComponent {
   readonly config = input<TGenericContainerConfig>({ tag: 'div' });
+  readonly componentId = input<string | undefined>(undefined);
 
   readonly tag = computed<GenericContainerComponentTag>(() => {
     const resolved = resolveDynamicValue(this.config().tag);
     return (resolved as GenericContainerComponentTag) ?? 'div';
   });
 
-  readonly id = computed<string | undefined>(() => this.resolveOptionalString(this.config().id));
-  readonly classes = computed<string>(() => this.resolveString(this.config().classes));
+  readonly id = computed<string | undefined>(() =>
+    resolveComponentRootDomId(this.config().id, this.componentId(), 'container')
+  );
+  readonly classes = computed<string>(() => this.resolveString(this.config().classes).trim());
   readonly role = computed<string | undefined>(() => this.resolveOptionalString(this.config().role));
   readonly ariaLabel = computed<string | undefined>(() => this.resolveOptionalString(this.config().ariaLabel));
   readonly ariaLabelledby = computed<string | undefined>(() => this.resolveOptionalString(this.config().ariaLabelledby));

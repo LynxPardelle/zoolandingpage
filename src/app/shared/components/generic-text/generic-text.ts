@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, input, SecurityContext } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
-import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
+import { composeDomId, resolveComponentDomIdBase, resolveComponentRootDomId, resolveDynamicValue } from '../../utility/component-orchestrator.utility';
 import { GenericTextTag, TGenericTextConfig } from './generic-text.types';
 
 @Component({
@@ -17,6 +17,7 @@ export class GenericTextComponent {
     tag: 'p',
     text: '',
   });
+  readonly componentId = input<string | undefined>(undefined);
 
   readonly tag = computed<GenericTextTag>(() => {
     const resolved = resolveDynamicValue(this.config().tag);
@@ -26,7 +27,9 @@ export class GenericTextComponent {
     return resolveDynamicValue(this.config().text) ?? '';
   });
   readonly classes = computed(() => resolveDynamicValue(this.config().classes) ?? '');
-  readonly id = computed(() => resolveDynamicValue(this.config().id) ?? null);
+  readonly baseId = computed(() => resolveComponentDomIdBase(this.config().id, this.componentId()));
+  readonly id = computed(() => resolveComponentRootDomId(this.config().id, this.componentId(), 'text') ?? null);
+  readonly contentId = computed(() => composeDomId(this.id() ?? this.baseId(), 'content') ?? null);
   readonly ariaLabel = computed(() => {
     const raw = resolveDynamicValue(this.config().ariaLabel);
     if (!raw) return null;

@@ -7,6 +7,7 @@ import {
   computed,
   input
 } from "@angular/core";
+import { composeDomId, resolveComponentRootDomId } from '../../utility/component-orchestrator.utility';
 import { GenericIconComponent } from "../generic-icon/generic-icon.component";
 import type { TGenericButtonConfig } from "./generic-button.types";
 
@@ -18,6 +19,7 @@ import type { TGenericButtonConfig } from "./generic-button.types";
 })
 export class GenericButtonComponent {
   readonly config = input.required<TGenericButtonConfig>();
+  readonly componentId = input<string | undefined>(undefined);
 
   private readonly buttonTypes = ['button', 'submit', 'reset'] as const;
   private readonly iconPositions = ['after', 'before'] as const;
@@ -37,7 +39,15 @@ export class GenericButtonComponent {
   readonly type = computed<"button" | "submit" | "reset">(
     () => this.enumValue(this.config().type, this.buttonTypes, 'button')
   );
-  readonly id = computed<string | undefined>(() => this.optionalString(this.config().id));
+  readonly id = computed<string | undefined>(() =>
+    resolveComponentRootDomId(this.config().id, this.componentId(), 'button')
+  );
+  readonly contentId = computed<string | undefined>(() => composeDomId(this.id(), 'content'));
+  readonly labelId = computed<string | undefined>(() => composeDomId(this.contentId(), 'label'));
+  readonly projectedContentId = computed<string | undefined>(() => composeDomId(this.contentId(), 'projected'));
+  readonly spinnerId = computed<string | undefined>(() => composeDomId(this.id(), 'spinner'));
+  readonly leadingIconId = computed<string | undefined>(() => composeDomId(this.contentId(), 'icon-before'));
+  readonly trailingIconId = computed<string | undefined>(() => composeDomId(this.contentId(), 'icon-after'));
   readonly role = computed<string | undefined>(() => this.optionalString(this.config().role));
 
   readonly tabIndex = computed<number | undefined>(

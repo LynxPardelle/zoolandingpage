@@ -11,6 +11,7 @@ export type SearchBoxConfig = {
   readonly ariaLabel?: string;
   readonly placeholder?: string;
   readonly classes?: string;
+  readonly showBackdrop?: boolean;
   readonly inputClasses?: string;
   readonly resultsClasses?: string;
   readonly collapsed?: boolean;

@@ -15,11 +15,13 @@ import {
 import { forwardAnalyticsEvent } from '../utility/forwardAnalyticsEvent.utility';
 import { AnalyticsEvents } from './analytics.events';
 import { AnalyticsService } from './analytics.service';
+import { BrowserStateService, type TBrowserRuntimeState } from './browser-state.service';
 import { ComponentEvent, ComponentEventDispatcherService } from './component-event-dispatcher.service';
 import { ConfigStoreService } from './config-store.service';
 import { DomainResolverService } from './domain-resolver.service';
 import { LanguageService } from './language.service';
 import { RuntimeConfigService } from './runtime-config.service';
+import { ValueOrchestrator } from './value-orchestrator';
 import { VariableStoreService } from './variable-store.service';
 
 type TDraftExportFile = {
@@ -37,10 +39,12 @@ export class ConfigurationsOrchestratorService {
     private readonly modal = inject(GenericModalService);
     private readonly globalI18n = inject(I18nService);
     private readonly componentEventDispatcher = inject(ComponentEventDispatcherService);
+    private readonly browserState = inject(BrowserStateService);
     private readonly configStore = inject(ConfigStoreService);
     private readonly domainResolver = inject(DomainResolverService);
     private readonly language = inject(LanguageService);
     private readonly runtimeConfig = inject(RuntimeConfigService);
+    private readonly valueOrchestrator = inject(ValueOrchestrator);
     private readonly variableStore = inject(VariableStoreService);
     private warnedNavigationMissing = false;
     private warnedLoopPaths = new Set<string>();
@@ -122,6 +126,10 @@ export class ConfigurationsOrchestratorService {
 
     // Template-friendly: emits a plain object so consumers don't need to call a signal.
     readonly modalHostConfig$ = toObservable(this.modalHostConfig);
+
+    get runtimeState(): TBrowserRuntimeState {
+        return this.browserState.snapshot();
+    }
 
     setDraftExportContext(context: {
         domain: string;
@@ -430,8 +438,13 @@ export class ConfigurationsOrchestratorService {
         return component;
     }
 
-    getAllTheClassesFromComponents(): string[] {
-        return collectAllClassesFromComponents(Array.from(this.resolveLoopComponents(false).values()));
+    getAllTheClassesFromComponents(host?: unknown): string[] {
+        const effectiveHost = host ?? this;
+
+        return collectAllClassesFromComponents(
+            Array.from(this.resolveLoopComponents(false, effectiveHost).values())
+                .map((component) => this.valueOrchestrator.apply(component, { host: effectiveHost }))
+        );
     }
 
     handleComponentEvent(event: ComponentEvent, host?: unknown): void {

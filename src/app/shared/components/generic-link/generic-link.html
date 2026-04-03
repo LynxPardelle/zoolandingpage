@@ -14,10 +14,12 @@
   [attr.aria-current]="ariaCurrent()"
   [attr.data-components]="componentTokensAttribute()"
   (click)="onClick($event)"
-  >@if( text() ){
-  {{ text() }}
-  }
-  <ng-content></ng-content>
+  ><span [attr.id]="contentId()" style="display: contents"
+    >@if( text() ){
+    <span [attr.id]="textId()">{{ text() }}</span>
+    }
+    <span [attr.id]="projectedContentId()" style="display: contents"><ng-content></ng-content></span
+  ></span>
 </a>
 } @else {
 <a
@@ -32,9 +34,11 @@
   [attr.aria-current]="ariaCurrent()"
   [attr.data-components]="componentTokensAttribute()"
   (click)="onClick($event)"
-  >@if( text() ){
-  {{ text() }}
-  }
-  <ng-content></ng-content>
+  ><span [attr.id]="contentId()" style="display: contents"
+    >@if( text() ){
+    <span [attr.id]="textId()">{{ text() }}</span>
+    }
+    <span [attr.id]="projectedContentId()" style="display: contents"><ng-content></ng-content></span
+  ></span>
 </a>
 }

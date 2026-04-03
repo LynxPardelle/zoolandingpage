@@ -87,6 +87,10 @@ export class RuntimeService {
         this.combosService.scheduleCssCreate(delayMs);
     }
 
+    requestRenderedComponentsCssUpdate(): void {
+        this.combosService.updateClasses(this.orchestrator.getAllTheClassesFromComponents());
+    }
+
     async initialize(lang?: string): Promise<void> {
         const nextLanguage = lang;
         this.initializeQueue = this.initializeQueue
@@ -234,6 +238,7 @@ export class RuntimeService {
                 return;
             }
 
+            this.requestRenderedComponentsCssUpdate();
             this.combosService.scheduleCssCreate();
         });
 

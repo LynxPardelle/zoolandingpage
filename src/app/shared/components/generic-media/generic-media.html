@@ -6,10 +6,10 @@
 <img [id]="id()" [class]="classes()" [src]="src()" [attr.alt]="alt()" />
 } @case ('document') {
 <a [id]="id()" [class]="classes()" [href]="src()" target="_blank" rel="noopener noreferrer">
-  {{ linkLabel() }}
+  <span [attr.id]="linkContentId()">{{ linkLabel() }}</span>
 </a>
 } @default {
 <a [id]="id()" [class]="classes()" [href]="src()" target="_blank" rel="noopener noreferrer">
-  {{ linkLabel() }}
+  <span [attr.id]="linkContentId()">{{ linkLabel() }}</span>
 </a>
 } }

@@ -1,5 +1,6 @@
 @if (isBrandIcon()) {
 <svg
+  [attr.id]="id()"
   [attr.title]="title()"
   [class]="classes()"
   [attr.aria-label]="ariaLabel()"
@@ -10,7 +11,12 @@
   <path [attr.d]="brandPath()" fill="currentColor"></path>
 </svg>
 } @else {
-<mat-icon [title]="title()" [class]="classes()" [attr.aria-label]="ariaLabel()" [attr.aria-hidden]="ariaHidden()">{{
-  iconName()
-}}</mat-icon>
+<mat-icon
+  [attr.id]="id()"
+  [title]="title()"
+  [class]="classes()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-hidden]="ariaHidden()"
+  >{{ iconName() }}</mat-icon
+>
 }

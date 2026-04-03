@@ -104,4 +104,27 @@ describe('WrapperOrchestrator', () => {
     }), { host: hostContext });
     expect(component.components().map((entry) => entry.id)).toEqual(['debugDraftPanelToggleButton']);
   });
+
+  it('replaces invalid authored ids with generated root ids in the rendered generic component', () => {
+    componentsById = {
+      debugDraftPanelToggleButton: {
+        id: 'debugDraftPanelToggleButton',
+        type: 'button',
+        config: {
+          id: 'undefined',
+          label: 'Show',
+          icon: 'expand_more',
+        },
+      },
+    };
+
+    fixture.componentRef.setInput('componentsIds', ['debugDraftPanelToggleButton']);
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+
+    expect(button.id).toBe('debugDraftPanelToggleButton-button');
+    expect(button.querySelector('#debugDraftPanelToggleButton-button-content')).toBeTruthy();
+    expect(button.querySelector('#debugDraftPanelToggleButton-button-content-icon-before')).toBeTruthy();
+  });
 });

@@ -40,6 +40,7 @@ export class GenericSearchBoxComponent implements OnDestroy {
   @ViewChild('resultsTpl') resultsTpl!: TemplateRef<unknown>;
   @ViewChild('searchInput') searchInput?: ElementRef<HTMLInputElement>;
   private overlayRef: OverlayRef | null = null;
+  private panelFocusTimer: ReturnType<typeof setTimeout> | null = null;
   // Optional custom item template projection
   itemTemplate = contentChild<TemplateRef<unknown>>('searchItem');
 
@@ -62,6 +63,7 @@ export class GenericSearchBoxComponent implements OnDestroy {
   maxResults = () => this.config?.maxResults ?? SEARCH_BOX_MAX_RESULTS;
   collapsed = () => !!this.config?.collapsed;
   classes = () => this.config?.classes ?? '';
+  showBackdrop = () => !!this.config?.showBackdrop;
   inputClasses = () => this.config?.inputClasses ?? 'ank-width-100per ank-borderRadius-0_5rem ank-border-1px-solid ank-borderColor-fgColor ank-px-0_75rem ank-py-0_5rem focus-visible-ring';
   resultsClasses = () => this.config?.resultsClasses ?? 'ank-listStyle-none ank-m-0 ank-p-0_25rem ank-display-flex ank-flexDirection-column ank-gap-2px ank-bg-bgColor ank-borderRadius-0_5rem ank-boxShadow-sm';
   resultItemClasses = () => this.config?.resultItemClasses ?? 'ank-bg-transparent ank-border-none ank-cursor-pointer ank-color-textColor ank-px-0_5rem ank-py-0_25rem ank-text-left ank-width-100per ank-borderRadius-0_5rem ank-bgHover-secondaryBgColor';
@@ -79,9 +81,7 @@ export class GenericSearchBoxComponent implements OnDestroy {
     if (!this.collapsed() || this.panelOpen()) return;
 
     this.panelOpen.set(true);
-    queueMicrotask(() => {
-      this.searchInput?.nativeElement.focus();
-    });
+    this.schedulePanelFocus();
   }
 
   closePanel() {
@@ -89,6 +89,12 @@ export class GenericSearchBoxComponent implements OnDestroy {
 
     this.panelOpen.set(false);
     this.resetTransientState();
+  }
+
+  onBackdropClick(event: MouseEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.closePanel();
   }
 
   onInput(e: Event) {
@@ -208,6 +214,7 @@ export class GenericSearchBoxComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     if (this.debounceTimer) clearTimeout(this.debounceTimer);
+    if (this.panelFocusTimer) clearTimeout(this.panelFocusTimer);
     this.destroyOverlay();
   }
 
@@ -215,5 +222,16 @@ export class GenericSearchBoxComponent implements OnDestroy {
     this.results.set([]);
     this.activeIndex.set(-1);
     this.destroyOverlay();
+  }
+
+  private schedulePanelFocus(): void {
+    if (this.panelFocusTimer) {
+      clearTimeout(this.panelFocusTimer);
+    }
+
+    this.panelFocusTimer = setTimeout(() => {
+      this.panelFocusTimer = null;
+      this.searchInput?.nativeElement.focus();
+    }, 0);
   }
 }

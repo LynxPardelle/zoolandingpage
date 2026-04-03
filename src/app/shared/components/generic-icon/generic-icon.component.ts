@@ -1,7 +1,7 @@
 import { Component, computed, input } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { siFacebook, siInstagram } from 'simple-icons';
-import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
+import { resolveComponentRootDomId, resolveDynamicValue } from '../../utility/component-orchestrator.utility';
 import { TGenericIconConfig } from './generic-icon.types';
 
 @Component({
@@ -12,11 +12,13 @@ import { TGenericIconConfig } from './generic-icon.types';
 })
 export class GenericIconComponent {
   readonly config = input.required<TGenericIconConfig>();
+  readonly componentId = input<string | undefined>(undefined);
   private readonly brandIcons = new Map<string, string>([
     ['simple:instagram', siInstagram.path],
     ['simple:facebook', siFacebook.path],
   ]);
 
+  readonly id = computed(() => resolveComponentRootDomId(this.config().id, this.componentId(), 'icon') ?? null);
   readonly title = computed(() => this.optionalString(this.config().title));
   readonly classes = computed(() => this.stringValue(this.config().classes));
   readonly ariaLabel = computed(() => this.optionalString(this.config().ariaLabel) ?? this.title() ?? null);

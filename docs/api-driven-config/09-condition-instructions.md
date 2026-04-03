@@ -36,6 +36,9 @@ condition: 'all:hostEq,modalHostConfig.showCloseButton,true';
 // Host property numeric comparisons
 condition: 'all:hostGte,statsStripRemote.metrics.pageViews,100';
 
+// Shared browser runtime state
+condition: 'all:hostGt,runtimeState.viewport.scrollY,16';
+
 // Host string prefix/suffix
 condition: 'all:hostStartsWith,footerTranslations.en.termsLink,Terms';
 condition: 'all:hostEndsWith,footerTranslations.en.termsLink,Service';
@@ -52,3 +55,5 @@ condition: 'all:hostLenGt,devDemoControlsComponents,0';
 - Use the allowlisted handler IDs only.
 - Prefer `all:` for most checks; use `any:` for OR logic and `not:` for negation.
 - Keep conditions JSON-friendly (no inline lambdas).
+- The host passed to conditions can expose shared runtime data, including `runtimeState.viewport.*` and `runtimeState.document.*`.
+- When the same condition should drive a value instead of visibility, use that same DSL string inside the `when` value resolver.

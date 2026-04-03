@@ -8,6 +8,7 @@ export const DEFAULT_ALLOWED_VALUE_IDS = [
     'concat',
     'json',
     'classJoin',
+    'when',
     'coalesce',
     'upper',
     'lower',

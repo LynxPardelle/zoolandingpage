@@ -15,26 +15,32 @@
   (click)="onClick($event)"
 >
   @if (loading()) {
-  <span [class]="spinnerClass()" aria-hidden="true"></span>
-  } @else { @if (icon() && iconPosition() === 'before') {
-  <generic-icon
-    [config]="{
-      classes: iconClass(),
-      ariaHidden: true,
-      iconName: icon() || 'none'
-    }"
-  />
-  } @if (label()) {
-  <span>{{ label() }}</span>
+  <span [attr.id]="spinnerId() || null" [class]="spinnerClass()" aria-hidden="true"></span>
+  } @else {
+  <span [attr.id]="contentId() || null" style="display: contents">
+    @if (icon() && iconPosition() === 'before') {
+    <generic-icon
+      [config]="{
+        id: leadingIconId(),
+        classes: iconClass(),
+        ariaHidden: true,
+        iconName: icon() || 'none'
+      }"
+    />
+    } @if (label()) {
+    <span [attr.id]="labelId() || null">{{ label() }}</span>
+    }
+    <span [attr.id]="projectedContentId() || null" style="display: contents"><ng-content /></span>
+    @if (icon() && iconPosition() === 'after') {
+    <generic-icon
+      [config]="{
+        id: trailingIconId(),
+        classes: iconClass(),
+        ariaHidden: true,
+        iconName: icon() || 'none'
+      }"
+    />
+    }
+  </span>
   }
-  <ng-content />
-  @if (icon() && iconPosition() === 'after') {
-  <generic-icon
-    [config]="{
-      classes: iconClass(),
-      ariaHidden: true,
-      iconName: icon() || 'none'
-    }"
-  />
-  }}
 </button>

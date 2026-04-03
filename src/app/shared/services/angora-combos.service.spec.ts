@@ -8,12 +8,14 @@ import { ConfigStoreService } from './config-store.service';
 describe('AngoraCombosService', () => {
     let pushCombos: jasmine.Spy;
     let updateCombo: jasmine.Spy;
+    let updateClasses: jasmine.Spy;
     let cssCreate: jasmine.Spy;
     let store: ConfigStoreService;
 
     const configure = (platformId: 'browser' | 'server'): AngoraCombosService => {
         pushCombos = jasmine.createSpy('pushCombos');
         updateCombo = jasmine.createSpy('updateCombo');
+        updateClasses = jasmine.createSpy('updateClasses');
         cssCreate = jasmine.createSpy('cssCreate');
 
         TestBed.configureTestingModule({
@@ -21,7 +23,7 @@ describe('AngoraCombosService', () => {
                 AngoraCombosService,
                 ConfigStoreService,
                 { provide: PLATFORM_ID, useValue: platformId },
-                { provide: NgxAngoraService, useValue: { pushCombos, updateCombo, cssCreate } },
+                { provide: NgxAngoraService, useValue: { pushCombos, updateCombo, updateClasses, cssCreate } },
             ],
         });
 
@@ -194,5 +196,15 @@ describe('AngoraCombosService', () => {
         } finally {
             jasmine.clock().uninstall();
         }
+    });
+
+    it('replays rendered classes one at a time', () => {
+        const service = configure('browser');
+
+        service.updateClasses(['ank-display-flex', 'ank-textDecoration-none', 'ank-display-flex']);
+
+        expect(updateClasses.calls.count()).toBe(2);
+        expect(updateClasses.calls.argsFor(0)).toEqual([['ank-display-flex']]);
+        expect(updateClasses.calls.argsFor(1)).toEqual([['ank-textDecoration-none']]);
     });
 });

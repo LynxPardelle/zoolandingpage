@@ -66,10 +66,10 @@ describe('DraftRuntimeService', () => {
 
   it('resolves the draft page from site-config routes when no explicit draftPageId is present', async () => {
     const { service, loadSiteConfig } = configure(
-      'https://example.test/servicios?draftDomain=pamelabetancourt.preview',
+      'https://example.test/servicios?draftDomain=pamelabetancourt.com',
       {
         version: 1,
-        domain: 'pamelabetancourt.preview',
+        domain: 'pamelabetancourt.com',
         defaultPageId: 'home',
         routes: [
           { path: '/', pageId: 'home' },
@@ -80,7 +80,7 @@ describe('DraftRuntimeService', () => {
 
     const context = await service.resolveActiveDraftContext();
 
-    expect(loadSiteConfig).toHaveBeenCalledOnceWith('pamelabetancourt.preview');
+    expect(loadSiteConfig).toHaveBeenCalledOnceWith('pamelabetancourt.com');
     expect(context.pageId).toBe('servicios');
     expect(context.path).toBe('/servicios');
     expect(service.activeDraftPageId()).toBe('servicios');
@@ -88,10 +88,10 @@ describe('DraftRuntimeService', () => {
 
   it('does not consult site-config when draftPageId is explicitly provided', async () => {
     const { service, loadSiteConfig } = configure(
-      'https://example.test/servicios?draftDomain=pamelabetancourt.preview&draftPageId=contactame',
+      'https://example.test/servicios?draftDomain=pamelabetancourt.com&draftPageId=contactame',
       {
         version: 1,
-        domain: 'pamelabetancourt.preview',
+        domain: 'pamelabetancourt.com',
         defaultPageId: 'home',
         routes: [
           { path: '/servicios', pageId: 'servicios' },
@@ -101,7 +101,7 @@ describe('DraftRuntimeService', () => {
 
     const context = await service.resolveActiveDraftContext();
 
-    expect(loadSiteConfig).toHaveBeenCalledOnceWith('pamelabetancourt.preview');
+    expect(loadSiteConfig).toHaveBeenCalledOnceWith('pamelabetancourt.com');
     expect(context.pageId).toBe('contactame');
     expect(context.explicitPageId).toBeTrue();
     expect(service.activeDraftPageId()).toBe('contactame');
@@ -109,10 +109,10 @@ describe('DraftRuntimeService', () => {
 
   it('matches encoded route paths against unicode site-config entries', async () => {
     const { service } = configure(
-      'https://example.test/cont%C3%A1ctame?draftDomain=pamelabetancourt.preview',
+      'https://example.test/cont%C3%A1ctame?draftDomain=pamelabetancourt.com',
       {
         version: 1,
-        domain: 'pamelabetancourt.preview',
+        domain: 'pamelabetancourt.com',
         defaultPageId: 'home',
         routes: [
           { path: '/contáctame', pageId: 'contactame' },
@@ -129,10 +129,10 @@ describe('DraftRuntimeService', () => {
 
   it('falls back to defaultPageId when the current route is not mapped in site-config', async () => {
     const { service } = configure(
-      'https://example.test/no-existe?draftDomain=pamelabetancourt.preview',
+      'https://example.test/no-existe?draftDomain=pamelabetancourt.com',
       {
         version: 1,
-        domain: 'pamelabetancourt.preview',
+        domain: 'pamelabetancourt.com',
         defaultPageId: 'home',
         routes: [
           { path: '/', pageId: 'home' },
@@ -150,10 +150,10 @@ describe('DraftRuntimeService', () => {
 
   it('uses Angular Router for draft selection on the client', () => {
     const { service } = configure(
-      'https://example.test/home?draftDomain=pamelabetancourt.preview&debugWorkspace=true',
+      'https://example.test/home?draftDomain=pamelabetancourt.com&debugWorkspace=true',
       {
         version: 1,
-        domain: 'pamelabetancourt.preview',
+        domain: 'pamelabetancourt.com',
         defaultPageId: 'home',
         routes: [
           { path: '/home', pageId: 'home' },
@@ -163,17 +163,17 @@ describe('DraftRuntimeService', () => {
       { browserMode: true },
     );
 
-    service.selectDraftByKey('pamelabetancourt.preview::servicios');
+    service.selectDraftByKey('pamelabetancourt.com::servicios');
 
-    expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/home?draftDomain=pamelabetancourt.preview&debugWorkspace=true&draftPageId=servicios');
+    expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/home?draftDomain=pamelabetancourt.com&debugWorkspace=true&draftPageId=servicios');
   });
 
   it('recomputes the active draft domain and page after client-side draft switching', async () => {
     const { service, loadSiteConfig } = configure(
-      'https://example.test/home?draftDomain=pamelabetancourt.preview&draftPageId=home&debugWorkspace=true',
+      'https://example.test/home?draftDomain=pamelabetancourt.com&draftPageId=home&debugWorkspace=true',
       {
         version: 1,
-        domain: 'pamelabetancourt.preview',
+        domain: 'pamelabetancourt.com',
         defaultPageId: 'home',
         routes: [
           { path: '/home', pageId: 'home' },
@@ -183,7 +183,7 @@ describe('DraftRuntimeService', () => {
     );
 
     await service.resolveActiveDraftContext();
-    expect(service.activeDraftDomain()).toBe('pamelabetancourt.preview');
+    expect(service.activeDraftDomain()).toBe('pamelabetancourt.com');
     expect(service.activeDraftPageId()).toBe('home');
 
     loadSiteConfig.and.resolveTo({

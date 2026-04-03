@@ -1,5 +1,5 @@
 import type { Provider } from '@angular/core';
-import { classJoinValueHandler } from './handlers/class.value-handlers';
+import { classJoinValueHandler, whenValueHandler } from './handlers/class.value-handlers';
 import { concatValueHandler } from './handlers/concat.value-handlers';
 import { i18nValueHandler } from './handlers/i18n.value-handlers';
 import { i18nGetIndexValueHandler } from './handlers/i18nGetIndex.value-handlers';
@@ -22,6 +22,7 @@ export const provideValueHandlers = (): Provider[] => {
         { provide: VALUE_HANDLERS, multi: true, useFactory: concatValueHandler },
         { provide: VALUE_HANDLERS, multi: true, useFactory: jsonValueHandler },
         { provide: VALUE_HANDLERS, multi: true, useFactory: classJoinValueHandler },
+        { provide: VALUE_HANDLERS, multi: true, useFactory: whenValueHandler },
         { provide: VALUE_HANDLERS, multi: true, useFactory: coalesceValueHandler },
         { provide: VALUE_HANDLERS, multi: true, useFactory: upperValueHandler },
         { provide: VALUE_HANDLERS, multi: true, useFactory: lowerValueHandler },

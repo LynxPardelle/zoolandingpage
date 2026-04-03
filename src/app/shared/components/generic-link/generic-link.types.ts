@@ -4,7 +4,7 @@ import type { TComponentChild } from '../component-children.types';
 
 
 export type TGenericLinkConfig = {
-    readonly id: TDynamicValue<string>;
+    readonly id?: TDynamicValue<string>;
     readonly href: TDynamicValue<string>;
     readonly text?: TDynamicValue<string>;
     readonly classes?: TDynamicValue<string>;

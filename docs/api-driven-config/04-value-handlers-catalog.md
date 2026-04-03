@@ -60,6 +60,20 @@ set:config.classes,classJoin,literal,ank-display-flex ank-gap-1rem,var,hero.extr
 set:config.classes,classJoin,literal,ank-position-relative ank-inset-0,var,hero.dynamicClasses
 ```
 
+### `when`
+
+- Purpose: choose between two values using an existing condition DSL expression.
+- Argument shape: `(conditionDsl, truthyValue, falsyValue)`
+- Typical usage:
+
+```text
+set:config.classes,when,"all:hostGt,runtimeState.viewport.scrollY,16","ank-bg-HASH1C1C1C ank-color-white","ank-bg-bgColor ank-color-textColor"
+```
+
+- Best for dynamic classes.
+- Best for switching labels or helper text.
+- Best for choosing between two payload-safe values without adding specialized component config.
+
 ### `coalesce`
 
 - Purpose: return the first non-empty value.
@@ -145,6 +159,7 @@ Shared runtime settings such as feature flags and storage slot names live in `si
 - Use `var` / `varOr` for page-owned values from `variables.json`.
 - Use `variables.appIdentity` for page-owned app metadata.
 - Use `site-config.json` for `runtime.localStorage` and `runtime.features`.
+- Use `host.runtimeState.*` when a value depends on shared browser state such as scroll position or viewport size.
 
 ## Adding a new handler (developer workflow)
 

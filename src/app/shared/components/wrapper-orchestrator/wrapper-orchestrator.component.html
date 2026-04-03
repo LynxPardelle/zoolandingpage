@@ -22,7 +22,7 @@
 </generic-accordion>
 } @case('button') {
 <generic-button
-  [config]="component.config"
+  [config]="$any(buttonConfig(component))"
   (pressed)="
     eventEmitted({
       component: component.id,
@@ -39,7 +39,7 @@
   ></ng-container>
 </generic-button>
 } @case('container') {
-<generic-container [config]="component.config">
+<generic-container [config]="$any(containerConfig(component))">
   <ng-container
     [ngTemplateOutlet]="wrapperOrchestratorTpl"
     [ngTemplateOutletContext]="{ $implicit: component }"
@@ -67,7 +67,7 @@
   </ng-container>
 </generic-dropdown>
 } @case('embed-frame') {
-<generic-embed-frame [config]="component.config"></generic-embed-frame>
+<generic-embed-frame [config]="$any(embedFrameConfig(component))"></generic-embed-frame>
 } @case('generic-card') {
 <generic-card [config]="component.config"></generic-card>
 } @case('input') {
@@ -94,7 +94,7 @@
 ></generic-input>
 } @case('interaction-scope') {
 <interaction-scope
-  [config]="component.config"
+  [config]="$any(interactionScopeConfig(component))"
   [parentHost]="effectiveHost()"
   [componentId]="component.id"
   [metaTitle]="component.meta_title"
@@ -128,7 +128,7 @@
   "
 ></generic-tab-group>
 } @case('icon') {
-<generic-icon [config]="component.config">
+<generic-icon [config]="$any(iconConfig(component))">
   <ng-container
     [ngTemplateOutlet]="wrapperOrchestratorTpl"
     [ngTemplateOutletContext]="{ $implicit: component }"
@@ -136,7 +136,7 @@
 </generic-icon>
 } @case('link') {
 <generic-link
-  [config]="component.config"
+  [config]="$any(linkConfig(component))"
   (clicked)="
     eventEmitted({
       component: component.id,
@@ -153,9 +153,9 @@
   ></ng-container>
 </generic-link>
 } @case('media') {
-<generic-media [config]="component.config"></generic-media>
+<generic-media [config]="$any(mediaConfig(component))"></generic-media>
 }@case('text') {
-<generic-text [config]="component.config">
+<generic-text [config]="$any(textConfig(component))">
   <ng-container
     [ngTemplateOutlet]="wrapperOrchestratorTpl"
     [ngTemplateOutletContext]="{ $implicit: component }"

@@ -22,6 +22,24 @@ describe('GenericButtonComponent', () => {
     expect(compiled.querySelector('button')).toBeTruthy();
   });
 
+  it('should compose root and child ids from the component id when config.id is missing', () => {
+    const fixture = TestBed.createComponent(GenericButtonComponent);
+
+    fixture.componentRef.setInput('componentId', 'cta');
+    fixture.componentRef.setInput('config', {
+      label: 'Send',
+      icon: 'send',
+    });
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+
+    expect(button.id).toBe('cta-button');
+    expect(button.querySelector('#cta-button-content')).toBeTruthy();
+    expect(button.querySelector('#cta-button-content-label')?.textContent).toContain('Send');
+    expect(button.querySelector('#cta-button-content-icon-before')).toBeTruthy();
+  });
+
   it('should emit pressed event on click', () => {
     const fixture = TestBed.createComponent(GenericButtonComponent);
     const component = fixture.componentInstance;
@@ -106,6 +124,7 @@ describe('GenericButtonComponent', () => {
   it('should render the icon after the label when iconPosition is after', () => {
     const fixture = TestBed.createComponent(GenericButtonComponent);
 
+    fixture.componentRef.setInput('componentId', 'more');
     fixture.componentRef.setInput('config', {
       label: 'More',
       icon: 'expand_more',
@@ -114,8 +133,9 @@ describe('GenericButtonComponent', () => {
     fixture.detectChanges();
 
     const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
-    const firstChild = button.firstElementChild as HTMLElement | null;
-    const lastChild = button.lastElementChild as HTMLElement | null;
+    const content = button.querySelector('#more-button-content') as HTMLElement | null;
+    const firstChild = content?.firstElementChild as HTMLElement | null;
+    const lastChild = content?.lastElementChild as HTMLElement | null;
 
     expect(firstChild?.tagName).toBe('SPAN');
     expect(lastChild?.tagName.toLowerCase()).toBe('generic-icon');

@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, Injector, OnInit, computed, effect, forwardRef, inject, input } from '@angular/core';
 import { ConfigurationsOrchestratorService } from '../../services/configurations-orchestrator';
-import { resolveDynamicValue, resolveTextValue } from '../../utility/component-orchestrator.utility';
+import { resolveComponentRootDomId, resolveDynamicValue, resolveTextValue } from '../../utility/component-orchestrator.utility';
 import { WrapperOrchestrator } from '../wrapper-orchestrator/wrapper-orchestrator.component';
 import { InteractionScopeService, type TInteractionScopeHost } from './interaction-scope.service';
 import type { TInteractionScopeConfig, TInteractionScopeTag } from './interaction-scope.types';
@@ -43,7 +43,9 @@ export class InteractionScopeComponent implements OnInit {
 
     readonly tag = computed<TInteractionScopeTag>(() => resolveScopeTag(this.config().tag));
 
-    readonly id = computed<string | undefined>(() => resolveTextValue(this.config().id));
+    readonly id = computed<string | undefined>(() =>
+        resolveComponentRootDomId(this.config().id, this.componentId(), 'interaction-scope')
+    );
 
     readonly classes = computed<string>(() => resolveTextValue(this.config().classes) ?? '');
 

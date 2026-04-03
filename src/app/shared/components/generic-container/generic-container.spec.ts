@@ -56,4 +56,17 @@ describe('GenericContainerComponent', () => {
     expect(element?.id).toBe('ordered-list');
     expect(element?.className).toContain('ordered-list');
   });
+
+  it('should derive a root id from the component id when config.id is missing', () => {
+    fixture.componentRef.setInput('componentId', 'hero');
+    fixture.componentRef.setInput('config', {
+      tag: 'section',
+      classes: 'hero-section',
+    });
+
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement.querySelector('section') as HTMLElement | null;
+    expect(element?.id).toBe('hero-container');
+  });
 });

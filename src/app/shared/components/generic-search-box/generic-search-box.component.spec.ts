@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { GenericSearchBoxComponent } from './generic-search-box.component';
 
 describe('SearchBoxComponent', () => {
@@ -37,7 +37,7 @@ describe('SearchBoxComponent', () => {
     expect(comp.term()).toBe('Alpha');
   });
 
-  it('should toggle the collapsed panel from the trigger button', () => {
+  it('should toggle the collapsed panel from the trigger button', fakeAsync(() => {
     fixture.componentRef.setInput('config', {
       minLength: 1,
       debounceMs: 0,
@@ -51,10 +51,13 @@ describe('SearchBoxComponent', () => {
     const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
     button.click();
     fixture.detectChanges();
+    tick();
+    fixture.detectChanges();
 
     expect(comp.panelOpen()).toBeTrue();
     expect(fixture.nativeElement.querySelector('input')).toBeTruthy();
-  });
+    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('input'));
+  }));
 
   it('should close the collapsed panel from the back button', () => {
     fixture.componentRef.setInput('config', {
@@ -77,5 +80,24 @@ describe('SearchBoxComponent', () => {
 
     expect(comp.panelOpen()).toBeFalse();
     expect(fixture.nativeElement.querySelector('input')).toBeFalsy();
+  });
+
+  it('should render the collapsed panel backdrop when enabled', () => {
+    fixture.componentRef.setInput('config', {
+      minLength: 1,
+      debounceMs: 0,
+      collapsed: true,
+      showBackdrop: true,
+      triggerIcon: 'search',
+      closeIcon: 'arrow_back',
+      suggestions: [],
+    });
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    button.click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.search-box-panel-backdrop')).toBeTruthy();
   });
 });

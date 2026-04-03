@@ -44,8 +44,7 @@ export class ValueOrchestrator {
         const allowed = this.allowedValueIds ? new Set(this.allowedValueIds) : undefined;
         const handlers = this.handlerById();
 
-        const commands = instructions
-            .split(';')
+        const commands = this.splitDelimited(instructions, ';', true)
             .map((s) => s.trim())
             .filter(Boolean);
 
@@ -104,9 +103,50 @@ export class ValueOrchestrator {
 
         const id = trimmed.slice(0, colonIdx).trim();
         const paramStr = trimmed.slice(colonIdx + 1);
-        const rawArgs = paramStr ? paramStr.split(',').map((s) => s.trim()) : [];
+        const rawArgs = paramStr ? this.splitDelimited(paramStr, ',').map((s) => s.trim()) : [];
 
         return { id, rawArgs };
+    }
+
+    private splitDelimited(value: string, delimiter: string, preserveQuotes = false): string[] {
+        const tokens: string[] = [];
+        let current = '';
+        let inQuotes = false;
+
+        for (let index = 0; index < value.length; index += 1) {
+            const char = value[index];
+            const next = value[index + 1];
+
+            if (char === '\\' && next === '"') {
+                if (preserveQuotes) current += '"';
+                inQuotes = !inQuotes;
+                index += 1;
+                continue;
+            }
+
+            if (char === '"') {
+                if (inQuotes && next === '"') {
+                    current += '"';
+                    index += 1;
+                    continue;
+                }
+
+                if (preserveQuotes) current += char;
+                inQuotes = !inQuotes;
+                continue;
+            }
+
+            if (char === delimiter && !inQuotes) {
+                tokens.push(current);
+                current = '';
+                continue;
+            }
+
+            current += char;
+        }
+
+        tokens.push(current);
+        return tokens;
     }
 
     private resolveArg(raw: string, ctx: ValueExecutionContext): unknown {

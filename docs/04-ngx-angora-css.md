@@ -18,6 +18,14 @@ Example:
 set:config.classes,classJoin,literal,ank-position-absolute ank-inset-0 ank-bgCover,var,hero.dynamicClasses
 ```
 
+When the class depends on shared browser state, prefer a conditional resolver instead of adding component-specific config fields:
+
+```text
+set:config.classes,when,"all:hostGt,runtimeState.viewport.scrollY,16","ank-bg-HASH1C1C1C ank-color-white","ank-bg-bgColor ank-color-textColor"
+```
+
+This keeps authored dynamic styling portable across components because it reuses `valueInstructions` and the condition DSL rather than adding special-case renderer inputs.
+
 ### Service Setup
 
 ```typescript

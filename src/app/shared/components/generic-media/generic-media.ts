@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
+import { composeDomId, resolveComponentRootDomId, resolveDynamicValue } from '../../utility/component-orchestrator.utility';
 import type { GenericMediaTag, TGenericMediaConfig } from './generic-media.types';
 
 @Component({
@@ -13,8 +13,10 @@ import type { GenericMediaTag, TGenericMediaConfig } from './generic-media.types
 })
 export class GenericMedia {
   readonly config = input.required<TGenericMediaConfig>();
+  readonly componentId = input<string | undefined>(undefined);
 
-  readonly id = computed(() => this.resolveOptionalString(this.config().id));
+  readonly id = computed(() => resolveComponentRootDomId(this.config().id, this.componentId(), 'media') ?? null);
+  readonly linkContentId = computed(() => composeDomId(this.id(), 'content') ?? null);
   readonly tag = computed<GenericMediaTag>(() => {
     const resolved = resolveDynamicValue(this.config().tag);
     return (resolved as GenericMediaTag) ?? 'image';

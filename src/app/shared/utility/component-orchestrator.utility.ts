@@ -61,6 +61,44 @@ export function resolveTextValue(value: unknown): string | undefined {
     return normalized.length > 0 ? normalized : undefined;
 }
 
+export function normalizeDomIdValue(value: unknown): string | undefined {
+    const normalized = resolveTextValue(value);
+    if (!normalized) return undefined;
+
+    const lowerCased = normalized.toLowerCase();
+    if (lowerCased === 'undefined' || lowerCased === 'null') {
+        return undefined;
+    }
+
+    return normalized;
+}
+
+export function composeDomId(...parts: readonly unknown[]): string | undefined {
+    const normalizedParts = parts
+        .map((part) => normalizeDomIdValue(part))
+        .filter((part): part is string => typeof part === 'string' && part.length > 0);
+
+    return normalizedParts.length > 0 ? normalizedParts.join('-') : undefined;
+}
+
+export function resolveComponentDomIdBase(configId: unknown, componentId: unknown): string | undefined {
+    return normalizeDomIdValue(configId) ?? normalizeDomIdValue(componentId);
+}
+
+export function resolveComponentRootDomId(
+    configId: unknown,
+    componentId: unknown,
+    componentType: string,
+): string | undefined {
+    const explicitId = normalizeDomIdValue(configId);
+    if (explicitId) {
+        return explicitId;
+    }
+
+    const baseId = resolveComponentDomIdBase(undefined, componentId);
+    return baseId ? composeDomId(baseId, componentType) : undefined;
+}
+
 export function normalizeStringArray(value: unknown): readonly string[] {
     if (!Array.isArray(value)) return [];
 
@@ -475,8 +513,9 @@ export function collectAllClassesFromComponents(components: readonly TGenericCom
     ] as const;
 
     const addClasses = (raw: unknown) => {
-        if (!raw || typeof raw !== 'string') return;
-        raw
+        const resolved = resolveDynamicValue(raw as TDynamicValue<unknown> | null | undefined);
+        if (!resolved || typeof resolved !== 'string') return;
+        resolved
             .split(' ')
             .map((cls) => cls.trim())
             .filter((cls) => cls.length > 0)
@@ -488,8 +527,8 @@ export function collectAllClassesFromComponents(components: readonly TGenericCom
     };
 
     components.forEach((component) => {
-        if (component.config && 'classes' in component.config && (component.config as any).classes) {
-            addClasses((component.config as any).classes);
+        if (component.config && typeof component.config === 'object' && !Array.isArray(component.config)) {
+            addClassProperties(component.config as Record<string, unknown>, ['classes']);
         }
 
         // Also collect classes from dropdownConfig fields (these are not under config.classes)

@@ -85,6 +85,16 @@ Arguments are parsed as strings then resolved using simple rules:
 - `host.<path>` → read from the host object passed to `apply()`
 - `env.<path>` → read from `environment`
 
+If an argument itself contains commas or semicolons, wrap it in double quotes so the DSL keeps it as one argument.
+
+Example:
+
+```text
+set:config.classes,when,"all:hostGt,runtimeState.viewport.scrollY,16","ank-bg-HASH1C1C1C ank-color-white","ank-bg-bgColor ank-color-textColor"
+```
+
+Use doubled quotes inside a quoted argument when you need a literal quote character.
+
 ### `eval:`
 
 If an arg starts with `eval:`, it will evaluate a thunk-like field.
@@ -149,6 +159,31 @@ Use `classJoin` when you need to compose base classes and optional dynamic class
 ```text
 set:config.classes,classJoin,literal,ank-position-absolute ank-inset-0 ank-bgCover ank-borderRadius-1rem,var,hero.extraClasses
 ```
+
+### Conditional values with `when`
+
+Use `when` when a field should switch between two values based on an existing condition DSL expression.
+
+```text
+set:config.classes,when,"all:hostGt,runtimeState.viewport.scrollY,16","ank-bg-HASH1C1C1C ank-color-white","ank-bg-bgColor ank-color-textColor"
+```
+
+This is the preferred pattern when a component should change classes or text based on scroll state, host state, or any other condition that the condition DSL already supports.
+
+### Host runtime state
+
+The wrapper host exposes shared runtime state to both `condition` and `valueInstructions` through `host.*` paths.
+
+Useful paths include:
+
+- `host.runtimeState.viewport.scrollY`
+- `host.runtimeState.viewport.scrollX`
+- `host.runtimeState.viewport.width`
+- `host.runtimeState.viewport.height`
+- `host.runtimeState.document.scrollHeight`
+- `host.runtimeState.document.clientHeight`
+
+That makes scroll-driven styling possible without adding component-specific config fields.
 
 ### Stats counters with variables
 
@@ -238,5 +273,6 @@ If there is no active `interaction-scope` host, `scope` resolves to `undefined` 
 
 - Prefer one `valueInstructions` string per component.
 - Keep it stable and deterministic.
+- Prefer `valueInstructions` plus existing condition handlers over adding one-off component config fields for dynamic behavior.
 - Do not reference secrets in `env.*`.
 - If you need a new kind of dynamic value, add a new handler + allowlist it (see [04-value-handlers-catalog.md](04-value-handlers-catalog.md)).

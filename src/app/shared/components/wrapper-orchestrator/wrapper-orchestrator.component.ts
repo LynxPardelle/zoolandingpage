@@ -24,7 +24,7 @@ import { InteractionScopeComponent } from '../interaction-scope/interaction-scop
 
 import { ConditionOrchestrator } from '../../services/condition-orchestrator';
 import { I18nService } from '../../services/i18n.service';
-import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
+import { resolveComponentRootDomId, resolveDynamicValue } from '../../utility/component-orchestrator.utility';
 import type { TGenericComponent } from './wrapper-orchestrator.types';
 
 @Component({
@@ -87,6 +87,58 @@ export class WrapperOrchestrator {
 
   resolveValue(value: unknown): unknown {
     return resolveDynamicValue(value as never);
+  }
+
+  private withResolvedDomId<TConfig>(componentId: string, componentType: string, config: TConfig): TConfig {
+    if (!config || typeof config !== 'object' || Array.isArray(config)) {
+      return config;
+    }
+
+    const rootId = resolveComponentRootDomId((config as Record<string, unknown>)['id'], componentId, componentType);
+    if (!rootId) {
+      return config;
+    }
+
+    if ((config as Record<string, unknown>)['id'] === rootId) {
+      return config;
+    }
+
+    return {
+      ...(config as Record<string, unknown>),
+      id: rootId,
+    } as TConfig;
+  }
+
+  buttonConfig(component: Extract<TGenericComponent, { type: 'button'; }>): Extract<TGenericComponent, { type: 'button'; }>['config'] {
+    return this.withResolvedDomId(component.id, component.type, component.config);
+  }
+
+  containerConfig(component: Extract<TGenericComponent, { type: 'container'; }>): Extract<TGenericComponent, { type: 'container'; }>['config'] {
+    return this.withResolvedDomId(component.id, component.type, component.config);
+  }
+
+  embedFrameConfig(component: Extract<TGenericComponent, { type: 'embed-frame'; }>): Extract<TGenericComponent, { type: 'embed-frame'; }>['config'] {
+    return this.withResolvedDomId(component.id, component.type, component.config);
+  }
+
+  interactionScopeConfig(component: Extract<TGenericComponent, { type: 'interaction-scope'; }>): Extract<TGenericComponent, { type: 'interaction-scope'; }>['config'] {
+    return this.withResolvedDomId(component.id, component.type, component.config);
+  }
+
+  iconConfig(component: Extract<TGenericComponent, { type: 'icon'; }>): Extract<TGenericComponent, { type: 'icon'; }>['config'] {
+    return this.withResolvedDomId(component.id, component.type, component.config);
+  }
+
+  linkConfig(component: Extract<TGenericComponent, { type: 'link'; }>): Extract<TGenericComponent, { type: 'link'; }>['config'] {
+    return this.withResolvedDomId(component.id, component.type, component.config);
+  }
+
+  mediaConfig(component: Extract<TGenericComponent, { type: 'media'; }>): Extract<TGenericComponent, { type: 'media'; }>['config'] {
+    return this.withResolvedDomId(component.id, component.type, component.config);
+  }
+
+  textConfig(component: Extract<TGenericComponent, { type: 'text'; }>): Extract<TGenericComponent, { type: 'text'; }>['config'] {
+    return this.withResolvedDomId(component.id, component.type, component.config);
   }
 
   resolveSearchConfig(config: unknown): SearchBoxConfig | null {

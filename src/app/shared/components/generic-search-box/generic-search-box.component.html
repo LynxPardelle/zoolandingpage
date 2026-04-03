@@ -12,6 +12,9 @@
   ></generic-button>
   } @if (panelOpen()) {
   <div class="search-box-panel" [class]="panelClasses()">
+    @if (showBackdrop()) {
+    <div class="search-box-panel-backdrop" aria-hidden="true" (click)="onBackdropClick($event)"></div>
+    }
     <div class="search-box-panel-content" [class]="panelContentClasses()">
       <generic-button
         [config]="{

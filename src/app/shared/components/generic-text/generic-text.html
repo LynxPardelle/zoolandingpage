@@ -1,8 +1,8 @@
 <ng-template #contentTpl>
   @if (useHtml()) {
-  <span [innerHTML]="safeHtml()"></span>
+  <span [attr.id]="contentId()" [innerHTML]="safeHtml()"></span>
   } @else {
-  {{ text() }}
+  <span [attr.id]="contentId()" style="display: contents">{{ text() }}</span>
   }
 </ng-template>
 
