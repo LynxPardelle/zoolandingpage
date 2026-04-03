@@ -23,5 +23,5 @@ export type EventHandler = {
      * Back-compat alias. Prefer `id`.
      */
     action?: string;
-    handle: (ctx: EventExecutionContext, args: unknown[]) => void;
+    handle: (ctx: EventExecutionContext, args: unknown[]) => void | Promise<void>;
 };

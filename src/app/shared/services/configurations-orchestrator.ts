@@ -2,9 +2,11 @@ import { I18nService } from '@/app/shared/services/i18n.service';
 import type { TComponentsPayload, TDraftModalUiConfig } from '@/app/shared/types/config-payloads.types';
 import { computed, DestroyRef, effect, inject, Injectable, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { NgxAngoraService } from 'ngx-angora-css';
 import { GenericModalService } from '../components/generic-modal/generic-modal.service';
 import type { ModalConfig } from '../components/generic-modal/generic-modal.types';
 import type { TGenericComponent } from '../components/wrapper-orchestrator/wrapper-orchestrator.types';
+import { normalizeAngoraClassList, normalizeClassBearingValueDeep } from '../utility/angora-class-normalization.utility';
 import {
     collectAllClassesFromComponents,
     ComponentRenderTracker,
@@ -35,6 +37,7 @@ type TDraftExportFile = {
 })
 export class ConfigurationsOrchestratorService {
     readonly analytics = inject(AnalyticsService);
+    private readonly angora = inject(NgxAngoraService);
     private readonly destroyRef = inject(DestroyRef);
     private readonly modal = inject(GenericModalService);
     private readonly globalI18n = inject(I18nService);
@@ -99,7 +102,7 @@ export class ConfigurationsOrchestratorService {
     private resolveModalHostConfig(modalId?: string): ModalConfig {
         const payloadConfig = this.getPayloadModalConfig(modalId);
 
-        return {
+        return this.normalizeClassBearingValue({
             ariaLabel: this.resolveModalAriaLabel(modalId, payloadConfig),
             ariaDescribedBy: payloadConfig?.ariaDescribedBy,
             closeOnBackdrop: payloadConfig?.closeOnBackdrop ?? true,
@@ -121,7 +124,7 @@ export class ConfigurationsOrchestratorService {
             panelLGClasses: payloadConfig?.panelLGClasses,
             accentBarClasses: payloadConfig?.accentBarClasses,
             closeButtonClasses: payloadConfig?.closeButtonClasses,
-        };
+        });
     }
 
     // Template-friendly: emits a plain object so consumers don't need to call a signal.
@@ -432,7 +435,7 @@ export class ConfigurationsOrchestratorService {
         if (!component) {
             console.error(`Component with id "${ id }" not found in ConfigurationsOrchestratorService.`);
         } else {
-            component = normalizeComponentIfNeeded(component);
+            component = this.normalizeClassBearingValue(normalizeComponentIfNeeded(component));
             this.markComponentRendered(id);
         }
         return component;
@@ -443,7 +446,24 @@ export class ConfigurationsOrchestratorService {
 
         return collectAllClassesFromComponents(
             Array.from(this.resolveLoopComponents(false, effectiveHost).values())
-                .map((component) => this.valueOrchestrator.apply(component, { host: effectiveHost }))
+                .map((component) => this.valueOrchestrator.apply(component, { host: effectiveHost })),
+            (value: string) => this.normalizeClassList(value),
+        );
+    }
+
+    private normalizeClassList(value: string): string {
+        return normalizeAngoraClassList(
+            value,
+            this.angora.cssNamesParsed ?? {},
+            String(this.angora.indicatorClass ?? 'ank'),
+        );
+    }
+
+    private normalizeClassBearingValue<TValue>(value: TValue): TValue {
+        return normalizeClassBearingValueDeep(
+            value,
+            this.angora.cssNamesParsed ?? {},
+            String(this.angora.indicatorClass ?? 'ank'),
         );
     }
 

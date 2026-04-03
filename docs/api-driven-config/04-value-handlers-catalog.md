@@ -117,6 +117,24 @@ set:config.text,langPick,i18n,footer.copyright,Copyright Example. All rights res
 
 - Purpose: pick between two strings based on current theme.
 
+### `scope`
+
+- Purpose: read a value from the nearest `interaction-scope` using dot-path.
+- Typical usage:
+
+```text
+set:config.src,scope,heroImageUpload.publicUrl
+```
+
+### `scopeOr`
+
+- Purpose: read a scoped value and fallback when missing or null.
+- Typical usage:
+
+```text
+set:config.text,scopeOr,heroImageUpload.error,Upload failed
+```
+
 ### `var`
 
 - Purpose: read a value from `variables` payload using dot-path.
@@ -157,6 +175,7 @@ The `stats-counter` runtime now handles clamping and display formatting from tho
 Shared runtime settings such as feature flags and storage slot names live in `site-config.json`, not in `valueInstructions`.
 
 - Use `var` / `varOr` for page-owned values from `variables.json`.
+- Use `scope` / `scopeOr` for local interaction state such as upload results, form fields, validation output, or transient UI state inside the nearest `interaction-scope`.
 - Use `variables.appIdentity` for page-owned app metadata.
 - Use `site-config.json` for `runtime.localStorage` and `runtime.features`.
 - Use `host.runtimeState.*` when a value depends on shared browser state such as scroll position or viewport size.

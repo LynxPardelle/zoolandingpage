@@ -2,6 +2,7 @@ import type { TAngoraCombosPayload } from '@/app/shared/types/config-payloads.ty
 import { isPlatformBrowser } from '@angular/common';
 import { effect, inject, Injectable, NgZone, PLATFORM_ID } from '@angular/core';
 import { NgxAngoraService } from 'ngx-angora-css';
+import { normalizeAngoraClassList } from '../utility/angora-class-normalization.utility';
 import { ConfigStoreService } from './config-store.service';
 
 export type TAngoraCombosMap = Record<string, readonly string[]>;
@@ -16,6 +17,7 @@ export class AngoraCombosService {
     private readonly auxiliaryCombos = new Map<string, TAngoraCombosMap>();
     private appliedCombos: TAngoraCombosMap = {};
     private lastAppliedSignature = '';
+    private readonly replayedClasses = new Set<string>();
     private cssCreateTimer: number | null = null;
     private cssCreateDueAt: number | null = null;
 
@@ -94,13 +96,33 @@ export class AngoraCombosService {
         });
     }
 
+    private isAngoraManagedClass(className: string): boolean {
+        const indicatorClass = String(this.ank.indicatorClass ?? '').trim();
+        const abbreviationKeys = Object.keys(this.ank.abreviationsClasses ?? {});
+        const prefix = className.split('-')[0] ?? '';
+        const hasPropertySegment = className.includes('-');
+
+        if (!className || !hasPropertySegment) {
+            return false;
+        }
+
+        return Boolean(
+            className && (
+                (indicatorClass && className.startsWith(`${ indicatorClass }-`))
+                || abbreviationKeys.includes(prefix)
+            )
+        );
+    }
+
     updateClasses(classes: readonly string[]): void {
         if (!this.isBrowser) return;
 
         const normalized = Array.from(new Set(
             (classes ?? [])
-                .map((entry) => String(entry).trim())
+                .map((entry) => this.normalizeClassList(String(entry).trim()))
                 .filter((entry) => entry.length > 0)
+                .filter((entry) => this.isAngoraManagedClass(entry))
+                .filter((entry) => !this.replayedClasses.has(entry))
         ));
 
         if (normalized.length === 0) {
@@ -109,6 +131,7 @@ export class AngoraCombosService {
 
         normalized.forEach((className) => {
             this.ank.updateClasses([className]);
+            this.replayedClasses.add(className);
         });
     }
 
@@ -118,6 +141,7 @@ export class AngoraCombosService {
             this.cssCreateTimer = null;
         }
         this.cssCreateDueAt = null;
+        this.replayedClasses.clear();
     }
 
     revealCssTimer(): void {
@@ -138,11 +162,19 @@ export class AngoraCombosService {
         Object.entries(combos ?? {}).forEach(([key, value]) => {
             if (!key || !Array.isArray(value)) return;
             const list = value
-                .map((entry) => String(entry).trim())
+                .map((entry) => this.normalizeClassList(String(entry).trim()))
                 .filter((entry) => entry.length > 0);
             if (list.length > 0) cleaned[key] = list;
         });
         return cleaned;
+    }
+
+    private normalizeClassList(value: string): string {
+        return normalizeAngoraClassList(
+            value,
+            this.ank.cssNamesParsed ?? {},
+            String(this.ank.indicatorClass ?? 'ank'),
+        );
     }
 
     private signatureFor(combos: TAngoraCombosMap): string {

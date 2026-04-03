@@ -300,6 +300,24 @@ describe('config-payload.validators', () => {
         expect(isComponentsPayload(valid)).toBeTrue();
     });
 
+    it('accepts file input payloads for draft-configured uploads', () => {
+        const valid = createComponentsPayload({
+            heroImageField: {
+                id: 'heroImageField',
+                type: 'input',
+                eventInstructions: 'uploadPublicImage:heroImageUpload,event.eventData.value,hero-image,hero,1600,1600',
+                config: {
+                    fieldId: 'heroImageFile',
+                    controlType: 'file',
+                    accept: 'image/*',
+                    helperText: 'Select an image to upload.',
+                },
+            },
+        }, TEST_DOMAIN);
+
+        expect(isComponentsPayload(valid)).toBeTrue();
+    });
+
     it('accepts select input payloads with draft-owned dropdown presentation config', () => {
         const valid = createComponentsPayload({
             matterTypeField: {

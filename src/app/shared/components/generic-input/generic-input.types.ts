@@ -19,6 +19,7 @@ export type TGenericInputControlType =
     | 'range'
     | 'checkbox'
     | 'select'
+    | 'file'
     | 'button-group';
 
 export type TGenericInputOption = {
@@ -38,6 +39,7 @@ export type TGenericInputConfig = {
     readonly description?: TDynamicStringValue;
     readonly helperText?: TDynamicStringValue;
     readonly placeholder?: TDynamicStringValue;
+    readonly accept?: TDynamicStringValue;
     readonly ariaLabel?: TDynamicStringValue;
     readonly classes?: TDynamicStringValue;
     readonly labelClasses?: TDynamicStringValue;
@@ -66,6 +68,7 @@ export type TGenericInputConfig = {
     readonly max?: TDynamicNumberValue;
     readonly step?: TDynamicNumberValue;
     readonly rows?: TDynamicNumberValue;
+    readonly multiple?: TDynamicBooleanValue;
     readonly required?: TDynamicBooleanValue;
     readonly disabled?: TDynamicBooleanValue;
     readonly readOnly?: TDynamicBooleanValue;

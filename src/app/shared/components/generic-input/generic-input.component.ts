@@ -47,6 +47,7 @@ export class GenericInputComponent {
     readonly description = computed(() => this.asString(this.config().description));
     readonly helperText = computed(() => this.asString(this.config().helperText));
     readonly placeholder = computed(() => this.asString(this.config().placeholder));
+    readonly accept = computed(() => this.asString(this.config().accept));
     readonly ariaLabel = computed(() => this.asString(this.config().ariaLabel));
     readonly classes = computed(() => this.asString(this.config().classes));
     readonly labelClasses = computed(() => this.asString(this.config().labelClasses));
@@ -71,6 +72,7 @@ export class GenericInputComponent {
     readonly max = computed<number | undefined>(() => this.asNumber(this.config().max));
     readonly step = computed<number | undefined>(() => this.asNumber(this.config().step));
     readonly rows = computed<number | undefined>(() => this.asNumber(this.config().rows));
+    readonly multiple = computed(() => Boolean(this.resolveValue(this.config().multiple) ?? false));
     readonly initialValue = computed<unknown>(() => this.normalizeValue(this.resolveValue(this.config().value)));
     readonly validationRules = computed<readonly TInteractionValidationRule[]>(() => {
         const resolved = this.resolveValue(this.config().validation);
@@ -202,6 +204,18 @@ export class GenericInputComponent {
         this.updateValue((event.target as HTMLInputElement).checked);
     }
 
+    onFileInput(event: Event): void {
+        const input = event.target as HTMLInputElement;
+        const files = input.files ? Array.from(input.files) : [];
+
+        if (this.multiple()) {
+            this.updateValue(files);
+            return;
+        }
+
+        this.updateValue(files[0] ?? null);
+    }
+
     onSelectInput(event: Event): void {
         const nextValue = (event.target as HTMLSelectElement).value;
         this.updateValue(this.resolveOptionValue(nextValue));
@@ -269,12 +283,21 @@ export class GenericInputComponent {
             return Boolean(value);
         }
 
+        if (this.controlType() === 'file') {
+            if (this.multiple()) {
+                return Array.isArray(value) ? value : [];
+            }
+
+            return value ?? null;
+        }
+
         return value ?? '';
     }
 
     private defaultValue(): unknown {
         if (this.controlType() === 'checkbox') return false;
         if (this.controlType() === 'number' || this.controlType() === 'range') return this.min() ?? 0;
+        if (this.controlType() === 'file') return this.multiple() ? [] : null;
         return '';
     }
 

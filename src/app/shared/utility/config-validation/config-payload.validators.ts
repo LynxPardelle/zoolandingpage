@@ -568,7 +568,7 @@ const isGenericInputConfig = (value: unknown): boolean => {
     if (typeof value['fieldId'] !== 'string' || value['fieldId'].trim().length === 0) return false;
 
     const controlType = value['controlType'];
-    if (!['text', 'textarea', 'number', 'range', 'checkbox', 'select', 'button-group'].includes(String(controlType ?? ''))) {
+    if (!['text', 'textarea', 'number', 'range', 'checkbox', 'select', 'file', 'button-group'].includes(String(controlType ?? ''))) {
         return false;
     }
 
@@ -586,6 +586,7 @@ const isGenericInputConfig = (value: unknown): boolean => {
         'description',
         'helperText',
         'placeholder',
+        'accept',
         'ariaLabel',
         'classes',
         'labelClasses',
@@ -613,7 +614,7 @@ const isGenericInputConfig = (value: unknown): boolean => {
         return false;
     }
 
-    const booleanFields = ['showRangeValue', 'required', 'disabled', 'readOnly'] as const;
+    const booleanFields = ['showRangeValue', 'multiple', 'required', 'disabled', 'readOnly'] as const;
     if (booleanFields.some((field) => !isBooleanThunkFriendly(value[field]))) {
         return false;
     }

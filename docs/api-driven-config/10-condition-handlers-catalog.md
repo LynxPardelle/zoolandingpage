@@ -39,6 +39,32 @@ This is the allowlisted set of condition handlers for `condition` instructions.
   - Length checks for arrays/strings.
   - Example: `all:varLenGt,socialLinks,0`
 
+## Interaction scope handlers
+
+- `scope,<path>`
+
+  - Truthy check against the nearest `interaction-scope` value.
+  - Example: `all:scope,heroImageUpload`
+
+- `scopeEq,<path>,<value>` / `scopeNeq,<path>,<value>`
+
+  - Equality / inequality checks against scoped runtime state.
+  - Example: `all:scopeEq,heroImageUpload.status,success`
+
+- `scopeGt,<path>,<value>` / `scopeGte,<path>,<value>` / `scopeLt,<path>,<value>` / `scopeLte,<path>,<value>`
+
+  - Numeric comparisons against scoped values.
+  - Example: `all:scopeGt,quoteForm.step,1`
+
+- `scopeIncludes,<path>,<value>`
+
+  - Checks inclusion on array/string scoped values.
+  - Example: `all:scopeIncludes,selectedTags,featured`
+
+- `scopeLenEq,<path>,<value>` / `scopeLenGt,<path>,<value>` / `scopeLenGte,<path>,<value>` / `scopeLenLt,<path>,<value>` / `scopeLenLte,<path>,<value>`
+  - Length checks for arrays/strings in scope.
+  - Example: `all:scopeLenGt,uploadedFiles,0`
+
 ## Host helpers
 
 - `host,<path>`

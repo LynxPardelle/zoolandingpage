@@ -136,6 +136,10 @@ export class GenericTabGroupComponent {
     return this.resolveStringListValue(tab.detailItems);
   }
 
+  detailItemTrackKey(index: number, detailItem: string): string {
+    return `${ index }:${ detailItem }`;
+  }
+
   listHeaderLabel = () => resolveTextValue(this.config().listHeaderLabel);
 
   detailContentLabel = () => resolveTextValue(this.config().detailContentLabel);

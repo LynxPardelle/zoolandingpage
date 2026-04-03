@@ -21,6 +21,7 @@ import {
     toggleDebugDraftPanelHandler,
     writeDraftsToDiskHandler,
 } from './handlers/debug-drafts.handlers';
+import { uploadPublicImageHandler } from './handlers/image-upload.handlers';
 import { resetScopeHandler, setScopeValueHandler, submitScopeHandler } from './handlers/interaction-scope.handlers';
 import {
     closeModalHandler,
@@ -57,6 +58,7 @@ const baseEventHandlerProviders: Provider[] = [
     { provide: EVENT_HANDLERS, multi: true, useFactory: submitScopeHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: openModalHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: closeModalHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: uploadPublicImageHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: acceptConsentHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: declineConsentHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: remindLaterHandler },

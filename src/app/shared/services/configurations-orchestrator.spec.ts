@@ -1,5 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { NgxAngoraService } from 'ngx-angora-css';
 
 import { GenericModalService } from '../components/generic-modal/generic-modal.service';
 import type { TComponentPayloadEntry, TComponentsPayload } from '../types/config-payloads.types';
@@ -71,6 +72,18 @@ describe('ConfigurationsOrchestratorService', () => {
         {
           provide: ComponentEventDispatcherService,
           useValue: { dispatch: () => { } } as any,
+        },
+        {
+          provide: NgxAngoraService,
+          useValue: {
+            indicatorClass: 'ank',
+            cssNamesParsed: {
+              d: 'display',
+              jc: 'justify-content',
+              ai: 'align-items',
+              fd: 'flex-direction',
+            },
+          } as any,
         },
       ],
     });
@@ -973,7 +986,40 @@ describe('ConfigurationsOrchestratorService', () => {
 
     const classes = service.getAllTheClassesFromComponents();
 
-    expect(classes).toContain('ank-display-flex');
+    expect(classes).toContain('ank-d-flex');
     expect(warnSpy).not.toHaveBeenCalledWith('[ConfigurationsOrchestrator] loopConfig i18n source is not an array at path: hero.badges');
+  });
+
+  it('normalizes Angora longhand class names before rendering and collection', () => {
+    service.setExternalComponentsFromPayload(createComponentsPayload({
+      hero: {
+        id: 'hero',
+        type: 'container',
+        config: {
+          tag: 'section',
+          components: [],
+          classes: 'ank-display-flex ank-justifyContent-center',
+        },
+      },
+      cta: {
+        id: 'cta',
+        type: 'button',
+        config: {
+          text: 'CTA',
+          classes: 'ank-alignItems-center ank-flexDirection-column',
+        },
+      },
+    }));
+
+    const hero = service.getComponentById('hero') as any;
+    const cta = service.getComponentById('cta') as any;
+    const classes = service.getAllTheClassesFromComponents();
+
+    expect(hero?.config?.classes).toBe('ank-d-flex ank-jc-center');
+    expect(cta?.config?.classes).toBe('ank-ai-center ank-fd-column');
+    expect(classes).toContain('ank-d-flex');
+    expect(classes).toContain('ank-jc-center');
+    expect(classes).toContain('ank-ai-center');
+    expect(classes).toContain('ank-fd-column');
   });
 });

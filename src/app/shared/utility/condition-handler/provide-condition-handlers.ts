@@ -25,6 +25,7 @@ import { i18nExistsConditionHandler } from './handlers/i18n.condition-handler';
 import { createLogicHandlers } from './handlers/logic.condition-handler';
 import { modalRefIdConditionHandler } from './handlers/modal-ref.condition-handler';
 import { navigationConditionHandler } from './handlers/navigation.condition-handler';
+import { provideScopeConditionHandlers } from './handlers/scope.condition-handler';
 import { provideVariableConditionHandlers } from './handlers/variable.condition-handler';
 
 export function provideConditionHandlers(): Provider[] {
@@ -73,6 +74,7 @@ export function provideConditionHandlers(): Provider[] {
     return [
         ...baseHandlers.map((h) => ({ provide: CONDITION_HANDLERS, multi: true, useValue: h })),
         ...logicHandlers.map((h) => ({ provide: CONDITION_HANDLERS, multi: true, useValue: h })),
+        ...provideScopeConditionHandlers(),
         ...provideVariableConditionHandlers(),
     ];
 }

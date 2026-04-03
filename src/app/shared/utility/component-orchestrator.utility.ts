@@ -478,7 +478,10 @@ export function findComponentById(
     return components.find((c) => c.id === normalizedId);
 }
 
-export function collectAllClassesFromComponents(components: readonly TGenericComponent[]): string[] {
+export function collectAllClassesFromComponents(
+    components: readonly TGenericComponent[],
+    normalizeClasses?: (value: string) => string,
+): string[] {
     const classesSet: Set<string> = new Set<string>();
     const dropdownClassKeys = [
         'classes',
@@ -512,10 +515,10 @@ export function collectAllClassesFromComponents(components: readonly TGenericCom
         'dropdownTriggerTextConfig',
     ] as const;
 
-    const addClasses = (raw: unknown) => {
+    const addClasses = (raw: unknown, normalize?: (value: string) => string) => {
         const resolved = resolveDynamicValue(raw as TDynamicValue<unknown> | null | undefined);
         if (!resolved || typeof resolved !== 'string') return;
-        resolved
+        (normalize ? normalize(resolved) : resolved)
             .split(' ')
             .map((cls) => cls.trim())
             .filter((cls) => cls.length > 0)
@@ -523,7 +526,7 @@ export function collectAllClassesFromComponents(components: readonly TGenericCom
     };
 
     const addClassProperties = (record: Record<string, unknown>, keys: readonly string[]) => {
-        keys.forEach((key) => addClasses(record[key]));
+        keys.forEach((key) => addClasses(record[key], normalizeClasses));
     };
 
     components.forEach((component) => {
@@ -555,7 +558,7 @@ export function collectAllClassesFromComponents(components: readonly TGenericCom
             nestedTextConfigKeys.forEach((key) => {
                 const textConfig = (inputConfig as Record<string, unknown>)[key];
                 if (textConfig && typeof textConfig === 'object' && !Array.isArray(textConfig)) {
-                    addClasses((textConfig as Record<string, unknown>)['classes']);
+                    addClasses((textConfig as Record<string, unknown>)['classes'], normalizeClasses);
                 }
             });
         }

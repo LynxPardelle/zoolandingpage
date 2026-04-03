@@ -73,6 +73,33 @@ describe('GenericInputComponent', () => {
         expect(textarea.value).toBe('Initial summary');
     });
 
+    it('renders a file input and emits the selected file', () => {
+        const fixture = TestBed.createComponent(GenericInputComponent);
+        const component = fixture.componentInstance;
+        spyOn(component.valueChanged, 'emit');
+
+        fixture.componentRef.setInput('config', {
+            fieldId: 'heroImageFile',
+            controlType: 'file',
+            accept: 'image/*',
+        });
+        fixture.detectChanges();
+
+        const input = fixture.nativeElement.querySelector('input[type="file"]') as HTMLInputElement;
+        const file = new File(['image'], 'hero.png', { type: 'image/png' });
+        Object.defineProperty(input, 'files', {
+            configurable: true,
+            value: [file],
+        });
+
+        input.dispatchEvent(new Event('change'));
+        fixture.detectChanges();
+
+        expect(component.valueChanged.emit).toHaveBeenCalledWith(
+            jasmine.objectContaining({ fieldId: 'heroImageFile', value: file })
+        );
+    });
+
     it('renders the selected option label and payload-owned select indicator for select controls', () => {
         const fixture = TestBed.createComponent(GenericInputComponent);
 

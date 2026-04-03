@@ -83,7 +83,7 @@
     <h4 [class]="config().detailItemsLabelClasses || ''">{{ detailItemsLabel() }}</h4>
     }
     <ul [class]="config().detailListClasses || ''">
-      @for (detailItem of detailItemsOf(t); track detailItem) {
+      @for (detailItem of detailItemsOf(t); track detailItemTrackKey($index, detailItem)) {
       <li [class]="config().detailListItemClasses || ''">
         @if (detailItemIconName()) {
         <generic-icon

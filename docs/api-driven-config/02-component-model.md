@@ -166,6 +166,7 @@ Stateful authored interactions should use an `interaction-scope` component as th
 
 - `interaction-scope` owns local field state, validation state, and computed outputs for one wrapper subtree.
 - `input` components should live inside the nearest `interaction-scope` so sibling components can react to shared local state without using global runtime services.
+- `input` supports `controlType: 'file'` for draft-configured uploads. Use `accept` to constrain file types and `multiple` only when the consuming event or UI is explicitly prepared for file arrays.
 - Shared input renderers no longer inject select/dropdown appearance defaults; authored payloads should provide `fieldClasses`, `dropdownTriggerClasses`, `dropdownIndicatorText`, `dropdownIndicatorClasses`, `dropdownTriggerTextConfig`, and `dropdownConfig` when the design depends on them.
 - Existing display components such as `text`, `stats-counter`, `button`, and `container` can read scoped values through `valueInstructions`.
 
@@ -190,6 +191,24 @@ For API mode:
 - Keep field configs JSON-serializable.
 - Use `valueInstructions` for labels, helper text, defaults, and computed output binding.
 - Keep user-entered values inside the local interaction scope rather than `variables.json` unless the value is a true persisted default.
+
+Example file upload input inside a scope:
+
+```ts
+{
+  id: 'heroImageInput',
+  type: 'input',
+  config: {
+    fieldId: 'heroImage',
+    controlType: 'file',
+    label: 'Upload hero image',
+    accept: 'image/jpeg,image/png,image/webp',
+  },
+  eventInstructions: 'uploadPublicImage:heroImageUpload,event.eventData.value,hero-image,hero-images,1600,1600,82',
+}
+```
+
+That event stores the upload result in the nearest scope field, for example `heroImageUpload.publicUrl` and `heroImageUpload.status`.
 
 ## Configuration authoring rules (API-friendly)
 

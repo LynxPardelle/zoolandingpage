@@ -49,6 +49,19 @@
     />
     <generic-text [config]="checkboxTextConfig()"></generic-text>
   </label>
+  } @case ('file') {
+  <input
+    [id]="fieldId()"
+    [name]="name()"
+    type="file"
+    [disabled]="disabled()"
+    [multiple]="multiple()"
+    [class]="fieldClasses() + ' ' + inputClasses()"
+    [attr.accept]="accept() || null"
+    [attr.aria-label]="ariaLabel() || label()"
+    (change)="onFileInput($event)"
+    (blur)="onBlur()"
+  />
   } @case ('range') {
   <div [class]="fieldClasses()">
     <input

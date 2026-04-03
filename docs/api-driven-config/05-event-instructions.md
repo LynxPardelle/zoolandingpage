@@ -73,6 +73,35 @@ setScopeValue:planTier,premium
 
 These actions only affect the nearest `interaction-scope` host in the wrapper subtree.
 
+- Upload a public image and store the result in scope:
+
+```text
+uploadPublicImage:heroImageUpload,event.eventData.value,hero-image,hero-images,1600,1600,82
+```
+
+Argument order for `uploadPublicImage` is:
+
+- target scope field id
+- file value, usually `event.eventData.value`
+- asset id
+- asset kind
+- max width (optional)
+- max height (optional)
+- quality (optional)
+- PNG compression level (optional)
+- prefer direct upload (optional)
+- direct upload max bytes (optional)
+
+The action writes a structured state object into the nearest `interaction-scope`, for example:
+
+- `status`: `uploading`, `success`, or `error`
+- `publicUrl`
+- `uploadStrategy`
+- `compression`
+- `error`
+
+This makes uploads composable with existing `valueInstructions` and `condition` DSLs.
+
 ## Adding new actions
 
 Actions are implemented in the centralized event handler (see `ConfigurationsOrchestratorService.handleComponentEvent` and related utilities).

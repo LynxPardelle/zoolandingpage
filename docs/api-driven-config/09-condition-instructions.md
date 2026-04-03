@@ -39,6 +39,15 @@ condition: 'all:hostGte,statsStripRemote.metrics.pageViews,100';
 // Shared browser runtime state
 condition: 'all:hostGt,runtimeState.viewport.scrollY,16';
 
+// Upload state in the nearest interaction scope
+condition: 'all:scopeEq,heroImageUpload.status,success';
+
+// Show error text only when the scoped upload failed
+condition: 'all:scopeEq,heroImageUpload.status,error';
+
+// Show a preview only when a public URL exists in scope
+condition: 'all:scope,heroImageUpload.publicUrl';
+
 // Host string prefix/suffix
 condition: 'all:hostStartsWith,footerTranslations.en.termsLink,Terms';
 condition: 'all:hostEndsWith,footerTranslations.en.termsLink,Service';
@@ -56,4 +65,5 @@ condition: 'all:hostLenGt,devDemoControlsComponents,0';
 - Prefer `all:` for most checks; use `any:` for OR logic and `not:` for negation.
 - Keep conditions JSON-friendly (no inline lambdas).
 - The host passed to conditions can expose shared runtime data, including `runtimeState.viewport.*` and `runtimeState.document.*`.
+- Scope handlers resolve against the nearest `interaction-scope`, which makes them a good fit for draft-configured uploads and local form state.
 - When the same condition should drive a value instead of visibility, use that same DSL string inside the `when` value resolver.
