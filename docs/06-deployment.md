@@ -338,7 +338,8 @@ For the production and test containers:
 2. Keep `configApiUrl` pointing to `https://api.zoolandingpage.com.mx`.
 3. Manage preview-domain routing through authored `site-config.json.aliases`, not frontend environment files.
 4. Point both domains to the Dokploy app.
-5. Validate that `https://test.zoolandingpage.com.mx` renders the same authored config as `https://zoolandingpage.com.mx`.
+5. Keep `projects.zoolandingpage.architect.build.options.security.allowedHosts` aligned with every public host served by Dokploy, including branded alternate domains such as `*.lynxpardelle.com`.
+6. Validate that `https://test.zoolandingpage.com.mx` renders the same authored config as `https://zoolandingpage.com.mx`.
 
 ### 8. Smoke tests
 
