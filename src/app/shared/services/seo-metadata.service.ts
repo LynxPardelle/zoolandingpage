@@ -16,12 +16,14 @@ export class SeoMetadataService {
 
     apply(lang: string, seo: TSeoPayload | null): void {
         try {
-            if (typeof document === 'undefined') {
+            const doc = this.doc;
+            const root = doc?.documentElement;
+            if (!doc || !root) {
                 return;
             }
 
-            document.documentElement.setAttribute('lang', lang);
-            document.documentElement.setAttribute('dir', 'ltr');
+            root.setAttribute('lang', lang);
+            root.setAttribute('dir', 'ltr');
 
             const draftTitle = this.resolveLocalizedText(seo?.title, lang);
             const draftDescription = this.resolveLocalizedText(seo?.description, lang);
@@ -34,8 +36,8 @@ export class SeoMetadataService {
             this.title.setTitle(seoTitle);
             this.meta.updateTag({ name: 'description', content: seoDescription });
 
-            const origin = this.doc.defaultView?.location?.origin || this.cleanString(siteSeo?.canonicalOrigin) || this.defaultOrigin();
-            const pathname = this.doc.defaultView?.location?.pathname || '/';
+            const origin = doc.defaultView?.location?.origin || this.cleanString(siteSeo?.canonicalOrigin) || this.defaultOrigin();
+            const pathname = doc.defaultView?.location?.pathname || '/';
             const url = `${ origin }${ pathname || '/' }`;
             const ogLocale = toOpenGraphLocale(lang) || 'en_US';
             const openGraphDefaults = this.resolveLocalizedRecord(this.asRecord(siteSeo?.openGraph), lang);
@@ -66,11 +68,11 @@ export class SeoMetadataService {
             this.meta.updateTag({ name: 'twitter:description', content: String(twitter['description'] ?? seoDescription) });
             this.meta.updateTag({ name: 'twitter:image', content: String(twitter['image'] ?? defaultImage) });
 
-            const head = this.doc.head;
+            const head = doc.head;
             if (head) {
                 let linkEl = head.querySelector("link[rel='canonical']") as HTMLLinkElement | null;
                 if (!linkEl) {
-                    linkEl = this.doc.createElement('link');
+                    linkEl = doc.createElement('link');
                     linkEl.setAttribute('rel', 'canonical');
                     head.appendChild(linkEl);
                 }

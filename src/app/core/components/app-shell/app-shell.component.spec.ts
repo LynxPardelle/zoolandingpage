@@ -188,6 +188,37 @@ describe('AppShellComponent', () => {
     expect(fixture.nativeElement.querySelector('debug-workspace')).toBeFalsy();
   });
 
+  it('starts runtime bootstrap during SSR construction', async () => {
+    TestBed.overrideProvider(REQUEST, {
+      useValue: new Request(`https://example.test/?draftDomain=${ LEGAL_DOMAIN }&draftPageId=legal-home`),
+    });
+
+    bootstrapResult = {
+      ...bootstrapResult,
+      domain: LEGAL_DOMAIN,
+      pageId: 'legal-home',
+      pageConfig: {
+        version: 1,
+        pageId: 'legal-home',
+        domain: LEGAL_DOMAIN,
+        rootIds: ['landingPage'],
+        modalRootIds: [],
+      },
+      components: createComponentsPayload({
+        landingPage: {
+          id: 'landingPage',
+          type: 'container',
+          config: { components: [] },
+        },
+      }, { domain: LEGAL_DOMAIN, pageId: 'legal-home' }),
+    };
+
+    TestBed.createComponent(AppShellComponent);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(bootstrapLoadArgs.some((entry) => entry.pageId === 'legal-home')).toBeTrue();
+  });
+
   it('clears rendered roots when draft components are invalid', async () => {
     bootstrapResult = {
       ...bootstrapResult,

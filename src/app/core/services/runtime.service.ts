@@ -39,6 +39,7 @@ export class RuntimeService {
     private navigationSubscription: Subscription | null = null;
     private currentLanguageResolver: (() => string) | null = null;
     private showDebugWorkspaceResolver: (() => boolean) | null = null;
+    private initialPageViewTracked = false;
 
     connect(options: {
         host: HTMLElement;
@@ -185,6 +186,20 @@ export class RuntimeService {
         this.combosService.scheduleCssCreate();
         this.analytics.initializeRuntimeState();
         this.analytics.startPageEngagementTracking(this.configStore.analytics());
+        this.trackInitialPageView();
+    }
+
+    private trackInitialPageView(): void {
+        if (!this.isBrowser || this.initialPageViewTracked) {
+            return;
+        }
+
+        const currentUrl = `${ window.location.pathname || '/' }${ window.location.search || '' }${ window.location.hash || '' }`;
+        this.initialPageViewTracked = true;
+        void this.analytics.track(this.analytics.pageViewEventName(), {
+            category: AnalyticsCategories.Navigation,
+            label: currentUrl || '/',
+        });
     }
 
     clearRenderedDraft(domain: string, pageId: string): void {

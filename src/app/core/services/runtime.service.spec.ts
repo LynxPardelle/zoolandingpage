@@ -1,3 +1,4 @@
+import { AnalyticsCategories } from '@/app/shared/services/analytics.events';
 import { AnalyticsService } from '@/app/shared/services/analytics.service';
 import { AngoraCombosService } from '@/app/shared/services/angora-combos.service';
 import { ConfigBootstrapService } from '@/app/shared/services/config-bootstrap.service';
@@ -31,6 +32,11 @@ describe('RuntimeService', () => {
     const setAuxiliaryCombos = jasmine.createSpy('setAuxiliaryCombos');
     const clearAuxiliaryCombos = jasmine.createSpy('clearAuxiliaryCombos');
     const revealCssTimer = jasmine.createSpy('revealCssTimer');
+    const analyticsInitializeRuntimeState = jasmine.createSpy('initializeRuntimeState');
+    const analyticsPageViewEventName = jasmine.createSpy('pageViewEventName').and.returnValue('page_view');
+    const analyticsTrack = jasmine.createSpy('track').and.resolveTo(undefined);
+    const analyticsStartPageEngagementTracking = jasmine.createSpy('startPageEngagementTracking');
+    const analyticsStopPageEngagementTracking = jasmine.createSpy('stopPageEngagementTracking');
     let loadSiteConfig: jasmine.Spy;
     let bootstrapLoad: jasmine.Spy;
     let setCombos: jasmine.Spy;
@@ -91,6 +97,11 @@ describe('RuntimeService', () => {
         setAuxiliaryCombos.calls.reset();
         clearAuxiliaryCombos.calls.reset();
         revealCssTimer.calls.reset();
+        analyticsInitializeRuntimeState.calls.reset();
+        analyticsPageViewEventName.calls.reset();
+        analyticsTrack.calls.reset();
+        analyticsStartPageEngagementTracking.calls.reset();
+        analyticsStopPageEngagementTracking.calls.reset();
 
         TestBed.configureTestingModule({
             providers: [
@@ -144,11 +155,12 @@ describe('RuntimeService', () => {
                 {
                     provide: AnalyticsService,
                     useValue: {
-                        initializeRuntimeState: () => undefined,
-                        track: async () => undefined,
+                        initializeRuntimeState: analyticsInitializeRuntimeState,
+                        pageViewEventName: analyticsPageViewEventName,
+                        track: analyticsTrack,
                         promptForConsentIfNeeded: () => undefined,
-                        startPageEngagementTracking: () => undefined,
-                        stopPageEngagementTracking: () => undefined,
+                        startPageEngagementTracking: analyticsStartPageEngagementTracking,
+                        stopPageEngagementTracking: analyticsStopPageEngagementTracking,
                     },
                 },
             ],
@@ -200,6 +212,24 @@ describe('RuntimeService', () => {
             rootIds: ['servicios-root'],
             modalRootIds: expectedModalRootIds,
         });
+    });
+
+    it('tracks an initial page view on the first successful browser bootstrap', async () => {
+        const service = TestBed.inject(RuntimeService);
+
+        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com');
+        await service.initialize('es');
+
+        expect(analyticsInitializeRuntimeState).toHaveBeenCalled();
+        expect(analyticsPageViewEventName).toHaveBeenCalled();
+        expect(analyticsTrack).toHaveBeenCalledWith('page_view', {
+            category: AnalyticsCategories.Navigation,
+            label: '/home?draftDomain=pamelabetancourt.com',
+        });
+
+        await service.initialize('es');
+
+        expect(analyticsTrack.calls.count()).toBe(1);
     });
 
     it('queues a fresh draft initialization when navigation changes during an active load', async () => {
