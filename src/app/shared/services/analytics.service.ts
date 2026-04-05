@@ -17,6 +17,9 @@ import { ConfigStoreService } from './config-store.service';
 import { RuntimeConfigService } from './runtime-config.service';
 
 import { QuickStatsService } from './quick-stats.service';
+
+const DEFAULT_SCROLL_MILESTONES: readonly number[] = [25, 50, 75, 100];
+
 @Injectable({ providedIn: 'root' })
 export class AnalyticsService {
   private readonly debugEventReplaySize = 10;
@@ -58,8 +61,35 @@ export class AnalyticsService {
       return;
     }
 
-    this.startReadDepthTracking(config?.scrollMilestones ?? [], doc);
-    this.startSectionViewTracking(config?.sectionIds ?? [], doc);
+    this.startAnchorNavigationTracking(doc);
+    this.startReadDepthTracking(this.resolveScrollMilestones(config?.scrollMilestones), doc);
+    this.startSectionViewTracking(this.resolveSectionIds(config?.sectionIds, doc), doc);
+  }
+
+  private resolveScrollMilestones(milestones: readonly number[] | null | undefined): readonly number[] {
+    const normalized = [...new Set(
+      (milestones ?? [])
+        .map((value) => Number(value))
+        .filter((value) => Number.isFinite(value) && value >= 0 && value <= 100)
+    )].sort((left, right) => left - right);
+
+    return normalized.length > 0 ? normalized : DEFAULT_SCROLL_MILESTONES;
+  }
+
+  private resolveSectionIds(sectionIds: readonly string[] | null | undefined, doc: Document): readonly string[] {
+    const normalized = [...new Set(
+      (sectionIds ?? [])
+        .map((value) => String(value).trim())
+        .filter((value) => value.length > 0)
+    )];
+
+    if (normalized.length > 0) {
+      return normalized;
+    }
+
+    return Array.from(doc.querySelectorAll('section[id]'))
+      .map((element) => String((element as HTMLElement).id ?? '').trim())
+      .filter((value, index, collection) => value.length > 0 && collection.indexOf(value) === index);
   }
 
   stopPageEngagementTracking(): void {
@@ -117,7 +147,7 @@ export class AnalyticsService {
 
     if (normalizedMilestones.length === 0) return;
 
-    const scrollEl = (doc.scrollingElement || doc.documentElement || doc.body) as HTMLElement | null;
+    const scrollEl = this.resolveScrollElement(doc);
     if (!scrollEl) return;
 
     const hit = new Set<number>();
@@ -126,9 +156,10 @@ export class AnalyticsService {
 
     const computeDepth = (): number => {
       const docEl = doc.documentElement;
-      const scrollTop = scrollEl.scrollTop;
-      const scrollHeight = scrollEl.scrollHeight;
-      const viewport = window.innerHeight || docEl.clientHeight;
+      const body = doc.body;
+      const scrollTop = Math.max(window.scrollY || 0, scrollEl.scrollTop || 0, docEl.scrollTop || 0, body?.scrollTop || 0);
+      const scrollHeight = Math.max(scrollEl.scrollHeight || 0, docEl.scrollHeight || 0, body?.scrollHeight || 0, body?.offsetHeight || 0);
+      const viewport = Math.max(window.innerHeight || 0, docEl.clientHeight || 0, body?.clientHeight || 0);
       const denom = Math.max(1, scrollHeight - viewport);
       const progress = Math.round((scrollTop / denom) * 100);
       return Math.min(100, Math.max(0, progress));
@@ -197,6 +228,64 @@ export class AnalyticsService {
     });
 
     this.registerTrackingCleanup(cleanup);
+  }
+
+  private startAnchorNavigationTracking(doc: Document): void {
+    const onClick = (event: Event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) {
+        return;
+      }
+
+      const anchor = target.closest('a[href^="#"]');
+      if (!(anchor instanceof HTMLAnchorElement)) {
+        return;
+      }
+
+      const rawHref = String(anchor.getAttribute('href') ?? '').trim();
+      const sectionId = rawHref.replace(/^#+/, '').trim();
+      if (!sectionId) {
+        return;
+      }
+
+      void this.track(AnalyticsEvents.NavClick, {
+        category: AnalyticsCategories.Navigation,
+        label: sectionId,
+        meta: {
+          href: `#${ sectionId }`,
+          navigationType: 'in-page',
+        },
+      });
+    };
+
+    doc.addEventListener('click', onClick, true);
+    this.registerTrackingCleanup(() => {
+      doc.removeEventListener('click', onClick, true);
+    });
+  }
+
+  private resolveScrollElement(doc: Document): HTMLElement | null {
+    const uniqueCandidates = new Set<HTMLElement>();
+    const pushCandidate = (candidate: Element | null | undefined) => {
+      if (candidate instanceof HTMLElement) {
+        uniqueCandidates.add(candidate);
+      }
+    };
+
+    pushCandidate(doc.scrollingElement);
+    pushCandidate(doc.documentElement);
+    pushCandidate(doc.body);
+
+    const candidates = Array.from(uniqueCandidates);
+    if (candidates.length === 0) {
+      return null;
+    }
+
+    return candidates.sort((left, right) => {
+      const leftScore = Math.max(left.scrollHeight - left.clientHeight, left.scrollHeight);
+      const rightScore = Math.max(right.scrollHeight - right.clientHeight, right.scrollHeight);
+      return rightScore - leftScore;
+    })[0] ?? null;
   }
 
   private startSectionViewTracking(sectionIds: readonly string[], doc: Document): void {

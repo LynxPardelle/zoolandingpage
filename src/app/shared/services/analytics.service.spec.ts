@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
+import { AnalyticsCategories, AnalyticsEvents } from './analytics.events';
 import { AnalyticsService } from './analytics.service';
 import { ConfigStoreService } from './config-store.service';
 import { QuickStatsService } from './quick-stats.service';
@@ -198,5 +199,106 @@ describe('AnalyticsService', () => {
     svc.initializeRuntimeState();
 
     expect(quickStats.inc).not.toHaveBeenCalled();
+  });
+
+  it('falls back to default engagement milestones when none are configured', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: HttpClient,
+          useValue: {
+            post: jasmine.createSpy('post').and.returnValue(of({ ok: true })),
+          } as any,
+        },
+      ],
+    });
+
+    const svc = TestBed.inject(AnalyticsService) as any;
+
+    expect(svc.resolveScrollMilestones([])).toEqual([25, 50, 75, 100]);
+    expect(svc.resolveScrollMilestones([50, 25, 50, 100])).toEqual([25, 50, 100]);
+  });
+
+  it('falls back to section ids found in the rendered document when none are configured', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: HttpClient,
+          useValue: {
+            post: jasmine.createSpy('post').and.returnValue(of({ ok: true })),
+          } as any,
+        },
+      ],
+    });
+
+    const svc = TestBed.inject(AnalyticsService) as any;
+    const doc = document.implementation.createHTMLDocument('analytics');
+    doc.body.innerHTML = `
+      <section id="home"></section>
+      <div id="ignored"></div>
+      <section id="games-section"></section>
+    `;
+
+    expect(svc.resolveSectionIds([], doc)).toEqual(['home', 'games-section']);
+    expect(svc.resolveSectionIds(['custom-section'], doc)).toEqual(['custom-section']);
+  });
+
+  it('tracks in-page anchor clicks through the centralized engagement listener', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: HttpClient,
+          useValue: {
+            post: jasmine.createSpy('post').and.returnValue(of({ ok: true })),
+          } as any,
+        },
+      ],
+    });
+
+    const svc = TestBed.inject(AnalyticsService);
+    spyOn(svc, 'track').and.returnValue(Promise.resolve());
+
+    const doc = document.implementation.createHTMLDocument('analytics');
+    const anchor = doc.createElement('a');
+    anchor.setAttribute('href', '#games-section');
+    anchor.textContent = 'Juegos';
+    doc.body.appendChild(anchor);
+
+    svc.startPageEngagementTracking({ sectionIds: [], scrollMilestones: [] }, doc);
+    anchor.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(svc.track).toHaveBeenCalledWith(AnalyticsEvents.NavClick, {
+      category: AnalyticsCategories.Navigation,
+      label: 'games-section',
+      meta: {
+        href: '#games-section',
+        navigationType: 'in-page',
+      },
+    });
+
+    svc.stopPageEngagementTracking();
+  });
+
+  it('picks the real scroll container when body is taller than the document element', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: HttpClient,
+          useValue: {
+            post: jasmine.createSpy('post').and.returnValue(of({ ok: true })),
+          } as any,
+        },
+      ],
+    });
+
+    const svc = TestBed.inject(AnalyticsService) as any;
+    const doc = document.implementation.createHTMLDocument('analytics');
+
+    Object.defineProperty(doc.documentElement, 'scrollHeight', { configurable: true, value: 845 });
+    Object.defineProperty(doc.documentElement, 'clientHeight', { configurable: true, value: 845 });
+    Object.defineProperty(doc.body, 'scrollHeight', { configurable: true, value: 19406 });
+    Object.defineProperty(doc.body, 'clientHeight', { configurable: true, value: 845 });
+
+    expect(svc.resolveScrollElement(doc)).toBe(doc.body);
   });
 });
