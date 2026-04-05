@@ -279,6 +279,35 @@ describe('AnalyticsService', () => {
     svc.stopPageEngagementTracking();
   });
 
+  it('skips centralized nav click tracking when the link already declares nav_click in its DSL instructions', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: HttpClient,
+          useValue: {
+            post: jasmine.createSpy('post').and.returnValue(of({ ok: true })),
+          } as any,
+        },
+      ],
+    });
+
+    const svc = TestBed.inject(AnalyticsService);
+    spyOn(svc, 'track').and.returnValue(Promise.resolve());
+
+    const doc = document.implementation.createHTMLDocument('analytics');
+    const anchor = doc.createElement('a');
+    anchor.setAttribute('href', '#features-section');
+    anchor.setAttribute('data-event-instructions', 'trackEvent:nav_click,navigation,event.eventData;navigationToSection:event.eventData');
+    doc.body.appendChild(anchor);
+
+    svc.startPageEngagementTracking({ sectionIds: [], scrollMilestones: [] }, doc);
+    anchor.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(svc.track).not.toHaveBeenCalledWith(AnalyticsEvents.NavClick, jasmine.anything());
+
+    svc.stopPageEngagementTracking();
+  });
+
   it('picks the real scroll container when body is taller than the document element', () => {
     TestBed.configureTestingModule({
       providers: [

@@ -64,11 +64,21 @@ export class ConfigSourceService {
         },
         loadVariables: async (domain, pageId) => {
             const bundle = await this.tryLoadRuntimeBundle(domain, { pageId });
-            return bundle?.variables ?? this.legacyApiSource.loadVariables(domain, pageId);
+            if (bundle && Object.prototype.hasOwnProperty.call(bundle, 'variables')) {
+                return bundle.variables ?? null;
+            }
+
+            const resolved = this.resolveBundleIdentity(bundle, domain, pageId);
+            return this.legacyApiSource.loadVariables(resolved.domain, resolved.pageId);
         },
         loadCombos: async (domain, pageId) => {
             const bundle = await this.tryLoadRuntimeBundle(domain, { pageId });
-            return bundle?.angoraCombos ?? this.legacyApiSource.loadCombos(domain, pageId);
+            if (bundle && Object.prototype.hasOwnProperty.call(bundle, 'angoraCombos')) {
+                return bundle.angoraCombos ?? null;
+            }
+
+            const resolved = this.resolveBundleIdentity(bundle, domain, pageId);
+            return this.legacyApiSource.loadCombos(resolved.domain, resolved.pageId);
         },
         loadI18n: async (domain, pageId, lang) => {
             const bundle = await this.tryLoadRuntimeBundle(domain, { pageId, lang });
@@ -203,6 +213,20 @@ export class ConfigSourceService {
         } catch {
             return null;
         }
+    }
+
+    private resolveBundleIdentity(
+        bundle: TRuntimeBundlePayload | null,
+        requestedDomain: string,
+        requestedPageId: string,
+    ): { domain: string; pageId: string } {
+        const domain = String(bundle?.domain ?? requestedDomain ?? '').trim();
+        const pageId = String(bundle?.pageId ?? requestedPageId ?? '').trim();
+
+        return {
+            domain: domain || requestedDomain,
+            pageId: pageId || requestedPageId,
+        };
     }
 
     private get source(): TConfigSource {

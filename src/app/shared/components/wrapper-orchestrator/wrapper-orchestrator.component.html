@@ -137,6 +137,7 @@
 } @case('link') {
 <generic-link
   [config]="$any(linkConfig(component))"
+  [eventInstructions]="component.eventInstructions"
   (clicked)="
     eventEmitted({
       component: component.id,

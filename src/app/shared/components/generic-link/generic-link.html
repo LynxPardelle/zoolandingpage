@@ -13,6 +13,7 @@
   [attr.aria-controls]="ariaControls()"
   [attr.aria-current]="ariaCurrent()"
   [attr.data-components]="componentTokensAttribute()"
+  [attr.data-event-instructions]="eventInstructionsAttribute()"
   (click)="onClick($event)"
   ><span [attr.id]="contentId()" style="display: contents"
     >@if( text() ){
@@ -33,6 +34,7 @@
   [attr.aria-controls]="ariaControls()"
   [attr.aria-current]="ariaCurrent()"
   [attr.data-components]="componentTokensAttribute()"
+  [attr.data-event-instructions]="eventInstructionsAttribute()"
   (click)="onClick($event)"
   ><span [attr.id]="contentId()" style="display: contents"
     >@if( text() ){

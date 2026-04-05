@@ -242,6 +242,11 @@ export class AnalyticsService {
         return;
       }
 
+      const declaredInstructions = String(anchor.getAttribute('data-event-instructions') ?? '').trim();
+      if (this.declaresNavClickTracking(declaredInstructions)) {
+        return;
+      }
+
       const rawHref = String(anchor.getAttribute('href') ?? '').trim();
       const sectionId = rawHref.replace(/^#+/, '').trim();
       if (!sectionId) {
@@ -262,6 +267,18 @@ export class AnalyticsService {
     this.registerTrackingCleanup(() => {
       doc.removeEventListener('click', onClick, true);
     });
+  }
+
+  private declaresNavClickTracking(eventInstructions: string): boolean {
+    if (!eventInstructions) {
+      return false;
+    }
+
+    return eventInstructions
+      .split(';')
+      .map((instruction) => instruction.trim())
+      .filter(Boolean)
+      .some((instruction) => /^trackEvent\s*:\s*nav_click\b/i.test(instruction));
   }
 
   private resolveScrollElement(doc: Document): HTMLElement | null {

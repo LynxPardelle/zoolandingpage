@@ -18,6 +18,7 @@ import { TGenericLinkConfig } from './generic-link.types';
 export class GenericLink {
   readonly config = input.required<TGenericLinkConfig>();
   readonly componentId = input<string | undefined>(undefined);
+  readonly eventInstructions = input<string | undefined>(undefined);
 
   @Output() clicked = new EventEmitter<MouseEvent>();
 
@@ -110,6 +111,11 @@ export class GenericLink {
   componentTokensAttribute(): string | null {
     const joined = this.componentTokens().join(',');
     return joined || null;
+  }
+
+  eventInstructionsAttribute(): string | null {
+    const raw = this.eventInstructions()?.trim();
+    return raw ? raw : null;
   }
 
   componentTokens(): readonly string[] {
