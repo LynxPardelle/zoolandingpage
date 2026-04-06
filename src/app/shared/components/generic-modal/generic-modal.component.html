@@ -1,0 +1,28 @@
+<!-- Modal rendered through CDK Overlay; template is projected via TemplatePortal -->
+<ng-template #modalContent>
+  <!-- Fullscreen container to center the panel or dock it as sheet -->
+  <div [ngClass]="containerClasses()">
+    <div
+      [ngClass]="panelClasses()"
+      role="dialog"
+      [attr.aria-modal]="true"
+      [attr.aria-label]="config?.ariaLabel"
+      [attr.aria-describedby]="config?.ariaDescribedBy"
+    >
+      @if (config?.showAccentBar) {
+      <div [ngClass]="accentBarClasses()"></div>
+      } @if (config?.showCloseButton ?? true) {
+      <generic-button
+        [config]="{
+          classes: closeButtonClasses(),
+          ariaLabel: closeButtonAriaLabel()
+        }"
+        (pressed)="close()"
+      >
+        ×
+      </generic-button>
+      }
+      <ng-content />
+    </div>
+  </div>
+</ng-template>

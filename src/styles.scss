@@ -1,3 +1,7 @@
+* {
+  box-sizing: border-box;
+}
+
 /* You can add global styles to this file, and also import other style files */
 html,
 body {
@@ -12,7 +16,7 @@ body {
 
 /* Default visible focus ring for keyboard nav */
 :where(a, button, [role='button'], input, select, textarea, summary):focus-visible {
-  outline: 2px solid var(--ank-accentColor, #1976d2);
+  outline: 2px solid var(--ank-accentColor, currentColor);
   outline-offset: 2px;
 }
 
@@ -32,7 +36,7 @@ body {
 
 /* Focus visible ring helper class */
 .focus-visible-ring {
-  outline: 2px solid var(--ank-accentColor, #1976d2);
+  outline: 2px solid var(--ank-accentColor, currentColor);
   outline-offset: 2px;
 }
 
@@ -75,6 +79,9 @@ body {
 }
 .growXAnimation {
   animation-name: growX;
+}
+.revealWidthAnimation {
+  animation-name: revealWidth;
 }
 .breatheAnimation {
   animation-name: breathe;

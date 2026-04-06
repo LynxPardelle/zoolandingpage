@@ -4,10 +4,10 @@
 
 Se ha actualizado el sistema de colores del tema para usar una estructura más semántica y versátil que funciona mejor para landing pages y aplicaciones web.
 
-## Nuevo Tipo ThemeColors
+## Nuevo Tipo TThemeColors
 
 ```typescript
-export type ThemeColors = {
+export type TThemeColors = {
   bgColor: string; // Color de fondo principal
   textColor: string; // Color de texto principal
   titleColor: string; // Color para títulos y encabezados
@@ -53,7 +53,7 @@ export type ThemeColors = {
 
 ### Core Types
 
-- `src/app/core/types/theme.types.ts` - Actualizado tipo ThemeColors
+- `src/app/core/types/theme.types.ts` - Actualizado tipo TThemeColors
 
 ### Services
 
@@ -62,14 +62,6 @@ export type ThemeColors = {
 ### Components HTML
 
 - `src/app/app.component.html` - Clases de color actualizadas
-- `src/app/core/components/layout/app-header/app-header.component.html` - Colores de header
-- `src/app/core/components/layout/app-footer/app-footer.component.html` - Colores de footer
-
-### Constants
-
-- `src/app/core/components/layout/app-section/app-section.constants.ts` - Clases de sección
-- `src/app/core/components/layout/app-header/app-header.constants.ts` - Clases de header
-- `src/app/core/components/layout/app-footer/app-footer.constants.ts` - Clases de footer
 
 ## Mapeo de Clases CSS
 

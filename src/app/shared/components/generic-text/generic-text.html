@@ -1,0 +1,53 @@
+<ng-template #contentTpl>
+  @if (useHtml()) {
+  <span [attr.id]="contentId()" [innerHTML]="safeHtml()"></span>
+  } @else {
+  <span [attr.id]="contentId()" style="display: contents">{{ text() }}</span>
+  }
+</ng-template>
+
+@switch (tag()) { @case ('h1') {
+<h1 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()">
+  <ng-container [ngTemplateOutlet]="contentTpl"></ng-container>
+</h1>
+} @case ('h2') {
+<h2 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()">
+  <ng-container [ngTemplateOutlet]="contentTpl"></ng-container>
+</h2>
+} @case ('h3') {
+<h3 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()">
+  <ng-container [ngTemplateOutlet]="contentTpl"></ng-container>
+</h3>
+} @case ('h4') {
+<h4 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()">
+  <ng-container [ngTemplateOutlet]="contentTpl"></ng-container>
+</h4>
+} @case ('h5') {
+<h5 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()">
+  <ng-container [ngTemplateOutlet]="contentTpl"></ng-container>
+</h5>
+} @case ('h6') {
+<h6 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()">
+  <ng-container [ngTemplateOutlet]="contentTpl"></ng-container>
+</h6>
+} @case ('span') {
+<span [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()"
+  ><ng-container [ngTemplateOutlet]="contentTpl"></ng-container
+></span>
+} @case ('small') {
+<small [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()"
+  ><ng-container [ngTemplateOutlet]="contentTpl"></ng-container
+></small>
+} @case ('strong') {
+<strong [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()"
+  ><ng-container [ngTemplateOutlet]="contentTpl"></ng-container
+></strong>
+} @case ('em') {
+<em [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()"
+  ><ng-container [ngTemplateOutlet]="contentTpl"></ng-container
+></em>
+} @case ('p') {
+<p [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()">
+  <ng-container [ngTemplateOutlet]="contentTpl"></ng-container>
+</p>
+} @default { <ng-container [ngTemplateOutlet]="contentTpl"></ng-container> } }

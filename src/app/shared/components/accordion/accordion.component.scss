@@ -1,8 +1,0 @@
-.accordion-panel-wrapper {
-  transition: grid-template-rows 240ms ease, padding 240ms ease;
-}
-@media (prefers-reduced-motion: reduce) {
-  .accordion-panel-wrapper {
-    transition: none;
-  }
-}

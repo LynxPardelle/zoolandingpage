@@ -68,7 +68,9 @@ RUN apk update
 RUN apk upgrade
 RUN apk add --no-cache \
     dumb-init \
-    curl
+    curl \
+    su-exec \
+    chromium
 RUN rm -rf /var/cache/apk/*
 
 # Set working directory
@@ -111,11 +113,14 @@ ENV NODE_ENV=development
 ENV NG_CLI_ANALYTICS=false
 ENV CI=true
 
+# Ensure we can drop privileges after fixing permissions on mounted volumes
+USER root
+
 # Copy source code with proper ownership
 COPY --chown=appuser:appgroup . .
 
-# Change to non-root user for security
-USER appuser
+# Dev entrypoint fixes permissions on mounted volumes then drops to appuser
+RUN chmod +x /app/docker/dev-entrypoint.sh
 
 # Expose development port
 EXPOSE 4200
@@ -125,7 +130,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:4200/ || exit 1
 
 # Use dumb-init to handle signals properly and start development server
-ENTRYPOINT ["dumb-init", "--"]
+ENTRYPOINT ["dumb-init", "--", "/app/docker/dev-entrypoint.sh"]
 CMD ["ng", "serve", "--host", "0.0.0.0", "--port", "4200", "--poll", "1000"]
 
 # -----------------------------------------------------------------------------

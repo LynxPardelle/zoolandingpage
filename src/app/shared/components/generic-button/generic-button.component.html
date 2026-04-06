@@ -1,15 +1,46 @@
 <button
+  [id]="id() || null"
   [attr.type]="type()"
   [disabled]="disabled() || loading()"
   [class]="classes()"
+  [attr.tabindex]="tabIndex() ?? null"
   [attr.aria-busy]="loading() ? 'true' : null"
+  [attr.role]="role() || null"
+  [attr.aria-label]="ariaLabel() || null"
+  [attr.aria-expanded]="ariaExpanded() || null"
+  [attr.aria-haspopup]="ariaHaspopup() || null"
+  [attr.aria-selected]="ariaSelected() ?? null"
+  [attr.aria-controls]="ariaControls() || null"
+  [attr.aria-activedescendant]="ariaActiveDescendant() || null"
   (click)="onClick($event)"
 >
   @if (loading()) {
-  <span class="{{ spinnerClass }}" aria-hidden="true"></span>
-  } @else if (icon()) {
-  <mat-icon class="{{ iconClass }}" aria-hidden="true">{{ icon() }}</mat-icon>
-  } @if (label()) {<span class="ank-inlineBlock">{{ label() }}</span
-  >}
-  <ng-content />
+  <span [attr.id]="spinnerId() || null" [class]="spinnerClass()" aria-hidden="true"></span>
+  } @else {
+  <span [attr.id]="contentId() || null" style="display: contents">
+    @if (icon() && iconPosition() === 'before') {
+    <generic-icon
+      [config]="{
+        id: leadingIconId(),
+        classes: iconClass(),
+        ariaHidden: true,
+        iconName: icon() || 'none'
+      }"
+    />
+    } @if (label()) {
+    <span [attr.id]="labelId() || null">{{ label() }}</span>
+    }
+    <span [attr.id]="projectedContentId() || null" style="display: contents"><ng-content /></span>
+    @if (icon() && iconPosition() === 'after') {
+    <generic-icon
+      [config]="{
+        id: trailingIconId(),
+        classes: iconClass(),
+        ariaHidden: true,
+        iconName: icon() || 'none'
+      }"
+    />
+    }
+  </span>
+  }
 </button>

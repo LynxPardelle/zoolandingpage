@@ -2,14 +2,15 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { RuntimeConfigService } from './runtime-config.service';
 
 // Minimal types based on docs/09-quick-stats-lambda.md
 export type StatsOp =
-    | { op: 'set'; path: string; value: any }
+    | { op: 'set'; path: string; value: unknown }
     | { op: 'inc'; path: string; by?: number }
     | { op: 'delete'; path: string }
-    | { op: 'merge'; path: string; value: Record<string, any> }
-    | { op: 'append'; path: string; value: any };
+    | { op: 'merge'; path: string; value: Record<string, unknown> }
+    | { op: 'append'; path: string; value: unknown };
 
 export interface ApplyOpsRequest {
     appName: string;
@@ -24,7 +25,7 @@ export interface ApplyOpsResponse {
     error?: string;
     bucket?: string;
     key?: string;
-    stats?: Record<string, any>;
+    stats?: Record<string, unknown>;
     etag?: string;
     versionId?: string;
     dryRun?: boolean;
@@ -33,55 +34,47 @@ export interface ApplyOpsResponse {
 // See docs/09-quick-stats-lambda.md for API details.
 @Injectable({ providedIn: 'root' })
 export class QuickStatsService {
-    private http = inject(HttpClient);
-    // Keep centralized in one place so we can append a path later (e.g., `/v1/quick-stats`)
-    private readonly baseUrl = `${ environment.apiUrl }`;
-    private readonly appId = (environment.app.name || 'zoolandingpage').replace(/\s/g, '_').replace(/[^a-zA-Z0-9_]+/g, '').toLowerCase();
-    private readonly version: string = environment.apiVersion;
-    public readonly remoteStats = signal<Record<string, any> | undefined>(undefined);
+    private readonly http = inject(HttpClient);
+    private readonly runtimeConfig = inject(RuntimeConfigService);
+    private readonly endpoint = `${ environment.apiUrl }/quick-stats`;
+    private readonly remoteStats = signal<Record<string, unknown> | undefined>(undefined);
 
-    /** Send raw ops to the backend */
+    readonly stats = this.remoteStats.asReadonly();
+
+    private resolveAppId(): string {
+        return this.runtimeConfig.appIdentifier();
+    }
+
     applyOps(req: ApplyOpsRequest): Observable<ApplyOpsResponse> {
-        /* const url = `${ this.baseUrl }/${ this.version }/quick-stats`; */
-        const url = `${ this.baseUrl }/quick-stats`;
-        return this.http.post<ApplyOpsResponse>(url, req).pipe(tap(res => {
+        return this.http.post<ApplyOpsResponse>(this.endpoint, req).pipe(tap(res => {
             if (res.ok && res.stats) {
                 this.remoteStats.set(res.stats);
             }
         }));
     }
 
-    /** Convenience: fetch current stats document (no write) */
-    readStats(ifMatchEtag?: string): Observable<ApplyOpsResponse> {
-        return this.applyOps({ appName: this.appId, ops: [], dryRun: true, ifMatchEtag });
-    }
-
-    /** Convenience: increment a counter path by N (default 1) */
     inc(path: string, by = 1): Observable<ApplyOpsResponse> {
-        return this.applyOps({ appName: this.appId, ops: [{ op: 'inc', path, by }] });
+        return this.applyOps({ appName: this.resolveAppId(), ops: [{ op: 'inc', path, by }] });
     }
 
-    /** Convenience: set a value at a path */
-    set(path: string, value: any): Observable<ApplyOpsResponse> {
-        return this.applyOps({ appName: this.appId, ops: [{ op: 'set', path, value }] });
+    getNumber(path: string): number | undefined {
+        const value = this.resolvePath(path, this.remoteStats());
+        return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
     }
 
-    /** Convenience: deep-merge an object at a path */
-    merge(path: string, value: Record<string, any>): Observable<ApplyOpsResponse> {
-        return this.applyOps({ appName: this.appId, ops: [{ op: 'merge', path, value }] });
-    }
+    private resolvePath(path: string, root: Record<string, unknown> | undefined): unknown {
+        const parts = String(path ?? '').trim().split('.').filter(Boolean);
+        if (!parts.length || !root) return undefined;
 
-    /** Convenience: append a value into an array at a path */
-    append(path: string, value: any): Observable<ApplyOpsResponse> {
-        return this.applyOps({ appName: this.appId, ops: [{ op: 'append', path, value }] });
-    }
+        let current: unknown = root;
+        for (const part of parts) {
+            if (!current || typeof current !== 'object' || Array.isArray(current) || !(part in current)) {
+                return undefined;
+            }
 
-    /** Specific helpers used by the app */
-    incPageView(): Observable<ApplyOpsResponse> {
-        return this.inc('metrics.pageViews', 1);
-    }
+            current = (current as Record<string, unknown>)[part];
+        }
 
-    incCtaClick(): Observable<ApplyOpsResponse> {
-        return this.inc('metrics.ctaClicks', 1);
+        return current;
     }
 }

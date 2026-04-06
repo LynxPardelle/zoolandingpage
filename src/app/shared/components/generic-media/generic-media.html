@@ -1,0 +1,15 @@
+@switch (tag()) { @case ('audio') {
+<audio [id]="id()" [class]="classes()" [src]="src()" controls></audio>
+} @case ('video') {
+<video [id]="id()" [class]="classes()" [src]="src()" controls></video>
+} @case ('image') {
+<img [id]="id()" [class]="classes()" [src]="src()" [attr.alt]="alt()" />
+} @case ('document') {
+<a [id]="id()" [class]="classes()" [href]="src()" target="_blank" rel="noopener noreferrer">
+  <span [attr.id]="linkContentId()">{{ linkLabel() }}</span>
+</a>
+} @default {
+<a [id]="id()" [class]="classes()" [href]="src()" target="_blank" rel="noopener noreferrer">
+  <span [attr.id]="linkContentId()">{{ linkLabel() }}</span>
+</a>
+} }

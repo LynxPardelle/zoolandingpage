@@ -1,0 +1,94 @@
+.toast-enter {
+  animation: toastSlideIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.toast-leave {
+  animation: toastSlideOut 300ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+.toast-progress-bar-anim {
+  transform-origin: left;
+  animation: progressBar linear forwards;
+  animation-timing-function: linear;
+}
+
+.toast-icon-error-anim {
+  animation: errorPulse 2s infinite;
+}
+
+.toast-icon-warning-anim {
+  animation: warningBounce 2s infinite;
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes toastSlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%) scale(0.9);
+  }
+}
+
+@keyframes progressBar {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes errorPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes warningBounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast-enter,
+  .toast-leave,
+  .toast-icon-error-anim,
+  .toast-icon-warning-anim {
+    animation: none !important;
+  }
+
+  .toast-progress-bar-anim {
+    animation: progressBarReduced linear forwards;
+  }
+}
+
+@keyframes progressBarReduced {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}

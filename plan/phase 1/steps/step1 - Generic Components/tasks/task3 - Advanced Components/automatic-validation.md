@@ -9,48 +9,49 @@ This document defines automated testing strategies for Advanced Components inclu
 ### 1. Modal and Overlay Components
 
 #### Modal Component Tests
+
 ```typescript
-describe('ModalComponent', () => {
+describe('GenericModalComponent', () => {
   it('should open and close correctly', () => {
     // Test modal opening/closing
   });
-  
+
   it('should trap focus within modal', () => {
     // Test focus management
   });
-  
+
   it('should close on ESC key', () => {
     // Test keyboard interaction
   });
-  
+
   it('should close on backdrop click', () => {
     // Test backdrop interaction
   });
-  
+
   it('should integrate with CDK Overlay', () => {
     // Test CDK integration
   });
 });
 
-describe('AccordionComponent', () => {
+describe('GenericAccordionComponent', () => {
   it('should expand/collapse panels', () => {
     // Test accordion functionality
   });
-  
+
   it('should support keyboard navigation', () => {
     // Test arrow key navigation
   });
-  
+
   it('should animate transitions smoothly', () => {
     // Test animation performance
   });
 });
 
-describe('DropdownComponent', () => {
+describe('GenericDropdown', () => {
   it('should position correctly', () => {
     // Test auto-positioning
   });
-  
+
   it('should handle keyboard navigation', () => {
     // Test menu navigation
   });
@@ -60,36 +61,37 @@ describe('DropdownComponent', () => {
 ### 2. Utility Components
 
 #### LoadingSpinner Tests
+
 ```typescript
-describe('LoadingSpinnerComponent', () => {
+describe('GenericLoadingSpinnerComponent', () => {
   it('should render all spinner variants', () => {
     // Test spinner styles
   });
-  
+
   it('should apply theme colors', () => {
     // Test theme integration
   });
-  
+
   it('should announce to screen readers', () => {
     // Test accessibility
   });
 });
 
-describe('ProgressBarComponent', () => {
+describe('GenericProgressBarComponent', () => {
   it('should update progress smoothly', () => {
     // Test progress updates
   });
-  
+
   it('should handle determinate/indeterminate modes', () => {
     // Test progress modes
   });
 });
 
-describe('ToastComponent', () => {
+describe('GenericToastComponent', () => {
   it('should display and auto-dismiss', () => {
     // Test toast lifecycle
   });
-  
+
   it('should stack multiple toasts', () => {
     // Test toast management
   });
@@ -99,26 +101,27 @@ describe('ToastComponent', () => {
 ### 3. Advanced Interactive Components
 
 #### TabGroup Tests
+
 ```typescript
-describe('TabGroupComponent', () => {
+describe('GenericTabGroupComponent', () => {
   it('should switch tabs correctly', () => {
     // Test tab switching
   });
-  
+
   it('should lazy load tab content', () => {
     // Test @defer implementation
   });
-  
+
   it('should handle keyboard navigation', () => {
     // Test arrow key navigation
   });
 });
 
-describe('StepperComponent', () => {
+describe('GenericStepperComponent', () => {
   it('should validate steps', () => {
     // Test step validation
   });
-  
+
   it('should show progress correctly', () => {
     // Test progress indication
   });
@@ -128,6 +131,7 @@ describe('StepperComponent', () => {
 ## Quality Checks
 
 ### 1. CDK Integration Testing
+
 ```bash
 # Test CDK overlay functionality
 npm run test:cdk-integration
@@ -140,17 +144,18 @@ npm run test:positioning
 ```
 
 ### 2. Accessibility Testing
+
 ```typescript
 describe('Advanced Components Accessibility', () => {
   it('should pass axe accessibility tests', async () => {
     const results = await axe(fixture.nativeElement);
     expect(results).toHaveNoViolations();
   });
-  
+
   it('should support keyboard navigation', () => {
     // Test keyboard accessibility
   });
-  
+
   it('should manage focus correctly', () => {
     // Test focus management
   });
@@ -158,16 +163,17 @@ describe('Advanced Components Accessibility', () => {
 ```
 
 ### 3. Performance Testing
+
 ```typescript
 describe('Advanced Components Performance', () => {
   it('should render within performance budget', () => {
     // Test rendering performance
   });
-  
+
   it('should handle overlays efficiently', () => {
     // Test overlay performance
   });
-  
+
   it('should animate smoothly', () => {
     // Test animation performance
   });
@@ -177,6 +183,7 @@ describe('Advanced Components Performance', () => {
 ## Test Coverage Requirements
 
 ### Minimum Coverage Targets
+
 - **Unit Tests**: 90% line coverage minimum
 - **Integration Tests**: All CDK interactions covered
 - **E2E Tests**: All user interactions tested
@@ -185,6 +192,7 @@ describe('Advanced Components Performance', () => {
 ## Validation Criteria
 
 ### Must Pass Criteria
+
 - [ ] All unit tests pass with >90% coverage
 - [ ] CDK integration works correctly
 - [ ] Accessibility tests pass
@@ -192,6 +200,7 @@ describe('Advanced Components Performance', () => {
 - [ ] Cross-browser compatibility verified
 
 ### Quality Assurance Criteria
+
 - [ ] Components integrate smoothly
 - [ ] Keyboard navigation works properly
 - [ ] Focus management is correct

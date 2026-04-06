@@ -1,0 +1,62 @@
+@if (isTestimonial()) {
+<article [class]="classes()" [@testimonialFadeIn] itemscope itemtype="https://schema.org/Review">
+  <div [class]="classValue('testimonialHeaderClasses')">
+    <div [class]="classValue('testimonialAvatarClasses')" aria-hidden="true">{{ avatar() || "🧑" }}</div>
+    <div [class]="classValue('testimonialAuthorClasses')">
+      <h3 [class]="classValue('testimonialNameClasses')" itemprop="author">
+        {{ name() }}
+      </h3>
+      <p [class]="classValue('testimonialRoleClasses')">{{ role() }} · {{ company() }}</p>
+    </div>
+    @if (verified()) {
+    <mat-icon
+      [class]="classValue('testimonialVerifiedIconClasses')"
+      [attr.title]="verifiedLabel()"
+      [attr.aria-label]="verifiedLabel()"
+      >verified</mat-icon
+    >}
+  </div>
+  <p [class]="classValue('testimonialContentClasses')" itemprop="reviewBody">"{{ content() }}"</p>
+  <div
+    [class]="classValue('testimonialRatingClasses')"
+    itemprop="reviewRating"
+    itemscope
+    itemtype="https://schema.org/Rating"
+  >
+    <meta itemprop="worstRating" content="1" /><meta itemprop="bestRating" content="5" /><meta
+      itemprop="ratingValue"
+      [content]="rating().toString()"
+    />
+    @for (star of stars(); track $index) {<mat-icon [class]="classValue('testimonialStarClasses')" aria-hidden="true">{{
+      star <= rating() ? "star" : "star_border"
+    }}</mat-icon
+    >}<span [class]="classValue('testimonialRatingTextClasses')">{{ rating() }}/5</span>
+  </div>
+</article>
+} @else {
+<div [class]="classes()" [@featureFadeIn]>
+  <div [class]="classValue('featureIconContainerClasses')">
+    <mat-icon [class]="classValue('featureIconClasses')">{{ icon() }}</mat-icon>
+  </div>
+  <h3 [class]="classValue('featureTitleClasses')">{{ title() }}</h3>
+  <p [class]="classValue('featureDescriptionClasses')">{{ description() }}</p>
+  @if (benefits().length) {
+  <ul [class]="classValue('benefitsListClasses')">
+    @for (benefit of keyedBenefits(); track benefit.key) {
+    <li [class]="classValue('benefitItemClasses')">
+      <mat-icon [class]="classValue('benefitIconClasses')">check_circle</mat-icon>
+      <span [class]="classValue('benefitTextClasses')">{{ benefit.value }}</span>
+    </li>
+    }
+  </ul>
+  } @if (buttonLabel()) {
+  <generic-button
+    [config]="{
+      label: buttonLabel(),
+      pressed: onButtonPressed,
+      classes: buttonClasses()
+    }"
+  ></generic-button>
+  }
+</div>
+}

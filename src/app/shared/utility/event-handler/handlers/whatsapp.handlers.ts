@@ -1,0 +1,134 @@
+import { AnalyticsCategories, AnalyticsEvents } from '@/app/shared/services/analytics.events';
+import { AnalyticsService } from '@/app/shared/services/analytics.service';
+import { I18nService } from '@/app/shared/services/i18n.service';
+import { VariableStoreService } from '@/app/shared/services/variable-store.service';
+import { buildWhatsAppUrl } from '@/app/shared/utility/buildWhatsAppUrl.utility';
+import { inject } from '@angular/core';
+import type { EventHandler } from '../event-handler.types';
+
+const safeOpen = (url: string): void => {
+    try {
+        if (!url) return;
+        if (typeof window === 'undefined') return;
+        window.open(url, '_blank', 'noopener,noreferrer');
+    } catch {
+        // no-op
+    }
+};
+
+const resolveWhatsAppPhone = (variables: VariableStoreService): string => {
+    const raw = variables.get('ui.contact.whatsappPhone');
+    return typeof raw === 'string' ? raw.trim() : '';
+};
+
+const resolveMessageKey = (variables: VariableStoreService, path: string): string => {
+    const raw = variables.get(path);
+    return typeof raw === 'string' ? raw.trim() : '';
+};
+
+const resolveMessage = (variables: VariableStoreService, i18n: I18nService, path: string): string => {
+    const key = resolveMessageKey(variables, path);
+    if (!key) return '';
+
+    const resolved = i18n.t(key);
+    return typeof resolved === 'string' ? resolved.trim() : '';
+};
+
+export const openWhatsAppHandler = (): EventHandler => {
+    const analytics = inject(AnalyticsService);
+    const globalI18n = inject(I18nService);
+    const variables = inject(VariableStoreService);
+
+    return {
+        id: 'openWhatsApp',
+        handle: (_ctx, args) => {
+            const metaTitle = String(args[0] ?? '');
+            const location = String(args[1] ?? '');
+            const serviceLabel = args[2] == null ? undefined : String(args[2]);
+
+            const rawMessage = resolveMessage(variables, globalI18n, 'ui.contact.whatsappMessageKey');
+
+            const link = buildWhatsAppUrl(resolveWhatsAppPhone(variables), rawMessage);
+            if (!link) return;
+
+            const isService = metaTitle === AnalyticsEvents.ServicesCtaClick;
+            const comingFromServicesSection = location === 'services';
+
+            if (isService) {
+                if (!comingFromServicesSection || !!serviceLabel) {
+                    const label = serviceLabel || 'whatsapp-button';
+                    void analytics.track(metaTitle, {
+                        category: AnalyticsCategories.CTA,
+                        label,
+                        meta: { location, via: 'whatsapp_button' },
+                    });
+                }
+            } else {
+                void analytics.track(metaTitle, {
+                    category: AnalyticsCategories.CTA,
+                    label: 'whatsapp-button',
+                    meta: { location, forwardedFrom: serviceLabel || null },
+                });
+            }
+
+            safeOpen(link);
+        },
+    };
+};
+
+export const openFaqCtaWhatsAppHandler = (): EventHandler => {
+    const analytics = inject(AnalyticsService);
+    const globalI18n = inject(I18nService);
+    const variables = inject(VariableStoreService);
+
+    return {
+        id: 'openFaqCtaWhatsApp',
+        handle: () => {
+            void analytics.track(AnalyticsEvents.FaqCtaClick, {
+                category: AnalyticsCategories.CTA,
+                label: 'faq:whatsapp',
+                meta: { location: 'faq-section', channel: 'whatsapp' },
+            });
+
+            const message = resolveMessage(variables, globalI18n, 'ui.contact.faqMessageKey');
+            if (!message) return;
+            const link = buildWhatsAppUrl(resolveWhatsAppPhone(variables), message);
+            if (!link) return;
+            safeOpen(link);
+        },
+    };
+};
+
+export const openFinalCtaWhatsAppHandler = (): EventHandler => {
+    const analytics = inject(AnalyticsService);
+    const globalI18n = inject(I18nService);
+    const variables = inject(VariableStoreService);
+
+    return {
+        id: 'openFinalCtaWhatsApp',
+        handle: (_ctx, args) => {
+            const eventName = args[0] == null ? undefined : String(args[0]);
+            const variantRaw = args[1] == null ? 'primary' : String(args[1]);
+            const variant = (variantRaw || 'primary') as string;
+
+            const name = String(eventName ?? AnalyticsEvents.CtaClick);
+
+            void analytics.track(name, {
+                category: AnalyticsCategories.CTA,
+                label: `final-cta:${ variant }`,
+                meta: {
+                    location: 'final-cta',
+                    source: 'final_cta_section',
+                    channel: 'whatsapp',
+                    phone: resolveWhatsAppPhone(variables),
+                },
+            });
+
+            const message = resolveMessage(variables, globalI18n, 'ui.contact.finalCtaMessageKey');
+            if (!message) return;
+            const link = buildWhatsAppUrl(resolveWhatsAppPhone(variables), message);
+            if (!link) return;
+            safeOpen(link);
+        },
+    };
+};

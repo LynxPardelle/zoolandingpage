@@ -2,7 +2,7 @@
 
 ## Revision Summary
 
-This task was partially executed implicitly while decomposing the monolithic `AppComponent` (Task 1). Several content/display pieces now exist (HeroSection, FeatureCard, TestimonialCard, CallToAction, and the section wrapper components: conversion-note, features-section, interactive-process, services-section, conversion-calculator-section, testimonials-section, final-cta-section). The revised scope focuses on:
+This task was partially executed implicitly while decomposing the monolithic `AppComponent` (Task 1). Several content/display pieces now exist (HeroSection, FeatureCard, TestimonialCard, CallToAction, and the section wrapper components: conversion-note, features-section, interactive-process, services-section, testimonials-section, final-cta-section). The revised scope focuses on:
 
 1. Achieving atomic compliance for all existing section components (add `*.types.ts` + `*.constants.ts`).
 2. Implementing missing generic abstractions (Generic Button, ContentBlock, StatsCounter, WhatsAppButton).
@@ -31,7 +31,7 @@ Legend: ✅ done, ⏳ in-scope pending, ➡️ deferred (out of current scope)
 - Provide reusable interactive/content primitives (Button, ContentBlock, StatsCounter, WhatsAppButton).
 - Retrofit all section components to atomic pattern (separate concise files, exported types/constants).
 - Add analytics & SEO structured data for testimonials / organization / hero.
-- Introduce `@defer` + placeholders for non-critical blocks (testimonials media, Conversion calculator heavy parts).
+- Introduce `@defer` + placeholders for non-critical blocks (testimonials media and other heavy interactive content).
 
 ### Secondary
 
@@ -41,25 +41,24 @@ Legend: ✅ done, ⏳ in-scope pending, ➡️ deferred (out of current scope)
 
 ## Component Inventory & Gaps
 
-| Category    | Component            | Impl Status | Atomic Completeness       | Notes                           |
-| ----------- | -------------------- | ----------- | ------------------------- | ------------------------------- |
-| Content     | HeroSection          | ✅          | Mostly (verify constants) | Extra layouts deferred          |
-| Content     | FeatureCard          | ✅          | Missing constants/styles  | Animations later                |
-| Content     | TestimonialCard      | ✅          | Missing constants/styles  | Structured data pending         |
-| Section     | RoiNoteSection       | ✅          | Missing types/constants   | Static copy centralization      |
-| Section     | ServicesSection      | ✅          | Missing types/constants   | Service list config             |
-| Section     | FeaturesSection      | ✅          | Missing types/constants   | Move feature list out of root   |
-| Section     | InteractiveProcess   | ✅          | Missing types/constants   | Step model extraction           |
-| Section     | RoiCalculatorSection | ✅          | Missing types/constants   | Defaults & labels               |
-| Section     | TestimonialsSection  | ✅          | Missing types/constants   | SEO snippet builder             |
-| Section     | FinalCtaSection      | ✅          | Missing types/constants   | Variant mapping                 |
-| CTA         | CallToAction         | ✅          | Complete                  | Analytics baseline              |
-| Interactive | Generic Button       | ✅          | Complete                  | Consumed by CTA / final-cta     |
-| Interactive | WhatsAppButton       | ✅          | Complete                  | Analytics integrated            |
-| Display     | ContentBlock         | ✅          | Complete (baseline)       | Optional media support          |
-| Metrics     | StatsCounter         | ✅          | Complete                  | Awaiting placement              |
-| Media       | ImageGallery         | ➡️          | N/A                       | Deferred (low Conversion now)   |
-| Forms       | ContactForm          | ➡️          | N/A                       | Defer until form spec clarified |
+| Category    | Component           | Impl Status | Atomic Completeness       | Notes                           |
+| ----------- | ------------------- | ----------- | ------------------------- | ------------------------------- |
+| Content     | HeroSection         | ✅          | Mostly (verify constants) | Extra layouts deferred          |
+| Content     | FeatureCard         | ✅          | Missing constants/styles  | Animations later                |
+| Content     | TestimonialCard     | ✅          | Missing constants/styles  | Structured data pending         |
+| Section     | RoiNoteSection      | ✅          | Missing types/constants   | Static copy centralization      |
+| Section     | ServicesSection     | ✅          | Missing types/constants   | Service list config             |
+| Section     | FeaturesSection     | ✅          | Missing types/constants   | Move feature list out of root   |
+| Section     | InteractiveProcess  | ✅          | Missing types/constants   | Step model extraction           |
+| Section     | TestimonialsSection | ✅          | Missing types/constants   | SEO snippet builder             |
+| Section     | FinalCtaSection     | ✅          | Missing types/constants   | Variant mapping                 |
+| CTA         | CallToAction        | ✅          | Complete                  | Analytics baseline              |
+| Interactive | Generic Button      | ✅          | Complete                  | Consumed by CTA / final-cta     |
+| Interactive | WhatsAppButton      | ✅          | Complete                  | Analytics integrated            |
+| Display     | ContentBlock        | ✅          | Complete (baseline)       | Optional media support          |
+| Metrics     | StatsCounter        | ✅          | Complete                  | Awaiting placement              |
+| Media       | ImageGallery        | ➡️          | N/A                       | Deferred (low Conversion now)   |
+| Forms       | ContactForm         | ➡️          | N/A                       | Defer until form spec clarified |
 
 ## Revised Implementation Tasks
 
@@ -99,15 +98,14 @@ Legend: ✅ done, ⏳ in-scope pending, ➡️ deferred (out of current scope)
 
 ## Atomic Retrofit Checklist
 
-| Component                     | types.ts | constants.ts | Notes                      |
-| ----------------------------- | -------- | ------------ | -------------------------- |
-| features-section              | ✅       | ✅           | Types/constants added      |
-| services-section              | ✅       | ✅           | Types/constants added      |
-| testimonials-section          | ✅       | ✅           | Type + SEO builder added   |
-| conversion-calculator-section | ✅       | ✅           | Defaults added             |
-| interactive-process           | ✅       | ✅           | Step definitions extracted |
-| final-cta-section             | ✅       | ✅           | Variant map + constants    |
-| conversion-note               | ✅       | ✅           | Static copy export         |
+| Component            | types.ts | constants.ts | Notes                      |
+| -------------------- | -------- | ------------ | -------------------------- |
+| features-section     | ✅       | ✅           | Types/constants added      |
+| services-section     | ✅       | ✅           | Types/constants added      |
+| testimonials-section | ✅       | ✅           | Type + SEO builder added   |
+| interactive-process  | ✅       | ✅           | Step definitions extracted |
+| final-cta-section    | ✅       | ✅           | Variant map + constants    |
+| conversion-note      | ✅       | ✅           | Static copy export         |
 
 ## Success Criteria
 
@@ -154,9 +152,9 @@ Legend: ✅ done, ⏳ in-scope pending, ➡️ deferred (out of current scope)
 
 1. (Complete) Core primitives (Generic Button, WhatsAppButton, ContentBlock, StatsCounter).
 2. (Complete) Section retrofits (all target section types/constants added).
-3. (Complete) JSON-LD (organization, hero, testimonials injected; optional Conversion schema TBD).
-4. (Pending) Add @defer placeholders (targets: testimonials list, Conversion calculator panel).
-5. (Pending) Integrate StatsCounter into Conversion or metrics strip.
+3. (Complete) JSON-LD (organization, hero, testimonials injected; optional dynamic interaction schema TBD).
+4. (Pending) Add @defer placeholders (targets: testimonials list and other heavy interactive panels).
+5. (Pending) Integrate StatsCounter into shared metrics or future scoped interactions.
 6. (Pending) Minimal spec stubs.
 7. (Pending) Plan/changelog finalization & validation checklist refresh (after tests & defer placeholders).
 

@@ -32,39 +32,39 @@ This changelog documents all files that will be created and modified during the 
 
 ### Foundation Component Tests
 
-- `src/app/components/foundation/app-header/app-header.component.spec.ts`
-- `src/app/components/foundation/app-footer/app-footer.component.spec.ts`
-- `src/app/components/foundation/app-container/app-container.component.spec.ts`
-- `src/app/components/foundation/app-section/app-section.component.spec.ts`
-- `src/app/components/foundation/nav-menu/nav-menu.component.spec.ts`
-- `src/app/components/foundation/language-toggle/language-toggle.component.spec.ts`
-- `src/app/components/foundation/theme-toggle/theme-toggle.component.spec.ts`
+- `src/app/core/components//app-header/app-header.component.spec.ts`
+- `src/app/core/components//app-footer/app-footer.component.spec.ts`
+- `src/app/core/components//app-container/app-container.component.spec.ts`
+- `src/app/core/components//app-section/app-section.component.spec.ts`
+- `src/app/core/components//nav-menu/nav-menu.component.spec.ts`
+- `src/app/core/components//language-toggle/language-toggle.component.spec.ts`
+- `src/app/core/components//theme-toggle/theme-toggle.component.spec.ts`
 
 ### Content Component Tests
 
-- `src/app/components/content/hero-section/hero-section.component.spec.ts`
-- `src/app/components/content/call-to-action/call-to-action.component.spec.ts`
-- `src/app/components/content/content-block/content-block.component.spec.ts`
-- `src/app/components/content/feature-card/feature-card.component.spec.ts`
-- `src/app/components/content/testimonial-card/testimonial-card.component.spec.ts`
-- `src/app/components/content/stats-counter/stats-counter.component.spec.ts`
-- `src/app/components/content/button/button.component.spec.ts`
-- `src/app/components/content/contact-form/contact-form.component.spec.ts`
-- `src/app/components/content/whatsapp-button/whatsapp-button.component.spec.ts`
-- `src/app/components/content/image-gallery/image-gallery.component.spec.ts`
+- `src/app/landing-page/components//hero-section/hero-section.component.spec.ts`
+- `src/app/landing-page/components//call-to-action/call-to-action.component.spec.ts`
+- `src/app/landing-page/components//content-block/content-block.component.spec.ts`
+- `src/app/landing-page/components//feature-card/feature-card.component.spec.ts`
+- `src/app/landing-page/components//testimonial-card/testimonial-card.component.spec.ts`
+- `src/app/landing-page/components//stats-counter/stats-counter.component.spec.ts`
+- `src/app/landing-page/components//button/button.component.spec.ts`
+- `src/app/landing-page/components//contact-form/contact-form.component.spec.ts`
+- `src/app/landing-page/components//whatsapp-button/whatsapp-button.component.spec.ts`
+- `src/app/landing-page/components//image-gallery/image-gallery.component.spec.ts`
 
 ### Advanced Component Tests
 
-- `src/app/components/advanced/modal/modal.component.spec.ts`
-- `src/app/components/advanced/accordion/accordion.component.spec.ts`
-- `src/app/components/advanced/dropdown/dropdown.component.spec.ts`
-- `src/app/components/advanced/loading-spinner/loading-spinner.component.spec.ts`
-- `src/app/components/advanced/progress-bar/progress-bar.component.spec.ts`
-- `src/app/components/advanced/toast/toast.component.spec.ts`
-- `src/app/components/advanced/tooltip/tooltip.component.spec.ts`
-- `src/app/components/advanced/tab-group/tab-group.component.spec.ts`
-- `src/app/components/advanced/stepper/stepper.component.spec.ts`
-- `src/app/components/advanced/search-box/search-box.component.spec.ts`
+- `src/app/shared/components/generic-modal/generic-modal.component.spec.ts`
+- `src/app/shared/components/generic-accordion/generic-accordion.component.spec.ts`
+- `src/app/shared/components/dropdown/dropdown.component.spec.ts`
+- `src/app/shared/components/generic-loading-spinner/generic-loading-spinner.component.spec.ts`
+- `src/app/shared/components/progress-bar/progress-bar.component.spec.ts`
+- `src/app/shared/components/toast/toast.component.spec.ts`
+- `src/app/shared/components/tooltip/tooltip.component.spec.ts`
+- `src/app/shared/components/tab-group/tab-group.component.spec.ts`
+- `src/app/shared/components/stepper/stepper.component.spec.ts`
+- `src/app/shared/components/search-box/search-box.component.spec.ts`
 
 ## Service Test Files
 

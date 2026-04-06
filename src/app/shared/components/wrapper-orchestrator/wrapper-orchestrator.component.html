@@ -1,0 +1,167 @@
+<ng-template #wrapperOrchestratorTpl let-component>
+  @if (component?.config?.components && component.config.components.length > 0) { @for(componentId of
+  component.config.components; track (componentId + $index)) {
+  <wrapper-orchestrator [componentsIds]="[componentId]" [hostContext]="effectiveHost()"></wrapper-orchestrator>
+  } }
+</ng-template>
+
+@if (components().length > 0) { @for (component of components(); track component.id) { @switch (component.type) {
+@case('accordion') {
+<generic-accordion
+  [config]="component.config"
+  (toggled)="
+    eventEmitted({
+      component: component.id,
+      meta_title: component.meta_title,
+      eventName: 'toggled',
+      eventData: $event,
+      eventInstructions: component.eventInstructions
+    })
+  "
+>
+</generic-accordion>
+} @case('button') {
+<generic-button
+  [config]="$any(buttonConfig(component))"
+  (pressed)="
+    eventEmitted({
+      component: component.id,
+      meta_title: component.meta_title,
+      eventName: 'pressed',
+      eventData: $event,
+      eventInstructions: component.eventInstructions
+    })
+  "
+>
+  <ng-container
+    [ngTemplateOutlet]="wrapperOrchestratorTpl"
+    [ngTemplateOutletContext]="{ $implicit: component }"
+  ></ng-container>
+</generic-button>
+} @case('container') {
+<generic-container [config]="$any(containerConfig(component))">
+  <ng-container
+    [ngTemplateOutlet]="wrapperOrchestratorTpl"
+    [ngTemplateOutletContext]="{ $implicit: component }"
+  ></ng-container>
+</generic-container>
+} @case('dropdown') {
+<generic-dropdown
+  [items]="component.config.items"
+  [config]="component.config.dropdownConfig || null"
+  (selectItem)="
+    eventEmitted({
+      component: component.id,
+      meta_title: component.meta_title,
+      eventName: 'selectItem',
+      eventData: $event,
+      eventInstructions: component.eventInstructions
+    })
+  "
+>
+  <ng-container trigger>
+    <ng-container
+      [ngTemplateOutlet]="wrapperOrchestratorTpl"
+      [ngTemplateOutletContext]="{ $implicit: component }"
+    ></ng-container>
+  </ng-container>
+</generic-dropdown>
+} @case('embed-frame') {
+<generic-embed-frame [config]="$any(embedFrameConfig(component))"></generic-embed-frame>
+} @case('generic-card') {
+<generic-card [config]="component.config"></generic-card>
+} @case('input') {
+<generic-input
+  [config]="component.config"
+  (valueChanged)="
+    eventEmitted({
+      component: component.id,
+      meta_title: component.meta_title,
+      eventName: 'valueChanged',
+      eventData: $event,
+      eventInstructions: component.eventInstructions
+    })
+  "
+  (blurred)="
+    eventEmitted({
+      component: component.id,
+      meta_title: component.meta_title,
+      eventName: 'blurred',
+      eventData: $event,
+      eventInstructions: component.eventInstructions
+    })
+  "
+></generic-input>
+} @case('interaction-scope') {
+<interaction-scope
+  [config]="$any(interactionScopeConfig(component))"
+  [parentHost]="effectiveHost()"
+  [componentId]="component.id"
+  [metaTitle]="component.meta_title"
+></interaction-scope>
+} @case('search-box') {
+<generic-search-box
+  [config]="resolveSearchConfig(component.config)"
+  (selectSuggestion)="
+    eventEmitted({
+      component: component.id,
+      meta_title: component.meta_title,
+      eventName: 'selectSuggestion',
+      eventData: $event,
+      eventInstructions: component.eventInstructions
+    })
+  "
+></generic-search-box>
+} @case('stats-counter') {
+<generic-stats-counter [config]="resolveStatsCounterConfig(component.config)"></generic-stats-counter>
+} @case('tab-group') {
+<generic-tab-group
+  [config]="component.config"
+  (selected)="
+    eventEmitted({
+      component: component.id,
+      meta_title: component.meta_title,
+      eventName: 'selected',
+      eventData: $event,
+      eventInstructions: component.eventInstructions
+    })
+  "
+></generic-tab-group>
+} @case('icon') {
+<generic-icon [config]="$any(iconConfig(component))">
+  <ng-container
+    [ngTemplateOutlet]="wrapperOrchestratorTpl"
+    [ngTemplateOutletContext]="{ $implicit: component }"
+  ></ng-container>
+</generic-icon>
+} @case('link') {
+<generic-link
+  [config]="$any(linkConfig(component))"
+  [eventInstructions]="component.eventInstructions"
+  (clicked)="
+    eventEmitted({
+      component: component.id,
+      meta_title: component.meta_title,
+      eventName: 'clicked',
+      eventData: resolveValue(component.config.href),
+      eventInstructions: component.eventInstructions
+    })
+  "
+>
+  <ng-container
+    [ngTemplateOutlet]="wrapperOrchestratorTpl"
+    [ngTemplateOutletContext]="{ $implicit: component }"
+  ></ng-container>
+</generic-link>
+} @case('media') {
+<generic-media [config]="$any(mediaConfig(component))"></generic-media>
+}@case('text') {
+<generic-text [config]="$any(textConfig(component))">
+  <ng-container
+    [ngTemplateOutlet]="wrapperOrchestratorTpl"
+    [ngTemplateOutletContext]="{ $implicit: component }"
+  ></ng-container>
+</generic-text>
+} @default {
+<span>{{ unknownComponentLabel(component.type) }}</span>
+} } } }

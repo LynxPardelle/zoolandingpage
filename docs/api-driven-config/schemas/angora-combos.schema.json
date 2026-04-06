@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AngoraCombosPayload",
+  "type": "object",
+  "required": ["version", "pageId", "domain", "combos"],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "pageId": { "type": "string" },
+    "domain": { "type": "string" },
+    "combos": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    }
+  },
+  "additionalProperties": false
+}

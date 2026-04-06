@@ -24,6 +24,7 @@ This keeps keyframes centralized and avoids duplicating timing specifics across 
 | `wiggle`        | `wiggleAnimation`        | Brief attention grab (icon/button)        |
 | `shimmer`       | `shimmerAnimation`       | Skeleton loading placeholder effect       |
 | `growX`         | `growXAnimation`         | Progress bars / loading bars              |
+| `revealWidth` | `revealWidthAnimation` | Search bars / inline width reveal panels |
 | `breathe`       | `breatheAnimation`       | Passive pulsing opacity (background a11y) |
 
 ## Usage Examples

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This step assembles and polishes the actual landing content: hero messaging, feature/services sections, Conversion calculator copy, social proof, and conversion touchpoints (final CTA and WhatsApp). It builds on Steps 1–3 (components, shell/routing, and experience enhancements) and aligns tightly with the copy in `docs/landing-copy-context.md` and architecture guidelines.
+This step assembles and polishes the actual landing content: hero messaging, feature/services sections, social proof, and conversion touchpoints (final CTA and WhatsApp). It builds on Steps 1–3 (components, shell/routing, and experience enhancements) and aligns tightly with the copy in `docs/landing-copy-context.md` and architecture guidelines.
 
 Related docs:
 

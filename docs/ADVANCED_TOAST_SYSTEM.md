@@ -35,7 +35,7 @@ The enhanced Toast component provides a sophisticated notification system with a
 ### Basic Toast Types
 
 ```typescript
-import { ToastService } from './shared/components/utility/toast';
+import { ToastService } from './shared/components/toast';
 
 constructor(private toastService: ToastService) {}
 
@@ -92,16 +92,16 @@ this.toastService.updateConfig({
 
 ```html
 <!-- Add toast host anywhere in your app -->
-<app-toast-host></app-toast-host>
+<generic-toast-host></generic-toast-host>
 ```
 
 ### In your component:
 
 ```typescript
-import { ToastComponent } from './shared/components/utility/toast';
+import { GenericToastComponent } from './shared/components/toast';
 
 @Component({
-  imports: [ToastComponent],
+  imports: [GenericToastComponent],
   // ...
 })
 ```

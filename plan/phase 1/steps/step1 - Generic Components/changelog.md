@@ -11,24 +11,28 @@ This document tracks all files that will be created, modified, or deleted during
 #### Layout Components
 
 **AppHeader Component:**
+
 - `src/app/core/components/layout/app-header/app-header.component.ts`
 - `src/app/core/components/layout/app-header/app-header.component.scss`
 - `src/app/core/components/layout/app-header/app-header.component.html`
 - `src/app/core/components/layout/app-header/app-header.component.spec.ts`
 
 **AppFooter Component:**
+
 - `src/app/core/components/layout/app-footer/app-footer.component.ts`
 - `src/app/core/components/layout/app-footer/app-footer.component.scss`
 - `src/app/core/components/layout/app-footer/app-footer.component.html`
 - `src/app/core/components/layout/app-footer/app-footer.component.spec.ts`
 
 **AppContainer Component:**
+
 - `src/app/core/components/layout/app-container/app-container.component.ts`
 - `src/app/core/components/layout/app-container/app-container.component.scss`
 - `src/app/core/components/layout/app-container/app-container.component.html`
 - `src/app/core/components/layout/app-container/app-container.component.spec.ts`
 
 **AppSection Component:**
+
 - `src/app/core/components/layout/app-section/app-section.component.ts`
 - `src/app/core/components/layout/app-section/app-section.component.scss`
 - `src/app/core/components/layout/app-section/app-section.component.html`
@@ -37,24 +41,28 @@ This document tracks all files that will be created, modified, or deleted during
 #### Navigation Components
 
 **NavMenu Component:**
+
 - `src/app/shared/components/navigation/nav-menu/nav-menu.component.ts`
 - `src/app/shared/components/navigation/nav-menu/nav-menu.component.scss`
 - `src/app/shared/components/navigation/nav-menu/nav-menu.component.html`
 - `src/app/shared/components/navigation/nav-menu/nav-menu.component.spec.ts`
 
 **Breadcrumb Component:**
+
 - `src/app/shared/components/navigation/breadcrumb/breadcrumb.component.ts`
 - `src/app/shared/components/navigation/breadcrumb/breadcrumb.component.scss`
 - `src/app/shared/components/navigation/breadcrumb/breadcrumb.component.html`
 - `src/app/shared/components/navigation/breadcrumb/breadcrumb.component.spec.ts`
 
 **LanguageToggle Component:**
+
 - `src/app/shared/components/navigation/language-toggle/language-toggle.component.ts`
 - `src/app/shared/components/navigation/language-toggle/language-toggle.component.scss`
 - `src/app/shared/components/navigation/language-toggle/language-toggle.component.html`
 - `src/app/shared/components/navigation/language-toggle/language-toggle.component.spec.ts`
 
 **ThemeToggle Component:**
+
 - `src/app/shared/components/navigation/theme-toggle/theme-toggle.component.ts`
 - `src/app/shared/components/navigation/theme-toggle/theme-toggle.component.scss`
 - `src/app/shared/components/navigation/theme-toggle/theme-toggle.component.html`
@@ -63,30 +71,35 @@ This document tracks all files that will be created, modified, or deleted during
 #### Content Components
 
 **HeroSection Component:**
+
 - `src/app/shared/components/content/hero-section/hero-section.component.ts`
 - `src/app/shared/components/content/hero-section/hero-section.component.scss`
 - `src/app/shared/components/content/hero-section/hero-section.component.html`
 - `src/app/shared/components/content/hero-section/hero-section.component.spec.ts`
 
 **ContentBlock Component:**
+
 - `src/app/shared/components/content/content-block/content-block.component.ts`
 - `src/app/shared/components/content/content-block/content-block.component.scss`
 - `src/app/shared/components/content/content-block/content-block.component.html`
 - `src/app/shared/components/content/content-block/content-block.component.spec.ts`
 
 **FeatureCard Component:**
+
 - `src/app/shared/components/content/feature-card/feature-card.component.ts`
 - `src/app/shared/components/content/feature-card/feature-card.component.scss`
 - `src/app/shared/components/content/feature-card/feature-card.component.html`
 - `src/app/shared/components/content/feature-card/feature-card.component.spec.ts`
 
 **TestimonialCard Component:**
+
 - `src/app/shared/components/content/testimonial-card/testimonial-card.component.ts`
 - `src/app/shared/components/content/testimonial-card/testimonial-card.component.scss`
 - `src/app/shared/components/content/testimonial-card/testimonial-card.component.html`
 - `src/app/shared/components/content/testimonial-card/testimonial-card.component.spec.ts`
 
 **StatsCounter Component:**
+
 - `src/app/shared/components/content/stats-counter/stats-counter.component.ts`
 - `src/app/shared/components/content/stats-counter/stats-counter.component.scss`
 - `src/app/shared/components/content/stats-counter/stats-counter.component.html`
@@ -95,70 +108,81 @@ This document tracks all files that will be created, modified, or deleted during
 #### Interactive Components
 
 **Button Component:**
-- `src/app/shared/components/interactive/button/button.component.ts`
-- `src/app/shared/components/interactive/button/button.component.scss`
-- `src/app/shared/components/interactive/button/button.component.html`
-- `src/app/shared/components/interactive/button/button.component.spec.ts`
+
+- `src/app/shared/components/button/button.component.ts`
+- `src/app/shared/components/button/button.component.scss`
+- `src/app/shared/components/button/button.component.html`
+- `src/app/shared/components/button/button.component.spec.ts`
 
 **ContactForm Component:**
-- `src/app/shared/components/interactive/contact-form/contact-form.component.ts`
-- `src/app/shared/components/interactive/contact-form/contact-form.component.scss`
-- `src/app/shared/components/interactive/contact-form/contact-form.component.html`
-- `src/app/shared/components/interactive/contact-form/contact-form.component.spec.ts`
+
+- `src/app/shared/components/contact-form/contact-form.component.ts`
+- `src/app/shared/components/contact-form/contact-form.component.scss`
+- `src/app/shared/components/contact-form/contact-form.component.html`
+- `src/app/shared/components/contact-form/contact-form.component.spec.ts`
 
 **WhatsAppButton Component:**
-- `src/app/shared/components/interactive/whatsapp-button/whatsapp-button.component.ts`
-- `src/app/shared/components/interactive/whatsapp-button/whatsapp-button.component.scss`
-- `src/app/shared/components/interactive/whatsapp-button/whatsapp-button.component.html`
-- `src/app/shared/components/interactive/whatsapp-button/whatsapp-button.component.spec.ts`
+
+- `src/app/shared/components/whatsapp-button/whatsapp-button.component.ts`
+- `src/app/shared/components/whatsapp-button/whatsapp-button.component.scss`
+- `src/app/shared/components/whatsapp-button/whatsapp-button.component.html`
+- `src/app/shared/components/whatsapp-button/whatsapp-button.component.spec.ts`
 
 **Modal Component:**
-- `src/app/shared/components/interactive/modal/modal.component.ts`
-- `src/app/shared/components/interactive/modal/modal.component.scss`
-- `src/app/shared/components/interactive/modal/modal.component.html`
-- `src/app/shared/components/interactive/modal/modal.component.spec.ts`
+
+- `src/app/shared/components/generic-modal/generic-modal.component.ts`
+- `src/app/shared/components/generic-modal/generic-modal.component.scss`
+- `src/app/shared/components/generic-modal/generic-modal.component.html`
+- `src/app/shared/components/generic-modal/generic-modal.component.spec.ts`
 
 **Accordion Component:**
-- `src/app/shared/components/interactive/accordion/accordion.component.ts`
-- `src/app/shared/components/interactive/accordion/accordion.component.scss`
-- `src/app/shared/components/interactive/accordion/accordion.component.html`
-- `src/app/shared/components/interactive/accordion/accordion.component.spec.ts`
+
+- `src/app/shared/components/generic-accordion/generic-accordion.component.ts`
+- `src/app/shared/components/generic-accordion/generic-accordion.component.scss`
+- `src/app/shared/components/generic-accordion/generic-accordion.component.html`
+- `src/app/shared/components/generic-accordion/generic-accordion.component.spec.ts`
 
 #### Utility Components
 
 **LoadingSpinner Component:**
-- `src/app/shared/components/utility/loading-spinner/loading-spinner.component.ts`
-- `src/app/shared/components/utility/loading-spinner/loading-spinner.component.scss`
-- `src/app/shared/components/utility/loading-spinner/loading-spinner.component.html`
-- `src/app/shared/components/utility/loading-spinner/loading-spinner.component.spec.ts`
+
+- `src/app/shared/components/generic-loading-spinner/generic-loading-spinner.component.ts`
+- `src/app/shared/components/generic-loading-spinner/generic-loading-spinner.component.scss`
+- `src/app/shared/components/generic-loading-spinner/generic-loading-spinner.component.html`
+- `src/app/shared/components/generic-loading-spinner/generic-loading-spinner.component.spec.ts`
 
 **ProgressBar Component:**
-- `src/app/shared/components/utility/progress-bar/progress-bar.component.ts`
-- `src/app/shared/components/utility/progress-bar/progress-bar.component.scss`
-- `src/app/shared/components/utility/progress-bar/progress-bar.component.html`
-- `src/app/shared/components/utility/progress-bar/progress-bar.component.spec.ts`
+
+- `src/app/shared/components/progress-bar/progress-bar.component.ts`
+- `src/app/shared/components/progress-bar/progress-bar.component.scss`
+- `src/app/shared/components/progress-bar/progress-bar.component.html`
+- `src/app/shared/components/progress-bar/progress-bar.component.spec.ts`
 
 **Toast Component:**
-- `src/app/shared/components/utility/toast/toast.component.ts`
-- `src/app/shared/components/utility/toast/toast.component.scss`
-- `src/app/shared/components/utility/toast/toast.component.html`
-- `src/app/shared/components/utility/toast/toast.component.spec.ts`
+
+- `src/app/shared/components/toast/toast.component.ts`
+- `src/app/shared/components/toast/toast.component.scss`
+- `src/app/shared/components/toast/toast.component.html`
+- `src/app/shared/components/toast/toast.component.spec.ts`
 
 **Tooltip Component:**
-- `src/app/shared/components/utility/tooltip/tooltip.component.ts`
-- `src/app/shared/components/utility/tooltip/tooltip.component.scss`
-- `src/app/shared/components/utility/tooltip/tooltip.component.html`
-- `src/app/shared/components/utility/tooltip/tooltip.component.spec.ts`
+
+- `src/app/shared/components/tooltip/tooltip.component.ts`
+- `src/app/shared/components/tooltip/tooltip.component.scss`
+- `src/app/shared/components/tooltip/tooltip.component.html`
+- `src/app/shared/components/tooltip/tooltip.component.spec.ts`
 
 **ImageGallery Component:**
-- `src/app/shared/components/utility/image-gallery/image-gallery.component.ts`
-- `src/app/shared/components/utility/image-gallery/image-gallery.component.scss`
-- `src/app/shared/components/utility/image-gallery/image-gallery.component.html`
-- `src/app/shared/components/utility/image-gallery/image-gallery.component.spec.ts`
+
+- `src/app/shared/components/image-gallery/image-gallery.component.ts`
+- `src/app/shared/components/image-gallery/image-gallery.component.scss`
+- `src/app/shared/components/image-gallery/image-gallery.component.html`
+- `src/app/shared/components/image-gallery/image-gallery.component.spec.ts`
 
 ### Type Files
 
 **Type Definition Files:**
+
 - `src/app/shared/types/component.types.ts`
 - `src/app/shared/types/theme.types.ts`
 - `src/app/shared/types/navigation.types.ts`
@@ -169,6 +193,7 @@ This document tracks all files that will be created, modified, or deleted during
 ### Service Files
 
 **Core Services:**
+
 - `src/app/shared/services/theme.service.ts`
 - `src/app/shared/services/theme.service.spec.ts`
 - `src/app/shared/services/language.service.ts`
@@ -181,12 +206,14 @@ This document tracks all files that will be created, modified, or deleted during
 ### Configuration and Setup Files
 
 **Barrel Exports:**
+
 - `src/app/shared/components/index.ts`
 - `src/app/shared/services/index.ts`
 - `src/app/shared/types/index.ts`
 - `src/app/shared/index.ts`
 
 **Documentation Files:**
+
 - `src/app/shared/README.md`
 - `src/app/shared/components/README.md`
 - `docs/components/component-library.md`
@@ -196,12 +223,14 @@ This document tracks all files that will be created, modified, or deleted during
 ### Test Configuration Files
 
 **Test Setup:**
+
 - `src/app/shared/testing/test-utils.ts`
 - `src/app/shared/testing/component-harness.ts`
 - `src/app/shared/testing/mock-data.ts`
 - `src/app/shared/testing/accessibility-helpers.ts`
 
 **Test Configuration:**
+
 - `jest.components.config.js`
 - `cypress/support/component-commands.ts`
 - `cypress/fixtures/component-data.json`
@@ -211,16 +240,19 @@ This document tracks all files that will be created, modified, or deleted during
 ### Existing Files to Modify
 
 **Angular Configuration:**
+
 - `angular.json` - Add component library build configuration
 - `tsconfig.json` - Update paths for shared components
 - `package.json` - Add component-specific scripts and dependencies
 
 **Application Files:**
+
 - `src/main.ts` - Import shared services for app initialization
 - `src/app/app.config.ts` - Configure shared services
 - `src/styles.scss` - Import component styles and ngx-angora-css setup
 
 **Build Configuration:**
+
 - `webpack.config.js` - Optimize component bundle splitting
 - `.eslintrc.json` - Add component-specific linting rules
 - `jest.config.js` - Configure component testing environment
@@ -232,6 +264,7 @@ This document tracks all files that will be created, modified, or deleted during
 ### Image Assets
 
 **Icons:**
+
 - `src/assets/icons/nav-menu.svg`
 - `src/assets/icons/close.svg`
 - `src/assets/icons/language.svg`
@@ -240,6 +273,7 @@ This document tracks all files that will be created, modified, or deleted during
 - `src/assets/icons/loading.svg`
 
 **Images:**
+
 - `src/assets/images/hero-bg.webp`
 - `src/assets/images/hero-bg-mobile.webp`
 - `src/assets/images/placeholder-avatar.webp`
@@ -250,6 +284,7 @@ This document tracks all files that will be created, modified, or deleted during
 ### Component Documentation
 
 **Individual Component Docs:**
+
 - `docs/components/layout/app-header.md`
 - `docs/components/layout/app-footer.md`
 - `docs/components/layout/app-container.md`
@@ -275,6 +310,7 @@ This document tracks all files that will be created, modified, or deleted during
 - `docs/components/utility/image-gallery.md`
 
 **Guide Documentation:**
+
 - `docs/guides/component-development.md`
 - `docs/guides/ngx-angora-css-integration.md`
 - `docs/guides/accessibility-implementation.md`
@@ -286,6 +322,7 @@ This document tracks all files that will be created, modified, or deleted during
 ### Development Scripts
 
 **Package.json Scripts:**
+
 ```json
 {
   "scripts": {
@@ -294,7 +331,7 @@ This document tracks all files that will be created, modified, or deleted during
     "test:components:watch": "jest --config jest.components.config.js --watch",
     "test:components:coverage": "jest --config jest.components.config.js --coverage",
     "lint:components": "eslint src/app/shared/components/**/*.ts",
-    "docs:components": "typedoc src/app/shared/components",
+    "docs:components": "typedoc src/app/shared/components"
   }
 }
 ```
@@ -304,6 +341,7 @@ This document tracks all files that will be created, modified, or deleted during
 ### Code Quality
 
 **Linting Configuration:**
+
 - `.eslintrc.components.json` - Component-specific ESLint rules
 - `.stylelintrc.components.json` - SCSS linting for components
 - `.prettierrc.components.json` - Component formatting rules
@@ -311,6 +349,7 @@ This document tracks all files that will be created, modified, or deleted during
 ### Accessibility Testing
 
 **A11y Configuration:**
+
 - `cypress/support/accessibility.ts` - Accessibility testing utilities
 - `.axe-core.config.js` - Axe-core configuration for automated testing
 - `accessibility-test-results/` - Directory for accessibility audit results
@@ -320,6 +359,7 @@ This document tracks all files that will be created, modified, or deleted during
 ### Build Outputs
 
 **Component Library Build:**
+
 - `dist/components/` - Compiled component library
 - `dist/components/bundles/` - Component bundles for different use cases
 - `dist/components/docs/` - Generated component documentation
@@ -327,6 +367,7 @@ This document tracks all files that will be created, modified, or deleted during
 ### CI/CD Configuration
 
 **GitHub Actions:**
+
 - `.github/workflows/component-tests.yml` - Component testing workflow
 - `.github/workflows/component-build.yml` - Component build workflow
 - `.github/workflows/accessibility-audit.yml` - Accessibility testing workflow
@@ -336,21 +377,25 @@ This document tracks all files that will be created, modified, or deleted during
 ### Git Configuration
 
 **Git Hooks:**
+
 - `.husky/pre-commit` - Pre-commit hooks for component quality checks
 - `.husky/commit-msg` - Commit message validation for component changes
 
 **Git Ignore Updates:**
+
 - `.gitignore` - Add component-specific ignore patterns
 
 ### Changelog Tracking
 
 **Version History:**
+
 - `docs/changelogs/CHANGELOG-COMPONENTS.md` - Component-specific changelog
 - `docs/migration-guides/` - Component migration documentation
 
 ## Summary
 
 ### Estimated Impact
+
 - **Bundle Size Impact**: ~200KB (before optimization)
 - **Test Coverage**: >90% for all new components
 - **Documentation**: Complete component library documentation
@@ -358,6 +403,7 @@ This document tracks all files that will be created, modified, or deleted during
 ### Post-Implementation Verification
 
 **Verification Checklist:**
+
 - [ ] All planned files have been created
 - [ ] No broken imports or missing dependencies
 - [ ] All tests pass successfully

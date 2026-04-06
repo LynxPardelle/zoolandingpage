@@ -1,0 +1,82 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AnalyticsConfigPayload",
+  "type": "object",
+  "required": ["version", "pageId", "domain", "sectionIds", "scrollMilestones"],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "pageId": { "type": "string" },
+    "domain": { "type": "string" },
+    "sectionIds": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "scrollMilestones": {
+      "type": "array",
+      "items": { "type": "number" }
+    },
+    "events": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "categories": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "quickStats": {
+      "type": "object",
+      "properties": {
+        "pageView": {
+          "type": "object",
+          "required": ["path"],
+          "properties": {
+            "event": { "type": "string", "minLength": 1 },
+            "path": { "type": "string", "minLength": 1 },
+            "by": { "type": "number" }
+          },
+          "additionalProperties": false
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "path"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "path": { "type": "string", "minLength": 1 },
+              "by": { "type": "number" }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "track": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "ip",
+          "userAgent",
+          "language",
+          "platform",
+          "vendor",
+          "cookiesEnabled",
+          "doNotTrack",
+          "screenWidth",
+          "screenHeight",
+          "colorDepth",
+          "timezone",
+          "geolocationLatitude",
+          "geolocationLongitude",
+          "geolocationAccuracy",
+          "cookies",
+          "battery",
+          "connection"
+        ]
+      }
+    }
+  },
+  "additionalProperties": false
+}

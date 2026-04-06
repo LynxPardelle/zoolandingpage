@@ -1,0 +1,412 @@
+import { AnalyticsCategories } from '@/app/shared/services/analytics.events';
+import { AnalyticsService } from '@/app/shared/services/analytics.service';
+import { AngoraCombosService } from '@/app/shared/services/angora-combos.service';
+import { ConfigBootstrapService } from '@/app/shared/services/config-bootstrap.service';
+import { ConfigSourceService } from '@/app/shared/services/config-source.service';
+import { ConfigStoreService } from '@/app/shared/services/config-store.service';
+import { ConfigurationsOrchestratorService } from '@/app/shared/services/configurations-orchestrator';
+import { DomainResolverService } from '@/app/shared/services/domain-resolver.service';
+import { DraftRegistryService } from '@/app/shared/services/draft-registry.service';
+import { DraftRuntimeService } from '@/app/shared/services/draft-runtime.service';
+import type { TComponentPayloadEntry, TComponentsPayload } from '@/app/shared/types/config-payloads.types';
+import { TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
+import { RuntimeService } from './runtime.service';
+
+const createComponentsPayload = (
+    components: Record<string, TComponentPayloadEntry>,
+    overrides: Partial<{ domain: string; pageId: string }> = {},
+): TComponentsPayload => ({
+    version: 1,
+    domain: overrides.domain ?? 'pamelabetancourt.com',
+    pageId: overrides.pageId ?? 'home',
+    components: Object.values(components) as TComponentPayloadEntry[],
+});
+
+describe('RuntimeService', () => {
+    const originalUrl = window.location.pathname + window.location.search + window.location.hash;
+    const setExternalComponentsFromPayload = jasmine.createSpy('setExternalComponentsFromPayload');
+    const setAuxiliaryComponentsFromPayload = jasmine.createSpy('setAuxiliaryComponentsFromPayload');
+    const setDraftExportContext = jasmine.createSpy('setDraftExportContext');
+    const scheduleCssCreate = jasmine.createSpy('scheduleCssCreate');
+    const setAuxiliaryCombos = jasmine.createSpy('setAuxiliaryCombos');
+    const clearAuxiliaryCombos = jasmine.createSpy('clearAuxiliaryCombos');
+    const revealCssTimer = jasmine.createSpy('revealCssTimer');
+    const analyticsInitializeRuntimeState = jasmine.createSpy('initializeRuntimeState');
+    const analyticsPageViewEventName = jasmine.createSpy('pageViewEventName').and.returnValue('page_view');
+    const analyticsTrack = jasmine.createSpy('track').and.resolveTo(undefined);
+    const analyticsStartPageEngagementTracking = jasmine.createSpy('startPageEngagementTracking');
+    const analyticsStopPageEngagementTracking = jasmine.createSpy('stopPageEngagementTracking');
+    let loadSiteConfig: jasmine.Spy;
+    let bootstrapLoad: jasmine.Spy;
+    let setCombos: jasmine.Spy;
+    let store: ConfigStoreService;
+
+    beforeEach(() => {
+        loadSiteConfig = jasmine.createSpy('loadSiteConfig').and.resolveTo({
+            version: 1,
+            domain: 'pamelabetancourt.com',
+            defaultPageId: 'home',
+            routes: [
+                { path: '/home', pageId: 'home' },
+                { path: '/servicios', pageId: 'servicios' },
+            ],
+        });
+
+        bootstrapLoad = jasmine.createSpy('load').and.callFake(async ({ domain, pageId, lang }: { domain?: string; pageId?: string; lang?: string }) => {
+            const combos = lang ? {
+                version: 1,
+                domain: domain ?? 'pamelabetancourt.com',
+                pageId: pageId ?? 'home',
+                combos: {
+                    hero: ['ank-bg-primary'],
+                },
+            } : null;
+
+            store?.setCombos(combos);
+
+            return {
+                domain: domain ?? 'pamelabetancourt.com',
+                pageId: pageId ?? 'home',
+                structuredDataApplied: false,
+                pageConfig: {
+                    version: 1,
+                    domain: domain ?? 'pamelabetancourt.com',
+                    pageId: pageId ?? 'home',
+                    rootIds: [`${ pageId ?? 'home' }-root`],
+                    modalRootIds: [],
+                },
+                components: createComponentsPayload({
+                    [`${ pageId ?? 'home' }Root`]: {
+                        id: `${ pageId ?? 'home' }Root`,
+                        type: 'container',
+                        config: { components: [] },
+                    },
+                }, {
+                    domain: domain ?? 'pamelabetancourt.com',
+                    pageId: pageId ?? 'home',
+                }),
+                combos,
+            };
+        });
+
+        setExternalComponentsFromPayload.calls.reset();
+        setAuxiliaryComponentsFromPayload.calls.reset();
+        setDraftExportContext.calls.reset();
+        scheduleCssCreate.calls.reset();
+        setAuxiliaryCombos.calls.reset();
+        clearAuxiliaryCombos.calls.reset();
+        revealCssTimer.calls.reset();
+        analyticsInitializeRuntimeState.calls.reset();
+        analyticsPageViewEventName.calls.reset();
+        analyticsTrack.calls.reset();
+        analyticsStartPageEngagementTracking.calls.reset();
+        analyticsStopPageEngagementTracking.calls.reset();
+
+        TestBed.configureTestingModule({
+            providers: [
+                RuntimeService,
+                DraftRuntimeService,
+                {
+                    provide: DomainResolverService,
+                    useValue: {
+                        resolveDomain: () => ({ domain: 'pamelabetancourt.com' }),
+                    },
+                },
+                {
+                    provide: ConfigSourceService,
+                    useValue: {
+                        loadSiteConfig,
+                        loadDebugWorkspacePageConfig: jasmine.createSpy('loadDebugWorkspacePageConfig').and.resolveTo(null),
+                        loadDebugWorkspaceComponents: jasmine.createSpy('loadDebugWorkspaceComponents').and.resolveTo(null),
+                        loadDebugWorkspaceCombos: jasmine.createSpy('loadDebugWorkspaceCombos').and.resolveTo(null),
+                    },
+                },
+                {
+                    provide: DraftRegistryService,
+                    useValue: {
+                        listDrafts: () => of([]),
+                    },
+                },
+                {
+                    provide: ConfigBootstrapService,
+                    useValue: {
+                        load: bootstrapLoad,
+                    },
+                },
+                {
+                    provide: ConfigurationsOrchestratorService,
+                    useValue: {
+                        setExternalComponentsFromPayload,
+                        setAuxiliaryComponentsFromPayload,
+                        setDraftExportContext,
+                    },
+                },
+                {
+                    provide: AngoraCombosService,
+                    useValue: {
+                        scheduleCssCreate,
+                        setAuxiliaryCombos,
+                        clearAuxiliaryCombos,
+                        revealCssTimer,
+                        stopCssRuntime: () => undefined,
+                    },
+                },
+                {
+                    provide: AnalyticsService,
+                    useValue: {
+                        initializeRuntimeState: analyticsInitializeRuntimeState,
+                        pageViewEventName: analyticsPageViewEventName,
+                        track: analyticsTrack,
+                        promptForConsentIfNeeded: () => undefined,
+                        startPageEngagementTracking: analyticsStartPageEngagementTracking,
+                        stopPageEngagementTracking: analyticsStopPageEngagementTracking,
+                    },
+                },
+            ],
+        });
+
+        store = TestBed.inject(ConfigStoreService);
+        setCombos = spyOn(store, 'setCombos').and.callThrough();
+    });
+
+    afterEach(() => {
+        window.history.replaceState({}, '', originalUrl);
+        TestBed.resetTestingModule();
+    });
+
+    it('reinitializes the rendered draft when client navigation changes the route path', async () => {
+        const service = TestBed.inject(RuntimeService);
+        const expectedModalRootIds: string[] = [];
+
+        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com');
+        await service.initialize('es');
+
+        expect(bootstrapLoad).toHaveBeenCalledWith({
+            domain: 'pamelabetancourt.com',
+            pageId: 'home',
+            lang: 'es',
+        });
+        expect(setCombos).toHaveBeenCalledWith({
+            version: 1,
+            domain: 'pamelabetancourt.com',
+            pageId: 'home',
+            combos: {
+                hero: ['ank-bg-primary'],
+            },
+        });
+        expect(service.rootComponentsIds()).toEqual(['home-root']);
+
+        window.history.replaceState({}, '', '/servicios?draftDomain=pamelabetancourt.com');
+        await service.initialize('es');
+
+        expect(bootstrapLoad).toHaveBeenCalledWith({
+            domain: 'pamelabetancourt.com',
+            pageId: 'servicios',
+            lang: 'es',
+        });
+        expect(service.rootComponentsIds()).toEqual(['servicios-root']);
+        expect(setDraftExportContext).toHaveBeenCalledWith({
+            domain: 'pamelabetancourt.com',
+            pageId: 'servicios',
+            rootIds: ['servicios-root'],
+            modalRootIds: expectedModalRootIds,
+        });
+    });
+
+    it('tracks an initial page view on the first successful browser bootstrap', async () => {
+        const service = TestBed.inject(RuntimeService);
+
+        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com');
+        await service.initialize('es');
+
+        expect(analyticsInitializeRuntimeState).toHaveBeenCalled();
+        expect(analyticsPageViewEventName).toHaveBeenCalled();
+        expect(analyticsTrack).toHaveBeenCalledWith('page_view', {
+            category: AnalyticsCategories.Navigation,
+            label: '/home?draftDomain=pamelabetancourt.com',
+        });
+
+        await service.initialize('es');
+
+        expect(analyticsTrack.calls.count()).toBe(1);
+    });
+
+    it('queues a fresh draft initialization when navigation changes during an active load', async () => {
+        const service = TestBed.inject(RuntimeService);
+        const expectedModalRootIds: string[] = [];
+        let resolveFirstLoad!: () => void;
+        let hasResolveFirstLoad = false;
+        let firstLoadPending = true;
+
+        bootstrapLoad.and.callFake(({ domain, pageId, lang }: { domain?: string; pageId?: string; lang?: string }) => {
+            const createBootPayload = () => {
+                const combos = lang ? {
+                    version: 1,
+                    domain: domain ?? 'pamelabetancourt.com',
+                    pageId: pageId ?? 'home',
+                    combos: {
+                        hero: ['ank-bg-primary'],
+                    },
+                } : null;
+
+                store?.setCombos(combos);
+
+                return {
+                    domain: domain ?? 'pamelabetancourt.com',
+                    pageId: pageId ?? 'home',
+                    structuredDataApplied: false,
+                    pageConfig: {
+                        version: 1,
+                        domain: domain ?? 'pamelabetancourt.com',
+                        pageId: pageId ?? 'home',
+                        rootIds: [`${ pageId ?? 'home' }-root`],
+                        modalRootIds: [],
+                    },
+                    components: createComponentsPayload({
+                        [`${ pageId ?? 'home' }Root`]: {
+                            id: `${ pageId ?? 'home' }Root`,
+                            type: 'container',
+                            config: { components: [] },
+                        },
+                    }, {
+                        domain: domain ?? 'pamelabetancourt.com',
+                        pageId: pageId ?? 'home',
+                    }),
+                    combos,
+                };
+            };
+
+            if (firstLoadPending && pageId === 'home') {
+                firstLoadPending = false;
+                return new Promise((resolve) => {
+                    hasResolveFirstLoad = true;
+                    resolveFirstLoad = () => resolve(createBootPayload());
+                });
+            }
+
+            return Promise.resolve(createBootPayload());
+        });
+
+        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com');
+        const firstInitialize = service.initialize('es');
+        await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+
+        expect(hasResolveFirstLoad).withContext('first draft load resolver should be captured').toBeTrue();
+        expect(bootstrapLoad.calls.allArgs()).toEqual([[
+            {
+                domain: 'pamelabetancourt.com',
+                pageId: 'home',
+                lang: 'es',
+            },
+        ]]);
+
+        window.history.replaceState({}, '', '/servicios?draftDomain=pamelabetancourt.com');
+        const secondInitialize = service.initialize('es');
+
+        resolveFirstLoad();
+        await Promise.all([firstInitialize, secondInitialize]);
+
+        expect(bootstrapLoad.calls.allArgs()).toEqual([
+            [{
+                domain: 'pamelabetancourt.com',
+                pageId: 'home',
+                lang: 'es',
+            }],
+            [{
+                domain: 'pamelabetancourt.com',
+                pageId: 'servicios',
+                lang: 'es',
+            }],
+        ]);
+        expect(service.rootComponentsIds()).toEqual(['servicios-root']);
+        expect(setDraftExportContext).toHaveBeenCalledWith({
+            domain: 'pamelabetancourt.com',
+            pageId: 'servicios',
+            rootIds: ['servicios-root'],
+            modalRootIds: expectedModalRootIds,
+        });
+    });
+
+    it('skips bootstrap when no draft identity is resolved yet', async () => {
+        const service = TestBed.inject(RuntimeService);
+        const draftRuntime = TestBed.inject(DraftRuntimeService);
+        const expectedModalRootIds: string[] = [];
+        spyOn(draftRuntime, 'resolveActiveDraftContext').and.resolveTo({
+            domain: '',
+            pageId: '',
+            path: '/',
+            route: null,
+            explicitPageId: false,
+        });
+
+        await service.initialize('es');
+
+        expect(bootstrapLoad).not.toHaveBeenCalled();
+        expect(service.rootComponentsIds()).toEqual([]);
+        expect(service.modalRootIds()).toEqual(expectedModalRootIds);
+        expect(setDraftExportContext).toHaveBeenCalledWith({
+            domain: '',
+            pageId: '',
+            rootIds: [],
+            modalRootIds: expectedModalRootIds,
+        });
+    });
+
+    it('loads authored debug workspace roots when debug workspace is enabled', async () => {
+        const service = TestBed.inject(RuntimeService);
+        const configSource = TestBed.inject(ConfigSourceService) as jasmine.SpyObj<ConfigSourceService>;
+        const host = document.createElement('div');
+
+        configSource.loadDebugWorkspacePageConfig.and.resolveTo({
+            version: 1,
+            domain: 'debug-workspace',
+            pageId: 'default',
+            rootIds: ['debugWorkspaceRoot'],
+            modalRootIds: ['modalDemoRoot'],
+        });
+        configSource.loadDebugWorkspaceComponents.and.resolveTo({
+            version: 1,
+            domain: 'debug-workspace',
+            pageId: 'default',
+            components: [
+                {
+                    id: 'debugWorkspaceRoot',
+                    type: 'container',
+                    config: { tag: 'div', components: [] },
+                },
+            ],
+        });
+        configSource.loadDebugWorkspaceCombos.and.resolveTo({
+            version: 1,
+            domain: 'debug-workspace',
+            pageId: 'default',
+            combos: {
+                debugBtnBase: ['ank-display-flex'],
+            },
+        });
+
+        service.connect({
+            host,
+            destroyRef: { onDestroy: () => undefined } as any,
+            showDebugWorkspace: () => true,
+            currentLanguage: () => 'es',
+        });
+
+        await service.initialize('es');
+
+        expect(service.debugWorkspaceRootIds()).toEqual(['debugWorkspaceRoot']);
+        expect(service.modalRootIds()).toEqual(['modalDemoRoot']);
+        expect(setAuxiliaryComponentsFromPayload).toHaveBeenCalledWith('debug-workspace', jasmine.objectContaining({
+            components: jasmine.any(Array),
+        }));
+        expect(setAuxiliaryCombos).toHaveBeenCalledWith('debug-workspace', {
+            version: 1,
+            domain: 'debug-workspace',
+            pageId: 'default',
+            combos: {
+                debugBtnBase: ['ank-display-flex'],
+            },
+        });
+    });
+});

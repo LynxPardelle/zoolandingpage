@@ -1,0 +1,13 @@
+@switch (tag()) { @case ('form') {
+<form [id]="id()" [class]="classes()" [attr.role]="role()" [attr.aria-label]="ariaLabel()" (submit)="onSubmit($event)">
+  <wrapper-orchestrator [componentsIds]="components()" [hostContext]="hostContext()"></wrapper-orchestrator>
+</form>
+} @case ('section') {
+<section [id]="id()" [class]="classes()" [attr.role]="role()" [attr.aria-label]="ariaLabel()">
+  <wrapper-orchestrator [componentsIds]="components()" [hostContext]="hostContext()"></wrapper-orchestrator>
+</section>
+} @default {
+<div [id]="id()" [class]="classes()" [attr.role]="role()" [attr.aria-label]="ariaLabel()">
+  <wrapper-orchestrator [componentsIds]="components()" [hostContext]="hostContext()"></wrapper-orchestrator>
+</div>
+} }

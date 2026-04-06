@@ -1,0 +1,127 @@
+<div [class]="config().containerClasses ?? ''" role="group">
+  @for (item of items(); track item.id; let idx = $index) {
+  <div
+    [attr.data-accordion-item]="itemId(item)"
+    [ngClass]="[
+      item.containerClasses ?? config().defaultItemContainerClasses ?? '',
+      isExpanded(itemId(item))
+        ? item.containerIsExpandedClasses ?? config().defaultItemContainerIsExpandedClasses ?? ''
+        : item.containerIsNotExpandedClasses ?? config().defaultItemContainerIsNotExpandedClasses ?? ''
+    ]"
+  >
+    <generic-button
+      [config]="{
+        id: buttonId(itemId(item)),
+        classes:
+          (item.buttonConfig?.classes || config().defaultItemButtonConfig?.classes || '') +
+          ' ' +
+          (isExpanded(itemId(item))
+            ? item.buttonIsExpandedClasses || config().defaultItemButtonIsExpandedClasses || ''
+            : item.buttonIsNotExpandedClasses || config().defaultItemButtonIsNotExpandedClasses || ''),
+        type: 'button',
+        label: buttonLabelFor(item),
+        disabled: item.disabled,
+        icon: buttonIconFor(item),
+        iconClasses:
+          (item.buttonConfig?.iconClasses || config().defaultItemButtonConfig?.iconClasses || '') +
+          ' ' +
+          (isExpanded(itemId(item))
+            ? item.iconIsExpandedClasses || config().defaultItemIconIsExpandedClasses || ''
+            : item.iconIsNotExpandedClasses || config().defaultItemIconIsNotExpandedClasses || ''),
+        iconPosition: item.buttonConfig?.iconPosition || config().defaultItemButtonConfig?.iconPosition || 'after',
+        ariaLabel: titleOf(item),
+        tabIndex: item.disabled ? -1 : 0,
+        ariaSelected: isExpanded(itemId(item)) ? true : false,
+        ariaExpanded: isExpanded(itemId(item)),
+        ariaControls: panelId(itemId(item)),
+        components: item.buttonConfig?.components || config().defaultItemButtonConfig?.components || []
+      }"
+      (pressed)="toggle(itemId(item))"
+      (keydown)="onKey($event, idx)"
+    >
+      @if (itemHasRichHeader(item)) {
+      <div [class]="config().buttonContentClasses ?? ''">
+        @if (indexLabelOf(item)) {
+        <span [class]="indexLabelClasses(item)">{{ indexLabelOf(item) }}</span>
+        }
+        <span [class]="config().textStackClasses ?? ''">
+          <span [class]="config().titleClasses ?? ''">{{ titleOf(item) }}</span>
+          @if (summaryOf(item)) {
+          <span [class]="config().summaryClasses ?? ''">{{ summaryOf(item) }}</span>
+          }
+        </span>
+      </div>
+      }
+    </generic-button>
+    @if (isExpanded(itemId(item))) {
+    <div
+      class="accordion-panel-wrapper {{ item.panelClasses || config().defaultItemPanelClasses || '' }}"
+      [attr.id]="panelId(itemId(item))"
+      role="region"
+      [attr.aria-labelledby]="buttonId(itemId(item))"
+    >
+      @if (itemHasRichPanel(item)) {
+      <div [class]="config().detailContainerClasses ?? ''">
+        <div [class]="config().detailHeaderClasses ?? ''">
+          @if (iconOf(item)) {
+          <generic-icon
+            [config]="{
+              iconName: iconOf(item) || '',
+              ariaHidden: true,
+              classes: config().detailIconClasses || ''
+            }"
+          ></generic-icon>
+          }
+          <div [class]="config().detailTextStackClasses ?? ''">
+            <h3 [class]="config().detailTitleClasses ?? ''">{{ titleOf(item) }}</h3>
+            @if (metaOf(item)) {
+            <div [class]="config().detailMetaClasses ?? ''">
+              @if (detailMetaIconName()) {
+              <generic-icon
+                [config]="{
+                  iconName: detailMetaIconName() || '',
+                  ariaHidden: true,
+                  classes: config().detailMetaIconClasses || ''
+                }"
+              ></generic-icon>
+              }
+              <span>{{ metaOf(item) }}</span>
+            </div>
+            }
+          </div>
+        </div>
+        @if (summaryOf(item)) {
+        <p [class]="config().detailSummaryClasses ?? ''">{{ summaryOf(item) }}</p>
+        } @if (detailContentLabel()) {
+        <h4 [class]="config().detailContentLabelClasses ?? ''">{{ detailContentLabel() }}</h4>
+        } @if (contentOf(item)) {
+        <p [class]="config().detailContentClasses ?? ''">{{ contentOf(item) }}</p>
+        } @if (detailItemsOf(item).length > 0) { @if (detailItemsLabel()) {
+        <h4 [class]="config().detailItemsLabelClasses ?? ''">{{ detailItemsLabel() }}</h4>
+        }
+        <ul [class]="config().detailListClasses ?? ''">
+          @for (detailItem of detailItemsOf(item); track detailItemTrackKey($index, detailItem)) {
+          <li [class]="config().detailListItemClasses ?? ''">
+            @if (detailItemIconName()) {
+            <generic-icon
+              [config]="{
+                iconName: detailItemIconName() || '',
+                ariaHidden: true,
+                classes: config().detailListItemIconClasses || ''
+              }"
+            ></generic-icon>
+            }
+            <span>{{ detailItem }}</span>
+          </li>
+          }
+        </ul>
+        }
+      </div>
+      } @else if(contentOf(item)) {
+      {{ contentOf(item) }}
+      }
+    </div>
+    }
+  </div>
+  }
+</div>

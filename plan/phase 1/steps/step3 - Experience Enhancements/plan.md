@@ -16,7 +16,7 @@ Related docs:
 Primary goals
 
 - Global Theme and Language integration (signals, persistence, no hardcoded colors)
-- Analytics instrumentation for key UX flows (CTA clicks, Conversion calculator, modal interactions)
+- Analytics instrumentation for key UX flows (CTA clicks, scoped interactions, modal interactions)
 - Accessible animations and micconversionnteractions (reduced motion support, defer when needed)
 
 Secondary goals

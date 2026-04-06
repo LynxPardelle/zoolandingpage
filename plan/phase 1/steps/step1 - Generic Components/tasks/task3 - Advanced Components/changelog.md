@@ -61,7 +61,7 @@ Next Increment Goals (Updated):
 #### Modal Component
 
 ```text
-src/app/shared/components/modal/modal/
+src/app/shared/components/generic-modal/generic-modal/
 ├── modal.component.ts               [NEW] - Main component implementation
 ├── modal.types.ts                   [NEW] - TypeScript type definitions
 ├── modal.constants.ts               [NEW] - Component constants and defaults
@@ -100,7 +100,7 @@ src/app/shared/components/modal/dropdown/
 #### LoadingSpinner Component
 
 ```text
-src/app/shared/components/utility/loading-spinner/
+src/app/shared/components/loading-spinner/
 ├── loading-spinner.component.ts     [NEW] - Main component implementation
 ├── loading-spinner.types.ts         [NEW] - TypeScript type definitions
 ├── loading-spinner.constants.ts     [NEW] - Component constants and defaults
@@ -112,7 +112,7 @@ src/app/shared/components/utility/loading-spinner/
 #### ProgressBar Component
 
 ```text
-src/app/shared/components/utility/progress-bar/
+src/app/shared/components/progress-bar/
 ├── progress-bar.component.ts        [NEW] - Main component implementation
 ├── progress-bar.types.ts            [NEW] - TypeScript type definitions
 ├── progress-bar.constants.ts        [NEW] - Component constants and defaults
@@ -124,7 +124,7 @@ src/app/shared/components/utility/progress-bar/
 #### Toast Component
 
 ```text
-src/app/shared/components/utility/toast/
+src/app/shared/components/toast/
 ├── toast.component.ts               [NEW] - Main component implementation
 ├── toast.types.ts                   [NEW] - TypeScript type definitions
 ├── toast.constants.ts               [NEW] - Component constants and defaults
@@ -137,7 +137,7 @@ src/app/shared/components/utility/toast/
 #### Tooltip Component
 
 ```text
-src/app/shared/components/utility/tooltip/
+src/app/shared/components/tooltip/
 ├── tooltip.component.ts             [NEW] - Main component implementation
 ├── tooltip.types.ts                 [NEW] - TypeScript type definitions
 ├── tooltip.constants.ts             [NEW] - Component constants and defaults
@@ -152,7 +152,7 @@ src/app/shared/components/utility/tooltip/
 #### TabGroup Component
 
 ```text
-src/app/shared/components/advanced/tab-group/
+src/app/shared/components/tab-group/
 ├── tab-group.component.ts           [NEW] - Main tab group component
 ├── tab.component.ts                 [NEW] - Individual tab component
 ├── tab-group.types.ts               [NEW] - TypeScript type definitions
@@ -166,7 +166,7 @@ src/app/shared/components/advanced/tab-group/
 #### Stepper Component
 
 ```text
-src/app/shared/components/advanced/stepper/
+src/app/shared/components/stepper/
 ├── stepper.component.ts             [NEW] - Main stepper component
 ├── step.component.ts                [NEW] - Individual step component
 ├── stepper.types.ts                 [NEW] - TypeScript type definitions
@@ -180,7 +180,7 @@ src/app/shared/components/advanced/stepper/
 #### SearchBox Component
 
 ```text
-src/app/shared/components/advanced/search-box/
+src/app/shared/components/search-box/
 ├── search-box.component.ts          [NEW] - Main component implementation
 ├── search-box.types.ts              [NEW] - TypeScript type definitions
 ├── search-box.constants.ts          [NEW] - Component constants and defaults
@@ -218,7 +218,7 @@ src/app/shared/types/
 #### Unit Tests
 
 ```text
-src/app/shared/components/modal/modal/
+src/app/shared/components/generic-modal/generic-modal/
 ├── modal.component.spec.ts          [NEW] - Modal unit tests
 
 src/app/shared/components/modal/accordion/
@@ -227,25 +227,25 @@ src/app/shared/components/modal/accordion/
 src/app/shared/components/modal/dropdown/
 ├── dropdown.component.spec.ts       [NEW] - Dropdown unit tests
 
-src/app/shared/components/utility/loading-spinner/
+src/app/shared/components/loading-spinner/
 ├── loading-spinner.component.spec.ts [NEW] - LoadingSpinner unit tests
 
-src/app/shared/components/utility/progress-bar/
+src/app/shared/components/progress-bar/
 ├── progress-bar.component.spec.ts   [NEW] - ProgressBar unit tests
 
-src/app/shared/components/utility/toast/
+src/app/shared/components/toast/
 ├── toast.component.spec.ts          [NEW] - Toast unit tests
 
-src/app/shared/components/utility/tooltip/
+src/app/shared/components/tooltip/
 ├── tooltip.component.spec.ts        [NEW] - Tooltip unit tests
 
-src/app/shared/components/advanced/tab-group/
+src/app/shared/components/tab-group/
 ├── tab-group.component.spec.ts      [NEW] - TabGroup unit tests
 
-src/app/shared/components/advanced/stepper/
+src/app/shared/components/stepper/
 ├── stepper.component.spec.ts        [NEW] - Stepper unit tests
 
-src/app/shared/components/advanced/search-box/
+src/app/shared/components/search-box/
 ├── search-box.component.spec.ts     [NEW] - SearchBox unit tests
 ```
 

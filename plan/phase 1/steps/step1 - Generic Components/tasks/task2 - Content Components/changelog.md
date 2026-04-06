@@ -122,7 +122,7 @@ src/app/shared/components/content/stats-counter/
 #### Button Component
 
 ```text
-src/app/shared/components/interactive/button/
+src/app/shared/components/button/
 ├── button.component.ts              [NEW] - Main component implementation
 ├── button.types.ts                  [NEW] - TypeScript type definitions
 ├── button.constants.ts              [NEW] - Component constants and defaults
@@ -134,7 +134,7 @@ src/app/shared/components/interactive/button/
 #### ContactForm Component
 
 ```text
-src/app/shared/components/interactive/contact-form/
+src/app/shared/components/contact-form/
 ├── contact-form.component.ts        [NEW] - Main component implementation
 ├── contact-form.types.ts            [NEW] - TypeScript type definitions
 ├── contact-form.constants.ts        [NEW] - Component constants and defaults
@@ -146,7 +146,7 @@ src/app/shared/components/interactive/contact-form/
 #### WhatsAppButton Component
 
 ```text
-src/app/shared/components/interactive/whatsapp-button/
+src/app/shared/components/whatsapp-button/
 ├── whatsapp-button.component.ts     [NEW] - Main component implementation
 ├── whatsapp-button.types.ts         [NEW] - TypeScript type definitions
 ├── whatsapp-button.constants.ts     [NEW] - Component constants and defaults
@@ -158,7 +158,7 @@ src/app/shared/components/interactive/whatsapp-button/
 #### ImageGallery Component
 
 ```text
-src/app/shared/components/interactive/image-gallery/
+src/app/shared/components/image-gallery/
 ├── image-gallery.component.ts       [NEW] - Main component implementation
 ├── image-gallery.types.ts           [NEW] - TypeScript type definitions
 ├── image-gallery.constants.ts       [NEW] - Component constants and defaults
@@ -229,16 +229,16 @@ src/app/shared/components/content/testimonial-card/
 src/app/shared/components/content/stats-counter/
 ├── stats-counter.component.spec.ts  [NEW] - Component unit tests
 
-src/app/shared/components/interactive/button/
+src/app/shared/components/button/
 ├── button.component.spec.ts         [NEW] - Component unit tests
 
-src/app/shared/components/interactive/contact-form/
+src/app/shared/components/contact-form/
 ├── contact-form.component.spec.ts   [NEW] - Component unit tests
 
-src/app/shared/components/interactive/whatsapp-button/
+src/app/shared/components/whatsapp-button/
 ├── whatsapp-button.component.spec.ts [NEW] - Component unit tests
 
-src/app/shared/components/interactive/image-gallery/
+src/app/shared/components/image-gallery/
 ├── image-gallery.component.spec.ts  [NEW] - Component unit tests
 ```
 
@@ -258,7 +258,7 @@ src/app/shared/services/
 src/app/shared/components/content/
 ├── content-integration.spec.ts      [NEW] - Content components integration tests
 
-src/app/shared/components/interactive/
+src/app/shared/components/
 ├── interactive-integration.spec.ts  [NEW] - Interactive components integration tests
 
 src/app/shared/components/

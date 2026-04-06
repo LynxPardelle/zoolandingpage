@@ -6,20 +6,20 @@ This guide explains how Zoolandingpage posts raw analytics/events to the "Zoolan
 - Purpose: accept arbitrary analytics JSON, validate basics, and persist as-is for later processing
 - Storage pattern: `s3://<bucket>/<appName>/YYYY/MM/DD/<timestampMs>-<shortReqId>.json`
 
-The API URL will be provided via environment configuration when ready. In the Angular app, always use `environment.apiUrl` for the endpoint base.
+Use `environment.apiUrl` as the frontend base URL. In the current platform, the stable custom domain is `https://api.zoolandingpage.com.mx`, and the analytics path is `/analytics`.
 
 ## Endpoint
 
 - Base URL: `environment.apiUrl`
 - Method: `POST`
 - Headers: `Content-Type: application/json`
-- Path: Determined by deployment (may be base or include a subpath). Centralize the path in a service so it’s easy to change.
+- Path: `/analytics`
 
 ## Request body
 
 The function expects a JSON body (string) with at least:
 
-- `appName` (string, required): use a stable identifier, e.g., `"zoolandingpage"`
+- `appName` (string, required): use a stable identifier. In the current runtime this should come from `variables.appIdentity.identifier` via `RuntimeConfigService.appIdentifier()`
 - `timestamp` (number, required): UNIX time in seconds or milliseconds; the function normalizes to milliseconds
 
 You can include any other fields. The function uploads the ORIGINAL body unchanged.
@@ -28,7 +28,7 @@ Example minimal payload:
 
 ```json
 {
-  "appName": "zoolandingpage",
+  "appName": "zoolandingpagecommx",
   "timestamp": 1735689600000
 }
 ```
@@ -37,7 +37,7 @@ Example richer payload (will be stored exactly as sent):
 
 ```json
 {
-  "appName": "zoolandingpage",
+  "appName": "zoolandingpagecommx",
   "timestamp": 1735689600123,
   "event": "page_view",
   "path": "/",
@@ -104,7 +104,7 @@ import { environment } from '@/environments/environment';
 @Injectable({ providedIn: 'root' })
 export class DataDropperService {
   private http = inject(HttpClient);
-  private readonly endpoint = `${environment.apiUrl}`; // append subpath here if required
+  private readonly endpoint = `${environment.apiUrl}/analytics`;
 
   drop(payload: DataDropPayload) {
     return this.http.post<DataDropResponse>(this.endpoint, payload);
@@ -118,12 +118,12 @@ export class DataDropperService {
 
 ```ts
 const payload = {
-  appName: 'zoolandingpage',
+  appName: runtimeConfig.appIdentifier(),
   timestamp: Date.now(),
   event: 'page_view',
   path: location.pathname,
   language: navigator.language,
-  userAgent: navigator.userAgent
+  userAgent: navigator.userAgent,
 };
 
 this.dataDropper.drop(payload).subscribe();
@@ -133,12 +133,12 @@ this.dataDropper.drop(payload).subscribe();
 
 ```ts
 const payload = {
-  appName: 'zoolandingpage',
+  appName: runtimeConfig.appIdentifier(),
   timestamp: Date.now(),
   event: 'lead_submit',
   formId: 'contact',
   // Avoid PII: do not send email/phone/name directly
-  fields: ['companySize', 'budgetRange']
+  fields: ['companySize', 'budgetRange'],
 };
 
 this.dataDropper.drop(payload).subscribe();
@@ -147,17 +147,17 @@ this.dataDropper.drop(payload).subscribe();
 ### Error handling pattern
 
 ```ts
-this.dataDropper.drop({ appName: 'zoolandingpage', timestamp: Date.now() }).subscribe({
-  next: (res) => {
+this.dataDropper.drop({ appName: runtimeConfig.appIdentifier(), timestamp: Date.now() }).subscribe({
+  next: res => {
     if (!res.ok) console.warn('Data drop error', res.error);
   },
-  error: (err) => console.error('Network error', err)
+  error: err => console.error('Network error', err),
 });
 ```
 
 ## Environment configuration
 
-- Set `apiUrl` in `environment.ts` (and prod env files) to the Lambda’s API Gateway URL when available.
+- Set `apiUrl` in `environment.ts` and production environment files to the stable API base URL.
 - Keep subpaths centralized in the service so callers don’t need to change.
 
 Example (development):
@@ -165,7 +165,7 @@ Example (development):
 ```ts
 export const environment = {
   // ...
-  apiUrl: 'https://<api-id>.execute-api.<region>.amazonaws.com'
+  apiUrl: 'https://api.zoolandingpage.com.mx',
 };
 ```
 
@@ -173,7 +173,7 @@ export const environment = {
 
 - Ensure API Gateway CORS allows `POST` from your app origin and sends proper headers
 - Don’t send PII; prefer anonymized or aggregated fields
-- Use a stable `appName` (e.g., `zoolandingpage`)
+- Use a stable identifier from draft payloads, not a display name literal
 
 ## Troubleshooting
 
@@ -184,3 +184,4 @@ export const environment = {
 ---
 
 For full Lambda implementation details, see the backend repository `zoolanding-data-dropper-lambda`.
+For platform context, also see `02-architecture.md` and `05-analytics-tracking.md` in this repo.

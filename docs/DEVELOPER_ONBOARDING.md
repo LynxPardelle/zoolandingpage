@@ -1,323 +1,163 @@
-# Developer Onboarding Checklist 🚀
+# Developer Onboarding
 
-Welcome to **Zoolandingpage**! This checklist will help you get up and running quickly with our Docker-first development environment.
+This guide is the fastest path for a new developer to become productive in the Zoolanding platform.
 
-## 🎯 Quick Start (5 minutes)
+## First-day goal
 
-### Prerequisites Checklist
+By the end of this guide you should be able to:
 
-- [ ] **Docker** installed and running ([Download Docker](https://www.docker.com/get-started))
-- [ ] **Docker Compose** available (included with Docker Desktop)
-- [ ] **Git** configured with your credentials
-- [ ] **Modern browser** for testing (Chrome, Firefox, Safari, Edge)
+1. Run the Angular app locally.
+2. Open a specific draft by `domain` and `pageId`.
+3. Understand the difference between local drafts, authoring drafts, and published runtime state.
+4. Know where to look when a landing page change is not showing up.
 
-### One-Command Setup
+## Prerequisites
+
+- Docker Desktop if you want the recommended development path.
+- Node.js if you want to run the Angular dev server or the draft CLI directly outside Docker.
+- Git access to this repo.
+- Access to the relevant API endpoints if you need to pull, push, or publish drafts.
+
+## Start the app
+
+Recommended path:
 
 ```bash
-# Clone the repository
-git clone https://github.com/LynxPardelle/zoolandingpage.git
-cd zoolandingpage
-
-# 🚀 Complete setup and start development (one command!)
-make quick-start
+make dev
 ```
 
-That's it! Your development environment is now running at:
+Alternative local path:
 
-- **Development Server**: <http://localhost:6161>
-- **Hot-reload**: Enabled automatically
-- **Docker**: Everything containerized
+```bash
+npm install
+npm start
+```
 
-## 📚 Understanding the Project
+## Understand the three states first
 
-### Project Architecture
+Before touching any landing page config, keep these states separate:
+
+1. `Local draft files`
+   Files under `public/assets/drafts/{domain}/...` in your working copy.
+2. `Authoring draft state`
+   The draft stored in the authoring API for a domain.
+3. `Published runtime state`
+   The version returned by the runtime API to live domains.
+
+If you change a local file and a live site does not change, that is expected until the draft is pushed and published. If you publish successfully and the live site still shows old content, the issue is usually cache, deployment, or app/runtime mismatch rather than missing authoring data.
+
+## Open a local draft
+
+Use explicit query parameters so draft resolution is unambiguous:
 
 ```text
-zoolandingpage/
-├── 🐳 Docker-first development (zero Node.js installation needed)
-├── 🅰️ Angular 20+ with latest features (@if, @for, @defer)
-├── 🎨 NGX-Angora-CSS for dynamic theming
-├── 🌐 SSR support for production
-├── 📱 Mobile-first responsive design
-├── 🔧 Make commands for everything
-└── ⚡ Zero-configuration setup
+http://127.0.0.1:4200/?draftDomain=zoolandingpage.com.mx&draftPageId=default
 ```
 
-### Core Technologies
+You can swap only the values after `draftDomain` and `draftPageId` to move between sites and pages.
 
-- **Frontend**: Angular 20+ (Standalone Components, Signals, New Control Flow)
-- **Styling**: NGX-Angora-CSS (Dynamic CSS generation)
-- **Build**: Webpack + Angular CLI
-- **Testing**: Jest + Cypress
-- **Container**: Docker + Docker Compose
-- **Automation**: Make commands
-- **Languages**: TypeScript (strict mode), SCSS
-
-## 🔧 Developer Experience Features
-
-### Make Commands Reference
-
-| Command             | Purpose            | When to Use       |
-| ------------------- | ------------------ | ----------------- |
-| `make quick-start`  | Complete setup     | First time setup  |
-| `make dev`          | Development server | Daily development |
-| `make dev-logs`     | View logs          | Debugging         |
-| `make test`         | Run tests          | Before commits    |
-| `make code-quality` | Quality checks     | Before PRs        |
-| `make clean`        | Reset environment  | When stuck        |
-
-### Development Workflow
-
-```bash
-# 1. Start your day
-make dev              # Starts development server
-
-# 2. View logs (separate terminal)
-make dev-logs         # Real-time log monitoring
-
-# 3. Run tests
-make test             # Unit tests
-make code-quality     # All quality checks
-
-# 4. End of day
-make stop             # Stop containers
-```
-
-### Container Shell Access
-
-```bash
-# Access container shell for debugging
-make dev-shell
-
-# Inside container, you can run:
-npm install some-package
-ng generate component new-component
-npm run custom-script
-```
-
-## 🎨 Development Standards
-
-### Critical Requirements (MANDATORY)
-
-1. **Type System**: Use `type` only (NO interfaces/enums)
-
-   ```typescript
-   // ✅ Correct
-   type UserRole = 'admin' | 'user';
-
-   // ❌ Forbidden
-   interface UserRole {}
-   enum UserRole {}
-   ```
-
-2. **Theming**: Use ngx-angora-css `pushColors` method
-
-   ```typescript
-   ngAfterRender(): void {
-     this._ank.pushColors({componentBg: '#ffffff'});
-     this._ank.cssCreate();
-   }
-   ```
-
-3. **File Size**: Keep files under 80 lines (atomic principle)
-
-4. **Angular Features**: Use Angular 17-20 features exclusively
-
-   ```typescript
-   // ✅ New control flow
-   @if (condition) { <div>Content</div> }
-   @for (item of items(); track item.id) { <div>{{ item.name }}</div> }
-
-   // ❌ Old syntax
-   *ngIf, *ngFor // Not allowed
-   ```
-
-### Code Quality Gates
-
-- ✅ **Linting**: ESLint with strict rules
-- ✅ **Testing**: 90%+ coverage required
-- ✅ **Type Safety**: Strict TypeScript mode
-- ✅ **Performance**: Bundle size monitoring
-- ✅ **Accessibility**: WCAG 2.1 AA compliance
-
-## 🧪 Testing Strategy
-
-### Running Tests
-
-```bash
-# Unit tests
-make test
-
-# All quality checks
-make code-quality
-
-# Individual test types
-make security-scan
-make performance-test
-make accessibility-test
-
-# Complete test suite
-make full-test-suite
-```
-
-### Test Structure
+## Learn the draft file layout
 
 ```text
-src/
-├── app/
-│   ├── component.component.spec.ts    # Unit tests
-│   └── component.component.cy.ts      # Component tests
-├── testing/
-│   ├── utils/                         # Test utilities
-│   └── mocks/                         # Mock data
-└── e2e/
-    └── integration/                   # E2E tests
+public/assets/drafts/
+  {domain}/
+    site-config.json
+    components.json
+    variables.json
+    angora-combos.json
+    i18n/{lang}.json
+    {pageId}/
+      page-config.json
+      components.json
+      variables.json
+      angora-combos.json
+      i18n/{lang}.json
 ```
 
-## 📖 Documentation
+Domain-root files are shared defaults. Page-root files override them for one route.
 
-### Must-Read Documents
+## Know the important docs
 
-1. **[Requirements Summary](REQUIREMENTS_SUMMARY.md)** - 🚨 MANDATORY requirements
-2. **[Development Guide](03-development-guide.md)** - Coding standards
-3. **[NGX-Angora-CSS Guide](04-ngx-angora-css.md)** - Styling system
-4. **[Architecture Overview](02-architecture.md)** - Technical architecture
+Read these in order:
 
-### Documentation Server
+1. [02-architecture.md](02-architecture.md)
+2. [03-development-guide.md](03-development-guide.md)
+3. [11-draft-lifecycle.md](11-draft-lifecycle.md)
+4. [12-public-assets-and-file-uploads.md](12-public-assets-and-file-uploads.md)
+5. [api-driven-config/README.md](api-driven-config/README.md)
+
+If you are touching analytics or stats integrations, also read:
+
+- [05-analytics-tracking.md](05-analytics-tracking.md)
+- [08-data-dropper-lambda.md](08-data-dropper-lambda.md)
+- [09-quick-stats-lambda.md](09-quick-stats-lambda.md)
+
+## First useful commands
+
+Inspect the draft CLI:
 
 ```bash
-# Serve documentation locally
-make docs-serve
-# Visit: http://localhost:8000
+node tools/config-draft-sync.mjs help
 ```
 
-## 🛠 Troubleshooting
-
-### Common Issues & Solutions
-
-| Issue                    | Solution                                  |
-| ------------------------ | ----------------------------------------- |
-| Port already in use      | `make stop` then `make clean`             |
-| Docker build fails       | `make rebuild`                            |
-| Container won't start    | Check Docker is running                   |
-| Dependencies out of sync | `make clean && make dev-setup`            |
-| Tests failing            | `make full-test-suite` to identify issues |
-
-### Debug Commands
+Pull the current authoring draft into your local `public/assets/drafts` tree:
 
 ```bash
-# Container status
-make status
-
-# Container health
-make health
-
-# Debug build issues
-make debug
-
-# View all logs
-make logs
+node tools/config-draft-sync.mjs pull --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx
 ```
 
-### Getting Help
-
-1. **Check documentation**: `make docs-serve`
-2. **View logs**: `make dev-logs`
-3. **Reset environment**: `make clean && make quick-start`
-4. **Container access**: `make dev-shell`
-
-## 🚀 Production Deployment
-
-### Production Commands
+Push local changes back to the authoring draft:
 
 ```bash
-# Production with SSR
-make prod
-
-# Static production (Nginx)
-make prod-no-ssr
-
-# Complete deployment workflow
-make production-deploy
+node tools/config-draft-sync.mjs push --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --updated-by="Your Name"
 ```
 
-### Environment Configuration
+Publish the current authoring draft:
 
 ```bash
-# Copy environment template
-cp .example.env .env
-
-# Edit configuration
-# - Set APP_NAME
-# - Configure ports
-# - Set feature flags
+node tools/config-draft-sync.mjs publish --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --updated-by="Your Name"
 ```
 
-## 🎯 Next Steps
+## Where to debug each problem
 
-### After Setup
+Use this quick decision table:
 
-1. **Explore the codebase**
+- Local preview is wrong: check `public/assets/drafts`, the draft URL, and runtime validation errors.
+- Pull or push fails: check the authoring endpoint, CLI arguments, and the current package shape.
+- Publish succeeds but live content is stale: compare runtime bundle output with the deployed frontend/app behavior.
+- Images or media do not load: check the public asset URL, upload key, CDN path, and bucket/CORS configuration.
+- Analytics calls fail: check `environment.apiUrl`, consent/runtime settings, and the Lambda repos.
 
-   - Start with `src/app/app.component.ts`
-   - Review component structure in `src/app/shared/components/`
-   - Check out the planning documents in `plan/`
+## Key folders and services
 
-2. **Run the component showcase**
+- `src/app/shared/services/config-bootstrap.service.ts`: loads and validates payloads.
+- `src/app/shared/services/config-source.service.ts`: chooses local drafts or API-backed config.
+- `src/app/shared/services/draft-runtime.service.ts`: resolves active draft domain and page.
+- `src/app/shared/services/seo-metadata.service.ts`: applies title, meta, and locale metadata.
+- `src/app/shared/services/analytics.service.ts`: analytics transport and consent flow.
+- `tools/config-draft-sync.mjs`: local draft round-trip CLI.
 
-   ```bash
-   make dev
-   # Visit: http://localhost:6161
-   ```
+## Related repos
 
-3. **Set up your IDE**
+Current workspace repos:
 
-   - Install Angular Language Service
-   - Configure ESLint and Prettier
-   - Set up debugging configuration
+- `../zoolanding-data-dropper-lambda`
+- `../zoolanding-quick-stats-lambda`
 
-4. **Join the development workflow**
-   - Read the [Contributing Guidelines](../README.md#contributing)
-   - Review open issues and project roadmap
-   - Start with good first issues
+Other platform repos used by this app:
 
-### Development Environment Tips
+- `../zoolanding-config-authoring`
+- `../zoolanding-config-runtime-read`
+- `../zoolanding-image-upload`
 
-- **Hot Reload**: Files automatically reload on save
-- **Port Mapping**: Container port 4200 → Host port 6161
-- **Volume Mounting**: Source code syncs automatically
-- **Node Modules**: Optimized with volume mounting
-- **Build Cache**: Angular build cache persisted
+## First safe exercise
 
-## ✅ Onboarding Completion Checklist
+If you are new to the platform, use this sequence:
 
-Before you start developing, ensure:
+1. Pull the current draft for `zoolandingpage.com.mx`.
+2. Open it locally with `draftDomain` and `draftPageId`.
+3. Change a single text value in `i18n/en.json` or `i18n/es.json`.
+4. Refresh the local page and confirm the change.
+5. Revert the change or continue with a real task.
 
-- [ ] `make quick-start` completed successfully
-- [ ] Development server accessible at <http://localhost:6161>
-- [ ] `make test` passes all tests
-- [ ] `make code-quality` passes all checks
-- [ ] Documentation accessible via `make docs-serve`
-- [ ] Read **[REQUIREMENTS_SUMMARY.md](REQUIREMENTS_SUMMARY.md)** (MANDATORY)
-- [ ] Understand Docker-first workflow
-- [ ] IDE configured with Angular Language Service
-
-## 🎉 Welcome to the Team
-
-You're now ready to contribute to **Zoolandingpage**!
-
-- **Need help?** Check the documentation or ask questions
-- **Ready to code?** Review the project roadmap and pick a task
-- **Want to contribute?** Follow our contribution guidelines
-
-Happy coding! 🚀
-
----
-
-**Quick Reference:**
-
-- Start development: `make dev`
-- Run tests: `make test`
-- Quality checks: `make code-quality`
-- Stop everything: `make stop`
-- Reset: `make clean && make quick-start`
+That gives you the smallest possible round-trip without risking live state.

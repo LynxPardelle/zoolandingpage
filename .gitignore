@@ -58,3 +58,7 @@ Thumbs.db
 *.sln
 *.sw?
 .env
+
+# Local drafts (API emulation)
+/public/assets/drafts/
+/devonly/*

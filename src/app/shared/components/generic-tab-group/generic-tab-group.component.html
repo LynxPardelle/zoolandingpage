@@ -1,0 +1,121 @@
+<div [class]="config().containerClasses || ''">
+  <div [class]="config().listContainerClasses || ''">
+    @if (listHeaderLabel()) {
+    <h3 [class]="config().listHeaderClasses || ''">{{ listHeaderLabel() }}</h3>
+    }
+    <div [class]="config().tabListClasses || ''" role="tablist" [attr.aria-orientation]="orientation()">
+      @for (t of tabs(); track t.id; let idx = $index) {
+      <div [attr.data-tab-id]="t.id">
+        <generic-button
+          [config]="{
+            label: buttonLabelFor(t),
+            classes: buttonClasses(t),
+            role: 'tab',
+            disabled: t.disabled,
+            id: 'tab-' + t.id,
+            ariaSelected: isActive(t.id || ''),
+            ariaControls: 'panel-' + t.id,
+            tabIndex: isActive(t.id || '') ? 0 : -1
+          }"
+          (pressed)="select(t.id || '')"
+        >
+          @if (tabHasRichHeader(t)) {
+          <div [class]="config().buttonContentClasses || ''">
+            @if (indexLabelOf(t)) {
+            <span [class]="indexLabelClasses(t)">{{ indexLabelOf(t) }}</span>
+            }
+            <span [class]="config().textStackClasses || ''">
+              <span [class]="config().titleClasses || ''">{{ labelOf(t) }}</span>
+              @if (summaryOf(t)) {
+              <span [class]="config().summaryClasses || ''">{{ summaryOf(t) }}</span>
+              }
+            </span>
+          </div>
+          }
+        </generic-button>
+      </div>
+      }
+    </div>
+  </div>
+
+  @if (detailMode()) { @if (activeTab(); as t) {
+  <div
+    [class]="(config().panelClasses || '') + ' tab-panel-anim'"
+    role="tabpanel"
+    [attr.id]="'panel-' + t.id"
+    [attr.aria-labelledby]="'tab-' + t.id"
+  >
+    <div [class]="config().detailHeaderClasses || ''">
+      @if (iconOf(t)) {
+      <generic-icon
+        [config]="{
+          iconName: iconOf(t) || '',
+          ariaHidden: true,
+          classes: config().detailIconClasses || ''
+        }"
+      ></generic-icon>
+      }
+      <div [class]="config().detailTextStackClasses || ''">
+        <h3 [class]="config().detailTitleClasses || ''">{{ labelOf(t) }}</h3>
+        @if (metaOf(t)) {
+        <div [class]="config().detailMetaClasses || ''">
+          @if (detailMetaIconName()) {
+          <generic-icon
+            [config]="{
+              iconName: detailMetaIconName() || '',
+              ariaHidden: true,
+              classes: config().detailMetaIconClasses || ''
+            }"
+          ></generic-icon>
+          }
+          <span>{{ metaOf(t) }}</span>
+        </div>
+        }
+      </div>
+    </div>
+    @if (summaryOf(t)) {
+    <p [class]="config().detailSummaryClasses || ''">{{ summaryOf(t) }}</p>
+    } @if (detailContentLabel()) {
+    <h4 [class]="config().detailContentLabelClasses || ''">{{ detailContentLabel() }}</h4>
+    } @if (contentOf(t)) {
+    <p [class]="config().detailContentClasses || ''">{{ contentOf(t) }}</p>
+    } @if (detailItemsOf(t).length > 0) { @if (detailItemsLabel()) {
+    <h4 [class]="config().detailItemsLabelClasses || ''">{{ detailItemsLabel() }}</h4>
+    }
+    <ul [class]="config().detailListClasses || ''">
+      @for (detailItem of detailItemsOf(t); track detailItemTrackKey($index, detailItem)) {
+      <li [class]="config().detailListItemClasses || ''">
+        @if (detailItemIconName()) {
+        <generic-icon
+          [config]="{
+            iconName: detailItemIconName() || '',
+            ariaHidden: true,
+            classes: config().detailListItemIconClasses || ''
+          }"
+        ></generic-icon>
+        }
+        <span>{{ detailItem }}</span>
+      </li>
+      }
+    </ul>
+    }
+  </div>
+  } } @else {
+  <div [class]="config().panelsClasses || ''">
+    @for (t of tabs(); track t.id) { @if (isActive(t.id || '')) {
+    <div
+      [class]="(config().panelBodyClasses || '') + ' tab-panel-anim'"
+      role="tabpanel"
+      [attr.id]="'panel-' + t.id"
+      [attr.aria-labelledby]="'tab-' + t.id"
+    >
+      @defer (when isActive(t.id || '')) {
+      <ng-content select="[tab-content-{{ t.id }}]"></ng-content>
+      } @placeholder {
+      <div [class]="config().panelLoadingClasses || ''">{{ i18n.t("ui.common.loadingPanel") }}</div>
+      }
+    </div>
+    } }
+  </div>
+  }
+</div>

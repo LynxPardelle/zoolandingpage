@@ -1,0 +1,16 @@
+<ng-template #tooltipTpl>
+  <div
+    [class]="surfaceClasses()"
+    [id]="id()"
+    role="tooltip"
+    [attr.aria-live]="ariaLive()"
+    [attr.aria-hidden]="!visible()"
+    [attr.inert]="!visible() ? '' : null"
+  >
+    <ng-container *ngIf="richTemplate; else plain" [ngTemplateOutlet]="richTemplate"></ng-container>
+    <ng-template #plain>{{ content() }}</ng-template>
+    @if (arrow) {
+    <span [class]="arrowClasses()" aria-hidden="true"></span>
+    }
+  </div>
+</ng-template>

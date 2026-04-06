@@ -1,0 +1,202 @@
+import type { TAngoraCombosPayload } from '@/app/shared/types/config-payloads.types';
+import { isPlatformBrowser } from '@angular/common';
+import { effect, inject, Injectable, NgZone, PLATFORM_ID } from '@angular/core';
+import { NgxAngoraService } from 'ngx-angora-css';
+import { normalizeAngoraClassList } from '../utility/angora-class-normalization.utility';
+import { ConfigStoreService } from './config-store.service';
+
+export type TAngoraCombosMap = Record<string, readonly string[]>;
+
+@Injectable({ providedIn: 'root' })
+export class AngoraCombosService {
+    private readonly ank = inject(NgxAngoraService);
+    private readonly zone = inject(NgZone);
+    private readonly store = inject(ConfigStoreService);
+    private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+    private draftCombos: TAngoraCombosMap = {};
+    private readonly auxiliaryCombos = new Map<string, TAngoraCombosMap>();
+    private appliedCombos: TAngoraCombosMap = {};
+    private lastAppliedSignature = '';
+    private readonly replayedClasses = new Set<string>();
+    private cssCreateTimer: number | null = null;
+    private cssCreateDueAt: number | null = null;
+
+    constructor() {
+        effect(() => {
+            this.draftCombos = this.sanitizeCombos(this.store.combos()?.combos ?? {});
+            this.refreshAppliedCombos();
+        });
+    }
+
+    setAuxiliaryCombos(scope: string, payload?: TAngoraCombosPayload | null): void {
+        const key = String(scope ?? '').trim();
+        if (!key) return;
+
+        const sanitized = this.sanitizeCombos(payload?.combos ?? {});
+        if (Object.keys(sanitized).length === 0) {
+            this.auxiliaryCombos.delete(key);
+        } else {
+            this.auxiliaryCombos.set(key, sanitized);
+        }
+
+        this.refreshAppliedCombos();
+    }
+
+    clearAuxiliaryCombos(scope: string): void {
+        const key = String(scope ?? '').trim();
+        if (!key || !this.auxiliaryCombos.delete(key)) return;
+        this.refreshAppliedCombos();
+    }
+
+    private refreshAppliedCombos(): void {
+        const merged = this.mergeCombos();
+        const signature = this.signatureFor(merged);
+        if (signature === this.lastAppliedSignature) return;
+
+        const removedKeys = Object.keys(this.appliedCombos)
+            .filter((key) => !(key in merged));
+
+        this.appliedCombos = merged;
+        this.lastAppliedSignature = signature;
+
+        if (!this.isBrowser) return;
+
+        this.clearRemovedCombos(removedKeys);
+
+        if (Object.keys(merged).length > 0) {
+            this.ank.pushCombos(merged);
+        }
+
+        if (removedKeys.length > 0 || Object.keys(merged).length > 0) {
+            this.scheduleCssCreate();
+        }
+    }
+
+    scheduleCssCreate(delayMs = 0): void {
+        if (!this.isBrowser) return;
+
+        const normalizedDelay = Math.max(0, delayMs);
+        const dueAt = Date.now() + normalizedDelay;
+
+        if (this.cssCreateTimer !== null && this.cssCreateDueAt !== null && this.cssCreateDueAt <= dueAt) {
+            return;
+        }
+
+        if (this.cssCreateTimer !== null) {
+            window.clearTimeout(this.cssCreateTimer);
+        }
+
+        this.cssCreateDueAt = dueAt;
+        this.zone.runOutsideAngular(() => {
+            this.cssCreateTimer = window.setTimeout(() => {
+                this.cssCreateTimer = null;
+                this.cssCreateDueAt = null;
+                this.ank.cssCreate();
+            }, normalizedDelay);
+        });
+    }
+
+    private isAngoraManagedClass(className: string): boolean {
+        const indicatorClass = String(this.ank.indicatorClass ?? '').trim();
+        const abbreviationKeys = Object.keys(this.ank.abreviationsClasses ?? {});
+        const prefix = className.split('-')[0] ?? '';
+        const hasPropertySegment = className.includes('-');
+
+        if (!className || !hasPropertySegment) {
+            return false;
+        }
+
+        return Boolean(
+            className && (
+                (indicatorClass && className.startsWith(`${ indicatorClass }-`))
+                || abbreviationKeys.includes(prefix)
+            )
+        );
+    }
+
+    updateClasses(classes: readonly string[]): void {
+        if (!this.isBrowser) return;
+
+        const normalized = Array.from(new Set(
+            (classes ?? [])
+                .map((entry) => this.normalizeClassList(String(entry).trim()))
+                .filter((entry) => entry.length > 0)
+                .filter((entry) => this.isAngoraManagedClass(entry))
+                .filter((entry) => !this.replayedClasses.has(entry))
+        ));
+
+        if (normalized.length === 0) {
+            return;
+        }
+
+        normalized.forEach((className) => {
+            this.ank.updateClasses([className]);
+            this.replayedClasses.add(className);
+        });
+    }
+
+    stopCssRuntime(): void {
+        if (this.cssCreateTimer !== null) {
+            window.clearTimeout(this.cssCreateTimer);
+            this.cssCreateTimer = null;
+        }
+        this.cssCreateDueAt = null;
+        this.replayedClasses.clear();
+    }
+
+    revealCssTimer(): void {
+        if (!this.isBrowser || typeof document === 'undefined') return;
+
+        try {
+            const ankTimer = document.getElementById('ankTimer');
+            if (ankTimer) {
+                ankTimer.classList.remove('ank-d-none');
+            }
+        } catch {
+            // no-op
+        }
+    }
+
+    private sanitizeCombos(combos: TAngoraCombosMap): TAngoraCombosMap {
+        const cleaned: Record<string, string[]> = {};
+        Object.entries(combos ?? {}).forEach(([key, value]) => {
+            if (!key || !Array.isArray(value)) return;
+            const list = value
+                .map((entry) => this.normalizeClassList(String(entry).trim()))
+                .filter((entry) => entry.length > 0);
+            if (list.length > 0) cleaned[key] = list;
+        });
+        return cleaned;
+    }
+
+    private normalizeClassList(value: string): string {
+        return normalizeAngoraClassList(
+            value,
+            this.ank.cssNamesParsed ?? {},
+            String(this.ank.indicatorClass ?? 'ank'),
+        );
+    }
+
+    private signatureFor(combos: TAngoraCombosMap): string {
+        return Object.keys(combos)
+            .sort((left, right) => left.localeCompare(right))
+            .map((key) => `${ key }=${ combos[key].join('|') }`)
+            .join('||');
+    }
+
+    private mergeCombos(): TAngoraCombosMap {
+        const merged: Record<string, readonly string[]> = { ...this.draftCombos };
+
+        this.auxiliaryCombos.forEach((combos) => {
+            Object.assign(merged, combos);
+        });
+
+        return merged;
+    }
+
+    private clearRemovedCombos(keys: readonly string[]): void {
+        keys.forEach((key) => {
+            this.ank.updateCombo(key, []);
+        });
+    }
+}

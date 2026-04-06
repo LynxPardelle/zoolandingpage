@@ -17,7 +17,7 @@ x-common-variables: &common-variables
 services:
   # Development service with hot-reload
   dev:
-    build: 
+    build:
       context: .
       target: development
       args:
@@ -29,12 +29,14 @@ services:
       # Mount source code for hot-reload (excludes node_modules for performance)
       - .:/app:cached
       - /app/node_modules
+      - /app/dist
       - angular_cache:/app/.angular
     environment:
       - NODE_ENV=development
       - CHOKIDAR_USEPOLLING=true
       - NG_CLI_ANALYTICS=false
       - CI=true
+      - CHROME_BIN=/usr/bin/chromium-browser
     # Override default command for development with additional options
     command: >
       ng serve --host 0.0.0.0 --port 4200 --poll=1000
@@ -51,7 +53,7 @@ services:
 
   # Production service with SSR
   prod:
-    build: 
+    build:
       context: .
       target: build
       args:
@@ -78,7 +80,7 @@ services:
 
   # Production service without SSR (static files with Nginx)
   prod-no-ssr:
-    build: 
+    build:
       context: .
       target: production-no-ssr
       args:

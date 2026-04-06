@@ -6,4 +6,4 @@
 
 ## 2025-08-23
 
-- Defer-loaded Conversion Calculator and FAQ sections to reduce initial work; added placeholders.
+- Defer-loaded FAQ sections and other non-critical interactive content to reduce initial work; added placeholders.

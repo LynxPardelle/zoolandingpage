@@ -66,10 +66,10 @@ Updated all components to use centralized translations:
 - Falls back to centralized translations when not provided by parent
 - Maintains flexibility for override capability
 
-#### Conversion Calculator Section Component
+#### Generic Interaction Components
 
-- All labels and content now from centralized translations
-- Reactive stats counter configurations
+- Field labels, helper text, and computed output labels should be provided through centralized i18n or draft/API payloads.
+- Local interaction state now lives in `interaction-scope` hosts rather than page-specific calculator components.
 
 #### Conversion Note Component
 
@@ -87,7 +87,7 @@ Updated all components to use centralized translations:
 - 6-step interactive process with deliverables
 - 8 FAQ items with questions and answers
 - Conversion note explanation content
-- Calculator labels and business size descriptions
+- Interaction labels, helper copy, and form-oriented UI text
 - UI text for loading states, sections, and contact
 
 #### English Content Includes:
@@ -105,7 +105,7 @@ The system uses Angular signals for reactive updates:
 readonly currentLanguage = this.languageService.currentLanguage;
 
 // Current translations based on selected language
-readonly translations = computed<LandingPageTranslations>(() => {
+readonly translations = computed<TLandingPageTranslations>(() => {
   const lang = this.currentLanguage();
   return getTranslations(lang);
 });
@@ -139,8 +139,6 @@ readonly translations = computed<LandingPageTranslations>(() => {
 - `src/app/landing-page/components/services-section/services-section.component.html`
 - `src/app/landing-page/components/testimonials-section/testimonials-section.component.ts`
 - `src/app/landing-page/components/testimonials-section/testimonials-section.component.html`
-- `src/app/landing-page/components/conversion-calculator-section/conversion-calculator-section.component.ts`
-- `src/app/landing-page/components/conversion-calculator-section/conversion-calculator-section.component.html`
 - `src/app/landing-page/components/conversion-note/conversion-note.component.ts`
 - `src/app/landing-page/components/conversion-note/conversion-note.component.html`
 

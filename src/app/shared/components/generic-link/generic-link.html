@@ -1,0 +1,46 @@
+@if (routableInternalHref()) {
+<a
+  [id]="id()"
+  [href]="href()"
+  [routerLink]="routerLinkPath()"
+  [queryParams]="routerLinkQueryParams()"
+  [fragment]="routerLinkFragment()"
+  [class]="classes()"
+  [attr.target]="target()"
+  [rel]="rel()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-expanded]="ariaExpanded()"
+  [attr.aria-controls]="ariaControls()"
+  [attr.aria-current]="ariaCurrent()"
+  [attr.data-components]="componentTokensAttribute()"
+  [attr.data-event-instructions]="eventInstructionsAttribute()"
+  (click)="onClick($event)"
+  ><span [attr.id]="contentId()" style="display: contents"
+    >@if( text() ){
+    <span [attr.id]="textId()">{{ text() }}</span>
+    }
+    <span [attr.id]="projectedContentId()" style="display: contents"><ng-content></ng-content></span
+  ></span>
+</a>
+} @else {
+<a
+  [id]="id()"
+  [href]="href()"
+  [class]="classes()"
+  [attr.target]="target()"
+  [rel]="rel()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-expanded]="ariaExpanded()"
+  [attr.aria-controls]="ariaControls()"
+  [attr.aria-current]="ariaCurrent()"
+  [attr.data-components]="componentTokensAttribute()"
+  [attr.data-event-instructions]="eventInstructionsAttribute()"
+  (click)="onClick($event)"
+  ><span [attr.id]="contentId()" style="display: contents"
+    >@if( text() ){
+    <span [attr.id]="textId()">{{ text() }}</span>
+    }
+    <span [attr.id]="projectedContentId()" style="display: contents"><ng-content></ng-content></span
+  ></span>
+</a>
+}

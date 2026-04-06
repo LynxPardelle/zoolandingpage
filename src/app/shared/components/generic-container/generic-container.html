@@ -1,0 +1,165 @@
+<ng-template #contentGenericContainerTpl>
+  <ng-content></ng-content>
+
+  @for (cid of templateComponentIds(); track cid) { @if (componentTemplates()[cid]) {
+  <ng-container [ngTemplateOutlet]="componentTemplates()[cid]"></ng-container>
+  } }
+</ng-template>
+
+@switch (tag()) { @case ('section') {
+<section
+  [id]="id()"
+  [class]="classes()"
+  [ngClass]="classMap()"
+  [ngStyle]="styles()"
+  [attr.role]="role()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+>
+  <ng-container [ngTemplateOutlet]="contentGenericContainerTpl"></ng-container>
+</section>
+} @case ('main') {
+<main
+  [id]="id()"
+  [class]="classes()"
+  [ngClass]="classMap()"
+  [ngStyle]="styles()"
+  [attr.role]="role()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+>
+  <ng-container [ngTemplateOutlet]="contentGenericContainerTpl"></ng-container>
+</main>
+} @case ('header') {
+<header
+  [id]="id()"
+  [class]="classes()"
+  [ngClass]="classMap()"
+  [ngStyle]="styles()"
+  [attr.role]="role()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+>
+  <ng-container [ngTemplateOutlet]="contentGenericContainerTpl"></ng-container>
+</header>
+} @case ('footer') {
+<footer
+  [id]="id()"
+  [class]="classes()"
+  [ngClass]="classMap()"
+  [ngStyle]="styles()"
+  [attr.role]="role()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+>
+  <ng-container [ngTemplateOutlet]="contentGenericContainerTpl"></ng-container>
+</footer>
+} @case ('nav') {
+<nav
+  [id]="id()"
+  [class]="classes()"
+  [ngClass]="classMap()"
+  [ngStyle]="styles()"
+  [attr.role]="role()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+>
+  <ng-container [ngTemplateOutlet]="contentGenericContainerTpl"></ng-container>
+</nav>
+} @case ('article') {
+<article
+  [id]="id()"
+  [class]="classes()"
+  [ngClass]="classMap()"
+  [ngStyle]="styles()"
+  [attr.role]="role()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+>
+  <ng-container [ngTemplateOutlet]="contentGenericContainerTpl"></ng-container>
+</article>
+} @case ('aside') {
+<aside
+  [id]="id()"
+  [class]="classes()"
+  [ngClass]="classMap()"
+  [ngStyle]="styles()"
+  [attr.role]="role()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+>
+  <ng-container [ngTemplateOutlet]="contentGenericContainerTpl"></ng-container>
+</aside>
+} @case('ol') {
+<ol
+  [id]="id()"
+  [class]="classes()"
+  [ngClass]="classMap()"
+  [ngStyle]="styles()"
+  [attr.role]="role()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+>
+  <ng-container [ngTemplateOutlet]="contentGenericContainerTpl"></ng-container>
+</ol>
+} @case('ul') {
+<ul
+  [id]="id()"
+  [class]="classes()"
+  [ngClass]="classMap()"
+  [ngStyle]="styles()"
+  [attr.role]="role()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+>
+  <ng-container [ngTemplateOutlet]="contentGenericContainerTpl"></ng-container>
+</ul>
+} @case('li') {
+<li
+  [id]="id()"
+  [class]="classes()"
+  [ngClass]="classMap()"
+  [ngStyle]="styles()"
+  [attr.role]="role()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+>
+  <ng-container [ngTemplateOutlet]="contentGenericContainerTpl"></ng-container>
+</li>
+} @case('span') {
+<span
+  [id]="id()"
+  [class]="classes()"
+  [ngClass]="classMap()"
+  [ngStyle]="styles()"
+  [attr.role]="role()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+>
+  <ng-container [ngTemplateOutlet]="contentGenericContainerTpl"></ng-container>
+</span>
+} @default {
+<div
+  [id]="id()"
+  [class]="classes()"
+  [ngClass]="classMap()"
+  [ngStyle]="styles()"
+  [attr.role]="role()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+>
+  <ng-container [ngTemplateOutlet]="contentGenericContainerTpl"></ng-container>
+</div>
+} }

@@ -3,6 +3,21 @@
     {
       "name": "zoolandingpage",
       "path": "."
+    },
+    {
+      "path": "../zoolanding-data-dropper-lambda"
+    },
+    {
+      "path": "../zoolanding-quick-stats-lambda"
+    },
+    {
+      "path": "../zoolanding-config-authoring"
+    },
+    {
+      "path": "../zoolanding-config-runtime-read"
+    },
+    {
+      "path": "../zoolanding-image-upload"
     }
   ],
   "settings": {
@@ -11,21 +26,22 @@
     "typescript.suggest.includeCompletionsForImportStatements": true,
     "typescript.suggest.includeCompletionsForModuleExports": true,
     "angular.experimental-ivy": true,
-    
+
     // Configuración de archivos
     "files.associations": {
       "*.component.html": "html",
       "*.component.ts": "typescript"
     },
-    
+
     // Configuración del terminal para usar Make
     "terminal.integrated.cwd": "${workspaceFolder}",
-    
+
     // Configuración de debugging
     "launch": {
       "configurations": [],
       "compounds": []
-    }
+    },
+    "powershell.cwd": "zoolandingpage"
   },
   "extensions": {
     "recommendations": [

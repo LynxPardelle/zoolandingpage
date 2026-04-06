@@ -1,0 +1,100 @@
+<div [class]="'ank-position-relative ' + classes()">
+  @if (collapsed()) { @if (!panelOpen()) {
+  <generic-button
+    [config]="{
+      type: 'button',
+      classes: triggerClasses(),
+      ariaLabel: triggerAriaLabel(),
+      ariaExpanded: panelOpen(),
+      icon: triggerIcon()
+    }"
+    (pressed)="openPanel()"
+  ></generic-button>
+  } @if (panelOpen()) {
+  <div class="search-box-panel" [class]="panelClasses()">
+    @if (showBackdrop()) {
+    <div class="search-box-panel-backdrop" aria-hidden="true" (click)="onBackdropClick($event)"></div>
+    }
+    <div class="search-box-panel-content" [class]="panelContentClasses()">
+      <generic-button
+        [config]="{
+          type: 'button',
+          classes: triggerClasses(),
+          ariaLabel: closeAriaLabel(),
+          ariaExpanded: true,
+          icon: closeIcon()
+        }"
+        (pressed)="closePanel()"
+      ></generic-button>
+
+      <div class="search-box-panel-input-wrapper" [class]="panelInputWrapperClasses()">
+        <input
+          #searchInput
+          type="search"
+          [class]="inputClasses()"
+          [attr.placeholder]="config?.placeholder || i18n.t('ui.common.search')"
+          [attr.aria-label]="config?.ariaLabel || i18n.t('ui.common.search')"
+          [attr.role]="'combobox'"
+          [attr.aria-autocomplete]="'list'"
+          [attr.aria-controls]="listboxId"
+          [attr.aria-expanded]="results().length > 0"
+          [attr.aria-activedescendant]="activeIndex() > -1 ? 'sb-opt-' + results()[activeIndex()].id : null"
+          [attr.id]="inputId"
+          (input)="onInput($event)"
+          (keydown)="onKey($event)"
+          [value]="term()"
+        />
+      </div>
+    </div>
+  </div>
+  } } @else {
+  <input
+    #searchInput
+    type="search"
+    [class]="inputClasses()"
+    [attr.placeholder]="config?.placeholder || i18n.t('ui.common.search')"
+    [attr.aria-label]="config?.ariaLabel || i18n.t('ui.common.search')"
+    [attr.role]="'combobox'"
+    [attr.aria-autocomplete]="'list'"
+    [attr.aria-controls]="listboxId"
+    [attr.aria-expanded]="results().length > 0"
+    [attr.aria-activedescendant]="activeIndex() > -1 ? 'sb-opt-' + results()[activeIndex()].id : null"
+    [attr.id]="inputId"
+    (input)="onInput($event)"
+    (keydown)="onKey($event)"
+    [value]="term()"
+  />
+  }
+  <ng-template #resultsTpl>
+    <ul [class]="resultsClasses()" role="listbox" [attr.id]="listboxId">
+      @for (s of results(); track s.id; let i = $index) {
+      <li role="option">
+        <generic-button
+          [config]="{
+            id: 'sb-opt-' + s.id,
+            classes: resultItemClasses(),
+            ariaSelected: i === activeIndex(),
+
+          }"
+          (pressed)="choose(s)"
+        >
+          <ng-container
+            *ngIf="itemTemplate(); else defaultItem"
+            [ngTemplateOutlet]="itemTemplate()"
+            [ngTemplateOutletContext]="{ $implicit: s }"
+          ></ng-container>
+          <ng-template #defaultItem>{{ s.label }}</ng-template>
+        </generic-button>
+      </li>
+      } @if (!loading() && !results().length && term().length >= minLength()) {
+      <li [class]="statusItemClasses()">
+        {{ i18n.t("ui.common.noResults") }}
+      </li>
+      } @if (loading()) {
+      <li [class]="statusItemClasses()">
+        <app-loading-spinner variant="dots" size="sm" />
+      </li>
+      }
+    </ul>
+  </ng-template>
+</div>

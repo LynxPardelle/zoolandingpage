@@ -1,0 +1,26 @@
+<div class="ank-display-flex ank-gap-0_5rem ank-flexWrap-wrap" role="tablist" (keydown)="onKey($event)">
+  @for (s of steps(); track s.id; let idx = $index) {
+  <generic-button
+    [config]="{
+      disabled: !canGo(idx),
+      role: 'tab',
+      ariaSelected: isActive(idx),
+      tabIndex: isActive(idx) ? 0 : -1,
+      classes:
+        'stepper-trigger-anim ank-cursor-pointer ank-display-flex ank-gap-0_25rem ank-alignItems-center ank-bg-accentColor ank-transition-background_0_2s ank-border-none ank-px-0_5rem ank-py-0_25rem ank-borderRadius-0_5rem' +
+        (isActive(idx) ? ' ank-bg-secondaryBgColor ank-fontWeight-600' : '') +
+        (!canGo(idx) ? ' ank-opacity-40 ank-cursor-notAllowed' : '')
+    }"
+    (pressed)="select(idx)"
+  >
+    <span class="ank-fontWeight-600">{{ idx + 1 }}</span>
+    {{ s.label }}
+    @if(s.optional) {
+    <span class="ank-fontSize-0_75rem ank-color-textSecondary">(optional)</span>
+    }
+  </generic-button>
+  }
+</div>
+<div class="step-content ank-mt-0_75rem" role="tabpanel" [attr.aria-label]="'Step ' + (activeIndex() + 1) + ' content'">
+  <ng-content select="[step-content]"></ng-content>
+</div>
