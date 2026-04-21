@@ -102,6 +102,24 @@ describe('GenericLink', () => {
     expect(anchor.getAttribute('href')).toContain('/acerca-de-mi?draftDomain=pamelabetancourt.com&debugWorkspace=true');
   });
 
+  it('should carry the active draftDomain onto internal hrefs that omit it', () => {
+    fixture.componentRef.setInput('config', {
+      id: 'spec',
+      href: '/servicios',
+      text: 'Servicios',
+    });
+    fixture.detectChanges();
+
+    const anchor = fixture.nativeElement.querySelector('a') as HTMLAnchorElement;
+
+    expect(component.href()).toBe('/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+    expect(component.routerLinkQueryParams()).toEqual({
+      draftDomain: 'pamelabetancourt.com',
+      debugWorkspace: 'true',
+    });
+    expect(anchor.getAttribute('href')).toContain('/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+  });
+
   it('should normalize encoded unicode internal hrefs without double-encoding them', () => {
     fixture.componentRef.setInput('config', {
       id: 'spec',

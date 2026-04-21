@@ -2,7 +2,8 @@ import { existsSync } from 'node:fs';
 import { mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-const DEFAULT_DRAFTS_ROOT = path.resolve('public', 'assets', 'drafts');
+const DEFAULT_DRAFTS_ROOT = path.resolve('drafts');
+const LOCAL_DRAFT_CONTEXT_FOLDERS = new Set(['ai_notes', 'findings', 'errors-reports']);
 
 function parseArgs(rawArgs) {
   const parsed = {};
@@ -53,6 +54,9 @@ async function walkJsonFiles(rootDir) {
   for (const entry of entries) {
     const fullPath = path.join(rootDir, entry.name);
     if (entry.isDirectory()) {
+      if (LOCAL_DRAFT_CONTEXT_FOLDERS.has(entry.name)) {
+        continue;
+      }
       files.push(...(await walkJsonFiles(fullPath)));
       continue;
     }
@@ -62,6 +66,35 @@ async function walkJsonFiles(rootDir) {
   }
 
   return files.sort((left, right) => left.localeCompare(right));
+}
+
+async function cleanAuthoredDraftFiles(rootDir) {
+  if (!existsSync(rootDir)) {
+    return;
+  }
+
+  const entries = await readdir(rootDir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const fullPath = path.join(rootDir, entry.name);
+    if (entry.isDirectory()) {
+      if (LOCAL_DRAFT_CONTEXT_FOLDERS.has(entry.name)) {
+        continue;
+      }
+
+      await cleanAuthoredDraftFiles(fullPath);
+
+      const remainingEntries = await readdir(fullPath, { withFileTypes: true });
+      if (remainingEntries.length === 0) {
+        await rm(fullPath, { recursive: true, force: true });
+      }
+      continue;
+    }
+
+    if (entry.isFile() && entry.name.endsWith('.json')) {
+      await rm(fullPath, { force: true });
+    }
+  }
 }
 
 function inferKind(domain, relativePath) {
@@ -133,7 +166,7 @@ async function unpackDraftPackage(draftPackage, draftsRoot, { cleanDomain = fals
 
   const domainRoot = path.resolve(draftsRoot, domain);
   if (cleanDomain && existsSync(domainRoot)) {
-    await rm(domainRoot, { recursive: true, force: true });
+    await cleanAuthoredDraftFiles(domainRoot);
   }
 
   for (const entry of draftPackage.files) {
@@ -203,11 +236,11 @@ async function main() {
       [
         'Usage: node tools/config-draft-sync.mjs <command> [--key=value]',
         'Commands:',
-        '  pack    --domain=example.com [--drafts-root=public/assets/drafts] [--stage=draft] [--output=package.json]',
-        '  unpack  --input=package.json [--drafts-root=public/assets/drafts] [--clean-domain=true]',
-        '  pull    --endpoint=https://... --domain=example.com [--stage=draft] [--drafts-root=public/assets/drafts] [--clean-domain=true]',
-        '  push    --endpoint=https://... --domain=example.com [--drafts-root=public/assets/drafts] [--updated-by=name]',
-        '  create  --endpoint=https://... --domain=example.com [--drafts-root=public/assets/drafts] [--publish-on-create=true]',
+        '  pack    --domain=example.com [--drafts-root=drafts] [--stage=draft] [--output=package.json]',
+        '  unpack  --input=package.json [--drafts-root=drafts] [--clean-domain=true]',
+        '  pull    --endpoint=https://... --domain=example.com [--stage=draft] [--drafts-root=drafts] [--clean-domain=true]',
+        '  push    --endpoint=https://... --domain=example.com [--drafts-root=drafts] [--updated-by=name]',
+        '  create  --endpoint=https://... --domain=example.com [--drafts-root=drafts] [--publish-on-create=true]',
         '  publish --endpoint=https://... --domain=example.com [--version-id=...]',
       ].join('\n') + '\n'
     );

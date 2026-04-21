@@ -15,6 +15,8 @@ import { filter } from 'rxjs/operators';
 
 @Injectable({ providedIn: 'root' })
 export class RuntimeService {
+    private readonly navigationProgressDelayMs = 120;
+    private readonly prefetchSiblingCap = 5;
     private readonly configBootstrap = inject(ConfigBootstrapService);
     private readonly configSource = inject(ConfigSourceService);
     private readonly orchestrator = inject(ConfigurationsOrchestratorService);
@@ -32,6 +34,8 @@ export class RuntimeService {
     readonly modalRootIds = signal<readonly string[]>([]);
     readonly debugWorkspaceRootIds = signal<readonly string[]>([]);
     readonly debugWorkspaceModalRootIds = signal<readonly string[]>([]);
+    readonly navigationPending = signal(false);
+    readonly showNavigationProgress = signal(false);
     private initializeQueue: Promise<void> = Promise.resolve();
     private debugWorkspaceEnabled = false;
     private debugWorkspaceInit: Promise<void> | null = null;
@@ -40,6 +44,8 @@ export class RuntimeService {
     private currentLanguageResolver: (() => string) | null = null;
     private showDebugWorkspaceResolver: (() => boolean) | null = null;
     private initialPageViewTracked = false;
+    private latestNavigationRequestId = 0;
+    private navigationProgressTimer: number | null = null;
 
     connect(options: {
         host: HTMLElement;
@@ -72,6 +78,13 @@ export class RuntimeService {
         this.navigationSubscription?.unsubscribe();
         this.navigationSubscription = null;
         this.combosService.stopCssRuntime();
+        this.navigationPending.set(false);
+        this.showNavigationProgress.set(false);
+
+        if (this.navigationProgressTimer) {
+            clearTimeout(this.navigationProgressTimer);
+            this.navigationProgressTimer = null;
+        }
 
         try {
             this.cssMutationObserver?.disconnect();
@@ -186,6 +199,7 @@ export class RuntimeService {
         this.combosService.scheduleCssCreate();
         this.analytics.initializeRuntimeState();
         this.analytics.startPageEngagementTracking(this.configStore.analytics());
+        this.prefetchSiblingRoutes(domain, pageId, lang, context.path);
         this.trackInitialPageView();
     }
 
@@ -230,6 +244,8 @@ export class RuntimeService {
         this.navigationSubscription = this.router.events
             .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
             .subscribe((event) => {
+                const transitionId = this.beginNavigationTransition();
+
                 void this.analytics.track(this.analytics.pageViewEventName(), {
                     category: AnalyticsCategories.Navigation,
                     label: event.urlAfterRedirects,
@@ -239,8 +255,86 @@ export class RuntimeService {
                 void this.initialize(lang)
                     .catch((error) => {
                         console.error('[Runtime] Runtime refresh failed after navigation.', error);
-                    });
+                    })
+                    .finally(() => this.completeNavigationTransition(transitionId));
             });
+    }
+
+    private beginNavigationTransition(): number {
+        if (!this.isBrowser) {
+            return 0;
+        }
+
+        const requestId = ++this.latestNavigationRequestId;
+        this.navigationPending.set(true);
+        this.showNavigationProgress.set(false);
+
+        if (this.navigationProgressTimer) {
+            clearTimeout(this.navigationProgressTimer);
+        }
+
+        this.navigationProgressTimer = window.setTimeout(() => {
+            if (!this.navigationPending() || this.latestNavigationRequestId !== requestId) {
+                return;
+            }
+
+            this.showNavigationProgress.set(true);
+        }, this.navigationProgressDelayMs);
+
+        return requestId;
+    }
+
+    private completeNavigationTransition(requestId: number): void {
+        if (!this.isBrowser || requestId === 0 || requestId !== this.latestNavigationRequestId) {
+            return;
+        }
+
+        if (this.navigationProgressTimer) {
+            clearTimeout(this.navigationProgressTimer);
+            this.navigationProgressTimer = null;
+        }
+
+        this.navigationPending.set(false);
+        this.showNavigationProgress.set(false);
+    }
+
+    private prefetchSiblingRoutes(domain: string, pageId: string, lang: string | undefined, currentPath: string): void {
+        const siteConfig = this.configStore.siteConfig();
+        const routes = siteConfig?.routes ?? [];
+        if (!domain || routes.length === 0) {
+            return;
+        }
+
+        const seen = new Set<string>();
+        let prefetchCount = 0;
+        for (const route of routes) {
+            if (prefetchCount >= this.prefetchSiblingCap) {
+                break;
+            }
+
+            const routePageId = String(route?.pageId ?? '').trim();
+            const routePath = String(route?.path ?? '').trim();
+            if (!routePageId || !routePath) {
+                continue;
+            }
+
+            const routeKey = `${ routePageId }::${ routePath }`;
+            if (seen.has(routeKey)) {
+                continue;
+            }
+
+            seen.add(routeKey);
+            if (routePageId === pageId && routePath === currentPath) {
+                continue;
+            }
+
+            void this.configSource.prefetchRoute(domain, {
+                pageId: routePageId,
+                lang,
+                path: routePath,
+            });
+            prefetchCount++;
+        }
     }
 
     private bindCssMutationRefresh(root: HTMLElement): void {

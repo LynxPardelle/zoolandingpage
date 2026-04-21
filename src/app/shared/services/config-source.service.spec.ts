@@ -16,6 +16,7 @@ import { LanguageService } from './language.service';
 
 describe('ConfigSourceService', () => {
     let originalDraftsEnabled: boolean;
+    const originalUrl = window.location.pathname + window.location.search + window.location.hash;
 
     const themePalette = {
         bgColor: '#ffffff',
@@ -175,6 +176,7 @@ describe('ConfigSourceService', () => {
 
     afterEach(() => {
         (environment.drafts as { enabled: boolean }).enabled = originalDraftsEnabled;
+        window.history.replaceState({}, '', originalUrl);
     });
 
     it('returns null variables from the bundle without calling the legacy endpoint', async () => {
@@ -237,5 +239,21 @@ describe('ConfigSourceService', () => {
 
         expect(result).toEqual(bundledVariables);
         expect(api.getVariables).not.toHaveBeenCalled();
+    });
+
+    it('warms a target route so the next bundle-backed page load reuses the cached runtime request', async () => {
+        const service = TestBed.inject(ConfigSourceService);
+        const api = TestBed.inject(ConfigApiService) as jasmine.SpyObj<ConfigApiService>;
+
+        await service.prefetchRoute('alecfest-voliii.zoolandingpage.com.mx', {
+            pageId: 'default',
+            lang: 'es',
+            path: '/servicios',
+        });
+
+        window.history.replaceState({}, '', '/servicios');
+        await service.loadComponents('alecfest-voliii.zoolandingpage.com.mx', 'default');
+
+        expect(api.getRuntimeBundle.calls.count()).toBe(1);
     });
 });

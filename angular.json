@@ -25,6 +25,12 @@
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "glob": "**/*",
+                "input": "drafts",
+                "output": "drafts",
+                "ignore": ["**/ai_notes/**", "**/findings/**", "**/errors-reports/**", "**/*.md", "**/.gitignore"]
               }
             ],
             "styles": [
@@ -104,6 +110,12 @@
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "glob": "**/*",
+                "input": "drafts",
+                "output": "drafts",
+                "ignore": ["**/ai_notes/**", "**/findings/**", "**/errors-reports/**", "**/*.md", "**/.gitignore"]
               }
             ],
             "styles": [

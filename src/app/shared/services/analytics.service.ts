@@ -579,8 +579,8 @@ export class AnalyticsService {
               if (trackOptions.includes('geolocationLongitude')) data['geolocationLongitude'] = position.coords.longitude;
               if (trackOptions.includes('geolocationAccuracy')) data['geolocationAccuracy'] = position.coords.accuracy;
             },
-            (error) => {
-              console.error('Error getting geolocation:', error);
+            () => {
+              // Geolocation is optional analytics enrichment. Ignore denied or unavailable access.
             }
           );
         }

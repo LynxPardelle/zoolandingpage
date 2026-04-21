@@ -147,10 +147,20 @@ export class ConfigSourceService {
         return [domain.trim().toLowerCase(), pageId.trim(), lang.trim().toLowerCase(), this.normalizePath(path)].join('::');
     }
 
+    private resolveRuntimeBundlePath(pathOverride?: string): string {
+        const explicitPath = String(pathOverride ?? '').trim();
+        if (explicitPath) {
+            return this.normalizePath(explicitPath);
+        }
+
+        return this.resolveActivePath();
+    }
+
     private async loadRuntimeBundle(domain: string, opts?: {
         pageId?: string;
         lang?: string;
         forceRefresh?: boolean;
+        path?: string;
     }): Promise<TRuntimeBundlePayload | null> {
         const normalizedDomain = String(domain ?? '').trim();
         if (!normalizedDomain) {
@@ -159,7 +169,7 @@ export class ConfigSourceService {
 
         const pageId = String(opts?.pageId ?? '').trim();
         const lang = this.resolveLanguage(opts?.lang);
-        const currentPath = this.resolveActivePath();
+        const currentPath = this.resolveRuntimeBundlePath(opts?.path);
         const requestedKey = this.createRuntimeBundleCacheKey(normalizedDomain, pageId, lang, currentPath);
 
         if (opts?.forceRefresh) {
@@ -207,6 +217,7 @@ export class ConfigSourceService {
     private async tryLoadRuntimeBundle(domain: string, opts?: {
         pageId?: string;
         lang?: string;
+        path?: string;
     }): Promise<TRuntimeBundlePayload | null> {
         try {
             return await this.loadRuntimeBundle(domain, opts);
@@ -255,6 +266,35 @@ export class ConfigSourceService {
 
     loadI18n(domain: string, pageId: string, lang: string): Promise<TI18nPayload | null> {
         return this.source.loadI18n(domain, pageId, lang);
+    }
+
+    async prefetchRoute(domain: string, opts?: { pageId?: string; lang?: string; path?: string }): Promise<void> {
+        const normalizedDomain = String(domain ?? '').trim();
+        if (!normalizedDomain) {
+            return;
+        }
+
+        if (environment.drafts.enabled) {
+            await this.drafts.prefetchSiteConfig(normalizedDomain);
+
+            const pageId = String(opts?.pageId ?? '').trim();
+            if (!pageId) {
+                return;
+            }
+
+            await this.drafts.prefetchPagePayloads({
+                domain: normalizedDomain,
+                pageId,
+                lang: opts?.lang,
+            });
+            return;
+        }
+
+        await this.tryLoadRuntimeBundle(normalizedDomain, {
+            pageId: opts?.pageId,
+            lang: opts?.lang,
+            path: opts?.path,
+        });
     }
 
     loadDebugWorkspacePageConfig(): Promise<TPageConfigPayload | null> {

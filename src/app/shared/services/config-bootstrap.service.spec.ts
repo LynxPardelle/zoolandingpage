@@ -79,8 +79,32 @@ const createComponentsPayload = (components: Record<string, TComponentPayloadEnt
 
 describe('ConfigBootstrapService', () => {
     let service: ConfigBootstrapService;
+    let source: jasmine.SpyObj<ConfigSourceService>;
+    let i18n: jasmine.SpyObj<I18nService>;
+    let language: jasmine.SpyObj<LanguageService>;
+    let store: ConfigStoreService;
 
     beforeEach(() => {
+        source = jasmine.createSpyObj<ConfigSourceService>('ConfigSourceService', [
+            'loadPageConfig',
+            'loadComponents',
+            'loadVariables',
+            'loadCombos',
+            'loadI18n',
+        ]);
+        i18n = jasmine.createSpyObj<I18nService>('I18nService', [
+            'disableAutoLoad',
+            'setLoader',
+            'prefetch',
+            'setTranslations',
+            'enableAutoLoad',
+        ]);
+        language = jasmine.createSpyObj<LanguageService>('LanguageService', [
+            'currentLanguage',
+            'configureLanguages',
+        ]);
+        language.currentLanguage.and.returnValue('es');
+
         TestBed.configureTestingModule({
             providers: [
                 ConfigBootstrapService,
@@ -89,7 +113,7 @@ describe('ConfigBootstrapService', () => {
                 { provide: PLATFORM_ID, useValue: 'browser' },
                 {
                     provide: ConfigSourceService,
-                    useValue: {},
+                    useValue: source,
                 },
                 {
                     provide: DomainResolverService,
@@ -99,20 +123,11 @@ describe('ConfigBootstrapService', () => {
                 },
                 {
                     provide: I18nService,
-                    useValue: {
-                        disableAutoLoad: () => { },
-                        setLoader: () => { },
-                        prefetch: async () => { },
-                        setTranslations: () => { },
-                        enableAutoLoad: () => { },
-                    },
+                    useValue: i18n,
                 },
                 {
                     provide: LanguageService,
-                    useValue: {
-                        currentLanguage: () => 'es',
-                        configureLanguages: () => { },
-                    },
+                    useValue: language,
                 },
                 {
                     provide: StructuredDataService,
@@ -124,6 +139,81 @@ describe('ConfigBootstrapService', () => {
         });
 
         service = TestBed.inject(ConfigBootstrapService);
+        store = TestBed.inject(ConfigStoreService);
+    });
+
+    it('does not block bootstrap completion on the fallback language prefetch', async () => {
+        let resolveFallback!: (payload: unknown) => void;
+
+        store.setSiteConfig(createSiteConfig());
+        source.loadPageConfig.and.resolveTo({
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            rootIds: ['landingPage'],
+            modalRootIds: [],
+        });
+        source.loadComponents.and.resolveTo(createComponentsPayload({
+            landingPage: {
+                id: 'landingPage',
+                type: 'container',
+                config: { tag: 'main', components: [] },
+            },
+        }));
+        source.loadVariables.and.resolveTo({
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            variables: {},
+        });
+        source.loadCombos.and.resolveTo(null);
+        source.loadI18n.and.callFake(async (_domain: string, _pageId: string, langCode: string) => {
+            if (langCode === 'es') {
+                return {
+                    version: 1,
+                    pageId: 'default',
+                    domain: 'zoolandingpage.com.mx',
+                    lang: 'es',
+                    dictionary: {},
+                };
+            }
+
+            return await new Promise((resolve) => {
+                resolveFallback = resolve;
+            }) as any;
+        });
+
+        await expectAsync(service.load({
+            domain: 'zoolandingpage.com.mx',
+            pageId: 'default',
+            lang: 'es',
+        })).toBeResolvedTo(jasmine.objectContaining({
+            domain: 'zoolandingpage.com.mx',
+            pageId: 'default',
+        }));
+
+        expect(source.loadI18n.calls.allArgs()).toEqual([
+            ['zoolandingpage.com.mx', 'default', 'es'],
+            ['zoolandingpage.com.mx', 'default', 'en'],
+        ]);
+        expect(i18n.setTranslations).toHaveBeenCalledWith('es', {}, {
+            cache: true,
+            applyIfCurrent: true,
+        });
+
+        resolveFallback({
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            lang: 'en',
+            dictionary: {},
+        });
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        expect(i18n.setTranslations).toHaveBeenCalledWith('en', {}, {
+            cache: true,
+            applyIfCurrent: false,
+        });
     });
 
     it('reports missing modal config when a payload references a modal-owned dialog', () => {

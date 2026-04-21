@@ -60,5 +60,6 @@ Thumbs.db
 .env
 
 # Local drafts (API emulation)
-/public/assets/drafts/
-/devonly/*
+/drafts/*
+!/drafts/.gitignore
+/devonly/

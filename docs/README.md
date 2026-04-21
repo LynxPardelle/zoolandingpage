@@ -39,6 +39,15 @@ Coding standards and development workflow.
 - Performance optimization guidelines
 - Security best practices
 
+### 🧠 [ai-notes](../ai-notes/README.md)
+
+Canonical, long-lived guidance promoted from local draft context and sanitized local-only operational notes.
+
+- Shared draft-authoring and QA rules
+- Shared draft-authoring constraints, QA rules, and reusable workflow guidance
+- Templates for future AI and developer notes
+- Agent workflow guidance for reading and updating durable knowledge
+
 ### 🎨 [NGX-Angora-CSS Integration](./04-ngx-angora-css.md)
 
 Comprehensive styling system guide.
@@ -169,9 +178,10 @@ Zoolandingpage serves dual purposes:
 ### For New Developers
 
 1. **Start Here**: [Getting Started Guide](./01-getting-started.md)
-2. **Understand the Architecture**: [Project Architecture](./02-architecture.md)
-3. **Learn the Standards**: [Development Guide](./03-development-guide.md)
-4. **Master the Styling**: [NGX-Angora-CSS Integration](./04-ngx-angora-css.md)
+2. **Read The Canonical AI Notes**: [ai-notes](../ai-notes/README.md)
+3. **Understand the Architecture**: [Project Architecture](./02-architecture.md)
+4. **Learn the Standards**: [Development Guide](./03-development-guide.md)
+5. **Master the Styling**: [NGX-Angora-CSS Integration](./04-ngx-angora-css.md)
 
 ### Docker Development (Recommended)
 

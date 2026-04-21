@@ -151,6 +151,54 @@ describe('AnalyticsService', () => {
     expect(post).not.toHaveBeenCalled();
   });
 
+  it('does not log console errors when geolocation access is denied', async () => {
+    const getCurrentPosition = spyOn(navigator.geolocation, 'getCurrentPosition').and.callFake(
+      (_success: PositionCallback, error?: PositionErrorCallback | null) => {
+        error?.({
+          code: 1,
+          message: 'Permission denied',
+          PERMISSION_DENIED: 1,
+          POSITION_UNAVAILABLE: 2,
+          TIMEOUT: 3,
+        } as GeolocationPositionError);
+      }
+    );
+
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: RuntimeConfigService,
+          useValue: {
+            appIdentifier: () => 'zoolandingpagecommx',
+            isAnalyticsEnabled: () => true,
+            isDebugMode: () => false,
+            analyticsConsentMode: () => 'none',
+            resolveStorageKey: (slot: string) => slot,
+            track: () => ['geolocationLatitude', 'geolocationLongitude', 'geolocationAccuracy'],
+          },
+        },
+        {
+          provide: HttpClient,
+          useValue: {
+            post: jasmine.createSpy('post').and.returnValue(of({ ok: true })),
+          } as any,
+        },
+      ],
+    });
+
+    const svc = TestBed.inject(AnalyticsService);
+    const consoleError = spyOn(console, 'error');
+
+    svc.initializeRuntimeState();
+    const data = await svc.getAllDataFromUser();
+
+    expect(getCurrentPosition).toHaveBeenCalled();
+    expect(consoleError).not.toHaveBeenCalled();
+    expect(data?.geolocationLatitude).toBeUndefined();
+    expect(data?.geolocationLongitude).toBeUndefined();
+    expect(data?.geolocationAccuracy).toBeUndefined();
+  });
+
   it('does not bump remote quick stats when analytics is disabled', () => {
     const quickStats = jasmine.createSpyObj<QuickStatsService>('QuickStatsService', ['inc', 'getNumber']);
     quickStats.inc.and.returnValue(of({ ok: true }));

@@ -77,6 +77,8 @@ describe('AppShellComponent analytics', () => {
       'updateClasses',
       'updateColors',
     ]);
+    angoraSpy.indicatorClass = 'ank';
+    angoraSpy.abreviationsClasses = {};
     angoraSpy.timeBetweenReCreate = 300;
     await TestBed.configureTestingModule({
       imports: [AppShellComponent],
@@ -148,19 +150,22 @@ describe('AppShellComponent analytics', () => {
     TestBed.resetTestingModule();
   });
 
-  it('fires one page_view on initial navigation', async () => {
+  it('tracks the initial bootstrap page view once and records later navigations separately', async () => {
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
     await new Promise((resolve) => setTimeout(resolve, 0));
     fixture.detectChanges();
+
+    let pageViews = analyticsSpy.track.calls.all().filter((call) => call.args[0] === 'page_view');
+    expect(pageViews.length).toBe(1);
+
     const router = TestBed.inject(Router);
     await router.navigateByUrl('/?nav=1');
 
     expect(analyticsSpy.track).toHaveBeenCalled();
-    const calls = analyticsSpy.track.calls.all();
-    // Filter for page_view
-    const pageViews = calls.filter(c => c.args[0] === 'page_view');
-    expect(pageViews.length).toBe(1);
+    pageViews = analyticsSpy.track.calls.all().filter((call) => call.args[0] === 'page_view');
+    expect(pageViews.length).toBe(2);
+    expect(pageViews[1]?.args[1]).toEqual(jasmine.objectContaining({ label: '/?nav=1' }));
   });
 
   it('delegates draft engagement observers to the analytics service', async () => {

@@ -7,7 +7,7 @@ The original migration from TypeScript-owned component constants to JSON drafts 
 ## Draft root layout
 
 ```text
-public/assets/drafts/
+drafts/
   {domain}/
     site-config.json
     components.json
@@ -75,7 +75,7 @@ That means the filesystem layout above maps directly to `TAuthoringDraftPackage.
 
 If you still use the debug/export tooling in the browser, treat it as a convenience path only. The normal long-term workflow is:
 
-1. author local files in `public/assets/drafts`
+1. author local files in `drafts`
 2. preview locally
 3. push with `tools/config-draft-sync.mjs`
 4. publish when ready

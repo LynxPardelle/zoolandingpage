@@ -48,6 +48,9 @@ Recommended deployment order:
 
 Notes for preview and alternate domains:
 
+- Every site should declare at least one managed alias under `*.zoolandingpage.com.mx`, even when a branded domain is planned later.
+- Use that managed Zoolanding alias as the public fallback host from day one.
+- If the branded domain is not live yet, point `site.seo.canonicalOrigin` and page-level `seo.canonical` URLs at the Zoolanding alias until the cutover is real.
 - Put preview or alternate hosts in `site-config.json.aliases`, for example `"aliases": ["test.zoolandingpage.com.mx", "landing-preview.zoolandingpage.com.mx"]`.
 - The authoring Lambda persists alias lookup records in DynamoDB, and the runtime Lambda resolves those aliases back to the canonical site domain at request time.
 - You do not need a second DynamoDB site entry just for a preview host when it should reuse the canonical site's config.
@@ -301,6 +304,12 @@ The canonical site config can also declare reusable aliases:
   "aliases": ["test.zoolandingpage.com.mx", "landing-preview.zoolandingpage.com.mx"]
 }
 ```
+
+Default convention for new sites:
+
+- Keep `domain` set to the intended long-term canonical domain.
+- Always add a managed fallback alias under `*.zoolandingpage.com.mx` in `aliases`.
+- If the branded domain is not live yet, use the Zoolanding alias in `site.seo.canonicalOrigin` and page `seo.canonical` fields until the real-domain cutover is complete.
 
 ### 7.1 First upload from the local draft
 

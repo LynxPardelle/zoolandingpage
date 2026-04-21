@@ -58,7 +58,7 @@ Proposed manifest payload (example):
   },
   "overrides": {
     "dev": {
-      "components": "/assets/drafts/zoolandingpage.com.mx/default/components.json"
+      "components": "/drafts/zoolandingpage.com.mx/default/components.json"
     }
   },
   "dependencies": [

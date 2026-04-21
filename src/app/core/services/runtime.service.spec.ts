@@ -37,6 +37,7 @@ describe('RuntimeService', () => {
     const analyticsTrack = jasmine.createSpy('track').and.resolveTo(undefined);
     const analyticsStartPageEngagementTracking = jasmine.createSpy('startPageEngagementTracking');
     const analyticsStopPageEngagementTracking = jasmine.createSpy('stopPageEngagementTracking');
+    const prefetchRoute = jasmine.createSpy('prefetchRoute').and.resolveTo(undefined);
     let loadSiteConfig: jasmine.Spy;
     let bootstrapLoad: jasmine.Spy;
     let setCombos: jasmine.Spy;
@@ -102,6 +103,7 @@ describe('RuntimeService', () => {
         analyticsTrack.calls.reset();
         analyticsStartPageEngagementTracking.calls.reset();
         analyticsStopPageEngagementTracking.calls.reset();
+        prefetchRoute.calls.reset();
 
         TestBed.configureTestingModule({
             providers: [
@@ -117,6 +119,7 @@ describe('RuntimeService', () => {
                     provide: ConfigSourceService,
                     useValue: {
                         loadSiteConfig,
+                        prefetchRoute,
                         loadDebugWorkspacePageConfig: jasmine.createSpy('loadDebugWorkspacePageConfig').and.resolveTo(null),
                         loadDebugWorkspaceComponents: jasmine.createSpy('loadDebugWorkspaceComponents').and.resolveTo(null),
                         loadDebugWorkspaceCombos: jasmine.createSpy('loadDebugWorkspaceCombos').and.resolveTo(null),
@@ -211,6 +214,19 @@ describe('RuntimeService', () => {
             pageId: 'servicios',
             rootIds: ['servicios-root'],
             modalRootIds: expectedModalRootIds,
+        });
+    });
+
+    it('prefetches sibling routes after a successful draft bootstrap', async () => {
+        const service = TestBed.inject(RuntimeService);
+
+        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com');
+        await service.initialize('es');
+
+        expect(prefetchRoute).toHaveBeenCalledOnceWith('pamelabetancourt.com', {
+            pageId: 'servicios',
+            lang: 'es',
+            path: '/servicios',
         });
     });
 

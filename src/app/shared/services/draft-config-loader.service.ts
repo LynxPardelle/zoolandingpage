@@ -19,9 +19,62 @@ import {
 import { environment } from '@/environments/environment';
 import { Injectable } from '@angular/core';
 
+type TDraftCacheEntry<T> = {
+    readonly expiresAt: number;
+    readonly value: Promise<T | null>;
+};
+
 @Injectable({ providedIn: 'root' })
 export class DraftConfigLoaderService {
-    private readonly debugWorkspaceBase = `${ String(environment.drafts.basePath ?? 'assets/drafts').replace(/\/$/, '') }/_debug/debug-workspace`;
+    private readonly draftCacheTtlMs = 5000;
+    private readonly debugWorkspaceBase = `${ String(environment.drafts.basePath ?? 'drafts').replace(/\/$/, '') }/_debug/debug-workspace`;
+    private readonly siteConfigCache = new Map<string, TDraftCacheEntry<TDraftSiteConfigPayload>>();
+    private readonly pageConfigCache = new Map<string, TDraftCacheEntry<TPageConfigPayload>>();
+    private readonly componentsCache = new Map<string, TDraftCacheEntry<TComponentsPayload>>();
+    private readonly variablesCache = new Map<string, TDraftCacheEntry<TVariablesPayload>>();
+    private readonly combosCache = new Map<string, TDraftCacheEntry<TAngoraCombosPayload>>();
+    private readonly i18nCache = new Map<string, TDraftCacheEntry<TI18nPayload>>();
+
+    private createDomainCacheKey(domain?: string): string {
+        return String(domain ?? '').trim().toLowerCase();
+    }
+
+    private createPageCacheKey(domain?: string, pageId?: string): string {
+        return `${ this.createDomainCacheKey(domain) }::${ String(pageId ?? '').trim() }`;
+    }
+
+    private createI18nCacheKey(domain?: string, pageId?: string, lang?: string): string {
+        return `${ this.createPageCacheKey(domain, pageId) }::${ String(lang ?? '').trim().toLowerCase() }`;
+    }
+
+    private isWarmCacheEntry<T>(cache: Map<string, TDraftCacheEntry<T>>, key: string): boolean {
+        const cached = cache.get(key);
+        return !!cached && cached.expiresAt > Date.now();
+    }
+
+    private getCachedValue<T>(
+        cache: Map<string, TDraftCacheEntry<T>>,
+        key: string,
+        loader: () => Promise<T | null>,
+    ): Promise<T | null> {
+        const now = Date.now();
+        const cached = cache.get(key);
+        if (cached && cached.expiresAt > now) {
+            return cached.value;
+        }
+
+        const value = loader().catch((error) => {
+            cache.delete(key);
+            throw error;
+        });
+
+        cache.set(key, {
+            expiresAt: now + this.draftCacheTtlMs,
+            value,
+        });
+
+        return value;
+    }
 
     private isRecord(value: unknown): value is Record<string, unknown> {
         return !!value && typeof value === 'object' && !Array.isArray(value);
@@ -44,7 +97,7 @@ export class DraftConfigLoaderService {
     }
 
     private getDomainBase(domain?: string): string {
-        const base = String(environment.drafts.basePath ?? 'assets/drafts').replace(/\/$/, '');
+        const base = String(environment.drafts.basePath ?? 'drafts').replace(/\/$/, '');
         const d = String(domain ?? '').trim();
         if (!d) {
             return '';
@@ -202,15 +255,56 @@ export class DraftConfigLoaderService {
         });
     }
 
+    hasWarmSiteConfig(domain?: string): boolean {
+        return this.isWarmCacheEntry(this.siteConfigCache, this.createDomainCacheKey(domain));
+    }
+
+    hasWarmPagePayloads(opts?: { domain?: string; pageId?: string; lang?: string }): boolean {
+        const pageKey = this.createPageCacheKey(opts?.domain, opts?.pageId);
+        const langKey = this.createI18nCacheKey(opts?.domain, opts?.pageId, opts?.lang);
+
+        return this.isWarmCacheEntry(this.pageConfigCache, pageKey)
+            && this.isWarmCacheEntry(this.componentsCache, pageKey)
+            && this.isWarmCacheEntry(this.variablesCache, pageKey)
+            && this.isWarmCacheEntry(this.combosCache, pageKey)
+            && (!String(opts?.lang ?? '').trim() || this.isWarmCacheEntry(this.i18nCache, langKey));
+    }
+
+    async prefetchSiteConfig(domain?: string): Promise<void> {
+        await this.loadSiteConfig(domain);
+    }
+
+    async prefetchPagePayloads(opts?: { domain?: string; pageId?: string; lang?: string }): Promise<void> {
+        const domain = String(opts?.domain ?? '').trim();
+        const pageId = String(opts?.pageId ?? '').trim();
+        const lang = String(opts?.lang ?? '').trim();
+
+        if (!domain || !pageId) {
+            return;
+        }
+
+        await this.prefetchSiteConfig(domain);
+        await Promise.all([
+            this.loadPageConfig(domain, pageId),
+            this.loadComponents(domain, pageId),
+            this.loadVariables(domain, pageId),
+            this.loadAngoraCombos(domain, pageId),
+            lang ? this.loadI18n(domain, pageId, lang) : Promise.resolve(null),
+        ]);
+    }
+
     async loadSiteConfig(domain?: string): Promise<TDraftSiteConfigPayload | null> {
         const domainBase = this.getDomainBase(domain);
         if (!domainBase) {
             return null;
         }
 
-        const url = `${ domainBase }/site-config.json`;
-        const payload = await this.getJson<TDraftSiteConfigPayload>(url);
-        return isDraftSiteConfigPayload(payload) ? payload : null;
+        const key = this.createDomainCacheKey(domain);
+        return this.getCachedValue(this.siteConfigCache, key, async () => {
+            const url = `${ domainBase }/site-config.json`;
+            const payload = await this.getJson<TDraftSiteConfigPayload>(url);
+            return isDraftSiteConfigPayload(payload) ? payload : null;
+        });
     }
 
     async loadPageConfig(domain?: string, pageId?: string): Promise<TPageConfigPayload | null> {
@@ -219,9 +313,12 @@ export class DraftConfigLoaderService {
             return null;
         }
 
-        const url = `${ draftBase }/page-config.json`;
-        const payload = await this.getJson<TPageConfigPayload>(url);
-        return isPageConfigPayload(payload) ? payload : null;
+        const key = this.createPageCacheKey(domain, pageId);
+        return this.getCachedValue(this.pageConfigCache, key, async () => {
+            const url = `${ draftBase }/page-config.json`;
+            const payload = await this.getJson<TPageConfigPayload>(url);
+            return isPageConfigPayload(payload) ? payload : null;
+        });
     }
 
     async loadComponents(domain?: string, pageId?: string): Promise<TComponentsPayload | null> {
@@ -233,12 +330,15 @@ export class DraftConfigLoaderService {
             return null;
         }
 
-        const [sitePayload, pagePayload] = await Promise.all([
-            this.loadComponentsPayload(`${ domainBase }/components.json`),
-            this.loadComponentsPayload(`${ draftBase }/components.json`),
-        ]);
+        const key = this.createPageCacheKey(domain, pageId);
+        return this.getCachedValue(this.componentsCache, key, async () => {
+            const [sitePayload, pagePayload] = await Promise.all([
+                this.loadComponentsPayload(`${ domainBase }/components.json`),
+                this.loadComponentsPayload(`${ draftBase }/components.json`),
+            ]);
 
-        return this.mergeComponentsPayloads(normalizedDomain, normalizedPageId, [sitePayload, pagePayload]);
+            return this.mergeComponentsPayloads(normalizedDomain, normalizedPageId, [sitePayload, pagePayload]);
+        });
     }
 
     async loadVariables(domain?: string, pageId?: string): Promise<TVariablesPayload | null> {
@@ -250,19 +350,22 @@ export class DraftConfigLoaderService {
             return null;
         }
 
-        const [sitePayload, pagePayload] = await Promise.all([
-            this.getJson<TVariablesPayload>(`${ domainBase }/variables.json`),
-            this.getJson<TVariablesPayload>(`${ draftBase }/variables.json`),
-        ]);
+        const key = this.createPageCacheKey(domain, pageId);
+        return this.getCachedValue(this.variablesCache, key, async () => {
+            const [sitePayload, pagePayload] = await Promise.all([
+                this.getJson<TVariablesPayload>(`${ domainBase }/variables.json`),
+                this.getJson<TVariablesPayload>(`${ draftBase }/variables.json`),
+            ]);
 
-        return this.mergeVariablesPayloads(
-            normalizedDomain,
-            normalizedPageId,
-            [
-                isVariablesPayload(sitePayload) ? sitePayload : null,
-                isVariablesPayload(pagePayload) ? pagePayload : null,
-            ],
-        );
+            return this.mergeVariablesPayloads(
+                normalizedDomain,
+                normalizedPageId,
+                [
+                    isVariablesPayload(sitePayload) ? sitePayload : null,
+                    isVariablesPayload(pagePayload) ? pagePayload : null,
+                ],
+            );
+        });
     }
 
     async loadAngoraCombos(domain?: string, pageId?: string): Promise<TAngoraCombosPayload | null> {
@@ -274,19 +377,22 @@ export class DraftConfigLoaderService {
             return null;
         }
 
-        const [sitePayload, pagePayload] = await Promise.all([
-            this.getJson<TAngoraCombosPayload>(`${ domainBase }/angora-combos.json`),
-            this.getJson<TAngoraCombosPayload>(`${ draftBase }/angora-combos.json`),
-        ]);
+        const key = this.createPageCacheKey(domain, pageId);
+        return this.getCachedValue(this.combosCache, key, async () => {
+            const [sitePayload, pagePayload] = await Promise.all([
+                this.getJson<TAngoraCombosPayload>(`${ domainBase }/angora-combos.json`),
+                this.getJson<TAngoraCombosPayload>(`${ draftBase }/angora-combos.json`),
+            ]);
 
-        return this.mergeCombosPayloads(
-            normalizedDomain,
-            normalizedPageId,
-            [
-                isAngoraCombosPayload(sitePayload) ? sitePayload : null,
-                isAngoraCombosPayload(pagePayload) ? pagePayload : null,
-            ],
-        );
+            return this.mergeCombosPayloads(
+                normalizedDomain,
+                normalizedPageId,
+                [
+                    isAngoraCombosPayload(sitePayload) ? sitePayload : null,
+                    isAngoraCombosPayload(pagePayload) ? pagePayload : null,
+                ],
+            );
+        });
     }
 
     async loadDebugWorkspacePageConfig(): Promise<TPageConfigPayload | null> {
@@ -310,24 +416,27 @@ export class DraftConfigLoaderService {
             return null;
         }
 
-        const candidates = getLocaleCandidates(lang);
+        const key = this.createI18nCacheKey(domain, pageId, lang);
+        return this.getCachedValue(this.i18nCache, key, async () => {
+            const candidates = getLocaleCandidates(lang);
 
-        for (const candidate of candidates) {
-            const [sitePayload, pagePayload] = await Promise.all([
-                this.getJson<TI18nPayload>(`${ domainBase }/i18n/${ encodeURIComponent(candidate) }.json`),
-                this.getJson<TI18nPayload>(`${ base }/i18n/${ encodeURIComponent(candidate) }.json`),
-            ]);
+            for (const candidate of candidates) {
+                const [sitePayload, pagePayload] = await Promise.all([
+                    this.getJson<TI18nPayload>(`${ domainBase }/i18n/${ encodeURIComponent(candidate) }.json`),
+                    this.getJson<TI18nPayload>(`${ base }/i18n/${ encodeURIComponent(candidate) }.json`),
+                ]);
 
-            const merged = this.mergeI18nPayloads(domain, pageId, candidate, [
-                isI18nPayload(sitePayload) ? sitePayload : null,
-                isI18nPayload(pagePayload) ? pagePayload : null,
-            ]);
+                const merged = this.mergeI18nPayloads(domain, pageId, candidate, [
+                    isI18nPayload(sitePayload) ? sitePayload : null,
+                    isI18nPayload(pagePayload) ? pagePayload : null,
+                ]);
 
-            if (merged) {
-                return merged;
+                if (merged) {
+                    return merged;
+                }
             }
-        }
 
-        return null;
+            return null;
+        });
     }
 }
