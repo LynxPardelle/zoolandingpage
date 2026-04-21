@@ -16,6 +16,9 @@
     "config:push": "node tools/config-draft-sync.mjs push",
     "config:create": "node tools/config-draft-sync.mjs create",
     "config:publish": "node tools/config-draft-sync.mjs publish",
+    "drafts:smoke": "node tools/draft-smoke-check.mjs",
+    "test:draft-smoke": "node --test tools/tests/draft-smoke-check.spec.mjs",
+    "test:draft-context": "npm run build && node --test tools/tests/draft-local-context.spec.mjs",
     "ci:budgets": "ng build --configuration production",
     "ci:perf": "node tools/perf-baseline.mjs"
   },
@@ -62,6 +65,7 @@
     "karma-coverage": "^2.2.1",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
+    "playwright-core": "^1.59.1",
     "typescript": "~5.8.2"
   }
 }

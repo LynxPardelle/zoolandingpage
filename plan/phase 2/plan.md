@@ -75,15 +75,15 @@ This phase turns the Angular app into a generic shell that renders landing pages
 - Drafts live in gitignored files.
 - Local development should default to drafts (to emulate API loading).
 - Suggested structure (public assets):
-  - /public/assets/drafts/{domain}/{pageId}/page-config.json
-  - /public/assets/drafts/{domain}/{pageId}/components.json
-  - /public/assets/drafts/{domain}/{pageId}/angora-combos.json
-  - /public/assets/drafts/{domain}/{pageId}/variables.json
-  - /public/assets/drafts/{domain}/{pageId}/i18n/en.json
-  - /public/assets/drafts/{domain}/{pageId}/i18n/es.json
-  - /public/assets/drafts/{domain}/{pageId}/seo.json
-  - /public/assets/drafts/{domain}/{pageId}/structured-data.json
-  - /public/assets/drafts/{domain}/{pageId}/analytics-config.json
+  - /drafts/{domain}/{pageId}/page-config.json
+  - /drafts/{domain}/{pageId}/components.json
+  - /drafts/{domain}/{pageId}/angora-combos.json
+  - /drafts/{domain}/{pageId}/variables.json
+  - /drafts/{domain}/{pageId}/i18n/en.json
+  - /drafts/{domain}/{pageId}/i18n/es.json
+  - /drafts/{domain}/{pageId}/seo.json
+  - /drafts/{domain}/{pageId}/structured-data.json
+  - /drafts/{domain}/{pageId}/analytics-config.json
 - Current TS consts in ConfigurationsOrchestratorService migrate to drafts.
 
 ## Phase 2 Structure

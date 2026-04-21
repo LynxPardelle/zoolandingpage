@@ -10,6 +10,7 @@ By the end of this guide you should be able to:
 2. Open a specific draft by `domain` and `pageId`.
 3. Understand the difference between local drafts, authoring drafts, and published runtime state.
 4. Know where to look when a landing page change is not showing up.
+5. Know where the canonical AI and developer guidance lives before starting new work.
 
 ## Prerequisites
 
@@ -38,7 +39,7 @@ npm start
 Before touching any landing page config, keep these states separate:
 
 1. `Local draft files`
-   Files under `public/assets/drafts/{domain}/...` in your working copy.
+   Files under `drafts/{domain}/...` in your working copy, served locally at `/drafts/...`.
 2. `Authoring draft state`
    The draft stored in the authoring API for a domain.
 3. `Published runtime state`
@@ -59,8 +60,11 @@ You can swap only the values after `draftDomain` and `draftPageId` to move betwe
 ## Learn the draft file layout
 
 ```text
-public/assets/drafts/
+drafts/
   {domain}/
+      ai_notes/
+      findings/
+      errors-reports/
     site-config.json
     components.json
     variables.json
@@ -80,17 +84,32 @@ Domain-root files are shared defaults. Page-root files override them for one rou
 
 Read these in order:
 
-1. [02-architecture.md](02-architecture.md)
-2. [03-development-guide.md](03-development-guide.md)
-3. [11-draft-lifecycle.md](11-draft-lifecycle.md)
-4. [12-public-assets-and-file-uploads.md](12-public-assets-and-file-uploads.md)
-5. [api-driven-config/README.md](api-driven-config/README.md)
+1. [../ai-notes/README.md](../ai-notes/README.md)
+2. [02-architecture.md](02-architecture.md)
+3. [03-development-guide.md](03-development-guide.md)
+4. [11-draft-lifecycle.md](11-draft-lifecycle.md)
+5. [12-public-assets-and-file-uploads.md](12-public-assets-and-file-uploads.md)
+6. [api-driven-config/README.md](api-driven-config/README.md)
 
 If you are touching analytics or stats integrations, also read:
 
 - [05-analytics-tracking.md](05-analytics-tracking.md)
 - [08-data-dropper-lambda.md](08-data-dropper-lambda.md)
 - [09-quick-stats-lambda.md](09-quick-stats-lambda.md)
+
+## AI Notes Workflow
+
+Before new draft or feature work:
+
+1. Open [../Codex.md](../Codex.md).
+2. Open [../ai-notes/README.md](../ai-notes/README.md).
+3. Read the relevant committed note and inspect local draft `ai_notes/`, `findings/`, and `errors-reports/` folders when they exist before editing files.
+
+After durable work:
+
+1. Distill reusable guidance into `ai-notes/` or create a new note from a template.
+2. Keep draft-specific scratch or temporary investigation output in `drafts/{domain}/ai_notes/`, `drafts/{domain}/findings/`, or `drafts/{domain}/errors-reports/`.
+3. Keep repo-level local-only scratch untracked if you need it.
 
 ## First useful commands
 
@@ -100,7 +119,7 @@ Inspect the draft CLI:
 node tools/config-draft-sync.mjs help
 ```
 
-Pull the current authoring draft into your local `public/assets/drafts` tree:
+Pull the current authoring draft into your local `drafts` tree:
 
 ```bash
 node tools/config-draft-sync.mjs pull --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx
@@ -122,7 +141,7 @@ node tools/config-draft-sync.mjs publish --endpoint=https://api.zoolandingpage.c
 
 Use this quick decision table:
 
-- Local preview is wrong: check `public/assets/drafts`, the draft URL, and runtime validation errors.
+- Local preview is wrong: check `drafts`, the draft URL, and runtime validation errors.
 - Pull or push fails: check the authoring endpoint, CLI arguments, and the current package shape.
 - Publish succeeds but live content is stale: compare runtime bundle output with the deployed frontend/app behavior.
 - Images or media do not load: check the public asset URL, upload key, CDN path, and bucket/CORS configuration.

@@ -13,6 +13,6 @@ export const environment: TEnvironment = {
   configApiUrl: 'https://nxk92p5uzc.execute-api.us-east-1.amazonaws.com',
   drafts: {
     enabled: true,
-    basePath: 'assets/drafts',
+    basePath: 'drafts',
   }
 } as const;

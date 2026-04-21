@@ -7,7 +7,7 @@ This guide covers the current day-to-day development workflow for Zoolandingpage
 The frontend can work in two different config modes:
 
 1. `Local draft mode`
-   The app loads JSON from `public/assets/drafts/{domain}/...`.
+   The app loads JSON from `drafts/{domain}/...`, served locally at `/drafts/...`.
 2. `Runtime API mode`
    The app loads one `TRuntimeBundlePayload` from the runtime API.
 
@@ -16,11 +16,21 @@ For most feature work, local draft mode is the safest place to start.
 ## Recommended local workflow
 
 1. Start the app locally.
-2. Open the target draft with explicit `draftDomain` and `draftPageId` query parameters.
-3. Edit the local draft files under `public/assets/drafts`.
-4. Refresh and verify the page locally.
-5. If needed, pull from or push to the authoring API with `tools/config-draft-sync.mjs`.
-6. Publish only after the authoring draft is correct.
+2. Read [../ai-notes/README.md](../ai-notes/README.md) plus the relevant committed note before making changes.
+3. Open the target draft with explicit `draftDomain` and `draftPageId` query parameters.
+4. Inspect `drafts/{domain}/ai_notes/`, `drafts/{domain}/findings/`, and `drafts/{domain}/errors-reports/` if they exist for the draft you are changing.
+5. Edit the local draft files under `drafts`.
+6. Refresh and verify the page locally.
+7. If needed, pull from or push to the authoring API with `tools/config-draft-sync.mjs`.
+8. Publish only after the authoring draft is correct.
+9. Distill durable learnings back into the canonical AI notes before closing the task.
+
+## Canonical AI Notes Workflow
+
+- Curated long-lived guidance lives in [../ai-notes/README.md](../ai-notes/README.md).
+- `drafts/{domain}/ai_notes/`, `drafts/{domain}/findings/`, and `drafts/{domain}/errors-reports/` hold local draft-specific history, investigation, and incident notes.
+- If repo-level local-only scratch is needed, keep it untracked under `devonly/`.
+- If a task discovers a reusable baseline, routing rule, embed limitation, readiness gate, or workflow improvement, promote it into the canonical folder.
 
 ## Local draft preview
 
@@ -45,8 +55,11 @@ If you omit `draftDomain` on localhost, you can end up exercising fallback behav
 Use the domain root for shared defaults and the page root for route-specific data.
 
 ```text
-public/assets/drafts/
+drafts/
   {domain}/
+   ai_notes/
+   findings/
+   errors-reports/
     site-config.json
     components.json
     variables.json
@@ -134,7 +147,7 @@ node tools/config-draft-sync.mjs publish --endpoint=https://api.zoolandingpage.c
 
 Use this order when a change is “missing”:
 
-1. Check the local file under `public/assets/drafts`.
+1. Check the local file under `drafts`.
 2. Check whether the authoring draft was pushed.
 3. Check whether that draft was published.
 4. Check the runtime bundle response for the live domain.

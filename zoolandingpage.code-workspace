@@ -26,6 +26,7 @@
     "typescript.suggest.includeCompletionsForImportStatements": true,
     "typescript.suggest.includeCompletionsForModuleExports": true,
     "angular.experimental-ivy": true,
+    "chat.promptFilesRecommendations": true,
 
     // Configuración de archivos
     "files.associations": {

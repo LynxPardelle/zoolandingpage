@@ -10,7 +10,7 @@ This doc describes how to author `TGenericComponent` definitions so they are com
 
 - Type union: `src/app/shared/components/wrapper-orchestrator/wrapper-orchestrator.types.ts`
 - Authored storage: `components.json` now stores `components` as an array of component objects, not a map keyed by id.
-- Draft scope: shared site components can live at `public/assets/drafts/{domain}/components.json`, while page-owned components stay at `public/assets/drafts/{domain}/{pageId}/components.json`.
+- Draft scope: shared site components can live at `drafts/{domain}/components.json`, while page-owned components stay at `drafts/{domain}/{pageId}/components.json`.
 
 ## Common fields
 
@@ -158,7 +158,7 @@ Runtime note:
 
 - Child composition is ID-only.
 - `components.json` should use string IDs so payloads stay serializable, stable, and export-safe.
-- Debug workspace tooling is now authored as a separate payload set under `public/assets/drafts/_debug/debug-workspace/` or the equivalent API endpoints. Keep those component IDs out of active page payloads unless the page explicitly owns the same UI.
+- Debug workspace tooling is now authored as a separate payload set under `drafts/_debug/debug-workspace/` or the equivalent API endpoints. Keep those component IDs out of active page payloads unless the page explicitly owns the same UI.
 
 ## Interaction scopes and inputs
 

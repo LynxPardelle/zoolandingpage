@@ -10,7 +10,7 @@ const CONFIG_ENDPOINTS = new Set([
 ]);
 
 const getDraftUrl = (endpoint: string, params: URLSearchParams): string => {
-    const base = String(environment.drafts.basePath ?? 'assets/drafts').replace(/^\/+/, '');
+    const base = String(environment.drafts.basePath ?? 'drafts').replace(/^\/+/, '');
     const domain = String(params.get('domain') ?? '').trim();
     const pageId = String(params.get('pageId') ?? '').trim();
 

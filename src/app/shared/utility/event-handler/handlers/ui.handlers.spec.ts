@@ -118,6 +118,15 @@ describe('navigateToUrlHandler', () => {
         expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/acerca-de-mi?draftDomain=pamelabetancourt.com&debugWorkspace=true');
     });
 
+    it('should preserve the active draftDomain on internal navigation when the target omits it', async () => {
+        const handler = TestBed.runInInjectionContext(() => navigateToUrlHandler());
+
+        handler.handle(context, ['/servicios']);
+        await Promise.resolve();
+
+        expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+    });
+
     it('should avoid double-encoding unicode internal routes', async () => {
         const handler = TestBed.runInInjectionContext(() => navigateToUrlHandler());
 
@@ -194,6 +203,7 @@ describe('openModalHandler', () => {
 
 describe('whatsapp handlers', () => {
     let analytics: jasmine.SpyObj<AnalyticsService>;
+    let language: LanguageService;
     let variables: VariableStoreService;
     let context: EventExecutionContext;
     let openSpy: jasmine.Spy<(url?: string | URL, target?: string, features?: string) => Window | null>;
@@ -211,6 +221,8 @@ describe('whatsapp handlers', () => {
             ]
         });
 
+        language = TestBed.inject(LanguageService);
+        language.configureLanguages(['es'], { defaultLanguage: 'es', requestedLanguage: 'es' });
         variables = TestBed.inject(VariableStoreService);
         variables.setPayload({
             version: 1,

@@ -18,6 +18,8 @@ import {
   ViewChild,
   ViewContainerRef
 } from '@angular/core';
+import { NavigationEnd, Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { resolveLocaleMapValue } from '../../i18n/locale.utils';
 import { AngoraCombosService } from '../../services/angora-combos.service';
 import { LanguageService } from '../../services/language.service';
@@ -45,6 +47,7 @@ export class GenericDropdown {
   private readonly vcr = inject(ViewContainerRef);
   private readonly combos = inject(AngoraCombosService);
   private readonly language = inject(LanguageService);
+  private readonly router = inject(Router, { optional: true });
   private readonly appRef = inject(ApplicationRef);
   private readonly injector = inject(Injector);
   private overlayRef: OverlayRef | null = null;
@@ -95,11 +98,28 @@ export class GenericDropdown {
   readonly activeIndex = signal<number>(-1); // exposed for aria-activedescendant
   private menuItems: HTMLElement[] = [];
   private triggerBtn!: HTMLButtonElement;
+  private navigationSubscription: Subscription | null = null;
   @Input('menuTpl') menuTpl!: TemplateRef<unknown>; // scaffold placeholder (template reference)
   @ViewChild('defaultMenuTpl', { static: true }) private defaultMenuTpl!: TemplateRef<MenuTemplateContext>;
+
+  constructor() {
+    this.navigationSubscription = this.router?.events.subscribe((event) => {
+      if (!(event instanceof NavigationEnd) || !this.opened()) {
+        return;
+      }
+
+      this.close(false);
+    }) ?? null;
+  }
+
   ngAfterViewInit(): void {
     // capture trigger for focus restoration
     this.triggerBtn = this.host.nativeElement.querySelector('button[aria-haspopup]') as HTMLButtonElement;
+  }
+
+  ngOnDestroy(): void {
+    this.navigationSubscription?.unsubscribe();
+    this.navigationSubscription = null;
   }
 
   toggle(): void {
@@ -295,7 +315,7 @@ export class GenericDropdown {
     const root = this.renderMode() === 'inline'
       ? (this.inlineMenuRoot ?? document)
       : this.overlayRef?.overlayElement;
-    const list = root?.querySelectorAll('a[role="menuitem"]');
+    const list = root?.querySelectorAll(`a[role="${ this.itemRole() }"]`);
     this.menuItems = list ? (Array.from(list) as HTMLElement[]) : [];
     if (this.menuItems.length) {
       this.setActive(0);
@@ -313,7 +333,6 @@ export class GenericDropdown {
     this.menuItems.forEach((el, i) => {
       (el as HTMLElement).tabIndex = i === idx ? 0 : -1;
       if (i === idx) (el as HTMLElement).focus();
-      el.setAttribute('aria-selected', i === idx ? 'true' : 'false');
     });
   }
 

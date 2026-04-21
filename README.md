@@ -2,7 +2,7 @@
 
 Zoolandingpage is the Angular frontend for a config-driven landing page platform.
 
-In local development, the app renders draft JSON from `public/assets/drafts`. In production, it renders a published runtime bundle returned by the config runtime API. The same platform also integrates with a config authoring API, a public asset upload API, a raw analytics collector, and a quick-stats service.
+In local development, the app renders draft JSON from the repo-root `drafts/` tree, served at `/drafts/...`. In production, it renders a published runtime bundle returned by the config runtime API. The same platform also integrates with a config authoring API, a public asset upload API, a raw analytics collector, and a quick-stats service.
 
 ## What this repository owns
 
@@ -25,7 +25,7 @@ In local development, the app renders draft JSON from `public/assets/drafts`. In
 
 These three states are the most important concept for new contributors:
 
-1. `Local draft files`: JSON files under `public/assets/drafts/{domain}/...` that you edit in the repo.
+1. `Local draft files`: JSON files under `drafts/{domain}/...` that you edit in the repo.
 2. `Authoring draft state`: the draft currently stored in the config authoring API.
 3. `Published runtime state`: the version the runtime API returns to live sites.
 
@@ -54,6 +54,8 @@ http://127.0.0.1:4200/?draftDomain=test.zoolandingpage.com.mx&draftPageId=defaul
 
 If your dev server is exposed on another port through Docker, keep the same query parameters and switch only the host/port.
 
+Draft-specific scratch material now lives beside the payloads under `drafts/{domain}/ai_notes/`, `drafts/{domain}/findings/`, and `drafts/{domain}/errors-reports/`. Reusable guidance belongs in `ai-notes/`.
+
 ## Core workflows
 
 ### Inspect the draft CLI
@@ -73,6 +75,30 @@ Supported commands today:
 - `create`
 - `publish`
 
+### Smoke-check local drafts against live aliases
+
+When a local dev server is already running, you can run the browser-based draft smoke check:
+
+```bash
+node tools/draft-smoke-check.mjs --local-base-url=http://127.0.0.1:4200
+```
+
+Or use the package script:
+
+```bash
+npm run drafts:smoke -- --local-base-url=http://127.0.0.1:4200
+```
+
+What it checks:
+
+- every local draft route renders a title and a first heading
+- the page does not fall into the `Unresolved draft` fallback
+- any draft with a managed `*.zoolandingpage.com.mx` alias matches its live counterpart for title, first heading, and key header controls
+
+If you save the structured report with `--output=...`, each route now includes both desktop and mobile viewport results.
+
+If Chromium is not installed in a default location, pass `--browser-path=...`.
+
 The package scripts in `package.json` wrap the same commands, but the direct `node tools/config-draft-sync.mjs ...` form is the clearest option when you need explicit arguments.
 
 ### Typical round-trip
@@ -82,6 +108,8 @@ node tools/config-draft-sync.mjs pull --endpoint=https://api.zoolandingpage.com.
 node tools/config-draft-sync.mjs push --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --updated-by="Your Name"
 node tools/config-draft-sync.mjs publish --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --updated-by="Your Name"
 ```
+
+If the custom domain `https://api.zoolandingpage.com.mx/config-authoring` resets the connection during publish, retry through the raw API Gateway authoring endpoint documented in [docs/06-deployment.md](docs/06-deployment.md) to separate front-door transport problems from authoring-Lambda problems.
 
 For the full workflow, read [docs/11-draft-lifecycle.md](docs/11-draft-lifecycle.md).
 
@@ -100,12 +128,13 @@ For the current request shape, upload sequence, and how to reference the returne
 Start here in this order:
 
 1. [docs/DEVELOPER_ONBOARDING.md](docs/DEVELOPER_ONBOARDING.md)
-2. [docs/02-architecture.md](docs/02-architecture.md)
-3. [docs/03-development-guide.md](docs/03-development-guide.md)
-4. [docs/11-draft-lifecycle.md](docs/11-draft-lifecycle.md)
-5. [docs/12-public-assets-and-file-uploads.md](docs/12-public-assets-and-file-uploads.md)
-6. [docs/api-driven-config/README.md](docs/api-driven-config/README.md)
-7. [docs/06-deployment.md](docs/06-deployment.md)
+2. [ai-notes/README.md](ai-notes/README.md)
+3. [docs/02-architecture.md](docs/02-architecture.md)
+4. [docs/03-development-guide.md](docs/03-development-guide.md)
+5. [docs/11-draft-lifecycle.md](docs/11-draft-lifecycle.md)
+6. [docs/12-public-assets-and-file-uploads.md](docs/12-public-assets-and-file-uploads.md)
+7. [docs/api-driven-config/README.md](docs/api-driven-config/README.md)
+8. [docs/06-deployment.md](docs/06-deployment.md)
 
 Specialized references:
 
@@ -117,7 +146,11 @@ Specialized references:
 ## Important folders
 
 ```text
-public/assets/drafts/               Local draft source of truth for development
+drafts/                            Local draft source of truth for development
+drafts/{domain}/ai_notes/          Local draft-specific notes and historical context
+drafts/{domain}/findings/          Local draft-specific findings and investigation
+drafts/{domain}/errors-reports/    Local draft-specific incident notes when needed
+ai-notes/                          Canonical reusable workflow and knowledge base
 src/app/shared/services/            Config, analytics, SEO, and runtime services
 src/app/shared/types/               Payload contracts used by the frontend runtime
 tools/config-draft-sync.mjs         Local CLI for pack/pull/push/create/publish
@@ -139,7 +172,7 @@ Related platform repos used by this frontend:
 
 ## Contributing
 
-When you update payloads, workflows, or endpoint behavior, update documentation in the same change. The main repo should remain the source of truth for platform-level behavior; the Lambda repos should stay focused on their own contracts and deployment details.
+When you update payloads, workflows, or endpoint behavior, update documentation in the same change. Start with [ai-notes/README.md](ai-notes/README.md) plus the relevant committed note before new work, inspect local `drafts/{domain}/ai_notes/`, `drafts/{domain}/findings/`, and `drafts/{domain}/errors-reports/` when a task depends on an existing draft, and distill only reusable learnings back into the canonical folder before closing the task. Finish draft-affecting work with three audit passes and browser QA in desktop and mobile viewports. The main repo should remain the source of truth for platform-level behavior; the Lambda repos should stay focused on their own contracts and deployment details.
 
 ## License
 

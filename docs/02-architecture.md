@@ -8,7 +8,7 @@ Zoolandingpage is a config-driven Angular application.
 
 The same landing page can exist in three forms:
 
-1. `Local draft files` in the repo under `public/assets/drafts/{domain}/...`.
+1. `Local draft files` in the repo under `drafts/{domain}/...`.
 2. `Authoring draft state` stored by the config authoring API.
 3. `Published runtime state` returned by the runtime API for live traffic.
 
@@ -45,7 +45,7 @@ The frontend renders the same internal component model in both local and product
 Browser URL
   -> draftDomain + draftPageId
   -> DraftRuntimeService
-  -> local files in public/assets/drafts/{domain}/...
+  -> local files in drafts/{domain}/... served at /drafts/...
   -> ConfigBootstrapService
   -> ConfigStoreService
   -> RuntimeService
@@ -143,8 +143,11 @@ These files define page roots, page SEO and analytics, page-specific component o
 ## Draft filesystem layout
 
 ```text
-public/assets/drafts/
+drafts/
   {domain}/
+    ai_notes/
+    findings/
+    errors-reports/
     site-config.json
     components.json
     variables.json
@@ -162,7 +165,7 @@ public/assets/drafts/
       components.json
 ```
 
-The local filesystem layout is still the authoring source of truth for developer and AI-assisted editing.
+The local filesystem layout is still the authoring source of truth for developer and AI-assisted editing. The `ai_notes/`, `findings/`, and `errors-reports/` folders are local draft-specific context only and are not part of the authoring transport contract.
 
 ## Transport contracts
 

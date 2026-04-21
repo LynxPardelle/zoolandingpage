@@ -18,7 +18,7 @@ Then use this folder as the reference layer.
 
 ### Authored local files
 
-The draft filesystem under `public/assets/drafts/{domain}/...`.
+The draft filesystem under `drafts/{domain}/...`, served locally at `/drafts/...`.
 
 ### Authoring transport
 

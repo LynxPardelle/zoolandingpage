@@ -6,6 +6,7 @@ import { WrapperOrchestrator } from '../../../shared/components/wrapper-orchestr
 import { AnalyticsService } from '../../../shared/services/analytics.service';
 import { ConfigStoreService } from '../../../shared/services/config-store.service';
 import { DraftRuntimeService } from '../../../shared/services/draft-runtime.service';
+import { VariableStoreService } from '../../../shared/services/variable-store.service';
 import { DebugWorkspaceComponent } from './debug-workspace.component';
 
 @Component({
@@ -46,6 +47,16 @@ describe('DebugWorkspaceComponent', () => {
                     provide: ConfigStoreService,
                     useValue: {
                         validationIssues: () => [],
+                    },
+                },
+                {
+                    provide: VariableStoreService,
+                    useValue: {
+                        getString: (path: string) => ({
+                            'ui.debug.draftButtons.baseClasses': 'ank-border-1px ank-padding-8px',
+                            'ui.debug.draftButtons.selectedClasses': 'ank-bg-accentColor',
+                            'ui.debug.draftButtons.unselectedClasses': 'ank-bg-transparent',
+                        }[path] ?? ''),
                     },
                 },
                 {

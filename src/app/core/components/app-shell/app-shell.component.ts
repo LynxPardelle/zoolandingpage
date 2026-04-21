@@ -1,4 +1,5 @@
 import { RuntimeService } from "@/app/core/services/runtime.service";
+import { GenericProgressBarComponent } from "@/app/shared/components/generic-progress-bar";
 import { WrapperOrchestrator } from "@/app/shared/components/wrapper-orchestrator/wrapper-orchestrator.component";
 import { ConfigStoreService } from "@/app/shared/services/config-store.service";
 import { ConfigurationsOrchestratorService } from "@/app/shared/services/configurations-orchestrator";
@@ -36,6 +37,7 @@ import { DebugWorkspaceComponent } from "../debug-workspace/debug-workspace.comp
   imports: [
     AsyncPipe,
     WrapperOrchestrator,
+    GenericProgressBarComponent,
     GenericModalComponent,
     GenericToastComponent,
     DebugWorkspaceComponent,
@@ -64,6 +66,7 @@ export class AppShellComponent {
   private readonly configStore = inject(ConfigStoreService);
   private readonly seo = inject(SeoMetadataService);
   readonly runtime = inject(RuntimeService);
+  readonly showNavigationProgress = this.runtime.showNavigationProgress;
 
   readonly rootComponentsIds = this.runtime.rootComponentsIds;
   readonly modalRootIds = this.runtime.modalRootIds;

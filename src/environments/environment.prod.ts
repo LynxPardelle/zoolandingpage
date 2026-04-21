@@ -12,6 +12,6 @@ export const environment: TEnvironment = {
   configApiUrl: 'https://api.zoolandingpage.com.mx',
   drafts: {
     enabled: false,
-    basePath: 'assets/drafts'
+    basePath: 'drafts'
   }
 } as const;

@@ -327,12 +327,7 @@ export class ConfigBootstrapService {
         );
 
         if (fallbackLang) {
-            const secondary = await this.loadI18n(domain, pageId, fallbackLang);
-            this.i18n.setTranslations(
-                secondary?.lang ?? fallbackLang,
-                secondary?.dictionary ?? {},
-                { cache: true, applyIfCurrent: false }
-            );
+            void this.prefetchFallbackLanguage(domain, pageId, fallbackLang);
         }
 
         this.i18n.enableAutoLoad();
@@ -594,6 +589,19 @@ export class ConfigBootstrapService {
                 return {};
             },
             { clearCache: true, reload: false }
+        );
+    }
+
+    private async prefetchFallbackLanguage(domain: string, pageId: string, lang: string): Promise<void> {
+        const payload = await this.loadI18n(domain, pageId, lang);
+        if (!payload) {
+            return;
+        }
+
+        this.i18n.setTranslations(
+            payload.lang ?? lang,
+            payload.dictionary ?? {},
+            { cache: true, applyIfCurrent: false }
         );
     }
 }

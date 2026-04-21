@@ -9,6 +9,8 @@ import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
+const DRAFTS_FOLDER_NAME = 'drafts';
+const LOCAL_NOTE_FOLDER_NAMES = new Set(['ai_notes', 'findings', 'errors-reports']);
 
 type TDraftRegistryEntry = {
   readonly domain: string;
@@ -25,8 +27,8 @@ function isDirectory(path: string): boolean {
 
 function resolveDraftsFolder(): string | null {
   const candidates = [
-    join(process.cwd(), 'public', 'assets', 'drafts'),
-    join(browserDistFolder, 'assets', 'drafts'),
+    join(process.cwd(), DRAFTS_FOLDER_NAME),
+    join(browserDistFolder, DRAFTS_FOLDER_NAME),
   ];
 
   return candidates.find((candidate) => existsSync(candidate) && isDirectory(candidate)) ?? null;
@@ -47,6 +49,8 @@ function listDraftRegistryEntries(): readonly TDraftRegistryEntry[] {
     const domainFolder = join(draftsFolder, domain);
     return readdirSync(domainFolder, { withFileTypes: true })
       .filter((entry) => entry.isDirectory())
+      .filter((entry) => !LOCAL_NOTE_FOLDER_NAMES.has(entry.name))
+      .filter((entry) => existsSync(join(domainFolder, entry.name, 'page-config.json')))
       .map((entry) => ({
         domain,
         pageId: entry.name,
@@ -73,6 +77,24 @@ const angularApp = new AngularNodeAppEngine();
 app.get('/api/debug/drafts', (_req, res) => {
   res.json({ drafts: listDraftRegistryEntries() });
 });
+
+const draftsFolder = resolveDraftsFolder();
+
+if (draftsFolder) {
+  app.use('/drafts', (req, res, next) => {
+    const segments = req.path.split('/').filter(Boolean);
+    if (segments.some((segment) => LOCAL_NOTE_FOLDER_NAMES.has(segment)) || req.path.endsWith('.md')) {
+      res.sendStatus(404);
+      return;
+    }
+
+    next();
+  }, express.static(draftsFolder, {
+    maxAge: '0',
+    index: false,
+    redirect: false,
+  }));
+}
 
 /**
  * Serve static files from /browser
