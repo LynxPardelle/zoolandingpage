@@ -221,7 +221,7 @@ async function inspectPage(context, targetUrl, timeoutMs) {
         const bodyText = document.body?.innerText || '';
         return (
           Boolean(title) &&
-          (Boolean(document.querySelector('main h1, main h2, main h3')) || /Unresolved draft/i.test(bodyText))
+          (Boolean(document.querySelector('h1, h2, h3')) || /Unresolved draft/i.test(bodyText))
         );
       },
       { timeout: timeoutMs }

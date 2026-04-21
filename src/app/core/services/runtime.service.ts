@@ -16,6 +16,7 @@ import { filter } from 'rxjs/operators';
 @Injectable({ providedIn: 'root' })
 export class RuntimeService {
     private readonly navigationProgressDelayMs = 120;
+    private readonly prefetchSiblingCap = 5;
     private readonly configBootstrap = inject(ConfigBootstrapService);
     private readonly configSource = inject(ConfigSourceService);
     private readonly orchestrator = inject(ConfigurationsOrchestratorService);
@@ -305,21 +306,26 @@ export class RuntimeService {
         }
 
         const seen = new Set<string>();
-        routes.forEach((route) => {
+        let prefetchCount = 0;
+        for (const route of routes) {
+            if (prefetchCount >= this.prefetchSiblingCap) {
+                break;
+            }
+
             const routePageId = String(route?.pageId ?? '').trim();
             const routePath = String(route?.path ?? '').trim();
             if (!routePageId || !routePath) {
-                return;
+                continue;
             }
 
             const routeKey = `${ routePageId }::${ routePath }`;
             if (seen.has(routeKey)) {
-                return;
+                continue;
             }
 
             seen.add(routeKey);
             if (routePageId === pageId && routePath === currentPath) {
-                return;
+                continue;
             }
 
             void this.configSource.prefetchRoute(domain, {
@@ -327,7 +333,8 @@ export class RuntimeService {
                 lang,
                 path: routePath,
             });
-        });
+            prefetchCount++;
+        }
     }
 
     private bindCssMutationRefresh(root: HTMLElement): void {

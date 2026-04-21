@@ -83,7 +83,7 @@ const draftsFolder = resolveDraftsFolder();
 if (draftsFolder) {
   app.use('/drafts', (req, res, next) => {
     const segments = req.path.split('/').filter(Boolean);
-    if (segments.some((segment) => LOCAL_NOTE_FOLDER_NAMES.has(segment)) || req.path.endsWith('.md')) {
+    if (segments.some((segment) => LOCAL_NOTE_FOLDER_NAMES.has(segment)) || req.path.toLowerCase().endsWith('.md')) {
       res.sendStatus(404);
       return;
     }
