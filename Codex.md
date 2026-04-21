@@ -5,6 +5,8 @@
 - Local draft source and scratch workspace: `drafts/`
 - Local draft-specific notes: `drafts/{domain}/ai_notes/`, `drafts/{domain}/findings/`, and `drafts/{domain}/errors-reports/`
 - Curated AI/developer guidance: [ai-notes/README.md](./ai-notes/README.md)
+- Portable repo-local skills: `.github/skills/`
+- Skill-selection guidance for installed general skills: [ai-notes/notes/copilot-skill-routing.md](./ai-notes/notes/copilot-skill-routing.md)
 - Committed reusable rules and procedures: [ai-notes/](./ai-notes/)
 - Note templates: [ai-notes/templates/](./ai-notes/templates/)
 - Optional local-only scratch: `devonly/`

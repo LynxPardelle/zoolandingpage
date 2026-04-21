@@ -6,9 +6,10 @@ Use this file as the repo-level entrypoint for future AI agents and new contribu
 
 1. Read [Codex.md](./Codex.md).
 2. Read [ai-notes/README.md](./ai-notes/README.md).
-3. Read the most relevant committed note under [ai-notes/](./ai-notes/).
-4. If the task touches an existing local draft, inspect `drafts/{domain}/ai_notes/`, `drafts/{domain}/findings/`, and `drafts/{domain}/errors-reports/` when those folders exist.
-5. Read the implementation docs that match the task, especially under [docs/](./docs/).
+3. Read [ai-notes/notes/copilot-skill-routing.md](./ai-notes/notes/copilot-skill-routing.md) when the task depends on choosing among installed general skills.
+4. Read the most relevant committed note under [ai-notes/](./ai-notes/).
+5. If the task touches an existing local draft, inspect `drafts/{domain}/ai_notes/`, `drafts/{domain}/findings/`, and `drafts/{domain}/errors-reports/` when those folders exist.
+6. Read the implementation docs that match the task, especially under [docs/](./docs/).
 
 ## Working Rules
 

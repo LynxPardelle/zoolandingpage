@@ -28,8 +28,10 @@ Last Reviewed: 2026-04-20 (Central Time)
 - Keep draft-specific history or investigation in `drafts/{domain}/ai_notes/`, `drafts/{domain}/findings/`, or `drafts/{domain}/errors-reports/`.
 - Keep repo-level raw, temporary, or operational output untracked if you need it locally; do not make it part of the committed canonical tree.
 - If a new reusable rule appears, update the appropriate committed note instead of letting it live only in chat history.
+- Prefer reusable repo-local skills under `.github/skills/` before relying on globally installed copies of the same workflow.
 - Prefer repo-local prompt files under `.github/prompts/` for repeated workflows before inventing fresh one-off instructions in chat.
 - Prefer repo-local custom agents under `.github/agents/` for repeated higher-order review roles.
+- Use `ai-notes/notes/copilot-skill-routing.md` when choosing among installed general skills so repo-local workflows stay primary.
 
 ## After Work
 
