@@ -48,3 +48,4 @@ These skills now live under `.github/skills/` so the repo carries its own reusab
 ## Reusable Rule
 
 - Prefer the repo-local frontend workflow skill, vendored repo-local skills, prompts, and custom agents first; then add only the narrowest global skill needed.
+- Shared prompts or other community AI tools that apply across multiple Zoolanding repos should live in `zoolandingpage/.github/prompts/` because this repo owns the workspace file.

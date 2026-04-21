@@ -24,9 +24,10 @@ This folder is the canonical home for reusable guidance that should survive beyo
 1. Read [../Codex.md](../Codex.md).
 2. Read [notes/agent-task-workflow.md](./notes/agent-task-workflow.md).
 3. Read [notes/copilot-skill-routing.md](./notes/copilot-skill-routing.md) when selecting among installed general skills for repo work.
-4. Read the most relevant file under [knowledge/](./knowledge/), [constraints/](./constraints/), [how-to/](./how-to/), [future-features-ideas/](./future-features-ideas/), or [error-reports/](./error-reports/).
-5. If the task depends on an existing local draft, inspect `drafts/{domain}/ai_notes/`, `drafts/{domain}/findings/`, and `drafts/{domain}/errors-reports/` when those folders exist.
-6. Use the templates in [templates/](./templates/) when creating new committed notes.
+4. Read [notes/workspace-ai-customization-rollout.md](./notes/workspace-ai-customization-rollout.md) when the task depends on shared workspace prompts, multi-repo AI tooling, or customization parity.
+5. Read the most relevant file under [knowledge/](./knowledge/), [constraints/](./constraints/), [how-to/](./how-to/), [future-features-ideas/](./future-features-ideas/), or [error-reports/](./error-reports/).
+6. If the task depends on an existing local draft, inspect `drafts/{domain}/ai_notes/`, `drafts/{domain}/findings/`, and `drafts/{domain}/errors-reports/` when those folders exist.
+7. Use the templates in [templates/](./templates/) when creating new committed notes.
 
 ## What Belongs Here
 
