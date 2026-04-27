@@ -84,7 +84,7 @@ Current custom-domain routing through CloudFront:
 - `/image-upload/presign*` -> `sots05zp69.execute-api.us-east-1.amazonaws.com` with origin path `/Prod`
 - the existing default behavior remains in place for older API routes already using the same distribution
 
-Use `https://api.zoolandingpage.com.mx` as the stable frontend base URL. Keep the raw execute-api endpoints only for low-level troubleshooting.
+Use `https://api.zoolandingpage.com.mx` as the stable browser-facing base URL. Keep the raw execute-api endpoints for low-level troubleshooting and the SSR-only `runtime-bundle` fallback base.
 
 Future redeploys can use the repo-local `samconfig.toml` files added to each Lambda repository.
 
@@ -345,10 +345,11 @@ For the production and test containers:
 
 1. Use the same image and the same codebase.
 2. Keep `configApiUrl` pointing to `https://api.zoolandingpage.com.mx`.
-3. Manage preview-domain routing through authored `site-config.json.aliases`, not frontend environment files.
-4. Point both domains to the Dokploy app.
-5. Keep `projects.zoolandingpage.architect.build.options.security.allowedHosts` aligned with every public host served by Dokploy, including branded alternate domains such as `*.lynxpardelle.com`.
-6. Validate that `https://test.zoolandingpage.com.mx` renders the same authored config as `https://zoolandingpage.com.mx`.
+3. For SSR containers, set `configApiServerFallbackUrl` to the raw runtime-read origin base so `runtime-bundle` can fall back if Node transport to the API custom domain resets before the browser hydrates.
+4. Manage preview-domain routing through authored `site-config.json.aliases`, not frontend environment files.
+5. Point both domains to the Dokploy app.
+6. Keep `projects.zoolandingpage.architect.build.options.security.allowedHosts` aligned with every public host served by Dokploy, including branded alternate domains such as `*.lynxpardelle.com`.
+7. Validate that `https://test.zoolandingpage.com.mx` renders the same authored config as `https://zoolandingpage.com.mx`.
 
 ### 8. Smoke tests
 

@@ -9,7 +9,7 @@ Source Of Truth:
 - Sanitized from verified platform recovery work completed on 2026-04-04
 
 Confidence: Medium to high
-Last Reviewed: 2026-04-20 (Central Time)
+Last Reviewed: 2026-04-27 (Central Time)
 
 ## Public Routing Lesson
 
@@ -22,6 +22,10 @@ Keep Systems Manager access available on the active host so recovery does not de
 ## Service Recovery Lesson
 
 After edge routing is repaired, verify the actual application service state on the active host before declaring the incident closed. A broken container image or missing local image can keep the site down even after the edge layer is healthy again.
+
+## SSR Runtime Fallback Lesson
+
+If browser fetches to the stable API custom domain are healthy but Node or undici requests from the SSR container intermittently fail with transport resets, keep the browser-facing base URL on the custom domain and add a server-only fallback for `runtime-bundle` to the raw runtime-read origin base. That isolates the issue to SSR transport without changing public browser URLs or alias resolution behavior.
 
 ## Security Rule
 
