@@ -128,6 +128,14 @@ const ALLOWED_LOOP_BINDING_TRANSFORMS = new Set([
 const isStringArray = (value: unknown): value is readonly string[] =>
     Array.isArray(value) && value.every((item) => typeof item === 'string');
 
+const isLocalizedKeywordValue = (value: unknown): boolean => {
+    if (typeof value === 'string') return true;
+    if (isStringArray(value)) return true;
+    if (!isRecord(value)) return false;
+
+    return Object.values(value).every((entry) => typeof entry === 'string' || isStringArray(entry));
+};
+
 const isLoopBindingSource = (value: unknown): boolean => {
     if (typeof value === 'string') return value.trim().length > 0;
     if (!isRecord(value)) return false;
@@ -325,6 +333,8 @@ const isDraftSiteSeoConfig = (value: unknown): value is TDraftSiteSeoConfig => {
     if (value['defaultImage'] !== undefined && typeof value['defaultImage'] !== 'string') return false;
     if (value['openGraph'] !== undefined && !isRecord(value['openGraph'])) return false;
     if (value['twitter'] !== undefined && !isRecord(value['twitter'])) return false;
+    if (value['keywords'] !== undefined && !isLocalizedKeywordValue(value['keywords'])) return false;
+    if (value['robots'] !== undefined && typeof value['robots'] !== 'string' && !isStringRecord(value['robots'])) return false;
     return true;
 };
 
@@ -1284,6 +1294,8 @@ export const isSeoPayload = (value: unknown): value is TSeoPayload => {
     if (value['openGraph'] !== undefined && !isRecord(value['openGraph'])) return false;
     if (value['twitter'] !== undefined && !isRecord(value['twitter'])) return false;
     if (value['canonical'] !== undefined && typeof value['canonical'] !== 'string' && !isStringRecord(value['canonical'])) return false;
+    if (value['keywords'] !== undefined && !isLocalizedKeywordValue(value['keywords'])) return false;
+    if (value['robots'] !== undefined && typeof value['robots'] !== 'string' && !isStringRecord(value['robots'])) return false;
     return true;
 };
 

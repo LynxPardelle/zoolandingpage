@@ -8,9 +8,11 @@ import type {
     TVariablesPayload,
 } from '@/app/shared/types/config-payloads.types';
 import { environment } from '@/environments/environment';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable, REQUEST } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+
+const RUNTIME_BUNDLE_ENDPOINT = 'runtime-bundle';
 
 @Injectable({ providedIn: 'root' })
 export class ConfigApiService {
@@ -34,8 +36,8 @@ export class ConfigApiService {
         return 'http://localhost';
     }
 
-    private buildUrl(path: string, params: Record<string, string | undefined>): string {
-        const base = String(environment.configApiUrl ?? environment.apiUrl ?? '').trim().replace(/\/$/, '');
+    private buildUrlForBase(baseUrl: string, path: string, params: Record<string, string | undefined>): string {
+        const base = String(baseUrl ?? '').trim().replace(/\/$/, '');
         const target = `${ base }/${ path.replace(/^\//, '') }`;
         const url = /^[a-zA-Z][a-zA-Z\d+.-]*:\/\//.test(base)
             ? new URL(target)
@@ -46,9 +48,78 @@ export class ConfigApiService {
         return url.toString();
     }
 
+    private buildUrl(path: string, params: Record<string, string | undefined>): string {
+        return this.buildUrlForBase(String(environment.configApiUrl ?? environment.apiUrl ?? ''), path, params);
+    }
+
+    private isServerRequest(): boolean {
+        return !!this.request;
+    }
+
+    private resolveRuntimeFallbackUrl(path: string, params: Record<string, string | undefined>): string | null {
+        if (!this.isServerRequest() || path !== RUNTIME_BUNDLE_ENDPOINT) {
+            return null;
+        }
+
+        const fallbackBase = String(environment.configApiServerFallbackUrl ?? '').trim();
+        if (!fallbackBase) {
+            return null;
+        }
+
+        const primaryBase = String(environment.configApiUrl ?? environment.apiUrl ?? '').trim();
+        if (!primaryBase || fallbackBase.replace(/\/$/, '') === primaryBase.replace(/\/$/, '')) {
+            return null;
+        }
+
+        return this.buildUrlForBase(fallbackBase, path, params);
+    }
+
+    private isRetryableTransportError(error: unknown): boolean {
+        if (error instanceof HttpErrorResponse && error.status === 0) {
+            return true;
+        }
+
+        const fragments = [
+            error instanceof Error ? error.message : '',
+            error instanceof HttpErrorResponse && error.error instanceof Error ? error.error.message : '',
+            typeof (error as { statusText?: unknown })?.statusText === 'string' ? String((error as { statusText?: string }).statusText) : '',
+        ]
+            .join(' ')
+            .toLowerCase();
+
+        return fragments.includes('econnreset')
+            || fragments.includes('fetch failed')
+            || fragments.includes('networkerror')
+            || fragments.includes('unknown error');
+    }
+
+    private async fetchJson<T>(url: string): Promise<T> {
+        const response = await fetch(url, {
+            headers: {
+                Accept: 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch ${ url }: ${ response.status } ${ response.statusText }`);
+        }
+
+        return await response.json() as T;
+    }
+
     private async getJson<T>(path: string, params: Record<string, string | undefined>): Promise<T> {
         const url = this.buildUrl(path, params);
-        return await firstValueFrom(this.http.get<T>(url));
+
+        try {
+            return await firstValueFrom(this.http.get<T>(url));
+        } catch (error) {
+            const fallbackUrl = this.resolveRuntimeFallbackUrl(path, params);
+            if (!fallbackUrl || !this.isRetryableTransportError(error)) {
+                throw error;
+            }
+
+            return await this.fetchJson<T>(fallbackUrl);
+        }
     }
 
     getSiteConfig(domain: string): Promise<TDraftSiteConfigPayload> {

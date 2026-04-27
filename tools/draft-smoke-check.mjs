@@ -219,10 +219,7 @@ async function inspectPage(context, targetUrl, timeoutMs) {
       () => {
         const title = document.title?.trim() || '';
         const bodyText = document.body?.innerText || '';
-        return (
-          Boolean(title) &&
-          (Boolean(document.querySelector('h1, h2, h3')) || /Unresolved draft/i.test(bodyText))
-        );
+        return Boolean(title) && (Boolean(document.querySelector('h1, h2, h3')) || /Unresolved draft/i.test(bodyText));
       },
       { timeout: timeoutMs }
     );
@@ -248,6 +245,12 @@ async function inspectPage(context, targetUrl, timeoutMs) {
 
       return {
         title: document.title?.trim() || '',
+        description: document.querySelector('meta[name="description"]')?.getAttribute('content')?.trim() || '',
+        canonical: document.querySelector("link[rel='canonical']")?.getAttribute('href')?.trim() || '',
+        robots: document.querySelector('meta[name="robots"]')?.getAttribute('content')?.trim() || '',
+        keywords: document.querySelector('meta[name="keywords"]')?.getAttribute('content')?.trim() || '',
+        ogTitle: document.querySelector('meta[property="og:title"]')?.getAttribute('content')?.trim() || '',
+        twitterCard: document.querySelector('meta[name="twitter:card"]')?.getAttribute('content')?.trim() || '',
         firstHeading:
           mainHeading?.textContent?.trim() || document.querySelector('h1, h2, h3')?.textContent?.trim() || '',
         hasSearchButton,
@@ -285,6 +288,30 @@ function compareSummaries(localSummary, liveSummary) {
     mismatches.push(`title: local='${localSummary.title}' live='${liveSummary.title}'`);
   }
 
+  if (localSummary.description !== liveSummary.description) {
+    mismatches.push(`description: local='${localSummary.description}' live='${liveSummary.description}'`);
+  }
+
+  if (localSummary.canonical !== liveSummary.canonical) {
+    mismatches.push(`canonical: local='${localSummary.canonical}' live='${liveSummary.canonical}'`);
+  }
+
+  if (localSummary.robots !== liveSummary.robots) {
+    mismatches.push(`robots: local='${localSummary.robots}' live='${liveSummary.robots}'`);
+  }
+
+  if (localSummary.keywords !== liveSummary.keywords) {
+    mismatches.push(`keywords: local='${localSummary.keywords}' live='${liveSummary.keywords}'`);
+  }
+
+  if (localSummary.ogTitle !== liveSummary.ogTitle) {
+    mismatches.push(`ogTitle: local='${localSummary.ogTitle}' live='${liveSummary.ogTitle}'`);
+  }
+
+  if (localSummary.twitterCard !== liveSummary.twitterCard) {
+    mismatches.push(`twitterCard: local='${localSummary.twitterCard}' live='${liveSummary.twitterCard}'`);
+  }
+
   if (localSummary.firstHeading !== liveSummary.firstHeading) {
     mismatches.push(`firstHeading: local='${localSummary.firstHeading}' live='${liveSummary.firstHeading}'`);
   }
@@ -306,6 +333,11 @@ function validateLocalSummary(summary) {
   const problems = [];
 
   if (!summary.title) problems.push('missing title');
+  if (!summary.description) problems.push('missing meta description');
+  if (!summary.canonical) problems.push('missing canonical link');
+  if (!summary.robots) problems.push('missing robots meta');
+  if (!summary.ogTitle) problems.push('missing og:title meta');
+  if (!summary.twitterCard) problems.push('missing twitter:card meta');
   if (!summary.firstHeading) problems.push('missing first heading');
   if (summary.unresolvedDraft) problems.push('page rendered unresolved draft fallback');
 

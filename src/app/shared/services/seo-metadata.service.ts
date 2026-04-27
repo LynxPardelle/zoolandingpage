@@ -32,9 +32,13 @@ export class SeoMetadataService {
             const fallbackDescription = this.cleanString(siteSeo?.description) || this.runtimeConfig.appDescription();
             const seoTitle = draftTitle || this.cleanString(siteSeo?.title) || fallbackSiteName;
             const seoDescription = draftDescription || fallbackDescription || '';
+            const seoKeywords = this.resolveMetaList(seo?.keywords, lang) || this.resolveMetaList(siteSeo?.keywords, lang);
+            const seoRobots = this.resolveLocalizedText(seo?.robots, lang) || this.resolveLocalizedText(siteSeo?.robots, lang);
 
             this.title.setTitle(seoTitle);
             this.meta.updateTag({ name: 'description', content: seoDescription });
+            this.syncNamedMetaTag('keywords', seoKeywords);
+            this.syncNamedMetaTag('robots', seoRobots);
 
             const origin = doc.defaultView?.location?.origin || this.cleanString(siteSeo?.canonicalOrigin) || this.defaultOrigin();
             const pathname = doc.defaultView?.location?.pathname || '/';
@@ -121,6 +125,52 @@ export class SeoMetadataService {
         }
 
         return '';
+    }
+
+    private resolveMetaList(value: unknown, lang: string): string {
+        return this.serializeMetaContent(this.resolveLocalizedValue(value, lang));
+    }
+
+    private serializeMetaContent(value: unknown): string {
+        if (typeof value === 'string') {
+            return value
+                .split(',')
+                .map((entry) => entry.trim())
+                .filter(Boolean)
+                .join(', ');
+        }
+
+        if (Array.isArray(value)) {
+            return value
+                .flatMap((entry) => this.collectMetaEntries(entry))
+                .join(', ');
+        }
+
+        return '';
+    }
+
+    private collectMetaEntries(value: unknown): string[] {
+        if (typeof value === 'string') {
+            return value
+                .split(',')
+                .map((entry) => entry.trim())
+                .filter(Boolean);
+        }
+
+        if (Array.isArray(value)) {
+            return value.flatMap((entry) => this.collectMetaEntries(entry));
+        }
+
+        return [];
+    }
+
+    private syncNamedMetaTag(name: string, content: string): void {
+        if (content) {
+            this.meta.updateTag({ name, content });
+            return;
+        }
+
+        this.meta.removeTag(`name='${ name }'`);
     }
 
     private asRecord(value: unknown): Record<string, unknown> {

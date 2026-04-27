@@ -1,0 +1,1165 @@
+{
+  "generatedAt": "2026-04-27T20:55:56.057Z",
+  "localBaseUrl": "http://127.0.0.1:6161",
+  "includeLive": true,
+  "liveScheme": "https",
+  "primaryViewport": "desktop",
+  "viewports": [
+    {
+      "id": "desktop",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "mobile",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "results": [
+    {
+      "domain": "alecfest-voliii.com",
+      "managedAlias": "alecfest-voliii.zoolandingpage.com.mx",
+      "routes": [
+        {
+          "path": "/",
+          "pageId": "default",
+          "localUrl": "http://127.0.0.1:6161/?draftDomain=alecfest-voliii.com",
+          "liveUrl": "https://alecfest-voliii.zoolandingpage.com.mx/",
+          "primaryViewport": "desktop",
+          "viewports": {
+            "desktop": {
+              "viewport": {
+                "id": "desktop",
+                "width": 1440,
+                "height": 900
+              },
+              "local": {
+                "title": "Alecfest Vol. III | Invitacion experimental",
+                "description": "Invitacion experimental para el Alecfest Vol. III: una semana de cumpleanos, chucherias, pijamadas, juegos, nueva casita y culto absoluto a Maria Antonieta.",
+                "canonical": "https://alecfest-voliii.com",
+                "robots": "index,follow,max-image-preview:large",
+                "keywords": "alecfest vol. iii, invitacion experimental, cumpleanos, semana de cumpleanos, maria antonieta, festival privado",
+                "ogTitle": "Alecfest Vol. III | Invitacion experimental",
+                "twitterCard": "summary_large_image",
+                "firstHeading": "Alecfest Vol. III",
+                "hasSearchButton": false,
+                "hasHamburgerButton": false,
+                "unresolvedDraft": false,
+                "bodySnippet": "ALECFEST VOL. III Inicio Expediente Chucherias Pijamada Juegos María Antonieta Mi nueva casita Zoolanding Datos INCOMING SIGNAL / ALECFEST.32 / ABRIL 2026 / VOLUMEN III Alecfest Vol. III El festival de cumpleaños número "
+              },
+              "localProblems": [],
+              "live": {
+                "title": "Alecfest Vol. III | Invitacion experimental",
+                "description": "Invitacion experimental para el Alecfest Vol. III: una semana de cumpleanos, chucherias, pijamadas, juegos, nueva casita y culto absoluto a Maria Antonieta.",
+                "canonical": "https://alecfest-voliii.com",
+                "robots": "",
+                "keywords": "",
+                "ogTitle": "Alecfest Vol. III | Invitacion experimental",
+                "twitterCard": "summary_large_image",
+                "firstHeading": "Alecfest Vol. III",
+                "hasSearchButton": false,
+                "hasHamburgerButton": false,
+                "unresolvedDraft": false,
+                "bodySnippet": "ALECFEST VOL. III Inicio Expediente Chucherias Pijamada Juegos María Antonieta Mi nueva casita Zoolanding Datos INCOMING SIGNAL / ALECFEST.32 / ABRIL 2026 / VOLUMEN III Alecfest Vol. III El festival de cumpleaños número "
+              },
+              "liveMismatches": [
+                "robots: local='index,follow,max-image-preview:large' live=''",
+                "keywords: local='alecfest vol. iii, invitacion experimental, cumpleanos, semana de cumpleanos, maria antonieta, festival privado' live=''"
+              ]
+            },
+            "mobile": {
+              "viewport": {
+                "id": "mobile",
+                "width": 390,
+                "height": 844
+              },
+              "local": {
+                "title": "Alecfest Vol. III | Invitacion experimental",
+                "description": "Invitacion experimental para el Alecfest Vol. III: una semana de cumpleanos, chucherias, pijamadas, juegos, nueva casita y culto absoluto a Maria Antonieta.",
+                "canonical": "https://alecfest-voliii.com",
+                "robots": "index,follow,max-image-preview:large",
+                "keywords": "alecfest vol. iii, invitacion experimental, cumpleanos, semana de cumpleanos, maria antonieta, festival privado",
+                "ogTitle": "Alecfest Vol. III | Invitacion experimental",
+                "twitterCard": "summary_large_image",
+                "firstHeading": "Alecfest Vol. III",
+                "hasSearchButton": false,
+                "hasHamburgerButton": false,
+                "unresolvedDraft": false,
+                "bodySnippet": "ALECFEST VOL. III Inicio Expediente Chucherias Pijamada Juegos María Antonieta Mi nueva casita Zoolanding Datos INCOMING SIGNAL / ALECFEST.32 / ABRIL 2026 / VOLUMEN III Alecfest Vol. III El festival de cumpleaños número "
+              },
+              "localProblems": [],
+              "live": {
+                "title": "Alecfest Vol. III | Invitacion experimental",
+                "description": "Invitacion experimental para el Alecfest Vol. III: una semana de cumpleanos, chucherias, pijamadas, juegos, nueva casita y culto absoluto a Maria Antonieta.",
+                "canonical": "https://alecfest-voliii.com",
+                "robots": "",
+                "keywords": "",
+                "ogTitle": "Alecfest Vol. III | Invitacion experimental",
+                "twitterCard": "summary_large_image",
+                "firstHeading": "Alecfest Vol. III",
+                "hasSearchButton": false,
+                "hasHamburgerButton": false,
+                "unresolvedDraft": false,
+                "bodySnippet": "ALECFEST VOL. III Inicio Expediente Chucherias Pijamada Juegos María Antonieta Mi nueva casita Zoolanding Datos INCOMING SIGNAL / ALECFEST.32 / ABRIL 2026 / VOLUMEN III Alecfest Vol. III El festival de cumpleaños número "
+              },
+              "liveMismatches": [
+                "robots: local='index,follow,max-image-preview:large' live=''",
+                "keywords: local='alecfest vol. iii, invitacion experimental, cumpleanos, semana de cumpleanos, maria antonieta, festival privado' live=''"
+              ]
+            }
+          },
+          "local": {
+            "title": "Alecfest Vol. III | Invitacion experimental",
+            "description": "Invitacion experimental para el Alecfest Vol. III: una semana de cumpleanos, chucherias, pijamadas, juegos, nueva casita y culto absoluto a Maria Antonieta.",
+            "canonical": "https://alecfest-voliii.com",
+            "robots": "index,follow,max-image-preview:large",
+            "keywords": "alecfest vol. iii, invitacion experimental, cumpleanos, semana de cumpleanos, maria antonieta, festival privado",
+            "ogTitle": "Alecfest Vol. III | Invitacion experimental",
+            "twitterCard": "summary_large_image",
+            "firstHeading": "Alecfest Vol. III",
+            "hasSearchButton": false,
+            "hasHamburgerButton": false,
+            "unresolvedDraft": false,
+            "bodySnippet": "ALECFEST VOL. III Inicio Expediente Chucherias Pijamada Juegos María Antonieta Mi nueva casita Zoolanding Datos INCOMING SIGNAL / ALECFEST.32 / ABRIL 2026 / VOLUMEN III Alecfest Vol. III El festival de cumpleaños número "
+          },
+          "localProblems": [],
+          "live": {
+            "title": "Alecfest Vol. III | Invitacion experimental",
+            "description": "Invitacion experimental para el Alecfest Vol. III: una semana de cumpleanos, chucherias, pijamadas, juegos, nueva casita y culto absoluto a Maria Antonieta.",
+            "canonical": "https://alecfest-voliii.com",
+            "robots": "",
+            "keywords": "",
+            "ogTitle": "Alecfest Vol. III | Invitacion experimental",
+            "twitterCard": "summary_large_image",
+            "firstHeading": "Alecfest Vol. III",
+            "hasSearchButton": false,
+            "hasHamburgerButton": false,
+            "unresolvedDraft": false,
+            "bodySnippet": "ALECFEST VOL. III Inicio Expediente Chucherias Pijamada Juegos María Antonieta Mi nueva casita Zoolanding Datos INCOMING SIGNAL / ALECFEST.32 / ABRIL 2026 / VOLUMEN III Alecfest Vol. III El festival de cumpleaños número "
+          },
+          "liveMismatches": [
+            "robots: local='index,follow,max-image-preview:large' live=''",
+            "keywords: local='alecfest vol. iii, invitacion experimental, cumpleanos, semana de cumpleanos, maria antonieta, festival privado' live=''"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "erosbarajas.com",
+      "managedAlias": "erosbarajas.zoolandingpage.com.mx",
+      "routes": [
+        {
+          "path": "/",
+          "pageId": "default",
+          "localUrl": "http://127.0.0.1:6161/?draftDomain=erosbarajas.com",
+          "liveUrl": "https://erosbarajas.zoolandingpage.com.mx/",
+          "primaryViewport": "desktop",
+          "viewports": {
+            "desktop": {
+              "viewport": {
+                "id": "desktop",
+                "width": 1440,
+                "height": 900
+              },
+              "local": {
+                "title": "Eros Barajas | Sanación integral de cuerpo, mente y espíritu",
+                "description": "Agenda por WhatsApp una sesión personalizada con Eros Barajas y descubre un acompañamiento integral para trabajar bloqueos emocionales, energía y claridad interior.",
+                "canonical": "https://erosbarajas.com/",
+                "robots": "index,follow,max-image-preview:large",
+                "keywords": "Eros Barajas, sanacion holistica, terapia energetica, metodo yuen, bienestar integral, CDMX, LATAM",
+                "ogTitle": "Eros Barajas | Conectando con el Ser",
+                "twitterCard": "summary_large_image",
+                "firstHeading": "Recupera claridad, equilibrio y dirección desde un acompañamiento hecho a tu medida.",
+                "hasSearchButton": false,
+                "hasHamburgerButton": false,
+                "unresolvedDraft": false,
+                "bodySnippet": "Eros Barajas | Conectando con el Ser Inicio Beneficios Métodos Sobre Eros Preguntas Hablar por WhatsApp Sanación integral de cuerpo, mente y espíritu Recupera claridad, equilibrio y dirección desde un acompañamiento hech"
+              },
+              "localProblems": [],
+              "live": {
+                "title": "Eros Barajas | Sanación integral de cuerpo, mente y espíritu",
+                "description": "Agenda por WhatsApp una sesión personalizada con Eros Barajas y descubre un acompañamiento integral para trabajar bloqueos emocionales, energía y claridad interior.",
+                "canonical": "https://erosbarajas.com/",
+                "robots": "",
+                "keywords": "",
+                "ogTitle": "Eros Barajas | Conectando con el Ser",
+                "twitterCard": "summary_large_image",
+                "firstHeading": "Recupera claridad, equilibrio y dirección desde un acompañamiento hecho a tu medida.",
+                "hasSearchButton": false,
+                "hasHamburgerButton": false,
+                "unresolvedDraft": false,
+                "bodySnippet": "Eros Barajas | Conectando con el Ser Inicio Beneficios Métodos Sobre Eros Preguntas Hablar por WhatsApp SANACIÓN INTEGRAL DE CUERPO, MENTE Y ESPÍRITU Recupera claridad, equilibrio y dirección desde un acompañamiento hech"
+              },
+              "liveMismatches": [
+                "robots: local='index,follow,max-image-preview:large' live=''",
+                "keywords: local='Eros Barajas, sanacion holistica, terapia energetica, metodo yuen, bienestar integral, CDMX, LATAM' live=''"
+              ]
+            },
+            "mobile": {
+              "viewport": {
+                "id": "mobile",
+                "width": 390,
+                "height": 844
+              },
+              "local": {
+                "title": "Eros Barajas | Sanación integral de cuerpo, mente y espíritu",
+                "description": "Agenda por WhatsApp una sesión personalizada con Eros Barajas y descubre un acompañamiento integral para trabajar bloqueos emocionales, energía y claridad interior.",
+                "canonical": "https://erosbarajas.com/",
+                "robots": "index,follow,max-image-preview:large",
+                "keywords": "Eros Barajas, sanacion holistica, terapia energetica, metodo yuen, bienestar integral, CDMX, LATAM",
+                "ogTitle": "Eros Barajas | Conectando con el Ser",
+                "twitterCard": "summary_large_image",
+                "firstHeading": "Recupera claridad, equilibrio y dirección desde un acompañamiento hecho a tu medida.",
+                "hasSearchButton": false,
+                "hasHamburgerButton": false,
+                "unresolvedDraft": false,
+                "bodySnippet": "Eros Barajas | Conectando con el Ser menu SANACIÓN INTEGRAL DE CUERPO, MENTE Y ESPÍRITU Recupera claridad, equilibrio y dirección desde un acompañamiento hecho a tu medida. Eros Barajas integra herramientas terapéuticas "
+              },
+              "localProblems": [],
+              "live": {
+                "title": "Eros Barajas | Sanación integral de cuerpo, mente y espíritu",
+                "description": "Agenda por WhatsApp una sesión personalizada con Eros Barajas y descubre un acompañamiento integral para trabajar bloqueos emocionales, energía y claridad interior.",
+                "canonical": "https://erosbarajas.com/",
+                "robots": "",
+                "keywords": "",
+                "ogTitle": "Eros Barajas | Conectando con el Ser",
+                "twitterCard": "summary_large_image",
+                "firstHeading": "Recupera claridad, equilibrio y dirección desde un acompañamiento hecho a tu medida.",
+                "hasSearchButton": false,
+                "hasHamburgerButton": false,
+                "unresolvedDraft": false,
+                "bodySnippet": "Eros Barajas | Conectando con el Ser menu SANACIÓN INTEGRAL DE CUERPO, MENTE Y ESPÍRITU Recupera claridad, equilibrio y dirección desde un acompañamiento hecho a tu medida. Eros Barajas integra herramientas terapéuticas "
+              },
+              "liveMismatches": [
+                "robots: local='index,follow,max-image-preview:large' live=''",
+                "keywords: local='Eros Barajas, sanacion holistica, terapia energetica, metodo yuen, bienestar integral, CDMX, LATAM' live=''"
+              ]
+            }
+          },
+          "local": {
+            "title": "Eros Barajas | Sanación integral de cuerpo, mente y espíritu",
+            "description": "Agenda por WhatsApp una sesión personalizada con Eros Barajas y descubre un acompañamiento integral para trabajar bloqueos emocionales, energía y claridad interior.",
+            "canonical": "https://erosbarajas.com/",
+            "robots": "index,follow,max-image-preview:large",
+            "keywords": "Eros Barajas, sanacion holistica, terapia energetica, metodo yuen, bienestar integral, CDMX, LATAM",
+            "ogTitle": "Eros Barajas | Conectando con el Ser",
+            "twitterCard": "summary_large_image",
+            "firstHeading": "Recupera claridad, equilibrio y dirección desde un acompañamiento hecho a tu medida.",
+            "hasSearchButton": false,
+            "hasHamburgerButton": false,
+            "unresolvedDraft": false,
+            "bodySnippet": "Eros Barajas | Conectando con el Ser Inicio Beneficios Métodos Sobre Eros Preguntas Hablar por WhatsApp Sanación integral de cuerpo, mente y espíritu Recupera claridad, equilibrio y dirección desde un acompañamiento hech"
+          },
+          "localProblems": [],
+          "live": {
+            "title": "Eros Barajas | Sanación integral de cuerpo, mente y espíritu",
+            "description": "Agenda por WhatsApp una sesión personalizada con Eros Barajas y descubre un acompañamiento integral para trabajar bloqueos emocionales, energía y claridad interior.",
+            "canonical": "https://erosbarajas.com/",
+            "robots": "",
+            "keywords": "",
+            "ogTitle": "Eros Barajas | Conectando con el Ser",
+            "twitterCard": "summary_large_image",
+            "firstHeading": "Recupera claridad, equilibrio y dirección desde un acompañamiento hecho a tu medida.",
+            "hasSearchButton": false,
+            "hasHamburgerButton": false,
+            "unresolvedDraft": false,
+            "bodySnippet": "Eros Barajas | Conectando con el Ser Inicio Beneficios Métodos Sobre Eros Preguntas Hablar por WhatsApp SANACIÓN INTEGRAL DE CUERPO, MENTE Y ESPÍRITU Recupera claridad, equilibrio y dirección desde un acompañamiento hech"
+          },
+          "liveMismatches": [
+            "robots: local='index,follow,max-image-preview:large' live=''",
+            "keywords: local='Eros Barajas, sanacion holistica, terapia energetica, metodo yuen, bienestar integral, CDMX, LATAM' live=''"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "pamelabetancourt.com",
+      "managedAlias": "pamelabetancourt.zoolandingpage.com.mx",
+      "routes": [
+        {
+          "path": "/",
+          "pageId": "home",
+          "localUrl": "http://127.0.0.1:6161/?draftDomain=pamelabetancourt.com",
+          "liveUrl": "https://pamelabetancourt.zoolandingpage.com.mx/",
+          "primaryViewport": "desktop",
+          "viewports": {
+            "desktop": {
+              "viewport": {
+                "id": "desktop",
+                "width": 1440,
+                "height": 900
+              },
+              "local": {
+                "title": "Pamela Betancourt | Home",
+                "description": "Más estrategia, menos improvisación. Presencia digital, contenido y análisis con una mirada más conectada.",
+                "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/home",
+                "robots": "index,follow,max-image-preview:large",
+                "keywords": "Pamela Betancourt, digital strategy, digital presence, content strategy, channel analysis, personal brand",
+                "ogTitle": "Pamela Betancourt | Home",
+                "twitterCard": "summary",
+                "firstHeading": "Más estrategia",
+                "hasSearchButton": false,
+                "hasHamburgerButton": true,
+                "unresolvedDraft": false,
+                "bodySnippet": "pamelabetancourt Home Servicios Acerca de mi Contáctame Más estrategia Menos improvisación Acompaño a negocios a definir su mensaje, fortalecer su presencia digital y tomar decisiones basadas en datos para mejorar su est"
+              },
+              "localProblems": [],
+              "live": {
+                "title": "Pamela Betancourt | Home",
+                "description": "Más estrategia, menos improvisación. Presencia digital, contenido y análisis con una mirada más conectada.",
+                "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/home",
+                "robots": "",
+                "keywords": "",
+                "ogTitle": "Pamela Betancourt | Home",
+                "twitterCard": "summary",
+                "firstHeading": "Más estrategia",
+                "hasSearchButton": false,
+                "hasHamburgerButton": true,
+                "unresolvedDraft": false,
+                "bodySnippet": "pamelabetancourt Home Servicios Acerca de mi Contáctame Más estrategia Menos improvisación Acompaño a negocios a definir su mensaje, fortalecer su presencia digital y tomar decisiones basadas en datos para mejorar su est"
+              },
+              "liveMismatches": [
+                "robots: local='index,follow,max-image-preview:large' live=''",
+                "keywords: local='Pamela Betancourt, digital strategy, digital presence, content strategy, channel analysis, personal brand' live=''"
+              ]
+            },
+            "mobile": {
+              "viewport": {
+                "id": "mobile",
+                "width": 390,
+                "height": 844
+              },
+              "local": {
+                "title": "Pamela Betancourt | Home",
+                "description": "Más estrategia, menos improvisación. Presencia digital, contenido y análisis con una mirada más conectada.",
+                "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/home",
+                "robots": "index,follow,max-image-preview:large",
+                "keywords": "Pamela Betancourt, digital strategy, digital presence, content strategy, channel analysis, personal brand",
+                "ogTitle": "Pamela Betancourt | Home",
+                "twitterCard": "summary",
+                "firstHeading": "Más estrategia",
+                "hasSearchButton": false,
+                "hasHamburgerButton": true,
+                "unresolvedDraft": false,
+                "bodySnippet": "pamelabetancourt menu Más estrategia Menos improvisación Acompaño a negocios a definir su mensaje, fortalecer su presencia digital y tomar decisiones basadas en datos para mejorar su estrategia. Cuéntame sobre tu negocio"
+              },
+              "localProblems": [],
+              "live": {
+                "title": "Pamela Betancourt | Home",
+                "description": "Más estrategia, menos improvisación. Presencia digital, contenido y análisis con una mirada más conectada.",
+                "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/home",
+                "robots": "",
+                "keywords": "",
+                "ogTitle": "Pamela Betancourt | Home",
+                "twitterCard": "summary",
+                "firstHeading": "Más estrategia",
+                "hasSearchButton": false,
+                "hasHamburgerButton": true,
+                "unresolvedDraft": false,
+                "bodySnippet": "pamelabetancourt menu Más estrategia Menos improvisación Acompaño a negocios a definir su mensaje, fortalecer su presencia digital y tomar decisiones basadas en datos para mejorar su estrategia. Cuéntame sobre tu negocio"
+              },
+              "liveMismatches": [
+                "robots: local='index,follow,max-image-preview:large' live=''",
+                "keywords: local='Pamela Betancourt, digital strategy, digital presence, content strategy, channel analysis, personal brand' live=''"
+              ]
+            }
+          },
+          "local": {
+            "title": "Pamela Betancourt | Home",
+            "description": "Más estrategia, menos improvisación. Presencia digital, contenido y análisis con una mirada más conectada.",
+            "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/home",
+            "robots": "index,follow,max-image-preview:large",
+            "keywords": "Pamela Betancourt, digital strategy, digital presence, content strategy, channel analysis, personal brand",
+            "ogTitle": "Pamela Betancourt | Home",
+            "twitterCard": "summary",
+            "firstHeading": "Más estrategia",
+            "hasSearchButton": false,
+            "hasHamburgerButton": true,
+            "unresolvedDraft": false,
+            "bodySnippet": "pamelabetancourt Home Servicios Acerca de mi Contáctame Más estrategia Menos improvisación Acompaño a negocios a definir su mensaje, fortalecer su presencia digital y tomar decisiones basadas en datos para mejorar su est"
+          },
+          "localProblems": [],
+          "live": {
+            "title": "Pamela Betancourt | Home",
+            "description": "Más estrategia, menos improvisación. Presencia digital, contenido y análisis con una mirada más conectada.",
+            "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/home",
+            "robots": "",
+            "keywords": "",
+            "ogTitle": "Pamela Betancourt | Home",
+            "twitterCard": "summary",
+            "firstHeading": "Más estrategia",
+            "hasSearchButton": false,
+            "hasHamburgerButton": true,
+            "unresolvedDraft": false,
+            "bodySnippet": "pamelabetancourt Home Servicios Acerca de mi Contáctame Más estrategia Menos improvisación Acompaño a negocios a definir su mensaje, fortalecer su presencia digital y tomar decisiones basadas en datos para mejorar su est"
+          },
+          "liveMismatches": [
+            "robots: local='index,follow,max-image-preview:large' live=''",
+            "keywords: local='Pamela Betancourt, digital strategy, digital presence, content strategy, channel analysis, personal brand' live=''"
+          ]
+        },
+        {
+          "path": "/home",
+          "pageId": "home",
+          "localUrl": "http://127.0.0.1:6161/home?draftDomain=pamelabetancourt.com",
+          "liveUrl": "https://pamelabetancourt.zoolandingpage.com.mx/home",
+          "primaryViewport": "desktop",
+          "viewports": {
+            "desktop": {
+              "viewport": {
+                "id": "desktop",
+                "width": 1440,
+                "height": 900
+              },
+              "local": {
+                "title": "Pamela Betancourt | Home",
+                "description": "Más estrategia, menos improvisación. Presencia digital, contenido y análisis con una mirada más conectada.",
+                "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/home",
+                "robots": "index,follow,max-image-preview:large",
+                "keywords": "Pamela Betancourt, digital strategy, digital presence, content strategy, channel analysis, personal brand",
+                "ogTitle": "Pamela Betancourt | Home",
+                "twitterCard": "summary",
+                "firstHeading": "Más estrategia",
+                "hasSearchButton": false,
+                "hasHamburgerButton": true,
+                "unresolvedDraft": false,
+                "bodySnippet": "pamelabetancourt Home Servicios Acerca de mi Contáctame Más estrategia Menos improvisación Acompaño a negocios a definir su mensaje, fortalecer su presencia digital y tomar decisiones basadas en datos para mejorar su est"
+              },
+              "localProblems": [],
+              "live": {
+                "title": "Pamela Betancourt | Home",
+                "description": "Más estrategia, menos improvisación. Presencia digital, contenido y análisis con una mirada más conectada.",
+                "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/home",
+                "robots": "",
+                "keywords": "",
+                "ogTitle": "Pamela Betancourt | Home",
+                "twitterCard": "summary",
+                "firstHeading": "Más estrategia",
+                "hasSearchButton": false,
+                "hasHamburgerButton": true,
+                "unresolvedDraft": false,
+                "bodySnippet": "pamelabetancourt Home Servicios Acerca de mi Contáctame Más estrategia Menos improvisación Acompaño a negocios a definir su mensaje, fortalecer su presencia digital y tomar decisiones basadas en datos para mejorar su est"
+              },
+              "liveMismatches": [
+                "robots: local='index,follow,max-image-preview:large' live=''",
+                "keywords: local='Pamela Betancourt, digital strategy, digital presence, content strategy, channel analysis, personal brand' live=''"
+              ]
+            },
+            "mobile": {
+              "viewport": {
+                "id": "mobile",
+                "width": 390,
+                "height": 844
+              },
+              "local": {
+                "title": "Pamela Betancourt | Home",
+                "description": "Más estrategia, menos improvisación. Presencia digital, contenido y análisis con una mirada más conectada.",
+                "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/home",
+                "robots": "index,follow,max-image-preview:large",
+                "keywords": "Pamela Betancourt, digital strategy, digital presence, content strategy, channel analysis, personal brand",
+                "ogTitle": "Pamela Betancourt | Home",
+                "twitterCard": "summary",
+                "firstHeading": "Más estrategia",
+                "hasSearchButton": false,
+                "hasHamburgerButton": true,
+                "unresolvedDraft": false,
+                "bodySnippet": "pamelabetancourt menu Más estrategia Menos improvisación Acompaño a negocios a definir su mensaje, fortalecer su presencia digital y tomar decisiones basadas en datos para mejorar su estrategia. Cuéntame sobre tu negocio"
+              },
+              "localProblems": [],
+              "live": {
+                "title": "Pamela Betancourt | Home",
+                "description": "Más estrategia, menos improvisación. Presencia digital, contenido y análisis con una mirada más conectada.",
+                "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/home",
+                "robots": "",
+                "keywords": "",
+                "ogTitle": "Pamela Betancourt | Home",
+                "twitterCard": "summary",
+                "firstHeading": "Más estrategia",
+                "hasSearchButton": false,
+                "hasHamburgerButton": true,
+                "unresolvedDraft": false,
+                "bodySnippet": "pamelabetancourt menu Más estrategia Menos improvisación Acompaño a negocios a definir su mensaje, fortalecer su presencia digital y tomar decisiones basadas en datos para mejorar su estrategia. Cuéntame sobre tu negocio"
+              },
+              "liveMismatches": [
+                "robots: local='index,follow,max-image-preview:large' live=''",
+                "keywords: local='Pamela Betancourt, digital strategy, digital presence, content strategy, channel analysis, personal brand' live=''"
+              ]
+            }
+          },
+          "local": {
+            "title": "Pamela Betancourt | Home",
+            "description": "Más estrategia, menos improvisación. Presencia digital, contenido y análisis con una mirada más conectada.",
+            "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/home",
+            "robots": "index,follow,max-image-preview:large",
+            "keywords": "Pamela Betancourt, digital strategy, digital presence, content strategy, channel analysis, personal brand",
+            "ogTitle": "Pamela Betancourt | Home",
+            "twitterCard": "summary",
+            "firstHeading": "Más estrategia",
+            "hasSearchButton": false,
+            "hasHamburgerButton": true,
+            "unresolvedDraft": false,
+            "bodySnippet": "pamelabetancourt Home Servicios Acerca de mi Contáctame Más estrategia Menos improvisación Acompaño a negocios a definir su mensaje, fortalecer su presencia digital y tomar decisiones basadas en datos para mejorar su est"
+          },
+          "localProblems": [],
+          "live": {
+            "title": "Pamela Betancourt | Home",
+            "description": "Más estrategia, menos improvisación. Presencia digital, contenido y análisis con una mirada más conectada.",
+            "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/home",
+            "robots": "",
+            "keywords": "",
+            "ogTitle": "Pamela Betancourt | Home",
+            "twitterCard": "summary",
+            "firstHeading": "Más estrategia",
+            "hasSearchButton": false,
+            "hasHamburgerButton": true,
+            "unresolvedDraft": false,
+            "bodySnippet": "pamelabetancourt Home Servicios Acerca de mi Contáctame Más estrategia Menos improvisación Acompaño a negocios a definir su mensaje, fortalecer su presencia digital y tomar decisiones basadas en datos para mejorar su est"
+          },
+          "liveMismatches": [
+            "robots: local='index,follow,max-image-preview:large' live=''",
+            "keywords: local='Pamela Betancourt, digital strategy, digital presence, content strategy, channel analysis, personal brand' live=''"
+          ]
+        },
+        {
+          "path": "/servicios",
+          "pageId": "servicios",
+          "localUrl": "http://127.0.0.1:6161/servicios?draftDomain=pamelabetancourt.com",
+          "liveUrl": "https://pamelabetancourt.zoolandingpage.com.mx/servicios",
+          "primaryViewport": "desktop",
+          "viewports": {
+            "desktop": {
+              "viewport": {
+                "id": "desktop",
+                "width": 1440,
+                "height": 900
+              },
+              "local": {
+                "title": "Pamela Betancourt | Servicios",
+                "description": "Servicios de diagnóstico digital, análisis web, marketing y revisión de puntos de contacto.",
+                "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/servicios",
+                "robots": "index,follow,max-image-preview:large",
+                "keywords": "digital services, digital audit, web analytics, digital marketing, customer touchpoints, digital presence",
+                "ogTitle": "Pamela Betancourt | Servicios",
+                "twitterCard": "summary",
+                "firstHeading": "Servicios",
+                "hasSearchButton": false,
+                "hasHamburgerButton": true,
+                "unresolvedDraft": false,
+                "bodySnippet": "pamelabetancourt Home Servicios Acerca de mi Contáctame Servicios No todos los proyectos necesitan el mismo punto de partida. En algunos casos hace falta revisar una parte específica; en otros, entender cómo se relaciona"
+              },
+              "localProblems": [],
+              "live": {
+                "title": "Pamela Betancourt | Servicios",
+                "description": "Servicios de diagnóstico digital, análisis web, marketing y revisión de puntos de contacto.",
+                "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/servicios",
+                "robots": "",
+                "keywords": "",
+                "ogTitle": "Pamela Betancourt | Servicios",
+                "twitterCard": "summary",
+                "firstHeading": "Servicios",
+                "hasSearchButton": false,
+                "hasHamburgerButton": true,
+                "unresolvedDraft": false,
+                "bodySnippet": "pamelabetancourt Home Servicios Acerca de mi Contáctame Servicios No todos los proyectos necesitan el mismo punto de partida. En algunos casos hace falta revisar una parte específica; en otros, entender cómo se relaciona"
+              },
+              "liveMismatches": [
+                "robots: local='index,follow,max-image-preview:large' live=''",
+                "keywords: local='digital services, digital audit, web analytics, digital marketing, customer touchpoints, digital presence' live=''"
+              ]
+            },
+            "mobile": {
+              "viewport": {
+                "id": "mobile",
+                "width": 390,
+                "height": 844
+              },
+              "local": {
+                "title": "Pamela Betancourt | Servicios",
+                "description": "Servicios de diagnóstico digital, análisis web, marketing y revisión de puntos de contacto.",
+                "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/servicios",
+                "robots": "index,follow,max-image-preview:large",
+                "keywords": "digital services, digital audit, web analytics, digital marketing, customer touchpoints, digital presence",
+                "ogTitle": "Pamela Betancourt | Servicios",
+                "twitterCard": "summary",
+                "firstHeading": "Servicios",
+                "hasSearchButton": false,
+                "hasHamburgerButton": true,
+                "unresolvedDraft": false,
+                "bodySnippet": "pamelabetancourt menu Servicios No todos los proyectos necesitan el mismo punto de partida. En algunos casos hace falta revisar una parte específica; en otros, entender cómo se relacionan entre sí. Redes sociales Diagnós"
+              },
+              "localProblems": [],
+              "live": {
+                "title": "Pamela Betancourt | Servicios",
+                "description": "Servicios de diagnóstico digital, análisis web, marketing y revisión de puntos de contacto.",
+                "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/servicios",
+                "robots": "",
+                "keywords": "",
+                "ogTitle": "Pamela Betancourt | Servicios",
+                "twitterCard": "summary",
+                "firstHeading": "Servicios",
+                "hasSearchButton": false,
+                "hasHamburgerButton": true,
+                "unresolvedDraft": false,
+                "bodySnippet": "pamelabetancourt menu Servicios No todos los proyectos necesitan el mismo punto de partida. En algunos casos hace falta revisar una parte específica; en otros, entender cómo se relacionan entre sí. Redes sociales Diagnós"
+              },
+              "liveMismatches": [
+                "robots: local='index,follow,max-image-preview:large' live=''",
+                "keywords: local='digital services, digital audit, web analytics, digital marketing, customer touchpoints, digital presence' live=''"
+              ]
+            }
+          },
+          "local": {
+            "title": "Pamela Betancourt | Servicios",
+            "description": "Servicios de diagnóstico digital, análisis web, marketing y revisión de puntos de contacto.",
+            "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/servicios",
+            "robots": "index,follow,max-image-preview:large",
+            "keywords": "digital services, digital audit, web analytics, digital marketing, customer touchpoints, digital presence",
+            "ogTitle": "Pamela Betancourt | Servicios",
+            "twitterCard": "summary",
+            "firstHeading": "Servicios",
+            "hasSearchButton": false,
+            "hasHamburgerButton": true,
+            "unresolvedDraft": false,
+            "bodySnippet": "pamelabetancourt Home Servicios Acerca de mi Contáctame Servicios No todos los proyectos necesitan el mismo punto de partida. En algunos casos hace falta revisar una parte específica; en otros, entender cómo se relaciona"
+          },
+          "localProblems": [],
+          "live": {
+            "title": "Pamela Betancourt | Servicios",
+            "description": "Servicios de diagnóstico digital, análisis web, marketing y revisión de puntos de contacto.",
+            "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/servicios",
+            "robots": "",
+            "keywords": "",
+            "ogTitle": "Pamela Betancourt | Servicios",
+            "twitterCard": "summary",
+            "firstHeading": "Servicios",
+            "hasSearchButton": false,
+            "hasHamburgerButton": true,
+            "unresolvedDraft": false,
+            "bodySnippet": "pamelabetancourt Home Servicios Acerca de mi Contáctame Servicios No todos los proyectos necesitan el mismo punto de partida. En algunos casos hace falta revisar una parte específica; en otros, entender cómo se relaciona"
+          },
+          "liveMismatches": [
+            "robots: local='index,follow,max-image-preview:large' live=''",
+            "keywords: local='digital services, digital audit, web analytics, digital marketing, customer touchpoints, digital presence' live=''"
+          ]
+        },
+        {
+          "path": "/acerca-de-mi",
+          "pageId": "acerca-de-mi",
+          "localUrl": "http://127.0.0.1:6161/acerca-de-mi?draftDomain=pamelabetancourt.com",
+          "liveUrl": "https://pamelabetancourt.zoolandingpage.com.mx/acerca-de-mi",
+          "primaryViewport": "desktop",
+          "viewports": {
+            "desktop": {
+              "viewport": {
+                "id": "desktop",
+                "width": 1440,
+                "height": 900
+              },
+              "local": {
+                "title": "Pamela Betancourt | Acerca de mi",
+                "description": "Experiencia en redes sociales, sitio web y análisis con foco en la relación entre canales.",
+                "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/acerca-de-mi",
+                "robots": "index,follow,max-image-preview:large",
+                "keywords": "Pamela Betancourt, about, social media, website strategy, digital analysis, professional experience",
+                "ogTitle": "Pamela Betancourt | Acerca de mi",
+                "twitterCard": "summary",
+                "firstHeading": "Acerca de mi",
+                "hasSearchButton": false,
+                "hasHamburgerButton": true,
+                "unresolvedDraft": false,
+                "bodySnippet": "pamelabetancourt Home Servicios Acerca de mi Contáctame Acerca de mi Acerca de mí Mi trabajo se mueve entre redes sociales, sitio web y análisis, con una atención puesta en cómo se relacionan la comunicación, el recorrid"
+              },
+              "localProblems": [],
+              "live": {
+                "title": "Pamela Betancourt | Acerca de mi",
+                "description": "Experiencia en redes sociales, sitio web y análisis con foco en la relación entre canales.",
+                "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/acerca-de-mi",
+                "robots": "",
+                "keywords": "",
+                "ogTitle": "Pamela Betancourt | Acerca de mi",
+                "twitterCard": "summary",
+                "firstHeading": "Acerca de mi",
+                "hasSearchButton": false,
+                "hasHamburgerButton": true,
+                "unresolvedDraft": false,
+                "bodySnippet": "pamelabetancourt Home Servicios Acerca de mi Contáctame Acerca de mi Acerca de mí Mi trabajo se mueve entre redes sociales, sitio web y análisis, con una atención puesta en cómo se relacionan la comunicación, el recorrid"
+              },
+              "liveMismatches": [
+                "robots: local='index,follow,max-image-preview:large' live=''",
+                "keywords: local='Pamela Betancourt, about, social media, website strategy, digital analysis, professional experience' live=''"
+              ]
+            },
+            "mobile": {
+              "viewport": {
+                "id": "mobile",
+                "width": 390,
+                "height": 844
+              },
+              "local": {
+                "title": "Pamela Betancourt | Acerca de mi",
+                "description": "Experiencia en redes sociales, sitio web y análisis con foco en la relación entre canales.",
+                "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/acerca-de-mi",
+                "robots": "index,follow,max-image-preview:large",
+                "keywords": "Pamela Betancourt, about, social media, website strategy, digital analysis, professional experience",
+                "ogTitle": "Pamela Betancourt | Acerca de mi",
+                "twitterCard": "summary",
+                "firstHeading": "Acerca de mi",
+                "hasSearchButton": false,
+                "hasHamburgerButton": true,
+                "unresolvedDraft": false,
+                "bodySnippet": "pamelabetancourt menu Acerca de mi Acerca de mí Mi trabajo se mueve entre redes sociales, sitio web y análisis, con una atención puesta en cómo se relacionan la comunicación, el recorrido del usuario y la lectura de dato"
+              },
+              "localProblems": [],
+              "live": {
+                "title": "Pamela Betancourt | Acerca de mi",
+                "description": "Experiencia en redes sociales, sitio web y análisis con foco en la relación entre canales.",
+                "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/acerca-de-mi",
+                "robots": "",
+                "keywords": "",
+                "ogTitle": "Pamela Betancourt | Acerca de mi",
+                "twitterCard": "summary",
+                "firstHeading": "Acerca de mi",
+                "hasSearchButton": false,
+                "hasHamburgerButton": true,
+                "unresolvedDraft": false,
+                "bodySnippet": "pamelabetancourt menu Acerca de mi Acerca de mí Mi trabajo se mueve entre redes sociales, sitio web y análisis, con una atención puesta en cómo se relacionan la comunicación, el recorrido del usuario y la lectura de dato"
+              },
+              "liveMismatches": [
+                "robots: local='index,follow,max-image-preview:large' live=''",
+                "keywords: local='Pamela Betancourt, about, social media, website strategy, digital analysis, professional experience' live=''"
+              ]
+            }
+          },
+          "local": {
+            "title": "Pamela Betancourt | Acerca de mi",
+            "description": "Experiencia en redes sociales, sitio web y análisis con foco en la relación entre canales.",
+            "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/acerca-de-mi",
+            "robots": "index,follow,max-image-preview:large",
+            "keywords": "Pamela Betancourt, about, social media, website strategy, digital analysis, professional experience",
+            "ogTitle": "Pamela Betancourt | Acerca de mi",
+            "twitterCard": "summary",
+            "firstHeading": "Acerca de mi",
+            "hasSearchButton": false,
+            "hasHamburgerButton": true,
+            "unresolvedDraft": false,
+            "bodySnippet": "pamelabetancourt Home Servicios Acerca de mi Contáctame Acerca de mi Acerca de mí Mi trabajo se mueve entre redes sociales, sitio web y análisis, con una atención puesta en cómo se relacionan la comunicación, el recorrid"
+          },
+          "localProblems": [],
+          "live": {
+            "title": "Pamela Betancourt | Acerca de mi",
+            "description": "Experiencia en redes sociales, sitio web y análisis con foco en la relación entre canales.",
+            "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/acerca-de-mi",
+            "robots": "",
+            "keywords": "",
+            "ogTitle": "Pamela Betancourt | Acerca de mi",
+            "twitterCard": "summary",
+            "firstHeading": "Acerca de mi",
+            "hasSearchButton": false,
+            "hasHamburgerButton": true,
+            "unresolvedDraft": false,
+            "bodySnippet": "pamelabetancourt Home Servicios Acerca de mi Contáctame Acerca de mi Acerca de mí Mi trabajo se mueve entre redes sociales, sitio web y análisis, con una atención puesta en cómo se relacionan la comunicación, el recorrid"
+          },
+          "liveMismatches": [
+            "robots: local='index,follow,max-image-preview:large' live=''",
+            "keywords: local='Pamela Betancourt, about, social media, website strategy, digital analysis, professional experience' live=''"
+          ]
+        },
+        {
+          "path": "/contact",
+          "pageId": "contact",
+          "localUrl": "http://127.0.0.1:6161/contact?draftDomain=pamelabetancourt.com",
+          "liveUrl": "https://pamelabetancourt.zoolandingpage.com.mx/contact",
+          "primaryViewport": "desktop",
+          "viewports": {
+            "desktop": {
+              "viewport": {
+                "id": "desktop",
+                "width": 1440,
+                "height": 900
+              },
+              "local": {
+                "title": "Pamela Betancourt | Contáctame",
+                "description": "Contacto inicial para revisar redes sociales, sitio web, análisis y próximos pasos.",
+                "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/contáctame",
+                "robots": "index,follow,max-image-preview:large",
+                "keywords": "contact Pamela Betancourt, digital consultation, social media, web analytics, digital marketing",
+                "ogTitle": "Pamela Betancourt | Contáctame",
+                "twitterCard": "summary",
+                "firstHeading": "Contáctame",
+                "hasSearchButton": false,
+                "hasHamburgerButton": true,
+                "unresolvedDraft": false,
+                "bodySnippet": "pamelabetancourt Home Servicios Acerca de mi Contáctame Contáctame Puedes contarme brevemente qué está pasando hoy y qué te gustaría entender, revisar o trabajar mejor. Pamela Betancourt | Analista digital Una mirada más"
+              },
+              "localProblems": [],
+              "live": {
+                "title": "Pamela Betancourt | Contáctame",
+                "description": "Contacto inicial para revisar redes sociales, sitio web, análisis y próximos pasos.",
+                "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/contáctame",
+                "robots": "",
+                "keywords": "",
+                "ogTitle": "Pamela Betancourt | Contáctame",
+                "twitterCard": "summary",
+                "firstHeading": "Contáctame",
+                "hasSearchButton": false,
+                "hasHamburgerButton": true,
+                "unresolvedDraft": false,
+                "bodySnippet": "pamelabetancourt Home Servicios Acerca de mi Contáctame Contáctame Puedes contarme brevemente qué está pasando hoy y qué te gustaría entender, revisar o trabajar mejor. Pamela Betancourt | Analista digital Una mirada más"
+              },
+              "liveMismatches": [
+                "robots: local='index,follow,max-image-preview:large' live=''",
+                "keywords: local='contact Pamela Betancourt, digital consultation, social media, web analytics, digital marketing' live=''"
+              ]
+            },
+            "mobile": {
+              "viewport": {
+                "id": "mobile",
+                "width": 390,
+                "height": 844
+              },
+              "local": {
+                "title": "Pamela Betancourt | Contáctame",
+                "description": "Contacto inicial para revisar redes sociales, sitio web, análisis y próximos pasos.",
+                "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/contáctame",
+                "robots": "index,follow,max-image-preview:large",
+                "keywords": "contact Pamela Betancourt, digital consultation, social media, web analytics, digital marketing",
+                "ogTitle": "Pamela Betancourt | Contáctame",
+                "twitterCard": "summary",
+                "firstHeading": "Contáctame",
+                "hasSearchButton": false,
+                "hasHamburgerButton": true,
+                "unresolvedDraft": false,
+                "bodySnippet": "pamelabetancourt menu Contáctame Puedes contarme brevemente qué está pasando hoy y qué te gustaría entender, revisar o trabajar mejor. Pamela Betancourt | Analista digital Una mirada más conectada sobre redes sociales, s"
+              },
+              "localProblems": [],
+              "live": {
+                "title": "Pamela Betancourt | Contáctame",
+                "description": "Contacto inicial para revisar redes sociales, sitio web, análisis y próximos pasos.",
+                "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/contáctame",
+                "robots": "",
+                "keywords": "",
+                "ogTitle": "Pamela Betancourt | Contáctame",
+                "twitterCard": "summary",
+                "firstHeading": "Contáctame",
+                "hasSearchButton": false,
+                "hasHamburgerButton": true,
+                "unresolvedDraft": false,
+                "bodySnippet": "pamelabetancourt menu Contáctame Puedes contarme brevemente qué está pasando hoy y qué te gustaría entender, revisar o trabajar mejor. Pamela Betancourt | Analista digital Una mirada más conectada sobre redes sociales, s"
+              },
+              "liveMismatches": [
+                "robots: local='index,follow,max-image-preview:large' live=''",
+                "keywords: local='contact Pamela Betancourt, digital consultation, social media, web analytics, digital marketing' live=''"
+              ]
+            }
+          },
+          "local": {
+            "title": "Pamela Betancourt | Contáctame",
+            "description": "Contacto inicial para revisar redes sociales, sitio web, análisis y próximos pasos.",
+            "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/contáctame",
+            "robots": "index,follow,max-image-preview:large",
+            "keywords": "contact Pamela Betancourt, digital consultation, social media, web analytics, digital marketing",
+            "ogTitle": "Pamela Betancourt | Contáctame",
+            "twitterCard": "summary",
+            "firstHeading": "Contáctame",
+            "hasSearchButton": false,
+            "hasHamburgerButton": true,
+            "unresolvedDraft": false,
+            "bodySnippet": "pamelabetancourt Home Servicios Acerca de mi Contáctame Contáctame Puedes contarme brevemente qué está pasando hoy y qué te gustaría entender, revisar o trabajar mejor. Pamela Betancourt | Analista digital Una mirada más"
+          },
+          "localProblems": [],
+          "live": {
+            "title": "Pamela Betancourt | Contáctame",
+            "description": "Contacto inicial para revisar redes sociales, sitio web, análisis y próximos pasos.",
+            "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/contáctame",
+            "robots": "",
+            "keywords": "",
+            "ogTitle": "Pamela Betancourt | Contáctame",
+            "twitterCard": "summary",
+            "firstHeading": "Contáctame",
+            "hasSearchButton": false,
+            "hasHamburgerButton": true,
+            "unresolvedDraft": false,
+            "bodySnippet": "pamelabetancourt Home Servicios Acerca de mi Contáctame Contáctame Puedes contarme brevemente qué está pasando hoy y qué te gustaría entender, revisar o trabajar mejor. Pamela Betancourt | Analista digital Una mirada más"
+          },
+          "liveMismatches": [
+            "robots: local='index,follow,max-image-preview:large' live=''",
+            "keywords: local='contact Pamela Betancourt, digital consultation, social media, web analytics, digital marketing' live=''"
+          ]
+        },
+        {
+          "path": "/contáctame",
+          "pageId": "contact",
+          "localUrl": "http://127.0.0.1:6161/cont%C3%A1ctame?draftDomain=pamelabetancourt.com",
+          "liveUrl": "https://pamelabetancourt.zoolandingpage.com.mx/cont%C3%A1ctame",
+          "primaryViewport": "desktop",
+          "viewports": {
+            "desktop": {
+              "viewport": {
+                "id": "desktop",
+                "width": 1440,
+                "height": 900
+              },
+              "local": {
+                "title": "Pamela Betancourt | Contáctame",
+                "description": "Contacto inicial para revisar redes sociales, sitio web, análisis y próximos pasos.",
+                "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/contáctame",
+                "robots": "index,follow,max-image-preview:large",
+                "keywords": "contact Pamela Betancourt, digital consultation, social media, web analytics, digital marketing",
+                "ogTitle": "Pamela Betancourt | Contáctame",
+                "twitterCard": "summary",
+                "firstHeading": "Contáctame",
+                "hasSearchButton": false,
+                "hasHamburgerButton": true,
+                "unresolvedDraft": false,
+                "bodySnippet": "pamelabetancourt Home Servicios Acerca de mi Contáctame Contáctame Puedes contarme brevemente qué está pasando hoy y qué te gustaría entender, revisar o trabajar mejor. Pamela Betancourt | Analista digital Una mirada más"
+              },
+              "localProblems": [],
+              "live": {
+                "title": "Pamela Betancourt | Contáctame",
+                "description": "Contacto inicial para revisar redes sociales, sitio web, análisis y próximos pasos.",
+                "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/contáctame",
+                "robots": "",
+                "keywords": "",
+                "ogTitle": "Pamela Betancourt | Contáctame",
+                "twitterCard": "summary",
+                "firstHeading": "Contáctame",
+                "hasSearchButton": false,
+                "hasHamburgerButton": true,
+                "unresolvedDraft": false,
+                "bodySnippet": "pamelabetancourt Home Servicios Acerca de mi Contáctame Contáctame Puedes contarme brevemente qué está pasando hoy y qué te gustaría entender, revisar o trabajar mejor. Pamela Betancourt | Analista digital Una mirada más"
+              },
+              "liveMismatches": [
+                "robots: local='index,follow,max-image-preview:large' live=''",
+                "keywords: local='contact Pamela Betancourt, digital consultation, social media, web analytics, digital marketing' live=''"
+              ]
+            },
+            "mobile": {
+              "viewport": {
+                "id": "mobile",
+                "width": 390,
+                "height": 844
+              },
+              "local": {
+                "title": "Pamela Betancourt | Contáctame",
+                "description": "Contacto inicial para revisar redes sociales, sitio web, análisis y próximos pasos.",
+                "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/contáctame",
+                "robots": "index,follow,max-image-preview:large",
+                "keywords": "contact Pamela Betancourt, digital consultation, social media, web analytics, digital marketing",
+                "ogTitle": "Pamela Betancourt | Contáctame",
+                "twitterCard": "summary",
+                "firstHeading": "Contáctame",
+                "hasSearchButton": false,
+                "hasHamburgerButton": true,
+                "unresolvedDraft": false,
+                "bodySnippet": "pamelabetancourt menu Contáctame Puedes contarme brevemente qué está pasando hoy y qué te gustaría entender, revisar o trabajar mejor. Pamela Betancourt | Analista digital Una mirada más conectada sobre redes sociales, s"
+              },
+              "localProblems": [],
+              "live": {
+                "title": "Pamela Betancourt | Contáctame",
+                "description": "Contacto inicial para revisar redes sociales, sitio web, análisis y próximos pasos.",
+                "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/contáctame",
+                "robots": "",
+                "keywords": "",
+                "ogTitle": "Pamela Betancourt | Contáctame",
+                "twitterCard": "summary",
+                "firstHeading": "Contáctame",
+                "hasSearchButton": false,
+                "hasHamburgerButton": true,
+                "unresolvedDraft": false,
+                "bodySnippet": "pamelabetancourt menu Contáctame Puedes contarme brevemente qué está pasando hoy y qué te gustaría entender, revisar o trabajar mejor. Pamela Betancourt | Analista digital Una mirada más conectada sobre redes sociales, s"
+              },
+              "liveMismatches": [
+                "robots: local='index,follow,max-image-preview:large' live=''",
+                "keywords: local='contact Pamela Betancourt, digital consultation, social media, web analytics, digital marketing' live=''"
+              ]
+            }
+          },
+          "local": {
+            "title": "Pamela Betancourt | Contáctame",
+            "description": "Contacto inicial para revisar redes sociales, sitio web, análisis y próximos pasos.",
+            "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/contáctame",
+            "robots": "index,follow,max-image-preview:large",
+            "keywords": "contact Pamela Betancourt, digital consultation, social media, web analytics, digital marketing",
+            "ogTitle": "Pamela Betancourt | Contáctame",
+            "twitterCard": "summary",
+            "firstHeading": "Contáctame",
+            "hasSearchButton": false,
+            "hasHamburgerButton": true,
+            "unresolvedDraft": false,
+            "bodySnippet": "pamelabetancourt Home Servicios Acerca de mi Contáctame Contáctame Puedes contarme brevemente qué está pasando hoy y qué te gustaría entender, revisar o trabajar mejor. Pamela Betancourt | Analista digital Una mirada más"
+          },
+          "localProblems": [],
+          "live": {
+            "title": "Pamela Betancourt | Contáctame",
+            "description": "Contacto inicial para revisar redes sociales, sitio web, análisis y próximos pasos.",
+            "canonical": "https://pamelabetancourt.zoolandingpage.com.mx/contáctame",
+            "robots": "",
+            "keywords": "",
+            "ogTitle": "Pamela Betancourt | Contáctame",
+            "twitterCard": "summary",
+            "firstHeading": "Contáctame",
+            "hasSearchButton": false,
+            "hasHamburgerButton": true,
+            "unresolvedDraft": false,
+            "bodySnippet": "pamelabetancourt Home Servicios Acerca de mi Contáctame Contáctame Puedes contarme brevemente qué está pasando hoy y qué te gustaría entender, revisar o trabajar mejor. Pamela Betancourt | Analista digital Una mirada más"
+          },
+          "liveMismatches": [
+            "robots: local='index,follow,max-image-preview:large' live=''",
+            "keywords: local='contact Pamela Betancourt, digital consultation, social media, web analytics, digital marketing' live=''"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "zoolandingpage.com.mx",
+      "managedAlias": "test.zoolandingpage.com.mx",
+      "routes": [
+        {
+          "path": "/",
+          "pageId": "default",
+          "localUrl": "http://127.0.0.1:6161/?draftDomain=zoolandingpage.com.mx",
+          "liveUrl": "https://test.zoolandingpage.com.mx/",
+          "primaryViewport": "desktop",
+          "viewports": {
+            "desktop": {
+              "viewport": {
+                "id": "desktop",
+                "width": 1440,
+                "height": 900
+              },
+              "local": {
+                "title": "Optimized Landing Page: Turn visits into customers | ZoolandingPage",
+                "description": "Launch a fast, clear, and measurable landing page. More closed deals and better decisions with real data. Plans from 900 MXN/month, including domain, hosting, and analytics.",
+                "canonical": "https://zoolandingpage.com.mx/",
+                "robots": "index,follow,max-image-preview:large",
+                "keywords": "landing page, optimized landing page, conversion optimization, analytics, measurement, seo, whatsapp, aws",
+                "ogTitle": "Optimized Landing Page: Turn visits into customers | ZoolandingPage",
+                "twitterCard": "summary_large_image",
+                "firstHeading": "Turn visits into customers with a fast, clear and measurable Landing Page",
+                "hasSearchButton": false,
+                "hasHamburgerButton": false,
+                "unresolvedDraft": false,
+                "bodySnippet": "Skip to main content Zoo Landing Home Benefits Process Services Contact 🌙 EN Turn visits into customers with a fast, clear and measurable Landing Page Launch your Optimized Landing Page quickly, measure from day one, an"
+              },
+              "localProblems": [],
+              "live": {
+                "title": "Optimized Landing Page: Turn visits into customers | ZoolandingPage",
+                "description": "Launch a fast, clear, and measurable landing page. More closed deals and better decisions with real data. Plans from 900 MXN/month, including domain, hosting, and analytics.",
+                "canonical": "https://zoolandingpage.com.mx/",
+                "robots": "",
+                "keywords": "",
+                "ogTitle": "Optimized Landing Page: Turn visits into customers | ZoolandingPage",
+                "twitterCard": "summary_large_image",
+                "firstHeading": "Turn visits into customers with a fast, clear and measurable Landing Page",
+                "hasSearchButton": false,
+                "hasHamburgerButton": false,
+                "unresolvedDraft": false,
+                "bodySnippet": "Skip to main content Zoo Landing Home Benefits Process Services Contact 🌙 EN Turn visits into customers with a fast, clear and measurable Landing Page Launch your Optimized Landing Page quickly, measure from day one, an"
+              },
+              "liveMismatches": [
+                "robots: local='index,follow,max-image-preview:large' live=''",
+                "keywords: local='landing page, optimized landing page, conversion optimization, analytics, measurement, seo, whatsapp, aws' live=''"
+              ]
+            },
+            "mobile": {
+              "viewport": {
+                "id": "mobile",
+                "width": 390,
+                "height": 844
+              },
+              "local": {
+                "title": "Optimized Landing Page: Turn visits into customers | ZoolandingPage",
+                "description": "Launch a fast, clear, and measurable landing page. More closed deals and better decisions with real data. Plans from 900 MXN/month, including domain, hosting, and analytics.",
+                "canonical": "https://zoolandingpage.com.mx/",
+                "robots": "index,follow,max-image-preview:large",
+                "keywords": "landing page, optimized landing page, conversion optimization, analytics, measurement, seo, whatsapp, aws",
+                "ogTitle": "Optimized Landing Page: Turn visits into customers | ZoolandingPage",
+                "twitterCard": "summary_large_image",
+                "firstHeading": "Turn visits into customers with a fast, clear and measurable Landing Page",
+                "hasSearchButton": false,
+                "hasHamburgerButton": false,
+                "unresolvedDraft": false,
+                "bodySnippet": "Skip to main content Zoo Landing Dark EN menu Turn visits into customers with a fast, clear and measurable Landing Page Launch your Optimized Landing Page quickly, measure from day one, and improve with real data. Plans "
+              },
+              "localProblems": [],
+              "live": {
+                "title": "Optimized Landing Page: Turn visits into customers | ZoolandingPage",
+                "description": "Launch a fast, clear, and measurable landing page. More closed deals and better decisions with real data. Plans from 900 MXN/month, including domain, hosting, and analytics.",
+                "canonical": "https://zoolandingpage.com.mx/",
+                "robots": "",
+                "keywords": "",
+                "ogTitle": "Optimized Landing Page: Turn visits into customers | ZoolandingPage",
+                "twitterCard": "summary_large_image",
+                "firstHeading": "Turn visits into customers with a fast, clear and measurable Landing Page",
+                "hasSearchButton": false,
+                "hasHamburgerButton": false,
+                "unresolvedDraft": false,
+                "bodySnippet": "Skip to main content Zoo Landing Dark EN menu Turn visits into customers with a fast, clear and measurable Landing Page Launch your Optimized Landing Page quickly, measure from day one, and improve with real data. Plans "
+              },
+              "liveMismatches": [
+                "robots: local='index,follow,max-image-preview:large' live=''",
+                "keywords: local='landing page, optimized landing page, conversion optimization, analytics, measurement, seo, whatsapp, aws' live=''"
+              ]
+            }
+          },
+          "local": {
+            "title": "Optimized Landing Page: Turn visits into customers | ZoolandingPage",
+            "description": "Launch a fast, clear, and measurable landing page. More closed deals and better decisions with real data. Plans from 900 MXN/month, including domain, hosting, and analytics.",
+            "canonical": "https://zoolandingpage.com.mx/",
+            "robots": "index,follow,max-image-preview:large",
+            "keywords": "landing page, optimized landing page, conversion optimization, analytics, measurement, seo, whatsapp, aws",
+            "ogTitle": "Optimized Landing Page: Turn visits into customers | ZoolandingPage",
+            "twitterCard": "summary_large_image",
+            "firstHeading": "Turn visits into customers with a fast, clear and measurable Landing Page",
+            "hasSearchButton": false,
+            "hasHamburgerButton": false,
+            "unresolvedDraft": false,
+            "bodySnippet": "Skip to main content Zoo Landing Home Benefits Process Services Contact 🌙 EN Turn visits into customers with a fast, clear and measurable Landing Page Launch your Optimized Landing Page quickly, measure from day one, an"
+          },
+          "localProblems": [],
+          "live": {
+            "title": "Optimized Landing Page: Turn visits into customers | ZoolandingPage",
+            "description": "Launch a fast, clear, and measurable landing page. More closed deals and better decisions with real data. Plans from 900 MXN/month, including domain, hosting, and analytics.",
+            "canonical": "https://zoolandingpage.com.mx/",
+            "robots": "",
+            "keywords": "",
+            "ogTitle": "Optimized Landing Page: Turn visits into customers | ZoolandingPage",
+            "twitterCard": "summary_large_image",
+            "firstHeading": "Turn visits into customers with a fast, clear and measurable Landing Page",
+            "hasSearchButton": false,
+            "hasHamburgerButton": false,
+            "unresolvedDraft": false,
+            "bodySnippet": "Skip to main content Zoo Landing Home Benefits Process Services Contact 🌙 EN Turn visits into customers with a fast, clear and measurable Landing Page Launch your Optimized Landing Page quickly, measure from day one, an"
+          },
+          "liveMismatches": [
+            "robots: local='index,follow,max-image-preview:large' live=''",
+            "keywords: local='landing page, optimized landing page, conversion optimization, analytics, measurement, seo, whatsapp, aws' live=''"
+          ]
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "draftCount": 4,
+    "routeCount": 9,
+    "viewportCount": 2,
+    "localFailures": 0,
+    "liveFailures": 18,
+    "skippedLiveRoutes": 0,
+    "localFailuresByViewport": {
+      "desktop": 0,
+      "mobile": 0
+    },
+    "liveFailuresByViewport": {
+      "desktop": 9,
+      "mobile": 9
+    },
+    "skippedLiveRoutesByViewport": {
+      "desktop": 0,
+      "mobile": 0
+    }
+  },
+  "browserCommand": "[REDACTED]",
+  "draftsRoot": "[REDACTED]"
+}

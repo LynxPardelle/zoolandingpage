@@ -61,7 +61,13 @@ Use this skill for work inside the Angular app and its platform-facing docs.
 - Analytics or quick-stats changes: verify frontend config gates still control network behavior.
 - Tooling changes: verify the direct `node tools/config-draft-sync.mjs ...` path still works as documented.
 
+## Recommended General Skills
+
+- Pair this workflow with the repo-local `karpathy-guidelines` skill for most implementation work, `systematic-debugging` for bug investigation, `risk-review` for review-only asks, `test-driven-development` for behavior-changing code, and `zoolanding-browser-qa` when validating runtime behavior.
+- Use [Skill Routing](../../../ai-notes/notes/copilot-skill-routing.md) as the curated routing map for when to use vendored repo-local skills and when to add installed global skills.
+
 ## Resources
 
 - [Repo Checklist](./references/repo-checklist.md)
 - [Canonical AI Notes](../../../ai-notes/README.md)
+- [Skill Routing](../../../ai-notes/notes/copilot-skill-routing.md)

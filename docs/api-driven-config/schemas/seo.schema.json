@@ -2,16 +2,50 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "SeoPayload",
   "type": "object",
+  "definitions": {
+    "localizedString": {
+      "oneOf": [
+        { "type": "string" },
+        {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      ]
+    },
+    "localizedKeywords": {
+      "oneOf": [
+        { "type": "string" },
+        {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "string" },
+              {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
   "required": ["version", "pageId", "domain"],
   "properties": {
     "version": { "type": "integer", "minimum": 1 },
     "pageId": { "type": "string" },
     "domain": { "type": "string" },
-    "title": { "type": "string" },
-    "description": { "type": "string" },
+    "title": { "$ref": "#/definitions/localizedString" },
+    "description": { "$ref": "#/definitions/localizedString" },
     "openGraph": { "type": "object", "additionalProperties": true },
     "twitter": { "type": "object", "additionalProperties": true },
-    "canonical": { "type": "string" }
+    "canonical": { "$ref": "#/definitions/localizedString" },
+    "keywords": { "$ref": "#/definitions/localizedKeywords" },
+    "robots": { "$ref": "#/definitions/localizedString" }
   },
   "additionalProperties": false
 }
