@@ -994,8 +994,26 @@ describe('config-payload.validators', () => {
             version: 1,
             pageId: 'default',
             domain: 'zoolandingpage.com.mx',
+            title: { es: 'Titulo', en: 'Title' },
+            description: 'Landing page description',
+            canonical: 'https://zoolandingpage.com.mx/',
+            keywords: {
+                es: ['landing page', 'seo tecnico'],
+                en: ['landing page', 'technical seo'],
+            },
+            robots: { default: 'index,follow,max-image-preview:large' },
         };
         expect(isSeoPayload(valid)).toBeTrue();
+    });
+
+    it('rejects seo payloads with invalid localized keywords', () => {
+        const invalid = {
+            keywords: {
+                en: ['valid', 123],
+            },
+        };
+
+        expect(isSeoPayload(invalid)).toBeFalse();
     });
 
     it('validates structured data payloads', () => {

@@ -97,6 +97,8 @@ export type TDraftSiteSeoConfig = {
     readonly defaultImage?: string;
     readonly openGraph?: Record<string, unknown>;
     readonly twitter?: Record<string, unknown>;
+    readonly keywords?: TLocalizedKeywordsValue;
+    readonly robots?: TLocalizedTextValue;
 };
 
 export type TDraftVariableConfig = Record<string, unknown> & {
@@ -244,12 +246,18 @@ export type TConfigRegistryPayload = {
 
 export type TLocalizedTextValue = string | Record<string, string>;
 
+export type TLocalizedKeywordEntry = string | readonly string[];
+
+export type TLocalizedKeywordsValue = TLocalizedKeywordEntry | Record<string, TLocalizedKeywordEntry>;
+
 export type TSeoPayload = {
     readonly title?: TLocalizedTextValue;
     readonly description?: TLocalizedTextValue;
     readonly openGraph?: Record<string, unknown>;
     readonly twitter?: Record<string, unknown>;
     readonly canonical?: TLocalizedTextValue;
+    readonly keywords?: TLocalizedKeywordsValue;
+    readonly robots?: TLocalizedTextValue;
 };
 
 export type TStructuredDataPayload = {

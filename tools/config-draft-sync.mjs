@@ -3,7 +3,16 @@ import { mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path';
 
 const DEFAULT_DRAFTS_ROOT = path.resolve('drafts');
+const DEFAULT_REQUEST_TIMEOUT_MS = 20000;
+const DEFAULT_RETRY_ATTEMPTS = 2;
+const DEFAULT_RETRY_DELAY_MS = 250;
 const LOCAL_DRAFT_CONTEXT_FOLDERS = new Set(['ai_notes', 'findings', 'errors-reports']);
+const DEFAULT_AUTHORING_ENDPOINT_FALLBACKS = new Map([
+  [
+    'https://api.zoolandingpage.com.mx/config-authoring',
+    'https://2dvjmiwjod.execute-api.us-east-1.amazonaws.com/Prod/config-authoring',
+  ],
+]);
 
 function parseArgs(rawArgs) {
   const parsed = {};
@@ -27,6 +36,15 @@ function getRequiredArg(args, key) {
   return value;
 }
 
+function getIntegerArg(args, key, fallback) {
+  const rawValue = Number.parseInt(String(args[key] ?? fallback), 10);
+  return Number.isFinite(rawValue) && rawValue > 0 ? rawValue : fallback;
+}
+
+function wait(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 function normalizeStage(stage) {
   const normalized = String(stage ?? 'draft')
     .trim()
@@ -35,6 +53,83 @@ function normalizeStage(stage) {
     throw new Error(`Invalid stage '${stage}'. Expected 'draft' or 'published'.`);
   }
   return normalized;
+}
+
+function normalizeEndpoint(endpoint) {
+  return String(endpoint ?? '')
+    .trim()
+    .replace(/\/+$/, '');
+}
+
+function resolveFallbackEndpoint(endpoint, explicitFallbackEndpoint) {
+  const explicit = normalizeEndpoint(explicitFallbackEndpoint);
+  if (explicit) {
+    return explicit;
+  }
+
+  const normalizedEndpoint = normalizeEndpoint(endpoint);
+  const override = normalizeEndpoint(
+    process.env.ZOOLANDING_CONFIG_AUTHORING_RAW_ENDPOINT ?? process.env.CONFIG_AUTHORING_RAW_ENDPOINT
+  );
+
+  if (override && DEFAULT_AUTHORING_ENDPOINT_FALLBACKS.has(normalizedEndpoint)) {
+    return override;
+  }
+
+  return DEFAULT_AUTHORING_ENDPOINT_FALLBACKS.get(normalizedEndpoint) ?? '';
+}
+
+function describeRequestContext(body) {
+  const action = String(body?.action ?? 'unknown').trim() || 'unknown';
+  const domain = String(body?.domain ?? 'unknown').trim() || 'unknown';
+  return `action=${action} domain=${domain}`;
+}
+
+function formatErrorSummary(error) {
+  if (!(error instanceof Error)) {
+    return String(error);
+  }
+
+  const summary = [error.message];
+  const cause = error.cause;
+
+  if ('statusCode' in error && Number.isFinite(error.statusCode)) {
+    summary.push(`status ${error.statusCode}`);
+  }
+
+  if (cause && typeof cause === 'object') {
+    if ('code' in cause && typeof cause.code === 'string') {
+      summary.push(cause.code);
+    }
+    if ('message' in cause && typeof cause.message === 'string' && cause.message !== error.message) {
+      summary.push(cause.message);
+    }
+  }
+
+  return summary.filter(Boolean).join(' | ');
+}
+
+function isRetryableAuthoringError(error) {
+  if (error instanceof Error && 'statusCode' in error) {
+    const statusCode = Number(error.statusCode);
+    if ([408, 425, 429, 500, 502, 503, 504].includes(statusCode)) {
+      return true;
+    }
+  }
+
+  const details = formatErrorSummary(error).toLowerCase();
+  return [
+    'fetch failed',
+    'econnreset',
+    'socket hang up',
+    'timeout',
+    'timed out',
+    'abort',
+    'eai_again',
+    'enotfound',
+    'econnrefused',
+    'tls',
+  ].some(token => details.includes(token));
 }
 
 async function readJson(filePath) {
@@ -182,7 +277,7 @@ async function unpackDraftPackage(draftPackage, draftsRoot, { cleanDomain = fals
   }
 }
 
-async function callAuthoringEndpoint(endpoint, body) {
+async function requestAuthoringEndpoint(endpoint, body, requestTimeoutMs) {
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
@@ -190,6 +285,7 @@ async function callAuthoringEndpoint(endpoint, body) {
       Accept: 'application/json',
     },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(requestTimeoutMs),
   });
 
   const rawText = await response.text();
@@ -201,10 +297,80 @@ async function callAuthoringEndpoint(endpoint, body) {
 
   if (normalized.statusCode >= 400) {
     const message = normalized.body?.error || `Request failed with status ${normalized.statusCode}`;
-    throw new Error(message);
+    const error = new Error(message);
+    error.statusCode = normalized.statusCode;
+    throw error;
   }
 
   return normalized.body;
+}
+
+async function callAuthoringEndpoint(
+  endpoint,
+  body,
+  {
+    requestTimeoutMs = DEFAULT_REQUEST_TIMEOUT_MS,
+    fallbackEndpoint,
+    retryAttempts = DEFAULT_RETRY_ATTEMPTS,
+    retryDelayMs = DEFAULT_RETRY_DELAY_MS,
+  } = {}
+) {
+  const normalizedEndpoint = normalizeEndpoint(endpoint);
+  const normalizedFallbackEndpoint = resolveFallbackEndpoint(normalizedEndpoint, fallbackEndpoint);
+  const candidateEndpoints = [normalizedEndpoint];
+  const requestContext = describeRequestContext(body);
+
+  if (normalizedFallbackEndpoint && normalizedFallbackEndpoint !== normalizedEndpoint) {
+    candidateEndpoints.push(normalizedFallbackEndpoint);
+  }
+
+  let primaryError = null;
+
+  for (const [index, currentEndpoint] of candidateEndpoints.entries()) {
+    const attemptsForEndpoint = index === 0 && candidateEndpoints.length > 1 ? 1 : Math.max(1, retryAttempts);
+
+    for (let attempt = 1; attempt <= attemptsForEndpoint; attempt += 1) {
+      try {
+        return await requestAuthoringEndpoint(currentEndpoint, body, requestTimeoutMs);
+      } catch (error) {
+        const retryableError = isRetryableAuthoringError(error);
+        const canRetrySameEndpoint = retryableError && attempt < attemptsForEndpoint;
+        const shouldRetryWithFallback = index === 0 && candidateEndpoints.length > 1 && retryableError;
+
+        if (canRetrySameEndpoint) {
+          process.stderr.write(
+            `[${requestContext}] Authoring endpoint failed on ${currentEndpoint} (${formatErrorSummary(
+              error
+            )}). Retrying attempt ${attempt + 1}/${attemptsForEndpoint} in ${retryDelayMs}ms.\n`
+          );
+          await wait(retryDelayMs);
+          continue;
+        }
+
+        if (shouldRetryWithFallback) {
+          primaryError = error;
+          process.stderr.write(
+            `[${requestContext}] Primary authoring endpoint failed (${formatErrorSummary(
+              error
+            )}). Retrying through fallback endpoint: ${normalizedFallbackEndpoint}\n`
+          );
+          break;
+        }
+
+        if (index > 0 && primaryError) {
+          throw new Error(
+            `[${requestContext}] Primary authoring endpoint failed (${formatErrorSummary(
+              primaryError
+            )}); fallback endpoint failed (${formatErrorSummary(error)})`
+          );
+        }
+
+        throw error;
+      }
+    }
+  }
+
+  throw primaryError ?? new Error('Authoring request failed.');
 }
 
 async function writeOutput(outputPath, payload) {
@@ -238,10 +404,10 @@ async function main() {
         'Commands:',
         '  pack    --domain=example.com [--drafts-root=drafts] [--stage=draft] [--output=package.json]',
         '  unpack  --input=package.json [--drafts-root=drafts] [--clean-domain=true]',
-        '  pull    --endpoint=https://... --domain=example.com [--stage=draft] [--drafts-root=drafts] [--clean-domain=true]',
-        '  push    --endpoint=https://... --domain=example.com [--drafts-root=drafts] [--updated-by=name]',
-        '  create  --endpoint=https://... --domain=example.com [--drafts-root=drafts] [--publish-on-create=true]',
-        '  publish --endpoint=https://... --domain=example.com [--version-id=...]',
+        '  pull    --endpoint=https://... --domain=example.com [--stage=draft] [--drafts-root=drafts] [--clean-domain=true] [--request-timeout-ms=20000] [--fallback-endpoint=https://...] [--retry-attempts=2] [--retry-delay-ms=250]',
+        '  push    --endpoint=https://... --domain=example.com [--drafts-root=drafts] [--updated-by=name] [--request-timeout-ms=20000] [--fallback-endpoint=https://...] [--retry-attempts=2] [--retry-delay-ms=250]',
+        '  create  --endpoint=https://... --domain=newsite.example [--drafts-root=drafts] [--publish-on-create=true] [--request-timeout-ms=20000] [--fallback-endpoint=https://...] [--retry-attempts=2] [--retry-delay-ms=250]',
+        '  publish --endpoint=https://... --domain=example.com [--version-id=...] [--request-timeout-ms=20000] [--fallback-endpoint=https://...] [--retry-attempts=2] [--retry-delay-ms=250]',
       ].join('\n') + '\n'
     );
     return;
@@ -272,7 +438,16 @@ async function main() {
     const domain = getRequiredArg(args, 'domain');
     const stage = normalizeStage(args.stage);
     const draftsRoot = path.resolve(args['drafts-root'] ?? DEFAULT_DRAFTS_ROOT);
-    const response = await callAuthoringEndpoint(endpoint, { action: 'getSite', domain, stage });
+    const response = await callAuthoringEndpoint(
+      endpoint,
+      { action: 'getSite', domain, stage },
+      {
+        requestTimeoutMs: getIntegerArg(args, 'request-timeout-ms', DEFAULT_REQUEST_TIMEOUT_MS),
+        fallbackEndpoint: args['fallback-endpoint'],
+        retryAttempts: getIntegerArg(args, 'retry-attempts', DEFAULT_RETRY_ATTEMPTS),
+        retryDelayMs: getIntegerArg(args, 'retry-delay-ms', DEFAULT_RETRY_DELAY_MS),
+      }
+    );
     await unpackDraftPackage(response, draftsRoot, { cleanDomain: String(args['clean-domain'] ?? 'true') === 'true' });
     process.stdout.write(`Pulled ${response.files.length} files for ${domain} (${stage}) into ${draftsRoot}\n`);
     return;
@@ -285,14 +460,23 @@ async function main() {
     const stage = normalizeStage(args.stage);
     const draftPackage = await buildDraftPackage({ domain, draftsRoot, stage });
     const action = command === 'create' ? 'createSite' : 'upsertDraft';
-    const response = await callAuthoringEndpoint(endpoint, {
-      action,
-      domain,
-      files: draftPackage.files,
-      updatedBy: args['updated-by'],
-      publishOnCreate: String(args['publish-on-create'] ?? 'false') === 'true',
-      allowOverwrite: String(args['allow-overwrite'] ?? 'false') === 'true',
-    });
+    const response = await callAuthoringEndpoint(
+      endpoint,
+      {
+        action,
+        domain,
+        files: draftPackage.files,
+        updatedBy: args['updated-by'],
+        publishOnCreate: String(args['publish-on-create'] ?? 'false') === 'true',
+        allowOverwrite: String(args['allow-overwrite'] ?? 'false') === 'true',
+      },
+      {
+        requestTimeoutMs: getIntegerArg(args, 'request-timeout-ms', DEFAULT_REQUEST_TIMEOUT_MS),
+        fallbackEndpoint: args['fallback-endpoint'],
+        retryAttempts: getIntegerArg(args, 'retry-attempts', DEFAULT_RETRY_ATTEMPTS),
+        retryDelayMs: getIntegerArg(args, 'retry-delay-ms', DEFAULT_RETRY_DELAY_MS),
+      }
+    );
     process.stdout.write(`${JSON.stringify(response, null, 2)}\n`);
     return;
   }
@@ -300,12 +484,21 @@ async function main() {
   if (command === 'publish') {
     const endpoint = getRequiredArg(args, 'endpoint');
     const domain = getRequiredArg(args, 'domain');
-    const response = await callAuthoringEndpoint(endpoint, {
-      action: 'publishDraft',
-      domain,
-      versionId: args['version-id'],
-      updatedBy: args['updated-by'],
-    });
+    const response = await callAuthoringEndpoint(
+      endpoint,
+      {
+        action: 'publishDraft',
+        domain,
+        versionId: args['version-id'],
+        updatedBy: args['updated-by'],
+      },
+      {
+        requestTimeoutMs: getIntegerArg(args, 'request-timeout-ms', DEFAULT_REQUEST_TIMEOUT_MS),
+        fallbackEndpoint: args['fallback-endpoint'],
+        retryAttempts: getIntegerArg(args, 'retry-attempts', DEFAULT_RETRY_ATTEMPTS),
+        retryDelayMs: getIntegerArg(args, 'retry-delay-ms', DEFAULT_RETRY_DELAY_MS),
+      }
+    );
     process.stdout.write(`${JSON.stringify(response, null, 2)}\n`);
     return;
   }

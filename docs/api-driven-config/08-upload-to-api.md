@@ -139,6 +139,8 @@ Core fields:
 node tools/config-draft-sync.mjs pull --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx
 ```
 
+For the standard Zoolanding custom-domain authoring URL, the CLI now retries automatically through the raw API Gateway endpoint if the front door resets the connection or the request times out. You can override the retry target with `--fallback-endpoint=https://...`, adjust the timeout with `--request-timeout-ms=20000`, increase retry coverage with `--retry-attempts=3`, and tune the retry delay with `--retry-delay-ms=250`.
+
 ### Pack the current local draft tree
 
 ```bash
@@ -162,6 +164,8 @@ node tools/config-draft-sync.mjs create --endpoint=https://api.zoolandingpage.co
 ```bash
 node tools/config-draft-sync.mjs publish --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --updated-by="Your Name"
 ```
+
+The same fallback behavior applies to `pull`, `push`, `create`, and `publish` when you use the standard Zoolanding custom-domain authoring endpoint.
 
 ## Direct API examples
 

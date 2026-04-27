@@ -1,20 +1,37 @@
 import {
-  AngularNodeAppEngine,
-  createNodeRequestHandler,
-  isMainModule,
-  writeResponseToNodeResponse,
+    AngularNodeAppEngine,
+    createNodeRequestHandler,
+    isMainModule,
+    writeResponseToNodeResponse,
 } from '@angular/ssr/node';
 import express from 'express';
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
 const DRAFTS_FOLDER_NAME = 'drafts';
+const DEBUG_DRAFT_DIRECTORY = '_debug';
+const DEFAULT_CONFIG_API_URL = String(process.env['CONFIG_API_URL'] ?? 'https://api.zoolandingpage.com.mx').trim();
 const LOCAL_NOTE_FOLDER_NAMES = new Set(['ai_notes', 'findings', 'errors-reports']);
 
 type TDraftRegistryEntry = {
   readonly domain: string;
   readonly pageId: string;
+};
+
+type TSiteConfigRouteEntry = {
+  readonly path?: string;
+};
+
+type TLocalSiteConfig = {
+  readonly domain?: string;
+  readonly aliases?: readonly string[];
+  readonly routes?: readonly TSiteConfigRouteEntry[];
+  readonly site?: {
+    readonly seo?: {
+      readonly canonicalOrigin?: string;
+    };
+  };
 };
 
 function isDirectory(path: string): boolean {
@@ -25,6 +42,10 @@ function isDirectory(path: string): boolean {
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
 function resolveDraftsFolder(): string | null {
   const candidates = [
     join(process.cwd(), DRAFTS_FOLDER_NAME),
@@ -32,6 +53,162 @@ function resolveDraftsFolder(): string | null {
   ];
 
   return candidates.find((candidate) => existsSync(candidate) && isDirectory(candidate)) ?? null;
+}
+
+function normalizeHost(value: unknown): string {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/:\d+$/, '');
+}
+
+function normalizeRoutePath(value: unknown): string {
+  const raw = String(value ?? '').trim();
+  if (!raw || raw === '/') {
+    return '/';
+  }
+
+  return raw.startsWith('/') ? raw : `/${raw}`;
+}
+
+function readJsonFile(filePath: string): Record<string, unknown> | null {
+  try {
+    return JSON.parse(readFileSync(filePath, 'utf8')) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+function resolveSiteConfigPath(domain: string): string | null {
+  const draftsFolder = resolveDraftsFolder();
+  if (!draftsFolder) {
+    return null;
+  }
+
+  const normalizedDomain = normalizeHost(domain);
+  if (!normalizedDomain) {
+    return null;
+  }
+
+  const directPath = join(draftsFolder, normalizedDomain, 'site-config.json');
+  if (existsSync(directPath)) {
+    return directPath;
+  }
+
+  const entries = readdirSync(draftsFolder, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .filter((entry) => entry.name !== DEBUG_DRAFT_DIRECTORY);
+
+  for (const entry of entries) {
+    const siteConfigPath = join(draftsFolder, entry.name, 'site-config.json');
+    if (!existsSync(siteConfigPath)) {
+      continue;
+    }
+
+    const siteConfig = readJsonFile(siteConfigPath) as TLocalSiteConfig | null;
+    const aliases = Array.isArray(siteConfig?.aliases)
+      ? siteConfig.aliases.map((alias) => normalizeHost(alias)).filter(Boolean)
+      : [];
+
+    if (aliases.includes(normalizedDomain)) {
+      return siteConfigPath;
+    }
+  }
+
+  return null;
+}
+
+function loadLocalSiteConfig(domain: string): TLocalSiteConfig | null {
+  const siteConfigPath = resolveSiteConfigPath(domain);
+  if (!siteConfigPath) {
+    return null;
+  }
+
+  return readJsonFile(siteConfigPath) as TLocalSiteConfig | null;
+}
+
+async function loadRuntimeSiteConfig(domain: string): Promise<TLocalSiteConfig | null> {
+  const normalizedDomain = normalizeHost(domain);
+  if (!normalizedDomain || !DEFAULT_CONFIG_API_URL) {
+    return null;
+  }
+
+  try {
+    const url = new URL('/runtime-bundle', `${DEFAULT_CONFIG_API_URL.replace(/\/$/, '')}/`);
+    url.searchParams.set('domain', normalizedDomain);
+    url.searchParams.set('path', '/');
+
+    const response = await fetch(url.toString());
+    if (!response.ok) {
+      return null;
+    }
+
+    const payload = await response.json() as { siteConfig?: unknown };
+    return isRecord(payload?.siteConfig) ? payload.siteConfig as TLocalSiteConfig : null;
+  } catch {
+    return null;
+  }
+}
+
+async function loadSiteConfigForHost(domain: string): Promise<TLocalSiteConfig | null> {
+  return loadLocalSiteConfig(domain) ?? await loadRuntimeSiteConfig(domain);
+}
+
+function resolveRequestHost(req: express.Request): string {
+  const forwardedHost = String(req.headers['x-forwarded-host'] ?? '')
+    .split(',')[0]
+    .trim();
+  return normalizeHost(forwardedHost || req.headers.host);
+}
+
+function resolveRequestProtocol(req: express.Request, host: string): string {
+  const forwardedProto = String(req.headers['x-forwarded-proto'] ?? '')
+    .split(',')[0]
+    .trim()
+    .toLowerCase();
+
+  if (forwardedProto) {
+    return forwardedProto;
+  }
+
+  return host === 'localhost' || host.startsWith('127.') ? 'http' : 'https';
+}
+
+function resolveRequestOrigin(req: express.Request, host: string): string {
+  if (!host) {
+    return 'https://localhost';
+  }
+
+  return `${resolveRequestProtocol(req, host)}://${host}`;
+}
+
+function resolveCanonicalOrigin(req: express.Request, host: string, siteConfig: TLocalSiteConfig | null): string {
+  const configured = String(siteConfig?.site?.seo?.canonicalOrigin ?? '').trim();
+  return configured || resolveRequestOrigin(req, host);
+}
+
+function buildRobotsTxt(req: express.Request, host: string, siteConfig: TLocalSiteConfig | null): string {
+  const origin = resolveCanonicalOrigin(req, host, siteConfig).replace(/\/$/, '');
+  const sitemapUrl = `${origin}/sitemap.xml`;
+  return ['User-agent: *', 'Allow: /', `Sitemap: ${sitemapUrl}`].join('\n');
+}
+
+function buildSitemapXml(req: express.Request, host: string, siteConfig: TLocalSiteConfig | null): string {
+  const origin = `${resolveCanonicalOrigin(req, host, siteConfig).replace(/\/$/, '')}/`;
+  const rawRoutes = Array.isArray(siteConfig?.routes) && siteConfig.routes.length > 0
+    ? siteConfig.routes
+    : [{ path: '/' }];
+  const urls = Array.from(new Set(rawRoutes.map((route) => new URL(normalizeRoutePath(route.path), origin).toString())));
+  const entries = urls
+    .map((url) => `  <url>\n    <loc>${url}</loc>\n  </url>`)
+    .join('\n');
+
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    entries,
+    '</urlset>',
+  ].join('\n');
 }
 
 function listDraftRegistryEntries(): readonly TDraftRegistryEntry[] {
@@ -76,6 +253,18 @@ const angularApp = new AngularNodeAppEngine();
 
 app.get('/api/debug/drafts', (_req, res) => {
   res.json({ drafts: listDraftRegistryEntries() });
+});
+
+app.get('/robots.txt', async (req, res) => {
+  const host = resolveRequestHost(req);
+  const siteConfig = await loadSiteConfigForHost(host);
+  res.type('text/plain').send(buildRobotsTxt(req, host, siteConfig));
+});
+
+app.get('/sitemap.xml', async (req, res) => {
+  const host = resolveRequestHost(req);
+  const siteConfig = await loadSiteConfigForHost(host);
+  res.type('application/xml').send(buildSitemapXml(req, host, siteConfig));
 });
 
 const draftsFolder = resolveDraftsFolder();

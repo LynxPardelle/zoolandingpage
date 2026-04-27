@@ -128,6 +128,8 @@ node tools/config-draft-sync.mjs pull --endpoint=https://api.zoolandingpage.com.
 
 Use `--stage=published` if you need the published state instead of the current draft.
 
+For the standard Zoolanding custom-domain authoring URL, the CLI now retries automatically through the raw API Gateway endpoint if the front door resets the connection or the request times out. You can override the retry target with `--fallback-endpoint=https://...`, change the request timeout with `--request-timeout-ms=20000`, raise the retry budget with `--retry-attempts=3`, and shorten or extend the wait between retries with `--retry-delay-ms=250`.
+
 ## Pack a local draft into a file
 
 This is useful for inspection or manual API calls.
@@ -162,7 +164,7 @@ node tools/config-draft-sync.mjs publish --endpoint=https://api.zoolandingpage.c
 
 Publishing changes the authoring state only insofar as it promotes the current draft to the published version pointer. It does not guarantee that live frontend caches or deployments have already refreshed.
 
-If the custom-domain authoring endpoint resets the connection during publish, retry the same `publishDraft` request through the raw API Gateway endpoint documented in [06-deployment.md](06-deployment.md). If the raw endpoint succeeds, the problem is in the API front door, not in the authoring Lambda action itself.
+If the custom-domain authoring endpoint resets the connection or stalls, the CLI now retries automatically through the raw API Gateway endpoint for the standard Zoolanding authoring URL. Use `--fallback-endpoint=https://...` if you need to force a different retry target, `--retry-attempts=3` to allow additional attempts on retryable failures, `--retry-delay-ms=250` to control the pause between attempts, or point directly at the raw endpoint documented in [06-deployment.md](06-deployment.md).
 
 ## Recommended workflows
 

@@ -12,7 +12,7 @@ describe('SeoMetadataService', () => {
 
     beforeEach(() => {
         title = jasmine.createSpyObj<Title>('Title', ['setTitle']);
-        meta = jasmine.createSpyObj<Meta>('Meta', ['updateTag']);
+        meta = jasmine.createSpyObj<Meta>('Meta', ['updateTag', 'removeTag']);
 
         TestBed.configureTestingModule({
             providers: [
@@ -52,7 +52,7 @@ describe('SeoMetadataService', () => {
         TestBed.resetTestingModule();
 
         title = jasmine.createSpyObj<Title>('Title', ['setTitle']);
-        meta = jasmine.createSpyObj<Meta>('Meta', ['updateTag']);
+        meta = jasmine.createSpyObj<Meta>('Meta', ['updateTag', 'removeTag']);
 
         TestBed.configureTestingModule({
             providers: [
@@ -112,5 +112,83 @@ describe('SeoMetadataService', () => {
         expect(meta.updateTag).toHaveBeenCalledWith({ property: 'og:title', content: 'OG EN' });
         expect(meta.updateTag).toHaveBeenCalledWith({ property: 'og:description', content: 'OG Desc EN' });
         expect(meta.updateTag).toHaveBeenCalledWith({ name: 'twitter:title', content: 'TW EN' });
+    });
+
+    it('emits localized keywords and robots tags from page seo payload', () => {
+        service.apply('en', {
+            title: 'Title EN',
+            description: 'Description EN',
+            canonical: 'https://zoolandingpage.com.mx/',
+            keywords: {
+                es: ['landing page', 'seo tecnico'],
+                en: ['landing page', 'technical seo', 'ai search'],
+            },
+            robots: {
+                es: 'index,follow',
+                en: 'index,follow,max-image-preview:large',
+            },
+        } as never);
+
+        expect(meta.updateTag).toHaveBeenCalledWith({
+            name: 'keywords',
+            content: 'landing page, technical seo, ai search',
+        });
+        expect(meta.updateTag).toHaveBeenCalledWith({
+            name: 'robots',
+            content: 'index,follow,max-image-preview:large',
+        });
+    });
+
+    it('falls back to site-config keywords and robots when the page omits them', () => {
+        TestBed.resetTestingModule();
+
+        title = jasmine.createSpyObj<Title>('Title', ['setTitle']);
+        meta = jasmine.createSpyObj<Meta>('Meta', ['updateTag']);
+
+        TestBed.configureTestingModule({
+            providers: [
+                SeoMetadataService,
+                { provide: DOCUMENT, useValue: document },
+                { provide: Title, useValue: title },
+                { provide: Meta, useValue: meta },
+                {
+                    provide: DomainResolverService,
+                    useValue: {
+                        resolveDomain: () => ({ domain: 'example.com' }),
+                    },
+                },
+                {
+                    provide: RuntimeConfigService,
+                    useValue: {
+                        seoDefaults: () => ({
+                            siteName: 'Example Site',
+                            title: 'Example Site',
+                            description: 'Shared site description.',
+                            canonicalOrigin: 'https://example.com',
+                            keywords: ['seo', 'chatgpt search', 'bing copilot'],
+                            robots: 'index,follow,max-snippet:-1,max-image-preview:large',
+                        }),
+                        appName: () => 'Ignored App Name',
+                        appDescription: () => 'Ignored app description.',
+                    },
+                },
+            ],
+        });
+
+        service = TestBed.inject(SeoMetadataService);
+        service.apply('en', {
+            title: 'Example Page',
+            description: 'Example page description.',
+            canonical: 'https://example.com/',
+        } as never);
+
+        expect(meta.updateTag).toHaveBeenCalledWith({
+            name: 'keywords',
+            content: 'seo, chatgpt search, bing copilot',
+        });
+        expect(meta.updateTag).toHaveBeenCalledWith({
+            name: 'robots',
+            content: 'index,follow,max-snippet:-1,max-image-preview:large',
+        });
     });
 });
