@@ -13,6 +13,13 @@ const DRAFTS_FOLDER_NAME = 'drafts';
 const DEBUG_DRAFT_DIRECTORY = '_debug';
 const DEFAULT_CONFIG_API_URL = String(process.env['CONFIG_API_URL'] ?? 'https://api.zoolandingpage.com.mx').trim();
 const LOCAL_NOTE_FOLDER_NAMES = new Set(['ai_notes', 'findings', 'errors-reports']);
+const SITE_CONFIG_CACHE_TTL_MS = 60_000;
+const SITE_CONFIG_CACHE_MAX_SIZE = 200;
+
+type TSiteConfigCacheEntry = {
+  readonly path: string | null;
+  readonly expiresAt: number;
+};
 
 type TDraftRegistryEntry = {
   readonly domain: string;
@@ -33,6 +40,18 @@ type TLocalSiteConfig = {
     };
   };
 };
+
+const siteConfigPathCache = new Map<string, TSiteConfigCacheEntry>();
+
+function setCachedSiteConfigPath(domain: string, path: string | null): void {
+  if (siteConfigPathCache.size >= SITE_CONFIG_CACHE_MAX_SIZE) {
+    const oldestKey = siteConfigPathCache.keys().next().value;
+    if (oldestKey !== undefined) {
+      siteConfigPathCache.delete(oldestKey);
+    }
+  }
+  siteConfigPathCache.set(domain, { path, expiresAt: Date.now() + SITE_CONFIG_CACHE_TTL_MS });
+}
 
 function isDirectory(path: string): boolean {
   try {
@@ -80,18 +99,25 @@ function readJsonFile(filePath: string): Record<string, unknown> | null {
 }
 
 function resolveSiteConfigPath(domain: string): string | null {
-  const draftsFolder = resolveDraftsFolder();
-  if (!draftsFolder) {
-    return null;
-  }
-
   const normalizedDomain = normalizeHost(domain);
   if (!normalizedDomain) {
     return null;
   }
 
+  const cached = siteConfigPathCache.get(normalizedDomain);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.path;
+  }
+
+  const draftsFolder = resolveDraftsFolder();
+  if (!draftsFolder) {
+    setCachedSiteConfigPath(normalizedDomain, null);
+    return null;
+  }
+
   const directPath = join(draftsFolder, normalizedDomain, 'site-config.json');
   if (existsSync(directPath)) {
+    setCachedSiteConfigPath(normalizedDomain, directPath);
     return directPath;
   }
 
@@ -111,10 +137,12 @@ function resolveSiteConfigPath(domain: string): string | null {
       : [];
 
     if (aliases.includes(normalizedDomain)) {
+      setCachedSiteConfigPath(normalizedDomain, siteConfigPath);
       return siteConfigPath;
     }
   }
 
+  setCachedSiteConfigPath(normalizedDomain, null);
   return null;
 }
 
@@ -187,6 +215,15 @@ function resolveCanonicalOrigin(req: express.Request, host: string, siteConfig: 
   return configured || resolveRequestOrigin(req, host);
 }
 
+function escapeXml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
 function buildRobotsTxt(req: express.Request, host: string, siteConfig: TLocalSiteConfig | null): string {
   const origin = resolveCanonicalOrigin(req, host, siteConfig).replace(/\/$/, '');
   const sitemapUrl = `${origin}/sitemap.xml`;
@@ -200,7 +237,7 @@ function buildSitemapXml(req: express.Request, host: string, siteConfig: TLocalS
     : [{ path: '/' }];
   const urls = Array.from(new Set(rawRoutes.map((route) => new URL(normalizeRoutePath(route.path), origin).toString())));
   const entries = urls
-    .map((url) => `  <url>\n    <loc>${url}</loc>\n  </url>`)
+    .map((url) => `  <url>\n    <loc>${escapeXml(url)}</loc>\n  </url>`)
     .join('\n');
 
   return [
