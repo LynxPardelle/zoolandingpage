@@ -191,4 +191,61 @@ describe('SeoMetadataService', () => {
             content: 'index,follow,max-snippet:-1,max-image-preview:large',
         });
     });
+
+    it('uses the canonical page url as the fallback og:url when no page openGraph url is provided', () => {
+        TestBed.resetTestingModule();
+
+        title = jasmine.createSpyObj<Title>('Title', ['setTitle']);
+        meta = jasmine.createSpyObj<Meta>('Meta', ['updateTag', 'removeTag']);
+
+        const baseDoc = document.implementation.createHTMLDocument('seo');
+        const seoDoc = {
+            documentElement: baseDoc.documentElement,
+            head: baseDoc.head,
+            createElement: baseDoc.createElement.bind(baseDoc),
+            defaultView: {
+                location: {
+                    origin: 'http://pamelabetancourt.zoolandingpage.com.mx',
+                    pathname: '/',
+                },
+            },
+        } as unknown as Document;
+
+        TestBed.configureTestingModule({
+            providers: [
+                SeoMetadataService,
+                { provide: DOCUMENT, useValue: seoDoc },
+                { provide: Title, useValue: title },
+                { provide: Meta, useValue: meta },
+                {
+                    provide: DomainResolverService,
+                    useValue: {
+                        resolveDomain: () => ({ domain: 'pamelabetancourt.zoolandingpage.com.mx' }),
+                    },
+                },
+                {
+                    provide: RuntimeConfigService,
+                    useValue: {
+                        seoDefaults: () => ({
+                            canonicalOrigin: 'https://pamelabetancourt.zoolandingpage.com.mx',
+                        }),
+                        appName: () => 'Pamela Betancourt',
+                        appDescription: () => 'Pamela site',
+                    },
+                },
+            ],
+        });
+
+        service = TestBed.inject(SeoMetadataService);
+        service.apply('es', {
+            title: 'Pamela Betancourt | Home',
+            description: 'More strategy, less improvisation.',
+            canonical: 'https://pamelabetancourt.zoolandingpage.com.mx/home',
+        } as never);
+
+        expect(meta.updateTag).toHaveBeenCalledWith({
+            property: 'og:url',
+            content: 'https://pamelabetancourt.zoolandingpage.com.mx/home',
+        });
+    });
 });

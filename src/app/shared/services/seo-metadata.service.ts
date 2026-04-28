@@ -40,9 +40,12 @@ export class SeoMetadataService {
             this.syncNamedMetaTag('keywords', seoKeywords);
             this.syncNamedMetaTag('robots', seoRobots);
 
-            const origin = doc.defaultView?.location?.origin || this.cleanString(siteSeo?.canonicalOrigin) || this.defaultOrigin();
-            const pathname = doc.defaultView?.location?.pathname || '/';
-            const url = `${ origin }${ pathname || '/' }`;
+            const origin = this.cleanString(siteSeo?.canonicalOrigin)
+                || this.cleanString(doc.defaultView?.location?.origin)
+                || this.defaultOrigin();
+            const pathname = this.normalizePathname(doc.defaultView?.location?.pathname);
+            const url = `${ origin }${ pathname }`;
+            const canonicalUrl = this.resolveLocalizedText(seo?.canonical, lang) || url;
             const ogLocale = toOpenGraphLocale(lang) || 'en_US';
             const openGraphDefaults = this.resolveLocalizedRecord(this.asRecord(siteSeo?.openGraph), lang);
             const twitterDefaults = this.resolveLocalizedRecord(this.asRecord(siteSeo?.twitter), lang);
@@ -54,6 +57,7 @@ export class SeoMetadataService {
                 ...twitterDefaults,
                 ...this.asRecord(seo?.twitter),
             }, lang);
+            const openGraphUrl = this.cleanString(openGraph['url']) || canonicalUrl;
             const defaultImage = this.cleanString(siteSeo?.defaultImage)
                 || this.cleanString(openGraphDefaults['image'])
                 || this.cleanString(twitterDefaults['image'])
@@ -62,7 +66,7 @@ export class SeoMetadataService {
             this.meta.updateTag({ property: 'og:title', content: String(openGraph['title'] ?? seoTitle) });
             this.meta.updateTag({ property: 'og:description', content: String(openGraph['description'] ?? seoDescription) });
             this.meta.updateTag({ property: 'og:type', content: String(openGraph['type'] ?? 'website') });
-            this.meta.updateTag({ property: 'og:url', content: String(openGraph['url'] ?? url) });
+            this.meta.updateTag({ property: 'og:url', content: openGraphUrl });
             this.meta.updateTag({ property: 'og:image', content: String(openGraph['image'] ?? defaultImage) });
             this.meta.updateTag({ property: 'og:locale', content: String(openGraph['locale'] ?? ogLocale) });
             this.meta.updateTag({ property: 'og:site_name', content: String(openGraph['site_name'] ?? fallbackSiteName) });
@@ -80,7 +84,7 @@ export class SeoMetadataService {
                     linkEl.setAttribute('rel', 'canonical');
                     head.appendChild(linkEl);
                 }
-                linkEl.setAttribute('href', this.resolveLocalizedText(seo?.canonical, lang) || url);
+                linkEl.setAttribute('href', canonicalUrl);
             }
         } catch {
             // no-op for SSR
@@ -196,6 +200,11 @@ export class SeoMetadataService {
 
     private cleanString(value: unknown): string {
         return typeof value === 'string' ? value.trim() : '';
+    }
+
+    private normalizePathname(value: unknown): string {
+        const pathname = this.cleanString(value) || '/';
+        return pathname.startsWith('/') ? pathname : `/${ pathname }`;
     }
 
     private defaultOrigin(): string {

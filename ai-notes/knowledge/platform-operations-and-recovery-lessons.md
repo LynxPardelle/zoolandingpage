@@ -23,6 +23,12 @@ Keep Systems Manager access available on the active host so recovery does not de
 
 After edge routing is repaired, verify the actual application service state on the active host before declaring the incident closed. A broken container image or missing local image can keep the site down even after the edge layer is healthy again.
 
+## Edge Verification Lesson
+
+If CloudFront-backed domains still look broken after the origin host recovers, confirm the edge-to-origin path before changing host routing again. Traefik access logs can prove whether CloudFront is still reaching the origin over HTTP and receiving `200` responses even when some local CLI clients report TLS or connection-reset errors.
+
+On Windows recovery work, do not trust one failing client alone. `curl.exe` and Node or undici may show `ECONNRESET` while PowerShell `Invoke-WebRequest`, .NET `HttpClient`, and Traefik access logs show the public page is actually serving correctly through CloudFront.
+
 ## SSR Runtime Fallback Lesson
 
 If browser fetches to the stable API custom domain are healthy but Node or undici requests from the SSR container intermittently fail with transport resets, keep the browser-facing base URL on the custom domain and add a server-only fallback for `runtime-bundle` to the raw runtime-read origin base. That isolates the issue to SSR transport without changing public browser URLs or alias resolution behavior.

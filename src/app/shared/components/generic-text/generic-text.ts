@@ -4,6 +4,10 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { composeDomId, resolveComponentDomIdBase, resolveComponentRootDomId, resolveDynamicValue } from '../../utility/component-orchestrator.utility';
 import { GenericTextTag, TGenericTextConfig } from './generic-text.types';
 
+type TRenderedGenericTextTag = GenericTextTag | 'div';
+
+const BLOCK_HTML_PATTERN = /<(address|article|aside|blockquote|details|div|dl|fieldset|figcaption|figure|footer|form|h[1-6]|header|hr|li|main|nav|ol|p|pre|section|summary|table|thead|tbody|tfoot|tr|td|th|ul)\b/i;
+
 @Component({
   selector: 'generic-text',
   imports: [CommonModule],
@@ -19,9 +23,15 @@ export class GenericTextComponent {
   });
   readonly componentId = input<string | undefined>(undefined);
 
-  readonly tag = computed<GenericTextTag>(() => {
+  readonly tag = computed<TRenderedGenericTextTag>(() => {
     const resolved = resolveDynamicValue(this.config().tag);
-    return (resolved as GenericTextTag) ?? 'p';
+    const configuredTag = (resolved as GenericTextTag | null) ?? 'p';
+
+    if (this.useHtml() && this.containsBlockHtml()) {
+      return 'div';
+    }
+
+    return configuredTag;
   });
   readonly text = computed(() => {
     return resolveDynamicValue(this.config().text) ?? '';
@@ -43,4 +53,6 @@ export class GenericTextComponent {
   });
 
   readonly useHtml = computed(() => !!this.safeHtml());
+
+  readonly containsBlockHtml = computed(() => BLOCK_HTML_PATTERN.test(this.safeHtml() ?? ''));
 }

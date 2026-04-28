@@ -34,6 +34,21 @@ describe('GenericTextComponent', () => {
     expect(paragraph.innerHTML).not.toContain('<script>');
   });
 
+  it('renders block authored html inside a div host when the configured tag would create invalid markup', () => {
+    fixture.componentRef.setInput('componentId', 'help-list');
+    fixture.componentRef.setInput('config', {
+      html: '<ul><li>One</li><li>Two</li></ul>',
+    });
+
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement.querySelector('#help-list-text') as HTMLDivElement | null;
+
+    expect(host?.tagName).toBe('DIV');
+    expect(host?.querySelectorAll('li').length).toBe(2);
+    expect(fixture.nativeElement.querySelector('p')).toBeNull();
+  });
+
   it('should compose root and content ids from the component id when config.id is missing', () => {
     fixture.componentRef.setInput('componentId', 'intro');
     fixture.componentRef.setInput('config', {

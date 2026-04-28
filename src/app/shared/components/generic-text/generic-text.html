@@ -1,53 +1,77 @@
-<ng-template #contentTpl>
-  @if (useHtml()) {
-  <span [attr.id]="contentId()" [innerHTML]="safeHtml()"></span>
-  } @else {
+<ng-template #textTpl>
   <span [attr.id]="contentId()" style="display: contents">{{ text() }}</span>
-  }
 </ng-template>
 
-@switch (tag()) { @case ('h1') {
+@switch (tag()) { @case ('h1') { @if (useHtml()) {
+<h1 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></h1>
+} @else {
 <h1 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()">
-  <ng-container [ngTemplateOutlet]="contentTpl"></ng-container>
+  <ng-container [ngTemplateOutlet]="textTpl"></ng-container>
 </h1>
-} @case ('h2') {
+} } @case ('h2') { @if (useHtml()) {
+<h2 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></h2>
+} @else {
 <h2 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()">
-  <ng-container [ngTemplateOutlet]="contentTpl"></ng-container>
+  <ng-container [ngTemplateOutlet]="textTpl"></ng-container>
 </h2>
-} @case ('h3') {
+} } @case ('h3') { @if (useHtml()) {
+<h3 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></h3>
+} @else {
 <h3 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()">
-  <ng-container [ngTemplateOutlet]="contentTpl"></ng-container>
+  <ng-container [ngTemplateOutlet]="textTpl"></ng-container>
 </h3>
-} @case ('h4') {
+} } @case ('h4') { @if (useHtml()) {
+<h4 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></h4>
+} @else {
 <h4 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()">
-  <ng-container [ngTemplateOutlet]="contentTpl"></ng-container>
+  <ng-container [ngTemplateOutlet]="textTpl"></ng-container>
 </h4>
-} @case ('h5') {
+} } @case ('h5') { @if (useHtml()) {
+<h5 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></h5>
+} @else {
 <h5 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()">
-  <ng-container [ngTemplateOutlet]="contentTpl"></ng-container>
+  <ng-container [ngTemplateOutlet]="textTpl"></ng-container>
 </h5>
-} @case ('h6') {
+} } @case ('h6') { @if (useHtml()) {
+<h6 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></h6>
+} @else {
 <h6 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()">
-  <ng-container [ngTemplateOutlet]="contentTpl"></ng-container>
+  <ng-container [ngTemplateOutlet]="textTpl"></ng-container>
 </h6>
-} @case ('span') {
+} } @case ('span') { @if (useHtml()) {
+<span [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></span>
+} @else {
 <span [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()"
-  ><ng-container [ngTemplateOutlet]="contentTpl"></ng-container
+  ><ng-container [ngTemplateOutlet]="textTpl"></ng-container
 ></span>
-} @case ('small') {
+} } @case ('small') { @if (useHtml()) {
+<small [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></small>
+} @else {
 <small [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()"
-  ><ng-container [ngTemplateOutlet]="contentTpl"></ng-container
+  ><ng-container [ngTemplateOutlet]="textTpl"></ng-container
 ></small>
-} @case ('strong') {
+} } @case ('strong') { @if (useHtml()) {
+<strong [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></strong>
+} @else {
 <strong [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()"
-  ><ng-container [ngTemplateOutlet]="contentTpl"></ng-container
+  ><ng-container [ngTemplateOutlet]="textTpl"></ng-container
 ></strong>
-} @case ('em') {
+} } @case ('em') { @if (useHtml()) {
+<em [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></em>
+} @else {
 <em [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()"
-  ><ng-container [ngTemplateOutlet]="contentTpl"></ng-container
+  ><ng-container [ngTemplateOutlet]="textTpl"></ng-container
 ></em>
-} @case ('p') {
+} } @case ('p') { @if (useHtml()) {
+<p [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></p>
+} @else {
 <p [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()">
-  <ng-container [ngTemplateOutlet]="contentTpl"></ng-container>
+  <ng-container [ngTemplateOutlet]="textTpl"></ng-container>
 </p>
-} @default { <ng-container [ngTemplateOutlet]="contentTpl"></ng-container> } }
+} } @case ('div') {
+<div [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></div>
+} @default { @if (useHtml()) {
+<span [attr.id]="contentId()" [innerHTML]="safeHtml()"></span>
+} @else {
+<ng-container [ngTemplateOutlet]="textTpl"></ng-container>
+} } }
