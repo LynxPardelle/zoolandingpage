@@ -63,3 +63,4 @@ Thumbs.db
 /drafts/*
 !/drafts/.gitignore
 /devonly/
+/reports/

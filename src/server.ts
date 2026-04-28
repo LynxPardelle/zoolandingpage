@@ -6,7 +6,7 @@ import {
 } from '@angular/ssr/node';
 import express from 'express';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
 const DRAFTS_FOLDER_NAME = 'drafts';
@@ -28,6 +28,18 @@ type TDraftRegistryEntry = {
 
 type TSiteConfigRouteEntry = {
   readonly path?: string;
+  readonly pageId?: string;
+};
+
+type TLocalPageConfig = {
+  readonly seo?: {
+    readonly canonical?: string;
+  };
+};
+
+type TRuntimeBundlePayload = {
+  readonly siteConfig?: unknown;
+  readonly pageConfig?: unknown;
 };
 
 type TLocalSiteConfig = {
@@ -155,6 +167,20 @@ function loadLocalSiteConfig(domain: string): TLocalSiteConfig | null {
   return readJsonFile(siteConfigPath) as TLocalSiteConfig | null;
 }
 
+function loadLocalPageConfig(domain: string, pageId: string): TLocalPageConfig | null {
+  const normalizedPageId = String(pageId ?? '').trim();
+  if (!normalizedPageId) {
+    return null;
+  }
+
+  const siteConfigPath = resolveSiteConfigPath(domain);
+  if (!siteConfigPath) {
+    return null;
+  }
+
+  return readJsonFile(join(dirname(siteConfigPath), normalizedPageId, 'page-config.json')) as TLocalPageConfig | null;
+}
+
 async function loadRuntimeSiteConfig(domain: string): Promise<TLocalSiteConfig | null> {
   const normalizedDomain = normalizeHost(domain);
   if (!normalizedDomain || !DEFAULT_CONFIG_API_URL) {
@@ -171,11 +197,44 @@ async function loadRuntimeSiteConfig(domain: string): Promise<TLocalSiteConfig |
       return null;
     }
 
-    const payload = await response.json() as { siteConfig?: unknown };
+    const payload = await response.json() as TRuntimeBundlePayload;
     return isRecord(payload?.siteConfig) ? payload.siteConfig as TLocalSiteConfig : null;
   } catch {
     return null;
   }
+}
+
+async function loadRuntimePageConfig(domain: string, path: string): Promise<TLocalPageConfig | null> {
+  const normalizedDomain = normalizeHost(domain);
+  if (!normalizedDomain || !DEFAULT_CONFIG_API_URL) {
+    return null;
+  }
+
+  try {
+    const url = new URL('/runtime-bundle', `${DEFAULT_CONFIG_API_URL.replace(/\/$/, '')}/`);
+    url.searchParams.set('domain', normalizedDomain);
+    url.searchParams.set('path', normalizeRoutePath(path));
+
+    const response = await fetch(url.toString());
+    if (!response.ok) {
+      return null;
+    }
+
+    const payload = await response.json() as TRuntimeBundlePayload;
+    return isRecord(payload?.pageConfig) ? payload.pageConfig as TLocalPageConfig : null;
+  } catch {
+    return null;
+  }
+}
+
+async function loadPageConfigForRoute(domain: string, route: TSiteConfigRouteEntry): Promise<TLocalPageConfig | null> {
+  const pageId = String(route.pageId ?? '').trim();
+  const localPageConfig = pageId ? loadLocalPageConfig(domain, pageId) : null;
+  if (localPageConfig) {
+    return localPageConfig;
+  }
+
+  return loadRuntimePageConfig(domain, normalizeRoutePath(route.path));
 }
 
 async function loadSiteConfigForHost(domain: string): Promise<TLocalSiteConfig | null> {
@@ -230,12 +289,30 @@ function buildRobotsTxt(req: express.Request, host: string, siteConfig: TLocalSi
   return ['User-agent: *', 'Allow: /', `Sitemap: ${sitemapUrl}`].join('\n');
 }
 
-function buildSitemapXml(req: express.Request, host: string, siteConfig: TLocalSiteConfig | null): string {
+function resolveCanonicalSitemapUrl(origin: string, routePath: string, pageConfig: TLocalPageConfig | null): string {
+  const canonical = String(pageConfig?.seo?.canonical ?? '').trim();
+  if (!canonical) {
+    return new URL(normalizeRoutePath(routePath), origin).toString();
+  }
+
+  try {
+    return new URL(canonical, origin).toString();
+  } catch {
+    return new URL(normalizeRoutePath(routePath), origin).toString();
+  }
+}
+
+async function buildSitemapXml(req: express.Request, host: string, siteConfig: TLocalSiteConfig | null): Promise<string> {
   const origin = `${resolveCanonicalOrigin(req, host, siteConfig).replace(/\/$/, '')}/`;
   const rawRoutes = Array.isArray(siteConfig?.routes) && siteConfig.routes.length > 0
     ? siteConfig.routes
     : [{ path: '/' }];
-  const urls = Array.from(new Set(rawRoutes.map((route) => new URL(normalizeRoutePath(route.path), origin).toString())));
+  const sitemapDomain = normalizeHost(host) || normalizeHost(siteConfig?.domain);
+  const resolvedUrls = await Promise.all(rawRoutes.map(async (route) => {
+    const pageConfig = sitemapDomain ? await loadPageConfigForRoute(sitemapDomain, route) : null;
+    return resolveCanonicalSitemapUrl(origin, normalizeRoutePath(route.path), pageConfig);
+  }));
+  const urls = Array.from(new Set(resolvedUrls));
   const entries = urls
     .map((url) => `  <url>\n    <loc>${escapeXml(url)}</loc>\n  </url>`)
     .join('\n');
@@ -301,7 +378,7 @@ app.get('/robots.txt', async (req, res) => {
 app.get('/sitemap.xml', async (req, res) => {
   const host = resolveRequestHost(req);
   const siteConfig = await loadSiteConfigForHost(host);
-  res.type('application/xml').send(buildSitemapXml(req, host, siteConfig));
+  res.type('application/xml').send(await buildSitemapXml(req, host, siteConfig));
 });
 
 const draftsFolder = resolveDraftsFolder();
