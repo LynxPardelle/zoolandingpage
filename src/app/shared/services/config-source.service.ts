@@ -12,6 +12,7 @@ import { environment } from '@/environments/environment';
 import { inject, Injectable, REQUEST } from '@angular/core';
 import { ConfigApiService } from './config-api.service';
 import { DraftConfigLoaderService } from './draft-config-loader.service';
+import { ConfigStoreService } from './config-store.service';
 import { LanguageService } from './language.service';
 
 type TConfigSource = {
@@ -29,6 +30,7 @@ export class ConfigSourceService {
     private readonly drafts = inject(DraftConfigLoaderService);
     private readonly request = inject(REQUEST, { optional: true });
     private readonly language = inject(LanguageService);
+    private readonly store = inject(ConfigStoreService);
     private readonly runtimeBundleCache = new Map<string, Promise<TRuntimeBundlePayload | null>>();
 
     private readonly draftSource: TConfigSource = {
@@ -52,7 +54,7 @@ export class ConfigSourceService {
     private readonly apiSource: TConfigSource = {
         loadSiteConfig: async (domain) => {
             const bundle = await this.tryLoadRuntimeBundle(domain);
-            return bundle?.siteConfig ?? this.legacyApiSource.loadSiteConfig(domain);
+            return bundle?.siteConfig ?? this.resolveHydratedAliasedSiteConfig(domain) ?? this.legacyApiSource.loadSiteConfig(domain);
         },
         loadPageConfig: async (domain, pageId) => {
             const bundle = await this.tryLoadRuntimeBundle(domain, { pageId });
@@ -238,6 +240,32 @@ export class ConfigSourceService {
             domain: domain || requestedDomain,
             pageId: pageId || requestedPageId,
         };
+    }
+
+    private normalizeDomainToken(value: unknown): string {
+        return String(value ?? '').trim().toLowerCase();
+    }
+
+    private resolveHydratedAliasedSiteConfig(requestedDomain: string): TDraftSiteConfigPayload | null {
+        if (this.request) {
+            return null;
+        }
+
+        const siteConfig = this.store.siteConfig();
+        if (!siteConfig) {
+            return null;
+        }
+
+        const normalizedRequestedDomain = this.normalizeDomainToken(requestedDomain);
+        if (!normalizedRequestedDomain) {
+            return null;
+        }
+
+        const normalizedAliases = Array.isArray(siteConfig.aliases)
+            ? siteConfig.aliases.map((alias) => this.normalizeDomainToken(alias)).filter(Boolean)
+            : [];
+
+        return normalizedAliases.includes(normalizedRequestedDomain) ? siteConfig : null;
     }
 
     private get source(): TConfigSource {
