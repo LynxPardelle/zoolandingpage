@@ -14,7 +14,7 @@ Source Of Truth:
 - `.github/agents/zoolanding-config-platform-audit.agent.md`
 
 Confidence: High
-Last Reviewed: 2026-04-21 (Central Time)
+Last Reviewed: 2026-04-30 (Central Time)
 
 ## Vendored Repo-Local Skills
 
@@ -25,6 +25,7 @@ These skills now live under `.github/skills/` so the repo carries its own reusab
 - `risk-review` is the default review-only lens for diffs, regressions, and findings-first assessments.
 - `test-driven-development` is the default for behavior-changing code in Angular services, tools, and Lambda handlers, but it is not the default for draft JSON, content-only, or docs-only edits.
 - `zoolanding-browser-qa` is the default browser-validation workflow for draft routes, SSR output, responsive behavior, console checks, and network validation.
+- `zoolanding-lighthouse-release-audit` is the default repo-local workflow for Lighthouse performance/accessibility remediation, SSR draft route regressions, language persistence, testing deploys, and Reports Lighthouse artifacts.
 - `zoolanding-pr-followup` is the default repo-local entrypoint for CI, reviewer feedback, and merge-readiness follow-up on active PRs.
 
 ## Optional Global Companions
@@ -36,6 +37,7 @@ These skills now live under `.github/skills/` so the repo carries its own reusab
 - `chrome-devtools` for live inspection, console, network, DOM, or performance evidence.
 - `dogfood` for exploratory QA and bug hunts that need broader reproduction evidence than the explicit affected routes.
 - `audit` for explicit technical UI audits, not as the default closeout path.
+- `ssr-lighthouse-release-audit` for similar SSR/Lighthouse/deploy workflows outside Zoolandingpage.
 - `orchestration` for true multi-repo work that benefits from coordinated parallel execution.
 - `devops-rollout-plan` for risky deploy, routing, CDN, or API front-door changes.
 - `gh-pr-check`, `gh-fix-pr`, and `gh-address-comments` for active PR workflows when paired with `zoolanding-pr-followup`.

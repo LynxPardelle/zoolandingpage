@@ -1,0 +1,4 @@
+interface:
+  display_name: "Zoolanding Lighthouse Release Audit"
+  short_description: "Audit and release Zoolanding SSR draft performance fixes."
+  default_prompt: "Use this skill when auditing Zoolanding Lighthouse, SSR, draft routes, language persistence, or testing deploys."

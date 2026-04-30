@@ -54,6 +54,7 @@
 - 2026-04-30 router performance follow-up: removed Angular client router from the production bootstrap and replaced internal navigation with History API plus `popstate` runtime refresh. This preserved draft switching and internal navigation while dropping the browser initial bundle from 654.60 kB to about 569.00 kB before the final Lighthouse rerun.
 - 2026-04-30 deferred hydration follow-up: production browser bootstrap now keeps SSR content visible and loads Angular/app-shell chunks after the page load delay or the first pointer/keyboard interaction. This reduced the browser initial bundle to about 14.24 kB, kept tab interactions working after hydration, and produced two consecutive local Lighthouse runs at 100 performance/accessibility/best-practices/SEO across the audited drafts.
 - 2026-04-30 language/route follow-up: user-selected language must persist in both `lang` query param and `zlp_lang` cookie so SSR can render the chosen language on reload before deferred hydration. Draft route slugs such as Pamela `/home` must render through server-only router providers so aliased testing hosts do not return Express `Cannot GET` 404s.
+- 2026-04-30 reusable skill follow-up: use repo-local `.github/skills/zoolanding-lighthouse-release-audit` for future Zoolanding Lighthouse, SSR, language-persistence, draft-route, and testing-deploy work. Use global `C:\Users\lince\.codex\skills\ssr-lighthouse-release-audit` for similar SSR/Lighthouse release audits outside this repo.
 
 ## Naming Rules
 

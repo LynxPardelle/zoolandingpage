@@ -63,7 +63,7 @@ Use this skill for work inside the Angular app and its platform-facing docs.
 
 ## Recommended General Skills
 
-- Pair this workflow with the repo-local `karpathy-guidelines` skill for most implementation work, `systematic-debugging` for bug investigation, `risk-review` for review-only asks, `test-driven-development` for behavior-changing code, and `zoolanding-browser-qa` when validating runtime behavior.
+- Pair this workflow with the repo-local `karpathy-guidelines` skill for most implementation work, `systematic-debugging` for bug investigation, `risk-review` for review-only asks, `test-driven-development` for behavior-changing code, `zoolanding-browser-qa` when validating runtime behavior, and `zoolanding-lighthouse-release-audit` for Lighthouse/SSR/testing release work.
 - Use [Skill Routing](../../../ai-notes/notes/copilot-skill-routing.md) as the curated routing map for when to use vendored repo-local skills and when to add installed global skills.
 
 ## Resources
