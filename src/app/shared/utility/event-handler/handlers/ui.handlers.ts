@@ -6,7 +6,7 @@ import { LanguageService } from '@/app/shared/services/language.service';
 import { ThemeService } from '@/app/shared/services/theme.service';
 import type { SupportedLanguage } from '@/app/shared/types/navigation.types';
 import { inject } from '@angular/core';
-import { Router } from '@angular/router';
+import { navigateInCurrentWindow } from '../../navigation/browser-navigation.utility';
 import { resolveNavigationTarget } from '../../navigation/navigation-target.utility';
 import type { EventHandler } from '../event-handler.types';
 
@@ -82,8 +82,6 @@ export const setLanguageHandler = (): EventHandler => {
 };
 
 export const navigateToUrlHandler = (): EventHandler => {
-    const router = inject(Router);
-
     return {
         id: 'navigateToUrl',
         handle: (_ctx, args) => {
@@ -105,7 +103,7 @@ export const navigateToUrlHandler = (): EventHandler => {
                 return;
             }
 
-            void router.navigateByUrl(href).catch(() => window.location.assign(href));
+            navigateInCurrentWindow(href);
         },
     };
 };

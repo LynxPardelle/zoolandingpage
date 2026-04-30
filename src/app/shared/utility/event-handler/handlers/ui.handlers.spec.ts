@@ -5,7 +5,6 @@ import { I18nService } from '@/app/shared/services/i18n.service';
 import { LanguageService } from '@/app/shared/services/language.service';
 import { VariableStoreService } from '@/app/shared/services/variable-store.service';
 import { TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
 import type { EventExecutionContext } from '../event-handler.types';
 import { openModalHandler } from './legal-modal.handlers';
 import { navigateToUrlHandler, setLanguageHandler } from './ui.handlers';
@@ -70,19 +69,14 @@ describe('setLanguageHandler', () => {
 });
 
 describe('navigateToUrlHandler', () => {
-    let router: jasmine.SpyObj<Router>;
     let context: EventExecutionContext;
     let openSpy: jasmine.Spy<(url?: string | URL, target?: string, features?: string) => Window | null>;
 
     beforeEach(() => {
         window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com&debugWorkspace=true');
-        router = jasmine.createSpyObj<Router>('Router', ['navigateByUrl']);
-        router.navigateByUrl.and.returnValue(Promise.resolve(true));
 
         TestBed.configureTestingModule({
-            providers: [
-                { provide: Router, useValue: router },
-            ]
+            providers: []
         });
 
         context = {
@@ -106,7 +100,7 @@ describe('navigateToUrlHandler', () => {
         await Promise.resolve();
 
         expect(openSpy).not.toHaveBeenCalled();
-        expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+        expect(window.location.pathname + window.location.search).toBe('/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true');
     });
 
     it('should preserve debugWorkspace on internal same-tab navigation', async () => {
@@ -115,7 +109,7 @@ describe('navigateToUrlHandler', () => {
         handler.handle(context, ['/acerca-de-mi?draftDomain=pamelabetancourt.com']);
         await Promise.resolve();
 
-        expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/acerca-de-mi?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+        expect(window.location.pathname + window.location.search).toBe('/acerca-de-mi?draftDomain=pamelabetancourt.com&debugWorkspace=true');
     });
 
     it('should preserve the active draftDomain on internal navigation when the target omits it', async () => {
@@ -124,7 +118,7 @@ describe('navigateToUrlHandler', () => {
         handler.handle(context, ['/servicios']);
         await Promise.resolve();
 
-        expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+        expect(window.location.pathname + window.location.search).toBe('/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true');
     });
 
     it('should avoid double-encoding unicode internal routes', async () => {
@@ -133,7 +127,7 @@ describe('navigateToUrlHandler', () => {
         handler.handle(context, ['/cont%C3%A1ctame?draftDomain=pamelabetancourt.com']);
         await Promise.resolve();
 
-        expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/cont%C3%A1ctame?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+        expect(window.location.pathname + window.location.search).toBe('/cont%C3%A1ctame?draftDomain=pamelabetancourt.com&debugWorkspace=true');
     });
 
     it('should still open external _blank URLs in a new tab', () => {
@@ -142,7 +136,7 @@ describe('navigateToUrlHandler', () => {
         handler.handle(context, ['https://example.com/profile', '_blank']);
 
         expect(openSpy).toHaveBeenCalledOnceWith('https://example.com/profile', '_blank', 'noopener,noreferrer');
-        expect(router.navigateByUrl).not.toHaveBeenCalled();
+        expect(window.location.pathname + window.location.search).toBe('/home?draftDomain=pamelabetancourt.com&debugWorkspace=true');
     });
 });
 

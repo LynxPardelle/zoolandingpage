@@ -1,7 +1,7 @@
 import { environment } from '@/environments/environment';
 import { isPlatformBrowser } from '@angular/common';
 import { computed, DestroyRef, inject, Injectable, NgZone, PLATFORM_ID, REQUEST, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { navigateInCurrentWindow } from '../utility/navigation/browser-navigation.utility';
 import type { TDraftSiteConfigPayload, TDraftSiteRouteEntry } from '../types/config-payloads.types';
 import { ConfigSourceService } from './config-source.service';
 import { ConfigStoreService } from './config-store.service';
@@ -32,7 +32,6 @@ export class DraftRuntimeService {
     private readonly platformId = inject(PLATFORM_ID);
     private readonly request = inject(REQUEST, { optional: true });
     private readonly zone = inject(NgZone);
-    private readonly router = inject(Router);
     private readonly draftRegistry = inject(DraftRegistryService);
     private readonly domainResolver = inject(DomainResolverService);
     private readonly configStore = inject(ConfigStoreService);
@@ -227,7 +226,7 @@ export class DraftRuntimeService {
             return;
         }
 
-        void this.router.navigateByUrl(nextUrl).catch(() => window.location.assign(nextUrl));
+        navigateInCurrentWindow(nextUrl);
     }
 
     draftPreviewUrl(domain: string, pageId: string): string {

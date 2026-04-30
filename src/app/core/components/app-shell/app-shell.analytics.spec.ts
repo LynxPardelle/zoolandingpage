@@ -1,7 +1,6 @@
 import { AsyncPipe } from '@angular/common';
 import { Component, Input } from '@angular/core';
 import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing';
-import { provideRouter, Router, withInMemoryScrolling } from '@angular/router';
 import { NgxAngoraService } from 'ngx-angora-css';
 import { of } from 'rxjs';
 import { WrapperOrchestrator } from '../../../shared/components/wrapper-orchestrator/wrapper-orchestrator.component';
@@ -11,6 +10,7 @@ import { ConfigSourceService } from '../../../shared/services/config-source.serv
 import { ConfigurationsOrchestratorService } from '../../../shared/services/configurations-orchestrator';
 import { DraftRegistryService } from '../../../shared/services/draft-registry.service';
 import type { TComponentPayloadEntry, TComponentsPayload } from '../../../shared/types/config-payloads.types';
+import { navigateInCurrentWindow } from '../../../shared/utility/navigation/browser-navigation.utility';
 import { DebugWorkspaceComponent } from '../debug-workspace/debug-workspace.component';
 import { AppShellComponent } from './app-shell.component';
 
@@ -42,6 +42,7 @@ const createComponentsPayload = (components: Record<string, TComponentPayloadEnt
 const ORCHESTRATOR_STUB = {
   modalHostConfig$: of(null),
   fallbackModalHostConfig: {},
+  activeModalRef: () => null,
   getAllTheClassesFromComponents: () => ['ank-display-flex'],
   setDraftExportContext: () => { },
   setExternalComponentsFromPayload: () => { },
@@ -140,10 +141,6 @@ describe('AppShellComponent analytics', () => {
           provide: NgxAngoraService,
           useValue: angoraSpy,
         },
-        provideRouter(
-          [{ path: '', component: AppShellComponent, pathMatch: 'full' }],
-          withInMemoryScrolling({ scrollPositionRestoration: 'enabled', anchorScrolling: 'enabled' })
-        ),
       ],
     }).compileComponents();
 
@@ -166,8 +163,8 @@ describe('AppShellComponent analytics', () => {
     let pageViews = analyticsSpy.track.calls.all().filter((call) => call.args[0] === 'page_view');
     expect(pageViews.length).toBe(1);
 
-    const router = TestBed.inject(Router);
-    await router.navigateByUrl('/?nav=1');
+    navigateInCurrentWindow('/?nav=1');
+    await Promise.resolve();
 
     expect(analyticsSpy.track).toHaveBeenCalled();
     pageViews = analyticsSpy.track.calls.all().filter((call) => call.args[0] === 'page_view');

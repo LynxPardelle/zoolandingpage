@@ -1,11 +1,8 @@
-@if (showNavigationProgress()) {
-<div class="ank-position-fixed ank-top-0 ank-left-0 ank-right-0 ank-zIndex-2000 ank-pointerEvents-none">
-  <generic-progress-bar [mode]="'indeterminate'" color="secondary"></generic-progress-bar>
-</div>
-}
 <wrapper-orchestrator [componentsIds]="rootComponentsIds()"></wrapper-orchestrator>
 @if (showClientOnlyHosts) {
 <generic-toast-host (analyticsEvent)="handleAnalyticsEvent($event)"></generic-toast-host>
+}
+@defer (when showModalHost()) {
 <generic-modal-host [config]="(orchestrator.modalHostConfig$ | async) ?? orchestrator.fallbackModalHostConfig">
   <wrapper-orchestrator [componentsIds]="modalRootIds()"></wrapper-orchestrator>
 </generic-modal-host>

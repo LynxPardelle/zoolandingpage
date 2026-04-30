@@ -52,6 +52,7 @@ const createComponentsPayload = (components: Record<string, TComponentPayloadEnt
 const ORCHESTRATOR_STUB = {
   modalHostConfig$: of(null),
   fallbackModalHostConfig: {},
+  activeModalRef: () => null,
   getAllTheClassesFromComponents: () => [],
   setDraftExportContext: () => { },
   setExternalComponentsFromPayload: () => { },

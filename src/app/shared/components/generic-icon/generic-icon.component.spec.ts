@@ -31,7 +31,7 @@ describe('GenericIconComponent', () => {
     } as never);
     fixture.detectChanges();
 
-    const icon = fixture.nativeElement.querySelector('mat-icon') as HTMLElement;
+    const icon = fixture.nativeElement.querySelector('.material-icons') as HTMLElement;
 
     expect(icon.textContent?.trim()).toBe('search');
     expect(icon.getAttribute('title')).toBe('Search site');
@@ -48,7 +48,7 @@ describe('GenericIconComponent', () => {
     });
     fixture.detectChanges();
 
-    const icon = fixture.nativeElement.querySelector('mat-icon') as HTMLElement;
+    const icon = fixture.nativeElement.querySelector('.material-icons') as HTMLElement;
 
     expect(icon.getAttribute('title')).toBe('Home title');
     expect(icon.getAttribute('aria-label')).toBe('Home label');

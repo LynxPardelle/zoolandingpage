@@ -11,12 +11,12 @@
   <path [attr.d]="brandPath()" fill="currentColor"></path>
 </svg>
 } @else {
-<mat-icon
+<span
   [attr.id]="id()"
   [title]="title()"
-  [class]="classes()"
+  [class]="materialIconClasses()"
   [attr.aria-label]="ariaLabel()"
   [attr.aria-hidden]="ariaHidden()"
-  >{{ iconName() }}</mat-icon
+  >{{ iconName() }}</span
 >
 }

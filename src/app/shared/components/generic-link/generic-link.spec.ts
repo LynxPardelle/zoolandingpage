@@ -1,5 +1,4 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
 
 import { GenericLink } from './generic-link';
 
@@ -11,7 +10,6 @@ describe('GenericLink', () => {
     window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com&debugWorkspace=true');
     await TestBed.configureTestingModule({
       imports: [GenericLink],
-      providers: [provideRouter([])],
     })
       .compileComponents();
 

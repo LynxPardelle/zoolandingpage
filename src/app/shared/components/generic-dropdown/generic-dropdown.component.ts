@@ -18,8 +18,6 @@ import {
   ViewChild,
   ViewContainerRef
 } from '@angular/core';
-import { NavigationEnd, Router } from '@angular/router';
-import { Subscription } from 'rxjs';
 import { resolveLocaleMapValue } from '../../i18n/locale.utils';
 import { AngoraCombosService } from '../../services/angora-combos.service';
 import { LanguageService } from '../../services/language.service';
@@ -47,7 +45,6 @@ export class GenericDropdown {
   private readonly vcr = inject(ViewContainerRef);
   private readonly combos = inject(AngoraCombosService);
   private readonly language = inject(LanguageService);
-  private readonly router = inject(Router, { optional: true });
   private readonly appRef = inject(ApplicationRef);
   private readonly injector = inject(Injector);
   private overlayRef: OverlayRef | null = null;
@@ -98,18 +95,22 @@ export class GenericDropdown {
   readonly activeIndex = signal<number>(-1); // exposed for aria-activedescendant
   private menuItems: HTMLElement[] = [];
   private triggerBtn!: HTMLButtonElement;
-  private navigationSubscription: Subscription | null = null;
+  private navigationUnlisten: (() => void) | null = null;
   @Input('menuTpl') menuTpl!: TemplateRef<unknown>; // scaffold placeholder (template reference)
   @ViewChild('defaultMenuTpl', { static: true }) private defaultMenuTpl!: TemplateRef<MenuTemplateContext>;
 
   constructor() {
-    this.navigationSubscription = this.router?.events.subscribe((event) => {
-      if (!(event instanceof NavigationEnd) || !this.opened()) {
-        return;
-      }
+    if (typeof window === 'undefined') {
+      return;
+    }
 
-      this.close(false);
-    }) ?? null;
+    const closeOnNavigation = () => {
+      if (this.opened()) {
+        this.close(false);
+      }
+    };
+    window.addEventListener('popstate', closeOnNavigation);
+    this.navigationUnlisten = () => window.removeEventListener('popstate', closeOnNavigation);
   }
 
   ngAfterViewInit(): void {
@@ -118,8 +119,9 @@ export class GenericDropdown {
   }
 
   ngOnDestroy(): void {
-    this.navigationSubscription?.unsubscribe();
-    this.navigationSubscription = null;
+    this.navigationUnlisten?.();
+    this.navigationUnlisten = null;
+    this.close(false);
   }
 
   toggle(): void {

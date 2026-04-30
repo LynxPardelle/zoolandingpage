@@ -1,8 +1,6 @@
 import { OverlayContainer } from '@angular/cdk/overlay';
 import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { NavigationEnd, Router } from '@angular/router';
-import { Subject } from 'rxjs';
 import { LanguageService } from '../../services/language.service';
 import { GenericDropdown } from './generic-dropdown.component';
 import type { DropdownItem } from './generic-dropdown.types';
@@ -30,20 +28,9 @@ class HostTestComponent {
 describe('GenericDropdown', () => {
   let fixture: ComponentFixture<HostTestComponent>;
   let overlayContainer: OverlayContainer;
-  let routerEvents: Subject<unknown>;
   beforeEach(async () => {
-    routerEvents = new Subject<unknown>();
-
     await TestBed.configureTestingModule({
       imports: [HostTestComponent],
-      providers: [
-        {
-          provide: Router,
-          useValue: {
-            events: routerEvents.asObservable(),
-          },
-        },
-      ],
     }).compileComponents();
     fixture = TestBed.createComponent(HostTestComponent);
     overlayContainer = TestBed.inject(OverlayContainer);
@@ -97,7 +84,7 @@ describe('GenericDropdown', () => {
     expect(options[1]?.getAttribute('aria-selected')).toBe('true');
   });
 
-  it('closes an opened menu when the Angular route changes', () => {
+  it('closes an opened menu when client navigation changes', () => {
     const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
     const component = fixture.debugElement.children[0].componentInstance as GenericDropdown;
 
@@ -105,7 +92,7 @@ describe('GenericDropdown', () => {
     fixture.detectChanges();
     expect(component.opened()).toBeTrue();
 
-    routerEvents.next(new NavigationEnd(1, '/home', '/servicios'));
+    window.dispatchEvent(new PopStateEvent('popstate'));
     fixture.detectChanges();
 
     expect(component.opened()).toBeFalse();

@@ -65,6 +65,10 @@ body {
 .ank-ai-start {
   align-items: start;
 }
+.ank-as-start,
+.ank-alignSelf-start {
+  align-self: start;
+}
 .ank-ai-stretch {
   align-items: stretch;
 }
@@ -1031,6 +1035,14 @@ img.ank-h-50per[width][height] {
 }
 
 @media only screen and (min-width: 992px) {
+  .ank-d-lg-grid,
+  .ank-display-lg-grid {
+    display: grid;
+  }
+  .ank-d-lg-none,
+  .ank-display-lg-none {
+    display: none;
+  }
   .ank-ai-lg-start {
     align-items: start;
   }

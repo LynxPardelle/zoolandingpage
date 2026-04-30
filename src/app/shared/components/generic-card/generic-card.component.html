@@ -1,5 +1,5 @@
 @if (isTestimonial()) {
-<article [class]="classes()" [@testimonialFadeIn] itemscope itemtype="https://schema.org/Review">
+<article [class]="classes()" itemscope itemtype="https://schema.org/Review">
   <div [class]="classValue('testimonialHeaderClasses')">
     <div [class]="classValue('testimonialAvatarClasses')" aria-hidden="true">{{ avatar() || "🧑" }}</div>
     <div [class]="classValue('testimonialAuthorClasses')">
@@ -9,11 +9,12 @@
       <p [class]="classValue('testimonialRoleClasses')">{{ role() }} · {{ company() }}</p>
     </div>
     @if (verified()) {
-    <mat-icon
-      [class]="classValue('testimonialVerifiedIconClasses')"
+    <span
+      [class]="iconClassValue('testimonialVerifiedIconClasses')"
       [attr.title]="verifiedLabel()"
       [attr.aria-label]="verifiedLabel()"
-      >verified</mat-icon
+      role="img"
+      >verified</span
     >}
   </div>
   <p [class]="classValue('testimonialContentClasses')" itemprop="reviewBody">"{{ content() }}"</p>
@@ -27,16 +28,16 @@
       itemprop="ratingValue"
       [content]="rating().toString()"
     />
-    @for (star of stars(); track $index) {<mat-icon [class]="classValue('testimonialStarClasses')" aria-hidden="true">{{
+    @for (star of stars(); track $index) {<span [class]="iconClassValue('testimonialStarClasses')" aria-hidden="true">{{
       star <= rating() ? "star" : "star_border"
-    }}</mat-icon
+    }}</span
     >}<span [class]="classValue('testimonialRatingTextClasses')">{{ rating() }}/5</span>
   </div>
 </article>
 } @else {
-<div [class]="classes()" [@featureFadeIn]>
+<div [class]="classes()">
   <div [class]="classValue('featureIconContainerClasses')">
-    <mat-icon [class]="classValue('featureIconClasses')">{{ icon() }}</mat-icon>
+    <span [class]="iconClassValue('featureIconClasses')" aria-hidden="true">{{ icon() }}</span>
   </div>
   <h3 [class]="classValue('featureTitleClasses')">{{ title() }}</h3>
   <p [class]="classValue('featureDescriptionClasses')">{{ description() }}</p>
@@ -44,7 +45,7 @@
   <ul [class]="classValue('benefitsListClasses')">
     @for (benefit of keyedBenefits(); track benefit.key) {
     <li [class]="classValue('benefitItemClasses')">
-      <mat-icon [class]="classValue('benefitIconClasses')">check_circle</mat-icon>
+      <span [class]="iconClassValue('benefitIconClasses')" aria-hidden="true">check_circle</span>
       <span [class]="classValue('benefitTextClasses')">{{ benefit.value }}</span>
     </li>
     }

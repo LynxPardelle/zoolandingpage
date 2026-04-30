@@ -1,13 +1,10 @@
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import { RuntimeService } from '@/app/core/services/runtime.service';
 import { LanguageService } from '@/app/shared/services/language.service';
-import { ApplicationConfig, inject, provideAppInitializer, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
-import { provideRouter, withInMemoryScrolling } from '@angular/router';
+import { ApplicationConfig, inject, provideAppInitializer, provideBrowserGlobalErrorListeners, provideZonelessChangeDetection } from '@angular/core';
 
-import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
-import { provideAnimations } from '@angular/platform-browser/animations';
+import { provideClientHydration } from '@angular/platform-browser';
 import { environment } from '../environments/environment';
-import { routes } from './app.routes';
 import { draftConfigInterceptor } from './shared/interceptors/draft-config.interceptor';
 import { provideConditionHandlers } from './shared/utility/condition-handler/provide-condition-handlers';
 import { provideEventHandlers } from './shared/utility/event-handler/provide-event-handlers';
@@ -25,11 +22,9 @@ export function initializeRuntimeConfig(): Promise<void> {
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideAnimations(),
     provideBrowserGlobalErrorListeners(),
-    provideZoneChangeDetection({ eventCoalescing: true }),
-    provideRouter(routes, withInMemoryScrolling({ scrollPositionRestoration: 'enabled', anchorScrolling: 'enabled' })),
-    ...(environment.production ? [provideClientHydration(withEventReplay())] : []),
+    provideZonelessChangeDetection(),
+    ...(environment.production ? [provideClientHydration()] : []),
     provideHttpClient(withFetch(), withInterceptors([draftConfigInterceptor])),
     provideAppInitializer(initializeRuntimeConfig),
 

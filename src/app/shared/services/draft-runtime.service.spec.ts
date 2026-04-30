@@ -1,6 +1,5 @@
 import { REQUEST } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
 import { of } from 'rxjs';
 import { ConfigSourceService } from './config-source.service';
 import { DomainResolverService } from './domain-resolver.service';
@@ -9,7 +8,6 @@ import { DraftRuntimeService } from './draft-runtime.service';
 
 describe('DraftRuntimeService', () => {
   const originalUrl = window.location.pathname + window.location.search + window.location.hash;
-  let router: jasmine.SpyObj<Router>;
 
   const configure = (requestUrl: string, siteConfig: unknown = null, options?: { browserMode?: boolean }) => {
     const nextUrl = new URL(requestUrl);
@@ -19,10 +17,6 @@ describe('DraftRuntimeService', () => {
     const providers: any[] = [
       DraftRuntimeService,
       DomainResolverService,
-      {
-        provide: Router,
-        useValue: router,
-      },
       {
         provide: DraftRegistryService,
         useValue: {
@@ -53,11 +47,6 @@ describe('DraftRuntimeService', () => {
       loadSiteConfig,
     };
   };
-
-  beforeEach(() => {
-    router = jasmine.createSpyObj<Router>('Router', ['navigateByUrl']);
-    router.navigateByUrl.and.returnValue(Promise.resolve(true));
-  });
 
   afterEach(() => {
     window.history.replaceState({}, '', originalUrl);
@@ -148,7 +137,7 @@ describe('DraftRuntimeService', () => {
     expect(service.activeDraftPageId()).toBe('home');
   });
 
-  it('uses Angular Router for draft selection on the client', () => {
+  it('uses History API for draft selection on the client', () => {
     const { service } = configure(
       'https://example.test/home?draftDomain=pamelabetancourt.com&debugWorkspace=true',
       {
@@ -165,7 +154,7 @@ describe('DraftRuntimeService', () => {
 
     service.selectDraftByKey('pamelabetancourt.com::servicios');
 
-    expect(router.navigateByUrl).toHaveBeenCalledOnceWith('/home?draftDomain=pamelabetancourt.com&debugWorkspace=true&draftPageId=servicios');
+    expect(window.location.pathname + window.location.search).toBe('/home?draftDomain=pamelabetancourt.com&debugWorkspace=true&draftPageId=servicios');
   });
 
   it('recomputes the active draft domain and page after client-side draft switching', async () => {
@@ -285,7 +274,7 @@ describe('DraftRuntimeService', () => {
 
     service.selectDraftByKey('_debug::debug-workspace');
 
-    expect(router.navigateByUrl).not.toHaveBeenCalled();
+    expect(window.location.pathname + window.location.search).toBe('/?debugWorkspace=true&draftDomain=zoolandingpage.com.mx&draftPageId=default');
   });
 
 });

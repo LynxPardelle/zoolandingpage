@@ -1,5 +1,4 @@
 import { Component, computed, input } from '@angular/core';
-import { MatIconModule } from '@angular/material/icon';
 import { resolveComponentRootDomId, resolveDynamicValue } from '../../utility/component-orchestrator.utility';
 import { TGenericIconConfig } from './generic-icon.types';
 
@@ -8,8 +7,6 @@ const FACEBOOK_ICON_PATH = 'M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085
 
 @Component({
   selector: 'generic-icon',
-  imports: [
-    MatIconModule,],
   templateUrl: './generic-icon.component.html',
 })
 export class GenericIconComponent {
@@ -28,6 +25,7 @@ export class GenericIconComponent {
   readonly iconName = computed(() => this.stringValue(this.config().iconName));
   readonly brandPath = computed(() => this.brandIcons.get(this.iconName()) ?? null);
   readonly isBrandIcon = computed(() => this.brandPath() !== null);
+  readonly materialIconClasses = computed(() => ['material-icons', this.classes()].filter(Boolean).join(' '));
 
   private stringValue(value: unknown): string {
     return String(resolveDynamicValue(value) ?? '');

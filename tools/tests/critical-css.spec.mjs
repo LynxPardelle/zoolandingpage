@@ -7,6 +7,12 @@ const styles = readFileSync('src/styles.scss', 'utf8');
 test('global critical CSS covers first-viewport Angora layout utilities', () => {
   const requiredSelectors = [
     '.ank-ai-start',
+    '.ank-as-start',
+    '.ank-alignSelf-start',
+    '.ank-d-lg-grid',
+    '.ank-display-lg-grid',
+    '.ank-d-lg-none',
+    '.ank-display-lg-none',
     '.ank-fwr-wrap',
     '.ank-pos-sticky',
     '.ank-position-sticky',

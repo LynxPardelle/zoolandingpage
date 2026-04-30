@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, EventEmitter, Output, input } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { DRAFT_RUNTIME_STICKY_QUERY_PARAMS } from '../../services/draft-runtime.service';
 import { composeDomId, resolveComponentRootDomId, resolveDynamicValue } from '../../utility/component-orchestrator.utility';
+import { navigateInCurrentWindow } from '../../utility/navigation/browser-navigation.utility';
 import { resolveNavigationTarget } from '../../utility/navigation/navigation-target.utility';
 
 import { TGenericLinkConfig } from './generic-link.types';
@@ -10,7 +10,7 @@ import { TGenericLinkConfig } from './generic-link.types';
 @Component({
   selector: 'generic-link',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule],
   templateUrl: './generic-link.html',
   styleUrl: './generic-link.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -134,9 +134,11 @@ export class GenericLink {
   }
 
   onClick(event: MouseEvent): void {
-    const href = this.href();
-    if (href.startsWith('#')) {
+    const target = this.navigationTarget();
+    const href = target.href;
+    if (target.internal) {
       event.preventDefault();
+      navigateInCurrentWindow(href);
     }
     this.clicked.emit(event);
   }

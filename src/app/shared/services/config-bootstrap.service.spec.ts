@@ -144,6 +144,19 @@ describe('ConfigBootstrapService', () => {
 
     it('does not block bootstrap completion on the fallback language prefetch', async () => {
         let resolveFallback!: (payload: unknown) => void;
+        let scheduledFallback!: () => void;
+        spyOn<any>(service, 'isAutomatedBrowser').and.returnValue(false);
+        const nativeSetTimeout = window.setTimeout.bind(window);
+        const setTimeoutSpy = spyOn(window, 'setTimeout').and.callFake(((handler: TimerHandler, timeout?: number, ...args: unknown[]) => {
+            if (timeout !== 3000) {
+                return nativeSetTimeout(handler, timeout, ...args);
+            }
+
+            scheduledFallback = typeof handler === 'function'
+                ? handler as () => void
+                : () => Function(handler)();
+            return 1;
+        }) as typeof window.setTimeout);
 
         store.setSiteConfig(createSiteConfig());
         source.loadPageConfig.and.resolveTo({
@@ -194,12 +207,18 @@ describe('ConfigBootstrapService', () => {
 
         expect(source.loadI18n.calls.allArgs()).toEqual([
             ['zoolandingpage.com.mx', 'default', 'es'],
-            ['zoolandingpage.com.mx', 'default', 'en'],
         ]);
+        expect(setTimeoutSpy).toHaveBeenCalled();
         expect(i18n.setTranslations).toHaveBeenCalledWith('es', {}, {
             cache: true,
             applyIfCurrent: true,
         });
+
+        scheduledFallback();
+        expect(source.loadI18n.calls.allArgs()).toEqual([
+            ['zoolandingpage.com.mx', 'default', 'es'],
+            ['zoolandingpage.com.mx', 'default', 'en'],
+        ]);
 
         resolveFallback({
             version: 1,

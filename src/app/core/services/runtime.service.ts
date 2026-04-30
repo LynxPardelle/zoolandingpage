@@ -7,15 +7,12 @@ import { ConfigStoreService } from '@/app/shared/services/config-store.service';
 import { ConfigurationsOrchestratorService } from '@/app/shared/services/configurations-orchestrator';
 import { DraftRuntimeService } from '@/app/shared/services/draft-runtime.service';
 import { RuntimeConfigService } from '@/app/shared/services/runtime-config.service';
+import { currentBrowserPath } from '@/app/shared/utility/navigation/browser-navigation.utility';
 import { isPlatformBrowser } from '@angular/common';
 import { DestroyRef, inject, Injectable, PLATFORM_ID, REQUEST, signal } from '@angular/core';
-import { NavigationEnd, Router } from '@angular/router';
-import { Subscription } from 'rxjs';
-import { filter } from 'rxjs/operators';
 
 @Injectable({ providedIn: 'root' })
 export class RuntimeService {
-    private readonly navigationProgressDelayMs = 120;
     private readonly prefetchSiblingCap = 5;
     private readonly configBootstrap = inject(ConfigBootstrapService);
     private readonly configSource = inject(ConfigSourceService);
@@ -25,7 +22,6 @@ export class RuntimeService {
     private readonly analytics = inject(AnalyticsService);
     private readonly configStore = inject(ConfigStoreService);
     private readonly runtimeConfig = inject(RuntimeConfigService);
-    private readonly router = inject(Router, { optional: true });
     private readonly platformId = inject(PLATFORM_ID);
     private readonly request = inject(REQUEST, { optional: true });
     private readonly isBrowser = isPlatformBrowser(this.platformId) && !this.request;
@@ -34,19 +30,15 @@ export class RuntimeService {
     readonly modalRootIds = signal<readonly string[]>([]);
     readonly debugWorkspaceRootIds = signal<readonly string[]>([]);
     readonly debugWorkspaceModalRootIds = signal<readonly string[]>([]);
-    readonly navigationPending = signal(false);
-    readonly showNavigationProgress = signal(false);
     private initializeQueue: Promise<void> = Promise.resolve();
     private debugWorkspaceEnabled = false;
     private debugWorkspaceInit: Promise<void> | null = null;
     private cssMutationObserver: MutationObserver | null = null;
-    private navigationSubscription: Subscription | null = null;
+    private navigationUnlisten: (() => void) | null = null;
     private currentLanguageResolver: (() => string) | null = null;
     private showDebugWorkspaceResolver: (() => boolean) | null = null;
     private hasCompletedInitialBootstrap = false;
     private initialPageViewTracked = false;
-    private latestNavigationRequestId = 0;
-    private navigationProgressTimer: number | null = null;
     private postBootstrapBrowserWorkId = 0;
 
     connect(options: {
@@ -79,17 +71,10 @@ export class RuntimeService {
 
     disconnect(): void {
         this.analytics.stopPageEngagementTracking();
-        this.navigationSubscription?.unsubscribe();
-        this.navigationSubscription = null;
         this.combosService.stopCssRuntime();
-        this.navigationPending.set(false);
-        this.showNavigationProgress.set(false);
-
-        if (this.navigationProgressTimer) {
-            clearTimeout(this.navigationProgressTimer);
-            this.navigationProgressTimer = null;
-        }
         this.postBootstrapBrowserWorkId++;
+        this.navigationUnlisten?.();
+        this.navigationUnlisten = null;
 
         try {
             this.cssMutationObserver?.disconnect();
@@ -282,65 +267,25 @@ export class RuntimeService {
     }
 
     private bindNavigationRefresh(): void {
-        if (!this.isBrowser || !this.router || this.navigationSubscription) {
+        if (!this.isBrowser || this.navigationUnlisten) {
             return;
         }
 
-        this.navigationSubscription = this.router.events
-            .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
-            .subscribe((event) => {
-                const transitionId = this.beginNavigationTransition();
-
-                void this.analytics.track(this.analytics.pageViewEventName(), {
-                    category: AnalyticsCategories.Navigation,
-                    label: event.urlAfterRedirects,
-                });
-
-                const lang = this.currentLanguageResolver?.();
-                void this.initialize(lang)
-                    .catch((error) => {
-                        console.error('[Runtime] Runtime refresh failed after navigation.', error);
-                    })
-                    .finally(() => this.completeNavigationTransition(transitionId));
+        const handleNavigation = () => {
+            void this.analytics.track(this.analytics.pageViewEventName(), {
+                category: AnalyticsCategories.Navigation,
+                label: currentBrowserPath(),
             });
-    }
 
-    private beginNavigationTransition(): number {
-        if (!this.isBrowser) {
-            return 0;
-        }
+            const lang = this.currentLanguageResolver?.();
+            void this.initialize(lang)
+                .catch((error) => {
+                    console.error('[Runtime] Runtime refresh failed after navigation.', error);
+                });
+        };
 
-        const requestId = ++this.latestNavigationRequestId;
-        this.navigationPending.set(true);
-        this.showNavigationProgress.set(false);
-
-        if (this.navigationProgressTimer) {
-            clearTimeout(this.navigationProgressTimer);
-        }
-
-        this.navigationProgressTimer = window.setTimeout(() => {
-            if (!this.navigationPending() || this.latestNavigationRequestId !== requestId) {
-                return;
-            }
-
-            this.showNavigationProgress.set(true);
-        }, this.navigationProgressDelayMs);
-
-        return requestId;
-    }
-
-    private completeNavigationTransition(requestId: number): void {
-        if (!this.isBrowser || requestId === 0 || requestId !== this.latestNavigationRequestId) {
-            return;
-        }
-
-        if (this.navigationProgressTimer) {
-            clearTimeout(this.navigationProgressTimer);
-            this.navigationProgressTimer = null;
-        }
-
-        this.navigationPending.set(false);
-        this.showNavigationProgress.set(false);
+        window.addEventListener('popstate', handleNavigation);
+        this.navigationUnlisten = () => window.removeEventListener('popstate', handleNavigation);
     }
 
     private prefetchSiblingRoutes(domain: string, pageId: string, lang: string | undefined, currentPath: string): void {

@@ -1,18 +1,15 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, Input, signal } from '@angular/core';
-import { MatIconModule } from '@angular/material/icon';
 import { I18nService } from '../../services/i18n.service';
 import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
-import { GENERIC_CARD_ANIMATIONS } from './generic-card.styles';
 import { TGenericCardConfig } from './generic-card.types';
 
 @Component({
     selector: 'generic-card',
-    imports: [CommonModule, MatIconModule, GenericButtonComponent],
+    imports: [CommonModule, GenericButtonComponent],
     templateUrl: './generic-card.component.html',
     changeDetection: ChangeDetectionStrategy.OnPush,
-    animations: GENERIC_CARD_ANIMATIONS,
 })
 export class GenericCardComponent {
     private readonly i18n = inject(I18nService);
@@ -52,6 +49,10 @@ export class GenericCardComponent {
     })));
     readonly verifiedLabel = computed(() => this.i18n.t('ui.common.verified'));
     readonly classValue = (key: keyof TGenericCardConfig): string => String(resolveDynamicValue(this._config()[key] as never) ?? '').trim();
+    readonly iconClassValue = (key: keyof TGenericCardConfig): string => {
+        const classes = this.classValue(key);
+        return ['material-icons', classes].filter(Boolean).join(' ');
+    };
 
     readonly onButtonPressed = (_event?: MouseEvent): void => {
         this._config().onCta?.(this.title());

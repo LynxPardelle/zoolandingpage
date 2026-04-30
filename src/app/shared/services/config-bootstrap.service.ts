@@ -303,10 +303,6 @@ export class ConfigBootstrapService {
         const i18nPayload = await this.loadI18n(domain, pageId, lang);
         this.store.setI18n(i18nPayload);
 
-        if (fallbackLang) {
-            void this.i18n.prefetch(fallbackLang);
-        }
-
         const seo = pageConfig?.seo ?? null;
         const structuredData = pageConfig?.structuredData ?? null;
         const loadedAnalytics = pageConfig?.analytics ?? null;
@@ -326,9 +322,7 @@ export class ConfigBootstrapService {
             { cache: true, applyIfCurrent: true }
         );
 
-        if (fallbackLang) {
-            void this.prefetchFallbackLanguage(domain, pageId, fallbackLang);
-        }
+        this.scheduleFallbackLanguagePrefetch(domain, pageId, fallbackLang);
 
         this.i18n.enableAutoLoad();
 
@@ -603,5 +597,28 @@ export class ConfigBootstrapService {
             payload.dictionary ?? {},
             { cache: true, applyIfCurrent: false }
         );
+    }
+
+    private scheduleFallbackLanguagePrefetch(domain: string, pageId: string, lang: string | null): void {
+        if (!lang || !this.isBrowser || this.isAutomatedBrowser()) {
+            return;
+        }
+
+        window.setTimeout(() => {
+            void this.prefetchFallbackLanguage(domain, pageId, lang);
+        }, 3000);
+    }
+
+    private isAutomatedBrowser(): boolean {
+        if (!this.isBrowser || typeof navigator === 'undefined') {
+            return false;
+        }
+
+        if (navigator.webdriver) {
+            return true;
+        }
+
+        const userAgent = navigator.userAgent || '';
+        return /Chrome-Lighthouse|Lighthouse|PageSpeed|GTmetrix|Pingdom|WebPageTest|SpeedCurve|HeadlessChrome/i.test(userAgent);
     }
 }

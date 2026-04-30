@@ -46,52 +46,64 @@
   ></ng-container>
 </generic-container>
 } @case('dropdown') {
-<generic-dropdown
-  [items]="component.config.items"
-  [config]="component.config.dropdownConfig || null"
-  (selectItem)="
-    eventEmitted({
-      component: component.id,
-      meta_title: component.meta_title,
-      eventName: 'selectItem',
-      eventData: $event,
-      eventInstructions: component.eventInstructions
-    })
-  "
->
-  <ng-container trigger>
-    <ng-container
-      [ngTemplateOutlet]="wrapperOrchestratorTpl"
-      [ngTemplateOutletContext]="{ $implicit: component }"
-    ></ng-container>
-  </ng-container>
-</generic-dropdown>
+@defer (on viewport) {
+  <generic-dropdown
+    [items]="component.config.items"
+    [config]="component.config.dropdownConfig || null"
+    (selectItem)="
+      eventEmitted({
+        component: component.id,
+        meta_title: component.meta_title,
+        eventName: 'selectItem',
+        eventData: $event,
+        eventInstructions: component.eventInstructions
+      })
+    "
+  >
+    <ng-container trigger>
+      <ng-container
+        [ngTemplateOutlet]="wrapperOrchestratorTpl"
+        [ngTemplateOutletContext]="{ $implicit: component }"
+      ></ng-container>
+    </ng-container>
+  </generic-dropdown>
+} @placeholder {
+  <span aria-hidden="true"></span>
+}
 } @case('embed-frame') {
-<generic-embed-frame [config]="$any(embedFrameConfig(component))"></generic-embed-frame>
+@defer (on viewport) {
+  <generic-embed-frame [config]="$any(embedFrameConfig(component))"></generic-embed-frame>
+} @placeholder {
+  <span aria-hidden="true"></span>
+}
 } @case('generic-card') {
 <generic-card [config]="component.config"></generic-card>
 } @case('input') {
-<generic-input
-  [config]="component.config"
-  (valueChanged)="
-    eventEmitted({
-      component: component.id,
-      meta_title: component.meta_title,
-      eventName: 'valueChanged',
-      eventData: $event,
-      eventInstructions: component.eventInstructions
-    })
-  "
-  (blurred)="
-    eventEmitted({
-      component: component.id,
-      meta_title: component.meta_title,
-      eventName: 'blurred',
-      eventData: $event,
-      eventInstructions: component.eventInstructions
-    })
-  "
-></generic-input>
+@defer (on viewport) {
+  <generic-input
+    [config]="component.config"
+    (valueChanged)="
+      eventEmitted({
+        component: component.id,
+        meta_title: component.meta_title,
+        eventName: 'valueChanged',
+        eventData: $event,
+        eventInstructions: component.eventInstructions
+      })
+    "
+    (blurred)="
+      eventEmitted({
+        component: component.id,
+        meta_title: component.meta_title,
+        eventName: 'blurred',
+        eventData: $event,
+        eventInstructions: component.eventInstructions
+      })
+    "
+  ></generic-input>
+} @placeholder {
+  <span aria-hidden="true"></span>
+}
 } @case('interaction-scope') {
 <interaction-scope
   [config]="$any(interactionScopeConfig(component))"
@@ -100,18 +112,22 @@
   [metaTitle]="component.meta_title"
 ></interaction-scope>
 } @case('search-box') {
-<generic-search-box
-  [config]="resolveSearchConfig(component.config)"
-  (selectSuggestion)="
-    eventEmitted({
-      component: component.id,
-      meta_title: component.meta_title,
-      eventName: 'selectSuggestion',
-      eventData: $event,
-      eventInstructions: component.eventInstructions
-    })
-  "
-></generic-search-box>
+@defer (on viewport) {
+  <generic-search-box
+    [config]="resolveSearchConfig(component.config)"
+    (selectSuggestion)="
+      eventEmitted({
+        component: component.id,
+        meta_title: component.meta_title,
+        eventName: 'selectSuggestion',
+        eventData: $event,
+        eventInstructions: component.eventInstructions
+      })
+    "
+  ></generic-search-box>
+} @placeholder {
+  <span aria-hidden="true"></span>
+}
 } @case('stats-counter') {
 <generic-stats-counter [config]="resolveStatsCounterConfig(component.config)"></generic-stats-counter>
 } @case('tab-group') {
