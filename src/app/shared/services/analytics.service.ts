@@ -540,6 +540,10 @@ export class AnalyticsService {
       return false;
     }
 
+    if (navigator.webdriver === true) {
+      return true;
+    }
+
     return AUTOMATED_AUDIT_USER_AGENT_PATTERN.test(String(navigator.userAgent ?? ''));
   }
 

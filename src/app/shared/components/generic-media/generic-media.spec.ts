@@ -54,6 +54,48 @@ describe('GenericMedia', () => {
     expect(image?.getAttribute('alt')).toBe('Lynx Pardelle portrait');
   });
 
+  it('renders image sizing and loading attributes from config to reserve layout space', () => {
+    fixture.componentRef.setInput('config', {
+      id: 'poster',
+      tag: 'image',
+      src: '/assets/poster.webp',
+      alt: 'Event poster',
+      width: 1200,
+      height: 900,
+      loading: 'eager',
+      fetchPriority: 'high',
+      decoding: 'sync',
+      sizes: '(max-width: 768px) 100vw, 50vw',
+    } as never);
+
+    fixture.detectChanges();
+
+    const image: HTMLImageElement | null = fixture.nativeElement.querySelector('img');
+
+    expect(image?.getAttribute('width')).toBe('1200');
+    expect(image?.getAttribute('height')).toBe('900');
+    expect(image?.getAttribute('loading')).toBe('eager');
+    expect(image?.getAttribute('fetchpriority')).toBe('high');
+    expect(image?.getAttribute('decoding')).toBe('sync');
+    expect(image?.getAttribute('sizes')).toBe('(max-width: 768px) 100vw, 50vw');
+  });
+
+  it('lazy loads non-priority images by default', () => {
+    fixture.componentRef.setInput('config', {
+      id: 'gallery-image',
+      tag: 'image',
+      src: '/assets/gallery.webp',
+      alt: 'Gallery image',
+    });
+
+    fixture.detectChanges();
+
+    const image: HTMLImageElement | null = fixture.nativeElement.querySelector('img');
+
+    expect(image?.getAttribute('loading')).toBe('lazy');
+    expect(image?.getAttribute('decoding')).toBe('async');
+  });
+
   it('renders document media as an external link using alt text when available', () => {
     fixture.componentRef.setInput('config', {
       id: 'legal-pdf',

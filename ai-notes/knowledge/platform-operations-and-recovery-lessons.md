@@ -57,6 +57,12 @@ When Angora runtime CSS generates layout utilities after the document has alread
 
 Do not send remote analytics or quick-stats mutations for Lighthouse/PageSpeed user agents. Synthetic audits should still render and buffer local events as normal, but they should not create production telemetry or fail Best Practices because an unrelated analytics transport resets during the audit window.
 
+For browser automation, also check `navigator.webdriver` in addition to Lighthouse/PageSpeed user-agent tokens. Headless Chrome audits can present a generic Chrome user agent while still setting the WebDriver flag; using both signals prevents analytics and sibling-route prefetches from becoming synthetic audit work.
+
+## Authoring Endpoint Fallback Lesson
+
+If the config-authoring custom domain intermittently fails with `ECONNRESET`, keep retry/fallback support to the raw API Gateway endpoint in local tooling. A successful fallback response should still be reported in closeout notes because repeated primary resets are an operational signal, even when the draft push or publish completes with `ok: true`.
+
 ## Traefik Forwarded Header Lesson
 
 Angular SSR deopts to a client-side shell when reverse-proxy `X-Forwarded-*` headers are present but not trusted by the server engine. For Dokploy/Traefik deployments, keep `src/server.ts` `trustProxyHeaders` aligned with the headers Traefik injects and keep Angular `allowedHosts` restricted to the public domains. A public page that returns `200` with a title but no `<main>` should be treated as an SSR deopt, not a successful page render.

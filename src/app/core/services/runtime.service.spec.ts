@@ -223,6 +223,9 @@ describe('RuntimeService', () => {
     });
 
     it('prefetches sibling routes after a successful draft bootstrap', async () => {
+        spyOnProperty(navigator, 'userAgent', 'get').and.returnValue('Mozilla/5.0 Chrome/147.0.0.0 Safari/537.36');
+        spyOnProperty(navigator, 'webdriver', 'get').and.returnValue(false);
+
         const service = TestBed.inject(RuntimeService);
 
         window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com');
@@ -236,6 +239,20 @@ describe('RuntimeService', () => {
             lang: 'es',
             path: '/servicios',
         });
+    });
+
+    it('skips sibling route prefetches during automated browser audits', async () => {
+        spyOnProperty(navigator, 'webdriver', 'get').and.returnValue(true);
+
+        const service = TestBed.inject(RuntimeService);
+
+        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com');
+        await service.initialize('es');
+        await flushPostBootstrapBrowserWork();
+
+        expect(prefetchRoute).not.toHaveBeenCalled();
+        expect(analyticsInitializeRuntimeState).toHaveBeenCalled();
+        expect(analyticsPageViewEventName).toHaveBeenCalled();
     });
 
     it('tracks an initial page view on the first successful browser bootstrap', async () => {

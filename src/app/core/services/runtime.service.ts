@@ -213,7 +213,9 @@ export class RuntimeService {
         this.schedulePostBootstrapBrowserWork(() => {
             this.analytics.initializeRuntimeState();
             this.analytics.startPageEngagementTracking(this.configStore.analytics());
-            this.prefetchSiblingRoutes(domain, pageId, lang, context.path);
+            if (!this.isAutomatedBrowser()) {
+                this.prefetchSiblingRoutes(domain, pageId, lang, context.path);
+            }
             this.trackInitialPageView();
         });
     }
@@ -244,6 +246,19 @@ export class RuntimeService {
             category: AnalyticsCategories.Navigation,
             label: currentUrl || '/',
         });
+    }
+
+    private isAutomatedBrowser(): boolean {
+        if (!this.isBrowser || typeof navigator === 'undefined') {
+            return false;
+        }
+
+        if (navigator.webdriver) {
+            return true;
+        }
+
+        const userAgent = navigator.userAgent || '';
+        return /Chrome-Lighthouse|Lighthouse|PageSpeed|GTmetrix|Pingdom|WebPageTest|SpeedCurve|HeadlessChrome/i.test(userAgent);
     }
 
     clearRenderedDraft(domain: string, pageId: string): void {

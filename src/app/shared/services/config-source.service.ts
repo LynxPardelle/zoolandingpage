@@ -149,6 +149,64 @@ export class ConfigSourceService {
         return [domain.trim().toLowerCase(), pageId.trim(), lang.trim().toLowerCase(), this.normalizePath(path)].join('::');
     }
 
+    private collectRuntimeBundleDomains(requestedDomain: string, payload: TRuntimeBundlePayload): readonly string[] {
+        const candidates = [
+            requestedDomain,
+            payload.domain,
+            payload.siteConfig?.domain,
+            payload.metadata?.['requestedDomain'],
+            payload.metadata?.['resolvedAlias'],
+            ...(Array.isArray(payload.siteConfig?.aliases) ? payload.siteConfig.aliases : []),
+        ];
+
+        return Array.from(new Set(
+            candidates
+                .map((entry) => String(entry ?? '').trim())
+                .filter(Boolean)
+        ));
+    }
+
+    private collectRuntimeBundlePageIds(requestedPageId: string, payload: TRuntimeBundlePayload): readonly string[] {
+        return Array.from(new Set(
+            [requestedPageId, payload.pageId]
+                .map((entry) => String(entry ?? '').trim())
+        ));
+    }
+
+    private collectRuntimeBundleLanguages(requestedLang: string, payload: TRuntimeBundlePayload): readonly string[] {
+        return Array.from(new Set(
+            [requestedLang, payload.lang]
+                .map((entry) => String(entry ?? '').trim())
+                .filter(Boolean)
+        ));
+    }
+
+    private seedRuntimeBundleCacheAliases(
+        payload: TRuntimeBundlePayload,
+        requested: {
+            domain: string;
+            pageId: string;
+            lang: string;
+            path: string;
+        },
+        resolved: Promise<TRuntimeBundlePayload>,
+    ): void {
+        const domains = this.collectRuntimeBundleDomains(requested.domain, payload);
+        const pageIds = this.collectRuntimeBundlePageIds(requested.pageId, payload);
+        const languages = this.collectRuntimeBundleLanguages(requested.lang, payload);
+
+        domains.forEach((domain) => {
+            pageIds.forEach((pageId) => {
+                languages.forEach((lang) => {
+                    this.runtimeBundleCache.set(
+                        this.createRuntimeBundleCacheKey(domain, pageId, lang, requested.path),
+                        resolved,
+                    );
+                });
+            });
+        });
+    }
+
     private resolveRuntimeBundlePath(pathOverride?: string): string {
         const explicitPath = String(pathOverride ?? '').trim();
         if (explicitPath) {
@@ -205,6 +263,12 @@ export class ConfigSourceService {
                 const resolved = Promise.resolve(payload);
                 this.runtimeBundleCache.set(requestedKey, resolved);
                 this.runtimeBundleCache.set(actualKey, resolved);
+                this.seedRuntimeBundleCacheAliases(payload, {
+                    domain: normalizedDomain,
+                    pageId,
+                    lang,
+                    path: currentPath,
+                }, resolved);
                 return payload;
             })
             .catch((error) => {

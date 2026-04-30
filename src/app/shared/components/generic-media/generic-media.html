@@ -3,7 +3,18 @@
 } @case ('video') {
 <video [id]="id()" [class]="classes()" [src]="src()" controls></video>
 } @case ('image') {
-<img [id]="id()" [class]="classes()" [src]="src()" [attr.alt]="alt()" />
+<img
+  [id]="id()"
+  [class]="classes()"
+  [src]="src()"
+  [attr.alt]="alt()"
+  [attr.width]="width()"
+  [attr.height]="height()"
+  [attr.loading]="loading()"
+  [attr.fetchpriority]="fetchPriority()"
+  [attr.decoding]="decoding()"
+  [attr.sizes]="sizes()"
+/>
 } @case ('document') {
 <a [id]="id()" [class]="classes()" [href]="src()" target="_blank" rel="noopener noreferrer">
   <span [attr.id]="linkContentId()">{{ linkLabel() }}</span>

@@ -11,6 +11,7 @@ import { ConfigSourceService } from '../../../shared/services/config-source.serv
 import { ConfigurationsOrchestratorService } from '../../../shared/services/configurations-orchestrator';
 import { DraftRegistryService } from '../../../shared/services/draft-registry.service';
 import type { TComponentPayloadEntry, TComponentsPayload } from '../../../shared/types/config-payloads.types';
+import { initializeRuntimeConfig } from '../../../app.config';
 import { DebugWorkspaceComponent } from '../debug-workspace/debug-workspace.component';
 import { AppShellComponent } from './app-shell.component';
 
@@ -188,7 +189,7 @@ describe('AppShellComponent', () => {
     expect(fixture.nativeElement.querySelector('debug-workspace')).toBeFalsy();
   });
 
-  it('starts runtime bootstrap during SSR construction', async () => {
+  it('starts runtime bootstrap through the app initializer during SSR', async () => {
     TestBed.overrideProvider(REQUEST, {
       useValue: new Request(`https://example.test/?draftDomain=${ LEGAL_DOMAIN }&draftPageId=legal-home`),
     });
@@ -213,8 +214,8 @@ describe('AppShellComponent', () => {
       }, { domain: LEGAL_DOMAIN, pageId: 'legal-home' }),
     };
 
+    await TestBed.runInInjectionContext(() => initializeRuntimeConfig());
     TestBed.createComponent(AppShellComponent);
-    await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(bootstrapLoadArgs.some((entry) => entry.pageId === 'legal-home')).toBeTrue();
   });

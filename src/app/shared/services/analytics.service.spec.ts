@@ -181,7 +181,40 @@ describe('AnalyticsService', () => {
     expect(svc.isRemoteAnalyticsEnabled()).toBeFalse();
   });
 
+  it('disables remote analytics for browser automation even when the user agent is generic headless Chrome', () => {
+    spyOnProperty(navigator, 'userAgent', 'get').and.returnValue('Mozilla/5.0 HeadlessChrome/147.0.0.0 Safari/537.36');
+    spyOnProperty(navigator, 'webdriver', 'get').and.returnValue(true);
+
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: RuntimeConfigService,
+          useValue: {
+            appIdentifier: () => 'zoolandingpagecommx',
+            isAnalyticsEnabled: () => true,
+            isDebugMode: () => false,
+            analyticsConsentMode: () => 'none',
+            resolveStorageKey: (slot: string) => slot,
+            track: () => [],
+          },
+        },
+        {
+          provide: HttpClient,
+          useValue: {
+            post: jasmine.createSpy('post').and.returnValue(of({ ok: true })),
+          } as any,
+        },
+      ],
+    });
+
+    const svc = TestBed.inject(AnalyticsService) as any;
+
+    expect(svc.isRemoteAnalyticsEnabled()).toBeFalse();
+  });
+
   it('does not log console errors when geolocation access is denied', async () => {
+    spyOnProperty(navigator, 'webdriver', 'get').and.returnValue(false);
+
     const getCurrentPosition = spyOn(navigator.geolocation, 'getCurrentPosition').and.callFake(
       (_success: PositionCallback, error?: PositionErrorCallback | null) => {
         error?.({

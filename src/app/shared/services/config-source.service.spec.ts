@@ -259,6 +259,17 @@ describe('ConfigSourceService', () => {
         expect(api.getRuntimeBundle.calls.count()).toBe(1);
     });
 
+    it('reuses the alias runtime bundle when a site-config request resolves the canonical page identity', async () => {
+        const service = TestBed.inject(ConfigSourceService);
+        const api = TestBed.inject(ConfigApiService) as jasmine.SpyObj<ConfigApiService>;
+
+        await service.loadSiteConfig('alecfest-voliii.zoolandingpage.com.mx');
+        const components = await service.loadComponents('alecfest-voliii.zoolandingpage.com.mx', 'default');
+
+        expect(components).toEqual(componentsPayload);
+        expect(api.getRuntimeBundle.calls.count()).toBe(1);
+    });
+
     it('reuses the hydrated site config instead of calling the legacy site-config endpoint when the browser runtime bundle request fails', async () => {
         const service = TestBed.inject(ConfigSourceService);
         const api = TestBed.inject(ConfigApiService) as jasmine.SpyObj<ConfigApiService>;
