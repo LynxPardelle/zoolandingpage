@@ -47,6 +47,7 @@
 - 2026-04-30 cross-draft performance follow-up: runtime-bundle cache aliases should be seeded from requested/resolved domains, aliases, page IDs, and languages after the first successful bundle so alias routes do not trigger duplicate bundle reads in one page load. Generic media images now support explicit `width`, `height`, `loading`, `fetchPriority`, `decoding`, and `sizes`; keep LCP images eager/high and non-critical media lazy/async in authored drafts.
 - 2026-04-30 draft publish follow-up: performance-only media metadata changes were pushed and published for `alecfest-voliii.com` as version `20260430T163201Z-5b04def53601`, `erosbarajas.com` as version `20260430T163204Z-38f3b363e666`, and `pamelabetancourt.com` as version `20260430T163205Z-1b7ae42e0a4b` with `updatedBy: Codex`.
 - 2026-04-30 public asset cache follow-up: public image uploads should preserve long-lived immutable cache headers. The image-upload API now returns `Cache-Control` in direct upload presign headers and includes it in S3 `PutObject` params so optimized draft assets are cacheable at CloudFront/browser layers.
+- 2026-04-30 CLS follow-up: when authored draft pages rely on Angora combo classes above the fold, add stable global critical CSS fallbacks for their layout geometry and image reservation before deployment. Local PerformanceObserver checks should verify CLS near zero for the affected drafts before publishing to `test`.
 
 ## Naming Rules
 
