@@ -9,7 +9,7 @@ import { DomainResolverService } from './domain-resolver.service';
 import { DraftRegistryService, TDraftRegistryEntry } from './draft-registry.service';
 import { RuntimeConfigService } from './runtime-config.service';
 
-export const DRAFT_RUNTIME_STICKY_QUERY_PARAMS = ['draftDomain', 'debugWorkspace'] as const;
+export const DRAFT_RUNTIME_STICKY_QUERY_PARAMS = ['draftDomain', 'debugWorkspace', 'lang'] as const;
 const INTERNAL_DEBUG_DRAFT_DOMAIN = '_debug';
 const INTERNAL_DEBUG_DRAFT_PAGE_ID = 'debug-workspace';
 

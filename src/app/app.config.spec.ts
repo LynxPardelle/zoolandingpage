@@ -1,6 +1,8 @@
 import type { TGenericComponent } from '@/app/shared/components/wrapper-orchestrator/wrapper-orchestrator.types';
+import { RuntimeService } from '@/app/core/services/runtime.service';
+import { LanguageService } from '@/app/shared/services/language.service';
 import { TestBed } from '@angular/core/testing';
-import { appConfig } from './app.config';
+import { appConfig, initializeRuntimeConfig } from './app.config';
 import { InteractionScopeService } from './shared/components/interaction-scope/interaction-scope.service';
 import { ConditionOrchestrator } from './shared/services/condition-orchestrator';
 
@@ -52,5 +54,34 @@ describe('appConfig condition handlers', () => {
         });
 
         expect(result).toBeTrue();
+    });
+});
+
+describe('initializeRuntimeConfig', () => {
+    beforeEach(() => {
+        TestBed.resetTestingModule();
+    });
+
+    it('does not force the framework language fallback when no user preference exists', async () => {
+        const runtime = jasmine.createSpyObj<RuntimeService>('RuntimeService', ['initialize']);
+        runtime.initialize.and.returnValue(Promise.resolve());
+        const language = jasmine.createSpyObj<LanguageService>('LanguageService', [
+            'currentLanguage',
+            'getRequestedLanguagePreference',
+        ]);
+        language.currentLanguage.and.returnValue('en');
+        language.getRequestedLanguagePreference.and.returnValue(null);
+
+        TestBed.configureTestingModule({
+            providers: [
+                { provide: RuntimeService, useValue: runtime },
+                { provide: LanguageService, useValue: language },
+            ],
+        });
+
+        await TestBed.runInInjectionContext(() => initializeRuntimeConfig());
+
+        expect(runtime.initialize).toHaveBeenCalledOnceWith(undefined);
+        expect(language.currentLanguage).not.toHaveBeenCalled();
     });
 });

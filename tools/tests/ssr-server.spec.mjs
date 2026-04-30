@@ -107,3 +107,22 @@ test('production SSR server renders behind Traefik forwarded headers', async (t)
   assert.match(body, /<main[\s>]/i);
   assert.doesNotMatch(getStderr(), /trustProxyHeaders/i);
 });
+
+test('production SSR server renders draft routes on aliased hosts', async (t) => {
+  const { port, getStderr } = await startProductionServer(t);
+  const response = await fetch(`http://127.0.0.1:${port}/home`, {
+    headers: {
+      Host: 'pamelabetancourt.zoolandingpage.com.mx',
+      'X-Forwarded-Host': 'pamelabetancourt.zoolandingpage.com.mx',
+      'X-Forwarded-Port': '443',
+      'X-Forwarded-Proto': 'https',
+      'X-Forwarded-Server': 'dokploy-traefik',
+    },
+  });
+  const body = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.match(body, /Pamela Betancourt/i);
+  assert.doesNotMatch(body, /Cannot GET \/home/i);
+  assert.equal(getStderr(), '');
+});

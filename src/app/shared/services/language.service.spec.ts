@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { REQUEST } from '@angular/core';
 import { LanguageService } from './language.service';
 
 describe('LanguageService', () => {
@@ -6,6 +7,8 @@ describe('LanguageService', () => {
 
     beforeEach(() => {
         localStorage.clear();
+        document.cookie = 'zlp_lang=; Path=/; Max-Age=0; SameSite=Lax';
+        window.history.replaceState({}, '', '/context.html');
         TestBed.configureTestingModule({
             providers: [LanguageService]
         });
@@ -36,5 +39,36 @@ describe('LanguageService', () => {
         service.toggleLanguage();
 
         expect(service.currentLanguage()).toBe('it');
+    });
+
+    it('persists user-selected language in the URL and cookie for reload-safe SSR', () => {
+        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com');
+        service.configureLanguages(['es', 'en'], {
+            defaultLanguage: 'es',
+            requestedLanguage: 'en'
+        });
+
+        service.setLanguage('es');
+
+        expect(service.currentLanguage()).toBe('es');
+        expect(window.location.pathname + window.location.search).toBe('/home?draftDomain=pamelabetancourt.com&lang=es');
+        expect(document.cookie).toContain('zlp_lang=es');
+    });
+
+    it('reads the SSR language preference from the request URL', () => {
+        TestBed.resetTestingModule();
+        TestBed.configureTestingModule({
+            providers: [
+                LanguageService,
+                {
+                    provide: REQUEST,
+                    useValue: new Request('https://pamelabetancourt.zoolandingpage.com.mx/home?lang=es'),
+                },
+            ],
+        });
+
+        const serverService = TestBed.inject(LanguageService);
+
+        expect(serverService.getRequestedLanguagePreference()).toBe('es');
     });
 });

@@ -14,7 +14,7 @@ import { provideValueHandlers } from './shared/utility/value-handler/provide-val
 export function initializeRuntimeConfig(): Promise<void> {
   const runtime = inject(RuntimeService);
   const language = inject(LanguageService);
-  return runtime.initialize(language.currentLanguage())
+  return runtime.initialize(language.getRequestedLanguagePreference() ?? undefined)
     .catch((error) => {
       console.error('[Runtime] App bootstrap failed.', error);
     });

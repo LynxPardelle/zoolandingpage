@@ -118,6 +118,26 @@ describe('GenericLink', () => {
     expect(anchor.getAttribute('href')).toContain('/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true');
   });
 
+  it('should preserve the active language on internal hrefs', () => {
+    window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com&debugWorkspace=true&lang=es');
+    fixture.componentRef.setInput('config', {
+      id: 'spec',
+      href: '/servicios',
+      text: 'Servicios',
+    });
+    fixture.detectChanges();
+
+    const anchor = fixture.nativeElement.querySelector('a') as HTMLAnchorElement;
+
+    expect(component.href()).toBe('/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true&lang=es');
+    expect(component.routerLinkQueryParams()).toEqual({
+      draftDomain: 'pamelabetancourt.com',
+      debugWorkspace: 'true',
+      lang: 'es',
+    });
+    expect(anchor.getAttribute('href')).toContain('/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true&lang=es');
+  });
+
   it('should normalize encoded unicode internal hrefs without double-encoding them', () => {
     fixture.componentRef.setInput('config', {
       id: 'spec',
