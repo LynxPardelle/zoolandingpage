@@ -40,6 +40,369 @@ body {
   outline-offset: 2px;
 }
 
+/* Critical layout fallbacks for SSR before Angora runtime CSS finishes hydrating. */
+.ank-d-flex {
+  display: flex;
+}
+.ank-d-none {
+  display: none;
+}
+.ank-d-grid {
+  display: grid;
+}
+.ank-fd-column {
+  flex-direction: column;
+}
+.ank-ai-center {
+  align-items: center;
+}
+.ank-ai-stretch {
+  align-items: stretch;
+}
+.ank-jc-center {
+  justify-content: center;
+}
+.ank-jc-start {
+  justify-content: start;
+}
+.ank-jc-spaceMINbetween {
+  justify-content: space-between;
+}
+.ank-jc-spaceMINevenly {
+  justify-content: space-evenly;
+}
+.ank-fwr-nowrap {
+  flex-wrap: nowrap;
+}
+.ank-g-0_375rem {
+  gap: 0.375rem;
+}
+.ank-g-0_5rem {
+  gap: 0.5rem;
+}
+.ank-g-8px {
+  gap: 8px;
+}
+.ank-g-12px {
+  gap: 12px;
+}
+.ank-g-1rem {
+  gap: 1rem;
+}
+.ank-g-2rem {
+  gap: 2rem;
+}
+.ank-g-24px {
+  gap: 24px;
+}
+.ank-g-28px {
+  gap: 28px;
+}
+.ank-g-32px {
+  gap: 32px;
+}
+.ank-gtc-1fr {
+  grid-template-columns: 1fr;
+}
+.ank-container {
+  width: 100%;
+}
+.ank-w-100vw {
+  width: 100vw;
+}
+.ank-w-100per {
+  width: 100%;
+}
+.ank-wmx-100per {
+  max-width: 100%;
+}
+.ank-wmx-85vw {
+  max-width: 85vw;
+}
+.ank-wmx-1280px {
+  max-width: 1280px;
+}
+.ank-wmx-7xl {
+  max-width: 80rem;
+}
+.ank-wmn-120px {
+  min-width: 120px;
+}
+.ank-h-100per {
+  height: 100%;
+}
+.ank-h-1rem {
+  height: 1rem;
+}
+.ank-h-1_5rem {
+  height: 1.5rem;
+}
+.ank-h-2rem {
+  height: 2rem;
+}
+.ank-h-36px {
+  height: 36px;
+}
+.ank-h-4rem {
+  height: 4rem;
+}
+.ank-w-1rem {
+  width: 1rem;
+}
+.ank-w-2rem {
+  width: 2rem;
+}
+.ank-w-36px {
+  width: 36px;
+}
+.ank-w-4rem {
+  width: 4rem;
+}
+.ank-w-5rem {
+  width: 5rem;
+}
+.ank-w-6rem {
+  width: 6rem;
+}
+.ank-w-60per {
+  width: 60%;
+}
+.ank-w-80per {
+  width: 80%;
+}
+.ank-p-0 {
+  padding: 0;
+}
+.ank-p-1rem {
+  padding: 1rem;
+}
+.ank-p-1_5rem {
+  padding: 1.5rem;
+}
+.ank-p-0_5rem__1_5rem {
+  padding: 0.5rem 1.5rem;
+}
+.ank-pb-16px {
+  padding-bottom: 16px;
+}
+.ank-pt-16px {
+  padding-top: 16px;
+}
+.ank-paddingBlock-4px {
+  padding-block: 4px;
+}
+.ank-paddingInline-4px {
+  padding-inline: 4px;
+}
+.ank-px-12px {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+.ank-px-1rem {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+.ank-px-1_5rem {
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+.ank-py-0_375rem {
+  padding-top: 0.375rem;
+  padding-bottom: 0.375rem;
+}
+.ank-py-0_5rem {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+.ank-py-0_75rem {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+.ank-py-1rem {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+.ank-py-2rem {
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+}
+.ank-py-6px {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+.ank-mt-2rem {
+  margin-top: 2rem;
+}
+.ank-m-0 {
+  margin: 0;
+}
+.ank-mb-0_125rem {
+  margin-bottom: 0.125rem;
+}
+.ank-mb-1rem {
+  margin-bottom: 1rem;
+}
+.ank-mb-1_25rem {
+  margin-bottom: 1.25rem;
+}
+.ank-mb-1_5rem {
+  margin-bottom: 1.5rem;
+}
+.ank-mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}
+.ank-mx-1rem {
+  margin-left: 1rem;
+  margin-right: 1rem;
+}
+.ank-ms-auto {
+  margin-left: auto;
+}
+.ank-me-auto {
+  margin-right: auto;
+}
+.ank-marginInline-auto {
+  margin-inline: auto;
+}
+.ank-pos-relative {
+  position: relative;
+}
+.ank-pos-absolute {
+  position: absolute;
+}
+.ank-t-0 {
+  top: 0;
+}
+.ank-t-10per {
+  top: 10%;
+}
+.ank-t-20per {
+  top: 20%;
+}
+.ank-t-30per {
+  top: 30%;
+}
+.ank-start-0 {
+  left: 0;
+}
+.ank-start-5per {
+  left: 5%;
+}
+.ank-start-MIN2rem {
+  left: -2rem;
+}
+.ank-end-20per {
+  right: 20%;
+}
+.ank-end-MIN1_5rem {
+  right: -1.5rem;
+}
+.ank-ov-hidden {
+  overflow: hidden;
+}
+.ank-bxs-borderMINbox,
+.ank-bxs-borderBox {
+  box-sizing: border-box;
+}
+.ank-ta-center {
+  text-align: center;
+}
+.ank-lsst-none {
+  list-style-type: none;
+}
+.ank-whs-nowrap {
+  white-space: nowrap;
+}
+.ank-tde-none {
+  text-decoration: none;
+}
+.ank-fs-1rem {
+  font-size: 1rem;
+}
+.ank-fs-1_25rem {
+  font-size: 1.25rem;
+}
+.ank-fs-1_5rem {
+  font-size: 1.5rem;
+}
+.ank-fs-3rem {
+  font-size: 3rem;
+}
+.ank-lh-3_3rem {
+  line-height: 3.3rem;
+}
+.ank-lh-relaxed {
+  line-height: 1.625;
+}
+.ank-fwg-bold {
+  font-weight: 700;
+}
+.ank-fwg-bolder {
+  font-weight: bolder;
+}
+.ank-fwg-550 {
+  font-weight: 550;
+}
+.btnBaseVALSVL1_25remVL0_75remVL {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  position: relative;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 550;
+  text-decoration: none;
+}
+
+@media only screen and (min-width: 576px) {
+  .ank-fd-sm-row {
+    flex-direction: row;
+  }
+}
+
+@media only screen and (min-width: 768px) {
+  .ank-d-md-flex {
+    display: flex;
+  }
+  .ank-d-md-none {
+    display: none;
+  }
+  .ank-fs-md-2rem {
+    font-size: 2rem;
+  }
+}
+
+@media only screen and (min-width: 992px) {
+  .ank-ai-lg-start {
+    align-items: start;
+  }
+  .ank-jc-lg-start {
+    justify-content: start;
+  }
+  .ank-ta-lg-left {
+    text-align: left;
+  }
+  .ank-gtc-lg-1fr__1fr {
+    grid-template-columns: 1fr 1fr;
+  }
+  .ank-fs-lg-5rem {
+    font-size: 5rem;
+  }
+  .ank-lh-lg-5_5rem {
+    line-height: 5.5rem;
+  }
+  .ank-px-lg-20px {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  .ank-wmn-lg-160px {
+    min-width: 160px;
+  }
+}
+
 .gradientShiftAnimation {
   animation-name: gradientShift;
 }

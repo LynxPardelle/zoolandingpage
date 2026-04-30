@@ -40,6 +40,7 @@
 - 2026-04-30 hydration follow-up: the browser must also run runtime bootstrap through the app initializer and `RuntimeService.connect()` must not duplicate that first load. Otherwise hydration can briefly render with empty `rootComponentsIds`, remove the SSR tree, and cause Lighthouse CLS regressions.
 - 2026-04-30 SSR cache follow-up: cache server-side `runtime-bundle` payloads briefly in memory by request identity so health checks and repeated page requests do not pay the remote runtime-read latency on every SSR render.
 - 2026-04-30 draft publish follow-up: `zoolandingpage.com.mx` draft was pushed and published through the config authoring API as version `20260430T145352Z-dc12bdffab68` with `updatedBy: codex`.
+- 2026-04-30 SSR critical CSS follow-up: Angora runtime layout utilities that affect first-paint geometry, especially responsive display classes such as `ank-d-none`, `ank-d-md-flex`, and `ank-d-md-none`, need stable global fallbacks before hydration. Without those fallbacks, SSR can paint mutually exclusive header variants at once and Lighthouse reports high CLS even when hydrated DOM later looks correct.
 
 ## Naming Rules
 

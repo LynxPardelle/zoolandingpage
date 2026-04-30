@@ -9,7 +9,7 @@ Source Of Truth:
 - Sanitized from verified platform recovery work completed on 2026-04-04
 
 Confidence: Medium to high
-Last Reviewed: 2026-04-27 (Central Time)
+Last Reviewed: 2026-04-30 (Central Time)
 
 ## Public Routing Lesson
 
@@ -48,6 +48,10 @@ If a deployed Angular SSR container returns a small HTML shell with no `<main>` 
 Hydration needs the same first runtime identity as SSR. If the browser starts with empty runtime roots and only fetches config after component render, Angular can briefly remove the server-rendered tree and recreate it after the runtime bundle arrives. Use the shared app initializer for browser bootstrap too, and make the runtime connection path skip duplicate initial loads after the initializer succeeds.
 
 For public SSR routes backed by remote config, cache `runtime-bundle` responses briefly in the server process by request identity. This keeps repeated page requests and health-check-warmed Lighthouse runs from paying remote runtime-read latency on every document render while still letting newly published drafts roll forward after the short TTL.
+
+## SSR Critical CSS Lesson
+
+When Angora runtime CSS generates layout utilities after the document has already painted, SSR can briefly show geometry that the hydrated client later fixes. Treat responsive display utilities and first-viewport spacing utilities as critical CSS, especially when they control mutually exclusive desktop/mobile header variants. A no-JS SSR inspection that shows both variants visible is a reliable signal that Lighthouse CLS will regress even if manual hydrated QA looks visually correct.
 
 ## Traefik Forwarded Header Lesson
 
