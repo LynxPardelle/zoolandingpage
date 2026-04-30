@@ -39,7 +39,7 @@ If the browser itself fails with connection resets while direct Dokploy/Traefik 
 
 ## SSR Runtime Fallback Lesson
 
-If browser fetches to the stable API custom domain are healthy but Node or undici requests from the SSR container intermittently fail with transport resets, keep the browser-facing base URL on the custom domain and add a server-only `runtime-bundle` base that points to the raw runtime-read origin. SSR should prefer that raw server-only endpoint first; the public browser URL can remain on the custom API domain. That isolates SSR transport and reduces document TTFB without changing alias resolution behavior.
+If browser fetches to the stable API custom domain are healthy but Node or undici requests from the SSR container intermittently fail with transport resets, keep the browser-facing base URL on the custom domain and add a `runtime-bundle` fallback base that points to the raw runtime-read origin. SSR should prefer that raw endpoint first; the browser can also prefer it when CORS allows public reads so Lighthouse does not record transient custom-domain resets as console failures. That isolates runtime bootstrap transport and reduces document TTFB without changing alias resolution behavior.
 
 ## SSR Bootstrap Timing Lesson
 

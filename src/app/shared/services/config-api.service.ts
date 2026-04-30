@@ -69,11 +69,15 @@ export class ConfigApiService {
     }
 
     private resolveRuntimeFallbackUrl(path: string, params: Record<string, string | undefined>): string | null {
-        if (!this.isServerRequest() || path !== RUNTIME_BUNDLE_ENDPOINT) {
+        if (path !== RUNTIME_BUNDLE_ENDPOINT) {
             return null;
         }
 
-        const fallbackBase = String(environment.configApiServerFallbackUrl ?? '').trim();
+        const fallbackBase = String(
+            environment.configApiRuntimeFallbackUrl
+            ?? environment.configApiServerFallbackUrl
+            ?? ''
+        ).trim();
         if (!fallbackBase) {
             return null;
         }
