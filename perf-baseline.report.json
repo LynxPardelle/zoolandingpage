@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-04-30T15:29:16.251Z",
+  "generatedAt": "2026-04-30T15:33:27.613Z",
   "project": "zoolandingpage",
   "bundles": [
     {
-      "file": "browser\\chunk-UTLK6HSM.js",
-      "bytes": 716602,
-      "gzip": 207662
+      "file": "browser\\chunk-XIK7T6PQ.js",
+      "bytes": 716784,
+      "gzip": 207736
     },
     {
-      "file": "browser\\main-DJ4SVOAV.js",
+      "file": "browser\\main-US6JOSQE.js",
       "bytes": 112498,
       "gzip": 32509
     },
@@ -18,11 +18,11 @@
       "gzip": 12470
     },
     {
-      "file": "browser\\chunk-IUOSOTMT.js",
+      "file": "browser\\chunk-VFWDNRU6.js",
       "bytes": 2933,
       "gzip": 1140
     }
   ],
-  "totalBytes": 866618,
-  "totalGzipBytes": 253781
+  "totalBytes": 866800,
+  "totalGzipBytes": 253855
 }

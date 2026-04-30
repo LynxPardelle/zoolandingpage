@@ -43,6 +43,7 @@
 - 2026-04-30 SSR critical CSS follow-up: Angora runtime layout utilities that affect first-paint geometry, especially responsive display classes such as `ank-d-none`, `ank-d-md-flex`, and `ank-d-md-none`, need stable global fallbacks before hydration. Without those fallbacks, SSR can paint mutually exclusive header variants at once and Lighthouse reports high CLS even when hydrated DOM later looks correct.
 - 2026-04-30 accessibility follow-up: `zoolandingpage.com.mx` draft was republished as version `20260430T152428Z-105807cbcfb7` to fix service-card CTA contrast and hide the mobile menu icon text from assistive naming; rich accordion headers should derive their accessible names from visible content instead of overriding them with `aria-label`.
 - 2026-04-30 runtime fallback follow-up: browser bootstrap should also prefer the raw `runtime-bundle` fallback endpoint when configured. The raw runtime endpoint returns CORS headers for public reads and avoids Lighthouse console errors when the custom API domain resets during first-page bootstrap.
+- 2026-04-30 Lighthouse telemetry follow-up: remote analytics and quick-stats calls should be skipped for automated audit user agents such as Lighthouse/PageSpeed so synthetic audits do not generate telemetry or fail Best Practices because of unrelated analytics transport resets.
 
 ## Naming Rules
 

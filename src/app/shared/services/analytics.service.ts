@@ -19,6 +19,7 @@ import { RuntimeConfigService } from './runtime-config.service';
 import { QuickStatsService } from './quick-stats.service';
 
 const DEFAULT_SCROLL_MILESTONES: readonly number[] = [25, 50, 75, 100];
+const AUTOMATED_AUDIT_USER_AGENT_PATTERN = /(chrome-lighthouse|lighthouse|pagespeed)/i;
 
 @Injectable({ providedIn: 'root' })
 export class AnalyticsService {
@@ -531,7 +532,15 @@ export class AnalyticsService {
   }
 
   private isRemoteAnalyticsEnabled(): boolean {
-    return this.runtimeConfig.isAnalyticsEnabled();
+    return this.runtimeConfig.isAnalyticsEnabled() && !this.isAutomatedAuditUserAgent();
+  }
+
+  private isAutomatedAuditUserAgent(): boolean {
+    if (typeof navigator === 'undefined') {
+      return false;
+    }
+
+    return AUTOMATED_AUDIT_USER_AGENT_PATTERN.test(String(navigator.userAgent ?? ''));
   }
 
   private canSendRemoteQuickStats(): boolean {

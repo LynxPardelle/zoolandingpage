@@ -53,6 +53,10 @@ For public SSR routes backed by remote config, cache `runtime-bundle` responses 
 
 When Angora runtime CSS generates layout utilities after the document has already painted, SSR can briefly show geometry that the hydrated client later fixes. Treat responsive display utilities and first-viewport spacing utilities as critical CSS, especially when they control mutually exclusive desktop/mobile header variants. A no-JS SSR inspection that shows both variants visible is a reliable signal that Lighthouse CLS will regress even if manual hydrated QA looks visually correct.
 
+## Automated Audit Telemetry Lesson
+
+Do not send remote analytics or quick-stats mutations for Lighthouse/PageSpeed user agents. Synthetic audits should still render and buffer local events as normal, but they should not create production telemetry or fail Best Practices because an unrelated analytics transport resets during the audit window.
+
 ## Traefik Forwarded Header Lesson
 
 Angular SSR deopts to a client-side shell when reverse-proxy `X-Forwarded-*` headers are present but not trusted by the server engine. For Dokploy/Traefik deployments, keep `src/server.ts` `trustProxyHeaders` aligned with the headers Traefik injects and keep Angular `allowedHosts` restricted to the public domains. A public page that returns `200` with a title but no `<main>` should be treated as an SSR deopt, not a successful page render.

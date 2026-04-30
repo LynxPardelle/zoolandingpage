@@ -151,6 +151,36 @@ describe('AnalyticsService', () => {
     expect(post).not.toHaveBeenCalled();
   });
 
+  it('disables remote analytics for automated Lighthouse user agents', () => {
+    spyOnProperty(navigator, 'userAgent', 'get').and.returnValue('Chrome-Lighthouse');
+
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: RuntimeConfigService,
+          useValue: {
+            appIdentifier: () => 'zoolandingpagecommx',
+            isAnalyticsEnabled: () => true,
+            isDebugMode: () => false,
+            analyticsConsentMode: () => 'none',
+            resolveStorageKey: (slot: string) => slot,
+            track: () => [],
+          },
+        },
+        {
+          provide: HttpClient,
+          useValue: {
+            post: jasmine.createSpy('post').and.returnValue(of({ ok: true })),
+          } as any,
+        },
+      ],
+    });
+
+    const svc = TestBed.inject(AnalyticsService) as any;
+
+    expect(svc.isRemoteAnalyticsEnabled()).toBeFalse();
+  });
+
   it('does not log console errors when geolocation access is denied', async () => {
     const getCurrentPosition = spyOn(navigator.geolocation, 'getCurrentPosition').and.callFake(
       (_success: PositionCallback, error?: PositionErrorCallback | null) => {
