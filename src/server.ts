@@ -353,7 +353,16 @@ function listDraftRegistryEntries(): readonly TDraftRegistryEntry[] {
 
 const app = express();
 app.use(compression({ threshold: 1024 }));
-const angularApp = new AngularNodeAppEngine();
+const angularApp = new AngularNodeAppEngine({
+  trustProxyHeaders: [
+    'x-forwarded-for',
+    'x-forwarded-host',
+    'x-forwarded-port',
+    'x-forwarded-proto',
+    'x-forwarded-prefix',
+    'x-forwarded-server',
+  ],
+});
 
 /**
  * Example Express Rest API endpoints can be defined here.

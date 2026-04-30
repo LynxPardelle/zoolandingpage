@@ -46,7 +46,7 @@ async function waitForOk(url) {
   throw lastError ?? new Error(`Timed out waiting for ${url}`);
 }
 
-test('production SSR server exposes a lightweight health endpoint', async (t) => {
+async function startProductionServer(t) {
   const port = await getAvailablePort();
   const server = spawn(process.execPath, [serverEntry], {
     cwd: repoRoot,
@@ -69,11 +69,41 @@ test('production SSR server exposes a lightweight health endpoint', async (t) =>
     }
   });
 
+  await waitForOk(`http://127.0.0.1:${port}/health`);
+
+  return {
+    port,
+    getStderr: () => stderr,
+  };
+}
+
+test('production SSR server exposes a lightweight health endpoint', async (t) => {
+  const { port, getStderr } = await startProductionServer(t);
   const response = await waitForOk(`http://127.0.0.1:${port}/health`);
   const body = await response.text();
 
   assert.equal(response.status, 200);
   assert.match(response.headers.get('content-type') ?? '', /^text\/plain\b/);
   assert.equal(body, 'ok\n');
-  assert.equal(stderr, '');
+  assert.equal(getStderr(), '');
+});
+
+test('production SSR server renders behind Traefik forwarded headers', async (t) => {
+  const { port, getStderr } = await startProductionServer(t);
+  const response = await fetch(`http://127.0.0.1:${port}/`, {
+    headers: {
+      Host: 'test.zoolandingpage.com.mx',
+      'X-Forwarded-For': '203.0.113.10',
+      'X-Forwarded-Host': 'test.zoolandingpage.com.mx',
+      'X-Forwarded-Port': '443',
+      'X-Forwarded-Proto': 'https',
+      'X-Forwarded-Server': 'dokploy-traefik',
+    },
+  });
+  const body = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.match(body, /<title>[^<]+<\/title>/i);
+  assert.match(body, /<main[\s>]/i);
+  assert.doesNotMatch(getStderr(), /trustProxyHeaders/i);
 });

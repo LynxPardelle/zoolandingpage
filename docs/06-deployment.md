@@ -351,7 +351,8 @@ For the production and test containers:
 6. Manage preview-domain routing through authored `site-config.json.aliases`, not frontend environment files.
 7. Point both domains to the Dokploy app.
 8. Keep `projects.zoolandingpage.architect.build.options.security.allowedHosts` aligned with every public host served by Dokploy, including branded alternate domains such as `*.lynxpardelle.com`.
-9. Validate that `https://test.zoolandingpage.com.mx` renders the same authored config as `https://zoolandingpage.com.mx`.
+9. Keep `src/server.ts` Angular SSR `trustProxyHeaders` aligned with the headers Traefik injects. Untrusted `X-Forwarded-*` headers make Angular serve the CSR shell, which breaks Lighthouse and no-JS crawlers.
+10. Validate that `https://test.zoolandingpage.com.mx` renders the same authored config as `https://zoolandingpage.com.mx`.
 
 ### Dokploy Host Guardrails
 
@@ -360,6 +361,7 @@ For the production and test containers:
 - If many app domains fail together while `api.zoolandingpage.com.mx` and `assets.zoolandingpage.com.mx` stay healthy, treat the app edge layer separately from the API/assets CloudFront distributions.
 - When bypassing a broken shared app edge, keep API and assets on their existing CloudFront distributions and route only app hosts through Dokploy/Traefik.
 - After host recovery, verify the deployed image actually contains the current SSR server changes by checking `/health`; a healthy old container can still serve the page while missing new operational routes.
+- If public checks return HTTP 200 with only a small HTML shell and no `<main>`, inspect container logs for Angular `trustProxyHeaders` warnings. This indicates Traefik forwarded headers are forcing SSR to deopt to CSR.
 
 ### 8. Smoke tests
 
@@ -389,6 +391,12 @@ node tools/ops/public-site-health-check.mjs --fail-on-aaaa --markdown --output r
 ```
 
 The public health check verifies DNS, the SSR page response, `/health`, and the runtime bundle API. Keep `/health` and `/healthz` as lightweight Express routes so container and proxy health checks do not invoke Angular SSR or config bootstrap.
+
+Local SSR smoke tests include a Traefik-style forwarded-header request. Run this before pushing changes that touch `src/server.ts`, `angular.json` security settings, or Dokploy routing:
+
+```bash
+npm run ssr:smoke
+```
 
 Authoring get site:
 

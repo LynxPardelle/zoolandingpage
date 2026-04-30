@@ -33,6 +33,7 @@
 - `reports/lighthouse/` is ignored by git and should hold local Lighthouse/browser QA artifacts; do not assume those reports are committed unless they are explicitly force-added.
 - 2026-04-30 testing incident: `https://test.zoolandingpage.com.mx/` returned CloudFront `504 Gateway Timeout` while the raw runtime-read API resolved the alias successfully; keep Dokploy SSR builds on the Docker `production` target and use `/health` or `/healthz` for lightweight health checks.
 - 2026-04-30 Dokploy recovery: the app host recovered after EC2 reboot, Docker build-cache cleanup, persistent swap enablement, Traefik HTTPS routers for app hosts, and routing app domains directly to Dokploy while keeping API/assets on their existing CloudFront distributions. Do not commit volatile host IDs, IPs, or distribution IDs; use `npm run ops:public-health` for repeatable public checks.
+- 2026-04-30 SSR deopt fix: Dokploy/Traefik adds `X-Forwarded-*` headers; Angular SSR must trust the known proxy headers or it returns a small CSR shell with no `<main>`. `npm run ssr:smoke` now covers this forwarded-header case.
 
 ## Naming Rules
 

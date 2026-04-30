@@ -39,6 +39,10 @@ If the browser itself fails with connection resets while direct Dokploy/Traefik 
 
 If browser fetches to the stable API custom domain are healthy but Node or undici requests from the SSR container intermittently fail with transport resets, keep the browser-facing base URL on the custom domain and add a server-only fallback for `runtime-bundle` to the raw runtime-read origin base. That isolates the issue to SSR transport without changing public browser URLs or alias resolution behavior.
 
+## Traefik Forwarded Header Lesson
+
+Angular SSR deopts to a client-side shell when reverse-proxy `X-Forwarded-*` headers are present but not trusted by the server engine. For Dokploy/Traefik deployments, keep `src/server.ts` `trustProxyHeaders` aligned with the headers Traefik injects and keep Angular `allowedHosts` restricted to the public domains. A public page that returns `200` with a title but no `<main>` should be treated as an SSR deopt, not a successful page render.
+
 ## Security Rule
 
 Do not copy instance identifiers, PEM paths, security-group details, or operator IP details into committed notes. Keep volatile operational specifics out of the canonical tree.
