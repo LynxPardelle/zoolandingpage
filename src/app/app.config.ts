@@ -1,5 +1,7 @@
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
-import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
+import { RuntimeService } from '@/app/core/services/runtime.service';
+import { LanguageService } from '@/app/shared/services/language.service';
+import { ApplicationConfig, inject, provideAppInitializer, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
 
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
@@ -12,6 +14,15 @@ import { provideEventHandlers } from './shared/utility/event-handler/provide-eve
 import { provideValueHandlers } from './shared/utility/value-handler/provide-value-handlers';
 
 
+export function initializeRuntimeConfig(): Promise<void> {
+  const runtime = inject(RuntimeService);
+  const language = inject(LanguageService);
+  return runtime.initialize(language.currentLanguage())
+    .catch((error) => {
+      console.error('[Runtime] App bootstrap failed.', error);
+    });
+}
+
 export const appConfig: ApplicationConfig = {
   providers: [
     provideAnimations(),
@@ -20,6 +31,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes, withInMemoryScrolling({ scrollPositionRestoration: 'enabled', anchorScrolling: 'enabled' })),
     ...(environment.production ? [provideClientHydration(withEventReplay())] : []),
     provideHttpClient(withFetch(), withInterceptors([draftConfigInterceptor])),
+    provideAppInitializer(initializeRuntimeConfig),
 
     ...provideConditionHandlers(),
     ...provideEventHandlers(),

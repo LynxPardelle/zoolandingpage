@@ -37,6 +37,8 @@
 - 2026-04-30 Lighthouse performance follow-up: Lighthouse CLI is a local dev dependency. SSR `runtime-bundle` fetches should use the raw server-only runtime endpoint before the browser-facing API custom domain to reduce TTFB when Node transport to the custom domain resets.
 - 2026-04-30 Dokploy ENOSPC follow-up: testing deploys can fail while the old container stays healthy if `/` has too little free space. Keep Docker cleanup in the recovery checklist, keep Angular build tooling local to `node_modules` in Dockerfile build stages instead of installing global CLI layers, and keep `package-lock.json` in the Docker build context for `npm ci`.
 - 2026-04-30 SSR bootstrap follow-up: server rendering must block on `RuntimeService.initialize(...)` through a server app initializer. Calling runtime initialization from a component constructor is race-prone on Dokploy because remote runtime-bundle latency can make Angular render only the CSR shell even when the runtime API is healthy.
+- 2026-04-30 hydration follow-up: the browser must also run runtime bootstrap through the app initializer and `RuntimeService.connect()` must not duplicate that first load. Otherwise hydration can briefly render with empty `rootComponentsIds`, remove the SSR tree, and cause Lighthouse CLS regressions.
+- 2026-04-30 SSR cache follow-up: cache server-side `runtime-bundle` payloads briefly in memory by request identity so health checks and repeated page requests do not pay the remote runtime-read latency on every SSR render.
 - 2026-04-30 draft publish follow-up: `zoolandingpage.com.mx` draft was pushed and published through the config authoring API as version `20260430T145352Z-dc12bdffab68` with `updatedBy: codex`.
 
 ## Naming Rules

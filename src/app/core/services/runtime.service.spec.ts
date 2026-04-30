@@ -263,6 +263,26 @@ describe('RuntimeService', () => {
         expect(analyticsTrack.calls.count()).toBe(1);
     });
 
+    it('does not repeat the initial browser bootstrap when connect follows an app initializer', async () => {
+        const service = TestBed.inject(RuntimeService);
+        const host = document.createElement('div');
+
+        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com');
+        await service.initialize('es');
+        expect(bootstrapLoad.calls.count()).toBe(1);
+
+        service.connect({
+            host,
+            destroyRef: { onDestroy: () => undefined } as any,
+            showDebugWorkspace: () => false,
+            currentLanguage: () => 'es',
+        });
+        await flushPostBootstrapBrowserWork();
+
+        expect(bootstrapLoad.calls.count()).toBe(1);
+        expect(service.rootComponentsIds()).toEqual(['home-root']);
+    });
+
     it('queues a fresh draft initialization when navigation changes during an active load', async () => {
         const service = TestBed.inject(RuntimeService);
         const expectedModalRootIds: string[] = [];

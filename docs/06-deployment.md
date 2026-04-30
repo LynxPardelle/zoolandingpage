@@ -352,8 +352,9 @@ For the production and test containers:
 7. Point both domains to the Dokploy app.
 8. Keep `projects.zoolandingpage.architect.build.options.security.allowedHosts` aligned with every public host served by Dokploy, including branded alternate domains such as `*.lynxpardelle.com`.
 9. Keep `src/server.ts` Angular SSR `trustProxyHeaders` aligned with the headers Traefik injects. Untrusted `X-Forwarded-*` headers make Angular serve the CSR shell, which breaks Lighthouse and no-JS crawlers.
-10. Keep server-side runtime config bootstrap in an Angular server app initializer. Do not rely on component-constructor fire-and-forget initialization for SSR, because remote runtime API latency can make Dokploy render the CSR shell before authored config is ready.
-11. Validate that `https://test.zoolandingpage.com.mx` renders the same authored config as `https://zoolandingpage.com.mx`.
+10. Keep runtime config bootstrap in the shared Angular app initializer for both SSR and browser hydration. Do not rely on component-constructor fire-and-forget initialization, because remote runtime API latency can make Dokploy render the CSR shell before authored config is ready or make hydration clear the SSR tree before the browser config arrives.
+11. Keep a short in-process SSR cache for `runtime-bundle` responses so repeated renders do not invoke the remote runtime-read API for every document request.
+12. Validate that `https://test.zoolandingpage.com.mx` renders the same authored config as `https://zoolandingpage.com.mx`.
 
 ### Dokploy Host Guardrails
 
@@ -366,6 +367,7 @@ For the production and test containers:
 - After host recovery, verify the deployed image actually contains the current SSR server changes by checking `/health`; a healthy old container can still serve the page while missing new operational routes.
 - If public checks return HTTP 200 with only a small HTML shell and no `<main>`, inspect container logs for Angular `trustProxyHeaders` warnings. This indicates Traefik forwarded headers are forcing SSR to deopt to CSR.
 - If container logs do not show a forwarded-header warning and the runtime API is reachable from inside the container, inspect SSR bootstrap timing. Angular should wait for runtime config through the server app initializer before rendering the response.
+- If Lighthouse reports high CLS after SSR starts returning full HTML, inspect browser hydration timing. A duplicate browser runtime bootstrap can clear and recreate the server-rendered roots.
 
 ### 8. Smoke tests
 

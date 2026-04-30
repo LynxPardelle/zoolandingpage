@@ -45,6 +45,10 @@ If browser fetches to the stable API custom domain are healthy but Node or undic
 
 If a deployed Angular SSR container returns a small HTML shell with no `<main>` while the runtime API is reachable from inside the container, check whether runtime config initialization is blocking the server render. Component constructor fire-and-forget initialization can pass local Docker checks when the API is fast, then fail on Dokploy when remote runtime-bundle latency is higher. Keep server-side runtime bootstrap in an Angular server app initializer so SSR waits for the authored config before rendering.
 
+Hydration needs the same first runtime identity as SSR. If the browser starts with empty runtime roots and only fetches config after component render, Angular can briefly remove the server-rendered tree and recreate it after the runtime bundle arrives. Use the shared app initializer for browser bootstrap too, and make the runtime connection path skip duplicate initial loads after the initializer succeeds.
+
+For public SSR routes backed by remote config, cache `runtime-bundle` responses briefly in the server process by request identity. This keeps repeated page requests and health-check-warmed Lighthouse runs from paying remote runtime-read latency on every document render while still letting newly published drafts roll forward after the short TTL.
+
 ## Traefik Forwarded Header Lesson
 
 Angular SSR deopts to a client-side shell when reverse-proxy `X-Forwarded-*` headers are present but not trusted by the server engine. For Dokploy/Traefik deployments, keep `src/server.ts` `trustProxyHeaders` aligned with the headers Traefik injects and keep Angular `allowedHosts` restricted to the public domains. A public page that returns `200` with a title but no `<main>` should be treated as an SSR deopt, not a successful page render.

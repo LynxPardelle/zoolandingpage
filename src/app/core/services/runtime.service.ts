@@ -43,6 +43,7 @@ export class RuntimeService {
     private navigationSubscription: Subscription | null = null;
     private currentLanguageResolver: (() => string) | null = null;
     private showDebugWorkspaceResolver: (() => boolean) | null = null;
+    private hasCompletedInitialBootstrap = false;
     private initialPageViewTracked = false;
     private latestNavigationRequestId = 0;
     private navigationProgressTimer: number | null = null;
@@ -68,10 +69,12 @@ export class RuntimeService {
 
         options.destroyRef.onDestroy(() => this.disconnect());
 
-        void this.initialize(options.currentLanguage())
-            .catch((error) => {
-                console.error('[Runtime] Initial page bootstrap failed.', error);
-            });
+        if (!this.hasCompletedInitialBootstrap) {
+            void this.initialize(options.currentLanguage())
+                .catch((error) => {
+                    console.error('[Runtime] Initial page bootstrap failed.', error);
+                });
+        }
     }
 
     disconnect(): void {
@@ -115,9 +118,17 @@ export class RuntimeService {
                 this.debugWorkspaceEnabled = this.showDebugWorkspaceResolver?.() ?? false;
                 await this.ensureDebugWorkspaceConfigured();
                 await this.doInitialize(nextLanguage);
+                this.hasCompletedInitialBootstrap = this.hasRenderableState();
             });
 
         return this.initializeQueue;
+    }
+
+    private hasRenderableState(): boolean {
+        return this.rootComponentsIds().length > 0
+            || this.modalRootIds().length > 0
+            || this.debugWorkspaceRootIds().length > 0
+            || this.debugWorkspaceModalRootIds().length > 0;
     }
 
     private async ensureDebugWorkspaceConfigured(): Promise<void> {
