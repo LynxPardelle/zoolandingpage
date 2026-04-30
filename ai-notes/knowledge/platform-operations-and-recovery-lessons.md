@@ -23,11 +23,17 @@ Keep Systems Manager access available on the active host so recovery does not de
 
 After edge routing is repaired, verify the actual application service state on the active host before declaring the incident closed. A broken container image or missing local image can keep the site down even after the edge layer is healthy again.
 
+## Dokploy Build Host Resource Lesson
+
+If a Dokploy-hosted Angular SSR app repeatedly fails during test deploys, check host memory, swap, root-disk pressure, and Docker build cache before assuming the application code is the root cause. A host can pass system status checks after reboot while still being vulnerable to the next local production build if it has no swap and little free disk.
+
 ## Edge Verification Lesson
 
 If CloudFront-backed domains still look broken after the origin host recovers, confirm the edge-to-origin path before changing host routing again. Traefik access logs can prove whether CloudFront is still reaching the origin over HTTP and receiving `200` responses even when some local CLI clients report TLS or connection-reset errors.
 
 On Windows recovery work, do not trust one failing client alone. `curl.exe` and Node or undici may show `ECONNRESET` while PowerShell `Invoke-WebRequest`, .NET `HttpClient`, and Traefik access logs show the public page is actually serving correctly through CloudFront.
+
+If the browser itself fails with connection resets while direct Dokploy/Traefik HTTPS is healthy, isolate app domains from the shared app edge before changing API or asset routing. Keep API and asset CloudFront distributions separate when they are healthy.
 
 ## SSR Runtime Fallback Lesson
 

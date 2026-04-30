@@ -353,6 +353,14 @@ For the production and test containers:
 8. Keep `projects.zoolandingpage.architect.build.options.security.allowedHosts` aligned with every public host served by Dokploy, including branded alternate domains such as `*.lynxpardelle.com`.
 9. Validate that `https://test.zoolandingpage.com.mx` renders the same authored config as `https://zoolandingpage.com.mx`.
 
+### Dokploy Host Guardrails
+
+- Keep swap enabled on small Dokploy hosts that build Angular SSR images locally; the Angular production build plus Dokploy can exhaust memory on a 4 GB host.
+- Keep Docker build cache under control before redeploying if the root filesystem is near full.
+- If many app domains fail together while `api.zoolandingpage.com.mx` and `assets.zoolandingpage.com.mx` stay healthy, treat the app edge layer separately from the API/assets CloudFront distributions.
+- When bypassing a broken shared app edge, keep API and assets on their existing CloudFront distributions and route only app hosts through Dokploy/Traefik.
+- After host recovery, verify the deployed image actually contains the current SSR server changes by checking `/health`; a healthy old container can still serve the page while missing new operational routes.
+
 ### 8. Smoke tests
 
 Runtime bundle through the custom domain:
@@ -366,6 +374,21 @@ Runtime bundle through alias:
 ```bash
 curl "https://api.zoolandingpage.com.mx/runtime-bundle?domain=test.zoolandingpage.com.mx&path=/&lang=es"
 ```
+
+Public app health after Dokploy deploy:
+
+```bash
+node tools/ops/public-site-health-check.mjs --hosts test.zoolandingpage.com.mx,zoolandingpage.com.mx --fail-on-aaaa
+```
+
+Use the full host set when checking every published draft route through the shared app runtime:
+
+```bash
+npm run ops:public-health
+node tools/ops/public-site-health-check.mjs --fail-on-aaaa --markdown --output reports/lighthouse/public-health-latest.md
+```
+
+The public health check verifies DNS, the SSR page response, `/health`, and the runtime bundle API. Keep `/health` and `/healthz` as lightweight Express routes so container and proxy health checks do not invoke Angular SSR or config bootstrap.
 
 Authoring get site:
 

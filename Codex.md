@@ -32,6 +32,7 @@
 - 2026-04-30 Lighthouse remediation closeout: `zoolandingpage.com.mx` draft was pushed and published through the config authoring API as version `20260430T065228Z-ed28164d3340` with `updatedBy: Codex`; live URL checks still need a post-Dokploy pass because `https://zoolandingpage.com.mx/` and `https://test.zoolandingpage.com.mx/` were not reliably reachable during local QA.
 - `reports/lighthouse/` is ignored by git and should hold local Lighthouse/browser QA artifacts; do not assume those reports are committed unless they are explicitly force-added.
 - 2026-04-30 testing incident: `https://test.zoolandingpage.com.mx/` returned CloudFront `504 Gateway Timeout` while the raw runtime-read API resolved the alias successfully; keep Dokploy SSR builds on the Docker `production` target and use `/health` or `/healthz` for lightweight health checks.
+- 2026-04-30 Dokploy recovery: the app host recovered after EC2 reboot, Docker build-cache cleanup, persistent swap enablement, Traefik HTTPS routers for app hosts, and routing app domains directly to Dokploy while keeping API/assets on their existing CloudFront distributions. Do not commit volatile host IDs, IPs, or distribution IDs; use `npm run ops:public-health` for repeatable public checks.
 
 ## Naming Rules
 

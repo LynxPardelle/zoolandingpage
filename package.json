@@ -17,6 +17,7 @@
     "config:create": "node tools/config-draft-sync.mjs create",
     "config:publish": "node tools/config-draft-sync.mjs publish",
     "drafts:smoke": "node tools/draft-smoke-check.mjs",
+    "ops:public-health": "node tools/ops/public-site-health-check.mjs",
     "ssr:smoke": "npm run build && node --test tools/tests/ssr-server.spec.mjs",
     "test:draft-smoke": "node --test tools/tests/draft-smoke-check.spec.mjs",
     "test:draft-context": "npm run build && node --test tools/tests/draft-local-context.spec.mjs",
