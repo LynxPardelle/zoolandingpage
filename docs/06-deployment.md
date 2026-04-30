@@ -358,6 +358,8 @@ For the production and test containers:
 
 - Keep swap enabled on small Dokploy hosts that build Angular SSR images locally; the Angular production build plus Dokploy can exhaust memory on a 4 GB host.
 - Keep Docker build cache under control before redeploying if the root filesystem is near full.
+- Keep at least several GB free on `/` before test deploys. Angular SSR Docker builds need temporary image space, and `ENOSPC` during dependency installation leaves Dokploy in `error` while the old healthy container continues serving traffic.
+- Keep build tooling local to `node_modules` in the Dockerfile and keep `package-lock.json` inside the Docker build context. Avoid global CLI installs in build stages because they add extra layers and disk pressure on small Dokploy hosts.
 - If many app domains fail together while `api.zoolandingpage.com.mx` and `assets.zoolandingpage.com.mx` stay healthy, treat the app edge layer separately from the API/assets CloudFront distributions.
 - When bypassing a broken shared app edge, keep API and assets on their existing CloudFront distributions and route only app hosts through Dokploy/Traefik.
 - After host recovery, verify the deployed image actually contains the current SSR server changes by checking `/health`; a healthy old container can still serve the page while missing new operational routes.

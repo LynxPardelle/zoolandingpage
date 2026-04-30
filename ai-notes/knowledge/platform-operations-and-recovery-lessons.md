@@ -27,6 +27,8 @@ After edge routing is repaired, verify the actual application service state on t
 
 If a Dokploy-hosted Angular SSR app repeatedly fails during test deploys, check host memory, swap, root-disk pressure, and Docker build cache before assuming the application code is the root cause. A host can pass system status checks after reboot while still being vulnerable to the next local production build if it has no swap and little free disk.
 
+If a Dokploy deploy fails quickly with `ENOSPC` during `npm install` inside Docker, the old healthy container can continue serving traffic while the app status remains `error`. Free unused Docker images/build cache without pruning data volumes, then reduce build disk pressure by using lockfile-based installs and local project tooling instead of global CLI installs inside the image. If switching Docker builds to `npm ci`, make sure `.dockerignore` does not exclude `package-lock.json`.
+
 ## Edge Verification Lesson
 
 If CloudFront-backed domains still look broken after the origin host recovers, confirm the edge-to-origin path before changing host routing again. Traefik access logs can prove whether CloudFront is still reaching the origin over HTTP and receiving `200` responses even when some local CLI clients report TLS or connection-reset errors.

@@ -35,6 +35,7 @@
 - 2026-04-30 Dokploy recovery: the app host recovered after EC2 reboot, Docker build-cache cleanup, persistent swap enablement, Traefik HTTPS routers for app hosts, and routing app domains directly to Dokploy while keeping API/assets on their existing CloudFront distributions. Do not commit volatile host IDs, IPs, or distribution IDs; use `npm run ops:public-health` for repeatable public checks.
 - 2026-04-30 SSR deopt fix: Dokploy/Traefik adds `X-Forwarded-*` headers; Angular SSR must trust the known proxy headers or it returns a small CSR shell with no `<main>`. `npm run ssr:smoke` now covers this forwarded-header case.
 - 2026-04-30 Lighthouse performance follow-up: Lighthouse CLI is a local dev dependency. SSR `runtime-bundle` fetches should use the raw server-only runtime endpoint before the browser-facing API custom domain to reduce TTFB when Node transport to the custom domain resets.
+- 2026-04-30 Dokploy ENOSPC follow-up: testing deploys can fail while the old container stays healthy if `/` has too little free space. Keep Docker cleanup in the recovery checklist, keep Angular build tooling local to `node_modules` in Dockerfile build stages instead of installing global CLI layers, and keep `package-lock.json` in the Docker build context for `npm ci`.
 
 ## Naming Rules
 

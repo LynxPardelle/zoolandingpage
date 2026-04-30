@@ -48,12 +48,8 @@ RUN set -e; \
 # Done early to leverage Docker layer caching
 COPY --chown=appuser:appgroup package*.json ./
 
-# Install Angular CLI globally with specific version for consistency
-RUN npm install -g @angular/cli@20.2.1
-RUN npm cache clean --force
-
-# Install dependencies with optimizations
-RUN npm install --only=production --no-audit --no-fund
+# Install production dependencies with optimizations
+RUN npm ci --omit=dev --no-audit --no-fund
 RUN npm cache clean --force
 
 # -----------------------------------------------------------------------------
@@ -92,11 +88,8 @@ RUN set -e; \
 # Copy package files with proper ownership
 COPY --chown=appuser:appgroup package*.json ./
 
-# Install Angular CLI globally and all dependencies (including dev dependencies)
-# Use npm install to handle package-lock.json regeneration
-RUN npm install -g @angular/cli@20.2.1
-RUN npm cache clean --force
-RUN npm install --no-audit --no-fund
+# Install all dependencies for builds. The Angular CLI runs from node_modules.
+RUN npm ci --no-audit --no-fund
 RUN npm cache clean --force
 
 # Create .angular cache directory for better build performance
@@ -147,10 +140,10 @@ ENV CI=true
 COPY --chown=appuser:appgroup . .
 
 # Build the application for production with SSR and optimizations
-RUN ng build --configuration=production
+RUN npm run build -- --configuration=production
 
 # Clean up development dependencies and cache after build
-RUN npm prune --production
+RUN npm prune --omit=dev
 RUN npm cache clean --force
 
 # Change to non-root user
@@ -181,7 +174,7 @@ ENV CI=true
 COPY --chown=appuser:appgroup . .
 
 # Build the application for production without SSR with optimizations
-RUN ng build --configuration=production
+RUN npm run build -- --configuration=production
 RUN npm cache clean --force
 
 # -----------------------------------------------------------------------------
