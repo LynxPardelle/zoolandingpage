@@ -239,9 +239,12 @@ body {
 .ank-h-50per {
   height: 50%;
 }
+generic-media img[width][height] {
+  height: auto;
+  max-width: 100%;
+}
 img.ank-h-50per[width][height] {
   height: auto;
-  aspect-ratio: 1 / 1;
 }
 .ank-h-1rem {
   height: 1rem;

@@ -32,3 +32,10 @@ test('global critical CSS covers first-viewport Angora layout utilities', () => 
 
   assert.deepEqual(missing, []);
 });
+
+test('generic media images keep their intrinsic aspect ratio when utility widths scale them', () => {
+  assert.match(
+    styles,
+    /generic-media\s+img\[width\]\[height\]\s*{[^}]*height:\s*auto;/s,
+  );
+});

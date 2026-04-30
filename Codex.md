@@ -48,6 +48,7 @@
 - 2026-04-30 draft publish follow-up: performance-only media metadata changes were pushed and published for `alecfest-voliii.com` as version `20260430T163201Z-5b04def53601`, `erosbarajas.com` as version `20260430T163204Z-38f3b363e666`, and `pamelabetancourt.com` as version `20260430T163205Z-1b7ae42e0a4b` with `updatedBy: Codex`.
 - 2026-04-30 public asset cache follow-up: public image uploads should preserve long-lived immutable cache headers. The image-upload API now returns `Cache-Control` in direct upload presign headers and includes it in S3 `PutObject` params so optimized draft assets are cacheable at CloudFront/browser layers.
 - 2026-04-30 CLS follow-up: when authored draft pages rely on Angora combo classes above the fold, add stable global critical CSS fallbacks for their layout geometry and image reservation before deployment. Local PerformanceObserver checks should verify CLS near zero for the affected drafts before publishing to `test`.
+- 2026-04-30 image aspect follow-up: `generic-media img[width][height]` must keep `height: auto` in global CSS so intrinsic `width`/`height` reserve aspect ratio without turning the image height attribute into a fixed rendered height when draft utility classes scale width.
 
 ## Naming Rules
 
