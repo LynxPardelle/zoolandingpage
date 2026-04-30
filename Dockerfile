@@ -239,6 +239,11 @@ ENTRYPOINT ["nginx"]
 CMD ["-g", "daemon off;"]
 
 # -----------------------------------------------------------------------------
+# Production Stage - Default Dokploy SSR image
+# -----------------------------------------------------------------------------
+FROM build AS production
+
+# -----------------------------------------------------------------------------
 # Metadata Labels for Container Management
 # -----------------------------------------------------------------------------
 LABEL maintainer="LynxPardelle <lynxpardelle@lynxpardelle.com>"

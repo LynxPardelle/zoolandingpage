@@ -31,6 +31,7 @@
 - Draft analytics with `consentUI: "none"` should avoid sensitive enrichment such as raw IP, precise geolocation, raw cookies, and battery details unless a consent flow and compliance review explicitly approve it.
 - 2026-04-30 Lighthouse remediation closeout: `zoolandingpage.com.mx` draft was pushed and published through the config authoring API as version `20260430T065228Z-ed28164d3340` with `updatedBy: Codex`; live URL checks still need a post-Dokploy pass because `https://zoolandingpage.com.mx/` and `https://test.zoolandingpage.com.mx/` were not reliably reachable during local QA.
 - `reports/lighthouse/` is ignored by git and should hold local Lighthouse/browser QA artifacts; do not assume those reports are committed unless they are explicitly force-added.
+- 2026-04-30 testing incident: `https://test.zoolandingpage.com.mx/` returned CloudFront `504 Gateway Timeout` while the raw runtime-read API resolved the alias successfully; keep Dokploy SSR builds on the Docker `production` target and use `/health` or `/healthz` for lightweight health checks.
 
 ## Naming Rules
 

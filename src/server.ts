@@ -367,6 +367,14 @@ const angularApp = new AngularNodeAppEngine();
  * ```
  */
 
+app.get(['/health', '/healthz'], (_req, res) => {
+  res
+    .status(200)
+    .type('text/plain')
+    .set('Cache-Control', 'no-store')
+    .send('ok\n');
+});
+
 app.get('/api/debug/drafts', (_req, res) => {
   res.json({ drafts: listDraftRegistryEntries() });
 });

@@ -56,7 +56,7 @@ services:
   prod:
     build:
       context: .
-      target: build
+      target: production
       args:
         <<: *common-variables
         NODE_ENV: production

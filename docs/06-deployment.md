@@ -344,12 +344,14 @@ After that first upload, confirm in DynamoDB that you have:
 For the production and test containers:
 
 1. Use the same image and the same codebase.
-2. Keep `configApiUrl` pointing to `https://api.zoolandingpage.com.mx`.
-3. For SSR containers, set `configApiServerFallbackUrl` to the raw runtime-read origin base so `runtime-bundle` can fall back if Node transport to the API custom domain resets before the browser hydrates.
-4. Manage preview-domain routing through authored `site-config.json.aliases`, not frontend environment files.
-5. Point both domains to the Dokploy app.
-6. Keep `projects.zoolandingpage.architect.build.options.security.allowedHosts` aligned with every public host served by Dokploy, including branded alternate domains such as `*.lynxpardelle.com`.
-7. Validate that `https://test.zoolandingpage.com.mx` renders the same authored config as `https://zoolandingpage.com.mx`.
+2. Use the Docker `production` target for SSR deployments. The Dockerfile default final target is also `production`; use `production-no-ssr` only for the explicit static/Nginx fallback.
+3. Keep `configApiUrl` pointing to `https://api.zoolandingpage.com.mx`.
+4. For SSR containers, set `configApiServerFallbackUrl` to the raw runtime-read origin base so `runtime-bundle` can fall back if Node transport to the API custom domain resets before the browser hydrates.
+5. Use `/health` or `/healthz` for container or proxy health checks so health probes do not invoke Angular SSR or config bootstrap.
+6. Manage preview-domain routing through authored `site-config.json.aliases`, not frontend environment files.
+7. Point both domains to the Dokploy app.
+8. Keep `projects.zoolandingpage.architect.build.options.security.allowedHosts` aligned with every public host served by Dokploy, including branded alternate domains such as `*.lynxpardelle.com`.
+9. Validate that `https://test.zoolandingpage.com.mx` renders the same authored config as `https://zoolandingpage.com.mx`.
 
 ### 8. Smoke tests
 
