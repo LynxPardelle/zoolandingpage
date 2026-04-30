@@ -31,9 +31,11 @@ async function collect() {
     console.log('No dist folder found – running production build...');
     run('npm run build');
   }
-  // Find first project folder inside dist (Angular CLI structure)
   const distEntries = readdirSync(DIST_ROOT);
-  const projectDir = distEntries.find(e => statSync(join(DIST_ROOT, e)).isDirectory());
+  const distDirectories = distEntries.filter(e => statSync(join(DIST_ROOT, e)).isDirectory());
+  const projectDir = distDirectories.includes('zoolandingpage')
+    ? 'zoolandingpage'
+    : distDirectories.find(e => e !== 'test-out') ?? distDirectories[0];
   if (!projectDir) throw new Error('Unable to locate built project directory under dist/');
   const root = join(DIST_ROOT, projectDir);
   const assets = [];

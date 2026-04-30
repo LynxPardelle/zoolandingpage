@@ -1,7 +1,28 @@
 {
-  "generatedAt": "2026-03-19T07:43:12.613Z",
-  "project": "test-out",
-  "bundles": [],
-  "totalBytes": 0,
-  "totalGzipBytes": 0
+  "generatedAt": "2026-04-30T09:18:01.572Z",
+  "project": "zoolandingpage",
+  "bundles": [
+    {
+      "file": "browser\\chunk-ISVTG3DH.js",
+      "bytes": 715801,
+      "gzip": 207520
+    },
+    {
+      "file": "browser\\main-T3UW7Y2D.js",
+      "bytes": 112485,
+      "gzip": 32499
+    },
+    {
+      "file": "browser\\polyfills-5CFQRCPP.js",
+      "bytes": 34585,
+      "gzip": 12470
+    },
+    {
+      "file": "browser\\chunk-4NZHTXCN.js",
+      "bytes": 2933,
+      "gzip": 1139
+    }
+  ],
+  "totalBytes": 865804,
+  "totalGzipBytes": 253628
 }
