@@ -8,7 +8,7 @@ import type {
     TVariablesPayload,
 } from '@/app/shared/types/config-payloads.types';
 import { environment } from '@/environments/environment';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, REQUEST } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
@@ -74,25 +74,6 @@ export class ConfigApiService {
         return this.buildUrlForBase(fallbackBase, path, params);
     }
 
-    private isRetryableTransportError(error: unknown): boolean {
-        if (error instanceof HttpErrorResponse && error.status === 0) {
-            return true;
-        }
-
-        const fragments = [
-            error instanceof Error ? error.message : '',
-            error instanceof HttpErrorResponse && error.error instanceof Error ? error.error.message : '',
-            typeof (error as { statusText?: unknown })?.statusText === 'string' ? String((error as { statusText?: string }).statusText) : '',
-        ]
-            .join(' ')
-            .toLowerCase();
-
-        return fragments.includes('econnreset')
-            || fragments.includes('fetch failed')
-            || fragments.includes('networkerror')
-            || fragments.includes('unknown error');
-    }
-
     private async fetchJson<T>(url: string): Promise<T> {
         const response = await fetch(url, {
             headers: {
@@ -109,17 +90,17 @@ export class ConfigApiService {
 
     private async getJson<T>(path: string, params: Record<string, string | undefined>): Promise<T> {
         const url = this.buildUrl(path, params);
+        const fallbackUrl = this.resolveRuntimeFallbackUrl(path, params);
 
-        try {
-            return await firstValueFrom(this.http.get<T>(url));
-        } catch (error) {
-            const fallbackUrl = this.resolveRuntimeFallbackUrl(path, params);
-            if (!fallbackUrl || !this.isRetryableTransportError(error)) {
-                throw error;
+        if (fallbackUrl) {
+            try {
+                return await this.fetchJson<T>(fallbackUrl);
+            } catch {
+                return await firstValueFrom(this.http.get<T>(url));
             }
-
-            return await this.fetchJson<T>(fallbackUrl);
         }
+
+        return await firstValueFrom(this.http.get<T>(url));
     }
 
     getSiteConfig(domain: string): Promise<TDraftSiteConfigPayload> {

@@ -346,7 +346,7 @@ For the production and test containers:
 1. Use the same image and the same codebase.
 2. Use the Docker `production` target for SSR deployments. The Dockerfile default final target is also `production`; use `production-no-ssr` only for the explicit static/Nginx fallback.
 3. Keep `configApiUrl` pointing to `https://api.zoolandingpage.com.mx`.
-4. For SSR containers, set `configApiServerFallbackUrl` to the raw runtime-read origin base so `runtime-bundle` can fall back if Node transport to the API custom domain resets before the browser hydrates.
+4. For SSR containers, set `configApiServerFallbackUrl` to the raw runtime-read origin base. The browser still uses `configApiUrl`, but SSR requests `runtime-bundle` through the raw server-only endpoint first to avoid custom-domain transport resets and reduce TTFB.
 5. Use `/health` or `/healthz` for container or proxy health checks so health probes do not invoke Angular SSR or config bootstrap.
 6. Manage preview-domain routing through authored `site-config.json.aliases`, not frontend environment files.
 7. Point both domains to the Dokploy app.

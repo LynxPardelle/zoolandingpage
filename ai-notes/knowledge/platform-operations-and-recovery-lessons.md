@@ -37,7 +37,7 @@ If the browser itself fails with connection resets while direct Dokploy/Traefik 
 
 ## SSR Runtime Fallback Lesson
 
-If browser fetches to the stable API custom domain are healthy but Node or undici requests from the SSR container intermittently fail with transport resets, keep the browser-facing base URL on the custom domain and add a server-only fallback for `runtime-bundle` to the raw runtime-read origin base. That isolates the issue to SSR transport without changing public browser URLs or alias resolution behavior.
+If browser fetches to the stable API custom domain are healthy but Node or undici requests from the SSR container intermittently fail with transport resets, keep the browser-facing base URL on the custom domain and add a server-only `runtime-bundle` base that points to the raw runtime-read origin. SSR should prefer that raw server-only endpoint first; the public browser URL can remain on the custom API domain. That isolates SSR transport and reduces document TTFB without changing alias resolution behavior.
 
 ## Traefik Forwarded Header Lesson
 
