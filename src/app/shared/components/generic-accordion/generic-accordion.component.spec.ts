@@ -65,7 +65,7 @@ describe('GenericAccordionComponent', () => {
     expect(host.textContent).toContain('Item B');
   });
 
-  it('includes visible rich header text in the button accessible name', () => {
+  it('does not override visible rich header text in the button accessible name', () => {
     fixture.componentRef.setInput('config', {
       renderMode: 'detail',
       items: [
@@ -82,7 +82,10 @@ describe('GenericAccordionComponent', () => {
     const host = fixture.nativeElement as HTMLElement;
     const button = host.querySelector('button');
 
-    expect(button?.getAttribute('aria-label')).toBe('1 Discovery Understand the business goals');
+    expect(button?.hasAttribute('aria-label')).toBeFalse();
+    expect(button?.textContent).toContain('1');
+    expect(button?.textContent).toContain('Discovery');
+    expect(button?.textContent).toContain('Understand the business goals');
   });
 
   it('does not render fallback detail icons when the config omits them', () => {
