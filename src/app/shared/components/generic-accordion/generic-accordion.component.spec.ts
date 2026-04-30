@@ -28,6 +28,15 @@ describe('GenericAccordionComponent', () => {
     expect(host.querySelectorAll('button').length).toBe(2);
   });
 
+  it('renders accordion disclosure attributes without aria-selected', () => {
+    const host = fixture.nativeElement as HTMLElement;
+    const button = host.querySelector('button');
+
+    expect(button?.getAttribute('aria-expanded')).toBe('false');
+    expect(button?.getAttribute('aria-controls')).toContain('-panel-a');
+    expect(button?.hasAttribute('aria-selected')).toBeFalse();
+  });
+
   it('renders canonical detail fields when expanded', () => {
     fixture.componentRef.setInput('config', {
       renderMode: 'detail',

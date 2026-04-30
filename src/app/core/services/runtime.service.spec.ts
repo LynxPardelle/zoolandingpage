@@ -23,6 +23,10 @@ const createComponentsPayload = (
     components: Object.values(components) as TComponentPayloadEntry[],
 });
 
+const flushPostBootstrapBrowserWork = async (): Promise<void> => {
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+};
+
 describe('RuntimeService', () => {
     const originalUrl = window.location.pathname + window.location.search + window.location.hash;
     const setExternalComponentsFromPayload = jasmine.createSpy('setExternalComponentsFromPayload');
@@ -173,7 +177,8 @@ describe('RuntimeService', () => {
         setCombos = spyOn(store, 'setCombos').and.callThrough();
     });
 
-    afterEach(() => {
+    afterEach(async () => {
+        await flushPostBootstrapBrowserWork();
         window.history.replaceState({}, '', originalUrl);
         TestBed.resetTestingModule();
     });
@@ -223,6 +228,9 @@ describe('RuntimeService', () => {
         window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com');
         await service.initialize('es');
 
+        expect(prefetchRoute).not.toHaveBeenCalled();
+        await flushPostBootstrapBrowserWork();
+
         expect(prefetchRoute).toHaveBeenCalledOnceWith('pamelabetancourt.com', {
             pageId: 'servicios',
             lang: 'es',
@@ -236,6 +244,12 @@ describe('RuntimeService', () => {
         window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com');
         await service.initialize('es');
 
+        expect(analyticsInitializeRuntimeState).not.toHaveBeenCalled();
+        expect(analyticsPageViewEventName).not.toHaveBeenCalled();
+        expect(analyticsTrack).not.toHaveBeenCalled();
+
+        await flushPostBootstrapBrowserWork();
+
         expect(analyticsInitializeRuntimeState).toHaveBeenCalled();
         expect(analyticsPageViewEventName).toHaveBeenCalled();
         expect(analyticsTrack).toHaveBeenCalledWith('page_view', {
@@ -244,6 +258,7 @@ describe('RuntimeService', () => {
         });
 
         await service.initialize('es');
+        await flushPostBootstrapBrowserWork();
 
         expect(analyticsTrack.calls.count()).toBe(1);
     });

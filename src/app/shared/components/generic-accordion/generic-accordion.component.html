@@ -31,7 +31,6 @@
         iconPosition: item.buttonConfig?.iconPosition || config().defaultItemButtonConfig?.iconPosition || 'after',
         ariaLabel: titleOf(item),
         tabIndex: item.disabled ? -1 : 0,
-        ariaSelected: isExpanded(itemId(item)) ? true : false,
         ariaExpanded: isExpanded(itemId(item)),
         ariaControls: panelId(itemId(item)),
         components: item.buttonConfig?.components || config().defaultItemButtonConfig?.components || []

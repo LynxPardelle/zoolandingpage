@@ -4,6 +4,7 @@ import {
     isMainModule,
     writeResponseToNodeResponse,
 } from '@angular/ssr/node';
+import compression from 'compression';
 import express from 'express';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -351,6 +352,7 @@ function listDraftRegistryEntries(): readonly TDraftRegistryEntry[] {
 }
 
 const app = express();
+app.use(compression({ threshold: 1024 }));
 const angularApp = new AngularNodeAppEngine();
 
 /**

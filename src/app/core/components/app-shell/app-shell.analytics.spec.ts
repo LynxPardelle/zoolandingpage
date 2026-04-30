@@ -1,6 +1,6 @@
 import { AsyncPipe } from '@angular/common';
 import { Component, Input } from '@angular/core';
-import { fakeAsync, TestBed, tick } from '@angular/core/testing';
+import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { provideRouter, Router, withInMemoryScrolling } from '@angular/router';
 import { NgxAngoraService } from 'ngx-angora-css';
 import { of } from 'rxjs';
@@ -52,6 +52,14 @@ const ORCHESTRATOR_STUB = {
     domain: PRIMARY_DOMAIN,
     components: [],
   }),
+};
+
+const flushDeferredBootstrapWork = async (fixture: ComponentFixture<AppShellComponent>): Promise<void> => {
+  await fixture.whenStable();
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  await fixture.whenStable();
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  fixture.detectChanges();
 };
 
 describe('AppShellComponent analytics', () => {
@@ -153,8 +161,7 @@ describe('AppShellComponent analytics', () => {
   it('tracks the initial bootstrap page view once and records later navigations separately', async () => {
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    fixture.detectChanges();
+    await flushDeferredBootstrapWork(fixture);
 
     let pageViews = analyticsSpy.track.calls.all().filter((call) => call.args[0] === 'page_view');
     expect(pageViews.length).toBe(1);
@@ -171,8 +178,7 @@ describe('AppShellComponent analytics', () => {
   it('delegates draft engagement observers to the analytics service', async () => {
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    fixture.detectChanges();
+    await flushDeferredBootstrapWork(fixture);
 
     expect(analyticsSpy.startPageEngagementTracking).toHaveBeenCalled();
   });

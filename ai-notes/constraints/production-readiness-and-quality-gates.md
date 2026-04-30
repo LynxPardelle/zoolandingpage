@@ -11,7 +11,7 @@ Source Of Truth:
 - Promoted from local draft findings
 
 Confidence: High
-Last Reviewed: 2026-04-19 (Central Time)
+Last Reviewed: 2026-04-30 (Central Time)
 
 ## Minimum Gates
 
@@ -27,6 +27,17 @@ Before calling a landing production-ready, confirm:
 8. analytics and consent verification
 9. localization review where applicable
 10. release verdict recorded in a readiness note
+
+## Lighthouse Gates
+
+When remediating Lighthouse findings for a public SSR landing:
+
+1. Do not remove `src/index.html` stylesheet targets just because the same files appear in `angular.json`. The Angora runtime may depend on those stylesheet surfaces for generated classes; prove visual parity on desktop and mobile before changing that path.
+2. Keep initial render free of non-render-critical analytics, quick-stat increments, route prefetches, and third-party enrichment calls. Schedule that work after the first successful browser bootstrap.
+3. Apply HTTP compression in the active deployment path. `nginx.conf` only helps no-SSR/static deployments; SSR deployments also need compression in `src/server.ts` or at the platform proxy.
+4. Avoid `aria-selected` on native disclosure buttons. Reserve it for widgets with a selectable role, such as `role="tab"`.
+5. Treat `consentUI: "none"` as a data-minimization mode. Do not collect raw IP, precise geolocation, raw cookies, or battery details unless a separate consent and compliance review approves it.
+6. Keep `optimization.styles.inlineCritical` disabled while Angora runtime CSS link targets are present in `src/index.html`; Angular cannot inline those runtime/public stylesheet URLs reliably and will emit misleading absolute-path warnings.
 
 ## Common Blockers
 

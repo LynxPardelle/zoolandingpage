@@ -46,6 +46,7 @@ export class RuntimeService {
     private initialPageViewTracked = false;
     private latestNavigationRequestId = 0;
     private navigationProgressTimer: number | null = null;
+    private postBootstrapBrowserWorkId = 0;
 
     connect(options: {
         host: HTMLElement;
@@ -85,6 +86,7 @@ export class RuntimeService {
             clearTimeout(this.navigationProgressTimer);
             this.navigationProgressTimer = null;
         }
+        this.postBootstrapBrowserWorkId++;
 
         try {
             this.cssMutationObserver?.disconnect();
@@ -197,10 +199,27 @@ export class RuntimeService {
         this.orchestrator.setDraftExportContext({ domain, pageId, rootIds, modalRootIds });
 
         this.combosService.scheduleCssCreate();
-        this.analytics.initializeRuntimeState();
-        this.analytics.startPageEngagementTracking(this.configStore.analytics());
-        this.prefetchSiblingRoutes(domain, pageId, lang, context.path);
-        this.trackInitialPageView();
+        this.schedulePostBootstrapBrowserWork(() => {
+            this.analytics.initializeRuntimeState();
+            this.analytics.startPageEngagementTracking(this.configStore.analytics());
+            this.prefetchSiblingRoutes(domain, pageId, lang, context.path);
+            this.trackInitialPageView();
+        });
+    }
+
+    private schedulePostBootstrapBrowserWork(task: () => void): void {
+        if (!this.isBrowser) {
+            return;
+        }
+
+        const workId = ++this.postBootstrapBrowserWorkId;
+        window.setTimeout(() => {
+            if (workId !== this.postBootstrapBrowserWorkId) {
+                return;
+            }
+
+            task();
+        }, 0);
     }
 
     private trackInitialPageView(): void {

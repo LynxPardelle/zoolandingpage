@@ -9,6 +9,6 @@
 <generic-modal-host [config]="(orchestrator.modalHostConfig$ | async) ?? orchestrator.fallbackModalHostConfig">
   <wrapper-orchestrator [componentsIds]="modalRootIds()"></wrapper-orchestrator>
 </generic-modal-host>
-} @if (showDebugWorkspace()) {
+} @defer (when showDebugWorkspace()) {
 <debug-workspace></debug-workspace>
 }

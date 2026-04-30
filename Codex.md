@@ -25,6 +25,10 @@
 - Notes should stay English-first to match repo documentation, while quoted source content may stay in its original language.
 - Note headers should always include `Date`, `Scope`, `Status`, `Applies To`, `Source Of Truth`, `Confidence`, and `Last Reviewed`.
 - Use Central Time for note dates and reviews.
+- Public SSR releases should enable text compression at the Node/Express layer, defer analytics/prefetch work until after first render, and keep accordion disclosure buttons free of `aria-selected`.
+- Do not remove the `src/index.html` Angora CSS link targets (`/css/animations.css`, `/css/angora-styles.css`, `/css/angora-styles-responsive.css`) without desktop/mobile visual QA; the runtime CSS generator depends on those stylesheet surfaces even when `angular.json` also lists the files.
+- Production `optimization.styles.inlineCritical` stays disabled while Angora runtime CSS link targets live in `src/index.html`; otherwise Angular tries to inline those runtime/public stylesheet URLs and emits misleading `C:\css\...` warnings.
+- Draft analytics with `consentUI: "none"` should avoid sensitive enrichment such as raw IP, precise geolocation, raw cookies, and battery details unless a consent flow and compliance review explicitly approve it.
 
 ## Naming Rules
 
