@@ -38,6 +38,7 @@ When remediating Lighthouse findings for a public SSR landing:
 4. Avoid `aria-selected` on native disclosure buttons. Reserve it for widgets with a selectable role, such as `role="tab"`.
 5. Treat `consentUI: "none"` as a data-minimization mode. Do not collect raw IP, precise geolocation, raw cookies, or battery details unless a separate consent and compliance review approves it.
 6. Keep `optimization.styles.inlineCritical` disabled while Angora runtime CSS link targets are present in `src/index.html`; Angular cannot inline those runtime/public stylesheet URLs reliably and will emit misleading absolute-path warnings.
+7. Confirm SSR waits for authored runtime config before rendering. A public `200` response with only the CSR shell can inflate CLS and break no-JS crawlability even when `/health` and the runtime API are healthy.
 
 ## Common Blockers
 

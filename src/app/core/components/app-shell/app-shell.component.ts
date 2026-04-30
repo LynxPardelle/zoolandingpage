@@ -72,13 +72,6 @@ export class AppShellComponent {
   readonly modalRootIds = this.runtime.modalRootIds;
 
   constructor() {
-    if (!this.isBrowser) {
-      void this.runtime.initialize(this._lang.currentLanguage())
-        .catch((error) => {
-          console.error('[Runtime] Server-side bootstrap failed.', error);
-        });
-    }
-
     afterNextRender(() => {
       this.browserState.connect({
         document: this.host.nativeElement.ownerDocument,

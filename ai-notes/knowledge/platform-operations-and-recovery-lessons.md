@@ -41,6 +41,10 @@ If the browser itself fails with connection resets while direct Dokploy/Traefik 
 
 If browser fetches to the stable API custom domain are healthy but Node or undici requests from the SSR container intermittently fail with transport resets, keep the browser-facing base URL on the custom domain and add a server-only `runtime-bundle` base that points to the raw runtime-read origin. SSR should prefer that raw server-only endpoint first; the public browser URL can remain on the custom API domain. That isolates SSR transport and reduces document TTFB without changing alias resolution behavior.
 
+## SSR Bootstrap Timing Lesson
+
+If a deployed Angular SSR container returns a small HTML shell with no `<main>` while the runtime API is reachable from inside the container, check whether runtime config initialization is blocking the server render. Component constructor fire-and-forget initialization can pass local Docker checks when the API is fast, then fail on Dokploy when remote runtime-bundle latency is higher. Keep server-side runtime bootstrap in an Angular server app initializer so SSR waits for the authored config before rendering.
+
 ## Traefik Forwarded Header Lesson
 
 Angular SSR deopts to a client-side shell when reverse-proxy `X-Forwarded-*` headers are present but not trusted by the server engine. For Dokploy/Traefik deployments, keep `src/server.ts` `trustProxyHeaders` aligned with the headers Traefik injects and keep Angular `allowedHosts` restricted to the public domains. A public page that returns `200` with a title but no `<main>` should be treated as an SSR deopt, not a successful page render.

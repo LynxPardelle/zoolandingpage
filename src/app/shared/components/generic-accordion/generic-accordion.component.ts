@@ -115,6 +115,18 @@ export class GenericAccordionComponent {
 
   buttonLabelFor = (item: AccordionItem) => this.itemHasRichHeader(item) ? '' : this.titleOf(item);
 
+  buttonAriaLabelFor = (item: AccordionItem) => {
+    const parts = [
+      this.indexLabelOf(item),
+      this.titleOf(item),
+      this.summaryOf(item),
+    ]
+      .map((part) => String(part ?? '').trim())
+      .filter(Boolean);
+
+    return parts.join(' ') || this.titleOf(item);
+  };
+
   buttonIconFor = (item: AccordionItem) => {
     const configured = item.buttonConfig?.icon || this.config().defaultItemButtonConfig?.icon;
     if (configured) return configured;

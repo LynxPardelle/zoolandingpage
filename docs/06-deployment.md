@@ -352,7 +352,8 @@ For the production and test containers:
 7. Point both domains to the Dokploy app.
 8. Keep `projects.zoolandingpage.architect.build.options.security.allowedHosts` aligned with every public host served by Dokploy, including branded alternate domains such as `*.lynxpardelle.com`.
 9. Keep `src/server.ts` Angular SSR `trustProxyHeaders` aligned with the headers Traefik injects. Untrusted `X-Forwarded-*` headers make Angular serve the CSR shell, which breaks Lighthouse and no-JS crawlers.
-10. Validate that `https://test.zoolandingpage.com.mx` renders the same authored config as `https://zoolandingpage.com.mx`.
+10. Keep server-side runtime config bootstrap in an Angular server app initializer. Do not rely on component-constructor fire-and-forget initialization for SSR, because remote runtime API latency can make Dokploy render the CSR shell before authored config is ready.
+11. Validate that `https://test.zoolandingpage.com.mx` renders the same authored config as `https://zoolandingpage.com.mx`.
 
 ### Dokploy Host Guardrails
 
@@ -364,6 +365,7 @@ For the production and test containers:
 - When bypassing a broken shared app edge, keep API and assets on their existing CloudFront distributions and route only app hosts through Dokploy/Traefik.
 - After host recovery, verify the deployed image actually contains the current SSR server changes by checking `/health`; a healthy old container can still serve the page while missing new operational routes.
 - If public checks return HTTP 200 with only a small HTML shell and no `<main>`, inspect container logs for Angular `trustProxyHeaders` warnings. This indicates Traefik forwarded headers are forcing SSR to deopt to CSR.
+- If container logs do not show a forwarded-header warning and the runtime API is reachable from inside the container, inspect SSR bootstrap timing. Angular should wait for runtime config through the server app initializer before rendering the response.
 
 ### 8. Smoke tests
 

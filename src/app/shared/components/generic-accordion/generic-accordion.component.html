@@ -29,7 +29,7 @@
             ? item.iconIsExpandedClasses || config().defaultItemIconIsExpandedClasses || ''
             : item.iconIsNotExpandedClasses || config().defaultItemIconIsNotExpandedClasses || ''),
         iconPosition: item.buttonConfig?.iconPosition || config().defaultItemButtonConfig?.iconPosition || 'after',
-        ariaLabel: titleOf(item),
+        ariaLabel: buttonAriaLabelFor(item),
         tabIndex: item.disabled ? -1 : 0,
         ariaExpanded: isExpanded(itemId(item)),
         ariaControls: panelId(itemId(item)),

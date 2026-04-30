@@ -36,6 +36,8 @@
 - 2026-04-30 SSR deopt fix: Dokploy/Traefik adds `X-Forwarded-*` headers; Angular SSR must trust the known proxy headers or it returns a small CSR shell with no `<main>`. `npm run ssr:smoke` now covers this forwarded-header case.
 - 2026-04-30 Lighthouse performance follow-up: Lighthouse CLI is a local dev dependency. SSR `runtime-bundle` fetches should use the raw server-only runtime endpoint before the browser-facing API custom domain to reduce TTFB when Node transport to the custom domain resets.
 - 2026-04-30 Dokploy ENOSPC follow-up: testing deploys can fail while the old container stays healthy if `/` has too little free space. Keep Docker cleanup in the recovery checklist, keep Angular build tooling local to `node_modules` in Dockerfile build stages instead of installing global CLI layers, and keep `package-lock.json` in the Docker build context for `npm ci`.
+- 2026-04-30 SSR bootstrap follow-up: server rendering must block on `RuntimeService.initialize(...)` through a server app initializer. Calling runtime initialization from a component constructor is race-prone on Dokploy because remote runtime-bundle latency can make Angular render only the CSR shell even when the runtime API is healthy.
+- 2026-04-30 draft publish follow-up: `zoolandingpage.com.mx` draft was pushed and published through the config authoring API as version `20260430T145352Z-dc12bdffab68` with `updatedBy: codex`.
 
 ## Naming Rules
 
