@@ -54,7 +54,7 @@ export class ConfigSourceService {
     private readonly apiSource: TConfigSource = {
         loadSiteConfig: async (domain) => {
             const bundle = await this.tryLoadRuntimeBundle(domain);
-            return bundle?.siteConfig ?? this.resolveHydratedAliasedSiteConfig(domain) ?? this.legacyApiSource.loadSiteConfig(domain);
+            return bundle?.siteConfig ?? this.resolveHydratedSiteConfig(domain) ?? this.legacyApiSource.loadSiteConfig(domain);
         },
         loadPageConfig: async (domain, pageId) => {
             const bundle = await this.tryLoadRuntimeBundle(domain, { pageId });
@@ -310,7 +310,7 @@ export class ConfigSourceService {
         return String(value ?? '').trim().toLowerCase();
     }
 
-    private resolveHydratedAliasedSiteConfig(requestedDomain: string): TDraftSiteConfigPayload | null {
+    private resolveHydratedSiteConfig(requestedDomain: string): TDraftSiteConfigPayload | null {
         if (this.request) {
             return null;
         }
@@ -325,11 +325,13 @@ export class ConfigSourceService {
             return null;
         }
 
+        const normalizedCanonicalDomain = this.normalizeDomainToken(siteConfig.domain);
         const normalizedAliases = Array.isArray(siteConfig.aliases)
             ? siteConfig.aliases.map((alias) => this.normalizeDomainToken(alias)).filter(Boolean)
             : [];
+        const knownDomains = [normalizedCanonicalDomain, ...normalizedAliases].filter(Boolean);
 
-        return normalizedAliases.includes(normalizedRequestedDomain) ? siteConfig : null;
+        return knownDomains.includes(normalizedRequestedDomain) ? siteConfig : null;
     }
 
     private get source(): TConfigSource {
