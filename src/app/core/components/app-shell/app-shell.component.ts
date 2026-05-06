@@ -15,7 +15,6 @@ import {
   inject,
   Injector,
   PLATFORM_ID,
-  REQUEST,
   runInInjectionContext,
 } from "@angular/core";
 import { GenericModalComponent } from "../../../shared/components/generic-modal/generic-modal.component";
@@ -47,10 +46,9 @@ export class AppShellComponent {
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly injector = inject(Injector);
   private readonly platformId = inject(PLATFORM_ID);
-  private readonly request = inject(REQUEST, { optional: true });
   private readonly draftRuntime = inject(DraftRuntimeService);
   readonly orchestrator = inject(ConfigurationsOrchestratorService);
-  private readonly isBrowser = isPlatformBrowser(this.platformId) && !this.request;
+  private readonly isBrowser = isPlatformBrowser(this.platformId);
   readonly showClientOnlyHosts = this.isBrowser;
   readonly showDebugWorkspace = computed(() => {
     this.draftRuntime.activeDraftDomain();

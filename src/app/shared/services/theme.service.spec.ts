@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { PLATFORM_ID } from '@angular/core';
 import { NgxAngoraService } from 'ngx-angora-css';
 import { DomainResolverService } from './domain-resolver.service';
 import { ThemeService } from './theme.service';
@@ -134,6 +135,35 @@ describe('ThemeService', () => {
         expect(rootStyle.getPropertyValue('--ank-secondaryBgColor')).toBe('#17110d');
         expect(rootStyle.getPropertyValue('--ank-secondaryTextColor')).toBe('#f5efe7');
         expect(rootStyle.getPropertyValue('--ank-accentColor')).toBe('#c7a900');
+    });
+
+    it('syncs CSS variables during server rendering without calling Angora DOM APIs', () => {
+        spyOn(window.localStorage, 'getItem').and.returnValue(null);
+        setItemSpy = spyOn(window.localStorage, 'setItem');
+        angora = jasmine.createSpyObj<NgxAngoraService>('NgxAngoraService', ['pushColors', 'updateColors']);
+
+        TestBed.configureTestingModule({
+            providers: [
+                ThemeService,
+                VariableStoreService,
+                { provide: PLATFORM_ID, useValue: 'server' },
+                { provide: NgxAngoraService, useValue: angora },
+                { provide: DomainResolverService, useValue: { resolveStorageKey: () => storageKey } },
+            ],
+        });
+
+        variables = TestBed.inject(VariableStoreService);
+        service = TestBed.inject(ThemeService);
+        variables.setPayload(createThemePayload('dark') as any);
+        TestBed.flushEffects();
+
+        const rootStyle = document.documentElement.style;
+        expect(rootStyle.getPropertyValue('--ank-bgColor')).toBe('#090909');
+        expect(rootStyle.getPropertyValue('--ank-altBgColor')).toBe('#f9f5ef');
+        expect(angora.pushColors).not.toHaveBeenCalled();
+        expect(angora.updateColors).not.toHaveBeenCalled();
+        expect(setItemSpy).not.toHaveBeenCalled();
+        expect(service.getCurrentTheme()).toBe('dark');
     });
 
     it('re-reads saved preference after the draft storage key is available', () => {

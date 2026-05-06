@@ -5,8 +5,8 @@
  * REQUIRED: All theme changes must use pushColors (NO hardcoded colors)
  */
 
-import { isPlatformBrowser } from '@angular/common';
-import { computed, effect, inject, Injectable, PLATFORM_ID, REQUEST, signal } from '@angular/core';
+import { DOCUMENT, isPlatformBrowser } from '@angular/common';
+import { computed, effect, inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
 import { NgxAngoraService } from 'ngx-angora-css';
 import { ThemeConfig, ThemeMode, TThemeColors, TThemeVariableConfig } from '../types/theme.types';
 import { isThemeVariableConfig } from '../utility/config-validation/config-payload.validators';
@@ -18,11 +18,11 @@ import { VariableStoreService } from './variable-store.service';
 })
 export class ThemeService {
   private readonly platformId = inject(PLATFORM_ID);
-  private readonly request = inject(REQUEST, { optional: true });
+  private readonly documentRef = inject(DOCUMENT, { optional: true });
   private readonly _ank = inject(NgxAngoraService);
   private readonly variableStore = inject(VariableStoreService);
   private readonly domainResolver = inject(DomainResolverService);
-  private readonly isBrowser = isPlatformBrowser(this.platformId) && !this.request;
+  private readonly isBrowser = isPlatformBrowser(this.platformId);
 
   // Theme state using signals (MANDATORY Angular 17+ features)
   private readonly _currentTheme = signal<ThemeMode>('light');
@@ -66,6 +66,7 @@ export class ThemeService {
   });
 
   private initialized: boolean = false;
+  private readonly themeUtilityOverrideStyleId = 'zlp-theme-utility-overrides';
 
   constructor() {
     this._detectSystemPreference();
@@ -154,7 +155,6 @@ export class ThemeService {
 
   // MANDATORY: All color changes must use pushColors method
   applyTheme(): void {
-    if (!this.isBrowser) return; // Skip SSR
     const currentThemeConfig = this.activeTheme() === 'dark' ? this._darkThemeConfig() : this._lightThemeConfig();
     const altThemeConfig = this.activeTheme() === 'dark' ? this._lightThemeConfig() : this._darkThemeConfig();
     if (!currentThemeConfig || !altThemeConfig) {
@@ -164,6 +164,11 @@ export class ThemeService {
     const altThemeColors: TThemeColors = altThemeConfig.colors;
 
     this.syncCssVariables(themeColors, altThemeColors);
+
+    if (!this.isBrowser) {
+      this.syncThemeUtilityOverrides();
+      return;
+    }
 
     // Use ngx-angora-css pushColors || updateColors for dynamic theme management
     this._ank[!this.initialized ? 'pushColors' : 'updateColors']({
@@ -204,6 +209,7 @@ export class ThemeService {
       altInfoColor: altThemeColors.infoColor,
       altOnInfoColor: altThemeColors.onInfoColor,
     });
+    this.syncThemeUtilityOverrides();
     if (!this.initialized) this.initialized = true;
     const angoraColors: { [key: string]: string } = {};
     for (const [key, value] of Object.entries(themeColors)) {
@@ -216,15 +222,90 @@ export class ThemeService {
   }
 
   private syncCssVariables(themeColors: TThemeColors, altThemeColors: TThemeColors): void {
-    if (typeof document === 'undefined') return;
+    const root = this.documentRef?.documentElement;
+    if (!root) return;
 
-    const rootStyle = document.documentElement.style;
-    for (const [key, value] of Object.entries(themeColors)) {
-      rootStyle.setProperty(`--ank-${ key }`, value);
+    const entries = [
+      ...Object.entries(themeColors).map(([key, value]) => [`--ank-${ key }`, value] as const),
+      ...Object.entries(altThemeColors).map(([key, value]) => [`--ank-alt${ key[0].toUpperCase() }${ key.slice(1) }`, value] as const),
+    ];
+
+    if (!this.isBrowser) {
+      const existingStyle = root.getAttribute('style') ?? '';
+      const cleanedStyle = existingStyle
+        .replace(/(?:^|;)\s*--ank-[^:;]+:\s*[^;]*/g, '')
+        .replace(/;\s*;/g, ';')
+        .replace(/^;\s*/, '')
+        .trim();
+      const themeStyle = entries.map(([key, value]) => `${ key }: ${ value };`).join(' ');
+      root.setAttribute('style', `${ cleanedStyle ? `${ cleanedStyle }; ` : '' }${ themeStyle }`);
+      return;
     }
-    for (const [key, value] of Object.entries(altThemeColors)) {
-      rootStyle.setProperty(`--ank-alt${ key[0].toUpperCase() }${ key.slice(1) }`, value);
+
+    const rootStyle = root.style;
+    for (const [key, value] of entries) {
+      rootStyle.setProperty(key, value);
     }
+  }
+
+  private syncThemeUtilityOverrides(): void {
+    const doc = this.documentRef;
+    const head = doc?.head;
+    if (!doc || !head) return;
+
+    let style = doc.getElementById(this.themeUtilityOverrideStyleId) as HTMLStyleElement | null;
+    if (!style) {
+      style = doc.createElement('style');
+      style.id = this.themeUtilityOverrideStyleId;
+      style.setAttribute('data-managed-by', 'ThemeService');
+    }
+
+    style.textContent = this.buildThemeUtilityOverrideCss();
+
+    if (style.parentNode) {
+      style.parentNode.removeChild(style);
+    }
+    head.appendChild(style);
+  }
+
+  private buildThemeUtilityOverrideCss(): string {
+    const fixedUtilities = [
+      '.ank-color-white{color:#fff}',
+      '.ank-text-white{color:#fff}',
+      '.ank-color-inherit{color:inherit}',
+      '.ank-text-inherit{color:inherit}',
+    ].join('');
+    const keys = [
+      'bgColor',
+      'textColor',
+      'titleColor',
+      'linkColor',
+      'accentColor',
+      'secondaryBgColor',
+      'secondaryTextColor',
+      'secondaryTitleColor',
+      'secondaryLinkColor',
+      'secondaryAccentColor',
+      'successColor',
+      'onSuccessColor',
+      'errorColor',
+      'onErrorColor',
+      'warningColor',
+      'onWarningColor',
+      'infoColor',
+      'onInfoColor',
+    ];
+
+    return fixedUtilities + keys.map((key) => {
+      const variable = `var(--ank-${ key })`;
+      return [
+        `.ank-color-${ key }{color:${ variable }}`,
+        `.ank-text-${ key }{color:${ variable }}`,
+        `.ank-bg-${ key }{background-color:${ variable }}`,
+        `.ank-backgroundColor-${ key }{background-color:${ variable }}`,
+        `.ank-borderColor-${ key }{border-color:${ variable }}`,
+      ].join('');
+    }).join('');
   }
 
   private requireThemeConfig(config: ThemeConfig | null, mode: 'light' | 'dark'): ThemeConfig {
