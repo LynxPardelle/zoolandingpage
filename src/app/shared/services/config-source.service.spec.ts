@@ -284,18 +284,17 @@ describe('ConfigSourceService', () => {
         expect(api.getSiteConfig).not.toHaveBeenCalled();
     });
 
-    it('still falls back to the legacy site-config endpoint when the runtime bundle request fails for the canonical domain', async () => {
+    it('reuses the hydrated site config instead of calling the legacy site-config endpoint for the canonical domain', async () => {
         const service = TestBed.inject(ConfigSourceService);
         const api = TestBed.inject(ConfigApiService) as jasmine.SpyObj<ConfigApiService>;
         const store = TestBed.inject(ConfigStoreService);
 
         api.getRuntimeBundle.and.rejectWith(new Error('socket hang up'));
-        api.getSiteConfig.and.resolveTo(siteConfigPayload);
         store.setSiteConfig(siteConfigPayload);
 
         const result = await service.loadSiteConfig('alecfest-voliii.com');
 
         expect(result).toEqual(siteConfigPayload);
-        expect(api.getSiteConfig).toHaveBeenCalledOnceWith('alecfest-voliii.com');
+        expect(api.getSiteConfig).not.toHaveBeenCalled();
     });
 });
