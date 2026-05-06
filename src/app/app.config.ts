@@ -1,6 +1,7 @@
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import { RuntimeService } from '@/app/core/services/runtime.service';
 import { LanguageService } from '@/app/shared/services/language.service';
+import { ThemeService } from '@/app/shared/services/theme.service';
 import { ApplicationConfig, inject, provideAppInitializer, provideBrowserGlobalErrorListeners, provideZonelessChangeDetection } from '@angular/core';
 
 import { provideClientHydration } from '@angular/platform-browser';
@@ -14,7 +15,11 @@ import { provideValueHandlers } from './shared/utility/value-handler/provide-val
 export function initializeRuntimeConfig(): Promise<void> {
   const runtime = inject(RuntimeService);
   const language = inject(LanguageService);
+  const theme = inject(ThemeService);
   return runtime.initialize(language.getRequestedLanguagePreference() ?? undefined)
+    .then(() => {
+      theme.applyTheme();
+    })
     .catch((error) => {
       console.error('[Runtime] App bootstrap failed.', error);
     });

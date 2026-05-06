@@ -12,6 +12,7 @@ import { toNavigationHref } from './navigation/navigation-target.utility';
 const LOOP_INDEX_TOKEN = '{{index}}';
 const LOOP_WHOLE_ITEM_TOKEN = '$item';
 const CLASS_PROPERTY_PATTERN = /(^classes$|classes$|^classname$|classname$)/i;
+const ANGORA_CLASS_TOKEN_PATTERN = /\bank-[^\s,"']+/g;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     !!value && typeof value === 'object' && !Array.isArray(value);
@@ -495,11 +496,22 @@ export function collectAllClassesFromComponents(
             .forEach((cls) => classesSet.add(cls));
     };
 
+    const addValueInstructionClasses = (raw: unknown): void => {
+        if (typeof raw !== 'string' || !raw.includes('ank-')) return;
+        const matches = raw.match(ANGORA_CLASS_TOKEN_PATTERN);
+        if (!matches?.length) return;
+        addClasses(matches.join(' '), normalizeClasses);
+    };
+
     const collectClassBearingValues = (value: unknown, key = ''): void => {
         const isClassProperty = CLASS_PROPERTY_PATTERN.test(key);
 
         if (isClassProperty) {
             addClasses(value, normalizeClasses);
+        }
+
+        if (key === 'valueInstructions') {
+            addValueInstructionClasses(value);
         }
 
         const resolved = resolveDynamicValue(value as TDynamicValue<unknown> | null | undefined);

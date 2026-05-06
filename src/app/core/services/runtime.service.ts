@@ -7,6 +7,7 @@ import { ConfigStoreService } from '@/app/shared/services/config-store.service';
 import { ConfigurationsOrchestratorService } from '@/app/shared/services/configurations-orchestrator';
 import { DraftRuntimeService } from '@/app/shared/services/draft-runtime.service';
 import { RuntimeConfigService } from '@/app/shared/services/runtime-config.service';
+import { ThemeService } from '@/app/shared/services/theme.service';
 import { currentBrowserPath } from '@/app/shared/utility/navigation/browser-navigation.utility';
 import { environment } from '@/environments/environment';
 import { isPlatformBrowser } from '@angular/common';
@@ -24,6 +25,7 @@ export class RuntimeService {
     private readonly analytics = inject(AnalyticsService);
     private readonly configStore = inject(ConfigStoreService);
     private readonly runtimeConfig = inject(RuntimeConfigService);
+    private readonly theme = inject(ThemeService);
     private readonly loadingCurtain = inject(LoadingCurtainService);
     private readonly platformId = inject(PLATFORM_ID);
     private readonly request = inject(REQUEST, { optional: true });
@@ -103,6 +105,7 @@ export class RuntimeService {
         const authoredClasses = this.orchestrator.getAllTheClassesFromComponents();
         const renderedClasses = this.combosService.collectRenderedDomClasses();
         this.combosService.updateClasses([...authoredClasses, ...renderedClasses]);
+        this.theme.applyTheme();
         this.hideLoadingCurtainAfterCssReady('rendered-components-css-updated');
     }
 
@@ -248,6 +251,7 @@ export class RuntimeService {
         }
 
         this.combosService.updateClasses(authoredClasses);
+        this.theme.applyTheme();
     }
 
     private hideLoadingCurtainAfterCssReady(reason: string, startedAt = Date.now()): void {

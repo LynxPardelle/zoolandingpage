@@ -8,6 +8,7 @@ import { ConfigurationsOrchestratorService } from '@/app/shared/services/configu
 import { DomainResolverService } from '@/app/shared/services/domain-resolver.service';
 import { DraftRegistryService } from '@/app/shared/services/draft-registry.service';
 import { DraftRuntimeService } from '@/app/shared/services/draft-runtime.service';
+import { ThemeService } from '@/app/shared/services/theme.service';
 import type { TComponentPayloadEntry, TComponentsPayload } from '@/app/shared/types/config-payloads.types';
 import { environment } from '@/environments/environment';
 import { TestBed } from '@angular/core/testing';
@@ -54,6 +55,7 @@ describe('RuntimeService', () => {
     const prefetchRoute = jasmine.createSpy('prefetchRoute').and.resolveTo(undefined);
     const configureLoadingCurtain = jasmine.createSpy('configureFromDraft');
     const hideLoadingCurtain = jasmine.createSpy('hideWhenReady');
+    const applyTheme = jasmine.createSpy('applyTheme');
     let loadSiteConfig: jasmine.Spy;
     let bootstrapLoad: jasmine.Spy;
     let setCombos: jasmine.Spy;
@@ -127,6 +129,7 @@ describe('RuntimeService', () => {
         prefetchRoute.calls.reset();
         configureLoadingCurtain.calls.reset();
         hideLoadingCurtain.calls.reset();
+        applyTheme.calls.reset();
 
         TestBed.configureTestingModule({
             providers: [
@@ -199,6 +202,12 @@ describe('RuntimeService', () => {
                     useValue: {
                         configureFromDraft: configureLoadingCurtain,
                         hideWhenReady: hideLoadingCurtain,
+                    },
+                },
+                {
+                    provide: ThemeService,
+                    useValue: {
+                        applyTheme,
                     },
                 },
             ],
