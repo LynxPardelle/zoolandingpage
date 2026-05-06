@@ -96,6 +96,19 @@ describe('GenericMedia', () => {
     expect(image?.getAttribute('decoding')).toBe('async');
   });
 
+  it('does not render image elements when the source is empty', () => {
+    fixture.componentRef.setInput('config', {
+      id: 'empty-image',
+      tag: 'image',
+      src: '',
+      alt: 'Missing image',
+    });
+
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('img')).toBeNull();
+  });
+
   it('renders document media as an external link using alt text when available', () => {
     fixture.componentRef.setInput('config', {
       id: 'legal-pdf',
