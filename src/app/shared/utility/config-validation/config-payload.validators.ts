@@ -1304,7 +1304,7 @@ export const isRuntimeBundlePayload = (value: unknown): value is TRuntimeBundleP
     if (value['versionId'] !== undefined && typeof value['versionId'] !== 'string') return false;
     if (value['lang'] !== undefined && typeof value['lang'] !== 'string') return false;
     if (value['generatedAt'] !== undefined && typeof value['generatedAt'] !== 'string') return false;
-    if (value['route'] !== undefined && !isDraftSiteRouteEntry(value['route'])) return false;
+    if (value['route'] !== undefined && value['route'] !== null && !isDraftSiteRouteEntry(value['route'])) return false;
     if (value['lifecycle'] !== undefined && !isSiteLifecycleConfig(value['lifecycle'])) return false;
     if (!isDraftSiteConfigPayload(value['siteConfig'])) return false;
     if (!isPageConfigPayload(value['pageConfig'])) return false;

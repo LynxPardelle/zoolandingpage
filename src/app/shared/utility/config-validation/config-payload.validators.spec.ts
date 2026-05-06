@@ -6,6 +6,7 @@ import {
     isDraftSiteConfigPayload,
     isI18nPayload,
     isPageConfigPayload,
+    isRuntimeBundlePayload,
     isSeoPayload,
     isStructuredDataPayload,
     isVariablesPayload,
@@ -987,6 +988,81 @@ describe('config-payload.validators', () => {
             dictionary: { hero: { title: 'Hola' } },
         };
         expect(isI18nPayload(valid)).toBeTrue();
+    });
+
+    it('accepts runtime bundles with a null route', () => {
+        const palette = {
+            bgColor: '#ffffff',
+            textColor: '#111111',
+            titleColor: '#222222',
+            linkColor: '#333333',
+            accentColor: '#444444',
+            secondaryBgColor: '#f5f5f5',
+            secondaryTextColor: '#555555',
+            secondaryTitleColor: '#666666',
+            secondaryLinkColor: '#777777',
+            secondaryAccentColor: '#888888',
+            successColor: '#198754',
+            onSuccessColor: '#052e1c',
+            errorColor: '#dc3545',
+            onErrorColor: '#3b0a10',
+            warningColor: '#f59e0b',
+            onWarningColor: '#3a2400',
+            infoColor: '#0d6efd',
+            onInfoColor: '#041b44',
+        };
+        const components = createComponentsPayload({
+            root: {
+                id: 'root',
+                type: 'container',
+                config: { components: [] },
+            },
+        }, TEST_DOMAIN);
+
+        expect(isRuntimeBundlePayload({
+            version: 1,
+            domain: TEST_DOMAIN,
+            pageId: 'default',
+            sourceStage: 'published',
+            lang: 'en',
+            route: null,
+            siteConfig: {
+                version: 1,
+                domain: TEST_DOMAIN,
+                defaultPageId: 'default',
+                routes: [{ path: '/', pageId: 'default' }],
+                site: {
+                    appIdentity: {
+                        identifier: 'previewexampletest',
+                        name: 'Preview',
+                    },
+                    theme: {
+                        palettes: {
+                            light: palette,
+                            dark: palette,
+                        },
+                    },
+                    i18n: {
+                        defaultLanguage: 'es',
+                        supportedLanguages: ['es', 'en'],
+                    },
+                },
+            },
+            pageConfig: {
+                version: 1,
+                pageId: 'default',
+                domain: TEST_DOMAIN,
+                rootIds: ['root'],
+            },
+            components,
+            i18n: {
+                version: 1,
+                pageId: 'default',
+                domain: TEST_DOMAIN,
+                lang: 'en',
+                dictionary: {},
+            },
+        })).toBeTrue();
     });
 
     it('validates seo payloads', () => {

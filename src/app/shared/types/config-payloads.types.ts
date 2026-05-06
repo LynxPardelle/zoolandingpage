@@ -361,7 +361,7 @@ export type TRuntimeBundlePayload = {
     readonly versionId?: string;
     readonly lang?: string;
     readonly generatedAt?: string;
-    readonly route?: TDraftSiteRouteEntry;
+    readonly route?: TDraftSiteRouteEntry | null;
     readonly lifecycle?: TSiteLifecycleConfig;
     readonly siteConfig: TDraftSiteConfigPayload;
     readonly pageConfig: TPageConfigPayload;
