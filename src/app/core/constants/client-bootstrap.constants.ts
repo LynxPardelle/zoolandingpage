@@ -1,0 +1,2 @@
+export const CLIENT_BOOTSTRAP_DELAY_MS = 3000;
+export const CLIENT_BOOTSTRAP_READY_EVENT = 'load';

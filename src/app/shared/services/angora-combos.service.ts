@@ -7,9 +7,57 @@ import { ConfigStoreService } from './config-store.service';
 
 export type TAngoraCombosMap = Record<string, readonly string[]>;
 
+type TAngoraRuntimeDebugBridge = {
+    appliedCombos: () => TAngoraCombosMap;
+    comboKeys: () => string[];
+    replayedClasses: () => string[];
+    isClassManaged: (className: string) => boolean;
+    isComboClass: (className: string) => boolean;
+    classifyClass: (className: string) => unknown;
+    stylesheetAudit: (sampleLimit?: number) => unknown;
+    cssCreateHistory: (limit?: number) => unknown;
+    cssCreateSummary: () => unknown;
+    cssCreateSnapshot: (historyLimit?: number) => unknown;
+    clearCssCreateHistory: () => void;
+    runFullCssCreate: () => unknown;
+    updateRenderedClasses: (classes?: readonly string[]) => void;
+};
+
+declare global {
+    interface Window {
+        __zlpAngoraDebug?: TAngoraRuntimeDebugBridge;
+    }
+}
+
+type TAngoraClassClassification = {
+    kind?: string;
+    managed?: boolean;
+    comboKey?: string;
+    prefix?: string;
+};
+
+type TAngoraCssCreateSummary = {
+    totalCreatedClasses?: number;
+    totalRules?: number;
+};
+
+type TAngoraStylesheetAudit = {
+    totalRules?: number;
+};
+
+type TDebuggableAngoraService = NgxAngoraService & {
+    isComboClass?: (className: string) => boolean;
+    classifyClass?: (className: string) => TAngoraClassClassification;
+    auditManagedStylesheets?: (sampleLimit?: number) => TAngoraStylesheetAudit;
+    getCssCreateDebugSummary?: () => TAngoraCssCreateSummary;
+    collectRenderedDomClasses?: (root?: ParentNode) => string[];
+    hasGeneratedCssRules?: () => boolean;
+    waitForCssReady?: (timeoutMs?: number) => Promise<boolean>;
+};
+
 @Injectable({ providedIn: 'root' })
 export class AngoraCombosService {
-    private readonly ank = inject(NgxAngoraService);
+    private readonly ank = inject(NgxAngoraService) as TDebuggableAngoraService;
     private readonly zone = inject(NgZone);
     private readonly store = inject(ConfigStoreService);
     private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
@@ -22,6 +70,8 @@ export class AngoraCombosService {
     private cssCreateDueAt: number | null = null;
 
     constructor() {
+        this.installDebugBridge();
+
         effect(() => {
             this.draftCombos = this.sanitizeCombos(this.store.combos()?.combos ?? {});
             this.refreshAppliedCombos();
@@ -61,14 +111,14 @@ export class AngoraCombosService {
 
         if (!this.isBrowser) return;
 
-        this.clearRemovedCombos(removedKeys);
-
-        if (Object.keys(merged).length > 0) {
-            this.ank.pushCombos(merged);
-        }
-
         if (removedKeys.length > 0 || Object.keys(merged).length > 0) {
-            this.scheduleCssCreate();
+            this.ank.runInCssCreateBatch(() => {
+                this.clearRemovedCombos(removedKeys);
+
+                if (Object.keys(merged).length > 0) {
+                    this.ank.pushCombos(merged);
+                }
+            });
         }
     }
 
@@ -96,13 +146,46 @@ export class AngoraCombosService {
         });
     }
 
+    private findMatchingComboKey(className: string): string | undefined {
+        let matchedKey: string | undefined;
+
+        Object.keys(this.appliedCombos).forEach((key) => {
+            if (className !== key && !className.startsWith(`${ key }VAL`)) {
+                return;
+            }
+
+            if (!matchedKey || key.length > matchedKey.length) {
+                matchedKey = key;
+            }
+        });
+
+        return matchedKey;
+    }
+
+    private isRegisteredComboClass(className: string): boolean {
+        return !!this.ank.isComboClass?.(className) || !!this.findMatchingComboKey(className);
+    }
+
     private isAngoraManagedClass(className: string): boolean {
+        const classification = this.ank.classifyClass?.(className);
         const indicatorClass = String(this.ank.indicatorClass ?? '').trim();
         const abbreviationKeys = Object.keys(this.ank.abreviationsClasses ?? {});
         const prefix = className.split('-')[0] ?? '';
         const hasPropertySegment = className.includes('-');
 
-        if (!className || !hasPropertySegment) {
+        if (!className) {
+            return false;
+        }
+
+        if (classification?.managed) {
+            return true;
+        }
+
+        if (this.isRegisteredComboClass(className)) {
+            return true;
+        }
+
+        if (!hasPropertySegment) {
             return false;
         }
 
@@ -129,10 +212,29 @@ export class AngoraCombosService {
             return;
         }
 
-        normalized.forEach((className) => {
-            this.ank.updateClasses([className]);
-            this.replayedClasses.add(className);
+        this.zone.runOutsideAngular(() => {
+            this.ank.cssCreate(normalized);
         });
+        normalized.forEach((className) => this.replayedClasses.add(className));
+    }
+
+    collectRenderedDomClasses(root?: ParentNode): string[] {
+        if (!this.isBrowser) return [];
+        return this.ank.collectRenderedDomClasses?.(root) ?? [];
+    }
+
+    updateRenderedDomClasses(root?: ParentNode): void {
+        this.updateClasses(this.collectRenderedDomClasses(root));
+    }
+
+    hasGeneratedCssRules(): boolean {
+        if (!this.isBrowser) return false;
+        return this.ank.hasGeneratedCssRules?.() ?? false;
+    }
+
+    waitForCssReady(timeoutMs = 1_500): Promise<boolean> {
+        if (!this.isBrowser) return Promise.resolve(true);
+        return this.ank.waitForCssReady?.(timeoutMs) ?? Promise.resolve(this.hasGeneratedCssRules());
     }
 
     stopCssRuntime(): void {
@@ -144,17 +246,37 @@ export class AngoraCombosService {
         this.replayedClasses.clear();
     }
 
-    revealCssTimer(): void {
-        if (!this.isBrowser || typeof document === 'undefined') return;
+    private installDebugBridge(): void {
+        if (!this.isBrowser || typeof window === 'undefined') return;
 
-        try {
-            const ankTimer = document.getElementById('ankTimer');
-            if (ankTimer) {
-                ankTimer.classList.remove('ank-d-none');
-            }
-        } catch {
-            // no-op
+        const hostname = window.location.hostname;
+        const localHost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '';
+
+        if (!localHost) {
+            return;
         }
+
+        window.__zlpAngoraDebug = {
+            appliedCombos: () => ({ ...this.appliedCombos }),
+            comboKeys: () => Object.keys(this.appliedCombos),
+            replayedClasses: () => Array.from(this.replayedClasses),
+            isClassManaged: (className: string) => this.isAngoraManagedClass(String(className ?? '').trim()),
+            isComboClass: (className: string) => this.isRegisteredComboClass(String(className ?? '').trim()),
+            classifyClass: (className: string) => this.ank.classifyClass?.(String(className ?? '').trim()) ?? null,
+            stylesheetAudit: (sampleLimit?: number) => this.ank.auditManagedStylesheets?.(sampleLimit) ?? null,
+            cssCreateHistory: (limit?: number) => this.ank.getCssCreateHistory?.(limit),
+            cssCreateSummary: () => this.ank.getCssCreateDebugSummary?.(),
+            cssCreateSnapshot: (historyLimit?: number) => this.ank.getCssCreateDebugSnapshot?.(historyLimit),
+            clearCssCreateHistory: () => this.ank.clearCssCreateHistory?.(),
+            runFullCssCreate: () => this.ank.cssCreate(),
+            updateRenderedClasses: (classes?: readonly string[]) => {
+                if (!Array.isArray(classes)) {
+                    return this.ank.cssCreate();
+                }
+
+                return this.updateClasses(classes);
+            },
+        };
     }
 
     private sanitizeCombos(combos: TAngoraCombosMap): TAngoraCombosMap {

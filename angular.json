@@ -34,9 +34,6 @@
               }
             ],
             "styles": [
-              "public/css/animations.css",
-              "public/css/angora-styles.css",
-              "public/css/angora-styles-responsive.css",
               "src/styles.scss"
             ],
             "server": "src/main.server.ts",
@@ -64,7 +61,9 @@
                   "inlineCritical": false,
                   "removeSpecialComments": true
                 },
-                "fonts": true
+                "fonts": {
+                  "inline": false
+                }
               },
               "fileReplacements": [
                 {
@@ -96,6 +95,12 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "allowedHosts": [
+              "localhost",
+              "127.0.0.1"
+            ]
+          },
           "configurations": {
             "production": {
               "buildTarget": "zoolandingpage:build:production"
@@ -128,9 +133,6 @@
               }
             ],
             "styles": [
-              "public/css/animations.css",
-              "public/css/angora-styles.css",
-              "public/css/angora-styles-responsive.css",
               "src/styles.scss"
             ],
             "watch": false,

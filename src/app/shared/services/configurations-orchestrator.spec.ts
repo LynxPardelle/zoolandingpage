@@ -82,6 +82,11 @@ describe('ConfigurationsOrchestratorService', () => {
               jc: 'justify-content',
               ai: 'align-items',
               fd: 'flex-direction',
+              gtc: 'grid-template-columns',
+              w: 'width',
+              p: 'padding',
+              bg: 'background-color',
+              hmn: 'min-height',
             },
           } as any,
         },
@@ -1021,5 +1026,30 @@ describe('ConfigurationsOrchestratorService', () => {
     expect(classes).toContain('ank-jc-center');
     expect(classes).toContain('ank-ai-center');
     expect(classes).toContain('ank-fd-column');
+  });
+
+  it('collects nested component config class properties used by rich controls', () => {
+    service.setExternalComponentsFromPayload(createComponentsPayload({
+      processTabs: {
+        id: 'processTabs',
+        type: 'tab-group',
+        config: {
+          layout: 'split-detail',
+          containerClasses: 'ank-display-none ank-display-lg-grid ank-gridTemplateColumns-lg-1fr__2fr',
+          tabButtonClasses: 'ank-width-100per ank-padding-16px',
+          panelClasses: 'ank-backgroundColor-secondaryBgColor ank-minHeight-500px',
+        },
+      },
+    }));
+
+    const classes = service.getAllTheClassesFromComponents();
+
+    expect(classes).toContain('ank-d-none');
+    expect(classes).toContain('ank-d-lg-grid');
+    expect(classes).toContain('ank-gtc-lg-1fr__2fr');
+    expect(classes).toContain('ank-w-100per');
+    expect(classes).toContain('ank-p-16px');
+    expect(classes).toContain('ank-bg-secondaryBgColor');
+    expect(classes).toContain('ank-hmn-500px');
   });
 });

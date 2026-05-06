@@ -16,12 +16,145 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --zlp-boot-bg: #f3e1cd;
+        --zlp-boot-fg: #17202a;
+        --zlp-boot-accent: #0d9488;
+      }
+
+      .zlp-boot-curtain {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483000;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        background: var(--zlp-boot-bg);
+        color: var(--zlp-boot-fg);
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      .zlp-boot-curtain::before,
+      .zlp-boot-curtain::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 50%;
+        background: var(--zlp-boot-bg);
+        transition: transform 420ms cubic-bezier(0.77, 0, 0.175, 1);
+      }
+
+      .zlp-boot-curtain::before {
+        left: 0;
+        border-right: 1px solid color-mix(in srgb, var(--zlp-boot-accent) 42%, transparent);
+      }
+
+      .zlp-boot-curtain::after {
+        right: 0;
+        border-left: 1px solid color-mix(in srgb, var(--zlp-boot-accent) 42%, transparent);
+      }
+
+      .zlp-boot-curtain__content {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        justify-items: center;
+        gap: 0.85rem;
+        width: min(22rem, calc(100vw - 2rem));
+        text-align: center;
+        transition: opacity 180ms ease, transform 180ms ease;
+      }
+
+      .zlp-boot-curtain__logo {
+        width: 4.5rem;
+        height: 4.5rem;
+        object-fit: contain;
+        border-radius: 0.75rem;
+      }
+
+      .zlp-boot-curtain__title {
+        font-size: 1.15rem;
+        line-height: 1.2;
+      }
+
+      .zlp-boot-curtain__subtitle {
+        max-width: 18rem;
+        font-size: 0.85rem;
+        line-height: 1.45;
+        opacity: 0.72;
+      }
+
+      .zlp-boot-curtain__bar {
+        width: 7.5rem;
+        height: 0.2rem;
+        overflow: hidden;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--zlp-boot-fg) 14%, transparent);
+      }
+
+      .zlp-boot-curtain__bar::before {
+        content: "";
+        display: block;
+        width: 45%;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--zlp-boot-accent);
+        animation: zlpBootBar 900ms ease-in-out infinite alternate;
+      }
+
+      .zlp-boot-curtain--leaving {
+        pointer-events: none;
+      }
+
+      .zlp-boot-curtain--leaving::before {
+        transform: translateX(-102%);
+      }
+
+      .zlp-boot-curtain--leaving::after {
+        transform: translateX(102%);
+      }
+
+      .zlp-boot-curtain--leaving .zlp-boot-curtain__content {
+        opacity: 0;
+        transform: translateY(0.35rem);
+      }
+
+      @keyframes zlpBootBar {
+        from {
+          transform: translateX(-20%);
+        }
+
+        to {
+          transform: translateX(140%);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .zlp-boot-curtain,
+        .zlp-boot-curtain::before,
+        .zlp-boot-curtain::after,
+        .zlp-boot-curtain__content,
+        .zlp-boot-curtain__bar::before {
+          animation: none;
+          transition: none;
+        }
+      }
+    </style>
+    <script>
+      window.__ZLP_BOOT_CURTAIN_STARTED_AT__ = performance.now();
+    </script>
   </head>
   <body class="ank-pos-relative ank-bg-bgColor ank-color-textColor">
+    <div id="zlp-boot-curtain" class="zlp-boot-curtain" role="status" aria-live="polite" aria-busy="true">
+      <div class="zlp-boot-curtain__content">
+        <img class="zlp-boot-curtain__logo" data-zlp-boot-logo alt="" hidden />
+        <strong class="zlp-boot-curtain__title" data-zlp-boot-title>Zoo Landing Page</strong>
+        <span class="zlp-boot-curtain__subtitle" data-zlp-boot-subtitle>zoolandingpage.com.mx</span>
+        <span class="zlp-boot-curtain__bar" aria-hidden="true"></span>
+      </div>
+    </div>
     <app-root></app-root>
-    <div
-      id="ankTimer"
-      class="ank-d-none ank-pos-md-fixed ank-b-6rem ank-e-50vw ank-bg-ankcent__OPA__0_5 ank-color-ligthora ank-z-1000 ank-p-0_75rem ank-r-1_5rem ank-fs-0_75rem"
-    ></div>
   </body>
 </html>

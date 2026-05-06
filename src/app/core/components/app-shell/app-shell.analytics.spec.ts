@@ -69,6 +69,8 @@ describe('AppShellComponent analytics', () => {
 
   beforeEach(async () => {
     window.history.replaceState({}, '', `/?draftDomain=${ PRIMARY_DOMAIN }&draftPageId=default`);
+    spyOnProperty(navigator, 'userAgent', 'get').and.returnValue('Mozilla/5.0 Chrome/147.0.0.0 Safari/537.36');
+    spyOnProperty(navigator, 'webdriver', 'get').and.returnValue(false);
     analyticsSpy = jasmine.createSpyObj('AnalyticsService', [
       'initializeRuntimeState',
       'track',
@@ -83,9 +85,11 @@ describe('AppShellComponent analytics', () => {
       'cssCreate',
       'pushCombos',
       'pushColors',
+      'runInCssCreateBatch',
       'updateClasses',
       'updateColors',
     ]);
+    angoraSpy.runInCssCreateBatch.and.callFake((callback: () => void) => callback());
     angoraSpy.indicatorClass = 'ank';
     angoraSpy.abreviationsClasses = {};
     angoraSpy.timeBetweenReCreate = 300;
@@ -196,6 +200,9 @@ describe('AppShellComponent analytics', () => {
     fixture.detectChanges();
     tick();
     fixture.detectChanges();
+    tick();
+    fixture.detectChanges();
+    tick();
 
     angoraSpy.cssCreate.calls.reset();
 
@@ -214,7 +221,11 @@ describe('AppShellComponent analytics', () => {
     tick();
     tick();
 
-    expect(angoraSpy.updateClasses).toHaveBeenCalled();
-    expect(angoraSpy.updateClasses.calls.mostRecent().args[0].length).toBeGreaterThan(0);
+    const explicitClassCalls = angoraSpy.cssCreate.calls
+      .all()
+      .filter((call) => Array.isArray(call.args[0]));
+
+    expect(explicitClassCalls.length).toBeGreaterThan(0);
+    expect((explicitClassCalls.at(-1)?.args[0] as string[]).length).toBeGreaterThan(0);
   }));
 });

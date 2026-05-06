@@ -71,6 +71,10 @@ export class ThemeService {
     this._detectSystemPreference();
     this._loadSavedTheme();
     effect(() => {
+      this._draftThemeConfig();
+      this._loadSavedTheme();
+    });
+    effect(() => {
       if (this._hasStoredThemePreference()) return;
       const configuredMode = this._draftThemeConfig()?.defaultMode ?? 'light';
       if (this._currentTheme() !== configuredMode) {
@@ -159,6 +163,8 @@ export class ThemeService {
     const themeColors: TThemeColors = currentThemeConfig.colors;
     const altThemeColors: TThemeColors = altThemeConfig.colors;
 
+    this.syncCssVariables(themeColors, altThemeColors);
+
     // Use ngx-angora-css pushColors || updateColors for dynamic theme management
     this._ank[!this.initialized ? 'pushColors' : 'updateColors']({
       bgColor: themeColors.bgColor,
@@ -207,6 +213,18 @@ export class ThemeService {
 
   private storageKey(): string {
     return this.domainResolver.resolveStorageKey('theme');
+  }
+
+  private syncCssVariables(themeColors: TThemeColors, altThemeColors: TThemeColors): void {
+    if (typeof document === 'undefined') return;
+
+    const rootStyle = document.documentElement.style;
+    for (const [key, value] of Object.entries(themeColors)) {
+      rootStyle.setProperty(`--ank-${ key }`, value);
+    }
+    for (const [key, value] of Object.entries(altThemeColors)) {
+      rootStyle.setProperty(`--ank-alt${ key[0].toUpperCase() }${ key.slice(1) }`, value);
+    }
   }
 
   private requireThemeConfig(config: ThemeConfig | null, mode: 'light' | 'dark'): ThemeConfig {

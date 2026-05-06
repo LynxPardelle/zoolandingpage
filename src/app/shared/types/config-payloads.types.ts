@@ -45,6 +45,8 @@ export type TDraftBrandVariableConfig = {
 };
 
 export type TDraftHeroAssetsVariableConfig = {
+    readonly logoUrl?: string;
+    readonly logoAlt?: string;
     readonly heroImageUrl?: string;
     readonly heroImageAlt?: string;
     readonly heroBackdropUrl?: string;
@@ -82,10 +84,23 @@ export type TDraftModalUiConfig = Pick<ModalConfig,
 
 export type TDraftToastUiConfig = ToastUiConfig;
 
+export type TDraftLoadingCurtainUiConfig = {
+    readonly enabled?: boolean;
+    readonly title?: string;
+    readonly subtitle?: string;
+    readonly logoUrl?: string;
+    readonly background?: string;
+    readonly foreground?: string;
+    readonly accent?: string;
+    readonly minVisibleMs?: number;
+    readonly exitDurationMs?: number;
+};
+
 export type TDraftUiVariableConfig = {
     readonly contact?: TDraftContactVariableConfig;
     readonly modals?: Record<string, TDraftModalUiConfig>;
     readonly toast?: TDraftToastUiConfig;
+    readonly loadingCurtain?: TDraftLoadingCurtainUiConfig;
     readonly languageOptions?: readonly Record<string, unknown>[];
 };
 

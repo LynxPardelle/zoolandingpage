@@ -10,6 +10,12 @@ describe('AngoraCombosService', () => {
     let updateCombo: jasmine.Spy;
     let updateClasses: jasmine.Spy;
     let cssCreate: jasmine.Spy;
+    let runInCssCreateBatch: jasmine.Spy;
+    let auditManagedStylesheets: jasmine.Spy;
+    let getCssCreateDebugSummary: jasmine.Spy;
+    let collectRenderedDomClasses: jasmine.Spy;
+    let hasGeneratedCssRules: jasmine.Spy;
+    let waitForCssReady: jasmine.Spy;
     let store: ConfigStoreService;
 
     const configure = (platformId: 'browser' | 'server'): AngoraCombosService => {
@@ -17,6 +23,24 @@ describe('AngoraCombosService', () => {
         updateCombo = jasmine.createSpy('updateCombo');
         updateClasses = jasmine.createSpy('updateClasses');
         cssCreate = jasmine.createSpy('cssCreate');
+        auditManagedStylesheets = jasmine.createSpy('auditManagedStylesheets').and.returnValue({ totalRules: 0 });
+        getCssCreateDebugSummary = jasmine.createSpy('getCssCreateDebugSummary').and.returnValue({ totalCreatedClasses: 0 });
+        collectRenderedDomClasses = jasmine.createSpy('collectRenderedDomClasses').and.callFake((root?: ParentNode) => {
+            const scope = root ?? document;
+            const classes = new Set<string>();
+            if (scope instanceof Element) {
+                scope.classList.forEach((className) => classes.add(className));
+            }
+            scope.querySelectorAll?.('[class]').forEach((element) => {
+                element.classList.forEach((className) => classes.add(className));
+            });
+            return Array.from(classes);
+        });
+        hasGeneratedCssRules = jasmine.createSpy('hasGeneratedCssRules').and.returnValue(false);
+        waitForCssReady = jasmine.createSpy('waitForCssReady').and.resolveTo(false);
+        runInCssCreateBatch = jasmine
+            .createSpy('runInCssCreateBatch')
+            .and.callFake((callback: () => void) => callback());
 
         TestBed.configureTestingModule({
             providers: [
@@ -30,6 +54,12 @@ describe('AngoraCombosService', () => {
                         updateCombo,
                         updateClasses,
                         cssCreate,
+                        auditManagedStylesheets,
+                        getCssCreateDebugSummary,
+                        collectRenderedDomClasses,
+                        hasGeneratedCssRules,
+                        waitForCssReady,
+                        runInCssCreateBatch,
                         indicatorClass: 'ank',
                         combos: {},
                         abreviationsClasses: {},
@@ -50,6 +80,11 @@ describe('AngoraCombosService', () => {
 
     beforeEach(() => {
         TestBed.resetTestingModule();
+        delete window.__zlpAngoraDebug;
+    });
+
+    afterEach(() => {
+        delete window.__zlpAngoraDebug;
     });
 
     it('pushes authored combos in the browser', () => {
@@ -68,6 +103,7 @@ describe('AngoraCombosService', () => {
 
         expect(pushCombos.calls.count()).toBe(1);
         expect(pushCombos.calls.argsFor(0)).toEqual([{ hero: ['ank-d-flex ank-jc-center'] }]);
+        expect(runInCssCreateBatch).toHaveBeenCalledTimes(1);
         expect(updateCombo).not.toHaveBeenCalled();
     });
 
@@ -145,6 +181,7 @@ describe('AngoraCombosService', () => {
         expect(pushCombos.calls.argsFor(0)).toEqual([{ base: ['ank-d-flex'], hero: ['ank-bg-primary'] }]);
         expect(pushCombos.calls.argsFor(1)).toEqual([{ hero: ['ank-bg-primary'] }]);
         expect(updateCombo).toHaveBeenCalledOnceWith('base', []);
+        expect(runInCssCreateBatch).toHaveBeenCalledTimes(2);
     });
 
     it('merges auxiliary combos without replacing draft combos', () => {
@@ -188,7 +225,7 @@ describe('AngoraCombosService', () => {
         }
     });
 
-    it('schedules cssCreate after payload updates', () => {
+    it('leaves render-timed cssCreate scheduling to the runtime after combo payload updates', () => {
         jasmine.clock().install();
         try {
             configure('browser');
@@ -203,26 +240,91 @@ describe('AngoraCombosService', () => {
             });
             TestBed.flushEffects();
             jasmine.clock().tick(0);
-            expect(cssCreate).toHaveBeenCalledTimes(1);
+            expect(cssCreate).not.toHaveBeenCalled();
 
             store.setCombos(null);
             TestBed.flushEffects();
             jasmine.clock().tick(0);
             expect(updateCombo).toHaveBeenCalledOnceWith('hero', []);
-            expect(cssCreate).toHaveBeenCalledTimes(2);
+            expect(cssCreate).not.toHaveBeenCalled();
         } finally {
             jasmine.clock().uninstall();
         }
     });
 
-    it('replays rendered classes one at a time', () => {
+    it('creates rendered classes in one explicit cssCreate pass', () => {
         const service = configure('browser');
 
         service.updateClasses(['ank-display-flex', 'ank-justifyContent-center', 'ank-display-flex']);
 
-        expect(updateClasses.calls.count()).toBe(2);
-        expect(updateClasses.calls.argsFor(0)).toEqual([['ank-d-flex']]);
-        expect(updateClasses.calls.argsFor(1)).toEqual([['ank-jc-center']]);
+        expect(updateClasses).not.toHaveBeenCalled();
+        expect(cssCreate).toHaveBeenCalledOnceWith(['ank-d-flex', 'ank-jc-center']);
+    });
+
+    it('collects rendered DOM classes without creating a second cssCreate pass', () => {
+        const service = configure('browser');
+        const root = document.createElement('section');
+        root.className = 'ank-display-grid shell';
+        const child = document.createElement('div');
+        child.className = 'ank-display-flex btnBase';
+        root.appendChild(child);
+
+        expect(service.collectRenderedDomClasses(root)).toEqual([
+            'ank-display-grid',
+            'shell',
+            'ank-display-flex',
+            'btnBase',
+        ]);
+        expect(collectRenderedDomClasses).toHaveBeenCalledOnceWith(root);
+        expect(cssCreate).not.toHaveBeenCalled();
+    });
+
+    it('reports generated CSS as ready from managed stylesheet diagnostics', () => {
+        const service = configure('browser');
+        hasGeneratedCssRules.and.returnValue(true);
+
+        expect(service.hasGeneratedCssRules()).toBeTrue();
+        expect(hasGeneratedCssRules).toHaveBeenCalled();
+    });
+
+    it('passes registered combo class names to explicit cssCreate updates', () => {
+        const service = configure('browser');
+
+        store.setCombos({
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            combos: {
+                btnBase: ['ank-display-flex ank-alignItems-center'],
+            },
+        });
+        TestBed.flushEffects();
+        cssCreate.calls.reset();
+
+        service.updateClasses(['btnBase', 'ank-display-flex']);
+
+        expect(updateClasses).not.toHaveBeenCalled();
+        expect(cssCreate).toHaveBeenCalledOnceWith(['btnBase', 'ank-d-flex']);
+    });
+
+    it('does not treat unrelated classes that only share a combo prefix as combo classes', () => {
+        const service = configure('browser');
+
+        store.setCombos({
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            combos: {
+                btn: ['ank-display-flex ank-alignItems-center'],
+            },
+        });
+        TestBed.flushEffects();
+        cssCreate.calls.reset();
+
+        service.updateClasses(['btnBase', 'ank-display-flex']);
+
+        expect(updateClasses).not.toHaveBeenCalled();
+        expect(cssCreate).toHaveBeenCalledOnceWith(['ank-d-flex']);
     });
 
     it('does not replay the same normalized class twice across repeated updates', () => {
@@ -231,10 +333,10 @@ describe('AngoraCombosService', () => {
         service.updateClasses(['ank-display-flex', 'ank-justifyContent-center']);
         service.updateClasses(['ank-display-flex', 'ank-justifyContent-center', 'ank-alignItems-center']);
 
-        expect(updateClasses.calls.count()).toBe(3);
-        expect(updateClasses.calls.argsFor(0)).toEqual([['ank-d-flex']]);
-        expect(updateClasses.calls.argsFor(1)).toEqual([['ank-jc-center']]);
-        expect(updateClasses.calls.argsFor(2)).toEqual([['ank-ai-center']]);
+        expect(updateClasses).not.toHaveBeenCalled();
+        expect(cssCreate.calls.count()).toBe(2);
+        expect(cssCreate.calls.argsFor(0)).toEqual([['ank-d-flex', 'ank-jc-center']]);
+        expect(cssCreate.calls.argsFor(1)).toEqual([['ank-ai-center']]);
     });
 
     it('filters out classes that Angora does not manage', () => {
@@ -254,8 +356,51 @@ describe('AngoraCombosService', () => {
             'modal-panel',
         ]);
 
-        expect(updateClasses.calls.count()).toBe(2);
-        expect(updateClasses.calls.argsFor(0)).toEqual([['ank-d-flex']]);
-        expect(updateClasses.calls.argsFor(1)).toEqual([['alIteCent-center']]);
+        expect(updateClasses).not.toHaveBeenCalled();
+        expect(cssCreate).toHaveBeenCalledOnceWith(['ank-d-flex', 'alIteCent-center']);
+    });
+
+    it('uses the library classifier when available for managed class filtering', () => {
+        const service = configure('browser');
+        const angora = TestBed.inject(NgxAngoraService) as unknown as {
+            classifyClass: jasmine.Spy;
+            isComboClass: jasmine.Spy;
+        };
+        angora.classifyClass = jasmine.createSpy('classifyClass').and.callFake((className: string) => ({
+            kind: className === 'btnBase' ? 'combo' : 'utility',
+            managed: className === 'btnBase' || className === 'customManagedClass',
+            comboKey: className === 'btnBase' ? 'btnBase' : undefined,
+        }));
+        angora.isComboClass = jasmine.createSpy('isComboClass').and.callFake((className: string) => className === 'btnBase');
+
+        service.updateClasses(['customManagedClass', 'btnBase', 'unmanagedClass']);
+
+        expect(angora.classifyClass).toHaveBeenCalledWith('customManagedClass');
+        expect(angora.classifyClass).toHaveBeenCalledWith('btnBase');
+        expect(cssCreate).toHaveBeenCalledOnceWith(['customManagedClass', 'btnBase']);
+    });
+
+    it('exposes library diagnostics through the local debug bridge', () => {
+        configure('browser');
+        const angora = TestBed.inject(NgxAngoraService) as unknown as {
+            classifyClass: jasmine.Spy;
+            auditManagedStylesheets: jasmine.Spy;
+        };
+        const classification = { kind: 'utility', managed: true, prefix: 'ank' };
+        const audit = { totalRules: 7, totalDuplicateExactGroups: 0 };
+        angora.classifyClass = jasmine.createSpy('classifyClass').and.returnValue(classification);
+        angora.auditManagedStylesheets = jasmine.createSpy('auditManagedStylesheets').and.returnValue(audit);
+
+        expect(window.__zlpAngoraDebug?.classifyClass('ank-d-flex')).toBe(classification);
+        expect(window.__zlpAngoraDebug?.stylesheetAudit(5)).toBe(audit);
+        expect(angora.auditManagedStylesheets).toHaveBeenCalledOnceWith(5);
+    });
+
+    it('lets the local debug bridge run a full cssCreate when no class list is provided', () => {
+        configure('browser');
+
+        window.__zlpAngoraDebug?.updateRenderedClasses();
+
+        expect(cssCreate).toHaveBeenCalledOnceWith();
     });
 });

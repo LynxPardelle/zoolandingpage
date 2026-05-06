@@ -9,8 +9,10 @@ import { DomainResolverService } from '@/app/shared/services/domain-resolver.ser
 import { DraftRegistryService } from '@/app/shared/services/draft-registry.service';
 import { DraftRuntimeService } from '@/app/shared/services/draft-runtime.service';
 import type { TComponentPayloadEntry, TComponentsPayload } from '@/app/shared/types/config-payloads.types';
+import { environment } from '@/environments/environment';
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
+import { LoadingCurtainService } from './loading-curtain.service';
 import { RuntimeService } from './runtime.service';
 
 const createComponentsPayload = (
@@ -25,14 +27,22 @@ const createComponentsPayload = (
 
 const flushPostBootstrapBrowserWork = async (): Promise<void> => {
     await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+    await Promise.resolve();
+    await Promise.resolve();
 };
 
 describe('RuntimeService', () => {
     const originalUrl = window.location.pathname + window.location.search + window.location.hash;
+    const originalProduction = environment.production;
     const setExternalComponentsFromPayload = jasmine.createSpy('setExternalComponentsFromPayload');
     const setAuxiliaryComponentsFromPayload = jasmine.createSpy('setAuxiliaryComponentsFromPayload');
     const setDraftExportContext = jasmine.createSpy('setDraftExportContext');
+    const getAllTheClassesFromComponents = jasmine.createSpy('getAllTheClassesFromComponents').and.returnValue(['hero']);
     const scheduleCssCreate = jasmine.createSpy('scheduleCssCreate');
+    const updateClasses = jasmine.createSpy('updateClasses');
+    const updateRenderedDomClasses = jasmine.createSpy('updateRenderedDomClasses');
+    const collectRenderedDomClasses = jasmine.createSpy('collectRenderedDomClasses').and.returnValue(['ank-d-flex']);
+    const waitForCssReady = jasmine.createSpy('waitForCssReady').and.resolveTo(true);
     const setAuxiliaryCombos = jasmine.createSpy('setAuxiliaryCombos');
     const clearAuxiliaryCombos = jasmine.createSpy('clearAuxiliaryCombos');
     const revealCssTimer = jasmine.createSpy('revealCssTimer');
@@ -42,6 +52,8 @@ describe('RuntimeService', () => {
     const analyticsStartPageEngagementTracking = jasmine.createSpy('startPageEngagementTracking');
     const analyticsStopPageEngagementTracking = jasmine.createSpy('stopPageEngagementTracking');
     const prefetchRoute = jasmine.createSpy('prefetchRoute').and.resolveTo(undefined);
+    const configureLoadingCurtain = jasmine.createSpy('configureFromDraft');
+    const hideLoadingCurtain = jasmine.createSpy('hideWhenReady');
     let loadSiteConfig: jasmine.Spy;
     let bootstrapLoad: jasmine.Spy;
     let setCombos: jasmine.Spy;
@@ -98,7 +110,12 @@ describe('RuntimeService', () => {
         setExternalComponentsFromPayload.calls.reset();
         setAuxiliaryComponentsFromPayload.calls.reset();
         setDraftExportContext.calls.reset();
+        getAllTheClassesFromComponents.calls.reset();
         scheduleCssCreate.calls.reset();
+        updateClasses.calls.reset();
+        updateRenderedDomClasses.calls.reset();
+        collectRenderedDomClasses.calls.reset();
+        waitForCssReady.calls.reset();
         setAuxiliaryCombos.calls.reset();
         clearAuxiliaryCombos.calls.reset();
         revealCssTimer.calls.reset();
@@ -108,6 +125,8 @@ describe('RuntimeService', () => {
         analyticsStartPageEngagementTracking.calls.reset();
         analyticsStopPageEngagementTracking.calls.reset();
         prefetchRoute.calls.reset();
+        configureLoadingCurtain.calls.reset();
+        hideLoadingCurtain.calls.reset();
 
         TestBed.configureTestingModule({
             providers: [
@@ -147,12 +166,17 @@ describe('RuntimeService', () => {
                         setExternalComponentsFromPayload,
                         setAuxiliaryComponentsFromPayload,
                         setDraftExportContext,
+                        getAllTheClassesFromComponents,
                     },
                 },
                 {
                     provide: AngoraCombosService,
                     useValue: {
                         scheduleCssCreate,
+                        updateClasses,
+                        updateRenderedDomClasses,
+                        collectRenderedDomClasses,
+                        waitForCssReady,
                         setAuxiliaryCombos,
                         clearAuxiliaryCombos,
                         revealCssTimer,
@@ -170,6 +194,13 @@ describe('RuntimeService', () => {
                         stopPageEngagementTracking: analyticsStopPageEngagementTracking,
                     },
                 },
+                {
+                    provide: LoadingCurtainService,
+                    useValue: {
+                        configureFromDraft: configureLoadingCurtain,
+                        hideWhenReady: hideLoadingCurtain,
+                    },
+                },
             ],
         });
 
@@ -179,6 +210,7 @@ describe('RuntimeService', () => {
 
     afterEach(async () => {
         await flushPostBootstrapBrowserWork();
+        (environment as { production: boolean }).production = originalProduction;
         window.history.replaceState({}, '', originalUrl);
         TestBed.resetTestingModule();
     });
@@ -214,6 +246,7 @@ describe('RuntimeService', () => {
             lang: 'es',
         });
         expect(service.rootComponentsIds()).toEqual(['servicios-root']);
+        expect(configureLoadingCurtain).toHaveBeenCalled();
         expect(setDraftExportContext).toHaveBeenCalledWith({
             domain: 'pamelabetancourt.com',
             pageId: 'servicios',
@@ -241,6 +274,28 @@ describe('RuntimeService', () => {
         });
     });
 
+    it('hides the boot curtain after rendered component classes are sent to Angora', async () => {
+        const service = TestBed.inject(RuntimeService);
+
+        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com');
+        await service.initialize('es');
+
+        expect(configureLoadingCurtain).toHaveBeenCalled();
+        expect(updateClasses).toHaveBeenCalledOnceWith(['hero']);
+        expect(hideLoadingCurtain).not.toHaveBeenCalledWith('rendered-components-css-updated');
+
+        await flushPostBootstrapBrowserWork();
+
+        expect(collectRenderedDomClasses).toHaveBeenCalledWith();
+        expect(updateClasses.calls.allArgs()).toEqual([
+            [['hero']],
+            [['hero', 'ank-d-flex']],
+        ]);
+        expect(waitForCssReady).toHaveBeenCalled();
+        expect(updateRenderedDomClasses).not.toHaveBeenCalled();
+        expect(hideLoadingCurtain).toHaveBeenCalledWith('rendered-components-css-updated');
+    });
+
     it('skips sibling route prefetches during automated browser audits', async () => {
         spyOnProperty(navigator, 'webdriver', 'get').and.returnValue(true);
 
@@ -251,11 +306,32 @@ describe('RuntimeService', () => {
         await flushPostBootstrapBrowserWork();
 
         expect(prefetchRoute).not.toHaveBeenCalled();
-        expect(analyticsInitializeRuntimeState).toHaveBeenCalled();
-        expect(analyticsPageViewEventName).toHaveBeenCalled();
+        expect(analyticsInitializeRuntimeState).not.toHaveBeenCalled();
+        expect(analyticsPageViewEventName).not.toHaveBeenCalled();
+        expect(analyticsStartPageEngagementTracking).not.toHaveBeenCalled();
+        expect(analyticsTrack).not.toHaveBeenCalled();
+    });
+
+    it('skips analytics network work for production builds opened from localhost previews', async () => {
+        (environment as { production: boolean }).production = true;
+        spyOnProperty(navigator, 'userAgent', 'get').and.returnValue('Mozilla/5.0 Chrome/147.0.0.0 Safari/537.36');
+        spyOnProperty(navigator, 'webdriver', 'get').and.returnValue(false);
+
+        const service = TestBed.inject(RuntimeService);
+
+        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com');
+        await service.initialize('es');
+        await flushPostBootstrapBrowserWork();
+
+        expect(prefetchRoute).not.toHaveBeenCalled();
+        expect(analyticsInitializeRuntimeState).not.toHaveBeenCalled();
+        expect(analyticsPageViewEventName).not.toHaveBeenCalled();
+        expect(analyticsTrack).not.toHaveBeenCalled();
     });
 
     it('tracks an initial page view on the first successful browser bootstrap', async () => {
+        spyOnProperty(navigator, 'userAgent', 'get').and.returnValue('Mozilla/5.0 Chrome/147.0.0.0 Safari/537.36');
+        spyOnProperty(navigator, 'webdriver', 'get').and.returnValue(false);
         const service = TestBed.inject(RuntimeService);
 
         window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com');
@@ -413,6 +489,7 @@ describe('RuntimeService', () => {
         expect(bootstrapLoad).not.toHaveBeenCalled();
         expect(service.rootComponentsIds()).toEqual([]);
         expect(service.modalRootIds()).toEqual(expectedModalRootIds);
+        expect(hideLoadingCurtain).toHaveBeenCalledWith('missing-draft-context');
         expect(setDraftExportContext).toHaveBeenCalledWith({
             domain: '',
             pageId: '',

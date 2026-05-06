@@ -11,6 +11,7 @@ import { toNavigationHref } from './navigation/navigation-target.utility';
 
 const LOOP_INDEX_TOKEN = '{{index}}';
 const LOOP_WHOLE_ITEM_TOKEN = '$item';
+const CLASS_PROPERTY_PATTERN = /(^classes$|classes$|^classname$|classname$)/i;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     !!value && typeof value === 'object' && !Array.isArray(value);
@@ -483,37 +484,6 @@ export function collectAllClassesFromComponents(
     normalizeClasses?: (value: string) => string,
 ): string[] {
     const classesSet: Set<string> = new Set<string>();
-    const dropdownClassKeys = [
-        'classes',
-        'buttonClasses',
-        'itemLinkClasses',
-        'selectedItemClasses',
-        'disabledItemClasses',
-        'menuContainerClasses',
-        'menuNavClasses',
-        'menuListClasses',
-    ] as const;
-    const inputClassKeys = [
-        'classes',
-        'labelClasses',
-        'descriptionClasses',
-        'helperTextClasses',
-        'fieldClasses',
-        'inputClasses',
-        'dropdownTriggerClasses',
-        'dropdownIndicatorClasses',
-        'optionContainerClasses',
-        'optionClasses',
-        'activeOptionClasses',
-        'errorClasses',
-    ] as const;
-    const nestedTextConfigKeys = [
-        'labelTextConfig',
-        'descriptionTextConfig',
-        'helperTextConfig',
-        'errorTextConfig',
-        'dropdownTriggerTextConfig',
-    ] as const;
 
     const addClasses = (raw: unknown, normalize?: (value: string) => string) => {
         const resolved = resolveDynamicValue(raw as TDynamicValue<unknown> | null | undefined);
@@ -525,43 +495,30 @@ export function collectAllClassesFromComponents(
             .forEach((cls) => classesSet.add(cls));
     };
 
-    const addClassProperties = (record: Record<string, unknown>, keys: readonly string[]) => {
-        keys.forEach((key) => addClasses(record[key], normalizeClasses));
+    const collectClassBearingValues = (value: unknown, key = ''): void => {
+        const isClassProperty = CLASS_PROPERTY_PATTERN.test(key);
+
+        if (isClassProperty) {
+            addClasses(value, normalizeClasses);
+        }
+
+        const resolved = resolveDynamicValue(value as TDynamicValue<unknown> | null | undefined);
+        if (!resolved || typeof resolved !== 'object') {
+            return;
+        }
+
+        if (Array.isArray(resolved)) {
+            resolved.forEach((entry) => collectClassBearingValues(entry, key));
+            return;
+        }
+
+        Object.entries(resolved as Record<string, unknown>).forEach(([entryKey, entry]) => {
+            collectClassBearingValues(entry, entryKey);
+        });
     };
 
     components.forEach((component) => {
-        if (component.config && typeof component.config === 'object' && !Array.isArray(component.config)) {
-            addClassProperties(component.config as Record<string, unknown>, ['classes']);
-        }
-
-        // Also collect classes from dropdownConfig fields (these are not under config.classes)
-        if ((component as any).type === 'dropdown') {
-            const ddCfg = (component as any).config?.dropdownConfig;
-            if (ddCfg && typeof ddCfg === 'object' && !Array.isArray(ddCfg)) {
-                addClassProperties(ddCfg as Record<string, unknown>, dropdownClassKeys);
-            }
-        }
-
-        if ((component as any).type === 'input') {
-            const inputConfig = (component as any).config;
-            if (!inputConfig || typeof inputConfig !== 'object' || Array.isArray(inputConfig)) {
-                return;
-            }
-
-            addClassProperties(inputConfig as Record<string, unknown>, inputClassKeys);
-
-            const dropdownConfig = (inputConfig as Record<string, unknown>)['dropdownConfig'];
-            if (dropdownConfig && typeof dropdownConfig === 'object' && !Array.isArray(dropdownConfig)) {
-                addClassProperties(dropdownConfig as Record<string, unknown>, dropdownClassKeys);
-            }
-
-            nestedTextConfigKeys.forEach((key) => {
-                const textConfig = (inputConfig as Record<string, unknown>)[key];
-                if (textConfig && typeof textConfig === 'object' && !Array.isArray(textConfig)) {
-                    addClasses((textConfig as Record<string, unknown>)['classes'], normalizeClasses);
-                }
-            });
-        }
+        collectClassBearingValues(component);
     });
 
     return Array.from(classesSet);

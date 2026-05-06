@@ -33,9 +33,16 @@ type TSiteConfigRouteEntry = {
 };
 
 type TLocalPageConfig = {
+  readonly version?: number;
+  readonly pageId?: string;
+  readonly domain?: string;
+  readonly rootIds?: readonly string[];
+  readonly modalRootIds?: readonly string[];
   readonly seo?: {
     readonly canonical?: string;
   };
+  readonly structuredData?: unknown;
+  readonly analytics?: unknown;
 };
 
 type TRuntimeBundlePayload = {
@@ -43,15 +50,65 @@ type TRuntimeBundlePayload = {
   readonly pageConfig?: unknown;
 };
 
-type TLocalSiteConfig = {
+type TLocalComponentsPayload = {
+  readonly version?: number;
+  readonly domain?: string;
+  readonly pageId?: string;
+  readonly components?: readonly Record<string, unknown>[];
+};
+
+type TLocalVariablesPayload = {
+  readonly version?: number;
+  readonly domain?: string;
+  readonly pageId?: string;
+  readonly variables?: Record<string, unknown>;
+  readonly computed?: Record<string, unknown>;
+};
+
+type TLocalAngoraCombosPayload = {
+  readonly version?: number;
+  readonly domain?: string;
+  readonly pageId?: string;
+  readonly combos?: Record<string, readonly string[]>;
+};
+
+type TLocalI18nPayload = {
+  readonly version?: number;
+  readonly domain?: string;
+  readonly pageId?: string;
+  readonly lang?: string;
+  readonly dictionary?: Record<string, unknown>;
+};
+
+type TLocalSiteConfig = Record<string, unknown> & {
   readonly domain?: string;
   readonly aliases?: readonly string[];
+  readonly defaultPageId?: string;
   readonly routes?: readonly TSiteConfigRouteEntry[];
+  readonly lifecycle?: unknown;
   readonly site?: {
     readonly seo?: {
       readonly canonicalOrigin?: string;
     };
   };
+};
+
+type TLocalRuntimeBundlePayload = {
+  readonly version: number;
+  readonly domain: string;
+  readonly pageId: string;
+  readonly sourceStage: 'draft';
+  readonly lang?: string;
+  readonly generatedAt: string;
+  readonly route?: TSiteConfigRouteEntry;
+  readonly lifecycle?: unknown;
+  readonly siteConfig: TLocalSiteConfig;
+  readonly pageConfig: TLocalPageConfig;
+  readonly components: TLocalComponentsPayload;
+  readonly variables?: TLocalVariablesPayload | null;
+  readonly angoraCombos?: TLocalAngoraCombosPayload | null;
+  readonly i18n?: TLocalI18nPayload | null;
+  readonly metadata: Record<string, unknown>;
 };
 
 const siteConfigPathCache = new Map<string, TSiteConfigCacheEntry>();
@@ -180,6 +237,312 @@ function loadLocalPageConfig(domain: string, pageId: string): TLocalPageConfig |
   }
 
   return readJsonFile(join(dirname(siteConfigPath), normalizedPageId, 'page-config.json')) as TLocalPageConfig | null;
+}
+
+function resolveLocalDomainFolder(domain: string): string | null {
+  const siteConfigPath = resolveSiteConfigPath(domain);
+  return siteConfigPath ? dirname(siteConfigPath) : null;
+}
+
+function readLocalDraftJson<T>(domain: string, pageId: string | null, fileName: string): T | null {
+  const domainFolder = resolveLocalDomainFolder(domain);
+  if (!domainFolder) {
+    return null;
+  }
+
+  const filePath = pageId
+    ? join(domainFolder, pageId, fileName)
+    : join(domainFolder, fileName);
+  return readJsonFile(filePath) as T | null;
+}
+
+function deepMergeRecord(base: Record<string, unknown>, override: Record<string, unknown>): Record<string, unknown> {
+  const merged: Record<string, unknown> = { ...base };
+
+  Object.entries(override).forEach(([key, value]) => {
+    const existing = merged[key];
+    if (isRecord(existing) && isRecord(value) && !Array.isArray(value)) {
+      merged[key] = deepMergeRecord(existing, value);
+      return;
+    }
+
+    merged[key] = value;
+  });
+
+  return merged;
+}
+
+function mergeLocalComponents(
+  domain: string,
+  pageId: string,
+  payloads: readonly (TLocalComponentsPayload | null)[],
+): TLocalComponentsPayload | null {
+  const entries = new Map<string, Record<string, unknown>>();
+
+  payloads.forEach((payload) => {
+    payload?.components?.forEach((component) => {
+      const id = String(component?.['id'] ?? '').trim();
+      if (!id) {
+        return;
+      }
+
+      entries.set(id, {
+        ...component,
+        domain: String(component['domain'] ?? payload.domain ?? domain).trim() || domain,
+        pageId: String(component['pageId'] ?? payload.pageId ?? pageId).trim() || pageId,
+      });
+    });
+  });
+
+  if (entries.size === 0) {
+    return null;
+  }
+
+  return {
+    version: payloads.find((payload) => payload?.version)?.version ?? 1,
+    domain,
+    pageId,
+    components: Array.from(entries.values()),
+  };
+}
+
+function mergeLocalVariables(
+  domain: string,
+  pageId: string,
+  payloads: readonly (TLocalVariablesPayload | null)[],
+): TLocalVariablesPayload | null {
+  const availablePayloads = payloads.filter((payload): payload is TLocalVariablesPayload => !!payload);
+  if (availablePayloads.length === 0) {
+    return null;
+  }
+
+  return availablePayloads.reduce<TLocalVariablesPayload>((merged, payload) => ({
+    version: payload.version ?? merged.version,
+    domain,
+    pageId,
+    variables: deepMergeRecord(merged.variables ?? {}, isRecord(payload.variables) ? payload.variables : {}),
+    computed: isRecord(merged.computed) || isRecord(payload.computed)
+      ? deepMergeRecord(
+        isRecord(merged.computed) ? merged.computed : {},
+        isRecord(payload.computed) ? payload.computed : {},
+      )
+      : undefined,
+  }), {
+    version: availablePayloads[0].version ?? 1,
+    domain,
+    pageId,
+    variables: {},
+  });
+}
+
+function mergeLocalAngoraCombos(
+  domain: string,
+  pageId: string,
+  payloads: readonly (TLocalAngoraCombosPayload | null)[],
+): TLocalAngoraCombosPayload | null {
+  const availablePayloads = payloads.filter((payload): payload is TLocalAngoraCombosPayload => !!payload);
+  if (availablePayloads.length === 0) {
+    return null;
+  }
+
+  return availablePayloads.reduce<TLocalAngoraCombosPayload>((merged, payload) => ({
+    version: payload.version ?? merged.version,
+    domain,
+    pageId,
+    combos: {
+      ...merged.combos,
+      ...(isRecord(payload.combos) ? payload.combos : {}),
+    } as Record<string, readonly string[]>,
+  }), {
+    version: availablePayloads[0].version ?? 1,
+    domain,
+    pageId,
+    combos: {},
+  });
+}
+
+function mergeLocalI18n(
+  domain: string,
+  pageId: string,
+  lang: string,
+  payloads: readonly (TLocalI18nPayload | null)[],
+): TLocalI18nPayload | null {
+  const availablePayloads = payloads.filter((payload): payload is TLocalI18nPayload => !!payload);
+  if (availablePayloads.length === 0) {
+    return null;
+  }
+
+  return availablePayloads.reduce<TLocalI18nPayload>((merged, payload) => ({
+    version: payload.version ?? merged.version,
+    domain,
+    pageId,
+    lang: payload.lang || merged.lang,
+    dictionary: deepMergeRecord(merged.dictionary ?? {}, isRecord(payload.dictionary) ? payload.dictionary : {}),
+  }), {
+    version: availablePayloads[0].version ?? 1,
+    domain,
+    pageId,
+    lang,
+    dictionary: {},
+  });
+}
+
+function getLocaleCandidates(lang: string): readonly string[] {
+  const normalized = String(lang ?? '').trim().toLowerCase();
+  const candidates = new Set<string>();
+  if (normalized) {
+    candidates.add(normalized);
+    const base = normalized.split('-')[0];
+    if (base) {
+      candidates.add(base);
+    }
+  }
+
+  candidates.add('es');
+  candidates.add('en');
+  return Array.from(candidates);
+}
+
+function loadLocalComponents(domain: string, pageId: string): TLocalComponentsPayload | null {
+  return mergeLocalComponents(domain, pageId, [
+    readLocalDraftJson<TLocalComponentsPayload>(domain, null, 'components.json'),
+    readLocalDraftJson<TLocalComponentsPayload>(domain, pageId, 'components.json'),
+  ]);
+}
+
+function loadLocalVariables(domain: string, pageId: string): TLocalVariablesPayload | null {
+  return mergeLocalVariables(domain, pageId, [
+    readLocalDraftJson<TLocalVariablesPayload>(domain, null, 'variables.json'),
+    readLocalDraftJson<TLocalVariablesPayload>(domain, pageId, 'variables.json'),
+  ]);
+}
+
+function loadLocalAngoraCombos(domain: string, pageId: string): TLocalAngoraCombosPayload | null {
+  return mergeLocalAngoraCombos(domain, pageId, [
+    readLocalDraftJson<TLocalAngoraCombosPayload>(domain, null, 'angora-combos.json'),
+    readLocalDraftJson<TLocalAngoraCombosPayload>(domain, pageId, 'angora-combos.json'),
+  ]);
+}
+
+function loadLocalI18n(domain: string, pageId: string, lang: string): TLocalI18nPayload | null {
+  const domainFolder = resolveLocalDomainFolder(domain);
+  if (!domainFolder) {
+    return null;
+  }
+
+  for (const candidate of getLocaleCandidates(lang)) {
+    const sitePayload = readJsonFile(join(domainFolder, 'i18n', `${candidate}.json`)) as TLocalI18nPayload | null;
+    const pagePayload = readJsonFile(join(domainFolder, pageId, 'i18n', `${candidate}.json`)) as TLocalI18nPayload | null;
+    const merged = mergeLocalI18n(domain, pageId, candidate, [sitePayload, pagePayload]);
+    if (merged) {
+      return merged;
+    }
+  }
+
+  return null;
+}
+
+function resolveLocalRoute(siteConfig: TLocalSiteConfig | null, path: string, pageId?: string): TSiteConfigRouteEntry | undefined {
+  const routes = Array.isArray(siteConfig?.routes) ? siteConfig.routes : [];
+  const normalizedPath = normalizeRoutePath(path);
+  const normalizedPageId = String(pageId ?? '').trim();
+
+  if (normalizedPageId) {
+    return routes.find((route) => String(route.pageId ?? '').trim() === normalizedPageId);
+  }
+
+  return routes.find((route) => normalizeRoutePath(route.path) === normalizedPath);
+}
+
+function resolveLocalRuntimePageId(siteConfig: TLocalSiteConfig | null, path: string, pageId?: string): string {
+  const explicitPageId = String(pageId ?? '').trim();
+  if (explicitPageId) {
+    return explicitPageId;
+  }
+
+  const route = resolveLocalRoute(siteConfig, path);
+  return String(route?.pageId ?? siteConfig?.defaultPageId ?? 'default').trim() || 'default';
+}
+
+function loadLocalRuntimeBundle(opts: {
+  readonly domain: string;
+  readonly pageId?: string;
+  readonly path?: string;
+  readonly lang?: string;
+}): TLocalRuntimeBundlePayload | null {
+  const requestedDomain = normalizeHost(opts.domain);
+  if (!requestedDomain) {
+    return null;
+  }
+
+  const siteConfig = loadLocalSiteConfig(requestedDomain);
+  if (!siteConfig) {
+    return null;
+  }
+
+  const normalizedPath = normalizeRoutePath(opts.path);
+  const pageId = resolveLocalRuntimePageId(siteConfig, normalizedPath, opts.pageId);
+  const pageConfig = loadLocalPageConfig(requestedDomain, pageId);
+  const components = loadLocalComponents(requestedDomain, pageId);
+  if (!pageConfig || !components) {
+    return null;
+  }
+
+  const resolvedDomain = String(siteConfig.domain ?? requestedDomain).trim() || requestedDomain;
+  const route = resolveLocalRoute(siteConfig, normalizedPath, pageId);
+  const lang = String(opts.lang ?? '').trim() || 'es';
+
+  return {
+    version: 1,
+    domain: resolvedDomain,
+    pageId,
+    sourceStage: 'draft',
+    lang,
+    generatedAt: new Date().toISOString(),
+    route,
+    lifecycle: siteConfig.lifecycle,
+    siteConfig: {
+      ...siteConfig,
+      domain: resolvedDomain,
+    },
+    pageConfig: {
+      ...pageConfig,
+      domain: resolvedDomain,
+      pageId,
+    },
+    components: {
+      ...components,
+      domain: resolvedDomain,
+      pageId,
+    },
+    variables: loadLocalVariables(requestedDomain, pageId),
+    angoraCombos: loadLocalAngoraCombos(requestedDomain, pageId),
+    i18n: loadLocalI18n(requestedDomain, pageId, lang),
+    metadata: {
+      source: 'local-drafts',
+      requestedDomain,
+      resolvedPath: normalizedPath,
+    },
+  };
+}
+
+function loadLocalDebugWorkspacePayload(kind: string): Record<string, unknown> | null {
+  const draftsFolder = resolveDraftsFolder();
+  if (!draftsFolder) {
+    return null;
+  }
+
+  const fileNameByKind: Record<string, string> = {
+    'page-config': 'page-config.json',
+    components: 'components.json',
+    'angora-combos': 'angora-combos.json',
+  };
+  const fileName = fileNameByKind[kind];
+  if (!fileName) {
+    return null;
+  }
+
+  return readJsonFile(join(draftsFolder, DEBUG_DRAFT_DIRECTORY, 'debug-workspace', fileName));
 }
 
 async function loadRuntimeSiteConfig(domain: string): Promise<TLocalSiteConfig | null> {
@@ -386,6 +749,48 @@ app.get(['/health', '/healthz'], (_req, res) => {
 
 app.get('/api/debug/drafts', (_req, res) => {
   res.json({ drafts: listDraftRegistryEntries() });
+});
+
+app.get('/runtime-bundle', (req, res, next) => {
+  try {
+    const payload = loadLocalRuntimeBundle({
+      domain: String(req.query['domain'] ?? ''),
+      pageId: String(req.query['pageId'] ?? ''),
+      path: String(req.query['path'] ?? req.path ?? '/'),
+      lang: String(req.query['lang'] ?? ''),
+    });
+
+    if (!payload) {
+      next();
+      return;
+    }
+
+    res
+      .status(200)
+      .type('application/json')
+      .set('Cache-Control', 'no-store')
+      .json(payload);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/debug-workspace/:kind', (req, res, next) => {
+  try {
+    const payload = loadLocalDebugWorkspacePayload(String(req.params['kind'] ?? ''));
+    if (!payload) {
+      next();
+      return;
+    }
+
+    res
+      .status(200)
+      .type('application/json')
+      .set('Cache-Control', 'no-store')
+      .json(payload);
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.get('/robots.txt', async (req, res) => {
