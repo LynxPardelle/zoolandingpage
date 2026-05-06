@@ -3,11 +3,12 @@ import { ChangeDetectionStrategy, Component, computed, inject, Input, signal } f
 import { I18nService } from '../../services/i18n.service';
 import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
+import { GenericIconComponent } from '../generic-icon/generic-icon.component';
 import { TGenericCardConfig } from './generic-card.types';
 
 @Component({
     selector: 'generic-card',
-    imports: [CommonModule, GenericButtonComponent],
+    imports: [CommonModule, GenericButtonComponent, GenericIconComponent],
     templateUrl: './generic-card.component.html',
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
