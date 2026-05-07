@@ -163,7 +163,11 @@ describe('ConfigSourceService', () => {
                 },
                 {
                     provide: DraftConfigLoaderService,
-                    useValue: {},
+                    useValue: {
+                        loadDebugWorkspacePageConfig: jasmine.createSpy('loadDebugWorkspacePageConfig').and.resolveTo(pageConfigPayload),
+                        loadDebugWorkspaceComponents: jasmine.createSpy('loadDebugWorkspaceComponents').and.resolveTo(componentsPayload),
+                        loadDebugWorkspaceCombos: jasmine.createSpy('loadDebugWorkspaceCombos').and.resolveTo(combosPayload),
+                    },
                 },
                 ConfigStoreService,
                 {
@@ -296,5 +300,25 @@ describe('ConfigSourceService', () => {
 
         expect(result).toEqual(siteConfigPayload);
         expect(api.getSiteConfig).not.toHaveBeenCalled();
+    });
+
+    it('loads debug workspace payloads from versioned draft assets even when runtime config uses the API', async () => {
+        const service = TestBed.inject(ConfigSourceService);
+        const api = TestBed.inject(ConfigApiService) as jasmine.SpyObj<ConfigApiService>;
+        const drafts = TestBed.inject(DraftConfigLoaderService) as jasmine.SpyObj<DraftConfigLoaderService>;
+
+        const pageConfig = await service.loadDebugWorkspacePageConfig();
+        const components = await service.loadDebugWorkspaceComponents();
+        const combos = await service.loadDebugWorkspaceCombos();
+
+        expect(pageConfig).toEqual(pageConfigPayload);
+        expect(components).toEqual(componentsPayload);
+        expect(combos).toEqual(combosPayload);
+        expect(drafts.loadDebugWorkspacePageConfig).toHaveBeenCalled();
+        expect(drafts.loadDebugWorkspaceComponents).toHaveBeenCalled();
+        expect(drafts.loadDebugWorkspaceCombos).toHaveBeenCalled();
+        expect(api.getDebugWorkspacePageConfig).not.toHaveBeenCalled();
+        expect(api.getDebugWorkspaceComponents).not.toHaveBeenCalled();
+        expect(api.getDebugWorkspaceAngoraCombos).not.toHaveBeenCalled();
     });
 });
