@@ -1,10 +1,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ConfigStoreService } from '../../services/config-store.service';
 
 import { GenericLink } from './generic-link';
 
 describe('GenericLink', () => {
   let component: GenericLink;
   let fixture: ComponentFixture<GenericLink>;
+  let store: ConfigStoreService;
 
   beforeEach(async () => {
     window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com&debugWorkspace=true');
@@ -15,6 +17,7 @@ describe('GenericLink', () => {
 
     fixture = TestBed.createComponent(GenericLink);
     component = fixture.componentInstance;
+    store = TestBed.inject(ConfigStoreService);
     fixture.componentRef.setInput('config', { id: 'spec', href: '#home', text: 'Home' });
     fixture.detectChanges();
   });
@@ -171,6 +174,36 @@ describe('GenericLink', () => {
 
     expect(component.target()).toBe('_blank');
     expect(anchor.getAttribute('target')).toBe('_blank');
+  });
+
+  it('should scroll to the configured top position after internal navigation', () => {
+    store.setSiteConfig({
+      version: 1,
+      domain: 'pamelabetancourt.com',
+      routes: [{ path: '/home', pageId: 'home' }, { path: '/servicios', pageId: 'servicios' }],
+      runtime: {
+        navigation: {
+          scrollRestoration: {
+            mode: 'top',
+          },
+        },
+      },
+      site: {} as any,
+    } as any);
+    const scrollTo = spyOn(window, 'scrollTo');
+    fixture.componentRef.setInput('config', {
+      id: 'spec',
+      href: '/servicios',
+      text: 'Servicios',
+    });
+    fixture.detectChanges();
+
+    const anchor = fixture.nativeElement.querySelector('a') as HTMLAnchorElement;
+    anchor.click();
+
+    expect(window.location.pathname).toBe('/servicios');
+    expect(scrollTo).toHaveBeenCalledTimes(1);
+    expect(scrollTo.calls.argsFor(0)[0] as ScrollToOptions).toEqual({ top: 0, left: 0, behavior: 'auto' });
   });
 
   it('should resolve dynamic link metadata without hardcoded component styling assumptions', () => {

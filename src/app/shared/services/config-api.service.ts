@@ -80,18 +80,31 @@ export class ConfigApiService {
         return String(params.get(key) ?? '').trim();
     }
 
+    private hasDebugWorkspaceQueryParam(params: URLSearchParams): boolean {
+        if (!params.has('debugWorkspace')) {
+            return false;
+        }
+
+        const value = this.readSearchParam(params, 'debugWorkspace').toLowerCase();
+        return value === '' || value === 'true';
+    }
+
     private shouldUseLocalDraftApi(path: string): boolean {
         const currentUrl = this.resolveCurrentUrl();
-        if (!currentUrl || !this.isLocalHostname(currentUrl.hostname)) {
+        if (!currentUrl) {
+            return false;
+        }
+
+        if (path.startsWith('debug-workspace/')) {
+            if (this.hasDebugWorkspaceQueryParam(currentUrl.searchParams)) {
+                return true;
+            }
+
             return false;
         }
 
         const hasDraftDomain = this.readSearchParam(currentUrl.searchParams, 'draftDomain').length > 0;
-        if (!hasDraftDomain) {
-            return false;
-        }
-
-        return path === RUNTIME_BUNDLE_ENDPOINT || path.startsWith('debug-workspace/');
+        return this.isLocalHostname(currentUrl.hostname) && hasDraftDomain && path === RUNTIME_BUNDLE_ENDPOINT;
     }
 
     private buildLocalDraftApiUrl(path: string, params: Record<string, string | undefined>): string | null {

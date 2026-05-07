@@ -1,5 +1,6 @@
 import { REQUEST } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { environment } from '@/environments/environment';
 import { of } from 'rxjs';
 import { ConfigSourceService } from './config-source.service';
 import { DomainResolverService } from './domain-resolver.service';
@@ -8,6 +9,9 @@ import { DraftRuntimeService } from './draft-runtime.service';
 
 describe('DraftRuntimeService', () => {
   const originalUrl = window.location.pathname + window.location.search + window.location.hash;
+  const originalProduction = environment.production;
+  const originalDevelopment = environment.development;
+  const originalDraftsEnabled = environment.drafts.enabled;
 
   const configure = (requestUrl: string, siteConfig: unknown = null, options?: { browserMode?: boolean }) => {
     const nextUrl = new URL(requestUrl);
@@ -49,6 +53,9 @@ describe('DraftRuntimeService', () => {
   };
 
   afterEach(() => {
+    (environment as { production: boolean; development: boolean }).production = originalProduction;
+    (environment as { production: boolean; development: boolean }).development = originalDevelopment;
+    (environment.drafts as { enabled: boolean }).enabled = originalDraftsEnabled;
     window.history.replaceState({}, '', originalUrl);
     TestBed.resetTestingModule();
   });
@@ -202,6 +209,61 @@ describe('DraftRuntimeService', () => {
 
     expect(service.hasResolvedActiveDraftIdentity()).toBeFalse();
     expect(service.hasDebugWorkspaceEnabled()).toBeTrue();
+  });
+
+  it('auto-enables the debug workspace on localhost when a draft identity is resolved', () => {
+    const { service } = configure(
+      'http://127.0.0.1:4200/servicios?draftDomain=pamelabetancourt.com&draftPageId=servicios',
+      null,
+      { browserMode: true },
+    );
+
+    expect(service.hasResolvedActiveDraftIdentity()).toBeTrue();
+    expect(service.hasDebugWorkspaceEnabled()).toBeTrue();
+  });
+
+  it('keeps the debug workspace hidden on non-local production hosts without the query flag', () => {
+    (environment as { production: boolean; development: boolean }).production = true;
+    (environment as { production: boolean; development: boolean }).development = false;
+
+    const { service } = configure(
+      'https://pamelabetancourt.zoolandingpage.com.mx/servicios?draftDomain=pamelabetancourt.com',
+      null,
+    );
+
+    expect(service.hasDebugWorkspaceEnabled()).toBeFalse();
+  });
+
+  it('allows the debug workspace on non-local hosts when debugWorkspace is present', () => {
+    (environment as { production: boolean; development: boolean }).production = true;
+    (environment as { production: boolean; development: boolean }).development = false;
+
+    const { service } = configure(
+      'https://pamelabetancourt.zoolandingpage.com.mx/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true',
+      null,
+    );
+
+    expect(service.hasDebugWorkspaceEnabled()).toBeTrue();
+  });
+
+  it('hides draft options and suppresses draft selection on non-local debug workspaces', () => {
+    (environment as { production: boolean; development: boolean }).production = true;
+    (environment as { production: boolean; development: boolean }).development = false;
+
+    const { service } = configure(
+      'https://test.zoolandingpage.com.mx/?draftDomain=pamelabetancourt.com&draftPageId=home&debugWorkspace=true',
+      null,
+    );
+
+    service.availableDrafts.set([
+      { domain: 'pamelabetancourt.com', pageId: 'home' },
+      { domain: 'music.lynxpardelle.com', pageId: 'default' },
+    ]);
+    service.selectDraftByKey('music.lynxpardelle.com::default');
+
+    expect(service.canShowDraftRegistry()).toBeFalse();
+    expect(service.draftOptions()).toEqual([]);
+    expect(window.location.pathname + window.location.search).toBe('/?draftDomain=pamelabetancourt.com&draftPageId=home&debugWorkspace=true');
   });
 
   it('recovers malformed encoded draftDomain keys on the client and normalizes the URL', async () => {

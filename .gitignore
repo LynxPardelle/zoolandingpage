@@ -62,5 +62,10 @@ Thumbs.db
 # Local drafts (API emulation)
 /drafts/*
 !/drafts/.gitignore
+!/drafts/_debug/
+!/drafts/_debug/debug-workspace/
+!/drafts/_debug/debug-workspace/page-config.json
+!/drafts/_debug/debug-workspace/components.json
+!/drafts/_debug/debug-workspace/angora-combos.json
 /devonly/
 /reports/

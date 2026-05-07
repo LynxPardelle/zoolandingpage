@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "pageId": "default",
+  "domain": "debug-workspace",
+  "combos": {
+    "debugBtnBase": [
+      "ank-px-VAL1DEF1_5remDEF",
+      "ank-py-VAL2DEF0_75remDEF",
+      "ank-borderRadius-VAL3DEF0_5remDEF",
+      "ank-fontWeight-VAL4DEF550DEF",
+      "ank-transformHover-translateYSDVAL5DEFMIN1pxDEFED",
+      "ank-gap-VAL6DEF0_5remDEF",
+      "ank-jc-VAL7DEFcenterDEF",
+      "ank-outlineColor-VAL8DEFtransparentDEF",
+      "ank-fs-VAL9DEF1_5remDEF",
+      "ank-d-flex",
+      "ank-alignItems-center",
+      "ank-textDecoration-none",
+      "ank-transition-all__200ms",
+      "ank-position-relative"
+    ],
+    "debugBtnTypePrimary": [
+      "ank-bg-VAL1DEFbgColorDEF",
+      "ank-color-VAL2DEFtextColorDEF",
+      "ank-border-VAL3DEF2pxDEF__VAL4DEFsolidDEF__VAL1DEFnoneDEF"
+    ]
+  }
+}

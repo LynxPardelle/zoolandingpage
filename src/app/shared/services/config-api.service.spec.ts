@@ -181,6 +181,48 @@ describe('ConfigApiService', () => {
         expect(String(http.get.calls.mostRecent().args[0])).toContain('http://localhost:4314/debug-workspace/page-config');
     });
 
+    it('uses same-origin debug workspace endpoints on non-local hosts only when explicitly enabled', async () => {
+        (environment as { configApiUrl: string }).configApiUrl = 'https://api.zoolandingpage.com.mx';
+
+        const http = jasmine.createSpyObj<HttpClient>('HttpClient', ['get']);
+        http.get.and.returnValue(of(runtimeBundlePayload.pageConfig));
+
+        TestBed.configureTestingModule({
+            providers: [
+                ConfigApiService,
+                { provide: HttpClient, useValue: http },
+                { provide: REQUEST, useValue: { url: 'https://test.zoolandingpage.com.mx/?debugWorkspace=true' } },
+            ],
+        });
+
+        const service = TestBed.inject(ConfigApiService);
+        await service.getDebugWorkspacePageConfig();
+
+        expect(http.get).toHaveBeenCalledTimes(1);
+        expect(String(http.get.calls.mostRecent().args[0])).toContain('https://test.zoolandingpage.com.mx/debug-workspace/page-config');
+    });
+
+    it('uses the configured API for non-local debug workspace endpoints without the debug query flag', async () => {
+        (environment as { configApiUrl: string }).configApiUrl = 'https://api.zoolandingpage.com.mx';
+
+        const http = jasmine.createSpyObj<HttpClient>('HttpClient', ['get']);
+        http.get.and.returnValue(of(runtimeBundlePayload.pageConfig));
+
+        TestBed.configureTestingModule({
+            providers: [
+                ConfigApiService,
+                { provide: HttpClient, useValue: http },
+                { provide: REQUEST, useValue: { url: 'https://test.zoolandingpage.com.mx/' } },
+            ],
+        });
+
+        const service = TestBed.inject(ConfigApiService);
+        await service.getDebugWorkspacePageConfig();
+
+        expect(http.get).toHaveBeenCalledTimes(1);
+        expect(String(http.get.calls.mostRecent().args[0])).toContain('https://api.zoolandingpage.com.mx/debug-workspace/page-config');
+    });
+
     it('reuses a cached SSR runtime bundle for repeated server requests', async () => {
         (environment as { configApiUrl: string }).configApiUrl = 'https://api.zoolandingpage.com.mx';
         (environment as { configApiServerFallbackUrl?: string }).configApiServerFallbackUrl =
