@@ -9,10 +9,11 @@ import type {
 } from '@/app/shared/types/config-payloads.types';
 import { environment } from '@/environments/environment';
 import { HttpClient } from '@angular/common/http';
-import { inject, Injectable, REQUEST } from '@angular/core';
+import { inject, Injectable, makeStateKey, REQUEST, TransferState } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 const RUNTIME_BUNDLE_ENDPOINT = 'runtime-bundle';
+const RUNTIME_BUNDLE_TRANSFER_STATE_PREFIX = 'zlp-runtime-bundle:';
 const SERVER_RUNTIME_BUNDLE_CACHE_TTL_MS = 60_000;
 
 type TRuntimeBundleCacheEntry = {
@@ -30,6 +31,7 @@ export function clearRuntimeBundleServerCacheForTesting(): void {
 export class ConfigApiService {
     private readonly http = inject(HttpClient);
     private readonly request = inject(REQUEST, { optional: true });
+    private readonly transferState = inject(TransferState, { optional: true });
 
     private resolveOrigin(): string {
         const requestUrl = String(this.request?.url ?? '').trim();
@@ -46,6 +48,58 @@ export class ConfigApiService {
         }
 
         return 'http://localhost';
+    }
+
+    private resolveCurrentUrl(): URL | null {
+        const requestUrl = String(this.request?.url ?? '').trim();
+        if (requestUrl) {
+            try {
+                return new URL(requestUrl, 'http://localhost');
+            } catch {
+                return null;
+            }
+        }
+
+        if (typeof window !== 'undefined' && window.location?.href) {
+            try {
+                return new URL(window.location.href);
+            } catch {
+                return null;
+            }
+        }
+
+        return null;
+    }
+
+    private isLocalHostname(hostname: string): boolean {
+        const normalized = String(hostname ?? '').trim().toLowerCase();
+        return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1';
+    }
+
+    private readSearchParam(params: URLSearchParams, key: string): string {
+        return String(params.get(key) ?? '').trim();
+    }
+
+    private shouldUseLocalDraftApi(path: string): boolean {
+        const currentUrl = this.resolveCurrentUrl();
+        if (!currentUrl || !this.isLocalHostname(currentUrl.hostname)) {
+            return false;
+        }
+
+        const hasDraftDomain = this.readSearchParam(currentUrl.searchParams, 'draftDomain').length > 0;
+        if (!hasDraftDomain) {
+            return false;
+        }
+
+        return path === RUNTIME_BUNDLE_ENDPOINT || path.startsWith('debug-workspace/');
+    }
+
+    private buildLocalDraftApiUrl(path: string, params: Record<string, string | undefined>): string | null {
+        if (!this.shouldUseLocalDraftApi(path)) {
+            return null;
+        }
+
+        return this.buildUrlForBase(this.resolveOrigin(), path, params);
     }
 
     private buildUrlForBase(baseUrl: string, path: string, params: Record<string, string | undefined>): string {
@@ -91,21 +145,11 @@ export class ConfigApiService {
     }
 
     private async fetchJson<T>(url: string): Promise<T> {
-        const response = await fetch(url, {
-            headers: {
-                Accept: 'application/json',
-            },
-        });
-
-        if (!response.ok) {
-            throw new Error(`Failed to fetch ${ url }: ${ response.status } ${ response.statusText }`);
-        }
-
-        return await response.json() as T;
+        return await firstValueFrom(this.http.get<T>(url));
     }
 
     private resolveRuntimeCacheKey(path: string, params: Record<string, string | undefined>): string | null {
-        if (!this.isServerRequest() || path !== RUNTIME_BUNDLE_ENDPOINT) {
+        if (path !== RUNTIME_BUNDLE_ENDPOINT) {
             return null;
         }
 
@@ -115,6 +159,11 @@ export class ConfigApiService {
     private readCachedRuntimeBundle<T>(cacheKey: string | null): T | null {
         if (!cacheKey) {
             return null;
+        }
+
+        const transferred = this.readTransferredRuntimeBundle<T>(cacheKey);
+        if (transferred) {
+            return transferred;
         }
 
         const cached = serverRuntimeBundleCache.get(cacheKey);
@@ -135,21 +184,63 @@ export class ConfigApiService {
             return;
         }
 
+        this.writeTransferredRuntimeBundle(cacheKey, payload);
+
         serverRuntimeBundleCache.set(cacheKey, {
             expiresAt: Date.now() + SERVER_RUNTIME_BUNDLE_CACHE_TTL_MS,
             payload: payload as TRuntimeBundlePayload,
         });
     }
 
+    private transferStateKey(cacheKey: string) {
+        return makeStateKey<TRuntimeBundlePayload>(`${ RUNTIME_BUNDLE_TRANSFER_STATE_PREFIX }${ cacheKey }`);
+    }
+
+    private readTransferredRuntimeBundle<T>(cacheKey: string): T | null {
+        if (this.isServerRequest() || !this.transferState) {
+            return null;
+        }
+
+        const stateKey = this.transferStateKey(cacheKey);
+        if (!this.transferState.hasKey(stateKey)) {
+            return null;
+        }
+
+        const payload = this.transferState.get<TRuntimeBundlePayload | null>(stateKey, null);
+        this.transferState.remove(stateKey);
+        return payload as T | null;
+    }
+
+    private writeTransferredRuntimeBundle<T>(cacheKey: string, payload: T): void {
+        if (!this.isServerRequest() || !this.transferState) {
+            return;
+        }
+
+        this.transferState.set(this.transferStateKey(cacheKey), payload as TRuntimeBundlePayload);
+    }
+
     private async getJson<T>(path: string, params: Record<string, string | undefined>): Promise<T> {
-        const url = this.buildUrl(path, params);
-        const fallbackUrl = this.resolveRuntimeFallbackUrl(path, params);
-        const runtimeCacheKey = this.resolveRuntimeCacheKey(path, params);
+        const localDraftUrl = this.buildLocalDraftApiUrl(path, params);
+        const runtimeCacheKey = path === RUNTIME_BUNDLE_ENDPOINT
+            ? localDraftUrl ?? this.resolveRuntimeCacheKey(path, params)
+            : null;
         const cachedRuntimeBundle = this.readCachedRuntimeBundle<T>(runtimeCacheKey);
         if (cachedRuntimeBundle) {
             return cachedRuntimeBundle;
         }
 
+        if (localDraftUrl) {
+            try {
+                const payload = await this.fetchJson<T>(localDraftUrl);
+                this.writeCachedRuntimeBundle(runtimeCacheKey, payload);
+                return payload;
+            } catch {
+                // Fall through to the configured API endpoints when the local draft server cannot serve the payload.
+            }
+        }
+
+        const url = this.buildUrl(path, params);
+        const fallbackUrl = this.resolveRuntimeFallbackUrl(path, params);
         if (fallbackUrl) {
             try {
                 const payload = await this.fetchJson<T>(fallbackUrl);

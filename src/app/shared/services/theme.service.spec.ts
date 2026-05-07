@@ -1,5 +1,7 @@
 import { TestBed } from '@angular/core/testing';
+import { PLATFORM_ID } from '@angular/core';
 import { NgxAngoraService } from 'ngx-angora-css';
+import { DomainResolverService } from './domain-resolver.service';
 import { ThemeService } from './theme.service';
 import { VariableStoreService } from './variable-store.service';
 
@@ -8,6 +10,7 @@ describe('ThemeService', () => {
     let variables: VariableStoreService;
     let angora: jasmine.SpyObj<NgxAngoraService>;
     let setItemSpy: jasmine.Spy;
+    let storageKey = 'app:theme';
 
     const latestAppliedColors = (): Record<string, string> => {
         if (angora.updateColors.calls.any()) {
@@ -72,7 +75,8 @@ describe('ThemeService', () => {
 
     const setup = (storedTheme: string | null = null) => {
         angora = jasmine.createSpyObj<NgxAngoraService>('NgxAngoraService', ['pushColors', 'updateColors']);
-        spyOn(window.localStorage, 'getItem').and.returnValue(storedTheme);
+        storageKey = 'app:theme';
+        spyOn(window.localStorage, 'getItem').and.callFake((key: string) => (key === storageKey ? storedTheme : null));
         setItemSpy = spyOn(window.localStorage, 'setItem');
 
         TestBed.configureTestingModule({
@@ -80,6 +84,7 @@ describe('ThemeService', () => {
                 ThemeService,
                 VariableStoreService,
                 { provide: NgxAngoraService, useValue: angora },
+                { provide: DomainResolverService, useValue: { resolveStorageKey: () => storageKey } },
             ],
         });
 
@@ -89,6 +94,7 @@ describe('ThemeService', () => {
 
     beforeEach(() => {
         TestBed.resetTestingModule();
+        document.documentElement.removeAttribute('style');
     });
 
     it('applies draft palettes and default mode when there is no saved preference', () => {
@@ -117,5 +123,73 @@ describe('ThemeService', () => {
         const applied = latestAppliedColors();
         expect(applied['bgColor']).toBe('#f9f5ef');
         expect(applied['altBgColor']).toBe('#090909');
+    });
+
+    it('syncs active theme colors to CSS variables used by critical utility fallbacks', () => {
+        setup();
+        variables.setPayload(createThemePayload('dark') as any);
+        TestBed.flushEffects();
+
+        const rootStyle = document.documentElement.style;
+        expect(rootStyle.getPropertyValue('--ank-bgColor')).toBe('#090909');
+        expect(rootStyle.getPropertyValue('--ank-secondaryBgColor')).toBe('#17110d');
+        expect(rootStyle.getPropertyValue('--ank-secondaryTextColor')).toBe('#f5efe7');
+        expect(rootStyle.getPropertyValue('--ank-accentColor')).toBe('#c7a900');
+    });
+
+    it('syncs CSS variables during server rendering without calling Angora DOM APIs', () => {
+        spyOn(window.localStorage, 'getItem').and.returnValue(null);
+        setItemSpy = spyOn(window.localStorage, 'setItem');
+        angora = jasmine.createSpyObj<NgxAngoraService>('NgxAngoraService', ['pushColors', 'updateColors']);
+
+        TestBed.configureTestingModule({
+            providers: [
+                ThemeService,
+                VariableStoreService,
+                { provide: PLATFORM_ID, useValue: 'server' },
+                { provide: NgxAngoraService, useValue: angora },
+                { provide: DomainResolverService, useValue: { resolveStorageKey: () => storageKey } },
+            ],
+        });
+
+        variables = TestBed.inject(VariableStoreService);
+        service = TestBed.inject(ThemeService);
+        variables.setPayload(createThemePayload('dark') as any);
+        TestBed.flushEffects();
+
+        const rootStyle = document.documentElement.style;
+        expect(rootStyle.getPropertyValue('--ank-bgColor')).toBe('#090909');
+        expect(rootStyle.getPropertyValue('--ank-altBgColor')).toBe('#f9f5ef');
+        expect(angora.pushColors).not.toHaveBeenCalled();
+        expect(angora.updateColors).not.toHaveBeenCalled();
+        expect(setItemSpy).not.toHaveBeenCalled();
+        expect(service.getCurrentTheme()).toBe('dark');
+    });
+
+    it('re-reads saved preference after the draft storage key is available', () => {
+        spyOn(window.localStorage, 'getItem').and.callFake((key: string) => {
+            return key === 'app:zoo-landing-theme' ? 'dark' : null;
+        });
+        setItemSpy = spyOn(window.localStorage, 'setItem');
+        angora = jasmine.createSpyObj<NgxAngoraService>('NgxAngoraService', ['pushColors', 'updateColors']);
+
+        TestBed.configureTestingModule({
+            providers: [
+                ThemeService,
+                VariableStoreService,
+                { provide: NgxAngoraService, useValue: angora },
+                { provide: DomainResolverService, useValue: { resolveStorageKey: () => storageKey } },
+            ],
+        });
+
+        variables = TestBed.inject(VariableStoreService);
+        service = TestBed.inject(ThemeService);
+        storageKey = 'app:zoo-landing-theme';
+        variables.setPayload(createThemePayload('light') as any);
+        TestBed.flushEffects();
+
+        expect(service.getCurrentTheme()).toBe('dark');
+        expect(latestAppliedColors()['bgColor']).toBe('#090909');
+        expect(setItemSpy).not.toHaveBeenCalled();
     });
 });

@@ -14,6 +14,7 @@ import type {
     TDraftAppIdentityVariableConfig,
     TDraftContactVariableConfig,
     TDraftFeatureRuntimeConfig,
+    TDraftLoadingCurtainUiConfig,
     TDraftLanguageDefinition,
     TDraftLocalStorageRuntimeConfig,
     TDraftLocalStorageSlot,
@@ -294,6 +295,8 @@ const isDraftBrandVariableConfig = (value: unknown): boolean => {
 
 const isDraftHeroAssetsVariableConfig = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
+    if (value['logoUrl'] !== undefined && typeof value['logoUrl'] !== 'string') return false;
+    if (value['logoAlt'] !== undefined && typeof value['logoAlt'] !== 'string') return false;
     if (value['heroImageUrl'] !== undefined && typeof value['heroImageUrl'] !== 'string') return false;
     if (value['heroImageAlt'] !== undefined && typeof value['heroImageAlt'] !== 'string') return false;
     if (value['heroBackdropUrl'] !== undefined && typeof value['heroBackdropUrl'] !== 'string') return false;
@@ -393,6 +396,29 @@ const isDraftSiteRuntimeConfig = (value: unknown): value is TDraftSiteRuntimeCon
     if (value['localStorage'] !== undefined && !isDraftLocalStorageRuntimeConfig(value['localStorage'])) return false;
     if (value['features'] !== undefined && !isDraftFeatureRuntimeConfig(value['features'])) return false;
     if (value['analytics'] !== undefined && !isDraftAnalyticsRuntimeConfig(value['analytics'])) return false;
+    return true;
+};
+
+const isDraftLoadingCurtainUiConfig = (value: unknown): value is TDraftLoadingCurtainUiConfig => {
+    if (!isRecord(value)) return false;
+
+    const stringFields = [
+        'title',
+        'subtitle',
+        'logoUrl',
+        'background',
+        'foreground',
+        'accent',
+    ] as const;
+
+    if (stringFields.some((field) => value[field] !== undefined && typeof value[field] !== 'string')) {
+        return false;
+    }
+
+    if (value['enabled'] !== undefined && typeof value['enabled'] !== 'boolean') return false;
+    if (value['minVisibleMs'] !== undefined && (typeof value['minVisibleMs'] !== 'number' || !Number.isFinite(value['minVisibleMs']))) return false;
+    if (value['exitDurationMs'] !== undefined && (typeof value['exitDurationMs'] !== 'number' || !Number.isFinite(value['exitDurationMs']))) return false;
+
     return true;
 };
 
@@ -1048,6 +1074,9 @@ const isDraftUiVariableConfig = (value: unknown): value is TDraftUiVariableConfi
     const toast = value['toast'];
     if (toast !== undefined && !isDraftToastUiConfig(toast)) return false;
 
+    const loadingCurtain = value['loadingCurtain'];
+    if (loadingCurtain !== undefined && !isDraftLoadingCurtainUiConfig(loadingCurtain)) return false;
+
     const languageOptions = value['languageOptions'];
     if (languageOptions !== undefined && !Array.isArray(languageOptions)) return false;
 
@@ -1275,7 +1304,7 @@ export const isRuntimeBundlePayload = (value: unknown): value is TRuntimeBundleP
     if (value['versionId'] !== undefined && typeof value['versionId'] !== 'string') return false;
     if (value['lang'] !== undefined && typeof value['lang'] !== 'string') return false;
     if (value['generatedAt'] !== undefined && typeof value['generatedAt'] !== 'string') return false;
-    if (value['route'] !== undefined && !isDraftSiteRouteEntry(value['route'])) return false;
+    if (value['route'] !== undefined && value['route'] !== null && !isDraftSiteRouteEntry(value['route'])) return false;
     if (value['lifecycle'] !== undefined && !isSiteLifecycleConfig(value['lifecycle'])) return false;
     if (!isDraftSiteConfigPayload(value['siteConfig'])) return false;
     if (!isPageConfigPayload(value['pageConfig'])) return false;

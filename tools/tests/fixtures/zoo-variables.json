@@ -1,0 +1,10 @@
+{
+  "variables": {
+    "ui": {
+      "loadingCurtain": {
+        "title": "Zoo Landing Page",
+        "subtitle": "zoolandingpage.com.mx"
+      }
+    }
+  }
+}

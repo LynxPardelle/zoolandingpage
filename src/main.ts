@@ -1,7 +1,12 @@
-const CLIENT_BOOTSTRAP_DELAY_MS = 3000;
+import { CLIENT_BOOTSTRAP_DELAY_MS, CLIENT_BOOTSTRAP_READY_EVENT } from './app/core/constants/client-bootstrap.constants';
+import { environment } from './environments/environment';
 
+const BOOT_CURTAIN_ID = 'zlp-boot-curtain';
+const BOOT_CURTAIN_EXIT_CLASS = 'zlp-boot-curtain--leaving';
+const BOOT_CURTAIN_EXIT_DURATION_MS = 420;
 let bootstrapPromise: Promise<void> | null = null;
 let bootstrapTimer: number | null = null;
+let bootCurtainTimer: number | null = null;
 
 function bootstrapClient(): Promise<void> {
     if (!bootstrapPromise) {
@@ -31,24 +36,58 @@ function clearBootstrapTimer(): void {
     }
 }
 
+function releaseBootCurtainForStaticSsrContent(): void {
+    const curtain = document.getElementById(BOOT_CURTAIN_ID);
+    if (!curtain || curtain.classList.contains(BOOT_CURTAIN_EXIT_CLASS)) {
+        return;
+    }
+
+    const appRoot = document.querySelector('app-root');
+    if (!appRoot || !String(appRoot.textContent ?? '').trim()) {
+        return;
+    }
+
+    curtain.classList.add(BOOT_CURTAIN_EXIT_CLASS);
+    curtain.setAttribute('aria-busy', 'false');
+    curtain.setAttribute('aria-hidden', 'true');
+
+    if (bootCurtainTimer !== null) {
+        window.clearTimeout(bootCurtainTimer);
+    }
+
+    bootCurtainTimer = window.setTimeout(() => {
+        curtain.remove();
+        bootCurtainTimer = null;
+    }, BOOT_CURTAIN_EXIT_DURATION_MS);
+}
+
 function startBootstrap(): void {
     clearBootstrapTimer();
     window.removeEventListener('pointerdown', startBootstrap, true);
     window.removeEventListener('keydown', startBootstrap, true);
-    window.removeEventListener('load', scheduleBootstrapAfterLoad);
+    window.removeEventListener(CLIENT_BOOTSTRAP_READY_EVENT, scheduleBootstrapAfterDocumentReady);
     void bootstrapClient();
 }
 
-function scheduleBootstrapAfterLoad(): void {
+function scheduleBootstrapAfterDocumentReady(): void {
     clearBootstrapTimer();
-    bootstrapTimer = window.setTimeout(startBootstrap, CLIENT_BOOTSTRAP_DELAY_MS);
+    releaseBootCurtainForStaticSsrContent();
+    bootstrapTimer = window.setTimeout(startBootstrap, environment.production ? CLIENT_BOOTSTRAP_DELAY_MS : 0);
+}
+
+function hasBootstrapReadyEventFired(): boolean {
+    if (CLIENT_BOOTSTRAP_READY_EVENT === 'load') {
+        return document.readyState === 'complete';
+    }
+
+    return document.readyState !== 'loading';
 }
 
 window.addEventListener('pointerdown', startBootstrap, { capture: true, once: true, passive: true });
 window.addEventListener('keydown', startBootstrap, { capture: true, once: true });
 
-if (document.readyState === 'complete') {
-    scheduleBootstrapAfterLoad();
+if (hasBootstrapReadyEventFired()) {
+    scheduleBootstrapAfterDocumentReady();
 } else {
-    window.addEventListener('load', scheduleBootstrapAfterLoad, { once: true });
+    window.addEventListener(CLIENT_BOOTSTRAP_READY_EVENT, scheduleBootstrapAfterDocumentReady, { once: true });
 }

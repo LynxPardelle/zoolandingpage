@@ -1,7 +1,7 @@
 import type { TRuntimeBundlePayload } from '@/app/shared/types/config-payloads.types';
 import { environment } from '@/environments/environment';
 import { HttpClient } from '@angular/common/http';
-import { REQUEST } from '@angular/core';
+import { makeStateKey, REQUEST, TransferState } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { clearRuntimeBundleServerCacheForTesting, ConfigApiService } from './config-api.service';
@@ -106,7 +106,7 @@ describe('ConfigApiService', () => {
         TestBed.resetTestingModule();
     });
 
-    it('uses the raw runtime endpoint first on SSR when a server fallback is configured', async () => {
+    it('uses the runtime fallback endpoint through HttpClient first on SSR so hydration can reuse it', async () => {
         (environment as { configApiUrl: string }).configApiUrl = 'https://api.zoolandingpage.com.mx';
         (environment as { configApiServerFallbackUrl?: string }).configApiServerFallbackUrl =
             'https://y84vk0v44l.execute-api.us-east-1.amazonaws.com/Prod';
@@ -114,74 +114,7 @@ describe('ConfigApiService', () => {
         const http = jasmine.createSpyObj<HttpClient>('HttpClient', ['get']);
         http.get.and.returnValue(of(runtimeBundlePayload));
 
-        const fetchSpy = spyOn(globalThis, 'fetch' as never).and.resolveTo(new Response(
-            JSON.stringify(runtimeBundlePayload),
-            {
-                status: 200,
-                headers: { 'content-type': 'application/json' },
-            },
-        ) as never);
-
-        TestBed.configureTestingModule({
-            providers: [
-                ConfigApiService,
-                { provide: HttpClient, useValue: http },
-                { provide: REQUEST, useValue: { url: 'https://test.zoolandingpage.com.mx/' } },
-            ],
-        });
-
-        const service = TestBed.inject(ConfigApiService);
-        const payload = await service.getRuntimeBundle('test.zoolandingpage.com.mx', { path: '/', lang: 'en' });
-
-        expect(payload.domain).toBe('zoolandingpage.com.mx');
-        expect(http.get).not.toHaveBeenCalled();
-        expect(fetchSpy).toHaveBeenCalledTimes(1);
-        expect(String(fetchSpy.calls.mostRecent().args[0])).toContain('https://y84vk0v44l.execute-api.us-east-1.amazonaws.com/Prod/runtime-bundle');
-        expect(String(fetchSpy.calls.mostRecent().args[0])).toContain('domain=test.zoolandingpage.com.mx');
-    });
-
-    it('reuses a cached SSR runtime bundle for repeated server requests', async () => {
-        (environment as { configApiUrl: string }).configApiUrl = 'https://api.zoolandingpage.com.mx';
-        (environment as { configApiServerFallbackUrl?: string }).configApiServerFallbackUrl =
-            'https://y84vk0v44l.execute-api.us-east-1.amazonaws.com/Prod';
-
-        const http = jasmine.createSpyObj<HttpClient>('HttpClient', ['get']);
-        http.get.and.returnValue(of(runtimeBundlePayload));
-
-        const fetchSpy = spyOn(globalThis, 'fetch' as never).and.resolveTo(new Response(
-            JSON.stringify(runtimeBundlePayload),
-            {
-                status: 200,
-                headers: { 'content-type': 'application/json' },
-            },
-        ) as never);
-
-        TestBed.configureTestingModule({
-            providers: [
-                ConfigApiService,
-                { provide: HttpClient, useValue: http },
-                { provide: REQUEST, useValue: { url: 'https://test.zoolandingpage.com.mx/' } },
-            ],
-        });
-
-        const service = TestBed.inject(ConfigApiService);
-
-        await service.getRuntimeBundle('test.zoolandingpage.com.mx', { path: '/', lang: 'en' });
-        await service.getRuntimeBundle('test.zoolandingpage.com.mx', { path: '/', lang: 'en' });
-
-        expect(fetchSpy).toHaveBeenCalledTimes(1);
-        expect(http.get).not.toHaveBeenCalled();
-    });
-
-    it('falls back to the primary runtime endpoint if the raw server endpoint fails', async () => {
-        (environment as { configApiUrl: string }).configApiUrl = 'https://api.zoolandingpage.com.mx';
-        (environment as { configApiServerFallbackUrl?: string }).configApiServerFallbackUrl =
-            'https://y84vk0v44l.execute-api.us-east-1.amazonaws.com/Prod';
-
-        const http = jasmine.createSpyObj<HttpClient>('HttpClient', ['get']);
-        http.get.and.returnValue(of(runtimeBundlePayload));
-
-        const fetchSpy = spyOn(globalThis, 'fetch' as never).and.rejectWith(new Error('raw endpoint unavailable') as never);
+        const fetchSpy = spyOn(globalThis, 'fetch' as never);
 
         TestBed.configureTestingModule({
             providers: [
@@ -196,11 +129,117 @@ describe('ConfigApiService', () => {
 
         expect(payload.domain).toBe('zoolandingpage.com.mx');
         expect(http.get).toHaveBeenCalledTimes(1);
-        expect(String(http.get.calls.mostRecent().args[0])).toContain('https://api.zoolandingpage.com.mx/runtime-bundle');
-        expect(fetchSpy).toHaveBeenCalledTimes(1);
+        expect(fetchSpy).not.toHaveBeenCalled();
+        expect(String(http.get.calls.mostRecent().args[0])).toContain('https://y84vk0v44l.execute-api.us-east-1.amazonaws.com/Prod/runtime-bundle');
+        expect(String(http.get.calls.mostRecent().args[0])).toContain('domain=test.zoolandingpage.com.mx');
     });
 
-    it('uses the raw runtime endpoint first in the browser when a runtime fallback is configured', async () => {
+    it('uses local draft runtime endpoints first for localhost SSR draft previews', async () => {
+        (environment as { configApiUrl: string }).configApiUrl = 'https://api.zoolandingpage.com.mx';
+        (environment as { configApiServerFallbackUrl?: string }).configApiServerFallbackUrl =
+            'https://y84vk0v44l.execute-api.us-east-1.amazonaws.com/Prod';
+
+        const http = jasmine.createSpyObj<HttpClient>('HttpClient', ['get']);
+        http.get.and.returnValue(of(runtimeBundlePayload));
+
+        TestBed.configureTestingModule({
+            providers: [
+                ConfigApiService,
+                { provide: HttpClient, useValue: http },
+                { provide: REQUEST, useValue: { url: 'http://localhost:4314/?draftDomain=zoolandingpage.com.mx' } },
+            ],
+        });
+
+        const service = TestBed.inject(ConfigApiService);
+        const payload = await service.getRuntimeBundle('zoolandingpage.com.mx', { path: '/', lang: 'es' });
+
+        expect(payload.domain).toBe('zoolandingpage.com.mx');
+        expect(http.get).toHaveBeenCalledTimes(1);
+        const requestUrl = String(http.get.calls.mostRecent().args[0]);
+        expect(requestUrl).toContain('http://localhost:4314/runtime-bundle');
+        expect(requestUrl).toContain('domain=zoolandingpage.com.mx');
+    });
+
+    it('uses local debug workspace endpoints first for localhost SSR draft previews', async () => {
+        (environment as { configApiUrl: string }).configApiUrl = 'https://api.zoolandingpage.com.mx';
+
+        const http = jasmine.createSpyObj<HttpClient>('HttpClient', ['get']);
+        http.get.and.returnValue(of(runtimeBundlePayload.pageConfig));
+
+        TestBed.configureTestingModule({
+            providers: [
+                ConfigApiService,
+                { provide: HttpClient, useValue: http },
+                { provide: REQUEST, useValue: { url: 'http://localhost:4314/?debugWorkspace=true&draftDomain=zoolandingpage.com.mx' } },
+            ],
+        });
+
+        const service = TestBed.inject(ConfigApiService);
+        await service.getDebugWorkspacePageConfig();
+
+        expect(http.get).toHaveBeenCalledTimes(1);
+        expect(String(http.get.calls.mostRecent().args[0])).toContain('http://localhost:4314/debug-workspace/page-config');
+    });
+
+    it('reuses a cached SSR runtime bundle for repeated server requests', async () => {
+        (environment as { configApiUrl: string }).configApiUrl = 'https://api.zoolandingpage.com.mx';
+        (environment as { configApiServerFallbackUrl?: string }).configApiServerFallbackUrl =
+            'https://y84vk0v44l.execute-api.us-east-1.amazonaws.com/Prod';
+
+        const http = jasmine.createSpyObj<HttpClient>('HttpClient', ['get']);
+        http.get.and.returnValue(of(runtimeBundlePayload));
+
+        const fetchSpy = spyOn(globalThis, 'fetch' as never);
+
+        TestBed.configureTestingModule({
+            providers: [
+                ConfigApiService,
+                { provide: HttpClient, useValue: http },
+                { provide: REQUEST, useValue: { url: 'https://test.zoolandingpage.com.mx/' } },
+            ],
+        });
+
+        const service = TestBed.inject(ConfigApiService);
+
+        await service.getRuntimeBundle('test.zoolandingpage.com.mx', { path: '/', lang: 'en' });
+        await service.getRuntimeBundle('test.zoolandingpage.com.mx', { path: '/', lang: 'en' });
+
+        expect(fetchSpy).not.toHaveBeenCalled();
+        expect(http.get).toHaveBeenCalledTimes(1);
+    });
+
+    it('falls back to the primary runtime endpoint if the raw server endpoint fails', async () => {
+        (environment as { configApiUrl: string }).configApiUrl = 'https://api.zoolandingpage.com.mx';
+        (environment as { configApiServerFallbackUrl?: string }).configApiServerFallbackUrl =
+            'https://y84vk0v44l.execute-api.us-east-1.amazonaws.com/Prod';
+
+        const http = jasmine.createSpyObj<HttpClient>('HttpClient', ['get']);
+        http.get.and.returnValues(
+            throwError(() => new Error('runtime fallback unavailable')),
+            of(runtimeBundlePayload),
+        );
+
+        const fetchSpy = spyOn(globalThis, 'fetch' as never);
+
+        TestBed.configureTestingModule({
+            providers: [
+                ConfigApiService,
+                { provide: HttpClient, useValue: http },
+                { provide: REQUEST, useValue: { url: 'https://test.zoolandingpage.com.mx/' } },
+            ],
+        });
+
+        const service = TestBed.inject(ConfigApiService);
+        const payload = await service.getRuntimeBundle('test.zoolandingpage.com.mx', { path: '/', lang: 'en' });
+
+        expect(payload.domain).toBe('zoolandingpage.com.mx');
+        expect(http.get).toHaveBeenCalledTimes(2);
+        expect(String(http.get.calls.argsFor(0)[0])).toContain('https://y84vk0v44l.execute-api.us-east-1.amazonaws.com/Prod/runtime-bundle');
+        expect(String(http.get.calls.argsFor(1)[0])).toContain('https://api.zoolandingpage.com.mx/runtime-bundle');
+        expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it('uses the runtime fallback endpoint through HttpClient first in the browser when configured', async () => {
         (environment as { configApiUrl: string }).configApiUrl = 'https://api.zoolandingpage.com.mx';
         (environment as { configApiRuntimeFallbackUrl?: string }).configApiRuntimeFallbackUrl =
             'https://y84vk0v44l.execute-api.us-east-1.amazonaws.com/Prod';
@@ -208,13 +247,7 @@ describe('ConfigApiService', () => {
         const http = jasmine.createSpyObj<HttpClient>('HttpClient', ['get']);
         http.get.and.returnValue(of(runtimeBundlePayload));
 
-        const fetchSpy = spyOn(globalThis, 'fetch' as never).and.resolveTo(new Response(
-            JSON.stringify(runtimeBundlePayload),
-            {
-                status: 200,
-                headers: { 'content-type': 'application/json' },
-            },
-        ) as never);
+        const fetchSpy = spyOn(globalThis, 'fetch' as never);
 
         TestBed.configureTestingModule({
             providers: [
@@ -227,8 +260,36 @@ describe('ConfigApiService', () => {
         const payload = await service.getRuntimeBundle('test.zoolandingpage.com.mx', { path: '/', lang: 'en' });
 
         expect(payload.domain).toBe('zoolandingpage.com.mx');
+        expect(http.get).toHaveBeenCalledTimes(1);
+        expect(fetchSpy).not.toHaveBeenCalled();
+        expect(String(http.get.calls.mostRecent().args[0])).toContain('https://y84vk0v44l.execute-api.us-east-1.amazonaws.com/Prod/runtime-bundle');
+    });
+
+    it('hydrates the browser runtime bundle from TransferState before making network requests', async () => {
+        (environment as { configApiUrl: string }).configApiUrl = 'https://api.zoolandingpage.com.mx';
+        (environment as { configApiRuntimeFallbackUrl?: string }).configApiRuntimeFallbackUrl =
+            'https://y84vk0v44l.execute-api.us-east-1.amazonaws.com/Prod';
+
+        const transferState = new TransferState();
+        const cacheKey = 'https://api.zoolandingpage.com.mx/runtime-bundle?domain=test.zoolandingpage.com.mx&lang=en&path=%2F';
+        transferState.set(makeStateKey<TRuntimeBundlePayload>(`zlp-runtime-bundle:${ cacheKey }`), runtimeBundlePayload);
+
+        const http = jasmine.createSpyObj<HttpClient>('HttpClient', ['get']);
+        http.get.and.returnValue(of(runtimeBundlePayload));
+
+        TestBed.configureTestingModule({
+            providers: [
+                ConfigApiService,
+                { provide: HttpClient, useValue: http },
+                { provide: TransferState, useValue: transferState },
+            ],
+        });
+
+        const service = TestBed.inject(ConfigApiService);
+        const payload = await service.getRuntimeBundle('test.zoolandingpage.com.mx', { path: '/', lang: 'en' });
+
+        expect(payload.domain).toBe('zoolandingpage.com.mx');
         expect(http.get).not.toHaveBeenCalled();
-        expect(fetchSpy).toHaveBeenCalledTimes(1);
-        expect(String(fetchSpy.calls.mostRecent().args[0])).toContain('https://y84vk0v44l.execute-api.us-east-1.amazonaws.com/Prod/runtime-bundle');
+        expect(transferState.hasKey(makeStateKey<TRuntimeBundlePayload>(`zlp-runtime-bundle:${ cacheKey }`))).toBeFalse();
     });
 });

@@ -1,4 +1,4 @@
-@if (isBrandIcon()) {
+@if (isSvgIcon()) {
 <svg
   [attr.id]="id()"
   [attr.title]="title()"
@@ -8,7 +8,7 @@
   viewBox="0 0 24 24"
   focusable="false"
 >
-  <path [attr.d]="brandPath()" fill="currentColor"></path>
+  <path [attr.d]="svgPath()" fill="currentColor"></path>
 </svg>
 } @else {
 <span

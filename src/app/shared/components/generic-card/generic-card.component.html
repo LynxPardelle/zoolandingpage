@@ -9,13 +9,15 @@
       <p [class]="classValue('testimonialRoleClasses')">{{ role() }} · {{ company() }}</p>
     </div>
     @if (verified()) {
-    <span
-      [class]="iconClassValue('testimonialVerifiedIconClasses')"
-      [attr.title]="verifiedLabel()"
-      [attr.aria-label]="verifiedLabel()"
-      role="img"
-      >verified</span
-    >}
+    <generic-icon
+      [config]="{
+        iconName: 'verified',
+        classes: classValue('testimonialVerifiedIconClasses'),
+        title: verifiedLabel(),
+        ariaLabel: verifiedLabel()
+      }"
+    />
+    }
   </div>
   <p [class]="classValue('testimonialContentClasses')" itemprop="reviewBody">"{{ content() }}"</p>
   <div
@@ -28,16 +30,29 @@
       itemprop="ratingValue"
       [content]="rating().toString()"
     />
-    @for (star of stars(); track $index) {<span [class]="iconClassValue('testimonialStarClasses')" aria-hidden="true">{{
-      star <= rating() ? "star" : "star_border"
-    }}</span
-    >}<span [class]="classValue('testimonialRatingTextClasses')">{{ rating() }}/5</span>
+    @for (star of stars(); track $index) {
+    <generic-icon
+      [config]="{
+        iconName: star <= rating() ? 'star' : 'star_border',
+        classes: classValue('testimonialStarClasses'),
+        ariaHidden: true
+      }"
+    />
+    }<span [class]="classValue('testimonialRatingTextClasses')">{{ rating() }}/5</span>
   </div>
 </article>
 } @else {
 <div [class]="classes()">
   <div [class]="classValue('featureIconContainerClasses')">
-    <span [class]="iconClassValue('featureIconClasses')" aria-hidden="true">{{ icon() }}</span>
+    @if (icon()) {
+    <generic-icon
+      [config]="{
+        iconName: icon(),
+        classes: classValue('featureIconClasses'),
+        ariaHidden: true
+      }"
+    />
+    }
   </div>
   <h3 [class]="classValue('featureTitleClasses')">{{ title() }}</h3>
   <p [class]="classValue('featureDescriptionClasses')">{{ description() }}</p>
@@ -45,7 +60,13 @@
   <ul [class]="classValue('benefitsListClasses')">
     @for (benefit of keyedBenefits(); track benefit.key) {
     <li [class]="classValue('benefitItemClasses')">
-      <span [class]="iconClassValue('benefitIconClasses')" aria-hidden="true">check_circle</span>
+      <generic-icon
+        [config]="{
+          iconName: 'check_circle',
+          classes: classValue('benefitIconClasses'),
+          ariaHidden: true
+        }"
+      />
       <span [class]="classValue('benefitTextClasses')">{{ benefit.value }}</span>
     </li>
     }

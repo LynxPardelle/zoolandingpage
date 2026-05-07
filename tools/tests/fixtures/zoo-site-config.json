@@ -1,0 +1,20 @@
+{
+  "site": {
+    "theme": {
+      "palettes": {
+        "dark": {
+          "bgColor": "#1a1a1a",
+          "textColor": "#ffffff",
+          "titleColor": "#d8dadbff",
+          "linkColor": "#66b3ff",
+          "accentColor": "#225783ff",
+          "secondaryBgColor": "#2d2d2d",
+          "secondaryTextColor": "#d9dcdfff",
+          "secondaryTitleColor": "#6cc3e6ff",
+          "secondaryLinkColor": "#30a464ff",
+          "secondaryAccentColor": "#20673cff"
+        }
+      }
+    }
+  }
+}

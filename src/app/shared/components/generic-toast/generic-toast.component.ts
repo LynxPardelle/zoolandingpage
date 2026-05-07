@@ -1,8 +1,10 @@
 import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '@/app/shared/services/analytics.events';
 import { CommonModule } from '@angular/common';
 import { Component, computed, effect, inject, output, signal } from '@angular/core';
+import { NgxAngoraService } from 'ngx-angora-css';
 import { I18nService } from '../../services/i18n.service';
 import { VariableStoreService } from '../../services/variable-store.service';
+import { normalizeAngoraClassList } from '../../utility/angora-class-normalization.utility';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { ToastService } from './generic-toast.service';
 import { ToastAction, ToastMessage, ToastUiConfig } from './generic-toast.types';
@@ -15,6 +17,7 @@ import { ToastAction, ToastMessage, ToastUiConfig } from './generic-toast.types'
 })
 export class GenericToastComponent {
   private hoveredToasts = signal<Set<string>>(new Set());
+  private readonly ank = inject(NgxAngoraService);
   private readonly i18n = inject(I18nService);
   private readonly variableStore = inject(VariableStoreService);
   readonly analyticsEvent = output<AnalyticsEventPayload>();
@@ -138,7 +141,13 @@ export class GenericToastComponent {
 
   uiClass(key: keyof ToastUiConfig): string {
     const value = this.uiConfig()[key];
-    return typeof value === 'string' ? value.trim() : '';
+    if (typeof value !== 'string') return '';
+
+    return normalizeAngoraClassList(
+      value.trim(),
+      this.ank.cssNamesParsed ?? {},
+      String(this.ank.indicatorClass ?? 'ank'),
+    );
   }
 
   private levelClasses(level: ToastMessage['level']): string {

@@ -31,13 +31,13 @@ describe('GenericIconComponent', () => {
     } as never);
     fixture.detectChanges();
 
-    const icon = fixture.nativeElement.querySelector('.material-icons') as HTMLElement;
+    const icon = fixture.nativeElement.querySelector('svg') as SVGElement;
 
-    expect(icon.textContent?.trim()).toBe('search');
     expect(icon.getAttribute('title')).toBe('Search site');
     expect(icon.getAttribute('aria-label')).toBe('Search site');
     expect(icon.getAttribute('aria-hidden')).toBe('true');
-    expect(icon.className).toContain('searchIcon');
+    expect(icon.getAttribute('class')).toContain('searchIcon');
+    expect(icon.querySelector('path')?.getAttribute('d')).toBeTruthy();
   });
 
   it('prefers ariaLabel over title when both are provided', () => {
@@ -48,7 +48,7 @@ describe('GenericIconComponent', () => {
     });
     fixture.detectChanges();
 
-    const icon = fixture.nativeElement.querySelector('.material-icons') as HTMLElement;
+    const icon = fixture.nativeElement.querySelector('svg') as SVGElement;
 
     expect(icon.getAttribute('title')).toBe('Home title');
     expect(icon.getAttribute('aria-label')).toBe('Home label');
