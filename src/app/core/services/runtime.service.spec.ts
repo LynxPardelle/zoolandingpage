@@ -295,7 +295,7 @@ describe('RuntimeService', () => {
 
         await flushPostBootstrapBrowserWork();
 
-        expect(collectRenderedDomClasses).toHaveBeenCalledWith();
+        expect(collectRenderedDomClasses).toHaveBeenCalled();
         expect(updateClasses.calls.allArgs()).toEqual([
             [['hero']],
             [['hero', 'ank-d-flex']],
@@ -562,5 +562,48 @@ describe('RuntimeService', () => {
                 debugBtnBase: ['ank-display-flex'],
             },
         });
+    });
+
+    it('loads debug workspace roots when the browser shell connects after bootstrap', async () => {
+        const service = TestBed.inject(RuntimeService);
+        const configSource = TestBed.inject(ConfigSourceService) as jasmine.SpyObj<ConfigSourceService>;
+        const host = document.createElement('div');
+
+        configSource.loadDebugWorkspacePageConfig.and.resolveTo({
+            version: 1,
+            domain: 'debug-workspace',
+            pageId: 'default',
+            rootIds: ['debugWorkspaceRoot'],
+            modalRootIds: [],
+        });
+        configSource.loadDebugWorkspaceComponents.and.resolveTo({
+            version: 1,
+            domain: 'debug-workspace',
+            pageId: 'default',
+            components: [
+                {
+                    id: 'debugWorkspaceRoot',
+                    type: 'container',
+                    config: { tag: 'div', components: [] },
+                },
+            ],
+        });
+        configSource.loadDebugWorkspaceCombos.and.resolveTo(null);
+
+        await service.initialize('es');
+        expect(service.debugWorkspaceRootIds()).toEqual([]);
+
+        service.connect({
+            host,
+            destroyRef: { onDestroy: () => undefined } as any,
+            showDebugWorkspace: () => true,
+            currentLanguage: () => 'es',
+        });
+        await flushPostBootstrapBrowserWork();
+
+        expect(service.debugWorkspaceRootIds()).toEqual(['debugWorkspaceRoot']);
+        expect(setAuxiliaryComponentsFromPayload).toHaveBeenCalledWith('debug-workspace', jasmine.objectContaining({
+            components: jasmine.any(Array),
+        }));
     });
 });

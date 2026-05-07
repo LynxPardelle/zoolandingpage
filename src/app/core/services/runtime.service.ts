@@ -8,7 +8,7 @@ import { ConfigurationsOrchestratorService } from '@/app/shared/services/configu
 import { DraftRuntimeService } from '@/app/shared/services/draft-runtime.service';
 import { RuntimeConfigService } from '@/app/shared/services/runtime-config.service';
 import { ThemeService } from '@/app/shared/services/theme.service';
-import { currentBrowserPath } from '@/app/shared/utility/navigation/browser-navigation.utility';
+import { applyNavigationScroll, currentBrowserPath } from '@/app/shared/utility/navigation/browser-navigation.utility';
 import { environment } from '@/environments/environment';
 import { isPlatformBrowser } from '@angular/common';
 import { DestroyRef, inject, Injectable, PLATFORM_ID, REQUEST, signal } from '@angular/core';
@@ -73,7 +73,10 @@ export class RuntimeService {
                 .catch((error) => {
                     console.error('[Runtime] Initial page bootstrap failed.', error);
                 });
+            return;
         }
+
+        this.configureDebugWorkspaceAfterConnect();
     }
 
     disconnect(): void {
@@ -147,11 +150,24 @@ export class RuntimeService {
         await this.debugWorkspaceInit;
     }
 
+    private configureDebugWorkspaceAfterConnect(): void {
+        if (!this.debugWorkspaceEnabled) {
+            return;
+        }
+
+        void this.ensureDebugWorkspaceConfigured()
+            .then(() => {
+                this.modalRootIds.set(this.resolveModalRootIds(this.modalRootIds()));
+                this.requestRenderedComponentsCssUpdate();
+            })
+            .catch(() => undefined);
+    }
+
     private async loadDebugWorkspacePayloads(): Promise<void> {
         const [pageConfig, components, combos] = await Promise.all([
-            this.configSource.loadDebugWorkspacePageConfig(),
-            this.configSource.loadDebugWorkspaceComponents(),
-            this.configSource.loadDebugWorkspaceCombos(),
+            this.configSource.loadDebugWorkspacePageConfig?.() ?? Promise.resolve(null),
+            this.configSource.loadDebugWorkspaceComponents?.() ?? Promise.resolve(null),
+            this.configSource.loadDebugWorkspaceCombos?.() ?? Promise.resolve(null),
         ]);
 
         this.orchestrator.setAuxiliaryComponentsFromPayload('debug-workspace', components);
@@ -372,6 +388,7 @@ export class RuntimeService {
 
             const lang = this.currentLanguageResolver?.();
             void this.initialize(lang)
+                .then(() => this.applyConfiguredNavigationScroll())
                 .catch((error) => {
                     console.error('[Runtime] Runtime refresh failed after navigation.', error);
                 });
@@ -379,6 +396,14 @@ export class RuntimeService {
 
         window.addEventListener('popstate', handleNavigation);
         this.navigationUnlisten = () => window.removeEventListener('popstate', handleNavigation);
+    }
+
+    private applyConfiguredNavigationScroll(): void {
+        if (!this.isBrowser) {
+            return;
+        }
+
+        applyNavigationScroll(this.configStore.siteConfig()?.runtime?.navigation?.scrollRestoration);
     }
 
     private prefetchSiblingRoutes(domain: string, pageId: string, lang: string | undefined, currentPath: string): void {

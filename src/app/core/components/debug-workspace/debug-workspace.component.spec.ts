@@ -70,6 +70,7 @@ describe('DebugWorkspaceComponent', () => {
                         activeDraftLabel: () => `${ PRIMARY_DOMAIN } / default`,
                         draftRegistryLoading: () => false,
                         selectedDraftKey: () => `${ PRIMARY_DOMAIN }::default`,
+                        canShowDraftRegistry: () => true,
                         selectDraftByKey,
                         refreshRegistry,
                         initRegistryAutoRefresh: () => undefined,
@@ -97,6 +98,7 @@ describe('DebugWorkspaceComponent', () => {
 
         expect(component.draftPanelCollapsed).toBeTrue();
         expect(component.diagnosticsPanelCollapsed).toBeTrue();
+        expect(component.showDraftRegistry).toBeTrue();
         expect(component.draftOptionsEyebrow).toBe('3 drafts detected');
         expect(component.draftOptionsReadyLabel).toBe('3 options ready');
         expect(component.draftOptions[0]['buttonClasses']).toEqual(jasmine.stringContaining('ank-bg-accentColor'));

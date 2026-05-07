@@ -229,10 +229,26 @@ export type TDraftFeatureRuntimeConfig = {
     readonly debugMode?: boolean;
 };
 
+export type TDraftNavigationScrollRestorationMode = 'preserve' | 'top' | 'position';
+
+export type TDraftNavigationScrollRestorationBehavior = 'auto' | 'smooth' | 'instant';
+
+export type TDraftNavigationScrollRestorationConfig = {
+    readonly mode?: TDraftNavigationScrollRestorationMode;
+    readonly top?: number;
+    readonly left?: number;
+    readonly behavior?: TDraftNavigationScrollRestorationBehavior;
+};
+
+export type TDraftNavigationRuntimeConfig = {
+    readonly scrollRestoration?: TDraftNavigationScrollRestorationConfig;
+};
+
 export type TDraftSiteRuntimeConfig = {
     readonly localStorage?: TDraftLocalStorageRuntimeConfig;
     readonly features?: TDraftFeatureRuntimeConfig;
     readonly analytics?: TDraftAnalyticsRuntimeConfig;
+    readonly navigation?: TDraftNavigationRuntimeConfig;
 };
 
 export type TDraftSiteConfigPayload = {

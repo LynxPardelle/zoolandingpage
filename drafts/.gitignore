@@ -1,2 +1,7 @@
 *
 !.gitignore
+!_debug/
+!_debug/debug-workspace/
+!_debug/debug-workspace/page-config.json
+!_debug/debug-workspace/components.json
+!_debug/debug-workspace/angora-combos.json

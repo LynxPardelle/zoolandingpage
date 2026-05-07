@@ -60,6 +60,10 @@ export class DraftRuntimeService {
         pageId: this.activeDraftPageId(),
     }));
     readonly draftOptions = computed<readonly TDraftOption[]>(() => {
+        if (!this.canShowDraftRegistry()) {
+            return [];
+        }
+
         const entries = [...this.availableDrafts()].filter((entry) => this.isSelectableDraftEntry(entry));
         const active = {
             domain: this.activeDraftDomain(),
@@ -151,7 +155,7 @@ export class DraftRuntimeService {
     }
 
     initRegistryAutoRefresh(destroyRef: DestroyRef): void {
-        if (!this.runtimeConfig.isDebugMode() || !environment.drafts.enabled || !this.isBrowser) {
+        if (!this.canShowDraftRegistry()) {
             return;
         }
 
@@ -164,7 +168,7 @@ export class DraftRuntimeService {
     }
 
     refreshRegistry(): void {
-        if (!this.runtimeConfig.isDebugMode() || !environment.drafts.enabled || !this.isBrowser) {
+        if (!this.canShowDraftRegistry()) {
             return;
         }
 
@@ -216,7 +220,7 @@ export class DraftRuntimeService {
 
     selectDraftByKey(key: string): void {
         const selected = this.parseDraftKey(key);
-        if (!selected || !this.isBrowser || !this.isSelectableDraftEntry(selected)) {
+        if (!selected || !this.isBrowser || !this.canShowDraftRegistry() || !this.isSelectableDraftEntry(selected)) {
             return;
         }
 
@@ -246,24 +250,23 @@ export class DraftRuntimeService {
     }
 
     hasDebugWorkspaceEnabled(): boolean {
-        if (environment.drafts.enabled && this.isLocalDraftSelectionRequired()) {
+        if (this.isLocalRuntimeHost()) {
             return true;
         }
 
-        if (this.runtimeConfig.isDebugMode()) {
+        if (this.hasDebugWorkspaceQueryParam()) {
             return true;
         }
 
-        if (!this.isBrowser || !window.location?.search) {
-            const requestUrl = this.parseRequestUrl();
-            if (!requestUrl) {
-                return false;
-            }
-
-            return requestUrl.searchParams.has('debugWorkspace');
+        if (!environment.production && this.runtimeConfig.isDebugMode()) {
+            return true;
         }
 
-        return new URLSearchParams(window.location.search).has('debugWorkspace');
+        return false;
+    }
+
+    canShowDraftRegistry(): boolean {
+        return environment.drafts.enabled && this.isBrowser && this.isLocalRuntimeHost();
     }
 
     hasResolvedActiveDraftIdentity(): boolean {
@@ -278,21 +281,41 @@ export class DraftRuntimeService {
         const sanitizedIdentity = this.resolveSanitizedRequestedDraftIdentity();
         const resolvedDomain = sanitizedIdentity.domain;
         const requestedPageId = sanitizedIdentity.pageId;
-        const requestUrl = this.parseRequestUrl();
-        const browserHost = this.isBrowser ? String(window.location?.hostname ?? '').trim() : '';
-        const requestHost = String(requestUrl?.hostname ?? '').trim();
-        const host = browserHost || requestHost;
-        const localHost = host.length > 0 && (host === 'localhost' || host === '127.0.0.1' || host === '::1');
 
         return {
             resolved: resolvedDomain.length > 0 && requestedPageId.length > 0,
-            localHost,
+            localHost: this.isLocalRuntimeHost(),
         };
     }
 
-    private isLocalDraftSelectionRequired(): boolean {
-        const candidate = this.resolveDraftIdentityCandidate();
-        return candidate.localHost && !candidate.resolved;
+    private hasDebugWorkspaceQueryParam(): boolean {
+        const params = this.resolveSearchParams();
+        if (!params?.has('debugWorkspace')) {
+            return false;
+        }
+
+        const value = String(params.get('debugWorkspace') ?? '').trim().toLowerCase();
+        return value === '' || value === 'true';
+    }
+
+    private resolveSearchParams(): URLSearchParams | null {
+        if (this.isBrowser && window.location?.search) {
+            return new URLSearchParams(window.location.search);
+        }
+
+        const requestUrl = this.parseRequestUrl();
+        return requestUrl?.searchParams ?? null;
+    }
+
+    private isLocalRuntimeHost(): boolean {
+        const browserHost = this.isBrowser ? String(window.location?.hostname ?? '').trim() : '';
+        const requestHost = String(this.parseRequestUrl()?.hostname ?? '').trim();
+        return this.isLocalHost(browserHost || requestHost);
+    }
+
+    private isLocalHost(hostname: string): boolean {
+        const normalized = String(hostname ?? '').trim().toLowerCase();
+        return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1';
     }
 
     private resolveRequestedDraftPageId(): string {
