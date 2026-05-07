@@ -1,0 +1,32 @@
+{
+  "site": {
+    "theme": {
+      "palettes": {
+        "light": {
+          "bgColor": "#f4e7e1",
+          "textColor": "#5b4d47",
+          "titleColor": "#734332",
+          "linkColor": "#734332",
+          "accentColor": "#734332",
+          "secondaryBgColor": "#dfc1b4",
+          "secondaryTextColor": "#433733",
+          "secondaryTitleColor": "#734332",
+          "secondaryLinkColor": "#734332",
+          "secondaryAccentColor": "#734332"
+        },
+        "dark": {
+          "bgColor": "#1f1917",
+          "textColor": "#efe2db",
+          "titleColor": "#f6d0bf",
+          "linkColor": "#e2a27f",
+          "accentColor": "#cf7f59",
+          "secondaryBgColor": "#2b211e",
+          "secondaryTextColor": "#e8d7cf",
+          "secondaryTitleColor": "#f5c3aa",
+          "secondaryLinkColor": "#e2a27f",
+          "secondaryAccentColor": "#cf7f59"
+        }
+      }
+    }
+  }
+}

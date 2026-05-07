@@ -1,14 +1,19 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
-const readJson = (path) => JSON.parse(readFileSync(path, 'utf8'));
+const fixturesDir = fileURLToPath(new URL('fixtures', import.meta.url));
+const repoRoot = fileURLToPath(new URL('../..', import.meta.url));
 
-const zooSiteConfig = readJson('drafts/zoolandingpage.com.mx/site-config.json');
-const zooVariables = readJson('drafts/zoolandingpage.com.mx/default/variables.json');
-const alecfestSiteConfig = readJson('drafts/alecfest-voliii.com/site-config.json');
-const pamelaSiteConfig = readJson('drafts/pamelabetancourt.com/site-config.json');
-const indexHtml = readFileSync('src/index.html', 'utf8');
+const readJson = (relativePath) => JSON.parse(readFileSync(join(fixturesDir, relativePath), 'utf8'));
+
+const zooSiteConfig = readJson('zoo-site-config.json');
+const zooVariables = readJson('zoo-variables.json');
+const alecfestSiteConfig = readJson('alecfest-site-config.json');
+const pamelaSiteConfig = readJson('pamela-site-config.json');
+const indexHtml = readFileSync(join(repoRoot, 'src', 'index.html'), 'utf8');
 
 const expectedZooDark = {
   bgColor: '#1a1a1a',

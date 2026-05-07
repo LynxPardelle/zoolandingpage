@@ -77,24 +77,7 @@ export class ConfigApiService {
     }
 
     private readSearchParam(params: URLSearchParams, key: string): string {
-        const direct = String(params.get(key) ?? '').trim();
-        if (direct) {
-            return direct;
-        }
-
-        for (const [entryKey] of params.entries()) {
-            const normalizedKey = String(entryKey ?? '').trim();
-            if (!normalizedKey.startsWith(`${ key }=`)) {
-                continue;
-            }
-
-            const value = normalizedKey.slice(key.length + 1).trim();
-            if (value) {
-                return value;
-            }
-        }
-
-        return '';
+        return String(params.get(key) ?? '').trim();
     }
 
     private shouldUseLocalDraftApi(path: string): boolean {

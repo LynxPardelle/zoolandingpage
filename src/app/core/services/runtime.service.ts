@@ -103,7 +103,7 @@ export class RuntimeService {
 
     requestRenderedComponentsCssUpdate(): void {
         const authoredClasses = this.orchestrator.getAllTheClassesFromComponents();
-        const renderedClasses = this.combosService.collectRenderedDomClasses();
+        const renderedClasses = this.combosService.collectRenderedDomClasses(this.renderedClassesRoot ?? undefined);
         this.combosService.updateClasses([...authoredClasses, ...renderedClasses]);
         this.theme.applyTheme();
         this.hideLoadingCurtainAfterCssReady('rendered-components-css-updated');
