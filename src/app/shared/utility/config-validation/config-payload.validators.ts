@@ -29,7 +29,12 @@ import type {
     TDraftUiVariableConfig,
     TI18nPayload,
     TPageConfigPayload,
+    TRuntimeApiActionConfig,
     TRuntimeBundlePayload,
+    TRuntimeDataSourceConfig,
+    TRuntimeDataSourceFieldMapping,
+    TRuntimeDataSourceMapperConfig,
+    TRuntimeDataSourceRefreshConfig,
     TSeoPayload,
     TSiteLifecycleConfig,
     TStructuredDataPayload,
@@ -66,6 +71,8 @@ const ALLOWED_TRACK_OPTIONS = new Set<TTrackOptions>([
     'battery',
     'connection',
 ]);
+
+const ALLOWED_RUNTIME_API_ACTION_METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
 
 const ALLOWED_LOCAL_STORAGE_SLOTS = new Set<TDraftLocalStorageSlot>([
     'theme',
@@ -390,12 +397,70 @@ const isDraftAnalyticsRuntimeConfig = (value: unknown): value is TDraftAnalytics
     return true;
 };
 
+const isRuntimeDataSourceFieldMapping = (value: unknown): value is TRuntimeDataSourceFieldMapping => {
+    if (typeof value === 'string' && value.trim().length > 0) return true;
+    if (!isRecord(value)) return false;
+    if (typeof value['path'] !== 'string' || value['path'].trim().length === 0) return false;
+    return true;
+};
+
+const isRuntimeDataSourceMapperConfig = (value: unknown): value is TRuntimeDataSourceMapperConfig => {
+    if (value === null) return true;
+    if (!isRecord(value)) return false;
+    if (value['itemsPath'] !== undefined && value['itemsPath'] !== null && typeof value['itemsPath'] !== 'string') return false;
+    if (value['fields'] !== undefined && value['fields'] !== null) {
+        if (!isRecord(value['fields'])) return false;
+        if (!Object.values(value['fields']).every(isRuntimeDataSourceFieldMapping)) return false;
+    }
+    return true;
+};
+
+const isRuntimeDataSourceRefreshConfig = (value: unknown): value is TRuntimeDataSourceRefreshConfig => {
+    if (value === null) return true;
+    if (!isRecord(value)) return false;
+    if (value['mode'] !== undefined && value['mode'] !== 'load' && value['mode'] !== 'interval') return false;
+    if (value['intervalMs'] !== undefined && (typeof value['intervalMs'] !== 'number' || !Number.isFinite(value['intervalMs']))) return false;
+    return true;
+};
+
+const isRuntimeDataSourceConfig = (value: unknown): value is TRuntimeDataSourceConfig => {
+    if (!isRecord(value)) return false;
+    if (typeof value['id'] !== 'string' || value['id'].trim().length === 0) return false;
+    if (value['proxySourceId'] !== undefined && typeof value['proxySourceId'] !== 'string') return false;
+    if (typeof value['target'] !== 'string' || value['target'].trim().length === 0) return false;
+    if (value['statusTarget'] !== undefined && typeof value['statusTarget'] !== 'string') return false;
+    if (value['enabled'] !== undefined && typeof value['enabled'] !== 'boolean') return false;
+    if (value['input'] !== undefined && !isRecord(value['input'])) return false;
+    if (value['mapper'] !== undefined && !isRuntimeDataSourceMapperConfig(value['mapper'])) return false;
+    if (value['refresh'] !== undefined && !isRuntimeDataSourceRefreshConfig(value['refresh'])) return false;
+    return true;
+};
+
+const isRuntimeApiActionConfig = (value: unknown): value is TRuntimeApiActionConfig => {
+    if (!isRecord(value)) return false;
+    if (typeof value['id'] !== 'string' || value['id'].trim().length === 0) return false;
+    if (value['proxyActionId'] !== undefined && typeof value['proxyActionId'] !== 'string') return false;
+    if (value['method'] !== undefined
+        && (typeof value['method'] !== 'string' || !ALLOWED_RUNTIME_API_ACTION_METHODS.has(value['method']))) return false;
+    if (value['statusTarget'] !== undefined && typeof value['statusTarget'] !== 'string') return false;
+    if (value['enabled'] !== undefined && typeof value['enabled'] !== 'boolean') return false;
+    if (value['inputFields'] !== undefined
+        && (!Array.isArray(value['inputFields'])
+            || !value['inputFields'].every((entry) => typeof entry === 'string' && entry.trim().length > 0))) return false;
+    if (value['requiresUserGesture'] !== undefined && typeof value['requiresUserGesture'] !== 'boolean') return false;
+    return true;
+};
+
 const isDraftSiteRuntimeConfig = (value: unknown): value is TDraftSiteRuntimeConfig => {
     if (!isRecord(value)) return false;
     if (value['app'] !== undefined) return false;
     if (value['localStorage'] !== undefined && !isDraftLocalStorageRuntimeConfig(value['localStorage'])) return false;
     if (value['features'] !== undefined && !isDraftFeatureRuntimeConfig(value['features'])) return false;
     if (value['analytics'] !== undefined && !isDraftAnalyticsRuntimeConfig(value['analytics'])) return false;
+    if (value['dataSources'] !== undefined
+        && (!Array.isArray(value['dataSources']) || !value['dataSources'].every(isRuntimeDataSourceConfig))) return false;
+    if (value['apiActions'] !== undefined
+        && (!Array.isArray(value['apiActions']) || !value['apiActions'].every(isRuntimeApiActionConfig))) return false;
     return true;
 };
 

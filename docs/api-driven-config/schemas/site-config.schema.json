@@ -112,12 +112,92 @@
       },
       "additionalProperties": false
     },
+    "runtimeDataSourceFieldMapping": {
+      "anyOf": [
+        { "type": "string", "minLength": 1 },
+        {
+          "type": "object",
+          "required": ["path"],
+          "properties": {
+            "path": { "type": "string", "minLength": 1 },
+            "fallback": {}
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "runtimeDataSourceMapper": {
+      "type": "object",
+      "properties": {
+        "itemsPath": { "type": ["string", "null"] },
+        "fields": {
+          "type": ["object", "null"],
+          "additionalProperties": { "$ref": "#/definitions/runtimeDataSourceFieldMapping" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "runtimeDataSourceRefresh": {
+      "type": "object",
+      "properties": {
+        "mode": { "type": "string", "enum": ["load", "interval"] },
+        "intervalMs": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "runtimeDataSource": {
+      "type": "object",
+      "required": ["id", "target"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "proxySourceId": { "type": "string" },
+        "target": { "type": "string", "minLength": 1 },
+        "statusTarget": { "type": "string" },
+        "enabled": { "type": "boolean" },
+        "input": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "mapper": {
+          "anyOf": [{ "$ref": "#/definitions/runtimeDataSourceMapper" }, { "type": "null" }]
+        },
+        "refresh": {
+          "anyOf": [{ "$ref": "#/definitions/runtimeDataSourceRefresh" }, { "type": "null" }]
+        }
+      },
+      "additionalProperties": false
+    },
+    "runtimeApiAction": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "proxyActionId": { "type": "string" },
+        "method": { "type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"] },
+        "statusTarget": { "type": "string" },
+        "enabled": { "type": "boolean" },
+        "inputFields": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "requiresUserGesture": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
     "runtimeConfig": {
       "type": "object",
       "properties": {
         "localStorage": { "$ref": "#/definitions/localStorageRuntime" },
         "features": { "$ref": "#/definitions/featureRuntime" },
-        "analytics": { "$ref": "#/definitions/analyticsRuntime" }
+        "analytics": { "$ref": "#/definitions/analyticsRuntime" },
+        "dataSources": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/runtimeDataSource" }
+        },
+        "apiActions": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/runtimeApiAction" }
+        }
       },
       "additionalProperties": false
     },
