@@ -10,10 +10,46 @@ export type TResolvedDomain = {
 
 @Injectable({ providedIn: 'root' })
 export class DomainResolverService {
+    private readonly testingDraftPreviewHost = 'test.zoolandingpage.com.mx';
     private readonly platformId = inject(PLATFORM_ID);
     private readonly request = inject(REQUEST, { optional: true });
     private readonly configStore = inject(ConfigStoreService);
     private readonly isBrowser = isPlatformBrowser(this.platformId) && !this.request;
+
+    private readRequestHeader(name: string): string {
+        const headers = (this.request as { headers?: Headers | Record<string, string | readonly string[] | undefined> } | null)?.headers;
+        if (!headers) {
+            return '';
+        }
+
+        if (typeof (headers as Headers).get === 'function') {
+            return String((headers as Headers).get(name) ?? '').trim();
+        }
+
+        const normalizedName = name.toLowerCase();
+        const entryKey = Object.keys(headers).find((key) => key.toLowerCase() === normalizedName);
+        const value = entryKey ? (headers as Record<string, string | readonly string[] | undefined>)[entryKey] : '';
+
+        if (Array.isArray(value)) {
+            return String(value[0] ?? '').trim();
+        }
+
+        return String(value ?? '').trim();
+    }
+
+    private firstHeaderValue(value: string): string {
+        return String(value ?? '').split(',')[0]?.trim() ?? '';
+    }
+
+    private resolveRequestBaseUrl(): string {
+        const host = this.firstHeaderValue(this.readRequestHeader('x-forwarded-host') || this.readRequestHeader('host'));
+        if (!host) {
+            return 'http://localhost';
+        }
+
+        const protocol = this.firstHeaderValue(this.readRequestHeader('x-forwarded-proto')) || 'https';
+        return `${ protocol }://${ host }`;
+    }
 
     private parseRequestUrl(): URL | null {
         const requestUrl = String(this.request?.url ?? '').trim();
@@ -22,7 +58,7 @@ export class DomainResolverService {
         }
 
         try {
-            return new URL(requestUrl, 'http://localhost');
+            return new URL(requestUrl, this.resolveRequestBaseUrl());
         } catch {
             return null;
         }
@@ -31,6 +67,11 @@ export class DomainResolverService {
     private isLocalHost(hostname: string): boolean {
         const normalized = String(hostname ?? '').trim().toLowerCase();
         return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1';
+    }
+
+    canUseDraftQueryParamsOnHost(hostname: string): boolean {
+        const normalized = String(hostname ?? '').trim().toLowerCase();
+        return this.isLocalHost(normalized) || normalized === this.testingDraftPreviewHost;
     }
 
     private sanitizeToken(value: unknown): string {
@@ -72,17 +113,18 @@ export class DomainResolverService {
     }
 
     resolveDomain(): TResolvedDomain {
+        const requestUrl = this.parseRequestUrl();
+
         if (this.isBrowser && window.location?.search) {
             const queryDomain = this.readSearchParam(new URLSearchParams(window.location.search), 'draftDomain');
-            if (queryDomain.length > 0) {
+            if (queryDomain.length > 0 && this.canUseDraftQueryParamsOnHost(window.location.hostname)) {
                 return { domain: queryDomain, source: 'queryParam' };
             }
         }
 
-        const requestUrl = this.parseRequestUrl();
         if (requestUrl) {
             const requestDomain = this.readSearchParam(requestUrl.searchParams, 'draftDomain');
-            if (requestDomain.length > 0) {
+            if (requestDomain.length > 0 && this.canUseDraftQueryParamsOnHost(requestUrl.hostname)) {
                 return { domain: requestDomain, source: 'queryParam' };
             }
         }
