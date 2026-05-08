@@ -252,19 +252,15 @@ export class DraftRuntimeService {
     hasDebugWorkspaceEnabled(): boolean {
         const explicitDebugWorkspace = this.resolveDebugWorkspaceQueryParam();
         if (explicitDebugWorkspace !== null) {
-            return explicitDebugWorkspace;
+            return explicitDebugWorkspace && this.canUseDraftQueryParamsOnRuntimeHost();
         }
 
         if (this.isLocalRuntimeHost()) {
             return true;
         }
 
-        if (this.hasDebugWorkspaceQueryParam()) {
-            return true;
-        }
-
         if (!environment.production && this.runtimeConfig.isDebugMode()) {
-            return true;
+            return this.canUseDraftQueryParamsOnRuntimeHost();
         }
 
         return false;
@@ -291,10 +287,6 @@ export class DraftRuntimeService {
             resolved: resolvedDomain.length > 0 && requestedPageId.length > 0,
             localHost: this.isLocalRuntimeHost(),
         };
-    }
-
-    private hasDebugWorkspaceQueryParam(): boolean {
-        return this.resolveDebugWorkspaceQueryParam() === true;
     }
 
     private resolveDebugWorkspaceQueryParam(): boolean | null {
@@ -328,6 +320,12 @@ export class DraftRuntimeService {
         const browserHost = this.isBrowser ? String(window.location?.hostname ?? '').trim() : '';
         const requestHost = String(this.parseRequestUrl()?.hostname ?? '').trim();
         return this.isLocalHost(browserHost || requestHost);
+    }
+
+    private canUseDraftQueryParamsOnRuntimeHost(): boolean {
+        const browserHost = this.isBrowser ? String(window.location?.hostname ?? '').trim() : '';
+        const requestHost = String(this.parseRequestUrl()?.hostname ?? '').trim();
+        return this.domainResolver.canUseDraftQueryParamsOnHost(browserHost || requestHost);
     }
 
     private isLocalHost(hostname: string): boolean {

@@ -62,7 +62,7 @@ describe('DraftRuntimeService', () => {
 
   it('resolves the draft page from site-config routes when no explicit draftPageId is present', async () => {
     const { service, loadSiteConfig } = configure(
-      'https://example.test/servicios?draftDomain=pamelabetancourt.com',
+      'https://test.zoolandingpage.com.mx/servicios?draftDomain=pamelabetancourt.com',
       {
         version: 1,
         domain: 'pamelabetancourt.com',
@@ -84,7 +84,7 @@ describe('DraftRuntimeService', () => {
 
   it('does not consult site-config when draftPageId is explicitly provided', async () => {
     const { service, loadSiteConfig } = configure(
-      'https://example.test/servicios?draftDomain=pamelabetancourt.com&draftPageId=contactame',
+      'https://test.zoolandingpage.com.mx/servicios?draftDomain=pamelabetancourt.com&draftPageId=contactame',
       {
         version: 1,
         domain: 'pamelabetancourt.com',
@@ -105,7 +105,7 @@ describe('DraftRuntimeService', () => {
 
   it('matches encoded route paths against unicode site-config entries', async () => {
     const { service } = configure(
-      'https://example.test/cont%C3%A1ctame?draftDomain=pamelabetancourt.com',
+      'https://test.zoolandingpage.com.mx/cont%C3%A1ctame?draftDomain=pamelabetancourt.com',
       {
         version: 1,
         domain: 'pamelabetancourt.com',
@@ -125,7 +125,7 @@ describe('DraftRuntimeService', () => {
 
   it('falls back to defaultPageId when the current route is not mapped in site-config', async () => {
     const { service } = configure(
-      'https://example.test/no-existe?draftDomain=pamelabetancourt.com',
+      'https://test.zoolandingpage.com.mx/no-existe?draftDomain=pamelabetancourt.com',
       {
         version: 1,
         domain: 'pamelabetancourt.com',
@@ -142,6 +142,26 @@ describe('DraftRuntimeService', () => {
     expect(context.pageId).toBe('home');
     expect(context.path).toBe('/no-existe');
     expect(service.activeDraftPageId()).toBe('home');
+  });
+
+  it('ignores cross-draft domain query params on branded production hosts', async () => {
+    const { service, loadSiteConfig } = configure(
+      'https://music.lynxpardelle.com/?draftDomain=zoolandingpage.com.mx&draftPageId=default',
+      {
+        version: 1,
+        domain: 'music.lynxpardelle.com',
+        defaultPageId: 'default',
+        routes: [
+          { path: '/', pageId: 'default' },
+        ],
+      },
+    );
+
+    const context = await service.resolveActiveDraftContext();
+
+    expect(loadSiteConfig).toHaveBeenCalledOnceWith('music.lynxpardelle.com');
+    expect(context.domain).toBe('music.lynxpardelle.com');
+    expect(context.pageId).toBe('default');
   });
 
   it('uses History API for draft selection on the client', () => {
@@ -245,12 +265,24 @@ describe('DraftRuntimeService', () => {
     expect(service.hasDebugWorkspaceEnabled()).toBeFalse();
   });
 
-  it('allows the debug workspace on non-local hosts when debugWorkspace is present', () => {
+  it('keeps the debug workspace hidden on branded production hosts when debugWorkspace is present', () => {
     (environment as { production: boolean; development: boolean }).production = true;
     (environment as { production: boolean; development: boolean }).development = false;
 
     const { service } = configure(
       'https://pamelabetancourt.zoolandingpage.com.mx/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true',
+      null,
+    );
+
+    expect(service.hasDebugWorkspaceEnabled()).toBeFalse();
+  });
+
+  it('allows the debug workspace on the shared testing preview host when debugWorkspace is present', () => {
+    (environment as { production: boolean; development: boolean }).production = true;
+    (environment as { production: boolean; development: boolean }).development = false;
+
+    const { service } = configure(
+      'https://test.zoolandingpage.com.mx/?draftDomain=pamelabetancourt.com&draftPageId=home&debugWorkspace=true',
       null,
     );
 
