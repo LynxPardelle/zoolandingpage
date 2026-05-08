@@ -18,10 +18,12 @@ export type TVariableMap = Record<string, unknown>;
 export class VariableStoreService {
     private readonly variables = signal<TVariableMap>({});
     private readonly computed = signal<TVariableMap>({});
+    private readonly runtimeVariables = signal<TVariableMap>({});
 
     setPayload(payload: TVariablesPayload | null, siteConfig: TDraftSiteConfigPayload | null = null): void {
         this.variables.set(this.buildEffectiveVariables(payload, siteConfig));
         this.computed.set(payload?.computed ?? {});
+        this.clearRuntimeValues();
     }
 
     buildEffectiveVariables(payload: TVariablesPayload | null, siteConfig: TDraftSiteConfigPayload | null = null): TVariableMap {
@@ -34,7 +36,14 @@ export class VariableStoreService {
     }
 
     get(path: string): unknown {
-        return this.resolvePath(path, this.variables()) ?? this.resolvePath(path, this.computed());
+        const runtime = this.resolvePathEntry(path, this.runtimeVariables());
+        if (runtime.found) return runtime.value;
+
+        const variables = this.resolvePathEntry(path, this.variables());
+        if (variables.found) return variables.value;
+
+        const computed = this.resolvePathEntry(path, this.computed());
+        return computed.found ? computed.value : undefined;
     }
 
     getOr<T = unknown>(path: string, fallback: T): T {
@@ -94,7 +103,25 @@ export class VariableStoreService {
     }
 
     snapshot(): TVariableMap {
-        return { ...this.variables(), ...this.computed() };
+        return this.mergeRecords({ ...this.variables(), ...this.computed() }, this.runtimeVariables());
+    }
+
+    setRuntimeValue(path: string, value: unknown): void {
+        this.runtimeVariables.update((current) => this.setPathValue(current, path, value));
+    }
+
+    patchRuntimeValues(values: Record<string, unknown>): void {
+        if (!this.isRecord(values)) return;
+
+        this.runtimeVariables.update((current) => Object.entries(values)
+            .reduce<TVariableMap>(
+                (next, [path, value]) => this.setPathValue(next, path, value),
+                current,
+            ));
+    }
+
+    clearRuntimeValues(): void {
+        this.runtimeVariables.set({});
     }
 
     private isRecord(value: unknown): value is Record<string, unknown> {
@@ -137,13 +164,38 @@ export class VariableStoreService {
     }
 
     private resolvePath(path: string, root: TVariableMap): unknown {
+        const entry = this.resolvePathEntry(path, root);
+        return entry.found ? entry.value : undefined;
+    }
+
+    private resolvePathEntry(path: string, root: TVariableMap): { readonly found: boolean; readonly value: unknown } {
         const parts = String(path ?? '').trim().split('.').filter(Boolean);
-        if (!parts.length) return undefined;
+        if (!parts.length) return { found: false, value: undefined };
         let cur: any = root as any;
         for (const part of parts) {
-            if (cur == null || typeof cur !== 'object' || !(part in cur)) return undefined;
+            if (cur == null || typeof cur !== 'object' || !(part in cur)) {
+                return { found: false, value: undefined };
+            }
             cur = cur[part];
         }
-        return cur;
+        return { found: true, value: cur };
+    }
+
+    private setPathValue(root: TVariableMap, path: string, value: unknown): TVariableMap {
+        const parts = String(path ?? '').trim().split('.').filter(Boolean);
+        if (!parts.length) return root;
+
+        const next = this.mergeTwoRecords({}, root);
+        let cursor: Record<string, unknown> = next;
+
+        parts.slice(0, -1).forEach((part) => {
+            const existing = cursor[part];
+            const child = this.isRecord(existing) ? this.mergeTwoRecords({}, existing) : {};
+            cursor[part] = child;
+            cursor = child;
+        });
+
+        cursor[parts[parts.length - 1]] = this.mergeValues(undefined, value);
+        return next;
     }
 }

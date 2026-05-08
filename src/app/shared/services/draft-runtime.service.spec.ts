@@ -222,6 +222,17 @@ describe('DraftRuntimeService', () => {
     expect(service.hasDebugWorkspaceEnabled()).toBeTrue();
   });
 
+  it('allows local visual QA to explicitly hide the debug workspace', () => {
+    const { service } = configure(
+      'http://127.0.0.1:4200/?draftDomain=music.lynxpardelle.com&draftPageId=default&debugWorkspace=false',
+      null,
+      { browserMode: true },
+    );
+
+    expect(service.hasResolvedActiveDraftIdentity()).toBeTrue();
+    expect(service.hasDebugWorkspaceEnabled()).toBeFalse();
+  });
+
   it('keeps the debug workspace hidden on non-local production hosts without the query flag', () => {
     (environment as { production: boolean; development: boolean }).production = true;
     (environment as { production: boolean; development: boolean }).development = false;

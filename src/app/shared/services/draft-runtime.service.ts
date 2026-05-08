@@ -250,6 +250,11 @@ export class DraftRuntimeService {
     }
 
     hasDebugWorkspaceEnabled(): boolean {
+        const explicitDebugWorkspace = this.resolveDebugWorkspaceQueryParam();
+        if (explicitDebugWorkspace !== null) {
+            return explicitDebugWorkspace;
+        }
+
         if (this.isLocalRuntimeHost()) {
             return true;
         }
@@ -289,13 +294,25 @@ export class DraftRuntimeService {
     }
 
     private hasDebugWorkspaceQueryParam(): boolean {
+        return this.resolveDebugWorkspaceQueryParam() === true;
+    }
+
+    private resolveDebugWorkspaceQueryParam(): boolean | null {
         const params = this.resolveSearchParams();
         if (!params?.has('debugWorkspace')) {
-            return false;
+            return null;
         }
 
         const value = String(params.get('debugWorkspace') ?? '').trim().toLowerCase();
-        return value === '' || value === 'true';
+        if (value === '' || value === 'true') {
+            return true;
+        }
+
+        if (value === 'false') {
+            return false;
+        }
+
+        return null;
     }
 
     private resolveSearchParams(): URLSearchParams | null {

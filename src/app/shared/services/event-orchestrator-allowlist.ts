@@ -26,6 +26,7 @@ const BASE_ALLOWED_EVENT_IDS = [
     // Accessibility
     'skipToMain',
     'scrollToSection',
+    'proxyAction',
 ] as const;
 
 const DEBUG_ALLOWED_EVENT_IDS = [
