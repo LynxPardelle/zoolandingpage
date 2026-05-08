@@ -1,10 +1,13 @@
 import { TestBed } from '@angular/core/testing';
+import { environment } from '@/environments/environment';
 import { RuntimeApiProxyClientService } from './runtime-api-proxy-client.service';
 
 describe('RuntimeApiProxyClientService', () => {
     let service: RuntimeApiProxyClientService;
+    let originalApiProxyUrl: string | undefined;
 
     beforeEach(() => {
+        originalApiProxyUrl = environment.apiProxyUrl;
         TestBed.configureTestingModule({
             providers: [RuntimeApiProxyClientService],
         });
@@ -12,6 +15,7 @@ describe('RuntimeApiProxyClientService', () => {
     });
 
     afterEach(() => {
+        (environment as { apiProxyUrl?: string }).apiProxyUrl = originalApiProxyUrl;
         TestBed.resetTestingModule();
     });
 
@@ -46,6 +50,24 @@ describe('RuntimeApiProxyClientService', () => {
             sourceId: 'spotify-releases',
             input: { locale: 'en' },
         });
+    });
+
+    it('uses the dedicated api proxy base URL when one is configured', async () => {
+        (environment as { apiProxyUrl?: string }).apiProxyUrl = 'https://proxy.example.test/Prod';
+        const fetchSpy = spyOn(window, 'fetch').and.resolveTo(new Response(JSON.stringify({
+            ok: true,
+            data: {},
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        }));
+
+        await service.readSource({
+            domain: 'music.lynxpardelle.com',
+            sourceId: 'itunesSongSearch',
+        });
+
+        expect(String(fetchSpy.calls.mostRecent().args[0])).toBe('https://proxy.example.test/Prod/api-proxy/read');
     });
 
     it('posts action requests to the api proxy action endpoint', async () => {

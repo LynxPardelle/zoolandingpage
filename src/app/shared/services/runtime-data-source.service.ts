@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import type { TRuntimeDataSourceConfig } from '@/app/shared/types/config-payloads.types';
-import { RuntimeApiProxyClientService } from './runtime-api-proxy-client.service';
+import { RuntimeApiProxyClientService, type TRuntimeApiProxyResponse } from './runtime-api-proxy-client.service';
 import { RuntimeDataSourceMapperService } from './runtime-data-source-mapper.service';
 import { VariableStoreService } from './variable-store.service';
 
@@ -18,6 +18,7 @@ export class RuntimeDataSourceService {
     private readonly mapper = inject(RuntimeDataSourceMapperService);
     private readonly variables = inject(VariableStoreService);
     private readonly timers = new Set<ReturnType<typeof setInterval>>();
+    private readonly loadRetryDelaysMs = [150, 500];
 
     async start(options: TRuntimeDataSourceStartOptions): Promise<void> {
         this.stop();
@@ -38,18 +39,45 @@ export class RuntimeDataSourceService {
         this.writeStatus(source, 'loading', null);
 
         try {
-            const response = await this.proxy.readSource({
-                domain: options.domain,
-                pageId: options.pageId,
-                sourceId,
-                input: source.input,
-            });
+            const response = await this.readSourceWithRetry(options, source, sourceId);
             const mapped = this.mapper.mapResponse(response.data, source.mapper);
             this.variables.setRuntimeValue(source.target, mapped);
             this.writeStatus(source, this.hasItems(mapped) ? 'success' : 'empty', null);
         } catch (error) {
             this.writeStatus(source, 'error', error instanceof Error ? error.message : 'API proxy request failed');
         }
+    }
+
+    private async readSourceWithRetry(
+        options: TRuntimeDataSourceStartOptions,
+        source: TRuntimeDataSourceConfig,
+        sourceId: string,
+    ): Promise<TRuntimeApiProxyResponse<unknown>> {
+        let lastError: unknown;
+        const attempts = this.loadRetryDelaysMs.length + 1;
+
+        for (let attempt = 0; attempt < attempts; attempt++) {
+            try {
+                return await this.proxy.readSource({
+                    domain: options.domain,
+                    pageId: options.pageId,
+                    sourceId,
+                    input: source.input,
+                });
+            } catch (error) {
+                lastError = error;
+                if (attempt >= this.loadRetryDelaysMs.length) {
+                    break;
+                }
+                await this.wait(this.loadRetryDelaysMs[attempt]);
+            }
+        }
+
+        throw lastError instanceof Error ? lastError : new Error('API proxy request failed');
+    }
+
+    private wait(ms: number): Promise<void> {
+        return new Promise((resolve) => setTimeout(resolve, ms));
     }
 
     private scheduleRefresh(options: TRuntimeDataSourceStartOptions, source: TRuntimeDataSourceConfig): void {

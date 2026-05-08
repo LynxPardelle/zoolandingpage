@@ -61,11 +61,20 @@ export class RuntimeApiProxyClientService {
     }
 
     private buildUrl(path: string): string {
-        const base = String(environment.apiUrl ?? '').trim().replace(/\/$/, '');
+        const base = this.resolveBaseUrl(path);
         const target = `${ base }/${ path.replace(/^\//, '') }`;
         return /^[a-zA-Z][a-zA-Z\d+.-]*:\/\//.test(base)
             ? new URL(target).toString()
             : new URL(target, this.resolveOrigin()).toString();
+    }
+
+    private resolveBaseUrl(path: string): string {
+        const normalizedPath = path.replace(/^\//, '');
+        const configuredProxyBase = String(environment.apiProxyUrl ?? '').trim();
+        const base = normalizedPath.startsWith('api-proxy/') && configuredProxyBase
+            ? configuredProxyBase
+            : String(environment.apiUrl ?? '').trim();
+        return base.replace(/\/$/, '');
     }
 
     private resolveOrigin(): string {

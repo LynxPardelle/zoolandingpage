@@ -93,6 +93,31 @@ describe('RuntimeDataSourceService', () => {
         expect(variables.get('remoteStatus.empty-source.error')).toBeNull();
     });
 
+    it('retries transient read failures before falling back to static values', async () => {
+        proxy.readSource.and.returnValues(
+            Promise.reject(new Error('Failed to fetch')),
+            Promise.resolve({ ok: true, data: { results: [{ trackName: 'My Soul' }] } }),
+        );
+        mapper.mapResponse.and.returnValue({ items: [{ title: 'My Soul' }] });
+
+        await service.start({
+            domain: 'music.lynxpardelle.com',
+            pageId: 'default',
+            dataSources: [
+                {
+                    id: 'itunes-songs',
+                    proxySourceId: 'itunesSongSearch',
+                    target: 'remote.music.releases',
+                    mapper: { itemsPath: 'results' },
+                },
+            ],
+        });
+
+        expect(proxy.readSource.calls.count()).toBe(2);
+        expect(variables.get('remote.music.releases.items')).toEqual([{ title: 'My Soul' }]);
+        expect(variables.get('remoteStatus.itunes-songs.state')).toBe('success');
+    });
+
     it('writes a safe error status without replacing previous target data', async () => {
         variables.setRuntimeValue('remote.music.releases', {
             items: [{ title: 'Existing' }],
