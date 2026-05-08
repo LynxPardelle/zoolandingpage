@@ -34,6 +34,66 @@ body {
   white-space: nowrap !important;
 }
 
+.skipLink {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1000;
+  transform: translateY(-140%);
+  padding: 8px 16px;
+  border: 1px solid var(--ank-secondaryAccentColor, currentColor);
+  border-radius: 8px;
+  background: var(--ank-bgColor, #000);
+  color: var(--ank-titleColor, currentColor);
+  text-decoration: none;
+  font-weight: 800;
+  transition: transform 160ms ease;
+}
+
+.skipLink:focus,
+.skipLink:focus-visible {
+  transform: translateY(0);
+}
+
+.sectionBase,
+#contact-section {
+  scroll-margin-top: 180px;
+}
+
+.musicHeroPanel :is(h1, p, small),
+.sectionContent :is(h2, p),
+.musicCatalogPanel :is(h2, p) {
+  margin: 0;
+}
+
+#finalCtaButtons-container {
+  gap: 18px;
+}
+
+#finalCtaButtons-container > wrapper-orchestrator,
+#finalCtaButtons-container generic-link {
+  display: block;
+}
+
+#finalCtaButtons-container a {
+  display: flex;
+}
+
+#finalSecondaryLink {
+  margin-top: 0;
+}
+
+@media (min-width: 768px) {
+  .sectionBase,
+  #contact-section {
+    scroll-margin-top: 132px;
+  }
+
+  #finalCtaButtons-container {
+    gap: 12px;
+  }
+}
+
 /* Focus visible ring helper class */
 .focus-visible-ring {
   outline: 2px solid var(--ank-accentColor, currentColor);
