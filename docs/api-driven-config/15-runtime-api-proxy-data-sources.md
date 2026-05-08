@@ -56,7 +56,12 @@ Put upstream URLs, methods, response filters, and credential references in `draf
       "url": "https://itunes.apple.com/search",
       "allowedInputFields": ["term", "entity", "limit"],
       "response": {
-        "allowedFields": ["resultCount", "results"],
+        "allowedFields": [
+          "resultCount",
+          "results.trackName",
+          "results.trackViewUrl",
+          "results.collectionName"
+        ],
         "maxBytes": 524288
       }
     }
@@ -65,7 +70,7 @@ Put upstream URLs, methods, response filters, and credential references in `draf
 }
 ```
 
-This file is server-only. It can be published by the authoring package, but `runtime-read` must not include it in browser runtime bundles.
+This file is server-only. It can be published by the authoring package, but `runtime-read` must not include it in browser runtime bundles. Prefer nested `allowedFields` paths such as `results.trackName` over broad parent fields such as `results` so the proxy returns only the properties the draft needs.
 
 ## Rendering
 
