@@ -26,6 +26,7 @@ The config-driven production path depends on three Lambda repositories that are 
 - `../zoolanding-config-runtime-read`
 - `../zoolanding-config-authoring`
 - `../zoolanding-image-upload`
+- `../zoolanding-api-proxy`
 
 Recommended AWS resource names:
 
@@ -43,8 +44,9 @@ Recommended deployment order:
 4. Deploy `zoolanding-config-runtime-read` behind API Gateway and map `/runtime-bundle` under `https://api.zoolandingpage.com.mx`.
 5. Deploy `zoolanding-config-authoring` behind API Gateway and map `/config-authoring` under `https://api.zoolandingpage.com.mx`.
 6. Deploy `zoolanding-image-upload` behind API Gateway and map `/image-upload/presign` under `https://api.zoolandingpage.com.mx`.
-7. Seed or update the canonical production site under `zoolandingpage.com.mx`, and declare any preview or alternate hosts in `site-config.json.aliases`.
-8. Build and deploy the Dokploy containers for `zoolandingpage.com.mx` and `test.zoolandingpage.com.mx` from the same codebase. Both can call `https://api.zoolandingpage.com.mx`, and the test host will reuse the canonical production config resources.
+7. Deploy `zoolanding-api-proxy` behind API Gateway and map `/api-proxy/*` under `https://api.zoolandingpage.com.mx`.
+8. Seed or update the canonical production site under `zoolandingpage.com.mx`, and declare any preview or alternate hosts in `site-config.json.aliases`.
+9. Build and deploy the Dokploy containers for `zoolandingpage.com.mx` and `test.zoolandingpage.com.mx` from the same codebase. Both can call `https://api.zoolandingpage.com.mx`, and the test host will reuse the canonical production config resources.
 
 Notes for preview and alternate domains:
 
@@ -54,7 +56,7 @@ Notes for preview and alternate domains:
 - Put preview or alternate hosts in `site-config.json.aliases`, for example `"aliases": ["test.zoolandingpage.com.mx", "landing-preview.zoolandingpage.com.mx"]`.
 - The authoring Lambda persists alias lookup records in DynamoDB, and the runtime Lambda resolves those aliases back to the canonical site domain at request time.
 - You do not need a second DynamoDB site entry just for a preview host when it should reuse the canonical site's config.
-- The REST APIs currently answer CORS preflight with `Access-Control-Allow-Origin: *`, `Content-Type,Authorization`, and the expected route methods.
+- Most REST APIs currently answer CORS preflight with `Access-Control-Allow-Origin: *`, `Content-Type,Authorization`, and the expected route methods. The runtime API proxy uses a stricter origin allowlist for `https://zoolandingpage.com.mx`, `https://test.zoolandingpage.com.mx`, and local QA origins.
 - The CloudFront distribution for `api.zoolandingpage.com.mx` must forward `Origin`, `Access-Control-Request-Method`, `Access-Control-Request-Headers`, query strings, and `OPTIONS` requests to preserve browser CORS behavior.
 - Browser uploads to S3 still require bucket-level CORS on `zoolandingpage-public-files`.
 - The public files bucket already allows `GET`, `HEAD`, and `PUT` from `https://zoolandingpage.com.mx` and `https://test.zoolandingpage.com.mx`.
@@ -68,6 +70,7 @@ Current deployed stack outputs:
 - `zoolanding-config-authoring`: `https://2dvjmiwjod.execute-api.us-east-1.amazonaws.com/Prod/config-authoring`
 - `zoolanding-config-runtime-read`: `https://y84vk0v44l.execute-api.us-east-1.amazonaws.com/Prod/runtime-bundle`
 - `zoolanding-image-upload`: `https://sots05zp69.execute-api.us-east-1.amazonaws.com/Prod/image-upload/presign`
+- `zoolanding-api-proxy`: `https://yxp97qlog2.execute-api.us-east-1.amazonaws.com/Prod/api-proxy/read` and `https://yxp97qlog2.execute-api.us-east-1.amazonaws.com/Prod/api-proxy/action`
 
 Current smoke-test status before the first site upload:
 
@@ -82,6 +85,7 @@ Current custom-domain routing through CloudFront:
 - `/runtime-bundle*` -> `y84vk0v44l.execute-api.us-east-1.amazonaws.com` with origin path `/Prod`
 - `/config-authoring*` -> `2dvjmiwjod.execute-api.us-east-1.amazonaws.com` with origin path `/Prod`
 - `/image-upload/presign*` -> `sots05zp69.execute-api.us-east-1.amazonaws.com` with origin path `/Prod`
+- `/api-proxy/*` -> `yxp97qlog2.execute-api.us-east-1.amazonaws.com` with origin path `/Prod`
 - the existing default behavior remains in place for older API routes already using the same distribution
 
 Use `https://api.zoolandingpage.com.mx` as the stable browser-facing base URL. Keep the raw execute-api endpoints for low-level troubleshooting and the SSR-only `runtime-bundle` fallback base.
@@ -115,6 +119,9 @@ sam deploy
 
 Set-Location "C:\Users\lince\Documents\GitHub\zoolanding-image-upload"
 sam deploy
+
+Set-Location "C:\Users\lince\Documents\GitHub\zoolanding-api-proxy"
+sam deploy
 ```
 
 The non-interactive commands actually used for the first deployment were:
@@ -128,6 +135,9 @@ sam deploy --stack-name zoolanding-config-runtime-read --region us-east-1 --capa
 
 Set-Location "C:\Users\lince\Documents\GitHub\zoolanding-image-upload"
 sam deploy --stack-name zoolanding-image-upload --region us-east-1 --capabilities CAPABILITY_IAM --resolve-s3 --no-confirm-changeset --no-fail-on-empty-changeset --parameter-overrides PublicFilesBucketName=zoolandingpage-public-files PublicFilesBaseUrl=https://assets.zoolandingpage.com.mx PresignExpirationSeconds=900 LogLevel=INFO
+
+Set-Location "C:\Users\lince\Documents\GitHub\zoolanding-api-proxy"
+sam deploy --stack-name zoolanding-api-proxy --region us-east-1 --capabilities CAPABILITY_IAM --resolve-s3 --no-confirm-changeset --no-fail-on-empty-changeset --parameter-overrides ConfigTableName=zoolanding-config-registry ConfigPayloadsBucketName=zoolanding-config-payloads AllowedCorsOrigins=https://zoolandingpage.com.mx,https://test.zoolandingpage.com.mx SecretNamePrefix=zoolanding/api/ LogLevel=INFO
 ```
 
 ### 2. Prepare deployment zip files
@@ -150,6 +160,9 @@ Compress-Archive -Path .\lambda_function.py, .\zoolanding_lambda_common.py -Dest
 
 Set-Location "C:\Users\lince\Documents\GitHub\zoolanding-image-upload"
 Compress-Archive -Path .\lambda_function.py, .\zoolanding_lambda_common.py -DestinationPath .\zoolanding-image-upload.zip -Force
+
+Set-Location "C:\Users\lince\Documents\GitHub\zoolanding-api-proxy"
+Compress-Archive -Path .\lambda_function.py, .\zoolanding_lambda_common.py -DestinationPath .\zoolanding-api-proxy.zip -Force
 ```
 
 After creating each zip, open it once and verify the files are at the root of the archive, not inside another folder.
@@ -248,6 +261,7 @@ The current production setup uses one existing CloudFront distribution for `api.
 - `GET /runtime-bundle` -> `zoolanding-config-runtime-read`
 - `POST /config-authoring` -> `zoolanding-config-authoring`
 - `POST /image-upload/presign` -> `zoolanding-image-upload`
+- `POST /api-proxy/read` and `POST /api-proxy/action` -> `zoolanding-api-proxy`
 - `OPTIONS` for the same routes if you configure CORS manually
 
 Current distribution details:
@@ -263,8 +277,9 @@ Current origin and behavior mapping:
 3. Add cache behavior `/runtime-bundle*` pointing to the runtime API origin.
 4. Add cache behavior `/config-authoring*` pointing to the authoring API origin.
 5. Add cache behavior `/image-upload/presign*` pointing to the image-upload API origin.
-6. Keep the existing default behavior untouched so older API routes continue working.
-7. Reuse the distribution's disabled-cache policy and the origin-request policy that forwards viewer headers except `Host`.
+6. Add cache behavior `/api-proxy/*` pointing to the runtime API proxy origin.
+7. Keep the existing default behavior untouched so older API routes continue working.
+8. Reuse the distribution's disabled-cache policy and the origin-request policy that forwards viewer headers except `Host`.
 
 CORS requirements through CloudFront:
 
