@@ -229,10 +229,66 @@ export type TDraftFeatureRuntimeConfig = {
     readonly debugMode?: boolean;
 };
 
+export type TDraftNavigationScrollRestorationMode = 'preserve' | 'top' | 'position';
+
+export type TDraftNavigationScrollRestorationBehavior = 'auto' | 'smooth' | 'instant';
+
+export type TDraftNavigationScrollRestorationConfig = {
+    readonly mode?: TDraftNavigationScrollRestorationMode;
+    readonly top?: number;
+    readonly left?: number;
+    readonly behavior?: TDraftNavigationScrollRestorationBehavior;
+};
+
+export type TDraftNavigationRuntimeConfig = {
+    readonly scrollRestoration?: TDraftNavigationScrollRestorationConfig;
+};
+
+export type TRuntimeDataSourceFieldMapping =
+    | string
+    | {
+        readonly path: string;
+        readonly fallback?: unknown;
+    };
+
+export type TRuntimeDataSourceMapperConfig = {
+    readonly itemsPath?: string | null;
+    readonly fields?: Record<string, TRuntimeDataSourceFieldMapping> | null;
+};
+
+export type TRuntimeDataSourceRefreshConfig = {
+    readonly mode?: 'load' | 'interval';
+    readonly intervalMs?: number;
+};
+
+export type TRuntimeDataSourceConfig = {
+    readonly id: string;
+    readonly proxySourceId?: string;
+    readonly target: string;
+    readonly statusTarget?: string;
+    readonly enabled?: boolean;
+    readonly input?: Record<string, unknown>;
+    readonly mapper?: TRuntimeDataSourceMapperConfig | null;
+    readonly refresh?: TRuntimeDataSourceRefreshConfig | null;
+};
+
+export type TRuntimeApiActionConfig = {
+    readonly id: string;
+    readonly proxyActionId?: string;
+    readonly method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+    readonly statusTarget?: string;
+    readonly enabled?: boolean;
+    readonly inputFields?: readonly string[];
+    readonly requiresUserGesture?: boolean;
+};
+
 export type TDraftSiteRuntimeConfig = {
     readonly localStorage?: TDraftLocalStorageRuntimeConfig;
     readonly features?: TDraftFeatureRuntimeConfig;
     readonly analytics?: TDraftAnalyticsRuntimeConfig;
+    readonly navigation?: TDraftNavigationRuntimeConfig;
+    readonly dataSources?: readonly TRuntimeDataSourceConfig[];
+    readonly apiActions?: readonly TRuntimeApiActionConfig[];
 };
 
 export type TDraftSiteConfigPayload = {

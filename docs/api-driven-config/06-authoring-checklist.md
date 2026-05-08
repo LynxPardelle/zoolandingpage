@@ -9,6 +9,8 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Dynamic values MUST use `valueInstructions` with allowlisted resolver IDs.
 - Conditions MUST use the `condition` DSL with allowlisted handler IDs.
 - Repeated components should use `loopConfig` (object model) instead of hardcoded `Array.from(...)` IDs.
+- Runtime API reads should use `site-config.json.runtime.dataSources` plus `loopConfig.source: "var"`; do not add component-specific fetch logic.
+- Runtime API actions should use `site-config.json.runtime.apiActions` and the `proxyAction` event handler; do not send arbitrary upstream URLs from `eventInstructions`.
 - Dynamic accordion items should use `config.itemsSource` (`i18n` or `var`) instead of inline `items: () => ...` lambdas.
 - Dynamic tab-group items should use `config.tabsSource` (`i18n` or `var`) instead of inline `tabs: () => ...` lambdas.
 - Search-box suggestions should live in `config.suggestions`; do not author or depend on a runtime fetcher function.
@@ -24,6 +26,7 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Footer, legal modal, accessibility, and debug-panel content must be payload-owned (no local fallback assumptions anywhere in the runtime).
 - Do not author hardcoded footer/legal text in app source when generating payload instructions.
 - Treat `page-config.json.seo` as required for active pages; the runtime no longer ships a branded shell fallback title or description.
+- Put server-only upstream policies in `server/integrations.json`; never put secrets, tokens, client secrets, or credential-bearing URLs in browser payloads.
 
 ## Naming / structure
 
@@ -90,6 +93,9 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Verify `variables.appIdentity` is present for each active page, with at least `identifier` or `name`.
 - Verify `site-config.json` includes `runtime.localStorage` and `runtime.features` for each active domain.
 - Verify `site-config.json.runtime.analytics.track` is present when analytics collection should enrich events with browser metadata.
+- Verify every `runtime.dataSources[]` entry has a stable `id`, a browser-safe `target`, an optional `statusTarget`, and a matching server-only source ID in `server/integrations.json`.
+- Verify every `runtime.apiActions[]` entry has a stable `id`, an input field allowlist, and a matching server-only action ID before wiring `proxyAction`.
+- Verify `server/integrations.json` uses only allowlisted methods and response fields, and only `credentialRef` references for credentials.
 - Verify `page-config.json.seo` is present and complete for every active draft.
 - Verify footer/legal modal sections can render from API payload only.
 - Verify shared runtime keys are present in draft i18n when used by the page. Common examples:

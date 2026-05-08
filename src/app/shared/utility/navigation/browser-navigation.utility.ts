@@ -1,3 +1,5 @@
+import type { TDraftNavigationScrollRestorationConfig } from '../../types/config-payloads.types';
+
 export function currentBrowserPath(): string {
     if (typeof window === 'undefined' || !window.location) {
         return '/';
@@ -23,7 +25,37 @@ function scrollHashIntoView(hash: string): void {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-export function navigateInCurrentWindow(href: string): void {
+function numericOrFallback(value: number | undefined, fallback: number): number {
+    return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+export function applyNavigationScroll(scrollRestoration?: TDraftNavigationScrollRestorationConfig): void {
+    const mode = scrollRestoration?.mode ?? 'preserve';
+    if (mode === 'preserve') {
+        return;
+    }
+
+    const top = mode === 'top' ? 0 : numericOrFallback(scrollRestoration?.top, 0);
+    const left = numericOrFallback(scrollRestoration?.left, 0);
+    const behavior = scrollRestoration?.behavior ?? 'auto';
+    if (behavior !== 'smooth') {
+        for (const element of [document.scrollingElement, document.documentElement, document.body]) {
+            if (!element) {
+                continue;
+            }
+
+            element.scrollTop = top;
+            element.scrollLeft = left;
+        }
+    }
+
+    window.scrollTo({ top, left, behavior });
+}
+
+export function navigateInCurrentWindow(
+    href: string,
+    options: { readonly scrollRestoration?: TDraftNavigationScrollRestorationConfig } = {},
+): void {
     if (typeof window === 'undefined' || !window.location) {
         return;
     }
@@ -44,6 +76,8 @@ export function navigateInCurrentWindow(href: string): void {
     if (nextPath === currentBrowserPath()) {
         if (nextUrl.hash) {
             scrollHashIntoView(nextUrl.hash);
+        } else {
+            applyNavigationScroll(options.scrollRestoration);
         }
         return;
     }
@@ -51,6 +85,8 @@ export function navigateInCurrentWindow(href: string): void {
     window.history.pushState({}, '', nextPath);
     if (nextUrl.hash) {
         scrollHashIntoView(nextUrl.hash);
+    } else {
+        applyNavigationScroll(options.scrollRestoration);
     }
     dispatchClientNavigation();
 }

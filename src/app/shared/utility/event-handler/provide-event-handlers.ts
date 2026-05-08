@@ -27,6 +27,7 @@ import {
     closeModalHandler,
     openModalHandler,
 } from './handlers/legal-modal.handlers';
+import { proxyActionHandler } from './handlers/proxy-action.handlers';
 import {
     clearAllToastsHandler,
     showActionToastHandler,
@@ -65,6 +66,7 @@ const baseEventHandlerProviders: Provider[] = [
     { provide: EVENT_HANDLERS, multi: true, useFactory: removeConsentRequestHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: scrollToSectionHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: skipToMainHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: proxyActionHandler },
 ];
 
 const debugEventHandlerProviders: Provider[] = [

@@ -36,6 +36,7 @@ The draft filesystem under `drafts/{domain}/...`, served locally at `/drafts/...
 - Actions through `eventInstructions`.
 - Visibility logic through `condition`.
 - Repeated structures through `loopConfig`.
+- Runtime API data sources through `site-config.json.runtime.dataSources` and server-only integration policy.
 - Shared domain defaults plus page-level overrides.
 - Locale-aware content and metadata.
 - Draft-owned appearance through `angora-combos.json`, theme palettes, and payload-owned classes.
@@ -63,6 +64,7 @@ The draft filesystem under `drafts/{domain}/...`, served locally at `/drafts/...
 - [12-validation.md](12-validation.md)
 - [13-loop-config.md](13-loop-config.md)
 - [14-loop-resolution-catalog.md](14-loop-resolution-catalog.md)
+- [15-runtime-api-proxy-data-sources.md](15-runtime-api-proxy-data-sources.md)
 
 ## Practical rule for new contributors
 
@@ -72,7 +74,9 @@ If you are trying to change behavior and you do not know whether to edit code or
 2. Is this page root, SEO, or page analytics? Edit `page-config.json`.
 3. Is this rendered structure or component styling? Edit `components.json` and possibly `angora-combos.json`.
 4. Is this content or site/page data? Edit `variables.json` or `i18n/*.json`.
-5. Is this binary media? Upload it through the image-upload flow and store the returned `publicUrl` in payloads.
+5. Is this browser-safe runtime API wiring? Edit `site-config.json.runtime.dataSources` or `site-config.json.runtime.apiActions`.
+6. Is this an upstream URL, method, credential reference, or response allowlist? Edit `server/integrations.json`.
+7. Is this binary media? Upload it through the image-upload flow and store the returned `publicUrl` in payloads.
 
 ## Schemas
 

@@ -1,0 +1,875 @@
+{
+  "version": 1,
+  "domain": "debug-workspace",
+  "pageId": "default",
+  "components": [
+    {
+      "id": "debugWorkspaceRoot",
+      "type": "container",
+      "config": {
+        "tag": "div",
+        "components": [
+          "debugDraftPanelRoot",
+          "devDemoControlsRoot",
+          "debugDiagnosticsPanelRoot"
+        ]
+      }
+    },
+    {
+      "id": "debugDraftPanelRoot",
+      "type": "container",
+      "condition": "all:hostEq,showDraftRegistry,true",
+      "config": {
+        "tag": "aside",
+        "classes": "ank-position-fixed ank-bottom-16px ank-left-16px ank-zIndex-1300 ank-display-flex ank-flexDirection-column ank-gap-14px ank-p-16px ank-borderRadius-18px ank-maxWidth-420px ank-color-textColor ank-bg-bgColorOPA__0_92 ank-border-1px ank-borderColor-textColorOPA__0_12 ank-backdropFilter-blurSD8pxED ank-boxShadow-0__12px__40px__rgbaSD0COM0COM0COM0_28ED",
+        "components": [
+          "debugDraftPanelHeaderRow",
+          "debugDraftPanelCollapsedSummary",
+          "debugDraftPanelExpandedActiveCard",
+          "debugDraftPanelDraftButtons",
+          "debugDraftPanelFooterRow"
+        ]
+      }
+    },
+    {
+      "id": "debugDraftPanelHeaderRow",
+      "type": "container",
+      "config": {
+        "tag": "header",
+        "classes": "ank-display-flex ank-alignItems-center ank-justifyContent-spaceMINbetween ank-gap-12px",
+        "components": [
+          "debugDraftPanelHeaderCopy",
+          "debugDraftPanelToggleButton",
+          "debugDraftPanelToggleButtonExpanded"
+        ]
+      }
+    },
+    {
+      "id": "debugDraftPanelHeaderCopy",
+      "type": "container",
+      "config": {
+        "tag": "div",
+        "classes": "ank-display-flex ank-flexDirection-column ank-gap-8px ank-flex-1",
+        "components": [
+          "debugDraftPanelEyebrow",
+          "debugDraftPanelTitleBlock"
+        ]
+      }
+    },
+    {
+      "id": "debugDraftPanelEyebrow",
+      "type": "text",
+      "valueInstructions": "set:config.text,literal,host.draftOptionsEyebrow",
+      "config": {
+        "tag": "small",
+        "text": "",
+        "classes": "ank-display-inlineFlex ank-alignItems-center ank-gap-6px ank-width-fitMINcontent ank-px-10px ank-py-4px ank-borderRadius-24px ank-bg-accentColor ank-color-bgColor ank-fontWeight-700 ank-fontSize-11px ank-letterSpacing-0_08em ank-textTransform-uppercase"
+      }
+    },
+    {
+      "id": "debugDraftPanelTitleBlock",
+      "type": "container",
+      "config": {
+        "tag": "div",
+        "classes": "ank-display-flex ank-flexDirection-column ank-gap-4px",
+        "components": [
+          "debugDraftPanelTitle",
+          "debugDraftPanelDescription",
+          "debugDraftPanelDescriptionExpanded"
+        ]
+      }
+    },
+    {
+      "id": "debugDraftPanelTitle",
+      "type": "text",
+      "config": {
+        "tag": "h3",
+        "text": "Draft Workspace",
+        "classes": "ank-m-0 ank-fontSize-18px ank-lineHeight-1_2"
+      }
+    },
+    {
+      "id": "debugDraftPanelDescription",
+      "type": "text",
+      "condition": "all:hostEq,draftPanelCollapsed,true",
+      "config": {
+        "tag": "p",
+        "text": "Current preview and draft availability at a glance.",
+        "classes": "ank-m-0 ank-color-textColorOPA__0_72 ank-fontSize-13px ank-lineHeight-1_4"
+      }
+    },
+    {
+      "id": "debugDraftPanelDescriptionExpanded",
+      "type": "text",
+      "condition": "all:hostEq,draftPanelCollapsed,false",
+      "config": {
+        "tag": "p",
+        "text": "Switch the live preview to any detected draft without editing query params manually.",
+        "classes": "ank-m-0 ank-color-textColorOPA__0_72 ank-fontSize-13px ank-lineHeight-1_4"
+      }
+    },
+    {
+      "id": "debugDraftPanelToggleButton",
+      "type": "button",
+      "eventInstructions": "toggleDebugDraftPanel",
+      "condition": "all:hostEq,draftPanelCollapsed,true",
+      "config": {
+        "label": "Show",
+        "ariaLabel": "Expand draft workspace",
+        "classes": "ank-display-inlineFlex ank-alignItems-center ank-justifyContent-center ank-minHeight-36px ank-px-12px ank-py-6px ank-borderRadius-999px ank-border-1px ank-borderColor-textColorOPA__0_14 ank-bg-textColorOPA__0_04 ank-color-textColor ank-fontSize-11px ank-fontWeight-700 ank-letterSpacing-0_04em ank-textTransform-uppercase"
+      }
+    },
+    {
+      "id": "debugDraftPanelToggleButtonExpanded",
+      "type": "button",
+      "eventInstructions": "toggleDebugDraftPanel",
+      "condition": "all:hostEq,draftPanelCollapsed,false",
+      "config": {
+        "label": "Minimize",
+        "ariaLabel": "Minimize draft workspace",
+        "classes": "ank-display-inlineFlex ank-alignItems-center ank-justifyContent-center ank-minHeight-36px ank-px-12px ank-py-6px ank-borderRadius-999px ank-border-1px ank-borderColor-textColorOPA__0_14 ank-bg-textColorOPA__0_04 ank-color-textColor ank-fontSize-11px ank-fontWeight-700 ank-letterSpacing-0_04em ank-textTransform-uppercase"
+      }
+    },
+    {
+      "id": "debugDraftPanelCollapsedSummary",
+      "type": "container",
+      "condition": "all:hostEq,draftPanelCollapsed,true",
+      "config": {
+        "tag": "div",
+        "classes": "ank-display-flex ank-flexDirection-column ank-gap-4px ank-p-12px ank-borderRadius-12px ank-bg-textColorOPA__0_06 ank-border-1px ank-borderColor-textColorOPA__0_08",
+        "components": [
+          "debugDraftPanelCollapsedLabel",
+          "debugDraftPanelCollapsedValue",
+          "debugDraftPanelCollapsedMeta"
+        ]
+      }
+    },
+    {
+      "id": "debugDraftPanelCollapsedLabel",
+      "type": "text",
+      "config": {
+        "tag": "small",
+        "text": "Current preview",
+        "classes": "ank-m-0 ank-color-textColorOPA__0_56 ank-fontSize-11px ank-textTransform-uppercase ank-letterSpacing-0_08em"
+      }
+    },
+    {
+      "id": "debugDraftPanelCollapsedValue",
+      "type": "text",
+      "valueInstructions": "set:config.text,literal,host.activeDraftLabel",
+      "config": {
+        "tag": "p",
+        "text": "",
+        "classes": "ank-m-0 ank-fontSize-14px ank-fontWeight-700 ank-lineHeight-1_35"
+      }
+    },
+    {
+      "id": "debugDraftPanelCollapsedMeta",
+      "type": "text",
+      "valueInstructions": "set:config.text,literal,host.draftOptionsReadyLabel",
+      "config": {
+        "tag": "small",
+        "text": "",
+        "classes": "ank-m-0 ank-color-textColorOPA__0_56 ank-fontSize-12px ank-lineHeight-1_4"
+      }
+    },
+    {
+      "id": "debugDraftPanelExpandedActiveCard",
+      "type": "container",
+      "condition": "all:hostEq,draftPanelCollapsed,false",
+      "config": {
+        "tag": "div",
+        "classes": "ank-display-flex ank-flexDirection-column ank-gap-4px ank-p-12px ank-borderRadius-12px ank-bg-textColorOPA__0_08 ank-border-1px ank-borderColor-textColorOPA__0_08",
+        "components": [
+          "debugDraftPanelActiveLabel",
+          "debugDraftPanelActiveValue"
+        ]
+      }
+    },
+    {
+      "id": "debugDraftPanelActiveLabel",
+      "type": "text",
+      "config": {
+        "tag": "small",
+        "text": "Current preview",
+        "classes": "ank-m-0 ank-color-textColorOPA__0_56 ank-fontSize-11px ank-textTransform-uppercase ank-letterSpacing-0_08em"
+      }
+    },
+    {
+      "id": "debugDraftPanelActiveValue",
+      "type": "text",
+      "valueInstructions": "set:config.text,literal,host.activeDraftLabel",
+      "config": {
+        "tag": "p",
+        "text": "",
+        "classes": "ank-m-0 ank-fontSize-14px ank-fontWeight-700 ank-lineHeight-1_35"
+      }
+    },
+    {
+      "id": "debugDraftPanelDraftButtons",
+      "type": "container",
+      "condition": "all:hostEq,draftPanelCollapsed,false",
+      "loopConfig": {
+        "source": "host",
+        "path": "draftOptions",
+        "templateId": "debugDraftButtonTemplate",
+        "idPrefix": "debugDraftButton",
+        "bindings": [
+          {
+            "to": "config.label",
+            "sources": [
+              "label"
+            ]
+          },
+          {
+            "to": "config.classes",
+            "sources": [
+              "buttonClasses"
+            ]
+          },
+          {
+            "to": "config.ariaLabel",
+            "sources": [
+              "ariaLabel"
+            ]
+          },
+          {
+            "to": "meta_title",
+            "sources": [
+              "key"
+            ]
+          }
+        ]
+      },
+      "config": {
+        "tag": "div",
+        "classes": "ank-display-flex ank-flexWrap-wrap ank-gap-8px",
+        "components": []
+      }
+    },
+    {
+      "id": "debugDraftButtonTemplate",
+      "type": "button",
+      "eventInstructions": "selectDebugDraft:event.meta_title",
+      "config": {
+        "label": "",
+        "ariaLabel": "",
+        "classes": ""
+      }
+    },
+    {
+      "id": "debugDraftPanelFooterRow",
+      "type": "container",
+      "condition": "all:hostEq,draftPanelCollapsed,false",
+      "config": {
+        "tag": "div",
+        "classes": "ank-display-flex ank-alignItems-center ank-justifyContent-spaceMINbetween ank-gap-12px ank-flexWrap-wrap",
+        "components": [
+          "debugDraftPanelHint",
+          "debugDraftRefreshButton"
+        ]
+      }
+    },
+    {
+      "id": "debugDraftPanelHint",
+      "type": "text",
+      "valueInstructions": "set:config.text,literal,host.draftRegistryStatusLabel",
+      "config": {
+        "tag": "small",
+        "text": "",
+        "classes": "ank-m-0 ank-color-textColorOPA__0_56 ank-fontSize-12px ank-lineHeight-1_4 ank-flex-1"
+      }
+    },
+    {
+      "id": "debugDraftRefreshButton",
+      "type": "button",
+      "eventInstructions": "refreshDebugDraftRegistry",
+      "valueInstructions": "set:config.loading,literal,host.draftRegistryLoading",
+      "config": {
+        "label": "Refresh",
+        "icon": "refresh",
+        "ariaLabel": "Refresh available drafts",
+        "loading": false,
+        "classes": "ank-display-inlineFlex ank-alignItems-center ank-justifyContent-center ank-gap-6px ank-minHeight-40px ank-px-14px ank-py-8px ank-borderRadius-12px ank-border-1px ank-borderColor-textColorOPA__0_14 ank-bg-secondaryAccentColor ank-color-bgColor ank-fontSize-12px ank-fontWeight-700 ank-lineHeight-1_3 ank-transition-all ank-td-200ms"
+      }
+    },
+    {
+      "id": "devDemoControlsRoot",
+      "type": "container",
+      "config": {
+        "tag": "div",
+        "classes": "ank-p-1rem__1rem__3rem__1rem ank-w-100per ank-bg-secondaryBgColor ank-borderTop-1px ank-borderColor-secondaryAccentColor ank-borderBottom-1px ank-pt-5rem ank-pb-15rem",
+        "components": [
+          "devDemoTitle",
+          "devDemoControlsRootContainer"
+        ]
+      }
+    },
+    {
+      "id": "devDemoControlsRootContainer",
+      "type": "container",
+      "config": {
+        "tag": "div",
+        "classes": "ank-p-1rem__1rem__3rem__1rem ank-display-flex ank-flexWrap-wrap ank-gap-0_5rem ank-w-100per ank-justifyContent-spaceMINevenly ank-bg-secondaryBgColor",
+        "components": [
+          "devDemoOpenModalBtn",
+          "devDemoToastSuccessBtn",
+          "devDemoToastErrorBtn",
+          "devDemoToastActionBtn",
+          "devDemoToastPositionBtn",
+          "devDemoToastClearBtn"
+        ]
+      }
+    },
+    {
+      "id": "devDemoTitle",
+      "type": "text",
+      "valueInstructions": "set:config.text,i18n,demo.title",
+      "config": {
+        "tag": "h3",
+        "text": "",
+        "classes": "ank-w-100per ank-textAlign-center ank-color-secondaryTitleColor"
+      }
+    },
+    {
+      "id": "devDemoOpenModalBtn",
+      "type": "button",
+      "eventInstructions": "openModal:demo-modal",
+      "valueInstructions": "set:config.label,i18n,demo.modal.button.open",
+      "config": {
+        "label": "",
+        "classes": "debugBtnBaseVALSVL1_25remVL0_75remVL ank-fs-1rem ank-btn-primary ank-color-textColor"
+      }
+    },
+    {
+      "id": "devDemoToastSuccessBtn",
+      "type": "button",
+      "eventInstructions": "showDemoToast",
+      "valueInstructions": "set:config.label,i18n,demo.toast.button.success",
+      "config": {
+        "label": "",
+        "classes": "debugBtnBaseVALSVL1_25remVL0_75remVL ank-fs-1rem ank-btn-success ank-color-textColor"
+      }
+    },
+    {
+      "id": "devDemoToastErrorBtn",
+      "type": "button",
+      "eventInstructions": "showErrorToast",
+      "valueInstructions": "set:config.label,i18n,demo.toast.button.error",
+      "config": {
+        "label": "",
+        "classes": "debugBtnBaseVALSVL1_25remVL0_75remVL ank-fs-1rem ank-btn-danger ank-color-textColor"
+      }
+    },
+    {
+      "id": "devDemoToastActionBtn",
+      "type": "button",
+      "eventInstructions": "showActionToast",
+      "valueInstructions": "set:config.label,i18n,demo.toast.button.action",
+      "config": {
+        "label": "",
+        "classes": "debugBtnBaseVALSVL1_25remVL0_75remVL ank-fs-1rem ank-btn-warning ank-color-textColor"
+      }
+    },
+    {
+      "id": "devDemoToastPositionBtn",
+      "type": "button",
+      "eventInstructions": "showPositionDemo",
+      "valueInstructions": "set:config.label,i18n,demo.toast.button.position",
+      "config": {
+        "label": "",
+        "classes": "debugBtnBaseVALSVL1_25remVL0_75remVL ank-fs-1rem ank-btn-info ank-color-textColor"
+      }
+    },
+    {
+      "id": "devDemoToastClearBtn",
+      "type": "button",
+      "eventInstructions": "clearAllToasts",
+      "valueInstructions": "set:config.label,i18n,demo.toast.button.clear",
+      "config": {
+        "label": "",
+        "classes": "debugBtnBaseVALSVL1_25remVL0_75remVL ank-fs-1rem ank-btn-secondary ank-color-textColor"
+      }
+    },
+    {
+      "id": "debugDiagnosticsPanelRoot",
+      "type": "container",
+      "config": {
+        "tag": "aside",
+        "classes": "ank-position-fixed ank-bottom-16px ank-right-16px ank-zIndex-1300 ank-display-flex ank-flexDirection-column ank-gap-14px ank-p-16px ank-borderRadius-18px ank-maxWidth-420px ank-color-textColor ank-bg-bgColorOPA__0_92 ank-border-1px ank-borderColor-textColorOPA__0_12 ank-backdropFilter-blurSD8pxED ank-boxShadow-0__12px__40px__rgbaSD0COM0COM0COM0_28ED",
+        "components": [
+          "debugDiagnosticsPanelHeaderRow",
+          "debugDiagnosticsPanelCollapsedSummary",
+          "debugDiagnosticsActionRow",
+          "debugConfigIssuesSection",
+          "debugAnalyticsEventsSection",
+          "debugAnalyticsEventsEmpty"
+        ]
+      }
+    },
+    {
+      "id": "debugDiagnosticsPanelHeaderRow",
+      "type": "container",
+      "config": {
+        "tag": "header",
+        "classes": "ank-display-flex ank-alignItems-center ank-justifyContent-spaceMINbetween ank-gap-12px",
+        "components": [
+          "debugDiagnosticsPanelHeaderCopy",
+          "debugDiagnosticsPanelToggleButton",
+          "debugDiagnosticsPanelToggleButtonExpanded"
+        ]
+      }
+    },
+    {
+      "id": "debugDiagnosticsPanelHeaderCopy",
+      "type": "container",
+      "config": {
+        "tag": "div",
+        "classes": "ank-display-flex ank-flexDirection-column ank-gap-8px ank-flex-1",
+        "components": [
+          "debugDiagnosticsPanelEyebrow",
+          "debugDiagnosticsPanelTitleBlock"
+        ]
+      }
+    },
+    {
+      "id": "debugDiagnosticsPanelEyebrow",
+      "type": "text",
+      "valueInstructions": "set:config.text,literal,host.recentEventsEyebrow",
+      "config": {
+        "tag": "small",
+        "text": "",
+        "classes": "ank-display-inlineFlex ank-alignItems-center ank-gap-6px ank-width-fitMINcontent ank-px-10px ank-py-4px ank-borderRadius-24px ank-bg-secondaryAccentColor ank-color-bgColor ank-fontWeight-700 ank-fontSize-11px ank-letterSpacing-0_08em ank-textTransform-uppercase"
+      }
+    },
+    {
+      "id": "debugDiagnosticsPanelTitleBlock",
+      "type": "container",
+      "config": {
+        "tag": "div",
+        "classes": "ank-display-flex ank-flexDirection-column ank-gap-4px",
+        "components": [
+          "debugDiagnosticsPanelTitle",
+          "debugDiagnosticsPanelDescription",
+          "debugDiagnosticsPanelDescriptionExpanded"
+        ]
+      }
+    },
+    {
+      "id": "debugDiagnosticsPanelTitle",
+      "type": "text",
+      "config": {
+        "tag": "h3",
+        "text": "Event Viewer",
+        "classes": "ank-m-0 ank-fontSize-18px ank-lineHeight-1_2"
+      }
+    },
+    {
+      "id": "debugDiagnosticsPanelDescription",
+      "type": "text",
+      "condition": "all:hostEq,diagnosticsPanelCollapsed,true",
+      "config": {
+        "tag": "p",
+        "text": "Runtime activity summary for the current draft session.",
+        "classes": "ank-m-0 ank-color-textColorOPA__0_72 ank-fontSize-13px ank-lineHeight-1_4"
+      }
+    },
+    {
+      "id": "debugDiagnosticsPanelDescriptionExpanded",
+      "type": "text",
+      "condition": "all:hostEq,diagnosticsPanelCollapsed,false",
+      "config": {
+        "tag": "p",
+        "text": "Inspect analytics activity, payload tooling, and validation health in one place.",
+        "classes": "ank-m-0 ank-color-textColorOPA__0_72 ank-fontSize-13px ank-lineHeight-1_4"
+      }
+    },
+    {
+      "id": "debugDiagnosticsPanelToggleButton",
+      "type": "button",
+      "eventInstructions": "toggleDebugDiagnosticsPanel",
+      "condition": "all:hostEq,diagnosticsPanelCollapsed,true",
+      "config": {
+        "label": "Show",
+        "ariaLabel": "Expand event viewer",
+        "classes": "ank-display-inlineFlex ank-alignItems-center ank-justifyContent-center ank-minHeight-36px ank-px-12px ank-py-6px ank-borderRadius-999px ank-border-1px ank-borderColor-textColorOPA__0_14 ank-bg-textColorOPA__0_04 ank-color-textColor ank-fontSize-11px ank-fontWeight-700 ank-letterSpacing-0_04em ank-textTransform-uppercase"
+      }
+    },
+    {
+      "id": "debugDiagnosticsPanelToggleButtonExpanded",
+      "type": "button",
+      "eventInstructions": "toggleDebugDiagnosticsPanel",
+      "condition": "all:hostEq,diagnosticsPanelCollapsed,false",
+      "config": {
+        "label": "Minimize",
+        "ariaLabel": "Minimize event viewer",
+        "classes": "ank-display-inlineFlex ank-alignItems-center ank-justifyContent-center ank-minHeight-36px ank-px-12px ank-py-6px ank-borderRadius-999px ank-border-1px ank-borderColor-textColorOPA__0_14 ank-bg-textColorOPA__0_04 ank-color-textColor ank-fontSize-11px ank-fontWeight-700 ank-letterSpacing-0_04em ank-textTransform-uppercase"
+      }
+    },
+    {
+      "id": "debugDiagnosticsPanelCollapsedSummary",
+      "type": "container",
+      "condition": "all:hostEq,diagnosticsPanelCollapsed,true",
+      "config": {
+        "tag": "div",
+        "classes": "ank-display-flex ank-flexWrap-wrap ank-gap-8px",
+        "components": [
+          "debugDiagnosticsPanelEventsBadge",
+          "debugDiagnosticsPanelIssuesBadge"
+        ]
+      }
+    },
+    {
+      "id": "debugDiagnosticsPanelEventsBadge",
+      "type": "text",
+      "valueInstructions": "set:config.text,literal,host.recentEventsBadge",
+      "config": {
+        "tag": "span",
+        "text": "",
+        "classes": "ank-display-inlineFlex ank-alignItems-center ank-gap-6px ank-px-10px ank-py-6px ank-borderRadius-999px ank-bg-textColorOPA__0_06 ank-border-1px ank-borderColor-textColorOPA__0_08 ank-fontSize-12px ank-fontWeight-700 ank-lineHeight-1_3"
+      }
+    },
+    {
+      "id": "debugDiagnosticsPanelIssuesBadge",
+      "type": "text",
+      "valueInstructions": "set:config.text,literal,host.configIssuesBadge",
+      "config": {
+        "tag": "span",
+        "text": "",
+        "classes": "ank-display-inlineFlex ank-alignItems-center ank-gap-6px ank-px-10px ank-py-6px ank-borderRadius-999px ank-bg-textColorOPA__0_06 ank-border-1px ank-borderColor-textColorOPA__0_08 ank-fontSize-12px ank-fontWeight-700 ank-lineHeight-1_3"
+      }
+    },
+    {
+      "id": "debugDiagnosticsActionRow",
+      "type": "container",
+      "condition": "all:hostEq,diagnosticsPanelCollapsed,false",
+      "config": {
+        "tag": "div",
+        "classes": "ank-display-flex ank-flexWrap-wrap ank-gap-8px",
+        "components": [
+          "debugDownloadDraftPayloadsButton",
+          "debugWriteDraftsToDiskButton"
+        ]
+      }
+    },
+    {
+      "id": "debugDownloadDraftPayloadsButton",
+      "type": "button",
+      "eventInstructions": "downloadDraftPayloads",
+      "valueInstructions": "set:config.label,i18n,ui.debugPanel.downloadDraftPayloads",
+      "config": {
+        "label": "",
+        "classes": "ank-display-inlineFlex ank-alignItems-center ank-justifyContent-center ank-gap-6px ank-minHeight-40px ank-px-14px ank-py-8px ank-borderRadius-12px ank-border-1px ank-borderColor-textColorOPA__0_14 ank-bg-textColorOPA__0_04 ank-color-textColor ank-fontSize-12px ank-fontWeight-700 ank-lineHeight-1_3 ank-transition-all ank-td-200ms"
+      }
+    },
+    {
+      "id": "debugWriteDraftsToDiskButton",
+      "type": "button",
+      "eventInstructions": "writeDraftsToDisk",
+      "valueInstructions": "set:config.label,i18n,ui.debugPanel.writeDraftsToDisk",
+      "config": {
+        "label": "",
+        "classes": "ank-display-inlineFlex ank-alignItems-center ank-justifyContent-center ank-gap-6px ank-minHeight-40px ank-px-14px ank-py-8px ank-borderRadius-12px ank-border-1px ank-borderColor-textColorOPA__0_14 ank-bg-textColorOPA__0_04 ank-color-textColor ank-fontSize-12px ank-fontWeight-700 ank-lineHeight-1_3 ank-transition-all ank-td-200ms"
+      }
+    },
+    {
+      "id": "debugConfigIssuesSection",
+      "type": "container",
+      "condition": "all:hostEq,diagnosticsPanelCollapsed,false;all:hostLenGt,configIssues,0",
+      "config": {
+        "tag": "section",
+        "classes": "ank-display-flex ank-flexDirection-column ank-gap-8px ank-p-12px ank-borderRadius-14px ank-bg-textColorOPA__0_05 ank-border-1px ank-borderColor-textColorOPA__0_08",
+        "components": [
+          "debugConfigIssuesTitle",
+          "debugConfigIssuesList"
+        ]
+      }
+    },
+    {
+      "id": "debugConfigIssuesTitle",
+      "type": "text",
+      "valueInstructions": "set:config.text,i18n,ui.debugPanel.configIssues",
+      "config": {
+        "tag": "p",
+        "text": "",
+        "classes": "ank-m-0 ank-fontWeight-700 ank-fontSize-12px ank-letterSpacing-0_04em ank-textTransform-uppercase ank-color-textColorOPA__0_72"
+      }
+    },
+    {
+      "id": "debugConfigIssuesList",
+      "type": "container",
+      "loopConfig": {
+        "source": "host",
+        "path": "configIssues",
+        "templateId": "debugConfigIssueTemplate",
+        "idPrefix": "debugConfigIssue",
+        "bindings": [
+          {
+            "to": "config.text",
+            "sources": [
+              "$item"
+            ]
+          }
+        ]
+      },
+      "config": {
+        "tag": "div",
+        "classes": "ank-display-flex ank-flexDirection-column ank-gap-8px",
+        "components": []
+      }
+    },
+    {
+      "id": "debugConfigIssueTemplate",
+      "type": "text",
+      "config": {
+        "tag": "p",
+        "text": "",
+        "classes": "ank-m-0 ank-display-flex ank-flexDirection-column ank-gap-4px ank-p-10px ank-borderRadius-12px ank-bg-textColorOPA__0_06 ank-border-1px ank-borderColor-textColorOPA__0_06 ank-fontSize-12px ank-lineHeight-1_45"
+      }
+    },
+    {
+      "id": "debugAnalyticsEventsSection",
+      "type": "container",
+      "condition": "all:hostEq,diagnosticsPanelCollapsed,false;all:hostLenGt,recentEvents,0",
+      "config": {
+        "tag": "section",
+        "classes": "ank-display-flex ank-flexDirection-column ank-gap-8px ank-p-12px ank-borderRadius-14px ank-bg-textColorOPA__0_05 ank-border-1px ank-borderColor-textColorOPA__0_08",
+        "components": [
+          "debugAnalyticsLatestTitle",
+          "debugAnalyticsEventsList"
+        ]
+      }
+    },
+    {
+      "id": "debugAnalyticsLatestTitle",
+      "type": "text",
+      "valueInstructions": "set:config.text,i18n,ui.debugPanel.analyticsLatest",
+      "config": {
+        "tag": "p",
+        "text": "",
+        "classes": "ank-m-0 ank-fontWeight-700 ank-fontSize-12px ank-letterSpacing-0_04em ank-textTransform-uppercase ank-color-textColorOPA__0_72"
+      }
+    },
+    {
+      "id": "debugAnalyticsEventsList",
+      "type": "container",
+      "loopConfig": {
+        "source": "host",
+        "path": "recentEvents",
+        "templateId": "debugAnalyticsEventTemplate",
+        "idPrefix": "debugAnalyticsEvent",
+        "bindings": [
+          {
+            "to": "config.text",
+            "sources": [
+              "$item"
+            ]
+          }
+        ]
+      },
+      "config": {
+        "tag": "div",
+        "classes": "ank-display-flex ank-flexDirection-column ank-gap-8px",
+        "components": []
+      }
+    },
+    {
+      "id": "debugAnalyticsEventTemplate",
+      "type": "text",
+      "config": {
+        "tag": "p",
+        "text": "",
+        "classes": "ank-m-0 ank-display-flex ank-flexDirection-column ank-gap-4px ank-p-10px ank-borderRadius-12px ank-bg-textColorOPA__0_06 ank-border-1px ank-borderColor-textColorOPA__0_06 ank-fontSize-12px ank-lineHeight-1_45"
+      }
+    },
+    {
+      "id": "debugAnalyticsEventsEmpty",
+      "type": "container",
+      "condition": "all:hostEq,diagnosticsPanelCollapsed,false;all:hostLte,recentEvents,0",
+      "config": {
+        "tag": "section",
+        "classes": "ank-display-flex ank-flexDirection-column ank-gap-8px ank-p-12px ank-borderRadius-14px ank-bg-textColorOPA__0_05 ank-border-1px ank-borderColor-textColorOPA__0_08",
+        "components": [
+          "debugAnalyticsLatestTitleEmpty",
+          "debugAnalyticsEventEmptyText"
+        ]
+      }
+    },
+    {
+      "id": "debugAnalyticsLatestTitleEmpty",
+      "type": "text",
+      "valueInstructions": "set:config.text,i18n,ui.debugPanel.analyticsLatest",
+      "config": {
+        "tag": "p",
+        "text": "",
+        "classes": "ank-m-0 ank-fontWeight-700 ank-fontSize-12px ank-letterSpacing-0_04em ank-textTransform-uppercase ank-color-textColorOPA__0_72"
+      }
+    },
+    {
+      "id": "debugAnalyticsEventEmptyText",
+      "type": "text",
+      "config": {
+        "tag": "p",
+        "text": "No events recorded yet.",
+        "classes": "ank-m-0 ank-display-flex ank-flexDirection-column ank-gap-4px ank-p-10px ank-borderRadius-12px ank-bg-textColorOPA__0_06 ank-border-1px ank-borderColor-textColorOPA__0_06 ank-fontSize-12px ank-lineHeight-1_45"
+      }
+    },
+    {
+      "id": "modalDemoRoot",
+      "type": "container",
+      "condition": "all:modalRefId,demo-modal",
+      "config": {
+        "tag": "section",
+        "classes": "ank-display-flex ank-flexDirection-column ank-gap-1rem ank-w-100per",
+        "components": [
+          "modalDemoHeader",
+          "modalDemoDesc",
+          "modalDemoFeatures",
+          "modalDemoActions"
+        ]
+      }
+    },
+    {
+      "id": "modalDemoHeader",
+      "type": "container",
+      "config": {
+        "tag": "header",
+        "classes": "ank-display-flex ank-alignItems-center ank-gap-0_5rem ank-bg-accentColor ank-color-bgColor ank-p-1rem ank-borderRadius-0_5rem",
+        "components": [
+          "modalDemoHeaderIcon",
+          "modalDemoHeaderTitle"
+        ]
+      }
+    },
+    {
+      "id": "modalDemoHeaderIcon",
+      "type": "container",
+      "config": {
+        "tag": "div",
+        "classes": "ank-width-2rem ank-height-2rem ank-borderRadius-50per ank-bg-secondaryAccentColor ank-display-flex ank-alignItems-center ank-justifyContent-center ank-color-bgColor ank-fontWeight-700",
+        "components": [
+          "modalDemoHeaderIconGlyph"
+        ]
+      }
+    },
+    {
+      "id": "modalDemoHeaderIconGlyph",
+      "type": "text",
+      "config": {
+        "tag": "span",
+        "text": "!"
+      }
+    },
+    {
+      "id": "modalDemoHeaderTitle",
+      "type": "text",
+      "valueInstructions": "set:config.text,i18n,demo.modal.header",
+      "config": {
+        "tag": "h2",
+        "text": "",
+        "classes": "ank-m-0 ank-fontSize-1_25rem ank-fontWeight-700"
+      }
+    },
+    {
+      "id": "modalDemoDesc",
+      "type": "text",
+      "valueInstructions": "set:config.text,i18n,demo.modal.desc",
+      "config": {
+        "tag": "p",
+        "text": "",
+        "classes": "ank-m-0 ank-color-secondaryTextColor"
+      }
+    },
+    {
+      "id": "modalDemoFeatures",
+      "type": "container",
+      "config": {
+        "tag": "ul",
+        "classes": "ank-m-0 ank-pl-1rem ank-color-secondaryTextColor",
+        "components": [
+          "modalDemoFeature0",
+          "modalDemoFeature1",
+          "modalDemoFeature2"
+        ]
+      }
+    },
+    {
+      "id": "modalDemoFeature0",
+      "type": "container",
+      "config": {
+        "tag": "li",
+        "components": [
+          "modalDemoFeature0Text"
+        ]
+      }
+    },
+    {
+      "id": "modalDemoFeature0Text",
+      "type": "text",
+      "valueInstructions": "set:config.text,i18n,demo.modal.features.0",
+      "config": {
+        "tag": "span",
+        "text": ""
+      }
+    },
+    {
+      "id": "modalDemoFeature1",
+      "type": "container",
+      "config": {
+        "tag": "li",
+        "components": [
+          "modalDemoFeature1Text"
+        ]
+      }
+    },
+    {
+      "id": "modalDemoFeature1Text",
+      "type": "text",
+      "valueInstructions": "set:config.text,i18n,demo.modal.features.1",
+      "config": {
+        "tag": "span",
+        "text": ""
+      }
+    },
+    {
+      "id": "modalDemoFeature2",
+      "type": "container",
+      "config": {
+        "tag": "li",
+        "components": [
+          "modalDemoFeature2Text"
+        ]
+      }
+    },
+    {
+      "id": "modalDemoFeature2Text",
+      "type": "text",
+      "valueInstructions": "set:config.text,i18n,demo.modal.features.2",
+      "config": {
+        "tag": "span",
+        "text": ""
+      }
+    },
+    {
+      "id": "modalDemoActions",
+      "type": "container",
+      "config": {
+        "tag": "div",
+        "classes": "ank-display-flex ank-justifyContent-end ank-gap-0_5rem ank-mt-1rem",
+        "components": [
+          "modalDemoCloseBtn"
+        ]
+      }
+    },
+    {
+      "id": "modalDemoCloseBtn",
+      "type": "button",
+      "eventInstructions": "closeModal",
+      "valueInstructions": "set:config.label,i18n,demo.modal.close",
+      "config": {
+        "label": "",
+        "classes": "debugBtnBaseVALSVL1_25remVL0_75remVL debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL"
+      }
+    }
+  ]
+}

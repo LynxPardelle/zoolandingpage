@@ -6,9 +6,10 @@ import { ConfigSourceService } from '@/app/shared/services/config-source.service
 import { ConfigStoreService } from '@/app/shared/services/config-store.service';
 import { ConfigurationsOrchestratorService } from '@/app/shared/services/configurations-orchestrator';
 import { DraftRuntimeService } from '@/app/shared/services/draft-runtime.service';
+import { RuntimeDataSourceService } from '@/app/shared/services/runtime-data-source.service';
 import { RuntimeConfigService } from '@/app/shared/services/runtime-config.service';
 import { ThemeService } from '@/app/shared/services/theme.service';
-import { currentBrowserPath } from '@/app/shared/utility/navigation/browser-navigation.utility';
+import { applyNavigationScroll, currentBrowserPath } from '@/app/shared/utility/navigation/browser-navigation.utility';
 import { environment } from '@/environments/environment';
 import { isPlatformBrowser } from '@angular/common';
 import { DestroyRef, inject, Injectable, PLATFORM_ID, REQUEST, signal } from '@angular/core';
@@ -23,6 +24,7 @@ export class RuntimeService {
     private readonly draftRuntime = inject(DraftRuntimeService);
     private readonly combosService = inject(AngoraCombosService);
     private readonly analytics = inject(AnalyticsService);
+    private readonly runtimeDataSources = inject(RuntimeDataSourceService);
     private readonly configStore = inject(ConfigStoreService);
     private readonly runtimeConfig = inject(RuntimeConfigService);
     private readonly theme = inject(ThemeService);
@@ -73,11 +75,15 @@ export class RuntimeService {
                 .catch((error) => {
                     console.error('[Runtime] Initial page bootstrap failed.', error);
                 });
+            return;
         }
+
+        this.configureDebugWorkspaceAfterConnect();
     }
 
     disconnect(): void {
         this.analytics.stopPageEngagementTracking();
+        this.runtimeDataSources.stop();
         this.combosService.stopCssRuntime();
         this.postBootstrapBrowserWorkId++;
         this.renderedCssUpdateId++;
@@ -147,11 +153,24 @@ export class RuntimeService {
         await this.debugWorkspaceInit;
     }
 
+    private configureDebugWorkspaceAfterConnect(): void {
+        if (!this.debugWorkspaceEnabled) {
+            return;
+        }
+
+        void this.ensureDebugWorkspaceConfigured()
+            .then(() => {
+                this.modalRootIds.set(this.resolveModalRootIds(this.modalRootIds()));
+                this.requestRenderedComponentsCssUpdate();
+            })
+            .catch(() => undefined);
+    }
+
     private async loadDebugWorkspacePayloads(): Promise<void> {
         const [pageConfig, components, combos] = await Promise.all([
-            this.configSource.loadDebugWorkspacePageConfig(),
-            this.configSource.loadDebugWorkspaceComponents(),
-            this.configSource.loadDebugWorkspaceCombos(),
+            this.configSource.loadDebugWorkspacePageConfig?.() ?? Promise.resolve(null),
+            this.configSource.loadDebugWorkspaceComponents?.() ?? Promise.resolve(null),
+            this.configSource.loadDebugWorkspaceCombos?.() ?? Promise.resolve(null),
         ]);
 
         this.orchestrator.setAuxiliaryComponentsFromPayload('debug-workspace', components);
@@ -211,6 +230,7 @@ export class RuntimeService {
         this.rootComponentsIds.set(rootIds);
         this.modalRootIds.set(modalRootIds);
         this.orchestrator.setDraftExportContext({ domain, pageId, rootIds, modalRootIds });
+        this.startRuntimeDataSources(domain, pageId);
 
         this.scheduleRenderedComponentsCssUpdate();
         this.schedulePostBootstrapBrowserWork(() => {
@@ -222,6 +242,24 @@ export class RuntimeService {
             this.analytics.startPageEngagementTracking(this.configStore.analytics());
             this.prefetchSiblingRoutes(domain, pageId, lang, context.path);
             this.trackInitialPageView();
+        });
+    }
+
+    private startRuntimeDataSources(domain: string, pageId: string): void {
+        const dataSources = this.configStore.siteConfig()?.runtime?.dataSources ?? [];
+        if (!dataSources.length) {
+            this.runtimeDataSources.stop();
+            return;
+        }
+
+        void this.runtimeDataSources.start({
+            domain,
+            pageId,
+            dataSources,
+        }).catch((error) => {
+            if (this.runtimeConfig.isDebugMode()) {
+                console.error('[Runtime] Runtime data source bootstrap failed.', error);
+            }
         });
     }
 
@@ -372,6 +410,7 @@ export class RuntimeService {
 
             const lang = this.currentLanguageResolver?.();
             void this.initialize(lang)
+                .then(() => this.applyConfiguredNavigationScroll())
                 .catch((error) => {
                     console.error('[Runtime] Runtime refresh failed after navigation.', error);
                 });
@@ -379,6 +418,14 @@ export class RuntimeService {
 
         window.addEventListener('popstate', handleNavigation);
         this.navigationUnlisten = () => window.removeEventListener('popstate', handleNavigation);
+    }
+
+    private applyConfiguredNavigationScroll(): void {
+        if (!this.isBrowser) {
+            return;
+        }
+
+        applyNavigationScroll(this.configStore.siteConfig()?.runtime?.navigation?.scrollRestoration);
     }
 
     private prefetchSiblingRoutes(domain: string, pageId: string, lang: string | undefined, currentPath: string): void {

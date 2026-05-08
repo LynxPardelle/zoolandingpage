@@ -1,5 +1,6 @@
 import { REQUEST } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { environment } from '@/environments/environment';
 import { of } from 'rxjs';
 import { ConfigSourceService } from './config-source.service';
 import { DomainResolverService } from './domain-resolver.service';
@@ -8,6 +9,9 @@ import { DraftRuntimeService } from './draft-runtime.service';
 
 describe('DraftRuntimeService', () => {
   const originalUrl = window.location.pathname + window.location.search + window.location.hash;
+  const originalProduction = environment.production;
+  const originalDevelopment = environment.development;
+  const originalDraftsEnabled = environment.drafts.enabled;
 
   const configure = (requestUrl: string, siteConfig: unknown = null, options?: { browserMode?: boolean }) => {
     const nextUrl = new URL(requestUrl);
@@ -49,13 +53,16 @@ describe('DraftRuntimeService', () => {
   };
 
   afterEach(() => {
+    (environment as { production: boolean; development: boolean }).production = originalProduction;
+    (environment as { production: boolean; development: boolean }).development = originalDevelopment;
+    (environment.drafts as { enabled: boolean }).enabled = originalDraftsEnabled;
     window.history.replaceState({}, '', originalUrl);
     TestBed.resetTestingModule();
   });
 
   it('resolves the draft page from site-config routes when no explicit draftPageId is present', async () => {
     const { service, loadSiteConfig } = configure(
-      'https://example.test/servicios?draftDomain=pamelabetancourt.com',
+      'https://test.zoolandingpage.com.mx/servicios?draftDomain=pamelabetancourt.com',
       {
         version: 1,
         domain: 'pamelabetancourt.com',
@@ -77,7 +84,7 @@ describe('DraftRuntimeService', () => {
 
   it('does not consult site-config when draftPageId is explicitly provided', async () => {
     const { service, loadSiteConfig } = configure(
-      'https://example.test/servicios?draftDomain=pamelabetancourt.com&draftPageId=contactame',
+      'https://test.zoolandingpage.com.mx/servicios?draftDomain=pamelabetancourt.com&draftPageId=contactame',
       {
         version: 1,
         domain: 'pamelabetancourt.com',
@@ -98,7 +105,7 @@ describe('DraftRuntimeService', () => {
 
   it('matches encoded route paths against unicode site-config entries', async () => {
     const { service } = configure(
-      'https://example.test/cont%C3%A1ctame?draftDomain=pamelabetancourt.com',
+      'https://test.zoolandingpage.com.mx/cont%C3%A1ctame?draftDomain=pamelabetancourt.com',
       {
         version: 1,
         domain: 'pamelabetancourt.com',
@@ -118,7 +125,7 @@ describe('DraftRuntimeService', () => {
 
   it('falls back to defaultPageId when the current route is not mapped in site-config', async () => {
     const { service } = configure(
-      'https://example.test/no-existe?draftDomain=pamelabetancourt.com',
+      'https://test.zoolandingpage.com.mx/no-existe?draftDomain=pamelabetancourt.com',
       {
         version: 1,
         domain: 'pamelabetancourt.com',
@@ -135,6 +142,26 @@ describe('DraftRuntimeService', () => {
     expect(context.pageId).toBe('home');
     expect(context.path).toBe('/no-existe');
     expect(service.activeDraftPageId()).toBe('home');
+  });
+
+  it('ignores cross-draft domain query params on branded production hosts', async () => {
+    const { service, loadSiteConfig } = configure(
+      'https://music.lynxpardelle.com/?draftDomain=zoolandingpage.com.mx&draftPageId=default',
+      {
+        version: 1,
+        domain: 'music.lynxpardelle.com',
+        defaultPageId: 'default',
+        routes: [
+          { path: '/', pageId: 'default' },
+        ],
+      },
+    );
+
+    const context = await service.resolveActiveDraftContext();
+
+    expect(loadSiteConfig).toHaveBeenCalledOnceWith('music.lynxpardelle.com');
+    expect(context.domain).toBe('music.lynxpardelle.com');
+    expect(context.pageId).toBe('default');
   });
 
   it('uses History API for draft selection on the client', () => {
@@ -202,6 +229,84 @@ describe('DraftRuntimeService', () => {
 
     expect(service.hasResolvedActiveDraftIdentity()).toBeFalse();
     expect(service.hasDebugWorkspaceEnabled()).toBeTrue();
+  });
+
+  it('auto-enables the debug workspace on localhost when a draft identity is resolved', () => {
+    const { service } = configure(
+      'http://127.0.0.1:4200/servicios?draftDomain=pamelabetancourt.com&draftPageId=servicios',
+      null,
+      { browserMode: true },
+    );
+
+    expect(service.hasResolvedActiveDraftIdentity()).toBeTrue();
+    expect(service.hasDebugWorkspaceEnabled()).toBeTrue();
+  });
+
+  it('allows local visual QA to explicitly hide the debug workspace', () => {
+    const { service } = configure(
+      'http://127.0.0.1:4200/?draftDomain=music.lynxpardelle.com&draftPageId=default&debugWorkspace=false',
+      null,
+      { browserMode: true },
+    );
+
+    expect(service.hasResolvedActiveDraftIdentity()).toBeTrue();
+    expect(service.hasDebugWorkspaceEnabled()).toBeFalse();
+  });
+
+  it('keeps the debug workspace hidden on non-local production hosts without the query flag', () => {
+    (environment as { production: boolean; development: boolean }).production = true;
+    (environment as { production: boolean; development: boolean }).development = false;
+
+    const { service } = configure(
+      'https://pamelabetancourt.zoolandingpage.com.mx/servicios?draftDomain=pamelabetancourt.com',
+      null,
+    );
+
+    expect(service.hasDebugWorkspaceEnabled()).toBeFalse();
+  });
+
+  it('keeps the debug workspace hidden on branded production hosts when debugWorkspace is present', () => {
+    (environment as { production: boolean; development: boolean }).production = true;
+    (environment as { production: boolean; development: boolean }).development = false;
+
+    const { service } = configure(
+      'https://pamelabetancourt.zoolandingpage.com.mx/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true',
+      null,
+    );
+
+    expect(service.hasDebugWorkspaceEnabled()).toBeFalse();
+  });
+
+  it('allows the debug workspace on the shared testing preview host when debugWorkspace is present', () => {
+    (environment as { production: boolean; development: boolean }).production = true;
+    (environment as { production: boolean; development: boolean }).development = false;
+
+    const { service } = configure(
+      'https://test.zoolandingpage.com.mx/?draftDomain=pamelabetancourt.com&draftPageId=home&debugWorkspace=true',
+      null,
+    );
+
+    expect(service.hasDebugWorkspaceEnabled()).toBeTrue();
+  });
+
+  it('hides draft options and suppresses draft selection on non-local debug workspaces', () => {
+    (environment as { production: boolean; development: boolean }).production = true;
+    (environment as { production: boolean; development: boolean }).development = false;
+
+    const { service } = configure(
+      'https://test.zoolandingpage.com.mx/?draftDomain=pamelabetancourt.com&draftPageId=home&debugWorkspace=true',
+      null,
+    );
+
+    service.availableDrafts.set([
+      { domain: 'pamelabetancourt.com', pageId: 'home' },
+      { domain: 'music.lynxpardelle.com', pageId: 'default' },
+    ]);
+    service.selectDraftByKey('music.lynxpardelle.com::default');
+
+    expect(service.canShowDraftRegistry()).toBeFalse();
+    expect(service.draftOptions()).toEqual([]);
+    expect(window.location.pathname + window.location.search).toBe('/?draftDomain=pamelabetancourt.com&draftPageId=home&debugWorkspace=true');
   });
 
   it('recovers malformed encoded draftDomain keys on the client and normalizes the URL', async () => {

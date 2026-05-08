@@ -392,20 +392,14 @@ export class ConfigSourceService {
     }
 
     loadDebugWorkspacePageConfig(): Promise<TPageConfigPayload | null> {
-        return environment.drafts.enabled
-            ? this.drafts.loadDebugWorkspacePageConfig()
-            : this.api.getDebugWorkspacePageConfig();
+        return this.drafts.loadDebugWorkspacePageConfig();
     }
 
     loadDebugWorkspaceComponents(): Promise<TComponentsPayload | null> {
-        return environment.drafts.enabled
-            ? this.drafts.loadDebugWorkspaceComponents()
-            : this.api.getDebugWorkspaceComponents();
+        return this.drafts.loadDebugWorkspaceComponents();
     }
 
     loadDebugWorkspaceCombos(): Promise<TAngoraCombosPayload | null> {
-        return environment.drafts.enabled
-            ? this.drafts.loadDebugWorkspaceCombos()
-            : this.api.getDebugWorkspaceAngoraCombos();
+        return this.drafts.loadDebugWorkspaceCombos();
     }
 }

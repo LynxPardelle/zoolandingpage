@@ -34,6 +34,81 @@ body {
   white-space: nowrap !important;
 }
 
+.skipLink {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+  border: 0 !important;
+  white-space: nowrap !important;
+}
+
+.skipLink:focus,
+.skipLink:focus-visible {
+  top: 8px;
+  left: 8px;
+  z-index: 1000;
+  width: auto !important;
+  height: auto !important;
+  padding: 8px 16px !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  clip: auto !important;
+  clip-path: none !important;
+  border: 1px solid var(--ank-secondaryAccentColor, currentColor) !important;
+  border-radius: 8px;
+  background: var(--ank-bgColor, #000);
+  color: var(--ank-titleColor, currentColor);
+  text-decoration: none;
+  font-weight: 800;
+  white-space: normal !important;
+}
+
+.sectionBase,
+#contact-section {
+  scroll-margin-top: 180px;
+}
+
+.musicHeroPanel :is(h1, p, small),
+.sectionContent :is(h2, p),
+.musicCatalogPanel :is(h2, p) {
+  margin: 0;
+}
+
+#finalCtaButtons-container {
+  gap: 18px;
+}
+
+#finalCtaButtons-container > wrapper-orchestrator,
+#finalCtaButtons-container generic-link {
+  display: block;
+}
+
+#finalCtaButtons-container a {
+  display: flex;
+}
+
+#finalSecondaryLink {
+  margin-top: 0;
+}
+
+@media (min-width: 768px) {
+  .sectionBase,
+  #contact-section {
+    scroll-margin-top: 132px;
+  }
+
+  #finalCtaButtons-container {
+    gap: 12px;
+  }
+}
+
 /* Focus visible ring helper class */
 .focus-visible-ring {
   outline: 2px solid var(--ank-accentColor, currentColor);

@@ -34,6 +34,10 @@ export class DebugWorkspaceComponent {
         return this.draftPanelCollapsedSignal();
     }
 
+    get showDraftRegistry(): boolean {
+        return this.draftRuntime.canShowDraftRegistry();
+    }
+
     get diagnosticsPanelCollapsed(): boolean {
         return this.diagnosticsPanelCollapsedSignal();
     }

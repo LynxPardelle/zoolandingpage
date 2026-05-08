@@ -192,7 +192,7 @@ describe('AppShellComponent', () => {
 
   it('starts runtime bootstrap through the app initializer during SSR', async () => {
     TestBed.overrideProvider(REQUEST, {
-      useValue: new Request(`https://example.test/?draftDomain=${ LEGAL_DOMAIN }&draftPageId=legal-home`),
+      useValue: new Request(`https://test.zoolandingpage.com.mx/?draftDomain=${ LEGAL_DOMAIN }&draftPageId=legal-home`),
     });
 
     bootstrapResult = {
@@ -348,7 +348,7 @@ describe('AppShellComponent', () => {
     };
 
     TestBed.overrideProvider(REQUEST, {
-      useValue: new Request(`https://example.test/?draftDomain=${ LEGAL_DOMAIN }&draftPageId=legal-home`),
+      useValue: new Request(`https://test.zoolandingpage.com.mx/?draftDomain=${ LEGAL_DOMAIN }&draftPageId=legal-home`),
     });
     window.history.replaceState({}, '', `/?draftDomain=${ LEGAL_DOMAIN }&draftPageId=legal-home`);
 

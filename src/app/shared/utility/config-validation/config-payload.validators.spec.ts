@@ -111,6 +111,107 @@ describe('config-payload.validators', () => {
         expect(isDraftSiteConfigPayload(valid)).toBeTrue();
     });
 
+    it('accepts runtime data sources and api actions in site-config payloads', () => {
+        const valid = {
+            version: 1,
+            domain: 'music.lynxpardelle.com',
+            defaultPageId: 'default',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: {
+                appIdentity: {
+                    identifier: 'musiclynxpardellecom',
+                    name: 'Lynx Pardelle',
+                },
+                theme: {
+                    palettes: {
+                        light: {
+                            bgColor: '#ffffff',
+                            textColor: '#111111',
+                            titleColor: '#222222',
+                            linkColor: '#333333',
+                            accentColor: '#444444',
+                            secondaryBgColor: '#f5f5f5',
+                            secondaryTextColor: '#555555',
+                            secondaryTitleColor: '#666666',
+                            secondaryLinkColor: '#777777',
+                            secondaryAccentColor: '#888888',
+                            successColor: '#198754',
+                            onSuccessColor: '#052e1c',
+                            errorColor: '#dc3545',
+                            onErrorColor: '#3b0a10',
+                            warningColor: '#f59e0b',
+                            onWarningColor: '#3a2400',
+                            infoColor: '#0d6efd',
+                            onInfoColor: '#041b44',
+                        },
+                        dark: {
+                            bgColor: '#000000',
+                            textColor: '#fefefe',
+                            titleColor: '#efefef',
+                            linkColor: '#dddddd',
+                            accentColor: '#cccccc',
+                            secondaryBgColor: '#111111',
+                            secondaryTextColor: '#bbbbbb',
+                            secondaryTitleColor: '#aaaaaa',
+                            secondaryLinkColor: '#999999',
+                            secondaryAccentColor: '#888888',
+                            successColor: '#32d583',
+                            onSuccessColor: '#f3fff8',
+                            errorColor: '#ff6b6b',
+                            onErrorColor: '#fff5f5',
+                            warningColor: '#f5b942',
+                            onWarningColor: '#fff7e6',
+                            infoColor: '#58a6ff',
+                            onInfoColor: '#f5fbff',
+                        },
+                    },
+                },
+                i18n: {
+                    defaultLanguage: 'es',
+                    supportedLanguages: ['es', 'en'],
+                },
+            },
+            runtime: {
+                dataSources: [
+                    {
+                        id: 'pokemon-list',
+                        proxySourceId: 'pokemonList',
+                        target: 'remote.music.apiDemo.pokemon',
+                        statusTarget: 'remoteStatus.music.apiDemo.pokemon',
+                        input: { limit: 6 },
+                        mapper: {
+                            itemsPath: 'results',
+                            fields: {
+                                title: 'name',
+                                href: 'url',
+                                description: {
+                                    path: 'url',
+                                    fallback: 'PokeAPI resource',
+                                },
+                            },
+                        },
+                        refresh: {
+                            mode: 'interval',
+                            intervalMs: 300000,
+                        },
+                    },
+                ],
+                apiActions: [
+                    {
+                        id: 'newsletter-signup',
+                        proxyActionId: 'mailingListSubscribe',
+                        method: 'POST',
+                        statusTarget: 'remoteStatus.newsletterSignup',
+                        inputFields: ['email', 'language'],
+                        requiresUserGesture: true,
+                    },
+                ],
+            },
+        };
+
+        expect(isDraftSiteConfigPayload(valid)).toBeTrue();
+    });
+
     it('rejects site-config payloads without required site metadata', () => {
         const invalid = {
             version: 1,

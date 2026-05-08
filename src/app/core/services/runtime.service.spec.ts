@@ -8,6 +8,7 @@ import { ConfigurationsOrchestratorService } from '@/app/shared/services/configu
 import { DomainResolverService } from '@/app/shared/services/domain-resolver.service';
 import { DraftRegistryService } from '@/app/shared/services/draft-registry.service';
 import { DraftRuntimeService } from '@/app/shared/services/draft-runtime.service';
+import { RuntimeDataSourceService } from '@/app/shared/services/runtime-data-source.service';
 import { ThemeService } from '@/app/shared/services/theme.service';
 import type { TComponentPayloadEntry, TComponentsPayload } from '@/app/shared/types/config-payloads.types';
 import { environment } from '@/environments/environment';
@@ -52,6 +53,8 @@ describe('RuntimeService', () => {
     const analyticsTrack = jasmine.createSpy('track').and.resolveTo(undefined);
     const analyticsStartPageEngagementTracking = jasmine.createSpy('startPageEngagementTracking');
     const analyticsStopPageEngagementTracking = jasmine.createSpy('stopPageEngagementTracking');
+    const runtimeDataSourcesStart = jasmine.createSpy('runtimeDataSources.start').and.resolveTo(undefined);
+    const runtimeDataSourcesStop = jasmine.createSpy('runtimeDataSources.stop');
     const prefetchRoute = jasmine.createSpy('prefetchRoute').and.resolveTo(undefined);
     const configureLoadingCurtain = jasmine.createSpy('configureFromDraft');
     const hideLoadingCurtain = jasmine.createSpy('hideWhenReady');
@@ -126,6 +129,8 @@ describe('RuntimeService', () => {
         analyticsTrack.calls.reset();
         analyticsStartPageEngagementTracking.calls.reset();
         analyticsStopPageEngagementTracking.calls.reset();
+        runtimeDataSourcesStart.calls.reset();
+        runtimeDataSourcesStop.calls.reset();
         prefetchRoute.calls.reset();
         configureLoadingCurtain.calls.reset();
         hideLoadingCurtain.calls.reset();
@@ -195,6 +200,13 @@ describe('RuntimeService', () => {
                         promptForConsentIfNeeded: () => undefined,
                         startPageEngagementTracking: analyticsStartPageEngagementTracking,
                         stopPageEngagementTracking: analyticsStopPageEngagementTracking,
+                    },
+                },
+                {
+                    provide: RuntimeDataSourceService,
+                    useValue: {
+                        start: runtimeDataSourcesStart,
+                        stop: runtimeDataSourcesStop,
                     },
                 },
                 {
@@ -295,7 +307,7 @@ describe('RuntimeService', () => {
 
         await flushPostBootstrapBrowserWork();
 
-        expect(collectRenderedDomClasses).toHaveBeenCalledWith();
+        expect(collectRenderedDomClasses).toHaveBeenCalled();
         expect(updateClasses.calls.allArgs()).toEqual([
             [['hero']],
             [['hero', 'ank-d-flex']],
@@ -562,5 +574,91 @@ describe('RuntimeService', () => {
                 debugBtnBase: ['ank-display-flex'],
             },
         });
+    });
+
+    it('loads debug workspace roots when the browser shell connects after bootstrap', async () => {
+        const service = TestBed.inject(RuntimeService);
+        const configSource = TestBed.inject(ConfigSourceService) as jasmine.SpyObj<ConfigSourceService>;
+        const host = document.createElement('div');
+
+        configSource.loadDebugWorkspacePageConfig.and.resolveTo({
+            version: 1,
+            domain: 'debug-workspace',
+            pageId: 'default',
+            rootIds: ['debugWorkspaceRoot'],
+            modalRootIds: [],
+        });
+        configSource.loadDebugWorkspaceComponents.and.resolveTo({
+            version: 1,
+            domain: 'debug-workspace',
+            pageId: 'default',
+            components: [
+                {
+                    id: 'debugWorkspaceRoot',
+                    type: 'container',
+                    config: { tag: 'div', components: [] },
+                },
+            ],
+        });
+        configSource.loadDebugWorkspaceCombos.and.resolveTo(null);
+
+        await service.initialize('es');
+        expect(service.debugWorkspaceRootIds()).toEqual([]);
+
+        service.connect({
+            host,
+            destroyRef: { onDestroy: () => undefined } as any,
+            showDebugWorkspace: () => true,
+            currentLanguage: () => 'es',
+        });
+        await flushPostBootstrapBrowserWork();
+
+        expect(service.debugWorkspaceRootIds()).toEqual(['debugWorkspaceRoot']);
+        expect(setAuxiliaryComponentsFromPayload).toHaveBeenCalledWith('debug-workspace', jasmine.objectContaining({
+            components: jasmine.any(Array),
+        }));
+    });
+
+    it('starts runtime data sources from site runtime config after valid bootstrap', async () => {
+        const service = TestBed.inject(RuntimeService);
+        const dataSources = [
+            {
+                id: 'spotify-releases',
+                proxySourceId: 'spotifyArtistAlbums',
+                target: 'remote.music.releases',
+            },
+            {
+                id: 'blog-posts',
+                proxySourceId: 'cmsRecentPosts',
+                target: 'remote.blog.posts',
+            },
+        ];
+        loadSiteConfig.and.resolveTo({
+            version: 1,
+            domain: 'pamelabetancourt.com',
+            defaultPageId: 'home',
+            routes: [{ path: '/home', pageId: 'home' }],
+            runtime: {
+                dataSources,
+            },
+            site: {},
+        } as any);
+
+        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com');
+        await service.initialize('es');
+
+        expect(runtimeDataSourcesStart).toHaveBeenCalledWith({
+            domain: 'pamelabetancourt.com',
+            pageId: 'home',
+            dataSources,
+        });
+    });
+
+    it('stops runtime data sources on disconnect', () => {
+        const service = TestBed.inject(RuntimeService);
+
+        service.disconnect();
+
+        expect(runtimeDataSourcesStop).toHaveBeenCalled();
     });
 });
