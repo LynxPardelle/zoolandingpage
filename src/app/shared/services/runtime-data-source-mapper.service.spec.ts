@@ -49,6 +49,33 @@ describe('RuntimeDataSourceMapperService', () => {
         })).toEqual({ items: [] });
     });
 
+    it('can compose mapped string values with configured prefix and suffix', () => {
+        const result = service.mapResponse({
+            albums: [
+                { id: '500', title: 'Void Techno' },
+            ],
+        }, {
+            itemsPath: 'albums',
+            fields: {
+                title: 'title',
+                href: {
+                    path: 'id',
+                    prefix: 'https://tidal.com/browse/album/',
+                    suffix: '?utm_source=zoolandingpage',
+                },
+            },
+        });
+
+        expect(result).toEqual({
+            items: [
+                {
+                    title: 'Void Techno',
+                    href: 'https://tidal.com/browse/album/500?utm_source=zoolandingpage',
+                },
+            ],
+        });
+    });
+
     it('maps a root array when itemsPath is not configured', () => {
         const result = service.mapResponse([
             { title: 'One', href: '/one' },

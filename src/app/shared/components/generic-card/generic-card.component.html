@@ -43,6 +43,17 @@
 </article>
 } @else {
 <div [class]="classes()">
+  @if (imageSrc()) {
+  <div [class]="classValue('imageContainerClasses')">
+    <img
+      [src]="imageSrc()"
+      [alt]="imageAlt()"
+      [class]="classValue('imageClasses')"
+      loading="lazy"
+      decoding="async"
+    />
+  </div>
+  }
   <div [class]="classValue('featureIconContainerClasses')">
     @if (icon()) {
     <generic-icon
@@ -79,6 +90,8 @@
       classes: buttonClasses()
     }"
   ></generic-button>
+  } @if (href() && linkLabel()) {
+  <a [href]="href()" [class]="classValue('linkClasses')" [attr.target]="target()" [attr.rel]="rel()">{{ linkLabel() }}</a>
   }
 </div>
 }

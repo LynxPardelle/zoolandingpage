@@ -42,6 +42,20 @@ Add public runtime wiring to `site-config.json`:
 
 The frontend calls the proxy with the configured `proxySourceId` or `proxyActionId`, maps the safe response into `VariableStoreService`, and renders it with existing `valueInstructions` and `loopConfig.source: "var"` patterns.
 
+Field mappings can be either a path string or an object. Object mappings support `fallback`, `prefix`, and `suffix`, which is useful when a safe upstream field needs to become a display URL:
+
+```json
+{
+  "fields": {
+    "title": "attributes.title",
+    "href": {
+      "path": "id",
+      "prefix": "https://tidal.com/browse/album/"
+    }
+  }
+}
+```
+
 ## Server-Only Policy
 
 Put upstream URLs, methods, response filters, and credential references in `drafts/{domain}/server/integrations.json`:
@@ -71,6 +85,8 @@ Put upstream URLs, methods, response filters, and credential references in `draf
 ```
 
 This file is server-only. It can be published by the authoring package, but `runtime-read` must not include it in browser runtime bundles. Prefer nested `allowedFields` paths such as `results.trackName` over broad parent fields such as `results` so the proxy returns only the properties the draft needs.
+
+When an upstream requires non-secret request headers, declare them in the server-only `headers` object. Keep credentials in Secrets Manager via `credentialRef`; do not place tokens or API keys in `headers`.
 
 ## Rendering
 

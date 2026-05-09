@@ -24,6 +24,9 @@ export type TGenericCardConfig = {
     readonly testimonialRatingClasses?: string;
     readonly testimonialStarClasses?: string;
     readonly testimonialRatingTextClasses?: string;
+    readonly imageContainerClasses?: string;
+    readonly imageClasses?: string;
+    readonly linkClasses?: string;
 
     readonly icon?: TDynamicValue<string>;
     readonly title?: TDynamicValue<string>;
@@ -31,6 +34,12 @@ export type TGenericCardConfig = {
     readonly benefits?: TDynamicValue<readonly string[]>;
     readonly buttonLabel?: TDynamicValue<string>;
     readonly onCta?: (title: string) => void;
+    readonly imageSrc?: TDynamicValue<string>;
+    readonly imageAlt?: TDynamicValue<string>;
+    readonly href?: TDynamicValue<string>;
+    readonly linkLabel?: TDynamicValue<string>;
+    readonly target?: TDynamicValue<'_self' | '_blank' | '_parent' | '_top'>;
+    readonly rel?: TDynamicValue<string>;
 
     readonly name?: TDynamicValue<string>;
     readonly role?: TDynamicValue<string>;

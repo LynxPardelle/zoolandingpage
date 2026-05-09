@@ -36,6 +36,12 @@ export class GenericCardComponent {
     readonly description = computed(() => String(resolveDynamicValue(this._config().description) ?? ''));
     readonly benefits = computed<readonly string[]>(() => resolveDynamicValue(this._config().benefits) ?? []);
     readonly buttonLabel = computed(() => String(resolveDynamicValue(this._config().buttonLabel) ?? ''));
+    readonly imageSrc = computed(() => String(resolveDynamicValue(this._config().imageSrc) ?? '').trim());
+    readonly imageAlt = computed(() => String(resolveDynamicValue(this._config().imageAlt) ?? this.title() ?? '').trim());
+    readonly href = computed(() => String(resolveDynamicValue(this._config().href) ?? '').trim());
+    readonly linkLabel = computed(() => String(resolveDynamicValue(this._config().linkLabel) ?? '').trim());
+    readonly target = computed(() => String(resolveDynamicValue(this._config().target) ?? '').trim() || null);
+    readonly rel = computed(() => String(resolveDynamicValue(this._config().rel) ?? 'nofollow noopener noreferrer').trim());
 
     readonly name = computed(() => String(resolveDynamicValue(this._config().name) ?? ''));
     readonly role = computed(() => String(resolveDynamicValue(this._config().role) ?? ''));

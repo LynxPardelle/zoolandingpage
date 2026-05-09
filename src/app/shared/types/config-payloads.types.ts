@@ -249,6 +249,8 @@ export type TRuntimeDataSourceFieldMapping =
     | {
         readonly path: string;
         readonly fallback?: unknown;
+        readonly prefix?: string;
+        readonly suffix?: string;
     };
 
 export type TRuntimeDataSourceMapperConfig = {

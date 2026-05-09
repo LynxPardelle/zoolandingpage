@@ -33,10 +33,20 @@ export class RuntimeDataSourceMapperService {
         return Object.entries(fields).reduce<Record<string, unknown>>((acc, [targetKey, mapping]) => {
             const path = typeof mapping === 'string' ? mapping : mapping.path;
             const fallback = typeof mapping === 'string' ? undefined : mapping.fallback;
+            const prefix = typeof mapping === 'string' ? '' : String(mapping.prefix ?? '');
+            const suffix = typeof mapping === 'string' ? '' : String(mapping.suffix ?? '');
             const value = this.resolvePath(item, path);
-            acc[targetKey] = value == null ? fallback : this.cloneValue(value);
+            acc[targetKey] = value == null ? fallback : this.formatMappedValue(value, prefix, suffix);
             return acc;
         }, {});
+    }
+
+    private formatMappedValue(value: unknown, prefix: string, suffix: string): unknown {
+        if (!prefix && !suffix) {
+            return this.cloneValue(value);
+        }
+
+        return `${ prefix }${ String(value) }${ suffix }`;
     }
 
     private asFieldMap(value: unknown): Record<string, TRuntimeDataSourceFieldMapping> {
