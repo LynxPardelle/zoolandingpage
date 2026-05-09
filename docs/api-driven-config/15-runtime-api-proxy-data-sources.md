@@ -56,6 +56,20 @@ Field mappings can be either a path string or an object. Object mappings support
 }
 ```
 
+When an upstream endpoint returns one object instead of an array, set `mapper.singleItem` to `true` so the response is rendered as one mapped item:
+
+```json
+{
+  "mapper": {
+    "singleItem": true,
+    "fields": {
+      "title": "name",
+      "image": "sprites.other.official-artwork.front_default"
+    }
+  }
+}
+```
+
 ## Server-Only Policy
 
 Put upstream URLs, methods, response filters, and credential references in `drafts/{domain}/server/integrations.json`:
@@ -87,6 +101,26 @@ Put upstream URLs, methods, response filters, and credential references in `draf
 This file is server-only. It can be published by the authoring package, but `runtime-read` must not include it in browser runtime bundles. Prefer nested `allowedFields` paths such as `results.trackName` over broad parent fields such as `results` so the proxy returns only the properties the draft needs.
 
 When an upstream requires non-secret request headers, declare them in the server-only `headers` object. Keep credentials in Secrets Manager via `credentialRef`; do not place tokens or API keys in `headers`.
+
+For detail endpoints that return a single object, `response.singleItem: true` wraps the filtered object as `{ "items": [ ... ] }` so standard `itemsPath: "items"` draft mappings can render it:
+
+```json
+{
+  "id": "pokeapiPikachu",
+  "method": "GET",
+  "url": "https://pokeapi.co/api/v2/pokemon/pikachu",
+  "allowedInputFields": [],
+  "response": {
+    "singleItem": true,
+    "allowedFields": [
+      "id",
+      "name",
+      "sprites.other.official-artwork.front_default",
+      "types.type.name"
+    ]
+  }
+}
+```
 
 ## Rendering
 

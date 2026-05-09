@@ -128,12 +128,13 @@
     },
     "runtimeDataSourceMapper": {
       "type": "object",
-      "properties": {
-        "itemsPath": { "type": ["string", "null"] },
-        "fields": {
-          "type": ["object", "null"],
-          "additionalProperties": { "$ref": "#/definitions/runtimeDataSourceFieldMapping" }
-        }
+        "properties": {
+          "itemsPath": { "type": ["string", "null"] },
+          "singleItem": { "type": "boolean" },
+          "fields": {
+            "type": ["object", "null"],
+            "additionalProperties": { "$ref": "#/definitions/runtimeDataSourceFieldMapping" }
+          }
       },
       "additionalProperties": false
     },

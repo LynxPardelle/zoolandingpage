@@ -66,3 +66,50 @@ External follow-up:
 Current blocker:
 
 - Zoolanding can authenticate to TIDAL, but TIDAL catalog endpoints currently do not return catalog data for this third-party app. Follow up through GitHub Discussion #318 before changing the integration to use another TIDAL route.
+- As of 2026-05-09 16:38 CT, the `music.lynxpardelle.com` TIDAL album section is paused in draft config. The section remains authored, but `tidalAlbumsSection` uses `condition: "all:false"` and the `lynx-tidal-albums` runtime data source is disabled so the page does not call the API while blocked.
+
+### 2026-05-09 16:26 CT - Spotify Runtime API Workstream
+
+Summary:
+
+- Spotify was evaluated as an alternate source for album cards on `music.lynxpardelle.com` while TIDAL catalog access remains blocked.
+- The intended design was to reuse `zoolanding-api-proxy`, AWS Secrets Manager, and server-only draft integration policies for Spotify Client Credentials auth.
+- No Spotify secret placeholder, draft source, or UI section was implemented.
+
+Verified:
+
+- The Spotify Developer Dashboard create-app screen displayed: `Upgrade to Spotify Premium to access the Web API and unlock additional features for your app.`
+- Spotify documentation says Development Mode apps require the app owner to have an active Spotify Premium subscription.
+- The user does not currently have Spotify Premium and chose to skip this implementation.
+
+Current blocker:
+
+- Spotify Web API integration is parked until the project owner has Spotify Premium or a different allowed catalog source is selected.
+
+### 2026-05-09 17:40 CT - PokeAPI Visual Demo Workstream
+
+Summary:
+
+- `pokeapi-demo.zoolandingpage.com.mx` was created as a client-facing demonstration draft for runtime API-driven pages.
+- The draft consumes eight PokeAPI read sources through `zoolanding-api-proxy`; it does not use or require secrets.
+- The visual implementation uses `container`, `media`, `text`, and `link` components for Pokemon cards so it works with the currently deployed testing frontend.
+- The draft keeps static fallback numbers and outbound PokeAPI links in draft variables/config while live API data supplies names, primary type labels, and official artwork URLs.
+- Server-only PokeAPI policies filter upstream responses down to the fields needed by the draft and remain outside the runtime browser bundle.
+- `zoolanding-api-proxy` now sends a default upstream `User-Agent` because PokeAPI returned `403` to Python `urllib` without one.
+
+Published:
+
+- Draft version: `20260509T233642Z-3feb20a40422`
+- Testing preview URL: `https://test.zoolandingpage.com.mx/?draftDomain=pokeapi-demo.zoolandingpage.com.mx&debugWorkspace=false`
+
+Verified:
+
+- Direct `/api-proxy/read` calls for PokeAPI sources returned `200` and filtered JSON.
+- `runtime-bundle` returned published version `20260509T233642Z-3feb20a40422` and did not include `server/integrations.json`.
+- Final browser QA ran three desktop and three mobile passes with eight proxy calls per pass, nine loaded images, no failed requests, no bad responses, no console errors, no broken images, no horizontal overflow, and the skip link hidden with `display: none`.
+- QA evidence file: `reports/draft-qa/pokeapi-demo-20260509/qa-final.json`
+
+Reusable lessons:
+
+- For demos that must work against the already deployed frontend, prefer broadly supported primitives (`container`, `media`, `text`, `link`) over recently added component features until the frontend build containing those features is deployed.
+- Do not rely on newly added frontend mapper `prefix`/`suffix` support in published drafts until the frontend deployment is confirmed; keep critical display labels and safe outbound links in fallback config when necessary.

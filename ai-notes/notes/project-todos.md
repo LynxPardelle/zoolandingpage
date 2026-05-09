@@ -28,6 +28,7 @@ Open:
 - [ ] Monitor GitHub Discussion #318 for a response from TIDAL.
 - [ ] If TIDAL confirms an additional catalog/API access flag or review path is required, update the TIDAL Developer Portal app and record the non-secret decision in the memorandum.
 - [ ] Add or publish a privacy-policy URL for `music.lynxpardelle.com`, then set it in the TIDAL Developer Portal app settings.
+- [ ] When TIDAL catalog access works, reactivate the paused draft section by removing `condition: "all:false"` from `tidalAlbumsSection` and setting `runtime.dataSources[].id == "lynx-tidal-albums"` back to `enabled: true`.
 - [ ] After TIDAL responds or access changes, retest:
   - `GET https://openapi.tidal.com/v2/albums/59727856?countryCode=US`
   - `GET https://openapi.tidal.com/v2/artists/10212180/relationships/albums?countryCode=MX&include=albums`
@@ -49,7 +50,45 @@ Completed:
 - [x] Add TIDAL OAuth client-credentials support to `zoolanding-api-proxy`.
 - [x] Add runtime API album-card rendering support to `zoolandingpage`.
 - [x] Publish fallback TIDAL album section in `music.lynxpardelle.com`.
+- [x] Pause the visible TIDAL section and disable its runtime data source while TIDAL catalog access is blocked.
 - [x] Create TIDAL GitHub Discussion #318 with sanitized diagnostic details.
+
+## Spotify Runtime API Workstream
+
+Reference:
+
+- Memorandum entry: [2026-05-09 16:26 CT - Spotify Runtime API Workstream](./project-session-memorandum.md#2026-05-09-1626-ct---spotify-runtime-api-workstream)
+- Spotify quota-mode docs: `https://developer.spotify.com/documentation/web-api/concepts/quota-modes`
+
+Open:
+
+- [ ] Revisit only if the project owner gets Spotify Premium or Spotify changes Web API access requirements.
+- [ ] If revisited, create a `zoolanding/api/music/spotify` placeholder through the API proxy credential workflow, then keep `clientId` and `clientSecret` only in AWS Secrets Manager.
+
+Completed:
+
+- [x] Evaluated Spotify as an alternate catalog source while TIDAL is blocked.
+- [x] Parked Spotify implementation because Web API access is blocked without Spotify Premium.
+
+## PokeAPI Visual Demo Workstream
+
+Reference:
+
+- Memorandum entry: [2026-05-09 17:40 CT - PokeAPI Visual Demo Workstream](./project-session-memorandum.md#2026-05-09-1740-ct---pokeapi-visual-demo-workstream)
+- Testing preview: `https://test.zoolandingpage.com.mx/?draftDomain=pokeapi-demo.zoolandingpage.com.mx&debugWorkspace=false`
+- QA evidence: `reports/draft-qa/pokeapi-demo-20260509/qa-final.json`
+
+Open:
+
+- [ ] If `pokeapi-demo.zoolandingpage.com.mx` needs a production vanity URL later, add DNS/Dokploy routing and verify production host policy separately.
+- [ ] After the frontend build with mapper `prefix`/`suffix` support is deployed, decide whether the demo should move Pokemon numbers and outbound links back to live-mapped fields.
+
+Completed:
+
+- [x] Created and published the PokeAPI demo draft as version `20260509T233642Z-3feb20a40422`.
+- [x] Added server-only PokeAPI integration policies without secrets.
+- [x] Updated `zoolanding-api-proxy` to send a default upstream `User-Agent`.
+- [x] Verified three desktop and three mobile testing-host browser passes with eight successful proxy reads, loaded card artwork, hidden skip link, no console errors, no failed requests, no bad responses, no broken images, and no horizontal overflow.
 
 ## Future Workstreams
 

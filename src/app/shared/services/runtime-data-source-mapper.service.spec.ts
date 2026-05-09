@@ -95,6 +95,37 @@ describe('RuntimeDataSourceMapperService', () => {
         });
     });
 
+    it('maps a root object as one item when singleItem is enabled', () => {
+        const result = service.mapResponse({
+            id: 25,
+            name: 'pikachu',
+            sprites: {
+                other: {
+                    'official-artwork': {
+                        front_default: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png',
+                    },
+                },
+            },
+        }, {
+            singleItem: true,
+            fields: {
+                id: 'id',
+                title: 'name',
+                image: 'sprites.other.official-artwork.front_default',
+            },
+        });
+
+        expect(result).toEqual({
+            items: [
+                {
+                    id: 25,
+                    title: 'pikachu',
+                    image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png',
+                },
+            ],
+        });
+    });
+
     it('returns raw item copies when no field mapping is configured', () => {
         const result = service.mapResponse({
             items: [

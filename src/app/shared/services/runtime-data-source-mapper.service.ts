@@ -11,7 +11,7 @@ export type TRuntimeDataSourceMappedResult = {
 @Injectable({ providedIn: 'root' })
 export class RuntimeDataSourceMapperService {
     mapResponse(response: unknown, mapper: TRuntimeDataSourceMapperConfig | null | undefined): TRuntimeDataSourceMappedResult {
-        const items = this.resolveItems(response, mapper?.itemsPath);
+        const items = this.resolveItems(response, mapper);
         const fields = this.asFieldMap(mapper?.fields);
 
         return {
@@ -19,10 +19,13 @@ export class RuntimeDataSourceMapperService {
         };
     }
 
-    private resolveItems(response: unknown, itemsPath: string | null | undefined): readonly unknown[] {
-        const path = String(itemsPath ?? '').trim();
+    private resolveItems(response: unknown, mapper: TRuntimeDataSourceMapperConfig | null | undefined): readonly unknown[] {
+        const path = String(mapper?.itemsPath ?? '').trim();
         const raw = path ? this.resolvePath(response, path) : response;
-        return Array.isArray(raw) ? raw : [];
+        if (Array.isArray(raw)) {
+            return raw;
+        }
+        return mapper?.singleItem && raw != null ? [raw] : [];
     }
 
     private mapItem(item: unknown, fields: Record<string, TRuntimeDataSourceFieldMapping>): unknown {

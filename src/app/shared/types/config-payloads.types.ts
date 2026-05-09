@@ -255,6 +255,7 @@ export type TRuntimeDataSourceFieldMapping =
 
 export type TRuntimeDataSourceMapperConfig = {
     readonly itemsPath?: string | null;
+    readonly singleItem?: boolean;
     readonly fields?: Record<string, TRuntimeDataSourceFieldMapping> | null;
 };
 
