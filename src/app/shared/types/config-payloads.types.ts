@@ -264,12 +264,32 @@ export type TRuntimeDataSourceRefreshConfig = {
     readonly intervalMs?: number;
 };
 
+export type TRuntimeDataSourceInputTransform = 'trim' | 'lowercase' | 'uppercase';
+
+export type TRuntimeDataSourceInputResolverConfig = {
+    readonly source: 'literal';
+    readonly value?: unknown;
+    readonly fallback?: unknown;
+    readonly transforms?: readonly TRuntimeDataSourceInputTransform[];
+} | {
+    readonly source: 'queryParam';
+    readonly key: string;
+    readonly fallback?: unknown;
+    readonly transforms?: readonly TRuntimeDataSourceInputTransform[];
+} | {
+    readonly source: 'var';
+    readonly path: string;
+    readonly fallback?: unknown;
+    readonly transforms?: readonly TRuntimeDataSourceInputTransform[];
+};
+
 export type TRuntimeDataSourceConfig = {
     readonly id: string;
     readonly proxySourceId?: string;
     readonly target: string;
     readonly statusTarget?: string;
     readonly enabled?: boolean;
+    readonly pageIds?: readonly string[];
     readonly input?: Record<string, unknown>;
     readonly mapper?: TRuntimeDataSourceMapperConfig | null;
     readonly refresh?: TRuntimeDataSourceRefreshConfig | null;

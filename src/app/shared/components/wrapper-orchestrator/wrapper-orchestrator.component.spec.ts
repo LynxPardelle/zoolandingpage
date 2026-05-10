@@ -105,6 +105,26 @@ describe('WrapperOrchestrator', () => {
     expect(component.components().map((entry) => entry.id)).toEqual(['debugDraftPanelToggleButton']);
   });
 
+  it('resolves dynamic search suggestions while preserving static search config fields', () => {
+    const suggestions = [
+      {
+        id: 'pikachu',
+        label: 'Pikachu',
+        href: '/pokemon?name=pikachu',
+      },
+    ];
+
+    const resolved = component.resolveSearchConfig({
+      placeholder: 'Buscar Pokemon',
+      suggestions: () => suggestions,
+    });
+
+    expect(resolved).toEqual({
+      placeholder: 'Buscar Pokemon',
+      suggestions,
+    });
+  });
+
   it('replaces invalid authored ids with generated root ids in the rendered generic component', () => {
     componentsById = {
       debugDraftPanelToggleButton: {

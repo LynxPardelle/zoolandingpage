@@ -113,3 +113,35 @@ Reusable lessons:
 
 - For demos that must work against the already deployed frontend, prefer broadly supported primitives (`container`, `media`, `text`, `link`) over recently added component features until the frontend build containing those features is deployed.
 - Do not rely on newly added frontend mapper `prefix`/`suffix` support in published drafts until the frontend deployment is confirmed; keep critical display labels and safe outbound links in fallback config when necessary.
+
+### 2026-05-09 22:55 CT - Parameterized PokeAPI Search And Detail Workstream
+
+Summary:
+
+- The PokeAPI demo advanced from a static visual API demo to a reusable parameterized runtime-page pattern.
+- `runtime.dataSources[]` can now be scoped by `pageIds` so list-only sources do not run on unrelated routes.
+- Runtime source `input` can now resolve from `literal`, `queryParam`, or `var` values and apply safe string transforms such as `trim` and `lowercase`.
+- `search-box` configs can receive dynamic `suggestions` through `valueInstructions`, so a draft can populate search choices from a runtime API index.
+- `zoolanding-api-proxy` now supports `urlTemplate` for server-owned parameterized upstream URLs. Template placeholders must be listed in `allowedInputFields`; values are scalar, non-empty, length-limited, and percent-encoded before the upstream request.
+- `pokeapi-demo.zoolandingpage.com.mx` now has a `/pokemon` route that reads `?name=`, queries the proxy, and renders a reusable detail template for a selected Pokemon.
+- The local `generic-icon` map includes `dark_mode` and `light_mode` SVG paths so theme buttons do not expose raw Material icon names when the external Material Icons font is absent.
+
+Published and deployed:
+
+- API proxy SAM stack `zoolanding-api-proxy` was updated in `us-east-1`.
+- Draft version: `20260510T044815Z-42dfd6230702`.
+- Local demo URL: `http://127.0.0.1:50503/?draftDomain=pokeapi-demo.zoolandingpage.com.mx&debugWorkspace=false`.
+- Local detail URL: `http://127.0.0.1:50503/pokemon?draftDomain=pokeapi-demo.zoolandingpage.com.mx&debugWorkspace=false&name=charizard`.
+
+Verified:
+
+- Direct `/api-proxy/read` for `sourceId: "pokeapiPokemonDetail"` and `pokemonName: "charizard"` returned `200` with filtered Charizard fields.
+- Direct `/api-proxy/read` for `sourceId: "pokeapiPokemonIndex"` returned `200` with PokeAPI index results.
+- Local Playwright QA covered home, search, detail, dark mode, light mode, desktop, and mobile with no failed requests, no bad responses, no console errors, no broken images, no horizontal overflow, hidden skip links, and no visible `dark_mode`/`light_mode` text.
+- QA evidence lives under local ignored `Output/pokeapi-demo-qa/`.
+
+Reusable lessons:
+
+- Parameterized detail routes should keep the route/query input in public config and the upstream URL pattern in `server/integrations.json`.
+- Template fields consumed by `urlTemplate` should not be forwarded again as query/body input.
+- For browser QA in this app, remember that the document body can be the scroll container; use body scroll metrics as well as documentElement metrics.

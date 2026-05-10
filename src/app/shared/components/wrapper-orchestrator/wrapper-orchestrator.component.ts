@@ -147,7 +147,15 @@ export class WrapperOrchestrator {
       return null;
     }
 
-    return resolved as SearchBoxConfig;
+    const suggestions = this.resolveValue((resolved as Record<string, unknown>)['suggestions']);
+    if (suggestions === (resolved as Record<string, unknown>)['suggestions']) {
+      return resolved as SearchBoxConfig;
+    }
+
+    return {
+      ...(resolved as Record<string, unknown>),
+      suggestions,
+    } as SearchBoxConfig;
   }
 
   resolveStatsCounterConfig(config: unknown): TGenericStatsCounterConfig {

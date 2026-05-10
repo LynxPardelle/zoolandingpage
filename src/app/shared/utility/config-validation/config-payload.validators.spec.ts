@@ -212,6 +212,179 @@ describe('config-payload.validators', () => {
         expect(isDraftSiteConfigPayload(valid)).toBeTrue();
     });
 
+    it('accepts parameterized runtime data sources with page scoping', () => {
+        const valid = {
+            version: 1,
+            domain: 'pokeapi-demo.zoolandingpage.com.mx',
+            defaultPageId: 'default',
+            routes: [
+                { path: '/', pageId: 'default' },
+                { path: '/pokemon', pageId: 'pokemon-detail' },
+            ],
+            site: {
+                appIdentity: {
+                    identifier: 'pokeapi-demo',
+                    name: 'PokeAPI Demo',
+                },
+                theme: {
+                    palettes: {
+                        light: {
+                            bgColor: '#ffffff',
+                            textColor: '#111111',
+                            titleColor: '#111111',
+                            linkColor: '#0d6efd',
+                            accentColor: '#f4c430',
+                            secondaryBgColor: '#f7f7f7',
+                            secondaryTextColor: '#222222',
+                            secondaryTitleColor: '#111111',
+                            secondaryLinkColor: '#0d6efd',
+                            secondaryAccentColor: '#2e8b57',
+                            successColor: '#2e8b57',
+                            onSuccessColor: '#ffffff',
+                            errorColor: '#d7462f',
+                            onErrorColor: '#ffffff',
+                            warningColor: '#f4c430',
+                            onWarningColor: '#111111',
+                            infoColor: '#2864a8',
+                            onInfoColor: '#ffffff',
+                        },
+                        dark: {
+                            bgColor: '#10131a',
+                            textColor: '#f7f7f7',
+                            titleColor: '#ffffff',
+                            linkColor: '#9fd3ff',
+                            accentColor: '#f4c430',
+                            secondaryBgColor: '#171b24',
+                            secondaryTextColor: '#e7e7e7',
+                            secondaryTitleColor: '#ffffff',
+                            secondaryLinkColor: '#9fd3ff',
+                            secondaryAccentColor: '#8ee6a8',
+                            successColor: '#8ee6a8',
+                            onSuccessColor: '#10131a',
+                            errorColor: '#ff8a7a',
+                            onErrorColor: '#10131a',
+                            warningColor: '#f4c430',
+                            onWarningColor: '#10131a',
+                            infoColor: '#9fd3ff',
+                            onInfoColor: '#10131a',
+                        },
+                    },
+                },
+                i18n: {
+                    defaultLanguage: 'es',
+                    supportedLanguages: ['es'],
+                },
+            },
+            runtime: {
+                dataSources: [
+                    {
+                        id: 'pokeapi-selected-pokemon',
+                        proxySourceId: 'pokeapiPokemonDetail',
+                        target: 'remote.pokemon.selected',
+                        pageIds: ['pokemon-detail'],
+                        input: {
+                            pokemonName: {
+                                source: 'queryParam',
+                                key: 'name',
+                                fallback: 'pikachu',
+                                transforms: ['trim', 'lowercase'],
+                            },
+                        },
+                        mapper: {
+                            itemsPath: 'items',
+                            fields: {
+                                name: 'name',
+                            },
+                        },
+                    },
+                ],
+            },
+        };
+
+        expect(isDraftSiteConfigPayload(valid)).toBeTrue();
+    });
+
+    it('rejects malformed parameterized runtime data source input config', () => {
+        const invalid = {
+            version: 1,
+            domain: 'pokeapi-demo.zoolandingpage.com.mx',
+            defaultPageId: 'default',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: {
+                appIdentity: {
+                    identifier: 'pokeapi-demo',
+                    name: 'PokeAPI Demo',
+                },
+                theme: {
+                    palettes: {
+                        light: {
+                            bgColor: '#ffffff',
+                            textColor: '#111111',
+                            titleColor: '#111111',
+                            linkColor: '#0d6efd',
+                            accentColor: '#f4c430',
+                            secondaryBgColor: '#f7f7f7',
+                            secondaryTextColor: '#222222',
+                            secondaryTitleColor: '#111111',
+                            secondaryLinkColor: '#0d6efd',
+                            secondaryAccentColor: '#2e8b57',
+                            successColor: '#2e8b57',
+                            onSuccessColor: '#ffffff',
+                            errorColor: '#d7462f',
+                            onErrorColor: '#ffffff',
+                            warningColor: '#f4c430',
+                            onWarningColor: '#111111',
+                            infoColor: '#2864a8',
+                            onInfoColor: '#ffffff',
+                        },
+                        dark: {
+                            bgColor: '#10131a',
+                            textColor: '#f7f7f7',
+                            titleColor: '#ffffff',
+                            linkColor: '#9fd3ff',
+                            accentColor: '#f4c430',
+                            secondaryBgColor: '#171b24',
+                            secondaryTextColor: '#e7e7e7',
+                            secondaryTitleColor: '#ffffff',
+                            secondaryLinkColor: '#9fd3ff',
+                            secondaryAccentColor: '#8ee6a8',
+                            successColor: '#8ee6a8',
+                            onSuccessColor: '#10131a',
+                            errorColor: '#ff8a7a',
+                            onErrorColor: '#10131a',
+                            warningColor: '#f4c430',
+                            onWarningColor: '#10131a',
+                            infoColor: '#9fd3ff',
+                            onInfoColor: '#10131a',
+                        },
+                    },
+                },
+                i18n: {
+                    defaultLanguage: 'es',
+                    supportedLanguages: ['es'],
+                },
+            },
+            runtime: {
+                dataSources: [
+                    {
+                        id: 'pokeapi-selected-pokemon',
+                        proxySourceId: 'pokeapiPokemonDetail',
+                        target: 'remote.pokemon.selected',
+                        pageIds: ['pokemon-detail', 25],
+                        input: {
+                            pokemonName: {
+                                source: 'queryParam',
+                                fallback: 'pikachu',
+                            },
+                        },
+                    },
+                ],
+            },
+        };
+
+        expect(isDraftSiteConfigPayload(invalid)).toBeFalse();
+    });
+
     it('rejects site-config payloads without required site metadata', () => {
         const invalid = {
             version: 1,

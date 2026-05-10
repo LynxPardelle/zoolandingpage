@@ -15,6 +15,7 @@ Add public runtime wiring to `site-config.json`:
         "proxySourceId": "itunesSongSearch",
         "target": "remote.music.releases",
         "statusTarget": "remoteStatus.music.releases",
+        "pageIds": ["default"],
         "input": { "term": "lynx pardelle", "entity": "song", "limit": 6 },
         "mapper": {
           "itemsPath": "results",
@@ -41,6 +42,34 @@ Add public runtime wiring to `site-config.json`:
 ```
 
 The frontend calls the proxy with the configured `proxySourceId` or `proxyActionId`, maps the safe response into `VariableStoreService`, and renders it with existing `valueInstructions` and `loopConfig.source: "var"` patterns.
+
+Use `pageIds` when a source should run only on specific draft routes. Omitting `pageIds` keeps the source global for every page in the site.
+
+`input` values are literal by default. A field can also resolve from the current URL query string or from an existing runtime variable:
+
+```json
+{
+  "input": {
+    "pokemonName": {
+      "source": "queryParam",
+      "key": "name",
+      "fallback": "pikachu",
+      "transforms": ["trim", "lowercase"]
+    },
+    "countryCode": {
+      "source": "literal",
+      "value": "MX"
+    },
+    "selectedId": {
+      "source": "var",
+      "path": "selection.currentId",
+      "fallback": "default"
+    }
+  }
+}
+```
+
+Supported transforms are `trim`, `lowercase`, and `uppercase`.
 
 Field mappings can be either a path string or an object. Object mappings support `fallback`, `prefix`, and `suffix`, which is useful when a safe upstream field needs to become a display URL:
 
@@ -101,6 +130,28 @@ Put upstream URLs, methods, response filters, and credential references in `draf
 This file is server-only. It can be published by the authoring package, but `runtime-read` must not include it in browser runtime bundles. Prefer nested `allowedFields` paths such as `results.trackName` over broad parent fields such as `results` so the proxy returns only the properties the draft needs.
 
 When an upstream requires non-secret request headers, declare them in the server-only `headers` object. Keep credentials in Secrets Manager via `credentialRef`; do not place tokens or API keys in `headers`.
+
+For parameterized detail pages, put the URL pattern in server-only policy as `urlTemplate` instead of letting the browser send an upstream URL:
+
+```json
+{
+  "id": "pokemonDetail",
+  "method": "GET",
+  "urlTemplate": "https://pokeapi.co/api/v2/pokemon/{pokemonName}",
+  "allowedInputFields": ["pokemonName"],
+  "response": {
+    "singleItem": true,
+    "allowedFields": [
+      "id",
+      "name",
+      "sprites.other.official-artwork.front_default",
+      "types.type.name"
+    ]
+  }
+}
+```
+
+Every `urlTemplate` placeholder must also appear in `allowedInputFields`. Placeholder values must be scalar, non-empty, and within the proxy length limit; the proxy trims and percent-encodes them before making the upstream request. Fields consumed by `urlTemplate` are not forwarded again as query/body input.
 
 For detail endpoints that return a single object, `response.singleItem: true` wraps the filtered object as `{ "items": [ ... ] }` so standard `itemsPath: "items"` draft mappings can render it:
 
@@ -166,6 +217,7 @@ Then render the source through `loopConfig`:
 - Do not put secrets, bearer tokens, client secrets, API keys, signed URLs, or upstream credential material in draft browser payloads.
 - Do not let the browser provide arbitrary upstream URLs.
 - Keep every input field allowlisted in server policy.
+- Keep every `urlTemplate` placeholder allowlisted in server policy.
 - Keep every returned field allowlisted in server policy.
 - Store real credentials in AWS Secrets Manager and reference them only by `credentialRef`.
 - Do not enable destructive production actions without an authorization design.

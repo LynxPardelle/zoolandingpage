@@ -54,4 +54,18 @@ describe('GenericIconComponent', () => {
     expect(icon.getAttribute('aria-label')).toBe('Home label');
     expect(icon.getAttribute('aria-hidden')).toBeNull();
   });
+
+  it('renders local theme icons as svg instead of material icon text', () => {
+    fixture.componentRef.setInput('config', { iconName: 'dark_mode', ariaHidden: true });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('svg')).toBeTruthy();
+    expect(fixture.nativeElement.textContent.trim()).not.toContain('dark_mode');
+
+    fixture.componentRef.setInput('config', { iconName: 'light_mode', ariaHidden: true });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('svg')).toBeTruthy();
+    expect(fixture.nativeElement.textContent.trim()).not.toContain('light_mode');
+  });
 });

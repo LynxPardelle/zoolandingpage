@@ -29,6 +29,7 @@ describe('RuntimeDataSourceService', () => {
 
     afterEach(() => {
         service.stop();
+        window.history.replaceState({}, '', '/context.html');
         TestBed.resetTestingModule();
     });
 
@@ -71,6 +72,94 @@ describe('RuntimeDataSourceService', () => {
         expect(variables.get('remote.blog.posts.items')).toEqual([{ title: 'mapped:cmsRecentPosts' }]);
         expect(variables.get('remoteStatus.spotify-releases.state')).toBe('success');
         expect(variables.get('remoteStatus.blog-posts.state')).toBe('success');
+    });
+
+    it('skips data sources scoped to a different page id', async () => {
+        proxy.readSource.and.resolveTo({ ok: true, data: { items: [{ name: 'pikachu' }] } });
+        mapper.mapResponse.and.returnValue({ items: [{ name: 'pikachu' }] });
+
+        await service.start({
+            domain: 'pokeapi-demo.zoolandingpage.com.mx',
+            pageId: 'default',
+            dataSources: [
+                {
+                    id: 'pokeapi-selected-pokemon',
+                    proxySourceId: 'pokeapiPokemonDetail',
+                    target: 'remote.pokemon.selected',
+                    pageIds: ['pokemon-detail'],
+                } as any,
+            ],
+        });
+
+        expect(proxy.readSource).not.toHaveBeenCalled();
+        expect(variables.get('remote.pokemon.selected')).toBeUndefined();
+        expect(variables.get('remoteStatus.pokeapi-selected-pokemon')).toBeUndefined();
+    });
+
+    it('resolves query-param input values before calling the proxy', async () => {
+        window.history.replaceState({}, '', '/pokemon?name=Charizard%20');
+        proxy.readSource.and.resolveTo({ ok: true, data: { items: [{ name: 'charizard' }] } });
+        mapper.mapResponse.and.returnValue({ items: [{ name: 'charizard' }] });
+
+        await service.start({
+            domain: 'pokeapi-demo.zoolandingpage.com.mx',
+            pageId: 'pokemon-detail',
+            dataSources: [
+                {
+                    id: 'pokeapi-selected-pokemon',
+                    proxySourceId: 'pokeapiPokemonDetail',
+                    target: 'remote.pokemon.selected',
+                    input: {
+                        pokemonName: {
+                            source: 'queryParam',
+                            key: 'name',
+                            fallback: 'pikachu',
+                            transforms: ['trim', 'lowercase'],
+                        },
+                    },
+                },
+            ],
+        });
+
+        expect(proxy.readSource.calls.mostRecent().args[0].input).toEqual({
+            pokemonName: 'charizard',
+        });
+    });
+
+    it('resolves literal and variable input values while preserving raw literal fields', async () => {
+        variables.setRuntimeValue('pokemon.selectedName', 'Pikachu');
+        proxy.readSource.and.resolveTo({ ok: true, data: { items: [{ name: 'pikachu' }] } });
+        mapper.mapResponse.and.returnValue({ items: [{ name: 'pikachu' }] });
+
+        await service.start({
+            domain: 'pokeapi-demo.zoolandingpage.com.mx',
+            pageId: 'pokemon-detail',
+            dataSources: [
+                {
+                    id: 'pokeapi-selected-pokemon',
+                    proxySourceId: 'pokeapiPokemonDetail',
+                    target: 'remote.pokemon.selected',
+                    input: {
+                        pokemonName: {
+                            source: 'var',
+                            path: 'pokemon.selectedName',
+                            transforms: ['trim', 'lowercase'],
+                        },
+                        countryCode: {
+                            source: 'literal',
+                            value: 'MX',
+                        },
+                        includeArtwork: true,
+                    },
+                },
+            ],
+        });
+
+        expect(proxy.readSource.calls.mostRecent().args[0].input).toEqual({
+            pokemonName: 'pikachu',
+            countryCode: 'MX',
+            includeArtwork: true,
+        });
     });
 
     it('writes an empty status when mapped source items are empty', async () => {

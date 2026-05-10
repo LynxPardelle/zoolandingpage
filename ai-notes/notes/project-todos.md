@@ -81,7 +81,7 @@ Reference:
 Open:
 
 - [ ] If `pokeapi-demo.zoolandingpage.com.mx` needs a production vanity URL later, add DNS/Dokploy routing and verify production host policy separately.
-- [ ] After the frontend build with mapper `prefix`/`suffix` support is deployed, decide whether the demo should move Pokemon numbers and outbound links back to live-mapped fields.
+- [ ] After the frontend build with parameterized runtime pages is deployed to testing/production, run remote browser QA on `https://test.zoolandingpage.com.mx/pokemon?draftDomain=pokeapi-demo.zoolandingpage.com.mx&debugWorkspace=false&name=charizard`.
 
 Completed:
 
@@ -89,6 +89,10 @@ Completed:
 - [x] Added server-only PokeAPI integration policies without secrets.
 - [x] Updated `zoolanding-api-proxy` to send a default upstream `User-Agent`.
 - [x] Verified three desktop and three mobile testing-host browser passes with eight successful proxy reads, loaded card artwork, hidden skip link, no console errors, no failed requests, no bad responses, no broken images, and no horizontal overflow.
+- [x] Added search and `/pokemon?name=...` detail template support for the PokeAPI demo.
+- [x] Added `urlTemplate` support to `zoolanding-api-proxy` and deployed it through SAM.
+- [x] Republished `pokeapi-demo.zoolandingpage.com.mx` as version `20260510T044815Z-42dfd6230702`.
+- [x] Moved demo Pokemon numbers and API links to live mapped fields with fallback values.
 
 ## Future Workstreams
 

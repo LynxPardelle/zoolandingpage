@@ -73,6 +73,8 @@ const ALLOWED_TRACK_OPTIONS = new Set<TTrackOptions>([
 ]);
 
 const ALLOWED_RUNTIME_API_ACTION_METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
+const ALLOWED_RUNTIME_DATA_SOURCE_INPUT_SOURCES = new Set(['literal', 'queryParam', 'var']);
+const ALLOWED_RUNTIME_DATA_SOURCE_INPUT_TRANSFORMS = new Set(['trim', 'lowercase', 'uppercase']);
 
 const ALLOWED_LOCAL_STORAGE_SLOTS = new Set<TDraftLocalStorageSlot>([
     'theme',
@@ -423,6 +425,30 @@ const isRuntimeDataSourceRefreshConfig = (value: unknown): value is TRuntimeData
     return true;
 };
 
+const isRuntimeDataSourceInputResolverConfig = (value: Record<string, unknown>): boolean => {
+    const source = value['source'];
+    if (source === undefined) return true;
+    if (typeof source !== 'string' || !ALLOWED_RUNTIME_DATA_SOURCE_INPUT_SOURCES.has(source)) return false;
+
+    if (source === 'queryParam' && (typeof value['key'] !== 'string' || value['key'].trim().length === 0)) return false;
+    if (source === 'var' && (typeof value['path'] !== 'string' || value['path'].trim().length === 0)) return false;
+    if (value['transforms'] !== undefined
+        && (!Array.isArray(value['transforms'])
+            || !value['transforms'].every((entry) => typeof entry === 'string'
+                && ALLOWED_RUNTIME_DATA_SOURCE_INPUT_TRANSFORMS.has(entry)))) return false;
+
+    return true;
+};
+
+const isRuntimeDataSourceInputConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+
+    return Object.values(value).every((entry) => {
+        if (!isRecord(entry)) return true;
+        return isRuntimeDataSourceInputResolverConfig(entry);
+    });
+};
+
 const isRuntimeDataSourceConfig = (value: unknown): value is TRuntimeDataSourceConfig => {
     if (!isRecord(value)) return false;
     if (typeof value['id'] !== 'string' || value['id'].trim().length === 0) return false;
@@ -430,7 +456,10 @@ const isRuntimeDataSourceConfig = (value: unknown): value is TRuntimeDataSourceC
     if (typeof value['target'] !== 'string' || value['target'].trim().length === 0) return false;
     if (value['statusTarget'] !== undefined && typeof value['statusTarget'] !== 'string') return false;
     if (value['enabled'] !== undefined && typeof value['enabled'] !== 'boolean') return false;
-    if (value['input'] !== undefined && !isRecord(value['input'])) return false;
+    if (value['pageIds'] !== undefined
+        && (!Array.isArray(value['pageIds'])
+            || !value['pageIds'].every((entry) => typeof entry === 'string' && entry.trim().length > 0))) return false;
+    if (value['input'] !== undefined && !isRuntimeDataSourceInputConfig(value['input'])) return false;
     if (value['mapper'] !== undefined && !isRuntimeDataSourceMapperConfig(value['mapper'])) return false;
     if (value['refresh'] !== undefined && !isRuntimeDataSourceRefreshConfig(value['refresh'])) return false;
     return true;
