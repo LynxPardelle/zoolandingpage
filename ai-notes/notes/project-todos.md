@@ -81,7 +81,6 @@ Reference:
 Open:
 
 - [ ] If `pokeapi-demo.zoolandingpage.com.mx` needs a production vanity URL later, add DNS/Dokploy routing and verify production host policy separately.
-- [ ] After the frontend build with parameterized runtime pages is deployed to testing/production, run remote browser QA on `https://test.zoolandingpage.com.mx/pokemon?draftDomain=pokeapi-demo.zoolandingpage.com.mx&debugWorkspace=false&name=charizard`.
 
 Completed:
 
@@ -93,6 +92,8 @@ Completed:
 - [x] Added `urlTemplate` support to `zoolanding-api-proxy` and deployed it through SAM.
 - [x] Republished `pokeapi-demo.zoolandingpage.com.mx` as version `20260510T044815Z-42dfd6230702`.
 - [x] Moved demo Pokemon numbers and API links to live mapped fields with fallback values.
+- [x] Fast-forwarded and pushed `zoolandingpage` `main`, `dev`, and `test` to commit `0df759f` so testing serves the parameterized runtime build.
+- [x] Ran remote testing QA on the PokeAPI home route, direct Charizard detail route, mobile Charizard detail route, and exact-search navigation to `name=charizard`; final loaded states had no failed requests, bad responses, console errors, broken images, horizontal overflow, or visible raw theme icon text.
 
 ## Future Workstreams
 

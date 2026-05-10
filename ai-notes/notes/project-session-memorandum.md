@@ -138,6 +138,8 @@ Verified:
 - Direct `/api-proxy/read` for `sourceId: "pokeapiPokemonDetail"` and `pokemonName: "charizard"` returned `200` with filtered Charizard fields.
 - Direct `/api-proxy/read` for `sourceId: "pokeapiPokemonIndex"` returned `200` with PokeAPI index results.
 - Local Playwright QA covered home, search, detail, dark mode, light mode, desktop, and mobile with no failed requests, no bad responses, no console errors, no broken images, no horizontal overflow, hidden skip links, and no visible `dark_mode`/`light_mode` text.
+- Testing deploy took the fast-forwarded `test` branch at commit `0df759f` and served bundle `main-REKNAOOA.js`.
+- Remote Puppeteer QA covered the testing home route, direct `/pokemon?name=charizard` route, and exact-search navigation to `name=charizard`; the final loaded state showed `Charizard`, `#6`, and `SUCCESS` with no failed requests, no bad responses, no console errors, no broken images, no horizontal overflow, and no visible raw theme icon text.
 - QA evidence lives under local ignored `Output/pokeapi-demo-qa/`.
 
 Reusable lessons:
@@ -145,3 +147,4 @@ Reusable lessons:
 - Parameterized detail routes should keep the route/query input in public config and the upstream URL pattern in `server/integrations.json`.
 - Template fields consumed by `urlTemplate` should not be forwarded again as query/body input.
 - For browser QA in this app, remember that the document body can be the scroll container; use body scroll metrics as well as documentElement metrics.
+- Remote SSR may render fallback values before runtime API calls complete; QA for dynamic detail pages should wait for the expected loaded value or runtime `SUCCESS` before judging the final state.
