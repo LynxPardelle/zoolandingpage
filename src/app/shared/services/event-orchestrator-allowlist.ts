@@ -13,6 +13,7 @@ const BASE_ALLOWED_EVENT_IDS = [
     'toggleLanguage',
     'setLanguage',
     'navigateToUrl',
+    'navigateWithScopeQuery',
     'setScopeValue',
     'uploadPublicImage',
     'resetScope',

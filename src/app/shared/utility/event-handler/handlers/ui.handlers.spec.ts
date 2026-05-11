@@ -7,7 +7,7 @@ import { VariableStoreService } from '@/app/shared/services/variable-store.servi
 import { TestBed } from '@angular/core/testing';
 import type { EventExecutionContext } from '../event-handler.types';
 import { openModalHandler } from './legal-modal.handlers';
-import { navigateToUrlHandler, setLanguageHandler } from './ui.handlers';
+import { navigateToUrlHandler, navigateWithScopeQueryHandler, setLanguageHandler } from './ui.handlers';
 import { openFaqCtaWhatsAppHandler, openFinalCtaWhatsAppHandler, openWhatsAppHandler } from './whatsapp.handlers';
 
 describe('setLanguageHandler', () => {
@@ -137,6 +137,58 @@ describe('navigateToUrlHandler', () => {
 
         expect(openSpy).toHaveBeenCalledOnceWith('https://example.com/profile', '_blank', 'noopener,noreferrer');
         expect(window.location.pathname + window.location.search).toBe('/home?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+    });
+});
+
+describe('navigateWithScopeQueryHandler', () => {
+    let context: EventExecutionContext;
+
+    beforeEach(() => {
+        window.history.replaceState({}, '', '/?draftDomain=pokeapi-demo.zoolandingpage.com.mx&debugWorkspace=false&move=mega-punch');
+        TestBed.configureTestingModule({
+            providers: []
+        });
+        context = {
+            event: {
+                componentId: 'pokemonCatalogView',
+                eventName: 'submitScope',
+                eventData: {
+                    values: {
+                        search: 'Lucario ',
+                        type: 'all',
+                        attack: 'aura-sphere',
+                        sort: 'number-desc',
+                        page: 3,
+                        pageSize: 8,
+                    },
+                },
+            },
+            host: null,
+        };
+    });
+
+    afterEach(() => {
+        window.history.replaceState({}, '', '/context.html');
+    });
+
+    it('builds a fresh internal URL from submitted scope values and preserves draft query params', async () => {
+        const handler = TestBed.runInInjectionContext(() => navigateWithScopeQueryHandler());
+
+        handler.handle(context, [
+            '/',
+            '#pokemon-grid',
+            'pokemon=values.search',
+            'type=values.type',
+            'move=values.attack',
+            'sort=values.sort',
+            'page=values.page',
+            'pageSize=values.pageSize',
+        ]);
+        await Promise.resolve();
+
+        expect(window.location.pathname + window.location.search + window.location.hash).toBe(
+            '/?draftDomain=pokeapi-demo.zoolandingpage.com.mx&debugWorkspace=false&pokemon=Lucario&move=aura-sphere&sort=number-desc&page=3&pageSize=8#pokemon-grid'
+        );
     });
 });
 

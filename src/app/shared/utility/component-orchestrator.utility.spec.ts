@@ -170,7 +170,7 @@ describe('materializeLoopComponents collection view', () => {
                             to: 'config.href',
                             sources: [{ from: 'move.name', transform: 'uriComponent' }],
                             prefix: '/?move=',
-                            suffix: '#move-matches',
+                            suffix: '#pokemon-grid',
                         },
                     ],
                 },
@@ -191,7 +191,7 @@ describe('materializeLoopComponents collection view', () => {
 
         expect((resolved.get('moveLinks') as any).config.components).toEqual(['moveLink__1']);
         expect((resolved.get('moveLink__1') as any).config.text).toBe('mega punch');
-        expect((resolved.get('moveLink__1') as any).config.href).toBe('/?move=mega%20punch#move-matches');
+        expect((resolved.get('moveLink__1') as any).config.href).toBe('/?move=mega%20punch#pokemon-grid');
     });
 
     it('can filter loop items from query-param values', () => {

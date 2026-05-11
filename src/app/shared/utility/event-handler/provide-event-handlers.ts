@@ -35,7 +35,7 @@ import {
     showErrorToastHandler,
     showPositionDemoHandler,
 } from './handlers/toast-demo.handlers';
-import { navigateToUrlHandler, setLanguageHandler, toggleLanguageHandler, toggleThemeHandler } from './handlers/ui.handlers';
+import { navigateToUrlHandler, navigateWithScopeQueryHandler, setLanguageHandler, toggleLanguageHandler, toggleThemeHandler } from './handlers/ui.handlers';
 import {
     openFaqCtaWhatsAppHandler,
     openFinalCtaWhatsAppHandler,
@@ -54,6 +54,7 @@ const baseEventHandlerProviders: Provider[] = [
     { provide: EVENT_HANDLERS, multi: true, useFactory: toggleLanguageHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: setLanguageHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: navigateToUrlHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: navigateWithScopeQueryHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: setScopeValueHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: resetScopeHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: submitScopeHandler },

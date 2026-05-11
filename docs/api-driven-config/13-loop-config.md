@@ -126,6 +126,8 @@ Supported filter operators are `equals`, `notEquals`, `contains`, `includes`, `e
 - `{ source: "queryParam", key: "pokemon" }`
 - `{ source: "literal", value: "featured" }`
 
+Filters may also use `activeWhen` with the same value-source shape. This lets a local loop filter stay inactive when a query-driven API source already returned a narrowed collection.
+
 ## Example
 
 ```ts

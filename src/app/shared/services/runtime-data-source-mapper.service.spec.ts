@@ -76,6 +76,75 @@ describe('RuntimeDataSourceMapperService', () => {
         });
     });
 
+    it('can transform the last numeric URL segment before applying prefix and suffix', () => {
+        const result = service.mapResponse({
+            results: [
+                {
+                    name: 'bulbasaur',
+                    url: 'https://pokeapi.co/api/v2/pokemon/1/',
+                },
+            ],
+        }, {
+            itemsPath: 'results',
+            fields: {
+                id: {
+                    path: 'url',
+                    transform: 'lastPathSegmentNumber',
+                },
+                number: {
+                    path: 'url',
+                    transform: 'lastPathSegmentNumber',
+                    prefix: '#',
+                },
+                image: {
+                    path: 'url',
+                    transform: 'lastPathSegmentNumber',
+                    prefix: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/',
+                    suffix: '.png',
+                },
+            },
+        });
+
+        expect(result).toEqual({
+            items: [
+                {
+                    id: 1,
+                    number: '#1',
+                    image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/1.png',
+                },
+            ],
+        });
+    });
+
+    it('can map array length through a path segment', () => {
+        const result = service.mapResponse({
+            items: [
+                {
+                    name: 'charizard',
+                    moves: [
+                        { move: { name: 'flamethrower' } },
+                        { move: { name: 'slash' } },
+                    ],
+                },
+            ],
+        }, {
+            itemsPath: 'items',
+            fields: {
+                name: 'name',
+                moveCount: 'moves.length',
+            },
+        });
+
+        expect(result).toEqual({
+            items: [
+                {
+                    name: 'charizard',
+                    moveCount: 2,
+                },
+            ],
+        });
+    });
+
     it('maps a root array when itemsPath is not configured', () => {
         const result = service.mapResponse([
             { title: 'One', href: '/one' },

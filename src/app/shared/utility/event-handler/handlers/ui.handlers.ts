@@ -10,6 +10,9 @@ import { navigateInCurrentWindow } from '../../navigation/browser-navigation.uti
 import { resolveNavigationTarget } from '../../navigation/navigation-target.utility';
 import type { EventHandler } from '../event-handler.types';
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+    !!value && typeof value === 'object' && !Array.isArray(value);
+
 const resolveLanguageArg = (value: unknown): SupportedLanguage | null => {
     const next = normalizeLocaleCode(value);
     return next || null;
@@ -107,3 +110,80 @@ export const navigateToUrlHandler = (): EventHandler => {
         },
     };
 };
+
+export const navigateWithScopeQueryHandler = (): EventHandler => ({
+    id: 'navigateWithScopeQuery',
+    handle: (ctx, args) => {
+        if (typeof window === 'undefined') return;
+
+        const rawBase = String(args?.[0] ?? window.location.pathname ?? '/').trim() || '/';
+        const rawFragment = String(args?.[1] ?? '').trim();
+        const currentUrl = new URL(window.location.href);
+        const targetUrl = new URL(rawBase, currentUrl.origin);
+        const params = new URLSearchParams(targetUrl.search);
+
+        DRAFT_RUNTIME_STICKY_QUERY_PARAMS.forEach((key) => {
+            const currentValue = currentUrl.searchParams.get(key);
+            if (currentValue != null && !params.has(key)) {
+                params.set(key, currentValue);
+            }
+        });
+
+        args.slice(2).forEach((mappingArg) => {
+            const mapping = String(mappingArg ?? '').trim();
+            const equalsIndex = mapping.indexOf('=');
+            if (equalsIndex <= 0) return;
+
+            const key = mapping.slice(0, equalsIndex).trim();
+            const source = mapping.slice(equalsIndex + 1).trim();
+            if (!key || !source) return;
+
+            const value = resolveScopeQueryMappingValue(ctx.event.eventData, source);
+            const normalizedValue = normalizeQueryValue(value);
+            if (shouldOmitQueryValue(normalizedValue)) {
+                params.delete(key);
+                return;
+            }
+
+            params.set(key, normalizedValue);
+        });
+
+        const search = params.toString();
+        const fragment = normalizeFragment(rawFragment || targetUrl.hash);
+        navigateInCurrentWindow(`${ targetUrl.pathname }${ search ? `?${ search }` : '' }${ fragment }`);
+    },
+});
+
+function resolveScopeQueryMappingValue(eventData: unknown, source: string): unknown {
+    if (!source.startsWith('values.')
+        && !source.startsWith('fields.')
+        && !source.startsWith('computed.')
+        && !source.startsWith('meta.')
+    ) {
+        return source;
+    }
+
+    return source
+        .split('.')
+        .filter(Boolean)
+        .reduce<unknown>((current, segment) => {
+            if (!isRecord(current)) return undefined;
+            return current[segment];
+        }, eventData);
+}
+
+function normalizeQueryValue(value: unknown): string {
+    return String(value ?? '').trim();
+}
+
+function shouldOmitQueryValue(value: string): boolean {
+    if (!value) return true;
+    const lower = value.toLowerCase();
+    return lower === 'all' || lower === 'undefined' || lower === 'null';
+}
+
+function normalizeFragment(value: string): string {
+    const normalized = value.trim();
+    if (!normalized) return '';
+    return normalized.startsWith('#') ? normalized : `#${ normalized }`;
+}

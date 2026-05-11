@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import type {
     TRuntimeDataSourceFieldMapping,
+    TRuntimeDataSourceFieldTransform,
     TRuntimeDataSourceMapperConfig,
 } from '@/app/shared/types/config-payloads.types';
 
@@ -38,10 +39,36 @@ export class RuntimeDataSourceMapperService {
             const fallback = typeof mapping === 'string' ? undefined : mapping.fallback;
             const prefix = typeof mapping === 'string' ? '' : String(mapping.prefix ?? '');
             const suffix = typeof mapping === 'string' ? '' : String(mapping.suffix ?? '');
-            const value = this.resolvePath(item, path);
+            const transform = typeof mapping === 'string' ? undefined : mapping.transform;
+            const value = this.applyTransform(this.resolvePath(item, path), transform);
             acc[targetKey] = value == null ? fallback : this.formatMappedValue(value, prefix, suffix);
             return acc;
         }, {});
+    }
+
+    private applyTransform(value: unknown, transform: TRuntimeDataSourceFieldTransform | undefined): unknown {
+        if (value == null || !transform) return value;
+
+        switch (transform) {
+            case 'uriComponent':
+                return encodeURIComponent(String(value).trim());
+            case 'lastPathSegment':
+                return this.lastPathSegment(value);
+            case 'lastPathSegmentNumber': {
+                const segment = this.lastPathSegment(value);
+                const parsed = Number(segment);
+                return Number.isFinite(parsed) ? parsed : undefined;
+            }
+            default:
+                return value;
+        }
+    }
+
+    private lastPathSegment(value: unknown): string | undefined {
+        const normalized = String(value ?? '').trim().replace(/\/+$/, '');
+        if (!normalized) return undefined;
+        const segment = normalized.split('/').filter(Boolean).pop();
+        return segment ? decodeURIComponent(segment) : undefined;
     }
 
     private formatMappedValue(value: unknown, prefix: string, suffix: string): unknown {

@@ -5,6 +5,8 @@ export const DEFAULT_ALLOWED_VALUE_IDS = [
     'i18nGetIndex',
     'i18nParams',
     'literal',
+    'queryParam',
+    'queryParamOr',
     'concat',
     'json',
     'classJoin',

@@ -7,6 +7,7 @@ import { i18nParamsValueHandler } from './handlers/i18nParams.value-handlers';
 import { jsonValueHandler } from './handlers/json.value-handlers';
 import { langPickValueHandler, languageLabelValueHandler, languageValueHandler } from './handlers/language.value-handlers';
 import { literalValueHandler } from './handlers/literal.value-handlers';
+import { queryParamOrValueHandler, queryParamValueHandler } from './handlers/query-param.value-handlers';
 import { scopeOrValueHandler, scopeValueHandler } from './handlers/scope.value-handlers';
 import { coalesceValueHandler, lowerValueHandler, upperValueHandler } from './handlers/string.value-handlers';
 import { themePickValueHandler, themeValueHandler } from './handlers/theme.value-handlers';
@@ -19,6 +20,8 @@ export const provideValueHandlers = (): Provider[] => {
         { provide: VALUE_HANDLERS, multi: true, useFactory: i18nGetIndexValueHandler },
         { provide: VALUE_HANDLERS, multi: true, useFactory: i18nParamsValueHandler },
         { provide: VALUE_HANDLERS, multi: true, useFactory: literalValueHandler },
+        { provide: VALUE_HANDLERS, multi: true, useFactory: queryParamValueHandler },
+        { provide: VALUE_HANDLERS, multi: true, useFactory: queryParamOrValueHandler },
         { provide: VALUE_HANDLERS, multi: true, useFactory: concatValueHandler },
         { provide: VALUE_HANDLERS, multi: true, useFactory: jsonValueHandler },
         { provide: VALUE_HANDLERS, multi: true, useFactory: classJoinValueHandler },

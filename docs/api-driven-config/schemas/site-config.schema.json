@@ -122,7 +122,11 @@
             "path": { "type": "string", "minLength": 1 },
             "fallback": {},
             "prefix": { "type": "string" },
-            "suffix": { "type": "string" }
+            "suffix": { "type": "string" },
+            "transform": {
+              "type": "string",
+              "enum": ["uriComponent", "lastPathSegment", "lastPathSegmentNumber"]
+            }
           },
           "additionalProperties": false
         }

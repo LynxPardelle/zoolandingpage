@@ -25,6 +25,61 @@ const createComponentsPayload = (
     components: Object.values(components) as TComponentPayloadEntry[],
 });
 
+const minimalSiteConfig = () => ({
+    appIdentity: {
+        identifier: 'pokeapi-demo',
+        name: 'PokeAPI Demo',
+    },
+    theme: {
+        palettes: {
+            light: {
+                bgColor: '#ffffff',
+                textColor: '#111111',
+                titleColor: '#111111',
+                linkColor: '#0d6efd',
+                accentColor: '#f4c430',
+                secondaryBgColor: '#f7f7f7',
+                secondaryTextColor: '#222222',
+                secondaryTitleColor: '#111111',
+                secondaryLinkColor: '#0d6efd',
+                secondaryAccentColor: '#2e8b57',
+                successColor: '#2e8b57',
+                onSuccessColor: '#ffffff',
+                errorColor: '#d7462f',
+                onErrorColor: '#ffffff',
+                warningColor: '#f4c430',
+                onWarningColor: '#111111',
+                infoColor: '#2864a8',
+                onInfoColor: '#ffffff',
+            },
+            dark: {
+                bgColor: '#10131a',
+                textColor: '#f7f7f7',
+                titleColor: '#ffffff',
+                linkColor: '#9fd3ff',
+                accentColor: '#f4c430',
+                secondaryBgColor: '#171b24',
+                secondaryTextColor: '#e7e7e7',
+                secondaryTitleColor: '#ffffff',
+                secondaryLinkColor: '#9fd3ff',
+                secondaryAccentColor: '#8ee6a8',
+                successColor: '#8ee6a8',
+                onSuccessColor: '#10131a',
+                errorColor: '#ff8a7a',
+                onErrorColor: '#10131a',
+                warningColor: '#f4c430',
+                onWarningColor: '#10131a',
+                infoColor: '#9fd3ff',
+                onInfoColor: '#10131a',
+            },
+        },
+    },
+    i18n: {
+        defaultLanguage: 'es',
+        supportedLanguages: ['es'],
+    },
+});
+
 describe('config-payload.validators', () => {
     it('validates page-config payloads', () => {
         const valid = {
@@ -303,6 +358,67 @@ describe('config-payload.validators', () => {
         };
 
         expect(isDraftSiteConfigPayload(valid)).toBeTrue();
+    });
+
+    it('accepts runtime data source mapper transforms', () => {
+        const payload = {
+            version: 1,
+            domain: 'pokeapi-demo.zoolandingpage.com.mx',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: minimalSiteConfig(),
+            runtime: {
+                dataSources: [
+                    {
+                        id: 'pokemon-index',
+                        proxySourceId: 'pokeapiPokemonIndex',
+                        target: 'remote.pokemon.catalog',
+                        mapper: {
+                            itemsPath: 'results',
+                            fields: {
+                                id: {
+                                    path: 'url',
+                                    transform: 'lastPathSegmentNumber',
+                                },
+                                href: {
+                                    path: 'name',
+                                    transform: 'uriComponent',
+                                    prefix: '/pokemon?name=',
+                                },
+                            },
+                        },
+                    },
+                ],
+            },
+        };
+
+        expect(isDraftSiteConfigPayload(payload)).toBeTrue();
+    });
+
+    it('rejects unknown runtime data source mapper transforms', () => {
+        const payload = {
+            version: 1,
+            domain: 'pokeapi-demo.zoolandingpage.com.mx',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: minimalSiteConfig(),
+            runtime: {
+                dataSources: [
+                    {
+                        id: 'pokemon-index',
+                        target: 'remote.pokemon.catalog',
+                        mapper: {
+                            fields: {
+                                id: {
+                                    path: 'url',
+                                    transform: 'unknown',
+                                },
+                            },
+                        },
+                    },
+                ],
+            },
+        };
+
+        expect(isDraftSiteConfigPayload(payload)).toBeFalse();
     });
 
     it('rejects malformed parameterized runtime data source input config', () => {

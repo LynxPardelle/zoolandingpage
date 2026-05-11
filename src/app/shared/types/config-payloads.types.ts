@@ -244,6 +244,11 @@ export type TDraftNavigationRuntimeConfig = {
     readonly scrollRestoration?: TDraftNavigationScrollRestorationConfig;
 };
 
+export type TRuntimeDataSourceFieldTransform =
+    | 'uriComponent'
+    | 'lastPathSegment'
+    | 'lastPathSegmentNumber';
+
 export type TRuntimeDataSourceFieldMapping =
     | string
     | {
@@ -251,6 +256,7 @@ export type TRuntimeDataSourceFieldMapping =
         readonly fallback?: unknown;
         readonly prefix?: string;
         readonly suffix?: string;
+        readonly transform?: TRuntimeDataSourceFieldTransform;
     };
 
 export type TRuntimeDataSourceMapperConfig = {

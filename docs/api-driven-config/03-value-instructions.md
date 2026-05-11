@@ -269,6 +269,18 @@ Available path roots inside a scope:
 
 If there is no active `interaction-scope` host, `scope` resolves to `undefined` and `scopeOr` falls back to its second argument.
 
+### Query params
+
+Use `queryParam` or `queryParamOr` when a draft route should hydrate component state from the current URL. This is useful for search and filter views that can be opened directly from generated links.
+
+```text
+set:config.value,queryParam,pokemon
+set:config.value,queryParamOr,page,1
+```
+
+- `queryParam,key` returns the current non-empty query-string value or `undefined`.
+- `queryParamOr,key,fallback` returns the current non-empty query-string value or the fallback. If the fallback is omitted, it returns an empty string.
+
 ## Authoring rules
 
 - Prefer one `valueInstructions` string per component.

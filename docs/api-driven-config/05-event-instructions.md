@@ -73,6 +73,20 @@ setScopeValue:planTier,premium
 
 These actions only affect the nearest `interaction-scope` host in the wrapper subtree.
 
+- Navigate with the current interaction scope encoded as query params:
+
+```text
+navigateWithScopeQuery:/,#catalog,pokemon=values.search,type=values.type,move=values.attack,page=values.page,pageSize=values.pageSize
+```
+
+Argument order for `navigateWithScopeQuery` is:
+
+- target path or internal URL
+- optional fragment/anchor
+- one or more `queryKey=eventData.path` mappings
+
+The handler preserves draft runtime sticky query params, omits empty values plus `all`/`undefined`/`null`, and navigates in the current window. This is the preferred pattern for draft search/filter forms that should be shareable by URL.
+
 - Upload a public image and store the result in scope:
 
 ```text

@@ -111,7 +111,7 @@ Use `requiredInputKeys` when a source should run only after an input is present.
 }
 ```
 
-Field mappings can be either a path string or an object. Object mappings support `fallback`, `prefix`, and `suffix`, which is useful when a safe upstream field needs to become a display URL:
+Field mappings can be either a path string or an object. Object mappings support `fallback`, `prefix`, `suffix`, and `transform`, which is useful when a safe upstream field needs to become a display URL or a normalized ID:
 
 ```json
 {
@@ -120,10 +120,21 @@ Field mappings can be either a path string or an object. Object mappings support
     "href": {
       "path": "id",
       "prefix": "https://tidal.com/browse/album/"
+    },
+    "number": {
+      "path": "url",
+      "transform": "lastPathSegmentNumber",
+      "prefix": "#"
     }
   }
 }
 ```
+
+Supported field transforms are:
+
+- `uriComponent`: trims and URL-encodes a string for query strings or path segments.
+- `lastPathSegment`: extracts the final segment from a URL/path.
+- `lastPathSegmentNumber`: extracts the final segment and converts it to a number.
 
 When an upstream endpoint returns one object instead of an array, set `mapper.singleItem` to `true` so the response is rendered as one mapped item:
 

@@ -75,6 +75,7 @@ const ALLOWED_TRACK_OPTIONS = new Set<TTrackOptions>([
 const ALLOWED_RUNTIME_API_ACTION_METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
 const ALLOWED_RUNTIME_DATA_SOURCE_INPUT_SOURCES = new Set(['literal', 'queryParam', 'var']);
 const ALLOWED_RUNTIME_DATA_SOURCE_INPUT_TRANSFORMS = new Set(['trim', 'lowercase', 'uppercase']);
+const ALLOWED_RUNTIME_DATA_SOURCE_FIELD_TRANSFORMS = new Set(['uriComponent', 'lastPathSegment', 'lastPathSegmentNumber']);
 
 const ALLOWED_LOCAL_STORAGE_SLOTS = new Set<TDraftLocalStorageSlot>([
     'theme',
@@ -477,6 +478,9 @@ const isRuntimeDataSourceFieldMapping = (value: unknown): value is TRuntimeDataS
     if (typeof value === 'string' && value.trim().length > 0) return true;
     if (!isRecord(value)) return false;
     if (typeof value['path'] !== 'string' || value['path'].trim().length === 0) return false;
+    if (value['transform'] !== undefined
+        && (typeof value['transform'] !== 'string'
+            || !ALLOWED_RUNTIME_DATA_SOURCE_FIELD_TRANSFORMS.has(value['transform']))) return false;
     return true;
 };
 
