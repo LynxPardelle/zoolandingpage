@@ -164,8 +164,12 @@ Summary:
 Published:
 
 - Draft version: `20260511T010302Z-b0e0fc2e78a9`
+- Frontend commit: `92db6ff`
+- Testing bundle: `main-MBFHBYEI.js`
 - Local home QA URL: `http://localhost:4201/?draftDomain=pokeapi-demo.zoolandingpage.com.mx&debugWorkspace=false`
 - Local detail QA URL: `http://localhost:4201/pokemon?draftDomain=pokeapi-demo.zoolandingpage.com.mx&debugWorkspace=false&name=charizard`
+- Testing home QA URL: `https://test.zoolandingpage.com.mx/?draftDomain=pokeapi-demo.zoolandingpage.com.mx&debugWorkspace=false`
+- Testing detail QA URL: `https://test.zoolandingpage.com.mx/pokemon?draftDomain=pokeapi-demo.zoolandingpage.com.mx&debugWorkspace=false&name=charizard`
 
 Verified:
 
@@ -173,6 +177,7 @@ Verified:
 - `npm run build` completed successfully.
 - Local browser QA covered desktop dark/light, Fire type filter, Flamethrower move filter, evolution filter, number-desc sort, Charizard detail moves, and mobile layout.
 - Final browser QA saw 17 home proxy reads and 2 detail proxy reads, all with status `200`, with no console errors, request failures, bad responses, or horizontal overflow.
+- Remote testing browser QA covered home desktop, Flamethrower move filter, Charizard detail, and home mobile with the same clean result: no console errors, request failures, bad responses, or horizontal overflow, and all proxy reads returned `200`.
 - QA evidence lives under local ignored `Output/pokeapi-demo-qa/`.
 
 Reusable lessons:

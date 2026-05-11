@@ -99,6 +99,8 @@ Completed:
 - [x] Added real move-name rendering to the parameterized Pokemon detail page.
 - [x] Republished `pokeapi-demo.zoolandingpage.com.mx` as version `20260511T010302Z-b0e0fc2e78a9`.
 - [x] Ran local desktop/mobile browser QA on the updated catalog controls with no console errors, failed requests, bad responses, or horizontal overflow.
+- [x] Pushed `zoolandingpage` `main`, `dev`, and `test` to commit `92db6ff`; testing served bundle `main-MBFHBYEI.js`.
+- [x] Ran remote testing QA on the updated catalog controls and Charizard detail page with no console errors, failed requests, bad responses, or horizontal overflow.
 
 ## Future Workstreams
 
