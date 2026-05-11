@@ -79,31 +79,27 @@
 } @case('generic-card') {
 <generic-card [config]="component.config"></generic-card>
 } @case('input') {
-@defer (on viewport) {
-  <generic-input
-    [config]="component.config"
-    (valueChanged)="
-      eventEmitted({
-        component: component.id,
-        meta_title: component.meta_title,
-        eventName: 'valueChanged',
-        eventData: $event,
-        eventInstructions: component.eventInstructions
-      })
-    "
-    (blurred)="
-      eventEmitted({
-        component: component.id,
-        meta_title: component.meta_title,
-        eventName: 'blurred',
-        eventData: $event,
-        eventInstructions: component.eventInstructions
-      })
-    "
-  ></generic-input>
-} @placeholder {
-  <span aria-hidden="true"></span>
-}
+<generic-input
+  [config]="component.config"
+  (valueChanged)="
+    eventEmitted({
+      component: component.id,
+      meta_title: component.meta_title,
+      eventName: 'valueChanged',
+      eventData: $event,
+      eventInstructions: component.eventInstructions
+    })
+  "
+  (blurred)="
+    eventEmitted({
+      component: component.id,
+      meta_title: component.meta_title,
+      eventName: 'blurred',
+      eventData: $event,
+      eventInstructions: component.eventInstructions
+    })
+  "
+></generic-input>
 } @case('interaction-scope') {
 <interaction-scope
   [config]="$any(interactionScopeConfig(component))"

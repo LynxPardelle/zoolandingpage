@@ -196,6 +196,7 @@ Summary:
 - Loop collection pagination can now declare `applyWhenAnyQueryParam` so a server-paginated default source is not paginated a second time, while query-filtered sources still use client-side pagination.
 - The loop materializer caches identical collection views during one render so repeated card child templates reuse the same filtered/sorted/paginated item set.
 - Interaction-scope registration/configuration effects now avoid no-op signal writes and use `untracked(...)` around effect-triggered registration/configuration to prevent `NG0103` infinite change detection loops.
+- `generic-input` now renders directly instead of through `@defer (on viewport)` because the zero-size placeholder prevented critical filter and pagination inputs from mounting in the catalog controls.
 
 Verified locally:
 
@@ -203,6 +204,7 @@ Verified locally:
 - `ng test` with focused `--include` targets timed out without a completed Karma result; do not treat it as passing evidence.
 - Playwright/Edge QA on `http://127.0.0.1:4202` covered default desktop, `page=2&pageSize=8`, `move=mega-punch&page=2&pageSize=4`, `pokemon=lucario`, and mobile controls with no console errors other than Angular dev/HMR info logs.
 - The default route now calls `pokeapiPokemonIndex` with `limit: 4, offset: 0`; `page=3&pageSize=4` calls it with `limit: "4", offset: 8` and renders only #9-#12.
+- Agent-browser QA confirmed that catalog inputs render in desktop and mobile, the page input exposes `max: "338"`, page 3 shows Blastoise/Caterpie/Metapod/Butterfree, and `move=mega-punch&page=2&pageSize=4` shows Wartortle/Blastoise/Pikachu/Raichu with no page errors.
 
 Published:
 
@@ -214,3 +216,4 @@ Reusable lessons:
 - For large API catalogs, prefer upstream pagination for the broad default index. Use client-side loop pagination only for already-narrowed collections returned by query-specific sources.
 - Do not use `appendItems` for page-index sources; replacing is correct when the same logical list changes page or page size. Reserve append/merge for enrichment sources that intentionally add fields to a selected item.
 - If a card template requires repeated generated children, cache or otherwise share the parent collection view; otherwise a 4-card page can still sort/filter the same source many times.
+- Avoid `@defer (on viewport)` for critical controls unless the placeholder has stable dimensions and is verified to trigger in the target layout.
