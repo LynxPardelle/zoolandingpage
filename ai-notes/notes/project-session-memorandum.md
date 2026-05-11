@@ -197,6 +197,7 @@ Summary:
 - The loop materializer caches identical collection views during one render so repeated card child templates reuse the same filtered/sorted/paginated item set.
 - Interaction-scope registration/configuration effects now avoid no-op signal writes and use `untracked(...)` around effect-triggered registration/configuration to prevent `NG0103` infinite change detection loops.
 - `generic-input` now renders directly instead of through `@defer (on viewport)` because the zero-size placeholder prevented critical filter and pagination inputs from mounting in the catalog controls.
+- The PokeAPI catalog form includes hidden native sticky inputs for `draftDomain`, `debugWorkspace`, `sort`, `pageSize`, `type`, `move`, and `evolution` so pre-hydration GET submits on the testing preview host stay inside the selected draft.
 
 Verified locally:
 
@@ -205,11 +206,12 @@ Verified locally:
 - Playwright/Edge QA on `http://127.0.0.1:4202` covered default desktop, `page=2&pageSize=8`, `move=mega-punch&page=2&pageSize=4`, `pokemon=lucario`, and mobile controls with no console errors other than Angular dev/HMR info logs.
 - The default route now calls `pokeapiPokemonIndex` with `limit: 4, offset: 0`; `page=3&pageSize=4` calls it with `limit: "4", offset: 8` and renders only #9-#12.
 - Agent-browser QA confirmed that catalog inputs render in desktop and mobile, the page input exposes `max: "338"`, page 3 shows Blastoise/Caterpie/Metapod/Butterfree, and `move=mega-punch&page=2&pageSize=4` shows Wartortle/Blastoise/Pikachu/Raichu with no page errors.
+- Remote testing QA on `https://test.zoolandingpage.com.mx/?draftDomain=pokeapi-demo.zoolandingpage.com.mx&debugWorkspace=false` confirmed first-submit native pagination keeps `draftDomain`, reaches `page=3&pageSize=4`, renders Blastoise/Caterpie/Metapod/Butterfree, and reports no page errors.
 
 Published:
 
-- Draft version: `20260511T221336Z-9f0fe9350cf8`.
-- Runtime-bundle verification through `https://api.zoolandingpage.com.mx/runtime-bundle` failed with a forced remote connection interruption in this environment; the raw API Gateway fallback returned `sourceStage: "published"` and `versionId: "20260511T221336Z-9f0fe9350cf8"`.
+- Draft version: `20260511T223646Z-2c0cd92d5baa`.
+- Runtime-bundle verification through the raw API Gateway fallback returned `sourceStage: "published"` and `versionId: "20260511T223646Z-2c0cd92d5baa"`.
 - Frontend commits `6f20889` and `717be1e` were pushed to `main`, `dev`, and `test`; immediately after the push, `https://test.zoolandingpage.com.mx` still served `main-JBHFSIRU.js`, so remote browser QA was blocked by stale deployment. A Dokploy `project.all` API check with the available token returned `Unauthorized`; do not record the token in notes.
 
 Reusable lessons:
