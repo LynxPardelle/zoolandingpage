@@ -27,7 +27,7 @@ export class RuntimeDataSourceService {
         const sources = (options.dataSources ?? [])
             .filter((source) => source.enabled !== false)
             .filter((source) => this.matchesActivePage(source, options.pageId));
-        await Promise.all(sources.map((source) => this.loadSource(options, source)));
+        await this.loadInitialSources(options, sources);
 
         sources.forEach((source) => this.scheduleRefresh(options, source));
     }
@@ -44,10 +44,19 @@ export class RuntimeDataSourceService {
         try {
             const response = await this.readSourceWithRetry(options, source, sourceId);
             const mapped = this.mapper.mapResponse(response.data, source.mapper);
-            this.variables.setRuntimeValue(source.target, mapped);
+            this.writeMappedResult(source, mapped);
             this.writeStatus(source, this.hasItems(mapped) ? 'success' : 'empty', null);
         } catch (error) {
             this.writeStatus(source, 'error', error instanceof Error ? error.message : 'API proxy request failed');
+        }
+    }
+
+    private async loadInitialSources(
+        options: TRuntimeDataSourceStartOptions,
+        sources: readonly TRuntimeDataSourceConfig[],
+    ): Promise<void> {
+        for (const source of sources) {
+            await this.loadSource(options, source);
         }
     }
 
@@ -232,5 +241,65 @@ export class RuntimeDataSourceService {
             && typeof value === 'object'
             && Array.isArray((value as { readonly items?: unknown }).items)
             && ((value as { readonly items: readonly unknown[] }).items.length > 0);
+    }
+
+    private writeMappedResult(source: TRuntimeDataSourceConfig, mapped: { readonly items: readonly unknown[] }): void {
+        if (source.mergeMode !== 'appendItems') {
+            this.variables.setRuntimeValue(source.target, mapped);
+            return;
+        }
+
+        const existing = this.variables.get(source.target);
+        const existingItems = this.extractItems(existing);
+        this.variables.setRuntimeValue(source.target, {
+            ...(this.isRecord(existing) ? existing : {}),
+            items: this.mergeItemsByIdentity(existingItems, mapped.items),
+        });
+    }
+
+    private extractItems(value: unknown): readonly unknown[] {
+        return value && typeof value === 'object' && Array.isArray((value as { readonly items?: unknown }).items)
+            ? (value as { readonly items: readonly unknown[] }).items
+            : [];
+    }
+
+    private mergeItemsByIdentity(
+        existingItems: readonly unknown[],
+        incomingItems: readonly unknown[],
+    ): readonly unknown[] {
+        const merged = new Map<string, unknown>();
+
+        [...existingItems, ...incomingItems].forEach((item, index) => {
+            const key = this.resolveItemIdentity(item) ?? `index:${ index }`;
+            const previous = merged.get(key);
+            merged.set(key, this.mergeItemRecords(previous, item));
+        });
+
+        return Array.from(merged.values());
+    }
+
+    private resolveItemIdentity(item: unknown): string | undefined {
+        if (!this.isRecord(item)) return undefined;
+
+        const candidate = item['name'] ?? item['id'] ?? item['href'] ?? item['url'];
+        const normalized = String(candidate ?? '').trim().toLowerCase();
+        return normalized ? normalized : undefined;
+    }
+
+    private mergeItemRecords(base: unknown, override: unknown): unknown {
+        if (!this.isRecord(base) || !this.isRecord(override)) {
+            return override ?? base;
+        }
+
+        return {
+            ...base,
+            ...Object.fromEntries(
+                Object.entries(override).filter(([, value]) => value !== undefined && value !== null && value !== ''),
+            ),
+        };
+    }
+
+    private isRecord(value: unknown): value is Record<string, unknown> {
+        return !!value && typeof value === 'object' && !Array.isArray(value);
     }
 }

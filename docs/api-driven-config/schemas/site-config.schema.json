@@ -120,7 +120,9 @@
           "required": ["path"],
           "properties": {
             "path": { "type": "string", "minLength": 1 },
-            "fallback": {}
+            "fallback": {},
+            "prefix": { "type": "string" },
+            "suffix": { "type": "string" }
           },
           "additionalProperties": false
         }
@@ -154,7 +156,12 @@
         "proxySourceId": { "type": "string" },
         "target": { "type": "string", "minLength": 1 },
         "statusTarget": { "type": "string" },
+        "mergeMode": { "type": "string", "enum": ["replace", "appendItems"] },
         "enabled": { "type": "boolean" },
+        "pageIds": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
         "input": {
           "type": "object",
           "additionalProperties": true

@@ -148,3 +148,35 @@ Reusable lessons:
 - Template fields consumed by `urlTemplate` should not be forwarded again as query/body input.
 - For browser QA in this app, remember that the document body can be the scroll container; use body scroll metrics as well as documentElement metrics.
 - Remote SSR may render fallback values before runtime API calls complete; QA for dynamic detail pages should wait for the expected loaded value or runtime `SUCCESS` before judging the final state.
+
+### 2026-05-10 19:08 CT - PokeAPI Catalog Controls Workstream
+
+Summary:
+
+- The PokeAPI demo catalog now demonstrates reusable API-driven collection controls authored in draft config.
+- Loop configs can apply scope-driven filters, sort options, and pagination before materializing template components.
+- Filters support nested array paths, so authors can filter collections by values such as `types.type.name` or `moves.move.name`.
+- Runtime data-source initial loads now run sequentially, which avoids browser/proxy request bursts when a draft declares many API sources.
+- The demo home page now includes type, evolution-stage, move, sort, and pagination controls.
+- The theme toggle keeps the moon SVG in dark mode and switches to the sun SVG in light mode through value instructions.
+- The `/pokemon?name=charizard` detail page now renders real move names from the PokeAPI `moves` array.
+
+Published:
+
+- Draft version: `20260511T010302Z-b0e0fc2e78a9`
+- Local home QA URL: `http://localhost:4201/?draftDomain=pokeapi-demo.zoolandingpage.com.mx&debugWorkspace=false`
+- Local detail QA URL: `http://localhost:4201/pokemon?draftDomain=pokeapi-demo.zoolandingpage.com.mx&debugWorkspace=false&name=charizard`
+
+Verified:
+
+- `npm test -- --watch=false --browsers=ChromeHeadless` returned `369 SUCCESS`.
+- `npm run build` completed successfully.
+- Local browser QA covered desktop dark/light, Fire type filter, Flamethrower move filter, evolution filter, number-desc sort, Charizard detail moves, and mobile layout.
+- Final browser QA saw 17 home proxy reads and 2 detail proxy reads, all with status `200`, with no console errors, request failures, bad responses, or horizontal overflow.
+- QA evidence lives under local ignored `Output/pokeapi-demo-qa/`.
+
+Reusable lessons:
+
+- For API-driven catalogs, prefer a generic loop collection view over one-off component code so the same pattern can support albums, blog posts, products, or Pokemon.
+- When a draft can declare many runtime data sources, avoid firing every source concurrently from the browser; sequential initial loads are slower but more stable and keep fallback content visible.
+- Detail templates that loop directly over array items need explicit loop bindings on the parent loop config; otherwise the template fallback text is rendered for every item.

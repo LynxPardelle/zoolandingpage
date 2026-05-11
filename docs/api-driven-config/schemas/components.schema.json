@@ -403,7 +403,21 @@
                   "source": { "enum": ["var", "i18n", "host"] },
                   "path": { "type": "string" },
                   "templateId": { "type": "string" },
-                  "idPrefix": { "type": "string" }
+                  "idPrefix": { "type": "string" },
+                  "bindings": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["to", "sources"],
+                      "properties": {
+                        "to": { "type": "string" },
+                        "sources": { "type": "array" },
+                        "fallback": {}
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "view": { "type": "object" }
                 },
                 "additionalProperties": false
               },
@@ -414,7 +428,21 @@
                   "source": { "const": "repeat" },
                   "count": { "type": "integer", "minimum": 0 },
                   "templateId": { "type": "string" },
-                  "idPrefix": { "type": "string" }
+                  "idPrefix": { "type": "string" },
+                  "bindings": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["to", "sources"],
+                      "properties": {
+                        "to": { "type": "string" },
+                        "sources": { "type": "array" },
+                        "fallback": {}
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "view": { "type": "object" }
                 },
                 "additionalProperties": false
               }

@@ -74,6 +74,57 @@ describe('RuntimeDataSourceService', () => {
         expect(variables.get('remoteStatus.blog-posts.state')).toBe('success');
     });
 
+    it('loads initial data sources in order to avoid browser proxy request bursts', async () => {
+        let resolveFirst!: (value: { ok: true; data: { upstream: string } }) => void;
+        const firstResponse = new Promise<{ ok: true; data: { upstream: string } }>((resolve) => {
+            resolveFirst = resolve;
+        });
+
+        proxy.readSource.and.callFake((request) => {
+            if (request.sourceId === 'firstSource') {
+                return firstResponse as any;
+            }
+
+            return Promise.resolve({
+                ok: true,
+                data: { upstream: request.sourceId },
+            }) as any;
+        });
+        mapper.mapResponse.and.callFake((response) => ({
+            items: [{ title: `mapped:${ (response as any).upstream }` }],
+        }));
+
+        const startPromise = service.start({
+            domain: 'pokeapi-demo.zoolandingpage.com.mx',
+            pageId: 'default',
+            dataSources: [
+                {
+                    id: 'first',
+                    proxySourceId: 'firstSource',
+                    target: 'remote.first',
+                },
+                {
+                    id: 'second',
+                    proxySourceId: 'secondSource',
+                    target: 'remote.second',
+                },
+            ],
+        });
+
+        await Promise.resolve();
+
+        expect(proxy.readSource.calls.count()).toBe(1);
+        expect(proxy.readSource.calls.mostRecent().args[0].sourceId).toBe('firstSource');
+
+        resolveFirst({ ok: true, data: { upstream: 'firstSource' } });
+        await startPromise;
+
+        expect(proxy.readSource.calls.count()).toBe(2);
+        expect(proxy.readSource.calls.mostRecent().args[0].sourceId).toBe('secondSource');
+        expect(variables.get('remote.first.items')).toEqual([{ title: 'mapped:firstSource' }]);
+        expect(variables.get('remote.second.items')).toEqual([{ title: 'mapped:secondSource' }]);
+    });
+
     it('skips data sources scoped to a different page id', async () => {
         proxy.readSource.and.resolveTo({ ok: true, data: { items: [{ name: 'pikachu' }] } });
         mapper.mapResponse.and.returnValue({ items: [{ name: 'pikachu' }] });
@@ -227,5 +278,74 @@ describe('RuntimeDataSourceService', () => {
         expect(variables.get('remote.music.releases.items')).toEqual([{ title: 'Existing' }]);
         expect(variables.get('remoteStatus.spotify-releases.state')).toBe('error');
         expect(variables.get('remoteStatus.spotify-releases.error')).toBe('Proxy unavailable');
+    });
+
+    it('can append mapped API items into one catalog target while preserving fallback fields', async () => {
+        variables.setPayload({
+            version: 1,
+            domain: 'pokeapi-demo.zoolandingpage.com.mx',
+            pageId: 'default',
+            variables: {
+                remote: {
+                    pokemon: {
+                        catalog: {
+                            items: [
+                                {
+                                    name: 'pikachu',
+                                    isEvolution: true,
+                                    evolvesFrom: 'pichu',
+                                },
+                            ],
+                        },
+                    },
+                },
+            },
+        } as any);
+        proxy.readSource.and.callFake((request) => Promise.resolve({
+            ok: true,
+            data: { upstream: request.sourceId },
+        }) as any);
+        mapper.mapResponse.and.callFake((response) => {
+            const upstream = (response as any).upstream;
+            return {
+                items: upstream === 'pokeapiPikachu'
+                    ? [{ id: 25, name: 'pikachu', types: ['electric'], moves: [{ move: { name: 'thunder-shock' } }] }]
+                    : [{ id: 6, name: 'charizard', types: ['fire'], moves: [{ move: { name: 'flamethrower' } }] }],
+            };
+        });
+
+        await service.start({
+            domain: 'pokeapi-demo.zoolandingpage.com.mx',
+            pageId: 'default',
+            dataSources: [
+                {
+                    id: 'pokeapi-pikachu',
+                    proxySourceId: 'pokeapiPikachu',
+                    target: 'remote.pokemon.catalog',
+                    mergeMode: 'appendItems',
+                } as any,
+                {
+                    id: 'pokeapi-charizard',
+                    proxySourceId: 'pokeapiCharizard',
+                    target: 'remote.pokemon.catalog',
+                    mergeMode: 'appendItems',
+                } as any,
+            ],
+        });
+
+        expect(variables.get('remote.pokemon.catalog.items')).toEqual([
+            jasmine.objectContaining({
+                id: 25,
+                name: 'pikachu',
+                isEvolution: true,
+                evolvesFrom: 'pichu',
+                types: ['electric'],
+            }),
+            jasmine.objectContaining({
+                id: 6,
+                name: 'charizard',
+                types: ['fire'],
+            }),
+        ]);
     });
 });

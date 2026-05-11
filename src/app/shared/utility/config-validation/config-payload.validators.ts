@@ -166,10 +166,77 @@ const isLoopBinding = (value: unknown): boolean => {
     return true;
 };
 
+const isLoopViewValueSource = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!['literal', 'scope', 'var', 'host'].includes(String(value['source']))) return false;
+    if (value['source'] !== 'literal' && (typeof value['path'] !== 'string' || value['path'].trim().length === 0)) {
+        return false;
+    }
+    return true;
+};
+
+const isLoopViewActivation = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    return isLoopViewValueSource(value['source']);
+};
+
+const isLoopViewFilter = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (typeof value['path'] !== 'string' || value['path'].trim().length === 0) return false;
+    if (value['op'] !== undefined && !['equals', 'notEquals', 'contains', 'includes', 'exists', 'notExists'].includes(String(value['op']))) {
+        return false;
+    }
+    if (value['value'] !== undefined && isRecord(value['value']) && 'source' in value['value'] && !isLoopViewValueSource(value['value'])) {
+        return false;
+    }
+    if (value['ignoreValues'] !== undefined && !Array.isArray(value['ignoreValues'])) return false;
+    if (value['activeWhen'] !== undefined && !isLoopViewActivation(value['activeWhen'])) return false;
+    return true;
+};
+
+const isLoopViewSortOption = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (typeof value['path'] !== 'string' || value['path'].trim().length === 0) return false;
+    if (value['direction'] !== undefined && value['direction'] !== 'asc' && value['direction'] !== 'desc') return false;
+    if (value['type'] !== undefined && value['type'] !== 'text' && value['type'] !== 'number') return false;
+    return true;
+};
+
+const isLoopViewSort = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (value['path'] !== undefined && !isLoopViewSortOption(value)) return false;
+    if (value['by'] !== undefined && !isLoopViewValueSource(value['by'])) return false;
+    if (value['options'] !== undefined) {
+        if (!isRecord(value['options'])) return false;
+        if (!Object.values(value['options']).every(isLoopViewSortOption)) return false;
+    }
+    return value['path'] !== undefined || value['options'] !== undefined;
+};
+
+const isLoopViewPaginationValue = (value: unknown): boolean =>
+    value === undefined || (typeof value === 'number' && Number.isFinite(value)) || isLoopViewValueSource(value);
+
+const isLoopViewPagination = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!isLoopViewPaginationValue(value['page'])) return false;
+    if (!isLoopViewPaginationValue(value['pageSize'])) return false;
+    if (value['pageIndexBase'] !== undefined && value['pageIndexBase'] !== 0 && value['pageIndexBase'] !== 1) return false;
+    return true;
+};
+
+const isLoopCollectionView = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (value['filters'] !== undefined && (!Array.isArray(value['filters']) || !value['filters'].every(isLoopViewFilter))) return false;
+    if (value['sort'] !== undefined && !isLoopViewSort(value['sort'])) return false;
+    if (value['pagination'] !== undefined && !isLoopViewPagination(value['pagination'])) return false;
+    return true;
+};
+
 const isLoopConfig = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
     if (typeof value['templateId'] !== 'string' || value['templateId'].trim().length === 0) return false;
     if (value['idPrefix'] !== undefined && typeof value['idPrefix'] !== 'string') return false;
+    if (value['view'] !== undefined && !isLoopCollectionView(value['view'])) return false;
 
     const bindings = value['bindings'];
     if (bindings !== undefined && (!Array.isArray(bindings) || !bindings.every(isLoopBinding))) {
@@ -455,6 +522,7 @@ const isRuntimeDataSourceConfig = (value: unknown): value is TRuntimeDataSourceC
     if (value['proxySourceId'] !== undefined && typeof value['proxySourceId'] !== 'string') return false;
     if (typeof value['target'] !== 'string' || value['target'].trim().length === 0) return false;
     if (value['statusTarget'] !== undefined && typeof value['statusTarget'] !== 'string') return false;
+    if (value['mergeMode'] !== undefined && value['mergeMode'] !== 'replace' && value['mergeMode'] !== 'appendItems') return false;
     if (value['enabled'] !== undefined && typeof value['enabled'] !== 'boolean') return false;
     if (value['pageIds'] !== undefined
         && (!Array.isArray(value['pageIds'])

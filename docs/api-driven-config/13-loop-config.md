@@ -46,6 +46,7 @@ loopConfig:
 - `templateId`: component ID used as the materialization template.
 - `idPrefix`: optional generated ID prefix. Defaults to `templateId`.
 - `bindings`: optional explicit mapping from loop item data into the generated component.
+- `view`: optional collection view applied before materialization. It can filter, sort, and paginate arrays without changing the upstream data shape.
 
 ## Binding model
 
@@ -60,6 +61,63 @@ Supported transforms:
 - `navigationHref`: normalizes section IDs or authored targets into the final link href.
 
 Use `$item` as a source path when the loop item itself is already the final value, for example a string array.
+
+## Collection View
+
+`loopConfig.view` is useful for API-fed lists, catalogs, blog indexes, and repeated detail attributes. It runs in this order:
+
+1. `filters`
+2. `sort`
+3. `pagination`
+
+Example:
+
+```ts
+{
+  loopConfig: {
+    source: 'var',
+    path: 'remote.catalog.items',
+    templateId: 'cardTemplate',
+    idPrefix: 'catalogCard',
+    view: {
+      filters: [
+        {
+          path: 'type',
+          op: 'equals',
+          value: { source: 'scope', path: 'values.type' },
+          ignoreValues: ['', 'all']
+        },
+        {
+          path: 'tags.name',
+          op: 'includes',
+          value: { source: 'scope', path: 'values.tag' },
+          ignoreValues: ['', 'all']
+        }
+      ],
+      sort: {
+        by: { source: 'scope', path: 'values.sort' },
+        options: {
+          'date-desc': { path: 'publishedAt', direction: 'desc', type: 'text' },
+          'title-asc': { path: 'title', direction: 'asc', type: 'text' }
+        }
+      },
+      pagination: {
+        page: { source: 'scope', path: 'values.page' },
+        pageSize: 6
+      }
+    }
+  }
+}
+```
+
+Supported filter operators are `equals`, `notEquals`, `contains`, `includes`, `exists`, and `notExists`. Paths can traverse arrays, so `tags.name` checks every tag object in `tags`.
+
+`value`, `sort.by`, `pagination.page`, and `pagination.pageSize` can read from:
+
+- `{ source: "scope", path: "values.fieldId" }`
+- `{ source: "var", path: "remote.filters.type" }`
+- `{ source: "host", path: "runtimeState.viewport.width" }`
+- `{ source: "literal", value: "featured" }`
 
 ## Example
 

@@ -288,6 +288,7 @@ export type TRuntimeDataSourceConfig = {
     readonly proxySourceId?: string;
     readonly target: string;
     readonly statusTarget?: string;
+    readonly mergeMode?: 'replace' | 'appendItems';
     readonly enabled?: boolean;
     readonly pageIds?: readonly string[];
     readonly input?: Record<string, unknown>;

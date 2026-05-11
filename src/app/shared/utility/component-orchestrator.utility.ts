@@ -3,7 +3,12 @@ import {
     type TLoopBinding,
     type TLoopBindingSource,
     type TLoopBindingTransform,
+    type TLoopCollectionView,
     type TLoopConfig,
+    type TLoopViewActivation,
+    type TLoopViewFilter,
+    type TLoopViewSortOption,
+    type TLoopViewValueSource,
 } from '@/app/shared/components/wrapper-orchestrator/wrapper-orchestrator.types';
 import { resolveLocaleMapValue } from '@/app/shared/i18n/locale.utils';
 import type { TDynamicValue } from '@/app/shared/types/component-runtime.types';
@@ -16,6 +21,16 @@ const ANGORA_CLASS_TOKEN_PATTERN = /\bank-[^\s,"']+/g;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     !!value && typeof value === 'object' && !Array.isArray(value);
+
+const isLoopViewValueSource = (value: unknown): value is TLoopViewValueSource =>
+    isRecord(value)
+    && typeof value['source'] === 'string'
+    && (
+        value['source'] === 'literal'
+        || value['source'] === 'scope'
+        || value['source'] === 'var'
+        || value['source'] === 'host'
+    );
 
 export type { TDynamicValue } from '@/app/shared/types/component-runtime.types';
 
@@ -303,7 +318,238 @@ function resolveLoopItems(loop: TLoopConfig, options: TLoopMaterializationOption
         return [];
     }
 
-    return raw;
+    return applyLoopCollectionView(raw, loop.view, options);
+}
+
+function applyLoopCollectionView(
+    items: readonly unknown[],
+    view: TLoopCollectionView | undefined,
+    options: TLoopMaterializationOptions,
+): readonly unknown[] {
+    if (!view) return items;
+
+    let nextItems = [...items];
+    nextItems = applyLoopViewFilters(nextItems, view.filters, options);
+    nextItems = applyLoopViewSort(nextItems, view.sort, options);
+    nextItems = applyLoopViewPagination(nextItems, view.pagination, options);
+    return nextItems;
+}
+
+function applyLoopViewFilters(
+    items: readonly unknown[],
+    filters: readonly TLoopViewFilter[] | undefined,
+    options: TLoopMaterializationOptions,
+): unknown[] {
+    if (!Array.isArray(filters) || filters.length === 0) return [...items];
+
+    return items.filter((item) => filters.every((filter) => matchesLoopViewFilter(item, filter, options)));
+}
+
+function matchesLoopViewFilter(
+    item: unknown,
+    filter: TLoopViewFilter,
+    options: TLoopMaterializationOptions,
+): boolean {
+    if (!isLoopViewFilterActive(filter, options)) return true;
+
+    const op = filter.op ?? 'equals';
+    if (op === 'exists') return resolveLoopItemPathValues(item, filter.path).some(hasResolvedLoopBindingValue);
+    if (op === 'notExists') return !resolveLoopItemPathValues(item, filter.path).some(hasResolvedLoopBindingValue);
+
+    const filterValue = resolveLoopViewValue(filter.value, options);
+    if (shouldIgnoreLoopFilterValue(filterValue, filter.ignoreValues)) return true;
+
+    const values = resolveLoopItemPathValues(item, filter.path);
+    switch (op) {
+        case 'notEquals':
+            return !values.some((entry) => valuesEqual(entry, filterValue));
+        case 'contains':
+            return values.some((entry) => normalizeComparable(entry).includes(normalizeComparable(filterValue)));
+        case 'includes':
+        case 'equals':
+        default:
+            return values.some((entry) => valuesEqual(entry, filterValue));
+    }
+}
+
+function isLoopViewFilterActive(filter: TLoopViewFilter, options: TLoopMaterializationOptions): boolean {
+    const activeWhen = filter.activeWhen;
+    if (!activeWhen) return true;
+
+    return matchesLoopViewActivation(activeWhen, options);
+}
+
+function matchesLoopViewActivation(activeWhen: TLoopViewActivation, options: TLoopMaterializationOptions): boolean {
+    const value = resolveLoopViewValue(activeWhen.source, options);
+    if (Object.prototype.hasOwnProperty.call(activeWhen, 'equals') && !valuesEqual(value, activeWhen.equals)) {
+        return false;
+    }
+    if (Object.prototype.hasOwnProperty.call(activeWhen, 'notEquals') && valuesEqual(value, activeWhen.notEquals)) {
+        return false;
+    }
+    return true;
+}
+
+function shouldIgnoreLoopFilterValue(value: unknown, ignoreValues: readonly unknown[] | undefined): boolean {
+    if (value == null) return true;
+    if (typeof value === 'string' && value.trim().length === 0) return true;
+    return Array.isArray(ignoreValues) && ignoreValues.some((entry) => valuesEqual(entry, value));
+}
+
+function applyLoopViewSort(
+    items: readonly unknown[],
+    sort: TLoopCollectionView['sort'],
+    options: TLoopMaterializationOptions,
+): unknown[] {
+    const sortOption = resolveLoopViewSortOption(sort, options);
+    if (!sortOption?.path) return [...items];
+
+    const direction = sortOption.direction === 'desc' ? -1 : 1;
+    const type = sortOption.type ?? 'text';
+
+    return [...items].sort((a, b) => direction * compareLoopSortValues(
+        resolveLoopItemPathValues(a, sortOption.path)[0],
+        resolveLoopItemPathValues(b, sortOption.path)[0],
+        type,
+    ));
+}
+
+function resolveLoopViewSortOption(
+    sort: TLoopCollectionView['sort'],
+    options: TLoopMaterializationOptions,
+): TLoopViewSortOption | undefined {
+    if (!sort) return undefined;
+
+    if (sort.by && sort.options) {
+        const key = String(resolveLoopViewValue(sort.by, options) ?? '').trim();
+        if (key && sort.options[key]) {
+            return sort.options[key];
+        }
+    }
+
+    return sort.path ? sort : undefined;
+}
+
+function compareLoopSortValues(a: unknown, b: unknown, type: 'text' | 'number'): number {
+    if (type === 'number') {
+        const left = Number(a);
+        const right = Number(b);
+        const safeLeft = Number.isFinite(left) ? left : Number.NEGATIVE_INFINITY;
+        const safeRight = Number.isFinite(right) ? right : Number.NEGATIVE_INFINITY;
+        return safeLeft - safeRight;
+    }
+
+    return normalizeComparable(a).localeCompare(normalizeComparable(b), undefined, {
+        numeric: true,
+        sensitivity: 'base',
+    });
+}
+
+function applyLoopViewPagination(
+    items: readonly unknown[],
+    pagination: TLoopCollectionView['pagination'],
+    options: TLoopMaterializationOptions,
+): unknown[] {
+    if (!pagination) return [...items];
+
+    const pageSize = normalizePositiveInteger(resolveLoopViewMaybeSource(pagination.pageSize, options));
+    if (!pageSize) return [...items];
+
+    const pageIndexBase = pagination.pageIndexBase === 0 ? 0 : 1;
+    const rawPage = normalizePositiveInteger(resolveLoopViewMaybeSource(pagination.page, options)) ?? pageIndexBase;
+    const page = Math.max(pageIndexBase, rawPage);
+    const start = (page - pageIndexBase) * pageSize;
+    return [...items].slice(start, start + pageSize);
+}
+
+function normalizePositiveInteger(value: unknown): number | undefined {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) return undefined;
+    return Math.floor(parsed);
+}
+
+function resolveLoopViewMaybeSource(
+    value: unknown,
+    options: TLoopMaterializationOptions,
+): unknown {
+    return isLoopViewValueSource(value) ? resolveLoopViewValue(value, options) : value;
+}
+
+function resolveLoopViewValue(value: unknown, options: TLoopMaterializationOptions): unknown {
+    if (!isLoopViewValueSource(value)) return value;
+
+    if (value.source === 'literal') {
+        return Object.prototype.hasOwnProperty.call(value, 'value') ? value.value : value.fallback;
+    }
+
+    const path = String(value.path ?? '').trim();
+    if (!path) return value.fallback;
+
+    let resolved: unknown;
+    if (value.source === 'scope') {
+        const scope = resolveHostPath(options.host, 'interactionScope');
+        resolved = isRecord(scope) && typeof scope['resolvePath'] === 'function'
+            ? (scope['resolvePath'] as (path: string) => unknown)(path)
+            : undefined;
+    } else if (value.source === 'var') {
+        resolved = options.getVariable(path);
+    } else {
+        resolved = resolveHostPath(options.host, path);
+    }
+
+    return resolved == null || resolved === '' ? value.fallback : resolved;
+}
+
+function resolveLoopItemPathValues(item: unknown, path: string): readonly unknown[] {
+    const normalizedPath = path.trim();
+    if (!normalizedPath) return [];
+    if (normalizedPath === LOOP_WHOLE_ITEM_TOKEN) return [item];
+
+    return normalizedPath
+        .split('.')
+        .map((entry) => entry.trim())
+        .filter(Boolean)
+        .reduce<readonly unknown[]>((currentValues, segment) => {
+            const nextValues: unknown[] = [];
+            currentValues.forEach((current) => {
+                if (Array.isArray(current)) {
+                    if (/^\d+$/.test(segment)) {
+                        const index = Number(segment);
+                        if (index >= 0 && index < current.length) nextValues.push(current[index]);
+                        return;
+                    }
+                    current.forEach((entry) => {
+                        if (isRecord(entry) && segment in entry) nextValues.push(entry[segment]);
+                    });
+                    return;
+                }
+
+                if (isRecord(current) && segment in current) {
+                    nextValues.push(current[segment]);
+                }
+            });
+            return nextValues.flatMap((value) => Array.isArray(value) ? value : [value]);
+        }, [item]);
+}
+
+function normalizeComparable(value: unknown): string {
+    return String(value ?? '').trim().toLowerCase();
+}
+
+function valuesEqual(a: unknown, b: unknown): boolean {
+    if (typeof a === 'number' || typeof b === 'number') {
+        const left = Number(a);
+        const right = Number(b);
+        if (Number.isFinite(left) && Number.isFinite(right)) {
+            return left === right;
+        }
+    }
+
+    if (typeof a === 'boolean' || typeof b === 'boolean') {
+        return normalizeComparable(a) === normalizeComparable(b);
+    }
+
+    return normalizeComparable(a) === normalizeComparable(b);
 }
 
 function materializeLoopComponent(

@@ -45,6 +45,27 @@ The frontend calls the proxy with the configured `proxySourceId` or `proxyAction
 
 Use `pageIds` when a source should run only on specific draft routes. Omitting `pageIds` keeps the source global for every page in the site.
 
+`mergeMode` defaults to `replace`. Use `appendItems` when multiple data sources contribute records to one `{ "items": [...] }` target, such as a catalog built from several safe upstream endpoints:
+
+```json
+{
+  "id": "pokeapi-charizard",
+  "proxySourceId": "pokeapiCharizard",
+  "target": "remote.pokemon.catalog",
+  "mergeMode": "appendItems",
+  "mapper": {
+    "itemsPath": "items",
+    "fields": {
+      "id": "id",
+      "name": "name",
+      "moves": "moves"
+    }
+  }
+}
+```
+
+Append mode merges incoming records by stable identity (`name`, then `id`, then `href`/`url`) and preserves fallback fields when the incoming API response does not include them.
+
 `input` values are literal by default. A field can also resolve from the current URL query string or from an existing runtime variable:
 
 ```json

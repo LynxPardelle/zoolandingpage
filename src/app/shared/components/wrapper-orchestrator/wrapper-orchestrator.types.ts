@@ -41,10 +41,68 @@ export type TLoopBinding = {
     readonly fallback?: unknown;
 };
 
+export type TLoopViewValueSource =
+    | {
+        readonly source: 'literal';
+        readonly value?: unknown;
+        readonly fallback?: unknown;
+    }
+    | {
+        readonly source: 'scope' | 'var' | 'host';
+        readonly path: string;
+        readonly fallback?: unknown;
+    };
+
+export type TLoopViewFilterOperator =
+    | 'equals'
+    | 'notEquals'
+    | 'contains'
+    | 'includes'
+    | 'exists'
+    | 'notExists';
+
+export type TLoopViewActivation = {
+    readonly source: TLoopViewValueSource;
+    readonly equals?: unknown;
+    readonly notEquals?: unknown;
+};
+
+export type TLoopViewFilter = {
+    readonly path: string;
+    readonly op?: TLoopViewFilterOperator;
+    readonly value?: unknown | TLoopViewValueSource;
+    readonly ignoreValues?: readonly unknown[];
+    readonly activeWhen?: TLoopViewActivation;
+};
+
+export type TLoopViewSortOption = {
+    readonly path: string;
+    readonly direction?: 'asc' | 'desc';
+    readonly type?: 'text' | 'number';
+};
+
+export type TLoopViewSort = TLoopViewSortOption & {
+    readonly by?: TLoopViewValueSource;
+    readonly options?: Record<string, TLoopViewSortOption>;
+};
+
+export type TLoopViewPagination = {
+    readonly page?: number | TLoopViewValueSource;
+    readonly pageSize?: number | TLoopViewValueSource;
+    readonly pageIndexBase?: 0 | 1;
+};
+
+export type TLoopCollectionView = {
+    readonly filters?: readonly TLoopViewFilter[];
+    readonly sort?: TLoopViewSort;
+    readonly pagination?: TLoopViewPagination;
+};
+
 type TBaseLoopConfig = {
     readonly templateId: string;
     readonly idPrefix?: string;
     readonly bindings?: readonly TLoopBinding[];
+    readonly view?: TLoopCollectionView;
 };
 
 export type TLoopConfig =
