@@ -210,6 +210,7 @@ Published:
 
 - Draft version: `20260511T221336Z-9f0fe9350cf8`.
 - Runtime-bundle verification through `https://api.zoolandingpage.com.mx/runtime-bundle` failed with a forced remote connection interruption in this environment; the raw API Gateway fallback returned `sourceStage: "published"` and `versionId: "20260511T221336Z-9f0fe9350cf8"`.
+- Frontend commits `6f20889` and `717be1e` were pushed to `main`, `dev`, and `test`; immediately after the push, `https://test.zoolandingpage.com.mx` still served `main-JBHFSIRU.js`, so remote browser QA was blocked by stale deployment. A Dokploy `project.all` API check with the available token returned `Unauthorized`; do not record the token in notes.
 
 Reusable lessons:
 
