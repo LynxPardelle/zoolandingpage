@@ -26,7 +26,7 @@ export type TGenericDropdownOrchestratorConfig = {
 
 export type TGenericSearchBoxConfig = SearchBoxConfig;
 
-export type TLoopBindingTransform = 'i18nKey' | 'locale' | 'navigationHref';
+export type TLoopBindingTransform = 'i18nKey' | 'locale' | 'navigationHref' | 'uriComponent';
 
 export type TLoopBindingSource =
     | string
@@ -39,12 +39,19 @@ export type TLoopBinding = {
     readonly to: string;
     readonly sources: readonly TLoopBindingSource[];
     readonly fallback?: unknown;
+    readonly prefix?: string;
+    readonly suffix?: string;
 };
 
 export type TLoopViewValueSource =
     | {
         readonly source: 'literal';
         readonly value?: unknown;
+        readonly fallback?: unknown;
+    }
+    | {
+        readonly source: 'queryParam';
+        readonly key: string;
         readonly fallback?: unknown;
     }
     | {

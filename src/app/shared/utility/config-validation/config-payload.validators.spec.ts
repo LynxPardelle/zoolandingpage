@@ -282,6 +282,7 @@ describe('config-payload.validators', () => {
                         proxySourceId: 'pokeapiPokemonDetail',
                         target: 'remote.pokemon.selected',
                         pageIds: ['pokemon-detail'],
+                        requiredInputKeys: ['pokemonName'],
                         input: {
                             pokemonName: {
                                 source: 'queryParam',
@@ -494,10 +495,26 @@ describe('config-payload.validators', () => {
                     path: 'socialLinks',
                     templateId: 'socialLinkTemplate',
                     idPrefix: 'socialLink',
+                    view: {
+                        filters: [
+                            {
+                                path: 'label',
+                                op: 'contains',
+                                value: { source: 'queryParam', key: 'q' },
+                                ignoreValues: [''],
+                            },
+                        ],
+                    },
                     bindings: [
                         {
                             to: 'config.href',
                             sources: ['href', 'url', { from: 'value', transform: 'navigationHref' }],
+                        },
+                        {
+                            to: 'config.href',
+                            sources: [{ from: 'slug', transform: 'uriComponent' }],
+                            prefix: '/blog/',
+                            suffix: '#article',
                         },
                         {
                             to: 'config.text',

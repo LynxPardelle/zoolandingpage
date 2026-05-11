@@ -177,6 +177,66 @@ describe('RuntimeDataSourceService', () => {
         });
     });
 
+    it('skips runtime data sources when a required input resolves empty', async () => {
+        window.history.replaceState({}, '', '/?draftDomain=pokeapi-demo.zoolandingpage.com.mx');
+
+        await service.start({
+            domain: 'pokeapi-demo.zoolandingpage.com.mx',
+            pageId: 'default',
+            dataSources: [
+                {
+                    id: 'pokeapi-catalog-search-pokemon',
+                    proxySourceId: 'pokeapiPokemonDetail',
+                    target: 'remote.pokemon.catalog',
+                    statusTarget: 'remoteStatus.pokemon.catalog.search',
+                    requiredInputKeys: ['pokemonName'],
+                    input: {
+                        pokemonName: {
+                            source: 'queryParam',
+                            key: 'pokemon',
+                            transforms: ['trim', 'lowercase'],
+                        },
+                    },
+                },
+            ],
+        });
+
+        expect(proxy.readSource).not.toHaveBeenCalled();
+        expect(variables.get('remote.pokemon.catalog')).toBeUndefined();
+        expect(variables.get('remoteStatus.pokemon.catalog.search')).toBeUndefined();
+    });
+
+    it('runs required-input data sources when the required query param is present', async () => {
+        window.history.replaceState({}, '', '/?pokemon=Snorlax%20');
+        proxy.readSource.and.resolveTo({ ok: true, data: { items: [{ name: 'snorlax' }] } });
+        mapper.mapResponse.and.returnValue({ items: [{ name: 'snorlax' }] });
+
+        await service.start({
+            domain: 'pokeapi-demo.zoolandingpage.com.mx',
+            pageId: 'default',
+            dataSources: [
+                {
+                    id: 'pokeapi-catalog-search-pokemon',
+                    proxySourceId: 'pokeapiPokemonDetail',
+                    target: 'remote.pokemon.catalog',
+                    requiredInputKeys: ['pokemonName'],
+                    input: {
+                        pokemonName: {
+                            source: 'queryParam',
+                            key: 'pokemon',
+                            transforms: ['trim', 'lowercase'],
+                        },
+                    },
+                },
+            ],
+        });
+
+        expect(proxy.readSource.calls.mostRecent().args[0].input).toEqual({
+            pokemonName: 'snorlax',
+        });
+        expect(variables.get('remote.pokemon.catalog.items')).toEqual([{ name: 'snorlax' }]);
+    });
+
     it('resolves literal and variable input values while preserving raw literal fields', async () => {
         variables.setRuntimeValue('pokemon.selectedName', 'Pikachu');
         proxy.readSource.and.resolveTo({ ok: true, data: { items: [{ name: 'pikachu' }] } });

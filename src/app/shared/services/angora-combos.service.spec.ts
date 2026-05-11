@@ -19,7 +19,10 @@ describe('AngoraCombosService', () => {
     let store: ConfigStoreService;
 
     const configure = (platformId: 'browser' | 'server'): AngoraCombosService => {
-        pushCombos = jasmine.createSpy('pushCombos');
+        const combos: Record<string, string[]> = {};
+        pushCombos = jasmine.createSpy('pushCombos').and.callFake((nextCombos: Record<string, string[]>) => {
+            Object.assign(combos, nextCombos);
+        });
         updateCombo = jasmine.createSpy('updateCombo');
         updateClasses = jasmine.createSpy('updateClasses');
         cssCreate = jasmine.createSpy('cssCreate');
@@ -60,8 +63,9 @@ describe('AngoraCombosService', () => {
                         hasGeneratedCssRules,
                         waitForCssReady,
                         runInCssCreateBatch,
+                        getCombos: () => combos,
                         indicatorClass: 'ank',
-                        combos: {},
+                        combos,
                         abreviationsClasses: {},
                         cssNamesParsed: {
                             d: 'display',
@@ -156,6 +160,9 @@ describe('AngoraCombosService', () => {
 
     it('clears combos removed by a later payload', () => {
         configure('browser');
+        const angora = TestBed.inject(NgxAngoraService) as unknown as {
+            combos: Record<string, string[]>;
+        };
 
         store.setCombos({
             version: 1,
@@ -180,8 +187,38 @@ describe('AngoraCombosService', () => {
         expect(pushCombos.calls.count()).toBe(2);
         expect(pushCombos.calls.argsFor(0)).toEqual([{ base: ['ank-d-flex'], hero: ['ank-bg-primary'] }]);
         expect(pushCombos.calls.argsFor(1)).toEqual([{ hero: ['ank-bg-primary'] }]);
-        expect(updateCombo).toHaveBeenCalledOnceWith('base', []);
+        expect(angora.combos['base']).toEqual([]);
+        expect(updateCombo).not.toHaveBeenCalled();
         expect(runInCssCreateBatch).toHaveBeenCalledTimes(2);
+    });
+
+    it('skips clearing combos that are no longer registered in Angora', () => {
+        configure('browser');
+        const angora = TestBed.inject(NgxAngoraService) as unknown as {
+            combos: Record<string, string[]>;
+        };
+
+        store.setCombos({
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            combos: {
+                base: ['ank-display-flex'],
+            },
+        });
+        TestBed.flushEffects();
+        updateCombo.calls.reset();
+        delete angora.combos['base'];
+
+        store.setCombos({
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            combos: {},
+        });
+        TestBed.flushEffects();
+
+        expect(updateCombo).not.toHaveBeenCalled();
     });
 
     it('merges auxiliary combos without replacing draft combos', () => {
@@ -245,7 +282,7 @@ describe('AngoraCombosService', () => {
             store.setCombos(null);
             TestBed.flushEffects();
             jasmine.clock().tick(0);
-            expect(updateCombo).toHaveBeenCalledOnceWith('hero', []);
+            expect(updateCombo).not.toHaveBeenCalled();
             expect(cssCreate).not.toHaveBeenCalled();
         } finally {
             jasmine.clock().uninstall();

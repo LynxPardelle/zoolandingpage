@@ -39,10 +39,14 @@ export class RuntimeDataSourceService {
 
     private async loadSource(options: TRuntimeDataSourceStartOptions, source: TRuntimeDataSourceConfig): Promise<void> {
         const sourceId = this.resolveProxySourceId(source);
+        const input = this.resolveInput(source.input);
+        if (!this.hasRequiredInputValues(source.requiredInputKeys, input)) {
+            return;
+        }
         this.writeStatus(source, 'loading', null);
 
         try {
-            const response = await this.readSourceWithRetry(options, source, sourceId);
+            const response = await this.readSourceWithRetry(options, sourceId, input);
             const mapped = this.mapper.mapResponse(response.data, source.mapper);
             this.writeMappedResult(source, mapped);
             this.writeStatus(source, this.hasItems(mapped) ? 'success' : 'empty', null);
@@ -62,8 +66,8 @@ export class RuntimeDataSourceService {
 
     private async readSourceWithRetry(
         options: TRuntimeDataSourceStartOptions,
-        source: TRuntimeDataSourceConfig,
         sourceId: string,
+        input: Record<string, unknown> | undefined,
     ): Promise<TRuntimeApiProxyResponse<unknown>> {
         let lastError: unknown;
         const attempts = this.loadRetryDelaysMs.length + 1;
@@ -74,7 +78,7 @@ export class RuntimeDataSourceService {
                     domain: options.domain,
                     pageId: options.pageId,
                     sourceId,
-                    input: this.resolveInput(source.input),
+                    input,
                 });
             } catch (error) {
                 lastError = error;
@@ -119,6 +123,27 @@ export class RuntimeDataSourceService {
         }
 
         return source.pageIds.some((entry) => String(entry ?? '').trim() === normalizedPageId);
+    }
+
+    private hasRequiredInputValues(
+        requiredKeys: readonly string[] | undefined,
+        input: Record<string, unknown> | undefined,
+    ): boolean {
+        if (!Array.isArray(requiredKeys) || requiredKeys.length === 0) {
+            return true;
+        }
+
+        return requiredKeys
+            .map((entry) => String(entry ?? '').trim())
+            .filter(Boolean)
+            .every((key) => this.hasResolvedInputValue(input?.[key]));
+    }
+
+    private hasResolvedInputValue(value: unknown): boolean {
+        if (value == null) return false;
+        if (typeof value === 'string') return value.trim().length > 0;
+        if (Array.isArray(value)) return value.length > 0;
+        return true;
     }
 
     private resolveInput(input: Record<string, unknown> | undefined): Record<string, unknown> | undefined {

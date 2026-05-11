@@ -133,6 +133,7 @@ const ALLOWED_LOOP_BINDING_TRANSFORMS = new Set([
     'i18nKey',
     'locale',
     'navigationHref',
+    'uriComponent',
 ]);
 
 const isStringArray = (value: unknown): value is readonly string[] =>
@@ -159,6 +160,8 @@ const isLoopBindingSource = (value: unknown): boolean => {
 const isLoopBinding = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
     if (typeof value['to'] !== 'string' || value['to'].trim().length === 0) return false;
+    if (value['prefix'] !== undefined && typeof value['prefix'] !== 'string') return false;
+    if (value['suffix'] !== undefined && typeof value['suffix'] !== 'string') return false;
 
     const sources = value['sources'];
     if (!Array.isArray(sources) || sources.length === 0 || !sources.every(isLoopBindingSource)) return false;
@@ -168,8 +171,12 @@ const isLoopBinding = (value: unknown): boolean => {
 
 const isLoopViewValueSource = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
-    if (!['literal', 'scope', 'var', 'host'].includes(String(value['source']))) return false;
+    if (!['literal', 'scope', 'var', 'host', 'queryParam'].includes(String(value['source']))) return false;
+    if (value['source'] === 'queryParam' && (typeof value['key'] !== 'string' || value['key'].trim().length === 0)) {
+        return false;
+    }
     if (value['source'] !== 'literal' && (typeof value['path'] !== 'string' || value['path'].trim().length === 0)) {
+        if (value['source'] === 'queryParam') return true;
         return false;
     }
     return true;
@@ -527,6 +534,9 @@ const isRuntimeDataSourceConfig = (value: unknown): value is TRuntimeDataSourceC
     if (value['pageIds'] !== undefined
         && (!Array.isArray(value['pageIds'])
             || !value['pageIds'].every((entry) => typeof entry === 'string' && entry.trim().length > 0))) return false;
+    if (value['requiredInputKeys'] !== undefined
+        && (!Array.isArray(value['requiredInputKeys'])
+            || !value['requiredInputKeys'].every((entry) => typeof entry === 'string' && entry.trim().length > 0))) return false;
     if (value['input'] !== undefined && !isRuntimeDataSourceInputConfig(value['input'])) return false;
     if (value['mapper'] !== undefined && !isRuntimeDataSourceMapperConfig(value['mapper'])) return false;
     if (value['refresh'] !== undefined && !isRuntimeDataSourceRefreshConfig(value['refresh'])) return false;

@@ -291,6 +291,7 @@ export type TRuntimeDataSourceConfig = {
     readonly mergeMode?: 'replace' | 'appendItems';
     readonly enabled?: boolean;
     readonly pageIds?: readonly string[];
+    readonly requiredInputKeys?: readonly string[];
     readonly input?: Record<string, unknown>;
     readonly mapper?: TRuntimeDataSourceMapperConfig | null;
     readonly refresh?: TRuntimeDataSourceRefreshConfig | null;

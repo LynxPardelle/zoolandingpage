@@ -50,6 +50,7 @@ type TDebuggableAngoraService = NgxAngoraService & {
     classifyClass?: (className: string) => TAngoraClassClassification;
     auditManagedStylesheets?: (sampleLimit?: number) => TAngoraStylesheetAudit;
     getCssCreateDebugSummary?: () => TAngoraCssCreateSummary;
+    getCombos?: () => Record<string, unknown>;
     collectRenderedDomClasses?: (root?: ParentNode) => string[];
     hasGeneratedCssRules?: () => boolean;
     waitForCssReady?: (timeoutMs?: number) => Promise<boolean>;
@@ -317,8 +318,13 @@ export class AngoraCombosService {
     }
 
     private clearRemovedCombos(keys: readonly string[]): void {
+        const registeredCombos = this.ank.getCombos?.() ?? this.ank.combos ?? {};
         keys.forEach((key) => {
-            this.ank.updateCombo(key, []);
+            if (!Object.prototype.hasOwnProperty.call(registeredCombos, key)) {
+                return;
+            }
+
+            registeredCombos[key] = [];
         });
     }
 }

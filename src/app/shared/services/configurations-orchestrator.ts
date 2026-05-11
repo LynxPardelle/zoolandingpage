@@ -492,6 +492,7 @@ export class ConfigurationsOrchestratorService {
             host,
             getVariable: (path) => this.variableStore.get(path),
             getI18n: (path) => this.globalI18n.get(path),
+            getQueryParam: (key) => this.readQueryParam(key),
             getCurrentLanguage: () => this.language.currentLanguage(),
             resolveI18nKey: (key) => this.resolveI18nKeyString(key),
             onMissingTemplate: (templateId) => {
@@ -514,6 +515,15 @@ export class ConfigurationsOrchestratorService {
         if (this.warnedLoopPaths.has(key)) return;
         this.warnedLoopPaths.add(key);
         console.warn(`[ConfigurationsOrchestrator] loopConfig ${ source } source is not an array at path: ${ path }`);
+    }
+
+    private readQueryParam(key: string): string | undefined {
+        const normalizedKey = String(key ?? '').trim();
+        if (!normalizedKey || typeof window === 'undefined' || !window.location?.search) {
+            return undefined;
+        }
+
+        return new URLSearchParams(window.location.search).get(normalizedKey) ?? undefined;
     }
 
     private resolveI18nKeyString(key: unknown): string | undefined {

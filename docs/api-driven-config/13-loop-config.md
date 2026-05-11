@@ -21,8 +21,10 @@ loopConfig:
       idPrefix?: string;
       bindings?: Array<{
         to: string;
-        sources: Array<string | { from: string; transform?: 'i18nKey' | 'locale' | 'navigationHref' }>;
+        sources: Array<string | { from: string; transform?: 'i18nKey' | 'locale' | 'navigationHref' | 'uriComponent' }>;
         fallback?: unknown;
+        prefix?: string;
+        suffix?: string;
       }>;
     }
   | {
@@ -32,8 +34,10 @@ loopConfig:
       idPrefix?: string;
       bindings?: Array<{
         to: string;
-        sources: Array<string | { from: string; transform?: 'i18nKey' | 'locale' | 'navigationHref' }>;
+        sources: Array<string | { from: string; transform?: 'i18nKey' | 'locale' | 'navigationHref' | 'uriComponent' }>;
         fallback?: unknown;
+        prefix?: string;
+        suffix?: string;
       }>;
     }
 ```
@@ -53,12 +57,14 @@ loopConfig:
 - `to`: path on the generated component to write, for example `config.text` or `config.href`.
 - `sources`: ordered fallback list. The first resolved value wins.
 - `fallback`: optional authored fallback when every source resolves to an empty value.
+- `prefix` / `suffix`: optional strings applied to the first resolved source value, useful for generated detail or filter links.
 
 Supported transforms:
 
 - `i18nKey`: resolves the source value as a translation key.
 - `locale`: resolves locale-map values like `{ en, es, default }` using the current language.
 - `navigationHref`: normalizes section IDs or authored targets into the final link href.
+- `uriComponent`: encodes the source value so it can be safely placed inside a query string or path segment.
 
 Use `$item` as a source path when the loop item itself is already the final value, for example a string array.
 
@@ -117,6 +123,7 @@ Supported filter operators are `equals`, `notEquals`, `contains`, `includes`, `e
 - `{ source: "scope", path: "values.fieldId" }`
 - `{ source: "var", path: "remote.filters.type" }`
 - `{ source: "host", path: "runtimeState.viewport.width" }`
+- `{ source: "queryParam", key: "pokemon" }`
 - `{ source: "literal", value: "featured" }`
 
 ## Example

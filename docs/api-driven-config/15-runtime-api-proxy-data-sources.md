@@ -92,6 +92,25 @@ Append mode merges incoming records by stable identity (`name`, then `id`, then 
 
 Supported transforms are `trim`, `lowercase`, and `uppercase`.
 
+Use `requiredInputKeys` when a source should run only after an input is present. This is useful for query-param driven search/detail widgets that must not call the proxy on the default page load:
+
+```json
+{
+  "id": "catalog-search-result",
+  "proxySourceId": "pokemonDetail",
+  "target": "remote.catalog.items",
+  "mergeMode": "appendItems",
+  "requiredInputKeys": ["pokemonName"],
+  "input": {
+    "pokemonName": {
+      "source": "queryParam",
+      "key": "pokemon",
+      "transforms": ["trim", "lowercase"]
+    }
+  }
+}
+```
+
 Field mappings can be either a path string or an object. Object mappings support `fallback`, `prefix`, and `suffix`, which is useful when a safe upstream field needs to become a display URL:
 
 ```json

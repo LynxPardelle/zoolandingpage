@@ -9,6 +9,8 @@ This page describes currently implemented loop materialization behavior.
 - `host`: reads an array from the current render host by `path`.
 - `repeat`: generates `count` items.
 
+Collection view values used by filters, sort selection, and pagination can also read URL query params with `{ "source": "queryParam", "key": "name" }`.
+
 ## ID strategy
 
 Generated IDs are:
@@ -38,6 +40,9 @@ Supported transforms:
 - `i18nKey`
 - `locale`
 - `navigationHref`
+- `uriComponent`
+
+Bindings may also declare `prefix` and `suffix`. These affixes are applied to the first resolved source value, which lets drafts generate links such as `/?tag={slug}` or `/article?slug={slug}` without adding project-specific code.
 
 Example:
 

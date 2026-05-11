@@ -30,6 +30,7 @@ const isLoopViewValueSource = (value: unknown): value is TLoopViewValueSource =>
         || value['source'] === 'scope'
         || value['source'] === 'var'
         || value['source'] === 'host'
+        || value['source'] === 'queryParam'
     );
 
 export type { TDynamicValue } from '@/app/shared/types/component-runtime.types';
@@ -211,6 +212,7 @@ export type TLoopMaterializationOptions = {
     readonly host?: unknown;
     readonly getVariable: (path: string) => unknown;
     readonly getI18n: (path: string) => unknown;
+    readonly getQueryParam?: (key: string) => unknown;
     readonly getCurrentLanguage: () => string;
     readonly resolveI18nKey: (key: unknown) => string | undefined;
     readonly onMissingTemplate?: (templateId: string) => void;
@@ -482,6 +484,12 @@ function resolveLoopViewValue(value: unknown, options: TLoopMaterializationOptio
         return Object.prototype.hasOwnProperty.call(value, 'value') ? value.value : value.fallback;
     }
 
+    if (value.source === 'queryParam') {
+        const key = String(value.key ?? '').trim();
+        const resolved = key ? options.getQueryParam?.(key) ?? readBrowserQueryParam(key) : undefined;
+        return resolved == null || resolved === '' ? value.fallback : resolved;
+    }
+
     const path = String(value.path ?? '').trim();
     if (!path) return value.fallback;
 
@@ -498,6 +506,14 @@ function resolveLoopViewValue(value: unknown, options: TLoopMaterializationOptio
     }
 
     return resolved == null || resolved === '' ? value.fallback : resolved;
+}
+
+function readBrowserQueryParam(key: string): string | undefined {
+    if (typeof window === 'undefined' || !window.location?.search) {
+        return undefined;
+    }
+
+    return new URLSearchParams(window.location.search).get(key) ?? undefined;
 }
 
 function resolveLoopItemPathValues(item: unknown, path: string): readonly unknown[] {
@@ -629,9 +645,19 @@ function applyLoopBindingTransform(
             return undefined;
         case 'navigationHref':
             return value == null ? undefined : toNavigationHref(value);
+        case 'uriComponent':
+            return value == null ? undefined : encodeURIComponent(String(value).trim());
         default:
             return value;
     }
+}
+
+function applyLoopBindingAffixes(value: unknown, binding: TLoopBinding): unknown {
+    const prefix = String(binding.prefix ?? '');
+    const suffix = String(binding.suffix ?? '');
+    if (!prefix && !suffix) return value;
+
+    return `${ prefix }${ String(value) }${ suffix }`;
 }
 
 function resolveLoopBindingValue(binding: TLoopBinding, item: unknown, options: TLoopMaterializationOptions): unknown {
@@ -639,7 +665,7 @@ function resolveLoopBindingValue(binding: TLoopBinding, item: unknown, options: 
         const rawValue = getLoopItemValue(item, getLoopBindingSourcePath(source));
         const transformedValue = applyLoopBindingTransform(rawValue, getLoopBindingSourceTransform(source), options);
         if (hasResolvedLoopBindingValue(transformedValue)) {
-            return transformedValue;
+            return applyLoopBindingAffixes(transformedValue, binding);
         }
     }
 

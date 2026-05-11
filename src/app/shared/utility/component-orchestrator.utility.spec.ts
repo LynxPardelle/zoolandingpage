@@ -34,6 +34,7 @@ describe('materializeLoopComponents collection view', () => {
         host,
         getVariable: (path) => variables[path],
         getI18n: () => undefined,
+        getQueryParam: (key) => ({ pokemon: 'snorlax' } as Record<string, unknown>)[key],
         getCurrentLanguage: () => 'es',
         resolveI18nKey: () => undefined,
     });
@@ -148,5 +149,90 @@ describe('materializeLoopComponents collection view', () => {
 
         expect((resolved.get('pokemonGrid') as any).config.components).toEqual(['pokemonCard__1']);
         expect((resolved.get('pokemonCard__1') as any).config.text).toBe('charizard');
+    });
+
+    it('can compose generated link hrefs from item values and binding affixes', () => {
+        const components = [
+            {
+                id: 'moveLinks',
+                type: 'container',
+                loopConfig: {
+                    source: 'var',
+                    path: 'remote.pokemon.selected.items.0.moves',
+                    templateId: 'moveLinkTemplate',
+                    idPrefix: 'moveLink',
+                    bindings: [
+                        {
+                            to: 'config.text',
+                            sources: ['move.name'],
+                        },
+                        {
+                            to: 'config.href',
+                            sources: [{ from: 'move.name', transform: 'uriComponent' }],
+                            prefix: '/?move=',
+                            suffix: '#move-matches',
+                        },
+                    ],
+                },
+                config: { components: [], tag: 'div' },
+            },
+            {
+                id: 'moveLinkTemplate',
+                type: 'link',
+                config: { href: '#', text: 'move' },
+            },
+        ] as unknown as TGenericComponent[];
+
+        const resolved = buildResolvedComponents(components, {
+            'remote.pokemon.selected.items.0.moves': [
+                { move: { name: 'mega punch' } },
+            ],
+        }, {});
+
+        expect((resolved.get('moveLinks') as any).config.components).toEqual(['moveLink__1']);
+        expect((resolved.get('moveLink__1') as any).config.text).toBe('mega punch');
+        expect((resolved.get('moveLink__1') as any).config.href).toBe('/?move=mega%20punch#move-matches');
+    });
+
+    it('can filter loop items from query-param values', () => {
+        const components = [
+            {
+                id: 'pokemonGrid',
+                type: 'container',
+                loopConfig: {
+                    source: 'var',
+                    path: 'remote.pokemon.catalog.items',
+                    templateId: 'pokemonCardTemplate',
+                    idPrefix: 'pokemonCard',
+                    view: {
+                        filters: [
+                            {
+                                path: 'name',
+                                op: 'equals',
+                                value: { source: 'queryParam', key: 'pokemon' },
+                                ignoreValues: [''],
+                            },
+                        ],
+                    },
+                    bindings: [{ to: 'config.text', sources: ['name'] }],
+                },
+                config: { components: [], tag: 'div' },
+            },
+            {
+                id: 'pokemonCardTemplate',
+                type: 'text',
+                config: { tag: 'p', text: 'fallback' },
+            },
+        ] as unknown as TGenericComponent[];
+
+        const resolved = buildResolvedComponents(components, {
+            'remote.pokemon.catalog.items': [
+                { name: 'pikachu' },
+                { name: 'snorlax' },
+            ],
+        }, {});
+
+        expect((resolved.get('pokemonGrid') as any).config.components).toEqual(['pokemonCard__1']);
+        expect((resolved.get('pokemonCard__1') as any).config.text).toBe('snorlax');
     });
 });
