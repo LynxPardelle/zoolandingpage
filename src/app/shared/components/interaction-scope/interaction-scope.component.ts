@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, Injector, OnInit, computed, effect, forwardRef, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Injector, OnInit, computed, effect, forwardRef, inject, input, untracked } from '@angular/core';
 import { ConfigurationsOrchestratorService } from '../../services/configurations-orchestrator';
 import { resolveComponentRootDomId, resolveDynamicValue, resolveTextValue } from '../../utility/component-orchestrator.utility';
 import { WrapperOrchestrator } from '../wrapper-orchestrator/wrapper-orchestrator.component';
@@ -37,7 +37,7 @@ export class InteractionScopeComponent implements OnInit {
 
     ngOnInit(): void {
         effect(() => {
-            this.scope.configure(this.config());
+            untracked(() => this.scope.configure(this.config()));
         }, { injector: this.injector });
     }
 

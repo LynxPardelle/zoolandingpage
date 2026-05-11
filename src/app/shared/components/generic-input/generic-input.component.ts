@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, untracked } from '@angular/core';
 import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { GenericDropdown } from '../generic-dropdown/generic-dropdown.component';
@@ -35,7 +35,7 @@ export class GenericInputComponent {
                 validation: this.validationRules(),
             };
 
-            this.scope.registerField(registeredConfig);
+            untracked(() => this.scope.registerField(registeredConfig));
         });
     }
 

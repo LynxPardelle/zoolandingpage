@@ -235,4 +235,142 @@ describe('materializeLoopComponents collection view', () => {
         expect((resolved.get('pokemonGrid') as any).config.components).toEqual(['pokemonCard__1']);
         expect((resolved.get('pokemonCard__1') as any).config.text).toBe('snorlax');
     });
+
+    it('reuses identical loop collection views while materializing card children', () => {
+        const sharedView = {
+            sort: {
+                path: 'id',
+                direction: 'asc',
+                type: 'number',
+            },
+            pagination: {
+                page: 1,
+                pageSize: 2,
+            },
+        } as const;
+        const components = [
+            {
+                id: 'pokemonGrid',
+                type: 'container',
+                loopConfig: {
+                    source: 'var',
+                    path: 'remote.pokemon.catalog.items',
+                    templateId: 'pokemonCardTemplate',
+                    idPrefix: 'pokemonCard',
+                    view: sharedView,
+                },
+                config: { components: [], tag: 'div' },
+            },
+            {
+                id: 'pokemonCardTemplate',
+                type: 'container',
+                config: { tag: 'article', components: ['pokemonTitle__{{index}}'] },
+            },
+            {
+                id: 'pokemonTitleTemplate',
+                type: 'text',
+                loopConfig: {
+                    source: 'var',
+                    path: 'remote.pokemon.catalog.items',
+                    templateId: 'pokemonTitleTemplate',
+                    idPrefix: 'pokemonTitle',
+                    view: { ...sharedView },
+                    bindings: [{ to: 'config.text', sources: ['name'] }],
+                },
+                config: { tag: 'p', text: 'fallback' },
+            },
+        ] as unknown as TGenericComponent[];
+
+        let reads = 0;
+        const resolved = materializeLoopComponents({
+            sourceComponents: components,
+            warnOnMissingSource: true,
+            host: {},
+            getVariable: (path) => {
+                if (path === 'remote.pokemon.catalog.items') {
+                    reads += 1;
+                    return [
+                        { id: 2, name: 'ivysaur' },
+                        { id: 1, name: 'bulbasaur' },
+                        { id: 3, name: 'venusaur' },
+                    ];
+                }
+                return undefined;
+            },
+            getI18n: () => undefined,
+            getQueryParam: () => undefined,
+            getCurrentLanguage: () => 'es',
+            resolveI18nKey: () => undefined,
+        });
+
+        expect(reads).toBe(1);
+        expect((resolved.get('pokemonGrid') as any).config.components).toEqual(['pokemonCard__1', 'pokemonCard__2']);
+        expect((resolved.get('pokemonTitle__1') as any).config.text).toBe('bulbasaur');
+        expect((resolved.get('pokemonTitle__2') as any).config.text).toBe('ivysaur');
+    });
+
+    it('can skip client pagination until a configured query filter is active', () => {
+        const components = [
+            {
+                id: 'pokemonGrid',
+                type: 'container',
+                loopConfig: {
+                    source: 'var',
+                    path: 'remote.pokemon.catalog.items',
+                    templateId: 'pokemonCardTemplate',
+                    idPrefix: 'pokemonCard',
+                    view: {
+                        pagination: {
+                            page: { source: 'queryParam', key: 'page', fallback: 2 },
+                            pageSize: 2,
+                            applyWhenAnyQueryParam: ['move'],
+                        },
+                    },
+                    bindings: [{ to: 'config.text', sources: ['name'] }],
+                },
+                config: { components: [], tag: 'div' },
+            },
+            {
+                id: 'pokemonCardTemplate',
+                type: 'text',
+                config: { tag: 'p', text: 'fallback' },
+            },
+        ] as unknown as TGenericComponent[];
+        const variables = {
+            'remote.pokemon.catalog.items': [
+                { name: 'bulbasaur' },
+                { name: 'ivysaur' },
+                { name: 'venusaur' },
+            ],
+        };
+
+        const withoutFilter = materializeLoopComponents({
+            sourceComponents: components,
+            warnOnMissingSource: true,
+            host: {},
+            getVariable: (path) => variables[path as keyof typeof variables],
+            getI18n: () => undefined,
+            getQueryParam: () => undefined,
+            getCurrentLanguage: () => 'es',
+            resolveI18nKey: () => undefined,
+        });
+        const withFilter = materializeLoopComponents({
+            sourceComponents: components,
+            warnOnMissingSource: true,
+            host: {},
+            getVariable: (path) => variables[path as keyof typeof variables],
+            getI18n: () => undefined,
+            getQueryParam: (key) => ({ move: 'mega-punch', page: '2' } as Record<string, unknown>)[key],
+            getCurrentLanguage: () => 'es',
+            resolveI18nKey: () => undefined,
+        });
+
+        expect((withoutFilter.get('pokemonGrid') as any).config.components).toEqual([
+            'pokemonCard__1',
+            'pokemonCard__2',
+            'pokemonCard__3',
+        ]);
+        expect((withFilter.get('pokemonGrid') as any).config.components).toEqual(['pokemonCard__1']);
+        expect((withFilter.get('pokemonCard__1') as any).config.text).toBe('venusaur');
+    });
 });

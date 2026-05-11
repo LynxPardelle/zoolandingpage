@@ -97,6 +97,7 @@ export type TLoopViewPagination = {
     readonly page?: number | TLoopViewValueSource;
     readonly pageSize?: number | TLoopViewValueSource;
     readonly pageIndexBase?: 0 | 1;
+    readonly applyWhenAnyQueryParam?: readonly string[];
 };
 
 export type TLoopCollectionView = {

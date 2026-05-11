@@ -109,7 +109,8 @@ Example:
       },
       pagination: {
         page: { source: 'scope', path: 'values.page' },
-        pageSize: 6
+        pageSize: 6,
+        applyWhenAnyQueryParam: ['tag', 'search']
       }
     }
   }
@@ -117,6 +118,8 @@ Example:
 ```
 
 Supported filter operators are `equals`, `notEquals`, `contains`, `includes`, `exists`, and `notExists`. Paths can traverse arrays, so `tags.name` checks every tag object in `tags`.
+
+`pagination.applyWhenAnyQueryParam` is optional. When present, client-side loop pagination only runs if at least one listed query param has an active value. Use it for hybrid catalogs where the default source is already paginated by the upstream API, but query-specific sources such as `?tag=...` or `?move=...` return a full narrowed collection that still needs client-side pagination.
 
 `value`, `sort.by`, `pagination.page`, and `pagination.pageSize` can read from:
 

@@ -185,3 +185,32 @@ Reusable lessons:
 - For API-driven catalogs, prefer a generic loop collection view over one-off component code so the same pattern can support albums, blog posts, products, or Pokemon.
 - When a draft can declare many runtime data sources, avoid firing every source concurrently from the browser; sequential initial loads are slower but more stable and keep fallback content visible.
 - Detail templates that loop directly over array items need explicit loop bindings on the parent loop config; otherwise the template fallback text is rendered for every item.
+
+### 2026-05-11 CT - PokeAPI Catalog Performance And Pagination Correction
+
+Summary:
+
+- The PokeAPI catalog was freezing because the default list route fetched a 1500-record index on every catalog click and repeated the same loop filtering/sorting work for each child template in the card.
+- Runtime data sources can now calculate upstream `offset` from `page` and `pageSize` with `queryParamPageOffset`.
+- Runtime data sources can skip broad default reads with `skipWhenQueryParams` when query-specific sources such as `pokemon`, `type`, or `move` are active.
+- Loop collection pagination can now declare `applyWhenAnyQueryParam` so a server-paginated default source is not paginated a second time, while query-filtered sources still use client-side pagination.
+- The loop materializer caches identical collection views during one render so repeated card child templates reuse the same filtered/sorted/paginated item set.
+- Interaction-scope registration/configuration effects now avoid no-op signal writes and use `untracked(...)` around effect-triggered registration/configuration to prevent `NG0103` infinite change detection loops.
+
+Verified locally:
+
+- `npm run build` completed successfully.
+- `ng test` with focused `--include` targets timed out without a completed Karma result; do not treat it as passing evidence.
+- Playwright/Edge QA on `http://127.0.0.1:4202` covered default desktop, `page=2&pageSize=8`, `move=mega-punch&page=2&pageSize=4`, `pokemon=lucario`, and mobile controls with no console errors other than Angular dev/HMR info logs.
+- The default route now calls `pokeapiPokemonIndex` with `limit: 4, offset: 0`; `page=3&pageSize=4` calls it with `limit: "4", offset: 8` and renders only #9-#12.
+
+Published:
+
+- Draft version: `20260511T221336Z-9f0fe9350cf8`.
+- Runtime-bundle verification through `https://api.zoolandingpage.com.mx/runtime-bundle` failed with a forced remote connection interruption in this environment; the raw API Gateway fallback returned `sourceStage: "published"` and `versionId: "20260511T221336Z-9f0fe9350cf8"`.
+
+Reusable lessons:
+
+- For large API catalogs, prefer upstream pagination for the broad default index. Use client-side loop pagination only for already-narrowed collections returned by query-specific sources.
+- Do not use `appendItems` for page-index sources; replacing is correct when the same logical list changes page or page size. Reserve append/merge for enrichment sources that intentionally add fields to a selected item.
+- If a card template requires repeated generated children, cache or otherwise share the parent collection view; otherwise a 4-card page can still sort/filter the same source many times.

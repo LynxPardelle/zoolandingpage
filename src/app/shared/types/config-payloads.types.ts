@@ -287,6 +287,13 @@ export type TRuntimeDataSourceInputResolverConfig = {
     readonly path: string;
     readonly fallback?: unknown;
     readonly transforms?: readonly TRuntimeDataSourceInputTransform[];
+} | {
+    readonly source: 'queryParamPageOffset';
+    readonly pageKey?: string;
+    readonly pageSizeKey?: string;
+    readonly pageFallback?: number;
+    readonly pageSizeFallback?: number;
+    readonly pageIndexBase?: 0 | 1;
 };
 
 export type TRuntimeDataSourceConfig = {
@@ -298,6 +305,7 @@ export type TRuntimeDataSourceConfig = {
     readonly enabled?: boolean;
     readonly pageIds?: readonly string[];
     readonly requiredInputKeys?: readonly string[];
+    readonly skipWhenQueryParams?: readonly string[];
     readonly input?: Record<string, unknown>;
     readonly mapper?: TRuntimeDataSourceMapperConfig | null;
     readonly refresh?: TRuntimeDataSourceRefreshConfig | null;

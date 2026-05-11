@@ -338,12 +338,20 @@ describe('config-payload.validators', () => {
                         target: 'remote.pokemon.selected',
                         pageIds: ['pokemon-detail'],
                         requiredInputKeys: ['pokemonName'],
+                        skipWhenQueryParams: ['move'],
                         input: {
                             pokemonName: {
                                 source: 'queryParam',
                                 key: 'name',
                                 fallback: 'pikachu',
                                 transforms: ['trim', 'lowercase'],
+                            },
+                            offset: {
+                                source: 'queryParamPageOffset',
+                                pageKey: 'page',
+                                pageSizeKey: 'pageSize',
+                                pageFallback: 1,
+                                pageSizeFallback: 4,
                             },
                         },
                         mapper: {

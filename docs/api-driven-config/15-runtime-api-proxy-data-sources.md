@@ -85,12 +85,21 @@ Append mode merges incoming records by stable identity (`name`, then `id`, then 
       "source": "var",
       "path": "selection.currentId",
       "fallback": "default"
+    },
+    "offset": {
+      "source": "queryParamPageOffset",
+      "pageKey": "page",
+      "pageSizeKey": "pageSize",
+      "pageFallback": 1,
+      "pageSizeFallback": 4
     }
   }
 }
 ```
 
 Supported transforms are `trim`, `lowercase`, and `uppercase`.
+
+Use `queryParamPageOffset` when the upstream list endpoint supports `limit`/`offset` pagination and the draft stores page state in query params. With `page=3&pageSize=8`, the resolver sends `offset: 16`. This keeps large catalogs from loading every record in the browser just to change pages.
 
 Use `requiredInputKeys` when a source should run only after an input is present. This is useful for query-param driven search/detail widgets that must not call the proxy on the default page load:
 
@@ -110,6 +119,19 @@ Use `requiredInputKeys` when a source should run only after an input is present.
   }
 }
 ```
+
+Use `skipWhenQueryParams` when a broad default source should not run after a narrower query-driven source becomes active:
+
+```json
+{
+  "id": "catalog-index",
+  "proxySourceId": "pokemonIndex",
+  "target": "remote.catalog.items",
+  "skipWhenQueryParams": ["pokemon", "type", "move"]
+}
+```
+
+This prevents a default index from briefly replacing or appending unrelated records while a search, type, or move-specific source is loading.
 
 Field mappings can be either a path string or an object. Object mappings support `fallback`, `prefix`, `suffix`, and `transform`, which is useful when a safe upstream field needs to become a display URL or a normalized ID:
 

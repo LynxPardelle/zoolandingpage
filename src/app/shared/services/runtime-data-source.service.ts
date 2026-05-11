@@ -39,6 +39,10 @@ export class RuntimeDataSourceService {
 
     private async loadSource(options: TRuntimeDataSourceStartOptions, source: TRuntimeDataSourceConfig): Promise<void> {
         const sourceId = this.resolveProxySourceId(source);
+        if (this.shouldSkipForQueryParams(source.skipWhenQueryParams)) {
+            return;
+        }
+
         const input = this.resolveInput(source.input);
         if (!this.hasRequiredInputValues(source.requiredInputKeys, input)) {
             return;
@@ -125,6 +129,28 @@ export class RuntimeDataSourceService {
         return source.pageIds.some((entry) => String(entry ?? '').trim() === normalizedPageId);
     }
 
+    private shouldSkipForQueryParams(queryParams: readonly string[] | undefined): boolean {
+        if (!Array.isArray(queryParams) || queryParams.length === 0) {
+            return false;
+        }
+
+        return queryParams
+            .map((entry) => String(entry ?? '').trim())
+            .filter(Boolean)
+            .some((key) => this.hasActiveQueryParam(key));
+    }
+
+    private hasActiveQueryParam(key: string): boolean {
+        const value = this.currentSearchParams()?.get(key);
+        if (value == null) return false;
+
+        const normalized = String(value).trim().toLowerCase();
+        return !!normalized
+            && normalized !== 'all'
+            && normalized !== 'undefined'
+            && normalized !== 'null';
+    }
+
     private hasRequiredInputValues(
         requiredKeys: readonly string[] | undefined,
         input: Record<string, unknown> | undefined,
@@ -170,6 +196,8 @@ export class RuntimeDataSourceService {
             resolved = Object.prototype.hasOwnProperty.call(value, 'value') ? value.value : value.fallback;
         } else if (value.source === 'queryParam') {
             resolved = this.readQueryParam(String(value.key ?? '')) ?? value.fallback;
+        } else if (value.source === 'queryParamPageOffset') {
+            resolved = this.resolveQueryParamPageOffset(value);
         } else {
             resolved = this.variables.get(String(value.path ?? '')) ?? value.fallback;
         }
@@ -178,11 +206,16 @@ export class RuntimeDataSourceService {
     }
 
     private isInputResolver(value: unknown): value is {
-        readonly source: 'literal' | 'queryParam' | 'var';
+        readonly source: 'literal' | 'queryParam' | 'var' | 'queryParamPageOffset';
         readonly key?: string;
+        readonly pageKey?: string;
+        readonly pageSizeKey?: string;
         readonly path?: string;
         readonly value?: unknown;
         readonly fallback?: unknown;
+        readonly pageFallback?: number;
+        readonly pageSizeFallback?: number;
+        readonly pageIndexBase?: 0 | 1;
         readonly transforms?: readonly string[];
     } {
         if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -199,7 +232,48 @@ export class RuntimeDataSourceService {
         if (source === 'var') {
             return typeof (value as { readonly path?: unknown }).path === 'string';
         }
+        if (source === 'queryParamPageOffset') {
+            return true;
+        }
         return false;
+    }
+
+    private resolveQueryParamPageOffset(config: {
+        readonly pageKey?: string;
+        readonly pageSizeKey?: string;
+        readonly pageFallback?: number;
+        readonly pageSizeFallback?: number;
+        readonly pageIndexBase?: 0 | 1;
+    }): number {
+        const pageKey = String(config.pageKey ?? 'page').trim() || 'page';
+        const pageSizeKey = String(config.pageSizeKey ?? 'pageSize').trim() || 'pageSize';
+        const pageIndexBase = config.pageIndexBase === 0 ? 0 : 1;
+        const page = this.readPageIndexQueryParam(pageKey, config.pageFallback ?? pageIndexBase, pageIndexBase);
+        const pageSize = this.readPositiveIntegerQueryParam(pageSizeKey, config.pageSizeFallback ?? 4);
+        const zeroBasedPage = pageIndexBase === 0 ? page : Math.max(0, page - 1);
+
+        return zeroBasedPage * pageSize;
+    }
+
+    private readPageIndexQueryParam(key: string, fallback: number, pageIndexBase: 0 | 1): number {
+        const raw = this.readQueryParam(key);
+        const parsed = Number(raw ?? fallback);
+        const minimum = pageIndexBase;
+        if (!Number.isFinite(parsed) || parsed < minimum) {
+            return minimum;
+        }
+
+        return Math.floor(parsed);
+    }
+
+    private readPositiveIntegerQueryParam(key: string, fallback: number): number {
+        const raw = this.readQueryParam(key);
+        const parsed = Number(raw ?? fallback);
+        if (!Number.isFinite(parsed) || parsed <= 0) {
+            return Math.max(1, Math.floor(fallback));
+        }
+
+        return Math.floor(parsed);
     }
 
     private applyInputTransforms(value: unknown, transforms: readonly string[] | undefined): unknown {

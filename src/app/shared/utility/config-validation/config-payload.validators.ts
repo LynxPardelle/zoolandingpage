@@ -73,7 +73,7 @@ const ALLOWED_TRACK_OPTIONS = new Set<TTrackOptions>([
 ]);
 
 const ALLOWED_RUNTIME_API_ACTION_METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
-const ALLOWED_RUNTIME_DATA_SOURCE_INPUT_SOURCES = new Set(['literal', 'queryParam', 'var']);
+const ALLOWED_RUNTIME_DATA_SOURCE_INPUT_SOURCES = new Set(['literal', 'queryParam', 'var', 'queryParamPageOffset']);
 const ALLOWED_RUNTIME_DATA_SOURCE_INPUT_TRANSFORMS = new Set(['trim', 'lowercase', 'uppercase']);
 const ALLOWED_RUNTIME_DATA_SOURCE_FIELD_TRANSFORMS = new Set(['uriComponent', 'lastPathSegment', 'lastPathSegmentNumber']);
 
@@ -229,6 +229,9 @@ const isLoopViewPagination = (value: unknown): boolean => {
     if (!isLoopViewPaginationValue(value['page'])) return false;
     if (!isLoopViewPaginationValue(value['pageSize'])) return false;
     if (value['pageIndexBase'] !== undefined && value['pageIndexBase'] !== 0 && value['pageIndexBase'] !== 1) return false;
+    if (value['applyWhenAnyQueryParam'] !== undefined
+        && (!Array.isArray(value['applyWhenAnyQueryParam'])
+            || !value['applyWhenAnyQueryParam'].every((entry) => typeof entry === 'string' && entry.trim().length > 0))) return false;
     return true;
 };
 
@@ -510,6 +513,13 @@ const isRuntimeDataSourceInputResolverConfig = (value: Record<string, unknown>):
 
     if (source === 'queryParam' && (typeof value['key'] !== 'string' || value['key'].trim().length === 0)) return false;
     if (source === 'var' && (typeof value['path'] !== 'string' || value['path'].trim().length === 0)) return false;
+    if (source === 'queryParamPageOffset') {
+        if (value['pageKey'] !== undefined && (typeof value['pageKey'] !== 'string' || value['pageKey'].trim().length === 0)) return false;
+        if (value['pageSizeKey'] !== undefined && (typeof value['pageSizeKey'] !== 'string' || value['pageSizeKey'].trim().length === 0)) return false;
+        if (value['pageFallback'] !== undefined && (typeof value['pageFallback'] !== 'number' || !Number.isFinite(value['pageFallback']))) return false;
+        if (value['pageSizeFallback'] !== undefined && (typeof value['pageSizeFallback'] !== 'number' || !Number.isFinite(value['pageSizeFallback']))) return false;
+        if (value['pageIndexBase'] !== undefined && value['pageIndexBase'] !== 0 && value['pageIndexBase'] !== 1) return false;
+    }
     if (value['transforms'] !== undefined
         && (!Array.isArray(value['transforms'])
             || !value['transforms'].every((entry) => typeof entry === 'string'
@@ -541,6 +551,9 @@ const isRuntimeDataSourceConfig = (value: unknown): value is TRuntimeDataSourceC
     if (value['requiredInputKeys'] !== undefined
         && (!Array.isArray(value['requiredInputKeys'])
             || !value['requiredInputKeys'].every((entry) => typeof entry === 'string' && entry.trim().length > 0))) return false;
+    if (value['skipWhenQueryParams'] !== undefined
+        && (!Array.isArray(value['skipWhenQueryParams'])
+            || !value['skipWhenQueryParams'].every((entry) => typeof entry === 'string' && entry.trim().length > 0))) return false;
     if (value['input'] !== undefined && !isRuntimeDataSourceInputConfig(value['input'])) return false;
     if (value['mapper'] !== undefined && !isRuntimeDataSourceMapperConfig(value['mapper'])) return false;
     if (value['refresh'] !== undefined && !isRuntimeDataSourceRefreshConfig(value['refresh'])) return false;

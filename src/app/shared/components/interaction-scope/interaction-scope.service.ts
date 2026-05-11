@@ -205,36 +205,50 @@ export class InteractionScopeService {
     });
 
     configure(config: TInteractionScopeConfig): void {
-        this.scopeIdSignal.set(normalizeKey(config.scopeId ?? config.id));
-        this.initialValues.set(config.initialValues ?? {});
-        this.computations.set(
-            Object.fromEntries((config.computations ?? []).map((definition) => [definition.resultId, definition]))
+        const nextScopeId = normalizeKey(config.scopeId ?? config.id);
+        const nextInitialValues = config.initialValues ?? {};
+        const nextComputations = Object.fromEntries(
+            (config.computations ?? []).map((definition) => [definition.resultId, definition])
         );
+
+        if (this.scopeIdSignal() === nextScopeId
+            && this.stableValue(this.initialValues()) === this.stableValue(nextInitialValues)
+            && this.stableValue(this.computations()) === this.stableValue(nextComputations)) {
+            return;
+        }
+
+        this.scopeIdSignal.set(nextScopeId);
+        this.initialValues.set(nextInitialValues);
+        this.computations.set(nextComputations);
     }
 
     registerField(config: TInteractionRegisteredFieldConfig): void {
         const fieldId = normalizeKey(config.fieldId);
         if (!fieldId) return;
 
-        this.fieldDefinitions.update((current) => ({
-            ...current,
-            [fieldId]: config,
-        }));
+        const currentDefinitions = this.fieldDefinitions();
+        if (!this.areRegisteredFieldConfigsEqual(currentDefinitions[fieldId], config)) {
+            this.fieldDefinitions.set({
+                ...currentDefinitions,
+                [fieldId]: config,
+            });
+        }
 
-        this.fieldStates.update((current) => {
-            const existing = current[fieldId];
-            const initialValue = config.initialValue ?? this.initialValues()[fieldId] ?? DEFAULT_EMPTY_VALUE;
-            const nextState = this.buildFieldState(
-                existing?.value ?? initialValue,
-                config,
-                existing,
-            );
+        const currentStates = this.fieldStates();
+        const existing = currentStates[fieldId];
+        const initialValue = config.initialValue ?? this.initialValues()[fieldId] ?? DEFAULT_EMPTY_VALUE;
+        const nextState = this.buildFieldState(
+            existing?.value ?? initialValue,
+            config,
+            existing,
+        );
 
-            return {
-                ...current,
+        if (!this.areFieldStatesEqual(existing, nextState)) {
+            this.fieldStates.set({
+                ...currentStates,
                 [fieldId]: nextState,
-            };
-        });
+            });
+        }
     }
 
     setFieldValue(fieldId: string, value: unknown, opts?: { markTouched?: boolean }): void {
@@ -323,6 +337,43 @@ export class InteractionScopeService {
 
     private getFieldDefinition(fieldId: string): TInteractionRegisteredFieldConfig {
         return this.fieldDefinitions()[fieldId] ?? { fieldId };
+    }
+
+    private areRegisteredFieldConfigsEqual(
+        previous: TInteractionRegisteredFieldConfig | undefined,
+        next: TInteractionRegisteredFieldConfig,
+    ): boolean {
+        if (!previous) return false;
+
+        return previous.fieldId === next.fieldId
+            && this.stableValue(previous.initialValue) === this.stableValue(next.initialValue)
+            && previous.required === next.required
+            && previous.disabled === next.disabled
+            && previous.readOnly === next.readOnly
+            && this.stableValue(previous.validation ?? []) === this.stableValue(next.validation ?? []);
+    }
+
+    private areFieldStatesEqual(
+        previous: TInteractionFieldRuntimeState | undefined,
+        next: TInteractionFieldRuntimeState,
+    ): boolean {
+        if (!previous) return false;
+
+        return this.stableValue(previous.value) === this.stableValue(next.value)
+            && previous.touched === next.touched
+            && previous.dirty === next.dirty
+            && previous.valid === next.valid
+            && this.stableValue(previous.errors) === this.stableValue(next.errors);
+    }
+
+    private stableValue(value: unknown): string {
+        if (value === undefined) return 'undefined';
+
+        try {
+            return JSON.stringify(value);
+        } catch {
+            return String(value);
+        }
     }
 
     private buildFieldState(

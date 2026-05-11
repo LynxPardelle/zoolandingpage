@@ -177,6 +177,43 @@ describe('RuntimeDataSourceService', () => {
         });
     });
 
+    it('resolves query-param page offsets before calling the proxy', async () => {
+        window.history.replaceState({}, '', '/?page=3&pageSize=8');
+        proxy.readSource.and.resolveTo({ ok: true, data: { results: [] } });
+        mapper.mapResponse.and.returnValue({ items: [] });
+
+        await service.start({
+            domain: 'pokeapi-demo.zoolandingpage.com.mx',
+            pageId: 'default',
+            dataSources: [
+                {
+                    id: 'pokeapi-catalog-index',
+                    proxySourceId: 'pokeapiPokemonIndex',
+                    target: 'remote.pokemon.catalog',
+                    input: {
+                        limit: {
+                            source: 'queryParam',
+                            key: 'pageSize',
+                            fallback: 4,
+                        },
+                        offset: {
+                            source: 'queryParamPageOffset',
+                            pageKey: 'page',
+                            pageSizeKey: 'pageSize',
+                            pageFallback: 1,
+                            pageSizeFallback: 4,
+                        },
+                    },
+                },
+            ],
+        });
+
+        expect(proxy.readSource.calls.mostRecent().args[0].input).toEqual({
+            limit: '8',
+            offset: 16,
+        });
+    });
+
     it('skips runtime data sources when a required input resolves empty', async () => {
         window.history.replaceState({}, '', '/?draftDomain=pokeapi-demo.zoolandingpage.com.mx');
 
@@ -204,6 +241,53 @@ describe('RuntimeDataSourceService', () => {
         expect(proxy.readSource).not.toHaveBeenCalled();
         expect(variables.get('remote.pokemon.catalog')).toBeUndefined();
         expect(variables.get('remoteStatus.pokemon.catalog.search')).toBeUndefined();
+    });
+
+    it('skips data sources when a configured query param is active', async () => {
+        window.history.replaceState({}, '', '/?draftDomain=pokeapi-demo.zoolandingpage.com.mx&move=mega-punch');
+
+        await service.start({
+            domain: 'pokeapi-demo.zoolandingpage.com.mx',
+            pageId: 'default',
+            dataSources: [
+                {
+                    id: 'pokeapi-catalog-index',
+                    proxySourceId: 'pokeapiPokemonIndex',
+                    target: 'remote.pokemon.catalog',
+                    skipWhenQueryParams: ['pokemon', 'type', 'move'],
+                    input: {
+                        limit: 1500,
+                        offset: 0,
+                    },
+                },
+            ],
+        });
+
+        expect(proxy.readSource).not.toHaveBeenCalled();
+        expect(variables.get('remote.pokemon.catalog')).toBeUndefined();
+        expect(variables.get('remoteStatus.pokeapi-catalog-index')).toBeUndefined();
+    });
+
+    it('does not skip configured query params when they resolve empty or all', async () => {
+        window.history.replaceState({}, '', '/?draftDomain=pokeapi-demo.zoolandingpage.com.mx&move=all');
+        proxy.readSource.and.resolveTo({ ok: true, data: { results: [{ name: 'bulbasaur' }] } });
+        mapper.mapResponse.and.returnValue({ items: [{ name: 'bulbasaur' }] });
+
+        await service.start({
+            domain: 'pokeapi-demo.zoolandingpage.com.mx',
+            pageId: 'default',
+            dataSources: [
+                {
+                    id: 'pokeapi-catalog-index',
+                    proxySourceId: 'pokeapiPokemonIndex',
+                    target: 'remote.pokemon.catalog',
+                    skipWhenQueryParams: ['move'],
+                },
+            ],
+        });
+
+        expect(proxy.readSource).toHaveBeenCalledTimes(1);
+        expect(variables.get('remote.pokemon.catalog.items')).toEqual([{ name: 'bulbasaur' }]);
     });
 
     it('runs required-input data sources when the required query param is present', async () => {

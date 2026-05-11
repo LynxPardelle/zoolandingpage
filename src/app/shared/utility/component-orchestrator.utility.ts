@@ -257,6 +257,7 @@ export function applyDefaultLoopComponentFinalizers(component: TGenericComponent
 
 export function materializeLoopComponents(options: TLoopMaterializationOptions): Map<string, TGenericComponent> {
     const resolved = new Map<string, TGenericComponent>(options.sourceComponents.map((component) => [component.id, component]));
+    const loopItemsCache = new Map<string, readonly unknown[]>();
 
     for (const component of options.sourceComponents) {
         const loop = (component as { readonly loopConfig?: TLoopConfig }).loopConfig;
@@ -271,7 +272,7 @@ export function materializeLoopComponents(options: TLoopMaterializationOptions):
             continue;
         }
 
-        const items = resolveLoopItems(loop, options);
+        const items = resolveLoopItems(loop, options, loopItemsCache);
         const prefix = String(loop.idPrefix ?? templateId).trim() || templateId;
         const generatedIds = items.map((_, index) => `${ prefix }__${ index + 1 }`);
 
@@ -294,7 +295,45 @@ export function materializeLoopComponents(options: TLoopMaterializationOptions):
     return resolved;
 }
 
-function resolveLoopItems(loop: TLoopConfig, options: TLoopMaterializationOptions): readonly unknown[] {
+function resolveLoopItems(
+    loop: TLoopConfig,
+    options: TLoopMaterializationOptions,
+    cache: Map<string, readonly unknown[]>,
+): readonly unknown[] {
+    const cacheKey = resolveLoopItemsCacheKey(loop);
+    if (cacheKey && cache.has(cacheKey)) {
+        return cache.get(cacheKey)!;
+    }
+
+    const resolvedItems = resolveLoopItemsUncached(loop, options);
+    if (cacheKey) {
+        cache.set(cacheKey, resolvedItems);
+    }
+
+    return resolvedItems;
+}
+
+function resolveLoopItemsCacheKey(loop: TLoopConfig): string | undefined {
+    try {
+        if (loop.source === 'repeat') {
+            return JSON.stringify({
+                source: loop.source,
+                count: loop.count,
+                view: loop.view,
+            });
+        }
+
+        return JSON.stringify({
+            source: loop.source,
+            path: loop.path,
+            view: loop.view,
+        });
+    } catch {
+        return undefined;
+    }
+}
+
+function resolveLoopItemsUncached(loop: TLoopConfig, options: TLoopMaterializationOptions): readonly unknown[] {
     if (loop.source === 'repeat') {
         const count = Number(loop.count ?? 0);
         if (!Number.isFinite(count) || count <= 0) return [];
@@ -453,6 +492,7 @@ function applyLoopViewPagination(
     options: TLoopMaterializationOptions,
 ): unknown[] {
     if (!pagination) return [...items];
+    if (!shouldApplyLoopViewPagination(pagination, options)) return [...items];
 
     const pageSize = normalizePositiveInteger(resolveLoopViewMaybeSource(pagination.pageSize, options));
     if (!pageSize) return [...items];
@@ -462,6 +502,32 @@ function applyLoopViewPagination(
     const page = Math.max(pageIndexBase, rawPage);
     const start = (page - pageIndexBase) * pageSize;
     return [...items].slice(start, start + pageSize);
+}
+
+function shouldApplyLoopViewPagination(
+    pagination: TLoopCollectionView['pagination'],
+    options: TLoopMaterializationOptions,
+): boolean {
+    const keys = pagination?.applyWhenAnyQueryParam;
+    if (!Array.isArray(keys) || keys.length === 0) {
+        return true;
+    }
+
+    return keys
+        .map((entry) => String(entry ?? '').trim())
+        .filter(Boolean)
+        .some((key) => hasActiveLoopQueryParam(key, options));
+}
+
+function hasActiveLoopQueryParam(key: string, options: TLoopMaterializationOptions): boolean {
+    const value = options.getQueryParam?.(key) ?? readBrowserQueryParam(key);
+    if (value == null) return false;
+
+    const normalized = String(value).trim().toLowerCase();
+    return !!normalized
+        && normalized !== 'all'
+        && normalized !== 'undefined'
+        && normalized !== 'null';
 }
 
 function normalizePositiveInteger(value: unknown): number | undefined {
