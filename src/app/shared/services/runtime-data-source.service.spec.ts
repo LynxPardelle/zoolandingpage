@@ -115,6 +115,8 @@ describe('RuntimeDataSourceService', () => {
 
         expect(proxy.readSource.calls.count()).toBe(1);
         expect(proxy.readSource.calls.mostRecent().args[0].sourceId).toBe('firstSource');
+        expect(variables.get('remoteStatus.first.state')).toBe('loading');
+        expect(variables.get('remoteStatus.second.state')).toBe('loading');
 
         resolveFirst({ ok: true, data: { upstream: 'firstSource' } });
         await startPromise;

@@ -294,19 +294,21 @@ Summary:
 - The PokeAPI demo enables auto-submit for dropdown-style catalog controls: `type`, `attack`, `sort`, and `pageSize`.
 - Name search intentionally remains button-driven so typing in the text field does not call the API or change the URL on every keystroke.
 - The demo includes an authored mode hint that says the current catalog mode is automatic for filter changes and explicit for typed search.
+- Runtime data-source startup pre-marks every loadable source as `loading` before running sequential proxy reads, so filtered pages can show skeletons immediately without reintroducing concurrent request bursts.
 - The parameterized Pokemon detail page no longer defaults missing `name` input to Pikachu; real detail sections render only after the selected source returns `success` and at least one item.
 - The detail skeleton section now covers initial idle/loading states before the selected Pokemon appears.
 
 Verified locally:
 
-- Focused Karma run completed with `85 SUCCESS`.
+- Focused Karma run completed with `99 SUCCESS`.
 - `npm run build` completed successfully.
 - Local Playwright-core QA on `http://127.0.0.1:4203` completed three desktop/mobile cycles covering dropdown auto-search, manual text search by button, detail skeletons, hidden hero during skeleton, no default Pikachu during loading, final Charizard load, no console errors, no failed requests, no bad responses, and no horizontal overflow.
+- A follow-up local check confirmed the immediate state after selecting `Electric` shows the catalog skeleton instead of `Pagina 1 de 1 · 0 resultados`, then resolves to `Pagina 1 de 29 · 114 resultados`.
 - QA evidence: `Output/pokeapi-demo-qa/20260511-autosearch-detail-skeleton/summary.json`.
 
 Published:
 
-- Draft version: `20260512T033323Z-1affb69c5f07`.
+- Draft version: `20260512T034538Z-4f3fa36f6e09`.
 - Runtime-bundle verification through the raw API Gateway runtime endpoint confirmed the published default and `pokemon-detail` pages.
 
 Reusable lessons:
@@ -314,3 +316,4 @@ Reusable lessons:
 - Use interaction-scope `autoSubmit` for low-risk discrete controls such as dropdowns and segmented filters; keep free-text search explicit unless the draft has debouncing and request-volume safeguards.
 - Scope auto-submit with `fieldIds` when a form mixes automatic filters and manual text inputs.
 - For parameterized detail pages, avoid fallback query values that can flash the wrong entity; gate real detail sections on source status and item length, and show skeletons until the selected entity arrives.
+- When runtime sources are intentionally sequential, mark every source that will load as `loading` before awaiting the first request; otherwise later filtered sources can briefly render as empty while earlier reads are still in flight.

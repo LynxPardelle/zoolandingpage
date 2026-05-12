@@ -12,6 +12,12 @@ export type TRuntimeDataSourceStartOptions = {
 
 type TRemoteStatusState = 'idle' | 'loading' | 'success' | 'empty' | 'error';
 
+type TPreparedRuntimeDataSource = {
+    readonly source: TRuntimeDataSourceConfig;
+    readonly sourceId: string;
+    readonly input: Record<string, unknown> | undefined;
+};
+
 @Injectable({ providedIn: 'root' })
 export class RuntimeDataSourceService {
     private readonly proxy = inject(RuntimeApiProxyClientService);
@@ -38,24 +44,24 @@ export class RuntimeDataSourceService {
     }
 
     private async loadSource(options: TRuntimeDataSourceStartOptions, source: TRuntimeDataSourceConfig): Promise<void> {
-        const sourceId = this.resolveProxySourceId(source);
-        if (this.shouldSkipForQueryParams(source.skipWhenQueryParams)) {
-            return;
-        }
+        const prepared = this.prepareSource(source);
+        if (!prepared) return;
 
-        const input = this.resolveInput(source.input);
-        if (!this.hasRequiredInputValues(source.requiredInputKeys, input)) {
-            return;
-        }
         this.writeStatus(source, 'loading', null);
+        await this.loadPreparedSource(options, prepared);
+    }
 
+    private async loadPreparedSource(
+        options: TRuntimeDataSourceStartOptions,
+        prepared: TPreparedRuntimeDataSource,
+    ): Promise<void> {
         try {
-            const response = await this.readSourceWithRetry(options, sourceId, input);
-            const mapped = this.mapper.mapResponse(response.data, source.mapper);
-            this.writeMappedResult(source, mapped);
-            this.writeStatus(source, this.hasItems(mapped) ? 'success' : 'empty', null);
+            const response = await this.readSourceWithRetry(options, prepared.sourceId, prepared.input);
+            const mapped = this.mapper.mapResponse(response.data, prepared.source.mapper);
+            this.writeMappedResult(prepared.source, mapped);
+            this.writeStatus(prepared.source, this.hasItems(mapped) ? 'success' : 'empty', null);
         } catch (error) {
-            this.writeStatus(source, 'error', error instanceof Error ? error.message : 'API proxy request failed');
+            this.writeStatus(prepared.source, 'error', error instanceof Error ? error.message : 'API proxy request failed');
         }
     }
 
@@ -63,9 +69,29 @@ export class RuntimeDataSourceService {
         options: TRuntimeDataSourceStartOptions,
         sources: readonly TRuntimeDataSourceConfig[],
     ): Promise<void> {
-        for (const source of sources) {
-            await this.loadSource(options, source);
+        const preparedSources = sources
+            .map((source) => this.prepareSource(source))
+            .filter((source): source is TPreparedRuntimeDataSource => !!source);
+
+        preparedSources.forEach((prepared) => this.writeStatus(prepared.source, 'loading', null));
+
+        for (const prepared of preparedSources) {
+            await this.loadPreparedSource(options, prepared);
         }
+    }
+
+    private prepareSource(source: TRuntimeDataSourceConfig): TPreparedRuntimeDataSource | null {
+        const sourceId = this.resolveProxySourceId(source);
+        if (this.shouldSkipForQueryParams(source.skipWhenQueryParams)) {
+            return null;
+        }
+
+        const input = this.resolveInput(source.input);
+        if (!this.hasRequiredInputValues(source.requiredInputKeys, input)) {
+            return null;
+        }
+
+        return { source, sourceId, input };
     }
 
     private async readSourceWithRetry(
