@@ -157,6 +157,25 @@ Supported field transforms are:
 - `uriComponent`: trims and URL-encodes a string for query strings or path segments.
 - `lastPathSegment`: extracts the final segment from a URL/path.
 - `lastPathSegmentNumber`: extracts the final segment and converts it to a number.
+- `titleCase`: converts API labels such as `electric` or `mega-punch` into friendlier display text.
+
+Use `mapper.prependItems` when a runtime API list needs stable local options before upstream records, such as a dropdown `Todos` option before dynamic API filter values:
+
+```json
+{
+  "mapper": {
+    "itemsPath": "results",
+    "prependItems": [{ "value": "all", "label": "Todos" }],
+    "fields": {
+      "value": "name",
+      "label": {
+        "path": "name",
+        "transform": "titleCase"
+      }
+    }
+  }
+}
+```
 
 When an upstream endpoint returns one object instead of an array, set `mapper.singleItem` to `true` so the response is rendered as one mapped item:
 

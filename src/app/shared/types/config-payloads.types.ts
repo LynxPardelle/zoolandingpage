@@ -247,7 +247,8 @@ export type TDraftNavigationRuntimeConfig = {
 export type TRuntimeDataSourceFieldTransform =
     | 'uriComponent'
     | 'lastPathSegment'
-    | 'lastPathSegmentNumber';
+    | 'lastPathSegmentNumber'
+    | 'titleCase';
 
 export type TRuntimeDataSourceFieldMapping =
     | string
@@ -262,6 +263,7 @@ export type TRuntimeDataSourceFieldMapping =
 export type TRuntimeDataSourceMapperConfig = {
     readonly itemsPath?: string | null;
     readonly singleItem?: boolean;
+    readonly prependItems?: readonly Record<string, unknown>[] | null;
     readonly fields?: Record<string, TRuntimeDataSourceFieldMapping> | null;
     readonly metaFields?: Record<string, TRuntimeDataSourceFieldMapping> | null;
 };

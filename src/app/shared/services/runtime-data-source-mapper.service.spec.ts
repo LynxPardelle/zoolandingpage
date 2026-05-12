@@ -179,6 +179,37 @@ describe('RuntimeDataSourceMapperService', () => {
         });
     });
 
+    it('prepends static mapped items and title-cases API labels', () => {
+        const result = service.mapResponse({
+            results: [
+                { name: 'electric' },
+                { name: 'stellar' },
+                { name: 'shadow' },
+            ],
+        }, {
+            itemsPath: 'results',
+            prependItems: [
+                { value: 'all', label: 'Todos' },
+            ],
+            fields: {
+                value: 'name',
+                label: {
+                    path: 'name',
+                    transform: 'titleCase',
+                },
+            },
+        });
+
+        expect(result).toEqual({
+            items: [
+                { value: 'all', label: 'Todos' },
+                { value: 'electric', label: 'Electric' },
+                { value: 'stellar', label: 'Stellar' },
+                { value: 'shadow', label: 'Shadow' },
+            ],
+        });
+    });
+
     it('maps a root array when itemsPath is not configured', () => {
         const result = service.mapResponse([
             { title: 'One', href: '/one' },

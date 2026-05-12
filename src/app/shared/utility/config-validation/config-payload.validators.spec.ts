@@ -382,10 +382,20 @@ describe('config-payload.validators', () => {
                         target: 'remote.pokemon.catalog',
                         mapper: {
                             itemsPath: 'results',
+                            prependItems: [
+                                {
+                                    value: 'all',
+                                    label: 'Todos',
+                                },
+                            ],
                             fields: {
                                 id: {
                                     path: 'url',
                                     transform: 'lastPathSegmentNumber',
+                                },
+                                label: {
+                                    path: 'name',
+                                    transform: 'titleCase',
                                 },
                                 href: {
                                     path: 'name',

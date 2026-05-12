@@ -125,7 +125,7 @@
             "suffix": { "type": "string" },
             "transform": {
               "type": "string",
-              "enum": ["uriComponent", "lastPathSegment", "lastPathSegmentNumber"]
+              "enum": ["uriComponent", "lastPathSegment", "lastPathSegmentNumber", "titleCase"]
             }
           },
           "additionalProperties": false
@@ -137,7 +137,18 @@
         "properties": {
           "itemsPath": { "type": ["string", "null"] },
           "singleItem": { "type": "boolean" },
+          "prependItems": {
+            "type": ["array", "null"],
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
           "fields": {
+            "type": ["object", "null"],
+            "additionalProperties": { "$ref": "#/definitions/runtimeDataSourceFieldMapping" }
+          },
+          "metaFields": {
             "type": ["object", "null"],
             "additionalProperties": { "$ref": "#/definitions/runtimeDataSourceFieldMapping" }
           }

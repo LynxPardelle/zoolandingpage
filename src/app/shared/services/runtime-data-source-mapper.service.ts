@@ -16,10 +16,14 @@ export class RuntimeDataSourceMapperService {
         const items = this.resolveItems(response, mapper);
         const fields = this.asFieldMap(mapper?.fields);
         const metaFields = this.asFieldMap(mapper?.metaFields);
+        const prependItems = this.resolvePrependedItems(mapper?.prependItems);
 
         return {
             ...this.mapMetadata(response, metaFields),
-            items: items.map((item) => this.mapItem(item, fields)),
+            items: [
+                ...prependItems,
+                ...items.map((item) => this.mapItem(item, fields)),
+            ],
         };
     }
 
@@ -73,6 +77,8 @@ export class RuntimeDataSourceMapperService {
                 const parsed = Number(segment);
                 return Number.isFinite(parsed) ? parsed : undefined;
             }
+            case 'titleCase':
+                return this.titleCase(value);
             default:
                 return value;
         }
@@ -91,6 +97,28 @@ export class RuntimeDataSourceMapperService {
         }
 
         return `${ prefix }${ String(value) }${ suffix }`;
+    }
+
+    private titleCase(value: unknown): string {
+        return String(value ?? '')
+            .trim()
+            .split(/([\s_-]+)/)
+            .map((segment) => {
+                if (/^[\s_-]+$/.test(segment)) return segment.replace(/_/g, ' ');
+                return segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase();
+            })
+            .join('')
+            .replace(/\s+/g, ' ');
+    }
+
+    private resolvePrependedItems(value: unknown): readonly unknown[] {
+        if (!Array.isArray(value)) {
+            return [];
+        }
+
+        return value
+            .filter((item) => item && typeof item === 'object' && !Array.isArray(item))
+            .map((item) => this.cloneValue(item));
     }
 
     private asFieldMap(value: unknown): Record<string, TRuntimeDataSourceFieldMapping> {

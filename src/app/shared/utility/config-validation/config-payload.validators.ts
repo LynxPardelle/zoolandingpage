@@ -75,7 +75,7 @@ const ALLOWED_TRACK_OPTIONS = new Set<TTrackOptions>([
 const ALLOWED_RUNTIME_API_ACTION_METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
 const ALLOWED_RUNTIME_DATA_SOURCE_INPUT_SOURCES = new Set(['literal', 'queryParam', 'var', 'queryParamPageOffset']);
 const ALLOWED_RUNTIME_DATA_SOURCE_INPUT_TRANSFORMS = new Set(['trim', 'lowercase', 'uppercase']);
-const ALLOWED_RUNTIME_DATA_SOURCE_FIELD_TRANSFORMS = new Set(['uriComponent', 'lastPathSegment', 'lastPathSegmentNumber']);
+const ALLOWED_RUNTIME_DATA_SOURCE_FIELD_TRANSFORMS = new Set(['uriComponent', 'lastPathSegment', 'lastPathSegmentNumber', 'titleCase']);
 
 const ALLOWED_LOCAL_STORAGE_SLOTS = new Set<TDraftLocalStorageSlot>([
     'theme',
@@ -492,6 +492,10 @@ const isRuntimeDataSourceMapperConfig = (value: unknown): value is TRuntimeDataS
     if (value === null) return true;
     if (!isRecord(value)) return false;
     if (value['itemsPath'] !== undefined && value['itemsPath'] !== null && typeof value['itemsPath'] !== 'string') return false;
+    if (value['prependItems'] !== undefined && value['prependItems'] !== null) {
+        if (!Array.isArray(value['prependItems'])) return false;
+        if (!value['prependItems'].every(isRecord)) return false;
+    }
     if (value['fields'] !== undefined && value['fields'] !== null) {
         if (!isRecord(value['fields'])) return false;
         if (!Object.values(value['fields']).every(isRuntimeDataSourceFieldMapping)) return false;
