@@ -348,3 +348,34 @@ Reusable lessons:
 - For History API based draft navigation, loading state must be set before the old rendered component tree has a chance to evaluate the new query params.
 - Emergency Docker cleanup can remove local-only Dokploy app images; after pruning, check every Swarm service and rebuild missing images before closing access.
 - Recovery notes should record the reusable procedure and outcome, not volatile IDs, IPs, credentials, or raw host-specific details.
+
+### 2026-05-12 12:01 CT - PokeAPI Dynamic Type Options Closeout
+
+Summary:
+
+- The PokeAPI demo type dropdown was previously authored with a short static option list.
+- Runtime data-source mappers now support `prependItems` so local options such as `Todos` can be added before API records.
+- Runtime data-source field mappings now support `titleCase` so API values such as `electric`, `stellar`, and `shadow` can become friendly labels.
+- `pokeapi-demo.zoolandingpage.com.mx` now loads type options from the server-only `pokeapiTypes` integration against PokeAPI `/type`, stores them at `remote.pokemon.typeOptions`, and binds the type dropdown through `valueInstructions`.
+- The draft keeps a complete static fallback type list for first render or upstream failure, but the primary source is dynamic.
+
+Published:
+
+- Draft version: `20260512T174249Z-a3111c2c587b`.
+- Frontend commit: `3c79188`.
+- Testing bundle: `main-JVSVVG5U.js`.
+
+Verified:
+
+- Direct PokeAPI `/type?limit=100&offset=0` returned 21 type names: `normal`, `fighting`, `flying`, `poison`, `ground`, `rock`, `bug`, `ghost`, `steel`, `fire`, `water`, `grass`, `electric`, `psychic`, `ice`, `dragon`, `dark`, `fairy`, `stellar`, `unknown`, and `shadow`.
+- Focused Karma run completed with `58 SUCCESS`.
+- `npm run build` completed successfully.
+- Local QA on `http://127.0.0.1:4203` ran three desktop/mobile cycles confirming the `pokeapiTypes` proxy read returned `200`, all type options were visible in the dropdown, selecting `Fairy` updated the catalog URL and list, and there were no console errors, failed requests, bad responses, or horizontal overflow.
+- Remote QA on `https://test.zoolandingpage.com.mx` repeated the same three desktop/mobile cycles successfully after testing served `main-JVSVVG5U.js`.
+- QA evidence: `Output/pokeapi-demo-qa/20260512-dynamic-types-local/summary.json` and `Output/pokeapi-demo-qa/20260512-dynamic-types-remote/summary.json`.
+
+Reusable lessons:
+
+- Prefer dynamic runtime option sources for API-owned enumerations instead of committing incomplete static lists into drafts.
+- Keep a complete static fallback when the control is critical to first render or must remain usable if the upstream enum endpoint is temporarily unavailable.
+- Use `mapper.prependItems` for author-owned sentinel options such as `Todos`; do not require upstream APIs to provide local UI control values.

@@ -117,6 +117,10 @@ Completed:
 - [x] Pushed frontend commit `1004c3e` to `main`, `dev`, and `test`; testing served bundle `main-2KZQTKCP.js`.
 - [x] Ran three remote desktop/mobile QA cycles with delayed `/api-proxy/read` calls covering dropdown auto-search, button-only typed search, catalog skeletons, detail skeletons, no Pikachu fallback during detail loading, final Charizard load, no failed requests, no console errors, and no horizontal overflow.
 - [x] Recovered the Dokploy host from disk pressure, rebuilt the pruned Lynx frontend image, verified Swarm services at `1/1`, and revoked the temporary SSH ingress rule used for recovery.
+- [x] Replaced the short hardcoded PokeAPI type dropdown with a dynamic `pokeapiTypes` runtime source, `mapper.prependItems`, `titleCase`, and a complete static fallback.
+- [x] Published `pokeapi-demo.zoolandingpage.com.mx` as version `20260512T174249Z-a3111c2c587b`.
+- [x] Pushed frontend commit `3c79188` to `main`, `dev`, and `test`; testing served bundle `main-JVSVVG5U.js`.
+- [x] Ran three local and three remote desktop/mobile QA cycles confirming all 21 current PokeAPI types render, `Fairy` filtering works, and there are no console errors, failed requests, bad responses, or horizontal overflow.
 
 ## Future Workstreams
 
