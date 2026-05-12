@@ -786,6 +786,15 @@ const isInteractionComputedDefinition = (value: unknown): boolean => {
     return true;
 };
 
+const isInteractionAutoSubmitConfig = (value: unknown): boolean => {
+    if (isBooleanThunkFriendly(value)) return true;
+    if (!isRecord(value)) return false;
+    if (value['enabled'] !== undefined && !isBooleanThunkFriendly(value['enabled'])) return false;
+    if (value['eventNames'] !== undefined && !isStringArray(value['eventNames'])) return false;
+    if (value['fieldIds'] !== undefined && !isStringArray(value['fieldIds'])) return false;
+    return true;
+};
+
 const isGenericInputOptionConfig = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
     if (!isStringThunkFriendly(value['label'])) return false;
@@ -1132,6 +1141,7 @@ const isInteractionScopeConfig = (value: unknown): boolean => {
     if (value['tag'] !== undefined && !['div', 'section', 'form'].includes(String(value['tag']))) return false;
     if (value['components'] !== undefined && !isStringArray(value['components'])) return false;
     if (value['initialValues'] !== undefined && !isRecord(value['initialValues'])) return false;
+    if (value['autoSubmit'] !== undefined && !isInteractionAutoSubmitConfig(value['autoSubmit'])) return false;
     if (value['submitEventInstructions'] !== undefined && typeof value['submitEventInstructions'] !== 'string') return false;
     if (value['computations'] !== undefined && (!Array.isArray(value['computations']) || !value['computations'].every(isInteractionComputedDefinition))) {
         return false;

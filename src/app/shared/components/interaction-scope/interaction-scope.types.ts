@@ -1,3 +1,4 @@
+import type { TDynamicBooleanValue } from '@/app/shared/types/component-runtime.types';
 import type { TComponentChild } from '../component-children.types';
 
 export type TInteractionScopeTag = 'div' | 'section' | 'form';
@@ -98,6 +99,12 @@ export type TInteractionScopeSnapshot = {
     readonly computed: Readonly<Record<string, number>>;
 };
 
+export type TInteractionScopeAutoSubmitConfig = {
+    readonly enabled?: TDynamicBooleanValue;
+    readonly eventNames?: readonly string[];
+    readonly fieldIds?: readonly string[];
+};
+
 export type TInteractionScopeConfig = {
     readonly scopeId?: string;
     readonly id?: string;
@@ -108,5 +115,6 @@ export type TInteractionScopeConfig = {
     readonly components?: readonly TComponentChild[];
     readonly initialValues?: Readonly<Record<string, unknown>>;
     readonly computations?: readonly TInteractionComputedDefinition[];
+    readonly autoSubmit?: TDynamicBooleanValue | TInteractionScopeAutoSubmitConfig;
     readonly submitEventInstructions?: string;
 };

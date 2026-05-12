@@ -3,8 +3,8 @@ import { ChangeDetectionStrategy, Component, Injector, OnInit, computed, effect,
 import { ConfigurationsOrchestratorService } from '../../services/configurations-orchestrator';
 import { resolveComponentRootDomId, resolveDynamicValue, resolveTextValue } from '../../utility/component-orchestrator.utility';
 import { WrapperOrchestrator } from '../wrapper-orchestrator/wrapper-orchestrator.component';
-import { InteractionScopeService, type TInteractionScopeHost } from './interaction-scope.service';
-import type { TInteractionScopeConfig, TInteractionScopeTag } from './interaction-scope.types';
+import { InteractionScopeService, type TInteractionScopeAutoSubmitSource, type TInteractionScopeHost } from './interaction-scope.service';
+import type { TInteractionScopeAutoSubmitConfig, TInteractionScopeConfig, TInteractionScopeTag } from './interaction-scope.types';
 
 const normalizeComponentIds = (components: TInteractionScopeConfig['components']): readonly string[] =>
     (components ?? [])
@@ -62,6 +62,7 @@ export class InteractionScopeComponent implements OnInit {
             parentHost: this.parentHost(),
             submitInteractionScope: () => this.submitScope(),
             resetInteractionScope: () => this.scope.reset(),
+            autoSubmitInteractionScope: (source) => this.autoSubmitScope(source),
         };
     });
 
@@ -87,5 +88,78 @@ export class InteractionScopeComponent implements OnInit {
             );
         }
         return snapshot;
+    }
+
+    private autoSubmitScope(source: TInteractionScopeAutoSubmitSource): void {
+        if (!this.shouldAutoSubmit(source)) {
+            return;
+        }
+
+        this.submitScope();
+    }
+
+    private shouldAutoSubmit(source: TInteractionScopeAutoSubmitSource): boolean {
+        const autoSubmit = this.config().autoSubmit;
+        if (autoSubmit == null) {
+            return false;
+        }
+
+        const config = this.resolveAutoSubmitConfig(autoSubmit);
+        if (!config.enabled) {
+            return false;
+        }
+
+        const eventNames = this.normalizeStringList(config.eventNames);
+        const allowedEvents = eventNames.length > 0 ? eventNames : ['valueChanged'];
+        if (!allowedEvents.includes(source.eventName)) {
+            return false;
+        }
+
+        const fieldIds = this.normalizeStringList(config.fieldIds);
+        if (fieldIds.length === 0) {
+            return true;
+        }
+
+        const fieldId = this.resolveEventFieldId(source.eventData);
+        return fieldId ? fieldIds.includes(fieldId) : false;
+    }
+
+    private resolveAutoSubmitConfig(
+        value: TInteractionScopeConfig['autoSubmit'],
+    ): Required<Pick<TInteractionScopeAutoSubmitConfig, 'enabled'>> & Pick<TInteractionScopeAutoSubmitConfig, 'eventNames' | 'fieldIds'> {
+        if (typeof value === 'boolean' || typeof value === 'function') {
+            return {
+                enabled: Boolean(resolveDynamicValue(value)),
+            };
+        }
+
+        const enabled = value?.enabled === undefined
+            ? false
+            : Boolean(resolveDynamicValue(value.enabled));
+
+        return {
+            enabled,
+            eventNames: value?.eventNames,
+            fieldIds: value?.fieldIds,
+        };
+    }
+
+    private normalizeStringList(value: unknown): string[] {
+        return Array.isArray(value)
+            ? value
+                .map((entry) => String(entry ?? '').trim())
+                .filter(Boolean)
+            : [];
+    }
+
+    private resolveEventFieldId(eventData: unknown): string | undefined {
+        if (!eventData || typeof eventData !== 'object' || Array.isArray(eventData)) {
+            return undefined;
+        }
+
+        const fieldId = (eventData as Record<string, unknown>)['fieldId'];
+        return typeof fieldId === 'string' && fieldId.trim().length > 0
+            ? fieldId.trim()
+            : undefined;
     }
 }

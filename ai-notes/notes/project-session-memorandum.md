@@ -285,3 +285,32 @@ Reusable lessons:
 - When an external API exposes an attribute only on per-item detail endpoints, do not show broad list filters for that attribute unless the platform has an explicit enrichment/cache layer.
 - Condition DSL `any:` is now safe for state-driven loading affordances; prefer specific `remoteStatus.*.state` checks over inferred empty-list checks when showing skeletons.
 - Use per-link/action scroll restoration for detail-template navigation so pagination, anchors, and other draft links can keep their existing behavior.
+
+### 2026-05-11 21:33 CT - PokeAPI Auto Search And Detail Skeleton Refinement
+
+Summary:
+
+- Added optional `autoSubmit` support to interaction scopes so authored drafts can choose automatic form submit behavior per event and per field.
+- The PokeAPI demo enables auto-submit for dropdown-style catalog controls: `type`, `attack`, `sort`, and `pageSize`.
+- Name search intentionally remains button-driven so typing in the text field does not call the API or change the URL on every keystroke.
+- The demo includes an authored mode hint that says the current catalog mode is automatic for filter changes and explicit for typed search.
+- The parameterized Pokemon detail page no longer defaults missing `name` input to Pikachu; real detail sections render only after the selected source returns `success` and at least one item.
+- The detail skeleton section now covers initial idle/loading states before the selected Pokemon appears.
+
+Verified locally:
+
+- Focused Karma run completed with `85 SUCCESS`.
+- `npm run build` completed successfully.
+- Local Playwright-core QA on `http://127.0.0.1:4203` completed three desktop/mobile cycles covering dropdown auto-search, manual text search by button, detail skeletons, hidden hero during skeleton, no default Pikachu during loading, final Charizard load, no console errors, no failed requests, no bad responses, and no horizontal overflow.
+- QA evidence: `Output/pokeapi-demo-qa/20260511-autosearch-detail-skeleton/summary.json`.
+
+Published:
+
+- Draft version: `20260512T033323Z-1affb69c5f07`.
+- Runtime-bundle verification through the raw API Gateway runtime endpoint confirmed the published default and `pokemon-detail` pages.
+
+Reusable lessons:
+
+- Use interaction-scope `autoSubmit` for low-risk discrete controls such as dropdowns and segmented filters; keep free-text search explicit unless the draft has debouncing and request-volume safeguards.
+- Scope auto-submit with `fieldIds` when a form mixes automatic filters and manual text inputs.
+- For parameterized detail pages, avoid fallback query values that can flash the wrong entity; gate real detail sections on source status and item length, and show skeletons until the selected entity arrives.

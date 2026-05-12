@@ -126,6 +126,13 @@ export type TInteractionScopeHost = {
     readonly parentHost?: unknown;
     readonly submitInteractionScope?: () => TInteractionScopeSnapshot;
     readonly resetInteractionScope?: () => void;
+    readonly autoSubmitInteractionScope?: (source: TInteractionScopeAutoSubmitSource) => void;
+};
+
+export type TInteractionScopeAutoSubmitSource = {
+    readonly componentId: string;
+    readonly eventName: string;
+    readonly eventData?: unknown;
 };
 
 export const findInteractionScopeHost = (host: unknown): TInteractionScopeHost | undefined => {

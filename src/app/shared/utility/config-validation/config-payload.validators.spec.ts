@@ -770,6 +770,28 @@ describe('config-payload.validators', () => {
         expect(isComponentsPayload(valid)).toBeTrue();
     });
 
+    it('accepts interaction scopes with field-scoped auto-submit config', () => {
+        const valid = createComponentsPayload({
+            catalogControls: {
+                id: 'catalogControls',
+                type: 'interaction-scope',
+                config: {
+                    scopeId: 'pokemonCatalogView',
+                    tag: 'form',
+                    autoSubmit: {
+                        enabled: true,
+                        eventNames: ['valueChanged'],
+                        fieldIds: ['type', 'attack', 'sort', 'pageSize'],
+                    },
+                    submitEventInstructions: 'navigateWithScopeQuery:/,#pokemon-grid,type=values.type,move=values.attack,page=1',
+                    components: ['filterTypeInput'],
+                },
+            },
+        }, TEST_DOMAIN);
+
+        expect(isComponentsPayload(valid)).toBeTrue();
+    });
+
     it('accepts search-box payloads with authored suggestions and trigger config', () => {
         const valid = createComponentsPayload({
             headerSearch: {

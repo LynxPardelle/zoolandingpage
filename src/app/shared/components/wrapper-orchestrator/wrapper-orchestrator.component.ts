@@ -22,6 +22,7 @@ import type { TGenericStatsCounterConfig } from '../generic-stats-counter/generi
 import { GenericTabGroupComponent } from '../generic-tab-group/generic-tab-group.component';
 import { GenericTextComponent } from '../generic-text/generic-text';
 import { InteractionScopeComponent } from '../interaction-scope/interaction-scope.component';
+import { findInteractionScopeHost } from '../interaction-scope/interaction-scope.service';
 
 import { ConditionOrchestrator } from '../../services/condition-orchestrator';
 import { I18nService } from '../../services/i18n.service';
@@ -184,11 +185,18 @@ export class WrapperOrchestrator {
   }
 
   eventEmitted(event: { component: string; meta_title?: string; eventName: string; eventData?: unknown; eventInstructions?: string; }) {
-    this._configurationsOrchestratorService.handleComponentEvent({
+    const dispatchedEvent = {
       componentId: event.component,
       meta_title: event.meta_title,
       eventName: event.eventName, eventData: event.eventData, eventInstructions: event.eventInstructions
-    }, this.effectiveHost());
+    };
+
+    this._configurationsOrchestratorService.handleComponentEvent(dispatchedEvent, this.effectiveHost());
+    findInteractionScopeHost(this.effectiveHost())?.autoSubmitInteractionScope?.({
+      componentId: dispatchedEvent.componentId,
+      eventName: dispatchedEvent.eventName,
+      eventData: dispatchedEvent.eventData,
+    });
   }
 
   unknownComponentLabel(type: unknown): string {

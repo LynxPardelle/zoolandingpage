@@ -108,6 +108,10 @@ Completed:
 - [x] Ran three local desktop/mobile Playwright audit cycles covering skeletons, removed stage controls, filtered pagination, single-result pagination, detail scroll-top, no console errors, no failed requests, and no horizontal overflow.
 - [x] Pushed frontend support to `main`, `dev`, and `test` at commit `9d7543a`, then verified testing after it served `main-XAKQJ6IR.js`.
 - [x] Ran remote testing QA after deployment for default desktop/mobile, filtered thunder-shock catalog, and click-through detail scroll-top.
+- [x] Added field-scoped interaction-scope `autoSubmit` support for dropdown-driven draft catalog filters.
+- [x] Published `pokeapi-demo.zoolandingpage.com.mx` as version `20260512T033323Z-1affb69c5f07` with automatic dropdown filtering, a visible mode hint, and button-driven text search.
+- [x] Updated the Pokemon detail template so it shows skeletons before the selected Pokemon loads instead of flashing the Pikachu fallback.
+- [x] Ran three local desktop/mobile QA cycles covering automatic dropdown search, manual text-submit search, detail skeletons, no default Pikachu during loading, final Charizard load, no failed requests, no console errors, and no horizontal overflow.
 
 ## Future Workstreams
 

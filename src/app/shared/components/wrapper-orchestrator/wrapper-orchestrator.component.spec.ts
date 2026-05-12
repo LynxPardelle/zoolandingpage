@@ -4,6 +4,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ConditionOrchestrator } from '../../services/condition-orchestrator';
 import { ConfigurationsOrchestratorService } from '../../services/configurations-orchestrator';
 import { ValueOrchestrator } from '../../services/value-orchestrator';
+import { InteractionScopeService } from '../interaction-scope/interaction-scope.service';
 import { WrapperOrchestrator } from './wrapper-orchestrator.component';
 import type { TGenericComponent } from './wrapper-orchestrator.types';
 
@@ -13,11 +14,13 @@ describe('WrapperOrchestrator', () => {
   let componentsRevision: ReturnType<typeof signal<number>>;
   let componentsById: Record<string, TGenericComponent>;
   let evaluateCondition: jasmine.Spy;
+  let handleComponentEvent: jasmine.Spy;
 
   beforeEach(async () => {
     componentsRevision = signal(0);
     componentsById = {};
     evaluateCondition = jasmine.createSpy('evaluateCondition').and.returnValue(true);
+    handleComponentEvent = jasmine.createSpy('handleComponentEvent');
 
     await TestBed.configureTestingModule({
       imports: [WrapperOrchestrator],
@@ -27,7 +30,7 @@ describe('WrapperOrchestrator', () => {
           useValue: {
             getComponentById: (id: string) => componentsById[id],
             markComponentRendered: () => { },
-            handleComponentEvent: () => { },
+            handleComponentEvent,
             componentsRevision,
           } satisfies Partial<ConfigurationsOrchestratorService>,
         },
@@ -146,5 +149,38 @@ describe('WrapperOrchestrator', () => {
     expect(button.id).toBe('debugDraftPanelToggleButton-button');
     expect(button.querySelector('#debugDraftPanelToggleButton-button-content')).toBeTruthy();
     expect(button.querySelector('#debugDraftPanelToggleButton-button-content-icon-before')).toBeTruthy();
+  });
+
+  it('offers child value changes to an interaction scope auto-submit hook after dispatching the event', () => {
+    const autoSubmitInteractionScope = jasmine.createSpy('autoSubmitInteractionScope');
+    const scopeHost = {
+      scopeId: 'pokemonCatalogView',
+      interactionScope: new InteractionScopeService(),
+      autoSubmitInteractionScope,
+    };
+
+    fixture.componentRef.setInput('hostContext', scopeHost);
+    fixture.detectChanges();
+
+    component.eventEmitted({
+      component: 'filterTypeInput',
+      eventName: 'valueChanged',
+      eventData: { fieldId: 'type', value: 'electric' },
+      eventInstructions: '',
+    });
+
+    expect(handleComponentEvent).toHaveBeenCalledOnceWith(
+      jasmine.objectContaining({
+        componentId: 'filterTypeInput',
+        eventName: 'valueChanged',
+        eventData: { fieldId: 'type', value: 'electric' },
+      }),
+      scopeHost,
+    );
+    expect(autoSubmitInteractionScope).toHaveBeenCalledOnceWith({
+      componentId: 'filterTypeInput',
+      eventName: 'valueChanged',
+      eventData: { fieldId: 'type', value: 'electric' },
+    });
   });
 });
