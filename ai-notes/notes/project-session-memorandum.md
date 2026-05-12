@@ -379,3 +379,32 @@ Reusable lessons:
 - Prefer dynamic runtime option sources for API-owned enumerations instead of committing incomplete static lists into drafts.
 - Keep a complete static fallback when the control is critical to first render or must remain usable if the upstream enum endpoint is temporarily unavailable.
 - Use `mapper.prependItems` for author-owned sentinel options such as `Todos`; do not require upstream APIs to provide local UI control values.
+
+### 2026-05-12 12:47 CT - PokeAPI Special Types And Boot Curtain Closeout
+
+Summary:
+
+- Direct PokeAPI checks showed `stellar`, `unknown`, and `shadow` are exposed by `/type`, but each currently has `pokemonCount: 0`; `shadow` only returned moves.
+- The PokeAPI demo type dropdown now keeps the dynamic PokeAPI source, but requests the 18 standard Pokemon types and keeps the static fallback aligned to that same set.
+- The boot curtain early-release path now requires static stylesheet coverage for SSR-rendered classes before removing the curtain.
+- If SSR content exists but its authored classes are not covered by static CSS yet, the curtain stays visible until Angular and Angora finish the normal CSS-ready removal path.
+
+Published:
+
+- Draft version: `20260512T183326Z-2a869fdc8d7d`.
+- Frontend commit: `43cce76`.
+- Testing bundle: `main-3NKXSM4W.js`.
+
+Verified:
+
+- Direct PokeAPI calls returned `pokemonCount: 0` for `stellar`, `unknown`, and `shadow`, and `pokemonCount: 88` for `fairy`.
+- Focused Karma run completed with `4 SUCCESS`.
+- `npm run build` completed successfully.
+- Remote Playwright QA completed three desktop/mobile cycles on `https://test.zoolandingpage.com.mx/?draftDomain=pokeapi-demo.zoolandingpage.com.mx&debugWorkspace=false`.
+- QA verified the boot curtain remains visible immediately after `load`, the final hydrated page removes the curtain, the type dropdown contains `Todos` plus the 18 standard types, `Shadow`/`Unknown`/`Stellar` are absent, selecting `Fairy` returns `Pagina 1 de 22 · 88 resultados`, and there are no console errors, failed requests, bad responses, or horizontal overflow.
+- QA evidence: `Output/pokeapi-demo-qa/20260512-special-types-curtain/summary.json`.
+
+Reusable lessons:
+
+- When an upstream enum endpoint mixes standard values with special/internal buckets, verify whether each value has usable records before exposing it as a client-facing filter.
+- For SSR plus deferred hydration, do not remove the static boot curtain just because SSR text exists; first confirm the classes rendered above the fold have static CSS coverage, or wait for the Angora CSS-ready path.

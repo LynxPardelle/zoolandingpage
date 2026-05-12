@@ -121,6 +121,11 @@ Completed:
 - [x] Published `pokeapi-demo.zoolandingpage.com.mx` as version `20260512T174249Z-a3111c2c587b`.
 - [x] Pushed frontend commit `3c79188` to `main`, `dev`, and `test`; testing served bundle `main-JVSVVG5U.js`.
 - [x] Ran three local and three remote desktop/mobile QA cycles confirming all 21 current PokeAPI types render, `Fairy` filtering works, and there are no console errors, failed requests, bad responses, or horizontal overflow.
+- [x] Removed PokeAPI special zero-Pokemon types `Shadow`, `Unknown`, and `Stellar` from the demo type dropdown while keeping the source dynamic for the 18 standard types.
+- [x] Updated boot-curtain early release so SSR content is only exposed before hydration when its classes have static CSS coverage.
+- [x] Published `pokeapi-demo.zoolandingpage.com.mx` as version `20260512T183326Z-2a869fdc8d7d`.
+- [x] Pushed frontend commit `43cce76` to `main`, `dev`, and `test`; testing served bundle `main-3NKXSM4W.js`.
+- [x] Ran three remote desktop/mobile QA cycles confirming the curtain stays visible after `load`, the final hydrated page removes it, `Fairy` returns 88 results, and there are no console errors, failed requests, bad responses, or horizontal overflow.
 
 ## Future Workstreams
 
