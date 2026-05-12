@@ -245,6 +245,8 @@ Published:
 - Draft version: `20260512T010858Z-55255e7a0d81`.
 - Authoring custom domain reset during push/publish; raw fallback authoring endpoint completed both operations.
 - Clean local demo URL: `http://127.0.0.1:4203/?draftDomain=pokeapi-demo.zoolandingpage.com.mx&debugWorkspace=false`.
+- Testing preview after frontend deployment served `main-S3XZZEDP.js`.
+- Remote QA evidence: `Output/pokeapi-demo-qa/remote-final-summary.json`.
 
 Reusable lessons:
 
