@@ -317,3 +317,34 @@ Reusable lessons:
 - Scope auto-submit with `fieldIds` when a form mixes automatic filters and manual text inputs.
 - For parameterized detail pages, avoid fallback query values that can flash the wrong entity; gate real detail sections on source status and item length, and show skeletons until the selected entity arrives.
 - When runtime sources are intentionally sequential, mark every source that will load as `loading` before awaiting the first request; otherwise later filtered sources can briefly render as empty while earlier reads are still in flight.
+
+### 2026-05-11 23:24 CT - PokeAPI Navigation Loading And Remote Closeout
+
+Summary:
+
+- Client-side draft navigation now pre-marks active page runtime data sources as `loading` before the runtime refresh begins.
+- This closes the remote-only flash where selecting a dropdown filter could briefly show `Pagina 1 de 1 · 0 resultados` before the filtered API source completed.
+- The fix preserves sequential runtime-source loading, so the draft avoids request bursts while still showing skeletons immediately.
+
+Verified:
+
+- Frontend commit `1004c3e` was pushed to `main`, `dev`, and `test`.
+- Testing served bundle `main-2KZQTKCP.js`.
+- Focused Karma run completed with `29 SUCCESS`.
+- `npm run build` completed successfully.
+- Remote Playwright-core QA completed three desktop/mobile cycles on `https://test.zoolandingpage.com.mx` with delayed `/api-proxy/read` calls.
+- QA verified dropdown auto-search, button-only typed search, catalog loading skeletons, detail loading skeletons, no Pikachu fallback during detail loading, final Charizard state, no console errors, no failed requests, no bad responses, and no horizontal overflow.
+- QA evidence: `Output/pokeapi-demo-qa/20260511-autosearch-detail-skeleton/remote-after-navigation-fix-summary.json`.
+
+Operations:
+
+- The Dokploy host disk-pressure incident was recovered with Docker cleanup and root-disk expansion.
+- A pruned Lynx frontend image was rebuilt from its Dokploy checkout and the service returned to `1/1`.
+- All Swarm services were confirmed at `1/1`.
+- The temporary SSH ingress rule used for recovery was revoked after verification.
+
+Reusable lessons:
+
+- For History API based draft navigation, loading state must be set before the old rendered component tree has a chance to evaluate the new query params.
+- Emergency Docker cleanup can remove local-only Dokploy app images; after pruning, check every Swarm service and rebuild missing images before closing access.
+- Recovery notes should record the reusable procedure and outcome, not volatile IDs, IPs, credentials, or raw host-specific details.

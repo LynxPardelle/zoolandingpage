@@ -113,6 +113,10 @@ Completed:
 - [x] Updated the Pokemon detail template so it shows skeletons before the selected Pokemon loads instead of flashing the Pikachu fallback.
 - [x] Pre-marked loadable runtime data sources as `loading` before sequential proxy reads so filtered catalog views show skeletons instead of a temporary false empty result.
 - [x] Ran three local desktop/mobile QA cycles covering automatic dropdown search, manual text-submit search, detail skeletons, no default Pikachu during loading, final Charizard load, no failed requests, no console errors, and no horizontal overflow.
+- [x] Fixed the remote navigation-time false empty state by pre-marking active page runtime sources as `loading` before the History API runtime refresh.
+- [x] Pushed frontend commit `1004c3e` to `main`, `dev`, and `test`; testing served bundle `main-2KZQTKCP.js`.
+- [x] Ran three remote desktop/mobile QA cycles with delayed `/api-proxy/read` calls covering dropdown auto-search, button-only typed search, catalog skeletons, detail skeletons, no Pikachu fallback during detail loading, final Charizard load, no failed requests, no console errors, and no horizontal overflow.
+- [x] Recovered the Dokploy host from disk pressure, rebuilt the pruned Lynx frontend image, verified Swarm services at `1/1`, and revoked the temporary SSH ingress rule used for recovery.
 
 ## Future Workstreams
 
