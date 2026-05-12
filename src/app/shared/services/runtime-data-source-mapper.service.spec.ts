@@ -145,6 +145,40 @@ describe('RuntimeDataSourceMapperService', () => {
         });
     });
 
+    it('maps root metadata next to mapped items', () => {
+        const result = service.mapResponse({
+            count: 1350,
+            results: [
+                {
+                    name: 'bulbasaur',
+                    url: 'https://pokeapi.co/api/v2/pokemon/1/',
+                },
+            ],
+        }, {
+            itemsPath: 'results',
+            metaFields: {
+                count: 'count',
+            },
+            fields: {
+                id: {
+                    path: 'url',
+                    transform: 'lastPathSegmentNumber',
+                },
+                name: 'name',
+            },
+        });
+
+        expect(result).toEqual({
+            count: 1350,
+            items: [
+                {
+                    id: 1,
+                    name: 'bulbasaur',
+                },
+            ],
+        });
+    });
+
     it('maps a root array when itemsPath is not configured', () => {
         const result = service.mapResponse([
             { title: 'One', href: '/one' },

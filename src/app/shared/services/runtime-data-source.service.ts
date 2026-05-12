@@ -342,7 +342,7 @@ export class RuntimeDataSourceService {
             && ((value as { readonly items: readonly unknown[] }).items.length > 0);
     }
 
-    private writeMappedResult(source: TRuntimeDataSourceConfig, mapped: { readonly items: readonly unknown[] }): void {
+    private writeMappedResult(source: TRuntimeDataSourceConfig, mapped: { readonly items: readonly unknown[]; readonly [key: string]: unknown }): void {
         if (source.mergeMode !== 'appendItems') {
             this.variables.setRuntimeValue(source.target, mapped);
             return;
@@ -352,6 +352,7 @@ export class RuntimeDataSourceService {
         const existingItems = this.extractItems(existing);
         this.variables.setRuntimeValue(source.target, {
             ...(this.isRecord(existing) ? existing : {}),
+            ...(this.isRecord(mapped) ? mapped : {}),
             items: this.mergeItemsByIdentity(existingItems, mapped.items),
         });
     }

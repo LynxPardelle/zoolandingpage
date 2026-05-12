@@ -263,6 +263,7 @@ export type TRuntimeDataSourceMapperConfig = {
     readonly itemsPath?: string | null;
     readonly singleItem?: boolean;
     readonly fields?: Record<string, TRuntimeDataSourceFieldMapping> | null;
+    readonly metaFields?: Record<string, TRuntimeDataSourceFieldMapping> | null;
 };
 
 export type TRuntimeDataSourceRefreshConfig = {

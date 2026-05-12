@@ -7,6 +7,7 @@ import type {
 
 export type TRuntimeDataSourceMappedResult = {
     readonly items: readonly unknown[];
+    readonly [key: string]: unknown;
 };
 
 @Injectable({ providedIn: 'root' })
@@ -14,8 +15,10 @@ export class RuntimeDataSourceMapperService {
     mapResponse(response: unknown, mapper: TRuntimeDataSourceMapperConfig | null | undefined): TRuntimeDataSourceMappedResult {
         const items = this.resolveItems(response, mapper);
         const fields = this.asFieldMap(mapper?.fields);
+        const metaFields = this.asFieldMap(mapper?.metaFields);
 
         return {
+            ...this.mapMetadata(response, metaFields),
             items: items.map((item) => this.mapItem(item, fields)),
         };
     }
@@ -44,6 +47,17 @@ export class RuntimeDataSourceMapperService {
             acc[targetKey] = value == null ? fallback : this.formatMappedValue(value, prefix, suffix);
             return acc;
         }, {});
+    }
+
+    private mapMetadata(root: unknown, fields: Record<string, TRuntimeDataSourceFieldMapping>): Record<string, unknown> {
+        if (!Object.keys(fields).length) {
+            return {};
+        }
+
+        const mapped = this.mapItem(root, fields);
+        return mapped && typeof mapped === 'object' && !Array.isArray(mapped)
+            ? mapped as Record<string, unknown>
+            : {};
     }
 
     private applyTransform(value: unknown, transform: TRuntimeDataSourceFieldTransform | undefined): unknown {

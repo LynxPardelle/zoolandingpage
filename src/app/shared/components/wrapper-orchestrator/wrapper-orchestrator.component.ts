@@ -13,6 +13,7 @@ import { GenericIconComponent } from '../generic-icon/generic-icon.component';
 import { GenericInputComponent } from '../generic-input/generic-input.component';
 import { GenericLink } from "../generic-link/generic-link";
 import { GenericMedia } from "../generic-media/generic-media";
+import { GenericPaginationComponent } from '../generic-pagination/generic-pagination.component';
 import { GenericSearchBoxComponent } from '../generic-search-box/generic-search-box.component';
 import type { SearchBoxConfig } from '../generic-search-box/generic-search-box.types';
 import { GenericStatsCounterComponent } from '../generic-stats-counter/generic-stats-counter.component';
@@ -49,6 +50,7 @@ import type { TGenericComponent } from './wrapper-orchestrator.types';
     GenericStatsCounterComponent,
     GenericLink,
     GenericMedia,
+    GenericPaginationComponent,
     GenericTabGroupComponent,
   ],
   templateUrl: './wrapper-orchestrator.component.html',
@@ -134,6 +136,10 @@ export class WrapperOrchestrator {
   }
 
   mediaConfig(component: Extract<TGenericComponent, { type: 'media'; }>): Extract<TGenericComponent, { type: 'media'; }>['config'] {
+    return this.withResolvedDomId(component.id, component.type, component.config);
+  }
+
+  paginationConfig(component: Extract<TGenericComponent, { type: 'pagination'; }>): Extract<TGenericComponent, { type: 'pagination'; }>['config'] {
     return this.withResolvedDomId(component.id, component.type, component.config);
   }
 

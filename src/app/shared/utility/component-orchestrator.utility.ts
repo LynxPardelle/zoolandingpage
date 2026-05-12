@@ -362,18 +362,29 @@ function resolveLoopItemsUncached(loop: TLoopConfig, options: TLoopMaterializati
     return applyLoopCollectionView(raw, loop.view, options);
 }
 
-function applyLoopCollectionView(
+export function resolveLoopCollectionViewItems(
     items: readonly unknown[],
     view: TLoopCollectionView | undefined,
     options: TLoopMaterializationOptions,
+    settings: { readonly applyPagination?: boolean } = {},
 ): readonly unknown[] {
     if (!view) return items;
 
     let nextItems = [...items];
     nextItems = applyLoopViewFilters(nextItems, view.filters, options);
     nextItems = applyLoopViewSort(nextItems, view.sort, options);
-    nextItems = applyLoopViewPagination(nextItems, view.pagination, options);
+    if (settings.applyPagination !== false) {
+        nextItems = applyLoopViewPagination(nextItems, view.pagination, options);
+    }
     return nextItems;
+}
+
+function applyLoopCollectionView(
+    items: readonly unknown[],
+    view: TLoopCollectionView | undefined,
+    options: TLoopMaterializationOptions,
+): readonly unknown[] {
+    return resolveLoopCollectionViewItems(items, view, options);
 }
 
 function applyLoopViewFilters(
@@ -499,7 +510,9 @@ function applyLoopViewPagination(
 
     const pageIndexBase = pagination.pageIndexBase === 0 ? 0 : 1;
     const rawPage = normalizePositiveInteger(resolveLoopViewMaybeSource(pagination.page, options)) ?? pageIndexBase;
-    const page = Math.max(pageIndexBase, rawPage);
+    const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
+    const maxPage = pageIndexBase + pageCount - 1;
+    const page = Math.min(maxPage, Math.max(pageIndexBase, rawPage));
     const start = (page - pageIndexBase) * pageSize;
     return [...items].slice(start, start + pageSize);
 }

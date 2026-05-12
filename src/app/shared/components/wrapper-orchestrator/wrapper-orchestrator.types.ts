@@ -10,6 +10,7 @@ import { TGenericIconConfig } from "../generic-icon/generic-icon.types";
 import type { TGenericInputConfig } from "../generic-input/generic-input.types";
 import { TGenericLinkConfig } from "../generic-link/generic-link.types";
 import type { TGenericMediaConfig } from "../generic-media/generic-media.types";
+import type { TGenericPaginationConfig } from "../generic-pagination/generic-pagination.types";
 import type { SearchBoxConfig } from '../generic-search-box/generic-search-box.types';
 import type { TabGroupConfig } from "../generic-tab-group/generic-tab-group.types";
 import { TGenericTextConfig } from "../generic-text/generic-text.types";
@@ -134,6 +135,7 @@ export type TGenericComponentType =
     | 'interaction-scope'
     | 'link'
     | 'media'
+    | 'pagination'
     | 'loading-spinner'
     | 'modal'
     | 'progress-bar'
@@ -221,6 +223,10 @@ export type TGenericComponent = {
         {
             readonly type: 'media';
             readonly config: TGenericMediaConfig;
+        } |
+        {
+            readonly type: 'pagination';
+            readonly config: TGenericPaginationConfig;
         } |
         {
             readonly type: 'stats-counter';

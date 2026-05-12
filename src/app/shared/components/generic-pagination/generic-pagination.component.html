@@ -1,0 +1,37 @@
+@if (visible()) {
+<nav [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()">
+  @if (summaryText()) {
+  <span [class]="summaryClasses()">{{ summaryText() }}</span>
+  }
+  <div [id]="listId()" [class]="listClasses()">
+    @if (showBoundaryLinks()) {
+    <a
+      [href]="previousHref()"
+      [class]="previousDisabled() ? disabledLinkClasses() : linkClasses()"
+      [attr.aria-disabled]="previousDisabled()"
+      (click)="onNavigate($event, previousHref(), previousDisabled())"
+      >{{ previousLabel() }}</a
+    >
+    } @for (item of pageItems(); track item.kind === 'page' ? item.page : item.label + $index) { @if (item.kind ===
+    'page') {
+    <a
+      [href]="item.href"
+      [class]="linkClasses(item)"
+      [attr.aria-current]="item.active ? 'page' : null"
+      (click)="onNavigate($event, item.href)"
+      >{{ item.label }}</a
+    >
+    } @else {
+    <span [class]="ellipsisClasses()" aria-hidden="true">{{ item.label }}</span>
+    } } @if (showBoundaryLinks()) {
+    <a
+      [href]="nextHref()"
+      [class]="nextDisabled() ? disabledLinkClasses() : linkClasses()"
+      [attr.aria-disabled]="nextDisabled()"
+      (click)="onNavigate($event, nextHref(), nextDisabled())"
+      >{{ nextLabel() }}</a
+    >
+    }
+  </div>
+</nav>
+}

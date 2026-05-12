@@ -167,6 +167,12 @@
 </generic-link>
 } @case('media') {
 <generic-media [config]="$any(mediaConfig(component))"></generic-media>
+} @case('pagination') {
+<generic-pagination
+  [config]="$any(paginationConfig(component))"
+  [componentId]="component.id"
+  [hostContext]="effectiveHost()"
+></generic-pagination>
 }@case('text') {
 <generic-text [config]="$any(textConfig(component))">
   <ng-container

@@ -101,6 +101,7 @@ const ALLOWED_COMPONENT_TYPES = new Set([
     'link',
     'media',
     'modal',
+    'pagination',
     'loading-spinner',
     'progress-bar',
     'search-box',
@@ -494,6 +495,10 @@ const isRuntimeDataSourceMapperConfig = (value: unknown): value is TRuntimeDataS
     if (value['fields'] !== undefined && value['fields'] !== null) {
         if (!isRecord(value['fields'])) return false;
         if (!Object.values(value['fields']).every(isRuntimeDataSourceFieldMapping)) return false;
+    }
+    if (value['metaFields'] !== undefined && value['metaFields'] !== null) {
+        if (!isRecord(value['metaFields'])) return false;
+        if (!Object.values(value['metaFields']).every(isRuntimeDataSourceFieldMapping)) return false;
     }
     return true;
 };

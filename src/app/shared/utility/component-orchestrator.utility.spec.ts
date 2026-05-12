@@ -1,5 +1,5 @@
 import type { TGenericComponent } from '../components/wrapper-orchestrator/wrapper-orchestrator.types';
-import { collectAllClassesFromComponents, materializeLoopComponents } from './component-orchestrator.utility';
+import { collectAllClassesFromComponents, materializeLoopComponents, resolveLoopCollectionViewItems } from './component-orchestrator.utility';
 
 describe('collectAllClassesFromComponents', () => {
     it('includes Angora classes declared in dynamic value instruction branches', () => {
@@ -234,6 +234,40 @@ describe('materializeLoopComponents collection view', () => {
 
         expect((resolved.get('pokemonGrid') as any).config.components).toEqual(['pokemonCard__1']);
         expect((resolved.get('pokemonCard__1') as any).config.text).toBe('snorlax');
+    });
+
+    it('clamps paginated loop items when the requested page is beyond the filtered count', () => {
+        const items = [
+            { id: 1, name: 'bulbasaur', matchesMoveFilter: true },
+            { id: 25, name: 'pikachu', matchesMoveFilter: true },
+        ];
+
+        const resolved = resolveLoopCollectionViewItems(items, {
+            filters: [
+                {
+                    path: 'matchesMoveFilter',
+                    op: 'exists',
+                    activeWhen: {
+                        source: { source: 'queryParam', key: 'move', fallback: '__no_move_query__' },
+                        notEquals: '__no_move_query__',
+                    },
+                },
+            ],
+            pagination: {
+                page: { source: 'queryParam', key: 'page', fallback: 1 },
+                pageSize: { source: 'queryParam', key: 'pageSize', fallback: 4 },
+            },
+        }, {
+            sourceComponents: [],
+            warnOnMissingSource: true,
+            getVariable: () => undefined,
+            getI18n: () => undefined,
+            getQueryParam: (key) => ({ move: 'thunder-shock', page: '99', pageSize: '4' } as Record<string, string>)[key],
+            getCurrentLanguage: () => 'es',
+            resolveI18nKey: () => undefined,
+        });
+
+        expect(resolved).toEqual(items);
     });
 
     it('reuses identical loop collection views while materializing card children', () => {

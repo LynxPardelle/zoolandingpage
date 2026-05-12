@@ -220,3 +220,34 @@ Reusable lessons:
 - Do not use `appendItems` for page-index sources; replacing is correct when the same logical list changes page or page size. Reserve append/merge for enrichment sources that intentionally add fields to a selected item.
 - If a card template requires repeated generated children, cache or otherwise share the parent collection view; otherwise a 4-card page can still sort/filter the same source many times.
 - Avoid `@defer (on viewport)` for critical controls unless the placeholder has stable dimensions and is verified to trigger in the target layout.
+
+### 2026-05-11 19:10 CT - PokeAPI Numeric Pagination And Filter QA
+
+Summary:
+
+- Added a reusable `pagination` draft component for numeric page links, previous/next links, summaries, and query-param navigation.
+- Added runtime data-source mapper `metaFields` so root API metadata like PokeAPI `count` can be stored with mapped `items`.
+- The PokeAPI demo uses upstream `count` for the default catalog page count and filtered collection length for query-specific views.
+- Removed the visible dead `Ver ataques` card action from the main catalog and kept move filtering inside the main Pokemon list.
+- Moved `thunder-shock` near the top of the attack selector and gave dropdown overlay panels a higher z-index plus scrollable menus so local debug panels do not block the demo flow.
+- Reduced catalog/UI radii to 8px.
+
+Verified locally:
+
+- `npm run build` completed successfully.
+- Focused Karma run completed with `31 SUCCESS`.
+- Playwright QA on `http://127.0.0.1:4203` completed three audit passes across desktop and mobile, 30 cases total, with no browser console errors.
+- Audited cases covered default page 1 (#1-#4, 338 pages at page size 4), page size 8 (169 pages), `type=electric&move=thunder-shock` (81 results, 21 pages, Pikachu/Raichu first), `pokemon=pikachu` (1 result, 1 page), numeric click to page 2 (#5 first), manual filter flow, mobile horizontal overflow, <= 8px radii, hidden old page input, and absence of `Ver ataques`.
+- QA evidence: `Output/pokeapi-demo-qa/audit-final-summary.json`.
+
+Published:
+
+- Draft version: `20260512T010858Z-55255e7a0d81`.
+- Authoring custom domain reset during push/publish; raw fallback authoring endpoint completed both operations.
+- Clean local demo URL: `http://127.0.0.1:4203/?draftDomain=pokeapi-demo.zoolandingpage.com.mx&debugWorkspace=false`.
+
+Reusable lessons:
+
+- Prefer a reusable pagination component over per-draft numeric page inputs when API-driven lists need client-readable page buttons.
+- Use API root metadata for unfiltered server-paginated totals, then fall back to filtered collection length when active query filters narrow the list locally.
+- In local draft previews, `debugWorkspace=false` is the clean visual URL; localhost otherwise shows the debug workspace by default and its panels can cover lower-page controls.
