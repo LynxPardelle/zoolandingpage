@@ -1,4 +1,5 @@
 import { CLIENT_BOOTSTRAP_DELAY_MS, CLIENT_BOOTSTRAP_READY_EVENT } from './app/core/constants/client-bootstrap.constants';
+import { hasStaticStyleCoverage } from './app/core/utility/static-style-coverage.utility';
 import { environment } from './environments/environment';
 
 const BOOT_CURTAIN_ID = 'zlp-boot-curtain';
@@ -44,6 +45,10 @@ function releaseBootCurtainForStaticSsrContent(): void {
 
     const appRoot = document.querySelector('app-root');
     if (!appRoot || !String(appRoot.textContent ?? '').trim()) {
+        return;
+    }
+
+    if (!hasStaticStyleCoverage(appRoot)) {
         return;
     }
 
