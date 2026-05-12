@@ -33,9 +33,19 @@ export class RuntimeDataSourceService {
         const sources = (options.dataSources ?? [])
             .filter((source) => source.enabled !== false)
             .filter((source) => this.matchesActivePage(source, options.pageId));
-        await this.loadInitialSources(options, sources);
+        const preparedSources = this.prepareSources(sources);
+        this.markPreparedSourcesLoading(preparedSources);
+        await this.loadPreparedSources(options, preparedSources);
 
         sources.forEach((source) => this.scheduleRefresh(options, source));
+    }
+
+    markInitialSourcesLoading(options: Pick<TRuntimeDataSourceStartOptions, 'pageId' | 'dataSources'>): void {
+        const pageId = String(options.pageId ?? '').trim();
+        const sources = (options.dataSources ?? [])
+            .filter((source) => source.enabled !== false)
+            .filter((source) => !pageId || this.matchesActivePage(source, pageId));
+        this.markPreparedSourcesLoading(this.prepareSources(sources));
     }
 
     stop(): void {
@@ -65,19 +75,23 @@ export class RuntimeDataSourceService {
         }
     }
 
-    private async loadInitialSources(
+    private async loadPreparedSources(
         options: TRuntimeDataSourceStartOptions,
-        sources: readonly TRuntimeDataSourceConfig[],
+        preparedSources: readonly TPreparedRuntimeDataSource[],
     ): Promise<void> {
-        const preparedSources = sources
-            .map((source) => this.prepareSource(source))
-            .filter((source): source is TPreparedRuntimeDataSource => !!source);
-
-        preparedSources.forEach((prepared) => this.writeStatus(prepared.source, 'loading', null));
-
         for (const prepared of preparedSources) {
             await this.loadPreparedSource(options, prepared);
         }
+    }
+
+    private prepareSources(sources: readonly TRuntimeDataSourceConfig[]): readonly TPreparedRuntimeDataSource[] {
+        return sources
+            .map((source) => this.prepareSource(source))
+            .filter((source): source is TPreparedRuntimeDataSource => !!source);
+    }
+
+    private markPreparedSourcesLoading(preparedSources: readonly TPreparedRuntimeDataSource[]): void {
+        preparedSources.forEach((prepared) => this.writeStatus(prepared.source, 'loading', null));
     }
 
     private prepareSource(source: TRuntimeDataSourceConfig): TPreparedRuntimeDataSource | null {

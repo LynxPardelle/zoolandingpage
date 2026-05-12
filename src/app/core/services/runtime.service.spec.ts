@@ -54,6 +54,7 @@ describe('RuntimeService', () => {
     const analyticsStartPageEngagementTracking = jasmine.createSpy('startPageEngagementTracking');
     const analyticsStopPageEngagementTracking = jasmine.createSpy('stopPageEngagementTracking');
     const runtimeDataSourcesStart = jasmine.createSpy('runtimeDataSources.start').and.resolveTo(undefined);
+    const runtimeDataSourcesMarkInitialSourcesLoading = jasmine.createSpy('runtimeDataSources.markInitialSourcesLoading');
     const runtimeDataSourcesStop = jasmine.createSpy('runtimeDataSources.stop');
     const prefetchRoute = jasmine.createSpy('prefetchRoute').and.resolveTo(undefined);
     const configureLoadingCurtain = jasmine.createSpy('configureFromDraft');
@@ -130,6 +131,7 @@ describe('RuntimeService', () => {
         analyticsStartPageEngagementTracking.calls.reset();
         analyticsStopPageEngagementTracking.calls.reset();
         runtimeDataSourcesStart.calls.reset();
+        runtimeDataSourcesMarkInitialSourcesLoading.calls.reset();
         runtimeDataSourcesStop.calls.reset();
         prefetchRoute.calls.reset();
         configureLoadingCurtain.calls.reset();
@@ -206,6 +208,7 @@ describe('RuntimeService', () => {
                     provide: RuntimeDataSourceService,
                     useValue: {
                         start: runtimeDataSourcesStart,
+                        markInitialSourcesLoading: runtimeDataSourcesMarkInitialSourcesLoading,
                         stop: runtimeDataSourcesStop,
                     },
                 },
@@ -652,6 +655,58 @@ describe('RuntimeService', () => {
             pageId: 'home',
             dataSources,
         });
+    });
+
+    it('marks runtime data sources loading before refreshing after client navigation', async () => {
+        const service = TestBed.inject(RuntimeService);
+        const host = document.createElement('div');
+        const dataSources = [
+            {
+                id: 'pokemon-type',
+                proxySourceId: 'pokeapiTypePokemon',
+                target: 'remote.pokemon.catalog',
+                statusTarget: 'remoteStatus.pokemon.catalog.type',
+                pageIds: ['home'],
+            },
+        ];
+        loadSiteConfig.and.resolveTo({
+            version: 1,
+            domain: 'pamelabetancourt.com',
+            defaultPageId: 'home',
+            routes: [{ path: '/home', pageId: 'home' }],
+            runtime: {
+                dataSources,
+            },
+            site: {},
+        } as any);
+
+        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com');
+        await service.initialize('es');
+        store.setPageConfig({
+            version: 1,
+            domain: 'pamelabetancourt.com',
+            pageId: 'home',
+            rootIds: ['home-root'],
+            modalRootIds: [],
+        });
+        service.connect({
+            host,
+            destroyRef: { onDestroy: () => undefined } as any,
+            showDebugWorkspace: () => false,
+            currentLanguage: () => 'es',
+        });
+
+        runtimeDataSourcesMarkInitialSourcesLoading.calls.reset();
+        bootstrapLoad.calls.reset();
+        window.history.pushState({}, '', '/home?draftDomain=pamelabetancourt.com&type=electric');
+        window.dispatchEvent(new PopStateEvent('popstate'));
+        await flushPostBootstrapBrowserWork();
+
+        expect(runtimeDataSourcesMarkInitialSourcesLoading).toHaveBeenCalledWith({
+            pageId: 'home',
+            dataSources,
+        });
+        expect(runtimeDataSourcesMarkInitialSourcesLoading).toHaveBeenCalledBefore(bootstrapLoad);
     });
 
     it('stops runtime data sources on disconnect', () => {

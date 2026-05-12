@@ -408,6 +408,7 @@ export class RuntimeService {
                 label: currentBrowserPath(),
             });
 
+            this.markRuntimeDataSourcesLoadingForNavigation();
             const lang = this.currentLanguageResolver?.();
             void this.initialize(lang)
                 .then(() => this.applyConfiguredNavigationScroll())
@@ -418,6 +419,18 @@ export class RuntimeService {
 
         window.addEventListener('popstate', handleNavigation);
         this.navigationUnlisten = () => window.removeEventListener('popstate', handleNavigation);
+    }
+
+    private markRuntimeDataSourcesLoadingForNavigation(): void {
+        const dataSources = this.configStore.siteConfig()?.runtime?.dataSources ?? [];
+        if (!dataSources.length) {
+            return;
+        }
+
+        this.runtimeDataSources.markInitialSourcesLoading?.({
+            pageId: this.configStore.pageConfig()?.pageId,
+            dataSources,
+        });
     }
 
     private applyConfiguredNavigationScroll(): void {

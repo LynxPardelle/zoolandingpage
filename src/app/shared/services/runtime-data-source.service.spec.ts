@@ -127,6 +127,42 @@ describe('RuntimeDataSourceService', () => {
         expect(variables.get('remote.second.items')).toEqual([{ title: 'mapped:secondSource' }]);
     });
 
+    it('marks active navigation data sources as loading without sending proxy requests', () => {
+        window.history.replaceState({}, '', '/?type=electric');
+
+        service.markInitialSourcesLoading({
+            pageId: 'default',
+            dataSources: [
+                {
+                    id: 'catalog-index',
+                    proxySourceId: 'pokeapiPokemonIndex',
+                    target: 'remote.pokemon.catalog',
+                    statusTarget: 'remoteStatus.pokemon.catalog.index',
+                    skipWhenQueryParams: ['type'],
+                },
+                {
+                    id: 'catalog-type',
+                    proxySourceId: 'pokeapiTypePokemon',
+                    target: 'remote.pokemon.catalog',
+                    statusTarget: 'remoteStatus.pokemon.catalog.type',
+                    pageIds: ['default'],
+                    requiredInputKeys: ['type'],
+                    input: {
+                        type: {
+                            source: 'queryParam',
+                            key: 'type',
+                            transforms: ['trim', 'lowercase'],
+                        },
+                    },
+                },
+            ],
+        });
+
+        expect(proxy.readSource).not.toHaveBeenCalled();
+        expect(variables.get('remoteStatus.pokemon.catalog.index.state')).toBeUndefined();
+        expect(variables.get('remoteStatus.pokemon.catalog.type.state')).toBe('loading');
+    });
+
     it('skips data sources scoped to a different page id', async () => {
         proxy.readSource.and.resolveTo({ ok: true, data: { items: [{ name: 'pikachu' }] } });
         mapper.mapResponse.and.returnValue({ items: [{ name: 'pikachu' }] });
