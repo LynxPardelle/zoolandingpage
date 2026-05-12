@@ -1,5 +1,6 @@
 
 import type { TDynamicValue } from '@/app/shared/types/component-runtime.types';
+import type { TDraftNavigationScrollRestorationConfig } from '@/app/shared/types/config-payloads.types';
 import type { TComponentChild } from '../component-children.types';
 
 
@@ -14,5 +15,6 @@ export type TGenericLinkConfig = {
     readonly ariaExpanded?: TDynamicValue<boolean>;
     readonly ariaControls?: TDynamicValue<string>;
     readonly ariaCurrent?: TDynamicValue<boolean | 'page' | 'step' | 'location' | 'true' | 'false'>;
+    readonly scrollRestoration?: TDraftNavigationScrollRestorationConfig;
     readonly components?: readonly TComponentChild[];
 };

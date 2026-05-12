@@ -121,6 +121,18 @@ describe('navigateToUrlHandler', () => {
         expect(window.location.pathname + window.location.search).toBe('/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true');
     });
 
+    it('should optionally scroll to top on internal same-tab navigation', async () => {
+        const handler = TestBed.runInInjectionContext(() => navigateToUrlHandler());
+        const scrollTo = spyOn(window, 'scrollTo');
+
+        handler.handle(context, ['/servicios', '_self', 'top']);
+        await Promise.resolve();
+
+        expect(window.location.pathname + window.location.search).toBe('/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+        expect(scrollTo).toHaveBeenCalledTimes(1);
+        expect(scrollTo.calls.argsFor(0)[0] as ScrollToOptions).toEqual({ top: 0, left: 0, behavior: 'auto' });
+    });
+
     it('should avoid double-encoding unicode internal routes', async () => {
         const handler = TestBed.runInInjectionContext(() => navigateToUrlHandler());
 

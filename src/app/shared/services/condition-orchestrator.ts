@@ -42,7 +42,7 @@ export class ConditionOrchestrator {
         const commands = instructions.split(';').map((s) => s.trim()).filter(Boolean);
         const context: ConditionExecutionContext = { component, host: ctx.host };
 
-        let result = true;
+        let result: boolean | undefined;
         for (const command of commands) {
             const { op, id, rawArgs } = this.parseCommand(command);
             if (!id) continue;
@@ -53,14 +53,14 @@ export class ConditionOrchestrator {
             }
             const resolved = handler.resolve(context, rawArgs);
             if (op === 'all') {
-                result = result && resolved;
+                result = (result ?? true) && resolved;
             } else if (op === 'any') {
-                result = result || resolved;
+                result = (result ?? false) || resolved;
             } else if (op === 'not') {
-                result = result && !resolved;
+                result = (result ?? true) && !resolved;
             }
         }
-        return result;
+        return result ?? true;
     }
 
     private parseCommand(command: string): { op: string; id: string; rawArgs: string[] } {

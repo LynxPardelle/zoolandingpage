@@ -5,6 +5,7 @@ import { DRAFT_RUNTIME_STICKY_QUERY_PARAMS } from '@/app/shared/services/draft-r
 import { LanguageService } from '@/app/shared/services/language.service';
 import { ThemeService } from '@/app/shared/services/theme.service';
 import type { SupportedLanguage } from '@/app/shared/types/navigation.types';
+import type { TDraftNavigationScrollRestorationConfig } from '@/app/shared/types/config-payloads.types';
 import { inject } from '@angular/core';
 import { navigateInCurrentWindow } from '../../navigation/browser-navigation.utility';
 import { resolveNavigationTarget } from '../../navigation/navigation-target.utility';
@@ -93,6 +94,7 @@ export const navigateToUrlHandler = (): EventHandler => {
             });
             const href = resolved.href;
             const target = String(args?.[1] ?? '_self').trim() || '_self';
+            const scrollRestoration = resolveNavigationScrollRestoration(args?.[2]);
 
             if (!href || typeof window === 'undefined') return;
 
@@ -106,10 +108,21 @@ export const navigateToUrlHandler = (): EventHandler => {
                 return;
             }
 
-            navigateInCurrentWindow(href);
+            navigateInCurrentWindow(href, { scrollRestoration });
         },
     };
 };
+
+function resolveNavigationScrollRestoration(value: unknown): TDraftNavigationScrollRestorationConfig | undefined {
+    const mode = String(value ?? '').trim();
+    if (mode === 'top') {
+        return { mode: 'top' };
+    }
+    if (mode === 'preserve') {
+        return { mode: 'preserve' };
+    }
+    return undefined;
+}
 
 export const navigateWithScopeQueryHandler = (): EventHandler => ({
     id: 'navigateWithScopeQuery',

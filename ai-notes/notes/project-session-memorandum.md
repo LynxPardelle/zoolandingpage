@@ -253,3 +253,32 @@ Reusable lessons:
 - Prefer a reusable pagination component over per-draft numeric page inputs when API-driven lists need client-readable page buttons.
 - Use API root metadata for unfiltered server-paginated totals, then fall back to filtered collection length when active query filters narrow the list locally.
 - In local draft previews, `debugWorkspace=false` is the clean visual URL; localhost otherwise shows the debug workspace by default and its panels can cover lower-page controls.
+
+### 2026-05-11 20:45 CT - PokeAPI Loading Skeletons And Stage Filter Decision
+
+Summary:
+
+- Added API loading skeleton sections to the PokeAPI catalog and the parameterized Pokemon detail page.
+- Added per-link `scrollRestoration` and optional `navigateToUrl(..., top)` support so opening Pokemon details returns to the top without forcing global scroll behavior on all drafts.
+- Fixed the condition DSL `any:` operator so it behaves like OR; the skeleton condition depends on `remoteStatus.pokemon.catalog.*.state`.
+- Removed the visible Base/Evolution filter from the PokeAPI demo because the list/type/move endpoints in use do not include `evolves_from_species`.
+- Removed the extra `pokeapi-catalog-search-species` runtime data source from the demo because it only existed for that stage-filter attempt.
+
+Verified locally:
+
+- Focused Karma run completed with `31 SUCCESS`.
+- `npm run build` completed successfully.
+- Playwright QA on `http://127.0.0.1:4203` completed three desktop/mobile cycles covering default load skeletons, filtered load skeletons, removed stage controls, default pagination, `type=electric&move=thunder-shock`, `pokemon=pikachu`, detail navigation scroll-top, detail skeletons, no console errors, no failed requests, and no horizontal overflow.
+- QA evidence: `Output/pokeapi-demo-qa/20260511-loading-stage-audit/summary.json`.
+
+Published:
+
+- Draft version: `20260512T024408Z-07f94c12a922`.
+- Runtime-bundle verification through the raw API Gateway runtime endpoint confirmed default and detail pages on the published version.
+- Authoring publish used the raw fallback after the custom authoring domain reset during publish.
+
+Reusable lessons:
+
+- When an external API exposes an attribute only on per-item detail endpoints, do not show broad list filters for that attribute unless the platform has an explicit enrichment/cache layer.
+- Condition DSL `any:` is now safe for state-driven loading affordances; prefer specific `remoteStatus.*.state` checks over inferred empty-list checks when showing skeletons.
+- Use per-link/action scroll restoration for detail-template navigation so pagination, anchors, and other draft links can keep their existing behavior.

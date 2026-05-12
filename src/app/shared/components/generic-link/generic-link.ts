@@ -142,7 +142,8 @@ export class GenericLink {
     if (target.internal) {
       event.preventDefault();
       navigateInCurrentWindow(href, {
-        scrollRestoration: this.configStore.siteConfig()?.runtime?.navigation?.scrollRestoration,
+        scrollRestoration: this.config().scrollRestoration
+          ?? this.configStore.siteConfig()?.runtime?.navigation?.scrollRestoration,
       });
     }
     this.clicked.emit(event);

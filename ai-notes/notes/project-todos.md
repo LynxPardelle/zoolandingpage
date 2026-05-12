@@ -95,12 +95,17 @@ Completed:
 - [x] Fast-forwarded and pushed `zoolandingpage` `main`, `dev`, and `test` to commit `0df759f` so testing serves the parameterized runtime build.
 - [x] Ran remote testing QA on the PokeAPI home route, direct Charizard detail route, mobile Charizard detail route, and exact-search navigation to `name=charizard`; final loaded states had no failed requests, bad responses, console errors, broken images, horizontal overflow, or visible raw theme icon text.
 - [x] Added reusable loop collection views for API-driven filtering, sorting, and pagination.
-- [x] Added type, evolution-stage, move, sort, and pagination controls to the PokeAPI demo catalog.
+- [x] Added type, move, sort, and pagination controls to the PokeAPI demo catalog.
 - [x] Added real move-name rendering to the parameterized Pokemon detail page.
 - [x] Republished `pokeapi-demo.zoolandingpage.com.mx` as version `20260511T010302Z-b0e0fc2e78a9`.
 - [x] Ran local desktop/mobile browser QA on the updated catalog controls with no console errors, failed requests, bad responses, or horizontal overflow.
 - [x] Pushed `zoolandingpage` `main`, `dev`, and `test` to commit `92db6ff`; testing served bundle `main-MBFHBYEI.js`.
 - [x] Ran remote testing QA on the updated catalog controls and Charizard detail page with no console errors, failed requests, bad responses, or horizontal overflow.
+- [x] Added catalog/detail loading skeletons to the PokeAPI demo.
+- [x] Added detail navigation scroll-to-top behavior for Pokemon card/search navigation.
+- [x] Removed the Base/Evolution catalog filter because the broad PokeAPI list/type/move endpoints do not expose evolution-stage data without per-item enrichment.
+- [x] Republished `pokeapi-demo.zoolandingpage.com.mx` as version `20260512T024408Z-07f94c12a922`.
+- [x] Ran three local desktop/mobile Playwright audit cycles covering skeletons, removed stage controls, filtered pagination, single-result pagination, detail scroll-top, no console errors, no failed requests, and no horizontal overflow.
 
 ## Future Workstreams
 

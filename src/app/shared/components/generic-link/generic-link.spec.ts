@@ -206,6 +206,39 @@ describe('GenericLink', () => {
     expect(scrollTo.calls.argsFor(0)[0] as ScrollToOptions).toEqual({ top: 0, left: 0, behavior: 'auto' });
   });
 
+  it('should let link config override global scroll restoration', () => {
+    store.setSiteConfig({
+      version: 1,
+      domain: 'pamelabetancourt.com',
+      routes: [{ path: '/home', pageId: 'home' }, { path: '/servicios', pageId: 'servicios' }],
+      runtime: {
+        navigation: {
+          scrollRestoration: {
+            mode: 'preserve',
+          },
+        },
+      },
+      site: {} as any,
+    } as any);
+    const scrollTo = spyOn(window, 'scrollTo');
+    fixture.componentRef.setInput('config', {
+      id: 'spec',
+      href: '/servicios',
+      text: 'Servicios',
+      scrollRestoration: {
+        mode: 'top',
+      },
+    });
+    fixture.detectChanges();
+
+    const anchor = fixture.nativeElement.querySelector('a') as HTMLAnchorElement;
+    anchor.click();
+
+    expect(window.location.pathname).toBe('/servicios');
+    expect(scrollTo).toHaveBeenCalledTimes(1);
+    expect(scrollTo.calls.argsFor(0)[0] as ScrollToOptions).toEqual({ top: 0, left: 0, behavior: 'auto' });
+  });
+
   it('should resolve dynamic link metadata without hardcoded component styling assumptions', () => {
     fixture.componentRef.setInput('config', {
       id: () => 'dynamic-link',
