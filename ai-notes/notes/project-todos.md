@@ -106,6 +106,8 @@ Completed:
 - [x] Removed the Base/Evolution catalog filter because the broad PokeAPI list/type/move endpoints do not expose evolution-stage data without per-item enrichment.
 - [x] Republished `pokeapi-demo.zoolandingpage.com.mx` as version `20260512T024408Z-07f94c12a922`.
 - [x] Ran three local desktop/mobile Playwright audit cycles covering skeletons, removed stage controls, filtered pagination, single-result pagination, detail scroll-top, no console errors, no failed requests, and no horizontal overflow.
+- [x] Pushed frontend support to `main`, `dev`, and `test` at commit `9d7543a`, then verified testing after it served `main-XAKQJ6IR.js`.
+- [x] Ran remote testing QA after deployment for default desktop/mobile, filtered thunder-shock catalog, and click-through detail scroll-top.
 
 ## Future Workstreams
 

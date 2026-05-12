@@ -276,6 +276,9 @@ Published:
 - Draft version: `20260512T024408Z-07f94c12a922`.
 - Runtime-bundle verification through the raw API Gateway runtime endpoint confirmed default and detail pages on the published version.
 - Authoring publish used the raw fallback after the custom authoring domain reset during publish.
+- Frontend commit `9d7543a` was pushed to `main`, `dev`, and `test`; testing later served `main-XAKQJ6IR.js`.
+- Remote Playwright QA after deployment covered default desktop/mobile, `type=electric&move=thunder-shock`, and click-through detail scroll-top with no console errors, failed requests, bad responses, or horizontal overflow.
+- Remote QA evidence: `Output/pokeapi-demo-qa/20260511-loading-stage-audit/remote-after-deploy-summary.json`.
 
 Reusable lessons:
 
