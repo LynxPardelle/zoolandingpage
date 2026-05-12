@@ -6,6 +6,8 @@ export type TGenericButtonConfig = {
   readonly id?: string | (() => string);
   /** Button Classes */
   readonly classes?: string | (() => string);
+  /** Optional inline styles */
+  readonly styles?: Readonly<Record<string, string | number | null | undefined>> | (() => Readonly<Record<string, string | number | null | undefined>>);
   /** Native button type attribute */
   readonly type?: 'button' | 'submit' | 'reset' | (() => 'button' | 'submit' | 'reset');
   /** Optional text label; if omitted callers can project their own content */

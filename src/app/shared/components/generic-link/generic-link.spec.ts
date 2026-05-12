@@ -67,6 +67,24 @@ describe('GenericLink', () => {
     expect(anchor.querySelector('#nav-home-link-content-text')?.textContent).toContain('Home');
   });
 
+  it('should resolve dynamic inline styles', () => {
+    fixture.componentRef.setInput('config', {
+      id: 'spec',
+      href: '#home',
+      text: 'Home',
+      styles: () => ({
+        borderColor: '#ee8130',
+        '--link-accent': '#ee8130',
+      }),
+    });
+    fixture.detectChanges();
+
+    const anchor = fixture.nativeElement.querySelector('a') as HTMLAnchorElement;
+
+    expect(anchor.style.borderColor).toBe('rgb(238, 129, 48)');
+    expect(anchor.style.getPropertyValue('--link-accent')).toBe('#ee8130');
+  });
+
   it('should ignore _blank for internal hrefs', () => {
     fixture.componentRef.setInput('config', {
       id: 'spec',

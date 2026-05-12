@@ -485,6 +485,7 @@ const isRuntimeDataSourceFieldMapping = (value: unknown): value is TRuntimeDataS
     if (value['transform'] !== undefined
         && (typeof value['transform'] !== 'string'
             || !ALLOWED_RUNTIME_DATA_SOURCE_FIELD_TRANSFORMS.has(value['transform']))) return false;
+    if (value['lookup'] !== undefined && !isRecord(value['lookup'])) return false;
     return true;
 };
 

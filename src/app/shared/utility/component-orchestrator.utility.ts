@@ -53,6 +53,21 @@ export function resolveDynamicValue<TValue>(value: TDynamicValue<TValue> | null 
     return (value ?? null) as TValue | null;
 }
 
+export function resolveStyleRecord(value: unknown): Readonly<Record<string, string | number | null>> | null {
+    const resolved = resolveDynamicValue<unknown>(value as never);
+    if (!resolved || typeof resolved !== 'object' || Array.isArray(resolved)) {
+        return null;
+    }
+
+    return Object.entries(resolved as Record<string, unknown>)
+        .reduce<Record<string, string | number | null>>((acc, [key, entryValue]) => {
+            if (entryValue == null || typeof entryValue === 'string' || typeof entryValue === 'number') {
+                acc[key] = entryValue ?? null;
+            }
+            return acc;
+        }, {});
+}
+
 export function resolveConfigSourceValue(
     source: TComponentItemsSource | null | undefined,
     fallbackValue: unknown,

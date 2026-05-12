@@ -88,6 +88,24 @@ describe('GenericButtonComponent', () => {
     expect(button.getAttribute('aria-label')).toBe('Submit dynamic label');
   });
 
+  it('should resolve dynamic inline styles', () => {
+    const fixture = TestBed.createComponent(GenericButtonComponent);
+
+    fixture.componentRef.setInput('config', {
+      label: 'Dynamic style',
+      styles: () => ({
+        backgroundColor: '#ee8130',
+        '--button-accent': '#ee8130',
+      }),
+    });
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+
+    expect(button.style.backgroundColor).toBe('rgb(238, 129, 48)');
+    expect(button.style.getPropertyValue('--button-accent')).toBe('#ee8130');
+  });
+
   it('should not invoke handlers when disabled', () => {
     const fixture = TestBed.createComponent(GenericButtonComponent);
     const component = fixture.componentInstance;

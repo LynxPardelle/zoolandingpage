@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, EventEmitter, Output, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Output, computed, inject, input } from '@angular/core';
 import { DRAFT_RUNTIME_STICKY_QUERY_PARAMS } from '../../services/draft-runtime.service';
 import { ConfigStoreService } from '../../services/config-store.service';
-import { composeDomId, resolveComponentRootDomId, resolveDynamicValue } from '../../utility/component-orchestrator.utility';
+import { composeDomId, resolveComponentRootDomId, resolveDynamicValue, resolveStyleRecord } from '../../utility/component-orchestrator.utility';
 import { navigateInCurrentWindow } from '../../utility/navigation/browser-navigation.utility';
 import { resolveNavigationTarget } from '../../utility/navigation/navigation-target.utility';
 
@@ -22,6 +22,7 @@ export class GenericLink {
   readonly config = input.required<TGenericLinkConfig>();
   readonly componentId = input<string | undefined>(undefined);
   readonly eventInstructions = input<string | undefined>(undefined);
+  readonly styles = computed(() => resolveStyleRecord(this.config().styles));
 
   @Output() clicked = new EventEmitter<MouseEvent>();
 

@@ -34,6 +34,6 @@ export type TGenericContainerConfig = {
     componentTemplates?: Readonly<Record<string, TemplateRef<unknown>>>;
 
     /** Optional inline styles and class map. */
-    styles?: Readonly<Record<string, string | null | undefined>>;
-    classMap?: Readonly<Record<string, boolean>>;
+    styles?: TDynamicValue<Readonly<Record<string, string | number | null | undefined>>>;
+    classMap?: TDynamicValue<Readonly<Record<string, boolean>>>;
 };

@@ -7,7 +7,7 @@ import {
   computed,
   input
 } from "@angular/core";
-import { composeDomId, resolveComponentRootDomId } from '../../utility/component-orchestrator.utility';
+import { composeDomId, resolveComponentRootDomId, resolveStyleRecord } from '../../utility/component-orchestrator.utility';
 import { GenericIconComponent } from "../generic-icon/generic-icon.component";
 import type { TGenericButtonConfig } from "./generic-button.types";
 
@@ -76,6 +76,7 @@ export class GenericButtonComponent {
     (String(this.resolve(this.config().classes) ||
       "btnBase") + (this.loading() ? " ank-cursor-wait ank-opacity-80" : ""))
   );
+  readonly styles = computed(() => resolveStyleRecord(this.config().styles));
   readonly iconClass = computed<string>(
     () => String(this.resolve(this.config().iconClasses) || "btnIcon")
   );

@@ -64,4 +64,22 @@ describe('GenericTextComponent', () => {
     expect(paragraph.id).toBe('intro-text');
     expect(content?.textContent).toContain('Hello world');
   });
+
+  it('should resolve dynamic inline styles', () => {
+    fixture.componentRef.setInput('config', {
+      tag: 'p',
+      text: 'Styled text',
+      styles: () => ({
+        color: '#ee8130',
+        '--text-accent': '#ee8130',
+      }),
+    });
+
+    fixture.detectChanges();
+
+    const paragraph = fixture.nativeElement.querySelector('p') as HTMLParagraphElement;
+
+    expect(paragraph.style.color).toBe('rgb(238, 129, 48)');
+    expect(paragraph.style.getPropertyValue('--text-accent')).toBe('#ee8130');
+  });
 });

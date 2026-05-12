@@ -24,6 +24,7 @@ export type TGenericTextConfig = {
     html?: TDynamicStringValue;
 
     classes?: TDynamicStringValue;
+    styles?: TDynamicValue<Readonly<Record<string, string | number | null | undefined>>>;
     id?: TDynamicStringValue;
 
     ariaLabel?: TDynamicStringValue;

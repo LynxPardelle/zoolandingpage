@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, input, SecurityContext } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
-import { composeDomId, resolveComponentDomIdBase, resolveComponentRootDomId, resolveDynamicValue } from '../../utility/component-orchestrator.utility';
+import { composeDomId, resolveComponentDomIdBase, resolveComponentRootDomId, resolveDynamicValue, resolveStyleRecord } from '../../utility/component-orchestrator.utility';
 import { GenericTextTag, TGenericTextConfig } from './generic-text.types';
 
 type TRenderedGenericTextTag = GenericTextTag | 'div';
@@ -37,6 +37,7 @@ export class GenericTextComponent {
     return resolveDynamicValue(this.config().text) ?? '';
   });
   readonly classes = computed(() => resolveDynamicValue(this.config().classes) ?? '');
+  readonly styles = computed(() => resolveStyleRecord(this.config().styles));
   readonly baseId = computed(() => resolveComponentDomIdBase(this.config().id, this.componentId()));
   readonly id = computed(() => resolveComponentRootDomId(this.config().id, this.componentId(), 'text') ?? null);
   readonly contentId = computed(() => composeDomId(this.id() ?? this.baseId(), 'content') ?? null);

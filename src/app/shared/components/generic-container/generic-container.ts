@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import type { TemplateRef } from '@angular/core';
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import { resolveComponentRootDomId, resolveDynamicValue } from '../../utility/component-orchestrator.utility';
+import { resolveComponentRootDomId, resolveDynamicValue, resolveStyleRecord } from '../../utility/component-orchestrator.utility';
 import type { GenericContainerComponentTag, TGenericContainerConfig } from './generic-container.types';
 @Component({
   selector: 'generic-container',
@@ -30,8 +30,8 @@ export class GenericContainerComponent {
   readonly ariaLabelledby = computed<string | undefined>(() => this.resolveOptionalString(this.config().ariaLabelledby));
   readonly ariaDescribedby = computed<string | undefined>(() => this.resolveOptionalString(this.config().ariaDescribedby));
 
-  readonly classMap = computed(() => this.config().classMap ?? null);
-  readonly styles = computed(() => this.config().styles ?? null);
+  readonly classMap = computed(() => this.resolveBooleanRecord(this.config().classMap));
+  readonly styles = computed(() => resolveStyleRecord(this.config().styles));
 
   readonly components = computed<readonly string[]>(() =>
     (this.config().components ?? [])
@@ -58,4 +58,20 @@ export class GenericContainerComponent {
     const resolved = this.resolveString(value).trim();
     return resolved.length > 0 ? resolved : undefined;
   }
+
+  private resolveBooleanRecord(value: unknown): Readonly<Record<string, boolean>> | null {
+    const resolved = resolveDynamicValue<unknown>(value as never);
+    if (!resolved || typeof resolved !== 'object' || Array.isArray(resolved)) {
+      return null;
+    }
+
+    return Object.entries(resolved as Record<string, unknown>)
+      .reduce<Record<string, boolean>>((acc, [key, entryValue]) => {
+        if (typeof entryValue === 'boolean') {
+          acc[key] = entryValue;
+        }
+        return acc;
+      }, {});
+  }
+
 }

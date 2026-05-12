@@ -44,11 +44,13 @@ export class RuntimeDataSourceMapperService {
         return Object.entries(fields).reduce<Record<string, unknown>>((acc, [targetKey, mapping]) => {
             const path = typeof mapping === 'string' ? mapping : mapping.path;
             const fallback = typeof mapping === 'string' ? undefined : mapping.fallback;
+            const lookup = typeof mapping === 'string' ? undefined : mapping.lookup;
             const prefix = typeof mapping === 'string' ? '' : String(mapping.prefix ?? '');
             const suffix = typeof mapping === 'string' ? '' : String(mapping.suffix ?? '');
             const transform = typeof mapping === 'string' ? undefined : mapping.transform;
             const value = this.applyTransform(this.resolvePath(item, path), transform);
-            acc[targetKey] = value == null ? fallback : this.formatMappedValue(value, prefix, suffix);
+            const lookedUpValue = this.applyLookup(value, lookup, fallback);
+            acc[targetKey] = lookedUpValue == null ? fallback : this.formatMappedValue(lookedUpValue, prefix, suffix);
             return acc;
         }, {});
     }
@@ -97,6 +99,30 @@ export class RuntimeDataSourceMapperService {
         }
 
         return `${ prefix }${ String(value) }${ suffix }`;
+    }
+
+    private applyLookup(
+        value: unknown,
+        lookup: Readonly<Record<string, unknown>> | undefined,
+        fallback: unknown,
+    ): unknown {
+        if (value == null || !lookup || Array.isArray(lookup) || typeof lookup !== 'object') {
+            return value;
+        }
+
+        const rawKey = String(value).trim();
+        if (!rawKey) {
+            return fallback;
+        }
+
+        if (Object.prototype.hasOwnProperty.call(lookup, rawKey)) {
+            return lookup[rawKey];
+        }
+
+        const normalizedKey = rawKey.toLowerCase();
+        return Object.prototype.hasOwnProperty.call(lookup, normalizedKey)
+            ? lookup[normalizedKey]
+            : fallback;
     }
 
     private titleCase(value: unknown): string {

@@ -3,75 +3,75 @@
 </ng-template>
 
 @switch (tag()) { @case ('h1') { @if (useHtml()) {
-<h1 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></h1>
+<h1 [id]="id()" [class]="classes()" [ngStyle]="styles()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></h1>
 } @else {
-<h1 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()">
+<h1 [id]="id()" [class]="classes()" [ngStyle]="styles()" [attr.aria-label]="ariaLabel()">
   <ng-container [ngTemplateOutlet]="textTpl"></ng-container>
 </h1>
 } } @case ('h2') { @if (useHtml()) {
-<h2 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></h2>
+<h2 [id]="id()" [class]="classes()" [ngStyle]="styles()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></h2>
 } @else {
-<h2 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()">
+<h2 [id]="id()" [class]="classes()" [ngStyle]="styles()" [attr.aria-label]="ariaLabel()">
   <ng-container [ngTemplateOutlet]="textTpl"></ng-container>
 </h2>
 } } @case ('h3') { @if (useHtml()) {
-<h3 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></h3>
+<h3 [id]="id()" [class]="classes()" [ngStyle]="styles()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></h3>
 } @else {
-<h3 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()">
+<h3 [id]="id()" [class]="classes()" [ngStyle]="styles()" [attr.aria-label]="ariaLabel()">
   <ng-container [ngTemplateOutlet]="textTpl"></ng-container>
 </h3>
 } } @case ('h4') { @if (useHtml()) {
-<h4 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></h4>
+<h4 [id]="id()" [class]="classes()" [ngStyle]="styles()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></h4>
 } @else {
-<h4 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()">
+<h4 [id]="id()" [class]="classes()" [ngStyle]="styles()" [attr.aria-label]="ariaLabel()">
   <ng-container [ngTemplateOutlet]="textTpl"></ng-container>
 </h4>
 } } @case ('h5') { @if (useHtml()) {
-<h5 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></h5>
+<h5 [id]="id()" [class]="classes()" [ngStyle]="styles()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></h5>
 } @else {
-<h5 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()">
+<h5 [id]="id()" [class]="classes()" [ngStyle]="styles()" [attr.aria-label]="ariaLabel()">
   <ng-container [ngTemplateOutlet]="textTpl"></ng-container>
 </h5>
 } } @case ('h6') { @if (useHtml()) {
-<h6 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></h6>
+<h6 [id]="id()" [class]="classes()" [ngStyle]="styles()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></h6>
 } @else {
-<h6 [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()">
+<h6 [id]="id()" [class]="classes()" [ngStyle]="styles()" [attr.aria-label]="ariaLabel()">
   <ng-container [ngTemplateOutlet]="textTpl"></ng-container>
 </h6>
 } } @case ('span') { @if (useHtml()) {
-<span [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></span>
+<span [id]="id()" [class]="classes()" [ngStyle]="styles()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></span>
 } @else {
-<span [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()"
+<span [id]="id()" [class]="classes()" [ngStyle]="styles()" [attr.aria-label]="ariaLabel()"
   ><ng-container [ngTemplateOutlet]="textTpl"></ng-container
 ></span>
 } } @case ('small') { @if (useHtml()) {
-<small [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></small>
+<small [id]="id()" [class]="classes()" [ngStyle]="styles()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></small>
 } @else {
-<small [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()"
+<small [id]="id()" [class]="classes()" [ngStyle]="styles()" [attr.aria-label]="ariaLabel()"
   ><ng-container [ngTemplateOutlet]="textTpl"></ng-container
 ></small>
 } } @case ('strong') { @if (useHtml()) {
-<strong [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></strong>
+<strong [id]="id()" [class]="classes()" [ngStyle]="styles()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></strong>
 } @else {
-<strong [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()"
+<strong [id]="id()" [class]="classes()" [ngStyle]="styles()" [attr.aria-label]="ariaLabel()"
   ><ng-container [ngTemplateOutlet]="textTpl"></ng-container
 ></strong>
 } } @case ('em') { @if (useHtml()) {
-<em [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></em>
+<em [id]="id()" [class]="classes()" [ngStyle]="styles()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></em>
 } @else {
-<em [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()"
+<em [id]="id()" [class]="classes()" [ngStyle]="styles()" [attr.aria-label]="ariaLabel()"
   ><ng-container [ngTemplateOutlet]="textTpl"></ng-container
 ></em>
 } } @case ('p') { @if (useHtml()) {
-<p [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></p>
+<p [id]="id()" [class]="classes()" [ngStyle]="styles()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></p>
 } @else {
-<p [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()">
+<p [id]="id()" [class]="classes()" [ngStyle]="styles()" [attr.aria-label]="ariaLabel()">
   <ng-container [ngTemplateOutlet]="textTpl"></ng-container>
 </p>
 } } @case ('div') {
-<div [id]="id()" [class]="classes()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></div>
+<div [id]="id()" [class]="classes()" [ngStyle]="styles()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></div>
 } @default { @if (useHtml()) {
-<span [attr.id]="contentId()" [innerHTML]="safeHtml()"></span>
+<span [attr.id]="contentId()" [ngStyle]="styles()" [innerHTML]="safeHtml()"></span>
 } @else {
 <ng-container [ngTemplateOutlet]="textTpl"></ng-container>
 } } }

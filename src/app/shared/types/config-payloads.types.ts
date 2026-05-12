@@ -255,6 +255,7 @@ export type TRuntimeDataSourceFieldMapping =
     | {
         readonly path: string;
         readonly fallback?: unknown;
+        readonly lookup?: Readonly<Record<string, unknown>>;
         readonly prefix?: string;
         readonly suffix?: string;
         readonly transform?: TRuntimeDataSourceFieldTransform;

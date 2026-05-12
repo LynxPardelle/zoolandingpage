@@ -69,4 +69,36 @@ describe('GenericContainerComponent', () => {
     const element = fixture.nativeElement.querySelector('section') as HTMLElement | null;
     expect(element?.id).toBe('hero-container');
   });
+
+  it('should resolve dynamic class maps', () => {
+    fixture.componentRef.setInput('config', {
+      tag: 'div',
+      classMap: () => ({
+        active: true,
+        hidden: false,
+      }),
+    });
+
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement.querySelector('div') as HTMLElement | null;
+    expect(element?.classList.contains('active')).toBeTrue();
+    expect(element?.classList.contains('hidden')).toBeFalse();
+  });
+
+  it('should resolve dynamic inline styles', () => {
+    fixture.componentRef.setInput('config', {
+      tag: 'div',
+      styles: () => ({
+        '--card-accent': '#f7b731',
+        opacity: 1,
+      }),
+    });
+
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement.querySelector('div') as HTMLElement | null;
+    expect(element?.style.getPropertyValue('--card-accent')).toBe('#f7b731');
+    expect(element?.style.opacity).toBe('1');
+  });
 });

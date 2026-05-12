@@ -145,6 +145,75 @@ describe('RuntimeDataSourceMapperService', () => {
         });
     });
 
+    it('can lookup a mapped value into a reusable style object', () => {
+        const result = service.mapResponse({
+            items: [
+                { category: 'Featured' },
+            ],
+        }, {
+            itemsPath: 'items',
+            fields: {
+                categoryTheme: {
+                    path: 'category',
+                    lookup: {
+                        featured: {
+                            '--card-accent': '#f7b731',
+                            '--card-ink': '#1d1605',
+                        },
+                    },
+                    fallback: {
+                        '--card-accent': '#6c7a89',
+                        '--card-ink': '#ffffff',
+                    },
+                },
+            },
+        });
+
+        expect(result).toEqual({
+            items: [
+                {
+                    categoryTheme: {
+                        '--card-accent': '#f7b731',
+                        '--card-ink': '#1d1605',
+                    },
+                },
+            ],
+        });
+    });
+
+    it('uses lookup fallback when the mapped value has no configured entry', () => {
+        const result = service.mapResponse({
+            items: [
+                { category: 'archived' },
+            ],
+        }, {
+            itemsPath: 'items',
+            fields: {
+                categoryTheme: {
+                    path: 'category',
+                    lookup: {
+                        active: {
+                            '--card-accent': '#2ecc71',
+                        },
+                    },
+                    fallback: {
+                        '--card-accent': '#6c7a89',
+                    },
+                },
+            },
+        });
+
+        expect(result).toEqual({
+            items: [
+                {
+                    categoryTheme: {
+                        '--card-accent': '#6c7a89',
+                    },
+                },
+            ],
+        });
+    });
+
     it('maps root metadata next to mapped items', () => {
         const result = service.mapResponse({
             count: 1350,

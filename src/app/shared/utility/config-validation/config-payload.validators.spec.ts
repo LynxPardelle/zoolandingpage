@@ -412,6 +412,70 @@ describe('config-payload.validators', () => {
         expect(isDraftSiteConfigPayload(payload)).toBeTrue();
     });
 
+    it('accepts runtime data source mapper lookups', () => {
+        const payload = {
+            version: 1,
+            domain: 'preview.example.test',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: minimalSiteConfig(),
+            runtime: {
+                dataSources: [
+                    {
+                        id: 'content-feed',
+                        target: 'remote.content.feed',
+                        mapper: {
+                            itemsPath: 'items',
+                            fields: {
+                                visualTokens: {
+                                    path: 'category',
+                                    lookup: {
+                                        featured: {
+                                            '--card-accent': '#f7b731',
+                                        },
+                                    },
+                                    fallback: {
+                                        '--card-accent': '#6c7a89',
+                                    },
+                                },
+                            },
+                        },
+                    },
+                ],
+            },
+        };
+
+        expect(isDraftSiteConfigPayload(payload)).toBeTrue();
+    });
+
+    it('rejects malformed runtime data source mapper lookups', () => {
+        const payload = {
+            version: 1,
+            domain: 'preview.example.test',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: minimalSiteConfig(),
+            runtime: {
+                dataSources: [
+                    {
+                        id: 'content-feed',
+                        target: 'remote.content.feed',
+                        mapper: {
+                            fields: {
+                                visualTokens: {
+                                    path: 'category',
+                                    lookup: [
+                                        ['featured', { '--card-accent': '#f7b731' }],
+                                    ],
+                                },
+                            },
+                        },
+                    },
+                ],
+            },
+        };
+
+        expect(isDraftSiteConfigPayload(payload)).toBeFalse();
+    });
+
     it('rejects unknown runtime data source mapper transforms', () => {
         const payload = {
             version: 1,

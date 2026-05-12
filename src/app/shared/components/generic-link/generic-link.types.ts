@@ -9,6 +9,7 @@ export type TGenericLinkConfig = {
     readonly href: TDynamicValue<string>;
     readonly text?: TDynamicValue<string>;
     readonly classes?: TDynamicValue<string>;
+    readonly styles?: TDynamicValue<Readonly<Record<string, string | number | null | undefined>>>;
     readonly target?: TDynamicValue<'_self' | '_blank' | '_parent' | '_top'>;
     readonly rel?: TDynamicValue<string>;
     readonly ariaLabel?: TDynamicValue<string>;

@@ -3,6 +3,7 @@
   [attr.type]="type()"
   [disabled]="disabled() || loading()"
   [class]="classes()"
+  [ngStyle]="styles()"
   [attr.tabindex]="tabIndex() ?? null"
   [attr.aria-busy]="loading() ? 'true' : null"
   [attr.role]="role() || null"
