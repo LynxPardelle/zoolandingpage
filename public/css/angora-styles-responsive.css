@@ -1302,3 +1302,18 @@
   .ank-hSEL__COM_detailSkeletonTitleBlock-md-112px, .detailSkeletonTitleBlock { height: 112px; }
   .ank-gtcSEL__COM_detailProfileGrid-md-repeatSD2COM1frED, .detailProfileGrid { grid-template-columns: repeat(2, 1fr); }
 }
+@media only screen and (min-width: 992px) {
+  .ank-gtcSEL__COM_gridCards-lg-repeatSD3COM1frED, .gridCards { grid-template-columns: repeat(3, 1fr); }
+  html .ank-gtcSEL__COM_gridCards-lg-repeatSD3COM1frED, .gridCards { grid-template-columns: repeat(3, 1fr); }
+  html body .ank-gtcSEL__COM_gridCards-lg-repeatSD3COM1frED, .gridCards { grid-template-columns: repeat(3, 1fr); }
+  html body #ank-bp .ank-gtcSEL__COM_gridCards-lg-repeatSD3COM1frED, .gridCards { grid-template-columns: repeat(3, 1fr); }
+  #ank-bp .ank-gtcSEL__COM_gridCards-lg-repeatSD3COM1frED, .gridCards { grid-template-columns: repeat(3, 1fr); }
+  .ank-gtcSEL__COM_heroInner-lg-1_02fr__0_98fr, .heroInner { grid-template-columns: 1.02fr 0.98fr; }
+  html .ank-gtcSEL__COM_heroInner-lg-1_02fr__0_98fr, .heroInner { grid-template-columns: 1.02fr 0.98fr; }
+  html body .ank-gtcSEL__COM_heroInner-lg-1_02fr__0_98fr, .heroInner { grid-template-columns: 1.02fr 0.98fr; }
+  html body #ank-bp .ank-gtcSEL__COM_heroInner-lg-1_02fr__0_98fr, .heroInner { grid-template-columns: 1.02fr 0.98fr; }
+  #ank-bp .ank-gtcSEL__COM_heroInner-lg-1_02fr__0_98fr, .heroInner { grid-template-columns: 1.02fr 0.98fr; }
+  .ank-gSEL__COM_heroInner-lg-42px, .heroInner { gap: 42px; }
+  .ank-fsSEL__COM_heroTitle-lg-5_6rem, .heroTitle { font-size: 5.6rem; }
+  .ank-gtcSEL__COM_pokemonGrid-lg-repeatSD4COM1frED, .pokemonGrid { grid-template-columns: repeat(4, 1fr); }
+}

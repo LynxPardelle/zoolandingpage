@@ -101,6 +101,8 @@ export type TInteractionScopeSnapshot = {
 
 export type TInteractionScopeAutoSubmitConfig = {
     readonly enabled?: TDynamicBooleanValue;
+    readonly enabledFieldId?: string;
+    readonly enabledPath?: string;
     readonly eventNames?: readonly string[];
     readonly fieldIds?: readonly string[];
 };

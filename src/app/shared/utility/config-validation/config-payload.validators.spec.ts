@@ -854,11 +854,48 @@ describe('config-payload.validators', () => {
                     tag: 'form',
                     autoSubmit: {
                         enabled: true,
+                        enabledFieldId: 'autoSearch',
                         eventNames: ['valueChanged'],
                         fieldIds: ['type', 'attack', 'sort', 'pageSize'],
                     },
                     submitEventInstructions: 'navigateWithScopeQuery:/,#pokemon-grid,type=values.type,move=values.attack,page=1',
                     components: ['filterTypeInput'],
+                },
+            },
+        }, TEST_DOMAIN);
+
+        expect(isComponentsPayload(valid)).toBeTrue();
+    });
+
+    it('accepts switch inputs and autocomplete options', () => {
+        const valid = createComponentsPayload({
+            catalogSearch: {
+                id: 'catalogSearch',
+                type: 'input',
+                config: {
+                    fieldId: 'pokemon',
+                    controlType: 'text',
+                    inputType: 'search',
+                    autocompleteOptions: [
+                        { value: 'bulbasaur', label: 'Bulbasaur' },
+                        { value: 'charmander', label: 'Charmander' },
+                    ],
+                },
+            },
+            autoSearchSwitch: {
+                id: 'autoSearchSwitch',
+                type: 'input',
+                config: {
+                    fieldId: 'autoSearch',
+                    controlType: 'switch',
+                    value: true,
+                    label: 'Auto search',
+                    fieldClasses: 'autoSearchSwitch',
+                    inputClasses: 'autoSearchSwitchInput',
+                    switchTrackClasses: 'autoSearchSwitchTrack',
+                    switchTrackActiveClasses: 'autoSearchSwitchTrackActive',
+                    switchThumbClasses: 'autoSearchSwitchThumb',
+                    switchThumbActiveClasses: 'autoSearchSwitchThumbActive',
                 },
             },
         }, TEST_DOMAIN);

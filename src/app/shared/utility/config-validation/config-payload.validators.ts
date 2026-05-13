@@ -795,6 +795,8 @@ const isInteractionAutoSubmitConfig = (value: unknown): boolean => {
     if (isBooleanThunkFriendly(value)) return true;
     if (!isRecord(value)) return false;
     if (value['enabled'] !== undefined && !isBooleanThunkFriendly(value['enabled'])) return false;
+    if (value['enabledFieldId'] !== undefined && typeof value['enabledFieldId'] !== 'string') return false;
+    if (value['enabledPath'] !== undefined && typeof value['enabledPath'] !== 'string') return false;
     if (value['eventNames'] !== undefined && !isStringArray(value['eventNames'])) return false;
     if (value['fieldIds'] !== undefined && !isStringArray(value['fieldIds'])) return false;
     return true;
@@ -812,11 +814,15 @@ const isGenericInputConfig = (value: unknown): boolean => {
     if (typeof value['fieldId'] !== 'string' || value['fieldId'].trim().length === 0) return false;
 
     const controlType = value['controlType'];
-    if (!['text', 'textarea', 'number', 'range', 'checkbox', 'select', 'file', 'button-group'].includes(String(controlType ?? ''))) {
+    if (!['text', 'textarea', 'number', 'range', 'checkbox', 'switch', 'select', 'file', 'button-group'].includes(String(controlType ?? ''))) {
         return false;
     }
 
     if (value['options'] !== undefined && (!Array.isArray(value['options']) || !value['options'].every(isGenericInputOptionConfig))) {
+        return false;
+    }
+
+    if (value['autocompleteOptions'] !== undefined && (!Array.isArray(value['autocompleteOptions']) || !value['autocompleteOptions'].every(isGenericInputOptionConfig))) {
         return false;
     }
 
@@ -838,6 +844,10 @@ const isGenericInputConfig = (value: unknown): boolean => {
         'helperTextClasses',
         'fieldClasses',
         'inputClasses',
+        'switchTrackClasses',
+        'switchTrackActiveClasses',
+        'switchThumbClasses',
+        'switchThumbActiveClasses',
         'dropdownTriggerClasses',
         'dropdownIndicatorText',
         'dropdownIndicatorClasses',

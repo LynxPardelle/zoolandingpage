@@ -100,6 +100,67 @@ describe('GenericInputComponent', () => {
         );
     });
 
+    it('renders autocomplete options for text inputs without submitting the field', () => {
+        const fixture = TestBed.createComponent(GenericInputComponent);
+
+        fixture.componentRef.setInput('config', {
+            fieldId: 'pokemon',
+            controlType: 'text',
+            inputType: 'search',
+            value: '',
+            autocompleteOptions: [
+                { value: 'bulbasaur', label: 'Bulbasaur' },
+                { value: 'charmander', label: 'Charmander' },
+            ],
+        });
+        fixture.detectChanges();
+
+        const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+        const datalist = fixture.nativeElement.querySelector('datalist') as HTMLDataListElement;
+
+        expect(input.getAttribute('list')).toBe('pokemon-autocomplete');
+        expect(datalist.id).toBe('pokemon-autocomplete');
+        expect(Array.from(datalist.querySelectorAll('option')).map((option) => option.value)).toEqual([
+            'bulbasaur',
+            'charmander',
+        ]);
+    });
+
+    it('renders a switch control and coerces string booleans safely', () => {
+        const fixture = TestBed.createComponent(GenericInputComponent);
+        const component = fixture.componentInstance;
+        spyOn(component.valueChanged, 'emit');
+
+        fixture.componentRef.setInput('config', {
+            fieldId: 'autoSearch',
+            controlType: 'switch',
+            value: 'false',
+            label: 'Auto search',
+            fieldClasses: 'switchField',
+            inputClasses: 'switchInput',
+            switchTrackClasses: 'switchTrack',
+            switchTrackActiveClasses: 'switchTrackActive',
+            switchThumbClasses: 'switchThumb',
+            switchThumbActiveClasses: 'switchThumbActive',
+        });
+        fixture.detectChanges();
+
+        const input = fixture.nativeElement.querySelector('input[type="checkbox"]') as HTMLInputElement;
+        expect(input.checked).toBeFalse();
+        expect(input.getAttribute('role')).toBe('switch');
+        expect(fixture.nativeElement.querySelector('.switchTrackActive')).toBeFalsy();
+
+        input.checked = true;
+        input.dispatchEvent(new Event('change'));
+        fixture.detectChanges();
+
+        expect(component.valueChanged.emit).toHaveBeenCalledWith(
+            jasmine.objectContaining({ fieldId: 'autoSearch', value: true })
+        );
+        expect(fixture.nativeElement.querySelector('.switchTrackActive')).toBeTruthy();
+        expect(fixture.nativeElement.querySelector('.switchThumbActive')).toBeTruthy();
+    });
+
     it('renders the selected option label and payload-owned select indicator for select controls', () => {
         const fixture = TestBed.createComponent(GenericInputComponent);
 

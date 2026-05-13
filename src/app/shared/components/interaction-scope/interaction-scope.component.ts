@@ -105,7 +105,7 @@ export class InteractionScopeComponent implements OnInit {
         }
 
         const config = this.resolveAutoSubmitConfig(autoSubmit);
-        if (!config.enabled) {
+        if (!this.isAutoSubmitEnabled(config)) {
             return false;
         }
 
@@ -126,7 +126,7 @@ export class InteractionScopeComponent implements OnInit {
 
     private resolveAutoSubmitConfig(
         value: TInteractionScopeConfig['autoSubmit'],
-    ): Required<Pick<TInteractionScopeAutoSubmitConfig, 'enabled'>> & Pick<TInteractionScopeAutoSubmitConfig, 'eventNames' | 'fieldIds'> {
+    ): Required<Pick<TInteractionScopeAutoSubmitConfig, 'enabled'>> & Pick<TInteractionScopeAutoSubmitConfig, 'enabledFieldId' | 'enabledPath' | 'eventNames' | 'fieldIds'> {
         if (typeof value === 'boolean' || typeof value === 'function') {
             return {
                 enabled: Boolean(resolveDynamicValue(value)),
@@ -139,9 +139,45 @@ export class InteractionScopeComponent implements OnInit {
 
         return {
             enabled,
+            enabledFieldId: value?.enabledFieldId,
+            enabledPath: value?.enabledPath,
             eventNames: value?.eventNames,
             fieldIds: value?.fieldIds,
         };
+    }
+
+    private isAutoSubmitEnabled(
+        config: Required<Pick<TInteractionScopeAutoSubmitConfig, 'enabled'>> & Pick<TInteractionScopeAutoSubmitConfig, 'enabledFieldId' | 'enabledPath'>,
+    ): boolean {
+        if (!this.coerceBoolean(config.enabled)) {
+            return false;
+        }
+
+        const enabledPath = this.resolveAutoSubmitEnabledPath(config);
+        if (!enabledPath) {
+            return true;
+        }
+
+        return this.coerceBoolean(this.scope.resolvePath(enabledPath));
+    }
+
+    private resolveAutoSubmitEnabledPath(config: Pick<TInteractionScopeAutoSubmitConfig, 'enabledFieldId' | 'enabledPath'>): string {
+        const explicitPath = String(config.enabledPath ?? '').trim();
+        if (explicitPath) return explicitPath;
+
+        const fieldId = String(config.enabledFieldId ?? '').trim();
+        return fieldId ? `values.${ fieldId }` : '';
+    }
+
+    private coerceBoolean(value: unknown): boolean {
+        const resolved = resolveDynamicValue(value as never);
+        if (typeof resolved === 'boolean') return resolved;
+        if (typeof resolved === 'number') return resolved !== 0;
+        const normalized = String(resolved ?? '').trim().toLowerCase();
+        if (!normalized) return false;
+        if (['false', '0', 'off', 'no', 'null', 'undefined'].includes(normalized)) return false;
+        if (['true', '1', 'on', 'yes'].includes(normalized)) return true;
+        return Boolean(resolved);
     }
 
     private normalizeStringList(value: unknown): string[] {

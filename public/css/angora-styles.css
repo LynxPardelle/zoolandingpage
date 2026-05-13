@@ -1892,6 +1892,70 @@
 .ank-boSEL__COM_detailMoveChip-1px__solid__secondaryAccentColor, .detailMoveChip { border: 1px solid rgb(98, 196, 138); }
 .ank-boSEL__COM_detailProfilePanel-1px__solid__secondaryAccentColor, .detailProfilePanel { border: 1px solid rgb(98, 196, 138); }
 .ank-roundedSEL__COM_detailAbilityChip-8px, .detailAbilityChip { border-radius: 8px; }
+.ank-wmnSEL__COM_catalogAutoSearch-0, .catalogAutoSearch { min-width: 0px; }
+.ank-dSEL__COM_catalogSwitchField-flex, .catalogSwitchField { display: flex; }
+.ank-aiSEL__COM_catalogSwitchField-center, .catalogSwitchField { align-items: center; }
+.ank-gSEL__COM_catalogSwitchField-12px, .catalogSwitchField { gap: 12px; }
+.ank-hmnSEL__COM_catalogSwitchField-46px, .catalogSwitchField { min-height: 46px; }
+.ank-paddingInlineSEL__COM_catalogSwitchField-13px, .catalogSwitchField { padding-inline: 13px; }
+.ank-paddingBlockSEL__COM_catalogSwitchField-10px, .catalogSwitchField { padding-block: 10px; }
+.ank-roundedSEL__COM_catalogSwitchField-8px, .catalogSwitchField { border-radius: 8px; }
+.ank-curSEL__COM_catalogSwitchField-pointer, .catalogSwitchField { cursor: pointer; }
+.ank-posSEL__COM_catalogSwitchInput-absolute, .catalogSwitchInput { position: absolute; }
+.ank-wSEL__COM_catalogSwitchInput-1px, .catalogSwitchInput { width: 1px; }
+.ank-hSEL__COM_catalogSwitchInput-1px, .catalogSwitchInput { height: 1px; }
+.ank-oSEL__COM_catalogSwitchInput-0, .catalogSwitchInput { opacity: 0; }
+.ank-pevSEL__COM_catalogSwitchInput-none, .catalogSwitchInput { pointer-events: none; }
+.ank-dSEL__COM_catalogSwitchTrack-flex, .catalogSwitchTrack { display: flex; }
+.ank-aiSEL__COM_catalogSwitchTrack-center, .catalogSwitchTrack { align-items: center; }
+.ank-fshSEL__COM_catalogSwitchTrack-0, .catalogSwitchTrack { flex-shrink: 0; }
+.ank-wSEL__COM_catalogSwitchTrack-52px, .catalogSwitchTrack { width: 52px; }
+.ank-hSEL__COM_catalogSwitchTrack-30px, .catalogSwitchTrack { height: 30px; }
+.ank-roundedSEL__COM_catalogSwitchTrack-8px, .catalogSwitchTrack { border-radius: 8px; }
+.ank-transitionSEL__COM_catalogSwitchTrack-all, .catalogSwitchTrack { transition: all; }
+.ank-dSEL__COM_catalogSwitchThumb-block, .catalogSwitchThumb { display: block; }
+.ank-wSEL__COM_catalogSwitchThumb-20px, .catalogSwitchThumb { width: 20px; }
+.ank-hSEL__COM_catalogSwitchThumb-20px, .catalogSwitchThumb { height: 20px; }
+.ank-msSEL__COM_catalogSwitchThumb-4px, .catalogSwitchThumb { margin-left: 4px; }
+.ank-roundedSEL__COM_catalogSwitchThumb-6px, .catalogSwitchThumb { border-radius: 6px; }
+.ank-transitionSEL__COM_catalogSwitchThumb-all, .catalogSwitchThumb { transition: all; }
+.ank-msSEL__COM_catalogSwitchThumbActive-26px, .catalogSwitchThumbActive { margin-left: 26px; }
+.ank-oSEL__COM_catalogSwitchText-0_86, .catalogSwitchText { opacity: 0.86; }
+.ank-fsSEL__COM_catalogSwitchText-0_82rem, .catalogSwitchText { font-size: 0.82rem; }
+.ank-fwgSEL__COM_catalogSwitchText-780, .catalogSwitchText { font-weight: 780; }
+.ank-lhSEL__COM_catalogSwitchText-1_35, .catalogSwitchText { line-height: 1.35; }
+.ank-dSEL__COM_heroFeatureRail-flex, .heroFeatureRail { display: flex; }
+.ank-fwrSEL__COM_heroFeatureRail-wrap, .heroFeatureRail { flex-wrap: wrap; }
+.ank-gSEL__COM_heroFeatureRail-8px, .heroFeatureRail { gap: 8px; }
+.ank-mtSEL__COM_heroFeatureRail-2px, .heroFeatureRail { margin-top: 2px; }
+.ank-mSEL__COM_heroFeaturePill-0, .heroFeaturePill { margin: 0px; }
+.ank-dSEL__COM_heroFeaturePill-flex, .heroFeaturePill { display: flex; }
+.ank-aiSEL__COM_heroFeaturePill-center, .heroFeaturePill { align-items: center; }
+.ank-hmnSEL__COM_heroFeaturePill-34px, .heroFeaturePill { min-height: 34px; }
+.ank-paddingInlineSEL__COM_heroFeaturePill-11px, .heroFeaturePill { padding-inline: 11px; }
+.ank-paddingBlockSEL__COM_heroFeaturePill-7px, .heroFeaturePill { padding-block: 7px; }
+.ank-roundedSEL__COM_heroFeaturePill-8px, .heroFeaturePill { border-radius: 8px; }
+.ank-fsSEL__COM_heroFeaturePill-0_82rem, .heroFeaturePill { font-size: 0.82rem; }
+.ank-fwgSEL__COM_heroFeaturePill-850, .heroFeaturePill { font-weight: 850; }
+.ank-lstSEL__COM_heroFeaturePill-0, .heroFeaturePill { letter-spacing: 0px; }
+.ank-bgSEL__COM_heroFeaturePill-bgColor, .heroFeaturePill { --ank-surface-background-color: rgba(22,19,15, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(22, 19, 15); }
+.ank-bgSEL__COM_heroFeaturePill-bgColor *, .heroFeaturePill * { --ank-surface-background-color: initial; --ank-surface-background-image: initial; --ank-surface-background-position: initial; --ank-surface-background-size: initial; --ank-surface-background-repeat: initial; --ank-surface-background-origin: initial; --ank-surface-background-clip: initial; --ank-surface-background-attachment: initial; --ank-text-gradient-image: initial; --ank-text-gradient-position: initial; --ank-text-gradient-size: initial; --ank-text-gradient-origin: initial; --ank-text-gradient-shadow: initial; --ank-text-gradient-fill-color: initial; }
+.ank-bgSEL__COM_catalogSwitchField-bgColor, .catalogSwitchField { --ank-surface-background-color: rgba(22,19,15, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(22, 19, 15); }
+.ank-bgSEL__COM_catalogSwitchField-bgColor *, .catalogSwitchField * { --ank-surface-background-color: initial; --ank-surface-background-image: initial; --ank-surface-background-position: initial; --ank-surface-background-size: initial; --ank-surface-background-repeat: initial; --ank-surface-background-origin: initial; --ank-surface-background-clip: initial; --ank-surface-background-attachment: initial; --ank-text-gradient-image: initial; --ank-text-gradient-position: initial; --ank-text-gradient-size: initial; --ank-text-gradient-origin: initial; --ank-text-gradient-shadow: initial; --ank-text-gradient-fill-color: initial; }
+.ank-textSEL__COM_catalogSwitchText-textColor, .catalogSwitchText { color: rgb(242, 234, 216); }
+.ank-textSEL__COM_heroFeaturePill-titleColor, .heroFeaturePill { color: rgb(255, 248, 230); }
+.ank-bgSEL__COM_catalogSwitchThumb-titleColor, .catalogSwitchThumb { --ank-surface-background-color: rgba(255,248,230, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(255, 248, 230); }
+.ank-bgSEL__COM_catalogSwitchThumb-titleColor *, .catalogSwitchThumb * { --ank-surface-background-color: initial; --ank-surface-background-image: initial; --ank-surface-background-position: initial; --ank-surface-background-size: initial; --ank-surface-background-repeat: initial; --ank-surface-background-origin: initial; --ank-surface-background-clip: initial; --ank-surface-background-attachment: initial; --ank-text-gradient-image: initial; --ank-text-gradient-position: initial; --ank-text-gradient-size: initial; --ank-text-gradient-origin: initial; --ank-text-gradient-shadow: initial; --ank-text-gradient-fill-color: initial; }
+.ank-bgSEL__COM_catalogSwitchTrack-secondaryBgColor, .catalogSwitchTrack { --ank-surface-background-color: rgba(34,29,22, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(34, 29, 22); }
+.ank-bgSEL__COM_catalogSwitchTrack-secondaryBgColor *, .catalogSwitchTrack * { --ank-surface-background-color: initial; --ank-surface-background-image: initial; --ank-surface-background-position: initial; --ank-surface-background-size: initial; --ank-surface-background-repeat: initial; --ank-surface-background-origin: initial; --ank-surface-background-clip: initial; --ank-surface-background-attachment: initial; --ank-text-gradient-image: initial; --ank-text-gradient-position: initial; --ank-text-gradient-size: initial; --ank-text-gradient-origin: initial; --ank-text-gradient-shadow: initial; --ank-text-gradient-fill-color: initial; }
+.ank-boSEL__COM_heroFeaturePill-1px__solid__secondaryAccentColor, .heroFeaturePill { border: 1px solid rgb(98, 196, 138); }
+.ank-boSEL__COM_catalogSwitchField-1px__solid__secondaryAccentColor, .catalogSwitchField { border: 1px solid rgb(98, 196, 138); }
+.ank-boSEL__COM_catalogSwitchTrack-1px__solid__secondaryAccentColor, .catalogSwitchTrack { border: 1px solid rgb(98, 196, 138); }
+.ank-bgSEL__COM_catalogSwitchTrackActive-secondaryAccentColor, .catalogSwitchTrackActive { --ank-surface-background-color: rgba(98,196,138, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(98, 196, 138); }
+.ank-bgSEL__COM_catalogSwitchTrackActive-secondaryAccentColor *, .catalogSwitchTrackActive * { --ank-surface-background-color: initial; --ank-surface-background-image: initial; --ank-surface-background-position: initial; --ank-surface-background-size: initial; --ank-surface-background-repeat: initial; --ank-surface-background-origin: initial; --ank-surface-background-clip: initial; --ank-surface-background-attachment: initial; --ank-text-gradient-image: initial; --ank-text-gradient-position: initial; --ank-text-gradient-size: initial; --ank-text-gradient-origin: initial; --ank-text-gradient-shadow: initial; --ank-text-gradient-fill-color: initial; }
+.ank-bcoSEL__COM_catalogSwitchTrackActive-secondaryAccentColor, .catalogSwitchTrackActive { border-color: rgb(98, 196, 138); }
+.ank-bgSEL__COM_catalogSwitchThumbActive-onSuccessColor, .catalogSwitchThumbActive { --ank-surface-background-color: rgba(5,27,13, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(5, 27, 13); }
+.ank-bgSEL__COM_catalogSwitchThumbActive-onSuccessColor *, .catalogSwitchThumbActive * { --ank-surface-background-color: initial; --ank-surface-background-image: initial; --ank-surface-background-position: initial; --ank-surface-background-size: initial; --ank-surface-background-repeat: initial; --ank-surface-background-origin: initial; --ank-surface-background-clip: initial; --ank-surface-background-attachment: initial; --ank-text-gradient-image: initial; --ank-text-gradient-position: initial; --ank-text-gradient-size: initial; --ank-text-gradient-origin: initial; --ank-text-gradient-shadow: initial; --ank-text-gradient-fill-color: initial; }
 .ank-d-none { display: none; }
 .ank-pos-absolute { position: absolute; }
 .ank-start-16px { left: 16px; }
@@ -2278,6 +2342,11 @@
 .ank-bco-secondaryAccentColor { border-color: rgb(98, 196, 138); }
 .ank-bgSEL__COM_debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL-secondaryAccentColor, .debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL { --ank-surface-background-color: rgba(98,196,138, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(98, 196, 138); }
 .ank-boSEL__COM_debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL-2px__solid__secondaryAccentColor, .debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL { border: 2px solid rgb(98, 196, 138); }
+.ank-bg-bgColor { --ank-surface-background-color: rgba(240,237,231, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(240, 237, 231); }
+.ank-text-bgColor { color: rgb(240, 237, 231); }
+.ank-bg-bgColorOPA__0_92 { --ank-surface-background-color: rgba(240,237,231,0.92); --ank-text-gradient-fill-color: initial; background-color: rgba(240, 237, 231, 0.92); }
+.ank-color-textColor { color: rgb(46, 45, 45); }
+.ank-text-textColor { color: rgb(46, 45, 45); }
 .ank-bco-textColorOPA__0_12 { border-color: rgba(46, 45, 45, 0.12); }
 .ank-text-textColorOPA__0_72 { color: rgba(46, 45, 45, 0.72); }
 .ank-bco-textColorOPA__0_14 { border-color: rgba(46, 45, 45, 0.14); }
@@ -2289,16 +2358,11 @@
 .ank-bg-textColorOPA__0_05 { --ank-surface-background-color: rgba(46,45,45,0.05); --ank-text-gradient-fill-color: initial; background-color: rgba(46, 45, 45, 0.05); }
 .ank-bco-textColorOPA__0_06 { border-color: rgba(46, 45, 45, 0.06); }
 .ank-textSEL__COM_debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL-textColor, .debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL { color: rgb(46, 45, 45); }
-.ank-bgSEL__COM_debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL-secondaryAccentColor, .debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL { --ank-surface-background-color: rgba(25,159,150, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(25, 159, 150); }
-.ank-boSEL__COM_debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL-2px__solid__secondaryAccentColor, .debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL { border: 2px solid rgb(25, 159, 150); }
 .ank-bg-accentColor { --ank-surface-background-color: rgba(193,164,47, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(193, 164, 47); }
-.ank-text-bgColor { color: rgb(240, 237, 231); }
-.ank-bg-bgColorOPA__0_92 { --ank-surface-background-color: rgba(240,237,231,0.92); --ank-text-gradient-fill-color: initial; background-color: rgba(240, 237, 231, 0.92); }
-.ank-text-textColor { color: rgb(46, 45, 45); }
 .ank-bg-secondaryBgColor { --ank-surface-background-color: rgba(229,210,191, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(229, 210, 191); }
 .ank-text-secondaryTextColor { color: rgb(25, 54, 63); }
 .ank-text-secondaryTitleColor { color: rgb(22, 48, 56); }
 .ank-bg-secondaryAccentColor { --ank-surface-background-color: rgba(25,159,150, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(25, 159, 150); }
 .ank-bco-secondaryAccentColor { border-color: rgb(25, 159, 150); }
-.ank-bg-bgColor { --ank-surface-background-color: rgba(240,237,231, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(240, 237, 231); }
-.ank-color-textColor { color: rgb(46, 45, 45); }
+.ank-bgSEL__COM_debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL-secondaryAccentColor, .debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL { --ank-surface-background-color: rgba(25,159,150, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(25, 159, 150); }
+.ank-boSEL__COM_debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL-2px__solid__secondaryAccentColor, .debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL { border: 2px solid rgb(25, 159, 150); }

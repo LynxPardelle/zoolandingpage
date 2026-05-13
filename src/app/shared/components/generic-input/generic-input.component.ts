@@ -55,6 +55,10 @@ export class GenericInputComponent {
     readonly helperTextClasses = computed(() => this.asString(this.config().helperTextClasses));
     readonly fieldClasses = computed(() => this.asString(this.config().fieldClasses));
     readonly inputClasses = computed(() => this.asString(this.config().inputClasses));
+    readonly switchTrackClasses = computed(() => this.asString(this.config().switchTrackClasses));
+    readonly switchTrackActiveClasses = computed(() => this.asString(this.config().switchTrackActiveClasses));
+    readonly switchThumbClasses = computed(() => this.asString(this.config().switchThumbClasses));
+    readonly switchThumbActiveClasses = computed(() => this.asString(this.config().switchThumbActiveClasses));
     readonly dropdownTriggerClasses = computed(() => this.asString(this.config().dropdownTriggerClasses));
     readonly dropdownIndicatorText = computed(() => this.asString(this.config().dropdownIndicatorText));
     readonly dropdownIndicatorClasses = computed(() => this.asString(this.config().dropdownIndicatorClasses));
@@ -84,6 +88,11 @@ export class GenericInputComponent {
         const resolved = this.resolveValue(this.config().options);
         return Array.isArray(resolved) ? resolved.filter((entry): entry is TGenericInputOption => !!entry && typeof entry === 'object') : [];
     });
+    readonly autocompleteOptions = computed<readonly TGenericInputOption[]>(() => {
+        const resolved = this.resolveValue(this.config().autocompleteOptions);
+        return Array.isArray(resolved) ? resolved.filter((entry): entry is TGenericInputOption => !!entry && typeof entry === 'object') : [];
+    });
+    readonly autocompleteListId = computed(() => `${ this.fieldId() || 'input' }-autocomplete`);
     readonly dropdownItems = computed<readonly DropdownItem[]>(() =>
         this.options().map((option, index) => ({
             id: `${ this.fieldId() }-${ index }-${ String(option.value) }`,
@@ -112,7 +121,15 @@ export class GenericInputComponent {
         const current = this.currentValue();
         return typeof current === 'number' ? current : Number(current ?? this.min() ?? 0);
     });
-    readonly currentBooleanValue = computed(() => Boolean(this.currentValue()));
+    readonly currentBooleanValue = computed(() => this.asBoolean(this.currentValue()));
+    readonly resolvedSwitchTrackClasses = computed(() => this.joinClasses(
+        this.switchTrackClasses(),
+        this.currentBooleanValue() ? this.switchTrackActiveClasses() : '',
+    ));
+    readonly resolvedSwitchThumbClasses = computed(() => this.joinClasses(
+        this.switchThumbClasses(),
+        this.currentBooleanValue() ? this.switchThumbActiveClasses() : '',
+    ));
     readonly selectedOptionLabel = computed(() => {
         const selected = this.options().find((option) => this.isOptionSelected(option));
         if (selected) return this.optionLabel(selected);
@@ -279,8 +296,8 @@ export class GenericInputComponent {
             return parsed;
         }
 
-        if (this.controlType() === 'checkbox') {
-            return Boolean(value);
+        if (this.controlType() === 'checkbox' || this.controlType() === 'switch') {
+            return this.asBoolean(value);
         }
 
         if (this.controlType() === 'file') {
@@ -295,7 +312,7 @@ export class GenericInputComponent {
     }
 
     private defaultValue(): unknown {
-        if (this.controlType() === 'checkbox') return false;
+        if (this.controlType() === 'checkbox' || this.controlType() === 'switch') return false;
         if (this.controlType() === 'number' || this.controlType() === 'range') return this.min() ?? 0;
         if (this.controlType() === 'file') return this.multiple() ? [] : null;
         return '';
@@ -350,5 +367,16 @@ export class GenericInputComponent {
     private asNumber(value: unknown): number | undefined {
         const resolved = this.resolveValue(value);
         return typeof resolved === 'number' && Number.isFinite(resolved) ? resolved : undefined;
+    }
+
+    private asBoolean(value: unknown): boolean {
+        const resolved = this.resolveValue(value);
+        if (typeof resolved === 'boolean') return resolved;
+        if (typeof resolved === 'number') return resolved !== 0;
+        const normalized = String(resolved ?? '').trim().toLowerCase();
+        if (!normalized) return false;
+        if (['false', '0', 'off', 'no', 'null', 'undefined'].includes(normalized)) return false;
+        if (['true', '1', 'on', 'yes'].includes(normalized)) return true;
+        return Boolean(resolved);
     }
 }

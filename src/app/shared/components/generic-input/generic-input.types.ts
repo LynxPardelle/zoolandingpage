@@ -18,6 +18,7 @@ export type TGenericInputControlType =
     | 'number'
     | 'range'
     | 'checkbox'
+    | 'switch'
     | 'select'
     | 'file'
     | 'button-group';
@@ -47,6 +48,10 @@ export type TGenericInputConfig = {
     readonly helperTextClasses?: TDynamicStringValue;
     readonly fieldClasses?: TDynamicStringValue;
     readonly inputClasses?: TDynamicStringValue;
+    readonly switchTrackClasses?: TDynamicStringValue;
+    readonly switchTrackActiveClasses?: TDynamicStringValue;
+    readonly switchThumbClasses?: TDynamicStringValue;
+    readonly switchThumbActiveClasses?: TDynamicStringValue;
     readonly dropdownTriggerClasses?: TDynamicStringValue;
     readonly dropdownIndicatorText?: TDynamicStringValue;
     readonly dropdownIndicatorClasses?: TDynamicStringValue;
@@ -64,6 +69,7 @@ export type TGenericInputConfig = {
     readonly valueSuffix?: TDynamicStringValue;
     readonly showRangeValue?: TDynamicBooleanValue;
     readonly options?: TDynamicValue<readonly TGenericInputOption[]>;
+    readonly autocompleteOptions?: TDynamicValue<readonly TGenericInputOption[]>;
     readonly min?: TDynamicNumberValue;
     readonly max?: TDynamicNumberValue;
     readonly step?: TDynamicNumberValue;
