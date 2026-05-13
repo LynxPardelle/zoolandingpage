@@ -555,6 +555,7 @@ const isRuntimeDataSourceConfig = (value: unknown): value is TRuntimeDataSourceC
     if (value['statusTarget'] !== undefined && typeof value['statusTarget'] !== 'string') return false;
     if (value['mergeMode'] !== undefined && value['mergeMode'] !== 'replace' && value['mergeMode'] !== 'appendItems') return false;
     if (value['enabled'] !== undefined && typeof value['enabled'] !== 'boolean') return false;
+    if (value['ssr'] !== undefined && typeof value['ssr'] !== 'boolean') return false;
     if (value['pageIds'] !== undefined
         && (!Array.isArray(value['pageIds'])
             || !value['pageIds'].every((entry) => typeof entry === 'string' && entry.trim().length > 0))) return false;
@@ -595,6 +596,17 @@ const isDraftSiteRuntimeConfig = (value: unknown): value is TDraftSiteRuntimeCon
         && (!Array.isArray(value['dataSources']) || !value['dataSources'].every(isRuntimeDataSourceConfig))) return false;
     if (value['apiActions'] !== undefined
         && (!Array.isArray(value['apiActions']) || !value['apiActions'].every(isRuntimeApiActionConfig))) return false;
+    return true;
+};
+
+const isDraftSitemapConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (value['urls'] !== undefined
+        && (!Array.isArray(value['urls'])
+            || !value['urls'].every((entry) => typeof entry === 'string' && entry.trim().length > 0))) return false;
+    if (value['excludePaths'] !== undefined
+        && (!Array.isArray(value['excludePaths'])
+            || !value['excludePaths'].every((entry) => typeof entry === 'string' && entry.trim().length > 0))) return false;
     return true;
 };
 
@@ -1420,6 +1432,7 @@ export const isDraftSiteConfigPayload = (value: unknown): value is TDraftSiteCon
     if (!Array.isArray(value['routes']) || !value['routes'].every(isDraftSiteRouteEntry)) return false;
     if (value['lifecycle'] !== undefined && !isSiteLifecycleConfig(value['lifecycle'])) return false;
     if (value['runtime'] !== undefined && !isDraftSiteRuntimeConfig(value['runtime'])) return false;
+    if (value['sitemap'] !== undefined && !isDraftSitemapConfig(value['sitemap'])) return false;
     if (!isDraftSiteSharedConfig(value['site'])) return false;
     if (value['defaults'] !== undefined && !isDraftSiteDefaultsConfig(value['defaults'])) return false;
     return true;

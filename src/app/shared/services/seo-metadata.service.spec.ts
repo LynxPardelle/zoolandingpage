@@ -4,11 +4,13 @@ import { Meta, Title } from '@angular/platform-browser';
 import { DomainResolverService } from './domain-resolver.service';
 import { RuntimeConfigService } from './runtime-config.service';
 import { SeoMetadataService } from './seo-metadata.service';
+import { VariableStoreService } from './variable-store.service';
 
 describe('SeoMetadataService', () => {
     let service: SeoMetadataService;
     let title: jasmine.SpyObj<Title>;
     let meta: jasmine.SpyObj<Meta>;
+    let variables: VariableStoreService;
 
     beforeEach(() => {
         title = jasmine.createSpyObj<Title>('Title', ['setTitle']);
@@ -38,6 +40,7 @@ describe('SeoMetadataService', () => {
         });
 
         service = TestBed.inject(SeoMetadataService);
+        variables = TestBed.inject(VariableStoreService);
     });
 
     it('uses page identity as the fallback site metadata instead of shell defaults', () => {
@@ -247,5 +250,92 @@ describe('SeoMetadataService', () => {
             property: 'og:url',
             content: 'https://pamelabetancourt.zoolandingpage.com.mx/home',
         });
+    });
+
+    it('resolves draft metadata templates from runtime variables and query params', () => {
+        variables.setRuntimeValue('remote.pokemon.selected', {
+            items: [{
+                name: 'charizard',
+                image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/6.png',
+                primaryTypeLabel: 'Fire',
+            }],
+        });
+
+        const baseDoc = document.implementation.createHTMLDocument('seo');
+        const seoDoc = {
+            documentElement: baseDoc.documentElement,
+            head: baseDoc.head,
+            createElement: baseDoc.createElement.bind(baseDoc),
+            defaultView: {
+                location: {
+                    origin: 'https://pokeapi-demo.zoolandingpage.com.mx',
+                    pathname: '/pokemon',
+                    search: '?name=charizard',
+                },
+            },
+        } as unknown as Document;
+
+        TestBed.resetTestingModule();
+        title = jasmine.createSpyObj<Title>('Title', ['setTitle']);
+        meta = jasmine.createSpyObj<Meta>('Meta', ['updateTag', 'removeTag']);
+
+        TestBed.configureTestingModule({
+            providers: [
+                SeoMetadataService,
+                VariableStoreService,
+                { provide: DOCUMENT, useValue: seoDoc },
+                { provide: Title, useValue: title },
+                { provide: Meta, useValue: meta },
+                {
+                    provide: DomainResolverService,
+                    useValue: {
+                        resolveDomain: () => ({ domain: 'pokeapi-demo.zoolandingpage.com.mx' }),
+                    },
+                },
+                {
+                    provide: RuntimeConfigService,
+                    useValue: {
+                        seoDefaults: () => ({
+                            siteName: 'PokeAPI Runtime Demo',
+                            canonicalOrigin: 'https://pokeapi-demo.zoolandingpage.com.mx',
+                            defaultImage: 'https://pokeapi-demo.zoolandingpage.com.mx/default.png',
+                        }),
+                        appName: () => 'PokeAPI Runtime Demo',
+                        appDescription: () => 'Runtime demo',
+                    },
+                },
+            ],
+        });
+
+        service = TestBed.inject(SeoMetadataService);
+        variables = TestBed.inject(VariableStoreService);
+        variables.setRuntimeValue('remote.pokemon.selected', {
+            items: [{
+                name: 'charizard',
+                image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/6.png',
+                primaryTypeLabel: 'Fire',
+            }],
+        });
+
+        service.apply('es', {
+            title: '{{var:remote.pokemon.selected.items.0.name|titleCase}} | Zoolandingpage',
+            description: 'Ficha de {{var:remote.pokemon.selected.items.0.name|titleCase}} tipo {{var:remote.pokemon.selected.items.0.primaryTypeLabel}}.',
+            canonical: 'https://pokeapi-demo.zoolandingpage.com.mx/pokemon?name={{query:name|uriComponent}}',
+            openGraph: {
+                image: '{{var:remote.pokemon.selected.items.0.image}}',
+            },
+        } as never);
+
+        expect(title.setTitle).toHaveBeenCalledWith('Charizard | Zoolandingpage');
+        expect(meta.updateTag).toHaveBeenCalledWith({
+            name: 'description',
+            content: 'Ficha de Charizard tipo Fire.',
+        });
+        expect(meta.updateTag).toHaveBeenCalledWith({
+            property: 'og:image',
+            content: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/6.png',
+        });
+        expect(seoDoc.head.querySelector('link[rel="canonical"]')?.getAttribute('href'))
+            .toBe('https://pokeapi-demo.zoolandingpage.com.mx/pokemon?name=charizard');
     });
 });

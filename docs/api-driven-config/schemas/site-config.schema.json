@@ -173,6 +173,7 @@
         "statusTarget": { "type": "string" },
         "mergeMode": { "type": "string", "enum": ["replace", "appendItems"] },
         "enabled": { "type": "boolean" },
+        "ssr": { "type": "boolean" },
         "pageIds": {
           "type": "array",
           "items": { "type": "string", "minLength": 1 }
@@ -194,6 +195,20 @@
         },
         "refresh": {
           "anyOf": [{ "$ref": "#/definitions/runtimeDataSourceRefresh" }, { "type": "null" }]
+        }
+      },
+      "additionalProperties": false
+    },
+    "sitemapConfig": {
+      "type": "object",
+      "properties": {
+        "urls": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "excludePaths": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
         }
       },
       "additionalProperties": false
@@ -488,6 +503,7 @@
     },
     "site": { "$ref": "#/definitions/siteSharedConfig" },
     "defaults": { "$ref": "#/definitions/siteDefaultsConfig" },
+    "sitemap": { "$ref": "#/definitions/sitemapConfig" },
     "runtime": { "$ref": "#/definitions/runtimeConfig" }
   },
   "additionalProperties": false

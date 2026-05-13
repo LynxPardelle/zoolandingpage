@@ -3,6 +3,7 @@ import { WrapperOrchestrator } from "@/app/shared/components/wrapper-orchestrato
 import { ConfigStoreService } from "@/app/shared/services/config-store.service";
 import { ConfigurationsOrchestratorService } from "@/app/shared/services/configurations-orchestrator";
 import { SeoMetadataService } from "@/app/shared/services/seo-metadata.service";
+import { StructuredDataService } from "@/app/shared/services/structured-data.service";
 import { AsyncPipe, isPlatformBrowser } from '@angular/common';
 import {
   afterNextRender,
@@ -61,6 +62,7 @@ export class AppShellComponent {
   readonly lang = this._lang;
   private readonly configStore = inject(ConfigStoreService);
   private readonly seo = inject(SeoMetadataService);
+  private readonly structuredData = inject(StructuredDataService);
   readonly runtime = inject(RuntimeService);
 
   readonly rootComponentsIds = this.runtime.rootComponentsIds;
@@ -87,6 +89,10 @@ export class AppShellComponent {
 
     effect(() => {
       this.seo.apply(this._lang.currentLanguage(), this.configStore.seo());
+    });
+
+    effect(() => {
+      this.structuredData.applyEntries(this.configStore.structuredData()?.entries, 'sd:bootstrap');
     });
 
     effect(() => {

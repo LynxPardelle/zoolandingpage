@@ -8,6 +8,7 @@ export type TRuntimeDataSourceStartOptions = {
     readonly domain: string;
     readonly pageId?: string;
     readonly dataSources?: readonly TRuntimeDataSourceConfig[] | null;
+    readonly mode?: 'all' | 'ssr';
 };
 
 type TRemoteStatusState = 'idle' | 'loading' | 'success' | 'empty' | 'error';
@@ -32,7 +33,8 @@ export class RuntimeDataSourceService {
 
         const sources = (options.dataSources ?? [])
             .filter((source) => source.enabled !== false)
-            .filter((source) => this.matchesActivePage(source, options.pageId));
+            .filter((source) => this.matchesActivePage(source, options.pageId))
+            .filter((source) => this.matchesMode(source, options.mode));
         const preparedSources = this.prepareSources(sources);
         this.markPreparedSourcesLoading(preparedSources);
         await this.loadPreparedSources(options, preparedSources);
@@ -40,11 +42,12 @@ export class RuntimeDataSourceService {
         sources.forEach((source) => this.scheduleRefresh(options, source));
     }
 
-    markInitialSourcesLoading(options: Pick<TRuntimeDataSourceStartOptions, 'pageId' | 'dataSources'>): void {
+    markInitialSourcesLoading(options: Pick<TRuntimeDataSourceStartOptions, 'pageId' | 'dataSources' | 'mode'>): void {
         const pageId = String(options.pageId ?? '').trim();
         const sources = (options.dataSources ?? [])
             .filter((source) => source.enabled !== false)
-            .filter((source) => !pageId || this.matchesActivePage(source, pageId));
+            .filter((source) => !pageId || this.matchesActivePage(source, pageId))
+            .filter((source) => this.matchesMode(source, options.mode));
         this.markPreparedSourcesLoading(this.prepareSources(sources));
     }
 
@@ -141,6 +144,7 @@ export class RuntimeDataSourceService {
     }
 
     private scheduleRefresh(options: TRuntimeDataSourceStartOptions, source: TRuntimeDataSourceConfig): void {
+        if (this.request) return;
         if (source.refresh?.mode !== 'interval') return;
 
         const intervalMs = Number(source.refresh.intervalMs ?? 0);
@@ -167,6 +171,14 @@ export class RuntimeDataSourceService {
         }
 
         return source.pageIds.some((entry) => String(entry ?? '').trim() === normalizedPageId);
+    }
+
+    private matchesMode(source: TRuntimeDataSourceConfig, mode: TRuntimeDataSourceStartOptions['mode']): boolean {
+        if (mode !== 'ssr') {
+            return true;
+        }
+
+        return source.ssr === true;
     }
 
     private shouldSkipForQueryParams(queryParams: readonly string[] | undefined): boolean {

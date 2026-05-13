@@ -530,4 +530,40 @@ describe('RuntimeDataSourceService', () => {
             }),
         ]);
     });
+
+    it('loads only data sources explicitly enabled for SSR mode', async () => {
+        proxy.readSource.and.callFake((request) => Promise.resolve({
+            ok: true,
+            data: { upstream: request.sourceId },
+        }) as any);
+        mapper.mapResponse.and.callFake((response) => ({
+            items: [{ title: `mapped:${ (response as any).upstream }` }],
+        }));
+
+        await service.start({
+            domain: 'pokeapi-demo.zoolandingpage.com.mx',
+            pageId: 'pokemon-detail',
+            mode: 'ssr',
+            dataSources: [
+                {
+                    id: 'selected',
+                    proxySourceId: 'pokeapiPokemonDetail',
+                    target: 'remote.pokemon.selected',
+                    pageIds: ['pokemon-detail'],
+                    ssr: true,
+                },
+                {
+                    id: 'autocomplete-index',
+                    proxySourceId: 'pokeapiPokemonIndex',
+                    target: 'remote.pokemon.index',
+                    pageIds: ['pokemon-detail'],
+                },
+            ],
+        });
+
+        expect(proxy.readSource.calls.count()).toBe(1);
+        expect(proxy.readSource.calls.mostRecent().args[0].sourceId).toBe('pokeapiPokemonDetail');
+        expect(variables.get('remote.pokemon.selected.items')).toEqual([{ title: 'mapped:pokeapiPokemonDetail' }]);
+        expect(variables.get('remote.pokemon.index.items')).toBeUndefined();
+    });
 });

@@ -307,6 +307,7 @@ export type TRuntimeDataSourceConfig = {
     readonly statusTarget?: string;
     readonly mergeMode?: 'replace' | 'appendItems';
     readonly enabled?: boolean;
+    readonly ssr?: boolean;
     readonly pageIds?: readonly string[];
     readonly requiredInputKeys?: readonly string[];
     readonly skipWhenQueryParams?: readonly string[];
@@ -334,12 +335,18 @@ export type TDraftSiteRuntimeConfig = {
     readonly apiActions?: readonly TRuntimeApiActionConfig[];
 };
 
+export type TDraftSitemapConfig = {
+    readonly urls?: readonly string[];
+    readonly excludePaths?: readonly string[];
+};
+
 export type TDraftSiteConfigPayload = {
     readonly version: number;
     readonly domain: string;
     readonly aliases?: readonly string[];
     readonly defaultPageId?: string;
     readonly routes: readonly TDraftSiteRouteEntry[];
+    readonly sitemap?: TDraftSitemapConfig;
     readonly lifecycle?: TSiteLifecycleConfig;
     readonly runtime?: TDraftSiteRuntimeConfig;
     readonly site: TDraftSiteSharedConfig;

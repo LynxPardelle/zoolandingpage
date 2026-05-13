@@ -85,6 +85,10 @@ type TLocalSiteConfig = Record<string, unknown> & {
   readonly aliases?: readonly string[];
   readonly defaultPageId?: string;
   readonly routes?: readonly TSiteConfigRouteEntry[];
+  readonly sitemap?: {
+    readonly urls?: readonly string[];
+    readonly excludePaths?: readonly string[];
+  };
   readonly lifecycle?: unknown;
   readonly site?: {
     readonly seo?: {
@@ -655,7 +659,7 @@ function buildRobotsTxt(req: express.Request, host: string, siteConfig: TLocalSi
 
 function resolveCanonicalSitemapUrl(origin: string, routePath: string, pageConfig: TLocalPageConfig | null): string {
   const canonical = String(pageConfig?.seo?.canonical ?? '').trim();
-  if (!canonical) {
+  if (!canonical || canonical.includes('{{')) {
     return new URL(normalizeRoutePath(routePath), origin).toString();
   }
 
@@ -666,17 +670,43 @@ function resolveCanonicalSitemapUrl(origin: string, routePath: string, pageConfi
   }
 }
 
+function resolveConfiguredSitemapUrls(origin: string, siteConfig: TLocalSiteConfig | null): readonly string[] {
+  const configuredUrls = Array.isArray(siteConfig?.sitemap?.urls)
+    ? siteConfig.sitemap.urls
+    : [];
+
+  return configuredUrls
+    .map((entry) => String(entry ?? '').trim())
+    .filter(Boolean)
+    .map((entry) => {
+      try {
+        return new URL(entry, origin).toString();
+      } catch {
+        return '';
+      }
+    })
+    .filter(Boolean);
+}
+
 async function buildSitemapXml(req: express.Request, host: string, siteConfig: TLocalSiteConfig | null): Promise<string> {
   const origin = `${resolveCanonicalOrigin(req, host, siteConfig).replace(/\/$/, '')}/`;
+  const excludedPaths = new Set(
+    (Array.isArray(siteConfig?.sitemap?.excludePaths) ? siteConfig.sitemap.excludePaths : [])
+      .map((entry) => normalizeRoutePath(entry)),
+  );
   const rawRoutes = Array.isArray(siteConfig?.routes) && siteConfig.routes.length > 0
     ? siteConfig.routes
     : [{ path: '/' }];
+  const sitemapRoutes = rawRoutes.filter((route) => !excludedPaths.has(normalizeRoutePath(route.path)));
   const sitemapDomain = normalizeHost(host) || normalizeHost(siteConfig?.domain);
-  const resolvedUrls = await Promise.all(rawRoutes.map(async (route) => {
+  const resolvedUrls = await Promise.all(sitemapRoutes.map(async (route) => {
     const pageConfig = sitemapDomain ? await loadPageConfigForRoute(sitemapDomain, route) : null;
     return resolveCanonicalSitemapUrl(origin, normalizeRoutePath(route.path), pageConfig);
   }));
-  const urls = Array.from(new Set(resolvedUrls));
+  const urls = Array.from(new Set([
+    ...resolvedUrls,
+    ...resolveConfiguredSitemapUrls(origin, siteConfig),
+  ]));
   const entries = urls
     .map((url) => `  <url>\n    <loc>${escapeXml(url)}</loc>\n  </url>`)
     .join('\n');

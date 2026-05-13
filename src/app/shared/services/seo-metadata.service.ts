@@ -1,10 +1,12 @@
 import type { TSeoPayload } from '@/app/shared/types/config-payloads.types';
 import { DOCUMENT } from '@angular/common';
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, REQUEST } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { normalizeLocaleCode, resolveLocaleMapValue, toOpenGraphLocale } from '../i18n/locale.utils';
+import { resolveMetadataTemplates } from '../utility/metadata-template.utility';
 import { DomainResolverService } from './domain-resolver.service';
 import { RuntimeConfigService } from './runtime-config.service';
+import { VariableStoreService } from './variable-store.service';
 
 @Injectable({ providedIn: 'root' })
 export class SeoMetadataService {
@@ -13,6 +15,8 @@ export class SeoMetadataService {
     private readonly meta = inject(Meta);
     private readonly domainResolver = inject(DomainResolverService);
     private readonly runtimeConfig = inject(RuntimeConfigService);
+    private readonly variables = inject(VariableStoreService);
+    private readonly request = inject(REQUEST, { optional: true });
 
     apply(lang: string, seo: TSeoPayload | null): void {
         try {
@@ -62,19 +66,28 @@ export class SeoMetadataService {
                 || this.cleanString(openGraphDefaults['image'])
                 || this.cleanString(twitterDefaults['image'])
                 || `${ origin }/assets/og-1200x630.svg`;
+            const ogTitle = this.cleanString(openGraph['title']) || seoTitle;
+            const ogDescription = this.cleanString(openGraph['description']) || seoDescription;
+            const ogType = this.cleanString(openGraph['type']) || 'website';
+            const ogImage = this.cleanString(openGraph['image']) || defaultImage;
+            const ogSiteName = this.cleanString(openGraph['site_name']) || fallbackSiteName;
+            const twitterCard = this.cleanString(twitter['card']) || 'summary_large_image';
+            const twitterTitle = this.cleanString(twitter['title']) || seoTitle;
+            const twitterDescription = this.cleanString(twitter['description']) || seoDescription;
+            const twitterImage = this.cleanString(twitter['image']) || defaultImage;
 
-            this.meta.updateTag({ property: 'og:title', content: String(openGraph['title'] ?? seoTitle) });
-            this.meta.updateTag({ property: 'og:description', content: String(openGraph['description'] ?? seoDescription) });
-            this.meta.updateTag({ property: 'og:type', content: String(openGraph['type'] ?? 'website') });
+            this.meta.updateTag({ property: 'og:title', content: ogTitle });
+            this.meta.updateTag({ property: 'og:description', content: ogDescription });
+            this.meta.updateTag({ property: 'og:type', content: ogType });
             this.meta.updateTag({ property: 'og:url', content: openGraphUrl });
-            this.meta.updateTag({ property: 'og:image', content: String(openGraph['image'] ?? defaultImage) });
-            this.meta.updateTag({ property: 'og:locale', content: String(openGraph['locale'] ?? ogLocale) });
-            this.meta.updateTag({ property: 'og:site_name', content: String(openGraph['site_name'] ?? fallbackSiteName) });
+            this.meta.updateTag({ property: 'og:image', content: ogImage });
+            this.meta.updateTag({ property: 'og:locale', content: this.cleanString(openGraph['locale']) || ogLocale });
+            this.meta.updateTag({ property: 'og:site_name', content: ogSiteName });
 
-            this.meta.updateTag({ name: 'twitter:card', content: String(twitter['card'] ?? 'summary_large_image') });
-            this.meta.updateTag({ name: 'twitter:title', content: String(twitter['title'] ?? seoTitle) });
-            this.meta.updateTag({ name: 'twitter:description', content: String(twitter['description'] ?? seoDescription) });
-            this.meta.updateTag({ name: 'twitter:image', content: String(twitter['image'] ?? defaultImage) });
+            this.meta.updateTag({ name: 'twitter:card', content: twitterCard });
+            this.meta.updateTag({ name: 'twitter:title', content: twitterTitle });
+            this.meta.updateTag({ name: 'twitter:description', content: twitterDescription });
+            this.meta.updateTag({ name: 'twitter:image', content: twitterImage });
 
             const head = doc.head;
             if (head) {
@@ -108,27 +121,34 @@ export class SeoMetadataService {
 
         if (this.isLocaleMapRecord(value)) {
             const resolved = resolveLocaleMapValue(value, lang);
-            return typeof resolved === 'string' ? resolved.trim() : resolved;
+            return this.resolveMetadataValue(typeof resolved === 'string' ? resolved.trim() : resolved);
         }
 
         if (this.isRecord(value)) {
             return this.resolveLocalizedRecord(value, lang);
         }
 
-        return value;
+        return this.resolveMetadataValue(value);
     }
 
     private resolveLocalizedText(value: unknown, lang: string): string {
         if (typeof value === 'string') {
-            return value.trim();
+            return this.cleanString(this.resolveMetadataValue(value));
         }
 
         if (this.isLocaleMapRecord(value)) {
             const resolved = resolveLocaleMapValue(value, lang);
-            return typeof resolved === 'string' ? resolved.trim() : '';
+            return this.cleanString(this.resolveMetadataValue(resolved));
         }
 
         return '';
+    }
+
+    private resolveMetadataValue(value: unknown): unknown {
+        return resolveMetadataTemplates(value, {
+            getVariable: (path) => this.variables.get(path),
+            getQueryParam: (key) => this.readQueryParam(key),
+        });
     }
 
     private resolveMetaList(value: unknown, lang: string): string {
@@ -205,6 +225,29 @@ export class SeoMetadataService {
     private normalizePathname(value: unknown): string {
         const pathname = this.cleanString(value) || '/';
         return pathname.startsWith('/') ? pathname : `/${ pathname }`;
+    }
+
+    private readQueryParam(key: string): string | undefined {
+        const normalizedKey = this.cleanString(key);
+        if (!normalizedKey) {
+            return undefined;
+        }
+
+        const requestUrl = this.cleanString(this.request?.url);
+        if (requestUrl) {
+            try {
+                return new URL(requestUrl, 'https://localhost').searchParams.get(normalizedKey) ?? undefined;
+            } catch {
+                return undefined;
+            }
+        }
+
+        const search = this.doc.defaultView?.location?.search;
+        if (!search) {
+            return undefined;
+        }
+
+        return new URLSearchParams(search).get(normalizedKey) ?? undefined;
     }
 
     private defaultOrigin(): string {

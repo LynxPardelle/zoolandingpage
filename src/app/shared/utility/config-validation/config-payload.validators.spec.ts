@@ -276,6 +276,13 @@ describe('config-payload.validators', () => {
                 { path: '/', pageId: 'default' },
                 { path: '/pokemon', pageId: 'pokemon-detail' },
             ],
+            sitemap: {
+                excludePaths: ['/pokemon'],
+                urls: [
+                    '/',
+                    '/pokemon?name=charizard',
+                ],
+            },
             site: {
                 appIdentity: {
                     identifier: 'pokeapi-demo',
@@ -337,6 +344,7 @@ describe('config-payload.validators', () => {
                         proxySourceId: 'pokeapiPokemonDetail',
                         target: 'remote.pokemon.selected',
                         pageIds: ['pokemon-detail'],
+                        ssr: true,
                         requiredInputKeys: ['pokemonName'],
                         skipWhenQueryParams: ['move'],
                         input: {
