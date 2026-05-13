@@ -433,3 +433,28 @@ Reusable lessons:
 
 - For critical API-backed select controls, dynamic option sources should keep complete static fallbacks when the control must be correct before deferred hydration or when the upstream enum endpoint might be temporarily unavailable.
 - Audit free-text autocomplete separately from selector auto-submit; request-volume safeguards should verify no detail/search API source fires while the user is only typing.
+
+### 2026-05-13 13:41 CT - PokeAPI Design Polish Closeout
+
+Summary:
+
+- Reviewed the PokeAPI demo visual design across home, catalog, and detail templates.
+- Tightened the light and dark palettes, reduced the rounded-corner treatment, compacted the top/detail bars, refined card spacing, and corrected action display classes that were making some controls stretch.
+- Replaced the detail caption that exposed runtime status text with authored copy.
+- Fixed a shared static CSS collision by renaming generic section hooks to draft-prefixed hooks such as `pokeSectionEyebrow`.
+
+Published:
+
+- Draft version: `20260513T194134Z-28891ce3529b`.
+
+Verified:
+
+- `node --test tools/tests/critical-css.spec.mjs` completed successfully.
+- `npm run build` completed successfully.
+- Local draft smoke check passed against local SSR on desktop and mobile for `/` and `/pokemon`.
+- Browser QA ran three cycles across desktop/mobile home, filtered catalog, and Charizard detail with no console errors, failed requests, bad responses, horizontal overflow, stuck loaders, or broken images.
+- QA evidence: `Output/pokeapi-demo-qa/20260513-design-review-after/browser-qa-3-cycles-final.json`.
+
+Reusable lessons:
+
+- Avoid broad semantic class names in draft combo hooks when they can collide through the shared generated Angora stylesheet; prefer draft-prefixed hooks for reusable but draft-specific presentation classes.

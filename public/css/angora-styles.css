@@ -2219,8 +2219,8 @@
 .ank-bg-bgColor { --ank-surface-background-color: rgba(243,239,232, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(243, 239, 232); }
 .ank-text-bgColor { color: rgb(243, 239, 232); }
 .ank-bg-bgColorOPA__0_92 { --ank-surface-background-color: rgba(243,239,232,0.92); --ank-text-gradient-fill-color: initial; background-color: rgba(243, 239, 232, 0.92); }
-.ank-color-textColor { color: rgb(51, 65, 85); }
 .ank-text-textColor { color: rgb(51, 65, 85); }
+.ank-color-textColor { color: rgb(51, 65, 85); }
 .ank-bco-textColorOPA__0_12 { border-color: rgba(51, 65, 85, 0.12); }
 .ank-text-textColorOPA__0_72 { color: rgba(51, 65, 85, 0.72); }
 .ank-bco-textColorOPA__0_14 { border-color: rgba(51, 65, 85, 0.14); }
@@ -2245,8 +2245,8 @@
 .ank-bg-bgColor { --ank-surface-background-color: rgba(247,241,234, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(247, 241, 234); }
 .ank-bg-bgColorOPA__0_92 { --ank-surface-background-color: rgba(247,241,234,0.92); --ank-text-gradient-fill-color: initial; background-color: rgba(247, 241, 234, 0.92); }
 .ank-text-bgColor { color: rgb(247, 241, 234); }
-.ank-color-textColor { color: rgb(47, 36, 29); }
 .ank-text-textColor { color: rgb(47, 36, 29); }
+.ank-color-textColor { color: rgb(47, 36, 29); }
 .ank-bco-textColorOPA__0_12 { border-color: rgba(47, 36, 29, 0.12); }
 .ank-text-textColorOPA__0_72 { color: rgba(47, 36, 29, 0.72); }
 .ank-bco-textColorOPA__0_14 { border-color: rgba(47, 36, 29, 0.14); }
@@ -2267,11 +2267,11 @@
 .ank-bco-secondaryAccentColor { border-color: rgb(241, 177, 95); }
 .ank-bgSEL__COM_debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL-secondaryAccentColor, .debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL { --ank-surface-background-color: rgba(241,177,95, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(241, 177, 95); }
 .ank-boSEL__COM_debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL-2px__solid__secondaryAccentColor, .debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL { border: 2px solid rgb(241, 177, 95); }
-.ank-bg-bgColor { --ank-surface-background-color: rgba(5,5,5, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(5, 5, 5); }
 .ank-bg-bgColorOPA__0_92 { --ank-surface-background-color: rgba(5,5,5,0.92); --ank-text-gradient-fill-color: initial; background-color: rgba(5, 5, 5, 0.92); }
+.ank-bg-bgColor { --ank-surface-background-color: rgba(5,5,5, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(5, 5, 5); }
 .ank-text-bgColor { color: rgb(5, 5, 5); }
-.ank-color-textColor { color: rgb(222, 214, 205); }
 .ank-text-textColor { color: rgb(222, 214, 205); }
+.ank-color-textColor { color: rgb(222, 214, 205); }
 .ank-bco-textColorOPA__0_12 { border-color: rgba(222, 214, 205, 0.12); }
 .ank-text-textColorOPA__0_72 { color: rgba(222, 214, 205, 0.72); }
 .ank-bco-textColorOPA__0_14 { border-color: rgba(222, 214, 205, 0.14); }
@@ -2318,35 +2318,167 @@
 .ank-bgSEL__COM_debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL-secondaryAccentColor, .debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL { --ank-surface-background-color: rgba(115,67,50, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(115, 67, 50); }
 .ank-boSEL__COM_debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL-2px__solid__secondaryAccentColor, .debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL { border: 2px solid rgb(115, 67, 50); }
 .ank-text-titleColor { color: rgb(41, 41, 41); }
-.ank-bg-bgColor { --ank-surface-background-color: rgba(22,19,15, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(22, 19, 15); }
-.ank-bg-bgColorOPA__0_92 { --ank-surface-background-color: rgba(22,19,15,0.92); --ank-text-gradient-fill-color: initial; background-color: rgba(22, 19, 15, 0.92); }
-.ank-text-bgColor { color: rgb(22, 19, 15); }
-.ank-color-textColor { color: rgb(242, 234, 216); }
-.ank-text-textColor { color: rgb(242, 234, 216); }
-.ank-bco-textColorOPA__0_12 { border-color: rgba(242, 234, 216, 0.12); }
-.ank-text-textColorOPA__0_72 { color: rgba(242, 234, 216, 0.72); }
-.ank-bco-textColorOPA__0_14 { border-color: rgba(242, 234, 216, 0.14); }
-.ank-bg-textColorOPA__0_04 { --ank-surface-background-color: rgba(242,234,216,0.04); --ank-text-gradient-fill-color: initial; background-color: rgba(242, 234, 216, 0.04); }
-.ank-bg-textColorOPA__0_06 { --ank-surface-background-color: rgba(242,234,216,0.06); --ank-text-gradient-fill-color: initial; background-color: rgba(242, 234, 216, 0.06); }
-.ank-bco-textColorOPA__0_08 { border-color: rgba(242, 234, 216, 0.08); }
-.ank-text-textColorOPA__0_56 { color: rgba(242, 234, 216, 0.56); }
-.ank-bg-textColorOPA__0_08 { --ank-surface-background-color: rgba(242,234,216,0.08); --ank-text-gradient-fill-color: initial; background-color: rgba(242, 234, 216, 0.08); }
-.ank-bg-textColorOPA__0_05 { --ank-surface-background-color: rgba(242,234,216,0.05); --ank-text-gradient-fill-color: initial; background-color: rgba(242, 234, 216, 0.05); }
-.ank-bco-textColorOPA__0_06 { border-color: rgba(242, 234, 216, 0.06); }
-.ank-textSEL__COM_debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL-textColor, .debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL { color: rgb(242, 234, 216); }
-.ank-bg-accentColor { --ank-surface-background-color: rgba(244,196,48, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(244, 196, 48); }
-.ank-bg-secondaryBgColor { --ank-surface-background-color: rgba(34,29,22, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(34, 29, 22); }
+.ank-ptSEL__COM_heroBand-34px, .heroBand { padding-top: 34px; }
+.ank-pbSEL__COM_heroBand-50px, .heroBand { padding-bottom: 50px; }
+.ank-wSEL__COM_secondaryAction-fitMINcontent, .secondaryAction { width: fit-content; }
+.ank-dSEL__COM_themeAction-flex, .themeAction { display: flex; }
+.ank-wSEL__COM_themeAction-fitMINcontent, .themeAction { width: fit-content; }
+.ank-gSEL__COM_themeAction-7px, .themeAction { gap: 7px; }
+.ank-paddingInlineSEL__COM_themeAction-14px, .themeAction { padding-inline: 14px; }
+.ank-paddingBlockSEL__COM_themeAction-11px, .themeAction { padding-block: 11px; }
+.ank-wSEL__COM_pokeSection-100per, .pokeSection { width: 100%; }
+.ank-dSEL__COM_pokeSection-flex, .pokeSection { display: flex; }
+.ank-jcSEL__COM_pokeSection-center, .pokeSection { justify-content: center; }
+.ank-paddingInlineSEL__COM_pokeSection-16px, .pokeSection { padding-inline: 16px; }
+.ank-paddingBlockSEL__COM_pokeSection-48px, .pokeSection { padding-block: 48px; }
+.ank-wSEL__COM_pokeSectionInner-100per, .pokeSectionInner { width: 100%; }
+.ank-wmxSEL__COM_pokeSectionInner-1180px, .pokeSectionInner { max-width: 1180px; }
+.ank-dSEL__COM_pokeSectionInner-flex, .pokeSectionInner { display: flex; }
+.ank-fdSEL__COM_pokeSectionInner-column, .pokeSectionInner { flex-direction: column; }
+.ank-gSEL__COM_pokeSectionInner-18px, .pokeSectionInner { gap: 18px; }
+.ank-mSEL__COM_pokeSectionEyebrow-0, .pokeSectionEyebrow { margin: 0px; }
+.ank-dSEL__COM_pokeSectionEyebrow-flex, .pokeSectionEyebrow { display: flex; }
+.ank-wSEL__COM_pokeSectionEyebrow-fitMINcontent, .pokeSectionEyebrow { width: fit-content; }
+.ank-aiSEL__COM_pokeSectionEyebrow-center, .pokeSectionEyebrow { align-items: center; }
+.ank-paddingInlineSEL__COM_pokeSectionEyebrow-12px, .pokeSectionEyebrow { padding-inline: 12px; }
+.ank-paddingBlockSEL__COM_pokeSectionEyebrow-7px, .pokeSectionEyebrow { padding-block: 7px; }
+.ank-roundedSEL__COM_pokeSectionEyebrow-8px, .pokeSectionEyebrow { border-radius: 8px; }
+.ank-fsSEL__COM_pokeSectionEyebrow-0_78rem, .pokeSectionEyebrow { font-size: 0.78rem; }
+.ank-fwgSEL__COM_pokeSectionEyebrow-900, .pokeSectionEyebrow { font-weight: 900; }
+.ank-lstSEL__COM_pokeSectionEyebrow-0_1rem, .pokeSectionEyebrow { letter-spacing: 0.1rem; }
+.ank-ttSEL__COM_pokeSectionEyebrow-uppercase, .pokeSectionEyebrow { text-transform: uppercase; }
+.ank-gSEL__COM_heroInner-24px, .heroInner { gap: 24px; }
+.ank-mSEL__COM_pokeSectionTitle-0, .pokeSectionTitle { margin: 0px; }
+.ank-fsSEL__COM_pokeSectionTitle-2rem, .pokeSectionTitle { font-size: 2rem; }
+.ank-lhSEL__COM_pokeSectionTitle-1_04, .pokeSectionTitle { line-height: 1.04; }
+.ank-fwgSEL__COM_pokeSectionTitle-900, .pokeSectionTitle { font-weight: 900; }
+.ank-lstSEL__COM_pokeSectionTitle-0, .pokeSectionTitle { letter-spacing: 0px; }
+.ank-wmxSEL__COM_pokeSectionTitle-17ch, .pokeSectionTitle { max-width: 17ch; }
+.ank-mSEL__COM_pokeSectionText-0, .pokeSectionText { margin: 0px; }
+.ank-fsSEL__COM_pokeSectionText-1rem, .pokeSectionText { font-size: 1rem; }
+.ank-lhSEL__COM_pokeSectionText-1_64, .pokeSectionText { line-height: 1.64; }
+.ank-wmxSEL__COM_pokeSectionText-58rem, .pokeSectionText { max-width: 58rem; }
+.ank-oSEL__COM_pokeSectionText-0_86, .pokeSectionText { opacity: 0.86; }
+.ank-gSEL__COM_catalogControls-14px, .catalogControls { gap: 14px; }
+.ank-mtSEL__COM_catalogControls-10px, .catalogControls { margin-top: 10px; }
+.ank-pSEL__COM_catalogControls-16px, .catalogControls { padding: 16px; }
+.ank-hmnSEL__COM_catalogSelectTrigger-46px, .catalogSelectTrigger { min-height: 46px; }
+.ank-bxsSEL__COM_catalogSwitchField-borderBox, .catalogSwitchField { }
+.ank-dSEL__COM_heroKicker-flex, .heroKicker { display: flex; }
+.ank-dSEL__COM_catalogApplyButton-flex, .catalogApplyButton { display: flex; }
+.ank-paddingInlineSEL__COM_catalogApplyButton-17px, .catalogApplyButton { padding-inline: 17px; }
+.ank-dSEL__COM_pokemonCardSource-flex, .pokemonCardSource { display: flex; }
+.ank-fsSEL__COM_heroTitle-2_9rem, .heroTitle { font-size: 2.9rem; }
+.ank-dSEL__COM_pokemonMoveCount-flex, .pokemonMoveCount { display: flex; }
+.ank-wmxSEL__COM_heroText-43rem, .heroText { max-width: 43rem; }
+.ank-oSEL__COM_heroText-0_9, .heroText { opacity: 0.9; }
+.ank-wSEL__COM_primaryAction-fitMINcontent, .primaryAction { width: fit-content; }
+.ank-dSEL__COM_pokemonMoveTag-flex, .pokemonMoveTag { display: flex; }
+.ank-fsSEL__COM_catalogModeHint-0_84rem, .catalogModeHint { font-size: 0.84rem; }
+.ank-bg-bgColor { --ank-surface-background-color: rgba(17,22,17, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(17, 22, 17); }
+.ank-bgSEL__COM_demoPage-bgColor, .demoPage { --ank-surface-background-color: rgba(17,22,17, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(17, 22, 17); }
+.ank-bgSEL__COM_heroKicker-bgColor, .heroKicker { --ank-surface-background-color: rgba(17,22,17, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(17, 22, 17); }
+.ank-bgSEL__COM_heroFeaturePill-bgColor, .heroFeaturePill { --ank-surface-background-color: rgba(17,22,17, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(17, 22, 17); }
+.ank-bgSEL__COM_secondaryAction-bgColor, .secondaryAction { --ank-surface-background-color: rgba(17,22,17, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(17, 22, 17); }
+.ank-bgSEL__COM_themeAction-bgColor, .themeAction { --ank-surface-background-color: rgba(17,22,17, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(17, 22, 17); }
+.ank-bgSEL__COM_heroVisual-bgColor, .heroVisual { --ank-surface-background-color: rgba(17,22,17, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(17, 22, 17); }
+.ank-bshSEL__COM_heroVisual-0__22px__60px__bgColor__OPA__0_18, .heroVisual { box-shadow: rgba(17, 22, 17, 0.18) 0px 22px 60px; }
+.ank-bshSEL__COM_catalogControls-0__16px__42px__bgColor__OPA__0_1, .catalogControls { box-shadow: rgba(17, 22, 17, 0.1) 0px 16px 42px; }
+.ank-bgSEL__COM_pokemonSearchInput-bgColor, .pokemonSearchInput { --ank-surface-background-color: rgba(17,22,17, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(17, 22, 17); }
+.ank-bshSEL__COM_pokemonSearchInput-0__12px__32px__bgColor__OPA__0_18, .pokemonSearchInput { box-shadow: rgba(17, 22, 17, 0.18) 0px 12px 32px; }
+.ank-bgSEL__COM_catalogSelectTrigger-bgColor, .catalogSelectTrigger { --ank-surface-background-color: rgba(17,22,17, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(17, 22, 17); }
+.ank-bgSEL__COM_catalogSwitchField-bgColor, .catalogSwitchField { --ank-surface-background-color: rgba(17,22,17, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(17, 22, 17); }
+.ank-bshSEL__COM_pokemonCard-0__14px__34px__bgColor__OPA__0_12, .pokemonCard { box-shadow: rgba(17, 22, 17, 0.12) 0px 14px 34px; }
+.ank-bgSEL__COM_pokemonCardSource-bgColor, .pokemonCardSource { --ank-surface-background-color: rgba(17,22,17, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(17, 22, 17); }
+.ank-bgSEL__COM_pokemonCardImage-bgColor, .pokemonCardImage { --ank-surface-background-color: rgba(17,22,17, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(17, 22, 17); }
+.ank-bgSEL__COM_pokemonMoveCount-bgColor, .pokemonMoveCount { --ank-surface-background-color: rgba(17,22,17, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(17, 22, 17); }
+.ank-bgSEL__COM_pokemonPaginationLink-bgColor, .pokemonPaginationLink { --ank-surface-background-color: rgba(17,22,17, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(17, 22, 17); }
+.ank-bgSEL__COM_pokemonSearchResults-bgColor, .pokemonSearchResults { --ank-surface-background-color: rgba(17,22,17, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(17, 22, 17); }
+.ank-bshSEL__COM_pokemonSearchResults-0__18px__48px__bgColor__OPA__0_26, .pokemonSearchResults { box-shadow: rgba(17, 22, 17, 0.26) 0px 18px 48px; }
+.ank-bgSEL__COM_catalogModeHint-bgColor, .catalogModeHint { --ank-surface-background-color: rgba(17,22,17, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(17, 22, 17); }
+.ank-bgSEL__COM_catalogSelectMenu-bgColor, .catalogSelectMenu { --ank-surface-background-color: rgba(17,22,17, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(17, 22, 17); }
+.ank-bshSEL__COM_catalogSelectMenu-0__18px__48px__bgColor__OPA__0_26, .catalogSelectMenu { box-shadow: rgba(17, 22, 17, 0.26) 0px 18px 48px; }
+.ank-bgSEL__COM_pokemonMoveTag-bgColor, .pokemonMoveTag { --ank-surface-background-color: rgba(17,22,17, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(17, 22, 17); }
+.ank-bgSEL__COM_catalogPageNumber-bgColor, .catalogPageNumber { --ank-surface-background-color: rgba(17,22,17, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(17, 22, 17); }
+.ank-bgSEL__COM_moveMatchLink-bgColor, .moveMatchLink { --ank-surface-background-color: rgba(17,22,17, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(17, 22, 17); }
+.ank-bg-bgColorOPA__0_92 { --ank-surface-background-color: rgba(17,22,17,0.92); --ank-text-gradient-fill-color: initial; background-color: rgba(17, 22, 17, 0.92); }
+.ank-text-bgColor { color: rgb(17, 22, 17); }
+.ank-color-textColor { color: rgb(241, 234, 216); }
+.ank-textSEL__COM_demoPage-textColor, .demoPage { color: rgb(241, 234, 216); }
+.ank-textSEL__COM_heroText-textColor, .heroText { color: rgb(241, 234, 216); }
+.ank-textSEL__COM_pokeSectionText-textColor, .pokeSectionText { color: rgb(241, 234, 216); }
+.ank-textSEL__COM_catalogSwitchText-textColor, .catalogSwitchText { color: rgb(241, 234, 216); }
+.ank-textSEL__COM_pokemonMoveCount-textColor, .pokemonMoveCount { color: rgb(241, 234, 216); }
+.ank-textSEL__COM_pokemonPaginationSummary-textColor, .pokemonPaginationSummary { color: rgb(241, 234, 216); }
+.ank-textSEL__COM_pokemonPaginationEllipsis-textColor, .pokemonPaginationEllipsis { color: rgb(241, 234, 216); }
+.ank-textSEL__COM_statusText-textColor, .statusText { color: rgb(241, 234, 216); }
+.ank-textSEL__COM_footerText-textColor, .footerText { color: rgb(241, 234, 216); }
+.ank-textSEL__COM_pokemonSearchStatus-textColor, .pokemonSearchStatus { color: rgb(241, 234, 216); }
+.ank-textSEL__COM_catalogModeHint-textColor, .catalogModeHint { color: rgb(241, 234, 216); }
+.ank-textSEL__COM_catalogInputHint-textColor, .catalogInputHint { color: rgb(241, 234, 216); }
+.ank-text-textColor { color: rgb(241, 234, 216); }
+.ank-bco-textColorOPA__0_12 { border-color: rgba(241, 234, 216, 0.12); }
+.ank-text-textColorOPA__0_72 { color: rgba(241, 234, 216, 0.72); }
+.ank-bco-textColorOPA__0_14 { border-color: rgba(241, 234, 216, 0.14); }
+.ank-bg-textColorOPA__0_04 { --ank-surface-background-color: rgba(241,234,216,0.04); --ank-text-gradient-fill-color: initial; background-color: rgba(241, 234, 216, 0.04); }
+.ank-bg-textColorOPA__0_06 { --ank-surface-background-color: rgba(241,234,216,0.06); --ank-text-gradient-fill-color: initial; background-color: rgba(241, 234, 216, 0.06); }
+.ank-bco-textColorOPA__0_08 { border-color: rgba(241, 234, 216, 0.08); }
+.ank-text-textColorOPA__0_56 { color: rgba(241, 234, 216, 0.56); }
+.ank-bg-textColorOPA__0_08 { --ank-surface-background-color: rgba(241,234,216,0.08); --ank-text-gradient-fill-color: initial; background-color: rgba(241, 234, 216, 0.08); }
+.ank-bg-textColorOPA__0_05 { --ank-surface-background-color: rgba(241,234,216,0.05); --ank-text-gradient-fill-color: initial; background-color: rgba(241, 234, 216, 0.05); }
+.ank-bco-textColorOPA__0_06 { border-color: rgba(241, 234, 216, 0.06); }
+.ank-textSEL__COM_debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL-textColor, .debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL { color: rgb(241, 234, 216); }
+.ank-textSEL__COM_pokeSectionTitle-titleColor, .pokeSectionTitle { color: rgb(255, 248, 230); }
+.ank-bg-accentColor { --ank-surface-background-color: rgba(240,189,47, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(240, 189, 47); }
+.ank-bgSEL__COM_heroBand-secondaryBgColor, .heroBand { --ank-surface-background-color: rgba(30,32,25, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(30, 32, 25); }
+.ank-bgSEL__COM_secondaryActionHover-secondaryBgColor, .secondaryAction:hover { --ank-surface-background-color: rgba(30,32,25, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(30, 32, 25); }
+.ank-bgSEL__COM_themeActionHover-secondaryBgColor, .themeAction:hover { --ank-surface-background-color: rgba(30,32,25, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(30, 32, 25); }
+.ank-bgSEL__COM_pokeSectionEyebrow-secondaryBgColor, .pokeSectionEyebrow { --ank-surface-background-color: rgba(30,32,25, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(30, 32, 25); }
+.ank-bgSEL__COM_pokeSectionEyebrow-secondaryBgColor *, .pokeSectionEyebrow * { --ank-surface-background-color: initial; --ank-surface-background-image: initial; --ank-surface-background-position: initial; --ank-surface-background-size: initial; --ank-surface-background-repeat: initial; --ank-surface-background-origin: initial; --ank-surface-background-clip: initial; --ank-surface-background-attachment: initial; --ank-text-gradient-image: initial; --ank-text-gradient-position: initial; --ank-text-gradient-size: initial; --ank-text-gradient-origin: initial; --ank-text-gradient-shadow: initial; --ank-text-gradient-fill-color: initial; }
+.ank-bgSEL__COM_catalogControls-secondaryBgColor, .catalogControls { --ank-surface-background-color: rgba(30,32,25, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(30, 32, 25); }
+.ank-bgSEL__COM_catalogSwitchTrack-secondaryBgColor, .catalogSwitchTrack { --ank-surface-background-color: rgba(30,32,25, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(30, 32, 25); }
+.ank-bgSEL__COM_pokemonCard-secondaryBgColor, .pokemonCard { --ank-surface-background-color: rgba(30,32,25, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(30, 32, 25); }
+.ank-bgSEL__COM_pokemonPaginationLinkHover-secondaryBgColor, .pokemonPaginationLink:hover { --ank-surface-background-color: rgba(30,32,25, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(30, 32, 25); }
+.ank-bgSEL__COM_statusItem-secondaryBgColor, .statusItem { --ank-surface-background-color: rgba(30,32,25, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(30, 32, 25); }
+.ank-bgSEL__COM_footerBand-secondaryBgColor, .footerBand { --ank-surface-background-color: rgba(30,32,25, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(30, 32, 25); }
+.ank-bgSEL__COM_pokemonSearchResultHover-secondaryBgColor, .pokemonSearchResult:hover { --ank-surface-background-color: rgba(30,32,25, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(30, 32, 25); }
+.ank-bgSEL__COM_catalogSelectItemHover-secondaryBgColor, .catalogSelectItem:hover { --ank-surface-background-color: rgba(30,32,25, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(30, 32, 25); }
+.ank-bgSEL__COM_pokemonMoveTagHover-secondaryBgColor, .pokemonMoveTag:hover { --ank-surface-background-color: rgba(30,32,25, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(30, 32, 25); }
+.ank-bgSEL__COM_moveMatchLinkHover-secondaryBgColor, .moveMatchLink:hover { --ank-surface-background-color: rgba(30,32,25, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(30, 32, 25); }
+.ank-bg-secondaryBgColor { --ank-surface-background-color: rgba(30,32,25, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(30, 32, 25); }
 .ank-text-secondaryTextColor { color: rgb(243, 234, 216); }
 .ank-text-secondaryTitleColor { color: rgb(255, 246, 223); }
+.ank-textSEL__COM_pokeSectionEyebrow-secondaryLinkColor, .pokeSectionEyebrow { color: rgb(255, 128, 106); }
 .ank-bg-secondaryAccentColor { --ank-surface-background-color: rgba(98,196,138, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(98, 196, 138); }
 .ank-bco-secondaryAccentColor { border-color: rgb(98, 196, 138); }
 .ank-bgSEL__COM_debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL-secondaryAccentColor, .debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL { --ank-surface-background-color: rgba(98,196,138, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(98, 196, 138); }
 .ank-boSEL__COM_debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL-2px__solid__secondaryAccentColor, .debugBtnTypePrimaryVALSVLsecondaryAccentColorVLtextColorVL { border: 2px solid rgb(98, 196, 138); }
+.ank-wmxSEL__COM_detailImage-360px, .detailImage { max-width: 360px; }
+.ank-gSEL__COM_detailHeroVisual-12px, .detailHeroVisual { gap: 12px; }
+.ank-pSEL__COM_detailHeroVisual-16px, .detailHeroVisual { padding: 16px; }
+.ank-paddingBlockSEL__COM_detailTopBar-12px, .detailTopBar { padding-block: 12px; }
+.ank-ptSEL__COM_detailHeroBand-30px, .detailHeroBand { padding-top: 30px; }
+.ank-pbSEL__COM_detailHeroBand-44px, .detailHeroBand { padding-bottom: 44px; }
+.ank-dSEL__COM_detailMoveChip-flex, .detailMoveChip { display: flex; }
+.ank-gSEL__COM_detailHeroInner-24px, .detailHeroInner { gap: 24px; }
+.ank-bgSEL__COM_detailPage-bgColor, .detailPage { --ank-surface-background-color: rgba(17,22,17, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(17, 22, 17); }
+.ank-bgSEL__COM_detailHeroInner-bgColor, .detailHeroInner { --ank-surface-background-color: rgba(17,22,17, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(17, 22, 17); }
+.ank-bshSEL__COM_detailHeroInner-0__18px__46px__bgColor__OPA__0_16, .detailHeroInner { box-shadow: rgba(17, 22, 17, 0.16) 0px 18px 46px; }
+.ank-bgSEL__COM_detailMoveChipHover-bgColor, .detailMoveChip:hover { --ank-surface-background-color: rgba(17,22,17, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(17, 22, 17); }
+.ank-textSEL__COM_detailPage-textColor, .detailPage { color: rgb(241, 234, 216); }
+.ank-textSEL__COM_detailMetricLabel-textColor, .detailMetricLabel { color: rgb(241, 234, 216); }
+.ank-bgSEL__COM_detailTopBar-secondaryBgColor, .detailTopBar { --ank-surface-background-color: rgba(30,32,25, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(30, 32, 25); }
+.ank-bgSEL__COM_detailHeroBand-secondaryBgColor, .detailHeroBand { --ank-surface-background-color: rgba(30,32,25, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(30, 32, 25); }
+.ank-bgSEL__COM_detailHeroVisual-secondaryBgColor, .detailHeroVisual { --ank-surface-background-color: rgba(30,32,25, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(30, 32, 25); }
+.ank-bgSEL__COM_detailAbilityChip-secondaryBgColor, .detailAbilityChip { --ank-surface-background-color: rgba(30,32,25, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(30, 32, 25); }
+.ank-bgSEL__COM_detailMetricCard-secondaryBgColor, .detailMetricCard { --ank-surface-background-color: rgba(30,32,25, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(30, 32, 25); }
+.ank-bgSEL__COM_detailMoveChip-secondaryBgColor, .detailMoveChip { --ank-surface-background-color: rgba(30,32,25, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(30, 32, 25); }
+.ank-bgSEL__COM_detailProfilePanel-secondaryBgColor, .detailProfilePanel { --ank-surface-background-color: rgba(30,32,25, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(30, 32, 25); }
 .ank-bg-bgColor { --ank-surface-background-color: rgba(240,237,231, 1); --ank-text-gradient-fill-color: initial; background-color: rgb(240, 237, 231); }
 .ank-text-bgColor { color: rgb(240, 237, 231); }
 .ank-bg-bgColorOPA__0_92 { --ank-surface-background-color: rgba(240,237,231,0.92); --ank-text-gradient-fill-color: initial; background-color: rgba(240, 237, 231, 0.92); }
-.ank-color-textColor { color: rgb(46, 45, 45); }
 .ank-text-textColor { color: rgb(46, 45, 45); }
+.ank-color-textColor { color: rgb(46, 45, 45); }
 .ank-bco-textColorOPA__0_12 { border-color: rgba(46, 45, 45, 0.12); }
 .ank-text-textColorOPA__0_72 { color: rgba(46, 45, 45, 0.72); }
 .ank-bco-textColorOPA__0_14 { border-color: rgba(46, 45, 45, 0.14); }

@@ -1317,3 +1317,243 @@
   .ank-fsSEL__COM_heroTitle-lg-5_6rem, .heroTitle { font-size: 5.6rem; }
   .ank-gtcSEL__COM_pokemonGrid-lg-repeatSD4COM1frED, .pokemonGrid { grid-template-columns: repeat(4, 1fr); }
 }
+@media only screen and (min-width: 768px) {
+  .ank-g-md-22px { gap: 22px; }
+  html .ank-g-md-22px { gap: 22px; }
+  html body .ank-g-md-22px { gap: 22px; }
+  html body #ank-bp .ank-g-md-22px { gap: 22px; }
+  #ank-bp .ank-g-md-22px { gap: 22px; }
+  .ank-fs-md-1_15rem { font-size: 1.15rem; }
+  .ank-g-md-14px { gap: 14px; }
+  .ank-paddingInline-md-22px { padding-inline: 22px; }
+  .ank-paddingBlock-md-26px { padding-block: 26px; }
+  .ank-g-md-34px { gap: 34px; }
+  .ank-g-md-32px { gap: 32px; }
+  .ank-p-md-34px { padding: 34px; }
+  .ank-gtc-md-1_1fr__0_9fr { grid-template-columns: 1.1fr 0.9fr; }
+  .ank-g-md-30px { gap: 30px; }
+  .ank-fs-md-4_8rem { font-size: 4.8rem; }
+  .ank-fs-md-1_34rem { font-size: 1.34rem; }
+  .ank-fs-md-1_08rem { font-size: 1.08rem; }
+  .ank-gtc-md-0_9fr__1_1fr { grid-template-columns: 0.9fr 1.1fr; }
+  .ank-fs-md-2_8rem { font-size: 2.8rem; }
+  .ank-fs-md-3rem { font-size: 3rem; }
+  .ank-gtc-md-repeatSD3COM1frED { grid-template-columns: repeat(3, 1fr); }
+  .ank-gtc-md-repeatSD4COM1frED { grid-template-columns: repeat(4, 1fr); }
+  .ank-gtc-md-1fr__1fr { grid-template-columns: 1fr 1fr; }
+  .ank-fs-md-3_2rem { font-size: 3.2rem; }
+  .ank-g-md-24px { gap: 24px; }
+  html .ank-g-md-24px { gap: 24px; }
+  html body .ank-g-md-24px { gap: 24px; }
+  html body #ank-bp .ank-g-md-24px { gap: 24px; }
+  #ank-bp .ank-g-md-24px { gap: 24px; }
+  .ank-fs-md-1_05rem { font-size: 1.05rem; }
+  .ank-d-md-flex { display: flex; }
+  .ank-g-md-18px { gap: 18px; }
+  .ank-d-md-none { display: none; }
+  .ank-p-md-3rem { padding: 3rem; }
+  .ank-g-md-12px { gap: 12px; }
+  .ank-pt-md-52px { padding-top: 52px; }
+  .ank-gtc-md-repeatSD2COM1frED { grid-template-columns: repeat(2, 1fr); }
+  .ank-g-md-36px { gap: 36px; }
+  .ank-jc-md-end { justify-content: end; }
+  .ank-p-md-36px { padding: 36px; }
+  .ank-g-md-28px { gap: 28px; }
+  .ank-g-md-20px { gap: 20px; }
+  .ank-jc-md-start { justify-content: start; }
+  .ank-p-md-28px { padding: 28px; }
+  html .ank-pSEL__COM_outlinePanel-md-28px, .outlinePanel { padding: 28px; }
+  html body .ank-pSEL__COM_outlinePanel-md-28px, .outlinePanel { padding: 28px; }
+  html body #ank-bp .ank-pSEL__COM_outlinePanel-md-28px, .outlinePanel { padding: 28px; }
+  #ank-bp .ank-pSEL__COM_outlinePanel-md-28px, .outlinePanel { padding: 28px; }
+  .ank-pSEL__COM_sectionBase-md-3rem, .sectionBase { padding: 3rem; }
+  html .ank-pSEL__COM_sectionBase-md-3rem, .sectionBase { padding: 3rem; }
+  html body .ank-pSEL__COM_sectionBase-md-3rem, .sectionBase { padding: 3rem; }
+  html body #ank-bp .ank-pSEL__COM_sectionBase-md-3rem, .sectionBase { padding: 3rem; }
+  #ank-bp .ank-pSEL__COM_sectionBase-md-3rem, .sectionBase { padding: 3rem; }
+  .ank-pSEL__COM_warmPanel-md-36px, .warmPanel { padding: 36px; }
+  .ank-pSEL__COM_outlinePanel-md-28px, .outlinePanel { padding: 28px; }
+  .ank-fsSEL__COM_sectionTitle-md-3_25rem, .sectionTitle { font-size: 3.25rem; }
+  .ank-fsSEL__COM_sectionSubtitle-md-1_08rem, .sectionSubtitle { font-size: 1.08rem; }
+  .ank-pSEL__COM_softPanel-md-24px, .softPanel { padding: 24px; }
+  .ank-pSEL__COM_methodCard-md-24px, .methodCard { padding: 24px; }
+}
+@media only screen and (min-width: 768px) {
+  .ank-g-md-22px { gap: 22px; }
+  html .ank-g-md-22px { gap: 22px; }
+  html body .ank-g-md-22px { gap: 22px; }
+  html body #ank-bp .ank-g-md-22px { gap: 22px; }
+  #ank-bp .ank-g-md-22px { gap: 22px; }
+  .ank-fs-md-1_15rem { font-size: 1.15rem; }
+  .ank-g-md-14px { gap: 14px; }
+  .ank-paddingInline-md-22px { padding-inline: 22px; }
+  .ank-paddingBlock-md-26px { padding-block: 26px; }
+  .ank-g-md-34px { gap: 34px; }
+  .ank-g-md-32px { gap: 32px; }
+  .ank-p-md-34px { padding: 34px; }
+  .ank-gtc-md-1_1fr__0_9fr { grid-template-columns: 1.1fr 0.9fr; }
+  .ank-g-md-30px { gap: 30px; }
+  .ank-fs-md-4_8rem { font-size: 4.8rem; }
+  .ank-fs-md-1_34rem { font-size: 1.34rem; }
+  .ank-fs-md-1_08rem { font-size: 1.08rem; }
+  .ank-gtc-md-0_9fr__1_1fr { grid-template-columns: 0.9fr 1.1fr; }
+  .ank-g-md-28px { gap: 28px; }
+  .ank-p-md-28px { padding: 28px; }
+  .ank-fs-md-2_8rem { font-size: 2.8rem; }
+  .ank-fs-md-3rem { font-size: 3rem; }
+  .ank-gtc-md-repeatSD3COM1frED { grid-template-columns: repeat(3, 1fr); }
+  .ank-gtc-md-repeatSD4COM1frED { grid-template-columns: repeat(4, 1fr); }
+  .ank-gtc-md-1fr__1fr { grid-template-columns: 1fr 1fr; }
+  .ank-fs-md-3_2rem { font-size: 3.2rem; }
+  .ank-fs-md-1_28rem { font-size: 1.28rem; }
+  html .ank-fs-md-1_28rem { font-size: 1.28rem; }
+  html body .ank-fs-md-1_28rem { font-size: 1.28rem; }
+  html body #ank-bp .ank-fs-md-1_28rem { font-size: 1.28rem; }
+  #ank-bp .ank-fs-md-1_28rem { font-size: 1.28rem; }
+  .ank-fs-md-5_75rem { font-size: 5.75rem; }
+  .ank-fs-md-1_38rem { font-size: 1.38rem; }
+  .ank-d-md-block { display: block; }
+  .ank-d-md-flex { display: flex; }
+  .ank-ta-md-right { text-align: right; }
+  .ank-gtc-md-repeatSD2COM1frED { grid-template-columns: repeat(2, 1fr); }
+  .ank-p-md-40px { padding: 40px; }
+  .ank-fd-md-row { flex-direction: row; }
+  html .ank-pSEL__COM_musicHeroPanel-md-34px, .musicHeroPanel { padding: 34px; }
+  html body .ank-pSEL__COM_musicHeroPanel-md-34px, .musicHeroPanel { padding: 34px; }
+  html body #ank-bp .ank-pSEL__COM_musicHeroPanel-md-34px, .musicHeroPanel { padding: 34px; }
+  #ank-bp .ank-pSEL__COM_musicHeroPanel-md-34px, .musicHeroPanel { padding: 34px; }
+  .ank-fsSEL__COM_sectionTitle-md-2_8rem, .sectionTitle { font-size: 2.8rem; }
+  html .ank-fsSEL__COM_sectionTitle-md-2_8rem, .sectionTitle { font-size: 2.8rem; }
+  html body .ank-fsSEL__COM_sectionTitle-md-2_8rem, .sectionTitle { font-size: 2.8rem; }
+  html body #ank-bp .ank-fsSEL__COM_sectionTitle-md-2_8rem, .sectionTitle { font-size: 2.8rem; }
+  #ank-bp .ank-fsSEL__COM_sectionTitle-md-2_8rem, .sectionTitle { font-size: 2.8rem; }
+  .ank-fsSEL__COM_sectionSubtitle-md-1_06rem, .sectionSubtitle { font-size: 1.06rem; }
+  .ank-gtcSEL__COM_gridCards-md-repeatSD2COM1frED, .gridCards { grid-template-columns: repeat(2, 1fr); }
+  .ank-pSEL__COM_musicHeroPanel-md-34px, .musicHeroPanel { padding: 34px; }
+  .ank-fsSEL__COM_musicEyebrow-md-0_72rem, .musicEyebrow { font-size: 0.72rem; }
+  .ank-lstSEL__COM_musicEyebrow-md-0_14rem, .musicEyebrow { letter-spacing: 0.14rem; }
+}
+@media only screen and (min-width: 768px) {
+  .ank-g-md-22px { gap: 22px; }
+  html .ank-g-md-22px { gap: 22px; }
+  html body .ank-g-md-22px { gap: 22px; }
+  html body #ank-bp .ank-g-md-22px { gap: 22px; }
+  #ank-bp .ank-g-md-22px { gap: 22px; }
+  .ank-fs-md-1_15rem { font-size: 1.15rem; }
+  .ank-g-md-14px { gap: 14px; }
+  .ank-paddingInline-md-22px { padding-inline: 22px; }
+  .ank-paddingBlock-md-26px { padding-block: 26px; }
+  .ank-g-md-34px { gap: 34px; }
+  .ank-g-md-32px { gap: 32px; }
+  .ank-p-md-34px { padding: 34px; }
+  .ank-gtc-md-1_1fr__0_9fr { grid-template-columns: 1.1fr 0.9fr; }
+  .ank-g-md-30px { gap: 30px; }
+  .ank-fs-md-4_8rem { font-size: 4.8rem; }
+  .ank-fs-md-1_34rem { font-size: 1.34rem; }
+  .ank-fs-md-1_08rem { font-size: 1.08rem; }
+  .ank-gtc-md-0_9fr__1_1fr { grid-template-columns: 0.9fr 1.1fr; }
+  .ank-g-md-28px { gap: 28px; }
+  .ank-p-md-28px { padding: 28px; }
+  .ank-fs-md-2_8rem { font-size: 2.8rem; }
+  .ank-fs-md-3rem { font-size: 3rem; }
+  .ank-gtc-md-repeatSD2COM1frED { grid-template-columns: repeat(2, 1fr); }
+  .ank-gtc-md-repeatSD3COM1frED { grid-template-columns: repeat(3, 1fr); }
+  .ank-gtc-md-repeatSD4COM1frED { grid-template-columns: repeat(4, 1fr); }
+  .ank-gtc-md-1fr__1fr { grid-template-columns: 1fr 1fr; }
+  .ank-fs-md-3_2rem { font-size: 3.2rem; }
+  html .ank-fsSEL__COM_heroTitle-md-4_35rem, .heroTitle { font-size: 4.35rem; }
+  html body .ank-fsSEL__COM_heroTitle-md-4_35rem, .heroTitle { font-size: 4.35rem; }
+  html body #ank-bp .ank-fsSEL__COM_heroTitle-md-4_35rem, .heroTitle { font-size: 4.35rem; }
+  #ank-bp .ank-fsSEL__COM_heroTitle-md-4_35rem, .heroTitle { font-size: 4.35rem; }
+  .ank-pSEL__COM_heroVisual-md-28px, .heroVisual { padding: 28px; }
+  html .ank-pSEL__COM_heroVisual-md-28px, .heroVisual { padding: 28px; }
+  html body .ank-pSEL__COM_heroVisual-md-28px, .heroVisual { padding: 28px; }
+  html body #ank-bp .ank-pSEL__COM_heroVisual-md-28px, .heroVisual { padding: 28px; }
+  #ank-bp .ank-pSEL__COM_heroVisual-md-28px, .heroVisual { padding: 28px; }
+  .ank-fsSEL__COM_pokeSectionTitle-md-3rem, .pokeSectionTitle { font-size: 3rem; }
+  .ank-gtcSEL__COM_catalogControls-md-repeatSD2COM1frED, .catalogControls { grid-template-columns: repeat(2, 1fr); }
+  .ank-pSEL__COM_catalogControls-md-18px, .catalogControls { padding: 18px; }
+  .ank-fsSEL__COM_heroTitle-md-4_35rem, .heroTitle { font-size: 4.35rem; }
+  .ank-fsSEL__COM_heroText-md-1_12rem, .heroText { font-size: 1.12rem; }
+  .ank-gtcSEL__COM_statusStrip-md-repeatSD3COM1frED, .statusStrip { grid-template-columns: repeat(3, 1fr); }
+}
+@media only screen and (min-width: 992px) {
+  .ank-gtcSEL__COM_gridCards-lg-repeatSD3COM1frED, .gridCards { grid-template-columns: repeat(3, 1fr); }
+  html .ank-gtcSEL__COM_gridCards-lg-repeatSD3COM1frED, .gridCards { grid-template-columns: repeat(3, 1fr); }
+  html body .ank-gtcSEL__COM_gridCards-lg-repeatSD3COM1frED, .gridCards { grid-template-columns: repeat(3, 1fr); }
+  html body #ank-bp .ank-gtcSEL__COM_gridCards-lg-repeatSD3COM1frED, .gridCards { grid-template-columns: repeat(3, 1fr); }
+  #ank-bp .ank-gtcSEL__COM_gridCards-lg-repeatSD3COM1frED, .gridCards { grid-template-columns: repeat(3, 1fr); }
+  .ank-gtcSEL__COM_heroInner-lg-1_05fr__0_95fr, .heroInner { grid-template-columns: 1.05fr 0.95fr; }
+  html .ank-gtcSEL__COM_heroInner-lg-1_05fr__0_95fr, .heroInner { grid-template-columns: 1.05fr 0.95fr; }
+  html body .ank-gtcSEL__COM_heroInner-lg-1_05fr__0_95fr, .heroInner { grid-template-columns: 1.05fr 0.95fr; }
+  html body #ank-bp .ank-gtcSEL__COM_heroInner-lg-1_05fr__0_95fr, .heroInner { grid-template-columns: 1.05fr 0.95fr; }
+  #ank-bp .ank-gtcSEL__COM_heroInner-lg-1_05fr__0_95fr, .heroInner { grid-template-columns: 1.05fr 0.95fr; }
+  .ank-gSEL__COM_heroInner-lg-44px, .heroInner { gap: 44px; }
+  .ank-gtcSEL__COM_pokemonGrid-lg-repeatSD4COM1frED, .pokemonGrid { grid-template-columns: repeat(4, 1fr); }
+  .ank-fsSEL__COM_heroTitle-lg-5_05rem, .heroTitle { font-size: 5.05rem; }
+}
+@media only screen and (min-width: 768px) {
+  .ank-g-md-22px { gap: 22px; }
+  html .ank-g-md-22px { gap: 22px; }
+  html body .ank-g-md-22px { gap: 22px; }
+  html body #ank-bp .ank-g-md-22px { gap: 22px; }
+  #ank-bp .ank-g-md-22px { gap: 22px; }
+  .ank-fs-md-1_15rem { font-size: 1.15rem; }
+  .ank-g-md-14px { gap: 14px; }
+  .ank-paddingInline-md-22px { padding-inline: 22px; }
+  .ank-paddingBlock-md-26px { padding-block: 26px; }
+  .ank-g-md-34px { gap: 34px; }
+  .ank-g-md-32px { gap: 32px; }
+  .ank-p-md-34px { padding: 34px; }
+  .ank-gtc-md-1_1fr__0_9fr { grid-template-columns: 1.1fr 0.9fr; }
+  .ank-g-md-30px { gap: 30px; }
+  .ank-fs-md-4_8rem { font-size: 4.8rem; }
+  .ank-fs-md-1_34rem { font-size: 1.34rem; }
+  .ank-fs-md-1_08rem { font-size: 1.08rem; }
+  .ank-gtc-md-0_9fr__1_1fr { grid-template-columns: 0.9fr 1.1fr; }
+  .ank-g-md-28px { gap: 28px; }
+  .ank-p-md-28px { padding: 28px; }
+  .ank-fs-md-2_8rem { font-size: 2.8rem; }
+  .ank-fs-md-3rem { font-size: 3rem; }
+  .ank-gtc-md-repeatSD2COM1frED { grid-template-columns: repeat(2, 1fr); }
+  .ank-gtc-md-repeatSD3COM1frED { grid-template-columns: repeat(3, 1fr); }
+  .ank-gtc-md-repeatSD4COM1frED { grid-template-columns: repeat(4, 1fr); }
+  .ank-gtc-md-1fr__1fr { grid-template-columns: 1fr 1fr; }
+  .ank-fs-md-3_2rem { font-size: 3.2rem; }
+  html .ank-gtcSEL__COM_detailTopBar-md-auto__minmaxSD260pxCOM520pxED__auto, .detailTopBar { grid-template-columns: auto minmax(260px, 520px) auto; }
+  html body .ank-gtcSEL__COM_detailTopBar-md-auto__minmaxSD260pxCOM520pxED__auto, .detailTopBar { grid-template-columns: auto minmax(260px, 520px) auto; }
+  html body #ank-bp .ank-gtcSEL__COM_detailTopBar-md-auto__minmaxSD260pxCOM520pxED__auto, .detailTopBar { grid-template-columns: auto minmax(260px, 520px) auto; }
+  #ank-bp .ank-gtcSEL__COM_detailTopBar-md-auto__minmaxSD260pxCOM520pxED__auto, .detailTopBar { grid-template-columns: auto minmax(260px, 520px) auto; }
+  .ank-fsSEL__COM_heroText-md-1_12rem, .heroText { font-size: 1.12rem; }
+  html .ank-fsSEL__COM_heroText-md-1_12rem, .heroText { font-size: 1.12rem; }
+  html body .ank-fsSEL__COM_heroText-md-1_12rem, .heroText { font-size: 1.12rem; }
+  html body #ank-bp .ank-fsSEL__COM_heroText-md-1_12rem, .heroText { font-size: 1.12rem; }
+  #ank-bp .ank-fsSEL__COM_heroText-md-1_12rem, .heroText { font-size: 1.12rem; }
+  .ank-fsSEL__COM_detailTitle-md-4_35rem, .detailTitle { font-size: 4.35rem; }
+  .ank-fsSEL__COM_pokeSectionTitle-md-3rem, .pokeSectionTitle { font-size: 3rem; }
+  .ank-gtcSEL__COM_statusStrip-md-repeatSD3COM1frED, .statusStrip { grid-template-columns: repeat(3, 1fr); }
+  .ank-hSEL__COM_detailSkeletonTitleBlock-md-112px, .detailSkeletonTitleBlock { height: 112px; }
+  .ank-pSEL__COM_detailHeroVisual-md-24px, .detailHeroVisual { padding: 24px; }
+  .ank-gtcSEL__COM_detailTopBar-md-auto__minmaxSD260pxCOM520pxED__auto, .detailTopBar { grid-template-columns: auto minmax(260px, 520px) auto; }
+  .ank-gtcSEL__COM_detailProfileGrid-md-repeatSD2COM1frED, .detailProfileGrid { grid-template-columns: repeat(2, 1fr); }
+  .ank-pSEL__COM_detailHeroInner-md-24px, .detailHeroInner { padding: 24px; }
+}
+@media only screen and (min-width: 992px) {
+  .ank-gtcSEL__COM_gridCards-lg-repeatSD3COM1frED, .gridCards { grid-template-columns: repeat(3, 1fr); }
+  html .ank-gtcSEL__COM_gridCards-lg-repeatSD3COM1frED, .gridCards { grid-template-columns: repeat(3, 1fr); }
+  html body .ank-gtcSEL__COM_gridCards-lg-repeatSD3COM1frED, .gridCards { grid-template-columns: repeat(3, 1fr); }
+  html body #ank-bp .ank-gtcSEL__COM_gridCards-lg-repeatSD3COM1frED, .gridCards { grid-template-columns: repeat(3, 1fr); }
+  #ank-bp .ank-gtcSEL__COM_gridCards-lg-repeatSD3COM1frED, .gridCards { grid-template-columns: repeat(3, 1fr); }
+  html .ank-gtcSEL__COM_detailHeroInner-lg-1fr__0_92fr, .detailHeroInner { grid-template-columns: 1fr 0.92fr; }
+  html body .ank-gtcSEL__COM_detailHeroInner-lg-1fr__0_92fr, .detailHeroInner { grid-template-columns: 1fr 0.92fr; }
+  html body #ank-bp .ank-gtcSEL__COM_detailHeroInner-lg-1fr__0_92fr, .detailHeroInner { grid-template-columns: 1fr 0.92fr; }
+  #ank-bp .ank-gtcSEL__COM_detailHeroInner-lg-1fr__0_92fr, .detailHeroInner { grid-template-columns: 1fr 0.92fr; }
+  .ank-fsSEL__COM_detailTitle-lg-5_2rem, .detailTitle { font-size: 5.2rem; }
+  html .ank-fsSEL__COM_detailTitle-lg-5_2rem, .detailTitle { font-size: 5.2rem; }
+  html body .ank-fsSEL__COM_detailTitle-lg-5_2rem, .detailTitle { font-size: 5.2rem; }
+  html body #ank-bp .ank-fsSEL__COM_detailTitle-lg-5_2rem, .detailTitle { font-size: 5.2rem; }
+  #ank-bp .ank-fsSEL__COM_detailTitle-lg-5_2rem, .detailTitle { font-size: 5.2rem; }
+  .ank-gtcSEL__COM_detailStatsGrid-lg-repeatSD5COM1frED, .detailStatsGrid { grid-template-columns: repeat(5, 1fr); }
+  .ank-gtcSEL__COM_detailHeroInner-lg-1fr__0_92fr, .detailHeroInner { grid-template-columns: 1fr 0.92fr; }
+  .ank-gSEL__COM_detailHeroInner-lg-40px, .detailHeroInner { gap: 40px; }
+}
