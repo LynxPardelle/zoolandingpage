@@ -30,6 +30,14 @@ export type TGenericInputOption = {
     readonly disabled?: TDynamicBooleanValue;
 };
 
+export type TGenericInputOptionsSource = {
+    readonly source: 'i18n' | 'var';
+    readonly path: string;
+    readonly fallback?: TDynamicValue<readonly TGenericInputOption[]>;
+};
+
+export type TGenericInputOptionsValue = readonly TGenericInputOption[] | TGenericInputOptionsSource;
+
 export type TGenericInputConfig = {
     readonly fieldId: string;
     readonly controlType: TGenericInputControlType;
@@ -68,8 +76,8 @@ export type TGenericInputConfig = {
     readonly valuePrefix?: TDynamicStringValue;
     readonly valueSuffix?: TDynamicStringValue;
     readonly showRangeValue?: TDynamicBooleanValue;
-    readonly options?: TDynamicValue<readonly TGenericInputOption[]>;
-    readonly autocompleteOptions?: TDynamicValue<readonly TGenericInputOption[]>;
+    readonly options?: TDynamicValue<TGenericInputOptionsValue>;
+    readonly autocompleteOptions?: TDynamicValue<TGenericInputOptionsValue>;
     readonly autocompleteMinLength?: TDynamicNumberValue;
     readonly autocompleteMaxOptions?: TDynamicNumberValue;
     readonly autocompleteMatchMode?: 'none' | 'startsWith' | 'contains';

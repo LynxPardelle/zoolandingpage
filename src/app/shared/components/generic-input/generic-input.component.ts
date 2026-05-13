@@ -1,6 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, untracked } from '@angular/core';
 import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
+import { I18nService } from '../../services/i18n.service';
+import { VariableStoreService } from '../../services/variable-store.service';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { GenericDropdown } from '../generic-dropdown/generic-dropdown.component';
 import type { DropdownConfig, DropdownItem } from '../generic-dropdown/generic-dropdown.types';
@@ -8,7 +10,7 @@ import { GenericTextComponent } from '../generic-text/generic-text';
 import type { TGenericTextConfig } from '../generic-text/generic-text.types';
 import { InteractionScopeService, validateInteractionValue } from '../interaction-scope/interaction-scope.service';
 import type { TInteractionValidationRule } from '../interaction-scope/interaction-scope.types';
-import type { TGenericInputConfig, TGenericInputOption, TGenericInputValueChange } from './generic-input.types';
+import type { TGenericInputConfig, TGenericInputOption, TGenericInputOptionsSource, TGenericInputValueChange } from './generic-input.types';
 
 @Component({
     selector: 'generic-input',
@@ -23,6 +25,8 @@ export class GenericInputComponent {
     readonly blurred = output<{ fieldId: string }>();
 
     private readonly scope = inject(InteractionScopeService);
+    private readonly variables = inject(VariableStoreService);
+    private readonly i18n = inject(I18nService);
 
     constructor() {
         effect(() => {
@@ -85,12 +89,10 @@ export class GenericInputComponent {
             : [];
     });
     readonly options = computed<readonly TGenericInputOption[]>(() => {
-        const resolved = this.resolveValue(this.config().options);
-        return Array.isArray(resolved) ? resolved.filter((entry): entry is TGenericInputOption => !!entry && typeof entry === 'object') : [];
+        return this.resolveOptions(this.config().options);
     });
     readonly autocompleteOptions = computed<readonly TGenericInputOption[]>(() => {
-        const resolved = this.resolveValue(this.config().autocompleteOptions);
-        return Array.isArray(resolved) ? resolved.filter((entry): entry is TGenericInputOption => !!entry && typeof entry === 'object') : [];
+        return this.resolveOptions(this.config().autocompleteOptions);
     });
     readonly autocompleteMinLength = computed(() => Math.max(0, Math.floor(this.asNumber(this.config().autocompleteMinLength) ?? 0)));
     readonly autocompleteMaxOptions = computed(() => {
@@ -386,6 +388,46 @@ export class GenericInputComponent {
 
     private resolveValue(value: unknown): unknown {
         return resolveDynamicValue(value as never);
+    }
+
+    private resolveOptions(value: unknown): readonly TGenericInputOption[] {
+        const resolved = this.resolveValue(value);
+
+        if (this.isOptionsSource(resolved)) {
+            const sourcedValue = this.resolveOptionsSource(resolved);
+            return this.normalizeOptions(sourcedValue);
+        }
+
+        return this.normalizeOptions(resolved);
+    }
+
+    private resolveOptionsSource(source: TGenericInputOptionsSource): unknown {
+        const path = String(source.path ?? '').trim();
+        if (!path) return this.resolveValue(source.fallback);
+
+        const value = source.source === 'var'
+            ? this.variables.get(path)
+            : this.i18n.get(path);
+
+        return value == null ? this.resolveValue(source.fallback) : value;
+    }
+
+    private normalizeOptions(value: unknown): readonly TGenericInputOption[] {
+        return Array.isArray(value)
+            ? value.filter((entry): entry is TGenericInputOption => this.isOption(entry))
+            : [];
+    }
+
+    private isOptionsSource(value: unknown): value is TGenericInputOptionsSource {
+        const record = this.asRecord(value);
+        if (!record) return false;
+        const source = record['source'];
+        return (source === 'var' || source === 'i18n') && typeof record['path'] === 'string';
+    }
+
+    private isOption(value: unknown): value is TGenericInputOption {
+        const record = this.asRecord(value);
+        return !!record && 'value' in record && 'label' in record;
     }
 
     private asString(value: unknown): string {

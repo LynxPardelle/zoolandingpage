@@ -887,10 +887,27 @@ describe('config-payload.validators', () => {
                     autocompleteMinLength: 3,
                     autocompleteMaxOptions: 20,
                     autocompleteMatchMode: 'startsWith',
-                    autocompleteOptions: [
-                        { value: 'bulbasaur', label: 'Bulbasaur' },
-                        { value: 'charmander', label: 'Charmander' },
-                    ],
+                    autocompleteOptions: {
+                        source: 'var',
+                        path: 'remote.pokemon.index.items',
+                        fallback: [
+                            { value: 'bulbasaur', label: 'Bulbasaur' },
+                            { value: 'charmander', label: 'Charmander' },
+                        ],
+                    },
+                },
+            },
+            attackFilter: {
+                id: 'attackFilter',
+                type: 'input',
+                config: {
+                    fieldId: 'move',
+                    controlType: 'select',
+                    options: {
+                        source: 'var',
+                        path: 'remote.pokemon.moveOptions.items',
+                        fallback: [{ value: 'all', label: 'Todos' }],
+                    },
                 },
             },
             autoSearchSwitch: {

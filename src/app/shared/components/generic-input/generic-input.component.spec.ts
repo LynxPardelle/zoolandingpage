@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { VariableStoreService } from '../../services/variable-store.service';
 import { InteractionScopeService } from '../interaction-scope/interaction-scope.service';
 import { GenericInputComponent } from './generic-input.component';
 
@@ -160,6 +161,39 @@ describe('GenericInputComponent', () => {
             'charmander',
             'charmeleon',
         ]);
+    });
+
+    it('reacts when option sources are populated after first render', () => {
+        const variables = TestBed.inject(VariableStoreService);
+        variables.clearRuntimeValues();
+
+        const fixture = TestBed.createComponent(GenericInputComponent);
+        const component = fixture.componentInstance;
+
+        fixture.componentRef.setInput('config', {
+            fieldId: 'move',
+            controlType: 'select',
+            value: 'thunder-shock',
+            options: {
+                source: 'var',
+                path: 'remote.pokemon.moveOptions.items',
+                fallback: [{ value: 'all', label: 'Todos' }],
+            },
+        });
+        fixture.detectChanges();
+
+        expect(component.options().map((option) => option.value)).toEqual(['all']);
+        expect(component.selectedOptionLabel()).toBe('Todos');
+
+        variables.setRuntimeValue('remote.pokemon.moveOptions.items', [
+            { value: 'all', label: 'Todos' },
+            { value: 'mega-punch', label: 'Mega Punch' },
+            { value: 'thunder-shock', label: 'Thunder Shock' },
+        ]);
+        fixture.detectChanges();
+
+        expect(component.options().map((option) => option.value)).toEqual(['all', 'mega-punch', 'thunder-shock']);
+        expect(component.selectedOptionLabel()).toBe('Thunder Shock');
     });
 
     it('renders a switch control and coerces string booleans safely', () => {

@@ -821,6 +821,19 @@ const isGenericInputOptionConfig = (value: unknown): boolean => {
     return 'value' in value;
 };
 
+const isGenericInputOptionsSourceConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (value['source'] !== 'var' && value['source'] !== 'i18n') return false;
+    if (typeof value['path'] !== 'string' || value['path'].trim().length === 0) return false;
+    return value['fallback'] === undefined
+        || (Array.isArray(value['fallback']) && value['fallback'].every(isGenericInputOptionConfig));
+};
+
+const isGenericInputOptionsConfig = (value: unknown): boolean =>
+    Array.isArray(value)
+        ? value.every(isGenericInputOptionConfig)
+        : isGenericInputOptionsSourceConfig(value);
+
 const isGenericInputConfig = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
     if (typeof value['fieldId'] !== 'string' || value['fieldId'].trim().length === 0) return false;
@@ -830,11 +843,11 @@ const isGenericInputConfig = (value: unknown): boolean => {
         return false;
     }
 
-    if (value['options'] !== undefined && (!Array.isArray(value['options']) || !value['options'].every(isGenericInputOptionConfig))) {
+    if (value['options'] !== undefined && !isGenericInputOptionsConfig(value['options'])) {
         return false;
     }
 
-    if (value['autocompleteOptions'] !== undefined && (!Array.isArray(value['autocompleteOptions']) || !value['autocompleteOptions'].every(isGenericInputOptionConfig))) {
+    if (value['autocompleteOptions'] !== undefined && !isGenericInputOptionsConfig(value['autocompleteOptions'])) {
         return false;
     }
 

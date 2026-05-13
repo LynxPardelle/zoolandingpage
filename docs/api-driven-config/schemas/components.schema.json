@@ -124,6 +124,28 @@
       },
       "additionalProperties": true
     },
+    "genericInputOptionsSource": {
+      "type": "object",
+      "required": ["source", "path"],
+      "properties": {
+        "source": { "enum": ["i18n", "var"] },
+        "path": { "type": "string" },
+        "fallback": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/genericInputOption" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "genericInputOptionsValue": {
+      "oneOf": [
+        {
+          "type": "array",
+          "items": { "$ref": "#/definitions/genericInputOption" }
+        },
+        { "$ref": "#/definitions/genericInputOptionsSource" }
+      ]
+    },
     "genericInputConfig": {
       "type": "object",
       "required": ["fieldId", "controlType"],
@@ -159,14 +181,8 @@
         "valuePrefix": { "type": "string" },
         "valueSuffix": { "type": "string" },
         "showRangeValue": { "type": "boolean" },
-        "options": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/genericInputOption" }
-        },
-        "autocompleteOptions": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/genericInputOption" }
-        },
+        "options": { "$ref": "#/definitions/genericInputOptionsValue" },
+        "autocompleteOptions": { "$ref": "#/definitions/genericInputOptionsValue" },
         "autocompleteMinLength": { "type": "number" },
         "autocompleteMaxOptions": { "type": "number" },
         "autocompleteMatchMode": { "enum": ["none", "startsWith", "contains"] },
