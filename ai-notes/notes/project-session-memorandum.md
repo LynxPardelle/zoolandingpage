@@ -408,3 +408,28 @@ Reusable lessons:
 
 - When an upstream enum endpoint mixes standard values with special/internal buckets, verify whether each value has usable records before exposing it as a client-facing filter.
 - For SSR plus deferred hydration, do not remove the static boot curtain just because SSR text exists; first confirm the classes rendered above the fold have static CSS coverage, or wait for the Angora CSS-ready path.
+
+### 2026-05-13 03:44 CT - PokeAPI Attack Filter Fallback Closeout
+
+Summary:
+
+- `generic-input` select options can now stay dynamic through `options.source`, but the PokeAPI attack filter needed a complete authored fallback because deferred hydration can leave the dropdown usable before the live `pokeapiMoves` source completes.
+- The PokeAPI demo attack dropdown now binds to `remote.pokemon.moveOptions.items` and carries a full 938-option fallback generated from PokeAPI `/move?limit=2000&offset=0`.
+- The Pokemon name search input keeps `autocompleteMinLength: 3`; typing in that text field remains button-only and does not auto-submit.
+
+Published:
+
+- Draft version: `20260513T091851Z-d50bad5f481b`.
+- App frontend commit already deployed before this draft-only publish: `98bc279`.
+
+Verified:
+
+- Runtime-bundle verification confirmed the published draft version, 938 fallback attack options, `shadow-sky`, `pound`, and `autocompleteMinLength: 3`.
+- Remote Playwright-core QA ran three cycles on `https://test.zoolandingpage.com.mx`.
+- QA verified 938 attack options on the home route and filtered route, `Shadow Sky` present, `Mega Punch` visually selected after navigating from Charizard detail, filtered summary `Pagina 1 de 58 · 231 resultados`, no Pokemon detail API reads while typing in the search input, autocomplete hidden at 2 characters and showing bounded suggestions at 3 characters, and zero mobile horizontal overflow.
+- QA evidence: `Output/pokeapi-demo-qa/20260513-attack-filter-audit/summary.json`.
+
+Reusable lessons:
+
+- For critical API-backed select controls, dynamic option sources should keep complete static fallbacks when the control must be correct before deferred hydration or when the upstream enum endpoint might be temporarily unavailable.
+- Audit free-text autocomplete separately from selector auto-submit; request-volume safeguards should verify no detail/search API source fires while the user is only typing.
