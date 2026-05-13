@@ -884,6 +884,9 @@ describe('config-payload.validators', () => {
                     fieldId: 'pokemon',
                     controlType: 'text',
                     inputType: 'search',
+                    autocompleteMinLength: 3,
+                    autocompleteMaxOptions: 20,
+                    autocompleteMatchMode: 'startsWith',
                     autocompleteOptions: [
                         { value: 'bulbasaur', label: 'Bulbasaur' },
                         { value: 'charmander', label: 'Charmander' },

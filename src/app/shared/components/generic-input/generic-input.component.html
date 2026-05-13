@@ -144,13 +144,13 @@
     [placeholder]="placeholder()"
     [class]="fieldClasses() + ' ' + inputClasses()"
     [attr.aria-label]="ariaLabel() || label()"
-    [attr.list]="autocompleteOptions().length > 0 ? autocompleteListId() : null"
+    [attr.list]="visibleAutocompleteOptions().length > 0 ? autocompleteListId() : null"
     (input)="onTextInput($event)"
     (blur)="onBlur()"
   />
-  @if (autocompleteOptions().length > 0) {
+  @if (visibleAutocompleteOptions().length > 0) {
   <datalist [id]="autocompleteListId()">
-    @for (option of autocompleteOptions(); track option.value + ':' + $index) {
+    @for (option of visibleAutocompleteOptions(); track option.value + ':' + $index) {
     <option [value]="option.value">{{ optionLabel(option) }}</option>
     }
   </datalist>

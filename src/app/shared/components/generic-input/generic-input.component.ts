@@ -92,6 +92,35 @@ export class GenericInputComponent {
         const resolved = this.resolveValue(this.config().autocompleteOptions);
         return Array.isArray(resolved) ? resolved.filter((entry): entry is TGenericInputOption => !!entry && typeof entry === 'object') : [];
     });
+    readonly autocompleteMinLength = computed(() => Math.max(0, Math.floor(this.asNumber(this.config().autocompleteMinLength) ?? 0)));
+    readonly autocompleteMaxOptions = computed(() => {
+        const resolved = this.asNumber(this.config().autocompleteMaxOptions);
+        return resolved === undefined ? undefined : Math.max(0, Math.floor(resolved));
+    });
+    readonly autocompleteMatchMode = computed<'none' | 'startsWith' | 'contains'>(() => {
+        const resolved = this.asString(this.config().autocompleteMatchMode).trim();
+        return resolved === 'startsWith' || resolved === 'contains' || resolved === 'none' ? resolved : 'none';
+    });
+    readonly visibleAutocompleteOptions = computed<readonly TGenericInputOption[]>(() => {
+        const query = this.currentTextValue().trim().toLowerCase();
+        if (query.length < this.autocompleteMinLength()) {
+            return [];
+        }
+
+        const mode = this.autocompleteMatchMode();
+        const filtered = mode === 'none'
+            ? this.autocompleteOptions()
+            : this.autocompleteOptions().filter((option) => {
+                const value = String(option.value ?? '').toLowerCase();
+                const label = this.optionLabel(option).toLowerCase();
+                return mode === 'startsWith'
+                    ? value.startsWith(query) || label.startsWith(query)
+                    : value.includes(query) || label.includes(query);
+            });
+
+        const maxOptions = this.autocompleteMaxOptions();
+        return maxOptions === undefined || maxOptions === 0 ? filtered : filtered.slice(0, maxOptions);
+    });
     readonly autocompleteListId = computed(() => `${ this.fieldId() || 'input' }-autocomplete`);
     readonly dropdownItems = computed<readonly DropdownItem[]>(() =>
         this.options().map((option, index) => ({

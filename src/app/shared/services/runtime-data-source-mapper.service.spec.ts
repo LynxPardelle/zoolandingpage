@@ -254,6 +254,7 @@ describe('RuntimeDataSourceMapperService', () => {
                 { name: 'electric' },
                 { name: 'stellar' },
                 { name: 'shadow' },
+                { name: 'mega-punch' },
             ],
         }, {
             itemsPath: 'results',
@@ -275,6 +276,7 @@ describe('RuntimeDataSourceMapperService', () => {
                 { value: 'electric', label: 'Electric' },
                 { value: 'stellar', label: 'Stellar' },
                 { value: 'shadow', label: 'Shadow' },
+                { value: 'mega-punch', label: 'Mega Punch' },
             ],
         });
     });

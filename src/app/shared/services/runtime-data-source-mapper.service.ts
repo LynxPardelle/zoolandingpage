@@ -130,7 +130,7 @@ export class RuntimeDataSourceMapperService {
             .trim()
             .split(/([\s_-]+)/)
             .map((segment) => {
-                if (/^[\s_-]+$/.test(segment)) return segment.replace(/_/g, ' ');
+                if (/^[\s_-]+$/.test(segment)) return ' ';
                 return segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase();
             })
             .join('')

@@ -129,7 +129,7 @@
       "required": ["fieldId", "controlType"],
       "properties": {
         "fieldId": { "type": "string" },
-        "controlType": { "enum": ["text", "textarea", "number", "range", "checkbox", "select", "button-group"] },
+        "controlType": { "enum": ["text", "textarea", "number", "range", "checkbox", "switch", "select", "file", "button-group"] },
         "inputType": { "enum": ["text", "email", "password", "search", "tel", "url"] },
         "name": { "type": "string" },
         "label": { "type": "string" },
@@ -163,6 +163,13 @@
           "type": "array",
           "items": { "$ref": "#/definitions/genericInputOption" }
         },
+        "autocompleteOptions": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/genericInputOption" }
+        },
+        "autocompleteMinLength": { "type": "number" },
+        "autocompleteMaxOptions": { "type": "number" },
+        "autocompleteMatchMode": { "enum": ["none", "startsWith", "contains"] },
         "min": { "type": "number" },
         "max": { "type": "number" },
         "step": { "type": "number" },

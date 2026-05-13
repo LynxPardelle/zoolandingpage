@@ -875,8 +875,15 @@ const isGenericInputConfig = (value: unknown): boolean => {
         return false;
     }
 
-    const numberFields = ['min', 'max', 'step', 'rows'] as const;
+    const numberFields = ['min', 'max', 'step', 'rows', 'autocompleteMinLength', 'autocompleteMaxOptions'] as const;
     if (numberFields.some((field) => !isNumberThunkFriendly(value[field]))) {
+        return false;
+    }
+
+    if (
+        value['autocompleteMatchMode'] !== undefined
+        && !['none', 'startsWith', 'contains'].includes(String(value['autocompleteMatchMode'] ?? ''))
+    ) {
         return false;
     }
 

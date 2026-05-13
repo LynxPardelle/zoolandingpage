@@ -126,6 +126,42 @@ describe('GenericInputComponent', () => {
         ]);
     });
 
+    it('can delay and filter autocomplete options by the typed text', () => {
+        const fixture = TestBed.createComponent(GenericInputComponent);
+
+        fixture.componentRef.setInput('config', {
+            fieldId: 'pokemon',
+            controlType: 'text',
+            inputType: 'search',
+            value: '',
+            autocompleteMinLength: 3,
+            autocompleteMatchMode: 'startsWith',
+            autocompleteMaxOptions: 2,
+            autocompleteOptions: [
+                { value: 'bulbasaur', label: 'Bulbasaur' },
+                { value: 'charmander', label: 'Charmander' },
+                { value: 'charmeleon', label: 'Charmeleon' },
+                { value: 'charizard', label: 'Charizard' },
+            ],
+        });
+        fixture.detectChanges();
+
+        const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+        expect(input.getAttribute('list')).toBeNull();
+        expect(fixture.nativeElement.querySelector('datalist')).toBeNull();
+
+        input.value = 'cha';
+        input.dispatchEvent(new Event('input'));
+        fixture.detectChanges();
+
+        expect(input.getAttribute('list')).toBe('pokemon-autocomplete');
+        const options = Array.from(fixture.nativeElement.querySelectorAll('datalist option')) as HTMLOptionElement[];
+        expect(options.map((option) => option.value)).toEqual([
+            'charmander',
+            'charmeleon',
+        ]);
+    });
+
     it('renders a switch control and coerces string booleans safely', () => {
         const fixture = TestBed.createComponent(GenericInputComponent);
         const component = fixture.componentInstance;

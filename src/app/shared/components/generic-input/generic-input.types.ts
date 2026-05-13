@@ -70,6 +70,9 @@ export type TGenericInputConfig = {
     readonly showRangeValue?: TDynamicBooleanValue;
     readonly options?: TDynamicValue<readonly TGenericInputOption[]>;
     readonly autocompleteOptions?: TDynamicValue<readonly TGenericInputOption[]>;
+    readonly autocompleteMinLength?: TDynamicNumberValue;
+    readonly autocompleteMaxOptions?: TDynamicNumberValue;
+    readonly autocompleteMatchMode?: 'none' | 'startsWith' | 'contains';
     readonly min?: TDynamicNumberValue;
     readonly max?: TDynamicNumberValue;
     readonly step?: TDynamicNumberValue;
