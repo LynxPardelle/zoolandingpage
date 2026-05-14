@@ -1,4 +1,5 @@
 const IGNORED_CLASS_PREFIXES = ['ng-', 'cdk-', 'mat-', 'zlp-'];
+const IGNORED_CLASS_NAMES = new Set(['btnIcon']);
 
 export function hasStaticStyleCoverage(root: Element, documentRef: Document = root.ownerDocument): boolean {
     const requiredClasses = collectRequiredClasses(root);
@@ -31,7 +32,8 @@ function collectElementClasses(element: Element, target: Set<string>): void {
 }
 
 function shouldRequireStaticCoverage(className: string): boolean {
-    return !IGNORED_CLASS_PREFIXES.some((prefix) => className.startsWith(prefix));
+    return !IGNORED_CLASS_NAMES.has(className)
+        && !IGNORED_CLASS_PREFIXES.some((prefix) => className.startsWith(prefix));
 }
 
 function collectStylesheetText(documentRef: Document): string {

@@ -1,3 +1,4 @@
+import { PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { RuntimeApiProxyClientService } from './runtime-api-proxy-client.service';
 import { RuntimeDataSourceMapperService } from './runtime-data-source-mapper.service';
@@ -9,15 +10,25 @@ describe('RuntimeDataSourceService', () => {
     let variables: VariableStoreService;
     let proxy: jasmine.SpyObj<RuntimeApiProxyClientService>;
     let mapper: jasmine.SpyObj<RuntimeDataSourceMapperService>;
+    let runtimeSearchParams: URLSearchParams;
+    const nativeHistoryReplaceState = History.prototype.replaceState;
+
+    const setRuntimeUrl = (href: string): void => {
+        const url = new URL(href, 'http://localhost');
+        runtimeSearchParams = new URLSearchParams(url.search);
+        nativeHistoryReplaceState.call(window.history, {}, '', `${ url.pathname }${ url.search }${ url.hash }`);
+    };
 
     beforeEach(() => {
         proxy = jasmine.createSpyObj<RuntimeApiProxyClientService>('RuntimeApiProxyClientService', ['readSource', 'executeAction']);
         mapper = jasmine.createSpyObj<RuntimeDataSourceMapperService>('RuntimeDataSourceMapperService', ['mapResponse']);
+        runtimeSearchParams = new URLSearchParams();
 
         TestBed.configureTestingModule({
             providers: [
                 RuntimeDataSourceService,
                 VariableStoreService,
+                { provide: PLATFORM_ID, useValue: 'browser' },
                 { provide: RuntimeApiProxyClientService, useValue: proxy },
                 { provide: RuntimeDataSourceMapperService, useValue: mapper },
             ],
@@ -25,11 +36,12 @@ describe('RuntimeDataSourceService', () => {
 
         service = TestBed.inject(RuntimeDataSourceService);
         variables = TestBed.inject(VariableStoreService);
+        spyOn<any>(service, 'currentSearchParams').and.callFake(() => new URLSearchParams(runtimeSearchParams.toString()));
     });
 
     afterEach(() => {
         service.stop();
-        window.history.replaceState({}, '', '/context.html');
+        setRuntimeUrl('/context.html');
         TestBed.resetTestingModule();
     });
 
@@ -128,7 +140,11 @@ describe('RuntimeDataSourceService', () => {
     });
 
     it('marks active navigation data sources as loading without sending proxy requests', () => {
-        window.history.replaceState({}, '', '/?type=electric');
+        setRuntimeUrl('/?type=electric');
+        variables.setRuntimeValue('remote.pokemon.catalog', {
+            items: [{ name: 'bulbasaur' }],
+            count: 1,
+        });
 
         service.markInitialSourcesLoading({
             pageId: 'default',
@@ -146,6 +162,7 @@ describe('RuntimeDataSourceService', () => {
                     target: 'remote.pokemon.catalog',
                     statusTarget: 'remoteStatus.pokemon.catalog.type',
                     pageIds: ['default'],
+                    clearTargetOnLoad: true,
                     requiredInputKeys: ['type'],
                     input: {
                         type: {
@@ -161,6 +178,8 @@ describe('RuntimeDataSourceService', () => {
         expect(proxy.readSource).not.toHaveBeenCalled();
         expect(variables.get('remoteStatus.pokemon.catalog.index.state')).toBeUndefined();
         expect(variables.get('remoteStatus.pokemon.catalog.type.state')).toBe('loading');
+        expect(variables.get('remote.pokemon.catalog.items')).toEqual([]);
+        expect(variables.get('remote.pokemon.catalog.count')).toBeUndefined();
     });
 
     it('skips data sources scoped to a different page id', async () => {
@@ -186,9 +205,9 @@ describe('RuntimeDataSourceService', () => {
     });
 
     it('resolves query-param input values before calling the proxy', async () => {
-        window.history.replaceState({}, '', '/pokemon?name=Charizard%20');
         proxy.readSource.and.resolveTo({ ok: true, data: { items: [{ name: 'charizard' }] } });
         mapper.mapResponse.and.returnValue({ items: [{ name: 'charizard' }] });
+        setRuntimeUrl('/pokemon?name=Charizard%20');
 
         await service.start({
             domain: 'pokeapi-demo.zoolandingpage.com.mx',
@@ -216,9 +235,9 @@ describe('RuntimeDataSourceService', () => {
     });
 
     it('resolves query-param page offsets before calling the proxy', async () => {
-        window.history.replaceState({}, '', '/?page=3&pageSize=8');
         proxy.readSource.and.resolveTo({ ok: true, data: { results: [] } });
         mapper.mapResponse.and.returnValue({ items: [] });
+        setRuntimeUrl('/?page=3&pageSize=8');
 
         await service.start({
             domain: 'pokeapi-demo.zoolandingpage.com.mx',
@@ -253,7 +272,7 @@ describe('RuntimeDataSourceService', () => {
     });
 
     it('skips runtime data sources when a required input resolves empty', async () => {
-        window.history.replaceState({}, '', '/?draftDomain=pokeapi-demo.zoolandingpage.com.mx');
+        setRuntimeUrl('/?draftDomain=pokeapi-demo.zoolandingpage.com.mx');
 
         await service.start({
             domain: 'pokeapi-demo.zoolandingpage.com.mx',
@@ -282,7 +301,7 @@ describe('RuntimeDataSourceService', () => {
     });
 
     it('skips data sources when a configured query param is active', async () => {
-        window.history.replaceState({}, '', '/?draftDomain=pokeapi-demo.zoolandingpage.com.mx&move=mega-punch');
+        setRuntimeUrl('/?draftDomain=pokeapi-demo.zoolandingpage.com.mx&move=mega-punch');
 
         await service.start({
             domain: 'pokeapi-demo.zoolandingpage.com.mx',
@@ -307,9 +326,9 @@ describe('RuntimeDataSourceService', () => {
     });
 
     it('does not skip configured query params when they resolve empty or all', async () => {
-        window.history.replaceState({}, '', '/?draftDomain=pokeapi-demo.zoolandingpage.com.mx&move=all');
         proxy.readSource.and.resolveTo({ ok: true, data: { results: [{ name: 'bulbasaur' }] } });
         mapper.mapResponse.and.returnValue({ items: [{ name: 'bulbasaur' }] });
+        setRuntimeUrl('/?draftDomain=pokeapi-demo.zoolandingpage.com.mx&move=all');
 
         await service.start({
             domain: 'pokeapi-demo.zoolandingpage.com.mx',
@@ -329,9 +348,9 @@ describe('RuntimeDataSourceService', () => {
     });
 
     it('runs required-input data sources when the required query param is present', async () => {
-        window.history.replaceState({}, '', '/?pokemon=Snorlax%20');
         proxy.readSource.and.resolveTo({ ok: true, data: { items: [{ name: 'snorlax' }] } });
         mapper.mapResponse.and.returnValue({ items: [{ name: 'snorlax' }] });
+        setRuntimeUrl('/?pokemon=Snorlax%20');
 
         await service.start({
             domain: 'pokeapi-demo.zoolandingpage.com.mx',

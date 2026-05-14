@@ -22,7 +22,7 @@ import {
     isVariablesPayload,
 } from '@/app/shared/utility/config-validation/config-payload.validators';
 import { isPlatformBrowser } from '@angular/common';
-import { inject, Injectable, PLATFORM_ID, REQUEST, signal } from '@angular/core';
+import { inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
 import { ConfigSourceService } from './config-source.service';
 import { ConfigStoreService, TConfigBootstrapStage } from './config-store.service';
 import { DomainResolverService } from './domain-resolver.service';
@@ -52,7 +52,6 @@ const LOOP_INDEX_TOKEN = '{{index}}';
 @Injectable({ providedIn: 'root' })
 export class ConfigBootstrapService {
     private readonly platformId = inject(PLATFORM_ID);
-    private readonly request = inject(REQUEST, { optional: true });
     private readonly store = inject(ConfigStoreService);
     private readonly source = inject(ConfigSourceService);
     private readonly resolver = inject(DomainResolverService);
@@ -61,7 +60,7 @@ export class ConfigBootstrapService {
     private readonly runtimeConfig = inject(RuntimeConfigService);
     private readonly structured = inject(StructuredDataService);
     private readonly variablesStore = inject(VariableStoreService);
-    private readonly isBrowser = isPlatformBrowser(this.platformId) && !this.request;
+    private readonly isBrowser = isPlatformBrowser(this.platformId);
 
     readonly error = signal<string | null>(null);
 

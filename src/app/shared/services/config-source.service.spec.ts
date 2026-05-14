@@ -15,9 +15,13 @@ import { ConfigStoreService } from './config-store.service';
 import { DraftConfigLoaderService } from './draft-config-loader.service';
 import { LanguageService } from './language.service';
 
+const nativeHistoryReplaceState = History.prototype.replaceState;
+const setBrowserUrl = (url: string): void => {
+    nativeHistoryReplaceState.call(window.history, {}, '', url);
+};
+
 describe('ConfigSourceService', () => {
     let originalDraftsEnabled: boolean;
-    const originalUrl = window.location.pathname + window.location.search + window.location.hash;
 
     const themePalette = {
         bgColor: '#ffffff',
@@ -140,6 +144,8 @@ describe('ConfigSourceService', () => {
     };
 
     beforeEach(() => {
+        TestBed.resetTestingModule();
+        setBrowserUrl('/context.html');
         originalDraftsEnabled = environment.drafts.enabled;
         (environment.drafts as { enabled: boolean }).enabled = false;
 
@@ -182,7 +188,8 @@ describe('ConfigSourceService', () => {
 
     afterEach(() => {
         (environment.drafts as { enabled: boolean }).enabled = originalDraftsEnabled;
-        window.history.replaceState({}, '', originalUrl);
+        setBrowserUrl('/context.html');
+        TestBed.resetTestingModule();
     });
 
     it('returns null variables from the bundle without calling the legacy endpoint', async () => {
@@ -257,7 +264,7 @@ describe('ConfigSourceService', () => {
             path: '/servicios',
         });
 
-        window.history.replaceState({}, '', '/servicios');
+        spyOn<any>(service, 'resolveActivePath').and.returnValue('/servicios');
         await service.loadComponents('alecfest-voliii.zoolandingpage.com.mx', 'default');
 
         expect(api.getRuntimeBundle.calls.count()).toBe(1);

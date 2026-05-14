@@ -12,7 +12,7 @@ import { ThemeService } from '@/app/shared/services/theme.service';
 import { applyNavigationScroll, currentBrowserPath } from '@/app/shared/utility/navigation/browser-navigation.utility';
 import { environment } from '@/environments/environment';
 import { isPlatformBrowser } from '@angular/common';
-import { DestroyRef, inject, Injectable, PLATFORM_ID, REQUEST, signal } from '@angular/core';
+import { DestroyRef, inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
 import { LoadingCurtainService } from './loading-curtain.service';
 
 @Injectable({ providedIn: 'root' })
@@ -30,8 +30,7 @@ export class RuntimeService {
     private readonly theme = inject(ThemeService);
     private readonly loadingCurtain = inject(LoadingCurtainService);
     private readonly platformId = inject(PLATFORM_ID);
-    private readonly request = inject(REQUEST, { optional: true });
-    private readonly isBrowser = isPlatformBrowser(this.platformId) && !this.request;
+    private readonly isBrowser = isPlatformBrowser(this.platformId);
 
     readonly rootComponentsIds = signal<readonly string[]>([]);
     readonly modalRootIds = signal<readonly string[]>([]);
@@ -51,7 +50,7 @@ export class RuntimeService {
     private renderedCssUpdateId = 0;
     private loadingCurtainReadyId = 0;
     private readonly cssReadyRetryDelayMs = 250;
-    private readonly cssReadyMaxWaitMs = 10_000;
+    private readonly cssReadyMaxWaitMs = 4_000;
 
     connect(options: {
         host: HTMLElement;
@@ -237,6 +236,7 @@ export class RuntimeService {
         this.orchestrator.setDraftExportContext({ domain, pageId, rootIds, modalRootIds });
 
         this.scheduleRenderedComponentsCssUpdate();
+        const initialPageViewLabel = this.resolveCurrentBrowserUrlLabel();
         this.schedulePostBootstrapBrowserWork(() => {
             if (this.shouldSkipPostBootstrapBrowserWork()) {
                 return;
@@ -245,7 +245,7 @@ export class RuntimeService {
             this.analytics.initializeRuntimeState();
             this.analytics.startPageEngagementTracking(this.configStore.analytics());
             this.prefetchSiblingRoutes(domain, pageId, lang, context.path);
-            this.trackInitialPageView();
+            this.trackInitialPageView(initialPageViewLabel);
         });
     }
 
@@ -343,17 +343,25 @@ export class RuntimeService {
         }, 0);
     }
 
-    private trackInitialPageView(): void {
+    private trackInitialPageView(label?: string): void {
         if (!this.isBrowser || this.initialPageViewTracked) {
             return;
         }
 
-        const currentUrl = `${ window.location.pathname || '/' }${ window.location.search || '' }${ window.location.hash || '' }`;
+        const currentUrl = label ?? this.resolveCurrentBrowserUrlLabel();
         this.initialPageViewTracked = true;
         void this.analytics.track(this.analytics.pageViewEventName(), {
             category: AnalyticsCategories.Navigation,
             label: currentUrl || '/',
         });
+    }
+
+    private resolveCurrentBrowserUrlLabel(): string {
+        if (!this.isBrowser || typeof window === 'undefined') {
+            return '/';
+        }
+
+        return `${ window.location.pathname || '/' }${ window.location.search || '' }${ window.location.hash || '' }` || '/';
     }
 
     private isAutomatedBrowser(): boolean {

@@ -12,6 +12,7 @@ import { RuntimeDataSourceService } from '@/app/shared/services/runtime-data-sou
 import { ThemeService } from '@/app/shared/services/theme.service';
 import type { TComponentPayloadEntry, TComponentsPayload } from '@/app/shared/types/config-payloads.types';
 import { environment } from '@/environments/environment';
+import { PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { LoadingCurtainService } from './loading-curtain.service';
@@ -32,6 +33,8 @@ const flushPostBootstrapBrowserWork = async (): Promise<void> => {
     await Promise.resolve();
     await Promise.resolve();
 };
+
+const nativeHistoryReplaceState = History.prototype.replaceState;
 
 describe('RuntimeService', () => {
     const originalUrl = window.location.pathname + window.location.search + window.location.hash;
@@ -64,8 +67,55 @@ describe('RuntimeService', () => {
     let bootstrapLoad: jasmine.Spy;
     let setCombos: jasmine.Spy;
     let store: ConfigStoreService;
+    let runtimeHref = 'http://localhost/home?draftDomain=pamelabetancourt.com';
+    let draftRuntimeResolveActiveDraftContext: jasmine.Spy;
+
+    const normalizePath = (path: string): string => {
+        const trimmed = String(path ?? '').trim() || '/';
+        let normalized = trimmed;
+        try {
+            normalized = decodeURIComponent(trimmed);
+        } catch {
+            normalized = trimmed;
+        }
+
+        normalized = normalized.replace(/\\+/g, '/');
+        if (!normalized.startsWith('/')) normalized = `/${ normalized }`;
+        normalized = normalized.replace(/\/+/g, '/');
+        if (normalized.length > 1) normalized = normalized.replace(/\/+$/, '');
+        return normalized || '/';
+    };
+
+    const setRuntimeUrl = (href: string): URL => {
+        const url = new URL(href, 'http://localhost');
+        runtimeHref = url.href;
+        nativeHistoryReplaceState.call(window.history, {}, '', `${ url.pathname }${ url.search }${ url.hash }`);
+        return url;
+    };
+
+    const resolveRuntimeContext = async () => {
+        const url = new URL(runtimeHref);
+        const domain = 'pamelabetancourt.com';
+        const siteConfig = await loadSiteConfig(domain);
+        store?.setSiteConfig(siteConfig);
+
+        const path = normalizePath(url.pathname);
+        const explicitPageId = String(url.searchParams.get('draftPageId') ?? '').trim();
+        const route = Array.isArray(siteConfig?.routes)
+            ? siteConfig.routes.find((entry: { readonly path?: string }) => normalizePath(entry.path ?? '') === path) ?? null
+            : null;
+
+        return {
+            domain,
+            pageId: explicitPageId || route?.pageId || siteConfig?.defaultPageId || 'home',
+            path,
+            route,
+            explicitPageId: explicitPageId.length > 0,
+        };
+    };
 
     beforeEach(() => {
+        setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
         loadSiteConfig = jasmine.createSpy('loadSiteConfig').and.resolveTo({
             version: 1,
             domain: 'pamelabetancourt.com',
@@ -112,6 +162,7 @@ describe('RuntimeService', () => {
                 combos,
             };
         });
+        draftRuntimeResolveActiveDraftContext = jasmine.createSpy('resolveActiveDraftContext').and.callFake(resolveRuntimeContext);
 
         setExternalComponentsFromPayload.calls.reset();
         setAuxiliaryComponentsFromPayload.calls.reset();
@@ -141,7 +192,13 @@ describe('RuntimeService', () => {
         TestBed.configureTestingModule({
             providers: [
                 RuntimeService,
-                DraftRuntimeService,
+                {
+                    provide: DraftRuntimeService,
+                    useValue: {
+                        resolveActiveDraftContext: draftRuntimeResolveActiveDraftContext,
+                    },
+                },
+                { provide: PLATFORM_ID, useValue: 'browser' },
                 {
                     provide: DomainResolverService,
                     useValue: {
@@ -233,9 +290,14 @@ describe('RuntimeService', () => {
     });
 
     afterEach(async () => {
+        try {
+            TestBed.inject(RuntimeService).disconnect();
+        } catch {
+            // Best-effort cleanup for specs that failed before TestBed was ready.
+        }
         await flushPostBootstrapBrowserWork();
         (environment as { production: boolean }).production = originalProduction;
-        window.history.replaceState({}, '', originalUrl);
+        setRuntimeUrl(originalUrl);
         TestBed.resetTestingModule();
     });
 
@@ -243,7 +305,7 @@ describe('RuntimeService', () => {
         const service = TestBed.inject(RuntimeService);
         const expectedModalRootIds: string[] = [];
 
-        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
         await service.initialize('es');
 
         expect(bootstrapLoad).toHaveBeenCalledWith({
@@ -261,7 +323,7 @@ describe('RuntimeService', () => {
         });
         expect(service.rootComponentsIds()).toEqual(['home-root']);
 
-        window.history.replaceState({}, '', '/servicios?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/servicios?draftDomain=pamelabetancourt.com');
         await service.initialize('es');
 
         expect(bootstrapLoad).toHaveBeenCalledWith({
@@ -285,7 +347,7 @@ describe('RuntimeService', () => {
 
         const service = TestBed.inject(RuntimeService);
 
-        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
         await service.initialize('es');
 
         expect(prefetchRoute).not.toHaveBeenCalled();
@@ -301,7 +363,7 @@ describe('RuntimeService', () => {
     it('hides the boot curtain after rendered component classes are sent to Angora', async () => {
         const service = TestBed.inject(RuntimeService);
 
-        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
         await service.initialize('es');
 
         expect(configureLoadingCurtain).toHaveBeenCalled();
@@ -325,7 +387,7 @@ describe('RuntimeService', () => {
 
         const service = TestBed.inject(RuntimeService);
 
-        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
         await service.initialize('es');
         await flushPostBootstrapBrowserWork();
 
@@ -343,7 +405,7 @@ describe('RuntimeService', () => {
 
         const service = TestBed.inject(RuntimeService);
 
-        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
         await service.initialize('es');
         await flushPostBootstrapBrowserWork();
 
@@ -357,14 +419,16 @@ describe('RuntimeService', () => {
         spyOnProperty(navigator, 'userAgent', 'get').and.returnValue('Mozilla/5.0 Chrome/147.0.0.0 Safari/537.36');
         spyOnProperty(navigator, 'webdriver', 'get').and.returnValue(false);
         const service = TestBed.inject(RuntimeService);
+        spyOn<any>(service, 'resolveCurrentBrowserUrlLabel').and.returnValue('/home?draftDomain=pamelabetancourt.com');
 
-        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
         await service.initialize('es');
 
         expect(analyticsInitializeRuntimeState).not.toHaveBeenCalled();
         expect(analyticsPageViewEventName).not.toHaveBeenCalled();
         expect(analyticsTrack).not.toHaveBeenCalled();
 
+        setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
         await flushPostBootstrapBrowserWork();
 
         expect(analyticsInitializeRuntimeState).toHaveBeenCalled();
@@ -384,7 +448,7 @@ describe('RuntimeService', () => {
         const service = TestBed.inject(RuntimeService);
         const host = document.createElement('div');
 
-        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
         await service.initialize('es');
         expect(bootstrapLoad.calls.count()).toBe(1);
 
@@ -456,7 +520,7 @@ describe('RuntimeService', () => {
             return Promise.resolve(createBootPayload());
         });
 
-        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
         const firstInitialize = service.initialize('es');
         await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
 
@@ -469,7 +533,7 @@ describe('RuntimeService', () => {
             },
         ]]);
 
-        window.history.replaceState({}, '', '/servicios?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/servicios?draftDomain=pamelabetancourt.com');
         const secondInitialize = service.initialize('es');
 
         resolveFirstLoad();
@@ -498,9 +562,8 @@ describe('RuntimeService', () => {
 
     it('skips bootstrap when no draft identity is resolved yet', async () => {
         const service = TestBed.inject(RuntimeService);
-        const draftRuntime = TestBed.inject(DraftRuntimeService);
         const expectedModalRootIds: string[] = [];
-        spyOn(draftRuntime, 'resolveActiveDraftContext').and.resolveTo({
+        draftRuntimeResolveActiveDraftContext.and.resolveTo({
             domain: '',
             pageId: '',
             path: '/',
@@ -647,13 +710,14 @@ describe('RuntimeService', () => {
             site: {},
         } as any);
 
-        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
         await service.initialize('es');
 
         expect(runtimeDataSourcesStart).toHaveBeenCalledWith({
             domain: 'pamelabetancourt.com',
             pageId: 'home',
             dataSources,
+            mode: 'all',
         });
     });
 
@@ -680,7 +744,7 @@ describe('RuntimeService', () => {
             site: {},
         } as any);
 
-        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
         await service.initialize('es');
         store.setPageConfig({
             version: 1,
@@ -698,7 +762,7 @@ describe('RuntimeService', () => {
 
         runtimeDataSourcesMarkInitialSourcesLoading.calls.reset();
         bootstrapLoad.calls.reset();
-        window.history.pushState({}, '', '/home?draftDomain=pamelabetancourt.com&type=electric');
+        setRuntimeUrl('/home?draftDomain=pamelabetancourt.com&type=electric');
         window.dispatchEvent(new PopStateEvent('popstate'));
         await flushPostBootstrapBrowserWork();
 

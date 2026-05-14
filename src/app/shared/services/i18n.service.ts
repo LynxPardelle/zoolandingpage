@@ -1,6 +1,6 @@
 import { DEFAULT_FRAMEWORK_TRANSLATIONS } from '@/app/shared/i18n/default-framework-translations';
 import { isPlatformBrowser } from '@angular/common';
-import { Injectable, PLATFORM_ID, REQUEST, computed, effect, inject, signal } from '@angular/core';
+import { Injectable, PLATFORM_ID, computed, effect, inject, signal } from '@angular/core';
 import { LanguageService } from './language.service';
 import { RuntimeConfigService } from './runtime-config.service';
 
@@ -12,10 +12,9 @@ export type TI18nLoader = (lang: string, ctx: { signal?: AbortSignal }) => Promi
 @Injectable({ providedIn: 'root' })
 export class I18nService {
     private readonly platformId = inject(PLATFORM_ID);
-    private readonly request = inject(REQUEST, { optional: true });
     private readonly _language = inject(LanguageService);
     private readonly runtimeConfig = inject(RuntimeConfigService);
-    private readonly isBrowser = isPlatformBrowser(this.platformId) && !this.request;
+    private readonly isBrowser = isPlatformBrowser(this.platformId);
 
     private readonly baseDict = signal<TDictionary>(this.withFrameworkFallback(this._language.currentLanguage(), {}));
     private readonly autoLoadEnabled = signal(false);
