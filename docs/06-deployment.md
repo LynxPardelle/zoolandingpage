@@ -44,9 +44,10 @@ Recommended deployment order:
 4. Deploy `zoolanding-config-runtime-read` behind API Gateway and map `/runtime-bundle` under `https://api.zoolandingpage.com.mx`.
 5. Deploy `zoolanding-config-authoring` behind API Gateway and map `/config-authoring` under `https://api.zoolandingpage.com.mx`.
 6. Deploy `zoolanding-image-upload` behind API Gateway and map `/image-upload/presign` under `https://api.zoolandingpage.com.mx`.
-7. Deploy `zoolanding-api-proxy` behind API Gateway and map `/api-proxy/*` under `https://api.zoolandingpage.com.mx`.
-8. Seed or update the canonical production site under `zoolandingpage.com.mx`, and declare any preview or alternate hosts in `site-config.json.aliases`.
-9. Build and deploy the Dokploy containers for `zoolandingpage.com.mx` and `test.zoolandingpage.com.mx` from the same codebase. Both can call `https://api.zoolandingpage.com.mx`, and the test host will reuse the canonical production config resources.
+7. Deploy `zoolanding-data-dropper-lambda` behind API Gateway and map `/analytics` under `https://api.zoolandingpage.com.mx`.
+8. Deploy `zoolanding-api-proxy` behind API Gateway and map `/api-proxy/*` under `https://api.zoolandingpage.com.mx`.
+9. Seed or update the canonical production site under `zoolandingpage.com.mx`, and declare any preview or alternate hosts in `site-config.json.aliases`.
+10. Build and deploy the Dokploy containers for `zoolandingpage.com.mx` and `test.zoolandingpage.com.mx` from the same codebase. Both can call `https://api.zoolandingpage.com.mx`, and the test host will reuse the canonical production config resources.
 
 Notes for preview and alternate domains:
 
@@ -261,6 +262,7 @@ The current production setup uses one existing CloudFront distribution for `api.
 - `GET /runtime-bundle` -> `zoolanding-config-runtime-read`
 - `POST /config-authoring` -> `zoolanding-config-authoring`
 - `POST /image-upload/presign` -> `zoolanding-image-upload`
+- `POST /analytics` -> `zoolanding-data-dropper-lambda`
 - `POST /api-proxy/read` and `POST /api-proxy/action` -> `zoolanding-api-proxy`
 - `OPTIONS` for the same routes if you configure CORS manually
 
@@ -277,9 +279,10 @@ Current origin and behavior mapping:
 3. Add cache behavior `/runtime-bundle*` pointing to the runtime API origin.
 4. Add cache behavior `/config-authoring*` pointing to the authoring API origin.
 5. Add cache behavior `/image-upload/presign*` pointing to the image-upload API origin.
-6. Add cache behavior `/api-proxy/*` pointing to the runtime API proxy origin.
-7. Keep the existing default behavior untouched so older API routes continue working.
-8. Reuse the distribution's disabled-cache policy and the origin-request policy that forwards viewer headers except `Host`.
+6. Add cache behavior `/analytics` pointing to the data-dropper API origin.
+7. Add cache behavior `/api-proxy/*` pointing to the runtime API proxy origin.
+8. Keep the existing default behavior untouched so older API routes continue working, but do not rely on it for current data-dropper deploys.
+9. Reuse the distribution's disabled-cache policy and the origin-request policy that forwards viewer headers except `Host`.
 
 CORS requirements through CloudFront:
 
