@@ -19,6 +19,8 @@ Last Reviewed: 2026-04-20 (Central Time)
 
 This folder is the canonical home for reusable guidance that should survive beyond one task or one chat.
 
+It is not the repo changelog. Chronological app and draft history belongs under [../changelog/](../changelog/).
+
 ## Read This Folder In This Order
 
 1. Read [../Codex.md](../Codex.md).
@@ -41,6 +43,7 @@ This folder is the canonical home for reusable guidance that should survive beyo
 ## What Does Not Belong Here
 
 - draft-specific histories that matter only to one domain or one pass
+- chronological app/draft change history that belongs in `changelog/`
 - raw debugging transcripts, terminal dumps, or ad hoc browser observations
 - secrets, credentials, tokens, raw env values, signed URLs, or PII
 - volatile infrastructure identifiers that are only useful during one live incident
@@ -56,6 +59,11 @@ Keep draft-specific history in local `drafts/{domain}/ai_notes/`, `drafts/{domai
 - [future-features-ideas/](./future-features-ideas/): Durable backlog-grade ideas discovered during work
 - [error-reports/](./error-reports/): Sanitized incident write-ups with reusable lessons
 - [templates/](./templates/): Standard note shapes for future committed notes
+
+Chronological history lives outside this folder:
+
+- [../changelog/app/](../changelog/app/): app, runtime, tooling, deploy, and release history
+- [../changelog/drafts/](../changelog/drafts/): draft authoring, QA, and publish history
 
 ## Taxonomy Rules
 
