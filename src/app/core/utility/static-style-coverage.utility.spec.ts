@@ -46,4 +46,11 @@ describe('hasStaticStyleCoverage', () => {
 
         expect(hasStaticStyleCoverage(host)).toBeTrue();
     });
+
+    it('ignores generic component hook classes that do not own draft styling', () => {
+        host.innerHTML = '<button class="primaryAction"><span class="btnIcon"></span>Search</button>';
+        style.textContent = '.primaryAction { display: inline-flex; }';
+
+        expect(hasStaticStyleCoverage(host)).toBeTrue();
+    });
 });

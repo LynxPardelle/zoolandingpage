@@ -306,6 +306,7 @@ export type TRuntimeDataSourceConfig = {
     readonly target: string;
     readonly statusTarget?: string;
     readonly mergeMode?: 'replace' | 'appendItems';
+    readonly clearTargetOnLoad?: boolean;
     readonly enabled?: boolean;
     readonly ssr?: boolean;
     readonly pageIds?: readonly string[];

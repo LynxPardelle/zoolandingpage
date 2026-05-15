@@ -4,11 +4,32 @@ import { AnalyticsService } from '@/app/shared/services/analytics.service';
 import { I18nService } from '@/app/shared/services/i18n.service';
 import { LanguageService } from '@/app/shared/services/language.service';
 import { VariableStoreService } from '@/app/shared/services/variable-store.service';
+import { PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import type { EventExecutionContext } from '../event-handler.types';
 import { openModalHandler } from './legal-modal.handlers';
 import { navigateToUrlHandler, navigateWithScopeQueryHandler, setLanguageHandler } from './ui.handlers';
 import { openFaqCtaWhatsAppHandler, openFinalCtaWhatsAppHandler, openWhatsAppHandler } from './whatsapp.handlers';
+
+const nativeHistoryPushState = History.prototype.pushState;
+const nativeHistoryReplaceState = History.prototype.replaceState;
+
+const restoreNativeHistoryStateMethods = (): void => {
+    Object.defineProperty(window.history, 'pushState', {
+        configurable: true,
+        writable: true,
+        value: nativeHistoryPushState.bind(window.history),
+    });
+    Object.defineProperty(window.history, 'replaceState', {
+        configurable: true,
+        writable: true,
+        value: nativeHistoryReplaceState.bind(window.history),
+    });
+};
+
+const setBrowserUrl = (url: string): void => {
+    nativeHistoryReplaceState.call(window.history, {}, '', url);
+};
 
 describe('setLanguageHandler', () => {
     let analytics: jasmine.SpyObj<AnalyticsService>;
@@ -23,6 +44,7 @@ describe('setLanguageHandler', () => {
         TestBed.configureTestingModule({
             providers: [
                 LanguageService,
+                { provide: PLATFORM_ID, useValue: 'browser' },
                 { provide: AnalyticsService, useValue: analytics }
             ]
         });
@@ -69,11 +91,15 @@ describe('setLanguageHandler', () => {
 });
 
 describe('navigateToUrlHandler', () => {
+    const draftHref = 'http://localhost/home?draftDomain=pamelabetancourt.com&debugWorkspace=true';
     let context: EventExecutionContext;
     let openSpy: jasmine.Spy<(url?: string | URL, target?: string, features?: string) => Window | null>;
+    let dispatchSpy: jasmine.Spy<typeof window.dispatchEvent>;
 
     beforeEach(() => {
-        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+        TestBed.resetTestingModule();
+        restoreNativeHistoryStateMethods();
+        setBrowserUrl('/home?draftDomain=pamelabetancourt.com&debugWorkspace=true');
 
         TestBed.configureTestingModule({
             providers: []
@@ -87,68 +113,72 @@ describe('navigateToUrlHandler', () => {
             host: null
         };
         openSpy = spyOn(window, 'open').and.returnValue(null);
+        dispatchSpy = spyOn(window, 'dispatchEvent').and.returnValue(true);
     });
 
     afterEach(() => {
-        window.history.replaceState({}, '', '/context.html');
+        setBrowserUrl('/context.html');
+        TestBed.resetTestingModule();
     });
 
-    it('should keep internal _blank URLs in the same tab', async () => {
+    it('should keep internal _blank URLs in the same tab', () => {
         const handler = TestBed.runInInjectionContext(() => navigateToUrlHandler());
+        const pushState = spyOn(window.history, 'pushState').and.stub();
 
-        handler.handle(context, ['/servicios?draftDomain=pamelabetancourt.com', '_blank']);
-        await Promise.resolve();
+        handler.handle(context, ['/servicios?draftDomain=pamelabetancourt.com', '_blank', undefined, draftHref]);
 
         expect(openSpy).not.toHaveBeenCalled();
-        expect(window.location.pathname + window.location.search).toBe('/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+        expect(dispatchSpy).toHaveBeenCalled();
+        expect(pushState).toHaveBeenCalledWith({}, '', '/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true');
     });
 
-    it('should preserve debugWorkspace on internal same-tab navigation', async () => {
+    it('should preserve debugWorkspace on internal same-tab navigation', () => {
         const handler = TestBed.runInInjectionContext(() => navigateToUrlHandler());
+        const pushState = spyOn(window.history, 'pushState').and.stub();
 
-        handler.handle(context, ['/acerca-de-mi?draftDomain=pamelabetancourt.com']);
-        await Promise.resolve();
+        handler.handle(context, ['/acerca-de-mi?draftDomain=pamelabetancourt.com', '_self', undefined, draftHref]);
 
-        expect(window.location.pathname + window.location.search).toBe('/acerca-de-mi?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+        expect(pushState).toHaveBeenCalledWith({}, '', '/acerca-de-mi?draftDomain=pamelabetancourt.com&debugWorkspace=true');
     });
 
-    it('should preserve the active draftDomain on internal navigation when the target omits it', async () => {
+    it('should preserve the active draftDomain on internal navigation when the target omits it', () => {
         const handler = TestBed.runInInjectionContext(() => navigateToUrlHandler());
+        const pushState = spyOn(window.history, 'pushState').and.stub();
 
-        handler.handle(context, ['/servicios']);
-        await Promise.resolve();
+        handler.handle(context, ['/servicios', '_self', undefined, draftHref]);
 
-        expect(window.location.pathname + window.location.search).toBe('/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+        expect(pushState).toHaveBeenCalledWith({}, '', '/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true');
     });
 
-    it('should optionally scroll to top on internal same-tab navigation', async () => {
+    it('should optionally scroll to top on internal same-tab navigation', () => {
         const handler = TestBed.runInInjectionContext(() => navigateToUrlHandler());
         const scrollTo = spyOn(window, 'scrollTo');
+        const pushState = spyOn(window.history, 'pushState').and.stub();
 
-        handler.handle(context, ['/servicios', '_self', 'top']);
-        await Promise.resolve();
+        handler.handle(context, ['/servicios', '_self', 'top', draftHref]);
 
-        expect(window.location.pathname + window.location.search).toBe('/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+        expect(pushState).toHaveBeenCalledWith({}, '', '/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true');
         expect(scrollTo).toHaveBeenCalledTimes(1);
         expect(scrollTo.calls.argsFor(0)[0] as ScrollToOptions).toEqual({ top: 0, left: 0, behavior: 'auto' });
     });
 
-    it('should avoid double-encoding unicode internal routes', async () => {
+    it('should avoid double-encoding unicode internal routes', () => {
         const handler = TestBed.runInInjectionContext(() => navigateToUrlHandler());
+        const pushState = spyOn(window.history, 'pushState').and.stub();
 
-        handler.handle(context, ['/cont%C3%A1ctame?draftDomain=pamelabetancourt.com']);
-        await Promise.resolve();
+        handler.handle(context, ['/cont%C3%A1ctame?draftDomain=pamelabetancourt.com', '_self', undefined, draftHref]);
 
-        expect(window.location.pathname + window.location.search).toBe('/cont%C3%A1ctame?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+        expect(pushState).toHaveBeenCalledWith({}, '', '/cont%C3%A1ctame?draftDomain=pamelabetancourt.com&debugWorkspace=true');
     });
 
     it('should still open external _blank URLs in a new tab', () => {
         const handler = TestBed.runInInjectionContext(() => navigateToUrlHandler());
+        setBrowserUrl('/home?draftDomain=pamelabetancourt.com&debugWorkspace=true');
 
         handler.handle(context, ['https://example.com/profile', '_blank']);
 
         expect(openSpy).toHaveBeenCalledOnceWith('https://example.com/profile', '_blank', 'noopener,noreferrer');
-        expect(window.location.pathname + window.location.search).toBe('/home?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+        expect(dispatchSpy).not.toHaveBeenCalled();
     });
 });
 
@@ -156,7 +186,9 @@ describe('navigateWithScopeQueryHandler', () => {
     let context: EventExecutionContext;
 
     beforeEach(() => {
-        window.history.replaceState({}, '', '/?draftDomain=pokeapi-demo.zoolandingpage.com.mx&debugWorkspace=false&move=mega-punch');
+        TestBed.resetTestingModule();
+        restoreNativeHistoryStateMethods();
+        setBrowserUrl('/?draftDomain=pokeapi-demo.zoolandingpage.com.mx&debugWorkspace=false&move=mega-punch');
         TestBed.configureTestingModule({
             providers: []
         });
@@ -180,14 +212,19 @@ describe('navigateWithScopeQueryHandler', () => {
     });
 
     afterEach(() => {
-        window.history.replaceState({}, '', '/context.html');
+        setBrowserUrl('/context.html');
+        TestBed.resetTestingModule();
     });
 
     it('builds a fresh internal URL from submitted scope values and preserves draft query params', async () => {
+        setBrowserUrl('/?draftDomain=pokeapi-demo.zoolandingpage.com.mx&debugWorkspace=false&move=mega-punch');
+        const pushState = spyOn(window.history, 'pushState').and.callThrough();
         const handler = TestBed.runInInjectionContext(() => navigateWithScopeQueryHandler());
+        const expectedPath = '/?draftDomain=pokeapi-demo.zoolandingpage.com.mx&debugWorkspace=false&pokemon=Lucario&move=aura-sphere&sort=number-desc&page=3&pageSize=8#pokemon-grid';
+        setBrowserUrl('/?draftDomain=pokeapi-demo.zoolandingpage.com.mx&debugWorkspace=false&move=mega-punch');
 
         handler.handle(context, [
-            '/',
+            '/?draftDomain=pokeapi-demo.zoolandingpage.com.mx&debugWorkspace=false',
             '#pokemon-grid',
             'pokemon=values.search',
             'type=values.type',
@@ -196,11 +233,8 @@ describe('navigateWithScopeQueryHandler', () => {
             'page=values.page',
             'pageSize=values.pageSize',
         ]);
-        await Promise.resolve();
 
-        expect(window.location.pathname + window.location.search + window.location.hash).toBe(
-            '/?draftDomain=pokeapi-demo.zoolandingpage.com.mx&debugWorkspace=false&pokemon=Lucario&move=aura-sphere&sort=number-desc&page=3&pageSize=8#pokemon-grid'
-        );
+        expect(pushState).toHaveBeenCalledWith({}, '', expectedPath);
     });
 });
 
@@ -275,6 +309,7 @@ describe('whatsapp handlers', () => {
                 VariableStoreService,
                 LanguageService,
                 I18nService,
+                { provide: PLATFORM_ID, useValue: 'browser' },
                 { provide: AnalyticsService, useValue: analytics }
             ]
         });

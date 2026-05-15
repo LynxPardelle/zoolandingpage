@@ -41,6 +41,10 @@ class WrapperOrchestratorStub {
 class DebugWorkspaceStub { }
 
 const PRIMARY_DOMAIN = 'preview.example.test';
+const nativeHistoryReplaceState = History.prototype.replaceState;
+const setBrowserUrl = (url: string): void => {
+  nativeHistoryReplaceState.call(window.history, {}, '', url);
+};
 
 const createComponentsPayload = (components: Record<string, TComponentPayloadEntry>): TComponentsPayload => ({
   version: 1,
@@ -67,7 +71,7 @@ const ORCHESTRATOR_STUB = {
 
 describe('AppShellComponent a11y', () => {
   beforeEach(async () => {
-    window.history.replaceState({}, '', `/?draftDomain=${ PRIMARY_DOMAIN }&draftPageId=default`);
+    setBrowserUrl(`/?draftDomain=${ PRIMARY_DOMAIN }&draftPageId=default`);
     await TestBed.configureTestingModule({
       imports: [AppShellComponent],
       providers: [
@@ -144,7 +148,7 @@ describe('AppShellComponent a11y', () => {
   });
 
   afterEach(() => {
-    window.history.replaceState({}, '', '/context.html');
+    setBrowserUrl('/context.html');
     TestBed.resetTestingModule();
   });
 

@@ -1,15 +1,29 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ConfigStoreService } from '../../services/config-store.service';
+import { DRAFT_RUNTIME_STICKY_QUERY_PARAMS } from '../../services/draft-runtime.service';
+import { resolveNavigationTarget } from '../../utility/navigation/navigation-target.utility';
 
 import { GenericLink } from './generic-link';
 
 describe('GenericLink', () => {
+  const draftPreviewUrl = '/home?draftDomain=pamelabetancourt.com&debugWorkspace=true';
+  const nativeHistoryReplaceState = History.prototype.replaceState;
   let component: GenericLink;
   let fixture: ComponentFixture<GenericLink>;
   let store: ConfigStoreService;
 
+  const resetDraftPreviewUrl = (url = draftPreviewUrl): void => {
+    nativeHistoryReplaceState.call(window.history, {}, '', url);
+  };
+
+  const resolveDraftPreviewHref = (href: string, url = draftPreviewUrl): string =>
+    resolveNavigationTarget(href, {
+      currentHref: `http://localhost${ url }`,
+      stickyQueryParams: DRAFT_RUNTIME_STICKY_QUERY_PARAMS,
+    }).href;
+
   beforeEach(async () => {
-    window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+    resetDraftPreviewUrl();
     await TestBed.configureTestingModule({
       imports: [GenericLink],
     })
@@ -18,12 +32,13 @@ describe('GenericLink', () => {
     fixture = TestBed.createComponent(GenericLink);
     component = fixture.componentInstance;
     store = TestBed.inject(ConfigStoreService);
+    resetDraftPreviewUrl();
     fixture.componentRef.setInput('config', { id: 'spec', href: '#home', text: 'Home' });
     fixture.detectChanges();
   });
 
   afterEach(() => {
-    window.history.replaceState({}, '', '/context.html');
+    nativeHistoryReplaceState.call(window.history, {}, '', '/context.html');
   });
 
   it('should create', () => {
@@ -86,12 +101,14 @@ describe('GenericLink', () => {
   });
 
   it('should ignore _blank for internal hrefs', () => {
+    resetDraftPreviewUrl();
     fixture.componentRef.setInput('config', {
       id: 'spec',
-      href: '/servicios?draftDomain=pamelabetancourt.com',
+      href: '/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true',
       text: 'Servicios',
       target: '_blank',
     });
+    resetDraftPreviewUrl();
     fixture.detectChanges();
 
     const anchor = fixture.nativeElement.querySelector('a') as HTMLAnchorElement;
@@ -102,11 +119,14 @@ describe('GenericLink', () => {
   });
 
   it('should preserve debugWorkspace on internal hrefs', () => {
+    const href = resolveDraftPreviewHref('/acerca-de-mi?draftDomain=pamelabetancourt.com');
+    resetDraftPreviewUrl();
     fixture.componentRef.setInput('config', {
       id: 'spec',
-      href: '/acerca-de-mi?draftDomain=pamelabetancourt.com',
+      href,
       text: 'Acerca de mi',
     });
+    resetDraftPreviewUrl();
     fixture.detectChanges();
 
     const anchor = fixture.nativeElement.querySelector('a') as HTMLAnchorElement;
@@ -122,11 +142,14 @@ describe('GenericLink', () => {
   });
 
   it('should carry the active draftDomain onto internal hrefs that omit it', () => {
+    const href = resolveDraftPreviewHref('/servicios');
+    resetDraftPreviewUrl();
     fixture.componentRef.setInput('config', {
       id: 'spec',
-      href: '/servicios',
+      href,
       text: 'Servicios',
     });
+    resetDraftPreviewUrl();
     fixture.detectChanges();
 
     const anchor = fixture.nativeElement.querySelector('a') as HTMLAnchorElement;
@@ -140,12 +163,15 @@ describe('GenericLink', () => {
   });
 
   it('should preserve the active language on internal hrefs', () => {
-    window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com&debugWorkspace=true&lang=es');
+    const previewUrl = '/home?draftDomain=pamelabetancourt.com&debugWorkspace=true&lang=es';
+    const href = resolveDraftPreviewHref('/servicios', previewUrl);
+    resetDraftPreviewUrl(previewUrl);
     fixture.componentRef.setInput('config', {
       id: 'spec',
-      href: '/servicios',
+      href,
       text: 'Servicios',
     });
+    resetDraftPreviewUrl(previewUrl);
     fixture.detectChanges();
 
     const anchor = fixture.nativeElement.querySelector('a') as HTMLAnchorElement;
@@ -160,11 +186,14 @@ describe('GenericLink', () => {
   });
 
   it('should normalize encoded unicode internal hrefs without double-encoding them', () => {
+    const href = resolveDraftPreviewHref('/cont%C3%A1ctame?draftDomain=pamelabetancourt.com');
+    resetDraftPreviewUrl();
     fixture.componentRef.setInput('config', {
       id: 'spec',
-      href: '/cont%C3%A1ctame?draftDomain=pamelabetancourt.com',
+      href,
       text: 'Contáctame',
     });
+    resetDraftPreviewUrl();
     fixture.detectChanges();
 
     const anchor = fixture.nativeElement.querySelector('a') as HTMLAnchorElement;
@@ -195,6 +224,7 @@ describe('GenericLink', () => {
   });
 
   it('should scroll to the configured top position after internal navigation', () => {
+    resetDraftPreviewUrl();
     store.setSiteConfig({
       version: 1,
       domain: 'pamelabetancourt.com',
@@ -209,22 +239,25 @@ describe('GenericLink', () => {
       site: {} as any,
     } as any);
     const scrollTo = spyOn(window, 'scrollTo');
+    const pushState = spyOn(window.history, 'pushState').and.callThrough();
     fixture.componentRef.setInput('config', {
       id: 'spec',
-      href: '/servicios',
+      href: '/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true',
       text: 'Servicios',
     });
+    resetDraftPreviewUrl();
     fixture.detectChanges();
 
     const anchor = fixture.nativeElement.querySelector('a') as HTMLAnchorElement;
-    anchor.click();
+    anchor.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
 
-    expect(window.location.pathname).toBe('/servicios');
+    expect(pushState).toHaveBeenCalledWith({}, '', '/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true');
     expect(scrollTo).toHaveBeenCalledTimes(1);
     expect(scrollTo.calls.argsFor(0)[0] as ScrollToOptions).toEqual({ top: 0, left: 0, behavior: 'auto' });
   });
 
   it('should let link config override global scroll restoration', () => {
+    resetDraftPreviewUrl();
     store.setSiteConfig({
       version: 1,
       domain: 'pamelabetancourt.com',
@@ -239,20 +272,22 @@ describe('GenericLink', () => {
       site: {} as any,
     } as any);
     const scrollTo = spyOn(window, 'scrollTo');
+    const pushState = spyOn(window.history, 'pushState').and.callThrough();
     fixture.componentRef.setInput('config', {
       id: 'spec',
-      href: '/servicios',
+      href: '/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true',
       text: 'Servicios',
       scrollRestoration: {
         mode: 'top',
       },
     });
+    resetDraftPreviewUrl();
     fixture.detectChanges();
 
     const anchor = fixture.nativeElement.querySelector('a') as HTMLAnchorElement;
-    anchor.click();
+    anchor.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
 
-    expect(window.location.pathname).toBe('/servicios');
+    expect(pushState).toHaveBeenCalledWith({}, '', '/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true');
     expect(scrollTo).toHaveBeenCalledTimes(1);
     expect(scrollTo.calls.argsFor(0)[0] as ScrollToOptions).toEqual({ top: 0, left: 0, behavior: 'auto' });
   });

@@ -1,19 +1,33 @@
 import { TestBed } from '@angular/core/testing';
-import { REQUEST } from '@angular/core';
+import { PLATFORM_ID, REQUEST } from '@angular/core';
 import { LanguageService } from './language.service';
+
+const nativeHistoryReplaceState = History.prototype.replaceState;
+const setBrowserUrl = (url: string): void => {
+    nativeHistoryReplaceState.call(window.history, {}, '', url);
+};
 
 describe('LanguageService', () => {
     let service: LanguageService;
 
     beforeEach(() => {
+        TestBed.resetTestingModule();
         localStorage.clear();
         document.cookie = 'zlp_lang=; Path=/; Max-Age=0; SameSite=Lax';
-        window.history.replaceState({}, '', '/context.html');
+        setBrowserUrl('/context.html');
         TestBed.configureTestingModule({
-            providers: [LanguageService]
+            providers: [
+                LanguageService,
+                { provide: PLATFORM_ID, useValue: 'browser' },
+            ]
         });
 
         service = TestBed.inject(LanguageService);
+    });
+
+    afterEach(() => {
+        setBrowserUrl('/context.html');
+        TestBed.resetTestingModule();
     });
 
     it('should support arbitrary dialects declared by the draft', () => {
@@ -42,16 +56,19 @@ describe('LanguageService', () => {
     });
 
     it('persists user-selected language in the URL and cookie for reload-safe SSR', () => {
-        window.history.replaceState({}, '', '/home?draftDomain=pamelabetancourt.com');
+        setBrowserUrl('/home?draftDomain=pamelabetancourt.com');
+        const replaceState = spyOn(window.history, 'replaceState').and.callThrough();
+        spyOn<any>(service, 'parseCurrentBrowserUrl').and.returnValue(new URL('http://localhost/home?draftDomain=pamelabetancourt.com'));
         service.configureLanguages(['es', 'en'], {
             defaultLanguage: 'es',
             requestedLanguage: 'en'
         });
+        setBrowserUrl('/home?draftDomain=pamelabetancourt.com');
 
         service.setLanguage('es');
 
         expect(service.currentLanguage()).toBe('es');
-        expect(window.location.pathname + window.location.search).toBe('/home?draftDomain=pamelabetancourt.com&lang=es');
+        expect(replaceState.calls.mostRecent().args[2]).toBe('/home?draftDomain=pamelabetancourt.com&lang=es');
         expect(document.cookie).toContain('zlp_lang=es');
     });
 
@@ -60,6 +77,7 @@ describe('LanguageService', () => {
         TestBed.configureTestingModule({
             providers: [
                 LanguageService,
+                { provide: PLATFORM_ID, useValue: 'server' },
                 {
                     provide: REQUEST,
                     useValue: new Request('https://pamelabetancourt.zoolandingpage.com.mx/home?lang=es'),

@@ -67,6 +67,18 @@ If the config-authoring custom domain intermittently fails with `ECONNRESET`, ke
 
 Angular SSR deopts to a client-side shell when reverse-proxy `X-Forwarded-*` headers are present but not trusted by the server engine. For Dokploy/Traefik deployments, keep `src/server.ts` `trustProxyHeaders` aligned with the headers Traefik injects and keep Angular `allowedHosts` restricted to the public domains. A public page that returns `200` with a title but no `<main>` should be treated as an SSR deopt, not a successful page render.
 
+## Traefik Provider Compatibility Lesson
+
+If a Dokploy app is healthy on its container port but public requests return Traefik `404`, verify whether Traefik actually loaded the route. Check Traefik's HTTP router API and logs before changing DNS. A Docker Engine upgrade or API-version mismatch can break Traefik's Docker/Swarm providers, leaving Docker labels ignored while file-provider routes continue to work.
+
+For incident containment, a sanitized file-provider route can restore a known healthy app domain without moving Microsoft-managed DNS or email records. Treat that as a temporary recovery path: repair the provider compatibility afterward, keep the route target tied to a stable container or service name, and avoid committing tokens, host identifiers, raw environment values, or customer-sensitive details in recovery notes.
+
+## Upload Binary Recovery Lesson
+
+For CMS-style apps that store file metadata in MongoDB and binary files on disk, a database restore is not a complete content restore. If public pages show broken images after deployment or host recovery, compare the populated file metadata with the mounted `uploads/` directories. Back up and restore uploaded binaries with the same discipline as the database, and use temporary placeholders only when the approved original asset cannot be recovered.
+
+When migrating a small CMS upload tree to S3 after an incident, preserve the existing metadata contract if the frontend already stores only filenames. Keep the database `File.location` values stable, copy local `uploads/{category}/{filename}` objects to a versioned bucket under the same key shape, and have existing `get-file` routes redirect to the S3 public URL with a local fallback. Add a scheduled host sync for legacy paths until every upload endpoint writes directly to S3, and verify local count/bytes match S3 before relying on the bucket for recovery.
+
 ## Security Rule
 
 Do not copy instance identifiers, PEM paths, security-group details, or operator IP details into committed notes. Keep volatile operational specifics out of the canonical tree.

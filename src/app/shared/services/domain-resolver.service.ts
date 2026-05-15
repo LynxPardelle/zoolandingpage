@@ -14,7 +14,7 @@ export class DomainResolverService {
     private readonly platformId = inject(PLATFORM_ID);
     private readonly request = inject(REQUEST, { optional: true });
     private readonly configStore = inject(ConfigStoreService);
-    private readonly isBrowser = isPlatformBrowser(this.platformId) && !this.request;
+    private readonly isBrowser = isPlatformBrowser(this.platformId);
 
     private readRequestHeader(name: string): string {
         const headers = (this.request as { headers?: Headers | Record<string, string | readonly string[] | undefined> } | null)?.headers;

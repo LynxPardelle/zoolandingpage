@@ -1,14 +1,23 @@
 import type { ValueHandler } from '../value-handler.types';
 
-const readQueryParam = (key: unknown): string | undefined => {
+export const readQueryParamFromSearch = (search: string, key: unknown): string | undefined => {
     const normalizedKey = String(key ?? '').trim();
-    if (!normalizedKey || typeof window === 'undefined' || !window.location?.search) {
+    const normalizedSearch = String(search ?? '').trim();
+    if (!normalizedKey || !normalizedSearch) {
         return undefined;
     }
 
-    const value = new URLSearchParams(window.location.search).get(normalizedKey);
+    const value = new URLSearchParams(normalizedSearch).get(normalizedKey);
     const normalizedValue = String(value ?? '').trim();
     return normalizedValue.length > 0 ? normalizedValue : undefined;
+};
+
+const readQueryParam = (key: unknown): string | undefined => {
+    if (typeof window === 'undefined' || !window.location?.search) {
+        return undefined;
+    }
+
+    return readQueryParamFromSearch(window.location.search, key);
 };
 
 export const queryParamValueHandler = (): ValueHandler => ({
