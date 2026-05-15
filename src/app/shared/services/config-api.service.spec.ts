@@ -10,6 +10,7 @@ describe('ConfigApiService', () => {
     const originalConfigApiUrl = environment.configApiUrl;
     const originalFallbackUrl = environment.configApiServerFallbackUrl;
     const originalRuntimeFallbackUrl = environment.configApiRuntimeFallbackUrl;
+    const nativeHistoryReplaceState = History.prototype.replaceState;
     const palette = {
         bgColor: '#ffffff',
         textColor: '#111111',
@@ -98,6 +99,12 @@ describe('ConfigApiService', () => {
         },
     };
 
+    beforeEach(() => {
+        TestBed.resetTestingModule();
+        clearRuntimeBundleServerCacheForTesting();
+        nativeHistoryReplaceState.call(window.history, {}, '', '/context.html');
+    });
+
     afterEach(() => {
         (environment as { configApiUrl: string }).configApiUrl = originalConfigApiUrl;
         (environment as { configApiRuntimeFallbackUrl?: string }).configApiRuntimeFallbackUrl = originalRuntimeFallbackUrl;
@@ -125,6 +132,7 @@ describe('ConfigApiService', () => {
         });
 
         const service = TestBed.inject(ConfigApiService);
+        spyOn<any>(service, 'resolveCurrentUrl').and.returnValue(new URL('https://test.zoolandingpage.com.mx/'));
         const payload = await service.getRuntimeBundle('test.zoolandingpage.com.mx', { path: '/', lang: 'en' });
 
         expect(payload.domain).toBe('zoolandingpage.com.mx');
@@ -272,6 +280,7 @@ describe('ConfigApiService', () => {
         });
 
         const service = TestBed.inject(ConfigApiService);
+        spyOn<any>(service, 'resolveCurrentUrl').and.returnValue(new URL('https://test.zoolandingpage.com.mx/'));
         const payload = await service.getRuntimeBundle('test.zoolandingpage.com.mx', { path: '/', lang: 'en' });
 
         expect(payload.domain).toBe('zoolandingpage.com.mx');
@@ -299,6 +308,7 @@ describe('ConfigApiService', () => {
         });
 
         const service = TestBed.inject(ConfigApiService);
+        spyOn<any>(service, 'resolveCurrentUrl').and.returnValue(new URL('https://test.zoolandingpage.com.mx/'));
         const payload = await service.getRuntimeBundle('test.zoolandingpage.com.mx', { path: '/', lang: 'en' });
 
         expect(payload.domain).toBe('zoolandingpage.com.mx');
@@ -328,6 +338,7 @@ describe('ConfigApiService', () => {
         });
 
         const service = TestBed.inject(ConfigApiService);
+        spyOn<any>(service, 'resolveCurrentUrl').and.returnValue(new URL('https://test.zoolandingpage.com.mx/'));
         const payload = await service.getRuntimeBundle('test.zoolandingpage.com.mx', { path: '/', lang: 'en' });
 
         expect(payload.domain).toBe('zoolandingpage.com.mx');

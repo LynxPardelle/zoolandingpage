@@ -9,7 +9,8 @@ import type {
 } from '@/app/shared/types/config-payloads.types';
 import { isRuntimeBundlePayload } from '@/app/shared/utility/config-validation/config-payload.validators';
 import { environment } from '@/environments/environment';
-import { inject, Injectable, REQUEST } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { inject, Injectable, PLATFORM_ID, REQUEST } from '@angular/core';
 import { ConfigApiService } from './config-api.service';
 import { DraftConfigLoaderService } from './draft-config-loader.service';
 import { ConfigStoreService } from './config-store.service';
@@ -28,9 +29,11 @@ type TConfigSource = {
 export class ConfigSourceService {
     private readonly api = inject(ConfigApiService);
     private readonly drafts = inject(DraftConfigLoaderService);
+    private readonly platformId = inject(PLATFORM_ID);
     private readonly request = inject(REQUEST, { optional: true });
     private readonly language = inject(LanguageService);
     private readonly store = inject(ConfigStoreService);
+    private readonly isBrowser = isPlatformBrowser(this.platformId);
     private readonly runtimeBundleCache = new Map<string, Promise<TRuntimeBundlePayload | null>>();
 
     private readonly draftSource: TConfigSource = {
@@ -89,6 +92,10 @@ export class ConfigSourceService {
     };
 
     private parseRequestUrl(): URL | null {
+        if (this.isBrowser) {
+            return null;
+        }
+
         const requestUrl = String(this.request?.url ?? '').trim();
         if (!requestUrl) {
             return null;
@@ -311,7 +318,7 @@ export class ConfigSourceService {
     }
 
     private resolveHydratedSiteConfig(requestedDomain: string): TDraftSiteConfigPayload | null {
-        if (this.request) {
+        if (!this.isBrowser) {
             return null;
         }
 

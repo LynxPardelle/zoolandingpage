@@ -37,7 +37,7 @@ export class DraftRuntimeService {
     private readonly configStore = inject(ConfigStoreService);
     private readonly configSource = inject(ConfigSourceService);
     private readonly runtimeConfig = inject(RuntimeConfigService);
-    private readonly isBrowser = isPlatformBrowser(this.platformId) && !this.request;
+    private readonly isBrowser = isPlatformBrowser(this.platformId);
 
     readonly availableDrafts = signal<readonly TDraftRegistryEntry[]>([]);
     readonly draftRegistryLoading = signal(false);
@@ -334,16 +334,8 @@ export class DraftRuntimeService {
     }
 
     private resolveRequestedDraftPageId(): string {
-        if (!this.isBrowser || !window.location?.search) {
-            const requestUrl = this.parseRequestUrl();
-            if (!requestUrl) {
-                return '';
-            }
-
-            return this.readSearchParam(requestUrl.searchParams, 'draftPageId');
-        }
-
-        return this.readSearchParam(new URLSearchParams(window.location.search), 'draftPageId');
+        const params = this.resolveSearchParams();
+        return params ? this.readSearchParam(params, 'draftPageId') : '';
     }
 
     private hasExplicitDraftPageId(): boolean {
@@ -352,17 +344,8 @@ export class DraftRuntimeService {
             return false;
         }
 
-        if (!this.isBrowser || !window.location?.search) {
-            const requestUrl = this.parseRequestUrl();
-            if (!requestUrl) {
-                return false;
-            }
-
-            const value = requestUrl.searchParams.get('draftPageId');
-            return String(value ?? '').trim().length > 0;
-        }
-
-        return String(new URLSearchParams(window.location.search).get('draftPageId') ?? '').trim().length > 0;
+        const params = this.resolveSearchParams();
+        return params ? this.readSearchParam(params, 'draftPageId').length > 0 : false;
     }
 
     private resolveSanitizedRequestedDraftIdentity(): TDraftRegistryEntry {

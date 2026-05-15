@@ -103,6 +103,7 @@
 
       .zlp-boot-curtain--leaving {
         pointer-events: none;
+        background: transparent;
       }
 
       .zlp-boot-curtain--leaving::before {
@@ -146,7 +147,13 @@
   <body class="ank-pos-relative ank-bg-bgColor ank-color-textColor">
     <div id="zlp-boot-curtain" class="zlp-boot-curtain" role="status" aria-live="polite" aria-busy="true">
       <div class="zlp-boot-curtain__content">
-        <img class="zlp-boot-curtain__logo" data-zlp-boot-logo alt="" hidden />
+        <img
+          class="zlp-boot-curtain__logo"
+          data-zlp-boot-logo
+          src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="
+          alt=""
+          hidden
+        />
         <strong class="zlp-boot-curtain__title" data-zlp-boot-title>Zoo Landing Page</strong>
         <span class="zlp-boot-curtain__subtitle" data-zlp-boot-subtitle>zoolandingpage.com.mx</span>
         <span class="zlp-boot-curtain__bar" aria-hidden="true"></span>

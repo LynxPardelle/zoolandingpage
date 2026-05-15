@@ -21,6 +21,7 @@ The function expects a JSON body (string) with at least:
 
 - `appName` (string, required): use a stable identifier. In the current runtime this should come from `variables.appIdentity.identifier` via `RuntimeConfigService.appIdentifier()`
 - `timestamp` (number, required): UNIX time in seconds or milliseconds; the function normalizes to milliseconds
+- `timezone` (string, optional): IANA timezone such as `America/Mexico_City`; when valid, the Lambda returns and stores viewer-local time metadata while keeping the raw JSON unchanged
 
 You can include any other fields. The function uploads the ORIGINAL body unchanged.
 
@@ -42,6 +43,7 @@ Example richer payload (will be stored exactly as sent):
   "event": "page_view",
   "path": "/",
   "language": "en-US",
+  "timezone": "America/Mexico_City",
   "userAgent": "...",
   "screen": { "w": 1920, "h": 1080 }
 }
@@ -56,7 +58,15 @@ On success (200):
   "ok": true,
   "bucket": "zoolanding-data-raw",
   "key": "zoolandingpage/2025/01/01/1735689600123-abc12345.json",
-  "size": 342
+  "size": 342,
+  "eventTime": {
+    "timestampMs": 1735689600123,
+    "utc": "2025-01-01T00:00:00.123Z",
+    "timezone": "America/Mexico_City",
+    "local": "2024-12-31T18:00:00.123-06:00",
+    "localDate": "2024-12-31",
+    "localHour": "18"
+  }
 }
 ```
 
@@ -70,6 +80,8 @@ Notes:
 
 - `timestamp` is normalized to milliseconds if you send seconds
 - The key includes a short request id suffix for uniqueness
+- UTC remains the S3 partition standard; viewer-local time is exposed as response fields and S3 object metadata when `timezone` is valid
+- ETL should use `sessionId` to connect later events to the session timezone when only the first or early events include `timezone`
 - In DRY_RUN mode (for development), the function will return `ok: true` with `dryRun: true` and won’t write to S3
 
 ## Angular usage
@@ -123,11 +135,14 @@ const payload = {
   event: 'page_view',
   path: location.pathname,
   language: navigator.language,
+  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   userAgent: navigator.userAgent,
 };
 
 this.dataDropper.drop(payload).subscribe();
 ```
+
+The production `AnalyticsService` may send richer context such as `timezone` on an early event and smaller payloads later in the same session. Do not require the app to repeat `timezone` on every event just for ETL; connect events by `sessionId` and carry the session timezone forward during the ETL pass.
 
 1. Send a form submission event
 
@@ -174,6 +189,20 @@ export const environment = {
 - Ensure API Gateway CORS allows `POST` from your app origin and sends proper headers
 - Don’t send PII; prefer anonymized or aggregated fields
 - Use a stable identifier from draft payloads, not a display name literal
+- Treat timezone as useful but limited context. Do not infer precise location from it, and do not add IP/geolocation/cookies without the configured consent and compliance review.
+
+## ETL starting point
+
+The Lambda is the raw ingestion layer, not the analytics transformation layer. Future ETL should:
+
+- read raw S3 objects by `appName` and UTC partition date
+- parse each object body without assuming optional fields are always present
+- group events by `sessionId` when available
+- choose a session timezone from the first valid IANA `timezone` in that session
+- derive local date/hour during ETL for events missing their own `timezone`
+- preserve `source_key` and raw payload references for replay and debugging
+
+The backend repo contains the detailed ETL handoff document at `zoolanding-data-dropper-lambda/docs/etl-starting-point.md`.
 
 ## Troubleshooting
 

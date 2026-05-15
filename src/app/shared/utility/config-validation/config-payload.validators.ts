@@ -554,6 +554,7 @@ const isRuntimeDataSourceConfig = (value: unknown): value is TRuntimeDataSourceC
     if (typeof value['target'] !== 'string' || value['target'].trim().length === 0) return false;
     if (value['statusTarget'] !== undefined && typeof value['statusTarget'] !== 'string') return false;
     if (value['mergeMode'] !== undefined && value['mergeMode'] !== 'replace' && value['mergeMode'] !== 'appendItems') return false;
+    if (value['clearTargetOnLoad'] !== undefined && typeof value['clearTargetOnLoad'] !== 'boolean') return false;
     if (value['enabled'] !== undefined && typeof value['enabled'] !== 'boolean') return false;
     if (value['ssr'] !== undefined && typeof value['ssr'] !== 'boolean') return false;
     if (value['pageIds'] !== undefined

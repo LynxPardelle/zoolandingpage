@@ -458,3 +458,38 @@ Verified:
 Reusable lessons:
 
 - Avoid broad semantic class names in draft combo hooks when they can collide through the shared generated Angora stylesheet; prefer draft-prefixed hooks for reusable but draft-specific presentation classes.
+
+### 2026-05-13 14:47 CT - Browser Hydration Loader Follow-up
+
+Summary:
+
+- Testing QA after the PokeAPI design publish found the boot curtain could remain visible over rendered content when browser-only runtime services used optional `REQUEST` absence as part of their browser guard.
+- Browser-side services now use `PLATFORM_ID`/`isPlatformBrowser(...)` to decide whether browser work can run; `REQUEST` remains only where SSR request URL/header data is needed.
+- Config and runtime data-source services follow the same rule so browser navigation and query-driven API reads use `window.location`, not a stale SSR request object.
+- The runtime CSS-ready fallback now releases the curtain after 4 seconds instead of waiting the previous longer timeout.
+- An experimental static-stylesheet shortcut in `AngoraCombosService` was discarded because it did not measurably improve this draft and touched shared runtime behavior.
+
+Reusable lessons:
+
+- Do not use optional `REQUEST` as a browser/hydration discriminator in Angular SSR; browser hydration can still provide request context. Use platform detection for runtime browser work.
+- Prefer a conservative timeout fallback over broad runtime optimizations when a loader bug is caused by readiness detection.
+
+### 2026-05-13 15:58 CT - Boot Curtain Static Coverage Closeout
+
+Summary:
+
+- The PokeAPI design QA found the boot curtain could visually cover the first viewport while already in its `leaving` state because the fixed wrapper kept its opaque background after the split panels moved.
+- The leaving state now makes the wrapper background transparent so delayed DOM removal cannot hide rendered content.
+- Static coverage now ignores the generic `btnIcon` hook class because it is a component hook, not a draft-owned style class; this lets covered SSR content release the curtain early.
+
+Verified:
+
+- `npm run build` completed successfully.
+- Local Playwright design QA ran three cycles across desktop/mobile home, fire-filter catalog, electric + `thunder-shock` catalog, and Charizard detail.
+- The stable-image QA returned 18/18 passing checks with no stuck curtain, no `SUCCESS` leak, no debug workspace leak, no horizontal overflow, and no broken visible images after image-load stabilization.
+- QA evidence: `Output/pokeapi-demo-qa/20260513-design-review-after/design-qa-3-cycles-final-stable-images.json`.
+
+Reusable lessons:
+
+- Static boot-curtain release should distinguish missing visual coverage from harmless component hook classes.
+- A fixed loading overlay should have a visually transparent leaving state even when a removal timer is expected to clean up the element.

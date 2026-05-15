@@ -1,6 +1,6 @@
 import { AsyncPipe } from '@angular/common';
-import { Component, Input, REQUEST } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
+import { Component, Input, PLATFORM_ID, REQUEST } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { NgxAngoraService } from 'ngx-angora-css';
 import { of } from 'rxjs';
@@ -9,6 +9,7 @@ import { AnalyticsService } from '../../../shared/services/analytics.service';
 import { ConfigBootstrapService } from '../../../shared/services/config-bootstrap.service';
 import { ConfigSourceService } from '../../../shared/services/config-source.service';
 import { ConfigurationsOrchestratorService } from '../../../shared/services/configurations-orchestrator';
+import { DraftRuntimeService } from '../../../shared/services/draft-runtime.service';
 import { DraftRegistryService } from '../../../shared/services/draft-registry.service';
 import type { TComponentPayloadEntry, TComponentsPayload } from '../../../shared/types/config-payloads.types';
 import { initializeRuntimeConfig } from '../../../app.config';
@@ -40,6 +41,45 @@ const PRIMARY_DOMAIN = 'preview.example.test';
 const SECONDARY_DOMAIN = 'music.example.test';
 const LEGAL_DOMAIN = 'legal.example.test';
 const DEBUG_MODAL_ROOT_IDS = ['modalDemoRoot'];
+const draftPreviewUrl = (domain: string, pageId = 'default'): string => `/?draftDomain=${ domain }&draftPageId=${ pageId }`;
+const nativeHistoryReplaceState = History.prototype.replaceState;
+const setBrowserUrl = (url: string): void => {
+  nativeHistoryReplaceState.call(window.history, {}, '', url);
+};
+
+const flushDeferredBootstrapWork = async (
+  fixture: ComponentFixture<AppShellComponent>,
+  options: { readonly url?: string; readonly done?: () => boolean } = {},
+): Promise<void> => {
+  for (let attempt = 0; attempt < 8; attempt++) {
+    if (options.url) {
+      setBrowserUrl(options.url);
+    }
+
+    await fixture.whenStable();
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    if (options.url) {
+      setBrowserUrl(options.url);
+    }
+
+    fixture.detectChanges();
+    if (options.done?.()) {
+      return;
+    }
+  }
+};
+
+const pinResolvedDraftContext = (domain: string, pageId = 'default', path = '/'): void => {
+  const draftRuntime = TestBed.inject(DraftRuntimeService);
+  spyOn(draftRuntime, 'resolveActiveDraftContext').and.resolveTo({
+    domain,
+    pageId,
+    path,
+    route: null,
+    explicitPageId: true,
+  });
+};
 
 const createComponentsPayload = (
   components: Record<string, TComponentPayloadEntry>,
@@ -72,7 +112,7 @@ const ORCHESTRATOR_STUB = {
 
 describe('AppShellComponent', () => {
   beforeEach(async () => {
-    window.history.replaceState({}, '', `/?draftDomain=${ LEGAL_DOMAIN }&draftPageId=default`);
+    setBrowserUrl(draftPreviewUrl(LEGAL_DOMAIN));
     bootstrapLoadArgs = [];
     bootstrapResult = {
       domain: PRIMARY_DOMAIN,
@@ -100,6 +140,7 @@ describe('AppShellComponent', () => {
     await TestBed.configureTestingModule({
       imports: [AppShellComponent],
       providers: [
+        { provide: PLATFORM_ID, useValue: 'browser' },
         {
           provide: AnalyticsService,
           useValue: {
@@ -161,7 +202,7 @@ describe('AppShellComponent', () => {
   });
 
   afterEach(() => {
-    window.history.replaceState({}, '', '/context.html');
+    setBrowserUrl('/context.html');
     TestBed.resetTestingModule();
   });
 
@@ -191,6 +232,10 @@ describe('AppShellComponent', () => {
   });
 
   it('starts runtime bootstrap through the app initializer during SSR', async () => {
+    setBrowserUrl(draftPreviewUrl(LEGAL_DOMAIN, 'legal-home'));
+    TestBed.overrideProvider(PLATFORM_ID, {
+      useValue: 'server',
+    });
     TestBed.overrideProvider(REQUEST, {
       useValue: new Request(`https://test.zoolandingpage.com.mx/?draftDomain=${ LEGAL_DOMAIN }&draftPageId=legal-home`),
     });
@@ -222,6 +267,7 @@ describe('AppShellComponent', () => {
   });
 
   it('clears rendered roots when draft components are invalid', async () => {
+    pinResolvedDraftContext(LEGAL_DOMAIN);
     bootstrapResult = {
       ...bootstrapResult,
       domain: LEGAL_DOMAIN,
@@ -240,6 +286,9 @@ describe('AppShellComponent', () => {
   });
 
   it('clears rendered roots when the default preview draft has no external components', async () => {
+    const activeUrl = draftPreviewUrl(PRIMARY_DOMAIN);
+    setBrowserUrl(activeUrl);
+    pinResolvedDraftContext(PRIMARY_DOMAIN);
     bootstrapResult = {
       ...bootstrapResult,
       domain: PRIMARY_DOMAIN,
@@ -256,8 +305,10 @@ describe('AppShellComponent', () => {
 
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    fixture.detectChanges();
+    await flushDeferredBootstrapWork(fixture, {
+      url: activeUrl,
+      done: () => ORCHESTRATOR_STUB.setExternalComponentsFromPayload.calls.any(),
+    });
 
     expect(fixture.componentInstance.rootComponentsIds()).toEqual([]);
     expect(fixture.componentInstance.modalRootIds()).toEqual([]);
@@ -265,6 +316,9 @@ describe('AppShellComponent', () => {
   });
 
   it('uses the full default preview draft payload when external components are present', async () => {
+    const activeUrl = draftPreviewUrl(PRIMARY_DOMAIN);
+    setBrowserUrl(activeUrl);
+    pinResolvedDraftContext(PRIMARY_DOMAIN);
     bootstrapResult = {
       ...bootstrapResult,
       domain: PRIMARY_DOMAIN,
@@ -312,8 +366,10 @@ describe('AppShellComponent', () => {
 
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    fixture.detectChanges();
+    await flushDeferredBootstrapWork(fixture, {
+      url: activeUrl,
+      done: () => fixture.componentInstance.rootComponentsIds().length === 4,
+    });
 
     expect(fixture.componentInstance.rootComponentsIds()).toEqual(['skipToMainLink', 'siteHeader', 'landingPage', 'siteFooter']);
     expect(fixture.componentInstance.modalRootIds()).toEqual(['modalAnalyticsConsentRoot', 'modalDemoRoot', 'modalTermsRoot', 'modalDataUseRoot']);
@@ -347,10 +403,13 @@ describe('AppShellComponent', () => {
       }, { domain: LEGAL_DOMAIN, pageId: 'legal-home' }),
     };
 
+    TestBed.overrideProvider(PLATFORM_ID, {
+      useValue: 'server',
+    });
     TestBed.overrideProvider(REQUEST, {
       useValue: new Request(`https://test.zoolandingpage.com.mx/?draftDomain=${ LEGAL_DOMAIN }&draftPageId=legal-home`),
     });
-    window.history.replaceState({}, '', `/?draftDomain=${ LEGAL_DOMAIN }&draftPageId=legal-home`);
+    setBrowserUrl(draftPreviewUrl(LEGAL_DOMAIN, 'legal-home'));
 
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
