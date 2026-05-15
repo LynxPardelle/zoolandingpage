@@ -1,4 +1,4 @@
-import { REQUEST } from '@angular/core';
+import { PLATFORM_ID, REQUEST } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { DomainResolverService } from './domain-resolver.service';
 
@@ -7,6 +7,7 @@ describe('DomainResolverService', () => {
     TestBed.configureTestingModule({
       providers: [
         DomainResolverService,
+        { provide: PLATFORM_ID, useValue: 'server' },
         {
           provide: REQUEST,
           useValue: new Request('https://test.zoolandingpage.com.mx/?draftDomain=despacholegalastralex.com'),
@@ -26,6 +27,7 @@ describe('DomainResolverService', () => {
     TestBed.configureTestingModule({
       providers: [
         DomainResolverService,
+        { provide: PLATFORM_ID, useValue: 'server' },
         {
           provide: REQUEST,
           useValue: new Request('https://music.lynxpardelle.com/?draftDomain=zoolandingpage.com.mx'),
@@ -45,6 +47,7 @@ describe('DomainResolverService', () => {
     TestBed.configureTestingModule({
       providers: [
         DomainResolverService,
+        { provide: PLATFORM_ID, useValue: 'server' },
         {
           provide: REQUEST,
           useValue: { url: '/?draftDomain=despacholegalastralex.com' },
@@ -64,6 +67,7 @@ describe('DomainResolverService', () => {
     TestBed.configureTestingModule({
       providers: [
         DomainResolverService,
+        { provide: PLATFORM_ID, useValue: 'server' },
         {
           provide: REQUEST,
           useValue: {
@@ -88,6 +92,7 @@ describe('DomainResolverService', () => {
     TestBed.configureTestingModule({
       providers: [
         DomainResolverService,
+        { provide: PLATFORM_ID, useValue: 'server' },
         {
           provide: REQUEST,
           useValue: new Request('https://test.zoolandingpage.com.mx/?draftDomain=zoolandingpage.com.mx'),
@@ -105,6 +110,7 @@ describe('DomainResolverService', () => {
     TestBed.configureTestingModule({
       providers: [
         DomainResolverService,
+        { provide: PLATFORM_ID, useValue: 'server' },
         {
           provide: REQUEST,
           useValue: new Request('https://test.zoolandingpage.com.mx/?debugWorkspace=true&draftDomain%3Dzoolandingpage.com.mx=&draftPageId=default'),

@@ -1,5 +1,5 @@
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
-import { inject, Injectable, PLATFORM_ID, REQUEST } from '@angular/core';
+import { inject, Injectable, PLATFORM_ID } from '@angular/core';
 import { VariableStoreService } from '@/app/shared/services/variable-store.service';
 
 type TLoadingCurtainConfig = {
@@ -29,9 +29,8 @@ const MAX_TIMING_MS = 5_000;
 export class LoadingCurtainService {
     private readonly documentRef = inject(DOCUMENT);
     private readonly platformId = inject(PLATFORM_ID);
-    private readonly request = inject(REQUEST, { optional: true });
     private readonly variables = inject(VariableStoreService);
-    private readonly isBrowser = isPlatformBrowser(this.platformId) && !this.request;
+    private readonly isBrowser = isPlatformBrowser(this.platformId);
     private hideTimer: number | null = null;
     private currentConfig: TLoadingCurtainConfig = {};
 

@@ -1,12 +1,11 @@
 import { isPlatformBrowser } from '@angular/common';
-import { Injectable, PLATFORM_ID, REQUEST, inject, signal } from '@angular/core';
+import { Injectable, PLATFORM_ID, inject, signal } from '@angular/core';
 
 @Injectable({ providedIn: 'root' })
 export class MotionPreferenceService {
   private readonly platformId = inject(PLATFORM_ID);
-  private readonly request = inject(REQUEST, { optional: true });
   readonly reduced = signal<boolean>(false);
-  private readonly isBrowser = isPlatformBrowser(this.platformId) && !this.request;
+  private readonly isBrowser = isPlatformBrowser(this.platformId);
 
   constructor() {
     if (this.isBrowser) {

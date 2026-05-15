@@ -19,7 +19,7 @@ const LANGUAGE_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 export class LanguageService {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly request = inject(REQUEST, { optional: true });
-  private readonly isBrowser = isPlatformBrowser(this.platformId) && !this.request;
+  private readonly isBrowser = isPlatformBrowser(this.platformId);
   private readonly domainResolver = inject(DomainResolverService);
 
   private readonly _currentLanguage = signal<SupportedLanguage>(FRAMEWORK_DEFAULT_LANGUAGE);
@@ -171,13 +171,22 @@ export class LanguageService {
     }
   }
 
+  private parseCurrentBrowserUrl(): URL | null {
+    if (!this.isBrowser || typeof window === 'undefined' || !window.location?.href) {
+      return null;
+    }
+
+    try {
+      return new URL(window.location.href);
+    } catch {
+      return null;
+    }
+  }
+
   private getUrlLanguage(): SupportedLanguage | null {
-    if (this.isBrowser && typeof window !== 'undefined' && window.location?.href) {
-      try {
-        return this.normalizeSingleLanguage(new URL(window.location.href).searchParams.get(LANGUAGE_QUERY_PARAM));
-      } catch {
-        return null;
-      }
+    const browserUrl = this.parseCurrentBrowserUrl();
+    if (browserUrl) {
+      return this.normalizeSingleLanguage(browserUrl.searchParams.get(LANGUAGE_QUERY_PARAM));
     }
 
     return this.normalizeSingleLanguage(this.parseRequestUrl()?.searchParams.get(LANGUAGE_QUERY_PARAM));
@@ -244,12 +253,16 @@ export class LanguageService {
   }
 
   private syncUrlLanguage(language: SupportedLanguage): void {
-    if (!this.isBrowser || typeof window === 'undefined' || !window.location?.href || !window.history?.replaceState) {
+    if (!this.isBrowser || typeof window === 'undefined' || !window.history?.replaceState) {
       return;
     }
 
     try {
-      const url = new URL(window.location.href);
+      const url = this.parseCurrentBrowserUrl();
+      if (!url) {
+        return;
+      }
+
       if (url.searchParams.get(LANGUAGE_QUERY_PARAM) === language) {
         return;
       }

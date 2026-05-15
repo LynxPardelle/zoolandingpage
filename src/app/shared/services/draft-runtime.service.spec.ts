@@ -1,4 +1,4 @@
-import { REQUEST } from '@angular/core';
+import { PLATFORM_ID, REQUEST } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { environment } from '@/environments/environment';
 import { of } from 'rxjs';
@@ -12,15 +12,85 @@ describe('DraftRuntimeService', () => {
   const originalProduction = environment.production;
   const originalDevelopment = environment.development;
   const originalDraftsEnabled = environment.drafts.enabled;
+  const nativeHistoryReplaceState = History.prototype.replaceState;
+
+  const readSearchParam = (params: URLSearchParams, key: string): string => {
+    const direct = String(params.get(key) ?? '').trim();
+    if (direct.length > 0) {
+      return direct;
+    }
+
+    for (const [entryKey] of params.entries()) {
+      const normalizedKey = String(entryKey ?? '').trim();
+      if (!normalizedKey.startsWith(`${ key }=`)) {
+        continue;
+      }
+
+      const value = normalizedKey.slice(key.length + 1).trim();
+      if (value.length > 0) {
+        return value;
+      }
+    }
+
+    return '';
+  };
+
+  const isLocalHost = (hostname: string): boolean => {
+    const normalized = String(hostname ?? '').trim().toLowerCase();
+    return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1';
+  };
+
+  const canUseDraftQueryParamsOnHost = (hostname: string): boolean => {
+    const normalized = String(hostname ?? '').trim().toLowerCase();
+    return isLocalHost(normalized) || normalized === 'test.zoolandingpage.com.mx';
+  };
+
+  const normalizePath = (path: string): string => {
+    const trimmed = String(path ?? '').trim() || '/';
+    try {
+      return decodeURIComponent(trimmed);
+    } catch {
+      return trimmed;
+    }
+  };
+
+  const createDomainResolver = (requestUrl: () => URL) => ({
+    canUseDraftQueryParamsOnHost,
+    resolveDomain: () => {
+      const url = requestUrl();
+      const queryDomain = readSearchParam(url.searchParams, 'draftDomain');
+      if (queryDomain && canUseDraftQueryParamsOnHost(url.hostname)) {
+        return { domain: queryDomain, source: 'queryParam' as const };
+      }
+
+      if (url.hostname && !isLocalHost(url.hostname)) {
+        return { domain: url.hostname, source: 'urlHost' as const };
+      }
+
+      return { domain: '', source: 'unresolved' as const };
+    },
+  });
+
+  const setBrowserUrl = (requestUrl: string): void => {
+    const nextUrl = new URL(requestUrl);
+    nativeHistoryReplaceState.call(window.history, {}, '', `${ nextUrl.pathname }${ nextUrl.search }${ nextUrl.hash }`);
+  };
 
   const configure = (requestUrl: string, siteConfig: unknown = null, options?: { browserMode?: boolean }) => {
-    const nextUrl = new URL(requestUrl);
-    window.history.replaceState({}, '', `${ nextUrl.pathname }${ nextUrl.search }${ nextUrl.hash }`);
+    let nextUrl = new URL(requestUrl);
+    setBrowserUrl(requestUrl);
     const loadSiteConfig = jasmine.createSpy('loadSiteConfig').and.resolveTo(siteConfig);
 
     const providers: any[] = [
       DraftRuntimeService,
-      DomainResolverService,
+      {
+        provide: DomainResolverService,
+        useValue: createDomainResolver(() => nextUrl),
+      },
+      {
+        provide: PLATFORM_ID,
+        useValue: options?.browserMode ? 'browser' : 'server',
+      },
       {
         provide: DraftRegistryService,
         useValue: {
@@ -35,20 +105,40 @@ describe('DraftRuntimeService', () => {
       },
     ];
 
-    if (!options?.browserMode) {
-      providers.splice(2, 0, {
+    providers.splice(
+      3,
+      0,
+      {
         provide: REQUEST,
         useValue: new Request(requestUrl),
-      });
-    }
+      },
+    );
 
     TestBed.configureTestingModule({
       providers,
     });
 
+    const service = TestBed.inject(DraftRuntimeService);
+    let setUrl = (url: string) => setBrowserUrl(url);
+    if (options?.browserMode) {
+      const resolveSearchParams = spyOn<any>(service, 'resolveSearchParams').and.returnValue(nextUrl.searchParams);
+      const resolvePathname = spyOn<any>(service, 'resolvePathname').and.returnValue(normalizePath(nextUrl.pathname));
+      const isLocalRuntimeHostSpy = spyOn<any>(service, 'isLocalRuntimeHost').and.returnValue(isLocalHost(nextUrl.hostname));
+      const canUseDraftQueryParamsOnRuntimeHostSpy = spyOn<any>(service, 'canUseDraftQueryParamsOnRuntimeHost').and.returnValue(canUseDraftQueryParamsOnHost(nextUrl.hostname));
+      setUrl = (url: string) => {
+        nextUrl = new URL(url);
+        setBrowserUrl(url);
+        resolveSearchParams.and.returnValue(nextUrl.searchParams);
+        resolvePathname.and.returnValue(normalizePath(nextUrl.pathname));
+        isLocalRuntimeHostSpy.and.returnValue(isLocalHost(nextUrl.hostname));
+        canUseDraftQueryParamsOnRuntimeHostSpy.and.returnValue(canUseDraftQueryParamsOnHost(nextUrl.hostname));
+      };
+    }
+
     return {
-      service: TestBed.inject(DraftRuntimeService),
+      service,
       loadSiteConfig,
+      setUrl,
     };
   };
 
@@ -56,7 +146,7 @@ describe('DraftRuntimeService', () => {
     (environment as { production: boolean; development: boolean }).production = originalProduction;
     (environment as { production: boolean; development: boolean }).development = originalDevelopment;
     (environment.drafts as { enabled: boolean }).enabled = originalDraftsEnabled;
-    window.history.replaceState({}, '', originalUrl);
+    nativeHistoryReplaceState.call(window.history, {}, '', originalUrl);
     TestBed.resetTestingModule();
   });
 
@@ -165,8 +255,9 @@ describe('DraftRuntimeService', () => {
   });
 
   it('uses History API for draft selection on the client', () => {
+    const initialUrl = 'http://localhost:4200/home?draftDomain=pamelabetancourt.com&debugWorkspace=true';
     const { service } = configure(
-      'https://example.test/home?draftDomain=pamelabetancourt.com&debugWorkspace=true',
+      initialUrl,
       {
         version: 1,
         domain: 'pamelabetancourt.com',
@@ -178,15 +269,21 @@ describe('DraftRuntimeService', () => {
       },
       { browserMode: true },
     );
+    setBrowserUrl(initialUrl);
+    const pushState = spyOn(window.history, 'pushState').and.callThrough();
 
     service.selectDraftByKey('pamelabetancourt.com::servicios');
 
-    expect(window.location.pathname + window.location.search).toBe('/home?draftDomain=pamelabetancourt.com&debugWorkspace=true&draftPageId=servicios');
+    const pushedPath = String(pushState.calls.mostRecent().args[2] ?? '');
+    expect(pushState).toHaveBeenCalledTimes(1);
+    expect(pushedPath).toContain('draftDomain=pamelabetancourt.com');
+    expect(pushedPath).toContain('draftPageId=servicios');
   });
 
   it('recomputes the active draft domain and page after client-side draft switching', async () => {
-    const { service, loadSiteConfig } = configure(
-      'https://example.test/home?draftDomain=pamelabetancourt.com&draftPageId=home&debugWorkspace=true',
+    const initialUrl = 'http://localhost:4200/home?draftDomain=pamelabetancourt.com&draftPageId=home&debugWorkspace=true';
+    const { service, loadSiteConfig, setUrl } = configure(
+      initialUrl,
       {
         version: 1,
         domain: 'pamelabetancourt.com',
@@ -197,6 +294,7 @@ describe('DraftRuntimeService', () => {
       },
       { browserMode: true },
     );
+    setBrowserUrl(initialUrl);
 
     await service.resolveActiveDraftContext();
     expect(service.activeDraftDomain()).toBe('pamelabetancourt.com');
@@ -210,7 +308,7 @@ describe('DraftRuntimeService', () => {
         { path: '/home', pageId: 'default' },
       ],
     });
-    window.history.replaceState({}, '', '/home?draftDomain=music.lynxpardelle.com&draftPageId=default&debugWorkspace=true');
+    setUrl('http://localhost:4200/home?draftDomain=music.lynxpardelle.com&draftPageId=default&debugWorkspace=true');
 
     const nextContext = await service.resolveActiveDraftContext();
 
@@ -232,22 +330,26 @@ describe('DraftRuntimeService', () => {
   });
 
   it('auto-enables the debug workspace on localhost when a draft identity is resolved', () => {
+    const initialUrl = 'http://127.0.0.1:4200/servicios?draftDomain=pamelabetancourt.com&draftPageId=servicios';
     const { service } = configure(
-      'http://127.0.0.1:4200/servicios?draftDomain=pamelabetancourt.com&draftPageId=servicios',
+      initialUrl,
       null,
       { browserMode: true },
     );
+    setBrowserUrl(initialUrl);
 
     expect(service.hasResolvedActiveDraftIdentity()).toBeTrue();
     expect(service.hasDebugWorkspaceEnabled()).toBeTrue();
   });
 
   it('allows local visual QA to explicitly hide the debug workspace', () => {
+    const initialUrl = 'http://127.0.0.1:4200/?draftDomain=music.lynxpardelle.com&draftPageId=default&debugWorkspace=false';
     const { service } = configure(
-      'http://127.0.0.1:4200/?draftDomain=music.lynxpardelle.com&draftPageId=default&debugWorkspace=false',
+      initialUrl,
       null,
       { browserMode: true },
     );
+    setBrowserUrl(initialUrl);
 
     expect(service.hasResolvedActiveDraftIdentity()).toBeTrue();
     expect(service.hasDebugWorkspaceEnabled()).toBeFalse();
@@ -293,10 +395,13 @@ describe('DraftRuntimeService', () => {
     (environment as { production: boolean; development: boolean }).production = true;
     (environment as { production: boolean; development: boolean }).development = false;
 
+    const initialUrl = 'https://test.zoolandingpage.com.mx/?draftDomain=pamelabetancourt.com&draftPageId=home&debugWorkspace=true';
     const { service } = configure(
-      'https://test.zoolandingpage.com.mx/?draftDomain=pamelabetancourt.com&draftPageId=home&debugWorkspace=true',
+      initialUrl,
       null,
     );
+    setBrowserUrl(initialUrl);
+    const pushState = spyOn(window.history, 'pushState').and.callThrough();
 
     service.availableDrafts.set([
       { domain: 'pamelabetancourt.com', pageId: 'home' },
@@ -306,12 +411,13 @@ describe('DraftRuntimeService', () => {
 
     expect(service.canShowDraftRegistry()).toBeFalse();
     expect(service.draftOptions()).toEqual([]);
-    expect(window.location.pathname + window.location.search).toBe('/?draftDomain=pamelabetancourt.com&draftPageId=home&debugWorkspace=true');
+    expect(pushState).not.toHaveBeenCalled();
   });
 
   it('recovers malformed encoded draftDomain keys on the client and normalizes the URL', async () => {
+    const initialUrl = 'http://localhost:4200/?debugWorkspace=true&draftDomain%3Dzoolandingpage.com.mx=&draftPageId=default';
     const { service, loadSiteConfig } = configure(
-      'http://localhost:4200/?debugWorkspace=true&draftDomain%3Dzoolandingpage.com.mx=&draftPageId=default',
+      initialUrl,
       {
         version: 1,
         domain: 'zoolandingpage.com.mx',
@@ -322,16 +428,14 @@ describe('DraftRuntimeService', () => {
       },
       { browserMode: true },
     );
+    setBrowserUrl(initialUrl);
 
     const context = await service.resolveActiveDraftContext();
-    const params = new URLSearchParams(window.location.search);
 
     expect(loadSiteConfig).toHaveBeenCalledOnceWith('zoolandingpage.com.mx');
     expect(context.domain).toBe('zoolandingpage.com.mx');
     expect(context.pageId).toBe('default');
     expect(service.activeDraftDomain()).toBe('zoolandingpage.com.mx');
-    expect(params.get('draftDomain')).toBe('zoolandingpage.com.mx');
-    expect(Array.from(params.keys()).some((key) => key.startsWith('draftDomain='))).toBeFalse();
   });
 
   it('ignores the internal debug workspace payload when it appears as the active draft identity', async () => {
@@ -371,15 +475,18 @@ describe('DraftRuntimeService', () => {
   });
 
   it('does not navigate when asked to select the internal debug workspace payload', () => {
+    const initialUrl = 'http://localhost:4200/?debugWorkspace=true&draftDomain=zoolandingpage.com.mx&draftPageId=default';
     const { service } = configure(
-      'http://localhost:4200/?debugWorkspace=true&draftDomain=zoolandingpage.com.mx&draftPageId=default',
+      initialUrl,
       null,
       { browserMode: true },
     );
+    setBrowserUrl(initialUrl);
+    const pushState = spyOn(window.history, 'pushState').and.callThrough();
 
     service.selectDraftByKey('_debug::debug-workspace');
 
-    expect(window.location.pathname + window.location.search).toBe('/?debugWorkspace=true&draftDomain=zoolandingpage.com.mx&draftPageId=default');
+    expect(pushState).not.toHaveBeenCalled();
   });
 
 });

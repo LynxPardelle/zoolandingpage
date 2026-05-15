@@ -17,6 +17,7 @@ describe('WrapperOrchestrator', () => {
   let handleComponentEvent: jasmine.Spy;
 
   beforeEach(async () => {
+    TestBed.resetTestingModule();
     componentsRevision = signal(0);
     componentsById = {};
     evaluateCondition = jasmine.createSpy('evaluateCondition').and.returnValue(true);
@@ -50,6 +51,10 @@ describe('WrapperOrchestrator', () => {
     component = fixture.componentInstance;
     fixture.componentRef.setInput('componentsIds', []);
     fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    TestBed.resetTestingModule();
   });
 
   it('should create', () => {

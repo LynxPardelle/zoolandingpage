@@ -1,6 +1,6 @@
 
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, input } from '@angular/core';
+import { Component, computed, forwardRef, inject, input } from '@angular/core';
 import { ConfigurationsOrchestratorService } from '../../services/configurations-orchestrator';
 import { ValueOrchestrator } from '../../services/value-orchestrator';
 import { GenericAccordionComponent } from '../generic-accordion';
@@ -45,7 +45,7 @@ import type { TGenericComponent } from './wrapper-orchestrator.types';
     GenericEmbedFrameComponent,
     GenericIconComponent,
     GenericInputComponent,
-    InteractionScopeComponent,
+    forwardRef(() => InteractionScopeComponent),
     GenericSearchBoxComponent,
     GenericTextComponent,
     GenericStatsCounterComponent,

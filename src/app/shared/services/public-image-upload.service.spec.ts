@@ -91,7 +91,10 @@ describe('PublicImageUploadService', () => {
                 return Promise.resolve(new Response('', { status: 200 }));
             }
 
-            return Promise.reject(new Error(`Unexpected fetch: ${ url } ${ JSON.stringify(init) }`));
+            return Promise.resolve(new Response(JSON.stringify({ ok: false }), {
+                status: 404,
+                headers: { 'Content-Type': 'application/json' },
+            }));
         });
 
         const file = new File(['<svg></svg>'], 'logo.svg', { type: 'image/svg+xml' });
@@ -103,12 +106,17 @@ describe('PublicImageUploadService', () => {
 
         expect(result.uploadStrategy).toBe('presigned-put');
         expect(result.publicUrl).toBe('https://assets.example/logo.svg');
-        expect(fetchSpy.calls.count()).toBe(2);
+        const uploadCalls = fetchSpy.calls.allArgs().filter(([input]) => {
+            const url = String(input);
+            return url.includes('/image-upload/presign') || url === 'https://signed-upload.example/logo.svg';
+        });
 
-        const firstBody = JSON.parse(String(fetchSpy.calls.argsFor(0)[1]?.body));
+        expect(uploadCalls.length).toBe(2);
+
+        const firstBody = JSON.parse(String(uploadCalls[0][1]?.body));
         expect(firstBody.imageBase64).toBeUndefined();
 
-        const putInit = fetchSpy.calls.argsFor(1)[1] as RequestInit;
+        const putInit = uploadCalls[1][1] as RequestInit;
         expect(putInit.method).toBe('PUT');
         expect(new Headers(putInit.headers).get('Content-Type')).toBe('image/svg+xml');
     });

@@ -89,7 +89,9 @@ export const navigateToUrlHandler = (): EventHandler => {
     return {
         id: 'navigateToUrl',
         handle: (_ctx, args) => {
+            const currentHref = String(args?.[3] ?? '').trim() || undefined;
             const resolved = resolveNavigationTarget(String(args?.[0] ?? ''), {
+                currentHref,
                 stickyQueryParams: DRAFT_RUNTIME_STICKY_QUERY_PARAMS,
             });
             const href = resolved.href;

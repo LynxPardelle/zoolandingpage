@@ -1,4 +1,5 @@
-import { Injectable, REQUEST, inject } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { Injectable, PLATFORM_ID, REQUEST, inject } from '@angular/core';
 import type { TRuntimeDataSourceConfig } from '@/app/shared/types/config-payloads.types';
 import { RuntimeApiProxyClientService, type TRuntimeApiProxyResponse } from './runtime-api-proxy-client.service';
 import { RuntimeDataSourceMapperService } from './runtime-data-source-mapper.service';
@@ -24,7 +25,9 @@ export class RuntimeDataSourceService {
     private readonly proxy = inject(RuntimeApiProxyClientService);
     private readonly mapper = inject(RuntimeDataSourceMapperService);
     private readonly variables = inject(VariableStoreService);
+    private readonly platformId = inject(PLATFORM_ID);
     private readonly request = inject(REQUEST, { optional: true });
+    private readonly isBrowser = isPlatformBrowser(this.platformId);
     private readonly timers = new Set<ReturnType<typeof setInterval>>();
     private readonly loadRetryDelaysMs = [150, 500];
 
@@ -61,6 +64,7 @@ export class RuntimeDataSourceService {
         if (!prepared) return;
 
         this.writeStatus(source, 'loading', null);
+        this.clearTargetForLoading(source);
         await this.loadPreparedSource(options, prepared);
     }
 
@@ -94,7 +98,10 @@ export class RuntimeDataSourceService {
     }
 
     private markPreparedSourcesLoading(preparedSources: readonly TPreparedRuntimeDataSource[]): void {
-        preparedSources.forEach((prepared) => this.writeStatus(prepared.source, 'loading', null));
+        preparedSources.forEach((prepared) => {
+            this.writeStatus(prepared.source, 'loading', null);
+            this.clearTargetForLoading(prepared.source);
+        });
     }
 
     private prepareSource(source: TRuntimeDataSourceConfig): TPreparedRuntimeDataSource | null {
@@ -144,7 +151,7 @@ export class RuntimeDataSourceService {
     }
 
     private scheduleRefresh(options: TRuntimeDataSourceStartOptions, source: TRuntimeDataSourceConfig): void {
-        if (this.request) return;
+        if (!this.isBrowser) return;
         if (source.refresh?.mode !== 'interval') return;
 
         const intervalMs = Number(source.refresh.intervalMs ?? 0);
@@ -363,7 +370,7 @@ export class RuntimeDataSourceService {
     }
 
     private currentSearchParams(): URLSearchParams | null {
-        const requestUrl = String(this.request?.url ?? '').trim();
+        const requestUrl = this.isBrowser ? '' : String(this.request?.url ?? '').trim();
         if (requestUrl) {
             try {
                 return new URL(requestUrl, 'http://localhost').searchParams;
@@ -385,6 +392,11 @@ export class RuntimeDataSourceService {
             updatedAt: state === 'loading' ? null : new Date().toISOString(),
             error,
         });
+    }
+
+    private clearTargetForLoading(source: TRuntimeDataSourceConfig): void {
+        if (source.clearTargetOnLoad !== true) return;
+        this.variables.setRuntimeValue(source.target, { items: [] });
     }
 
     private hasItems(value: unknown): boolean {
