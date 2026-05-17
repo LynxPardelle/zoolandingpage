@@ -26,6 +26,32 @@ Before starting a new draft or major refinement pass, read:
 
 After durable work, update the canonical notes so future agents do not have to rediscover the same rules.
 
+## Secure Repo Release Workflow
+
+The secure release workflow moves draft publishing into per-draft GitHub repositories:
+
+1. Work on `dev`.
+2. Merge `dev -> test` by pull request.
+3. Deploy test only after the merge lands on `test`.
+4. Merge `test -> main` by pull request.
+5. Deploy production only after the merge lands on `main`.
+
+Before work starts, run `git pull --ff-only` in every clean target repo, including this hub repo and any affected local `draft-*` repos. If a target repo is dirty, report it instead of pulling over local changes.
+
+Use the hub preflight helper:
+
+```bash
+npm run drafts:repo-preflight
+```
+
+New draft repos should be bootstrapped from the hub templates:
+
+```bash
+npm run drafts:repo-bootstrap -- --repo=../draft-example-com --domain=example.com --authoring-endpoint=https://o4upx3fsz3d3dwfwz4lbnefjze0eetyn.lambda-url.us-east-1.on.aws/
+```
+
+As of 2026-05-17 CT, the authoring API is IAM-protected, runtime-read supports environment-aware published pointers, OIDC roles are configured per draft repo/environment, and the current public `draft-*` repos have GitHub Environments, deployment workflows, and native GitHub branch protection on `test` and `main`. GitHub Actions deploys use the IAM-protected Lambda Function URL. Protected branches require the `guard` status and one approving review; deployment workflows also reject push-triggered deploys unless `test` receives a merge commit from `dev` or `main` receives a merge commit from `test`.
+
 ## Local draft structure
 
 ```text
@@ -144,7 +170,7 @@ node tools/config-draft-sync.mjs pack --domain=zoolandingpage.com.mx --output=.t
 node tools/config-draft-sync.mjs push --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --updated-by="Your Name"
 ```
 
-Use this after local QA is correct and you want the backend draft state to match your working copy.
+This unsigned local command is legacy documentation. The deployed authoring API now requires IAM-signed requests, so normal draft publishing should happen through the per-draft GitHub Actions workflow after merge.
 
 ## Check uploaded draft status
 
@@ -178,7 +204,7 @@ That command uploads the local file tree as a new authoring draft. It does not r
 node tools/config-draft-sync.mjs publish --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --updated-by="Your Name"
 ```
 
-Publishing changes the authoring state only insofar as it promotes the current draft to the published version pointer. It does not guarantee that live frontend caches or deployments have already refreshed.
+This unsigned local command is legacy documentation. The deployed authoring API now requires IAM-signed requests, and normal publish should happen through the per-draft GitHub Actions workflow. Publishing changes the authoring state only insofar as it promotes the current draft to the published version pointer. It does not guarantee that live frontend caches or deployments have already refreshed.
 
 If the custom-domain authoring endpoint resets the connection or stalls, the CLI now retries automatically through the raw API Gateway endpoint for the standard Zoolanding authoring URL. Use `--fallback-endpoint=https://...` if you need to force a different retry target, `--retry-attempts=3` to allow additional attempts on retryable failures, `--retry-delay-ms=250` to control the pause between attempts, or point directly at the raw endpoint documented in [06-deployment.md](06-deployment.md).
 
@@ -186,14 +212,14 @@ If the custom-domain authoring endpoint resets the connection or stalls, the CLI
 
 ### Update an existing site
 
-1. Pull the latest draft.
+1. Pull the latest hub and draft repo state with `git pull --ff-only` when the worktrees are clean.
 2. Read the relevant committed notes and inspect the local draft `ai_notes/`, `findings/`, and `errors-reports/` folders when they exist.
 3. Edit local files.
 4. Preview locally.
-5. Check uploaded status so you know what differs from the S3-backed published state.
-6. Push the local draft.
-7. Publish it.
-8. Re-run upload status against `--stage=published`.
+5. Commit to the draft repo `dev` branch.
+6. Merge `dev -> test` by PR; the `test` branch deploys the test environment after merge.
+7. Verify every configured test alias.
+8. Merge `test -> main` by PR; the `main` branch deploys production after merge.
 9. Validate the runtime bundle and the live site separately.
 10. Record durable learnings in the canonical AI notes.
 

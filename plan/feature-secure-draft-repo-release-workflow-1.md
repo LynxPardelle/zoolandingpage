@@ -1,16 +1,16 @@
 ---
 goal: Secure per-draft GitHub repo release workflow
-version: 0.1
+version: 0.2
 date_created: 2026-05-16
-last_updated: 2026-05-16
+last_updated: 2026-05-17
 owner: Codex
-status: 'Planning'
+status: 'Implemented'
 tags: [security, drafts, github-actions, aws, oidc, release]
 ---
 
 # Introduction
 
-![Status: Planning](https://img.shields.io/badge/status-Planning-yellow)
+![Status: Implemented](https://img.shields.io/badge/status-Implemented-green)
 
 Move draft publishing from local authoring API calls into controlled GitHub pull requests and post-merge GitHub Actions deployments. The target workflow makes Git the source of truth for draft content, protects production and test branches, and restricts authoring API write access to trusted GitHub Actions identities.
 
@@ -26,6 +26,8 @@ Move draft publishing from local authoring API calls into controlled GitHub pull
 - **REQ-008**: Test domains and aliases must resolve to the test published draft, not the production published draft.
 - **REQ-009**: Production domains and aliases must resolve to the production published draft.
 - **REQ-010**: New draft creation must bootstrap repo, branches, protection rules, GitHub Actions, AWS authorization, and local-only ignore rules.
+- **REQ-011**: Before work starts, every target repo must be updated with `git pull --ff-only` when clean; dirty repos must be reported instead of pulled over.
+- **REQ-012**: OIDC/IAM setup must be scriptable so new draft repos can be configured without hand-building every AWS and GitHub setting.
 - **SEC-001**: Local machines must not be able to publish or update production drafts through an unauthenticated authoring API.
 - **SEC-002**: GitHub Actions must not use long-lived AWS access keys when OIDC can be used.
 - **SEC-003**: AWS trust policies must constrain GitHub OIDC by repository and environment or branch.
@@ -53,6 +55,8 @@ Recommended role shape:
   - allowed draft domains: canonical domain plus configured production aliases
 
 Avoid one broad production role for all repos. A wildcard role such as `repo:LynxPardelle/draft-*:*` is easier to operate but creates avoidable blast radius. If a shared role is ever used, it must still be paired with server-side domain and environment enforcement in the authoring API.
+
+Approved target: OIDC is shared at the AWS account provider level, but deploy trust is split by draft repository and GitHub Environment. The setup must be generated or updated by a bootstrap script/IaC workflow that can create roles, attach least-privilege policies, configure GitHub Environments, and store role ARNs as non-secret environment variables.
 
 ## 3. Branching And Merge Gates
 
@@ -83,6 +87,15 @@ GitHub branch protection protects target branches but does not fully express the
 - PR targeting `main` fails unless source branch is `test`.
 
 This makes the intended graph explicit and auditable.
+
+### Public repo protection state
+
+On 2026-05-17 CT, GitHub returned `Upgrade to GitHub Pro or make this repository public` when applying native branch protection to the private draft repos. After public-safety audit passed, the current draft repos were made public and native branch protection was applied to `test` and `main`. The deploy workflows still reject push-triggered deploys unless the target branch receives the expected merge commit:
+
+- `test` deploy requires a merge commit from `origin/dev`.
+- `main` deploy requires a merge commit from `origin/test`.
+
+Protected branches require the `guard` status and one approving review. If a future draft repo must remain private on a plan without private branch protection, the workflow guard prevents direct pushes from deploying automatically, but it does not stop GitHub from accepting the direct push.
 
 ## 4. Draft Environment Model
 
@@ -194,6 +207,7 @@ Behavior:
 ### Phase 4: Bootstrap new draft repos
 
 - Add a repeatable repo bootstrap procedure or script.
+- Add a multi-repo freshness check that runs `git pull --ff-only` for the hub repo and every target draft repo when clean.
 - Create branches in the correct order.
 - Add `.gitignore` for local-only draft material and PII-risk folders.
 - Add branch protections and required status checks.
@@ -209,18 +223,21 @@ Behavior:
 | TASK-001 | Create this planning document. | ✅ | 2026-05-16 |
 | TASK-002 | Add reusable AI note for secure draft repo workflow. | ✅ | 2026-05-16 |
 | TASK-003 | Update `Codex.md` with the durable target workflow decision. | ✅ | 2026-05-16 |
-| TASK-004 | Review current `zoolanding-config-authoring` tests and template for auth gaps. | | |
-| TASK-005 | Create failing authoring API tests for unauthenticated write denial. | | |
-| TASK-006 | Implement server-side deploy identity validation in `zoolanding-config-authoring`. | | |
-| TASK-007 | Add environment-aware published pointers and alias records. | | |
-| TASK-008 | Update `zoolanding-config-runtime-read` tests and runtime resolver for environment-aware aliases. | | |
-| TASK-009 | Create pilot draft repo workflow files for `dev`, `test`, and `main`. | | |
-| TASK-010 | Configure pilot GitHub branch protections and environments. | | |
-| TASK-011 | Configure pilot AWS OIDC roles with least privilege. | | |
-| TASK-012 | Run pilot deploy to test and verify all configured test aliases. | | |
+| TASK-004 | Review current `zoolanding-config-authoring` tests and template for auth gaps. | ✅ | 2026-05-16 |
+| TASK-005 | Create failing authoring API tests for unauthenticated write denial. | ✅ | 2026-05-16 |
+| TASK-006 | Implement server-side deploy identity validation in `zoolanding-config-authoring`. | ✅ | 2026-05-16 |
+| TASK-007 | Add environment-aware published pointers and alias records. | ✅ | 2026-05-16 |
+| TASK-008 | Update `zoolanding-config-runtime-read` tests and runtime resolver for environment-aware aliases. | ✅ | 2026-05-16 |
+| TASK-009 | Create pilot draft repo workflow files for `dev`, `test`, and `main`. | ✅ | 2026-05-16 |
+| TASK-010 | Configure pilot GitHub branch protections and environments. | ✅ | 2026-05-17, protections active after public-safety audit and public visibility |
+| TASK-011 | Configure pilot AWS OIDC roles with least privilege. | ✅ | 2026-05-17 |
+| TASK-012 | Run pilot deploy to test and verify all configured test aliases. | ✅ | 2026-05-17, `draft-zoolandingpage-com-mx` test workflow verified `test.zoolandingpage.com.mx` |
 | TASK-013 | Promote pilot from `test` to `main` and verify production aliases. | | |
-| TASK-014 | Turn pilot setup into a repeatable new-draft bootstrap guide/script. | | |
-| TASK-015 | Update active lifecycle docs after implementation is verified. | | |
+| TASK-014 | Turn pilot setup into a repeatable new-draft bootstrap guide/script. | ✅ | 2026-05-16 |
+| TASK-015 | Update active lifecycle docs after implementation is verified. | ✅ | 2026-05-17 |
+| TASK-016 | Add multi-repo preflight script/checklist for `zoolandingpage` plus every target `draft-*` repo. | ✅ | 2026-05-16 |
+| TASK-017 | Bootstrap all current draft repos with secure workflow templates and environment variables. | ✅ | 2026-05-17 |
+| TASK-018 | Move GitHub deploy transport to IAM-protected Lambda Function URL and verify OIDC pilot deploy. | ✅ | 2026-05-17 |
 
 ## 8. Files Expected To Change Later
 
@@ -248,7 +265,9 @@ Behavior:
 - **TEST-009**: Runtime bundle for test aliases resolves test state.
 - **TEST-010**: Runtime bundle for production aliases resolves production state.
 - **TEST-011**: Secret/PII scan blocks unsafe draft files before deploy.
-- **TEST-012**: New draft repo bootstrap produces the required branches, protections, workflows, and ignore rules.
+- **TEST-012**: New draft repo bootstrap produces the required branches, workflows, environment variables, and ignore rules; native protections apply only when the GitHub plan supports private branch protection.
+- **TEST-013**: Multi-repo preflight pulls clean target repos and refuses to pull dirty repos.
+- **TEST-014**: OIDC bootstrap can recreate or update one pilot repo's test and production roles from documented configuration.
 
 ## 10. Risks & Mitigations
 
@@ -258,6 +277,8 @@ Behavior:
 - **RISK-004**: Existing docs still describe local publish. Mitigation: mark this plan as target state now, then update active docs only after implementation is verified.
 - **RISK-005**: Managing many per-draft roles manually is error-prone. Mitigation: automate role/repo bootstrap after the pilot is verified.
 - **RISK-006**: GitHub branch protection alone may not enforce source branch graph. Mitigation: required PR source-branch guard workflow.
+- **RISK-007**: Agents may update the hub repo but forget draft repos. Mitigation: make multi-repo pull preflight part of repo memory, draft repo memory, and bootstrap output.
+- **RISK-008**: Current GitHub plan cannot apply native branch protection to private draft repos. Mitigation: make draft repos public only after public-safety audit passes, then enforce native branch protection; if a repo must stay private, enforce merge-source checks inside deploy workflows until plan support exists.
 
 ## 11. Open Questions
 

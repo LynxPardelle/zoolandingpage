@@ -1,6 +1,6 @@
 # Authoring Package and Upload Reference
 
-This document describes the current authoring API shape and the local CLI workflow used to move drafts between the repo and the backend.
+This document describes the current authoring API shape and the release workflow used to move drafts between GitHub and the backend.
 
 ## What this document covers
 
@@ -8,8 +8,8 @@ Use this document when you need to:
 
 - create a new site from a local draft tree
 - pull the current draft or published state into the repo
-- push local changes back to the authoring API
-- publish the current authoring draft
+- understand the signed deploy requests sent by GitHub Actions
+- publish the current authoring draft through the secure release workflow
 
 For the higher-level workflow, read [../11-draft-lifecycle.md](../11-draft-lifecycle.md) first.
 
@@ -21,6 +21,12 @@ Stable custom domain:
 https://api.zoolandingpage.com.mx/config-authoring
 https://api.zoolandingpage.com.mx/runtime-bundle
 https://api.zoolandingpage.com.mx/image-upload/presign
+```
+
+GitHub Actions deploys use the IAM-protected Lambda Function URL:
+
+```text
+https://o4upx3fsz3d3dwfwz4lbnefjze0eetyn.lambda-url.us-east-1.on.aws/
 ```
 
 The runtime and authoring APIs serve different purposes:
@@ -60,7 +66,7 @@ npm run drafts:upload-status
 
 It reads the published state through `config-authoring` `getSite`, which is the production draft source backed by S3. It does not inspect merged browser runtime bundles because those are page-level render payloads, not the source authoring package.
 
-The direct `node tools/config-draft-sync.mjs ...` form is recommended for explicit endpoint arguments.
+The direct `node tools/config-draft-sync.mjs ...` form is useful for local pack/unpack and legacy reads. Unsigned local write/publish calls now fail against the deployed authoring API because it requires AWS IAM signing.
 
 ## Current authoring actions
 
@@ -70,6 +76,8 @@ The authoring API currently supports these actions through the CLI or direct POS
 - `createSite`
 - `upsertDraft`
 - `publishDraft`
+
+The deployed authoring API requires signed AWS IAM requests for authoring actions. GitHub Actions call the Lambda Function URL with temporary OIDC-derived AWS credentials. Unsigned local `curl`/CLI write and publish flows are legacy-only and should not be used as the normal workflow.
 
 ### `getSite`
 
@@ -96,6 +104,8 @@ Replace the current authoring draft for a domain with the local file set you sen
 ### `publishDraft`
 
 Promote the current authoring draft to the published runtime state.
+
+Use `environment: "test"` for test aliases and `environment: "production"` for production aliases. Production remains backward-compatible with the legacy `published` pointer; test publishes are stored under `publishedEnvironments.test`.
 
 ## The two important transport contracts
 
@@ -167,6 +177,8 @@ node tools/config-draft-sync.mjs pack --domain=zoolandingpage.com.mx --output=.t
 node tools/config-draft-sync.mjs push --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --updated-by="Your Name"
 ```
 
+Direct local push requires signed AWS credentials and should not be the normal workflow. Use per-draft GitHub Actions deploys instead.
+
 ### Create a new site from a local draft tree
 
 ```bash
@@ -178,6 +190,8 @@ node tools/config-draft-sync.mjs create --endpoint=https://api.zoolandingpage.co
 ```bash
 node tools/config-draft-sync.mjs publish --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --updated-by="Your Name"
 ```
+
+Publish should be performed by the post-merge draft repo workflow, not a local machine.
 
 The same fallback behavior applies to `pull`, `push`, `create`, and `publish` when you use the standard Zoolanding custom-domain authoring endpoint.
 
@@ -215,6 +229,8 @@ curl -X POST "https://api.zoolandingpage.com.mx/config-authoring" \
   -d '{"action":"getSite","domain":"zoolandingpage.com.mx","stage":"published"}'
 ```
 
+Unsigned examples like the one above now return `403` unless the request is AWS IAM signed.
+
 ### Publish the current draft
 
 ```bash
@@ -222,6 +238,8 @@ curl -X POST "https://api.zoolandingpage.com.mx/config-authoring" \
   -H "Content-Type: application/json" \
   -d '{"action":"publishDraft","domain":"zoolandingpage.com.mx","updatedBy":"Your Name"}'
 ```
+
+Use this shape only as a payload reference. The real production request must be AWS IAM signed by an authorized role.
 
 ## What belongs in the authoring package
 
