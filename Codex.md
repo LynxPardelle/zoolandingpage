@@ -40,9 +40,12 @@ This file is durable project memory, not a changelog. Keep it short, stable, and
 ## Current Project Decisions
 
 - `drafts/` is the local authored draft tree and local per-draft scratch area.
+- 2026-05-15 10:44 CT: Domain drafts are now mirrored to one private GitHub repo per draft under `LynxPardelle/draft-*`. Per-draft repos should track sanitized runtime draft config and required public assets only. Keep `ai_notes/`, `findings/`, `errors-reports/`, `CVs_N_photos/`, PDFs, logs, `.env*`, private keys, local databases, and other PII/secrets local-only through each draft repo `.gitignore`.
+- 2026-05-16 CT: Target secure draft release workflow is `dev -> test -> main`, with post-merge GitHub Actions deploys only from `test` and `main`, protected `test`/`main` branches, source-branch guards, GitHub OIDC to AWS IAM, and environment-aware test/production aliases. Until implemented and verified, treat this as planned workflow, not active release behavior.
 - `zoolandingpage` is the canonical home for shared workspace prompts and community AI tooling because it owns `zoolandingpage.code-workspace`.
 - Shared prompts or AI tooling that apply across multiple Zoolanding repos should live in this repo first; service-specific deploy prompts and workflow skills stay in their service repos.
 - `devonly/` may be used only as optional local scratch and should be cleaned when the work is done.
+- Use `tools/draft-upload-status.mjs` to compare local draft JSON with the S3-backed authoring state before/after draft publish work. Treat `uploaded`, `needs-upload`, and `not-uploaded` as the standard release inventory statuses.
 - Do not store secrets, credentials, tokens, raw environment values, signed URLs, private customer data, or PII in committed notes, changelogs, or generated docs.
 - If a workflow depends on sensitive data, describe the dependency abstractly instead of copying the value.
 
@@ -59,8 +62,16 @@ This file is durable project memory, not a changelog. Keep it short, stable, and
 ## Draft Memory
 
 - `zoositioweb.com.mx` is the current complete-website product draft. It should stay commercial, client-facing, bilingual-ready, and theme-ready, with WhatsApp as the first contact path until first-class forms/email/CRM integrations are productized.
-- Zoosite Phase 1 active routes are `/`, `/servicios`, `/planes`, `/sitios-web-para-pymes`, `/plataforma`, `/nosotros`, `/contacto`, `/sectores/consultorios`, `/sectores/despachos`, and `/sectores/inmobiliarias`.
-- Zoosite plan names are `Presencia`, `Clientes`, and `Crecimiento`; keep public copy outcome-led and avoid exposing internal cost structure.
+- 2026-05-15 10:58 CT: Use `zoositioweb` as the public brand name for the complete-website product. Do not use the previous short name in active draft content, SEO metadata, WhatsApp messages, aliases, storage keys, or authoring scripts.
+- zoositioweb Phase 1 active routes are `/`, `/servicios`, `/planes`, `/sitios-web-para-pymes`, `/plataforma`, `/nosotros`, `/preguntas-frecuentes`, `/contacto`, `/sectores/consultorios`, `/sectores/despachos`, `/sectores/inmobiliarias`, `/sectores/servicios-locales`, `/sectores/constructoras`, and `/sectores/agencias`.
+- zoositioweb plan names are `Presencia`, `Clientes`, and `Crecimiento`; keep public copy outcome-led and avoid exposing internal cost structure.
+- 2026-05-14 22:19 CT: zoositioweb keeps FAQs centralized in `/preguntas-frecuentes` instead of repeating FAQ accordions on every commercial page. Public copy should stay commercial, positive, and client-facing; avoid negative phrasing, promises, and internal terms such as `draft`.
+- 2026-05-14 22:19 CT: zoositioweb dark theme uses `#25d366` as the live-data accent and `#128c7e` as the darker WhatsApp action color through `successColor`; WhatsApp CTAs should use `successColor`, not the general accent token.
+- 2026-05-14 22:19 CT: For draft work, avoid changing app code unless the user explicitly asks for it or grants permission. Prefer draft configuration first; if the draft cannot express the needed behavior and app changes are not approved, record the gap as a possible future platform feature in AI notes.
+- 2026-05-14 22:19 CT: zoositioweb card icon slots should be handled through draft classes with explicit SVG width/height classes, and local-only card hrefs may include the draft preview query params when raw anchor card links must preserve preview context.
+- 2026-05-14 22:46 CT: `zoolandingpage.com.mx` also serves the aliases `zoolandingpage.com`, `sulandingpage.com.mx`, and `sulandingpage.com`; keep the frontend public host allowlist aligned with these aliases.
+- 2026-05-15 CT: zoositioweb route design should keep distinct page personalities through draft configuration: home as commercial storefront, servicios as process/workflow, planes as comparison/pricing board, plataforma as technical foundation, contacto as action-focused intake, FAQs as help center, and sector pages with industry-specific accents.
+- 2026-05-15 09:44 CT: zoositioweb sector pages should not share one generic visual template. Keep consultorios calm and appointment-oriented, despachos formal and practice-area oriented, inmobiliarias search/listing oriented, servicios locales fast-contact and service-area oriented, constructoras portfolio/project oriented, and agencias case-study/portfolio oriented. Express these differences through draft configuration first.
 - `pokeapi-demo.zoolandingpage.com.mx` is the client-facing runtime API demo and should keep API-specific labels, routes, and per-type styling in draft mapper/config data rather than hardcoding them into generic app code.
 - `music.lynxpardelle.com` keeps Spotify/TIDAL credentials out of draft config and browser payloads. Server-only runtime API proxy patterns and Secrets Manager references are required before reactivation.
 

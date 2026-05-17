@@ -146,6 +146,22 @@ node tools/config-draft-sync.mjs push --endpoint=https://api.zoolandingpage.com.
 
 Use this after local QA is correct and you want the backend draft state to match your working copy.
 
+## Check uploaded draft status
+
+Before pushing/publishing, or after publishing when you need to verify what is already in the S3-backed production authoring state, run:
+
+```bash
+node tools/draft-upload-status.mjs --all --stage=published
+```
+
+The shortcut is:
+
+```bash
+npm run drafts:upload-status
+```
+
+Use `--domain=example.com` to limit the check, `--include-file-details=true` to list changed paths, and `--fail-on-pending=true` in automation when any draft that differs from production should fail the job.
+
 ## Create a new site in the authoring API
 
 If the site does not exist yet in the backend, use `create` instead of `push`.
@@ -174,10 +190,12 @@ If the custom-domain authoring endpoint resets the connection or stalls, the CLI
 2. Read the relevant committed notes and inspect the local draft `ai_notes/`, `findings/`, and `errors-reports/` folders when they exist.
 3. Edit local files.
 4. Preview locally.
-5. Push the local draft.
-6. Publish it.
-7. Validate the runtime bundle and the live site separately.
-8. Record durable learnings in the canonical AI notes.
+5. Check uploaded status so you know what differs from the S3-backed published state.
+6. Push the local draft.
+7. Publish it.
+8. Re-run upload status against `--stage=published`.
+9. Validate the runtime bundle and the live site separately.
+10. Record durable learnings in the canonical AI notes.
 
 ### Create a new site
 
@@ -187,8 +205,9 @@ If the custom-domain authoring endpoint resets the connection or stalls, the CLI
 4. Upload any required public assets.
 5. Create the site in the authoring API.
 6. Publish it.
-7. Validate the runtime bundle and then validate the live site.
-8. Distill reusable guidance from the new draft into `ai-notes/`.
+7. Run upload status against `--stage=published`.
+8. Validate the runtime bundle and then validate the live site.
+9. Distill reusable guidance from the new draft into `ai-notes/`.
 
 ## What to check when a published change is not visible
 
@@ -196,9 +215,10 @@ Use this order:
 
 1. check the local draft file you edited
 2. check the authoring draft with `getSite` or `pull`
-3. check that the draft was published
-4. check the runtime bundle response for the domain
-5. check frontend deployment and cache behavior
+3. run `tools/draft-upload-status.mjs` against `--stage=published`
+4. check that the draft was published
+5. check the runtime bundle response for the domain
+6. check frontend deployment and cache behavior
 
 If the runtime bundle is correct and the live page is still wrong, you are usually looking at a frontend deployment or cache problem, not a missing publish.
 

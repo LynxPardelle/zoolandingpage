@@ -46,6 +46,20 @@ Supported commands today:
 - `create`
 - `publish`
 
+Use the upload-status CLI when you need to compare local draft JSON with the S3-backed authoring state:
+
+```bash
+node tools/draft-upload-status.mjs --all --stage=published
+```
+
+The npm shortcut runs that standard all-drafts published-state inventory:
+
+```bash
+npm run drafts:upload-status
+```
+
+It reads the published state through `config-authoring` `getSite`, which is the production draft source backed by S3. It does not inspect merged browser runtime bundles because those are page-level render payloads, not the source authoring package.
+
 The direct `node tools/config-draft-sync.mjs ...` form is recommended for explicit endpoint arguments.
 
 ## Current authoring actions
@@ -166,6 +180,30 @@ node tools/config-draft-sync.mjs publish --endpoint=https://api.zoolandingpage.c
 ```
 
 The same fallback behavior applies to `pull`, `push`, `create`, and `publish` when you use the standard Zoolanding custom-domain authoring endpoint.
+
+### Check what is already uploaded
+
+Use this before pushing/publishing or after a publish when you need a quick inventory of what local drafts still differ from the S3-backed production state:
+
+```bash
+node tools/draft-upload-status.mjs --all --stage=published --include-file-details=true
+```
+
+Useful variants:
+
+```bash
+node tools/draft-upload-status.mjs --domain=zoositioweb.com.mx --stage=published
+node tools/draft-upload-status.mjs --all --stage=published --format=json --output=reports/draft-upload-status.json
+node tools/draft-upload-status.mjs --all --stage=published --fail-on-pending=true
+```
+
+Status meanings:
+
+- `uploaded`: local draft JSON matches the uploaded package.
+- `needs-upload`: the domain exists remotely, but at least one local file differs, is missing remotely, or exists only remotely.
+- `not-uploaded`: no remote package was found for that domain/stage.
+
+The report prints hashes, file paths, counts, and version IDs when returned by the API. It does not print draft file contents or secret values.
 
 ## Direct API examples
 
