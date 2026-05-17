@@ -6,7 +6,13 @@ import path from 'node:path';
 import test from 'node:test';
 import { promisify } from 'node:util';
 
-import { discoverDraftRepos, parseArgs } from '../draft-repo-preflight.mjs';
+import {
+  discoverDraftRepos,
+  ensureRegisteredDraftRepos,
+  parseArgs,
+  readDraftRegistry,
+  resolveTargetRepos,
+} from '../draft-repo-preflight.mjs';
 import { bootstrapDraftRepo } from '../draft-repo-bootstrap.mjs';
 import { collectJsonFiles, normalizeDomain, normalizeEnvironment } from '../templates/draft-repo/tools/deploy-draft.mjs';
 
@@ -29,6 +35,77 @@ test('discoverDraftRepos ignores non-draft folders', async () => {
   const repos = await discoverDraftRepos(root);
 
   assert.deepEqual(repos, [path.join(root, 'draft-example')]);
+});
+
+test('readDraftRegistry parses draft GitHub links', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zlp-draft-registry-'));
+  const registryPath = path.join(root, 'drafts-registry.json');
+  await writeFile(registryPath, JSON.stringify({
+    version: 1,
+    defaultBaseDir: '..',
+    drafts: [
+      {
+        domain: 'example.com',
+        repo: 'draft-example-com',
+        githubUrl: 'https://github.com/LynxPardelle/draft-example-com.git',
+        localPath: '../draft-example-com',
+      },
+    ],
+  }), 'utf8');
+
+  const registry = await readDraftRegistry(registryPath);
+
+  assert.equal(registry.drafts.length, 1);
+  assert.equal(registry.drafts[0].domain, 'example.com');
+  assert.equal(registry.drafts[0].githubUrl, 'https://github.com/LynxPardelle/draft-example-com.git');
+});
+
+test('ensureRegisteredDraftRepos reports missing repos without cloning when disabled', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zlp-draft-missing-'));
+  const registry = {
+    defaultBaseDir: '..',
+    drafts: [
+      {
+        domain: 'example.com',
+        repo: 'draft-example-com',
+        githubUrl: 'https://github.com/LynxPardelle/draft-example-com.git',
+        localPath: '../draft-example-com',
+      },
+    ],
+  };
+
+  const results = await ensureRegisteredDraftRepos(registry, { cwd: root, clone: false });
+
+  assert.equal(results.length, 1);
+  assert.equal(results[0].status, 'missing');
+  assert.equal(results[0].cloned, false);
+});
+
+test('resolveTargetRepos includes registry repos before discovered sibling repos', async () => {
+  const workspace = await mkdtemp(path.join(os.tmpdir(), 'zlp-draft-resolve-'));
+  const hub = path.join(workspace, 'zoolandingpage');
+  const draft = path.join(workspace, 'draft-example-com');
+  await mkdir(path.join(hub, 'docs'), { recursive: true });
+  await mkdir(draft, { recursive: true });
+  await execFileAsync('git', ['init'], { cwd: draft, windowsHide: true });
+  await writeFile(path.join(hub, 'docs', 'drafts-registry.json'), JSON.stringify({
+    version: 1,
+    defaultBaseDir: '..',
+    drafts: [
+      {
+        domain: 'example.com',
+        repo: 'draft-example-com',
+        githubUrl: 'https://github.com/LynxPardelle/draft-example-com.git',
+        localPath: '../draft-example-com',
+      },
+    ],
+  }), 'utf8');
+
+  const resolved = await resolveTargetRepos({ repo: [], clone: 'false' }, hub);
+
+  assert.equal(resolved.registry.drafts.length, 1);
+  assert.equal(resolved.registeredRepos[0].status, 'present');
+  assert.deepEqual(resolved.repos, [draft, hub].sort());
 });
 
 test('deploy template normalizes domains and environments', () => {

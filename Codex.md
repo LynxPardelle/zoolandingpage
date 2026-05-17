@@ -25,6 +25,7 @@ This file is durable project memory, not a changelog. Keep it short, stable, and
 - Note templates: `ai-notes/templates/`
 - Optional local-only scratch: `devonly/`
 - Main implementation docs: `docs/`
+- Draft repo registry: `docs/drafts-registry.json`
 - Generated Microsoft documents, PDFs, and images: `Output/`
 
 ## Memory Boundaries
@@ -44,6 +45,7 @@ This file is durable project memory, not a changelog. Keep it short, stable, and
 - 2026-05-17 CT: Draft repos may be public only after a public-safety audit passes against current files and git history. Run `node tools/draft-public-safety-audit.mjs --history=true` from the hub repo before changing visibility, before PR, and before merges that publish draft content. Blocking findings include tracked local-only folders/files, secret-looking values, credential material, local DBs/exports, and PII source documents. Review findings such as emails, phone/WhatsApp numbers, and identity keywords must be confirmed as intentional public draft content or removed.
 - 2026-05-17 CT: Secure draft release workflow is active for the current public `LynxPardelle/draft-*` repos: `dev -> test -> main`, GitHub Actions deploys only from `test` and `main`, source-branch guards, GitHub OIDC to per-repo/per-environment AWS IAM roles, IAM-protected authoring Lambda Function URL for deploys, environment-aware test/production aliases, and native GitHub branch protection on `test` and `main` requiring the `guard` check plus one approving review. The `draft-zoolandingpage-com-mx` test workflow was verified through OIDC without changing the production pointer.
 - 2026-05-16 CT: Before Zoolanding or draft repo work, run `git pull --ff-only` in every clean target repo, including affected `draft-*` repos. If a target repo is dirty, report it instead of pulling over local changes. New draft repos must carry this same rule in their repo memory.
+- 2026-05-17 CT: `docs/drafts-registry.json` is the canonical registry of draft domains, GitHub repos, clone URLs, and sibling local paths. Before work, `node tools/draft-repo-preflight.mjs --pull=true` must read that registry, clone any missing registered `draft-*` repo into the sibling workspace path, then pull every clean target repo. If a registered path exists but is not a git repo, or a repo is dirty, report it instead of overwriting it.
 - 2026-05-16 CT: Approved OIDC direction is one AWS GitHub OIDC provider per account with deploy roles split by draft repo and GitHub Environment/branch. Keep it bootstrap-driven so agents can create/update roles, GitHub Environments, role ARN variables, and workflows consistently.
 - `zoolandingpage` is the canonical home for shared workspace prompts and community AI tooling because it owns `zoolandingpage.code-workspace`.
 - Shared prompts or AI tooling that apply across multiple Zoolanding repos should live in this repo first; service-specific deploy prompts and workflow skills stay in their service repos.

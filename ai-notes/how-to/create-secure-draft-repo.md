@@ -7,6 +7,7 @@ Source Of Truth:
 - `plan/feature-secure-draft-repo-release-workflow-1.md`
 - `ai-notes/notes/secure-draft-release-workflow.md`
 - `Codex.md`
+- `docs/drafts-registry.json`
 
 Confidence: Medium
 Last Reviewed: 2026-05-17 (Central Time)
@@ -23,19 +24,21 @@ Use this checklist when creating a new draft repository after the secure release
 - Draft payload has passed the public-safety audit against current files and git history.
 - AWS OIDC provider exists in the target AWS account.
 - The hub repo and any source draft repo have been updated with `git pull --ff-only` when clean.
+- `docs/drafts-registry.json` has or will receive the new draft domain, repo name, GitHub clone URL, and sibling local path.
 
 ## Setup Checklist
 
 1. Create GitHub repository named `draft-{domain}`. Prefer private during initial import, then make it public only after the public-safety audit passes.
-2. Add sanitized draft payload and required public asset references only.
-3. Run the bootstrap helper from the hub repo:
+2. Add or update the draft entry in `docs/drafts-registry.json`.
+3. Add sanitized draft payload and required public asset references only.
+4. Run the bootstrap helper from the hub repo:
 
    ```bash
    npm run drafts:repo-bootstrap -- --repo=../draft-example-com --domain=example.com --authoring-endpoint=https://o4upx3fsz3d3dwfwz4lbnefjze0eetyn.lambda-url.us-east-1.on.aws/
    ```
 
    This copies the standard repo memory, GitHub Actions workflow templates, OIDC deploy script, `.gitignore`, and non-secret `draft-repo.config.json`.
-4. Confirm `.gitignore` excludes:
+5. Confirm `.gitignore` excludes:
    - `.env*`
    - private keys and certificates
    - local databases
@@ -44,7 +47,7 @@ Use this checklist when creating a new draft repository after the secure release
    - `ai_notes/`, `findings/`, and `errors-reports/`
    - generated reports and scratch folders
    - credential JSON, local agent state, and local cloud credential folders
-5. Run the public-safety audit before the first push, before changing repository visibility, and before PR/merge:
+6. Run the public-safety audit before the first push, before changing repository visibility, and before PR/merge:
 
    ```bash
    node tools/draft-public-safety-audit.mjs --repo=../draft-example-com --history=true
@@ -57,37 +60,45 @@ Use this checklist when creating a new draft repository after the secure release
    - matching files anywhere in git history
 
    Treat emails, phone/WhatsApp numbers, and identity-document keywords as review findings. They are allowed only when they are intentionally public draft content.
-6. Create branches `dev`, `test`, and `main`.
-7. Set default branch according to the adopted repo policy after pilot verification.
-8. Protect `test`.
-9. Protect `main`.
+7. Run the repo preflight so missing registered repos are cloned and clean repos are pulled:
+
+   ```bash
+   node tools/draft-repo-preflight.mjs --pull=true
+   ```
+
+8. Create branches `dev`, `test`, and `main`.
+9. Set default branch according to the adopted repo policy after pilot verification.
+10. Protect `test`.
+11. Protect `main`.
    - Public draft repos on GitHub Free support branch protection.
    - If the repo must remain private and GitHub returns `Upgrade to GitHub Pro or make this repository public`, record branch protection as blocked by plan. In that blocked state, the deploy workflows still reject push-triggered deploys unless the push is a merge commit from the expected source branch, but GitHub cannot block the direct push itself.
-10. Add required PR source guard check:
+12. Add required PR source guard check:
    - PR to `test` must come from `dev`.
    - PR to `main` must come from `test`.
-11. Add GitHub Environment `test`.
-12. Add GitHub Environment `production`.
-13. Restrict test environment deployment branches to `test`.
-14. Restrict production environment deployment branches to `main`.
-15. Add non-secret environment variables:
+13. Add GitHub Environment `test`.
+14. Add GitHub Environment `production`.
+15. Restrict test environment deployment branches to `test`.
+16. Restrict production environment deployment branches to `main`.
+17. Add non-secret environment variables:
    - canonical domain
    - deploy environment
    - role ARN
    - authoring endpoint
-16. Create or attach AWS IAM test deploy role.
-17. Create or attach AWS IAM production deploy role.
-18. Generate or update role trust policies from repo/environment config, not by hand-editing unique JSON per repo.
-19. Store role ARNs and domain metadata as non-secret GitHub Environment variables.
-20. Confirm repo memory requires `git pull --ff-only` before work when clean, including pull checks for related draft repos in multi-repo tasks.
-21. Confirm post-merge deploy workflow for `test`.
-22. Confirm post-merge deploy workflow for `main`.
-23. Verify test deploy against every test alias.
-24. Verify production deploy against every production alias.
+18. Create or attach AWS IAM test deploy role.
+19. Create or attach AWS IAM production deploy role.
+20. Generate or update role trust policies from repo/environment config, not by hand-editing unique JSON per repo.
+21. Store role ARNs and domain metadata as non-secret GitHub Environment variables.
+22. Confirm repo memory requires `git pull --ff-only` before work when clean, including pull checks for related draft repos in multi-repo tasks.
+23. Confirm post-merge deploy workflow for `test`.
+24. Confirm post-merge deploy workflow for `main`.
+25. Verify test deploy against every test alias.
+26. Verify production deploy against every production alias.
 
 ## Acceptance Checks
 
 - No local-only folders or PII-risk files are tracked.
+- `docs/drafts-registry.json` contains the draft's domain, repo, GitHub URL, and local sibling path.
+- `node tools/draft-repo-preflight.mjs --pull=true` can clone missing registered repos and pull clean repos.
 - `node tools/draft-public-safety-audit.mjs --history=true` passes for the draft repo before public visibility, PR, and merge.
 - Direct push to `test` and `main` is blocked when native GitHub branch protection is available.
 - If native branch protection is blocked by plan, direct-push deploys fail in the workflow guard and the limitation is documented.

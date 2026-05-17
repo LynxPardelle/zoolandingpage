@@ -36,7 +36,7 @@ The secure release workflow moves draft publishing into per-draft GitHub reposit
 4. Merge `test -> main` by pull request.
 5. Deploy production only after the merge lands on `main`.
 
-Before work starts, run `git pull --ff-only` in every clean target repo, including this hub repo and any affected local `draft-*` repos. If a target repo is dirty, report it instead of pulling over local changes.
+Before work starts, run the draft repo preflight. It reads [drafts-registry.json](./drafts-registry.json), clones any missing registered `draft-*` repo into its sibling local path, and runs `git pull --ff-only` in every clean target repo, including this hub repo and any affected local `draft-*` repos. If a target repo is dirty, report it instead of pulling over local changes.
 
 Use the hub preflight helper:
 
@@ -44,11 +44,19 @@ Use the hub preflight helper:
 npm run drafts:repo-preflight
 ```
 
+Use the direct Node form when passing flags:
+
+```bash
+node tools/draft-repo-preflight.mjs --pull=true
+```
+
 New draft repos should be bootstrapped from the hub templates:
 
 ```bash
 npm run drafts:repo-bootstrap -- --repo=../draft-example-com --domain=example.com --authoring-endpoint=https://o4upx3fsz3d3dwfwz4lbnefjze0eetyn.lambda-url.us-east-1.on.aws/
 ```
+
+Every new draft repo must also be added to [drafts-registry.json](./drafts-registry.json) with its canonical domain, repo name, GitHub clone URL, and sibling local path.
 
 As of 2026-05-17 CT, the authoring API is IAM-protected, runtime-read supports environment-aware published pointers, OIDC roles are configured per draft repo/environment, and the current public `draft-*` repos have GitHub Environments, deployment workflows, and native GitHub branch protection on `test` and `main`. GitHub Actions deploys use the IAM-protected Lambda Function URL. Protected branches require the `guard` status and one approving review; deployment workflows also reject push-triggered deploys unless `test` receives a merge commit from `dev` or `main` receives a merge commit from `test`.
 
@@ -212,7 +220,7 @@ If the custom-domain authoring endpoint resets the connection or stalls, the CLI
 
 ### Update an existing site
 
-1. Pull the latest hub and draft repo state with `git pull --ff-only` when the worktrees are clean.
+1. Run `node tools/draft-repo-preflight.mjs --pull=true` so every registered draft repo exists locally and clean worktrees are updated with `git pull --ff-only`.
 2. Read the relevant committed notes and inspect the local draft `ai_notes/`, `findings/`, and `errors-reports/` folders when they exist.
 3. Edit local files.
 4. Preview locally.
