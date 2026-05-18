@@ -76,10 +76,57 @@ describe('DraftRuntimeService', () => {
     nativeHistoryReplaceState.call(window.history, {}, '', `${ nextUrl.pathname }${ nextUrl.search }${ nextUrl.hash }`);
   };
 
-  const configure = (requestUrl: string, siteConfig: unknown = null, options?: { browserMode?: boolean }) => {
+  const validPageConfig = (domain: string, pageId: string) => ({
+    version: 1,
+    domain,
+    pageId,
+    rootIds: ['root'],
+  });
+
+  const validComponents = (domain: string, pageId: string) => ({
+    version: 1,
+    domain,
+    pageId,
+    components: [
+      {
+        id: 'root',
+        type: 'container',
+        config: {},
+      },
+    ],
+  });
+
+  const configure = (
+    requestUrl: string,
+    siteConfig: unknown = null,
+    options?: {
+      browserMode?: boolean;
+      pageConfigByKey?: Record<string, unknown | null>;
+      componentsByKey?: Record<string, unknown | null>;
+    },
+  ) => {
     let nextUrl = new URL(requestUrl);
     setBrowserUrl(requestUrl);
-    const loadSiteConfig = jasmine.createSpy('loadSiteConfig').and.resolveTo(siteConfig);
+    const resolveSiteConfig = typeof siteConfig === 'function'
+      ? siteConfig as (domain: string) => unknown
+      : () => siteConfig;
+    const loadSiteConfig = jasmine.createSpy('loadSiteConfig').and.callFake((domain: string) => Promise.resolve(resolveSiteConfig(domain)));
+    const loadPageConfig = jasmine.createSpy('loadPageConfig').and.callFake((domain: string, pageId: string) => {
+      const key = `${ domain }::${ pageId }`;
+      if (options?.pageConfigByKey && key in options.pageConfigByKey) {
+        return Promise.resolve(options.pageConfigByKey[key]);
+      }
+
+      return Promise.resolve(validPageConfig(domain, pageId));
+    });
+    const loadComponents = jasmine.createSpy('loadComponents').and.callFake((domain: string, pageId: string) => {
+      const key = `${ domain }::${ pageId }`;
+      if (options?.componentsByKey && key in options.componentsByKey) {
+        return Promise.resolve(options.componentsByKey[key]);
+      }
+
+      return Promise.resolve(validComponents(domain, pageId));
+    });
 
     const providers: any[] = [
       DraftRuntimeService,
@@ -101,6 +148,8 @@ describe('DraftRuntimeService', () => {
         provide: ConfigSourceService,
         useValue: {
           loadSiteConfig,
+          loadPageConfig,
+          loadComponents,
         },
       },
     ];
@@ -138,6 +187,8 @@ describe('DraftRuntimeService', () => {
     return {
       service,
       loadSiteConfig,
+      loadPageConfig,
+      loadComponents,
       setUrl,
     };
   };
@@ -213,7 +264,55 @@ describe('DraftRuntimeService', () => {
     expect(service.activeDraftPageId()).toBe('contactame');
   });
 
-  it('falls back to defaultPageId when the current route is not mapped in site-config', async () => {
+  it('keeps the root route on the draft default page', async () => {
+    const { service } = configure(
+      'https://test.zoolandingpage.com.mx/?draftDomain=pamelabetancourt.com',
+      {
+        version: 1,
+        domain: 'pamelabetancourt.com',
+        defaultPageId: 'home',
+        notFoundPageId: 'not-found',
+        routes: [
+          { path: '/', pageId: 'home' },
+          { path: '/404', pageId: 'not-found' },
+        ],
+      },
+    );
+
+    const context = await service.resolveActiveDraftContext();
+
+    expect(context.pageId).toBe('home');
+    expect(context.path).toBe('/');
+    expect(service.activeDraftPageId()).toBe('home');
+  });
+
+  it('uses the configured notFoundPageId when the current route is not mapped in site-config', async () => {
+    const { service, loadPageConfig, loadComponents } = configure(
+      'https://test.zoolandingpage.com.mx/no-existe?draftDomain=pamelabetancourt.com',
+      {
+        version: 1,
+        domain: 'pamelabetancourt.com',
+        defaultPageId: 'home',
+        notFoundPageId: 'not-found',
+        routes: [
+          { path: '/', pageId: 'home' },
+          { path: '/servicios', pageId: 'servicios' },
+          { path: '/404', pageId: 'not-found' },
+        ],
+      },
+    );
+
+    const context = await service.resolveActiveDraftContext();
+
+    expect(context.pageId).toBe('not-found');
+    expect(context.path).toBe('/no-existe');
+    expect(context.route?.path).toBe('/404');
+    expect(service.activeDraftPageId()).toBe('not-found');
+    expect(loadPageConfig).toHaveBeenCalledWith('pamelabetancourt.com', 'not-found');
+    expect(loadComponents).toHaveBeenCalledWith('pamelabetancourt.com', 'not-found');
+  });
+
+  it('uses the /404 route as the draft not-found page when notFoundPageId is omitted', async () => {
     const { service } = configure(
       'https://test.zoolandingpage.com.mx/no-existe?draftDomain=pamelabetancourt.com',
       {
@@ -223,15 +322,55 @@ describe('DraftRuntimeService', () => {
         routes: [
           { path: '/', pageId: 'home' },
           { path: '/servicios', pageId: 'servicios' },
+          { path: '/404', pageId: 'not-found' },
         ],
       },
     );
 
     const context = await service.resolveActiveDraftContext();
 
-    expect(context.pageId).toBe('home');
+    expect(context.pageId).toBe('not-found');
     expect(context.path).toBe('/no-existe');
-    expect(service.activeDraftPageId()).toBe('home');
+    expect(service.activeDraftPageId()).toBe('not-found');
+  });
+
+  it('falls back to the canonical Zoolanding 404 when the draft cannot resolve a valid not-found page', async () => {
+    const { service } = configure(
+      'https://test.zoolandingpage.com.mx/no-existe?draftDomain=missing404.example.com',
+      (domain: string) => {
+        if (domain === 'missing404.example.com') {
+          return {
+            version: 1,
+            domain,
+            defaultPageId: 'home',
+            routes: [
+              { path: '/', pageId: 'home' },
+            ],
+          };
+        }
+
+        if (domain === 'zoolandingpage.com.mx') {
+          return {
+            version: 1,
+            domain,
+            defaultPageId: 'default',
+            notFoundPageId: 'not-found',
+            routes: [
+              { path: '/', pageId: 'default' },
+              { path: '/404', pageId: 'not-found' },
+            ],
+          };
+        }
+
+        return null;
+      },
+    );
+
+    const context = await service.resolveActiveDraftContext();
+
+    expect(context.domain).toBe('zoolandingpage.com.mx');
+    expect(context.pageId).toBe('not-found');
+    expect(context.path).toBe('/no-existe');
   });
 
   it('ignores cross-draft domain query params on branded production hosts', async () => {

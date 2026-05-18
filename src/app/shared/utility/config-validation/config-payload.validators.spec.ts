@@ -166,6 +166,27 @@ describe('config-payload.validators', () => {
         expect(isDraftSiteConfigPayload(valid)).toBeTrue();
     });
 
+    it('accepts configurable draft not-found page ids in site-config payloads', () => {
+        const valid = {
+            version: 1,
+            domain: TEST_DOMAIN,
+            defaultPageId: 'default',
+            notFoundPageId: 'not-found',
+            routes: [
+                { path: '/', pageId: 'default' },
+                { path: '/404', pageId: 'not-found' },
+            ],
+            site: minimalSiteConfig(),
+        };
+        const invalid = {
+            ...valid,
+            notFoundPageId: 404,
+        };
+
+        expect(isDraftSiteConfigPayload(valid)).toBeTrue();
+        expect(isDraftSiteConfigPayload(invalid)).toBeFalse();
+    });
+
     it('accepts runtime data sources and api actions in site-config payloads', () => {
         const valid = {
             version: 1,

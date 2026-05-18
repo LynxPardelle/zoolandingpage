@@ -448,6 +448,149 @@ test('built SSR server hides local-only draft folders from registry and static s
   assert.match(sitemapXml, /<loc>https:\/\/fixture\.example\.com\/<\/loc>/);
 });
 
+test('built SSR server resolves configurable 404 runtime bundles and excludes 404 routes from sitemap', async t => {
+  assert.equal(
+    existsSync(builtServerPath),
+    true,
+    'Built SSR server not found. Run this test through `npm run test:draft-context` or build first.'
+  );
+
+  const workspaceRoot = await mkdtemp(path.join(tmpdir(), 'zoolanding-404-runtime-'));
+  const draftsRoot = path.join(workspaceRoot, 'drafts');
+
+  const writeDraftPage = async (domain, pageId, text) => {
+    const domainRoot = path.join(draftsRoot, domain);
+    await writeJson(path.join(domainRoot, pageId, 'page-config.json'), {
+      version: 1,
+      domain,
+      pageId,
+      rootIds: ['main'],
+      modalRootIds: [],
+    });
+    await writeJson(path.join(domainRoot, pageId, 'components.json'), {
+      version: 1,
+      domain,
+      pageId,
+      components: [
+        {
+          id: 'main',
+          type: 'text',
+          config: {
+            tag: 'main',
+            text,
+          },
+        },
+      ],
+    });
+  };
+
+  await writeJson(path.join(draftsRoot, 'fixture.example.com', 'site-config.json'), {
+    version: 1,
+    domain: 'fixture.example.com',
+    defaultPageId: 'default',
+    notFoundPageId: 'not-found',
+    routes: [
+      { path: '/', pageId: 'default' },
+      { path: '/404', pageId: 'not-found' },
+    ],
+    site: {
+      appIdentity: { identifier: 'fixture', name: 'Fixture Example' },
+      theme: { defaultMode: 'light', palettes: {} },
+      i18n: { defaultLanguage: 'en', supportedLanguages: [{ code: 'en', label: 'EN' }] },
+      seo: { canonicalOrigin: 'https://fixture.example.com' },
+    },
+  });
+  await writeDraftPage('fixture.example.com', 'default', 'Fixture home');
+  await writeDraftPage('fixture.example.com', 'not-found', 'Fixture custom 404');
+
+  await writeJson(path.join(draftsRoot, 'zoolandingpage.com.mx', 'site-config.json'), {
+    version: 1,
+    domain: 'zoolandingpage.com.mx',
+    defaultPageId: 'default',
+    notFoundPageId: 'not-found',
+    routes: [
+      { path: '/', pageId: 'default' },
+      { path: '/404', pageId: 'not-found' },
+    ],
+    site: {
+      appIdentity: { identifier: 'zoolandingpage', name: 'ZoolandingPage' },
+      theme: { defaultMode: 'light', palettes: {} },
+      i18n: { defaultLanguage: 'en', supportedLanguages: [{ code: 'en', label: 'EN' }] },
+      seo: { canonicalOrigin: 'https://zoolandingpage.com.mx' },
+    },
+  });
+  await writeDraftPage('zoolandingpage.com.mx', 'not-found', 'Canonical 404');
+
+  const port = await getFreePort();
+  const child = spawn(process.execPath, [builtServerPath], {
+    cwd: workspaceRoot,
+    env: {
+      ...process.env,
+      PORT: String(port),
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+    windowsHide: true,
+  });
+
+  let serverOutput = '';
+  child.stdout.on('data', chunk => {
+    serverOutput += chunk.toString();
+  });
+  child.stderr.on('data', chunk => {
+    serverOutput += chunk.toString();
+  });
+
+  t.after(async () => {
+    await stopServer(child);
+    await rm(workspaceRoot, { recursive: true, force: true });
+  });
+
+  await waitForServer(`http://127.0.0.1:${port}/api/debug/drafts`);
+
+  const homeDocumentResponse = await fetch(`http://127.0.0.1:${port}/?draftDomain=fixture.example.com`);
+  assert.equal(homeDocumentResponse.status, 200, serverOutput);
+
+  const missingDocumentResponse = await fetch(`http://127.0.0.1:${port}/missing?draftDomain=fixture.example.com`);
+  assert.equal(missingDocumentResponse.status, 404, serverOutput);
+
+  const homeResponse = await fetch(`http://127.0.0.1:${port}/runtime-bundle?domain=fixture.example.com&path=/`);
+  assert.equal(homeResponse.status, 200, serverOutput);
+  const homePayload = await homeResponse.json();
+  assert.equal(homePayload.pageId, 'default');
+  assert.equal(homePayload.metadata.statusCode, 200);
+  assert.equal(homePayload.metadata.notFound, false);
+
+  const missingResponse = await fetch(`http://127.0.0.1:${port}/runtime-bundle?domain=fixture.example.com&path=/missing`);
+  assert.equal(missingResponse.status, 200, serverOutput);
+  const missingPayload = await missingResponse.json();
+  assert.equal(missingPayload.domain, 'fixture.example.com');
+  assert.equal(missingPayload.pageId, 'not-found');
+  assert.equal(missingPayload.route.path, '/404');
+  assert.equal(missingPayload.metadata.resolvedPath, '/missing');
+  assert.equal(missingPayload.metadata.statusCode, 404);
+  assert.equal(missingPayload.metadata.notFound, true);
+
+  const noConfigResponse = await fetch(`http://127.0.0.1:${port}/runtime-bundle?domain=no-config.example.com&path=/missing`);
+  assert.equal(noConfigResponse.status, 200, serverOutput);
+  const noConfigPayload = await noConfigResponse.json();
+  assert.equal(noConfigPayload.domain, 'zoolandingpage.com.mx');
+  assert.equal(noConfigPayload.pageId, 'not-found');
+  assert.equal(noConfigPayload.metadata.loadDomain, 'zoolandingpage.com.mx');
+  assert.equal(noConfigPayload.metadata.fallbackFromDomain, 'no-config.example.com');
+  assert.equal(noConfigPayload.metadata.statusCode, 404);
+
+  const sitemapResponse = await fetch(`http://127.0.0.1:${port}/sitemap.xml`, {
+    headers: {
+      'x-forwarded-host': 'fixture.example.com',
+      'x-forwarded-proto': 'https',
+    },
+  });
+  assert.equal(sitemapResponse.status, 200, serverOutput);
+  const sitemapXml = await sitemapResponse.text();
+  assert.match(sitemapXml, /<loc>https:\/\/fixture\.example\.com\/<\/loc>/);
+  assert.doesNotMatch(sitemapXml, /\/404<\/loc>/);
+});
+
 test('built SSR server can derive sitemap routes from the runtime bundle when local drafts are missing', async t => {
   assert.equal(
     existsSync(builtServerPath),

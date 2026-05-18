@@ -2,7 +2,7 @@ import { environment } from '@/environments/environment';
 import { isPlatformBrowser } from '@angular/common';
 import { computed, DestroyRef, inject, Injectable, NgZone, PLATFORM_ID, REQUEST, signal } from '@angular/core';
 import { navigateInCurrentWindow } from '../utility/navigation/browser-navigation.utility';
-import type { TDraftSiteConfigPayload, TDraftSiteRouteEntry } from '../types/config-payloads.types';
+import type { TComponentsPayload, TDraftSiteConfigPayload, TDraftSiteRouteEntry, TPageConfigPayload } from '../types/config-payloads.types';
 import { ConfigSourceService } from './config-source.service';
 import { ConfigStoreService } from './config-store.service';
 import { DomainResolverService } from './domain-resolver.service';
@@ -12,6 +12,7 @@ import { RuntimeConfigService } from './runtime-config.service';
 export const DRAFT_RUNTIME_STICKY_QUERY_PARAMS = ['draftDomain', 'debugWorkspace', 'lang'] as const;
 const INTERNAL_DEBUG_DRAFT_DOMAIN = '_debug';
 const INTERNAL_DEBUG_DRAFT_PAGE_ID = 'debug-workspace';
+const CANONICAL_NOT_FOUND_DOMAIN = 'zoolandingpage.com.mx';
 
 export type TDraftOption = TDraftRegistryEntry & {
     readonly key: string;
@@ -24,6 +25,12 @@ export type TResolvedDraftContext = {
     readonly path: string;
     readonly route: TDraftSiteRouteEntry | null;
     readonly explicitPageId: boolean;
+    readonly notFound?: boolean;
+};
+
+type TNotFoundResolution = {
+    readonly context: TResolvedDraftContext;
+    readonly siteConfig: TDraftSiteConfigPayload | null;
 };
 
 @Injectable({ providedIn: 'root' })
@@ -190,8 +197,20 @@ export class DraftRuntimeService {
         const domain = this.activeDraftDomain();
         const explicitPageId = this.hasExplicitDraftPageId();
         const path = this.resolvePathname();
+        if (!domain) {
+            const emptyContext = {
+                domain: '',
+                pageId: '',
+                path,
+                route: null,
+                explicitPageId: false,
+            } satisfies TResolvedDraftContext;
+            this.configStore.setSiteConfig(null);
+            this.applyResolvedContext(emptyContext);
+            return emptyContext;
+        }
+
         const siteConfig = await this.loadSiteConfig(domain);
-        this.configStore.setSiteConfig(siteConfig);
 
         if (explicitPageId) {
             const explicitContext = {
@@ -201,19 +220,57 @@ export class DraftRuntimeService {
                 route: null,
                 explicitPageId: true,
             } satisfies TResolvedDraftContext;
+            this.configStore.setSiteConfig(siteConfig);
             this.applyResolvedContext(explicitContext);
             return explicitContext;
         }
 
         const route = this.matchRoute(siteConfig, path);
+        if (route) {
+            const resolvedContext = {
+                domain,
+                pageId: route.pageId,
+                path,
+                route,
+                explicitPageId: false,
+            } satisfies TResolvedDraftContext;
+
+            this.configStore.setSiteConfig(siteConfig);
+            this.applyResolvedContext(resolvedContext);
+            return resolvedContext;
+        }
+
+        if (siteConfig && this.normalizePath(path) === '/') {
+            const resolvedContext = {
+                domain,
+                pageId: siteConfig.defaultPageId || this.requestedDraftPageId(),
+                path,
+                route: null,
+                explicitPageId: false,
+            } satisfies TResolvedDraftContext;
+
+            this.configStore.setSiteConfig(siteConfig);
+            this.applyResolvedContext(resolvedContext);
+            return resolvedContext;
+        }
+
+        const notFoundResolution = await this.resolveNotFoundContext(domain, path, siteConfig)
+            ?? await this.resolveCanonicalNotFoundContext(path);
+        if (notFoundResolution) {
+            this.configStore.setSiteConfig(notFoundResolution.siteConfig);
+            this.applyResolvedContext(notFoundResolution.context);
+            return notFoundResolution.context;
+        }
+
         const resolvedContext = {
             domain,
-            pageId: route?.pageId || siteConfig?.defaultPageId || this.requestedDraftPageId(),
+            pageId: '',
             path,
-            route,
+            route: null,
             explicitPageId: false,
         } satisfies TResolvedDraftContext;
 
+        this.configStore.setSiteConfig(siteConfig);
         this.applyResolvedContext(resolvedContext);
         return resolvedContext;
     }
@@ -417,6 +474,81 @@ export class DraftRuntimeService {
 
         const normalizedPath = this.normalizePath(path);
         return siteConfig.routes.find((entry) => this.normalizePath(entry.path) === normalizedPath) ?? null;
+    }
+
+    private matchRouteByPageId(siteConfig: TDraftSiteConfigPayload | null, pageId: string): TDraftSiteRouteEntry | null {
+        const normalizedPageId = String(pageId ?? '').trim();
+        if (!normalizedPageId || !siteConfig?.routes?.length) {
+            return null;
+        }
+
+        return siteConfig.routes.find((entry) => String(entry.pageId ?? '').trim() === normalizedPageId) ?? null;
+    }
+
+    private resolveNotFoundPageId(siteConfig: TDraftSiteConfigPayload | null): string {
+        const configured = String(siteConfig?.notFoundPageId ?? '').trim();
+        if (configured) {
+            return configured;
+        }
+
+        return String(this.matchRoute(siteConfig, '/404')?.pageId ?? '').trim();
+    }
+
+    private hasExpectedPagePayload(domain: string, pageId: string, pageConfig: TPageConfigPayload | null, components: TComponentsPayload | null): boolean {
+        const normalizedDomain = String(domain ?? '').trim();
+        const normalizedPageId = String(pageId ?? '').trim();
+        if (!normalizedDomain || !normalizedPageId) {
+            return false;
+        }
+
+        return String(pageConfig?.pageId ?? '').trim() === normalizedPageId
+            && Array.isArray(pageConfig?.rootIds)
+            && pageConfig.rootIds.length > 0
+            && String(components?.pageId ?? '').trim() === normalizedPageId
+            && Array.isArray(components?.components)
+            && components.components.length > 0;
+    }
+
+    private async canRenderPage(domain: string, pageId: string): Promise<boolean> {
+        try {
+            const [pageConfig, components] = await Promise.all([
+                this.configSource.loadPageConfig(domain, pageId),
+                this.configSource.loadComponents(domain, pageId),
+            ]);
+
+            return this.hasExpectedPagePayload(domain, pageId, pageConfig, components);
+        } catch {
+            return false;
+        }
+    }
+
+    private async resolveNotFoundContext(
+        domain: string,
+        path: string,
+        siteConfig: TDraftSiteConfigPayload | null,
+    ): Promise<TNotFoundResolution | null> {
+        const normalizedDomain = String(domain ?? '').trim();
+        const pageId = this.resolveNotFoundPageId(siteConfig);
+        if (!normalizedDomain || !pageId || !(await this.canRenderPage(normalizedDomain, pageId))) {
+            return null;
+        }
+
+        return {
+            siteConfig,
+            context: {
+                domain: normalizedDomain,
+                pageId,
+                path,
+                route: this.matchRouteByPageId(siteConfig, pageId),
+                explicitPageId: false,
+                notFound: true,
+            },
+        };
+    }
+
+    private async resolveCanonicalNotFoundContext(path: string): Promise<TNotFoundResolution | null> {
+        const siteConfig = await this.loadSiteConfig(CANONICAL_NOT_FOUND_DOMAIN);
+        return this.resolveNotFoundContext(CANONICAL_NOT_FOUND_DOMAIN, path, siteConfig);
     }
 
     private applyResolvedContext(context: TResolvedDraftContext): void {

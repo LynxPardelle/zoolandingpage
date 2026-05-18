@@ -497,6 +497,7 @@
     "version": { "type": "integer", "minimum": 1 },
     "domain": { "type": "string", "minLength": 1 },
     "defaultPageId": { "type": "string" },
+    "notFoundPageId": { "type": "string" },
     "routes": {
       "type": "array",
       "items": { "$ref": "#/definitions/siteRouteEntry" }

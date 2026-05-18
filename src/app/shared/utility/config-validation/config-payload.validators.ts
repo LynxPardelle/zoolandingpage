@@ -1466,6 +1466,7 @@ export const isDraftSiteConfigPayload = (value: unknown): value is TDraftSiteCon
     if (typeof value['domain'] !== 'string') return false;
     if (value['aliases'] !== undefined && !isStringArray(value['aliases'])) return false;
     if (value['defaultPageId'] !== undefined && typeof value['defaultPageId'] !== 'string') return false;
+    if (value['notFoundPageId'] !== undefined && typeof value['notFoundPageId'] !== 'string') return false;
     if (!Array.isArray(value['routes']) || !value['routes'].every(isDraftSiteRouteEntry)) return false;
     if (value['lifecycle'] !== undefined && !isSiteLifecycleConfig(value['lifecycle'])) return false;
     if (value['runtime'] !== undefined && !isDraftSiteRuntimeConfig(value['runtime'])) return false;
@@ -1481,6 +1482,7 @@ export const isConfigRegistryPayload = (value: unknown): value is TConfigRegistr
     if (typeof value['domain'] !== 'string') return false;
     if (value['aliases'] !== undefined && !isStringArray(value['aliases'])) return false;
     if (value['defaultPageId'] !== undefined && typeof value['defaultPageId'] !== 'string') return false;
+    if (value['notFoundPageId'] !== undefined && typeof value['notFoundPageId'] !== 'string') return false;
     if (!Array.isArray(value['routes']) || !value['routes'].every(isDraftSiteRouteEntry)) return false;
     if (!isSiteLifecycleConfig(value['lifecycle'])) return false;
     if (value['draft'] !== undefined && !isConfigVersionPointer(value['draft'])) return false;
