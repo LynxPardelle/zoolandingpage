@@ -102,7 +102,7 @@ Use this checklist when creating a new draft repository after the secure release
 - `node tools/draft-public-safety-audit.mjs --history=true` passes for the draft repo before public visibility, PR, and merge.
 - Direct push to `test` and `main` is blocked when native GitHub branch protection is available.
 - If native branch protection is blocked by plan, direct-push deploys fail in the workflow guard and the limitation is documented.
-- Public draft repos have `test` and `main` protected with required `guard` status and one approving review.
+- Public draft repos have `test` and `main` protected with required `guard` status and zero required approvals so the repository owner can merge after checks pass.
 - PR from an invalid source branch is blocked by required checks.
 - `dev` changes do not deploy.
 - Clean target repos are pulled before work starts; dirty repos are reported before changes.

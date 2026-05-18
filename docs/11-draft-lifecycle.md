@@ -58,7 +58,7 @@ npm run drafts:repo-bootstrap -- --repo=../draft-example-com --domain=example.co
 
 Every new draft repo must also be added to [drafts-registry.json](./drafts-registry.json) with its canonical domain, repo name, GitHub clone URL, and sibling local path.
 
-As of 2026-05-17 CT, the authoring API is IAM-protected, runtime-read supports environment-aware published pointers, OIDC roles are configured per draft repo/environment, and the current public `draft-*` repos have GitHub Environments, deployment workflows, and native GitHub branch protection on `test` and `main`. GitHub Actions deploys use the IAM-protected Lambda Function URL. Protected branches require the `guard` status and one approving review; deployment workflows also reject push-triggered deploys unless `test` receives a merge commit from `dev` or `main` receives a merge commit from `test`.
+As of 2026-05-17 CT, the authoring API is IAM-protected, runtime-read supports environment-aware published pointers, OIDC roles are configured per draft repo/environment, and the current public `draft-*` repos have GitHub Environments, deployment workflows, and native GitHub branch protection on `test` and `main`. GitHub Actions deploys use the IAM-protected Lambda Function URL. Protected branches require the `guard` status and zero approvals so the repository owner can merge after checks pass; deployment workflows also reject push-triggered deploys unless `test` receives a merge commit from `dev` or `main` receives a merge commit from `test`.
 
 ## Local draft structure
 

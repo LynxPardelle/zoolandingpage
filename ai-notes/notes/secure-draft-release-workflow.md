@@ -23,7 +23,7 @@ The promotion path is:
 1. `dev` -> pull request -> `test` -> deploy test after merge.
 2. `test` -> pull request -> `main` -> deploy production after merge.
 
-`dev` is the only intended unprotected branch and does not deploy. `test` and `main` deploy only after changes land and are protected with the required `guard` status plus one approving review. Workflows also verify merge-source history before deployment.
+`dev` is the only intended unprotected branch and does not deploy. `test` and `main` deploy only after changes land and are protected with the required `guard` status and zero required approvals so the repository owner can merge their own PRs after checks pass. Workflows also verify merge-source history before deployment.
 
 ## OIDC And IAM Rule
 
@@ -90,4 +90,4 @@ When a new draft repo is created, copy this pull rule into that repo's `Codex.md
 
 As of 2026-05-17 CT, the authoring API requires IAM-signed requests, runtime-read supports environment-aware published pointers, OIDC roles exist for the current draft repos, and the current public `draft-*` repos have `dev`, `test`, and `main` branches plus GitHub Environment variables. GitHub Actions were bootstrapped with `[skip ci]`; no initial deploy ran during setup. A manual pilot deploy for `draft-zoolandingpage-com-mx` test passed through GitHub OIDC and published `test.zoolandingpage.com.mx` to the test environment without changing the production pointer.
 
-After public-safety audit, the current draft repos were made public and native GitHub branch protection was applied on `test` and `main` with required `guard` status checks and one approving review.
+After public-safety audit, the current draft repos were made public and native GitHub branch protection was applied on `test` and `main` with required `guard` status checks and zero required approvals.

@@ -251,9 +251,10 @@ async function protectBranch(repo, branch, requiredContexts, apply) {
     },
     enforce_admins: true,
     required_pull_request_reviews: {
-      required_approving_review_count: 1,
+      required_approving_review_count: 0,
       dismiss_stale_reviews: false,
       require_code_owner_reviews: false,
+      require_last_push_approval: false,
     },
     restrictions: null,
     required_linear_history: false,
