@@ -1,0 +1,29 @@
+name: Guard PR source branch
+
+on:
+  pull_request:
+    branches:
+      - test
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce promotion graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="${{ github.base_ref }}"
+          head="${{ github.head_ref }}"
+          if [[ "$base" == "test" && "$head" != "dev" ]]; then
+            echo "PRs into test must come from dev. Got: $head"
+            exit 1
+          fi
+          if [[ "$base" == "main" && "$head" != "test" ]]; then
+            echo "PRs into main must come from test. Got: $head"
+            exit 1
+          fi

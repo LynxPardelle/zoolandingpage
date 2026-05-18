@@ -415,6 +415,21 @@ const isDraftFeatureRuntimeConfig = (value: unknown): value is TDraftFeatureRunt
     return true;
 };
 
+const isDraftNavigationScrollRestorationConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (value['mode'] !== undefined && !['preserve', 'top', 'position'].includes(String(value['mode']))) return false;
+    if (value['behavior'] !== undefined && !['auto', 'smooth', 'instant'].includes(String(value['behavior']))) return false;
+    if (value['top'] !== undefined && (typeof value['top'] !== 'number' || !Number.isFinite(value['top']))) return false;
+    if (value['left'] !== undefined && (typeof value['left'] !== 'number' || !Number.isFinite(value['left']))) return false;
+    return true;
+};
+
+const isDraftNavigationRuntimeConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (value['scrollRestoration'] !== undefined && !isDraftNavigationScrollRestorationConfig(value['scrollRestoration'])) return false;
+    return true;
+};
+
 const isDraftSiteSeoConfig = (value: unknown): value is TDraftSiteSeoConfig => {
     if (!isRecord(value)) return false;
     if (value['siteName'] !== undefined && typeof value['siteName'] !== 'string') return false;
@@ -593,6 +608,7 @@ const isDraftSiteRuntimeConfig = (value: unknown): value is TDraftSiteRuntimeCon
     if (value['localStorage'] !== undefined && !isDraftLocalStorageRuntimeConfig(value['localStorage'])) return false;
     if (value['features'] !== undefined && !isDraftFeatureRuntimeConfig(value['features'])) return false;
     if (value['analytics'] !== undefined && !isDraftAnalyticsRuntimeConfig(value['analytics'])) return false;
+    if (value['navigation'] !== undefined && !isDraftNavigationRuntimeConfig(value['navigation'])) return false;
     if (value['dataSources'] !== undefined
         && (!Array.isArray(value['dataSources']) || !value['dataSources'].every(isRuntimeDataSourceConfig))) return false;
     if (value['apiActions'] !== undefined

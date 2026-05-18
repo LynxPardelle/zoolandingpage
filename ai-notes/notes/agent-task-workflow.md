@@ -25,8 +25,10 @@ Last Reviewed: 2026-04-20 (Central Time)
 ## During Work
 
 - Keep durable reusable guidance in `ai-notes/`.
+- Keep chronological app and draft history in `changelog/app/` or `changelog/drafts/`.
 - Keep draft-specific history or investigation in `drafts/{domain}/ai_notes/`, `drafts/{domain}/findings/`, or `drafts/{domain}/errors-reports/`.
 - Keep repo-level raw, temporary, or operational output untracked if you need it locally; do not make it part of the committed canonical tree.
+- Put all process logs under `logs/`; do not leave `*.log` files in the repo root, `Output/`, `reports/`, `devonly/`, or draft folders.
 - If a new reusable rule appears, update the appropriate committed note instead of letting it live only in chat history.
 - Prefer reusable repo-local skills under `.github/skills/` before relying on globally installed copies of the same workflow.
 - Keep shared or community prompts in `.github/prompts/` of `zoolandingpage` when they apply to more than one Zoolanding repo.
@@ -39,6 +41,7 @@ Last Reviewed: 2026-04-20 (Central Time)
 
 - Distill any reusable lesson from local draft notes into a committed note.
 - If no suitable note exists, create one from a template.
+- Add a changelog entry only when the app or a draft needs retained chronological history for the completed pass.
 - Audit the work, fix findings, and rerun the audit at least three times before declaring it correct.
 - For draft-affecting tasks, finish with browser QA on every affected draft route in both desktop and mobile viewports.
 - Do a security scrub before saving the note.
