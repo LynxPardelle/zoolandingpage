@@ -26,6 +26,40 @@ Before starting a new draft or major refinement pass, read:
 
 After durable work, update the canonical notes so future agents do not have to rediscover the same rules.
 
+## Secure Repo Release Workflow
+
+The secure release workflow moves draft publishing into per-draft GitHub repositories:
+
+1. Work on `dev`.
+2. Merge `dev -> test` by pull request.
+3. Deploy test only after the merge lands on `test`.
+4. Merge `test -> main` by pull request.
+5. Deploy production only after the merge lands on `main`.
+
+Before work starts, run the draft repo preflight. It reads [drafts-registry.json](./drafts-registry.json), clones any missing registered `draft-*` repo into its sibling local path, and runs `git pull --ff-only` in every clean target repo, including this hub repo and any affected local `draft-*` repos. If a target repo is dirty, report it instead of pulling over local changes.
+
+Use the hub preflight helper:
+
+```bash
+npm run drafts:repo-preflight
+```
+
+Use the direct Node form when passing flags:
+
+```bash
+node tools/draft-repo-preflight.mjs --pull=true
+```
+
+New draft repos should be bootstrapped from the hub templates:
+
+```bash
+npm run drafts:repo-bootstrap -- --repo=../draft-example-com --domain=example.com --authoring-endpoint=https://o4upx3fsz3d3dwfwz4lbnefjze0eetyn.lambda-url.us-east-1.on.aws/
+```
+
+Every new draft repo must also be added to [drafts-registry.json](./drafts-registry.json) with its canonical domain, repo name, GitHub clone URL, and sibling local path.
+
+As of 2026-05-17 CT, the authoring API is IAM-protected, runtime-read supports environment-aware published pointers, OIDC roles are configured per draft repo/environment, and the current public `draft-*` repos have GitHub Environments, deployment workflows, and native GitHub branch protection on `test` and `main`. GitHub Actions deploys use the IAM-protected Lambda Function URL. Protected branches require the `guard` status and zero approvals so the repository owner can merge after checks pass; deployment workflows also reject push-triggered deploys unless `test` receives a merge commit from `dev` or `main` receives a merge commit from `test`.
+
 ## Local draft structure
 
 ```text
@@ -144,7 +178,23 @@ node tools/config-draft-sync.mjs pack --domain=zoolandingpage.com.mx --output=.t
 node tools/config-draft-sync.mjs push --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --updated-by="Your Name"
 ```
 
-Use this after local QA is correct and you want the backend draft state to match your working copy.
+This unsigned local command is legacy documentation. The deployed authoring API now requires IAM-signed requests, so normal draft publishing should happen through the per-draft GitHub Actions workflow after merge.
+
+## Check uploaded draft status
+
+Before pushing/publishing, or after publishing when you need to verify what is already in the S3-backed production authoring state, run:
+
+```bash
+node tools/draft-upload-status.mjs --all --stage=published
+```
+
+The shortcut is:
+
+```bash
+npm run drafts:upload-status
+```
+
+Use `--domain=example.com` to limit the check, `--include-file-details=true` to list changed paths, and `--fail-on-pending=true` in automation when any draft that differs from production should fail the job.
 
 ## Create a new site in the authoring API
 
@@ -162,7 +212,7 @@ That command uploads the local file tree as a new authoring draft. It does not r
 node tools/config-draft-sync.mjs publish --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --updated-by="Your Name"
 ```
 
-Publishing changes the authoring state only insofar as it promotes the current draft to the published version pointer. It does not guarantee that live frontend caches or deployments have already refreshed.
+This unsigned local command is legacy documentation. The deployed authoring API now requires IAM-signed requests, and normal publish should happen through the per-draft GitHub Actions workflow. Publishing changes the authoring state only insofar as it promotes the current draft to the published version pointer. It does not guarantee that live frontend caches or deployments have already refreshed.
 
 If the custom-domain authoring endpoint resets the connection or stalls, the CLI now retries automatically through the raw API Gateway endpoint for the standard Zoolanding authoring URL. Use `--fallback-endpoint=https://...` if you need to force a different retry target, `--retry-attempts=3` to allow additional attempts on retryable failures, `--retry-delay-ms=250` to control the pause between attempts, or point directly at the raw endpoint documented in [06-deployment.md](06-deployment.md).
 
@@ -170,14 +220,16 @@ If the custom-domain authoring endpoint resets the connection or stalls, the CLI
 
 ### Update an existing site
 
-1. Pull the latest draft.
+1. Run `node tools/draft-repo-preflight.mjs --pull=true` so every registered draft repo exists locally and clean worktrees are updated with `git pull --ff-only`.
 2. Read the relevant committed notes and inspect the local draft `ai_notes/`, `findings/`, and `errors-reports/` folders when they exist.
 3. Edit local files.
 4. Preview locally.
-5. Push the local draft.
-6. Publish it.
-7. Validate the runtime bundle and the live site separately.
-8. Record durable learnings in the canonical AI notes.
+5. Commit to the draft repo `dev` branch.
+6. Merge `dev -> test` by PR; the `test` branch deploys the test environment after merge.
+7. Verify every configured test alias.
+8. Merge `test -> main` by PR; the `main` branch deploys production after merge.
+9. Validate the runtime bundle and the live site separately.
+10. Record durable learnings in the canonical AI notes.
 
 ### Create a new site
 
@@ -187,8 +239,9 @@ If the custom-domain authoring endpoint resets the connection or stalls, the CLI
 4. Upload any required public assets.
 5. Create the site in the authoring API.
 6. Publish it.
-7. Validate the runtime bundle and then validate the live site.
-8. Distill reusable guidance from the new draft into `ai-notes/`.
+7. Run upload status against `--stage=published`.
+8. Validate the runtime bundle and then validate the live site.
+9. Distill reusable guidance from the new draft into `ai-notes/`.
 
 ## What to check when a published change is not visible
 
@@ -196,9 +249,10 @@ Use this order:
 
 1. check the local draft file you edited
 2. check the authoring draft with `getSite` or `pull`
-3. check that the draft was published
-4. check the runtime bundle response for the domain
-5. check frontend deployment and cache behavior
+3. run `tools/draft-upload-status.mjs` against `--stage=published`
+4. check that the draft was published
+5. check the runtime bundle response for the domain
+6. check frontend deployment and cache behavior
 
 If the runtime bundle is correct and the live page is still wrong, you are usually looking at a frontend deployment or cache problem, not a missing publish.
 

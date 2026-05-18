@@ -227,6 +227,12 @@ describe('config-payload.validators', () => {
                 },
             },
             runtime: {
+                navigation: {
+                    scrollRestoration: {
+                        mode: 'top',
+                        behavior: 'auto',
+                    },
+                },
                 dataSources: [
                     {
                         id: 'pokemon-list',
