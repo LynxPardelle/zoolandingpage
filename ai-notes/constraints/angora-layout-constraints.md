@@ -12,7 +12,7 @@ Source Of Truth:
 - Browser QA from the 2026-05-01 `ngx-angora-css@1.6.0` integration pass
 
 Confidence: Medium to high
-Last Reviewed: 2026-05-01 (Central Time)
+Last Reviewed: 2026-05-18 (Central Time)
 
 ## Preferred Authoring Pattern
 
@@ -28,6 +28,7 @@ Last Reviewed: 2026-05-01 (Central Time)
 - Registered combo class keys such as `btnBase` must trigger one full post-render `cssCreate()` scan. Reserve explicit `cssCreate([...])` calls for direct `ank-*` or abbreviation utilities that already contain a property/value shape.
 - Keep global critical CSS fallbacks for first-paint geometry that must be correct before hydration, especially mutually exclusive responsive display states.
 - Do not call both a rendered-class refresh and a full scheduled `cssCreate()` for the same DOM mutation. Prefer one explicit class-list pass after render.
+- For Angora utility values that represent CSS keywords with hyphens, use the escaped `MIN` form in authored classes. Example: use `ank-justifyContent-spaceMINbetween` for `justify-content: space-between`; `ank-justifyContent-spaceBetween` can normalize into an empty rule and leave computed `justify-content` as `normal`.
 
 ## Validation Caveats
 
