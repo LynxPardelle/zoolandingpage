@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, computed, ElementRef, input, ViewChild } from '@angular/core';
 import { composeDomId, resolveComponentRootDomId, resolveDynamicValue } from '../../utility/component-orchestrator.utility';
 import type {
   GenericMediaImageDecoding,
@@ -17,9 +17,10 @@ import type {
   styleUrl: './generic-media.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class GenericMedia {
+export class GenericMedia implements AfterViewInit {
   readonly config = input.required<TGenericMediaConfig>();
   readonly componentId = input<string | undefined>(undefined);
+  @ViewChild('imageElement') private imageElement?: ElementRef<HTMLImageElement>;
   private readonly maxImageRetryAttempts = 2;
   private readonly imageRetryState = new WeakMap<HTMLImageElement, {
     readonly baseSrc: string;
@@ -55,6 +56,10 @@ export class GenericMedia {
   ) ?? 'async');
   readonly sizes = computed(() => this.resolveOptionalString(this.config().sizes));
 
+  ngAfterViewInit(): void {
+    globalThis.setTimeout(() => this.retryHydratedBrokenImage(), 0);
+  }
+
   private resolveRequiredString(value: unknown): string {
     return String(resolveDynamicValue(value as never) ?? '');
   }
@@ -88,18 +93,33 @@ export class GenericMedia {
   }
 
   handleImageLoad(event: Event): void {
-    const image = event.currentTarget;
-    if (image instanceof HTMLImageElement) {
+    const image = this.asImageElement(event.currentTarget);
+    if (image) {
       this.imageRetryState.delete(image);
     }
   }
 
   handleImageError(event: Event): void {
-    const image = event.currentTarget;
-    if (!(image instanceof HTMLImageElement)) {
+    const image = this.asImageElement(event.currentTarget);
+    if (!image) {
       return;
     }
 
+    this.scheduleImageRetry(image);
+  }
+
+  private retryHydratedBrokenImage(): void {
+    const image = this.asImageElement(this.imageElement?.nativeElement);
+    if (!image || this.tag() !== 'image') {
+      return;
+    }
+
+    if (image.complete && image.naturalWidth === 0) {
+      this.scheduleImageRetry(image);
+    }
+  }
+
+  private scheduleImageRetry(image: HTMLImageElement): void {
     const baseSrc = this.src();
     const state = this.imageRetryState.get(image);
     const currentAttempt = state?.baseSrc === baseSrc ? state.attempt : 0;
@@ -115,6 +135,14 @@ export class GenericMedia {
       }
       image.src = this.withImageRetryParam(baseSrc, nextAttempt);
     }, 250 * nextAttempt);
+  }
+
+  private asImageElement(value: unknown): HTMLImageElement | null {
+    if (typeof HTMLImageElement === 'undefined' || !(value instanceof HTMLImageElement)) {
+      return null;
+    }
+
+    return value;
   }
 
   private withImageRetryParam(src: string, attempt: number): string {
