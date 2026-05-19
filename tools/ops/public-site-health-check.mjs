@@ -29,6 +29,8 @@ function parseArgs(argv) {
       DEFAULT_RUNTIME_FALLBACK_BASE,
     skipHealth: truthy(env.ZOOLANDING_SKIP_HEALTH ?? env.npm_config_skip_health),
     failOnAaaa: truthy(env.ZOOLANDING_FAIL_ON_AAAA ?? env.npm_config_fail_on_aaaa),
+    retryAttempts: Number(env.ZOOLANDING_HEALTH_RETRY_ATTEMPTS ?? env.npm_config_retry_attempts ?? 8),
+    retryDelayMs: Number(env.ZOOLANDING_HEALTH_RETRY_DELAY_MS ?? env.npm_config_retry_delay_ms ?? 500),
     expectedIpv4: env.ZOOLANDING_EXPECTED_IPV4 ?? env.npm_config_expected_ipv4 ?? '',
     output: env.ZOOLANDING_HEALTH_OUTPUT ?? env.npm_config_output ?? '',
     markdown: truthy(env.ZOOLANDING_HEALTH_MARKDOWN ?? env.npm_config_markdown),
@@ -93,6 +95,28 @@ function parseArgs(argv) {
       continue;
     }
 
+    if (arg.startsWith('--retry-attempts=')) {
+      args.retryAttempts = Number(arg.slice('--retry-attempts='.length));
+      continue;
+    }
+
+    if (arg === '--retry-attempts' && next) {
+      args.retryAttempts = Number(next);
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith('--retry-delay-ms=')) {
+      args.retryDelayMs = Number(arg.slice('--retry-delay-ms='.length));
+      continue;
+    }
+
+    if (arg === '--retry-delay-ms' && next) {
+      args.retryDelayMs = Number(next);
+      index += 1;
+      continue;
+    }
+
     if (arg.startsWith('--output=')) {
       args.output = arg.slice('--output='.length);
       continue;
@@ -128,6 +152,14 @@ function parseArgs(argv) {
 
   if (args.hosts.length === 0) {
     throw new Error('--hosts must include at least one hostname');
+  }
+
+  if (!Number.isInteger(args.retryAttempts) || args.retryAttempts < 1) {
+    throw new Error('--retry-attempts must be an integer greater than or equal to 1');
+  }
+
+  if (!Number.isFinite(args.retryDelayMs) || args.retryDelayMs < 0) {
+    throw new Error('--retry-delay-ms must be a number greater than or equal to 0');
   }
 
   args.runtimeBaseUrl = args.runtimeBaseUrl.replace(/\/$/, '');
@@ -168,6 +200,45 @@ async function readText(response) {
   }
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableStatus(status) {
+  return status === 408 || status === 425 || status === 429 || (status >= 500 && status <= 599);
+}
+
+async function fetchTextWithRetries(url, options, fetchOptions = {}) {
+  const failures = [];
+
+  for (let attempt = 1; attempt <= options.retryAttempts; attempt += 1) {
+    try {
+      const response = await fetchWithTimeout(url, options.timeoutMs, fetchOptions);
+      const body = await readText(response);
+
+      if (!isRetryableStatus(response.status) || attempt === options.retryAttempts) {
+        return { response, body, attempts: attempt, failures };
+      }
+
+      failures.push(`attempt ${attempt}: HTTP ${response.status}`);
+    } catch (error) {
+      if (attempt === options.retryAttempts) {
+        error.attempts = attempt;
+        error.failures = failures;
+        throw error;
+      }
+
+      failures.push(`attempt ${attempt}: ${error.message}`);
+    }
+
+    if (options.retryDelayMs > 0) {
+      await sleep(options.retryDelayMs * attempt);
+    }
+  }
+
+  throw new Error(`Unable to fetch ${url}`);
+}
+
 async function checkDns(host, options) {
   const check = {
     name: `dns:${host}`,
@@ -205,7 +276,7 @@ async function checkDns(host, options) {
   return check;
 }
 
-async function checkPage(host, timeoutMs) {
+async function checkPage(host, options) {
   const url = `https://${host}/`;
   const check = {
     name: `page:${host}`,
@@ -216,11 +287,14 @@ async function checkPage(host, timeoutMs) {
   };
 
   try {
-    const response = await fetchWithTimeout(url, timeoutMs);
-    const body = await readText(response);
+    const { response, body, attempts, failures } = await fetchTextWithRetries(url, options);
     const title = body.match(/<title>(.*?)<\/title>/is)?.[1]?.trim() ?? '';
     const hasMain = /<main[\s>]/i.test(body);
 
+    check.details.attempts = attempts;
+    if (failures.length > 0) {
+      check.details.transientFailures = failures.join(' | ');
+    }
     check.details.status = response.status;
     check.details.title = title;
     check.details.hasMain = hasMain;
@@ -232,13 +306,17 @@ async function checkPage(host, timeoutMs) {
       check.details.reason = 'page did not return 2xx with title and main landmark';
     }
   } catch (error) {
+    check.details.attempts = error.attempts ?? options.retryAttempts;
+    if (Array.isArray(error.failures) && error.failures.length > 0) {
+      check.details.transientFailures = error.failures.join(' | ');
+    }
     check.details.reason = error.message;
   }
 
   return check;
 }
 
-async function checkHealth(host, timeoutMs) {
+async function checkHealth(host, options) {
   const url = `https://${host}/health`;
   const check = {
     name: `health:${host}`,
@@ -249,9 +327,13 @@ async function checkHealth(host, timeoutMs) {
   };
 
   try {
-    const response = await fetchWithTimeout(url, timeoutMs);
-    const body = (await readText(response)).trim();
+    const { response, body: rawBody, attempts, failures } = await fetchTextWithRetries(url, options);
+    const body = rawBody.trim();
 
+    check.details.attempts = attempts;
+    if (failures.length > 0) {
+      check.details.transientFailures = failures.join(' | ');
+    }
     check.details.status = response.status;
     check.details.body = body.slice(0, 120);
     check.ok = response.status === 200 && body === 'ok';
@@ -260,6 +342,10 @@ async function checkHealth(host, timeoutMs) {
       check.details.reason = 'health endpoint must return HTTP 200 and body "ok"';
     }
   } catch (error) {
+    check.details.attempts = error.attempts ?? options.retryAttempts;
+    if (Array.isArray(error.failures) && error.failures.length > 0) {
+      check.details.transientFailures = error.failures.join(' | ');
+    }
     check.details.reason = error.message;
   }
 
@@ -294,16 +380,30 @@ async function checkRuntimeBundle(host, options) {
     let source = 'primary';
 
     try {
-      response = await fetchWithTimeout(url, options.timeoutMs);
-      body = await readText(response);
+      const primary = await fetchTextWithRetries(url, options);
+      response = primary.response;
+      body = primary.body;
+      check.details.attempts = primary.attempts;
+      if (primary.failures.length > 0) {
+        check.details.transientFailures = primary.failures.join(' | ');
+      }
     } catch (error) {
       if (!fallbackUrl) {
         throw error;
       }
 
       check.details.primaryReason = error.message;
-      response = await fetchWithTimeout(fallbackUrl, options.timeoutMs);
-      body = await readText(response);
+      check.details.primaryAttempts = error.attempts ?? options.retryAttempts;
+      if (Array.isArray(error.failures) && error.failures.length > 0) {
+        check.details.primaryTransientFailures = error.failures.join(' | ');
+      }
+      const fallback = await fetchTextWithRetries(fallbackUrl, options);
+      response = fallback.response;
+      body = fallback.body;
+      check.details.attempts = fallback.attempts;
+      if (fallback.failures.length > 0) {
+        check.details.transientFailures = fallback.failures.join(' | ');
+      }
       source = 'fallback';
     }
 
@@ -330,6 +430,10 @@ async function checkRuntimeBundle(host, options) {
       check.details.bodyPrefix = body.slice(0, 200);
     }
   } catch (error) {
+    check.details.attempts = error.attempts ?? options.retryAttempts;
+    if (Array.isArray(error.failures) && error.failures.length > 0) {
+      check.details.transientFailures = error.failures.join(' | ');
+    }
     check.details.reason = error.message;
   }
 
@@ -385,10 +489,10 @@ async function main() {
 
   for (const host of options.hosts) {
     checks.push(await checkDns(host, options));
-    checks.push(await checkPage(host, options.timeoutMs));
+    checks.push(await checkPage(host, options));
 
     if (!options.skipHealth) {
-      checks.push(await checkHealth(host, options.timeoutMs));
+      checks.push(await checkHealth(host, options));
     }
 
     checks.push(await checkRuntimeBundle(host, options));
