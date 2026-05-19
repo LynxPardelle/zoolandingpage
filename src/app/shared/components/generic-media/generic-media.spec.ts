@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing';
 
 import { GenericMedia } from './generic-media';
 
@@ -108,6 +108,33 @@ describe('GenericMedia', () => {
 
     expect(fixture.nativeElement.querySelector('img')).toBeNull();
   });
+
+  it('retries failed image loads with a cache-busting retry parameter', fakeAsync(() => {
+    fixture.componentRef.setInput('config', {
+      id: 'reset-prone-image',
+      tag: 'image',
+      src: 'https://assets.example.test/domain/page/hero.svg',
+      alt: 'Reset prone image',
+    });
+
+    fixture.detectChanges();
+
+    const image: HTMLImageElement = fixture.nativeElement.querySelector('img');
+    image.dispatchEvent(new Event('error'));
+    tick(250);
+
+    expect(image.src).toContain('zlpImageRetry=1');
+
+    image.dispatchEvent(new Event('error'));
+    tick(500);
+
+    expect(image.src).toContain('zlpImageRetry=2');
+
+    image.dispatchEvent(new Event('error'));
+    tick(750);
+
+    expect(image.src).toContain('zlpImageRetry=2');
+  }));
 
   it('renders document media as an external link using alt text when available', () => {
     fixture.componentRef.setInput('config', {
