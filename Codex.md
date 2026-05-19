@@ -68,6 +68,7 @@ This file is durable project memory, not a changelog. Keep it short, stable, and
 - Runtime API credentials belong in server-only policies and secret stores. Browser draft payloads should reference safe IDs, mappings, allowlists, and variable targets only.
 - Production draft domains must ignore `draftDomain` query params. Cross-draft preview by query param is allowed only on local hosts and `test.zoolandingpage.com.mx`.
 - `generic-media` may use bounded image retries for transient asset CDN resets, but do not treat those retries as proof that the CDN/API/front-door reset source has been repaired.
+- Express SSR helper reads should prefer the raw runtime-read fallback and use only bounded retries before falling back to the API custom domain.
 
 ## Draft Memory
 

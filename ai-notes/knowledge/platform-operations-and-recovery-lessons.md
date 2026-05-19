@@ -45,6 +45,8 @@ If browser fetches to the stable API custom domain are healthy but Node or undic
 
 Apply the same raw-first rule to Express-side auxiliary SSR helpers, not only to Angular services. Helpers that build robots, sitemaps, 404 decisions, or route metadata can still touch runtime-read before Angular renders; they should honor `CONFIG_API_SERVER_FALLBACK_URL` / `CONFIG_API_RUNTIME_FALLBACK_URL` and preserve API Gateway stage path prefixes such as `/Prod`.
 
+When probes show raw runtime-read is cleaner than the custom domain but still capable of occasional burst failures, retry the raw helper read briefly before using the custom-domain fallback. Keep retries bounded so SSR does not hide sustained API failure or add long document TTFB.
+
 ## SSR Bootstrap Timing Lesson
 
 If a deployed Angular SSR container returns a small HTML shell with no `<main>` while the runtime API is reachable from inside the container, check whether runtime config initialization is blocking the server render. Component constructor fire-and-forget initialization can pass local Docker checks when the API is fast, then fail on Dokploy when remote runtime-bundle latency is higher. Keep server-side runtime bootstrap in an Angular server app initializer so SSR waits for the authored config before rendering.

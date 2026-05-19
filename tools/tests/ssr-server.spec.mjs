@@ -185,6 +185,63 @@ test('production SSR server prefers the server-only runtime fallback for auxilia
   assert.equal(getStderr(), '');
 });
 
+test('production SSR server retries transient runtime fallback failures before custom domain', async (t) => {
+  const fallbackRequests = [];
+  const primaryRequests = [];
+  const fallbackBase = await startRuntimeApi(t, (req, res) => {
+    const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+    fallbackRequests.push(url.pathname);
+
+    if (fallbackRequests.length === 1) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false }));
+      return;
+    }
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      siteConfig: {
+        domain: 'runtime-retry.example',
+        routes: [{ path: '/', pageId: 'home' }],
+        site: {
+          seo: {
+            canonicalOrigin: 'https://runtime-retry.example',
+          },
+        },
+      },
+      pageConfig: {
+        pageId: 'home',
+      },
+    }));
+  });
+  const primaryBase = await startRuntimeApi(t, (req, res) => {
+    const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+    primaryRequests.push(url.pathname);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ siteConfig: { domain: 'primary.example' } }));
+  });
+  const { port, getStderr } = await startProductionServer(t, {
+    CONFIG_API_SERVER_FALLBACK_URL: `${fallbackBase}/Prod`,
+    CONFIG_API_URL: primaryBase,
+  });
+  const response = await fetch(`http://127.0.0.1:${port}/robots.txt`, {
+    headers: {
+      Host: 'runtime-retry.example',
+      'X-Forwarded-Host': 'runtime-retry.example',
+      'X-Forwarded-Port': '443',
+      'X-Forwarded-Proto': 'https',
+      'X-Forwarded-Server': 'dokploy-traefik',
+    },
+  });
+  const body = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.match(body, /Sitemap: https:\/\/runtime-retry\.example\/sitemap\.xml/);
+  assert.deepEqual(fallbackRequests, ['/Prod/runtime-bundle', '/Prod/runtime-bundle']);
+  assert.deepEqual(primaryRequests, []);
+  assert.equal(getStderr(), '');
+});
+
 test('production SSR server renders draft routes on aliased hosts', async (t) => {
   const { port, getStderr } = await startProductionServer(t);
   const response = await fetch(`http://127.0.0.1:${port}/home`, {

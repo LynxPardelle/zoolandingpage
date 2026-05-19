@@ -23,6 +23,8 @@ const DEFAULT_CONFIG_API_SERVER_FALLBACK_URL = String(
 const LOCAL_NOTE_FOLDER_NAMES = new Set(['ai_notes', 'findings', 'errors-reports']);
 const SITE_CONFIG_CACHE_TTL_MS = 60_000;
 const SITE_CONFIG_CACHE_MAX_SIZE = 200;
+const RUNTIME_BUNDLE_FETCH_ATTEMPTS = 2;
+const RUNTIME_BUNDLE_FETCH_RETRY_DELAY_MS = 150;
 const CANONICAL_NOT_FOUND_DOMAIN = 'zoolandingpage.com.mx';
 const RUNTIME_BUNDLE_BASE_URLS = [
   DEFAULT_CONFIG_API_SERVER_FALLBACK_URL,
@@ -201,6 +203,38 @@ function buildRuntimeBundleUrl(baseUrl: string, domain: string, routePath: strin
   url.searchParams.set('domain', domain);
   url.searchParams.set('path', normalizeRoutePath(routePath));
   return url.toString();
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchRuntimeBundlePayload(baseUrl: string, domain: string, routePath: string): Promise<TRuntimeBundlePayload | null> {
+  const url = buildRuntimeBundleUrl(baseUrl, domain, routePath);
+
+  for (let attempt = 1; attempt <= RUNTIME_BUNDLE_FETCH_ATTEMPTS; attempt += 1) {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        if (response.status >= 500 && attempt < RUNTIME_BUNDLE_FETCH_ATTEMPTS) {
+          await wait(RUNTIME_BUNDLE_FETCH_RETRY_DELAY_MS * attempt);
+          continue;
+        }
+
+        return null;
+      }
+
+      return await response.json() as TRuntimeBundlePayload;
+    } catch {
+      if (attempt >= RUNTIME_BUNDLE_FETCH_ATTEMPTS) {
+        return null;
+      }
+
+      await wait(RUNTIME_BUNDLE_FETCH_RETRY_DELAY_MS * attempt);
+    }
+  }
+
+  return null;
 }
 
 function readJsonFile(filePath: string): Record<string, unknown> | null {
@@ -717,18 +751,9 @@ async function loadRuntimeSiteConfig(domain: string): Promise<TLocalSiteConfig |
   }
 
   for (const baseUrl of RUNTIME_BUNDLE_BASE_URLS) {
-    try {
-      const response = await fetch(buildRuntimeBundleUrl(baseUrl, normalizedDomain, '/'));
-      if (!response.ok) {
-        continue;
-      }
-
-      const payload = await response.json() as TRuntimeBundlePayload;
-      if (isRecord(payload?.siteConfig)) {
-        return payload.siteConfig as TLocalSiteConfig;
-      }
-    } catch {
-      continue;
+    const payload = await fetchRuntimeBundlePayload(baseUrl, normalizedDomain, '/');
+    if (isRecord(payload?.siteConfig)) {
+      return payload.siteConfig as TLocalSiteConfig;
     }
   }
 
@@ -742,18 +767,9 @@ async function loadRuntimePageConfig(domain: string, path: string): Promise<TLoc
   }
 
   for (const baseUrl of RUNTIME_BUNDLE_BASE_URLS) {
-    try {
-      const response = await fetch(buildRuntimeBundleUrl(baseUrl, normalizedDomain, path));
-      if (!response.ok) {
-        continue;
-      }
-
-      const payload = await response.json() as TRuntimeBundlePayload;
-      if (isRecord(payload?.pageConfig)) {
-        return payload.pageConfig as TLocalPageConfig;
-      }
-    } catch {
-      continue;
+    const payload = await fetchRuntimeBundlePayload(baseUrl, normalizedDomain, path);
+    if (isRecord(payload?.pageConfig)) {
+      return payload.pageConfig as TLocalPageConfig;
     }
   }
 
