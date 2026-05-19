@@ -136,6 +136,28 @@ describe('GenericMedia', () => {
     expect(image.src).toContain('zlpImageRetry=2');
   }));
 
+  it('retries images that are already broken when hydration attaches handlers', fakeAsync(() => {
+    const retryFixture = TestBed.createComponent(GenericMedia);
+    retryFixture.componentRef.setInput('config', {
+      id: 'prehydration-reset-image',
+      tag: 'image',
+      src: 'https://assets.example.test/domain/page/prehydration.svg',
+      alt: 'Prehydration reset image',
+    });
+
+    retryFixture.detectChanges();
+
+    const image: HTMLImageElement = retryFixture.nativeElement.querySelector('img');
+    Object.defineProperty(image, 'complete', { configurable: true, get: () => true });
+    Object.defineProperty(image, 'naturalWidth', { configurable: true, get: () => 0 });
+
+    tick(0);
+    tick(250);
+
+    expect(image.src).toContain('zlpImageRetry=1');
+    retryFixture.destroy();
+  }));
+
   it('renders document media as an external link using alt text when available', () => {
     fixture.componentRef.setInput('config', {
       id: 'legal-pdf',
