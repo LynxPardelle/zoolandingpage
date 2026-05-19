@@ -20,6 +20,11 @@ import type {
 export class GenericMedia {
   readonly config = input.required<TGenericMediaConfig>();
   readonly componentId = input<string | undefined>(undefined);
+  private readonly maxImageRetryAttempts = 2;
+  private readonly imageRetryState = new WeakMap<HTMLImageElement, {
+    readonly baseSrc: string;
+    readonly attempt: number;
+  }>();
 
   readonly id = computed(() => resolveComponentRootDomId(this.config().id, this.componentId(), 'media') ?? null);
   readonly linkContentId = computed(() => composeDomId(this.id(), 'content') ?? null);
@@ -80,6 +85,47 @@ export class GenericMedia {
   ): T | null {
     const resolved = String(resolveDynamicValue(value as never) ?? '').trim().toLowerCase();
     return allowed.includes(resolved as T) ? resolved as T : fallback;
+  }
+
+  handleImageLoad(event: Event): void {
+    const image = event.currentTarget;
+    if (image instanceof HTMLImageElement) {
+      this.imageRetryState.delete(image);
+    }
+  }
+
+  handleImageError(event: Event): void {
+    const image = event.currentTarget;
+    if (!(image instanceof HTMLImageElement)) {
+      return;
+    }
+
+    const baseSrc = this.src();
+    const state = this.imageRetryState.get(image);
+    const currentAttempt = state?.baseSrc === baseSrc ? state.attempt : 0;
+    if (!baseSrc || currentAttempt >= this.maxImageRetryAttempts) {
+      return;
+    }
+
+    const nextAttempt = currentAttempt + 1;
+    this.imageRetryState.set(image, { baseSrc, attempt: nextAttempt });
+    globalThis.setTimeout(() => {
+      if (this.src() !== baseSrc) {
+        return;
+      }
+      image.src = this.withImageRetryParam(baseSrc, nextAttempt);
+    }, 250 * nextAttempt);
+  }
+
+  private withImageRetryParam(src: string, attempt: number): string {
+    try {
+      const url = new URL(src, document.baseURI);
+      url.searchParams.set('zlpImageRetry', String(attempt));
+      return url.toString();
+    } catch {
+      const separator = src.includes('?') ? '&' : '?';
+      return `${src}${separator}zlpImageRetry=${attempt}`;
+    }
   }
 
 }
