@@ -41,6 +41,8 @@ If the browser itself fails with connection resets while direct Dokploy/Traefik 
 
 If browser fetches to the stable API custom domain are healthy but Node or undici requests from the SSR container intermittently fail with transport resets, keep the browser-facing base URL on the custom domain and add a `runtime-bundle` fallback base that points to the raw runtime-read origin. SSR should prefer that raw endpoint first; the browser can also prefer it when CORS allows public reads so Lighthouse does not record transient custom-domain resets as console failures. That isolates runtime bootstrap transport and reduces document TTFB without changing alias resolution behavior.
 
+Apply the same raw-first rule to Express-side auxiliary SSR helpers, not only to Angular services. Helpers that build robots, sitemaps, 404 decisions, or route metadata can still touch runtime-read before Angular renders; they should honor `CONFIG_API_SERVER_FALLBACK_URL` / `CONFIG_API_RUNTIME_FALLBACK_URL` and preserve API Gateway stage path prefixes such as `/Prod`.
+
 ## SSR Bootstrap Timing Lesson
 
 If a deployed Angular SSR container returns a small HTML shell with no `<main>` while the runtime API is reachable from inside the container, check whether runtime config initialization is blocking the server render. Component constructor fire-and-forget initialization can pass local Docker checks when the API is fast, then fail on Dokploy when remote runtime-bundle latency is higher. Keep server-side runtime bootstrap in an Angular server app initializer so SSR waits for the authored config before rendering.
@@ -72,6 +74,12 @@ Angular SSR deopts to a client-side shell when reverse-proxy `X-Forwarded-*` hea
 If a Dokploy app is healthy on its container port but public requests return Traefik `404`, verify whether Traefik actually loaded the route. Check Traefik's HTTP router API and logs before changing DNS. A Docker Engine upgrade or API-version mismatch can break Traefik's Docker/Swarm providers, leaving Docker labels ignored while file-provider routes continue to work.
 
 For incident containment, a sanitized file-provider route can restore a known healthy app domain without moving Microsoft-managed DNS or email records. Treat that as a temporary recovery path: repair the provider compatibility afterward, keep the route target tied to a stable container or service name, and avoid committing tokens, host identifiers, raw environment values, or customer-sensitive details in recovery notes.
+
+## Managed Alias Front-Door Lesson
+
+`site-config.json.aliases` is necessary for runtime-read alias resolution, but it is not sufficient for public traffic. Managed aliases under `*.zoolandingpage.com.mx` also need Route 53 records, Traefik file-provider routers, and TLS issuance through the active front door. Use the repeatable sync tool and keep operational inputs in environment variables or CLI flags instead of committing host-specific values.
+
+Before replacing a Traefik dynamic file through SSM, create a remote backup in the same host-side dynamic-config area. Validate with DNS, HTTPS home, HTTPS invented-route 404, and browser desktop/mobile checks before considering the alias live.
 
 ## Upload Binary Recovery Lesson
 

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { createServer } from 'node:net';
+import { createServer as createHttpServer } from 'node:http';
+import { createServer as createNetServer } from 'node:net';
 import { resolve } from 'node:path';
 import { test } from 'node:test';
 
@@ -8,7 +9,7 @@ const repoRoot = resolve(import.meta.dirname, '../..');
 const serverEntry = resolve(repoRoot, 'dist/zoolandingpage/server/server.mjs');
 
 async function getAvailablePort() {
-  const server = createServer();
+  const server = createNetServer();
 
   await new Promise((resolvePromise, rejectPromise) => {
     server.once('error', rejectPromise);
@@ -22,6 +23,24 @@ async function getAvailablePort() {
 
   assert(address && typeof address === 'object');
   return address.port;
+}
+
+async function startRuntimeApi(t, handler) {
+  const server = createHttpServer(handler);
+
+  await new Promise((resolvePromise, rejectPromise) => {
+    server.once('error', rejectPromise);
+    server.listen(0, '127.0.0.1', resolvePromise);
+  });
+
+  const address = server.address();
+  assert(address && typeof address === 'object');
+
+  t.after(() => new Promise((resolvePromise, rejectPromise) => {
+    server.close((error) => error ? rejectPromise(error) : resolvePromise());
+  }));
+
+  return `http://127.0.0.1:${address.port}`;
 }
 
 async function waitForOk(url) {
@@ -46,12 +65,13 @@ async function waitForOk(url) {
   throw lastError ?? new Error(`Timed out waiting for ${url}`);
 }
 
-async function startProductionServer(t) {
+async function startProductionServer(t, extraEnv = {}) {
   const port = await getAvailablePort();
   const server = spawn(process.execPath, [serverEntry], {
     cwd: repoRoot,
     env: {
       ...process.env,
+      ...extraEnv,
       PORT: String(port),
     },
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -106,6 +126,63 @@ test('production SSR server renders behind Traefik forwarded headers', async (t)
   assert.match(body, /<title>[^<]+<\/title>/i);
   assert.match(body, /<main[\s>]/i);
   assert.doesNotMatch(getStderr(), /trustProxyHeaders/i);
+});
+
+test('production SSR server prefers the server-only runtime fallback for auxiliary runtime reads', async (t) => {
+  const fallbackRequests = [];
+  const primaryRequests = [];
+  const fallbackBase = await startRuntimeApi(t, (req, res) => {
+    const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+    fallbackRequests.push(url.pathname);
+
+    if (url.pathname !== '/Prod/runtime-bundle') {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false }));
+      return;
+    }
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      siteConfig: {
+        domain: 'runtime-fallback.example',
+        routes: [{ path: '/', pageId: 'home' }],
+        site: {
+          seo: {
+            canonicalOrigin: 'https://runtime-fallback.example',
+          },
+        },
+      },
+      pageConfig: {
+        pageId: 'home',
+      },
+    }));
+  });
+  const primaryBase = await startRuntimeApi(t, (req, res) => {
+    const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+    primaryRequests.push(url.pathname);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: false }));
+  });
+  const { port, getStderr } = await startProductionServer(t, {
+    CONFIG_API_SERVER_FALLBACK_URL: `${fallbackBase}/Prod`,
+    CONFIG_API_URL: primaryBase,
+  });
+  const response = await fetch(`http://127.0.0.1:${port}/robots.txt`, {
+    headers: {
+      Host: 'runtime-fallback.example',
+      'X-Forwarded-Host': 'runtime-fallback.example',
+      'X-Forwarded-Port': '443',
+      'X-Forwarded-Proto': 'https',
+      'X-Forwarded-Server': 'dokploy-traefik',
+    },
+  });
+  const body = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.match(body, /Sitemap: https:\/\/runtime-fallback\.example\/sitemap\.xml/);
+  assert.deepEqual(fallbackRequests, ['/Prod/runtime-bundle']);
+  assert.deepEqual(primaryRequests, []);
+  assert.equal(getStderr(), '');
 });
 
 test('production SSR server renders draft routes on aliased hosts', async (t) => {
