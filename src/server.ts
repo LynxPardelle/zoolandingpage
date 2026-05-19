@@ -12,11 +12,24 @@ import { dirname, join } from 'node:path';
 const browserDistFolder = join(import.meta.dirname, '../browser');
 const DRAFTS_FOLDER_NAME = 'drafts';
 const DEBUG_DRAFT_DIRECTORY = '_debug';
-const DEFAULT_CONFIG_API_URL = String(process.env['CONFIG_API_URL'] ?? 'https://api.zoolandingpage.com.mx').trim();
+const DEFAULT_CONFIG_API_BASE_URL = 'https://api.zoolandingpage.com.mx';
+const DEFAULT_CONFIG_API_RAW_RUNTIME_BASE_URL = 'https://y84vk0v44l.execute-api.us-east-1.amazonaws.com/Prod';
+const DEFAULT_CONFIG_API_URL = String(process.env['CONFIG_API_URL'] ?? DEFAULT_CONFIG_API_BASE_URL).trim();
+const DEFAULT_CONFIG_API_SERVER_FALLBACK_URL = String(
+  process.env['CONFIG_API_SERVER_FALLBACK_URL']
+    ?? process.env['CONFIG_API_RUNTIME_FALLBACK_URL']
+    ?? (DEFAULT_CONFIG_API_URL === DEFAULT_CONFIG_API_BASE_URL ? DEFAULT_CONFIG_API_RAW_RUNTIME_BASE_URL : ''),
+).trim();
 const LOCAL_NOTE_FOLDER_NAMES = new Set(['ai_notes', 'findings', 'errors-reports']);
 const SITE_CONFIG_CACHE_TTL_MS = 60_000;
 const SITE_CONFIG_CACHE_MAX_SIZE = 200;
 const CANONICAL_NOT_FOUND_DOMAIN = 'zoolandingpage.com.mx';
+const RUNTIME_BUNDLE_BASE_URLS = [
+  DEFAULT_CONFIG_API_SERVER_FALLBACK_URL,
+  DEFAULT_CONFIG_API_URL,
+]
+  .map((baseUrl) => baseUrl.replace(/\/$/, ''))
+  .filter((baseUrl, index, baseUrls) => baseUrl.length > 0 && baseUrls.indexOf(baseUrl) === index);
 
 type TSiteConfigCacheEntry = {
   readonly path: string | null;
@@ -181,6 +194,13 @@ function normalizeRoutePath(value: unknown): string {
   }
 
   return raw.startsWith('/') ? raw : `/${raw}`;
+}
+
+function buildRuntimeBundleUrl(baseUrl: string, domain: string, routePath: string): string {
+  const url = new URL('runtime-bundle', `${baseUrl.replace(/\/$/, '')}/`);
+  url.searchParams.set('domain', domain);
+  url.searchParams.set('path', normalizeRoutePath(routePath));
+  return url.toString();
 }
 
 function readJsonFile(filePath: string): Record<string, unknown> | null {
@@ -692,48 +712,52 @@ function loadLocalDebugWorkspacePayload(kind: string): Record<string, unknown> |
 
 async function loadRuntimeSiteConfig(domain: string): Promise<TLocalSiteConfig | null> {
   const normalizedDomain = normalizeHost(domain);
-  if (!normalizedDomain || !DEFAULT_CONFIG_API_URL) {
+  if (!normalizedDomain || RUNTIME_BUNDLE_BASE_URLS.length === 0) {
     return null;
   }
 
-  try {
-    const url = new URL('/runtime-bundle', `${DEFAULT_CONFIG_API_URL.replace(/\/$/, '')}/`);
-    url.searchParams.set('domain', normalizedDomain);
-    url.searchParams.set('path', '/');
+  for (const baseUrl of RUNTIME_BUNDLE_BASE_URLS) {
+    try {
+      const response = await fetch(buildRuntimeBundleUrl(baseUrl, normalizedDomain, '/'));
+      if (!response.ok) {
+        continue;
+      }
 
-    const response = await fetch(url.toString());
-    if (!response.ok) {
-      return null;
+      const payload = await response.json() as TRuntimeBundlePayload;
+      if (isRecord(payload?.siteConfig)) {
+        return payload.siteConfig as TLocalSiteConfig;
+      }
+    } catch {
+      continue;
     }
-
-    const payload = await response.json() as TRuntimeBundlePayload;
-    return isRecord(payload?.siteConfig) ? payload.siteConfig as TLocalSiteConfig : null;
-  } catch {
-    return null;
   }
+
+  return null;
 }
 
 async function loadRuntimePageConfig(domain: string, path: string): Promise<TLocalPageConfig | null> {
   const normalizedDomain = normalizeHost(domain);
-  if (!normalizedDomain || !DEFAULT_CONFIG_API_URL) {
+  if (!normalizedDomain || RUNTIME_BUNDLE_BASE_URLS.length === 0) {
     return null;
   }
 
-  try {
-    const url = new URL('/runtime-bundle', `${DEFAULT_CONFIG_API_URL.replace(/\/$/, '')}/`);
-    url.searchParams.set('domain', normalizedDomain);
-    url.searchParams.set('path', normalizeRoutePath(path));
+  for (const baseUrl of RUNTIME_BUNDLE_BASE_URLS) {
+    try {
+      const response = await fetch(buildRuntimeBundleUrl(baseUrl, normalizedDomain, path));
+      if (!response.ok) {
+        continue;
+      }
 
-    const response = await fetch(url.toString());
-    if (!response.ok) {
-      return null;
+      const payload = await response.json() as TRuntimeBundlePayload;
+      if (isRecord(payload?.pageConfig)) {
+        return payload.pageConfig as TLocalPageConfig;
+      }
+    } catch {
+      continue;
     }
-
-    const payload = await response.json() as TRuntimeBundlePayload;
-    return isRecord(payload?.pageConfig) ? payload.pageConfig as TLocalPageConfig : null;
-  } catch {
-    return null;
   }
+
+  return null;
 }
 
 async function loadPageConfigForRoute(domain: string, route: TSiteConfigRouteEntry): Promise<TLocalPageConfig | null> {

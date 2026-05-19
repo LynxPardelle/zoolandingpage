@@ -56,6 +56,7 @@ Notes for preview and alternate domains:
 - If the branded domain is not live yet, point `site.seo.canonicalOrigin` and page-level `seo.canonical` URLs at the Zoolanding alias until the cutover is real.
 - Put preview or alternate hosts in `site-config.json.aliases`, for example `"aliases": ["test.zoolandingpage.com.mx", "landing-preview.zoolandingpage.com.mx"]`.
 - The authoring Lambda persists alias lookup records in DynamoDB, and the runtime Lambda resolves those aliases back to the canonical site domain at request time.
+- Runtime alias persistence does not create DNS, Traefik routers, or TLS certificates. Use [13-managed-alias-front-door.md](13-managed-alias-front-door.md) to sync managed aliases into Route 53 and the Dokploy/Traefik file-provider front door.
 - You do not need a second DynamoDB site entry just for a preview host when it should reuse the canonical site's config.
 - Most REST APIs currently answer CORS preflight with `Access-Control-Allow-Origin: *`, `Content-Type,Authorization`, and the expected route methods. The runtime API proxy uses a stricter origin allowlist for `https://zoolandingpage.com.mx`, `https://test.zoolandingpage.com.mx`, and local QA origins.
 - The CloudFront distribution for `api.zoolandingpage.com.mx` must forward `Origin`, `Access-Control-Request-Method`, `Access-Control-Request-Headers`, query strings, and `OPTIONS` requests to preserve browser CORS behavior.
@@ -328,6 +329,7 @@ Default convention for new sites:
 - Keep `domain` set to the intended long-term canonical domain.
 - Always add a managed fallback alias under `*.zoolandingpage.com.mx` in `aliases`.
 - If the branded domain is not live yet, use the Zoolanding alias in `site.seo.canonicalOrigin` and page `seo.canonical` fields until the real-domain cutover is complete.
+- After publishing a draft with a managed alias, run `npm run ops:sync-managed-aliases` so Route 53, Traefik routing, and TLS issuance are repeatable instead of manual host patches.
 
 ### 7.1 First upload from the local draft
 
@@ -364,10 +366,10 @@ For the production and test containers:
 1. Use the same image and the same codebase.
 2. Use the Docker `production` target for SSR deployments. The Dockerfile default final target is also `production`; use `production-no-ssr` only for the explicit static/Nginx fallback.
 3. Keep `configApiUrl` pointing to `https://api.zoolandingpage.com.mx`.
-4. For SSR containers, set `configApiServerFallbackUrl` to the raw runtime-read origin base. The browser still uses `configApiUrl`, but SSR requests `runtime-bundle` through the raw server-only endpoint first to avoid custom-domain transport resets and reduce TTFB.
+4. For SSR containers, keep the raw runtime-read fallback active. The Angular runtime uses `configApiServerFallbackUrl` / `configApiRuntimeFallbackUrl`, and the Express SSR helpers use `CONFIG_API_SERVER_FALLBACK_URL` / `CONFIG_API_RUNTIME_FALLBACK_URL` when those env vars are set. Both paths should try the raw server-only endpoint before `configApiUrl` / `CONFIG_API_URL` to avoid custom-domain transport resets and reduce TTFB.
 5. Use `/health` or `/healthz` for container or proxy health checks so health probes do not invoke Angular SSR or config bootstrap.
-6. Manage preview-domain routing through authored `site-config.json.aliases`, not frontend environment files.
-7. Point both domains to the Dokploy app.
+6. Manage preview-domain runtime resolution through authored `site-config.json.aliases`, not frontend environment files.
+7. Manage managed-alias DNS and Dokploy/Traefik routing through `tools/ops/sync-managed-alias-front-door.mjs`; do not hand-edit host routing without also preserving the repeatable command or follow-up change.
 8. Keep `projects.zoolandingpage.architect.build.options.security.allowedHosts` aligned with every public host served by Dokploy, including branded alternate domains such as `*.lynxpardelle.com`.
 9. Keep `src/server.ts` Angular SSR `trustProxyHeaders` aligned with the headers Traefik injects. Untrusted `X-Forwarded-*` headers make Angular serve the CSR shell, which breaks Lighthouse and no-JS crawlers.
 10. Keep runtime config bootstrap in the shared Angular app initializer for both SSR and browser hydration. Do not rely on component-constructor fire-and-forget initialization, because remote runtime API latency can make Dokploy render the CSR shell before authored config is ready or make hydration clear the SSR tree before the browser config arrives.
