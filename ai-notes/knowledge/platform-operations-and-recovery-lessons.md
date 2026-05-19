@@ -37,6 +37,8 @@ On Windows recovery work, do not trust one failing client alone. `curl.exe` and 
 
 If the browser itself fails with connection resets while direct Dokploy/Traefik HTTPS is healthy, isolate app domains from the shared app edge before changing API or asset routing. Keep API and asset CloudFront distributions separate when they are healthy.
 
+For browser-rendered media served from the asset CDN, add only bounded client retries with cache-busting when transient resets are observed. A recovered image retry improves user resilience, but it must not be recorded as a root-cause fix for CloudFront, TLS, DNS, or origin resets; keep probing the asset/API front doors separately.
+
 ## SSR Runtime Fallback Lesson
 
 If browser fetches to the stable API custom domain are healthy but Node or undici requests from the SSR container intermittently fail with transport resets, keep the browser-facing base URL on the custom domain and add a `runtime-bundle` fallback base that points to the raw runtime-read origin. SSR should prefer that raw endpoint first; the browser can also prefer it when CORS allows public reads so Lighthouse does not record transient custom-domain resets as console failures. That isolates runtime bootstrap transport and reduces document TTFB without changing alias resolution behavior.
