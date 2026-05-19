@@ -16,6 +16,7 @@ const DEFAULT_CONFIG_API_URL = String(process.env['CONFIG_API_URL'] ?? 'https://
 const LOCAL_NOTE_FOLDER_NAMES = new Set(['ai_notes', 'findings', 'errors-reports']);
 const SITE_CONFIG_CACHE_TTL_MS = 60_000;
 const SITE_CONFIG_CACHE_MAX_SIZE = 200;
+const CANONICAL_NOT_FOUND_DOMAIN = 'zoolandingpage.com.mx';
 
 type TSiteConfigCacheEntry = {
   readonly path: string | null;
@@ -84,6 +85,7 @@ type TLocalSiteConfig = Record<string, unknown> & {
   readonly domain?: string;
   readonly aliases?: readonly string[];
   readonly defaultPageId?: string;
+  readonly notFoundPageId?: string;
   readonly routes?: readonly TSiteConfigRouteEntry[];
   readonly sitemap?: {
     readonly urls?: readonly string[];
@@ -104,7 +106,7 @@ type TLocalRuntimeBundlePayload = {
   readonly sourceStage: 'draft';
   readonly lang?: string;
   readonly generatedAt: string;
-  readonly route?: TSiteConfigRouteEntry;
+  readonly route?: TSiteConfigRouteEntry | null;
   readonly lifecycle?: unknown;
   readonly siteConfig: TLocalSiteConfig;
   readonly pageConfig: TLocalPageConfig;
@@ -113,6 +115,18 @@ type TLocalRuntimeBundlePayload = {
   readonly angoraCombos?: TLocalAngoraCombosPayload | null;
   readonly i18n?: TLocalI18nPayload | null;
   readonly metadata: Record<string, unknown>;
+};
+
+type TLocalRuntimePageResolution = {
+  readonly requestedDomain: string;
+  readonly loadDomain: string;
+  readonly resolvedDomain: string;
+  readonly pageId: string;
+  readonly route: TSiteConfigRouteEntry | null;
+  readonly siteConfig: TLocalSiteConfig;
+  readonly statusCode: 200 | 404;
+  readonly notFound: boolean;
+  readonly fallbackFromDomain?: string;
 };
 
 const siteConfigPathCache = new Map<string, TSiteConfigCacheEntry>();
@@ -153,6 +167,11 @@ function normalizeHost(value: unknown): string {
     .trim()
     .toLowerCase()
     .replace(/:\d+$/, '');
+}
+
+function isLocalHost(value: unknown): boolean {
+  const normalized = normalizeHost(value);
+  return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1';
 }
 
 function normalizeRoutePath(value: unknown): string {
@@ -468,6 +487,116 @@ function resolveLocalRuntimePageId(siteConfig: TLocalSiteConfig | null, path: st
   return String(route?.pageId ?? siteConfig?.defaultPageId ?? 'default').trim() || 'default';
 }
 
+function resolveLocalNotFoundPageId(siteConfig: TLocalSiteConfig | null): string {
+  const configured = String(siteConfig?.notFoundPageId ?? '').trim();
+  if (configured) {
+    return configured;
+  }
+
+  return String(resolveLocalRoute(siteConfig, '/404')?.pageId ?? '').trim();
+}
+
+function hasRenderableLocalPage(domain: string, pageId: string): boolean {
+  const pageConfig = loadLocalPageConfig(domain, pageId);
+  const components = loadLocalComponents(domain, pageId);
+  return String(pageConfig?.pageId ?? '').trim() === pageId
+    && Array.isArray(pageConfig?.rootIds)
+    && pageConfig.rootIds.length > 0
+    && String(components?.pageId ?? '').trim() === pageId
+    && Array.isArray(components?.components)
+    && components.components.length > 0;
+}
+
+function resolveLocalNotFoundRuntimePage(
+  loadDomain: string,
+  siteConfig: TLocalSiteConfig | null,
+  requestedDomain: string,
+  fallbackFromDomain?: string,
+): TLocalRuntimePageResolution | null {
+  const pageId = resolveLocalNotFoundPageId(siteConfig);
+  if (!siteConfig || !pageId || !hasRenderableLocalPage(loadDomain, pageId)) {
+    return null;
+  }
+
+  const resolvedDomain = String(siteConfig.domain ?? loadDomain).trim() || loadDomain;
+  return {
+    requestedDomain,
+    loadDomain,
+    resolvedDomain,
+    pageId,
+    route: resolveLocalRoute(siteConfig, '/404', pageId) ?? null,
+    siteConfig,
+    statusCode: 404,
+    notFound: true,
+    fallbackFromDomain,
+  };
+}
+
+function resolveCanonicalLocalNotFoundRuntimePage(requestedDomain: string): TLocalRuntimePageResolution | null {
+  const siteConfig = loadLocalSiteConfig(CANONICAL_NOT_FOUND_DOMAIN);
+  return resolveLocalNotFoundRuntimePage(
+    CANONICAL_NOT_FOUND_DOMAIN,
+    siteConfig,
+    requestedDomain,
+    requestedDomain === CANONICAL_NOT_FOUND_DOMAIN ? undefined : requestedDomain,
+  );
+}
+
+function resolveLocalRuntimePage(opts: {
+  readonly requestedDomain: string;
+  readonly siteConfig: TLocalSiteConfig;
+  readonly path: string;
+  readonly pageId?: string;
+}): TLocalRuntimePageResolution | null {
+  const explicitPageId = String(opts.pageId ?? '').trim();
+  const normalizedPath = normalizeRoutePath(opts.path);
+  const resolvedDomain = String(opts.siteConfig.domain ?? opts.requestedDomain).trim() || opts.requestedDomain;
+
+  if (explicitPageId) {
+    return {
+      requestedDomain: opts.requestedDomain,
+      loadDomain: opts.requestedDomain,
+      resolvedDomain,
+      pageId: explicitPageId,
+      route: resolveLocalRoute(opts.siteConfig, normalizedPath, explicitPageId) ?? null,
+      siteConfig: opts.siteConfig,
+      statusCode: 200,
+      notFound: false,
+    };
+  }
+
+  const route = resolveLocalRoute(opts.siteConfig, normalizedPath);
+  if (route) {
+    const pageId = String(route.pageId ?? '').trim() || resolveLocalRuntimePageId(opts.siteConfig, normalizedPath);
+    return {
+      requestedDomain: opts.requestedDomain,
+      loadDomain: opts.requestedDomain,
+      resolvedDomain,
+      pageId,
+      route,
+      siteConfig: opts.siteConfig,
+      statusCode: 200,
+      notFound: false,
+    };
+  }
+
+  if (normalizedPath === '/') {
+    return {
+      requestedDomain: opts.requestedDomain,
+      loadDomain: opts.requestedDomain,
+      resolvedDomain,
+      pageId: String(opts.siteConfig.defaultPageId ?? 'default').trim() || 'default',
+      route: null,
+      siteConfig: opts.siteConfig,
+      statusCode: 200,
+      notFound: false,
+    };
+  }
+
+  return resolveLocalNotFoundRuntimePage(opts.requestedDomain, opts.siteConfig, opts.requestedDomain)
+    ?? resolveCanonicalLocalNotFoundRuntimePage(opts.requestedDomain);
+}
+
 function loadLocalRuntimeBundle(opts: {
   readonly domain: string;
   readonly pageId?: string;
@@ -479,21 +608,29 @@ function loadLocalRuntimeBundle(opts: {
     return null;
   }
 
+  const normalizedPath = normalizeRoutePath(opts.path);
   const siteConfig = loadLocalSiteConfig(requestedDomain);
-  if (!siteConfig) {
+  const resolution = siteConfig
+    ? resolveLocalRuntimePage({
+      requestedDomain,
+      siteConfig,
+      path: normalizedPath,
+      pageId: opts.pageId,
+    })
+    : resolveCanonicalLocalNotFoundRuntimePage(requestedDomain);
+  if (!resolution) {
     return null;
   }
 
-  const normalizedPath = normalizeRoutePath(opts.path);
-  const pageId = resolveLocalRuntimePageId(siteConfig, normalizedPath, opts.pageId);
-  const pageConfig = loadLocalPageConfig(requestedDomain, pageId);
-  const components = loadLocalComponents(requestedDomain, pageId);
+  const pageId = resolution.pageId;
+  const pageConfig = loadLocalPageConfig(resolution.loadDomain, pageId);
+  const components = loadLocalComponents(resolution.loadDomain, pageId);
   if (!pageConfig || !components) {
     return null;
   }
 
-  const resolvedDomain = String(siteConfig.domain ?? requestedDomain).trim() || requestedDomain;
-  const route = resolveLocalRoute(siteConfig, normalizedPath, pageId);
+  const resolvedDomain = resolution.resolvedDomain;
+  const route = resolution.route;
   const lang = String(opts.lang ?? '').trim() || 'es';
 
   return {
@@ -504,9 +641,9 @@ function loadLocalRuntimeBundle(opts: {
     lang,
     generatedAt: new Date().toISOString(),
     route,
-    lifecycle: siteConfig.lifecycle,
+    lifecycle: resolution.siteConfig.lifecycle,
     siteConfig: {
-      ...siteConfig,
+      ...resolution.siteConfig,
       domain: resolvedDomain,
     },
     pageConfig: {
@@ -519,13 +656,17 @@ function loadLocalRuntimeBundle(opts: {
       domain: resolvedDomain,
       pageId,
     },
-    variables: loadLocalVariables(requestedDomain, pageId),
-    angoraCombos: loadLocalAngoraCombos(requestedDomain, pageId),
-    i18n: loadLocalI18n(requestedDomain, pageId, lang),
+    variables: loadLocalVariables(resolution.loadDomain, pageId),
+    angoraCombos: loadLocalAngoraCombos(resolution.loadDomain, pageId),
+    i18n: loadLocalI18n(resolution.loadDomain, pageId, lang),
     metadata: {
       source: 'local-drafts',
       requestedDomain,
+      loadDomain: resolution.loadDomain,
       resolvedPath: normalizedPath,
+      statusCode: resolution.statusCode,
+      notFound: resolution.notFound,
+      fallbackFromDomain: resolution.fallbackFromDomain,
     },
   };
 }
@@ -616,6 +757,15 @@ function resolveRequestHost(req: express.Request): string {
   return normalizeHost(forwardedHost || req.headers.host);
 }
 
+function resolveNotFoundLookupDomain(req: express.Request, host: string): string {
+  const draftDomain = normalizeHost(req.query['draftDomain']);
+  if (isLocalHost(host) && draftDomain) {
+    return draftDomain;
+  }
+
+  return host;
+}
+
 function resolveRequestProtocol(req: express.Request, host: string): string {
   const forwardedProto = String(req.headers['x-forwarded-proto'] ?? '')
     .split(',')[0]
@@ -694,10 +844,17 @@ async function buildSitemapXml(req: express.Request, host: string, siteConfig: T
     (Array.isArray(siteConfig?.sitemap?.excludePaths) ? siteConfig.sitemap.excludePaths : [])
       .map((entry) => normalizeRoutePath(entry)),
   );
+  const notFoundPageId = resolveLocalNotFoundPageId(siteConfig);
   const rawRoutes = Array.isArray(siteConfig?.routes) && siteConfig.routes.length > 0
     ? siteConfig.routes
     : [{ path: '/' }];
-  const sitemapRoutes = rawRoutes.filter((route) => !excludedPaths.has(normalizeRoutePath(route.path)));
+  const sitemapRoutes = rawRoutes.filter((route) => {
+    const routePath = normalizeRoutePath(route.path);
+    const routePageId = String(route.pageId ?? '').trim();
+    return !excludedPaths.has(routePath)
+      && routePath !== '/404'
+      && (!notFoundPageId || routePageId !== notFoundPageId);
+  });
   const sitemapDomain = normalizeHost(host) || normalizeHost(siteConfig?.domain);
   const resolvedUrls = await Promise.all(sitemapRoutes.map(async (route) => {
     const pageConfig = sitemapDomain ? await loadPageConfigForRoute(sitemapDomain, route) : null;
@@ -717,6 +874,23 @@ async function buildSitemapXml(req: express.Request, host: string, siteConfig: T
     entries,
     '</urlset>',
   ].join('\n');
+}
+
+async function shouldServeNotFoundDocument(req: express.Request): Promise<boolean> {
+  const host = resolveRequestHost(req);
+  const lookupDomain = resolveNotFoundLookupDomain(req, host);
+  const normalizedPath = normalizeRoutePath(req.path);
+  const siteConfig = await loadSiteConfigForHost(lookupDomain);
+
+  if (!siteConfig) {
+    return (!isLocalHost(host) || lookupDomain !== host) && normalizedPath !== '/';
+  }
+
+  if (resolveLocalRoute(siteConfig, normalizedPath)) {
+    return false;
+  }
+
+  return normalizedPath !== '/';
 }
 
 function listDraftRegistryEntries(): readonly TDraftRegistryEntry[] {
@@ -868,11 +1042,25 @@ app.use(
  * Handle all other requests by rendering the Angular application.
  */
 app.use((req, res, next) => {
-  angularApp
-    .handle(req)
-    .then((response) =>
-      response ? writeResponseToNodeResponse(response, res) : next(),
-    )
+  shouldServeNotFoundDocument(req)
+    .then((notFoundDocument) => angularApp.handle(req)
+      .then((response) => {
+        if (!response) {
+          next();
+          return;
+        }
+
+        if (!notFoundDocument) {
+          writeResponseToNodeResponse(response, res);
+          return;
+        }
+
+        writeResponseToNodeResponse(new Response(response.body, {
+          headers: response.headers,
+          status: 404,
+          statusText: 'Not Found',
+        }), res);
+      }))
     .catch(next);
 });
 

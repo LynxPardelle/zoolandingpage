@@ -346,6 +346,7 @@ export type TDraftSiteConfigPayload = {
     readonly domain: string;
     readonly aliases?: readonly string[];
     readonly defaultPageId?: string;
+    readonly notFoundPageId?: string;
     readonly routes: readonly TDraftSiteRouteEntry[];
     readonly sitemap?: TDraftSitemapConfig;
     readonly lifecycle?: TSiteLifecycleConfig;
@@ -359,6 +360,7 @@ export type TConfigRegistryPayload = {
     readonly domain: string;
     readonly aliases?: readonly string[];
     readonly defaultPageId?: string;
+    readonly notFoundPageId?: string;
     readonly routes: readonly TDraftSiteRouteEntry[];
     readonly lifecycle: TSiteLifecycleConfig;
     readonly draft?: TConfigVersionPointer;
