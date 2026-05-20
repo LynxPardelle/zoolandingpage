@@ -6,6 +6,7 @@ import {
   formatErrorSummary,
   parseArgs,
   summarizeSamples,
+  targetNamesArg,
 } from '../ops/probe-runtime-front-door.mjs';
 
 test('parseArgs collects domains', () => {
@@ -53,4 +54,10 @@ test('formatErrorSummary includes cause code when present', () => {
   });
 
   assert.equal(formatErrorSummary(error), 'TypeError: fetch failed | ECONNRESET | read ECONNRESET');
+});
+
+test('targetNamesArg supports all or one explicit target', () => {
+  assert.deepEqual(targetNamesArg('all'), ['custom-domain', 'raw-api-gateway']);
+  assert.deepEqual(targetNamesArg('custom-domain'), ['custom-domain']);
+  assert.throws(() => targetNamesArg('unknown'), /--target must be all/);
 });

@@ -140,6 +140,7 @@ node tools/ops/probe-runtime-front-door.mjs `
   --domain=despacholegalastralex.zoolandingpage.com.mx `
   --requests=200 `
   --concurrency=10 `
+  --cache-mode=no-store `
   --format=markdown `
   --output=logs/ops/runtime-front-door-probe.md
 ```
@@ -151,9 +152,36 @@ The probe sends the same `runtime-bundle` request to:
 
 It reports request count, transport errors, status counts, exact error messages, and latency p50/p95 per target. Treat a single passing request as insufficient evidence; compare failure rate before and after any CloudFront/API/front-door mitigation.
 
+Use `--cache-mode=no-store` for origin stress tests. Use `--cache-mode=default --target=custom-domain` when validating the real viewer path after CloudFront runtime-bundle caching is enabled.
+
+## Runtime Bundle Cache Mitigation
+
+`/runtime-bundle*` is public config data keyed by `domain`, `path`, and `lang`. If probes show raw API Gateway and custom-domain requests both returning HTTP `500` under burst pressure, check Lambda account concurrency before changing app or 404 logic.
+
+The 2026-05-20 CT audit found:
+
+- Lambda regional account concurrency returned `ConcurrentExecutions: 10`.
+- CloudFront `/runtime-bundle*` was using `Managed-CachingDisabled`.
+- Parallel custom-domain and raw-origin probes produced API Gateway `5XXError` metrics while Lambda logs showed no app exception in the sampled window.
+
+Use a short CloudFront cache on `/runtime-bundle*` to reduce repeated origin hits. The cache policy must include all query strings in the cache key and should keep TTLs short so publishes converge quickly:
+
+```powershell
+node tools/ops/configure-runtime-front-door-cache.mjs `
+  --apply `
+  --wait `
+  --min-ttl=1 `
+  --default-ttl=10 `
+  --max-ttl=60
+```
+
+The tool writes a local backup and patched distribution config under `logs/ops/` before it calls `update-distribution`. It updates only the `/runtime-bundle*` cache behavior. It does not cache authoring, upload, analytics, or API proxy routes.
+
+Also request a higher Lambda regional concurrency quota when the account limit is still `10`; CloudFront caching reduces origin pressure, but it does not raise raw API Gateway capacity.
+
 ## Mitigation Rules
 
 - If custom-domain resets occur but raw API Gateway stays clean, investigate CloudFront origin behavior, keepalive, HTTP version, TLS, and origin timeouts before changing runtime-read code.
-- If both custom and raw endpoints fail, inspect API Gateway and Lambda logs first.
+- If both custom and raw endpoints fail, inspect API Gateway metrics, Lambda concurrency/quota, and Lambda logs first.
 - If local `curl.exe` or Node fails but browser and PowerShell succeed, capture all client results; do not declare a platform outage from one Windows client alone.
 - Keep SSR using the raw runtime-read fallback for server-side bootstrap until the custom-domain reset source is proven fixed over a repeated probe.
