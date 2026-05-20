@@ -187,6 +187,125 @@ describe('config-payload.validators', () => {
         expect(isDraftSiteConfigPayload(invalid)).toBeFalse();
     });
 
+    it('accepts draft Google tag and Search Console runtime configuration', () => {
+        const valid = {
+            version: 1,
+            domain: TEST_DOMAIN,
+            defaultPageId: 'default',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: {
+                ...minimalSiteConfig(),
+                searchConsole: {
+                    googleSiteVerification: 'verification-token',
+                    htmlFile: {
+                        path: '/googleabc123.html',
+                        content: 'google-site-verification: googleabc123.html',
+                    },
+                    environments: { local: true, test: true, production: false },
+                },
+                hostOverrides: {
+                    'alias.example.test': {
+                        seo: {
+                            canonicalOrigin: 'https://alias.example.test',
+                            enforceCanonicalHost: true,
+                            forceHttps: true,
+                        },
+                        googleTag: {
+                            enabled: true,
+                            environments: { local: false, test: true, production: true },
+                            measurementIds: ['G-ALIAS123'],
+                            adsIds: ['AW-ALIAS123'],
+                            sendPageView: false,
+                        },
+                        searchConsole: {
+                            googleSiteVerification: 'alias-verification-token',
+                            htmlFile: {
+                                path: '/googlealias123.html',
+                                content: 'google-site-verification: googlealias123.html',
+                            },
+                            environments: { test: true, production: true },
+                        },
+                    },
+                },
+            },
+            environments: {
+                test: {
+                    aliases: ['test.alias.example.test'],
+                },
+            },
+            runtime: {
+                analytics: {
+                    enabled: true,
+                    consentUI: 'none',
+                    googleTag: {
+                        enabled: true,
+                        environments: { local: true, test: true, production: true },
+                        measurementIds: ['G-TEST123'],
+                        adsIds: ['AW-TEST123'],
+                        gtmId: 'GTM-TEST123',
+                        attribution: { storage: 'session', ttlDays: 7 },
+                        events: {
+                            whatsapp_click: {
+                                name: 'lead_conversion_whatsapp',
+                                params: { pyme_id: 'fixture-pyme' },
+                            },
+                        },
+                        conversions: {
+                            whatsapp_click: {
+                                sendTo: 'AW-TEST123/whatsappLabel',
+                                value: 1,
+                                currency: 'MXN',
+                            },
+                        },
+                    },
+                },
+            },
+        };
+
+        const invalid = {
+            ...valid,
+            runtime: {
+                analytics: {
+                    googleTag: {
+                        enabled: true,
+                        measurementIds: ['UA-OLD'],
+                    },
+                },
+            },
+        };
+
+        expect(isDraftSiteConfigPayload(valid)).toBeTrue();
+        expect(isDraftSiteConfigPayload(invalid)).toBeFalse();
+    });
+
+    it('rejects invalid draft host override and environment alias configuration', () => {
+        const valid = {
+            version: 1,
+            domain: TEST_DOMAIN,
+            defaultPageId: 'default',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: minimalSiteConfig(),
+        };
+
+        expect(isDraftSiteConfigPayload({
+            ...valid,
+            site: {
+                ...minimalSiteConfig(),
+                hostOverrides: {
+                    'bad:host.example.test': {
+                        seo: { canonicalOrigin: 'https://alias.example.test' },
+                    },
+                },
+            },
+        })).toBeFalse();
+        expect(isDraftSiteConfigPayload({
+            ...valid,
+            environments: {
+                qa: { aliases: ['qa.example.test'] },
+            },
+        })).toBeFalse();
+    });
+
     it('accepts runtime data sources and api actions in site-config payloads', () => {
         const valid = {
             version: 1,

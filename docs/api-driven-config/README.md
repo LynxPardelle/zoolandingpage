@@ -65,6 +65,7 @@ The draft filesystem under `drafts/{domain}/...`, served locally at `/drafts/...
 - [13-loop-config.md](13-loop-config.md)
 - [14-loop-resolution-catalog.md](14-loop-resolution-catalog.md)
 - [15-runtime-api-proxy-data-sources.md](15-runtime-api-proxy-data-sources.md)
+- [16-google-ads-search-console-seo.md](16-google-ads-search-console-seo.md)
 
 ## Practical rule for new contributors
 

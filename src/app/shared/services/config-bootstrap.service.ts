@@ -12,6 +12,7 @@ import type {
     TResolvedAnalyticsConfig,
     TSeoPayload,
     TStructuredDataPayload,
+    TGoogleTagConfig,
     TVariablesPayload,
 } from '@/app/shared/types/config-payloads.types';
 import {
@@ -224,9 +225,11 @@ export class ConfigBootstrapService {
         siteAnalytics: TDraftAnalyticsRuntimeConfig | null | undefined,
         pageAnalytics: TAnalyticsConfigPayload | null,
     ): TResolvedAnalyticsConfig | null {
-        if (!siteAnalytics && !pageAnalytics) {
+        const hostGoogleTag = this.resolveHostGoogleTagConfig();
+        if (!siteAnalytics && !pageAnalytics && !hostGoogleTag) {
             return null;
         }
+        const siteGoogleTag = this.mergeGoogleTagConfig(siteAnalytics?.googleTag, hostGoogleTag);
 
         return {
             sectionIds: pageAnalytics?.sectionIds ?? [],
@@ -234,6 +237,7 @@ export class ConfigBootstrapService {
             enabled: siteAnalytics?.enabled ?? false,
             consentUI: siteAnalytics?.consentUI ?? 'none',
             consentSnoozeSeconds: siteAnalytics?.consentSnoozeSeconds ?? 86400,
+            googleTag: siteGoogleTag,
             track: pageAnalytics?.track ?? siteAnalytics?.track,
             events: {
                 ...(siteAnalytics?.events ?? {}),
@@ -249,6 +253,50 @@ export class ConfigBootstrapService {
                 events: pageAnalytics?.quickStats?.events ?? siteAnalytics?.quickStats?.events,
             },
         };
+    }
+
+    private resolveHostGoogleTagConfig(): TGoogleTagConfig | null {
+        const host = this.normalizeHost(this.resolver.resolveDomain().domain);
+        const overrides = this.store.siteConfig()?.site?.hostOverrides;
+        if (!host || !overrides) {
+            return null;
+        }
+
+        return Object.entries(overrides).find(([entryHost]) => this.normalizeHost(entryHost) === host)?.[1].googleTag ?? null;
+    }
+
+    private mergeGoogleTagConfig(
+        base: TGoogleTagConfig | null | undefined,
+        override: TGoogleTagConfig | null | undefined,
+    ): TGoogleTagConfig | undefined {
+        if (!base && !override) {
+            return undefined;
+        }
+
+        return {
+            ...(base ?? {}),
+            ...(override ?? {}),
+            environments: {
+                ...(base?.environments ?? {}),
+                ...(override?.environments ?? {}),
+            },
+            attribution: {
+                ...(base?.attribution ?? {}),
+                ...(override?.attribution ?? {}),
+            },
+            events: {
+                ...(base?.events ?? {}),
+                ...(override?.events ?? {}),
+            },
+            conversions: {
+                ...(base?.conversions ?? {}),
+                ...(override?.conversions ?? {}),
+            },
+        };
+    }
+
+    private normalizeHost(value: unknown): string {
+        return String(value ?? '').trim().toLowerCase().replace(/:\d+$/, '');
     }
 
     async load(opts?: { domain?: string; pageId?: string; lang?: string }): Promise<TBootstrapResult> {
