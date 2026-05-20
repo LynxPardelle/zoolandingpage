@@ -299,6 +299,7 @@ Runtime API burst guard:
 
 ```powershell
 node tools/ops/configure-runtime-front-door-cache.mjs --apply --wait --min-ttl=1 --default-ttl=10 --max-ttl=60
+node tools/ops/configure-runtime-observability.mjs --apply
 node tools/ops/probe-runtime-front-door.mjs --domain=zoolandingpage.com.mx --requests=200 --concurrency=8 --target=custom-domain --cache-mode=default --format=markdown --output=logs/ops/runtime-front-door-after-cache.md
 ```
 
@@ -385,6 +386,7 @@ For the production and test containers:
 10. Keep runtime config bootstrap in the shared Angular app initializer for both SSR and browser hydration. Do not rely on component-constructor fire-and-forget initialization, because remote runtime API latency can make Dokploy render the CSR shell before authored config is ready or make hydration clear the SSR tree before the browser config arrives.
 11. Keep a short in-process SSR cache for `runtime-bundle` responses so repeated renders do not invoke the remote runtime-read API for every document request.
 12. Validate that `https://test.zoolandingpage.com.mx` renders the same authored config as `https://zoolandingpage.com.mx`.
+13. Keep runtime-read observability active through `npm run ops:configure-runtime-observability -- --apply`. Confirm the SNS email subscription after first setup; otherwise alarms exist but email delivery stays pending.
 
 ### Dokploy Host Guardrails
 

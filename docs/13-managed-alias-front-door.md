@@ -200,6 +200,36 @@ node tools/ops/probe-runtime-front-door.mjs `
   --cache-mode=no-store
 ```
 
+For the repeatable AWS observability setup, use the versioned script instead of recreating alarms by hand:
+
+```powershell
+node tools/ops/configure-runtime-observability.mjs --apply
+```
+
+The script:
+
+- keeps runtime-read reserved concurrency at `100`
+- tags the runtime-read Lambda, API Gateway REST API, and API CloudFront distribution
+- creates or updates the `zoolanding-ops-alerts` SNS topic
+- subscribes the local Git email or `ZOOLANDING_OPS_ALERT_EMAIL` to that topic
+- creates five CloudWatch alarms for Lambda errors, Lambda throttles, Lambda high concurrency, API Gateway 5XX, and CloudFront 5xx error rate
+- creates the notification-only monthly budget `zoolanding-serverless-runtime-monthly-10usd`
+
+The SNS email subscription must be confirmed from the AWS confirmation email before alarm notifications can be delivered. The budget is notification-only; do not add budget actions unless the IAM/SCP/resource action cost and blast radius are explicitly approved.
+
+This setup intentionally does not enable Provisioned Concurrency or CloudWatch Synthetics canaries by default because those can add standing or recurring cost. Use the existing runtime probe for active verification:
+
+```powershell
+node tools/ops/probe-runtime-front-door.mjs `
+  --domain=zoolandingpage.com.mx `
+  --requests=200 `
+  --concurrency=8 `
+  --target=custom-domain `
+  --cache-mode=default `
+  --format=markdown `
+  --output=logs/ops/runtime-front-door-viewer-after-observability.md
+```
+
 ## Mitigation Rules
 
 - If custom-domain resets occur but raw API Gateway stays clean, investigate CloudFront origin behavior, keepalive, HTTP version, TLS, and origin timeouts before changing runtime-read code.
