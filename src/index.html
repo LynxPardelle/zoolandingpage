@@ -15,9 +15,29 @@
     <link rel="stylesheet" href="css/angora-styles-responsive.css" />
     <style>
       :root {
-        --zlp-boot-bg: #f3e1cd;
-        --zlp-boot-fg: #17202a;
-        --zlp-boot-accent: #0d9488;
+        --zlp-boot-bg: var(--ank-bgColor, #f8fafc);
+        --zlp-boot-fg: var(--ank-textColor, #17202a);
+        --zlp-boot-accent: var(--ank-accentColor, #0d9488);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --zlp-boot-bg: var(--ank-bgColor, #11161d);
+          --zlp-boot-fg: var(--ank-textColor, #edf3f8);
+          --zlp-boot-accent: var(--ank-accentColor, #25d366);
+        }
+      }
+
+      :root[data-zlp-boot-theme="light"] {
+        --zlp-boot-bg: var(--ank-bgColor, #f8fafc);
+        --zlp-boot-fg: var(--ank-textColor, #17202a);
+        --zlp-boot-accent: var(--ank-accentColor, #0d9488);
+      }
+
+      :root[data-zlp-boot-theme="dark"] {
+        --zlp-boot-bg: var(--ank-bgColor, #11161d);
+        --zlp-boot-fg: var(--ank-textColor, #edf3f8);
+        --zlp-boot-accent: var(--ank-accentColor, #25d366);
       }
 
       .zlp-boot-curtain {
@@ -38,19 +58,17 @@
         position: absolute;
         top: 0;
         bottom: 0;
-        width: 50%;
+        width: calc(50% + 1px);
         background: var(--zlp-boot-bg);
         transition: transform 420ms cubic-bezier(0.77, 0, 0.175, 1);
       }
 
       .zlp-boot-curtain::before {
         left: 0;
-        border-right: 1px solid color-mix(in srgb, var(--zlp-boot-accent) 42%, transparent);
       }
 
       .zlp-boot-curtain::after {
         right: 0;
-        border-left: 1px solid color-mix(in srgb, var(--zlp-boot-accent) 42%, transparent);
       }
 
       .zlp-boot-curtain__content {
@@ -141,6 +159,52 @@
       }
     </style>
     <script>
+      (function () {
+        function token(value) {
+          return String(value || "")
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "");
+        }
+
+        function resolveTheme(value) {
+          var theme = String(value || "").trim().toLowerCase();
+          if (theme === "auto") {
+            return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          }
+          return theme === "light" || theme === "dark" ? theme : "";
+        }
+
+        try {
+          var params = new URLSearchParams(window.location.search || "");
+          var isLocal = /^(localhost|127\.0\.0\.1|::1)$/i.test(window.location.hostname || "");
+          var canUseDraftParam = isLocal || String(window.location.hostname || "").toLowerCase() === "test.zoolandingpage.com.mx";
+          var draftDomain = params.get("draftDomain");
+          var namespace = token(draftDomain && canUseDraftParam ? draftDomain : window.location.hostname) || "app";
+          var theme = resolveTheme(window.localStorage.getItem(namespace + ":theme"));
+
+          if (!theme && window.localStorage) {
+            for (var i = 0; i < window.localStorage.length; i += 1) {
+              var key = window.localStorage.key(i) || "";
+              if (key.indexOf(namespace + ":") === 0 && /theme$/i.test(key)) {
+                theme = resolveTheme(window.localStorage.getItem(key));
+                if (theme) break;
+              }
+            }
+          }
+
+          if (!theme) {
+            theme = resolveTheme(window.localStorage.getItem("app:theme"));
+          }
+
+          if (theme) {
+            document.documentElement.setAttribute("data-zlp-boot-theme", theme);
+          }
+        } catch {
+          // Keep CSS media-query fallback when storage is unavailable.
+        }
+      })();
       window.__ZLP_BOOT_CURTAIN_STARTED_AT__ = performance.now();
     </script>
   </head>
