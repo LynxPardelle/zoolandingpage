@@ -24,7 +24,27 @@
         "sessionId": { "type": "string", "minLength": 1 },
         "allowAnalytics": { "type": "string", "minLength": 1 },
         "analyticsConsentSnooze": { "type": "string", "minLength": 1 },
+        "adAttribution": { "type": "string", "minLength": 1 },
         "pageViewCount": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "environmentGate": {
+      "type": "object",
+      "properties": {
+        "local": { "type": "boolean" },
+        "test": { "type": "boolean" },
+        "production": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "siteEnvironmentConfig": {
+      "type": "object",
+      "properties": {
+        "aliases": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
       },
       "additionalProperties": false
     },
@@ -66,6 +86,96 @@
       },
       "additionalProperties": false
     },
+    "googleTagConversion": {
+      "type": "object",
+      "properties": {
+        "sendTo": { "type": "string", "pattern": "^AW-[A-Z0-9_-]+/[A-Za-z0-9_-]+$" },
+        "adsId": { "type": "string", "pattern": "^AW-[A-Z0-9_-]+$" },
+        "label": { "type": "string", "minLength": 1 },
+        "value": { "type": "number" },
+        "currency": { "type": "string", "minLength": 1 }
+      },
+      "anyOf": [{ "required": ["sendTo"] }, { "required": ["adsId", "label"] }],
+      "additionalProperties": false
+    },
+    "googleTagConversionValue": {
+      "anyOf": [
+        { "type": "string", "pattern": "^AW-[A-Z0-9_-]+/[A-Za-z0-9_-]+$" },
+        { "$ref": "#/definitions/googleTagConversion" },
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/googleTagConversion" }
+        }
+      ]
+    },
+    "googleTagEventMapping": {
+      "anyOf": [
+        { "type": "string", "minLength": 1 },
+        {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "params": {
+              "type": "object",
+              "propertyNames": { "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$" },
+              "additionalProperties": {
+                "anyOf": [
+                  { "type": "string", "minLength": 1, "maxLength": 200 },
+                  { "type": "number" },
+                  { "type": "boolean" }
+                ]
+              }
+            },
+            "conversions": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/googleTagConversion" }
+            }
+          },
+          "anyOf": [{ "required": ["name"] }, { "required": ["params"] }, { "required": ["conversions"] }],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "googleTagAttribution": {
+      "type": "object",
+      "properties": {
+        "storage": { "type": "string", "enum": ["session", "local"] },
+        "ttlDays": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "googleTagConfig": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "environments": { "$ref": "#/definitions/environmentGate" },
+        "measurementIds": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^(G|GT)-[A-Z0-9_-]+$" }
+        },
+        "ga4Ids": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^(G|GT)-[A-Z0-9_-]+$" }
+        },
+        "adsIds": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^AW-[A-Z0-9_-]+$" }
+        },
+        "gtmId": { "type": "string", "pattern": "^GTM-[A-Z0-9_-]+$" },
+        "sendPageView": { "type": "boolean" },
+        "attribution": { "$ref": "#/definitions/googleTagAttribution" },
+        "events": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/definitions/googleTagEventMapping" }
+        },
+        "conversions": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/definitions/googleTagConversionValue" }
+        }
+      },
+      "additionalProperties": false
+    },
     "analyticsRuntime": {
       "type": "object",
       "properties": {
@@ -84,6 +194,7 @@
           "additionalProperties": { "type": "string" }
         },
         "quickStats": { "$ref": "#/definitions/analyticsQuickStats" },
+        "googleTag": { "$ref": "#/definitions/googleTagConfig" },
         "track": {
           "type": "array",
           "items": {
@@ -364,6 +475,8 @@
         "title": { "type": "string" },
         "description": { "type": "string" },
         "canonicalOrigin": { "type": "string" },
+        "enforceCanonicalHost": { "type": "boolean" },
+        "forceHttps": { "type": "boolean" },
         "defaultImage": { "type": "string" },
         "openGraph": {
           "type": "object",
@@ -374,6 +487,35 @@
           "additionalProperties": true
         }
       },
+      "additionalProperties": false
+    },
+    "searchConsoleHtmlFile": {
+      "type": "object",
+      "required": ["path", "content"],
+      "properties": {
+        "path": { "type": "string", "pattern": "^/google[^/]*\\.html$" },
+        "content": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "searchConsoleConfig": {
+      "type": "object",
+      "properties": {
+        "googleSiteVerification": { "type": "string", "minLength": 1 },
+        "htmlFile": { "$ref": "#/definitions/searchConsoleHtmlFile" },
+        "environments": { "$ref": "#/definitions/environmentGate" }
+      },
+      "anyOf": [{ "required": ["googleSiteVerification"] }, { "required": ["htmlFile"] }],
+      "additionalProperties": false
+    },
+    "hostOverrideConfig": {
+      "type": "object",
+      "properties": {
+        "seo": { "$ref": "#/definitions/siteSeoConfig" },
+        "searchConsole": { "$ref": "#/definitions/searchConsoleConfig" },
+        "googleTag": { "$ref": "#/definitions/googleTagConfig" }
+      },
+      "anyOf": [{ "required": ["seo"] }, { "required": ["searchConsole"] }, { "required": ["googleTag"] }],
       "additionalProperties": false
     },
     "draftContactConfig": {
@@ -459,7 +601,17 @@
         "appIdentity": { "$ref": "#/definitions/appIdentityConfig" },
         "theme": { "$ref": "#/definitions/themeConfig" },
         "i18n": { "$ref": "#/definitions/draftI18nConfig" },
-        "seo": { "$ref": "#/definitions/siteSeoConfig" }
+        "seo": { "$ref": "#/definitions/siteSeoConfig" },
+        "searchConsole": { "$ref": "#/definitions/searchConsoleConfig" },
+        "hostOverrides": {
+          "type": "object",
+          "patternProperties": {
+            "^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)*[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$": {
+              "$ref": "#/definitions/hostOverrideConfig"
+            }
+          },
+          "additionalProperties": false
+        }
       },
       "additionalProperties": false
     },
@@ -496,6 +648,19 @@
   "properties": {
     "version": { "type": "integer", "minimum": 1 },
     "domain": { "type": "string", "minLength": 1 },
+    "aliases": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "environments": {
+      "type": "object",
+      "properties": {
+        "local": { "$ref": "#/definitions/siteEnvironmentConfig" },
+        "test": { "$ref": "#/definitions/siteEnvironmentConfig" },
+        "production": { "$ref": "#/definitions/siteEnvironmentConfig" }
+      },
+      "additionalProperties": false
+    },
     "defaultPageId": { "type": "string" },
     "notFoundPageId": { "type": "string" },
     "routes": {

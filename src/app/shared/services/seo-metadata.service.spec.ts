@@ -338,4 +338,142 @@ describe('SeoMetadataService', () => {
         expect(seoDoc.head.querySelector('link[rel="canonical"]')?.getAttribute('href'))
             .toBe('https://pokeapi-demo.zoolandingpage.com.mx/pokemon?name=charizard');
     });
+
+    it('strips ad query parameters from canonicals and emits hreflang links for supported languages', () => {
+        TestBed.resetTestingModule();
+
+        title = jasmine.createSpyObj<Title>('Title', ['setTitle']);
+        meta = jasmine.createSpyObj<Meta>('Meta', ['updateTag', 'removeTag']);
+
+        const baseDoc = document.implementation.createHTMLDocument('seo');
+        const seoDoc = {
+            documentElement: baseDoc.documentElement,
+            head: baseDoc.head,
+            createElement: baseDoc.createElement.bind(baseDoc),
+            defaultView: {
+                location: {
+                    origin: 'https://zoositioweb.com.mx',
+                    pathname: '/contacto',
+                    search: '?gclid=test&utm_source=google&utm_campaign=spring&ref=keep',
+                },
+            },
+        } as unknown as Document;
+
+        TestBed.configureTestingModule({
+            providers: [
+                SeoMetadataService,
+                VariableStoreService,
+                { provide: DOCUMENT, useValue: seoDoc },
+                { provide: Title, useValue: title },
+                { provide: Meta, useValue: meta },
+                {
+                    provide: DomainResolverService,
+                    useValue: {
+                        resolveDomain: () => ({ domain: 'zoositioweb.com.mx' }),
+                    },
+                },
+                {
+                    provide: RuntimeConfigService,
+                    useValue: {
+                        seoDefaults: () => ({
+                            siteName: 'Zoosite',
+                            canonicalOrigin: 'https://zoositioweb.com.mx',
+                        }),
+                        appName: () => 'Zoosite',
+                        appDescription: () => 'Sitios web medibles.',
+                    },
+                },
+            ],
+        });
+
+        service = TestBed.inject(SeoMetadataService);
+        variables = TestBed.inject(VariableStoreService);
+        variables.setPayload(null, {
+            version: 1,
+            domain: 'zoositioweb.com.mx',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: {
+                appIdentity: { identifier: 'zoosite', name: 'Zoosite' },
+                theme: { palettes: {} },
+                i18n: {
+                    defaultLanguage: 'es',
+                    supportedLanguages: ['es', 'en'],
+                },
+            },
+        } as never);
+
+        service.apply('es', {
+            title: 'Contacto',
+            description: 'Contacto por WhatsApp.',
+            canonical: 'https://zoositioweb.com.mx/contacto?gclid=test&utm_source=google&ref=keep',
+        } as never);
+
+        expect(seoDoc.head.querySelector('link[rel="canonical"]')?.getAttribute('href'))
+            .toBe('https://zoositioweb.com.mx/contacto?ref=keep');
+        expect(seoDoc.head.querySelector('link[rel="alternate"][hreflang="es"]')?.getAttribute('href'))
+            .toBe('https://zoositioweb.com.mx/contacto?ref=keep&lang=es');
+        expect(seoDoc.head.querySelector('link[rel="alternate"][hreflang="en"]')?.getAttribute('href'))
+            .toBe('https://zoositioweb.com.mx/contacto?ref=keep&lang=en');
+        expect(seoDoc.head.querySelector('link[rel="alternate"][hreflang="x-default"]')?.getAttribute('href'))
+            .toBe('https://zoositioweb.com.mx/contacto?ref=keep&lang=es');
+    });
+
+    it('rebases absolute page canonicals to the active canonical host when enforced', () => {
+        TestBed.resetTestingModule();
+
+        title = jasmine.createSpyObj<Title>('Title', ['setTitle']);
+        meta = jasmine.createSpyObj<Meta>('Meta', ['updateTag', 'removeTag']);
+
+        const baseDoc = document.implementation.createHTMLDocument('seo');
+        const seoDoc = {
+            documentElement: baseDoc.documentElement,
+            head: baseDoc.head,
+            createElement: baseDoc.createElement.bind(baseDoc),
+            defaultView: {
+                location: {
+                    origin: 'https://sitiosweb.zoolandingpage.com.mx',
+                    pathname: '/contacto',
+                    search: '?gclid=test',
+                },
+            },
+        } as unknown as Document;
+
+        TestBed.configureTestingModule({
+            providers: [
+                SeoMetadataService,
+                VariableStoreService,
+                { provide: DOCUMENT, useValue: seoDoc },
+                { provide: Title, useValue: title },
+                { provide: Meta, useValue: meta },
+                {
+                    provide: DomainResolverService,
+                    useValue: {
+                        resolveDomain: () => ({ domain: 'sitiosweb.zoolandingpage.com.mx' }),
+                    },
+                },
+                {
+                    provide: RuntimeConfigService,
+                    useValue: {
+                        seoDefaults: () => ({
+                            siteName: 'Zoosite alias',
+                            canonicalOrigin: 'https://sitiosweb.zoolandingpage.com.mx',
+                            enforceCanonicalHost: true,
+                        }),
+                        appName: () => 'Zoosite alias',
+                        appDescription: () => 'Sitios web medibles.',
+                    },
+                },
+            ],
+        });
+
+        service = TestBed.inject(SeoMetadataService);
+        service.apply('es', {
+            title: 'Contacto',
+            description: 'Contacto por WhatsApp.',
+            canonical: 'https://zoositioweb.com.mx/contacto?utm_source=google&ref=keep',
+        } as never);
+
+        expect(seoDoc.head.querySelector('link[rel="canonical"]')?.getAttribute('href'))
+            .toBe('https://sitiosweb.zoolandingpage.com.mx/contacto?ref=keep');
+    });
 });

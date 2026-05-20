@@ -360,10 +360,11 @@ describe('whatsapp handlers', () => {
         openSpy = spyOn(window, 'open').and.returnValue(null);
     });
 
-    it('should resolve the WhatsApp destination from draft variables', () => {
+    it('should resolve the WhatsApp destination from draft variables', async () => {
         const handler = TestBed.runInInjectionContext(() => openWhatsAppHandler());
 
         handler.handle(context, [AnalyticsEvents.CtaClick, 'hero', undefined]);
+        await Promise.resolve();
 
         expect(openSpy).toHaveBeenCalledOnceWith(
             'https://wa.me/525522699563?text=Hola%20desde%20WhatsApp',
@@ -387,7 +388,7 @@ describe('whatsapp handlers', () => {
         expect(openSpy).not.toHaveBeenCalled();
     });
 
-    it('should still open the WhatsApp phone link when the general CTA omits its configured message key', () => {
+    it('should still open the WhatsApp phone link when the general CTA omits its configured message key', async () => {
         variables.setPayload({
             version: 1,
             pageId: 'default',
@@ -404,9 +405,31 @@ describe('whatsapp handlers', () => {
         const handler = TestBed.runInInjectionContext(() => openWhatsAppHandler());
 
         handler.handle(context, [AnalyticsEvents.CtaClick, 'hero', undefined]);
+        await Promise.resolve();
 
         expect(openSpy).toHaveBeenCalledOnceWith(
             'https://wa.me/525522699563',
+            '_blank',
+            'noopener,noreferrer'
+        );
+    });
+
+    it('waits for WhatsApp analytics to resolve before opening the destination', async () => {
+        let resolveTrack: (() => void) | undefined;
+        analytics.track.and.returnValue(new Promise<void>((resolve) => {
+            resolveTrack = resolve;
+        }));
+        const handler = TestBed.runInInjectionContext(() => openWhatsAppHandler());
+
+        handler.handle(context, [AnalyticsEvents.WhatsAppClick, 'floating-mobile', undefined]);
+
+        expect(openSpy).not.toHaveBeenCalled();
+
+        resolveTrack?.();
+        await Promise.resolve();
+
+        expect(openSpy).toHaveBeenCalledOnceWith(
+            'https://wa.me/525522699563?text=Hola%20desde%20WhatsApp',
             '_blank',
             'noopener,noreferrer'
         );
@@ -434,10 +457,11 @@ describe('whatsapp handlers', () => {
         expect(openSpy).not.toHaveBeenCalled();
     });
 
-    it('should reuse the configured phone for FAQ CTA events', () => {
+    it('should reuse the configured phone for FAQ CTA events', async () => {
         const handler = TestBed.runInInjectionContext(() => openFaqCtaWhatsAppHandler());
 
         handler.handle(context, []);
+        await Promise.resolve();
 
         expect(openSpy).toHaveBeenCalledOnceWith(
             'https://wa.me/525522699563?text=Preguntas%20frecuentes',

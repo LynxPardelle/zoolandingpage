@@ -4,9 +4,12 @@ import type {
     TDraftAnalyticsRuntimeConfig,
     TDraftAppIdentityVariableConfig,
     TDraftFeatureRuntimeConfig,
+    TDraftHostOverrideConfig,
     TDraftLocalStorageRuntimeConfig,
     TDraftLocalStorageSlot,
     TDraftSiteSeoConfig,
+    TGoogleTagConfig,
+    TResolvedAnalyticsConfig,
 } from '@/app/shared/types/config-payloads.types';
 import { computed, inject, Injectable } from '@angular/core';
 import { ConfigStoreService } from './config-store.service';
@@ -35,7 +38,18 @@ export class RuntimeConfigService {
 
     readonly siteRuntime = computed(() => this.configStore.siteConfig()?.runtime ?? null);
     readonly appIdentity = computed<TDraftAppIdentityVariableConfig | null>(() => this.variableStore.appIdentity());
-    readonly siteSeo = computed<TDraftSiteSeoConfig | null>(() => this.configStore.siteConfig()?.site?.seo ?? null);
+    readonly hostOverride = computed<TDraftHostOverrideConfig | null>(() => {
+        const host = this.normalizeHost(this.domainResolver.resolveDomain().domain);
+        const overrides = this.configStore.siteConfig()?.site?.hostOverrides;
+        if (!host || !overrides) {
+            return null;
+        }
+
+        return Object.entries(overrides).find(([entryHost]) => this.normalizeHost(entryHost) === host)?.[1] ?? null;
+    });
+    readonly siteSeo = computed<TDraftSiteSeoConfig | null>(() =>
+        this.mergeSeoConfig(this.configStore.siteConfig()?.site?.seo, this.hostOverride()?.seo)
+    );
     readonly brand = computed(() => this.variableStore.brand());
     readonly heroAssets = computed(() => this.variableStore.heroAssets());
     readonly ctaTargets = computed(() => this.variableStore.ctaTargets());
@@ -46,11 +60,18 @@ export class RuntimeConfigService {
         ...DEFAULT_FEATURES,
         ...(this.siteRuntime()?.features ?? {}),
     }));
-    readonly analytics = computed(() => ({
-        ...DEFAULT_ANALYTICS,
-        ...(this.siteRuntime()?.analytics ?? {}),
-        ...(this.configStore.analytics() ?? {}),
-    }));
+    readonly analytics = computed(() => {
+        const siteAnalytics: TDraftAnalyticsRuntimeConfig = this.siteRuntime()?.analytics ?? {};
+        const loadedAnalytics: TResolvedAnalyticsConfig | null = this.configStore.analytics();
+        const siteGoogleTag = this.mergeGoogleTagConfig(siteAnalytics.googleTag, this.hostOverride()?.googleTag);
+        const googleTag = this.mergeGoogleTagConfig(siteGoogleTag, loadedAnalytics?.googleTag);
+        return {
+            ...DEFAULT_ANALYTICS,
+            ...siteAnalytics,
+            ...(loadedAnalytics ?? {}),
+            googleTag,
+        };
+    });
     readonly track = computed<readonly TTrackOptions[]>(() => {
         const value = this.analytics().track;
         return Array.isArray(value) ? value : [];
@@ -104,6 +125,62 @@ export class RuntimeConfigService {
 
     private cleanString(value: unknown): string {
         return typeof value === 'string' ? value.trim() : '';
+    }
+
+    private normalizeHost(value: unknown): string {
+        return this.cleanString(value).toLowerCase().replace(/:\d+$/, '');
+    }
+
+    private mergeSeoConfig(
+        base: TDraftSiteSeoConfig | null | undefined,
+        override: TDraftSiteSeoConfig | null | undefined,
+    ): TDraftSiteSeoConfig | null {
+        if (!base && !override) {
+            return null;
+        }
+
+        return {
+            ...(base ?? {}),
+            ...(override ?? {}),
+            openGraph: {
+                ...(base?.openGraph ?? {}),
+                ...(override?.openGraph ?? {}),
+            },
+            twitter: {
+                ...(base?.twitter ?? {}),
+                ...(override?.twitter ?? {}),
+            },
+        };
+    }
+
+    private mergeGoogleTagConfig(
+        base: TGoogleTagConfig | null | undefined,
+        override: TGoogleTagConfig | null | undefined,
+    ): TGoogleTagConfig | undefined {
+        if (!base && !override) {
+            return undefined;
+        }
+
+        return {
+            ...(base ?? {}),
+            ...(override ?? {}),
+            environments: {
+                ...(base?.environments ?? {}),
+                ...(override?.environments ?? {}),
+            },
+            attribution: {
+                ...(base?.attribution ?? {}),
+                ...(override?.attribution ?? {}),
+            },
+            events: {
+                ...(base?.events ?? {}),
+                ...(override?.events ?? {}),
+            },
+            conversions: {
+                ...(base?.conversions ?? {}),
+                ...(override?.conversions ?? {}),
+            },
+        };
     }
 
     private sanitizeIdentifier(value: unknown): string {

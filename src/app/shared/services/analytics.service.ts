@@ -14,6 +14,7 @@ import { ToastService } from '../components/generic-toast';
 import { TAnalyticsEvent, TDataDropResponse, TExpandedAnalytics } from '../types/analytics.type';
 import { AnalyticsCategories, AnalyticsEvents } from './analytics.events';
 import { ConfigStoreService } from './config-store.service';
+import { GoogleTagService } from './google-tag.service';
 import { RuntimeConfigService } from './runtime-config.service';
 
 import { QuickStatsService } from './quick-stats.service';
@@ -34,6 +35,7 @@ export class AnalyticsService {
   private readonly configStore = inject(ConfigStoreService);
   private readonly runtimeConfig = inject(RuntimeConfigService);
   private readonly quickStats = inject(QuickStatsService);
+  private readonly googleTag = inject(GoogleTagService);
   private readonly events$ = new ReplaySubject<TAnalyticsEvent>(this.debugEventReplaySize);
   private trackingTeardowns: Array<() => void> = [];
   private hasPermission: boolean = false;
@@ -397,6 +399,9 @@ export class AnalyticsService {
     }
 
     this.runtimeStateInitialized = true;
+    if (this.canUseGoogleTag()) {
+      this.googleTag.initialize();
+    }
     this.initializePersistentCounters();
     this.promptForConsentIfNeeded();
   }
@@ -468,6 +473,9 @@ export class AnalyticsService {
     this.buffer.push(evt);
     this.events$.next(evt);
     /* console.log('buffer:', this.buffer); */
+    if (this.canUseGoogleTag()) {
+      await this.googleTag.forwardEvent(evt);
+    }
     if (!this.isRemoteAnalyticsEnabled()) return;
 
     // Respect a persisted decline decision: do not queue or prompt.
@@ -533,6 +541,26 @@ export class AnalyticsService {
 
   private isRemoteAnalyticsEnabled(): boolean {
     return this.runtimeConfig.isAnalyticsEnabled() && !this.isAutomatedAuditUserAgent();
+  }
+
+  private canUseGoogleTag(): boolean {
+    if (this.isAutomatedAuditUserAgent()) {
+      return false;
+    }
+
+    if (this.runtimeConfig.analyticsConsentMode() === 'none') {
+      return true;
+    }
+
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const stored = localStorage.getItem(this.storageKey('allowAnalytics'));
+        if (stored === 'false') return false;
+        if (stored === 'true') return true;
+      }
+    } catch { }
+
+    return this.hasPermission;
   }
 
   private isAutomatedAuditUserAgent(): boolean {
@@ -713,6 +741,7 @@ export class AnalyticsService {
         const queue = [...this.pendingQueue];
         this.pendingQueue = [];
         for (const evt of queue) {
+          await this.googleTag.forwardEvent(evt);
           await this.parseSend(evt);
         }
       }

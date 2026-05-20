@@ -12,8 +12,10 @@ import type {
     TConfigVersionPointer,
     TDraftAnalyticsRuntimeConfig,
     TDraftAppIdentityVariableConfig,
+    TDraftEnvironmentGateConfig,
     TDraftContactVariableConfig,
     TDraftFeatureRuntimeConfig,
+    TDraftHostOverrideConfig,
     TDraftLoadingCurtainUiConfig,
     TDraftLanguageDefinition,
     TDraftLocalStorageRuntimeConfig,
@@ -21,6 +23,7 @@ import type {
     TDraftModalUiConfig,
     TDraftSiteConfigPayload,
     TDraftSiteDefaultsConfig,
+    TDraftSiteEnvironmentConfig,
     TDraftSiteRuntimeConfig,
     TDraftSiteSeoConfig,
     TDraftSiteSharedConfig,
@@ -36,7 +39,12 @@ import type {
     TRuntimeDataSourceMapperConfig,
     TRuntimeDataSourceRefreshConfig,
     TSeoPayload,
+    TSearchConsoleConfig,
     TSiteLifecycleConfig,
+    TGoogleTagConfig,
+    TGoogleTagConversionConfig,
+    TGoogleTagConversionValue,
+    TGoogleTagEventMappingValue,
     TStructuredDataPayload,
     TVariablesPayload,
 } from '@/app/shared/types/config-payloads.types';
@@ -85,8 +93,14 @@ const ALLOWED_LOCAL_STORAGE_SLOTS = new Set<TDraftLocalStorageSlot>([
     'sessionId',
     'allowAnalytics',
     'analyticsConsentSnooze',
+    'adAttribution',
     'pageViewCount',
 ]);
+
+const ALLOWED_RUNTIME_ENVIRONMENTS = new Set(['local', 'test', 'production']);
+const GOOGLE_MEASUREMENT_ID_PATTERN = /^(?:G|GT)-[A-Z0-9_-]+$/;
+const GOOGLE_ADS_ID_PATTERN = /^AW-[A-Z0-9_-]+$/;
+const GOOGLE_TAG_MANAGER_ID_PATTERN = /^GTM-[A-Z0-9_-]+$/;
 
 const ALLOWED_COMPONENT_TYPES = new Set([
     'accordion',
@@ -436,12 +450,40 @@ const isDraftSiteSeoConfig = (value: unknown): value is TDraftSiteSeoConfig => {
     if (value['title'] !== undefined && typeof value['title'] !== 'string') return false;
     if (value['description'] !== undefined && typeof value['description'] !== 'string') return false;
     if (value['canonicalOrigin'] !== undefined && typeof value['canonicalOrigin'] !== 'string') return false;
+    if (value['enforceCanonicalHost'] !== undefined && typeof value['enforceCanonicalHost'] !== 'boolean') return false;
+    if (value['forceHttps'] !== undefined && typeof value['forceHttps'] !== 'boolean') return false;
     if (value['defaultImage'] !== undefined && typeof value['defaultImage'] !== 'string') return false;
     if (value['openGraph'] !== undefined && !isRecord(value['openGraph'])) return false;
     if (value['twitter'] !== undefined && !isRecord(value['twitter'])) return false;
     if (value['keywords'] !== undefined && !isLocalizedKeywordValue(value['keywords'])) return false;
     if (value['robots'] !== undefined && typeof value['robots'] !== 'string' && !isStringRecord(value['robots'])) return false;
     return true;
+};
+
+const isEnvironmentGateConfig = (value: unknown): value is TDraftEnvironmentGateConfig => {
+    if (!isRecord(value)) return false;
+    return Object.entries(value).every(([key, entry]) =>
+        ALLOWED_RUNTIME_ENVIRONMENTS.has(key)
+        && typeof entry === 'boolean'
+    );
+};
+
+const isSearchConsoleConfig = (value: unknown): value is TSearchConsoleConfig => {
+    if (!isRecord(value)) return false;
+    if (value['googleSiteVerification'] !== undefined
+        && (typeof value['googleSiteVerification'] !== 'string' || value['googleSiteVerification'].trim().length === 0)) return false;
+    if (value['environments'] !== undefined && !isEnvironmentGateConfig(value['environments'])) return false;
+
+    const htmlFile = value['htmlFile'];
+    if (htmlFile !== undefined) {
+        if (!isRecord(htmlFile)) return false;
+        const filePath = String(htmlFile['path'] ?? '').trim();
+        const content = String(htmlFile['content'] ?? '').trim();
+        if (!/^\/google[^/]*\.html$/i.test(filePath)) return false;
+        if (!content) return false;
+    }
+
+    return value['googleSiteVerification'] !== undefined || value['htmlFile'] !== undefined;
 };
 
 const isAnalyticsQuickStatsEventConfig = (value: unknown): value is TAnalyticsQuickStatsEventConfig => {
@@ -472,6 +514,105 @@ const isAnalyticsQuickStatsConfig = (value: unknown): value is TAnalyticsQuickSt
     return true;
 };
 
+const isStringArrayMatching = (value: unknown, pattern: RegExp): value is readonly string[] =>
+    Array.isArray(value)
+    && value.every((entry) => typeof entry === 'string' && pattern.test(entry.trim()));
+
+const isGoogleTagConversionConfig = (value: unknown): value is TGoogleTagConversionConfig => {
+    if (typeof value === 'string') return /^AW-[A-Z0-9_-]+\/[A-Za-z0-9_-]+$/.test(value.trim());
+    if (!isRecord(value)) return false;
+
+    const sendTo = String(value['sendTo'] ?? '').trim();
+    const adsId = String(value['adsId'] ?? '').trim();
+    const label = String(value['label'] ?? '').trim();
+    if (sendTo) {
+        if (!/^AW-[A-Z0-9_-]+\/[A-Za-z0-9_-]+$/.test(sendTo)) return false;
+    } else if (!GOOGLE_ADS_ID_PATTERN.test(adsId) || !label) {
+        return false;
+    }
+
+    if (value['value'] !== undefined && (typeof value['value'] !== 'number' || !Number.isFinite(value['value']))) return false;
+    if (value['currency'] !== undefined && (typeof value['currency'] !== 'string' || value['currency'].trim().length === 0)) return false;
+    return true;
+};
+
+const isGoogleTagConversionValue = (value: unknown): value is TGoogleTagConversionValue => {
+    if (Array.isArray(value)) {
+        return value.length > 0 && value.every(isGoogleTagConversionConfig);
+    }
+
+    return isGoogleTagConversionConfig(value);
+};
+
+const isGoogleTagEventMappingValue = (value: unknown): value is TGoogleTagEventMappingValue => {
+    if (typeof value === 'string') return value.trim().length > 0;
+    if (!isRecord(value)) return false;
+    if (value['name'] !== undefined && (typeof value['name'] !== 'string' || value['name'].trim().length === 0)) return false;
+    if (value['params'] !== undefined && !isGoogleTagEventParams(value['params'])) return false;
+    if (value['conversions'] !== undefined
+        && (!Array.isArray(value['conversions']) || !value['conversions'].every(isGoogleTagConversionConfig))) return false;
+    return value['name'] !== undefined || value['params'] !== undefined || value['conversions'] !== undefined;
+};
+
+const isGoogleTagEventParams = (value: unknown): value is Record<string, string | number | boolean> => {
+    if (!isRecord(value)) return false;
+    return Object.entries(value).every(([key, entry]) =>
+        /^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(key)
+        && (typeof entry === 'string' || typeof entry === 'number' || typeof entry === 'boolean')
+        && (typeof entry !== 'number' || Number.isFinite(entry))
+        && (typeof entry !== 'string' || (entry.trim().length > 0 && entry.trim().length <= 200 && !/@/.test(entry) && !/^https?:\/\//i.test(entry)))
+    );
+};
+
+const isGoogleTagConfig = (value: unknown): value is TGoogleTagConfig => {
+    if (!isRecord(value)) return false;
+    if (value['enabled'] !== undefined && typeof value['enabled'] !== 'boolean') return false;
+    if (value['environments'] !== undefined && !isEnvironmentGateConfig(value['environments'])) return false;
+    if (value['measurementIds'] !== undefined && !isStringArrayMatching(value['measurementIds'], GOOGLE_MEASUREMENT_ID_PATTERN)) return false;
+    if (value['ga4Ids'] !== undefined && !isStringArrayMatching(value['ga4Ids'], GOOGLE_MEASUREMENT_ID_PATTERN)) return false;
+    if (value['adsIds'] !== undefined && !isStringArrayMatching(value['adsIds'], GOOGLE_ADS_ID_PATTERN)) return false;
+    if (value['gtmId'] !== undefined
+        && (typeof value['gtmId'] !== 'string' || !GOOGLE_TAG_MANAGER_ID_PATTERN.test(value['gtmId'].trim()))) return false;
+    if (value['sendPageView'] !== undefined && typeof value['sendPageView'] !== 'boolean') return false;
+    if (value['attribution'] !== undefined) {
+        if (!isRecord(value['attribution'])) return false;
+        if (value['attribution']['storage'] !== undefined
+            && value['attribution']['storage'] !== 'session'
+            && value['attribution']['storage'] !== 'local') return false;
+        if (value['attribution']['ttlDays'] !== undefined
+            && (typeof value['attribution']['ttlDays'] !== 'number' || !Number.isFinite(value['attribution']['ttlDays']) || value['attribution']['ttlDays'] < 0)) return false;
+    }
+    if (value['events'] !== undefined
+        && (!isRecord(value['events']) || !Object.values(value['events']).every(isGoogleTagEventMappingValue))) return false;
+    if (value['conversions'] !== undefined
+        && (!isRecord(value['conversions']) || !Object.values(value['conversions']).every(isGoogleTagConversionValue))) return false;
+
+    return true;
+};
+
+const isHostOverrideKey = (value: unknown): boolean => {
+    const host = String(value ?? '').trim().toLowerCase();
+    return host.length > 0
+        && host.length <= 253
+        && !host.includes(':')
+        && /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(host);
+};
+
+const isDraftHostOverrideConfig = (value: unknown): value is TDraftHostOverrideConfig => {
+    if (!isRecord(value)) return false;
+    if (value['seo'] !== undefined && !isDraftSiteSeoConfig(value['seo'])) return false;
+    if (value['searchConsole'] !== undefined && !isSearchConsoleConfig(value['searchConsole'])) return false;
+    if (value['googleTag'] !== undefined && !isGoogleTagConfig(value['googleTag'])) return false;
+    return value['seo'] !== undefined || value['searchConsole'] !== undefined || value['googleTag'] !== undefined;
+};
+
+const isDraftHostOverrideMap = (value: unknown): value is Record<string, TDraftHostOverrideConfig> => {
+    if (!isRecord(value)) return false;
+    return Object.entries(value).every(([host, config]) =>
+        isHostOverrideKey(host) && isDraftHostOverrideConfig(config)
+    );
+};
+
 const isDraftAnalyticsRuntimeConfig = (value: unknown): value is TDraftAnalyticsRuntimeConfig => {
     if (!isRecord(value)) return false;
     if (value['enabled'] !== undefined && typeof value['enabled'] !== 'boolean') return false;
@@ -485,6 +626,7 @@ const isDraftAnalyticsRuntimeConfig = (value: unknown): value is TDraftAnalytics
     if (value['events'] !== undefined && !isStringRecord(value['events'])) return false;
     if (value['categories'] !== undefined && !isStringRecord(value['categories'])) return false;
     if (value['quickStats'] !== undefined && !isAnalyticsQuickStatsConfig(value['quickStats'])) return false;
+    if (value['googleTag'] !== undefined && !isGoogleTagConfig(value['googleTag'])) return false;
     if (value['track'] !== undefined
         && (!Array.isArray(value['track'])
             || !value['track'].every((entry) => typeof entry === 'string' && ALLOWED_TRACK_OPTIONS.has(entry as TTrackOptions)))) {
@@ -1378,6 +1520,8 @@ const isDraftSiteSharedConfig = (value: unknown): value is TDraftSiteSharedConfi
     if (!isThemeVariableConfig(value['theme'])) return false;
     if (!isDraftI18nVariableConfig(value['i18n'])) return false;
     if (value['seo'] !== undefined && !isDraftSiteSeoConfig(value['seo'])) return false;
+    if (value['searchConsole'] !== undefined && !isSearchConsoleConfig(value['searchConsole'])) return false;
+    if (value['hostOverrides'] !== undefined && !isDraftHostOverrideMap(value['hostOverrides'])) return false;
     return true;
 };
 
@@ -1430,6 +1574,19 @@ const isDraftToastUiConfig = (value: unknown): value is TDraftToastUiConfig => {
     return true;
 };
 
+const isDraftSiteEnvironmentConfig = (value: unknown): value is TDraftSiteEnvironmentConfig => {
+    if (!isRecord(value)) return false;
+    if (value['aliases'] !== undefined && !isStringArray(value['aliases'])) return false;
+    return true;
+};
+
+const isDraftSiteEnvironmentMap = (value: unknown): value is Record<string, TDraftSiteEnvironmentConfig> => {
+    if (!isRecord(value)) return false;
+    return Object.entries(value).every(([environment, config]) =>
+        ALLOWED_RUNTIME_ENVIRONMENTS.has(environment) && isDraftSiteEnvironmentConfig(config)
+    );
+};
+
 export const isThemeVariableConfig = (value: unknown): value is TThemeVariableConfig => {
     if (!isRecord(value)) return false;
 
@@ -1465,6 +1622,7 @@ export const isDraftSiteConfigPayload = (value: unknown): value is TDraftSiteCon
     if (typeof value['version'] !== 'number') return false;
     if (typeof value['domain'] !== 'string') return false;
     if (value['aliases'] !== undefined && !isStringArray(value['aliases'])) return false;
+    if (value['environments'] !== undefined && !isDraftSiteEnvironmentMap(value['environments'])) return false;
     if (value['defaultPageId'] !== undefined && typeof value['defaultPageId'] !== 'string') return false;
     if (value['notFoundPageId'] !== undefined && typeof value['notFoundPageId'] !== 'string') return false;
     if (!Array.isArray(value['routes']) || !value['routes'].every(isDraftSiteRouteEntry)) return false;

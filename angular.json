@@ -51,6 +51,8 @@
                 "*.sulandingpage.com",
                 "zoositioweb.com.mx",
                 "*.zoositioweb.com.mx",
+                "zoositioweb.com",
+                "*.zoositioweb.com",
                 "test.zoositioweb.com.mx",
                 "*.zoolandingpage.com.mx",
                 "lynxpardelle.com",
@@ -109,7 +111,8 @@
               "localhost",
               "127.0.0.1",
               "zoositioweb.com.mx",
-              "test.zoositioweb.com.mx"
+              "test.zoositioweb.com.mx",
+              "zoositioweb.com"
             ]
           },
           "configurations": {

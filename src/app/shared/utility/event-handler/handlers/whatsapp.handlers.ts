@@ -16,6 +16,15 @@ const safeOpen = (url: string): void => {
     }
 };
 
+const openAfterAnalytics = (tracking: Promise<void> | null | undefined, url: string): void => {
+    if (!tracking) {
+        safeOpen(url);
+        return;
+    }
+
+    void tracking.finally(() => safeOpen(url));
+};
+
 const resolveWhatsAppPhone = (variables: VariableStoreService): string => {
     const raw = variables.get('ui.contact.whatsappPhone');
     return typeof raw === 'string' ? raw.trim() : '';
@@ -53,25 +62,26 @@ export const openWhatsAppHandler = (): EventHandler => {
 
             const isService = metaTitle === AnalyticsEvents.ServicesCtaClick;
             const comingFromServicesSection = location === 'services';
+            let tracking: Promise<void> | null = null;
 
             if (isService) {
                 if (!comingFromServicesSection || !!serviceLabel) {
                     const label = serviceLabel || 'whatsapp-button';
-                    void analytics.track(metaTitle, {
+                    tracking = analytics.track(metaTitle, {
                         category: AnalyticsCategories.CTA,
                         label,
                         meta: { location, via: 'whatsapp_button' },
                     });
                 }
             } else {
-                void analytics.track(metaTitle, {
+                tracking = analytics.track(metaTitle, {
                     category: AnalyticsCategories.CTA,
                     label: 'whatsapp-button',
                     meta: { location, forwardedFrom: serviceLabel || null },
                 });
             }
 
-            safeOpen(link);
+            openAfterAnalytics(tracking, link);
         },
     };
 };
@@ -84,17 +94,16 @@ export const openFaqCtaWhatsAppHandler = (): EventHandler => {
     return {
         id: 'openFaqCtaWhatsApp',
         handle: () => {
-            void analytics.track(AnalyticsEvents.FaqCtaClick, {
-                category: AnalyticsCategories.CTA,
-                label: 'faq:whatsapp',
-                meta: { location: 'faq-section', channel: 'whatsapp' },
-            });
-
             const message = resolveMessage(variables, globalI18n, 'ui.contact.faqMessageKey');
             if (!message) return;
             const link = buildWhatsAppUrl(resolveWhatsAppPhone(variables), message);
             if (!link) return;
-            safeOpen(link);
+
+            openAfterAnalytics(analytics.track(AnalyticsEvents.FaqCtaClick, {
+                category: AnalyticsCategories.CTA,
+                label: 'faq:whatsapp',
+                meta: { location: 'faq-section', channel: 'whatsapp' },
+            }), link);
         },
     };
 };
@@ -113,22 +122,22 @@ export const openFinalCtaWhatsAppHandler = (): EventHandler => {
 
             const name = String(eventName ?? AnalyticsEvents.CtaClick);
 
-            void analytics.track(name, {
+            const message = resolveMessage(variables, globalI18n, 'ui.contact.finalCtaMessageKey');
+            if (!message) return;
+            const phone = resolveWhatsAppPhone(variables);
+            const link = buildWhatsAppUrl(phone, message);
+            if (!link) return;
+
+            openAfterAnalytics(analytics.track(name, {
                 category: AnalyticsCategories.CTA,
                 label: `final-cta:${ variant }`,
                 meta: {
                     location: 'final-cta',
                     source: 'final_cta_section',
                     channel: 'whatsapp',
-                    phone: resolveWhatsAppPhone(variables),
+                    phone,
                 },
-            });
-
-            const message = resolveMessage(variables, globalI18n, 'ui.contact.finalCtaMessageKey');
-            if (!message) return;
-            const link = buildWhatsAppUrl(resolveWhatsAppPhone(variables), message);
-            if (!link) return;
-            safeOpen(link);
+            }), link);
         },
     };
 };
