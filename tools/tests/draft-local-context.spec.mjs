@@ -222,7 +222,7 @@ test('requested draft aliases canonicalize to their primary domains', async () =
   }
 });
 
-test('requested GA4 alias hosts render with the central Zoosite Google tag while canonicalizing to the primary domain', async () => {
+test('requested GA4 alias hosts render with the central Zoosite Google tag while self-serving with primary canonicals', async () => {
   const centralMeasurementId = 'G-QRWR768FCM';
   const expectations = [
     {
@@ -235,12 +235,16 @@ test('requested GA4 alias hosts render with the central Zoosite Google tag while
       domain: 'sulandingpage.com.mx',
       hosts: {
         'sulandingpage.com': centralMeasurementId,
+        'sulanding.zoolandingpage.com.mx': centralMeasurementId,
       },
     },
     {
       domain: 'zoositioweb.com.mx',
       hosts: {
         'zoositioweb.com': centralMeasurementId,
+        'sitiosweb.zoolandingpage.com.mx': centralMeasurementId,
+        'quierounsitioweb.zoolandingpage.com.mx': centralMeasurementId,
+        'crearpaginaweb.zoolandingpage.com.mx': centralMeasurementId,
       },
     },
   ];
@@ -262,8 +266,8 @@ test('requested GA4 alias hosts render with the central Zoosite Google tag while
       );
       assert.equal(
         hostOverrides[host]?.seo?.enforceCanonicalHost,
-        true,
-        `${expectation.domain} alias ${host} should 301 to the primary canonical host`,
+        false,
+        `${expectation.domain} alias ${host} should render without a canonical redirect so the alias tag can fire`,
       );
       assert.equal(hostOverrides[host]?.googleTag?.enabled, true);
       assert.deepEqual(hostOverrides[host]?.googleTag?.measurementIds, [measurementId]);
