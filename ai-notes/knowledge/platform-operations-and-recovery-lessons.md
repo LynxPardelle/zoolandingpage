@@ -7,9 +7,10 @@ Applies To: Zoolanding platform hosting, tenant routing, and host recovery workf
 Source Of Truth:
 
 - Sanitized from verified platform recovery work completed on 2026-04-04
+- Sanitized from runtime front-door reset investigation and AWS observability hardening completed on 2026-05-20
 
 Confidence: Medium to high
-Last Reviewed: 2026-04-30 (Central Time)
+Last Reviewed: 2026-05-20 (Central Time)
 
 ## Public Routing Lesson
 
@@ -46,6 +47,16 @@ If browser fetches to the stable API custom domain are healthy but Node or undic
 Apply the same raw-first rule to Express-side auxiliary SSR helpers, not only to Angular services. Helpers that build robots, sitemaps, 404 decisions, or route metadata can still touch runtime-read before Angular renders; they should honor `CONFIG_API_SERVER_FALLBACK_URL` / `CONFIG_API_RUNTIME_FALLBACK_URL` and preserve API Gateway stage path prefixes such as `/Prod`.
 
 When probes show raw runtime-read is cleaner than the custom domain but still capable of occasional burst failures, retry the raw helper read briefly before using the custom-domain fallback. Keep retries bounded so SSR does not hide sustained API failure or add long document TTFB.
+
+## Runtime Front-Door Capacity And Observability Lesson
+
+When `runtime-bundle` probes show intermittent `ECONNRESET`, `fetch failed`, or API Gateway HTTP `500` under concurrency, compare custom-domain and raw API Gateway behavior with repeated samples before changing application logic. If both paths fail under burst pressure and Lambda logs do not show matching application exceptions, check Lambda regional concurrency quota, API Gateway 5XX metrics, and CloudFront cache behavior before touching 404 or runtime resolver code.
+
+For public runtime config reads, keep `/runtime-bundle*` behind a short CloudFront cache policy keyed by all query strings. Use viewer-cache probes with normal cache mode to validate real public behavior, and reserve `no-store` probes for origin stress. Do not treat an origin-stress failure as equivalent to user-visible failure when the viewer path is intentionally cached and passing.
+
+After increasing or confirming adequate regional Lambda concurrency, set runtime-read reserved concurrency as a no-fixed-cost guardrail. Keep the value in the runtime-read infrastructure template so CloudFormation/SAM owns it, and use the hub repo observability script to reapply matching tags, SNS topic, CloudWatch alarms, and a notification-only budget. Avoid Provisioned Concurrency or CloudWatch Synthetics canaries by default because those can introduce recurring cost; require explicit cost approval before enabling them.
+
+CloudWatch alarms should be tied to actionable surfaces. Lambda errors, Lambda throttles, and API Gateway 5XX can alarm on a single short window. CloudFront 5xx error-rate alarms should require multiple datapoints to avoid noisy one-off edge samples, then be validated with the runtime probe instead of manually forcing alarm state.
 
 ## SSR Bootstrap Timing Lesson
 
