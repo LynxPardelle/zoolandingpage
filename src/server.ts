@@ -1193,10 +1193,11 @@ function buildFrontDoorRedirectUrl(req: express.Request, host: string, siteConfi
   if (enforceCanonicalHost) {
     try {
       const canonical = new URL(resolveCanonicalOrigin(req, host, siteConfig));
-      if (canonical.host) {
-        targetHost = normalizeHost(canonical.host);
+      const canonicalHost = normalizeHost(canonical.host);
+      if (canonicalHost) {
+        targetHost = canonicalHost;
       }
-      if (canonical.protocol) {
+      if (canonicalHost && canonicalHost !== host && canonical.protocol) {
         targetProtocol = canonical.protocol.replace(/:$/, '') || targetProtocol;
       }
     } catch {
