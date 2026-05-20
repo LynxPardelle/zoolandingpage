@@ -395,6 +395,29 @@ function resolveEffectiveSeoConfig(host: string, siteConfig: TLocalSiteConfig | 
   return mergeSeoConfig(siteConfig?.site?.seo, resolveHostOverrideConfig(host, siteConfig)?.seo);
 }
 
+function isProductionAliasHost(host: string, siteConfig: TLocalSiteConfig | null): boolean {
+  const normalizedHost = normalizeHost(host);
+  const primaryDomain = normalizeHost(siteConfig?.domain);
+  if (!normalizedHost || normalizedHost === primaryDomain) {
+    return false;
+  }
+
+  const aliases = Array.isArray(siteConfig?.aliases) ? siteConfig.aliases : [];
+  return aliases.map(normalizeHost).includes(normalizedHost);
+}
+
+function shouldEnforceCanonicalHost(
+  host: string,
+  siteConfig: TLocalSiteConfig | null,
+  seo: TSiteSeoConfig | null,
+): boolean {
+  return seo?.enforceCanonicalHost === true
+    || (
+      siteConfig?.site?.seo?.enforceCanonicalHost === true
+      && isProductionAliasHost(host, siteConfig)
+    );
+}
+
 function resolveEffectiveGoogleTagConfig(host: string, siteConfig: TLocalSiteConfig | null): TGoogleTagConfig | null {
   return mergeGoogleTagConfig(siteConfig?.runtime?.analytics?.googleTag, resolveHostOverrideConfig(host, siteConfig)?.googleTag);
 }
@@ -1159,6 +1182,7 @@ function buildFrontDoorRedirectUrl(req: express.Request, host: string, siteConfi
   const seo = resolveEffectiveSeoConfig(host, siteConfig);
   const protocol = resolveRequestProtocol(req, host);
   const hasProxyContext = hasForwardedProxyContext(req);
+  const enforceCanonicalHost = shouldEnforceCanonicalHost(host, siteConfig, seo);
   let targetProtocol = protocol;
   let targetHost = host;
 
@@ -1166,11 +1190,14 @@ function buildFrontDoorRedirectUrl(req: express.Request, host: string, siteConfi
     targetProtocol = 'https';
   }
 
-  if (seo?.enforceCanonicalHost === true) {
+  if (enforceCanonicalHost) {
     try {
       const canonical = new URL(resolveCanonicalOrigin(req, host, siteConfig));
       if (canonical.host) {
         targetHost = normalizeHost(canonical.host);
+      }
+      if (canonical.protocol) {
+        targetProtocol = canonical.protocol.replace(/:$/, '') || targetProtocol;
       }
     } catch {
       targetHost = host;
@@ -1217,7 +1244,7 @@ function resolveEffectiveCanonicalUrl(
   const strippedUrl = stripAdQueryParamsFromUrl(rawUrl);
   const seo = resolveEffectiveSeoConfig(host, siteConfig);
   const canonicalOrigin = cleanString(seo?.canonicalOrigin);
-  if (seo?.enforceCanonicalHost !== true || !canonicalOrigin) {
+  if (!shouldEnforceCanonicalHost(host, siteConfig, seo) || !canonicalOrigin) {
     return strippedUrl;
   }
 
