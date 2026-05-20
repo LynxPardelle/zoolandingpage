@@ -109,11 +109,28 @@ export type TDraftSiteSeoConfig = {
     readonly title?: string;
     readonly description?: string;
     readonly canonicalOrigin?: string;
+    readonly enforceCanonicalHost?: boolean;
+    readonly forceHttps?: boolean;
     readonly defaultImage?: string;
     readonly openGraph?: Record<string, unknown>;
     readonly twitter?: Record<string, unknown>;
     readonly keywords?: TLocalizedKeywordsValue;
     readonly robots?: TLocalizedTextValue;
+};
+
+export type TDraftRuntimeEnvironment = 'local' | 'test' | 'production';
+
+export type TDraftEnvironmentGateConfig = Partial<Record<TDraftRuntimeEnvironment, boolean>>;
+
+export type TSearchConsoleHtmlFileConfig = {
+    readonly path: string;
+    readonly content: string;
+};
+
+export type TSearchConsoleConfig = {
+    readonly googleSiteVerification?: string;
+    readonly htmlFile?: TSearchConsoleHtmlFileConfig;
+    readonly environments?: TDraftEnvironmentGateConfig;
 };
 
 export type TDraftVariableConfig = Record<string, unknown> & {
@@ -134,6 +151,8 @@ export type TDraftSiteSharedConfig = {
     readonly theme: TThemeVariableConfig;
     readonly i18n: TDraftI18nVariableConfig;
     readonly seo?: TDraftSiteSeoConfig;
+    readonly searchConsole?: TSearchConsoleConfig;
+    readonly hostOverrides?: Record<string, TDraftHostOverrideConfig>;
 };
 
 export type TDraftSiteDefaultsConfig = Omit<TDraftVariableConfig, 'appIdentity' | 'theme' | 'i18n'>;
@@ -185,6 +204,7 @@ export type TDraftLocalStorageSlot =
     | 'sessionId'
     | 'allowAnalytics'
     | 'analyticsConsentSnooze'
+    | 'adAttribution'
     | 'pageViewCount';
 
 export type TDraftLocalStorageRuntimeConfig = Partial<Record<TDraftLocalStorageSlot, string>>;
@@ -219,10 +239,58 @@ export type TAnalyticsSharedConfig = {
     readonly quickStats?: TAnalyticsQuickStatsConfig;
 };
 
+export type TGoogleTagAttributionStorage = 'session' | 'local';
+
+export type TGoogleTagAttributionConfig = {
+    readonly storage?: TGoogleTagAttributionStorage;
+    readonly ttlDays?: number;
+};
+
+export type TGoogleTagConversionConfig = {
+    readonly sendTo?: string;
+    readonly adsId?: string;
+    readonly label?: string;
+    readonly value?: number;
+    readonly currency?: string;
+};
+
+export type TGoogleTagEventMappingConfig = {
+    readonly name?: string;
+    readonly params?: Readonly<Record<string, string | number | boolean>>;
+    readonly conversions?: readonly TGoogleTagConversionConfig[];
+};
+
+export type TGoogleTagEventMappingValue = string | TGoogleTagEventMappingConfig;
+
+export type TGoogleTagConversionValue =
+    | string
+    | TGoogleTagConversionConfig
+    | readonly TGoogleTagConversionConfig[];
+
+export type TGoogleTagConfig = {
+    readonly enabled?: boolean;
+    readonly environments?: TDraftEnvironmentGateConfig;
+    readonly measurementIds?: readonly string[];
+    readonly ga4Ids?: readonly string[];
+    readonly adsIds?: readonly string[];
+    readonly gtmId?: string;
+    readonly sendPageView?: boolean;
+    readonly attribution?: TGoogleTagAttributionConfig;
+    readonly events?: Record<string, TGoogleTagEventMappingValue>;
+    readonly conversions?: Record<string, TGoogleTagConversionValue>;
+};
+
+export type TDraftHostOverrideConfig = {
+    readonly seo?: TDraftSiteSeoConfig;
+    readonly searchConsole?: TSearchConsoleConfig;
+    readonly googleTag?: TGoogleTagConfig;
+};
+
 export type TDraftAnalyticsRuntimeConfig = TAnalyticsSharedConfig & {
     readonly enabled?: boolean;
     readonly consentUI?: TDraftAnalyticsConsentUiMode;
     readonly consentSnoozeSeconds?: number;
+    readonly googleTag?: TGoogleTagConfig;
 };
 
 export type TDraftFeatureRuntimeConfig = {
@@ -341,10 +409,15 @@ export type TDraftSitemapConfig = {
     readonly excludePaths?: readonly string[];
 };
 
+export type TDraftSiteEnvironmentConfig = {
+    readonly aliases?: readonly string[];
+};
+
 export type TDraftSiteConfigPayload = {
     readonly version: number;
     readonly domain: string;
     readonly aliases?: readonly string[];
+    readonly environments?: Record<string, TDraftSiteEnvironmentConfig>;
     readonly defaultPageId?: string;
     readonly notFoundPageId?: string;
     readonly routes: readonly TDraftSiteRouteEntry[];
@@ -518,4 +591,5 @@ export type TResolvedAnalyticsConfig = TAnalyticsConfigPayload & {
     readonly enabled: boolean;
     readonly consentUI: TDraftAnalyticsConsentUiMode;
     readonly consentSnoozeSeconds: number;
+    readonly googleTag?: TGoogleTagConfig;
 };

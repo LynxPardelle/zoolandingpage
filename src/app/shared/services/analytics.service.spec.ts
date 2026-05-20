@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { TestBed } from '@angular/core/testing';
+import { fakeAsync, flushMicrotasks, TestBed, tick } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { AnalyticsCategories, AnalyticsEvents } from './analytics.events';
 import { AnalyticsService } from './analytics.service';
@@ -311,6 +311,344 @@ describe('AnalyticsService', () => {
 
     expect(quickStats.inc).not.toHaveBeenCalled();
   });
+
+  it('mirrors internal page views to Google dataLayer with stored ad attribution but without ad params in page_location', async () => {
+    spyOnProperty(navigator, 'userAgent', 'get').and.returnValue('Mozilla/5.0 Chrome/148.0.0.0 Safari/537.36');
+    spyOnProperty(navigator, 'webdriver', 'get').and.returnValue(false);
+    history.pushState({}, '', '/?gclid=test-gclid&utm_source=google&utm_campaign=spring&email=lead@example.com');
+    (window as any).dataLayer = [];
+    delete (window as any).gtag;
+
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: RuntimeConfigService,
+          useValue: {
+            appIdentifier: () => 'fixture',
+            isAnalyticsEnabled: () => false,
+            isDebugMode: () => false,
+            analyticsConsentMode: () => 'none',
+            resolveStorageKey: (slot: string) => `fixture:${ slot }`,
+            track: () => [],
+            analytics: () => ({
+              googleTag: {
+                enabled: true,
+                environments: { local: true, test: true, production: true },
+                measurementIds: ['G-TEST123'],
+                attribution: { storage: 'session', ttlDays: 7 },
+              },
+            }),
+          },
+        },
+        {
+          provide: HttpClient,
+          useValue: {
+            post: jasmine.createSpy('post').and.returnValue(of({ ok: true })),
+          } as any,
+        },
+      ],
+    });
+
+    const svc = TestBed.inject(AnalyticsService);
+    svc.initializeRuntimeState();
+
+    await svc.track('page_view', {
+      category: 'navigation',
+      label: '/?gclid=test-gclid&utm_source=google&utm_campaign=spring',
+    });
+
+    const pageView = (window as any).dataLayer.find((entry: Record<string, unknown>) => entry['event'] === 'page_view');
+
+    expect(pageView).toEqual(jasmine.objectContaining({
+      event: 'page_view',
+      event_label: '/',
+      page_location: `${ window.location.origin }/`,
+      page_path: '/',
+      gclid: 'test-gclid',
+      utm_source: 'google',
+      utm_campaign: 'spring',
+    }));
+    expect(pageView?.email).toBeUndefined();
+  });
+
+  it('sends whatsapp_click as a GA4 event and Ads conversion with an event_callback when gtag is present', async () => {
+    spyOnProperty(navigator, 'userAgent', 'get').and.returnValue('Mozilla/5.0 Chrome/148.0.0.0 Safari/537.36');
+    spyOnProperty(navigator, 'webdriver', 'get').and.returnValue(false);
+    const gtagCalls: unknown[][] = [];
+    (window as any).dataLayer = [];
+    (window as any).gtag = (...args: unknown[]) => {
+      gtagCalls.push(args);
+      const params = args[2] as Record<string, unknown> | undefined;
+      if (typeof params?.['event_callback'] === 'function') {
+        (params['event_callback'] as () => void)();
+      }
+    };
+
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: RuntimeConfigService,
+          useValue: {
+            appIdentifier: () => 'fixture',
+            isAnalyticsEnabled: () => false,
+            isDebugMode: () => false,
+            analyticsConsentMode: () => 'none',
+            resolveStorageKey: (slot: string) => `fixture:${ slot }`,
+            track: () => [],
+            analytics: () => ({
+              googleTag: {
+                enabled: true,
+                environments: { local: true, test: true, production: true },
+                measurementIds: ['G-TEST123'],
+                adsIds: ['AW-TEST123'],
+                conversions: {
+                  whatsapp_click: {
+                    sendTo: 'AW-TEST123/whatsappLabel',
+                    value: 1,
+                    currency: 'MXN',
+                  },
+                },
+              },
+            }),
+          },
+        },
+        {
+          provide: HttpClient,
+          useValue: {
+            post: jasmine.createSpy('post').and.returnValue(of({ ok: true })),
+          } as any,
+        },
+      ],
+    });
+
+    const svc = TestBed.inject(AnalyticsService);
+
+    await svc.track(AnalyticsEvents.WhatsAppClick, {
+      category: AnalyticsCategories.CTA,
+      label: 'floating-whatsapp',
+      meta: { location: 'mobile-floating', phone: '+525522699563' },
+    });
+
+    expect(gtagCalls).toContain(jasmine.arrayContaining(['event', 'whatsapp_click']));
+    expect(gtagCalls).toContain(jasmine.arrayContaining([
+      'event',
+      'conversion',
+      jasmine.objectContaining({
+        send_to: 'AW-TEST123/whatsappLabel',
+        value: 1,
+        currency: 'MXN',
+        event_callback: jasmine.any(Function),
+      }),
+    ]));
+    const whatsappEvent = gtagCalls.find((call) => call[1] === 'whatsapp_click')?.[2] as Record<string, unknown>;
+    expect(whatsappEvent?.['phone']).toBeUndefined();
+  });
+
+  it('maps whatsapp_click to the configured Google event name with static safe params', async () => {
+    spyOnProperty(navigator, 'userAgent', 'get').and.returnValue('Mozilla/5.0 Chrome/148.0.0.0 Safari/537.36');
+    spyOnProperty(navigator, 'webdriver', 'get').and.returnValue(false);
+    const gtagCalls: unknown[][] = [];
+    (window as any).dataLayer = [];
+    (window as any).gtag = (...args: unknown[]) => {
+      gtagCalls.push(args);
+    };
+
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: RuntimeConfigService,
+          useValue: {
+            appIdentifier: () => 'fixture',
+            isAnalyticsEnabled: () => false,
+            isDebugMode: () => false,
+            analyticsConsentMode: () => 'none',
+            resolveStorageKey: (slot: string) => `fixture:${ slot }`,
+            track: () => [],
+            analytics: () => ({
+              googleTag: {
+                enabled: true,
+                environments: { local: true, test: true, production: true },
+                measurementIds: ['G-TEST123'],
+                events: {
+                  whatsapp_click: {
+                    name: 'lead_conversion_whatsapp',
+                    params: {
+                      pyme_id: 'fixture-pyme',
+                    },
+                  },
+                },
+              },
+            }),
+          },
+        },
+        {
+          provide: HttpClient,
+          useValue: {
+            post: jasmine.createSpy('post').and.returnValue(of({ ok: true })),
+          } as any,
+        },
+      ],
+    });
+
+    const svc = TestBed.inject(AnalyticsService);
+
+    await svc.track(AnalyticsEvents.WhatsAppClick, {
+      category: AnalyticsCategories.CTA,
+      label: 'floating-whatsapp',
+      meta: { location: 'mobile-floating', phone: '+525522699563' },
+    });
+
+    expect(gtagCalls).toContain(jasmine.arrayContaining(['event', 'lead_conversion_whatsapp']));
+    const whatsappEvent = gtagCalls.find((call) => call[1] === 'lead_conversion_whatsapp')?.[2] as Record<string, unknown>;
+    expect(whatsappEvent).toEqual(jasmine.objectContaining({
+      pyme_id: 'fixture-pyme',
+      location: 'mobile-floating',
+    }));
+    expect(whatsappEvent?.['phone']).toBeUndefined();
+  });
+
+  it('waits for the mapped GA4 WhatsApp event callback before resolving tracking', async () => {
+    spyOnProperty(navigator, 'userAgent', 'get').and.returnValue('Mozilla/5.0 Chrome/148.0.0.0 Safari/537.36');
+    spyOnProperty(navigator, 'webdriver', 'get').and.returnValue(false);
+    const gtagCalls: unknown[][] = [];
+    let eventCallback: (() => void) | undefined;
+    (window as any).dataLayer = [];
+    (window as any).gtag = (...args: unknown[]) => {
+      gtagCalls.push(args);
+      const params = args[2] as Record<string, unknown> | undefined;
+      if (args[1] === 'lead_conversion_whatsapp') {
+        eventCallback = params?.['event_callback'] as (() => void) | undefined;
+      }
+    };
+
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: RuntimeConfigService,
+          useValue: {
+            appIdentifier: () => 'fixture',
+            isAnalyticsEnabled: () => false,
+            isDebugMode: () => false,
+            analyticsConsentMode: () => 'none',
+            resolveStorageKey: (slot: string) => `fixture:${ slot }`,
+            track: () => [],
+            analytics: () => ({
+              googleTag: {
+                enabled: true,
+                environments: { local: true, test: true, production: true },
+                measurementIds: ['G-TEST123'],
+                events: {
+                  whatsapp_click: {
+                    name: 'lead_conversion_whatsapp',
+                    params: {
+                      pyme_id: 'fixture-pyme',
+                    },
+                  },
+                },
+              },
+            }),
+          },
+        },
+        {
+          provide: HttpClient,
+          useValue: {
+            post: jasmine.createSpy('post').and.returnValue(of({ ok: true })),
+          } as any,
+        },
+      ],
+    });
+
+    const svc = TestBed.inject(AnalyticsService);
+    let resolved = false;
+    const tracking = svc.track(AnalyticsEvents.WhatsAppClick, {
+      category: AnalyticsCategories.CTA,
+      label: 'floating-whatsapp',
+      meta: { location: 'mobile-floating' },
+    }).then(() => {
+      resolved = true;
+    });
+
+    await Promise.resolve();
+
+    expect(gtagCalls).toContain(jasmine.arrayContaining(['event', 'lead_conversion_whatsapp']));
+    expect(eventCallback).toEqual(jasmine.any(Function));
+    expect(resolved).toBeFalse();
+
+    eventCallback?.();
+    await tracking;
+
+    expect(resolved).toBeTrue();
+  });
+
+  it('resolves the mapped GA4 WhatsApp event after the callback timeout when Google does not call back', fakeAsync(() => {
+    spyOnProperty(navigator, 'userAgent', 'get').and.returnValue('Mozilla/5.0 Chrome/148.0.0.0 Safari/537.36');
+    spyOnProperty(navigator, 'webdriver', 'get').and.returnValue(false);
+    const gtagCalls: unknown[][] = [];
+    (window as any).dataLayer = [];
+    (window as any).gtag = (...args: unknown[]) => {
+      gtagCalls.push(args);
+    };
+
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: RuntimeConfigService,
+          useValue: {
+            appIdentifier: () => 'fixture',
+            isAnalyticsEnabled: () => false,
+            isDebugMode: () => false,
+            analyticsConsentMode: () => 'none',
+            resolveStorageKey: (slot: string) => `fixture:${ slot }`,
+            track: () => [],
+            analytics: () => ({
+              googleTag: {
+                enabled: true,
+                environments: { local: true, test: true, production: true },
+                measurementIds: ['G-TEST123'],
+                events: {
+                  whatsapp_click: {
+                    name: 'lead_conversion_whatsapp',
+                    params: {
+                      pyme_id: 'fixture-pyme',
+                    },
+                  },
+                },
+              },
+            }),
+          },
+        },
+        {
+          provide: HttpClient,
+          useValue: {
+            post: jasmine.createSpy('post').and.returnValue(of({ ok: true })),
+          } as any,
+        },
+      ],
+    });
+
+    const svc = TestBed.inject(AnalyticsService);
+    let resolved = false;
+    void svc.track(AnalyticsEvents.WhatsAppClick, {
+      category: AnalyticsCategories.CTA,
+      label: 'floating-whatsapp',
+      meta: { location: 'mobile-floating' },
+    }).then(() => {
+      resolved = true;
+    });
+
+    flushMicrotasks();
+
+    expect(gtagCalls).toContain(jasmine.arrayContaining(['event', 'lead_conversion_whatsapp']));
+    expect(resolved).toBeFalse();
+
+    tick(199);
+    flushMicrotasks();
+    expect(resolved).toBeFalse();
+
+    tick(1);
+    flushMicrotasks();
+    expect(resolved).toBeTrue();
+  }));
 
   it('falls back to default engagement milestones when none are configured', () => {
     TestBed.configureTestingModule({

@@ -8,6 +8,18 @@ import { DomainResolverService } from './domain-resolver.service';
 import { RuntimeConfigService } from './runtime-config.service';
 import { VariableStoreService } from './variable-store.service';
 
+const AD_CANONICAL_QUERY_PARAMS = new Set([
+    'gclid',
+    'gbraid',
+    'wbraid',
+    'utm_source',
+    'utm_medium',
+    'utm_campaign',
+    'utm_term',
+    'utm_content',
+]);
+const SENSITIVE_CANONICAL_QUERY_PARAM_PATTERN = /(email|mail|phone|telefono|tel[eé]fono|whatsapp|address|direcci[oó]n|rfc|curp)/i;
+
 @Injectable({ providedIn: 'root' })
 export class SeoMetadataService {
     private readonly doc = inject(DOCUMENT);
@@ -48,8 +60,13 @@ export class SeoMetadataService {
                 || this.cleanString(doc.defaultView?.location?.origin)
                 || this.defaultOrigin();
             const pathname = this.normalizePathname(doc.defaultView?.location?.pathname);
-            const url = `${ origin }${ pathname }`;
-            const canonicalUrl = this.resolveLocalizedText(seo?.canonical, lang) || url;
+            const search = this.cleanString(doc.defaultView?.location?.search);
+            const url = `${ origin }${ pathname }${ search }`;
+            const canonicalUrl = this.resolveEffectiveCanonicalUrl(
+                this.resolveLocalizedText(seo?.canonical, lang) || url,
+                origin,
+                siteSeo,
+            );
             const ogLocale = toOpenGraphLocale(lang) || 'en_US';
             const openGraphDefaults = this.resolveLocalizedRecord(this.asRecord(siteSeo?.openGraph), lang);
             const twitterDefaults = this.resolveLocalizedRecord(this.asRecord(siteSeo?.twitter), lang);
@@ -98,6 +115,7 @@ export class SeoMetadataService {
                     head.appendChild(linkEl);
                 }
                 linkEl.setAttribute('href', canonicalUrl);
+                this.syncHreflangLinks(head, canonicalUrl, lang);
             }
         } catch {
             // no-op for SSR
@@ -195,6 +213,104 @@ export class SeoMetadataService {
         }
 
         this.meta.removeTag(`name='${ name }'`);
+    }
+
+    private syncHreflangLinks(head: HTMLElement, canonicalUrl: string, activeLang: string): void {
+        Array.from(head.querySelectorAll("link[rel='alternate'][data-zlp-hreflang='true']"))
+            .forEach((element) => element.remove());
+
+        const languages = this.resolveSupportedLanguages();
+        if (languages.length <= 1) {
+            return;
+        }
+
+        const defaultLanguage = this.resolveDefaultLanguage(activeLang, languages);
+        languages.forEach((language) => {
+            this.appendHreflangLink(head, language, this.withLangParam(canonicalUrl, language));
+        });
+        this.appendHreflangLink(head, 'x-default', this.withLangParam(canonicalUrl, defaultLanguage));
+    }
+
+    private appendHreflangLink(head: HTMLElement, hreflang: string, href: string): void {
+        const link = this.doc.createElement('link');
+        link.setAttribute('rel', 'alternate');
+        link.setAttribute('hreflang', hreflang);
+        link.setAttribute('href', href);
+        link.setAttribute('data-zlp-hreflang', 'true');
+        head.appendChild(link);
+    }
+
+    private resolveSupportedLanguages(): readonly string[] {
+        return this.variables.getArray<unknown>('i18n.supportedLanguages')
+            .map((entry) => this.normalizeLanguageEntry(entry))
+            .filter((entry, index, entries) => entry.length > 0 && entries.indexOf(entry) === index);
+    }
+
+    private resolveDefaultLanguage(activeLang: string, languages: readonly string[]): string {
+        const configured = normalizeLocaleCode(this.variables.getString('i18n.defaultLanguage'));
+        if (configured && languages.includes(configured)) {
+            return configured;
+        }
+
+        const normalizedActive = normalizeLocaleCode(activeLang);
+        return languages.includes(normalizedActive) ? normalizedActive : languages[0] ?? normalizedActive;
+    }
+
+    private normalizeLanguageEntry(entry: unknown): string {
+        if (typeof entry === 'string') {
+            return normalizeLocaleCode(entry);
+        }
+
+        if (this.isRecord(entry)) {
+            return normalizeLocaleCode(entry['code'] ?? entry['lang'] ?? entry['locale']);
+        }
+
+        return '';
+    }
+
+    private stripAdQueryParams(rawUrl: string): string {
+        const cleaned = this.cleanString(rawUrl);
+        if (!cleaned) {
+            return '';
+        }
+
+        try {
+            const url = new URL(cleaned, this.defaultOrigin());
+            Array.from(url.searchParams.keys()).forEach((param) => {
+                if (AD_CANONICAL_QUERY_PARAMS.has(param) || SENSITIVE_CANONICAL_QUERY_PARAM_PATTERN.test(param)) {
+                    url.searchParams.delete(param);
+                }
+            });
+            url.hash = '';
+            return url.toString();
+        } catch {
+            return cleaned;
+        }
+    }
+
+    private resolveEffectiveCanonicalUrl(rawUrl: string, origin: string, siteSeo: ReturnType<RuntimeConfigService['seoDefaults']>): string {
+        const canonicalUrl = this.stripAdQueryParams(rawUrl);
+        if (siteSeo?.enforceCanonicalHost !== true || !this.cleanString(siteSeo?.canonicalOrigin)) {
+            return canonicalUrl;
+        }
+
+        try {
+            const canonicalOrigin = new URL(this.cleanString(siteSeo.canonicalOrigin), origin);
+            const canonical = new URL(canonicalUrl, canonicalOrigin);
+            return new URL(`${ canonical.pathname }${ canonical.search }`, canonicalOrigin).toString();
+        } catch {
+            return canonicalUrl;
+        }
+    }
+
+    private withLangParam(rawUrl: string, lang: string): string {
+        try {
+            const url = new URL(rawUrl, this.defaultOrigin());
+            url.searchParams.set('lang', lang);
+            return url.toString();
+        } catch {
+            return rawUrl;
+        }
     }
 
     private asRecord(value: unknown): Record<string, unknown> {

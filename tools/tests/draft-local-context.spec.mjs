@@ -170,6 +170,113 @@ test('config-draft-sync excludes local-only folders and preserves them during cl
   assert.equal(existsSync(path.join(domainRoot, 'errors-reports', 'keep.json')), true);
 });
 
+test('requested draft aliases canonicalize to their primary domains', async () => {
+  const expectations = [
+    {
+      domain: 'zoolandingpage.com.mx',
+      canonicalOrigin: 'https://zoolandingpage.com.mx',
+      hosts: ['zoolandingpage.com', 'test.zoolandingpage.com', 'test.zoolandingpage.com.mx'],
+    },
+    {
+      domain: 'sulandingpage.com.mx',
+      canonicalOrigin: 'https://sulandingpage.com.mx',
+      hosts: [
+        'sulandingpage.com',
+        'sulanding.zoolandingpage.com.mx',
+        'test.sulanding.zoolandingpage.com.mx',
+        'test.sulandingpage.com',
+        'test.sulandingpage.com.mx',
+        'test.sulandingpage.zoolandingpage.com.mx',
+      ],
+    },
+    {
+      domain: 'zoositioweb.com.mx',
+      canonicalOrigin: 'https://zoositioweb.com.mx',
+      hosts: [
+        'zoositioweb.com',
+        'sitiosweb.zoolandingpage.com.mx',
+        'quierounsitioweb.zoolandingpage.com.mx',
+        'crearpaginaweb.zoolandingpage.com.mx',
+        'test.crearpaginaweb.zoolandingpage.com.mx',
+        'test.quierounsitioweb.zoolandingpage.com.mx',
+        'test.sitiosweb.zoolandingpage.com.mx',
+        'test.zoosite.zoolandingpage.com.mx',
+        'test.zoositioweb.com.mx',
+        'test.zoositioweb.zoolandingpage.com.mx',
+      ],
+    },
+  ];
+
+  for (const expectation of expectations) {
+    const configPath = path.join(repoRoot, 'drafts', expectation.domain, 'site-config.json');
+    const config = JSON.parse(await readFile(configPath, 'utf8'));
+    const hostOverrides = config.site?.hostOverrides ?? {};
+
+    for (const host of expectation.hosts) {
+      assert.equal(
+        hostOverrides[host]?.seo?.canonicalOrigin,
+        expectation.canonicalOrigin,
+        `${expectation.domain} alias ${host} should canonicalize to ${expectation.canonicalOrigin}`,
+      );
+    }
+  }
+});
+
+test('requested GA4 alias hosts render with the central Zoosite Google tag while canonicalizing to the primary domain', async () => {
+  const centralMeasurementId = 'G-QRWR768FCM';
+  const expectations = [
+    {
+      domain: 'zoolandingpage.com.mx',
+      hosts: {
+        'zoolandingpage.com': centralMeasurementId,
+      },
+    },
+    {
+      domain: 'sulandingpage.com.mx',
+      hosts: {
+        'sulandingpage.com': centralMeasurementId,
+      },
+    },
+    {
+      domain: 'zoositioweb.com.mx',
+      hosts: {
+        'zoositioweb.com': centralMeasurementId,
+      },
+    },
+  ];
+
+  for (const expectation of expectations) {
+    const configPath = path.join(repoRoot, 'drafts', expectation.domain, 'site-config.json');
+    const config = JSON.parse(await readFile(configPath, 'utf8'));
+    const hostOverrides = config.site?.hostOverrides ?? {};
+
+    assert.equal(config.runtime?.analytics?.googleTag?.enabled, true);
+    assert.deepEqual(config.runtime?.analytics?.googleTag?.measurementIds, [centralMeasurementId]);
+    assert.equal(config.runtime?.analytics?.googleTag?.sendPageView, false);
+
+    for (const [host, measurementId] of Object.entries(expectation.hosts)) {
+      assert.equal(
+        hostOverrides[host]?.seo?.canonicalOrigin,
+        config.site?.seo?.canonicalOrigin,
+        `${expectation.domain} alias ${host} should canonicalize to the primary origin`,
+      );
+      assert.equal(
+        hostOverrides[host]?.seo?.enforceCanonicalHost,
+        false,
+        `${expectation.domain} alias ${host} should render instead of redirecting so its GA4 tag can fire`,
+      );
+      assert.equal(hostOverrides[host]?.googleTag?.enabled, true);
+      assert.deepEqual(hostOverrides[host]?.googleTag?.measurementIds, [measurementId]);
+      assert.equal(hostOverrides[host]?.googleTag?.sendPageView, false);
+      assert.equal(hostOverrides[host]?.googleTag?.events?.whatsapp_click?.name, 'lead_conversion_whatsapp');
+      assert.equal(
+        hostOverrides[host]?.googleTag?.events?.whatsapp_click?.params?.pyme_id,
+        config.site?.appIdentity?.identifier,
+      );
+    }
+  }
+});
+
 test('config-draft-sync pull retries through a fallback endpoint after a reset primary connection', async t => {
   const tempRoot = await mkdtemp(path.join(tmpdir(), 'zoolanding-draft-sync-fallback-'));
   const draftsRoot = path.join(tempRoot, 'drafts');
@@ -446,6 +553,289 @@ test('built SSR server hides local-only draft folders from registry and static s
   assert.equal(sitemapResponse.status, 200, serverOutput);
   const sitemapXml = await sitemapResponse.text();
   assert.match(sitemapXml, /<loc>https:\/\/fixture\.example\.com\/<\/loc>/);
+});
+
+test('built SSR server decorates configured drafts with Google tag, Search Console, robots, and sitemap metadata', async t => {
+  assert.equal(
+    existsSync(builtServerPath),
+    true,
+    'Built SSR server not found. Run this test through `npm run test:draft-context` or build first.'
+  );
+
+  const workspaceRoot = await mkdtemp(path.join(tmpdir(), 'zoolanding-google-tag-'));
+  const draftsRoot = path.join(workspaceRoot, 'drafts');
+
+  const siteShared = {
+    appIdentity: { identifier: 'fixture', name: 'Fixture Example' },
+    theme: { defaultMode: 'light', palettes: {} },
+    i18n: { defaultLanguage: 'es', supportedLanguages: ['es', 'en'] },
+    seo: { canonicalOrigin: 'https://zoositioweb.com.mx', enforceCanonicalHost: true },
+    searchConsole: {
+      googleSiteVerification: 'verification-token',
+      htmlFile: {
+        path: '/googleabc123.html',
+        content: 'google-site-verification: googleabc123.html',
+      },
+      environments: { local: true, test: true, production: false },
+    },
+    hostOverrides: {
+      'sitiosweb.zoolandingpage.com.mx': {
+        seo: {
+          canonicalOrigin: 'https://sitiosweb.zoolandingpage.com.mx',
+          enforceCanonicalHost: true,
+          forceHttps: true,
+        },
+        googleTag: {
+          enabled: true,
+          environments: { local: true, test: true, production: false },
+          measurementIds: ['G-ALIAS123'],
+          adsIds: ['AW-ALIAS123'],
+          gtmId: 'GTM-ALIAS123',
+          sendPageView: false,
+        },
+        searchConsole: {
+          googleSiteVerification: 'alias-verification-token',
+          htmlFile: {
+            path: '/googlealias123.html',
+            content: 'google-site-verification: googlealias123.html',
+          },
+          environments: { local: true, test: true, production: false },
+        },
+      },
+      'test.sitiosweb.zoolandingpage.com.mx': {
+        seo: {
+          canonicalOrigin: 'https://test.sitiosweb.zoolandingpage.com.mx',
+          enforceCanonicalHost: true,
+          forceHttps: true,
+        },
+        googleTag: {
+          enabled: true,
+          environments: { local: true, test: true, production: false },
+          measurementIds: ['G-ENV123'],
+          sendPageView: false,
+        },
+        searchConsole: {
+          googleSiteVerification: 'env-alias-verification-token',
+          environments: { local: true, test: true, production: false },
+        },
+      },
+    },
+  };
+
+  const writeDraftPage = async (domain, pageId, routePath, text, updatedAt) => {
+    const domainRoot = path.join(draftsRoot, domain);
+    await writeJson(path.join(domainRoot, pageId, 'page-config.json'), {
+      version: 1,
+      domain,
+      pageId,
+      rootIds: ['main'],
+      modalRootIds: [],
+      metadata: { updatedAt },
+      seo: {
+        title: `${text} title`,
+        description: `${text} description`,
+        canonical: `https://${domain}${routePath}`,
+      },
+      structuredData: {
+        entries: [
+          {
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
+            name: text,
+            url: `https://${domain}${routePath}`,
+          },
+        ],
+      },
+    });
+    await writeJson(path.join(domainRoot, pageId, 'components.json'), {
+      version: 1,
+      domain,
+      pageId,
+      components: [
+        {
+          id: 'main',
+          type: 'text',
+          config: {
+            tag: 'main',
+            text,
+          },
+        },
+      ],
+    });
+  };
+
+  await writeJson(path.join(draftsRoot, 'zoositioweb.com.mx', 'site-config.json'), {
+    version: 1,
+    domain: 'zoositioweb.com.mx',
+    aliases: ['sitiosweb.zoolandingpage.com.mx'],
+    environments: {
+      test: {
+        aliases: ['test.sitiosweb.zoolandingpage.com.mx'],
+      },
+    },
+    defaultPageId: 'default',
+    published: {
+      versionId: 'published-fixture',
+      updatedAt: '2026-05-18T20:30:00.000Z',
+    },
+    routes: [
+      { path: '/', pageId: 'default' },
+      { path: '/contact', pageId: 'contact' },
+    ],
+    runtime: {
+      analytics: {
+        enabled: true,
+        consentUI: 'none',
+        googleTag: {
+          enabled: true,
+          environments: { local: true, test: true, production: false },
+          measurementIds: ['G-TEST123'],
+          adsIds: ['AW-TEST123'],
+          gtmId: 'GTM-TEST123',
+          conversions: {
+            whatsapp_click: { sendTo: 'AW-TEST123/whatsappLabel', value: 1, currency: 'MXN' },
+          },
+        },
+      },
+    },
+    site: siteShared,
+  });
+  await writeDraftPage('zoositioweb.com.mx', 'default', '/', 'Fixture home', '2026-05-18T20:00:00.000Z');
+  await writeDraftPage('zoositioweb.com.mx', 'contact', '/contact', 'Fixture contact', '2026-05-18T20:10:00.000Z');
+
+  await writeJson(path.join(draftsRoot, 'zoolandingpage.com.mx', 'site-config.json'), {
+    version: 1,
+    domain: 'zoolandingpage.com.mx',
+    defaultPageId: 'default',
+    routes: [{ path: '/', pageId: 'default' }],
+    site: {
+      ...siteShared,
+      seo: { canonicalOrigin: 'https://zoolandingpage.com.mx' },
+      searchConsole: undefined,
+    },
+  });
+  await writeDraftPage('zoolandingpage.com.mx', 'default', '/', 'Untagged home', '2026-05-18T20:00:00.000Z');
+
+  const port = await getFreePort();
+  const child = spawn(process.execPath, [builtServerPath], {
+    cwd: workspaceRoot,
+    env: {
+      ...process.env,
+      PORT: String(port),
+      ZLP_RUNTIME_ENV: 'local',
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+    windowsHide: true,
+  });
+
+  let serverOutput = '';
+  child.stdout.on('data', chunk => {
+    serverOutput += chunk.toString();
+  });
+  child.stderr.on('data', chunk => {
+    serverOutput += chunk.toString();
+  });
+
+  t.after(async () => {
+    await stopServer(child);
+    await rm(workspaceRoot, { recursive: true, force: true });
+  });
+
+  await waitForServer(`http://127.0.0.1:${port}/api/debug/drafts`);
+
+  const fixtureHeaders = {
+    'x-forwarded-host': 'zoositioweb.com.mx',
+    'x-forwarded-proto': 'https',
+  };
+  const homeResponse = await fetch(`http://127.0.0.1:${port}/`, { headers: fixtureHeaders });
+  assert.equal(homeResponse.status, 200, serverOutput);
+  const html = await homeResponse.text();
+  assert.match(html, /googletagmanager\.com\/gtag\/js\?id=G-TEST123/);
+  assert.match(html, /googletagmanager\.com\/gtm\.js\?id=GTM-TEST123/);
+  assert.match(html, /window\.dataLayer\s*=\s*window\.dataLayer\s*\|\|\s*\[\]/);
+  assert.match(html, /send_page_view["']?\s*:\s*false/);
+  assert.match(html, /<meta name="google-site-verification" content="verification-token">/);
+  assert.match(html, /<script type="application\/ld\+json"/);
+  assert.match(html, /"@type":"WebSite"/);
+  assert.match(html, /hreflang="en"/);
+
+  const verificationResponse = await fetch(`http://127.0.0.1:${port}/googleabc123.html`, { headers: fixtureHeaders });
+  assert.equal(verificationResponse.status, 200, serverOutput);
+  assert.equal(await verificationResponse.text(), 'google-site-verification: googleabc123.html');
+
+  const robotsResponse = await fetch(`http://127.0.0.1:${port}/robots.txt`, { headers: fixtureHeaders });
+  assert.equal(robotsResponse.status, 200, serverOutput);
+  const robotsText = await robotsResponse.text();
+  assert.match(robotsText, /^Allow: \/$/m);
+  assert.match(robotsText, /^Disallow: \/api\//m);
+  assert.match(robotsText, /^Disallow: \/debug-workspace\//m);
+  assert.match(robotsText, /^Disallow: \/runtime-bundle$/m);
+  assert.match(robotsText, /^Sitemap: https:\/\/zoositioweb\.com\.mx\/sitemap\.xml$/m);
+
+  const sitemapResponse = await fetch(`http://127.0.0.1:${port}/sitemap.xml`, { headers: fixtureHeaders });
+  assert.equal(sitemapResponse.status, 200, serverOutput);
+  const sitemapXml = await sitemapResponse.text();
+  assert.match(sitemapXml, /<loc>https:\/\/zoositioweb\.com\.mx\/<\/loc>[\s\S]*<lastmod>2026-05-18T20:00:00.000Z<\/lastmod>[\s\S]*<changefreq>weekly<\/changefreq>[\s\S]*<priority>1.0<\/priority>/);
+  assert.match(sitemapXml, /<loc>https:\/\/zoositioweb\.com\.mx\/contact<\/loc>[\s\S]*<lastmod>2026-05-18T20:10:00.000Z<\/lastmod>[\s\S]*<changefreq>weekly<\/changefreq>[\s\S]*<priority>0.7<\/priority>/);
+
+  const untaggedResponse = await fetch(`http://127.0.0.1:${port}/`, {
+    headers: {
+      'x-forwarded-host': 'zoolandingpage.com.mx',
+      'x-forwarded-proto': 'https',
+    },
+  });
+  const untaggedHtml = await untaggedResponse.text();
+  assert.equal(untaggedResponse.status, 200, serverOutput);
+  assert.doesNotMatch(untaggedHtml, /googletagmanager\.com\/gtag\/js/);
+  assert.doesNotMatch(untaggedHtml, /google-site-verification/);
+
+  const aliasHeaders = {
+    'x-forwarded-host': 'sitiosweb.zoolandingpage.com.mx',
+    'x-forwarded-proto': 'https',
+  };
+  const aliasHomeResponse = await fetch(`http://127.0.0.1:${port}/?gclid=test&utm_source=google`, {
+    headers: aliasHeaders,
+    redirect: 'manual',
+  });
+  assert.equal(aliasHomeResponse.status, 200, serverOutput);
+  const aliasHtml = await aliasHomeResponse.text();
+  assert.match(aliasHtml, /googletagmanager\.com\/gtag\/js\?id=G-ALIAS123/);
+  assert.match(aliasHtml, /googletagmanager\.com\/gtm\.js\?id=GTM-ALIAS123/);
+  assert.match(aliasHtml, /<meta name="google-site-verification" content="alias-verification-token">/);
+  assert.match(aliasHtml, /<link rel="canonical" href="https:\/\/sitiosweb\.zoolandingpage\.com\.mx\/">/);
+  assert.doesNotMatch(aliasHtml, /G-TEST123/);
+
+  const aliasVerificationResponse = await fetch(`http://127.0.0.1:${port}/googlealias123.html`, {
+    headers: aliasHeaders,
+    redirect: 'manual',
+  });
+  assert.equal(aliasVerificationResponse.status, 200, serverOutput);
+  assert.equal(await aliasVerificationResponse.text(), 'google-site-verification: googlealias123.html');
+
+  const aliasRobotsResponse = await fetch(`http://127.0.0.1:${port}/robots.txt`, { headers: aliasHeaders });
+  assert.equal(aliasRobotsResponse.status, 200, serverOutput);
+  assert.match(
+    await aliasRobotsResponse.text(),
+    /^Sitemap: https:\/\/sitiosweb\.zoolandingpage\.com\.mx\/sitemap\.xml$/m,
+  );
+
+  const aliasSitemapResponse = await fetch(`http://127.0.0.1:${port}/sitemap.xml`, { headers: aliasHeaders });
+  assert.equal(aliasSitemapResponse.status, 200, serverOutput);
+  const aliasSitemapXml = await aliasSitemapResponse.text();
+  assert.match(aliasSitemapXml, /<loc>https:\/\/sitiosweb\.zoolandingpage\.com\.mx\/<\/loc>/);
+  assert.doesNotMatch(aliasSitemapXml, /<loc>https:\/\/zoositioweb\.com\.mx\//);
+
+  const envAliasResponse = await fetch(`http://127.0.0.1:${port}/`, {
+    headers: {
+      'x-forwarded-host': 'test.sitiosweb.zoolandingpage.com.mx',
+      'x-forwarded-proto': 'https',
+    },
+    redirect: 'manual',
+  });
+  assert.equal(envAliasResponse.status, 200, serverOutput);
+  const envAliasHtml = await envAliasResponse.text();
+  assert.match(envAliasHtml, /googletagmanager\.com\/gtag\/js\?id=G-ENV123/);
+  assert.match(envAliasHtml, /<meta name="google-site-verification" content="env-alias-verification-token">/);
 });
 
 test('built SSR server resolves configurable 404 runtime bundles and excludes 404 routes from sitemap', async t => {

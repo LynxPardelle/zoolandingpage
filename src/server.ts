@@ -6,7 +6,7 @@ import {
 } from '@angular/ssr/node';
 import compression from 'compression';
 import express from 'express';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
@@ -32,9 +32,75 @@ const RUNTIME_BUNDLE_BASE_URLS = [
 ]
   .map((baseUrl) => baseUrl.replace(/\/$/, ''))
   .filter((baseUrl, index, baseUrls) => baseUrl.length > 0 && baseUrls.indexOf(baseUrl) === index);
+const AD_QUERY_PARAMS = new Set([
+  'gclid',
+  'gbraid',
+  'wbraid',
+  'utm_source',
+  'utm_medium',
+  'utm_campaign',
+  'utm_term',
+  'utm_content',
+]);
+const SENSITIVE_QUERY_PARAM_PATTERN = /(email|mail|phone|telefono|tel[eé]fono|whatsapp|address|direcci[oó]n|rfc|curp)/i;
+const ROBOTS_DISALLOW_PATHS = [
+  '/admin/',
+  '/api/',
+  '/api/debug/',
+  '/debug-workspace/',
+  '/runtime-bundle',
+  '/drafts/',
+];
+
+type TRuntimeEnvironment = 'local' | 'test' | 'production';
+
+type TEnvironmentGate = Partial<Record<TRuntimeEnvironment, boolean>>;
+
+type TGoogleTagConfig = {
+  readonly enabled?: boolean;
+  readonly environments?: TEnvironmentGate;
+  readonly measurementIds?: readonly string[];
+  readonly ga4Ids?: readonly string[];
+  readonly adsIds?: readonly string[];
+  readonly gtmId?: string;
+  readonly sendPageView?: boolean;
+  readonly attribution?: Record<string, unknown>;
+  readonly events?: Record<string, unknown>;
+  readonly conversions?: Record<string, unknown>;
+};
+
+type TSearchConsoleConfig = {
+  readonly googleSiteVerification?: string;
+  readonly htmlFile?: {
+    readonly path?: string;
+    readonly content?: string;
+  };
+  readonly environments?: TEnvironmentGate;
+};
+
+type TSiteSeoConfig = {
+  readonly canonicalOrigin?: string;
+  readonly enforceCanonicalHost?: boolean;
+  readonly forceHttps?: boolean;
+};
+
+type THostOverrideConfig = {
+  readonly seo?: TSiteSeoConfig;
+  readonly searchConsole?: TSearchConsoleConfig;
+  readonly googleTag?: TGoogleTagConfig;
+};
+
+type TSiteEnvironmentConfig = {
+  readonly aliases?: readonly string[];
+};
 
 type TSiteConfigCacheEntry = {
   readonly path: string | null;
+  readonly expiresAt: number;
+};
+
+type TRuntimeSiteConfigCacheEntry = {
+  readonly siteConfig: TLocalSiteConfig | null;
   readonly expiresAt: number;
 };
 
@@ -54,10 +120,13 @@ type TLocalPageConfig = {
   readonly domain?: string;
   readonly rootIds?: readonly string[];
   readonly modalRootIds?: readonly string[];
+  readonly metadata?: Record<string, unknown>;
   readonly seo?: {
     readonly canonical?: string;
   };
-  readonly structuredData?: unknown;
+  readonly structuredData?: {
+    readonly entries?: readonly unknown[];
+  } | unknown;
   readonly analytics?: unknown;
 };
 
@@ -99,6 +168,7 @@ type TLocalI18nPayload = {
 type TLocalSiteConfig = Record<string, unknown> & {
   readonly domain?: string;
   readonly aliases?: readonly string[];
+  readonly environments?: Record<string, TSiteEnvironmentConfig>;
   readonly defaultPageId?: string;
   readonly notFoundPageId?: string;
   readonly routes?: readonly TSiteConfigRouteEntry[];
@@ -106,11 +176,26 @@ type TLocalSiteConfig = Record<string, unknown> & {
     readonly urls?: readonly string[];
     readonly excludePaths?: readonly string[];
   };
+  readonly published?: {
+    readonly updatedAt?: string;
+  };
+  readonly draft?: {
+    readonly updatedAt?: string;
+  };
   readonly lifecycle?: unknown;
-  readonly site?: {
-    readonly seo?: {
-      readonly canonicalOrigin?: string;
+  readonly runtime?: {
+    readonly analytics?: {
+      readonly googleTag?: TGoogleTagConfig;
     };
+  };
+  readonly site?: {
+    readonly i18n?: {
+      readonly defaultLanguage?: string;
+      readonly supportedLanguages?: readonly unknown[];
+    };
+    readonly seo?: TSiteSeoConfig;
+    readonly searchConsole?: TSearchConsoleConfig;
+    readonly hostOverrides?: Record<string, THostOverrideConfig>;
   };
 };
 
@@ -145,6 +230,7 @@ type TLocalRuntimePageResolution = {
 };
 
 const siteConfigPathCache = new Map<string, TSiteConfigCacheEntry>();
+const runtimeSiteConfigCache = new Map<string, TRuntimeSiteConfigCacheEntry>();
 
 function setCachedSiteConfigPath(domain: string, path: string | null): void {
   if (siteConfigPathCache.size >= SITE_CONFIG_CACHE_MAX_SIZE) {
@@ -154,6 +240,17 @@ function setCachedSiteConfigPath(domain: string, path: string | null): void {
     }
   }
   siteConfigPathCache.set(domain, { path, expiresAt: Date.now() + SITE_CONFIG_CACHE_TTL_MS });
+}
+
+function setCachedRuntimeSiteConfig(domain: string, siteConfig: TLocalSiteConfig | null): void {
+  if (runtimeSiteConfigCache.size >= SITE_CONFIG_CACHE_MAX_SIZE) {
+    const oldestKey = runtimeSiteConfigCache.keys().next().value;
+    if (oldestKey !== undefined) {
+      runtimeSiteConfigCache.delete(oldestKey);
+    }
+  }
+
+  runtimeSiteConfigCache.set(domain, { siteConfig, expiresAt: Date.now() + SITE_CONFIG_CACHE_TTL_MS });
 }
 
 function isDirectory(path: string): boolean {
@@ -187,6 +284,161 @@ function normalizeHost(value: unknown): string {
 function isLocalHost(value: unknown): boolean {
   const normalized = normalizeHost(value);
   return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1';
+}
+
+function cleanString(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function normalizeRuntimeEnvironment(value: unknown): TRuntimeEnvironment | null {
+  const normalized = cleanString(value).toLowerCase();
+  if (normalized === 'local' || normalized === 'test' || normalized === 'production') {
+    return normalized;
+  }
+
+  return null;
+}
+
+function resolveRuntimeEnvironment(host: string): TRuntimeEnvironment {
+  const explicit = normalizeRuntimeEnvironment(process.env['ZLP_RUNTIME_ENV']);
+  if (explicit) {
+    return explicit;
+  }
+
+  if (isLocalHost(host)) {
+    return 'local';
+  }
+
+  const normalizedHost = normalizeHost(host);
+  if (normalizedHost.startsWith('test.') || normalizedHost.includes('.test.')) {
+    return 'test';
+  }
+
+  return 'production';
+}
+
+function isEnabledForEnvironment(environments: TEnvironmentGate | undefined, environment: TRuntimeEnvironment): boolean {
+  return environments?.[environment] !== false;
+}
+
+function dedupeStrings(values: readonly unknown[], pattern?: RegExp): readonly string[] {
+  return values
+    .map((entry) => cleanString(entry))
+    .filter((entry, index, entries) => entry.length > 0
+      && entries.indexOf(entry) === index
+      && (!pattern || pattern.test(entry)));
+}
+
+function listGoogleMeasurementIds(config: TGoogleTagConfig): readonly string[] {
+  return dedupeStrings([...(config.measurementIds ?? []), ...(config.ga4Ids ?? [])], /^(?:G|GT)-[A-Z0-9_-]+$/);
+}
+
+function listGoogleAdsIds(config: TGoogleTagConfig): readonly string[] {
+  return dedupeStrings(config.adsIds ?? [], /^AW-[A-Z0-9_-]+$/);
+}
+
+function mergeGoogleTagConfig(
+  base: TGoogleTagConfig | null | undefined,
+  override: TGoogleTagConfig | null | undefined,
+): TGoogleTagConfig | null {
+  if (!base && !override) {
+    return null;
+  }
+
+  return {
+    ...(base ?? {}),
+    ...(override ?? {}),
+    environments: {
+      ...(base?.environments ?? {}),
+      ...(override?.environments ?? {}),
+    },
+    attribution: {
+      ...(base?.attribution ?? {}),
+      ...(override?.attribution ?? {}),
+    },
+    events: {
+      ...(base?.events ?? {}),
+      ...(override?.events ?? {}),
+    },
+    conversions: {
+      ...(base?.conversions ?? {}),
+      ...(override?.conversions ?? {}),
+    },
+  };
+}
+
+function mergeSeoConfig(
+  base: TSiteSeoConfig | null | undefined,
+  override: TSiteSeoConfig | null | undefined,
+): TSiteSeoConfig | null {
+  if (!base && !override) {
+    return null;
+  }
+
+  return {
+    ...(base ?? {}),
+    ...(override ?? {}),
+  };
+}
+
+function resolveHostOverrideConfig(host: string, siteConfig: TLocalSiteConfig | null): THostOverrideConfig | null {
+  const normalizedHost = normalizeHost(host);
+  const overrides = siteConfig?.site?.hostOverrides;
+  if (!normalizedHost || !overrides || !isRecord(overrides)) {
+    return null;
+  }
+
+  return Object.entries(overrides).find(([entryHost]) => normalizeHost(entryHost) === normalizedHost)?.[1] ?? null;
+}
+
+function resolveEffectiveSeoConfig(host: string, siteConfig: TLocalSiteConfig | null): TSiteSeoConfig | null {
+  return mergeSeoConfig(siteConfig?.site?.seo, resolveHostOverrideConfig(host, siteConfig)?.seo);
+}
+
+function resolveEffectiveGoogleTagConfig(host: string, siteConfig: TLocalSiteConfig | null): TGoogleTagConfig | null {
+  return mergeGoogleTagConfig(siteConfig?.runtime?.analytics?.googleTag, resolveHostOverrideConfig(host, siteConfig)?.googleTag);
+}
+
+function resolveEffectiveSearchConsoleConfig(host: string, siteConfig: TLocalSiteConfig | null): TSearchConsoleConfig | null {
+  return resolveHostOverrideConfig(host, siteConfig)?.searchConsole ?? siteConfig?.site?.searchConsole ?? null;
+}
+
+function resolveActiveGoogleTagConfig(host: string, siteConfig: TLocalSiteConfig | null): TGoogleTagConfig | null {
+  const config = resolveEffectiveGoogleTagConfig(host, siteConfig);
+  if (!config?.enabled || !isEnabledForEnvironment(config.environments, resolveRuntimeEnvironment(host))) {
+    return null;
+  }
+
+  const hasDestination = listGoogleMeasurementIds(config).length > 0
+    || listGoogleAdsIds(config).length > 0
+    || /^GTM-[A-Z0-9_-]+$/.test(cleanString(config.gtmId));
+  return hasDestination ? config : null;
+}
+
+function resolveActiveSearchConsoleConfig(host: string, siteConfig: TLocalSiteConfig | null): TSearchConsoleConfig | null {
+  const config = resolveEffectiveSearchConsoleConfig(host, siteConfig);
+  if (!config || !isEnabledForEnvironment(config.environments, resolveRuntimeEnvironment(host))) {
+    return null;
+  }
+
+  return config;
+}
+
+function escapeHtmlAttribute(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function escapeScriptJson(value: unknown): string {
+  return JSON.stringify(value)
+    .replace(/</g, '\\u003C')
+    .replace(/>/g, '\\u003E')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
 }
 
 function normalizeRoutePath(value: unknown): string {
@@ -245,6 +497,25 @@ function readJsonFile(filePath: string): Record<string, unknown> | null {
   }
 }
 
+function collectSiteConfigAliases(siteConfig: TLocalSiteConfig | null): readonly string[] {
+  const aliases = Array.isArray(siteConfig?.aliases) ? siteConfig.aliases : [];
+  const environments = siteConfig?.environments;
+  const environmentAliases = isRecord(environments)
+    ? Object.values(environments)
+      .flatMap((environment) => Array.isArray(environment?.aliases) ? environment.aliases : [])
+    : [];
+  const hostOverrides = siteConfig?.site?.hostOverrides;
+  const hostOverrideAliases = isRecord(hostOverrides)
+    ? Object.keys(hostOverrides)
+    : [];
+
+  return dedupeStrings([
+    ...aliases,
+    ...environmentAliases,
+    ...hostOverrideAliases,
+  ]).map(normalizeHost).filter(Boolean);
+}
+
 function resolveSiteConfigPath(domain: string): string | null {
   const normalizedDomain = normalizeHost(domain);
   if (!normalizedDomain) {
@@ -279,9 +550,7 @@ function resolveSiteConfigPath(domain: string): string | null {
     }
 
     const siteConfig = readJsonFile(siteConfigPath) as TLocalSiteConfig | null;
-    const aliases = Array.isArray(siteConfig?.aliases)
-      ? siteConfig.aliases.map((alias) => normalizeHost(alias)).filter(Boolean)
-      : [];
+    const aliases = collectSiteConfigAliases(siteConfig);
 
     if (aliases.includes(normalizedDomain)) {
       setCachedSiteConfigPath(normalizedDomain, siteConfigPath);
@@ -302,7 +571,7 @@ function loadLocalSiteConfig(domain: string): TLocalSiteConfig | null {
   return readJsonFile(siteConfigPath) as TLocalSiteConfig | null;
 }
 
-function loadLocalPageConfig(domain: string, pageId: string): TLocalPageConfig | null {
+function resolveLocalPageConfigPath(domain: string, pageId: string): string | null {
   const normalizedPageId = String(pageId ?? '').trim();
   if (!normalizedPageId) {
     return null;
@@ -313,7 +582,36 @@ function loadLocalPageConfig(domain: string, pageId: string): TLocalPageConfig |
     return null;
   }
 
-  return readJsonFile(join(dirname(siteConfigPath), normalizedPageId, 'page-config.json')) as TLocalPageConfig | null;
+  return join(dirname(siteConfigPath), normalizedPageId, 'page-config.json');
+}
+
+function loadLocalPageConfig(domain: string, pageId: string): TLocalPageConfig | null {
+  const pageConfigPath = resolveLocalPageConfigPath(domain, pageId);
+  if (!pageConfigPath) {
+    return null;
+  }
+
+  return readJsonFile(pageConfigPath) as TLocalPageConfig | null;
+}
+
+function resolveFileUpdatedAt(filePath: string | null): string | undefined {
+  if (!filePath) {
+    return undefined;
+  }
+
+  try {
+    return statSync(filePath).mtime.toISOString();
+  } catch {
+    return undefined;
+  }
+}
+
+function resolveLocalPageConfigUpdatedAt(domain: string, pageId: string): string | undefined {
+  return resolveFileUpdatedAt(resolveLocalPageConfigPath(domain, pageId));
+}
+
+function resolveLocalSiteConfigUpdatedAt(domain: string): string | undefined {
+  return resolveFileUpdatedAt(resolveSiteConfigPath(domain));
 }
 
 function resolveLocalDomainFolder(domain: string): string | null {
@@ -750,13 +1048,21 @@ async function loadRuntimeSiteConfig(domain: string): Promise<TLocalSiteConfig |
     return null;
   }
 
+  const cached = runtimeSiteConfigCache.get(normalizedDomain);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.siteConfig;
+  }
+
   for (const baseUrl of RUNTIME_BUNDLE_BASE_URLS) {
     const payload = await fetchRuntimeBundlePayload(baseUrl, normalizedDomain, '/');
     if (isRecord(payload?.siteConfig)) {
-      return payload.siteConfig as TLocalSiteConfig;
+      const siteConfig = payload.siteConfig as TLocalSiteConfig;
+      setCachedRuntimeSiteConfig(normalizedDomain, siteConfig);
+      return siteConfig;
     }
   }
 
+  setCachedRuntimeSiteConfig(normalizedDomain, null);
   return null;
 }
 
@@ -828,8 +1134,40 @@ function resolveRequestOrigin(req: express.Request, host: string): string {
 }
 
 function resolveCanonicalOrigin(req: express.Request, host: string, siteConfig: TLocalSiteConfig | null): string {
-  const configured = String(siteConfig?.site?.seo?.canonicalOrigin ?? '').trim();
+  const configured = String(resolveEffectiveSeoConfig(host, siteConfig)?.canonicalOrigin ?? '').trim();
   return configured || resolveRequestOrigin(req, host);
+}
+
+function buildFrontDoorRedirectUrl(req: express.Request, host: string, siteConfig: TLocalSiteConfig | null): string | null {
+  if (!siteConfig || isLocalHost(host)) {
+    return null;
+  }
+
+  const seo = resolveEffectiveSeoConfig(host, siteConfig);
+  const protocol = resolveRequestProtocol(req, host);
+  let targetProtocol = protocol;
+  let targetHost = host;
+
+  if (seo?.forceHttps !== false && protocol !== 'https') {
+    targetProtocol = 'https';
+  }
+
+  if (seo?.enforceCanonicalHost === true) {
+    try {
+      const canonical = new URL(resolveCanonicalOrigin(req, host, siteConfig));
+      if (canonical.host) {
+        targetHost = normalizeHost(canonical.host);
+      }
+    } catch {
+      targetHost = host;
+    }
+  }
+
+  if (targetProtocol === protocol && targetHost === host) {
+    return null;
+  }
+
+  return new URL(req.originalUrl || req.url || '/', `${targetProtocol}://${targetHost}`).toString();
 }
 
 function escapeXml(value: string): string {
@@ -841,26 +1179,85 @@ function escapeXml(value: string): string {
     .replace(/'/g, '&apos;');
 }
 
-function buildRobotsTxt(req: express.Request, host: string, siteConfig: TLocalSiteConfig | null): string {
-  const origin = resolveCanonicalOrigin(req, host, siteConfig).replace(/\/$/, '');
-  const sitemapUrl = `${origin}/sitemap.xml`;
-  return ['User-agent: *', 'Allow: /', `Sitemap: ${sitemapUrl}`].join('\n');
+function stripAdQueryParamsFromUrl(rawUrl: string): string {
+  try {
+    const url = new URL(rawUrl);
+    Array.from(url.searchParams.keys()).forEach((param) => {
+      if (AD_QUERY_PARAMS.has(param) || SENSITIVE_QUERY_PARAM_PATTERN.test(param)) {
+        url.searchParams.delete(param);
+      }
+    });
+    url.hash = '';
+    return url.toString();
+  } catch {
+    return rawUrl;
+  }
 }
 
-function resolveCanonicalSitemapUrl(origin: string, routePath: string, pageConfig: TLocalPageConfig | null): string {
-  const canonical = String(pageConfig?.seo?.canonical ?? '').trim();
-  if (!canonical || canonical.includes('{{')) {
-    return new URL(normalizeRoutePath(routePath), origin).toString();
+function resolveEffectiveCanonicalUrl(
+  rawUrl: string,
+  origin: string,
+  host: string,
+  siteConfig: TLocalSiteConfig | null,
+): string {
+  const strippedUrl = stripAdQueryParamsFromUrl(rawUrl);
+  const seo = resolveEffectiveSeoConfig(host, siteConfig);
+  const canonicalOrigin = cleanString(seo?.canonicalOrigin);
+  if (seo?.enforceCanonicalHost !== true || !canonicalOrigin) {
+    return strippedUrl;
   }
 
   try {
-    return new URL(canonical, origin).toString();
+    const targetOrigin = new URL(canonicalOrigin, origin);
+    const parsedUrl = new URL(strippedUrl, targetOrigin);
+    return new URL(`${parsedUrl.pathname}${parsedUrl.search}`, targetOrigin).toString();
   } catch {
-    return new URL(normalizeRoutePath(routePath), origin).toString();
+    return strippedUrl;
   }
 }
 
-function resolveConfiguredSitemapUrls(origin: string, siteConfig: TLocalSiteConfig | null): readonly string[] {
+function buildRobotsTxt(req: express.Request, host: string, siteConfig: TLocalSiteConfig | null): string {
+  const origin = resolveCanonicalOrigin(req, host, siteConfig).replace(/\/$/, '');
+  const sitemapUrl = `${origin}/sitemap.xml`;
+  return [
+    'User-agent: *',
+    'Allow: /',
+    ...ROBOTS_DISALLOW_PATHS.map((path) => `Disallow: ${path}`),
+    `Sitemap: ${sitemapUrl}`,
+  ].join('\n');
+}
+
+function resolveCanonicalSitemapUrl(
+  origin: string,
+  routePath: string,
+  host: string,
+  siteConfig: TLocalSiteConfig | null,
+  pageConfig: TLocalPageConfig | null,
+): string {
+  const canonical = String(pageConfig?.seo?.canonical ?? '').trim();
+  if (!canonical || canonical.includes('{{')) {
+    return resolveEffectiveCanonicalUrl(new URL(normalizeRoutePath(routePath), origin).toString(), origin, host, siteConfig);
+  }
+
+  try {
+    return resolveEffectiveCanonicalUrl(new URL(canonical, origin).toString(), origin, host, siteConfig);
+  } catch {
+    return resolveEffectiveCanonicalUrl(new URL(normalizeRoutePath(routePath), origin).toString(), origin, host, siteConfig);
+  }
+}
+
+type TSitemapEntry = {
+  readonly url: string;
+  readonly lastmod?: string;
+  readonly priority: string;
+};
+
+function resolveConfiguredSitemapUrls(
+  origin: string,
+  siteConfig: TLocalSiteConfig | null,
+  domain: string,
+  host: string,
+): readonly TSitemapEntry[] {
   const configuredUrls = Array.isArray(siteConfig?.sitemap?.urls)
     ? siteConfig.sitemap.urls
     : [];
@@ -870,12 +1267,62 @@ function resolveConfiguredSitemapUrls(origin: string, siteConfig: TLocalSiteConf
     .filter(Boolean)
     .map((entry) => {
       try {
-        return new URL(entry, origin).toString();
+        return resolveEffectiveCanonicalUrl(new URL(entry, origin).toString(), origin, host, siteConfig);
       } catch {
         return '';
       }
     })
-    .filter(Boolean);
+    .filter(Boolean)
+    .map((url) => ({
+      url,
+      lastmod: resolveSiteLastModified(siteConfig, domain),
+      priority: '0.7',
+    }));
+}
+
+function resolveLastModifiedValue(value: unknown): string | undefined {
+  const raw = cleanString(value);
+  if (!raw) {
+    return undefined;
+  }
+
+  const timestamp = Date.parse(raw);
+  return Number.isNaN(timestamp) ? undefined : new Date(timestamp).toISOString();
+}
+
+function resolvePageLastModified(
+  pageConfig: TLocalPageConfig | null,
+  siteConfig: TLocalSiteConfig | null,
+  domain: string,
+  pageId: string,
+): string | undefined {
+  const metadata = pageConfig?.metadata ?? {};
+  return resolveLastModifiedValue(metadata['lastmod'])
+    ?? resolveLastModifiedValue(metadata['lastModified'])
+    ?? resolveLastModifiedValue(metadata['updatedAt'])
+    ?? resolveLastModifiedValue(metadata['publishedAt'])
+    ?? resolveLocalPageConfigUpdatedAt(domain, pageId)
+    ?? resolveSiteLastModified(siteConfig, domain);
+}
+
+function resolveSiteLastModified(siteConfig: TLocalSiteConfig | null, domain: string): string | undefined {
+  return resolveLastModifiedValue(siteConfig?.published?.updatedAt)
+    ?? resolveLastModifiedValue(siteConfig?.draft?.updatedAt)
+    ?? resolveLocalSiteConfigUpdatedAt(domain);
+}
+
+function buildSitemapEntryXml(entry: TSitemapEntry): string {
+  const lines = [
+    '  <url>',
+    `    <loc>${escapeXml(entry.url)}</loc>`,
+  ];
+  if (entry.lastmod) {
+    lines.push(`    <lastmod>${escapeXml(entry.lastmod)}</lastmod>`);
+  }
+  lines.push('    <changefreq>weekly</changefreq>');
+  lines.push(`    <priority>${entry.priority}</priority>`);
+  lines.push('  </url>');
+  return lines.join('\n');
 }
 
 async function buildSitemapXml(req: express.Request, host: string, siteConfig: TLocalSiteConfig | null): Promise<string> {
@@ -896,16 +1343,27 @@ async function buildSitemapXml(req: express.Request, host: string, siteConfig: T
       && (!notFoundPageId || routePageId !== notFoundPageId);
   });
   const sitemapDomain = normalizeHost(host) || normalizeHost(siteConfig?.domain);
-  const resolvedUrls = await Promise.all(sitemapRoutes.map(async (route) => {
+  const resolvedEntries = await Promise.all(sitemapRoutes.map(async (route) => {
     const pageConfig = sitemapDomain ? await loadPageConfigForRoute(sitemapDomain, route) : null;
-    return resolveCanonicalSitemapUrl(origin, normalizeRoutePath(route.path), pageConfig);
+    const routePath = normalizeRoutePath(route.path);
+    const pageId = cleanString(route.pageId) || resolveLocalRuntimePageId(siteConfig, routePath);
+    return {
+      url: resolveCanonicalSitemapUrl(origin, routePath, host, siteConfig, pageConfig),
+      lastmod: resolvePageLastModified(pageConfig, siteConfig, sitemapDomain, pageId),
+      priority: routePath === '/' ? '1.0' : '0.7',
+    };
   }));
-  const urls = Array.from(new Set([
-    ...resolvedUrls,
-    ...resolveConfiguredSitemapUrls(origin, siteConfig),
-  ]));
-  const entries = urls
-    .map((url) => `  <url>\n    <loc>${escapeXml(url)}</loc>\n  </url>`)
+  const entriesByUrl = new Map<string, TSitemapEntry>();
+  [
+    ...resolvedEntries,
+    ...resolveConfiguredSitemapUrls(origin, siteConfig, sitemapDomain, host),
+  ].forEach((entry) => {
+    if (!entriesByUrl.has(entry.url)) {
+      entriesByUrl.set(entry.url, entry);
+    }
+  });
+  const entries = Array.from(entriesByUrl.values())
+    .map(buildSitemapEntryXml)
     .join('\n');
 
   return [
@@ -914,6 +1372,204 @@ async function buildSitemapXml(req: express.Request, host: string, siteConfig: T
     entries,
     '</urlset>',
   ].join('\n');
+}
+
+async function loadPageConfigForRequest(req: express.Request, domain: string, siteConfig: TLocalSiteConfig | null): Promise<TLocalPageConfig | null> {
+  const routePath = normalizeRoutePath(req.path);
+  const route = resolveLocalRoute(siteConfig, routePath);
+  if (route) {
+    return loadPageConfigForRoute(domain, route);
+  }
+
+  const pageId = routePath === '/'
+    ? cleanString(siteConfig?.defaultPageId) || 'default'
+    : resolveLocalNotFoundPageId(siteConfig);
+  const localPageConfig = pageId ? loadLocalPageConfig(domain, pageId) : null;
+  return localPageConfig ?? loadRuntimePageConfig(domain, routePath);
+}
+
+function buildGoogleTagHeadHtml(host: string, siteConfig: TLocalSiteConfig | null): string {
+  const config = resolveActiveGoogleTagConfig(host, siteConfig);
+  if (!config) {
+    return '';
+  }
+
+  const measurementIds = listGoogleMeasurementIds(config);
+  const adsIds = listGoogleAdsIds(config);
+  const gtagConfigIds = [...measurementIds, ...adsIds];
+  const gtmId = cleanString(config.gtmId);
+  const environment = resolveRuntimeEnvironment(host);
+  const snippets: string[] = [
+    `<script>window.__ZLP_RUNTIME_ENV__=${escapeScriptJson(environment)};window.dataLayer=window.dataLayer||[];</script>`,
+  ];
+
+  const primaryGtagId = gtagConfigIds[0];
+  if (primaryGtagId) {
+    const sendPageView = config.sendPageView === true;
+    const configOptions = { send_page_view: sendPageView };
+    snippets.push(`<script async src="https://www.googletagmanager.com/gtag/js?id=${escapeHtmlAttribute(primaryGtagId)}"></script>`);
+    snippets.push([
+      '<script>',
+      'window.dataLayer=window.dataLayer||[];',
+      'function gtag(){dataLayer.push(arguments);}',
+      "gtag('js',new Date());",
+      ...gtagConfigIds.map((id) => `gtag('config',${escapeScriptJson(id)},${escapeScriptJson(configOptions)});`),
+      '</script>',
+    ].join(''));
+  }
+
+  if (/^GTM-[A-Z0-9_-]+$/.test(gtmId)) {
+    snippets.push([
+      '<script>',
+      "window.dataLayer=window.dataLayer||[];",
+      "window.dataLayer.push({'gtm.start':new Date().getTime(),event:'gtm.js'});",
+      '</script>',
+      `<script async src="https://www.googletagmanager.com/gtm.js?id=${escapeHtmlAttribute(gtmId)}"></script>`,
+    ].join(''));
+  }
+
+  return snippets.join('\n');
+}
+
+function buildSearchConsoleHeadHtml(host: string, siteConfig: TLocalSiteConfig | null): string {
+  const config = resolveActiveSearchConsoleConfig(host, siteConfig);
+  const token = cleanString(config?.googleSiteVerification);
+  return token ? `<meta name="google-site-verification" content="${escapeHtmlAttribute(token)}">` : '';
+}
+
+function readStructuredDataEntries(pageConfig: TLocalPageConfig | null): readonly unknown[] {
+  const structuredData = pageConfig?.structuredData;
+  if (Array.isArray(structuredData)) {
+    return structuredData;
+  }
+
+  if (isRecord(structuredData) && Array.isArray(structuredData['entries'])) {
+    return structuredData['entries'];
+  }
+
+  return [];
+}
+
+function buildStructuredDataHeadHtml(pageConfig: TLocalPageConfig | null): string {
+  const entries = readStructuredDataEntries(pageConfig);
+  if (entries.length === 0) {
+    return '';
+  }
+
+  return entries
+    .map((entry) => `<script type="application/ld+json">${escapeScriptJson(entry)}</script>`)
+    .join('\n');
+}
+
+function normalizeLanguageCode(value: unknown): string {
+  const raw = cleanString(value).replace(/_/g, '-');
+  if (!raw) {
+    return '';
+  }
+
+  const [base, ...rest] = raw.split('-').filter(Boolean);
+  if (!base) {
+    return '';
+  }
+
+  return [base.toLowerCase(), ...rest.map((part) => part.length === 2 ? part.toUpperCase() : part)].join('-');
+}
+
+function normalizeLanguageEntry(value: unknown): string {
+  if (typeof value === 'string') {
+    return normalizeLanguageCode(value);
+  }
+
+  if (isRecord(value)) {
+    return normalizeLanguageCode(value['code'] ?? value['lang'] ?? value['locale']);
+  }
+
+  return '';
+}
+
+function addLangParam(rawUrl: string, lang: string): string {
+  try {
+    const url = new URL(rawUrl);
+    url.searchParams.set('lang', lang);
+    return url.toString();
+  } catch {
+    return rawUrl;
+  }
+}
+
+function buildRequestCanonicalUrl(req: express.Request, host: string, siteConfig: TLocalSiteConfig | null): string {
+  const origin = resolveCanonicalOrigin(req, host, siteConfig).replace(/\/$/, '');
+  return stripAdQueryParamsFromUrl(new URL(req.originalUrl || req.url || '/', `${origin}/`).toString());
+}
+
+function buildCanonicalHeadHtml(
+  req: express.Request,
+  host: string,
+  siteConfig: TLocalSiteConfig | null,
+  pageConfig: TLocalPageConfig | null,
+): string {
+  const origin = resolveCanonicalOrigin(req, host, siteConfig).replace(/\/$/, '');
+  const configuredCanonical = cleanString(pageConfig?.seo?.canonical);
+  const rawCanonical = configuredCanonical && !configuredCanonical.includes('{{')
+    ? new URL(configuredCanonical, `${origin}/`).toString()
+    : new URL(req.originalUrl || req.url || '/', `${origin}/`).toString();
+  const canonicalUrl = resolveEffectiveCanonicalUrl(rawCanonical, `${origin}/`, host, siteConfig);
+  return `<link rel="canonical" href="${escapeHtmlAttribute(canonicalUrl)}">`;
+}
+
+function buildHreflangHeadHtml(req: express.Request, host: string, siteConfig: TLocalSiteConfig | null): string {
+  const languages = dedupeStrings((siteConfig?.site?.i18n?.supportedLanguages ?? []).map(normalizeLanguageEntry));
+  if (languages.length <= 1) {
+    return '';
+  }
+
+  const defaultLanguage = normalizeLanguageCode(siteConfig?.site?.i18n?.defaultLanguage);
+  const fallbackLanguage = languages.includes(defaultLanguage) ? defaultLanguage : languages[0];
+  const canonicalUrl = buildRequestCanonicalUrl(req, host, siteConfig);
+  return [
+    ...languages.map((lang) => `<link rel="alternate" hreflang="${escapeHtmlAttribute(lang)}" href="${escapeHtmlAttribute(addLangParam(canonicalUrl, lang))}">`),
+    `<link rel="alternate" hreflang="x-default" href="${escapeHtmlAttribute(addLangParam(canonicalUrl, fallbackLanguage))}">`,
+  ].join('\n');
+}
+
+function injectHeadHtml(html: string, headHtml: string): string {
+  if (!headHtml) {
+    return html;
+  }
+
+  const sanitizedHtml = headHtml.includes('rel="canonical"')
+    ? html.replace(/<link\s+rel=["']canonical["'][^>]*>/gi, '')
+    : html;
+  return sanitizedHtml.replace(/<\/head>/i, `${headHtml}\n</head>`);
+}
+
+async function decorateHtmlResponse(req: express.Request, response: Response): Promise<Response> {
+  const contentType = response.headers.get('content-type') ?? '';
+  if (!contentType.toLowerCase().includes('text/html')) {
+    return response;
+  }
+
+  const host = resolveRequestHost(req);
+  const lookupDomain = resolveNotFoundLookupDomain(req, host);
+  const siteConfig = await loadSiteConfigForHost(lookupDomain);
+  const pageConfig = await loadPageConfigForRequest(req, lookupDomain, siteConfig);
+  const headers = new Headers(response.headers);
+  headers.delete('content-length');
+
+  const html = await response.text();
+  const headHtml = [
+    buildGoogleTagHeadHtml(lookupDomain, siteConfig),
+    buildSearchConsoleHeadHtml(lookupDomain, siteConfig),
+    buildStructuredDataHeadHtml(pageConfig),
+    buildCanonicalHeadHtml(req, lookupDomain, siteConfig, pageConfig),
+    buildHreflangHeadHtml(req, lookupDomain, siteConfig),
+  ].filter(Boolean).join('\n');
+
+  return new Response(injectHeadHtml(html, headHtml), {
+    headers,
+    status: response.status,
+    statusText: response.statusText,
+  });
 }
 
 async function shouldServeNotFoundDocument(req: express.Request): Promise<boolean> {
@@ -1037,16 +1693,54 @@ app.get('/debug-workspace/:kind', (req, res, next) => {
   }
 });
 
+app.use((req, res, next) => {
+  const host = resolveRequestHost(req);
+  const lookupDomain = resolveNotFoundLookupDomain(req, host);
+  loadSiteConfigForHost(lookupDomain)
+    .then((siteConfig) => {
+      const redirectUrl = buildFrontDoorRedirectUrl(req, host, siteConfig);
+      if (!redirectUrl) {
+        next();
+        return;
+      }
+
+      res.redirect(301, redirectUrl);
+    })
+    .catch(next);
+});
+
+app.get(/^\/google[^/]*\.html$/i, async (req, res, next) => {
+  const host = resolveRequestHost(req);
+  const lookupDomain = resolveNotFoundLookupDomain(req, host);
+  const siteConfig = await loadSiteConfigForHost(lookupDomain);
+  const config = resolveActiveSearchConsoleConfig(lookupDomain, siteConfig);
+  const configuredPath = normalizeRoutePath(config?.htmlFile?.path);
+  const content = cleanString(config?.htmlFile?.content);
+
+  if (!configuredPath || configuredPath.toLowerCase() !== normalizeRoutePath(req.path).toLowerCase() || !content) {
+    next();
+    return;
+  }
+
+  res
+    .status(200)
+    .type('text/html')
+    .set('Cache-Control', 'no-store')
+    .send(content);
+});
+
 app.get('/robots.txt', async (req, res) => {
   const host = resolveRequestHost(req);
-  const siteConfig = await loadSiteConfigForHost(host);
-  res.type('text/plain').send(buildRobotsTxt(req, host, siteConfig));
+  const lookupDomain = resolveNotFoundLookupDomain(req, host);
+  const siteConfig = await loadSiteConfigForHost(lookupDomain);
+  res.type('text/plain').send(buildRobotsTxt(req, lookupDomain, siteConfig));
 });
 
 app.get('/sitemap.xml', async (req, res) => {
   const host = resolveRequestHost(req);
-  const siteConfig = await loadSiteConfigForHost(host);
-  res.type('application/xml').send(await buildSitemapXml(req, host, siteConfig));
+  const lookupDomain = resolveNotFoundLookupDomain(req, host);
+  const siteConfig = await loadSiteConfigForHost(lookupDomain);
+  res.type('application/xml').send(await buildSitemapXml(req, lookupDomain, siteConfig));
 });
 
 const draftsFolder = resolveDraftsFolder();
@@ -1090,16 +1784,19 @@ app.use((req, res, next) => {
           return;
         }
 
-        if (!notFoundDocument) {
-          writeResponseToNodeResponse(response, res);
-          return;
-        }
+        return decorateHtmlResponse(req, response)
+          .then((decoratedResponse) => {
+            if (!notFoundDocument) {
+              writeResponseToNodeResponse(decoratedResponse, res);
+              return;
+            }
 
-        writeResponseToNodeResponse(new Response(response.body, {
-          headers: response.headers,
-          status: 404,
-          statusText: 'Not Found',
-        }), res);
+            writeResponseToNodeResponse(new Response(decoratedResponse.body, {
+              headers: decoratedResponse.headers,
+              status: 404,
+              statusText: 'Not Found',
+            }), res);
+          });
       }))
     .catch(next);
 });
