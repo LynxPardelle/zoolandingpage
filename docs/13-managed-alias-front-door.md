@@ -179,6 +179,27 @@ The tool writes a local backup and patched distribution config under `logs/ops/`
 
 Also request a higher Lambda regional concurrency quota when the account limit is still `10`; CloudFront caching reduces origin pressure, but it does not raise raw API Gateway capacity.
 
+When the quota is approved, put a reserved concurrency cap on the runtime-read Lambda instead of using Provisioned Concurrency:
+
+```powershell
+aws lambda put-function-concurrency `
+  --function-name <runtime-read-function-name> `
+  --reserved-concurrent-executions 100
+```
+
+Reserved concurrency has no fixed capacity charge and caps runtime-read so it cannot consume the whole regional pool. Provisioned Concurrency does create a standing capacity charge and should require explicit cost approval. After setting the cap, verify account and function state:
+
+```powershell
+aws lambda get-account-settings
+aws lambda get-function-concurrency --function-name <runtime-read-function-name>
+node tools/ops/probe-runtime-front-door.mjs `
+  --domain=zoolandingpage.com.mx `
+  --requests=200 `
+  --concurrency=16 `
+  --target=all `
+  --cache-mode=no-store
+```
+
 ## Mitigation Rules
 
 - If custom-domain resets occur but raw API Gateway stays clean, investigate CloudFront origin behavior, keepalive, HTTP version, TLS, and origin timeouts before changing runtime-read code.

@@ -302,7 +302,7 @@ node tools/ops/configure-runtime-front-door-cache.mjs --apply --wait --min-ttl=1
 node tools/ops/probe-runtime-front-door.mjs --domain=zoolandingpage.com.mx --requests=200 --concurrency=8 --target=custom-domain --cache-mode=default --format=markdown --output=logs/ops/runtime-front-door-after-cache.md
 ```
 
-If raw API Gateway still returns HTTP `500` under burst probes, check the Lambda regional account concurrency quota before changing runtime-read application logic.
+If raw API Gateway still returns HTTP `500` under burst probes, check the Lambda regional account concurrency quota before changing runtime-read application logic. After the regional quota is approved, set reserved concurrency on the runtime-read Lambda as a no-fixed-cost cap/reservation; do not use Provisioned Concurrency unless the standing capacity cost has been approved.
 
 ### 7. Seed payload data
 
