@@ -170,6 +170,27 @@ test('production SSR server does not self-redirect on proxy internal http', asyn
   assert.equal(getStderr(), '');
 });
 
+test('production SSR server does not self-redirect primary canonical hosts on proxy internal http', async (t) => {
+  const { port, getStderr } = await startProductionServer(t);
+  const response = await fetch(`http://127.0.0.1:${port}/robots.txt`, {
+    redirect: 'manual',
+    headers: {
+      Host: 'zoolandingpage.com.mx',
+      'X-Forwarded-For': '203.0.113.10',
+      'X-Forwarded-Host': 'zoolandingpage.com.mx',
+      'X-Forwarded-Port': '80',
+      'X-Forwarded-Proto': 'http',
+      'X-Forwarded-Server': 'dokploy-traefik',
+    },
+  });
+  const body = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.match(body, /Sitemap: https:\/\/zoolandingpage\.com\.mx\/sitemap\.xml/);
+  assert.equal(response.headers.get('location'), null);
+  assert.equal(getStderr(), '');
+});
+
 test('production SSR server redirects public aliases to the primary canonical host', async (t) => {
   const { port, getStderr } = await startProductionServer(t);
   const response = await fetch(`http://127.0.0.1:${port}/planes?gclid=test&utm_source=google`, {
