@@ -38,6 +38,7 @@ export type TGenericCardConfig = {
     readonly imageAlt?: TDynamicValue<string>;
     readonly href?: TDynamicValue<string>;
     readonly linkLabel?: TDynamicValue<string>;
+    readonly linkEventInstructions?: TDynamicValue<string>;
     readonly target?: TDynamicValue<'_self' | '_blank' | '_parent' | '_top'>;
     readonly rel?: TDynamicValue<string>;
 
