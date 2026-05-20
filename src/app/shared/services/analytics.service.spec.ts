@@ -313,62 +313,76 @@ describe('AnalyticsService', () => {
   });
 
   it('mirrors internal page views to Google dataLayer with stored ad attribution but without ad params in page_location', async () => {
+    const originalUrl = window.location.href;
+    const attributionStorageKey = 'fixture:adAttribution';
+
     spyOnProperty(navigator, 'userAgent', 'get').and.returnValue('Mozilla/5.0 Chrome/148.0.0.0 Safari/537.36');
     spyOnProperty(navigator, 'webdriver', 'get').and.returnValue(false);
-    history.pushState({}, '', '/?gclid=test-gclid&utm_source=google&utm_campaign=spring&email=lead@example.com');
     (window as any).dataLayer = [];
     delete (window as any).gtag;
 
-    TestBed.configureTestingModule({
-      providers: [
-        {
-          provide: RuntimeConfigService,
-          useValue: {
-            appIdentifier: () => 'fixture',
-            isAnalyticsEnabled: () => false,
-            isDebugMode: () => false,
-            analyticsConsentMode: () => 'none',
-            resolveStorageKey: (slot: string) => `fixture:${ slot }`,
-            track: () => [],
-            analytics: () => ({
-              googleTag: {
-                enabled: true,
-                environments: { local: true, test: true, production: true },
-                measurementIds: ['G-TEST123'],
-                attribution: { storage: 'session', ttlDays: 7 },
-              },
-            }),
+    try {
+      TestBed.configureTestingModule({
+        providers: [
+          {
+            provide: RuntimeConfigService,
+            useValue: {
+              appIdentifier: () => 'fixture',
+              isAnalyticsEnabled: () => false,
+              isDebugMode: () => false,
+              analyticsConsentMode: () => 'none',
+              resolveStorageKey: (slot: string) => `fixture:${ slot }`,
+              track: () => [],
+              analytics: () => ({
+                googleTag: {
+                  enabled: true,
+                  environments: { local: true, test: true, production: true },
+                  measurementIds: ['G-TEST123'],
+                  attribution: { storage: 'session', ttlDays: 7 },
+                },
+              }),
+            },
           },
-        },
-        {
-          provide: HttpClient,
-          useValue: {
-            post: jasmine.createSpy('post').and.returnValue(of({ ok: true })),
-          } as any,
-        },
-      ],
-    });
+          {
+            provide: HttpClient,
+            useValue: {
+              post: jasmine.createSpy('post').and.returnValue(of({ ok: true })),
+            } as any,
+          },
+        ],
+      });
 
-    const svc = TestBed.inject(AnalyticsService);
-    svc.initializeRuntimeState();
+      const svc = TestBed.inject(AnalyticsService);
 
-    await svc.track('page_view', {
-      category: 'navigation',
-      label: '/?gclid=test-gclid&utm_source=google&utm_campaign=spring',
-    });
+      history.replaceState(
+        {},
+        '',
+        new URL('/?gclid=test-gclid&utm_source=google&utm_campaign=spring&email=lead@example.com', window.location.origin).toString(),
+      );
+      window.sessionStorage.removeItem(attributionStorageKey);
+      await svc.track('page_view', {
+        category: 'navigation',
+        label: '/?gclid=test-gclid&utm_source=google&utm_campaign=spring',
+      });
 
-    const pageView = (window as any).dataLayer.find((entry: Record<string, unknown>) => entry['event'] === 'page_view');
+      const pageView = (window as any).dataLayer.find((entry: Record<string, unknown>) => entry['event'] === 'page_view');
 
-    expect(pageView).toEqual(jasmine.objectContaining({
-      event: 'page_view',
-      event_label: '/',
-      page_location: `${ window.location.origin }/`,
-      page_path: '/',
-      gclid: 'test-gclid',
-      utm_source: 'google',
-      utm_campaign: 'spring',
-    }));
-    expect(pageView?.email).toBeUndefined();
+      expect(pageView).toEqual(jasmine.objectContaining({
+        event: 'page_view',
+        event_label: '/',
+        page_location: `${ window.location.origin }/`,
+        page_path: '/',
+        gclid: 'test-gclid',
+        utm_source: 'google',
+        utm_campaign: 'spring',
+      }));
+      expect(pageView?.email).toBeUndefined();
+    } finally {
+      window.sessionStorage.removeItem(attributionStorageKey);
+      history.replaceState({}, '', originalUrl);
+      (window as any).dataLayer = [];
+      delete (window as any).gtag;
+    }
   });
 
   it('sends whatsapp_click as a GA4 event and Ads conversion with an event_callback when gtag is present', async () => {

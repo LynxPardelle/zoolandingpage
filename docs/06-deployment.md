@@ -90,7 +90,7 @@ Current custom-domain routing through CloudFront:
 - `/api-proxy/*` -> `yxp97qlog2.execute-api.us-east-1.amazonaws.com` with origin path `/Prod`
 - the existing default behavior remains in place for older API routes already using the same distribution
 
-Use `https://api.zoolandingpage.com.mx` as the stable browser-facing base URL. Keep the raw execute-api endpoints for low-level troubleshooting and the SSR-only `runtime-bundle` fallback base.
+Use `https://api.zoolandingpage.com.mx` as the stable browser-facing base URL. Keep the raw execute-api endpoints for low-level troubleshooting and the SSR-only `runtime-bundle` fallback base. Keep `/runtime-bundle*` on a short CloudFront cache policy keyed by all query strings; `domain`, `path`, and `lang` must be part of the cache key. Do not apply this cache policy to authoring, uploads, analytics, or API proxy routes.
 
 Future redeploys can use the repo-local `samconfig.toml` files added to each Lambda repository.
 
@@ -283,7 +283,8 @@ Current origin and behavior mapping:
 6. Add cache behavior `/analytics` pointing to the data-dropper API origin.
 7. Add cache behavior `/api-proxy/*` pointing to the runtime API proxy origin.
 8. Keep the existing default behavior untouched so older API routes continue working, but do not rely on it for current data-dropper deploys.
-9. Reuse the distribution's disabled-cache policy and the origin-request policy that forwards viewer headers except `Host`.
+9. Reuse the distribution's disabled-cache policy for write or user-specific API routes, and use the short runtime-bundle cache policy for `/runtime-bundle*`.
+10. Keep the origin-request policy that forwards viewer headers except `Host`.
 
 CORS requirements through CloudFront:
 
@@ -293,6 +294,15 @@ CORS requirements through CloudFront:
 4. Keep API Gateway route-level preflight enabled for the three APIs.
 5. Keep Lambda proxy responses returning `Access-Control-Allow-Origin`.
 6. Keep S3 bucket CORS for presigned browser uploads.
+
+Runtime API burst guard:
+
+```powershell
+node tools/ops/configure-runtime-front-door-cache.mjs --apply --wait --min-ttl=1 --default-ttl=10 --max-ttl=60
+node tools/ops/probe-runtime-front-door.mjs --domain=zoolandingpage.com.mx --requests=200 --concurrency=8 --target=custom-domain --cache-mode=default --format=markdown --output=logs/ops/runtime-front-door-after-cache.md
+```
+
+If raw API Gateway still returns HTTP `500` under burst probes, check the Lambda regional account concurrency quota before changing runtime-read application logic.
 
 ### 7. Seed payload data
 

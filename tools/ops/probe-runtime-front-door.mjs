@@ -13,6 +13,12 @@ const DEFAULT_REQUESTS = 100;
 const DEFAULT_CONCURRENCY = 8;
 const DEFAULT_TIMEOUT_MS = 20000;
 const DEFAULT_TIME_ZONE = 'America/Mexico_City';
+const DEFAULT_CACHE_MODE = 'no-store';
+const TARGETS = [
+  { name: 'custom-domain', baseUrl: DEFAULT_CUSTOM_BASE_URL },
+  { name: 'raw-api-gateway', baseUrl: DEFAULT_RAW_BASE_URL },
+];
+const VALID_CACHE_MODES = new Set(['default', 'no-store', 'reload', 'no-cache', 'force-cache']);
 
 function parseArgs(rawArgs) {
   const args = { domain: [] };
@@ -47,6 +53,29 @@ function integerArg(args, key, fallback, minimum = 1) {
   return parsed;
 }
 
+function cacheModeArg(value) {
+  const cacheMode = String(value ?? DEFAULT_CACHE_MODE).trim().toLowerCase();
+  if (!VALID_CACHE_MODES.has(cacheMode)) {
+    throw new Error(`--cache-mode must be one of: ${Array.from(VALID_CACHE_MODES).join(', ')}`);
+  }
+  return cacheMode;
+}
+
+function targetNamesArg(value) {
+  const requested = splitList(value || 'all');
+  if (requested.includes('all')) {
+    return TARGETS.map(target => target.name);
+  }
+
+  const known = new Set(TARGETS.map(target => target.name));
+  for (const name of requested) {
+    if (!known.has(name)) {
+      throw new Error(`--target must be all or one of: ${Array.from(known).join(', ')}`);
+    }
+  }
+  return requested;
+}
+
 function normalizeBaseUrl(value) {
   return String(value ?? '').trim().replace(/\/+$/, '');
 }
@@ -76,13 +105,17 @@ function formatErrorSummary(error) {
   return parts.filter(Boolean).join(' | ');
 }
 
-async function fetchProbe(url, { timeoutMs }) {
+async function fetchProbe(url, { timeoutMs, cacheMode }) {
   const started = performance.now();
   try {
-    const response = await fetch(url, {
-      cache: 'no-store',
+    const requestInit = {
       signal: AbortSignal.timeout(timeoutMs),
-    });
+    };
+    if (cacheMode !== 'default') {
+      requestInit.cache = cacheMode;
+    }
+
+    const response = await fetch(url, requestInit);
     const body = await response.text();
     let parsed = null;
     try {
@@ -181,7 +214,7 @@ function centralTimestamp(date = new Date(), timeZone = DEFAULT_TIME_ZONE) {
   return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}:${get('second')} CT (${get('timeZoneName')})`;
 }
 
-async function probeTarget({ name, baseUrl, domains, pathName, lang, requests, concurrency, timeoutMs }) {
+async function probeTarget({ name, baseUrl, domains, pathName, lang, requests, concurrency, timeoutMs, cacheMode }) {
   const samples = await runPool(requests, concurrency, async index => {
     const domain = domains[index % domains.length];
     const url = buildRuntimeUrl({ baseUrl, domain, pathName, lang });
@@ -190,7 +223,7 @@ async function probeTarget({ name, baseUrl, domains, pathName, lang, requests, c
       domain,
       index,
       url,
-      ...(await fetchProbe(url, { timeoutMs })),
+      ...(await fetchProbe(url, { timeoutMs, cacheMode })),
     };
   });
 
@@ -209,6 +242,7 @@ function renderMarkdown(report) {
     `Date: ${report.generatedAtCentral} Central Time`,
     `Requests per target: ${report.requests}`,
     `Concurrency: ${report.concurrency}`,
+    `Fetch cache mode: ${report.cacheMode}`,
     `Domains: ${report.domains.join(', ')}`,
     '',
     '| Target | Success | Failure | Failure rate | p50 ms | p95 ms | Errors |',
@@ -246,6 +280,8 @@ async function main() {
     DEFAULT_TIMEOUT_MS,
     1000,
   );
+  const cacheMode = cacheModeArg(args['cache-mode'] ?? env.npm_config_cache_mode ?? DEFAULT_CACHE_MODE);
+  const targetNames = targetNamesArg(args.target ?? env.npm_config_target ?? 'all');
   const customBaseUrl = normalizeBaseUrl(args['custom-base-url'] ?? env.ZOOLANDING_RUNTIME_BASE_URL ?? env.npm_config_custom_base_url ?? DEFAULT_CUSTOM_BASE_URL);
   const rawBaseUrl = normalizeBaseUrl(args['raw-base-url'] ?? env.ZOOLANDING_RUNTIME_RAW_BASE_URL ?? env.npm_config_raw_base_url ?? DEFAULT_RAW_BASE_URL);
 
@@ -253,7 +289,7 @@ async function main() {
   for (const target of [
     { name: 'custom-domain', baseUrl: customBaseUrl },
     { name: 'raw-api-gateway', baseUrl: rawBaseUrl },
-  ]) {
+  ].filter(target => targetNames.includes(target.name))) {
     targets.push(await probeTarget({
       ...target,
       domains,
@@ -262,6 +298,7 @@ async function main() {
       requests,
       concurrency,
       timeoutMs,
+      cacheMode,
     }));
   }
 
@@ -270,6 +307,8 @@ async function main() {
     requests,
     concurrency,
     timeoutMs,
+    cacheMode,
+    targetNames,
     domains,
     path: pathName,
     lang,
@@ -304,4 +343,5 @@ export {
   parseArgs,
   renderMarkdown,
   summarizeSamples,
+  targetNamesArg,
 };
