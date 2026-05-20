@@ -262,8 +262,8 @@ test('requested GA4 alias hosts render with the central Zoosite Google tag while
       );
       assert.equal(
         hostOverrides[host]?.seo?.enforceCanonicalHost,
-        false,
-        `${expectation.domain} alias ${host} should render instead of redirecting so its GA4 tag can fire`,
+        true,
+        `${expectation.domain} alias ${host} should 301 to the primary canonical host`,
       );
       assert.equal(hostOverrides[host]?.googleTag?.enabled, true);
       assert.deepEqual(hostOverrides[host]?.googleTag?.measurementIds, [measurementId]);
