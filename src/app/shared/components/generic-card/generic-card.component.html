@@ -91,7 +91,15 @@
     }"
   ></generic-button>
   } @if (href() && linkLabel()) {
-  <a [href]="href()" [class]="classValue('linkClasses')" [attr.target]="target()" [attr.rel]="rel()">{{ linkLabel() }}</a>
+  <a
+    [href]="href()"
+    [class]="classValue('linkClasses')"
+    [attr.target]="target()"
+    [attr.rel]="rel()"
+    [attr.data-event-instructions]="linkEventInstructions() || null"
+    (click)="onLinkClicked($event)"
+    >{{ linkLabel() }}</a
+  >
   }
 </div>
 }
