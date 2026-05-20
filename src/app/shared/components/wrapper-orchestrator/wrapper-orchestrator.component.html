@@ -77,7 +77,18 @@
   <span aria-hidden="true"></span>
 }
 } @case('generic-card') {
-<generic-card [config]="component.config"></generic-card>
+<generic-card
+  [config]="component.config"
+  (linkClicked)="
+    eventEmitted({
+      component: component.id,
+      meta_title: component.meta_title,
+      eventName: 'linkClicked',
+      eventData: $event.href,
+      eventInstructions: $event.eventInstructions || component.eventInstructions
+    })
+  "
+></generic-card>
 } @case('input') {
 <generic-input
   [config]="component.config"

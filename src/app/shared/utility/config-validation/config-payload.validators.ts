@@ -865,6 +865,7 @@ const isGenericCardConfig = (value: unknown): boolean => {
     if (value['description'] !== undefined && typeof value['description'] !== 'string') return false;
     if (value['buttonLabel'] !== undefined && typeof value['buttonLabel'] !== 'string') return false;
     if (value['buttonClasses'] !== undefined && typeof value['buttonClasses'] !== 'string') return false;
+    if (value['linkEventInstructions'] !== undefined && typeof value['linkEventInstructions'] !== 'string') return false;
     if (value['featureIconContainerClasses'] !== undefined && typeof value['featureIconContainerClasses'] !== 'string') return false;
     if (value['featureIconClasses'] !== undefined && typeof value['featureIconClasses'] !== 'string') return false;
     if (value['featureTitleClasses'] !== undefined && typeof value['featureTitleClasses'] !== 'string') return false;

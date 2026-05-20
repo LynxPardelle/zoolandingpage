@@ -23,6 +23,7 @@ describe('GenericCardComponent', () => {
             imageClasses: 'album-cover',
             href: 'https://tidal.com/browse/album/500',
             linkLabel: 'Open on TIDAL',
+            linkEventInstructions: 'trackEvent:cta_click,cta,album-card,location,card',
             linkClasses: 'album-link',
             target: '_blank',
             rel: 'noopener noreferrer',
@@ -40,6 +41,29 @@ describe('GenericCardComponent', () => {
         expect(link?.getAttribute('href')).toBe('https://tidal.com/browse/album/500');
         expect(link?.getAttribute('target')).toBe('_blank');
         expect(link?.getAttribute('rel')).toBe('noopener noreferrer');
+        expect(link?.getAttribute('data-event-instructions')).toBe('trackEvent:cta_click,cta,album-card,location,card');
         expect(link?.textContent?.trim()).toBe('Open on TIDAL');
+    });
+
+    it('emits optional link analytics metadata without blocking navigation', () => {
+        fixture.componentInstance.config = {
+            variant: 'feature',
+            title: 'WhatsApp',
+            href: 'https://wa.me/525522699563',
+            linkLabel: 'Open WhatsApp',
+            linkEventInstructions: 'trackEvent:whatsapp_click,cta,card,channel,whatsapp',
+        } as never;
+        const emitted: Array<{ href: string; eventInstructions?: string }> = [];
+        fixture.componentInstance.linkClicked.subscribe((event) => emitted.push(event));
+
+        fixture.detectChanges();
+        fixture.componentInstance.onLinkClicked();
+
+        expect(emitted).toEqual([
+            {
+                href: 'https://wa.me/525522699563',
+                eventInstructions: 'trackEvent:whatsapp_click,cta,card,channel,whatsapp',
+            },
+        ]);
     });
 });
