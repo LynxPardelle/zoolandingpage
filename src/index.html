@@ -101,24 +101,6 @@
         opacity: 0.72;
       }
 
-      .zlp-boot-curtain__bar {
-        width: 7.5rem;
-        height: 0.2rem;
-        overflow: hidden;
-        border-radius: 999px;
-        background: color-mix(in srgb, var(--zlp-boot-fg) 14%, transparent);
-      }
-
-      .zlp-boot-curtain__bar::before {
-        content: "";
-        display: block;
-        width: 45%;
-        height: 100%;
-        border-radius: inherit;
-        background: var(--zlp-boot-accent);
-        animation: zlpBootBar 900ms ease-in-out infinite alternate;
-      }
-
       .zlp-boot-curtain--leaving {
         pointer-events: none;
         background: transparent;
@@ -137,22 +119,11 @@
         transform: translateY(0.35rem);
       }
 
-      @keyframes zlpBootBar {
-        from {
-          transform: translateX(-20%);
-        }
-
-        to {
-          transform: translateX(140%);
-        }
-      }
-
       @media (prefers-reduced-motion: reduce) {
         .zlp-boot-curtain,
         .zlp-boot-curtain::before,
         .zlp-boot-curtain::after,
-        .zlp-boot-curtain__content,
-        .zlp-boot-curtain__bar::before {
+        .zlp-boot-curtain__content {
           animation: none;
           transition: none;
         }
@@ -220,7 +191,6 @@
         />
         <strong class="zlp-boot-curtain__title" data-zlp-boot-title>Zoo Landing Page</strong>
         <span class="zlp-boot-curtain__subtitle" data-zlp-boot-subtitle>zoolandingpage.com.mx</span>
-        <span class="zlp-boot-curtain__bar" aria-hidden="true"></span>
       </div>
     </div>
     <app-root></app-root>
