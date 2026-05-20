@@ -1113,13 +1113,17 @@ function resolveNotFoundLookupDomain(req: express.Request, host: string): string
 }
 
 function resolveRequestProtocol(req: express.Request, host: string): string {
-  const forwardedProto = String(req.headers['x-forwarded-proto'] ?? '')
-    .split(',')[0]
-    .trim()
-    .toLowerCase();
+  const forwardedProtoValues = String(req.headers['x-forwarded-proto'] ?? '')
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
 
-  if (forwardedProto) {
-    return forwardedProto;
+  if (forwardedProtoValues.includes('https')) {
+    return 'https';
+  }
+
+  if (forwardedProtoValues.length > 0) {
+    return forwardedProtoValues[0];
   }
 
   return host === 'localhost' || host.startsWith('127.') ? 'http' : 'https';

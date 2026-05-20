@@ -128,6 +128,27 @@ test('production SSR server renders behind Traefik forwarded headers', async (t)
   assert.doesNotMatch(getStderr(), /trustProxyHeaders/i);
 });
 
+test('production SSR server does not self-redirect when proxy proto chain includes https', async (t) => {
+  const { port, getStderr } = await startProductionServer(t);
+  const response = await fetch(`http://127.0.0.1:${port}/robots.txt`, {
+    redirect: 'manual',
+    headers: {
+      Host: 'test.zoolandingpage.com.mx',
+      'X-Forwarded-For': '203.0.113.10',
+      'X-Forwarded-Host': 'test.zoolandingpage.com.mx',
+      'X-Forwarded-Port': '443',
+      'X-Forwarded-Proto': 'http, https',
+      'X-Forwarded-Server': 'dokploy-traefik',
+    },
+  });
+  const body = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.match(body, /Sitemap: https:\/\/zoolandingpage\.com\.mx\/sitemap\.xml/);
+  assert.equal(response.headers.get('location'), null);
+  assert.equal(getStderr(), '');
+});
+
 test('production SSR server prefers the server-only runtime fallback for auxiliary runtime reads', async (t) => {
   const fallbackRequests = [];
   const primaryRequests = [];
