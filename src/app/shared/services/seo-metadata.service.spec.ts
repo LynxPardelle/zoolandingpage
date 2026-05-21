@@ -94,7 +94,86 @@ describe('SeoMetadataService', () => {
         expect(title.setTitle).toHaveBeenCalledWith('Example Site');
         expect(meta.updateTag).toHaveBeenCalledWith({ name: 'description', content: 'Shared site description.' });
         expect(meta.updateTag).toHaveBeenCalledWith({ property: 'og:image', content: 'https://example.com/og-default.png' });
+        expect(meta.updateTag).toHaveBeenCalledWith({ property: 'og:image:type', content: 'image/png' });
+        expect(meta.updateTag).toHaveBeenCalledWith({ property: 'og:image:alt', content: 'Example Site' });
         expect(meta.updateTag).toHaveBeenCalledWith({ name: 'twitter:card', content: 'summary' });
+        expect(meta.updateTag).toHaveBeenCalledWith({ name: 'twitter:image:alt', content: 'Example Site' });
+    });
+
+    it('emits absolute share image metadata with dimensions and alt text', () => {
+        TestBed.resetTestingModule();
+
+        title = jasmine.createSpyObj<Title>('Title', ['setTitle']);
+        meta = jasmine.createSpyObj<Meta>('Meta', ['updateTag', 'removeTag']);
+
+        const baseDoc = document.implementation.createHTMLDocument('seo');
+        const seoDoc = {
+            documentElement: baseDoc.documentElement,
+            head: baseDoc.head,
+            createElement: baseDoc.createElement.bind(baseDoc),
+            defaultView: {
+                location: {
+                    origin: 'https://zoositioweb.com.mx',
+                    pathname: '/',
+                    search: '',
+                },
+            },
+        } as unknown as Document;
+
+        TestBed.configureTestingModule({
+            providers: [
+                SeoMetadataService,
+                { provide: DOCUMENT, useValue: seoDoc },
+                { provide: Title, useValue: title },
+                { provide: Meta, useValue: meta },
+                {
+                    provide: DomainResolverService,
+                    useValue: {
+                        resolveDomain: () => ({ domain: 'zoositioweb.com.mx' }),
+                    },
+                },
+                {
+                    provide: RuntimeConfigService,
+                    useValue: {
+                        seoDefaults: () => ({
+                            siteName: 'Zoo Sitio Web',
+                            title: 'Zoo Sitio Web',
+                            canonicalOrigin: 'https://zoositioweb.com.mx',
+                            defaultImage: '/shared/default-card.jpg',
+                            openGraph: {
+                                'image:width': '1200',
+                                'image:height': '630',
+                                'image:alt': 'Zoo Sitio Web wordmark',
+                            },
+                        }),
+                        appName: () => 'Zoo Sitio Web',
+                        appDescription: () => 'Sitios web medibles.',
+                    },
+                },
+            ],
+        });
+
+        service = TestBed.inject(SeoMetadataService);
+        service.apply('es', {
+            title: 'Sitios web profesionales',
+            openGraph: {
+                image: '/share-card.jpg',
+            },
+        } as never);
+
+        expect(meta.updateTag).toHaveBeenCalledWith({
+            property: 'og:image',
+            content: 'https://zoositioweb.com.mx/share-card.jpg',
+        });
+        expect(meta.updateTag).toHaveBeenCalledWith({
+            property: 'og:image:secure_url',
+            content: 'https://zoositioweb.com.mx/share-card.jpg',
+        });
+        expect(meta.updateTag).toHaveBeenCalledWith({ property: 'og:image:type', content: 'image/jpeg' });
+        expect(meta.updateTag).toHaveBeenCalledWith({ property: 'og:image:width', content: '1200' });
+        expect(meta.updateTag).toHaveBeenCalledWith({ property: 'og:image:height', content: '630' });
+        expect(meta.updateTag).toHaveBeenCalledWith({ property: 'og:image:alt', content: 'Zoo Sitio Web wordmark' });
+        expect(meta.updateTag).toHaveBeenCalledWith({ name: 'twitter:image:alt', content: 'Zoo Sitio Web wordmark' });
     });
 
     it('syncs draft-configured browser icons into the document head', () => {
