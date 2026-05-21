@@ -573,6 +573,11 @@ test('built SSR server decorates configured drafts with Google tag, Search Conso
     appIdentity: { identifier: 'fixture', name: 'Fixture Example' },
     theme: { defaultMode: 'light', palettes: {} },
     i18n: { defaultLanguage: 'es', supportedLanguages: ['es', 'en'] },
+    icons: {
+      favicon: 'https://assets.zoolandingpage.com.mx/zoositioweb.com.mx/shared/brand/favicon.svg',
+      maskIcon: 'https://assets.zoolandingpage.com.mx/zoositioweb.com.mx/shared/brand/mask-icon.svg',
+      themeColor: '#128c7e',
+    },
     seo: { canonicalOrigin: 'https://zoositioweb.com.mx', enforceCanonicalHost: true },
     searchConsole: {
       googleSiteVerification: 'verification-token',
@@ -759,6 +764,9 @@ test('built SSR server decorates configured drafts with Google tag, Search Conso
   assert.match(html, /window\.dataLayer\s*=\s*window\.dataLayer\s*\|\|\s*\[\]/);
   assert.match(html, /send_page_view["']?\s*:\s*false/);
   assert.match(html, /<meta name="google-site-verification" content="verification-token">/);
+  assert.match(html, /<link rel="icon" href="https:\/\/assets\.zoolandingpage\.com\.mx\/zoositioweb\.com\.mx\/shared\/brand\/favicon\.svg" type="image\/svg\+xml" data-zlp-browser-icon="true">/);
+  assert.match(html, /<link rel="mask-icon" href="https:\/\/assets\.zoolandingpage\.com\.mx\/zoositioweb\.com\.mx\/shared\/brand\/mask-icon\.svg" color="#128c7e" data-zlp-browser-icon="true">/);
+  assert.match(html, /<meta name="theme-color" content="#128c7e" data-zlp-browser-icon="true">/);
   assert.match(html, /<script type="application\/ld\+json"/);
   assert.match(html, /"@type":"WebSite"/);
   assert.match(html, /hreflang="en"/);

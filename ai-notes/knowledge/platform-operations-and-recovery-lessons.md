@@ -8,6 +8,7 @@ Source Of Truth:
 
 - Sanitized from verified platform recovery work completed on 2026-04-04
 - Sanitized from runtime front-door reset investigation and AWS observability hardening completed on 2026-05-20
+- Sanitized from Zoosite production draft/app deploy audit completed on 2026-05-20
 
 Confidence: Medium to high
 Last Reviewed: 2026-05-20 (Central Time)
@@ -23,6 +24,14 @@ Keep Systems Manager access available on the active host so recovery does not de
 ## Service Recovery Lesson
 
 After edge routing is repaired, verify the actual application service state on the active host before declaring the incident closed. A broken container image or missing local image can keep the site down even after the edge layer is healthy again.
+
+## Draft Release Versus App Runtime Lesson
+
+A successful `draft-*` deploy proves the configuration payload was published, not that the shared Angular/Dokploy app container is current. After a draft reaches production, verify the public app bundle hash, visible browser render, console, and network behavior on the real domain before treating the site as ready.
+
+If production keeps showing the boot curtain, a tiny body, or `Zoo Landing Page` loader text even though SSR/HTTP checks return `200`, inspect the browser console and the served `main-*.js` bundle. A stale app container can keep calling old config endpoints such as `/site-config`, hit CORS, and block hydration while the newly published draft payload is already correct. Compare the live bundle name against the current built/deployed app bundle, then trigger or wait for the app/Dokploy redeploy before changing draft content.
+
+Do not rely on Lighthouse alone for this failure mode. Lighthouse can report strong scores from partial SSR/head output while the interactive browser remains stuck behind the loading curtain. Include at least one real Chromium desktop/mobile pass that checks body text length, no boot-curtain-only render, no console errors, no failed config requests, no broken images, and no horizontal overflow.
 
 ## Dokploy Build Host Resource Lesson
 

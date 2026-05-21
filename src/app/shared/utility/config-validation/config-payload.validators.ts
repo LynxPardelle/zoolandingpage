@@ -24,6 +24,7 @@ import type {
     TDraftSiteConfigPayload,
     TDraftSiteDefaultsConfig,
     TDraftSiteEnvironmentConfig,
+    TDraftSiteIconConfig,
     TDraftSiteRuntimeConfig,
     TDraftSiteSeoConfig,
     TDraftSiteSharedConfig,
@@ -458,6 +459,30 @@ const isDraftSiteSeoConfig = (value: unknown): value is TDraftSiteSeoConfig => {
     if (value['keywords'] !== undefined && !isLocalizedKeywordValue(value['keywords'])) return false;
     if (value['robots'] !== undefined && typeof value['robots'] !== 'string' && !isStringRecord(value['robots'])) return false;
     return true;
+};
+
+const isDraftBrowserAssetUrl = (value: unknown): boolean => {
+    if (typeof value !== 'string') return false;
+
+    const trimmed = value.trim();
+    return trimmed.length > 0 && (trimmed.startsWith('/') || /^https:\/\//i.test(trimmed));
+};
+
+const isDraftSiteIconConfig = (value: unknown): value is TDraftSiteIconConfig => {
+    if (!isRecord(value)) return false;
+
+    const urlFields = ['favicon', 'appleTouchIcon', 'maskIcon', 'manifest'] as const;
+    const colorFields = ['maskIconColor', 'themeColor'] as const;
+
+    if (urlFields.some((field) => value[field] !== undefined && !isDraftBrowserAssetUrl(value[field]))) {
+        return false;
+    }
+
+    if (colorFields.some((field) => value[field] !== undefined && (typeof value[field] !== 'string' || value[field].trim().length === 0))) {
+        return false;
+    }
+
+    return [...urlFields, ...colorFields].some((field) => value[field] !== undefined);
 };
 
 const isEnvironmentGateConfig = (value: unknown): value is TDraftEnvironmentGateConfig => {
@@ -1520,6 +1545,7 @@ const isDraftSiteSharedConfig = (value: unknown): value is TDraftSiteSharedConfi
     if (!isDraftAppIdentityVariableConfig(value['appIdentity'])) return false;
     if (!isThemeVariableConfig(value['theme'])) return false;
     if (!isDraftI18nVariableConfig(value['i18n'])) return false;
+    if (value['icons'] !== undefined && !isDraftSiteIconConfig(value['icons'])) return false;
     if (value['seo'] !== undefined && !isDraftSiteSeoConfig(value['seo'])) return false;
     if (value['searchConsole'] !== undefined && !isSearchConsoleConfig(value['searchConsole'])) return false;
     if (value['hostOverrides'] !== undefined && !isDraftHostOverrideMap(value['hostOverrides'])) return false;

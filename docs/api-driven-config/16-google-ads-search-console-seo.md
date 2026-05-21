@@ -163,6 +163,25 @@ Host override keys also act as draft aliases for SSR lookup. This matters when a
 
 Google tag overrides inherit unspecified base Google tag fields. Set arrays such as `measurementIds`, `adsIds`, or `ga4Ids` to the exact IDs for that host. For a central GA4 property, repeat the central `G-...` ID across participating hosts; for separate properties, set each host's own destination. Active alias tags can coexist with a canonical URL that points to the primary domain.
 
+## Browser icons
+
+Add browser icon settings under `site-config.json.site.icons` when a draft needs its own favicon or theme color. If a draft omits this block, the runtime falls back to `/assets/brand/zoolandingpage-default-favicon.svg`.
+
+```json
+{
+  "site": {
+    "icons": {
+      "favicon": "https://assets.zoolandingpage.com.mx/zoositioweb.com.mx/shared/brand/favicon.svg",
+      "appleTouchIcon": "https://assets.zoolandingpage.com.mx/zoositioweb.com.mx/shared/brand/apple-touch-icon.png",
+      "maskIcon": "https://assets.zoolandingpage.com.mx/zoositioweb.com.mx/shared/brand/mask-icon.svg",
+      "themeColor": "#128c7e"
+    }
+  }
+}
+```
+
+Use root-relative app assets or HTTPS public asset URLs. For uploaded icon files, save the final `publicUrl` returned by `image-upload/presign`; do not save the presigned `uploadUrl` because it expires and can expose upload capability while it is valid.
+
 ## Robots and sitemap
 
 `robots.txt` is generated per requested host and keeps:
