@@ -708,6 +708,18 @@ test('built SSR server decorates configured drafts with Google tag, Search Conso
       },
     },
     site: siteShared,
+    defaults: {
+      brand: { displayName: 'Zoo Sitio Web' },
+      ui: {
+        loadingCurtain: {
+          title: 'Zoo Sitio Web',
+          subtitle: 'zoositioweb.com.mx',
+          background: '#ece7df',
+          foreground: '#0d141c',
+          accent: '#128c7e',
+        },
+      },
+    },
   });
   await writeDraftPage('zoositioweb.com.mx', 'default', '/', 'Fixture home', '2026-05-18T20:00:00.000Z');
   await writeDraftPage('zoositioweb.com.mx', 'contact', '/contact', 'Fixture contact', '2026-05-18T20:10:00.000Z');
@@ -767,6 +779,10 @@ test('built SSR server decorates configured drafts with Google tag, Search Conso
   assert.match(html, /<link rel="icon" href="https:\/\/assets\.zoolandingpage\.com\.mx\/zoositioweb\.com\.mx\/shared\/brand\/favicon\.svg" type="image\/svg\+xml" data-zlp-browser-icon="true">/);
   assert.match(html, /<link rel="mask-icon" href="https:\/\/assets\.zoolandingpage\.com\.mx\/zoositioweb\.com\.mx\/shared\/brand\/mask-icon\.svg" color="#128c7e" data-zlp-browser-icon="true">/);
   assert.match(html, /<meta name="theme-color" content="#128c7e" data-zlp-browser-icon="true">/);
+  assert.match(html, /id="zlp-boot-curtain"[^>]+style="[^"]*--zlp-boot-bg: #ece7df; --zlp-boot-fg: #0d141c; --zlp-boot-accent: #128c7e/);
+  assert.match(html, /data-zlp-boot-logo[^>]+src="https:\/\/assets\.zoolandingpage\.com\.mx\/zoositioweb\.com\.mx\/shared\/brand\/favicon\.svg"/);
+  assert.match(html, /data-zlp-boot-title[^>]*>Zoo Sitio Web<\/strong>/);
+  assert.match(html, /data-zlp-boot-subtitle[^>]*>zoositioweb\.com\.mx<\/span>/);
   assert.match(html, /<script type="application\/ld\+json"/);
   assert.match(html, /"@type":"WebSite"/);
   assert.match(html, /hreflang="en"/);

@@ -83,25 +83,45 @@ export class SeoMetadataService {
                 ...this.asRecord(seo?.twitter),
             }, lang);
             const openGraphUrl = this.cleanString(openGraph['url']) || canonicalUrl;
-            const defaultImage = this.cleanString(siteSeo?.defaultImage)
-                || this.cleanString(openGraphDefaults['image'])
-                || this.cleanString(twitterDefaults['image'])
+            const browserIcons = this.resolveBrowserIcons();
+            const defaultImage = this.resolveAbsoluteAssetUrl(this.cleanString(siteSeo?.defaultImage), origin)
+                || this.resolveAbsoluteAssetUrl(this.cleanString(openGraphDefaults['image']), origin)
+                || this.resolveAbsoluteAssetUrl(this.cleanString(twitterDefaults['image']), origin)
+                || this.resolveAbsoluteAssetUrl(this.cleanString(browserIcons.favicon), origin)
                 || `${ origin }/assets/og-1200x630.svg`;
             const ogTitle = this.cleanString(openGraph['title']) || seoTitle;
             const ogDescription = this.cleanString(openGraph['description']) || seoDescription;
             const ogType = this.cleanString(openGraph['type']) || 'website';
-            const ogImage = this.cleanString(openGraph['image']) || defaultImage;
+            const ogImage = this.resolveAbsoluteAssetUrl(this.cleanString(openGraph['image']), origin) || defaultImage;
+            const ogImageSecureUrl = this.resolveAbsoluteAssetUrl(this.cleanString(openGraph['image:secure_url']), origin)
+                || this.resolveAbsoluteAssetUrl(this.cleanString(openGraph['imageSecureUrl']), origin)
+                || (ogImage.startsWith('https://') ? ogImage : '');
+            const ogImageType = this.cleanString(openGraph['image:type'])
+                || this.cleanString(openGraph['imageType'])
+                || this.resolveImageMimeType(ogImage);
+            const ogImageWidth = this.cleanString(openGraph['image:width']) || this.cleanString(openGraph['imageWidth']);
+            const ogImageHeight = this.cleanString(openGraph['image:height']) || this.cleanString(openGraph['imageHeight']);
+            const imageAlt = this.cleanString(openGraph['image:alt'])
+                || this.cleanString(openGraph['imageAlt'])
+                || this.cleanString(twitter['image:alt'])
+                || this.cleanString(twitter['imageAlt'])
+                || ogTitle;
             const ogSiteName = this.cleanString(openGraph['site_name']) || fallbackSiteName;
             const twitterCard = this.cleanString(twitter['card']) || 'summary_large_image';
             const twitterTitle = this.cleanString(twitter['title']) || seoTitle;
             const twitterDescription = this.cleanString(twitter['description']) || seoDescription;
-            const twitterImage = this.cleanString(twitter['image']) || defaultImage;
+            const twitterImage = this.resolveAbsoluteAssetUrl(this.cleanString(twitter['image']), origin) || defaultImage;
 
             this.meta.updateTag({ property: 'og:title', content: ogTitle });
             this.meta.updateTag({ property: 'og:description', content: ogDescription });
             this.meta.updateTag({ property: 'og:type', content: ogType });
             this.meta.updateTag({ property: 'og:url', content: openGraphUrl });
             this.meta.updateTag({ property: 'og:image', content: ogImage });
+            this.syncPropertyMetaTag('og:image:secure_url', ogImageSecureUrl);
+            this.syncPropertyMetaTag('og:image:type', ogImageType);
+            this.syncPropertyMetaTag('og:image:width', ogImageWidth);
+            this.syncPropertyMetaTag('og:image:height', ogImageHeight);
+            this.syncPropertyMetaTag('og:image:alt', imageAlt);
             this.meta.updateTag({ property: 'og:locale', content: this.cleanString(openGraph['locale']) || ogLocale });
             this.meta.updateTag({ property: 'og:site_name', content: ogSiteName });
 
@@ -109,6 +129,7 @@ export class SeoMetadataService {
             this.meta.updateTag({ name: 'twitter:title', content: twitterTitle });
             this.meta.updateTag({ name: 'twitter:description', content: twitterDescription });
             this.meta.updateTag({ name: 'twitter:image', content: twitterImage });
+            this.syncNamedMetaTag('twitter:image:alt', imageAlt);
 
             const head = doc.head;
             if (head) {
@@ -220,6 +241,15 @@ export class SeoMetadataService {
         this.meta.removeTag(`name='${ name }'`);
     }
 
+    private syncPropertyMetaTag(property: string, content: string): void {
+        if (content) {
+            this.meta.updateTag({ property, content });
+            return;
+        }
+
+        this.meta.removeTag(`property='${ property }'`);
+    }
+
     private resolveBrowserIcons(): TDraftSiteIconConfig {
         const runtimeConfig = this.runtimeConfig as RuntimeConfigService & {
             browserIcons?: () => TDraftSiteIconConfig | null;
@@ -296,6 +326,28 @@ export class SeoMetadataService {
         if (path.endsWith('.webp')) return 'image/webp';
         if (path.endsWith('.jpg') || path.endsWith('.jpeg')) return 'image/jpeg';
         return '';
+    }
+
+    private resolveImageMimeType(href: string): string {
+        const path = this.cleanString(href).split(/[?#]/)[0]?.toLowerCase() ?? '';
+        if (path.endsWith('.jpg') || path.endsWith('.jpeg')) return 'image/jpeg';
+        if (path.endsWith('.png')) return 'image/png';
+        if (path.endsWith('.webp')) return 'image/webp';
+        if (path.endsWith('.gif')) return 'image/gif';
+        if (path.endsWith('.svg')) return 'image/svg+xml';
+        return '';
+    }
+
+    private resolveAbsoluteAssetUrl(value: string, origin: string): string {
+        const trimmed = this.cleanString(value);
+        if (!trimmed || trimmed.startsWith('//')) return '';
+
+        try {
+            const url = new URL(trimmed, origin);
+            return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : '';
+        } catch {
+            return '';
+        }
     }
 
     private syncHreflangLinks(head: HTMLElement, canonicalUrl: string, activeLang: string): void {
