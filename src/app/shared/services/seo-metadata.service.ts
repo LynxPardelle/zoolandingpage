@@ -23,6 +23,9 @@ const MANAGED_BROWSER_ICON_ATTR = 'data-zlp-browser-icon';
 const DEFAULT_BROWSER_ICONS: TDraftSiteIconConfig = {
     favicon: '/assets/brand/zoolandingpage-default-favicon.svg',
 };
+const DEFAULT_SOCIAL_IMAGE_HREF = 'https://assets.zoolandingpage.com.mx/zoolandingpage.com.mx/shared/seo-images/zoolandingpage-zoositioweb-default-logo-card.jpg';
+const DEFAULT_SOCIAL_IMAGE_WIDTH = '1200';
+const DEFAULT_SOCIAL_IMAGE_HEIGHT = '630';
 
 @Injectable({ providedIn: 'root' })
 export class SeoMetadataService {
@@ -83,24 +86,29 @@ export class SeoMetadataService {
                 ...this.asRecord(seo?.twitter),
             }, lang);
             const openGraphUrl = this.cleanString(openGraph['url']) || canonicalUrl;
-            const browserIcons = this.resolveBrowserIcons();
+            const defaultSocialImage = this.resolveAbsoluteAssetUrl(DEFAULT_SOCIAL_IMAGE_HREF, origin);
             const defaultImage = this.resolveAbsoluteAssetUrl(this.cleanString(siteSeo?.defaultImage), origin)
                 || this.resolveAbsoluteAssetUrl(this.cleanString(openGraphDefaults['image']), origin)
                 || this.resolveAbsoluteAssetUrl(this.cleanString(twitterDefaults['image']), origin)
-                || this.resolveAbsoluteAssetUrl(this.cleanString(browserIcons.favicon), origin)
+                || defaultSocialImage
                 || `${ origin }/assets/og-1200x630.svg`;
             const ogTitle = this.cleanString(openGraph['title']) || seoTitle;
             const ogDescription = this.cleanString(openGraph['description']) || seoDescription;
             const ogType = this.cleanString(openGraph['type']) || 'website';
             const ogImage = this.resolveAbsoluteAssetUrl(this.cleanString(openGraph['image']), origin) || defaultImage;
+            const isDefaultSocialImage = defaultSocialImage.length > 0 && ogImage === defaultSocialImage;
             const ogImageSecureUrl = this.resolveAbsoluteAssetUrl(this.cleanString(openGraph['image:secure_url']), origin)
                 || this.resolveAbsoluteAssetUrl(this.cleanString(openGraph['imageSecureUrl']), origin)
                 || (ogImage.startsWith('https://') ? ogImage : '');
             const ogImageType = this.cleanString(openGraph['image:type'])
                 || this.cleanString(openGraph['imageType'])
                 || this.resolveImageMimeType(ogImage);
-            const ogImageWidth = this.cleanString(openGraph['image:width']) || this.cleanString(openGraph['imageWidth']);
-            const ogImageHeight = this.cleanString(openGraph['image:height']) || this.cleanString(openGraph['imageHeight']);
+            const ogImageWidth = this.cleanString(openGraph['image:width'])
+                || this.cleanString(openGraph['imageWidth'])
+                || (isDefaultSocialImage ? DEFAULT_SOCIAL_IMAGE_WIDTH : '');
+            const ogImageHeight = this.cleanString(openGraph['image:height'])
+                || this.cleanString(openGraph['imageHeight'])
+                || (isDefaultSocialImage ? DEFAULT_SOCIAL_IMAGE_HEIGHT : '');
             const imageAlt = this.cleanString(openGraph['image:alt'])
                 || this.cleanString(openGraph['imageAlt'])
                 || this.cleanString(twitter['image:alt'])
