@@ -489,6 +489,38 @@
       },
       "additionalProperties": false
     },
+    "siteIconConfig": {
+      "type": "object",
+      "properties": {
+        "favicon": {
+          "type": "string",
+          "anyOf": [{ "pattern": "^/" }, { "pattern": "^https://" }]
+        },
+        "appleTouchIcon": {
+          "type": "string",
+          "anyOf": [{ "pattern": "^/" }, { "pattern": "^https://" }]
+        },
+        "maskIcon": {
+          "type": "string",
+          "anyOf": [{ "pattern": "^/" }, { "pattern": "^https://" }]
+        },
+        "maskIconColor": { "type": "string", "minLength": 1 },
+        "themeColor": { "type": "string", "minLength": 1 },
+        "manifest": {
+          "type": "string",
+          "anyOf": [{ "pattern": "^/" }, { "pattern": "^https://" }]
+        }
+      },
+      "anyOf": [
+        { "required": ["favicon"] },
+        { "required": ["appleTouchIcon"] },
+        { "required": ["maskIcon"] },
+        { "required": ["maskIconColor"] },
+        { "required": ["themeColor"] },
+        { "required": ["manifest"] }
+      ],
+      "additionalProperties": false
+    },
     "searchConsoleHtmlFile": {
       "type": "object",
       "required": ["path", "content"],
@@ -601,6 +633,7 @@
         "appIdentity": { "$ref": "#/definitions/appIdentityConfig" },
         "theme": { "$ref": "#/definitions/themeConfig" },
         "i18n": { "$ref": "#/definitions/draftI18nConfig" },
+        "icons": { "$ref": "#/definitions/siteIconConfig" },
         "seo": { "$ref": "#/definitions/siteSeoConfig" },
         "searchConsole": { "$ref": "#/definitions/searchConsoleConfig" },
         "hostOverrides": {
