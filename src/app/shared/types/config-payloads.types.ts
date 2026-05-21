@@ -133,6 +133,15 @@ export type TSearchConsoleConfig = {
     readonly environments?: TDraftEnvironmentGateConfig;
 };
 
+export type TDraftSiteIconConfig = {
+    readonly favicon?: string;
+    readonly appleTouchIcon?: string;
+    readonly maskIcon?: string;
+    readonly maskIconColor?: string;
+    readonly themeColor?: string;
+    readonly manifest?: string;
+};
+
 export type TDraftVariableConfig = Record<string, unknown> & {
     readonly appIdentity?: TDraftAppIdentityVariableConfig;
     readonly brand?: TDraftBrandVariableConfig;
@@ -150,6 +159,7 @@ export type TDraftSiteSharedConfig = {
     readonly appIdentity: TDraftAppIdentityVariableConfig;
     readonly theme: TThemeVariableConfig;
     readonly i18n: TDraftI18nVariableConfig;
+    readonly icons?: TDraftSiteIconConfig;
     readonly seo?: TDraftSiteSeoConfig;
     readonly searchConsole?: TSearchConsoleConfig;
     readonly hostOverrides?: Record<string, TDraftHostOverrideConfig>;

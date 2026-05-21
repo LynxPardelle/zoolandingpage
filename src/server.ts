@@ -51,6 +51,8 @@ const ROBOTS_DISALLOW_PATHS = [
   '/runtime-bundle',
   '/drafts/',
 ];
+const MANAGED_BROWSER_ICON_ATTR = 'data-zlp-browser-icon';
+const DEFAULT_BROWSER_ICON_HREF = '/assets/brand/zoolandingpage-default-favicon.svg';
 
 type TRuntimeEnvironment = 'local' | 'test' | 'production';
 
@@ -76,6 +78,15 @@ type TSearchConsoleConfig = {
     readonly content?: string;
   };
   readonly environments?: TEnvironmentGate;
+};
+
+type TSiteIconConfig = {
+  readonly favicon?: string;
+  readonly appleTouchIcon?: string;
+  readonly maskIcon?: string;
+  readonly maskIconColor?: string;
+  readonly themeColor?: string;
+  readonly manifest?: string;
 };
 
 type TSiteSeoConfig = {
@@ -194,6 +205,7 @@ type TLocalSiteConfig = Record<string, unknown> & {
       readonly supportedLanguages?: readonly unknown[];
     };
     readonly seo?: TSiteSeoConfig;
+    readonly icons?: TSiteIconConfig;
     readonly searchConsole?: TSearchConsoleConfig;
     readonly hostOverrides?: Record<string, THostOverrideConfig>;
   };
@@ -1479,6 +1491,57 @@ function buildSearchConsoleHeadHtml(host: string, siteConfig: TLocalSiteConfig |
   return token ? `<meta name="google-site-verification" content="${escapeHtmlAttribute(token)}">` : '';
 }
 
+function resolveBrowserIconHref(value: unknown): string {
+  const href = cleanString(value);
+  if (!href) {
+    return '';
+  }
+
+  return href.startsWith('/') || /^https:\/\//i.test(href) ? href : '';
+}
+
+function resolveIconMimeType(value: string): string {
+  const path = cleanString(value).split(/[?#]/)[0]?.toLowerCase() ?? '';
+  if (path.endsWith('.svg')) return 'image/svg+xml';
+  if (path.endsWith('.png')) return 'image/png';
+  if (path.endsWith('.ico')) return 'image/x-icon';
+  if (path.endsWith('.webp')) return 'image/webp';
+  if (path.endsWith('.jpg') || path.endsWith('.jpeg')) return 'image/jpeg';
+  return '';
+}
+
+function buildBrowserIconLink(rel: string, href: string, attributes: Record<string, string> = {}): string {
+  if (!href) {
+    return '';
+  }
+
+  const serializedAttributes = Object.entries(attributes)
+    .filter(([, value]) => cleanString(value).length > 0)
+    .map(([key, value]) => ` ${key}="${escapeHtmlAttribute(value)}"`)
+    .join('');
+
+  return `<link rel="${escapeHtmlAttribute(rel)}" href="${escapeHtmlAttribute(href)}"${serializedAttributes} ${MANAGED_BROWSER_ICON_ATTR}="true">`;
+}
+
+function buildBrowserIconsHeadHtml(siteConfig: TLocalSiteConfig | null): string {
+  const icons: TSiteIconConfig = siteConfig?.site?.icons ?? {};
+  const favicon = resolveBrowserIconHref(icons.favicon) || DEFAULT_BROWSER_ICON_HREF;
+  const appleTouchIcon = resolveBrowserIconHref(icons.appleTouchIcon);
+  const maskIcon = resolveBrowserIconHref(icons.maskIcon);
+  const manifest = resolveBrowserIconHref(icons.manifest);
+  const maskIconColor = cleanString(icons.maskIconColor) || cleanString(icons.themeColor);
+  const themeColor = cleanString(icons.themeColor);
+  const snippets = [
+    buildBrowserIconLink('icon', favicon, { type: resolveIconMimeType(favicon) }),
+    buildBrowserIconLink('apple-touch-icon', appleTouchIcon),
+    buildBrowserIconLink('mask-icon', maskIcon, { color: maskIconColor }),
+    buildBrowserIconLink('manifest', manifest),
+    themeColor ? `<meta name="theme-color" content="${escapeHtmlAttribute(themeColor)}" ${MANAGED_BROWSER_ICON_ATTR}="true">` : '',
+  ];
+
+  return snippets.filter(Boolean).join('\n');
+}
+
 function readStructuredDataEntries(pageConfig: TLocalPageConfig | null): readonly unknown[] {
   const structuredData = pageConfig?.structuredData;
   if (Array.isArray(structuredData)) {
@@ -1579,9 +1642,16 @@ function injectHeadHtml(html: string, headHtml: string): string {
     return html;
   }
 
-  const sanitizedHtml = headHtml.includes('rel="canonical"')
-    ? html.replace(/<link\s+rel=["']canonical["'][^>]*>/gi, '')
-    : html;
+  let sanitizedHtml = html;
+  if (headHtml.includes('rel="canonical"')) {
+    sanitizedHtml = sanitizedHtml.replace(/<link\s+rel=["']canonical["'][^>]*>/gi, '');
+  }
+  if (headHtml.includes(MANAGED_BROWSER_ICON_ATTR)) {
+    sanitizedHtml = sanitizedHtml
+      .replace(/<link\s+[^>]*rel=["'](?:icon|apple-touch-icon|mask-icon|manifest)["'][^>]*>\s*/gi, '')
+      .replace(/<meta\s+[^>]*name=["']theme-color["'][^>]*>\s*/gi, '');
+  }
+
   return sanitizedHtml.replace(/<\/head>/i, `${headHtml}\n</head>`);
 }
 
@@ -1602,6 +1672,7 @@ async function decorateHtmlResponse(req: express.Request, response: Response): P
   const headHtml = [
     buildGoogleTagHeadHtml(lookupDomain, siteConfig),
     buildSearchConsoleHeadHtml(lookupDomain, siteConfig),
+    buildBrowserIconsHeadHtml(siteConfig),
     buildStructuredDataHeadHtml(pageConfig),
     buildCanonicalHeadHtml(req, lookupDomain, siteConfig, pageConfig),
     buildHreflangHeadHtml(req, lookupDomain, siteConfig),

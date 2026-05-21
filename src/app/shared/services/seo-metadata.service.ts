@@ -1,4 +1,4 @@
-import type { TSeoPayload } from '@/app/shared/types/config-payloads.types';
+import type { TDraftSiteIconConfig, TSeoPayload } from '@/app/shared/types/config-payloads.types';
 import { DOCUMENT } from '@angular/common';
 import { inject, Injectable, REQUEST } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
@@ -19,6 +19,10 @@ const AD_CANONICAL_QUERY_PARAMS = new Set([
     'utm_content',
 ]);
 const SENSITIVE_CANONICAL_QUERY_PARAM_PATTERN = /(email|mail|phone|telefono|tel[eé]fono|whatsapp|address|direcci[oó]n|rfc|curp)/i;
+const MANAGED_BROWSER_ICON_ATTR = 'data-zlp-browser-icon';
+const DEFAULT_BROWSER_ICONS: TDraftSiteIconConfig = {
+    favicon: '/assets/brand/zoolandingpage-default-favicon.svg',
+};
 
 @Injectable({ providedIn: 'root' })
 export class SeoMetadataService {
@@ -116,6 +120,7 @@ export class SeoMetadataService {
                 }
                 linkEl.setAttribute('href', canonicalUrl);
                 this.syncHreflangLinks(head, canonicalUrl, lang);
+                this.syncBrowserIcons(head, this.resolveBrowserIcons());
             }
         } catch {
             // no-op for SSR
@@ -213,6 +218,84 @@ export class SeoMetadataService {
         }
 
         this.meta.removeTag(`name='${ name }'`);
+    }
+
+    private resolveBrowserIcons(): TDraftSiteIconConfig {
+        const runtimeConfig = this.runtimeConfig as RuntimeConfigService & {
+            browserIcons?: () => TDraftSiteIconConfig | null;
+        };
+        const configured = typeof runtimeConfig.browserIcons === 'function' ? runtimeConfig.browserIcons() : null;
+
+        return {
+            ...DEFAULT_BROWSER_ICONS,
+            ...(configured ?? {}),
+        };
+    }
+
+    private syncBrowserIcons(head: HTMLElement, icons: TDraftSiteIconConfig): void {
+        const favicon = this.cleanString(icons.favicon) || this.cleanString(DEFAULT_BROWSER_ICONS.favicon);
+        this.syncBrowserIconLink(head, 'icon', favicon, { type: this.resolveIconMimeType(favicon) });
+        this.syncBrowserIconLink(head, 'apple-touch-icon', this.cleanString(icons.appleTouchIcon));
+
+        const maskIconColor = this.cleanString(icons.maskIconColor) || this.cleanString(icons.themeColor);
+        this.syncBrowserIconLink(head, 'mask-icon', this.cleanString(icons.maskIcon), { color: maskIconColor });
+        this.syncBrowserIconLink(head, 'manifest', this.cleanString(icons.manifest));
+        this.syncThemeColor(head, this.cleanString(icons.themeColor));
+    }
+
+    private syncBrowserIconLink(head: HTMLElement, rel: string, href: string, attributes: Record<string, string> = {}): void {
+        let link = head.querySelector(`link[rel="${ rel }"]`) as HTMLLinkElement | null;
+        if (!href) {
+            if (link?.getAttribute(MANAGED_BROWSER_ICON_ATTR) === 'true') {
+                link.remove();
+            }
+            return;
+        }
+
+        if (!link) {
+            link = this.doc.createElement('link');
+            link.setAttribute('rel', rel);
+            head.appendChild(link);
+        }
+
+        link.setAttribute(MANAGED_BROWSER_ICON_ATTR, 'true');
+        link.setAttribute('href', href);
+        Object.entries(attributes).forEach(([key, value]) => {
+            if (value) {
+                link.setAttribute(key, value);
+            } else {
+                link.removeAttribute(key);
+            }
+        });
+    }
+
+    private syncThemeColor(head: HTMLElement, color: string): void {
+        let meta = head.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;
+        if (!color) {
+            if (meta?.getAttribute(MANAGED_BROWSER_ICON_ATTR) === 'true') {
+                meta.remove();
+            }
+            return;
+        }
+
+        if (!meta) {
+            meta = this.doc.createElement('meta');
+            meta.setAttribute('name', 'theme-color');
+            head.appendChild(meta);
+        }
+
+        meta.setAttribute(MANAGED_BROWSER_ICON_ATTR, 'true');
+        meta.setAttribute('content', color);
+    }
+
+    private resolveIconMimeType(href: string): string {
+        const path = this.cleanString(href).split(/[?#]/)[0]?.toLowerCase() ?? '';
+        if (path.endsWith('.svg')) return 'image/svg+xml';
+        if (path.endsWith('.png')) return 'image/png';
+        if (path.endsWith('.ico')) return 'image/x-icon';
+        if (path.endsWith('.webp')) return 'image/webp';
+        if (path.endsWith('.jpg') || path.endsWith('.jpeg')) return 'image/jpeg';
+        return '';
     }
 
     private syncHreflangLinks(head: HTMLElement, canonicalUrl: string, activeLang: string): void {

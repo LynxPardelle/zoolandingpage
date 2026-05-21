@@ -5,6 +5,7 @@ import type {
     TDraftAppIdentityVariableConfig,
     TDraftFeatureRuntimeConfig,
     TDraftHostOverrideConfig,
+    TDraftSiteIconConfig,
     TDraftLocalStorageRuntimeConfig,
     TDraftLocalStorageSlot,
     TDraftSiteSeoConfig,
@@ -50,6 +51,7 @@ export class RuntimeConfigService {
     readonly siteSeo = computed<TDraftSiteSeoConfig | null>(() =>
         this.mergeSeoConfig(this.configStore.siteConfig()?.site?.seo, this.hostOverride()?.seo)
     );
+    readonly browserIcons = computed<TDraftSiteIconConfig | null>(() => this.configStore.siteConfig()?.site?.icons ?? null);
     readonly brand = computed(() => this.variableStore.brand());
     readonly heroAssets = computed(() => this.variableStore.heroAssets());
     readonly ctaTargets = computed(() => this.variableStore.ctaTargets());

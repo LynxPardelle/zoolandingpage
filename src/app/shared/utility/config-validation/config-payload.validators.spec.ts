@@ -149,6 +149,12 @@ describe('config-payload.validators', () => {
                         },
                     },
                 },
+                icons: {
+                    favicon: '/assets/brand/zoolandingpage-default-favicon.svg',
+                    appleTouchIcon: 'https://assets.zoolandingpage.com.mx/zoolandingpage.com.mx/shared/brand/apple-touch-icon.png',
+                    maskIcon: 'https://assets.zoolandingpage.com.mx/zoolandingpage.com.mx/shared/brand/mask-icon.svg',
+                    themeColor: '#128c7e',
+                },
                 i18n: {
                     defaultLanguage: 'es',
                     supportedLanguages: ['es', 'en'],
@@ -164,6 +170,23 @@ describe('config-payload.validators', () => {
         };
 
         expect(isDraftSiteConfigPayload(valid)).toBeTrue();
+    });
+
+    it('rejects invalid site browser icon configuration', () => {
+        const invalid = {
+            version: 1,
+            domain: TEST_DOMAIN,
+            defaultPageId: 'default',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: {
+                ...minimalSiteConfig(),
+                icons: {
+                    favicon: 123,
+                },
+            },
+        };
+
+        expect(isDraftSiteConfigPayload(invalid)).toBeFalse();
     });
 
     it('accepts configurable draft not-found page ids in site-config payloads', () => {

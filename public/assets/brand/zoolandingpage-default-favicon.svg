@@ -1,0 +1,7 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Zoolandingpage and Zoosite default favicon</title>
+  <desc id="desc">Dark square icon with a cream Z and teal rule.</desc>
+  <rect width="64" height="64" rx="4" fill="#0d141c"/>
+  <path d="M15 17H49L23 47H51" fill="none" stroke="#ece7df" stroke-width="8" stroke-linejoin="miter" stroke-linecap="square"/>
+  <rect x="12" y="54" width="40" height="4" fill="#128c7e"/>
+</svg>

@@ -145,6 +145,8 @@ Invoke-WebRequest -Method Put -Uri "<uploadUrl>" -Headers @{ "Content-Type" = "i
 
 The config field depends on the draft you are authoring, but the rule is always the same: store the final `publicUrl`, not the presigned `uploadUrl`.
 
+Site-level browser icons also follow this rule. For favicon, mask icon, app icon, or manifest assets, write the returned public URL into `site-config.json.site.icons`.
+
 Example snippet in a draft variable payload:
 
 ```json

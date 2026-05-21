@@ -97,6 +97,126 @@ describe('SeoMetadataService', () => {
         expect(meta.updateTag).toHaveBeenCalledWith({ name: 'twitter:card', content: 'summary' });
     });
 
+    it('syncs draft-configured browser icons into the document head', () => {
+        TestBed.resetTestingModule();
+
+        title = jasmine.createSpyObj<Title>('Title', ['setTitle']);
+        meta = jasmine.createSpyObj<Meta>('Meta', ['updateTag', 'removeTag']);
+
+        const baseDoc = document.implementation.createHTMLDocument('seo');
+        const seoDoc = {
+            documentElement: baseDoc.documentElement,
+            head: baseDoc.head,
+            createElement: baseDoc.createElement.bind(baseDoc),
+            defaultView: {
+                location: {
+                    origin: 'https://zoositioweb.com.mx',
+                    pathname: '/',
+                    search: '',
+                },
+            },
+        } as unknown as Document;
+
+        TestBed.configureTestingModule({
+            providers: [
+                SeoMetadataService,
+                { provide: DOCUMENT, useValue: seoDoc },
+                { provide: Title, useValue: title },
+                { provide: Meta, useValue: meta },
+                {
+                    provide: DomainResolverService,
+                    useValue: {
+                        resolveDomain: () => ({ domain: 'zoositioweb.com.mx' }),
+                    },
+                },
+                {
+                    provide: RuntimeConfigService,
+                    useValue: {
+                        seoDefaults: () => ({
+                            siteName: 'zoositioweb',
+                            canonicalOrigin: 'https://zoositioweb.com.mx',
+                        }),
+                        browserIcons: () => ({
+                            favicon: 'https://assets.zoolandingpage.com.mx/zoositioweb.com.mx/shared/brand/favicon.svg',
+                            appleTouchIcon: 'https://assets.zoolandingpage.com.mx/zoositioweb.com.mx/shared/brand/apple-touch-icon.png',
+                            maskIcon: 'https://assets.zoolandingpage.com.mx/zoositioweb.com.mx/shared/brand/mask-icon.svg',
+                            themeColor: '#128c7e',
+                        }),
+                        appName: () => 'zoositioweb',
+                        appDescription: () => 'Sitios web medibles.',
+                    },
+                },
+            ],
+        });
+
+        service = TestBed.inject(SeoMetadataService);
+        service.apply('es', null);
+
+        expect(seoDoc.head.querySelector('link[rel="icon"]')?.getAttribute('href'))
+            .toBe('https://assets.zoolandingpage.com.mx/zoositioweb.com.mx/shared/brand/favicon.svg');
+        expect(seoDoc.head.querySelector('link[rel="icon"]')?.getAttribute('type')).toBe('image/svg+xml');
+        expect(seoDoc.head.querySelector('link[rel="apple-touch-icon"]')?.getAttribute('href'))
+            .toBe('https://assets.zoolandingpage.com.mx/zoositioweb.com.mx/shared/brand/apple-touch-icon.png');
+        expect(seoDoc.head.querySelector('link[rel="mask-icon"]')?.getAttribute('href'))
+            .toBe('https://assets.zoolandingpage.com.mx/zoositioweb.com.mx/shared/brand/mask-icon.svg');
+        expect(seoDoc.head.querySelector('link[rel="mask-icon"]')?.getAttribute('color')).toBe('#128c7e');
+        expect(seoDoc.head.querySelector('meta[name="theme-color"]')?.getAttribute('content')).toBe('#128c7e');
+    });
+
+    it('falls back to the default Zoolandingpage browser icon when the draft omits icon config', () => {
+        TestBed.resetTestingModule();
+
+        title = jasmine.createSpyObj<Title>('Title', ['setTitle']);
+        meta = jasmine.createSpyObj<Meta>('Meta', ['updateTag', 'removeTag']);
+
+        const baseDoc = document.implementation.createHTMLDocument('seo');
+        const seoDoc = {
+            documentElement: baseDoc.documentElement,
+            head: baseDoc.head,
+            createElement: baseDoc.createElement.bind(baseDoc),
+            defaultView: {
+                location: {
+                    origin: 'https://example.com',
+                    pathname: '/',
+                    search: '',
+                },
+            },
+        } as unknown as Document;
+
+        TestBed.configureTestingModule({
+            providers: [
+                SeoMetadataService,
+                { provide: DOCUMENT, useValue: seoDoc },
+                { provide: Title, useValue: title },
+                { provide: Meta, useValue: meta },
+                {
+                    provide: DomainResolverService,
+                    useValue: {
+                        resolveDomain: () => ({ domain: 'example.com' }),
+                    },
+                },
+                {
+                    provide: RuntimeConfigService,
+                    useValue: {
+                        seoDefaults: () => ({
+                            siteName: 'Example',
+                            canonicalOrigin: 'https://example.com',
+                        }),
+                        browserIcons: () => null,
+                        appName: () => 'Example',
+                        appDescription: () => 'Example draft.',
+                    },
+                },
+            ],
+        });
+
+        service = TestBed.inject(SeoMetadataService);
+        service.apply('es', null);
+
+        expect(seoDoc.head.querySelector('link[rel="icon"]')?.getAttribute('href'))
+            .toBe('/assets/brand/zoolandingpage-default-favicon.svg');
+    });
+
     it('resolves localized seo values using the active language', () => {
         service.apply('en', {
             title: { es: 'Titulo ES', en: 'Title EN' },
