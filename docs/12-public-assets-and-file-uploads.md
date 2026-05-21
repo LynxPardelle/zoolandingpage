@@ -181,6 +181,8 @@ Use uploaded public URLs for:
 - structured-data image references
 - illustrations referenced by `variables.json` or `components.json`
 
+For default social previews, use a shared raster card under `shared/seo-images` instead of reusing a favicon. The current Zoolandingpage/Zoosite fallback card is `https://assets.zoolandingpage.com.mx/zoolandingpage.com.mx/shared/seo-images/zoolandingpage-zoositioweb-default-logo-card.jpg`.
+
 Do not use the config platform for storing binary media itself.
 
 ## Draft-configured upload UI
