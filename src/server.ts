@@ -90,9 +90,15 @@ type TSiteIconConfig = {
 };
 
 type TSiteSeoConfig = {
+  readonly siteName?: string;
+  readonly title?: string;
+  readonly description?: string;
   readonly canonicalOrigin?: string;
   readonly enforceCanonicalHost?: boolean;
   readonly forceHttps?: boolean;
+  readonly defaultImage?: string;
+  readonly openGraph?: Record<string, unknown>;
+  readonly twitter?: Record<string, unknown>;
 };
 
 type THostOverrideConfig = {
@@ -200,6 +206,10 @@ type TLocalSiteConfig = Record<string, unknown> & {
     };
   };
   readonly site?: {
+    readonly appIdentity?: {
+      readonly name?: string;
+      readonly description?: string;
+    };
     readonly i18n?: {
       readonly defaultLanguage?: string;
       readonly supportedLanguages?: readonly unknown[];
@@ -209,6 +219,7 @@ type TLocalSiteConfig = Record<string, unknown> & {
     readonly searchConsole?: TSearchConsoleConfig;
     readonly hostOverrides?: Record<string, THostOverrideConfig>;
   };
+  readonly defaults?: Record<string, unknown>;
 };
 
 type TLocalRuntimeBundlePayload = {
@@ -463,6 +474,13 @@ function escapeHtmlAttribute(value: string): string {
   return value
     .replace(/&/g, '&amp;')
     .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function escapeHtmlText(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 }
@@ -1542,6 +1560,107 @@ function buildBrowserIconsHeadHtml(siteConfig: TLocalSiteConfig | null): string 
   return snippets.filter(Boolean).join('\n');
 }
 
+function readRecordEntry(source: unknown, key: string): Record<string, unknown> | null {
+  if (!isRecord(source)) {
+    return null;
+  }
+
+  const value = source[key];
+  return isRecord(value) ? value : null;
+}
+
+function readStringEntry(source: unknown, key: string): string {
+  if (!isRecord(source)) {
+    return '';
+  }
+
+  return cleanString(source[key]);
+}
+
+function isSafeBootCurtainCssValue(value: string): boolean {
+  return value.length > 0 && !/[;{}]/.test(value) && !/url\s*\(/i.test(value);
+}
+
+function resolveBootCurtainConfig(siteConfig: TLocalSiteConfig | null): Record<string, string> {
+  const defaults = isRecord(siteConfig?.defaults) ? siteConfig.defaults : {};
+  const site = isRecord(siteConfig?.site) ? siteConfig.site : {};
+  const defaultUi = readRecordEntry(defaults, 'ui');
+  const curtain = readRecordEntry(defaultUi, 'loadingCurtain') ?? {};
+  const defaultBrand = readRecordEntry(defaults, 'brand');
+  const appIdentity = readRecordEntry(site, 'appIdentity');
+  const siteSeo = readRecordEntry(site, 'seo');
+  const icons = readRecordEntry(site, 'icons');
+
+  const title = readStringEntry(curtain, 'title')
+    || readStringEntry(defaultBrand, 'displayName')
+    || readStringEntry(appIdentity, 'name')
+    || readStringEntry(siteSeo, 'siteName')
+    || 'Zoo Landing Page';
+  const subtitle = readStringEntry(curtain, 'subtitle')
+    || cleanString(siteConfig?.domain)
+    || 'zoolandingpage.com.mx';
+  const logoUrl = resolveBrowserIconHref(readStringEntry(curtain, 'logoUrl'))
+    || resolveBrowserIconHref(readStringEntry(defaultBrand, 'logoUrl'))
+    || resolveBrowserIconHref(readStringEntry(icons, 'favicon'));
+
+  return {
+    title,
+    subtitle,
+    logoUrl,
+    background: readStringEntry(curtain, 'background'),
+    foreground: readStringEntry(curtain, 'foreground'),
+    accent: readStringEntry(curtain, 'accent'),
+  };
+}
+
+function setHtmlAttribute(tag: string, name: string, value: string): string {
+  const withoutExisting = tag.replace(new RegExp(`\\s${name}(?:=(?:"[^"]*"|'[^']*'|[^\\s>]+))?`, 'gi'), '');
+  return withoutExisting.replace(/\s*\/?>$/, (ending) => ` ${name}="${escapeHtmlAttribute(value)}"${ending}`);
+}
+
+function removeHtmlAttribute(tag: string, name: string): string {
+  return tag.replace(new RegExp(`\\s${name}(?:=(?:"[^"]*"|'[^']*'|[^\\s>]+))?`, 'gi'), '');
+}
+
+function decorateBootCurtainHtml(html: string, siteConfig: TLocalSiteConfig | null): string {
+  if (!html.includes('id="zlp-boot-curtain"')) {
+    return html;
+  }
+
+  const config = resolveBootCurtainConfig(siteConfig);
+  const styleEntries = [
+    ['--zlp-boot-bg', config['background']],
+    ['--zlp-boot-fg', config['foreground']],
+    ['--zlp-boot-accent', config['accent']],
+  ]
+    .filter((entry): entry is [string, string] => isSafeBootCurtainCssValue(entry[1]))
+    .map(([name, value]) => `${name}: ${value}`);
+
+  return html
+    .replace(
+      /(<[^>]+data-zlp-boot-title[^>]*>)([\s\S]*?)(<\/[^>]+>)/i,
+      (_match, open: string, _content: string, close: string) => `${open}${escapeHtmlText(config['title'])}${close}`,
+    )
+    .replace(
+      /(<[^>]+data-zlp-boot-subtitle[^>]*>)([\s\S]*?)(<\/[^>]+>)/i,
+      (_match, open: string, _content: string, close: string) => `${open}${escapeHtmlText(config['subtitle'])}${close}`,
+    )
+    .replace(/<img\b[^>]*data-zlp-boot-logo[^>]*>/i, (tag) => {
+      if (!config['logoUrl']) {
+        return setHtmlAttribute(tag, 'hidden', 'true');
+      }
+
+      return removeHtmlAttribute(setHtmlAttribute(tag, 'src', config['logoUrl']), 'hidden');
+    })
+    .replace(/<div\b[^>]*id=["']zlp-boot-curtain["'][^>]*>/i, (tag) => {
+      if (styleEntries.length === 0) {
+        return tag;
+      }
+
+      return setHtmlAttribute(tag, 'style', styleEntries.join('; '));
+    });
+}
+
 function readStructuredDataEntries(pageConfig: TLocalPageConfig | null): readonly unknown[] {
   const structuredData = pageConfig?.structuredData;
   if (Array.isArray(structuredData)) {
@@ -1678,7 +1797,9 @@ async function decorateHtmlResponse(req: express.Request, response: Response): P
     buildHreflangHeadHtml(req, lookupDomain, siteConfig),
   ].filter(Boolean).join('\n');
 
-  return new Response(injectHeadHtml(html, headHtml), {
+  const decoratedHtml = decorateBootCurtainHtml(injectHeadHtml(html, headHtml), siteConfig);
+
+  return new Response(decoratedHtml, {
     headers,
     status: response.status,
     statusText: response.statusText,
