@@ -296,6 +296,67 @@ describe('SeoMetadataService', () => {
             .toBe('/assets/brand/zoolandingpage-default-favicon.svg');
     });
 
+    it('uses the default logo social card when a draft omits share images', () => {
+        TestBed.resetTestingModule();
+
+        title = jasmine.createSpyObj<Title>('Title', ['setTitle']);
+        meta = jasmine.createSpyObj<Meta>('Meta', ['updateTag', 'removeTag']);
+
+        const baseDoc = document.implementation.createHTMLDocument('seo');
+        const seoDoc = {
+            documentElement: baseDoc.documentElement,
+            head: baseDoc.head,
+            createElement: baseDoc.createElement.bind(baseDoc),
+            defaultView: {
+                location: {
+                    origin: 'https://example.com',
+                    pathname: '/',
+                    search: '',
+                },
+            },
+        } as unknown as Document;
+
+        TestBed.configureTestingModule({
+            providers: [
+                SeoMetadataService,
+                { provide: DOCUMENT, useValue: seoDoc },
+                { provide: Title, useValue: title },
+                { provide: Meta, useValue: meta },
+                {
+                    provide: DomainResolverService,
+                    useValue: {
+                        resolveDomain: () => ({ domain: 'example.com' }),
+                    },
+                },
+                {
+                    provide: RuntimeConfigService,
+                    useValue: {
+                        seoDefaults: () => ({
+                            siteName: 'Example',
+                            canonicalOrigin: 'https://example.com',
+                        }),
+                        browserIcons: () => ({
+                            favicon: 'https://assets.zoolandingpage.com.mx/example.com/shared/brand/favicon.svg',
+                        }),
+                        appName: () => 'Example',
+                        appDescription: () => 'Example draft.',
+                    },
+                },
+            ],
+        });
+
+        service = TestBed.inject(SeoMetadataService);
+        service.apply('es', null);
+
+        const defaultSocialCard = 'https://assets.zoolandingpage.com.mx/zoolandingpage.com.mx/shared/seo-images/zoolandingpage-zoositioweb-default-logo-card.jpg';
+        expect(meta.updateTag).toHaveBeenCalledWith({ property: 'og:image', content: defaultSocialCard });
+        expect(meta.updateTag).toHaveBeenCalledWith({ property: 'og:image:secure_url', content: defaultSocialCard });
+        expect(meta.updateTag).toHaveBeenCalledWith({ property: 'og:image:type', content: 'image/jpeg' });
+        expect(meta.updateTag).toHaveBeenCalledWith({ property: 'og:image:width', content: '1200' });
+        expect(meta.updateTag).toHaveBeenCalledWith({ property: 'og:image:height', content: '630' });
+        expect(meta.updateTag).toHaveBeenCalledWith({ name: 'twitter:image', content: defaultSocialCard });
+    });
+
     it('resolves localized seo values using the active language', () => {
         service.apply('en', {
             title: { es: 'Titulo ES', en: 'Title EN' },

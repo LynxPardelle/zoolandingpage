@@ -182,6 +182,16 @@ Add browser icon settings under `site-config.json.site.icons` when a draft needs
 
 Use root-relative app assets or HTTPS public asset URLs. For uploaded icon files, save the final `publicUrl` returned by `image-upload/presign`; do not save the presigned `uploadUrl` because it expires and can expose upload capability while it is valid.
 
+## Social share images
+
+Use `site-config.json.site.seo.defaultImage`, `openGraph.image`, or page-level Open Graph/Twitter image fields when a draft has its own social artwork. If no social image is configured, the runtime falls back to the shared raster logo card:
+
+```text
+https://assets.zoolandingpage.com.mx/zoolandingpage.com.mx/shared/seo-images/zoolandingpage-zoositioweb-default-logo-card.jpg
+```
+
+Keep social cards as public HTTPS raster assets, ideally 1200x630 JPG/PNG/WebP. Browser icons should not double as Open Graph images because social platforms may ignore tiny SVG/favicon assets.
+
 ## Robots and sitemap
 
 `robots.txt` is generated per requested host and keeps:
