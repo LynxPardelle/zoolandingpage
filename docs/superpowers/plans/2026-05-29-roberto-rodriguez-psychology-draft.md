@@ -4,7 +4,7 @@
 
 **Goal:** Build a draft-local Zoositioweb site for Roberto Rodriguez Rodriguez's online psychology consultation using the approved calm editorial design, SEO structure, public assets, and safety guardrails.
 
-**Architecture:** Use a new draft domain folder and sibling draft repo for the provisional managed alias `roberto-rodriguez-rodriguez.zoolandingpage.com.mx`. Keep all site content, images, SEO, legal pages, and QA evidence draft-local; only update hub documentation/registry/changelog when the draft lifecycle requires it.
+**Architecture:** Use `robertorodriguezrodriguez.com.mx` as the canonical draft domain, with the requested branded and SEO aliases configured in draft `site-config.json`. Keep all site content, images, SEO, legal pages, and QA evidence draft-local; only update hub documentation/registry/changelog when the draft lifecycle requires it.
 
 **Tech Stack:** Zoolandingpage draft JSON, Angora utility classes, local Angular preview, `tools/config-draft-sync.mjs`, `tools/draft-public-safety-audit.mjs`, `tools/draft-smoke-check.mjs`, public image upload API, and manual AI image generation saved under `C:\Users\lince\.codex\memories\Output\`.
 
@@ -16,35 +16,35 @@ Hub repo files:
 
 - Modify: `C:\Users\lince\Documents\GitHub\zoolandingpage\docs\drafts-registry.json`
 - Modify: `C:\Users\lince\Documents\GitHub\zoolandingpage\changelog\drafts\2026-05.md`
-- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\site-config.json`
-- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\components.json`
-- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\variables.json`
-- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\angora-combos.json`
-- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\i18n\es.json`
-- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\default\page-config.json`
-- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\default\components.json`
-- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\default\variables.json`
-- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\default\angora-combos.json`
-- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\default\i18n\es.json`
-- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\privacidad\page-config.json`
-- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\privacidad\components.json`
-- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\privacidad\variables.json`
-- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\privacidad\i18n\es.json`
-- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\terminos\page-config.json`
-- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\terminos\components.json`
-- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\terminos\variables.json`
-- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\terminos\i18n\es.json`
-- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\not-found\page-config.json`
-- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\not-found\components.json`
-- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\not-found\variables.json`
-- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\not-found\i18n\es.json`
+- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\site-config.json`
+- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\components.json`
+- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\variables.json`
+- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\angora-combos.json`
+- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\i18n\es.json`
+- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\default\page-config.json`
+- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\default\components.json`
+- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\default\variables.json`
+- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\default\angora-combos.json`
+- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\default\i18n\es.json`
+- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\privacidad\page-config.json`
+- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\privacidad\components.json`
+- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\privacidad\variables.json`
+- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\privacidad\i18n\es.json`
+- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\terminos\page-config.json`
+- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\terminos\components.json`
+- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\terminos\variables.json`
+- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\terminos\i18n\es.json`
+- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\not-found\page-config.json`
+- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\not-found\components.json`
+- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\not-found\variables.json`
+- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\not-found\i18n\es.json`
 
 Sibling draft repo files:
 
-- Create: `C:\Users\lince\Documents\GitHub\draft-roberto-rodriguez-rodriguez-zoolandingpage-com-mx\draft-repo.config.json`
-- Create: `C:\Users\lince\Documents\GitHub\draft-roberto-rodriguez-rodriguez-zoolandingpage-com-mx\.gitignore`
-- Create: `C:\Users\lince\Documents\GitHub\draft-roberto-rodriguez-rodriguez-zoolandingpage-com-mx\README.md`
-- Create/copy: sanitized draft JSON files from the hub `drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\` tree.
+- Create: `C:\Users\lince\Documents\GitHub\draft-robertorodriguezrodriguez-com-mx\draft-repo.config.json`
+- Create: `C:\Users\lince\Documents\GitHub\draft-robertorodriguezrodriguez-com-mx\.gitignore`
+- Create: `C:\Users\lince\Documents\GitHub\draft-robertorodriguezrodriguez-com-mx\README.md`
+- Create/copy: sanitized draft JSON files from the hub `drafts\robertorodriguezrodriguez.com.mx\` tree.
 
 Local-only assets:
 
@@ -53,7 +53,7 @@ Local-only assets:
 
 ---
 
-### Task 1: Preflight And Provisional Domain Setup
+### Task 1: Preflight And Canonical Domain Setup
 
 **Files:**
 - Read: `C:\Users\lince\Documents\GitHub\zoolandingpage\docs\superpowers\specs\2026-05-29-roberto-rodriguez-psychology-draft-design.md`
@@ -81,18 +81,30 @@ node tools/draft-repo-preflight.mjs --pull=true
 
 Expected: registered clean draft repos pull successfully; dirty repos are reported and not overwritten.
 
-- [ ] **Step 3: Record provisional domain**
+- [ ] **Step 3: Record canonical domain and aliases**
 
-Use this fixed provisional domain for the first implementation:
+Use this fixed canonical domain for the first implementation:
 
 ```text
-roberto-rodriguez-rodriguez.zoolandingpage.com.mx
+robertorodriguezrodriguez.com.mx
+```
+
+Use these exact aliases:
+
+```text
+robertorodriguezrodriguez.com
+robertorodriguezrodriguez.zoolandingpage.com
+robertorodriguezrodriguez.zoolandingpage.com.mx
+terapiapsicologicaonlinemexico.com
+terapiapsicologicaonlinemexico.com.mx
+terapiapsicologicamexico.com
+terapiapsicologicamexico.com.mx
 ```
 
 Use this sibling repo path:
 
 ```text
-C:\Users\lince\Documents\GitHub\draft-roberto-rodriguez-rodriguez-zoolandingpage-com-mx
+C:\Users\lince\Documents\GitHub\draft-robertorodriguezrodriguez-com-mx
 ```
 
 - [ ] **Step 4: Confirm target paths do not already exist**
@@ -100,8 +112,8 @@ C:\Users\lince\Documents\GitHub\draft-roberto-rodriguez-rodriguez-zoolandingpage
 Run:
 
 ```powershell
-Test-Path drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx
-Test-Path ..\draft-roberto-rodriguez-rodriguez-zoolandingpage-com-mx
+Test-Path drafts\robertorodriguezrodriguez.com.mx
+Test-Path ..\draft-robertorodriguezrodriguez-com-mx
 ```
 
 Expected: both return `False`. If either returns `True`, inspect that path and continue only if it is the intended Roberto draft workspace.
@@ -111,7 +123,7 @@ Expected: both return `False`. If either returns `True`, inspect that path and c
 ### Task 2: Create Draft Scaffold From A Known Healthcare-Like Template
 
 **Files:**
-- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\`
+- Create: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\`
 - Source reference only: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\zoositioweb.com.mx\sector-consultorios\`
 
 - [ ] **Step 1: Create draft directories**
@@ -120,12 +132,12 @@ Run:
 
 ```powershell
 New-Item -ItemType Directory -Force `
-  drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx, `
-  drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\i18n, `
-  drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\default\i18n, `
-  drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\privacidad\i18n, `
-  drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\terminos\i18n, `
-  drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\not-found\i18n
+  drafts\robertorodriguezrodriguez.com.mx, `
+  drafts\robertorodriguezrodriguez.com.mx\i18n, `
+  drafts\robertorodriguezrodriguez.com.mx\default\i18n, `
+  drafts\robertorodriguezrodriguez.com.mx\privacidad\i18n, `
+  drafts\robertorodriguezrodriguez.com.mx\terminos\i18n, `
+  drafts\robertorodriguezrodriguez.com.mx\not-found\i18n
 ```
 
 Expected: every directory exists.
@@ -135,19 +147,19 @@ Expected: every directory exists.
 Run these copy commands, then edit the copied payloads with `apply_patch`:
 
 ```powershell
-Copy-Item drafts\zoositioweb.com.mx\site-config.json drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\site-config.json
-Copy-Item drafts\zoositioweb.com.mx\components.json drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\components.json
-Copy-Item drafts\zoositioweb.com.mx\variables.json drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\variables.json
-Copy-Item drafts\zoositioweb.com.mx\angora-combos.json drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\angora-combos.json
-Copy-Item drafts\zoositioweb.com.mx\i18n\es.json drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\i18n\es.json
-Copy-Item drafts\zoositioweb.com.mx\sector-consultorios\page-config.json drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\default\page-config.json
-Copy-Item drafts\zoositioweb.com.mx\sector-consultorios\components.json drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\default\components.json
-Copy-Item drafts\zoositioweb.com.mx\sector-consultorios\variables.json drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\default\variables.json
-Copy-Item drafts\zoositioweb.com.mx\sector-consultorios\angora-combos.json drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\default\angora-combos.json
-Copy-Item drafts\zoositioweb.com.mx\sector-consultorios\i18n\es.json drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\default\i18n\es.json
-Copy-Item drafts\zoositioweb.com.mx\privacidad\* drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\privacidad\ -Recurse
-Copy-Item drafts\zoositioweb.com.mx\terminos\* drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\terminos\ -Recurse
-Copy-Item drafts\zoositioweb.com.mx\not-found\* drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\not-found\ -Recurse
+Copy-Item drafts\zoositioweb.com.mx\site-config.json drafts\robertorodriguezrodriguez.com.mx\site-config.json
+Copy-Item drafts\zoositioweb.com.mx\components.json drafts\robertorodriguezrodriguez.com.mx\components.json
+Copy-Item drafts\zoositioweb.com.mx\variables.json drafts\robertorodriguezrodriguez.com.mx\variables.json
+Copy-Item drafts\zoositioweb.com.mx\angora-combos.json drafts\robertorodriguezrodriguez.com.mx\angora-combos.json
+Copy-Item drafts\zoositioweb.com.mx\i18n\es.json drafts\robertorodriguezrodriguez.com.mx\i18n\es.json
+Copy-Item drafts\zoositioweb.com.mx\sector-consultorios\page-config.json drafts\robertorodriguezrodriguez.com.mx\default\page-config.json
+Copy-Item drafts\zoositioweb.com.mx\sector-consultorios\components.json drafts\robertorodriguezrodriguez.com.mx\default\components.json
+Copy-Item drafts\zoositioweb.com.mx\sector-consultorios\variables.json drafts\robertorodriguezrodriguez.com.mx\default\variables.json
+Copy-Item drafts\zoositioweb.com.mx\sector-consultorios\angora-combos.json drafts\robertorodriguezrodriguez.com.mx\default\angora-combos.json
+Copy-Item drafts\zoositioweb.com.mx\sector-consultorios\i18n\es.json drafts\robertorodriguezrodriguez.com.mx\default\i18n\es.json
+Copy-Item drafts\zoositioweb.com.mx\privacidad\* drafts\robertorodriguezrodriguez.com.mx\privacidad\ -Recurse
+Copy-Item drafts\zoositioweb.com.mx\terminos\* drafts\robertorodriguezrodriguez.com.mx\terminos\ -Recurse
+Copy-Item drafts\zoositioweb.com.mx\not-found\* drafts\robertorodriguezrodriguez.com.mx\not-found\ -Recurse
 ```
 
 Expected: the new draft contains JSON files with valid platform shapes before custom edits begin.
@@ -157,7 +169,7 @@ Expected: the new draft contains JSON files with valid platform shapes before cu
 Run:
 
 ```powershell
-Get-ChildItem drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx -Recurse -Filter *.json | ForEach-Object {
+Get-ChildItem drafts\robertorodriguezrodriguez.com.mx -Recurse -Filter *.json | ForEach-Object {
   node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8')); console.log('json ok', process.argv[1])" $_.FullName
 }
 ```
@@ -169,7 +181,7 @@ Expected: every line starts with `json ok`.
 Run:
 
 ```powershell
-git add drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx
+git add drafts\robertorodriguezrodriguez.com.mx
 git commit -m "feat: scaffold roberto psychology draft"
 ```
 
@@ -222,7 +234,7 @@ Run:
 $portraitPath = "C:\Users\lince\.codex\memories\Output\roberto-rodriguez-rodriguez-psychologytoday-profile.jpeg"
 $portraitBase64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($portraitPath))
 $portraitBody = @{
-  domain = "roberto-rodriguez-rodriguez.zoolandingpage.com.mx"
+  domain = "robertorodriguezrodriguez.com.mx"
   pageId = "shared"
   assetKind = "profile-images"
   assetId = "roberto-profile-portrait"
@@ -237,7 +249,7 @@ $portraitUpload = Invoke-RestMethod -Method Post -Uri "https://api.zoolandingpag
 $portraitUpload | ConvertTo-Json -Depth 10
 ```
 
-Expected: response includes `ok: true`, `uploadStrategy: direct`, and a `publicUrl` under `https://assets.zoolandingpage.com.mx/roberto-rodriguez-rodriguez.zoolandingpage.com.mx/shared/profile-images/roberto-profile-portrait.jpeg`.
+Expected: response includes `ok: true`, `uploadStrategy: direct`, and a `publicUrl` under `https://assets.zoolandingpage.com.mx/robertorodriguezrodriguez.com.mx/shared/profile-images/roberto-profile-portrait.jpeg`.
 
 - [ ] **Step 5: Upload selected generated support image through direct public asset flow**
 
@@ -247,7 +259,7 @@ Run:
 $workspacePath = "C:\Users\lince\.codex\memories\Output\roberto-psychology-draft\calm-online-therapy-workspace.png"
 $workspaceBase64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($workspacePath))
 $workspaceBody = @{
-  domain = "roberto-rodriguez-rodriguez.zoolandingpage.com.mx"
+  domain = "robertorodriguezrodriguez.com.mx"
   pageId = "default"
   assetKind = "section-images"
   assetId = "calm-online-therapy-workspace"
@@ -262,15 +274,15 @@ $workspaceUpload = Invoke-RestMethod -Method Post -Uri "https://api.zoolandingpa
 $workspaceUpload | ConvertTo-Json -Depth 10
 ```
 
-Expected: response includes a public URL under `https://assets.zoolandingpage.com.mx/roberto-rodriguez-rodriguez.zoolandingpage.com.mx/default/section-images/calm-online-therapy-workspace.png`.
+Expected: response includes a public URL under `https://assets.zoolandingpage.com.mx/robertorodriguezrodriguez.com.mx/default/section-images/calm-online-therapy-workspace.png`.
 
 - [ ] **Step 6: Verify public assets load**
 
 Run:
 
 ```powershell
-Invoke-WebRequest -UseBasicParsing "https://assets.zoolandingpage.com.mx/roberto-rodriguez-rodriguez.zoolandingpage.com.mx/shared/profile-images/roberto-profile-portrait.jpeg" | Select-Object StatusCode,Headers
-Invoke-WebRequest -UseBasicParsing "https://assets.zoolandingpage.com.mx/roberto-rodriguez-rodriguez.zoolandingpage.com.mx/default/section-images/calm-online-therapy-workspace.png" | Select-Object StatusCode,Headers
+Invoke-WebRequest -UseBasicParsing "https://assets.zoolandingpage.com.mx/robertorodriguezrodriguez.com.mx/shared/profile-images/roberto-profile-portrait.jpeg" | Select-Object StatusCode,Headers
+Invoke-WebRequest -UseBasicParsing "https://assets.zoolandingpage.com.mx/robertorodriguezrodriguez.com.mx/default/section-images/calm-online-therapy-workspace.png" | Select-Object StatusCode,Headers
 ```
 
 Expected: both return HTTP `200`.
@@ -280,10 +292,10 @@ Expected: both return HTTP `200`.
 ### Task 4: Author Site-Level Configuration
 
 **Files:**
-- Modify: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\site-config.json`
-- Modify: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\components.json`
-- Modify: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\variables.json`
-- Modify: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\i18n\es.json`
+- Modify: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\site-config.json`
+- Modify: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\components.json`
+- Modify: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\variables.json`
+- Modify: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\i18n\es.json`
 
 - [ ] **Step 1: Replace site identity and canonical host**
 
@@ -291,19 +303,27 @@ Edit `site-config.json` so the site identity uses:
 
 ```json
 {
-  "domain": "roberto-rodriguez-rodriguez.zoolandingpage.com.mx",
-  "aliases": ["roberto-rodriguez-rodriguez.zoolandingpage.com.mx"],
+  "domain": "robertorodriguezrodriguez.com.mx",
+  "aliases": [
+    "robertorodriguezrodriguez.com",
+    "robertorodriguezrodriguez.zoolandingpage.com",
+    "robertorodriguezrodriguez.zoolandingpage.com.mx",
+    "terapiapsicologicaonlinemexico.com",
+    "terapiapsicologicaonlinemexico.com.mx",
+    "terapiapsicologicamexico.com",
+    "terapiapsicologicamexico.com.mx"
+  ],
   "site": {
     "name": "Roberto Rodriguez Rodriguez",
     "seo": {
-      "canonicalOrigin": "https://roberto-rodriguez-rodriguez.zoolandingpage.com.mx",
-      "defaultImage": "https://assets.zoolandingpage.com.mx/roberto-rodriguez-rodriguez.zoolandingpage.com.mx/shared/seo-images/default-og-card.jpg"
+      "canonicalOrigin": "https://robertorodriguezrodriguez.com.mx",
+      "defaultImage": "https://assets.zoolandingpage.com.mx/robertorodriguezrodriguez.com.mx/shared/seo-images/default-og-card.jpg"
     }
   }
 }
 ```
 
-Preserve required existing keys that the runtime expects, and replace only the domain, alias, name, SEO, theme, navigation, and CTA values.
+Preserve required existing keys that the runtime expects, and replace only the domain, aliases, name, SEO, theme, navigation, and CTA values. All aliases should canonicalize to `https://robertorodriguezrodriguez.com.mx` unless a later SEO cutover explicitly changes that.
 
 - [ ] **Step 2: Set palette tokens**
 
@@ -354,8 +374,8 @@ Expected: no authored navigation uses `draftDomain` or `draftPageId` query param
 Run:
 
 ```powershell
-node -e "JSON.parse(require('fs').readFileSync('drafts/roberto-rodriguez-rodriguez.zoolandingpage.com.mx/site-config.json','utf8')); console.log('site-config json ok')"
-git add drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\site-config.json drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\components.json drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\variables.json drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\i18n\es.json
+node -e "JSON.parse(require('fs').readFileSync('drafts/robertorodriguezrodriguez.com.mx/site-config.json','utf8')); console.log('site-config json ok')"
+git add drafts\robertorodriguezrodriguez.com.mx\site-config.json drafts\robertorodriguezrodriguez.com.mx\components.json drafts\robertorodriguezrodriguez.com.mx\variables.json drafts\robertorodriguezrodriguez.com.mx\i18n\es.json
 git commit -m "feat: configure roberto psychology site shell"
 ```
 
@@ -366,10 +386,10 @@ Expected: JSON parse passes and commit contains only site-shell files.
 ### Task 5: Author The Home Page Content And Layout
 
 **Files:**
-- Modify: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\default\page-config.json`
-- Modify: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\default\components.json`
-- Modify: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\default\variables.json`
-- Modify: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\default\i18n\es.json`
+- Modify: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\default\page-config.json`
+- Modify: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\default\components.json`
+- Modify: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\default\variables.json`
+- Modify: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\default\i18n\es.json`
 
 - [ ] **Step 1: Set SEO metadata**
 
@@ -379,7 +399,7 @@ Set the home page SEO fields to this content:
 {
   "title": "Terapia psicologica online en Mexico | Roberto Rodriguez",
   "description": "Acompanamiento psicologico online, confidencial y humano para adultos y adolescentes en Mexico. Agenda una cita por WhatsApp con Roberto Rodriguez Rodriguez.",
-  "canonical": "https://roberto-rodriguez-rodriguez.zoolandingpage.com.mx/",
+  "canonical": "https://robertorodriguezrodriguez.com.mx/",
   "robots": "index,follow,max-image-preview:large"
 }
 ```
@@ -490,10 +510,10 @@ cards: near-straight low radius
 Run:
 
 ```powershell
-Get-ChildItem drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\default -Recurse -Filter *.json | ForEach-Object {
+Get-ChildItem drafts\robertorodriguezrodriguez.com.mx\default -Recurse -Filter *.json | ForEach-Object {
   node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8')); console.log('json ok', process.argv[1])" $_.FullName
 }
-git add drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\default
+git add drafts\robertorodriguezrodriguez.com.mx\default
 git commit -m "feat: author roberto psychology home page"
 ```
 
@@ -504,13 +524,13 @@ Expected: JSON parse passes and commit contains only default page files.
 ### Task 6: Author Legal And Utility Pages
 
 **Files:**
-- Modify: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\privacidad\*`
-- Modify: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\terminos\*`
-- Modify: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\not-found\*`
+- Modify: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\privacidad\*`
+- Modify: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\terminos\*`
+- Modify: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\not-found\*`
 
 - [ ] **Step 1: Replace legal page identity**
 
-Use `Roberto Rodriguez Rodriguez` and `roberto-rodriguez-rodriguez.zoolandingpage.com.mx` throughout copied legal pages.
+Use `Roberto Rodriguez Rodriguez` and `robertorodriguezrodriguez.com.mx` throughout copied legal pages.
 
 Expected: no Zoositioweb sales copy remains in legal pages.
 
@@ -539,10 +559,10 @@ Expected: public safety boundary is visible before publishing.
 Run:
 
 ```powershell
-Get-ChildItem drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\privacidad,drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\terminos,drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\not-found -Recurse -Filter *.json | ForEach-Object {
+Get-ChildItem drafts\robertorodriguezrodriguez.com.mx\privacidad,drafts\robertorodriguezrodriguez.com.mx\terminos,drafts\robertorodriguezrodriguez.com.mx\not-found -Recurse -Filter *.json | ForEach-Object {
   node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8')); console.log('json ok', process.argv[1])" $_.FullName
 }
-git add drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\privacidad drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\terminos drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\not-found
+git add drafts\robertorodriguezrodriguez.com.mx\privacidad drafts\robertorodriguezrodriguez.com.mx\terminos drafts\robertorodriguezrodriguez.com.mx\not-found
 git commit -m "feat: add roberto draft legal pages"
 ```
 
@@ -554,7 +574,7 @@ Expected: JSON parse passes and commit contains only legal/utility pages.
 
 **Files:**
 - Modify: `C:\Users\lince\Documents\GitHub\zoolandingpage\docs\drafts-registry.json`
-- Create: `C:\Users\lince\Documents\GitHub\draft-roberto-rodriguez-rodriguez-zoolandingpage-com-mx\`
+- Create: `C:\Users\lince\Documents\GitHub\draft-robertorodriguezrodriguez-com-mx\`
 
 - [ ] **Step 1: Add draft registry entry**
 
@@ -562,10 +582,10 @@ Append this object to `docs\drafts-registry.json` in alphabetical or existing re
 
 ```json
 {
-  "domain": "roberto-rodriguez-rodriguez.zoolandingpage.com.mx",
-  "repo": "draft-roberto-rodriguez-rodriguez-zoolandingpage-com-mx",
-  "githubUrl": "https://github.com/LynxPardelle/draft-roberto-rodriguez-rodriguez-zoolandingpage-com-mx.git",
-  "localPath": "../draft-roberto-rodriguez-rodriguez-zoolandingpage-com-mx"
+  "domain": "robertorodriguezrodriguez.com.mx",
+  "repo": "draft-robertorodriguezrodriguez-com-mx",
+  "githubUrl": "https://github.com/LynxPardelle/draft-robertorodriguezrodriguez-com-mx.git",
+  "localPath": "../draft-robertorodriguezrodriguez-com-mx"
 }
 ```
 
@@ -576,7 +596,7 @@ Expected: registry remains valid JSON.
 Run:
 
 ```powershell
-npm run drafts:repo-bootstrap -- --repo=../draft-roberto-rodriguez-rodriguez-zoolandingpage-com-mx --domain=roberto-rodriguez-rodriguez.zoolandingpage.com.mx --authoring-endpoint=https://api.zoolandingpage.com.mx/config-authoring
+npm run drafts:repo-bootstrap -- --repo=../draft-robertorodriguezrodriguez-com-mx --domain=robertorodriguezrodriguez.com.mx --authoring-endpoint=https://api.zoolandingpage.com.mx/config-authoring
 ```
 
 Expected: sibling repo folder exists with `draft-repo.config.json`, `.gitignore`, `.github\workflows\`, and no staged local-only folders.
@@ -586,7 +606,7 @@ Expected: sibling repo folder exists with `draft-repo.config.json`, `.gitignore`
 Run:
 
 ```powershell
-Copy-Item drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\* ..\draft-roberto-rodriguez-rodriguez-zoolandingpage-com-mx\ -Recurse -Force
+Copy-Item drafts\robertorodriguezrodriguez.com.mx\* ..\draft-robertorodriguezrodriguez-com-mx\ -Recurse -Force
 ```
 
 Expected: sibling repo contains only sanitized draft files and ignores local-only folders.
@@ -604,7 +624,7 @@ git commit -m "docs: register roberto psychology draft repo"
 Run in sibling repo:
 
 ```powershell
-Set-Location ..\draft-roberto-rodriguez-rodriguez-zoolandingpage-com-mx
+Set-Location ..\draft-robertorodriguezrodriguez-com-mx
 git status --short --branch
 git add .
 git commit -m "feat: add roberto psychology draft"
@@ -618,15 +638,15 @@ Expected: hub and sibling repo both have commits; no local-only ignored folders 
 ### Task 8: Validate Draft JSON, Packaged Payload, And Public Safety
 
 **Files:**
-- Read: all JSON under `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\`
-- Read: sibling repo files under `C:\Users\lince\Documents\GitHub\draft-roberto-rodriguez-rodriguez-zoolandingpage-com-mx\`
+- Read: all JSON under `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\`
+- Read: sibling repo files under `C:\Users\lince\Documents\GitHub\draft-robertorodriguezrodriguez-com-mx\`
 
 - [ ] **Step 1: Parse every draft JSON file**
 
 Run:
 
 ```powershell
-Get-ChildItem drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx -Recurse -Filter *.json | ForEach-Object {
+Get-ChildItem drafts\robertorodriguezrodriguez.com.mx -Recurse -Filter *.json | ForEach-Object {
   node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8')); console.log('json ok', process.argv[1])" $_.FullName
 }
 ```
@@ -639,7 +659,7 @@ Run:
 
 ```powershell
 New-Item -ItemType Directory -Force logs\drafts | Out-Null
-node tools/config-draft-sync.mjs pack --domain=roberto-rodriguez-rodriguez.zoolandingpage.com.mx --output=logs/drafts/roberto-rodriguez-draft-package.json
+node tools/config-draft-sync.mjs pack --domain=robertorodriguezrodriguez.com.mx --output=logs/drafts/roberto-rodriguez-draft-package.json
 ```
 
 Expected: command exits `0` and writes `logs\drafts\roberto-rodriguez-draft-package.json`.
@@ -649,7 +669,7 @@ Expected: command exits `0` and writes `logs\drafts\roberto-rodriguez-draft-pack
 Run:
 
 ```powershell
-rg -n "uploadUrl|X-Amz-|BEGIN .*PRIVATE|api[_-]?key|secret|token|gmail|hotmail|@|\\b55\\d{8}\\b|PsychologyToday|photos\\.psychologytoday" drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx ..\draft-roberto-rodriguez-rodriguez-zoolandingpage-com-mx
+rg -n "uploadUrl|X-Amz-|BEGIN .*PRIVATE|api[_-]?key|secret|token|gmail|hotmail|@|\\b55\\d{8}\\b|PsychologyToday|photos\\.psychologytoday" drafts\robertorodriguezrodriguez.com.mx ..\draft-robertorodriguezrodriguez-com-mx
 ```
 
 Expected: no raw secrets, presigned URLs, private contact values, or raw source image URLs appear. Public `assets.zoolandingpage.com.mx` URLs are allowed.
@@ -659,7 +679,7 @@ Expected: no raw secrets, presigned URLs, private contact values, or raw source 
 Run:
 
 ```powershell
-node tools/draft-public-safety-audit.mjs --history=true --repo=../draft-roberto-rodriguez-rodriguez-zoolandingpage-com-mx
+node tools/draft-public-safety-audit.mjs --history=true --repo=../draft-robertorodriguezrodriguez-com-mx
 ```
 
 Expected: `blockingRepoCount: 0`. Review findings for phone/email/identity terms and confirm they are intentional public draft content before publishing.
@@ -669,7 +689,7 @@ Expected: `blockingRepoCount: 0`. Review findings for phone/email/identity terms
 ### Task 9: Local Browser QA
 
 **Files:**
-- Read/render: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx\`
+- Read/render: `C:\Users\lince\Documents\GitHub\zoolandingpage\drafts\robertorodriguezrodriguez.com.mx\`
 
 - [ ] **Step 1: Start local dev server**
 
@@ -686,7 +706,7 @@ Expected: Angular dev server serves on the configured local port, normally `http
 Open:
 
 ```text
-http://127.0.0.1:4200/?draftDomain=roberto-rodriguez-rodriguez.zoolandingpage.com.mx&draftPageId=default
+http://127.0.0.1:4200/?draftDomain=robertorodriguezrodriguez.com.mx&draftPageId=default
 ```
 
 Expected: page renders Roberto draft, not unresolved draft fallback.
@@ -716,7 +736,7 @@ Expected:
 Run:
 
 ```powershell
-node tools/draft-smoke-check.mjs --domain=roberto-rodriguez-rodriguez.zoolandingpage.com.mx --local-base-url=http://127.0.0.1:4200 --output=logs/drafts/roberto-smoke.json
+node tools/draft-smoke-check.mjs --domain=robertorodriguezrodriguez.com.mx --local-base-url=http://127.0.0.1:4200 --output=logs/drafts/roberto-smoke.json
 ```
 
 Expected: smoke report passes for home, legal pages, and 404 route.
@@ -726,7 +746,7 @@ Expected: smoke report passes for home, legal pages, and 404 route.
 If QA changes draft files, run:
 
 ```powershell
-git add drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx
+git add drafts\robertorodriguezrodriguez.com.mx
 git commit -m "fix: polish roberto draft browser qa"
 ```
 
@@ -746,7 +766,7 @@ Expected: commit contains only QA-driven draft fixes.
 Append this entry near the end of `changelog\drafts\2026-05.md` after implementation and QA:
 
 ```markdown
-- 2026-05-29 CT Roberto Rodriguez Rodriguez draft planning/implementation: created provisional managed-alias draft `roberto-rodriguez-rodriguez.zoolandingpage.com.mx` for online psychology consultation, using a calm Sentia/Vimuti-inspired editorial direction, open FAQ/content rules, low-radius cards, public asset URLs, and draft-local legal/safety guardrails. Browser QA covered desktop and mobile local preview before closeout.
+- 2026-05-29 CT Roberto Rodriguez Rodriguez draft planning/implementation: created canonical draft `robertorodriguezrodriguez.com.mx` for online psychology consultation, with aliases `robertorodriguezrodriguez.com`, `robertorodriguezrodriguez.zoolandingpage.com`, `robertorodriguezrodriguez.zoolandingpage.com.mx`, `terapiapsicologicaonlinemexico.com`, `terapiapsicologicaonlinemexico.com.mx`, `terapiapsicologicamexico.com`, and `terapiapsicologicamexico.com.mx`; used a calm Sentia/Vimuti-inspired editorial direction, open FAQ/content rules, low-radius cards, public asset URLs, and draft-local legal/safety guardrails. Browser QA covered desktop and mobile local preview before closeout.
 ```
 
 Expected: changelog records what changed and what was verified without storing private contact data or secrets.
@@ -773,7 +793,7 @@ git status --short --branch
 Run in sibling draft repo:
 
 ```powershell
-Set-Location ..\draft-roberto-rodriguez-rodriguez-zoolandingpage-com-mx
+Set-Location ..\draft-robertorodriguezrodriguez-com-mx
 git status --short --branch
 Set-Location ..\zoolandingpage
 ```
@@ -798,12 +818,13 @@ Spec coverage:
 
 Placeholder scan:
 
-- The plan uses a fixed provisional domain and exact file paths.
+- The plan uses a fixed canonical domain, explicit aliases, and exact file paths.
 - The only variable runtime value is the base64 bytes read from a local image file at execution time; the request shape is explicit and the bytes must not be committed.
 
 Type and path consistency:
 
-- Domain: `roberto-rodriguez-rodriguez.zoolandingpage.com.mx`
-- Hub draft path: `drafts\roberto-rodriguez-rodriguez.zoolandingpage.com.mx`
-- Sibling repo path: `..\draft-roberto-rodriguez-rodriguez-zoolandingpage-com-mx`
-- Public asset base: `https://assets.zoolandingpage.com.mx/roberto-rodriguez-rodriguez.zoolandingpage.com.mx/`
+- Domain: `robertorodriguezrodriguez.com.mx`
+- Aliases: `robertorodriguezrodriguez.com`, `robertorodriguezrodriguez.zoolandingpage.com`, `robertorodriguezrodriguez.zoolandingpage.com.mx`, `terapiapsicologicaonlinemexico.com`, `terapiapsicologicaonlinemexico.com.mx`, `terapiapsicologicamexico.com`, `terapiapsicologicamexico.com.mx`
+- Hub draft path: `drafts\robertorodriguezrodriguez.com.mx`
+- Sibling repo path: `..\draft-robertorodriguezrodriguez-com-mx`
+- Public asset base: `https://assets.zoolandingpage.com.mx/robertorodriguezrodriguez.com.mx/`
