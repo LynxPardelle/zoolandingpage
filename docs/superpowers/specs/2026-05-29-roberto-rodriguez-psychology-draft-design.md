@@ -206,6 +206,22 @@ Decorative images:
 - Pexels/Pixabay provider API sourcing is future platform work, already documented separately.
 - Do not store provider API keys, private URLs, signed URLs, or raw provider responses in draft files.
 
+AI-generated supporting images:
+
+- AI-generated imagery is allowed for this draft when it improves a specific section and does not turn the page into a gallery.
+- Use one to three supporting images at most, besides Roberto's verified portrait.
+- Good candidate placements:
+  - A subtle atmospheric hero or section background that matches the warm paper, sage, mist-blue, and clinical-study direction.
+  - A process/supporting visual for online therapy that shows a calm workspace, notebook, laptop, or video-call context without showing a patient.
+  - A profile-adjacent editorial image where Roberto is the protagonist, only if Roberto explicitly approves using his likeness for generated marketing imagery.
+- Generated images with Roberto should feel editorial and supportive, not like fake documentary photos of real therapy sessions.
+- Do not generate identifiable patients, testimonials, crisis scenes, diagnostic scenes, child/adolescent clients, or before/after style outcome imagery.
+- Do not imply in-person consultation if the service is positioned as online.
+- Do not fabricate credentials, awards, locations, clinic signage, certificates, or screenshots inside generated images.
+- Save draft image candidates in the configured local `Output` location first. Upload only approved final images to the public assets bucket and store only final public URLs in draft config.
+- Every selected generated image must have plain alt text and a short internal note explaining which section it supports.
+- If the generation/editing tool cannot reliably preserve Roberto's likeness from the supplied portrait, use the verified portrait directly and keep generated supporting images non-identifying.
+
 ## Legal, Privacy, And Safety
 
 Before public release, verify:
@@ -213,6 +229,7 @@ Before public release, verify:
 - Phone and email are explicitly approved for public display.
 - Privacy notice and terms pages exist and are linked.
 - Any adolescent wording is legally acceptable for the service scope.
+- Roberto has explicitly approved any AI-generated use of his likeness beyond the supplied original portrait.
 - If needed, include a clear non-emergency statement and crisis redirection wording.
 - The draft does not imply medical emergency support, guaranteed improvement, diagnosis, cure, or psychiatric treatment.
 
@@ -223,6 +240,7 @@ Allowed in this phase:
 - Draft-local config/content/component changes.
 - Draft-local notes, findings, and spec files.
 - Public asset upload and draft config public URL references.
+- Manual AI-generated image exploration for draft assets, as long as final usage follows the asset, consent, and safety rules above.
 
 Not allowed in this phase:
 
@@ -243,4 +261,5 @@ If a desired capability requires app work, create a handoff note with problem, d
 - No private contact data is introduced without explicit public-use confirmation.
 - No secrets, API keys, signed URLs, or private Drive details are committed.
 - Public images use `https://assets.zoolandingpage.com.mx/...` URLs.
+- Any AI-generated image that uses Roberto's likeness has explicit approval and does not depict a real client, real session, crisis, diagnosis, or guaranteed outcome.
 - Desktop and mobile browser QA pass without overlap, broken images, missing CTA, or unreadable text.
