@@ -202,13 +202,9 @@ export class AngoraCombosService {
 
         this.syncDraftCombosFromStore();
 
-        const normalized = Array.from(new Set(
-            (classes ?? [])
-                .map((entry) => this.normalizeClassList(String(entry).trim()))
-                .filter((entry) => entry.length > 0)
-                .filter((entry) => this.isAngoraManagedClass(entry))
-                .filter((entry) => !this.replayedClasses.has(entry))
-        ));
+        const normalized = this.normalizeClassEntries(classes)
+            .filter((entry) => this.isAngoraManagedClass(entry))
+            .filter((entry) => !this.replayedClasses.has(entry));
 
         if (normalized.length === 0) {
             return;
@@ -234,9 +230,17 @@ export class AngoraCombosService {
         return this.ank.hasGeneratedCssRules?.() ?? false;
     }
 
-    waitForCssReady(timeoutMs = 1_500): Promise<boolean> {
+    waitForCssReady(timeoutMs = 1_500, requiredClasses: readonly string[] = []): Promise<boolean> {
         if (!this.isBrowser) return Promise.resolve(true);
         this.syncDraftCombosFromStore();
+
+        const required = this.normalizeClassEntries(requiredClasses)
+            .filter((entry) => this.isRegisteredComboClass(entry));
+
+        if (required.length > 0) {
+            return this.waitForRequiredCssRules(required, timeoutMs);
+        }
+
         return this.ank.waitForCssReady?.(timeoutMs) ?? Promise.resolve(this.hasGeneratedCssRules());
     }
 
@@ -305,6 +309,156 @@ export class AngoraCombosService {
             this.ank.cssNamesParsed ?? {},
             String(this.ank.indicatorClass ?? 'ank'),
         );
+    }
+
+    private normalizeClassEntries(classes: readonly string[]): string[] {
+        return Array.from(new Set(
+            (classes ?? [])
+                .flatMap((entry) => this.normalizeClassList(String(entry).trim()).split(/\s+/))
+                .map((entry) => entry.trim())
+                .filter((entry) => entry.length > 0)
+        ));
+    }
+
+    private async waitForRequiredCssRules(classes: readonly string[], timeoutMs: number): Promise<boolean> {
+        this.updateClasses(classes);
+
+        const timeoutAt = Date.now() + Math.max(0, timeoutMs);
+        let fullScanRequested = false;
+
+        while (Date.now() <= timeoutAt) {
+            const missingClasses = this.missingCssRuleClasses(classes);
+            if (missingClasses.length === 0) {
+                return this.waitForNextPaint(true);
+            }
+
+            this.ank.cssCreate(missingClasses);
+
+            if (!fullScanRequested && missingClasses.some((className) => this.isRegisteredComboClass(className))) {
+                this.ank.cssCreate(undefined, true);
+                fullScanRequested = true;
+            }
+
+            await this.waitForNextFrame();
+        }
+
+        return this.waitForNextPaint(false);
+    }
+
+    private missingCssRuleClasses(classes: readonly string[]): string[] {
+        return Array.from(new Set(classes))
+            .filter((className) => this.isAngoraManagedClass(className))
+            .filter((className) => !this.hasCssRuleForClass(className));
+    }
+
+    private hasCssRuleForClass(className: string): boolean {
+        if (typeof document === 'undefined') return false;
+
+        const comboKey = this.findMatchingComboKey(className);
+        if (comboKey) {
+            return this.hasComboCssRule(comboKey);
+        }
+
+        const escapedClassName = this.escapeCssClass(className);
+        const classSelectorPattern = new RegExp(`\\.${ this.escapeRegex(escapedClassName) }(?=[\\s,.#:>{~+\\[]|$)`);
+
+        return Array.from(document.styleSheets ?? [])
+            .some((sheet) => this.stylesheetHasClassRule(sheet, classSelectorPattern));
+    }
+
+    private hasComboCssRule(comboKey: string): boolean {
+        const comboRuleMarker = `__COM_${ comboKey }`;
+        return Array.from(document.styleSheets ?? [])
+            .some((sheet) => this.stylesheetHasText(sheet, comboRuleMarker));
+    }
+
+    private stylesheetHasClassRule(sheet: CSSStyleSheet, classSelectorPattern: RegExp): boolean {
+        let rules: CSSRuleList;
+        try {
+            rules = sheet.cssRules;
+        } catch {
+            return false;
+        }
+
+        return Array.from(rules).some((rule) => this.cssRuleHasClass(rule, classSelectorPattern));
+    }
+
+    private stylesheetHasText(sheet: CSSStyleSheet, text: string): boolean {
+        let rules: CSSRuleList;
+        try {
+            rules = sheet.cssRules;
+        } catch {
+            return false;
+        }
+
+        return Array.from(rules).some((rule) => this.cssRuleContainsText(rule, text));
+    }
+
+    private cssRuleHasClass(rule: CSSRule, classSelectorPattern: RegExp): boolean {
+        const selectorText = (rule as CSSStyleRule).selectorText;
+        if (selectorText && classSelectorPattern.test(selectorText)) {
+            return true;
+        }
+
+        const nestedRules = (rule as CSSGroupingRule).cssRules;
+        if (!nestedRules) {
+            return false;
+        }
+
+        return Array.from(nestedRules).some((nestedRule) => this.cssRuleHasClass(nestedRule, classSelectorPattern));
+    }
+
+    private cssRuleContainsText(rule: CSSRule, text: string): boolean {
+        if (rule.cssText?.includes(text)) {
+            return true;
+        }
+
+        const nestedRules = (rule as CSSGroupingRule).cssRules;
+        if (!nestedRules) {
+            return false;
+        }
+
+        return Array.from(nestedRules).some((nestedRule) => this.cssRuleContainsText(nestedRule, text));
+    }
+
+    private waitForNextFrame(): Promise<void> {
+        if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
+            return new Promise((resolve) => globalThis.setTimeout(resolve, 16));
+        }
+
+        return new Promise((resolve) => {
+            let settled = false;
+            const fallback = globalThis.setTimeout(() => {
+                if (settled) return;
+                settled = true;
+                resolve();
+            }, 50);
+
+            window.requestAnimationFrame(() => {
+                if (settled) return;
+                settled = true;
+                globalThis.clearTimeout(fallback);
+                resolve();
+            });
+        });
+    }
+
+    private async waitForNextPaint<T>(value: T): Promise<T> {
+        await this.waitForNextFrame();
+        await this.waitForNextFrame();
+        return value;
+    }
+
+    private escapeCssClass(className: string): string {
+        if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
+            return CSS.escape(className);
+        }
+
+        return className.replace(/[^a-zA-Z0-9_-]/g, (match) => `\\${ match }`);
+    }
+
+    private escapeRegex(value: string): string {
+        return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
     private signatureFor(combos: TAngoraCombosMap): string {

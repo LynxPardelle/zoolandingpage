@@ -109,9 +109,10 @@ export class RuntimeService {
     requestRenderedComponentsCssUpdate(): void {
         const authoredClasses = this.orchestrator.getAllTheClassesFromComponents();
         const renderedClasses = this.combosService.collectRenderedDomClasses(this.renderedClassesRoot ?? undefined);
-        this.combosService.updateClasses([...authoredClasses, ...renderedClasses]);
+        const requiredCssClasses = [...authoredClasses, ...renderedClasses];
+        this.combosService.updateClasses(requiredCssClasses);
         this.theme.applyTheme();
-        this.hideLoadingCurtainAfterCssReady('rendered-components-css-updated');
+        this.hideLoadingCurtainAfterCssReady('rendered-components-css-updated', Date.now(), requiredCssClasses);
     }
 
     async initialize(lang?: string): Promise<void> {
@@ -297,13 +298,17 @@ export class RuntimeService {
         this.theme.applyTheme();
     }
 
-    private hideLoadingCurtainAfterCssReady(reason: string, startedAt = Date.now()): void {
+    private hideLoadingCurtainAfterCssReady(
+        reason: string,
+        startedAt = Date.now(),
+        requiredCssClasses: readonly string[] = [],
+    ): void {
         if (!this.isBrowser) {
             return;
         }
 
         const readyId = ++this.loadingCurtainReadyId;
-        void this.combosService.waitForCssReady(this.cssReadyMaxWaitMs)
+        void this.combosService.waitForCssReady(this.cssReadyMaxWaitMs, requiredCssClasses)
             .then((ready) => {
                 if (readyId !== this.loadingCurtainReadyId) {
                     return;
@@ -315,13 +320,35 @@ export class RuntimeService {
                             return;
                         }
 
-                        this.hideLoadingCurtainAfterCssReady(reason, startedAt);
+                        this.hideLoadingCurtainAfterCssReady(reason, startedAt, requiredCssClasses);
                     }, this.cssReadyRetryDelayMs);
                     return;
                 }
 
                 if (!ready && this.runtimeConfig.isDebugMode()) {
                     console.warn('[Runtime] Hiding loading curtain after CSS readiness timeout.', { reason });
+                }
+
+                this.loadingCurtain.hideWhenReady(reason);
+            })
+            .catch((error) => {
+                if (readyId !== this.loadingCurtainReadyId) {
+                    return;
+                }
+
+                if (Date.now() - startedAt < this.cssReadyMaxWaitMs) {
+                    window.setTimeout(() => {
+                        if (readyId !== this.loadingCurtainReadyId) {
+                            return;
+                        }
+
+                        this.hideLoadingCurtainAfterCssReady(reason, startedAt, requiredCssClasses);
+                    }, this.cssReadyRetryDelayMs);
+                    return;
+                }
+
+                if (this.runtimeConfig.isDebugMode()) {
+                    console.warn('[Runtime] Hiding loading curtain after CSS readiness error.', { reason, error });
                 }
 
                 this.loadingCurtain.hideWhenReady(reason);

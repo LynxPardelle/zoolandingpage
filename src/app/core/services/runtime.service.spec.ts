@@ -378,6 +378,7 @@ describe('RuntimeService', () => {
             [['hero', 'ank-d-flex']],
         ]);
         expect(waitForCssReady).toHaveBeenCalled();
+        expect(waitForCssReady).toHaveBeenCalledWith(jasmine.any(Number), ['hero', 'ank-d-flex']);
         expect(updateRenderedDomClasses).not.toHaveBeenCalled();
         expect(hideLoadingCurtain).toHaveBeenCalledWith('rendered-components-css-updated');
     });
