@@ -53,6 +53,26 @@ const ROBOTS_DISALLOW_PATHS = [
 ];
 const MANAGED_BROWSER_ICON_ATTR = 'data-zlp-browser-icon';
 const DEFAULT_BROWSER_ICON_HREF = '/assets/brand/zoolandingpage-default-favicon.svg';
+const STATIC_ALLOWED_HOST_PATTERNS = [
+  'localhost',
+  '127.0.0.1',
+  '::1',
+  'zoolandingpage.com.mx',
+  'zoolandingpage.com',
+  '*.zoolandingpage.com',
+  'sulandingpage.com.mx',
+  '*.sulandingpage.com.mx',
+  'sulandingpage.com',
+  '*.sulandingpage.com',
+  'zoositioweb.com.mx',
+  '*.zoositioweb.com.mx',
+  'zoositioweb.com',
+  '*.zoositioweb.com',
+  'test.zoositioweb.com.mx',
+  '*.zoolandingpage.com.mx',
+  'lynxpardelle.com',
+  '*.lynxpardelle.com',
+];
 
 type TRuntimeEnvironment = 'local' | 'test' | 'production';
 
@@ -301,7 +321,8 @@ function normalizeHost(value: unknown): string {
   return String(value ?? '')
     .trim()
     .toLowerCase()
-    .replace(/:\d+$/, '');
+    .replace(/:\d+$/, '')
+    .replace(/^\[(.*)\]$/, '$1');
 }
 
 function isLocalHost(value: unknown): boolean {
@@ -567,6 +588,53 @@ function collectSiteConfigAliases(siteConfig: TLocalSiteConfig | null): readonly
     ...environmentAliases,
     ...hostOverrideAliases,
   ]).map(normalizeHost).filter(Boolean);
+}
+
+function collectSiteConfigAllowedHosts(siteConfig: TLocalSiteConfig | null): readonly string[] {
+  return dedupeStrings([
+    siteConfig?.domain,
+    ...collectSiteConfigAliases(siteConfig),
+  ]).map(normalizeHost).filter(Boolean);
+}
+
+function isHostAllowedByPattern(host: string, allowedPattern: string): boolean {
+  const normalizedHost = normalizeHost(host);
+  const pattern = normalizeHost(allowedPattern);
+  if (!normalizedHost || !pattern) {
+    return false;
+  }
+
+  if (normalizedHost === pattern) {
+    return true;
+  }
+
+  if (pattern.startsWith('*.')) {
+    return normalizedHost.endsWith(pattern.slice(1));
+  }
+
+  return false;
+}
+
+function isStaticallyAllowedHost(host: string): boolean {
+  return STATIC_ALLOWED_HOST_PATTERNS.some((pattern) => isHostAllowedByPattern(host, pattern));
+}
+
+function isSiteConfigAllowedHost(host: string, siteConfig: TLocalSiteConfig | null): boolean {
+  const normalizedHost = normalizeHost(host);
+  return !!normalizedHost && collectSiteConfigAllowedHosts(siteConfig).includes(normalizedHost);
+}
+
+async function isAllowedRequestHost(host: string): Promise<boolean> {
+  const normalizedHost = normalizeHost(host);
+  if (!normalizedHost) {
+    return false;
+  }
+
+  if (isStaticallyAllowedHost(normalizedHost)) {
+    return true;
+  }
+
+  return isSiteConfigAllowedHost(normalizedHost, await loadSiteConfigForHost(normalizedHost));
 }
 
 function resolveSiteConfigPath(domain: string): string | null {
@@ -1147,6 +1215,106 @@ async function loadPageConfigForRoute(domain: string, route: TSiteConfigRouteEnt
 
 async function loadSiteConfigForHost(domain: string): Promise<TLocalSiteConfig | null> {
   return loadLocalSiteConfig(domain) ?? await loadRuntimeSiteConfig(domain);
+}
+
+type THostHeaderValidationResult =
+  | {
+    readonly ok: true;
+    readonly host: string;
+    readonly allowedHosts?: readonly string[];
+  }
+  | {
+    readonly ok: false;
+    readonly message: string;
+  };
+
+const TRUST_PROXY_HEADERS = [
+  'x-forwarded-for',
+  'x-forwarded-host',
+  'x-forwarded-port',
+  'x-forwarded-proto',
+  'x-forwarded-prefix',
+  'x-forwarded-server',
+];
+const angularAppEngines = new Map<string, AngularNodeAppEngine>();
+
+function firstHeaderValue(value: string | readonly string[] | undefined): string {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return String(raw ?? '').split(',')[0].trim();
+}
+
+function validateHostHeaderValue(headerName: string, headerValue: string): THostHeaderValidationResult {
+  const value = firstHeaderValue(headerValue);
+  if (!value) {
+    return { ok: false, message: `Header "${headerName}" is required.` };
+  }
+
+  const url = `http://${value}`;
+  if (!URL.canParse(url)) {
+    return { ok: false, message: `Header "${headerName}" contains an invalid value.` };
+  }
+
+  const parsed = new URL(url);
+  if (parsed.pathname !== '/' || parsed.search || parsed.hash || parsed.username || parsed.password) {
+    return { ok: false, message: `Header "${headerName}" contains characters that are not allowed.` };
+  }
+
+  const host = normalizeHost(parsed.hostname);
+  if (!host) {
+    return { ok: false, message: `Header "${headerName}" does not contain a hostname.` };
+  }
+
+  return { ok: true, host };
+}
+
+async function validateRequestAllowedHosts(req: express.Request): Promise<THostHeaderValidationResult> {
+  const headerEntries = [
+    ['host', firstHeaderValue(req.headers.host)],
+    ['x-forwarded-host', firstHeaderValue(req.headers['x-forwarded-host'])],
+  ] as const;
+
+  const hosts = new Set<string>();
+  for (const [headerName, headerValue] of headerEntries) {
+    if (!headerValue && headerName !== 'host') {
+      continue;
+    }
+
+    const validation = validateHostHeaderValue(headerName, headerValue);
+    if (!validation.ok) {
+      return validation;
+    }
+
+    hosts.add(validation.host);
+  }
+
+  for (const host of hosts) {
+    if (!await isAllowedRequestHost(host)) {
+      return { ok: false, message: `Header host "${host}" is not allowed.` };
+    }
+  }
+
+  return { ok: true, host: Array.from(hosts)[0] ?? '', allowedHosts: Array.from(hosts) };
+}
+
+function resolveRequestAllowedHosts(res: express.Response): readonly string[] {
+  const value = res.locals['allowedHosts'];
+  return Array.isArray(value) ? value.map(normalizeHost).filter(Boolean) : [];
+}
+
+function getAngularAppEngine(allowedHosts: readonly string[]): AngularNodeAppEngine {
+  const normalizedHosts = Array.from(new Set(allowedHosts.map(normalizeHost).filter(Boolean))).sort();
+  const cacheKey = normalizedHosts.join(',');
+  const cached = angularAppEngines.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const engine = new AngularNodeAppEngine({
+    allowedHosts: normalizedHosts,
+    trustProxyHeaders: TRUST_PROXY_HEADERS,
+  });
+  angularAppEngines.set(cacheKey, engine);
+  return engine;
 }
 
 function resolveRequestHost(req: express.Request): string {
@@ -1850,16 +2018,6 @@ function listDraftRegistryEntries(): readonly TDraftRegistryEntry[] {
 
 const app = express();
 app.use(compression({ threshold: 1024 }));
-const angularApp = new AngularNodeAppEngine({
-  trustProxyHeaders: [
-    'x-forwarded-for',
-    'x-forwarded-host',
-    'x-forwarded-port',
-    'x-forwarded-proto',
-    'x-forwarded-prefix',
-    'x-forwarded-server',
-  ],
-});
 
 /**
  * Example Express Rest API endpoints can be defined here.
@@ -1879,6 +2037,24 @@ app.get(['/health', '/healthz'], (_req, res) => {
     .type('text/plain')
     .set('Cache-Control', 'no-store')
     .send('ok\n');
+});
+
+app.use((req, res, next) => {
+  validateRequestAllowedHosts(req)
+    .then((validation) => {
+      if (validation.ok) {
+        res.locals['allowedHosts'] = validation.allowedHosts;
+        next();
+        return;
+      }
+
+      res
+        .status(400)
+        .type('text/plain')
+        .set('Cache-Control', 'no-store')
+        .send(`${validation.message}\n`);
+    })
+    .catch(next);
 });
 
 app.get('/api/debug/drafts', (_req, res) => {
@@ -2010,6 +2186,7 @@ app.use(
  * Handle all other requests by rendering the Angular application.
  */
 app.use((req, res, next) => {
+  const angularApp = getAngularAppEngine(resolveRequestAllowedHosts(res));
   shouldServeNotFoundDocument(req)
     .then((notFoundDocument) => angularApp.handle(req)
       .then((response) => {

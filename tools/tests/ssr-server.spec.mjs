@@ -345,3 +345,142 @@ test('production SSR server renders draft routes on aliased hosts', async (t) =>
   assert.doesNotMatch(body, /Cannot GET \/home/i);
   assert.equal(getStderr(), '');
 });
+
+test('production SSR server renders a published canonical custom host from local config', async (t) => {
+  const { port, getStderr } = await startProductionServer(t);
+  const response = await fetch(`http://127.0.0.1:${port}/`, {
+    headers: {
+      Host: 'erosbarajas.com',
+      'X-Forwarded-Host': 'erosbarajas.com',
+      'X-Forwarded-Port': '443',
+      'X-Forwarded-Proto': 'https',
+      'X-Forwarded-Server': 'dokploy-traefik',
+    },
+  });
+  const body = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.match(body, /<main[\s>]/i);
+  assert.match(body, /Eros Barajas/i);
+  assert.equal(getStderr(), '');
+});
+
+test('production SSR server allows a published runtime alias outside static host patterns', async (t) => {
+  const requests = [];
+  const apiBase = await startRuntimeApi(t, (req, res) => {
+    const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+    requests.push({
+      pathname: url.pathname,
+      domain: url.searchParams.get('domain'),
+      path: url.searchParams.get('path'),
+    });
+
+    if (url.pathname !== '/runtime-bundle') {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false }));
+      return;
+    }
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      siteConfig: {
+        domain: 'published-canonical.example.com',
+        aliases: ['published-alias.example.com'],
+        routes: [{ path: '/', pageId: 'home' }],
+        site: {
+          seo: {
+            canonicalOrigin: 'https://published-canonical.example.com',
+          },
+        },
+      },
+      pageConfig: {
+        pageId: 'home',
+      },
+    }));
+  });
+  const { port, getStderr } = await startProductionServer(t, {
+    CONFIG_API_SERVER_FALLBACK_URL: '',
+    CONFIG_API_URL: apiBase,
+  });
+  const response = await fetch(`http://127.0.0.1:${port}/robots.txt`, {
+    headers: {
+      Host: 'published-alias.example.com',
+      'X-Forwarded-Host': 'published-alias.example.com',
+      'X-Forwarded-Port': '443',
+      'X-Forwarded-Proto': 'https',
+      'X-Forwarded-Server': 'dokploy-traefik',
+    },
+  });
+  const body = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.match(body, /Sitemap: https:\/\/published-canonical\.example\.com\/sitemap\.xml/);
+  assert.equal(requests[0].domain, 'published-alias.example.com');
+  assert.equal(getStderr(), '');
+});
+
+test('production SSR server blocks unknown custom hosts before Angular SSR', async (t) => {
+  const apiRequests = [];
+  const apiBase = await startRuntimeApi(t, (req, res) => {
+    apiRequests.push(req.url);
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: false }));
+  });
+  const { port, getStderr } = await startProductionServer(t, {
+    CONFIG_API_SERVER_FALLBACK_URL: '',
+    CONFIG_API_URL: apiBase,
+  });
+  const response = await fetch(`http://127.0.0.1:${port}/`, {
+    headers: {
+      Host: 'unknown-custom.example.com',
+      'X-Forwarded-Host': 'unknown-custom.example.com',
+      'X-Forwarded-Port': '443',
+      'X-Forwarded-Proto': 'https',
+      'X-Forwarded-Server': 'dokploy-traefik',
+    },
+  });
+  const body = await response.text();
+
+  assert.equal(response.status, 400);
+  assert.match(body, /not allowed/i);
+  assert.deepEqual(apiRequests, ['/runtime-bundle?domain=unknown-custom.example.com&path=%2F']);
+  assert.equal(getStderr(), '');
+});
+
+test('production SSR server supports test host draftDomain preview for a published custom host', async (t) => {
+  const { port, getStderr } = await startProductionServer(t);
+  const response = await fetch(`http://127.0.0.1:${port}/?draftDomain=erosbarajas.com&debugWorkspace=false`, {
+    headers: {
+      Host: 'test.zoolandingpage.com.mx',
+      'X-Forwarded-Host': 'test.zoolandingpage.com.mx',
+      'X-Forwarded-Port': '443',
+      'X-Forwarded-Proto': 'https',
+      'X-Forwarded-Server': 'dokploy-traefik',
+    },
+  });
+  const body = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.match(body, /<main[\s>]/i);
+  assert.match(body, /Eros Barajas/i);
+  assert.equal(getStderr(), '');
+});
+
+test('production SSR server ignores draftDomain query params on published custom hosts', async (t) => {
+  const { port, getStderr } = await startProductionServer(t);
+  const response = await fetch(`http://127.0.0.1:${port}/?draftDomain=zoolandingpage.com.mx&debugWorkspace=false`, {
+    headers: {
+      Host: 'erosbarajas.com',
+      'X-Forwarded-Host': 'erosbarajas.com',
+      'X-Forwarded-Port': '443',
+      'X-Forwarded-Proto': 'https',
+      'X-Forwarded-Server': 'dokploy-traefik',
+    },
+  });
+  const body = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.match(body, /<main[\s>]/i);
+  assert.match(body, /Eros Barajas/i);
+  assert.equal(getStderr(), '');
+});
