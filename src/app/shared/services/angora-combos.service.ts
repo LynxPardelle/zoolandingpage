@@ -374,9 +374,27 @@ export class AngoraCombosService {
     }
 
     private hasComboCssRule(comboKey: string): boolean {
+        const requiredMarkers = this.requiredComboRuleMarkers(comboKey);
+        if (requiredMarkers.length > 0) {
+            return requiredMarkers.every((marker) => Array.from(document.styleSheets ?? [])
+                .some((sheet) => this.stylesheetHasText(sheet, marker)));
+        }
+
         const comboRuleMarker = `__COM_${ comboKey }`;
         return Array.from(document.styleSheets ?? [])
             .some((sheet) => this.stylesheetHasText(sheet, comboRuleMarker));
+    }
+
+    private requiredComboRuleMarkers(comboKey: string): string[] {
+        return Array.from(new Set(
+            (this.appliedCombos[comboKey] ?? [])
+                .flatMap((entry) => String(entry ?? '').split(/\s+/))
+                .map((entry) => entry.trim())
+                .filter((entry) => /(^|-)color-|(^|-)text-/.test(entry))
+                .map((entry) => entry.split('-').pop())
+                .filter((value): value is string => !!value)
+                .map((value) => `__COM_${ comboKey }-${ value }`)
+        ));
     }
 
     private stylesheetHasClassRule(sheet: CSSStyleSheet, classSelectorPattern: RegExp): boolean {
