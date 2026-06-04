@@ -377,7 +377,8 @@ export class AngoraCombosService {
         const requiredMarkers = this.requiredComboRuleMarkers(comboKey);
         if (requiredMarkers.length > 0) {
             return requiredMarkers.every((marker) => Array.from(document.styleSheets ?? [])
-                .some((sheet) => this.stylesheetHasText(sheet, marker)));
+                .some((sheet) => this.stylesheetHasText(sheet, marker)))
+                && this.hasComputedComboColor(comboKey);
         }
 
         const comboRuleMarker = `__COM_${ comboKey }`;
@@ -386,6 +387,11 @@ export class AngoraCombosService {
     }
 
     private requiredComboRuleMarkers(comboKey: string): string[] {
+        return this.requiredComboColorValues(comboKey)
+            .map((value) => `__COM_${ comboKey }-${ value }`);
+    }
+
+    private requiredComboColorValues(comboKey: string): string[] {
         return Array.from(new Set(
             (this.appliedCombos[comboKey] ?? [])
                 .flatMap((entry) => String(entry ?? '').split(/\s+/))
@@ -393,8 +399,41 @@ export class AngoraCombosService {
                 .filter((entry) => /(^|-)color-|(^|-)text-/.test(entry))
                 .map((entry) => entry.split('-').pop())
                 .filter((value): value is string => !!value)
-                .map((value) => `__COM_${ comboKey }-${ value }`)
         ));
+    }
+
+    private hasComputedComboColor(comboKey: string): boolean {
+        const expectedColors = this.requiredComboColorValues(comboKey)
+            .map((value) => this.resolveCssColorToken(value))
+            .filter((value): value is string => !!value);
+
+        if (expectedColors.length === 0) {
+            return true;
+        }
+
+        const selector = `.${ this.escapeCssClass(comboKey) }`;
+        const elements = Array.from(document.querySelectorAll<HTMLElement>(selector));
+        if (elements.length === 0) {
+            return false;
+        }
+
+        return elements.every((element) => expectedColors.includes(getComputedStyle(element).color));
+    }
+
+    private resolveCssColorToken(tokenName: string): string | null {
+        if (!document.body) {
+            return null;
+        }
+
+        const probe = document.createElement('span');
+        probe.style.color = `var(--ank-${ tokenName })`;
+        probe.style.position = 'absolute';
+        probe.style.pointerEvents = 'none';
+        probe.style.visibility = 'hidden';
+        document.body.appendChild(probe);
+        const color = getComputedStyle(probe).color;
+        probe.remove();
+        return color || null;
     }
 
     private stylesheetHasClassRule(sheet: CSSStyleSheet, classSelectorPattern: RegExp): boolean {

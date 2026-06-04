@@ -414,6 +414,51 @@ describe('AngoraCombosService', () => {
         }
     });
 
+    it('keeps combo CSS pending when the marker exists but the rendered color is stale', async () => {
+        const service = configure('browser');
+        const style = document.createElement('style');
+        const element = document.createElement('h1');
+        style.textContent = `
+            :root { --ank-titleColor: rgb(32, 23, 18); }
+            .ank-colorSEL__COM_qaCombo-titleColor, .qaCombo { color: rgb(250, 250, 250); }
+        `;
+        element.className = 'qaCombo';
+        element.textContent = 'Title';
+        document.head.appendChild(style);
+        document.body.appendChild(element);
+
+        cssCreate.and.callFake((classes?: string[], primordial?: boolean) => {
+            if (classes === undefined && primordial === true) {
+                style.sheet?.insertRule(
+                    '.ank-colorSEL__COM_qaCombo-titleColor, .qaCombo { color: var(--ank-titleColor); }',
+                    style.sheet.cssRules.length,
+                );
+            }
+        });
+
+        try {
+            store.setCombos({
+                version: 1,
+                pageId: 'default',
+                domain: 'zoolandingpage.com.mx',
+                combos: {
+                    qaCombo: ['ank-color-titleColor'],
+                },
+            });
+            TestBed.flushEffects();
+            cssCreate.calls.reset();
+
+            await expectAsync(service.waitForCssReady(250, ['qaCombo'])).toBeResolvedTo(true);
+
+            expect(getComputedStyle(element).color).toBe('rgb(32, 23, 18)');
+            expect(cssCreate).toHaveBeenCalledWith(['qaCombo']);
+            expect(cssCreate).toHaveBeenCalledWith(undefined, true);
+        } finally {
+            element.remove();
+            style.remove();
+        }
+    });
+
     it('does not treat unrelated classes that only share a combo prefix as combo classes', () => {
         const service = configure('browser');
 
