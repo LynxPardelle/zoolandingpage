@@ -244,6 +244,13 @@ export class AngoraCombosService {
         return this.ank.waitForCssReady?.(timeoutMs) ?? Promise.resolve(this.hasGeneratedCssRules());
     }
 
+    containsRegisteredComboClass(classes: readonly string[]): boolean {
+        if (!this.isBrowser) return false;
+        this.syncDraftCombosFromStore();
+        return this.normalizeClassEntries(classes)
+            .some((entry) => this.isRegisteredComboClass(entry));
+    }
+
     stopCssRuntime(): void {
         if (this.cssCreateTimer !== null) {
             window.clearTimeout(this.cssCreateTimer);

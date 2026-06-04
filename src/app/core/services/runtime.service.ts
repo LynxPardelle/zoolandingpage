@@ -50,6 +50,7 @@ export class RuntimeService {
     private renderedCssUpdateId = 0;
     private loadingCurtainReadyId = 0;
     private readonly cssReadyRetryDelayMs = 250;
+    private readonly cssRenderedComboRetryDelayMs = 50;
     private readonly cssReadyMaxWaitMs = 4_000;
 
     connect(options: {
@@ -308,7 +309,24 @@ export class RuntimeService {
         }
 
         const readyId = ++this.loadingCurtainReadyId;
-        void this.combosService.waitForCssReady(this.cssReadyMaxWaitMs, requiredCssClasses)
+        const latestRenderedClasses = this.combosService.collectRenderedDomClasses(this.renderedClassesRoot ?? undefined);
+        const cssClassesToVerify = Array.from(new Set([...requiredCssClasses, ...latestRenderedClasses]));
+        const hasRenderedCombo = this.combosService.containsRegisteredComboClass(cssClassesToVerify);
+
+        if (!hasRenderedCombo && Date.now() - startedAt < this.cssReadyMaxWaitMs) {
+            window.setTimeout(() => {
+                if (readyId !== this.loadingCurtainReadyId) {
+                    return;
+                }
+
+                this.hideLoadingCurtainAfterCssReady(reason, startedAt, cssClassesToVerify);
+            }, this.cssRenderedComboRetryDelayMs);
+            return;
+        }
+
+        this.combosService.updateClasses(cssClassesToVerify);
+
+        void this.combosService.waitForCssReady(this.cssReadyMaxWaitMs, cssClassesToVerify)
             .then((ready) => {
                 if (readyId !== this.loadingCurtainReadyId) {
                     return;
@@ -320,7 +338,7 @@ export class RuntimeService {
                             return;
                         }
 
-                        this.hideLoadingCurtainAfterCssReady(reason, startedAt, requiredCssClasses);
+                        this.hideLoadingCurtainAfterCssReady(reason, startedAt, cssClassesToVerify);
                     }, this.cssReadyRetryDelayMs);
                     return;
                 }
@@ -342,7 +360,7 @@ export class RuntimeService {
                             return;
                         }
 
-                        this.hideLoadingCurtainAfterCssReady(reason, startedAt, requiredCssClasses);
+                        this.hideLoadingCurtainAfterCssReady(reason, startedAt, cssClassesToVerify);
                     }, this.cssReadyRetryDelayMs);
                     return;
                 }

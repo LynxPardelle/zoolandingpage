@@ -47,6 +47,7 @@ describe('RuntimeService', () => {
     const updateClasses = jasmine.createSpy('updateClasses');
     const updateRenderedDomClasses = jasmine.createSpy('updateRenderedDomClasses');
     const collectRenderedDomClasses = jasmine.createSpy('collectRenderedDomClasses').and.returnValue(['ank-d-flex']);
+    const containsRegisteredComboClass = jasmine.createSpy('containsRegisteredComboClass').and.returnValue(true);
     const waitForCssReady = jasmine.createSpy('waitForCssReady').and.resolveTo(true);
     const setAuxiliaryCombos = jasmine.createSpy('setAuxiliaryCombos');
     const clearAuxiliaryCombos = jasmine.createSpy('clearAuxiliaryCombos');
@@ -172,6 +173,7 @@ describe('RuntimeService', () => {
         updateClasses.calls.reset();
         updateRenderedDomClasses.calls.reset();
         collectRenderedDomClasses.calls.reset();
+        containsRegisteredComboClass.calls.reset();
         waitForCssReady.calls.reset();
         setAuxiliaryCombos.calls.reset();
         clearAuxiliaryCombos.calls.reset();
@@ -243,6 +245,7 @@ describe('RuntimeService', () => {
                         updateClasses,
                         updateRenderedDomClasses,
                         collectRenderedDomClasses,
+                        containsRegisteredComboClass,
                         waitForCssReady,
                         setAuxiliaryCombos,
                         clearAuxiliaryCombos,
@@ -375,6 +378,7 @@ describe('RuntimeService', () => {
         expect(collectRenderedDomClasses).toHaveBeenCalled();
         expect(updateClasses.calls.allArgs()).toEqual([
             [['hero']],
+            [['hero', 'ank-d-flex']],
             [['hero', 'ank-d-flex']],
         ]);
         expect(waitForCssReady).toHaveBeenCalled();
