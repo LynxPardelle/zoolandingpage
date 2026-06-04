@@ -51,7 +51,8 @@ export class RuntimeService {
     private loadingCurtainReadyId = 0;
     private readonly cssReadyRetryDelayMs = 250;
     private readonly cssRenderedComboRetryDelayMs = 50;
-    private readonly cssReadyMaxWaitMs = 4_000;
+    private readonly cssReadyMaxWaitMs = 20_000;
+    private readonly cssReadyStabilityPasses = 2;
 
     connect(options: {
         host: HTMLElement;
@@ -303,14 +304,14 @@ export class RuntimeService {
         reason: string,
         startedAt = Date.now(),
         requiredCssClasses: readonly string[] = [],
+        stableReadyPasses = 0,
     ): void {
         if (!this.isBrowser) {
             return;
         }
 
         const readyId = ++this.loadingCurtainReadyId;
-        const latestRenderedClasses = this.combosService.collectRenderedDomClasses(this.renderedClassesRoot ?? undefined);
-        const cssClassesToVerify = Array.from(new Set([...requiredCssClasses, ...latestRenderedClasses]));
+        const cssClassesToVerify = this.collectCssClassesToVerify(requiredCssClasses);
         const hasRenderedCombo = this.combosService.containsRegisteredComboClass(cssClassesToVerify);
 
         if (!hasRenderedCombo && Date.now() - startedAt < this.cssReadyMaxWaitMs) {
@@ -319,7 +320,7 @@ export class RuntimeService {
                     return;
                 }
 
-                this.hideLoadingCurtainAfterCssReady(reason, startedAt, cssClassesToVerify);
+                this.hideLoadingCurtainAfterCssReady(reason, startedAt, cssClassesToVerify, stableReadyPasses);
             }, this.cssRenderedComboRetryDelayMs);
             return;
         }
@@ -340,6 +341,11 @@ export class RuntimeService {
 
                         this.hideLoadingCurtainAfterCssReady(reason, startedAt, cssClassesToVerify);
                     }, this.cssReadyRetryDelayMs);
+                    return;
+                }
+
+                if (ready && stableReadyPasses < this.cssReadyStabilityPasses) {
+                    this.hideLoadingCurtainAfterCssReady(reason, startedAt, cssClassesToVerify, stableReadyPasses + 1);
                     return;
                 }
 
@@ -371,6 +377,11 @@ export class RuntimeService {
 
                 this.loadingCurtain.hideWhenReady(reason);
             });
+    }
+
+    private collectCssClassesToVerify(requiredCssClasses: readonly string[]): string[] {
+        const latestRenderedClasses = this.combosService.collectRenderedDomClasses(this.renderedClassesRoot ?? undefined);
+        return Array.from(new Set([...requiredCssClasses, ...latestRenderedClasses]));
     }
 
     private schedulePostBootstrapBrowserWork(task: () => void): void {
