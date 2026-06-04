@@ -73,6 +73,7 @@ This file is durable project memory, not a changelog. Keep it short, stable, and
 - Production draft domains must ignore `draftDomain` query params. Cross-draft preview by query param is allowed only on local hosts and `test.zoolandingpage.com.mx`.
 - `generic-media` may use bounded image retries for transient asset CDN resets, but do not treat those retries as proof that the CDN/API/front-door reset source has been repaired.
 - Express SSR helper reads should prefer the raw runtime-read fallback and use only bounded retries before falling back to the API custom domain.
+- 2026-06-04 16:10 CT: Loading-curtain readiness for Angora drafts must account for combo registration, not just "some CSS rules exist." Before explicit `cssCreate` class updates, sync draft combos from `ConfigStoreService`; otherwise combo-only classes such as `sectionTitle` can be filtered before the Angular signal effect registers them, letting stale/generated CSS keep the wrong first-paint color.
 
 ## Draft Memory
 

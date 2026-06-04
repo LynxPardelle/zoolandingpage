@@ -74,8 +74,7 @@ export class AngoraCombosService {
         this.installDebugBridge();
 
         effect(() => {
-            this.draftCombos = this.sanitizeCombos(this.store.combos()?.combos ?? {});
-            this.refreshAppliedCombos();
+            this.syncDraftCombosFromStore();
         });
     }
 
@@ -201,6 +200,8 @@ export class AngoraCombosService {
     updateClasses(classes: readonly string[]): void {
         if (!this.isBrowser) return;
 
+        this.syncDraftCombosFromStore();
+
         const normalized = Array.from(new Set(
             (classes ?? [])
                 .map((entry) => this.normalizeClassList(String(entry).trim()))
@@ -235,6 +236,7 @@ export class AngoraCombosService {
 
     waitForCssReady(timeoutMs = 1_500): Promise<boolean> {
         if (!this.isBrowser) return Promise.resolve(true);
+        this.syncDraftCombosFromStore();
         return this.ank.waitForCssReady?.(timeoutMs) ?? Promise.resolve(this.hasGeneratedCssRules());
     }
 
@@ -290,6 +292,11 @@ export class AngoraCombosService {
             if (list.length > 0) cleaned[key] = list;
         });
         return cleaned;
+    }
+
+    private syncDraftCombosFromStore(): void {
+        this.draftCombos = this.sanitizeCombos(this.store.combos()?.combos ?? {});
+        this.refreshAppliedCombos();
     }
 
     private normalizeClassList(value: string): string {

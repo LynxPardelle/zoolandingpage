@@ -344,6 +344,25 @@ describe('AngoraCombosService', () => {
         expect(cssCreate).toHaveBeenCalledOnceWith(['btnBase', 'ank-d-flex']);
     });
 
+    it('applies pending store combos before explicit cssCreate updates', () => {
+        const service = configure('browser');
+
+        store.setCombos({
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            combos: {
+                btnBase: ['ank-display-flex ank-alignItems-center'],
+            },
+        });
+
+        service.updateClasses(['btnBase']);
+
+        expect(pushCombos).toHaveBeenCalledOnceWith({ btnBase: ['ank-d-flex ank-ai-center'] });
+        expect(updateClasses).not.toHaveBeenCalled();
+        expect(cssCreate).toHaveBeenCalledOnceWith(['btnBase']);
+    });
+
     it('does not treat unrelated classes that only share a combo prefix as combo classes', () => {
         const service = configure('browser');
 
