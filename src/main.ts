@@ -1,4 +1,5 @@
 import { CLIENT_BOOTSTRAP_DELAY_MS, CLIENT_BOOTSTRAP_READY_EVENT } from './app/core/constants/client-bootstrap.constants';
+import { hasReadableCriticalTextContrast } from './app/core/utility/critical-text-contrast.utility';
 import { hasStaticStyleCoverage } from './app/core/utility/static-style-coverage.utility';
 import { environment } from './environments/environment';
 
@@ -49,6 +50,10 @@ function releaseBootCurtainForStaticSsrContent(): void {
     }
 
     if (!hasStaticStyleCoverage(appRoot)) {
+        return;
+    }
+
+    if (!hasReadableCriticalTextContrast(appRoot, document)) {
         return;
     }
 
