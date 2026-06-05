@@ -202,10 +202,9 @@ export class LoadingCurtainService {
             return true;
         }
 
-        const expectedColor = this.resolveExpectedThemeColor(tokenName)
-            ?? this.resolveCssColorToken(tokenName);
+        const expectedColor = this.resolveExpectedThemeColor(tokenName);
         if (!expectedColor) {
-            return true;
+            return false;
         }
 
         return elements.every((element) => getComputedStyle(element).color === expectedColor);
@@ -217,10 +216,6 @@ export class LoadingCurtainService {
         const palette = theme?.palettes?.[mode] as Record<string, string> | undefined;
         const value = palette?.[tokenName];
         return this.resolveCssColorValue(value);
-    }
-
-    private resolveCssColorToken(tokenName: string): string | null {
-        return this.resolveCssColorValue(`var(--ank-${ tokenName })`);
     }
 
     private resolveCssColorValue(value: string | undefined): string | null {
