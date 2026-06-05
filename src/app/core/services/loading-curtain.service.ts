@@ -24,6 +24,14 @@ const DEFAULT_TITLE = 'Zoo Landing Page';
 const DEFAULT_SUBTITLE = 'zoolandingpage.com.mx';
 const DEFAULT_EXIT_DURATION_MS = 420;
 const MAX_TIMING_MS = 5_000;
+const CRITICAL_TEXT_COLOR_RETRY_MS = 50;
+const CRITICAL_TEXT_COLOR_MAX_WAIT_MS = 20_000;
+
+const CRITICAL_TEXT_COMBOS = [
+    { className: 'sectionTitle', tokenName: 'titleColor' },
+    { className: 'sectionSubtitle', tokenName: 'secondaryTitleColor' },
+    { className: 'heroCaption', tokenName: 'secondaryTitleColor' },
+] as const;
 
 @Injectable({ providedIn: 'root' })
 export class LoadingCurtainService {
@@ -33,6 +41,7 @@ export class LoadingCurtainService {
     private readonly isBrowser = isPlatformBrowser(this.platformId);
     private hideTimer: number | null = null;
     private currentConfig: TLoadingCurtainConfig = {};
+    private criticalTextColorWaitStartedAt: number | null = null;
 
     configureFromDraft(): void {
         if (!this.isBrowser) return;
@@ -75,6 +84,13 @@ export class LoadingCurtainService {
         const remainingMs = Math.max(0, minVisibleMs - elapsedMs);
 
         const beginExit = () => {
+            if (!this.renderedCriticalTextColorsReady() && this.criticalTextColorWaitRemaining()) {
+                this.clearHideTimer();
+                this.hideTimer = window.setTimeout(beginExit, CRITICAL_TEXT_COLOR_RETRY_MS);
+                return;
+            }
+
+            this.criticalTextColorWaitStartedAt = null;
             element.classList.add('zlp-boot-curtain--leaving');
             element.setAttribute('aria-busy', 'false');
             element.setAttribute('aria-hidden', 'true');
@@ -172,6 +188,54 @@ export class LoadingCurtainService {
         }
 
         return Math.min(MAX_TIMING_MS, Math.max(0, value));
+    }
+
+    private renderedCriticalTextColorsReady(): boolean {
+        return CRITICAL_TEXT_COMBOS.every(({ className, tokenName }) => (
+            this.renderedComboColorReady(className, tokenName)
+        ));
+    }
+
+    private renderedComboColorReady(className: string, tokenName: string): boolean {
+        const elements = Array.from(this.documentRef.querySelectorAll<HTMLElement>(`.${ className }`));
+        if (elements.length === 0) {
+            return true;
+        }
+
+        const expectedColor = this.resolveCssColorToken(tokenName);
+        if (!expectedColor) {
+            return true;
+        }
+
+        return elements.every((element) => getComputedStyle(element).color === expectedColor);
+    }
+
+    private resolveCssColorToken(tokenName: string): string | null {
+        if (!this.documentRef.body) {
+            return null;
+        }
+
+        const probe = this.documentRef.createElement('span');
+        probe.style.color = `var(--ank-${ tokenName })`;
+        probe.style.position = 'absolute';
+        probe.style.pointerEvents = 'none';
+        probe.style.visibility = 'hidden';
+        this.documentRef.body.appendChild(probe);
+        const color = getComputedStyle(probe).color;
+        probe.remove();
+        return color || null;
+    }
+
+    private criticalTextColorWaitRemaining(): boolean {
+        if (typeof performance === 'undefined') {
+            return true;
+        }
+
+        const startedAt = window.__ZLP_BOOT_CURTAIN_STARTED_AT__
+            ?? this.criticalTextColorWaitStartedAt
+            ?? performance.now();
+        this.criticalTextColorWaitStartedAt = startedAt;
+        return performance.now() - startedAt < CRITICAL_TEXT_COLOR_MAX_WAIT_MS;
     }
 
     private clearHideTimer(): void {
