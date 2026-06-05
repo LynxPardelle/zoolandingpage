@@ -419,6 +419,42 @@ describe('RuntimeService', () => {
         expect(hideLoadingCurtain).toHaveBeenCalledWith('rendered-components-css-updated');
     });
 
+    it('keeps the boot curtain while rendered section title color is still stale', async () => {
+        const style = document.createElement('style');
+        const title = document.createElement('h1');
+        style.textContent = `
+            :root { --ank-titleColor: rgb(32, 23, 18); }
+            .sectionTitle { color: rgb(255, 248, 230); }
+        `;
+        title.className = 'sectionTitle';
+        title.textContent = 'Title';
+        document.head.appendChild(style);
+        document.body.appendChild(title);
+
+        try {
+            const service = TestBed.inject(RuntimeService);
+
+            setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
+            await service.initialize('es');
+            await flushCssReadinessPasses();
+
+            expect(hideLoadingCurtain).not.toHaveBeenCalledWith('rendered-components-css-updated');
+
+            style.sheet?.insertRule(
+                '.sectionTitle { color: var(--ank-titleColor); }',
+                style.sheet.cssRules.length,
+            );
+            await new Promise<void>((resolve) => window.setTimeout(resolve, 75));
+            await flushCssReadinessPasses();
+
+            expect(getComputedStyle(title).color).toBe('rgb(32, 23, 18)');
+            expect(hideLoadingCurtain).toHaveBeenCalledWith('rendered-components-css-updated');
+        } finally {
+            title.remove();
+            style.remove();
+        }
+    });
+
     it('skips sibling route prefetches during automated browser audits', async () => {
         spyOnProperty(navigator, 'webdriver', 'get').and.returnValue(true);
 
