@@ -127,8 +127,8 @@ describe('LoadingCurtainService', () => {
         const style = documentRef.createElement('style');
         const title = documentRef.createElement('h1');
         style.textContent = `
-            :root { --ank-titleColor: rgb(32, 23, 18); }
-            .sectionTitle { color: rgb(255, 248, 230); }
+            :root { --ank-titleColor: rgb(255, 248, 230); }
+            .sectionTitle { color: var(--ank-titleColor); }
         `;
         title.className = 'sectionTitle';
         title.textContent = 'Title';
@@ -140,7 +140,15 @@ describe('LoadingCurtainService', () => {
                 version: 1,
                 domain: 'erosbarajas.com',
                 pageId: 'default',
-                variables: {},
+                variables: {
+                    theme: {
+                        defaultMode: 'light',
+                        palettes: {
+                            light: { titleColor: '#201712' },
+                            dark: { titleColor: '#fff8e6' },
+                        },
+                    },
+                },
             } as any);
 
             service.configureFromDraft();
@@ -151,7 +159,7 @@ describe('LoadingCurtainService', () => {
             expect(curtain.classList.contains('zlp-boot-curtain--leaving')).toBeFalse();
 
             style.sheet?.insertRule(
-                '.sectionTitle { color: var(--ank-titleColor); }',
+                '.sectionTitle { color: rgb(32, 23, 18); }',
                 style.sheet.cssRules.length,
             );
             tick(50);

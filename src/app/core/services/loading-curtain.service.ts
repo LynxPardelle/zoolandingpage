@@ -202,7 +202,8 @@ export class LoadingCurtainService {
             return true;
         }
 
-        const expectedColor = this.resolveCssColorToken(tokenName);
+        const expectedColor = this.resolveExpectedThemeColor(tokenName)
+            ?? this.resolveCssColorToken(tokenName);
         if (!expectedColor) {
             return true;
         }
@@ -210,13 +211,30 @@ export class LoadingCurtainService {
         return elements.every((element) => getComputedStyle(element).color === expectedColor);
     }
 
+    private resolveExpectedThemeColor(tokenName: string): string | null {
+        const theme = this.variables.theme();
+        const mode = theme?.defaultMode === 'dark' ? 'dark' : 'light';
+        const palette = theme?.palettes?.[mode] as Record<string, string> | undefined;
+        const value = palette?.[tokenName];
+        return this.resolveCssColorValue(value);
+    }
+
     private resolveCssColorToken(tokenName: string): string | null {
+        return this.resolveCssColorValue(`var(--ank-${ tokenName })`);
+    }
+
+    private resolveCssColorValue(value: string | undefined): string | null {
         if (!this.documentRef.body) {
             return null;
         }
 
+        const trimmed = String(value ?? '').trim();
+        if (!trimmed) {
+            return null;
+        }
+
         const probe = this.documentRef.createElement('span');
-        probe.style.color = `var(--ank-${ tokenName })`;
+        probe.style.color = trimmed;
         probe.style.position = 'absolute';
         probe.style.pointerEvents = 'none';
         probe.style.visibility = 'hidden';
