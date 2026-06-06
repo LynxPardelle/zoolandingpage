@@ -299,12 +299,14 @@ export class ConfigApiService {
         pageId?: string;
         lang?: string;
         path?: string;
+        environment?: string;
     }): Promise<TRuntimeBundlePayload> {
         return this.getJson<TRuntimeBundlePayload>('runtime-bundle', {
             domain,
             pageId: opts?.pageId,
             lang: opts?.lang,
             path: opts?.path,
+            environment: opts?.environment,
         });
     }
 
