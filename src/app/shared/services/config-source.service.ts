@@ -223,6 +223,59 @@ export class ConfigSourceService {
         return this.resolveActivePath();
     }
 
+    private normalizeHost(value: unknown): string {
+        return String(value ?? '')
+            .trim()
+            .toLowerCase()
+            .replace(/:\d+$/, '')
+            .replace(/^\[(.*)\]$/, '$1');
+    }
+
+    private resolveRuntimeHost(): string {
+        if (this.isBrowser && typeof window !== 'undefined') {
+            return this.normalizeHost(window.location?.hostname);
+        }
+
+        const requestHeaders = this.request?.headers as Headers | undefined;
+        const forwardedHost = String(requestHeaders?.get?.('x-forwarded-host') ?? '')
+            .split(',')[0]
+            .trim();
+        const headerHost = String(requestHeaders?.get?.('host') ?? '').trim();
+        const requestUrl = this.parseRequestUrl();
+        return this.normalizeHost(forwardedHost || headerHost || requestUrl?.hostname);
+    }
+
+    private isSharedTestingPreviewHost(): boolean {
+        return this.resolveRuntimeHost() === 'test.zoolandingpage.com.mx';
+    }
+
+    private testAliasesForDomain(domain: string): readonly string[] {
+        const normalized = this.normalizeHost(domain);
+        if (!normalized || normalized.startsWith('test.')) {
+            return normalized ? [normalized] : [];
+        }
+
+        const names = new Set<string>([`test.${ normalized }`]);
+        const firstLabel = normalized.split('.')[0];
+        if (!normalized.endsWith('zoolandingpage.com.mx') && firstLabel) {
+            names.add(`test.${ firstLabel }.zoolandingpage.com.mx`);
+        }
+
+        return Array.from(names);
+    }
+
+    private runtimeBundleRequestDomains(domain: string): readonly string[] {
+        const normalized = String(domain ?? '').trim();
+        if (!normalized || !this.isSharedTestingPreviewHost()) {
+            return normalized ? [normalized] : [];
+        }
+
+        return Array.from(new Set([
+            ...this.testAliasesForDomain(normalized),
+            normalized,
+        ]));
+    }
+
     private async loadRuntimeBundle(domain: string, opts?: {
         pageId?: string;
         lang?: string;
@@ -238,9 +291,13 @@ export class ConfigSourceService {
         const lang = this.resolveLanguage(opts?.lang);
         const currentPath = this.resolveRuntimeBundlePath(opts?.path);
         const requestedKey = this.createRuntimeBundleCacheKey(normalizedDomain, pageId, lang, currentPath);
+        const candidateDomains = this.runtimeBundleRequestDomains(normalizedDomain);
 
         if (opts?.forceRefresh) {
             this.runtimeBundleCache.delete(requestedKey);
+            candidateDomains.forEach((candidateDomain) => {
+                this.runtimeBundleCache.delete(this.createRuntimeBundleCacheKey(candidateDomain, pageId, lang, currentPath));
+            });
         }
 
         const cached = this.runtimeBundleCache.get(requestedKey);
@@ -248,43 +305,67 @@ export class ConfigSourceService {
             return cached;
         }
 
-        const requestPromise = this.api.getRuntimeBundle(normalizedDomain, {
-            pageId: pageId || undefined,
-            lang,
-            path: currentPath,
-        })
-            .then((payload) => isRuntimeBundlePayload(payload) ? payload : null)
-            .then((payload) => {
-                if (!payload) {
-                    this.runtimeBundleCache.delete(requestedKey);
-                    return null;
+        for (const candidateDomain of candidateDomains) {
+            const candidateKey = this.createRuntimeBundleCacheKey(candidateDomain, pageId, lang, currentPath);
+            const candidateCached = this.runtimeBundleCache.get(candidateKey);
+            if (candidateCached) {
+                const payload = await candidateCached;
+                if (payload) {
+                    this.runtimeBundleCache.set(requestedKey, Promise.resolve(payload));
+                    return payload;
                 }
+            }
 
-                const actualKey = this.createRuntimeBundleCacheKey(
-                    payload.domain,
-                    payload.pageId,
-                    String(payload.lang ?? lang),
-                    currentPath,
-                );
-
-                const resolved = Promise.resolve(payload);
-                this.runtimeBundleCache.set(requestedKey, resolved);
-                this.runtimeBundleCache.set(actualKey, resolved);
-                this.seedRuntimeBundleCacheAliases(payload, {
-                    domain: normalizedDomain,
-                    pageId,
-                    lang,
-                    path: currentPath,
-                }, resolved);
-                return payload;
+            const requestPromise = this.api.getRuntimeBundle(candidateDomain, {
+                pageId: pageId || undefined,
+                lang,
+                path: currentPath,
             })
-            .catch((error) => {
-                this.runtimeBundleCache.delete(requestedKey);
-                throw error;
-            });
+                .then((payload) => isRuntimeBundlePayload(payload) ? payload : null)
+                .then((payload) => {
+                    if (!payload) {
+                        this.runtimeBundleCache.delete(candidateKey);
+                        return null;
+                    }
 
-        this.runtimeBundleCache.set(requestedKey, requestPromise);
-        return requestPromise;
+                    const actualKey = this.createRuntimeBundleCacheKey(
+                        payload.domain,
+                        payload.pageId,
+                        String(payload.lang ?? lang),
+                        currentPath,
+                    );
+
+                    const resolved = Promise.resolve(payload);
+                    this.runtimeBundleCache.set(requestedKey, resolved);
+                    this.runtimeBundleCache.set(candidateKey, resolved);
+                    this.runtimeBundleCache.set(actualKey, resolved);
+                    this.seedRuntimeBundleCacheAliases(payload, {
+                        domain: normalizedDomain,
+                        pageId,
+                        lang,
+                        path: currentPath,
+                    }, resolved);
+                    return payload;
+                })
+                .catch((error) => {
+                    this.runtimeBundleCache.delete(candidateKey);
+                    throw error;
+                });
+
+            this.runtimeBundleCache.set(candidateKey, requestPromise);
+
+            try {
+                const payload = await requestPromise;
+                if (payload) {
+                    return payload;
+                }
+            } catch {
+                // Try the next shared-preview alias candidate before giving up.
+            }
+        }
+
+        this.runtimeBundleCache.delete(requestedKey);
+        return null;
     }
 
     private async tryLoadRuntimeBundle(domain: string, opts?: {

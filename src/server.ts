@@ -309,6 +309,10 @@ function isLocalHost(value: unknown): boolean {
   return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1';
 }
 
+function isSharedTestingPreviewHost(value: unknown): boolean {
+  return normalizeHost(value) === 'test.zoolandingpage.com.mx';
+}
+
 function cleanString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -1158,7 +1162,7 @@ function resolveRequestHost(req: express.Request): string {
 
 function resolveNotFoundLookupDomain(req: express.Request, host: string): string {
   const draftDomain = normalizeHost(req.query['draftDomain']);
-  if (isLocalHost(host) && draftDomain) {
+  if ((isLocalHost(host) || isSharedTestingPreviewHost(host)) && draftDomain) {
     return draftDomain;
   }
 
