@@ -281,6 +281,77 @@ describe('ConfigSourceService', () => {
         expect(api.getRuntimeBundle.calls.count()).toBe(1);
     });
 
+    it('skips synthetic shared-preview fallback 404 bundles before trying the canonical domain', async () => {
+        const service = TestBed.inject(ConfigSourceService);
+        spyOn<any>(service, 'isSharedTestingPreviewHost').and.returnValue(true);
+
+        const api = TestBed.inject(ConfigApiService) as jasmine.SpyObj<ConfigApiService>;
+        const createNotFoundBundle = (candidateDomain: string) => createRuntimeBundle({
+            domain: 'zoolandingpage.com.mx',
+            pageId: 'not-found',
+            pageConfig: {
+                ...pageConfigPayload,
+                domain: 'zoolandingpage.com.mx',
+                pageId: 'not-found',
+            },
+            components: {
+                ...componentsPayload,
+                domain: 'zoolandingpage.com.mx',
+                pageId: 'not-found',
+            },
+            metadata: {
+                requestId: 'req-404',
+                requestedDomain: candidateDomain,
+                resolvedAlias: null,
+                fallbackFromDomain: candidateDomain,
+                resolvedPath: '/',
+                statusCode: 404,
+                notFound: true,
+            },
+        });
+        const erosSiteConfig = {
+            ...siteConfigPayload,
+            domain: 'erosbarajas.com',
+            aliases: [],
+        };
+        const erosBundle = createRuntimeBundle({
+            domain: 'erosbarajas.com',
+            siteConfig: erosSiteConfig,
+            pageConfig: {
+                ...pageConfigPayload,
+                domain: 'erosbarajas.com',
+            },
+            components: {
+                ...componentsPayload,
+                domain: 'erosbarajas.com',
+            },
+            metadata: {
+                requestId: 'req-eros',
+                requestedDomain: 'erosbarajas.com',
+                resolvedAlias: null,
+                resolvedPath: '/',
+            },
+        });
+
+        api.getRuntimeBundle.and.callFake((domain: string) => Promise.resolve(
+            domain === 'erosbarajas.com' ? erosBundle : createNotFoundBundle(domain)
+        ));
+
+        const result = await service.loadSiteConfig('erosbarajas.com');
+
+        expect(result).toEqual(erosSiteConfig);
+        expect(api.getRuntimeBundle.calls.allArgs().map(([domain]) => domain)).toEqual([
+            'test.erosbarajas.com',
+            'test.erosbarajas.zoolandingpage.com.mx',
+            'erosbarajas.com',
+        ]);
+        expect(api.getRuntimeBundle.calls.allArgs().map(([, options]) => options?.environment)).toEqual([
+            'test',
+            'test',
+            'test',
+        ]);
+    });
+
     it('reuses the hydrated site config instead of calling the legacy site-config endpoint when the browser runtime bundle request fails', async () => {
         const service = TestBed.inject(ConfigSourceService);
         const api = TestBed.inject(ConfigApiService) as jasmine.SpyObj<ConfigApiService>;
