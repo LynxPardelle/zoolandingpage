@@ -450,6 +450,7 @@ test('production SSR server blocks unknown custom hosts before Angular SSR', asy
 test('production SSR server supports test host draftDomain preview for a published custom host', async (t) => {
   const { port, getStderr } = await startProductionServer(t);
   const response = await fetch(`http://127.0.0.1:${port}/?draftDomain=erosbarajas.com&debugWorkspace=false`, {
+    redirect: 'manual',
     headers: {
       Host: 'test.zoolandingpage.com.mx',
       'X-Forwarded-Host': 'test.zoolandingpage.com.mx',
@@ -461,6 +462,7 @@ test('production SSR server supports test host draftDomain preview for a publish
   const body = await response.text();
 
   assert.equal(response.status, 200);
+  assert.equal(response.headers.get('location'), null);
   assert.match(body, /<main[\s>]/i);
   assert.match(body, /Eros Barajas/i);
   assert.equal(getStderr(), '');
