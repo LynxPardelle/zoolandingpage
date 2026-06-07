@@ -171,4 +171,41 @@ describe('LoadingCurtainService', () => {
             style.remove();
         }
     }));
+
+    it('falls back after the short critical text color wait has elapsed', fakeAsync(() => {
+        const curtain = addCurtain();
+        const style = documentRef.createElement('style');
+        const title = documentRef.createElement('h1');
+        style.textContent = '.sectionTitle { color: rgb(255, 248, 230); }';
+        title.className = 'sectionTitle';
+        title.textContent = 'Title';
+        documentRef.head.appendChild(style);
+        documentRef.body.appendChild(title);
+
+        try {
+            variables.setPayload({
+                version: 1,
+                domain: 'erosbarajas.com',
+                pageId: 'default',
+                variables: {
+                    theme: {
+                        defaultMode: 'light',
+                        palettes: {
+                            light: { titleColor: '#201712' },
+                        },
+                    },
+                },
+            } as any);
+
+            window.__ZLP_BOOT_CURTAIN_STARTED_AT__ = performance.now() - 3_000;
+            service.configureFromDraft();
+            service.hideWhenReady('css-ready');
+
+            expect(curtain.classList.contains('zlp-boot-curtain--leaving')).toBeTrue();
+        } finally {
+            delete window.__ZLP_BOOT_CURTAIN_STARTED_AT__;
+            title.remove();
+            style.remove();
+        }
+    }));
 });

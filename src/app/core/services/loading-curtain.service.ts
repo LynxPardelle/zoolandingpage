@@ -25,7 +25,7 @@ const DEFAULT_SUBTITLE = 'zoolandingpage.com.mx';
 const DEFAULT_EXIT_DURATION_MS = 420;
 const MAX_TIMING_MS = 5_000;
 const CRITICAL_TEXT_COLOR_RETRY_MS = 50;
-const CRITICAL_TEXT_COLOR_MAX_WAIT_MS = 20_000;
+const CRITICAL_TEXT_COLOR_MAX_WAIT_MS = 2_500;
 
 const CRITICAL_TEXT_COMBOS = [
     { className: 'sectionTitle', tokenName: 'titleColor' },
