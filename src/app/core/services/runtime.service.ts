@@ -321,7 +321,9 @@ export class RuntimeService {
         const cssClassesToVerify = this.collectCssClassesToVerify(requiredCssClasses);
         const hasRenderedCombo = this.combosService.containsRegisteredComboClass(cssClassesToVerify);
 
-        if (!hasRenderedCombo && Date.now() - startedAt < this.cssReadyMaxWaitMs) {
+        const elapsedBeforeComboMs = Date.now() - startedAt;
+
+        if (!hasRenderedCombo && elapsedBeforeComboMs < this.cssReadySoftFallbackMs) {
             window.setTimeout(() => {
                 if (readyId !== this.loadingCurtainReadyId) {
                     return;
@@ -329,6 +331,12 @@ export class RuntimeService {
 
                 this.hideLoadingCurtainAfterCssReady(reason, startedAt, cssClassesToVerify, stableReadyPasses);
             }, this.cssRenderedComboRetryDelayMs);
+            return;
+        }
+
+        if (!hasRenderedCombo) {
+            this.combosService.updateClasses(cssClassesToVerify);
+            this.loadingCurtain.hideWhenReady(reason);
             return;
         }
 

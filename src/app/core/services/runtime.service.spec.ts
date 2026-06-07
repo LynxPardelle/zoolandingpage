@@ -182,6 +182,7 @@ describe('RuntimeService', () => {
         collectRenderedDomClasses.calls.reset();
         collectRenderedDomClasses.and.returnValue(['ank-d-flex']);
         containsRegisteredComboClass.calls.reset();
+        containsRegisteredComboClass.and.returnValue(true);
         waitForCssReady.calls.reset();
         waitForCssReady.and.resolveTo(true);
         setAuxiliaryCombos.calls.reset();
@@ -417,6 +418,32 @@ describe('RuntimeService', () => {
             await new Promise<void>((resolve) => window.setTimeout(resolve, 300));
             await flushCssReadinessPasses();
 
+            expect(hideLoadingCurtain).toHaveBeenCalledWith('rendered-components-css-updated');
+        } finally {
+            dateNowSpy.and.callThrough();
+        }
+    });
+
+    it('does not wait for the full CSS timeout when rendered combos are not registered', async () => {
+        let now = 0;
+        const dateNowSpy = spyOn(Date, 'now').and.callFake(() => now);
+
+        try {
+            containsRegisteredComboClass.and.returnValue(false);
+            const service = TestBed.inject(RuntimeService);
+
+            setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
+            await service.initialize('es');
+            await flushCssReadinessPasses();
+
+            expect(hideLoadingCurtain).not.toHaveBeenCalledWith('rendered-components-css-updated');
+
+            now = 3_000;
+            await new Promise<void>((resolve) => window.setTimeout(resolve, 300));
+            await flushCssReadinessPasses();
+
+            expect(updateClasses).toHaveBeenCalledWith(['hero', 'ank-d-flex']);
+            expect(waitForCssReady).not.toHaveBeenCalled();
             expect(hideLoadingCurtain).toHaveBeenCalledWith('rendered-components-css-updated');
         } finally {
             dateNowSpy.and.callThrough();
