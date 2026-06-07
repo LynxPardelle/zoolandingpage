@@ -58,18 +58,18 @@ test('extractManagedAliasesFromConfig reads production and environment aliases',
 test('collectManagedAliases scans registry draft repos and deduplicates hosts', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'zlp-managed-aliases-'));
   const hub = path.join(root, 'zoolandingpage');
-  const draft = path.join(root, 'draft-example-com');
+  const draft = path.join(hub, 'drafts', 'example.com');
   await mkdir(path.join(hub, 'docs'), { recursive: true });
   await mkdir(draft, { recursive: true });
   await writeFile(path.join(hub, 'docs', 'drafts-registry.json'), JSON.stringify({
     version: 1,
-    defaultBaseDir: '..',
+    defaultBaseDir: 'drafts',
     drafts: [
       {
         domain: 'example.com',
         repo: 'draft-example-com',
         githubUrl: 'https://github.com/example/draft-example-com.git',
-        localPath: '../draft-example-com',
+        localPath: 'drafts/example.com',
       },
     ],
   }), 'utf8');

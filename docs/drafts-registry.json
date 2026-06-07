@@ -1,61 +1,73 @@
 {
   "version": 1,
   "owner": "LynxPardelle",
-  "defaultBaseDir": "..",
+  "defaultBaseDir": "drafts",
   "drafts": [
     {
       "domain": "alecfest-voliii.com",
       "repo": "draft-alecfest-voliii-com",
       "githubUrl": "https://github.com/LynxPardelle/draft-alecfest-voliii-com.git",
-      "localPath": "../draft-alecfest-voliii-com"
+      "localPath": "drafts/alecfest-voliii.com"
     },
     {
       "domain": "despacholegalastralex.com",
       "repo": "draft-despacholegalastralex-com",
       "githubUrl": "https://github.com/LynxPardelle/draft-despacholegalastralex-com.git",
-      "localPath": "../draft-despacholegalastralex-com"
+      "localPath": "drafts/despacholegalastralex.com"
     },
     {
       "domain": "erosbarajas.com",
       "repo": "draft-erosbarajas-com",
       "githubUrl": "https://github.com/LynxPardelle/draft-erosbarajas-com.git",
-      "localPath": "../draft-erosbarajas-com"
+      "localPath": "drafts/erosbarajas.com"
+    },
+    {
+      "domain": "agent-guide-claude-codex.com",
+      "repo": "draft-agent-guide-claude-codex-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-agent-guide-claude-codex-com.git",
+      "localPath": "drafts/agent-guide-claude-codex.com"
     },
     {
       "domain": "music.lynxpardelle.com",
       "repo": "draft-music-lynxpardelle-com",
       "githubUrl": "https://github.com/LynxPardelle/draft-music-lynxpardelle-com.git",
-      "localPath": "../draft-music-lynxpardelle-com"
+      "localPath": "drafts/music.lynxpardelle.com"
     },
     {
       "domain": "pamelabetancourt.com",
       "repo": "draft-pamelabetancourt-com",
       "githubUrl": "https://github.com/LynxPardelle/draft-pamelabetancourt-com.git",
-      "localPath": "../draft-pamelabetancourt-com"
+      "localPath": "drafts/pamelabetancourt.com"
     },
     {
       "domain": "pokeapi-demo.zoolandingpage.com.mx",
       "repo": "draft-pokeapi-demo-zoolandingpage-com-mx",
       "githubUrl": "https://github.com/LynxPardelle/draft-pokeapi-demo-zoolandingpage-com-mx.git",
-      "localPath": "../draft-pokeapi-demo-zoolandingpage-com-mx"
+      "localPath": "drafts/pokeapi-demo.zoolandingpage.com.mx"
+    },
+    {
+      "domain": "robertorodriguezrodriguez.com.mx",
+      "repo": "draft-robertorodriguezrodriguez-com-mx",
+      "githubUrl": "https://github.com/LynxPardelle/draft-robertorodriguezrodriguez-com-mx.git",
+      "localPath": "drafts/robertorodriguezrodriguez.com.mx"
     },
     {
       "domain": "sulandingpage.com.mx",
       "repo": "draft-sulandingpage-com-mx",
       "githubUrl": "https://github.com/LynxPardelle/draft-sulandingpage-com-mx.git",
-      "localPath": "../draft-sulandingpage-com-mx"
+      "localPath": "drafts/sulandingpage.com.mx"
     },
     {
       "domain": "zoolandingpage.com.mx",
       "repo": "draft-zoolandingpage-com-mx",
       "githubUrl": "https://github.com/LynxPardelle/draft-zoolandingpage-com-mx.git",
-      "localPath": "../draft-zoolandingpage-com-mx"
+      "localPath": "drafts/zoolandingpage.com.mx"
     },
     {
       "domain": "zoositioweb.com.mx",
       "repo": "draft-zoositioweb-com-mx",
       "githubUrl": "https://github.com/LynxPardelle/draft-zoositioweb-com-mx.git",
-      "localPath": "../draft-zoositioweb-com-mx"
+      "localPath": "drafts/zoositioweb.com.mx"
     }
   ]
 }

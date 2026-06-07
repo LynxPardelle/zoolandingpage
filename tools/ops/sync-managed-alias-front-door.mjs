@@ -179,7 +179,7 @@ async function readDraftRegistry(registryPath) {
   const raw = await readJson(registryPath);
   return {
     registryPath,
-    defaultBaseDir: raw.defaultBaseDir || '..',
+    defaultBaseDir: raw.defaultBaseDir || 'drafts',
     drafts: Array.isArray(raw.drafts) ? raw.drafts : [],
   };
 }

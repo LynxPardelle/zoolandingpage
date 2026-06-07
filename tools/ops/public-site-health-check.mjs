@@ -7,7 +7,7 @@ import path from 'node:path';
 const DEFAULT_HOSTS = [
   'test.zoolandingpage.com.mx',
   'zoolandingpage.com.mx',
-  'erosbarajas.zoolandingpage.com.mx',
+  'erosbarajas.com',
   'alecfest-voliii.zoolandingpage.com.mx',
   'pamelabetancourt.zoolandingpage.com.mx',
 ];

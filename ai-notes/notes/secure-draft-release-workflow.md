@@ -42,8 +42,8 @@ Approved target: use separate deploy trust per draft repository and environment.
 
 Current hub helpers:
 
-- `node tools/draft-repo-preflight.mjs --pull=true` reads `docs/drafts-registry.json`, clones missing registered `draft-*` repos into their sibling local paths, pulls clean repos with `git pull --ff-only`, and refuses dirty or invalid repos.
-- `npm run drafts:repo-bootstrap -- --repo=../draft-example-com --domain=example.com --authoring-endpoint=https://o4upx3fsz3d3dwfwz4lbnefjze0eetyn.lambda-url.us-east-1.on.aws/` copies the standard draft repo templates.
+- `node tools/draft-repo-preflight.mjs --pull=true` reads `docs/drafts-registry.json`, clones missing registered `draft-*` remote repos into their in-tree `drafts/{domain}` local paths, pulls clean repos with `git pull --ff-only`, and refuses dirty or invalid repos.
+- `npm run drafts:repo-bootstrap -- --repo=drafts/example.com --domain=example.com --authoring-endpoint=https://o4upx3fsz3d3dwfwz4lbnefjze0eetyn.lambda-url.us-east-1.on.aws/` copies the standard draft repo templates.
 - `npm run drafts:aws-oidc-setup` creates or updates per-draft/per-environment IAM roles and prints the Lambda authorization matrix.
 - `npm run drafts:github-setup` clones/configures draft repos, writes templates, creates `dev`/`test` branches, configures GitHub Environments, sets non-secret environment variables, and attempts branch protection.
 
@@ -66,7 +66,7 @@ Runtime resolution should use alias metadata to select the environment-specific 
 When a new draft is created, create and configure its GitHub repository as part of the draft setup:
 
 1. Repo named `draft-{domain}`.
-2. `docs/drafts-registry.json` entry with domain, repo, GitHub URL, and local sibling path.
+2. `docs/drafts-registry.json` entry with domain, repo, GitHub URL, and in-tree local path under `drafts/{domain}`.
 3. Branches: `dev`, `test`, `main`.
 4. Protected `test` and `main`.
 5. Required PR source guard: only `dev -> test` and `test -> main`.

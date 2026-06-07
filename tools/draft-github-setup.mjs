@@ -13,7 +13,7 @@ const DEFAULT_OWNER = 'LynxPardelle';
 const DEFAULT_REGION = 'us-east-1';
 const DEFAULT_AUTHORING_ENDPOINT = 'https://o4upx3fsz3d3dwfwz4lbnefjze0eetyn.lambda-url.us-east-1.on.aws/';
 const DEFAULT_ACCOUNT_ID = '765932874577';
-const DEFAULT_BASE_DIR = path.resolve('..');
+const DEFAULT_BASE_DIR = path.resolve('drafts', '_repos');
 
 function parseArgs(rawArgs) {
   const args = {};

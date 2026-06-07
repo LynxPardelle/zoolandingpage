@@ -325,7 +325,7 @@ async function resolveTargetRepos(args, cwd = process.cwd()) {
   if (args.repo.length > 0) {
     return args.repo.map(repo => path.resolve(cwd, repo));
   }
-  return discoverDraftRepos(path.resolve(cwd, args['base-dir'] || '..'));
+  return discoverDraftRepos(path.resolve(cwd, args['base-dir'] || 'drafts/_repos'));
 }
 
 async function main() {

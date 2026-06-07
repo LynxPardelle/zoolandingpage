@@ -24,7 +24,7 @@ Use this checklist when creating a new draft repository after the secure release
 - Draft payload has passed the public-safety audit against current files and git history.
 - AWS OIDC provider exists in the target AWS account.
 - The hub repo and any source draft repo have been updated with `git pull --ff-only` when clean.
-- `docs/drafts-registry.json` has or will receive the new draft domain, repo name, GitHub clone URL, and sibling local path.
+- `docs/drafts-registry.json` has or will receive the new draft domain, repo name, GitHub clone URL, and in-tree local path under `drafts/{domain}`.
 
 ## Setup Checklist
 
@@ -34,7 +34,7 @@ Use this checklist when creating a new draft repository after the secure release
 4. Run the bootstrap helper from the hub repo:
 
    ```bash
-   npm run drafts:repo-bootstrap -- --repo=../draft-example-com --domain=example.com --authoring-endpoint=https://o4upx3fsz3d3dwfwz4lbnefjze0eetyn.lambda-url.us-east-1.on.aws/
+   npm run drafts:repo-bootstrap -- --repo=drafts/example.com --domain=example.com --authoring-endpoint=https://o4upx3fsz3d3dwfwz4lbnefjze0eetyn.lambda-url.us-east-1.on.aws/
    ```
 
    This copies the standard repo memory, GitHub Actions workflow templates, OIDC deploy script, `.gitignore`, and non-secret `draft-repo.config.json`.
@@ -50,7 +50,7 @@ Use this checklist when creating a new draft repository after the secure release
 6. Run the public-safety audit before the first push, before changing repository visibility, and before PR/merge:
 
    ```bash
-   node tools/draft-public-safety-audit.mjs --repo=../draft-example-com --history=true
+   node tools/draft-public-safety-audit.mjs --repo=drafts/example.com --history=true
    ```
 
    Treat these as blocking findings:
@@ -97,7 +97,7 @@ Use this checklist when creating a new draft repository after the secure release
 ## Acceptance Checks
 
 - No local-only folders or PII-risk files are tracked.
-- `docs/drafts-registry.json` contains the draft's domain, repo, GitHub URL, and local sibling path.
+- `docs/drafts-registry.json` contains the draft's domain, repo, GitHub URL, and in-tree local path under `drafts/{domain}`.
 - `node tools/draft-repo-preflight.mjs --pull=true` can clone missing registered repos and pull clean repos.
 - `node tools/draft-public-safety-audit.mjs --history=true` passes for the draft repo before public visibility, PR, and merge.
 - Direct push to `test` and `main` is blocked when native GitHub branch protection is available.

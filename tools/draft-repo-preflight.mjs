@@ -81,7 +81,7 @@ async function readDraftRegistry(registryPath) {
   };
 }
 
-function registeredDraftRepoPath(draft, cwd, defaultBaseDir = '..') {
+function registeredDraftRepoPath(draft, cwd, defaultBaseDir = 'drafts') {
   if (draft.localPath) {
     return path.resolve(cwd, draft.localPath);
   }
@@ -125,8 +125,8 @@ async function resolveTargetRepos(args, cwd = process.cwd()) {
   const registry = await readDraftRegistry(registryPath);
   const clone = isTruthy(args.clone, true);
   const registeredRepos = await ensureRegisteredDraftRepos(registry, { cwd, clone });
-  const siblingBase = path.resolve(cwd, registry.defaultBaseDir || '..');
-  const discoveredRepos = await discoverDraftRepos(siblingBase);
+  const draftBase = path.resolve(cwd, registry.defaultBaseDir || 'drafts');
+  const discoveredRepos = await discoverDraftRepos(draftBase);
   const registryRepoPaths = registeredRepos.map(result => result.repoPath);
   const repos = [...new Set([cwd, ...registryRepoPaths, ...discoveredRepos])].sort();
   return {

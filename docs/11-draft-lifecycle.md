@@ -36,7 +36,7 @@ The secure release workflow moves draft publishing into per-draft GitHub reposit
 4. Merge `test -> main` by pull request.
 5. Deploy production only after the merge lands on `main`.
 
-Before work starts, run the draft repo preflight. It reads [drafts-registry.json](./drafts-registry.json), clones any missing registered `draft-*` repo into its sibling local path, and runs `git pull --ff-only` in every clean target repo, including this hub repo and any affected local `draft-*` repos. If a target repo is dirty, report it instead of pulling over local changes.
+Before work starts, run the draft repo preflight. It reads [drafts-registry.json](./drafts-registry.json), clones any missing registered `draft-*` remote repo into its in-tree local path under `drafts/{domain}`, and runs `git pull --ff-only` in every clean target repo, including this hub repo and any affected local draft repos. If a target repo is dirty, report it instead of pulling over local changes.
 
 Use the hub preflight helper:
 
@@ -53,10 +53,10 @@ node tools/draft-repo-preflight.mjs --pull=true
 New draft repos should be bootstrapped from the hub templates:
 
 ```bash
-npm run drafts:repo-bootstrap -- --repo=../draft-example-com --domain=example.com --authoring-endpoint=https://o4upx3fsz3d3dwfwz4lbnefjze0eetyn.lambda-url.us-east-1.on.aws/
+npm run drafts:repo-bootstrap -- --repo=drafts/example.com --domain=example.com --authoring-endpoint=https://o4upx3fsz3d3dwfwz4lbnefjze0eetyn.lambda-url.us-east-1.on.aws/
 ```
 
-Every new draft repo must also be added to [drafts-registry.json](./drafts-registry.json) with its canonical domain, repo name, GitHub clone URL, and sibling local path.
+Every new draft repo must also be added to [drafts-registry.json](./drafts-registry.json) with its canonical domain, repo name, GitHub clone URL, and in-tree local path under `drafts/{domain}`.
 
 As of 2026-05-17 CT, the authoring API is IAM-protected, runtime-read supports environment-aware published pointers, OIDC roles are configured per draft repo/environment, and the current public `draft-*` repos have GitHub Environments, deployment workflows, and native GitHub branch protection on `test` and `main`. GitHub Actions deploys use the IAM-protected Lambda Function URL. Protected branches require the `guard` status and zero approvals so the repository owner can merge after checks pass; deployment workflows also reject push-triggered deploys unless `test` receives a merge commit from `dev` or `main` receives a merge commit from `test`.
 

@@ -42,13 +42,13 @@ test('readDraftRegistry parses draft GitHub links', async () => {
   const registryPath = path.join(root, 'drafts-registry.json');
   await writeFile(registryPath, JSON.stringify({
     version: 1,
-    defaultBaseDir: '..',
+    defaultBaseDir: 'drafts',
     drafts: [
       {
         domain: 'example.com',
         repo: 'draft-example-com',
         githubUrl: 'https://github.com/LynxPardelle/draft-example-com.git',
-        localPath: '../draft-example-com',
+        localPath: 'drafts/example.com',
       },
     ],
   }), 'utf8');
@@ -63,13 +63,13 @@ test('readDraftRegistry parses draft GitHub links', async () => {
 test('ensureRegisteredDraftRepos reports missing repos without cloning when disabled', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'zlp-draft-missing-'));
   const registry = {
-    defaultBaseDir: '..',
+    defaultBaseDir: 'drafts',
     drafts: [
       {
         domain: 'example.com',
         repo: 'draft-example-com',
         githubUrl: 'https://github.com/LynxPardelle/draft-example-com.git',
-        localPath: '../draft-example-com',
+        localPath: 'drafts/example.com',
       },
     ],
   };
@@ -81,22 +81,22 @@ test('ensureRegisteredDraftRepos reports missing repos without cloning when disa
   assert.equal(results[0].cloned, false);
 });
 
-test('resolveTargetRepos includes registry repos before discovered sibling repos', async () => {
+test('resolveTargetRepos includes registered in-tree draft repos', async () => {
   const workspace = await mkdtemp(path.join(os.tmpdir(), 'zlp-draft-resolve-'));
   const hub = path.join(workspace, 'zoolandingpage');
-  const draft = path.join(workspace, 'draft-example-com');
+  const draft = path.join(hub, 'drafts', 'example.com');
   await mkdir(path.join(hub, 'docs'), { recursive: true });
   await mkdir(draft, { recursive: true });
   await execFileAsync('git', ['init'], { cwd: draft, windowsHide: true });
   await writeFile(path.join(hub, 'docs', 'drafts-registry.json'), JSON.stringify({
     version: 1,
-    defaultBaseDir: '..',
+    defaultBaseDir: 'drafts',
     drafts: [
       {
         domain: 'example.com',
         repo: 'draft-example-com',
         githubUrl: 'https://github.com/LynxPardelle/draft-example-com.git',
-        localPath: '../draft-example-com',
+        localPath: 'drafts/example.com',
       },
     ],
   }), 'utf8');

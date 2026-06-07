@@ -37,7 +37,7 @@ Useful optional inputs:
 - `--domain=example.com` to limit to one canonical draft
 - `--environment=production`, `--environment=test`, or `--environment=all`
 - `--traefik-output=path.yml` to inspect generated config locally
-- `--include-drafts-root=true` only when you intentionally want to read local `drafts/` instead of the registered sibling `draft-*` repos
+- `--include-drafts-root=true` only when you intentionally want to include every local `drafts/` folder in addition to the registered draft repos
 - `--traefik-mode=router-block` plus `--block-label="draft test aliases"` when updating only a marked router block inside an existing Dokploy dynamic file
 
 ## Dry Run
