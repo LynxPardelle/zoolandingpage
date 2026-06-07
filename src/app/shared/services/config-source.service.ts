@@ -152,8 +152,20 @@ export class ConfigSourceService {
         return active || 'en';
     }
 
-    private createRuntimeBundleCacheKey(domain: string, pageId: string, lang: string, path: string): string {
-        return [domain.trim().toLowerCase(), pageId.trim(), lang.trim().toLowerCase(), this.normalizePath(path)].join('::');
+    private createRuntimeBundleCacheKey(
+        domain: string,
+        pageId: string,
+        lang: string,
+        path: string,
+        environmentName?: string,
+    ): string {
+        return [
+            domain.trim().toLowerCase(),
+            pageId.trim(),
+            lang.trim().toLowerCase(),
+            this.normalizePath(path),
+            String(environmentName ?? '').trim().toLowerCase(),
+        ].join('::');
     }
 
     private collectRuntimeBundleDomains(requestedDomain: string, payload: TRuntimeBundlePayload): readonly string[] {
@@ -195,6 +207,7 @@ export class ConfigSourceService {
             pageId: string;
             lang: string;
             path: string;
+            environmentName?: string;
         },
         resolved: Promise<TRuntimeBundlePayload>,
     ): void {
@@ -206,7 +219,7 @@ export class ConfigSourceService {
             pageIds.forEach((pageId) => {
                 languages.forEach((lang) => {
                     this.runtimeBundleCache.set(
-                        this.createRuntimeBundleCacheKey(domain, pageId, lang, requested.path),
+                        this.createRuntimeBundleCacheKey(domain, pageId, lang, requested.path, requested.environmentName),
                         resolved,
                     );
                 });
@@ -276,6 +289,34 @@ export class ConfigSourceService {
         ]));
     }
 
+    private runtimeBundleRequestEnvironment(): string | undefined {
+        return this.isSharedTestingPreviewHost() ? 'test' : undefined;
+    }
+
+    private isSyntheticPreviewFallbackPayload(
+        requestedDomain: string,
+        candidateDomain: string,
+        payload: TRuntimeBundlePayload,
+    ): boolean {
+        const normalizedRequestedDomain = this.normalizeHost(requestedDomain);
+        const normalizedCandidateDomain = this.normalizeHost(candidateDomain);
+        if (!normalizedRequestedDomain || normalizedCandidateDomain === normalizedRequestedDomain) {
+            return false;
+        }
+
+        const metadata = payload.metadata ?? {};
+        const fallbackFromDomain = this.normalizeHost(metadata['fallbackFromDomain']);
+        const resolvedAlias = this.normalizeHost(metadata['resolvedAlias']);
+        const payloadDomain = this.normalizeHost(payload.domain);
+        const statusCode = Number(metadata['statusCode']);
+        const isNotFound = metadata['notFound'] === true || statusCode === 404;
+
+        return isNotFound
+            && fallbackFromDomain === normalizedCandidateDomain
+            && !resolvedAlias
+            && payloadDomain !== normalizedRequestedDomain;
+    }
+
     private async loadRuntimeBundle(domain: string, opts?: {
         pageId?: string;
         lang?: string;
@@ -290,13 +331,20 @@ export class ConfigSourceService {
         const pageId = String(opts?.pageId ?? '').trim();
         const lang = this.resolveLanguage(opts?.lang);
         const currentPath = this.resolveRuntimeBundlePath(opts?.path);
-        const requestedKey = this.createRuntimeBundleCacheKey(normalizedDomain, pageId, lang, currentPath);
+        const requestEnvironment = this.runtimeBundleRequestEnvironment();
+        const requestedKey = this.createRuntimeBundleCacheKey(normalizedDomain, pageId, lang, currentPath, requestEnvironment);
         const candidateDomains = this.runtimeBundleRequestDomains(normalizedDomain);
 
         if (opts?.forceRefresh) {
             this.runtimeBundleCache.delete(requestedKey);
             candidateDomains.forEach((candidateDomain) => {
-                this.runtimeBundleCache.delete(this.createRuntimeBundleCacheKey(candidateDomain, pageId, lang, currentPath));
+                this.runtimeBundleCache.delete(this.createRuntimeBundleCacheKey(
+                    candidateDomain,
+                    pageId,
+                    lang,
+                    currentPath,
+                    requestEnvironment,
+                ));
             });
         }
 
@@ -306,7 +354,7 @@ export class ConfigSourceService {
         }
 
         for (const candidateDomain of candidateDomains) {
-            const candidateKey = this.createRuntimeBundleCacheKey(candidateDomain, pageId, lang, currentPath);
+            const candidateKey = this.createRuntimeBundleCacheKey(candidateDomain, pageId, lang, currentPath, requestEnvironment);
             const candidateCached = this.runtimeBundleCache.get(candidateKey);
             if (candidateCached) {
                 const payload = await candidateCached;
@@ -320,10 +368,16 @@ export class ConfigSourceService {
                 pageId: pageId || undefined,
                 lang,
                 path: currentPath,
+                environment: requestEnvironment,
             })
                 .then((payload) => isRuntimeBundlePayload(payload) ? payload : null)
                 .then((payload) => {
                     if (!payload) {
+                        this.runtimeBundleCache.delete(candidateKey);
+                        return null;
+                    }
+
+                    if (this.isSyntheticPreviewFallbackPayload(normalizedDomain, candidateDomain, payload)) {
                         this.runtimeBundleCache.delete(candidateKey);
                         return null;
                     }
@@ -333,6 +387,7 @@ export class ConfigSourceService {
                         payload.pageId,
                         String(payload.lang ?? lang),
                         currentPath,
+                        requestEnvironment,
                     );
 
                     const resolved = Promise.resolve(payload);
@@ -344,6 +399,7 @@ export class ConfigSourceService {
                         pageId,
                         lang,
                         path: currentPath,
+                        environmentName: requestEnvironment,
                     }, resolved);
                     return payload;
                 })

@@ -344,6 +344,121 @@ describe('AngoraCombosService', () => {
         expect(cssCreate).toHaveBeenCalledOnceWith(['btnBase', 'ank-d-flex']);
     });
 
+    it('splits authored class strings before explicit cssCreate updates', () => {
+        const service = configure('browser');
+
+        store.setCombos({
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            combos: {
+                btnBase: ['ank-display-flex ank-alignItems-center'],
+            },
+        });
+        TestBed.flushEffects();
+        cssCreate.calls.reset();
+
+        service.updateClasses(['btnBase ank-display-flex']);
+
+        expect(cssCreate).toHaveBeenCalledOnceWith(['btnBase', 'ank-d-flex']);
+    });
+
+    it('applies pending store combos before explicit cssCreate updates', () => {
+        const service = configure('browser');
+
+        store.setCombos({
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            combos: {
+                btnBase: ['ank-display-flex ank-alignItems-center'],
+            },
+        });
+
+        service.updateClasses(['btnBase']);
+
+        expect(pushCombos).toHaveBeenCalledOnceWith({ btnBase: ['ank-d-flex ank-ai-center'] });
+        expect(updateClasses).not.toHaveBeenCalled();
+        expect(cssCreate).toHaveBeenCalledOnceWith(['btnBase']);
+    });
+
+    it('forces an immediate full scan when a required combo class rule is still missing', async () => {
+        const service = configure('browser');
+        const style = document.createElement('style');
+        document.head.appendChild(style);
+        cssCreate.and.callFake((classes?: string[], primordial?: boolean) => {
+            if (classes === undefined && primordial === true) {
+                style.sheet?.insertRule('.ank-dSEL__COM_qaCombo-flex, .qaCombo { display: flex; }');
+            }
+        });
+
+        try {
+            store.setCombos({
+                version: 1,
+                pageId: 'default',
+                domain: 'zoolandingpage.com.mx',
+                combos: {
+                    qaCombo: ['ank-display-flex'],
+                },
+            });
+            TestBed.flushEffects();
+            cssCreate.calls.reset();
+
+            await expectAsync(service.waitForCssReady(250, ['qaCombo'])).toBeResolvedTo(true);
+
+            expect(waitForCssReady).not.toHaveBeenCalled();
+            expect(cssCreate).toHaveBeenCalledWith(['qaCombo']);
+            expect(cssCreate).toHaveBeenCalledWith(undefined, true);
+        } finally {
+            style.remove();
+        }
+    });
+
+    it('keeps combo CSS pending when the marker exists but the rendered color is stale', async () => {
+        const service = configure('browser');
+        const style = document.createElement('style');
+        const element = document.createElement('h1');
+        style.textContent = `
+            :root { --ank-titleColor: rgb(32, 23, 18); }
+            .ank-colorSEL__COM_qaCombo-titleColor, .qaCombo { color: rgb(250, 250, 250); }
+        `;
+        element.className = 'qaCombo';
+        element.textContent = 'Title';
+        document.head.appendChild(style);
+        document.body.appendChild(element);
+
+        cssCreate.and.callFake((classes?: string[], primordial?: boolean) => {
+            if (classes === undefined && primordial === true) {
+                style.sheet?.insertRule(
+                    '.ank-colorSEL__COM_qaCombo-titleColor, .qaCombo { color: var(--ank-titleColor); }',
+                    style.sheet.cssRules.length,
+                );
+            }
+        });
+
+        try {
+            store.setCombos({
+                version: 1,
+                pageId: 'default',
+                domain: 'zoolandingpage.com.mx',
+                combos: {
+                    qaCombo: ['ank-color-titleColor'],
+                },
+            });
+            TestBed.flushEffects();
+            cssCreate.calls.reset();
+
+            await expectAsync(service.waitForCssReady(250, ['qaCombo'])).toBeResolvedTo(true);
+
+            expect(getComputedStyle(element).color).toBe('rgb(32, 23, 18)');
+            expect(cssCreate).toHaveBeenCalledWith(['qaCombo']);
+            expect(cssCreate).toHaveBeenCalledWith(undefined, true);
+        } finally {
+            element.remove();
+            style.remove();
+        }
+    });
+
     it('does not treat unrelated classes that only share a combo prefix as combo classes', () => {
         const service = configure('browser');
 

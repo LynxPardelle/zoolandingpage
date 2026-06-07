@@ -50,7 +50,14 @@ export class RuntimeService {
     private renderedCssUpdateId = 0;
     private loadingCurtainReadyId = 0;
     private readonly cssReadyRetryDelayMs = 250;
-    private readonly cssReadyMaxWaitMs = 4_000;
+    private readonly cssRenderedComboRetryDelayMs = 50;
+    private readonly cssReadyMaxWaitMs = 20_000;
+    private readonly cssReadyStabilityPasses = 2;
+    private readonly criticalRenderedTextCombos = [
+        { className: 'sectionTitle', tokenName: 'titleColor' },
+        { className: 'sectionSubtitle', tokenName: 'secondaryTitleColor' },
+        { className: 'heroCaption', tokenName: 'secondaryTitleColor' },
+    ] as const;
 
     connect(options: {
         host: HTMLElement;
@@ -109,9 +116,10 @@ export class RuntimeService {
     requestRenderedComponentsCssUpdate(): void {
         const authoredClasses = this.orchestrator.getAllTheClassesFromComponents();
         const renderedClasses = this.combosService.collectRenderedDomClasses(this.renderedClassesRoot ?? undefined);
-        this.combosService.updateClasses([...authoredClasses, ...renderedClasses]);
+        const requiredCssClasses = [...authoredClasses, ...renderedClasses];
+        this.combosService.updateClasses(requiredCssClasses);
         this.theme.applyTheme();
-        this.hideLoadingCurtainAfterCssReady('rendered-components-css-updated');
+        this.hideLoadingCurtainAfterCssReady('rendered-components-css-updated', Date.now(), requiredCssClasses);
     }
 
     async initialize(lang?: string): Promise<void> {
@@ -297,13 +305,34 @@ export class RuntimeService {
         this.theme.applyTheme();
     }
 
-    private hideLoadingCurtainAfterCssReady(reason: string, startedAt = Date.now()): void {
+    private hideLoadingCurtainAfterCssReady(
+        reason: string,
+        startedAt = Date.now(),
+        requiredCssClasses: readonly string[] = [],
+        stableReadyPasses = 0,
+    ): void {
         if (!this.isBrowser) {
             return;
         }
 
         const readyId = ++this.loadingCurtainReadyId;
-        void this.combosService.waitForCssReady(this.cssReadyMaxWaitMs)
+        const cssClassesToVerify = this.collectCssClassesToVerify(requiredCssClasses);
+        const hasRenderedCombo = this.combosService.containsRegisteredComboClass(cssClassesToVerify);
+
+        if (!hasRenderedCombo && Date.now() - startedAt < this.cssReadyMaxWaitMs) {
+            window.setTimeout(() => {
+                if (readyId !== this.loadingCurtainReadyId) {
+                    return;
+                }
+
+                this.hideLoadingCurtainAfterCssReady(reason, startedAt, cssClassesToVerify, stableReadyPasses);
+            }, this.cssRenderedComboRetryDelayMs);
+            return;
+        }
+
+        this.combosService.updateClasses(cssClassesToVerify);
+
+        void this.combosService.waitForCssReady(this.cssReadyMaxWaitMs, cssClassesToVerify)
             .then((ready) => {
                 if (readyId !== this.loadingCurtainReadyId) {
                     return;
@@ -315,8 +344,24 @@ export class RuntimeService {
                             return;
                         }
 
-                        this.hideLoadingCurtainAfterCssReady(reason, startedAt);
+                        this.hideLoadingCurtainAfterCssReady(reason, startedAt, cssClassesToVerify);
                     }, this.cssReadyRetryDelayMs);
+                    return;
+                }
+
+                if (ready && stableReadyPasses < this.cssReadyStabilityPasses) {
+                    this.hideLoadingCurtainAfterCssReady(reason, startedAt, cssClassesToVerify, stableReadyPasses + 1);
+                    return;
+                }
+
+                if (ready && !this.renderedCriticalTextColorsReady() && Date.now() - startedAt < this.cssReadyMaxWaitMs) {
+                    window.setTimeout(() => {
+                        if (readyId !== this.loadingCurtainReadyId) {
+                            return;
+                        }
+
+                        this.hideLoadingCurtainAfterCssReady(reason, startedAt, cssClassesToVerify, stableReadyPasses);
+                    }, this.cssRenderedComboRetryDelayMs);
                     return;
                 }
 
@@ -325,7 +370,74 @@ export class RuntimeService {
                 }
 
                 this.loadingCurtain.hideWhenReady(reason);
+            })
+            .catch((error) => {
+                if (readyId !== this.loadingCurtainReadyId) {
+                    return;
+                }
+
+                if (Date.now() - startedAt < this.cssReadyMaxWaitMs) {
+                    window.setTimeout(() => {
+                        if (readyId !== this.loadingCurtainReadyId) {
+                            return;
+                        }
+
+                        this.hideLoadingCurtainAfterCssReady(reason, startedAt, cssClassesToVerify);
+                    }, this.cssReadyRetryDelayMs);
+                    return;
+                }
+
+                if (this.runtimeConfig.isDebugMode()) {
+                    console.warn('[Runtime] Hiding loading curtain after CSS readiness error.', { reason, error });
+                }
+
+                this.loadingCurtain.hideWhenReady(reason);
             });
+    }
+
+    private collectCssClassesToVerify(requiredCssClasses: readonly string[]): string[] {
+        const latestRenderedClasses = this.combosService.collectRenderedDomClasses(this.renderedClassesRoot ?? undefined);
+        return Array.from(new Set([...requiredCssClasses, ...latestRenderedClasses]));
+    }
+
+    private renderedCriticalTextColorsReady(): boolean {
+        if (!this.isBrowser || typeof document === 'undefined') {
+            return true;
+        }
+
+        return this.criticalRenderedTextCombos.every(({ className, tokenName }) => (
+            this.renderedComboColorReady(className, tokenName)
+        ));
+    }
+
+    private renderedComboColorReady(className: string, tokenName: string): boolean {
+        const elements = Array.from(document.querySelectorAll<HTMLElement>(`.${ className }`));
+        if (elements.length === 0) {
+            return true;
+        }
+
+        const expectedColor = this.resolveCssColorToken(tokenName);
+        if (!expectedColor) {
+            return true;
+        }
+
+        return elements.every((element) => getComputedStyle(element).color === expectedColor);
+    }
+
+    private resolveCssColorToken(tokenName: string): string | null {
+        if (typeof document === 'undefined' || !document.body) {
+            return null;
+        }
+
+        const probe = document.createElement('span');
+        probe.style.color = `var(--ank-${ tokenName })`;
+        probe.style.position = 'absolute';
+        probe.style.pointerEvents = 'none';
+        probe.style.visibility = 'hidden';
+        document.body.appendChild(probe);
+        const color = getComputedStyle(probe).color;
+        probe.remove();
+        return color || null;
     }
 
     private schedulePostBootstrapBrowserWork(task: () => void): void {

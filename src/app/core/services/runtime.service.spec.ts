@@ -34,6 +34,13 @@ const flushPostBootstrapBrowserWork = async (): Promise<void> => {
     await Promise.resolve();
 };
 
+const flushCssReadinessPasses = async (): Promise<void> => {
+    await flushPostBootstrapBrowserWork();
+    for (let index = 0; index < 8; index++) {
+        await Promise.resolve();
+    }
+};
+
 const nativeHistoryReplaceState = History.prototype.replaceState;
 
 describe('RuntimeService', () => {
@@ -47,6 +54,7 @@ describe('RuntimeService', () => {
     const updateClasses = jasmine.createSpy('updateClasses');
     const updateRenderedDomClasses = jasmine.createSpy('updateRenderedDomClasses');
     const collectRenderedDomClasses = jasmine.createSpy('collectRenderedDomClasses').and.returnValue(['ank-d-flex']);
+    const containsRegisteredComboClass = jasmine.createSpy('containsRegisteredComboClass').and.returnValue(true);
     const waitForCssReady = jasmine.createSpy('waitForCssReady').and.resolveTo(true);
     const setAuxiliaryCombos = jasmine.createSpy('setAuxiliaryCombos');
     const clearAuxiliaryCombos = jasmine.createSpy('clearAuxiliaryCombos');
@@ -172,6 +180,8 @@ describe('RuntimeService', () => {
         updateClasses.calls.reset();
         updateRenderedDomClasses.calls.reset();
         collectRenderedDomClasses.calls.reset();
+        collectRenderedDomClasses.and.returnValue(['ank-d-flex']);
+        containsRegisteredComboClass.calls.reset();
         waitForCssReady.calls.reset();
         setAuxiliaryCombos.calls.reset();
         clearAuxiliaryCombos.calls.reset();
@@ -243,6 +253,7 @@ describe('RuntimeService', () => {
                         updateClasses,
                         updateRenderedDomClasses,
                         collectRenderedDomClasses,
+                        containsRegisteredComboClass,
                         waitForCssReady,
                         setAuxiliaryCombos,
                         clearAuxiliaryCombos,
@@ -370,16 +381,78 @@ describe('RuntimeService', () => {
         expect(updateClasses).toHaveBeenCalledOnceWith(['hero']);
         expect(hideLoadingCurtain).not.toHaveBeenCalledWith('rendered-components-css-updated');
 
-        await flushPostBootstrapBrowserWork();
+        await flushCssReadinessPasses();
 
         expect(collectRenderedDomClasses).toHaveBeenCalled();
         expect(updateClasses.calls.allArgs()).toEqual([
             [['hero']],
             [['hero', 'ank-d-flex']],
+            [['hero', 'ank-d-flex']],
+            [['hero', 'ank-d-flex']],
+            [['hero', 'ank-d-flex']],
         ]);
         expect(waitForCssReady).toHaveBeenCalled();
+        expect(waitForCssReady).toHaveBeenCalledWith(jasmine.any(Number), ['hero', 'ank-d-flex']);
         expect(updateRenderedDomClasses).not.toHaveBeenCalled();
         expect(hideLoadingCurtain).toHaveBeenCalledWith('rendered-components-css-updated');
+    });
+
+    it('re-samples rendered combo classes after ready passes before hiding the boot curtain', async () => {
+        collectRenderedDomClasses.and.returnValues(
+            ['navCombo'],
+            ['navCombo'],
+            ['navCombo', 'sectionTitle'],
+            ['navCombo', 'sectionTitle'],
+            ['navCombo', 'sectionTitle'],
+        );
+        const service = TestBed.inject(RuntimeService);
+
+        setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
+        await service.initialize('es');
+        await flushCssReadinessPasses();
+
+        expect(waitForCssReady.calls.allArgs()).toEqual([
+            [jasmine.any(Number), ['hero', 'navCombo']],
+            [jasmine.any(Number), ['hero', 'navCombo', 'sectionTitle']],
+            [jasmine.any(Number), ['hero', 'navCombo', 'sectionTitle']],
+        ]);
+        expect(hideLoadingCurtain).toHaveBeenCalledWith('rendered-components-css-updated');
+    });
+
+    it('keeps the boot curtain while rendered section title color is still stale', async () => {
+        const style = document.createElement('style');
+        const title = document.createElement('h1');
+        style.textContent = `
+            :root { --ank-titleColor: rgb(32, 23, 18); }
+            .sectionTitle { color: rgb(255, 248, 230); }
+        `;
+        title.className = 'sectionTitle';
+        title.textContent = 'Title';
+        document.head.appendChild(style);
+        document.body.appendChild(title);
+
+        try {
+            const service = TestBed.inject(RuntimeService);
+
+            setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
+            await service.initialize('es');
+            await flushCssReadinessPasses();
+
+            expect(hideLoadingCurtain).not.toHaveBeenCalledWith('rendered-components-css-updated');
+
+            style.sheet?.insertRule(
+                '.sectionTitle { color: var(--ank-titleColor); }',
+                style.sheet.cssRules.length,
+            );
+            await new Promise<void>((resolve) => window.setTimeout(resolve, 75));
+            await flushCssReadinessPasses();
+
+            expect(getComputedStyle(title).color).toBe('rgb(32, 23, 18)');
+            expect(hideLoadingCurtain).toHaveBeenCalledWith('rendered-components-css-updated');
+        } finally {
+            title.remove();
+            style.remove();
+        }
     });
 
     it('skips sibling route prefetches during automated browser audits', async () => {

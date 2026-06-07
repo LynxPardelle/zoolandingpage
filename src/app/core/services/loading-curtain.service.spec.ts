@@ -121,4 +121,54 @@ describe('LoadingCurtainService', () => {
         tick(1);
         expect(documentRef.getElementById('zlp-boot-curtain')).toBeNull();
     }));
+
+    it('waits for critical rendered text colors before starting the exit', fakeAsync(() => {
+        const curtain = addCurtain();
+        const style = documentRef.createElement('style');
+        const title = documentRef.createElement('h1');
+        style.textContent = `
+            :root { --ank-titleColor: rgb(255, 248, 230); }
+            .sectionTitle { color: var(--ank-titleColor); }
+        `;
+        title.className = 'sectionTitle';
+        title.textContent = 'Title';
+        documentRef.head.appendChild(style);
+        documentRef.body.appendChild(title);
+
+        try {
+            variables.setPayload({
+                version: 1,
+                domain: 'erosbarajas.com',
+                pageId: 'default',
+                variables: {
+                    theme: {
+                        defaultMode: 'light',
+                        palettes: {
+                            light: { titleColor: '#201712' },
+                            dark: { titleColor: '#fff8e6' },
+                        },
+                    },
+                },
+            } as any);
+
+            service.configureFromDraft();
+            service.hideWhenReady('css-ready');
+
+            expect(curtain.classList.contains('zlp-boot-curtain--leaving')).toBeFalse();
+            tick(50);
+            expect(curtain.classList.contains('zlp-boot-curtain--leaving')).toBeFalse();
+
+            style.sheet?.insertRule(
+                '.sectionTitle { color: rgb(32, 23, 18); }',
+                style.sheet.cssRules.length,
+            );
+            tick(50);
+
+            expect(getComputedStyle(title).color).toBe('rgb(32, 23, 18)');
+            expect(curtain.classList.contains('zlp-boot-curtain--leaving')).toBeTrue();
+        } finally {
+            title.remove();
+            style.remove();
+        }
+    }));
 });

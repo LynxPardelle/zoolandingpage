@@ -381,7 +381,7 @@ For the production and test containers:
 5. Use `/health` or `/healthz` for container or proxy health checks so health probes do not invoke Angular SSR or config bootstrap.
 6. Manage preview-domain runtime resolution through authored `site-config.json.aliases`, not frontend environment files.
 7. Manage managed-alias DNS and Dokploy/Traefik routing through `tools/ops/sync-managed-alias-front-door.mjs`; do not hand-edit host routing without also preserving the repeatable command or follow-up change.
-8. Keep `projects.zoolandingpage.architect.build.options.security.allowedHosts` aligned with every public host served by Dokploy, including branded alternate domains such as `*.lynxpardelle.com`.
+8. Do not hotfix `projects.zoolandingpage.architect.build.options.security.allowedHosts` for every newly published branded domain. `src/server.ts` must validate `Host` and `X-Forwarded-Host` first against the static approved families or the resolved local/runtime `site-config` host set, then pass the exact validated host set into `AngularNodeAppEngine`.
 9. Keep `src/server.ts` Angular SSR `trustProxyHeaders` aligned with the headers Traefik injects. Untrusted `X-Forwarded-*` headers make Angular serve the CSR shell, which breaks Lighthouse and no-JS crawlers.
 10. Keep runtime config bootstrap in the shared Angular app initializer for both SSR and browser hydration. Do not rely on component-constructor fire-and-forget initialization, because remote runtime API latency can make Dokploy render the CSR shell before authored config is ready or make hydration clear the SSR tree before the browser config arrives.
 11. Keep a short in-process SSR cache for `runtime-bundle` responses so repeated renders do not invoke the remote runtime-read API for every document request.
@@ -430,7 +430,7 @@ node tools/ops/public-site-health-check.mjs --fail-on-aaaa --markdown --output r
 
 The public health check verifies DNS, the SSR page response, `/health`, and the runtime bundle API. Keep `/health` and `/healthz` as lightweight Express routes so container and proxy health checks do not invoke Angular SSR or config bootstrap.
 
-Local SSR smoke tests include a Traefik-style forwarded-header request. Run this before pushing changes that touch `src/server.ts`, `angular.json` security settings, or Dokploy routing:
+Local SSR smoke tests include Traefik-style forwarded-header requests, host allowlist checks, runtime alias checks, and draft preview query checks. Run this before pushing changes that touch `src/server.ts`, `angular.json` security settings, or Dokploy routing:
 
 ```bash
 npm run ssr:smoke
