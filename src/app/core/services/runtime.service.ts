@@ -51,7 +51,9 @@ export class RuntimeService {
     private loadingCurtainReadyId = 0;
     private readonly cssReadyRetryDelayMs = 250;
     private readonly cssRenderedComboRetryDelayMs = 50;
+    private readonly cssReadyAttemptWaitMs = 750;
     private readonly cssReadyMaxWaitMs = 20_000;
+    private readonly cssReadySoftFallbackMs = 2_500;
     private readonly cssReadyStabilityPasses = 2;
     private readonly criticalRenderedTextCombos = [
         { className: 'sectionTitle', tokenName: 'titleColor' },
@@ -332,13 +334,24 @@ export class RuntimeService {
 
         this.combosService.updateClasses(cssClassesToVerify);
 
-        void this.combosService.waitForCssReady(this.cssReadyMaxWaitMs, cssClassesToVerify)
+        const elapsedMs = Date.now() - startedAt;
+        const attemptWaitMs = Math.max(0, Math.min(this.cssReadyAttemptWaitMs, this.cssReadyMaxWaitMs - elapsedMs));
+
+        void this.combosService.waitForCssReady(attemptWaitMs, cssClassesToVerify)
             .then((ready) => {
                 if (readyId !== this.loadingCurtainReadyId) {
                     return;
                 }
 
-                if (!ready && Date.now() - startedAt < this.cssReadyMaxWaitMs) {
+                const elapsedAfterAttemptMs = Date.now() - startedAt;
+                const criticalTextReady = this.renderedCriticalTextColorsReady();
+
+                if (!ready && elapsedAfterAttemptMs >= this.cssReadySoftFallbackMs && criticalTextReady) {
+                    this.loadingCurtain.hideWhenReady(reason);
+                    return;
+                }
+
+                if (!ready && elapsedAfterAttemptMs < this.cssReadyMaxWaitMs) {
                     window.setTimeout(() => {
                         if (readyId !== this.loadingCurtainReadyId) {
                             return;
@@ -354,7 +367,7 @@ export class RuntimeService {
                     return;
                 }
 
-                if (ready && !this.renderedCriticalTextColorsReady() && Date.now() - startedAt < this.cssReadyMaxWaitMs) {
+                if (ready && !criticalTextReady && elapsedAfterAttemptMs < this.cssReadyMaxWaitMs) {
                     window.setTimeout(() => {
                         if (readyId !== this.loadingCurtainReadyId) {
                             return;

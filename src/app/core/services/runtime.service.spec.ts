@@ -36,7 +36,7 @@ const flushPostBootstrapBrowserWork = async (): Promise<void> => {
 
 const flushCssReadinessPasses = async (): Promise<void> => {
     await flushPostBootstrapBrowserWork();
-    for (let index = 0; index < 8; index++) {
+    for (let index = 0; index < 24; index++) {
         await Promise.resolve();
     }
 };
@@ -183,6 +183,7 @@ describe('RuntimeService', () => {
         collectRenderedDomClasses.and.returnValue(['ank-d-flex']);
         containsRegisteredComboClass.calls.reset();
         waitForCssReady.calls.reset();
+        waitForCssReady.and.resolveTo(true);
         setAuxiliaryCombos.calls.reset();
         clearAuxiliaryCombos.calls.reset();
         revealCssTimer.calls.reset();
@@ -395,6 +396,31 @@ describe('RuntimeService', () => {
         expect(waitForCssReady).toHaveBeenCalledWith(jasmine.any(Number), ['hero', 'ank-d-flex']);
         expect(updateRenderedDomClasses).not.toHaveBeenCalled();
         expect(hideLoadingCurtain).toHaveBeenCalledWith('rendered-components-css-updated');
+    });
+
+    it('does not wait for the full CSS timeout when rendered text is already safe', async () => {
+        let now = 0;
+        const dateNowSpy = spyOn(Date, 'now').and.callFake(() => now);
+
+        try {
+            waitForCssReady.and.resolveTo(false);
+            const service = TestBed.inject(RuntimeService);
+
+            setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
+            await service.initialize('es');
+            await flushCssReadinessPasses();
+
+            expect(waitForCssReady).toHaveBeenCalledWith(750, ['hero', 'ank-d-flex']);
+            expect(hideLoadingCurtain).not.toHaveBeenCalledWith('rendered-components-css-updated');
+
+            now = 3_000;
+            await new Promise<void>((resolve) => window.setTimeout(resolve, 300));
+            await flushCssReadinessPasses();
+
+            expect(hideLoadingCurtain).toHaveBeenCalledWith('rendered-components-css-updated');
+        } finally {
+            dateNowSpy.and.callThrough();
+        }
     });
 
     it('re-samples rendered combo classes after ready passes before hiding the boot curtain', async () => {
