@@ -35,6 +35,7 @@ This file is durable project memory, not a changelog. Keep it short, stable, and
 - `changelog/` is the only committed home for chronological app and draft history.
 - `drafts/{domain}/ai_notes/`, `drafts/{domain}/findings/`, and `drafts/{domain}/errors-reports/` are local-only draft history and investigation areas, not committed source of truth.
 - `.superpowers/`, `devonly/`, generated reports, and raw logs are local scratch unless a reusable lesson is distilled into `ai-notes/` or an event belongs in `changelog/`.
+- Superpowers plans, specs, QA evidence, scripts, and companion artifacts must stay under ignored `.superpowers/`; do not commit or push `.superpowers/` or `docs/superpowers/` content.
 - Keep note and changelog timestamps in Central Time.
 - Notes should stay English-first to match repo documentation, while quoted source content may stay in its original language.
 

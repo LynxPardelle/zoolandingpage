@@ -21,6 +21,7 @@ Use this file as the repo-level entrypoint for future AI agents and new contribu
 - Treat [changelog/](./changelog/) as the only committed home for chronological app and draft history.
 - Treat [Codex.md](./Codex.md) and this file as durable memory and workflow rules only, not as changelogs.
 - Treat `devonly/` only as optional local-only untracked scratch if you need repo-level temporary investigation space.
+- Treat `.superpowers/` as the only allowed location for Superpowers plans, specs, QA evidence, scripts, and companion artifacts; never commit or push `.superpowers/` or `docs/superpowers/` content.
 - During work, update committed notes only when the lesson is reusable beyond one draft. Use the templates in [ai-notes/templates/](./ai-notes/templates/) instead of inventing new note shapes.
 - After finishing work, distill reusable learnings back into the canonical folder and keep draft-specific detail in `drafts/{domain}/ai_notes/`, `drafts/{domain}/findings/`, or `drafts/{domain}/errors-reports/`.
 - Put app/runtime/tooling history in `changelog/app/` and draft authoring/QA/publish history in `changelog/drafts/`.
