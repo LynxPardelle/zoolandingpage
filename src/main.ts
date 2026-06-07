@@ -1,4 +1,4 @@
-import { CLIENT_BOOTSTRAP_DELAY_MS, CLIENT_BOOTSTRAP_READY_EVENT } from './app/core/constants/client-bootstrap.constants';
+import { CLIENT_BOOTSTRAP_DELAY_MS, CLIENT_BOOTSTRAP_READY_EVENT, STATIC_BOOT_CURTAIN_FALLBACK_MS } from './app/core/constants/client-bootstrap.constants';
 import { hasReadableCriticalTextContrast } from './app/core/utility/critical-text-contrast.utility';
 import { hasStaticStyleCoverage } from './app/core/utility/static-style-coverage.utility';
 import { environment } from './environments/environment';
@@ -9,6 +9,7 @@ const BOOT_CURTAIN_EXIT_DURATION_MS = 420;
 let bootstrapPromise: Promise<void> | null = null;
 let bootstrapTimer: number | null = null;
 let bootCurtainTimer: number | null = null;
+let bootCurtainFallbackTimer: number | null = null;
 
 function bootstrapClient(): Promise<void> {
     if (!bootstrapPromise) {
@@ -38,7 +39,7 @@ function clearBootstrapTimer(): void {
     }
 }
 
-function releaseBootCurtainForStaticSsrContent(): void {
+function releaseBootCurtainForStaticSsrContent(options: { allowIncompleteCriticalStyles?: boolean } = {}): void {
     const curtain = document.getElementById(BOOT_CURTAIN_ID);
     if (!curtain || curtain.classList.contains(BOOT_CURTAIN_EXIT_CLASS)) {
         return;
@@ -49,11 +50,13 @@ function releaseBootCurtainForStaticSsrContent(): void {
         return;
     }
 
-    if (!hasStaticStyleCoverage(appRoot)) {
+    const allowIncompleteCriticalStyles = options.allowIncompleteCriticalStyles === true;
+
+    if (!allowIncompleteCriticalStyles && !hasStaticStyleCoverage(appRoot)) {
         return;
     }
 
-    if (!hasReadableCriticalTextContrast(appRoot, document)) {
+    if (!allowIncompleteCriticalStyles && !hasReadableCriticalTextContrast(appRoot, document)) {
         return;
     }
 
@@ -63,6 +66,11 @@ function releaseBootCurtainForStaticSsrContent(): void {
 
     if (bootCurtainTimer !== null) {
         window.clearTimeout(bootCurtainTimer);
+    }
+
+    if (bootCurtainFallbackTimer !== null) {
+        window.clearTimeout(bootCurtainFallbackTimer);
+        bootCurtainFallbackTimer = null;
     }
 
     bootCurtainTimer = window.setTimeout(() => {
@@ -82,6 +90,12 @@ function startBootstrap(): void {
 function scheduleBootstrapAfterDocumentReady(): void {
     clearBootstrapTimer();
     releaseBootCurtainForStaticSsrContent();
+    if (bootCurtainFallbackTimer !== null) {
+        window.clearTimeout(bootCurtainFallbackTimer);
+    }
+    bootCurtainFallbackTimer = window.setTimeout(() => {
+        releaseBootCurtainForStaticSsrContent({ allowIncompleteCriticalStyles: true });
+    }, STATIC_BOOT_CURTAIN_FALLBACK_MS);
     bootstrapTimer = window.setTimeout(startBootstrap, environment.production ? CLIENT_BOOTSTRAP_DELAY_MS : 0);
 }
 
