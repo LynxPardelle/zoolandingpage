@@ -1337,6 +1337,10 @@ function resolveNotFoundLookupDomain(req: express.Request, host: string): string
   return host;
 }
 
+function isSharedTestingDraftPreviewRequest(req: express.Request, host: string): boolean {
+  return isSharedTestingPreviewHost(host) && Boolean(normalizeHost(req.query['draftDomain']));
+}
+
 function resolveRequestProtocol(req: express.Request, host: string): string {
   const forwardedProtoValues = String(req.headers['x-forwarded-proto'] ?? '')
     .split(',')
@@ -1377,7 +1381,7 @@ function resolveCanonicalOrigin(req: express.Request, host: string, siteConfig: 
 }
 
 function buildFrontDoorRedirectUrl(req: express.Request, host: string, siteConfig: TLocalSiteConfig | null): string | null {
-  if (!siteConfig || isLocalHost(host)) {
+  if (!siteConfig || isLocalHost(host) || isSharedTestingDraftPreviewRequest(req, host)) {
     return null;
   }
 
