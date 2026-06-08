@@ -149,7 +149,7 @@ test('production SSR server does not self-redirect when proxy proto chain includ
   assert.equal(getStderr(), '');
 });
 
-test('production SSR server does not self-redirect on proxy internal http', async (t) => {
+test('production SSR server redirects proxy-forwarded http to https', async (t) => {
   const { port, getStderr } = await startProductionServer(t);
   const response = await fetch(`http://127.0.0.1:${port}/robots.txt`, {
     redirect: 'manual',
@@ -162,15 +162,13 @@ test('production SSR server does not self-redirect on proxy internal http', asyn
       'X-Forwarded-Server': 'dokploy-traefik',
     },
   });
-  const body = await response.text();
 
-  assert.equal(response.status, 200);
-  assert.match(body, /Sitemap: https:\/\/zoolandingpage\.com\.mx\/sitemap\.xml/);
-  assert.equal(response.headers.get('location'), null);
+  assert.equal(response.status, 301);
+  assert.equal(response.headers.get('location'), 'https://test.zoolandingpage.com.mx/robots.txt');
   assert.equal(getStderr(), '');
 });
 
-test('production SSR server does not self-redirect primary canonical hosts on proxy internal http', async (t) => {
+test('production SSR server redirects primary canonical hosts from proxy-forwarded http to https', async (t) => {
   const { port, getStderr } = await startProductionServer(t);
   const response = await fetch(`http://127.0.0.1:${port}/robots.txt`, {
     redirect: 'manual',
@@ -183,11 +181,9 @@ test('production SSR server does not self-redirect primary canonical hosts on pr
       'X-Forwarded-Server': 'dokploy-traefik',
     },
   });
-  const body = await response.text();
 
-  assert.equal(response.status, 200);
-  assert.match(body, /Sitemap: https:\/\/zoolandingpage\.com\.mx\/sitemap\.xml/);
-  assert.equal(response.headers.get('location'), null);
+  assert.equal(response.status, 301);
+  assert.equal(response.headers.get('location'), 'https://zoolandingpage.com.mx/robots.txt');
   assert.equal(getStderr(), '');
 });
 
