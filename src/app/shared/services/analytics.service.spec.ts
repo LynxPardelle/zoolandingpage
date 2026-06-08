@@ -7,7 +7,32 @@ import { ConfigStoreService } from './config-store.service';
 import { QuickStatsService } from './quick-stats.service';
 import { RuntimeConfigService } from './runtime-config.service';
 
+const nativeHistoryPushState = History.prototype.pushState;
+const nativeHistoryReplaceState = History.prototype.replaceState;
+
+const restoreNativeHistoryStateMethods = (): void => {
+  Object.defineProperty(window.history, 'pushState', {
+    configurable: true,
+    writable: true,
+    value: nativeHistoryPushState.bind(window.history),
+  });
+  Object.defineProperty(window.history, 'replaceState', {
+    configurable: true,
+    writable: true,
+    value: nativeHistoryReplaceState.bind(window.history),
+  });
+};
+
+const setSpecUrl = (url: string): void => {
+  restoreNativeHistoryStateMethods();
+  window.history.replaceState({}, '', url);
+};
+
 describe('AnalyticsService', () => {
+  afterEach(() => {
+    setSpecUrl('/context.html');
+  });
+
   it('tracks events and buffers them', () => {
     TestBed.configureTestingModule({
       providers: [
@@ -313,9 +338,7 @@ describe('AnalyticsService', () => {
   });
 
   it('mirrors internal page views to Google dataLayer with stored ad attribution but without ad params in page_location', async () => {
-    const originalUrl = window.location.href;
     const attributionStorageKey = 'fixture:adAttribution';
-    const nativeReplaceState = History.prototype.replaceState;
     const trackingUrl = new URL(
       '/?gclid=test-gclid&utm_source=google&utm_campaign=spring&email=lead@example.com',
       window.location.origin,
@@ -328,7 +351,7 @@ describe('AnalyticsService', () => {
 
     try {
       window.sessionStorage.removeItem(attributionStorageKey);
-      nativeReplaceState.call(window.history, {}, '', trackingUrl);
+      setSpecUrl(trackingUrl);
       expect(window.location.href).toBe(trackingUrl);
 
       TestBed.configureTestingModule({
@@ -384,7 +407,7 @@ describe('AnalyticsService', () => {
       expect(pageView?.email).toBeUndefined();
     } finally {
       window.sessionStorage.removeItem(attributionStorageKey);
-      nativeReplaceState.call(window.history, {}, '', originalUrl);
+      setSpecUrl('/context.html');
       (window as any).dataLayer = [];
       delete (window as any).gtag;
     }
