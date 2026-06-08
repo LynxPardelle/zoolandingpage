@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -24,11 +23,16 @@ import {
 } from '../../utility/component-orchestrator.utility';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { GenericIconComponent } from '../generic-icon/generic-icon.component';
-import { TabDefinition, TabGroupConfig, TabGroupStringListValue, TabGroupTextValue } from './generic-tab-group.types';
+import {
+  TabDefinition,
+  TabGroupConfig,
+  TabGroupStringListValue,
+  TabGroupTextValue,
+} from './generic-tab-group.types';
 
 @Component({
   selector: 'generic-tab-group',
-  imports: [CommonModule, GenericButtonComponent, GenericIconComponent],
+  imports: [GenericButtonComponent, GenericIconComponent],
   templateUrl: './generic-tab-group.component.html',
   styleUrls: ['./generic-tab-group.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -42,7 +46,11 @@ export class GenericTabGroupComponent {
   private host = inject(ElementRef<HTMLElement>);
 
   readonly detailMode = computed(() => this.config().layout === 'split-detail');
-  readonly orientation = computed(() => this.config().orientation ?? (this.detailMode() ? 'vertical' : 'horizontal'));
+  readonly orientation = computed(
+    () =>
+      this.config().orientation ??
+      (this.detailMode() ? 'vertical' : 'horizontal')
+  );
   readonly tabs = computed<readonly TabDefinition[]>(() => {
     const cfg = this.config();
     const raw = resolveConfigSourceValue(cfg.tabsSource, cfg.tabs, {
@@ -64,11 +72,19 @@ export class GenericTabGroupComponent {
     const normalized = String(resolved ?? '').trim();
     return normalized.length > 0 ? normalized : null;
   });
-  readonly activeId = computed<string | null>(() => this.controlledActiveId() !== undefined ? this.controlledActiveId() ?? null : this.localActiveId());
+  readonly activeId = computed<string | null>(() =>
+    this.controlledActiveId() !== undefined
+      ? this.controlledActiveId() ?? null
+      : this.localActiveId()
+  );
   readonly activeTab = computed<TabDefinition | null>(() => {
     const tabs = this.tabs();
     const activeId = this.activeId();
-    return tabs.find((tab) => tab.id === activeId) ?? tabs.find((tab) => !tab.disabled) ?? null;
+    return (
+      tabs.find((tab) => tab.id === activeId) ??
+      tabs.find((tab) => !tab.disabled) ??
+      null
+    );
   });
 
   constructor() {
@@ -137,7 +153,7 @@ export class GenericTabGroupComponent {
   }
 
   detailItemTrackKey(index: number, detailItem: string): string {
-    return `${ index }:${ detailItem }`;
+    return `${index}:${detailItem}`;
   }
 
   listHeaderLabel = () => resolveTextValue(this.config().listHeaderLabel);
@@ -151,7 +167,9 @@ export class GenericTabGroupComponent {
   detailItemIconName = () => resolveTextValue(this.config().detailItemIconName);
 
   tabHasRichHeader(tab: TabDefinition): boolean {
-    return this.detailMode() || !!this.indexLabelOf(tab) || !!this.summaryOf(tab);
+    return (
+      this.detailMode() || !!this.indexLabelOf(tab) || !!this.summaryOf(tab)
+    );
   }
 
   buttonLabelFor(tab: TabDefinition): string {
@@ -164,7 +182,9 @@ export class GenericTabGroupComponent {
       this.isActive(tab.id ?? '')
         ? this.config().activeTabButtonClasses || ''
         : this.config().inactiveTabButtonClasses || '',
-    ].filter(Boolean).join(' ');
+    ]
+      .filter(Boolean)
+      .join(' ');
   }
 
   indexLabelClasses(tab: TabDefinition): string {
@@ -173,14 +193,16 @@ export class GenericTabGroupComponent {
       this.isActive(tab.id ?? '')
         ? this.config().activeIndexLabelClasses || ''
         : this.config().inactiveIndexLabelClasses || '',
-    ].filter(Boolean).join(' ');
+    ]
+      .filter(Boolean)
+      .join(' ');
   }
 
   @HostListener('keydown', ['$event']) onKey(e: KeyboardEvent) {
     const list = this.tabs();
     if (!list.length) return;
-    const enabled = list.filter(t => !t.disabled);
-    const current = enabled.findIndex(t => t.id === this.activeId());
+    const enabled = list.filter((t) => !t.disabled);
+    const current = enabled.findIndex((t) => t.id === this.activeId());
     const go = (i: number) => this.select(enabled[i].id ?? '');
     switch (e.key) {
       case 'ArrowRight':
@@ -213,13 +235,17 @@ export class GenericTabGroupComponent {
     queueMicrotask(() => {
       const id = this.activeId();
       if (!id) return;
-      const btn = this.host.nativeElement.querySelector(`#tab-${ id }`) as HTMLButtonElement | null;
+      const btn = this.host.nativeElement.querySelector(
+        `#tab-${id}`
+      ) as HTMLButtonElement | null;
       btn?.focus();
     });
   }
 
   private scrollToTab(id: string): void {
-    const tab = this.host.nativeElement.querySelector(`[data-tab-id="${ id }"]`) as HTMLElement | null;
+    const tab = this.host.nativeElement.querySelector(
+      `[data-tab-id="${id}"]`
+    ) as HTMLElement | null;
     if (!tab) return;
 
     scrollElementIntoViewportCenter(tab);
@@ -229,22 +255,39 @@ export class GenericTabGroupComponent {
     if (!entry || typeof entry !== 'object') return null;
 
     const record = entry as Record<string, unknown>;
-    const label = resolveTranslatedText(this.i18n, record['label'], record['labelKey'])
-      ?? resolveTranslatedText(this.i18n, record['title'], record['titleKey']);
+    const label =
+      resolveTranslatedText(this.i18n, record['label'], record['labelKey']) ??
+      resolveTranslatedText(this.i18n, record['title'], record['titleKey']);
     if (!label) return null;
 
     const stepNumber = Number(record['step']);
-    const indexLabel = resolveTranslatedText(this.i18n, record['indexLabel'])
-      ?? (Number.isFinite(stepNumber) && stepNumber > 0 ? String(Math.floor(stepNumber)) : undefined);
-    const content = resolveTranslatedText(this.i18n, record['content'], record['contentKey']);
-    const summary = resolveTranslatedText(this.i18n, record['summary'], record['summaryKey']);
-    const meta = resolveTranslatedText(this.i18n, record['meta'], record['metaKey']);
-    const detailItems = resolveTranslatedStringList(
+    const indexLabel =
+      resolveTranslatedText(this.i18n, record['indexLabel']) ??
+      (Number.isFinite(stepNumber) && stepNumber > 0
+        ? String(Math.floor(stepNumber))
+        : undefined);
+    const content = resolveTranslatedText(
       this.i18n,
-      record['detailItems'],
-      record['detailItemsKey'],
-      record['detailItemKeys']
-    ) ?? [];
+      record['content'],
+      record['contentKey']
+    );
+    const summary = resolveTranslatedText(
+      this.i18n,
+      record['summary'],
+      record['summaryKey']
+    );
+    const meta = resolveTranslatedText(
+      this.i18n,
+      record['meta'],
+      record['metaKey']
+    );
+    const detailItems =
+      resolveTranslatedStringList(
+        this.i18n,
+        record['detailItems'],
+        record['detailItemsKey'],
+        record['detailItemKeys']
+      ) ?? [];
 
     return {
       ...(record as TabDefinition),
@@ -261,7 +304,9 @@ export class GenericTabGroupComponent {
     };
   }
 
-  private resolveStringListValue(value: TabGroupStringListValue | undefined): readonly string[] {
+  private resolveStringListValue(
+    value: TabGroupStringListValue | undefined
+  ): readonly string[] {
     return resolveTranslatedStringList(this.i18n, value) ?? [];
   }
 }

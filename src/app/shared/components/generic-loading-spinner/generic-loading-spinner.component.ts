@@ -1,12 +1,23 @@
-import { CommonModule } from '@angular/common';
-import { Component, inject, Input } from '@angular/core';
+import {
+  Component,
+  inject,
+  Input,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { I18nService } from '../../services/i18n.service';
-import { DEFAULT_SPINNER_SIZE, DEFAULT_SPINNER_VARIANT } from './generic-loading-spinner.constants';
-import { LoadingSpinnerSize, LoadingSpinnerVariant } from './generic-loading-spinner.types';
+import {
+  DEFAULT_SPINNER_SIZE,
+  DEFAULT_SPINNER_VARIANT,
+} from './generic-loading-spinner.constants';
+import {
+  LoadingSpinnerSize,
+  LoadingSpinnerVariant,
+} from './generic-loading-spinner.types';
 @Component({
   selector: 'app-loading-spinner',
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './generic-loading-spinner.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./generic-loading-spinner.component.scss'],
 })
 export class GenericLoadingSpinnerComponent {

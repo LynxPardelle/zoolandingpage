@@ -62,6 +62,7 @@ This file is durable project memory, not a changelog. Keep it short, stable, and
 - Use `tools/draft-upload-status.mjs` to compare local draft JSON with the S3-backed authoring state before/after draft publish work. Treat `uploaded`, `needs-upload`, and `not-uploaded` as the standard release inventory statuses.
 - Do not store secrets, credentials, tokens, raw environment values, signed URLs, private customer data, or PII in committed notes, changelogs, or generated docs.
 - If a workflow depends on sensitive data, describe the dependency abstractly instead of copying the value.
+- 2026-06-07 22:25 CT: Angular 22 is the active app baseline and local CLI work should use Node 24.15.0+ because Angular CLI 22 requires the newer Node line. Because NgRx 21 declared Angular 21 peers and no NgRx 22 package was available during the migration, platform auth, draft tenant/profile, public blog, and blog editor state now use Angular signals plus `@angular/forms/signals` for editor form state; revisit NgRx only after an Angular 22-compatible release exists. Config rendering payloads remain in the existing `ConfigStoreService` and `VariableStoreService` signal stores. Never put OAuth/JWT tokens, client secrets, upstream credentials, signed URLs, or server-only integration policy in signal state, browser storage, or public draft payloads. The runtime build stays zoneless; Karma tests still load `zone.js/testing` until the test suite is migrated off fakeAsync/tick helpers.
 
 ## App Guardrails
 

@@ -1,5 +1,13 @@
-import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, EventEmitter, inject, Input, Output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  EventEmitter,
+  inject,
+  Input,
+  Output,
+  signal,
+} from '@angular/core';
 import { I18nService } from '../../services/i18n.service';
 import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
@@ -7,74 +15,133 @@ import { GenericIconComponent } from '../generic-icon/generic-icon.component';
 import { TGenericCardConfig } from './generic-card.types';
 
 @Component({
-    selector: 'generic-card',
-    imports: [CommonModule, GenericButtonComponent, GenericIconComponent],
-    templateUrl: './generic-card.component.html',
-    changeDetection: ChangeDetectionStrategy.OnPush,
+  selector: 'generic-card',
+  imports: [GenericButtonComponent, GenericIconComponent],
+  templateUrl: './generic-card.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GenericCardComponent {
-    private readonly i18n = inject(I18nService);
-    private readonly _config = signal<TGenericCardConfig>({});
-    readonly stars = signal<readonly number[]>([1, 2, 3, 4, 5]);
+  private readonly i18n = inject(I18nService);
+  private readonly _config = signal<TGenericCardConfig>({});
+  readonly stars = signal<readonly number[]>([1, 2, 3, 4, 5]);
 
-    @Input()
-    get config(): TGenericCardConfig {
-        return this._config();
-    }
+  @Input()
+  get config(): TGenericCardConfig {
+    return this._config();
+  }
 
-    set config(value: TGenericCardConfig) {
-        this._config.set(value ?? {});
-    }
+  set config(value: TGenericCardConfig) {
+    this._config.set(value ?? {});
+  }
 
-    @Output() readonly linkClicked = new EventEmitter<{ href: string; eventInstructions?: string }>();
+  @Output() readonly linkClicked = new EventEmitter<{
+    href: string;
+    eventInstructions?: string;
+  }>();
 
-    readonly variant = computed(() => resolveDynamicValue(this._config().variant) === 'testimonial' ? 'testimonial' : 'feature');
-    readonly isTestimonial = computed(() => this.variant() === 'testimonial');
-    readonly classes = computed(() => String(resolveDynamicValue(this._config().classes) ?? '').trim());
-    readonly buttonClasses = computed(() => String(resolveDynamicValue(this._config().buttonClasses) ?? '').trim());
+  readonly variant = computed(() =>
+    resolveDynamicValue(this._config().variant) === 'testimonial'
+      ? 'testimonial'
+      : 'feature'
+  );
+  readonly isTestimonial = computed(() => this.variant() === 'testimonial');
+  readonly classes = computed(() =>
+    String(resolveDynamicValue(this._config().classes) ?? '').trim()
+  );
+  readonly buttonClasses = computed(() =>
+    String(resolveDynamicValue(this._config().buttonClasses) ?? '').trim()
+  );
 
-    readonly icon = computed(() => resolveDynamicValue(this._config().icon) ?? '');
-    readonly title = computed(() => String(resolveDynamicValue(this._config().title) ?? ''));
-    readonly description = computed(() => String(resolveDynamicValue(this._config().description) ?? ''));
-    readonly benefits = computed<readonly string[]>(() => resolveDynamicValue(this._config().benefits) ?? []);
-    readonly buttonLabel = computed(() => String(resolveDynamicValue(this._config().buttonLabel) ?? ''));
-    readonly imageSrc = computed(() => String(resolveDynamicValue(this._config().imageSrc) ?? '').trim());
-    readonly imageAlt = computed(() => String(resolveDynamicValue(this._config().imageAlt) ?? this.title() ?? '').trim());
-    readonly href = computed(() => String(resolveDynamicValue(this._config().href) ?? '').trim());
-    readonly linkLabel = computed(() => String(resolveDynamicValue(this._config().linkLabel) ?? '').trim());
-    readonly linkEventInstructions = computed(() => String(resolveDynamicValue(this._config().linkEventInstructions) ?? '').trim());
-    readonly target = computed(() => String(resolveDynamicValue(this._config().target) ?? '').trim() || null);
-    readonly rel = computed(() => String(resolveDynamicValue(this._config().rel) ?? 'nofollow noopener noreferrer').trim());
+  readonly icon = computed(
+    () => resolveDynamicValue(this._config().icon) ?? ''
+  );
+  readonly title = computed(() =>
+    String(resolveDynamicValue(this._config().title) ?? '')
+  );
+  readonly description = computed(() =>
+    String(resolveDynamicValue(this._config().description) ?? '')
+  );
+  readonly benefits = computed<readonly string[]>(
+    () => resolveDynamicValue(this._config().benefits) ?? []
+  );
+  readonly buttonLabel = computed(() =>
+    String(resolveDynamicValue(this._config().buttonLabel) ?? '')
+  );
+  readonly imageSrc = computed(() =>
+    String(resolveDynamicValue(this._config().imageSrc) ?? '').trim()
+  );
+  readonly imageAlt = computed(() =>
+    String(
+      resolveDynamicValue(this._config().imageAlt) ?? this.title() ?? ''
+    ).trim()
+  );
+  readonly href = computed(() =>
+    String(resolveDynamicValue(this._config().href) ?? '').trim()
+  );
+  readonly linkLabel = computed(() =>
+    String(resolveDynamicValue(this._config().linkLabel) ?? '').trim()
+  );
+  readonly linkEventInstructions = computed(() =>
+    String(
+      resolveDynamicValue(this._config().linkEventInstructions) ?? ''
+    ).trim()
+  );
+  readonly target = computed(
+    () =>
+      String(resolveDynamicValue(this._config().target) ?? '').trim() || null
+  );
+  readonly rel = computed(() =>
+    String(
+      resolveDynamicValue(this._config().rel) ?? 'nofollow noopener noreferrer'
+    ).trim()
+  );
 
-    readonly name = computed(() => String(resolveDynamicValue(this._config().name) ?? ''));
-    readonly role = computed(() => String(resolveDynamicValue(this._config().role) ?? ''));
-    readonly company = computed(() => String(resolveDynamicValue(this._config().company) ?? ''));
-    readonly content = computed(() => String(resolveDynamicValue(this._config().content) ?? ''));
-    readonly rating = computed(() => Number(resolveDynamicValue(this._config().rating) ?? 0));
-    readonly avatar = computed(() => String(resolveDynamicValue(this._config().avatar) ?? ''));
-    readonly verified = computed(() => Boolean(resolveDynamicValue(this._config().verified) ?? false));
-    readonly keyedBenefits = computed(() => this.benefits().map((benefit, index) => ({
-        key: `${ index }:${ benefit }`,
-        value: benefit,
-    })));
-    readonly verifiedLabel = computed(() => this.i18n.t('ui.common.verified'));
-    readonly classValue = (key: keyof TGenericCardConfig): string => String(resolveDynamicValue(this._config()[key] as never) ?? '').trim();
-    readonly iconClassValue = (key: keyof TGenericCardConfig): string => {
-        const classes = this.classValue(key);
-        return ['material-icons', classes].filter(Boolean).join(' ');
-    };
+  readonly name = computed(() =>
+    String(resolveDynamicValue(this._config().name) ?? '')
+  );
+  readonly role = computed(() =>
+    String(resolveDynamicValue(this._config().role) ?? '')
+  );
+  readonly company = computed(() =>
+    String(resolveDynamicValue(this._config().company) ?? '')
+  );
+  readonly content = computed(() =>
+    String(resolveDynamicValue(this._config().content) ?? '')
+  );
+  readonly rating = computed(() =>
+    Number(resolveDynamicValue(this._config().rating) ?? 0)
+  );
+  readonly avatar = computed(() =>
+    String(resolveDynamicValue(this._config().avatar) ?? '')
+  );
+  readonly verified = computed(() =>
+    Boolean(resolveDynamicValue(this._config().verified) ?? false)
+  );
+  readonly keyedBenefits = computed(() =>
+    this.benefits().map((benefit, index) => ({
+      key: `${index}:${benefit}`,
+      value: benefit,
+    }))
+  );
+  readonly verifiedLabel = computed(() => this.i18n.t('ui.common.verified'));
+  readonly classValue = (key: keyof TGenericCardConfig): string =>
+    String(resolveDynamicValue(this._config()[key] as never) ?? '').trim();
+  readonly iconClassValue = (key: keyof TGenericCardConfig): string => {
+    const classes = this.classValue(key);
+    return ['material-icons', classes].filter(Boolean).join(' ');
+  };
 
-    readonly onButtonPressed = (_event?: MouseEvent): void => {
-        this._config().onCta?.(this.title());
-    };
+  readonly onButtonPressed = (_event?: MouseEvent): void => {
+    this._config().onCta?.(this.title());
+  };
 
-    readonly onLinkClicked = (_event?: MouseEvent): void => {
-        const href = this.href();
-        if (!href) return;
+  readonly onLinkClicked = (_event?: MouseEvent): void => {
+    const href = this.href();
+    if (!href) return;
 
-        this.linkClicked.emit({
-            href,
-            eventInstructions: this.linkEventInstructions() || undefined,
-        });
-    };
+    this.linkClicked.emit({
+      href,
+      eventInstructions: this.linkEventInstructions() || undefined,
+    });
+  };
 }
