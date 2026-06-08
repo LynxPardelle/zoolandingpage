@@ -1,12 +1,15 @@
 import { OverlayContainer } from '@angular/cdk/overlay';
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { LanguageService } from '../../services/language.service';
 import { GenericDropdown } from './generic-dropdown.component';
 import type { DropdownItem } from './generic-dropdown.types';
 
 @Component({
-  template: `<generic-dropdown [items]="items" [config]="config"><span trigger>Menu</span></generic-dropdown>`,
+  template: `<generic-dropdown [items]="items" [config]="config"
+    ><span trigger>Menu</span></generic-dropdown
+  >`,
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [GenericDropdown],
 })
 class HostTestComponent {
@@ -41,18 +44,24 @@ describe('GenericDropdown', () => {
   });
 
   it('applies configurable accessibility attributes to the trigger', () => {
-    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    const button = fixture.nativeElement.querySelector(
+      'button'
+    ) as HTMLButtonElement;
 
     expect(button.getAttribute('role')).toBe('combobox');
     expect(button.getAttribute('aria-label')).toBe('Choose an option');
   });
 
   it('splits overlay panel classes into valid DOM tokens', () => {
-    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    const button = fixture.nativeElement.querySelector(
+      'button'
+    ) as HTMLButtonElement;
 
     expect(() => button.click()).not.toThrow();
 
-    const panel = overlayContainer.getContainerElement().querySelector('.menu-shell.menu-theme');
+    const panel = overlayContainer
+      .getContainerElement()
+      .querySelector('.menu-shell.menu-theme');
     expect(panel).not.toBeNull();
   });
 
@@ -64,31 +73,43 @@ describe('GenericDropdown', () => {
     fixture.destroy();
     fixture = TestBed.createComponent(HostTestComponent);
     fixture.componentInstance.items = [
-      { id: 'contact', value: 'contact', label: { en: 'Contact', es: 'Contacto', default: 'Contact' } },
+      {
+        id: 'contact',
+        value: 'contact',
+        label: { en: 'Contact', es: 'Contacto', default: 'Contact' },
+      },
     ];
     fixture.detectChanges();
 
-    const component = fixture.debugElement.children[0].componentInstance as GenericDropdown;
+    const component = fixture.debugElement.children[0]
+      .componentInstance as GenericDropdown;
     expect(component.normalizedItems()[0]?.label).toBe('Contacto');
     expect(component.normalizedItems()[0]?.value).toBe('contact');
     expect(component.itemHref(component.normalizedItems()[0])).toBe('#contact');
   });
 
   it('preserves the configured selected option when focus moves to the first opened item', () => {
-    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    const button = fixture.nativeElement.querySelector(
+      'button'
+    ) as HTMLButtonElement;
 
     button.click();
     fixture.detectChanges();
 
-    const options = overlayContainer.getContainerElement().querySelectorAll('a[role="option"]');
+    const options = overlayContainer
+      .getContainerElement()
+      .querySelectorAll('a[role="option"]');
 
     expect(options[0]?.getAttribute('aria-selected')).toBe('false');
     expect(options[1]?.getAttribute('aria-selected')).toBe('true');
   });
 
   it('closes an opened menu when client navigation changes', () => {
-    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
-    const component = fixture.debugElement.children[0].componentInstance as GenericDropdown;
+    const button = fixture.nativeElement.querySelector(
+      'button'
+    ) as HTMLButtonElement;
+    const component = fixture.debugElement.children[0]
+      .componentInstance as GenericDropdown;
 
     button.click();
     fixture.detectChanges();

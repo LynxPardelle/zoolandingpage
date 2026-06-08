@@ -175,7 +175,7 @@ test('requested draft aliases canonicalize to their primary domains', async () =
     {
       domain: 'zoolandingpage.com.mx',
       canonicalOrigin: 'https://zoolandingpage.com.mx',
-      hosts: ['zoolandingpage.com', 'test.zoolandingpage.com', 'test.zoolandingpage.com.mx'],
+      hosts: ['zoolandingpage.com', 'test.zoolandingpage.com.mx'],
     },
     {
       domain: 'sulandingpage.com.mx',
@@ -183,10 +183,6 @@ test('requested draft aliases canonicalize to their primary domains', async () =
       hosts: [
         'sulandingpage.com',
         'sulanding.zoolandingpage.com.mx',
-        'test.sulanding.zoolandingpage.com.mx',
-        'test.sulandingpage.com',
-        'test.sulandingpage.com.mx',
-        'test.sulandingpage.zoolandingpage.com.mx',
       ],
     },
     {
@@ -197,12 +193,7 @@ test('requested draft aliases canonicalize to their primary domains', async () =
         'sitiosweb.zoolandingpage.com.mx',
         'quierounsitioweb.zoolandingpage.com.mx',
         'crearpaginaweb.zoolandingpage.com.mx',
-        'test.crearpaginaweb.zoolandingpage.com.mx',
-        'test.quierounsitioweb.zoolandingpage.com.mx',
-        'test.sitiosweb.zoolandingpage.com.mx',
-        'test.zoosite.zoolandingpage.com.mx',
         'test.zoositioweb.com.mx',
-        'test.zoositioweb.zoolandingpage.com.mx',
       ],
     },
   ];
@@ -679,7 +670,7 @@ test('built SSR server decorates configured drafts with Google tag, Search Conso
     aliases: ['sitiosweb.zoolandingpage.com.mx'],
     environments: {
       test: {
-        aliases: ['test.sitiosweb.zoolandingpage.com.mx'],
+        aliases: ['test.zoositioweb.com.mx'],
       },
     },
     defaultPageId: 'default',

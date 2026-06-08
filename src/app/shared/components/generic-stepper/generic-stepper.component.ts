@@ -1,11 +1,17 @@
-import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, Input, Signal, computed, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Input,
+  Signal,
+  computed,
+  signal,
+} from '@angular/core';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { StepDefinition, StepperConfig } from './generic-stepper.types';
 
 @Component({
   selector: 'generic-stepper',
-  imports: [CommonModule, GenericButtonComponent],
+  imports: [GenericButtonComponent],
   templateUrl: './generic-stepper.component.html',
   styleUrls: ['./generic-stepper.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

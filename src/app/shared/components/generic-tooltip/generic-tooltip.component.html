@@ -7,9 +7,11 @@
     [attr.aria-hidden]="!visible()"
     [attr.inert]="!visible() ? '' : null"
   >
-    <ng-container *ngIf="richTemplate; else plain" [ngTemplateOutlet]="richTemplate"></ng-container>
-    <ng-template #plain>{{ content() }}</ng-template>
-    @if (arrow) {
+    @if (richTemplate) {
+    <ng-container [ngTemplateOutlet]="richTemplate"></ng-container>
+    } @else {
+    {{ content() }}
+    } @if (arrow) {
     <span [class]="arrowClasses()" aria-hidden="true"></span>
     }
   </div>

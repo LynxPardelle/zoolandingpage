@@ -144,18 +144,13 @@ async function ensureBranch(repoPath, branch, fromBranch, apply) {
 }
 
 function testAliasesFor(domain, aliases = []) {
+  void domain;
   const normalizedAliases = aliases.map(normalizeDomain).filter(Boolean);
   const names = new Set();
-  for (const host of [domain, ...normalizedAliases]) {
+  for (const host of normalizedAliases) {
     if (host.startsWith('test.')) {
       names.add(host);
-      continue;
     }
-    names.add(`test.${host}`);
-  }
-  const firstLabel = domain.split('.')[0];
-  if (!domain.endsWith('zoolandingpage.com.mx') && firstLabel) {
-    names.add(`test.${firstLabel}.zoolandingpage.com.mx`);
   }
   return [...names].sort();
 }

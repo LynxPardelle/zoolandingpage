@@ -13,7 +13,11 @@
   } @if (panelOpen()) {
   <div class="search-box-panel" [class]="panelClasses()">
     @if (showBackdrop()) {
-    <div class="search-box-panel-backdrop" aria-hidden="true" (click)="onBackdropClick($event)"></div>
+    <div
+      class="search-box-panel-backdrop"
+      aria-hidden="true"
+      (click)="onBackdropClick($event)"
+    ></div>
     }
     <div class="search-box-panel-content" [class]="panelContentClasses()">
       <generic-button
@@ -27,7 +31,10 @@
         (pressed)="closePanel()"
       ></generic-button>
 
-      <div class="search-box-panel-input-wrapper" [class]="panelInputWrapperClasses()">
+      <div
+        class="search-box-panel-input-wrapper"
+        [class]="panelInputWrapperClasses()"
+      >
         <input
           #searchInput
           type="search"
@@ -38,7 +45,9 @@
           [attr.aria-autocomplete]="'list'"
           [attr.aria-controls]="listboxId"
           [attr.aria-expanded]="results().length > 0"
-          [attr.aria-activedescendant]="activeIndex() > -1 ? 'sb-opt-' + results()[activeIndex()].id : null"
+          [attr.aria-activedescendant]="
+            activeIndex() > -1 ? 'sb-opt-' + results()[activeIndex()].id : null
+          "
           [attr.id]="inputId"
           (input)="onInput($event)"
           (keydown)="onKey($event)"
@@ -58,7 +67,9 @@
     [attr.aria-autocomplete]="'list'"
     [attr.aria-controls]="listboxId"
     [attr.aria-expanded]="results().length > 0"
-    [attr.aria-activedescendant]="activeIndex() > -1 ? 'sb-opt-' + results()[activeIndex()].id : null"
+    [attr.aria-activedescendant]="
+      activeIndex() > -1 ? 'sb-opt-' + results()[activeIndex()].id : null
+    "
     [attr.id]="inputId"
     (input)="onInput($event)"
     (keydown)="onKey($event)"
@@ -78,12 +89,14 @@
           }"
           (pressed)="choose(s)"
         >
+          @if (itemTemplate()) {
           <ng-container
-            *ngIf="itemTemplate(); else defaultItem"
             [ngTemplateOutlet]="itemTemplate()"
             [ngTemplateOutletContext]="{ $implicit: s }"
           ></ng-container>
-          <ng-template #defaultItem>{{ s.label }}</ng-template>
+          } @else {
+          {{ s.label }}
+          }
         </generic-button>
       </li>
       } @if (!loading() && !results().length && term().length >= minLength()) {

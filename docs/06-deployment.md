@@ -331,15 +331,18 @@ The canonical site config can also declare reusable aliases:
 {
   "version": 1,
   "domain": "zoolandingpage.com.mx",
-  "aliases": ["test.zoolandingpage.com.mx", "landing-preview.zoolandingpage.com.mx"]
+  "aliases": ["landing-preview.zoolandingpage.com.mx"]
 }
 ```
 
 Default convention for new sites:
 
 - Keep `domain` set to the intended long-term canonical domain.
-- Always add a managed fallback alias under `*.zoolandingpage.com.mx` in `aliases`.
-- If the branded domain is not live yet, use the Zoolanding alias in `site.seo.canonicalOrigin` and page `seo.canonical` fields until the real-domain cutover is complete.
+- Ask the user for the intended canonical domain and every production/test alias before creating the draft repo or authoring config.
+- Use `https://test.zoolandingpage.com.mx/?draftDomain={domain}` as the default test environment.
+- Do not add dedicated `test.*` aliases by default. Add one only when the user explicitly approves that host.
+- Add managed production aliases under `*.zoolandingpage.com.mx` only when they are approved and intended to be public aliases.
+- If the branded domain is not live yet and no approved production alias exists, keep the draft preview on the shared test host until the real-domain cutover is complete.
 - After publishing a draft with a managed alias, run `npm run ops:sync-managed-aliases` so Route 53, Traefik routing, and TLS issuance are repeatable instead of manual host patches.
 
 ### 7.1 First upload from the local draft

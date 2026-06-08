@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -22,7 +21,7 @@ import type { TGenericStatsCounterConfig } from './generic-stats-counter.types';
 
 @Component({
   selector: 'generic-stats-counter',
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './generic-stats-counter.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -36,10 +35,18 @@ export class GenericStatsCounterComponent {
   readonly internalValue = signal(0);
   readonly started = signal(false);
   readonly completed = output<void>();
-  readonly normalizedConfig = computed(() => normalizeStatsCounterConfig(this.config()));
+  readonly normalizedConfig = computed(() =>
+    normalizeStatsCounterConfig(this.config())
+  );
 
-  readonly displayValue = computed(() => formatStatsCounterValue(this.internalValue(), this.normalizedConfig()));
-  readonly ariaLabel = computed(() => this.normalizedConfig().ariaLabel || `Counter value ${ this.displayValue() }`);
+  readonly displayValue = computed(() =>
+    formatStatsCounterValue(this.internalValue(), this.normalizedConfig())
+  );
+  readonly ariaLabel = computed(
+    () =>
+      this.normalizedConfig().ariaLabel ||
+      `Counter value ${this.displayValue()}`
+  );
 
   private io?: IntersectionObserver;
   private rafId?: number;
@@ -66,14 +73,16 @@ export class GenericStatsCounterComponent {
   private setupObserver(): void {
     if (this.io) return;
     if (typeof window === 'undefined') return;
-    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const prefersReduced = window.matchMedia(
+      '(prefers-reduced-motion: reduce)'
+    ).matches;
     if (prefersReduced) {
       this.internalValue.set(this.normalizedConfig().target);
       return;
     }
     this.io = new IntersectionObserver(
-      entries => {
-        entries.forEach(e => {
+      (entries) => {
+        entries.forEach((e) => {
           if (e.isIntersecting) {
             this.start();
             this.io?.disconnect();
