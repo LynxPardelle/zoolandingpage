@@ -61,6 +61,8 @@ describe('GenericDropdown', () => {
     language.configureLanguages(['en', 'es'], { defaultLanguage: 'en' });
     language.setLanguage('es');
 
+    fixture.destroy();
+    fixture = TestBed.createComponent(HostTestComponent);
     fixture.componentInstance.items = [
       { id: 'contact', value: 'contact', label: { en: 'Contact', es: 'Contacto', default: 'Contact' } },
     ];

@@ -2,15 +2,15 @@
   "name": "zoolandingpage",
   "version": "0.0.0",
   "scripts": {
-    "ng": "ng",
-    "start": "ng serve",
+    "ng": "node ./node_modules/@angular/cli/bin/ng.js",
+    "start": "node ./node_modules/@angular/cli/bin/ng.js serve",
     "start:logged": "node tools/run-with-logs.mjs --name ng-serve -- npm run start",
     "angora:build-local": "npm --prefix ../ngx-angora-css run build:ngx_angora_css_lib",
     "angora:link-local": "npm link ../ngx-angora-css/dist/ngx-angora-css-library --no-save",
     "angora:restore-registry": "npm install ngx-angora-css@1.6.1",
-    "build": "ng build",
-    "watch": "ng build --watch --configuration development",
-    "test": "ng test",
+    "build": "node ./node_modules/@angular/cli/bin/ng.js build",
+    "watch": "node ./node_modules/@angular/cli/bin/ng.js build --watch --configuration development",
+    "test": "node ./node_modules/@angular/cli/bin/ng.js test",
     "test:logged": "node tools/run-with-logs.mjs --name ng-test -- npm run test -- --watch=false --browsers=ChromeHeadless",
     "serve:ssr:zoolandingpage": "node dist/zoolandingpage/server/server.mjs",
     "serve:ssr": "npm run serve:ssr:zoolandingpage",
@@ -36,6 +36,7 @@
     "ops:configure-runtime-cache": "node tools/ops/configure-runtime-front-door-cache.mjs",
     "ops:configure-runtime-observability": "node tools/ops/configure-runtime-observability.mjs",
     "ssr:smoke": "npm run build && node --test tools/tests/ssr-server.spec.mjs",
+    "test:zoneless-runner": "node --test tools/tests/zoneless-karma-runner.spec.mjs",
     "test:draft-smoke": "node --test tools/tests/draft-smoke-check.spec.mjs",
     "test:draft-upload-status": "node --test tools/tests/draft-upload-status.spec.mjs",
     "test:draft-repo-preflight": "node --test tools/tests/draft-repo-preflight.spec.mjs",
@@ -44,7 +45,7 @@
     "test:draft-github-setup": "node --test tools/tests/draft-github-setup.spec.mjs",
     "test:ops-front-door": "node --test tools/tests/ops-managed-alias-front-door.spec.mjs tools/tests/ops-runtime-front-door-probe.spec.mjs tools/tests/ops-runtime-front-door-cache.spec.mjs tools/tests/ops-runtime-observability.spec.mjs",
     "test:draft-context": "npm run build && node --test tools/tests/draft-local-context.spec.mjs",
-    "ci:budgets": "ng build --configuration production",
+    "ci:budgets": "node ./node_modules/@angular/cli/bin/ng.js build --configuration production",
     "ci:perf": "node tools/perf-baseline.mjs"
   },
   "prettier": {
@@ -75,8 +76,7 @@
     "ngx-angora-css": "^1.6.1",
     "rxjs": "~7.8.0",
     "simple-icons": "^16.14.0",
-    "tslib": "^2.8.1",
-    "zone.js": "~0.15.0"
+    "tslib": "^2.8.1"
   },
   "devDependencies": {
     "@angular/build": "^20.3.25",

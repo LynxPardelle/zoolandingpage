@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { fakeAsync, flushMicrotasks, TestBed, tick } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { AnalyticsCategories, AnalyticsEvents } from './analytics.events';
 import { AnalyticsService } from './analytics.service';
@@ -315,6 +315,11 @@ describe('AnalyticsService', () => {
   it('mirrors internal page views to Google dataLayer with stored ad attribution but without ad params in page_location', async () => {
     const originalUrl = window.location.href;
     const attributionStorageKey = 'fixture:adAttribution';
+    const nativeReplaceState = History.prototype.replaceState;
+    const trackingUrl = new URL(
+      '/?gclid=test-gclid&utm_source=google&utm_campaign=spring&email=lead@example.com',
+      window.location.origin,
+    ).toString();
 
     spyOnProperty(navigator, 'userAgent', 'get').and.returnValue('Mozilla/5.0 Chrome/148.0.0.0 Safari/537.36');
     spyOnProperty(navigator, 'webdriver', 'get').and.returnValue(false);
@@ -322,6 +327,10 @@ describe('AnalyticsService', () => {
     delete (window as any).gtag;
 
     try {
+      window.sessionStorage.removeItem(attributionStorageKey);
+      nativeReplaceState.call(window.history, {}, '', trackingUrl);
+      expect(window.location.href).toBe(trackingUrl);
+
       TestBed.configureTestingModule({
         providers: [
           {
@@ -354,18 +363,14 @@ describe('AnalyticsService', () => {
 
       const svc = TestBed.inject(AnalyticsService);
 
-      history.replaceState(
-        {},
-        '',
-        new URL('/?gclid=test-gclid&utm_source=google&utm_campaign=spring&email=lead@example.com', window.location.origin).toString(),
-      );
-      window.sessionStorage.removeItem(attributionStorageKey);
       await svc.track('page_view', {
         category: 'navigation',
         label: '/?gclid=test-gclid&utm_source=google&utm_campaign=spring',
       });
 
-      const pageView = (window as any).dataLayer.find((entry: Record<string, unknown>) => entry['event'] === 'page_view');
+      const pageView = [...(window as any).dataLayer]
+        .reverse()
+        .find((entry: Record<string, unknown>) => entry['event'] === 'page_view');
 
       expect(pageView).toEqual(jasmine.objectContaining({
         event: 'page_view',
@@ -379,7 +384,7 @@ describe('AnalyticsService', () => {
       expect(pageView?.email).toBeUndefined();
     } finally {
       window.sessionStorage.removeItem(attributionStorageKey);
-      history.replaceState({}, '', originalUrl);
+      nativeReplaceState.call(window.history, {}, '', originalUrl);
       (window as any).dataLayer = [];
       delete (window as any).gtag;
     }
@@ -594,7 +599,8 @@ describe('AnalyticsService', () => {
     expect(resolved).toBeTrue();
   });
 
-  it('resolves the mapped GA4 WhatsApp event after the callback timeout when Google does not call back', fakeAsync(() => {
+  it('resolves the mapped GA4 WhatsApp event after the callback timeout when Google does not call back', async () => {
+    jasmine.clock().install();
     spyOnProperty(navigator, 'userAgent', 'get').and.returnValue('Mozilla/5.0 Chrome/148.0.0.0 Safari/537.36');
     spyOnProperty(navigator, 'webdriver', 'get').and.returnValue(false);
     const gtagCalls: unknown[][] = [];
@@ -642,27 +648,31 @@ describe('AnalyticsService', () => {
 
     const svc = TestBed.inject(AnalyticsService);
     let resolved = false;
-    void svc.track(AnalyticsEvents.WhatsAppClick, {
-      category: AnalyticsCategories.CTA,
-      label: 'floating-whatsapp',
-      meta: { location: 'mobile-floating' },
-    }).then(() => {
-      resolved = true;
-    });
+    try {
+      const tracking = svc.track(AnalyticsEvents.WhatsAppClick, {
+        category: AnalyticsCategories.CTA,
+        label: 'floating-whatsapp',
+        meta: { location: 'mobile-floating' },
+      }).then(() => {
+        resolved = true;
+      });
 
-    flushMicrotasks();
+      await Promise.resolve();
 
-    expect(gtagCalls).toContain(jasmine.arrayContaining(['event', 'lead_conversion_whatsapp']));
-    expect(resolved).toBeFalse();
+      expect(gtagCalls).toContain(jasmine.arrayContaining(['event', 'lead_conversion_whatsapp']));
+      expect(resolved).toBeFalse();
 
-    tick(199);
-    flushMicrotasks();
-    expect(resolved).toBeFalse();
+      jasmine.clock().tick(199);
+      await Promise.resolve();
+      expect(resolved).toBeFalse();
 
-    tick(1);
-    flushMicrotasks();
-    expect(resolved).toBeTrue();
-  }));
+      jasmine.clock().tick(1);
+      await tracking;
+      expect(resolved).toBeTrue();
+    } finally {
+      jasmine.clock().uninstall();
+    }
+  });
 
   it('falls back to default engagement milestones when none are configured', () => {
     TestBed.configureTestingModule({
