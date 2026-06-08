@@ -1,6 +1,7 @@
 import { OverlayContainer } from '@angular/cdk/overlay';
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { AngoraCombosService } from '../../services/angora-combos.service';
 import { LanguageService } from '../../services/language.service';
 import { GenericDropdown } from './generic-dropdown.component';
 import type { DropdownItem } from './generic-dropdown.types';
@@ -31,9 +32,18 @@ class HostTestComponent {
 describe('GenericDropdown', () => {
   let fixture: ComponentFixture<HostTestComponent>;
   let overlayContainer: OverlayContainer;
+  let scheduleCssCreate: jasmine.Spy;
+
   beforeEach(async () => {
+    scheduleCssCreate = jasmine.createSpy('scheduleCssCreate');
     await TestBed.configureTestingModule({
       imports: [HostTestComponent],
+      providers: [
+        {
+          provide: AngoraCombosService,
+          useValue: { scheduleCssCreate },
+        },
+      ],
     }).compileComponents();
     fixture = TestBed.createComponent(HostTestComponent);
     overlayContainer = TestBed.inject(OverlayContainer);
@@ -63,6 +73,7 @@ describe('GenericDropdown', () => {
       .getContainerElement()
       .querySelector('.menu-shell.menu-theme');
     expect(panel).not.toBeNull();
+    expect(scheduleCssCreate).toHaveBeenCalledWith(350);
   });
 
   it('resolves locale-map labels from draft-native items', () => {
