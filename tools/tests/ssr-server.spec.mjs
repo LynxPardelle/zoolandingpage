@@ -149,6 +149,49 @@ test('production SSR server does not self-redirect when proxy proto chain includ
   assert.equal(getStderr(), '');
 });
 
+test('production SSR server does not self-redirect when CloudFront viewer proto is https', async (t) => {
+  const { port, getStderr } = await startProductionServer(t);
+  const response = await fetch(`http://127.0.0.1:${port}/robots.txt`, {
+    redirect: 'manual',
+    headers: {
+      Host: 'test.zoolandingpage.com.mx',
+      'CloudFront-Forwarded-Proto': 'https',
+      'X-Forwarded-For': '203.0.113.10',
+      'X-Forwarded-Host': 'test.zoolandingpage.com.mx',
+      'X-Forwarded-Port': '80',
+      'X-Forwarded-Proto': 'http',
+      'X-Forwarded-Server': 'cloudfront',
+    },
+  });
+  const body = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.match(body, /Sitemap: https:\/\/zoolandingpage\.com\.mx\/sitemap\.xml/);
+  assert.equal(response.headers.get('location'), null);
+  assert.equal(getStderr(), '');
+});
+
+test('production SSR server does not self-redirect when forwarded port is 443', async (t) => {
+  const { port, getStderr } = await startProductionServer(t);
+  const response = await fetch(`http://127.0.0.1:${port}/robots.txt`, {
+    redirect: 'manual',
+    headers: {
+      Host: 'test.zoolandingpage.com.mx',
+      'X-Forwarded-For': '203.0.113.10',
+      'X-Forwarded-Host': 'test.zoolandingpage.com.mx',
+      'X-Forwarded-Port': '443',
+      'X-Forwarded-Proto': 'http',
+      'X-Forwarded-Server': 'cloudfront',
+    },
+  });
+  const body = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.match(body, /Sitemap: https:\/\/zoolandingpage\.com\.mx\/sitemap\.xml/);
+  assert.equal(response.headers.get('location'), null);
+  assert.equal(getStderr(), '');
+});
+
 test('production SSR server redirects proxy-forwarded http to https', async (t) => {
   const { port, getStderr } = await startProductionServer(t);
   const response = await fetch(`http://127.0.0.1:${port}/robots.txt`, {

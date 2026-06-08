@@ -1342,17 +1342,50 @@ function isSharedTestingDraftPreviewRequest(req: express.Request, host: string):
 }
 
 function resolveRequestProtocol(req: express.Request, host: string): string {
+  const cloudFrontProtoValues = String(req.headers['cloudfront-forwarded-proto'] ?? '')
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
   const forwardedProtoValues = String(req.headers['x-forwarded-proto'] ?? '')
     .split(',')
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean);
+  const forwardedPortValues = String(req.headers['x-forwarded-port'] ?? '')
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  const forwardedSslValues = String(req.headers['x-forwarded-ssl'] ?? '')
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
 
-  if (forwardedProtoValues.includes('https')) {
+  if (
+    cloudFrontProtoValues.includes('https')
+    || forwardedProtoValues.includes('https')
+    || forwardedPortValues.includes('443')
+    || forwardedSslValues.includes('on')
+  ) {
     return 'https';
+  }
+
+  if (cloudFrontProtoValues.length > 0) {
+    return cloudFrontProtoValues[0];
   }
 
   if (forwardedProtoValues.length > 0) {
     return forwardedProtoValues[0];
+  }
+
+  if (forwardedPortValues.includes('80')) {
+    return 'http';
+  }
+
+  if (forwardedSslValues.includes('off')) {
+    return 'http';
+  }
+
+  if (req.secure) {
+    return 'https';
   }
 
   return host === 'localhost' || host.startsWith('127.') ? 'http' : 'https';
