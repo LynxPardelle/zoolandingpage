@@ -1366,15 +1366,6 @@ function resolveRequestOrigin(req: express.Request, host: string): string {
   return `${resolveRequestProtocol(req, host)}://${host}`;
 }
 
-function hasForwardedProxyContext(req: express.Request): boolean {
-  return Boolean(
-    req.headers['x-forwarded-for']
-    || req.headers['x-forwarded-host']
-    || req.headers['x-forwarded-proto']
-    || req.headers['x-forwarded-server']
-  );
-}
-
 function resolveCanonicalOrigin(req: express.Request, host: string, siteConfig: TLocalSiteConfig | null): string {
   const configured = String(resolveEffectiveSeoConfig(host, siteConfig)?.canonicalOrigin ?? '').trim();
   return configured || resolveRequestOrigin(req, host);
@@ -1387,12 +1378,11 @@ function buildFrontDoorRedirectUrl(req: express.Request, host: string, siteConfi
 
   const seo = resolveEffectiveSeoConfig(host, siteConfig);
   const protocol = resolveRequestProtocol(req, host);
-  const hasProxyContext = hasForwardedProxyContext(req);
   const enforceCanonicalHost = shouldEnforceCanonicalHost(host, siteConfig, seo);
   let targetProtocol = protocol;
   let targetHost = host;
 
-  if (seo?.forceHttps !== false && protocol !== 'https' && !hasProxyContext) {
+  if (seo?.forceHttps !== false && protocol !== 'https') {
     targetProtocol = 'https';
   }
 
