@@ -3,6 +3,7 @@
 import dns from 'node:dns/promises';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const DEFAULT_HOSTS = [
   'test.zoolandingpage.com.mx',
@@ -32,6 +33,9 @@ function parseArgs(argv) {
     retryAttempts: Number(env.ZOOLANDING_HEALTH_RETRY_ATTEMPTS ?? env.npm_config_retry_attempts ?? 8),
     retryDelayMs: Number(env.ZOOLANDING_HEALTH_RETRY_DELAY_MS ?? env.npm_config_retry_delay_ms ?? 500),
     expectedIpv4: env.ZOOLANDING_EXPECTED_IPV4 ?? env.npm_config_expected_ipv4 ?? '',
+    expectedRuntimeDomains: parseExpectedRuntimeDomains(
+      env.ZOOLANDING_EXPECTED_RUNTIME_DOMAINS ?? env.npm_config_expected_runtime_domains ?? ''
+    ),
     output: env.ZOOLANDING_HEALTH_OUTPUT ?? env.npm_config_output ?? '',
     markdown: truthy(env.ZOOLANDING_HEALTH_MARKDOWN ?? env.npm_config_markdown),
   };
@@ -91,6 +95,17 @@ function parseArgs(argv) {
 
     if (arg === '--expected-ipv4' && next) {
       args.expectedIpv4 = next.trim();
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith('--expected-runtime-domains=')) {
+      args.expectedRuntimeDomains = parseExpectedRuntimeDomains(arg.slice('--expected-runtime-domains='.length));
+      continue;
+    }
+
+    if (arg === '--expected-runtime-domains' && next) {
+      args.expectedRuntimeDomains = parseExpectedRuntimeDomains(next);
       index += 1;
       continue;
     }
@@ -170,6 +185,41 @@ function parseArgs(argv) {
 
 function splitHosts(value) {
   return value.split(/[,\s]+/).map((host) => host.trim()).filter(Boolean);
+}
+
+function normalizeHost(value) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .split('/', 1)[0]
+    .split(':', 1)[0]
+    .replace(/\.$/, '');
+}
+
+function parseExpectedRuntimeDomains(value) {
+  const entries = String(value ?? '')
+    .split(/[,\s]+/)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  const expected = new Map();
+
+  for (const entry of entries) {
+    const separatorIndex = entry.indexOf('=');
+    if (separatorIndex <= 0 || separatorIndex === entry.length - 1) {
+      throw new Error('--expected-runtime-domains entries must use host=domain');
+    }
+
+    const host = normalizeHost(entry.slice(0, separatorIndex));
+    const domain = normalizeHost(entry.slice(separatorIndex + 1));
+    if (!host || !domain) {
+      throw new Error('--expected-runtime-domains entries must include non-empty host and domain');
+    }
+
+    expected.set(host, domain);
+  }
+
+  return expected;
 }
 
 function truthy(value) {
@@ -353,6 +403,7 @@ async function checkHealth(host, options) {
 }
 
 async function checkRuntimeBundle(host, options) {
+  const normalizedHost = normalizeHost(host);
   const url = new URL(`${options.runtimeBaseUrl}/runtime-bundle`);
   url.searchParams.set('domain', host);
   url.searchParams.set('path', '/');
@@ -424,9 +475,20 @@ async function checkRuntimeBundle(host, options) {
     check.details.versionId = payload?.versionId ?? null;
 
     check.ok = response.status === 200 && payload?.ok === true;
+    const expectedDomain = options.expectedRuntimeDomains?.get(normalizedHost);
+    if (check.ok && expectedDomain) {
+      check.details.expectedDomain = expectedDomain;
+      if (normalizeHost(check.details.domain) !== expectedDomain) {
+        check.ok = false;
+        check.details.reason = 'runtime-bundle resolved an unexpected canonical domain';
+      } else if (expectedDomain !== normalizedHost && normalizeHost(check.details.resolvedAlias) !== normalizedHost) {
+        check.ok = false;
+        check.details.reason = 'runtime-bundle did not report the expected resolved alias';
+      }
+    }
 
     if (!check.ok) {
-      check.details.reason = 'runtime-bundle did not return HTTP 200 with ok=true';
+      check.details.reason ??= 'runtime-bundle did not return HTTP 200 with ok=true';
       check.details.bodyPrefix = body.slice(0, 200);
     }
   } catch (error) {
@@ -517,7 +579,15 @@ async function main() {
   process.exitCode = result.ok ? 0 : 1;
 }
 
-main().catch((error) => {
-  console.error(error.message);
-  process.exitCode = 1;
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+  main().catch((error) => {
+    console.error(error.message);
+    process.exitCode = 1;
+  });
+}
+
+export {
+  checkRuntimeBundle,
+  parseArgs,
+  parseExpectedRuntimeDomains,
+};
