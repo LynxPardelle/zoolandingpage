@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { GenericSearchBoxComponent } from './generic-search-box.component';
 
 describe('SearchBoxComponent', () => {
@@ -37,7 +37,7 @@ describe('SearchBoxComponent', () => {
     expect(comp.term()).toBe('Alpha');
   });
 
-  it('should toggle the collapsed panel from the trigger button', fakeAsync(() => {
+  it('should toggle the collapsed panel from the trigger button', () => {
     fixture.componentRef.setInput('config', {
       minLength: 1,
       debounceMs: 0,
@@ -49,15 +49,20 @@ describe('SearchBoxComponent', () => {
     fixture.detectChanges();
 
     const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
-    button.click();
-    fixture.detectChanges();
-    tick();
-    fixture.detectChanges();
+    jasmine.clock().install();
+    try {
+      button.click();
+      fixture.detectChanges();
+      jasmine.clock().tick(0);
+      fixture.detectChanges();
 
-    expect(comp.panelOpen()).toBeTrue();
-    expect(fixture.nativeElement.querySelector('input')).toBeTruthy();
-    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('input'));
-  }));
+      expect(comp.panelOpen()).toBeTrue();
+      expect(fixture.nativeElement.querySelector('input')).toBeTruthy();
+      expect(document.activeElement).toBe(fixture.nativeElement.querySelector('input'));
+    } finally {
+      jasmine.clock().uninstall();
+    }
+  });
 
   it('should close the collapsed panel from the back button', () => {
     fixture.componentRef.setInput('config', {

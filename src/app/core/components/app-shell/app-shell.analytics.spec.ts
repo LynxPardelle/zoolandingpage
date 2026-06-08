@@ -1,16 +1,11 @@
 import { AsyncPipe } from '@angular/common';
 import {
+  ChangeDetectionStrategy,
   Component,
   Input,
   PLATFORM_ID,
-  ChangeDetectionStrategy,
 } from '@angular/core';
-import {
-  ComponentFixture,
-  fakeAsync,
-  TestBed,
-  tick,
-} from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { environment } from '@/environments/environment';
 import { NgxAngoraService } from 'ngx-angora-css';
 import { of } from 'rxjs';
@@ -258,42 +253,49 @@ describe('AppShellComponent analytics', () => {
     expect(analyticsSpy.startPageEngagementTracking).toHaveBeenCalled();
   });
 
-  it('keeps the earliest pending cssCreate request instead of postponing it', fakeAsync(() => {
+  it('keeps the earliest pending cssCreate request instead of postponing it', () => {
+    jasmine.clock().install();
     const fixture = TestBed.createComponent(AppShellComponent);
-    const component = fixture.componentInstance;
+    try {
+      const component = fixture.componentInstance;
 
-    component.runtime.requestCssCreate(0);
-    component.runtime.requestCssCreate(angoraSpy.timeBetweenReCreate + 150);
-    tick();
+      component.runtime.requestCssCreate(0);
+      component.runtime.requestCssCreate(angoraSpy.timeBetweenReCreate + 150);
+      jasmine.clock().tick(0);
 
-    expect(angoraSpy.cssCreate).toHaveBeenCalledTimes(1);
-  }));
+      expect(angoraSpy.cssCreate).toHaveBeenCalledTimes(1);
+    } finally {
+      fixture.destroy();
+      jasmine.clock().uninstall();
+    }
+  });
 
-  it('continues requesting cssCreate after bootstrap through the runtime refresh API', fakeAsync(() => {
+  it('continues requesting cssCreate after bootstrap through the runtime refresh API', async () => {
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
-    tick();
-    fixture.detectChanges();
-    tick();
-    fixture.detectChanges();
-    tick();
+    await flushDeferredBootstrapWork(fixture);
 
     angoraSpy.cssCreate.calls.reset();
 
-    fixture.componentInstance.runtime.requestCssCreate();
-    tick();
+    jasmine.clock().install();
+    try {
+      fixture.componentInstance.runtime.requestCssCreate();
+      jasmine.clock().tick(0);
 
-    expect(angoraSpy.cssCreate).toHaveBeenCalledTimes(1);
-  }));
+      expect(angoraSpy.cssCreate).toHaveBeenCalledTimes(1);
+    } finally {
+      jasmine.clock().uninstall();
+    }
+  });
 
-  it('requests cssCreate again after the dynamic roots render on initial bootstrap', fakeAsync(() => {
+  it('requests cssCreate again after the dynamic roots render on initial bootstrap', async () => {
     const fixture = TestBed.createComponent(AppShellComponent);
 
     fixture.detectChanges();
-    tick();
-    fixture.detectChanges();
-    tick();
-    tick();
+    await flushDeferredBootstrapWork(
+      fixture,
+      () => angoraSpy.cssCreate.calls.all().some((call) => Array.isArray(call.args[0])),
+    );
 
     const explicitClassCalls = angoraSpy.cssCreate.calls
       .all()
@@ -303,5 +305,5 @@ describe('AppShellComponent analytics', () => {
     expect(
       (explicitClassCalls.at(-1)?.args[0] as string[]).length
     ).toBeGreaterThan(0);
-  }));
+  });
 });
