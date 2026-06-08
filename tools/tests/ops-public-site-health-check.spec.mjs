@@ -93,3 +93,26 @@ test('checkRuntimeBundle passes when runtime resolves expected domain and alias'
     assert.equal(check.details.resolvedAlias, 'sitiosweb.zoolandingpage.com.mx');
   });
 });
+
+test('checkRuntimeBundle fails when expected alias resolution is missing', async () => {
+  await withRuntimeServer({
+    ok: true,
+    domain: 'zoositioweb.com.mx',
+    metadata: { resolvedAlias: null },
+    versionId: 'missing-alias',
+  }, async (runtimeBaseUrl) => {
+    const check = await checkRuntimeBundle('sitiosweb.zoolandingpage.com.mx', {
+      runtimeBaseUrl,
+      runtimeFallbackUrl: '',
+      timeoutMs: 1000,
+      retryAttempts: 1,
+      retryDelayMs: 0,
+      expectedRuntimeDomains: new Map([
+        ['sitiosweb.zoolandingpage.com.mx', 'zoositioweb.com.mx'],
+      ]),
+    });
+
+    assert.equal(check.ok, false);
+    assert.equal(check.details.reason, 'runtime-bundle did not report the expected resolved alias');
+  });
+});
