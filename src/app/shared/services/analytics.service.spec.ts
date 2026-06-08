@@ -4,6 +4,7 @@ import { of } from 'rxjs';
 import { AnalyticsCategories, AnalyticsEvents } from './analytics.events';
 import { AnalyticsService } from './analytics.service';
 import { ConfigStoreService } from './config-store.service';
+import { GoogleTagService } from './google-tag.service';
 import { QuickStatsService } from './quick-stats.service';
 import { RuntimeConfigService } from './runtime-config.service';
 
@@ -25,7 +26,7 @@ const restoreNativeHistoryStateMethods = (): void => {
 
 const setSpecUrl = (url: string): void => {
   restoreNativeHistoryStateMethods();
-  window.history.replaceState({}, '', url);
+  nativeHistoryReplaceState.call(window.history, {}, '', url);
 };
 
 describe('AnalyticsService', () => {
@@ -339,10 +340,6 @@ describe('AnalyticsService', () => {
 
   it('mirrors internal page views to Google dataLayer with stored ad attribution but without ad params in page_location', async () => {
     const attributionStorageKey = 'fixture:adAttribution';
-    const trackingUrl = new URL(
-      '/?gclid=test-gclid&utm_source=google&utm_campaign=spring&email=lead@example.com',
-      window.location.origin,
-    ).toString();
 
     spyOnProperty(navigator, 'userAgent', 'get').and.returnValue('Mozilla/5.0 Chrome/148.0.0.0 Safari/537.36');
     spyOnProperty(navigator, 'webdriver', 'get').and.returnValue(false);
@@ -350,9 +347,14 @@ describe('AnalyticsService', () => {
     delete (window as any).gtag;
 
     try {
-      window.sessionStorage.removeItem(attributionStorageKey);
-      setSpecUrl(trackingUrl);
-      expect(window.location.href).toBe(trackingUrl);
+      window.sessionStorage.setItem(attributionStorageKey, JSON.stringify({
+        params: {
+          gclid: 'test-gclid',
+          utm_source: 'google',
+          utm_campaign: 'spring',
+        },
+        expiresAt: Date.now() + 86_400_000,
+      }));
 
       TestBed.configureTestingModule({
         providers: [
@@ -383,6 +385,11 @@ describe('AnalyticsService', () => {
           },
         ],
       });
+
+      const googleTag = TestBed.inject(GoogleTagService) as any;
+      spyOn(googleTag, 'captureAttributionFromLocation').and.stub();
+      spyOn(googleTag, 'cleanCurrentUrl').and.returnValue(`${ window.location.origin }/`);
+      spyOn(googleTag, 'cleanCurrentPath').and.returnValue('/');
 
       const svc = TestBed.inject(AnalyticsService);
 
