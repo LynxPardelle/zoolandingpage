@@ -1,5 +1,5 @@
 import { DOCUMENT } from '@angular/common';
-import { fakeAsync, TestBed, tick } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { VariableStoreService } from '@/app/shared/services/variable-store.service';
 import { LoadingCurtainService } from './loading-curtain.service';
 
@@ -97,32 +97,38 @@ describe('LoadingCurtainService', () => {
         expect(curtain.style.getPropertyValue('--zlp-boot-bg')).toBe('');
     });
 
-    it('hides and removes the boot curtain after the configured exit duration', fakeAsync(() => {
+    it('hides and removes the boot curtain after the configured exit duration', () => {
+        jasmine.clock().install();
         const curtain = addCurtain();
-        variables.setPayload({
-            version: 1,
-            domain: 'zoolandingpage.com.mx',
-            pageId: 'default',
-            variables: {
-                ui: {
-                    loadingCurtain: {
-                        exitDurationMs: 120,
+        try {
+            variables.setPayload({
+                version: 1,
+                domain: 'zoolandingpage.com.mx',
+                pageId: 'default',
+                variables: {
+                    ui: {
+                        loadingCurtain: {
+                            exitDurationMs: 120,
+                        },
                     },
                 },
-            },
-        } as any);
+            } as any);
 
-        service.configureFromDraft();
-        service.hideWhenReady('css-ready');
+            service.configureFromDraft();
+            service.hideWhenReady('css-ready');
 
-        expect(curtain.classList.contains('zlp-boot-curtain--leaving')).toBeTrue();
-        tick(119);
-        expect(documentRef.getElementById('zlp-boot-curtain')).toBe(curtain);
-        tick(1);
-        expect(documentRef.getElementById('zlp-boot-curtain')).toBeNull();
-    }));
+            expect(curtain.classList.contains('zlp-boot-curtain--leaving')).toBeTrue();
+            jasmine.clock().tick(119);
+            expect(documentRef.getElementById('zlp-boot-curtain')).toBe(curtain);
+            jasmine.clock().tick(1);
+            expect(documentRef.getElementById('zlp-boot-curtain')).toBeNull();
+        } finally {
+            jasmine.clock().uninstall();
+        }
+    });
 
-    it('waits for critical rendered text colors before starting the exit', fakeAsync(() => {
+    it('waits for critical rendered text colors before starting the exit', () => {
+        jasmine.clock().install();
         const curtain = addCurtain();
         const style = documentRef.createElement('style');
         const title = documentRef.createElement('h1');
@@ -155,24 +161,25 @@ describe('LoadingCurtainService', () => {
             service.hideWhenReady('css-ready');
 
             expect(curtain.classList.contains('zlp-boot-curtain--leaving')).toBeFalse();
-            tick(50);
+            jasmine.clock().tick(50);
             expect(curtain.classList.contains('zlp-boot-curtain--leaving')).toBeFalse();
 
             style.sheet?.insertRule(
                 '.sectionTitle { color: rgb(32, 23, 18); }',
                 style.sheet.cssRules.length,
             );
-            tick(50);
+            jasmine.clock().tick(50);
 
             expect(getComputedStyle(title).color).toBe('rgb(32, 23, 18)');
             expect(curtain.classList.contains('zlp-boot-curtain--leaving')).toBeTrue();
         } finally {
             title.remove();
             style.remove();
+            jasmine.clock().uninstall();
         }
-    }));
+    });
 
-    it('falls back after the short critical text color wait has elapsed', fakeAsync(() => {
+    it('falls back after the short critical text color wait has elapsed', () => {
         const curtain = addCurtain();
         const style = documentRef.createElement('style');
         const title = documentRef.createElement('h1');
@@ -207,5 +214,5 @@ describe('LoadingCurtainService', () => {
             title.remove();
             style.remove();
         }
-    }));
+    });
 });

@@ -11,7 +11,7 @@ Draft deploys persist `site-config.json.aliases` into the config registry so run
 Use `tools/ops/sync-managed-alias-front-door.mjs` after a draft alias is declared and deployed. The tool reads published draft repos through `docs/drafts-registry.json`, filters managed aliases under `*.zoolandingpage.com.mx`, then can:
 
 - upsert Route 53 `A` records
-- render Traefik dynamic file-provider config
+- render Traefik dynamic file-provider config with HTTP and HTTPS routers
 - write that config to the Dokploy host through SSM
 - create a remote backup before replacing the Traefik dynamic file
 
@@ -39,6 +39,9 @@ Useful optional inputs:
 - `--traefik-output=path.yml` to inspect generated config locally
 - `--include-drafts-root=true` only when you intentionally want to include every local `drafts/` folder in addition to the registered draft repos
 - `--traefik-mode=router-block` plus `--block-label="draft test aliases"` when updating only a marked router block inside an existing Dokploy dynamic file
+- `--https-redirect-middleware=<name>` when the Traefik file already uses a different HTTPS redirect middleware name
+
+Managed aliases should accept both HTTP and HTTPS, but HTTP must redirect to HTTPS before content is served. Full-file mode writes a file-provider `redirectScheme` middleware named `zlp-https-redirect` by default and attaches it to `web` routers. Router-block mode can only patch router entries, so the target dynamic file must already define the referenced middleware, or you must patch the file in full-file mode first.
 
 ## Dry Run
 
@@ -112,6 +115,7 @@ Validate every newly synced alias:
 
 ```powershell
 Resolve-DnsName <alias>
+curl.exe -I http://<alias>/
 curl.exe -I https://<alias>/
 curl.exe -I "https://<alias>/ruta-inventada?lang=es"
 ```
@@ -119,6 +123,7 @@ curl.exe -I "https://<alias>/ruta-inventada?lang=es"
 Expected:
 
 - DNS returns the configured front-door IPv4
+- HTTP redirects to the matching HTTPS URL
 - home returns HTTP `200`
 - invented route returns HTTP `404`
 - HTTPS works without `curl -k`

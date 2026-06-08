@@ -1,4 +1,4 @@
-import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { GenericMedia } from './generic-media';
 
@@ -9,7 +9,7 @@ describe('GenericMedia', () => {
   const defaultConfig = {
     id: 'default-media',
     tag: 'image' as const,
-    src: '/assets/default-image.webp',
+    src: '/assets/logo-512x512.svg',
     alt: 'Default media',
   };
 
@@ -58,7 +58,7 @@ describe('GenericMedia', () => {
     fixture.componentRef.setInput('config', {
       id: 'poster',
       tag: 'image',
-      src: '/assets/poster.webp',
+      src: '/assets/og-1200x630.svg',
       alt: 'Event poster',
       width: 1200,
       height: 900,
@@ -109,7 +109,7 @@ describe('GenericMedia', () => {
     expect(fixture.nativeElement.querySelector('img')).toBeNull();
   });
 
-  it('retries failed image loads with a cache-busting retry parameter', fakeAsync(() => {
+  it('retries failed image loads with a cache-busting retry parameter', () => {
     fixture.componentRef.setInput('config', {
       id: 'reset-prone-image',
       tag: 'image',
@@ -120,43 +120,54 @@ describe('GenericMedia', () => {
     fixture.detectChanges();
 
     const image: HTMLImageElement = fixture.nativeElement.querySelector('img');
-    image.dispatchEvent(new Event('error'));
-    tick(250);
+    jasmine.clock().install();
+    try {
+      image.dispatchEvent(new Event('error'));
+      jasmine.clock().tick(250);
 
-    expect(image.src).toContain('zlpImageRetry=1');
+      expect(image.src).toContain('zlpImageRetry=1');
 
-    image.dispatchEvent(new Event('error'));
-    tick(500);
+      image.dispatchEvent(new Event('error'));
+      jasmine.clock().tick(500);
 
-    expect(image.src).toContain('zlpImageRetry=2');
+      expect(image.src).toContain('zlpImageRetry=2');
 
-    image.dispatchEvent(new Event('error'));
-    tick(750);
+      image.dispatchEvent(new Event('error'));
+      jasmine.clock().tick(750);
 
-    expect(image.src).toContain('zlpImageRetry=2');
-  }));
+      expect(image.src).toContain('zlpImageRetry=2');
+    } finally {
+      jasmine.clock().uninstall();
+    }
+  });
 
-  it('retries images that are already broken when hydration attaches handlers', fakeAsync(() => {
-    const retryFixture = TestBed.createComponent(GenericMedia);
-    retryFixture.componentRef.setInput('config', {
-      id: 'prehydration-reset-image',
-      tag: 'image',
-      src: 'https://assets.example.test/domain/page/prehydration.svg',
-      alt: 'Prehydration reset image',
-    });
+  it('retries images that are already broken when hydration attaches handlers', () => {
+    jasmine.clock().install();
+    let retryFixture: ComponentFixture<GenericMedia> | null = null;
+    try {
+      retryFixture = TestBed.createComponent(GenericMedia);
+      retryFixture.componentRef.setInput('config', {
+        id: 'prehydration-reset-image',
+        tag: 'image',
+        src: 'https://assets.example.test/domain/page/prehydration.svg',
+        alt: 'Prehydration reset image',
+      });
 
-    retryFixture.detectChanges();
+      retryFixture.detectChanges();
 
-    const image: HTMLImageElement = retryFixture.nativeElement.querySelector('img');
-    Object.defineProperty(image, 'complete', { configurable: true, get: () => true });
-    Object.defineProperty(image, 'naturalWidth', { configurable: true, get: () => 0 });
+      const image: HTMLImageElement = retryFixture.nativeElement.querySelector('img');
+      Object.defineProperty(image, 'complete', { configurable: true, get: () => true });
+      Object.defineProperty(image, 'naturalWidth', { configurable: true, get: () => 0 });
 
-    tick(0);
-    tick(250);
+      jasmine.clock().tick(0);
+      jasmine.clock().tick(250);
 
-    expect(image.src).toContain('zlpImageRetry=1');
-    retryFixture.destroy();
-  }));
+      expect(image.src).toContain('zlpImageRetry=1');
+    } finally {
+      retryFixture?.destroy();
+      jasmine.clock().uninstall();
+    }
+  });
 
   it('renders document media as an external link using alt text when available', () => {
     fixture.componentRef.setInput('config', {

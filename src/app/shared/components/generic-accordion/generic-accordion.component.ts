@@ -1,5 +1,15 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Output, Signal, computed, inject, input, signal } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Output,
+  Signal,
+  computed,
+  inject,
+  input,
+  signal,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { I18nService } from '../../services/i18n.service';
 import { VariableStoreService } from '../../services/variable-store.service';
 import {
@@ -13,11 +23,17 @@ import {
 } from '../../utility/component-orchestrator.utility';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { GenericIconComponent } from '../generic-icon/generic-icon.component';
-import { AccordionItem, AccordionStringListValue, AccordionTextValue, TAccordionConfig } from './generic-accordion.types';
+import {
+  AccordionItem,
+  AccordionStringListValue,
+  AccordionTextValue,
+  TAccordionConfig,
+} from './generic-accordion.types';
 @Component({
   selector: 'generic-accordion',
   imports: [CommonModule, GenericButtonComponent, GenericIconComponent],
   templateUrl: './generic-accordion.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./generic-accordion.component.scss'],
 })
 export class GenericAccordionComponent {
@@ -39,16 +55,27 @@ export class GenericAccordionComponent {
   });
 
   private localExpanded = signal<readonly string[]>([]);
-  private readonly idPrefix = 'acc-' + Math.random().toString(36).slice(2) + '-';
+  private readonly idPrefix =
+    'acc-' + Math.random().toString(36).slice(2) + '-';
   readonly detailMode = computed(() => this.config().renderMode === 'detail');
-  readonly expandedIds = computed<readonly string[]>(() => this.resolveExpandedIds() ?? this.localExpanded());
+  readonly expandedIds = computed<readonly string[]>(
+    () => this.resolveExpandedIds() ?? this.localExpanded()
+  );
 
   // Emitted when a panel is toggled
-  @Output() toggled = new EventEmitter<{ id: string; expanded: boolean; activeId: string | null; activeIds: readonly string[] }>();
+  @Output() toggled = new EventEmitter<{
+    id: string;
+    expanded: boolean;
+    activeId: string | null;
+    activeIds: readonly string[];
+  }>();
 
   itemsIds = () => this.items().map((i: AccordionItem) => i.id);
 
-  private itemIdAt(ids: readonly (string | undefined)[], index: number): string | undefined {
+  private itemIdAt(
+    ids: readonly (string | undefined)[],
+    index: number
+  ): string | undefined {
     return ids[index];
   }
 
@@ -84,7 +111,9 @@ export class GenericAccordionComponent {
       this.isExpanded(this.itemId(item))
         ? this.config().indexLabelIsExpandedClasses ?? ''
         : this.config().indexLabelIsNotExpandedClasses ?? '',
-    ].filter(Boolean).join(' ');
+    ]
+      .filter(Boolean)
+      .join(' ');
   };
 
   detailItemsOf = (item: AccordionItem) => {
@@ -100,20 +129,24 @@ export class GenericAccordionComponent {
   detailItemIconName = () => resolveTextValue(this.config().detailItemIconName);
 
   detailItemTrackKey = (index: number, detailItem: string) => {
-    return `${ index }::${ detailItem }`;
+    return `${index}::${detailItem}`;
   };
 
-  itemHasRichHeader = (item: AccordionItem) => this.detailMode() || !!this.indexLabelOf(item) || !!this.summaryOf(item);
+  itemHasRichHeader = (item: AccordionItem) =>
+    this.detailMode() || !!this.indexLabelOf(item) || !!this.summaryOf(item);
 
   itemHasRichPanel = (item: AccordionItem) => {
-    return this.detailMode()
-      || !!this.iconOf(item)
-      || !!this.metaOf(item)
-      || !!this.summaryOf(item)
-      || this.detailItemsOf(item).length > 0;
+    return (
+      this.detailMode() ||
+      !!this.iconOf(item) ||
+      !!this.metaOf(item) ||
+      !!this.summaryOf(item) ||
+      this.detailItemsOf(item).length > 0
+    );
   };
 
-  buttonLabelFor = (item: AccordionItem) => this.itemHasRichHeader(item) ? '' : this.titleOf(item);
+  buttonLabelFor = (item: AccordionItem) =>
+    this.itemHasRichHeader(item) ? '' : this.titleOf(item);
 
   buttonAriaLabelFor = (item: AccordionItem) => {
     const parts = [
@@ -128,9 +161,12 @@ export class GenericAccordionComponent {
   };
 
   buttonIconFor = (item: AccordionItem) => {
-    const configured = item.buttonConfig?.icon || this.config().defaultItemButtonConfig?.icon;
+    const configured =
+      item.buttonConfig?.icon || this.config().defaultItemButtonConfig?.icon;
     if (configured) return configured;
-    return this.detailMode() ? resolveTextValue(this.config().toggleIconName) : undefined;
+    return this.detailMode()
+      ? resolveTextValue(this.config().toggleIconName)
+      : undefined;
   };
 
   isExpanded = (id: string) => this.expandedIds().includes(id);
@@ -159,9 +195,18 @@ export class GenericAccordionComponent {
     }
 
     const expanded = next.includes(id);
-    this.toggled.emit({ id, expanded, activeId: next[0] ?? null, activeIds: next });
+    this.toggled.emit({
+      id,
+      expanded,
+      activeId: next[0] ?? null,
+      activeIds: next,
+    });
 
-    if (expanded && !current.includes(id) && this.config().scrollBehavior === 'center') {
+    if (
+      expanded &&
+      !current.includes(id) &&
+      this.config().scrollBehavior === 'center'
+    ) {
       setTimeout(() => this.scrollToItem(id), 150);
     }
   }
@@ -202,12 +247,16 @@ export class GenericAccordionComponent {
   }
 
   private focusButton(id: string) {
-    const btn = document.getElementById(this.buttonId(id)) as HTMLButtonElement | null;
+    const btn = document.getElementById(
+      this.buttonId(id)
+    ) as HTMLButtonElement | null;
     btn?.focus();
   }
 
   private scrollToItem(id: string): void {
-    const element = document.querySelector(`[data-accordion-item="${ id }"]`) as HTMLElement | null;
+    const element = document.querySelector(
+      `[data-accordion-item="${id}"]`
+    ) as HTMLElement | null;
     if (!element) return;
 
     scrollElementIntoViewportCenter(element);
@@ -236,21 +285,41 @@ export class GenericAccordionComponent {
     if (!entry || typeof entry !== 'object') return null;
 
     const record = entry as Record<string, unknown>;
-    const title = resolveTranslatedText(this.i18n, record['title'], record['titleKey']);
+    const title = resolveTranslatedText(
+      this.i18n,
+      record['title'],
+      record['titleKey']
+    );
     if (!title) return null;
 
     const stepNumber = Number(record['step']);
-    const indexLabel = resolveTranslatedText(this.i18n, record['indexLabel'])
-      ?? (Number.isFinite(stepNumber) && stepNumber > 0 ? String(Math.floor(stepNumber)) : undefined);
-    const content = resolveTranslatedText(this.i18n, record['content'], record['contentKey']);
-    const summary = resolveTranslatedText(this.i18n, record['summary'], record['summaryKey']);
-    const meta = resolveTranslatedText(this.i18n, record['meta'], record['metaKey']);
-    const detailItems = resolveTranslatedStringList(
+    const indexLabel =
+      resolveTranslatedText(this.i18n, record['indexLabel']) ??
+      (Number.isFinite(stepNumber) && stepNumber > 0
+        ? String(Math.floor(stepNumber))
+        : undefined);
+    const content = resolveTranslatedText(
       this.i18n,
-      record['detailItems'],
-      record['detailItemsKey'],
-      record['detailItemKeys']
-    ) ?? [];
+      record['content'],
+      record['contentKey']
+    );
+    const summary = resolveTranslatedText(
+      this.i18n,
+      record['summary'],
+      record['summaryKey']
+    );
+    const meta = resolveTranslatedText(
+      this.i18n,
+      record['meta'],
+      record['metaKey']
+    );
+    const detailItems =
+      resolveTranslatedStringList(
+        this.i18n,
+        record['detailItems'],
+        record['detailItemsKey'],
+        record['detailItemKeys']
+      ) ?? [];
 
     return {
       ...(record as AccordionItem),
@@ -266,7 +335,9 @@ export class GenericAccordionComponent {
     };
   }
 
-  private resolveStringListValue(value: AccordionStringListValue | undefined): readonly string[] {
+  private resolveStringListValue(
+    value: AccordionStringListValue | undefined
+  ): readonly string[] {
     return resolveTranslatedStringList(this.i18n, value) ?? [];
   }
 }

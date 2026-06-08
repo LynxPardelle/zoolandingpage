@@ -14,6 +14,7 @@ import {
   TemplateRef,
   ViewChild,
   ViewContainerRef,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { AriaLiveService } from '../../services/aria-live.service';
 import { I18nService } from '../../services/i18n.service';
@@ -27,6 +28,7 @@ import { ModalConfig } from './generic-modal.types';
   imports: [CommonModule, PortalModule, GenericButtonComponent],
   templateUrl: './generic-modal.component.html',
   // Externalized styles for lint compliance and atomic separation
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./generic-modal.component.scss'],
 })
 export class GenericModalComponent {
@@ -45,17 +47,26 @@ export class GenericModalComponent {
   readonly motion = inject(MotionPreferenceService);
   private readonly i18n = inject(I18nService);
 
-  constructor(private host: ElementRef<HTMLElement>, private vcr: ViewContainerRef) {
+  constructor(
+    private host: ElementRef<HTMLElement>,
+    private vcr: ViewContainerRef
+  ) {
     // Announce open/close changes politely
     const live = inject(AriaLiveService);
     effect(() => {
       const active = !!this.modalService.modalRef();
       if (active && !this.overlayRef) {
         this.openModal();
-        live.announce(this.i18n.tOr('ui.accessibility.dialogOpened', ''), 'polite');
+        live.announce(
+          this.i18n.tOr('ui.accessibility.dialogOpened', ''),
+          'polite'
+        );
       } else if (!active && this.overlayRef) {
         this.closeModal();
-        live.announce(this.i18n.tOr('ui.accessibility.dialogClosed', ''), 'polite');
+        live.announce(
+          this.i18n.tOr('ui.accessibility.dialogClosed', ''),
+          'polite'
+        );
       }
     });
   }
@@ -95,7 +106,9 @@ export class GenericModalComponent {
     document.body.style.overflow = 'hidden';
     // Focus trap after next microtask so panel exists
     queueMicrotask(() => {
-      const panel = this.host.nativeElement.querySelector('.modal-panel') as HTMLElement | null;
+      const panel = this.host.nativeElement.querySelector(
+        '.modal-panel'
+      ) as HTMLElement | null;
       if (panel) {
         panel.setAttribute('tabindex', '-1');
         this.focusTrap = this.focusTrapFactory.create(panel);
@@ -136,33 +149,41 @@ export class GenericModalComponent {
   containerClasses(): string[] {
     return this.joinClasses(
       this.config?.containerClasses,
-      this.variant() === 'dialog' ? this.config?.containerDialogClasses : this.config?.containerSheetClasses,
+      this.variant() === 'dialog'
+        ? this.config?.containerDialogClasses
+        : this.config?.containerSheetClasses
     );
   }
 
   panelClasses(): string[] {
     const sizeKey = this.size();
-    const sizeClasses = sizeKey === 'sm'
-      ? this.config?.panelSMClasses
-      : sizeKey === 'md'
+    const sizeClasses =
+      sizeKey === 'sm'
+        ? this.config?.panelSMClasses
+        : sizeKey === 'md'
         ? this.config?.panelMDClasses
         : sizeKey === 'lg'
-          ? this.config?.panelLGClasses
-          : '';
+        ? this.config?.panelLGClasses
+        : '';
 
     return this.joinClasses(
       this.config?.panelClasses,
-      this.variant() === 'dialog' ? this.config?.panelDialogClasses : this.config?.panelSheetClasses,
-      this.motion.reduced() ? this.config?.panelNoMotionClasses : this.config?.panelMotionClasses,
-      sizeClasses,
+      this.variant() === 'dialog'
+        ? this.config?.panelDialogClasses
+        : this.config?.panelSheetClasses,
+      this.motion.reduced()
+        ? this.config?.panelNoMotionClasses
+        : this.config?.panelMotionClasses,
+      sizeClasses
     );
   }
 
   accentBarClasses(): string[] {
     const accentColor = this.config?.accentColor;
-    const accentClass = accentColor === 'accentColor'
-      ? 'ank-bg-accentColor'
-      : accentColor === 'secondaryAccentColor'
+    const accentClass =
+      accentColor === 'accentColor'
+        ? 'ank-bg-accentColor'
+        : accentColor === 'secondaryAccentColor'
         ? 'ank-bg-secondaryAccentColor'
         : '';
 
@@ -178,6 +199,9 @@ export class GenericModalComponent {
   }
 
   private joinClasses(...values: Array<string | undefined>): string[] {
-    return values.filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+    return values.filter(
+      (value): value is string =>
+        typeof value === 'string' && value.trim().length > 0
+    );
   }
 }

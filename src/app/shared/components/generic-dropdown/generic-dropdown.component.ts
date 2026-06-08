@@ -1,6 +1,6 @@
 import { ConnectedPosition, OverlayRef } from '@angular/cdk/overlay';
 import { DomPortalOutlet, TemplatePortal } from '@angular/cdk/portal';
-import { CommonModule } from '@angular/common';
+
 import {
   ApplicationRef,
   ChangeDetectionStrategy,
@@ -16,7 +16,7 @@ import {
   signal,
   TemplateRef,
   ViewChild,
-  ViewContainerRef
+  ViewContainerRef,
 } from '@angular/core';
 import { resolveLocaleMapValue } from '../../i18n/locale.utils';
 import { AngoraCombosService } from '../../services/angora-combos.service';
@@ -24,18 +24,22 @@ import { LanguageService } from '../../services/language.service';
 import { OverlayPositioningService } from '../../services/overlay-positioning.service';
 import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
 import { toNavigationHref } from '../../utility/navigation/navigation-target.utility';
-import { GenericButtonComponent } from "../generic-button/generic-button.component";
-import type { DropdownConfig, DropdownItem, MenuTemplateContext } from './generic-dropdown.types';
-
+import { GenericButtonComponent } from '../generic-button/generic-button.component';
+import type {
+  DropdownConfig,
+  DropdownItem,
+  MenuTemplateContext,
+} from './generic-dropdown.types';
 
 let dropdownMenuIdCounter = 0;
 
-
-const DROPDOWN_DEFAULT: Required<Pick<DropdownConfig, 'closeOnSelect'>> = { closeOnSelect: true };
+const DROPDOWN_DEFAULT: Required<Pick<DropdownConfig, 'closeOnSelect'>> = {
+  closeOnSelect: true,
+};
 
 @Component({
   selector: 'generic-dropdown',
-  imports: [CommonModule, GenericButtonComponent],
+  imports: [GenericButtonComponent],
   templateUrl: './generic-dropdown.component.html',
   styleUrls: ['./generic-dropdown.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -52,52 +56,88 @@ export class GenericDropdown {
   private inlinePortal: TemplatePortal | null = null;
   private inlineMenuRoot: HTMLElement | null = null;
   private host = inject(ElementRef<HTMLElement>);
-  private readonly defaultMenuId = `dd-menu-${ ++dropdownMenuIdCounter }`;
+  private readonly defaultMenuId = `dd-menu-${++dropdownMenuIdCounter}`;
 
   readonly items = input<readonly DropdownItem[]>([]);
   readonly config = input<DropdownConfig | null>(null);
   readonly opened = signal(false);
   readonly selectItem = output<DropdownItem>();
-  readonly classes = computed<string>(() => this.resolveString(this.config()?.classes));
-  readonly buttonClasses = computed<string>(() => this.resolveString(this.config()?.buttonClasses));
-  readonly itemLinkClasses = computed<string>(() => this.resolveString(this.config()?.itemLinkClasses));
-  readonly selectedItemClasses = computed<string>(() => this.resolveString(this.config()?.selectedItemClasses));
-  readonly disabledItemClasses = computed<string>(() => this.resolveString(this.config()?.disabledItemClasses));
-  readonly menuContainerClasses = computed<string>(() => this.resolveString(this.config()?.menuContainerClasses));
-  readonly menuNavClasses = computed<string>(() => this.resolveString(this.config()?.menuNavClasses));
-  readonly menuListClasses = computed<string>(() => this.resolveString(this.config()?.menuListClasses));
-  readonly triggerRole = computed<string | undefined>(() => this.resolveOptionalString(this.config()?.triggerRole));
-  readonly ariaLabel = computed<string | undefined>(() => this.resolveOptionalString(this.config()?.ariaLabel));
-  readonly menuId = computed<string>(() => this.resolveOptionalString(this.config()?.menuId) ?? this.defaultMenuId);
-  readonly menuRole = computed<'menu' | 'listbox'>(() => this.config()?.menuRole ?? 'menu');
-  readonly itemRole = computed<'menuitem' | 'option'>(() => this.config()?.itemRole ?? 'menuitem');
+  readonly classes = computed<string>(() =>
+    this.resolveString(this.config()?.classes)
+  );
+  readonly buttonClasses = computed<string>(() =>
+    this.resolveString(this.config()?.buttonClasses)
+  );
+  readonly itemLinkClasses = computed<string>(() =>
+    this.resolveString(this.config()?.itemLinkClasses)
+  );
+  readonly selectedItemClasses = computed<string>(() =>
+    this.resolveString(this.config()?.selectedItemClasses)
+  );
+  readonly disabledItemClasses = computed<string>(() =>
+    this.resolveString(this.config()?.disabledItemClasses)
+  );
+  readonly menuContainerClasses = computed<string>(() =>
+    this.resolveString(this.config()?.menuContainerClasses)
+  );
+  readonly menuNavClasses = computed<string>(() =>
+    this.resolveString(this.config()?.menuNavClasses)
+  );
+  readonly menuListClasses = computed<string>(() =>
+    this.resolveString(this.config()?.menuListClasses)
+  );
+  readonly triggerRole = computed<string | undefined>(() =>
+    this.resolveOptionalString(this.config()?.triggerRole)
+  );
+  readonly ariaLabel = computed<string | undefined>(() =>
+    this.resolveOptionalString(this.config()?.ariaLabel)
+  );
+  readonly menuId = computed<string>(
+    () =>
+      this.resolveOptionalString(this.config()?.menuId) ?? this.defaultMenuId
+  );
+  readonly menuRole = computed<'menu' | 'listbox'>(
+    () => this.config()?.menuRole ?? 'menu'
+  );
+  readonly itemRole = computed<'menuitem' | 'option'>(
+    () => this.config()?.itemRole ?? 'menuitem'
+  );
   readonly selectedItemId = computed<string>(() => {
     const raw = this.resolveValue(this.config()?.selectedItemId);
     return raw == null ? '' : String(raw).trim();
   });
-  readonly renderMode = computed<'overlay' | 'inline'>(() => this.config()?.renderMode ?? 'overlay');
-  readonly menuContainerId = computed<string | null>(() => this.resolveOptionalString(this.config()?.menuContainerId) ?? null);
+  readonly renderMode = computed<'overlay' | 'inline'>(
+    () => this.config()?.renderMode ?? 'overlay'
+  );
+  readonly menuContainerId = computed<string | null>(
+    () => this.resolveOptionalString(this.config()?.menuContainerId) ?? null
+  );
   readonly normalizedItems = computed<readonly DropdownItem[]>(() => {
     const raw = this.resolveValue(this.items() as unknown);
 
     const entries = Array.isArray(raw)
-      ? raw.filter((item): item is DropdownItem => !!item && typeof item === 'object')
-      : raw && typeof raw === 'object'
-        ? Object.values(raw as Record<string, unknown>).filter(
+      ? raw.filter(
           (item): item is DropdownItem => !!item && typeof item === 'object'
         )
-        : [];
+      : raw && typeof raw === 'object'
+      ? Object.values(raw as Record<string, unknown>).filter(
+          (item): item is DropdownItem => !!item && typeof item === 'object'
+        )
+      : [];
 
     return entries.map((item) => this.normalizedItem(item));
   });
 
-  readonly stateClasses = computed(() => (this.opened() ? 'ank-opacity-100' : 'ank-opacity-80'));
+  readonly stateClasses = computed(() =>
+    this.opened() ? 'ank-opacity-100' : 'ank-opacity-80'
+  );
   readonly activeIndex = signal<number>(-1); // exposed for aria-activedescendant
   private menuItems: HTMLElement[] = [];
   private triggerBtn!: HTMLButtonElement;
   private navigationUnlisten: (() => void) | null = null;
   @Input('menuTpl') menuTpl!: TemplateRef<unknown>; // scaffold placeholder (template reference)
-  @ViewChild('defaultMenuTpl', { static: true }) private defaultMenuTpl!: TemplateRef<MenuTemplateContext>;
+  @ViewChild('defaultMenuTpl', { static: true })
+  private defaultMenuTpl!: TemplateRef<MenuTemplateContext>;
 
   constructor() {
     if (typeof window === 'undefined') {
@@ -110,12 +150,15 @@ export class GenericDropdown {
       }
     };
     window.addEventListener('popstate', closeOnNavigation);
-    this.navigationUnlisten = () => window.removeEventListener('popstate', closeOnNavigation);
+    this.navigationUnlisten = () =>
+      window.removeEventListener('popstate', closeOnNavigation);
   }
 
   ngAfterViewInit(): void {
     // capture trigger for focus restoration
-    this.triggerBtn = this.host.nativeElement.querySelector('button[aria-haspopup]') as HTMLButtonElement;
+    this.triggerBtn = this.host.nativeElement.querySelector(
+      'button[aria-haspopup]'
+    ) as HTMLButtonElement;
   }
 
   ngOnDestroy(): void {
@@ -141,11 +184,13 @@ export class GenericDropdown {
     // Inline menus render into a normal DOM container (no cdk-overlay-* wrappers)
     if (this.renderMode() === 'inline') {
       if (this.inlineOutlet) return;
-      const selector = this.resolveOptionalString(this.config()?.inlinePortalTargetSelector) ?? '';
+      const selector =
+        this.resolveOptionalString(this.config()?.inlinePortalTargetSelector) ??
+        '';
       const target = selector
-        ? ((this.host.nativeElement.closest(selector) as HTMLElement | null)
-          ?? document.querySelector<HTMLElement>(selector)
-          ?? document.body)
+        ? (this.host.nativeElement.closest(selector) as HTMLElement | null) ??
+          document.querySelector<HTMLElement>(selector) ??
+          document.body
         : this.host.nativeElement.parentElement ?? document.body;
 
       const menuRoot = document.createElement('div');
@@ -156,7 +201,11 @@ export class GenericDropdown {
       target.appendChild(menuRoot);
       this.inlineMenuRoot = menuRoot;
 
-      this.inlineOutlet = new DomPortalOutlet(menuRoot, this.appRef, this.injector);
+      this.inlineOutlet = new DomPortalOutlet(
+        menuRoot,
+        this.appRef,
+        this.injector
+      );
       this.inlinePortal = new TemplatePortal(this.defaultMenuTpl, this.vcr, {
         items: this.normalizedItems(),
         select: (item: DropdownItem) => this.handleSelect(item),
@@ -174,11 +223,15 @@ export class GenericDropdown {
     const originMode = cfg?.overlayOrigin ?? 'host';
     const originEl =
       originMode === 'closestContainer'
-        ? (this.host.nativeElement.closest('.ank-container') as HTMLElement | null)
+        ? (this.host.nativeElement.closest(
+            '.ank-container'
+          ) as HTMLElement | null)
         : originMode === 'closestHeader'
-          ? (this.host.nativeElement.closest('header') as HTMLElement | null)
-          : null;
-    const originRef = originEl ? new ElementRef<HTMLElement>(originEl) : this.host;
+        ? (this.host.nativeElement.closest('header') as HTMLElement | null)
+        : null;
+    const originRef = originEl
+      ? new ElementRef<HTMLElement>(originEl)
+      : this.host;
 
     const matchWidth = cfg?.overlayMatchWidth ?? 'none';
     const originRect = originRef.nativeElement.getBoundingClientRect();
@@ -199,7 +252,9 @@ export class GenericDropdown {
       // For full-viewport menus, avoid CDK "push" adjusting our left alignment.
       push: matchWidth === 'viewport' ? false : undefined,
       disableFlexibleDimensions: matchWidth === 'viewport' ? true : undefined,
-      panelClass: this.classTokens(this.resolveOptionalString(cfg?.menuContainerClasses)),
+      panelClass: this.classTokens(
+        this.resolveOptionalString(cfg?.menuContainerClasses)
+      ),
     });
 
     const portal = new TemplatePortal(
@@ -304,7 +359,9 @@ export class GenericDropdown {
     } else if (e.key === 'Enter' || e.key === ' ') {
       const idx = this.activeIndex();
       if (idx > -1) {
-        this.menuItems[idx]?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        this.menuItems[idx]?.dispatchEvent(
+          new MouseEvent('click', { bubbles: true })
+        );
       }
       e.preventDefault();
     } else if (e.key === 'Tab') {
@@ -314,10 +371,11 @@ export class GenericDropdown {
   }
 
   private captureMenuItemsAndFocusFirst(): void {
-    const root = this.renderMode() === 'inline'
-      ? (this.inlineMenuRoot ?? document)
-      : this.overlayRef?.overlayElement;
-    const list = root?.querySelectorAll(`a[role="${ this.itemRole() }"]`);
+    const root =
+      this.renderMode() === 'inline'
+        ? this.inlineMenuRoot ?? document
+        : this.overlayRef?.overlayElement;
+    const list = root?.querySelectorAll(`a[role="${this.itemRole()}"]`);
     this.menuItems = list ? (Array.from(list) as HTMLElement[]) : [];
     if (this.menuItems.length) {
       this.setActive(0);
@@ -327,7 +385,10 @@ export class GenericDropdown {
     let idx = this.activeIndex();
     do {
       idx = (idx + delta + this.menuItems.length) % this.menuItems.length;
-    } while (this.isDisabled(this.menuItems[idx]) && this.menuItems.some(i => !this.isDisabled(i)));
+    } while (
+      this.isDisabled(this.menuItems[idx]) &&
+      this.menuItems.some((i) => !this.isDisabled(i))
+    );
     this.setActive(idx);
   }
   private setActive(idx: number): void {
@@ -359,7 +420,9 @@ export class GenericDropdown {
       this.itemLinkClasses(),
       this.isSelectedItem(item) ? this.selectedItemClasses() : '',
       this.itemDisabled(item) ? this.disabledItemClasses() : '',
-    ].filter(Boolean).join(' ');
+    ]
+      .filter(Boolean)
+      .join(' ');
   }
 
   resolveValue(value: unknown): unknown {
@@ -384,15 +447,21 @@ export class GenericDropdown {
     const raw = this.resolveValue(value);
     if (typeof raw === 'string' && raw.trim().length > 0) return raw;
 
-    const localized = resolveLocaleMapValue(raw, this.language.currentLanguage());
-    return typeof localized === 'string' && localized.trim().length > 0 ? localized : '';
+    const localized = resolveLocaleMapValue(
+      raw,
+      this.language.currentLanguage()
+    );
+    return typeof localized === 'string' && localized.trim().length > 0
+      ? localized
+      : '';
   }
 
   itemLabel(item: DropdownItem): string {
     const label = this.resolveText(item.label);
     if (label) return label;
 
-    if (typeof item.id === 'string' && item.id.trim().length > 0) return item.id;
+    if (typeof item.id === 'string' && item.id.trim().length > 0)
+      return item.id;
     return '';
   }
 
@@ -404,7 +473,9 @@ export class GenericDropdown {
   }
 
   itemHref(item: DropdownItem): string {
-    const explicitHref = this.resolveValue((item as Record<string, unknown>)['href']);
+    const explicitHref = this.resolveValue(
+      (item as Record<string, unknown>)['href']
+    );
     if (typeof explicitHref === 'string' && explicitHref.trim().length > 0) {
       return toNavigationHref(explicitHref) || '#';
     }
@@ -414,7 +485,9 @@ export class GenericDropdown {
   }
 
   itemAriaLabel(item: DropdownItem): string {
-    const ariaLabel = this.resolveText((item as Record<string, unknown>)['ariaLabel']);
+    const ariaLabel = this.resolveText(
+      (item as Record<string, unknown>)['ariaLabel']
+    );
     return ariaLabel || this.itemLabel(item);
   }
 

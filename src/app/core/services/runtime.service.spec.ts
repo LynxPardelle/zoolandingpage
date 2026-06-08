@@ -475,14 +475,17 @@ describe('RuntimeService', () => {
     it('keeps the boot curtain while rendered section title color is still stale', async () => {
         const style = document.createElement('style');
         const title = document.createElement('h1');
+        const previousTitleColor = document.body.style.getPropertyValue('--ank-titleColor');
+        const previousTitleColorPriority = document.body.style.getPropertyPriority('--ank-titleColor');
         style.textContent = `
             :root { --ank-titleColor: rgb(32, 23, 18); }
-            .sectionTitle { color: rgb(255, 248, 230); }
         `;
         title.className = 'sectionTitle';
+        title.style.color = 'rgb(255, 248, 230)';
         title.textContent = 'Title';
         document.head.appendChild(style);
         document.body.appendChild(title);
+        document.body.style.setProperty('--ank-titleColor', 'rgb(32, 23, 18)');
 
         try {
             const service = TestBed.inject(RuntimeService);
@@ -493,10 +496,7 @@ describe('RuntimeService', () => {
 
             expect(hideLoadingCurtain).not.toHaveBeenCalledWith('rendered-components-css-updated');
 
-            style.sheet?.insertRule(
-                '.sectionTitle { color: var(--ank-titleColor); }',
-                style.sheet.cssRules.length,
-            );
+            title.style.color = 'var(--ank-titleColor)';
             await new Promise<void>((resolve) => window.setTimeout(resolve, 75));
             await flushCssReadinessPasses();
 
@@ -505,6 +505,11 @@ describe('RuntimeService', () => {
         } finally {
             title.remove();
             style.remove();
+            if (previousTitleColor) {
+                document.body.style.setProperty('--ank-titleColor', previousTitleColor, previousTitleColorPriority);
+            } else {
+                document.body.style.removeProperty('--ank-titleColor');
+            }
         }
     });
 
