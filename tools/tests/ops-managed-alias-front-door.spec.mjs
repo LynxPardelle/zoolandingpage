@@ -98,7 +98,12 @@ test('renderTraefikDynamicConfig emits routers and shared service', () => {
     generatedAtCentral: '2026-05-19 12:00:00 CT (GMT-6)',
   });
 
+  assert.match(yaml, /zlp-managed-desk-zoolandingpage-com-mx:/);
+  assert.match(yaml, /zlp-managed-desk-zoolandingpage-com-mx-secure:/);
   assert.match(yaml, /rule: "Host\(`desk\.zoolandingpage\.com\.mx`\)"/);
+  assert.match(yaml, /- "zlp-https-redirect@file"/);
+  assert.match(yaml, /redirectScheme:/);
+  assert.match(yaml, /permanent: true/);
   assert.match(yaml, /certResolver: "letsencrypt"/);
   assert.match(yaml, /url: "http:\/\/zoolandingpage-test:4000"/);
 });
@@ -139,6 +144,7 @@ test('renderTraefikRouterBlock emits replaceable web and websecure routers', () 
   assert.match(block, /zlp-test-aliases:/);
   assert.match(block, /zlp-test-aliases-secure:/);
   assert.match(block, /rule: Host\(`test\.desk\.zoolandingpage\.com\.mx`\)/);
+  assert.match(block, /- zlp-https-redirect@file/);
   assert.match(block, /certResolver: letsencrypt/);
 });
 

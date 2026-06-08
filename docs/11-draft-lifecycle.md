@@ -89,12 +89,14 @@ The current platform does not have a separate scaffold generator for local files
 
 1. Create a new domain folder under `drafts/{domain}`.
 2. Add `site-config.json` for the new domain.
-3. Declare at least one managed alias under `*.zoolandingpage.com.mx` in `site-config.json.aliases`, for example `brand.zoolandingpage.com.mx`.
-4. If the branded domain is not live yet, point `site.seo.canonicalOrigin` and each page `seo.canonical` URL at that Zoolanding alias until cutover.
-5. Create at least one page folder such as `default`.
-6. Add `page-config.json` and `components.json` for that page.
-7. Add `variables.json`, `angora-combos.json`, and `i18n/*.json` only when the draft needs them.
-8. Create `ai_notes/`, `findings/`, and `errors-reports/` only when the draft needs local history, investigation, or incident tracking that should stay out of the committed canonical notes.
+3. Before creating the draft repo or authoring config, ask the user for the intended canonical domain and every production/test alias they want managed.
+4. Use `https://test.zoolandingpage.com.mx/?draftDomain={domain}` as the default test environment. Do not create dedicated `test.*` aliases unless the user explicitly approves that host.
+5. Declare only approved production aliases in `site-config.json.aliases`.
+6. If the branded domain is not live yet and no approved production alias exists, keep the draft preview on the shared test host until cutover instead of inventing a managed alias.
+7. Create at least one page folder such as `default`.
+8. Add `page-config.json` and `components.json` for that page.
+9. Add `variables.json`, `angora-combos.json`, and `i18n/*.json` only when the draft needs them.
+10. Create `ai_notes/`, `findings/`, and `errors-reports/` only when the draft needs local history, investigation, or incident tracking that should stay out of the committed canonical notes.
 
 For a shared header/footer or repeated site UI, use the domain-root `components.json` instead of duplicating the same component definitions across pages.
 
