@@ -57,6 +57,15 @@ test('test providers force Angular TestBed into zoneless mode', () => {
   assert.doesNotMatch(source, /provideZoneChangeDetection/);
 });
 
+test('test providers isolate the real Angora CSS generator by default', () => {
+  const source = readFileSync(path.join(repoRoot, 'src', 'test-providers.ts'), 'utf8');
+
+  assert.match(source, /NgxAngoraService/);
+  assert.match(source, /testNgxAngoraService/);
+  assert.match(source, /cssCreate:\s*\(\)\s*=>\s*undefined/);
+  assert.match(source, /\{\s*provide:\s*NgxAngoraService,\s*useValue:\s*testNgxAngoraService/);
+});
+
 test('Angular specs do not import ZoneJS-only test helpers', async () => {
   const specFiles = await listSpecFiles(path.join(repoRoot, 'src'));
   const offenders = specFiles.flatMap((file) => {
