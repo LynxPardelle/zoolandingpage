@@ -11,16 +11,13 @@ test('repoNameForDomain maps domains to draft repo names', () => {
   );
 });
 
-test('testAliasesFor keeps configured test aliases and adds managed test alias', () => {
+test('testAliasesFor does not create dedicated test aliases by default', () => {
   assert.deepEqual(testAliasesFor('pamelabetancourt.com', ['pamelabetancourt.zoolandingpage.com.mx']), [
-    'test.pamelabetancourt.com',
-    'test.pamelabetancourt.zoolandingpage.com.mx',
   ]);
 });
 
-test('testAliasesFor moves existing test aliases into test environment set', () => {
+test('testAliasesFor keeps only explicitly configured test aliases', () => {
   assert.deepEqual(testAliasesFor('zoolandingpage.com.mx', ['test.zoolandingpage.com.mx', 'zoolandingpage.com']), [
-    'test.zoolandingpage.com',
     'test.zoolandingpage.com.mx',
   ]);
 });

@@ -109,17 +109,14 @@ Use `site.hostOverrides` when the same draft must serve different Google tags, S
 
 When aliases are supporting campaign or convenience domains, set their `seo.canonicalOrigin` to the primary domain instead of the alias. Example: `zoositioweb.com` and `sitiosweb.zoolandingpage.com.mx` should canonicalize to `https://zoositioweb.com.mx` when `zoositioweb.com.mx` is the primary domain.
 
+For test, use the shared preview host `https://test.zoolandingpage.com.mx/?draftDomain={domain}` by default. Do not add a dedicated `test.*` alias for campaign or measurement testing unless the user explicitly approves that host.
+
 When aliases need Google measurement before redirect, keep `enforceCanonicalHost: false` on that alias override so the page can render, inject the tag, and still emit a primary-domain canonical link. If `enforceCanonicalHost: true`, the alias redirects before its tag can run. For central cross-domain measurement, use the same `measurementIds` value on the primary domain and participating aliases.
 
 ```json
 {
   "domain": "zoositioweb.com.mx",
   "aliases": ["sitiosweb.zoolandingpage.com.mx"],
-  "environments": {
-    "test": {
-      "aliases": ["test.sitiosweb.zoolandingpage.com.mx"]
-    }
-  },
   "site": {
     "seo": {
       "canonicalOrigin": "https://zoositioweb.com.mx",
