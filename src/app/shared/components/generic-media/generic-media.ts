@@ -1,6 +1,17 @@
-import { CommonModule } from '@angular/common';
-import { AfterViewInit, ChangeDetectionStrategy, Component, computed, ElementRef, input, ViewChild } from '@angular/core';
-import { composeDomId, resolveComponentRootDomId, resolveDynamicValue } from '../../utility/component-orchestrator.utility';
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  ElementRef,
+  input,
+  ViewChild,
+} from '@angular/core';
+import {
+  composeDomId,
+  resolveComponentRootDomId,
+  resolveDynamicValue,
+} from '../../utility/component-orchestrator.utility';
 import type {
   GenericMediaImageDecoding,
   GenericMediaImageFetchPriority,
@@ -12,7 +23,7 @@ import type {
 @Component({
   selector: 'generic-media',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './generic-media.html',
   styleUrl: './generic-media.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -20,41 +31,70 @@ import type {
 export class GenericMedia implements AfterViewInit {
   readonly config = input.required<TGenericMediaConfig>();
   readonly componentId = input<string | undefined>(undefined);
-  @ViewChild('imageElement') private imageElement?: ElementRef<HTMLImageElement>;
+  @ViewChild('imageElement')
+  private imageElement?: ElementRef<HTMLImageElement>;
   private readonly maxImageRetryAttempts = 2;
-  private readonly imageRetryState = new WeakMap<HTMLImageElement, {
-    readonly baseSrc: string;
-    readonly attempt: number;
-  }>();
+  private readonly imageRetryState = new WeakMap<
+    HTMLImageElement,
+    {
+      readonly baseSrc: string;
+      readonly attempt: number;
+    }
+  >();
 
-  readonly id = computed(() => resolveComponentRootDomId(this.config().id, this.componentId(), 'media') ?? null);
-  readonly linkContentId = computed(() => composeDomId(this.id(), 'content') ?? null);
+  readonly id = computed(
+    () =>
+      resolveComponentRootDomId(
+        this.config().id,
+        this.componentId(),
+        'media'
+      ) ?? null
+  );
+  readonly linkContentId = computed(
+    () => composeDomId(this.id(), 'content') ?? null
+  );
   readonly tag = computed<GenericMediaTag>(() => {
     const resolved = resolveDynamicValue(this.config().tag);
     return (resolved as GenericMediaTag) ?? 'image';
   });
-  readonly classes = computed(() => this.resolveOptionalString(this.config().classes) ?? '');
+  readonly classes = computed(
+    () => this.resolveOptionalString(this.config().classes) ?? ''
+  );
   readonly src = computed(() => this.resolveRequiredString(this.config().src));
   readonly alt = computed(() => this.resolveOptionalString(this.config().alt));
   readonly linkLabel = computed(() => this.alt() ?? this.src());
-  readonly width = computed(() => this.resolvePositiveInteger(this.config().width));
-  readonly height = computed(() => this.resolvePositiveInteger(this.config().height));
-  readonly loading = computed<GenericMediaImageLoading>(() => this.resolveEnum(
-    this.config().loading,
-    ['eager', 'lazy'] as const,
-    'lazy',
-  ) ?? 'lazy');
-  readonly fetchPriority = computed<GenericMediaImageFetchPriority | null>(() => this.resolveEnum(
-    this.config().fetchPriority,
-    ['high', 'low', 'auto'] as const,
-    null,
-  ));
-  readonly decoding = computed<GenericMediaImageDecoding>(() => this.resolveEnum(
-    this.config().decoding,
-    ['async', 'sync', 'auto'] as const,
-    'async',
-  ) ?? 'async');
-  readonly sizes = computed(() => this.resolveOptionalString(this.config().sizes));
+  readonly width = computed(() =>
+    this.resolvePositiveInteger(this.config().width)
+  );
+  readonly height = computed(() =>
+    this.resolvePositiveInteger(this.config().height)
+  );
+  readonly loading = computed<GenericMediaImageLoading>(
+    () =>
+      this.resolveEnum(
+        this.config().loading,
+        ['eager', 'lazy'] as const,
+        'lazy'
+      ) ?? 'lazy'
+  );
+  readonly fetchPriority = computed<GenericMediaImageFetchPriority | null>(() =>
+    this.resolveEnum(
+      this.config().fetchPriority,
+      ['high', 'low', 'auto'] as const,
+      null
+    )
+  );
+  readonly decoding = computed<GenericMediaImageDecoding>(
+    () =>
+      this.resolveEnum(
+        this.config().decoding,
+        ['async', 'sync', 'auto'] as const,
+        'async'
+      ) ?? 'async'
+  );
+  readonly sizes = computed(() =>
+    this.resolveOptionalString(this.config().sizes)
+  );
 
   ngAfterViewInit(): void {
     globalThis.setTimeout(() => this.retryHydratedBrokenImage(), 0);
@@ -86,10 +126,12 @@ export class GenericMedia implements AfterViewInit {
   private resolveEnum<T extends string>(
     value: unknown,
     allowed: readonly T[],
-    fallback: T | null,
+    fallback: T | null
   ): T | null {
-    const resolved = String(resolveDynamicValue(value as never) ?? '').trim().toLowerCase();
-    return allowed.includes(resolved as T) ? resolved as T : fallback;
+    const resolved = String(resolveDynamicValue(value as never) ?? '')
+      .trim()
+      .toLowerCase();
+    return allowed.includes(resolved as T) ? (resolved as T) : fallback;
   }
 
   handleImageLoad(event: Event): void {
@@ -138,7 +180,10 @@ export class GenericMedia implements AfterViewInit {
   }
 
   private asImageElement(value: unknown): HTMLImageElement | null {
-    if (typeof HTMLImageElement === 'undefined' || !(value instanceof HTMLImageElement)) {
+    if (
+      typeof HTMLImageElement === 'undefined' ||
+      !(value instanceof HTMLImageElement)
+    ) {
       return null;
     }
 
@@ -155,5 +200,4 @@ export class GenericMedia implements AfterViewInit {
       return `${src}${separator}zlpImageRetry=${attempt}`;
     }
   }
-
 }

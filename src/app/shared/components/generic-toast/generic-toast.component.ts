@@ -1,18 +1,35 @@
-import { AnalyticsCategories, AnalyticsEventPayload, AnalyticsEvents } from '@/app/shared/services/analytics.events';
-import { CommonModule } from '@angular/common';
-import { Component, computed, effect, inject, output, signal } from '@angular/core';
+import {
+  AnalyticsCategories,
+  AnalyticsEventPayload,
+  AnalyticsEvents,
+} from '@/app/shared/services/analytics.events';
+
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  output,
+  signal,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { NgxAngoraService } from 'ngx-angora-css';
 import { I18nService } from '../../services/i18n.service';
 import { VariableStoreService } from '../../services/variable-store.service';
 import { normalizeAngoraClassList } from '../../utility/angora-class-normalization.utility';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { ToastService } from './generic-toast.service';
-import { ToastAction, ToastMessage, ToastUiConfig } from './generic-toast.types';
+import {
+  ToastAction,
+  ToastMessage,
+  ToastUiConfig,
+} from './generic-toast.types';
 
 @Component({
   selector: 'generic-toast-host',
-  imports: [CommonModule, GenericButtonComponent],
+  imports: [GenericButtonComponent],
   templateUrl: './generic-toast.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./generic-toast.component.scss'],
 })
 export class GenericToastComponent {
@@ -21,22 +38,32 @@ export class GenericToastComponent {
   private readonly i18n = inject(I18nService);
   private readonly variableStore = inject(VariableStoreService);
   readonly analyticsEvent = output<AnalyticsEventPayload>();
-  readonly notificationsAriaLabel = computed(() => this.i18n.t('ui.common.notifications'));
+  readonly notificationsAriaLabel = computed(() =>
+    this.i18n.t('ui.common.notifications')
+  );
   readonly uiConfig = computed<ToastUiConfig>(() => {
     const value = this.variableStore.get('ui.toast');
-    return this.isRecord(value) ? value as ToastUiConfig : {};
+    return this.isRecord(value) ? (value as ToastUiConfig) : {};
   });
 
   constructor(public service: ToastService) {
     // Reactive analytics emission for toast lifecycle
     effect(() => {
       const list = this.service.list();
-      list.forEach(t => {
+      list.forEach((t) => {
         if (t.entering) {
-          this.analyticsEvent.emit({ name: AnalyticsEvents.ToastShow, category: AnalyticsCategories.Engagement, label: t.source || t.title || 'toast' });
+          this.analyticsEvent.emit({
+            name: AnalyticsEvents.ToastShow,
+            category: AnalyticsCategories.Engagement,
+            label: t.source || t.title || 'toast',
+          });
         }
         if (t.leaving) {
-          this.analyticsEvent.emit({ name: AnalyticsEvents.ToastHide, category: AnalyticsCategories.Engagement, label: t.source || t.title || 'toast' });
+          this.analyticsEvent.emit({
+            name: AnalyticsEvents.ToastHide,
+            category: AnalyticsCategories.Engagement,
+            label: t.source || t.title || 'toast',
+          });
         }
       });
     });
@@ -90,22 +117,38 @@ export class GenericToastComponent {
   }
 
   getIconClasses(toast: ToastMessage): string {
-    return [this.uiClass('iconSurfaceClasses'), this.uiClass('iconContainerClasses'), this.iconLevelClasses(toast.level)].filter(Boolean).join(' ');
+    return [
+      this.uiClass('iconSurfaceClasses'),
+      this.uiClass('iconContainerClasses'),
+      this.iconLevelClasses(toast.level),
+    ]
+      .filter(Boolean)
+      .join(' ');
   }
 
   getProgressBarClasses(toast: ToastMessage): string {
-    return [this.uiClass('progressBarSurfaceClasses'), this.uiClass('progressBarClasses'), 'toast-progress-bar-anim'].filter(Boolean).join(' ');
+    return [
+      this.uiClass('progressBarSurfaceClasses'),
+      this.uiClass('progressBarClasses'),
+      'toast-progress-bar-anim',
+    ]
+      .filter(Boolean)
+      .join(' ');
   }
 
   getActionButtonClasses(action: ToastAction): string {
     return [
       this.uiClass('actionButtonClasses'),
-      action.style === 'primary' ? this.uiClass('actionPrimaryClasses') : this.uiClass('actionSecondaryClasses'),
-    ].filter(Boolean).join(' ');
+      action.style === 'primary'
+        ? this.uiClass('actionPrimaryClasses')
+        : this.uiClass('actionSecondaryClasses'),
+    ]
+      .filter(Boolean)
+      .join(' ');
   }
 
   onToastHover(toastId: string, isHovered: boolean): void {
-    this.hoveredToasts.update(set => {
+    this.hoveredToasts.update((set) => {
       const newSet = new Set(set);
       if (isHovered) {
         newSet.add(toastId);
@@ -123,20 +166,28 @@ export class GenericToastComponent {
       console.error('Toast action failed:', error);
     }
     // Emit specific toast action event including the button label
-    this.analyticsEvent.emit({ name: AnalyticsEvents.ActionTrigger, category: AnalyticsCategories.CTA, label: action.label });
+    this.analyticsEvent.emit({
+      name: AnalyticsEvents.ActionTrigger,
+      category: AnalyticsCategories.CTA,
+      label: action.label,
+    });
 
     // Optionally dismiss the toast after action
     this.service.dismiss(toastId);
   }
 
   dismiss(toastId: string): void {
-    this.analyticsEvent.emit({ name: AnalyticsEvents.ToastHide, category: AnalyticsCategories.CTA, label: 'dismiss' });
+    this.analyticsEvent.emit({
+      name: AnalyticsEvents.ToastHide,
+      category: AnalyticsCategories.CTA,
+      label: 'dismiss',
+    });
     this.service.dismiss(toastId);
   }
 
   getDismissAriaLabel(title?: string | null): string {
     const base = this.i18n.t('ui.common.dismissNotification');
-    return title ? `${ base }: ${ title }` : base;
+    return title ? `${base}: ${title}` : base;
   }
 
   uiClass(key: keyof ToastUiConfig): string {
@@ -146,7 +197,7 @@ export class GenericToastComponent {
     return normalizeAngoraClassList(
       value.trim(),
       this.ank.cssNamesParsed ?? {},
-      String(this.ank.indicatorClass ?? 'ank'),
+      String(this.ank.indicatorClass ?? 'ank')
     );
   }
 

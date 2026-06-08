@@ -1,5 +1,5 @@
 import { AsyncPipe } from '@angular/common';
-import { Component, Input } from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { NgxAngoraService } from 'ngx-angora-css';
@@ -10,15 +10,21 @@ import { ConfigBootstrapService } from '../../../shared/services/config-bootstra
 import { ConfigSourceService } from '../../../shared/services/config-source.service';
 import { ConfigurationsOrchestratorService } from '../../../shared/services/configurations-orchestrator';
 import { DraftRegistryService } from '../../../shared/services/draft-registry.service';
-import type { TComponentPayloadEntry, TComponentsPayload } from '../../../shared/types/config-payloads.types';
+import type {
+  TComponentPayloadEntry,
+  TComponentsPayload,
+} from '../../../shared/types/config-payloads.types';
 import { DebugWorkspaceComponent } from '../debug-workspace/debug-workspace.component';
 import { AppShellComponent } from './app-shell.component';
 
 @Component({
   selector: 'wrapper-orchestrator',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
-    <a href="#main-content" (click)="focusMain($event, mainContent)">Skip to content</a>
+    <a href="#main-content" (click)="focusMain($event, mainContent)"
+      >Skip to content</a
+    >
     <header role="banner"></header>
     <nav aria-label="Primary"></nav>
     <main #mainContent id="main-content" tabindex="-1"></main>
@@ -36,9 +42,10 @@ class WrapperOrchestratorStub {
 @Component({
   selector: 'debug-workspace',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: '',
 })
-class DebugWorkspaceStub { }
+class DebugWorkspaceStub {}
 
 const PRIMARY_DOMAIN = 'preview.example.test';
 const nativeHistoryReplaceState = History.prototype.replaceState;
@@ -46,7 +53,9 @@ const setBrowserUrl = (url: string): void => {
   nativeHistoryReplaceState.call(window.history, {}, '', url);
 };
 
-const createComponentsPayload = (components: Record<string, TComponentPayloadEntry>): TComponentsPayload => ({
+const createComponentsPayload = (
+  components: Record<string, TComponentPayloadEntry>
+): TComponentsPayload => ({
   version: 1,
   pageId: 'default',
   domain: PRIMARY_DOMAIN,
@@ -58,9 +67,9 @@ const ORCHESTRATOR_STUB = {
   fallbackModalHostConfig: {},
   activeModalRef: () => null,
   getAllTheClassesFromComponents: () => [],
-  setDraftExportContext: () => { },
-  setExternalComponentsFromPayload: () => { },
-  setAuxiliaryComponentsFromPayload: () => { },
+  setDraftExportContext: () => {},
+  setExternalComponentsFromPayload: () => {},
+  setAuxiliaryComponentsFromPayload: () => {},
   exportDraftComponentsPayload: () => ({
     version: 1,
     pageId: 'default',
@@ -71,20 +80,20 @@ const ORCHESTRATOR_STUB = {
 
 describe('AppShellComponent a11y', () => {
   beforeEach(async () => {
-    setBrowserUrl(`/?draftDomain=${ PRIMARY_DOMAIN }&draftPageId=default`);
+    setBrowserUrl(`/?draftDomain=${PRIMARY_DOMAIN}&draftPageId=default`);
     await TestBed.configureTestingModule({
       imports: [AppShellComponent],
       providers: [
         {
           provide: AnalyticsService,
           useValue: {
-            initializeRuntimeState: () => { },
-            track: async () => { },
+            initializeRuntimeState: () => {},
+            track: async () => {},
             flush: () => [],
             pageViewEventName: () => 'page_view',
-            promptForConsentIfNeeded: () => { },
-            startPageEngagementTracking: () => { },
-            stopPageEngagementTracking: () => { },
+            promptForConsentIfNeeded: () => {},
+            startPageEngagementTracking: () => {},
+            stopPageEngagementTracking: () => {},
           } as any,
         },
         {
@@ -99,7 +108,11 @@ describe('AppShellComponent a11y', () => {
                 pageId: 'default',
                 domain: PRIMARY_DOMAIN,
                 rootIds: ['skipToMainLink', 'siteHeader', 'landingPage'],
-                modalRootIds: ['modalAnalyticsConsentRoot', 'modalTermsRoot', 'modalDataUseRoot'],
+                modalRootIds: [
+                  'modalAnalyticsConsentRoot',
+                  'modalTermsRoot',
+                  'modalDataUseRoot',
+                ],
               },
               components: createComponentsPayload({
                 draftStub: {
@@ -114,7 +127,8 @@ describe('AppShellComponent a11y', () => {
         {
           provide: DraftRegistryService,
           useValue: {
-            listDrafts: () => of([{ domain: PRIMARY_DOMAIN, pageId: 'default' }]),
+            listDrafts: () =>
+              of([{ domain: PRIMARY_DOMAIN, pageId: 'default' }]),
           },
         },
         {
@@ -123,27 +137,35 @@ describe('AppShellComponent a11y', () => {
             loadSiteConfig: async () => null,
           },
         },
-        { provide: ConfigurationsOrchestratorService, useValue: ORCHESTRATOR_STUB },
+        {
+          provide: ConfigurationsOrchestratorService,
+          useValue: ORCHESTRATOR_STUB,
+        },
         {
           provide: NgxAngoraService,
           useValue: {
-            cssCreate: () => { },
+            cssCreate: () => {},
             timeBetweenReCreate: 0,
-            pushCombos: () => { },
-            pushColors: () => { },
-            updateColors: () => { },
+            pushCombos: () => {},
+            pushColors: () => {},
+            updateColors: () => {},
           } as any,
         },
         provideRouter(
           [{ path: '', component: AppShellComponent, pathMatch: 'full' }],
-          withInMemoryScrolling({ scrollPositionRestoration: 'enabled', anchorScrolling: 'enabled' })
+          withInMemoryScrolling({
+            scrollPositionRestoration: 'enabled',
+            anchorScrolling: 'enabled',
+          })
         ),
       ],
     }).compileComponents();
 
     TestBed.overrideComponent(AppShellComponent, {
       remove: { imports: [WrapperOrchestrator, DebugWorkspaceComponent] },
-      add: { imports: [WrapperOrchestratorStub, DebugWorkspaceStub, AsyncPipe] },
+      add: {
+        imports: [WrapperOrchestratorStub, DebugWorkspaceStub, AsyncPipe],
+      },
     });
   });
 
@@ -158,12 +180,16 @@ describe('AppShellComponent a11y', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     fixture.detectChanges();
     const root = fixture.nativeElement as HTMLElement;
-    const skip = root.querySelector('a[href="#main-content"]') as HTMLAnchorElement;
+    const skip = root.querySelector(
+      'a[href="#main-content"]'
+    ) as HTMLAnchorElement;
     expect(skip).toBeTruthy();
     const main = root.querySelector('main#main-content') as HTMLElement;
     expect(main).toBeTruthy();
 
-    skip.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    skip.dispatchEvent(
+      new MouseEvent('click', { bubbles: true, cancelable: true })
+    );
     expect(document.activeElement).toBe(main);
   });
 

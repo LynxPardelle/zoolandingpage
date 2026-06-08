@@ -110,6 +110,15 @@ Author requests presign
 - `QuickStatsService`: talks to the quick-stats API when enabled by runtime config.
 - `AngoraCombosService`: applies authored combo bundles from payloads.
 
+### Application state foundation
+
+- `ConfigStoreService` and `VariableStoreService` stay as Angular signal-backed runtime stores for config payloads, variables, and render-time bootstrap data.
+- Angular signal facades own cross-route platform state that must be consistent across the shell: auth session metadata, active draft tenant/profile selection, and public blog summaries.
+- Signal state side effects must stay SSR-safe. Browser storage access must be guarded by `PLATFORM_ID`/`isPlatformBrowser(...)` and may only persist minimal non-secret session metadata.
+- Public blog summaries are kept sorted and normalized at the facade boundary. `@angular/forms/signals` is reserved for local transient editor/form state that should not drive the config-rendering payload.
+- The runtime build is zoneless. The Karma test target may keep `zone.js/testing` until all fakeAsync/tick specs are migrated to zoneless-safe async patterns.
+- Public state and draft payloads must not contain OAuth/JWT tokens, client secrets, upstream credentials, signed URLs, or server-only integration policy.
+
 ## Config ownership model
 
 The runtime now assumes clear ownership boundaries between payload files.

@@ -418,10 +418,13 @@ describe('AngoraCombosService', () => {
         const service = configure('browser');
         const style = document.createElement('style');
         const element = document.createElement('h1');
+        const rootStyle = document.documentElement.style;
+        const previousTitleColor = rootStyle.getPropertyValue('--ank-titleColor');
         style.textContent = `
             :root { --ank-titleColor: rgb(32, 23, 18); }
             .ank-colorSEL__COM_qaCombo-titleColor, .qaCombo { color: rgb(250, 250, 250); }
         `;
+        rootStyle.setProperty('--ank-titleColor', 'rgb(32, 23, 18)');
         element.className = 'qaCombo';
         element.textContent = 'Title';
         document.head.appendChild(style);
@@ -456,6 +459,11 @@ describe('AngoraCombosService', () => {
         } finally {
             element.remove();
             style.remove();
+            if (previousTitleColor) {
+                rootStyle.setProperty('--ank-titleColor', previousTitleColor);
+            } else {
+                rootStyle.removeProperty('--ank-titleColor');
+            }
         }
     });
 

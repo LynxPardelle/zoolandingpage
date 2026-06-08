@@ -7,8 +7,8 @@ This guide will help you set up and run the Zoolandingpage project using our **D
 - **Docker** (20.10+) - Primary development environment
 - **Make** - Available by default in Unix/Linux/macOS; for Windows use WSL, Git Bash, or chocolatey
 - **Git** - Version control
-- **Node.js 18+** and **npm** (optional, for local development)
-- **Angular CLI 20+** (optional, for local development)
+- **Node.js 24.15.0+** and **npm 11+** (optional, for local development)
+- **Angular CLI 22+** (optional, for local development)
 
 ## � Quick Start (One Command Setup)
 
