@@ -17,7 +17,7 @@ Source Of Truth:
 - `docs/api-driven-config/schemas/integrations.schema.json`
 
 Confidence: Medium; this is an offline contract in the app repo, not a deployed Lambda or CDK stack.
-Last Reviewed: 2026-06-08 (Central Time)
+Last Reviewed: 2026-06-09 (Central Time)
 
 ## Purpose
 
@@ -57,6 +57,8 @@ Alternatively, a draft may declare a minimal remote auth reference instead of fu
 `runtime.authRemote` may contain only `enabled`, `authProfileId`, and `endpoint`. The Angular runtime sends only `{ "domain": "...", "authProfileId": "..." }` to that endpoint, expects the API proxy response field `auth` to match the same public `runtime.auth` validator, installs the validated profile into in-memory runtime config, and removes `authRemote` from that in-memory config to avoid ambiguity. A public draft payload must not include both static `runtime.auth` and `runtime.authRemote`.
 
 Public payloads must not include OAuth tokens, refresh tokens, Cognito client secrets, upstream credentials, signed URLs, ownership policy, IAM policy, raw environment values, or social IdP credentials.
+
+For SSR, published `GET` and `HEAD` requests to `routes[].auth.required = true` routes are redirected before Angular renders the protected page shell. The server uses `routes[].auth.redirectTo` first, then `runtime.auth.loginPath`, requires the target to be a safe same-origin path, and preserves only `draftDomain`, `debugWorkspace`, and `lang` so shared test previews keep their context without carrying ad or sensitive query params into login routes.
 
 ## Server-Only Profile Shape
 
