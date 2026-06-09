@@ -3,16 +3,23 @@ import type {
     TDraftAnalyticsConsentUiMode,
     TDraftAnalyticsRuntimeConfig,
     TDraftAppIdentityVariableConfig,
+    TDraftAuthRemoteRuntimeConfig,
+    TDraftAuthRuntimeConfig,
     TDraftFeatureRuntimeConfig,
     TDraftHostOverrideConfig,
     TDraftSiteIconConfig,
     TDraftLocalStorageRuntimeConfig,
     TDraftLocalStorageSlot,
     TDraftSiteSeoConfig,
+    TDraftSiteConfigPayload,
+    TDraftSiteRuntimeConfig,
     TGoogleTagConfig,
     TResolvedAnalyticsConfig,
 } from '@/app/shared/types/config-payloads.types';
-import { computed, inject, Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { computed, inject, Injectable, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { isDraftAuthRuntimeConfig } from '../utility/config-validation/config-payload.validators';
 import { ConfigStoreService } from './config-store.service';
 import { DomainResolverService } from './domain-resolver.service';
 import { VariableStoreService } from './variable-store.service';
@@ -36,6 +43,9 @@ export class RuntimeConfigService {
     private readonly configStore = inject(ConfigStoreService);
     private readonly domainResolver = inject(DomainResolverService);
     private readonly variableStore = inject(VariableStoreService);
+    private readonly http = inject(HttpClient, { optional: true });
+    private readonly remoteAuthResolutions = new Map<string, Promise<boolean>>();
+    private readonly _remoteAuthError = signal<string | null>(null);
 
     readonly siteRuntime = computed(() => this.configStore.siteConfig()?.runtime ?? null);
     readonly appIdentity = computed<TDraftAppIdentityVariableConfig | null>(() => this.variableStore.appIdentity());
@@ -52,6 +62,9 @@ export class RuntimeConfigService {
         this.mergeSeoConfig(this.configStore.siteConfig()?.site?.seo, this.hostOverride()?.seo)
     );
     readonly browserIcons = computed<TDraftSiteIconConfig | null>(() => this.configStore.siteConfig()?.site?.icons ?? null);
+    readonly auth = computed<TDraftAuthRuntimeConfig | null>(() => this.siteRuntime()?.auth ?? null);
+    readonly authRemote = computed<TDraftAuthRemoteRuntimeConfig | null>(() => this.siteRuntime()?.authRemote ?? null);
+    readonly remoteAuthError = this._remoteAuthError.asReadonly();
     readonly brand = computed(() => this.variableStore.brand());
     readonly heroAssets = computed(() => this.variableStore.heroAssets());
     readonly ctaTargets = computed(() => this.variableStore.ctaTargets());
@@ -85,6 +98,44 @@ export class RuntimeConfigService {
 
     isDebugMode(): boolean {
         return this.features().debugMode;
+    }
+
+    isAuthEnabled(): boolean {
+        return this.auth()?.enabled === true;
+    }
+
+    async resolveRemoteAuth(domain: string): Promise<boolean> {
+        const remote = this.authRemote();
+        if (!remote || remote.enabled !== true) {
+            this._remoteAuthError.set(null);
+            return true;
+        }
+
+        if (this.auth()) {
+            this._remoteAuthError.set('remote-auth-ambiguous');
+            return false;
+        }
+
+        const endpoint = this.cleanString(remote.endpoint);
+        const authProfileId = this.cleanString(remote.authProfileId);
+        const requestDomain = this.cleanString(domain || this.configStore.siteConfig()?.domain);
+        if (!this.http || !endpoint || !authProfileId || !requestDomain) {
+            this._remoteAuthError.set('remote-auth-unavailable');
+            return false;
+        }
+
+        const cacheKey = `${ requestDomain }|${ authProfileId }|${ endpoint }`;
+        const existing = this.remoteAuthResolutions.get(cacheKey);
+        if (existing) {
+            return existing;
+        }
+
+        const resolution = this.fetchAndInstallRemoteAuth(endpoint, requestDomain, authProfileId)
+            .finally(() => {
+                this.remoteAuthResolutions.delete(cacheKey);
+            });
+        this.remoteAuthResolutions.set(cacheKey, resolution);
+        return resolution;
     }
 
     analyticsConsentMode(): TDraftAnalyticsConsentUiMode {
@@ -127,6 +178,101 @@ export class RuntimeConfigService {
 
     private cleanString(value: unknown): string {
         return typeof value === 'string' ? value.trim() : '';
+    }
+
+    private async fetchAndInstallRemoteAuth(
+        endpoint: string,
+        domain: string,
+        authProfileId: string,
+    ): Promise<boolean> {
+        try {
+            const response = await firstValueFrom(this.http!.post<unknown>(endpoint, {
+                domain,
+                authProfileId,
+            }));
+            const auth = this.extractRemoteAuth(response);
+            if (!isDraftAuthRuntimeConfig(auth)) {
+                this._remoteAuthError.set('remote-auth-invalid');
+                return false;
+            }
+
+            if (this.cleanString(auth.authProfileId) !== authProfileId) {
+                this._remoteAuthError.set('remote-auth-profile-mismatch');
+                return false;
+            }
+
+            if (!this.installRemoteAuth(auth, {
+                domain,
+                authProfileId,
+                endpoint,
+            })) {
+                this._remoteAuthError.set('remote-auth-stale-context');
+                return false;
+            }
+
+            this._remoteAuthError.set(null);
+            return true;
+        } catch {
+            this._remoteAuthError.set('remote-auth-request-failed');
+            return false;
+        }
+    }
+
+    private extractRemoteAuth(value: unknown): unknown {
+        if (!value || typeof value !== 'object' || Array.isArray(value)) {
+            return null;
+        }
+
+        const response = value as Record<string, unknown>;
+        if (response['ok'] !== true) {
+            return null;
+        }
+
+        return response['auth'];
+    }
+
+    private installRemoteAuth(
+        auth: TDraftAuthRuntimeConfig,
+        expected: {
+            readonly domain: string;
+            readonly authProfileId: string;
+            readonly endpoint: string;
+        },
+    ): boolean {
+        const siteConfig = this.configStore.siteConfig();
+        if (!siteConfig) {
+            return false;
+        }
+
+        if (this.cleanString(siteConfig.domain) !== expected.domain) {
+            return false;
+        }
+
+        const runtime = siteConfig.runtime ?? {};
+        const remote = runtime.authRemote;
+        if (!remote || runtime.auth) {
+            return false;
+        }
+
+        if (
+            remote.enabled !== true
+            || this.cleanString(remote.authProfileId) !== expected.authProfileId
+            || this.cleanString(remote.endpoint) !== expected.endpoint
+        ) {
+            return false;
+        }
+
+        const { authRemote: _authRemote, ...runtimeWithoutRemote } = runtime as TDraftSiteRuntimeConfig & Record<string, unknown>;
+        const nextConfig: TDraftSiteConfigPayload = {
+            ...siteConfig,
+            runtime: {
+                ...runtimeWithoutRemote,
+                auth,
+            },
+        };
+
+        this.configStore.setSiteConfig(nextConfig);
+        return true;
     }
 
     private normalizeHost(value: unknown): string {

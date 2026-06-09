@@ -64,6 +64,13 @@ function sanitizeVersionSegment(value) {
 }
 
 function inferKind(relativePath) {
+  const parts = relativePath.split('/');
+  if (parts.length === 3 && parts[1] === 'server' && parts[2] === 'auth-profile-registry.json') {
+    return 'server-auth-profile-registry';
+  }
+  if (parts.length === 3 && parts[1] === 'server' && parts[2] === 'integrations.json') {
+    return 'server-integrations';
+  }
   if (relativePath.endsWith('site-config.json')) return 'site-config';
   if (relativePath.endsWith('/components.json') && relativePath.split('/').length === 2) return 'shared-components';
   if (relativePath.endsWith('/variables.json') && relativePath.split('/').length === 2) return 'shared-variables';
@@ -81,7 +88,7 @@ function inferKind(relativePath) {
 
 function inferPageId(domain, relativePath) {
   const parts = relativePath.split('/');
-  if (parts.length < 3 || parts[0] !== domain || parts[1] === 'i18n') return undefined;
+  if (parts.length < 3 || parts[0] !== domain || parts[1] === 'i18n' || parts[1] === 'server') return undefined;
   return parts[1];
 }
 

@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "domain": "zoositioweb.com.mx",
+  "defaultPageId": "default",
+  "notFoundPageId": "not-found",
+  "routes": [
+    {
+      "path": "/",
+      "pageId": "default",
+      "label": "Inicio"
+    },
+    {
+      "path": "/acceso",
+      "pageId": "acceso",
+      "label": "Acceso"
+    },
+    {
+      "path": "/auth/callback",
+      "pageId": "auth-callback",
+      "label": "Auth callback"
+    },
+    {
+      "path": "/mi-cuenta",
+      "pageId": "mi-cuenta",
+      "label": "Mi cuenta",
+      "auth": {
+        "required": true,
+        "redirectTo": "/acceso",
+        "allowedGroups": [
+          "zoosite-client",
+          "zoosite-admin"
+        ]
+      }
+    }
+  ],
+  "runtime": {
+    "authRemote": {
+      "enabled": true,
+      "authProfileId": "staff",
+      "endpoint": "/auth/runtime-config"
+    }
+  }
+}
