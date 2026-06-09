@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "domain": "zoositioweb.com.mx",
+  "pageId": "mi-cuenta",
+  "rootIds": [
+    "miCuentaRoot"
+  ],
+  "seo": {
+    "title": "Mi cuenta",
+    "description": "Protected placeholder for the Zoosite optional auth pilot.",
+    "canonical": "https://zoositioweb.com.mx/mi-cuenta",
+    "robots": {
+      "default": "noindex,nofollow"
+    }
+  }
+}

@@ -258,6 +258,33 @@ Checks:
 - Verify those keys exist in API i18n dictionary.
 - If key values are absent, verify the payload provides `label` as a usable string or locale map.
 
+### Optional draft auth fails validation
+
+Symptoms:
+
+- A draft with protected routes behaves as public or ignores auth settings.
+- Cognito Hosted UI sign-in does not start from a protected route.
+- Validation rejects `site-config.json` after adding `runtime.auth`.
+
+Checks:
+
+- Verify auth is optional: drafts that do not need auth should omit both `runtime.auth` and `runtime.authRemote`.
+- Use either full static `runtime.auth` or public remote reference `runtime.authRemote`, not both. `runtime.authRemote` may contain only `enabled`, `authProfileId`, and `endpoint`.
+- For remote auth, Angular sends only `{ domain, authProfileId }` to `runtime.authRemote.endpoint`, validates the backend `auth` response as public `runtime.auth`, and keeps auth disabled if the request or response is invalid.
+- Verify public auth config contains only safe runtime metadata: `issuer`, `clientId`, `hostedUiDomain`, scopes, callback paths, page IDs, and safe group claim names.
+- Do not put OAuth/JWT tokens, refresh tokens, client secrets, signed URLs, upstream credentials, or server-only authorization policy in draft payloads.
+- Do not put `access` blocks or upstream credential `auth` blocks in `site-config.json.runtime.dataSources` or `site-config.json.runtime.apiActions`; those belong only in `server/integrations.json`.
+- Verify `issuer` and `hostedUiDomain` are absolute HTTPS URLs with no username/password, backslashes, whitespace, or control characters.
+- Verify `redirectPath`, `logoutPath`, `loginPath`, `postLoginPath`, `postLogoutPath`, and `routes[].auth.redirectTo` are same-origin paths that start with `/`.
+- Do not use external URLs, protocol-relative URLs such as `//example.com`, `javascript:`, `data:`, backslashes, whitespace, control characters, or paths that omit the leading `/`.
+- Verify protected route redirects resolve in the expected order: `routes[].auth.redirectTo`, then `runtime.auth.loginPath`, then no redirect.
+- Do not expect `logoutPath` to act as a sign-in fallback.
+- Treat `sessionStorage` auth data as editable UX metadata only. Backend APIs must validate JWTs, tenant ownership, and group claims.
+- Resolve `authProfileId` through the server-only Auth Profile Registry before provisioning Cognito or authorizing protected APIs; browser config must not be the source of tenant ownership or group policy.
+- Validate `server/auth-profile-registry.json` against the server-only contract before packaging: profiles require `authProfileId`, `tenantId`, `status`, `issuer`, `hostedUiDomain`, `clientId`, `audiences`, `callbackUrls`, `logoutUrls`, `loginPath`, and `logoutPath`.
+- Validate `server/integrations.json` before packaging: `access.required: true` requires `access.authProfileId`; `access.allowedGroups` must be non-empty strings; `auth` is reserved for upstream credential references such as `bearer`, `api-key-header`, or `oauth2-client-credentials`.
+- For SSR pilots, keep protected pages free of private data/actions and mark them `noindex,nofollow` until the server can emit proper redirect/status responses.
+
 ## Debug Tips
 
 - Ensure the active draft `site-config.json` sets `runtime.features.debugMode` when you need debug-only tooling.

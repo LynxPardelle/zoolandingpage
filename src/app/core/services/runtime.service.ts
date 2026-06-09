@@ -5,11 +5,13 @@ import { ConfigBootstrapService } from '@/app/shared/services/config-bootstrap.s
 import { ConfigSourceService } from '@/app/shared/services/config-source.service';
 import { ConfigStoreService } from '@/app/shared/services/config-store.service';
 import { ConfigurationsOrchestratorService } from '@/app/shared/services/configurations-orchestrator';
-import { DraftRuntimeService } from '@/app/shared/services/draft-runtime.service';
+import { DRAFT_RUNTIME_STICKY_QUERY_PARAMS, DraftRuntimeService } from '@/app/shared/services/draft-runtime.service';
 import { RuntimeDataSourceService } from '@/app/shared/services/runtime-data-source.service';
 import { RuntimeConfigService } from '@/app/shared/services/runtime-config.service';
 import { ThemeService } from '@/app/shared/services/theme.service';
-import { applyNavigationScroll, currentBrowserPath } from '@/app/shared/utility/navigation/browser-navigation.utility';
+import { AuthFacade } from '@/app/state/auth/auth.facade';
+import { AuthRuntimeService } from '@/app/state/auth/auth-runtime.service';
+import { applyNavigationScroll, currentBrowserPath, navigateInCurrentWindow } from '@/app/shared/utility/navigation/browser-navigation.utility';
 import { environment } from '@/environments/environment';
 import { isPlatformBrowser } from '@angular/common';
 import { DestroyRef, inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
@@ -27,6 +29,8 @@ export class RuntimeService {
     private readonly runtimeDataSources = inject(RuntimeDataSourceService);
     private readonly configStore = inject(ConfigStoreService);
     private readonly runtimeConfig = inject(RuntimeConfigService);
+    private readonly auth = inject(AuthFacade);
+    private readonly authRuntime = inject(AuthRuntimeService);
     private readonly theme = inject(ThemeService);
     private readonly loadingCurtain = inject(LoadingCurtainService);
     private readonly platformId = inject(PLATFORM_ID);
@@ -188,6 +192,33 @@ export class RuntimeService {
         this.debugWorkspaceModalRootIds.set(pageConfig?.modalRootIds ?? []);
     }
 
+    private resolveAuthRedirectHref(redirectTo: string): string {
+        if (!this.isSafeSameOriginRedirectPath(redirectTo)) {
+            return '/';
+        }
+
+        if (!this.isBrowser || typeof window === 'undefined' || !window.location) {
+            return redirectTo;
+        }
+
+        const nextUrl = new URL(redirectTo, window.location.href);
+        const currentUrl = new URL(window.location.href);
+        DRAFT_RUNTIME_STICKY_QUERY_PARAMS.forEach((key) => {
+            if (!nextUrl.searchParams.has(key) && currentUrl.searchParams.has(key)) {
+                nextUrl.searchParams.set(key, currentUrl.searchParams.get(key) ?? '');
+            }
+        });
+        return `${ nextUrl.pathname || '/' }${ nextUrl.search || '' }${ nextUrl.hash || '' }`;
+    }
+
+    private isSafeSameOriginRedirectPath(value: string): boolean {
+        return value.length > 0
+            && value.startsWith('/')
+            && !value.startsWith('//')
+            && !value.includes('\\')
+            && !/[\s\u0000-\u001F\u007F]/.test(value);
+    }
+
     private async doInitialize(lang?: string): Promise<void> {
         const context = await this.draftRuntime.resolveActiveDraftContext();
         if (!context.domain || !context.pageId) {
@@ -198,6 +229,28 @@ export class RuntimeService {
                     domain: context.domain,
                     pageId: context.pageId,
                     path: context.path,
+                });
+            }
+            return;
+        }
+
+        const remoteAuthResolved = await this.runtimeConfig.resolveRemoteAuth(context.domain);
+        if (!remoteAuthResolved && this.runtimeConfig.isDebugMode()) {
+            console.warn('[Runtime] Remote auth runtime resolution failed closed.', {
+                reason: this.runtimeConfig.remoteAuthError(),
+            });
+        }
+
+        this.auth.restoreSession();
+        const routeAccess = this.authRuntime.evaluateRouteAccess(context.route);
+        if (!routeAccess.allowed) {
+            this.clearRenderedDraft(context.domain, context.pageId);
+            this.auth.requestSignIn(this.authRuntime.profile()?.provider);
+            this.loadingCurtain.hideWhenReady(`auth-route-${ routeAccess.reason }`);
+            // SSR has no response redirect hook in this runtime; protected drafts render no private content.
+            if (this.isBrowser && routeAccess.redirectTo) {
+                navigateInCurrentWindow(this.resolveAuthRedirectHref(routeAccess.redirectTo), {
+                    scrollRestoration: this.runtimeConfig.siteRuntime()?.navigation?.scrollRestoration,
                 });
             }
             return;
