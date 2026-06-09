@@ -119,9 +119,6 @@ test('collectJsonFiles prefixes root draft files and ignores local context', asy
   await writeFile(path.join(root, 'site-config.json'), '{"version":1}', 'utf8');
   await mkdir(path.join(root, 'default'), { recursive: true });
   await writeFile(path.join(root, 'default', 'page-config.json'), '{"rootIds":[]}', 'utf8');
-  await mkdir(path.join(root, 'server'), { recursive: true });
-  await writeFile(path.join(root, 'server', 'auth-profile-registry.json'), '{"version":1,"profiles":[]}', 'utf8');
-  await writeFile(path.join(root, 'server', 'integrations.json'), '{"version":1,"sources":[],"actions":[]}', 'utf8');
   await mkdir(path.join(root, 'ai_notes'), { recursive: true });
   await writeFile(path.join(root, 'ai_notes', 'private.json'), '{"ignore":true}', 'utf8');
 
@@ -129,19 +126,8 @@ test('collectJsonFiles prefixes root draft files and ignores local context', asy
 
   assert.deepEqual(files.map(file => file.path), [
     'example.com/default/page-config.json',
-    'example.com/server/auth-profile-registry.json',
-    'example.com/server/integrations.json',
     'example.com/site-config.json',
   ]);
-  assert.deepEqual(
-    files
-      .filter(file => file.path.includes('/server/'))
-      .map(file => ({ kind: file.kind, pageId: file.pageId })),
-    [
-      { kind: 'server-auth-profile-registry', pageId: undefined },
-      { kind: 'server-integrations', pageId: undefined },
-    ]
-  );
 });
 
 test('bootstrapDraftRepo copies deploy templates and writes non-secret config', async () => {

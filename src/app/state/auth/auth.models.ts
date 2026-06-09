@@ -1,4 +1,4 @@
-export type TAuthSessionStatus = 'anonymous' | 'restoring' | 'authenticating' | 'authenticated' | 'expired' | 'error';
+export type TAuthSessionStatus = 'anonymous' | 'restoring' | 'authenticated' | 'expired' | 'error';
 
 export type TAuthProfile = {
     readonly subject: string;

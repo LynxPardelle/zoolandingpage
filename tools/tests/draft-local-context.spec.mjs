@@ -126,44 +126,6 @@ test('config-draft-sync excludes local-only folders and preserves them during cl
     defaultPageId: 'default',
     routes: [{ path: '/', pageId: 'default' }],
   });
-  await writeJson(path.join(domainRoot, 'server', 'auth-profile-registry.json'), {
-    version: 1,
-    profiles: [
-      {
-        authProfileId: 'staff',
-        tenantId: 'tenant-fixture',
-        status: 'active',
-        issuer: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_FIXTURE',
-        hostedUiDomain: 'https://auth.fixture.example.com',
-        clientId: 'public-client-id',
-        audiences: ['public-client-id'],
-        callbackUrls: ['https://fixture.example.com/auth/callback'],
-        logoutUrls: ['https://fixture.example.com/auth/logout'],
-        loginPath: '/login',
-        logoutPath: '/auth/logout',
-        groupClaim: 'cognito:groups',
-        allowedGroups: ['Editors'],
-      },
-    ],
-  });
-  await writeJson(path.join(domainRoot, 'server', 'integrations.json'), {
-    version: 1,
-    sources: [
-      {
-        id: 'protectedBlogPosts',
-        method: 'GET',
-        url: 'https://content.example.com/posts',
-        allowedInputFields: ['category'],
-        response: { allowedFields: ['items.title'] },
-        access: {
-          required: true,
-          authProfileId: 'staff',
-          allowedGroups: ['Editors'],
-        },
-      },
-    ],
-    actions: [],
-  });
   await writeJson(path.join(domainRoot, 'default', 'page-config.json'), {
     version: 1,
     domain: 'fixture.example.com',
@@ -188,21 +150,10 @@ test('config-draft-sync excludes local-only folders and preserves them during cl
 
   assert.deepEqual(packagedPaths, [
     'fixture.example.com/default/page-config.json',
-    'fixture.example.com/server/auth-profile-registry.json',
-    'fixture.example.com/server/integrations.json',
     'fixture.example.com/site-config.json',
   ]);
-  assert.equal(
-    packaged.files.find(entry => entry.path === 'fixture.example.com/server/auth-profile-registry.json')?.kind,
-    'server-auth-profile-registry',
-  );
-  assert.equal(
-    packaged.files.find(entry => entry.path === 'fixture.example.com/server/integrations.json')?.kind,
-    'server-integrations',
-  );
 
   await writeJson(path.join(domainRoot, 'default', 'stale.json'), { stale: true });
-  await writeJson(path.join(domainRoot, 'server', 'stale.json'), { stale: true });
 
   await runCommand(process.execPath, [
     draftSyncCliPath,
@@ -214,9 +165,6 @@ test('config-draft-sync excludes local-only folders and preserves them during cl
 
   assert.equal(existsSync(path.join(domainRoot, 'default', 'page-config.json')), true);
   assert.equal(existsSync(path.join(domainRoot, 'default', 'stale.json')), false);
-  assert.equal(existsSync(path.join(domainRoot, 'server', 'auth-profile-registry.json')), true);
-  assert.equal(existsSync(path.join(domainRoot, 'server', 'integrations.json')), true);
-  assert.equal(existsSync(path.join(domainRoot, 'server', 'stale.json')), false);
   assert.equal(existsSync(path.join(domainRoot, 'ai_notes', 'keep.json')), true);
   assert.equal(existsSync(path.join(domainRoot, 'findings', 'keep.json')), true);
   assert.equal(existsSync(path.join(domainRoot, 'errors-reports', 'keep.json')), true);
@@ -530,11 +478,6 @@ test('built SSR server hides local-only draft folders from registry and static s
     rootIds: ['hero'],
     modalRootIds: [],
   });
-  await writeJson(path.join(domainRoot, 'server', 'integrations.json'), {
-    version: 1,
-    sources: [],
-    actions: [],
-  });
   await writeJson(path.join(domainRoot, 'ai_notes', 'note.json'), { hidden: true });
   await writeJson(path.join(domainRoot, 'findings', 'note.json'), { hidden: true });
   await writeJson(path.join(domainRoot, 'errors-reports', 'note.json'), { hidden: true });
@@ -585,11 +528,6 @@ test('built SSR server hides local-only draft folders from registry and static s
     `http://127.0.0.1:${port}/drafts/fixture.example.com/errors-reports/note.json`
   );
   assert.equal(errorsReportsResponse.status, 404, serverOutput);
-
-  const serverIntegrationsResponse = await fetch(
-    `http://127.0.0.1:${port}/drafts/fixture.example.com/server/integrations.json`
-  );
-  assert.equal(serverIntegrationsResponse.status, 404, serverOutput);
 
   const robotsResponse = await fetch(`http://127.0.0.1:${port}/robots.txt`, {
     headers: {

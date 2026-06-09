@@ -40,7 +40,6 @@ export class AuthSessionBrowserStorageService {
         }
 
         try {
-            // This is editable UX metadata only; backend APIs must validate JWTs and tenant/group claims.
             sessionStorage.setItem(AUTH_SESSION_STORAGE_KEY, JSON.stringify(this.toStoredSession(session)));
         } catch {
             // Storage can be unavailable in private browsing or locked-down embedded contexts.

@@ -119,7 +119,6 @@ test('buildLocalDraftPackage ignores local context folders and infers package me
   const draftsRoot = await mkdtemp(path.join(os.tmpdir(), 'zlp-draft-upload-status-'));
   const domainRoot = path.join(draftsRoot, 'example.com');
   await mkdir(path.join(domainRoot, 'default', 'i18n'), { recursive: true });
-  await mkdir(path.join(domainRoot, 'server'), { recursive: true });
   await mkdir(path.join(domainRoot, 'ai_notes'), { recursive: true });
   await mkdir(path.join(domainRoot, 'findings'), { recursive: true });
   await writeFile(
@@ -137,16 +136,6 @@ test('buildLocalDraftPackage ignores local context folders and infers package me
     JSON.stringify({ version: 1, hello: 'Hola' }),
     'utf8'
   );
-  await writeFile(
-    path.join(domainRoot, 'server', 'auth-profile-registry.json'),
-    JSON.stringify({ version: 1, profiles: [] }),
-    'utf8'
-  );
-  await writeFile(
-    path.join(domainRoot, 'server', 'integrations.json'),
-    JSON.stringify({ version: 1, sources: [], actions: [] }),
-    'utf8'
-  );
   await writeFile(path.join(domainRoot, 'ai_notes', 'private.md'), 'local only', 'utf8');
   await writeFile(path.join(domainRoot, 'findings', 'research.json'), '{"ignore":true}', 'utf8');
 
@@ -157,8 +146,6 @@ test('buildLocalDraftPackage ignores local context folders and infers package me
     [
       'example.com/default/i18n/es.json',
       'example.com/default/page-config.json',
-      'example.com/server/auth-profile-registry.json',
-      'example.com/server/integrations.json',
       'example.com/site-config.json',
     ]
   );
@@ -166,9 +153,5 @@ test('buildLocalDraftPackage ignores local context folders and infers package me
   assert.equal(draftPackage.files[0].pageId, 'default');
   assert.equal(draftPackage.files[0].lang, 'es');
   assert.equal(draftPackage.files[1].kind, 'page-config');
-  assert.equal(draftPackage.files[2].kind, 'server-auth-profile-registry');
-  assert.equal(draftPackage.files[2].pageId, undefined);
-  assert.equal(draftPackage.files[3].kind, 'server-integrations');
-  assert.equal(draftPackage.files[3].pageId, undefined);
-  assert.equal(draftPackage.files[4].kind, 'site-config');
+  assert.equal(draftPackage.files[2].kind, 'site-config');
 });
