@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 const schemaPath = new URL('../../docs/api-driven-config/schemas/site-config.schema.json', import.meta.url);
-const zoositeSiteConfigPath = new URL('../../drafts/zoositioweb.com.mx/site-config.json', import.meta.url);
+const zoositePilotFixturePath = new URL('./fixtures/zoosite-auth-pilot/site-config.json', import.meta.url);
 
 const publicAuthDisallowedFields = [
     'access',
@@ -19,7 +19,7 @@ async function readJson(url) {
 }
 
 async function readZoositePilotPage(pageId) {
-    return readJson(new URL(`../../drafts/zoositioweb.com.mx/${pageId}/page-config.json`, import.meta.url));
+    return readJson(new URL(`./fixtures/zoosite-auth-pilot/${pageId}/page-config.json`, import.meta.url));
 }
 
 test('site-config schema aligns HTTPS auth URL restrictions with runtime validators', async () => {
@@ -53,8 +53,8 @@ test('site-config schema documents remote auth as a public minimal reference', a
     assert.equal(authRemote.additionalProperties, false);
 });
 
-test('Zoosite pilot uses public authRemote and protected account routing without server-only fields', async () => {
-    const siteConfig = await readJson(zoositeSiteConfigPath);
+test('Zoosite auth pilot fixture uses public authRemote and protected account routing without server-only fields', async () => {
+    const siteConfig = await readJson(zoositePilotFixturePath);
     const routes = new Map(siteConfig.routes.map(route => [route.path, route]));
 
     assert.equal(siteConfig.domain, 'zoositioweb.com.mx');

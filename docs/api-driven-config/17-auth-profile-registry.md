@@ -201,7 +201,7 @@ Frontend auth state is UX metadata only. Backend APIs for blogs, dashboards, upl
 
 ## Zoosite Pilot Status
 
-`drafts/zoositioweb.com.mx` now carries a sanitized optional-auth pilot in the `codex/optional-auth-foundation` worktree. The public `site-config.json` uses only:
+The real `drafts/zoositioweb.com.mx` nested draft repo carries a plan-only optional-auth pilot while preserving the full commercial draft. App-level regression tests mirror the public contract in `tools/tests/fixtures/zoosite-auth-pilot/` so the hub repo does not vendor the draft repo. The public `site-config.json` uses only:
 
 ```json
 {
@@ -215,7 +215,7 @@ Frontend auth state is UX metadata only. Backend APIs for blogs, dashboards, upl
 }
 ```
 
-The pilot adds public `/acceso` and `/auth/callback` routes and protects `/mi-cuenta` with `routes[].auth.required = true`, `redirectTo = "/acceso"`, and the groups `zoosite-client` and `zoosite-admin`. These pages are placeholder-only, contain no private data or protected actions, and use `noindex,nofollow`.
+The pilot adds public `/acceso` and `/auth/callback` routes and protects `/mi-cuenta` with `routes[].auth.required = true`, `redirectTo = "/acceso"`, and the groups `zoosite-client` and `zoosite-admin`. These pages are plan-only, contain no private data or protected actions, and use `noindex,nofollow`.
 
 The server-only companion is `drafts/zoositioweb.com.mx/server/auth-profile-registry.json`. It stays plan-only with `status: "planned"`, tenant `zoosite`, callback/logout allowlists for the `.com.mx` domain and `.com` alias, and social provider secret references such as `/zoolanding/auth/zoosite/staff/google`. It must not be shipped in browser runtime bundles, must not contain raw secrets, and does not create AWS or Cognito resources.
 
