@@ -212,6 +212,11 @@ Put upstream URLs, methods, response filters, and credential references in `draf
           "results.collectionName"
         ],
         "maxBytes": 524288
+      },
+      "access": {
+        "required": true,
+        "authProfileId": "staff",
+        "allowedGroups": ["Editors"]
       }
     }
   ],
@@ -222,6 +227,14 @@ Put upstream URLs, methods, response filters, and credential references in `draf
 This file is server-only. It can be published by the authoring package, but `runtime-read` must not include it in browser runtime bundles. Prefer nested `allowedFields` paths such as `results.trackName` over broad parent fields such as `results` so the proxy returns only the properties the draft needs.
 
 When an upstream requires non-secret request headers, declare them in the server-only `headers` object. Keep credentials in Secrets Manager via `credentialRef`; do not place tokens or API keys in `headers`.
+
+Use `access` for user/JWT authorization. Use `auth` only for upstream credentials. Do not mix them:
+
+- `access.required: true` requires `access.authProfileId`.
+- `access.allowedGroups` must contain non-empty group names when present.
+- `credentialRef` lives at the integration root and points at the upstream secret reference.
+- `auth.type` may be `bearer`, `api-key-header`, or `oauth2-client-credentials`; keep it for upstream credential behavior only.
+- Do not put `access`, upstream `auth`, tokens, API keys, or client secrets in the public `site-config.json.runtime.dataSources` / `runtime.apiActions` entries.
 
 For parameterized detail pages, put the URL pattern in server-only policy as `urlTemplate` instead of letting the browser send an upstream URL:
 
@@ -307,9 +320,11 @@ Then render the source through `loopConfig`:
 ## Security Rules
 
 - Do not put secrets, bearer tokens, client secrets, API keys, signed URLs, or upstream credential material in draft browser payloads.
+- For remote auth bootstrap, browser payloads may use `runtime.authRemote` with only `enabled`, `authProfileId`, and `endpoint`; the app must send only `{ domain, authProfileId }` to `/auth/runtime-config`.
 - Do not let the browser provide arbitrary upstream URLs.
 - Keep every input field allowlisted in server policy.
 - Keep every `urlTemplate` placeholder allowlisted in server policy.
 - Keep every returned field allowlisted in server policy.
 - Store real credentials in AWS Secrets Manager and reference them only by `credentialRef`.
+- Put user authorization rules in `access`, not in upstream credential `auth`.
 - Do not enable destructive production actions without an authorization design.
