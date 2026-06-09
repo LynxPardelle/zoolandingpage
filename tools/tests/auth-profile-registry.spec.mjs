@@ -12,7 +12,7 @@ import {
   validateServerIntegrations,
 } from '../auth-profile-registry.mjs';
 
-const zoositeRegistryPath = new URL('../../drafts/zoositioweb.com.mx/server/auth-profile-registry.json', import.meta.url);
+const zoositeRegistryPath = new URL('./fixtures/zoosite-auth-pilot/server/auth-profile-registry.json', import.meta.url);
 
 async function readJson(url) {
   return JSON.parse(await readFile(url, 'utf8'));
@@ -323,7 +323,7 @@ test('validateServerIntegrations rejects unsafe user access and raw credential m
   assert.match(result.errors.join('\n'), /token/);
 });
 
-test('Zoosite server-only auth registry validates as plan-only without raw secrets', async () => {
+test('Zoosite server-only auth registry fixture validates as plan-only without raw secrets', async () => {
   const zoositeRegistry = await readJson(zoositeRegistryPath);
   const validation = validateAuthProfileRegistry(zoositeRegistry);
   const profile = resolveAuthProfile(zoositeRegistry, 'zoositioweb.com.mx', 'staff');
