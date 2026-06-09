@@ -87,6 +87,11 @@ const publicAuth = {
     allowedGroups: ['Editors'],
 };
 
+const plannedPublicAuth = {
+    ...publicAuth,
+    enabled: false,
+};
+
 describe('RuntimeConfigService remote auth', () => {
     let service: RuntimeConfigService;
     let store: ConfigStoreService;
@@ -142,6 +147,24 @@ describe('RuntimeConfigService remote auth', () => {
 
         await expectAsync(resolved).toBeResolvedTo(true);
         expect(service.auth()).toEqual(publicAuth as any);
+        expect((store.siteConfig()?.runtime as Record<string, unknown>)['authRemote']).toBeUndefined();
+    });
+
+    it('hydrates valid disabled remote auth metadata for non-active profiles', async () => {
+        store.setSiteConfig(minimalSiteConfig({
+            authRemote: {
+                enabled: true,
+                authProfileId: 'staff',
+                endpoint: '/auth/runtime-config',
+            },
+        }));
+
+        const resolved = (service as any).resolveRemoteAuth(TEST_DOMAIN);
+        http.expectOne('/auth/runtime-config').flush({ ok: true, domain: TEST_DOMAIN, auth: plannedPublicAuth });
+
+        await expectAsync(resolved).toBeResolvedTo(true);
+        expect(service.auth()).toEqual(plannedPublicAuth as any);
+        expect(service.isAuthEnabled()).toBeFalse();
         expect((store.siteConfig()?.runtime as Record<string, unknown>)['authRemote']).toBeUndefined();
     });
 

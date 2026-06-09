@@ -102,7 +102,7 @@ Minimal example:
 
 Keep this registry out of runtime browser bundles. A future authoring/runtime Lambda may package it, store it in DynamoDB, or resolve it from a server-only configuration store, but runtime-read must emit only the public metadata described above.
 
-Only profiles with `status: "active"` may generate public `runtime.auth.enabled = true`. Profiles in `planned`, `provisioning`, `suspended`, or `failed` status must remain disabled in browser payloads even when the rest of the profile shape is valid.
+Only profiles with `status: "active"` may generate public `runtime.auth.enabled = true`. Profiles in `planned`, `provisioning`, `suspended`, or `failed` status must remain disabled in browser payloads even when the rest of the profile shape is valid. The public `/auth/runtime-config` response should still use the Angular-valid `runtime.auth` shape for those non-active profiles, but with `enabled: false`; provisioning status and social IdP secret refs stay server-only.
 
 ## Provisioning Plan
 
@@ -218,3 +218,5 @@ Frontend auth state is UX metadata only. Backend APIs for blogs, dashboards, upl
 The pilot adds public `/acceso` and `/auth/callback` routes and protects `/mi-cuenta` with `routes[].auth.required = true`, `redirectTo = "/acceso"`, and the groups `zoosite-client` and `zoosite-admin`. These pages are placeholder-only, contain no private data or protected actions, and use `noindex,nofollow`.
 
 The server-only companion is `drafts/zoositioweb.com.mx/server/auth-profile-registry.json`. It stays plan-only with `status: "planned"`, tenant `zoosite`, callback/logout allowlists for the `.com.mx` domain and `.com` alias, and social provider secret references such as `/zoolanding/auth/zoosite/staff/google`. It must not be shipped in browser runtime bundles, must not contain raw secrets, and does not create AWS or Cognito resources.
+
+For local end-to-end QA, run the sibling `zoolanding-api-proxy` local auth harness with `DRY_RUN=1` and a `LOCAL_AUTH_REGISTRY_DIR` or `LOCAL_AUTH_REGISTRY_FILE` pointing at a reviewed server-only registry source, then start Angular with `npm run start:local-auth`. The Angular dev server proxies `/auth/runtime-config` to the local API proxy, so browser QA exercises browser -> Angular -> API proxy -> server-only registry -> Angular validation without publishing static `runtime.auth` in the draft payload.
