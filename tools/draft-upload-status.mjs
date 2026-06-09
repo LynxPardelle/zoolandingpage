@@ -267,6 +267,7 @@ function inferPageId(domain, relativePath) {
   const normalized = relativePath.replace(/\\/g, '/');
   const parts = normalized.split('/');
   if (parts[0] !== domain) return undefined;
+  if (parts[1] === 'server') return undefined;
   if (parts.length >= 3 && parts[1] !== 'i18n') return parts[1];
   return undefined;
 }

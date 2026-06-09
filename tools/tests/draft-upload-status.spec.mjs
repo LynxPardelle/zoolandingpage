@@ -167,6 +167,8 @@ test('buildLocalDraftPackage ignores local context folders and infers package me
   assert.equal(draftPackage.files[0].lang, 'es');
   assert.equal(draftPackage.files[1].kind, 'page-config');
   assert.equal(draftPackage.files[2].kind, 'server-auth-profile-registry');
+  assert.equal(draftPackage.files[2].pageId, undefined);
   assert.equal(draftPackage.files[3].kind, 'server-integrations');
+  assert.equal(draftPackage.files[3].pageId, undefined);
   assert.equal(draftPackage.files[4].kind, 'site-config');
 });
