@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "domain": "zoositioweb.com.mx",
+  "pageId": "auth-callback",
+  "rootIds": [
+    "authCallbackRoot"
+  ],
+  "seo": {
+    "title": "Auth callback",
+    "description": "Pilot callback placeholder for Zoosite optional auth.",
+    "canonical": "https://zoositioweb.com.mx/auth/callback",
+    "robots": {
+      "default": "noindex,nofollow"
+    }
+  }
+}

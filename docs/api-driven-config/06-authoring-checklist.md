@@ -96,6 +96,7 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Verify every `runtime.dataSources[]` entry has a stable `id`, a browser-safe `target`, an optional `statusTarget`, and a matching server-only source ID in `server/integrations.json`.
 - Verify every `runtime.apiActions[]` entry has a stable `id`, an input field allowlist, and a matching server-only action ID before wiring `proxyAction`.
 - Verify `server/integrations.json` uses only allowlisted methods and response fields, and only `credentialRef` references for credentials.
+- Verify protected `server/integrations.json` sources/actions put user authorization in `access`, not upstream credential `auth`; `access.required: true` must include `authProfileId`.
 - Verify `page-config.json.seo` is present and complete for every active draft.
 - Verify footer/legal modal sections can render from API payload only.
 - Verify shared runtime keys are present in draft i18n when used by the page. Common examples:
