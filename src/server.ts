@@ -21,6 +21,7 @@ const DEFAULT_CONFIG_API_SERVER_FALLBACK_URL = String(
     ?? (DEFAULT_CONFIG_API_URL === DEFAULT_CONFIG_API_BASE_URL ? DEFAULT_CONFIG_API_RAW_RUNTIME_BASE_URL : ''),
 ).trim();
 const LOCAL_NOTE_FOLDER_NAMES = new Set(['ai_notes', 'findings', 'errors-reports']);
+const SERVER_ONLY_DRAFT_FOLDER_NAMES = new Set(['server']);
 const SITE_CONFIG_CACHE_TTL_MS = 60_000;
 const SITE_CONFIG_CACHE_MAX_SIZE = 200;
 const RUNTIME_BUNDLE_FETCH_ATTEMPTS = 2;
@@ -149,6 +150,10 @@ type TDraftRegistryEntry = {
 type TSiteConfigRouteEntry = {
   readonly path?: string;
   readonly pageId?: string;
+  readonly auth?: {
+    readonly required?: boolean;
+    readonly redirectTo?: string;
+  };
 };
 
 type TLocalPageConfig = {
@@ -221,6 +226,9 @@ type TLocalSiteConfig = Record<string, unknown> & {
   };
   readonly lifecycle?: unknown;
   readonly runtime?: {
+    readonly auth?: {
+      readonly loginPath?: string;
+    };
     readonly analytics?: {
       readonly googleTag?: TGoogleTagConfig;
     };
@@ -274,6 +282,7 @@ type TLocalRuntimePageResolution = {
 
 const siteConfigPathCache = new Map<string, TSiteConfigCacheEntry>();
 const runtimeSiteConfigCache = new Map<string, TRuntimeSiteConfigCacheEntry>();
+const AUTH_REDIRECT_STICKY_QUERY_PARAMS = ['draftDomain', 'debugWorkspace', 'lang'] as const;
 
 function setCachedSiteConfigPath(domain: string, path: string | null): void {
   if (siteConfigPathCache.size >= SITE_CONFIG_CACHE_MAX_SIZE) {
@@ -1441,6 +1450,53 @@ function buildFrontDoorRedirectUrl(req: express.Request, host: string, siteConfi
   return new URL(req.originalUrl || req.url || '/', `${targetProtocol}://${targetHost}`).toString();
 }
 
+function cleanSameOriginPath(value: unknown): string {
+  const path = cleanString(value);
+  if (
+    !path
+    || !path.startsWith('/')
+    || path.startsWith('//')
+    || path.includes('\\')
+    || /[\s\u0000-\u001F\u007F]/.test(path)
+  ) {
+    return '';
+  }
+
+  return path;
+}
+
+function firstQueryParam(value: unknown): string {
+  const entry = Array.isArray(value) ? value[0] : value;
+  return typeof entry === 'string' ? entry.trim() : '';
+}
+
+function resolveAuthRedirectUrl(req: express.Request, host: string, siteConfig: TLocalSiteConfig | null): string | null {
+  const route = resolveLocalRoute(siteConfig, req.path);
+  if (route?.auth?.required !== true) {
+    return null;
+  }
+
+  const redirectPath = cleanSameOriginPath(route.auth.redirectTo)
+    || cleanSameOriginPath(siteConfig?.runtime?.auth?.loginPath);
+  if (!redirectPath || normalizeRoutePath(redirectPath) === normalizeRoutePath(req.path)) {
+    return null;
+  }
+
+  const redirectUrl = new URL(redirectPath, resolveRequestOrigin(req, host));
+  AUTH_REDIRECT_STICKY_QUERY_PARAMS.forEach((key) => {
+    if (redirectUrl.searchParams.has(key)) {
+      return;
+    }
+
+    const value = firstQueryParam(req.query[key]);
+    if (value) {
+      redirectUrl.searchParams.set(key, value);
+    }
+  });
+
+  return redirectUrl.toString();
+}
+
 function escapeXml(value: string): string {
   return value
     .replace(/&/g, '&amp;')
@@ -2184,12 +2240,40 @@ app.get('/sitemap.xml', async (req, res) => {
   res.type('application/xml').send(await buildSitemapXml(req, lookupDomain, siteConfig));
 });
 
+app.use((req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    next();
+    return;
+  }
+
+  const host = resolveRequestHost(req);
+  const lookupDomain = resolveNotFoundLookupDomain(req, host);
+  loadSiteConfigForHost(lookupDomain)
+    .then((siteConfig) => {
+      const redirectUrl = resolveAuthRedirectUrl(req, host, siteConfig);
+      if (!redirectUrl) {
+        next();
+        return;
+      }
+
+      res
+        .status(302)
+        .set('Cache-Control', 'no-store')
+        .set('Location', redirectUrl)
+        .end();
+    })
+    .catch(next);
+});
+
 const draftsFolder = resolveDraftsFolder();
 
 if (draftsFolder) {
   app.use('/drafts', (req, res, next) => {
     const segments = req.path.split('/').filter(Boolean);
-    if (segments.some((segment) => LOCAL_NOTE_FOLDER_NAMES.has(segment)) || req.path.toLowerCase().endsWith('.md')) {
+    if (
+      segments.some((segment) => LOCAL_NOTE_FOLDER_NAMES.has(segment) || SERVER_ONLY_DRAFT_FOLDER_NAMES.has(segment))
+      || req.path.toLowerCase().endsWith('.md')
+    ) {
       res.sendStatus(404);
       return;
     }

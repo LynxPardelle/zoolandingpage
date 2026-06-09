@@ -19,6 +19,7 @@ export class AuthFacade {
     readonly profile = computed(() => this.state().profile);
     readonly isAuthenticated = computed(() => this.state().status === 'authenticated');
     readonly error = computed(() => this.state().error);
+    readonly roles = computed(() => this.state().profile?.roles ?? []);
 
     restoreSession(): void {
         this.state.update((current) => ({ ...current, status: 'restoring', error: null }));
@@ -54,7 +55,7 @@ export class AuthFacade {
     requestSignIn(provider?: string): void {
         this.state.update((current) => ({
             ...current,
-            status: 'restoring',
+            status: 'authenticating',
             provider: provider ?? current.provider,
             error: null,
         }));
@@ -79,5 +80,18 @@ export class AuthFacade {
 
     publicProfile(): TAuthProfile | null {
         return this.profile();
+    }
+
+    hasAnyGroup(groups: readonly string[] | null | undefined): boolean {
+        const normalizedGroups = new Set(
+            (groups ?? [])
+                .map((group) => String(group ?? '').trim())
+                .filter(Boolean)
+        );
+        if (normalizedGroups.size === 0) {
+            return true;
+        }
+
+        return this.roles().some((role) => normalizedGroups.has(role));
     }
 }

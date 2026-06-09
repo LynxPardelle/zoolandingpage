@@ -1,0 +1,426 @@
+const PROFILE_STATUSES = new Set(['planned', 'provisioning', 'active', 'suspended', 'failed']);
+const INTEGRATION_METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
+const UPSTREAM_AUTH_TYPES = new Set(['bearer', 'api-key-header', 'oauth2-client-credentials']);
+const SAFE_ID = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
+const SAFE_DOMAIN = /^(?!-)(?:[a-z0-9-]{1,63}\.)+[a-z]{2,63}$/;
+const SECRET_REF = /^(\/[^\s\\]+|[^/\s\\]+\/[^\s\\]+|arn:aws:(ssm|secretsmanager):[^\s\\]+)$/;
+const DEFAULT_GROUPS_CLAIM = 'cognito:groups';
+const DEFAULT_SCOPES = ['openid', 'email', 'profile'];
+
+function cleanString(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function normalizeDomain(value) {
+  return cleanString(value)
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .split('/', 1)[0]
+    .split(':', 1)[0];
+}
+
+function hasUnsafeChars(value) {
+  return typeof value !== 'string'
+    || value.length === 0
+    || value.trim() !== value
+    || value.includes('\\')
+    || /[\s\u0000-\u001F\u007F]/.test(value);
+}
+
+function isHttpsAbsoluteUrl(value) {
+  if (hasUnsafeChars(value)) return false;
+
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'https:' && !parsed.username && !parsed.password;
+  } catch {
+    return false;
+  }
+}
+
+function isSafeSameOriginPath(value) {
+  return typeof value === 'string'
+    && value.length > 0
+    && value.trim() === value
+    && value.startsWith('/')
+    && !value.startsWith('//')
+    && !value.includes('\\')
+    && !/[\s\u0000-\u001F\u007F]/.test(value);
+}
+
+function isNonEmptyStringArray(value) {
+  return Array.isArray(value) && value.every(item => typeof item === 'string' && item.trim().length > 0 && item.trim() === item);
+}
+
+function pathFromHttpsUrl(value) {
+  if (!isHttpsAbsoluteUrl(value)) return '';
+  const parsed = new URL(value);
+  return `${parsed.pathname || '/'}${parsed.search}${parsed.hash}`;
+}
+
+function readClaimArray(value) {
+  if (Array.isArray(value)) {
+    return value.filter(item => typeof item === 'string' && item.length > 0);
+  }
+  if (typeof value === 'string' && value.trim().length > 0) {
+    return value.split(/\s+/).filter(Boolean);
+  }
+  return [];
+}
+
+function uniqueStrings(values) {
+  return [...new Set((values ?? []).filter(value => typeof value === 'string' && value.length > 0))];
+}
+
+function pushIf(condition, errors, message) {
+  if (condition) errors.push(message);
+}
+
+function validateSocialIdpSecretRefs(refs, index, errors) {
+  const prefix = `profiles[${index}].socialIdpSecretRefs`;
+  if (refs === undefined) return;
+  if (!refs || typeof refs !== 'object' || Array.isArray(refs)) {
+    errors.push(`${prefix} must be an object when present`);
+    return;
+  }
+
+  for (const [provider, providerRefs] of Object.entries(refs)) {
+    if (!SAFE_ID.test(provider)) {
+      errors.push(`${prefix}.${provider} provider must be stable`);
+      continue;
+    }
+    if (typeof providerRefs === 'string') {
+      if (!SECRET_REF.test(providerRefs)) {
+        errors.push(`${prefix}.${provider} must be an SSM or Secrets Manager reference, not a raw credential value`);
+      }
+      continue;
+    }
+    if (!providerRefs || typeof providerRefs !== 'object' || Array.isArray(providerRefs)) {
+      errors.push(`${prefix}.${provider} must be a reference or object of references`);
+      continue;
+    }
+    for (const [key, value] of Object.entries(providerRefs)) {
+      if (typeof value !== 'string' || !SECRET_REF.test(value)) {
+        errors.push(`${prefix}.${provider}.${key} must be an SSM or Secrets Manager reference, not a raw credential value`);
+      }
+    }
+  }
+}
+
+function validateProfile(profile, index, seen, errors) {
+  const prefix = `profiles[${index}]`;
+  if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
+    errors.push(`${prefix} must be an object`);
+    return;
+  }
+
+  const domain = profile.domain === undefined ? '' : normalizeDomain(profile.domain);
+  const key = `${domain || '<draft>'}#${profile.authProfileId}`;
+  if (profile.domain !== undefined) {
+    const rawDomain = cleanString(profile.domain);
+    pushIf(rawDomain !== domain || !SAFE_DOMAIN.test(domain), errors, `${prefix}.domain must be a lowercase hostname`);
+  }
+  pushIf(typeof profile.authProfileId !== 'string' || !SAFE_ID.test(profile.authProfileId), errors, `${prefix}.authProfileId is required and must be stable`);
+  pushIf(seen.has(key), errors, `${prefix} duplicates domain + authProfileId`);
+  seen.add(key);
+
+  pushIf(typeof profile.tenantId !== 'string' || !SAFE_ID.test(profile.tenantId), errors, `${prefix}.tenantId is required`);
+  pushIf(!PROFILE_STATUSES.has(profile.status), errors, `${prefix}.status is invalid`);
+  pushIf(profile.provider !== undefined && profile.provider !== 'cognito', errors, `${prefix}.provider must be cognito when present`);
+  pushIf(!isHttpsAbsoluteUrl(profile.issuer), errors, `${prefix}.issuer must be an HTTPS absolute URL without userinfo, whitespace, controls, or backslashes`);
+  pushIf(!isHttpsAbsoluteUrl(profile.hostedUiDomain), errors, `${prefix}.hostedUiDomain must be an HTTPS absolute URL without userinfo, whitespace, controls, or backslashes`);
+  pushIf(typeof profile.clientId !== 'string' || profile.clientId.trim().length === 0, errors, `${prefix}.clientId is required`);
+  pushIf(!isNonEmptyStringArray(profile.audiences), errors, `${prefix}.audiences must be a non-empty string array`);
+  pushIf(!isNonEmptyStringArray(profile.callbackUrls) || !profile.callbackUrls.every(isHttpsAbsoluteUrl), errors, `${prefix}.callbackUrls must be HTTPS absolute URLs`);
+  pushIf(!isNonEmptyStringArray(profile.logoutUrls) || !profile.logoutUrls.every(isHttpsAbsoluteUrl), errors, `${prefix}.logoutUrls must be HTTPS absolute URLs`);
+  pushIf(!isSafeSameOriginPath(profile.loginPath), errors, `${prefix}.loginPath must be a same-origin path`);
+  pushIf(!isSafeSameOriginPath(profile.logoutPath), errors, `${prefix}.logoutPath must be a same-origin path`);
+  pushIf(profile.tenantClaim !== undefined && (typeof profile.tenantClaim !== 'string' || profile.tenantClaim.trim().length === 0 || profile.tenantClaim.trim() !== profile.tenantClaim), errors, `${prefix}.tenantClaim must be a stable claim name when present`);
+  pushIf(profile.groupClaim !== undefined && (typeof profile.groupClaim !== 'string' || profile.groupClaim.trim().length === 0 || profile.groupClaim.trim() !== profile.groupClaim), errors, `${prefix}.groupClaim must be a stable claim name when present`);
+  pushIf(profile.allowedGroups !== undefined && !isNonEmptyStringArray(profile.allowedGroups), errors, `${prefix}.allowedGroups must be a string array when present`);
+
+  for (const secretKey of ['clientSecret', 'refreshToken', 'accessToken', 'idToken', 'signedUrl', 'upstreamCredential', 'token', 'apiKey', 'password']) {
+    pushIf(secretKey in profile, errors, `${prefix}.${secretKey} must not be stored in the auth profile registry`);
+  }
+
+  validateSocialIdpSecretRefs(profile.socialIdpSecretRefs, index, errors);
+}
+
+export function validateAuthProfileRegistry(registry) {
+  const errors = [];
+  if (!registry || typeof registry !== 'object' || Array.isArray(registry)) {
+    return { valid: false, errors: ['registry must be an object'] };
+  }
+
+  pushIf(registry.version !== 1, errors, 'registry.version must be 1');
+  pushIf(!Array.isArray(registry.profiles), errors, 'registry.profiles must be an array');
+
+  const seen = new Set();
+  if (Array.isArray(registry.profiles)) {
+    registry.profiles.forEach((profile, index) => validateProfile(profile, index, seen, errors));
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
+export function resolveAuthProfile(registry, domain, authProfileId) {
+  if (!registry || !Array.isArray(registry.profiles)) return null;
+  const normalizedDomain = normalizeDomain(domain);
+  const cleanProfileId = cleanString(authProfileId);
+
+  return registry.profiles.find(profile =>
+    profile?.authProfileId === cleanProfileId
+    && (profile?.domain === undefined || normalizeDomain(profile?.domain) === normalizedDomain)
+  ) ?? null;
+}
+
+export function buildPublicAuthRuntimeConfig(profile, options = {}) {
+  if (!profile) return null;
+  const validation = validateAuthProfileRegistry({ version: 1, profiles: [profile] });
+  if (!validation.valid) {
+    throw new Error(`Invalid auth profile: ${validation.errors.join('; ')}`);
+  }
+
+  const redirectPath = options.redirectPath ?? pathFromHttpsUrl(profile.callbackUrls[0]);
+  const logoutPath = options.logoutPath ?? profile.logoutPath ?? pathFromHttpsUrl(profile.logoutUrls[0]);
+  const loginPath = options.loginPath ?? profile.loginPath;
+  if (!isSafeSameOriginPath(redirectPath) || !isSafeSameOriginPath(logoutPath)) {
+    throw new Error('Public auth runtime paths must be same-origin paths');
+  }
+  if (loginPath !== undefined && !isSafeSameOriginPath(loginPath)) {
+    throw new Error('loginPath must be a same-origin path');
+  }
+  if (options.postLoginPath !== undefined && !isSafeSameOriginPath(options.postLoginPath)) {
+    throw new Error('postLoginPath must be a same-origin path');
+  }
+  if (options.postLogoutPath !== undefined && !isSafeSameOriginPath(options.postLogoutPath)) {
+    throw new Error('postLogoutPath must be a same-origin path');
+  }
+
+  return {
+    enabled: profile.status === 'active' && options.enabled !== false,
+    authProfileId: profile.authProfileId,
+    provider: 'cognito',
+    issuer: profile.issuer,
+    clientId: profile.clientId,
+    hostedUiDomain: profile.hostedUiDomain,
+    scopes: uniqueStrings(options.scopes ?? DEFAULT_SCOPES),
+    redirectPath,
+    logoutPath,
+    ...(loginPath ? { loginPath } : {}),
+    ...(options.loginPageId ? { loginPageId: options.loginPageId } : {}),
+    ...(options.logoutPageId ? { logoutPageId: options.logoutPageId } : {}),
+    ...(options.callbackPageId ? { callbackPageId: options.callbackPageId } : {}),
+    ...(options.accountPageId ? { accountPageId: options.accountPageId } : {}),
+    ...(options.postLoginPath ? { postLoginPath: options.postLoginPath } : {}),
+    ...(options.postLogoutPath ? { postLogoutPath: options.postLogoutPath } : {}),
+    groupsClaim: profile.groupClaim ?? DEFAULT_GROUPS_CLAIM,
+    allowedGroups: uniqueStrings(profile.allowedGroups ?? []),
+  };
+}
+
+export function buildCognitoProvisioningPlan(profile) {
+  if (!profile) return null;
+  const validation = validateAuthProfileRegistry({ version: 1, profiles: [profile] });
+  if (!validation.valid) {
+    throw new Error(`Invalid auth profile: ${validation.errors.join('; ')}`);
+  }
+
+  const tenantBoundary = {
+    tenantId: profile.tenantId,
+    authProfileId: profile.authProfileId,
+  };
+
+  const operations = [
+    {
+      action: 'createOrUpdateUserPool',
+      provider: 'cognito',
+      tenantBoundary,
+    },
+    {
+      action: 'createOrUpdateUserPoolClient',
+      provider: 'cognito',
+      clientId: profile.clientId,
+      audiences: [...profile.audiences],
+      callbackUrls: [...profile.callbackUrls],
+      logoutUrls: [...profile.logoutUrls],
+      tenantBoundary,
+    },
+    {
+      action: 'configureHostedUiDomain',
+      provider: 'cognito',
+      hostedUiDomain: profile.hostedUiDomain,
+      tenantBoundary,
+    },
+  ];
+
+  for (const [provider, refs] of Object.entries(profile.socialIdpSecretRefs ?? {})) {
+    operations.push({
+      action: 'configureHostedUiSocialProvider',
+      provider,
+      secretRefs: typeof refs === 'string' ? { credentialRef: refs } : { ...refs },
+      tenantBoundary,
+    });
+  }
+
+  return {
+    applyMode: 'plan-only',
+    profileKey: tenantBoundary.authProfileId,
+    operations,
+  };
+}
+
+export function buildJwtVerificationConfig(profile) {
+  if (!profile) return null;
+  const validation = validateAuthProfileRegistry({ version: 1, profiles: [profile] });
+  if (!validation.valid) {
+    throw new Error(`Invalid auth profile: ${validation.errors.join('; ')}`);
+  }
+
+  const issuer = profile.issuer.replace(/\/+$/, '');
+  return {
+    issuer: profile.issuer,
+    audience: profile.clientId,
+    audiences: uniqueStrings(profile.audiences ?? [profile.clientId]),
+    jwksUri: `${issuer}/.well-known/jwks.json`,
+    groupsClaim: profile.groupClaim ?? DEFAULT_GROUPS_CLAIM,
+    tenantClaim: profile.tenantClaim,
+    tenantBoundary: {
+      tenantId: profile.tenantId,
+      authProfileId: profile.authProfileId,
+    },
+  };
+}
+
+export function authPolicyFromJwtClaims(profile, claims) {
+  if (!profile || !claims || typeof claims !== 'object') {
+    return { authorized: false, subject: null, groups: [], reason: 'missing_profile_or_claims' };
+  }
+
+  const groupsClaim = profile.groupClaim ?? DEFAULT_GROUPS_CLAIM;
+  const groups = readClaimArray(claims[groupsClaim]);
+  const expectedGroups = uniqueStrings(profile.allowedGroups ?? []);
+  const subject = typeof claims.sub === 'string' && claims.sub.length > 0 ? claims.sub : null;
+
+  if (claims.iss !== profile.issuer) {
+    return { authorized: false, subject, groups, reason: 'issuer_mismatch' };
+  }
+  const expectedAudiences = uniqueStrings(profile.audiences ?? [profile.clientId]);
+  const audienceMatches = expectedAudiences.includes(claims.aud)
+    || (Array.isArray(claims.aud) && claims.aud.some(audience => expectedAudiences.includes(audience)))
+    || expectedAudiences.includes(claims.client_id);
+  if (!audienceMatches) {
+    return { authorized: false, subject, groups, reason: 'audience_mismatch' };
+  }
+  if (!subject) {
+    return { authorized: false, subject, groups, reason: 'missing_subject' };
+  }
+  if (profile.tenantClaim && claims[profile.tenantClaim] !== profile.tenantId) {
+    return { authorized: false, subject, groups, reason: 'tenant_mismatch' };
+  }
+  if (expectedGroups.length > 0 && !groups.some(group => expectedGroups.includes(group))) {
+    return { authorized: false, subject, groups, reason: 'group_mismatch' };
+  }
+
+  return { authorized: true, subject, groups, reason: 'authorized' };
+}
+
+function validateAccessPolicy(access, prefix, errors) {
+  if (access === undefined) return;
+  if (!access || typeof access !== 'object' || Array.isArray(access)) {
+    errors.push(`${prefix}.access must be an object when present`);
+    return;
+  }
+  if (access.required !== undefined && typeof access.required !== 'boolean') {
+    errors.push(`${prefix}.access.required must be boolean when present`);
+  }
+  if (access.required === true && (typeof access.authProfileId !== 'string' || !SAFE_ID.test(access.authProfileId))) {
+    errors.push(`${prefix}.access.authProfileId is required when access.required is true`);
+  }
+  if (access.authProfileId !== undefined && (typeof access.authProfileId !== 'string' || !SAFE_ID.test(access.authProfileId))) {
+    errors.push(`${prefix}.access.authProfileId must be stable when present`);
+  }
+  if (access.allowedGroups !== undefined && !isNonEmptyStringArray(access.allowedGroups)) {
+    errors.push(`${prefix}.access.allowedGroups must be a non-empty string array when present`);
+  }
+}
+
+function validateUpstreamAuth(auth, prefix, errors) {
+  if (auth === undefined) return;
+  if (!auth || typeof auth !== 'object' || Array.isArray(auth)) {
+    errors.push(`${prefix}.auth must be an object for upstream credentials`);
+    return;
+  }
+  if ('required' in auth || 'authProfileId' in auth || 'allowedGroups' in auth) {
+    errors.push(`${prefix}.auth must describe upstream credentials only; put user authorization in access`);
+  }
+  if ('credentialRef' in auth) {
+    errors.push(`${prefix}.auth.credentialRef is not supported; put credentialRef at the integration root`);
+  }
+  if (!UPSTREAM_AUTH_TYPES.has(auth.type)) {
+    errors.push(`${prefix}.auth.type must be bearer, api-key-header, or oauth2-client-credentials`);
+  }
+  for (const secretKey of ['token', 'apiKey', 'clientSecret', 'password', 'secret', 'value']) {
+    if (secretKey in auth) {
+      errors.push(`${prefix}.auth.${secretKey} must not store raw credential material`);
+    }
+  }
+}
+
+function validateIntegrationEntry(entry, kind, index, errors) {
+  const prefix = `${kind}[${index}]`;
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+    errors.push(`${prefix} must be an object`);
+    return;
+  }
+  pushIf(typeof entry.id !== 'string' || !SAFE_ID.test(entry.id), errors, `${prefix}.id is required and must be stable`);
+  pushIf(!INTEGRATION_METHODS.has(entry.method), errors, `${prefix}.method is invalid`);
+  pushIf(entry.url !== undefined && !isHttpsAbsoluteUrl(entry.url), errors, `${prefix}.url must be an HTTPS absolute URL`);
+  pushIf(entry.urlTemplate !== undefined && typeof entry.urlTemplate !== 'string', errors, `${prefix}.urlTemplate must be a string when present`);
+  pushIf(entry.url === undefined && entry.urlTemplate === undefined, errors, `${prefix}.url or urlTemplate is required`);
+  pushIf(entry.allowedInputFields !== undefined && !isNonEmptyStringArray(entry.allowedInputFields), errors, `${prefix}.allowedInputFields must be a string array when present`);
+  pushIf(entry.credentialRef !== undefined && (typeof entry.credentialRef !== 'string' || !SECRET_REF.test(entry.credentialRef)), errors, `${prefix}.credentialRef must be an SSM or Secrets Manager reference`);
+  pushIf(entry.auth !== undefined && entry.credentialRef === undefined, errors, `${prefix}.credentialRef is required when auth is present`);
+  pushIf(entry.credentialRef !== undefined && entry.auth === undefined, errors, `${prefix}.auth is required when credentialRef is present`);
+
+  if (entry.headers !== undefined) {
+    if (!entry.headers || typeof entry.headers !== 'object' || Array.isArray(entry.headers)) {
+      errors.push(`${prefix}.headers must be an object when present`);
+    } else {
+      for (const [key, value] of Object.entries(entry.headers)) {
+        if (typeof value !== 'string' || /authorization|api[-_]?key|token|secret/i.test(key)) {
+          errors.push(`${prefix}.headers must not contain credential material`);
+        }
+      }
+    }
+  }
+
+  if (entry.response !== undefined) {
+    if (!entry.response || typeof entry.response !== 'object' || Array.isArray(entry.response)) {
+      errors.push(`${prefix}.response must be an object when present`);
+    } else {
+      pushIf(entry.response.allowedFields !== undefined && !isNonEmptyStringArray(entry.response.allowedFields), errors, `${prefix}.response.allowedFields must be a string array when present`);
+      pushIf(entry.response.maxBytes !== undefined && (typeof entry.response.maxBytes !== 'number' || !Number.isFinite(entry.response.maxBytes) || entry.response.maxBytes <= 0), errors, `${prefix}.response.maxBytes must be a positive number when present`);
+    }
+  }
+
+  validateAccessPolicy(entry.access, prefix, errors);
+  validateUpstreamAuth(entry.auth, prefix, errors);
+}
+
+export function validateServerIntegrations(integrations) {
+  const errors = [];
+  if (!integrations || typeof integrations !== 'object' || Array.isArray(integrations)) {
+    return { valid: false, errors: ['integrations must be an object'] };
+  }
+  pushIf(integrations.version !== 1, errors, 'integrations.version must be 1');
+  pushIf(!Array.isArray(integrations.sources), errors, 'integrations.sources must be an array');
+  pushIf(!Array.isArray(integrations.actions), errors, 'integrations.actions must be an array');
+  if (Array.isArray(integrations.sources)) {
+    integrations.sources.forEach((entry, index) => validateIntegrationEntry(entry, 'sources', index, errors));
+  }
+  if (Array.isArray(integrations.actions)) {
+    integrations.actions.forEach((entry, index) => validateIntegrationEntry(entry, 'actions', index, errors));
+  }
+  return { valid: errors.length === 0, errors };
+}
