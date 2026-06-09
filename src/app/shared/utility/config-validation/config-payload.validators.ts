@@ -12,8 +12,6 @@ import type {
     TConfigVersionPointer,
     TDraftAnalyticsRuntimeConfig,
     TDraftAppIdentityVariableConfig,
-    TDraftAuthRemoteRuntimeConfig,
-    TDraftAuthRuntimeConfig,
     TDraftEnvironmentGateConfig,
     TDraftContactVariableConfig,
     TDraftFeatureRuntimeConfig,
@@ -28,7 +26,6 @@ import type {
     TDraftSiteEnvironmentConfig,
     TDraftSiteIconConfig,
     TDraftSiteRuntimeConfig,
-    TDraftRouteAuthConfig,
     TDraftSiteSeoConfig,
     TDraftSiteSharedConfig,
     TDraftSocialLinkConfig,
@@ -64,9 +61,6 @@ import {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     !!value && typeof value === 'object' && !Array.isArray(value);
 
-const hasOnlyKnownKeys = (value: Record<string, unknown>, keys: ReadonlySet<string>): boolean =>
-    Object.keys(value).every((key) => keys.has(key));
-
 const ALLOWED_TRACK_OPTIONS = new Set<TTrackOptions>([
     'ip',
     'userAgent',
@@ -88,61 +82,9 @@ const ALLOWED_TRACK_OPTIONS = new Set<TTrackOptions>([
 ]);
 
 const ALLOWED_RUNTIME_API_ACTION_METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
-const ALLOWED_RUNTIME_DATA_SOURCE_KEYS = new Set([
-    'id',
-    'proxySourceId',
-    'target',
-    'statusTarget',
-    'mergeMode',
-    'clearTargetOnLoad',
-    'enabled',
-    'ssr',
-    'pageIds',
-    'requiredInputKeys',
-    'skipWhenQueryParams',
-    'input',
-    'mapper',
-    'refresh',
-]);
-const ALLOWED_RUNTIME_API_ACTION_KEYS = new Set([
-    'id',
-    'proxyActionId',
-    'method',
-    'statusTarget',
-    'enabled',
-    'inputFields',
-    'requiresUserGesture',
-]);
 const ALLOWED_RUNTIME_DATA_SOURCE_INPUT_SOURCES = new Set(['literal', 'queryParam', 'var', 'queryParamPageOffset']);
 const ALLOWED_RUNTIME_DATA_SOURCE_INPUT_TRANSFORMS = new Set(['trim', 'lowercase', 'uppercase']);
 const ALLOWED_RUNTIME_DATA_SOURCE_FIELD_TRANSFORMS = new Set(['uriComponent', 'lastPathSegment', 'lastPathSegmentNumber', 'titleCase']);
-const ALLOWED_AUTH_PROVIDERS = new Set(['cognito']);
-const ALLOWED_AUTH_CONFIG_KEYS = new Set([
-    'enabled',
-    'authProfileId',
-    'provider',
-    'issuer',
-    'userPoolId',
-    'clientId',
-    'hostedUiDomain',
-    'scopes',
-    'redirectPath',
-    'logoutPath',
-    'loginPath',
-    'loginPageId',
-    'logoutPageId',
-    'callbackPageId',
-    'accountPageId',
-    'postLoginPath',
-    'postLogoutPath',
-    'groupsClaim',
-    'allowedGroups',
-]);
-const ALLOWED_AUTH_REMOTE_CONFIG_KEYS = new Set([
-    'enabled',
-    'authProfileId',
-    'endpoint',
-]);
 
 const ALLOWED_LOCAL_STORAGE_SLOTS = new Set<TDraftLocalStorageSlot>([
     'theme',
@@ -202,8 +144,6 @@ const ALLOWED_AUTHORING_FILE_KINDS = new Set([
     'variables',
     'angora-combos',
     'i18n',
-    'server-auth-profile-registry',
-    'server-integrations',
 ]);
 
 const ALLOWED_LOOP_BINDING_TRANSFORMS = new Set([
@@ -215,31 +155,6 @@ const ALLOWED_LOOP_BINDING_TRANSFORMS = new Set([
 
 const isStringArray = (value: unknown): value is readonly string[] =>
     Array.isArray(value) && value.every((item) => typeof item === 'string');
-
-const hasNoWhitespaceOrControlChars = (value: string): boolean =>
-    !/[\s\u0000-\u001F\u007F]/.test(value);
-
-const isHttpsAbsoluteUrl = (value: unknown): value is string => {
-    if (typeof value !== 'string' || value.length === 0 || value.trim() !== value || value.includes('\\') || !hasNoWhitespaceOrControlChars(value)) {
-        return false;
-    }
-
-    try {
-        const parsed = new URL(value);
-        return parsed.protocol === 'https:' && !parsed.username && !parsed.password;
-    } catch {
-        return false;
-    }
-};
-
-const isSafeSameOriginPath = (value: unknown): value is string =>
-    typeof value === 'string'
-    && value.length > 0
-    && value.trim() === value
-    && value.startsWith('/')
-    && !value.startsWith('//')
-    && !value.includes('\\')
-    && hasNoWhitespaceOrControlChars(value);
 
 const isLocalizedKeywordValue = (value: unknown): boolean => {
     if (typeof value === 'string') return true;
@@ -433,15 +348,6 @@ const isDraftSiteRouteEntry = (value: unknown): boolean => {
     if (typeof value['pageId'] !== 'string' || value['pageId'].trim().length === 0) return false;
     if (value['label'] !== undefined && typeof value['label'] !== 'string') return false;
     if (value['labelKey'] !== undefined && typeof value['labelKey'] !== 'string') return false;
-    if (value['auth'] !== undefined && !isDraftRouteAuthConfig(value['auth'])) return false;
-    return true;
-};
-
-const isDraftRouteAuthConfig = (value: unknown): value is TDraftRouteAuthConfig => {
-    if (!isRecord(value)) return false;
-    if (value['required'] !== undefined && typeof value['required'] !== 'boolean') return false;
-    if (value['allowedGroups'] !== undefined && !isStringArray(value['allowedGroups'])) return false;
-    if (value['redirectTo'] !== undefined && !isSafeSameOriginPath(value['redirectTo'])) return false;
     return true;
 };
 
@@ -825,7 +731,6 @@ const isRuntimeDataSourceInputConfig = (value: unknown): boolean => {
 
 const isRuntimeDataSourceConfig = (value: unknown): value is TRuntimeDataSourceConfig => {
     if (!isRecord(value)) return false;
-    if (!hasOnlyKnownKeys(value, ALLOWED_RUNTIME_DATA_SOURCE_KEYS)) return false;
     if (typeof value['id'] !== 'string' || value['id'].trim().length === 0) return false;
     if (value['proxySourceId'] !== undefined && typeof value['proxySourceId'] !== 'string') return false;
     if (typeof value['target'] !== 'string' || value['target'].trim().length === 0) return false;
@@ -851,7 +756,6 @@ const isRuntimeDataSourceConfig = (value: unknown): value is TRuntimeDataSourceC
 
 const isRuntimeApiActionConfig = (value: unknown): value is TRuntimeApiActionConfig => {
     if (!isRecord(value)) return false;
-    if (!hasOnlyKnownKeys(value, ALLOWED_RUNTIME_API_ACTION_KEYS)) return false;
     if (typeof value['id'] !== 'string' || value['id'].trim().length === 0) return false;
     if (value['proxyActionId'] !== undefined && typeof value['proxyActionId'] !== 'string') return false;
     if (value['method'] !== undefined
@@ -865,49 +769,13 @@ const isRuntimeApiActionConfig = (value: unknown): value is TRuntimeApiActionCon
     return true;
 };
 
-export const isDraftAuthRuntimeConfig = (value: unknown): value is TDraftAuthRuntimeConfig => {
-    if (!isRecord(value)) return false;
-    if (!Object.keys(value).every((key) => ALLOWED_AUTH_CONFIG_KEYS.has(key))) return false;
-    if (value['enabled'] !== undefined && typeof value['enabled'] !== 'boolean') return false;
-    if (typeof value['authProfileId'] !== 'string' || value['authProfileId'].trim().length === 0) return false;
-    if (typeof value['provider'] !== 'string' || !ALLOWED_AUTH_PROVIDERS.has(value['provider'])) return false;
-    if (!isHttpsAbsoluteUrl(value['issuer'])) return false;
-    if (value['userPoolId'] !== undefined && typeof value['userPoolId'] !== 'string') return false;
-    if (typeof value['clientId'] !== 'string' || value['clientId'].trim().length === 0) return false;
-    if (!isHttpsAbsoluteUrl(value['hostedUiDomain'])) return false;
-    if (!isStringArray(value['scopes']) || value['scopes'].length === 0) return false;
-    if (!isSafeSameOriginPath(value['redirectPath'])) return false;
-    if (!isSafeSameOriginPath(value['logoutPath'])) return false;
-    if (value['loginPath'] !== undefined && !isSafeSameOriginPath(value['loginPath'])) return false;
-    if (value['loginPageId'] !== undefined && typeof value['loginPageId'] !== 'string') return false;
-    if (value['logoutPageId'] !== undefined && typeof value['logoutPageId'] !== 'string') return false;
-    if (value['callbackPageId'] !== undefined && typeof value['callbackPageId'] !== 'string') return false;
-    if (value['accountPageId'] !== undefined && typeof value['accountPageId'] !== 'string') return false;
-    if (value['postLoginPath'] !== undefined && !isSafeSameOriginPath(value['postLoginPath'])) return false;
-    if (value['postLogoutPath'] !== undefined && !isSafeSameOriginPath(value['postLogoutPath'])) return false;
-    if (value['groupsClaim'] !== undefined && typeof value['groupsClaim'] !== 'string') return false;
-    if (value['allowedGroups'] !== undefined && !isStringArray(value['allowedGroups'])) return false;
-    return true;
-};
-
-const isDraftAuthRemoteRuntimeConfig = (value: unknown): value is TDraftAuthRemoteRuntimeConfig => {
-    if (!isRecord(value)) return false;
-    if (!hasOnlyKnownKeys(value, ALLOWED_AUTH_REMOTE_CONFIG_KEYS)) return false;
-    if (value['enabled'] !== undefined && typeof value['enabled'] !== 'boolean') return false;
-    if (typeof value['authProfileId'] !== 'string' || value['authProfileId'].trim().length === 0) return false;
-    return isSafeSameOriginPath(value['endpoint']) || isHttpsAbsoluteUrl(value['endpoint']);
-};
-
 const isDraftSiteRuntimeConfig = (value: unknown): value is TDraftSiteRuntimeConfig => {
     if (!isRecord(value)) return false;
     if (value['app'] !== undefined) return false;
-    if (value['auth'] !== undefined && value['authRemote'] !== undefined) return false;
     if (value['localStorage'] !== undefined && !isDraftLocalStorageRuntimeConfig(value['localStorage'])) return false;
     if (value['features'] !== undefined && !isDraftFeatureRuntimeConfig(value['features'])) return false;
     if (value['analytics'] !== undefined && !isDraftAnalyticsRuntimeConfig(value['analytics'])) return false;
     if (value['navigation'] !== undefined && !isDraftNavigationRuntimeConfig(value['navigation'])) return false;
-    if (value['auth'] !== undefined && !isDraftAuthRuntimeConfig(value['auth'])) return false;
-    if (value['authRemote'] !== undefined && !isDraftAuthRemoteRuntimeConfig(value['authRemote'])) return false;
     if (value['dataSources'] !== undefined
         && (!Array.isArray(value['dataSources']) || !value['dataSources'].every(isRuntimeDataSourceConfig))) return false;
     if (value['apiActions'] !== undefined

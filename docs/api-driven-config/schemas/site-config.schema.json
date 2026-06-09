@@ -10,28 +10,7 @@
         "path": { "type": "string", "minLength": 1 },
         "pageId": { "type": "string", "minLength": 1 },
         "label": { "type": "string" },
-        "labelKey": { "type": "string" },
-        "auth": { "$ref": "#/definitions/siteRouteAuth" }
-      },
-      "additionalProperties": false
-    },
-    "sameOriginPath": {
-      "type": "string",
-      "pattern": "^/(?!/)(?!.*[\\\\\\s\\u0000-\\u001F\\u007F]).*$"
-    },
-    "httpsAbsoluteUrl": {
-      "type": "string",
-      "pattern": "^https://(?![^/?#]*@)(?!.*[\\\\\\s\\u0000-\\u001F\\u007F])[^\\\\\\s\\u0000-\\u001F\\u007F]+$"
-    },
-    "siteRouteAuth": {
-      "type": "object",
-      "properties": {
-        "required": { "type": "boolean" },
-        "allowedGroups": {
-          "type": "array",
-          "items": { "type": "string" }
-        },
-        "redirectTo": { "$ref": "#/definitions/sameOriginPath" }
+        "labelKey": { "type": "string" }
       },
       "additionalProperties": false
     },
@@ -368,8 +347,6 @@
         "localStorage": { "$ref": "#/definitions/localStorageRuntime" },
         "features": { "$ref": "#/definitions/featureRuntime" },
         "analytics": { "$ref": "#/definitions/analyticsRuntime" },
-        "auth": { "$ref": "#/definitions/authRuntime" },
-        "authRemote": { "$ref": "#/definitions/authRemoteRuntime" },
         "dataSources": {
           "type": "array",
           "items": { "$ref": "#/definitions/runtimeDataSource" }
@@ -379,7 +356,6 @@
           "items": { "$ref": "#/definitions/runtimeApiAction" }
         }
       },
-      "not": { "required": ["auth", "authRemote"] },
       "additionalProperties": false
     },
     "themeColors": {
@@ -509,64 +485,6 @@
         "twitter": {
           "type": "object",
           "additionalProperties": true
-        }
-      },
-      "additionalProperties": false
-    },
-    "authRuntime": {
-      "type": "object",
-      "required": [
-        "authProfileId",
-        "provider",
-        "issuer",
-        "clientId",
-        "hostedUiDomain",
-        "scopes",
-        "redirectPath",
-        "logoutPath"
-      ],
-      "properties": {
-        "enabled": { "type": "boolean" },
-        "authProfileId": { "type": "string", "minLength": 1 },
-        "provider": { "type": "string", "enum": ["cognito"] },
-        "issuer": { "$ref": "#/definitions/httpsAbsoluteUrl" },
-        "userPoolId": { "type": "string" },
-        "clientId": { "type": "string", "minLength": 1 },
-        "hostedUiDomain": { "$ref": "#/definitions/httpsAbsoluteUrl" },
-        "scopes": {
-          "type": "array",
-          "minItems": 1,
-          "items": { "type": "string" }
-        },
-        "redirectPath": { "$ref": "#/definitions/sameOriginPath" },
-        "logoutPath": { "$ref": "#/definitions/sameOriginPath" },
-        "loginPath": { "$ref": "#/definitions/sameOriginPath" },
-        "loginPageId": { "type": "string" },
-        "logoutPageId": { "type": "string" },
-        "callbackPageId": { "type": "string" },
-        "accountPageId": { "type": "string" },
-        "postLoginPath": { "$ref": "#/definitions/sameOriginPath" },
-        "postLogoutPath": { "$ref": "#/definitions/sameOriginPath" },
-        "groupsClaim": { "type": "string" },
-        "allowedGroups": {
-          "type": "array",
-          "items": { "type": "string" }
-        }
-      },
-      "additionalProperties": false
-    },
-    "authRemoteRuntime": {
-      "type": "object",
-      "required": ["authProfileId", "endpoint"],
-      "properties": {
-        "enabled": { "type": "boolean" },
-        "authProfileId": { "type": "string", "minLength": 1 },
-        "endpoint": {
-          "type": "string",
-          "anyOf": [
-            { "$ref": "#/definitions/sameOriginPath" },
-            { "$ref": "#/definitions/httpsAbsoluteUrl" }
-          ]
         }
       },
       "additionalProperties": false

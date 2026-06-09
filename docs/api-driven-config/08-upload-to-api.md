@@ -253,8 +253,6 @@ Included:
 - shared and page `angora-combos.json`
 - shared and page `i18n/*.json`
 - page `page-config.json`
-- server-only `server/auth-profile-registry.json`
-- server-only `server/integrations.json`
 
 Excluded:
 
@@ -262,7 +260,6 @@ Excluded:
 - images
 - videos
 - PDFs
-- server-only files in browser runtime bundles or static `/drafts` responses
 
 Public assets must be uploaded separately through `image-upload/presign` and then referenced from config JSON by URL.
 
@@ -279,7 +276,6 @@ For the complete request and authoring guidance, see [../12-public-assets-and-fi
 - publishing without confirming the authoring draft is the one you just pushed
 - assuming a successful publish means the app tier has already refreshed its frontend assets or caches
 - trying to store media files inside config payloads instead of the public asset flow
-- putting `access`, upstream `auth`, tokens, API keys, or client secrets in public `site-config.json.runtime.dataSources` or `runtime.apiActions`
 
 ## Related docs
 

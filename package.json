@@ -4,7 +4,6 @@
   "scripts": {
     "ng": "node ./node_modules/@angular/cli/bin/ng.js",
     "start": "node ./node_modules/@angular/cli/bin/ng.js serve",
-    "start:local-auth": "node ./node_modules/@angular/cli/bin/ng.js serve --host 127.0.0.1 --port 4202 --proxy-config proxy.local-auth.json",
     "start:logged": "node tools/run-with-logs.mjs --name ng-serve -- npm run start",
     "angora:build-local": "npm --prefix ../ngx-angora-css run build:ngx_angora_css_lib",
     "angora:link-local": "npm link ../ngx-angora-css/dist/ngx-angora-css-library --no-save",

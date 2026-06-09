@@ -172,43 +172,6 @@ export type TDraftSiteRouteEntry = {
     readonly pageId: string;
     readonly label?: string;
     readonly labelKey?: string;
-    readonly auth?: TDraftRouteAuthConfig;
-};
-
-export type TDraftAuthProvider = 'cognito';
-
-export type TDraftAuthRuntimeConfig = {
-    readonly enabled?: boolean;
-    readonly authProfileId: string;
-    readonly provider: TDraftAuthProvider;
-    readonly issuer: string;
-    readonly userPoolId?: string;
-    readonly clientId: string;
-    readonly hostedUiDomain: string;
-    readonly scopes: readonly string[];
-    readonly redirectPath: string;
-    readonly logoutPath: string;
-    readonly loginPath?: string;
-    readonly loginPageId?: string;
-    readonly logoutPageId?: string;
-    readonly callbackPageId?: string;
-    readonly accountPageId?: string;
-    readonly postLoginPath?: string;
-    readonly postLogoutPath?: string;
-    readonly groupsClaim?: string;
-    readonly allowedGroups?: readonly string[];
-};
-
-export type TDraftAuthRemoteRuntimeConfig = {
-    readonly enabled?: boolean;
-    readonly authProfileId: string;
-    readonly endpoint: string;
-};
-
-export type TDraftRouteAuthConfig = {
-    readonly required?: boolean;
-    readonly allowedGroups?: readonly string[];
-    readonly redirectTo?: string;
 };
 
 export type TSiteLifecycleStatus = 'active' | 'maintenance' | 'suspended';
@@ -447,8 +410,6 @@ export type TDraftSiteRuntimeConfig = {
     readonly features?: TDraftFeatureRuntimeConfig;
     readonly analytics?: TDraftAnalyticsRuntimeConfig;
     readonly navigation?: TDraftNavigationRuntimeConfig;
-    readonly auth?: TDraftAuthRuntimeConfig;
-    readonly authRemote?: TDraftAuthRemoteRuntimeConfig;
     readonly dataSources?: readonly TRuntimeDataSourceConfig[];
     readonly apiActions?: readonly TRuntimeApiActionConfig[];
 };
@@ -615,9 +576,7 @@ export type TAuthoringDraftFileKind =
     | 'page-components'
     | 'variables'
     | 'angora-combos'
-    | 'i18n'
-    | 'server-auth-profile-registry'
-    | 'server-integrations';
+    | 'i18n';
 
 export type TAuthoringDraftFile = {
     readonly path: string;
