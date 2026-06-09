@@ -37,6 +37,7 @@ The draft filesystem under `drafts/{domain}/...`, served locally at `/drafts/...
 - Visibility logic through `condition`.
 - Repeated structures through `loopConfig`.
 - Runtime API data sources through `site-config.json.runtime.dataSources` and server-only integration policy.
+- Optional draft auth through browser-safe `site-config.json.runtime.auth` plus server-only auth profile registry policy.
 - Shared domain defaults plus page-level overrides.
 - Locale-aware content and metadata.
 - Draft-owned appearance through `angora-combos.json`, theme palettes, and payload-owned classes.
@@ -49,6 +50,8 @@ The draft filesystem under `drafts/{domain}/...`, served locally at `/drafts/...
 - `variables.json`: shared defaults at domain root, route-specific overrides at page root.
 - `angora-combos.json`: reusable visual bundles authored in payloads.
 - `i18n/{lang}.json`: shared or page-specific locale dictionaries.
+- `server/auth-profile-registry.json`: server-only auth profile registry for tenant/auth policy.
+- `server/integrations.json`: server-only proxy integration policy, upstream credential references, and user access gates.
 
 ## Start here
 
@@ -66,6 +69,7 @@ The draft filesystem under `drafts/{domain}/...`, served locally at `/drafts/...
 - [14-loop-resolution-catalog.md](14-loop-resolution-catalog.md)
 - [15-runtime-api-proxy-data-sources.md](15-runtime-api-proxy-data-sources.md)
 - [16-google-ads-search-console-seo.md](16-google-ads-search-console-seo.md)
+- [17-auth-profile-registry.md](17-auth-profile-registry.md)
 
 ## Practical rule for new contributors
 
@@ -77,7 +81,9 @@ If you are trying to change behavior and you do not know whether to edit code or
 4. Is this content or site/page data? Edit `variables.json` or `i18n/*.json`.
 5. Is this browser-safe runtime API wiring? Edit `site-config.json.runtime.dataSources` or `site-config.json.runtime.apiActions`.
 6. Is this an upstream URL, method, credential reference, or response allowlist? Edit `server/integrations.json`.
-7. Is this binary media? Upload it through the image-upload flow and store the returned `publicUrl` in payloads.
+7. Is this public auth metadata? Edit `site-config.json.runtime.auth`.
+8. Is this tenant ownership, Cognito provisioning, groups policy, callback allowlists, or social IdP credentials? Keep it server-only in an Auth Profile Registry.
+9. Is this binary media? Upload it through the image-upload flow and store the returned `publicUrl` in payloads.
 
 ## Schemas
 
@@ -87,6 +93,8 @@ If you are trying to change behavior and you do not know whether to edit code or
 - [schemas/variables.schema.json](schemas/variables.schema.json)
 - [schemas/angora-combos.schema.json](schemas/angora-combos.schema.json)
 - [schemas/i18n.schema.json](schemas/i18n.schema.json)
+- [schemas/auth-profile-registry.schema.json](schemas/auth-profile-registry.schema.json)
+- [schemas/integrations.schema.json](schemas/integrations.schema.json)
 
 ## Related docs
 

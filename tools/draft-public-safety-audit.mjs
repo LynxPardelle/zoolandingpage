@@ -185,21 +185,42 @@ async function discoverDraftRepos(baseDir) {
   return repos.sort();
 }
 
-async function trackedFiles(repoPath) {
-  const output = await git(repoPath, ['ls-files']);
+async function resolveAuditScope(repoPath) {
+  const resolvedRepo = path.resolve(repoPath);
+  if (!await isGitRepo(resolvedRepo)) {
+    return null;
+  }
+
+  const gitRoot = path.resolve(await git(resolvedRepo, ['rev-parse', '--show-toplevel']));
+  const prefix = normalizeGitPath(await git(resolvedRepo, ['rev-parse', '--show-prefix']));
+  const pathspec = prefix ? [prefix] : [];
+
+  return {
+    repoPath: resolvedRepo,
+    gitRoot,
+    pathspec,
+  };
+}
+
+function scopedGitArgs(args, scope) {
+  return scope.pathspec.length > 0 ? [...args, '--', ...scope.pathspec] : args;
+}
+
+async function trackedFiles(scope) {
+  const output = await git(scope.gitRoot, scopedGitArgs(['ls-files'], scope));
   return output ? output.split('\n').filter(Boolean) : [];
 }
 
-async function historyObjectPaths(repoPath) {
-  const output = await git(repoPath, ['rev-list', '--objects', '--all']);
+async function historyObjectPaths(scope) {
+  const output = await git(scope.gitRoot, scopedGitArgs(['rev-list', '--objects', '--all'], scope));
   if (!output) return [];
   return output.split('\n')
     .map(line => line.replace(/^[0-9a-f]{40}\s+/, '').trim())
     .filter(Boolean);
 }
 
-async function commitList(repoPath) {
-  const output = await git(repoPath, ['rev-list', '--all']);
+async function commitList(scope) {
+  const output = await git(scope.gitRoot, scopedGitArgs(['rev-list', '--all'], scope));
   return output ? output.split('\n').filter(Boolean) : [];
 }
 
@@ -220,11 +241,11 @@ async function readFileAtCommit(repoPath, commit, filePath) {
   return buffer.toString('utf8');
 }
 
-async function scanCurrentFiles(repoPath, files, rules) {
+async function scanCurrentFiles(gitRoot, files, rules) {
   const findings = [];
   for (const file of files) {
     if (!isLikelyTextFile(file)) continue;
-    const absolutePath = path.join(repoPath, file);
+    const absolutePath = path.join(gitRoot, file);
     const buffer = await readFile(absolutePath);
     if (buffer.length > MAX_FILE_BYTES || buffer.includes(0)) continue;
     findings.push(...lineHits(buffer.toString('utf8'), file, rules));
@@ -232,14 +253,14 @@ async function scanCurrentFiles(repoPath, files, rules) {
   return limitedFindings(findings);
 }
 
-async function scanHistory(repoPath, rules) {
+async function scanHistory(scope, rules) {
   const findings = [];
-  const commits = await commitList(repoPath);
+  const commits = await commitList(scope);
   const seen = new Set();
   for (const rule of rules) {
     let count = 0;
     for (const commitChunk of chunks(commits, 100)) {
-      const output = await gitAllowNoMatches(repoPath, [
+      const output = await gitAllowNoMatches(scope.gitRoot, [
         'grep',
         '-n',
         '-I',
@@ -249,6 +270,7 @@ async function scanHistory(repoPath, rules) {
         rule.grep ?? rule.regex.source,
         ...commitChunk,
         '--',
+        ...scope.pathspec,
       ]);
       if (!output) continue;
       for (const line of output.split('\n')) {
@@ -285,20 +307,20 @@ function pathFindings(paths) {
 }
 
 async function auditRepo(repoPath, { includeHistory = true } = {}) {
-  const resolvedRepo = path.resolve(repoPath);
-  if (!await isGitRepo(resolvedRepo)) {
-    return { repoPath: resolvedRepo, okToPublic: false, status: 'not-git-repo' };
+  const scope = await resolveAuditScope(repoPath);
+  if (!scope) {
+    return { repoPath: path.resolve(repoPath), okToPublic: false, status: 'not-git-repo' };
   }
 
-  const statusOutput = await git(resolvedRepo, ['status', '--porcelain']);
-  const files = await trackedFiles(resolvedRepo);
+  const statusOutput = await git(scope.gitRoot, scopedGitArgs(['status', '--porcelain'], scope));
+  const files = await trackedFiles(scope);
   const currentBlockedPaths = pathFindings(files);
-  const currentSecretFindings = await scanCurrentFiles(resolvedRepo, files, SECRET_RULES);
-  const currentReviewFindings = await scanCurrentFiles(resolvedRepo, files, REVIEW_RULES);
+  const currentSecretFindings = await scanCurrentFiles(scope.gitRoot, files, SECRET_RULES);
+  const currentReviewFindings = await scanCurrentFiles(scope.gitRoot, files, REVIEW_RULES);
 
-  const historyBlockedPaths = includeHistory ? pathFindings(await historyObjectPaths(resolvedRepo)) : [];
-  const historySecretFindings = includeHistory ? await scanHistory(resolvedRepo, SECRET_RULES) : [];
-  const historyReviewFindings = includeHistory ? await scanHistory(resolvedRepo, REVIEW_RULES) : [];
+  const historyBlockedPaths = includeHistory ? pathFindings(await historyObjectPaths(scope)) : [];
+  const historySecretFindings = includeHistory ? await scanHistory(scope, SECRET_RULES) : [];
+  const historyReviewFindings = includeHistory ? await scanHistory(scope, REVIEW_RULES) : [];
 
   const highRiskCount = currentBlockedPaths.length
     + historyBlockedPaths.length
@@ -307,8 +329,8 @@ async function auditRepo(repoPath, { includeHistory = true } = {}) {
   const clean = !statusOutput.trim();
 
   return {
-    repoPath: resolvedRepo,
-    repo: path.basename(resolvedRepo),
+    repoPath: scope.repoPath,
+    repo: path.basename(scope.repoPath),
     status: clean ? 'clean' : 'dirty',
     dirtyFiles: clean ? [] : statusOutput.split('\n').filter(Boolean),
     okToPublic: clean && highRiskCount === 0,

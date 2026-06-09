@@ -21,6 +21,7 @@ const DEFAULT_CONFIG_API_SERVER_FALLBACK_URL = String(
     ?? (DEFAULT_CONFIG_API_URL === DEFAULT_CONFIG_API_BASE_URL ? DEFAULT_CONFIG_API_RAW_RUNTIME_BASE_URL : ''),
 ).trim();
 const LOCAL_NOTE_FOLDER_NAMES = new Set(['ai_notes', 'findings', 'errors-reports']);
+const SERVER_ONLY_DRAFT_FOLDER_NAMES = new Set(['server']);
 const SITE_CONFIG_CACHE_TTL_MS = 60_000;
 const SITE_CONFIG_CACHE_MAX_SIZE = 200;
 const RUNTIME_BUNDLE_FETCH_ATTEMPTS = 2;
@@ -2189,7 +2190,10 @@ const draftsFolder = resolveDraftsFolder();
 if (draftsFolder) {
   app.use('/drafts', (req, res, next) => {
     const segments = req.path.split('/').filter(Boolean);
-    if (segments.some((segment) => LOCAL_NOTE_FOLDER_NAMES.has(segment)) || req.path.toLowerCase().endsWith('.md')) {
+    if (
+      segments.some((segment) => LOCAL_NOTE_FOLDER_NAMES.has(segment) || SERVER_ONLY_DRAFT_FOLDER_NAMES.has(segment))
+      || req.path.toLowerCase().endsWith('.md')
+    ) {
       res.sendStatus(404);
       return;
     }

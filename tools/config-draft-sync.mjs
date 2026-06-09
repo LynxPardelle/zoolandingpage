@@ -198,6 +198,8 @@ function inferKind(domain, relativePath) {
   if (normalized === `${domain}/components.json`) return 'shared-components';
   if (normalized === `${domain}/variables.json`) return 'shared-variables';
   if (normalized === `${domain}/angora-combos.json`) return 'shared-angora-combos';
+  if (normalized === `${domain}/server/auth-profile-registry.json`) return 'server-auth-profile-registry';
+  if (normalized === `${domain}/server/integrations.json`) return 'server-integrations';
   if (normalized.startsWith(`${domain}/i18n/`) && normalized.endsWith('.json')) return 'shared-i18n';
   if (normalized.endsWith('/page-config.json')) return 'page-config';
   if (normalized.endsWith('/components.json')) return 'page-components';
