@@ -274,6 +274,8 @@ Checks:
 - Verify public auth config contains only safe runtime metadata: `issuer`, `clientId`, `hostedUiDomain`, scopes, callback paths, page IDs, and safe group claim names.
 - Do not put OAuth/JWT tokens, refresh tokens, client secrets, signed URLs, upstream credentials, or server-only authorization policy in draft payloads.
 - Do not put `access` blocks or upstream credential `auth` blocks in `site-config.json.runtime.dataSources` or `site-config.json.runtime.apiActions`; those belong only in `server/integrations.json`.
+- Use generic components plus `eventInstructions: "authAction:login"`, `authAction:signup`, `authAction:forgotPassword`, or `authAction:logout` for draft auth controls. Do not build draft-specific Angular auth components unless the generic component system cannot express the required UI.
+- Treat PKCE state/verifier storage as temporary browser transaction data only. It must not become durable authorization state and must not be copied into notes, draft payloads, or logs.
 - Verify `issuer` and `hostedUiDomain` are absolute HTTPS URLs with no username/password, backslashes, whitespace, or control characters.
 - Verify `redirectPath`, `logoutPath`, `loginPath`, `postLoginPath`, `postLogoutPath`, and `routes[].auth.redirectTo` are same-origin paths that start with `/`.
 - Do not use external URLs, protocol-relative URLs such as `//example.com`, `javascript:`, `data:`, backslashes, whitespace, control characters, or paths that omit the leading `/`.
