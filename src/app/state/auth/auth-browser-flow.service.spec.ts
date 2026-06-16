@@ -140,6 +140,7 @@ describe('AuthBrowserFlowService', () => {
             authProfileId: 'staff',
             state: 'state-123',
             codeVerifier: 'pkce-verifier',
+            redirectUri: `${ window.location.origin }/auth/callback`,
             createdAtEpochMs: Date.now(),
         }));
         oidc.parseCallbackUrl.and.returnValue(callback);
@@ -168,6 +169,24 @@ describe('AuthBrowserFlowService', () => {
         }), jasmine.objectContaining({
             code: 'auth-code',
             codeVerifier: 'pkce-verifier',
+            redirectUri: `${ window.location.origin }/auth/callback`,
+        }));
+    });
+
+    it('preserves shared test preview query params in Cognito redirect URI transactions', async () => {
+        window.history.pushState({}, '', '/acceso?draftDomain=zoositioweb.com.mx&debugWorkspace=false');
+        oidc.buildLoginUrl.and.returnValue('https://zoosite-staff-planned.auth.us-east-1.amazoncognito.com/oauth2/authorize');
+
+        const service = TestBed.inject(AuthBrowserFlowService);
+        const url = await service.createInteractiveUrl('login');
+        const transaction = JSON.parse(sessionStorage.getItem(AUTH_PKCE_STORAGE_KEY) ?? '{}') as { redirectUri?: string };
+
+        expect(url).toBe('https://zoosite-staff-planned.auth.us-east-1.amazoncognito.com/oauth2/authorize');
+        expect(transaction.redirectUri).toBe(`${ window.location.origin }/auth/callback?draftDomain=zoositioweb.com.mx&debugWorkspace=false`);
+        expect(oidc.buildLoginUrl).toHaveBeenCalledOnceWith(jasmine.objectContaining({
+            authProfileId: 'staff',
+        }), jasmine.objectContaining({
+            redirectUri: `${ window.location.origin }/auth/callback?draftDomain=zoositioweb.com.mx&debugWorkspace=false`,
         }));
     });
 
@@ -178,6 +197,7 @@ describe('AuthBrowserFlowService', () => {
             authProfileId: 'staff',
             state: 'expected-state',
             codeVerifier: 'pkce-verifier',
+            redirectUri: `${ window.location.origin }/auth/callback`,
             createdAtEpochMs: Date.now(),
         }));
         oidc.parseCallbackUrl.and.returnValue({

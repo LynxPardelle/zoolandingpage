@@ -5,16 +5,19 @@ export type TAuthLoginUrlOptions = {
     readonly origin: string;
     readonly state: string;
     readonly codeChallenge: string;
+    readonly redirectUri?: string;
 };
 
 export type TAuthLogoutUrlOptions = {
     readonly origin: string;
+    readonly logoutUri?: string;
 };
 
 export type TAuthTokenExchangeOptions = {
     readonly origin: string;
     readonly code: string;
     readonly codeVerifier: string;
+    readonly redirectUri?: string;
     readonly fetchImpl?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 };
 
@@ -65,14 +68,16 @@ export class AuthOidcService {
         const clientId = this.clean(profile.clientId);
         const logoutPath = this.clean(profile.postLogoutPath) || this.clean(profile.logoutPath);
         const origin = this.parseOrigin(options.origin);
+        const logoutUri = this.resolveSameOriginUrl(options.logoutUri, origin)
+            ?? (origin && this.isSafeSameOriginPath(logoutPath) ? new URL(logoutPath, origin.origin).toString() : '');
 
-        if (!hostedUiDomain || !clientId || !this.isSafeSameOriginPath(logoutPath) || !origin) {
+        if (!hostedUiDomain || !clientId || !logoutUri) {
             return null;
         }
 
         const url = new URL('/logout', hostedUiDomain.origin);
         url.searchParams.set('client_id', clientId);
-        url.searchParams.set('logout_uri', new URL(logoutPath, origin.origin).toString());
+        url.searchParams.set('logout_uri', logoutUri);
         return url.toString();
     }
 
@@ -89,11 +94,13 @@ export class AuthOidcService {
         const clientId = this.clean(profile.clientId);
         const redirectPath = this.clean(profile.redirectPath);
         const origin = this.parseOrigin(options.origin);
+        const redirectUri = this.resolveSameOriginUrl(options.redirectUri, origin)
+            ?? (origin && this.isSafeSameOriginPath(redirectPath) ? new URL(redirectPath, origin.origin).toString() : '');
         const code = this.clean(options.code);
         const codeVerifier = this.clean(options.codeVerifier);
         const fetcher = options.fetchImpl ?? (typeof fetch === 'function' ? fetch.bind(globalThis) : null);
 
-        if (!hostedUiDomain || !issuer || !clientId || !this.isSafeSameOriginPath(redirectPath) || !origin || !code || !codeVerifier || !fetcher) {
+        if (!hostedUiDomain || !issuer || !clientId || !redirectUri || !code || !codeVerifier || !fetcher) {
             return null;
         }
 
@@ -101,7 +108,7 @@ export class AuthOidcService {
         body.set('grant_type', 'authorization_code');
         body.set('client_id', clientId);
         body.set('code', code);
-        body.set('redirect_uri', new URL(redirectPath, origin.origin).toString());
+        body.set('redirect_uri', redirectUri);
         body.set('code_verifier', codeVerifier);
 
         const response = await fetcher(new URL('/oauth2/token', hostedUiDomain.origin), {
@@ -151,18 +158,20 @@ export class AuthOidcService {
         const clientId = this.clean(profile.clientId);
         const redirectPath = this.clean(profile.redirectPath);
         const origin = this.parseOrigin(options.origin);
+        const redirectUri = this.resolveSameOriginUrl(options.redirectUri, origin)
+            ?? (origin && this.isSafeSameOriginPath(redirectPath) ? new URL(redirectPath, origin.origin).toString() : '');
         const state = this.clean(options.state);
         const codeChallenge = this.clean(options.codeChallenge);
         const scopes = (profile.scopes ?? []).map((scope) => this.clean(scope)).filter(Boolean);
 
-        if (!hostedUiDomain || !issuer || !clientId || !this.isSafeSameOriginPath(redirectPath) || !origin || !state || !codeChallenge || scopes.length === 0) {
+        if (!hostedUiDomain || !issuer || !clientId || !redirectUri || !state || !codeChallenge || scopes.length === 0) {
             return null;
         }
 
         const url = new URL(endpointPath, hostedUiDomain.origin);
         url.searchParams.set('client_id', clientId);
         url.searchParams.set('response_type', 'code');
-        url.searchParams.set('redirect_uri', new URL(redirectPath, origin.origin).toString());
+        url.searchParams.set('redirect_uri', redirectUri);
         url.searchParams.set('scope', scopes.join(' '));
         url.searchParams.set('state', state);
         url.searchParams.set('code_challenge', codeChallenge);
@@ -214,6 +223,21 @@ export class AuthOidcService {
             const parsed = new URL(cleaned);
             if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return null;
             return parsed;
+        } catch {
+            return null;
+        }
+    }
+
+    private resolveSameOriginUrl(value: unknown, origin: URL | null): string | null {
+        const cleaned = this.clean(value);
+        if (!cleaned || !origin || /[\s\u0000-\u001F\u007F]/.test(cleaned)) return null;
+
+        try {
+            const parsed = new URL(cleaned, origin.origin);
+            return parsed.origin === origin.origin
+                && this.isSafeSameOriginPath(`${ parsed.pathname }${ parsed.search }${ parsed.hash }`)
+                ? parsed.toString()
+                : null;
         } catch {
             return null;
         }
