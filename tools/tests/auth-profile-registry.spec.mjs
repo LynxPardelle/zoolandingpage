@@ -159,6 +159,63 @@ test('validateAuthProfileRegistry accepts stable social provider ids beyond goog
   assert.deepEqual(validateAuthProfileRegistry(customRegistry), { valid: true, errors: [] });
 });
 
+test('validateAuthProfileRegistry validates optional custom auth form policy', () => {
+  const customRegistry = {
+    version: 1,
+    profiles: [
+      {
+        ...registry.profiles[0],
+        customAuth: {
+          signin: {
+            enabled: true,
+          },
+          signup: {
+            enabled: true,
+            setTenantClaim: true,
+            defaultGroups: ['editor'],
+          },
+          passwordRecovery: {
+            enabled: true,
+          },
+        },
+      },
+    ],
+  };
+
+  assert.deepEqual(validateAuthProfileRegistry(customRegistry), { valid: true, errors: [] });
+
+  const bad = {
+    version: 1,
+    profiles: [
+      {
+        ...registry.profiles[0],
+        customAuth: {
+          signin: {
+            enabled: 'yes',
+            clientSecret: 'raw-secret',
+          },
+          signup: {
+            enabled: true,
+            defaultGroups: ['viewer'],
+            password: 'raw-secret',
+          },
+          passwordRecovery: {
+            enabled: 'yes',
+          },
+        },
+      },
+    ],
+  };
+
+  const result = validateAuthProfileRegistry(bad);
+  assert.equal(result.valid, false);
+  assert.match(result.errors.join('\n'), /customAuth\.signin\.enabled/);
+  assert.match(result.errors.join('\n'), /customAuth\.signin\.clientSecret/);
+  assert.match(result.errors.join('\n'), /customAuth\.signup\.defaultGroups/);
+  assert.match(result.errors.join('\n'), /customAuth\.signup\.password/);
+  assert.match(result.errors.join('\n'), /customAuth\.passwordRecovery\.enabled/);
+});
+
 test('buildCognitoProvisioningPlan returns declarative operations without AWS calls or secret values', () => {
   const profile = resolveAuthProfile(registry, 'example.com', 'client-cognito');
   const plan = buildCognitoProvisioningPlan(profile);

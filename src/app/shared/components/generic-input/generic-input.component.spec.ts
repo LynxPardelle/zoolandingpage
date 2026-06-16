@@ -127,6 +127,40 @@ describe('GenericInputComponent', () => {
         ]);
     });
 
+    it('can reveal and mask password inputs when configured', () => {
+        const fixture = TestBed.createComponent(GenericInputComponent);
+
+        fixture.componentRef.setInput('config', {
+            fieldId: 'password',
+            controlType: 'text',
+            inputType: 'password',
+            value: 'StrongPassphrase123!',
+            showPasswordToggle: true,
+            showPasswordLabel: 'Mostrar contraseña',
+            hidePasswordLabel: 'Ocultar contraseña',
+            fieldClasses: 'passwordField',
+            inputClasses: 'passwordInput',
+            passwordToggleClasses: 'passwordToggle',
+        });
+        fixture.detectChanges();
+
+        const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+        const toggle = fixture.nativeElement.querySelector('button.passwordToggle') as HTMLButtonElement;
+        expect(input.type).toBe('password');
+        expect(toggle.getAttribute('aria-label')).toBe('Mostrar contraseña');
+
+        toggle.click();
+        fixture.detectChanges();
+
+        expect(input.type).toBe('text');
+        expect(toggle.getAttribute('aria-label')).toBe('Ocultar contraseña');
+
+        toggle.click();
+        fixture.detectChanges();
+
+        expect(input.type).toBe('password');
+    });
+
     it('can delay and filter autocomplete options by the typed text', () => {
         const fixture = TestBed.createComponent(GenericInputComponent);
 

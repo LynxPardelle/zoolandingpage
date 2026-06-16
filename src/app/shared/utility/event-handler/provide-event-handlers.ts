@@ -8,6 +8,7 @@ import {
     trackNumericSuffixEventHandler,
 } from './handlers/analytics.handlers';
 import { authActionHandler } from './handlers/auth-action.handlers';
+import { authFormActionHandler } from './handlers/auth-form-action.handlers';
 import {
     acceptConsentHandler,
     declineConsentHandler,
@@ -57,6 +58,7 @@ const baseEventHandlerProviders: Provider[] = [
     { provide: EVENT_HANDLERS, multi: true, useFactory: navigateToUrlHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: navigateWithScopeQueryHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: authActionHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: authFormActionHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: setScopeValueHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: resetScopeHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: submitScopeHandler },

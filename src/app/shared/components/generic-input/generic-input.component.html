@@ -134,10 +134,38 @@
     (blur)="onBlur()"
   ></textarea>
   } @default {
+  @if (showPasswordToggle()) {
+  <div [class]="fieldClasses()">
+    <input
+      [id]="fieldId()"
+      [name]="name()"
+      [type]="resolvedInputType()"
+      [value]="currentTextValue()"
+      [disabled]="disabled()"
+      [readOnly]="readOnly()"
+      [placeholder]="placeholder()"
+      [class]="inputClasses()"
+      [attr.aria-label]="ariaLabel() || label()"
+      [attr.list]="visibleAutocompleteOptions().length > 0 ? autocompleteListId() : null"
+      (input)="onTextInput($event)"
+      (blur)="onBlur()"
+    />
+    <generic-button
+      [config]="{
+        type: 'button',
+        classes: passwordToggleClasses(),
+        ariaLabel: passwordToggleLabel(),
+        icon: passwordToggleIcon(),
+        iconClasses: passwordToggleIconClasses()
+      }"
+      (pressed)="togglePasswordVisibility()"
+    ></generic-button>
+  </div>
+  } @else {
   <input
     [id]="fieldId()"
     [name]="name()"
-    [type]="inputType()"
+    [type]="resolvedInputType()"
     [value]="currentTextValue()"
     [disabled]="disabled()"
     [readOnly]="readOnly()"
@@ -148,6 +176,7 @@
     (input)="onTextInput($event)"
     (blur)="onBlur()"
   />
+  }
   @if (visibleAutocompleteOptions().length > 0) {
   <datalist [id]="autocompleteListId()">
     @for (option of visibleAutocompleteOptions(); track option.value + ':' + $index) {
