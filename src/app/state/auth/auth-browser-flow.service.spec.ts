@@ -7,11 +7,16 @@ import { AuthOidcService, type TAuthCallbackResult, type TAuthTokenExchangeResul
 
 const AUTH_PKCE_STORAGE_KEY = 'zlp.auth.pkceTransaction.v1';
 
+const clearPkceCookie = (): void => {
+    document.cookie = `${ AUTH_PKCE_STORAGE_KEY }=; Max-Age=0; Path=/; SameSite=Lax`;
+};
+
 describe('AuthBrowserFlowService', () => {
     let oidc: jasmine.SpyObj<AuthOidcService>;
 
     beforeEach(() => {
         sessionStorage.clear();
+        clearPkceCookie();
         oidc = jasmine.createSpyObj<AuthOidcService>('AuthOidcService', [
             'parseCallbackUrl',
             'exchangeAuthorizationCode',
@@ -114,6 +119,7 @@ describe('AuthBrowserFlowService', () => {
 
     afterEach(() => {
         sessionStorage.clear();
+        clearPkceCookie();
         TestBed.resetTestingModule();
     });
 
@@ -188,6 +194,78 @@ describe('AuthBrowserFlowService', () => {
         }), jasmine.objectContaining({
             redirectUri: `${ window.location.origin }/auth/callback?draftDomain=zoositioweb.com.mx&debugWorkspace=false`,
         }));
+    });
+
+    it('falls back to a short-lived same-site cookie when sessionStorage cannot persist PKCE state', async () => {
+        const expiresAtEpochMs = Date.now() + 3600_000;
+        spyOn(sessionStorage, 'setItem').and.throwError('blocked storage');
+        oidc.buildLoginUrl.and.returnValue('https://zoosite-staff-planned.auth.us-east-1.amazoncognito.com/oauth2/authorize');
+        oidc.parseCallbackUrl.and.returnValue({
+            code: 'auth-code',
+            state: '',
+            error: null,
+            errorDescription: null,
+        });
+        oidc.exchangeAuthorizationCode.and.resolveTo({
+            expiresAtEpochMs,
+            claims: {
+                sub: 'user-123',
+                'cognito:groups': ['zoosite-client'],
+            },
+        });
+
+        const service = TestBed.inject(AuthBrowserFlowService);
+        const url = await service.createInteractiveUrl('login');
+        const cookieValue = document.cookie
+            .split(';')
+            .map((entry) => entry.trim())
+            .find((entry) => entry.startsWith(`${ AUTH_PKCE_STORAGE_KEY }=`))
+            ?.slice(AUTH_PKCE_STORAGE_KEY.length + 1);
+        const transaction = JSON.parse(decodeURIComponent(cookieValue ?? '{}')) as { state?: string };
+        oidc.parseCallbackUrl.and.returnValue({
+            code: 'auth-code',
+            state: transaction.state ?? '',
+            error: null,
+            errorDescription: null,
+        });
+
+        const result = await service.completeCallbackFromUrl(`${ window.location.origin }/auth/callback?code=auth-code&state=${ transaction.state }`);
+
+        expect(url).toBe('https://zoosite-staff-planned.auth.us-east-1.amazoncognito.com/oauth2/authorize');
+        expect(transaction.state).toBeTruthy();
+        expect(result).toEqual({
+            handled: true,
+            redirectTo: '/mi-cuenta',
+            reason: 'authenticated',
+        });
+        expect(document.cookie).not.toContain(AUTH_PKCE_STORAGE_KEY);
+        expect(oidc.exchangeAuthorizationCode).toHaveBeenCalledOnceWith(jasmine.objectContaining({
+            authProfileId: 'staff',
+        }), jasmine.objectContaining({
+            code: 'auth-code',
+            codeVerifier: jasmine.any(String),
+        }));
+    });
+
+    it('redirects failed callbacks to the login path so authorization codes are not left in the URL', async () => {
+        oidc.parseCallbackUrl.and.returnValue({
+            code: 'auth-code',
+            state: 'state-123',
+            error: null,
+            errorDescription: null,
+        });
+
+        const service = TestBed.inject(AuthBrowserFlowService);
+        const auth = TestBed.inject(AuthFacade);
+        const result = await service.completeCallbackFromUrl(`${ window.location.origin }/auth/callback?code=auth-code&state=state-123`);
+
+        expect(result).toEqual({
+            handled: true,
+            redirectTo: '/acceso',
+            reason: 'missing-transaction',
+        });
+        expect(auth.isAuthenticated()).toBeFalse();
+        expect(oidc.exchangeAuthorizationCode).not.toHaveBeenCalled();
     });
 
     it('fails closed when callback state does not match the PKCE transaction', async () => {
