@@ -85,7 +85,12 @@ export class AuthBrowserFlowService {
             return null;
         }
 
-        this.writeTransaction(transaction);
+        if (!this.writeTransaction(transaction)) {
+            this.clearTransaction();
+            this.auth.fail('auth-transaction-unavailable');
+            return null;
+        }
+
         this.auth.requestSignIn(profile.provider);
         return url;
     }
@@ -137,7 +142,7 @@ export class AuthBrowserFlowService {
         if (callback.error) {
             this.clearTransaction();
             this.auth.fail('auth-provider-error');
-            return this.result(true, null, 'provider-error');
+            return this.callbackFailureResult(profile, 'provider-error');
         }
 
         if (!callback.code || !callback.state) {
@@ -147,29 +152,28 @@ export class AuthBrowserFlowService {
         const transaction = this.readTransaction();
         if (!transaction) {
             this.auth.fail('auth-transaction-missing');
-            return this.result(true, null, 'missing-transaction');
+            return this.callbackFailureResult(profile, 'missing-transaction');
         }
 
         if (Date.now() - transaction.createdAtEpochMs > PKCE_TRANSACTION_TTL_MS) {
             this.clearTransaction();
             this.auth.fail('auth-transaction-expired');
-            return this.result(true, null, 'stale-transaction');
+            return this.callbackFailureResult(profile, 'stale-transaction');
         }
 
         if (transaction.state !== callback.state) {
             this.clearTransaction();
             this.auth.fail('auth-state-mismatch');
-            return this.result(true, null, 'state-mismatch');
+            return this.callbackFailureResult(profile, 'state-mismatch');
         }
 
         if (transaction.authProfileId !== profile.authProfileId) {
             this.clearTransaction();
             this.auth.fail('auth-profile-mismatch');
-            return this.result(true, null, 'profile-mismatch');
+            return this.callbackFailureResult(profile, 'profile-mismatch');
         }
 
-        const exchange = await this.oidc.exchangeAuthorizationCode(profile, {
-            origin: this.currentOrigin() ?? '',
+        const exchange = await this.exchangeAuthorizationCode(profile, {
             code: callback.code,
             codeVerifier: transaction.codeVerifier,
             redirectUri: transaction.redirectUri,
@@ -177,14 +181,14 @@ export class AuthBrowserFlowService {
         if (!exchange) {
             this.clearTransaction();
             this.auth.fail('auth-token-exchange-failed');
-            return this.result(true, null, 'token-exchange-failed');
+            return this.callbackFailureResult(profile, 'token-exchange-failed');
         }
 
         const session = this.toPublicSession(profile, exchange);
         if (!session) {
             this.clearTransaction();
             this.auth.fail('auth-session-invalid');
-            return this.result(true, null, 'invalid-session');
+            return this.callbackFailureResult(profile, 'invalid-session');
         }
 
         this.clearTransaction();
@@ -259,65 +263,63 @@ export class AuthBrowserFlowService {
         return typeof crypto !== 'undefined' ? crypto : null;
     }
 
-    private writeTransaction(transaction: TAuthPkceTransaction): void {
-        if (typeof sessionStorage === 'undefined') {
-            return;
+    private async exchangeAuthorizationCode(
+        profile: TDraftAuthRuntimeConfig,
+        options: Pick<Parameters<AuthOidcService['exchangeAuthorizationCode']>[1], 'code' | 'codeVerifier' | 'redirectUri'>,
+    ): Promise<TAuthTokenExchangeResult | null> {
+        try {
+            return await this.oidc.exchangeAuthorizationCode(profile, {
+                origin: this.currentOrigin() ?? '',
+                ...options,
+            });
+        } catch {
+            return null;
         }
+    }
+
+    private writeTransaction(transaction: TAuthPkceTransaction): boolean {
+        const payload = JSON.stringify(transaction);
 
         try {
-            sessionStorage.setItem(AUTH_PKCE_STORAGE_KEY, JSON.stringify(transaction));
+            if (typeof sessionStorage !== 'undefined') {
+                sessionStorage.setItem(AUTH_PKCE_STORAGE_KEY, payload);
+                if (sessionStorage.getItem(AUTH_PKCE_STORAGE_KEY) === payload) {
+                    this.clearTransactionCookie();
+                    return true;
+                }
+            }
         } catch {
             // Storage can be unavailable in private browsing or embedded contexts.
         }
+
+        return this.writeTransactionCookie(payload);
     }
 
     private readTransaction(): TAuthPkceTransaction | null {
-        if (typeof sessionStorage === 'undefined') {
-            return null;
-        }
-
         try {
-            const raw = sessionStorage.getItem(AUTH_PKCE_STORAGE_KEY);
-            if (!raw) return null;
-
-            const parsed = JSON.parse(raw) as Partial<TAuthPkceTransaction>;
-            const action = this.clean(parsed.action);
-            if (
-                parsed.version !== 1
-                || !this.isInteractiveAction(action)
-                || !this.clean(parsed.authProfileId)
-                || !this.clean(parsed.state)
-                || !this.clean(parsed.codeVerifier)
-                || !this.clean(parsed.redirectUri)
-                || !Number.isFinite(Number(parsed.createdAtEpochMs))
-            ) {
-                return null;
+            if (typeof sessionStorage !== 'undefined') {
+                const parsed = this.parseTransaction(sessionStorage.getItem(AUTH_PKCE_STORAGE_KEY));
+                if (parsed) {
+                    return parsed;
+                }
             }
-
-            return {
-                version: 1,
-                action,
-                authProfileId: this.clean(parsed.authProfileId),
-                state: this.clean(parsed.state),
-                codeVerifier: this.clean(parsed.codeVerifier),
-                redirectUri: this.clean(parsed.redirectUri),
-                createdAtEpochMs: Number(parsed.createdAtEpochMs),
-            };
-        } catch {
-            return null;
-        }
-    }
-
-    private clearTransaction(): void {
-        if (typeof sessionStorage === 'undefined') {
-            return;
-        }
-
-        try {
-            sessionStorage.removeItem(AUTH_PKCE_STORAGE_KEY);
         } catch {
             // Storage can be unavailable in private browsing or embedded contexts.
         }
+
+        return this.readTransactionCookie();
+    }
+
+    private clearTransaction(): void {
+        try {
+            if (typeof sessionStorage !== 'undefined') {
+                sessionStorage.removeItem(AUTH_PKCE_STORAGE_KEY);
+            }
+        } catch {
+            // Storage can be unavailable in private browsing or embedded contexts.
+        }
+
+        this.clearTransactionCookie();
     }
 
     private toPublicSession(
@@ -449,6 +451,99 @@ export class AuthBrowserFlowService {
 
     private isInteractiveAction(value: string): value is TAuthInteractiveAction {
         return value === 'login' || value === 'signup' || value === 'forgotPassword';
+    }
+
+    private callbackFailureResult(
+        profile: TDraftAuthRuntimeConfig,
+        reason: TAuthCallbackHandlingResult['reason'],
+    ): TAuthCallbackHandlingResult {
+        return this.result(true, this.safeSameOriginPath(profile.loginPath), reason);
+    }
+
+    private parseTransaction(raw: string | null | undefined): TAuthPkceTransaction | null {
+        if (!raw) return null;
+
+        try {
+            const parsed = JSON.parse(raw) as Partial<TAuthPkceTransaction>;
+            const action = this.clean(parsed.action);
+            if (
+                parsed.version !== 1
+                || !this.isInteractiveAction(action)
+                || !this.clean(parsed.authProfileId)
+                || !this.clean(parsed.state)
+                || !this.clean(parsed.codeVerifier)
+                || !this.clean(parsed.redirectUri)
+                || !Number.isFinite(Number(parsed.createdAtEpochMs))
+            ) {
+                return null;
+            }
+
+            return {
+                version: 1,
+                action,
+                authProfileId: this.clean(parsed.authProfileId),
+                state: this.clean(parsed.state),
+                codeVerifier: this.clean(parsed.codeVerifier),
+                redirectUri: this.clean(parsed.redirectUri),
+                createdAtEpochMs: Number(parsed.createdAtEpochMs),
+            };
+        } catch {
+            return null;
+        }
+    }
+
+    private writeTransactionCookie(payload: string): boolean {
+        if (typeof document === 'undefined') {
+            return false;
+        }
+
+        try {
+            const encodedPayload = encodeURIComponent(payload);
+            document.cookie = `${ AUTH_PKCE_STORAGE_KEY }=${ encodedPayload }; Max-Age=${ Math.floor(PKCE_TRANSACTION_TTL_MS / 1000) }; Path=/; SameSite=Lax${ this.secureCookieSuffix() }`;
+            return this.readCookie(AUTH_PKCE_STORAGE_KEY) === encodedPayload;
+        } catch {
+            return false;
+        }
+    }
+
+    private readTransactionCookie(): TAuthPkceTransaction | null {
+        try {
+            const raw = this.readCookie(AUTH_PKCE_STORAGE_KEY);
+            return raw ? this.parseTransaction(decodeURIComponent(raw)) : null;
+        } catch {
+            return null;
+        }
+    }
+
+    private clearTransactionCookie(): void {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        try {
+            document.cookie = `${ AUTH_PKCE_STORAGE_KEY }=; Max-Age=0; Path=/; SameSite=Lax${ this.secureCookieSuffix() }`;
+        } catch {
+            // Cookie storage can be unavailable in locked-down contexts.
+        }
+    }
+
+    private readCookie(name: string): string {
+        if (typeof document === 'undefined' || !document.cookie) {
+            return '';
+        }
+
+        const prefix = `${ name }=`;
+        const cookie = document.cookie
+            .split(';')
+            .map((entry) => entry.trim())
+            .find((entry) => entry.startsWith(prefix));
+        return cookie ? cookie.slice(prefix.length) : '';
+    }
+
+    private secureCookieSuffix(): string {
+        return typeof window !== 'undefined' && window.location?.protocol === 'https:'
+            ? '; Secure'
+            : '';
     }
 
     private result(
