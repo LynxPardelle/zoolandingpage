@@ -13,6 +13,7 @@ const AUTH_FORM_ACTIONS = new Set<TAuthCustomFormAction>([
     'resendConfirmation',
     'forgotPassword',
     'confirmForgotPassword',
+    'logout',
 ]);
 
 const normalizeAction = (value: unknown): TAuthCustomFormAction | null => {
@@ -51,6 +52,17 @@ export const authFormActionHandler = (): EventHandler => {
             if (!action) return;
 
             const statusTarget = String(args?.[1] || `authForm.${ action }`).trim();
+            if (action === 'logout') {
+                writeStatus(variables, statusTarget, 'loading', null);
+                try {
+                    const response = await authForms.submit(action, {});
+                    writeStatus(variables, statusTarget, 'success', null, response);
+                } catch (error) {
+                    writeStatus(variables, statusTarget, 'error', errorMessage(error));
+                }
+                return;
+            }
+
             const host = findInteractionScopeHost(ctx.host);
             if (!host) {
                 writeStatus(variables, statusTarget, 'error', 'Auth form scope is unavailable.');

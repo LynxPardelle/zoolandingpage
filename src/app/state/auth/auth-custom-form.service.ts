@@ -18,7 +18,10 @@ export type TAuthCustomFormAction =
     | 'confirmSignup'
     | 'resendConfirmation'
     | 'forgotPassword'
-    | 'confirmForgotPassword';
+    | 'confirmForgotPassword'
+    | 'logout';
+
+type TAuthCustomFormNetworkAction = Exclude<TAuthCustomFormAction, 'logout'>;
 
 export type TAuthCustomFormResponse = {
     readonly ok: boolean;
@@ -40,6 +43,12 @@ export class AuthCustomFormService {
         action: TAuthCustomFormAction,
         values: Readonly<Record<string, unknown>>,
     ): Promise<TAuthCustomFormResponse> {
+        if (action === 'logout') {
+            this.auth.requestSignOut();
+            this.navigateAfterLogout();
+            return { ok: true, status: 'signed-out' };
+        }
+
         const domain = this.clean(this.configStore.siteConfig()?.domain);
         const authProfileId = this.clean(this.runtimeConfig.auth()?.authProfileId);
         if (!domain || !authProfileId) {
@@ -119,7 +128,7 @@ export class AuthCustomFormService {
     }
 
     private async postAuth(
-        action: TAuthCustomFormAction,
+        action: TAuthCustomFormNetworkAction,
         payload: Record<string, unknown>,
     ): Promise<TAuthCustomFormResponse> {
         const response = await fetch(this.buildUrl(this.pathForAction(action)), {
@@ -137,8 +146,8 @@ export class AuthCustomFormService {
         return body;
     }
 
-    private pathForAction(action: TAuthCustomFormAction): string {
-        const paths: Record<TAuthCustomFormAction, string> = {
+    private pathForAction(action: TAuthCustomFormNetworkAction): string {
+        const paths: Record<TAuthCustomFormNetworkAction, string> = {
             signin: '/auth/signin',
             signup: '/auth/signup',
             confirmSignup: '/auth/confirm-signup',
@@ -227,10 +236,25 @@ export class AuthCustomFormService {
         });
     }
 
+    private navigateAfterLogout(): void {
+        const path = this.resolvePostLogoutPath(this.runtimeConfig.auth());
+        if (!path) return;
+        navigateInCurrentWindow(this.withStickyQueryParams(path), {
+            scrollRestoration: { mode: 'top' },
+        });
+    }
+
     private resolvePostLoginPath(profile: TDraftAuthRuntimeConfig | null): string {
         return this.safeSameOriginPath(profile?.postLoginPath)
             || this.routePathByPageId(profile?.accountPageId)
             || this.firstProtectedRouteForLogin(profile?.loginPath)
+            || '/';
+    }
+
+    private resolvePostLogoutPath(profile: TDraftAuthRuntimeConfig | null): string {
+        return this.safeSameOriginPath(profile?.postLogoutPath)
+            || this.safeSameOriginPath(profile?.logoutPath)
+            || this.safeSameOriginPath(profile?.loginPath)
             || '/';
     }
 

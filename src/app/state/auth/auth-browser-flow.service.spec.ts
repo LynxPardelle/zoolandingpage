@@ -213,6 +213,23 @@ describe('AuthBrowserFlowService', () => {
         }));
     });
 
+    it('omits the active draft language from Cognito logout URLs to keep allowlists stable', () => {
+        window.history.pushState({}, '', '/mi-cuenta?draftDomain=zoositioweb.com.mx&debugWorkspace=false&lang=es');
+        oidc.buildLogoutUrl.and.returnValue('https://zoosite-staff-planned.auth.us-east-1.amazoncognito.com/logout');
+
+        const service = TestBed.inject(AuthBrowserFlowService);
+        const url = service.createLogoutUrl();
+
+        expect(url).toBe('https://zoosite-staff-planned.auth.us-east-1.amazoncognito.com/logout');
+        expect(oidc.buildLogoutUrl).toHaveBeenCalledOnceWith(jasmine.objectContaining({
+            authProfileId: 'staff',
+        }), jasmine.objectContaining({
+            logoutUri: `${ window.location.origin }/acceso?draftDomain=zoositioweb.com.mx&debugWorkspace=false`,
+        }));
+        const options = oidc.buildLogoutUrl.calls.mostRecent().args[1] as { readonly logoutUri?: string };
+        expect(options.logoutUri).not.toContain('lang=');
+    });
+
     it('falls back to a short-lived same-site cookie when sessionStorage cannot persist PKCE state', async () => {
         const expiresAtEpochMs = Date.now() + 3600_000;
         spyOn(sessionStorage, 'setItem').and.throwError('blocked storage');

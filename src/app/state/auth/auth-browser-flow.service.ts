@@ -114,7 +114,9 @@ export class AuthBrowserFlowService {
 
         return this.oidc.buildLogoutUrl(profile, {
             origin,
-            logoutUri: this.resolveCurrentSameOriginUrl(this.resolvePostLogoutPath(profile)),
+            logoutUri: this.resolveCurrentSameOriginUrl(this.resolvePostLogoutPath(profile), {
+                includeLanguage: false,
+            }),
         })
             ?? this.resolvePostLogoutPath(profile);
     }
@@ -416,7 +418,10 @@ export class AuthBrowserFlowService {
         return window.location.origin;
     }
 
-    private resolveCurrentSameOriginUrl(path: unknown): string {
+    private resolveCurrentSameOriginUrl(
+        path: unknown,
+        options: { readonly includeLanguage?: boolean } = {},
+    ): string {
         const origin = this.currentOrigin();
         const safePath = this.safeSameOriginPath(path);
         if (!origin || !safePath || typeof window === 'undefined') {
@@ -427,6 +432,9 @@ export class AuthBrowserFlowService {
             const url = new URL(safePath, origin);
             const currentUrl = new URL(window.location.href);
             DRAFT_RUNTIME_STICKY_QUERY_PARAMS.forEach((key) => {
+                if (key === 'lang' && options.includeLanguage === false) {
+                    return;
+                }
                 if (!url.searchParams.has(key) && currentUrl.searchParams.has(key)) {
                     url.searchParams.set(key, currentUrl.searchParams.get(key) ?? '');
                 }

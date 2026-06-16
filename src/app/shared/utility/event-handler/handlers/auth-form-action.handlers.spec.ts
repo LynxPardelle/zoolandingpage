@@ -96,4 +96,21 @@ describe('authFormActionHandler', () => {
         }));
         expect(variables.get('authForm.signin.state')).toBe('success');
     });
+
+    it('supports custom logout without requiring an interaction scope', async () => {
+        authForms.submit.and.resolveTo({ ok: true, status: 'signed-out' });
+
+        const handler = TestBed.runInInjectionContext(() => authFormActionHandler());
+        await handler.handle({
+            event: {
+                componentId: 'logoutButton',
+                eventName: 'click',
+            },
+            host: null as any,
+        }, ['logout', 'authForm.logout']);
+
+        expect(authForms.submit).toHaveBeenCalledOnceWith('logout' as any, {});
+        expect(variables.get('authForm.logout.state')).toBe('success');
+        expect(variables.get('authForm.logout.data')).toEqual({ ok: true, status: 'signed-out' });
+    });
 });
