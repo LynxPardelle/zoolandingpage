@@ -587,6 +587,59 @@ test('production SSR server redirects protected draft preview routes to same-ori
   assert.equal(getStderr(), '');
 });
 
+test('production SSR server preserves local port in protected-route redirects', async (t) => {
+  const apiBase = await startRuntimeApi(t, (req, res) => {
+    const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+    if (url.pathname !== '/runtime-bundle') {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false }));
+      return;
+    }
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      siteConfig: {
+        domain: 'auth-preview.example.com',
+        routes: [
+          { path: '/', pageId: 'home' },
+          { path: '/acceso', pageId: 'login' },
+          {
+            path: '/mi-cuenta',
+            pageId: 'account',
+            auth: {
+              required: true,
+              redirectTo: '/acceso',
+              allowedGroups: ['client'],
+            },
+          },
+        ],
+        site: {
+          seo: {
+            canonicalOrigin: 'https://auth-preview.example.com',
+          },
+        },
+      },
+      pageConfig: {
+        pageId: 'home',
+      },
+    }));
+  });
+  const { port, getStderr } = await startProductionServer(t, {
+    CONFIG_API_SERVER_FALLBACK_URL: '',
+    CONFIG_API_URL: apiBase,
+  });
+  const response = await fetch(`http://127.0.0.1:${port}/mi-cuenta?draftDomain=auth-preview.example.com&lang=es`, {
+    redirect: 'manual',
+  });
+
+  assert.equal(response.status, 302);
+  assert.equal(
+    response.headers.get('location'),
+    `http://127.0.0.1:${port}/acceso?draftDomain=auth-preview.example.com&lang=es`,
+  );
+  assert.equal(getStderr(), '');
+});
+
 test('production SSR server ignores draftDomain query params on published custom hosts', async (t) => {
   const { port, getStderr } = await startProductionServer(t);
   const response = await fetch(`http://127.0.0.1:${port}/?draftDomain=zoolandingpage.com.mx&debugWorkspace=false`, {

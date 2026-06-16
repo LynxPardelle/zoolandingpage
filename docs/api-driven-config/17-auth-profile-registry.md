@@ -58,6 +58,19 @@ Alternatively, a draft may declare a minimal remote auth reference instead of fu
 
 Public payloads must not include OAuth tokens, refresh tokens, Cognito client secrets, upstream credentials, signed URLs, ownership policy, IAM policy, raw environment values, or social IdP credentials.
 
+## Generic Draft Auth Actions
+
+Draft pages should use normal generic components and the `authAction` event handler for user-facing auth controls:
+
+- `authAction:login` starts Cognito Managed Login through the configured public auth profile.
+- `authAction:signup` opens the Cognito `/signup` managed page with the same authorize parameters.
+- `authAction:forgotPassword` opens the Cognito `/forgotPassword` managed page with the same authorize parameters.
+- `authAction:logout` clears local public session metadata and redirects through Cognito `/logout` when the Hosted UI profile is available.
+
+The app generates OAuth state and PKCE verifier/challenge values in the browser for interactive Cognito redirects. The verifier/state transaction is temporary `sessionStorage` data and must be cleared after callback handling, logout, expiry, or error. The app must not persist OAuth/JWT token strings, refresh tokens, or client secrets in signal state, draft payloads, notes, or browser storage.
+
+The `/auth/callback` route is still a draft-rendered page. Angular processes the callback only after `runtime.auth` has been resolved, exchanges the authorization code with Cognito using PKCE, validates public ID-token claims for UX session metadata, and redirects to `postLoginPath`, an account route, or the first matching protected route. This client-side session can unlock draft UI only; protected APIs must verify JWT signatures, issuer/audience, tenant, and groups server-side.
+
 For SSR, published `GET` and `HEAD` requests to `routes[].auth.required = true` routes are redirected before Angular renders the protected page shell. The server uses `routes[].auth.redirectTo` first, then `runtime.auth.loginPath`, requires the target to be a safe same-origin path, and preserves only `draftDomain`, `debugWorkspace`, and `lang` so shared test previews keep their context without carrying ad or sensitive query params into login routes.
 
 ## Server-Only Profile Shape
