@@ -6,6 +6,10 @@ const SAFE_DOMAIN = /^(?!-)(?:[a-z0-9-]{1,63}\.)+[a-z]{2,63}$/;
 const SECRET_REF = /^(\/[^\s\\]+|[^/\s\\]+\/[^\s\\]+|arn:aws:(ssm|secretsmanager):[^\s\\]+)$/;
 const DEFAULT_GROUPS_CLAIM = 'cognito:groups';
 const DEFAULT_SCOPES = ['openid', 'email', 'profile'];
+const CUSTOM_AUTH_KEYS = new Set(['signin', 'signup', 'passwordRecovery']);
+const CUSTOM_SIGNIN_KEYS = new Set(['enabled']);
+const CUSTOM_SIGNUP_KEYS = new Set(['enabled', 'setTenantClaim', 'defaultGroups']);
+const CUSTOM_PASSWORD_RECOVERY_KEYS = new Set(['enabled']);
 
 function cleanString(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -107,6 +111,68 @@ function validateSocialIdpSecretRefs(refs, index, errors) {
   }
 }
 
+function validateKnownKeys(value, allowedKeys, prefix, errors) {
+  for (const key of Object.keys(value)) {
+    if (!allowedKeys.has(key)) {
+      errors.push(`${prefix}.${key} is not supported`);
+    }
+  }
+}
+
+function validateCustomAuth(customAuth, profile, index, errors) {
+  const prefix = `profiles[${index}].customAuth`;
+  if (customAuth === undefined) return;
+  if (!customAuth || typeof customAuth !== 'object' || Array.isArray(customAuth)) {
+    errors.push(`${prefix} must be an object when present`);
+    return;
+  }
+
+  validateKnownKeys(customAuth, CUSTOM_AUTH_KEYS, prefix, errors);
+
+  const signin = customAuth.signin;
+  if (signin !== undefined) {
+    const signinPrefix = `${prefix}.signin`;
+    if (!signin || typeof signin !== 'object' || Array.isArray(signin)) {
+      errors.push(`${signinPrefix} must be an object when present`);
+    } else {
+      validateKnownKeys(signin, CUSTOM_SIGNIN_KEYS, signinPrefix, errors);
+      pushIf(signin.enabled !== undefined && typeof signin.enabled !== 'boolean', errors, `${signinPrefix}.enabled must be boolean when present`);
+    }
+  }
+
+  const signup = customAuth.signup;
+  if (signup !== undefined) {
+    const signupPrefix = `${prefix}.signup`;
+    if (!signup || typeof signup !== 'object' || Array.isArray(signup)) {
+      errors.push(`${signupPrefix} must be an object when present`);
+    } else {
+      validateKnownKeys(signup, CUSTOM_SIGNUP_KEYS, signupPrefix, errors);
+      pushIf(signup.enabled !== undefined && typeof signup.enabled !== 'boolean', errors, `${signupPrefix}.enabled must be boolean when present`);
+      pushIf(signup.setTenantClaim !== undefined && typeof signup.setTenantClaim !== 'boolean', errors, `${signupPrefix}.setTenantClaim must be boolean when present`);
+      if (signup.defaultGroups !== undefined) {
+        if (!isNonEmptyStringArray(signup.defaultGroups)) {
+          errors.push(`${signupPrefix}.defaultGroups must be a string array when present`);
+        } else {
+          const allowedGroups = new Set(Array.isArray(profile.allowedGroups) ? profile.allowedGroups : []);
+          const unknownGroups = signup.defaultGroups.filter(group => !allowedGroups.has(group));
+          pushIf(unknownGroups.length > 0, errors, `${signupPrefix}.defaultGroups must be contained in allowedGroups`);
+        }
+      }
+    }
+  }
+
+  const passwordRecovery = customAuth.passwordRecovery;
+  if (passwordRecovery !== undefined) {
+    const recoveryPrefix = `${prefix}.passwordRecovery`;
+    if (!passwordRecovery || typeof passwordRecovery !== 'object' || Array.isArray(passwordRecovery)) {
+      errors.push(`${recoveryPrefix} must be an object when present`);
+    } else {
+      validateKnownKeys(passwordRecovery, CUSTOM_PASSWORD_RECOVERY_KEYS, recoveryPrefix, errors);
+      pushIf(passwordRecovery.enabled !== undefined && typeof passwordRecovery.enabled !== 'boolean', errors, `${recoveryPrefix}.enabled must be boolean when present`);
+    }
+  }
+}
+
 function validateProfile(profile, index, seen, errors) {
   const prefix = `profiles[${index}]`;
   if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
@@ -144,6 +210,7 @@ function validateProfile(profile, index, seen, errors) {
   }
 
   validateSocialIdpSecretRefs(profile.socialIdpSecretRefs, index, errors);
+  validateCustomAuth(profile.customAuth, profile, index, errors);
 }
 
 export function validateAuthProfileRegistry(registry) {

@@ -1,4 +1,5 @@
 import { ConfigStoreService } from '@/app/shared/services/config-store.service';
+import { LanguageService } from '@/app/shared/services/language.service';
 import { PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { AuthBrowserFlowService } from './auth-browser-flow.service';
@@ -30,6 +31,7 @@ describe('AuthBrowserFlowService', () => {
             providers: [
                 { provide: PLATFORM_ID, useValue: 'browser' },
                 { provide: AuthOidcService, useValue: oidc },
+                { provide: LanguageService, useValue: { currentLanguage: () => 'es' } },
             ],
         });
 
@@ -193,6 +195,21 @@ describe('AuthBrowserFlowService', () => {
             authProfileId: 'staff',
         }), jasmine.objectContaining({
             redirectUri: `${ window.location.origin }/auth/callback?draftDomain=zoositioweb.com.mx&debugWorkspace=false`,
+            language: 'es',
+        }));
+    });
+
+    it('passes the active draft language to Cognito signup URLs', async () => {
+        oidc.buildSignupUrl.and.returnValue('https://zoosite-staff-planned.auth.us-east-1.amazoncognito.com/signup');
+
+        const service = TestBed.inject(AuthBrowserFlowService);
+        const url = await service.createInteractiveUrl('signup');
+
+        expect(url).toBe('https://zoosite-staff-planned.auth.us-east-1.amazoncognito.com/signup');
+        expect(oidc.buildSignupUrl).toHaveBeenCalledOnceWith(jasmine.objectContaining({
+            authProfileId: 'staff',
+        }), jasmine.objectContaining({
+            language: 'es',
         }));
     });
 

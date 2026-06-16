@@ -26,6 +26,21 @@ test('auth profile registry schema documents server-only draft auth fields', asy
   assert.equal(profile.properties.socialIdpSecretRefs.additionalProperties.anyOf.length, 2);
 });
 
+test('auth profile registry schema documents optional custom auth form policies', async () => {
+  const schema = JSON.parse(await readFile(authRegistrySchemaPath, 'utf8'));
+  const profile = schema.definitions?.authProfile;
+  const customAuth = schema.definitions?.customAuth;
+
+  assert.equal(profile.properties.customAuth.$ref, '#/definitions/customAuth');
+  assert.equal(customAuth.properties.signin.$ref, '#/definitions/customSigninPolicy');
+  assert.equal(customAuth.properties.signup.$ref, '#/definitions/customSignupPolicy');
+  assert.equal(customAuth.properties.passwordRecovery.$ref, '#/definitions/customPasswordRecoveryPolicy');
+  assert.equal(schema.definitions.customSigninPolicy.properties.enabled.type, 'boolean');
+  assert.deepEqual(schema.definitions.customSignupPolicy.properties.defaultGroups.items, { type: 'string', minLength: 1 });
+  assert.equal(schema.definitions.customSignupPolicy.properties.setTenantClaim.type, 'boolean');
+  assert.equal(schema.definitions.customPasswordRecoveryPolicy.properties.enabled.type, 'boolean');
+});
+
 test('integrations schema keeps user access separate from upstream auth credentials', async () => {
   const schema = JSON.parse(await readFile(integrationsSchemaPath, 'utf8'));
   const access = schema.definitions?.accessPolicy;

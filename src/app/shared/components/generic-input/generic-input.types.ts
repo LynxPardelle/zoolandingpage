@@ -76,6 +76,13 @@ export type TGenericInputConfig = {
     readonly valuePrefix?: TDynamicStringValue;
     readonly valueSuffix?: TDynamicStringValue;
     readonly showRangeValue?: TDynamicBooleanValue;
+    readonly showPasswordToggle?: TDynamicBooleanValue;
+    readonly showPasswordLabel?: TDynamicStringValue;
+    readonly hidePasswordLabel?: TDynamicStringValue;
+    readonly passwordToggleClasses?: TDynamicStringValue;
+    readonly passwordToggleIconClasses?: TDynamicStringValue;
+    readonly passwordToggleShowIcon?: TDynamicStringValue;
+    readonly passwordToggleHideIcon?: TDynamicStringValue;
     readonly options?: TDynamicValue<TGenericInputOptionsValue>;
     readonly autocompleteOptions?: TDynamicValue<TGenericInputOptionsValue>;
     readonly autocompleteMinLength?: TDynamicNumberValue;

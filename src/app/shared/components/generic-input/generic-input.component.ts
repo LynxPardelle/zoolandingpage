@@ -6,6 +6,7 @@ import {
   inject,
   input,
   output,
+  signal,
   untracked,
 } from '@angular/core';
 import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
@@ -96,6 +97,12 @@ export class GenericInputComponent {
   readonly inputClasses = computed(() =>
     this.asString(this.config().inputClasses)
   );
+  readonly passwordToggleClasses = computed(() =>
+    this.asString(this.config().passwordToggleClasses)
+  );
+  readonly passwordToggleIconClasses = computed(() =>
+    this.asString(this.config().passwordToggleIconClasses)
+  );
   readonly switchTrackClasses = computed(() =>
     this.asString(this.config().switchTrackClasses)
   );
@@ -138,6 +145,30 @@ export class GenericInputComponent {
   readonly showRangeValue = computed(() =>
     Boolean(this.resolveValue(this.config().showRangeValue) ?? false)
   );
+  readonly showPasswordToggle = computed(
+    () =>
+      this.inputType() === 'password' &&
+      Boolean(this.resolveValue(this.config().showPasswordToggle) ?? false)
+  );
+  readonly passwordVisible = signal(false);
+  readonly resolvedInputType = computed(() =>
+    this.showPasswordToggle() && this.passwordVisible() ? 'text' : this.inputType()
+  );
+  readonly showPasswordLabel = computed(
+    () => this.asString(this.config().showPasswordLabel) || 'Show password'
+  );
+  readonly hidePasswordLabel = computed(
+    () => this.asString(this.config().hidePasswordLabel) || 'Hide password'
+  );
+  readonly passwordToggleLabel = computed(() =>
+    this.passwordVisible() ? this.hidePasswordLabel() : this.showPasswordLabel()
+  );
+  readonly passwordToggleIcon = computed(() => {
+    const configured = this.passwordVisible()
+      ? this.asString(this.config().passwordToggleHideIcon)
+      : this.asString(this.config().passwordToggleShowIcon);
+    return configured || (this.passwordVisible() ? 'visibility_off' : 'preview');
+  });
   readonly required = computed(() =>
     Boolean(this.resolveValue(this.config().required) ?? false)
   );
@@ -468,6 +499,11 @@ export class GenericInputComponent {
   onButtonGroupSelect(option: TGenericInputOption): void {
     this.updateValue(option.value);
     this.onBlur();
+  }
+
+  togglePasswordVisibility(): void {
+    if (!this.showPasswordToggle()) return;
+    this.passwordVisible.update((visible) => !visible);
   }
 
   optionLabel(option: TGenericInputOption): string {
