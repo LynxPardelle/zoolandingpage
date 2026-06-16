@@ -10,7 +10,7 @@ describe('AuthCustomFormService', () => {
     let auth: jasmine.SpyObj<AuthFacade>;
 
     beforeEach(() => {
-        auth = jasmine.createSpyObj<AuthFacade>('AuthFacade', ['establishSession']);
+        auth = jasmine.createSpyObj<AuthFacade>('AuthFacade', ['establishSession', 'requestSignOut']);
         fetchSpy = spyOn(globalThis, 'fetch').and.callFake(() => Promise.resolve(new Response(JSON.stringify({
             ok: true,
             status: 'confirmation-required',
@@ -142,6 +142,25 @@ describe('AuthCustomFormService', () => {
             expiresAtEpochMs: 1999999999000,
         });
         expect(window.location.pathname).toBe('/mi-cuenta');
+        expect(window.location.search).toContain('draftDomain=zoositioweb.com.mx');
+        expect(window.location.search).toContain('debugWorkspace=false');
+        expect(window.location.search).toContain('lang=es');
+    });
+
+    it('logs out custom sessions locally without calling Cognito Hosted UI endpoints', async () => {
+        window.history.pushState(
+            {},
+            '',
+            '/mi-cuenta?draftDomain=zoositioweb.com.mx&debugWorkspace=false&lang=es',
+        );
+        const service = TestBed.inject(AuthCustomFormService);
+
+        const response = await service.submit('logout' as any, {});
+
+        expect(response).toEqual({ ok: true, status: 'signed-out' });
+        expect(auth.requestSignOut).toHaveBeenCalledTimes(1);
+        expect(fetchSpy).not.toHaveBeenCalled();
+        expect(window.location.pathname).toBe('/acceso');
         expect(window.location.search).toContain('draftDomain=zoositioweb.com.mx');
         expect(window.location.search).toContain('debugWorkspace=false');
         expect(window.location.search).toContain('lang=es');
