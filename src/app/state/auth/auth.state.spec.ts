@@ -6,6 +6,22 @@ import { AuthOidcService } from './auth-oidc.service';
 import { AuthRuntimeService } from './auth-runtime.service';
 import { AuthSessionBrowserStorageService } from './auth-session-browser-storage.service';
 
+const base64UrlJson = (value: unknown): string => {
+    const json = JSON.stringify(value);
+    const bytes = new TextEncoder().encode(json);
+    let binary = '';
+    bytes.forEach((byte) => {
+        binary += String.fromCharCode(byte);
+    });
+    return btoa(binary)
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/g, '');
+};
+
+const fakeJwt = (claims: Readonly<Record<string, unknown>>): string =>
+    `${ base64UrlJson({ alg: 'none', typ: 'JWT' }) }.${ base64UrlJson(claims) }.signature`;
+
 describe('auth signal state', () => {
     afterEach(() => {
         TestBed.resetTestingModule();
@@ -359,6 +375,52 @@ describe('auth signal state', () => {
         });
 
         expect(loginUrl).toBe('https://preview.auth.us-east-1.amazoncognito.com/oauth2/authorize?client_id=public-web-client&response_type=code&redirect_uri=https%3A%2F%2Fpreview.example.test%2Fauth%2Fcallback&scope=openid+email&state=state-123&code_challenge=pkce-challenge-abc&code_challenge_method=S256');
+        expect(oidc.buildSignupUrl({
+            enabled: true,
+            authProfileId: 'preview-client-cognito',
+            provider: 'cognito',
+            issuer: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_PREVIEW',
+            clientId: 'public-web-client',
+            hostedUiDomain: 'https://preview.auth.us-east-1.amazoncognito.com',
+            scopes: ['openid', 'email'],
+            redirectPath: '/auth/callback',
+            logoutPath: '/acceso',
+            loginPath: '/acceso',
+        }, {
+            origin: 'https://preview.example.test',
+            state: 'state-123',
+            codeChallenge: 'pkce-challenge-abc',
+        })).toBe('https://preview.auth.us-east-1.amazoncognito.com/signup?client_id=public-web-client&response_type=code&redirect_uri=https%3A%2F%2Fpreview.example.test%2Fauth%2Fcallback&scope=openid+email&state=state-123&code_challenge=pkce-challenge-abc&code_challenge_method=S256');
+        expect(oidc.buildForgotPasswordUrl({
+            enabled: true,
+            authProfileId: 'preview-client-cognito',
+            provider: 'cognito',
+            issuer: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_PREVIEW',
+            clientId: 'public-web-client',
+            hostedUiDomain: 'https://preview.auth.us-east-1.amazoncognito.com',
+            scopes: ['openid', 'email'],
+            redirectPath: '/auth/callback',
+            logoutPath: '/acceso',
+            loginPath: '/acceso',
+        }, {
+            origin: 'https://preview.example.test',
+            state: 'state-123',
+            codeChallenge: 'pkce-challenge-abc',
+        })).toBe('https://preview.auth.us-east-1.amazoncognito.com/forgotPassword?client_id=public-web-client&response_type=code&redirect_uri=https%3A%2F%2Fpreview.example.test%2Fauth%2Fcallback&scope=openid+email&state=state-123&code_challenge=pkce-challenge-abc&code_challenge_method=S256');
+        expect(oidc.buildLogoutUrl({
+            enabled: true,
+            authProfileId: 'preview-client-cognito',
+            provider: 'cognito',
+            issuer: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_PREVIEW',
+            clientId: 'public-web-client',
+            hostedUiDomain: 'https://preview.auth.us-east-1.amazoncognito.com',
+            scopes: ['openid', 'email'],
+            redirectPath: '/auth/callback',
+            logoutPath: '/acceso',
+            loginPath: '/acceso',
+        }, {
+            origin: 'https://preview.example.test',
+        })).toBe('https://preview.auth.us-east-1.amazoncognito.com/logout?client_id=public-web-client&logout_uri=https%3A%2F%2Fpreview.example.test%2Facceso');
         expect(oidc.parseCallbackUrl('https://preview.example.test/auth/callback?code=abc&state=state-123')).toEqual({
             code: 'abc',
             state: 'state-123',
@@ -393,5 +455,57 @@ describe('auth signal state', () => {
         expect(oidc.buildLoginUrl({ ...profile, redirectPath: 'https://evil.example/callback' }, options)).toBeNull();
         expect(oidc.buildLoginUrl({ ...profile, redirectPath: '//evil.example/callback' }, options)).toBeNull();
         expect(oidc.buildLoginUrl({ ...profile, redirectPath: '/auth/call back' }, options)).toBeNull();
+    });
+
+    it('exchanges Cognito authorization codes for validated public claims without returning token material', async () => {
+        TestBed.configureTestingModule({});
+        const oidc = TestBed.inject(AuthOidcService);
+        const expiresAtEpochSeconds = Math.floor(Date.now() / 1000) + 3600;
+        const idToken = fakeJwt({
+            iss: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_PREVIEW',
+            aud: 'public-web-client',
+            exp: expiresAtEpochSeconds,
+            sub: 'user-123',
+            email: 'user@example.test',
+            'cognito:groups': ['client-admin'],
+        });
+        const fetchSpy = jasmine.createSpy('fetch').and.resolveTo(new Response(JSON.stringify({
+            id_token: idToken,
+            access_token: 'raw-access-token',
+            refresh_token: 'raw-refresh-token',
+            token_type: 'Bearer',
+            expires_in: 3600,
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        }));
+
+        const result = await oidc.exchangeAuthorizationCode({
+            enabled: true,
+            authProfileId: 'preview-client-cognito',
+            provider: 'cognito',
+            issuer: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_PREVIEW',
+            clientId: 'public-web-client',
+            hostedUiDomain: 'https://preview.auth.us-east-1.amazoncognito.com',
+            scopes: ['openid', 'email'],
+            redirectPath: '/auth/callback',
+            logoutPath: '/acceso',
+        }, {
+            origin: 'https://preview.example.test',
+            code: 'auth-code',
+            codeVerifier: 'pkce-verifier',
+            fetchImpl: fetchSpy,
+        });
+
+        expect(result?.claims['sub']).toBe('user-123');
+        expect(result?.expiresAtEpochMs).toBe(expiresAtEpochSeconds * 1000);
+        expect(Object.keys(result ?? {}).join('|')).not.toContain('token');
+        expect(fetchSpy).toHaveBeenCalledTimes(1);
+        const [requestUrl, requestInit] = fetchSpy.calls.argsFor(0);
+        expect(String(requestUrl)).toBe('https://preview.auth.us-east-1.amazoncognito.com/oauth2/token');
+        expect(String(requestInit?.body)).toContain('grant_type=authorization_code');
+        expect(String(requestInit?.body)).toContain('client_id=public-web-client');
+        expect(String(requestInit?.body)).toContain('code_verifier=pkce-verifier');
+        expect(String(requestInit?.body)).not.toContain('secret');
     });
 });

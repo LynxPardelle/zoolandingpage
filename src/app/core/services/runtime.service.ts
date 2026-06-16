@@ -16,6 +16,7 @@ import { environment } from '@/environments/environment';
 import { isPlatformBrowser } from '@angular/common';
 import { DestroyRef, inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
 import { LoadingCurtainService } from './loading-curtain.service';
+import { AuthBrowserFlowService } from '@/app/state/auth/auth-browser-flow.service';
 
 @Injectable({ providedIn: 'root' })
 export class RuntimeService {
@@ -31,6 +32,7 @@ export class RuntimeService {
     private readonly runtimeConfig = inject(RuntimeConfigService);
     private readonly auth = inject(AuthFacade);
     private readonly authRuntime = inject(AuthRuntimeService);
+    private readonly authBrowserFlow = inject(AuthBrowserFlowService);
     private readonly theme = inject(ThemeService);
     private readonly loadingCurtain = inject(LoadingCurtainService);
     private readonly platformId = inject(PLATFORM_ID);
@@ -242,6 +244,18 @@ export class RuntimeService {
         }
 
         this.auth.restoreSession();
+        const callbackResult = await this.authBrowserFlow.completeCallbackFromCurrentUrl();
+        if (callbackResult.handled && callbackResult.redirectTo) {
+            this.clearRenderedDraft(context.domain, context.pageId);
+            this.loadingCurtain.hideWhenReady(`auth-callback-${ callbackResult.reason }`);
+            if (this.isBrowser) {
+                navigateInCurrentWindow(this.resolveAuthRedirectHref(callbackResult.redirectTo), {
+                    scrollRestoration: this.runtimeConfig.siteRuntime()?.navigation?.scrollRestoration,
+                });
+            }
+            return;
+        }
+
         const routeAccess = this.authRuntime.evaluateRouteAccess(context.route);
         if (!routeAccess.allowed) {
             this.clearRenderedDraft(context.domain, context.pageId);

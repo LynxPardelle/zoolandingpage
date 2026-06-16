@@ -1337,6 +1337,22 @@ function resolveRequestHost(req: express.Request): string {
   return normalizeHost(forwardedHost || req.headers.host);
 }
 
+function resolveLocalRequestAuthority(req: express.Request, host: string): string {
+  if (!isLocalHost(host)) {
+    return host;
+  }
+
+  const rawHost = String(req.headers['host'] ?? '')
+    .split(',')[0]
+    .trim()
+    .toLowerCase();
+  if (!rawHost || /[/\\\s\u0000-\u001F\u007F]/.test(rawHost)) {
+    return host;
+  }
+
+  return normalizeHost(rawHost) === host ? rawHost : host;
+}
+
 function resolveNotFoundLookupDomain(req: express.Request, host: string): string {
   const draftDomain = normalizeHost(req.query['draftDomain']);
   if ((isLocalHost(host) || isSharedTestingPreviewHost(host)) && draftDomain) {
@@ -1405,7 +1421,7 @@ function resolveRequestOrigin(req: express.Request, host: string): string {
     return 'https://localhost';
   }
 
-  return `${resolveRequestProtocol(req, host)}://${host}`;
+  return `${resolveRequestProtocol(req, host)}://${resolveLocalRequestAuthority(req, host)}`;
 }
 
 function resolveCanonicalOrigin(req: express.Request, host: string, siteConfig: TLocalSiteConfig | null): string {
