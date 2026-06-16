@@ -429,6 +429,37 @@ describe('auth signal state', () => {
         });
     });
 
+    it('preserves same-origin preview query params in Cognito redirect and logout URLs', () => {
+        TestBed.configureTestingModule({});
+        const oidc = TestBed.inject(AuthOidcService);
+        const profile = {
+            enabled: true,
+            authProfileId: 'preview-client-cognito',
+            provider: 'cognito' as const,
+            issuer: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_PREVIEW',
+            clientId: 'public-web-client',
+            hostedUiDomain: 'https://preview.auth.us-east-1.amazoncognito.com',
+            scopes: ['openid', 'email'],
+            redirectPath: '/auth/callback',
+            logoutPath: '/acceso',
+            loginPath: '/acceso',
+        };
+
+        const loginUrl = oidc.buildLoginUrl(profile, {
+            origin: 'https://test.zoolandingpage.com.mx',
+            redirectUri: 'https://test.zoolandingpage.com.mx/auth/callback?draftDomain=zoositioweb.com.mx&debugWorkspace=false',
+            state: 'state-123',
+            codeChallenge: 'pkce-challenge-abc',
+        });
+        const logoutUrl = oidc.buildLogoutUrl(profile, {
+            origin: 'https://test.zoolandingpage.com.mx',
+            logoutUri: 'https://test.zoolandingpage.com.mx/acceso?draftDomain=zoositioweb.com.mx&debugWorkspace=false',
+        });
+
+        expect(loginUrl).toContain('redirect_uri=https%3A%2F%2Ftest.zoolandingpage.com.mx%2Fauth%2Fcallback%3FdraftDomain%3Dzoositioweb.com.mx%26debugWorkspace%3Dfalse');
+        expect(logoutUrl).toBe('https://preview.auth.us-east-1.amazoncognito.com/logout?client_id=public-web-client&logout_uri=https%3A%2F%2Ftest.zoolandingpage.com.mx%2Facceso%3FdraftDomain%3Dzoositioweb.com.mx%26debugWorkspace%3Dfalse');
+    });
+
     it('refuses to generate Cognito login URLs from unsafe public auth config', () => {
         TestBed.configureTestingModule({});
         const oidc = TestBed.inject(AuthOidcService);
@@ -492,6 +523,7 @@ describe('auth signal state', () => {
             logoutPath: '/acceso',
         }, {
             origin: 'https://preview.example.test',
+            redirectUri: 'https://preview.example.test/auth/callback?draftDomain=zoositioweb.com.mx',
             code: 'auth-code',
             codeVerifier: 'pkce-verifier',
             fetchImpl: fetchSpy,
@@ -505,6 +537,7 @@ describe('auth signal state', () => {
         expect(String(requestUrl)).toBe('https://preview.auth.us-east-1.amazoncognito.com/oauth2/token');
         expect(String(requestInit?.body)).toContain('grant_type=authorization_code');
         expect(String(requestInit?.body)).toContain('client_id=public-web-client');
+        expect(String(requestInit?.body)).toContain('redirect_uri=https%3A%2F%2Fpreview.example.test%2Fauth%2Fcallback%3FdraftDomain%3Dzoositioweb.com.mx');
         expect(String(requestInit?.body)).toContain('code_verifier=pkce-verifier');
         expect(String(requestInit?.body)).not.toContain('secret');
     });

@@ -1,4 +1,5 @@
 import { ConfigStoreService } from '@/app/shared/services/config-store.service';
+import { DRAFT_RUNTIME_STICKY_QUERY_PARAMS } from '@/app/shared/services/draft-runtime.service';
 import { RuntimeConfigService } from '@/app/shared/services/runtime-config.service';
 import type { TDraftAuthRuntimeConfig } from '@/app/shared/types/config-payloads.types';
 import { isPlatformBrowser } from '@angular/common';
@@ -15,6 +16,7 @@ type TAuthPkceTransaction = {
     readonly authProfileId: string;
     readonly state: string;
     readonly codeVerifier: string;
+    readonly redirectUri: string;
     readonly createdAtEpochMs: number;
 };
 
@@ -70,6 +72,7 @@ export class AuthBrowserFlowService {
             origin,
             state: transaction.state,
             codeChallenge: await this.createCodeChallenge(transaction.codeVerifier),
+            redirectUri: transaction.redirectUri,
         };
         const url = action === 'signup'
             ? this.oidc.buildSignupUrl(profile, options)
@@ -101,7 +104,10 @@ export class AuthBrowserFlowService {
             return this.resolvePostLogoutPath(profile);
         }
 
-        return this.oidc.buildLogoutUrl(profile, { origin })
+        return this.oidc.buildLogoutUrl(profile, {
+            origin,
+            logoutUri: this.resolveCurrentSameOriginUrl(this.resolvePostLogoutPath(profile)),
+        })
             ?? this.resolvePostLogoutPath(profile);
     }
 
@@ -166,6 +172,7 @@ export class AuthBrowserFlowService {
             origin: this.currentOrigin() ?? '',
             code: callback.code,
             codeVerifier: transaction.codeVerifier,
+            redirectUri: transaction.redirectUri,
         });
         if (!exchange) {
             this.clearTransaction();
@@ -191,7 +198,8 @@ export class AuthBrowserFlowService {
     ): Promise<TAuthPkceTransaction | null> {
         const codeVerifier = this.randomBase64Url(32);
         const state = this.randomBase64Url(32);
-        if (!codeVerifier || !state || !await this.createCodeChallenge(codeVerifier)) {
+        const redirectUri = this.resolveCurrentSameOriginUrl(this.runtimeConfig.auth()?.redirectPath);
+        if (!codeVerifier || !state || !redirectUri || !await this.createCodeChallenge(codeVerifier)) {
             return null;
         }
 
@@ -201,6 +209,7 @@ export class AuthBrowserFlowService {
             authProfileId,
             state,
             codeVerifier,
+            redirectUri,
             createdAtEpochMs: Date.now(),
         };
     }
@@ -279,6 +288,7 @@ export class AuthBrowserFlowService {
                 || !this.clean(parsed.authProfileId)
                 || !this.clean(parsed.state)
                 || !this.clean(parsed.codeVerifier)
+                || !this.clean(parsed.redirectUri)
                 || !Number.isFinite(Number(parsed.createdAtEpochMs))
             ) {
                 return null;
@@ -290,6 +300,7 @@ export class AuthBrowserFlowService {
                 authProfileId: this.clean(parsed.authProfileId),
                 state: this.clean(parsed.state),
                 codeVerifier: this.clean(parsed.codeVerifier),
+                redirectUri: this.clean(parsed.redirectUri),
                 createdAtEpochMs: Number(parsed.createdAtEpochMs),
             };
         } catch {
@@ -398,6 +409,27 @@ export class AuthBrowserFlowService {
         }
 
         return window.location.origin;
+    }
+
+    private resolveCurrentSameOriginUrl(path: unknown): string {
+        const origin = this.currentOrigin();
+        const safePath = this.safeSameOriginPath(path);
+        if (!origin || !safePath || typeof window === 'undefined') {
+            return '';
+        }
+
+        try {
+            const url = new URL(safePath, origin);
+            const currentUrl = new URL(window.location.href);
+            DRAFT_RUNTIME_STICKY_QUERY_PARAMS.forEach((key) => {
+                if (!url.searchParams.has(key) && currentUrl.searchParams.has(key)) {
+                    url.searchParams.set(key, currentUrl.searchParams.get(key) ?? '');
+                }
+            });
+            return url.toString();
+        } catch {
+            return '';
+        }
     }
 
     private safeSameOriginPath(value: unknown): string {
