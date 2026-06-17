@@ -17,6 +17,50 @@ Use `tools/ops/sync-managed-alias-front-door.mjs` after a draft alias is declare
 
 No secrets, tokens, raw environment values, instance IDs, or account-specific identifiers should be committed. Pass operational values by environment variables or CLI flags.
 
+## Auth Admin Same-Origin Routes
+
+Custom draft-auth account and admin flows use a separate serverless BFF and must be exposed same-origin through Traefik with path-specific routing. Use `tools/ops/sync-auth-admin-front-door.mjs` for that dynamic file.
+
+Required inputs:
+
+- `ZOOLANDING_AUTH_ADMIN_TEST_ENDPOINT` or `--test-api-endpoint`
+- `ZOOLANDING_AUTH_ADMIN_PROD_ENDPOINT` or `--prod-api-endpoint`
+- `ZOOLANDING_SSM_INSTANCE_NAME` / `--ssm-instance-name` or `ZOOLANDING_SSM_INSTANCE_ID` / `--ssm-instance-id` when applying
+
+Defaults:
+
+- test hosts: `test.zoolandingpage.com.mx`, `test.zoositioweb.com.mx`
+- production hosts: `zoositioweb.com.mx`, `zoositioweb.com`
+- remote file: `/etc/dokploy/traefik/dynamic/zoolanding-auth-admin.yml`
+
+The generated rules route only `/auth/session`, `/auth/session/*`, `/auth/admin`, and `/auth/admin/*`. Do not replace this with `/auth/*`, because `/auth/callback` remains an Angular-rendered draft route.
+
+Dry run:
+
+```powershell
+node tools/ops/sync-auth-admin-front-door.mjs `
+  --test-api-endpoint="https://<test-api-id>.execute-api.us-east-1.amazonaws.com/test" `
+  --prod-api-endpoint="https://<prod-api-id>.execute-api.us-east-1.amazonaws.com/prod" `
+  --output=logs/ops/auth-admin-front-door.yml
+```
+
+Apply:
+
+```powershell
+node tools/ops/sync-auth-admin-front-door.mjs `
+  --test-api-endpoint="https://<test-api-id>.execute-api.us-east-1.amazonaws.com/test" `
+  --prod-api-endpoint="https://<prod-api-id>.execute-api.us-east-1.amazonaws.com/prod" `
+  --apply `
+  --ssm-instance-name="<ssm-managed-instance-name>"
+```
+
+Validation should include:
+
+- `GET https://test.zoolandingpage.com.mx/auth/session/me` with `X-ZLP-Domain` and `X-ZLP-Auth-Profile-Id` returns a controlled `401` without a session.
+- `GET https://zoositioweb.com.mx/auth/session/me` with the same context headers returns a controlled `401` without a session.
+- `GET https://zoositioweb.com.mx/auth/callback` still renders the Angular callback page.
+- Browser sign-in creates an HttpOnly session cookie and `/mi-cuenta` can read the account through same-origin `/auth/session/me`.
+
 ## Inputs
 
 Required for Route 53 apply:
