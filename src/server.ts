@@ -1403,6 +1403,31 @@ function isSharedTestingDraftPreviewRequest(req: express.Request, host: string):
   return isSharedTestingPreviewHost(host) && Boolean(normalizeHost(req.query['draftDomain']));
 }
 
+function normalizeRuntimeLookupDomain(value: unknown): string {
+  const normalized = normalizeHost(value);
+  return normalized && !/[/\\\s\u0000-\u001F\u007F]/.test(normalized) ? normalized : '';
+}
+
+function resolveRuntimeStatusLookupDomain(
+  req: express.Request,
+  host: string,
+  domain: string,
+  siteConfig: TLocalSiteConfig | null,
+): string {
+  const normalizedDomain = normalizeRuntimeLookupDomain(domain);
+  if (!isSharedTestingDraftPreviewRequest(req, host)) {
+    return normalizedDomain;
+  }
+
+  const testAliases = Array.isArray(siteConfig?.environments?.['test']?.aliases)
+    ? siteConfig.environments['test'].aliases
+    : [];
+  return testAliases
+    .map(normalizeRuntimeLookupDomain)
+    .find((alias) => alias && alias !== normalizedDomain)
+    ?? normalizedDomain;
+}
+
 function resolveRequestProtocol(req: express.Request, host: string): string {
   const cloudFrontProtoValues = String(req.headers['cloudfront-forwarded-proto'] ?? '')
     .split(',')
@@ -2128,7 +2153,8 @@ async function shouldServeNotFoundDocument(req: express.Request): Promise<boolea
     return false;
   }
 
-  const runtimeRouteStatus = await loadRuntimeRouteStatus(lookupDomain, normalizedPath);
+  const runtimeStatusDomain = resolveRuntimeStatusLookupDomain(req, host, lookupDomain, siteConfig);
+  const runtimeRouteStatus = await loadRuntimeRouteStatus(runtimeStatusDomain || lookupDomain, normalizedPath);
   if (runtimeRouteStatus === 200) {
     return false;
   }
