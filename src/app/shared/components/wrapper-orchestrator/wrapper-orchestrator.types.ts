@@ -9,6 +9,7 @@ import type { TGenericEmbedFrameConfig } from '../generic-embed-frame/generic-em
 import { TGenericIconConfig } from "../generic-icon/generic-icon.types";
 import type { TGenericInputConfig } from "../generic-input/generic-input.types";
 import { TGenericLinkConfig } from "../generic-link/generic-link.types";
+import type { LoadingSpinnerSize, LoadingSpinnerVariant } from "../generic-loading-spinner/generic-loading-spinner.types";
 import type { TGenericMediaConfig } from "../generic-media/generic-media.types";
 import type { TGenericPaginationConfig } from "../generic-pagination/generic-pagination.types";
 import type { SearchBoxConfig } from '../generic-search-box/generic-search-box.types';
@@ -227,6 +228,14 @@ export type TGenericComponent = {
         {
             readonly type: 'pagination';
             readonly config: TGenericPaginationConfig;
+        } |
+        {
+            readonly type: 'loading-spinner';
+            readonly config: {
+                readonly variant?: LoadingSpinnerVariant;
+                readonly size?: LoadingSpinnerSize;
+                readonly classes?: string;
+            };
         } |
         {
             readonly type: 'stats-counter';

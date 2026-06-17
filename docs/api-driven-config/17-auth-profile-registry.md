@@ -9,6 +9,7 @@ Source Of Truth:
 - `Codex.md`
 - `docs/api-driven-config/12-validation.md`
 - `tools/auth-profile-registry.mjs`
+- sibling repo `zoolanding-auth-admin` for the generic auth-admin BFF
 - `tools/auth-service-handlers.mjs`
 - `tools/tests/auth-profile-registry.spec.mjs`
 - `tools/tests/auth-service-handlers.spec.mjs`
@@ -243,12 +244,54 @@ The scaffold provides:
 
 The runtime-config endpoint rejects unsupported browser-supplied fields instead of silently accepting policy or secret-looking inputs. The provisioning endpoint is denied by default so accidentally exposing the scaffold as a public route does not leak server-only provisioning details.
 
+## Generic Auth Admin BFF
+
+Drafts that need custom account UI, admin approval, future blog editors, analytics dashboards, uploads, or configuration panels should use the generic `zoolanding-auth-admin` BFF instead of returning Cognito tokens to browser JavaScript.
+
+The first BFF contract creates HttpOnly sessions through custom sign-in. Cognito Managed Login / Hosted UI remains optional per draft, but it does not create the same BFF session until a future server-side callback/token-exchange endpoint is added.
+
+The public browser contract is still minimal:
+
+- `POST /auth/session/signin`: receives `domain`, `authProfileId`, email, password, and optional language; signs in through the server-side Cognito profile; creates a private session; and returns only sanitized session metadata.
+- `GET /auth/session/me`: returns the current account profile for `/mi-cuenta`.
+- `POST /auth/session/logout`: revokes the private session and clears cookies.
+- `GET /auth/admin/users`: lists sanitized users for admin surfaces.
+- `POST /auth/admin/users/{subject}/approve`
+- `POST /auth/admin/users/{subject}/groups`
+- `POST /auth/admin/users/{subject}/suspend`
+- `POST /auth/admin/users/{subject}/reactivate`
+
+All session/admin requests after signin must include the current draft context through same-origin request headers:
+
+- `X-ZLP-Domain`
+- `X-ZLP-Auth-Profile-Id`
+
+The Lambda compares that context with the private session before returning account data or running admin actions. This matters on shared preview hosts where multiple drafts can render on the same browser origin.
+
+Session cookies use the `__Host-zlp_session` name with `HttpOnly`, `Secure`, `SameSite=Lax`, and `Path=/`. Mutating requests also require a readable `zlp_csrf` cookie to match the configured CSRF header, normally `X-ZLP-CSRF`, and the server-side CSRF hash. No JWT, ID token, access token, refresh token, Cognito client secret, or upstream credential is returned to Angular.
+
+`/mi-cuenta` is for any authenticated user in the draft/profile, including users with `approvalStatus: "pending"`. `/admin/*` is for approved users with a configured admin group. Admin requests must re-check current user state, not only the session snapshot, so suspension or group removal takes effect before the next admin action.
+
+Server-only auth profile fields for this BFF include:
+
+- `adminGroups`
+- `manageableGroups`
+- `defaultUserStatus`
+- `adminGroupsAutoApproved`
+- `maxSessionSeconds`
+- `allowedTokenUses`, restricted to `id` and/or `access`
+- public-safe `session` path metadata
+- public-safe `admin` path metadata
+
+The public runtime-config response may expose the safe `session` and `admin` same-origin paths, but it must not expose `adminGroups`, `manageableGroups`, tenant policy, Cognito mutable attribute policy, IAM policy, secrets, or credential references. The BFF reads those from server-only config.
+
 ## Backend Authorization
 
 Frontend auth state is UX metadata only. Backend APIs for blogs, dashboards, uploads, and protected actions must:
 
 - verify JWT signature against the issuer JWKS
 - require expected issuer and audience from the server-only profile, accepting `aud` for ID-token style claims or Cognito `client_id` for access-token style claims
+- require a stable subject claim and an allowed Cognito `token_use`; profiles default to `["id", "access"]` unless `allowedTokenUses` is narrowed server-side
 - resolve tenant ownership from `domain + authProfileId`
 - enforce server-side groups or permissions from the registry
 - reject requests when the draft domain, auth profile, issuer, audience, or group policy do not match
@@ -256,9 +299,9 @@ Frontend auth state is UX metadata only. Backend APIs for blogs, dashboards, upl
 
 `buildJwtVerificationConfig(profile)` prepares the issuer, audience, JWKS URI, groups claim, and tenant boundary a Lambda authorizer can use. For Cognito issuers, preserve the full issuer path when deriving `/.well-known/jwks.json`. `authPolicyFromJwtClaims(profile, claims)` is only a policy evaluator for already-verified claims; it is not a cryptographic JWT verifier.
 
-## Zoosite Pilot Status
+## Zoosite Auth Status
 
-The real `drafts/zoositioweb.com.mx` nested draft repo carries a plan-only optional-auth pilot while preserving the full commercial draft. App-level regression tests mirror the public contract in `tools/tests/fixtures/zoosite-auth-pilot/` so the hub repo does not vendor the draft repo. The public `site-config.json` uses only:
+The real `drafts/zoositioweb.com.mx` nested draft repo carries the active `staff` auth profile while preserving the full commercial draft. App-level regression tests mirror the public contract in `tools/tests/fixtures/zoosite-auth-pilot/` so the hub repo does not vendor the draft repo. The public `site-config.json` uses only:
 
 ```json
 {
@@ -272,8 +315,8 @@ The real `drafts/zoositioweb.com.mx` nested draft repo carries a plan-only optio
 }
 ```
 
-The pilot adds public `/acceso` and `/auth/callback` routes and protects `/mi-cuenta` with `routes[].auth.required = true`, `redirectTo = "/acceso"`, and the groups `zoosite-client` and `zoosite-admin`. These pages are plan-only, contain no private data or protected actions, and use `noindex,nofollow`.
+Zoosite exposes public custom-auth routes for `/acceso`, `/registro`, `/confirmar-cuenta`, `/recuperar-contrasena`, and `/cambiar-contrasena`; keeps `/auth/callback` available for Managed Login compatibility; protects `/mi-cuenta` for `zoosite-client` and `zoosite-admin`; and protects `/admin/usuarios` for `zoosite-admin` only. Auth routes and private account/admin routes stay excluded from the sitemap.
 
-The server-only companion is `drafts/zoositioweb.com.mx/server/auth-profile-registry.json`. It stays plan-only with `status: "planned"`, tenant `zoosite`, callback/logout allowlists for the `.com.mx` domain and `.com` alias, and social provider secret references such as `/zoolanding/auth/zoosite/staff/google`. It must not be shipped in browser runtime bundles, must not contain raw secrets, and does not create AWS or Cognito resources.
+The server-only companion is `drafts/zoositioweb.com.mx/server/auth-profile-registry.json`. It has `status: "active"`, tenant `zoosite`, the real public Cognito profile IDs, callback/logout allowlists for the `.com.mx` domain and `.com` alias, `custom:zoolanding_env` as the environment claim, `zoosite-client` as the default custom-signup group, and the auth-admin `session`/`admin` same-origin path metadata. It must not be shipped in browser runtime bundles and must not contain raw secrets.
 
 For local end-to-end QA, run the sibling `zoolanding-api-proxy` local auth harness with `DRY_RUN=1` and a `LOCAL_AUTH_REGISTRY_DIR` or `LOCAL_AUTH_REGISTRY_FILE` pointing at a reviewed server-only registry source, then start Angular with `npm run start:local-auth`. The Angular dev server proxies `/auth/runtime-config` to the local API proxy, so browser QA exercises browser -> Angular -> API proxy -> server-only registry -> Angular validation without publishing static `runtime.auth` in the draft payload.

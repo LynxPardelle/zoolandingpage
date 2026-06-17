@@ -300,10 +300,13 @@
       "required": ["id", "target"],
       "properties": {
         "id": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "enum": ["api-proxy", "auth-admin"] },
         "proxySourceId": { "type": "string" },
+        "authAdminSource": { "type": "string", "enum": ["account", "adminUsers"] },
         "target": { "type": "string", "minLength": 1 },
         "statusTarget": { "type": "string" },
         "mergeMode": { "type": "string", "enum": ["replace", "appendItems"] },
+        "clearTargetOnLoad": { "type": "boolean" },
         "enabled": { "type": "boolean" },
         "ssr": { "type": "boolean" },
         "pageIds": {
@@ -350,7 +353,12 @@
       "required": ["id"],
       "properties": {
         "id": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "enum": ["api-proxy", "auth-admin"] },
         "proxyActionId": { "type": "string" },
+        "authAdminAction": {
+          "type": "string",
+          "enum": ["approveUser", "setUserGroups", "suspendUser", "reactivateUser"]
+        },
         "method": { "type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"] },
         "statusTarget": { "type": "string" },
         "enabled": { "type": "boolean" },
@@ -513,6 +521,30 @@
       },
       "additionalProperties": false
     },
+    "authSessionRuntime": {
+      "type": "object",
+      "required": ["mode"],
+      "properties": {
+        "mode": { "type": "string", "enum": ["server-cookie"] },
+        "signinPath": { "$ref": "#/definitions/sameOriginPath" },
+        "mePath": { "$ref": "#/definitions/sameOriginPath" },
+        "logoutPath": { "$ref": "#/definitions/sameOriginPath" },
+        "csrfCookieName": { "type": "string", "minLength": 1 },
+        "csrfHeaderName": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "authAdminRuntime": {
+      "type": "object",
+      "properties": {
+        "usersPath": { "$ref": "#/definitions/sameOriginPath" },
+        "approveUserPathTemplate": { "$ref": "#/definitions/sameOriginPath" },
+        "groupsPathTemplate": { "$ref": "#/definitions/sameOriginPath" },
+        "suspendUserPathTemplate": { "$ref": "#/definitions/sameOriginPath" },
+        "reactivateUserPathTemplate": { "$ref": "#/definitions/sameOriginPath" }
+      },
+      "additionalProperties": false
+    },
     "authRuntime": {
       "type": "object",
       "required": [
@@ -551,7 +583,9 @@
         "allowedGroups": {
           "type": "array",
           "items": { "type": "string" }
-        }
+        },
+        "session": { "$ref": "#/definitions/authSessionRuntime" },
+        "admin": { "$ref": "#/definitions/authAdminRuntime" }
       },
       "additionalProperties": false
     },

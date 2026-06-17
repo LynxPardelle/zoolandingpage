@@ -1,6 +1,7 @@
 import { isPlatformBrowser } from '@angular/common';
 import { Injectable, PLATFORM_ID, REQUEST, inject } from '@angular/core';
 import type { TRuntimeDataSourceConfig } from '@/app/shared/types/config-payloads.types';
+import { AuthAdminClientService } from '@/app/state/auth/auth-admin-client.service';
 import { RuntimeApiProxyClientService, type TRuntimeApiProxyResponse } from './runtime-api-proxy-client.service';
 import { RuntimeDataSourceMapperService } from './runtime-data-source-mapper.service';
 import { VariableStoreService } from './variable-store.service';
@@ -23,6 +24,7 @@ type TPreparedRuntimeDataSource = {
 @Injectable({ providedIn: 'root' })
 export class RuntimeDataSourceService {
     private readonly proxy = inject(RuntimeApiProxyClientService);
+    private readonly authAdmin = inject(AuthAdminClientService);
     private readonly mapper = inject(RuntimeDataSourceMapperService);
     private readonly variables = inject(VariableStoreService);
     private readonly platformId = inject(PLATFORM_ID);
@@ -73,7 +75,7 @@ export class RuntimeDataSourceService {
         prepared: TPreparedRuntimeDataSource,
     ): Promise<void> {
         try {
-            const response = await this.readSourceWithRetry(options, prepared.sourceId, prepared.input);
+            const response = await this.readSourceWithRetry(options, prepared.source, prepared.sourceId, prepared.input);
             const mapped = this.mapper.mapResponse(response.data, prepared.source.mapper);
             this.writeMappedResult(prepared.source, mapped);
             this.writeStatus(prepared.source, this.hasItems(mapped) ? 'success' : 'empty', null);
@@ -120,6 +122,7 @@ export class RuntimeDataSourceService {
 
     private async readSourceWithRetry(
         options: TRuntimeDataSourceStartOptions,
+        source: TRuntimeDataSourceConfig,
         sourceId: string,
         input: Record<string, unknown> | undefined,
     ): Promise<TRuntimeApiProxyResponse<unknown>> {
@@ -128,6 +131,9 @@ export class RuntimeDataSourceService {
 
         for (let attempt = 0; attempt < attempts; attempt++) {
             try {
+                if (source.kind === 'auth-admin') {
+                    return await this.readAuthAdminSource(source);
+                }
                 return await this.proxy.readSource({
                     domain: options.domain,
                     pageId: options.pageId,
@@ -144,6 +150,18 @@ export class RuntimeDataSourceService {
         }
 
         throw lastError instanceof Error ? lastError : new Error('API proxy request failed');
+    }
+
+    private async readAuthAdminSource(source: TRuntimeDataSourceConfig): Promise<TRuntimeApiProxyResponse<unknown>> {
+        if (source.authAdminSource === 'account') {
+            const response = await this.authAdmin.me();
+            return { ok: response.ok, data: response };
+        }
+        if (source.authAdminSource === 'adminUsers') {
+            const response = await this.authAdmin.listUsers();
+            return { ok: response.ok, data: response };
+        }
+        throw new Error('Auth admin data source is invalid.');
     }
 
     private wait(ms: number): Promise<void> {

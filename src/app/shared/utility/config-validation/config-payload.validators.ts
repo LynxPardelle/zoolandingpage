@@ -90,7 +90,9 @@ const ALLOWED_TRACK_OPTIONS = new Set<TTrackOptions>([
 const ALLOWED_RUNTIME_API_ACTION_METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
 const ALLOWED_RUNTIME_DATA_SOURCE_KEYS = new Set([
     'id',
+    'kind',
     'proxySourceId',
+    'authAdminSource',
     'target',
     'statusTarget',
     'mergeMode',
@@ -106,7 +108,9 @@ const ALLOWED_RUNTIME_DATA_SOURCE_KEYS = new Set([
 ]);
 const ALLOWED_RUNTIME_API_ACTION_KEYS = new Set([
     'id',
+    'kind',
     'proxyActionId',
+    'authAdminAction',
     'method',
     'statusTarget',
     'enabled',
@@ -137,6 +141,23 @@ const ALLOWED_AUTH_CONFIG_KEYS = new Set([
     'postLogoutPath',
     'groupsClaim',
     'allowedGroups',
+    'session',
+    'admin',
+]);
+const ALLOWED_AUTH_SESSION_CONFIG_KEYS = new Set([
+    'mode',
+    'signinPath',
+    'mePath',
+    'logoutPath',
+    'csrfCookieName',
+    'csrfHeaderName',
+]);
+const ALLOWED_AUTH_ADMIN_CONFIG_KEYS = new Set([
+    'usersPath',
+    'approveUserPathTemplate',
+    'groupsPathTemplate',
+    'suspendUserPathTemplate',
+    'reactivateUserPathTemplate',
 ]);
 const ALLOWED_AUTH_REMOTE_CONFIG_KEYS = new Set([
     'enabled',
@@ -769,6 +790,7 @@ const isRuntimeDataSourceMapperConfig = (value: unknown): value is TRuntimeDataS
     if (value === null) return true;
     if (!isRecord(value)) return false;
     if (value['itemsPath'] !== undefined && value['itemsPath'] !== null && typeof value['itemsPath'] !== 'string') return false;
+    if (value['singleItem'] !== undefined && typeof value['singleItem'] !== 'boolean') return false;
     if (value['prependItems'] !== undefined && value['prependItems'] !== null) {
         if (!Array.isArray(value['prependItems'])) return false;
         if (!value['prependItems'].every(isRecord)) return false;
@@ -827,7 +849,9 @@ const isRuntimeDataSourceConfig = (value: unknown): value is TRuntimeDataSourceC
     if (!isRecord(value)) return false;
     if (!hasOnlyKnownKeys(value, ALLOWED_RUNTIME_DATA_SOURCE_KEYS)) return false;
     if (typeof value['id'] !== 'string' || value['id'].trim().length === 0) return false;
+    if (value['kind'] !== undefined && !['api-proxy', 'auth-admin'].includes(String(value['kind']))) return false;
     if (value['proxySourceId'] !== undefined && typeof value['proxySourceId'] !== 'string') return false;
+    if (value['authAdminSource'] !== undefined && !['account', 'adminUsers'].includes(String(value['authAdminSource']))) return false;
     if (typeof value['target'] !== 'string' || value['target'].trim().length === 0) return false;
     if (value['statusTarget'] !== undefined && typeof value['statusTarget'] !== 'string') return false;
     if (value['mergeMode'] !== undefined && value['mergeMode'] !== 'replace' && value['mergeMode'] !== 'appendItems') return false;
@@ -853,7 +877,10 @@ const isRuntimeApiActionConfig = (value: unknown): value is TRuntimeApiActionCon
     if (!isRecord(value)) return false;
     if (!hasOnlyKnownKeys(value, ALLOWED_RUNTIME_API_ACTION_KEYS)) return false;
     if (typeof value['id'] !== 'string' || value['id'].trim().length === 0) return false;
+    if (value['kind'] !== undefined && !['api-proxy', 'auth-admin'].includes(String(value['kind']))) return false;
     if (value['proxyActionId'] !== undefined && typeof value['proxyActionId'] !== 'string') return false;
+    if (value['authAdminAction'] !== undefined
+        && !['approveUser', 'setUserGroups', 'suspendUser', 'reactivateUser'].includes(String(value['authAdminAction']))) return false;
     if (value['method'] !== undefined
         && (typeof value['method'] !== 'string' || !ALLOWED_RUNTIME_API_ACTION_METHODS.has(value['method']))) return false;
     if (value['statusTarget'] !== undefined && typeof value['statusTarget'] !== 'string') return false;
@@ -862,6 +889,29 @@ const isRuntimeApiActionConfig = (value: unknown): value is TRuntimeApiActionCon
         && (!Array.isArray(value['inputFields'])
             || !value['inputFields'].every((entry) => typeof entry === 'string' && entry.trim().length > 0))) return false;
     if (value['requiresUserGesture'] !== undefined && typeof value['requiresUserGesture'] !== 'boolean') return false;
+    return true;
+};
+
+const isDraftAuthSessionRuntimeConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasOnlyKnownKeys(value, ALLOWED_AUTH_SESSION_CONFIG_KEYS)) return false;
+    if (value['mode'] !== 'server-cookie') return false;
+    for (const key of ['signinPath', 'mePath', 'logoutPath']) {
+        if (value[key] !== undefined && !isSafeSameOriginPath(value[key])) return false;
+    }
+    for (const key of ['csrfCookieName', 'csrfHeaderName']) {
+        if (value[key] !== undefined
+            && (typeof value[key] !== 'string' || value[key].trim().length === 0 || /[\s\u0000-\u001F\u007F]/.test(value[key]))) return false;
+    }
+    return true;
+};
+
+const isDraftAuthAdminRuntimeConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasOnlyKnownKeys(value, ALLOWED_AUTH_ADMIN_CONFIG_KEYS)) return false;
+    for (const key of ALLOWED_AUTH_ADMIN_CONFIG_KEYS) {
+        if (value[key] !== undefined && !isSafeSameOriginPath(value[key])) return false;
+    }
     return true;
 };
 
@@ -887,6 +937,8 @@ export const isDraftAuthRuntimeConfig = (value: unknown): value is TDraftAuthRun
     if (value['postLogoutPath'] !== undefined && !isSafeSameOriginPath(value['postLogoutPath'])) return false;
     if (value['groupsClaim'] !== undefined && typeof value['groupsClaim'] !== 'string') return false;
     if (value['allowedGroups'] !== undefined && !isStringArray(value['allowedGroups'])) return false;
+    if (value['session'] !== undefined && !isDraftAuthSessionRuntimeConfig(value['session'])) return false;
+    if (value['admin'] !== undefined && !isDraftAuthAdminRuntimeConfig(value['admin'])) return false;
     return true;
 };
 
@@ -1009,6 +1061,21 @@ const isGenericInputTextConfig = (value: unknown): boolean => {
     return true;
 };
 
+const isGenericCardActionConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (typeof value['label'] !== 'string' || value['label'].trim().length === 0) return false;
+    if (value['ariaLabel'] !== undefined && typeof value['ariaLabel'] !== 'string') return false;
+    if (value['eventInstructions'] !== undefined && typeof value['eventInstructions'] !== 'string') return false;
+    if (value['confirmMessage'] !== undefined && typeof value['confirmMessage'] !== 'string') return false;
+    if (value['classes'] !== undefined && typeof value['classes'] !== 'string') return false;
+    if (value['disabled'] !== undefined && typeof value['disabled'] !== 'boolean') return false;
+    if (value['loading'] !== undefined && typeof value['loading'] !== 'boolean') return false;
+    if (value['icon'] !== undefined && typeof value['icon'] !== 'string') return false;
+    if (value['iconClasses'] !== undefined && typeof value['iconClasses'] !== 'string') return false;
+    if (value['iconPosition'] !== undefined && value['iconPosition'] !== 'before' && value['iconPosition'] !== 'after') return false;
+    return true;
+};
+
 const isGenericCardConfig = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
 
@@ -1031,6 +1098,8 @@ const isGenericCardConfig = (value: unknown): boolean => {
     if (value['benefitItemClasses'] !== undefined && typeof value['benefitItemClasses'] !== 'string') return false;
     if (value['benefitIconClasses'] !== undefined && typeof value['benefitIconClasses'] !== 'string') return false;
     if (value['benefitTextClasses'] !== undefined && typeof value['benefitTextClasses'] !== 'string') return false;
+    if (value['actionListClasses'] !== undefined && typeof value['actionListClasses'] !== 'string') return false;
+    if (value['actionButtonClasses'] !== undefined && typeof value['actionButtonClasses'] !== 'string') return false;
     if (value['name'] !== undefined && typeof value['name'] !== 'string') return false;
     if (value['role'] !== undefined && typeof value['role'] !== 'string') return false;
     if (value['company'] !== undefined && typeof value['company'] !== 'string') return false;
@@ -1049,6 +1118,7 @@ const isGenericCardConfig = (value: unknown): boolean => {
     if (value['testimonialRatingTextClasses'] !== undefined && typeof value['testimonialRatingTextClasses'] !== 'string') return false;
     if (value['rating'] !== undefined && (typeof value['rating'] !== 'number' || !Number.isFinite(value['rating']))) return false;
     if (value['benefits'] !== undefined && !isStringArray(value['benefits'])) return false;
+    if (value['actions'] !== undefined && (!Array.isArray(value['actions']) || !value['actions'].every(isGenericCardActionConfig))) return false;
     if (value['onCta'] !== undefined) return false;
 
     return true;

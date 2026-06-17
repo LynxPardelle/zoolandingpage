@@ -24,4 +24,9 @@ export class GenericLoadingSpinnerComponent {
   readonly i18n = inject(I18nService);
   @Input() variant: LoadingSpinnerVariant = DEFAULT_SPINNER_VARIANT;
   @Input() size: LoadingSpinnerSize = DEFAULT_SPINNER_SIZE;
+  @Input() classes = '';
+
+  get resolvedClasses(): string {
+    return ['spinner ank-inlineBlock', this.classes].filter((entry) => entry.trim().length > 0).join(' ');
+  }
 }

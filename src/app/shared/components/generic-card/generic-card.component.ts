@@ -12,7 +12,7 @@ import { I18nService } from '../../services/i18n.service';
 import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { GenericIconComponent } from '../generic-icon/generic-icon.component';
-import { TGenericCardConfig } from './generic-card.types';
+import { TGenericCardAction, TGenericCardConfig } from './generic-card.types';
 
 @Component({
   selector: 'generic-card',
@@ -36,6 +36,11 @@ export class GenericCardComponent {
 
   @Output() readonly linkClicked = new EventEmitter<{
     href: string;
+    eventInstructions?: string;
+  }>();
+  @Output() readonly actionClicked = new EventEmitter<{
+    label: string;
+    index: number;
     eventInstructions?: string;
   }>();
 
@@ -86,6 +91,10 @@ export class GenericCardComponent {
       resolveDynamicValue(this._config().linkEventInstructions) ?? ''
     ).trim()
   );
+  readonly actions = computed<readonly TGenericCardAction[]>(() => {
+    const value = resolveDynamicValue(this._config().actions);
+    return Array.isArray(value) ? value : [];
+  });
   readonly target = computed(
     () =>
       String(resolveDynamicValue(this._config().target) ?? '').trim() || null
@@ -142,6 +151,63 @@ export class GenericCardComponent {
     this.linkClicked.emit({
       href,
       eventInstructions: this.linkEventInstructions() || undefined,
+    });
+  };
+
+  readonly actionLabel = (action: TGenericCardAction): string =>
+    String(resolveDynamicValue(action.label) ?? '').trim();
+
+  readonly actionAriaLabel = (action: TGenericCardAction): string | undefined => {
+    const ariaLabel = String(resolveDynamicValue(action.ariaLabel) ?? '').trim();
+    return ariaLabel || undefined;
+  };
+
+  readonly actionClasses = (action: TGenericCardAction): string => {
+    const classes = String(resolveDynamicValue(action.classes) ?? '').trim();
+    return classes || this.classValue('actionButtonClasses');
+  };
+
+  readonly actionDisabled = (action: TGenericCardAction): boolean =>
+    Boolean(resolveDynamicValue(action.disabled) ?? false);
+
+  readonly actionLoading = (action: TGenericCardAction): boolean =>
+    Boolean(resolveDynamicValue(action.loading) ?? false);
+
+  readonly actionIcon = (action: TGenericCardAction): string | undefined => {
+    const icon = String(resolveDynamicValue(action.icon) ?? '').trim();
+    return icon || undefined;
+  };
+
+  readonly actionIconClasses = (action: TGenericCardAction): string => {
+    const classes = String(resolveDynamicValue(action.iconClasses) ?? '').trim();
+    return classes || 'ank-fontSize-20px ank-lineHeight-1';
+  };
+
+  readonly actionIconPosition = (action: TGenericCardAction): 'after' | 'before' => {
+    const position = String(resolveDynamicValue(action.iconPosition) ?? 'before').trim();
+    return position === 'after' ? 'after' : 'before';
+  };
+
+  readonly actionEventInstructions = (action: TGenericCardAction): string | undefined => {
+    const eventInstructions = String(resolveDynamicValue(action.eventInstructions) ?? '').trim();
+    return eventInstructions || undefined;
+  };
+
+  readonly actionConfirmMessage = (action: TGenericCardAction): string | undefined => {
+    const message = String(resolveDynamicValue(action.confirmMessage) ?? '').trim();
+    return message || undefined;
+  };
+
+  readonly onActionClicked = (index: number, action: TGenericCardAction, _event?: MouseEvent): void => {
+    const confirmMessage = this.actionConfirmMessage(action);
+    if (confirmMessage && typeof window !== 'undefined' && !window.confirm(confirmMessage)) {
+      return;
+    }
+
+    this.actionClicked.emit({
+      index,
+      label: this.actionLabel(action),
+      eventInstructions: this.actionEventInstructions(action),
     });
   };
 }

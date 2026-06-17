@@ -44,6 +44,7 @@ export class AuthCustomFormService {
         values: Readonly<Record<string, unknown>>,
     ): Promise<TAuthCustomFormResponse> {
         if (action === 'logout') {
+            await this.logoutServerSessionIfConfigured();
             this.auth.requestSignOut();
             this.navigateAfterLogout();
             return { ok: true, status: 'signed-out' };
@@ -139,12 +140,14 @@ export class AuthCustomFormService {
         action: TAuthCustomFormNetworkAction,
         payload: Record<string, unknown>,
     ): Promise<TAuthCustomFormResponse> {
-        const response = await fetch(this.buildUrl(this.pathForAction(action)), {
+        const path = this.pathForAction(action);
+        const response = await fetch(this.buildUrl(path), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 Accept: 'application/json',
             },
+            ...(this.isServerSessionPath(path) ? { credentials: 'include' as const } : {}),
             body: JSON.stringify(payload),
         });
         const body = await this.parseJson(response);
@@ -155,8 +158,9 @@ export class AuthCustomFormService {
     }
 
     private pathForAction(action: TAuthCustomFormNetworkAction): string {
+        const serverSessionSigninPath = this.serverSessionPath('signinPath');
         const paths: Record<TAuthCustomFormNetworkAction, string> = {
-            signin: '/auth/signin',
+            signin: serverSessionSigninPath || '/auth/signin',
             signup: '/auth/signup',
             confirmSignup: '/auth/confirm-signup',
             resendConfirmation: '/auth/resend-confirmation',
@@ -211,7 +215,75 @@ export class AuthCustomFormService {
     }
 
     private buildUrl(path: string): string {
+        if (this.isServerSessionPath(path)) {
+            return path;
+        }
         return buildAuthEndpointUrl(path, this.request?.url);
+    }
+
+    private async logoutServerSessionIfConfigured(): Promise<void> {
+        const logoutPath = this.serverSessionPath('logoutPath');
+        if (!logoutPath) return;
+        const context = this.authContext();
+        if (!context) {
+            throw new Error('Auth profile is unavailable.');
+        }
+
+        const response = await fetch(logoutPath, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                Accept: 'application/json',
+                'X-ZLP-Domain': context.domain,
+                'X-ZLP-Auth-Profile-Id': context.authProfileId,
+                [this.csrfHeaderName()]: this.csrfCookieValue(),
+            },
+        });
+        const body = await this.parseJson(response);
+        if (!response.ok || body.ok === false) {
+            throw new Error(this.clean(body.error) || 'Auth form request failed.');
+        }
+    }
+
+    private isServerSessionPath(path: string): boolean {
+        const sessionPaths = [
+            this.serverSessionPath('signinPath'),
+            this.serverSessionPath('mePath'),
+            this.serverSessionPath('logoutPath'),
+        ].filter(Boolean);
+        return sessionPaths.includes(path);
+    }
+
+    private authContext(): { readonly domain: string; readonly authProfileId: string } | null {
+        const domain = this.clean(this.configStore.siteConfig()?.domain).toLowerCase();
+        const authProfileId = this.clean(this.runtimeConfig.auth()?.authProfileId);
+        if (!domain || !authProfileId) {
+            return null;
+        }
+        return { domain, authProfileId };
+    }
+
+    private serverSessionPath(key: 'signinPath' | 'mePath' | 'logoutPath'): string {
+        const session = this.runtimeConfig.auth()?.session;
+        const value = session?.mode === 'server-cookie' ? session[key] : '';
+        return this.safeSameOriginPath(value);
+    }
+
+    private csrfHeaderName(): string {
+        return this.clean(this.runtimeConfig.auth()?.session?.csrfHeaderName) || 'X-ZLP-CSRF';
+    }
+
+    private csrfCookieValue(): string {
+        const cookieName = this.clean(this.runtimeConfig.auth()?.session?.csrfCookieName) || 'zlp_csrf';
+        if (typeof document === 'undefined' || !document.cookie) {
+            return '';
+        }
+        const match = document.cookie
+            .split(';')
+            .map((entry) => entry.trim())
+            .map((entry) => entry.split('='))
+            .find(([key]) => key === cookieName);
+        return match?.[1] ?? '';
     }
 
     private navigateAfterSignin(): void {

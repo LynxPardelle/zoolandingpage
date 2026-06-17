@@ -88,6 +88,15 @@
       eventInstructions: $event.eventInstructions || component.eventInstructions
     })
   "
+  (actionClicked)="
+    eventEmitted({
+      component: component.id,
+      meta_title: component.meta_title,
+      eventName: 'actionClicked',
+      eventData: $event.label,
+      eventInstructions: $event.eventInstructions || component.eventInstructions
+    })
+  "
 ></generic-card>
 } @case('input') {
 <generic-input
@@ -176,6 +185,12 @@
     [ngTemplateOutletContext]="{ $implicit: component }"
   ></ng-container>
 </generic-link>
+} @case('loading-spinner') {
+<app-loading-spinner
+  [variant]="loadingSpinnerConfig(component).variant || 'ring'"
+  [size]="loadingSpinnerConfig(component).size || 'md'"
+  [classes]="loadingSpinnerConfig(component).classes || ''"
+></app-loading-spinner>
 } @case('media') {
 <generic-media [config]="$any(mediaConfig(component))"></generic-media>
 } @case('pagination') {
