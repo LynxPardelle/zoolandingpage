@@ -1170,7 +1170,12 @@ describe('config-payload.validators', () => {
                 config: {
                     fieldId: 'email',
                     controlType: 'text',
-                    validation: [{ type: 'email' }],
+                    showValidationChecklist: true,
+                    validationChecklistClasses: 'checklist',
+                    validation: [
+                        { type: 'email' },
+                        { type: 'matchesField', fieldId: 'confirmEmail', message: 'Emails must match.' },
+                    ],
                 },
             },
         });

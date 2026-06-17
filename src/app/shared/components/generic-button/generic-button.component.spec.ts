@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { InteractionScopeService } from '../interaction-scope/interaction-scope.service';
 import { GenericButtonComponent } from './generic-button.component';
 
 describe('GenericButtonComponent', () => {
@@ -137,6 +138,32 @@ describe('GenericButtonComponent', () => {
     expect(pressed).not.toHaveBeenCalled();
     expect(component.pressed.emit).not.toHaveBeenCalled();
     expect(button.getAttribute('aria-busy')).toBe('true');
+  });
+
+  it('can disable itself while the nearest interaction scope is invalid', () => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      imports: [GenericButtonComponent],
+      providers: [InteractionScopeService],
+    });
+    const scope = TestBed.inject(InteractionScopeService);
+    scope.configure({ scopeId: 'signup' });
+    scope.registerField({ fieldId: 'email', initialValue: '', required: true });
+
+    const fixture = TestBed.createComponent(GenericButtonComponent);
+    fixture.componentRef.setInput('config', {
+      label: 'Crear cuenta',
+      disabledWhenInvalidScope: true,
+    });
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    expect(button.disabled).toBeTrue();
+
+    scope.setFieldValue('email', 'user@example.com', { markTouched: true });
+    fixture.detectChanges();
+
+    expect(button.disabled).toBeFalse();
   });
 
   it('should render the icon after the label when iconPosition is after', () => {

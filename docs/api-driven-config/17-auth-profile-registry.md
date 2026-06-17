@@ -13,6 +13,7 @@ Source Of Truth:
 - `tools/tests/auth-profile-registry.spec.mjs`
 - `tools/tests/auth-service-handlers.spec.mjs`
 - `tools/tests/server-config-schema.spec.mjs`
+- `docs/api-driven-config/schemas/components.schema.json`
 - `docs/api-driven-config/schemas/auth-profile-registry.schema.json`
 - `docs/api-driven-config/schemas/integrations.schema.json`
 
@@ -78,6 +79,8 @@ Custom form drafts use generic inputs, buttons, visibility toggles, validation m
 - `authFormAction:forgotPassword`: posts email to `/auth/forgot-password`.
 - `authFormAction:confirmForgotPassword`: posts email/code/new password to `/auth/confirm-forgot-password`.
 - `authFormAction:logout`: clears local public session metadata and navigates to the configured same-origin logout/login path without calling Cognito Hosted UI.
+
+For password UX, drafts may opt into generic-input validation checklists and generic scope validation instead of custom Angular code. Use separate validation rules for each visible requirement, including lower case, upper case, number, minimum length, and symbol requirements. Use `matchesField` to compare confirm-password fields to the password field, and use `disabledWhenInvalidScope` on submit buttons so account creation or password reset is not clickable until the interaction scope is valid. These controls are UX validation only; the backend auth service and Cognito policy must still enforce final password, tenant, and group rules server-side.
 
 The Angular service derives `domain`, `authProfileId`, and current language from runtime state and removes client-supplied tenant, group, and policy-looking fields from requests. Confirm-password fields are local UX validation only and are never sent to the Lambda. The Lambda must read `customAuth` from the server-only profile, call Cognito with a public app client, set tenant attributes and default groups only from server-side policy, and return sanitized statuses such as `signed-in`, `confirmation-required`, `confirmed`, `code-sent`, or `password-reset`. Custom signin requires a Cognito app client that supports the configured password auth flow. Custom signin returns only public session metadata to Angular; it does not return ID, access, or refresh tokens. Backend APIs still need JWT verification for protected data/actions, so custom signin must not be treated as API authorization by itself.
 
