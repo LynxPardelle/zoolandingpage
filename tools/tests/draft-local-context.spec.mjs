@@ -1160,3 +1160,110 @@ test('built SSR server can derive sitemap routes from the runtime bundle when lo
   assert.match(sitemapXml, /<loc>https:\/\/runtime-only\.example\.com\/<\/loc>/);
   assert.match(sitemapXml, /<loc>https:\/\/runtime-only\.example\.com\/contact<\/loc>/);
 });
+
+test('built SSR server uses route runtime bundle status when the cached site route map is incomplete', async t => {
+  assert.equal(
+    existsSync(builtServerPath),
+    true,
+    'Built SSR server not found. Run this test through `npm run test:draft-context` or build first.'
+  );
+
+  const apiPort = await getFreePort();
+  const apiServer = http.createServer((req, res) => {
+    const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+    if (url.pathname !== '/runtime-bundle') {
+      res.statusCode = 404;
+      res.end('not found');
+      return;
+    }
+
+    const routePath = url.searchParams.get('path') || '/';
+    const pageId = routePath === '/registro' ? 'registro' : 'default';
+    res.setHeader('Content-Type', 'application/json');
+    res.end(
+      JSON.stringify({
+        version: 1,
+        domain: 'runtime-status.example.com',
+        pageId,
+        sourceStage: 'published',
+        siteConfig: {
+          version: 1,
+          domain: 'runtime-status.example.com',
+          defaultPageId: 'default',
+          routes: [
+            { path: '/', pageId: 'default' },
+          ],
+          site: {
+            appIdentity: { identifier: 'runtime-status', name: 'Runtime Status' },
+            theme: { defaultMode: 'light', palettes: {} },
+            i18n: { defaultLanguage: 'es', supportedLanguages: [{ code: 'es', label: 'ES' }] },
+            seo: { canonicalOrigin: 'https://runtime-status.example.com' },
+          },
+        },
+        pageConfig: {
+          version: 1,
+          domain: 'runtime-status.example.com',
+          pageId,
+          rootIds: ['main'],
+          metadata: { title: pageId === 'registro' ? 'Registro' : 'Inicio' },
+        },
+        components: {
+          version: 1,
+          domain: 'runtime-status.example.com',
+          pageId,
+          components: [
+            {
+              id: 'main',
+              type: 'text',
+              config: { tag: 'main', text: pageId === 'registro' ? 'Registro runtime' : 'Inicio runtime' },
+            },
+          ],
+        },
+        metadata: {
+          statusCode: 200,
+          notFound: false,
+          resolvedPath: routePath,
+        },
+      })
+    );
+  });
+  await new Promise((resolve, reject) => {
+    apiServer.once('error', reject);
+    apiServer.listen(apiPort, '127.0.0.1', resolve);
+  });
+
+  const workspaceRoot = await mkdtemp(path.join(tmpdir(), 'zoolanding-runtime-status-'));
+  const port = await getFreePort();
+  const child = spawn(process.execPath, [builtServerPath], {
+    cwd: workspaceRoot,
+    env: {
+      ...process.env,
+      PORT: String(port),
+      CONFIG_API_URL: `http://127.0.0.1:${apiPort}`,
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+    windowsHide: true,
+  });
+
+  let serverOutput = '';
+  child.stdout.on('data', chunk => {
+    serverOutput += chunk.toString();
+  });
+  child.stderr.on('data', chunk => {
+    serverOutput += chunk.toString();
+  });
+
+  t.after(async () => {
+    await stopServer(child);
+    await new Promise((resolve, reject) => apiServer.close(error => (error ? reject(error) : resolve())));
+    await rm(workspaceRoot, { recursive: true, force: true });
+  });
+
+  await waitForServer(`http://127.0.0.1:${port}/api/debug/drafts`);
+
+  const registroResponse = await fetch(
+    `http://127.0.0.1:${port}/registro?draftDomain=runtime-status.example.com`
+  );
+
+  assert.equal(registroResponse.status, 200, serverOutput);
+});

@@ -175,6 +175,7 @@ type TLocalPageConfig = {
 type TRuntimeBundlePayload = {
   readonly siteConfig?: unknown;
   readonly pageConfig?: unknown;
+  readonly metadata?: unknown;
 };
 
 type TLocalComponentsPayload = {
@@ -1216,6 +1217,31 @@ async function loadRuntimePageConfig(domain: string, path: string): Promise<TLoc
   return null;
 }
 
+async function loadRuntimeRouteStatus(domain: string, path: string): Promise<200 | 404 | null> {
+  const normalizedDomain = normalizeHost(domain);
+  if (!normalizedDomain || RUNTIME_BUNDLE_BASE_URLS.length === 0) {
+    return null;
+  }
+
+  const normalizedPath = normalizeRoutePath(path);
+  for (const baseUrl of RUNTIME_BUNDLE_BASE_URLS) {
+    const payload = await fetchRuntimeBundlePayload(baseUrl, normalizedDomain, normalizedPath);
+    if (!payload) {
+      continue;
+    }
+
+    const metadata = isRecord(payload.metadata) ? payload.metadata : {};
+    const statusCode = Number(metadata['statusCode']);
+    if (statusCode === 404 || metadata['notFound'] === true) {
+      return 404;
+    }
+
+    return 200;
+  }
+
+  return null;
+}
+
 async function loadPageConfigForRoute(domain: string, route: TSiteConfigRouteEntry): Promise<TLocalPageConfig | null> {
   const pageId = String(route.pageId ?? '').trim();
   const localPageConfig = pageId ? loadLocalPageConfig(domain, pageId) : null;
@@ -2089,6 +2115,15 @@ async function shouldServeNotFoundDocument(req: express.Request): Promise<boolea
 
   if (resolveLocalRoute(siteConfig, normalizedPath)) {
     return false;
+  }
+
+  const runtimeRouteStatus = await loadRuntimeRouteStatus(lookupDomain, normalizedPath);
+  if (runtimeRouteStatus === 200) {
+    return false;
+  }
+
+  if (runtimeRouteStatus === 404) {
+    return normalizedPath !== '/';
   }
 
   return normalizedPath !== '/';
