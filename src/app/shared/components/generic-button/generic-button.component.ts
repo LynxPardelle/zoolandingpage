@@ -2,6 +2,7 @@ import { CommonModule } from "@angular/common";
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   EventEmitter,
   Output,
   computed,
@@ -26,6 +27,7 @@ export class GenericButtonComponent {
   private readonly buttonTypes = ['button', 'submit', 'reset'] as const;
   private readonly iconPositions = ['after', 'before'] as const;
   private readonly interactionScope = inject(InteractionScopeService, { optional: true });
+  private readonly host = inject(ElementRef<HTMLElement>);
 
   readonly label = computed<string>(() => {
     const label = this.resolve(this.config().label);
@@ -33,9 +35,10 @@ export class GenericButtonComponent {
   });
   readonly disabled = computed<boolean>(() => {
     const ownDisabled = Boolean(this.resolve(this.config().disabled) ?? false);
-    const scopeDisabled = Boolean(this.resolve(this.config().disabledWhenInvalidScope) ?? false)
+    const usesScopeDisabled = Boolean(this.resolve(this.config().disabledWhenInvalidScope) ?? false);
+    const scopeDisabled = usesScopeDisabled
       && this.interactionScope != null
-      && !this.interactionScope.valid();
+      && !this.isRenderedScopeValid();
     return ownDisabled || scopeDisabled;
   });
   readonly loading = computed<boolean>(() => Boolean(this.resolve(this.config().loading) ?? false));
@@ -122,6 +125,20 @@ export class GenericButtonComponent {
   private enumValue<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
     const resolved = this.resolve(value);
     return typeof resolved === 'string' && allowed.includes(resolved as T) ? resolved as T : fallback;
+  }
+
+  private isRenderedScopeValid(): boolean {
+    const snapshot = this.interactionScope?.snapshot();
+    if (snapshot?.valid) {
+      return true;
+    }
+
+    const form = this.host.nativeElement.closest('form');
+    if (!form) {
+      return false;
+    }
+
+    return !form.querySelector('generic-input[data-zlp-field-valid="false"]');
   }
 
   onClick(event: MouseEvent): void {

@@ -37,6 +37,10 @@ import type {
   standalone: true,
   imports: [GenericButtonComponent, GenericDropdown, GenericTextComponent],
   templateUrl: './generic-input.component.html',
+  host: {
+    '[attr.data-zlp-field-id]': 'fieldId()',
+    '[attr.data-zlp-field-valid]': 'fieldState().valid ? "true" : "false"',
+  },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GenericInputComponent {

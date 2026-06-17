@@ -166,6 +166,66 @@ describe('GenericButtonComponent', () => {
     expect(button.disabled).toBeFalse();
   });
 
+  it('keeps scoped submit disabled when a rendered form field is invalid', () => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      imports: [GenericButtonComponent],
+      providers: [InteractionScopeService],
+    });
+    const scope = TestBed.inject(InteractionScopeService);
+    scope.configure({ scopeId: 'signup' });
+    scope.registerField({ fieldId: 'email', initialValue: '', required: true });
+
+    const fixture = TestBed.createComponent(GenericButtonComponent);
+    const form = document.createElement('form');
+    const renderedField = document.createElement('generic-input');
+    renderedField.setAttribute('data-zlp-field-valid', 'false');
+    form.appendChild(renderedField);
+    form.appendChild(fixture.nativeElement);
+    document.body.appendChild(form);
+
+    fixture.componentRef.setInput('config', {
+      label: 'Crear cuenta',
+      disabledWhenInvalidScope: true,
+    });
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    expect(button.disabled).toBeTrue();
+
+    form.remove();
+  });
+
+  it('does not trap scoped submit disabled when rendered form fields are valid', () => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      imports: [GenericButtonComponent],
+      providers: [InteractionScopeService],
+    });
+    const scope = TestBed.inject(InteractionScopeService);
+    scope.configure({ scopeId: 'signup' });
+    scope.registerField({ fieldId: 'staleHiddenField', initialValue: '', required: true });
+
+    const fixture = TestBed.createComponent(GenericButtonComponent);
+    const form = document.createElement('form');
+    const renderedField = document.createElement('generic-input');
+    renderedField.setAttribute('data-zlp-field-valid', 'true');
+    form.appendChild(renderedField);
+    form.appendChild(fixture.nativeElement);
+    document.body.appendChild(form);
+
+    fixture.componentRef.setInput('config', {
+      label: 'Crear cuenta',
+      disabledWhenInvalidScope: true,
+    });
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    expect(button.disabled).toBeFalse();
+
+    form.remove();
+  });
+
   it('should render the icon after the label when iconPosition is after', () => {
     const fixture = TestBed.createComponent(GenericButtonComponent);
 
