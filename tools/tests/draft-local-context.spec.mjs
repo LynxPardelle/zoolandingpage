@@ -1169,6 +1169,8 @@ test('built SSR server uses route runtime bundle status when the cached site rou
   );
 
   const apiPort = await getFreePort();
+  let testAliasRegistroRequests = 0;
+  let testAliasMissingRequests = 0;
   const apiServer = http.createServer((req, res) => {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
     if (url.pathname !== '/runtime-bundle') {
@@ -1177,7 +1179,14 @@ test('built SSR server uses route runtime bundle status when the cached site rou
       return;
     }
 
+    const requestedDomain = url.searchParams.get('domain') || '';
     const routePath = url.searchParams.get('path') || '/';
+    if (requestedDomain === 'test.runtime-status.example.com' && routePath === '/registro') {
+      testAliasRegistroRequests += 1;
+    }
+    if (requestedDomain === 'test.runtime-status.example.com' && routePath === '/missing') {
+      testAliasMissingRequests += 1;
+    }
     const pageId = routePath === '/registro'
       ? 'registro'
       : routePath === '/missing'
@@ -1200,6 +1209,11 @@ test('built SSR server uses route runtime bundle status when the cached site rou
           domain: 'runtime-status.example.com',
           defaultPageId: 'default',
           notFoundPageId: 'not-found',
+          environments: {
+            test: {
+              aliases: ['test.runtime-status.example.com'],
+            },
+          },
           routes: [
             { path: '/', pageId: 'default' },
           ],
@@ -1285,14 +1299,28 @@ test('built SSR server uses route runtime bundle status when the cached site rou
   await waitForServer(`http://127.0.0.1:${port}/api/debug/drafts`);
 
   const registroResponse = await fetch(
-    `http://127.0.0.1:${port}/registro?draftDomain=runtime-status.example.com`
+    `http://127.0.0.1:${port}/registro?draftDomain=runtime-status.example.com`,
+    {
+      headers: {
+        'x-forwarded-host': 'test.zoolandingpage.com.mx',
+        'x-forwarded-proto': 'https',
+      },
+    }
   );
 
   assert.equal(registroResponse.status, 200, serverOutput);
+  assert.equal(testAliasRegistroRequests > 0, true, serverOutput);
 
   const missingResponse = await fetch(
-    `http://127.0.0.1:${port}/missing?draftDomain=runtime-status.example.com`
+    `http://127.0.0.1:${port}/missing?draftDomain=runtime-status.example.com`,
+    {
+      headers: {
+        'x-forwarded-host': 'test.zoolandingpage.com.mx',
+        'x-forwarded-proto': 'https',
+      },
+    }
   );
 
   assert.equal(missingResponse.status, 404, serverOutput);
+  assert.equal(testAliasMissingRequests > 0, true, serverOutput);
 });
