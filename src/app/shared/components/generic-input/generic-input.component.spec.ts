@@ -199,6 +199,32 @@ describe('GenericInputComponent', () => {
         expect(items.every((item) => item.classList.contains('isValid'))).toBeTrue();
     });
 
+    it('updates text field validation from keyup fallback events', () => {
+        const fixture = TestBed.createComponent(GenericInputComponent);
+
+        fixture.componentRef.setInput('config', {
+            fieldId: 'password',
+            controlType: 'text',
+            inputType: 'password',
+            value: '',
+            showValidationChecklist: true,
+            validation: [
+                { type: 'minLength', value: 12, message: 'Usa al menos 12 caracteres.' },
+                { type: 'pattern', value: '[^A-Za-z0-9\\s]', message: 'Incluye un símbolo.' },
+            ],
+        });
+        fixture.detectChanges();
+
+        const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+        input.value = 'StrongPass123!';
+        input.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+        fixture.detectChanges();
+
+        const items = Array.from(fixture.nativeElement.querySelectorAll('li')) as HTMLLIElement[];
+        expect(items.length).toBe(2);
+        expect(items.every((item) => item.getAttribute('data-valid') === 'true')).toBeTrue();
+    });
+
     it('can delay and filter autocomplete options by the typed text', () => {
         const fixture = TestBed.createComponent(GenericInputComponent);
 
