@@ -176,6 +176,8 @@ type TRuntimeBundlePayload = {
   readonly siteConfig?: unknown;
   readonly pageConfig?: unknown;
   readonly metadata?: unknown;
+  readonly pageId?: unknown;
+  readonly route?: unknown;
 };
 
 type TLocalComponentsPayload = {
@@ -1233,6 +1235,15 @@ async function loadRuntimeRouteStatus(domain: string, path: string): Promise<200
     const metadata = isRecord(payload.metadata) ? payload.metadata : {};
     const statusCode = Number(metadata['statusCode']);
     if (statusCode === 404 || metadata['notFound'] === true) {
+      return 404;
+    }
+
+    const siteConfig = isRecord(payload.siteConfig) ? payload.siteConfig as TLocalSiteConfig : null;
+    const route = isRecord(payload.route) ? payload.route : null;
+    const routePath = normalizeRoutePath(route?.['path']);
+    const pageId = String(payload.pageId ?? '').trim();
+    const notFoundPageId = resolveLocalNotFoundPageId(siteConfig);
+    if (routePath === '/404' || (!!notFoundPageId && pageId === notFoundPageId)) {
       return 404;
     }
 

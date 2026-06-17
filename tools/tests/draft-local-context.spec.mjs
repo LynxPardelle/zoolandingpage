@@ -1178,18 +1178,28 @@ test('built SSR server uses route runtime bundle status when the cached site rou
     }
 
     const routePath = url.searchParams.get('path') || '/';
-    const pageId = routePath === '/registro' ? 'registro' : 'default';
+    const pageId = routePath === '/registro'
+      ? 'registro'
+      : routePath === '/missing'
+        ? 'not-found'
+        : 'default';
+    const isNotFound = pageId === 'not-found';
     res.setHeader('Content-Type', 'application/json');
     res.end(
       JSON.stringify({
         version: 1,
         domain: 'runtime-status.example.com',
         pageId,
+        route: {
+          path: isNotFound ? '/404' : routePath,
+          pageId,
+        },
         sourceStage: 'published',
         siteConfig: {
           version: 1,
           domain: 'runtime-status.example.com',
           defaultPageId: 'default',
+          notFoundPageId: 'not-found',
           routes: [
             { path: '/', pageId: 'default' },
           ],
@@ -1205,7 +1215,13 @@ test('built SSR server uses route runtime bundle status when the cached site rou
           domain: 'runtime-status.example.com',
           pageId,
           rootIds: ['main'],
-          metadata: { title: pageId === 'registro' ? 'Registro' : 'Inicio' },
+          metadata: {
+            title: pageId === 'registro'
+              ? 'Registro'
+              : isNotFound
+                ? 'No encontrado'
+                : 'Inicio',
+          },
         },
         components: {
           version: 1,
@@ -1215,13 +1231,20 @@ test('built SSR server uses route runtime bundle status when the cached site rou
             {
               id: 'main',
               type: 'text',
-              config: { tag: 'main', text: pageId === 'registro' ? 'Registro runtime' : 'Inicio runtime' },
+              config: {
+                tag: 'main',
+                text: pageId === 'registro'
+                  ? 'Registro runtime'
+                  : isNotFound
+                    ? 'No encontrado runtime'
+                    : 'Inicio runtime',
+              },
             },
           ],
         },
         metadata: {
-          statusCode: 200,
-          notFound: false,
+          statusCode: isNotFound ? 404 : 200,
+          notFound: isNotFound,
           resolvedPath: routePath,
         },
       })
@@ -1266,4 +1289,10 @@ test('built SSR server uses route runtime bundle status when the cached site rou
   );
 
   assert.equal(registroResponse.status, 200, serverOutput);
+
+  const missingResponse = await fetch(
+    `http://127.0.0.1:${port}/missing?draftDomain=runtime-status.example.com`
+  );
+
+  assert.equal(missingResponse.status, 404, serverOutput);
 });
