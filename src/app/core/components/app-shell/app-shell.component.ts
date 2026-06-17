@@ -1,4 +1,8 @@
 import { RuntimeService } from "@/app/core/services/runtime.service";
+import {
+  CLIENT_NAVIGATION_END_EVENT,
+  CLIENT_NAVIGATION_START_EVENT,
+} from "@/app/shared/utility/navigation/browser-navigation.utility";
 import { WrapperOrchestrator } from "@/app/shared/components/wrapper-orchestrator/wrapper-orchestrator.component";
 import { ConfigStoreService } from "@/app/shared/services/config-store.service";
 import { ConfigurationsOrchestratorService } from "@/app/shared/services/configurations-orchestrator";
@@ -132,6 +136,15 @@ export class AppShellComponent {
     });
 
     if (this.isBrowser) {
+      const handleClientNavigationStart = () => this.routeTransitionActive.set(true);
+      const handleClientNavigationEnd = () => this.routeTransitionActive.set(false);
+      window.addEventListener(CLIENT_NAVIGATION_START_EVENT, handleClientNavigationStart);
+      window.addEventListener(CLIENT_NAVIGATION_END_EVENT, handleClientNavigationEnd);
+      this.destroyRef.onDestroy(() => {
+        window.removeEventListener(CLIENT_NAVIGATION_START_EVENT, handleClientNavigationStart);
+        window.removeEventListener(CLIENT_NAVIGATION_END_EVENT, handleClientNavigationEnd);
+      });
+
       this.router.events
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe((event) => {
