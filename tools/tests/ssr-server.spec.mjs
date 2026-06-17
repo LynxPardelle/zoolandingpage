@@ -128,6 +128,101 @@ test('production SSR server renders behind Traefik forwarded headers', async (t)
   assert.doesNotMatch(getStderr(), /trustProxyHeaders/i);
 });
 
+test('production SSR shared preview decorates head with the test runtime environment', async (t) => {
+  const requests = [];
+  const apiBase = await startRuntimeApi(t, (req, res) => {
+    const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+    if (url.pathname !== '/runtime-bundle') {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false }));
+      return;
+    }
+
+    const environment = url.searchParams.get('environment') ?? '';
+    requests.push({
+      domain: url.searchParams.get('domain'),
+      path: url.searchParams.get('path'),
+      environment,
+    });
+
+    const brand = environment === 'test' ? 'Current Test Brand' : 'Old Production Brand';
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      ok: true,
+      version: 1,
+      domain: 'preview.example.com',
+      pageId: 'default',
+      sourceStage: 'published',
+      generatedAt: '2026-06-16T00:00:00.000Z',
+      route: { path: '/', pageId: 'default', label: 'Home' },
+      siteConfig: {
+        version: 1,
+        domain: 'preview.example.com',
+        defaultPageId: 'default',
+        routes: [{ path: '/', pageId: 'default', label: 'Home' }],
+        defaults: {
+          brand: {
+            displayName: brand,
+          },
+        },
+        site: {
+          seo: {
+            siteName: brand,
+            canonicalOrigin: 'https://preview.example.com',
+          },
+        },
+      },
+      pageConfig: {
+        version: 1,
+        pageId: 'default',
+        domain: 'preview.example.com',
+        rootIds: [],
+        seo: {
+          title: `${ brand } title`,
+          description: `${ brand } description`,
+        },
+        structuredData: {
+          entries: [
+            {
+              '@context': 'https://schema.org',
+              '@type': 'Organization',
+              name: brand,
+            },
+          ],
+        },
+      },
+      components: {
+        version: 1,
+        domain: 'preview.example.com',
+        pageId: 'default',
+        components: [],
+      },
+      metadata: {},
+    }));
+  });
+  const { port, getStderr } = await startProductionServer(t, {
+    CONFIG_API_SERVER_FALLBACK_URL: '',
+    CONFIG_API_URL: apiBase,
+  });
+  const response = await fetch(`http://127.0.0.1:${port}/?draftDomain=preview.example.com&debugWorkspace=false`, {
+    headers: {
+      Host: 'test.zoolandingpage.com.mx',
+      'X-Forwarded-Host': 'test.zoolandingpage.com.mx',
+      'X-Forwarded-Port': '443',
+      'X-Forwarded-Proto': 'https',
+      'X-Forwarded-Server': 'dokploy-traefik',
+    },
+  });
+  const body = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.match(body, /Current Test Brand/);
+  assert.doesNotMatch(body, /Old Production Brand/);
+  assert.match(body, /data-zlp-boot-title="">Current Test Brand<\/strong>/);
+  assert(requests.some((request) => request.environment === 'test'));
+  assert.equal(getStderr(), '');
+});
+
 test('production SSR server does not self-redirect when proxy proto chain includes https', async (t) => {
   const { port, getStderr } = await startProductionServer(t);
   const response = await fetch(`http://127.0.0.1:${port}/robots.txt`, {
@@ -304,7 +399,7 @@ test('production SSR server prefers the server-only runtime fallback for auxilia
 
   assert.equal(response.status, 200);
   assert.match(body, /Sitemap: https:\/\/runtime-fallback\.example\/sitemap\.xml/);
-  assert.deepEqual(fallbackRequests, ['/Prod/runtime-bundle']);
+  assert.deepEqual(fallbackRequests, ['/Prod/runtime-bundle', '/Prod/runtime-bundle']);
   assert.deepEqual(primaryRequests, []);
   assert.equal(getStderr(), '');
 });
@@ -361,7 +456,7 @@ test('production SSR server retries transient runtime fallback failures before c
 
   assert.equal(response.status, 200);
   assert.match(body, /Sitemap: https:\/\/runtime-retry\.example\/sitemap\.xml/);
-  assert.deepEqual(fallbackRequests, ['/Prod/runtime-bundle', '/Prod/runtime-bundle']);
+  assert.deepEqual(fallbackRequests, ['/Prod/runtime-bundle', '/Prod/runtime-bundle', '/Prod/runtime-bundle']);
   assert.deepEqual(primaryRequests, []);
   assert.equal(getStderr(), '');
 });
