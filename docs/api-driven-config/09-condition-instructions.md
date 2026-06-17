@@ -48,6 +48,9 @@ condition: 'all:scopeEq,heroImageUpload.status,error';
 // Show a preview only when a public URL exists in scope
 condition: 'all:scope,heroImageUpload.publicUrl';
 
+// Show a success banner based on a safe query parameter
+condition: 'all:queryEq,authStatus,account-confirmed';
+
 // Host string prefix/suffix
 condition: 'all:hostStartsWith,footerTranslations.en.termsLink,Terms';
 condition: 'all:hostEndsWith,footerTranslations.en.termsLink,Service';

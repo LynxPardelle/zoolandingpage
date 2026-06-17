@@ -33,6 +33,7 @@ export const ALLOWED_CONDITION_IDS: ReadonlyArray<string> = [
     'hostLenGte',
     'hostLenLt',
     'hostLenLte',
+    'queryEq',
     'true',
     'false',
     'always',
