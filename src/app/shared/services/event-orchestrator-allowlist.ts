@@ -15,6 +15,7 @@ const BASE_ALLOWED_EVENT_IDS = [
     'navigateToUrl',
     'navigateWithScopeQuery',
     'authAction',
+    'authAdminAction',
     'authFormAction',
     'setScopeValue',
     'uploadPublicImage',

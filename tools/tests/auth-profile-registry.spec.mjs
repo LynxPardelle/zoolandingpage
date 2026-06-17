@@ -34,8 +34,29 @@ const registry = {
       loginPath: '/login',
       logoutPath: '/auth/logout',
       allowedGroups: ['owner', 'editor'],
+      allowedTokenUses: ['id', 'access'],
+      adminGroups: ['owner'],
+      manageableGroups: ['owner', 'editor'],
+      defaultUserStatus: 'pending',
+      adminGroupsAutoApproved: true,
+      maxSessionSeconds: 43200,
       groupClaim: 'cognito:groups',
       tenantClaim: 'custom:tenant_id',
+      session: {
+        mode: 'server-cookie',
+        signinPath: '/auth/session/signin',
+        mePath: '/auth/session/me',
+        logoutPath: '/auth/session/logout',
+        csrfCookieName: 'zlp_csrf',
+        csrfHeaderName: 'X-ZLP-CSRF',
+      },
+      admin: {
+        usersPath: '/auth/admin/users',
+        approveUserPathTemplate: '/auth/admin/users/{subject}/approve',
+        groupsPathTemplate: '/auth/admin/users/{subject}/groups',
+        suspendUserPathTemplate: '/auth/admin/users/{subject}/suspend',
+        reactivateUserPathTemplate: '/auth/admin/users/{subject}/reactivate',
+      },
       socialIdpSecretRefs: {
         google: '/zoolanding/auth/example/google',
       },
@@ -53,6 +74,7 @@ const registry = {
       loginPath: '/login',
       logoutPath: '/auth/logout',
       allowedGroups: ['admin'],
+      allowedTokenUses: ['id'],
     },
   ],
 };
@@ -88,8 +110,57 @@ test('buildPublicAuthRuntimeConfig emits only safe browser metadata', () => {
     loginPath: '/login',
     groupsClaim: 'cognito:groups',
     allowedGroups: ['owner', 'editor'],
+    session: {
+      mode: 'server-cookie',
+      signinPath: '/auth/session/signin',
+      mePath: '/auth/session/me',
+      logoutPath: '/auth/session/logout',
+      csrfCookieName: 'zlp_csrf',
+      csrfHeaderName: 'X-ZLP-CSRF',
+    },
+    admin: {
+      usersPath: '/auth/admin/users',
+      approveUserPathTemplate: '/auth/admin/users/{subject}/approve',
+      groupsPathTemplate: '/auth/admin/users/{subject}/groups',
+      suspendUserPathTemplate: '/auth/admin/users/{subject}/suspend',
+      reactivateUserPathTemplate: '/auth/admin/users/{subject}/reactivate',
+    },
   });
   assert.equal(JSON.stringify(runtime).includes('secret'), false);
+  assert.equal(runtime.adminGroups, undefined);
+  assert.equal(runtime.manageableGroups, undefined);
+  assert.equal(runtime.defaultUserStatus, undefined);
+});
+
+test('validateAuthProfileRegistry validates server-only auth-admin policy fields', () => {
+  const good = validateAuthProfileRegistry({
+    version: 1,
+    profiles: [registry.profiles[0]],
+  });
+  assert.deepEqual(good, { valid: true, errors: [] });
+
+  const bad = validateAuthProfileRegistry({
+    version: 1,
+    profiles: [
+      {
+        ...registry.profiles[0],
+        adminGroups: ['owner', 'super-admin'],
+        manageableGroups: ['editor', 'outside-group'],
+        defaultUserStatus: 'auto-approved',
+        adminGroupsAutoApproved: 'yes',
+        maxSessionSeconds: 0,
+        allowedTokenUses: ['id', 'refresh', 'id'],
+      },
+    ],
+  });
+
+  assert.equal(bad.valid, false);
+  assert.match(bad.errors.join('\n'), /allowedTokenUses/);
+  assert.match(bad.errors.join('\n'), /adminGroups/);
+  assert.match(bad.errors.join('\n'), /manageableGroups/);
+  assert.match(bad.errors.join('\n'), /defaultUserStatus/);
+  assert.match(bad.errors.join('\n'), /adminGroupsAutoApproved/);
+  assert.match(bad.errors.join('\n'), /maxSessionSeconds/);
 });
 
 test('buildPublicAuthRuntimeConfig keeps non-active profiles disabled and rejects unsafe optional paths', () => {
@@ -279,6 +350,7 @@ test('authPolicyFromJwtClaims can require the stack runtime environment', () => 
     iss: profile.issuer,
     aud: profile.clientId,
     sub: 'user-123',
+    token_use: 'id',
     'custom:tenant_id': 'tenant-example',
     'custom:zoolanding_env': 'test',
     'cognito:groups': ['editor'],
@@ -288,6 +360,7 @@ test('authPolicyFromJwtClaims can require the stack runtime environment', () => 
     iss: profile.issuer,
     aud: profile.clientId,
     sub: 'user-123',
+    token_use: 'id',
     'custom:tenant_id': 'tenant-example',
     'custom:zoolanding_env': 'prod',
     'cognito:groups': ['editor'],
@@ -304,6 +377,7 @@ test('authPolicyFromJwtClaims authorizes only expected tenant, audience, issuer,
     iss: profile.issuer,
     aud: profile.clientId,
     sub: 'user-123',
+    token_use: 'id',
     'custom:tenant_id': 'tenant-example',
     'cognito:groups': ['editor'],
   }), {
@@ -317,6 +391,7 @@ test('authPolicyFromJwtClaims authorizes only expected tenant, audience, issuer,
     iss: profile.issuer,
     client_id: profile.clientId,
     sub: 'user-123',
+    token_use: 'access',
     'custom:tenant_id': 'tenant-example',
     'cognito:groups': ['editor'],
   }).authorized, true);
@@ -325,9 +400,34 @@ test('authPolicyFromJwtClaims authorizes only expected tenant, audience, issuer,
     iss: profile.issuer,
     aud: profile.clientId,
     sub: 'user-123',
+    token_use: 'id',
     'custom:tenant_id': 'tenant-example',
     'cognito:groups': ['viewer'],
   }).authorized, false);
+
+  const missingTokenUse = authPolicyFromJwtClaims(profile, {
+    iss: profile.issuer,
+    aud: profile.clientId,
+    sub: 'user-123',
+    'custom:tenant_id': 'tenant-example',
+    'cognito:groups': ['editor'],
+  });
+  assert.equal(missingTokenUse.authorized, false);
+  assert.equal(missingTokenUse.reason, 'token_use_mismatch');
+
+  const accessDeniedForIdOnlyProfile = authPolicyFromJwtClaims({
+    ...profile,
+    allowedTokenUses: ['id'],
+  }, {
+    iss: profile.issuer,
+    client_id: profile.clientId,
+    sub: 'user-123',
+    token_use: 'access',
+    'custom:tenant_id': 'tenant-example',
+    'cognito:groups': ['editor'],
+  });
+  assert.equal(accessDeniedForIdOnlyProfile.authorized, false);
+  assert.equal(accessDeniedForIdOnlyProfile.reason, 'token_use_mismatch');
 });
 
 test('validateServerIntegrations accepts user access policy separately from upstream auth credentials', () => {

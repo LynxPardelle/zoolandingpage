@@ -11,6 +11,17 @@ const CUSTOM_AUTH_KEYS = new Set(['signin', 'signup', 'passwordRecovery']);
 const CUSTOM_SIGNIN_KEYS = new Set(['enabled']);
 const CUSTOM_SIGNUP_KEYS = new Set(['enabled', 'setTenantClaim', 'setEnvironmentClaim', 'defaultGroups']);
 const CUSTOM_PASSWORD_RECOVERY_KEYS = new Set(['enabled']);
+const AUTH_SESSION_KEYS = new Set(['mode', 'signinPath', 'mePath', 'logoutPath', 'csrfCookieName', 'csrfHeaderName']);
+const AUTH_ADMIN_KEYS = new Set([
+  'usersPath',
+  'approveUserPathTemplate',
+  'groupsPathTemplate',
+  'suspendUserPathTemplate',
+  'reactivateUserPathTemplate',
+]);
+const AUTH_APPROVAL_STATUSES = new Set(['pending', 'approved', 'rejected', 'suspended']);
+const JWT_TOKEN_USES = new Set(['id', 'access']);
+const DEFAULT_JWT_TOKEN_USES = ['id', 'access'];
 
 function cleanString(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -175,6 +186,70 @@ function validateCustomAuth(customAuth, profile, index, errors) {
   }
 }
 
+function validatePublicAuthServiceMetadata(profile, index, errors) {
+  const prefix = `profiles[${index}]`;
+  if (profile.session !== undefined) {
+    const sessionPrefix = `${prefix}.session`;
+    if (!profile.session || typeof profile.session !== 'object' || Array.isArray(profile.session)) {
+      errors.push(`${sessionPrefix} must be an object when present`);
+    } else {
+      validateKnownKeys(profile.session, AUTH_SESSION_KEYS, sessionPrefix, errors);
+      pushIf(profile.session.mode !== undefined && profile.session.mode !== 'server-cookie', errors, `${sessionPrefix}.mode must be server-cookie`);
+      for (const key of ['signinPath', 'mePath', 'logoutPath']) {
+        pushIf(profile.session[key] !== undefined && !isSafeSameOriginPath(profile.session[key]), errors, `${sessionPrefix}.${key} must be a same-origin path`);
+      }
+      for (const key of ['csrfCookieName', 'csrfHeaderName']) {
+        pushIf(profile.session[key] !== undefined && (typeof profile.session[key] !== 'string' || hasUnsafeChars(profile.session[key])), errors, `${sessionPrefix}.${key} is invalid`);
+      }
+    }
+  }
+
+  if (profile.admin !== undefined) {
+    const adminPrefix = `${prefix}.admin`;
+    if (!profile.admin || typeof profile.admin !== 'object' || Array.isArray(profile.admin)) {
+      errors.push(`${adminPrefix} must be an object when present`);
+    } else {
+      validateKnownKeys(profile.admin, AUTH_ADMIN_KEYS, adminPrefix, errors);
+      for (const key of AUTH_ADMIN_KEYS) {
+        pushIf(profile.admin[key] !== undefined && !isSafeSameOriginPath(profile.admin[key]), errors, `${adminPrefix}.${key} must be a same-origin path`);
+      }
+    }
+  }
+}
+
+function validateServerOnlyAuthAdminPolicy(profile, index, errors) {
+  const prefix = `profiles[${index}]`;
+  if (profile.allowedTokenUses !== undefined) {
+    pushIf(!isNonEmptyStringArray(profile.allowedTokenUses), errors, `${prefix}.allowedTokenUses must be a string array when present`);
+    if (Array.isArray(profile.allowedTokenUses)) {
+      const unknownTokenUses = profile.allowedTokenUses.filter(tokenUse => !JWT_TOKEN_USES.has(tokenUse));
+      pushIf(unknownTokenUses.length > 0, errors, `${prefix}.allowedTokenUses must contain only id or access`);
+      pushIf(new Set(profile.allowedTokenUses).size !== profile.allowedTokenUses.length, errors, `${prefix}.allowedTokenUses must not contain duplicates`);
+    }
+  }
+  if (profile.adminGroups !== undefined) {
+    pushIf(!isNonEmptyStringArray(profile.adminGroups), errors, `${prefix}.adminGroups must be a string array when present`);
+    if (Array.isArray(profile.adminGroups) && Array.isArray(profile.allowedGroups)) {
+      pushIf(!profile.adminGroups.every(group => profile.allowedGroups.includes(group)), errors, `${prefix}.adminGroups must be a subset of allowedGroups`);
+    }
+  }
+  if (profile.manageableGroups !== undefined) {
+    pushIf(!isNonEmptyStringArray(profile.manageableGroups), errors, `${prefix}.manageableGroups must be a string array when present`);
+    if (Array.isArray(profile.manageableGroups) && Array.isArray(profile.allowedGroups)) {
+      pushIf(!profile.manageableGroups.every(group => profile.allowedGroups.includes(group)), errors, `${prefix}.manageableGroups must be a subset of allowedGroups`);
+    }
+  }
+  if (profile.defaultUserStatus !== undefined) {
+    pushIf(typeof profile.defaultUserStatus !== 'string' || !AUTH_APPROVAL_STATUSES.has(profile.defaultUserStatus), errors, `${prefix}.defaultUserStatus is invalid`);
+  }
+  if (profile.adminGroupsAutoApproved !== undefined) {
+    pushIf(typeof profile.adminGroupsAutoApproved !== 'boolean', errors, `${prefix}.adminGroupsAutoApproved must be a boolean`);
+  }
+  if (profile.maxSessionSeconds !== undefined) {
+    pushIf(typeof profile.maxSessionSeconds !== 'number' || !Number.isFinite(profile.maxSessionSeconds) || profile.maxSessionSeconds <= 0, errors, `${prefix}.maxSessionSeconds must be a positive number`);
+  }
+}
+
 function validateProfile(profile, index, seen, errors) {
   const prefix = `profiles[${index}]`;
   if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
@@ -214,6 +289,8 @@ function validateProfile(profile, index, seen, errors) {
 
   validateSocialIdpSecretRefs(profile.socialIdpSecretRefs, index, errors);
   validateCustomAuth(profile.customAuth, profile, index, errors);
+  validatePublicAuthServiceMetadata(profile, index, errors);
+  validateServerOnlyAuthAdminPolicy(profile, index, errors);
 }
 
 export function validateAuthProfileRegistry(registry) {
@@ -267,7 +344,7 @@ export function buildPublicAuthRuntimeConfig(profile, options = {}) {
     throw new Error('postLogoutPath must be a same-origin path');
   }
 
-  return {
+  const runtime = {
     enabled: profile.status === 'active' && options.enabled !== false,
     authProfileId: profile.authProfileId,
     provider: 'cognito',
@@ -287,6 +364,34 @@ export function buildPublicAuthRuntimeConfig(profile, options = {}) {
     groupsClaim: profile.groupClaim ?? DEFAULT_GROUPS_CLAIM,
     allowedGroups: uniqueStrings(profile.allowedGroups ?? []),
   };
+
+  const session = publicAuthSessionMetadata(profile.session);
+  if (session) runtime.session = session;
+  const admin = publicAuthAdminMetadata(profile.admin);
+  if (admin) runtime.admin = admin;
+
+  return runtime;
+}
+
+function publicAuthSessionMetadata(session) {
+  if (!session || typeof session !== 'object' || Array.isArray(session)) return null;
+  return {
+    mode: 'server-cookie',
+    ...(session.signinPath ? { signinPath: session.signinPath } : {}),
+    ...(session.mePath ? { mePath: session.mePath } : {}),
+    ...(session.logoutPath ? { logoutPath: session.logoutPath } : {}),
+    ...(session.csrfCookieName ? { csrfCookieName: session.csrfCookieName } : {}),
+    ...(session.csrfHeaderName ? { csrfHeaderName: session.csrfHeaderName } : {}),
+  };
+}
+
+function publicAuthAdminMetadata(admin) {
+  if (!admin || typeof admin !== 'object' || Array.isArray(admin)) return null;
+  return Object.fromEntries(
+    [...AUTH_ADMIN_KEYS]
+      .filter(key => typeof admin[key] === 'string' && admin[key].length > 0)
+      .map(key => [key, admin[key]]),
+  );
 }
 
 export function buildCognitoProvisioningPlan(profile) {
@@ -372,6 +477,8 @@ export function authPolicyFromJwtClaims(profile, claims, options = {}) {
   const groups = readClaimArray(claims[groupsClaim]);
   const expectedGroups = uniqueStrings(profile.allowedGroups ?? []);
   const subject = typeof claims.sub === 'string' && claims.sub.length > 0 ? claims.sub : null;
+  const tokenUse = typeof claims.token_use === 'string' ? claims.token_use : '';
+  const expectedTokenUses = uniqueStrings(profile.allowedTokenUses ?? DEFAULT_JWT_TOKEN_USES);
 
   if (claims.iss !== profile.issuer) {
     return { authorized: false, subject, groups, reason: 'issuer_mismatch' };
@@ -385,6 +492,9 @@ export function authPolicyFromJwtClaims(profile, claims, options = {}) {
   }
   if (!subject) {
     return { authorized: false, subject, groups, reason: 'missing_subject' };
+  }
+  if (!expectedTokenUses.includes(tokenUse)) {
+    return { authorized: false, subject, groups, reason: 'token_use_mismatch' };
   }
   if (profile.tenantClaim && claims[profile.tenantClaim] !== profile.tenantId) {
     return { authorized: false, subject, groups, reason: 'tenant_mismatch' };

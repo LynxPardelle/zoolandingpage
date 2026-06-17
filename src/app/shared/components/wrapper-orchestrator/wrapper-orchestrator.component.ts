@@ -18,6 +18,7 @@ import { GenericEmbedFrameComponent } from '../generic-embed-frame/generic-embed
 import { GenericIconComponent } from '../generic-icon/generic-icon.component';
 import { GenericInputComponent } from '../generic-input/generic-input.component';
 import { GenericLink } from '../generic-link/generic-link';
+import { GenericLoadingSpinnerComponent } from '../generic-loading-spinner';
 import { GenericMedia } from '../generic-media/generic-media';
 import { GenericPaginationComponent } from '../generic-pagination/generic-pagination.component';
 import { GenericSearchBoxComponent } from '../generic-search-box/generic-search-box.component';
@@ -55,6 +56,7 @@ import type { TGenericComponent } from './wrapper-orchestrator.types';
     GenericIconComponent,
     GenericInputComponent,
     forwardRef(() => InteractionScopeComponent),
+    GenericLoadingSpinnerComponent,
     GenericSearchBoxComponent,
     GenericTextComponent,
     GenericStatsCounterComponent,
@@ -219,6 +221,16 @@ export class WrapperOrchestrator {
   paginationConfig(
     component: Extract<TGenericComponent, { type: 'pagination' }>
   ): Extract<TGenericComponent, { type: 'pagination' }>['config'] {
+    return this.withResolvedDomId(
+      component.id,
+      component.type,
+      component.config
+    );
+  }
+
+  loadingSpinnerConfig(
+    component: Extract<TGenericComponent, { type: 'loading-spinner' }>
+  ): Extract<TGenericComponent, { type: 'loading-spinner' }>['config'] {
     return this.withResolvedDomId(
       component.id,
       component.type,

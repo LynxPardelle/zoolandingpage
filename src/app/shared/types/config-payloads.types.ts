@@ -177,6 +177,23 @@ export type TDraftSiteRouteEntry = {
 
 export type TDraftAuthProvider = 'cognito';
 
+export type TDraftAuthSessionRuntimeConfig = {
+    readonly mode: 'server-cookie';
+    readonly signinPath?: string;
+    readonly mePath?: string;
+    readonly logoutPath?: string;
+    readonly csrfCookieName?: string;
+    readonly csrfHeaderName?: string;
+};
+
+export type TDraftAuthAdminRuntimeConfig = {
+    readonly usersPath?: string;
+    readonly approveUserPathTemplate?: string;
+    readonly groupsPathTemplate?: string;
+    readonly suspendUserPathTemplate?: string;
+    readonly reactivateUserPathTemplate?: string;
+};
+
 export type TDraftAuthRuntimeConfig = {
     readonly enabled?: boolean;
     readonly authProfileId: string;
@@ -197,6 +214,8 @@ export type TDraftAuthRuntimeConfig = {
     readonly postLogoutPath?: string;
     readonly groupsClaim?: string;
     readonly allowedGroups?: readonly string[];
+    readonly session?: TDraftAuthSessionRuntimeConfig;
+    readonly admin?: TDraftAuthAdminRuntimeConfig;
 };
 
 export type TDraftAuthRemoteRuntimeConfig = {
@@ -417,7 +436,9 @@ export type TRuntimeDataSourceInputResolverConfig = {
 
 export type TRuntimeDataSourceConfig = {
     readonly id: string;
+    readonly kind?: 'api-proxy' | 'auth-admin';
     readonly proxySourceId?: string;
+    readonly authAdminSource?: 'account' | 'adminUsers';
     readonly target: string;
     readonly statusTarget?: string;
     readonly mergeMode?: 'replace' | 'appendItems';
@@ -434,7 +455,9 @@ export type TRuntimeDataSourceConfig = {
 
 export type TRuntimeApiActionConfig = {
     readonly id: string;
+    readonly kind?: 'api-proxy' | 'auth-admin';
     readonly proxyActionId?: string;
+    readonly authAdminAction?: 'approveUser' | 'setUserGroups' | 'suspendUser' | 'reactivateUser';
     readonly method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
     readonly statusTarget?: string;
     readonly enabled?: boolean;

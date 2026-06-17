@@ -66,4 +66,75 @@ describe('GenericCardComponent', () => {
             },
         ]);
     });
+
+    it('renders generic card actions and emits their event instructions', () => {
+        fixture.componentInstance.config = {
+            variant: 'feature',
+            title: 'Usuario',
+            linkLabel: 'Grupos: zoosite-client',
+            linkClasses: 'group-summary',
+            actions: [
+                {
+                    label: 'Aprobar',
+                    ariaLabel: 'Aprobar usuario',
+                    eventInstructions: 'authAdminAction:approveUser,user-sub,zoosite-client,remoteStatus.adminUsersAction',
+                    classes: 'approve-button',
+                    icon: 'check_circle',
+                    iconClasses: 'action-icon',
+                },
+                {
+                    label: 'Suspender',
+                    eventInstructions: 'authAdminAction:suspendUser,user-sub,,remoteStatus.adminUsersAction',
+                    classes: 'suspend-button',
+                    confirmMessage: 'Confirma que quieres suspender este usuario.',
+                },
+            ],
+            actionListClasses: 'action-list',
+        } as never;
+        const emitted: Array<{ index: number; label: string; eventInstructions?: string }> = [];
+        fixture.componentInstance.actionClicked.subscribe((event) => emitted.push(event));
+
+        fixture.detectChanges();
+
+        const actionList: HTMLElement | null = fixture.nativeElement.querySelector('.action-list');
+        const buttons: NodeListOf<HTMLButtonElement> = fixture.nativeElement.querySelectorAll('button');
+        buttons[0]?.click();
+
+        expect(actionList).not.toBeNull();
+        expect(Array.from(buttons).map((button) => button.textContent?.trim())).toEqual(['Aprobar', 'Suspender']);
+        expect(buttons[0]?.getAttribute('aria-label')).toBe('Aprobar usuario');
+        expect(buttons[0]?.querySelector('.action-icon')).not.toBeNull();
+        expect(fixture.nativeElement.querySelector('a')).toBeNull();
+        expect(fixture.nativeElement.querySelector('.group-summary')?.textContent?.trim()).toBe('Grupos: zoosite-client');
+        expect(emitted).toEqual([
+            {
+                index: 0,
+                label: 'Aprobar',
+                eventInstructions: 'authAdminAction:approveUser,user-sub,zoosite-client,remoteStatus.adminUsersAction',
+            },
+        ]);
+    });
+
+    it('asks for confirmation before emitting dangerous generic card actions', () => {
+        const confirmSpy = spyOn(window, 'confirm').and.returnValue(false);
+        fixture.componentInstance.config = {
+            variant: 'feature',
+            title: 'Usuario',
+            actions: [
+                {
+                    label: 'Suspender',
+                    eventInstructions: 'authAdminAction:suspendUser,user-sub,,remoteStatus.adminUsersAction',
+                    confirmMessage: 'Confirma que quieres suspender este usuario.',
+                },
+            ],
+        } as never;
+        const emitted: Array<{ index: number; label: string; eventInstructions?: string }> = [];
+        fixture.componentInstance.actionClicked.subscribe((event) => emitted.push(event));
+
+        fixture.detectChanges();
+        fixture.nativeElement.querySelector('button')?.click();
+
+        expect(confirmSpy).toHaveBeenCalledOnceWith('Confirma que quieres suspender este usuario.');
+        expect(emitted).toEqual([]);
+    });
 });

@@ -1,6 +1,18 @@
 import type { TDynamicValue } from '@/app/shared/types/component-runtime.types';
 
 export type TGenericCardVariant = 'feature' | 'testimonial';
+export type TGenericCardAction = {
+    readonly label: TDynamicValue<string>;
+    readonly ariaLabel?: TDynamicValue<string>;
+    readonly eventInstructions?: TDynamicValue<string>;
+    readonly confirmMessage?: TDynamicValue<string>;
+    readonly classes?: TDynamicValue<string>;
+    readonly disabled?: TDynamicValue<boolean>;
+    readonly loading?: TDynamicValue<boolean>;
+    readonly icon?: TDynamicValue<string>;
+    readonly iconClasses?: TDynamicValue<string>;
+    readonly iconPosition?: TDynamicValue<'after' | 'before'>;
+};
 
 export type TGenericCardConfig = {
     readonly variant?: TGenericCardVariant;
@@ -27,6 +39,8 @@ export type TGenericCardConfig = {
     readonly imageContainerClasses?: string;
     readonly imageClasses?: string;
     readonly linkClasses?: string;
+    readonly actionListClasses?: string;
+    readonly actionButtonClasses?: string;
 
     readonly icon?: TDynamicValue<string>;
     readonly title?: TDynamicValue<string>;
@@ -41,6 +55,7 @@ export type TGenericCardConfig = {
     readonly linkEventInstructions?: TDynamicValue<string>;
     readonly target?: TDynamicValue<'_self' | '_blank' | '_parent' | '_top'>;
     readonly rel?: TDynamicValue<string>;
+    readonly actions?: TDynamicValue<readonly TGenericCardAction[]>;
 
     readonly name?: TDynamicValue<string>;
     readonly role?: TDynamicValue<string>;

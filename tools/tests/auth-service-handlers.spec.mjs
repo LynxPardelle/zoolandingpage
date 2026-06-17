@@ -133,6 +133,7 @@ test('jwt authorizer verifies tokens through injected verifier and enforces regi
         iss: config.issuer,
         client_id: config.audience,
         sub: 'user-123',
+        token_use: 'access',
         'cognito:groups': ['editor'],
       };
     },
@@ -160,6 +161,7 @@ test('jwt authorizer denies mismatched groups without echoing bearer tokens', as
       iss: config.issuer,
       aud: config.audience,
       sub: 'user-123',
+      token_use: 'id',
       'cognito:groups': ['viewer'],
     }),
   });
