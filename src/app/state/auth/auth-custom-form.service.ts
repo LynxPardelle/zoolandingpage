@@ -1,4 +1,3 @@
-import { environment } from '@/environments/environment';
 import { DRAFT_RUNTIME_STICKY_QUERY_PARAMS } from '../../shared/services/draft-runtime.service';
 import type {
     TDraftAuthRuntimeConfig,
@@ -9,6 +8,7 @@ import { Injectable, REQUEST, inject } from '@angular/core';
 import { ConfigStoreService } from '../../shared/services/config-store.service';
 import { LanguageService } from '../../shared/services/language.service';
 import { RuntimeConfigService } from '../../shared/services/runtime-config.service';
+import { buildAuthEndpointUrl } from '../../shared/utility/auth/auth-api-url.utility';
 import { AuthFacade } from './auth.facade';
 import type { TStoredAuthSession } from './auth.models';
 
@@ -203,29 +203,7 @@ export class AuthCustomFormService {
     }
 
     private buildUrl(path: string): string {
-        const configuredBase = this.clean(environment.apiUrl);
-        if (configuredBase) {
-            return new URL(path.replace(/^\//, ''), `${ configuredBase.replace(/\/$/, '') }/`).toString();
-        }
-
-        return new URL(path, this.resolveOrigin()).toString();
-    }
-
-    private resolveOrigin(): string {
-        const requestUrl = this.clean(this.request?.url);
-        if (requestUrl) {
-            try {
-                return new URL(requestUrl, 'http://localhost').origin;
-            } catch {
-                // Fall through to browser origin.
-            }
-        }
-
-        if (typeof window !== 'undefined' && window.location?.origin) {
-            return window.location.origin;
-        }
-
-        return 'http://localhost';
+        return buildAuthEndpointUrl(path, this.request?.url);
     }
 
     private navigateAfterSignin(): void {

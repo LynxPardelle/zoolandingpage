@@ -17,9 +17,10 @@ import type {
     TResolvedAnalyticsConfig,
 } from '@/app/shared/types/config-payloads.types';
 import { HttpClient } from '@angular/common/http';
-import { computed, inject, Injectable, signal } from '@angular/core';
+import { computed, inject, Injectable, REQUEST, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { isDraftAuthRuntimeConfig } from '../utility/config-validation/config-payload.validators';
+import { buildAuthEndpointUrl } from '../utility/auth/auth-api-url.utility';
 import { ConfigStoreService } from './config-store.service';
 import { DomainResolverService } from './domain-resolver.service';
 import { VariableStoreService } from './variable-store.service';
@@ -44,6 +45,7 @@ export class RuntimeConfigService {
     private readonly domainResolver = inject(DomainResolverService);
     private readonly variableStore = inject(VariableStoreService);
     private readonly http = inject(HttpClient, { optional: true });
+    private readonly request = inject(REQUEST, { optional: true });
     private readonly remoteAuthResolutions = new Map<string, Promise<boolean>>();
     private readonly _remoteAuthError = signal<string | null>(null);
 
@@ -186,7 +188,7 @@ export class RuntimeConfigService {
         authProfileId: string,
     ): Promise<boolean> {
         try {
-            const response = await firstValueFrom(this.http!.post<unknown>(endpoint, {
+            const response = await firstValueFrom(this.http!.post<unknown>(this.remoteAuthRequestUrl(endpoint), {
                 domain,
                 authProfileId,
             }));
@@ -216,6 +218,12 @@ export class RuntimeConfigService {
             this._remoteAuthError.set('remote-auth-request-failed');
             return false;
         }
+    }
+
+    private remoteAuthRequestUrl(endpoint: string): string {
+        return buildAuthEndpointUrl(endpoint, this.request?.url, {
+            preserveRelativeOutsideTesting: true,
+        });
     }
 
     private extractRemoteAuth(value: unknown): unknown {

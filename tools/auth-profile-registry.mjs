@@ -4,11 +4,12 @@ const UPSTREAM_AUTH_TYPES = new Set(['bearer', 'api-key-header', 'oauth2-client-
 const SAFE_ID = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
 const SAFE_DOMAIN = /^(?!-)(?:[a-z0-9-]{1,63}\.)+[a-z]{2,63}$/;
 const SECRET_REF = /^(\/[^\s\\]+|[^/\s\\]+\/[^\s\\]+|arn:aws:(ssm|secretsmanager):[^\s\\]+)$/;
+const CUSTOM_ENVIRONMENT_CLAIM = /^custom:[A-Za-z0-9_]{1,20}$/;
 const DEFAULT_GROUPS_CLAIM = 'cognito:groups';
 const DEFAULT_SCOPES = ['openid', 'email', 'profile'];
 const CUSTOM_AUTH_KEYS = new Set(['signin', 'signup', 'passwordRecovery']);
 const CUSTOM_SIGNIN_KEYS = new Set(['enabled']);
-const CUSTOM_SIGNUP_KEYS = new Set(['enabled', 'setTenantClaim', 'defaultGroups']);
+const CUSTOM_SIGNUP_KEYS = new Set(['enabled', 'setTenantClaim', 'setEnvironmentClaim', 'defaultGroups']);
 const CUSTOM_PASSWORD_RECOVERY_KEYS = new Set(['enabled']);
 
 function cleanString(value) {
@@ -149,6 +150,7 @@ function validateCustomAuth(customAuth, profile, index, errors) {
       validateKnownKeys(signup, CUSTOM_SIGNUP_KEYS, signupPrefix, errors);
       pushIf(signup.enabled !== undefined && typeof signup.enabled !== 'boolean', errors, `${signupPrefix}.enabled must be boolean when present`);
       pushIf(signup.setTenantClaim !== undefined && typeof signup.setTenantClaim !== 'boolean', errors, `${signupPrefix}.setTenantClaim must be boolean when present`);
+      pushIf(signup.setEnvironmentClaim !== undefined && typeof signup.setEnvironmentClaim !== 'boolean', errors, `${signupPrefix}.setEnvironmentClaim must be boolean when present`);
       if (signup.defaultGroups !== undefined) {
         if (!isNonEmptyStringArray(signup.defaultGroups)) {
           errors.push(`${signupPrefix}.defaultGroups must be a string array when present`);
@@ -202,6 +204,7 @@ function validateProfile(profile, index, seen, errors) {
   pushIf(!isSafeSameOriginPath(profile.loginPath), errors, `${prefix}.loginPath must be a same-origin path`);
   pushIf(!isSafeSameOriginPath(profile.logoutPath), errors, `${prefix}.logoutPath must be a same-origin path`);
   pushIf(profile.tenantClaim !== undefined && (typeof profile.tenantClaim !== 'string' || profile.tenantClaim.trim().length === 0 || profile.tenantClaim.trim() !== profile.tenantClaim), errors, `${prefix}.tenantClaim must be a stable claim name when present`);
+  pushIf(profile.environmentClaim !== undefined && (typeof profile.environmentClaim !== 'string' || profile.environmentClaim.trim() !== profile.environmentClaim || !CUSTOM_ENVIRONMENT_CLAIM.test(profile.environmentClaim)), errors, `${prefix}.environmentClaim must be a Cognito custom claim such as custom:zoolanding_env`);
   pushIf(profile.groupClaim !== undefined && (typeof profile.groupClaim !== 'string' || profile.groupClaim.trim().length === 0 || profile.groupClaim.trim() !== profile.groupClaim), errors, `${prefix}.groupClaim must be a stable claim name when present`);
   pushIf(profile.allowedGroups !== undefined && !isNonEmptyStringArray(profile.allowedGroups), errors, `${prefix}.allowedGroups must be a string array when present`);
 
@@ -351,6 +354,7 @@ export function buildJwtVerificationConfig(profile) {
     audiences: uniqueStrings(profile.audiences ?? [profile.clientId]),
     jwksUri: `${issuer}/.well-known/jwks.json`,
     groupsClaim: profile.groupClaim ?? DEFAULT_GROUPS_CLAIM,
+    ...(profile.environmentClaim ? { environmentClaim: profile.environmentClaim } : {}),
     tenantClaim: profile.tenantClaim,
     tenantBoundary: {
       tenantId: profile.tenantId,
@@ -359,7 +363,7 @@ export function buildJwtVerificationConfig(profile) {
   };
 }
 
-export function authPolicyFromJwtClaims(profile, claims) {
+export function authPolicyFromJwtClaims(profile, claims, options = {}) {
   if (!profile || !claims || typeof claims !== 'object') {
     return { authorized: false, subject: null, groups: [], reason: 'missing_profile_or_claims' };
   }
@@ -384,6 +388,16 @@ export function authPolicyFromJwtClaims(profile, claims) {
   }
   if (profile.tenantClaim && claims[profile.tenantClaim] !== profile.tenantId) {
     return { authorized: false, subject, groups, reason: 'tenant_mismatch' };
+  }
+  if (profile.environmentClaim) {
+    const actualEnvironment = typeof claims[profile.environmentClaim] === 'string' ? claims[profile.environmentClaim] : '';
+    const expectedEnvironment = typeof options.runtimeEnvironment === 'string' ? options.runtimeEnvironment : '';
+    if (!actualEnvironment) {
+      return { authorized: false, subject, groups, reason: 'environment_missing' };
+    }
+    if (expectedEnvironment && actualEnvironment !== expectedEnvironment) {
+      return { authorized: false, subject, groups, reason: 'environment_mismatch' };
+    }
   }
   if (expectedGroups.length > 0 && !groups.some(group => expectedGroups.includes(group))) {
     return { authorized: false, subject, groups, reason: 'group_mismatch' };

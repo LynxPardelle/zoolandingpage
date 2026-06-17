@@ -172,6 +172,7 @@ test('validateAuthProfileRegistry validates optional custom auth form policy', (
           signup: {
             enabled: true,
             setTenantClaim: true,
+            setEnvironmentClaim: true,
             defaultGroups: ['editor'],
           },
           passwordRecovery: {
@@ -238,6 +239,62 @@ test('buildJwtVerificationConfig preserves the Cognito issuer path in the JWKS U
     tenantId: 'tenant-example',
     authProfileId: 'client-cognito',
   });
+});
+
+test('validateAuthProfileRegistry accepts optional Cognito environment claim', () => {
+  const customRegistry = {
+    version: 1,
+    profiles: [
+      {
+        ...registry.profiles[0],
+        environmentClaim: 'custom:zoolanding_env',
+      },
+    ],
+  };
+
+  assert.deepEqual(validateAuthProfileRegistry(customRegistry), { valid: true, errors: [] });
+
+  const bad = {
+    version: 1,
+    profiles: [
+      {
+        ...registry.profiles[0],
+        environmentClaim: 'zoolanding_env',
+      },
+    ],
+  };
+
+  const result = validateAuthProfileRegistry(bad);
+  assert.equal(result.valid, false);
+  assert.match(result.errors.join('\n'), /environmentClaim/);
+});
+
+test('authPolicyFromJwtClaims can require the stack runtime environment', () => {
+  const profile = {
+    ...resolveAuthProfile(registry, 'example.com', 'client-cognito'),
+    environmentClaim: 'custom:zoolanding_env',
+  };
+
+  assert.equal(authPolicyFromJwtClaims(profile, {
+    iss: profile.issuer,
+    aud: profile.clientId,
+    sub: 'user-123',
+    'custom:tenant_id': 'tenant-example',
+    'custom:zoolanding_env': 'test',
+    'cognito:groups': ['editor'],
+  }, { runtimeEnvironment: 'test' }).authorized, true);
+
+  const denied = authPolicyFromJwtClaims(profile, {
+    iss: profile.issuer,
+    aud: profile.clientId,
+    sub: 'user-123',
+    'custom:tenant_id': 'tenant-example',
+    'custom:zoolanding_env': 'prod',
+    'cognito:groups': ['editor'],
+  }, { runtimeEnvironment: 'test' });
+
+  assert.equal(denied.authorized, false);
+  assert.equal(denied.reason, 'environment_mismatch');
 });
 
 test('authPolicyFromJwtClaims authorizes only expected tenant, audience, issuer, and groups', () => {

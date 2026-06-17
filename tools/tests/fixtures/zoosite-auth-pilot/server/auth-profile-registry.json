@@ -24,6 +24,7 @@
       "loginPath": "/acceso",
       "logoutPath": "/acceso",
       "tenantClaim": "custom:tenant_id",
+      "environmentClaim": "custom:zoolanding_env",
       "groupClaim": "cognito:groups",
       "allowedGroups": [
         "zoosite-client",

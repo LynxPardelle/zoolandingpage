@@ -3,6 +3,7 @@ export type TEnvironment = {
     readonly development: boolean;
     readonly apiUrl: string;
     readonly apiProxyUrl?: string;
+    readonly apiProxyTestUrl?: string;
     readonly configApiUrl: string;
     readonly configApiRuntimeFallbackUrl?: string;
     readonly configApiServerFallbackUrl?: string;
