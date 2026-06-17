@@ -38,6 +38,10 @@ describe('AuthCustomFormService', () => {
             domain: 'zoositioweb.com.mx',
             routes: [
                 { path: '/acceso', pageId: 'acceso' },
+                { path: '/registro', pageId: 'registro' },
+                { path: '/confirmar-cuenta', pageId: 'confirmar-cuenta' },
+                { path: '/recuperar-contrasena', pageId: 'recuperar-contrasena' },
+                { path: '/cambiar-contrasena', pageId: 'cambiar-contrasena' },
                 {
                     path: '/mi-cuenta',
                     pageId: 'mi-cuenta',
@@ -93,6 +97,109 @@ describe('AuthCustomFormService', () => {
             password: 'StrongPassphrase123!',
             language: 'es',
         });
+    });
+
+    it('moves signup users to confirmation while preserving safe preview query params', async () => {
+        window.history.pushState(
+            {},
+            '',
+            '/registro?draftDomain=zoositioweb.com.mx&debugWorkspace=false&lang=es',
+        );
+        const service = TestBed.inject(AuthCustomFormService);
+
+        await service.submit('signup', {
+            email: 'client@example.test',
+            password: 'StrongPassphrase123!',
+            confirmPassword: 'StrongPassphrase123!',
+        });
+
+        expect(window.location.pathname).toBe('/confirmar-cuenta');
+        expect(window.location.search).toContain('authStatus=account-created');
+        expect(window.location.search).toContain('draftDomain=zoositioweb.com.mx');
+        expect(window.location.search).toContain('debugWorkspace=false');
+        expect(window.location.search).toContain('lang=es');
+    });
+
+    it('moves confirmed signup users back to login with a success status', async () => {
+        fetchSpy.and.resolveTo(new Response(JSON.stringify({
+            ok: true,
+            status: 'confirmed',
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        }));
+        window.history.pushState(
+            {},
+            '',
+            '/confirmar-cuenta?draftDomain=zoositioweb.com.mx&debugWorkspace=false&lang=es',
+        );
+        const service = TestBed.inject(AuthCustomFormService);
+
+        await service.submit('confirmSignup' as any, {
+            email: 'client@example.test',
+            code: '123456',
+        });
+
+        expect(window.location.pathname).toBe('/acceso');
+        expect(window.location.search).toContain('authStatus=account-confirmed');
+        expect(window.location.search).toContain('draftDomain=zoositioweb.com.mx');
+        expect(window.location.search).toContain('debugWorkspace=false');
+        expect(window.location.search).toContain('lang=es');
+    });
+
+    it('moves password recovery users to the code entry page after sending the code', async () => {
+        fetchSpy.and.resolveTo(new Response(JSON.stringify({
+            ok: true,
+            status: 'code-sent',
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        }));
+        window.history.pushState(
+            {},
+            '',
+            '/recuperar-contrasena?draftDomain=zoositioweb.com.mx&debugWorkspace=false&lang=es',
+        );
+        const service = TestBed.inject(AuthCustomFormService);
+
+        await service.submit('forgotPassword' as any, {
+            email: 'client@example.test',
+        });
+
+        expect(window.location.pathname).toBe('/cambiar-contrasena');
+        expect(window.location.search).toContain('authStatus=password-code-sent');
+        expect(window.location.search).toContain('draftDomain=zoositioweb.com.mx');
+        expect(window.location.search).toContain('debugWorkspace=false');
+        expect(window.location.search).toContain('lang=es');
+    });
+
+    it('moves successful password reset users back to login with a success status', async () => {
+        fetchSpy.and.resolveTo(new Response(JSON.stringify({
+            ok: true,
+            status: 'password-reset',
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        }));
+        window.history.pushState(
+            {},
+            '',
+            '/cambiar-contrasena?draftDomain=zoositioweb.com.mx&debugWorkspace=false&lang=es',
+        );
+        const service = TestBed.inject(AuthCustomFormService);
+
+        await service.submit('confirmForgotPassword' as any, {
+            email: 'client@example.test',
+            code: '123456',
+            password: 'NewStrongPassphrase123!',
+            confirmPassword: 'NewStrongPassphrase123!',
+        });
+
+        expect(window.location.pathname).toBe('/acceso');
+        expect(window.location.search).toContain('authStatus=password-reset');
+        expect(window.location.search).toContain('draftDomain=zoositioweb.com.mx');
+        expect(window.location.search).toContain('debugWorkspace=false');
+        expect(window.location.search).toContain('lang=es');
     });
 
     it('submits signin and establishes only sanitized public session metadata', async () => {

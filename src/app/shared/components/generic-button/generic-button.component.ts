@@ -18,6 +18,15 @@ import type { TGenericButtonConfig } from "./generic-button.types";
   selector: "generic-button",
   imports: [CommonModule, GenericIconComponent],
   templateUrl: "./generic-button.component.html",
+  styles: [`
+    button.zlp-cursor-not-allowed {
+      cursor: not-allowed;
+    }
+
+    button.zlp-cursor-wait {
+      cursor: wait;
+    }
+  `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GenericButtonComponent {
@@ -83,13 +92,16 @@ export class GenericButtonComponent {
   readonly ariaActiveDescendant = computed<string | undefined>(
     () => this.optionalString(this.config().ariaActiveDescendant)
   );
-  readonly classes = computed(
-    () =>
-    (String(this.resolve(this.config().classes) ||
-      "btnBase")
-      + (this.loading() ? " ank-cursor-wait ank-opacity-80" : "")
-      + (this.disabled() && !this.loading() ? " ank-cursor-notAllowed ank-opacity-40" : ""))
-  );
+  readonly classes = computed(() => {
+    const baseClasses = this.stateAwareBaseClasses(String(this.resolve(this.config().classes) || "btnBase"));
+    const stateClasses = [
+      this.loading() ? "zlp-cursor-wait ank-opacity-0_8" : "",
+      this.disabled() && !this.loading()
+        ? this.optionalString(this.config().disabledClasses) || "zlp-cursor-not-allowed ank-opacity-0_45"
+        : "",
+    ].filter(Boolean);
+    return [baseClasses, ...stateClasses].join(" ");
+  });
   readonly styles = computed(() => resolveStyleRecord(this.config().styles));
   readonly iconClass = computed<string>(
     () => String(this.resolve(this.config().iconClasses) || "btnIcon")
@@ -125,6 +137,17 @@ export class GenericButtonComponent {
   private enumValue<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
     const resolved = this.resolve(value);
     return typeof resolved === 'string' && allowed.includes(resolved as T) ? resolved as T : fallback;
+  }
+
+  private stateAwareBaseClasses(classes: string): string {
+    if (!this.disabled() && !this.loading()) {
+      return classes;
+    }
+
+    return classes
+      .split(/\s+/)
+      .filter((className) => className !== 'ank-cursor-pointer' && className !== 'ank-cur-pointer')
+      .join(' ');
   }
 
   private isRenderedScopeValid(): boolean {
