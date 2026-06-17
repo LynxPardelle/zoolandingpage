@@ -112,6 +112,9 @@ export class AppShellComponent {
   private readonly structuredData = inject(StructuredDataService);
   readonly runtime = inject(RuntimeService);
   readonly routeTransitionActive = signal(false);
+  private routeTransitionStartedAt = 0;
+  private routeTransitionHideTimer: number | null = null;
+  private readonly routeTransitionMinimumMs = 320;
 
   readonly rootComponentsIds = this.runtime.rootComponentsIds;
   readonly modalRootIds = this.runtime.modalRootIds;
@@ -136,20 +139,21 @@ export class AppShellComponent {
     });
 
     if (this.isBrowser) {
-      const handleClientNavigationStart = () => this.routeTransitionActive.set(true);
-      const handleClientNavigationEnd = () => this.routeTransitionActive.set(false);
+      const handleClientNavigationStart = () => this.showRouteTransition();
+      const handleClientNavigationEnd = () => this.hideRouteTransitionWhenMinimumElapsed();
       window.addEventListener(CLIENT_NAVIGATION_START_EVENT, handleClientNavigationStart);
       window.addEventListener(CLIENT_NAVIGATION_END_EVENT, handleClientNavigationEnd);
       this.destroyRef.onDestroy(() => {
         window.removeEventListener(CLIENT_NAVIGATION_START_EVENT, handleClientNavigationStart);
         window.removeEventListener(CLIENT_NAVIGATION_END_EVENT, handleClientNavigationEnd);
+        this.clearRouteTransitionHideTimer();
       });
 
       this.router.events
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe((event) => {
           if (event instanceof NavigationStart) {
-            this.routeTransitionActive.set(true);
+            this.showRouteTransition();
             return;
           }
 
@@ -158,7 +162,7 @@ export class AppShellComponent {
             || event instanceof NavigationCancel
             || event instanceof NavigationError
           ) {
-            this.routeTransitionActive.set(false);
+            this.hideRouteTransitionWhenMinimumElapsed();
           }
         });
     }
@@ -208,5 +212,42 @@ export class AppShellComponent {
         }
       }
     } catch { }
+  }
+
+  private showRouteTransition(): void {
+    this.clearRouteTransitionHideTimer();
+    this.routeTransitionStartedAt = this.now();
+    this.routeTransitionActive.set(true);
+  }
+
+  private hideRouteTransitionWhenMinimumElapsed(): void {
+    const elapsed = Math.max(0, this.now() - this.routeTransitionStartedAt);
+    const remaining = Math.max(0, this.routeTransitionMinimumMs - elapsed);
+    this.clearRouteTransitionHideTimer();
+
+    if (remaining === 0) {
+      this.routeTransitionActive.set(false);
+      return;
+    }
+
+    this.routeTransitionHideTimer = window.setTimeout(() => {
+      this.routeTransitionHideTimer = null;
+      this.routeTransitionActive.set(false);
+    }, remaining);
+  }
+
+  private clearRouteTransitionHideTimer(): void {
+    if (this.routeTransitionHideTimer === null) {
+      return;
+    }
+
+    window.clearTimeout(this.routeTransitionHideTimer);
+    this.routeTransitionHideTimer = null;
+  }
+
+  private now(): number {
+    return typeof performance !== 'undefined' && typeof performance.now === 'function'
+      ? performance.now()
+      : Date.now();
   }
 }

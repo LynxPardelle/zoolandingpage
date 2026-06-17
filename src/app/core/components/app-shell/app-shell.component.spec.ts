@@ -298,13 +298,14 @@ describe('AppShellComponent', () => {
 
     await navigation;
     await fixture.whenStable();
+    await new Promise((resolve) => setTimeout(resolve, 350));
     fixture.detectChanges();
 
     expect(fixture.componentInstance.routeTransitionActive()).toBeFalse();
     expect(fixture.nativeElement.querySelector('.zlp-route-transition')).toBeFalsy();
   });
 
-  it('shows the route transition status for custom client navigation events', () => {
+  it('shows the route transition status for custom client navigation events', async () => {
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
 
@@ -315,6 +316,11 @@ describe('AppShellComponent', () => {
     expect(fixture.nativeElement.querySelector('.zlp-route-transition')).toBeTruthy();
 
     window.dispatchEvent(new Event(CLIENT_NAVIGATION_END_EVENT));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.routeTransitionActive()).toBeTrue();
+
+    await new Promise((resolve) => setTimeout(resolve, 350));
     fixture.detectChanges();
 
     expect(fixture.componentInstance.routeTransitionActive()).toBeFalse();
