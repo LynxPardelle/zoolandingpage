@@ -92,6 +92,16 @@
         },
         {
           "type": "object",
+          "required": ["type", "fieldId"],
+          "properties": {
+            "type": { "const": "matchesField" },
+            "fieldId": { "type": "string", "minLength": 1 },
+            "message": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
           "required": ["type", "value"],
           "properties": {
             "type": { "enum": ["min", "max", "minLength", "maxLength"] },
@@ -178,9 +188,18 @@
         "optionClasses": { "type": "string" },
         "activeOptionClasses": { "type": "string" },
         "errorClasses": { "type": "string" },
+        "validationChecklistClasses": { "type": "string" },
+        "validationChecklistItemClasses": { "type": "string" },
+        "validationChecklistValidItemClasses": { "type": "string" },
+        "validationChecklistInvalidItemClasses": { "type": "string" },
+        "validationChecklistIconClasses": { "type": "string" },
+        "validationChecklistLabel": { "type": "string" },
+        "validationChecklistValidIcon": { "type": "string" },
+        "validationChecklistInvalidIcon": { "type": "string" },
         "valuePrefix": { "type": "string" },
         "valueSuffix": { "type": "string" },
         "showRangeValue": { "type": "boolean" },
+        "showValidationChecklist": { "type": "boolean" },
         "showPasswordToggle": { "type": "boolean" },
         "showPasswordLabel": { "type": "string" },
         "hidePasswordLabel": { "type": "string" },

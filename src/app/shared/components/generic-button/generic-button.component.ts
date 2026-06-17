@@ -5,10 +5,12 @@ import {
   EventEmitter,
   Output,
   computed,
+  inject,
   input
 } from "@angular/core";
 import { composeDomId, resolveComponentRootDomId, resolveStyleRecord } from '../../utility/component-orchestrator.utility';
 import { GenericIconComponent } from "../generic-icon/generic-icon.component";
+import { InteractionScopeService } from "../interaction-scope/interaction-scope.service";
 import type { TGenericButtonConfig } from "./generic-button.types";
 
 @Component({
@@ -23,12 +25,19 @@ export class GenericButtonComponent {
 
   private readonly buttonTypes = ['button', 'submit', 'reset'] as const;
   private readonly iconPositions = ['after', 'before'] as const;
+  private readonly interactionScope = inject(InteractionScopeService, { optional: true });
 
   readonly label = computed<string>(() => {
     const label = this.resolve(this.config().label);
     return typeof label === 'string' ? label : String(label ?? '');
   });
-  readonly disabled = computed<boolean>(() => Boolean(this.resolve(this.config().disabled) ?? false));
+  readonly disabled = computed<boolean>(() => {
+    const ownDisabled = Boolean(this.resolve(this.config().disabled) ?? false);
+    const scopeDisabled = Boolean(this.resolve(this.config().disabledWhenInvalidScope) ?? false)
+      && this.interactionScope != null
+      && !this.interactionScope.valid();
+    return ownDisabled || scopeDisabled;
+  });
   readonly loading = computed<boolean>(() => Boolean(this.resolve(this.config().loading) ?? false));
   readonly icon = computed<string | undefined>(() => {
     return this.optionalString(this.config().icon);
@@ -74,7 +83,9 @@ export class GenericButtonComponent {
   readonly classes = computed(
     () =>
     (String(this.resolve(this.config().classes) ||
-      "btnBase") + (this.loading() ? " ank-cursor-wait ank-opacity-80" : ""))
+      "btnBase")
+      + (this.loading() ? " ank-cursor-wait ank-opacity-80" : "")
+      + (this.disabled() && !this.loading() ? " ank-cursor-notAllowed ank-opacity-40" : ""))
   );
   readonly styles = computed(() => resolveStyleRecord(this.config().styles));
   readonly iconClass = computed<string>(

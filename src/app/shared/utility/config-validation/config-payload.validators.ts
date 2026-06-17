@@ -1061,6 +1061,10 @@ const isInteractionValidationRule = (value: unknown): boolean => {
         case 'required':
         case 'email':
             return value['message'] === undefined || typeof value['message'] === 'string';
+        case 'matchesField':
+            return typeof value['fieldId'] === 'string'
+                && value['fieldId'].trim().length > 0
+                && (value['message'] === undefined || typeof value['message'] === 'string');
         case 'min':
         case 'max':
         case 'minLength':
@@ -1197,6 +1201,14 @@ const isGenericInputConfig = (value: unknown): boolean => {
         'optionClasses',
         'activeOptionClasses',
         'errorClasses',
+        'validationChecklistClasses',
+        'validationChecklistItemClasses',
+        'validationChecklistValidItemClasses',
+        'validationChecklistInvalidItemClasses',
+        'validationChecklistIconClasses',
+        'validationChecklistLabel',
+        'validationChecklistValidIcon',
+        'validationChecklistInvalidIcon',
         'valuePrefix',
         'valueSuffix',
     ] as const;
@@ -1217,7 +1229,7 @@ const isGenericInputConfig = (value: unknown): boolean => {
         return false;
     }
 
-    const booleanFields = ['showRangeValue', 'multiple', 'required', 'disabled', 'readOnly'] as const;
+    const booleanFields = ['showRangeValue', 'showValidationChecklist', 'multiple', 'required', 'disabled', 'readOnly'] as const;
     if (booleanFields.some((field) => !isBooleanThunkFriendly(value[field]))) {
         return false;
     }

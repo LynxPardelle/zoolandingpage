@@ -14,6 +14,8 @@ export type TGenericButtonConfig = {
   readonly label?: string | (() => string);
   /** Disable pointer interaction and dim the button */
   readonly disabled?: boolean | (() => boolean);
+  /** Disable while the nearest interaction scope is invalid */
+  readonly disabledWhenInvalidScope?: boolean | (() => boolean);
   /** Show loading state and spinner icon */
   readonly loading?: boolean | (() => boolean);
   /** Leading Material icon name */

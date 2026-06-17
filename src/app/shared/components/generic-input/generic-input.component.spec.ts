@@ -161,6 +161,44 @@ describe('GenericInputComponent', () => {
         expect(input.type).toBe('password');
     });
 
+    it('renders an always-visible validation checklist and updates rule status while typing', () => {
+        const fixture = TestBed.createComponent(GenericInputComponent);
+
+        fixture.componentRef.setInput('config', {
+            fieldId: 'password',
+            controlType: 'text',
+            inputType: 'password',
+            value: '',
+            showValidationChecklist: true,
+            validationChecklistClasses: 'checklist',
+            validationChecklistItemClasses: 'checklistItem',
+            validationChecklistValidItemClasses: 'isValid',
+            validationChecklistInvalidItemClasses: 'isInvalid',
+            validation: [
+                { type: 'minLength', value: 12, message: 'Usa al menos 12 caracteres.' },
+                { type: 'pattern', value: '[a-z]', message: 'Incluye una minúscula.' },
+                { type: 'pattern', value: '[A-Z]', message: 'Incluye una mayúscula.' },
+                { type: 'pattern', value: '\\d', message: 'Incluye un número.' },
+                { type: 'pattern', value: '[^A-Za-z0-9\\s]', message: 'Incluye un símbolo.' },
+            ],
+        });
+        fixture.detectChanges();
+
+        const checklist = fixture.nativeElement.querySelector('ul.checklist') as HTMLUListElement;
+        expect(checklist).toBeTruthy();
+        expect(checklist.textContent).toContain('Incluye un símbolo.');
+        expect(Array.from(checklist.querySelectorAll('li')).every((item) => item.getAttribute('data-valid') === 'false')).toBeTrue();
+
+        const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+        input.value = 'StrongPass123!';
+        input.dispatchEvent(new Event('input'));
+        fixture.detectChanges();
+
+        const items = Array.from(checklist.querySelectorAll('li'));
+        expect(items.every((item) => item.getAttribute('data-valid') === 'true')).toBeTrue();
+        expect(items.every((item) => item.classList.contains('isValid'))).toBeTrue();
+    });
+
     it('can delay and filter autocomplete options by the typed text', () => {
         const fixture = TestBed.createComponent(GenericInputComponent);
 

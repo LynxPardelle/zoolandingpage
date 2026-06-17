@@ -67,4 +67,57 @@ describe('InteractionScopeService', () => {
         expect(service.snapshot().values['visitors']).toBe(1000);
         expect(service.resolvePath('values.visitors')).toBe(1000);
     });
+
+    it('revalidates fields that depend on another field value', () => {
+        service.registerField({
+            fieldId: 'password',
+            initialValue: '',
+        });
+        service.registerField({
+            fieldId: 'confirmPassword',
+            initialValue: '',
+            validation: [
+                {
+                    type: 'matchesField',
+                    fieldId: 'password',
+                    message: 'Las contraseñas deben coincidir.',
+                },
+            ],
+        });
+
+        service.setFieldValue('password', 'StrongPassword123!', { markTouched: true });
+        service.setFieldValue('confirmPassword', 'StrongPassword123?', { markTouched: true });
+
+        expect(service.snapshot().fields['confirmPassword'].valid).toBeFalse();
+        expect(service.snapshot().fields['confirmPassword'].errors).toContain('Las contraseñas deben coincidir.');
+
+        service.setFieldValue('confirmPassword', 'StrongPassword123!', { markTouched: true });
+        expect(service.snapshot().fields['confirmPassword'].valid).toBeTrue();
+
+        service.setFieldValue('password', 'ChangedPassword123!', { markTouched: true });
+        expect(service.snapshot().fields['confirmPassword'].valid).toBeFalse();
+    });
+
+    it('revalidates dependent fields when the matched field is registered later', () => {
+        service.registerField({
+            fieldId: 'confirmPassword',
+            initialValue: 'StrongPassword123!',
+            validation: [
+                {
+                    type: 'matchesField',
+                    fieldId: 'password',
+                    message: 'Las contraseñas deben coincidir.',
+                },
+            ],
+        });
+
+        expect(service.snapshot().fields['confirmPassword'].valid).toBeFalse();
+
+        service.registerField({
+            fieldId: 'password',
+            initialValue: 'StrongPassword123!',
+        });
+
+        expect(service.snapshot().fields['confirmPassword'].valid).toBeTrue();
+    });
 });

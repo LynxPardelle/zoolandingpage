@@ -37,6 +37,11 @@ export type TInteractionValidationRule =
     | {
         readonly type: 'email';
         readonly message?: string;
+    }
+    | {
+        readonly type: 'matchesField';
+        readonly fieldId: string;
+        readonly message?: string;
     };
 
 export type TInteractionNumericSource =

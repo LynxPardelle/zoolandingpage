@@ -136,6 +136,30 @@ export class GenericInputComponent {
   readonly errorClasses = computed(() =>
     this.asString(this.config().errorClasses)
   );
+  readonly validationChecklistClasses = computed(() =>
+    this.asString(this.config().validationChecklistClasses)
+  );
+  readonly validationChecklistItemClasses = computed(() =>
+    this.asString(this.config().validationChecklistItemClasses)
+  );
+  readonly validationChecklistValidItemClasses = computed(() =>
+    this.asString(this.config().validationChecklistValidItemClasses)
+  );
+  readonly validationChecklistInvalidItemClasses = computed(() =>
+    this.asString(this.config().validationChecklistInvalidItemClasses)
+  );
+  readonly validationChecklistIconClasses = computed(() =>
+    this.asString(this.config().validationChecklistIconClasses)
+  );
+  readonly validationChecklistLabel = computed(() =>
+    this.asString(this.config().validationChecklistLabel)
+  );
+  readonly validationChecklistValidIcon = computed(() =>
+    this.asString(this.config().validationChecklistValidIcon) || 'OK'
+  );
+  readonly validationChecklistInvalidIcon = computed(() =>
+    this.asString(this.config().validationChecklistInvalidIcon) || '-'
+  );
   readonly valuePrefix = computed(() =>
     this.asString(this.config().valuePrefix)
   );
@@ -144,6 +168,9 @@ export class GenericInputComponent {
   );
   readonly showRangeValue = computed(() =>
     Boolean(this.resolveValue(this.config().showRangeValue) ?? false)
+  );
+  readonly showValidationChecklist = computed(() =>
+    Boolean(this.resolveValue(this.config().showValidationChecklist) ?? false)
   );
   readonly showPasswordToggle = computed(
     () =>
@@ -281,7 +308,8 @@ export class GenericInputComponent {
     const errors = validateInteractionValue(
       value,
       this.validationRules(),
-      this.required()
+      this.required(),
+      { values: this.scope.values() }
     );
 
     return (
@@ -451,6 +479,14 @@ export class GenericInputComponent {
   readonly visibleErrors = computed(() =>
     this.showErrors() ? this.fieldState().errors : []
   );
+  readonly validationChecklistItems = computed(() =>
+    this.validationRules()
+      .filter((rule) => typeof rule.message === 'string' && rule.message.trim().length > 0)
+      .map((rule) => ({
+        message: rule.message?.trim() ?? '',
+        valid: this.isValidationChecklistRuleMet(rule),
+      }))
+  );
 
   onTextInput(event: Event): void {
     this.updateValue(
@@ -580,6 +616,25 @@ export class GenericInputComponent {
       tag: 'p',
       classes: '',
     });
+  }
+
+  validationChecklistItemClassesFor(valid: boolean): string {
+    return this.joinClasses(
+      this.validationChecklistItemClasses(),
+      valid
+        ? this.validationChecklistValidItemClasses()
+        : this.validationChecklistInvalidItemClasses()
+    );
+  }
+
+  private isValidationChecklistRuleMet(rule: TInteractionValidationRule): boolean {
+    const value = this.currentValue();
+    const empty = value == null || value === '' || (typeof value === 'string' && value.trim().length === 0);
+    if (empty && rule.type !== 'required') {
+      return false;
+    }
+
+    return validateInteractionValue(value, [rule], false, { values: this.scope.values() }).length === 0;
   }
 
   buildTextConfig(

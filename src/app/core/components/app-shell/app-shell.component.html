@@ -1,3 +1,8 @@
+@if (routeTransitionActive()) {
+<div class="zlp-route-transition" role="status" aria-live="polite" aria-label="Cargando página">
+  <span class="zlp-route-transition__bar" aria-hidden="true"></span>
+</div>
+}
 <wrapper-orchestrator [componentsIds]="rootComponentsIds()"></wrapper-orchestrator>
 @if (showClientOnlyHosts) {
 <generic-toast-host (analyticsEvent)="handleAnalyticsEvent($event)"></generic-toast-host>

@@ -186,6 +186,17 @@
   }
   } } @if (helperText() && controlType() !== 'checkbox' && controlType() !== 'switch') {
   <generic-text [config]="helperTextConfig()"></generic-text>
+  } @if (showValidationChecklist() && validationChecklistItems().length > 0) {
+  <ul [class]="validationChecklistClasses()" [attr.aria-label]="validationChecklistLabel() || null">
+    @for (item of validationChecklistItems(); track item.message) {
+    <li [class]="validationChecklistItemClassesFor(item.valid)" [attr.data-valid]="item.valid ? 'true' : 'false'">
+      <span [class]="validationChecklistIconClasses()" aria-hidden="true">
+        {{ item.valid ? validationChecklistValidIcon() : validationChecklistInvalidIcon() }}
+      </span>
+      <span>{{ item.message }}</span>
+    </li>
+    }
+  </ul>
   } @if (visibleErrors().length > 0) {
   <div [class]="errorClasses()">
     @for (error of visibleErrors(); track error) {
