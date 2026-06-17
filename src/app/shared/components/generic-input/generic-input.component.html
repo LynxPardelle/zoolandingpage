@@ -131,6 +131,8 @@
     [class]="fieldClasses() + ' ' + inputClasses()"
     [attr.aria-label]="ariaLabel() || label()"
     (input)="onTextInput($event)"
+    (change)="onTextInput($event)"
+    (keyup)="onTextInput($event)"
     (blur)="onBlur()"
   ></textarea>
   } @default {
@@ -148,6 +150,8 @@
       [attr.aria-label]="ariaLabel() || label()"
       [attr.list]="visibleAutocompleteOptions().length > 0 ? autocompleteListId() : null"
       (input)="onTextInput($event)"
+      (change)="onTextInput($event)"
+      (keyup)="onTextInput($event)"
       (blur)="onBlur()"
     />
     <generic-button
@@ -174,6 +178,8 @@
     [attr.aria-label]="ariaLabel() || label()"
     [attr.list]="visibleAutocompleteOptions().length > 0 ? autocompleteListId() : null"
     (input)="onTextInput($event)"
+    (change)="onTextInput($event)"
+    (keyup)="onTextInput($event)"
     (blur)="onBlur()"
   />
   }
