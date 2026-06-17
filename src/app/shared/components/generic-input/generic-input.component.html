@@ -45,7 +45,7 @@
       [class]="inputClasses()"
       [attr.aria-label]="ariaLabel() || label()"
       (change)="onCheckboxInput($event)"
-      (blur)="onBlur()"
+      (blur)="onBlur($event)"
     />
     <generic-text [config]="checkboxTextConfig()"></generic-text>
   </label>
@@ -62,7 +62,7 @@
       [attr.role]="'switch'"
       [attr.aria-checked]="currentBooleanValue()"
       (change)="onCheckboxInput($event)"
-      (blur)="onBlur()"
+      (blur)="onBlur($event)"
     />
     <span [class]="resolvedSwitchTrackClasses()" aria-hidden="true">
       <span [class]="resolvedSwitchThumbClasses()"></span>
@@ -80,7 +80,7 @@
     [attr.accept]="accept() || null"
     [attr.aria-label]="ariaLabel() || label()"
     (change)="onFileInput($event)"
-    (blur)="onBlur()"
+    (blur)="onBlur($event)"
   />
   } @case ('range') {
   <div [class]="fieldClasses()">
@@ -96,7 +96,7 @@
       [class]="inputClasses()"
       [attr.aria-label]="ariaLabel() || label()"
       (input)="onNumberInput($event)"
-      (blur)="onBlur()"
+      (blur)="onBlur($event)"
     />
     @if (showRangeValue()) {
     <generic-text [config]="rangeValueTextConfig()"></generic-text>
@@ -117,7 +117,7 @@
     [class]="fieldClasses() + ' ' + inputClasses()"
     [attr.aria-label]="ariaLabel() || label()"
     (input)="onNumberInput($event)"
-    (blur)="onBlur()"
+    (blur)="onBlur($event)"
   />
   } @case ('textarea') {
   <textarea
@@ -133,7 +133,7 @@
     (beforeinput)="onDeferredTextInput($event)"
     (input)="onTextInput($event)"
     (change)="onTextInput($event)"
-    (blur)="onBlur()"
+    (blur)="onBlur($event)"
   ></textarea>
   } @default {
   @if (showPasswordToggle()) {
@@ -152,7 +152,7 @@
       (beforeinput)="onDeferredTextInput($event)"
       (input)="onTextInput($event)"
       (change)="onTextInput($event)"
-      (blur)="onBlur()"
+      (blur)="onBlur($event)"
     />
     <generic-button
       [config]="{
@@ -180,7 +180,7 @@
     (beforeinput)="onDeferredTextInput($event)"
     (input)="onTextInput($event)"
     (change)="onTextInput($event)"
-    (blur)="onBlur()"
+    (blur)="onBlur($event)"
   />
   }
   @if (visibleAutocompleteOptions().length > 0) {

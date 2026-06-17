@@ -534,7 +534,8 @@ export class GenericInputComponent {
     this.onBlur();
   }
 
-  onBlur(): void {
+  onBlur(event?: Event): void {
+    this.updateTextTargetValue(event?.target ?? null);
     this.scope.markTouched(this.fieldId());
     this.blurred.emit({ fieldId: this.fieldId() });
   }
