@@ -12,6 +12,9 @@ dist/
 coverage/
 .nyc_output/
 
+# Local draft repositories are deployed through the runtime API.
+drafts/
+
 # Development and build tools
 .vscode/
 .idea/
