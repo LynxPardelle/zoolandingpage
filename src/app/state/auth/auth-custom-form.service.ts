@@ -67,6 +67,14 @@ export class AuthCustomFormService {
             }
             this.auth.establishSession(session);
             this.navigateAfterSignin();
+        } else if (action === 'signup') {
+            this.navigateAfterSignup();
+        } else if (action === 'confirmSignup') {
+            this.navigateAfterConfirmSignup();
+        } else if (action === 'forgotPassword') {
+            this.navigateAfterForgotPassword();
+        } else if (action === 'confirmForgotPassword') {
+            this.navigateAfterConfirmForgotPassword();
         }
         return response;
     }
@@ -222,6 +230,38 @@ export class AuthCustomFormService {
         });
     }
 
+    private navigateAfterSignup(): void {
+        this.navigateToFlowPath('confirmar-cuenta', '/confirmar-cuenta', 'account-created');
+    }
+
+    private navigateAfterConfirmSignup(): void {
+        this.navigateToLoginPath('account-confirmed');
+    }
+
+    private navigateAfterForgotPassword(): void {
+        this.navigateToFlowPath('cambiar-contrasena', '/cambiar-contrasena', 'password-code-sent');
+    }
+
+    private navigateAfterConfirmForgotPassword(): void {
+        this.navigateToLoginPath('password-reset');
+    }
+
+    private navigateToLoginPath(authStatus: string): void {
+        const path = this.safeSameOriginPath(this.runtimeConfig.auth()?.loginPath) || '/acceso';
+        this.navigateToPathWithAuthStatus(path, authStatus);
+    }
+
+    private navigateToFlowPath(pageId: string, fallbackPath: string, authStatus: string): void {
+        const path = this.routePathByPageId(pageId) || fallbackPath;
+        this.navigateToPathWithAuthStatus(path, authStatus);
+    }
+
+    private navigateToPathWithAuthStatus(path: string, authStatus: string): void {
+        navigateInCurrentWindow(this.withStickyQueryParams(this.withAuthStatus(path, authStatus)), {
+            scrollRestoration: { mode: 'top' },
+        });
+    }
+
     private resolvePostLoginPath(profile: TDraftAuthRuntimeConfig | null): string {
         return this.safeSameOriginPath(profile?.postLoginPath)
             || this.routePathByPageId(profile?.accountPageId)
@@ -274,6 +314,16 @@ export class AuthCustomFormService {
                 }
             });
             return `${ nextUrl.pathname || '/' }${ nextUrl.search }${ nextUrl.hash }`;
+        } catch {
+            return path;
+        }
+    }
+
+    private withAuthStatus(path: string, authStatus: string): string {
+        try {
+            const url = new URL(path, 'https://zoolanding.local');
+            url.searchParams.set('authStatus', authStatus);
+            return `${ url.pathname || '/' }${ url.search }${ url.hash }`;
         } catch {
             return path;
         }

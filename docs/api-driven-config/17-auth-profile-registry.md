@@ -18,7 +18,7 @@ Source Of Truth:
 - `docs/api-driven-config/schemas/integrations.schema.json`
 
 Confidence: Medium; this is an offline contract in the app repo, not a deployed Lambda or CDK stack.
-Last Reviewed: 2026-06-09 (Central Time)
+Last Reviewed: 2026-06-17 (Central Time)
 
 ## Purpose
 
@@ -83,6 +83,8 @@ Custom form drafts use generic inputs, buttons, visibility toggles, validation m
 For password UX, drafts may opt into generic-input validation checklists and generic scope validation instead of custom Angular code. Use separate validation rules for each visible requirement, including lower case, upper case, number, minimum length, and symbol requirements. Use `matchesField` to compare confirm-password fields to the password field, and use `disabledWhenInvalidScope` on submit buttons so account creation or password reset is not clickable until the interaction scope is valid. These controls are UX validation only; the backend auth service and Cognito policy must still enforce final password, tenant, and group rules server-side.
 
 The Angular service derives `domain`, `authProfileId`, and current language from runtime state and removes client-supplied tenant, group, and policy-looking fields from requests. Confirm-password fields are local UX validation only and are never sent to the Lambda. The Lambda must read `customAuth` from the server-only profile, call Cognito with a public app client, set tenant attributes and default groups only from server-side policy, and return sanitized statuses such as `signed-in`, `confirmation-required`, `confirmed`, `code-sent`, or `password-reset`. Custom signin requires a Cognito app client that supports the configured password auth flow. Custom signin returns only public session metadata to Angular; it does not return ID, access, or refresh tokens. Backend APIs still need JWT verification for protected data/actions, so custom signin must not be treated as API authorization by itself.
+
+After successful custom-auth actions, Angular performs same-origin UX navigation without putting the user's email in the URL. `signup` goes to the confirmation route with `authStatus=account-created`, `forgotPassword` goes to the password-code route with `authStatus=password-code-sent`, and successful `confirmSignup` or `confirmForgotPassword` return to the configured login path with `authStatus=account-confirmed` or `authStatus=password-reset`. Drafts may show static success banners with `queryEq` conditions; those query flags are display hints only and must never authorize data or actions.
 
 The app generates OAuth state and PKCE verifier/challenge values in the browser for interactive Cognito redirects. The verifier/state transaction is temporary `sessionStorage` data and must be cleared after callback handling, logout, expiry, or error. The app must not persist OAuth/JWT token strings, refresh tokens, or client secrets in signal state, draft payloads, notes, or browser storage.
 
