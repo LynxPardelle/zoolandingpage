@@ -25,6 +25,7 @@ import { i18nExistsConditionHandler } from './handlers/i18n.condition-handler';
 import { createLogicHandlers } from './handlers/logic.condition-handler';
 import { modalRefIdConditionHandler } from './handlers/modal-ref.condition-handler';
 import { navigationConditionHandler } from './handlers/navigation.condition-handler';
+import { queryEqConditionHandler } from './handlers/query.condition-handler';
 import { provideScopeConditionHandlers } from './handlers/scope.condition-handler';
 import { provideVariableConditionHandlers } from './handlers/variable.condition-handler';
 
@@ -49,6 +50,7 @@ export function provideConditionHandlers(): Provider[] {
         hostLenGteConditionHandler,
         hostLenLtConditionHandler,
         hostLenLteConditionHandler,
+        queryEqConditionHandler,
         modalRefIdConditionHandler,
         // --- Utility handlers ---
         { id: 'true', resolve: () => true },

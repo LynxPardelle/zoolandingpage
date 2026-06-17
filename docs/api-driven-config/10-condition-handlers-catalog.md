@@ -65,6 +65,14 @@ This is the allowlisted set of condition handlers for `condition` instructions.
   - Length checks for arrays/strings in scope.
   - Example: `all:scopeLenGt,uploadedFiles,0`
 
+## Query handlers
+
+- `queryEq,<key>,<value>`
+
+  - Strict equality check against the current browser query string.
+  - Intended for short-lived UX states such as post-auth success banners, not authorization.
+  - Example: `all:queryEq,authStatus,account-confirmed`
+
 ## Host helpers
 
 - `host,<path>`

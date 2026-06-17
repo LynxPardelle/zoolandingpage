@@ -123,6 +123,26 @@ describe('GenericButtonComponent', () => {
     expect(component.pressed.emit).not.toHaveBeenCalled();
   });
 
+  it('should append configured disabled classes when disabled', () => {
+    const fixture = TestBed.createComponent(GenericButtonComponent);
+
+    fixture.componentRef.setInput('config', {
+      label: 'Continuar',
+      disabled: true,
+      classes: 'btnBase ank-cursor-pointer',
+      disabledClasses: 'btnDisabled zlp-cursor-not-allowed ank-opacity-0_45',
+    });
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    expect(button.disabled).toBeTrue();
+    expect(button.className).toContain('btnBase');
+    expect(button.className).toContain('btnDisabled');
+    expect(button.className).toContain('zlp-cursor-not-allowed');
+    expect(button.className).toContain('ank-opacity-0_45');
+    expect(button.className).not.toContain('ank-cursor-pointer');
+  });
+
   it('should not invoke handlers when loading', () => {
     const fixture = TestBed.createComponent(GenericButtonComponent);
     const component = fixture.componentInstance;
