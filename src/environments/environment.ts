@@ -11,6 +11,7 @@ export const environment: TEnvironment = {
   development: true,
   apiUrl: 'https://api.zoolandingpage.com.mx',
   apiProxyUrl: 'https://yxp97qlog2.execute-api.us-east-1.amazonaws.com/Prod',
+  apiProxyTestUrl: 'https://11zpm6wug2.execute-api.us-east-1.amazonaws.com/Test',
   configApiUrl: 'https://api.zoolandingpage.com.mx',
   drafts: {
     enabled: true,

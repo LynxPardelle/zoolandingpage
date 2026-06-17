@@ -20,6 +20,10 @@
       "type": "string",
       "pattern": "^(?:/[^\\\\\\s\\u0000-\\u001F\\u007F]+|[^/\\\\\\s\\u0000-\\u001F\\u007F]+/[^\\\\\\s\\u0000-\\u001F\\u007F]+|arn:aws:(?:ssm|secretsmanager):[^\\\\\\s\\u0000-\\u001F\\u007F]+)$"
     },
+    "environmentClaim": {
+      "type": "string",
+      "pattern": "^custom:[A-Za-z0-9_]{1,20}$"
+    },
     "customSigninPolicy": {
       "type": "object",
       "properties": {
@@ -32,6 +36,7 @@
       "properties": {
         "enabled": { "type": "boolean" },
         "setTenantClaim": { "type": "boolean" },
+        "setEnvironmentClaim": { "type": "boolean" },
         "defaultGroups": {
           "type": "array",
           "items": { "type": "string", "minLength": 1 }
@@ -106,6 +111,7 @@
         "loginPath": { "$ref": "#/definitions/sameOriginPath" },
         "logoutPath": { "$ref": "#/definitions/sameOriginPath" },
         "tenantClaim": { "type": "string", "minLength": 1 },
+        "environmentClaim": { "$ref": "#/definitions/environmentClaim" },
         "groupClaim": { "type": "string", "minLength": 1 },
         "allowedGroups": {
           "type": "array",

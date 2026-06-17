@@ -101,11 +101,13 @@ The server-only registry lives at `drafts/{domain}/server/auth-profile-registry.
 - Cognito issuer, Hosted UI domain, public client ID, and accepted audiences
 - callback and logout URL allowlists
 - same-origin `loginPath` and `logoutPath` exposed to the browser when needed
-- tenant claim, group claim, and allowed groups for server-side policy
+- tenant claim, optional environment claim, group claim, and allowed groups for server-side policy
 - provider references for social IdPs such as Google and Facebook
 - social IdP credential references under `socialIdpSecretRefs`, never raw credential values
 
 The default isolation and billing model is one Cognito user pool per paying client or strong draft boundary. A shared user pool with tenant claims is not the default because it complicates per-client billing, social IdP configuration, callback allowlists, blast-radius control, and user lifecycle ownership. `tenantId` and `tenantClaim` remain useful inside a user pool for finer backend permissions, specialized dashboards, internal sections, and analytics scopes, but they are a secondary authorization boundary. When a profile configures a tenant claim, backend APIs should reject missing or mismatched claims after JWT signature, issuer, and audience verification.
+
+For a single client's testing and production users, a draft may intentionally share one Cognito user pool and declare an `environmentClaim` such as `custom:zoolanding_env`. Custom signup writes `dev`, `test`, or `prod` from the API proxy stack environment, never from browser input. Signin and JWT-protected APIs must then reject users whose verified environment claim does not match the stack. This is useful for testing/prod separation within one client pool, but it is not a replacement for per-client user pools.
 
 Minimal example:
 
@@ -126,6 +128,7 @@ Minimal example:
       "loginPath": "/login",
       "logoutPath": "/auth/logout",
       "tenantClaim": "custom:tenant_id",
+      "environmentClaim": "custom:zoolanding_env",
       "groupClaim": "cognito:groups",
       "allowedGroups": ["Editors"],
       "customAuth": {
@@ -135,6 +138,7 @@ Minimal example:
         "signup": {
           "enabled": true,
           "setTenantClaim": true,
+          "setEnvironmentClaim": true,
           "defaultGroups": ["Editors"]
         },
         "passwordRecovery": {
@@ -158,6 +162,7 @@ Only profiles with `status: "active"` may generate public `runtime.auth.enabled 
 `buildCognitoProvisioningPlan(profile)` returns a declarative `plan-only` object. It describes operations a future serverless worker can perform, including:
 
 - create or update the draft/client-specific Cognito user pool
+- create the mutable environment custom attribute when `environmentClaim` is configured
 - create or update user pool client
 - configure Hosted UI domain
 - configure social providers using secret references

@@ -10,6 +10,7 @@ export const environment: TEnvironment = {
   development: false,
   apiUrl: 'https://api.zoolandingpage.com.mx',
   apiProxyUrl: 'https://yxp97qlog2.execute-api.us-east-1.amazonaws.com/Prod',
+  apiProxyTestUrl: 'https://11zpm6wug2.execute-api.us-east-1.amazonaws.com/Test',
   configApiUrl: 'https://api.zoolandingpage.com.mx',
   configApiRuntimeFallbackUrl: 'https://y84vk0v44l.execute-api.us-east-1.amazonaws.com/Prod',
   configApiServerFallbackUrl: 'https://y84vk0v44l.execute-api.us-east-1.amazonaws.com/Prod',
