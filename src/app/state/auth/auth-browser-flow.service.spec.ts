@@ -1,4 +1,5 @@
 import { ConfigStoreService } from '@/app/shared/services/config-store.service';
+import { LanguageService } from '@/app/shared/services/language.service';
 import { PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { AuthBrowserFlowService } from './auth-browser-flow.service';
@@ -30,6 +31,7 @@ describe('AuthBrowserFlowService', () => {
             providers: [
                 { provide: PLATFORM_ID, useValue: 'browser' },
                 { provide: AuthOidcService, useValue: oidc },
+                { provide: LanguageService, useValue: { currentLanguage: () => 'es' } },
             ],
         });
 
@@ -193,7 +195,39 @@ describe('AuthBrowserFlowService', () => {
             authProfileId: 'staff',
         }), jasmine.objectContaining({
             redirectUri: `${ window.location.origin }/auth/callback?draftDomain=zoositioweb.com.mx&debugWorkspace=false`,
+            language: 'es',
         }));
+    });
+
+    it('passes the active draft language to Cognito signup URLs', async () => {
+        oidc.buildSignupUrl.and.returnValue('https://zoosite-staff-planned.auth.us-east-1.amazoncognito.com/signup');
+
+        const service = TestBed.inject(AuthBrowserFlowService);
+        const url = await service.createInteractiveUrl('signup');
+
+        expect(url).toBe('https://zoosite-staff-planned.auth.us-east-1.amazoncognito.com/signup');
+        expect(oidc.buildSignupUrl).toHaveBeenCalledOnceWith(jasmine.objectContaining({
+            authProfileId: 'staff',
+        }), jasmine.objectContaining({
+            language: 'es',
+        }));
+    });
+
+    it('omits the active draft language from Cognito logout URLs to keep allowlists stable', () => {
+        window.history.pushState({}, '', '/mi-cuenta?draftDomain=zoositioweb.com.mx&debugWorkspace=false&lang=es');
+        oidc.buildLogoutUrl.and.returnValue('https://zoosite-staff-planned.auth.us-east-1.amazoncognito.com/logout');
+
+        const service = TestBed.inject(AuthBrowserFlowService);
+        const url = service.createLogoutUrl();
+
+        expect(url).toBe('https://zoosite-staff-planned.auth.us-east-1.amazoncognito.com/logout');
+        expect(oidc.buildLogoutUrl).toHaveBeenCalledOnceWith(jasmine.objectContaining({
+            authProfileId: 'staff',
+        }), jasmine.objectContaining({
+            logoutUri: `${ window.location.origin }/acceso?draftDomain=zoositioweb.com.mx&debugWorkspace=false`,
+        }));
+        const options = oidc.buildLogoutUrl.calls.mostRecent().args[1] as { readonly logoutUri?: string };
+        expect(options.logoutUri).not.toContain('lang=');
     });
 
     it('falls back to a short-lived same-site cookie when sessionStorage cannot persist PKCE state', async () => {

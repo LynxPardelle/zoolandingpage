@@ -1,5 +1,6 @@
 import { ConfigStoreService } from '@/app/shared/services/config-store.service';
 import { DRAFT_RUNTIME_STICKY_QUERY_PARAMS } from '@/app/shared/services/draft-runtime.service';
+import { LanguageService } from '@/app/shared/services/language.service';
 import { RuntimeConfigService } from '@/app/shared/services/runtime-config.service';
 import type { TDraftAuthRuntimeConfig } from '@/app/shared/types/config-payloads.types';
 import { isPlatformBrowser } from '@angular/common';
@@ -47,6 +48,7 @@ export class AuthBrowserFlowService {
     private readonly configStore = inject(ConfigStoreService);
     private readonly auth = inject(AuthFacade);
     private readonly oidc = inject(AuthOidcService);
+    private readonly language = inject(LanguageService);
     private readonly platformId = inject(PLATFORM_ID);
     private readonly isBrowser = isPlatformBrowser(this.platformId);
 
@@ -73,6 +75,7 @@ export class AuthBrowserFlowService {
             state: transaction.state,
             codeChallenge: await this.createCodeChallenge(transaction.codeVerifier),
             redirectUri: transaction.redirectUri,
+            language: this.language.currentLanguage(),
         };
         const url = action === 'signup'
             ? this.oidc.buildSignupUrl(profile, options)
@@ -111,7 +114,9 @@ export class AuthBrowserFlowService {
 
         return this.oidc.buildLogoutUrl(profile, {
             origin,
-            logoutUri: this.resolveCurrentSameOriginUrl(this.resolvePostLogoutPath(profile)),
+            logoutUri: this.resolveCurrentSameOriginUrl(this.resolvePostLogoutPath(profile), {
+                includeLanguage: false,
+            }),
         })
             ?? this.resolvePostLogoutPath(profile);
     }
@@ -413,7 +418,10 @@ export class AuthBrowserFlowService {
         return window.location.origin;
     }
 
-    private resolveCurrentSameOriginUrl(path: unknown): string {
+    private resolveCurrentSameOriginUrl(
+        path: unknown,
+        options: { readonly includeLanguage?: boolean } = {},
+    ): string {
         const origin = this.currentOrigin();
         const safePath = this.safeSameOriginPath(path);
         if (!origin || !safePath || typeof window === 'undefined') {
@@ -424,6 +432,9 @@ export class AuthBrowserFlowService {
             const url = new URL(safePath, origin);
             const currentUrl = new URL(window.location.href);
             DRAFT_RUNTIME_STICKY_QUERY_PARAMS.forEach((key) => {
+                if (key === 'lang' && options.includeLanguage === false) {
+                    return;
+                }
                 if (!url.searchParams.has(key) && currentUrl.searchParams.has(key)) {
                     url.searchParams.set(key, currentUrl.searchParams.get(key) ?? '');
                 }

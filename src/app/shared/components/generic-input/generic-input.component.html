@@ -45,7 +45,7 @@
       [class]="inputClasses()"
       [attr.aria-label]="ariaLabel() || label()"
       (change)="onCheckboxInput($event)"
-      (blur)="onBlur()"
+      (blur)="onBlur($event)"
     />
     <generic-text [config]="checkboxTextConfig()"></generic-text>
   </label>
@@ -62,7 +62,7 @@
       [attr.role]="'switch'"
       [attr.aria-checked]="currentBooleanValue()"
       (change)="onCheckboxInput($event)"
-      (blur)="onBlur()"
+      (blur)="onBlur($event)"
     />
     <span [class]="resolvedSwitchTrackClasses()" aria-hidden="true">
       <span [class]="resolvedSwitchThumbClasses()"></span>
@@ -80,7 +80,7 @@
     [attr.accept]="accept() || null"
     [attr.aria-label]="ariaLabel() || label()"
     (change)="onFileInput($event)"
-    (blur)="onBlur()"
+    (blur)="onBlur($event)"
   />
   } @case ('range') {
   <div [class]="fieldClasses()">
@@ -96,7 +96,7 @@
       [class]="inputClasses()"
       [attr.aria-label]="ariaLabel() || label()"
       (input)="onNumberInput($event)"
-      (blur)="onBlur()"
+      (blur)="onBlur($event)"
     />
     @if (showRangeValue()) {
     <generic-text [config]="rangeValueTextConfig()"></generic-text>
@@ -117,37 +117,72 @@
     [class]="fieldClasses() + ' ' + inputClasses()"
     [attr.aria-label]="ariaLabel() || label()"
     (input)="onNumberInput($event)"
-    (blur)="onBlur()"
+    (blur)="onBlur($event)"
   />
   } @case ('textarea') {
   <textarea
     [id]="fieldId()"
     [name]="name()"
-    [value]="currentTextValue()"
+    [defaultValue]="currentTextValue()"
     [rows]="rows() ?? 4"
     [disabled]="disabled()"
     [readOnly]="readOnly()"
     [placeholder]="placeholder()"
     [class]="fieldClasses() + ' ' + inputClasses()"
     [attr.aria-label]="ariaLabel() || label()"
+    (beforeinput)="onDeferredTextInput($event)"
     (input)="onTextInput($event)"
-    (blur)="onBlur()"
+    (change)="onTextInput($event)"
+    (blur)="onBlur($event)"
   ></textarea>
   } @default {
+  @if (showPasswordToggle()) {
+  <div [class]="fieldClasses()">
+    <input
+      [id]="fieldId()"
+      [name]="name()"
+      [type]="resolvedInputType()"
+      [defaultValue]="currentTextValue()"
+      [disabled]="disabled()"
+      [readOnly]="readOnly()"
+      [placeholder]="placeholder()"
+      [class]="inputClasses()"
+      [attr.aria-label]="ariaLabel() || label()"
+      [attr.list]="visibleAutocompleteOptions().length > 0 ? autocompleteListId() : null"
+      (beforeinput)="onDeferredTextInput($event)"
+      (input)="onTextInput($event)"
+      (change)="onTextInput($event)"
+      (blur)="onBlur($event)"
+    />
+    <generic-button
+      [config]="{
+        type: 'button',
+        classes: passwordToggleClasses(),
+        ariaLabel: passwordToggleLabel(),
+        icon: passwordToggleIcon(),
+        iconClasses: passwordToggleIconClasses()
+      }"
+      (pressed)="togglePasswordVisibility()"
+    ></generic-button>
+  </div>
+  } @else {
   <input
     [id]="fieldId()"
     [name]="name()"
-    [type]="inputType()"
-    [value]="currentTextValue()"
+    [type]="resolvedInputType()"
+    [defaultValue]="currentTextValue()"
     [disabled]="disabled()"
     [readOnly]="readOnly()"
     [placeholder]="placeholder()"
     [class]="fieldClasses() + ' ' + inputClasses()"
     [attr.aria-label]="ariaLabel() || label()"
     [attr.list]="visibleAutocompleteOptions().length > 0 ? autocompleteListId() : null"
+    (beforeinput)="onDeferredTextInput($event)"
     (input)="onTextInput($event)"
-    (blur)="onBlur()"
+    (change)="onTextInput($event)"
+    (blur)="onBlur($event)"
   />
+  }
   @if (visibleAutocompleteOptions().length > 0) {
   <datalist [id]="autocompleteListId()">
     @for (option of visibleAutocompleteOptions(); track option.value + ':' + $index) {
@@ -157,6 +192,17 @@
   }
   } } @if (helperText() && controlType() !== 'checkbox' && controlType() !== 'switch') {
   <generic-text [config]="helperTextConfig()"></generic-text>
+  } @if (showValidationChecklist() && validationChecklistItems().length > 0) {
+  <ul [class]="validationChecklistClasses()" [attr.aria-label]="validationChecklistLabel() || null">
+    @for (item of validationChecklistItems(); track item.message) {
+    <li [class]="validationChecklistItemClassesFor(item.valid)" [attr.data-valid]="item.valid ? 'true' : 'false'">
+      <span [class]="validationChecklistIconClasses()" aria-hidden="true">
+        {{ item.valid ? validationChecklistValidIcon() : validationChecklistInvalidIcon() }}
+      </span>
+      <span>{{ item.message }}</span>
+    </li>
+    }
+  </ul>
   } @if (visibleErrors().length > 0) {
   <div [class]="errorClasses()">
     @for (error of visibleErrors(); track error) {

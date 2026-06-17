@@ -1,5 +1,8 @@
 import type { TDraftNavigationScrollRestorationConfig } from '../../types/config-payloads.types';
 
+export const CLIENT_NAVIGATION_START_EVENT = 'zlp:client-navigation-start';
+export const CLIENT_NAVIGATION_END_EVENT = 'zlp:client-navigation-end';
+
 export function currentBrowserPath(): string {
     if (typeof window === 'undefined' || !window.location) {
         return '/';
@@ -13,6 +16,18 @@ function dispatchClientNavigation(): void {
         ? new PopStateEvent('popstate', { state: window.history.state })
         : new Event('popstate');
     window.dispatchEvent(event);
+}
+
+export function dispatchClientNavigationEnd(): void {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    window.dispatchEvent(new Event(CLIENT_NAVIGATION_END_EVENT));
+}
+
+function dispatchClientNavigationStart(): void {
+    window.dispatchEvent(new Event(CLIENT_NAVIGATION_START_EVENT));
 }
 
 function scrollHashIntoView(hash: string): void {
@@ -82,6 +97,7 @@ export function navigateInCurrentWindow(
         return;
     }
 
+    dispatchClientNavigationStart();
     window.history.pushState({}, '', nextPath);
     if (nextUrl.hash) {
         scrollHashIntoView(nextUrl.hash);

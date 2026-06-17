@@ -1,3 +1,4 @@
+import { normalizeLocaleCode } from '@/app/shared/i18n/locale.utils';
 import type { TDraftAuthRuntimeConfig } from '@/app/shared/types/config-payloads.types';
 import { Injectable } from '@angular/core';
 
@@ -6,6 +7,7 @@ export type TAuthLoginUrlOptions = {
     readonly state: string;
     readonly codeChallenge: string;
     readonly redirectUri?: string;
+    readonly language?: string;
 };
 
 export type TAuthLogoutUrlOptions = {
@@ -176,6 +178,10 @@ export class AuthOidcService {
         url.searchParams.set('state', state);
         url.searchParams.set('code_challenge', codeChallenge);
         url.searchParams.set('code_challenge_method', 'S256');
+        const language = this.cleanLocale(options.language);
+        if (language) {
+            url.searchParams.set('lang', language);
+        }
         return url.toString();
     }
 
@@ -200,6 +206,13 @@ export class AuthOidcService {
 
     private clean(value: unknown): string {
         return typeof value === 'string' ? value.trim() : '';
+    }
+
+    private cleanLocale(value: unknown): string {
+        const normalized = normalizeLocaleCode(value);
+        return /^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8}){0,3}$/.test(normalized)
+            ? normalized
+            : '';
     }
 
     private parseHttpsUrl(value: unknown): URL | null {

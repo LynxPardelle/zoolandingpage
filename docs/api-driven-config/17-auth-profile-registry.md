@@ -13,6 +13,7 @@ Source Of Truth:
 - `tools/tests/auth-profile-registry.spec.mjs`
 - `tools/tests/auth-service-handlers.spec.mjs`
 - `tools/tests/server-config-schema.spec.mjs`
+- `docs/api-driven-config/schemas/components.schema.json`
 - `docs/api-driven-config/schemas/auth-profile-registry.schema.json`
 - `docs/api-driven-config/schemas/integrations.schema.json`
 
@@ -67,9 +68,25 @@ Draft pages should use normal generic components and the `authAction` event hand
 - `authAction:forgotPassword` opens the Cognito `/forgotPassword` managed page with the same authorize parameters.
 - `authAction:logout` clears local public session metadata and redirects through Cognito `/logout` when the Hosted UI profile is available.
 
+This Managed Login path is the default auth UX mode, not the only allowed mode. Drafts that need deeper personalization may use generic draft components for custom sign-in, sign-up, confirmation, password recovery, and password reset flows, backed by server-side auth Lambdas. The mode must be selected per `authProfileId`, so one draft can use Cognito Managed Login while another uses custom generic forms. Custom forms may improve UX with localized copy, show-password controls, and confirm-password fields, but they must still send only public context such as `domain`, `authProfileId`, email, password, and confirmation codes. Tenant, user-pool, group, and billing decisions must be resolved server-side.
+
+Custom form drafts use generic inputs, buttons, visibility toggles, validation messages, and the reusable `authFormAction` event handler. The supported actions are:
+
+- `authFormAction:signin`: posts email/password to `/auth/signin`.
+- `authFormAction:signup`: posts email/password to `/auth/signup`.
+- `authFormAction:confirmSignup`: posts email/code to `/auth/confirm-signup`.
+- `authFormAction:resendConfirmation`: posts email to `/auth/resend-confirmation`.
+- `authFormAction:forgotPassword`: posts email to `/auth/forgot-password`.
+- `authFormAction:confirmForgotPassword`: posts email/code/new password to `/auth/confirm-forgot-password`.
+- `authFormAction:logout`: clears local public session metadata and navigates to the configured same-origin logout/login path without calling Cognito Hosted UI.
+
+For password UX, drafts may opt into generic-input validation checklists and generic scope validation instead of custom Angular code. Use separate validation rules for each visible requirement, including lower case, upper case, number, minimum length, and symbol requirements. Use `matchesField` to compare confirm-password fields to the password field, and use `disabledWhenInvalidScope` on submit buttons so account creation or password reset is not clickable until the interaction scope is valid. These controls are UX validation only; the backend auth service and Cognito policy must still enforce final password, tenant, and group rules server-side.
+
+The Angular service derives `domain`, `authProfileId`, and current language from runtime state and removes client-supplied tenant, group, and policy-looking fields from requests. Confirm-password fields are local UX validation only and are never sent to the Lambda. The Lambda must read `customAuth` from the server-only profile, call Cognito with a public app client, set tenant attributes and default groups only from server-side policy, and return sanitized statuses such as `signed-in`, `confirmation-required`, `confirmed`, `code-sent`, or `password-reset`. Custom signin requires a Cognito app client that supports the configured password auth flow. Custom signin returns only public session metadata to Angular; it does not return ID, access, or refresh tokens. Backend APIs still need JWT verification for protected data/actions, so custom signin must not be treated as API authorization by itself.
+
 The app generates OAuth state and PKCE verifier/challenge values in the browser for interactive Cognito redirects. The verifier/state transaction is temporary `sessionStorage` data and must be cleared after callback handling, logout, expiry, or error. The app must not persist OAuth/JWT token strings, refresh tokens, or client secrets in signal state, draft payloads, notes, or browser storage.
 
-When auth starts from the shared testing preview host, the app preserves `draftDomain`, `debugWorkspace`, and `lang` in the exact same-origin Cognito `redirect_uri` and logout URL. The exact `redirect_uri` is stored in the PKCE transaction and reused during token exchange. Cognito app clients used for shared-host testing must allow the matching callback/logout URLs, including their query string, or Cognito will reject the Hosted UI round trip.
+When auth starts from the shared testing preview host, the app preserves `draftDomain`, `debugWorkspace`, and `lang` in the exact same-origin Cognito `redirect_uri`. The exact `redirect_uri` is stored in the PKCE transaction and reused during token exchange. Hosted UI logout URLs preserve only allowlist-stable preview params such as `draftDomain` and `debugWorkspace`; custom-auth logout should not use Hosted UI at all. Cognito app clients used for shared-host testing must allow the matching callback/logout URLs, including their query string, or Cognito will reject the Hosted UI round trip.
 
 The `/auth/callback` route is still a draft-rendered page. Angular processes the callback only after `runtime.auth` has been resolved, exchanges the authorization code with Cognito using PKCE, validates public ID-token claims for UX session metadata, and redirects to `postLoginPath`, an account route, or the first matching protected route. This client-side session can unlock draft UI only; protected APIs must verify JWT signatures, issuer/audience, tenant, and groups server-side.
 
@@ -87,6 +104,8 @@ The server-only registry lives at `drafts/{domain}/server/auth-profile-registry.
 - tenant claim, group claim, and allowed groups for server-side policy
 - provider references for social IdPs such as Google and Facebook
 - social IdP credential references under `socialIdpSecretRefs`, never raw credential values
+
+The default isolation and billing model is one Cognito user pool per paying client or strong draft boundary. A shared user pool with tenant claims is not the default because it complicates per-client billing, social IdP configuration, callback allowlists, blast-radius control, and user lifecycle ownership. `tenantId` and `tenantClaim` remain useful inside a user pool for finer backend permissions, specialized dashboards, internal sections, and analytics scopes, but they are a secondary authorization boundary. When a profile configures a tenant claim, backend APIs should reject missing or mismatched claims after JWT signature, issuer, and audience verification.
 
 Minimal example:
 
@@ -109,6 +128,19 @@ Minimal example:
       "tenantClaim": "custom:tenant_id",
       "groupClaim": "cognito:groups",
       "allowedGroups": ["Editors"],
+      "customAuth": {
+        "signin": {
+          "enabled": true
+        },
+        "signup": {
+          "enabled": true,
+          "setTenantClaim": true,
+          "defaultGroups": ["Editors"]
+        },
+        "passwordRecovery": {
+          "enabled": true
+        }
+      },
       "socialIdpSecretRefs": {
         "google": "/zoolanding/auth/example/google"
       }
@@ -125,7 +157,7 @@ Only profiles with `status: "active"` may generate public `runtime.auth.enabled 
 
 `buildCognitoProvisioningPlan(profile)` returns a declarative `plan-only` object. It describes operations a future serverless worker can perform, including:
 
-- create or update Cognito user pool
+- create or update the draft/client-specific Cognito user pool
 - create or update user pool client
 - configure Hosted UI domain
 - configure social providers using secret references
@@ -138,7 +170,8 @@ If CDK is added later, keep the app/Lambda boundary:
 - CDK or a provisioning worker consumes the validated server-only registry.
 - No draft can supply final authorization policy from the browser.
 - Social provider credentials are read from a secret store by reference.
-- Provisioning must remain tenant-scoped and idempotent.
+- Provisioning must remain draft/client-scoped and idempotent.
+- Social IdPs are optional per auth profile; a Cognito-only profile is valid when a draft does not need Google, Facebook, or other external identity providers.
 
 ## Protected Integrations
 
@@ -212,7 +245,7 @@ Frontend auth state is UX metadata only. Backend APIs for blogs, dashboards, upl
 - resolve tenant ownership from `domain + authProfileId`
 - enforce server-side groups or permissions from the registry
 - reject requests when the draft domain, auth profile, issuer, audience, or group policy do not match
-- reject requests when the configured tenant claim is present and does not equal the server-only tenant ID
+- reject requests when a configured tenant claim is missing or does not equal the server-only tenant ID
 
 `buildJwtVerificationConfig(profile)` prepares the issuer, audience, JWKS URI, groups claim, and tenant boundary a Lambda authorizer can use. For Cognito issuers, preserve the full issuer path when deriving `/.well-known/jwks.json`. `authPolicyFromJwtClaims(profile, claims)` is only a policy evaluator for already-verified claims; it is not a cryptographic JWT verifier.
 

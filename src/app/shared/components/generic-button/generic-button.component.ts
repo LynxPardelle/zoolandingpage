@@ -2,13 +2,16 @@ import { CommonModule } from "@angular/common";
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   EventEmitter,
   Output,
   computed,
+  inject,
   input
 } from "@angular/core";
 import { composeDomId, resolveComponentRootDomId, resolveStyleRecord } from '../../utility/component-orchestrator.utility';
 import { GenericIconComponent } from "../generic-icon/generic-icon.component";
+import { InteractionScopeService } from "../interaction-scope/interaction-scope.service";
 import type { TGenericButtonConfig } from "./generic-button.types";
 
 @Component({
@@ -23,12 +26,21 @@ export class GenericButtonComponent {
 
   private readonly buttonTypes = ['button', 'submit', 'reset'] as const;
   private readonly iconPositions = ['after', 'before'] as const;
+  private readonly interactionScope = inject(InteractionScopeService, { optional: true });
+  private readonly host = inject(ElementRef<HTMLElement>);
 
   readonly label = computed<string>(() => {
     const label = this.resolve(this.config().label);
     return typeof label === 'string' ? label : String(label ?? '');
   });
-  readonly disabled = computed<boolean>(() => Boolean(this.resolve(this.config().disabled) ?? false));
+  readonly disabled = computed<boolean>(() => {
+    const ownDisabled = Boolean(this.resolve(this.config().disabled) ?? false);
+    const usesScopeDisabled = Boolean(this.resolve(this.config().disabledWhenInvalidScope) ?? false);
+    const scopeDisabled = usesScopeDisabled
+      && this.interactionScope != null
+      && !this.isRenderedScopeValid();
+    return ownDisabled || scopeDisabled;
+  });
   readonly loading = computed<boolean>(() => Boolean(this.resolve(this.config().loading) ?? false));
   readonly icon = computed<string | undefined>(() => {
     return this.optionalString(this.config().icon);
@@ -74,7 +86,9 @@ export class GenericButtonComponent {
   readonly classes = computed(
     () =>
     (String(this.resolve(this.config().classes) ||
-      "btnBase") + (this.loading() ? " ank-cursor-wait ank-opacity-80" : ""))
+      "btnBase")
+      + (this.loading() ? " ank-cursor-wait ank-opacity-80" : "")
+      + (this.disabled() && !this.loading() ? " ank-cursor-notAllowed ank-opacity-40" : ""))
   );
   readonly styles = computed(() => resolveStyleRecord(this.config().styles));
   readonly iconClass = computed<string>(
@@ -111,6 +125,20 @@ export class GenericButtonComponent {
   private enumValue<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
     const resolved = this.resolve(value);
     return typeof resolved === 'string' && allowed.includes(resolved as T) ? resolved as T : fallback;
+  }
+
+  private isRenderedScopeValid(): boolean {
+    const snapshot = this.interactionScope?.snapshot();
+    if (snapshot?.valid) {
+      return true;
+    }
+
+    const form = this.host.nativeElement.closest('form');
+    if (!form) {
+      return false;
+    }
+
+    return !form.querySelector('generic-input[data-zlp-field-valid="false"]');
   }
 
   onClick(event: MouseEvent): void {

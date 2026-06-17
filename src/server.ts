@@ -175,6 +175,9 @@ type TLocalPageConfig = {
 type TRuntimeBundlePayload = {
   readonly siteConfig?: unknown;
   readonly pageConfig?: unknown;
+  readonly metadata?: unknown;
+  readonly pageId?: unknown;
+  readonly route?: unknown;
 };
 
 type TLocalComponentsPayload = {
@@ -1216,6 +1219,40 @@ async function loadRuntimePageConfig(domain: string, path: string): Promise<TLoc
   return null;
 }
 
+async function loadRuntimeRouteStatus(domain: string, path: string): Promise<200 | 404 | null> {
+  const normalizedDomain = normalizeHost(domain);
+  if (!normalizedDomain || RUNTIME_BUNDLE_BASE_URLS.length === 0) {
+    return null;
+  }
+
+  const normalizedPath = normalizeRoutePath(path);
+  for (const baseUrl of RUNTIME_BUNDLE_BASE_URLS) {
+    const payload = await fetchRuntimeBundlePayload(baseUrl, normalizedDomain, normalizedPath);
+    if (!payload) {
+      continue;
+    }
+
+    const metadata = isRecord(payload.metadata) ? payload.metadata : {};
+    const statusCode = Number(metadata['statusCode']);
+    if (statusCode === 404 || metadata['notFound'] === true) {
+      return 404;
+    }
+
+    const siteConfig = isRecord(payload.siteConfig) ? payload.siteConfig as TLocalSiteConfig : null;
+    const route = isRecord(payload.route) ? payload.route : null;
+    const routePath = normalizeRoutePath(route?.['path']);
+    const pageId = String(payload.pageId ?? '').trim();
+    const notFoundPageId = resolveLocalNotFoundPageId(siteConfig);
+    if (routePath === '/404' || (!!notFoundPageId && pageId === notFoundPageId)) {
+      return 404;
+    }
+
+    return 200;
+  }
+
+  return null;
+}
+
 async function loadPageConfigForRoute(domain: string, route: TSiteConfigRouteEntry): Promise<TLocalPageConfig | null> {
   const pageId = String(route.pageId ?? '').trim();
   const localPageConfig = pageId ? loadLocalPageConfig(domain, pageId) : null;
@@ -1364,6 +1401,31 @@ function resolveNotFoundLookupDomain(req: express.Request, host: string): string
 
 function isSharedTestingDraftPreviewRequest(req: express.Request, host: string): boolean {
   return isSharedTestingPreviewHost(host) && Boolean(normalizeHost(req.query['draftDomain']));
+}
+
+function normalizeRuntimeLookupDomain(value: unknown): string {
+  const normalized = normalizeHost(value);
+  return normalized && !/[/\\\s\u0000-\u001F\u007F]/.test(normalized) ? normalized : '';
+}
+
+function resolveRuntimeStatusLookupDomain(
+  req: express.Request,
+  host: string,
+  domain: string,
+  siteConfig: TLocalSiteConfig | null,
+): string {
+  const normalizedDomain = normalizeRuntimeLookupDomain(domain);
+  if (!isSharedTestingDraftPreviewRequest(req, host)) {
+    return normalizedDomain;
+  }
+
+  const testAliases = Array.isArray(siteConfig?.environments?.['test']?.aliases)
+    ? siteConfig.environments['test'].aliases
+    : [];
+  return testAliases
+    .map(normalizeRuntimeLookupDomain)
+    .find((alias) => alias && alias !== normalizedDomain)
+    ?? normalizedDomain;
 }
 
 function resolveRequestProtocol(req: express.Request, host: string): string {
@@ -2089,6 +2151,16 @@ async function shouldServeNotFoundDocument(req: express.Request): Promise<boolea
 
   if (resolveLocalRoute(siteConfig, normalizedPath)) {
     return false;
+  }
+
+  const runtimeStatusDomain = resolveRuntimeStatusLookupDomain(req, host, lookupDomain, siteConfig);
+  const runtimeRouteStatus = await loadRuntimeRouteStatus(runtimeStatusDomain || lookupDomain, normalizedPath);
+  if (runtimeRouteStatus === 200) {
+    return false;
+  }
+
+  if (runtimeRouteStatus === 404) {
+    return normalizedPath !== '/';
   }
 
   return normalizedPath !== '/';

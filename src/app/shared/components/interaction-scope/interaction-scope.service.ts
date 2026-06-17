@@ -41,6 +41,7 @@ export const validateInteractionValue = (
     value: unknown,
     rules: readonly TInteractionValidationRule[] | unknown = [],
     required = false,
+    context: { readonly values?: Readonly<Record<string, unknown>> } = {},
 ): readonly string[] => {
     const errors: string[] = [];
     const safeRules = normalizeValidationRules(rules);
@@ -113,6 +114,14 @@ export const validateInteractionValue = (
         if (rule.type === 'email') {
             if (!EMAIL_PATTERN.test(String(value))) {
                 errors.push(rule.message ?? 'Please enter a valid email address.');
+            }
+            return;
+        }
+
+        if (rule.type === 'matchesField') {
+            const otherValue = context.values?.[rule.fieldId];
+            if (String(value) !== String(otherValue ?? '')) {
+                errors.push(rule.message ?? 'The values do not match.');
             }
         }
     });
@@ -244,17 +253,30 @@ export class InteractionScopeService {
         const currentStates = this.fieldStates();
         const existing = currentStates[fieldId];
         const initialValue = config.initialValue ?? this.initialValues()[fieldId] ?? DEFAULT_EMPTY_VALUE;
-        const nextState = this.buildFieldState(
-            existing?.value ?? initialValue,
-            config,
-            existing,
+        const nextStates = this.rebuildFieldStates(
+            {
+                ...currentStates,
+                [fieldId]: {
+                    ...(existing ?? {
+                        touched: false,
+                        dirty: false,
+                        errors: [],
+                        valid: true,
+                    }),
+                    value: existing?.value ?? initialValue,
+                },
+            },
+            {
+                [fieldId]: {
+                    value: existing?.value ?? initialValue,
+                    definition: config,
+                    previous: existing,
+                },
+            }
         );
 
-        if (!this.areFieldStatesEqual(existing, nextState)) {
-            this.fieldStates.set({
-                ...currentStates,
-                [fieldId]: nextState,
-            });
+        if (this.stableValue(currentStates) !== this.stableValue(nextStates)) {
+            this.fieldStates.set(nextStates);
         }
     }
 
@@ -264,17 +286,19 @@ export class InteractionScopeService {
 
         const definition = this.getFieldDefinition(normalizedFieldId);
 
-        this.fieldStates.update((current) => {
-            const previous = current[normalizedFieldId];
-            return {
-                ...current,
-                [normalizedFieldId]: this.buildFieldState(value, definition, {
-                    ...previous,
-                    touched: opts?.markTouched ?? previous?.touched ?? false,
-                    dirty: true,
-                }),
-            };
-        });
+        this.fieldStates.update((current) =>
+            this.rebuildFieldStates(current, {
+                [normalizedFieldId]: {
+                    value,
+                    definition,
+                    previous: {
+                        ...current[normalizedFieldId],
+                        touched: opts?.markTouched ?? current[normalizedFieldId]?.touched ?? false,
+                        dirty: true,
+                    },
+                },
+            })
+        );
     }
 
     markTouched(fieldId: string): void {
@@ -287,13 +311,16 @@ export class InteractionScopeService {
             const previous = current[normalizedFieldId];
             if (!previous) return current;
 
-            return {
-                ...current,
-                [normalizedFieldId]: this.buildFieldState(previous.value, definition, {
-                    ...previous,
-                    touched: true,
-                }),
-            };
+            return this.rebuildFieldStates(current, {
+                [normalizedFieldId]: {
+                    value: previous.value,
+                    definition,
+                    previous: {
+                        ...previous,
+                        touched: true,
+                    },
+                },
+            });
         });
     }
 
@@ -303,11 +330,19 @@ export class InteractionScopeService {
         const initialValues = this.initialValues();
 
         this.fieldStates.set(
-            Object.fromEntries(
-                Object.entries(definitions).map(([fieldId, definition]) => [
-                    fieldId,
-                    this.buildFieldState(definition.initialValue ?? initialValues[fieldId] ?? DEFAULT_EMPTY_VALUE, definition),
-                ])
+            this.rebuildFieldStates(
+                Object.fromEntries(
+                    Object.entries(definitions).map(([fieldId, definition]) => [
+                        fieldId,
+                        {
+                            value: definition.initialValue ?? initialValues[fieldId] ?? DEFAULT_EMPTY_VALUE,
+                            touched: false,
+                            dirty: false,
+                            errors: [],
+                            valid: true,
+                        },
+                    ])
+                )
             )
         );
     }
@@ -316,17 +351,22 @@ export class InteractionScopeService {
         this.submitted.set(true);
         const definitions = this.fieldDefinitions();
 
-        this.fieldStates.update((current) =>
-            Object.fromEntries(
+        this.fieldStates.update((current) => {
+            const overrides = Object.fromEntries(
                 Object.entries(current).map(([fieldId, state]) => [
                     fieldId,
-                    this.buildFieldState(state.value, this.getFieldDefinition(fieldId), {
-                        ...state,
-                        touched: true,
-                    }),
+                    {
+                        value: state.value,
+                        definition: this.getFieldDefinition(fieldId),
+                        previous: {
+                            ...state,
+                            touched: true,
+                        },
+                    },
                 ])
-            )
-        );
+            );
+            return this.rebuildFieldStates(current, overrides);
+        });
 
         return this.snapshot();
     }
@@ -387,14 +427,63 @@ export class InteractionScopeService {
         value: unknown,
         definition: TInteractionRegisteredFieldConfig,
         previous?: Partial<TInteractionFieldRuntimeState>,
+        values: Readonly<Record<string, unknown>> = this.values(),
     ): TInteractionFieldRuntimeState {
-        const errors = validateInteractionValue(value, definition.validation, Boolean(definition.required));
+        const errors = validateInteractionValue(value, definition.validation, Boolean(definition.required), { values });
         return {
             value,
             touched: previous?.touched ?? false,
             dirty: previous?.dirty ?? false,
             errors,
             valid: errors.length === 0,
+        };
+    }
+
+    private rebuildFieldStates(
+        current: Readonly<Record<string, TInteractionFieldRuntimeState>>,
+        overrides: Readonly<Record<string, {
+            readonly value: unknown;
+            readonly definition?: TInteractionRegisteredFieldConfig;
+            readonly previous?: Partial<TInteractionFieldRuntimeState>;
+        }>> = {},
+    ): Readonly<Record<string, TInteractionFieldRuntimeState>> {
+        const nextBase = { ...current };
+
+        Object.entries(overrides).forEach(([fieldId, override]) => {
+            nextBase[fieldId] = {
+                ...(current[fieldId] ?? {
+                    touched: false,
+                    dirty: false,
+                    errors: [],
+                    valid: true,
+                }),
+                value: override.value,
+            };
+        });
+
+        const values = this.buildValues(nextBase);
+        return Object.fromEntries(
+            Object.entries(nextBase).map(([fieldId, state]) => {
+                const override = overrides[fieldId];
+                return [
+                    fieldId,
+                    this.buildFieldState(
+                        state.value,
+                        override?.definition ?? this.getFieldDefinition(fieldId),
+                        override?.previous ?? state,
+                        values,
+                    ),
+                ];
+            })
+        );
+    }
+
+    private buildValues(states: Readonly<Record<string, TInteractionFieldRuntimeState>>): Readonly<Record<string, unknown>> {
+        return {
+            ...this.initialValues(),
+            ...Object.fromEntries(
+                Object.entries(states).map(([fieldId, state]) => [fieldId, state.value])
+            ),
         };
     }
 

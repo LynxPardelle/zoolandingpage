@@ -11,7 +11,7 @@ import { RuntimeConfigService } from '@/app/shared/services/runtime-config.servi
 import { ThemeService } from '@/app/shared/services/theme.service';
 import { AuthFacade } from '@/app/state/auth/auth.facade';
 import { AuthRuntimeService } from '@/app/state/auth/auth-runtime.service';
-import { applyNavigationScroll, currentBrowserPath, navigateInCurrentWindow } from '@/app/shared/utility/navigation/browser-navigation.utility';
+import { applyNavigationScroll, currentBrowserPath, dispatchClientNavigationEnd, navigateInCurrentWindow } from '@/app/shared/utility/navigation/browser-navigation.utility';
 import { environment } from '@/environments/environment';
 import { isPlatformBrowser } from '@angular/common';
 import { DestroyRef, inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
@@ -627,7 +627,8 @@ export class RuntimeService {
                 .then(() => this.applyConfiguredNavigationScroll())
                 .catch((error) => {
                     console.error('[Runtime] Runtime refresh failed after navigation.', error);
-                });
+                })
+                .finally(() => dispatchClientNavigationEnd());
         };
 
         window.addEventListener('popstate', handleNavigation);

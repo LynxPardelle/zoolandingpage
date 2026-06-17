@@ -1,4 +1,8 @@
 import { RuntimeService } from "@/app/core/services/runtime.service";
+import {
+  CLIENT_NAVIGATION_END_EVENT,
+  CLIENT_NAVIGATION_START_EVENT,
+} from "@/app/shared/utility/navigation/browser-navigation.utility";
 import { WrapperOrchestrator } from "@/app/shared/components/wrapper-orchestrator/wrapper-orchestrator.component";
 import { ConfigStoreService } from "@/app/shared/services/config-store.service";
 import { ConfigurationsOrchestratorService } from "@/app/shared/services/configurations-orchestrator";
@@ -17,7 +21,16 @@ import {
   Injector,
   PLATFORM_ID,
   runInInjectionContext,
+  signal,
 } from "@angular/core";
+import {
+  NavigationCancel,
+  NavigationEnd,
+  NavigationError,
+  NavigationStart,
+  Router,
+} from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { GenericModalComponent } from "../../../shared/components/generic-modal/generic-modal.component";
 import { GenericToastComponent } from "../../../shared/components/generic-toast";
 import {
@@ -41,6 +54,39 @@ import { DebugWorkspaceComponent } from "../debug-workspace/debug-workspace.comp
     DebugWorkspaceComponent,
   ],
   templateUrl: "./app-shell.component.html",
+  styles: [`
+    .zlp-route-transition {
+      position: fixed;
+      inset: 0 auto auto 0;
+      z-index: 2147483647;
+      width: 100%;
+      height: 3px;
+      overflow: hidden;
+      background: transparent;
+      pointer-events: none;
+    }
+
+    .zlp-route-transition__bar {
+      display: block;
+      width: 45%;
+      height: 100%;
+      background: var(--ank-accentColor, #0f948c);
+      box-shadow: 0 0 18px color-mix(in srgb, var(--ank-accentColor, #0f948c) 45%, transparent);
+      animation: zlp-route-transition 950ms ease-in-out infinite;
+    }
+
+    @keyframes zlp-route-transition {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(225%); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .zlp-route-transition__bar {
+        width: 100%;
+        animation: none;
+      }
+    }
+  `],
 })
 export class AppShellComponent {
   private readonly destroyRef = inject(DestroyRef);
@@ -48,6 +94,7 @@ export class AppShellComponent {
   private readonly injector = inject(Injector);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly draftRuntime = inject(DraftRuntimeService);
+  private readonly router = inject(Router);
   readonly orchestrator = inject(ConfigurationsOrchestratorService);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
   readonly showClientOnlyHosts = this.isBrowser;
@@ -64,6 +111,10 @@ export class AppShellComponent {
   private readonly seo = inject(SeoMetadataService);
   private readonly structuredData = inject(StructuredDataService);
   readonly runtime = inject(RuntimeService);
+  readonly routeTransitionActive = signal(false);
+  private routeTransitionStartedAt = 0;
+  private routeTransitionHideTimer: number | null = null;
+  private readonly routeTransitionMinimumMs = 320;
 
   readonly rootComponentsIds = this.runtime.rootComponentsIds;
   readonly modalRootIds = this.runtime.modalRootIds;
@@ -86,6 +137,35 @@ export class AppShellComponent {
         currentLanguage: () => this._lang.currentLanguage(),
       });
     });
+
+    if (this.isBrowser) {
+      const handleClientNavigationStart = () => this.showRouteTransition();
+      const handleClientNavigationEnd = () => this.hideRouteTransitionWhenMinimumElapsed();
+      window.addEventListener(CLIENT_NAVIGATION_START_EVENT, handleClientNavigationStart);
+      window.addEventListener(CLIENT_NAVIGATION_END_EVENT, handleClientNavigationEnd);
+      this.destroyRef.onDestroy(() => {
+        window.removeEventListener(CLIENT_NAVIGATION_START_EVENT, handleClientNavigationStart);
+        window.removeEventListener(CLIENT_NAVIGATION_END_EVENT, handleClientNavigationEnd);
+        this.clearRouteTransitionHideTimer();
+      });
+
+      this.router.events
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((event) => {
+          if (event instanceof NavigationStart) {
+            this.showRouteTransition();
+            return;
+          }
+
+          if (
+            event instanceof NavigationEnd
+            || event instanceof NavigationCancel
+            || event instanceof NavigationError
+          ) {
+            this.hideRouteTransitionWhenMinimumElapsed();
+          }
+        });
+    }
 
     effect(() => {
       this.seo.apply(this._lang.currentLanguage(), this.configStore.seo());
@@ -132,5 +212,42 @@ export class AppShellComponent {
         }
       }
     } catch { }
+  }
+
+  private showRouteTransition(): void {
+    this.clearRouteTransitionHideTimer();
+    this.routeTransitionStartedAt = this.now();
+    this.routeTransitionActive.set(true);
+  }
+
+  private hideRouteTransitionWhenMinimumElapsed(): void {
+    const elapsed = Math.max(0, this.now() - this.routeTransitionStartedAt);
+    const remaining = Math.max(0, this.routeTransitionMinimumMs - elapsed);
+    this.clearRouteTransitionHideTimer();
+
+    if (remaining === 0) {
+      this.routeTransitionActive.set(false);
+      return;
+    }
+
+    this.routeTransitionHideTimer = window.setTimeout(() => {
+      this.routeTransitionHideTimer = null;
+      this.routeTransitionActive.set(false);
+    }, remaining);
+  }
+
+  private clearRouteTransitionHideTimer(): void {
+    if (this.routeTransitionHideTimer === null) {
+      return;
+    }
+
+    window.clearTimeout(this.routeTransitionHideTimer);
+    this.routeTransitionHideTimer = null;
+  }
+
+  private now(): number {
+    return typeof performance !== 'undefined' && typeof performance.now === 'function'
+      ? performance.now()
+      : Date.now();
   }
 }

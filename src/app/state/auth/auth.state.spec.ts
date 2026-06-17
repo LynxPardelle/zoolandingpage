@@ -460,6 +460,36 @@ describe('auth signal state', () => {
         expect(logoutUrl).toBe('https://preview.auth.us-east-1.amazoncognito.com/logout?client_id=public-web-client&logout_uri=https%3A%2F%2Ftest.zoolandingpage.com.mx%2Facceso%3FdraftDomain%3Dzoositioweb.com.mx%26debugWorkspace%3Dfalse');
     });
 
+    it('adds a safe Cognito Managed Login language parameter when provided', () => {
+        TestBed.configureTestingModule({});
+        const oidc = TestBed.inject(AuthOidcService);
+        const profile = {
+            enabled: true,
+            authProfileId: 'preview-client-cognito',
+            provider: 'cognito' as const,
+            issuer: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_PREVIEW',
+            clientId: 'public-web-client',
+            hostedUiDomain: 'https://preview.auth.us-east-1.amazoncognito.com',
+            scopes: ['openid', 'email'],
+            redirectPath: '/auth/callback',
+            logoutPath: '/acceso',
+            loginPath: '/acceso',
+        };
+
+        expect(oidc.buildSignupUrl(profile, {
+            origin: 'https://preview.example.test',
+            state: 'state-123',
+            codeChallenge: 'pkce-challenge-abc',
+            language: 'es',
+        })).toContain('&lang=es');
+        expect(oidc.buildLoginUrl(profile, {
+            origin: 'https://preview.example.test',
+            state: 'state-123',
+            codeChallenge: 'pkce-challenge-abc',
+            language: 'es<script>',
+        })).not.toContain('lang=');
+    });
+
     it('refuses to generate Cognito login URLs from unsafe public auth config', () => {
         TestBed.configureTestingModule({});
         const oidc = TestBed.inject(AuthOidcService);

@@ -7,7 +7,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter, withInMemoryScrolling } from '@angular/router';
+import { Router, provideRouter, withInMemoryScrolling } from '@angular/router';
 import { NgxAngoraService } from 'ngx-angora-css';
 import { of } from 'rxjs';
 import { WrapperOrchestrator } from '../../../shared/components/wrapper-orchestrator/wrapper-orchestrator.component';
@@ -21,6 +21,10 @@ import type {
   TComponentPayloadEntry,
   TComponentsPayload,
 } from '../../../shared/types/config-payloads.types';
+import {
+  CLIENT_NAVIGATION_END_EVENT,
+  CLIENT_NAVIGATION_START_EVENT,
+} from '../../../shared/utility/navigation/browser-navigation.utility';
 import { initializeRuntimeConfig } from '../../../app.config';
 import { DebugWorkspaceComponent } from '../debug-workspace/debug-workspace.component';
 import { AppShellComponent } from './app-shell.component';
@@ -47,6 +51,14 @@ class WrapperOrchestratorStub {
   template: '',
 })
 class DebugWorkspaceStub {}
+
+@Component({
+  selector: 'route-target-stub',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.Eager,
+  template: '',
+})
+class RouteTargetStub {}
 
 const PRIMARY_DOMAIN = 'preview.example.test';
 const SECONDARY_DOMAIN = 'music.example.test';
@@ -225,7 +237,14 @@ describe('AppShellComponent', () => {
           } as any,
         },
         provideRouter(
-          [{ path: '', component: AppShellComponent, pathMatch: 'full' }],
+          [
+            { path: '', component: AppShellComponent, pathMatch: 'full' },
+            {
+              path: 'loading-target',
+              component: RouteTargetStub,
+              canActivate: [() => new Promise<boolean>((resolve) => setTimeout(() => resolve(true), 50))],
+            },
+          ],
           withInMemoryScrolling({
             scrollPositionRestoration: 'enabled',
             anchorScrolling: 'enabled',
@@ -263,6 +282,49 @@ describe('AppShellComponent', () => {
 
     expect(fixture.componentInstance.rootComponentsIds()).toEqual([]);
     expect(fixture.componentInstance.modalRootIds()).toEqual([]);
+  });
+
+  it('shows a route transition status while client navigation is pending', async () => {
+    const fixture = TestBed.createComponent(AppShellComponent);
+    fixture.detectChanges();
+    const router = TestBed.inject(Router);
+
+    const navigation = router.navigateByUrl('/loading-target');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.routeTransitionActive()).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.zlp-route-transition')).toBeTruthy();
+
+    await navigation;
+    await fixture.whenStable();
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.routeTransitionActive()).toBeFalse();
+    expect(fixture.nativeElement.querySelector('.zlp-route-transition')).toBeFalsy();
+  });
+
+  it('shows the route transition status for custom client navigation events', async () => {
+    const fixture = TestBed.createComponent(AppShellComponent);
+    fixture.detectChanges();
+
+    window.dispatchEvent(new Event(CLIENT_NAVIGATION_START_EVENT));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.routeTransitionActive()).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.zlp-route-transition')).toBeTruthy();
+
+    window.dispatchEvent(new Event(CLIENT_NAVIGATION_END_EVENT));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.routeTransitionActive()).toBeTrue();
+
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.routeTransitionActive()).toBeFalse();
+    expect(fixture.nativeElement.querySelector('.zlp-route-transition')).toBeFalsy();
   });
 
   it('does not render the debug workspace during SSR', () => {

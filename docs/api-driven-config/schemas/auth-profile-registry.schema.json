@@ -20,6 +20,41 @@
       "type": "string",
       "pattern": "^(?:/[^\\\\\\s\\u0000-\\u001F\\u007F]+|[^/\\\\\\s\\u0000-\\u001F\\u007F]+/[^\\\\\\s\\u0000-\\u001F\\u007F]+|arn:aws:(?:ssm|secretsmanager):[^\\\\\\s\\u0000-\\u001F\\u007F]+)$"
     },
+    "customSigninPolicy": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "customSignupPolicy": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "setTenantClaim": { "type": "boolean" },
+        "defaultGroups": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "additionalProperties": false
+    },
+    "customPasswordRecoveryPolicy": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "customAuth": {
+      "type": "object",
+      "properties": {
+        "signin": { "$ref": "#/definitions/customSigninPolicy" },
+        "signup": { "$ref": "#/definitions/customSignupPolicy" },
+        "passwordRecovery": { "$ref": "#/definitions/customPasswordRecoveryPolicy" }
+      },
+      "additionalProperties": false
+    },
     "authProfile": {
       "type": "object",
       "required": [
@@ -87,7 +122,8 @@
               }
             ]
           }
-        }
+        },
+        "customAuth": { "$ref": "#/definitions/customAuth" }
       },
       "additionalProperties": false
     }

@@ -1,5 +1,6 @@
 import { CLIENT_BOOTSTRAP_DELAY_MS, CLIENT_BOOTSTRAP_READY_EVENT, STATIC_BOOT_CURTAIN_FALLBACK_MS } from './app/core/constants/client-bootstrap.constants';
 import { hasReadableCriticalTextContrast } from './app/core/utility/critical-text-contrast.utility';
+import { hasStaticInteractiveControls } from './app/core/utility/static-interactive-controls.utility';
 import { hasStaticStyleCoverage } from './app/core/utility/static-style-coverage.utility';
 import { environment } from './environments/environment';
 
@@ -39,6 +40,19 @@ function clearBootstrapTimer(): void {
     }
 }
 
+function clearBootCurtainFallbackTimer(): void {
+    if (bootCurtainFallbackTimer !== null) {
+        window.clearTimeout(bootCurtainFallbackTimer);
+        bootCurtainFallbackTimer = null;
+    }
+}
+
+function removeBootstrapStartListeners(): void {
+    window.removeEventListener('pointerdown', startBootstrap, true);
+    window.removeEventListener('keydown', startBootstrap, true);
+    window.removeEventListener(CLIENT_BOOTSTRAP_READY_EVENT, scheduleBootstrapAfterDocumentReady);
+}
+
 function releaseBootCurtainForStaticSsrContent(options: { allowIncompleteCriticalStyles?: boolean } = {}): void {
     const curtain = document.getElementById(BOOT_CURTAIN_ID);
     if (!curtain || curtain.classList.contains(BOOT_CURTAIN_EXIT_CLASS)) {
@@ -68,10 +82,7 @@ function releaseBootCurtainForStaticSsrContent(options: { allowIncompleteCritica
         window.clearTimeout(bootCurtainTimer);
     }
 
-    if (bootCurtainFallbackTimer !== null) {
-        window.clearTimeout(bootCurtainFallbackTimer);
-        bootCurtainFallbackTimer = null;
-    }
+    clearBootCurtainFallbackTimer();
 
     bootCurtainTimer = window.setTimeout(() => {
         curtain.remove();
@@ -81,18 +92,28 @@ function releaseBootCurtainForStaticSsrContent(options: { allowIncompleteCritica
 
 function startBootstrap(): void {
     clearBootstrapTimer();
-    window.removeEventListener('pointerdown', startBootstrap, true);
-    window.removeEventListener('keydown', startBootstrap, true);
-    window.removeEventListener(CLIENT_BOOTSTRAP_READY_EVENT, scheduleBootstrapAfterDocumentReady);
+    removeBootstrapStartListeners();
     void bootstrapClient();
 }
 
 function scheduleBootstrapAfterDocumentReady(): void {
     clearBootstrapTimer();
-    releaseBootCurtainForStaticSsrContent();
-    if (bootCurtainFallbackTimer !== null) {
-        window.clearTimeout(bootCurtainFallbackTimer);
+
+    if (hasStaticInteractiveControls(document.querySelector('app-root'))) {
+        removeBootstrapStartListeners();
+        clearBootCurtainFallbackTimer();
+        void bootstrapClient().then(() => {
+            releaseBootCurtainForStaticSsrContent();
+            clearBootCurtainFallbackTimer();
+            bootCurtainFallbackTimer = window.setTimeout(() => {
+                releaseBootCurtainForStaticSsrContent({ allowIncompleteCriticalStyles: true });
+            }, STATIC_BOOT_CURTAIN_FALLBACK_MS);
+        });
+        return;
     }
+
+    releaseBootCurtainForStaticSsrContent();
+    clearBootCurtainFallbackTimer();
     bootCurtainFallbackTimer = window.setTimeout(() => {
         releaseBootCurtainForStaticSsrContent({ allowIncompleteCriticalStyles: true });
     }, STATIC_BOOT_CURTAIN_FALLBACK_MS);

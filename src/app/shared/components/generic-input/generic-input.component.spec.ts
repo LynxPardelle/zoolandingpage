@@ -127,6 +127,132 @@ describe('GenericInputComponent', () => {
         ]);
     });
 
+    it('can reveal and mask password inputs when configured', () => {
+        const fixture = TestBed.createComponent(GenericInputComponent);
+
+        fixture.componentRef.setInput('config', {
+            fieldId: 'password',
+            controlType: 'text',
+            inputType: 'password',
+            value: 'StrongPassphrase123!',
+            showPasswordToggle: true,
+            showPasswordLabel: 'Mostrar contraseña',
+            hidePasswordLabel: 'Ocultar contraseña',
+            fieldClasses: 'passwordField',
+            inputClasses: 'passwordInput',
+            passwordToggleClasses: 'passwordToggle',
+        });
+        fixture.detectChanges();
+
+        const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+        const toggle = fixture.nativeElement.querySelector('button.passwordToggle') as HTMLButtonElement;
+        expect(input.type).toBe('password');
+        expect(toggle.getAttribute('aria-label')).toBe('Mostrar contraseña');
+
+        toggle.click();
+        fixture.detectChanges();
+
+        expect(input.type).toBe('text');
+        expect(toggle.getAttribute('aria-label')).toBe('Ocultar contraseña');
+
+        toggle.click();
+        fixture.detectChanges();
+
+        expect(input.type).toBe('password');
+    });
+
+    it('renders an always-visible validation checklist and updates rule status while typing', () => {
+        const fixture = TestBed.createComponent(GenericInputComponent);
+
+        fixture.componentRef.setInput('config', {
+            fieldId: 'password',
+            controlType: 'text',
+            inputType: 'password',
+            value: '',
+            showValidationChecklist: true,
+            validationChecklistClasses: 'checklist',
+            validationChecklistItemClasses: 'checklistItem',
+            validationChecklistValidItemClasses: 'isValid',
+            validationChecklistInvalidItemClasses: 'isInvalid',
+            validation: [
+                { type: 'minLength', value: 12, message: 'Usa al menos 12 caracteres.' },
+                { type: 'pattern', value: '[a-z]', message: 'Incluye una minúscula.' },
+                { type: 'pattern', value: '[A-Z]', message: 'Incluye una mayúscula.' },
+                { type: 'pattern', value: '\\d', message: 'Incluye un número.' },
+                { type: 'pattern', value: '[^A-Za-z0-9\\s]', message: 'Incluye un símbolo.' },
+            ],
+        });
+        fixture.detectChanges();
+
+        const checklist = fixture.nativeElement.querySelector('ul.checklist') as HTMLUListElement;
+        expect(checklist).toBeTruthy();
+        expect(checklist.textContent).toContain('Incluye un símbolo.');
+        expect(Array.from(checklist.querySelectorAll('li')).every((item) => item.getAttribute('data-valid') === 'false')).toBeTrue();
+
+        const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+        input.value = 'StrongPass123!';
+        input.dispatchEvent(new Event('input'));
+        fixture.detectChanges();
+
+        const items = Array.from(checklist.querySelectorAll('li'));
+        expect(items.every((item) => item.getAttribute('data-valid') === 'true')).toBeTrue();
+        expect(items.every((item) => item.classList.contains('isValid'))).toBeTrue();
+    });
+
+    it('updates text field validation from deferred beforeinput fallback events', async () => {
+        const fixture = TestBed.createComponent(GenericInputComponent);
+
+        fixture.componentRef.setInput('config', {
+            fieldId: 'password',
+            controlType: 'text',
+            inputType: 'password',
+            value: '',
+            showValidationChecklist: true,
+            validation: [
+                { type: 'minLength', value: 12, message: 'Usa al menos 12 caracteres.' },
+                { type: 'pattern', value: '[^A-Za-z0-9\\s]', message: 'Incluye un símbolo.' },
+            ],
+        });
+        fixture.detectChanges();
+
+        const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+        input.value = 'StrongPass123!';
+        input.dispatchEvent(new InputEvent('beforeinput', { bubbles: true }));
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        fixture.detectChanges();
+
+        const items = Array.from(fixture.nativeElement.querySelectorAll('li')) as HTMLLIElement[];
+        expect(items.length).toBe(2);
+        expect(items.every((item) => item.getAttribute('data-valid') === 'true')).toBeTrue();
+    });
+
+    it('synchronizes text field values on blur before marking touched', () => {
+        const scope = TestBed.inject(InteractionScopeService);
+        scope.configure({ scopeId: 'signup' });
+        const fixture = TestBed.createComponent(GenericInputComponent);
+
+        fixture.componentRef.setInput('config', {
+            fieldId: 'email',
+            controlType: 'text',
+            inputType: 'email',
+            value: '',
+            validation: [
+                { type: 'required', message: 'Escribe tu correo.' },
+                { type: 'email', message: 'Escribe un correo válido.' },
+            ],
+        });
+        fixture.detectChanges();
+
+        const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+        input.value = 'qa@example.com';
+        input.dispatchEvent(new FocusEvent('blur', { bubbles: true }));
+        fixture.detectChanges();
+
+        expect(scope.snapshot().values['email']).toBe('qa@example.com');
+        expect(scope.snapshot().fields['email'].valid).toBeTrue();
+        expect(scope.snapshot().fields['email'].touched).toBeTrue();
+    });
+
     it('can delay and filter autocomplete options by the typed text', () => {
         const fixture = TestBed.createComponent(GenericInputComponent);
 

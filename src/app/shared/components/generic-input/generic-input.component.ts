@@ -6,6 +6,7 @@ import {
   inject,
   input,
   output,
+  signal,
   untracked,
 } from '@angular/core';
 import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
@@ -36,6 +37,10 @@ import type {
   standalone: true,
   imports: [GenericButtonComponent, GenericDropdown, GenericTextComponent],
   templateUrl: './generic-input.component.html',
+  host: {
+    '[attr.data-zlp-field-id]': 'fieldId()',
+    '[attr.data-zlp-field-valid]': 'fieldState().valid ? "true" : "false"',
+  },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GenericInputComponent {
@@ -96,6 +101,12 @@ export class GenericInputComponent {
   readonly inputClasses = computed(() =>
     this.asString(this.config().inputClasses)
   );
+  readonly passwordToggleClasses = computed(() =>
+    this.asString(this.config().passwordToggleClasses)
+  );
+  readonly passwordToggleIconClasses = computed(() =>
+    this.asString(this.config().passwordToggleIconClasses)
+  );
   readonly switchTrackClasses = computed(() =>
     this.asString(this.config().switchTrackClasses)
   );
@@ -129,6 +140,30 @@ export class GenericInputComponent {
   readonly errorClasses = computed(() =>
     this.asString(this.config().errorClasses)
   );
+  readonly validationChecklistClasses = computed(() =>
+    this.asString(this.config().validationChecklistClasses)
+  );
+  readonly validationChecklistItemClasses = computed(() =>
+    this.asString(this.config().validationChecklistItemClasses)
+  );
+  readonly validationChecklistValidItemClasses = computed(() =>
+    this.asString(this.config().validationChecklistValidItemClasses)
+  );
+  readonly validationChecklistInvalidItemClasses = computed(() =>
+    this.asString(this.config().validationChecklistInvalidItemClasses)
+  );
+  readonly validationChecklistIconClasses = computed(() =>
+    this.asString(this.config().validationChecklistIconClasses)
+  );
+  readonly validationChecklistLabel = computed(() =>
+    this.asString(this.config().validationChecklistLabel)
+  );
+  readonly validationChecklistValidIcon = computed(() =>
+    this.asString(this.config().validationChecklistValidIcon) || 'OK'
+  );
+  readonly validationChecklistInvalidIcon = computed(() =>
+    this.asString(this.config().validationChecklistInvalidIcon) || '-'
+  );
   readonly valuePrefix = computed(() =>
     this.asString(this.config().valuePrefix)
   );
@@ -138,6 +173,33 @@ export class GenericInputComponent {
   readonly showRangeValue = computed(() =>
     Boolean(this.resolveValue(this.config().showRangeValue) ?? false)
   );
+  readonly showValidationChecklist = computed(() =>
+    Boolean(this.resolveValue(this.config().showValidationChecklist) ?? false)
+  );
+  readonly showPasswordToggle = computed(
+    () =>
+      this.inputType() === 'password' &&
+      Boolean(this.resolveValue(this.config().showPasswordToggle) ?? false)
+  );
+  readonly passwordVisible = signal(false);
+  readonly resolvedInputType = computed(() =>
+    this.showPasswordToggle() && this.passwordVisible() ? 'text' : this.inputType()
+  );
+  readonly showPasswordLabel = computed(
+    () => this.asString(this.config().showPasswordLabel) || 'Show password'
+  );
+  readonly hidePasswordLabel = computed(
+    () => this.asString(this.config().hidePasswordLabel) || 'Hide password'
+  );
+  readonly passwordToggleLabel = computed(() =>
+    this.passwordVisible() ? this.hidePasswordLabel() : this.showPasswordLabel()
+  );
+  readonly passwordToggleIcon = computed(() => {
+    const configured = this.passwordVisible()
+      ? this.asString(this.config().passwordToggleHideIcon)
+      : this.asString(this.config().passwordToggleShowIcon);
+    return configured || (this.passwordVisible() ? 'visibility_off' : 'preview');
+  });
   readonly required = computed(() =>
     Boolean(this.resolveValue(this.config().required) ?? false)
   );
@@ -250,7 +312,8 @@ export class GenericInputComponent {
     const errors = validateInteractionValue(
       value,
       this.validationRules(),
-      this.required()
+      this.required(),
+      { values: this.scope.values() }
     );
 
     return (
@@ -420,11 +483,22 @@ export class GenericInputComponent {
   readonly visibleErrors = computed(() =>
     this.showErrors() ? this.fieldState().errors : []
   );
+  readonly validationChecklistItems = computed(() =>
+    this.validationRules()
+      .filter((rule) => typeof rule.message === 'string' && rule.message.trim().length > 0)
+      .map((rule) => ({
+        message: rule.message?.trim() ?? '',
+        valid: this.isValidationChecklistRuleMet(rule),
+      }))
+  );
 
   onTextInput(event: Event): void {
-    this.updateValue(
-      (event.target as HTMLInputElement | HTMLTextAreaElement).value
-    );
+    this.updateTextTargetValue(event.target);
+  }
+
+  onDeferredTextInput(event: Event): void {
+    const target = event.target;
+    globalThis.setTimeout(() => this.updateTextTargetValue(target), 0);
   }
 
   onNumberInput(event: Event): void {
@@ -460,7 +534,8 @@ export class GenericInputComponent {
     this.onBlur();
   }
 
-  onBlur(): void {
+  onBlur(event?: Event): void {
+    this.updateTextTargetValue(event?.target ?? null);
     this.scope.markTouched(this.fieldId());
     this.blurred.emit({ fieldId: this.fieldId() });
   }
@@ -468,6 +543,11 @@ export class GenericInputComponent {
   onButtonGroupSelect(option: TGenericInputOption): void {
     this.updateValue(option.value);
     this.onBlur();
+  }
+
+  togglePasswordVisibility(): void {
+    if (!this.showPasswordToggle()) return;
+    this.passwordVisible.update((visible) => !visible);
   }
 
   optionLabel(option: TGenericInputOption): string {
@@ -497,6 +577,17 @@ export class GenericInputComponent {
       value: normalized,
       previousValue,
     });
+  }
+
+  private updateTextTargetValue(target: EventTarget | null): void {
+    if (
+      !(target instanceof HTMLInputElement) &&
+      !(target instanceof HTMLTextAreaElement)
+    ) {
+      return;
+    }
+
+    this.updateValue(target.value);
   }
 
   private resolveOptionValue(rawValue: string): unknown {
@@ -544,6 +635,25 @@ export class GenericInputComponent {
       tag: 'p',
       classes: '',
     });
+  }
+
+  validationChecklistItemClassesFor(valid: boolean): string {
+    return this.joinClasses(
+      this.validationChecklistItemClasses(),
+      valid
+        ? this.validationChecklistValidItemClasses()
+        : this.validationChecklistInvalidItemClasses()
+    );
+  }
+
+  private isValidationChecklistRuleMet(rule: TInteractionValidationRule): boolean {
+    const value = this.currentValue();
+    const empty = value == null || value === '' || (typeof value === 'string' && value.trim().length === 0);
+    if (empty && rule.type !== 'required') {
+      return false;
+    }
+
+    return validateInteractionValue(value, [rule], false, { values: this.scope.values() }).length === 0;
   }
 
   buildTextConfig(
