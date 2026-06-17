@@ -21,6 +21,10 @@ import type {
   TComponentPayloadEntry,
   TComponentsPayload,
 } from '../../../shared/types/config-payloads.types';
+import {
+  CLIENT_NAVIGATION_END_EVENT,
+  CLIENT_NAVIGATION_START_EVENT,
+} from '../../../shared/utility/navigation/browser-navigation.utility';
 import { initializeRuntimeConfig } from '../../../app.config';
 import { DebugWorkspaceComponent } from '../debug-workspace/debug-workspace.component';
 import { AppShellComponent } from './app-shell.component';
@@ -294,6 +298,23 @@ describe('AppShellComponent', () => {
 
     await navigation;
     await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.routeTransitionActive()).toBeFalse();
+    expect(fixture.nativeElement.querySelector('.zlp-route-transition')).toBeFalsy();
+  });
+
+  it('shows the route transition status for custom client navigation events', () => {
+    const fixture = TestBed.createComponent(AppShellComponent);
+    fixture.detectChanges();
+
+    window.dispatchEvent(new Event(CLIENT_NAVIGATION_START_EVENT));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.routeTransitionActive()).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.zlp-route-transition')).toBeTruthy();
+
+    window.dispatchEvent(new Event(CLIENT_NAVIGATION_END_EVENT));
     fixture.detectChanges();
 
     expect(fixture.componentInstance.routeTransitionActive()).toBeFalse();
