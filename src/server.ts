@@ -308,6 +308,11 @@ function setCachedRuntimeSiteConfig(domain: string, siteConfig: TLocalSiteConfig
   runtimeSiteConfigCache.set(domain, { siteConfig, expiresAt: Date.now() + SITE_CONFIG_CACHE_TTL_MS });
 }
 
+function buildRuntimeSiteConfigCacheKey(domain: string, environment?: string): string {
+  const normalizedEnvironment = cleanString(environment);
+  return normalizedEnvironment ? `${ normalizedEnvironment }::${ domain }` : domain;
+}
+
 function isDirectory(path: string): boolean {
   try {
     return readdirSync(path, { withFileTypes: true }).length >= 0;
@@ -540,10 +545,14 @@ function normalizeRoutePath(value: unknown): string {
   return raw.startsWith('/') ? raw : `/${raw}`;
 }
 
-function buildRuntimeBundleUrl(baseUrl: string, domain: string, routePath: string): string {
+function buildRuntimeBundleUrl(baseUrl: string, domain: string, routePath: string, environment?: string): string {
   const url = new URL('runtime-bundle', `${baseUrl.replace(/\/$/, '')}/`);
   url.searchParams.set('domain', domain);
   url.searchParams.set('path', normalizeRoutePath(routePath));
+  const normalizedEnvironment = cleanString(environment);
+  if (normalizedEnvironment) {
+    url.searchParams.set('environment', normalizedEnvironment);
+  }
   return url.toString();
 }
 
@@ -551,8 +560,13 @@ function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function fetchRuntimeBundlePayload(baseUrl: string, domain: string, routePath: string): Promise<TRuntimeBundlePayload | null> {
-  const url = buildRuntimeBundleUrl(baseUrl, domain, routePath);
+async function fetchRuntimeBundlePayload(
+  baseUrl: string,
+  domain: string,
+  routePath: string,
+  environment?: string,
+): Promise<TRuntimeBundlePayload | null> {
+  const url = buildRuntimeBundleUrl(baseUrl, domain, routePath, environment);
 
   for (let attempt = 1; attempt <= RUNTIME_BUNDLE_FETCH_ATTEMPTS; attempt += 1) {
     try {
@@ -1179,38 +1193,39 @@ function loadLocalDebugWorkspacePayload(kind: string): Record<string, unknown> |
   return readJsonFile(join(draftsFolder, DEBUG_DRAFT_DIRECTORY, 'debug-workspace', fileName));
 }
 
-async function loadRuntimeSiteConfig(domain: string): Promise<TLocalSiteConfig | null> {
+async function loadRuntimeSiteConfig(domain: string, environment?: string): Promise<TLocalSiteConfig | null> {
   const normalizedDomain = normalizeHost(domain);
   if (!normalizedDomain || RUNTIME_BUNDLE_BASE_URLS.length === 0) {
     return null;
   }
 
-  const cached = runtimeSiteConfigCache.get(normalizedDomain);
+  const cacheKey = buildRuntimeSiteConfigCacheKey(normalizedDomain, environment);
+  const cached = runtimeSiteConfigCache.get(cacheKey);
   if (cached && Date.now() < cached.expiresAt) {
     return cached.siteConfig;
   }
 
   for (const baseUrl of RUNTIME_BUNDLE_BASE_URLS) {
-    const payload = await fetchRuntimeBundlePayload(baseUrl, normalizedDomain, '/');
+    const payload = await fetchRuntimeBundlePayload(baseUrl, normalizedDomain, '/', environment);
     if (isRecord(payload?.siteConfig)) {
       const siteConfig = payload.siteConfig as TLocalSiteConfig;
-      setCachedRuntimeSiteConfig(normalizedDomain, siteConfig);
+      setCachedRuntimeSiteConfig(cacheKey, siteConfig);
       return siteConfig;
     }
   }
 
-  setCachedRuntimeSiteConfig(normalizedDomain, null);
+  setCachedRuntimeSiteConfig(cacheKey, null);
   return null;
 }
 
-async function loadRuntimePageConfig(domain: string, path: string): Promise<TLocalPageConfig | null> {
+async function loadRuntimePageConfig(domain: string, path: string, environment?: string): Promise<TLocalPageConfig | null> {
   const normalizedDomain = normalizeHost(domain);
   if (!normalizedDomain || RUNTIME_BUNDLE_BASE_URLS.length === 0) {
     return null;
   }
 
   for (const baseUrl of RUNTIME_BUNDLE_BASE_URLS) {
-    const payload = await fetchRuntimeBundlePayload(baseUrl, normalizedDomain, path);
+    const payload = await fetchRuntimeBundlePayload(baseUrl, normalizedDomain, path, environment);
     if (isRecord(payload?.pageConfig)) {
       return payload.pageConfig as TLocalPageConfig;
     }
@@ -1219,7 +1234,7 @@ async function loadRuntimePageConfig(domain: string, path: string): Promise<TLoc
   return null;
 }
 
-async function loadRuntimeRouteStatus(domain: string, path: string): Promise<200 | 404 | null> {
+async function loadRuntimeRouteStatus(domain: string, path: string, environment?: string): Promise<200 | 404 | null> {
   const normalizedDomain = normalizeHost(domain);
   if (!normalizedDomain || RUNTIME_BUNDLE_BASE_URLS.length === 0) {
     return null;
@@ -1227,7 +1242,7 @@ async function loadRuntimeRouteStatus(domain: string, path: string): Promise<200
 
   const normalizedPath = normalizeRoutePath(path);
   for (const baseUrl of RUNTIME_BUNDLE_BASE_URLS) {
-    const payload = await fetchRuntimeBundlePayload(baseUrl, normalizedDomain, normalizedPath);
+    const payload = await fetchRuntimeBundlePayload(baseUrl, normalizedDomain, normalizedPath, environment);
     if (!payload) {
       continue;
     }
@@ -1253,18 +1268,22 @@ async function loadRuntimeRouteStatus(domain: string, path: string): Promise<200
   return null;
 }
 
-async function loadPageConfigForRoute(domain: string, route: TSiteConfigRouteEntry): Promise<TLocalPageConfig | null> {
+async function loadPageConfigForRoute(
+  domain: string,
+  route: TSiteConfigRouteEntry,
+  environment?: string,
+): Promise<TLocalPageConfig | null> {
   const pageId = String(route.pageId ?? '').trim();
   const localPageConfig = pageId ? loadLocalPageConfig(domain, pageId) : null;
   if (localPageConfig) {
     return localPageConfig;
   }
 
-  return loadRuntimePageConfig(domain, normalizeRoutePath(route.path));
+  return loadRuntimePageConfig(domain, normalizeRoutePath(route.path), environment);
 }
 
-async function loadSiteConfigForHost(domain: string): Promise<TLocalSiteConfig | null> {
-  return loadLocalSiteConfig(domain) ?? await loadRuntimeSiteConfig(domain);
+async function loadSiteConfigForHost(domain: string, environment?: string): Promise<TLocalSiteConfig | null> {
+  return loadLocalSiteConfig(domain) ?? await loadRuntimeSiteConfig(domain, environment);
 }
 
 type THostHeaderValidationResult =
@@ -1749,7 +1768,9 @@ async function buildSitemapXml(req: express.Request, host: string, siteConfig: T
   });
   const sitemapDomain = normalizeHost(host) || normalizeHost(siteConfig?.domain);
   const resolvedEntries = await Promise.all(sitemapRoutes.map(async (route) => {
-    const pageConfig = sitemapDomain ? await loadPageConfigForRoute(sitemapDomain, route) : null;
+    const pageConfig = sitemapDomain
+      ? await loadPageConfigForRoute(sitemapDomain, route, resolveRuntimeEnvironment(host))
+      : null;
     const routePath = normalizeRoutePath(route.path);
     const pageId = cleanString(route.pageId) || resolveLocalRuntimePageId(siteConfig, routePath);
     return {
@@ -1782,15 +1803,16 @@ async function buildSitemapXml(req: express.Request, host: string, siteConfig: T
 async function loadPageConfigForRequest(req: express.Request, domain: string, siteConfig: TLocalSiteConfig | null): Promise<TLocalPageConfig | null> {
   const routePath = normalizeRoutePath(req.path);
   const route = resolveLocalRoute(siteConfig, routePath);
+  const environment = resolveRuntimeEnvironment(resolveRequestHost(req));
   if (route) {
-    return loadPageConfigForRoute(domain, route);
+    return loadPageConfigForRoute(domain, route, environment);
   }
 
   const pageId = routePath === '/'
     ? cleanString(siteConfig?.defaultPageId) || 'default'
     : resolveLocalNotFoundPageId(siteConfig);
   const localPageConfig = pageId ? loadLocalPageConfig(domain, pageId) : null;
-  return localPageConfig ?? loadRuntimePageConfig(domain, routePath);
+  return localPageConfig ?? loadRuntimePageConfig(domain, routePath, environment);
 }
 
 function buildGoogleTagHeadHtml(host: string, siteConfig: TLocalSiteConfig | null): string {
@@ -2115,7 +2137,8 @@ async function decorateHtmlResponse(req: express.Request, response: Response): P
 
   const host = resolveRequestHost(req);
   const lookupDomain = resolveNotFoundLookupDomain(req, host);
-  const siteConfig = await loadSiteConfigForHost(lookupDomain);
+  const environment = resolveRuntimeEnvironment(host);
+  const siteConfig = await loadSiteConfigForHost(lookupDomain, environment);
   const pageConfig = await loadPageConfigForRequest(req, lookupDomain, siteConfig);
   const headers = new Headers(response.headers);
   headers.delete('content-length');
@@ -2143,7 +2166,8 @@ async function shouldServeNotFoundDocument(req: express.Request): Promise<boolea
   const host = resolveRequestHost(req);
   const lookupDomain = resolveNotFoundLookupDomain(req, host);
   const normalizedPath = normalizeRoutePath(req.path);
-  const siteConfig = await loadSiteConfigForHost(lookupDomain);
+  const environment = resolveRuntimeEnvironment(host);
+  const siteConfig = await loadSiteConfigForHost(lookupDomain, environment);
 
   if (!siteConfig) {
     return (!isLocalHost(host) || lookupDomain !== host) && normalizedPath !== '/';
@@ -2154,7 +2178,7 @@ async function shouldServeNotFoundDocument(req: express.Request): Promise<boolea
   }
 
   const runtimeStatusDomain = resolveRuntimeStatusLookupDomain(req, host, lookupDomain, siteConfig);
-  const runtimeRouteStatus = await loadRuntimeRouteStatus(runtimeStatusDomain || lookupDomain, normalizedPath);
+  const runtimeRouteStatus = await loadRuntimeRouteStatus(runtimeStatusDomain || lookupDomain, normalizedPath, environment);
   if (runtimeRouteStatus === 200) {
     return false;
   }
@@ -2281,7 +2305,7 @@ app.get('/debug-workspace/:kind', (req, res, next) => {
 app.use((req, res, next) => {
   const host = resolveRequestHost(req);
   const lookupDomain = resolveNotFoundLookupDomain(req, host);
-  loadSiteConfigForHost(lookupDomain)
+  loadSiteConfigForHost(lookupDomain, resolveRuntimeEnvironment(host))
     .then((siteConfig) => {
       const redirectUrl = buildFrontDoorRedirectUrl(req, host, siteConfig);
       if (!redirectUrl) {
@@ -2297,7 +2321,7 @@ app.use((req, res, next) => {
 app.get(/^\/google[^/]*\.html$/i, async (req, res, next) => {
   const host = resolveRequestHost(req);
   const lookupDomain = resolveNotFoundLookupDomain(req, host);
-  const siteConfig = await loadSiteConfigForHost(lookupDomain);
+  const siteConfig = await loadSiteConfigForHost(lookupDomain, resolveRuntimeEnvironment(host));
   const config = resolveActiveSearchConsoleConfig(lookupDomain, siteConfig);
   const configuredPath = normalizeRoutePath(config?.htmlFile?.path);
   const content = cleanString(config?.htmlFile?.content);
@@ -2317,14 +2341,14 @@ app.get(/^\/google[^/]*\.html$/i, async (req, res, next) => {
 app.get('/robots.txt', async (req, res) => {
   const host = resolveRequestHost(req);
   const lookupDomain = resolveNotFoundLookupDomain(req, host);
-  const siteConfig = await loadSiteConfigForHost(lookupDomain);
+  const siteConfig = await loadSiteConfigForHost(lookupDomain, resolveRuntimeEnvironment(host));
   res.type('text/plain').send(buildRobotsTxt(req, lookupDomain, siteConfig));
 });
 
 app.get('/sitemap.xml', async (req, res) => {
   const host = resolveRequestHost(req);
   const lookupDomain = resolveNotFoundLookupDomain(req, host);
-  const siteConfig = await loadSiteConfigForHost(lookupDomain);
+  const siteConfig = await loadSiteConfigForHost(lookupDomain, resolveRuntimeEnvironment(host));
   res.type('application/xml').send(await buildSitemapXml(req, lookupDomain, siteConfig));
 });
 
@@ -2336,7 +2360,7 @@ app.use((req, res, next) => {
 
   const host = resolveRequestHost(req);
   const lookupDomain = resolveNotFoundLookupDomain(req, host);
-  loadSiteConfigForHost(lookupDomain)
+  loadSiteConfigForHost(lookupDomain, resolveRuntimeEnvironment(host))
     .then((siteConfig) => {
       const redirectUrl = resolveAuthRedirectUrl(req, host, siteConfig);
       if (!redirectUrl) {

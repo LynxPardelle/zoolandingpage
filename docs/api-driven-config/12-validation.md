@@ -283,7 +283,7 @@ Checks:
 - Do not expect `logoutPath` to act as a sign-in fallback.
 - Treat `sessionStorage` auth data as editable UX metadata only. Backend APIs must validate JWTs, tenant ownership, and group claims.
 - Resolve `authProfileId` through the server-only Auth Profile Registry before provisioning Cognito or authorizing protected APIs; browser config must not be the source of tenant ownership or group policy.
-- Validate `server/auth-profile-registry.json` against the server-only contract before packaging: profiles require `authProfileId`, `tenantId`, `status`, `issuer`, `hostedUiDomain`, `clientId`, `audiences`, `callbackUrls`, `logoutUrls`, `loginPath`, and `logoutPath`.
+- Validate `server/auth-profile-registry.json` against the server-only contract before packaging: profiles require `authProfileId`, `tenantId`, `status`, `issuer`, `hostedUiDomain`, `clientId`, `audiences`, `callbackUrls`, `logoutUrls`, `loginPath`, and `logoutPath`. Optional `environmentClaim` values must be Cognito custom claims such as `custom:zoolanding_env` so testing and production users can be separated inside one client pool when a draft explicitly needs that model.
 - Validate `server/integrations.json` before packaging: `access.required: true` requires `access.authProfileId`; `access.allowedGroups` must be non-empty strings; `auth` is reserved for upstream credential references such as `bearer`, `api-key-header`, or `oauth2-client-credentials`.
 - For SSR pilots, keep protected pages free of private data/actions and mark them `noindex,nofollow` until the server can emit proper redirect/status responses.
 
