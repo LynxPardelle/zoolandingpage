@@ -500,6 +500,92 @@ describe('config-payload.validators', () => {
         expect(isDraftSiteConfigPayload(payload)).toBeTrue();
     });
 
+    it('accepts safe auth session and admin endpoint paths in public runtime auth', () => {
+        const payload = {
+            version: 1,
+            domain: TEST_DOMAIN,
+            defaultPageId: 'default',
+            routes: [{ path: '/', pageId: 'default' }],
+            runtime: {
+                auth: {
+                    enabled: true,
+                    authProfileId: 'staff',
+                    provider: 'cognito',
+                    issuer: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_EXAMPLE',
+                    hostedUiDomain: 'https://example.auth.us-east-1.amazoncognito.com',
+                    clientId: 'public-client-id',
+                    scopes: ['openid', 'email'],
+                    redirectPath: '/auth/callback',
+                    logoutPath: '/acceso',
+                    session: {
+                        mode: 'server-cookie',
+                        signinPath: '/auth/session/signin',
+                        mePath: '/auth/session/me',
+                        logoutPath: '/auth/session/logout',
+                        csrfCookieName: 'zlp_csrf',
+                        csrfHeaderName: 'X-ZLP-CSRF',
+                    },
+                    admin: {
+                        usersPath: '/auth/admin/users',
+                        approveUserPathTemplate: '/auth/admin/users/{subject}/approve',
+                        groupsPathTemplate: '/auth/admin/users/{subject}/groups',
+                        suspendUserPathTemplate: '/auth/admin/users/{subject}/suspend',
+                        reactivateUserPathTemplate: '/auth/admin/users/{subject}/reactivate',
+                    },
+                },
+            },
+            site: minimalSiteConfig(),
+        };
+
+        expect(isDraftSiteConfigPayload(payload)).toBeTrue();
+    });
+
+    it('rejects unsafe auth session and admin endpoint paths', () => {
+        const baseAuth = {
+            enabled: true,
+            authProfileId: 'staff',
+            provider: 'cognito',
+            issuer: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_EXAMPLE',
+            hostedUiDomain: 'https://example.auth.us-east-1.amazoncognito.com',
+            clientId: 'public-client-id',
+            scopes: ['openid', 'email'],
+            redirectPath: '/auth/callback',
+            logoutPath: '/acceso',
+        };
+        const base = {
+            version: 1,
+            domain: TEST_DOMAIN,
+            defaultPageId: 'default',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: minimalSiteConfig(),
+        };
+
+        expect(isDraftSiteConfigPayload({
+            ...base,
+            runtime: {
+                auth: {
+                    ...baseAuth,
+                    session: {
+                        mode: 'server-cookie',
+                        signinPath: 'https://evil.example/auth/session/signin',
+                    },
+                },
+            },
+        })).toBeFalse();
+        expect(isDraftSiteConfigPayload({
+            ...base,
+            runtime: {
+                auth: {
+                    ...baseAuth,
+                    admin: {
+                        usersPath: '/auth/admin/users',
+                        approveUserPathTemplate: '//evil.example/approve',
+                    },
+                },
+            },
+        })).toBeFalse();
+    });
+
     it('rejects ambiguous static and remote auth runtime configuration', () => {
         const payload = {
             version: 1,
@@ -1195,6 +1281,20 @@ describe('config-payload.validators', () => {
                     description: 'A reusable feature card.',
                     benefits: ['One', 'Two'],
                     buttonLabel: 'Request info',
+                    actions: [
+                        {
+                            label: 'Aprobar',
+                            ariaLabel: 'Aprobar usuario',
+                            eventInstructions: 'authAdminAction:approveUser,user-sub,zoosite-client,remoteStatus.adminUsersAction',
+                            confirmMessage: 'Confirma que quieres aprobar este usuario.',
+                            classes: 'approveButton',
+                            icon: 'check_circle',
+                            iconClasses: 'featureCardActionIcon',
+                            iconPosition: 'before',
+                        },
+                    ],
+                    actionListClasses: 'featureCardActions',
+                    actionButtonClasses: 'featureCardAction',
                     featureTitleClasses: 'featureCardTitle',
                     benefitIconClasses: 'featureCardBenefitIcon',
                     classes: 'featureCard',
@@ -1218,6 +1318,27 @@ describe('config-payload.validators', () => {
         });
 
         expect(isComponentsPayload(valid)).toBeTrue();
+    });
+
+    it('rejects malformed generic-card action configs', () => {
+        const invalid = createComponentsPayload({
+            badActionCard: {
+                id: 'badActionCard',
+                type: 'generic-card',
+                config: {
+                    variant: 'feature',
+                    title: 'User',
+                    actions: [
+                        {
+                            label: '',
+                            iconPosition: 'left',
+                        },
+                    ],
+                },
+            },
+        });
+
+        expect(isComponentsPayload(invalid)).toBeFalse();
     });
 
     it('accepts explicit loopConfig bindings in components payloads', () => {

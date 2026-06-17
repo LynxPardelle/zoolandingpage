@@ -65,6 +65,14 @@ describe('AuthCustomFormService', () => {
                     logoutPath: '/acceso',
                     loginPath: '/acceso',
                     postLoginPath: '/mi-cuenta',
+                    session: {
+                        mode: 'server-cookie',
+                        signinPath: '/auth/session/signin',
+                        mePath: '/auth/session/me',
+                        logoutPath: '/auth/session/logout',
+                        csrfCookieName: 'zlp_csrf',
+                        csrfHeaderName: 'X-ZLP-CSRF',
+                    },
                 },
             },
             site: {},
@@ -231,7 +239,8 @@ describe('AuthCustomFormService', () => {
 
         const [url, init] = fetchSpy.calls.argsFor(0);
         const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
-        expect(String(url)).toContain('/auth/signin');
+        expect(String(url)).toBe('/auth/session/signin');
+        expect(init?.credentials).toBe('include');
         expect(body).toEqual({
             domain: 'zoositioweb.com.mx',
             authProfileId: 'staff',
@@ -254,7 +263,18 @@ describe('AuthCustomFormService', () => {
         expect(window.location.search).toContain('lang=es');
     });
 
-    it('logs out custom sessions locally without calling Cognito Hosted UI endpoints', async () => {
+    it('logs out server-cookie custom sessions through the configured endpoint', async () => {
+        Object.defineProperty(document, 'cookie', {
+            configurable: true,
+            value: 'zlp_csrf=csrf-token',
+        });
+        fetchSpy.and.resolveTo(new Response(JSON.stringify({
+            ok: true,
+            status: 'signed-out',
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        }));
         window.history.pushState(
             {},
             '',
@@ -266,7 +286,15 @@ describe('AuthCustomFormService', () => {
 
         expect(response).toEqual({ ok: true, status: 'signed-out' });
         expect(auth.requestSignOut).toHaveBeenCalledTimes(1);
-        expect(fetchSpy).not.toHaveBeenCalled();
+        expect(fetchSpy).toHaveBeenCalledOnceWith('/auth/session/logout', jasmine.objectContaining({
+            method: 'POST',
+            credentials: 'include',
+            headers: jasmine.objectContaining({
+                'X-ZLP-CSRF': 'csrf-token',
+                'X-ZLP-Domain': 'zoositioweb.com.mx',
+                'X-ZLP-Auth-Profile-Id': 'staff',
+            }),
+        }));
         expect(window.location.pathname).toBe('/acceso');
         expect(window.location.search).toContain('draftDomain=zoositioweb.com.mx');
         expect(window.location.search).toContain('debugWorkspace=false');

@@ -82,6 +82,25 @@
     </li>
     }
   </ul>
+  } @if (actions().length) {
+  <div [class]="classValue('actionListClasses')">
+    @for (action of actions(); track $index) {
+    <generic-button
+      [config]="{
+        type: 'button',
+        label: actionLabel(action),
+        ariaLabel: actionAriaLabel(action),
+        classes: actionClasses(action),
+        disabled: actionDisabled(action),
+        loading: actionLoading(action),
+        icon: actionIcon(action),
+        iconClasses: actionIconClasses(action),
+        iconPosition: actionIconPosition(action)
+      }"
+      (pressed)="onActionClicked($index, action, $event)"
+    ></generic-button>
+    }
+  </div>
   } @if (buttonLabel()) {
   <generic-button
     [config]="{
@@ -100,6 +119,8 @@
     (click)="onLinkClicked($event)"
     >{{ linkLabel() }}</a
   >
+  } @else if (linkLabel()) {
+  <p [class]="classValue('linkClasses')">{{ linkLabel() }}</p>
   }
 </div>
 }

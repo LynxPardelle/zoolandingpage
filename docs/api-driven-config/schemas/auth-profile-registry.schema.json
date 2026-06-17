@@ -60,6 +60,30 @@
       },
       "additionalProperties": false
     },
+    "authSessionRuntime": {
+      "type": "object",
+      "required": ["mode"],
+      "properties": {
+        "mode": { "type": "string", "enum": ["server-cookie"] },
+        "signinPath": { "$ref": "#/definitions/sameOriginPath" },
+        "mePath": { "$ref": "#/definitions/sameOriginPath" },
+        "logoutPath": { "$ref": "#/definitions/sameOriginPath" },
+        "csrfCookieName": { "type": "string", "minLength": 1 },
+        "csrfHeaderName": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "authAdminRuntime": {
+      "type": "object",
+      "properties": {
+        "usersPath": { "$ref": "#/definitions/sameOriginPath" },
+        "approveUserPathTemplate": { "$ref": "#/definitions/sameOriginPath" },
+        "groupsPathTemplate": { "$ref": "#/definitions/sameOriginPath" },
+        "suspendUserPathTemplate": { "$ref": "#/definitions/sameOriginPath" },
+        "reactivateUserPathTemplate": { "$ref": "#/definitions/sameOriginPath" }
+      },
+      "additionalProperties": false
+    },
     "authProfile": {
       "type": "object",
       "required": [
@@ -117,6 +141,28 @@
           "type": "array",
           "items": { "type": "string", "minLength": 1 }
         },
+        "allowedTokenUses": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["id", "access"] },
+          "uniqueItems": true
+        },
+        "adminGroups": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "manageableGroups": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "defaultUserStatus": {
+          "type": "string",
+          "enum": ["pending", "approved", "rejected", "suspended"]
+        },
+        "adminGroupsAutoApproved": { "type": "boolean" },
+        "maxSessionSeconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
         "socialIdpSecretRefs": {
           "type": "object",
           "additionalProperties": {
@@ -129,7 +175,9 @@
             ]
           }
         },
-        "customAuth": { "$ref": "#/definitions/customAuth" }
+        "customAuth": { "$ref": "#/definitions/customAuth" },
+        "session": { "$ref": "#/definitions/authSessionRuntime" },
+        "admin": { "$ref": "#/definitions/authAdminRuntime" }
       },
       "additionalProperties": false
     }

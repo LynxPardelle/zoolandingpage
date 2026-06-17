@@ -1,6 +1,7 @@
 import { PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { RuntimeApiProxyClientService } from './runtime-api-proxy-client.service';
+import { AuthAdminClientService } from '@/app/state/auth/auth-admin-client.service';
 import { RuntimeDataSourceMapperService } from './runtime-data-source-mapper.service';
 import { RuntimeDataSourceService } from './runtime-data-source.service';
 import { VariableStoreService } from './variable-store.service';
@@ -9,6 +10,7 @@ describe('RuntimeDataSourceService', () => {
     let service: RuntimeDataSourceService;
     let variables: VariableStoreService;
     let proxy: jasmine.SpyObj<RuntimeApiProxyClientService>;
+    let authAdmin: jasmine.SpyObj<AuthAdminClientService>;
     let mapper: jasmine.SpyObj<RuntimeDataSourceMapperService>;
     let runtimeSearchParams: URLSearchParams;
     const nativeHistoryReplaceState = History.prototype.replaceState;
@@ -21,6 +23,7 @@ describe('RuntimeDataSourceService', () => {
 
     beforeEach(() => {
         proxy = jasmine.createSpyObj<RuntimeApiProxyClientService>('RuntimeApiProxyClientService', ['readSource', 'executeAction']);
+        authAdmin = jasmine.createSpyObj<AuthAdminClientService>('AuthAdminClientService', ['me', 'listUsers']);
         mapper = jasmine.createSpyObj<RuntimeDataSourceMapperService>('RuntimeDataSourceMapperService', ['mapResponse']);
         runtimeSearchParams = new URLSearchParams();
 
@@ -30,6 +33,7 @@ describe('RuntimeDataSourceService', () => {
                 VariableStoreService,
                 { provide: PLATFORM_ID, useValue: 'browser' },
                 { provide: RuntimeApiProxyClientService, useValue: proxy },
+                { provide: AuthAdminClientService, useValue: authAdmin },
                 { provide: RuntimeDataSourceMapperService, useValue: mapper },
             ],
         });
@@ -84,6 +88,43 @@ describe('RuntimeDataSourceService', () => {
         expect(variables.get('remote.blog.posts.items')).toEqual([{ title: 'mapped:cmsRecentPosts' }]);
         expect(variables.get('remoteStatus.spotify-releases.state')).toBe('success');
         expect(variables.get('remoteStatus.blog-posts.state')).toBe('success');
+    });
+
+    it('loads auth-admin account data sources without using the public api proxy', async () => {
+        authAdmin.me.and.resolveTo({
+            ok: true,
+            account: {
+                subject: 'client-sub',
+                email: 'client@example.test',
+                roles: ['zoosite-client'],
+                approvalStatus: 'pending',
+            },
+        } as any);
+        mapper.mapResponse.and.callFake((response) => ({
+            items: [(response as any).account],
+        }));
+
+        await service.start({
+            domain: 'zoositioweb.com.mx',
+            pageId: 'mi-cuenta',
+            dataSources: [
+                {
+                    id: 'account-profile',
+                    kind: 'auth-admin',
+                    authAdminSource: 'account',
+                    target: 'remote.auth.account',
+                    mapper: { itemsPath: 'account' },
+                } as any,
+            ],
+        });
+
+        expect(authAdmin.me).toHaveBeenCalledTimes(1);
+        expect(proxy.readSource).not.toHaveBeenCalled();
+        expect(variables.get('remote.auth.account.items')).toEqual([jasmine.objectContaining({
+            subject: 'client-sub',
+            approvalStatus: 'pending',
+        })]);
+        expect(variables.get('remoteStatus.account-profile.state')).toBe('success');
     });
 
     it('loads initial data sources in order to avoid browser proxy request bursts', async () => {

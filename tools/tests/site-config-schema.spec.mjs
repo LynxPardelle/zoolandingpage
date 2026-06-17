@@ -53,6 +53,16 @@ test('site-config schema documents remote auth as a public minimal reference', a
     assert.equal(authRemote.additionalProperties, false);
 });
 
+test('site-config schema supports auth-admin data sources with single-item account mappers', async () => {
+    const schema = JSON.parse(await readFile(schemaPath, 'utf8'));
+    const mapper = schema.definitions?.runtimeDataSourceMapper;
+    const dataSource = schema.definitions?.runtimeDataSource;
+
+    assert.equal(mapper.properties.singleItem.type, 'boolean');
+    assert.deepEqual(dataSource.properties.authAdminSource.enum, ['account', 'adminUsers']);
+    assert.equal(dataSource.properties.clearTargetOnLoad.type, 'boolean');
+});
+
 test('Zoosite auth pilot fixture uses public authRemote and protected account routing without server-only fields', async () => {
     const siteConfig = await readJson(zoositePilotFixturePath);
     const routes = new Map(siteConfig.routes.map(route => [route.path, route]));

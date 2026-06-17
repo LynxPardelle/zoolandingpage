@@ -156,6 +156,30 @@ describe('WrapperOrchestrator', () => {
     expect(button.querySelector('#debugDraftPanelToggleButton-button-content-icon-before')).toBeTruthy();
   });
 
+  it('renders authored loading spinners instead of the unknown component fallback', () => {
+    componentsById = {
+      accountLoadingSpinner: {
+        id: 'accountLoadingSpinner',
+        type: 'loading-spinner',
+        config: {
+          variant: 'ring',
+          size: 'sm',
+          classes: 'account-spinner',
+        },
+      },
+    };
+
+    fixture.componentRef.setInput('componentsIds', ['accountLoadingSpinner']);
+    fixture.detectChanges();
+
+    const spinner = fixture.nativeElement.querySelector('.spinner.account-spinner') as HTMLElement | null;
+
+    expect(spinner).not.toBeNull();
+    expect(spinner?.getAttribute('data-variant')).toBe('ring');
+    expect(spinner?.getAttribute('data-size')).toBe('sm');
+    expect(fixture.nativeElement.textContent).not.toContain('unknown');
+  });
+
   it('offers child value changes to an interaction scope auto-submit hook after dispatching the event', () => {
     const autoSubmitInteractionScope = jasmine.createSpy('autoSubmitInteractionScope');
     const scopeHost = {

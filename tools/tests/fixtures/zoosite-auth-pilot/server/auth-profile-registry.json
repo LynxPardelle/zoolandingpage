@@ -30,6 +30,10 @@
         "zoosite-client",
         "zoosite-admin"
       ],
+      "allowedTokenUses": [
+        "id",
+        "access"
+      ],
       "socialIdpSecretRefs": {
         "google": "/zoolanding/auth/zoosite/staff/google",
         "facebook": "/zoolanding/auth/zoosite/staff/facebook"
