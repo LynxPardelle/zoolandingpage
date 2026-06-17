@@ -226,6 +226,33 @@ describe('GenericInputComponent', () => {
         expect(items.every((item) => item.getAttribute('data-valid') === 'true')).toBeTrue();
     });
 
+    it('synchronizes text field values on blur before marking touched', () => {
+        const scope = TestBed.inject(InteractionScopeService);
+        scope.configure({ scopeId: 'signup' });
+        const fixture = TestBed.createComponent(GenericInputComponent);
+
+        fixture.componentRef.setInput('config', {
+            fieldId: 'email',
+            controlType: 'text',
+            inputType: 'email',
+            value: '',
+            validation: [
+                { type: 'required', message: 'Escribe tu correo.' },
+                { type: 'email', message: 'Escribe un correo válido.' },
+            ],
+        });
+        fixture.detectChanges();
+
+        const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+        input.value = 'qa@example.com';
+        input.dispatchEvent(new FocusEvent('blur', { bubbles: true }));
+        fixture.detectChanges();
+
+        expect(scope.snapshot().values['email']).toBe('qa@example.com');
+        expect(scope.snapshot().fields['email'].valid).toBeTrue();
+        expect(scope.snapshot().fields['email'].touched).toBeTrue();
+    });
+
     it('can delay and filter autocomplete options by the typed text', () => {
         const fixture = TestBed.createComponent(GenericInputComponent);
 
