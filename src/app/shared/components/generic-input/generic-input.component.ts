@@ -489,9 +489,12 @@ export class GenericInputComponent {
   );
 
   onTextInput(event: Event): void {
-    this.updateValue(
-      (event.target as HTMLInputElement | HTMLTextAreaElement).value
-    );
+    this.updateTextTargetValue(event.target);
+  }
+
+  onDeferredTextInput(event: Event): void {
+    const target = event.target;
+    globalThis.setTimeout(() => this.updateTextTargetValue(target), 0);
   }
 
   onNumberInput(event: Event): void {
@@ -569,6 +572,17 @@ export class GenericInputComponent {
       value: normalized,
       previousValue,
     });
+  }
+
+  private updateTextTargetValue(target: EventTarget | null): void {
+    if (
+      !(target instanceof HTMLInputElement) &&
+      !(target instanceof HTMLTextAreaElement)
+    ) {
+      return;
+    }
+
+    this.updateValue(target.value);
   }
 
   private resolveOptionValue(rawValue: string): unknown {
