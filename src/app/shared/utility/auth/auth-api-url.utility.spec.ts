@@ -5,7 +5,7 @@ describe('buildAuthEndpointUrl', () => {
         expect(buildAuthEndpointUrl(
             '/auth/signup',
             'https://test.zoolandingpage.com.mx/acceso?draftDomain=zoositioweb.com.mx',
-        )).toBe('https://11zpm6wug2.execute-api.us-east-1.amazonaws.com/Test/auth/signup');
+        )).toBe('https://11zpm6wug2.execute-api.us-east-1.amazonaws.com/Prod/auth/signup');
     });
 
     it('keeps remote auth paths relative outside testing when requested', () => {
