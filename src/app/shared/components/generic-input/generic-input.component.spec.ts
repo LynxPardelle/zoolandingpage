@@ -199,7 +199,7 @@ describe('GenericInputComponent', () => {
         expect(items.every((item) => item.classList.contains('isValid'))).toBeTrue();
     });
 
-    it('updates text field validation from keyup fallback events', () => {
+    it('updates text field validation from deferred beforeinput fallback events', async () => {
         const fixture = TestBed.createComponent(GenericInputComponent);
 
         fixture.componentRef.setInput('config', {
@@ -217,7 +217,8 @@ describe('GenericInputComponent', () => {
 
         const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
         input.value = 'StrongPass123!';
-        input.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+        input.dispatchEvent(new InputEvent('beforeinput', { bubbles: true }));
+        await new Promise((resolve) => setTimeout(resolve, 0));
         fixture.detectChanges();
 
         const items = Array.from(fixture.nativeElement.querySelectorAll('li')) as HTMLLIElement[];

@@ -130,9 +130,9 @@
     [placeholder]="placeholder()"
     [class]="fieldClasses() + ' ' + inputClasses()"
     [attr.aria-label]="ariaLabel() || label()"
+    (beforeinput)="onDeferredTextInput($event)"
     (input)="onTextInput($event)"
     (change)="onTextInput($event)"
-    (keyup)="onTextInput($event)"
     (blur)="onBlur()"
   ></textarea>
   } @default {
@@ -149,9 +149,9 @@
       [class]="inputClasses()"
       [attr.aria-label]="ariaLabel() || label()"
       [attr.list]="visibleAutocompleteOptions().length > 0 ? autocompleteListId() : null"
+      (beforeinput)="onDeferredTextInput($event)"
       (input)="onTextInput($event)"
       (change)="onTextInput($event)"
-      (keyup)="onTextInput($event)"
       (blur)="onBlur()"
     />
     <generic-button
@@ -177,9 +177,9 @@
     [class]="fieldClasses() + ' ' + inputClasses()"
     [attr.aria-label]="ariaLabel() || label()"
     [attr.list]="visibleAutocompleteOptions().length > 0 ? autocompleteListId() : null"
+    (beforeinput)="onDeferredTextInput($event)"
     (input)="onTextInput($event)"
     (change)="onTextInput($event)"
-    (keyup)="onTextInput($event)"
     (blur)="onBlur()"
   />
   }
