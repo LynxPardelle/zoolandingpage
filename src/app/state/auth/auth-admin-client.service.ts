@@ -22,14 +22,25 @@ export type TAuthAdminResponse<T extends Record<string, unknown> = Record<string
     readonly ok: boolean;
 } & T;
 
+const AUTH_ADMIN_REQUEST_TIMEOUT_MS = 10_000;
+
 @Injectable({ providedIn: 'root' })
 export class AuthAdminClientService {
     private readonly configStore = inject(ConfigStoreService);
     private readonly domainResolver = inject(DomainResolverService);
     private readonly runtimeConfig = inject(RuntimeConfigService);
+    private meRequest: Promise<TAuthAdminResponse<{ readonly account: TAuthAdminAccount }>> | null = null;
 
     me(): Promise<TAuthAdminResponse<{ readonly account: TAuthAdminAccount }>> {
-        return this.requestJson(this.sessionPath('mePath', '/auth/session/me'), { method: 'GET' });
+        if (!this.meRequest) {
+            this.meRequest = this.requestJson<TAuthAdminResponse<{ readonly account: TAuthAdminAccount }>>(
+                this.sessionPath('mePath', '/auth/session/me'),
+                { method: 'GET' },
+            ).finally(() => {
+                this.meRequest = null;
+            });
+        }
+        return this.meRequest;
     }
 
     listUsers(): Promise<TAuthAdminResponse<{ readonly users: readonly TAuthAdminAccount[] }>> {
@@ -94,17 +105,34 @@ export class AuthAdminClientService {
             headers[this.csrfHeaderName()] = this.csrfCookieValue();
         }
 
-        const response = await fetch(path, {
-            method: options.method,
-            credentials: 'include',
-            headers,
-            ...(body !== undefined ? { body } : {}),
-        });
-        const parsed = await this.parseJson<T>(response);
-        if (!response.ok || parsed.ok === false) {
-            throw new Error(this.clean((parsed as { readonly error?: unknown }).error) || 'Auth admin request failed.');
+        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        const timeout = controller
+            ? globalThis.setTimeout(() => controller.abort(), AUTH_ADMIN_REQUEST_TIMEOUT_MS)
+            : null;
+
+        try {
+            const response = await fetch(path, {
+                method: options.method,
+                credentials: 'include',
+                headers,
+                ...(body !== undefined ? { body } : {}),
+                ...(controller ? { signal: controller.signal } : {}),
+            });
+            const parsed = await this.parseJson<T>(response);
+            if (!response.ok || parsed.ok === false) {
+                throw new Error(this.clean((parsed as { readonly error?: unknown }).error) || 'Auth admin request failed.');
+            }
+            return parsed;
+        } catch (error) {
+            if (this.isAbortError(error)) {
+                throw new Error('Auth admin request timed out.');
+            }
+            throw error;
+        } finally {
+            if (timeout !== null) {
+                globalThis.clearTimeout(timeout);
+            }
         }
-        return parsed;
     }
 
     private async parseJson<T>(response: Response): Promise<T> {
@@ -179,5 +207,11 @@ export class AuthAdminClientService {
 
     private clean(value: unknown): string {
         return typeof value === 'string' ? value.trim() : '';
+    }
+
+    private isAbortError(error: unknown): boolean {
+        return typeof DOMException !== 'undefined'
+            && error instanceof DOMException
+            && error.name === 'AbortError';
     }
 }

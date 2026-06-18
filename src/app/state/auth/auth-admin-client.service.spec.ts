@@ -87,6 +87,33 @@ describe('AuthAdminClientService', () => {
         }));
     });
 
+    it('deduplicates concurrent account reads during private route bootstrap', async () => {
+        let resolveMe!: (value: Response) => void;
+        fetchSpy.and.returnValue(new Promise<Response>((resolve) => {
+            resolveMe = resolve;
+        }));
+        const service = TestBed.inject(AuthAdminClientService);
+
+        const first = service.me();
+        const second = service.me();
+        resolveMe(new Response(JSON.stringify({
+            ok: true,
+            account: {
+                subject: 'client-sub',
+                email: 'client@example.test',
+                roles: ['zoosite-client'],
+            },
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        }));
+        const [firstResponse, secondResponse] = await Promise.all([first, second]);
+
+        expect(firstResponse.account.subject).toBe('client-sub');
+        expect(secondResponse.account.subject).toBe('client-sub');
+        expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+
     it('falls back to the resolved host domain before site config domain is available', async () => {
         TestBed.inject(ConfigStoreService).setSiteConfig({
             version: 1,
@@ -181,6 +208,93 @@ describe('AuthAdminClientService', () => {
                 'X-ZLP-Auth-Profile-Id': 'staff',
             }),
             body: JSON.stringify({ groups: ['zoosite-client'] }),
+        }));
+    });
+
+    it('uses same-origin credentials, draft context and csrf for every admin mutation', async () => {
+        Object.defineProperty(document, 'cookie', {
+            configurable: true,
+            value: 'zlp_csrf=csrf-token',
+        });
+        fetchSpy.and.callFake(() => Promise.resolve(new Response(JSON.stringify({
+            ok: true,
+            user: { subject: 'client/sub', approvalStatus: 'approved' },
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        })));
+        const service = TestBed.inject(AuthAdminClientService);
+
+        await service.setUserGroups('client/sub', ['zoosite-client']);
+        await service.suspendUser('client/sub');
+        await service.reactivateUser('client/sub');
+
+        expect(fetchSpy.calls.allArgs().map(([url, init]) => ({
+            url,
+            method: init?.method,
+            credentials: init?.credentials,
+            headers: init?.headers,
+            body: init?.body,
+        }))).toEqual([
+            {
+                url: '/auth/admin/users/client%2Fsub/groups',
+                method: 'POST',
+                credentials: 'include',
+                headers: jasmine.objectContaining({
+                    'X-ZLP-CSRF': 'csrf-token',
+                    'Content-Type': 'application/json',
+                    'X-ZLP-Domain': 'zoositioweb.com.mx',
+                    'X-ZLP-Auth-Profile-Id': 'staff',
+                }) as unknown as HeadersInit,
+                body: JSON.stringify({ groups: ['zoosite-client'] }),
+            },
+            {
+                url: '/auth/admin/users/client%2Fsub/suspend',
+                method: 'POST',
+                credentials: 'include',
+                headers: jasmine.objectContaining({
+                    'X-ZLP-CSRF': 'csrf-token',
+                    'Content-Type': 'application/json',
+                    'X-ZLP-Domain': 'zoositioweb.com.mx',
+                    'X-ZLP-Auth-Profile-Id': 'staff',
+                }) as unknown as HeadersInit,
+                body: JSON.stringify({}),
+            },
+            {
+                url: '/auth/admin/users/client%2Fsub/reactivate',
+                method: 'POST',
+                credentials: 'include',
+                headers: jasmine.objectContaining({
+                    'X-ZLP-CSRF': 'csrf-token',
+                    'Content-Type': 'application/json',
+                    'X-ZLP-Domain': 'zoositioweb.com.mx',
+                    'X-ZLP-Auth-Profile-Id': 'staff',
+                }) as unknown as HeadersInit,
+                body: JSON.stringify({}),
+            },
+        ]);
+    });
+
+    it('lists users with same-origin credentials and draft context', async () => {
+        fetchSpy.and.resolveTo(new Response(JSON.stringify({
+            ok: true,
+            users: [{ subject: 'client-sub' }],
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        }));
+        const service = TestBed.inject(AuthAdminClientService);
+
+        const response = await service.listUsers();
+
+        expect(response.users).toEqual([jasmine.objectContaining({ subject: 'client-sub' })]);
+        expect(fetchSpy).toHaveBeenCalledOnceWith('/auth/admin/users', jasmine.objectContaining({
+            method: 'GET',
+            credentials: 'include',
+            headers: jasmine.objectContaining({
+                'X-ZLP-Domain': 'zoositioweb.com.mx',
+                'X-ZLP-Auth-Profile-Id': 'staff',
+            }),
         }));
     });
 });
