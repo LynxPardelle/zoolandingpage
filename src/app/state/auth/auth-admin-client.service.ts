@@ -79,6 +79,14 @@ export class AuthAdminClientService {
         });
     }
 
+    resetUserMfa(subject: string): Promise<TAuthAdminResponse<{ readonly user: TAuthAdminAccount; readonly status?: string }>> {
+        return this.requestJson(this.subjectPath('resetUserMfaPathTemplate', '/auth/admin/users/{subject}/mfa/reset', subject), {
+            method: 'POST',
+            csrf: true,
+            body: {},
+        });
+    }
+
     private async requestJson<T extends TAuthAdminResponse>(
         path: string,
         options: {

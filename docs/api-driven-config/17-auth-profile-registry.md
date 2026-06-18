@@ -276,6 +276,7 @@ The public browser contract is still minimal:
 - `POST /auth/admin/users/{subject}/groups`
 - `POST /auth/admin/users/{subject}/suspend`
 - `POST /auth/admin/users/{subject}/reactivate`
+- `POST /auth/admin/users/{subject}/mfa/reset`: admin/support lost-device recovery. It disables the target user's software-token MFA preference, bumps that user's session version, and writes an audit event. It must block self-reset and must not return TOTP secrets, raw Cognito sessions, or tokens.
 
 All session/admin requests after signin must include the current draft context through same-origin request headers:
 
@@ -305,6 +306,8 @@ Server-only auth profile fields for this BFF include:
 - public-safe `admin` path metadata
 
 The public runtime-config response may expose the safe `session` and `admin` same-origin paths, but it must not expose `adminGroups`, `manageableGroups`, tenant policy, Cognito mutable attribute policy, IAM policy, secrets, or credential references. The BFF reads those from server-only config.
+
+Draft configs that branch on mapped auth-admin data must reference only fields exposed by the data-source mapper. For example, if `auth-account` maps `mfa.status` to `mfaStatus`, component conditions should read `remote.auth.account.items.0.mfaStatus`, not the raw nested `remote.auth.account.items.0.mfa.status`. The static guard `tools/runtime-data-source-condition-guard.mjs` runs in draft packaging and standalone draft deploy validation to catch hidden mapped-field references before publication.
 
 ## Backend Authorization
 

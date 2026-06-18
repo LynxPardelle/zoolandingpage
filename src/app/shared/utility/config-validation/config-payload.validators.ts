@@ -166,6 +166,7 @@ const ALLOWED_AUTH_ADMIN_CONFIG_KEYS = new Set([
     'groupsPathTemplate',
     'suspendUserPathTemplate',
     'reactivateUserPathTemplate',
+    'resetUserMfaPathTemplate',
 ]);
 const ALLOWED_AUTH_REMOTE_CONFIG_KEYS = new Set([
     'enabled',
@@ -911,7 +912,7 @@ const isRuntimeApiActionConfig = (value: unknown): value is TRuntimeApiActionCon
     if (value['kind'] !== undefined && !['api-proxy', 'auth-admin'].includes(String(value['kind']))) return false;
     if (value['proxyActionId'] !== undefined && typeof value['proxyActionId'] !== 'string') return false;
     if (value['authAdminAction'] !== undefined
-        && !['approveUser', 'setUserGroups', 'suspendUser', 'reactivateUser'].includes(String(value['authAdminAction']))) return false;
+        && !['approveUser', 'setUserGroups', 'suspendUser', 'reactivateUser', 'resetUserMfa'].includes(String(value['authAdminAction']))) return false;
     if (value['method'] !== undefined
         && (typeof value['method'] !== 'string' || !ALLOWED_RUNTIME_API_ACTION_METHODS.has(value['method']))) return false;
     if (value['statusTarget'] !== undefined && typeof value['statusTarget'] !== 'string') return false;

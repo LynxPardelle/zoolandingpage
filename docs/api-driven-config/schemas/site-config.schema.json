@@ -357,7 +357,7 @@
         "proxyActionId": { "type": "string" },
         "authAdminAction": {
           "type": "string",
-          "enum": ["approveUser", "setUserGroups", "suspendUser", "reactivateUser"]
+          "enum": ["approveUser", "setUserGroups", "suspendUser", "reactivateUser", "resetUserMfa"]
         },
         "method": { "type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"] },
         "statusTarget": { "type": "string" },
@@ -549,7 +549,8 @@
         "approveUserPathTemplate": { "$ref": "#/definitions/sameOriginPath" },
         "groupsPathTemplate": { "$ref": "#/definitions/sameOriginPath" },
         "suspendUserPathTemplate": { "$ref": "#/definitions/sameOriginPath" },
-        "reactivateUserPathTemplate": { "$ref": "#/definitions/sameOriginPath" }
+        "reactivateUserPathTemplate": { "$ref": "#/definitions/sameOriginPath" },
+        "resetUserMfaPathTemplate": { "$ref": "#/definitions/sameOriginPath" }
       },
       "additionalProperties": false
     },

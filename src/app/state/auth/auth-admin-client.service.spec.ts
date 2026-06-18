@@ -59,6 +59,7 @@ describe('AuthAdminClientService', () => {
                         groupsPathTemplate: '/auth/admin/users/{subject}/groups',
                         suspendUserPathTemplate: '/auth/admin/users/{subject}/suspend',
                         reactivateUserPathTemplate: '/auth/admin/users/{subject}/reactivate',
+                        resetUserMfaPathTemplate: '/auth/admin/users/{subject}/mfa/reset',
                     },
                 },
             },
@@ -228,6 +229,7 @@ describe('AuthAdminClientService', () => {
         await service.setUserGroups('client/sub', ['zoosite-client']);
         await service.suspendUser('client/sub');
         await service.reactivateUser('client/sub');
+        await service.resetUserMfa('client/sub');
 
         expect(fetchSpy.calls.allArgs().map(([url, init]) => ({
             url,
@@ -262,6 +264,18 @@ describe('AuthAdminClientService', () => {
             },
             {
                 url: '/auth/admin/users/client%2Fsub/reactivate',
+                method: 'POST',
+                credentials: 'include',
+                headers: jasmine.objectContaining({
+                    'X-ZLP-CSRF': 'csrf-token',
+                    'Content-Type': 'application/json',
+                    'X-ZLP-Domain': 'zoositioweb.com.mx',
+                    'X-ZLP-Auth-Profile-Id': 'staff',
+                }) as unknown as HeadersInit,
+                body: JSON.stringify({}),
+            },
+            {
+                url: '/auth/admin/users/client%2Fsub/mfa/reset',
                 method: 'POST',
                 credentials: 'include',
                 headers: jasmine.objectContaining({
