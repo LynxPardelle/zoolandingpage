@@ -12,6 +12,7 @@ import { TGenericLinkConfig } from "../generic-link/generic-link.types";
 import type { LoadingSpinnerSize, LoadingSpinnerVariant } from "../generic-loading-spinner/generic-loading-spinner.types";
 import type { TGenericMediaConfig } from "../generic-media/generic-media.types";
 import type { TGenericPaginationConfig } from "../generic-pagination/generic-pagination.types";
+import type { TGenericQrCodeConfig } from "../generic-qr-code/generic-qr-code.types";
 import type { SearchBoxConfig } from '../generic-search-box/generic-search-box.types';
 import type { TabGroupConfig } from "../generic-tab-group/generic-tab-group.types";
 import { TGenericTextConfig } from "../generic-text/generic-text.types";
@@ -137,6 +138,7 @@ export type TGenericComponentType =
     | 'link'
     | 'media'
     | 'pagination'
+    | 'qr-code'
     | 'loading-spinner'
     | 'modal'
     | 'progress-bar'
@@ -228,6 +230,10 @@ export type TGenericComponent = {
         {
             readonly type: 'pagination';
             readonly config: TGenericPaginationConfig;
+        } |
+        {
+            readonly type: 'qr-code';
+            readonly config: TGenericQrCodeConfig;
         } |
         {
             readonly type: 'loading-spinner';

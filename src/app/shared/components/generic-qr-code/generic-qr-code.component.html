@@ -1,0 +1,48 @@
+@if (value() && modules().length > 0) {
+<div
+  [id]="id()"
+  [class]="classes()"
+  [ngStyle]="styles()"
+  [style.width.px]="size()"
+  [style.height.px]="size()"
+  role="img"
+  [attr.aria-label]="ariaLabel()"
+>
+  <div
+    [class]="gridClass()"
+    [style.grid-template-columns]="gridTemplateColumns()"
+    [style.background-color]="lightColor()"
+    aria-hidden="true"
+  >
+    @for (row of modules(); track $index) {
+      @for (isDark of row; track $index) {
+        <span
+          data-qr-module
+          [class]="moduleClass(isDark)"
+          [style.background-color]="moduleColor(isDark)"
+        ></span>
+      }
+    }
+  </div>
+</div>
+} @else if (hasRenderError()) {
+<div
+  [id]="id()"
+  [class]="classes()"
+  [ngStyle]="styles()"
+  role="status"
+  aria-live="polite"
+>
+  <span [class]="errorClasses()">{{ errorText() }}</span>
+</div>
+} @else if (emptyText()) {
+<div
+  [id]="id()"
+  [class]="classes()"
+  [ngStyle]="styles()"
+  role="status"
+  aria-live="polite"
+>
+  <span [class]="emptyClasses()">{{ emptyText() }}</span>
+</div>
+}

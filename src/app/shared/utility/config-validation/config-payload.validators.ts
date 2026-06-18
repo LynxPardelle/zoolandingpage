@@ -203,6 +203,7 @@ const ALLOWED_COMPONENT_TYPES = new Set([
     'media',
     'modal',
     'pagination',
+    'qr-code',
     'loading-spinner',
     'progress-bar',
     'search-box',
@@ -214,6 +215,28 @@ const ALLOWED_COMPONENT_TYPES = new Set([
     'tooltip',
     'none',
 ]);
+
+const ALLOWED_QR_CODE_CONFIG_KEYS = new Set([
+    'id',
+    'value',
+    'ariaLabel',
+    'classes',
+    'gridClasses',
+    'moduleClasses',
+    'darkModuleClasses',
+    'lightModuleClasses',
+    'emptyClasses',
+    'errorClasses',
+    'emptyText',
+    'errorText',
+    'size',
+    'margin',
+    'errorCorrectionLevel',
+    'darkColor',
+    'lightColor',
+    'styles',
+]);
+const ALLOWED_QR_CODE_ERROR_CORRECTION_LEVELS = new Set(['L', 'M', 'Q', 'H']);
 
 const ALLOWED_SITE_LIFECYCLE_STATUSES = new Set(['active', 'maintenance', 'suspended']);
 const ALLOWED_SITE_FALLBACK_MODES = new Set(['system', 'custom-message', 'redirect']);
@@ -1626,6 +1649,58 @@ const isStatsCounterConfig = (value: unknown): boolean => {
     return true;
 };
 
+const isStyleRecord = (value: unknown): boolean =>
+    isRecord(value)
+    && Object.values(value).every((entry) =>
+        entry === undefined || entry === null || typeof entry === 'string' || typeof entry === 'number'
+    );
+
+const isGenericQrCodeConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasOnlyKnownKeys(value, ALLOWED_QR_CODE_CONFIG_KEYS)) return false;
+
+    const stringFields = [
+        'id',
+        'value',
+        'ariaLabel',
+        'classes',
+        'gridClasses',
+        'moduleClasses',
+        'darkModuleClasses',
+        'lightModuleClasses',
+        'emptyClasses',
+        'errorClasses',
+        'emptyText',
+        'errorText',
+        'darkColor',
+        'lightColor',
+    ] as const;
+    if (stringFields.some((field) => !isStringThunkFriendly(value[field]))) return false;
+
+    if (value['size'] !== undefined) {
+        if (!isNumberThunkFriendly(value['size'])) return false;
+        const size = Number(value['size']);
+        if (!Number.isFinite(size) || size < 64 || size > 1024) return false;
+    }
+
+    if (value['margin'] !== undefined) {
+        if (!isNumberThunkFriendly(value['margin'])) return false;
+        const margin = Number(value['margin']);
+        if (!Number.isFinite(margin) || margin < 0 || margin > 16) return false;
+    }
+
+    if (
+        value['errorCorrectionLevel'] !== undefined
+        && !ALLOWED_QR_CODE_ERROR_CORRECTION_LEVELS.has(String(value['errorCorrectionLevel']).toUpperCase())
+    ) {
+        return false;
+    }
+
+    if (value['styles'] !== undefined && !isStyleRecord(value['styles'])) return false;
+
+    return true;
+};
+
 const isInteractionScopeConfig = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
     if (value['scopeId'] !== undefined && typeof value['scopeId'] !== 'string') return false;
@@ -1679,6 +1754,10 @@ const isComponentPayloadRecord = (value: unknown): boolean => {
 
     if (value['type'] === 'stats-counter') {
         return isStatsCounterConfig(value['config']);
+    }
+
+    if (value['type'] === 'qr-code') {
+        return isGenericQrCodeConfig(value['config']);
     }
 
     if (value['type'] === 'tab-group') {
