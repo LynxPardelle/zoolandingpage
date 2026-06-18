@@ -525,8 +525,11 @@ describe('config-payload.validators', () => {
                         challengeRespondPath: '/auth/session/challenge/respond',
                         mfaSetupPath: '/auth/session/mfa/setup',
                         mfaVerifyPath: '/auth/session/mfa/verify',
+                        mfaEnrollStartPath: '/auth/session/mfa/enroll/start',
+                        mfaEnrollVerifyPath: '/auth/session/mfa/enroll/verify',
                         csrfCookieName: 'zlp_csrf',
                         challengeCsrfCookieName: 'zlp_challenge_csrf',
+                        mfaEnrollCsrfCookieName: 'zlp_mfa_enroll_csrf',
                         csrfHeaderName: 'X-ZLP-CSRF',
                     },
                     admin: {
