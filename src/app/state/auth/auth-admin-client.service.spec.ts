@@ -127,6 +127,34 @@ describe('AuthAdminClientService', () => {
         }));
     });
 
+    it('uses the remote auth profile id before public auth is installed', async () => {
+        TestBed.inject(ConfigStoreService).setSiteConfig({
+            version: 1,
+            domain: 'zoositioweb.com.mx',
+            routes: [],
+            runtime: {
+                authRemote: {
+                    enabled: true,
+                    authProfileId: 'staff',
+                    endpoint: '/auth/runtime-config',
+                },
+            },
+            site: {},
+        } as any);
+        const service = TestBed.inject(AuthAdminClientService);
+
+        await service.me();
+
+        expect(fetchSpy).toHaveBeenCalledOnceWith('/auth/session/me', jasmine.objectContaining({
+            method: 'GET',
+            credentials: 'include',
+            headers: jasmine.objectContaining({
+                'X-ZLP-Domain': 'zoositioweb.com.mx',
+                'X-ZLP-Auth-Profile-Id': 'staff',
+            }),
+        }));
+    });
+
     it('sends csrf-protected admin approve requests with encoded subject paths', async () => {
         Object.defineProperty(document, 'cookie', {
             configurable: true,
