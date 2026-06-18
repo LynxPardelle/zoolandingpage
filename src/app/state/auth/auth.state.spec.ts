@@ -2,6 +2,7 @@ import { PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ConfigStoreService } from '../../shared/services/config-store.service';
 import { AuthFacade } from './auth.facade';
+import { AuthAdminClientService } from './auth-admin-client.service';
 import { AuthOidcService } from './auth-oidc.service';
 import { AuthRuntimeService } from './auth-runtime.service';
 import { AuthSessionBrowserStorageService } from './auth-session-browser-storage.service';
@@ -255,6 +256,140 @@ describe('auth signal state', () => {
             redirectTo: null,
             requiredGroups: ['client-admin'],
         });
+    });
+
+    it('revalidates server-cookie route access with the auth BFF before redirecting', async () => {
+        const authAdmin = jasmine.createSpyObj<AuthAdminClientService>('AuthAdminClientService', ['me']);
+        authAdmin.me.and.resolveTo({
+            ok: true,
+            account: {
+                subject: 'admin-sub',
+                email: 'admin@example.test',
+                roles: ['zoosite-admin'],
+                enabled: true,
+            },
+        });
+        TestBed.configureTestingModule({
+            providers: [{ provide: AuthAdminClientService, useValue: authAdmin }],
+        });
+        const store = TestBed.inject(ConfigStoreService);
+        const auth = TestBed.inject(AuthFacade);
+        const authRuntime = TestBed.inject(AuthRuntimeService);
+        store.setSiteConfig({
+            version: 1,
+            domain: 'zoositioweb.com.mx',
+            routes: [
+                {
+                    path: '/admin/usuarios',
+                    pageId: 'admin-usuarios',
+                    auth: {
+                        required: true,
+                        allowedGroups: ['zoosite-admin'],
+                        redirectTo: '/acceso',
+                    },
+                },
+            ],
+            runtime: {
+                auth: {
+                    enabled: true,
+                    authProfileId: 'staff',
+                    provider: 'cognito',
+                    issuer: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_PREVIEW',
+                    clientId: 'public-web-client',
+                    hostedUiDomain: 'https://preview.auth.us-east-1.amazoncognito.com',
+                    scopes: ['openid'],
+                    redirectPath: '/auth/callback',
+                    logoutPath: '/acceso',
+                    loginPath: '/acceso',
+                    session: {
+                        mode: 'server-cookie',
+                        signinPath: '/auth/session/signin',
+                        mePath: '/auth/session/me',
+                        logoutPath: '/auth/session/logout',
+                    },
+                },
+            },
+            site: {},
+        } as any);
+
+        expect(authRuntime.evaluateRouteAccess(store.siteConfig()?.routes[0] ?? null)).toEqual({
+            allowed: false,
+            reason: 'auth-required',
+            redirectTo: '/acceso',
+            requiredGroups: ['zoosite-admin'],
+        });
+
+        await expectAsync(authRuntime.evaluateRouteAccessAsync(store.siteConfig()?.routes[0] ?? null))
+            .toBeResolvedTo({
+                allowed: true,
+                reason: 'authenticated',
+                redirectTo: null,
+                requiredGroups: ['zoosite-admin'],
+            });
+        expect(authAdmin.me).toHaveBeenCalled();
+        expect(auth.isAuthenticated()).toBeTrue();
+        expect(auth.hasAnyGroup(['zoosite-admin'])).toBeTrue();
+    });
+
+    it('keeps server-cookie admin routes blocked when the BFF session lacks the required group', async () => {
+        const authAdmin = jasmine.createSpyObj<AuthAdminClientService>('AuthAdminClientService', ['me']);
+        authAdmin.me.and.resolveTo({
+            ok: true,
+            account: {
+                subject: 'client-sub',
+                roles: ['zoosite-client'],
+                enabled: true,
+            },
+        });
+        TestBed.configureTestingModule({
+            providers: [{ provide: AuthAdminClientService, useValue: authAdmin }],
+        });
+        const store = TestBed.inject(ConfigStoreService);
+        const authRuntime = TestBed.inject(AuthRuntimeService);
+        store.setSiteConfig({
+            version: 1,
+            domain: 'zoositioweb.com.mx',
+            routes: [
+                {
+                    path: '/admin/usuarios',
+                    pageId: 'admin-usuarios',
+                    auth: {
+                        required: true,
+                        allowedGroups: ['zoosite-admin'],
+                        redirectTo: '/acceso',
+                    },
+                },
+            ],
+            runtime: {
+                auth: {
+                    enabled: true,
+                    authProfileId: 'staff',
+                    provider: 'cognito',
+                    issuer: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_PREVIEW',
+                    clientId: 'public-web-client',
+                    hostedUiDomain: 'https://preview.auth.us-east-1.amazoncognito.com',
+                    scopes: ['openid'],
+                    redirectPath: '/auth/callback',
+                    logoutPath: '/acceso',
+                    loginPath: '/acceso',
+                    session: {
+                        mode: 'server-cookie',
+                        signinPath: '/auth/session/signin',
+                        mePath: '/auth/session/me',
+                        logoutPath: '/auth/session/logout',
+                    },
+                },
+            },
+            site: {},
+        } as any);
+
+        await expectAsync(authRuntime.evaluateRouteAccessAsync(store.siteConfig()?.routes[0] ?? null))
+            .toBeResolvedTo({
+                allowed: false,
+                reason: 'missing-group',
+                redirectTo: '/acceso',
+                requiredGroups: ['zoosite-admin'],
+            });
     });
 
     it('uses loginPath for protected-route redirects and never falls back to logoutPath', () => {
