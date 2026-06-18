@@ -18,6 +18,7 @@ const AUTH_FORM_ACTIONS = new Set<TAuthCustomFormAction>([
     'verifyMfaSetup',
     'startMfaEnrollment',
     'verifyMfaEnrollment',
+    'disableMfa',
     'logout',
 ]);
 

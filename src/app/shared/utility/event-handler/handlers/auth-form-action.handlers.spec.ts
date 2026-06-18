@@ -125,6 +125,22 @@ describe('authFormActionHandler', () => {
         expect(variables.get('authForm.verifyMfaEnrollment.data')).toEqual({ ok: true, status: 'mfa-enabled' });
     });
 
+    it('supports MFA disable from generic draft components', async () => {
+        scope.registerField({ fieldId: 'code', required: true });
+        scope.setFieldValue('code', '123456');
+        authForms.submit.and.resolveTo({ ok: true, status: 'mfa-disabled' });
+
+        const handler = TestBed.runInInjectionContext(() => authFormActionHandler());
+        await handler.handle(context, ['disableMfa', 'authForm.disableMfa']);
+
+        expect(authForms.submit).toHaveBeenCalledOnceWith('disableMfa' as any, jasmine.objectContaining({
+            password: 'StrongPassphrase123!',
+            code: '123456',
+        }));
+        expect(variables.get('authForm.disableMfa.state')).toBe('success');
+        expect(variables.get('authForm.disableMfa.data')).toEqual({ ok: true, status: 'mfa-disabled' });
+    });
+
     it('writes a loading status before the custom auth request resolves', async () => {
         let resolveSubmit!: (value: { ok: true; status: string }) => void;
         authForms.submit.and.returnValue(new Promise((resolve) => {
