@@ -11,7 +11,21 @@ const CUSTOM_AUTH_KEYS = new Set(['signin', 'signup', 'passwordRecovery']);
 const CUSTOM_SIGNIN_KEYS = new Set(['enabled']);
 const CUSTOM_SIGNUP_KEYS = new Set(['enabled', 'setTenantClaim', 'setEnvironmentClaim', 'defaultGroups']);
 const CUSTOM_PASSWORD_RECOVERY_KEYS = new Set(['enabled']);
-const AUTH_SESSION_KEYS = new Set(['mode', 'signinPath', 'mePath', 'logoutPath', 'csrfCookieName', 'csrfHeaderName']);
+const MFA_KEYS = new Set(['mode', 'totp']);
+const TOTP_MFA_KEYS = new Set(['enabled']);
+const MFA_MODES = new Set(['off', 'optional', 'required']);
+const AUTH_SESSION_KEYS = new Set([
+  'mode',
+  'signinPath',
+  'mePath',
+  'logoutPath',
+  'challengeRespondPath',
+  'mfaSetupPath',
+  'mfaVerifyPath',
+  'csrfCookieName',
+  'challengeCsrfCookieName',
+  'csrfHeaderName',
+]);
 const AUTH_ADMIN_KEYS = new Set([
   'usersPath',
   'approveUserPathTemplate',
@@ -186,6 +200,29 @@ function validateCustomAuth(customAuth, profile, index, errors) {
   }
 }
 
+function validateMfaPolicy(mfa, index, errors) {
+  const prefix = `profiles[${index}].mfa`;
+  if (mfa === undefined) return;
+  if (!mfa || typeof mfa !== 'object' || Array.isArray(mfa)) {
+    errors.push(`${prefix} must be an object when present`);
+    return;
+  }
+
+  validateKnownKeys(mfa, MFA_KEYS, prefix, errors);
+  pushIf(typeof mfa.mode !== 'string' || !MFA_MODES.has(mfa.mode), errors, `${prefix}.mode must be off, optional, or required`);
+
+  if (mfa.totp !== undefined) {
+    const totpPrefix = `${prefix}.totp`;
+    if (!mfa.totp || typeof mfa.totp !== 'object' || Array.isArray(mfa.totp)) {
+      errors.push(`${totpPrefix} must be an object when present`);
+    } else {
+      validateKnownKeys(mfa.totp, TOTP_MFA_KEYS, totpPrefix, errors);
+      pushIf(typeof mfa.totp.enabled !== 'boolean', errors, `${totpPrefix}.enabled must be boolean`);
+      pushIf(mfa.mode !== 'off' && mfa.totp.enabled !== true, errors, `${totpPrefix}.enabled must be true when mfa.mode is enabled`);
+    }
+  }
+}
+
 function validatePublicAuthServiceMetadata(profile, index, errors) {
   const prefix = `profiles[${index}]`;
   if (profile.session !== undefined) {
@@ -195,10 +232,10 @@ function validatePublicAuthServiceMetadata(profile, index, errors) {
     } else {
       validateKnownKeys(profile.session, AUTH_SESSION_KEYS, sessionPrefix, errors);
       pushIf(profile.session.mode !== undefined && profile.session.mode !== 'server-cookie', errors, `${sessionPrefix}.mode must be server-cookie`);
-      for (const key of ['signinPath', 'mePath', 'logoutPath']) {
+      for (const key of ['signinPath', 'mePath', 'logoutPath', 'challengeRespondPath', 'mfaSetupPath', 'mfaVerifyPath']) {
         pushIf(profile.session[key] !== undefined && !isSafeSameOriginPath(profile.session[key]), errors, `${sessionPrefix}.${key} must be a same-origin path`);
       }
-      for (const key of ['csrfCookieName', 'csrfHeaderName']) {
+      for (const key of ['csrfCookieName', 'challengeCsrfCookieName', 'csrfHeaderName']) {
         pushIf(profile.session[key] !== undefined && (typeof profile.session[key] !== 'string' || hasUnsafeChars(profile.session[key])), errors, `${sessionPrefix}.${key} is invalid`);
       }
     }
@@ -289,6 +326,7 @@ function validateProfile(profile, index, seen, errors) {
 
   validateSocialIdpSecretRefs(profile.socialIdpSecretRefs, index, errors);
   validateCustomAuth(profile.customAuth, profile, index, errors);
+  validateMfaPolicy(profile.mfa, index, errors);
   validatePublicAuthServiceMetadata(profile, index, errors);
   validateServerOnlyAuthAdminPolicy(profile, index, errors);
 }
@@ -380,7 +418,11 @@ function publicAuthSessionMetadata(session) {
     ...(session.signinPath ? { signinPath: session.signinPath } : {}),
     ...(session.mePath ? { mePath: session.mePath } : {}),
     ...(session.logoutPath ? { logoutPath: session.logoutPath } : {}),
+    ...(session.challengeRespondPath ? { challengeRespondPath: session.challengeRespondPath } : {}),
+    ...(session.mfaSetupPath ? { mfaSetupPath: session.mfaSetupPath } : {}),
+    ...(session.mfaVerifyPath ? { mfaVerifyPath: session.mfaVerifyPath } : {}),
     ...(session.csrfCookieName ? { csrfCookieName: session.csrfCookieName } : {}),
+    ...(session.challengeCsrfCookieName ? { challengeCsrfCookieName: session.challengeCsrfCookieName } : {}),
     ...(session.csrfHeaderName ? { csrfHeaderName: session.csrfHeaderName } : {}),
   };
 }
@@ -434,6 +476,19 @@ export function buildCognitoProvisioningPlan(profile) {
       action: 'configureHostedUiSocialProvider',
       provider,
       secretRefs: typeof refs === 'string' ? { credentialRef: refs } : { ...refs },
+      tenantBoundary,
+    });
+  }
+  if (profile.mfa?.mode && profile.mfa.mode !== 'off') {
+    operations.push({
+      action: 'configureTotpMfa',
+      provider: 'cognito',
+      mfa: {
+        mode: profile.mfa.mode,
+        totp: {
+          enabled: profile.mfa.totp?.enabled !== false,
+        },
+      },
       tenantBoundary,
     });
   }

@@ -42,6 +42,8 @@ describe('AuthCustomFormService', () => {
                 { path: '/confirmar-cuenta', pageId: 'confirmar-cuenta' },
                 { path: '/recuperar-contrasena', pageId: 'recuperar-contrasena' },
                 { path: '/cambiar-contrasena', pageId: 'cambiar-contrasena' },
+                { path: '/verificar-acceso', pageId: 'verificar-acceso' },
+                { path: '/configurar-mfa', pageId: 'configurar-mfa' },
                 {
                     path: '/mi-cuenta',
                     pageId: 'mi-cuenta',
@@ -70,7 +72,11 @@ describe('AuthCustomFormService', () => {
                         signinPath: '/auth/session/signin',
                         mePath: '/auth/session/me',
                         logoutPath: '/auth/session/logout',
+                        challengeRespondPath: '/auth/session/challenge/respond',
+                        mfaSetupPath: '/auth/session/mfa/setup',
+                        mfaVerifyPath: '/auth/session/mfa/verify',
                         csrfCookieName: 'zlp_csrf',
+                        challengeCsrfCookieName: 'zlp_challenge_csrf',
                         csrfHeaderName: 'X-ZLP-CSRF',
                     },
                 },
@@ -264,6 +270,155 @@ describe('AuthCustomFormService', () => {
         expect(window.location.search).toContain('draftDomain=zoositioweb.com.mx');
         expect(window.location.search).toContain('debugWorkspace=false');
         expect(window.location.search).toContain('lang=es');
+    });
+
+    it('moves software-token MFA signin challenges to the verification page without creating a session', async () => {
+        fetchSpy.and.resolveTo(new Response(JSON.stringify({
+            ok: true,
+            status: 'challenge-required',
+            challengeName: 'SOFTWARE_TOKEN_MFA',
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        }));
+        const service = TestBed.inject(AuthCustomFormService);
+
+        const response = await service.submit('signin' as any, {
+            email: 'client@example.test',
+            password: 'StrongPassphrase123!',
+        });
+
+        expect(response.status).toBe('challenge-required');
+        expect(auth.establishSession).not.toHaveBeenCalled();
+        expect(window.location.pathname).toBe('/verificar-acceso');
+        expect(window.location.search).toContain('authStatus=mfa-required');
+        expect(window.location.href).not.toContain('client@example.test');
+        expect(window.location.href).not.toContain('StrongPassphrase123!');
+    });
+
+    it('moves MFA setup signin challenges to the authenticator setup page', async () => {
+        fetchSpy.and.resolveTo(new Response(JSON.stringify({
+            ok: true,
+            status: 'challenge-required',
+            challengeName: 'MFA_SETUP',
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        }));
+        const service = TestBed.inject(AuthCustomFormService);
+
+        await service.submit('signin' as any, {
+            email: 'client@example.test',
+            password: 'StrongPassphrase123!',
+        });
+
+        expect(auth.establishSession).not.toHaveBeenCalled();
+        expect(window.location.pathname).toBe('/configurar-mfa');
+        expect(window.location.search).toContain('authStatus=mfa-setup-required');
+    });
+
+    it('responds to software-token MFA challenges through same-origin credentials', async () => {
+        Object.defineProperty(document, 'cookie', {
+            configurable: true,
+            value: 'zlp_challenge_csrf=challenge-csrf-token',
+        });
+        fetchSpy.and.resolveTo(new Response(JSON.stringify({
+            ok: true,
+            status: 'signed-in',
+            session: {
+                profile: {
+                    subject: 'user-123',
+                    email: 'client@example.test',
+                    roles: ['zoosite-client'],
+                },
+                provider: 'cognito',
+                expiresAtEpochMs: 1999999999000,
+            },
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        }));
+        const service = TestBed.inject(AuthCustomFormService);
+
+        await service.submit('respondMfaChallenge' as any, {
+            code: '123456',
+        });
+
+        const [url, init] = fetchSpy.calls.argsFor(0);
+        expect(String(url)).toBe('/auth/session/challenge/respond');
+        expect(init?.credentials).toBe('include');
+        expect((init?.headers as Record<string, string>)['X-ZLP-CSRF']).toBe('challenge-csrf-token');
+        expect(JSON.parse(String(init?.body))).toEqual({
+            domain: 'zoositioweb.com.mx',
+            authProfileId: 'staff',
+            code: '123456',
+            language: 'es',
+        });
+        expect(auth.establishSession).toHaveBeenCalledTimes(1);
+        expect(window.location.pathname).toBe('/mi-cuenta');
+    });
+
+    it('prepares and verifies MFA setup without putting the shared secret in the URL', async () => {
+        Object.defineProperty(document, 'cookie', {
+            configurable: true,
+            value: 'zlp_challenge_csrf=challenge-csrf-token',
+        });
+        fetchSpy.and.resolveTo(new Response(JSON.stringify({
+            ok: true,
+            status: 'mfa-setup-ready',
+            setup: {
+                method: 'software-token',
+                sharedSecret: 'ABCDEFGHIJKLMNOP',
+                otpauthUri: 'otpauth://totp/example',
+            },
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        }));
+        const service = TestBed.inject(AuthCustomFormService);
+
+        const setupResponse = await service.submit('startMfaSetup' as any, {});
+
+        expect(setupResponse.status).toBe('mfa-setup-ready');
+        expect(fetchSpy).toHaveBeenCalledOnceWith('/auth/session/mfa/setup', jasmine.objectContaining({
+            method: 'POST',
+            credentials: 'include',
+            headers: jasmine.objectContaining({
+                'X-ZLP-CSRF': 'challenge-csrf-token',
+            }),
+        }));
+        expect(window.location.href).not.toContain('ABCDEFGHIJKLMNOP');
+
+        fetchSpy.calls.reset();
+        fetchSpy.and.resolveTo(new Response(JSON.stringify({
+            ok: true,
+            status: 'signed-in',
+            session: {
+                profile: { subject: 'user-123', roles: ['zoosite-client'] },
+                provider: 'cognito',
+                expiresAtEpochMs: 1999999999000,
+            },
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        }));
+
+        await service.submit('verifyMfaSetup' as any, {
+            code: '654321',
+        });
+
+        const [verifyUrl, verifyInit] = fetchSpy.calls.argsFor(0);
+        expect(String(verifyUrl)).toBe('/auth/session/mfa/verify');
+        expect(verifyInit?.credentials).toBe('include');
+        expect((verifyInit?.headers as Record<string, string>)['X-ZLP-CSRF']).toBe('challenge-csrf-token');
+        expect(JSON.parse(String(verifyInit?.body))).toEqual({
+            domain: 'zoositioweb.com.mx',
+            authProfileId: 'staff',
+            code: '654321',
+            language: 'es',
+        });
+        expect(auth.establishSession).toHaveBeenCalledTimes(1);
+        expect(window.location.pathname).toBe('/mi-cuenta');
     });
 
     it('logs out server-cookie custom sessions through the configured endpoint', async () => {
