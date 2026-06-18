@@ -24,6 +24,7 @@ export type TAuthCustomFormAction =
     | 'verifyMfaSetup'
     | 'startMfaEnrollment'
     | 'verifyMfaEnrollment'
+    | 'disableMfa'
     | 'logout';
 
 type TAuthCustomFormNetworkAction = Exclude<TAuthCustomFormAction, 'logout'>;
@@ -79,7 +80,7 @@ export class AuthCustomFormService {
             }
             this.auth.establishSession(session);
             this.navigateAfterSignin();
-        } else if (action === 'respondMfaChallenge' || action === 'verifyMfaSetup' || action === 'verifyMfaEnrollment') {
+        } else if (action === 'respondMfaChallenge' || action === 'verifyMfaSetup' || action === 'verifyMfaEnrollment' || action === 'disableMfa') {
             const session = this.toStoredSession(response.session);
             if (!session) {
                 throw new Error('Auth form response is invalid.');
@@ -87,6 +88,8 @@ export class AuthCustomFormService {
             this.auth.establishSession(session);
             if (action === 'verifyMfaEnrollment') {
                 this.navigateToFlowPath('mi-cuenta', '/mi-cuenta', 'mfa-enabled');
+            } else if (action === 'disableMfa') {
+                this.navigateToFlowPath('mi-cuenta', '/mi-cuenta', 'mfa-disabled');
             } else {
                 this.navigateAfterSignin();
             }
@@ -128,6 +131,16 @@ export class AuthCustomFormService {
                 domain: context.domain,
                 authProfileId: context.authProfileId,
                 password: this.stringValue(context.values['password']),
+                ...(language ? { language } : {}),
+            };
+        }
+
+        if (action === 'disableMfa') {
+            return {
+                domain: context.domain,
+                authProfileId: context.authProfileId,
+                password: this.stringValue(context.values['password']),
+                code: this.clean(context.values['code']),
                 ...(language ? { language } : {}),
             };
         }
@@ -198,7 +211,7 @@ export class AuthCustomFormService {
         if (this.isChallengeAction(action)) {
             headers[this.csrfHeaderName()] = this.challengeCsrfCookieValue();
         }
-        if (action === 'startMfaEnrollment') {
+        if (action === 'startMfaEnrollment' || action === 'disableMfa') {
             this.applySessionContextHeaders(headers);
             headers[this.csrfHeaderName()] = this.csrfCookieValue();
         }
@@ -233,6 +246,7 @@ export class AuthCustomFormService {
             verifyMfaSetup: this.serverSessionPath('mfaVerifyPath') || '/auth/session/mfa/verify',
             startMfaEnrollment: this.serverSessionPath('mfaEnrollStartPath') || '/auth/session/mfa/enroll/start',
             verifyMfaEnrollment: this.serverSessionPath('mfaEnrollVerifyPath') || '/auth/session/mfa/enroll/verify',
+            disableMfa: this.serverSessionPath('mfaDisablePath') || '/auth/session/mfa/disable',
         };
         return paths[action];
     }
@@ -322,6 +336,7 @@ export class AuthCustomFormService {
             this.serverSessionPath('mfaVerifyPath'),
             this.serverSessionPath('mfaEnrollStartPath'),
             this.serverSessionPath('mfaEnrollVerifyPath'),
+            this.serverSessionPath('mfaDisablePath'),
         ].filter(Boolean);
         return sessionPaths.includes(path);
     }
@@ -350,7 +365,7 @@ export class AuthCustomFormService {
         return { domain, authProfileId };
     }
 
-    private serverSessionPath(key: 'signinPath' | 'mePath' | 'logoutPath' | 'challengeRespondPath' | 'mfaSetupPath' | 'mfaVerifyPath' | 'mfaEnrollStartPath' | 'mfaEnrollVerifyPath'): string {
+    private serverSessionPath(key: 'signinPath' | 'mePath' | 'logoutPath' | 'challengeRespondPath' | 'mfaSetupPath' | 'mfaVerifyPath' | 'mfaEnrollStartPath' | 'mfaEnrollVerifyPath' | 'mfaDisablePath'): string {
         const session = this.runtimeConfig.auth()?.session;
         const value = session?.mode === 'server-cookie' ? session[key] : '';
         return this.safeSameOriginPath(value);

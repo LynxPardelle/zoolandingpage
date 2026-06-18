@@ -154,6 +154,7 @@ const ALLOWED_AUTH_SESSION_CONFIG_KEYS = new Set([
     'mfaVerifyPath',
     'mfaEnrollStartPath',
     'mfaEnrollVerifyPath',
+    'mfaDisablePath',
     'csrfCookieName',
     'challengeCsrfCookieName',
     'mfaEnrollCsrfCookieName',
@@ -926,7 +927,7 @@ const isDraftAuthSessionRuntimeConfig = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
     if (!hasOnlyKnownKeys(value, ALLOWED_AUTH_SESSION_CONFIG_KEYS)) return false;
     if (value['mode'] !== 'server-cookie') return false;
-    for (const key of ['signinPath', 'mePath', 'logoutPath', 'challengeRespondPath', 'mfaSetupPath', 'mfaVerifyPath', 'mfaEnrollStartPath', 'mfaEnrollVerifyPath']) {
+    for (const key of ['signinPath', 'mePath', 'logoutPath', 'challengeRespondPath', 'mfaSetupPath', 'mfaVerifyPath', 'mfaEnrollStartPath', 'mfaEnrollVerifyPath', 'mfaDisablePath']) {
         if (value[key] !== undefined && !isSafeSameOriginPath(value[key])) return false;
     }
     for (const key of ['csrfCookieName', 'challengeCsrfCookieName', 'mfaEnrollCsrfCookieName', 'csrfHeaderName']) {

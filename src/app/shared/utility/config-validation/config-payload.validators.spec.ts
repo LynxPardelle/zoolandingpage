@@ -527,6 +527,7 @@ describe('config-payload.validators', () => {
                         mfaVerifyPath: '/auth/session/mfa/verify',
                         mfaEnrollStartPath: '/auth/session/mfa/enroll/start',
                         mfaEnrollVerifyPath: '/auth/session/mfa/enroll/verify',
+                        mfaDisablePath: '/auth/session/mfa/disable',
                         csrfCookieName: 'zlp_csrf',
                         challengeCsrfCookieName: 'zlp_challenge_csrf',
                         mfaEnrollCsrfCookieName: 'zlp_mfa_enroll_csrf',
