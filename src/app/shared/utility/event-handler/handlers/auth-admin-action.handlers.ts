@@ -3,7 +3,7 @@ import { VariableStoreService } from '@/app/shared/services/variable-store.servi
 import { inject } from '@angular/core';
 import type { EventHandler } from '../event-handler.types';
 
-type TAuthAdminAction = 'approveUser' | 'setUserGroups' | 'suspendUser' | 'reactivateUser';
+type TAuthAdminAction = 'approveUser' | 'setUserGroups' | 'suspendUser' | 'reactivateUser' | 'resetUserMfa';
 type TAuthAdminStatusState = 'loading' | 'success' | 'error';
 
 const ACTIONS = new Set<TAuthAdminAction>([
@@ -11,6 +11,7 @@ const ACTIONS = new Set<TAuthAdminAction>([
     'setUserGroups',
     'suspendUser',
     'reactivateUser',
+    'resetUserMfa',
 ]);
 
 const normalizeAction = (value: unknown): TAuthAdminAction | null => {
@@ -81,6 +82,7 @@ const execute = (
     if (action === 'approveUser') return authAdmin.approveUser(subject, groups.length ? groups : undefined);
     if (action === 'setUserGroups') return authAdmin.setUserGroups(subject, groups);
     if (action === 'suspendUser') return authAdmin.suspendUser(subject);
+    if (action === 'resetUserMfa') return authAdmin.resetUserMfa(subject);
     return authAdmin.reactivateUser(subject);
 };
 

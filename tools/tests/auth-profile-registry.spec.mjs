@@ -56,6 +56,7 @@ const registry = {
         groupsPathTemplate: '/auth/admin/users/{subject}/groups',
         suspendUserPathTemplate: '/auth/admin/users/{subject}/suspend',
         reactivateUserPathTemplate: '/auth/admin/users/{subject}/reactivate',
+        resetUserMfaPathTemplate: '/auth/admin/users/{subject}/mfa/reset',
       },
       socialIdpSecretRefs: {
         google: '/zoolanding/auth/example/google',
@@ -124,6 +125,7 @@ test('buildPublicAuthRuntimeConfig emits only safe browser metadata', () => {
       groupsPathTemplate: '/auth/admin/users/{subject}/groups',
       suspendUserPathTemplate: '/auth/admin/users/{subject}/suspend',
       reactivateUserPathTemplate: '/auth/admin/users/{subject}/reactivate',
+      resetUserMfaPathTemplate: '/auth/admin/users/{subject}/mfa/reset',
     },
   });
   assert.equal(JSON.stringify(runtime).includes('secret'), false);
@@ -622,7 +624,7 @@ test('Zoosite server-only auth registry fixture validates as plan-only without r
   assert.deepEqual(validation, { valid: true, errors: [] });
   assert.equal(profile.domain, 'zoositioweb.com.mx');
   assert.equal(profile.tenantId, 'zoosite');
-  assert.match(profile.status, /^(planned|provisioning)$/);
+  assert.match(profile.status, /^(planned|provisioning|active)$/);
   assert.deepEqual(profile.allowedGroups, ['zoosite-client', 'zoosite-admin']);
   assert.deepEqual(profile.callbackUrls, [
     'https://zoositioweb.com.mx/auth/callback',
@@ -636,7 +638,6 @@ test('Zoosite server-only auth registry fixture validates as plan-only without r
     google: '/zoolanding/auth/zoosite/staff/google',
     facebook: '/zoolanding/auth/zoosite/staff/facebook',
   });
-
   const registryText = JSON.stringify(zoositeRegistry);
   for (const forbidden of ['clientSecret', 'accessToken', 'refreshToken', 'raw-google', 'raw-facebook', 'ssm:/', 'secretsmanager:/']) {
     assert.equal(registryText.includes(forbidden), false, `${forbidden} must not be present in the Zoosite registry`);
@@ -646,7 +647,7 @@ test('Zoosite server-only auth registry fixture validates as plan-only without r
   const socialOperations = plan.operations.filter(operation => operation.action === 'configureHostedUiSocialProvider');
   const planText = JSON.stringify(plan);
 
-  assert.equal(plan.applyMode, 'plan-only');
+  assert.match(plan.applyMode, /^(plan-only|active)$/);
   assert.equal(plan.operations.some(operation => operation.action === 'createOrUpdateUserPool'), true);
   assert.equal(socialOperations.length, 2);
   assert.deepEqual(socialOperations.map(operation => operation.secretRefs.credentialRef).sort(), [

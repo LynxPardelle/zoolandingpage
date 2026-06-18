@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs';
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { assertValidRuntimeDataSourceConditionReferences } from './runtime-data-source-condition-guard.mjs';
 
 const IGNORED_DIRS = new Set([
   '.git',
@@ -54,6 +55,10 @@ function normalizeEnvironment(value) {
   if (['testing', 'stage', 'staging'].includes(environment)) return 'test';
   if (['production', 'test'].includes(environment)) return environment;
   throw new Error(`Invalid environment '${value}'. Expected production or test.`);
+}
+
+function normalizeBoolean(value) {
+  return String(value ?? '').trim().toLowerCase() === 'true';
 }
 
 function sanitizeVersionSegment(value) {
@@ -206,8 +211,7 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   const domain = normalizeDomain(required(args.domain ?? process.env.DRAFT_DOMAIN, 'DRAFT_DOMAIN'));
   const environment = normalizeEnvironment(args.environment ?? process.env.DRAFT_ENVIRONMENT);
-  const endpoint = required(args.endpoint ?? process.env.AUTHORING_ENDPOINT, 'AUTHORING_ENDPOINT');
-  const region = required(args.region ?? process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION ?? 'us-east-1', 'AWS_REGION');
+  const validateOnly = normalizeBoolean(args['validate-only'] ?? process.env.VALIDATE_ONLY);
   const draftRoot = path.resolve(args['draft-root'] ?? process.env.DRAFT_ROOT ?? '.');
   if (!existsSync(draftRoot)) {
     throw new Error(`Draft root does not exist: ${draftRoot}`);
@@ -217,6 +221,14 @@ async function main() {
   if (files.length === 0) {
     throw new Error(`No JSON draft files found under ${draftRoot}`);
   }
+  assertValidRuntimeDataSourceConditionReferences({ version: 1, domain, stage: 'draft', files });
+  if (validateOnly) {
+    console.log(JSON.stringify({ ok: true, domain, environment, fileCount: files.length, validatedOnly: true }, null, 2));
+    return;
+  }
+
+  const endpoint = required(args.endpoint ?? process.env.AUTHORING_ENDPOINT, 'AUTHORING_ENDPOINT');
+  const region = required(args.region ?? process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION ?? 'us-east-1', 'AWS_REGION');
 
   const gitSha = sanitizeVersionSegment(process.env.GITHUB_SHA?.slice(0, 12) ?? 'local');
   const stamp = new Date().toISOString().replace(/[:-]|\.\d{3}/g, '').slice(0, 15);

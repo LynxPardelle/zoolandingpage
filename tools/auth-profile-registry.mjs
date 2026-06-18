@@ -12,7 +12,7 @@ const CUSTOM_SIGNIN_KEYS = new Set(['enabled']);
 const CUSTOM_SIGNUP_KEYS = new Set(['enabled', 'setTenantClaim', 'setEnvironmentClaim', 'defaultGroups']);
 const CUSTOM_PASSWORD_RECOVERY_KEYS = new Set(['enabled']);
 const MFA_KEYS = new Set(['mode', 'totp']);
-const TOTP_MFA_KEYS = new Set(['enabled']);
+const TOTP_MFA_KEYS = new Set(['enabled', 'issuer', 'accountLabelTemplate', 'friendlyDeviceName']);
 const MFA_MODES = new Set(['off', 'optional', 'required']);
 const AUTH_SESSION_KEYS = new Set([
   'mode',
@@ -22,8 +22,12 @@ const AUTH_SESSION_KEYS = new Set([
   'challengeRespondPath',
   'mfaSetupPath',
   'mfaVerifyPath',
+  'mfaEnrollStartPath',
+  'mfaEnrollVerifyPath',
+  'mfaDisablePath',
   'csrfCookieName',
   'challengeCsrfCookieName',
+  'mfaEnrollCsrfCookieName',
   'csrfHeaderName',
 ]);
 const AUTH_ADMIN_KEYS = new Set([
@@ -32,6 +36,7 @@ const AUTH_ADMIN_KEYS = new Set([
   'groupsPathTemplate',
   'suspendUserPathTemplate',
   'reactivateUserPathTemplate',
+  'resetUserMfaPathTemplate',
 ]);
 const AUTH_APPROVAL_STATUSES = new Set(['pending', 'approved', 'rejected', 'suspended']);
 const JWT_TOKEN_USES = new Set(['id', 'access']);

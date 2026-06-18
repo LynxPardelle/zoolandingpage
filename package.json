@@ -40,6 +40,7 @@
     "ssr:smoke": "npm run build && node --test tools/tests/ssr-server.spec.mjs",
     "test:zoneless-runner": "node --test tools/tests/zoneless-karma-runner.spec.mjs",
     "test:draft-smoke": "node --test tools/tests/draft-smoke-check.spec.mjs",
+    "test:draft-runtime-data-source-conditions": "node --test tools/tests/runtime-data-source-condition-guard.spec.mjs",
     "test:draft-upload-status": "node --test tools/tests/draft-upload-status.spec.mjs",
     "test:draft-repo-preflight": "node --test tools/tests/draft-repo-preflight.spec.mjs",
     "test:draft-public-safety-audit": "node --test tools/tests/draft-public-safety-audit.spec.mjs",
