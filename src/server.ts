@@ -114,6 +114,8 @@ type TSiteSeoConfig = {
   readonly siteName?: string;
   readonly title?: string;
   readonly description?: string;
+  readonly robots?: unknown;
+  readonly canonical?: string;
   readonly canonicalOrigin?: string;
   readonly enforceCanonicalHost?: boolean;
   readonly forceHttps?: boolean;
@@ -163,9 +165,7 @@ type TLocalPageConfig = {
   readonly rootIds?: readonly string[];
   readonly modalRootIds?: readonly string[];
   readonly metadata?: Record<string, unknown>;
-  readonly seo?: {
-    readonly canonical?: string;
-  };
+  readonly seo?: TSiteSeoConfig;
   readonly structuredData?: {
     readonly entries?: readonly unknown[];
   } | unknown;
@@ -2060,6 +2060,74 @@ function buildStructuredDataHeadHtml(pageConfig: TLocalPageConfig | null): strin
     .join('\n');
 }
 
+function resolveRequestLanguage(req: express.Request, siteConfig: TLocalSiteConfig | null): string {
+  const queryLang = firstQueryParam(req.query['lang']);
+  if (queryLang) {
+    return queryLang;
+  }
+
+  return normalizeLanguageCode(siteConfig?.site?.i18n?.defaultLanguage) || 'es';
+}
+
+function resolveLocalizedSeoString(value: unknown, lang: string): string {
+  if (typeof value === 'string') {
+    return value.trim();
+  }
+
+  if (!isRecord(value)) {
+    return '';
+  }
+
+  return cleanString(value[lang])
+    || cleanString(value[normalizeLanguageCode(lang)])
+    || cleanString(value['default'])
+    || cleanString(value['es'])
+    || cleanString(value['en']);
+}
+
+function isPathMatchedByPrefixRule(path: string, rulePath: string): boolean {
+  const normalizedPath = normalizeRoutePath(path);
+  const normalizedRulePath = normalizeRoutePath(rulePath);
+  if (normalizedRulePath === '/') {
+    return normalizedPath === '/';
+  }
+  if (normalizedRulePath.endsWith('/')) {
+    const exactPath = normalizedRulePath.replace(/\/+$/, '') || '/';
+    return normalizedPath === exactPath || normalizedPath.startsWith(normalizedRulePath);
+  }
+
+  return normalizedPath === normalizedRulePath;
+}
+
+function isPathExcludedFromSitemap(siteConfig: TLocalSiteConfig | null, path: string): boolean {
+  const excludedPaths = Array.isArray(siteConfig?.sitemap?.excludePaths)
+    ? siteConfig.sitemap.excludePaths
+    : [];
+  return excludedPaths.some((entry) => isPathMatchedByPrefixRule(path, entry));
+}
+
+function shouldForceNoindexForRequestPath(siteConfig: TLocalSiteConfig | null, path: string): boolean {
+  const normalizedPath = normalizeRoutePath(path);
+  const route = resolveLocalRoute(siteConfig, normalizedPath);
+  return route?.auth?.required === true
+    || isPathExcludedFromSitemap(siteConfig, normalizedPath)
+    || ROBOTS_DISALLOW_PATHS.some((entry) => isPathMatchedByPrefixRule(normalizedPath, entry));
+}
+
+function buildRobotsHeadHtml(
+  req: express.Request,
+  siteConfig: TLocalSiteConfig | null,
+  pageConfig: TLocalPageConfig | null,
+): string {
+  const lang = resolveRequestLanguage(req, siteConfig);
+  const routeRobots = shouldForceNoindexForRequestPath(siteConfig, req.path) ? 'noindex,nofollow' : '';
+  const robots = routeRobots
+    || resolveLocalizedSeoString(pageConfig?.seo?.robots, lang)
+    || resolveLocalizedSeoString(siteConfig?.site?.seo?.robots, lang);
+
+  return robots ? `<meta name="robots" content="${escapeHtmlAttribute(robots)}">` : '';
+}
+
 function normalizeLanguageCode(value: unknown): string {
   const raw = cleanString(value).replace(/_/g, '-');
   if (!raw) {
@@ -2140,6 +2208,9 @@ function injectHeadHtml(html: string, headHtml: string): string {
   if (headHtml.includes('rel="canonical"')) {
     sanitizedHtml = sanitizedHtml.replace(/<link\s+rel=["']canonical["'][^>]*>/gi, '');
   }
+  if (headHtml.includes('name="robots"')) {
+    sanitizedHtml = sanitizedHtml.replace(/<meta\s+[^>]*name=["']robots["'][^>]*>\s*/gi, '');
+  }
   if (headHtml.includes(MANAGED_BROWSER_ICON_ATTR)) {
     sanitizedHtml = sanitizedHtml
       .replace(/<link\s+[^>]*rel=["'](?:icon|apple-touch-icon|mask-icon|manifest)["'][^>]*>\s*/gi, '')
@@ -2168,6 +2239,7 @@ async function decorateHtmlResponse(req: express.Request, response: Response): P
     buildGoogleTagHeadHtml(lookupDomain, siteConfig),
     buildSearchConsoleHeadHtml(lookupDomain, siteConfig),
     buildBrowserIconsHeadHtml(siteConfig),
+    buildRobotsHeadHtml(req, siteConfig, pageConfig),
     buildStructuredDataHeadHtml(pageConfig),
     buildCanonicalHeadHtml(req, lookupDomain, siteConfig, pageConfig),
     buildHreflangHeadHtml(req, lookupDomain, siteConfig),
