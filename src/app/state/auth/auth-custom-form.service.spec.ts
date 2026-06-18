@@ -77,6 +77,7 @@ describe('AuthCustomFormService', () => {
                         mfaVerifyPath: '/auth/session/mfa/verify',
                         mfaEnrollStartPath: '/auth/session/mfa/enroll/start',
                         mfaEnrollVerifyPath: '/auth/session/mfa/enroll/verify',
+                        mfaDisablePath: '/auth/session/mfa/disable',
                         csrfCookieName: 'zlp_csrf',
                         challengeCsrfCookieName: 'zlp_challenge_csrf',
                         mfaEnrollCsrfCookieName: 'zlp_mfa_enroll_csrf',
@@ -504,6 +505,51 @@ describe('AuthCustomFormService', () => {
         expect(auth.establishSession).toHaveBeenCalledTimes(1);
         expect(window.location.pathname).toBe('/mi-cuenta');
         expect(window.location.search).toContain('authStatus=mfa-enabled');
+    });
+
+    it('disables MFA with session CSRF and returns to account success', async () => {
+        Object.defineProperty(document, 'cookie', {
+            configurable: true,
+            value: 'zlp_csrf=session-csrf-token',
+        });
+        fetchSpy.and.resolveTo(new Response(JSON.stringify({
+            ok: true,
+            status: 'mfa-disabled',
+            account: {
+                profile: { subject: 'user-123', roles: ['zoosite-client'] },
+            },
+            session: {
+                profile: { subject: 'user-123', roles: ['zoosite-client'] },
+                provider: 'cognito',
+                expiresAtEpochMs: 1999999999000,
+            },
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        }));
+        const service = TestBed.inject(AuthCustomFormService);
+
+        await service.submit('disableMfa' as any, {
+            password: 'ValidPass123!',
+            code: '123456',
+        });
+
+        const [url, init] = fetchSpy.calls.argsFor(0);
+        expect(String(url)).toBe('/auth/session/mfa/disable');
+        expect(init?.credentials).toBe('include');
+        expect((init?.headers as Record<string, string>)['X-ZLP-CSRF']).toBe('session-csrf-token');
+        expect((init?.headers as Record<string, string>)['X-ZLP-Domain']).toBe('zoositioweb.com.mx');
+        expect((init?.headers as Record<string, string>)['X-ZLP-Auth-Profile-Id']).toBe('staff');
+        expect(JSON.parse(String(init?.body))).toEqual({
+            domain: 'zoositioweb.com.mx',
+            authProfileId: 'staff',
+            password: 'ValidPass123!',
+            code: '123456',
+            language: 'es',
+        });
+        expect(auth.establishSession).toHaveBeenCalledTimes(1);
+        expect(window.location.pathname).toBe('/mi-cuenta');
+        expect(window.location.search).toContain('authStatus=mfa-disabled');
     });
 
     it('logs out server-cookie custom sessions through the configured endpoint', async () => {
