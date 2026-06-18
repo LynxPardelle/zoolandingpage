@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { ConfigStoreService } from '../../shared/services/config-store.service';
+import { DomainResolverService } from '../../shared/services/domain-resolver.service';
 import { RuntimeConfigService } from '../../shared/services/runtime-config.service';
 import type {
     TDraftAuthAdminRuntimeConfig,
@@ -24,6 +25,7 @@ export type TAuthAdminResponse<T extends Record<string, unknown> = Record<string
 @Injectable({ providedIn: 'root' })
 export class AuthAdminClientService {
     private readonly configStore = inject(ConfigStoreService);
+    private readonly domainResolver = inject(DomainResolverService);
     private readonly runtimeConfig = inject(RuntimeConfigService);
 
     me(): Promise<TAuthAdminResponse<{ readonly account: TAuthAdminAccount }>> {
@@ -152,7 +154,10 @@ export class AuthAdminClientService {
     }
 
     private authContext(): { readonly domain: string; readonly authProfileId: string } | null {
-        const domain = this.clean(this.configStore.siteConfig()?.domain).toLowerCase();
+        const domain = (
+            this.clean(this.configStore.siteConfig()?.domain)
+            || this.clean(this.domainResolver.resolveDomain().domain)
+        ).toLowerCase();
         const authProfileId = this.clean(this.runtimeConfig.auth()?.authProfileId);
         if (!domain || !authProfileId) {
             return null;
