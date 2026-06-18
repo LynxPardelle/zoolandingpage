@@ -1,6 +1,6 @@
 import { InteractionScopeService } from '@/app/shared/components/interaction-scope/interaction-scope.service';
 import { VariableStoreService } from '@/app/shared/services/variable-store.service';
-import { AuthCustomFormService } from '@/app/state/auth/auth-custom-form.service';
+import { AuthCustomFormRequestError, AuthCustomFormService } from '@/app/state/auth/auth-custom-form.service';
 import { TestBed } from '@angular/core/testing';
 import type { EventExecutionContext } from '../event-handler.types';
 import { authFormActionHandler } from './auth-form-action.handlers';
@@ -158,6 +158,20 @@ describe('authFormActionHandler', () => {
         await pending;
 
         expect(variables.get('authForm.signin.state')).toBe('success');
+    });
+
+    it('stores auth form error codes for draft-level messaging', async () => {
+        authForms.submit.and.rejectWith(new AuthCustomFormRequestError(
+            'Account does not belong to this environment',
+            'auth_environment_mismatch',
+        ));
+
+        const handler = TestBed.runInInjectionContext(() => authFormActionHandler());
+        await handler.handle(context, ['respondMfaChallenge', 'authForm.respondMfaChallenge']);
+
+        expect(variables.get('authForm.respondMfaChallenge.state')).toBe('error');
+        expect(variables.get('authForm.respondMfaChallenge.error')).toBe('Account does not belong to this environment');
+        expect(variables.get('authForm.respondMfaChallenge.errorCode')).toBe('auth_environment_mismatch');
     });
 
     it('supports custom logout without requiring an interaction scope', async () => {
