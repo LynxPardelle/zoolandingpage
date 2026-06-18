@@ -75,8 +75,11 @@ describe('AuthCustomFormService', () => {
                         challengeRespondPath: '/auth/session/challenge/respond',
                         mfaSetupPath: '/auth/session/mfa/setup',
                         mfaVerifyPath: '/auth/session/mfa/verify',
+                        mfaEnrollStartPath: '/auth/session/mfa/enroll/start',
+                        mfaEnrollVerifyPath: '/auth/session/mfa/enroll/verify',
                         csrfCookieName: 'zlp_csrf',
                         challengeCsrfCookieName: 'zlp_challenge_csrf',
+                        mfaEnrollCsrfCookieName: 'zlp_mfa_enroll_csrf',
                         csrfHeaderName: 'X-ZLP-CSRF',
                     },
                 },
@@ -419,6 +422,88 @@ describe('AuthCustomFormService', () => {
         });
         expect(auth.establishSession).toHaveBeenCalledTimes(1);
         expect(window.location.pathname).toBe('/mi-cuenta');
+    });
+
+    it('starts voluntary MFA enrollment with the active session CSRF and no browser tokens', async () => {
+        Object.defineProperty(document, 'cookie', {
+            configurable: true,
+            value: 'zlp_csrf=session-csrf-token',
+        });
+        fetchSpy.and.resolveTo(new Response(JSON.stringify({
+            ok: true,
+            status: 'mfa-enrollment-ready',
+            setup: {
+                method: 'software-token',
+                sharedSecret: 'ABCDEFGHIJKLMNOP',
+                otpauthUri: 'otpauth://totp/example',
+            },
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        }));
+        const service = TestBed.inject(AuthCustomFormService);
+
+        const setupResponse = await service.submit('startMfaEnrollment' as any, {
+            password: 'ValidPass123!',
+        });
+
+        expect(setupResponse.status).toBe('mfa-enrollment-ready');
+        const [url, init] = fetchSpy.calls.argsFor(0);
+        expect(String(url)).toBe('/auth/session/mfa/enroll/start');
+        expect(init?.credentials).toBe('include');
+        expect((init?.headers as Record<string, string>)['X-ZLP-CSRF']).toBe('session-csrf-token');
+        expect((init?.headers as Record<string, string>)['X-ZLP-Domain']).toBe('zoositioweb.com.mx');
+        expect((init?.headers as Record<string, string>)['X-ZLP-Auth-Profile-Id']).toBe('staff');
+        expect(JSON.parse(String(init?.body))).toEqual({
+            domain: 'zoositioweb.com.mx',
+            authProfileId: 'staff',
+            password: 'ValidPass123!',
+            language: 'es',
+        });
+        expect(window.location.href).not.toContain('ABCDEFGHIJKLMNOP');
+    });
+
+    it('verifies voluntary MFA enrollment with enrollment CSRF and returns to account success', async () => {
+        Object.defineProperty(document, 'cookie', {
+            configurable: true,
+            value: 'zlp_mfa_enroll_csrf=enroll-csrf-token',
+        });
+        fetchSpy.and.resolveTo(new Response(JSON.stringify({
+            ok: true,
+            status: 'mfa-enabled',
+            account: {
+                profile: { subject: 'user-123', roles: ['zoosite-client'] },
+            },
+            session: {
+                profile: { subject: 'user-123', roles: ['zoosite-client'] },
+                provider: 'cognito',
+                expiresAtEpochMs: 1999999999000,
+            },
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        }));
+        const service = TestBed.inject(AuthCustomFormService);
+
+        await service.submit('verifyMfaEnrollment' as any, {
+            code: '123456',
+        });
+
+        const [url, init] = fetchSpy.calls.argsFor(0);
+        expect(String(url)).toBe('/auth/session/mfa/enroll/verify');
+        expect(init?.credentials).toBe('include');
+        expect((init?.headers as Record<string, string>)['X-ZLP-CSRF']).toBe('enroll-csrf-token');
+        expect((init?.headers as Record<string, string>)['X-ZLP-Domain']).toBe('zoositioweb.com.mx');
+        expect((init?.headers as Record<string, string>)['X-ZLP-Auth-Profile-Id']).toBe('staff');
+        expect(JSON.parse(String(init?.body))).toEqual({
+            domain: 'zoositioweb.com.mx',
+            authProfileId: 'staff',
+            code: '123456',
+            language: 'es',
+        });
+        expect(auth.establishSession).toHaveBeenCalledTimes(1);
+        expect(window.location.pathname).toBe('/mi-cuenta');
+        expect(window.location.search).toContain('authStatus=mfa-enabled');
     });
 
     it('logs out server-cookie custom sessions through the configured endpoint', async () => {

@@ -185,8 +185,11 @@ export type TDraftAuthSessionRuntimeConfig = {
     readonly challengeRespondPath?: string;
     readonly mfaSetupPath?: string;
     readonly mfaVerifyPath?: string;
+    readonly mfaEnrollStartPath?: string;
+    readonly mfaEnrollVerifyPath?: string;
     readonly csrfCookieName?: string;
     readonly challengeCsrfCookieName?: string;
+    readonly mfaEnrollCsrfCookieName?: string;
     readonly csrfHeaderName?: string;
 };
 
