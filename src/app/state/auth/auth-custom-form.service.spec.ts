@@ -80,6 +80,7 @@ describe('AuthCustomFormService', () => {
     });
 
     afterEach(() => {
+        delete (document as unknown as { cookie?: string }).cookie;
         TestBed.resetTestingModule();
     });
 
