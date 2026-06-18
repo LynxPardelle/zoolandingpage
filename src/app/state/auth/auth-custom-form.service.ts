@@ -22,6 +22,8 @@ export type TAuthCustomFormAction =
     | 'respondMfaChallenge'
     | 'startMfaSetup'
     | 'verifyMfaSetup'
+    | 'startMfaEnrollment'
+    | 'verifyMfaEnrollment'
     | 'logout';
 
 type TAuthCustomFormNetworkAction = Exclude<TAuthCustomFormAction, 'logout'>;
@@ -77,14 +79,18 @@ export class AuthCustomFormService {
             }
             this.auth.establishSession(session);
             this.navigateAfterSignin();
-        } else if (action === 'respondMfaChallenge' || action === 'verifyMfaSetup') {
+        } else if (action === 'respondMfaChallenge' || action === 'verifyMfaSetup' || action === 'verifyMfaEnrollment') {
             const session = this.toStoredSession(response.session);
             if (!session) {
                 throw new Error('Auth form response is invalid.');
             }
             this.auth.establishSession(session);
-            this.navigateAfterSignin();
-        } else if (action === 'startMfaSetup') {
+            if (action === 'verifyMfaEnrollment') {
+                this.navigateToFlowPath('mi-cuenta', '/mi-cuenta', 'mfa-enabled');
+            } else {
+                this.navigateAfterSignin();
+            }
+        } else if (action === 'startMfaSetup' || action === 'startMfaEnrollment') {
             return response;
         } else if (action === 'signup') {
             this.navigateAfterSignup();
@@ -117,7 +123,16 @@ export class AuthCustomFormService {
             };
         }
 
-        if (action === 'respondMfaChallenge' || action === 'verifyMfaSetup') {
+        if (action === 'startMfaEnrollment') {
+            return {
+                domain: context.domain,
+                authProfileId: context.authProfileId,
+                password: this.stringValue(context.values['password']),
+                ...(language ? { language } : {}),
+            };
+        }
+
+        if (action === 'respondMfaChallenge' || action === 'verifyMfaSetup' || action === 'verifyMfaEnrollment') {
             return {
                 domain: context.domain,
                 authProfileId: context.authProfileId,
@@ -183,6 +198,14 @@ export class AuthCustomFormService {
         if (this.isChallengeAction(action)) {
             headers[this.csrfHeaderName()] = this.challengeCsrfCookieValue();
         }
+        if (action === 'startMfaEnrollment') {
+            this.applySessionContextHeaders(headers);
+            headers[this.csrfHeaderName()] = this.csrfCookieValue();
+        }
+        if (action === 'verifyMfaEnrollment') {
+            this.applySessionContextHeaders(headers);
+            headers[this.csrfHeaderName()] = this.mfaEnrollmentCsrfCookieValue();
+        }
         const response = await fetch(this.buildUrl(path), {
             method: 'POST',
             headers,
@@ -208,6 +231,8 @@ export class AuthCustomFormService {
             respondMfaChallenge: this.serverSessionPath('challengeRespondPath') || '/auth/session/challenge/respond',
             startMfaSetup: this.serverSessionPath('mfaSetupPath') || '/auth/session/mfa/setup',
             verifyMfaSetup: this.serverSessionPath('mfaVerifyPath') || '/auth/session/mfa/verify',
+            startMfaEnrollment: this.serverSessionPath('mfaEnrollStartPath') || '/auth/session/mfa/enroll/start',
+            verifyMfaEnrollment: this.serverSessionPath('mfaEnrollVerifyPath') || '/auth/session/mfa/enroll/verify',
         };
         return paths[action];
     }
@@ -295,6 +320,8 @@ export class AuthCustomFormService {
             this.serverSessionPath('challengeRespondPath'),
             this.serverSessionPath('mfaSetupPath'),
             this.serverSessionPath('mfaVerifyPath'),
+            this.serverSessionPath('mfaEnrollStartPath'),
+            this.serverSessionPath('mfaEnrollVerifyPath'),
         ].filter(Boolean);
         return sessionPaths.includes(path);
     }
@@ -303,6 +330,15 @@ export class AuthCustomFormService {
         return action === 'respondMfaChallenge'
             || action === 'startMfaSetup'
             || action === 'verifyMfaSetup';
+    }
+
+    private applySessionContextHeaders(headers: Record<string, string>): void {
+        const context = this.authContext();
+        if (!context) {
+            throw new Error('Auth profile is unavailable.');
+        }
+        headers['X-ZLP-Domain'] = context.domain;
+        headers['X-ZLP-Auth-Profile-Id'] = context.authProfileId;
     }
 
     private authContext(): { readonly domain: string; readonly authProfileId: string } | null {
@@ -314,7 +350,7 @@ export class AuthCustomFormService {
         return { domain, authProfileId };
     }
 
-    private serverSessionPath(key: 'signinPath' | 'mePath' | 'logoutPath' | 'challengeRespondPath' | 'mfaSetupPath' | 'mfaVerifyPath'): string {
+    private serverSessionPath(key: 'signinPath' | 'mePath' | 'logoutPath' | 'challengeRespondPath' | 'mfaSetupPath' | 'mfaVerifyPath' | 'mfaEnrollStartPath' | 'mfaEnrollVerifyPath'): string {
         const session = this.runtimeConfig.auth()?.session;
         const value = session?.mode === 'server-cookie' ? session[key] : '';
         return this.safeSameOriginPath(value);
@@ -331,6 +367,11 @@ export class AuthCustomFormService {
 
     private challengeCsrfCookieValue(): string {
         const cookieName = this.clean(this.runtimeConfig.auth()?.session?.challengeCsrfCookieName) || 'zlp_challenge_csrf';
+        return this.cookieValue(cookieName);
+    }
+
+    private mfaEnrollmentCsrfCookieValue(): string {
+        const cookieName = this.clean(this.runtimeConfig.auth()?.session?.mfaEnrollCsrfCookieName) || 'zlp_mfa_enroll_csrf';
         return this.cookieValue(cookieName);
     }
 
