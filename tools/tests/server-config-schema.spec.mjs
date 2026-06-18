@@ -41,6 +41,17 @@ test('auth profile registry schema documents optional custom auth form policies'
   assert.equal(schema.definitions.customPasswordRecoveryPolicy.properties.enabled.type, 'boolean');
 });
 
+test('auth profile registry schema documents optional TOTP MFA policy', async () => {
+  const schema = JSON.parse(await readFile(authRegistrySchemaPath, 'utf8'));
+  const profile = schema.definitions?.authProfile;
+  const mfa = schema.definitions?.mfaPolicy;
+
+  assert.equal(profile.properties.mfa.$ref, '#/definitions/mfaPolicy');
+  assert.deepEqual(mfa.properties.mode.enum, ['off', 'optional', 'required']);
+  assert.equal(mfa.properties.totp.$ref, '#/definitions/totpMfaPolicy');
+  assert.equal(schema.definitions.totpMfaPolicy.properties.enabled.type, 'boolean');
+});
+
 test('integrations schema keeps user access separate from upstream auth credentials', async () => {
   const schema = JSON.parse(await readFile(integrationsSchemaPath, 'utf8'));
   const access = schema.definitions?.accessPolicy;

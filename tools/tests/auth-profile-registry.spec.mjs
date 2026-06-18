@@ -288,6 +288,60 @@ test('validateAuthProfileRegistry validates optional custom auth form policy', (
   assert.match(result.errors.join('\n'), /customAuth\.passwordRecovery\.enabled/);
 });
 
+test('validateAuthProfileRegistry validates optional TOTP MFA policy', () => {
+  const customRegistry = {
+    version: 1,
+    profiles: [
+      {
+        ...registry.profiles[0],
+        mfa: {
+          mode: 'optional',
+          totp: { enabled: true },
+        },
+      },
+    ],
+  };
+
+  assert.deepEqual(validateAuthProfileRegistry(customRegistry), { valid: true, errors: [] });
+
+  const bad = {
+    version: 1,
+    profiles: [
+      {
+        ...registry.profiles[0],
+        mfa: {
+          mode: 'sometimes',
+          totp: { enabled: 'yes' },
+          clientSecret: 'raw-secret',
+        },
+      },
+    ],
+  };
+
+  const result = validateAuthProfileRegistry(bad);
+  assert.equal(result.valid, false);
+  assert.match(result.errors.join('\n'), /mfa\.mode/);
+  assert.match(result.errors.join('\n'), /mfa\.totp\.enabled/);
+  assert.match(result.errors.join('\n'), /mfa\.clientSecret/);
+
+  const disabledTotp = {
+    version: 1,
+    profiles: [
+      {
+        ...registry.profiles[0],
+        mfa: {
+          mode: 'required',
+          totp: { enabled: false },
+        },
+      },
+    ],
+  };
+
+  const disabledTotpResult = validateAuthProfileRegistry(disabledTotp);
+  assert.equal(disabledTotpResult.valid, false);
+  assert.match(disabledTotpResult.errors.join('\n'), /mfa\.totp\.enabled must be true/);
+});
+
 test('buildCognitoProvisioningPlan returns declarative operations without AWS calls or secret values', () => {
   const profile = resolveAuthProfile(registry, 'example.com', 'client-cognito');
   const plan = buildCognitoProvisioningPlan(profile);
@@ -299,6 +353,29 @@ test('buildCognitoProvisioningPlan returns declarative operations without AWS ca
   assert.deepEqual(socialOperation.secretRefs, { credentialRef: '/zoolanding/auth/example/google' });
   assert.equal(JSON.stringify(plan).includes('google-secret'), false);
   assert.equal(plan.operations[0].tenantBoundary.authProfileId, 'client-cognito');
+});
+
+test('buildCognitoProvisioningPlan includes optional TOTP MFA operation when declared', () => {
+  const profile = {
+    ...resolveAuthProfile(registry, 'example.com', 'client-cognito'),
+    mfa: {
+      mode: 'optional',
+      totp: { enabled: true },
+    },
+  };
+
+  const plan = buildCognitoProvisioningPlan(profile);
+  const mfaOperation = plan.operations.find(operation => operation.action === 'configureTotpMfa');
+
+  assert.deepEqual(mfaOperation.mfa, {
+    mode: 'optional',
+    totp: { enabled: true },
+  });
+  assert.deepEqual(mfaOperation.tenantBoundary, {
+    tenantId: 'tenant-example',
+    authProfileId: 'client-cognito',
+  });
+  assert.equal(JSON.stringify(plan).includes('raw-secret'), false);
 });
 
 test('buildJwtVerificationConfig preserves the Cognito issuer path in the JWKS URI', () => {

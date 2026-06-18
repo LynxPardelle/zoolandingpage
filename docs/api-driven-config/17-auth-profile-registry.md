@@ -79,13 +79,18 @@ Custom form drafts use generic inputs, buttons, visibility toggles, validation m
 - `authFormAction:resendConfirmation`: posts email to `/auth/resend-confirmation`.
 - `authFormAction:forgotPassword`: posts email to `/auth/forgot-password`.
 - `authFormAction:confirmForgotPassword`: posts email/code/new password to `/auth/confirm-forgot-password`.
+- `authFormAction:respondMfaChallenge`: posts a one-time MFA code to the configured challenge response path.
+- `authFormAction:startMfaSetup`: starts a TOTP setup challenge and returns only setup material needed by the page.
+- `authFormAction:verifyMfaSetup`: verifies the TOTP setup code and completes sign-in when Cognito accepts the challenge.
 - `authFormAction:logout`: clears local public session metadata and navigates to the configured same-origin logout/login path without calling Cognito Hosted UI.
 
 For password UX, drafts may opt into generic-input validation checklists and generic scope validation instead of custom Angular code. Use separate validation rules for each visible requirement, including lower case, upper case, number, minimum length, and symbol requirements. Use `matchesField` to compare confirm-password fields to the password field, and use `disabledWhenInvalidScope` on submit buttons so account creation or password reset is not clickable until the interaction scope is valid. These controls are UX validation only; the backend auth service and Cognito policy must still enforce final password, tenant, and group rules server-side.
 
 Custom form submit buttons should also expose the request lifecycle to users. `authFormAction:<action>,<statusTarget>` writes `loading`, `success`, and `error` objects into runtime variables, so drafts can use `valueInstructions` to bind `config.loading` to `authForm.<action>.state` and set a `loadingLabel` such as `Entrando...`, `Creando cuenta...`, or `Cerrando sesión...`. While loading, `generic-button` disables the native button, sets `aria-busy="true"`, removes pointer styling, and can render a spinner plus the loading label. This is interaction feedback and double-submit protection only; backend authorization remains server-side.
 
-The Angular service derives `domain`, `authProfileId`, and current language from runtime state and removes client-supplied tenant, group, and policy-looking fields from requests. Confirm-password fields are local UX validation only and are never sent to the Lambda. The Lambda must read `customAuth` from the server-only profile, call Cognito with a public app client, set tenant attributes and default groups only from server-side policy, and return sanitized statuses such as `signed-in`, `confirmation-required`, `confirmed`, `code-sent`, or `password-reset`. Custom signin requires a Cognito app client that supports the configured password auth flow. Custom signin returns only public session metadata to Angular; it does not return ID, access, or refresh tokens. Backend APIs still need JWT verification for protected data/actions, so custom signin must not be treated as API authorization by itself.
+The Angular service derives `domain`, `authProfileId`, and current language from runtime state and removes client-supplied tenant, group, and policy-looking fields from requests. Confirm-password fields are local UX validation only and are never sent to the Lambda. The Lambda must read `customAuth` from the server-only profile, call Cognito with a public app client, set tenant attributes and default groups only from server-side policy, and return sanitized statuses such as `signed-in`, `challenge-required`, `confirmation-required`, `confirmed`, `code-sent`, or `password-reset`. Custom signin requires a Cognito app client that supports the configured password auth flow. Custom signin returns only public session metadata to Angular; it does not return ID, access, refresh, or raw Cognito challenge session tokens. Backend APIs still need JWT verification for protected data/actions, so custom signin must not be treated as API authorization by itself.
+
+When Cognito returns `SOFTWARE_TOKEN_MFA` or `MFA_SETUP`, the auth-admin BFF stores the raw Cognito challenge `Session` server-side and returns only a sanitized challenge type. Angular routes users to a draft-rendered generic page for verification or setup. Challenge endpoints use a short-lived HttpOnly challenge cookie plus a separate readable challenge CSRF cookie; browsers send only the user code, optional device label, draft context, and CSRF header.
 
 After successful custom-auth actions, Angular performs same-origin UX navigation without putting the user's email in the URL. `signup` goes to the confirmation route with `authStatus=account-created`, `forgotPassword` goes to the password-code route with `authStatus=password-code-sent`, and successful `confirmSignup` or `confirmForgotPassword` return to the configured login path with `authStatus=account-confirmed` or `authStatus=password-reset`. Drafts may show static success banners with `queryEq` conditions; those query flags are display hints only and must never authorize data or actions.
 
@@ -255,6 +260,9 @@ The first BFF contract creates HttpOnly sessions through custom sign-in. Cognito
 The public browser contract is still minimal:
 
 - `POST /auth/session/signin`: receives `domain`, `authProfileId`, email, password, and optional language; signs in through the server-side Cognito profile; creates a private session; and returns only sanitized session metadata.
+- `POST /auth/session/challenge/respond`: responds to an existing `SOFTWARE_TOKEN_MFA` challenge without returning raw Cognito session material.
+- `POST /auth/session/mfa/setup`: starts TOTP setup for an existing `MFA_SETUP` challenge and returns only setup material needed by the generic draft page.
+- `POST /auth/session/mfa/verify`: verifies a TOTP setup code, completes the Cognito challenge, and creates the private BFF session.
 - `GET /auth/session/me`: returns the current account profile for `/mi-cuenta`.
 - `POST /auth/session/logout`: revokes the private session and clears cookies.
 - `GET /auth/admin/users`: lists sanitized users for admin surfaces.
@@ -272,7 +280,9 @@ The Lambda compares that context with the private session before returning accou
 
 During first-load route checks, Angular may only have the public `runtime.authRemote` reference while the public `runtime.auth` profile is still being resolved. Protected routes that use the auth-admin BFF must still attempt `/auth/session/me` before redirecting, using the resolved draft domain and `runtime.authRemote.authProfileId` for the same-origin headers. The BFF response remains the source of truth for the account and route group checks; `authRemote` only supplies public request context.
 
-Session cookies use the `__Host-zlp_session` name with `HttpOnly`, `Secure`, `SameSite=Lax`, and `Path=/`. Mutating requests also require a readable `zlp_csrf` cookie to match the configured CSRF header, normally `X-ZLP-CSRF`, and the server-side CSRF hash. No JWT, ID token, access token, refresh token, Cognito client secret, or upstream credential is returned to Angular.
+Session cookies use the `__Host-zlp_session` name with `HttpOnly`, `Secure`, `SameSite=Lax`, and `Path=/`. Mutating requests also require a readable `zlp_csrf` cookie to match the configured CSRF header, normally `X-ZLP-CSRF`, and the server-side CSRF hash. MFA challenge cookies use `__Host-zlp_challenge` with the same HttpOnly/Secure/SameSite shape plus a short-lived readable challenge CSRF cookie, normally `zlp_challenge_csrf`, which must match the same CSRF header before any challenge mutation reaches Cognito. No JWT, ID token, access token, refresh token, raw Cognito challenge session, Cognito client secret, or upstream credential is returned to Angular.
+
+TOTP setup material is sensitive enrollment material. Draft pages may display a shared secret only for explicit setup, should avoid logging it, analytics-tagging it, or putting it in URLs, and should prefer QR/reveal/copy controls when those generic components exist. The full `otpauth://` URI should not be rendered as ordinary visible text in public page config.
 
 `/mi-cuenta` is for any authenticated user in the draft/profile, including users with `approvalStatus: "pending"`. `/admin/*` is for approved users with a configured admin group. Admin requests must re-check current user state, not only the session snapshot, so suspension or group removal takes effect before the next admin action.
 
@@ -284,6 +294,7 @@ Server-only auth profile fields for this BFF include:
 - `adminGroupsAutoApproved`
 - `maxSessionSeconds`
 - `allowedTokenUses`, restricted to `id` and/or `access`
+- `mfa`, with `mode: "off" | "optional" | "required"` and enabled TOTP when the mode is not `off`
 - public-safe `session` path metadata
 - public-safe `admin` path metadata
 
@@ -319,8 +330,8 @@ The real `drafts/zoositioweb.com.mx` nested draft repo carries the active `staff
 }
 ```
 
-Zoosite exposes public custom-auth routes for `/acceso`, `/registro`, `/confirmar-cuenta`, `/recuperar-contrasena`, and `/cambiar-contrasena`; keeps `/auth/callback` available for Managed Login compatibility; protects `/mi-cuenta` for `zoosite-client` and `zoosite-admin`; and protects `/admin/usuarios` for `zoosite-admin` only. Auth routes and private account/admin routes stay excluded from the sitemap.
+Zoosite exposes public custom-auth routes for `/acceso`, `/registro`, `/confirmar-cuenta`, `/recuperar-contrasena`, `/cambiar-contrasena`, `/verificar-acceso`, and `/configurar-mfa`; keeps `/auth/callback` available for Managed Login compatibility; protects `/mi-cuenta` for `zoosite-client` and `zoosite-admin`; and protects `/admin/usuarios` for `zoosite-admin` only. Auth routes and private account/admin routes stay excluded from the sitemap.
 
-The server-only companion is `drafts/zoositioweb.com.mx/server/auth-profile-registry.json`. It has `status: "active"`, tenant `zoosite`, the real public Cognito profile IDs, callback/logout allowlists for the `.com.mx` domain and `.com` alias, `custom:zoolanding_env` as the environment claim, `zoosite-client` as the default custom-signup group, and the auth-admin `session`/`admin` same-origin path metadata. It must not be shipped in browser runtime bundles and must not contain raw secrets.
+The server-only companion is `drafts/zoositioweb.com.mx/server/auth-profile-registry.json`. It has `status: "active"`, tenant `zoosite`, the real public Cognito profile IDs, callback/logout allowlists for the `.com.mx` domain and `.com` alias, `custom:zoolanding_env` as the environment claim, `zoosite-client` as the default custom-signup group, optional TOTP MFA policy, and the auth-admin `session`/`admin` same-origin path metadata. It must not be shipped in browser runtime bundles and must not contain raw secrets.
 
 For local end-to-end QA, run the sibling `zoolanding-api-proxy` local auth harness with `DRY_RUN=1` and a `LOCAL_AUTH_REGISTRY_DIR` or `LOCAL_AUTH_REGISTRY_FILE` pointing at a reviewed server-only registry source, then start Angular with `npm run start:local-auth`. The Angular dev server proxies `/auth/runtime-config` to the local API proxy, so browser QA exercises browser -> Angular -> API proxy -> server-only registry -> Angular validation without publishing static `runtime.auth` in the draft payload.

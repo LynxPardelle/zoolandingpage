@@ -13,6 +13,9 @@ const AUTH_FORM_ACTIONS = new Set<TAuthCustomFormAction>([
     'resendConfirmation',
     'forgotPassword',
     'confirmForgotPassword',
+    'respondMfaChallenge',
+    'startMfaSetup',
+    'verifyMfaSetup',
     'logout',
 ]);
 
@@ -52,7 +55,7 @@ export const authFormActionHandler = (): EventHandler => {
             if (!action) return;
 
             const statusTarget = String(args?.[1] || `authForm.${ action }`).trim();
-            if (action === 'logout') {
+            if (action === 'logout' || action === 'startMfaSetup') {
                 writeStatus(variables, statusTarget, 'loading', null);
                 try {
                     const response = await authForms.submit(action, {});

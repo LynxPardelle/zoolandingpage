@@ -60,6 +60,23 @@
       },
       "additionalProperties": false
     },
+    "totpMfaPolicy": {
+      "type": "object",
+      "required": ["enabled"],
+      "properties": {
+        "enabled": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "mfaPolicy": {
+      "type": "object",
+      "required": ["mode"],
+      "properties": {
+        "mode": { "type": "string", "enum": ["off", "optional", "required"] },
+        "totp": { "$ref": "#/definitions/totpMfaPolicy" }
+      },
+      "additionalProperties": false
+    },
     "authSessionRuntime": {
       "type": "object",
       "required": ["mode"],
@@ -68,7 +85,11 @@
         "signinPath": { "$ref": "#/definitions/sameOriginPath" },
         "mePath": { "$ref": "#/definitions/sameOriginPath" },
         "logoutPath": { "$ref": "#/definitions/sameOriginPath" },
+        "challengeRespondPath": { "$ref": "#/definitions/sameOriginPath" },
+        "mfaSetupPath": { "$ref": "#/definitions/sameOriginPath" },
+        "mfaVerifyPath": { "$ref": "#/definitions/sameOriginPath" },
         "csrfCookieName": { "type": "string", "minLength": 1 },
+        "challengeCsrfCookieName": { "type": "string", "minLength": 1 },
         "csrfHeaderName": { "type": "string", "minLength": 1 }
       },
       "additionalProperties": false
@@ -176,6 +197,7 @@
           }
         },
         "customAuth": { "$ref": "#/definitions/customAuth" },
+        "mfa": { "$ref": "#/definitions/mfaPolicy" },
         "session": { "$ref": "#/definitions/authSessionRuntime" },
         "admin": { "$ref": "#/definitions/authAdminRuntime" }
       },

@@ -522,7 +522,11 @@ describe('config-payload.validators', () => {
                         signinPath: '/auth/session/signin',
                         mePath: '/auth/session/me',
                         logoutPath: '/auth/session/logout',
+                        challengeRespondPath: '/auth/session/challenge/respond',
+                        mfaSetupPath: '/auth/session/mfa/setup',
+                        mfaVerifyPath: '/auth/session/mfa/verify',
                         csrfCookieName: 'zlp_csrf',
+                        challengeCsrfCookieName: 'zlp_challenge_csrf',
                         csrfHeaderName: 'X-ZLP-CSRF',
                     },
                     admin: {
@@ -568,6 +572,18 @@ describe('config-payload.validators', () => {
                     session: {
                         mode: 'server-cookie',
                         signinPath: 'https://evil.example/auth/session/signin',
+                    },
+                },
+            },
+        })).toBeFalse();
+        expect(isDraftSiteConfigPayload({
+            ...base,
+            runtime: {
+                auth: {
+                    ...baseAuth,
+                    session: {
+                        mode: 'server-cookie',
+                        challengeRespondPath: 'javascript:alert(1)',
                     },
                 },
             },
