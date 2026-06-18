@@ -2,7 +2,7 @@ import { ConfigStoreService } from '@/app/shared/services/config-store.service';
 import { LanguageService } from '@/app/shared/services/language.service';
 import { RuntimeConfigService } from '@/app/shared/services/runtime-config.service';
 import { TestBed } from '@angular/core/testing';
-import { AuthCustomFormService } from './auth-custom-form.service';
+import { AuthCustomFormRequestError, AuthCustomFormService } from './auth-custom-form.service';
 import { AuthFacade } from './auth.facade';
 
 describe('AuthCustomFormService', () => {
@@ -600,6 +600,29 @@ describe('AuthCustomFormService', () => {
         })).toBeRejectedWithError('Passwords do not match.');
 
         expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it('preserves server auth error codes for draft messaging', async () => {
+        fetchSpy.and.resolveTo(new Response(JSON.stringify({
+            ok: false,
+            error: 'Account does not belong to this environment',
+            errorCode: 'auth_environment_mismatch',
+        }), {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' },
+        }));
+        const service = TestBed.inject(AuthCustomFormService);
+
+        try {
+            await service.submit('respondMfaChallenge' as any, {
+                code: '123456',
+            });
+            fail('Expected auth form request to fail.');
+        } catch (error) {
+            expect(error instanceof AuthCustomFormRequestError).toBeTrue();
+            expect((error as AuthCustomFormRequestError).message).toBe('Account does not belong to this environment');
+            expect((error as AuthCustomFormRequestError).code).toBe('auth_environment_mismatch');
+        }
     });
 
     it('submits the custom signup confirmation lifecycle without sending tenant policy fields', async () => {
