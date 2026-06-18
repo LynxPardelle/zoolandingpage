@@ -199,6 +199,11 @@
   [componentId]="component.id"
   [hostContext]="effectiveHost()"
 ></generic-pagination>
+} @case('qr-code') {
+<generic-qr-code
+  [config]="$any(qrCodeConfig(component))"
+  [componentId]="component.id"
+></generic-qr-code>
 }@case('text') {
 <generic-text [config]="$any(textConfig(component))">
   <ng-container

@@ -180,6 +180,32 @@ describe('WrapperOrchestrator', () => {
     expect(fixture.nativeElement.textContent).not.toContain('unknown');
   });
 
+  it('renders authored QR codes instead of the unknown component fallback', () => {
+    const encodedValue = 'qr-payload-value-that-must-stay-hidden';
+    componentsById = {
+      mfaSetupQr: {
+        id: 'mfaSetupQr',
+        type: 'qr-code',
+        config: {
+          id: 'mfa-setup-qr',
+          value: encodedValue,
+          ariaLabel: 'Código QR para configurar verificación en dos pasos',
+          size: 160,
+          gridClasses: 'mfa-qr-grid',
+        },
+      } as never,
+    };
+
+    fixture.componentRef.setInput('componentsIds', ['mfaSetupQr']);
+    fixture.detectChanges();
+
+    const grid = fixture.nativeElement.querySelector('.zlp-qr-code__grid.mfa-qr-grid') as HTMLElement | null;
+
+    expect(grid).not.toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('unknown');
+    expect(fixture.nativeElement.innerHTML).not.toContain(encodedValue);
+  });
+
   it('offers child value changes to an interaction scope auto-submit hook after dispatching the event', () => {
     const autoSubmitInteractionScope = jasmine.createSpy('autoSubmitInteractionScope');
     const scopeHost = {
