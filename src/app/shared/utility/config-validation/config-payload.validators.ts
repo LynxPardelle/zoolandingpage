@@ -1061,6 +1061,45 @@ const isGenericInputTextConfig = (value: unknown): boolean => {
     return true;
 };
 
+const isGenericButtonConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+
+    const stringFields = [
+        'id',
+        'classes',
+        'disabledClasses',
+        'loadingClasses',
+        'label',
+        'loadingLabel',
+        'icon',
+        'iconClasses',
+        'spinnerClasses',
+        'role',
+        'ariaLabel',
+        'ariaControls',
+        'ariaActiveDescendant',
+    ] as const;
+    if (stringFields.some((field) => value[field] !== undefined && typeof value[field] !== 'string')) return false;
+
+    const booleanFields = [
+        'disabled',
+        'disabledWhenInvalidScope',
+        'loading',
+        'ariaSelected',
+        'ariaExpanded',
+        'ariaHaspopup',
+    ] as const;
+    if (booleanFields.some((field) => value[field] !== undefined && typeof value[field] !== 'boolean')) return false;
+
+    if (value['type'] !== undefined && !['button', 'submit', 'reset'].includes(String(value['type']))) return false;
+    if (value['iconPosition'] !== undefined && value['iconPosition'] !== 'before' && value['iconPosition'] !== 'after') return false;
+    if (value['tabIndex'] !== undefined && !isNumberThunkFriendly(value['tabIndex'])) return false;
+    if (value['styles'] !== undefined && !isRecord(value['styles'])) return false;
+    if (value['components'] !== undefined && !isStringArray(value['components'])) return false;
+
+    return true;
+};
+
 const isGenericCardActionConfig = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
     if (typeof value['label'] !== 'string' || value['label'].trim().length === 0) return false;
@@ -1609,6 +1648,10 @@ const isComponentPayloadRecord = (value: unknown): boolean => {
 
     if (value['type'] === 'generic-card') {
         return isGenericCardConfig(value['config']);
+    }
+
+    if (value['type'] === 'button') {
+        return isGenericButtonConfig(value['config']);
     }
 
     if (value['type'] === 'accordion') {

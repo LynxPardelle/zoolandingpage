@@ -1232,6 +1232,45 @@ describe('config-payload.validators', () => {
         expect(isComponentsPayload(valid)).toBeTrue();
     });
 
+    it('accepts generic button loading state payloads', () => {
+        const valid = createComponentsPayload({
+            signinButton: {
+                id: 'signinButton',
+                type: 'button',
+                valueInstructions: 'set:config.loading,when,"all:varEq,authForm.signin.state,loading",true,false',
+                config: {
+                    type: 'button',
+                    label: 'Entrar',
+                    loadingLabel: 'Entrando...',
+                    loading: false,
+                    loadingClasses: 'zlp-cursor-wait ank-opacity-0_85',
+                    disabledWhenInvalidScope: true,
+                    disabledClasses: 'zlp-cursor-not-allowed ank-opacity-0_45',
+                    spinnerClasses: 'zlp-button-spinner',
+                },
+            },
+        });
+
+        expect(isComponentsPayload(valid)).toBeTrue();
+    });
+
+    it('rejects malformed generic button loading state payloads', () => {
+        const invalid = createComponentsPayload({
+            signinButton: {
+                id: 'signinButton',
+                type: 'button',
+                config: {
+                    label: 'Entrar',
+                    loadingLabel: false,
+                    loading: 'yes',
+                    loadingClasses: 123,
+                },
+            },
+        });
+
+        expect(isComponentsPayload(invalid)).toBeFalse();
+    });
+
     it('accepts interaction-scope and input component payloads', () => {
         const valid = createComponentsPayload({
             leadScope: {

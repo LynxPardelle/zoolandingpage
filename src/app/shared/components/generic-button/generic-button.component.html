@@ -17,6 +17,9 @@
 >
   @if (loading()) {
   <span [attr.id]="spinnerId() || null" [class]="spinnerClass()" aria-hidden="true"></span>
+  @if (activeLabel()) {
+  <span [attr.id]="labelId() || null">{{ activeLabel() }}</span>
+  }
   } @else {
   <span [attr.id]="contentId() || null" style="display: contents">
     @if (icon() && iconPosition() === 'before') {
@@ -28,8 +31,8 @@
         iconName: icon() || 'none'
       }"
     />
-    } @if (label()) {
-    <span [attr.id]="labelId() || null">{{ label() }}</span>
+    } @if (activeLabel()) {
+    <span [attr.id]="labelId() || null">{{ activeLabel() }}</span>
     }
     <span [attr.id]="projectedContentId() || null" style="display: contents"><ng-content /></span>
     @if (icon() && iconPosition() === 'after') {

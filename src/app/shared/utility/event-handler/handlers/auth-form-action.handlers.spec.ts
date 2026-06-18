@@ -97,6 +97,25 @@ describe('authFormActionHandler', () => {
         expect(variables.get('authForm.signin.state')).toBe('success');
     });
 
+    it('writes a loading status before the custom auth request resolves', async () => {
+        let resolveSubmit!: (value: { ok: true; status: string }) => void;
+        authForms.submit.and.returnValue(new Promise((resolve) => {
+            resolveSubmit = resolve;
+        }));
+
+        const handler = TestBed.runInInjectionContext(() => authFormActionHandler());
+        const pending = handler.handle(context, ['signin']);
+
+        expect(variables.get('authForm.signin.state')).toBe('loading');
+        expect(variables.get('authForm.signin.updatedAt')).toBeNull();
+        expect(variables.get('authForm.signin.error')).toBeNull();
+
+        resolveSubmit({ ok: true, status: 'signed-in' });
+        await pending;
+
+        expect(variables.get('authForm.signin.state')).toBe('success');
+    });
+
     it('supports custom logout without requiring an interaction scope', async () => {
         authForms.submit.and.resolveTo({ ok: true, status: 'signed-out' });
 
