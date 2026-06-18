@@ -268,6 +268,8 @@ All session/admin requests after signin must include the current draft context t
 
 The Lambda compares that context with the private session before returning account data or running admin actions. This matters on shared preview hosts where multiple drafts can render on the same browser origin.
 
+During first-load route checks, Angular may only have the public `runtime.authRemote` reference while the public `runtime.auth` profile is still being resolved. Protected routes that use the auth-admin BFF must still attempt `/auth/session/me` before redirecting, using the resolved draft domain and `runtime.authRemote.authProfileId` for the same-origin headers. The BFF response remains the source of truth for the account and route group checks; `authRemote` only supplies public request context.
+
 Session cookies use the `__Host-zlp_session` name with `HttpOnly`, `Secure`, `SameSite=Lax`, and `Path=/`. Mutating requests also require a readable `zlp_csrf` cookie to match the configured CSRF header, normally `X-ZLP-CSRF`, and the server-side CSRF hash. No JWT, ID token, access token, refresh token, Cognito client secret, or upstream credential is returned to Angular.
 
 `/mi-cuenta` is for any authenticated user in the draft/profile, including users with `approvalStatus: "pending"`. `/admin/*` is for approved users with a configured admin group. Admin requests must re-check current user state, not only the session snapshot, so suspension or group removal takes effect before the next admin action.

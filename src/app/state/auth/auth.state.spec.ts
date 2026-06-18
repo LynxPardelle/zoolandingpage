@@ -331,6 +331,66 @@ describe('auth signal state', () => {
         expect(auth.hasAnyGroup(['zoosite-admin'])).toBeTrue();
     });
 
+    it('revalidates protected remote-auth routes before public auth is installed', async () => {
+        const authAdmin = jasmine.createSpyObj<AuthAdminClientService>('AuthAdminClientService', ['me']);
+        authAdmin.me.and.resolveTo({
+            ok: true,
+            account: {
+                subject: 'admin-sub',
+                email: 'admin@example.test',
+                roles: ['zoosite-admin'],
+                enabled: true,
+            },
+        });
+        TestBed.configureTestingModule({
+            providers: [{ provide: AuthAdminClientService, useValue: authAdmin }],
+        });
+        const store = TestBed.inject(ConfigStoreService);
+        const auth = TestBed.inject(AuthFacade);
+        const authRuntime = TestBed.inject(AuthRuntimeService);
+        store.setSiteConfig({
+            version: 1,
+            domain: 'zoositioweb.com.mx',
+            routes: [
+                {
+                    path: '/admin/usuarios',
+                    pageId: 'admin-usuarios',
+                    auth: {
+                        required: true,
+                        allowedGroups: ['zoosite-admin'],
+                        redirectTo: '/acceso',
+                    },
+                },
+            ],
+            runtime: {
+                authRemote: {
+                    enabled: true,
+                    authProfileId: 'staff',
+                    endpoint: '/auth/runtime-config',
+                },
+            },
+            site: {},
+        } as any);
+
+        expect(authRuntime.evaluateRouteAccess(store.siteConfig()?.routes[0] ?? null)).toEqual({
+            allowed: false,
+            reason: 'auth-disabled',
+            redirectTo: '/acceso',
+            requiredGroups: ['zoosite-admin'],
+        });
+
+        await expectAsync(authRuntime.evaluateRouteAccessAsync(store.siteConfig()?.routes[0] ?? null))
+            .toBeResolvedTo({
+                allowed: true,
+                reason: 'authenticated',
+                redirectTo: null,
+                requiredGroups: ['zoosite-admin'],
+            });
+        expect(authAdmin.me).toHaveBeenCalled();
+        expect(auth.isAuthenticated()).toBeTrue();
+        expect(auth.hasAnyGroup(['zoosite-admin'])).toBeTrue();
+    });
+
     it('keeps server-cookie admin routes blocked when the BFF session lacks the required group', async () => {
         const authAdmin = jasmine.createSpyObj<AuthAdminClientService>('AuthAdminClientService', ['me']);
         authAdmin.me.and.resolveTo({
