@@ -26,6 +26,29 @@ import type { TGenericButtonConfig } from "./generic-button.types";
     button.zlp-cursor-wait {
       cursor: wait;
     }
+
+    .zlp-button-spinner {
+      display: inline-block;
+      width: 1em;
+      min-width: 1em;
+      height: 1em;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 999px;
+      animation: zlp-button-spin 0.75s linear infinite;
+    }
+
+    @keyframes zlp-button-spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .zlp-button-spinner {
+        animation: none;
+      }
+    }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -51,6 +74,17 @@ export class GenericButtonComponent {
     return ownDisabled || scopeDisabled;
   });
   readonly loading = computed<boolean>(() => Boolean(this.resolve(this.config().loading) ?? false));
+  readonly loadingLabel = computed<string | undefined>(() => {
+    const loadingLabel = this.resolve(this.config().loadingLabel);
+    const normalized = typeof loadingLabel === 'string' ? loadingLabel.trim() : String(loadingLabel ?? '').trim();
+    return normalized.length > 0 ? normalized : undefined;
+  });
+  readonly activeLabel = computed<string>(() => {
+    if (this.loading()) {
+      return this.loadingLabel() ?? this.label();
+    }
+    return this.label();
+  });
   readonly icon = computed<string | undefined>(() => {
     return this.optionalString(this.config().icon);
   });
@@ -95,7 +129,9 @@ export class GenericButtonComponent {
   readonly classes = computed(() => {
     const baseClasses = this.stateAwareBaseClasses(String(this.resolve(this.config().classes) || "btnBase"));
     const stateClasses = [
-      this.loading() ? "zlp-cursor-wait ank-opacity-0_8" : "",
+      this.loading()
+        ? this.optionalString(this.config().loadingClasses) || "zlp-cursor-wait ank-opacity-0_85"
+        : "",
       this.disabled() && !this.loading()
         ? this.optionalString(this.config().disabledClasses) || "zlp-cursor-not-allowed ank-opacity-0_45"
         : "",
@@ -107,7 +143,7 @@ export class GenericButtonComponent {
     () => String(this.resolve(this.config().iconClasses) || "btnIcon")
   );
   readonly spinnerClass = computed<string>(
-    () => String(this.resolve(this.config().spinnerClasses) || "btnSpinner")
+    () => String(this.resolve(this.config().spinnerClasses) || "zlp-button-spinner")
   );
   @Output() pressed = new EventEmitter<MouseEvent>();
 

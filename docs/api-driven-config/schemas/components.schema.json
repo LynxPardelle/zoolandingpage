@@ -226,6 +226,39 @@
       },
       "additionalProperties": true
     },
+    "genericButtonConfig": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "classes": { "type": "string" },
+        "disabledClasses": { "type": "string" },
+        "loadingClasses": { "type": "string" },
+        "styles": { "type": "object" },
+        "type": { "enum": ["button", "submit", "reset"] },
+        "label": { "type": "string" },
+        "loadingLabel": { "type": "string" },
+        "disabled": { "type": "boolean" },
+        "disabledWhenInvalidScope": { "type": "boolean" },
+        "loading": { "type": "boolean" },
+        "icon": { "type": "string" },
+        "iconClasses": { "type": "string" },
+        "iconPosition": { "enum": ["before", "after"] },
+        "spinnerClasses": { "type": "string" },
+        "role": { "type": "string" },
+        "ariaLabel": { "type": "string" },
+        "tabIndex": { "type": "number" },
+        "ariaSelected": { "type": "boolean" },
+        "ariaExpanded": { "type": "boolean" },
+        "ariaHaspopup": { "type": "boolean" },
+        "ariaControls": { "type": "string" },
+        "ariaActiveDescendant": { "type": "string" },
+        "components": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": true
+    },
     "searchSuggestion": {
       "type": "object",
       "required": ["id", "label"],
@@ -515,6 +548,19 @@
           }
         },
         "allOf": [
+          {
+            "if": {
+              "properties": {
+                "type": { "const": "button" }
+              }
+            },
+            "then": {
+              "properties": {
+                "config": { "$ref": "#/definitions/genericButtonConfig" }
+              },
+              "required": ["config"]
+            }
+          },
           {
             "if": {
               "properties": {
