@@ -752,6 +752,7 @@ test('production SSR server lets authRemote protected routes reach Angular for B
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('location'), null);
   assert.match(body, /<main[\s>]/i);
+  assert.match(body, /<meta name="robots" content="noindex,nofollow">/);
   assert.doesNotMatch(body, /Aprueba cuentas nuevas/i);
   assert.deepEqual(requests[0], {
     pathname: '/runtime-bundle',
