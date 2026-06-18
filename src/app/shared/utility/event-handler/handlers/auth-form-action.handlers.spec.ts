@@ -97,6 +97,34 @@ describe('authFormActionHandler', () => {
         expect(variables.get('authForm.signin.state')).toBe('success');
     });
 
+    it('supports voluntary MFA enrollment start from generic draft components', async () => {
+        authForms.submit.and.resolveTo({ ok: true, status: 'mfa-enrollment-ready' });
+
+        const handler = TestBed.runInInjectionContext(() => authFormActionHandler());
+        await handler.handle(context, ['startMfaEnrollment', 'authForm.startMfaEnrollment']);
+
+        expect(authForms.submit).toHaveBeenCalledOnceWith('startMfaEnrollment' as any, jasmine.objectContaining({
+            password: 'StrongPassphrase123!',
+        }));
+        expect(variables.get('authForm.startMfaEnrollment.state')).toBe('success');
+        expect(variables.get('authForm.startMfaEnrollment.data')).toEqual({ ok: true, status: 'mfa-enrollment-ready' });
+    });
+
+    it('supports voluntary MFA enrollment verification from generic draft components', async () => {
+        scope.registerField({ fieldId: 'code', required: true });
+        scope.setFieldValue('code', '123456');
+        authForms.submit.and.resolveTo({ ok: true, status: 'mfa-enabled' });
+
+        const handler = TestBed.runInInjectionContext(() => authFormActionHandler());
+        await handler.handle(context, ['verifyMfaEnrollment', 'authForm.verifyMfaEnrollment']);
+
+        expect(authForms.submit).toHaveBeenCalledOnceWith('verifyMfaEnrollment' as any, jasmine.objectContaining({
+            code: '123456',
+        }));
+        expect(variables.get('authForm.verifyMfaEnrollment.state')).toBe('success');
+        expect(variables.get('authForm.verifyMfaEnrollment.data')).toEqual({ ok: true, status: 'mfa-enabled' });
+    });
+
     it('writes a loading status before the custom auth request resolves', async () => {
         let resolveSubmit!: (value: { ok: true; status: string }) => void;
         authForms.submit.and.returnValue(new Promise((resolve) => {
