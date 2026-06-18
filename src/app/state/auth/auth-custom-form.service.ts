@@ -19,6 +19,9 @@ export type TAuthCustomFormAction =
     | 'resendConfirmation'
     | 'forgotPassword'
     | 'confirmForgotPassword'
+    | 'respondMfaChallenge'
+    | 'startMfaSetup'
+    | 'verifyMfaSetup'
     | 'logout';
 
 type TAuthCustomFormNetworkAction = Exclude<TAuthCustomFormAction, 'logout'>;
@@ -26,8 +29,10 @@ type TAuthCustomFormNetworkAction = Exclude<TAuthCustomFormAction, 'logout'>;
 export type TAuthCustomFormResponse = {
     readonly ok: boolean;
     readonly status?: string;
+    readonly challengeName?: string;
     readonly error?: string;
     readonly delivery?: Readonly<Record<string, string>>;
+    readonly setup?: Readonly<Record<string, string>>;
     readonly session?: unknown;
 };
 
@@ -62,12 +67,25 @@ export class AuthCustomFormService {
             values,
         }));
         if (action === 'signin') {
+            if (response.status === 'challenge-required') {
+                this.navigateAfterSigninChallenge(response.challengeName);
+                return response;
+            }
             const session = this.toStoredSession(response.session);
             if (!session) {
                 throw new Error('Auth form response is invalid.');
             }
             this.auth.establishSession(session);
             this.navigateAfterSignin();
+        } else if (action === 'respondMfaChallenge' || action === 'verifyMfaSetup') {
+            const session = this.toStoredSession(response.session);
+            if (!session) {
+                throw new Error('Auth form response is invalid.');
+            }
+            this.auth.establishSession(session);
+            this.navigateAfterSignin();
+        } else if (action === 'startMfaSetup') {
+            return response;
         } else if (action === 'signup') {
             this.navigateAfterSignup();
         } else if (action === 'confirmSignup') {
@@ -90,6 +108,23 @@ export class AuthCustomFormService {
     ): Record<string, unknown> {
         const email = this.clean(context.values['email']);
         const language = this.clean(this.language.currentLanguage());
+
+        if (action === 'startMfaSetup') {
+            return {
+                domain: context.domain,
+                authProfileId: context.authProfileId,
+                ...(language ? { language } : {}),
+            };
+        }
+
+        if (action === 'respondMfaChallenge' || action === 'verifyMfaSetup') {
+            return {
+                domain: context.domain,
+                authProfileId: context.authProfileId,
+                code: this.clean(context.values['code']),
+                ...(language ? { language } : {}),
+            };
+        }
 
         if (action === 'forgotPassword' || action === 'resendConfirmation') {
             return {
@@ -141,12 +176,16 @@ export class AuthCustomFormService {
         payload: Record<string, unknown>,
     ): Promise<TAuthCustomFormResponse> {
         const path = this.pathForAction(action);
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+        };
+        if (this.isChallengeAction(action)) {
+            headers[this.csrfHeaderName()] = this.challengeCsrfCookieValue();
+        }
         const response = await fetch(this.buildUrl(path), {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Accept: 'application/json',
-            },
+            headers,
             ...(this.isServerSessionPath(path) ? { credentials: 'include' as const } : {}),
             body: JSON.stringify(payload),
         });
@@ -166,6 +205,9 @@ export class AuthCustomFormService {
             resendConfirmation: '/auth/resend-confirmation',
             forgotPassword: '/auth/forgot-password',
             confirmForgotPassword: '/auth/confirm-forgot-password',
+            respondMfaChallenge: this.serverSessionPath('challengeRespondPath') || '/auth/session/challenge/respond',
+            startMfaSetup: this.serverSessionPath('mfaSetupPath') || '/auth/session/mfa/setup',
+            verifyMfaSetup: this.serverSessionPath('mfaVerifyPath') || '/auth/session/mfa/verify',
         };
         return paths[action];
     }
@@ -250,8 +292,17 @@ export class AuthCustomFormService {
             this.serverSessionPath('signinPath'),
             this.serverSessionPath('mePath'),
             this.serverSessionPath('logoutPath'),
+            this.serverSessionPath('challengeRespondPath'),
+            this.serverSessionPath('mfaSetupPath'),
+            this.serverSessionPath('mfaVerifyPath'),
         ].filter(Boolean);
         return sessionPaths.includes(path);
+    }
+
+    private isChallengeAction(action: TAuthCustomFormNetworkAction): boolean {
+        return action === 'respondMfaChallenge'
+            || action === 'startMfaSetup'
+            || action === 'verifyMfaSetup';
     }
 
     private authContext(): { readonly domain: string; readonly authProfileId: string } | null {
@@ -263,7 +314,7 @@ export class AuthCustomFormService {
         return { domain, authProfileId };
     }
 
-    private serverSessionPath(key: 'signinPath' | 'mePath' | 'logoutPath'): string {
+    private serverSessionPath(key: 'signinPath' | 'mePath' | 'logoutPath' | 'challengeRespondPath' | 'mfaSetupPath' | 'mfaVerifyPath'): string {
         const session = this.runtimeConfig.auth()?.session;
         const value = session?.mode === 'server-cookie' ? session[key] : '';
         return this.safeSameOriginPath(value);
@@ -275,6 +326,15 @@ export class AuthCustomFormService {
 
     private csrfCookieValue(): string {
         const cookieName = this.clean(this.runtimeConfig.auth()?.session?.csrfCookieName) || 'zlp_csrf';
+        return this.cookieValue(cookieName);
+    }
+
+    private challengeCsrfCookieValue(): string {
+        const cookieName = this.clean(this.runtimeConfig.auth()?.session?.challengeCsrfCookieName) || 'zlp_challenge_csrf';
+        return this.cookieValue(cookieName);
+    }
+
+    private cookieValue(cookieName: string): string {
         if (typeof document === 'undefined' || !document.cookie) {
             return '';
         }
@@ -292,6 +352,19 @@ export class AuthCustomFormService {
         navigateInCurrentWindow(this.withStickyQueryParams(path), {
             scrollRestoration: { mode: 'top' },
         });
+    }
+
+    private navigateAfterSigninChallenge(challengeName: unknown): void {
+        const normalized = this.clean(challengeName);
+        if (normalized === 'SOFTWARE_TOKEN_MFA') {
+            this.navigateToFlowPath('verificar-acceso', '/verificar-acceso', 'mfa-required');
+            return;
+        }
+        if (normalized === 'MFA_SETUP') {
+            this.navigateToFlowPath('configurar-mfa', '/configurar-mfa', 'mfa-setup-required');
+            return;
+        }
+        throw new Error('Unsupported authentication challenge.');
     }
 
     private navigateAfterLogout(): void {
