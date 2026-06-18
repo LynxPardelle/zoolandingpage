@@ -21,6 +21,7 @@ import { GenericLink } from '../generic-link/generic-link';
 import { GenericLoadingSpinnerComponent } from '../generic-loading-spinner';
 import { GenericMedia } from '../generic-media/generic-media';
 import { GenericPaginationComponent } from '../generic-pagination/generic-pagination.component';
+import { GenericQrCodeComponent } from '../generic-qr-code/generic-qr-code.component';
 import { GenericSearchBoxComponent } from '../generic-search-box/generic-search-box.component';
 import type { SearchBoxConfig } from '../generic-search-box/generic-search-box.types';
 import { GenericStatsCounterComponent } from '../generic-stats-counter/generic-stats-counter.component';
@@ -63,6 +64,7 @@ import type { TGenericComponent } from './wrapper-orchestrator.types';
     GenericLink,
     GenericMedia,
     GenericPaginationComponent,
+    GenericQrCodeComponent,
     GenericTabGroupComponent,
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -221,6 +223,16 @@ export class WrapperOrchestrator {
   paginationConfig(
     component: Extract<TGenericComponent, { type: 'pagination' }>
   ): Extract<TGenericComponent, { type: 'pagination' }>['config'] {
+    return this.withResolvedDomId(
+      component.id,
+      component.type,
+      component.config
+    );
+  }
+
+  qrCodeConfig(
+    component: Extract<TGenericComponent, { type: 'qr-code' }>
+  ): Extract<TGenericComponent, { type: 'qr-code' }>['config'] {
     return this.withResolvedDomId(
       component.id,
       component.type,

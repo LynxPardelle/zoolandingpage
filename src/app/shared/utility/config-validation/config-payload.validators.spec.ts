@@ -1378,6 +1378,49 @@ describe('config-payload.validators', () => {
         expect(isComponentsPayload(valid)).toBeTrue();
     });
 
+    it('accepts qr-code payloads without exposing encoded values as visible text fields', () => {
+        const valid = createComponentsPayload({
+            mfaSetupQr: {
+                id: 'mfaSetupQr',
+                type: 'qr-code',
+                valueInstructions: 'set:config.value,var,authForm.startMfaEnrollment.data.setup.otpauthUri',
+                config: {
+                    id: 'mfa-setup-qr',
+                    value: '',
+                    ariaLabel: 'Código QR para configurar verificación en dos pasos',
+                    classes: 'mfaQrShell',
+                    gridClasses: 'mfaQrGrid',
+                    moduleClasses: 'mfaQrModule',
+                    size: 220,
+                    margin: 2,
+                    errorCorrectionLevel: 'M',
+                    darkColor: '#0d141c',
+                    lightColor: '#ffffff',
+                    emptyText: 'QR no disponible',
+                },
+            },
+        });
+
+        expect(isComponentsPayload(valid)).toBeTrue();
+    });
+
+    it('rejects malformed qr-code payloads', () => {
+        const invalid = createComponentsPayload({
+            mfaSetupQr: {
+                id: 'mfaSetupQr',
+                type: 'qr-code',
+                config: {
+                    value: 'qr-payload',
+                    size: 0,
+                    margin: -1,
+                    errorCorrectionLevel: 'Z',
+                },
+            },
+        });
+
+        expect(isComponentsPayload(invalid)).toBeFalse();
+    });
+
     it('rejects malformed generic-card action configs', () => {
         const invalid = createComponentsPayload({
             badActionCard: {
