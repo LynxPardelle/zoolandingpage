@@ -132,6 +132,22 @@ Author these fields in payloads when needed:
 
 Do not rely on a separate runtime fetcher function in API mode.
 
+### `qr-code` config
+
+`qr-code` renders an encoded value as a styled module grid without writing that value into visible text, `alt`, `title`, or other ordinary DOM attributes.
+
+Author these fields when a draft needs scannable setup material, such as TOTP enrollment:
+
+- `value`: encoded value to render. Prefer setting it through `valueInstructions`.
+- `ariaLabel`: user-facing description of what the QR is for; do not put the encoded value here.
+- `size`: pixel size from `64` to `1024`.
+- `margin`: quiet-zone margin from `0` to `16`.
+- `errorCorrectionLevel`: one of `L`, `M`, `Q`, or `H`.
+- `darkColor` and `lightColor`: QR colors. Keep high contrast.
+- `classes`, `gridClasses`, `moduleClasses`, `darkModuleClasses`, `lightModuleClasses`, `emptyClasses`, `errorClasses`, `emptyText`, and `errorText`: styling and fallback copy.
+
+For Cognito TOTP setup, bind `config.value` to the sanitized `setup.otpauthUri` returned by the auth BFF and keep the manual shared secret as a separate fallback. Do not render the full `otpauth://` URI as ordinary visible text.
+
 ## Composition / nesting
 
 A common pattern is:
