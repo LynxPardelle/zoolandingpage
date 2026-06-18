@@ -256,7 +256,7 @@ export class RuntimeService {
             return;
         }
 
-        const routeAccess = this.authRuntime.evaluateRouteAccess(context.route);
+        const routeAccess = await this.authRuntime.evaluateRouteAccessAsync(context.route);
         if (!routeAccess.allowed) {
             this.clearRenderedDraft(context.domain, context.pageId);
             this.auth.requestSignIn(this.authRuntime.profile()?.provider);

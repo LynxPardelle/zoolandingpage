@@ -3,8 +3,10 @@ import type {
     TDraftRouteAuthConfig,
     TDraftSiteRouteEntry,
 } from '@/app/shared/types/config-payloads.types';
-import { computed, inject, Injectable } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { computed, inject, Injectable, PLATFORM_ID } from '@angular/core';
 import { RuntimeConfigService } from '../../shared/services/runtime-config.service';
+import { AuthAdminClientService, type TAuthAdminAccount } from './auth-admin-client.service';
 import { AuthFacade } from './auth.facade';
 
 export type TAuthRouteAccessReason =
@@ -25,6 +27,9 @@ export type TAuthRouteAccessDecision = {
 export class AuthRuntimeService {
     private readonly runtimeConfig = inject(RuntimeConfigService);
     private readonly auth = inject(AuthFacade);
+    private readonly authAdmin = inject(AuthAdminClientService);
+    private readonly platformId = inject(PLATFORM_ID);
+    private readonly isBrowser = isPlatformBrowser(this.platformId);
 
     readonly profile = computed<TDraftAuthRuntimeConfig | null>(() => this.runtimeConfig.auth());
     readonly enabled = computed(() => this.profile()?.enabled === true);
@@ -58,6 +63,40 @@ export class AuthRuntimeService {
         return this.decision(true, 'authenticated', null, requiredGroups);
     }
 
+    async evaluateRouteAccessAsync(route: TDraftSiteRouteEntry | null | undefined): Promise<TAuthRouteAccessDecision> {
+        const decision = this.evaluateRouteAccess(route);
+        if (decision.allowed || !this.shouldRevalidateWithServerCookie(route)) {
+            return decision;
+        }
+
+        try {
+            const response = await this.authAdmin.me();
+            const account = response.account;
+            if (!account?.subject) {
+                this.auth.requestSignOut();
+                return decision;
+            }
+
+            this.auth.establishSession({
+                profile: {
+                    subject: account.subject,
+                    ...(account.email ? { email: account.email } : {}),
+                    roles: account.roles ?? [],
+                },
+                provider: this.profile()?.provider ?? 'server-cookie',
+                // Browser storage is editable UX metadata only. Server-cookie routes
+                // revalidate against the BFF before rendering protected draft pages.
+                expiresAtEpochMs: Date.now() + 5 * 60 * 1000,
+            });
+            return this.serverCookieDecision(account, decision);
+        } catch {
+            this.auth.requestSignOut();
+            return decision.reason === 'missing-group'
+                ? this.decision(false, 'auth-required', decision.redirectTo, decision.requiredGroups)
+                : decision;
+        }
+    }
+
     private resolveRedirectPath(
         routeAuth: TDraftRouteAuthConfig,
         authProfile: TDraftAuthRuntimeConfig | null,
@@ -75,6 +114,38 @@ export class AuthRuntimeService {
 
     private cleanPath(value: unknown): string {
         return typeof value === 'string' ? value.trim() : '';
+    }
+
+    private shouldRevalidateWithServerCookie(route: TDraftSiteRouteEntry | null | undefined): boolean {
+        return this.isBrowser
+            && route?.auth?.required === true
+            && this.profile()?.session?.mode === 'server-cookie';
+    }
+
+    private serverCookieDecision(
+        account: TAuthAdminAccount,
+        fallback: TAuthRouteAccessDecision,
+    ): TAuthRouteAccessDecision {
+        if (account.enabled === false) {
+            return this.decision(false, 'auth-required', fallback.redirectTo, fallback.requiredGroups);
+        }
+        if (!this.hasAnyGroup(account.roles, fallback.requiredGroups)) {
+            return this.decision(false, 'missing-group', fallback.redirectTo, fallback.requiredGroups);
+        }
+        return this.decision(true, 'authenticated', null, fallback.requiredGroups);
+    }
+
+    private hasAnyGroup(
+        roles: readonly string[] | null | undefined,
+        requiredGroups: readonly string[],
+    ): boolean {
+        if (requiredGroups.length === 0) return true;
+        const normalizedRoles = new Set(
+            (roles ?? [])
+                .map((role) => String(role ?? '').trim())
+                .filter(Boolean),
+        );
+        return requiredGroups.some((group) => normalizedRoles.has(group));
     }
 
     private decision(
