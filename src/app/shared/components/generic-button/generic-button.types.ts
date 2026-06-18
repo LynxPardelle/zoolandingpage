@@ -20,6 +20,10 @@ export type TGenericButtonConfig = {
   readonly disabledWhenInvalidScope?: boolean | (() => boolean);
   /** Show loading state and spinner icon */
   readonly loading?: boolean | (() => boolean);
+  /** Optional label shown while loading; falls back to label when omitted */
+  readonly loadingLabel?: string | (() => string);
+  /** Classes appended only while the button is loading */
+  readonly loadingClasses?: string | (() => string);
   /** Leading Material icon name */
   readonly icon?: string | (() => string);
   /** Additional classes for the icon element */

@@ -160,6 +160,31 @@ describe('GenericButtonComponent', () => {
     expect(button.getAttribute('aria-busy')).toBe('true');
   });
 
+  it('shows a loading label, spinner, and configured loading classes while loading', () => {
+    const fixture = TestBed.createComponent(GenericButtonComponent);
+
+    fixture.componentRef.setInput('componentId', 'signin');
+    fixture.componentRef.setInput('config', {
+      label: 'Entrar',
+      loading: true,
+      loadingLabel: 'Entrando...',
+      classes: 'btnBase ank-cursor-pointer',
+      loadingClasses: 'btnLoading zlp-cursor-wait',
+    });
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+
+    expect(button.disabled).toBeTrue();
+    expect(button.getAttribute('aria-busy')).toBe('true');
+    expect(button.textContent).toContain('Entrando...');
+    expect(button.querySelector('#signin-button-spinner')).toBeTruthy();
+    expect(button.querySelector('#signin-button-content-label')?.textContent).toContain('Entrando...');
+    expect(button.className).toContain('btnLoading');
+    expect(button.className).toContain('zlp-cursor-wait');
+    expect(button.className).not.toContain('ank-cursor-pointer');
+  });
+
   it('can disable itself while the nearest interaction scope is invalid', () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
