@@ -158,7 +158,8 @@ export class AuthAdminClientService {
             this.clean(this.configStore.siteConfig()?.domain)
             || this.clean(this.domainResolver.resolveDomain().domain)
         ).toLowerCase();
-        const authProfileId = this.clean(this.runtimeConfig.auth()?.authProfileId);
+        const authProfileId = this.clean(this.runtimeConfig.auth()?.authProfileId)
+            || this.clean(this.runtimeConfig.authRemote()?.authProfileId);
         if (!domain || !authProfileId) {
             return null;
         }

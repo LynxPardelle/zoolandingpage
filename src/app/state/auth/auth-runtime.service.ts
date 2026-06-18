@@ -117,9 +117,14 @@ export class AuthRuntimeService {
     }
 
     private shouldRevalidateWithServerCookie(route: TDraftSiteRouteEntry | null | undefined): boolean {
-        return this.isBrowser
-            && route?.auth?.required === true
-            && this.profile()?.session?.mode === 'server-cookie';
+        if (!this.isBrowser || route?.auth?.required !== true) {
+            return false;
+        }
+        if (this.profile()?.session?.mode === 'server-cookie') {
+            return true;
+        }
+        const remoteAuth = this.runtimeConfig.authRemote();
+        return remoteAuth?.enabled === true && !!this.cleanPath(remoteAuth.authProfileId);
     }
 
     private serverCookieDecision(
