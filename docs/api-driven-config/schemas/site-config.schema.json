@@ -529,7 +529,11 @@
         "signinPath": { "$ref": "#/definitions/sameOriginPath" },
         "mePath": { "$ref": "#/definitions/sameOriginPath" },
         "logoutPath": { "$ref": "#/definitions/sameOriginPath" },
+        "challengeRespondPath": { "$ref": "#/definitions/sameOriginPath" },
+        "mfaSetupPath": { "$ref": "#/definitions/sameOriginPath" },
+        "mfaVerifyPath": { "$ref": "#/definitions/sameOriginPath" },
         "csrfCookieName": { "type": "string", "minLength": 1 },
+        "challengeCsrfCookieName": { "type": "string", "minLength": 1 },
         "csrfHeaderName": { "type": "string", "minLength": 1 }
       },
       "additionalProperties": false
