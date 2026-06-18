@@ -635,13 +635,6 @@ test('production SSR server redirects protected draft preview routes to same-ori
             },
           },
         ],
-        runtime: {
-          authRemote: {
-            enabled: true,
-            authProfileId: 'staff',
-            endpoint: '/auth/runtime-config',
-          },
-        },
         site: {
           seo: {
             canonicalOrigin: 'https://auth-preview.example.com',
@@ -674,6 +667,92 @@ test('production SSR server redirects protected draft preview routes to same-ori
     'https://test.zoolandingpage.com.mx/acceso?draftDomain=auth-preview.example.com&debugWorkspace=false&lang=es',
   );
   assert.equal(response.headers.get('cache-control'), 'no-store');
+  assert.deepEqual(requests[0], {
+    pathname: '/runtime-bundle',
+    domain: 'auth-preview.example.com',
+    path: '/',
+  });
+  assert.equal(getStderr(), '');
+});
+
+test('production SSR server lets authRemote protected routes reach Angular for BFF revalidation', async (t) => {
+  const requests = [];
+  const apiBase = await startRuntimeApi(t, (req, res) => {
+    const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+    requests.push({
+      pathname: url.pathname,
+      domain: url.searchParams.get('domain'),
+      path: url.searchParams.get('path'),
+    });
+
+    if (url.pathname !== '/runtime-bundle') {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false }));
+      return;
+    }
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      siteConfig: {
+        domain: 'auth-preview.example.com',
+        routes: [
+          { path: '/', pageId: 'home' },
+          { path: '/acceso', pageId: 'login' },
+          {
+            path: '/admin/usuarios',
+            pageId: 'admin-users',
+            auth: {
+              required: true,
+              redirectTo: '/acceso',
+              allowedGroups: ['admin'],
+            },
+          },
+        ],
+        runtime: {
+          authRemote: {
+            enabled: true,
+            authProfileId: 'staff',
+            endpoint: '/auth/runtime-config',
+          },
+        },
+        site: {
+          seo: {
+            canonicalOrigin: 'https://auth-preview.example.com',
+          },
+        },
+      },
+      pageConfig: {
+        pageId: 'admin-users',
+        rootIds: [],
+      },
+      components: {
+        version: 1,
+        domain: 'auth-preview.example.com',
+        pageId: 'admin-users',
+        components: [],
+      },
+    }));
+  });
+  const { port, getStderr } = await startProductionServer(t, {
+    CONFIG_API_SERVER_FALLBACK_URL: '',
+    CONFIG_API_URL: apiBase,
+  });
+  const response = await fetch(`http://127.0.0.1:${port}/admin/usuarios?draftDomain=auth-preview.example.com&debugWorkspace=false&lang=es`, {
+    redirect: 'manual',
+    headers: {
+      Host: 'test.zoolandingpage.com.mx',
+      'X-Forwarded-Host': 'test.zoolandingpage.com.mx',
+      'X-Forwarded-Port': '443',
+      'X-Forwarded-Proto': 'https',
+      'X-Forwarded-Server': 'dokploy-traefik',
+    },
+  });
+  const body = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('location'), null);
+  assert.match(body, /<main[\s>]/i);
+  assert.doesNotMatch(body, /Aprueba cuentas nuevas/i);
   assert.deepEqual(requests[0], {
     pathname: '/runtime-bundle',
     domain: 'auth-preview.example.com',

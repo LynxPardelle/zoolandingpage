@@ -231,6 +231,12 @@ type TLocalSiteConfig = Record<string, unknown> & {
   readonly runtime?: {
     readonly auth?: {
       readonly loginPath?: string;
+      readonly session?: {
+        readonly mode?: string;
+      };
+    };
+    readonly authRemote?: {
+      readonly enabled?: boolean;
     };
     readonly analytics?: {
       readonly googleTag?: TGoogleTagConfig;
@@ -1572,6 +1578,9 @@ function resolveAuthRedirectUrl(req: express.Request, host: string, siteConfig: 
   if (route?.auth?.required !== true) {
     return null;
   }
+  if (usesClientSideAuthRouteRevalidation(siteConfig)) {
+    return null;
+  }
 
   const redirectPath = cleanSameOriginPath(route.auth.redirectTo)
     || cleanSameOriginPath(siteConfig?.runtime?.auth?.loginPath);
@@ -1592,6 +1601,17 @@ function resolveAuthRedirectUrl(req: express.Request, host: string, siteConfig: 
   });
 
   return redirectUrl.toString();
+}
+
+function usesClientSideAuthRouteRevalidation(siteConfig: TLocalSiteConfig | null): boolean {
+  const auth = siteConfig?.runtime?.auth;
+  const session = isRecord(auth?.session) ? auth.session : null;
+  if (cleanString(session?.['mode']).toLowerCase() === 'server-cookie') {
+    return true;
+  }
+
+  const authRemote = siteConfig?.runtime?.authRemote;
+  return authRemote?.enabled === true;
 }
 
 function escapeXml(value: string): string {
