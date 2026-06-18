@@ -215,6 +215,7 @@ describe('RuntimeService', () => {
                     provide: DomainResolverService,
                     useValue: {
                         resolveDomain: () => ({ domain: 'pamelabetancourt.com' }),
+                        resolveStorageKey: (suffix: string) => `pamelabetancourt-com:${ suffix }`,
                     },
                 },
                 {
