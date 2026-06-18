@@ -1,4 +1,4 @@
-import { hasStaticInteractiveControls } from './static-interactive-controls.utility';
+import { hasStaticInteractiveControls, hasStaticRenderableContent } from './static-interactive-controls.utility';
 
 describe('hasStaticInteractiveControls', () => {
   it('detects SSR form controls that should hydrate before release', () => {
@@ -23,5 +23,25 @@ describe('hasStaticInteractiveControls', () => {
 
   it('does not mark a missing SSR shell as interactive', () => {
     expect(hasStaticInteractiveControls(null)).toBeFalse();
+  });
+});
+
+describe('hasStaticRenderableContent', () => {
+  it('detects SSR content that can own the first paint before hydration', () => {
+    const host = document.createElement('app-root');
+    host.innerHTML = '<main><h1>Accede a tu cuenta</h1></main>';
+
+    expect(hasStaticRenderableContent(host)).toBeTrue();
+  });
+
+  it('treats empty protected shells as needing immediate client bootstrap', () => {
+    const host = document.createElement('app-root');
+    host.innerHTML = '<!---->';
+
+    expect(hasStaticRenderableContent(host)).toBeFalse();
+  });
+
+  it('treats a missing app root as needing immediate client bootstrap', () => {
+    expect(hasStaticRenderableContent(null)).toBeFalse();
   });
 });

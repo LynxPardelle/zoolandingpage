@@ -127,6 +127,8 @@ describe('AuthCustomFormService', () => {
         expect(window.location.search).toContain('draftDomain=zoositioweb.com.mx');
         expect(window.location.search).toContain('debugWorkspace=false');
         expect(window.location.search).toContain('lang=es');
+        expect(window.location.href).not.toContain('client@example.test');
+        expect(window.location.href).not.toContain('StrongPassphrase123!');
     });
 
     it('moves confirmed signup users back to login with a success status', async () => {
@@ -366,6 +368,10 @@ describe('AuthCustomFormService', () => {
                 language: 'es',
             },
         ]);
+        expect(window.location.href).not.toContain('client@example.test');
+        expect(window.location.href).not.toContain('123456');
+        expect(window.location.href).not.toContain('654321');
+        expect(window.location.href).not.toContain('NewStrongPassphrase123!');
     });
 
     it('rejects mismatched password reset confirmation before any network request', async () => {

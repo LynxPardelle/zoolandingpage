@@ -97,6 +97,24 @@ async function startProductionServer(t, extraEnv = {}) {
   };
 }
 
+function assertNoSensitiveAuthSurface(body) {
+  const forbiddenPatterns = [
+    [/id[_-]?token/i, 'id token'],
+    [/access[_-]?token/i, 'access token'],
+    [/refresh[_-]?token/i, 'refresh token'],
+    [/clientSecret/i, 'client secret'],
+    [/Authorization/i, 'authorization header'],
+    [/__Host-zlp_session/i, 'session cookie'],
+    [/zlp_csrf/i, 'csrf cookie'],
+    [/tenantId/i, 'tenant policy'],
+    [/adminGroups/i, 'admin group policy'],
+  ];
+
+  for (const [pattern, label] of forbiddenPatterns) {
+    assert.doesNotMatch(body, pattern, `protected SSR HTML must not expose ${label}`);
+  }
+}
+
 test('production SSR server exposes a lightweight health endpoint', async (t) => {
   const { port, getStderr } = await startProductionServer(t);
   const response = await waitForOk(`http://127.0.0.1:${port}/health`);
@@ -753,6 +771,7 @@ test('production SSR server lets authRemote protected routes reach Angular for B
   assert.equal(response.headers.get('location'), null);
   assert.match(body, /<main[\s>]/i);
   assert.match(body, /<meta name="robots" content="noindex,nofollow">/);
+  assertNoSensitiveAuthSurface(body);
   assert.doesNotMatch(body, /Aprueba cuentas nuevas/i);
   assert.deepEqual(requests[0], {
     pathname: '/runtime-bundle',
