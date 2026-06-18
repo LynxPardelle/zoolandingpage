@@ -19,7 +19,7 @@ Source Of Truth:
 - `docs/api-driven-config/schemas/integrations.schema.json`
 
 Confidence: Medium; this is an offline contract in the app repo, not a deployed Lambda or CDK stack.
-Last Reviewed: 2026-06-17 (Central Time)
+Last Reviewed: 2026-06-18 (Central Time)
 
 ## Purpose
 
@@ -84,6 +84,7 @@ Custom form drafts use generic inputs, buttons, visibility toggles, validation m
 - `authFormAction:verifyMfaSetup`: verifies the TOTP setup code and completes sign-in when Cognito accepts the challenge.
 - `authFormAction:startMfaEnrollment`: for an already authenticated BFF session, posts the user's current password to the configured voluntary MFA enrollment start path and returns only setup material needed by the page.
 - `authFormAction:verifyMfaEnrollment`: verifies the voluntary TOTP setup code through the configured enrollment verify path, enables software-token MFA, refreshes public session metadata, and navigates back to the account page with a display-only success status.
+- `authFormAction:disableMfa`: for an already authenticated BFF session, posts the user's current password plus current TOTP code to the configured MFA disable path, refreshes public session metadata, and navigates back to the account page with a display-only success status.
 - `authFormAction:logout`: clears local public session metadata and navigates to the configured same-origin logout/login path without calling Cognito Hosted UI.
 
 For password UX, drafts may opt into generic-input validation checklists and generic scope validation instead of custom Angular code. Use separate validation rules for each visible requirement, including lower case, upper case, number, minimum length, and symbol requirements. Use `matchesField` to compare confirm-password fields to the password field, and use `disabledWhenInvalidScope` on submit buttons so account creation or password reset is not clickable until the interaction scope is valid. These controls are UX validation only; the backend auth service and Cognito policy must still enforce final password, tenant, and group rules server-side.
@@ -267,6 +268,7 @@ The public browser contract is still minimal:
 - `POST /auth/session/mfa/verify`: verifies a TOTP setup code, completes the Cognito challenge, and creates the private BFF session.
 - `POST /auth/session/mfa/enroll/start`: for an existing private BFF session, reauthenticates the same user with the current password, starts voluntary TOTP setup, and stores the short-lived access token server-side only for verification.
 - `POST /auth/session/mfa/enroll/verify`: verifies the voluntary TOTP code, sets software-token MFA preference, revokes the temporary enrollment record, and returns sanitized account/session metadata.
+- `POST /auth/session/mfa/disable`: for an existing private BFF session, reauthenticates the same user with current password plus current TOTP code, disables software-token MFA through Cognito, and returns sanitized account/session metadata without exposing token material.
 - `GET /auth/session/me`: returns the current account profile for `/mi-cuenta`.
 - `POST /auth/session/logout`: revokes the private session and clears cookies.
 - `GET /auth/admin/users`: lists sanitized users for admin surfaces.
@@ -284,9 +286,9 @@ The Lambda compares that context with the private session before returning accou
 
 During first-load route checks, Angular may only have the public `runtime.authRemote` reference while the public `runtime.auth` profile is still being resolved. Protected routes that use the auth-admin BFF must still attempt `/auth/session/me` before redirecting, using the resolved draft domain and `runtime.authRemote.authProfileId` for the same-origin headers. The BFF response remains the source of truth for the account and route group checks; `authRemote` only supplies public request context.
 
-Session cookies use the `__Host-zlp_session` name with `HttpOnly`, `Secure`, `SameSite=Lax`, and `Path=/`. Mutating requests also require a readable `zlp_csrf` cookie to match the configured CSRF header, normally `X-ZLP-CSRF`, and the server-side CSRF hash. MFA challenge cookies use `__Host-zlp_challenge` with the same HttpOnly/Secure/SameSite shape plus a short-lived readable challenge CSRF cookie, normally `zlp_challenge_csrf`, which must match the same CSRF header before any challenge mutation reaches Cognito. Voluntary MFA enrollment uses a separate short-lived `__Host-zlp_mfa_enroll` cookie plus `zlp_mfa_enroll_csrf`; the temporary Cognito access token needed by Cognito's software-token API stays server-side and is revoked from BFF state after verification. No JWT, ID token, access token, refresh token, raw Cognito challenge session, Cognito client secret, or upstream credential is returned to Angular.
+Session cookies use the `__Host-zlp_session` name with `HttpOnly`, `Secure`, `SameSite=Lax`, and `Path=/`. Mutating requests also require a readable `zlp_csrf` cookie to match the configured CSRF header, normally `X-ZLP-CSRF`, and the server-side CSRF hash. MFA challenge cookies use `__Host-zlp_challenge` with the same HttpOnly/Secure/SameSite shape plus a short-lived readable challenge CSRF cookie, normally `zlp_challenge_csrf`, which must match the same CSRF header before any challenge mutation reaches Cognito. Voluntary MFA enrollment uses a separate short-lived `__Host-zlp_mfa_enroll` cookie plus `zlp_mfa_enroll_csrf`; the temporary Cognito access token needed by Cognito's software-token API stays server-side and is revoked from BFF state after verification. Voluntary MFA disablement uses the normal authenticated session plus CSRF and requires current password plus current TOTP code before changing Cognito preference. No JWT, ID token, access token, refresh token, raw Cognito challenge session, Cognito client secret, or upstream credential is returned to Angular.
 
-TOTP setup material is sensitive enrollment material. Draft pages may display a shared secret only for explicit setup, should avoid logging it, analytics-tagging it, or putting it in URLs, and should prefer the generic `qr-code` component bound to the sanitized `setup.otpauthUri`. Manual shared-secret fallback text must wrap safely and remain secondary. The full `otpauth://` URI should not be rendered as ordinary visible text in public page config.
+TOTP setup material is sensitive enrollment material. Draft pages may display a shared secret only for explicit setup, should avoid logging it, analytics-tagging it, or putting it in URLs, and should prefer the generic `qr-code` component bound to the sanitized `setup.otpauthUri`. Manual shared-secret fallback text must wrap safely and remain secondary. The full `otpauth://` URI should not be rendered as ordinary visible text in public page config. Authenticator-app display names are profile-configurable through server-only `mfa.totp.issuer`, `accountLabelTemplate`, and `friendlyDeviceName`; browser draft config may consume only the generated setup metadata, not redefine those trusted values.
 
 `/mi-cuenta` is for any authenticated user in the draft/profile, including users with `approvalStatus: "pending"`. `/admin/*` is for approved users with a configured admin group. Admin requests must re-check current user state, not only the session snapshot, so suspension or group removal takes effect before the next admin action.
 
