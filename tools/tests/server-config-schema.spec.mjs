@@ -4,6 +4,7 @@ import test from 'node:test';
 
 const authRegistrySchemaPath = new URL('../../docs/api-driven-config/schemas/auth-profile-registry.schema.json', import.meta.url);
 const integrationsSchemaPath = new URL('../../docs/api-driven-config/schemas/integrations.schema.json', import.meta.url);
+const protectedFeaturesSchemaPath = new URL('../../docs/api-driven-config/schemas/protected-features.schema.json', import.meta.url);
 
 test('auth profile registry schema documents server-only draft auth fields', async () => {
   const schema = JSON.parse(await readFile(authRegistrySchemaPath, 'utf8'));
@@ -52,6 +53,13 @@ test('auth profile registry schema documents optional TOTP MFA policy', async ()
   assert.equal(schema.definitions.totpMfaPolicy.properties.enabled.type, 'boolean');
 });
 
+test('auth profile registry schema documents the safe admin MFA reset path', async () => {
+  const schema = JSON.parse(await readFile(authRegistrySchemaPath, 'utf8'));
+  const admin = schema.definitions?.authAdminRuntime;
+
+  assert.equal(admin.properties.resetUserMfaPathTemplate.$ref, '#/definitions/sameOriginPath');
+});
+
 test('integrations schema keeps user access separate from upstream auth credentials', async () => {
   const schema = JSON.parse(await readFile(integrationsSchemaPath, 'utf8'));
   const access = schema.definitions?.accessPolicy;
@@ -65,4 +73,34 @@ test('integrations schema keeps user access separate from upstream auth credenti
   assert.equal(source.properties.credentialRef.$ref, '#/definitions/secretRef');
   assert.equal(source.properties.access.$ref, '#/definitions/accessPolicy');
   assert.equal(source.properties.auth.$ref, '#/definitions/upstreamAuth');
+});
+
+test('protected features schema documents server-only feature boundaries', async () => {
+  const schema = JSON.parse(await readFile(protectedFeaturesSchemaPath, 'utf8'));
+  const feature = schema.definitions?.protectedFeature;
+  const ownership = schema.definitions?.resourceOwnership;
+  const dynamo = schema.definitions?.dynamoTable;
+  const endpoint = schema.definitions?.apiEndpoint;
+
+  assert.deepEqual(schema.required, ['version', 'features']);
+  assert.deepEqual(feature.required, [
+    'id',
+    'kind',
+    'authProfileId',
+    'status',
+    'ownership',
+    'access',
+    'resources',
+    'endpoints',
+    'audit',
+    'errors',
+    'rollout',
+  ]);
+  assert.equal(feature.properties.authProfileId.$ref, '#/definitions/safeId');
+  assert.equal(feature.properties.publicConfig, undefined);
+  assert.deepEqual(ownership.properties.isolationBoundary.enum, ['draft', 'auth-profile', 'tenant']);
+  assert.deepEqual(dynamo.properties.isolation.enum, ['per-draft-table', 'per-auth-profile-table', 'shared-table-with-tenant-key']);
+  assert.deepEqual(endpoint.properties.authorizer.enum, ['bff-session', 'auth-profile-jwt']);
+  assert.equal(schema.definitions.errorPolicy.properties.format.const, 'zlp-protected-feature-error-v1');
+  assert.equal(schema.definitions.rolloutPolicy.properties.promotion.enum.includes('dev-test-prod'), true);
 });

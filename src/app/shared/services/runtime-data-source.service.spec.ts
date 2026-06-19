@@ -127,6 +127,60 @@ describe('RuntimeDataSourceService', () => {
         expect(variables.get('remoteStatus.account-profile.state')).toBe('success');
     });
 
+    it('does not retry auth-admin account reads after a BFF failure', async () => {
+        authAdmin.me.and.rejectWith(new Error('Auth admin request failed.'));
+
+        await service.start({
+            domain: 'zoositioweb.com.mx',
+            pageId: 'mi-cuenta',
+            dataSources: [
+                {
+                    id: 'account-profile',
+                    kind: 'auth-admin',
+                    authAdminSource: 'account',
+                    target: 'remote.auth.account',
+                    mapper: { itemsPath: 'account' },
+                } as any,
+            ],
+        });
+
+        expect(authAdmin.me).toHaveBeenCalledTimes(1);
+        expect(proxy.readSource).not.toHaveBeenCalled();
+        expect(variables.get('remoteStatus.account-profile.state')).toBe('error');
+        expect(variables.get('remoteStatus.account-profile.error')).toBe('Auth admin request failed.');
+    });
+
+    it('skips auth-admin data sources during SSR even when ssr is enabled in config', async () => {
+        authAdmin.me.and.resolveTo({
+            ok: true,
+            account: {
+                subject: 'client-sub',
+                roles: ['zoosite-client'],
+            },
+        } as any);
+
+        await service.start({
+            domain: 'zoositioweb.com.mx',
+            pageId: 'mi-cuenta',
+            mode: 'ssr',
+            dataSources: [
+                {
+                    id: 'account-profile',
+                    kind: 'auth-admin',
+                    authAdminSource: 'account',
+                    target: 'remote.auth.account',
+                    ssr: true,
+                    mapper: { itemsPath: 'account' },
+                } as any,
+            ],
+        });
+
+        expect(authAdmin.me).not.toHaveBeenCalled();
+        expect(proxy.readSource).not.toHaveBeenCalled();
+        expect(variables.get('remote.auth.account')).toBeUndefined();
+        expect(variables.get('remoteStatus.account-profile')).toBeUndefined();
+    });
+
     it('loads initial data sources in order to avoid browser proxy request bursts', async () => {
         let resolveFirst!: (value: { ok: true; data: { upstream: string } }) => void;
         const firstResponse = new Promise<{ ok: true; data: { upstream: string } }>((resolve) => {

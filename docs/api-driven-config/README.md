@@ -38,6 +38,7 @@ The draft filesystem under `drafts/{domain}/...`, served locally at `/drafts/...
 - Repeated structures through `loopConfig`.
 - Runtime API data sources through `site-config.json.runtime.dataSources` and server-only integration policy.
 - Optional draft auth through browser-safe `site-config.json.runtime.auth` plus server-only auth profile registry policy.
+- Server-only protected feature descriptors for blogs, dashboards, analytics, config, uploads, and other authenticated draft capabilities.
 - Shared domain defaults plus page-level overrides.
 - Locale-aware content and metadata.
 - Draft-owned appearance through `angora-combos.json`, theme palettes, and payload-owned classes.
@@ -52,6 +53,7 @@ The draft filesystem under `drafts/{domain}/...`, served locally at `/drafts/...
 - `i18n/{lang}.json`: shared or page-specific locale dictionaries.
 - `server/auth-profile-registry.json`: server-only auth profile registry for tenant/auth policy.
 - `server/integrations.json`: server-only proxy integration policy, upstream credential references, and user access gates.
+- `server/protected-features.json`: server-only protected feature ownership, roles, resources, endpoints, audit, error, and rollout policy.
 
 ## Start here
 
@@ -71,6 +73,7 @@ The draft filesystem under `drafts/{domain}/...`, served locally at `/drafts/...
 - [16-google-ads-search-console-seo.md](16-google-ads-search-console-seo.md)
 - [17-auth-profile-registry.md](17-auth-profile-registry.md)
 - [18-draft-auth-audit-matrix.md](18-draft-auth-audit-matrix.md)
+- [19-protected-feature-contract.md](19-protected-feature-contract.md)
 
 ## Practical rule for new contributors
 
@@ -84,7 +87,8 @@ If you are trying to change behavior and you do not know whether to edit code or
 6. Is this an upstream URL, method, credential reference, or response allowlist? Edit `server/integrations.json`.
 7. Is this public auth metadata? Edit `site-config.json.runtime.auth`.
 8. Is this tenant ownership, Cognito provisioning, groups policy, callback allowlists, or social IdP credentials? Keep it server-only in an Auth Profile Registry.
-9. Is this binary media? Upload it through the image-upload flow and store the returned `publicUrl` in payloads.
+9. Is this protected feature ownership, DynamoDB isolation, Lambda/BFF routing, audit policy, or protected error contract? Keep it server-only in a protected feature descriptor.
+10. Is this binary media? Upload it through the image-upload flow and store the returned `publicUrl` in payloads.
 
 ## Schemas
 
@@ -96,6 +100,7 @@ If you are trying to change behavior and you do not know whether to edit code or
 - [schemas/i18n.schema.json](schemas/i18n.schema.json)
 - [schemas/auth-profile-registry.schema.json](schemas/auth-profile-registry.schema.json)
 - [schemas/integrations.schema.json](schemas/integrations.schema.json)
+- [schemas/protected-features.schema.json](schemas/protected-features.schema.json)
 
 ## Related docs
 

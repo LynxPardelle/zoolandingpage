@@ -24,18 +24,21 @@ Use this matrix before publishing draft-auth changes that affect custom sign-in,
 
 ## Required Checks
 
-Run the static draft guard before package upload:
+Run the reusable auth contract audit and static draft guards before package upload:
 
 ```powershell
+npm run drafts:auth-audit -- --draft-root=drafts\zoositioweb.com.mx --domain=zoositioweb.com.mx --auth-profile-id=staff
 node tools/runtime-data-source-condition-guard.mjs --draft-root=drafts\zoositioweb.com.mx --domain=zoositioweb.com.mx
 npm run config:pack -- --domain=zoositioweb.com.mx --drafts-root=drafts --stage=draft --output=$env:TEMP\zoosite-package.json
 node drafts\zoositioweb.com.mx\tools\deploy-draft.mjs --draft-root=drafts\zoositioweb.com.mx --domain=zoositioweb.com.mx --validate-only=true
 ```
 
+`drafts:auth-audit` is a no-credential static E2E contract check. It reads the public draft config, page configs/components, the local server-only auth registry, and the runtime data-source condition guard. It validates auth route structure, sitemap/noindex treatment, public `runtime.authRemote`, server-cookie session metadata, client/admin/MFA state wiring, admin lost-device reset wiring, mapper condition safety, and public-payload secret leakage. It does not replace browser login/session QA.
+
 Run focused platform checks:
 
 ```powershell
-node --test tools/tests/runtime-data-source-condition-guard.spec.mjs tools/tests/auth-profile-registry.spec.mjs tools/tests/site-config-schema.spec.mjs
+node --test tools/tests/draft-auth-audit.spec.mjs tools/tests/runtime-data-source-condition-guard.spec.mjs tools/tests/auth-profile-registry.spec.mjs tools/tests/site-config-schema.spec.mjs
 npm run test -- --watch=false --browsers=ChromeHeadless --include src/app/state/auth/*.spec.ts --include src/app/shared/utility/event-handler/handlers/auth-admin-action.handlers.spec.ts --include src/app/shared/utility/event-handler/handlers/auth-form-action.handlers.spec.ts --include src/app/shared/utility/config-validation/config-payload.validators.spec.ts
 ```
 
