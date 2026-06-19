@@ -41,6 +41,23 @@ describe('LanguageService', () => {
         expect(service.languageLabel()).toBe('PT-BR');
     });
 
+    it('keeps the requested URL language before draft languages are configured', () => {
+        TestBed.resetTestingModule();
+        localStorage.clear();
+        setBrowserUrl('/mi-cuenta?draftDomain=zoositioweb.com.mx&lang=es');
+        TestBed.configureTestingModule({
+            providers: [
+                LanguageService,
+                { provide: PLATFORM_ID, useValue: 'browser' },
+            ],
+        });
+
+        const bootstrapService = TestBed.inject(LanguageService);
+
+        expect(bootstrapService.currentLanguage()).toBe('es');
+        expect(bootstrapService.getRequestedLanguagePreference()).toBe('es');
+    });
+
     it('should fall back to the only draft language when a requested language is unavailable', () => {
         service.configureLanguages(['it'], {
             defaultLanguage: 'it',
