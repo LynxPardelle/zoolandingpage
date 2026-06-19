@@ -200,6 +200,7 @@ export type TDraftAuthAdminRuntimeConfig = {
     readonly groupsPathTemplate?: string;
     readonly suspendUserPathTemplate?: string;
     readonly reactivateUserPathTemplate?: string;
+    readonly resetUserMfaPathTemplate?: string;
 };
 
 export type TDraftAuthRuntimeConfig = {
@@ -465,7 +466,7 @@ export type TRuntimeApiActionConfig = {
     readonly id: string;
     readonly kind?: 'api-proxy' | 'auth-admin';
     readonly proxyActionId?: string;
-    readonly authAdminAction?: 'approveUser' | 'setUserGroups' | 'suspendUser' | 'reactivateUser';
+    readonly authAdminAction?: 'approveUser' | 'setUserGroups' | 'suspendUser' | 'reactivateUser' | 'resetUserMfa';
     readonly method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
     readonly statusTarget?: string;
     readonly enabled?: boolean;

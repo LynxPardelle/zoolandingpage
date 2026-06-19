@@ -1,6 +1,6 @@
 import { findInteractionScopeHost } from '@/app/shared/components/interaction-scope/interaction-scope.service';
 import { VariableStoreService } from '@/app/shared/services/variable-store.service';
-import { AuthCustomFormService, type TAuthCustomFormAction } from '@/app/state/auth/auth-custom-form.service';
+import { AuthCustomFormRequestError, AuthCustomFormService, type TAuthCustomFormAction } from '@/app/state/auth/auth-custom-form.service';
 import { inject } from '@angular/core';
 import type { EventHandler } from '../event-handler.types';
 
@@ -32,17 +32,22 @@ const normalizeAction = (value: unknown): TAuthCustomFormAction | null => {
 const errorMessage = (error: unknown): string =>
     error instanceof Error ? error.message : 'Auth form request failed.';
 
+const errorCode = (error: unknown): string | null =>
+    error instanceof AuthCustomFormRequestError ? error.code : null;
+
 const writeStatus = (
     variables: VariableStoreService,
     target: string,
     state: TAuthFormStatusState,
     error: string | null,
     data?: unknown,
+    code?: string | null,
 ): void => {
     variables.setRuntimeValue(target, {
         state,
         updatedAt: state === 'loading' ? null : new Date().toISOString(),
         error,
+        ...(state === 'error' && code ? { errorCode: code } : {}),
         ...(state === 'success' ? { data } : {}),
     });
 };
@@ -64,7 +69,7 @@ export const authFormActionHandler = (): EventHandler => {
                     const response = await authForms.submit(action, {});
                     writeStatus(variables, statusTarget, 'success', null, response);
                 } catch (error) {
-                    writeStatus(variables, statusTarget, 'error', errorMessage(error));
+                    writeStatus(variables, statusTarget, 'error', errorMessage(error), undefined, errorCode(error));
                 }
                 return;
             }
@@ -86,7 +91,7 @@ export const authFormActionHandler = (): EventHandler => {
                 const response = await authForms.submit(action, snapshot.values);
                 writeStatus(variables, statusTarget, 'success', null, response);
             } catch (error) {
-                writeStatus(variables, statusTarget, 'error', errorMessage(error));
+                writeStatus(variables, statusTarget, 'error', errorMessage(error), undefined, errorCode(error));
             }
         },
     };

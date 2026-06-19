@@ -70,6 +70,7 @@ The draft filesystem under `drafts/{domain}/...`, served locally at `/drafts/...
 - [15-runtime-api-proxy-data-sources.md](15-runtime-api-proxy-data-sources.md)
 - [16-google-ads-search-console-seo.md](16-google-ads-search-console-seo.md)
 - [17-auth-profile-registry.md](17-auth-profile-registry.md)
+- [18-draft-auth-audit-matrix.md](18-draft-auth-audit-matrix.md)
 
 ## Practical rule for new contributors
 
