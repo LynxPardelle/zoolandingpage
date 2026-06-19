@@ -126,14 +126,15 @@ export class RuntimeDataSourceService {
         sourceId: string,
         input: Record<string, unknown> | undefined,
     ): Promise<TRuntimeApiProxyResponse<unknown>> {
+        if (source.kind === 'auth-admin') {
+            return this.readAuthAdminSource(source);
+        }
+
         let lastError: unknown;
         const attempts = this.loadRetryDelaysMs.length + 1;
 
         for (let attempt = 0; attempt < attempts; attempt++) {
             try {
-                if (source.kind === 'auth-admin') {
-                    return await this.readAuthAdminSource(source);
-                }
                 return await this.proxy.readSource({
                     domain: options.domain,
                     pageId: options.pageId,
@@ -203,7 +204,7 @@ export class RuntimeDataSourceService {
             return true;
         }
 
-        return source.ssr === true;
+        return source.kind !== 'auth-admin' && source.ssr === true;
     }
 
     private shouldSkipForQueryParams(queryParams: readonly string[] | undefined): boolean {

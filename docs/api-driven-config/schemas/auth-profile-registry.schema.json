@@ -108,7 +108,8 @@
         "approveUserPathTemplate": { "$ref": "#/definitions/sameOriginPath" },
         "groupsPathTemplate": { "$ref": "#/definitions/sameOriginPath" },
         "suspendUserPathTemplate": { "$ref": "#/definitions/sameOriginPath" },
-        "reactivateUserPathTemplate": { "$ref": "#/definitions/sameOriginPath" }
+        "reactivateUserPathTemplate": { "$ref": "#/definitions/sameOriginPath" },
+        "resetUserMfaPathTemplate": { "$ref": "#/definitions/sameOriginPath" }
       },
       "additionalProperties": false
     },

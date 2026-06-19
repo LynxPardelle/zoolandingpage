@@ -17,6 +17,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { DestroyRef, inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
 import { LoadingCurtainService } from './loading-curtain.service';
 import { AuthBrowserFlowService } from '@/app/state/auth/auth-browser-flow.service';
+import type { TDraftSiteRouteEntry, TRuntimeDataSourceConfig } from '@/app/shared/types/config-payloads.types';
 
 @Injectable({ providedIn: 'root' })
 export class RuntimeService {
@@ -301,12 +302,13 @@ export class RuntimeService {
             return;
         }
 
-        this.orchestrator.setExternalComponentsFromPayload(componentsPayload);
-        const dataSourcesLoaded = this.startRuntimeDataSources(domain, pageId);
-        if (!this.isBrowser) {
+        const dataSources = this.configStore.siteConfig()?.runtime?.dataSources ?? [];
+        const dataSourcesLoaded = this.startRuntimeDataSources(domain, pageId, dataSources);
+        if (!this.isBrowser || this.shouldWaitForProtectedInitialDataSources(context.route, pageId, dataSources)) {
             await dataSourcesLoaded;
         }
 
+        this.orchestrator.setExternalComponentsFromPayload(componentsPayload);
         this.prewarmAuthoredComponentsCss();
         this.rootComponentsIds.set(rootIds);
         this.modalRootIds.set(modalRootIds);
@@ -326,8 +328,11 @@ export class RuntimeService {
         });
     }
 
-    private startRuntimeDataSources(domain: string, pageId: string): Promise<void> {
-        const dataSources = this.configStore.siteConfig()?.runtime?.dataSources ?? [];
+    private startRuntimeDataSources(
+        domain: string,
+        pageId: string,
+        dataSources: readonly TRuntimeDataSourceConfig[] = this.configStore.siteConfig()?.runtime?.dataSources ?? [],
+    ): Promise<void> {
         if (!dataSources.length) {
             this.runtimeDataSources.stop();
             return Promise.resolve();
@@ -343,6 +348,32 @@ export class RuntimeService {
                 console.error('[Runtime] Runtime data source bootstrap failed.', error);
             }
         });
+    }
+
+    private shouldWaitForProtectedInitialDataSources(
+        route: TDraftSiteRouteEntry | null | undefined,
+        pageId: string,
+        dataSources: readonly TRuntimeDataSourceConfig[],
+    ): boolean {
+        if (!this.isBrowser || route?.auth?.required !== true) {
+            return false;
+        }
+
+        return dataSources.some((source) => (
+            source.kind === 'auth-admin'
+            && source.enabled !== false
+            && this.matchesDataSourcePage(source, pageId)
+        ));
+    }
+
+    private matchesDataSourcePage(source: TRuntimeDataSourceConfig, pageId: string): boolean {
+        if (!Array.isArray(source.pageIds) || source.pageIds.length === 0) {
+            return true;
+        }
+
+        const normalizedPageId = String(pageId ?? '').trim();
+        return !!normalizedPageId
+            && source.pageIds.some((entry) => String(entry ?? '').trim() === normalizedPageId);
     }
 
     private scheduleRenderedComponentsCssUpdate(): void {
