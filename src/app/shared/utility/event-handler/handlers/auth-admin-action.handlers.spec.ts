@@ -15,6 +15,7 @@ describe('authAdminActionHandler', () => {
             'setUserGroups',
             'suspendUser',
             'reactivateUser',
+            'resetUserMfa',
             'listUsers',
         ]);
 
@@ -70,5 +71,29 @@ describe('authAdminActionHandler', () => {
 
         expect(authAdmin.approveUser).not.toHaveBeenCalled();
         expect(variables.get('authAdmin.approveUser.state')).toBe('error');
+    });
+
+    it('resets user MFA through generic event instructions', async () => {
+        authAdmin.resetUserMfa.and.resolveTo({
+            ok: true,
+            status: 'mfa-reset',
+            user: { subject: 'client-sub', approvalStatus: 'approved' },
+        } as any);
+        authAdmin.listUsers.and.resolveTo({
+            ok: true,
+            users: [
+                { subject: 'client-sub', approvalStatus: 'approved' },
+            ],
+        } as any);
+
+        const handler = TestBed.runInInjectionContext(() => authAdminActionHandler());
+        await handler.handle(context, ['resetUserMfa', 'client-sub', '', 'remoteStatus.admin.client-sub']);
+
+        expect(authAdmin.resetUserMfa).toHaveBeenCalledOnceWith('client-sub');
+        expect(authAdmin.listUsers).toHaveBeenCalledOnceWith();
+        expect(variables.get('remoteStatus.admin.client-sub.state')).toBe('success');
+        expect(variables.get('remoteStatus.admin.client-sub.data')).toEqual(jasmine.objectContaining({
+            status: 'mfa-reset',
+        }));
     });
 });

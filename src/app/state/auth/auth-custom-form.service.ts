@@ -34,10 +34,18 @@ export type TAuthCustomFormResponse = {
     readonly status?: string;
     readonly challengeName?: string;
     readonly error?: string;
+    readonly errorCode?: string;
     readonly delivery?: Readonly<Record<string, string>>;
     readonly setup?: Readonly<Record<string, string>>;
     readonly session?: unknown;
 };
+
+export class AuthCustomFormRequestError extends Error {
+    constructor(message: string, readonly code: string | null = null) {
+        super(message);
+        this.name = 'AuthCustomFormRequestError';
+    }
+}
 
 @Injectable({ providedIn: 'root' })
 export class AuthCustomFormService {
@@ -227,7 +235,10 @@ export class AuthCustomFormService {
         });
         const body = await this.parseJson(response);
         if (!response.ok || body.ok === false) {
-            throw new Error(this.clean(body.error) || 'Auth form request failed.');
+            throw new AuthCustomFormRequestError(
+                this.clean(body.error) || 'Auth form request failed.',
+                this.clean(body.errorCode) || null,
+            );
         }
         return body;
     }
@@ -322,7 +333,10 @@ export class AuthCustomFormService {
         });
         const body = await this.parseJson(response);
         if (!response.ok || body.ok === false) {
-            throw new Error(this.clean(body.error) || 'Auth form request failed.');
+            throw new AuthCustomFormRequestError(
+                this.clean(body.error) || 'Auth form request failed.',
+                this.clean(body.errorCode) || null,
+            );
         }
     }
 
