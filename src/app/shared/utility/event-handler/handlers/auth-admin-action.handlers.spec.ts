@@ -96,4 +96,25 @@ describe('authAdminActionHandler', () => {
             status: 'mfa-reset',
         }));
     });
+
+    it('ignores repeated admin actions while the same status target is already loading', async () => {
+        let resolveAction!: (value: { ok: true }) => void;
+        authAdmin.suspendUser.and.returnValue(new Promise((resolve) => {
+            resolveAction = resolve;
+        }) as any);
+        authAdmin.listUsers.and.resolveTo({ ok: true, users: [] } as any);
+
+        const handler = TestBed.runInInjectionContext(() => authAdminActionHandler());
+        const firstAction = handler.handle(context, ['suspendUser', 'client-sub', '', 'remoteStatus.admin.client-sub']);
+        const secondAction = handler.handle(context, ['suspendUser', 'client-sub', '', 'remoteStatus.admin.client-sub']);
+
+        expect(authAdmin.suspendUser).toHaveBeenCalledTimes(1);
+        expect(variables.get('remoteStatus.admin.client-sub.state')).toBe('loading');
+
+        await secondAction;
+        resolveAction({ ok: true });
+        await firstAction;
+
+        expect(variables.get('remoteStatus.admin.client-sub.state')).toBe('success');
+    });
 });
