@@ -69,6 +69,20 @@ export class LoadingCurtainService {
         this.setSafeCssVar(element, '--zlp-boot-accent', config.accent);
     }
 
+    setStatus(status: { readonly title?: string; readonly subtitle?: string }): void {
+        if (!this.isBrowser) return;
+
+        const element = this.findCurtain();
+        if (!element) return;
+
+        element.hidden = false;
+        element.setAttribute('aria-busy', 'true');
+        element.removeAttribute('aria-hidden');
+        element.classList.remove('zlp-boot-curtain--leaving');
+        this.setText('[data-zlp-boot-title]', status.title || this.resolveTitle());
+        this.setText('[data-zlp-boot-subtitle]', status.subtitle || DEFAULT_SUBTITLE);
+    }
+
     hideWhenReady(_reason = 'ready'): void {
         if (!this.isBrowser) return;
 

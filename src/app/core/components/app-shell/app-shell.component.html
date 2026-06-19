@@ -3,6 +3,20 @@
   <span class="zlp-route-transition__bar" aria-hidden="true"></span>
 </div>
 }
+@if (privateRouteLoading().active) {
+<section
+  class="zlp-private-route-loading"
+  role="status"
+  aria-live="polite"
+  aria-busy="true"
+>
+  <div class="zlp-private-route-loading__panel">
+    <app-loading-spinner size="md"></app-loading-spinner>
+    <strong class="zlp-private-route-loading__title">{{ privateRouteLoadingTitle() }}</strong>
+    <span class="zlp-private-route-loading__message">{{ privateRouteLoadingMessage() }}</span>
+  </div>
+</section>
+}
 <wrapper-orchestrator [componentsIds]="rootComponentsIds()"></wrapper-orchestrator>
 @if (showClientOnlyHosts) {
 <generic-toast-host (analyticsEvent)="handleAnalyticsEvent($event)"></generic-toast-host>

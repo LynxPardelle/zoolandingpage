@@ -942,6 +942,107 @@ describe('RuntimeService', () => {
         }));
     });
 
+    it('exposes private-route loading while server-cookie auth and initial data sources settle', async () => {
+        const service = TestBed.inject(RuntimeService);
+        const privateRouteLoading = () => (service as any).privateRouteLoading?.();
+        let resolveMe!: () => void;
+        let resolveDataSources!: () => void;
+        const meResponse = new Promise<Response>((resolve) => {
+            resolveMe = () => resolve(new Response(JSON.stringify({
+                ok: true,
+                account: {
+                    subject: 'client-sub',
+                    roles: ['zoosite-client'],
+                    enabled: true,
+                },
+            }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            }));
+        });
+        const dataSourcesLoaded = new Promise<void>((resolve) => {
+            resolveDataSources = resolve;
+        });
+        runtimeDataSourcesStart.and.returnValue(dataSourcesLoaded);
+        spyOn(window, 'fetch').and.returnValue(meResponse);
+        const authAdminDataSources = [
+            {
+                id: 'auth-account',
+                kind: 'auth-admin',
+                authAdminSource: 'account',
+                target: 'remote.auth.account',
+                pageIds: ['mi-cuenta'],
+            },
+        ];
+        loadSiteConfig.and.resolveTo({
+            version: 1,
+            domain: 'pamelabetancourt.com',
+            defaultPageId: 'home',
+            routes: [
+                {
+                    path: '/mi-cuenta',
+                    pageId: 'mi-cuenta',
+                    auth: {
+                        required: true,
+                        allowedGroups: ['zoosite-client'],
+                        redirectTo: '/acceso',
+                    },
+                },
+            ],
+            runtime: {
+                auth: {
+                    enabled: true,
+                    authProfileId: 'staff',
+                    provider: 'cognito',
+                    issuer: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_PREVIEW',
+                    clientId: 'public-web-client',
+                    hostedUiDomain: 'https://preview.auth.us-east-1.amazoncognito.com',
+                    scopes: ['openid'],
+                    redirectPath: '/auth/callback',
+                    logoutPath: '/acceso',
+                    loginPath: '/acceso',
+                    session: {
+                        mode: 'server-cookie',
+                        mePath: '/auth/session/me',
+                    },
+                },
+                dataSources: authAdminDataSources,
+            },
+            site: {},
+        } as any);
+
+        setRuntimeUrl('/mi-cuenta?draftDomain=pamelabetancourt.com');
+        const initialize = service.initialize('es');
+        for (let attempt = 0; attempt < 8 && !(window.fetch as jasmine.Spy).calls.any(); attempt++) {
+            await flushPostBootstrapBrowserWork();
+        }
+
+        expect(privateRouteLoading()).toEqual({
+            active: true,
+            phase: 'session',
+        });
+
+        resolveMe();
+        for (let attempt = 0; attempt < 8 && !runtimeDataSourcesStart.calls.any(); attempt++) {
+            await flushPostBootstrapBrowserWork();
+        }
+
+        expect(privateRouteLoading()).toEqual({
+            active: true,
+            phase: 'content',
+        });
+        expect(service.rootComponentsIds()).toEqual([]);
+
+        resolveDataSources();
+        await initialize;
+
+        expect(privateRouteLoading()).toEqual({
+            active: false,
+            phase: null,
+        });
+        expect(service.rootComponentsIds()).toEqual(['mi-cuenta-root']);
+    });
+
     it('marks runtime data sources loading before refreshing after client navigation', async () => {
         const service = TestBed.inject(RuntimeService);
         const host = document.createElement('div');

@@ -39,9 +39,12 @@ Future implementations should model each feature with a server-only descriptor, 
       "ownership": {
         "domain": "example.com",
         "tenantId": "tenant-example",
-        "isolationBoundary": "auth-profile"
+        "isolationBoundary": "auth-profile",
+        "environmentClaim": "custom:zlp_env"
       },
       "access": {
+        "model": "groups-to-roles",
+        "defaultDecision": "deny",
         "roles": [
           {
             "id": "reader",
@@ -51,7 +54,7 @@ Future implementations should model each feature with a server-only descriptor, 
           {
             "id": "editor",
             "groups": ["admin"],
-            "permissions": ["blog:post:read", "blog:post:write"]
+            "permissions": ["blog:post:read", "blog:post:write", "upload:image:write"]
           }
         ]
       },
@@ -64,12 +67,25 @@ Future implementations should model each feature with a server-only descriptor, 
             "partitionKeyPrefix": "TENANT#{tenantId}",
             "sortKeyPrefixes": ["POST#", "AUTHOR#"]
           }
+        ],
+        "objectStores": [
+          {
+            "logicalName": "postImages",
+            "isolation": "per-auth-profile-prefix",
+            "bucketNamePattern": "zlp-{stage}-protected-assets",
+            "keyPrefix": "TENANT#{tenantId}/FEATURE#{featureId}/",
+            "signedUrlPolicy": {
+              "maxTtlSeconds": 300,
+              "allowedMethods": ["PUT", "GET"]
+            }
+          }
         ]
       },
       "endpoints": {
         "bff": {
           "basePath": "/features/client-blog",
-          "sessionMode": "server-cookie"
+          "sessionMode": "server-cookie",
+          "csrfHeaderName": "X-ZLP-CSRF"
         },
         "apis": [
           {
@@ -77,17 +93,83 @@ Future implementations should model each feature with a server-only descriptor, 
             "method": "GET",
             "path": "/features/client-blog/posts",
             "lambdaId": "clientBlogRead",
-            "authorizer": "bff-session"
+            "authorizer": {
+              "mode": "bff-session",
+              "requireFreshAccountState": true
+            }
+          },
+          {
+            "id": "createPost",
+            "method": "POST",
+            "path": "/features/client-blog/posts",
+            "lambdaId": "clientBlogWrite",
+            "authorizer": {
+              "mode": "auth-profile-jwt",
+              "allowedTokenUses": ["access"],
+              "requireTenantClaim": true,
+              "requireEnvironmentClaim": true
+            }
           }
         ]
+      },
+      "runtimeBindings": {
+        "routes": [
+          {
+            "path": "/blog/admin",
+            "pageId": "blog-admin",
+            "authRequired": true,
+            "dataSourceIds": ["blogPosts"],
+            "apiActionIds": ["createPost"]
+          }
+        ],
+        "dataSources": [
+          {
+            "id": "blogPosts",
+            "kind": "auth-admin",
+            "target": "remote.blog.posts"
+          }
+        ],
+        "apiActions": [
+          {
+            "id": "createPost",
+            "kind": "auth-admin"
+          }
+        ]
+      },
+      "draftConfigurability": {
+        "enabled": true,
+        "allowedPublicFields": ["routes", "runtime.dataSources", "runtime.apiActions", "components"],
+        "forbiddenPublicFields": ["tenantId", "tableNamePattern", "bucketNamePattern", "lambdaId", "authorizer"]
       },
       "audit": {
         "required": true,
         "sink": "dynamodb",
-        "eventTypes": ["blog.post.read", "blog.post.write"]
+        "eventTypes": [
+          {
+            "name": "blog.post.write",
+            "decisions": ["allowed", "denied"],
+            "includeRequestId": true
+          }
+        ]
       },
       "errors": {
-        "format": "zlp-protected-feature-error-v1"
+        "format": "zlp-protected-feature-error-v1",
+        "response": {
+          "wrapper": "error",
+          "fields": ["code", "message", "requestId", "retryable"]
+        }
+      },
+      "serverOnly": {
+        "exposure": "server-only",
+        "forbiddenBrowserKeys": [
+          "tenantId",
+          "credentialRef",
+          "clientSecret",
+          "accessToken",
+          "refreshToken",
+          "tableNamePattern",
+          "bucketNamePattern"
+        ]
       },
       "rollout": {
         "promotion": "dev-test-prod",
@@ -126,6 +208,8 @@ Protected features inherit identity policy from `server/auth-profile-registry.js
 
 Use groups from the server-only auth profile as the bridge to feature roles:
 
+- `access.model` declares the server-side authorization model: `groups-to-roles`, `owner-or-role`, or `admin-only`.
+- `access.defaultDecision` must stay `deny`; allow decisions come only from matched server-side policy.
 - `roles[].id` is feature-local and should describe product capability, not Cognito implementation.
 - `roles[].groups` must be a subset of the profile `allowedGroups` or narrower admin policy.
 - `roles[].permissions` should be action-scoped strings such as `blog:post:read`, `analytics:report:read`, or `settings:draft:write`.
@@ -171,6 +255,24 @@ SK = FEATURE#{featureId}#...
 
 Do not let the browser choose table names, tenant IDs, partition keys, or upstream DynamoDB expressions.
 
+## Object Storage Isolation
+
+Protected uploads use the same owner boundary as protected records. The protected feature descriptor may declare `resources.objectStores[]`, but browser config may only reference public upload actions or data sources.
+
+Allowed object storage modes:
+
+- `per-draft-bucket`: one bucket per canonical draft domain and stage.
+- `per-auth-profile-prefix`: one shared protected-assets bucket with a stage/domain/profile prefix; this is the default for Blog MVP image uploads.
+- `shared-bucket-with-tenant-prefix`: allowed only when a platform service needs shared storage and every access path enforces tenant-prefixed keys.
+
+Use key prefixes shaped like:
+
+```text
+TENANT#{tenantId}/FEATURE#{featureId}/...
+```
+
+Signed URL policy is server-only. Public draft config must not contain bucket names, key prefixes, signed URL TTLs, credentials, or direct S3 policy.
+
 ## API, Lambda, And BFF Endpoints
 
 Protected feature endpoints should stay same-origin from the browser:
@@ -181,12 +283,35 @@ Protected feature endpoints should stay same-origin from the browser:
 - Do not add broad `/auth/*` or `/features/*` front-door routers that can swallow Angular routes or unrelated services.
 - Prefer separate Lambdas by protected feature or feature family when IAM, scaling, or blast radius differs.
 - Lambda environment and IAM policy must be stage-scoped and tenant/resource scoped; no Lambda should get wildcard data access for all drafts unless it is an explicitly reviewed platform service.
+- Endpoint `authorizer` is an object policy, not only a string. `mode: "bff-session"` must revalidate the HttpOnly session and should use fresh account state for admin or mutating actions. `mode: "auth-profile-jwt"` must declare token-use and tenant/environment claim expectations in the server-only descriptor.
 
 Browser config may reference endpoints only through existing safe surfaces:
 
 - `site-config.json.runtime.dataSources[]` with `kind: "auth-admin"` or `kind: "api-proxy"`.
 - `site-config.json.runtime.apiActions[]` with `kind: "auth-admin"` or `kind: "api-proxy"`.
 - Public route `auth.required` and `allowedGroups` for UX gating.
+
+## Route And Runtime Binding
+
+`runtimeBindings` records the intended public surfaces without copying server policy into browser config:
+
+- `routes[]` declares the public route path, page ID, and whether the route must be auth-gated in `site-config.json`.
+- `dataSources[]` declares public runtime data-source IDs, kind, and target variable path.
+- `apiActions[]` declares public runtime action IDs and kind.
+
+These bindings are a contract check between server-only feature policy and public draft config. They do not authorize access. Handlers still resolve `domain + authProfileId + tenantId` server-side before returning data or mutating state.
+
+## Draft Configurability
+
+Protected features may expose configurable public UI only through `draftConfigurability.allowedPublicFields`, such as routes, components, `runtime.dataSources`, and `runtime.apiActions`.
+
+Fields listed in `forbiddenPublicFields` must never move into draft browser payloads. At minimum, keep these server-only:
+
+- tenant IDs and claims
+- table and bucket patterns
+- partition/key prefixes
+- Lambda IDs and authorizer policy
+- credential references, secrets, tokens, signed URL policy, and upstream URLs
 
 ## Audit Log
 
@@ -240,6 +365,18 @@ Use stable safe codes:
 
 Messages may be localized in draft UI. Error bodies must not echo raw backend exceptions, Cognito sessions, tokens, cookies, credentials, table names when sensitive, or policy internals.
 
+The schema-level error policy requires the response wrapper and safe field list:
+
+```json
+{
+  "format": "zlp-protected-feature-error-v1",
+  "response": {
+    "wrapper": "error",
+    "fields": ["code", "message", "requestId", "retryable"]
+  }
+}
+```
+
 ## Public Vs Server-Only Boundaries
 
 Public draft config may contain:
@@ -262,6 +399,19 @@ Server-only config must contain:
 - upstream URLs, credentials, secret refs, signed URL policy, and raw error mappings
 
 If a field can grant access, select a tenant, choose a table, choose an upstream URL, or reveal credentials, it is server-only.
+
+Every descriptor must also declare:
+
+```json
+{
+  "serverOnly": {
+    "exposure": "server-only",
+    "forbiddenBrowserKeys": ["tenantId", "credentialRef", "clientSecret"]
+  }
+}
+```
+
+This is redundant by design. It makes the boundary testable before future packaging or deployment tooling exists.
 
 ## Rollout Flow
 
@@ -287,7 +437,9 @@ Current minimum local checks for this contract:
 node --test tools/tests/server-config-schema.spec.mjs tools/tests/auth-profile-registry.spec.mjs tools/tests/site-config-schema.spec.mjs
 ```
 
-Future implementations should add real schema validation for `server/protected-features.json` before packaging, plus feature-specific BFF/API tests that prove:
+`tools/tests/server-config-schema.spec.mjs` validates the core protected feature example against `protected-features.schema.json` and rejects public/server-only leakage in `runtimeBindings` and `serverOnly`.
+
+Future implementations should add packaging-time schema validation for real `server/protected-features.json` files, plus feature-specific BFF/API tests that prove:
 
 - public draft payloads contain no server-only protected feature policy
 - unauthorized users cannot read private data
