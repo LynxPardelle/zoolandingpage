@@ -206,6 +206,54 @@ describe('WrapperOrchestrator', () => {
     expect(fixture.nativeElement.innerHTML).not.toContain(encodedValue);
   });
 
+  it('recognizes authored content-builder primitives instead of the unknown component fallback', () => {
+    componentsById = {
+      cellPreview: {
+        id: 'cellPreview',
+        type: 'generic-cell',
+        config: {
+          value: 'Publicado',
+          format: 'text',
+        },
+      } as never,
+      assetDropzone: {
+        id: 'assetDropzone',
+        type: 'generic-file-dropzone',
+        config: {
+          fieldId: 'assets',
+          label: 'Archivos',
+          dropLabel: 'Arrastra archivos',
+        },
+      } as never,
+      adminTable: {
+        id: 'adminTable',
+        type: 'generic-table',
+        config: {
+          columns: [{ id: 'title', header: 'Título' }],
+          rows: [{ title: 'Artículo' }],
+        },
+      } as never,
+      bodyEditor: {
+        id: 'bodyEditor',
+        type: 'generic-rich-text',
+        config: {
+          fieldId: 'body',
+          provider: 'textarea',
+          format: 'markdown',
+          label: 'Contenido',
+        },
+      } as never,
+    };
+
+    fixture.componentRef.setInput('componentsIds', ['cellPreview', 'assetDropzone', 'adminTable', 'bodyEditor']);
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('Publicado');
+    expect(text).toContain('Archivos');
+    expect(text).not.toContain('unknown');
+  });
+
   it('offers child value changes to an interaction scope auto-submit hook after dispatching the event', () => {
     const autoSubmitInteractionScope = jasmine.createSpy('autoSubmitInteractionScope');
     const scopeHost = {

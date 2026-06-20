@@ -36,9 +36,10 @@ The draft filesystem under `drafts/{domain}/...`, served locally at `/drafts/...
 - Actions through `eventInstructions`.
 - Visibility logic through `condition`.
 - Repeated structures through `loopConfig`.
-- Runtime API data sources through `site-config.json.runtime.dataSources` and server-only integration policy.
+- Runtime API data sources and actions through `site-config.json.runtime.dataSources` / `runtime.apiActions`, including `kind: "content-hub"` bindings for content hub reads and mutations.
 - Optional draft auth through browser-safe `site-config.json.runtime.auth` plus server-only auth profile registry policy.
 - Server-only protected feature descriptors for blogs, dashboards, analytics, config, uploads, and other authenticated draft capabilities.
+- Content hubs and blog articles as draft-like packages with public runtime references, server-only hub policy, taxonomy overrides, SEO-ready published bundles, and validation reports.
 - Shared domain defaults plus page-level overrides.
 - Locale-aware content and metadata.
 - Draft-owned appearance through `angora-combos.json`, theme palettes, and payload-owned classes.
@@ -54,6 +55,7 @@ The draft filesystem under `drafts/{domain}/...`, served locally at `/drafts/...
 - `server/auth-profile-registry.json`: server-only auth profile registry for tenant/auth policy.
 - `server/integrations.json`: server-only proxy integration policy, upstream credential references, and user access gates.
 - `server/protected-features.json`: server-only protected feature ownership, roles, resources, endpoints, audit, error, and rollout policy.
+- `content-hubs/{environment}/{hubId}/...`: draft-like article package files, revision snapshots/deltas, published bundles, taxonomy files, validation reports, feeds, and media manifests.
 
 ## Start here
 
@@ -72,8 +74,10 @@ The draft filesystem under `drafts/{domain}/...`, served locally at `/drafts/...
 - [15-runtime-api-proxy-data-sources.md](15-runtime-api-proxy-data-sources.md)
 - [16-google-ads-search-console-seo.md](16-google-ads-search-console-seo.md)
 - [17-auth-profile-registry.md](17-auth-profile-registry.md)
+- [18-content-hub-article-packages.md](18-content-hub-article-packages.md)
 - [18-draft-auth-audit-matrix.md](18-draft-auth-audit-matrix.md)
 - [19-protected-feature-contract.md](19-protected-feature-contract.md)
+- [20-generic-content-builder-primitives.md](20-generic-content-builder-primitives.md)
 
 ## Practical rule for new contributors
 
@@ -84,11 +88,13 @@ If you are trying to change behavior and you do not know whether to edit code or
 3. Is this rendered structure or component styling? Edit `components.json` and possibly `angora-combos.json`.
 4. Is this content or site/page data? Edit `variables.json` or `i18n/*.json`.
 5. Is this browser-safe runtime API wiring? Edit `site-config.json.runtime.dataSources` or `site-config.json.runtime.apiActions`.
-6. Is this an upstream URL, method, credential reference, or response allowlist? Edit `server/integrations.json`.
-7. Is this public auth metadata? Edit `site-config.json.runtime.auth`.
-8. Is this tenant ownership, Cognito provisioning, groups policy, callback allowlists, or social IdP credentials? Keep it server-only in an Auth Profile Registry.
-9. Is this protected feature ownership, DynamoDB isolation, Lambda/BFF routing, audit policy, or protected error contract? Keep it server-only in a protected feature descriptor.
-10. Is this binary media? Upload it through the image-upload flow and store the returned `publicUrl` in payloads.
+6. Is this content hub read/mutation wiring? Use `kind: "content-hub"` with a browser-safe `contentHub` binding and keep server policy out of draft payloads.
+7. Is this an upstream URL, method, credential reference, or response allowlist? Edit `server/integrations.json`.
+8. Is this public auth metadata? Edit `site-config.json.runtime.auth`.
+9. Is this tenant ownership, Cognito provisioning, groups policy, callback allowlists, or social IdP credentials? Keep it server-only in an Auth Profile Registry.
+10. Is this protected feature ownership, DynamoDB isolation, Lambda/BFF routing, audit policy, or protected error contract? Keep it server-only in a protected feature descriptor.
+11. Is this blog/content-hub article content? Store large draft-like article package files in S3-compatible content hub package layout and keep small indexes/metadata in DynamoDB.
+12. Is this binary media? Upload it through the approved media/upload flow and store only safe public URLs or media manifest references in payloads.
 
 ## Schemas
 
@@ -101,6 +107,12 @@ If you are trying to change behavior and you do not know whether to edit code or
 - [schemas/auth-profile-registry.schema.json](schemas/auth-profile-registry.schema.json)
 - [schemas/integrations.schema.json](schemas/integrations.schema.json)
 - [schemas/protected-features.schema.json](schemas/protected-features.schema.json)
+- [schemas/content-hub-public.schema.json](schemas/content-hub-public.schema.json)
+- [schemas/content-hub-article-package.schema.json](schemas/content-hub-article-package.schema.json)
+- [schemas/content-hub-published-bundle.schema.json](schemas/content-hub-published-bundle.schema.json)
+- [schemas/content-hub-server-policy.schema.json](schemas/content-hub-server-policy.schema.json)
+- [schemas/content-hub-taxonomy.schema.json](schemas/content-hub-taxonomy.schema.json)
+- [schemas/content-hub-publish-validation.schema.json](schemas/content-hub-publish-validation.schema.json)
 
 ## Related docs
 

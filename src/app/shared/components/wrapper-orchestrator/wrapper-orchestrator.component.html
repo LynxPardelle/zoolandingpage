@@ -98,6 +98,98 @@
     })
   "
 ></generic-card>
+} @case('generic-cell') {
+<generic-cell
+  [config]="$any(genericCellConfig(component))"
+  [column]="genericCellColumnConfig(component)"
+  [row]="resolveValue(component.config.row)"
+  [value]="resolveValue(component.config.value)"
+  [hostContext]="effectiveHost()"
+></generic-cell>
+} @case('generic-file-dropzone') {
+<generic-file-dropzone
+  [config]="$any(genericFileDropzoneConfig(component))"
+  (valueChanged)="
+    eventEmitted({
+      component: component.id,
+      meta_title: component.meta_title,
+      eventName: 'valueChanged',
+      eventData: $event,
+      eventInstructions: component.eventInstructions
+    })
+  "
+  (rejectedFiles)="
+    eventEmitted({
+      component: component.id,
+      meta_title: component.meta_title,
+      eventName: 'rejectedFiles',
+      eventData: $event,
+      eventInstructions: component.eventInstructions
+    })
+  "
+></generic-file-dropzone>
+} @case('generic-rich-text') {
+@defer (on viewport) {
+  <generic-rich-text
+    [config]="$any(genericRichTextConfig(component))"
+    (valueChanged)="
+      eventEmitted({
+        component: component.id,
+        meta_title: component.meta_title,
+        eventName: 'valueChanged',
+        eventData: $event,
+        eventInstructions: component.eventInstructions
+      })
+    "
+    (blurred)="
+      eventEmitted({
+        component: component.id,
+        meta_title: component.meta_title,
+        eventName: 'blurred',
+        eventData: $event,
+        eventInstructions: component.eventInstructions
+      })
+    "
+  ></generic-rich-text>
+} @placeholder {
+  <span aria-hidden="true"></span>
+}
+} @case('generic-table') {
+@defer (on viewport) {
+  <generic-table
+    [config]="$any(genericTableConfig(component))"
+    [hostContext]="effectiveHost()"
+    (rowClicked)="
+      eventEmitted({
+        component: component.id,
+        meta_title: component.meta_title,
+        eventName: 'rowClicked',
+        eventData: $event,
+        eventInstructions: component.eventInstructions
+      })
+    "
+    (rowAction)="
+      eventEmitted({
+        component: component.id,
+        meta_title: component.meta_title,
+        eventName: 'rowAction',
+        eventData: $event,
+        eventInstructions: component.eventInstructions
+      })
+    "
+    (selectionChanged)="
+      eventEmitted({
+        component: component.id,
+        meta_title: component.meta_title,
+        eventName: 'selectionChanged',
+        eventData: $event,
+        eventInstructions: component.eventInstructions
+      })
+    "
+  ></generic-table>
+} @placeholder {
+  <span aria-hidden="true"></span>
+}
 } @case('input') {
 <generic-input
   [config]="component.config"
