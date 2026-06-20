@@ -576,6 +576,59 @@ describe('RuntimeService', () => {
         expect(analyticsTrack.calls.count()).toBe(1);
     });
 
+    it('tracks a content hub view event for configured article routes', async () => {
+        spyOnProperty(navigator, 'userAgent', 'get').and.returnValue('Mozilla/5.0 Chrome/147.0.0.0 Safari/537.36');
+        spyOnProperty(navigator, 'webdriver', 'get').and.returnValue(false);
+        const service = TestBed.inject(RuntimeService);
+        loadSiteConfig.and.resolveTo({
+            version: 1,
+            domain: 'zoositioweb.com.mx',
+            defaultPageId: 'home',
+            routes: [
+                { path: '/blog/web/blog-builder-seo', pageId: 'blog-article' },
+                { path: '/blog/:categorySlug/:articleSlug', pageId: 'blog-article' },
+            ],
+            runtime: {
+                contentHubs: [
+                    {
+                        hubId: 'zoosite-main',
+                        ownerDraftDomain: 'zoositioweb.com.mx',
+                        source: 'primary',
+                        routeBasePath: '/blog',
+                        listPath: '/blog',
+                        articlePathPattern: '/blog/:categorySlug/:articleSlug',
+                        defaultLocale: 'es',
+                        locales: ['es'],
+                        canonicalMode: 'host-adaptive',
+                        analyticsContext: {
+                            contentGroup: 'blog',
+                            eventPrefix: 'blog',
+                            piiPolicy: 'no-pii',
+                        },
+                    },
+                ],
+            },
+        } as any);
+
+        setRuntimeUrl('/blog/web/blog-builder-seo?draftDomain=zoositioweb.com.mx&lang=es');
+        await service.initialize('es');
+        await flushPostBootstrapBrowserWork();
+
+        expect(analyticsTrack).toHaveBeenCalledWith('blog_view', {
+            category: AnalyticsCategories.Engagement,
+            label: '/blog/web/blog-builder-seo',
+            meta: {
+                hubId: 'zoosite-main',
+                contentGroup: 'blog',
+                path: '/blog/web/blog-builder-seo',
+                params: {
+                    articleSlug: 'blog-builder-seo',
+                    categorySlug: 'web',
+                },
+            },
+        });
+    });
+
     it('does not repeat the initial browser bootstrap when connect follows an app initializer', async () => {
         const service = TestBed.inject(RuntimeService);
         const host = document.createElement('div');

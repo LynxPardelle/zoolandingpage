@@ -8,6 +8,7 @@ import compression from 'compression';
 import express from 'express';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { matchDraftRoute, normalizeDraftRoutePath } from '@/app/shared/utility/route-matching/draft-route-matching';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
 const DRAFTS_FOLDER_NAME = 'drafts';
@@ -543,12 +544,7 @@ function escapeScriptJson(value: unknown): string {
 }
 
 function normalizeRoutePath(value: unknown): string {
-  const raw = String(value ?? '').trim();
-  if (!raw || raw === '/') {
-    return '/';
-  }
-
-  return raw.startsWith('/') ? raw : `/${raw}`;
+  return normalizeDraftRoutePath(value);
 }
 
 function buildRuntimeBundleUrl(baseUrl: string, domain: string, routePath: string, environment?: string): string {
@@ -983,7 +979,7 @@ function resolveLocalRoute(siteConfig: TLocalSiteConfig | null, path: string, pa
     return routes.find((route) => String(route.pageId ?? '').trim() === normalizedPageId);
   }
 
-  return routes.find((route) => normalizeRoutePath(route.path) === normalizedPath);
+  return matchDraftRoute(routes, normalizedPath)?.route;
 }
 
 function resolveLocalRuntimePageId(siteConfig: TLocalSiteConfig | null, path: string, pageId?: string): string {
