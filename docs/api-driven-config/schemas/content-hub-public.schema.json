@@ -1,0 +1,84 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ContentHubPublicConfig",
+  "type": "object",
+  "required": ["version", "hubs"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": 1 },
+    "hubs": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/publicHub" }
+    }
+  },
+  "definitions": {
+    "safeId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 96,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "domainName": {
+      "type": "string",
+      "minLength": 4,
+      "maxLength": 253,
+      "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$"
+    },
+    "sameOriginPath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^/(?!/)(?!.*[\\\\\\s\\u0000-\\u001F\\u007F])[^\\\\\\s\\u0000-\\u001F\\u007F]*$"
+    },
+    "locale": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 16,
+      "pattern": "^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$"
+    },
+    "analyticsContext": {
+      "type": "object",
+      "required": ["contentGroup", "eventPrefix"],
+      "additionalProperties": false,
+      "properties": {
+        "contentGroup": { "$ref": "#/definitions/safeId" },
+        "eventPrefix": { "$ref": "#/definitions/safeId" },
+        "piiPolicy": { "enum": ["no-pii", "metadata-only"] }
+      }
+    },
+    "publicHub": {
+      "type": "object",
+      "required": [
+        "hubId",
+        "ownerDraftDomain",
+        "source",
+        "routeBasePath",
+        "listPath",
+        "articlePathPattern",
+        "defaultLocale",
+        "locales",
+        "canonicalMode"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "hubId": { "$ref": "#/definitions/safeId" },
+        "ownerDraftDomain": { "$ref": "#/definitions/domainName" },
+        "source": { "enum": ["primary", "authorized"] },
+        "routeBasePath": { "$ref": "#/definitions/sameOriginPath" },
+        "listPath": { "$ref": "#/definitions/sameOriginPath" },
+        "articlePathPattern": { "$ref": "#/definitions/sameOriginPath" },
+        "defaultLocale": { "$ref": "#/definitions/locale" },
+        "locales": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/locale" }
+        },
+        "canonicalMode": { "enum": ["owner-canonical", "host-adaptive", "noindex-shared"] },
+        "runtimeSourceId": { "$ref": "#/definitions/safeId" },
+        "publicApiBasePath": { "$ref": "#/definitions/sameOriginPath" },
+        "analyticsContext": { "$ref": "#/definitions/analyticsContext" }
+      }
+    }
+  }
+}

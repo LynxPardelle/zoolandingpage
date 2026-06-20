@@ -1,0 +1,143 @@
+{
+  "version": 1,
+  "bundleId": "bundle_art_20260620_blog_builder_es",
+  "hubId": "zoosite-main",
+  "articleId": "art_20260620_blog_builder",
+  "ownerDraftDomain": "zoositioweb.com.mx",
+  "renderDomain": "zoositioweb.com.mx",
+  "locale": "es",
+  "path": "/blog/web/blog-builder-seo",
+  "status": "published",
+  "publishedAt": "2026-06-21T15:00:00.000Z",
+  "seo": {
+    "title": "Blog builder visual con SEO desde el inicio",
+    "description": "Cómo Zoosite prepara un blog editable con componentes genéricos, rutas limpias, publicación programada y medición propia.",
+    "canonical": "https://zoositioweb.com.mx/blog/web/blog-builder-seo",
+    "robots": "index,follow"
+  },
+  "structuredData": [
+    {
+      "type": "Article",
+      "json": {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "Blog builder visual con SEO desde el inicio",
+        "inLanguage": "es",
+        "mainEntityOfPage": "https://zoositioweb.com.mx/blog/web/blog-builder-seo"
+      }
+    },
+    {
+      "type": "BreadcrumbList",
+      "json": {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Blog",
+            "item": "https://zoositioweb.com.mx/blog"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Web",
+            "item": "https://zoositioweb.com.mx/blog/web"
+          }
+        ]
+      }
+    }
+  ],
+  "components": {
+    "version": 1,
+    "components": [
+      {
+        "id": "articleRoot",
+        "type": "container",
+        "config": {
+          "components": [
+            "articleTitle",
+            "articleCover",
+            "articleIntro",
+            "articleBody",
+            "articleCta"
+          ],
+          "classes": "ank-minHeight-100vh ank-bg-bgColor ank-color-textColor ank-display-flex ank-flexDirection-column ank-alignItems-center ank-p-24px ank-gap-24px"
+        }
+      },
+      {
+        "id": "articleCover",
+        "type": "image",
+        "config": {
+          "src": "https://assets.zoolandingpage.com.mx/zoolandingpage.com.mx/shared/seo-images/zoolandingpage-zoositioweb-default-logo-card.jpg",
+          "alt": "Vista del editor visual de artículos de Zoosite",
+          "classes": "ank-width-100per ank-maxWidth-920px ank-borderRadius-8px ank-objectFit-cover",
+          "variant": "hero"
+        }
+      },
+      {
+        "id": "articleTitle",
+        "type": "text",
+        "config": {
+          "tag": "h1",
+          "text": "Blog builder visual con SEO desde el inicio",
+          "classes": "ank-m-0 ank-maxWidth-920px ank-fontSize-42px ank-lineHeight-1_08 ank-fontWeight-900 ank-color-titleColor"
+        }
+      },
+      {
+        "id": "articleIntro",
+        "type": "text",
+        "config": {
+          "tag": "p",
+          "text": "Este artículo semilla prueba el flujo sin AWS real: se crea un paquete, se valida, se publica como bundle público y se lee desde una ruta SEO.",
+          "classes": "ank-width-100per ank-maxWidth-760px ank-m-0 ank-fontSize-17px ank-lineHeight-1_7"
+        }
+      },
+      {
+        "id": "articleBody",
+        "type": "text",
+        "config": {
+          "tag": "p",
+          "text": "La estructura mantiene el contenido pesado en archivos tipo draft y deja DynamoDB para metadatos, slugs, taxonomía, programación, revisión y relaciones entre hubs autorizados.",
+          "classes": "ank-width-100per ank-maxWidth-760px ank-m-0 ank-fontSize-17px ank-lineHeight-1_7"
+        }
+      },
+      {
+        "id": "articleCta",
+        "type": "button",
+        "eventInstructions": "trackEvent:blog_cta_click,blog,zoosite-blog-builder-cta,hubId,zoosite-main,articleId,art_20260620_blog_builder,ctaId,primary-consultation",
+        "config": {
+          "label": "Planear mi blog",
+          "href": "/contacto",
+          "classes": "ank-minHeight-48px ank-px-22px ank-borderRadius-8px ank-bg-accentColor ank-color-onSuccessColor ank-fontWeight-900 ank-border-0 ank-cursor-pointer"
+        }
+      }
+    ]
+  },
+  "variables": {
+    "version": 1,
+    "variables": {
+      "article": {
+        "hubId": "zoosite-main",
+        "articleId": "art_20260620_blog_builder",
+        "categorySlug": "web",
+        "slug": "blog-builder-seo",
+        "locale": "es",
+        "contentGroup": "blog"
+      }
+    }
+  },
+  "i18n": {
+    "version": 1,
+    "lang": "es",
+    "dictionary": {
+      "article.title": "Blog builder visual con SEO desde el inicio",
+      "article.cta": "Planear mi blog"
+    }
+  },
+  "analytics": {
+    "contentGroup": "blog",
+    "eventPrefix": "blog",
+    "piiPolicy": "no-pii"
+  }
+}

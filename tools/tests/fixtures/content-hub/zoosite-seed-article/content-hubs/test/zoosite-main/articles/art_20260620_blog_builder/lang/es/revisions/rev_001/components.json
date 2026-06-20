@@ -1,0 +1,100 @@
+{
+  "version": 1,
+  "domain": "zoositioweb.com.mx",
+  "pageId": "blog-article",
+  "components": [
+    {
+      "id": "articleRoot",
+      "type": "container",
+      "config": {
+        "tag": "main",
+        "classes": "ank-minHeight-100vh ank-bg-bgColor ank-color-textColor ank-display-flex ank-flexDirection-column ank-alignItems-center ank-p-24px ank-gap-24px",
+        "components": [
+          "articleHeader",
+          "articleCover",
+          "articleIntro",
+          "articleBody",
+          "articleCta"
+        ]
+      }
+    },
+    {
+      "id": "articleHeader",
+      "type": "container",
+      "config": {
+        "tag": "header",
+        "classes": "ank-width-100per ank-maxWidth-920px ank-display-flex ank-flexDirection-column ank-gap-12px",
+        "components": [
+          "articleEyebrow",
+          "articleTitle",
+          "articleSummary"
+        ]
+      }
+    },
+    {
+      "id": "articleEyebrow",
+      "type": "text",
+      "config": {
+        "tag": "p",
+        "text": "Zoosite blog",
+        "classes": "ank-m-0 ank-fontSize-13px ank-fontWeight-800 ank-textTransform-uppercase ank-color-accentColor"
+      }
+    },
+    {
+      "id": "articleTitle",
+      "type": "text",
+      "config": {
+        "tag": "h1",
+        "text": "Blog builder visual con SEO desde el inicio",
+        "classes": "ank-m-0 ank-fontSize-42px ank-lineHeight-1_08 ank-fontWeight-900 ank-color-titleColor"
+      }
+    },
+    {
+      "id": "articleSummary",
+      "type": "text",
+      "config": {
+        "tag": "p",
+        "text": "El content hub guarda artículos como paquetes de componentes genéricos, con SEO, taxonomía, programación y analítica desde la primera versión.",
+        "classes": "ank-m-0 ank-fontSize-18px ank-lineHeight-1_6 ank-color-secondaryTextColor"
+      }
+    },
+    {
+      "id": "articleCover",
+      "type": "image",
+      "config": {
+        "src": "https://assets.zoolandingpage.com.mx/zoolandingpage.com.mx/shared/seo-images/zoolandingpage-zoositioweb-default-logo-card.jpg",
+        "alt": "Vista del editor visual de artículos de Zoosite",
+        "classes": "ank-width-100per ank-maxWidth-920px ank-borderRadius-8px ank-objectFit-cover",
+        "variant": "hero"
+      }
+    },
+    {
+      "id": "articleIntro",
+      "type": "text",
+      "config": {
+        "tag": "p",
+        "text": "Este artículo semilla prueba el flujo sin AWS real: se crea un paquete, se valida, se publica como bundle público y se lee desde una ruta SEO.",
+        "classes": "ank-width-100per ank-maxWidth-760px ank-m-0 ank-fontSize-17px ank-lineHeight-1_7"
+      }
+    },
+    {
+      "id": "articleBody",
+      "type": "text",
+      "config": {
+        "tag": "p",
+        "text": "La estructura mantiene el contenido pesado en archivos tipo draft y deja DynamoDB para metadatos, slugs, taxonomía, programación, revisión y relaciones entre hubs autorizados.",
+        "classes": "ank-width-100per ank-maxWidth-760px ank-m-0 ank-fontSize-17px ank-lineHeight-1_7"
+      }
+    },
+    {
+      "id": "articleCta",
+      "type": "button",
+      "eventInstructions": "trackEvent:blog_cta_click,blog,zoosite-blog-builder-cta,hubId,zoosite-main,articleId,art_20260620_blog_builder,ctaId,primary-consultation",
+      "config": {
+        "label": "Planear mi blog",
+        "href": "/contacto",
+        "classes": "ank-minHeight-48px ank-px-22px ank-borderRadius-8px ank-bg-accentColor ank-color-onSuccessColor ank-fontWeight-900 ank-border-0 ank-cursor-pointer"
+      }
+    }
+  ]
+}

@@ -63,6 +63,55 @@ test('site-config schema supports auth-admin data sources with single-item accou
     assert.equal(dataSource.properties.clearTargetOnLoad.type, 'boolean');
 });
 
+test('site-config schema exposes content hub data source and action contracts without server-only fields', async () => {
+    const schema = JSON.parse(await readFile(schemaPath, 'utf8'));
+    const dataSource = schema.definitions?.runtimeDataSource;
+    const apiAction = schema.definitions?.runtimeApiAction;
+    const contentHubRead = schema.definitions?.contentHubRuntimeReadBinding;
+    const contentHubAction = schema.definitions?.contentHubRuntimeActionBinding;
+    const safeRuntimeInputFieldName = schema.definitions?.safeRuntimeInputFieldName;
+
+    assert.ok(dataSource.properties.kind.enum.includes('content-hub'));
+    assert.equal(dataSource.properties.contentHub.$ref, '#/definitions/contentHubRuntimeReadBinding');
+    assert.equal(dataSource.allOf[0].then.properties.proxySourceId.$ref, '#/definitions/contentHubSafeId');
+    assert.deepEqual(contentHubRead.properties.read.enum, [
+        'articleList',
+        'taxonomyList',
+        'moderationQueue',
+        'assetList',
+        'revisionList',
+        'publicBundlePreview',
+    ]);
+    assert.equal(contentHubRead.properties.credentialRef, undefined);
+    assert.equal(contentHubRead.properties.serverPolicy, undefined);
+
+    assert.ok(apiAction.properties.kind.enum.includes('content-hub'));
+    assert.equal(apiAction.properties.contentHub.$ref, '#/definitions/contentHubRuntimeActionBinding');
+    assert.equal(apiAction.allOf[0].then.properties.proxyActionId.$ref, '#/definitions/contentHubSafeId');
+    assert.deepEqual(contentHubAction.properties.action.enum, [
+        'createArticle',
+        'updatePackage',
+        'uploadAsset',
+        'validate',
+        'submitReview',
+        'publish',
+        'schedule',
+        'moderateComment',
+        'restoreRevision',
+    ]);
+    assert.equal(contentHubAction.properties.credentialRef, undefined);
+    assert.equal(contentHubAction.properties.serverPolicy, undefined);
+
+    assert.equal(schema.definitions.safeRuntimeInputObject.additionalProperties.$ref, '#/definitions/safeRuntimeInputValue');
+    assert.ok(safeRuntimeInputFieldName.not.enum.includes('accessToken'));
+    assert.ok(safeRuntimeInputFieldName.not.enum.includes('access_token'));
+    assert.ok(safeRuntimeInputFieldName.not.enum.includes('X-Amz-Signature'));
+    const safeFieldPattern = new RegExp(safeRuntimeInputFieldName.pattern);
+    assert.equal(safeFieldPattern.test('articleId'), true);
+    assert.equal(safeFieldPattern.test('accessToken'), false);
+    assert.match(JSON.stringify(schema.definitions.safeRuntimeInputValue), /X-Amz-Signature/);
+});
+
 test('Zoosite auth pilot fixture uses public authRemote and protected account routing without server-only fields', async () => {
     const siteConfig = await readJson(zoositePilotFixturePath);
     const routes = new Map(siteConfig.routes.map(route => [route.path, route]));

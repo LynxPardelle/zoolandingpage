@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "hubId": "zoosite-main",
+  "articleId": "art_20260620_blog_builder",
+  "ownerDraftDomain": "zoositioweb.com.mx",
+  "originDraftDomain": "zoositioweb.com.mx",
+  "status": "scheduled",
+  "visibility": "public",
+  "createdAt": "2026-06-20T07:00:00.000Z",
+  "updatedAt": "2026-06-20T07:45:00.000Z",
+  "scheduledAt": "2026-06-21T15:00:00.000Z",
+  "primaryLocale": "es",
+  "languages": [
+    {
+      "locale": "es",
+      "status": "ready",
+      "slug": "blog-builder-seo",
+      "title": "Blog builder visual con SEO desde el inicio",
+      "summary": "Primer paquete local para validar artículos visuales, rutas SEO, taxonomía, publicación y analítica del content hub.",
+      "packagePointer": {
+        "key": "content-hubs/test/zoosite-main/articles/art_20260620_blog_builder/lang/es/revisions/rev_001/package.json",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bytes": 1700
+      },
+      "latestRevisionId": "rev_001"
+    }
+  ],
+  "taxonomy": {
+    "categories": [
+      "web"
+    ],
+    "tags": [
+      "seo",
+      "builder",
+      "analytics"
+    ]
+  },
+  "seo": {
+    "title": "Blog builder visual con SEO desde el inicio",
+    "description": "Cómo Zoosite prepara un blog editable con componentes genéricos, rutas limpias, publicación programada y medición propia.",
+    "canonicalPath": "/blog/web/blog-builder-seo",
+    "robots": "index,follow",
+    "structuredDataTypes": [
+      "Article",
+      "BreadcrumbList"
+    ]
+  },
+  "media": [
+    {
+      "assetId": "asset_cover",
+      "kind": "image",
+      "publicUrl": "https://assets.zoolandingpage.com.mx/zoolandingpage.com.mx/shared/seo-images/zoolandingpage-zoositioweb-default-logo-card.jpg",
+      "alt": "Vista del editor visual de artículos de Zoosite",
+      "title": "Editor visual de artículos",
+      "caption": "Paquetes de artículo compatibles con componentes genéricos.",
+      "mimeType": "image/jpeg",
+      "bytes": 118400,
+      "width": 1200,
+      "height": 630,
+      "usageRefs": [
+        "articleCover"
+      ]
+    }
+  ],
+  "comments": {
+    "mode": "authenticated",
+    "moderation": "queue"
+  },
+  "interactions": {
+    "reactions": {
+      "enabled": true,
+      "moderation": "spam-check"
+    },
+    "ctas": {
+      "enabled": true,
+      "moderation": "spam-check"
+    },
+    "forms": {
+      "enabled": true,
+      "moderation": "queue"
+    }
+  },
+  "contentSafety": {
+    "sanitizerPolicyId": "trusted-authors",
+    "htmlFreedom": "trusted",
+    "allowedComponentPresetIds": [
+      "article-core",
+      "advanced-author"
+    ]
+  },
+  "analytics": {
+    "contentGroup": "blog",
+    "eventPrefix": "blog",
+    "piiPolicy": "no-pii"
+  },
+  "revisions": [
+    {
+      "revisionId": "rev_001",
+      "kind": "snapshot",
+      "createdAt": "2026-06-20T07:45:00.000Z",
+      "packagePointer": {
+        "key": "content-hubs/test/zoosite-main/articles/art_20260620_blog_builder/lang/es/revisions/rev_001/snapshot.json",
+        "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "bytes": 2400
+      }
+    }
+  ]
+}

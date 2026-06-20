@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "domain": "zoositioweb.com.mx",
+  "pageId": "blog-article",
+  "lang": "es",
+  "dictionary": {
+    "article.title": "Blog builder visual con SEO desde el inicio",
+    "article.summary": "Primer paquete local para validar artículos visuales, rutas SEO, taxonomía, publicación y analítica del content hub.",
+    "article.cta": "Planear mi blog"
+  }
+}
