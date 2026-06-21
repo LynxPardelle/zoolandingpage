@@ -115,6 +115,62 @@ export const navigateToUrlHandler = (): EventHandler => {
     };
 };
 
+export const navigateWithEventDataHandler = (): EventHandler => {
+    return {
+        id: 'navigateWithEventData',
+        handle: (ctx, args) => {
+            const template = String(args?.[0] ?? '').trim();
+            if (!template || typeof window === 'undefined') return;
+
+            const interpolated = interpolateEventDataTemplate(template, ctx.event.eventData);
+            if (!interpolated || !interpolated.startsWith('/') || interpolated.startsWith('//')) return;
+
+            const currentHref = String(args?.[3] ?? '').trim() || undefined;
+            const resolved = resolveNavigationTarget(interpolated, {
+                currentHref,
+                stickyQueryParams: DRAFT_RUNTIME_STICKY_QUERY_PARAMS,
+            });
+            if (!resolved.internal || !resolved.href) return;
+
+            navigateInCurrentWindow(resolved.href, {
+                scrollRestoration: resolveNavigationScrollRestoration(args?.[2]),
+            });
+        },
+    };
+};
+
+function interpolateEventDataTemplate(template: string, eventData: unknown): string | null {
+    let missing = false;
+    const output = template.replace(/\{([^{}]+)\}/g, (_match, token: string) => {
+        const value = resolveEventDataToken(eventData, String(token).trim());
+        if (value == null || value === '') {
+            missing = true;
+            return '';
+        }
+        return encodeURIComponent(String(value));
+    });
+
+    return missing || /\{[^{}]+\}/.test(output) ? null : output;
+}
+
+function resolveEventDataToken(eventData: unknown, token: string): unknown {
+    if (!token) return undefined;
+    if (!isRecord(eventData)) return undefined;
+    if (token in eventData) return eventData[token];
+
+    const rowData = eventData['rowData'];
+    if (!isRecord(rowData)) return undefined;
+
+    const rowPath = token.startsWith('rowData.') ? token.slice('rowData.'.length) : token;
+    return rowPath
+        .split('.')
+        .filter(Boolean)
+        .reduce<unknown>((current, segment) => {
+            if (!isRecord(current)) return undefined;
+            return current[segment];
+        }, rowData);
+}
+
 function resolveNavigationScrollRestoration(value: unknown): TDraftNavigationScrollRestorationConfig | undefined {
     const mode = String(value ?? '').trim();
     if (mode === 'top') {
