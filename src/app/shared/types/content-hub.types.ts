@@ -58,6 +58,34 @@ export type TContentHubRuntimeConfig = {
     readonly runtimeSourceId?: string;
     readonly publicApiBasePath?: string;
     readonly analyticsContext?: TContentHubAnalyticsContext;
+    readonly publicArticles?: readonly TContentHubRuntimeArticleSummary[];
+    readonly publicTaxonomy?: readonly TContentHubRuntimeTaxonomySummary[];
+};
+
+export type TContentHubRuntimeArticleSummary = {
+    readonly articleId: TContentHubArticleId;
+    readonly locale: TContentHubLocale;
+    readonly status: 'published';
+    readonly title: string;
+    readonly summary?: string;
+    readonly path: string;
+    readonly categorySlug?: string;
+    readonly tags?: readonly string[];
+    readonly publishedAt: string;
+    readonly updatedAt?: string;
+    readonly authorLabel?: string;
+    readonly canonicalPath?: string;
+    readonly robots?: 'index,follow' | 'noindex,follow' | 'noindex,nofollow';
+};
+
+export type TContentHubRuntimeTaxonomySummary = {
+    readonly taxonomyId: string;
+    readonly kind: TContentHubTaxonomyKind;
+    readonly slug: string;
+    readonly label: string;
+    readonly locale: TContentHubLocale;
+    readonly visible?: boolean;
+    readonly path?: string;
 };
 
 export type TContentHubRuntimeBindingBase = {

@@ -1153,6 +1153,54 @@ const isContentHubAnalyticsContext = (value: unknown): boolean => {
     return true;
 };
 
+const isContentHubRuntimeArticleSummary = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasNoForbiddenRuntimeKeysDeep(value)) return false;
+    if (!hasOnlyKnownKeys(value, new Set([
+        'articleId',
+        'locale',
+        'status',
+        'title',
+        'summary',
+        'path',
+        'categorySlug',
+        'tags',
+        'publishedAt',
+        'updatedAt',
+        'authorLabel',
+        'canonicalPath',
+        'robots',
+    ]))) return false;
+    if (!isContentHubSafeId(value['articleId'])) return false;
+    if (!isContentHubLocale(value['locale'])) return false;
+    if (value['status'] !== 'published') return false;
+    if (typeof value['title'] !== 'string' || value['title'].trim().length === 0) return false;
+    if (value['summary'] !== undefined && typeof value['summary'] !== 'string') return false;
+    if (!isSafeSameOriginPath(value['path'])) return false;
+    if (value['categorySlug'] !== undefined && !isContentHubSafeId(value['categorySlug'])) return false;
+    if (value['tags'] !== undefined && (!Array.isArray(value['tags']) || !value['tags'].every(isContentHubSafeId))) return false;
+    if (typeof value['publishedAt'] !== 'string' || Number.isNaN(Date.parse(value['publishedAt']))) return false;
+    if (value['updatedAt'] !== undefined && (typeof value['updatedAt'] !== 'string' || Number.isNaN(Date.parse(value['updatedAt'])))) return false;
+    if (value['authorLabel'] !== undefined && typeof value['authorLabel'] !== 'string') return false;
+    if (value['canonicalPath'] !== undefined && !isSafeSameOriginPath(value['canonicalPath'])) return false;
+    if (value['robots'] !== undefined && !['index,follow', 'noindex,follow', 'noindex,nofollow'].includes(String(value['robots']))) return false;
+    return true;
+};
+
+const isContentHubRuntimeTaxonomySummary = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasNoForbiddenRuntimeKeysDeep(value)) return false;
+    if (!hasOnlyKnownKeys(value, new Set(['taxonomyId', 'kind', 'slug', 'label', 'locale', 'visible', 'path']))) return false;
+    if (!isContentHubSafeId(value['taxonomyId'])) return false;
+    if (!['category', 'tag'].includes(String(value['kind']))) return false;
+    if (!isContentHubSafeId(value['slug'])) return false;
+    if (typeof value['label'] !== 'string' || value['label'].trim().length === 0) return false;
+    if (!isContentHubLocale(value['locale'])) return false;
+    if (value['visible'] !== undefined && typeof value['visible'] !== 'boolean') return false;
+    if (value['path'] !== undefined && !isSafeSameOriginPath(value['path'])) return false;
+    return true;
+};
+
 const isContentHubRuntimeConfig = (value: unknown): value is TContentHubRuntimeConfig => {
     if (!isRecord(value)) return false;
     if (!hasNoForbiddenRuntimeKeysDeep(value)) return false;
@@ -1169,6 +1217,8 @@ const isContentHubRuntimeConfig = (value: unknown): value is TContentHubRuntimeC
         'runtimeSourceId',
         'publicApiBasePath',
         'analyticsContext',
+        'publicArticles',
+        'publicTaxonomy',
     ]))) return false;
     if (!isContentHubSafeId(value['hubId'])) return false;
     if (!isContentHubDomainName(value['ownerDraftDomain'])) return false;
@@ -1182,6 +1232,10 @@ const isContentHubRuntimeConfig = (value: unknown): value is TContentHubRuntimeC
     if (value['runtimeSourceId'] !== undefined && !isContentHubSafeId(value['runtimeSourceId'])) return false;
     if (value['publicApiBasePath'] !== undefined && !isSafeSameOriginPath(value['publicApiBasePath'])) return false;
     if (value['analyticsContext'] !== undefined && !isContentHubAnalyticsContext(value['analyticsContext'])) return false;
+    if (value['publicArticles'] !== undefined
+        && (!Array.isArray(value['publicArticles']) || !value['publicArticles'].every(isContentHubRuntimeArticleSummary))) return false;
+    if (value['publicTaxonomy'] !== undefined
+        && (!Array.isArray(value['publicTaxonomy']) || !value['publicTaxonomy'].every(isContentHubRuntimeTaxonomySummary))) return false;
     return true;
 };
 

@@ -1079,6 +1079,34 @@ describe('config-payload.validators', () => {
                         defaultLocale: 'es',
                         locales: ['es', 'en'],
                         canonicalMode: 'host-adaptive',
+                        publicArticles: [
+                            {
+                                articleId: 'art_20260620_blog_builder',
+                                locale: 'es',
+                                status: 'published',
+                                title: 'Cómo crear blogs visuales',
+                                summary: 'Guía pública para el hub.',
+                                path: '/blog/web/blog-builder-seo',
+                                categorySlug: 'web',
+                                tags: ['seo', 'builder'],
+                                publishedAt: '2026-06-21T15:00:00.000Z',
+                                updatedAt: '2026-06-21T15:00:00.000Z',
+                                authorLabel: 'Equipo zoositioweb',
+                                canonicalPath: '/blog/web/blog-builder-seo',
+                                robots: 'index,follow',
+                            },
+                        ],
+                        publicTaxonomy: [
+                            {
+                                taxonomyId: 'web',
+                                kind: 'category',
+                                slug: 'web',
+                                label: 'Web',
+                                locale: 'es',
+                                visible: true,
+                                path: '/blog/web',
+                            },
+                        ],
                     },
                 ],
                 dataSources: [
@@ -1117,6 +1145,61 @@ describe('config-payload.validators', () => {
         };
 
         expect(isDraftSiteConfigPayload(payload)).toBeTrue();
+    });
+
+    it('rejects unsafe public content hub SEO indexes', () => {
+        const baseHub = {
+            hubId: 'zoosite-main',
+            ownerDraftDomain: 'zoositioweb.com.mx',
+            source: 'primary',
+            routeBasePath: '/blog',
+            listPath: '/blog',
+            articlePathPattern: '/blog/:categorySlug/:articleSlug',
+            defaultLocale: 'es',
+            locales: ['es'],
+            canonicalMode: 'host-adaptive',
+        };
+        const base = {
+            version: 1,
+            domain: 'zoositioweb.com.mx',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: minimalSiteConfig(),
+        };
+
+        expect(isDraftSiteConfigPayload({
+            ...base,
+            runtime: {
+                contentHubs: [{
+                    ...baseHub,
+                    publicArticles: [{
+                        articleId: 'art_20260620_blog_builder',
+                        locale: 'es',
+                        status: 'published',
+                        title: 'Artículo',
+                        path: 'https://evil.example/blog',
+                        publishedAt: '2026-06-21T15:00:00.000Z',
+                    }],
+                }],
+            },
+        })).withContext('external article path').toBeFalse();
+
+        expect(isDraftSiteConfigPayload({
+            ...base,
+            runtime: {
+                contentHubs: [{
+                    ...baseHub,
+                    publicArticles: [{
+                        articleId: 'art_20260620_blog_builder',
+                        locale: 'es',
+                        status: 'published',
+                        title: 'Artículo',
+                        path: '/blog/web/blog-builder-seo',
+                        publishedAt: '2026-06-21T15:00:00.000Z',
+                        credentialRef: 'ssm:/must-not-travel',
+                    }],
+                }],
+            },
+        })).withContext('server-only article key').toBeFalse();
     });
 
     it('rejects server-only content hub runtime data source and action fields', () => {

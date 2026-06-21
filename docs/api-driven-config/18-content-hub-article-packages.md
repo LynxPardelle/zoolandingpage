@@ -65,8 +65,14 @@ Each entry identifies the hub and how the current draft renders it:
 - optional `runtimeSourceId`
 - optional `publicApiBasePath`
 - optional `analyticsContext`
+- optional `publicArticles`
+- optional `publicTaxonomy`
 
 The schema is `docs/api-driven-config/schemas/content-hub-public.schema.json`. The site config schema also exposes the same public shape through `contentHubRuntime`.
+
+`publicArticles` is intentionally small and public. It may carry only published article IDs, locale, title, summary, same-origin path, category slug, tags, published/updated timestamps, author display label, canonical path, and robots. `publicTaxonomy` may carry visible category/tag IDs, slug, label, locale, and an optional same-origin path. SSR can use these fields for sitemap, RSS/Atom-compatible feeds, basic public search, and article `BlogPosting` metadata while the dynamic runtime-read/DynamoDB content endpoints are still being connected.
+
+Do not put full article packages, revision files, comments/forms, moderation state, locks, storage names, auth policy, signed URLs, credential refs, or unpublished content in those public index arrays.
 
 ## Angular Runtime Service Contracts
 

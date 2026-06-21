@@ -447,7 +447,52 @@
         },
         "runtimeSourceId": { "$ref": "#/definitions/contentHubSafeId" },
         "publicApiBasePath": { "$ref": "#/definitions/sameOriginPath" },
-        "analyticsContext": { "$ref": "#/definitions/contentHubAnalyticsContext" }
+        "analyticsContext": { "$ref": "#/definitions/contentHubAnalyticsContext" },
+        "publicArticles": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/contentHubPublicArticle" }
+        },
+        "publicTaxonomy": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/contentHubPublicTaxonomy" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "contentHubPublicArticle": {
+      "type": "object",
+      "required": ["articleId", "locale", "status", "title", "path", "publishedAt"],
+      "properties": {
+        "articleId": { "$ref": "#/definitions/contentHubSafeId" },
+        "locale": { "$ref": "#/definitions/contentHubLocale" },
+        "status": { "type": "string", "const": "published" },
+        "title": { "type": "string", "minLength": 1 },
+        "summary": { "type": "string" },
+        "path": { "$ref": "#/definitions/sameOriginPath" },
+        "categorySlug": { "$ref": "#/definitions/contentHubSafeId" },
+        "tags": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/contentHubSafeId" }
+        },
+        "publishedAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "authorLabel": { "type": "string" },
+        "canonicalPath": { "$ref": "#/definitions/sameOriginPath" },
+        "robots": { "type": "string", "enum": ["index,follow", "noindex,follow", "noindex,nofollow"] }
+      },
+      "additionalProperties": false
+    },
+    "contentHubPublicTaxonomy": {
+      "type": "object",
+      "required": ["taxonomyId", "kind", "slug", "label", "locale"],
+      "properties": {
+        "taxonomyId": { "$ref": "#/definitions/contentHubSafeId" },
+        "kind": { "type": "string", "enum": ["category", "tag"] },
+        "slug": { "$ref": "#/definitions/contentHubSafeId" },
+        "label": { "type": "string", "minLength": 1 },
+        "locale": { "$ref": "#/definitions/contentHubLocale" },
+        "visible": { "type": "boolean" },
+        "path": { "$ref": "#/definitions/sameOriginPath" }
       },
       "additionalProperties": false
     },

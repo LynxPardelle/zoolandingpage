@@ -343,6 +343,45 @@ test('production SSR server redirects primary canonical hosts from proxy-forward
   assert.equal(getStderr(), '');
 });
 
+test('production SSR exposes Zoosite content hub SEO sitemap feed and search', async (t) => {
+  const { port, getStderr } = await startProductionServer(t);
+  const headers = {
+    Host: 'zoositioweb.com.mx',
+    'X-Forwarded-Host': 'zoositioweb.com.mx',
+    'X-Forwarded-Port': '443',
+    'X-Forwarded-Proto': 'https',
+  };
+
+  const sitemapResponse = await fetch(`http://127.0.0.1:${port}/sitemap.xml`, { headers });
+  const sitemap = await sitemapResponse.text();
+  assert.equal(sitemapResponse.status, 200);
+  assert.match(sitemap, /https:\/\/zoositioweb\.com\.mx\/blog\/web<\/loc>/);
+  assert.match(sitemap, /https:\/\/zoositioweb\.com\.mx\/blog\/web\/blog-builder-seo<\/loc>/);
+  assert.doesNotMatch(sitemap, /\/admin\/blog/);
+
+  const feedResponse = await fetch(`http://127.0.0.1:${port}/feed.xml?lang=es`, { headers });
+  const feed = await feedResponse.text();
+  assert.equal(feedResponse.status, 200);
+  assert.match(feedResponse.headers.get('content-type') ?? '', /application\/rss\+xml/);
+  assert.match(feed, /Cómo crear blogs visuales con Zoolandingpage/);
+  assert.match(feed, /https:\/\/zoositioweb\.com\.mx\/blog\/web\/blog-builder-seo/);
+
+  const searchResponse = await fetch(`http://127.0.0.1:${port}/content-hub-search.json?lang=es&tag=seo&q=blogs`, { headers });
+  const search = await searchResponse.json();
+  assert.equal(searchResponse.status, 200);
+  assert.equal(search.ok, true);
+  assert.equal(search.count, 1);
+  assert.equal(search.articles[0].path, '/blog/web/blog-builder-seo');
+
+  const articleResponse = await fetch(`http://127.0.0.1:${port}/blog/web/blog-builder-seo?lang=es`, { headers });
+  const articleHtml = await articleResponse.text();
+  assert.equal(articleResponse.status, 200);
+  assert.match(articleHtml, /<link rel="canonical" href="https:\/\/zoositioweb\.com\.mx\/blog\/web\/blog-builder-seo">/);
+  assert.match(articleHtml, /"@type":"BlogPosting"/);
+  assert.match(articleHtml, /Cómo crear blogs visuales con Zoolandingpage/);
+  assert.equal(getStderr(), '');
+});
+
 test('production SSR server redirects public aliases to the primary canonical host', async (t) => {
   const { port, getStderr } = await startProductionServer(t);
   const response = await fetch(`http://127.0.0.1:${port}/planes?gclid=test&utm_source=google`, {

@@ -67,9 +67,16 @@ test('site-config schema exposes content hub data source and action contracts wi
     const schema = JSON.parse(await readFile(schemaPath, 'utf8'));
     const dataSource = schema.definitions?.runtimeDataSource;
     const apiAction = schema.definitions?.runtimeApiAction;
+    const contentHubRuntime = schema.definitions?.contentHubRuntime;
     const contentHubRead = schema.definitions?.contentHubRuntimeReadBinding;
     const contentHubAction = schema.definitions?.contentHubRuntimeActionBinding;
     const safeRuntimeInputFieldName = schema.definitions?.safeRuntimeInputFieldName;
+
+    assert.equal(contentHubRuntime.properties.publicArticles.items.$ref, '#/definitions/contentHubPublicArticle');
+    assert.equal(contentHubRuntime.properties.publicTaxonomy.items.$ref, '#/definitions/contentHubPublicTaxonomy');
+    assert.equal(schema.definitions.contentHubPublicArticle.properties.path.$ref, '#/definitions/sameOriginPath');
+    assert.equal(schema.definitions.contentHubPublicArticle.properties.credentialRef, undefined);
+    assert.equal(schema.definitions.contentHubPublicTaxonomy.properties.path.$ref, '#/definitions/sameOriginPath');
 
     assert.ok(dataSource.properties.kind.enum.includes('content-hub'));
     assert.equal(dataSource.properties.contentHub.$ref, '#/definitions/contentHubRuntimeReadBinding');
