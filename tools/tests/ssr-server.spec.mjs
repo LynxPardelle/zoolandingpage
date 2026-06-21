@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { createServer as createHttpServer } from 'node:http';
 import { createServer as createNetServer } from 'node:net';
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { test } from 'node:test';
 
 const repoRoot = resolve(import.meta.dirname, '../..');
@@ -65,6 +66,26 @@ async function waitForOk(url) {
   throw lastError ?? new Error(`Timed out waiting for ${url}`);
 }
 
+async function fetchStartedServer(url, init) {
+  const deadline = Date.now() + 2_000;
+  let lastError;
+
+  while (Date.now() < deadline) {
+    try {
+      return await fetch(url, init);
+    } catch (error) {
+      lastError = error;
+      if (error?.cause?.code !== 'ECONNREFUSED') {
+        throw error;
+      }
+    }
+
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 100));
+  }
+
+  throw lastError ?? new Error(`Timed out fetching ${url}`);
+}
+
 async function startProductionServer(t, extraEnv = {}) {
   const port = await getAvailablePort();
   const server = spawn(process.execPath, [serverEntry], {
@@ -113,6 +134,32 @@ function assertNoSensitiveAuthSurface(body) {
   for (const [pattern, label] of forbiddenPatterns) {
     assert.doesNotMatch(body, pattern, `protected SSR HTML must not expose ${label}`);
   }
+}
+
+function assertNoContentHubOperationalLeak(body) {
+  const forbiddenPatterns = [
+    [/credentialRef/i, 'credential reference'],
+    [/serverOnly/i, 'server-only block'],
+    [/allowedDraftDomains/i, 'draft sharing allowlist'],
+    [/articleIds/i, 'server-side article id index'],
+    [/"bucket"\s*:/i, 'storage bucket'],
+    [/"prefix"\s*:/i, 'storage prefix'],
+    [/"tableName"\s*:/i, 'table name'],
+    [/tenantId/i, 'tenant policy'],
+    [/accessToken/i, 'access token'],
+    [/refreshToken/i, 'refresh token'],
+    [/idToken/i, 'id token'],
+  ];
+
+  for (const [pattern, label] of forbiddenPatterns) {
+    assert.doesNotMatch(body, pattern, `content hub public SEO output must not expose ${label}`);
+  }
+}
+
+function extractJsonLd(html) {
+  return Array.from(html.matchAll(/<script[^>]+type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi))
+    .map((match) => match[1])
+    .join('\n');
 }
 
 test('production SSR server exposes a lightweight health endpoint', async (t) => {
@@ -344,7 +391,63 @@ test('production SSR server redirects primary canonical hosts from proxy-forward
 });
 
 test('production SSR exposes Zoosite content hub SEO sitemap feed and search', async (t) => {
-  const { port, getStderr } = await startProductionServer(t);
+  const siteConfig = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'site-config.json'), 'utf8'));
+  const apiBase = await startRuntimeApi(t, (req, res) => {
+    const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+    if (url.pathname === '/runtime-bundle') {
+      const pageId = url.searchParams.get('pageId') || 'contentHubArticle';
+      const lang = url.searchParams.get('lang') || 'es';
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        version: 1,
+        domain: 'zoositioweb.com.mx',
+        pageId,
+        sourceStage: 'published',
+        lang,
+        siteConfig,
+        pageConfig: {
+          version: 1,
+          domain: 'zoositioweb.com.mx',
+          pageId,
+          rootIds: [],
+        },
+        components: {
+          version: 1,
+          domain: 'zoositioweb.com.mx',
+          pageId,
+          components: [],
+        },
+        variables: {
+          version: 1,
+          domain: 'zoositioweb.com.mx',
+          pageId,
+          variables: {},
+        },
+        i18n: {
+          version: 1,
+          domain: 'zoositioweb.com.mx',
+          pageId,
+          lang,
+          dictionary: {},
+        },
+        metadata: {},
+      }));
+      return;
+    }
+
+    if (url.pathname === '/site-config') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(siteConfig));
+      return;
+    }
+
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: false }));
+  });
+  const { port, getStderr } = await startProductionServer(t, {
+    CONFIG_API_SERVER_FALLBACK_URL: '',
+    CONFIG_API_URL: apiBase,
+  });
   const headers = {
     Host: 'zoositioweb.com.mx',
     'X-Forwarded-Host': 'zoositioweb.com.mx',
@@ -358,6 +461,7 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.match(sitemap, /https:\/\/zoositioweb\.com\.mx\/blog\/web<\/loc>/);
   assert.match(sitemap, /https:\/\/zoositioweb\.com\.mx\/blog\/web\/blog-builder-seo<\/loc>/);
   assert.doesNotMatch(sitemap, /\/admin\/blog/);
+  assertNoContentHubOperationalLeak(sitemap);
 
   const feedResponse = await fetch(`http://127.0.0.1:${port}/feed.xml?lang=es`, { headers });
   const feed = await feedResponse.text();
@@ -365,6 +469,7 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.match(feedResponse.headers.get('content-type') ?? '', /application\/rss\+xml/);
   assert.match(feed, /Cómo crear blogs visuales con Zoolandingpage/);
   assert.match(feed, /https:\/\/zoositioweb\.com\.mx\/blog\/web\/blog-builder-seo/);
+  assertNoContentHubOperationalLeak(feed);
 
   const searchResponse = await fetch(`http://127.0.0.1:${port}/content-hub-search.json?lang=es&tag=seo&q=blogs`, { headers });
   const search = await searchResponse.json();
@@ -372,6 +477,7 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.equal(search.ok, true);
   assert.equal(search.count, 1);
   assert.equal(search.articles[0].path, '/blog/web/blog-builder-seo');
+  assertNoContentHubOperationalLeak(JSON.stringify(search));
 
   const articleResponse = await fetch(`http://127.0.0.1:${port}/blog/web/blog-builder-seo?lang=es`, { headers });
   const articleHtml = await articleResponse.text();
@@ -379,6 +485,7 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.match(articleHtml, /<link rel="canonical" href="https:\/\/zoositioweb\.com\.mx\/blog\/web\/blog-builder-seo">/);
   assert.match(articleHtml, /"@type":"BlogPosting"/);
   assert.match(articleHtml, /Cómo crear blogs visuales con Zoolandingpage/);
+  assertNoContentHubOperationalLeak(extractJsonLd(articleHtml));
   assert.equal(getStderr(), '');
 });
 
@@ -593,7 +700,7 @@ test('production SSR server allows a published runtime alias outside static host
     CONFIG_API_SERVER_FALLBACK_URL: '',
     CONFIG_API_URL: apiBase,
   });
-  const response = await fetch(`http://127.0.0.1:${port}/robots.txt`, {
+  const response = await fetchStartedServer(`http://127.0.0.1:${port}/robots.txt`, {
     headers: {
       Host: 'published-alias.example.com',
       'X-Forwarded-Host': 'published-alias.example.com',

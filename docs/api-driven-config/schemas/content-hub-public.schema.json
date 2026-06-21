@@ -77,7 +77,52 @@
         "canonicalMode": { "enum": ["owner-canonical", "host-adaptive", "noindex-shared"] },
         "runtimeSourceId": { "$ref": "#/definitions/safeId" },
         "publicApiBasePath": { "$ref": "#/definitions/sameOriginPath" },
-        "analyticsContext": { "$ref": "#/definitions/analyticsContext" }
+        "analyticsContext": { "$ref": "#/definitions/analyticsContext" },
+        "publicArticles": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/publicArticle" }
+        },
+        "publicTaxonomy": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/publicTaxonomy" }
+        }
+      }
+    },
+    "publicArticle": {
+      "type": "object",
+      "required": ["articleId", "locale", "status", "title", "path", "publishedAt"],
+      "additionalProperties": false,
+      "properties": {
+        "articleId": { "$ref": "#/definitions/safeId" },
+        "locale": { "$ref": "#/definitions/locale" },
+        "status": { "const": "published" },
+        "title": { "type": "string", "minLength": 1 },
+        "summary": { "type": "string" },
+        "path": { "$ref": "#/definitions/sameOriginPath" },
+        "categorySlug": { "$ref": "#/definitions/safeId" },
+        "tags": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/safeId" }
+        },
+        "publishedAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "authorLabel": { "type": "string" },
+        "canonicalPath": { "$ref": "#/definitions/sameOriginPath" },
+        "robots": { "enum": ["index,follow", "noindex,follow", "noindex,nofollow"] }
+      }
+    },
+    "publicTaxonomy": {
+      "type": "object",
+      "required": ["taxonomyId", "kind", "slug", "label", "locale"],
+      "additionalProperties": false,
+      "properties": {
+        "taxonomyId": { "$ref": "#/definitions/safeId" },
+        "kind": { "enum": ["category", "tag"] },
+        "slug": { "$ref": "#/definitions/safeId" },
+        "label": { "type": "string", "minLength": 1 },
+        "locale": { "$ref": "#/definitions/locale" },
+        "visible": { "type": "boolean" },
+        "path": { "$ref": "#/definitions/sameOriginPath" }
       }
     }
   }
