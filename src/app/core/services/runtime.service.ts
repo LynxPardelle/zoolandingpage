@@ -13,11 +13,14 @@ import { I18nService } from '@/app/shared/services/i18n.service';
 import { AuthFacade } from '@/app/state/auth/auth.facade';
 import { AuthRuntimeService } from '@/app/state/auth/auth-runtime.service';
 import { applyNavigationScroll, currentBrowserPath, dispatchClientNavigationEnd, navigateInCurrentWindow } from '@/app/shared/utility/navigation/browser-navigation.utility';
+import { matchDraftRoute, normalizeDraftRoutePath } from '@/app/shared/utility/route-matching/draft-route-matching';
 import { environment } from '@/environments/environment';
 import { isPlatformBrowser } from '@angular/common';
 import { DestroyRef, inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
 import { LoadingCurtainService } from './loading-curtain.service';
 import { AuthBrowserFlowService } from '@/app/state/auth/auth-browser-flow.service';
+import type { AnalyticsEventPayload } from '@/app/shared/services/analytics.events';
+import type { TContentHubRuntimeConfig } from '@/app/shared/types/content-hub.types';
 import type { TDraftSiteRouteEntry, TRuntimeDataSourceConfig } from '@/app/shared/types/config-payloads.types';
 
 @Injectable({ providedIn: 'root' })
@@ -632,6 +635,71 @@ export class RuntimeService {
             category: AnalyticsCategories.Navigation,
             label: currentUrl || '/',
         });
+        this.trackConfiguredContentHubView(currentUrl);
+    }
+
+    private trackConfiguredContentHubView(currentUrl: string): void {
+        const event = this.resolveContentHubViewEvent(currentUrl);
+        if (!event) {
+            return;
+        }
+
+        void this.analytics.track(event.name, event.payload);
+    }
+
+    private resolveContentHubViewEvent(currentUrl: string): { readonly name: string; readonly payload: Omit<AnalyticsEventPayload, 'name'> } | null {
+        const hubs = this.configStore.siteConfig()?.runtime?.contentHubs ?? [];
+        if (!hubs.length) {
+            return null;
+        }
+
+        const path = normalizeDraftRoutePath(currentUrl);
+        for (const hub of hubs) {
+            const match = this.matchContentHubArticlePath(hub, path);
+            if (!match) {
+                continue;
+            }
+
+            const eventPrefix = String(hub.analyticsContext?.eventPrefix ?? '').trim();
+            const contentGroup = String(hub.analyticsContext?.contentGroup ?? '').trim();
+            const hubId = String(hub.hubId ?? '').trim();
+            if (!eventPrefix || !contentGroup || !hubId) {
+                continue;
+            }
+
+            return {
+                name: `${ eventPrefix }_view`,
+                payload: {
+                    category: AnalyticsCategories.Engagement,
+                    label: path,
+                    meta: {
+                        hubId,
+                        contentGroup,
+                        path,
+                        params: match.params,
+                    },
+                },
+            };
+        }
+
+        return null;
+    }
+
+    private matchContentHubArticlePath(
+        hub: TContentHubRuntimeConfig,
+        path: string,
+    ): { readonly params: Readonly<Record<string, string>> } | null {
+        const pattern = String(hub.articlePathPattern ?? '').trim();
+        if (!pattern) {
+            return null;
+        }
+
+        const match = matchDraftRoute([{ path: pattern }], path);
+        if (!match) {
+            return null;
+        }
+
+        return { params: match.params };
     }
 
     private resolveCurrentBrowserUrlLabel(): string {
@@ -694,10 +762,12 @@ export class RuntimeService {
         }
 
         const handleNavigation = () => {
+            const currentPath = currentBrowserPath();
             void this.analytics.track(this.analytics.pageViewEventName(), {
                 category: AnalyticsCategories.Navigation,
-                label: currentBrowserPath(),
+                label: currentPath,
             });
+            this.trackConfiguredContentHubView(currentPath);
 
             this.markRuntimeDataSourcesLoadingForNavigation();
             const lang = this.currentLanguageResolver?.();

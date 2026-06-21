@@ -1,0 +1,5 @@
+@if (componentIds().length > 0) {
+  <ng-container #wrapperHost></ng-container>
+} @else {
+  <span [class]="valueClasses()">{{ displayValue() }}</span>
+}

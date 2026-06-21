@@ -2,6 +2,7 @@ import { PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { RuntimeApiProxyClientService } from './runtime-api-proxy-client.service';
 import { AuthAdminClientService } from '@/app/state/auth/auth-admin-client.service';
+import { ContentHubClientService } from './content-hub-client.service';
 import { RuntimeDataSourceMapperService } from './runtime-data-source-mapper.service';
 import { RuntimeDataSourceService } from './runtime-data-source.service';
 import { VariableStoreService } from './variable-store.service';
@@ -11,6 +12,7 @@ describe('RuntimeDataSourceService', () => {
     let variables: VariableStoreService;
     let proxy: jasmine.SpyObj<RuntimeApiProxyClientService>;
     let authAdmin: jasmine.SpyObj<AuthAdminClientService>;
+    let contentHub: jasmine.SpyObj<ContentHubClientService>;
     let mapper: jasmine.SpyObj<RuntimeDataSourceMapperService>;
     let runtimeSearchParams: URLSearchParams;
     const nativeHistoryReplaceState = History.prototype.replaceState;
@@ -24,6 +26,7 @@ describe('RuntimeDataSourceService', () => {
     beforeEach(() => {
         proxy = jasmine.createSpyObj<RuntimeApiProxyClientService>('RuntimeApiProxyClientService', ['readSource', 'executeAction']);
         authAdmin = jasmine.createSpyObj<AuthAdminClientService>('AuthAdminClientService', ['me', 'listUsers']);
+        contentHub = jasmine.createSpyObj<ContentHubClientService>('ContentHubClientService', ['readSource', 'executeAction']);
         mapper = jasmine.createSpyObj<RuntimeDataSourceMapperService>('RuntimeDataSourceMapperService', ['mapResponse']);
         runtimeSearchParams = new URLSearchParams();
 
@@ -34,6 +37,7 @@ describe('RuntimeDataSourceService', () => {
                 { provide: PLATFORM_ID, useValue: 'browser' },
                 { provide: RuntimeApiProxyClientService, useValue: proxy },
                 { provide: AuthAdminClientService, useValue: authAdmin },
+                { provide: ContentHubClientService, useValue: contentHub },
                 { provide: RuntimeDataSourceMapperService, useValue: mapper },
             ],
         });
@@ -506,6 +510,51 @@ describe('RuntimeDataSourceService', () => {
             pokemonName: 'pikachu',
             countryCode: 'MX',
             includeArtwork: true,
+        });
+    });
+
+    it('sends content hub reads through the generic api proxy with only public hub identifiers and safe input', async () => {
+        contentHub.readSource.and.resolveTo({ ok: true, data: { items: [{ articleId: 'intro' }] } });
+        mapper.mapResponse.and.returnValue({ items: [{ articleId: 'intro' }] });
+
+        await service.start({
+            domain: 'zoositioweb.com.mx',
+            pageId: 'admin-blog-articulos',
+            dataSources: [
+                {
+                    id: 'content-hub-articles',
+                    kind: 'content-hub',
+                    proxySourceId: 'contentHubArticleList',
+                    target: 'remote.contentHub.articles',
+                    contentHub: {
+                        read: 'articleList',
+                        hubId: 'zoosite-main',
+                        language: 'es',
+                    },
+                    input: {
+                        limit: 20,
+                        status: 'draft',
+                        serverPolicy: 'must-not-travel',
+                        credentialRef: 'ssm:/must-not-travel',
+                    },
+                } as any,
+            ],
+        });
+
+        expect(proxy.readSource).not.toHaveBeenCalled();
+        expect(contentHub.readSource).toHaveBeenCalledOnceWith({
+            domain: 'zoositioweb.com.mx',
+            pageId: 'admin-blog-articulos',
+            sourceId: 'contentHubArticleList',
+            input: {
+                contentHub: {
+                    read: 'articleList',
+                    hubId: 'zoosite-main',
+                    language: 'es',
+                },
+                limit: 20,
+                status: 'draft',
+            },
         });
     });
 

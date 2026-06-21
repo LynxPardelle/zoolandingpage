@@ -425,3 +425,41 @@ describe('GenericInputComponent', () => {
         expect(scope.snapshot().fields['email'].errors).toContain('Email is required.');
     });
 });
+
+describe('GenericInputComponent without interaction scope', () => {
+    beforeEach(async () => {
+        await TestBed.configureTestingModule({
+            imports: [GenericInputComponent],
+        }).compileComponents();
+    });
+
+    it('keeps local field state when rendered outside an interaction scope', () => {
+        const fixture = TestBed.createComponent(GenericInputComponent);
+        const component = fixture.componentInstance;
+        spyOn(component.valueChanged, 'emit');
+
+        fixture.componentRef.setInput('config', {
+            fieldId: 'standaloneTitle',
+            controlType: 'text',
+            label: 'Title',
+            value: 'Draft title',
+            required: true,
+        });
+        fixture.detectChanges();
+
+        const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+        expect(input.value).toBe('Draft title');
+        expect(component.fieldState().valid).toBeTrue();
+
+        input.value = '';
+        input.dispatchEvent(new Event('input'));
+        fixture.detectChanges();
+
+        expect(component.valueChanged.emit).toHaveBeenCalledWith(
+            jasmine.objectContaining({ fieldId: 'standaloneTitle', value: '' })
+        );
+        expect(component.fieldState().dirty).toBeTrue();
+        expect(component.fieldState().touched).toBeTrue();
+        expect(component.fieldState().valid).toBeFalse();
+    });
+});

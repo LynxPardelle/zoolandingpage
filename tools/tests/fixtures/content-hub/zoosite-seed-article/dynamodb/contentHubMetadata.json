@@ -1,0 +1,66 @@
+[
+  {
+    "itemFamily": "HUB",
+    "pk": "HUB#zoosite-main",
+    "sk": "META",
+    "ownerDraftDomain": "zoositioweb.com.mx",
+    "status": "active"
+  },
+  {
+    "itemFamily": "ARTICLE",
+    "pk": "HUB#zoosite-main",
+    "sk": "ARTICLE#art_20260620_blog_builder",
+    "articleId": "art_20260620_blog_builder",
+    "status": "scheduled"
+  },
+  {
+    "itemFamily": "ARTICLE_LANG",
+    "pk": "ARTICLE#art_20260620_blog_builder",
+    "sk": "LANG#es",
+    "locale": "es",
+    "slug": "blog-builder-seo"
+  },
+  {
+    "itemFamily": "SLUG",
+    "pk": "SLUG#test#zoositioweb.com.mx#es",
+    "sk": "PATH#/blog/web/blog-builder-seo",
+    "hubId": "zoosite-main",
+    "articleId": "art_20260620_blog_builder",
+    "revisionId": "rev_001"
+  },
+  {
+    "itemFamily": "TAXONOMY",
+    "pk": "HUB#zoosite-main",
+    "sk": "TAXONOMY#category#web",
+    "taxonomyId": "web"
+  },
+  {
+    "itemFamily": "TAXONOMY",
+    "pk": "HUB#zoosite-main",
+    "sk": "TAXONOMY#tag#seo",
+    "taxonomyId": "seo"
+  },
+  {
+    "itemFamily": "TAXONOMY_OVERRIDE",
+    "pk": "TAXONOMY#web",
+    "sk": "OVERRIDE#zoolandingpage.com.mx",
+    "visible": true
+  },
+  {
+    "itemFamily": "REVISION",
+    "pk": "ARTICLE#art_20260620_blog_builder",
+    "sk": "REVISION#rev_001",
+    "kind": "snapshot"
+  },
+  {
+    "itemFamily": "SCHEDULE",
+    "pk": "SCHEDULE#test",
+    "sk": "DUE#2026-06-21T15:00:00.000Z#ARTICLE#art_20260620_blog_builder#REVISION#rev_001"
+  },
+  {
+    "itemFamily": "HUB_CONNECTION",
+    "pk": "HUB#zoosite-main",
+    "sk": "CONNECTION#zoolandingpage.com.mx",
+    "mode": "read-published"
+  }
+]

@@ -1,0 +1,186 @@
+import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, PLATFORM_ID, signal, untracked } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { QuillEditorComponent } from 'ngx-quill';
+import type { QuillModules } from 'ngx-quill/config';
+import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
+import type {
+  TGenericRichTextConfig,
+  TGenericRichTextFormat,
+  TGenericRichTextProvider,
+  TGenericRichTextToolbarItem,
+  TGenericRichTextValueChange,
+} from './generic-rich-text.types';
+
+type TQuillFormat = 'json' | 'object' | 'text';
+type TQuillContentChangedEvent = {
+  readonly content?: unknown;
+  readonly text?: string;
+  readonly source?: string;
+};
+type TQuillToolbarGroup = Array<string | Record<string, unknown>>;
+
+@Component({
+  selector: 'generic-rich-text',
+  standalone: true,
+  imports: [CommonModule, FormsModule, QuillEditorComponent],
+  host: {
+    '[attr.data-zlp-rich-text-id]': 'fieldId()',
+    '[class]': 'classes()',
+  },
+  templateUrl: './generic-rich-text.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class GenericRichTextComponent {
+  readonly config = input.required<TGenericRichTextConfig>();
+  readonly valueChanged = output<TGenericRichTextValueChange>();
+  readonly blurred = output<{ fieldId: string }>();
+
+  private readonly platformId = inject(PLATFORM_ID);
+  readonly currentValue = signal<unknown>('');
+
+  constructor() {
+    effect(() => {
+      const value = this.config().value ?? '';
+      untracked(() => this.currentValue.set(value));
+    });
+  }
+
+  readonly isBrowser = computed(() => isPlatformBrowser(this.platformId));
+  readonly id = computed(() => this.asString(this.config().id) || this.fieldId());
+  readonly fieldId = computed(() => String(this.config().fieldId ?? '').trim());
+  readonly provider = computed<TGenericRichTextProvider>(() => {
+    const provider = this.asString(this.config().provider);
+    return provider === 'quill' ? 'quill' : 'textarea';
+  });
+  readonly format = computed<TGenericRichTextFormat>(() => {
+    const format = this.asString(this.config().format);
+    if (format === 'quill-delta-json' || format === 'quill-delta-object' || format === 'plain-text') return format;
+    return 'markdown';
+  });
+  readonly useQuill = computed(() =>
+    this.isBrowser()
+    && this.provider() === 'quill'
+    && (this.format() === 'quill-delta-json' || this.format() === 'quill-delta-object' || this.format() === 'plain-text')
+  );
+  readonly label = computed(() => this.asString(this.config().label));
+  readonly description = computed(() => this.asString(this.config().description));
+  readonly helperText = computed(() => this.asString(this.config().helperText));
+  readonly placeholder = computed(() => this.asString(this.config().placeholder));
+  readonly required = computed(() => this.asBoolean(this.config().required));
+  readonly disabled = computed(() => this.asBoolean(this.config().disabled));
+  readonly readOnly = computed(() => this.asBoolean(this.config().readOnly));
+  readonly maxLength = computed(() => this.asNumber(this.config().maxLength));
+  readonly rows = computed(() => Math.max(2, Math.floor(this.asNumber(this.config().rows) ?? 8)));
+  readonly debounceMs = computed(() => Math.max(0, Math.floor(this.asNumber(this.config().debounceMs) ?? 120)));
+  readonly sanitizerPolicyId = computed(() => this.asString(this.config().sanitizerPolicyId));
+  readonly classes = computed(() => this.asString(this.config().classes));
+  readonly labelClasses = computed(() => this.asString(this.config().labelClasses));
+  readonly descriptionClasses = computed(() => this.asString(this.config().descriptionClasses));
+  readonly helperTextClasses = computed(() => this.asString(this.config().helperTextClasses));
+  readonly editorClasses = computed(() => this.asString(this.config().editorClasses));
+  readonly textareaClasses = computed(() => this.asString(this.config().textareaClasses));
+  readonly errorClasses = computed(() => this.asString(this.config().errorClasses));
+  readonly loading = computed(() => this.asBoolean(this.config().loading));
+  readonly loadingText = computed(() => this.asString(this.config().loadingText) || 'Loading editor');
+  readonly errorText = computed(() => this.asString(this.config().errorText));
+  readonly textValue = computed(() => {
+    const value = this.currentValue();
+    return typeof value === 'string' ? value : JSON.stringify(value ?? '');
+  });
+  readonly quillFormat = computed<TQuillFormat>(() => {
+    if (this.format() === 'quill-delta-object') return 'object';
+    if (this.format() === 'plain-text') return 'text';
+    return 'json';
+  });
+  readonly quillModules = computed<QuillModules>(() => ({
+    toolbar: this.resolveToolbar(),
+  }));
+
+  onTextareaInput(event: Event): void {
+    const value = (event.target as HTMLTextAreaElement).value;
+    this.currentValue.set(value);
+    this.emitValue(value, value, 'textarea');
+  }
+
+  onQuillContentChanged(event: TQuillContentChangedEvent): void {
+    const plainText = String(event.text ?? '').replace(/\n$/, '');
+    const value = this.resolveQuillValue(event, plainText);
+    this.currentValue.set(value);
+    this.emitValue(value, plainText, this.normalizeSource(event.source));
+  }
+
+  onBlur(): void {
+    this.blurred.emit({ fieldId: this.fieldId() });
+  }
+
+  private resolveQuillValue(event: TQuillContentChangedEvent, plainText: string): unknown {
+    if (this.format() === 'plain-text') return plainText;
+    if (this.format() === 'quill-delta-object') return event.content ?? { ops: [] };
+    try {
+      return JSON.stringify(event.content ?? { ops: [] });
+    } catch {
+      return JSON.stringify({ ops: [] });
+    }
+  }
+
+  private emitValue(value: unknown, plainText: string, source: TGenericRichTextValueChange['source']): void {
+    const normalizedText = plainText.trim();
+    this.valueChanged.emit({
+      fieldId: this.fieldId(),
+      provider: this.useQuill() ? 'quill' : 'textarea',
+      format: this.format(),
+      value,
+      plainText,
+      isEmpty: normalizedText.length === 0,
+      wordCount: normalizedText ? normalizedText.split(/\s+/).length : 0,
+      source,
+      sanitizerPolicyId: this.sanitizerPolicyId() || undefined,
+    });
+  }
+
+  private resolveToolbar(): QuillModules['toolbar'] {
+    const defaultToolbar: readonly TGenericRichTextToolbarItem[] = ['bold', 'italic', 'heading', 'bulletList', 'orderedList', 'link', 'blockquote', 'code', 'clean'];
+    const authoredToolbar = this.config().toolbar;
+    const toolbar: readonly TGenericRichTextToolbarItem[] = authoredToolbar && authoredToolbar.length > 0 ? authoredToolbar : defaultToolbar;
+    const groups: TQuillToolbarGroup[] = [];
+    const inline = this.pickToolbar(toolbar, ['bold', 'italic', 'underline']);
+    if (inline.length) groups.push(inline);
+    if (toolbar.includes('heading')) groups.push([{ header: [1, 2, 3, false] }]);
+    const lists = this.pickToolbar(toolbar, ['orderedList', 'bulletList']).map((item) => ({ list: item === 'orderedList' ? 'ordered' : 'bullet' }));
+    if (lists.length) groups.push(lists);
+    const block = [
+      toolbar.includes('blockquote') ? 'blockquote' : '',
+      toolbar.includes('code') ? 'code-block' : '',
+      toolbar.includes('link') ? 'link' : '',
+    ].filter(Boolean);
+    if (block.length) groups.push(block);
+    if (toolbar.includes('clean')) groups.push(['clean']);
+    return groups as QuillModules['toolbar'];
+  }
+
+  private pickToolbar(toolbar: readonly TGenericRichTextToolbarItem[] | undefined, allowed: readonly TGenericRichTextToolbarItem[]): string[] {
+    return allowed.filter((item) => toolbar?.includes(item)).map((item) => item === 'bulletList' ? 'bullet' : item === 'orderedList' ? 'ordered' : item);
+  }
+
+  private normalizeSource(source: unknown): TGenericRichTextValueChange['source'] {
+    return source === 'api' || source === 'silent' || source === 'user' ? source : 'user';
+  }
+
+  private asString(value: unknown): string {
+    const resolved = resolveDynamicValue(value as never);
+    return resolved == null ? '' : String(resolved);
+  }
+
+  private asNumber(value: unknown): number | undefined {
+    const resolved = resolveDynamicValue(value as never);
+    return typeof resolved === 'number' && Number.isFinite(resolved) ? resolved : undefined;
+  }
+
+  private asBoolean(value: unknown): boolean {
+    const resolved = resolveDynamicValue(value as never);
+    if (typeof resolved === 'boolean') return resolved;
+    if (resolved == null || resolved === '') return false;
+    return !['false', '0', 'off', 'no'].includes(String(resolved).trim().toLowerCase());
+  }
+}

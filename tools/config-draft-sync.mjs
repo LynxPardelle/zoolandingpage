@@ -8,6 +8,7 @@ const DEFAULT_REQUEST_TIMEOUT_MS = 20000;
 const DEFAULT_RETRY_ATTEMPTS = 2;
 const DEFAULT_RETRY_DELAY_MS = 250;
 const LOCAL_DRAFT_CONTEXT_FOLDERS = new Set(['ai_notes', 'findings', 'errors-reports']);
+const LOCAL_DRAFT_CONTEXT_FILES = new Set(['draft-repo.config.json']);
 const DEFAULT_AUTHORING_ENDPOINT_FALLBACKS = new Map([
   [
     'https://api.zoolandingpage.com.mx/config-authoring',
@@ -60,6 +61,15 @@ function normalizeEndpoint(endpoint) {
   return String(endpoint ?? '')
     .trim()
     .replace(/\/+$/, '');
+}
+
+function normalizeEnvironment(environment) {
+  const normalized = String(environment ?? '')
+    .trim()
+    .toLowerCase();
+  if (!normalized) return undefined;
+  if (['production', 'test', 'dev'].includes(normalized)) return normalized;
+  throw new Error(`Invalid environment '${environment}'. Expected 'production', 'test', or 'dev'.`);
 }
 
 function resolveFallbackEndpoint(endpoint, explicitFallbackEndpoint) {
@@ -157,6 +167,9 @@ async function walkJsonFiles(rootDir) {
       continue;
     }
     if (entry.isFile() && entry.name.endsWith('.json')) {
+      if (LOCAL_DRAFT_CONTEXT_FILES.has(entry.name)) {
+        continue;
+      }
       files.push(fullPath);
     }
   }
@@ -188,6 +201,9 @@ async function cleanAuthoredDraftFiles(rootDir) {
     }
 
     if (entry.isFile() && entry.name.endsWith('.json')) {
+      if (LOCAL_DRAFT_CONTEXT_FILES.has(entry.name)) {
+        continue;
+      }
       await rm(fullPath, { force: true });
     }
   }
@@ -412,9 +428,9 @@ async function main() {
         '  pack    --domain=example.com [--drafts-root=drafts] [--stage=draft] [--output=package.json]',
         '  unpack  --input=package.json [--drafts-root=drafts] [--clean-domain=true]',
         '  pull    --endpoint=https://... --domain=example.com [--stage=draft] [--drafts-root=drafts] [--clean-domain=true] [--request-timeout-ms=20000] [--fallback-endpoint=https://...] [--retry-attempts=2] [--retry-delay-ms=250]',
-        '  push    --endpoint=https://... --domain=example.com [--drafts-root=drafts] [--updated-by=name] [--request-timeout-ms=20000] [--fallback-endpoint=https://...] [--retry-attempts=2] [--retry-delay-ms=250]',
-        '  create  --endpoint=https://... --domain=newsite.example [--drafts-root=drafts] [--publish-on-create=true] [--request-timeout-ms=20000] [--fallback-endpoint=https://...] [--retry-attempts=2] [--retry-delay-ms=250]',
-        '  publish --endpoint=https://... --domain=example.com [--version-id=...] [--request-timeout-ms=20000] [--fallback-endpoint=https://...] [--retry-attempts=2] [--retry-delay-ms=250]',
+        '  push    --endpoint=https://... --domain=example.com [--environment=production|test|dev] [--drafts-root=drafts] [--updated-by=name] [--request-timeout-ms=20000] [--fallback-endpoint=https://...] [--retry-attempts=2] [--retry-delay-ms=250]',
+        '  create  --endpoint=https://... --domain=newsite.example [--environment=production|test|dev] [--drafts-root=drafts] [--publish-on-create=true] [--request-timeout-ms=20000] [--fallback-endpoint=https://...] [--retry-attempts=2] [--retry-delay-ms=250]',
+        '  publish --endpoint=https://... --domain=example.com [--environment=production|test|dev] [--version-id=...] [--request-timeout-ms=20000] [--fallback-endpoint=https://...] [--retry-attempts=2] [--retry-delay-ms=250]',
       ].join('\n') + '\n'
     );
     return;
@@ -472,6 +488,7 @@ async function main() {
       {
         action,
         domain,
+        environment: normalizeEnvironment(args.environment),
         files: draftPackage.files,
         updatedBy: args['updated-by'],
         publishOnCreate: String(args['publish-on-create'] ?? 'false') === 'true',
@@ -496,6 +513,7 @@ async function main() {
       {
         action: 'publishDraft',
         domain,
+        environment: normalizeEnvironment(args.environment),
         versionId: args['version-id'],
         updatedBy: args['updated-by'],
       },

@@ -24,6 +24,10 @@
       "type": "string",
       "pattern": "^custom:[A-Za-z0-9_]{1,20}$"
     },
+    "environmentClaimMode": {
+      "type": "string",
+      "enum": ["single", "list"]
+    },
     "customSigninPolicy": {
       "type": "object",
       "properties": {
@@ -165,6 +169,7 @@
         "logoutPath": { "$ref": "#/definitions/sameOriginPath" },
         "tenantClaim": { "type": "string", "minLength": 1 },
         "environmentClaim": { "$ref": "#/definitions/environmentClaim" },
+        "environmentClaimMode": { "$ref": "#/definitions/environmentClaimMode" },
         "groupClaim": { "type": "string", "minLength": 1 },
         "allowedGroups": {
           "type": "array",

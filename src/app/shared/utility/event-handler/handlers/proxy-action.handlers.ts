@@ -1,4 +1,6 @@
 import { ConfigStoreService } from '@/app/shared/services/config-store.service';
+import { ContentHubClientService } from '@/app/shared/services/content-hub-client.service';
+import { buildContentHubRuntimeInput } from '@/app/shared/services/content-hub-runtime-request';
 import { RuntimeApiProxyClientService } from '@/app/shared/services/runtime-api-proxy-client.service';
 import { VariableStoreService } from '@/app/shared/services/variable-store.service';
 import type { TRuntimeApiActionConfig } from '@/app/shared/types/config-payloads.types';
@@ -48,8 +50,21 @@ const pickActionInput = (
     }, {});
 };
 
+const resolveActionInput = (
+    action: TRuntimeApiActionConfig,
+    eventData: Record<string, unknown>,
+): Record<string, unknown> | undefined => {
+    const input = pickActionInput(action, eventData);
+    if (action.kind !== 'content-hub') {
+        return input;
+    }
+
+    return buildContentHubRuntimeInput(action.contentHub, input, action.inputFields ?? []);
+};
+
 export const proxyActionHandler = (): EventHandler => {
     const configStore = inject(ConfigStoreService);
+    const contentHub = inject(ContentHubClientService);
     const proxy = inject(RuntimeApiProxyClientService);
     const variables = inject(VariableStoreService);
 
@@ -73,11 +88,12 @@ export const proxyActionHandler = (): EventHandler => {
             writeStatus(variables, action, 'loading', null);
 
             try {
-                const response = await proxy.executeAction({
+                const client = action.kind === 'content-hub' ? contentHub : proxy;
+                const response = await client.executeAction({
                     domain,
                     pageId,
                     actionId: proxyActionId,
-                    input: pickActionInput(action, asRecord(ctx.event.eventData)),
+                    input: resolveActionInput(action, asRecord(ctx.event.eventData)),
                 });
                 writeStatus(variables, action, 'success', null, response.data);
             } catch (error) {
