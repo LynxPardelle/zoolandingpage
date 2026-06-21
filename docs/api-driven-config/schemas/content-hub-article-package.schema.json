@@ -1,0 +1,236 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ContentHubArticlePackageManifest",
+  "type": "object",
+  "required": [
+    "version",
+    "hubId",
+    "articleId",
+    "ownerDraftDomain",
+    "originDraftDomain",
+    "status",
+    "visibility",
+    "createdAt",
+    "updatedAt",
+    "primaryLocale",
+    "languages",
+    "taxonomy",
+    "seo",
+    "comments",
+    "contentSafety",
+    "analytics",
+    "revisions"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": 1 },
+    "hubId": { "$ref": "#/definitions/safeId" },
+    "articleId": { "$ref": "#/definitions/safeId" },
+    "ownerDraftDomain": { "$ref": "#/definitions/domainName" },
+    "originDraftDomain": { "$ref": "#/definitions/domainName" },
+    "status": { "enum": ["draft", "review", "scheduled", "published", "archived"] },
+    "visibility": { "enum": ["public", "unlisted", "protected", "private"] },
+    "createdAt": { "$ref": "#/definitions/isoDateTime" },
+    "updatedAt": { "$ref": "#/definitions/isoDateTime" },
+    "scheduledAt": { "$ref": "#/definitions/isoDateTime" },
+    "primaryLocale": { "$ref": "#/definitions/locale" },
+    "languages": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/languageManifest" }
+    },
+    "taxonomy": { "$ref": "#/definitions/taxonomyRefs" },
+    "seo": { "$ref": "#/definitions/seoPolicy" },
+    "media": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/mediaAsset" }
+    },
+    "comments": { "$ref": "#/definitions/commentPolicy" },
+    "interactions": { "$ref": "#/definitions/interactionPolicies" },
+    "contentSafety": { "$ref": "#/definitions/contentSafetyPolicy" },
+    "analytics": { "$ref": "#/definitions/analyticsContext" },
+    "revisions": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/revisionPointer" }
+    }
+  },
+  "definitions": {
+    "safeId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "domainName": {
+      "type": "string",
+      "minLength": 4,
+      "maxLength": 253,
+      "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$"
+    },
+    "locale": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 16,
+      "pattern": "^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$"
+    },
+    "slug": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "sameOriginPath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^/(?!/)(?!.*[\\\\\\s\\u0000-\\u001F\\u007F])[^\\\\\\s\\u0000-\\u001F\\u007F]*$"
+    },
+    "publicUrl": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 2048,
+      "pattern": "^https://(?![^/?#]*@)(?!.*[\\\\\\s\\u0000-\\u001F\\u007F])(?!(?:[^?#]*[?#].*(?:X-Amz-Signature|X-Amz-Credential|X-Amz-Security-Token|Signature=|Expires=)))[^\\\\\\s\\u0000-\\u001F\\u007F]+$"
+    },
+    "s3Key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "pattern": "^(?!/)(?!.*\\.\\.)(?!.*[\\\\\\u0000-\\u001F\\u007F]).+$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "isoDateTime": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z$"
+    },
+    "packagePointer": {
+      "type": "object",
+      "required": ["key", "sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "key": { "$ref": "#/definitions/s3Key" },
+        "sha256": { "$ref": "#/definitions/sha256" },
+        "bytes": { "type": "number", "minimum": 1 }
+      }
+    },
+    "languageManifest": {
+      "type": "object",
+      "required": ["locale", "status", "slug", "title", "packagePointer", "latestRevisionId"],
+      "additionalProperties": false,
+      "properties": {
+        "locale": { "$ref": "#/definitions/locale" },
+        "status": { "enum": ["draft", "ready", "scheduled", "published", "archived"] },
+        "slug": { "$ref": "#/definitions/slug" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 140 },
+        "summary": { "type": "string", "minLength": 1, "maxLength": 320 },
+        "packagePointer": { "$ref": "#/definitions/packagePointer" },
+        "latestRevisionId": { "$ref": "#/definitions/safeId" }
+      }
+    },
+    "taxonomyRefs": {
+      "type": "object",
+      "required": ["categories", "tags"],
+      "additionalProperties": false,
+      "properties": {
+        "categories": { "type": "array", "items": { "$ref": "#/definitions/safeId" } },
+        "tags": { "type": "array", "items": { "$ref": "#/definitions/safeId" } }
+      }
+    },
+    "seoPolicy": {
+      "type": "object",
+      "required": ["title", "description", "canonicalPath", "robots"],
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string", "minLength": 1, "maxLength": 140 },
+        "description": { "type": "string", "minLength": 1, "maxLength": 320 },
+        "canonicalPath": { "$ref": "#/definitions/sameOriginPath" },
+        "robots": { "enum": ["index,follow", "noindex,follow", "noindex,nofollow"] },
+        "structuredDataTypes": {
+          "type": "array",
+          "items": { "enum": ["Article", "BlogPosting", "BreadcrumbList", "FAQPage", "HowTo", "Product"] }
+        }
+      }
+    },
+    "mediaAsset": {
+      "type": "object",
+      "required": ["assetId", "kind", "publicUrl", "mimeType", "bytes"],
+      "additionalProperties": false,
+      "properties": {
+        "assetId": { "$ref": "#/definitions/safeId" },
+        "kind": { "enum": ["image", "video", "audio", "document", "download"] },
+        "publicUrl": { "$ref": "#/definitions/publicUrl" },
+        "alt": { "type": "string", "maxLength": 200 },
+        "title": { "type": "string", "maxLength": 160 },
+        "caption": { "type": "string", "maxLength": 320 },
+        "credit": { "type": "string", "maxLength": 160 },
+        "license": { "type": "string", "maxLength": 160 },
+        "mimeType": { "type": "string", "minLength": 3, "maxLength": 120 },
+        "bytes": { "type": "number", "minimum": 1 },
+        "width": { "type": "number", "minimum": 1 },
+        "height": { "type": "number", "minimum": 1 },
+        "usageRefs": { "type": "array", "items": { "$ref": "#/definitions/safeId" } }
+      }
+    },
+    "commentPolicy": {
+      "type": "object",
+      "required": ["mode", "moderation"],
+      "additionalProperties": false,
+      "properties": {
+        "mode": { "enum": ["off", "authenticated"] },
+        "moderation": { "enum": ["queue", "spam-check", "manual"] }
+      }
+    },
+    "interactionPolicy": {
+      "type": "object",
+      "required": ["enabled", "moderation"],
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "moderation": { "enum": ["queue", "spam-check", "manual"] }
+      }
+    },
+    "interactionPolicies": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "reactions": { "$ref": "#/definitions/interactionPolicy" },
+        "ctas": { "$ref": "#/definitions/interactionPolicy" },
+        "forms": { "$ref": "#/definitions/interactionPolicy" }
+      }
+    },
+    "contentSafetyPolicy": {
+      "type": "object",
+      "required": ["sanitizerPolicyId", "htmlFreedom"],
+      "additionalProperties": false,
+      "properties": {
+        "sanitizerPolicyId": { "$ref": "#/definitions/safeId" },
+        "htmlFreedom": { "enum": ["strict", "balanced", "advanced", "trusted"] },
+        "allowedComponentPresetIds": { "type": "array", "items": { "$ref": "#/definitions/safeId" } }
+      }
+    },
+    "analyticsContext": {
+      "type": "object",
+      "required": ["contentGroup", "eventPrefix", "piiPolicy"],
+      "additionalProperties": false,
+      "properties": {
+        "contentGroup": { "$ref": "#/definitions/safeId" },
+        "eventPrefix": { "$ref": "#/definitions/safeId" },
+        "piiPolicy": { "enum": ["no-pii", "metadata-only"] }
+      }
+    },
+    "revisionPointer": {
+      "type": "object",
+      "required": ["revisionId", "kind", "createdAt", "packagePointer"],
+      "additionalProperties": false,
+      "properties": {
+        "revisionId": { "$ref": "#/definitions/safeId" },
+        "kind": { "enum": ["snapshot", "delta"] },
+        "createdAt": { "$ref": "#/definitions/isoDateTime" },
+        "packagePointer": { "$ref": "#/definitions/packagePointer" }
+      }
+    }
+  }
+}

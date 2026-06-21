@@ -1,0 +1,46 @@
+@if (label()) {
+  <label [for]="id()" [class]="labelClasses()">{{ label() }}</label>
+}
+@if (description()) {
+  <p [class]="descriptionClasses()">{{ description() }}</p>
+}
+
+@if (loading()) {
+  <div [class]="helperTextClasses()" aria-live="polite">{{ loadingText() }}</div>
+} @else if (errorText()) {
+  <div [class]="errorClasses()" role="alert">{{ errorText() }}</div>
+} @else if (useQuill()) {
+  <quill-editor
+    [format]="quillFormat()"
+    [theme]="'snow'"
+    [modules]="quillModules()"
+    [readOnly]="readOnly() || disabled()"
+    [placeholder]="placeholder()"
+    [maxLength]="maxLength()"
+    [required]="required()"
+    [debounceTime]="debounceMs()"
+    [sanitize]="true"
+    [classes]="editorClasses()"
+    [ngModel]="currentValue()"
+    (onContentChanged)="onQuillContentChanged($event)"
+    (onBlur)="onBlur()"
+  ></quill-editor>
+} @else {
+  <textarea
+    [id]="id()"
+    [value]="textValue()"
+    [rows]="rows()"
+    [placeholder]="placeholder()"
+    [required]="required()"
+    [disabled]="disabled()"
+    [readOnly]="readOnly()"
+    [maxLength]="maxLength() ?? null"
+    [class]="textareaClasses() || editorClasses()"
+    (input)="onTextareaInput($event)"
+    (blur)="onBlur()"
+  ></textarea>
+}
+
+@if (helperText()) {
+  <p [class]="helperTextClasses()">{{ helperText() }}</p>
+}

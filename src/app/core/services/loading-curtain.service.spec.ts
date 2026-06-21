@@ -97,6 +97,23 @@ describe('LoadingCurtainService', () => {
         expect(curtain.style.getPropertyValue('--zlp-boot-bg')).toBe('');
     });
 
+    it('updates the visible boot curtain status for early protected-route loading', () => {
+        const curtain = addCurtain();
+        curtain.classList.add('zlp-boot-curtain--leaving');
+        curtain.setAttribute('aria-hidden', 'true');
+
+        service.setStatus({
+            title: 'Validando acceso',
+            subtitle: 'Revisando tu sesión segura.',
+        });
+
+        expect(curtain.classList.contains('zlp-boot-curtain--leaving')).toBeFalse();
+        expect(curtain.getAttribute('aria-busy')).toBe('true');
+        expect(curtain.getAttribute('aria-hidden')).toBeNull();
+        expect(curtain.querySelector('[data-zlp-boot-title]')?.textContent).toBe('Validando acceso');
+        expect(curtain.querySelector('[data-zlp-boot-subtitle]')?.textContent).toBe('Revisando tu sesión segura.');
+    });
+
     it('hides and removes the boot curtain after the configured exit duration', () => {
         jasmine.clock().install();
         const curtain = addCurtain();

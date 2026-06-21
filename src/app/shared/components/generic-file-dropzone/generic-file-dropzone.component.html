@@ -1,0 +1,63 @@
+@if (label()) {
+  <label [for]="id()" [class]="labelClasses()">{{ label() }}</label>
+}
+@if (description()) {
+  <p [class]="descriptionClasses()">{{ description() }}</p>
+}
+
+<input
+  #fileInput
+  [id]="id()"
+  type="file"
+  [attr.accept]="accept() || null"
+  [multiple]="multiple()"
+  [disabled]="disabled() || loading()"
+  class="visually-hidden"
+  (change)="onFileInput($event)"
+/>
+
+<div
+  [class]="dropzoneClasses()"
+  [attr.aria-disabled]="disabled() || loading() ? 'true' : null"
+  (dragover)="onDragOver($event)"
+  (dragleave)="onDragLeave($event)"
+  (drop)="onDrop($event)"
+>
+  @if (loading()) {
+    <p [class]="loadingClasses()" aria-live="polite">{{ loadingText() }}</p>
+  } @else {
+    <p>{{ dropLabel() }}</p>
+    <button
+      type="button"
+      [class]="browseButtonClasses()"
+      [disabled]="disabled()"
+      (click)="openNativeFileDialog(fileInput)"
+    >
+      {{ browseLabel() }}
+    </button>
+    @if (acceptLabel()) {
+      <small>{{ acceptLabel() }}</small>
+    }
+    @if (maxSizeLabel()) {
+      <small>{{ maxSizeLabel() }}</small>
+    }
+  }
+</div>
+
+@if (errorText()) {
+  <p [class]="errorClasses()" role="alert">{{ errorText() }}</p>
+}
+
+@if (fileSummaries().length > 0) {
+  <ul [class]="fileListClasses()">
+    @for (file of fileSummaries(); track file.name + ':' + file.size) {
+      <li [class]="fileItemClasses()">{{ file.name }}</li>
+    }
+  </ul>
+} @else {
+  <p [class]="helperTextClasses()">{{ emptyText() }}</p>
+}
+
+@if (helperText()) {
+  <p [class]="helperTextClasses()">{{ helperText() }}</p>
+}

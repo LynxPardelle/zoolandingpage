@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "domain": "zoositioweb.com.mx",
+  "pageId": "blog-article",
+  "variables": {
+    "article": {
+      "hubId": "zoosite-main",
+      "articleId": "art_20260620_blog_builder",
+      "categorySlug": "web",
+      "slug": "blog-builder-seo",
+      "locale": "es",
+      "contentGroup": "blog",
+      "publishedPath": "/blog/web/blog-builder-seo"
+    }
+  }
+}

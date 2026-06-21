@@ -1061,6 +1061,351 @@ describe('config-payload.validators', () => {
         expect(isDraftSiteConfigPayload(payload)).toBeTrue();
     });
 
+    it('accepts content hub runtime data sources and actions with public identifiers only', () => {
+        const payload = {
+            version: 1,
+            domain: 'zoositioweb.com.mx',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: minimalSiteConfig(),
+            runtime: {
+                contentHubs: [
+                    {
+                        hubId: 'zoosite-main',
+                        ownerDraftDomain: 'zoositioweb.com.mx',
+                        source: 'primary',
+                        routeBasePath: '/blog',
+                        listPath: '/blog',
+                        articlePathPattern: '/blog/:categorySlug/:articleSlug',
+                        defaultLocale: 'es',
+                        locales: ['es', 'en'],
+                        canonicalMode: 'host-adaptive',
+                        publicArticles: [
+                            {
+                                articleId: 'art_20260620_blog_builder',
+                                locale: 'es',
+                                status: 'published',
+                                title: 'Cómo crear blogs visuales',
+                                summary: 'Guía pública para el hub.',
+                                path: '/blog/web/blog-builder-seo',
+                                categorySlug: 'web',
+                                tags: ['seo', 'builder'],
+                                publishedAt: '2026-06-21T15:00:00.000Z',
+                                updatedAt: '2026-06-21T15:00:00.000Z',
+                                authorLabel: 'Equipo zoositioweb',
+                                canonicalPath: '/blog/web/blog-builder-seo',
+                                robots: 'index,follow',
+                            },
+                        ],
+                        publicTaxonomy: [
+                            {
+                                taxonomyId: 'web',
+                                kind: 'category',
+                                slug: 'web',
+                                label: 'Web',
+                                locale: 'es',
+                                visible: true,
+                                path: '/blog/web',
+                            },
+                        ],
+                    },
+                ],
+                dataSources: [
+                    {
+                        id: 'content-hub-articles',
+                        kind: 'content-hub',
+                        proxySourceId: 'contentHubArticleList',
+                        target: 'remote.contentHub.articles',
+                        contentHub: {
+                            read: 'articleList',
+                            hubId: 'zoosite-main',
+                            language: 'es',
+                        },
+                        input: {
+                            limit: 20,
+                            status: 'draft',
+                        },
+                    },
+                ],
+                apiActions: [
+                    {
+                        id: 'publish-article',
+                        kind: 'content-hub',
+                        proxyActionId: 'contentHubPublish',
+                        method: 'POST',
+                        statusTarget: 'remoteStatus.contentHub.publish',
+                        inputFields: ['articleId', 'language', 'revisionId', 'publishMessage'],
+                        requiresUserGesture: true,
+                        contentHub: {
+                            action: 'publish',
+                            hubId: 'zoosite-main',
+                        },
+                    },
+                ],
+            },
+        };
+
+        expect(isDraftSiteConfigPayload(payload)).toBeTrue();
+    });
+
+    it('rejects unsafe public content hub SEO indexes', () => {
+        const baseHub = {
+            hubId: 'zoosite-main',
+            ownerDraftDomain: 'zoositioweb.com.mx',
+            source: 'primary',
+            routeBasePath: '/blog',
+            listPath: '/blog',
+            articlePathPattern: '/blog/:categorySlug/:articleSlug',
+            defaultLocale: 'es',
+            locales: ['es'],
+            canonicalMode: 'host-adaptive',
+        };
+        const base = {
+            version: 1,
+            domain: 'zoositioweb.com.mx',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: minimalSiteConfig(),
+        };
+
+        expect(isDraftSiteConfigPayload({
+            ...base,
+            runtime: {
+                contentHubs: [{
+                    ...baseHub,
+                    publicArticles: [{
+                        articleId: 'art_20260620_blog_builder',
+                        locale: 'es',
+                        status: 'published',
+                        title: 'Artículo',
+                        path: 'https://evil.example/blog',
+                        publishedAt: '2026-06-21T15:00:00.000Z',
+                    }],
+                }],
+            },
+        })).withContext('external article path').toBeFalse();
+
+        expect(isDraftSiteConfigPayload({
+            ...base,
+            runtime: {
+                contentHubs: [{
+                    ...baseHub,
+                    publicArticles: [{
+                        articleId: 'art_20260620_blog_builder',
+                        locale: 'es',
+                        status: 'published',
+                        title: 'Artículo',
+                        path: '/blog/web/blog-builder-seo',
+                        publishedAt: '2026-06-21T15:00:00.000Z',
+                        credentialRef: 'ssm:/must-not-travel',
+                    }],
+                }],
+            },
+        })).withContext('server-only article key').toBeFalse();
+    });
+
+    it('rejects server-only content hub runtime data source and action fields', () => {
+        const base = {
+            version: 1,
+            domain: 'zoositioweb.com.mx',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: minimalSiteConfig(),
+        };
+
+        expect(isDraftSiteConfigPayload({
+            ...base,
+            runtime: {
+                credentialRef: 'ssm:/must-not-travel',
+            },
+        })).withContext('runtime.credentialRef').toBeFalse();
+
+        expect(isDraftSiteConfigPayload({
+            ...base,
+            runtime: {
+                contentHubs: [
+                    {
+                        hubId: 'zoosite-main',
+                        ownerDraftDomain: 'zoositioweb.com.mx',
+                        source: 'primary',
+                        routeBasePath: '/blog',
+                        listPath: '/blog',
+                        articlePathPattern: '/blog/:categorySlug/:articleSlug',
+                        defaultLocale: 'es',
+                        locales: ['es'],
+                        canonicalMode: 'host-adaptive',
+                        serverPolicy: { allow: true },
+                    },
+                ],
+            },
+        })).withContext('runtime.contentHubs[].serverPolicy').toBeFalse();
+
+        const forbiddenDataSourceInputKeys = [
+            'accessToken',
+            'access_token',
+            'credentialRef',
+            'id_token',
+            'upstreamUrl',
+            'tableName',
+            'bucketName',
+            'authorizerPolicy',
+            'groupsToRoles',
+            'serverPolicy',
+            'tenantId',
+            'X-Amz-Signature',
+        ];
+
+        for (const field of forbiddenDataSourceInputKeys) {
+            expect(isDraftSiteConfigPayload({
+                ...base,
+                runtime: {
+                    dataSources: [
+                        {
+                            id: 'content-hub-articles',
+                            kind: 'content-hub',
+                            proxySourceId: 'contentHubArticleList',
+                            target: 'remote.contentHub.articles',
+                            contentHub: {
+                                read: 'articleList',
+                                hubId: 'zoosite-main',
+                            },
+                            input: {
+                                [field]: 'must-not-travel',
+                            },
+                        },
+                    ],
+                },
+            })).withContext(`runtime.dataSources[].input.${ field }`).toBeFalse();
+        }
+
+        const forbiddenActionInputFields = [
+            'accessToken',
+            'access_token',
+            'credentialRef',
+            'id_token',
+            'upstreamUrl',
+            'tableName',
+            'bucketName',
+            'authorizerPolicy',
+            'groupsToRoles',
+            'serverPolicy',
+            'tenantId',
+            'X-Amz-Signature',
+        ];
+
+        for (const field of forbiddenActionInputFields) {
+            expect(isDraftSiteConfigPayload({
+                ...base,
+                runtime: {
+                    apiActions: [
+                        {
+                            id: 'publish-article',
+                            kind: 'content-hub',
+                            proxyActionId: 'contentHubPublish',
+                            inputFields: ['articleId', field],
+                            contentHub: {
+                                action: 'publish',
+                                hubId: 'zoosite-main',
+                            },
+                        },
+                    ],
+                },
+            })).withContext(`runtime.apiActions[].inputFields includes ${ field }`).toBeFalse();
+        }
+
+        expect(isDraftSiteConfigPayload({
+            ...base,
+            runtime: {
+                dataSources: [
+                    {
+                        id: 'content-hub-articles',
+                        kind: 'content-hub',
+                        proxySourceId: 'contentHubArticleList',
+                        target: 'remote.contentHub.articles',
+                        contentHub: {
+                            read: 'articleList',
+                            action: 'publish',
+                            hubId: 'zoosite-main',
+                        },
+                    },
+                ],
+            },
+        })).withContext('runtime.dataSources[].contentHub cannot mix read/action').toBeFalse();
+
+        expect(isDraftSiteConfigPayload({
+            ...base,
+            runtime: {
+                dataSources: [
+                    {
+                        id: 'content-hub-articles',
+                        kind: 'content-hub',
+                        proxySourceId: 'contentHubArticleList',
+                        target: 'remote.contentHub.articles',
+                        contentHub: {
+                            read: 'articleList',
+                            hubId: 'zoosite-main',
+                        },
+                        input: {
+                            package: {
+                                assetUrl: 'https://assets.example.test/file.png?X-Amz-Signature=must-not-travel',
+                            },
+                        },
+                    },
+                ],
+            },
+        })).withContext('runtime.dataSources[].input signed URL value').toBeFalse();
+
+        expect(isDraftSiteConfigPayload({
+            ...base,
+            runtime: {
+                dataSources: [
+                    {
+                        id: 'content-hub-articles',
+                        kind: 'content-hub',
+                        proxySourceId: '../unsafe',
+                        target: 'remote.contentHub.articles',
+                        contentHub: {
+                            read: 'articleList',
+                            hubId: 'zoosite-main',
+                        },
+                    },
+                ],
+            },
+        })).withContext('runtime.dataSources[].proxySourceId unsafe for content-hub').toBeFalse();
+
+        expect(isDraftSiteConfigPayload({
+            ...base,
+            runtime: {
+                apiActions: [
+                    {
+                        id: 'publish-article',
+                        kind: 'content-hub',
+                        proxyActionId: 'contentHubPublish',
+                        contentHub: {
+                            read: 'articleList',
+                            action: 'publish',
+                            hubId: 'zoosite-main',
+                        },
+                    },
+                ],
+            },
+        })).withContext('runtime.apiActions[].contentHub cannot mix action/read').toBeFalse();
+
+        expect(isDraftSiteConfigPayload({
+            ...base,
+            runtime: {
+                apiActions: [
+                    {
+                        id: 'publish-article',
+                        kind: 'content-hub',
+                        proxyActionId: '../unsafe',
+                        contentHub: {
+                            action: 'publish',
+                            hubId: 'zoosite-main',
+                        },
+                    },
+                ],
+            },
+        })).withContext('runtime.apiActions[].proxyActionId unsafe for content-hub').toBeFalse();
+    });
+
     it('accepts runtime data source mapper lookups', () => {
         const payload = {
             version: 1,
@@ -1410,6 +1755,97 @@ describe('config-payload.validators', () => {
         });
 
         expect(isComponentsPayload(valid)).toBeTrue();
+    });
+
+    it('accepts generic content-builder primitive payloads', () => {
+        const valid = createComponentsPayload({
+            articleTable: {
+                id: 'articleTable',
+                type: 'generic-table',
+                config: {
+                    id: 'article-admin-table',
+                    label: 'Artículos',
+                    rowsSource: { source: 'var', path: 'contentHub.articles', fallback: [] },
+                    rowIdPath: 'articleId',
+                    eventPayloadFields: ['articleId', 'status'],
+                    columns: [
+                        { id: 'title', header: 'Título', valuePath: 'title' },
+                        { id: 'status', header: 'Estado', valuePath: 'status' },
+                    ],
+                    pagination: { enabled: true, pageSize: 10, pageSizeOptions: [10, 25] },
+                    selection: { enabled: true, mode: 'multiple', label: 'Seleccionar artículo' },
+                    rowActions: [{ id: 'edit', label: 'Editar', icon: 'edit' }],
+                },
+            },
+            articleStatusCell: {
+                id: 'articleStatusCell',
+                type: 'generic-cell',
+                config: {
+                    id: 'statusCell',
+                    value: 'published',
+                    format: 'text',
+                    componentIds: ['statusBadge'],
+                },
+            },
+            articleBody: {
+                id: 'articleBody',
+                type: 'generic-rich-text',
+                config: {
+                    fieldId: 'body',
+                    provider: 'quill',
+                    format: 'quill-delta-json',
+                    label: 'Contenido',
+                    toolbar: ['bold', 'italic', 'heading', 'bulletList', 'link', 'clean'],
+                    sanitizerPolicyId: 'trusted-authors',
+                },
+            },
+            articleAssets: {
+                id: 'articleAssets',
+                type: 'generic-file-dropzone',
+                config: {
+                    fieldId: 'assets',
+                    label: 'Archivos',
+                    accept: 'image/*,.pdf',
+                    maxFileSizeBytes: 5242880,
+                    multiple: true,
+                    dropLabel: 'Arrastra archivos',
+                },
+            },
+        });
+
+        expect(isComponentsPayload(valid)).toBeTrue();
+    });
+
+    it('rejects unsafe or malformed generic content-builder primitive payloads', () => {
+        const invalid = createComponentsPayload({
+            articleTable: {
+                id: 'articleTable',
+                type: 'generic-table',
+                config: {
+                    credentialRef: 'ssm:/not-for-browser',
+                    columns: [{ id: 'title', onClick: 'alert(1)' }],
+                    rowActions: [{ id: 'edit', label: '' }],
+                },
+            },
+            articleBody: {
+                id: 'articleBody',
+                type: 'generic-rich-text',
+                config: {
+                    fieldId: 'body',
+                    provider: 'script',
+                },
+            },
+            articleAssets: {
+                id: 'articleAssets',
+                type: 'generic-file-dropzone',
+                config: {
+                    fieldId: 'assets',
+                    maxFileSizeBytes: 'large',
+                },
+            },
+        });
+
+        expect(isComponentsPayload(invalid)).toBeFalse();
     });
 
     it('rejects malformed qr-code payloads', () => {

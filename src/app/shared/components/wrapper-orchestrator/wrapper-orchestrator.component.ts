@@ -12,9 +12,11 @@ import { ValueOrchestrator } from '../../services/value-orchestrator';
 import { GenericAccordionComponent } from '../generic-accordion';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { GenericCardComponent } from '../generic-card';
+import { GenericCellComponent } from '../generic-cell/generic-cell.component';
 import { GenericContainerComponent } from '../generic-container/generic-container';
 import { GenericDropdown } from '../generic-dropdown';
 import { GenericEmbedFrameComponent } from '../generic-embed-frame/generic-embed-frame.component';
+import { GenericFileDropzoneComponent } from '../generic-file-dropzone/generic-file-dropzone.component';
 import { GenericIconComponent } from '../generic-icon/generic-icon.component';
 import { GenericInputComponent } from '../generic-input/generic-input.component';
 import { GenericLink } from '../generic-link/generic-link';
@@ -22,15 +24,18 @@ import { GenericLoadingSpinnerComponent } from '../generic-loading-spinner';
 import { GenericMedia } from '../generic-media/generic-media';
 import { GenericPaginationComponent } from '../generic-pagination/generic-pagination.component';
 import { GenericQrCodeComponent } from '../generic-qr-code/generic-qr-code.component';
+import { GenericRichTextComponent } from '../generic-rich-text/generic-rich-text.component';
 import { GenericSearchBoxComponent } from '../generic-search-box/generic-search-box.component';
 import type { SearchBoxConfig } from '../generic-search-box/generic-search-box.types';
 import { GenericStatsCounterComponent } from '../generic-stats-counter/generic-stats-counter.component';
 import { normalizeStatsCounterConfig } from '../generic-stats-counter/generic-stats-counter.constants';
 import type { TGenericStatsCounterConfig } from '../generic-stats-counter/generic-stats-counter.types';
 import { GenericTabGroupComponent } from '../generic-tab-group/generic-tab-group.component';
+import { GenericTableComponent } from '../generic-table/generic-table.component';
 import { GenericTextComponent } from '../generic-text/generic-text';
 import { InteractionScopeComponent } from '../interaction-scope/interaction-scope.component';
 import { findInteractionScopeHost } from '../interaction-scope/interaction-scope.service';
+import type { TGenericCellColumnConfig } from '../generic-cell/generic-cell.types';
 
 import { ConditionOrchestrator } from '../../services/condition-orchestrator';
 import { I18nService } from '../../services/i18n.service';
@@ -51,9 +56,11 @@ import type { TGenericComponent } from './wrapper-orchestrator.types';
     GenericAccordionComponent,
     GenericButtonComponent,
     GenericCardComponent,
+    GenericCellComponent,
     GenericContainerComponent,
     GenericDropdown,
     GenericEmbedFrameComponent,
+    GenericFileDropzoneComponent,
     GenericIconComponent,
     GenericInputComponent,
     forwardRef(() => InteractionScopeComponent),
@@ -65,7 +72,9 @@ import type { TGenericComponent } from './wrapper-orchestrator.types';
     GenericMedia,
     GenericPaginationComponent,
     GenericQrCodeComponent,
+    GenericRichTextComponent,
     GenericTabGroupComponent,
+    GenericTableComponent,
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './wrapper-orchestrator.component.html',
@@ -213,6 +222,65 @@ export class WrapperOrchestrator {
   mediaConfig(
     component: Extract<TGenericComponent, { type: 'media' }>
   ): Extract<TGenericComponent, { type: 'media' }>['config'] {
+    return this.withResolvedDomId(
+      component.id,
+      component.type,
+      component.config
+    );
+  }
+
+  genericCellConfig(
+    component: Extract<TGenericComponent, { type: 'generic-cell' }>
+  ): Extract<TGenericComponent, { type: 'generic-cell' }>['config'] {
+    return this.withResolvedDomId(
+      component.id,
+      component.type,
+      component.config
+    );
+  }
+
+  genericCellColumnConfig(
+    component: Extract<TGenericComponent, { type: 'generic-cell' }>
+  ): TGenericCellColumnConfig {
+    const config = this.genericCellConfig(component);
+    return {
+      id: String(config.id ?? component.id),
+      valuePath: config.valuePath,
+      format: config.format,
+      emptyText: config.emptyText,
+      trueText: config.trueText,
+      falseText: config.falseText,
+      componentId: config.componentId,
+      componentIds: config.componentIds,
+      classes: config.classes,
+      cellClasses: config.classes,
+      valueClasses: config.valueClasses,
+    };
+  }
+
+  genericFileDropzoneConfig(
+    component: Extract<TGenericComponent, { type: 'generic-file-dropzone' }>
+  ): Extract<TGenericComponent, { type: 'generic-file-dropzone' }>['config'] {
+    return this.withResolvedDomId(
+      component.id,
+      component.type,
+      component.config
+    );
+  }
+
+  genericRichTextConfig(
+    component: Extract<TGenericComponent, { type: 'generic-rich-text' }>
+  ): Extract<TGenericComponent, { type: 'generic-rich-text' }>['config'] {
+    return this.withResolvedDomId(
+      component.id,
+      component.type,
+      component.config
+    );
+  }
+
+  genericTableConfig(
+    component: Extract<TGenericComponent, { type: 'generic-table' }>
+  ): Extract<TGenericComponent, { type: 'generic-table' }>['config'] {
     return this.withResolvedDomId(
       component.id,
       component.type,

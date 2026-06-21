@@ -135,21 +135,36 @@ export class ConfigApiService {
         return !!this.request;
     }
 
+    private readServerEnv(name: string): string {
+        if (!this.isServerRequest()) {
+            return '';
+        }
+
+        const processLike = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process;
+        return String(processLike?.env?.[name] ?? '').trim();
+    }
+
+    private resolveConfigApiBaseUrl(): string {
+        return this.readServerEnv('CONFIG_API_URL') || String(environment.configApiUrl ?? environment.apiUrl ?? '').trim();
+    }
+
+    private resolveRuntimeFallbackBaseUrl(): string {
+        return this.readServerEnv('CONFIG_API_SERVER_FALLBACK_URL')
+            || this.readServerEnv('CONFIG_API_RUNTIME_FALLBACK_URL')
+            || String(environment.configApiRuntimeFallbackUrl ?? environment.configApiServerFallbackUrl ?? '').trim();
+    }
+
     private resolveRuntimeFallbackUrl(path: string, params: Record<string, string | undefined>): string | null {
         if (path !== RUNTIME_BUNDLE_ENDPOINT) {
             return null;
         }
 
-        const fallbackBase = String(
-            environment.configApiRuntimeFallbackUrl
-            ?? environment.configApiServerFallbackUrl
-            ?? ''
-        ).trim();
+        const fallbackBase = this.resolveRuntimeFallbackBaseUrl();
         if (!fallbackBase) {
             return null;
         }
 
-        const primaryBase = String(environment.configApiUrl ?? environment.apiUrl ?? '').trim();
+        const primaryBase = this.resolveConfigApiBaseUrl();
         if (!primaryBase || fallbackBase.replace(/\/$/, '') === primaryBase.replace(/\/$/, '')) {
             return null;
         }
@@ -166,7 +181,7 @@ export class ConfigApiService {
             return null;
         }
 
-        return this.buildUrl(path, params);
+        return this.buildUrlForBase(this.resolveConfigApiBaseUrl(), path, params);
     }
 
     private readCachedRuntimeBundle<T>(cacheKey: string | null): T | null {
@@ -252,7 +267,7 @@ export class ConfigApiService {
             }
         }
 
-        const url = this.buildUrl(path, params);
+        const url = this.buildUrlForBase(this.resolveConfigApiBaseUrl(), path, params);
         const fallbackUrl = this.resolveRuntimeFallbackUrl(path, params);
         if (fallbackUrl) {
             try {

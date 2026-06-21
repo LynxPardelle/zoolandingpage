@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "kind": "content-hub-article-package",
+  "hubId": "zoosite-main",
+  "articleId": "art_20260620_blog_builder",
+  "revisionId": "rev_001",
+  "locale": "es",
+  "domain": "zoositioweb.com.mx",
+  "pageId": "blog-article",
+  "rootIds": [
+    "articleRoot"
+  ],
+  "seo": {
+    "title": "Blog builder visual con SEO desde el inicio",
+    "description": "Cómo Zoosite prepara un blog editable con componentes genéricos, rutas limpias, publicación programada y medición propia.",
+    "canonical": "https://zoositioweb.com.mx/blog/web/blog-builder-seo",
+    "robots": {
+      "default": "index,follow"
+    }
+  },
+  "files": {
+    "components": "components.json",
+    "variables": "variables.json",
+    "i18n": "i18n/es.json",
+    "snapshot": "snapshot.json",
+    "delta": "delta.json",
+    "validationReport": "validation-report.json"
+  }
+}

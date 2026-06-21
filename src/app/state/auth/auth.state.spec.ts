@@ -331,6 +331,84 @@ describe('auth signal state', () => {
         expect(auth.hasAnyGroup(['zoosite-admin'])).toBeTrue();
     });
 
+    it('revalidates server-cookie routes even when editable browser metadata already has the required group', async () => {
+        const authAdmin = jasmine.createSpyObj<AuthAdminClientService>('AuthAdminClientService', ['me']);
+        authAdmin.me.and.resolveTo({
+            ok: true,
+            account: {
+                subject: 'admin-sub',
+                roles: ['zoosite-client'],
+                enabled: true,
+            },
+        });
+        TestBed.configureTestingModule({
+            providers: [{ provide: AuthAdminClientService, useValue: authAdmin }],
+        });
+        const store = TestBed.inject(ConfigStoreService);
+        const auth = TestBed.inject(AuthFacade);
+        const authRuntime = TestBed.inject(AuthRuntimeService);
+        store.setSiteConfig({
+            version: 1,
+            domain: 'zoositioweb.com.mx',
+            routes: [
+                {
+                    path: '/admin/usuarios',
+                    pageId: 'admin-usuarios',
+                    auth: {
+                        required: true,
+                        allowedGroups: ['zoosite-admin'],
+                        redirectTo: '/acceso',
+                    },
+                },
+            ],
+            runtime: {
+                auth: {
+                    enabled: true,
+                    authProfileId: 'staff',
+                    provider: 'cognito',
+                    issuer: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_PREVIEW',
+                    clientId: 'public-web-client',
+                    hostedUiDomain: 'https://preview.auth.us-east-1.amazoncognito.com',
+                    scopes: ['openid'],
+                    redirectPath: '/auth/callback',
+                    logoutPath: '/acceso',
+                    loginPath: '/acceso',
+                    session: {
+                        mode: 'server-cookie',
+                        signinPath: '/auth/session/signin',
+                        mePath: '/auth/session/me',
+                        logoutPath: '/auth/session/logout',
+                    },
+                },
+            },
+            site: {},
+        } as any);
+        auth.establishSession({
+            profile: {
+                subject: 'editable-browser-session',
+                roles: ['zoosite-admin'],
+            },
+            provider: 'server-cookie',
+            expiresAtEpochMs: Date.now() + 60_000,
+        });
+
+        expect(authRuntime.evaluateRouteAccess(store.siteConfig()?.routes[0] ?? null)).toEqual({
+            allowed: true,
+            reason: 'authenticated',
+            redirectTo: null,
+            requiredGroups: ['zoosite-admin'],
+        });
+
+        await expectAsync(authRuntime.evaluateRouteAccessAsync(store.siteConfig()?.routes[0] ?? null))
+            .toBeResolvedTo({
+                allowed: false,
+                reason: 'missing-group',
+                redirectTo: '/acceso',
+                requiredGroups: ['zoosite-admin'],
+            });
+        expect(authAdmin.me).toHaveBeenCalled();
+    });
+
     it('revalidates protected remote-auth routes before public auth is installed', async () => {
         const authAdmin = jasmine.createSpyObj<AuthAdminClientService>('AuthAdminClientService', ['me']);
         authAdmin.me.and.resolveTo({

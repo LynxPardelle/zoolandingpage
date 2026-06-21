@@ -65,16 +65,25 @@ export class AuthRuntimeService {
 
     async evaluateRouteAccessAsync(route: TDraftSiteRouteEntry | null | undefined): Promise<TAuthRouteAccessDecision> {
         const decision = this.evaluateRouteAccess(route);
-        if (decision.allowed || !this.shouldRevalidateWithServerCookie(route)) {
+        if (!this.shouldRevalidateWithServerCookie(route)) {
             return decision;
         }
+
+        const deniedFallback = decision.allowed
+            ? this.decision(
+                false,
+                'auth-required',
+                route?.auth ? this.resolveRedirectPath(route.auth, this.profile()) : decision.redirectTo,
+                decision.requiredGroups,
+            )
+            : decision;
 
         try {
             const response = await this.authAdmin.me();
             const account = response.account;
             if (!account?.subject) {
                 this.auth.requestSignOut();
-                return decision;
+                return deniedFallback;
             }
 
             this.auth.establishSession({
@@ -88,12 +97,10 @@ export class AuthRuntimeService {
                 // revalidate against the BFF before rendering protected draft pages.
                 expiresAtEpochMs: Date.now() + 5 * 60 * 1000,
             });
-            return this.serverCookieDecision(account, decision);
+            return this.serverCookieDecision(account, deniedFallback);
         } catch {
             this.auth.requestSignOut();
-            return decision.reason === 'missing-group'
-                ? this.decision(false, 'auth-required', decision.redirectTo, decision.requiredGroups)
-                : decision;
+            return this.decision(false, 'auth-required', deniedFallback.redirectTo, deniedFallback.requiredGroups);
         }
     }
 

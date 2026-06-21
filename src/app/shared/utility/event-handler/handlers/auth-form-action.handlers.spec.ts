@@ -160,6 +160,26 @@ describe('authFormActionHandler', () => {
         expect(variables.get('authForm.signin.state')).toBe('success');
     });
 
+    it('ignores repeated submits while the same auth action is already loading', async () => {
+        let resolveSubmit!: (value: { ok: true; status: string }) => void;
+        authForms.submit.and.returnValue(new Promise((resolve) => {
+            resolveSubmit = resolve;
+        }));
+
+        const handler = TestBed.runInInjectionContext(() => authFormActionHandler());
+        const firstSubmit = handler.handle(context, ['signin']);
+        const secondSubmit = handler.handle(context, ['signin']);
+
+        expect(authForms.submit).toHaveBeenCalledTimes(1);
+        expect(variables.get('authForm.signin.state')).toBe('loading');
+
+        await secondSubmit;
+        resolveSubmit({ ok: true, status: 'signed-in' });
+        await firstSubmit;
+
+        expect(variables.get('authForm.signin.state')).toBe('success');
+    });
+
     it('stores auth form error codes for draft-level messaging', async () => {
         authForms.submit.and.rejectWith(new AuthCustomFormRequestError(
             'Account does not belong to this environment',

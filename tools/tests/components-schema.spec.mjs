@@ -23,3 +23,24 @@ test('components schema documents scoped auth form validation controls', async (
   assert.equal(matchRule.required.includes('fieldId'), true);
   assert.equal(matchRule.properties.fieldId.minLength, 1);
 });
+
+test('components schema documents generic content-builder primitives', async () => {
+  const schema = JSON.parse(await readFile(componentsSchemaPath, 'utf8'));
+
+  assert.equal(schema.definitions?.genericTableConfig.required.includes('columns'), true);
+  assert.equal(schema.definitions?.genericTableConfig.properties.eventPayloadFields.items.type, 'string');
+  assert.equal(schema.definitions?.genericTableConfig.properties.rowActions.items.additionalProperties, false);
+  assert.equal(schema.definitions?.genericCellConfig.properties.componentIds.items.type, 'string');
+  assert.equal(schema.definitions?.genericRichTextConfig.properties.provider.enum.includes('quill'), true);
+  assert.equal(schema.definitions?.genericRichTextConfig.properties.format.enum.includes('quill-delta-json'), true);
+  assert.equal(schema.definitions?.genericFileDropzoneConfig.properties.maxFileSizeBytes.type, 'number');
+
+  const refs = schema.properties.components.items.allOf
+    .map((entry) => entry.then?.properties?.config?.$ref)
+    .filter(Boolean);
+
+  assert.ok(refs.includes('#/definitions/genericTableConfig'));
+  assert.ok(refs.includes('#/definitions/genericCellConfig'));
+  assert.ok(refs.includes('#/definitions/genericRichTextConfig'));
+  assert.ok(refs.includes('#/definitions/genericFileDropzoneConfig'));
+});

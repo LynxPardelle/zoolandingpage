@@ -1,0 +1,13 @@
+[
+  {
+    "itemFamily": "ASSET",
+    "pk": "HUB#zoosite-main",
+    "sk": "ASSET#asset_cover",
+    "assetId": "asset_cover",
+    "kind": "image",
+    "mimeType": "image/jpeg",
+    "usageRefs": [
+      "articleCover"
+    ]
+  }
+]

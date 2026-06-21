@@ -32,6 +32,7 @@ import {
 } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { GenericModalComponent } from "../../../shared/components/generic-modal/generic-modal.component";
+import { GenericLoadingSpinnerComponent } from "../../../shared/components/generic-loading-spinner";
 import { GenericToastComponent } from "../../../shared/components/generic-toast";
 import {
   AnalyticsEventPayload
@@ -39,6 +40,7 @@ import {
 import { AnalyticsService } from "../../../shared/services/analytics.service";
 import { BrowserStateService } from "../../../shared/services/browser-state.service";
 import { DraftRuntimeService } from "../../../shared/services/draft-runtime.service";
+import { I18nService } from "../../../shared/services/i18n.service";
 import { LanguageService } from "../../../shared/services/language.service";
 import { forwardAnalyticsEvent } from "../../../shared/utility/forwardAnalyticsEvent.utility";
 import { DebugWorkspaceComponent } from "../debug-workspace/debug-workspace.component";
@@ -50,6 +52,7 @@ import { DebugWorkspaceComponent } from "../debug-workspace/debug-workspace.comp
     AsyncPipe,
     WrapperOrchestrator,
     GenericModalComponent,
+    GenericLoadingSpinnerComponent,
     GenericToastComponent,
     DebugWorkspaceComponent,
   ],
@@ -73,6 +76,45 @@ import { DebugWorkspaceComponent } from "../debug-workspace/debug-workspace.comp
       background: var(--ank-accentColor, #0f948c);
       box-shadow: 0 0 18px color-mix(in srgb, var(--ank-accentColor, #0f948c) 45%, transparent);
       animation: zlp-route-transition 950ms ease-in-out infinite;
+    }
+
+    .zlp-private-route-loading {
+      position: fixed;
+      inset: 0;
+      z-index: 2147483001;
+      display: grid;
+      place-items: center;
+      padding: 1.25rem;
+      background: color-mix(in srgb, var(--ank-bgColor, #f8fafc) 88%, transparent);
+      color: var(--ank-textColor, #17202a);
+      pointer-events: auto;
+    }
+
+    .zlp-private-route-loading__panel {
+      display: grid;
+      justify-items: center;
+      gap: 0.85rem;
+      width: min(26rem, 100%);
+      padding: 1.25rem;
+      border: 1px solid color-mix(in srgb, var(--ank-accentColor, #0f948c) 28%, transparent);
+      border-radius: 0.5rem;
+      background: var(--ank-secondaryBgColor, #ffffff);
+      box-shadow: 0 1.25rem 3.5rem rgba(15, 23, 42, 0.16);
+      text-align: center;
+    }
+
+    .zlp-private-route-loading__title {
+      font-weight: 800;
+      font-size: 1rem;
+      line-height: 1.3;
+      color: var(--ank-titleColor, #111827);
+    }
+
+    .zlp-private-route-loading__message {
+      max-width: 22rem;
+      font-size: 0.92rem;
+      line-height: 1.45;
+      color: var(--ank-secondaryTextColor, #334155);
     }
 
     @keyframes zlp-route-transition {
@@ -106,11 +148,23 @@ export class AppShellComponent {
   readonly analytics = inject(AnalyticsService);
   private readonly browserState = inject(BrowserStateService);
   private readonly _lang = inject(LanguageService);
+  private readonly i18n = inject(I18nService);
   readonly lang = this._lang;
   private readonly configStore = inject(ConfigStoreService);
   private readonly seo = inject(SeoMetadataService);
   private readonly structuredData = inject(StructuredDataService);
   readonly runtime = inject(RuntimeService);
+  readonly privateRouteLoading = this.runtime.privateRouteLoading;
+  readonly privateRouteLoadingTitle = computed(() => (
+    this.i18n.tOr('ui.authRouteLoading.title', 'Validando acceso')
+  ));
+  readonly privateRouteLoadingMessage = computed(() => {
+    const phase = this.privateRouteLoading().phase;
+    if (phase === 'content') {
+      return this.i18n.tOr('ui.authRouteLoading.content', 'Cargando la información protegida.');
+    }
+    return this.i18n.tOr('ui.authRouteLoading.session', 'Revisando tu sesión segura.');
+  });
   readonly routeTransitionActive = signal(false);
   private routeTransitionStartedAt = 0;
   private routeTransitionHideTimer: number | null = null;

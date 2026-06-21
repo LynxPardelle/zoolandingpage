@@ -100,7 +100,16 @@ export class LanguageService {
 
   private _loadSavedLanguage(): void {
     const preferred = this.getSavedLanguage() ?? this._detectBrowserLanguage() ?? this._defaultLanguage();
-    this._currentLanguage.set(this.resolvePreferredLanguage(preferred));
+    const normalized = this.normalizeSingleLanguage(preferred);
+    if (!normalized) {
+      this._currentLanguage.set(this._defaultLanguage());
+      return;
+    }
+
+    this._currentLanguage.set(normalized);
+    if (!this._availableLanguages().includes(normalized)) {
+      this._availableLanguages.set([normalized]);
+    }
   }
 
   private _saveLanguage(language: SupportedLanguage): void {

@@ -1,0 +1,515 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ProtectedFeatures",
+  "type": "object",
+  "required": ["version", "features"],
+  "definitions": {
+    "safeId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "domain": {
+      "type": "string",
+      "pattern": "^(?!-)(?:[a-z0-9-]{1,63}\\.)+[a-z]{2,63}$"
+    },
+    "sameOriginPath": {
+      "type": "string",
+      "pattern": "^/(?!/)(?!.*[\\\\\\s\\u0000-\\u001F\\u007F]).*$"
+    },
+    "permission": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9.-]*:[a-z][a-z0-9.-]*:[a-z][a-z0-9.-]*$"
+    },
+    "role": {
+      "type": "object",
+      "required": ["id", "groups", "permissions"],
+      "properties": {
+        "id": { "$ref": "#/definitions/safeId" },
+        "groups": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "permissions": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/permission" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "accessPolicy": {
+      "type": "object",
+      "required": ["roles"],
+      "properties": {
+        "model": {
+          "type": "string",
+          "enum": ["groups-to-roles", "owner-or-role", "admin-only"]
+        },
+        "defaultDecision": { "const": "deny" },
+        "roles": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/role" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "resourceOwnership": {
+      "type": "object",
+      "required": ["domain", "tenantId", "isolationBoundary"],
+      "properties": {
+        "domain": { "$ref": "#/definitions/domain" },
+        "tenantId": { "$ref": "#/definitions/safeId" },
+        "isolationBoundary": {
+          "type": "string",
+          "enum": ["draft", "auth-profile", "tenant"]
+        },
+        "environmentClaim": {
+          "type": "string",
+          "pattern": "^custom:[A-Za-z0-9_]{1,20}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "dynamoTable": {
+      "type": "object",
+      "required": ["logicalName", "isolation", "tableNamePattern", "partitionKeyPrefix"],
+      "properties": {
+        "logicalName": { "$ref": "#/definitions/safeId" },
+        "isolation": {
+          "type": "string",
+          "enum": ["per-draft-table", "per-auth-profile-table", "shared-table-with-tenant-key"]
+        },
+        "tableNamePattern": {
+          "type": "string",
+          "pattern": "^zlp-\\{stage\\}-[A-Za-z0-9{}._:-]+$"
+        },
+        "partitionKeyPrefix": {
+          "type": "string",
+          "pattern": "^TENANT#\\{tenantId\\}"
+        },
+        "sortKeyPrefixes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_-]*#$"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "resourcePolicy": {
+      "type": "object",
+      "properties": {
+        "dynamoTables": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/dynamoTable" }
+        },
+        "objectStores": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/objectStore" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "signedUrlPolicy": {
+      "type": "object",
+      "required": ["maxTtlSeconds", "allowedMethods"],
+      "properties": {
+        "maxTtlSeconds": {
+          "type": "number",
+          "minimum": 1
+        },
+        "allowedMethods": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": ["GET", "PUT", "POST"]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "objectStore": {
+      "type": "object",
+      "required": ["logicalName", "isolation", "bucketNamePattern", "keyPrefix"],
+      "properties": {
+        "logicalName": { "$ref": "#/definitions/safeId" },
+        "isolation": {
+          "type": "string",
+          "enum": ["per-draft-bucket", "per-auth-profile-prefix", "shared-bucket-with-tenant-prefix"]
+        },
+        "bucketNamePattern": {
+          "type": "string",
+          "pattern": "^zlp-\\{stage\\}-[a-z0-9{}.-]+$"
+        },
+        "keyPrefix": {
+          "type": "string",
+          "pattern": "^TENANT#\\{tenantId\\}/FEATURE#\\{featureId\\}/"
+        },
+        "signedUrlPolicy": { "$ref": "#/definitions/signedUrlPolicy" }
+      },
+      "additionalProperties": false
+    },
+    "bffEndpoint": {
+      "type": "object",
+      "required": ["basePath", "sessionMode"],
+      "properties": {
+        "basePath": { "$ref": "#/definitions/sameOriginPath" },
+        "sessionMode": {
+          "type": "string",
+          "enum": ["server-cookie"]
+        },
+        "csrfHeaderName": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9-]{1,80}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "authorizerPolicy": {
+      "type": "object",
+      "required": ["mode"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["bff-session", "auth-profile-jwt"]
+        },
+        "allowedTokenUses": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": ["id", "access"]
+          }
+        },
+        "requireTenantClaim": { "type": "boolean" },
+        "requireEnvironmentClaim": { "type": "boolean" },
+        "requireFreshAccountState": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "apiEndpoint": {
+      "type": "object",
+      "required": ["id", "method", "path", "lambdaId", "authorizer"],
+      "properties": {
+        "id": { "$ref": "#/definitions/safeId" },
+        "method": {
+          "type": "string",
+          "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]
+        },
+        "path": { "$ref": "#/definitions/sameOriginPath" },
+        "lambdaId": { "$ref": "#/definitions/safeId" },
+        "authorizer": { "$ref": "#/definitions/authorizerPolicy" }
+      },
+      "additionalProperties": false
+    },
+    "endpointPolicy": {
+      "type": "object",
+      "properties": {
+        "bff": { "$ref": "#/definitions/bffEndpoint" },
+        "apis": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/apiEndpoint" }
+        }
+      },
+      "anyOf": [{ "required": ["bff"] }, { "required": ["apis"] }],
+      "additionalProperties": false
+    },
+    "auditPolicy": {
+      "type": "object",
+      "required": ["required", "sink"],
+      "properties": {
+        "required": { "type": "boolean" },
+        "sink": {
+          "type": "string",
+          "enum": ["dynamodb", "cloudwatch", "eventbridge"]
+        },
+        "eventTypes": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              { "type": "string", "minLength": 1 },
+              { "$ref": "#/definitions/auditEventType" }
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "auditEventType": {
+      "type": "object",
+      "required": ["name", "decisions", "includeRequestId"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9.-]*\\.[a-z][a-z0-9.-]*\\.[a-z][a-z0-9.-]*$"
+        },
+        "decisions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": ["allowed", "denied"]
+          }
+        },
+        "includeRequestId": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "errorResponseShape": {
+      "type": "object",
+      "required": ["wrapper", "fields"],
+      "properties": {
+        "wrapper": { "const": "error" },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["code", "message", "requestId", "retryable"]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "errorPolicy": {
+      "type": "object",
+      "required": ["format", "response"],
+      "properties": {
+        "format": { "const": "zlp-protected-feature-error-v1" },
+        "response": { "$ref": "#/definitions/errorResponseShape" },
+        "safeCodes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "auth_required",
+              "forbidden",
+              "tenant_mismatch",
+              "environment_mismatch",
+              "group_mismatch",
+              "validation_error",
+              "not_found",
+              "conflict",
+              "rate_limited",
+              "upstream_unavailable",
+              "internal_error"
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "runtimeRouteBinding": {
+      "type": "object",
+      "required": ["path", "pageId", "authRequired"],
+      "properties": {
+        "path": { "$ref": "#/definitions/sameOriginPath" },
+        "pageId": { "$ref": "#/definitions/safeId" },
+        "authRequired": { "type": "boolean" },
+        "dataSourceIds": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/safeId" }
+        },
+        "apiActionIds": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/safeId" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "runtimeDataSourceBinding": {
+      "type": "object",
+      "required": ["id", "kind", "target"],
+      "properties": {
+        "id": { "$ref": "#/definitions/safeId" },
+        "kind": {
+          "type": "string",
+          "enum": ["api-proxy", "auth-admin"]
+        },
+        "target": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9._:-]{0,127}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "runtimeApiActionBinding": {
+      "type": "object",
+      "required": ["id", "kind"],
+      "properties": {
+        "id": { "$ref": "#/definitions/safeId" },
+        "kind": {
+          "type": "string",
+          "enum": ["api-proxy", "auth-admin"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "runtimeBindings": {
+      "type": "object",
+      "properties": {
+        "routes": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/runtimeRouteBinding" }
+        },
+        "dataSources": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/runtimeDataSourceBinding" }
+        },
+        "apiActions": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/runtimeApiActionBinding" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "draftConfigurability": {
+      "type": "object",
+      "required": ["enabled", "allowedPublicFields", "forbiddenPublicFields"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "allowedPublicFields": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["routes", "runtime.authRemote", "runtime.auth", "runtime.dataSources", "runtime.apiActions", "components"]
+          }
+        },
+        "forbiddenPublicFields": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "tenantId",
+              "tenantClaim",
+              "environmentClaim",
+              "tableNamePattern",
+              "bucketNamePattern",
+              "partitionKeyPrefix",
+              "keyPrefix",
+              "lambdaId",
+              "authorizer",
+              "credentialRef",
+              "clientSecret",
+              "accessToken",
+              "refreshToken",
+              "signedUrlPolicy"
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "serverOnlyBoundary": {
+      "type": "object",
+      "required": ["exposure", "forbiddenBrowserKeys"],
+      "properties": {
+        "exposure": { "const": "server-only" },
+        "forbiddenBrowserKeys": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": [
+              "tenantId",
+              "tenantClaim",
+              "environmentClaim",
+              "credentialRef",
+              "clientSecret",
+              "accessToken",
+              "refreshToken",
+              "tableNamePattern",
+              "bucketNamePattern",
+              "partitionKeyPrefix",
+              "keyPrefix",
+              "lambdaId",
+              "authorizer",
+              "signedUrlPolicy"
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "rolloutPolicy": {
+      "type": "object",
+      "required": ["promotion", "applyMode"],
+      "properties": {
+        "promotion": {
+          "type": "string",
+          "enum": ["dev-test-prod"]
+        },
+        "applyMode": {
+          "type": "string",
+          "enum": ["plan-only", "apply"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "protectedFeature": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "authProfileId",
+        "status",
+        "ownership",
+        "access",
+        "resources",
+        "endpoints",
+        "runtimeBindings",
+        "draftConfigurability",
+        "audit",
+        "errors",
+        "serverOnly",
+        "rollout"
+      ],
+      "properties": {
+        "id": { "$ref": "#/definitions/safeId" },
+        "kind": {
+          "type": "string",
+          "enum": ["blog", "dashboard", "analytics", "config", "upload", "admin", "custom"]
+        },
+        "authProfileId": { "$ref": "#/definitions/safeId" },
+        "status": {
+          "type": "string",
+          "enum": ["planned", "provisioning", "active", "suspended", "retired"]
+        },
+        "description": { "type": "string" },
+        "ownership": { "$ref": "#/definitions/resourceOwnership" },
+        "access": { "$ref": "#/definitions/accessPolicy" },
+        "resources": { "$ref": "#/definitions/resourcePolicy" },
+        "endpoints": { "$ref": "#/definitions/endpointPolicy" },
+        "runtimeBindings": { "$ref": "#/definitions/runtimeBindings" },
+        "draftConfigurability": { "$ref": "#/definitions/draftConfigurability" },
+        "audit": { "$ref": "#/definitions/auditPolicy" },
+        "errors": { "$ref": "#/definitions/errorPolicy" },
+        "serverOnly": { "$ref": "#/definitions/serverOnlyBoundary" },
+        "rollout": { "$ref": "#/definitions/rolloutPolicy" },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": {
+            "anyOf": [
+              { "type": "string" },
+              { "type": "number" },
+              { "type": "boolean" },
+              { "type": "null" }
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "properties": {
+    "version": { "const": 1 },
+    "features": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/protectedFeature" }
+    }
+  },
+  "additionalProperties": false
+}
