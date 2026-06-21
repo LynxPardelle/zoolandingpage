@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "hubId": "zoosite-main",
+  "records": [
+    {
+      "taxonomyId": "web",
+      "kind": "category",
+      "slug": "web",
+      "createdByDraftDomain": "zoositioweb.com.mx",
+      "defaultLocale": "es",
+      "labels": {
+        "es": "Web",
+        "en": "Web"
+      },
+      "visibility": {
+        "default": "visible",
+        "overrides": [
+          {
+            "draftDomain": "zoolandingpage.com.mx",
+            "visible": true,
+            "labels": {
+              "es": "Plataforma web",
+              "en": "Web platform"
+            }
+          },
+          {
+            "draftDomain": "sulandingpage.com.mx",
+            "visible": true,
+            "labels": {
+              "es": "Sitios web",
+              "en": "Websites"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "taxonomyId": "seo",
+      "kind": "tag",
+      "slug": "seo",
+      "createdByDraftDomain": "zoositioweb.com.mx",
+      "defaultLocale": "es",
+      "labels": {
+        "es": "SEO",
+        "en": "SEO"
+      },
+      "visibility": {
+        "default": "visible",
+        "overrides": []
+      }
+    },
+    {
+      "taxonomyId": "builder",
+      "kind": "tag",
+      "slug": "builder",
+      "createdByDraftDomain": "zoositioweb.com.mx",
+      "defaultLocale": "es",
+      "labels": {
+        "es": "Constructor visual",
+        "en": "Visual builder"
+      },
+      "visibility": {
+        "default": "visible",
+        "overrides": []
+      }
+    }
+  ]
+}

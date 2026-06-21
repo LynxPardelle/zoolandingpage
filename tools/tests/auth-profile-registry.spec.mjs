@@ -419,6 +419,51 @@ test('validateAuthProfileRegistry accepts optional Cognito environment claim', (
   assert.match(result.errors.join('\n'), /environmentClaim/);
 });
 
+test('validateAuthProfileRegistry accepts opt-in multi-environment claim mode', () => {
+  const valid = {
+    version: 1,
+    profiles: [
+      {
+        ...registry.profiles[0],
+        environmentClaim: 'custom:zoolanding_env',
+        environmentClaimMode: 'list',
+      },
+    ],
+  };
+
+  assert.deepEqual(validateAuthProfileRegistry(valid), { valid: true, errors: [] });
+
+  const badMode = {
+    version: 1,
+    profiles: [
+      {
+        ...registry.profiles[0],
+        environmentClaim: 'custom:zoolanding_env',
+        environmentClaimMode: 'wide-open',
+      },
+    ],
+  };
+
+  const badModeResult = validateAuthProfileRegistry(badMode);
+  assert.equal(badModeResult.valid, false);
+  assert.match(badModeResult.errors.join('\n'), /environmentClaimMode/);
+
+  const missingClaim = {
+    version: 1,
+    profiles: [
+      {
+        ...registry.profiles[0],
+        environmentClaimMode: 'list',
+      },
+    ],
+  };
+  delete missingClaim.profiles[0].environmentClaim;
+
+  const missingClaimResult = validateAuthProfileRegistry(missingClaim);
+  assert.equal(missingClaimResult.valid, false);
+  assert.match(missingClaimResult.errors.join('\n'), /environmentClaimMode/);
+});
+
 test('authPolicyFromJwtClaims can require the stack runtime environment', () => {
   const profile = {
     ...resolveAuthProfile(registry, 'example.com', 'client-cognito'),
@@ -442,6 +487,57 @@ test('authPolicyFromJwtClaims can require the stack runtime environment', () => 
     token_use: 'id',
     'custom:tenant_id': 'tenant-example',
     'custom:zoolanding_env': 'prod',
+    'cognito:groups': ['editor'],
+  }, { runtimeEnvironment: 'test' });
+
+  assert.equal(denied.authorized, false);
+  assert.equal(denied.reason, 'environment_mismatch');
+});
+
+test('authPolicyFromJwtClaims can opt in to comma-separated multi-environment claims', () => {
+  const profile = {
+    ...resolveAuthProfile(registry, 'example.com', 'client-cognito'),
+    environmentClaim: 'custom:zoolanding_env',
+    environmentClaimMode: 'list',
+  };
+
+  assert.equal(authPolicyFromJwtClaims(profile, {
+    iss: profile.issuer,
+    aud: profile.clientId,
+    sub: 'user-123',
+    token_use: 'id',
+    'custom:tenant_id': 'tenant-example',
+    'custom:zoolanding_env': 'prod,test',
+    'cognito:groups': ['editor'],
+  }, { runtimeEnvironment: 'test' }).authorized, true);
+
+  const denied = authPolicyFromJwtClaims(profile, {
+    iss: profile.issuer,
+    aud: profile.clientId,
+    sub: 'user-123',
+    token_use: 'id',
+    'custom:tenant_id': 'tenant-example',
+    'custom:zoolanding_env': 'prod',
+    'cognito:groups': ['editor'],
+  }, { runtimeEnvironment: 'test' });
+
+  assert.equal(denied.authorized, false);
+  assert.equal(denied.reason, 'environment_mismatch');
+});
+
+test('authPolicyFromJwtClaims keeps comma-separated environments strict by default', () => {
+  const profile = {
+    ...resolveAuthProfile(registry, 'example.com', 'client-cognito'),
+    environmentClaim: 'custom:zoolanding_env',
+  };
+
+  const denied = authPolicyFromJwtClaims(profile, {
+    iss: profile.issuer,
+    aud: profile.clientId,
+    sub: 'user-123',
+    token_use: 'id',
+    'custom:tenant_id': 'tenant-example',
+    'custom:zoolanding_env': 'prod,test',
     'cognito:groups': ['editor'],
   }, { runtimeEnvironment: 'test' });
 

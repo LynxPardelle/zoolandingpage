@@ -52,6 +52,9 @@ const writeStatus = (
     });
 };
 
+const isLoading = (variables: VariableStoreService, target: string): boolean =>
+    variables.get(`${ target }.state`) === 'loading';
+
 export const authFormActionHandler = (): EventHandler => {
     const authForms = inject(AuthCustomFormService);
     const variables = inject(VariableStoreService);
@@ -63,6 +66,8 @@ export const authFormActionHandler = (): EventHandler => {
             if (!action) return;
 
             const statusTarget = String(args?.[1] || `authForm.${ action }`).trim();
+            if (isLoading(variables, statusTarget)) return;
+
             if (action === 'logout' || action === 'startMfaSetup') {
                 writeStatus(variables, statusTarget, 'loading', null);
                 try {

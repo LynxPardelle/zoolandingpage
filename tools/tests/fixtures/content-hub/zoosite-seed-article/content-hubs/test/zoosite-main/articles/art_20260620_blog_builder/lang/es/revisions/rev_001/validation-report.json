@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "hubId": "zoosite-main",
+  "articleId": "art_20260620_blog_builder",
+  "revisionId": "rev_001",
+  "environment": "test",
+  "status": "pass",
+  "checkedAt": "2026-06-20T07:50:00.000Z",
+  "checks": [
+    {
+      "code": "seo-title",
+      "severity": "info",
+      "status": "pass",
+      "message": "SEO title is present.",
+      "path": "seo.title"
+    },
+    {
+      "code": "slug-unique",
+      "severity": "info",
+      "status": "pass",
+      "message": "Slug is unique for render domain, locale, and hub.",
+      "path": "seo.canonicalPath"
+    },
+    {
+      "code": "public-bundle-safe",
+      "severity": "info",
+      "status": "pass",
+      "message": "Published bundle contains no server-only keys, unsafe URLs, or PII fields.",
+      "path": "publishedBundle"
+    }
+  ]
+}

@@ -18,6 +18,9 @@
     },
     {
       "path": "../zoolanding-image-upload"
+    },
+    {
+      "path": "../zoolanding-api-proxy"
     }
   ],
   "settings": {

@@ -5,6 +5,7 @@ const SAFE_ID = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
 const SAFE_DOMAIN = /^(?!-)(?:[a-z0-9-]{1,63}\.)+[a-z]{2,63}$/;
 const SECRET_REF = /^(\/[^\s\\]+|[^/\s\\]+\/[^\s\\]+|arn:aws:(ssm|secretsmanager):[^\s\\]+)$/;
 const CUSTOM_ENVIRONMENT_CLAIM = /^custom:[A-Za-z0-9_]{1,20}$/;
+const ENVIRONMENT_CLAIM_MODES = new Set(['single', 'list']);
 const DEFAULT_GROUPS_CLAIM = 'cognito:groups';
 const DEFAULT_SCOPES = ['openid', 'email', 'profile'];
 const CUSTOM_AUTH_KEYS = new Set(['signin', 'signup', 'passwordRecovery']);
@@ -101,6 +102,16 @@ function readClaimArray(value) {
     return value.split(/\s+/).filter(Boolean);
   }
   return [];
+}
+
+function readEnvironmentClaimValues(value, mode = 'single') {
+  if (value === undefined || value === null) return [];
+  const rawValues = Array.isArray(value)
+    ? value
+    : String(value).trim().length > 0
+      ? (mode === 'list' ? String(value).trim().split(/[,\s]+/) : [String(value).trim()])
+      : [];
+  return uniqueStrings(rawValues.map(item => cleanString(item).toLowerCase()));
 }
 
 function uniqueStrings(values) {
@@ -322,6 +333,8 @@ function validateProfile(profile, index, seen, errors) {
   pushIf(!isSafeSameOriginPath(profile.logoutPath), errors, `${prefix}.logoutPath must be a same-origin path`);
   pushIf(profile.tenantClaim !== undefined && (typeof profile.tenantClaim !== 'string' || profile.tenantClaim.trim().length === 0 || profile.tenantClaim.trim() !== profile.tenantClaim), errors, `${prefix}.tenantClaim must be a stable claim name when present`);
   pushIf(profile.environmentClaim !== undefined && (typeof profile.environmentClaim !== 'string' || profile.environmentClaim.trim() !== profile.environmentClaim || !CUSTOM_ENVIRONMENT_CLAIM.test(profile.environmentClaim)), errors, `${prefix}.environmentClaim must be a Cognito custom claim such as custom:zoolanding_env`);
+  pushIf(profile.environmentClaimMode !== undefined && !ENVIRONMENT_CLAIM_MODES.has(profile.environmentClaimMode), errors, `${prefix}.environmentClaimMode must be single or list when present`);
+  pushIf(profile.environmentClaimMode !== undefined && profile.environmentClaimMode !== 'single' && !profile.environmentClaim, errors, `${prefix}.environmentClaimMode requires environmentClaim`);
   pushIf(profile.groupClaim !== undefined && (typeof profile.groupClaim !== 'string' || profile.groupClaim.trim().length === 0 || profile.groupClaim.trim() !== profile.groupClaim), errors, `${prefix}.groupClaim must be a stable claim name when present`);
   pushIf(profile.allowedGroups !== undefined && !isNonEmptyStringArray(profile.allowedGroups), errors, `${prefix}.allowedGroups must be a string array when present`);
 
@@ -520,6 +533,7 @@ export function buildJwtVerificationConfig(profile) {
     jwksUri: `${issuer}/.well-known/jwks.json`,
     groupsClaim: profile.groupClaim ?? DEFAULT_GROUPS_CLAIM,
     ...(profile.environmentClaim ? { environmentClaim: profile.environmentClaim } : {}),
+    ...(profile.environmentClaimMode ? { environmentClaimMode: profile.environmentClaimMode } : {}),
     tenantClaim: profile.tenantClaim,
     tenantBoundary: {
       tenantId: profile.tenantId,
@@ -560,12 +574,13 @@ export function authPolicyFromJwtClaims(profile, claims, options = {}) {
     return { authorized: false, subject, groups, reason: 'tenant_mismatch' };
   }
   if (profile.environmentClaim) {
-    const actualEnvironment = typeof claims[profile.environmentClaim] === 'string' ? claims[profile.environmentClaim] : '';
+    const environmentClaimMode = profile.environmentClaimMode === 'list' ? 'list' : 'single';
+    const actualEnvironments = readEnvironmentClaimValues(claims[profile.environmentClaim], environmentClaimMode);
     const expectedEnvironment = typeof options.runtimeEnvironment === 'string' ? options.runtimeEnvironment : '';
-    if (!actualEnvironment) {
+    if (actualEnvironments.length === 0) {
       return { authorized: false, subject, groups, reason: 'environment_missing' };
     }
-    if (expectedEnvironment && actualEnvironment !== expectedEnvironment) {
+    if (expectedEnvironment && !actualEnvironments.includes(expectedEnvironment)) {
       return { authorized: false, subject, groups, reason: 'environment_mismatch' };
     }
   }

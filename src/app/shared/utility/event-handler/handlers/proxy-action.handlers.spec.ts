@@ -1,4 +1,5 @@
 import { ConfigStoreService } from '@/app/shared/services/config-store.service';
+import { ContentHubClientService } from '@/app/shared/services/content-hub-client.service';
 import { RuntimeApiProxyClientService } from '@/app/shared/services/runtime-api-proxy-client.service';
 import { VariableStoreService } from '@/app/shared/services/variable-store.service';
 import { TestBed } from '@angular/core/testing';
@@ -7,18 +8,21 @@ import { proxyActionHandler } from './proxy-action.handlers';
 
 describe('proxyActionHandler', () => {
     let proxy: jasmine.SpyObj<RuntimeApiProxyClientService>;
+    let contentHub: jasmine.SpyObj<ContentHubClientService>;
     let configStore: ConfigStoreService;
     let variables: VariableStoreService;
     let context: EventExecutionContext;
 
     beforeEach(() => {
         proxy = jasmine.createSpyObj<RuntimeApiProxyClientService>('RuntimeApiProxyClientService', ['readSource', 'executeAction']);
+        contentHub = jasmine.createSpyObj<ContentHubClientService>('ContentHubClientService', ['readSource', 'executeAction']);
 
         TestBed.configureTestingModule({
             providers: [
                 ConfigStoreService,
                 VariableStoreService,
                 { provide: RuntimeApiProxyClientService, useValue: proxy },
+                { provide: ContentHubClientService, useValue: contentHub },
             ],
         });
 
@@ -86,6 +90,69 @@ describe('proxyActionHandler', () => {
         expect(variables.get('remoteStatus.newsletterSignup.state')).toBe('success');
         expect(variables.get('remoteStatus.newsletterSignup.error')).toBeNull();
         expect(variables.get('remoteStatus.newsletterSignup.data')).toEqual({ status: 'subscribed' });
+    });
+
+    it('executes content hub actions with public hub context and allowlisted event data only', async () => {
+        configStore.setSiteConfig({
+            version: 1,
+            domain: 'zoositioweb.com.mx',
+            routes: [],
+            runtime: {
+                apiActions: [
+                    {
+                        id: 'publish-article',
+                        kind: 'content-hub',
+                        proxyActionId: 'contentHubPublish',
+                        statusTarget: 'remoteStatus.contentHub.publish',
+                        inputFields: ['articleId', 'language', 'revisionId', 'publishMessage'],
+                        contentHub: {
+                            action: 'publish',
+                            hubId: 'zoosite-main',
+                        },
+                    },
+                ],
+            },
+            site: {},
+        } as any);
+        context = {
+            event: {
+                componentId: 'publishButton',
+                eventName: 'click',
+                eventData: {
+                    articleId: 'intro',
+                    language: 'es',
+                    revisionId: 'rev-1',
+                    publishMessage: 'Ready',
+                    serverPolicy: { allow: true },
+                    credentialRef: 'ssm:/must-not-travel',
+                },
+            },
+            host: {},
+        };
+        contentHub.executeAction.and.resolveTo({
+            ok: true,
+            data: { status: 'published' },
+        });
+
+        const handler = TestBed.runInInjectionContext(() => proxyActionHandler());
+        await handler.handle(context, ['publish-article']);
+
+        expect(proxy.executeAction).not.toHaveBeenCalled();
+        expect(contentHub.executeAction).toHaveBeenCalledOnceWith({
+            domain: 'zoositioweb.com.mx',
+            pageId: 'default',
+            actionId: 'contentHubPublish',
+            input: {
+                contentHub: {
+                    action: 'publish',
+                    hubId: 'zoosite-main',
+                },
+                articleId: 'intro',
+                language: 'es',
+                revisionId: 'rev-1',
+                publishMessage: 'Ready',
+            },
+        });
     });
 
     it('writes an error status when a configured proxy action fails', async () => {

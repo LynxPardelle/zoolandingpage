@@ -20,6 +20,11 @@ export const DEFAULT_FRAMEWORK_TRANSLATIONS: Readonly<Record<string, Record<stri
                 dismissNotification: 'Descartar notificación',
                 verified: 'Verificado',
             },
+            authRouteLoading: {
+                title: 'Validando acceso',
+                session: 'Revisando tu sesión segura.',
+                content: 'Cargando la información protegida.',
+            },
             accessibility: {
                 dialog: 'Diálogo',
                 dialogOpened: 'Diálogo abierto',
@@ -113,6 +118,11 @@ export const DEFAULT_FRAMEWORK_TRANSLATIONS: Readonly<Record<string, Record<stri
                 notifications: 'Notifications',
                 dismissNotification: 'Dismiss notification',
                 verified: 'Verified',
+            },
+            authRouteLoading: {
+                title: 'Validating access',
+                session: 'Checking your secure session.',
+                content: 'Loading protected information.',
             },
             accessibility: {
                 dialog: 'Dialog',

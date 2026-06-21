@@ -457,6 +457,28 @@ describe('DraftRuntimeService', () => {
     expect(service.activeDraftPageId()).toBe('default');
   });
 
+  it('resolves parameterized draft routes for SEO article URLs', async () => {
+    const { service } = configure(
+      'https://test.zoolandingpage.com.mx/blog/web/blog-builder-seo?draftDomain=zoositioweb.com.mx&debugWorkspace=false',
+      {
+        version: 1,
+        domain: 'zoositioweb.com.mx',
+        defaultPageId: 'default',
+        routes: [
+          { path: '/', pageId: 'default' },
+          { path: '/blog/:categorySlug/:articleSlug', pageId: 'blog-article' },
+        ],
+      },
+      { browserMode: true },
+    );
+
+    const context = await service.resolveActiveDraftContext();
+
+    expect(context.domain).toBe('zoositioweb.com.mx');
+    expect(context.pageId).toBe('blog-article');
+    expect(context.route?.path).toBe('/blog/:categorySlug/:articleSlug');
+  });
+
   it('auto-enables the debug workspace on localhost when no draft identity is resolved', () => {
     const { service } = configure(
       'http://localhost:4200/',

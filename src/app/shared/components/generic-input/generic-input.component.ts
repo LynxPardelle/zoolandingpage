@@ -48,9 +48,12 @@ export class GenericInputComponent {
   readonly valueChanged = output<TGenericInputValueChange>();
   readonly blurred = output<{ fieldId: string }>();
 
-  private readonly scope = inject(InteractionScopeService);
+  private readonly scope = inject(InteractionScopeService, { optional: true });
   private readonly variables = inject(VariableStoreService);
   private readonly i18n = inject(I18nService);
+  private readonly localValue = signal<unknown>(undefined);
+  private readonly localTouched = signal(false);
+  private readonly localDirty = signal(false);
 
   constructor() {
     effect(() => {
@@ -63,7 +66,16 @@ export class GenericInputComponent {
         validation: this.validationRules(),
       };
 
-      untracked(() => this.scope.registerField(registeredConfig));
+      untracked(() => {
+        if (this.scope) {
+          this.scope.registerField(registeredConfig);
+          return;
+        }
+
+        if (!this.localDirty()) {
+          this.localValue.set(this.initialValue());
+        }
+      });
     });
   }
 
@@ -308,19 +320,23 @@ export class GenericInputComponent {
   );
 
   readonly fieldState = computed(() => {
-    const value = this.initialValue();
+    const value = this.scope
+      ? this.initialValue()
+      : this.localDirty()
+        ? this.localValue()
+        : this.initialValue();
     const errors = validateInteractionValue(
       value,
       this.validationRules(),
       this.required(),
-      { values: this.scope.values() }
+      { values: this.currentScopeValues() }
     );
 
     return (
-      this.scope.getFieldState(this.fieldId()) ?? {
+      this.scope?.getFieldState(this.fieldId()) ?? {
         value,
-        touched: false,
-        dirty: false,
+        touched: this.localTouched(),
+        dirty: this.localDirty(),
         errors,
         valid: errors.length === 0,
       }
@@ -478,7 +494,7 @@ export class GenericInputComponent {
     };
   });
   readonly showErrors = computed(() => {
-    return this.fieldState().touched || this.scope.submitted();
+    return this.fieldState().touched || (this.scope?.submitted() ?? false);
   });
   readonly visibleErrors = computed(() =>
     this.showErrors() ? this.fieldState().errors : []
@@ -536,7 +552,11 @@ export class GenericInputComponent {
 
   onBlur(event?: Event): void {
     this.updateTextTargetValue(event?.target ?? null);
-    this.scope.markTouched(this.fieldId());
+    if (this.scope) {
+      this.scope.markTouched(this.fieldId());
+    } else {
+      this.localTouched.set(true);
+    }
     this.blurred.emit({ fieldId: this.fieldId() });
   }
 
@@ -570,7 +590,13 @@ export class GenericInputComponent {
     const normalized = this.normalizeValue(nextValue);
     const previousValue = this.currentValue();
 
-    this.scope.setFieldValue(this.fieldId(), normalized, { markTouched: true });
+    if (this.scope) {
+      this.scope.setFieldValue(this.fieldId(), normalized, { markTouched: true });
+    } else {
+      this.localValue.set(normalized);
+      this.localTouched.set(true);
+      this.localDirty.set(true);
+    }
 
     this.valueChanged.emit({
       fieldId: this.fieldId(),
@@ -653,7 +679,22 @@ export class GenericInputComponent {
       return false;
     }
 
-    return validateInteractionValue(value, [rule], false, { values: this.scope.values() }).length === 0;
+    return validateInteractionValue(value, [rule], false, { values: this.currentScopeValues() }).length === 0;
+  }
+
+  private currentScopeValues(): Readonly<Record<string, unknown>> {
+    if (this.scope) {
+      return this.scope.values();
+    }
+
+    const fieldId = this.fieldId();
+    return fieldId
+      ? {
+          [fieldId]: this.localDirty()
+            ? this.localValue()
+            : this.initialValue(),
+        }
+      : {};
   }
 
   buildTextConfig(

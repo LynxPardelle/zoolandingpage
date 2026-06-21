@@ -2,7 +2,9 @@ import { isPlatformBrowser } from '@angular/common';
 import { Injectable, PLATFORM_ID, REQUEST, inject } from '@angular/core';
 import type { TRuntimeDataSourceConfig } from '@/app/shared/types/config-payloads.types';
 import { AuthAdminClientService } from '@/app/state/auth/auth-admin-client.service';
+import { ContentHubClientService } from './content-hub-client.service';
 import { RuntimeApiProxyClientService, type TRuntimeApiProxyResponse } from './runtime-api-proxy-client.service';
+import { buildContentHubRuntimeInput } from './content-hub-runtime-request';
 import { RuntimeDataSourceMapperService } from './runtime-data-source-mapper.service';
 import { VariableStoreService } from './variable-store.service';
 
@@ -25,6 +27,7 @@ type TPreparedRuntimeDataSource = {
 export class RuntimeDataSourceService {
     private readonly proxy = inject(RuntimeApiProxyClientService);
     private readonly authAdmin = inject(AuthAdminClientService);
+    private readonly contentHub = inject(ContentHubClientService);
     private readonly mapper = inject(RuntimeDataSourceMapperService);
     private readonly variables = inject(VariableStoreService);
     private readonly platformId = inject(PLATFORM_ID);
@@ -112,7 +115,7 @@ export class RuntimeDataSourceService {
             return null;
         }
 
-        const input = this.resolveInput(source.input);
+        const input = this.resolvePreparedInput(source);
         if (!this.hasRequiredInputValues(source.requiredInputKeys, input)) {
             return null;
         }
@@ -126,14 +129,23 @@ export class RuntimeDataSourceService {
         sourceId: string,
         input: Record<string, unknown> | undefined,
     ): Promise<TRuntimeApiProxyResponse<unknown>> {
+        if (source.kind === 'auth-admin') {
+            return this.readAuthAdminSource(source);
+        }
+        if (source.kind === 'content-hub') {
+            return this.contentHub.readSource({
+                domain: options.domain,
+                pageId: options.pageId,
+                sourceId,
+                input,
+            });
+        }
+
         let lastError: unknown;
         const attempts = this.loadRetryDelaysMs.length + 1;
 
         for (let attempt = 0; attempt < attempts; attempt++) {
             try {
-                if (source.kind === 'auth-admin') {
-                    return await this.readAuthAdminSource(source);
-                }
                 return await this.proxy.readSource({
                     domain: options.domain,
                     pageId: options.pageId,
@@ -162,6 +174,15 @@ export class RuntimeDataSourceService {
             return { ok: response.ok, data: response };
         }
         throw new Error('Auth admin data source is invalid.');
+    }
+
+    private resolvePreparedInput(source: TRuntimeDataSourceConfig): Record<string, unknown> | undefined {
+        const input = this.resolveInput(source.input);
+        if (source.kind !== 'content-hub') {
+            return input;
+        }
+
+        return buildContentHubRuntimeInput(source.contentHub, input);
     }
 
     private wait(ms: number): Promise<void> {
@@ -203,7 +224,7 @@ export class RuntimeDataSourceService {
             return true;
         }
 
-        return source.ssr === true;
+        return source.kind !== 'auth-admin' && source.ssr === true;
     }
 
     private shouldSkipForQueryParams(queryParams: readonly string[] | undefined): boolean {

@@ -9,14 +9,19 @@ import { DRAFT_RUNTIME_STICKY_QUERY_PARAMS, DraftRuntimeService } from '@/app/sh
 import { RuntimeDataSourceService } from '@/app/shared/services/runtime-data-source.service';
 import { RuntimeConfigService } from '@/app/shared/services/runtime-config.service';
 import { ThemeService } from '@/app/shared/services/theme.service';
+import { I18nService } from '@/app/shared/services/i18n.service';
 import { AuthFacade } from '@/app/state/auth/auth.facade';
 import { AuthRuntimeService } from '@/app/state/auth/auth-runtime.service';
 import { applyNavigationScroll, currentBrowserPath, dispatchClientNavigationEnd, navigateInCurrentWindow } from '@/app/shared/utility/navigation/browser-navigation.utility';
+import { matchDraftRoute, normalizeDraftRoutePath } from '@/app/shared/utility/route-matching/draft-route-matching';
 import { environment } from '@/environments/environment';
 import { isPlatformBrowser } from '@angular/common';
 import { DestroyRef, inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
 import { LoadingCurtainService } from './loading-curtain.service';
 import { AuthBrowserFlowService } from '@/app/state/auth/auth-browser-flow.service';
+import type { AnalyticsEventPayload } from '@/app/shared/services/analytics.events';
+import type { TContentHubRuntimeConfig } from '@/app/shared/types/content-hub.types';
+import type { TDraftSiteRouteEntry, TRuntimeDataSourceConfig } from '@/app/shared/types/config-payloads.types';
 
 @Injectable({ providedIn: 'root' })
 export class RuntimeService {
@@ -34,6 +39,7 @@ export class RuntimeService {
     private readonly authRuntime = inject(AuthRuntimeService);
     private readonly authBrowserFlow = inject(AuthBrowserFlowService);
     private readonly theme = inject(ThemeService);
+    private readonly i18n = inject(I18nService);
     private readonly loadingCurtain = inject(LoadingCurtainService);
     private readonly platformId = inject(PLATFORM_ID);
     private readonly isBrowser = isPlatformBrowser(this.platformId);
@@ -42,6 +48,14 @@ export class RuntimeService {
     readonly modalRootIds = signal<readonly string[]>([]);
     readonly debugWorkspaceRootIds = signal<readonly string[]>([]);
     readonly debugWorkspaceModalRootIds = signal<readonly string[]>([]);
+    private readonly privateRouteLoadingState = signal<{
+        readonly active: boolean;
+        readonly phase: 'session' | 'content' | null;
+    }>({
+        active: false,
+        phase: null,
+    });
+    readonly privateRouteLoading = this.privateRouteLoadingState.asReadonly();
     private initializeQueue: Promise<void> = Promise.resolve();
     private debugWorkspaceEnabled = false;
     private debugWorkspaceInit: Promise<void> | null = null;
@@ -222,112 +236,153 @@ export class RuntimeService {
     }
 
     private async doInitialize(lang?: string): Promise<void> {
-        const context = await this.draftRuntime.resolveActiveDraftContext();
-        if (!context.domain || !context.pageId) {
-            this.clearRenderedDraft(context.domain, context.pageId);
-            this.loadingCurtain.hideWhenReady('missing-draft-context');
-            if (this.runtimeConfig.isDebugMode()) {
-                console.warn('[Runtime] Skipping page bootstrap until a draft domain and page are selected.', {
-                    domain: context.domain,
-                    pageId: context.pageId,
-                    path: context.path,
-                });
-            }
-            return;
-        }
-
-        const remoteAuthResolved = await this.runtimeConfig.resolveRemoteAuth(context.domain);
-        if (!remoteAuthResolved && this.runtimeConfig.isDebugMode()) {
-            console.warn('[Runtime] Remote auth runtime resolution failed closed.', {
-                reason: this.runtimeConfig.remoteAuthError(),
-            });
-        }
-
-        this.auth.restoreSession();
-        const callbackResult = await this.authBrowserFlow.completeCallbackFromCurrentUrl();
-        if (callbackResult.handled && callbackResult.redirectTo) {
-            this.clearRenderedDraft(context.domain, context.pageId);
-            this.loadingCurtain.hideWhenReady(`auth-callback-${ callbackResult.reason }`);
-            if (this.isBrowser) {
-                navigateInCurrentWindow(this.resolveAuthRedirectHref(callbackResult.redirectTo), {
-                    scrollRestoration: this.runtimeConfig.siteRuntime()?.navigation?.scrollRestoration,
-                });
-            }
-            return;
-        }
-
-        const routeAccess = await this.authRuntime.evaluateRouteAccessAsync(context.route);
-        if (!routeAccess.allowed) {
-            this.clearRenderedDraft(context.domain, context.pageId);
-            this.auth.requestSignIn(this.authRuntime.profile()?.provider);
-            this.loadingCurtain.hideWhenReady(`auth-route-${ routeAccess.reason }`);
-            // SSR has no response redirect hook in this runtime; protected drafts render no private content.
-            if (this.isBrowser && routeAccess.redirectTo) {
-                navigateInCurrentWindow(this.resolveAuthRedirectHref(routeAccess.redirectTo), {
-                    scrollRestoration: this.runtimeConfig.siteRuntime()?.navigation?.scrollRestoration,
-                });
-            }
-            return;
-        }
-
-        const pageId = context.pageId;
-        const boot = await this.configBootstrap.load({
-            domain: context.domain,
-            pageId,
-            lang,
-        });
-
-        const domain = boot.domain || context.domain;
-        this.loadingCurtain.configureFromDraft();
-        const pageConfig = boot.pageConfig;
-        const componentsPayload = boot.components;
-        const validationIssues = this.configStore.validationIssues();
-        const hasRenderableComponents = !!componentsPayload && Object.keys(componentsPayload.components ?? {}).length > 0;
-        const rootIds = pageConfig?.rootIds ?? [];
-        const modalRootIds = this.resolveModalRootIds(pageConfig?.modalRootIds ?? []);
-
-        if (validationIssues.length > 0 || !hasRenderableComponents || rootIds.length === 0) {
-            this.clearRenderedDraft(domain, pageId);
-            this.loadingCurtain.hideWhenReady('invalid-draft-payload');
-            if (this.runtimeConfig.isDebugMode()) {
-                console.error('[Drafts] Draft render aborted because the active payload set is invalid.', {
-                    domain,
-                    pageId,
-                    validationIssues,
-                    hasRenderableComponents,
-                    rootIds,
-                });
-            }
-            return;
-        }
-
-        this.orchestrator.setExternalComponentsFromPayload(componentsPayload);
-        const dataSourcesLoaded = this.startRuntimeDataSources(domain, pageId);
-        if (!this.isBrowser) {
-            await dataSourcesLoaded;
-        }
-
-        this.prewarmAuthoredComponentsCss();
-        this.rootComponentsIds.set(rootIds);
-        this.modalRootIds.set(modalRootIds);
-        this.orchestrator.setDraftExportContext({ domain, pageId, rootIds, modalRootIds });
-
-        this.scheduleRenderedComponentsCssUpdate();
-        const initialPageViewLabel = this.resolveCurrentBrowserUrlLabel();
-        this.schedulePostBootstrapBrowserWork(() => {
-            if (this.shouldSkipPostBootstrapBrowserWork()) {
+        let protectedRouteLoadingStarted = false;
+        try {
+            const context = await this.draftRuntime.resolveActiveDraftContext();
+            if (!context.domain || !context.pageId) {
+                this.clearPrivateRouteLoading();
+                this.clearRenderedDraft(context.domain, context.pageId);
+                this.loadingCurtain.hideWhenReady('missing-draft-context');
+                if (this.runtimeConfig.isDebugMode()) {
+                    console.warn('[Runtime] Skipping page bootstrap until a draft domain and page are selected.', {
+                        domain: context.domain,
+                        pageId: context.pageId,
+                        path: context.path,
+                    });
+                }
                 return;
             }
 
-            this.analytics.initializeRuntimeState();
-            this.analytics.startPageEngagementTracking(this.configStore.analytics());
-            this.prefetchSiblingRoutes(domain, pageId, lang, context.path);
-            this.trackInitialPageView(initialPageViewLabel);
+            protectedRouteLoadingStarted = this.isProtectedBrowserRoute(context.route);
+            if (protectedRouteLoadingStarted) {
+                this.setPrivateRouteLoading('session');
+            } else {
+                this.clearPrivateRouteLoading();
+            }
+
+            const remoteAuthResolved = await this.runtimeConfig.resolveRemoteAuth(context.domain);
+            if (!remoteAuthResolved && this.runtimeConfig.isDebugMode()) {
+                console.warn('[Runtime] Remote auth runtime resolution failed closed.', {
+                    reason: this.runtimeConfig.remoteAuthError(),
+                });
+            }
+
+            this.auth.restoreSession();
+            const callbackResult = await this.authBrowserFlow.completeCallbackFromCurrentUrl();
+            if (callbackResult.handled && callbackResult.redirectTo) {
+                this.clearRenderedDraft(context.domain, context.pageId);
+                this.loadingCurtain.hideWhenReady(`auth-callback-${ callbackResult.reason }`);
+                if (this.isBrowser) {
+                    navigateInCurrentWindow(this.resolveAuthRedirectHref(callbackResult.redirectTo), {
+                        scrollRestoration: this.runtimeConfig.siteRuntime()?.navigation?.scrollRestoration,
+                    });
+                }
+                return;
+            }
+
+            const routeAccess = await this.authRuntime.evaluateRouteAccessAsync(context.route);
+            if (!routeAccess.allowed) {
+                this.clearRenderedDraft(context.domain, context.pageId);
+                this.auth.requestSignIn(this.authRuntime.profile()?.provider);
+                this.loadingCurtain.hideWhenReady(`auth-route-${ routeAccess.reason }`);
+                // SSR has no response redirect hook in this runtime; protected drafts render no private content.
+                if (this.isBrowser && routeAccess.redirectTo) {
+                    navigateInCurrentWindow(this.resolveAuthRedirectHref(routeAccess.redirectTo), {
+                        scrollRestoration: this.runtimeConfig.siteRuntime()?.navigation?.scrollRestoration,
+                    });
+                }
+                return;
+            }
+
+            if (protectedRouteLoadingStarted) {
+                this.setPrivateRouteLoading('content');
+            }
+
+            const pageId = context.pageId;
+            const boot = await this.configBootstrap.load({
+                domain: context.domain,
+                pageId,
+                lang,
+            });
+
+            const domain = boot.domain || context.domain;
+            this.loadingCurtain.configureFromDraft();
+            const pageConfig = boot.pageConfig;
+            const componentsPayload = boot.components;
+            const validationIssues = this.configStore.validationIssues();
+            const hasRenderableComponents = !!componentsPayload && Object.keys(componentsPayload.components ?? {}).length > 0;
+            const rootIds = pageConfig?.rootIds ?? [];
+            const modalRootIds = this.resolveModalRootIds(pageConfig?.modalRootIds ?? []);
+
+            if (validationIssues.length > 0 || !hasRenderableComponents || rootIds.length === 0) {
+                this.clearRenderedDraft(domain, pageId);
+                this.loadingCurtain.hideWhenReady('invalid-draft-payload');
+                if (this.runtimeConfig.isDebugMode()) {
+                    console.error('[Drafts] Draft render aborted because the active payload set is invalid.', {
+                        domain,
+                        pageId,
+                        validationIssues,
+                        hasRenderableComponents,
+                        rootIds,
+                    });
+                }
+                return;
+            }
+
+            const dataSources = this.configStore.siteConfig()?.runtime?.dataSources ?? [];
+            const dataSourcesLoaded = this.startRuntimeDataSources(domain, pageId, dataSources);
+            if (!this.isBrowser || this.shouldWaitForProtectedInitialDataSources(context.route, pageId, dataSources)) {
+                await dataSourcesLoaded;
+            }
+
+            this.orchestrator.setExternalComponentsFromPayload(componentsPayload);
+            this.prewarmAuthoredComponentsCss();
+            this.rootComponentsIds.set(rootIds);
+            this.modalRootIds.set(modalRootIds);
+            this.orchestrator.setDraftExportContext({ domain, pageId, rootIds, modalRootIds });
+
+            this.scheduleRenderedComponentsCssUpdate();
+            const initialPageViewLabel = this.resolveCurrentBrowserUrlLabel();
+            this.schedulePostBootstrapBrowserWork(() => {
+                if (this.shouldSkipPostBootstrapBrowserWork()) {
+                    return;
+                }
+
+                this.analytics.initializeRuntimeState();
+                this.analytics.startPageEngagementTracking(this.configStore.analytics());
+                this.prefetchSiblingRoutes(domain, pageId, lang, context.path);
+                this.trackInitialPageView(initialPageViewLabel);
+            });
+        } finally {
+            if (protectedRouteLoadingStarted) {
+                this.clearPrivateRouteLoading();
+            }
+        }
+    }
+
+    private isProtectedBrowserRoute(route: TDraftSiteRouteEntry | null | undefined): boolean {
+        return this.isBrowser && route?.auth?.required === true;
+    }
+
+    private setPrivateRouteLoading(phase: 'session' | 'content'): void {
+        this.privateRouteLoadingState.set({ active: true, phase });
+        this.loadingCurtain.setStatus?.({
+            title: this.i18n.tOr('ui.authRouteLoading.title', 'Validando acceso'),
+            subtitle: phase === 'content'
+                ? this.i18n.tOr('ui.authRouteLoading.content', 'Cargando la información protegida.')
+                : this.i18n.tOr('ui.authRouteLoading.session', 'Revisando tu sesión segura.'),
         });
     }
 
-    private startRuntimeDataSources(domain: string, pageId: string): Promise<void> {
-        const dataSources = this.configStore.siteConfig()?.runtime?.dataSources ?? [];
+    private clearPrivateRouteLoading(): void {
+        this.privateRouteLoadingState.set({ active: false, phase: null });
+    }
+
+    private startRuntimeDataSources(
+        domain: string,
+        pageId: string,
+        dataSources: readonly TRuntimeDataSourceConfig[] = this.configStore.siteConfig()?.runtime?.dataSources ?? [],
+    ): Promise<void> {
         if (!dataSources.length) {
             this.runtimeDataSources.stop();
             return Promise.resolve();
@@ -343,6 +398,32 @@ export class RuntimeService {
                 console.error('[Runtime] Runtime data source bootstrap failed.', error);
             }
         });
+    }
+
+    private shouldWaitForProtectedInitialDataSources(
+        route: TDraftSiteRouteEntry | null | undefined,
+        pageId: string,
+        dataSources: readonly TRuntimeDataSourceConfig[],
+    ): boolean {
+        if (!this.isBrowser || route?.auth?.required !== true) {
+            return false;
+        }
+
+        return dataSources.some((source) => (
+            source.kind === 'auth-admin'
+            && source.enabled !== false
+            && this.matchesDataSourcePage(source, pageId)
+        ));
+    }
+
+    private matchesDataSourcePage(source: TRuntimeDataSourceConfig, pageId: string): boolean {
+        if (!Array.isArray(source.pageIds) || source.pageIds.length === 0) {
+            return true;
+        }
+
+        const normalizedPageId = String(pageId ?? '').trim();
+        return !!normalizedPageId
+            && source.pageIds.some((entry) => String(entry ?? '').trim() === normalizedPageId);
     }
 
     private scheduleRenderedComponentsCssUpdate(): void {
@@ -554,6 +635,71 @@ export class RuntimeService {
             category: AnalyticsCategories.Navigation,
             label: currentUrl || '/',
         });
+        this.trackConfiguredContentHubView(currentUrl);
+    }
+
+    private trackConfiguredContentHubView(currentUrl: string): void {
+        const event = this.resolveContentHubViewEvent(currentUrl);
+        if (!event) {
+            return;
+        }
+
+        void this.analytics.track(event.name, event.payload);
+    }
+
+    private resolveContentHubViewEvent(currentUrl: string): { readonly name: string; readonly payload: Omit<AnalyticsEventPayload, 'name'> } | null {
+        const hubs = this.configStore.siteConfig()?.runtime?.contentHubs ?? [];
+        if (!hubs.length) {
+            return null;
+        }
+
+        const path = normalizeDraftRoutePath(currentUrl);
+        for (const hub of hubs) {
+            const match = this.matchContentHubArticlePath(hub, path);
+            if (!match) {
+                continue;
+            }
+
+            const eventPrefix = String(hub.analyticsContext?.eventPrefix ?? '').trim();
+            const contentGroup = String(hub.analyticsContext?.contentGroup ?? '').trim();
+            const hubId = String(hub.hubId ?? '').trim();
+            if (!eventPrefix || !contentGroup || !hubId) {
+                continue;
+            }
+
+            return {
+                name: `${ eventPrefix }_view`,
+                payload: {
+                    category: AnalyticsCategories.Engagement,
+                    label: path,
+                    meta: {
+                        hubId,
+                        contentGroup,
+                        path,
+                        params: match.params,
+                    },
+                },
+            };
+        }
+
+        return null;
+    }
+
+    private matchContentHubArticlePath(
+        hub: TContentHubRuntimeConfig,
+        path: string,
+    ): { readonly params: Readonly<Record<string, string>> } | null {
+        const pattern = String(hub.articlePathPattern ?? '').trim();
+        if (!pattern) {
+            return null;
+        }
+
+        const match = matchDraftRoute([{ path: pattern }], path);
+        if (!match) {
+            return null;
+        }
+
+        return { params: match.params };
     }
 
     private resolveCurrentBrowserUrlLabel(): string {
@@ -616,10 +762,12 @@ export class RuntimeService {
         }
 
         const handleNavigation = () => {
+            const currentPath = currentBrowserPath();
             void this.analytics.track(this.analytics.pageViewEventName(), {
                 category: AnalyticsCategories.Navigation,
-                label: currentBrowserPath(),
+                label: currentPath,
             });
+            this.trackConfiguredContentHubView(currentPath);
 
             this.markRuntimeDataSourcesLoadingForNavigation();
             const lang = this.currentLanguageResolver?.();

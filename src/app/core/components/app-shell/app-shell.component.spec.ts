@@ -5,6 +5,7 @@ import {
   PLATFORM_ID,
   REQUEST,
   ChangeDetectionStrategy,
+  signal,
 } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter, withInMemoryScrolling } from '@angular/router';
@@ -26,6 +27,7 @@ import {
   CLIENT_NAVIGATION_START_EVENT,
 } from '../../../shared/utility/navigation/browser-navigation.utility';
 import { initializeRuntimeConfig } from '../../../app.config';
+import { RuntimeService } from '../../services/runtime.service';
 import { DebugWorkspaceComponent } from '../debug-workspace/debug-workspace.component';
 import { AppShellComponent } from './app-shell.component';
 
@@ -325,6 +327,31 @@ describe('AppShellComponent', () => {
 
     expect(fixture.componentInstance.routeTransitionActive()).toBeFalse();
     expect(fixture.nativeElement.querySelector('.zlp-route-transition')).toBeFalsy();
+  });
+
+  it('renders a protected-route loading panel while auth validation is pending', () => {
+    setBrowserUrl(`${draftPreviewUrl(LEGAL_DOMAIN)}&lang=es`);
+    const routeLoading = signal({
+      active: true,
+      phase: 'session',
+    });
+    TestBed.overrideProvider(RuntimeService, {
+      useValue: {
+        rootComponentsIds: signal([]),
+        modalRootIds: signal([]),
+        privateRouteLoading: routeLoading.asReadonly(),
+        connect: jasmine.createSpy('runtime.connect'),
+        requestRenderedComponentsCssUpdate: jasmine.createSpy('runtime.requestRenderedComponentsCssUpdate'),
+      },
+    });
+
+    const fixture = TestBed.createComponent(AppShellComponent);
+    fixture.detectChanges();
+
+    const panel = fixture.nativeElement.querySelector('.zlp-private-route-loading') as HTMLElement | null;
+    expect(panel).toBeTruthy();
+    expect(panel?.getAttribute('role')).toBe('status');
+    expect(panel?.textContent).toContain('Validando acceso');
   });
 
   it('does not render the debug workspace during SSR', () => {

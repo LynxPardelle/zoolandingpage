@@ -43,6 +43,9 @@ const writeStatus = (
     });
 };
 
+const isLoading = (variables: VariableStoreService, target: string): boolean =>
+    variables.get(`${ target }.state`) === 'loading';
+
 export const authAdminActionHandler = (): EventHandler => {
     const authAdmin = inject(AuthAdminClientService);
     const variables = inject(VariableStoreService);
@@ -55,6 +58,8 @@ export const authAdminActionHandler = (): EventHandler => {
 
             const subject = String(args?.[1] ?? '').trim();
             const statusTarget = String(args?.[3] || `authAdmin.${ action }`).trim();
+            if (isLoading(variables, statusTarget)) return;
+
             if (!subject) {
                 writeStatus(variables, statusTarget, 'error', 'Auth admin action requires a user subject.');
                 return;

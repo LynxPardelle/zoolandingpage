@@ -2,6 +2,7 @@ import { environment } from '@/environments/environment';
 import { isPlatformBrowser } from '@angular/common';
 import { computed, DestroyRef, inject, Injectable, NgZone, PLATFORM_ID, REQUEST, signal } from '@angular/core';
 import { navigateInCurrentWindow } from '../utility/navigation/browser-navigation.utility';
+import { matchDraftRoute, normalizeDraftRoutePath } from '../utility/route-matching/draft-route-matching';
 import type { TComponentsPayload, TDraftSiteConfigPayload, TDraftSiteRouteEntry, TPageConfigPayload } from '../types/config-payloads.types';
 import { ConfigSourceService } from './config-source.service';
 import { ConfigStoreService } from './config-store.service';
@@ -439,24 +440,7 @@ export class DraftRuntimeService {
     }
 
     private normalizePath(path: string): string {
-        const trimmed = String(path ?? '').trim();
-        if (!trimmed) return '/';
-
-        let normalized = trimmed;
-        try {
-            normalized = decodeURIComponent(trimmed);
-        } catch {
-            normalized = trimmed;
-        }
-
-        normalized = normalized.replace(/\\+/g, '/');
-        if (!normalized.startsWith('/')) normalized = `/${ normalized }`;
-        normalized = normalized.replace(/\/+/g, '/');
-        if (normalized.length > 1) {
-            normalized = normalized.replace(/\/+$/, '');
-        }
-
-        return normalized || '/';
+        return normalizeDraftRoutePath(path);
     }
 
     private async loadSiteConfig(domain: string): Promise<TDraftSiteConfigPayload | null> {
@@ -472,8 +456,7 @@ export class DraftRuntimeService {
             return null;
         }
 
-        const normalizedPath = this.normalizePath(path);
-        return siteConfig.routes.find((entry) => this.normalizePath(entry.path) === normalizedPath) ?? null;
+        return matchDraftRoute(siteConfig.routes, path)?.route ?? null;
     }
 
     private matchRouteByPageId(siteConfig: TDraftSiteConfigPayload | null, pageId: string): TDraftSiteRouteEntry | null {

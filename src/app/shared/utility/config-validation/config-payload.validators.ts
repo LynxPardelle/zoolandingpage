@@ -1,5 +1,10 @@
 import type { TTrackOptions } from '@/app/shared/types/analytics.type';
 import type {
+    TContentHubRuntimeActionBinding,
+    TContentHubRuntimeConfig,
+    TContentHubRuntimeReadBinding,
+} from '@/app/shared/types/content-hub.types';
+import type {
     TAnalyticsConfigPayload,
     TAnalyticsQuickStatsConfig,
     TAnalyticsQuickStatsEventConfig,
@@ -88,11 +93,23 @@ const ALLOWED_TRACK_OPTIONS = new Set<TTrackOptions>([
 ]);
 
 const ALLOWED_RUNTIME_API_ACTION_METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
+const ALLOWED_DRAFT_RUNTIME_CONFIG_KEYS = new Set([
+    'localStorage',
+    'features',
+    'analytics',
+    'navigation',
+    'auth',
+    'authRemote',
+    'contentHubs',
+    'dataSources',
+    'apiActions',
+]);
 const ALLOWED_RUNTIME_DATA_SOURCE_KEYS = new Set([
     'id',
     'kind',
     'proxySourceId',
     'authAdminSource',
+    'contentHub',
     'target',
     'statusTarget',
     'mergeMode',
@@ -111,6 +128,7 @@ const ALLOWED_RUNTIME_API_ACTION_KEYS = new Set([
     'kind',
     'proxyActionId',
     'authAdminAction',
+    'contentHub',
     'method',
     'statusTarget',
     'enabled',
@@ -120,6 +138,82 @@ const ALLOWED_RUNTIME_API_ACTION_KEYS = new Set([
 const ALLOWED_RUNTIME_DATA_SOURCE_INPUT_SOURCES = new Set(['literal', 'queryParam', 'var', 'queryParamPageOffset']);
 const ALLOWED_RUNTIME_DATA_SOURCE_INPUT_TRANSFORMS = new Set(['trim', 'lowercase', 'uppercase']);
 const ALLOWED_RUNTIME_DATA_SOURCE_FIELD_TRANSFORMS = new Set(['uriComponent', 'lastPathSegment', 'lastPathSegmentNumber', 'titleCase']);
+const ALLOWED_CONTENT_HUB_RUNTIME_SOURCES = new Set(['primary', 'authorized']);
+const ALLOWED_CONTENT_HUB_CANONICAL_MODES = new Set(['owner-canonical', 'host-adaptive', 'noindex-shared']);
+const ALLOWED_CONTENT_HUB_READS = new Set([
+    'articleList',
+    'taxonomyList',
+    'moderationQueue',
+    'assetList',
+    'revisionList',
+    'publicBundlePreview',
+]);
+const ALLOWED_CONTENT_HUB_ACTIONS = new Set([
+    'createArticle',
+    'updatePackage',
+    'uploadAsset',
+    'validate',
+    'submitReview',
+    'publish',
+    'schedule',
+    'moderateComment',
+    'restoreRevision',
+]);
+const ALLOWED_CONTENT_HUB_TAXONOMY_KINDS = new Set(['category', 'tag']);
+const ALLOWED_CONTENT_HUB_BINDING_KEYS = new Set([
+    'read',
+    'action',
+    'hubId',
+    'articleId',
+    'language',
+    'revisionId',
+    'taxonomyId',
+    'taxonomyKind',
+    'assetId',
+    'commentId',
+    'scheduleId',
+]);
+const FORBIDDEN_PUBLIC_RUNTIME_INPUT_KEYS = new Set([
+    'access',
+    'accesstoken',
+    'auth',
+    'authorization',
+    'authorizer',
+    'authorizerpolicy',
+    'awsaccesskeyid',
+    'awssecretaccesskey',
+    'bucket',
+    'bucketname',
+    'clientsecret',
+    'credentialref',
+    'credentials',
+    'groups',
+    'groupstoroles',
+    'idtoken',
+    'jwks',
+    'lambdaarn',
+    'partitionkey',
+    'policy',
+    'refreshtoken',
+    'secret',
+    'secretarn',
+    'secretref',
+    'serverpolicy',
+    'signedurl',
+    'signedurlpolicy',
+    'table',
+    'tablename',
+    'tenant',
+    'tenantid',
+    'token',
+    'xamzcredential',
+    'xamzsecuritytoken',
+    'xamzsignature',
+    'upstream',
+    'upstreamurl',
+]);
+const FORBIDDEN_PUBLIC_RUNTIME_INPUT_VALUE_PATTERN =
+    /(?:ssm:\/|secretsmanager:\/|X-Amz-Signature|X-Amz-Credential|X-Amz-Security-Token|AWSAccessKeyId=|Signature=|Expires=)/i;
 const ALLOWED_AUTH_PROVIDERS = new Set(['cognito']);
 const ALLOWED_AUTH_CONFIG_KEYS = new Set([
     'enabled',
@@ -198,6 +292,10 @@ const ALLOWED_COMPONENT_TYPES = new Set([
     'dropdown',
     'embed-frame',
     'generic-card',
+    'generic-cell',
+    'generic-file-dropzone',
+    'generic-rich-text',
+    'generic-table',
     'icon',
     'input',
     'interaction-scope',
@@ -239,6 +337,136 @@ const ALLOWED_QR_CODE_CONFIG_KEYS = new Set([
     'styles',
 ]);
 const ALLOWED_QR_CODE_ERROR_CORRECTION_LEVELS = new Set(['L', 'M', 'Q', 'H']);
+const ALLOWED_GENERIC_CELL_CONFIG_KEYS = new Set([
+    'id',
+    'value',
+    'row',
+    'valuePath',
+    'format',
+    'emptyText',
+    'trueText',
+    'falseText',
+    'componentId',
+    'componentIds',
+    'classes',
+    'valueClasses',
+]);
+const ALLOWED_GENERIC_CELL_FORMATS = new Set(['text', 'number', 'date', 'boolean', 'json']);
+const ALLOWED_GENERIC_TABLE_CONFIG_KEYS = new Set([
+    'id',
+    'label',
+    'description',
+    'rows',
+    'rowsSource',
+    'columns',
+    'rowIdPath',
+    'sortable',
+    'sort',
+    'pagination',
+    'selection',
+    'rowActions',
+    'eventPayloadFields',
+    'emitOnRowClick',
+    'loading',
+    'loadingText',
+    'error',
+    'errorText',
+    'emptyText',
+    'classes',
+    'labelClasses',
+    'descriptionClasses',
+    'tableWrapperClasses',
+    'tableClasses',
+    'headerCellClasses',
+    'rowClasses',
+    'actionCellClasses',
+    'actionButtonClasses',
+    'selectionCellClasses',
+    'stateClasses',
+]);
+const ALLOWED_GENERIC_TABLE_COLUMN_KEYS = new Set([
+    'id',
+    'header',
+    'valuePath',
+    'format',
+    'sortable',
+    'align',
+    'emptyText',
+    'trueText',
+    'falseText',
+    'componentId',
+    'componentIds',
+    'classes',
+    'headerClasses',
+    'cellClasses',
+    'valueClasses',
+]);
+const ALLOWED_GENERIC_TABLE_SOURCE_TYPES = new Set(['literal', 'var', 'host']);
+const ALLOWED_GENERIC_TABLE_SORT_DIRECTIONS = new Set(['asc', 'desc']);
+const ALLOWED_GENERIC_TABLE_SELECTION_MODES = new Set(['single', 'multiple']);
+const ALLOWED_GENERIC_FILE_DROPZONE_CONFIG_KEYS = new Set([
+    'id',
+    'fieldId',
+    'label',
+    'description',
+    'helperText',
+    'dropLabel',
+    'browseLabel',
+    'emptyText',
+    'accept',
+    'acceptLabel',
+    'maxFileSizeBytes',
+    'maxSizeLabel',
+    'multiple',
+    'disabled',
+    'loading',
+    'loadingText',
+    'errorText',
+    'classes',
+    'labelClasses',
+    'descriptionClasses',
+    'dropzoneClasses',
+    'activeDropzoneClasses',
+    'disabledDropzoneClasses',
+    'loadingClasses',
+    'errorClasses',
+    'helperTextClasses',
+    'fileListClasses',
+    'fileItemClasses',
+    'browseButtonClasses',
+]);
+const ALLOWED_GENERIC_RICH_TEXT_CONFIG_KEYS = new Set([
+    'id',
+    'fieldId',
+    'provider',
+    'format',
+    'value',
+    'label',
+    'description',
+    'helperText',
+    'placeholder',
+    'required',
+    'disabled',
+    'readOnly',
+    'maxLength',
+    'rows',
+    'debounceMs',
+    'toolbar',
+    'sanitizerPolicyId',
+    'classes',
+    'labelClasses',
+    'descriptionClasses',
+    'helperTextClasses',
+    'editorClasses',
+    'textareaClasses',
+    'errorClasses',
+    'loading',
+    'loadingText',
+    'errorText',
+]);
+const ALLOWED_GENERIC_RICH_TEXT_PROVIDERS = new Set(['quill', 'textarea']);
+const ALLOWED_GENERIC_RICH_TEXT_FORMATS = new Set(['quill-delta-json', 'quill-delta-object', 'markdown', 'plain-text']);
+const ALLOWED_GENERIC_RICH_TEXT_TOOLBAR_ITEMS = new Set(['bold', 'italic', 'underline', 'heading', 'bulletList', 'orderedList', 'blockquote', 'code', 'link', 'clean']);
 
 const ALLOWED_SITE_LIFECYCLE_STATUSES = new Set(['active', 'maintenance', 'suspended']);
 const ALLOWED_SITE_FALLBACK_MODES = new Set(['system', 'custom-message', 'redirect']);
@@ -293,6 +521,44 @@ const isSafeSameOriginPath = (value: unknown): value is string =>
     && !value.startsWith('//')
     && !value.includes('\\')
     && hasNoWhitespaceOrControlChars(value);
+
+const normalizedPublicRuntimeKey = (value: unknown): string =>
+    typeof value === 'string' ? value.replace(/[-_\s]/g, '').toLowerCase() : '';
+
+const isForbiddenPublicRuntimeInputKey = (value: unknown): boolean =>
+    FORBIDDEN_PUBLIC_RUNTIME_INPUT_KEYS.has(normalizedPublicRuntimeKey(value));
+
+const isForbiddenPublicRuntimeInputValue = (value: unknown): boolean =>
+    typeof value === 'string' && FORBIDDEN_PUBLIC_RUNTIME_INPUT_VALUE_PATTERN.test(value);
+
+const hasNoForbiddenRuntimeKeysDeep = (value: unknown): boolean => {
+    if (Array.isArray(value)) {
+        return value.every(hasNoForbiddenRuntimeKeysDeep);
+    }
+    if (isForbiddenPublicRuntimeInputValue(value)) {
+        return false;
+    }
+    if (!isRecord(value)) {
+        return true;
+    }
+    return Object.entries(value).every(([key, entry]) =>
+        !isForbiddenPublicRuntimeInputKey(key) && hasNoForbiddenRuntimeKeysDeep(entry),
+    );
+};
+
+const isContentHubSafeId = (value: unknown): value is string =>
+    typeof value === 'string'
+    && /^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$/.test(value);
+
+const isContentHubDomainName = (value: unknown): value is string =>
+    typeof value === 'string'
+    && value.length >= 4
+    && value.length <= 253
+    && /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/.test(value);
+
+const isContentHubLocale = (value: unknown): value is string =>
+    typeof value === 'string'
+    && /^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/.test(value);
 
 const isLocalizedKeywordValue = (value: unknown): boolean => {
     if (typeof value === 'string') return true;
@@ -870,6 +1136,7 @@ const isRuntimeDataSourceInputResolverConfig = (value: Record<string, unknown>):
 
 const isRuntimeDataSourceInputConfig = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
+    if (!hasNoForbiddenRuntimeKeysDeep(value)) return false;
 
     return Object.values(value).every((entry) => {
         if (!isRecord(entry)) return true;
@@ -877,13 +1144,139 @@ const isRuntimeDataSourceInputConfig = (value: unknown): boolean => {
     });
 };
 
+const isContentHubAnalyticsContext = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasOnlyKnownKeys(value, new Set(['contentGroup', 'eventPrefix', 'piiPolicy']))) return false;
+    if (!isContentHubSafeId(value['contentGroup'])) return false;
+    if (!isContentHubSafeId(value['eventPrefix'])) return false;
+    if (value['piiPolicy'] !== undefined && !['no-pii', 'metadata-only'].includes(String(value['piiPolicy']))) return false;
+    return true;
+};
+
+const isContentHubRuntimeArticleSummary = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasNoForbiddenRuntimeKeysDeep(value)) return false;
+    if (!hasOnlyKnownKeys(value, new Set([
+        'articleId',
+        'locale',
+        'status',
+        'title',
+        'summary',
+        'path',
+        'categorySlug',
+        'tags',
+        'publishedAt',
+        'updatedAt',
+        'authorLabel',
+        'canonicalPath',
+        'robots',
+    ]))) return false;
+    if (!isContentHubSafeId(value['articleId'])) return false;
+    if (!isContentHubLocale(value['locale'])) return false;
+    if (value['status'] !== 'published') return false;
+    if (typeof value['title'] !== 'string' || value['title'].trim().length === 0) return false;
+    if (value['summary'] !== undefined && typeof value['summary'] !== 'string') return false;
+    if (!isSafeSameOriginPath(value['path'])) return false;
+    if (value['categorySlug'] !== undefined && !isContentHubSafeId(value['categorySlug'])) return false;
+    if (value['tags'] !== undefined && (!Array.isArray(value['tags']) || !value['tags'].every(isContentHubSafeId))) return false;
+    if (typeof value['publishedAt'] !== 'string' || Number.isNaN(Date.parse(value['publishedAt']))) return false;
+    if (value['updatedAt'] !== undefined && (typeof value['updatedAt'] !== 'string' || Number.isNaN(Date.parse(value['updatedAt'])))) return false;
+    if (value['authorLabel'] !== undefined && typeof value['authorLabel'] !== 'string') return false;
+    if (value['canonicalPath'] !== undefined && !isSafeSameOriginPath(value['canonicalPath'])) return false;
+    if (value['robots'] !== undefined && !['index,follow', 'noindex,follow', 'noindex,nofollow'].includes(String(value['robots']))) return false;
+    return true;
+};
+
+const isContentHubRuntimeTaxonomySummary = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasNoForbiddenRuntimeKeysDeep(value)) return false;
+    if (!hasOnlyKnownKeys(value, new Set(['taxonomyId', 'kind', 'slug', 'label', 'locale', 'visible', 'path']))) return false;
+    if (!isContentHubSafeId(value['taxonomyId'])) return false;
+    if (!['category', 'tag'].includes(String(value['kind']))) return false;
+    if (!isContentHubSafeId(value['slug'])) return false;
+    if (typeof value['label'] !== 'string' || value['label'].trim().length === 0) return false;
+    if (!isContentHubLocale(value['locale'])) return false;
+    if (value['visible'] !== undefined && typeof value['visible'] !== 'boolean') return false;
+    if (value['path'] !== undefined && !isSafeSameOriginPath(value['path'])) return false;
+    return true;
+};
+
+const isContentHubRuntimeConfig = (value: unknown): value is TContentHubRuntimeConfig => {
+    if (!isRecord(value)) return false;
+    if (!hasNoForbiddenRuntimeKeysDeep(value)) return false;
+    if (!hasOnlyKnownKeys(value, new Set([
+        'hubId',
+        'ownerDraftDomain',
+        'source',
+        'routeBasePath',
+        'listPath',
+        'articlePathPattern',
+        'defaultLocale',
+        'locales',
+        'canonicalMode',
+        'runtimeSourceId',
+        'publicApiBasePath',
+        'analyticsContext',
+        'publicArticles',
+        'publicTaxonomy',
+    ]))) return false;
+    if (!isContentHubSafeId(value['hubId'])) return false;
+    if (!isContentHubDomainName(value['ownerDraftDomain'])) return false;
+    if (!ALLOWED_CONTENT_HUB_RUNTIME_SOURCES.has(String(value['source']))) return false;
+    if (!isSafeSameOriginPath(value['routeBasePath'])) return false;
+    if (!isSafeSameOriginPath(value['listPath'])) return false;
+    if (!isSafeSameOriginPath(value['articlePathPattern'])) return false;
+    if (!isContentHubLocale(value['defaultLocale'])) return false;
+    if (!Array.isArray(value['locales']) || value['locales'].length === 0 || !value['locales'].every(isContentHubLocale)) return false;
+    if (!ALLOWED_CONTENT_HUB_CANONICAL_MODES.has(String(value['canonicalMode']))) return false;
+    if (value['runtimeSourceId'] !== undefined && !isContentHubSafeId(value['runtimeSourceId'])) return false;
+    if (value['publicApiBasePath'] !== undefined && !isSafeSameOriginPath(value['publicApiBasePath'])) return false;
+    if (value['analyticsContext'] !== undefined && !isContentHubAnalyticsContext(value['analyticsContext'])) return false;
+    if (value['publicArticles'] !== undefined
+        && (!Array.isArray(value['publicArticles']) || !value['publicArticles'].every(isContentHubRuntimeArticleSummary))) return false;
+    if (value['publicTaxonomy'] !== undefined
+        && (!Array.isArray(value['publicTaxonomy']) || !value['publicTaxonomy'].every(isContentHubRuntimeTaxonomySummary))) return false;
+    return true;
+};
+
+const isContentHubRuntimeBindingBase = (value: Record<string, unknown>): boolean => {
+    if (!hasNoForbiddenRuntimeKeysDeep(value)) return false;
+    if (!hasOnlyKnownKeys(value, ALLOWED_CONTENT_HUB_BINDING_KEYS)) return false;
+    if (!isContentHubSafeId(value['hubId'])) return false;
+    if (value['articleId'] !== undefined && !isContentHubSafeId(value['articleId'])) return false;
+    if (value['language'] !== undefined && !isContentHubLocale(value['language'])) return false;
+    if (value['revisionId'] !== undefined && !isContentHubSafeId(value['revisionId'])) return false;
+    if (value['taxonomyId'] !== undefined && !isContentHubSafeId(value['taxonomyId'])) return false;
+    if (value['taxonomyKind'] !== undefined && !ALLOWED_CONTENT_HUB_TAXONOMY_KINDS.has(String(value['taxonomyKind']))) return false;
+    if (value['assetId'] !== undefined && !isContentHubSafeId(value['assetId'])) return false;
+    if (value['commentId'] !== undefined && !isContentHubSafeId(value['commentId'])) return false;
+    if (value['scheduleId'] !== undefined && !isContentHubSafeId(value['scheduleId'])) return false;
+    return true;
+};
+
+const isContentHubRuntimeReadBinding = (value: unknown): value is TContentHubRuntimeReadBinding => {
+    if (!isRecord(value)) return false;
+    if (!ALLOWED_CONTENT_HUB_READS.has(String(value['read']))) return false;
+    if (value['action'] !== undefined) return false;
+    return isContentHubRuntimeBindingBase(value);
+};
+
+const isContentHubRuntimeActionBinding = (value: unknown): value is TContentHubRuntimeActionBinding => {
+    if (!isRecord(value)) return false;
+    if (!ALLOWED_CONTENT_HUB_ACTIONS.has(String(value['action']))) return false;
+    if (value['read'] !== undefined) return false;
+    return isContentHubRuntimeBindingBase(value);
+};
+
 const isRuntimeDataSourceConfig = (value: unknown): value is TRuntimeDataSourceConfig => {
     if (!isRecord(value)) return false;
     if (!hasOnlyKnownKeys(value, ALLOWED_RUNTIME_DATA_SOURCE_KEYS)) return false;
     if (typeof value['id'] !== 'string' || value['id'].trim().length === 0) return false;
-    if (value['kind'] !== undefined && !['api-proxy', 'auth-admin'].includes(String(value['kind']))) return false;
+    if (value['kind'] !== undefined && !['api-proxy', 'auth-admin', 'content-hub'].includes(String(value['kind']))) return false;
     if (value['proxySourceId'] !== undefined && typeof value['proxySourceId'] !== 'string') return false;
+    if (value['kind'] === 'content-hub' && value['proxySourceId'] !== undefined && !isContentHubSafeId(value['proxySourceId'])) return false;
     if (value['authAdminSource'] !== undefined && !['account', 'adminUsers'].includes(String(value['authAdminSource']))) return false;
+    if (value['contentHub'] !== undefined && !isContentHubRuntimeReadBinding(value['contentHub'])) return false;
     if (typeof value['target'] !== 'string' || value['target'].trim().length === 0) return false;
     if (value['statusTarget'] !== undefined && typeof value['statusTarget'] !== 'string') return false;
     if (value['mergeMode'] !== undefined && value['mergeMode'] !== 'replace' && value['mergeMode'] !== 'appendItems') return false;
@@ -909,17 +1302,21 @@ const isRuntimeApiActionConfig = (value: unknown): value is TRuntimeApiActionCon
     if (!isRecord(value)) return false;
     if (!hasOnlyKnownKeys(value, ALLOWED_RUNTIME_API_ACTION_KEYS)) return false;
     if (typeof value['id'] !== 'string' || value['id'].trim().length === 0) return false;
-    if (value['kind'] !== undefined && !['api-proxy', 'auth-admin'].includes(String(value['kind']))) return false;
+    if (value['kind'] !== undefined && !['api-proxy', 'auth-admin', 'content-hub'].includes(String(value['kind']))) return false;
     if (value['proxyActionId'] !== undefined && typeof value['proxyActionId'] !== 'string') return false;
+    if (value['kind'] === 'content-hub' && value['proxyActionId'] !== undefined && !isContentHubSafeId(value['proxyActionId'])) return false;
     if (value['authAdminAction'] !== undefined
         && !['approveUser', 'setUserGroups', 'suspendUser', 'reactivateUser', 'resetUserMfa'].includes(String(value['authAdminAction']))) return false;
+    if (value['contentHub'] !== undefined && !isContentHubRuntimeActionBinding(value['contentHub'])) return false;
     if (value['method'] !== undefined
         && (typeof value['method'] !== 'string' || !ALLOWED_RUNTIME_API_ACTION_METHODS.has(value['method']))) return false;
     if (value['statusTarget'] !== undefined && typeof value['statusTarget'] !== 'string') return false;
     if (value['enabled'] !== undefined && typeof value['enabled'] !== 'boolean') return false;
     if (value['inputFields'] !== undefined
         && (!Array.isArray(value['inputFields'])
-            || !value['inputFields'].every((entry) => typeof entry === 'string' && entry.trim().length > 0))) return false;
+            || !value['inputFields'].every((entry) => typeof entry === 'string'
+                && entry.trim().length > 0
+                && !isForbiddenPublicRuntimeInputKey(entry)))) return false;
     if (value['requiresUserGesture'] !== undefined && typeof value['requiresUserGesture'] !== 'boolean') return false;
     return true;
 };
@@ -984,6 +1381,7 @@ const isDraftAuthRemoteRuntimeConfig = (value: unknown): value is TDraftAuthRemo
 
 const isDraftSiteRuntimeConfig = (value: unknown): value is TDraftSiteRuntimeConfig => {
     if (!isRecord(value)) return false;
+    if (!hasOnlyKnownKeys(value, ALLOWED_DRAFT_RUNTIME_CONFIG_KEYS)) return false;
     if (value['app'] !== undefined) return false;
     if (value['auth'] !== undefined && value['authRemote'] !== undefined) return false;
     if (value['localStorage'] !== undefined && !isDraftLocalStorageRuntimeConfig(value['localStorage'])) return false;
@@ -992,6 +1390,8 @@ const isDraftSiteRuntimeConfig = (value: unknown): value is TDraftSiteRuntimeCon
     if (value['navigation'] !== undefined && !isDraftNavigationRuntimeConfig(value['navigation'])) return false;
     if (value['auth'] !== undefined && !isDraftAuthRuntimeConfig(value['auth'])) return false;
     if (value['authRemote'] !== undefined && !isDraftAuthRemoteRuntimeConfig(value['authRemote'])) return false;
+    if (value['contentHubs'] !== undefined
+        && (!Array.isArray(value['contentHubs']) || !value['contentHubs'].every(isContentHubRuntimeConfig))) return false;
     if (value['dataSources'] !== undefined
         && (!Array.isArray(value['dataSources']) || !value['dataSources'].every(isRuntimeDataSourceConfig))) return false;
     if (value['apiActions'] !== undefined
@@ -1387,6 +1787,135 @@ const isGenericInputConfig = (value: unknown): boolean => {
     return true;
 };
 
+const isGenericCellConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasOnlyKnownKeys(value, ALLOWED_GENERIC_CELL_CONFIG_KEYS)) return false;
+
+    const stringFields = ['id', 'valuePath', 'emptyText', 'trueText', 'falseText', 'componentId', 'classes', 'valueClasses'] as const;
+    if (stringFields.some((field) => !isStringThunkFriendly(value[field]))) return false;
+    if (value['format'] !== undefined && !ALLOWED_GENERIC_CELL_FORMATS.has(String(value['format']))) return false;
+    if (value['componentIds'] !== undefined && !isStringArray(value['componentIds'])) return false;
+    return true;
+};
+
+const isGenericTableColumnConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasOnlyKnownKeys(value, ALLOWED_GENERIC_TABLE_COLUMN_KEYS)) return false;
+    if (typeof value['id'] !== 'string' || value['id'].trim().length === 0) return false;
+
+    const stringFields = ['header', 'valuePath', 'emptyText', 'trueText', 'falseText', 'componentId', 'classes', 'headerClasses', 'cellClasses', 'valueClasses'] as const;
+    if (stringFields.some((field) => !isStringThunkFriendly(value[field]))) return false;
+    if (value['format'] !== undefined && !ALLOWED_GENERIC_CELL_FORMATS.has(String(value['format']))) return false;
+    if (value['sortable'] !== undefined && !isBooleanThunkFriendly(value['sortable'])) return false;
+    if (value['align'] !== undefined && !['start', 'center', 'end'].includes(String(value['align']))) return false;
+    if (value['componentIds'] !== undefined && !isStringArray(value['componentIds'])) return false;
+    return true;
+};
+
+const isGenericTableRowsSource = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!ALLOWED_GENERIC_TABLE_SOURCE_TYPES.has(String(value['source']))) return false;
+    if (value['source'] === 'literal') {
+        if (value['value'] !== undefined && !Array.isArray(value['value'])) return false;
+    } else if (typeof value['path'] !== 'string' || value['path'].trim().length === 0) {
+        return false;
+    }
+    if (value['fallback'] !== undefined && !Array.isArray(value['fallback'])) return false;
+    return true;
+};
+
+const isGenericTableSortConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (value['active'] !== undefined && !isStringThunkFriendly(value['active'])) return false;
+    if (value['direction'] !== undefined && !ALLOWED_GENERIC_TABLE_SORT_DIRECTIONS.has(String(value['direction']))) return false;
+    return true;
+};
+
+const isGenericTablePaginationConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (value['enabled'] !== undefined && !isBooleanThunkFriendly(value['enabled'])) return false;
+    if (value['pageSize'] !== undefined && !isNumberThunkFriendly(value['pageSize'])) return false;
+    if (value['pageSizeOptions'] !== undefined && !isNumberArray(value['pageSizeOptions'])) return false;
+    if (value['hidePageSize'] !== undefined && !isBooleanThunkFriendly(value['hidePageSize'])) return false;
+    if (value['showFirstLastButtons'] !== undefined && !isBooleanThunkFriendly(value['showFirstLastButtons'])) return false;
+    return true;
+};
+
+const isGenericTableSelectionConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (value['enabled'] !== undefined && !isBooleanThunkFriendly(value['enabled'])) return false;
+    if (value['mode'] !== undefined && !ALLOWED_GENERIC_TABLE_SELECTION_MODES.has(String(value['mode']))) return false;
+    if (value['selectedIds'] !== undefined && !isStringArray(value['selectedIds'])) return false;
+    if (value['disabled'] !== undefined && !isBooleanThunkFriendly(value['disabled'])) return false;
+    if (value['columnLabel'] !== undefined && !isStringThunkFriendly(value['columnLabel'])) return false;
+    if (value['label'] !== undefined && !isStringThunkFriendly(value['label'])) return false;
+    return true;
+};
+
+const isGenericTableRowActionConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (typeof value['id'] !== 'string' || value['id'].trim().length === 0) return false;
+    if (typeof value['label'] !== 'string' || value['label'].trim().length === 0) return false;
+    const stringFields = ['ariaLabel', 'icon', 'classes', 'eventInstructions'] as const;
+    if (stringFields.some((field) => !isStringThunkFriendly(value[field]))) return false;
+    if (value['disabled'] !== undefined && !isBooleanThunkFriendly(value['disabled'])) return false;
+    if (value['loading'] !== undefined && !isBooleanThunkFriendly(value['loading'])) return false;
+    return true;
+};
+
+const isGenericTableConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasOnlyKnownKeys(value, ALLOWED_GENERIC_TABLE_CONFIG_KEYS)) return false;
+    if (!Array.isArray(value['columns']) || !value['columns'].every(isGenericTableColumnConfig)) return false;
+    if (value['rows'] !== undefined && !Array.isArray(value['rows'])) return false;
+    if (value['rowsSource'] !== undefined && !isGenericTableRowsSource(value['rowsSource'])) return false;
+    if (value['sort'] !== undefined && !isGenericTableSortConfig(value['sort'])) return false;
+    if (value['pagination'] !== undefined && !isGenericTablePaginationConfig(value['pagination'])) return false;
+    if (value['selection'] !== undefined && !isGenericTableSelectionConfig(value['selection'])) return false;
+    if (value['rowActions'] !== undefined && (!Array.isArray(value['rowActions']) || !value['rowActions'].every(isGenericTableRowActionConfig))) return false;
+    if (value['eventPayloadFields'] !== undefined && !isStringArray(value['eventPayloadFields'])) return false;
+
+    const stringFields = ['id', 'label', 'description', 'rowIdPath', 'loadingText', 'error', 'errorText', 'emptyText', 'classes', 'labelClasses', 'descriptionClasses', 'tableWrapperClasses', 'tableClasses', 'headerCellClasses', 'rowClasses', 'actionCellClasses', 'actionButtonClasses', 'selectionCellClasses', 'stateClasses'] as const;
+    if (stringFields.some((field) => !isStringThunkFriendly(value[field]))) return false;
+
+    const booleanFields = ['sortable', 'emitOnRowClick', 'loading'] as const;
+    if (booleanFields.some((field) => !isBooleanThunkFriendly(value[field]))) return false;
+    return true;
+};
+
+const isGenericFileDropzoneConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasOnlyKnownKeys(value, ALLOWED_GENERIC_FILE_DROPZONE_CONFIG_KEYS)) return false;
+    if (typeof value['fieldId'] !== 'string' || value['fieldId'].trim().length === 0) return false;
+
+    const stringFields = ['id', 'label', 'description', 'helperText', 'dropLabel', 'browseLabel', 'emptyText', 'accept', 'acceptLabel', 'maxSizeLabel', 'loadingText', 'errorText', 'classes', 'labelClasses', 'descriptionClasses', 'dropzoneClasses', 'activeDropzoneClasses', 'disabledDropzoneClasses', 'loadingClasses', 'errorClasses', 'helperTextClasses', 'fileListClasses', 'fileItemClasses', 'browseButtonClasses'] as const;
+    if (stringFields.some((field) => !isStringThunkFriendly(value[field]))) return false;
+    if (value['maxFileSizeBytes'] !== undefined && !isNumberThunkFriendly(value['maxFileSizeBytes'])) return false;
+    if (value['multiple'] !== undefined && !isBooleanThunkFriendly(value['multiple'])) return false;
+    if (value['disabled'] !== undefined && !isBooleanThunkFriendly(value['disabled'])) return false;
+    if (value['loading'] !== undefined && !isBooleanThunkFriendly(value['loading'])) return false;
+    return true;
+};
+
+const isGenericRichTextConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasOnlyKnownKeys(value, ALLOWED_GENERIC_RICH_TEXT_CONFIG_KEYS)) return false;
+    if (typeof value['fieldId'] !== 'string' || value['fieldId'].trim().length === 0) return false;
+    if (value['provider'] !== undefined && !ALLOWED_GENERIC_RICH_TEXT_PROVIDERS.has(String(value['provider']))) return false;
+    if (value['format'] !== undefined && !ALLOWED_GENERIC_RICH_TEXT_FORMATS.has(String(value['format']))) return false;
+    if (value['toolbar'] !== undefined && (!Array.isArray(value['toolbar']) || !value['toolbar'].every((entry) => ALLOWED_GENERIC_RICH_TEXT_TOOLBAR_ITEMS.has(String(entry))))) return false;
+
+    const stringFields = ['id', 'label', 'description', 'helperText', 'placeholder', 'sanitizerPolicyId', 'classes', 'labelClasses', 'descriptionClasses', 'helperTextClasses', 'editorClasses', 'textareaClasses', 'errorClasses', 'loadingText', 'errorText'] as const;
+    if (stringFields.some((field) => !isStringThunkFriendly(value[field]))) return false;
+
+    const numberFields = ['maxLength', 'rows', 'debounceMs'] as const;
+    if (numberFields.some((field) => !isNumberThunkFriendly(value[field]))) return false;
+
+    const booleanFields = ['required', 'disabled', 'readOnly', 'loading'] as const;
+    if (booleanFields.some((field) => !isBooleanThunkFriendly(value[field]))) return false;
+    return true;
+};
+
 const isSearchSuggestion = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
     if (typeof value['id'] !== 'string' || value['id'].trim().length === 0) return false;
@@ -1732,6 +2261,22 @@ const isComponentPayloadRecord = (value: unknown): boolean => {
 
     if (value['type'] === 'generic-card') {
         return isGenericCardConfig(value['config']);
+    }
+
+    if (value['type'] === 'generic-cell') {
+        return isGenericCellConfig(value['config']);
+    }
+
+    if (value['type'] === 'generic-file-dropzone') {
+        return isGenericFileDropzoneConfig(value['config']);
+    }
+
+    if (value['type'] === 'generic-rich-text') {
+        return isGenericRichTextConfig(value['config']);
+    }
+
+    if (value['type'] === 'generic-table') {
+        return isGenericTableConfig(value['config']);
     }
 
     if (value['type'] === 'button') {

@@ -1,0 +1,118 @@
+@if (label()) {
+  <div [class]="labelClasses()">{{ label() }}</div>
+}
+@if (description()) {
+  <div [class]="descriptionClasses()">{{ description() }}</div>
+}
+
+@if (loading()) {
+  <div [class]="stateClasses()" aria-live="polite">{{ loadingText() }}</div>
+} @else if (errorText()) {
+  <div [class]="stateClasses()" role="alert">{{ errorText() }}</div>
+} @else if (rows().length === 0) {
+  <div [class]="stateClasses()">{{ emptyText() }}</div>
+} @else {
+  <div [class]="tableWrapperClasses()">
+    <table
+      mat-table
+      matSort
+      [dataSource]="pageRows()"
+      [matSortActive]="activeSort().active"
+      [matSortDirection]="activeSort().direction"
+      [class]="tableClasses()"
+      (matSortChange)="onSortChange($event)"
+    >
+      @if (selectionEnabled()) {
+      <ng-container matColumnDef="__selection">
+        <th mat-header-cell *matHeaderCellDef [class]="selectionCellClasses()">
+          @if (selectionMode() === 'multiple') {
+          <mat-checkbox
+            [checked]="allPageRowsSelected()"
+            [indeterminate]="somePageRowsSelected()"
+            [disabled]="selectionDisabled()"
+            [attr.aria-label]="selectionColumnLabel()"
+            (change)="togglePage($event.checked)"
+          ></mat-checkbox>
+          } @else {
+          <span>{{ selectionColumnLabel() }}</span>
+          }
+        </th>
+        <td mat-cell *matCellDef="let row; let rowIndex = index" [class]="selectionCellClasses()">
+          <mat-checkbox
+            [checked]="isRowSelected(row, rowIndex)"
+            [disabled]="selectionDisabled()"
+            [attr.aria-label]="selectionLabel()"
+            (click)="$event.stopPropagation()"
+            (change)="toggleRow(row, rowIndex, $event.checked)"
+          ></mat-checkbox>
+        </td>
+      </ng-container>
+      }
+
+      @for (column of columns(); track columnId(column)) {
+      <ng-container [matColumnDef]="columnId(column)">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          mat-sort-header
+          [disabled]="!columnSortable(column)"
+          [class]="columnHeaderClasses(column)"
+        >
+          {{ columnHeader(column) }}
+        </th>
+        <td mat-cell *matCellDef="let row; let rowIndex = index" [class]="columnCellClasses(column)">
+          <generic-cell
+            [column]="column"
+            [row]="row"
+            [rowIndex]="absoluteRowIndex(rowIndex)"
+            [value]="cellValue(row, column)"
+            [hostContext]="hostContext()"
+          ></generic-cell>
+        </td>
+      </ng-container>
+      }
+
+      @if (actions().length > 0) {
+      <ng-container matColumnDef="__actions">
+        <th mat-header-cell *matHeaderCellDef [class]="actionCellClasses()"></th>
+        <td mat-cell *matCellDef="let row; let rowIndex = index" [class]="actionCellClasses()">
+          @for (action of actions(); track action.id) {
+          <button
+            mat-button
+            type="button"
+            [class]="actionClasses(action)"
+            [disabled]="actionDisabled(action)"
+            [attr.aria-label]="actionAriaLabel(action)"
+            (click)="onAction(action, row, rowIndex, $event)"
+          >
+            @if (actionIcon(action)) {
+            <mat-icon aria-hidden="true">{{ actionIcon(action) }}</mat-icon>
+            }
+            <span>{{ actionLabel(action) }}</span>
+          </button>
+          }
+        </td>
+      </ng-container>
+      }
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns(); let rowIndex = index"
+        [class]="rowClasses()"
+        (click)="onRowClick(row, rowIndex)"
+      ></tr>
+    </table>
+  </div>
+
+  @if (paginationEnabled()) {
+  <mat-paginator
+    [length]="sortedRows().length"
+    [pageSize]="pageSize()"
+    [pageSizeOptions]="pageSizeOptions()"
+    [hidePageSize]="pagination().hidePageSize === true"
+    [showFirstLastButtons]="pagination().showFirstLastButtons === true"
+    (page)="onPageChange($event)"
+  ></mat-paginator>
+  }
+}

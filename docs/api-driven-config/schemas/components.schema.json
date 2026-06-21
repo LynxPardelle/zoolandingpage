@@ -457,6 +457,244 @@
         "submitEventInstructions": { "type": "string" }
       },
       "additionalProperties": true
+    },
+    "genericCellConfig": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "value": {},
+        "row": {},
+        "valuePath": { "type": "string" },
+        "format": { "enum": ["text", "number", "date", "boolean", "json"] },
+        "emptyText": { "type": "string" },
+        "trueText": { "type": "string" },
+        "falseText": { "type": "string" },
+        "componentId": { "type": "string" },
+        "componentIds": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "classes": { "type": "string" },
+        "valueClasses": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "genericTableColumnConfig": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "header": { "type": "string" },
+        "valuePath": { "type": "string" },
+        "format": { "enum": ["text", "number", "date", "boolean", "json"] },
+        "sortable": { "type": "boolean" },
+        "align": { "enum": ["start", "center", "end"] },
+        "emptyText": { "type": "string" },
+        "trueText": { "type": "string" },
+        "falseText": { "type": "string" },
+        "componentId": { "type": "string" },
+        "componentIds": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "classes": { "type": "string" },
+        "headerClasses": { "type": "string" },
+        "cellClasses": { "type": "string" },
+        "valueClasses": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "genericTableRowsSource": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["source"],
+          "properties": {
+            "source": { "const": "literal" },
+            "value": { "type": "array" },
+            "fallback": { "type": "array" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["source", "path"],
+          "properties": {
+            "source": { "enum": ["var", "host"] },
+            "path": { "type": "string", "minLength": 1 },
+            "fallback": { "type": "array" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "genericTableConfig": {
+      "type": "object",
+      "required": ["columns"],
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": "string" },
+        "description": { "type": "string" },
+        "rows": { "type": "array" },
+        "rowsSource": { "$ref": "#/definitions/genericTableRowsSource" },
+        "columns": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/genericTableColumnConfig" }
+        },
+        "rowIdPath": { "type": "string" },
+        "sortable": { "type": "boolean" },
+        "sort": {
+          "type": "object",
+          "properties": {
+            "active": { "type": "string" },
+            "direction": { "enum": ["asc", "desc"] }
+          },
+          "additionalProperties": false
+        },
+        "pagination": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "pageSize": { "type": "number" },
+            "pageSizeOptions": {
+              "type": "array",
+              "items": { "type": "number" }
+            },
+            "hidePageSize": { "type": "boolean" },
+            "showFirstLastButtons": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        },
+        "selection": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "mode": { "enum": ["single", "multiple"] },
+            "selectedIds": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "disabled": { "type": "boolean" },
+            "columnLabel": { "type": "string" },
+            "label": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "rowActions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "label"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "label": { "type": "string", "minLength": 1 },
+              "ariaLabel": { "type": "string" },
+              "icon": { "type": "string" },
+              "classes": { "type": "string" },
+              "disabled": { "type": "boolean" },
+              "loading": { "type": "boolean" },
+              "eventInstructions": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "eventPayloadFields": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "emitOnRowClick": { "type": "boolean" },
+        "loading": { "type": "boolean" },
+        "loadingText": { "type": "string" },
+        "error": { "type": "string" },
+        "errorText": { "type": "string" },
+        "emptyText": { "type": "string" },
+        "classes": { "type": "string" },
+        "labelClasses": { "type": "string" },
+        "descriptionClasses": { "type": "string" },
+        "tableWrapperClasses": { "type": "string" },
+        "tableClasses": { "type": "string" },
+        "headerCellClasses": { "type": "string" },
+        "rowClasses": { "type": "string" },
+        "actionCellClasses": { "type": "string" },
+        "actionButtonClasses": { "type": "string" },
+        "selectionCellClasses": { "type": "string" },
+        "stateClasses": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "genericRichTextConfig": {
+      "type": "object",
+      "required": ["fieldId"],
+      "properties": {
+        "id": { "type": "string" },
+        "fieldId": { "type": "string", "minLength": 1 },
+        "provider": { "enum": ["quill", "textarea"] },
+        "format": { "enum": ["quill-delta-json", "quill-delta-object", "markdown", "plain-text"] },
+        "value": {},
+        "label": { "type": "string" },
+        "description": { "type": "string" },
+        "helperText": { "type": "string" },
+        "placeholder": { "type": "string" },
+        "required": { "type": "boolean" },
+        "disabled": { "type": "boolean" },
+        "readOnly": { "type": "boolean" },
+        "maxLength": { "type": "number" },
+        "rows": { "type": "number" },
+        "debounceMs": { "type": "number" },
+        "toolbar": {
+          "type": "array",
+          "items": { "enum": ["bold", "italic", "underline", "heading", "bulletList", "orderedList", "blockquote", "code", "link", "clean"] }
+        },
+        "sanitizerPolicyId": { "type": "string" },
+        "classes": { "type": "string" },
+        "labelClasses": { "type": "string" },
+        "descriptionClasses": { "type": "string" },
+        "helperTextClasses": { "type": "string" },
+        "editorClasses": { "type": "string" },
+        "textareaClasses": { "type": "string" },
+        "errorClasses": { "type": "string" },
+        "loading": { "type": "boolean" },
+        "loadingText": { "type": "string" },
+        "errorText": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "genericFileDropzoneConfig": {
+      "type": "object",
+      "required": ["fieldId"],
+      "properties": {
+        "id": { "type": "string" },
+        "fieldId": { "type": "string", "minLength": 1 },
+        "label": { "type": "string" },
+        "description": { "type": "string" },
+        "helperText": { "type": "string" },
+        "dropLabel": { "type": "string" },
+        "browseLabel": { "type": "string" },
+        "emptyText": { "type": "string" },
+        "accept": { "type": "string" },
+        "acceptLabel": { "type": "string" },
+        "maxFileSizeBytes": { "type": "number" },
+        "maxSizeLabel": { "type": "string" },
+        "multiple": { "type": "boolean" },
+        "disabled": { "type": "boolean" },
+        "loading": { "type": "boolean" },
+        "loadingText": { "type": "string" },
+        "errorText": { "type": "string" },
+        "classes": { "type": "string" },
+        "labelClasses": { "type": "string" },
+        "descriptionClasses": { "type": "string" },
+        "dropzoneClasses": { "type": "string" },
+        "activeDropzoneClasses": { "type": "string" },
+        "disabledDropzoneClasses": { "type": "string" },
+        "loadingClasses": { "type": "string" },
+        "errorClasses": { "type": "string" },
+        "helperTextClasses": { "type": "string" },
+        "fileListClasses": { "type": "string" },
+        "fileItemClasses": { "type": "string" },
+        "browseButtonClasses": { "type": "string" }
+      },
+      "additionalProperties": false
     }
   },
   "required": ["version", "pageId", "domain", "components"],
@@ -635,6 +873,58 @@
             "then": {
               "properties": {
                 "config": { "$ref": "#/definitions/tabGroupConfig" }
+              },
+              "required": ["config"]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": { "const": "generic-cell" }
+              }
+            },
+            "then": {
+              "properties": {
+                "config": { "$ref": "#/definitions/genericCellConfig" }
+              },
+              "required": ["config"]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": { "const": "generic-table" }
+              }
+            },
+            "then": {
+              "properties": {
+                "config": { "$ref": "#/definitions/genericTableConfig" }
+              },
+              "required": ["config"]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": { "const": "generic-rich-text" }
+              }
+            },
+            "then": {
+              "properties": {
+                "config": { "$ref": "#/definitions/genericRichTextConfig" }
+              },
+              "required": ["config"]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": { "const": "generic-file-dropzone" }
+              }
+            },
+            "then": {
+              "properties": {
+                "config": { "$ref": "#/definitions/genericFileDropzoneConfig" }
               },
               "required": ["config"]
             }

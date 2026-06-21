@@ -300,9 +300,10 @@
       "required": ["id", "target"],
       "properties": {
         "id": { "type": "string", "minLength": 1 },
-        "kind": { "type": "string", "enum": ["api-proxy", "auth-admin"] },
+        "kind": { "type": "string", "enum": ["api-proxy", "auth-admin", "content-hub"] },
         "proxySourceId": { "type": "string" },
         "authAdminSource": { "type": "string", "enum": ["account", "adminUsers"] },
+        "contentHub": { "$ref": "#/definitions/contentHubRuntimeReadBinding" },
         "target": { "type": "string", "minLength": 1 },
         "statusTarget": { "type": "string" },
         "mergeMode": { "type": "string", "enum": ["replace", "appendItems"] },
@@ -322,8 +323,7 @@
           "items": { "type": "string", "minLength": 1 }
         },
         "input": {
-          "type": "object",
-          "additionalProperties": true
+          "$ref": "#/definitions/safeRuntimeInputObject"
         },
         "mapper": {
           "anyOf": [{ "$ref": "#/definitions/runtimeDataSourceMapper" }, { "type": "null" }]
@@ -332,6 +332,16 @@
           "anyOf": [{ "$ref": "#/definitions/runtimeDataSourceRefresh" }, { "type": "null" }]
         }
       },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "content-hub" } } },
+          "then": {
+            "properties": {
+              "proxySourceId": { "$ref": "#/definitions/contentHubSafeId" }
+            }
+          }
+        }
+      ],
       "additionalProperties": false
     },
     "sitemapConfig": {
@@ -353,21 +363,32 @@
       "required": ["id"],
       "properties": {
         "id": { "type": "string", "minLength": 1 },
-        "kind": { "type": "string", "enum": ["api-proxy", "auth-admin"] },
+        "kind": { "type": "string", "enum": ["api-proxy", "auth-admin", "content-hub"] },
         "proxyActionId": { "type": "string" },
         "authAdminAction": {
           "type": "string",
           "enum": ["approveUser", "setUserGroups", "suspendUser", "reactivateUser", "resetUserMfa"]
         },
+        "contentHub": { "$ref": "#/definitions/contentHubRuntimeActionBinding" },
         "method": { "type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"] },
         "statusTarget": { "type": "string" },
         "enabled": { "type": "boolean" },
         "inputFields": {
           "type": "array",
-          "items": { "type": "string", "minLength": 1 }
+          "items": { "$ref": "#/definitions/safeRuntimeInputFieldName" }
         },
         "requiresUserGesture": { "type": "boolean" }
       },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "content-hub" } } },
+          "then": {
+            "properties": {
+              "proxyActionId": { "$ref": "#/definitions/contentHubSafeId" }
+            }
+          }
+        }
+      ],
       "additionalProperties": false
     },
     "runtimeConfig": {
@@ -378,6 +399,10 @@
         "analytics": { "$ref": "#/definitions/analyticsRuntime" },
         "auth": { "$ref": "#/definitions/authRuntime" },
         "authRemote": { "$ref": "#/definitions/authRemoteRuntime" },
+        "contentHubs": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/contentHubRuntime" }
+        },
         "dataSources": {
           "type": "array",
           "items": { "$ref": "#/definitions/runtimeDataSource" }
@@ -388,6 +413,245 @@
         }
       },
       "not": { "required": ["auth", "authRemote"] },
+      "additionalProperties": false
+    },
+    "contentHubRuntime": {
+      "type": "object",
+      "required": [
+        "hubId",
+        "ownerDraftDomain",
+        "source",
+        "routeBasePath",
+        "listPath",
+        "articlePathPattern",
+        "defaultLocale",
+        "locales",
+        "canonicalMode"
+      ],
+      "properties": {
+        "hubId": { "$ref": "#/definitions/contentHubSafeId" },
+        "ownerDraftDomain": { "$ref": "#/definitions/contentHubDomainName" },
+        "source": { "type": "string", "enum": ["primary", "authorized"] },
+        "routeBasePath": { "$ref": "#/definitions/sameOriginPath" },
+        "listPath": { "$ref": "#/definitions/sameOriginPath" },
+        "articlePathPattern": { "$ref": "#/definitions/sameOriginPath" },
+        "defaultLocale": { "$ref": "#/definitions/contentHubLocale" },
+        "locales": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/contentHubLocale" }
+        },
+        "canonicalMode": {
+          "type": "string",
+          "enum": ["owner-canonical", "host-adaptive", "noindex-shared"]
+        },
+        "runtimeSourceId": { "$ref": "#/definitions/contentHubSafeId" },
+        "publicApiBasePath": { "$ref": "#/definitions/sameOriginPath" },
+        "analyticsContext": { "$ref": "#/definitions/contentHubAnalyticsContext" },
+        "publicArticles": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/contentHubPublicArticle" }
+        },
+        "publicTaxonomy": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/contentHubPublicTaxonomy" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "contentHubPublicArticle": {
+      "type": "object",
+      "required": ["articleId", "locale", "status", "title", "path", "publishedAt"],
+      "properties": {
+        "articleId": { "$ref": "#/definitions/contentHubSafeId" },
+        "locale": { "$ref": "#/definitions/contentHubLocale" },
+        "status": { "type": "string", "const": "published" },
+        "title": { "type": "string", "minLength": 1 },
+        "summary": { "type": "string" },
+        "path": { "$ref": "#/definitions/sameOriginPath" },
+        "categorySlug": { "$ref": "#/definitions/contentHubSafeId" },
+        "tags": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/contentHubSafeId" }
+        },
+        "publishedAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "authorLabel": { "type": "string" },
+        "canonicalPath": { "$ref": "#/definitions/sameOriginPath" },
+        "robots": { "type": "string", "enum": ["index,follow", "noindex,follow", "noindex,nofollow"] }
+      },
+      "additionalProperties": false
+    },
+    "contentHubPublicTaxonomy": {
+      "type": "object",
+      "required": ["taxonomyId", "kind", "slug", "label", "locale"],
+      "properties": {
+        "taxonomyId": { "$ref": "#/definitions/contentHubSafeId" },
+        "kind": { "type": "string", "enum": ["category", "tag"] },
+        "slug": { "$ref": "#/definitions/contentHubSafeId" },
+        "label": { "type": "string", "minLength": 1 },
+        "locale": { "$ref": "#/definitions/contentHubLocale" },
+        "visible": { "type": "boolean" },
+        "path": { "$ref": "#/definitions/sameOriginPath" }
+      },
+      "additionalProperties": false
+    },
+    "contentHubRuntimeReadBinding": {
+      "type": "object",
+      "required": ["read", "hubId"],
+      "properties": {
+        "read": {
+          "type": "string",
+          "enum": ["articleList", "taxonomyList", "moderationQueue", "assetList", "revisionList", "publicBundlePreview"]
+        },
+        "hubId": { "$ref": "#/definitions/contentHubSafeId" },
+        "articleId": { "$ref": "#/definitions/contentHubSafeId" },
+        "language": { "$ref": "#/definitions/contentHubLocale" },
+        "revisionId": { "$ref": "#/definitions/contentHubSafeId" },
+        "taxonomyId": { "$ref": "#/definitions/contentHubSafeId" },
+        "taxonomyKind": { "type": "string", "enum": ["category", "tag"] },
+        "assetId": { "$ref": "#/definitions/contentHubSafeId" },
+        "commentId": { "$ref": "#/definitions/contentHubSafeId" },
+        "scheduleId": { "$ref": "#/definitions/contentHubSafeId" }
+      },
+      "additionalProperties": false
+    },
+    "contentHubRuntimeActionBinding": {
+      "type": "object",
+      "required": ["action", "hubId"],
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": ["createArticle", "updatePackage", "uploadAsset", "validate", "submitReview", "publish", "schedule", "moderateComment", "restoreRevision"]
+        },
+        "hubId": { "$ref": "#/definitions/contentHubSafeId" },
+        "articleId": { "$ref": "#/definitions/contentHubSafeId" },
+        "language": { "$ref": "#/definitions/contentHubLocale" },
+        "revisionId": { "$ref": "#/definitions/contentHubSafeId" },
+        "taxonomyId": { "$ref": "#/definitions/contentHubSafeId" },
+        "taxonomyKind": { "type": "string", "enum": ["category", "tag"] },
+        "assetId": { "$ref": "#/definitions/contentHubSafeId" },
+        "commentId": { "$ref": "#/definitions/contentHubSafeId" },
+        "scheduleId": { "$ref": "#/definitions/contentHubSafeId" }
+      },
+      "additionalProperties": false
+    },
+    "safeRuntimeInputObject": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/definitions/safeRuntimeInputFieldName" },
+      "additionalProperties": { "$ref": "#/definitions/safeRuntimeInputValue" }
+    },
+    "safeRuntimeInputValue": {
+      "anyOf": [
+        {
+          "type": "string",
+          "not": {
+            "pattern": "(?:ssm:/|secretsmanager:/|X-Amz-Signature|X-Amz-Credential|X-Amz-Security-Token|AWSAccessKeyId=|Signature=|Expires=)"
+          }
+        },
+        { "type": "number" },
+        { "type": "boolean" },
+        { "type": "null" },
+        {
+          "type": "array",
+          "items": { "$ref": "#/definitions/safeRuntimeInputValue" }
+        },
+        {
+          "type": "object",
+          "propertyNames": { "$ref": "#/definitions/safeRuntimeInputFieldName" },
+          "additionalProperties": { "$ref": "#/definitions/safeRuntimeInputValue" }
+        }
+      ]
+    },
+    "safeRuntimeInputFieldName": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!.*(?:[Tt][Oo][Kk][Ee][Nn]|[Ss][Ee][Cc][Rr][Ee][Tt]|[Cc][Rr][Ee][Dd][Ee][Nn][Tt][Ii][Aa][Ll]|[Ss][Ii][Gg][Nn][Ee][Dd])).*$",
+      "not": {
+        "enum": [
+          "access",
+          "access_token",
+          "accessToken",
+          "auth",
+          "authorization",
+          "authorizer",
+          "authorizerPolicy",
+          "authorizer_policy",
+          "AWSAccessKeyId",
+          "bucket",
+          "bucketName",
+          "bucket_name",
+          "client_secret",
+          "clientSecret",
+          "credential_ref",
+          "credentialRef",
+          "credentials",
+          "groups",
+          "groups_to_roles",
+          "groupsToRoles",
+          "id_token",
+          "idToken",
+          "jwks",
+          "lambdaArn",
+          "lambda_arn",
+          "partitionKey",
+          "partition_key",
+          "policy",
+          "refresh_token",
+          "refreshToken",
+          "secret",
+          "secretArn",
+          "secret_arn",
+          "secret_ref",
+          "secretRef",
+          "server_policy",
+          "serverPolicy",
+          "signed_url",
+          "signedUrl",
+          "signed_url_policy",
+          "signedUrlPolicy",
+          "table",
+          "tableName",
+          "table_name",
+          "tenant",
+          "tenant_id",
+          "tenantId",
+          "token",
+          "upstream_url",
+          "upstream",
+          "upstreamUrl",
+          "X-Amz-Credential",
+          "X-Amz-Security-Token",
+          "X-Amz-Signature"
+        ]
+      }
+    },
+    "contentHubSafeId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 96,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "contentHubDomainName": {
+      "type": "string",
+      "minLength": 4,
+      "maxLength": 253,
+      "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$"
+    },
+    "contentHubLocale": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 16,
+      "pattern": "^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$"
+    },
+    "contentHubAnalyticsContext": {
+      "type": "object",
+      "required": ["contentGroup", "eventPrefix"],
+      "properties": {
+        "contentGroup": { "$ref": "#/definitions/contentHubSafeId" },
+        "eventPrefix": { "$ref": "#/definitions/contentHubSafeId" },
+        "piiPolicy": { "type": "string", "enum": ["no-pii", "metadata-only"] }
+      },
       "additionalProperties": false
     },
     "themeColors": {

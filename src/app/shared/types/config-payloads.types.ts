@@ -3,6 +3,11 @@ import type { ModalConfig } from '../components/generic-modal/generic-modal.type
 import type { ToastUiConfig } from '../components/generic-toast/generic-toast.types';
 import type { TInteractionScopeConfig } from '../components/interaction-scope/interaction-scope.types';
 import type { TTrackOptions } from './analytics.type';
+import type {
+    TContentHubRuntimeActionBinding,
+    TContentHubRuntimeConfig,
+    TContentHubRuntimeReadBinding,
+} from './content-hub.types';
 import type { TThemeVariableConfig } from './theme.types';
 
 export type TDraftLanguageDefinition = {
@@ -445,9 +450,10 @@ export type TRuntimeDataSourceInputResolverConfig = {
 
 export type TRuntimeDataSourceConfig = {
     readonly id: string;
-    readonly kind?: 'api-proxy' | 'auth-admin';
+    readonly kind?: 'api-proxy' | 'auth-admin' | 'content-hub';
     readonly proxySourceId?: string;
     readonly authAdminSource?: 'account' | 'adminUsers';
+    readonly contentHub?: TContentHubRuntimeReadBinding;
     readonly target: string;
     readonly statusTarget?: string;
     readonly mergeMode?: 'replace' | 'appendItems';
@@ -464,9 +470,10 @@ export type TRuntimeDataSourceConfig = {
 
 export type TRuntimeApiActionConfig = {
     readonly id: string;
-    readonly kind?: 'api-proxy' | 'auth-admin';
+    readonly kind?: 'api-proxy' | 'auth-admin' | 'content-hub';
     readonly proxyActionId?: string;
     readonly authAdminAction?: 'approveUser' | 'setUserGroups' | 'suspendUser' | 'reactivateUser' | 'resetUserMfa';
+    readonly contentHub?: TContentHubRuntimeActionBinding;
     readonly method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
     readonly statusTarget?: string;
     readonly enabled?: boolean;
@@ -481,6 +488,7 @@ export type TDraftSiteRuntimeConfig = {
     readonly navigation?: TDraftNavigationRuntimeConfig;
     readonly auth?: TDraftAuthRuntimeConfig;
     readonly authRemote?: TDraftAuthRemoteRuntimeConfig;
+    readonly contentHubs?: readonly TContentHubRuntimeConfig[];
     readonly dataSources?: readonly TRuntimeDataSourceConfig[];
     readonly apiActions?: readonly TRuntimeApiActionConfig[];
 };

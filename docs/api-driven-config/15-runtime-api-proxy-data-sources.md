@@ -43,6 +43,72 @@ Add public runtime wiring to `site-config.json`:
 
 The frontend calls the proxy with the configured `proxySourceId` or `proxyActionId`, maps the safe response into `VariableStoreService`, and renders it with existing `valueInstructions` and `loopConfig.source: "var"` patterns.
 
+## Content Hub Runtime Bindings
+
+Content hub reads and mutations use the same public draft surfaces, but they are not sent through the public API proxy client. Set `kind: "content-hub"` and provide a browser-safe `contentHub` binding. Angular routes the request through the same-origin `ContentHubClientService`, which uses `credentials: "include"`, draft/hub context headers, and CSRF for mutations.
+
+Use data sources for generic reads:
+
+```json
+{
+  "id": "content-hub-articles",
+  "kind": "content-hub",
+  "proxySourceId": "contentHubArticleList",
+  "target": "remote.contentHub.articles",
+  "statusTarget": "remoteStatus.contentHub.articles",
+  "contentHub": {
+    "read": "articleList",
+    "hubId": "zoosite-main",
+    "language": "es"
+  },
+  "input": {
+    "limit": 20,
+    "status": "draft"
+  }
+}
+```
+
+Allowed read operations are:
+
+- `articleList`
+- `taxonomyList`
+- `moderationQueue`
+- `assetList`
+- `revisionList`
+- `publicBundlePreview`
+
+Use API actions for mutations:
+
+```json
+{
+  "id": "publish-article",
+  "kind": "content-hub",
+  "proxyActionId": "contentHubPublish",
+  "method": "POST",
+  "statusTarget": "remoteStatus.contentHub.publish",
+  "inputFields": ["articleId", "language", "revisionId", "publishMessage"],
+  "requiresUserGesture": true,
+  "contentHub": {
+    "action": "publish",
+    "hubId": "zoosite-main"
+  }
+}
+```
+
+Allowed action operations are:
+
+- `createArticle`
+- `updatePackage`
+- `uploadAsset`
+- `validate`
+- `submitReview`
+- `publish`
+- `schedule`
+- `moderateComment`
+- `restoreRevision`
+
+The browser request may carry public identifiers such as `domain`, `hubId`, `articleId`, `language`, `revisionId`, `taxonomyId`, `assetId`, `commentId`, `scheduleId`, `actionId`, and explicitly allowlisted safe input fields. It must not carry server-only policy, upstream URLs, table or bucket names, credential refs, tokens, groups-to-roles maps, authorizer policy, tenant IDs, signed URL policy, or authorization decisions.
+
 Use `pageIds` when a source should run only on specific draft routes. Omitting `pageIds` keeps the source global for every page in the site.
 
 `mergeMode` defaults to `replace`. Use `appendItems` when multiple data sources contribute records to one `{ "items": [...] }` target, such as a catalog built from several safe upstream endpoints:

@@ -7,14 +7,18 @@ import { TGenericContainerConfig } from "../generic-container/generic-container.
 import type { DropdownConfig, DropdownItem } from "../generic-dropdown/generic-dropdown.types";
 import type { TGenericEmbedFrameConfig } from '../generic-embed-frame/generic-embed-frame.types';
 import { TGenericIconConfig } from "../generic-icon/generic-icon.types";
+import type { TGenericCellConfig } from "../generic-cell/generic-cell.types";
+import type { TGenericFileDropzoneConfig } from "../generic-file-dropzone/generic-file-dropzone.types";
 import type { TGenericInputConfig } from "../generic-input/generic-input.types";
 import { TGenericLinkConfig } from "../generic-link/generic-link.types";
 import type { LoadingSpinnerSize, LoadingSpinnerVariant } from "../generic-loading-spinner/generic-loading-spinner.types";
 import type { TGenericMediaConfig } from "../generic-media/generic-media.types";
 import type { TGenericPaginationConfig } from "../generic-pagination/generic-pagination.types";
 import type { TGenericQrCodeConfig } from "../generic-qr-code/generic-qr-code.types";
+import type { TGenericRichTextConfig } from "../generic-rich-text/generic-rich-text.types";
 import type { SearchBoxConfig } from '../generic-search-box/generic-search-box.types';
 import type { TabGroupConfig } from "../generic-tab-group/generic-tab-group.types";
+import type { TGenericTableConfig } from "../generic-table/generic-table.types";
 import { TGenericTextConfig } from "../generic-text/generic-text.types";
 import type { TInteractionScopeConfig } from "../interaction-scope/interaction-scope.types";
 
@@ -133,6 +137,10 @@ export type TGenericComponentType =
     | 'container'
     | 'dropdown'
     | 'embed-frame'
+    | 'generic-cell'
+    | 'generic-file-dropzone'
+    | 'generic-rich-text'
+    | 'generic-table'
     | 'icon'
     | 'interaction-scope'
     | 'link'
@@ -186,6 +194,22 @@ export type TGenericComponent = {
         {
             readonly type: 'generic-card';
             readonly config: TGenericCardConfig;
+        } |
+        {
+            readonly type: 'generic-cell';
+            readonly config: TGenericCellConfig;
+        } |
+        {
+            readonly type: 'generic-file-dropzone';
+            readonly config: TGenericFileDropzoneConfig;
+        } |
+        {
+            readonly type: 'generic-rich-text';
+            readonly config: TGenericRichTextConfig;
+        } |
+        {
+            readonly type: 'generic-table';
+            readonly config: TGenericTableConfig;
         } |
         {
             readonly type: 'icon';
