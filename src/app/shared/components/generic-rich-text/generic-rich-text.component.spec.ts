@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { InteractionScopeService } from '../interaction-scope/interaction-scope.service';
 import { GenericRichTextComponent } from './generic-rich-text.component';
 import type { TGenericRichTextValueChange } from './generic-rich-text.types';
 
@@ -8,6 +9,7 @@ describe('GenericRichTextComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [GenericRichTextComponent],
+      providers: [InteractionScopeService],
     }).compileComponents();
 
     fixture = TestBed.createComponent(GenericRichTextComponent);
@@ -61,5 +63,23 @@ describe('GenericRichTextComponent', () => {
       source: 'textarea',
       sanitizerPolicyId: 'trusted-authors',
     });
+  });
+
+  it('writes rich text values into the nearest interaction scope', () => {
+    const scope = TestBed.inject(InteractionScopeService);
+    scope.configure({ scopeId: 'articleEditor' });
+    fixture.componentRef.setInput('config', {
+      fieldId: 'articleContent',
+      provider: 'textarea',
+      format: 'markdown',
+    });
+    fixture.detectChanges();
+
+    const textarea = fixture.nativeElement.querySelector('textarea') as HTMLTextAreaElement;
+    textarea.value = 'Contenido desde editor';
+    textarea.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(scope.submit().values['articleContent']).toBe('Contenido desde editor');
   });
 });

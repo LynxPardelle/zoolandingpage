@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { QuillEditorComponent } from 'ngx-quill';
 import type { QuillModules } from 'ngx-quill/config';
 import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
+import { InteractionScopeService } from '../interaction-scope/interaction-scope.service';
 import type {
   TGenericRichTextConfig,
   TGenericRichTextFormat,
@@ -37,12 +38,29 @@ export class GenericRichTextComponent {
   readonly blurred = output<{ fieldId: string }>();
 
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly scope = inject(InteractionScopeService, { optional: true });
   readonly currentValue = signal<unknown>('');
 
   constructor() {
     effect(() => {
       const value = this.config().value ?? '';
-      untracked(() => this.currentValue.set(value));
+      const fieldId = this.fieldId();
+      const required = this.required();
+      const disabled = this.disabled();
+      const readOnly = this.readOnly();
+      untracked(() => {
+        if (this.scope && fieldId) {
+          this.scope.registerField({
+            fieldId,
+            initialValue: value,
+            required,
+            disabled,
+            readOnly,
+          });
+          return;
+        }
+        this.currentValue.set(value);
+      });
     });
   }
 
@@ -126,6 +144,7 @@ export class GenericRichTextComponent {
 
   private emitValue(value: unknown, plainText: string, source: TGenericRichTextValueChange['source']): void {
     const normalizedText = plainText.trim();
+    this.scope?.setFieldValue(this.fieldId(), value, { markTouched: true });
     this.valueChanged.emit({
       fieldId: this.fieldId(),
       provider: this.useQuill() ? 'quill' : 'textarea',

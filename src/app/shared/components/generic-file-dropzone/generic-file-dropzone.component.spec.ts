@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { InteractionScopeService } from '../interaction-scope/interaction-scope.service';
 import { GenericFileDropzoneComponent } from './generic-file-dropzone.component';
 import type { TGenericFileDropzoneValueChange } from './generic-file-dropzone.types';
 
@@ -8,6 +9,7 @@ describe('GenericFileDropzoneComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [GenericFileDropzoneComponent],
+      providers: [InteractionScopeService],
     }).compileComponents();
 
     fixture = TestBed.createComponent(GenericFileDropzoneComponent);
@@ -62,5 +64,28 @@ describe('GenericFileDropzoneComponent', () => {
       ['large.png', 'maxSize'],
       ['script.js', 'accept'],
     ]);
+  });
+
+  it('writes selected files into the nearest interaction scope', () => {
+    const scope = TestBed.inject(InteractionScopeService);
+    scope.configure({ scopeId: 'mediaUpload' });
+    fixture.componentRef.setInput('config', {
+      fieldId: 'upload',
+      accept: 'image/*',
+      multiple: false,
+    });
+    fixture.detectChanges();
+
+    const input = fixture.nativeElement.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['ok'], 'cover.png', { type: 'image/png' });
+    Object.defineProperty(input, 'files', {
+      configurable: true,
+      value: [file],
+    });
+
+    input.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(scope.submit().values['upload']).toBe(file);
   });
 });
