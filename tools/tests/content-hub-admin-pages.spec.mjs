@@ -219,8 +219,14 @@ describe('Zoosite blog admin draft pages', () => {
     assert.match(filtersScope?.config?.submitEventInstructions ?? '', /^navigateWithScopeQuery:\/admin\/blog\/articulos,,q=values\.search,status=values\.status,pageSize=values\.pageSize,page=1$/);
     assert.equal(search?.type, 'input');
     assert.equal(search?.config?.inputType, 'search');
+    assert.equal(search?.config?.value, '');
+    assert.equal(search?.valueInstructions, 'set:config.value,queryParamOr,q,');
     assert.equal(searchButton?.type, 'button');
     assert.equal(searchButton?.config?.type, 'submit');
+    assert.equal(statusFilter?.config?.value, 'all');
+    assert.equal(statusFilter?.valueInstructions, 'set:config.value,queryParamOr,status,all');
+    assert.equal(pageSizeFilter?.config?.value, '20');
+    assert.equal(pageSizeFilter?.valueInstructions, 'set:config.value,queryParamOr,pageSize,20');
     assert.equal(statusFilter?.config?.dropdownIndicatorText, '⌄');
     assert.equal(pageSizeFilter?.config?.dropdownIndicatorText, '⌄');
     assert.equal(typeof statusFilter?.config?.dropdownConfig?.menuContainerClasses, 'string');
