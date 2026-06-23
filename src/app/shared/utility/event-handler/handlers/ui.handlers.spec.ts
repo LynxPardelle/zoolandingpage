@@ -8,7 +8,7 @@ import { PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import type { EventExecutionContext } from '../event-handler.types';
 import { openModalHandler } from './legal-modal.handlers';
-import { navigateToUrlHandler, navigateWithScopeQueryHandler, setLanguageHandler } from './ui.handlers';
+import { navigateToUrlHandler, navigateWithEventDataHandler, navigateWithScopeQueryHandler, setLanguageHandler } from './ui.handlers';
 import { openFaqCtaWhatsAppHandler, openFinalCtaWhatsAppHandler, openWhatsAppHandler } from './whatsapp.handlers';
 
 const nativeHistoryPushState = History.prototype.pushState;
@@ -179,6 +179,76 @@ describe('navigateToUrlHandler', () => {
 
         expect(openSpy).toHaveBeenCalledOnceWith('https://example.com/profile', '_blank', 'noopener,noreferrer');
         expect(dispatchSpy).not.toHaveBeenCalled();
+    });
+});
+
+describe('navigateWithEventDataHandler', () => {
+    const draftHref = 'http://localhost/admin/blog?draftDomain=zoositioweb.com.mx&debugWorkspace=false';
+    let context: EventExecutionContext;
+
+    beforeEach(() => {
+        TestBed.resetTestingModule();
+        restoreNativeHistoryStateMethods();
+        setBrowserUrl('/admin/blog?draftDomain=zoositioweb.com.mx&debugWorkspace=false');
+        TestBed.configureTestingModule({ providers: [] });
+        context = {
+            event: {
+                componentId: 'adminBlogArticlesTable',
+                eventName: 'rowAction',
+                eventData: {
+                    rowId: 'art_123',
+                    rowIndex: 0,
+                    rowData: {
+                        articleId: 'art_123',
+                        slug: 'mi articulo',
+                    },
+                    actionId: 'edit',
+                },
+            },
+            host: null,
+        };
+    });
+
+    afterEach(() => {
+        setBrowserUrl('/context.html');
+        TestBed.resetTestingModule();
+    });
+
+    it('builds an internal URL from row action payload data and preserves draft query params', () => {
+        const handler = TestBed.runInInjectionContext(() => navigateWithEventDataHandler());
+        const pushState = spyOn(window.history, 'pushState').and.stub();
+
+        handler.handle(context, ['/admin/blog/articulos/{articleId}/editor', '_self', undefined, draftHref]);
+
+        expect(pushState).toHaveBeenCalledOnceWith({}, '', '/admin/blog/articulos/art_123/editor?draftDomain=zoositioweb.com.mx&debugWorkspace=false');
+    });
+
+    it('encodes interpolated row values', () => {
+        const handler = TestBed.runInInjectionContext(() => navigateWithEventDataHandler());
+        const pushState = spyOn(window.history, 'pushState').and.stub();
+
+        handler.handle(context, ['/admin/blog/articulos/{rowData.slug}/preview', '_self', undefined, draftHref]);
+
+        expect(pushState).toHaveBeenCalledOnceWith({}, '', '/admin/blog/articulos/mi%20articulo/preview?draftDomain=zoositioweb.com.mx&debugWorkspace=false');
+    });
+
+    it('does not navigate when a template token is missing', () => {
+        const handler = TestBed.runInInjectionContext(() => navigateWithEventDataHandler());
+        const pushState = spyOn(window.history, 'pushState').and.stub();
+
+        handler.handle(context, ['/admin/blog/articulos/{missing}/editor', '_self', undefined, draftHref]);
+
+        expect(pushState).not.toHaveBeenCalled();
+    });
+
+    it('does not navigate to external or protocol-relative URLs', () => {
+        const handler = TestBed.runInInjectionContext(() => navigateWithEventDataHandler());
+        const pushState = spyOn(window.history, 'pushState').and.stub();
+
+        handler.handle(context, ['https://example.com/{articleId}', '_self', undefined, draftHref]);
+        handler.handle(context, ['//example.com/{articleId}', '_self', undefined, draftHref]);
+
+        expect(pushState).not.toHaveBeenCalled();
     });
 });
 

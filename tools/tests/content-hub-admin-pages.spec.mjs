@@ -189,6 +189,14 @@ describe('Zoosite blog admin draft pages', () => {
     for (const actionId of ['edit', 'preview', 'seo', 'versions', 'schedule']) {
       assert.ok(rowActions.some((action) => action.id === actionId), `missing article row action ${actionId}`);
     }
+    assert.equal(table?.config?.rowIdPath, 'articleId');
+    assert.deepEqual(table?.config?.eventPayloadFields, ['articleId', 'status', 'latestRevisionId', 'path']);
+    assert.equal(table?.config?.rowsSource?.fallback, undefined);
+    for (const action of rowActions) {
+      assert.equal(action.disabled, undefined, `${action.id} must not stay visually disabled after BFF contract exists`);
+      assert.match(action.eventInstructions ?? '', /^navigateWithEventData:/, `${action.id} must use dynamic row navigation`);
+      assert.equal(String(action.eventInstructions ?? '').includes('art_20260620_blog_builder'), false, `${action.id} must not hardcode seed article ids`);
+    }
   });
 
   it('implements create and editor controls with draft-configured field IDs', async () => {
