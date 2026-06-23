@@ -212,6 +212,7 @@ describe('Zoosite blog admin draft pages', () => {
     assert.equal(tagsColumn?.format, 'list');
     assert.equal(tagsColumn?.itemPath, 'label');
     assert.equal(tagsColumn?.separator, ', ');
+    assert.equal(tagsColumn?.emptyText, 'Sin tags');
     for (const actionId of ['edit', 'preview', 'seo', 'versions', 'schedule']) {
       assert.ok(rowActions.some((action) => action.id === actionId), `missing article row action ${actionId}`);
     }

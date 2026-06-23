@@ -153,7 +153,10 @@ export class GenericCellComponent implements AfterViewInit, OnDestroy {
     const entries = Array.isArray(value) ? value : [value];
     const itemPath = this.itemPath();
     const parts = entries
-      .map((entry) => itemPath ? this.resolvePath(entry, itemPath) : entry)
+      .map((entry) => {
+        const resolved = itemPath ? this.resolvePath(entry, itemPath) : entry;
+        return resolved == null || resolved === '' ? entry : resolved;
+      })
       .map((entry) => {
         if (entry == null || entry === '') return '';
         if (typeof entry === 'object') {
