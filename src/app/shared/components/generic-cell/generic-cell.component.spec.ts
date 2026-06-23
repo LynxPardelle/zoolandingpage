@@ -60,6 +60,23 @@ describe('GenericCellComponent', () => {
     expect(fixture.nativeElement.textContent.trim()).toBe('seo, tag-builder');
   });
 
+  it('falls back to safe object labels when list itemPath is missing', () => {
+    fixture.componentRef.setInput('column', {
+      id: 'tags',
+      format: 'list',
+      itemPath: 'label',
+      emptyText: 'Sin tags',
+    });
+    fixture.componentRef.setInput('value', [
+      { slug: 'seo' },
+      { taxonomyId: 'tag-builder' },
+    ]);
+
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent.trim()).toBe('seo, tag-builder');
+  });
+
   it('builds a wrapper host context with row, column, value, and parent host', () => {
     const row = { id: 'art-1', title: 'Artículo' };
     const column = { id: 'title', componentId: 'titleRenderer' };
