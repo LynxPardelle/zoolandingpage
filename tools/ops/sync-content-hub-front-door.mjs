@@ -13,7 +13,7 @@ const DEFAULT_AWS_REGION = 'us-east-1';
 const DEFAULT_TIME_ZONE = 'America/Mexico_City';
 const DEFAULT_REMOTE_FILE = '/etc/dokploy/traefik/dynamic/zoolanding-content-hub.yml';
 const DEFAULT_CERT_RESOLVER = 'letsencrypt';
-const DEFAULT_TEST_HOSTS = ['test.zoolandingpage.com.mx', 'test.zoositioweb.com.mx'];
+const DEFAULT_TEST_HOSTS = ['test.zoolandingpage.com.mx'];
 const DEFAULT_PROD_HOSTS = ['zoositioweb.com.mx', 'zoositioweb.com'];
 const PATH_RULE = [
   'Path(`/features/content-hub/read`)',
@@ -394,4 +394,3 @@ export {
   renderContentHubFrontDoorConfig,
   routeRule,
 };
-
