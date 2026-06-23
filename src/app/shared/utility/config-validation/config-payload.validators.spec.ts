@@ -1771,6 +1771,7 @@ describe('config-payload.validators', () => {
                     columns: [
                         { id: 'title', header: 'Título', valuePath: 'title' },
                         { id: 'status', header: 'Estado', valuePath: 'status' },
+                        { id: 'tags', header: 'Tags', valuePath: 'tags', format: 'list', itemPath: 'label', separator: ', ' },
                     ],
                     pagination: { enabled: true, pageSize: 10, pageSizeOptions: [10, 25] },
                     selection: { enabled: true, mode: 'multiple', label: 'Seleccionar artículo' },
@@ -1785,6 +1786,7 @@ describe('config-payload.validators', () => {
                     value: 'published',
                     format: 'text',
                     componentIds: ['statusBadge'],
+                    separator: ', ',
                 },
             },
             articleBody: {

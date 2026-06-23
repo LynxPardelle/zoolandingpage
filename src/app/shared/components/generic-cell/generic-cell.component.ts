@@ -61,6 +61,8 @@ export class GenericCellComponent implements AfterViewInit, OnDestroy {
   readonly emptyText = computed(() => this.asString(this.config().emptyText ?? this.column().emptyText));
   readonly trueText = computed(() => this.asString(this.config().trueText ?? this.column().trueText) || 'true');
   readonly falseText = computed(() => this.asString(this.config().falseText ?? this.column().falseText) || 'false');
+  readonly itemPath = computed(() => this.asString(this.config().itemPath ?? this.column().itemPath));
+  readonly separator = computed(() => this.asString(this.config().separator ?? this.column().separator) || ', ');
   readonly classes = computed(() => this.joinClasses(
     this.asString(this.column().cellClasses),
     this.asString(this.config().classes),
@@ -139,10 +141,61 @@ export class GenericCellComponent implements AfterViewInit, OnDestroy {
         } catch {
           return this.emptyText();
         }
+      case 'list':
+        return this.formatListValue(value);
       case 'text':
       default:
         return String(value);
     }
+  }
+
+  private formatListValue(value: unknown): string {
+    const entries = Array.isArray(value) ? value : [value];
+    const itemPath = this.itemPath();
+    const parts = entries
+      .map((entry) => itemPath ? this.resolvePath(entry, itemPath) : entry)
+      .map((entry) => {
+        if (entry == null || entry === '') return '';
+        if (typeof entry === 'object') {
+          return this.objectLabel(entry);
+        }
+        return String(entry);
+      })
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+
+    return parts.length ? parts.join(this.separator()) : this.emptyText();
+  }
+
+  private objectLabel(value: object): string {
+    const record = value as Record<string, unknown>;
+    for (const key of ['label', 'name', 'slug', 'taxonomyId', 'id']) {
+      const entry = record[key];
+      if (entry != null && entry !== '') return String(entry);
+    }
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return '';
+    }
+  }
+
+  private resolvePath(root: unknown, path: string): unknown {
+    const parts = path.split('.').map((part) => part.trim()).filter(Boolean);
+    if (!parts.length) return root;
+
+    let current = root;
+    for (const part of parts) {
+      if (Array.isArray(current) && /^\d+$/.test(part)) {
+        current = current[Number(part)];
+        continue;
+      }
+      if (!current || typeof current !== 'object' || !(part in current)) {
+        return undefined;
+      }
+      current = (current as Record<string, unknown>)[part];
+    }
+    return current;
   }
 
   private asString(value: unknown): string {
