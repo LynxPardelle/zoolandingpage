@@ -20,6 +20,53 @@ const errorMessage = (error: unknown): string =>
 const statusTargetFor = (action: TRuntimeApiActionConfig): string =>
     action.statusTarget || `remoteStatus.${ action.id }`;
 
+const SAFE_RESPONSE_REFERENCE_PATHS: Record<string, readonly string[]> = {
+    articleId: ['articleId', 'article.articleId', 'createdArticle.articleId', 'created.articleId', 'result.articleId'],
+    revisionId: ['revisionId', 'revision.revisionId', 'createdRevision.revisionId', 'created.revisionId', 'result.revisionId'],
+    latestRevisionId: ['latestRevisionId', 'article.latestRevisionId', 'createdArticle.latestRevisionId', 'result.latestRevisionId'],
+    assetId: ['assetId', 'asset.assetId', 'createdAsset.assetId', 'result.assetId'],
+    path: ['path', 'article.path', 'createdArticle.path', 'result.path'],
+    status: ['status', 'article.status', 'createdArticle.status', 'result.status'],
+};
+
+const resolvePath = (value: unknown, path: string): unknown => {
+    let current = value;
+    for (const segment of path.split('.').filter(Boolean)) {
+        const record = asRecord(current);
+        if (!(segment in record)) {
+            return undefined;
+        }
+        current = record[segment];
+    }
+    return current;
+};
+
+const safeReferenceValue = (value: unknown): string | number | boolean | undefined => {
+    if (typeof value === 'string') {
+        const normalized = value.trim();
+        return normalized.length > 0 ? normalized : undefined;
+    }
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'boolean') return value;
+    return undefined;
+};
+
+const responseReferences = (data: unknown): Record<string, string | number | boolean> => {
+    const references: Record<string, string | number | boolean> = {};
+
+    Object.entries(SAFE_RESPONSE_REFERENCE_PATHS).forEach(([target, paths]) => {
+        for (const path of paths) {
+            const value = safeReferenceValue(resolvePath(data, path));
+            if (value !== undefined) {
+                references[target] = value;
+                break;
+            }
+        }
+    });
+
+    return references;
+};
+
 const writeStatus = (
     variables: VariableStoreService,
     action: TRuntimeApiActionConfig,
@@ -27,11 +74,13 @@ const writeStatus = (
     error: string | null,
     data?: unknown,
 ): void => {
+    const references = state === 'success' ? responseReferences(data) : {};
     variables.setRuntimeValue(statusTargetFor(action), {
         state,
         updatedAt: state === 'loading' ? null : new Date().toISOString(),
         error,
         ...(state === 'success' ? { data } : {}),
+        ...references,
     });
 };
 

@@ -128,4 +128,36 @@ describe('ContentHubClientService', () => {
             'X-ZLP-Content-Hub-Id': 'zoosite-main',
         }));
     });
+
+    it('serializes uploadAsset browser files into bounded JSON payloads', async () => {
+        const service = TestBed.inject(ContentHubClientService);
+        const file = new File(['asset'], 'cover.png', { type: 'image/png' });
+
+        await service.executeAction({
+            domain: 'zoositioweb.com.mx',
+            pageId: 'admin-blog-medios',
+            actionId: 'contentHubUploadAsset',
+            input: {
+                contentHub: {
+                    action: 'uploadAsset',
+                    hubId: 'zoosite-main',
+                },
+                articleId: 'intro',
+                files: [file],
+            },
+        });
+
+        const [, init] = fetchSpy.calls.mostRecent().args as [string, RequestInit];
+        const body = JSON.parse(String(init.body));
+        expect(body.input.files).toEqual([
+            jasmine.objectContaining({
+                kind: 'browser-file',
+                name: 'cover.png',
+                mimeType: 'image/png',
+                size: 5,
+                dataBase64: 'YXNzZXQ=',
+            }),
+        ]);
+        expect(JSON.stringify(body)).not.toContain('credentialRef');
+    });
 });

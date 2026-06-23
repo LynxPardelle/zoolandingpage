@@ -155,6 +155,60 @@ describe('proxyActionHandler', () => {
         });
     });
 
+    it('mirrors safe response identifiers into the configured action status target', async () => {
+        configStore.setSiteConfig({
+            version: 1,
+            domain: 'zoositioweb.com.mx',
+            routes: [],
+            runtime: {
+                apiActions: [
+                    {
+                        id: 'create-article',
+                        kind: 'content-hub',
+                        proxyActionId: 'contentHubCreateArticle',
+                        statusTarget: 'remoteStatus.contentHub.create',
+                        inputFields: ['title', 'language'],
+                        contentHub: {
+                            action: 'createArticle',
+                            hubId: 'zoosite-main',
+                        },
+                    },
+                ],
+            },
+            site: {},
+        } as any);
+        context = {
+            event: {
+                componentId: 'createArticleButton',
+                eventName: 'pressed',
+                eventData: {
+                    title: 'Intro',
+                    language: 'es',
+                },
+            },
+            host: {},
+        };
+        contentHub.executeAction.and.resolveTo({
+            ok: true,
+            data: {
+                article: {
+                    articleId: 'art_created',
+                    latestRevisionId: 'rev_created',
+                    path: '/blog/web/intro',
+                    status: 'draft',
+                },
+            },
+        });
+
+        const handler = TestBed.runInInjectionContext(() => proxyActionHandler());
+        await handler.handle(context, ['create-article']);
+
+        expect(variables.get('remoteStatus.contentHub.create.articleId')).toBe('art_created');
+        expect(variables.get('remoteStatus.contentHub.create.latestRevisionId')).toBe('rev_created');
+        expect(variables.get('remoteStatus.contentHub.create.path')).toBe('/blog/web/intro');
+        expect(variables.get('remoteStatus.contentHub.create.status')).toBe('draft');
+    });
+
     it('writes an error status when a configured proxy action fails', async () => {
         proxy.executeAction.and.rejectWith(new Error('Action failed'));
 
