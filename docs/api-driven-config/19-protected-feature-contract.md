@@ -17,6 +17,30 @@ Source Of Truth:
 Confidence: Medium; this is a reusable contract and plan-only schema, not a deployed feature runtime.
 Last Reviewed: 2026-06-18 (Central Time)
 
+## Implemented Content Hub BFF
+
+The first protected-feature BFF implementation is the generic `zoolanding-content-hub` service.
+
+It owns the same-origin browser endpoints expected by `ContentHubClientService`:
+
+- `POST /features/content-hub/read`
+- `POST /features/content-hub/action`
+
+The front door must route only those exact paths to the BFF. Do not route broad `/features/*`, `/features/content-hub/*`, or unrelated feature paths to this service.
+
+The BFF reuses auth-admin server-cookie sessions:
+
+- `__Host-zlp_session` stays HttpOnly.
+- Mutations require the readable CSRF cookie and matching `X-ZLP-CSRF` header.
+- Requests include `X-ZLP-Domain`, `X-ZLP-Auth-Profile-Id`, and `X-ZLP-Content-Hub-Id`.
+- The service rechecks session context, current user state, approval status, enabled status, session version, hub authorization, and action-scoped roles server-side.
+
+Initial reads are `articleList`, `taxonomyList`, `assetList`, `revisionList`, `moderationQueue`, and `publicBundlePreview`.
+
+Initial actions are `createArticle`, `updatePackage`, `validate`, `submitReview`, `publish`, `schedule`, `uploadAsset`, `moderateComment`, and `restoreRevision`.
+
+Publishing creates validated internal content-hub published bundles in BFF-owned storage. Public Angular SEO indexes (`runtime.contentHubs.publicArticles` and `publicTaxonomy`) still need the runtime-read/public-index bridge before newly published BFF content automatically appears in public blog routes, sitemap, feeds, and search JSON.
+
 ## Purpose
 
 A protected feature is any draft-scoped capability that reads or mutates non-public customer data after authentication. Examples include client blogs, dashboards, analytics, private uploads, and draft configuration panels.

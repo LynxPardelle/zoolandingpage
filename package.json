@@ -35,6 +35,7 @@
     "ops:public-health": "node tools/ops/public-site-health-check.mjs",
     "ops:sync-managed-aliases": "node tools/ops/sync-managed-alias-front-door.mjs",
     "ops:sync-auth-admin-front-door": "node tools/ops/sync-auth-admin-front-door.mjs",
+    "ops:sync-content-hub-front-door": "node tools/ops/sync-content-hub-front-door.mjs",
     "ops:probe-runtime-front-door": "node tools/ops/probe-runtime-front-door.mjs",
     "ops:configure-runtime-cache": "node tools/ops/configure-runtime-front-door-cache.mjs",
     "ops:configure-runtime-observability": "node tools/ops/configure-runtime-observability.mjs",
@@ -48,7 +49,7 @@
     "test:draft-auth-audit": "node --test tools/tests/draft-auth-audit.spec.mjs",
     "test:draft-aws-oidc-setup": "node --test tools/tests/draft-aws-oidc-setup.spec.mjs",
     "test:draft-github-setup": "node --test tools/tests/draft-github-setup.spec.mjs",
-    "test:ops-front-door": "node --test tools/tests/ops-managed-alias-front-door.spec.mjs tools/tests/ops-auth-admin-front-door.spec.mjs tools/tests/ops-runtime-front-door-probe.spec.mjs tools/tests/ops-runtime-front-door-cache.spec.mjs tools/tests/ops-runtime-observability.spec.mjs tools/tests/ops-public-site-health-check.spec.mjs",
+    "test:ops-front-door": "node --test tools/tests/ops-managed-alias-front-door.spec.mjs tools/tests/ops-auth-admin-front-door.spec.mjs tools/tests/ops-content-hub-front-door.spec.mjs tools/tests/ops-runtime-front-door-probe.spec.mjs tools/tests/ops-runtime-front-door-cache.spec.mjs tools/tests/ops-runtime-observability.spec.mjs tools/tests/ops-public-site-health-check.spec.mjs",
     "test:draft-context": "npm run build && node --test tools/tests/draft-local-context.spec.mjs",
     "ci:budgets": "node ./node_modules/@angular/cli/bin/ng.js build --configuration production",
     "ci:perf": "node tools/perf-baseline.mjs"
