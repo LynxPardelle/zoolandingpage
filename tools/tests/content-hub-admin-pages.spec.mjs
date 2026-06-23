@@ -208,6 +208,10 @@ describe('Zoosite blog admin draft pages', () => {
     for (const columnId of ['title', 'status', 'language', 'category', 'tags', 'schedule', 'updatedAt']) {
       assert.ok(columnIds.includes(columnId), `missing article index column ${columnId}`);
     }
+    const tagsColumn = columns.find((column) => column.id === 'tags');
+    assert.equal(tagsColumn?.format, 'list');
+    assert.equal(tagsColumn?.itemPath, 'label');
+    assert.equal(tagsColumn?.separator, ', ');
     for (const actionId of ['edit', 'preview', 'seo', 'versions', 'schedule']) {
       assert.ok(rowActions.some((action) => action.id === actionId), `missing article row action ${actionId}`);
     }
