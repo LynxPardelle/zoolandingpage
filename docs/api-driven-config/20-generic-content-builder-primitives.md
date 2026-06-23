@@ -46,7 +46,9 @@ By default, row events do not emit full rows. If an action needs row data, decla
 
 ## `generic-cell`
 
-Use for a standalone cell value or as the table cell renderer. It formats text, number, date, boolean, and JSON values.
+Use for a standalone cell value or as the table cell renderer. It formats text, number, date, boolean, JSON, and list values.
+
+Use `format: "list"` for arrays of strings or objects. `itemPath` selects the field to render from each object, and `separator` controls the join text. When `itemPath` is omitted, object values fall back to `label`, `name`, `slug`, `taxonomyId`, or `id`.
 
 When `componentId` or `componentIds` is configured, the cell lazy-loads `wrapper-orchestrator` and passes this host context:
 
@@ -65,6 +67,22 @@ When `componentId` or `componentIds` is configured, the cell lazy-loads `wrapper
     "format": "boolean",
     "trueText": "Publicado",
     "falseText": "Borrador"
+  }
+}
+```
+
+```json
+{
+  "id": "tagsCell",
+  "type": "generic-cell",
+  "config": {
+    "value": [
+      { "label": "SEO" },
+      { "label": "Builder" }
+    ],
+    "format": "list",
+    "itemPath": "label",
+    "separator": ", "
   }
 }
 ```

@@ -349,12 +349,14 @@ const ALLOWED_GENERIC_CELL_CONFIG_KEYS = new Set([
     'emptyText',
     'trueText',
     'falseText',
+    'itemPath',
+    'separator',
     'componentId',
     'componentIds',
     'classes',
     'valueClasses',
 ]);
-const ALLOWED_GENERIC_CELL_FORMATS = new Set(['text', 'number', 'date', 'boolean', 'json']);
+const ALLOWED_GENERIC_CELL_FORMATS = new Set(['text', 'number', 'date', 'boolean', 'json', 'list']);
 const ALLOWED_GENERIC_TABLE_CONFIG_KEYS = new Set([
     'id',
     'label',
@@ -397,6 +399,8 @@ const ALLOWED_GENERIC_TABLE_COLUMN_KEYS = new Set([
     'emptyText',
     'trueText',
     'falseText',
+    'itemPath',
+    'separator',
     'componentId',
     'componentIds',
     'classes',
@@ -1794,7 +1798,7 @@ const isGenericCellConfig = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
     if (!hasOnlyKnownKeys(value, ALLOWED_GENERIC_CELL_CONFIG_KEYS)) return false;
 
-    const stringFields = ['id', 'valuePath', 'emptyText', 'trueText', 'falseText', 'componentId', 'classes', 'valueClasses'] as const;
+    const stringFields = ['id', 'valuePath', 'emptyText', 'trueText', 'falseText', 'itemPath', 'separator', 'componentId', 'classes', 'valueClasses'] as const;
     if (stringFields.some((field) => !isStringThunkFriendly(value[field]))) return false;
     if (value['format'] !== undefined && !ALLOWED_GENERIC_CELL_FORMATS.has(String(value['format']))) return false;
     if (value['componentIds'] !== undefined && !isStringArray(value['componentIds'])) return false;
@@ -1806,7 +1810,7 @@ const isGenericTableColumnConfig = (value: unknown): boolean => {
     if (!hasOnlyKnownKeys(value, ALLOWED_GENERIC_TABLE_COLUMN_KEYS)) return false;
     if (typeof value['id'] !== 'string' || value['id'].trim().length === 0) return false;
 
-    const stringFields = ['header', 'valuePath', 'emptyText', 'trueText', 'falseText', 'componentId', 'classes', 'headerClasses', 'cellClasses', 'valueClasses'] as const;
+    const stringFields = ['header', 'valuePath', 'emptyText', 'trueText', 'falseText', 'itemPath', 'separator', 'componentId', 'classes', 'headerClasses', 'cellClasses', 'valueClasses'] as const;
     if (stringFields.some((field) => !isStringThunkFriendly(value[field]))) return false;
     if (value['format'] !== undefined && !ALLOWED_GENERIC_CELL_FORMATS.has(String(value['format']))) return false;
     if (value['sortable'] !== undefined && !isBooleanThunkFriendly(value['sortable'])) return false;

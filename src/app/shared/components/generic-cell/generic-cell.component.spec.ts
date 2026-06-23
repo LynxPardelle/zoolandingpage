@@ -26,6 +26,40 @@ describe('GenericCellComponent', () => {
     expect(fixture.nativeElement.textContent.trim()).toBe('Publicado');
   });
 
+  it('renders object arrays with the list format and configured item path', () => {
+    fixture.componentRef.setInput('column', {
+      id: 'tags',
+      format: 'list',
+      itemPath: 'label',
+      separator: ' · ',
+      emptyText: 'Sin tags',
+    });
+    fixture.componentRef.setInput('value', [
+      { label: 'SEO', taxonomyId: 'tag-seo' },
+      { label: 'Builder', taxonomyId: 'tag-builder' },
+    ]);
+
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent.trim()).toBe('SEO · Builder');
+  });
+
+  it('uses safe object labels for list values when itemPath is omitted', () => {
+    fixture.componentRef.setInput('column', {
+      id: 'tags',
+      format: 'list',
+      emptyText: 'Sin tags',
+    });
+    fixture.componentRef.setInput('value', [
+      { slug: 'seo' },
+      { taxonomyId: 'tag-builder' },
+    ]);
+
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent.trim()).toBe('seo, tag-builder');
+  });
+
   it('builds a wrapper host context with row, column, value, and parent host', () => {
     const row = { id: 'art-1', title: 'Artículo' };
     const column = { id: 'title', componentId: 'titleRenderer' };
