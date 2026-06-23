@@ -7,7 +7,10 @@ import type {
 } from './runtime-api-proxy-client.service';
 
 const CONTENT_HUB_REQUEST_TIMEOUT_MS = 10_000;
+const CONTENT_HUB_UPLOAD_JSON_MAX_BYTES = 5 * 1024 * 1024;
 const DEFAULT_CONTENT_HUB_BASE_PATH = '/features/content-hub';
+
+type TContentHubSerializableRequest = TRuntimeApiProxyReadRequest | TRuntimeApiProxyActionRequest;
 
 @Injectable({ providedIn: 'root' })
 export class ContentHubClientService {
@@ -42,13 +45,16 @@ export class ContentHubClientService {
         const timeout = controller
             ? globalThis.setTimeout(() => controller.abort(), CONTENT_HUB_REQUEST_TIMEOUT_MS)
             : null;
+        const bodyPayload = operation === 'action'
+            ? await this.serializeActionPayload(payload as TRuntimeApiProxyActionRequest)
+            : payload;
 
         try {
             const response = await fetch(this.operationPath(operation, contentHub?.hubId), {
                 method: 'POST',
                 credentials: 'include',
                 headers,
-                body: JSON.stringify(payload),
+                body: JSON.stringify(bodyPayload),
                 ...(controller ? { signal: controller.signal } : {}),
             });
             const parsed = await this.parseJson<T & { readonly ok?: boolean; readonly error?: unknown }>(response);
@@ -66,6 +72,77 @@ export class ContentHubClientService {
                 globalThis.clearTimeout(timeout);
             }
         }
+    }
+
+    private async serializeActionPayload(payload: TRuntimeApiProxyActionRequest): Promise<TContentHubSerializableRequest> {
+        if (this.contentHubAction(payload.input) !== 'uploadAsset') {
+            return payload;
+        }
+
+        const input = await this.serializeUploadValue(payload.input);
+        return {
+            ...payload,
+            ...(this.isRecord(input) ? { input } : {}),
+        };
+    }
+
+    private contentHubAction(input: Record<string, unknown> | undefined): string {
+        const contentHub = input?.['contentHub'];
+        if (!this.isRecord(contentHub)) {
+            return '';
+        }
+        return this.clean(contentHub['action']);
+    }
+
+    private async serializeUploadValue(value: unknown): Promise<unknown> {
+        if (Array.isArray(value)) {
+            const entries = await Promise.all(value.map((entry) => this.serializeUploadValue(entry)));
+            return entries.filter((entry) => entry !== undefined);
+        }
+
+        if (this.isBrowserFile(value)) {
+            return this.serializeFile(value);
+        }
+
+        if (!this.isRecord(value)) {
+            return value;
+        }
+
+        const entries = await Promise.all(Object.entries(value).map(async ([key, entry]) => [
+            key,
+            await this.serializeUploadValue(entry),
+        ] as const));
+        return entries.reduce<Record<string, unknown>>((acc, [key, entry]) => {
+            if (entry !== undefined) {
+                acc[key] = entry;
+            }
+            return acc;
+        }, {});
+    }
+
+    private async serializeFile(file: File): Promise<Record<string, unknown>> {
+        if (file.size > CONTENT_HUB_UPLOAD_JSON_MAX_BYTES) {
+            throw new Error('Content hub upload file is too large for the browser upload bridge.');
+        }
+
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        return {
+            kind: 'browser-file',
+            name: file.name,
+            mimeType: file.type,
+            size: file.size,
+            lastModified: file.lastModified,
+            dataBase64: this.bytesToBase64(bytes),
+        };
+    }
+
+    private bytesToBase64(bytes: Uint8Array): string {
+        let binary = '';
+        const chunkSize = 0x8000;
+        for (let index = 0; index < bytes.length; index += chunkSize) {
+            binary += String.fromCharCode(...bytes.slice(index, index + chunkSize));
+        }
+        return btoa(binary);
     }
 
     private operationPath(operation: 'read' | 'action', hubId: string | undefined): string {
@@ -132,6 +209,14 @@ export class ContentHubClientService {
 
     private clean(value: unknown): string {
         return typeof value === 'string' ? value.trim() : '';
+    }
+
+    private isRecord(value: unknown): value is Record<string, unknown> {
+        return !!value && typeof value === 'object' && !Array.isArray(value);
+    }
+
+    private isBrowserFile(value: unknown): value is File {
+        return typeof File !== 'undefined' && value instanceof File;
     }
 
     private isAbortError(error: unknown): boolean {

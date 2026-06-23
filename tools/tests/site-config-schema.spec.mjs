@@ -98,12 +98,15 @@ test('site-config schema exposes content hub data source and action contracts wi
     assert.deepEqual(contentHubAction.properties.action.enum, [
         'createArticle',
         'updatePackage',
+        'upsertTaxonomy',
         'uploadAsset',
         'validate',
         'submitReview',
         'publish',
         'schedule',
+        'queueComment',
         'moderateComment',
+        'recordInteraction',
         'restoreRevision',
     ]);
     assert.equal(contentHubAction.properties.credentialRef, undefined);

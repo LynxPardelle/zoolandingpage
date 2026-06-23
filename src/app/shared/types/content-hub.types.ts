@@ -25,12 +25,15 @@ export type TContentHubRuntimeReadKind =
 export type TContentHubRuntimeActionKind =
     | 'createArticle'
     | 'updatePackage'
+    | 'upsertTaxonomy'
     | 'uploadAsset'
     | 'validate'
     | 'submitReview'
     | 'publish'
     | 'schedule'
+    | 'queueComment'
     | 'moderateComment'
+    | 'recordInteraction'
     | 'restoreRevision';
 
 export type TContentHubPackagePointer = {

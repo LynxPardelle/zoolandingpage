@@ -62,4 +62,19 @@ describe('content hub runtime request helpers', () => {
             },
         });
     });
+
+    it('preserves allowlisted browser files for the upload action bridge', () => {
+        const file = new File(['asset'], 'cover.png', { type: 'image/png' });
+
+        const result = sanitizeContentHubRuntimeInput({
+            articleId: 'intro',
+            files: [file],
+            credentialRef: 'ssm:/must-not-travel',
+        }, ['articleId', 'files', 'credentialRef']);
+
+        expect(result).toEqual({
+            articleId: 'intro',
+            files: [file],
+        });
+    });
 });

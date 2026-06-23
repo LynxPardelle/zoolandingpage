@@ -479,11 +479,22 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.equal(search.articles[0].path, '/blog/web/blog-builder-seo');
   assertNoContentHubOperationalLeak(JSON.stringify(search));
 
+  const aliasFilterResponse = await fetch(`http://127.0.0.1:${port}/content-hub-search.json?lang=es&categorySlug=web&tagSlug=seo`, { headers });
+  const aliasFilterSearch = await aliasFilterResponse.json();
+  assert.equal(aliasFilterResponse.status, 200);
+  assert.equal(aliasFilterSearch.ok, true);
+  assert.equal(aliasFilterSearch.count, 1);
+  assert.equal(aliasFilterSearch.articles[0].categorySlug, 'web');
+  assert.deepEqual(aliasFilterSearch.articles[0].tags, ['seo', 'builder', 'angora']);
+  assertNoContentHubOperationalLeak(JSON.stringify(aliasFilterSearch));
+
   const articleResponse = await fetch(`http://127.0.0.1:${port}/blog/web/blog-builder-seo?lang=es`, { headers });
   const articleHtml = await articleResponse.text();
   assert.equal(articleResponse.status, 200);
   assert.match(articleHtml, /<link rel="canonical" href="https:\/\/zoositioweb\.com\.mx\/blog\/web\/blog-builder-seo">/);
   assert.match(articleHtml, /"@type":"BlogPosting"/);
+  assert.match(articleHtml, /"articleSection":"web"/);
+  assert.match(articleHtml, /"keywords":"seo, builder, angora"/);
   assert.match(articleHtml, /Cómo crear blogs visuales con Zoolandingpage/);
   assertNoContentHubOperationalLeak(extractJsonLd(articleHtml));
   assert.equal(getStderr(), '');
