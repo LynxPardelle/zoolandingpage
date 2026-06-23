@@ -605,6 +605,18 @@ describe('RuntimeService', () => {
                             eventPrefix: 'blog',
                             piiPolicy: 'no-pii',
                         },
+                        publicArticles: [
+                            {
+                                articleId: 'art_20260620_blog_builder',
+                                locale: 'es',
+                                status: 'published',
+                                title: 'Blog builder SEO',
+                                path: '/blog/web/blog-builder-seo',
+                                categorySlug: 'web',
+                                tags: ['seo', 'blogs'],
+                                publishedAt: '2026-06-20T00:00:00.000Z',
+                            },
+                        ],
                     },
                 ],
             },
@@ -620,6 +632,9 @@ describe('RuntimeService', () => {
             meta: {
                 hubId: 'zoosite-main',
                 contentGroup: 'blog',
+                articleId: 'art_20260620_blog_builder',
+                category: 'web',
+                tags: ['seo', 'blogs'],
                 path: '/blog/web/blog-builder-seo',
                 params: {
                     articleSlug: 'blog-builder-seo',

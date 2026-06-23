@@ -666,6 +666,10 @@ export class RuntimeService {
             if (!eventPrefix || !contentGroup || !hubId) {
                 continue;
             }
+            const article = this.findContentHubArticleForPath(hub, path);
+            const articleId = this.cleanAnalyticsString(article?.articleId);
+            const category = this.cleanAnalyticsString(article?.categorySlug);
+            const tags = this.cleanAnalyticsTags(article?.tags);
 
             return {
                 name: `${ eventPrefix }_view`,
@@ -675,6 +679,9 @@ export class RuntimeService {
                     meta: {
                         hubId,
                         contentGroup,
+                        ...(articleId ? { articleId } : {}),
+                        ...(category ? { category } : {}),
+                        ...(tags.length ? { tags } : {}),
                         path,
                         params: match.params,
                     },
@@ -700,6 +707,29 @@ export class RuntimeService {
         }
 
         return { params: match.params };
+    }
+
+    private findContentHubArticleForPath(
+        hub: TContentHubRuntimeConfig,
+        path: string,
+    ): { readonly articleId?: string; readonly categorySlug?: string; readonly tags?: readonly string[] } | null {
+        const articles = Array.isArray(hub.publicArticles) ? hub.publicArticles : [];
+        return articles.find((article) => normalizeDraftRoutePath(article.path) === path) ?? null;
+    }
+
+    private cleanAnalyticsString(value: unknown): string {
+        return typeof value === 'string' ? value.trim() : '';
+    }
+
+    private cleanAnalyticsTags(value: unknown): readonly string[] {
+        if (!Array.isArray(value)) {
+            return [];
+        }
+
+        return value
+            .map((entry) => this.cleanAnalyticsString(entry))
+            .filter(Boolean)
+            .slice(0, 20);
     }
 
     private resolveCurrentBrowserUrlLabel(): string {

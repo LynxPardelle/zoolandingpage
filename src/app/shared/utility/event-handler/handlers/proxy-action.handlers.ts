@@ -5,6 +5,7 @@ import { RuntimeApiProxyClientService } from '@/app/shared/services/runtime-api-
 import { VariableStoreService } from '@/app/shared/services/variable-store.service';
 import type { TRuntimeApiActionConfig } from '@/app/shared/types/config-payloads.types';
 import { inject } from '@angular/core';
+import { findInteractionScopeHost } from '../../../components/interaction-scope/interaction-scope.service';
 import type { EventExecutionContext, EventHandler } from '../event-handler.types';
 
 type TProxyActionStatusState = 'loading' | 'success' | 'error';
@@ -20,6 +21,57 @@ const errorMessage = (error: unknown): string =>
 const statusTargetFor = (action: TRuntimeApiActionConfig): string =>
     action.statusTarget || `remoteStatus.${ action.id }`;
 
+const SAFE_RESPONSE_REFERENCE_PATHS: Record<string, readonly string[]> = {
+    articleId: ['articleId', 'article.articleId', 'createdArticle.articleId', 'created.articleId', 'result.articleId'],
+    revisionId: ['revisionId', 'revision.revisionId', 'createdRevision.revisionId', 'created.revisionId', 'result.revisionId'],
+    latestRevisionId: ['latestRevisionId', 'article.latestRevisionId', 'createdArticle.latestRevisionId', 'result.latestRevisionId'],
+    assetId: ['assetId', 'asset.assetId', 'createdAsset.assetId', 'result.assetId'],
+    fileName: ['fileName', 'asset.fileName', 'createdAsset.fileName', 'result.fileName'],
+    taxonomyId: ['taxonomyId', 'taxonomy.taxonomyId', 'result.taxonomyId'],
+    commentId: ['commentId', 'comment.commentId', 'result.commentId'],
+    interactionId: ['interactionId', 'interaction.interactionId', 'result.interactionId'],
+    path: ['path', 'article.path', 'createdArticle.path', 'result.path'],
+    status: ['status', 'article.status', 'createdArticle.status', 'result.status'],
+};
+
+const resolvePath = (value: unknown, path: string): unknown => {
+    let current = value;
+    for (const segment of path.split('.').filter(Boolean)) {
+        const record = asRecord(current);
+        if (!(segment in record)) {
+            return undefined;
+        }
+        current = record[segment];
+    }
+    return current;
+};
+
+const safeReferenceValue = (value: unknown): string | number | boolean | undefined => {
+    if (typeof value === 'string') {
+        const normalized = value.trim();
+        return normalized.length > 0 ? normalized : undefined;
+    }
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'boolean') return value;
+    return undefined;
+};
+
+const responseReferences = (data: unknown): Record<string, string | number | boolean> => {
+    const references: Record<string, string | number | boolean> = {};
+
+    Object.entries(SAFE_RESPONSE_REFERENCE_PATHS).forEach(([target, paths]) => {
+        for (const path of paths) {
+            const value = safeReferenceValue(resolvePath(data, path));
+            if (value !== undefined) {
+                references[target] = value;
+                break;
+            }
+        }
+    });
+
+    return references;
+};
+
 const writeStatus = (
     variables: VariableStoreService,
     action: TRuntimeApiActionConfig,
@@ -27,24 +79,36 @@ const writeStatus = (
     error: string | null,
     data?: unknown,
 ): void => {
+    const references = state === 'success' ? responseReferences(data) : {};
     variables.setRuntimeValue(statusTargetFor(action), {
         state,
         updatedAt: state === 'loading' ? null : new Date().toISOString(),
         error,
         ...(state === 'success' ? { data } : {}),
+        ...references,
     });
 };
 
 const pickActionInput = (
     action: TRuntimeApiActionConfig,
     eventData: Record<string, unknown>,
+    ctx: EventExecutionContext,
 ): Record<string, unknown> | undefined => {
     const fields = action.inputFields ?? [];
     if (!fields.length) return undefined;
+    const rowData = asRecord(eventData['rowData']);
+    const scopeHost = findInteractionScopeHost(ctx.host);
+    const scopeSnapshot = scopeHost?.submitInteractionScope?.() ?? scopeHost?.interactionScope.submit();
+    const scopeValues = asRecord(scopeSnapshot?.values);
+    const merged = {
+        ...scopeValues,
+        ...rowData,
+        ...eventData,
+    };
 
     return fields.reduce<Record<string, unknown>>((input, field) => {
-        if (field in eventData) {
-            input[field] = eventData[field];
+        if (field in merged) {
+            input[field] = merged[field];
         }
         return input;
     }, {});
@@ -53,8 +117,9 @@ const pickActionInput = (
 const resolveActionInput = (
     action: TRuntimeApiActionConfig,
     eventData: Record<string, unknown>,
+    ctx: EventExecutionContext,
 ): Record<string, unknown> | undefined => {
-    const input = pickActionInput(action, eventData);
+    const input = pickActionInput(action, eventData, ctx);
     if (action.kind !== 'content-hub') {
         return input;
     }
@@ -93,7 +158,7 @@ export const proxyActionHandler = (): EventHandler => {
                     domain,
                     pageId,
                     actionId: proxyActionId,
-                    input: resolveActionInput(action, asRecord(ctx.event.eventData)),
+                    input: resolveActionInput(action, asRecord(ctx.event.eventData), ctx),
                 });
                 writeStatus(variables, action, 'success', null, response.data);
             } catch (error) {

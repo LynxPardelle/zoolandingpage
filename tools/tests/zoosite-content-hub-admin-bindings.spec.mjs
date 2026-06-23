@@ -36,11 +36,14 @@ const requiredReads = [
 const requiredActions = [
   'createArticle',
   'updatePackage',
+  'upsertTaxonomy',
   'uploadAsset',
   'validate',
   'publish',
   'schedule',
+  'queueComment',
   'moderateComment',
+  'recordInteraction',
   'restoreRevision',
 ];
 

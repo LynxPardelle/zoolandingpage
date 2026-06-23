@@ -151,12 +151,15 @@ const ALLOWED_CONTENT_HUB_READS = new Set([
 const ALLOWED_CONTENT_HUB_ACTIONS = new Set([
     'createArticle',
     'updatePackage',
+    'upsertTaxonomy',
     'uploadAsset',
     'validate',
     'submitReview',
     'publish',
     'schedule',
+    'queueComment',
     'moderateComment',
+    'recordInteraction',
     'restoreRevision',
 ]);
 const ALLOWED_CONTENT_HUB_TAXONOMY_KINDS = new Set(['category', 'tag']);

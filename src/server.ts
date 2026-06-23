@@ -2290,8 +2290,8 @@ function filterPublicContentHubArticles(
   query: Record<string, unknown>,
 ): readonly TContentHubPublicArticle[] {
   const q = firstQueryParam(query['q']).toLowerCase();
-  const category = firstQueryParam(query['category']).toLowerCase();
-  const tag = firstQueryParam(query['tag']).toLowerCase();
+  const category = (firstQueryParam(query['category']) || firstQueryParam(query['categorySlug'])).toLowerCase();
+  const tag = (firstQueryParam(query['tag']) || firstQueryParam(query['tagSlug'])).toLowerCase();
   const author = firstQueryParam(query['author']).toLowerCase();
   const limit = Math.min(Math.max(Number.parseInt(firstQueryParam(query['limit']) || '20', 10) || 20, 1), 50);
 
@@ -2409,7 +2409,8 @@ function buildContentHubArticleStructuredData(
     datePublished: cleanString(article.publishedAt),
     dateModified: cleanString(article.updatedAt) || cleanString(article.publishedAt),
     author: cleanString(article.authorLabel) ? { '@type': 'Organization', name: cleanString(article.authorLabel) } : undefined,
-    keywords: Array.isArray(article.tags) ? article.tags.join(', ') : undefined,
+    articleSection: cleanString(article.categorySlug) || undefined,
+    keywords: Array.isArray(article.tags) ? article.tags.map(cleanString).filter(Boolean).join(', ') || undefined : undefined,
   };
 }
 

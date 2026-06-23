@@ -102,9 +102,16 @@ export const isForbiddenContentHubPublicInputValue = (value: unknown): boolean =
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     !!value && typeof value === 'object' && !Array.isArray(value);
 
+const isBrowserFile = (value: unknown): value is File =>
+    typeof File !== 'undefined' && value instanceof File;
+
 const sanitizeValue = (value: unknown): unknown => {
     if (Array.isArray(value)) {
         return value.map(sanitizeValue).filter((entry) => entry !== undefined);
+    }
+
+    if (isBrowserFile(value)) {
+        return value;
     }
 
     if (!isRecord(value)) {
