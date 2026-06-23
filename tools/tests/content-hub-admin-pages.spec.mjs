@@ -171,6 +171,28 @@ describe('Zoosite blog admin draft pages', () => {
     }
   });
 
+  it('keeps protected admin table errors state-driven instead of always visible', async () => {
+    for (const pageId of pageIds) {
+      const payload = await readJson(`${pageId}/components.json`);
+      for (const component of flattenComponents(payload)) {
+        if (component.type !== 'generic-table') continue;
+        const valueInstructions = String(component.valueInstructions ?? '');
+        if (!valueInstructions.includes('remoteStatus.contentHub.')) continue;
+
+        assert.equal(
+          component.config?.errorText,
+          undefined,
+          `${pageId}/${component.id} must not render a static protected-data error before the read runs`,
+        );
+        assert.match(
+          valueInstructions,
+          /set:config\.errorText,varOr,remoteStatus\.contentHub\.[^;\s]+\.error,/,
+          `${pageId}/${component.id} must bind errorText to the remote content-hub status`,
+        );
+      }
+    }
+  });
+
   it('implements the article index controls required by phase 6', async () => {
     const payload = await readJson('admin-blog-articulos/components.json');
     const components = flattenComponents(payload);
