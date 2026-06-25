@@ -57,6 +57,7 @@ export class GenericTableComponent {
   readonly id = computed(() => this.asString(this.config().id));
   readonly label = computed(() => this.asString(this.config().label));
   readonly description = computed(() => this.asString(this.config().description));
+  readonly actionColumnLabel = computed(() => this.asString(this.config().actionColumnLabel));
   readonly columns = computed<readonly TGenericCellColumnConfig[]>(() => this.config().columns ?? []);
   readonly actions = computed<readonly TGenericTableRowActionConfig[]>(() => this.config().rowActions ?? []);
   readonly loading = computed(() => this.asBoolean(this.config().loading));

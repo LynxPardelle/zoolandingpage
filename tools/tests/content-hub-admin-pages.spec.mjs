@@ -82,6 +82,7 @@ function componentById(components, id) {
 
 describe('Zoosite blog admin draft pages', () => {
   it('ships complete draft package files for every admin blog page', async () => {
+    const sharedComponents = flattenComponents(await readJson('components.json'));
     for (const pageId of pageIds) {
       const pageConfig = await readJson(`${pageId}/page-config.json`);
       const components = await readJson(`${pageId}/components.json`);
@@ -94,7 +95,7 @@ describe('Zoosite blog admin draft pages', () => {
       assert.ok(Array.isArray(pageConfig.rootIds), `${pageId} must declare rootIds`);
       assert.ok(pageConfig.rootIds.length > 0, `${pageId} must declare at least one root component`);
       assert.equal(components.pageId, pageId);
-      const componentIds = new Set(flattenComponents(components).map((component) => component.id));
+      const componentIds = new Set([...sharedComponents, ...flattenComponents(components)].map((component) => component.id));
       for (const rootId of pageConfig.rootIds) {
         assert.ok(componentIds.has(rootId), `${pageId} rootIds references missing component ${rootId}`);
       }

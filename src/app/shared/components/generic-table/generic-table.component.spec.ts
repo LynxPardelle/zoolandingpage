@@ -19,6 +19,7 @@ describe('GenericTableComponent', () => {
       { id: 'title', header: 'Título', valuePath: 'title', sortable: true },
       { id: 'status', header: 'Estado', valuePath: 'status' },
     ],
+    actionColumnLabel: 'Acciones',
     sort: { active: 'title', direction: 'asc' },
     selection: { enabled: true, mode: 'multiple', label: 'Seleccionar' },
     rowActions: [{ id: 'edit', label: 'Editar', icon: 'edit' }],
@@ -40,6 +41,7 @@ describe('GenericTableComponent', () => {
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('Artículos');
     expect(text).toContain('Título');
+    expect(text).toContain('Acciones');
     expect(text.indexOf('Alpha')).toBeLessThan(text.indexOf('Zeta'));
     expect(text).not.toContain('zoositioweb');
     expect(text).not.toContain('blog-admin');
