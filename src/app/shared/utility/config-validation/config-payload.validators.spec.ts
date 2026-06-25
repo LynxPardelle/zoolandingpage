@@ -2212,6 +2212,28 @@ describe('config-payload.validators', () => {
         expect(isComponentsPayload(valid)).toBeTrue();
     });
 
+    it('accepts tooltip payloads with safe anchor and content fields', () => {
+        const valid = createComponentsPayload({
+            searchTooltip: {
+                id: 'searchTooltip',
+                type: 'tooltip',
+                valueInstructions: 'set:config.content,i18n,actions.search,Search',
+                config: {
+                    for: 'search-button',
+                    content: 'Search',
+                    position: 'top',
+                    trigger: 'both',
+                    showDelayMs: 120,
+                    hideDelayMs: 80,
+                    surfaceClasses: 'tooltip-surface',
+                    arrowClasses: 'tooltip-arrow',
+                },
+            },
+        }, TEST_DOMAIN);
+
+        expect(isComponentsPayload(valid)).toBeTrue();
+    });
+
     it('rejects stats-counter payloads with temporary config fields', () => {
         const invalid = createComponentsPayload({
             avgTimeCounter: {

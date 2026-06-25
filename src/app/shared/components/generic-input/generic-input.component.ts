@@ -37,6 +37,13 @@ import type {
   standalone: true,
   imports: [GenericButtonComponent, GenericDropdown, GenericTextComponent],
   templateUrl: './generic-input.component.html',
+  styles: [`
+    .zlp-joined-search-input {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+      border-right: 0;
+    }
+  `],
   host: {
     '[attr.data-zlp-field-id]': 'fieldId()',
     '[attr.data-zlp-field-valid]': 'fieldState().valid ? "true" : "false"',

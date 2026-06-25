@@ -91,4 +91,16 @@ describe('GenericTableComponent', () => {
     }));
     expect(JSON.stringify(emitted[0])).not.toContain('Alpha');
   });
+
+  it('renders row action icons as SVG instead of visible icon-name text', () => {
+    fixture.componentRef.setInput('config', tableConfig);
+    fixture.detectChanges();
+
+    const editButton = Array.from<HTMLButtonElement>(fixture.nativeElement.querySelectorAll('button'))
+      .find((button: HTMLButtonElement) => button.textContent?.includes('Editar')) as HTMLButtonElement | undefined;
+
+    expect(editButton).toBeTruthy();
+    expect(editButton?.querySelector('svg')).toBeTruthy();
+    expect(editButton?.textContent?.trim()).toBe('Editar');
+  });
 });

@@ -206,6 +206,37 @@ describe('WrapperOrchestrator', () => {
     expect(fixture.nativeElement.innerHTML).not.toContain(encodedValue);
   });
 
+  it('renders authored tooltips instead of the unknown component fallback', () => {
+    componentsById = {
+      saveButton: {
+        id: 'saveButton',
+        type: 'button',
+        config: {
+          id: 'save-button',
+          label: 'Guardar',
+        },
+      },
+      saveTooltip: {
+        id: 'saveTooltip',
+        type: 'tooltip',
+        config: {
+          for: 'save-button',
+          content: 'Guardar cambios',
+          trigger: 'hover',
+        },
+      } as never,
+    };
+
+    fixture.componentRef.setInput('componentsIds', ['saveButton', 'saveTooltip']);
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('#save-button') as HTMLButtonElement | null;
+
+    expect(button).not.toBeNull();
+    expect(button?.hasAttribute('aria-describedby')).toBeTrue();
+    expect(fixture.nativeElement.textContent).not.toContain('unknown');
+  });
+
   it('recognizes authored content-builder primitives instead of the unknown component fallback', () => {
     componentsById = {
       cellPreview: {

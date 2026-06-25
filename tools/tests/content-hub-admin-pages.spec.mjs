@@ -45,6 +45,7 @@ const allowedGenericTypes = new Set([
   'pagination',
   'search-box',
   'text',
+  'tooltip',
   'toast',
 ]);
 
@@ -209,10 +210,11 @@ describe('Zoosite blog admin draft pages', () => {
     const columnIds = columns.map((column) => column.id);
     const rowActions = table?.config?.rowActions ?? [];
 
-    assert.equal(shell?.config?.components?.includes('adminBlogArticulosPagination'), false);
+    assert.equal(shell?.config?.components?.includes('adminBlogArticulosPagination'), true);
     assert.deepEqual(toolbar?.config?.components, [
       'adminBlogArticulosMutationNotice',
       'adminBlogArticulosFiltersScope',
+      'adminBlogArticulosSearchTooltip',
       'adminBlogArticulosActionStatus',
     ]);
     assert.equal(filtersScope?.type, 'interaction-scope');
@@ -225,13 +227,19 @@ describe('Zoosite blog admin draft pages', () => {
     assert.equal(searchButton?.config?.type, 'submit');
     assert.equal(statusFilter?.config?.value, 'all');
     assert.equal(statusFilter?.valueInstructions, 'set:config.value,queryParamOr,status,all');
-    assert.equal(pageSizeFilter?.config?.value, '20');
-    assert.equal(pageSizeFilter?.valueInstructions, 'set:config.value,queryParamOr,pageSize,20');
-    assert.equal(statusFilter?.config?.dropdownIndicatorText, '⌄');
-    assert.equal(pageSizeFilter?.config?.dropdownIndicatorText, '⌄');
+    assert.equal(pageSizeFilter?.config?.value, '10');
+    assert.equal(pageSizeFilter?.valueInstructions, 'set:config.value,queryParamOr,pageSize,10');
+    assert.equal(statusFilter?.config?.dropdownIndicatorText, '▼');
+    assert.equal(pageSizeFilter?.config?.dropdownIndicatorText, '▼');
+    assert.deepEqual(
+      pageSizeFilter?.config?.options?.map((option) => String(option.value)),
+      ['3', '5', '10', '20', '50'],
+    );
     assert.equal(typeof statusFilter?.config?.dropdownConfig?.menuContainerClasses, 'string');
     assert.ok(componentById(components, 'adminBlogArticulosPagination'));
+    assert.equal(pagination?.config?.hideWhenSinglePage, false);
     assert.ok(componentById(components, 'adminBlogArticulosValidateButton'));
+    assert.ok(componentById(components, 'adminBlogArticulosValidateIdle'));
     assert.ok(componentById(components, 'adminBlogArticulosNewLink'));
     for (const columnId of ['title', 'status', 'language', 'category', 'tags', 'schedule', 'updatedAt']) {
       assert.ok(columnIds.includes(columnId), `missing article index column ${columnId}`);
@@ -248,7 +256,7 @@ describe('Zoosite blog admin draft pages', () => {
     assert.deepEqual(table?.config?.eventPayloadFields, ['articleId', 'status', 'latestRevisionId', 'path']);
     assert.equal(table?.config?.rowsSource?.fallback, undefined);
     assert.equal(table?.config?.pagination?.enabled, false);
-    assert.equal(pagination?.config?.hideWhenSinglePage, true);
+    assert.equal(pagination?.config?.hideWhenSinglePage, false);
     for (const action of rowActions) {
       assert.equal(action.disabled, undefined, `${action.id} must not stay visually disabled after BFF contract exists`);
       assert.match(action.eventInstructions ?? '', /^navigateWithEventData:/, `${action.id} must use dynamic row navigation`);
