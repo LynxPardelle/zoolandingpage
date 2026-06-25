@@ -305,7 +305,7 @@
 </generic-text>
 } @case('tooltip') {
 <generic-tooltip
-  [for]="$any(tooltipConfig(component)).for"
+  [anchorFor]="$any(tooltipConfig(component)).for"
   [content]="tooltipContent(component)"
   [config]="$any(tooltipConfig(component))"
 ></generic-tooltip>
