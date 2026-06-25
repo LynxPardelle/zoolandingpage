@@ -384,6 +384,26 @@ describe('GenericInputComponent', () => {
         expect(fixture.nativeElement.querySelector('.selectIndicator')).toBeTruthy();
     });
 
+    it('matches select options when numeric value instructions resolve string options to numbers', () => {
+        const fixture = TestBed.createComponent(GenericInputComponent);
+        const component = fixture.componentInstance;
+
+        fixture.componentRef.setInput('config', {
+            fieldId: 'pageSize',
+            controlType: 'select',
+            value: 10,
+            options: [
+                { value: '3', label: '3' },
+                { value: '5', label: '5' },
+                { value: '10', label: '10' },
+            ],
+        });
+        fixture.detectChanges();
+
+        expect(component.selectedOptionLabel()).toBe('10');
+        expect(component.dropdownConfig().selectedItemId).toBe('10');
+    });
+
     it('updates select-like controls through the generic dropdown adapter', () => {
         const fixture = TestBed.createComponent(GenericInputComponent);
         const component = fixture.componentInstance;

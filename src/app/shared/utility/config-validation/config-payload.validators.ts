@@ -361,6 +361,7 @@ const ALLOWED_GENERIC_TABLE_CONFIG_KEYS = new Set([
     'id',
     'label',
     'description',
+    'actionColumnLabel',
     'rows',
     'rowsSource',
     'columns',
@@ -1882,7 +1883,7 @@ const isGenericTableConfig = (value: unknown): boolean => {
     if (value['rowActions'] !== undefined && (!Array.isArray(value['rowActions']) || !value['rowActions'].every(isGenericTableRowActionConfig))) return false;
     if (value['eventPayloadFields'] !== undefined && !isStringArray(value['eventPayloadFields'])) return false;
 
-    const stringFields = ['id', 'label', 'description', 'rowIdPath', 'loadingText', 'error', 'errorText', 'emptyText', 'classes', 'labelClasses', 'descriptionClasses', 'tableWrapperClasses', 'tableClasses', 'headerCellClasses', 'rowClasses', 'actionCellClasses', 'actionButtonClasses', 'selectionCellClasses', 'stateClasses'] as const;
+    const stringFields = ['id', 'label', 'description', 'actionColumnLabel', 'rowIdPath', 'loadingText', 'error', 'errorText', 'emptyText', 'classes', 'labelClasses', 'descriptionClasses', 'tableWrapperClasses', 'tableClasses', 'headerCellClasses', 'rowClasses', 'actionCellClasses', 'actionButtonClasses', 'selectionCellClasses', 'stateClasses'] as const;
     if (stringFields.some((field) => !isStringThunkFriendly(value[field]))) return false;
 
     const booleanFields = ['sortable', 'emitOnRowClick', 'loading'] as const;

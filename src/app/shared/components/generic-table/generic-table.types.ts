@@ -55,6 +55,7 @@ export type TGenericTableConfig = {
   readonly id?: TDynamicStringValue;
   readonly label?: TDynamicStringValue;
   readonly description?: TDynamicStringValue;
+  readonly actionColumnLabel?: TDynamicStringValue;
   readonly rows?: readonly unknown[];
   readonly rowsSource?: TDynamicValue<TGenericTableRowsSource>;
   readonly columns: readonly TGenericCellColumnConfig[];

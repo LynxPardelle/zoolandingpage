@@ -1768,6 +1768,7 @@ describe('config-payload.validators', () => {
                     rowsSource: { source: 'var', path: 'contentHub.articles', fallback: [] },
                     rowIdPath: 'articleId',
                     eventPayloadFields: ['articleId', 'status'],
+                    actionColumnLabel: 'Acciones',
                     columns: [
                         { id: 'title', header: 'Título', valuePath: 'title' },
                         { id: 'status', header: 'Estado', valuePath: 'status' },
