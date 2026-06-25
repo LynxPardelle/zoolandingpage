@@ -120,6 +120,8 @@ Use when basic `generic-input` file controls are not enough: drag/drop, multiple
 
 This component does not upload files by itself. It emits accepted `File` objects and file summaries to the configured event flow; upload authorization and storage policy stay server-side.
 
+Current public draft uploads should go through the hub workflow in [../12-public-assets-and-file-uploads.md](../12-public-assets-and-file-uploads.md). Do not put upload grants or signed URLs in content-builder draft payloads.
+
 ```json
 {
   "id": "articleAssets",

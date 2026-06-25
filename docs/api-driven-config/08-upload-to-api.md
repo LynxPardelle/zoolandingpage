@@ -33,7 +33,7 @@ The runtime and authoring APIs serve different purposes:
 
 - `config-authoring`: create, read, update, and publish drafts
 - `runtime-bundle`: serve one effective published bundle to live pages
-- `image-upload/presign`: issue presigned upload URLs or perform direct image uploads for public assets
+- `image-upload/presign`: upload public assets only when a temporary upload grant authorizes the domain, asset kind, content type, size, and usage count
 
 ## Current local CLI
 
@@ -264,12 +264,12 @@ Excluded:
 - PDFs
 - server-only files in browser runtime bundles or static `/drafts` responses
 
-Public assets must be uploaded separately through `image-upload/presign` and then referenced from config JSON by URL.
+Public assets must be uploaded separately through the grant-protected upload flow and then referenced from config JSON by URL.
 
-The upload endpoint now supports two public asset flows:
+The upload endpoint supports two grant-protected asset flows:
 
 - direct upload with `imageBase64` for backend compression of JPEG, PNG, and WebP files
-- legacy presigned browser upload when you want the browser to `PUT` directly to S3
+- presigned PUT only when the temporary grant explicitly allows it
 
 For the complete request and authoring guidance, see [../12-public-assets-and-file-uploads.md](../12-public-assets-and-file-uploads.md).
 

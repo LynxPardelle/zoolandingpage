@@ -224,7 +224,7 @@ Example file upload input inside a scope:
 }
 ```
 
-That event stores the upload result in the nearest scope field, for example `heroImageUpload.publicUrl` and `heroImageUpload.status`.
+That event stores the upload result in the nearest scope field, for example `heroImageUpload.publicUrl` and `heroImageUpload.status`. Public draft payloads must not contain upload grants or signed URLs; until an authenticated server-side grant bridge exists, use the hub upload workflow in [../12-public-assets-and-file-uploads.md](../12-public-assets-and-file-uploads.md) for real client assets.
 
 ## Configuration authoring rules (API-friendly)
 
