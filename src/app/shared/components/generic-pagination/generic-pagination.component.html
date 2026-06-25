@@ -8,7 +8,8 @@
     <a
       [href]="previousHref()"
       [class]="previousDisabled() ? disabledLinkClasses() : linkClasses()"
-      [attr.aria-disabled]="previousDisabled()"
+      [attr.aria-disabled]="previousDisabled() ? 'true' : null"
+      [attr.tabindex]="previousDisabled() ? '-1' : null"
       (click)="onNavigate($event, previousHref(), previousDisabled())"
       >{{ previousLabel() }}</a
     >
@@ -27,7 +28,8 @@
     <a
       [href]="nextHref()"
       [class]="nextDisabled() ? disabledLinkClasses() : linkClasses()"
-      [attr.aria-disabled]="nextDisabled()"
+      [attr.aria-disabled]="nextDisabled() ? 'true' : null"
+      [attr.tabindex]="nextDisabled() ? '-1' : null"
       (click)="onNavigate($event, nextHref(), nextDisabled())"
       >{{ nextLabel() }}</a
     >
