@@ -42,11 +42,11 @@ export const CONTENT_HUB_REPOSITORY_DECISIONS = Object.freeze([
       'Published article bundles are public SSR/runtime payloads and follow the same S3-backed published bundle pattern as runtime site config. Split to a generic content runtime read repo if article slug/list/feed caching becomes its own lifecycle.',
   },
   {
-    capability: 'simple-public-image-upload',
+    capability: 'grant-protected-public-image-upload',
     owner: 'zoolanding-image-upload',
     decision: 'keep-simple',
     reason:
-      'The current uploader is useful for simple public images, but it should not absorb full media lifecycle, non-image files, references, transforms, or protected media.',
+      'The current uploader is useful for grant-protected public images, but it should not absorb full media lifecycle, non-image files, references, transforms, or protected media.',
   },
   {
     capability: 'media-lifecycle',

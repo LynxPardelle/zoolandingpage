@@ -2,13 +2,13 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatIconModule } from '@angular/material/icon';
 import { MatPaginatorModule, type PageEvent } from '@angular/material/paginator';
 import { MatSortModule, type Sort } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
 import { resolveDynamicValue, resolveHostPath } from '../../utility/component-orchestrator.utility';
 import { VariableStoreService } from '../../services/variable-store.service';
 import { GenericCellComponent } from '../generic-cell/generic-cell.component';
+import { GenericIconComponent } from '../generic-icon/generic-icon.component';
 import type { TGenericCellColumnConfig } from '../generic-cell/generic-cell.types';
 import type {
   TGenericTableActionEvent,
@@ -29,11 +29,11 @@ import type {
     CommonModule,
     MatButtonModule,
     MatCheckboxModule,
-    MatIconModule,
     MatPaginatorModule,
     MatSortModule,
     MatTableModule,
     GenericCellComponent,
+    GenericIconComponent,
   ],
   host: {
     '[attr.data-zlp-table-id]': 'id() || null',

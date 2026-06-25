@@ -60,6 +60,12 @@ Thumbs.db
 *.sln
 *.sw?
 .env
+.env.*
+.zlp/
+.zlp-*/
+*.grant
+*.token
+upload-grants/
 
 # Local drafts (API emulation)
 /drafts/*

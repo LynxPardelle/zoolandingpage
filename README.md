@@ -17,7 +17,7 @@ In local development, the app renders draft JSON from the repo-root `drafts/` tr
 - `zoolandingpage`: Angular app, local draft preview, frontend runtime integration.
 - `zoolanding-config-authoring`: create, pull, update, and publish draft packages.
 - `zoolanding-config-runtime-read`: return one effective runtime bundle for `domain + path + lang`.
-- `zoolanding-image-upload`: issue presigned upload URLs for public landing-page assets.
+- `zoolanding-image-upload`: upload public landing-page assets only with temporary upload grants.
 - `zoolanding-data-dropper-lambda`: collect raw analytics events.
 - `zoolanding-quick-stats-lambda`: maintain simple per-app counters and stats in S3.
 
@@ -115,13 +115,13 @@ For the full workflow, read [docs/11-draft-lifecycle.md](docs/11-draft-lifecycle
 
 ### Upload public assets
 
-Public landing-page assets do not belong in config payload storage. They live in the public files bucket and are uploaded through the presign endpoint:
+Public landing-page assets do not belong in config payload storage. They live in the public files bucket and are uploaded through the grant-protected upload endpoint:
 
 ```text
 POST https://api.zoolandingpage.com.mx/image-upload/presign
 ```
 
-For the current request shape, upload sequence, and how to reference the returned `publicUrl` from draft JSON, read [docs/12-public-assets-and-file-uploads.md](docs/12-public-assets-and-file-uploads.md).
+The endpoint requires a temporary upload grant. Use `tools/upload-draft-asset.mjs` from this repo and request grants through an authorized Zoolanding developer. For the request shape, client workflow, grant issuance, and how to reference the returned `publicUrl` from draft JSON, read [docs/12-public-assets-and-file-uploads.md](docs/12-public-assets-and-file-uploads.md).
 
 ## Documentation map
 

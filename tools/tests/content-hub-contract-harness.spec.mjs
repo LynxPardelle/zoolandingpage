@@ -77,7 +77,7 @@ test('content hub repository decisions keep services generic and bounded', () =>
 
   assert.equal(decisions.get('content-package-authoring')?.owner, 'zoolanding-config-authoring');
   assert.equal(decisions.get('published-runtime-read')?.owner, 'zoolanding-config-runtime-read');
-  assert.equal(decisions.get('simple-public-image-upload')?.owner, 'zoolanding-image-upload');
+  assert.equal(decisions.get('grant-protected-public-image-upload')?.owner, 'zoolanding-image-upload');
   assert.equal(decisions.get('media-lifecycle')?.owner, 'zoolanding-feature-media');
   assert.equal(decisions.get('public-interactions-moderation')?.owner, 'zoolanding-feature-interactions');
   assert.equal(decisions.get('analytics-ingestion')?.owner, 'zoolanding-data-dropper-lambda');

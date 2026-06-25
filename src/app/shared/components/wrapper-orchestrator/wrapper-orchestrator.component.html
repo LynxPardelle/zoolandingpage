@@ -303,6 +303,12 @@
     [ngTemplateOutletContext]="{ $implicit: component }"
   ></ng-container>
 </generic-text>
+} @case('tooltip') {
+<generic-tooltip
+  [for]="$any(tooltipConfig(component)).for"
+  [content]="tooltipContent(component)"
+  [config]="$any(tooltipConfig(component))"
+></generic-tooltip>
 } @default {
 <span>{{ unknownComponentLabel(component.type) }}</span>
 } } } }
