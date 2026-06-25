@@ -616,6 +616,7 @@
         "classes": { "type": "string" },
         "labelClasses": { "type": "string" },
         "descriptionClasses": { "type": "string" },
+        "actionColumnLabel": { "type": "string" },
         "tableWrapperClasses": { "type": "string" },
         "tableClasses": { "type": "string" },
         "headerCellClasses": { "type": "string" },

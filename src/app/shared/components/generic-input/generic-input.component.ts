@@ -590,7 +590,10 @@ export class GenericInputComponent {
   }
 
   isOptionSelected(option: TGenericInputOption): boolean {
-    return this.currentValue() === option.value;
+    const current = this.currentValue();
+    if (current === option.value) return true;
+    if (current == null || option.value == null) return false;
+    return String(current) === String(option.value);
   }
 
   private updateValue(nextValue: unknown): void {
