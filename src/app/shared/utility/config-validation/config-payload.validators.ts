@@ -2146,7 +2146,7 @@ const isTabGroupConfig = (value: unknown): boolean => {
 const isTooltipConfig = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
 
-    const stringFields = ['id', 'ariaDescription', 'surfaceClasses', 'arrowClasses', 'motionClasses'] as const;
+    const stringFields = ['id', 'for', 'content', 'ariaDescription', 'surfaceClasses', 'arrowClasses', 'motionClasses'] as const;
     if (stringFields.some((field) => value[field] !== undefined && typeof value[field] !== 'string')) return false;
 
     if (value['position'] !== undefined && !['top', 'bottom', 'left', 'right'].includes(String(value['position']))) return false;

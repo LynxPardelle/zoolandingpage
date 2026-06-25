@@ -86,7 +86,13 @@
             (click)="onAction(action, row, rowIndex, $event)"
           >
             @if (actionIcon(action)) {
-            <mat-icon aria-hidden="true">{{ actionIcon(action) }}</mat-icon>
+            <generic-icon
+              [config]="{
+                iconName: actionIcon(action),
+                ariaHidden: true,
+                classes: 'ank-width-18px ank-height-18px ank-display-inline-flex ank-flexShrink-0'
+              }"
+            ></generic-icon>
             }
             <span>{{ actionLabel(action) }}</span>
           </button>

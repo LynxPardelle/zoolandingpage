@@ -33,6 +33,7 @@ import type { TGenericStatsCounterConfig } from '../generic-stats-counter/generi
 import { GenericTabGroupComponent } from '../generic-tab-group/generic-tab-group.component';
 import { GenericTableComponent } from '../generic-table/generic-table.component';
 import { GenericTextComponent } from '../generic-text/generic-text';
+import { GenericTooltipComponent } from '../generic-tooltip/generic-tooltip.component';
 import { InteractionScopeComponent } from '../interaction-scope/interaction-scope.component';
 import { findInteractionScopeHost } from '../interaction-scope/interaction-scope.service';
 import type { TGenericCellColumnConfig } from '../generic-cell/generic-cell.types';
@@ -75,6 +76,7 @@ import type { TGenericComponent } from './wrapper-orchestrator.types';
     GenericRichTextComponent,
     GenericTabGroupComponent,
     GenericTableComponent,
+    GenericTooltipComponent,
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './wrapper-orchestrator.component.html',
@@ -326,6 +328,21 @@ export class WrapperOrchestrator {
       component.type,
       component.config
     );
+  }
+
+  tooltipConfig(
+    component: Extract<TGenericComponent, { type: 'tooltip' }>
+  ): Extract<TGenericComponent, { type: 'tooltip' }>['config'] {
+    return this.withResolvedDomId(
+      component.id,
+      component.type,
+      component.config
+    );
+  }
+
+  tooltipContent(component: Extract<TGenericComponent, { type: 'tooltip' }>): string {
+    const resolved = this.resolveValue(this.tooltipConfig(component).content);
+    return resolved == null ? '' : String(resolved);
   }
 
   resolveSearchConfig(config: unknown): SearchBoxConfig | null {

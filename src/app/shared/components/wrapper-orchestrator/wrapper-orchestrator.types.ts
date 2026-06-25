@@ -20,6 +20,7 @@ import type { SearchBoxConfig } from '../generic-search-box/generic-search-box.t
 import type { TabGroupConfig } from "../generic-tab-group/generic-tab-group.types";
 import type { TGenericTableConfig } from "../generic-table/generic-table.types";
 import { TGenericTextConfig } from "../generic-text/generic-text.types";
+import type { TooltipConfig } from "../generic-tooltip/generic-tooltip.types";
 import type { TInteractionScopeConfig } from "../interaction-scope/interaction-scope.types";
 
 export type TGenericStatsCounterOrchestratorConfig = () => TGenericStatsCounterConfig;
@@ -32,6 +33,11 @@ export type TGenericDropdownOrchestratorConfig = {
 };
 
 export type TGenericSearchBoxConfig = SearchBoxConfig;
+
+export type TGenericTooltipConfig = TooltipConfig & {
+    readonly for?: string;
+    readonly content?: string;
+};
 
 export type TLoopBindingTransform = 'i18nKey' | 'locale' | 'navigationHref' | 'uriComponent';
 
@@ -242,6 +248,10 @@ export type TGenericComponent = {
         {
             readonly type: 'text';
             readonly config: TGenericTextConfig;
+        } |
+        {
+            readonly type: 'tooltip';
+            readonly config: TGenericTooltipConfig;
         } |
         {
             readonly type: 'link';
