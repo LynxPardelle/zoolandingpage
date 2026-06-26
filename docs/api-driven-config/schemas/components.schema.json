@@ -598,6 +598,7 @@
               "classes": { "type": "string" },
               "disabled": { "type": "boolean" },
               "loading": { "type": "boolean" },
+              "hrefTemplate": { "type": "string" },
               "eventInstructions": { "type": "string" }
             },
             "additionalProperties": false

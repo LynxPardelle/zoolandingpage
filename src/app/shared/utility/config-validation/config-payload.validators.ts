@@ -1867,7 +1867,7 @@ const isGenericTableRowActionConfig = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
     if (typeof value['id'] !== 'string' || value['id'].trim().length === 0) return false;
     if (typeof value['label'] !== 'string' || value['label'].trim().length === 0) return false;
-    const stringFields = ['ariaLabel', 'icon', 'classes', 'eventInstructions'] as const;
+    const stringFields = ['ariaLabel', 'icon', 'classes', 'hrefTemplate', 'eventInstructions'] as const;
     if (stringFields.some((field) => !isStringThunkFriendly(value[field]))) return false;
     if (value['disabled'] !== undefined && !isBooleanThunkFriendly(value['disabled'])) return false;
     if (value['loading'] !== undefined && !isBooleanThunkFriendly(value['loading'])) return false;

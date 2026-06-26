@@ -5,8 +5,11 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatPaginatorModule, type PageEvent } from '@angular/material/paginator';
 import { MatSortModule, type Sort } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
-import { resolveDynamicValue, resolveHostPath } from '../../utility/component-orchestrator.utility';
+import { DRAFT_RUNTIME_STICKY_QUERY_PARAMS } from '../../services/draft-runtime.service';
 import { VariableStoreService } from '../../services/variable-store.service';
+import { resolveDynamicValue, resolveHostPath } from '../../utility/component-orchestrator.utility';
+import { navigateInCurrentWindow } from '../../utility/navigation/browser-navigation.utility';
+import { resolveNavigationTarget } from '../../utility/navigation/navigation-target.utility';
 import { GenericCellComponent } from '../generic-cell/generic-cell.component';
 import { GenericIconComponent } from '../generic-icon/generic-icon.component';
 import type { TGenericCellColumnConfig } from '../generic-cell/generic-cell.types';
@@ -156,6 +159,38 @@ export class GenericTableComponent {
   onAction(action: TGenericTableRowActionConfig, row: unknown, pageRowIndex: number, event: Event): void {
     event.stopPropagation();
     if (this.asBoolean(action.disabled) || this.asBoolean(action.loading)) return;
+    this.emitAction(action, row, pageRowIndex);
+  }
+
+  onActionLink(action: TGenericTableRowActionConfig, row: unknown, pageRowIndex: number, event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    if (this.asBoolean(action.disabled) || this.asBoolean(action.loading)) return;
+
+    const href = this.actionHref(action, row);
+    this.emitAction(action, row, pageRowIndex);
+    if (href) {
+      navigateInCurrentWindow(href);
+    }
+  }
+
+  actionHref(action: TGenericTableRowActionConfig, row: unknown): string {
+    if (this.asBoolean(action.disabled) || this.asBoolean(action.loading)) return '';
+    const template = this.asString(action.hrefTemplate).trim();
+    if (!template) return '';
+
+    const interpolated = this.interpolateRowTemplate(template, row);
+    if (!interpolated || !interpolated.startsWith('/') || interpolated.startsWith('//')) return '';
+
+    const resolved = resolveNavigationTarget(interpolated, {
+      currentHref: typeof window !== 'undefined' ? window.location.href : undefined,
+      stickyQueryParams: DRAFT_RUNTIME_STICKY_QUERY_PARAMS,
+    });
+
+    return resolved.internal ? resolved.href : '';
+  }
+
+  private emitAction(action: TGenericTableRowActionConfig, row: unknown, pageRowIndex: number): void {
     const rowIndex = this.absoluteRowIndex(pageRowIndex);
     this.rowAction.emit({
       rowId: this.rowId(row, rowIndex),
@@ -318,6 +353,21 @@ export class GenericTableComponent {
     }, {});
 
     return Object.keys(payload).length > 0 ? payload : undefined;
+  }
+
+  private interpolateRowTemplate(template: string, row: unknown): string | null {
+    let missing = false;
+    const output = template.replace(/\{([^{}]+)\}/g, (_match, token: string) => {
+      const value = resolveHostPath(row, String(token).trim());
+      if (value == null || value === '') {
+        missing = true;
+        return '';
+      }
+
+      return encodeURIComponent(String(value));
+    });
+
+    return missing || /\{[^{}]+\}/.test(output) ? null : output;
   }
 
   private resolve(value: unknown): unknown {

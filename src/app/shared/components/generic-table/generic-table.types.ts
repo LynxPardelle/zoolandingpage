@@ -48,6 +48,7 @@ export type TGenericTableRowActionConfig = {
   readonly classes?: TDynamicStringValue;
   readonly disabled?: TDynamicBooleanValue;
   readonly loading?: TDynamicBooleanValue;
+  readonly hrefTemplate?: TDynamicStringValue;
   readonly eventInstructions?: TDynamicStringValue;
 };
 

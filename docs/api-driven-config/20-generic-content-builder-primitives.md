@@ -21,6 +21,8 @@ The table supports:
 
 By default, row events do not emit full rows. If an action needs row data, declare `eventPayloadFields`.
 
+Row actions can also declare `hrefTemplate` for same-origin navigation based on row fields. Use `{fieldName}` placeholders and keep the template rooted at `/`. External URLs and protocol-relative links are ignored by the component.
+
 ```json
 {
   "id": "articleAdminTable",
@@ -38,7 +40,12 @@ By default, row events do not emit full rows. If an action needs row data, decla
     "pagination": { "enabled": true, "pageSize": 10, "pageSizeOptions": [10, 25] },
     "selection": { "enabled": true, "mode": "multiple", "label": "Seleccionar artículo" },
     "rowActions": [
-      { "id": "edit", "label": "Editar", "icon": "edit" }
+      {
+        "id": "edit",
+        "label": "Editar",
+        "icon": "edit",
+        "hrefTemplate": "/admin/blog/articulos/{articleId}/editor?articleId={articleId}"
+      }
     ]
   }
 }
