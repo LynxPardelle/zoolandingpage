@@ -121,4 +121,28 @@ describe('GenericTableComponent', () => {
     expect(editButton?.textContent?.trim()).toBe('');
     expect(editButton?.querySelector('svg')).toBeTruthy();
   });
+
+  it('can render row actions as safe internal links from row href templates', () => {
+    fixture.componentRef.setInput('config', {
+      ...tableConfig,
+      actionLabelMode: 'tooltip',
+      rowActions: [
+        {
+          id: 'edit',
+          label: 'Editar',
+          icon: 'edit',
+          hrefTemplate: '/admin/blog/articulos/{articleId}/editor?articleId={articleId}',
+        },
+      ],
+    });
+    fixture.detectChanges();
+
+    const editLinks = Array.from<HTMLAnchorElement>(fixture.nativeElement.querySelectorAll('a[aria-label="Editar"]'));
+    const alphaLink = editLinks.find((link) => link.getAttribute('href')?.includes('/admin/blog/articulos/a1/editor'));
+
+    expect(alphaLink).toBeTruthy();
+    expect(alphaLink?.getAttribute('href')).toContain('articleId=a1');
+    expect(alphaLink?.getAttribute('title')).toBe('Editar');
+    expect(alphaLink?.textContent?.trim()).toBe('');
+  });
 });

@@ -260,8 +260,13 @@ describe('Zoosite blog admin draft pages', () => {
     assert.equal(pagination?.config?.hideWhenSinglePage, false);
     for (const action of rowActions) {
       assert.equal(action.disabled, undefined, `${action.id} must not stay visually disabled after BFF contract exists`);
-      assert.match(action.eventInstructions ?? '', /^navigateWithEventData:/, `${action.id} must use dynamic row navigation`);
-      assert.equal(String(action.eventInstructions ?? '').includes('art_20260620_blog_builder'), false, `${action.id} must not hardcode seed article ids`);
+      const navigationTemplate = String(action.hrefTemplate ?? action.eventInstructions ?? '');
+      assert.ok(
+        navigationTemplate.startsWith('/') || navigationTemplate.startsWith('navigateWithEventData:/'),
+        `${action.id} must use dynamic row navigation`,
+      );
+      assert.equal(navigationTemplate.includes('{articleId}'), true, `${action.id} must include the selected article id`);
+      assert.equal(navigationTemplate.includes('art_20260620_blog_builder'), false, `${action.id} must not hardcode seed article ids`);
     }
   });
 

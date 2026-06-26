@@ -1778,7 +1778,14 @@ describe('config-payload.validators', () => {
                     ],
                     pagination: { enabled: true, pageSize: 10, pageSizeOptions: [10, 25] },
                     selection: { enabled: true, mode: 'multiple', label: 'Seleccionar artículo' },
-                    rowActions: [{ id: 'edit', label: 'Editar', icon: 'edit' }],
+                    rowActions: [
+                        {
+                            id: 'edit',
+                            label: 'Editar',
+                            icon: 'edit',
+                            hrefTemplate: '/admin/blog/articulos/{articleId}/editor?articleId={articleId}',
+                        },
+                    ],
                 },
             },
             articleStatusCell: {
