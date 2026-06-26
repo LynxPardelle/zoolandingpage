@@ -29,6 +29,8 @@ test('components schema documents generic content-builder primitives', async () 
 
   assert.equal(schema.definitions?.genericTableConfig.required.includes('columns'), true);
   assert.equal(schema.definitions?.genericTableConfig.properties.actionColumnLabel.type, 'string');
+  assert.equal(schema.definitions?.genericTableConfig.properties.actionIconClasses.type, 'string');
+  assert.ok(schema.definitions?.genericTableConfig.properties.actionLabelMode.enum.includes('tooltip'));
   assert.equal(schema.definitions?.genericTableConfig.properties.eventPayloadFields.items.type, 'string');
   assert.equal(schema.definitions?.genericTableConfig.properties.rowActions.items.additionalProperties, false);
   assert.equal(schema.definitions?.genericCellConfig.properties.componentIds.items.type, 'string');

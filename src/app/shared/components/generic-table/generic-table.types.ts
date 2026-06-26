@@ -81,6 +81,8 @@ export type TGenericTableConfig = {
   readonly rowClasses?: TDynamicStringValue;
   readonly actionCellClasses?: TDynamicStringValue;
   readonly actionButtonClasses?: TDynamicStringValue;
+  readonly actionIconClasses?: TDynamicStringValue;
+  readonly actionLabelMode?: TDynamicValue<'visible' | 'tooltip'>;
   readonly selectionCellClasses?: TDynamicStringValue;
   readonly stateClasses?: TDynamicStringValue;
 };

@@ -1,5 +1,5 @@
 import { signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, DeferBlockState, TestBed } from '@angular/core/testing';
 
 import { ConditionOrchestrator } from '../../services/condition-orchestrator';
 import { ConfigurationsOrchestratorService } from '../../services/configurations-orchestrator';
@@ -316,5 +316,48 @@ describe('WrapperOrchestrator', () => {
       eventName: 'valueChanged',
       eventData: { fieldId: 'type', value: 'electric' },
     });
+  });
+
+  it('forwards row action instructions emitted by generic tables', async () => {
+    componentsById = {
+      adminTable: {
+        id: 'adminTable',
+        type: 'generic-table',
+        config: {
+          columns: [{ id: 'title', header: 'Título', valuePath: 'title' }],
+          rows: [{ articleId: 'a1', title: 'Artículo' }],
+          rowIdPath: 'articleId',
+          eventPayloadFields: ['articleId'],
+          rowActions: [
+            {
+              id: 'edit',
+              label: 'Editar',
+              icon: 'edit',
+              eventInstructions: 'navigateWithEventData:/admin/blog/articulos/{articleId}/editor',
+            },
+          ],
+        },
+      } as never,
+    };
+
+    fixture.componentRef.setInput('componentsIds', ['adminTable']);
+    fixture.detectChanges();
+    const [tableBlock] = await fixture.getDeferBlocks();
+    await tableBlock.render(DeferBlockState.Complete);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const editButton = fixture.nativeElement.querySelector('generic-table button[aria-label="Editar"]') as HTMLButtonElement | null;
+    expect(editButton).toBeTruthy();
+    editButton?.click();
+
+    expect(handleComponentEvent).toHaveBeenCalledWith(
+      jasmine.objectContaining({
+        componentId: 'adminTable',
+        eventName: 'rowAction',
+        eventInstructions: 'navigateWithEventData:/admin/blog/articulos/{articleId}/editor',
+      }),
+      jasmine.objectContaining({ handleComponentEvent }),
+    );
   });
 });

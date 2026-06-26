@@ -623,6 +623,8 @@
         "rowClasses": { "type": "string" },
         "actionCellClasses": { "type": "string" },
         "actionButtonClasses": { "type": "string" },
+        "actionIconClasses": { "type": "string" },
+        "actionLabelMode": { "enum": ["visible", "tooltip"] },
         "selectionCellClasses": { "type": "string" },
         "stateClasses": { "type": "string" }
       },

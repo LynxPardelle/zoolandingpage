@@ -174,7 +174,7 @@
         meta_title: component.meta_title,
         eventName: 'rowAction',
         eventData: $event,
-        eventInstructions: component.eventInstructions
+        eventInstructions: $event.eventInstructions || component.eventInstructions
       })
     "
     (selectionChanged)="

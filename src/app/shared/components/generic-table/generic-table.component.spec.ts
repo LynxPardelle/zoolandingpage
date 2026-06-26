@@ -105,4 +105,20 @@ describe('GenericTableComponent', () => {
     expect(editButton?.querySelector('svg')).toBeTruthy();
     expect(editButton?.textContent?.trim()).toBe('Editar');
   });
+
+  it('can render row action labels as native tooltips for compact action tables', () => {
+    fixture.componentRef.setInput('config', {
+      ...tableConfig,
+      actionLabelMode: 'tooltip',
+      actionIconClasses: 'ank-width-14px ank-height-14px',
+    });
+    fixture.detectChanges();
+
+    const editButton = fixture.nativeElement.querySelector('button[aria-label="Editar"]') as HTMLButtonElement | null;
+
+    expect(editButton).toBeTruthy();
+    expect(editButton?.getAttribute('title')).toBe('Editar');
+    expect(editButton?.textContent?.trim()).toBe('');
+    expect(editButton?.querySelector('svg')).toBeTruthy();
+  });
 });
