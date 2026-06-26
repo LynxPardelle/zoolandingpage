@@ -253,6 +253,7 @@ export class InteractionScopeService {
         const currentStates = this.fieldStates();
         const existing = currentStates[fieldId];
         const initialValue = config.initialValue ?? this.initialValues()[fieldId] ?? DEFAULT_EMPTY_VALUE;
+        const nextValue = existing?.dirty ? existing.value : initialValue;
         const nextStates = this.rebuildFieldStates(
             {
                 ...currentStates,
@@ -263,12 +264,12 @@ export class InteractionScopeService {
                         errors: [],
                         valid: true,
                     }),
-                    value: existing?.value ?? initialValue,
+                    value: nextValue,
                 },
             },
             {
                 [fieldId]: {
-                    value: existing?.value ?? initialValue,
+                    value: nextValue,
                     definition: config,
                     previous: existing,
                 },

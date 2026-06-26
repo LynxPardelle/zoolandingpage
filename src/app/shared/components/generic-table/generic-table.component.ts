@@ -75,6 +75,13 @@ export class GenericTableComponent {
   readonly rowClasses = computed(() => this.asString(this.config().rowClasses));
   readonly actionCellClasses = computed(() => this.asString(this.config().actionCellClasses));
   readonly actionButtonClasses = computed(() => this.asString(this.config().actionButtonClasses));
+  readonly actionIconClasses = computed(() =>
+    this.asString(this.config().actionIconClasses)
+    || 'ank-width-18px ank-height-18px ank-display-inline-flex ank-flexShrink-0'
+  );
+  readonly actionLabelMode = computed<'visible' | 'tooltip'>(() =>
+    this.asString(this.config().actionLabelMode) === 'tooltip' ? 'tooltip' : 'visible'
+  );
   readonly selectionCellClasses = computed(() => this.asString(this.config().selectionCellClasses));
   readonly stateClasses = computed(() => this.asString(this.config().stateClasses));
   readonly pagination = computed<TGenericTablePaginationConfig>(() => this.asRecord(this.resolve(this.config().pagination)) as TGenericTablePaginationConfig ?? {});

@@ -82,6 +82,7 @@
             [class]="actionClasses(action)"
             [disabled]="actionDisabled(action)"
             [attr.aria-label]="actionAriaLabel(action)"
+            [attr.title]="actionLabelMode() === 'tooltip' ? actionLabel(action) : null"
             (click)="onAction(action, row, rowIndex, $event)"
           >
             @if (actionIcon(action)) {
@@ -89,11 +90,13 @@
               [config]="{
                 iconName: actionIcon(action),
                 ariaHidden: true,
-                classes: 'ank-width-18px ank-height-18px ank-display-inline-flex ank-flexShrink-0'
+                classes: actionIconClasses()
               }"
             ></generic-icon>
             }
+            @if (actionLabelMode() === 'visible') {
             <span>{{ actionLabel(action) }}</span>
+            }
           </button>
           }
         </td>
