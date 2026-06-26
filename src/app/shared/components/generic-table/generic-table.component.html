@@ -77,6 +77,28 @@
         <th mat-header-cell *matHeaderCellDef [class]="actionCellClasses()">{{ actionColumnLabel() }}</th>
         <td mat-cell *matCellDef="let row; let rowIndex = index" [class]="actionCellClasses()">
           @for (action of actions(); track action.id) {
+          @if (actionHref(action, row)) {
+          <a
+            [href]="actionHref(action, row)"
+            [class]="actionClasses(action)"
+            [attr.aria-label]="actionAriaLabel(action)"
+            [attr.title]="actionLabelMode() === 'tooltip' ? actionLabel(action) : null"
+            (click)="onActionLink(action, row, rowIndex, $event)"
+          >
+            @if (actionIcon(action)) {
+            <generic-icon
+              [config]="{
+                iconName: actionIcon(action),
+                ariaHidden: true,
+                classes: actionIconClasses()
+              }"
+            ></generic-icon>
+            }
+            @if (actionLabelMode() === 'visible') {
+            <span>{{ actionLabel(action) }}</span>
+            }
+          </a>
+          } @else {
           <button
             type="button"
             [class]="actionClasses(action)"
@@ -98,6 +120,7 @@
             <span>{{ actionLabel(action) }}</span>
             }
           </button>
+          }
           }
         </td>
       </ng-container>

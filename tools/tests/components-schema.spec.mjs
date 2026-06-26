@@ -33,6 +33,7 @@ test('components schema documents generic content-builder primitives', async () 
   assert.ok(schema.definitions?.genericTableConfig.properties.actionLabelMode.enum.includes('tooltip'));
   assert.equal(schema.definitions?.genericTableConfig.properties.eventPayloadFields.items.type, 'string');
   assert.equal(schema.definitions?.genericTableConfig.properties.rowActions.items.additionalProperties, false);
+  assert.equal(schema.definitions?.genericTableConfig.properties.rowActions.items.properties.hrefTemplate.type, 'string');
   assert.equal(schema.definitions?.genericCellConfig.properties.componentIds.items.type, 'string');
   assert.equal(schema.definitions?.genericRichTextConfig.properties.provider.enum.includes('quill'), true);
   assert.equal(schema.definitions?.genericRichTextConfig.properties.format.enum.includes('quill-delta-json'), true);
