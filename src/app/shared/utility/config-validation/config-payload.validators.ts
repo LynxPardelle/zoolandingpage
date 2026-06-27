@@ -137,11 +137,12 @@ const ALLOWED_RUNTIME_API_ACTION_KEYS = new Set([
 ]);
 const ALLOWED_RUNTIME_DATA_SOURCE_INPUT_SOURCES = new Set(['literal', 'queryParam', 'var', 'queryParamPageOffset']);
 const ALLOWED_RUNTIME_DATA_SOURCE_INPUT_TRANSFORMS = new Set(['trim', 'lowercase', 'uppercase']);
-const ALLOWED_RUNTIME_DATA_SOURCE_FIELD_TRANSFORMS = new Set(['uriComponent', 'lastPathSegment', 'lastPathSegmentNumber', 'titleCase']);
+const ALLOWED_RUNTIME_DATA_SOURCE_FIELD_TRANSFORMS = new Set(['uriComponent', 'lastPathSegment', 'lastPathSegmentNumber', 'titleCase', 'joinList']);
 const ALLOWED_CONTENT_HUB_RUNTIME_SOURCES = new Set(['primary', 'authorized']);
 const ALLOWED_CONTENT_HUB_CANONICAL_MODES = new Set(['owner-canonical', 'host-adaptive', 'noindex-shared']);
 const ALLOWED_CONTENT_HUB_READS = new Set([
     'articleList',
+    'articleDetail',
     'taxonomyList',
     'moderationQueue',
     'assetList',

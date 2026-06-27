@@ -83,6 +83,7 @@ test('site-config schema exposes content hub data source and action contracts wi
     assert.equal(dataSource.allOf[0].then.properties.proxySourceId.$ref, '#/definitions/contentHubSafeId');
     assert.deepEqual(contentHubRead.properties.read.enum, [
         'articleList',
+        'articleDetail',
         'taxonomyList',
         'moderationQueue',
         'assetList',

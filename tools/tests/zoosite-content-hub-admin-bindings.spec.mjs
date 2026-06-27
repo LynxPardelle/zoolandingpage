@@ -26,6 +26,7 @@ const adminRoutes = [
 
 const requiredReads = [
   'articleList',
+  'articleDetail',
   'taxonomyList',
   'revisionList',
   'assetList',

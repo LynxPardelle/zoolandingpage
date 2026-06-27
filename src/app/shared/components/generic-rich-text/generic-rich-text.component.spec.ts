@@ -82,4 +82,28 @@ describe('GenericRichTextComponent', () => {
 
     expect(scope.submit().values['articleContent']).toBe('Contenido desde editor');
   });
+
+  it('keeps a separate Quill model for plain text output so user edits do not reset the cursor', () => {
+    fixture.componentRef.setInput('config', {
+      fieldId: 'articleSummary',
+      provider: 'quill',
+      format: 'plain-text',
+      value: 'Texto inicial',
+      toolbar: ['bold', 'italic', 'heading', 'bulletList', 'orderedList'],
+    });
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    const initialQuillModel = component.quillModel;
+    expect(component.quillFormat()).toBe('object');
+
+    component.onQuillContentChanged({
+      content: { ops: [{ insert: 'Texto inicial con formato\n' }] },
+      text: 'Texto inicial con formato\n',
+      source: 'user',
+    });
+
+    expect(component.currentValue()).toBe('Texto inicial con formato');
+    expect(component.quillModel).toBe(initialQuillModel);
+  });
 });

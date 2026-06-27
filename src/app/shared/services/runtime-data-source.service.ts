@@ -91,9 +91,7 @@ export class RuntimeDataSourceService {
         options: TRuntimeDataSourceStartOptions,
         preparedSources: readonly TPreparedRuntimeDataSource[],
     ): Promise<void> {
-        for (const prepared of preparedSources) {
-            await this.loadPreparedSource(options, prepared);
-        }
+        await Promise.all(preparedSources.map((prepared) => this.loadPreparedSource(options, prepared)));
     }
 
     private prepareSources(sources: readonly TRuntimeDataSourceConfig[]): readonly TPreparedRuntimeDataSource[] {

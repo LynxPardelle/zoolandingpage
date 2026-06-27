@@ -94,6 +94,56 @@ describe('RuntimeDataSourceService', () => {
         expect(variables.get('remoteStatus.blog-posts.state')).toBe('success');
     });
 
+    it('starts independent data source reads concurrently so protected admin pages do not serialize permission checks', async () => {
+        let slowResolve!: (value: any) => void;
+        const slowResponse = new Promise((resolve) => {
+            slowResolve = resolve;
+        });
+        let fastStarted = false;
+
+        proxy.readSource.and.callFake((request) => {
+            if (request.sourceId === 'slowAdminRead') {
+                return slowResponse as any;
+            }
+
+            if (request.sourceId === 'fastAdminRead') {
+                fastStarted = true;
+                return Promise.resolve({ ok: true, data: { upstream: request.sourceId } }) as any;
+            }
+
+            return Promise.reject(new Error(`unexpected source ${ request.sourceId }`)) as any;
+        });
+        mapper.mapResponse.and.callFake((response) => ({
+            items: [{ title: `mapped:${ (response as any).upstream }` }],
+        }));
+
+        const started = service.start({
+            domain: 'zoositioweb.com.mx',
+            pageId: 'admin-blog-articulos',
+            dataSources: [
+                {
+                    id: 'slow-admin-read',
+                    proxySourceId: 'slowAdminRead',
+                    target: 'remote.slow',
+                },
+                {
+                    id: 'fast-admin-read',
+                    proxySourceId: 'fastAdminRead',
+                    target: 'remote.fast',
+                },
+            ],
+        });
+
+        await Promise.resolve();
+        expect(fastStarted).toBeTrue();
+
+        slowResolve({ ok: true, data: { upstream: 'slowAdminRead' } });
+        await started;
+
+        expect(variables.get('remote.slow.items')).toEqual([{ title: 'mapped:slowAdminRead' }]);
+        expect(variables.get('remote.fast.items')).toEqual([{ title: 'mapped:fastAdminRead' }]);
+    });
+
     it('loads auth-admin account data sources without using the public api proxy', async () => {
         authAdmin.me.and.resolveTo({
             ok: true,
@@ -185,7 +235,7 @@ describe('RuntimeDataSourceService', () => {
         expect(variables.get('remoteStatus.account-profile')).toBeUndefined();
     });
 
-    it('loads initial data sources in order to avoid browser proxy request bursts', async () => {
+    it('loads initial data sources concurrently while keeping per-source loading state', async () => {
         let resolveFirst!: (value: { ok: true; data: { upstream: string } }) => void;
         const firstResponse = new Promise<{ ok: true; data: { upstream: string } }>((resolve) => {
             resolveFirst = resolve;
@@ -224,8 +274,8 @@ describe('RuntimeDataSourceService', () => {
 
         await Promise.resolve();
 
-        expect(proxy.readSource.calls.count()).toBe(1);
-        expect(proxy.readSource.calls.mostRecent().args[0].sourceId).toBe('firstSource');
+        expect(proxy.readSource.calls.count()).toBe(2);
+        expect(proxy.readSource.calls.allArgs().map(([request]) => request.sourceId)).toEqual(['firstSource', 'secondSource']);
         expect(variables.get('remoteStatus.first.state')).toBe('loading');
         expect(variables.get('remoteStatus.second.state')).toBe('loading');
 
@@ -233,7 +283,6 @@ describe('RuntimeDataSourceService', () => {
         await startPromise;
 
         expect(proxy.readSource.calls.count()).toBe(2);
-        expect(proxy.readSource.calls.mostRecent().args[0].sourceId).toBe('secondSource');
         expect(variables.get('remote.first.items')).toEqual([{ title: 'mapped:firstSource' }]);
         expect(variables.get('remote.second.items')).toEqual([{ title: 'mapped:secondSource' }]);
     });

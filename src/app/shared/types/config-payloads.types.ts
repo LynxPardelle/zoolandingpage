@@ -396,7 +396,8 @@ export type TRuntimeDataSourceFieldTransform =
     | 'uriComponent'
     | 'lastPathSegment'
     | 'lastPathSegmentNumber'
-    | 'titleCase';
+    | 'titleCase'
+    | 'joinList';
 
 export type TRuntimeDataSourceFieldMapping =
     | string

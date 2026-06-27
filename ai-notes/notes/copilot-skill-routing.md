@@ -27,6 +27,7 @@ These skills now live under `.github/skills/` so the repo carries its own reusab
 - `zoolanding-browser-qa` is the default browser-validation workflow for draft routes, SSR output, responsive behavior, console checks, and network validation.
 - `zoolanding-lighthouse-release-audit` is the default repo-local workflow for Lighthouse performance/accessibility remediation, SSR draft route regressions, language persistence, testing deploys, and Reports Lighthouse artifacts.
 - `zoolanding-pr-followup` is the default repo-local entrypoint for CI, reviewer feedback, and merge-readiness follow-up on active PRs.
+- `zoolanding-upload-grant` is the default repo-local workflow for issuing temporary `.token` and `.json` grant files for grant-protected draft image uploads.
 
 ## Optional Global Companions
 
