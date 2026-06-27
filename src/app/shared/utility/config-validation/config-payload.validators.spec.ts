@@ -1792,6 +1792,11 @@ describe('config-payload.validators', () => {
                     eventPayloadFields: ['articleId', 'status'],
                     actionColumnLabel: 'Acciones',
                     actionLabelMode: 'tooltip',
+                    actionButtonStyles: {
+                        display: 'inline-flex',
+                        minHeight: '44px',
+                        padding: '0',
+                    },
                     actionIconClasses: 'ank-width-14px ank-height-14px',
                     columns: [
                         { id: 'title', header: 'Título', valuePath: 'title' },

@@ -389,6 +389,7 @@ const ALLOWED_GENERIC_TABLE_CONFIG_KEYS = new Set([
     'rowClasses',
     'actionCellClasses',
     'actionButtonClasses',
+    'actionButtonStyles',
     'actionIconClasses',
     'actionLabelMode',
     'selectionCellClasses',
@@ -1893,6 +1894,7 @@ const isGenericTableConfig = (value: unknown): boolean => {
     if (value['selection'] !== undefined && !isGenericTableSelectionConfig(value['selection'])) return false;
     if (value['rowActions'] !== undefined && (!Array.isArray(value['rowActions']) || !value['rowActions'].every(isGenericTableRowActionConfig))) return false;
     if (value['eventPayloadFields'] !== undefined && !isStringArray(value['eventPayloadFields'])) return false;
+    if (value['actionButtonStyles'] !== undefined && !isStyleRecord(value['actionButtonStyles'])) return false;
 
     const stringFields = ['id', 'label', 'description', 'actionColumnLabel', 'rowIdPath', 'loadingText', 'error', 'errorText', 'emptyText', 'classes', 'labelClasses', 'descriptionClasses', 'tableWrapperClasses', 'tableClasses', 'headerCellClasses', 'rowClasses', 'actionCellClasses', 'actionButtonClasses', 'actionIconClasses', 'selectionCellClasses', 'stateClasses'] as const;
     if (stringFields.some((field) => !isStringThunkFriendly(value[field]))) return false;
