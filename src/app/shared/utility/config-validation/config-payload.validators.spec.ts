@@ -532,6 +532,7 @@ describe('config-payload.validators', () => {
                         challengeCsrfCookieName: 'zlp_challenge_csrf',
                         mfaEnrollCsrfCookieName: 'zlp_mfa_enroll_csrf',
                         csrfHeaderName: 'X-ZLP-CSRF',
+                        routeAccessCacheMs: 15000,
                     },
                     admin: {
                         usersPath: '/auth/admin/users',
@@ -577,6 +578,18 @@ describe('config-payload.validators', () => {
                     session: {
                         mode: 'server-cookie',
                         signinPath: 'https://evil.example/auth/session/signin',
+                    },
+                },
+            },
+        })).toBeFalse();
+        expect(isDraftSiteConfigPayload({
+            ...base,
+            runtime: {
+                auth: {
+                    ...baseAuth,
+                    session: {
+                        mode: 'server-cookie',
+                        routeAccessCacheMs: 120000,
                     },
                 },
             },

@@ -106,4 +106,58 @@ describe('GenericRichTextComponent', () => {
     expect(component.currentValue()).toBe('Texto inicial con formato');
     expect(component.quillModel).toBe(initialQuillModel);
   });
+
+  it('does not reset the Quill model when the parent echoes the same user value', () => {
+    fixture.componentRef.setInput('config', {
+      fieldId: 'articleSummary',
+      provider: 'quill',
+      format: 'plain-text',
+      value: 'Texto inicial',
+      toolbar: ['bold', 'italic', 'heading', 'bulletList', 'orderedList'],
+    });
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    const userModel = {
+      ops: [
+        { insert: 'Texto inicial con formato', attributes: { bold: true } },
+        { insert: '\n' },
+      ],
+    };
+
+    component.quillModel = userModel;
+    component.onQuillContentChanged({
+      content: userModel,
+      text: 'Texto inicial con formato\n',
+      source: 'user',
+    });
+    fixture.componentRef.setInput('config', {
+      fieldId: 'articleSummary',
+      provider: 'quill',
+      format: 'plain-text',
+      value: 'Texto inicial con formato',
+      toolbar: ['bold', 'italic', 'heading', 'bulletList', 'orderedList'],
+    });
+    fixture.detectChanges();
+
+    expect(component.quillModel).toBe(userModel);
+  });
+
+  it('keeps configured toolbar groups for headings, lists, links, and cleanup', () => {
+    fixture.componentRef.setInput('config', {
+      fieldId: 'articleSummary',
+      provider: 'quill',
+      format: 'plain-text',
+      toolbar: ['bold', 'italic', 'heading', 'bulletList', 'orderedList', 'link', 'clean'],
+    });
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.quillModules().toolbar).toEqual([
+      ['bold', 'italic'],
+      [{ header: [1, 2, 3, false] }],
+      [{ list: 'bullet' }, { list: 'ordered' }],
+      ['link'],
+      ['clean'],
+    ]);
+  });
 });

@@ -257,6 +257,7 @@ const ALLOWED_AUTH_SESSION_CONFIG_KEYS = new Set([
     'challengeCsrfCookieName',
     'mfaEnrollCsrfCookieName',
     'csrfHeaderName',
+    'routeAccessCacheMs',
 ]);
 const ALLOWED_AUTH_ADMIN_CONFIG_KEYS = new Set([
     'usersPath',
@@ -1345,6 +1346,11 @@ const isDraftAuthSessionRuntimeConfig = (value: unknown): boolean => {
         if (value[key] !== undefined
             && (typeof value[key] !== 'string' || value[key].trim().length === 0 || /[\s\u0000-\u001F\u007F]/.test(value[key]))) return false;
     }
+    if (value['routeAccessCacheMs'] !== undefined
+        && (typeof value['routeAccessCacheMs'] !== 'number'
+            || !Number.isInteger(value['routeAccessCacheMs'])
+            || value['routeAccessCacheMs'] < 0
+            || value['routeAccessCacheMs'] > 60000)) return false;
     return true;
 };
 

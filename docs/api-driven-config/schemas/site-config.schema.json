@@ -802,7 +802,8 @@
         "csrfCookieName": { "type": "string", "minLength": 1 },
         "challengeCsrfCookieName": { "type": "string", "minLength": 1 },
         "mfaEnrollCsrfCookieName": { "type": "string", "minLength": 1 },
-        "csrfHeaderName": { "type": "string", "minLength": 1 }
+        "csrfHeaderName": { "type": "string", "minLength": 1 },
+        "routeAccessCacheMs": { "type": "integer", "minimum": 0, "maximum": 60000 }
       },
       "additionalProperties": false
     },

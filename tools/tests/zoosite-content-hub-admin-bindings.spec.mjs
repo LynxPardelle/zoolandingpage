@@ -5,6 +5,8 @@ import path from 'node:path';
 
 const repoRoot = process.cwd();
 const siteConfigPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'site-config.json');
+const adminArticlesComponentsPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'admin-blog-articulos', 'components.json');
+const adminOverviewComponentsPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'admin-blog', 'components.json');
 
 const adminRoutes = [
   '/admin/blog',
@@ -70,6 +72,10 @@ async function loadSiteConfig() {
   return JSON.parse(await readFile(siteConfigPath, 'utf8'));
 }
 
+async function loadDraftComponents(filePath) {
+  return JSON.parse(await readFile(filePath, 'utf8'));
+}
+
 describe('Zoosite content hub admin bindings', () => {
   it('keeps every blog admin route protected and out of the sitemap', async () => {
     const siteConfig = await loadSiteConfig();
@@ -128,6 +134,16 @@ describe('Zoosite content hub admin bindings', () => {
     const serialized = JSON.stringify(await loadSiteConfig());
     for (const key of forbiddenKeys) {
       assert.equal(serialized.includes(key), false, `site-config leaked ${key}`);
+    }
+  });
+
+  it('uses clean route-param detail links instead of duplicating articleId in query strings', async () => {
+    for (const filePath of [adminArticlesComponentsPath, adminOverviewComponentsPath]) {
+      const serialized = JSON.stringify(await loadDraftComponents(filePath));
+      assert.equal(serialized.includes('/editor?articleId='), false, `${filePath} must not duplicate editor articleId`);
+      assert.equal(serialized.includes('/preview?articleId='), false, `${filePath} must not duplicate preview articleId`);
+      assert.equal(serialized.includes('/seo?articleId='), false, `${filePath} must not duplicate SEO articleId`);
+      assert.equal(serialized.includes('/versiones?articleId='), false, `${filePath} must not duplicate versions articleId`);
     }
   });
 });

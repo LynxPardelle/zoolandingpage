@@ -126,12 +126,12 @@ describe('GenericTableComponent', () => {
     fixture.componentRef.setInput('config', {
       ...tableConfig,
       actionLabelMode: 'tooltip',
-      rowActions: [
+        rowActions: [
         {
           id: 'edit',
           label: 'Editar',
           icon: 'edit',
-          hrefTemplate: '/admin/blog/articulos/{articleId}/editor?articleId={articleId}',
+          hrefTemplate: '/admin/blog/articulos/{articleId}/editor',
         },
       ],
     });
@@ -141,7 +141,7 @@ describe('GenericTableComponent', () => {
     const alphaLink = editLinks.find((link) => link.getAttribute('href')?.includes('/admin/blog/articulos/a1/editor'));
 
     expect(alphaLink).toBeTruthy();
-    expect(alphaLink?.getAttribute('href')).toContain('articleId=a1');
+    expect(alphaLink?.getAttribute('href')).not.toContain('articleId=');
     expect(alphaLink?.getAttribute('title')).toBe('Editar');
     expect(alphaLink?.textContent?.trim()).toBe('');
   });

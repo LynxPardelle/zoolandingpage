@@ -197,6 +197,7 @@ export type TDraftAuthSessionRuntimeConfig = {
     readonly challengeCsrfCookieName?: string;
     readonly mfaEnrollCsrfCookieName?: string;
     readonly csrfHeaderName?: string;
+    readonly routeAccessCacheMs?: number;
 };
 
 export type TDraftAuthAdminRuntimeConfig = {

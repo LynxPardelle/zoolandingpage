@@ -63,6 +63,15 @@ test('site-config schema supports auth-admin data sources with single-item accou
     assert.equal(dataSource.properties.clearTargetOnLoad.type, 'boolean');
 });
 
+test('site-config schema bounds server-cookie route access cache metadata', async () => {
+    const schema = JSON.parse(await readFile(schemaPath, 'utf8'));
+    const session = schema.definitions?.authSessionRuntime;
+
+    assert.equal(session.properties.routeAccessCacheMs.type, 'integer');
+    assert.equal(session.properties.routeAccessCacheMs.minimum, 0);
+    assert.equal(session.properties.routeAccessCacheMs.maximum, 60000);
+});
+
 test('site-config schema exposes content hub data source and action contracts without server-only fields', async () => {
     const schema = JSON.parse(await readFile(schemaPath, 'utf8'));
     const dataSource = schema.definitions?.runtimeDataSource;

@@ -49,6 +49,7 @@ const registry = {
         logoutPath: '/auth/session/logout',
         csrfCookieName: 'zlp_csrf',
         csrfHeaderName: 'X-ZLP-CSRF',
+        routeAccessCacheMs: 15000,
       },
       admin: {
         usersPath: '/auth/admin/users',
@@ -118,6 +119,7 @@ test('buildPublicAuthRuntimeConfig emits only safe browser metadata', () => {
       logoutPath: '/auth/session/logout',
       csrfCookieName: 'zlp_csrf',
       csrfHeaderName: 'X-ZLP-CSRF',
+      routeAccessCacheMs: 15000,
     },
     admin: {
       usersPath: '/auth/admin/users',
@@ -163,6 +165,22 @@ test('validateAuthProfileRegistry validates server-only auth-admin policy fields
   assert.match(bad.errors.join('\n'), /defaultUserStatus/);
   assert.match(bad.errors.join('\n'), /adminGroupsAutoApproved/);
   assert.match(bad.errors.join('\n'), /maxSessionSeconds/);
+
+  const unsafeSessionCache = validateAuthProfileRegistry({
+    version: 1,
+    profiles: [
+      {
+        ...registry.profiles[0],
+        session: {
+          ...registry.profiles[0].session,
+          routeAccessCacheMs: 120000,
+        },
+      },
+    ],
+  });
+
+  assert.equal(unsafeSessionCache.valid, false);
+  assert.match(unsafeSessionCache.errors.join('\n'), /routeAccessCacheMs/);
 });
 
 test('buildPublicAuthRuntimeConfig keeps non-active profiles disabled and rejects unsafe optional paths', () => {
