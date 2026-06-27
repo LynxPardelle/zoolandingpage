@@ -17,6 +17,7 @@ export type TContentHubAnalyticsPiiPolicy = 'no-pii' | 'metadata-only';
 export type TContentHubRevisionKind = 'snapshot' | 'delta';
 export type TContentHubRuntimeReadKind =
     | 'articleList'
+    | 'articleDetail'
     | 'taxonomyList'
     | 'moderationQueue'
     | 'assetList'

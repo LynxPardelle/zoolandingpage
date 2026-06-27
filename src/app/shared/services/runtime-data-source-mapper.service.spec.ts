@@ -116,6 +116,39 @@ describe('RuntimeDataSourceMapperService', () => {
         });
     });
 
+    it('can join primitive and taxonomy-like lists into editable text', () => {
+        const result = service.mapResponse({
+            items: [
+                {
+                    title: 'Blog builder',
+                    tags: [
+                        'seo',
+                        { taxonomyId: 'blog-builder', label: 'Blog builder' },
+                        { slug: 'sitios-web' },
+                    ],
+                },
+            ],
+        }, {
+            itemsPath: 'items',
+            fields: {
+                title: 'title',
+                tagsText: {
+                    path: 'tags',
+                    transform: 'joinList',
+                },
+            },
+        });
+
+        expect(result).toEqual({
+            items: [
+                {
+                    title: 'Blog builder',
+                    tagsText: 'seo, Blog builder, sitios-web',
+                },
+            ],
+        });
+    });
+
     it('can map array length through a path segment', () => {
         const result = service.mapResponse({
             items: [

@@ -81,6 +81,8 @@ export class RuntimeDataSourceMapperService {
             }
             case 'titleCase':
                 return this.titleCase(value);
+            case 'joinList':
+                return this.joinList(value);
             default:
                 return value;
         }
@@ -135,6 +137,30 @@ export class RuntimeDataSourceMapperService {
             })
             .join('')
             .replace(/\s+/g, ' ');
+    }
+
+    private joinList(value: unknown): string {
+        const items = Array.isArray(value) ? value : [value];
+        return items
+            .map((item) => this.listItemLabel(item))
+            .map((item) => item.trim())
+            .filter(Boolean)
+            .join(', ');
+    }
+
+    private listItemLabel(value: unknown): string {
+        if (value == null) return '';
+        if (typeof value !== 'object' || Array.isArray(value)) return String(value);
+
+        const record = value as Record<string, unknown>;
+        return String(
+            record['label']
+            ?? record['slug']
+            ?? record['taxonomyId']
+            ?? record['id']
+            ?? record['name']
+            ?? ''
+        );
     }
 
     private resolvePrependedItems(value: unknown): readonly unknown[] {

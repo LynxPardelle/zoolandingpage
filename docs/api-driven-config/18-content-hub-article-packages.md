@@ -86,6 +86,7 @@ Content hub entries use `kind: "content-hub"` plus a browser-safe `contentHub` b
 Supported read bindings:
 
 - `articleList`
+- `articleDetail`
 - `taxonomyList`
 - `moderationQueue`
 - `assetList`

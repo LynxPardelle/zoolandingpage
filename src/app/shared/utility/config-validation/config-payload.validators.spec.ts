@@ -1051,6 +1051,10 @@ describe('config-payload.validators', () => {
                                     transform: 'uriComponent',
                                     prefix: '/pokemon?name=',
                                 },
+                                tagsText: {
+                                    path: 'tags',
+                                    transform: 'joinList',
+                                },
                             },
                         },
                     },

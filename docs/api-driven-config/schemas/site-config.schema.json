@@ -257,7 +257,7 @@
             "suffix": { "type": "string" },
             "transform": {
               "type": "string",
-              "enum": ["uriComponent", "lastPathSegment", "lastPathSegmentNumber", "titleCase"]
+              "enum": ["uriComponent", "lastPathSegment", "lastPathSegmentNumber", "titleCase", "joinList"]
             }
           },
           "additionalProperties": false
@@ -502,7 +502,7 @@
       "properties": {
         "read": {
           "type": "string",
-          "enum": ["articleList", "taxonomyList", "moderationQueue", "assetList", "revisionList", "publicBundlePreview"]
+          "enum": ["articleList", "articleDetail", "taxonomyList", "moderationQueue", "assetList", "revisionList", "publicBundlePreview"]
         },
         "hubId": { "$ref": "#/definitions/contentHubSafeId" },
         "articleId": { "$ref": "#/definitions/contentHubSafeId" },

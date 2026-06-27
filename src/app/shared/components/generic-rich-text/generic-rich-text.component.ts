@@ -40,6 +40,7 @@ export class GenericRichTextComponent {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly scope = inject(InteractionScopeService, { optional: true });
   readonly currentValue = signal<unknown>('');
+  quillModel: unknown = { ops: [] };
 
   constructor() {
     effect(() => {
@@ -49,6 +50,8 @@ export class GenericRichTextComponent {
       const disabled = this.disabled();
       const readOnly = this.readOnly();
       untracked(() => {
+        this.currentValue.set(value);
+        this.quillModel = this.toQuillModel(value);
         if (this.scope && fieldId) {
           this.scope.registerField({
             fieldId,
@@ -59,7 +62,6 @@ export class GenericRichTextComponent {
           });
           return;
         }
-        this.currentValue.set(value);
       });
     });
   }
@@ -108,7 +110,7 @@ export class GenericRichTextComponent {
   });
   readonly quillFormat = computed<TQuillFormat>(() => {
     if (this.format() === 'quill-delta-object') return 'object';
-    if (this.format() === 'plain-text') return 'text';
+    if (this.format() === 'plain-text') return 'object';
     return 'json';
   });
   readonly quillModules = computed<QuillModules>(() => ({
@@ -125,6 +127,9 @@ export class GenericRichTextComponent {
     const plainText = String(event.text ?? '').replace(/\n$/, '');
     const value = this.resolveQuillValue(event, plainText);
     this.currentValue.set(value);
+    if (event.source !== 'user') {
+      this.quillModel = this.toQuillModel(value);
+    }
     this.emitValue(value, plainText, this.normalizeSource(event.source));
   }
 
@@ -140,6 +145,34 @@ export class GenericRichTextComponent {
     } catch {
       return JSON.stringify({ ops: [] });
     }
+  }
+
+  private toQuillModel(value: unknown): unknown {
+    if (this.format() === 'plain-text') {
+      if (value && typeof value === 'object') return value;
+      const text = String(value ?? '');
+      return text ? { ops: [{ insert: text.endsWith('\n') ? text : `${ text }\n` }] } : { ops: [] };
+    }
+
+    if (this.format() === 'quill-delta-object') {
+      if (value && typeof value === 'object') return value;
+      try {
+        const parsed = JSON.parse(String(value ?? '{}'));
+        return parsed && typeof parsed === 'object' ? parsed : { ops: [] };
+      } catch {
+        return { ops: [] };
+      }
+    }
+
+    if (value && typeof value === 'object') {
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return JSON.stringify({ ops: [] });
+      }
+    }
+
+    return String(value ?? '');
   }
 
   private emitValue(value: unknown, plainText: string, source: TGenericRichTextValueChange['source']): void {
