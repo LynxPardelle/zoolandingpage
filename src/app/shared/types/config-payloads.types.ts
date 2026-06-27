@@ -436,6 +436,11 @@ export type TRuntimeDataSourceInputResolverConfig = {
     readonly fallback?: unknown;
     readonly transforms?: readonly TRuntimeDataSourceInputTransform[];
 } | {
+    readonly source: 'routeParam';
+    readonly key: string;
+    readonly fallback?: unknown;
+    readonly transforms?: readonly TRuntimeDataSourceInputTransform[];
+} | {
     readonly source: 'var';
     readonly path: string;
     readonly fallback?: unknown;

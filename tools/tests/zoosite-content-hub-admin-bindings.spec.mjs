@@ -99,6 +99,14 @@ describe('Zoosite content hub admin bindings', () => {
       assert.match(source.target, /^remote\.contentHub\./);
       assert.match(source.statusTarget, /^remoteStatus\.contentHub\./);
     }
+
+    const articleDetail = dataSources.find((source) => source.contentHub?.read === 'articleDetail');
+    assert.deepEqual(articleDetail?.input?.articleId, {
+      source: 'routeParam',
+      key: 'id',
+      transforms: ['trim'],
+    });
+    assert.deepEqual(articleDetail?.requiredInputKeys, ['articleId']);
   });
 
   it('declares content-hub actions for every phase-6 admin mutation contract', async () => {

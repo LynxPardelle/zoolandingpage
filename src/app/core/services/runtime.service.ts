@@ -330,7 +330,7 @@ export class RuntimeService {
             }
 
             const dataSources = this.configStore.siteConfig()?.runtime?.dataSources ?? [];
-            const dataSourcesLoaded = this.startRuntimeDataSources(domain, pageId, dataSources);
+            const dataSourcesLoaded = this.startRuntimeDataSources(domain, pageId, dataSources, context.routeParams);
             if (!this.isBrowser || this.shouldWaitForProtectedInitialDataSources(context.route, pageId, dataSources)) {
                 await dataSourcesLoaded;
             }
@@ -382,6 +382,7 @@ export class RuntimeService {
         domain: string,
         pageId: string,
         dataSources: readonly TRuntimeDataSourceConfig[] = this.configStore.siteConfig()?.runtime?.dataSources ?? [],
+        routeParams?: Readonly<Record<string, string>>,
     ): Promise<void> {
         if (!dataSources.length) {
             this.runtimeDataSources.stop();
@@ -391,6 +392,7 @@ export class RuntimeService {
         return this.runtimeDataSources.start({
             domain,
             pageId,
+            ...(routeParams && Object.keys(routeParams).length > 0 ? { routeParams } : {}),
             dataSources,
             mode: this.isBrowser ? 'all' : 'ssr',
         }).catch((error) => {

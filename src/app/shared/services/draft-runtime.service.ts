@@ -25,6 +25,7 @@ export type TResolvedDraftContext = {
     readonly pageId: string;
     readonly path: string;
     readonly route: TDraftSiteRouteEntry | null;
+    readonly routeParams?: Readonly<Record<string, string>>;
     readonly explicitPageId: boolean;
     readonly notFound?: boolean;
 };
@@ -226,13 +227,14 @@ export class DraftRuntimeService {
             return explicitContext;
         }
 
-        const route = this.matchRoute(siteConfig, path);
-        if (route) {
+        const routeMatch = this.matchRouteWithParams(siteConfig, path);
+        if (routeMatch) {
             const resolvedContext = {
                 domain,
-                pageId: route.pageId,
+                pageId: routeMatch.route.pageId,
                 path,
-                route,
+                route: routeMatch.route,
+                routeParams: routeMatch.params,
                 explicitPageId: false,
             } satisfies TResolvedDraftContext;
 
@@ -457,6 +459,25 @@ export class DraftRuntimeService {
         }
 
         return matchDraftRoute(siteConfig.routes, path)?.route ?? null;
+    }
+
+    private matchRouteWithParams(
+        siteConfig: TDraftSiteConfigPayload | null,
+        path: string,
+    ): { readonly route: TDraftSiteRouteEntry; readonly params: Readonly<Record<string, string>> } | null {
+        if (!siteConfig?.routes?.length) {
+            return null;
+        }
+
+        const match = matchDraftRoute(siteConfig.routes, path);
+        if (!match) {
+            return null;
+        }
+
+        return {
+            route: match.route,
+            params: match.params,
+        };
     }
 
     private matchRouteByPageId(siteConfig: TDraftSiteConfigPayload | null, pageId: string): TDraftSiteRouteEntry | null {

@@ -11,6 +11,7 @@ import { VariableStoreService } from './variable-store.service';
 export type TRuntimeDataSourceStartOptions = {
     readonly domain: string;
     readonly pageId?: string;
+    readonly routeParams?: Readonly<Record<string, string>>;
     readonly dataSources?: readonly TRuntimeDataSourceConfig[] | null;
     readonly mode?: 'all' | 'ssr';
 };
@@ -43,7 +44,7 @@ export class RuntimeDataSourceService {
             .filter((source) => source.enabled !== false)
             .filter((source) => this.matchesActivePage(source, options.pageId))
             .filter((source) => this.matchesMode(source, options.mode));
-        const preparedSources = this.prepareSources(sources);
+        const preparedSources = this.prepareSources(sources, options.routeParams);
         this.markPreparedSourcesLoading(preparedSources);
         await this.loadPreparedSources(options, preparedSources);
 
@@ -65,7 +66,7 @@ export class RuntimeDataSourceService {
     }
 
     private async loadSource(options: TRuntimeDataSourceStartOptions, source: TRuntimeDataSourceConfig): Promise<void> {
-        const prepared = this.prepareSource(source);
+        const prepared = this.prepareSource(source, options.routeParams);
         if (!prepared) return;
 
         this.writeStatus(source, 'loading', null);
@@ -94,9 +95,12 @@ export class RuntimeDataSourceService {
         await Promise.all(preparedSources.map((prepared) => this.loadPreparedSource(options, prepared)));
     }
 
-    private prepareSources(sources: readonly TRuntimeDataSourceConfig[]): readonly TPreparedRuntimeDataSource[] {
+    private prepareSources(
+        sources: readonly TRuntimeDataSourceConfig[],
+        routeParams?: Readonly<Record<string, string>>,
+    ): readonly TPreparedRuntimeDataSource[] {
         return sources
-            .map((source) => this.prepareSource(source))
+            .map((source) => this.prepareSource(source, routeParams))
             .filter((source): source is TPreparedRuntimeDataSource => !!source);
     }
 
@@ -107,13 +111,16 @@ export class RuntimeDataSourceService {
         });
     }
 
-    private prepareSource(source: TRuntimeDataSourceConfig): TPreparedRuntimeDataSource | null {
+    private prepareSource(
+        source: TRuntimeDataSourceConfig,
+        routeParams?: Readonly<Record<string, string>>,
+    ): TPreparedRuntimeDataSource | null {
         const sourceId = this.resolveProxySourceId(source);
         if (this.shouldSkipForQueryParams(source.skipWhenQueryParams)) {
             return null;
         }
 
-        const input = this.resolvePreparedInput(source);
+        const input = this.resolvePreparedInput(source, routeParams);
         if (!this.hasRequiredInputValues(source.requiredInputKeys, input)) {
             return null;
         }
@@ -174,8 +181,11 @@ export class RuntimeDataSourceService {
         throw new Error('Auth admin data source is invalid.');
     }
 
-    private resolvePreparedInput(source: TRuntimeDataSourceConfig): Record<string, unknown> | undefined {
-        const input = this.resolveInput(source.input);
+    private resolvePreparedInput(
+        source: TRuntimeDataSourceConfig,
+        routeParams?: Readonly<Record<string, string>>,
+    ): Record<string, unknown> | undefined {
+        const input = this.resolveInput(source.input, routeParams);
         if (source.kind !== 'content-hub') {
             return input;
         }
@@ -268,13 +278,16 @@ export class RuntimeDataSourceService {
         return true;
     }
 
-    private resolveInput(input: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+    private resolveInput(
+        input: Record<string, unknown> | undefined,
+        routeParams?: Readonly<Record<string, string>>,
+    ): Record<string, unknown> | undefined {
         if (!input || typeof input !== 'object' || Array.isArray(input)) {
             return undefined;
         }
 
         return Object.entries(input).reduce<Record<string, unknown>>((acc, [key, value]) => {
-            const resolved = this.resolveInputValue(value);
+            const resolved = this.resolveInputValue(value, routeParams);
             if (resolved !== undefined) {
                 acc[key] = resolved;
             }
@@ -282,7 +295,7 @@ export class RuntimeDataSourceService {
         }, {});
     }
 
-    private resolveInputValue(value: unknown): unknown {
+    private resolveInputValue(value: unknown, routeParams?: Readonly<Record<string, string>>): unknown {
         if (!this.isInputResolver(value)) {
             return value;
         }
@@ -292,6 +305,8 @@ export class RuntimeDataSourceService {
             resolved = Object.prototype.hasOwnProperty.call(value, 'value') ? value.value : value.fallback;
         } else if (value.source === 'queryParam') {
             resolved = this.readQueryParam(String(value.key ?? '')) ?? value.fallback;
+        } else if (value.source === 'routeParam') {
+            resolved = this.readRouteParam(routeParams, String(value.key ?? '')) ?? value.fallback;
         } else if (value.source === 'queryParamPageOffset') {
             resolved = this.resolveQueryParamPageOffset(value);
         } else {
@@ -302,7 +317,7 @@ export class RuntimeDataSourceService {
     }
 
     private isInputResolver(value: unknown): value is {
-        readonly source: 'literal' | 'queryParam' | 'var' | 'queryParamPageOffset';
+        readonly source: 'literal' | 'queryParam' | 'routeParam' | 'var' | 'queryParamPageOffset';
         readonly key?: string;
         readonly pageKey?: string;
         readonly pageSizeKey?: string;
@@ -323,6 +338,9 @@ export class RuntimeDataSourceService {
             return true;
         }
         if (source === 'queryParam') {
+            return typeof (value as { readonly key?: unknown }).key === 'string';
+        }
+        if (source === 'routeParam') {
             return typeof (value as { readonly key?: unknown }).key === 'string';
         }
         if (source === 'var') {
@@ -404,6 +422,16 @@ export class RuntimeDataSourceService {
 
         const params = this.currentSearchParams();
         return params?.get(normalizedKey) ?? undefined;
+    }
+
+    private readRouteParam(routeParams: Readonly<Record<string, string>> | undefined, key: string): string | undefined {
+        const normalizedKey = String(key ?? '').trim();
+        if (!normalizedKey || !routeParams) {
+            return undefined;
+        }
+
+        const value = routeParams[normalizedKey];
+        return value == null ? undefined : String(value);
     }
 
     private currentSearchParams(): URLSearchParams | null {

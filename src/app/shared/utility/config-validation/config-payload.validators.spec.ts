@@ -995,6 +995,11 @@ describe('config-payload.validators', () => {
                                 fallback: 'pikachu',
                                 transforms: ['trim', 'lowercase'],
                             },
+                            articleId: {
+                                source: 'routeParam',
+                                key: 'id',
+                                transforms: ['trim'],
+                            },
                             offset: {
                                 source: 'queryParamPageOffset',
                                 pageKey: 'page',
