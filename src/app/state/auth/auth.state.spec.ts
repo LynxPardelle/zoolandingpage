@@ -331,6 +331,136 @@ describe('auth signal state', () => {
         expect(auth.hasAnyGroup(['zoosite-admin'])).toBeTrue();
     });
 
+    it('reuses a short server-cookie route access cache between protected route navigations', async () => {
+        const authAdmin = jasmine.createSpyObj<AuthAdminClientService>('AuthAdminClientService', ['me']);
+        authAdmin.me.and.resolveTo({
+            ok: true,
+            account: {
+                subject: 'admin-sub',
+                email: 'admin@example.test',
+                roles: ['zoosite-admin'],
+                enabled: true,
+            },
+        });
+        TestBed.configureTestingModule({
+            providers: [{ provide: AuthAdminClientService, useValue: authAdmin }],
+        });
+        const store = TestBed.inject(ConfigStoreService);
+        const authRuntime = TestBed.inject(AuthRuntimeService);
+        store.setSiteConfig({
+            version: 1,
+            domain: 'zoositioweb.com.mx',
+            routes: [
+                {
+                    path: '/admin/blog',
+                    pageId: 'admin-blog',
+                    auth: {
+                        required: true,
+                        allowedGroups: ['zoosite-admin'],
+                        redirectTo: '/acceso',
+                    },
+                },
+                {
+                    path: '/admin/blog/articulos',
+                    pageId: 'admin-blog-articulos',
+                    auth: {
+                        required: true,
+                        allowedGroups: ['zoosite-admin'],
+                        redirectTo: '/acceso',
+                    },
+                },
+            ],
+            runtime: {
+                auth: {
+                    enabled: true,
+                    authProfileId: 'staff',
+                    provider: 'cognito',
+                    issuer: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_PREVIEW',
+                    clientId: 'public-web-client',
+                    hostedUiDomain: 'https://preview.auth.us-east-1.amazoncognito.com',
+                    scopes: ['openid'],
+                    redirectPath: '/auth/callback',
+                    logoutPath: '/acceso',
+                    loginPath: '/acceso',
+                    session: {
+                        mode: 'server-cookie',
+                        signinPath: '/auth/session/signin',
+                        mePath: '/auth/session/me',
+                        logoutPath: '/auth/session/logout',
+                        routeAccessCacheMs: 60000,
+                    },
+                },
+            },
+            site: {},
+        } as any);
+
+        await expectAsync(authRuntime.evaluateRouteAccessAsync(store.siteConfig()?.routes[0] ?? null))
+            .toBeResolvedTo(jasmine.objectContaining({ allowed: true, reason: 'authenticated' }));
+        await expectAsync(authRuntime.evaluateRouteAccessAsync(store.siteConfig()?.routes[1] ?? null))
+            .toBeResolvedTo(jasmine.objectContaining({ allowed: true, reason: 'authenticated' }));
+
+        expect(authAdmin.me).toHaveBeenCalledTimes(1);
+    });
+
+    it('can disable the server-cookie route access cache for immediate revalidation', async () => {
+        const authAdmin = jasmine.createSpyObj<AuthAdminClientService>('AuthAdminClientService', ['me']);
+        authAdmin.me.and.resolveTo({
+            ok: true,
+            account: {
+                subject: 'admin-sub',
+                roles: ['zoosite-admin'],
+                enabled: true,
+            },
+        });
+        TestBed.configureTestingModule({
+            providers: [{ provide: AuthAdminClientService, useValue: authAdmin }],
+        });
+        const store = TestBed.inject(ConfigStoreService);
+        const authRuntime = TestBed.inject(AuthRuntimeService);
+        store.setSiteConfig({
+            version: 1,
+            domain: 'zoositioweb.com.mx',
+            routes: [
+                {
+                    path: '/admin/blog',
+                    pageId: 'admin-blog',
+                    auth: {
+                        required: true,
+                        allowedGroups: ['zoosite-admin'],
+                        redirectTo: '/acceso',
+                    },
+                },
+            ],
+            runtime: {
+                auth: {
+                    enabled: true,
+                    authProfileId: 'staff',
+                    provider: 'cognito',
+                    issuer: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_PREVIEW',
+                    clientId: 'public-web-client',
+                    hostedUiDomain: 'https://preview.auth.us-east-1.amazoncognito.com',
+                    scopes: ['openid'],
+                    redirectPath: '/auth/callback',
+                    logoutPath: '/acceso',
+                    loginPath: '/acceso',
+                    session: {
+                        mode: 'server-cookie',
+                        signinPath: '/auth/session/signin',
+                        mePath: '/auth/session/me',
+                        logoutPath: '/auth/session/logout',
+                        routeAccessCacheMs: 0,
+                    },
+                },
+            },
+            site: {},
+        } as any);
+
+        await authRuntime.evaluateRouteAccessAsync(store.siteConfig()?.routes[0] ?? null);
+        await authRuntime.evaluateRouteAccessAsync(store.siteConfig()?.routes[0] ?? null);
+
+        expect(authAdmin.me).toHaveBeenCalledTimes(2);
+    });
+
     it('revalidates server-cookie routes even when editable browser metadata already has the required group', async () => {
         const authAdmin = jasmine.createSpyObj<AuthAdminClientService>('AuthAdminClientService', ['me']);
         authAdmin.me.and.resolveTo({

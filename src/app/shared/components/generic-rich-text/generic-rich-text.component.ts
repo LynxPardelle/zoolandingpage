@@ -50,8 +50,11 @@ export class GenericRichTextComponent {
       const disabled = this.disabled();
       const readOnly = this.readOnly();
       untracked(() => {
+        const shouldSyncEditorModel = !this.valuesRepresentSameContent(value, this.currentValue());
         this.currentValue.set(value);
-        this.quillModel = this.toQuillModel(value);
+        if (shouldSyncEditorModel) {
+          this.quillModel = this.toQuillModel(value);
+        }
         if (this.scope && fieldId) {
           this.scope.registerField({
             fieldId,
@@ -147,6 +150,21 @@ export class GenericRichTextComponent {
     }
   }
 
+  private valuesRepresentSameContent(left: unknown, right: unknown): boolean {
+    if (left === right) return true;
+    return this.stableValueKey(left) === this.stableValueKey(right);
+  }
+
+  private stableValueKey(value: unknown): string {
+    if (typeof value === 'string') return value;
+    if (value == null) return '';
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }
+
   private toQuillModel(value: unknown): unknown {
     if (this.format() === 'plain-text') {
       if (value && typeof value === 'object') return value;
@@ -199,7 +217,9 @@ export class GenericRichTextComponent {
     const inline = this.pickToolbar(toolbar, ['bold', 'italic', 'underline']);
     if (inline.length) groups.push(inline);
     if (toolbar.includes('heading')) groups.push([{ header: [1, 2, 3, false] }]);
-    const lists = this.pickToolbar(toolbar, ['orderedList', 'bulletList']).map((item) => ({ list: item === 'orderedList' ? 'ordered' : 'bullet' }));
+    const lists = toolbar
+      .filter((item) => item === 'orderedList' || item === 'bulletList')
+      .map((item) => ({ list: item === 'orderedList' ? 'ordered' : 'bullet' }));
     if (lists.length) groups.push(lists);
     const block = [
       toolbar.includes('blockquote') ? 'blockquote' : '',
