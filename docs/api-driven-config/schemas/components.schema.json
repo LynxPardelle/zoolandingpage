@@ -162,7 +162,7 @@
       "properties": {
         "fieldId": { "type": "string" },
         "controlType": { "enum": ["text", "textarea", "number", "range", "checkbox", "switch", "select", "file", "button-group"] },
-        "inputType": { "enum": ["text", "email", "password", "search", "tel", "url"] },
+        "inputType": { "enum": ["text", "email", "password", "search", "tel", "url", "date", "time", "datetime-local"] },
         "name": { "type": "string" },
         "label": { "type": "string" },
         "description": { "type": "string" },
@@ -566,6 +566,7 @@
               "items": { "type": "number" }
             },
             "hidePageSize": { "type": "boolean" },
+            "hideWhenSinglePage": { "type": "boolean" },
             "showFirstLastButtons": { "type": "boolean" }
           },
           "additionalProperties": false

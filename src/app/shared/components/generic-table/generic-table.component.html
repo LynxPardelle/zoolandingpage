@@ -138,7 +138,7 @@
     </table>
   </div>
 
-  @if (paginationEnabled()) {
+  @if (showPaginator()) {
   <mat-paginator
     [length]="sortedRows().length"
     [pageSize]="pageSize()"

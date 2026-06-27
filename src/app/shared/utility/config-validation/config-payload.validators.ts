@@ -1725,6 +1725,13 @@ const isGenericInputConfig = (value: unknown): boolean => {
         return false;
     }
 
+    if (
+        value['inputType'] !== undefined
+        && !['text', 'email', 'password', 'search', 'tel', 'url', 'date', 'time', 'datetime-local'].includes(String(value['inputType'] ?? ''))
+    ) {
+        return false;
+    }
+
     if (value['options'] !== undefined && !isGenericInputOptionsConfig(value['options'])) {
         return false;
     }
@@ -1857,6 +1864,7 @@ const isGenericTablePaginationConfig = (value: unknown): boolean => {
     if (value['pageSize'] !== undefined && !isNumberThunkFriendly(value['pageSize'])) return false;
     if (value['pageSizeOptions'] !== undefined && !isNumberArray(value['pageSizeOptions'])) return false;
     if (value['hidePageSize'] !== undefined && !isBooleanThunkFriendly(value['hidePageSize'])) return false;
+    if (value['hideWhenSinglePage'] !== undefined && !isBooleanThunkFriendly(value['hideWhenSinglePage'])) return false;
     if (value['showFirstLastButtons'] !== undefined && !isBooleanThunkFriendly(value['showFirstLastButtons'])) return false;
     return true;
 };

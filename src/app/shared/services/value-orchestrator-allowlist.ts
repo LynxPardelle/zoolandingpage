@@ -7,6 +7,8 @@ export const DEFAULT_ALLOWED_VALUE_IDS = [
     'literal',
     'queryParam',
     'queryParamOr',
+    'routeParam',
+    'routeParamOr',
     'concat',
     'json',
     'classJoin',
