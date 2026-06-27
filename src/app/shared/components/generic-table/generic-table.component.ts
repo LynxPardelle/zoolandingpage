@@ -7,7 +7,7 @@ import { MatSortModule, type Sort } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
 import { DRAFT_RUNTIME_STICKY_QUERY_PARAMS } from '../../services/draft-runtime.service';
 import { VariableStoreService } from '../../services/variable-store.service';
-import { resolveDynamicValue, resolveHostPath } from '../../utility/component-orchestrator.utility';
+import { resolveDynamicValue, resolveHostPath, resolveStyleRecord } from '../../utility/component-orchestrator.utility';
 import { navigateInCurrentWindow } from '../../utility/navigation/browser-navigation.utility';
 import { resolveNavigationTarget } from '../../utility/navigation/navigation-target.utility';
 import { GenericCellComponent } from '../generic-cell/generic-cell.component';
@@ -78,6 +78,27 @@ export class GenericTableComponent {
   readonly rowClasses = computed(() => this.asString(this.config().rowClasses));
   readonly actionCellClasses = computed(() => this.asString(this.config().actionCellClasses));
   readonly actionButtonClasses = computed(() => this.asString(this.config().actionButtonClasses));
+  readonly actionButtonStyles = computed(() => {
+    const configuredStyles = resolveStyleRecord(this.config().actionButtonStyles);
+    const baseStyles: Record<string, string> = {
+      alignItems: 'center',
+      display: 'inline-flex',
+      gap: '6px',
+      justifyContent: 'center',
+      minHeight: '44px',
+      minWidth: '44px',
+      textDecoration: 'none',
+      touchAction: 'manipulation',
+    };
+
+    if (this.actionLabelMode() === 'tooltip') {
+      baseStyles['height'] = '44px';
+      baseStyles['padding'] = '0';
+      baseStyles['width'] = '44px';
+    }
+
+    return { ...baseStyles, ...(configuredStyles ?? {}) };
+  });
   readonly actionIconClasses = computed(() =>
     this.asString(this.config().actionIconClasses)
     || 'ank-width-18px ank-height-18px ank-display-inline-flex ank-flexShrink-0'

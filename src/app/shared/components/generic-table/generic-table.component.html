@@ -81,6 +81,7 @@
           <a
             [href]="actionHref(action, row)"
             [class]="actionClasses(action)"
+            [ngStyle]="actionButtonStyles()"
             [attr.aria-label]="actionAriaLabel(action)"
             [attr.title]="actionLabelMode() === 'tooltip' ? actionLabel(action) : null"
             (click)="onActionLink(action, row, rowIndex, $event)"
@@ -102,6 +103,7 @@
           <button
             type="button"
             [class]="actionClasses(action)"
+            [ngStyle]="actionButtonStyles()"
             [disabled]="actionDisabled(action)"
             [attr.aria-label]="actionAriaLabel(action)"
             [attr.title]="actionLabelMode() === 'tooltip' ? actionLabel(action) : null"
