@@ -143,6 +143,43 @@ describe('GenericRichTextComponent', () => {
     expect(component.quillModel).toBe(userModel);
   });
 
+  it('does not reset dirty Quill edits when the parent replays stale config', () => {
+    fixture.componentRef.setInput('config', {
+      fieldId: 'articleContent',
+      provider: 'quill',
+      format: 'plain-text',
+      value: '',
+      toolbar: ['bold', 'italic', 'heading', 'bulletList', 'orderedList'],
+    });
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    const userModel = {
+      ops: [
+        { insert: 'Contenido escrito por el usuario', attributes: { bold: true } },
+        { insert: '\n' },
+      ],
+    };
+
+    component.onQuillContentChanged({
+      content: userModel,
+      text: 'Contenido escrito por el usuario\n',
+      source: 'user',
+    });
+    fixture.componentRef.setInput('config', {
+      fieldId: 'articleContent',
+      provider: 'quill',
+      format: 'plain-text',
+      value: '',
+      helperText: 'La config se recalculó sin valor nuevo.',
+      toolbar: ['bold', 'italic', 'heading', 'bulletList', 'orderedList'],
+    });
+    fixture.detectChanges();
+
+    expect(component.currentValue()).toBe('Contenido escrito por el usuario');
+    expect(component.quillModel).toBe(userModel);
+  });
+
   it('keeps configured toolbar groups for headings, lists, links, and cleanup', () => {
     fixture.componentRef.setInput('config', {
       fieldId: 'articleSummary',
