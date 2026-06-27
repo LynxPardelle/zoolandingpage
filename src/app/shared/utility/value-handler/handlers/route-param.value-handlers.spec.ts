@@ -1,4 +1,4 @@
-import { readRouteParamFromSnapshot } from './route-param.value-handlers';
+import { readRouteParamFromRecord, readRouteParamFromSnapshot } from './route-param.value-handlers';
 
 describe('route param value handlers', () => {
     it('reads the deepest matching route param from an activated route snapshot tree', () => {
@@ -23,5 +23,11 @@ describe('route param value handlers', () => {
 
         expect(readRouteParamFromSnapshot(snapshot, 'id') ?? 'missing').toBe('missing');
         expect(readRouteParamFromSnapshot(snapshot, '') ?? 'missing').toBe('missing');
+    });
+
+    it('reads route params exposed by the draft runtime context', () => {
+        expect(readRouteParamFromRecord({ id: ' art_123 ' }, 'id')).toBe('art_123');
+        expect(readRouteParamFromRecord({ id: '   ' }, 'id') ?? 'missing').toBe('missing');
+        expect(readRouteParamFromRecord(undefined, 'id') ?? 'missing').toBe('missing');
     });
 });

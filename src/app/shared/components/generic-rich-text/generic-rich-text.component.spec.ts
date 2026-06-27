@@ -83,7 +83,7 @@ describe('GenericRichTextComponent', () => {
     expect(scope.submit().values['articleContent']).toBe('Contenido desde editor');
   });
 
-  it('keeps a separate Quill model for plain text output so user edits do not reset the cursor', () => {
+  it('keeps Quill formatting state while emitting plain text output', () => {
     fixture.componentRef.setInput('config', {
       fieldId: 'articleSummary',
       provider: 'quill',
@@ -94,17 +94,17 @@ describe('GenericRichTextComponent', () => {
     fixture.detectChanges();
 
     const component = fixture.componentInstance;
-    const initialQuillModel = component.quillModel;
+    const formattedModel = { ops: [{ insert: 'Texto inicial con formato', attributes: { bold: true } }, { insert: '\n' }] };
     expect(component.quillFormat()).toBe('object');
 
     component.onQuillContentChanged({
-      content: { ops: [{ insert: 'Texto inicial con formato\n' }] },
+      content: formattedModel,
       text: 'Texto inicial con formato\n',
       source: 'user',
     });
 
     expect(component.currentValue()).toBe('Texto inicial con formato');
-    expect(component.quillModel).toBe(initialQuillModel);
+    expect(component.quillModel).toBe(formattedModel);
   });
 
   it('does not reset the Quill model when the parent echoes the same user value', () => {
