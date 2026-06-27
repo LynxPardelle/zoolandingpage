@@ -44,21 +44,24 @@ export class GenericRichTextComponent {
 
   constructor() {
     effect(() => {
-      const value = this.config().value ?? '';
+      const configValue = this.config().value ?? '';
       const fieldId = this.fieldId();
       const required = this.required();
       const disabled = this.disabled();
       const readOnly = this.readOnly();
       untracked(() => {
+        const scopedState = this.scope?.getFieldState(fieldId);
+        const hasDirtyScopedValue = Boolean(scopedState?.dirty);
+        const value = hasDirtyScopedValue ? scopedState?.value : configValue;
         const shouldSyncEditorModel = !this.valuesRepresentSameContent(value, this.currentValue());
         this.currentValue.set(value);
-        if (shouldSyncEditorModel) {
+        if (!hasDirtyScopedValue && shouldSyncEditorModel) {
           this.quillModel = this.toQuillModel(value);
         }
         if (this.scope && fieldId) {
           this.scope.registerField({
             fieldId,
-            initialValue: value,
+            initialValue: configValue,
             required,
             disabled,
             readOnly,
