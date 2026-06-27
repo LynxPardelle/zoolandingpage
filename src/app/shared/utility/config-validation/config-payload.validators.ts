@@ -135,7 +135,7 @@ const ALLOWED_RUNTIME_API_ACTION_KEYS = new Set([
     'inputFields',
     'requiresUserGesture',
 ]);
-const ALLOWED_RUNTIME_DATA_SOURCE_INPUT_SOURCES = new Set(['literal', 'queryParam', 'var', 'queryParamPageOffset']);
+const ALLOWED_RUNTIME_DATA_SOURCE_INPUT_SOURCES = new Set(['literal', 'queryParam', 'routeParam', 'var', 'queryParamPageOffset']);
 const ALLOWED_RUNTIME_DATA_SOURCE_INPUT_TRANSFORMS = new Set(['trim', 'lowercase', 'uppercase']);
 const ALLOWED_RUNTIME_DATA_SOURCE_FIELD_TRANSFORMS = new Set(['uriComponent', 'lastPathSegment', 'lastPathSegmentNumber', 'titleCase', 'joinList']);
 const ALLOWED_CONTENT_HUB_RUNTIME_SOURCES = new Set(['primary', 'authorized']);
@@ -1129,7 +1129,8 @@ const isRuntimeDataSourceInputResolverConfig = (value: Record<string, unknown>):
     if (source === undefined) return true;
     if (typeof source !== 'string' || !ALLOWED_RUNTIME_DATA_SOURCE_INPUT_SOURCES.has(source)) return false;
 
-    if (source === 'queryParam' && (typeof value['key'] !== 'string' || value['key'].trim().length === 0)) return false;
+    if ((source === 'queryParam' || source === 'routeParam')
+        && (typeof value['key'] !== 'string' || value['key'].trim().length === 0)) return false;
     if (source === 'var' && (typeof value['path'] !== 'string' || value['path'].trim().length === 0)) return false;
     if (source === 'queryParamPageOffset') {
         if (value['pageKey'] !== undefined && (typeof value['pageKey'] !== 'string' || value['pageKey'].trim().length === 0)) return false;

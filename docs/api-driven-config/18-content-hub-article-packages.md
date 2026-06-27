@@ -383,5 +383,5 @@ The detailed phase decision record lives in `.superpowers/blog-content-hub/evide
 ## Current Known Gap
 
 Draft runtime route resolution supports `:param` path patterns for route-to-page matching, including SEO-friendly article patterns such as `/blog/:categorySlug/:articleSlug`.
-Captured params are available to the matcher and content-hub analytics, but they are not yet exposed as first-class runtime data-source inputs for generic components.
+Captured params are available as first-class runtime data-source inputs through `{ "source": "routeParam", "key": "id" }`, so detail pages can hydrate article metadata without duplicating IDs in query strings.
 Until the published-bundle lookup is connected to the runtime-read backend, an unknown article slug can still resolve to the configured article page shell instead of returning a content-aware 404.

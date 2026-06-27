@@ -132,7 +132,7 @@ Use `pageIds` when a source should run only on specific draft routes. Omitting `
 
 Append mode merges incoming records by stable identity (`name`, then `id`, then `href`/`url`) and preserves fallback fields when the incoming API response does not include them.
 
-`input` values are literal by default. A field can also resolve from the current URL query string or from an existing runtime variable:
+`input` values are literal by default. A field can also resolve from the current URL query string, from a matched route parameter, or from an existing runtime variable:
 
 ```json
 {
@@ -142,6 +142,11 @@ Append mode merges incoming records by stable identity (`name`, then `id`, then 
       "key": "name",
       "fallback": "pikachu",
       "transforms": ["trim", "lowercase"]
+    },
+    "articleId": {
+      "source": "routeParam",
+      "key": "id",
+      "transforms": ["trim"]
     },
     "countryCode": {
       "source": "literal",
@@ -162,6 +167,8 @@ Append mode merges incoming records by stable identity (`name`, then `id`, then 
   }
 }
 ```
+
+Use `routeParam` for routes declared with `:param` segments, for example `/admin/blog/articulos/:id/editor`. The parameter is resolved from the active draft route match, so the browser does not need to duplicate identifiers in query strings.
 
 Supported transforms are `trim`, `lowercase`, and `uppercase`.
 

@@ -382,6 +382,46 @@ describe('RuntimeDataSourceService', () => {
         });
     });
 
+    it('resolves route-param input values before calling content hub reads', async () => {
+        contentHub.readSource.and.resolveTo({ ok: true, data: { item: { title: 'Hydrated article' } } } as any);
+        mapper.mapResponse.and.returnValue({ items: [{ title: 'Hydrated article' }] });
+
+        await service.start({
+            domain: 'zoositioweb.com.mx',
+            pageId: 'admin-blog-articulo-editor',
+            routeParams: { id: 'art_20260623T074011Z' },
+            dataSources: [
+                {
+                    id: 'content_hub_article_detail',
+                    kind: 'content-hub',
+                    proxySourceId: 'content_hub_article_detail',
+                    target: 'remote.contentHub.articleDetail',
+                    contentHub: {
+                        source: 'primary',
+                        hubId: 'zoosite-main',
+                        read: 'articleDetail',
+                    },
+                    requiredInputKeys: ['articleId'],
+                    input: {
+                        articleId: {
+                            source: 'routeParam',
+                            key: 'id',
+                            transforms: ['trim'],
+                        },
+                    },
+                } as any,
+            ],
+        });
+
+        expect(contentHub.readSource.calls.mostRecent().args[0].input).toEqual({
+            contentHub: {
+                hubId: 'zoosite-main',
+                read: 'articleDetail',
+            },
+            articleId: 'art_20260623T074011Z',
+        });
+    });
+
     it('resolves query-param page offsets before calling the proxy', async () => {
         proxy.readSource.and.resolveTo({ ok: true, data: { results: [] } });
         mapper.mapResponse.and.returnValue({ items: [] });

@@ -477,6 +477,33 @@ describe('DraftRuntimeService', () => {
     expect(context.domain).toBe('zoositioweb.com.mx');
     expect(context.pageId).toBe('blog-article');
     expect(context.route?.path).toBe('/blog/:categorySlug/:articleSlug');
+    expect(context.routeParams).toEqual({
+      categorySlug: 'web',
+      articleSlug: 'blog-builder-seo',
+    });
+  });
+
+  it('exposes route params for protected admin detail routes', async () => {
+    const { service } = configure(
+      'https://test.zoolandingpage.com.mx/admin/blog/articulos/art_20260623T074011Z/editor?draftDomain=zoositioweb.com.mx&debugWorkspace=false',
+      {
+        version: 1,
+        domain: 'zoositioweb.com.mx',
+        defaultPageId: 'default',
+        routes: [
+          { path: '/', pageId: 'default' },
+          { path: '/admin/blog/articulos/:id/editor', pageId: 'admin-blog-articulo-editor' },
+        ],
+      },
+      { browserMode: true },
+    );
+
+    const context = await service.resolveActiveDraftContext();
+
+    expect(context.pageId).toBe('admin-blog-articulo-editor');
+    expect(context.routeParams).toEqual({
+      id: 'art_20260623T074011Z',
+    });
   });
 
   it('auto-enables the debug workspace on localhost when no draft identity is resolved', () => {
