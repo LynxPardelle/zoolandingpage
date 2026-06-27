@@ -504,6 +504,9 @@ describe('DraftRuntimeService', () => {
     expect(context.routeParams).toEqual({
       id: 'art_20260623T074011Z',
     });
+    expect(service.resolvedDraftRouteParams()).toEqual({
+      id: 'art_20260623T074011Z',
+    });
   });
 
   it('auto-enables the debug workspace on localhost when no draft identity is resolved', () => {

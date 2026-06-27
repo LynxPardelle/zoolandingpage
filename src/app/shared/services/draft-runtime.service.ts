@@ -54,6 +54,7 @@ export class DraftRuntimeService {
     readonly resolvedDraftPageId = signal('');
     readonly resolvedDraftPath = signal('/');
     readonly resolvedDraftRoute = signal<TDraftSiteRouteEntry | null>(null);
+    readonly resolvedDraftRouteParams = signal<Readonly<Record<string, string>>>({});
     readonly activeDraftDomain = computed(() => {
         this.locationRevision();
         return this.resolveSanitizedRequestedDraftIdentity().domain;
@@ -559,6 +560,7 @@ export class DraftRuntimeService {
         this.resolvedDraftPageId.set(context.pageId);
         this.resolvedDraftPath.set(context.path);
         this.resolvedDraftRoute.set(context.route);
+        this.resolvedDraftRouteParams.set(context.routeParams ?? {});
     }
 
     private composeDraftKey(domain: string, pageId: string): string {

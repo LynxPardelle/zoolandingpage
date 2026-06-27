@@ -130,9 +130,7 @@ export class GenericRichTextComponent {
     const plainText = String(event.text ?? '').replace(/\n$/, '');
     const value = this.resolveQuillValue(event, plainText);
     this.currentValue.set(value);
-    if (event.source !== 'user') {
-      this.quillModel = this.toQuillModel(value);
-    }
+    this.quillModel = event.content ?? this.toQuillModel(value);
     this.emitValue(value, plainText, this.normalizeSource(event.source));
   }
 
