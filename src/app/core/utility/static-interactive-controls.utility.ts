@@ -22,3 +22,7 @@ export function hasStaticRenderableContent(root: Element | null): boolean {
 
   return String(root.textContent ?? '').trim().length > 0;
 }
+
+export function hasProtectedSsrShell(root: Element | null): boolean {
+  return root?.getAttribute('data-zlp-protected-shell') === 'true';
+}

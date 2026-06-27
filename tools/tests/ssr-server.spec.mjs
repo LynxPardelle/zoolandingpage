@@ -930,6 +930,7 @@ test('production SSR server lets authRemote protected routes reach Angular for B
   assert.equal(response.headers.get('pragma'), 'no-cache');
   assert.equal(response.headers.get('expires'), '0');
   assert.match(response.headers.get('vary') ?? '', /\bCookie\b/i);
+  assert.match(body, /<app-root\b[^>]*data-zlp-protected-shell="true"/i);
   assert.match(body, /<main[\s>]/i);
   assert.match(body, /<meta name="robots" content="noindex,nofollow">/);
   assertNoSensitiveAuthSurface(body);
