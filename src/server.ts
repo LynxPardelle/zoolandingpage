@@ -2122,6 +2122,14 @@ function decorateBootCurtainHtml(html: string, siteConfig: TLocalSiteConfig | nu
     });
 }
 
+function decorateProtectedSsrShellHtml(html: string, siteConfig: TLocalSiteConfig | null, path: string): string {
+  if (!isProtectedRequestPath(siteConfig, path)) {
+    return html;
+  }
+
+  return html.replace(/<app-root\b[^>]*>/i, (tag) => setHtmlAttribute(tag, 'data-zlp-protected-shell', 'true'));
+}
+
 function readStructuredDataEntries(pageConfig: TLocalPageConfig | null): readonly unknown[] {
   const structuredData = pageConfig?.structuredData;
   if (Array.isArray(structuredData)) {
@@ -2535,7 +2543,11 @@ async function decorateHtmlResponse(req: express.Request, response: Response): P
     buildHreflangHeadHtml(req, lookupDomain, siteConfig),
   ].filter(Boolean).join('\n');
 
-  const decoratedHtml = decorateBootCurtainHtml(injectHeadHtml(html, headHtml), siteConfig);
+  const decoratedHtml = decorateProtectedSsrShellHtml(
+    decorateBootCurtainHtml(injectHeadHtml(html, headHtml), siteConfig),
+    siteConfig,
+    req.path,
+  );
 
   return new Response(decoratedHtml, {
     headers,
