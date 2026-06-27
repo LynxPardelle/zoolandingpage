@@ -2200,6 +2200,39 @@ function shouldForceNoindexForRequestPath(siteConfig: TLocalSiteConfig | null, p
     || ROBOTS_DISALLOW_PATHS.some((entry) => isPathMatchedByPrefixRule(normalizedPath, entry));
 }
 
+function isProtectedRequestPath(siteConfig: TLocalSiteConfig | null, path: string): boolean {
+  const normalizedPath = normalizeRoutePath(path);
+  return resolveLocalRoute(siteConfig, normalizedPath)?.auth?.required === true;
+}
+
+function addVaryHeader(headers: Headers, value: string): void {
+  const normalizedValue = cleanString(value);
+  if (!normalizedValue) {
+    return;
+  }
+
+  const existing = cleanString(headers.get('vary'));
+  const entries = existing
+    ? existing.split(',').map((entry) => cleanString(entry)).filter(Boolean)
+    : [];
+  const hasEntry = entries.some((entry) => entry.toLowerCase() === normalizedValue.toLowerCase());
+  if (!hasEntry) {
+    entries.push(normalizedValue);
+  }
+  headers.set('Vary', entries.join(', '));
+}
+
+function applyProtectedHtmlCacheHeaders(headers: Headers, siteConfig: TLocalSiteConfig | null, path: string): void {
+  if (!isProtectedRequestPath(siteConfig, path)) {
+    return;
+  }
+
+  headers.set('Cache-Control', 'no-store');
+  headers.set('Pragma', 'no-cache');
+  headers.set('Expires', '0');
+  addVaryHeader(headers, 'Cookie');
+}
+
 function buildRobotsHeadHtml(
   req: express.Request,
   siteConfig: TLocalSiteConfig | null,
@@ -2489,6 +2522,7 @@ async function decorateHtmlResponse(req: express.Request, response: Response): P
   );
   const headers = new Headers(response.headers);
   headers.delete('content-length');
+  applyProtectedHtmlCacheHeaders(headers, siteConfig, req.path);
 
   const html = await response.text();
   const headHtml = [
