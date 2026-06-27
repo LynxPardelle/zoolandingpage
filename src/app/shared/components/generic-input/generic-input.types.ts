@@ -41,7 +41,7 @@ export type TGenericInputOptionsValue = readonly TGenericInputOption[] | TGeneri
 export type TGenericInputConfig = {
     readonly fieldId: string;
     readonly controlType: TGenericInputControlType;
-    readonly inputType?: 'text' | 'email' | 'password' | 'search' | 'tel' | 'url';
+    readonly inputType?: 'text' | 'email' | 'password' | 'search' | 'tel' | 'url' | 'date' | 'time' | 'datetime-local';
     readonly name?: TDynamicStringValue;
     readonly value?: unknown;
     readonly label?: TDynamicStringValue;

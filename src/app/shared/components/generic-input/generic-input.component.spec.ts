@@ -37,6 +37,22 @@ describe('GenericInputComponent', () => {
         );
     });
 
+    it('supports native local date-time inputs for schedulers', () => {
+        const fixture = TestBed.createComponent(GenericInputComponent);
+
+        fixture.componentRef.setInput('config', {
+            fieldId: 'publishAt',
+            controlType: 'text',
+            inputType: 'datetime-local',
+            value: '2026-06-24T09:00',
+        });
+        fixture.detectChanges();
+
+        const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+        expect(input.type).toBe('datetime-local');
+        expect(input.value).toBe('2026-06-24T09:00');
+    });
+
     it('writes values into the nearest interaction scope', () => {
         const scope = TestBed.inject(InteractionScopeService);
         scope.configure({ scopeId: 'leadForm' });

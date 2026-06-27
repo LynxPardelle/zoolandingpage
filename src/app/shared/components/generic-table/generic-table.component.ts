@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatPaginatorModule, type PageEvent } from '@angular/material/paginator';
+import { MatPaginatorIntl, MatPaginatorModule, type PageEvent } from '@angular/material/paginator';
 import { MatSortModule, type Sort } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
 import { DRAFT_RUNTIME_STICKY_QUERY_PARAMS } from '../../services/draft-runtime.service';
@@ -24,6 +24,7 @@ import type {
   TGenericTableSelectionEvent,
   TGenericTableSortConfig,
 } from './generic-table.types';
+import { GenericTablePaginatorIntl } from './generic-table-paginator-intl';
 
 @Component({
   selector: 'generic-table',
@@ -37,6 +38,9 @@ import type {
     MatTableModule,
     GenericCellComponent,
     GenericIconComponent,
+  ],
+  providers: [
+    { provide: MatPaginatorIntl, useClass: GenericTablePaginatorIntl },
   ],
   host: {
     '[attr.data-zlp-table-id]': 'id() || null',
@@ -85,16 +89,16 @@ export class GenericTableComponent {
       display: 'inline-flex',
       gap: '6px',
       justifyContent: 'center',
-      minHeight: '44px',
-      minWidth: '44px',
+      minHeight: '48px',
+      minWidth: '48px',
       textDecoration: 'none',
       touchAction: 'manipulation',
     };
 
     if (this.actionLabelMode() === 'tooltip') {
-      baseStyles['height'] = '44px';
+      baseStyles['height'] = '48px';
       baseStyles['padding'] = '0';
-      baseStyles['width'] = '44px';
+      baseStyles['width'] = '48px';
     }
 
     return { ...baseStyles, ...(configuredStyles ?? {}) };
@@ -116,6 +120,11 @@ export class GenericTableComponent {
   readonly selectionLabel = computed(() => this.asString(this.selection().label) || 'Select row');
   readonly selectionColumnLabel = computed(() => this.asString(this.selection().columnLabel) || 'Select');
   readonly paginationEnabled = computed(() => this.asBoolean(this.pagination().enabled));
+  readonly showPaginator = computed(() => {
+    if (!this.paginationEnabled()) return false;
+    if (!this.asBoolean(this.pagination().hideWhenSinglePage)) return true;
+    return this.sortedRows().length > this.pageSize();
+  });
   readonly pageSizeOptions = computed(() => this.pagination().pageSizeOptions?.length ? this.pagination().pageSizeOptions! : [10, 25, 50]);
   readonly pageSize = computed(() => Math.max(1, Math.floor(this.asNumber(this.pagination().pageSize) ?? this.pageState().pageSize)));
   readonly initialSort = computed<TGenericTableSortConfig>(() => this.asRecord(this.resolve(this.config().sort)) as TGenericTableSortConfig ?? {});

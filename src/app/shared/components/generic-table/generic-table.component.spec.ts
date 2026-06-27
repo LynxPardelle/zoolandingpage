@@ -153,4 +153,37 @@ describe('GenericTableComponent', () => {
     expect(alphaLink?.style.minWidth).toBe('52px');
     expect(alphaLink?.style.minHeight).toBe('52px');
   });
+
+  it('can hide the Material paginator when every row fits on one page', () => {
+    fixture.componentRef.setInput('config', {
+      ...tableConfig,
+      pagination: {
+        enabled: true,
+        pageSize: 10,
+        hideWhenSinglePage: true,
+      },
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('mat-paginator')).toBeNull();
+  });
+
+  it('keeps the Material paginator visible when a second page exists', () => {
+    fixture.componentRef.setInput('config', {
+      ...tableConfig,
+      rows: [
+        { articleId: 'a1', title: 'Alpha', status: 'draft' },
+        { articleId: 'a2', title: 'Beta', status: 'draft' },
+        { articleId: 'a3', title: 'Gamma', status: 'draft' },
+      ],
+      pagination: {
+        enabled: true,
+        pageSize: 2,
+        hideWhenSinglePage: true,
+      },
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('mat-paginator')).toBeTruthy();
+  });
 });

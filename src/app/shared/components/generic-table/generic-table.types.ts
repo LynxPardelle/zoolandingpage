@@ -28,6 +28,7 @@ export type TGenericTablePaginationConfig = {
   readonly pageSize?: TDynamicNumberValue;
   readonly pageSizeOptions?: readonly number[];
   readonly hidePageSize?: TDynamicBooleanValue;
+  readonly hideWhenSinglePage?: TDynamicBooleanValue;
   readonly showFirstLastButtons?: TDynamicBooleanValue;
 };
 

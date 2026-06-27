@@ -2141,6 +2141,15 @@ describe('config-payload.validators', () => {
                     },
                 },
             },
+            publishAtInput: {
+                id: 'publishAtInput',
+                type: 'input',
+                config: {
+                    fieldId: 'publishAt',
+                    controlType: 'text',
+                    inputType: 'datetime-local',
+                },
+            },
             attackFilter: {
                 id: 'attackFilter',
                 type: 'input',
