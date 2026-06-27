@@ -1,0 +1,4 @@
+interface:
+  display_name: "Zoolanding Upload Grant"
+  short_description: "Issue scoped draft upload grants"
+  default_prompt: "Use $zoolanding-upload-grant to create temporary image upload grant files for a draft."
