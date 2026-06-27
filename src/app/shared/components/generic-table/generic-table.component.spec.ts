@@ -126,7 +126,13 @@ describe('GenericTableComponent', () => {
     fixture.componentRef.setInput('config', {
       ...tableConfig,
       actionLabelMode: 'tooltip',
-        rowActions: [
+      actionButtonStyles: {
+        height: '52px',
+        minHeight: '52px',
+        minWidth: '52px',
+        width: '52px',
+      },
+      rowActions: [
         {
           id: 'edit',
           label: 'Editar',
@@ -144,5 +150,7 @@ describe('GenericTableComponent', () => {
     expect(alphaLink?.getAttribute('href')).not.toContain('articleId=');
     expect(alphaLink?.getAttribute('title')).toBe('Editar');
     expect(alphaLink?.textContent?.trim()).toBe('');
+    expect(alphaLink?.style.minWidth).toBe('52px');
+    expect(alphaLink?.style.minHeight).toBe('52px');
   });
 });
