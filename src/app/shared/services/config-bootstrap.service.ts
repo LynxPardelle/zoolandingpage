@@ -1,5 +1,9 @@
 import { formatLocaleLabel, normalizeLocaleCode } from '@/app/shared/i18n/locale.utils';
 import type {
+    TContentHubRuntimeArticleSummary,
+    TContentHubRuntimeTaxonomySummary,
+} from '@/app/shared/types/content-hub.types';
+import type {
     TAnalyticsConfigPayload,
     TAngoraCombosPayload,
     TComponentsPayload,
@@ -22,6 +26,7 @@ import {
     isPageConfigPayload,
     isVariablesPayload,
 } from '@/app/shared/utility/config-validation/config-payload.validators';
+import { normalizeDraftRoutePath } from '@/app/shared/utility/route-matching/draft-route-matching';
 import { isPlatformBrowser } from '@angular/common';
 import { inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
 import { ConfigSourceService } from './config-source.service';
@@ -45,6 +50,14 @@ export type TBootstrapResult = {
     readonly structuredData?: TStructuredDataPayload | null;
     readonly analytics?: TResolvedAnalyticsConfig | null;
     readonly structuredDataApplied: boolean;
+};
+
+export type TConfigBootstrapLoadOptions = {
+    readonly domain?: string;
+    readonly pageId?: string;
+    readonly lang?: string;
+    readonly routePath?: string;
+    readonly routeParams?: Readonly<Record<string, string>>;
 };
 
 const EXPECTED_CONFIG_VERSION = 1;
@@ -299,7 +312,7 @@ export class ConfigBootstrapService {
         return String(value ?? '').trim().toLowerCase().replace(/:\d+$/, '');
     }
 
-    async load(opts?: { domain?: string; pageId?: string; lang?: string }): Promise<TBootstrapResult> {
+    async load(opts?: TConfigBootstrapLoadOptions): Promise<TBootstrapResult> {
         const resolved = this.resolver.resolveDomain();
         const siteConfig = this.store.siteConfig();
         const domain = String(opts?.domain ?? resolved.domain ?? '').trim();
@@ -345,6 +358,10 @@ export class ConfigBootstrapService {
         this.store.setVariables(variables);
         this.store.setCombos(combos);
         this.variablesStore.setPayload(variables, siteConfig);
+        this.variablesStore.patchRuntimeValues(this.buildContentHubRuntimeVariables(siteConfig, {
+            routePath: opts?.routePath,
+            routeParams: opts?.routeParams,
+        }));
 
         this.store.setStage('i18n');
         const i18nPayload = await this.loadI18n(domain, pageId, lang);
@@ -399,6 +416,104 @@ export class ConfigBootstrapService {
             analytics,
             structuredDataApplied,
         };
+    }
+
+    private buildContentHubRuntimeVariables(
+        siteConfig: TDraftSiteConfigPayload | null,
+        context: Pick<TConfigBootstrapLoadOptions, 'routePath' | 'routeParams'>,
+    ): Record<string, unknown> {
+        const hubs = siteConfig?.runtime?.contentHubs;
+        if (!Array.isArray(hubs) || hubs.length === 0) {
+            return {};
+        }
+
+        const articles = hubs
+            .flatMap((hub) => Array.isArray(hub.publicArticles) ? hub.publicArticles : [])
+            .filter((article): article is TContentHubRuntimeArticleSummary => article.status === 'published');
+        const taxonomy = hubs
+            .flatMap((hub) => Array.isArray(hub.publicTaxonomy) ? hub.publicTaxonomy : [])
+            .filter((entry): entry is TContentHubRuntimeTaxonomySummary => entry.visible !== false);
+
+        const currentArticle = this.findContentHubCurrentArticle(articles, context);
+        const filteredArticles = this.filterContentHubArticlesForRoute(articles, context);
+
+        return {
+            'contentHub.publicArticles': {
+                items: filteredArticles,
+            },
+            'contentHub.categories': {
+                items: taxonomy.filter((entry) => entry.kind === 'category'),
+            },
+            'contentHub.tags': {
+                items: taxonomy.filter((entry) => entry.kind === 'tag'),
+            },
+            'contentHub.currentArticle': currentArticle,
+        };
+    }
+
+    private findContentHubCurrentArticle(
+        articles: readonly TContentHubRuntimeArticleSummary[],
+        context: Pick<TConfigBootstrapLoadOptions, 'routePath' | 'routeParams'>,
+    ): TContentHubRuntimeArticleSummary | null {
+        const normalizedRoutePath = normalizeDraftRoutePath(context.routePath);
+        const exactMatch = articles.find((article) => normalizeDraftRoutePath(article.path) === normalizedRoutePath);
+        if (exactMatch) {
+            return exactMatch;
+        }
+
+        const articleSlug = this.normalizeContentHubSlug(context.routeParams?.['articleSlug']);
+        if (!articleSlug) {
+            return null;
+        }
+
+        const categorySlug = this.normalizeContentHubSlug(context.routeParams?.['categorySlug']);
+        return articles.find((article) => {
+            const articlePathSlug = this.normalizeContentHubSlug(this.lastContentHubPathSegment(article.path));
+            if (articlePathSlug !== articleSlug) {
+                return false;
+            }
+
+            return !categorySlug || this.normalizeContentHubSlug(article.categorySlug) === categorySlug;
+        }) ?? null;
+    }
+
+    private filterContentHubArticlesForRoute(
+        articles: readonly TContentHubRuntimeArticleSummary[],
+        context: Pick<TConfigBootstrapLoadOptions, 'routePath' | 'routeParams'>,
+    ): readonly TContentHubRuntimeArticleSummary[] {
+        const tagSlug = this.normalizeContentHubSlug(context.routeParams?.['tagSlug']);
+        if (tagSlug) {
+            return articles.filter((article) => (article.tags ?? []).some((tag) => this.normalizeContentHubSlug(tag) === tagSlug));
+        }
+
+        if (this.isContentHubArticleRoute(context)) {
+            return articles;
+        }
+
+        const categorySlug = this.normalizeContentHubSlug(context.routeParams?.['categorySlug']);
+        if (categorySlug) {
+            return articles.filter((article) => this.normalizeContentHubSlug(article.categorySlug) === categorySlug);
+        }
+
+        return articles;
+    }
+
+    private isContentHubArticleRoute(context: Pick<TConfigBootstrapLoadOptions, 'routePath' | 'routeParams'>): boolean {
+        if (this.isNonEmptyString(context.routeParams?.['articleSlug'])) {
+            return true;
+        }
+
+        const normalizedPath = normalizeDraftRoutePath(context.routePath);
+        return normalizedPath.split('/').filter(Boolean).length >= 3;
+    }
+
+    private normalizeContentHubSlug(value: unknown): string {
+        return typeof value === 'string' ? value.trim().toLocaleLowerCase() : '';
+    }
+
+    private lastContentHubPathSegment(path: unknown): string {
+        const segments = normalizeDraftRoutePath(path).split('/').filter(Boolean);
+        return segments.at(-1) ?? '';
     }
 
     private async loadPageConfig(domain: string, pageId: string): Promise<TPageConfigPayload | null> {

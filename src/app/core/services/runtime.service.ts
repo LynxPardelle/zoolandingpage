@@ -13,14 +13,14 @@ import { I18nService } from '@/app/shared/services/i18n.service';
 import { AuthFacade } from '@/app/state/auth/auth.facade';
 import { AuthRuntimeService } from '@/app/state/auth/auth-runtime.service';
 import { applyNavigationScroll, currentBrowserPath, dispatchClientNavigationEnd, navigateInCurrentWindow } from '@/app/shared/utility/navigation/browser-navigation.utility';
-import { matchDraftRoute, normalizeDraftRoutePath } from '@/app/shared/utility/route-matching/draft-route-matching';
+import { findPublishedContentHubArticleForPath, matchContentHubArticleRoute } from '@/app/shared/utility/content-hub/content-hub-public-route';
+import { normalizeDraftRoutePath } from '@/app/shared/utility/route-matching/draft-route-matching';
 import { environment } from '@/environments/environment';
 import { isPlatformBrowser } from '@angular/common';
 import { DestroyRef, inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
 import { LoadingCurtainService } from './loading-curtain.service';
 import { AuthBrowserFlowService } from '@/app/state/auth/auth-browser-flow.service';
 import type { AnalyticsEventPayload } from '@/app/shared/services/analytics.events';
-import type { TContentHubRuntimeConfig } from '@/app/shared/types/content-hub.types';
 import type { TDraftSiteRouteEntry, TRuntimeDataSourceConfig } from '@/app/shared/types/config-payloads.types';
 
 @Injectable({ providedIn: 'root' })
@@ -303,6 +303,8 @@ export class RuntimeService {
                 domain: context.domain,
                 pageId,
                 lang,
+                routePath: context.path,
+                routeParams: context.routeParams,
             });
 
             const domain = boot.domain || context.domain;
@@ -657,7 +659,7 @@ export class RuntimeService {
 
         const path = normalizeDraftRoutePath(currentUrl);
         for (const hub of hubs) {
-            const match = this.matchContentHubArticlePath(hub, path);
+            const match = matchContentHubArticleRoute([hub], path);
             if (!match) {
                 continue;
             }
@@ -668,7 +670,11 @@ export class RuntimeService {
             if (!eventPrefix || !contentGroup || !hubId) {
                 continue;
             }
-            const article = this.findContentHubArticleForPath(hub, path);
+            const article = findPublishedContentHubArticleForPath([hub], path);
+            if (!article) {
+                continue;
+            }
+
             const articleId = this.cleanAnalyticsString(article?.articleId);
             const category = this.cleanAnalyticsString(article?.categorySlug);
             const tags = this.cleanAnalyticsTags(article?.tags);
@@ -692,31 +698,6 @@ export class RuntimeService {
         }
 
         return null;
-    }
-
-    private matchContentHubArticlePath(
-        hub: TContentHubRuntimeConfig,
-        path: string,
-    ): { readonly params: Readonly<Record<string, string>> } | null {
-        const pattern = String(hub.articlePathPattern ?? '').trim();
-        if (!pattern) {
-            return null;
-        }
-
-        const match = matchDraftRoute([{ path: pattern }], path);
-        if (!match) {
-            return null;
-        }
-
-        return { params: match.params };
-    }
-
-    private findContentHubArticleForPath(
-        hub: TContentHubRuntimeConfig,
-        path: string,
-    ): { readonly articleId?: string; readonly categorySlug?: string; readonly tags?: readonly string[] } | null {
-        const articles = Array.isArray(hub.publicArticles) ? hub.publicArticles : [];
-        return articles.find((article) => normalizeDraftRoutePath(article.path) === path) ?? null;
     }
 
     private cleanAnalyticsString(value: unknown): string {

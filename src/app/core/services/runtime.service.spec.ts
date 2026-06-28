@@ -326,6 +326,8 @@ describe('RuntimeService', () => {
             domain: 'pamelabetancourt.com',
             pageId: 'home',
             lang: 'es',
+            routePath: '/home',
+            routeParams: undefined,
         });
         expect(setCombos).toHaveBeenCalledWith({
             version: 1,
@@ -344,6 +346,8 @@ describe('RuntimeService', () => {
             domain: 'pamelabetancourt.com',
             pageId: 'servicios',
             lang: 'es',
+            routePath: '/servicios',
+            routeParams: undefined,
         });
         expect(service.rootComponentsIds()).toEqual(['servicios-root']);
         expect(configureLoadingCurtain).toHaveBeenCalled();
@@ -644,6 +648,57 @@ describe('RuntimeService', () => {
         });
     });
 
+    it('does not track a content hub view for unknown article slugs', async () => {
+        spyOnProperty(navigator, 'userAgent', 'get').and.returnValue('Mozilla/5.0 Chrome/147.0.0.0 Safari/537.36');
+        spyOnProperty(navigator, 'webdriver', 'get').and.returnValue(false);
+        const service = TestBed.inject(RuntimeService);
+        loadSiteConfig.and.resolveTo({
+            version: 1,
+            domain: 'zoositioweb.com.mx',
+            defaultPageId: 'home',
+            routes: [
+                { path: '/blog/:categorySlug/:articleSlug', pageId: 'blog-article' },
+            ],
+            runtime: {
+                contentHubs: [
+                    {
+                        hubId: 'zoosite-main',
+                        ownerDraftDomain: 'zoositioweb.com.mx',
+                        source: 'primary',
+                        routeBasePath: '/blog',
+                        listPath: '/blog',
+                        articlePathPattern: '/blog/:categorySlug/:articleSlug',
+                        defaultLocale: 'es',
+                        locales: ['es'],
+                        canonicalMode: 'host-adaptive',
+                        analyticsContext: {
+                            contentGroup: 'blog',
+                            eventPrefix: 'blog',
+                            piiPolicy: 'no-pii',
+                        },
+                        publicArticles: [
+                            {
+                                articleId: 'art_20260620_blog_builder',
+                                locale: 'es',
+                                status: 'published',
+                                title: 'Blog builder SEO',
+                                path: '/blog/web/blog-builder-seo',
+                                publishedAt: '2026-06-20T00:00:00.000Z',
+                            },
+                        ],
+                    },
+                ],
+            },
+        } as any);
+
+        setRuntimeUrl('/blog/web/no-existe?draftDomain=zoositioweb.com.mx&lang=es');
+        await service.initialize('es');
+        await flushPostBootstrapBrowserWork();
+
+        expect(analyticsTrack).toHaveBeenCalledWith('page_view', jasmine.any(Object));
+        expect(analyticsTrack).not.toHaveBeenCalledWith('blog_view', jasmine.any(Object));
+    });
+
     it('does not repeat the initial browser bootstrap when connect follows an app initializer', async () => {
         const service = TestBed.inject(RuntimeService);
         const host = document.createElement('div');
@@ -730,6 +785,8 @@ describe('RuntimeService', () => {
                 domain: 'pamelabetancourt.com',
                 pageId: 'home',
                 lang: 'es',
+                routePath: '/home',
+                routeParams: undefined,
             },
         ]]);
 
@@ -744,11 +801,15 @@ describe('RuntimeService', () => {
                 domain: 'pamelabetancourt.com',
                 pageId: 'home',
                 lang: 'es',
+                routePath: '/home',
+                routeParams: undefined,
             }],
             [{
                 domain: 'pamelabetancourt.com',
                 pageId: 'servicios',
                 lang: 'es',
+                routePath: '/servicios',
+                routeParams: undefined,
             }],
         ]);
         expect(service.rootComponentsIds()).toEqual(['servicios-root']);

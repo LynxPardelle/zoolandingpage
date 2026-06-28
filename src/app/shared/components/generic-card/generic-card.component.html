@@ -111,7 +111,7 @@
   ></generic-button>
   } @if (href() && linkLabel()) {
   <a
-    [href]="href()"
+    [href]="linkHref()"
     [class]="classValue('linkClasses')"
     [attr.target]="target()"
     [attr.rel]="rel()"

@@ -45,11 +45,9 @@ const DROPDOWN_DEFAULT: Required<Pick<DropdownConfig, 'closeOnSelect'>> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GenericDropdown {
-  private readonly positioning = inject(OverlayPositioningService);
   private readonly vcr = inject(ViewContainerRef);
   private readonly combos = inject(AngoraCombosService);
   private readonly language = inject(LanguageService);
-  private readonly appRef = inject(ApplicationRef);
   private readonly injector = inject(Injector);
   private overlayRef: OverlayRef | null = null;
   private inlineOutlet: DomPortalOutlet | null = null;
@@ -203,7 +201,7 @@ export class GenericDropdown {
 
       this.inlineOutlet = new DomPortalOutlet(
         menuRoot,
-        this.appRef,
+        this.injector.get(ApplicationRef),
         this.injector
       );
       this.inlinePortal = new TemplatePortal(this.defaultMenuTpl, this.vcr, {
@@ -246,7 +244,7 @@ export class GenericDropdown {
         offsetX,
       },
     ];
-    this.overlayRef = this.positioning.createConnected(originRef, {
+    this.overlayRef = this.injector.get(OverlayPositioningService).createConnected(originRef, {
       positions,
       offsetY: cfg?.overlayOffsetY ?? 0,
       // For full-viewport menus, avoid CDK "push" adjusting our left alignment.

@@ -7,6 +7,7 @@ import {
   Component,
   ElementRef,
   Input,
+  Injector,
   TemplateRef,
   ViewChild,
   ViewContainerRef,
@@ -26,8 +27,8 @@ import { TooltipConfig, TooltipPosition } from './generic-tooltip.types';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GenericTooltipComponent implements AfterViewInit {
-  private readonly pos = inject(OverlayPositioningService);
   private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly injector = inject(Injector);
   private readonly vcr = inject(ViewContainerRef);
   private overlayRef: OverlayRef | null = null;
   private anchorRef?: HTMLElement | string;
@@ -133,12 +134,13 @@ export class GenericTooltipComponent implements AfterViewInit {
     }
   }
   show(): void {
+    if (typeof document === 'undefined' || typeof window === 'undefined') return;
     if (this.visible() || !this.content()) return;
     const anchor = this.resolveAnchor();
     if (!anchor) return;
     const position = this.config()?.position || 'top';
     const positions = this.buildPositions(position);
-    this.overlayRef = this.pos.createConnected(new ElementRef(anchor), {
+    this.overlayRef = this.injector.get(OverlayPositioningService).createConnected(new ElementRef(anchor), {
       hasBackdrop: false,
       backdropClass: 'cdk-overlay-transparent-backdrop',
       positions,
@@ -160,6 +162,7 @@ export class GenericTooltipComponent implements AfterViewInit {
       this.overlayRef.dispose();
       this.overlayRef = null;
     }
+    if (typeof window === 'undefined') return;
     window.removeEventListener('scroll', this.onViewportChange, true);
     window.removeEventListener('resize', this.onViewportChange, true);
   }
