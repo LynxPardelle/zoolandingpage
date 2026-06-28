@@ -275,6 +275,7 @@ type TContentHubPublicArticle = {
   readonly articleId?: string;
   readonly locale?: string;
   readonly status?: string;
+  readonly visibility?: string;
   readonly title?: string;
   readonly summary?: string;
   readonly path?: string;
@@ -1773,7 +1774,7 @@ function readPublicContentHubArticles(
   const normalizedLang = normalizeLanguageCode(lang);
   return readContentHubRuntimeConfigs(siteConfig)
     .flatMap((hub) => Array.isArray(hub.publicArticles) ? hub.publicArticles : [])
-    .filter((article) => article.status === 'published')
+    .filter((article) => article.status === 'published' && (!article.visibility || article.visibility === 'public'))
     .filter((article) => !normalizedLang || normalizeLanguageCode(article.locale) === normalizedLang)
     .filter((article) => normalizeRoutePath(article.path));
 }

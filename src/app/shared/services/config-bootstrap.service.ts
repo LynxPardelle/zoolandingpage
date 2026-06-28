@@ -429,7 +429,9 @@ export class ConfigBootstrapService {
 
         const articles = hubs
             .flatMap((hub) => Array.isArray(hub.publicArticles) ? hub.publicArticles : [])
-            .filter((article): article is TContentHubRuntimeArticleSummary => article.status === 'published');
+            .filter((article): article is TContentHubRuntimeArticleSummary => article.status === 'published'
+                && ((article as { readonly visibility?: unknown }).visibility === undefined
+                    || (article as { readonly visibility?: unknown }).visibility === 'public'));
         const taxonomy = hubs
             .flatMap((hub) => Array.isArray(hub.publicTaxonomy) ? hub.publicTaxonomy : [])
             .filter((entry): entry is TContentHubRuntimeTaxonomySummary => entry.visible !== false);
