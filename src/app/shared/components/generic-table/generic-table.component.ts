@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, REQUEST, computed, inject, input, output, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatPaginatorIntl, MatPaginatorModule, type PageEvent } from '@angular/material/paginator';
@@ -57,6 +57,7 @@ export class GenericTableComponent {
   readonly selectionChanged = output<TGenericTableSelectionEvent>();
 
   private readonly variables = inject(VariableStoreService);
+  private readonly request = inject(REQUEST, { optional: true });
   private readonly sortState = signal<Sort>({ active: '', direction: '' });
   private readonly pageState = signal({ pageIndex: 0, pageSize: 10 });
   private readonly selectedIdsState = signal<readonly string[]>([]);
@@ -213,11 +214,17 @@ export class GenericTableComponent {
     if (!interpolated || !interpolated.startsWith('/') || interpolated.startsWith('//')) return '';
 
     const resolved = resolveNavigationTarget(interpolated, {
-      currentHref: typeof window !== 'undefined' ? window.location.href : undefined,
+      currentHref: this.currentHref(),
       stickyQueryParams: DRAFT_RUNTIME_STICKY_QUERY_PARAMS,
     });
 
     return resolved.internal ? resolved.href : '';
+  }
+
+  private currentHref(): string | undefined {
+    const requestUrl = String(this.request?.url ?? '').trim();
+    if (requestUrl) return requestUrl;
+    return typeof window !== 'undefined' ? window.location.href : undefined;
   }
 
   private emitAction(action: TGenericTableRowActionConfig, row: unknown, pageRowIndex: number): void {

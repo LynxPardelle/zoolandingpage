@@ -1,7 +1,7 @@
 import { FocusTrap, FocusTrapFactory } from '@angular/cdk/a11y';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { PortalModule, TemplatePortal } from '@angular/cdk/portal';
-import { CommonModule } from '@angular/common';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import {
   Component,
   DestroyRef,
@@ -10,6 +10,8 @@ import {
   HostListener,
   inject,
   Input,
+  Injector,
+  PLATFORM_ID,
   signal,
   TemplateRef,
   ViewChild,
@@ -34,9 +36,10 @@ import { ModalConfig } from './generic-modal.types';
 export class GenericModalComponent {
   @Input() config: ModalConfig | null = null;
   private readonly modalService = inject(GenericModalService);
-  private readonly overlay = inject(Overlay);
-  private readonly focusTrapFactory = inject(FocusTrapFactory);
+  private readonly injector = inject(Injector);
+  private readonly platformId = inject(PLATFORM_ID);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly isBrowser = isPlatformBrowser(this.platformId);
   private overlayRef: OverlayRef | null = null;
   private focusTrap: FocusTrap | null = null;
   private previousFocused: HTMLElement | null = null;
@@ -54,6 +57,7 @@ export class GenericModalComponent {
     // Announce open/close changes politely
     const live = inject(AriaLiveService);
     effect(() => {
+      if (!this.isBrowser) return;
       const active = !!this.modalService.modalRef();
       if (active && !this.overlayRef) {
         this.openModal();
@@ -72,6 +76,7 @@ export class GenericModalComponent {
   }
 
   private createOverlay(): OverlayRef {
+    const overlay = this.injector.get(Overlay);
     const backdropClass = [
       'cdk-overlay-dark-backdrop',
       'ank-position-absolute',
@@ -83,16 +88,17 @@ export class GenericModalComponent {
       'ank-pointerEvents-auto',
     ];
     if (!this.motion.reduced()) backdropClass.unshift('modal-anim-fade');
-    return this.overlay.create({
+    return overlay.create({
       hasBackdrop: true,
       backdropClass,
       panelClass: ['ank-position-fixed'],
-      scrollStrategy: this.overlay.scrollStrategies.block(),
+      scrollStrategy: overlay.scrollStrategies.block(),
       disposeOnNavigation: true,
     });
   }
 
   private openModal(): void {
+    if (!this.isBrowser) return;
     this.previousFocused = document.activeElement as HTMLElement | null;
     this.overlayRef = this.createOverlay();
     // Attach portal in a microtask so @ViewChild template is ready
@@ -111,7 +117,7 @@ export class GenericModalComponent {
       ) as HTMLElement | null;
       if (panel) {
         panel.setAttribute('tabindex', '-1');
-        this.focusTrap = this.focusTrapFactory.create(panel);
+        this.focusTrap = this.injector.get(FocusTrapFactory).create(panel);
         this.focusTrap.focusInitialElementWhenReady();
       }
     });
@@ -122,7 +128,9 @@ export class GenericModalComponent {
 
   private closeModal(fromDestroy = false): void {
     this.open.set(false);
-    document.body.style.overflow = '';
+    if (this.isBrowser) {
+      document.body.style.overflow = '';
+    }
     this.focusTrap?.destroy();
     this.focusTrap = null;
     this.overlayRef?.dispose();

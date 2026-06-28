@@ -1,3 +1,4 @@
+import { REQUEST } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { GenericCardComponent } from './generic-card.component';
@@ -5,15 +6,19 @@ import { GenericCardComponent } from './generic-card.component';
 describe('GenericCardComponent', () => {
     const nativeHistoryReplaceState = History.prototype.replaceState;
     let fixture: ComponentFixture<GenericCardComponent>;
+    let requestState: { url: string };
 
     const setBrowserUrl = (url: string): void => {
         nativeHistoryReplaceState.call(window.history, {}, '', url);
+        requestState.url = new URL(url, window.location.origin).toString();
     };
 
     beforeEach(async () => {
+        requestState = { url: '' };
         setBrowserUrl('/home?draftDomain=zoositioweb.com.mx&debugWorkspace=false&lang=es');
         await TestBed.configureTestingModule({
             imports: [GenericCardComponent],
+            providers: [{ provide: REQUEST, useValue: requestState }],
         }).compileComponents();
 
         fixture = TestBed.createComponent(GenericCardComponent);
@@ -92,6 +97,23 @@ describe('GenericCardComponent', () => {
 
         expect(link?.getAttribute('href')).toBe('/blog/web/qa-e2e?draftDomain=zoositioweb.com.mx&debugWorkspace=false&lang=es');
         expect(link?.getAttribute('target')).toBeNull();
+    });
+
+    it('uses the request URL to preserve draft query params during SSR', () => {
+        nativeHistoryReplaceState.call(window.history, {}, '', '/context.html');
+        requestState.url = 'https://test.zoolandingpage.com.mx/blog?draftDomain=zoositioweb.com.mx&debugWorkspace=false&lang=es';
+        fixture.componentInstance.config = {
+            variant: 'feature',
+            title: 'Artículo SSR',
+            href: '/blog/web/qa-ssr',
+            linkLabel: 'Leer artículo',
+        } as never;
+
+        fixture.detectChanges();
+
+        const link: HTMLAnchorElement | null = fixture.nativeElement.querySelector('a');
+
+        expect(link?.getAttribute('href')).toBe('/blog/web/qa-ssr?draftDomain=zoositioweb.com.mx&debugWorkspace=false&lang=es');
     });
 
     it('uses client-side navigation for internal card links', () => {

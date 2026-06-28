@@ -1,3 +1,4 @@
+import { REQUEST } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ConfigStoreService } from '../../services/config-store.service';
 import { DRAFT_RUNTIME_STICKY_QUERY_PARAMS } from '../../services/draft-runtime.service';
@@ -11,9 +12,11 @@ describe('GenericLink', () => {
   let component: GenericLink;
   let fixture: ComponentFixture<GenericLink>;
   let store: ConfigStoreService;
+  let requestState: { url: string };
 
   const resetDraftPreviewUrl = (url = draftPreviewUrl): void => {
     nativeHistoryReplaceState.call(window.history, {}, '', url);
+    requestState.url = new URL(url, window.location.origin).toString();
   };
 
   const resolveDraftPreviewHref = (href: string, url = draftPreviewUrl): string =>
@@ -23,9 +26,11 @@ describe('GenericLink', () => {
     }).href;
 
   beforeEach(async () => {
+    requestState = { url: '' };
     resetDraftPreviewUrl();
     await TestBed.configureTestingModule({
       imports: [GenericLink],
+      providers: [{ provide: REQUEST, useValue: requestState }],
     })
       .compileComponents();
 
@@ -160,6 +165,22 @@ describe('GenericLink', () => {
       debugWorkspace: 'true',
     });
     expect(anchor.getAttribute('href')).toContain('/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+  });
+
+  it('should use the request URL to carry draft params during SSR', () => {
+    nativeHistoryReplaceState.call(window.history, {}, '', '/context.html');
+    requestState.url = 'https://test.zoolandingpage.com.mx/blog?draftDomain=zoositioweb.com.mx&debugWorkspace=false&lang=es';
+    fixture.componentRef.setInput('config', {
+      id: 'spec',
+      href: '/blog/web/qa-ssr',
+      text: 'Artículo SSR',
+    });
+    fixture.detectChanges();
+
+    const anchor = fixture.nativeElement.querySelector('a') as HTMLAnchorElement;
+
+    expect(component.href()).toBe('/blog/web/qa-ssr?draftDomain=zoositioweb.com.mx&debugWorkspace=false&lang=es');
+    expect(anchor.getAttribute('href')).toContain('/blog/web/qa-ssr?draftDomain=zoositioweb.com.mx&debugWorkspace=false&lang=es');
   });
 
   it('should preserve the active language on internal hrefs', () => {

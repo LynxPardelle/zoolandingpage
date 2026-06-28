@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, EventEmitter, Output, computed, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Output, REQUEST, computed, inject, input } from '@angular/core';
 import { DRAFT_RUNTIME_STICKY_QUERY_PARAMS } from '../../services/draft-runtime.service';
 import { ConfigStoreService } from '../../services/config-store.service';
 import { composeDomId, resolveComponentRootDomId, resolveDynamicValue, resolveStyleRecord } from '../../utility/component-orchestrator.utility';
@@ -18,6 +18,7 @@ import { TGenericLinkConfig } from './generic-link.types';
 })
 export class GenericLink {
   private readonly configStore = inject(ConfigStoreService);
+  private readonly request = inject(REQUEST, { optional: true });
 
   readonly config = input.required<TGenericLinkConfig>();
   readonly componentId = input<string | undefined>(undefined);
@@ -133,8 +134,14 @@ export class GenericLink {
     const resolved = resolveDynamicValue(this.config().href);
     const next = typeof resolved === 'string' ? resolved : String(resolved ?? '');
     return resolveNavigationTarget(next, {
+      currentHref: this.currentRequestHref(),
       stickyQueryParams: DRAFT_RUNTIME_STICKY_QUERY_PARAMS,
     });
+  }
+
+  private currentRequestHref(): string | undefined {
+    const requestUrl = String(this.request?.url ?? '').trim();
+    return requestUrl || undefined;
   }
 
   onClick(event: MouseEvent): void {

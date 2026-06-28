@@ -509,6 +509,20 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.deepEqual(aliasFilterSearch.articles[0].tags, ['seo', 'builder', 'angora']);
   assertNoContentHubOperationalLeak(JSON.stringify(aliasFilterSearch));
 
+  const previewHeaders = {
+    ...headers,
+    Host: 'test.zoolandingpage.com.mx',
+    'X-Forwarded-Host': 'test.zoolandingpage.com.mx',
+  };
+  const blogPreviewResponse = await fetch(
+    `http://127.0.0.1:${port}/blog?draftDomain=zoositioweb.com.mx&debugWorkspace=false&lang=es`,
+    { headers: previewHeaders },
+  );
+  const blogPreviewHtml = await blogPreviewResponse.text();
+  assert.equal(blogPreviewResponse.status, 200);
+  assert.match(blogPreviewHtml, /href="\/blog\/web\?draftDomain=zoositioweb\.com\.mx&amp;debugWorkspace=false&amp;lang=es"/);
+  assert.match(blogPreviewHtml, /href="\/blog\/web\/blog-builder-seo\?draftDomain=zoositioweb\.com\.mx&amp;debugWorkspace=false&amp;lang=es"/);
+
   const articleResponse = await fetch(`http://127.0.0.1:${port}/blog/web/blog-builder-seo?lang=es`, { headers });
   const articleHtml = await articleResponse.text();
   assert.equal(articleResponse.status, 200);

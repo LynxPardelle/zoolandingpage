@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  REQUEST,
   computed,
   EventEmitter,
   inject,
@@ -25,6 +26,7 @@ import { TGenericCardAction, TGenericCardConfig } from './generic-card.types';
 })
 export class GenericCardComponent {
   private readonly i18n = inject(I18nService);
+  private readonly request = inject(REQUEST, { optional: true });
   private readonly _config = signal<TGenericCardConfig>({});
   readonly stars = signal<readonly number[]>([1, 2, 3, 4, 5]);
 
@@ -88,6 +90,7 @@ export class GenericCardComponent {
   );
   readonly navigationTarget = computed(() =>
     resolveNavigationTarget(this.href(), {
+      currentHref: this.currentRequestHref(),
       stickyQueryParams: DRAFT_RUNTIME_STICKY_QUERY_PARAMS,
     })
   );
@@ -150,6 +153,11 @@ export class GenericCardComponent {
   readonly iconClassValue = (key: keyof TGenericCardConfig): string => {
     const classes = this.classValue(key);
     return ['material-icons', classes].filter(Boolean).join(' ');
+  };
+
+  private readonly currentRequestHref = (): string | undefined => {
+    const requestUrl = String(this.request?.url ?? '').trim();
+    return requestUrl || undefined;
   };
 
   readonly onButtonPressed = (_event?: MouseEvent): void => {

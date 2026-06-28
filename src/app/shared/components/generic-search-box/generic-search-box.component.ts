@@ -9,6 +9,7 @@ import {
   HostListener,
   inject,
   Input,
+  Injector,
   OnDestroy,
   output,
   signal,
@@ -33,9 +34,9 @@ import { SearchBoxConfig, SearchSuggestion } from './generic-search-box.types';
 export class GenericSearchBoxComponent implements OnDestroy {
   @Input() config: SearchBoxConfig | null = null;
 
-  private readonly overlaySvc = inject(OverlayPositioningService);
   readonly i18n = inject(I18nService);
   private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly injector = inject(Injector);
   private readonly vcr = inject(ViewContainerRef);
   @ViewChild('resultsTpl') resultsTpl!: TemplateRef<unknown>;
   @ViewChild('searchInput') searchInput?: ElementRef<HTMLInputElement>;
@@ -130,12 +131,13 @@ export class GenericSearchBoxComponent implements OnDestroy {
     this.loading.set(false);
   }
   private ensureOverlay() {
+    if (typeof document === 'undefined') return;
     if (this.overlayRef) return;
     const origin = this.searchInput ?? this.host;
     const positions: ConnectedPosition[] = [
       { originX: 'start', originY: 'bottom', overlayX: 'start', overlayY: 'top', offsetY: 4 },
     ];
-    this.overlayRef = this.overlaySvc.createConnected(origin, { positions, hasBackdrop: false });
+    this.overlayRef = this.injector.get(OverlayPositioningService).createConnected(origin, { positions, hasBackdrop: false });
     const portal = new TemplatePortal(this.resultsTpl, this.vcr);
     this.overlayRef.attach(portal);
   }
