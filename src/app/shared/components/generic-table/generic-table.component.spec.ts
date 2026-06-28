@@ -1,3 +1,4 @@
+import { REQUEST } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { GenericTableComponent } from './generic-table.component';
@@ -5,6 +6,7 @@ import type { TGenericTableActionEvent, TGenericTableConfig } from './generic-ta
 
 describe('GenericTableComponent', () => {
   let fixture: ComponentFixture<GenericTableComponent>;
+  let requestState: { url: string };
 
   const tableConfig: TGenericTableConfig = {
     id: 'articles-table',
@@ -27,8 +29,12 @@ describe('GenericTableComponent', () => {
   };
 
   beforeEach(async () => {
+    requestState = {
+      url: 'https://test.zoolandingpage.com.mx/admin/blog/articulos?draftDomain=zoositioweb.com.mx&debugWorkspace=false&lang=es',
+    };
     await TestBed.configureTestingModule({
       imports: [GenericTableComponent, NoopAnimationsModule],
+      providers: [{ provide: REQUEST, useValue: requestState }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(GenericTableComponent);
@@ -147,6 +153,9 @@ describe('GenericTableComponent', () => {
     const alphaLink = editLinks.find((link) => link.getAttribute('href')?.includes('/admin/blog/articulos/a1/editor'));
 
     expect(alphaLink).toBeTruthy();
+    expect(alphaLink?.getAttribute('href')).toContain('draftDomain=zoositioweb.com.mx');
+    expect(alphaLink?.getAttribute('href')).toContain('debugWorkspace=false');
+    expect(alphaLink?.getAttribute('href')).toContain('lang=es');
     expect(alphaLink?.getAttribute('href')).not.toContain('articleId=');
     expect(alphaLink?.getAttribute('title')).toBe('Editar');
     expect(alphaLink?.textContent?.trim()).toBe('');

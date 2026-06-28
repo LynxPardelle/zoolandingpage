@@ -7,6 +7,7 @@ const repoRoot = process.cwd();
 const siteConfigPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'site-config.json');
 const adminArticlesComponentsPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'admin-blog-articulos', 'components.json');
 const adminOverviewComponentsPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'admin-blog', 'components.json');
+const adminEditorComponentsPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'admin-blog-articulo-editor', 'components.json');
 
 const adminRoutes = [
   '/admin/blog',
@@ -113,6 +114,32 @@ describe('Zoosite content hub admin bindings', () => {
       transforms: ['trim'],
     });
     assert.deepEqual(articleDetail?.requiredInputKeys, ['articleId']);
+
+    for (const read of ['revisionList', 'publicBundlePreview']) {
+      const source = dataSources.find((entry) => entry.contentHub?.read === read);
+      assert.deepEqual(source?.input?.articleId, {
+        source: 'routeParam',
+        key: 'id',
+        transforms: ['trim'],
+      }, `${read} must hydrate selected article ids from the detail route`);
+      assert.deepEqual(source?.requiredInputKeys, ['articleId'], `${read} must not call the BFF without articleId`);
+    }
+
+    const assetSources = dataSources.filter((source) => source.contentHub?.read === 'assetList');
+    assert.equal(assetSources.length, 2, 'assetList must be split between article detail and media library contexts');
+    const editorAssets = assetSources.find((source) => source.pageIds?.includes('admin-blog-articulo-editor'));
+    const mediaAssets = assetSources.find((source) => source.pageIds?.includes('admin-blog-medios'));
+    assert.deepEqual(editorAssets?.input?.articleId, {
+      source: 'routeParam',
+      key: 'id',
+      transforms: ['trim'],
+    });
+    assert.deepEqual(editorAssets?.requiredInputKeys, ['articleId']);
+    assert.deepEqual(mediaAssets?.input?.articleId, {
+      source: 'queryParam',
+      key: 'articleId',
+      transforms: ['trim'],
+    });
   });
 
   it('declares content-hub actions for every phase-6 admin mutation contract', async () => {
@@ -138,7 +165,7 @@ describe('Zoosite content hub admin bindings', () => {
   });
 
   it('uses clean route-param detail links instead of duplicating articleId in query strings', async () => {
-    for (const filePath of [adminArticlesComponentsPath, adminOverviewComponentsPath]) {
+    for (const filePath of [adminArticlesComponentsPath, adminOverviewComponentsPath, adminEditorComponentsPath]) {
       const serialized = JSON.stringify(await loadDraftComponents(filePath));
       assert.equal(serialized.includes('/editor?articleId='), false, `${filePath} must not duplicate editor articleId`);
       assert.equal(serialized.includes('/preview?articleId='), false, `${filePath} must not duplicate preview articleId`);

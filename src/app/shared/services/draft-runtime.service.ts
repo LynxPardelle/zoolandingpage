@@ -2,6 +2,7 @@ import { environment } from '@/environments/environment';
 import { isPlatformBrowser } from '@angular/common';
 import { computed, DestroyRef, inject, Injectable, NgZone, PLATFORM_ID, REQUEST, signal } from '@angular/core';
 import { navigateInCurrentWindow } from '../utility/navigation/browser-navigation.utility';
+import { isMissingPublishedContentHubArticlePath } from '../utility/content-hub/content-hub-public-route';
 import { matchDraftRoute, normalizeDraftRoutePath } from '../utility/route-matching/draft-route-matching';
 import type { TComponentsPayload, TDraftSiteConfigPayload, TDraftSiteRouteEntry, TPageConfigPayload } from '../types/config-payloads.types';
 import { ConfigSourceService } from './config-source.service';
@@ -230,6 +231,16 @@ export class DraftRuntimeService {
 
         const routeMatch = this.matchRouteWithParams(siteConfig, path);
         if (routeMatch) {
+            if (isMissingPublishedContentHubArticlePath(siteConfig?.runtime?.contentHubs, path)) {
+                const notFoundResolution = await this.resolveNotFoundContext(domain, path, siteConfig)
+                    ?? await this.resolveCanonicalNotFoundContext(path);
+                if (notFoundResolution) {
+                    this.configStore.setSiteConfig(notFoundResolution.siteConfig);
+                    this.applyResolvedContext(notFoundResolution.context);
+                    return notFoundResolution.context;
+                }
+            }
+
             const resolvedContext = {
                 domain,
                 pageId: routeMatch.route.pageId,
