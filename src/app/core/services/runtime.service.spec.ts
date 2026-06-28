@@ -326,6 +326,8 @@ describe('RuntimeService', () => {
             domain: 'pamelabetancourt.com',
             pageId: 'home',
             lang: 'es',
+            routePath: '/home',
+            routeParams: undefined,
         });
         expect(setCombos).toHaveBeenCalledWith({
             version: 1,
@@ -344,6 +346,8 @@ describe('RuntimeService', () => {
             domain: 'pamelabetancourt.com',
             pageId: 'servicios',
             lang: 'es',
+            routePath: '/servicios',
+            routeParams: undefined,
         });
         expect(service.rootComponentsIds()).toEqual(['servicios-root']);
         expect(configureLoadingCurtain).toHaveBeenCalled();
@@ -730,6 +734,8 @@ describe('RuntimeService', () => {
                 domain: 'pamelabetancourt.com',
                 pageId: 'home',
                 lang: 'es',
+                routePath: '/home',
+                routeParams: undefined,
             },
         ]]);
 
@@ -744,11 +750,15 @@ describe('RuntimeService', () => {
                 domain: 'pamelabetancourt.com',
                 pageId: 'home',
                 lang: 'es',
+                routePath: '/home',
+                routeParams: undefined,
             }],
             [{
                 domain: 'pamelabetancourt.com',
                 pageId: 'servicios',
                 lang: 'es',
+                routePath: '/servicios',
+                routeParams: undefined,
             }],
         ]);
         expect(service.rootComponentsIds()).toEqual(['servicios-root']);

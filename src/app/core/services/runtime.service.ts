@@ -303,6 +303,8 @@ export class RuntimeService {
                 domain: context.domain,
                 pageId,
                 lang,
+                routePath: context.path,
+                routeParams: context.routeParams,
             });
 
             const domain = boot.domain || context.domain;

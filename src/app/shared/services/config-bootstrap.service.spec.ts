@@ -1,6 +1,6 @@
 import { PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import type { TComponentPayloadEntry, TComponentsPayload } from '../types/config-payloads.types';
+import type { TComponentPayloadEntry, TComponentsPayload, TDraftSiteConfigPayload } from '../types/config-payloads.types';
 import { ConfigBootstrapService } from './config-bootstrap.service';
 import { ConfigSourceService } from './config-source.service';
 import { ConfigStoreService } from './config-store.service';
@@ -83,6 +83,7 @@ describe('ConfigBootstrapService', () => {
     let i18n: jasmine.SpyObj<I18nService>;
     let language: jasmine.SpyObj<LanguageService>;
     let store: ConfigStoreService;
+    let variableStore: VariableStoreService;
 
     beforeEach(() => {
         source = jasmine.createSpyObj<ConfigSourceService>('ConfigSourceService', [
@@ -140,6 +141,99 @@ describe('ConfigBootstrapService', () => {
 
         service = TestBed.inject(ConfigBootstrapService);
         store = TestBed.inject(ConfigStoreService);
+        variableStore = TestBed.inject(VariableStoreService);
+    });
+
+    const mockSuccessfulBootstrapPayloads = () => {
+        source.loadPageConfig.and.resolveTo({
+            version: 1,
+            pageId: 'blog',
+            domain: 'zoolandingpage.com.mx',
+            rootIds: ['blogRoot'],
+            modalRootIds: [],
+        });
+        source.loadComponents.and.resolveTo(createComponentsPayload({
+            blogRoot: {
+                id: 'blogRoot',
+                type: 'container',
+                config: { tag: 'main', components: [] },
+            },
+        }));
+        source.loadVariables.and.resolveTo({
+            version: 1,
+            pageId: 'blog',
+            domain: 'zoolandingpage.com.mx',
+            variables: {},
+        });
+        source.loadCombos.and.resolveTo(null);
+        source.loadI18n.and.resolveTo({
+            version: 1,
+            pageId: 'blog',
+            domain: 'zoolandingpage.com.mx',
+            lang: 'es',
+            dictionary: {},
+        });
+    };
+
+    const createContentHubSiteConfig = (): TDraftSiteConfigPayload => ({
+        ...createSiteConfig(),
+        runtime: {
+            contentHubs: [
+                {
+                    hubId: 'zoosite-main',
+                    ownerDraftDomain: 'zoositioweb.com.mx',
+                    source: 'primary',
+                    routeBasePath: '/blog',
+                    listPath: '/blog',
+                    articlePathPattern: '/blog/:categorySlug/:articleSlug',
+                    defaultLocale: 'es',
+                    locales: ['es'],
+                    canonicalMode: 'host-adaptive',
+                    publicArticles: [
+                        {
+                            articleId: 'art_web',
+                            locale: 'es',
+                            status: 'published',
+                            title: 'Web Article',
+                            path: '/blog/web/blog-builder-seo',
+                            categorySlug: 'web',
+                            tags: ['seo', 'builder'],
+                            publishedAt: '2026-06-27T12:00:00.000Z',
+                        },
+                        {
+                            articleId: 'art_news',
+                            locale: 'es',
+                            status: 'published',
+                            title: 'News Article',
+                            path: '/blog/noticias/release-note',
+                            categorySlug: 'noticias',
+                            tags: ['release'],
+                            publishedAt: '2026-06-27T13:00:00.000Z',
+                        },
+                    ],
+                    publicTaxonomy: [
+                        {
+                            taxonomyId: 'cat_web',
+                            kind: 'category',
+                            slug: 'web',
+                            label: 'Web',
+                            locale: 'es',
+                            visible: true,
+                            path: '/blog/web',
+                        },
+                        {
+                            taxonomyId: 'tag_seo',
+                            kind: 'tag',
+                            slug: 'seo',
+                            label: 'SEO',
+                            locale: 'es',
+                            visible: true,
+                            path: '/blog/tag/seo',
+                        },
+                    ],
+                },
+            ],
+        },
     });
 
     it('does not block bootstrap completion on the fallback language prefetch', async () => {
@@ -233,6 +327,62 @@ describe('ConfigBootstrapService', () => {
             cache: true,
             applyIfCurrent: false,
         });
+    });
+
+    it('hydrates content hub runtime variables and filters category routes', async () => {
+        store.setSiteConfig(createContentHubSiteConfig());
+        mockSuccessfulBootstrapPayloads();
+
+        await service.load({
+            domain: 'zoolandingpage.com.mx',
+            pageId: 'blog-category',
+            lang: 'es',
+            routePath: '/blog/web',
+            routeParams: {
+                categorySlug: 'web',
+            },
+        });
+
+        expect(variableStore.get('contentHub.publicArticles.items')).toEqual([
+            jasmine.objectContaining({
+                articleId: 'art_web',
+                title: 'Web Article',
+            }),
+        ]);
+        expect(variableStore.get('contentHub.categories.items')).toEqual([
+            jasmine.objectContaining({
+                taxonomyId: 'cat_web',
+                slug: 'web',
+            }),
+        ]);
+        expect(variableStore.get('contentHub.tags.items')).toEqual([
+            jasmine.objectContaining({
+                taxonomyId: 'tag_seo',
+                slug: 'seo',
+            }),
+        ]);
+    });
+
+    it('sets the current content hub article from article routes', async () => {
+        store.setSiteConfig(createContentHubSiteConfig());
+        mockSuccessfulBootstrapPayloads();
+
+        await service.load({
+            domain: 'zoolandingpage.com.mx',
+            pageId: 'blog-article',
+            lang: 'es',
+            routePath: '/blog/web/blog-builder-seo',
+            routeParams: {
+                categorySlug: 'web',
+                articleSlug: 'blog-builder-seo',
+            },
+        });
+
+        expect(variableStore.get('contentHub.currentArticle')).toEqual(jasmine.objectContaining({
+            articleId: 'art_web',
+            title: 'Web Article',
+            categorySlug: 'web',
+        }));
     });
 
     it('reports missing modal config when a payload references a modal-owned dialog', () => {
