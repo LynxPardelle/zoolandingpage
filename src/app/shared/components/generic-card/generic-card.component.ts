@@ -9,7 +9,10 @@ import {
   signal,
 } from '@angular/core';
 import { I18nService } from '../../services/i18n.service';
+import { DRAFT_RUNTIME_STICKY_QUERY_PARAMS } from '../../services/draft-runtime.service';
 import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
+import { navigateInCurrentWindow } from '../../utility/navigation/browser-navigation.utility';
+import { resolveNavigationTarget } from '../../utility/navigation/navigation-target.utility';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { GenericIconComponent } from '../generic-icon/generic-icon.component';
 import { TGenericCardAction, TGenericCardConfig } from './generic-card.types';
@@ -83,6 +86,12 @@ export class GenericCardComponent {
   readonly href = computed(() =>
     String(resolveDynamicValue(this._config().href) ?? '').trim()
   );
+  readonly navigationTarget = computed(() =>
+    resolveNavigationTarget(this.href(), {
+      stickyQueryParams: DRAFT_RUNTIME_STICKY_QUERY_PARAMS,
+    })
+  );
+  readonly linkHref = computed(() => this.navigationTarget().href);
   readonly linkLabel = computed(() =>
     String(resolveDynamicValue(this._config().linkLabel) ?? '').trim()
   );
@@ -96,8 +105,11 @@ export class GenericCardComponent {
     return Array.isArray(value) ? value : [];
   });
   readonly target = computed(
-    () =>
-      String(resolveDynamicValue(this._config().target) ?? '').trim() || null
+    () => {
+      const target = String(resolveDynamicValue(this._config().target) ?? '').trim();
+      if (target === '_blank' && this.navigationTarget().internal) return null;
+      return target || null;
+    }
   );
   readonly rel = computed(() =>
     String(
@@ -144,9 +156,15 @@ export class GenericCardComponent {
     this._config().onCta?.(this.title());
   };
 
-  readonly onLinkClicked = (_event?: MouseEvent): void => {
-    const href = this.href();
+  readonly onLinkClicked = (event?: MouseEvent): void => {
+    const target = this.navigationTarget();
+    const href = target.href;
     if (!href) return;
+
+    if (target.internal) {
+      event?.preventDefault();
+      navigateInCurrentWindow(href);
+    }
 
     this.linkClicked.emit({
       href,
