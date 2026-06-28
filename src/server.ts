@@ -8,6 +8,7 @@ import compression from 'compression';
 import express from 'express';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { isMissingPublishedContentHubArticlePath } from '@/app/shared/utility/content-hub/content-hub-public-route';
 import { matchDraftRoute, normalizeDraftRoutePath } from '@/app/shared/utility/route-matching/draft-route-matching';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
@@ -1108,6 +1109,10 @@ function resolveLocalRuntimePage(opts: {
 
   const route = resolveLocalRoute(opts.siteConfig, normalizedPath);
   if (route) {
+    if (isMissingPublishedContentHubArticlePath(opts.siteConfig.runtime?.contentHubs, normalizedPath)) {
+      return resolveLocalNotFoundRuntimePage(opts.requestedDomain, opts.siteConfig, opts.requestedDomain);
+    }
+
     const pageId = String(route.pageId ?? '').trim() || resolveLocalRuntimePageId(opts.siteConfig, normalizedPath);
     return {
       requestedDomain: opts.requestedDomain,
@@ -2522,12 +2527,10 @@ async function decorateHtmlResponse(req: express.Request, response: Response): P
   const lookupDomain = resolveNotFoundLookupDomain(req, host);
   const environment = resolveRuntimeEnvironment(host);
   const siteConfig = await loadSiteConfigForHost(lookupDomain, environment);
-  const pageConfig = withContentHubSeoPageConfig(
-    req,
-    lookupDomain,
-    siteConfig,
-    await loadPageConfigForRequest(req, lookupDomain, siteConfig),
-  );
+  const requestPageConfig = await loadPageConfigForRequest(req, lookupDomain, siteConfig);
+  const pageConfig = response.status === 404
+    ? requestPageConfig
+    : withContentHubSeoPageConfig(req, lookupDomain, siteConfig, requestPageConfig);
   const headers = new Headers(response.headers);
   headers.delete('content-length');
   applyProtectedHtmlCacheHeaders(headers, siteConfig, req.path);
@@ -2567,7 +2570,21 @@ async function shouldServeNotFoundDocument(req: express.Request): Promise<boolea
     return (!isLocalHost(host) || lookupDomain !== host) && normalizedPath !== '/';
   }
 
-  if (resolveLocalRoute(siteConfig, normalizedPath)) {
+  const route = resolveLocalRoute(siteConfig, normalizedPath);
+  if (route) {
+    if (isMissingPublishedContentHubArticlePath(siteConfig.runtime?.contentHubs, normalizedPath)) {
+      const runtimeStatusDomain = resolveRuntimeStatusLookupDomain(req, host, lookupDomain, siteConfig);
+      const runtimeRouteStatus = await loadRuntimeRouteStatus(runtimeStatusDomain || lookupDomain, normalizedPath, environment);
+      if (runtimeRouteStatus === 200) {
+        return false;
+      }
+      if (runtimeRouteStatus === 404) {
+        return true;
+      }
+
+      return normalizedPath !== '/';
+    }
+
     return false;
   }
 

@@ -483,6 +483,56 @@ describe('DraftRuntimeService', () => {
     });
   });
 
+  it('resolves unknown content hub article paths to the draft not-found page', async () => {
+    const { service } = configure(
+      'https://test.zoolandingpage.com.mx/blog/web/no-existe?draftDomain=zoositioweb.com.mx&debugWorkspace=false',
+      {
+        version: 1,
+        domain: 'zoositioweb.com.mx',
+        defaultPageId: 'home',
+        notFoundPageId: 'not-found',
+        routes: [
+          { path: '/', pageId: 'home' },
+          { path: '/404', pageId: 'not-found' },
+          { path: '/blog/:categorySlug/:articleSlug', pageId: 'blog-article' },
+        ],
+        runtime: {
+          contentHubs: [
+            {
+              hubId: 'zoosite-main',
+              ownerDraftDomain: 'zoositioweb.com.mx',
+              source: 'primary',
+              routeBasePath: '/blog',
+              listPath: '/blog',
+              articlePathPattern: '/blog/:categorySlug/:articleSlug',
+              defaultLocale: 'es',
+              locales: ['es'],
+              canonicalMode: 'host-adaptive',
+              publicArticles: [
+                {
+                  articleId: 'art_20260620_blog_builder',
+                  locale: 'es',
+                  status: 'published',
+                  title: 'Blog builder SEO',
+                  path: '/blog/web/blog-builder-seo',
+                  publishedAt: '2026-06-20T00:00:00.000Z',
+                },
+              ],
+            },
+          ],
+        },
+      },
+      { browserMode: true },
+    );
+
+    const context = await service.resolveActiveDraftContext();
+
+    expect(context.pageId).toBe('not-found');
+    expect(context.notFound).toBeTrue();
+    expect(context.path).toBe('/blog/web/no-existe');
+    expect(context.route?.path).toBe('/404');
+  });
+
   it('exposes route params for protected admin detail routes', async () => {
     const { service } = configure(
       'https://test.zoolandingpage.com.mx/admin/blog/articulos/art_20260623T074011Z/editor?draftDomain=zoositioweb.com.mx&debugWorkspace=false',

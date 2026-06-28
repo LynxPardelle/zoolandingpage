@@ -162,6 +162,12 @@ function extractJsonLd(html) {
     .join('\n');
 }
 
+function stripNonVisibleHtml(html) {
+  return String(html ?? '')
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '');
+}
+
 test('production SSR server exposes a lightweight health endpoint', async (t) => {
   const { port, getStderr } = await startProductionServer(t);
   const response = await waitForOk(`http://127.0.0.1:${port}/health`);
@@ -395,6 +401,21 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   const apiBase = await startRuntimeApi(t, (req, res) => {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
     if (url.pathname === '/runtime-bundle') {
+      const path = url.searchParams.get('path') || '/';
+      if (path === '/blog/web/missing-article') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          version: 1,
+          domain: 'zoositioweb.com.mx',
+          pageId: 'not-found',
+          sourceStage: 'published',
+          siteConfig,
+          route: { path: '/404', pageId: 'not-found' },
+          metadata: { statusCode: 404, notFound: true },
+        }));
+        return;
+      }
+
       const pageId = url.searchParams.get('pageId') || 'contentHubArticle';
       const lang = url.searchParams.get('lang') || 'es';
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -497,6 +518,15 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.match(articleHtml, /"keywords":"seo, builder, angora"/);
   assert.match(articleHtml, /Cómo crear blogs visuales con Zoolandingpage/);
   assertNoContentHubOperationalLeak(extractJsonLd(articleHtml));
+
+  const missingArticleResponse = await fetch(`http://127.0.0.1:${port}/blog/web/missing-article?lang=es`, { headers });
+  const missingArticleHtml = await missingArticleResponse.text();
+  const missingArticleVisibleHtml = stripNonVisibleHtml(missingArticleHtml);
+  assert.equal(missingArticleResponse.status, 404);
+  assert.doesNotMatch(missingArticleHtml, /"@type":"BlogPosting"/);
+  assert.doesNotMatch(missingArticleVisibleHtml, /Cómo crear blogs visuales con Zoolandingpage/);
+  assert.match(missingArticleVisibleHtml, /Página no encontrada/);
+  assertNoContentHubOperationalLeak(extractJsonLd(missingArticleHtml));
   assert.equal(getStderr(), '');
 });
 
