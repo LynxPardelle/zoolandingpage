@@ -39,7 +39,7 @@ Initial reads are `articleList`, `articleDetail`, `taxonomyList`, `assetList`, `
 
 Initial actions are `createArticle`, `updatePackage`, `validate`, `submitReview`, `approveArticle`, `publish`, `unpublishArticle`, `archiveArticle`, `schedule`, `cancelSchedule`, `uploadAsset`, `moderateComment`, and `restoreRevision`.
 
-Publishing creates validated internal content-hub published bundles in BFF-owned storage. Public Angular SEO indexes (`runtime.contentHubs.publicArticles` and `publicTaxonomy`) still need the runtime-read/public-index bridge before newly published BFF content automatically appears in public blog routes, sitemap, feeds, and search JSON.
+Publishing creates validated internal content-hub published bundles in BFF-owned storage. The runtime-read bridge can now project published content-hub bundles into public Angular SEO indexes (`runtime.contentHubs.publicArticles` and `publicTaxonomy`) so public blog routes, sitemap, feeds, and search JSON can see published BFF content. Product readiness still requires a live per-draft smoke that proves the authenticated create/publish path reaches the runtime-read API and public SSR surface without exposing cookies, CSRF values, buckets, or server-only policy.
 
 ## Purpose
 

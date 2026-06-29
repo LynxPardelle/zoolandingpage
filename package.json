@@ -41,6 +41,7 @@
     "ops:probe-runtime-front-door": "node tools/ops/probe-runtime-front-door.mjs",
     "ops:configure-runtime-cache": "node tools/ops/configure-runtime-front-door-cache.mjs",
     "ops:configure-runtime-observability": "node tools/ops/configure-runtime-observability.mjs",
+    "content-hub:smoke": "node tools/content-hub-product-readiness-smoke.mjs",
     "ssr:smoke": "npm run build && node --test tools/tests/ssr-server.spec.mjs",
     "test:zoneless-runner": "node --test tools/tests/zoneless-karma-runner.spec.mjs",
     "test:draft-smoke": "node --test tools/tests/draft-smoke-check.spec.mjs",

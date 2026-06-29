@@ -391,8 +391,18 @@ The harness defines the first vertical-slice contract for:
 
 The detailed phase decision record lives in `.superpowers/blog-content-hub/evidence/repo-boundary-decision.md`.
 
+## Live Product-Readiness Smoke
+
+After deploying content-hub and runtime-read to dev/test, run the redacted smoke from an authenticated browser session instead of storing credentials in the repo. The cookie can come from a temporary local file or the `ZLP_CONTENT_HUB_SMOKE_COOKIE` environment variable; the script derives `zlp_csrf` from that cookie unless `ZLP_CONTENT_HUB_SMOKE_CSRF` is set. Do not paste those values into notes, commits, PRs, or chat logs.
+
+```powershell
+npm run content-hub:smoke -- --runtime-base-url=https://<runtime-read-api>/Prod --environment=test --domain=zoositioweb.com.mx
+```
+
+The smoke creates a unique QA article, publishes it, verifies runtime-read `/runtime-bundle`, verifies `/content-hub-search.json`, creates a future schedule, lists it, and cancels it. Output is limited to sanitized IDs, paths, environment, and boolean checks.
+
 ## Current Known Gap
 
 Draft runtime route resolution supports `:param` path patterns for route-to-page matching, including SEO-friendly article patterns such as `/blog/:categorySlug/:articleSlug`.
 Captured params are available as first-class runtime data-source inputs through `{ "source": "routeParam", "key": "id" }`, so detail pages can hydrate article metadata without duplicating IDs in query strings.
-Until the published-bundle lookup is connected to the runtime-read backend, an unknown article slug can still resolve to the configured article page shell instead of returning a content-aware 404.
+Runtime-read can look up published content-hub bundles for configured article routes and use that public projection for article hydration, sitemap/feed/search, and content-aware missing-article handling. Keep running a live redacted product-readiness smoke after BFF/runtime-read deploys so unknown slugs, newly published slugs, and public indexes are verified against the deployed draft environment instead of relying only on local fixtures.
