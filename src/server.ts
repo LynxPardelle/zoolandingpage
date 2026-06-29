@@ -8,7 +8,7 @@ import compression from 'compression';
 import express from 'express';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { isMissingPublishedContentHubArticlePath } from '@/app/shared/utility/content-hub/content-hub-public-route';
+import { isMissingPublishedContentHubArticlePath, matchContentHubArticleRoute } from '@/app/shared/utility/content-hub/content-hub-public-route';
 import { matchDraftRoute, normalizeDraftRoutePath } from '@/app/shared/utility/route-matching/draft-route-matching';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
@@ -1300,6 +1300,47 @@ async function loadRuntimeSiteConfig(domain: string, environment?: string): Prom
   return null;
 }
 
+function listRuntimeLookupDomainsForRequest(
+  req: express.Request,
+  host: string,
+  domain: string,
+  siteConfig: TLocalSiteConfig | null,
+): readonly string[] {
+  return dedupeStrings([
+    resolveRuntimeStatusLookupDomain(req, host, domain, siteConfig),
+    domain,
+  ].map(normalizeRuntimeLookupDomain));
+}
+
+async function loadRuntimeRouteSiteConfigForRequest(
+  req: express.Request,
+  domain: string,
+  siteConfig: TLocalSiteConfig | null,
+  environment?: string,
+): Promise<TLocalSiteConfig | null> {
+  const normalizedPath = normalizeRoutePath(req.path);
+  if (!matchContentHubArticleRoute(siteConfig?.runtime?.contentHubs, normalizedPath)) {
+    return null;
+  }
+
+  const host = resolveRequestHost(req);
+  const baseUrls = resolveRuntimeBundleBaseUrls(environment);
+  if (baseUrls.length === 0) {
+    return null;
+  }
+
+  for (const lookupDomain of listRuntimeLookupDomainsForRequest(req, host, domain, siteConfig)) {
+    for (const baseUrl of baseUrls) {
+      const payload = await fetchRuntimeBundlePayload(baseUrl, lookupDomain, normalizedPath, environment);
+      if (isRecord(payload?.siteConfig)) {
+        return payload.siteConfig as TLocalSiteConfig;
+      }
+    }
+  }
+
+  return null;
+}
+
 async function loadRuntimePageConfig(domain: string, path: string, environment?: string): Promise<TLocalPageConfig | null> {
   const normalizedDomain = normalizeHost(domain);
   const baseUrls = resolveRuntimeBundleBaseUrls(environment);
@@ -2483,14 +2524,21 @@ function buildRssFeedXml(req: express.Request, host: string, siteConfig: TLocalS
 
 function findContentHubArticleForRequest(
   req: express.Request,
-  siteConfig: TLocalSiteConfig | null,
+  siteConfigs: readonly (TLocalSiteConfig | null | undefined)[],
 ): TContentHubPublicArticle | undefined {
   const path = normalizeRoutePath(req.path);
-  const lang = resolveRequestLanguage(req, siteConfig);
-  return readPublicContentHubArticles(siteConfig, lang)
-    .find((article) => normalizeRoutePath(article.path) === path)
-    ?? readPublicContentHubArticles(siteConfig)
-      .find((article) => normalizeRoutePath(article.path) === path);
+  for (const siteConfig of siteConfigs) {
+    const lang = resolveRequestLanguage(req, siteConfig ?? null);
+    const article = readPublicContentHubArticles(siteConfig ?? null, lang)
+      .find((entry) => normalizeRoutePath(entry.path) === path)
+      ?? readPublicContentHubArticles(siteConfig ?? null)
+        .find((entry) => normalizeRoutePath(entry.path) === path);
+    if (article) {
+      return article;
+    }
+  }
+
+  return undefined;
 }
 
 function buildContentHubArticleStructuredData(
@@ -2524,14 +2572,15 @@ function buildContentHubArticleStructuredData(
 function withContentHubSeoPageConfig(
   req: express.Request,
   host: string,
-  siteConfig: TLocalSiteConfig | null,
+  siteConfigs: readonly (TLocalSiteConfig | null | undefined)[],
   pageConfig: TLocalPageConfig | null,
 ): TLocalPageConfig | null {
-  const article = findContentHubArticleForRequest(req, siteConfig);
+  const article = findContentHubArticleForRequest(req, siteConfigs);
   if (!article) {
     return pageConfig;
   }
 
+  const siteConfig = siteConfigs.find(Boolean) ?? null;
   const origin = resolveCanonicalOrigin(req, host, siteConfig).replace(/\/$/, '');
   const canonical = resolveEffectiveCanonicalUrl(
     new URL(normalizeRoutePath(article.canonicalPath || article.path), `${origin}/`).toString(),
@@ -2589,10 +2638,17 @@ async function decorateHtmlResponse(req: express.Request, response: Response): P
   const environment = resolveRuntimeEnvironment(host);
   const siteConfig = await loadSiteConfigForHost(lookupDomain, environment);
   const publicContentHubSiteConfig = await loadPublicContentHubSiteConfigForHost(lookupDomain, environment);
+  const routeContentHubSiteConfig = response.status === 404
+    ? null
+    : await loadRuntimeRouteSiteConfigForRequest(req, lookupDomain, siteConfig, environment);
   const requestPageConfig = await loadPageConfigForRequest(req, lookupDomain, siteConfig);
   const pageConfig = response.status === 404
     ? requestPageConfig
-    : withContentHubSeoPageConfig(req, lookupDomain, publicContentHubSiteConfig, requestPageConfig);
+    : withContentHubSeoPageConfig(req, lookupDomain, [
+      routeContentHubSiteConfig,
+      publicContentHubSiteConfig,
+      siteConfig,
+    ], requestPageConfig);
   const headers = new Headers(response.headers);
   headers.delete('content-length');
   applyProtectedHtmlCacheHeaders(headers, siteConfig, req.path);

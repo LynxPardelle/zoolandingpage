@@ -611,6 +611,101 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.equal(getStderr(), '');
 });
 
+test('production SSR decorates content hub article SEO from the route runtime bundle when the root public index is stale', async (t) => {
+  const localSiteConfig = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'site-config.json'), 'utf8'));
+  const routeSiteConfig = JSON.parse(JSON.stringify(localSiteConfig));
+  routeSiteConfig.runtime.contentHubs[0].publicArticles.push({
+    articleId: 'art_route_only_public_fixture',
+    locale: 'es',
+    status: 'published',
+    visibility: 'public',
+    title: 'Route Bundle SEO Article',
+    summary: 'Artículo publicado sólo en el bundle de la ruta para probar SEO SSR.',
+    path: '/blog/web/runtime-route-only-seo',
+    categorySlug: 'web',
+    tags: ['runtime', 'route'],
+    publishedAt: '2026-06-28T13:00:00.000Z',
+    updatedAt: '2026-06-28T13:30:00.000Z',
+    canonicalPath: '/blog/web/runtime-route-only-seo',
+    robots: 'index,follow',
+  });
+
+  const apiBase = await startRuntimeApi(t, (req, res) => {
+    const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+    if (url.pathname === '/runtime-bundle') {
+      const path = url.searchParams.get('path') || '/';
+      const siteConfig = path === '/blog/web/runtime-route-only-seo'
+        ? routeSiteConfig
+        : localSiteConfig;
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        version: 1,
+        domain: 'zoositioweb.com.mx',
+        pageId: 'blog-article',
+        sourceStage: 'published',
+        lang: url.searchParams.get('lang') || 'es',
+        siteConfig,
+        route: { path: '/blog/:categorySlug/:articleSlug', pageId: 'blog-article' },
+        pageConfig: {
+          version: 1,
+          domain: 'zoositioweb.com.mx',
+          pageId: 'blog-article',
+          rootIds: [],
+          seo: {
+            canonical: 'https://zoositioweb.com.mx/blog/web/blog-builder-seo',
+          },
+        },
+        components: {
+          version: 1,
+          domain: 'zoositioweb.com.mx',
+          pageId: 'blog-article',
+          components: [],
+        },
+        variables: {
+          version: 1,
+          domain: 'zoositioweb.com.mx',
+          pageId: 'blog-article',
+          variables: {},
+        },
+        i18n: {
+          version: 1,
+          domain: 'zoositioweb.com.mx',
+          pageId: 'blog-article',
+          lang: url.searchParams.get('lang') || 'es',
+          dictionary: {},
+        },
+        metadata: { statusCode: 200, notFound: false },
+      }));
+      return;
+    }
+
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: false }));
+  });
+
+  const { port, getStderr } = await startProductionServer(t, {
+    CONFIG_API_SERVER_FALLBACK_URL: '',
+    CONFIG_API_URL: apiBase,
+  });
+  const headers = {
+    Host: 'zoositioweb.com.mx',
+    'X-Forwarded-Host': 'zoositioweb.com.mx',
+    'X-Forwarded-Port': '443',
+    'X-Forwarded-Proto': 'https',
+  };
+
+  const response = await fetch(`http://127.0.0.1:${port}/blog/web/runtime-route-only-seo?lang=es`, { headers });
+  const html = await response.text();
+  assert.equal(response.status, 200);
+  assert.match(html, /<link rel="canonical" href="https:\/\/zoositioweb\.com\.mx\/blog\/web\/runtime-route-only-seo">/);
+  assert.doesNotMatch(html, /<link rel="canonical" href="https:\/\/zoositioweb\.com\.mx\/blog\/web\/blog-builder-seo">/);
+  assert.match(html, /"@type":"BlogPosting"/);
+  assert.match(html, /Route Bundle SEO Article/);
+  assert.match(html, /"keywords":"runtime, route"/);
+  assertNoContentHubOperationalLeak(extractJsonLd(html));
+  assert.equal(getStderr(), '');
+});
+
 test('production SSR server redirects public aliases to the primary canonical host', async (t) => {
   const { port, getStderr } = await startProductionServer(t);
   const response = await fetch(`http://127.0.0.1:${port}/planes?gclid=test&utm_source=google`, {
