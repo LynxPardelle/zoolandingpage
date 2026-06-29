@@ -420,6 +420,67 @@ describe('Zoosite blog admin draft pages', () => {
     }
   });
 
+  it('shows direct post-create next-step links bound to the created article ids', async () => {
+    const payload = await readJson('admin-blog-articulos-nuevo/components.json');
+    const components = flattenComponents(payload);
+    const status = componentById(components, 'newArticleCreateStatus');
+    const successCondition = 'all:varEq,remoteStatus.contentHub.content_hub_create_article.state,success';
+    const articleIdInstruction = 'set:config.articleId,varOr,remoteStatus.contentHub.content_hub_create_article.articleId,';
+    const revisionIdInstruction = 'set:config.revisionId,varOr,remoteStatus.contentHub.content_hub_create_article.revisionId,';
+
+    const expectations = new Map([
+      ['newArticleCreateEditorLink', ['/admin/blog/articulos/', '/editor']],
+      ['newArticleCreatePreviewLink', ['/admin/blog/articulos/', '/preview']],
+      ['newArticleCreateSeoLink', ['/admin/blog/articulos/', '/seo']],
+      ['newArticleCreateVersionsLink', ['/admin/blog/articulos/', '/versiones']],
+      ['newArticleCreateScheduleLink', ['/admin/blog/programados?articleId=', '&revisionId=']],
+    ]);
+
+    for (const componentId of expectations.keys()) {
+      assert.equal(status?.config?.components?.includes(componentId), true, `create success state must include ${componentId}`);
+    }
+
+    for (const [componentId, requiredFragments] of expectations) {
+      const component = componentById(components, componentId);
+      assert.equal(component?.type, 'link', `${componentId} must be a direct generic link`);
+      assert.equal(component?.condition, successCondition, `${componentId} must only show after createArticle succeeds`);
+      assert.equal(String(component?.valueInstructions ?? '').includes(articleIdInstruction), true, `${componentId} must use the created articleId`);
+      for (const fragment of requiredFragments) {
+        assert.equal(String(component?.valueInstructions ?? '').includes(fragment), true, `${componentId} must build href with ${fragment}`);
+      }
+      assert.equal(String(component?.config?.href ?? '').startsWith('/admin/'), true, `${componentId} fallback href must stay same-origin so sticky draft query context is preserved`);
+      assert.equal(String(component?.config?.href ?? '').includes('draftDomain='), false, `${componentId} must not hardcode draftDomain`);
+      assert.equal(String(component?.config?.href ?? '').includes('debugWorkspace='), false, `${componentId} must not hardcode debugWorkspace`);
+      assert.equal(String(component?.config?.href ?? '').includes('lang='), false, `${componentId} must not hardcode lang`);
+    }
+
+    const scheduleLink = componentById(components, 'newArticleCreateScheduleLink');
+    assert.equal(
+      String(scheduleLink?.valueInstructions ?? '').includes(revisionIdInstruction),
+      true,
+      'schedule success link must use the created revisionId',
+    );
+  });
+
+  it('hydrates preview and SEO revision ids from protected article detail', async () => {
+    const previewComponents = flattenComponents(await readJson('admin-blog-articulo-preview/components.json'));
+    const seoComponents = flattenComponents(await readJson('admin-blog-articulo-seo/components.json'));
+
+    for (const [pageId, component] of [
+      ['admin-blog-articulo-preview', componentById(previewComponents, 'previewRevisionId')],
+      ['admin-blog-articulo-seo', componentById(seoComponents, 'seoRevisionId')],
+    ]) {
+      assert.equal(component?.type, 'input', `${pageId} revision control must stay a generic input`);
+      assert.equal(component?.config?.fieldId, 'revisionId', `${pageId} revision control must submit revisionId for actions`);
+      assert.equal(component?.config?.readOnly, true, `${pageId} revisionId must not depend on empty editable input`);
+      assert.equal(
+        component?.valueInstructions,
+        'set:config.value,varOr,remote.contentHub.articleDetail.items.0.latestRevisionId,',
+        `${pageId} revisionId must hydrate from articleDetail.latestRevisionId`,
+      );
+    }
+  });
+
   it('keeps category and tag admin tables scoped to their dedicated taxonomy reads', async () => {
     const categoryComponents = flattenComponents(await readJson('admin-blog-categorias/components.json'));
     const tagComponents = flattenComponents(await readJson('admin-blog-tags/components.json'));
