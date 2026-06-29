@@ -420,6 +420,23 @@ describe('Zoosite blog admin draft pages', () => {
     }
   });
 
+  it('keeps category and tag admin tables scoped to their dedicated taxonomy reads', async () => {
+    const categoryComponents = flattenComponents(await readJson('admin-blog-categorias/components.json'));
+    const tagComponents = flattenComponents(await readJson('admin-blog-tags/components.json'));
+
+    const categoriesGrid = componentById(categoryComponents, 'categoriesGrid');
+    const tagsGrid = componentById(tagComponents, 'tagsGrid');
+    assert.equal(categoriesGrid?.config?.components?.includes('categoriesKind'), false);
+    assert.equal(tagsGrid?.config?.components?.includes('tagsKind'), false);
+
+    const categoriesTable = componentById(categoryComponents, 'categoriesTable');
+    const tagsTable = componentById(tagComponents, 'tagsTable');
+    assert.equal(categoriesTable?.config?.rowsSource?.path, 'remote.contentHub.categories.items');
+    assert.equal(tagsTable?.config?.rowsSource?.path, 'remote.contentHub.tags.items');
+    assert.equal(categoriesTable?.config?.columns?.some((column) => column.id === 'kind'), false);
+    assert.equal(tagsTable?.config?.columns?.some((column) => column.id === 'kind'), false);
+  });
+
   it('keeps editorial lifecycle action errors user-facing instead of raw backend passthrough', async () => {
     const lifecycleErrorComponents = new Map([
       ['admin-blog-articulos-nuevo', ['newArticleCreateError']],

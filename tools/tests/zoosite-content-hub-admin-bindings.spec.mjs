@@ -10,6 +10,8 @@ const adminArticlesComponentsPath = path.join(repoRoot, 'drafts', 'zoositioweb.c
 const adminOverviewComponentsPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'admin-blog', 'components.json');
 const adminEditorComponentsPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'admin-blog-articulo-editor', 'components.json');
 const adminNewArticleComponentsPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'admin-blog-articulos-nuevo', 'components.json');
+const adminCategoriesComponentsPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'admin-blog-categorias', 'components.json');
+const adminTagsComponentsPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'admin-blog-tags', 'components.json');
 
 const adminRoutes = [
   '/admin/blog',
@@ -252,8 +254,17 @@ describe('Zoosite content hub admin bindings', () => {
   });
 
   it('hydrates article category and tag controls from protected taxonomy reads', async () => {
+    const siteConfig = await loadSiteConfig();
     const newArticleComponents = await loadDraftComponents(adminNewArticleComponentsPath);
     const editorComponents = await loadDraftComponents(adminEditorComponentsPath);
+    const categoryComponents = await loadDraftComponents(adminCategoriesComponentsPath);
+    const tagComponents = await loadDraftComponents(adminTagsComponentsPath);
+    const articleDetailSource = siteConfig.runtime.dataSources.find((source) => source.id === 'content_hub_article_detail');
+    assert.equal(
+      articleDetailSource?.mapper?.fields?.articleContent?.path,
+      'articleContent',
+      'article detail mapper must expose editable rich text content to draft components',
+    );
 
     const newCategory = findComponentById(newArticleComponents, 'newArticleCategory');
     assert.equal(newCategory?.config?.controlType, 'select');
@@ -285,5 +296,19 @@ describe('Zoosite content hub admin bindings', () => {
 
     const editorTags = findComponentById(editorComponents, 'editorTagsInput');
     assert.deepEqual(editorTags?.config?.autocompleteOptions, newTags?.config?.autocompleteOptions);
+
+    const editorRichText = findComponentById(editorComponents, 'articleRichText');
+    assert.equal(
+      editorRichText?.valueInstructions,
+      'set:config.value,varOr,remote.contentHub.articleDetail.items.0.articleContent,',
+      'article editor rich text must hydrate from articleDetail package content',
+    );
+
+    const categoriesTable = findComponentById(categoryComponents, 'categoriesTable');
+    const tagsTable = findComponentById(tagComponents, 'tagsTable');
+    assert.equal(categoriesTable?.config?.rowsSource?.path, 'remote.contentHub.categories.items');
+    assert.equal(tagsTable?.config?.rowsSource?.path, 'remote.contentHub.tags.items');
+    assert.equal(categoriesTable?.config?.columns?.some((column) => column.id === 'kind'), false);
+    assert.equal(tagsTable?.config?.columns?.some((column) => column.id === 'kind'), false);
   });
 });
