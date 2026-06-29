@@ -397,8 +397,24 @@ test('production SSR server redirects primary canonical hosts from proxy-forward
 });
 
 test('production SSR exposes Zoosite content hub SEO sitemap feed and search', async (t) => {
-  const siteConfig = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'site-config.json'), 'utf8'));
-  siteConfig.runtime.contentHubs[0].publicArticles.push({
+  const localSiteConfig = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'site-config.json'), 'utf8'));
+  const runtimeSiteConfig = JSON.parse(JSON.stringify(localSiteConfig));
+  runtimeSiteConfig.runtime.contentHubs[0].publicArticles.push({
+    articleId: 'art_runtime_only_public_fixture',
+    locale: 'es',
+    status: 'published',
+    visibility: 'public',
+    title: 'Runtime Dynamic SEO Article',
+    summary: 'Artículo publicado dinámicamente desde runtime para búsqueda pública.',
+    path: '/blog/web/runtime-dynamic-seo',
+    categorySlug: 'web',
+    tags: ['runtime', 'seo'],
+    publishedAt: '2026-06-28T12:00:00.000Z',
+    updatedAt: '2026-06-28T12:30:00.000Z',
+    canonicalPath: '/blog/web/runtime-dynamic-seo',
+    robots: 'index,follow',
+  });
+  runtimeSiteConfig.runtime.contentHubs[0].publicArticles.push({
     articleId: 'art_private_runtime_fixture',
     locale: 'es',
     status: 'published',
@@ -423,7 +439,7 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
           domain: 'zoositioweb.com.mx',
           pageId: 'not-found',
           sourceStage: 'published',
-          siteConfig,
+          siteConfig: runtimeSiteConfig,
           route: { path: '/404', pageId: 'not-found' },
           metadata: { statusCode: 404, notFound: true },
         }));
@@ -439,7 +455,7 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
         pageId,
         sourceStage: 'published',
         lang,
-        siteConfig,
+        siteConfig: runtimeSiteConfig,
         pageConfig: {
           version: 1,
           domain: 'zoositioweb.com.mx',
@@ -472,7 +488,7 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
 
     if (url.pathname === '/site-config') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(siteConfig));
+      res.end(JSON.stringify(localSiteConfig));
       return;
     }
 
@@ -495,6 +511,7 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.equal(sitemapResponse.status, 200);
   assert.match(sitemap, /https:\/\/zoositioweb\.com\.mx\/blog\/web<\/loc>/);
   assert.match(sitemap, /https:\/\/zoositioweb\.com\.mx\/blog\/web\/blog-builder-seo<\/loc>/);
+  assert.match(sitemap, /https:\/\/zoositioweb\.com\.mx\/blog\/web\/runtime-dynamic-seo<\/loc>/);
   assert.doesNotMatch(sitemap, /privado-no-publicable/);
   assert.doesNotMatch(sitemap, /\/admin\/blog/);
   assertNoContentHubOperationalLeak(sitemap);
@@ -504,7 +521,9 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.equal(feedResponse.status, 200);
   assert.match(feedResponse.headers.get('content-type') ?? '', /application\/rss\+xml/);
   assert.match(feed, /Cómo crear blogs visuales con Zoolandingpage/);
+  assert.match(feed, /Runtime Dynamic SEO Article/);
   assert.match(feed, /https:\/\/zoositioweb\.com\.mx\/blog\/web\/blog-builder-seo/);
+  assert.match(feed, /https:\/\/zoositioweb\.com\.mx\/blog\/web\/runtime-dynamic-seo/);
   assert.doesNotMatch(feed, /Privado no publicable/);
   assertNoContentHubOperationalLeak(feed);
 
@@ -521,10 +540,19 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   const aliasFilterSearch = await aliasFilterResponse.json();
   assert.equal(aliasFilterResponse.status, 200);
   assert.equal(aliasFilterSearch.ok, true);
-  assert.equal(aliasFilterSearch.count, 1);
+  assert.equal(aliasFilterSearch.count, 2);
   assert.equal(aliasFilterSearch.articles[0].categorySlug, 'web');
   assert.deepEqual(aliasFilterSearch.articles[0].tags, ['seo', 'builder', 'angora']);
+  assert.equal(aliasFilterSearch.articles.some((article) => article.path === '/blog/web/runtime-dynamic-seo'), true);
   assertNoContentHubOperationalLeak(JSON.stringify(aliasFilterSearch));
+
+  const runtimeSearchResponse = await fetch(`http://127.0.0.1:${port}/content-hub-search.json?lang=es&q=runtime`, { headers });
+  const runtimeSearch = await runtimeSearchResponse.json();
+  assert.equal(runtimeSearchResponse.status, 200);
+  assert.equal(runtimeSearch.ok, true);
+  assert.equal(runtimeSearch.count, 1);
+  assert.equal(runtimeSearch.articles[0].path, '/blog/web/runtime-dynamic-seo');
+  assertNoContentHubOperationalLeak(JSON.stringify(runtimeSearch));
 
   const previewHeaders = {
     ...headers,
@@ -550,6 +578,15 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.match(articleHtml, /"keywords":"seo, builder, angora"/);
   assert.match(articleHtml, /Cómo crear blogs visuales con Zoolandingpage/);
   assertNoContentHubOperationalLeak(extractJsonLd(articleHtml));
+
+  const runtimeArticleResponse = await fetch(`http://127.0.0.1:${port}/blog/web/runtime-dynamic-seo?lang=es`, { headers });
+  const runtimeArticleHtml = await runtimeArticleResponse.text();
+  assert.equal(runtimeArticleResponse.status, 200);
+  assert.match(runtimeArticleHtml, /<link rel="canonical" href="https:\/\/zoositioweb\.com\.mx\/blog\/web\/runtime-dynamic-seo">/);
+  assert.match(runtimeArticleHtml, /"@type":"BlogPosting"/);
+  assert.match(runtimeArticleHtml, /Runtime Dynamic SEO Article/);
+  assert.match(runtimeArticleHtml, /"keywords":"runtime, seo"/);
+  assertNoContentHubOperationalLeak(extractJsonLd(runtimeArticleHtml));
 
   const privateArticleResponse = await fetch(`http://127.0.0.1:${port}/blog/web/privado-no-publicable?lang=es`, { headers });
   const privateArticleHtml = await privateArticleResponse.text();

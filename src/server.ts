@@ -1330,6 +1330,20 @@ async function loadSiteConfigForHost(domain: string, environment?: string): Prom
   return loadLocalSiteConfig(domain) ?? await loadRuntimeSiteConfig(domain, environment);
 }
 
+async function loadPublicContentHubSiteConfigForHost(domain: string, environment?: string): Promise<TLocalSiteConfig | null> {
+  if (environment === 'local') {
+    return loadSiteConfigForHost(domain, environment);
+  }
+
+  const localSiteConfig = loadLocalSiteConfig(domain);
+  const runtimeSiteConfig = await loadRuntimeSiteConfig(domain, environment);
+  if (hasPublicContentHubRuntimeEntries(runtimeSiteConfig)) {
+    return runtimeSiteConfig;
+  }
+
+  return localSiteConfig ?? runtimeSiteConfig;
+}
+
 type THostHeaderValidationResult =
   | {
     readonly ok: true;
@@ -1765,6 +1779,12 @@ function resolveConfiguredSitemapUrls(
 function readContentHubRuntimeConfigs(siteConfig: TLocalSiteConfig | null): readonly TContentHubRuntimeConfig[] {
   const hubs = siteConfig?.runtime?.contentHubs;
   return Array.isArray(hubs) ? hubs.filter(isRecord) as readonly TContentHubRuntimeConfig[] : [];
+}
+
+function hasPublicContentHubRuntimeEntries(siteConfig: TLocalSiteConfig | null): boolean {
+  return readContentHubRuntimeConfigs(siteConfig)
+    .some((hub) => (Array.isArray(hub.publicArticles) && hub.publicArticles.length > 0)
+      || (Array.isArray(hub.publicTaxonomy) && hub.publicTaxonomy.length > 0));
 }
 
 function readPublicContentHubArticles(
@@ -2528,10 +2548,11 @@ async function decorateHtmlResponse(req: express.Request, response: Response): P
   const lookupDomain = resolveNotFoundLookupDomain(req, host);
   const environment = resolveRuntimeEnvironment(host);
   const siteConfig = await loadSiteConfigForHost(lookupDomain, environment);
+  const publicContentHubSiteConfig = await loadPublicContentHubSiteConfigForHost(lookupDomain, environment);
   const requestPageConfig = await loadPageConfigForRequest(req, lookupDomain, siteConfig);
   const pageConfig = response.status === 404
     ? requestPageConfig
-    : withContentHubSeoPageConfig(req, lookupDomain, siteConfig, requestPageConfig);
+    : withContentHubSeoPageConfig(req, lookupDomain, publicContentHubSiteConfig, requestPageConfig);
   const headers = new Headers(response.headers);
   headers.delete('content-length');
   applyProtectedHtmlCacheHeaders(headers, siteConfig, req.path);
@@ -2760,21 +2781,21 @@ app.get('/robots.txt', async (req, res) => {
 app.get('/sitemap.xml', async (req, res) => {
   const host = resolveRequestHost(req);
   const lookupDomain = resolveNotFoundLookupDomain(req, host);
-  const siteConfig = await loadSiteConfigForHost(lookupDomain, resolveRuntimeEnvironment(host));
+  const siteConfig = await loadPublicContentHubSiteConfigForHost(lookupDomain, resolveRuntimeEnvironment(host));
   res.type('application/xml').send(await buildSitemapXml(req, lookupDomain, siteConfig));
 });
 
 app.get(['/feed.xml', '/rss.xml', '/atom.xml'], async (req, res) => {
   const host = resolveRequestHost(req);
   const lookupDomain = resolveNotFoundLookupDomain(req, host);
-  const siteConfig = await loadSiteConfigForHost(lookupDomain, resolveRuntimeEnvironment(host));
+  const siteConfig = await loadPublicContentHubSiteConfigForHost(lookupDomain, resolveRuntimeEnvironment(host));
   res.type('application/rss+xml').send(buildRssFeedXml(req, lookupDomain, siteConfig));
 });
 
 app.get('/content-hub-search.json', async (req, res) => {
   const host = resolveRequestHost(req);
   const lookupDomain = resolveNotFoundLookupDomain(req, host);
-  const siteConfig = await loadSiteConfigForHost(lookupDomain, resolveRuntimeEnvironment(host));
+  const siteConfig = await loadPublicContentHubSiteConfigForHost(lookupDomain, resolveRuntimeEnvironment(host));
   res
     .status(200)
     .type('application/json')
