@@ -100,7 +100,10 @@ Supported action bindings:
 - `uploadAsset`
 - `validate`
 - `submitReview`
+- `approveArticle`
 - `publish`
+- `unpublishArticle`
+- `archiveArticle`
 - `schedule`
 - `moderateComment`
 - `restoreRevision`

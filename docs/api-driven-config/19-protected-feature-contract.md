@@ -37,7 +37,7 @@ The BFF reuses auth-admin server-cookie sessions:
 
 Initial reads are `articleList`, `articleDetail`, `taxonomyList`, `assetList`, `revisionList`, `moderationQueue`, and `publicBundlePreview`.
 
-Initial actions are `createArticle`, `updatePackage`, `validate`, `submitReview`, `publish`, `schedule`, `uploadAsset`, `moderateComment`, and `restoreRevision`.
+Initial actions are `createArticle`, `updatePackage`, `validate`, `submitReview`, `approveArticle`, `publish`, `unpublishArticle`, `archiveArticle`, `schedule`, `uploadAsset`, `moderateComment`, and `restoreRevision`.
 
 Publishing creates validated internal content-hub published bundles in BFF-owned storage. Public Angular SEO indexes (`runtime.contentHubs.publicArticles` and `publicTaxonomy`) still need the runtime-read/public-index bridge before newly published BFF content automatically appears in public blog routes, sitemap, feeds, and search JSON.
 

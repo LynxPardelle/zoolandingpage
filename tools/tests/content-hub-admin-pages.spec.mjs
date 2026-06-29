@@ -400,6 +400,30 @@ describe('Zoosite blog admin draft pages', () => {
     assert.equal(seoArticleId?.valueInstructions, 'set:config.value,routeParamOr,id,');
     assert.ok(componentById(seoComponents, 'seoArticleIdGuidance'));
     assert.ok(componentById(seoComponents, 'seoActionIdle'));
+    for (const [componentId, actionId] of [
+      ['seoSubmitReviewButton', 'content_hub_submit_review_article'],
+      ['seoApproveButton', 'content_hub_approve_article'],
+      ['seoPublishButton', 'content_hub_publish_article'],
+      ['seoUnpublishButton', 'content_hub_unpublish_article'],
+      ['seoArchiveButton', 'content_hub_archive_article'],
+    ]) {
+      const button = componentById(seoComponents, componentId);
+      assert.equal(button?.type, 'button', `${componentId} must be a draft-composed generic button`);
+      assert.equal(button?.eventInstructions, `proxyAction:${actionId}`);
+      assert.equal(button?.config?.disabledWhenInvalidScope, false);
+    }
+    for (const componentId of [
+      'seoSubmitReviewError',
+      'seoApproveError',
+      'seoPublishError',
+      'seoUnpublishError',
+      'seoArchiveError',
+    ]) {
+      const component = componentById(seoComponents, componentId);
+      assert.equal(component?.type, 'text', `${componentId} must be a safe text status`);
+      assert.equal(String(component?.valueInstructions ?? '').includes('.error'), false, `${componentId} must not expose raw backend errors`);
+      assert.match(component?.config?.text ?? '', /art[ií]culo|permisos|sesi[oó]n/iu);
+    }
 
     const scheduledArticleId = componentById(scheduledComponents, 'scheduledArticleId');
     assert.equal(scheduledArticleId?.config?.readOnly, true);

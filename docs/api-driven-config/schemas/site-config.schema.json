@@ -522,7 +522,7 @@
       "properties": {
         "action": {
           "type": "string",
-          "enum": ["createArticle", "updatePackage", "upsertTaxonomy", "uploadAsset", "validate", "submitReview", "publish", "schedule", "queueComment", "moderateComment", "recordInteraction", "restoreRevision"]
+          "enum": ["createArticle", "updatePackage", "upsertTaxonomy", "uploadAsset", "validate", "submitReview", "approveArticle", "publish", "unpublishArticle", "archiveArticle", "schedule", "queueComment", "moderateComment", "recordInteraction", "restoreRevision"]
         },
         "hubId": { "$ref": "#/definitions/contentHubSafeId" },
         "articleId": { "$ref": "#/definitions/contentHubSafeId" },
