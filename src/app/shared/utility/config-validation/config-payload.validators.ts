@@ -147,6 +147,7 @@ const ALLOWED_CONTENT_HUB_READS = new Set([
     'moderationQueue',
     'assetList',
     'revisionList',
+    'scheduleList',
     'publicBundlePreview',
 ]);
 const ALLOWED_CONTENT_HUB_ACTIONS = new Set([
@@ -156,8 +157,12 @@ const ALLOWED_CONTENT_HUB_ACTIONS = new Set([
     'uploadAsset',
     'validate',
     'submitReview',
+    'approveArticle',
     'publish',
+    'unpublishArticle',
+    'archiveArticle',
     'schedule',
+    'cancelSchedule',
     'queueComment',
     'moderateComment',
     'recordInteraction',
@@ -1180,6 +1185,7 @@ const isContentHubRuntimeArticleSummary = (value: unknown): boolean => {
         'path',
         'categorySlug',
         'tags',
+        'visibility',
         'publishedAt',
         'updatedAt',
         'authorLabel',
@@ -1194,6 +1200,7 @@ const isContentHubRuntimeArticleSummary = (value: unknown): boolean => {
     if (!isSafeSameOriginPath(value['path'])) return false;
     if (value['categorySlug'] !== undefined && !isContentHubSafeId(value['categorySlug'])) return false;
     if (value['tags'] !== undefined && (!Array.isArray(value['tags']) || !value['tags'].every(isContentHubSafeId))) return false;
+    if (value['visibility'] !== undefined && value['visibility'] !== 'public') return false;
     if (typeof value['publishedAt'] !== 'string' || Number.isNaN(Date.parse(value['publishedAt']))) return false;
     if (value['updatedAt'] !== undefined && (typeof value['updatedAt'] !== 'string' || Number.isNaN(Date.parse(value['updatedAt'])))) return false;
     if (value['authorLabel'] !== undefined && typeof value['authorLabel'] !== 'string') return false;

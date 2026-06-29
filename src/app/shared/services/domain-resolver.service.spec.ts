@@ -23,6 +23,26 @@ describe('DomainResolverService', () => {
     });
   });
 
+  it('uses the canonical Zoolanding domain on the shared testing host without a draftDomain', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        DomainResolverService,
+        { provide: PLATFORM_ID, useValue: 'server' },
+        {
+          provide: REQUEST,
+          useValue: new Request('https://test.zoolandingpage.com.mx/'),
+        },
+      ],
+    });
+
+    const service = TestBed.inject(DomainResolverService);
+
+    expect(service.resolveDomain()).toEqual({
+      domain: 'zoolandingpage.com.mx',
+      source: 'urlHost',
+    });
+  });
+
   it('ignores REQUEST draftDomain query params on branded production hosts', () => {
     TestBed.configureTestingModule({
       providers: [

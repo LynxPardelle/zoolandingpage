@@ -270,6 +270,100 @@ describe('ConfigSourceService', () => {
         expect(api.getRuntimeBundle.calls.count()).toBe(1);
     });
 
+    it('keeps runtime bundle cache entries separate for the same page id on different paths', async () => {
+        const service = TestBed.inject(ConfigSourceService);
+        const api = TestBed.inject(ConfigApiService) as jasmine.SpyObj<ConfigApiService>;
+        api.getRuntimeBundle.and.callFake((_domain: string, options?: { readonly path?: string }) => Promise.resolve(createRuntimeBundle({
+            pageId: 'blog-article',
+            pageConfig: {
+                ...pageConfigPayload,
+                pageId: 'blog-article',
+                rootIds: [options?.path === '/blog/web/two' ? 'twoRoot' : 'oneRoot'],
+            },
+            metadata: {
+                requestId: 'req-path',
+                requestedDomain: 'alecfest-voliii.zoolandingpage.com.mx',
+                resolvedAlias: 'alecfest-voliii.zoolandingpage.com.mx',
+                resolvedPath: options?.path,
+            },
+        })));
+
+        const first = await service.loadPageConfig('alecfest-voliii.zoolandingpage.com.mx', 'blog-article', {
+            path: '/blog/web/one',
+        });
+        const second = await service.loadPageConfig('alecfest-voliii.zoolandingpage.com.mx', 'blog-article', {
+            path: '/blog/web/two',
+        });
+
+        expect(first?.rootIds).toEqual(['oneRoot']);
+        expect(second?.rootIds).toEqual(['twoRoot']);
+        expect(api.getRuntimeBundle.calls.count()).toBe(2);
+        expect(api.getRuntimeBundle.calls.allArgs().map(([, options]) => options?.path)).toEqual([
+            '/blog/web/one',
+            '/blog/web/two',
+        ]);
+    });
+
+    it('falls back to the legacy page payload when the route runtime bundle has no renderable roots', async () => {
+        const service = TestBed.inject(ConfigSourceService);
+        const api = TestBed.inject(ConfigApiService) as jasmine.SpyObj<ConfigApiService>;
+        const fallbackPageConfig: TPageConfigPayload = {
+            ...pageConfigPayload,
+            pageId: 'blog-article',
+            rootIds: ['articleShell'],
+        };
+
+        api.getRuntimeBundle.and.resolveTo(createRuntimeBundle({
+            pageId: 'blog-article',
+            pageConfig: {
+                ...pageConfigPayload,
+                pageId: 'blog-article',
+                rootIds: [],
+            },
+        }));
+        api.getPageConfig.and.resolveTo(fallbackPageConfig);
+
+        const result = await service.loadPageConfig('alecfest-voliii.zoolandingpage.com.mx', 'blog-article', {
+            path: '/blog/web/runtime-only',
+        });
+
+        expect(result).toEqual(fallbackPageConfig);
+        expect(api.getPageConfig).toHaveBeenCalledWith('alecfest-voliii.zoolandingpage.com.mx', 'blog-article');
+    });
+
+    it('falls back to the legacy component payload when the route runtime bundle has no renderable components', async () => {
+        const service = TestBed.inject(ConfigSourceService);
+        const api = TestBed.inject(ConfigApiService) as jasmine.SpyObj<ConfigApiService>;
+        const fallbackComponents: TComponentsPayload = {
+            ...componentsPayload,
+            pageId: 'blog-article',
+            components: [
+                {
+                    id: 'articleShell',
+                    type: 'container',
+                    config: { components: [] },
+                },
+            ],
+        };
+
+        api.getRuntimeBundle.and.resolveTo(createRuntimeBundle({
+            pageId: 'blog-article',
+            components: {
+                ...componentsPayload,
+                pageId: 'blog-article',
+                components: [],
+            },
+        }));
+        api.getComponents.and.resolveTo(fallbackComponents);
+
+        const result = await service.loadComponents('alecfest-voliii.zoolandingpage.com.mx', 'blog-article', {
+            path: '/blog/web/runtime-only',
+        });
+
+        expect(result).toEqual(fallbackComponents);
+        expect(api.getComponents).toHaveBeenCalledWith('alecfest-voliii.zoolandingpage.com.mx', 'blog-article');
+    });
+
     it('reuses the alias runtime bundle when a site-config request resolves the canonical page identity', async () => {
         const service = TestBed.inject(ConfigSourceService);
         const api = TestBed.inject(ConfigApiService) as jasmine.SpyObj<ConfigApiService>;
@@ -350,6 +444,16 @@ describe('ConfigSourceService', () => {
             'test',
             'test',
         ]);
+    });
+
+    it('loads the canonical Zoolanding bundle directly on the shared testing host', async () => {
+        const service = TestBed.inject(ConfigSourceService);
+        spyOn<any>(service, 'isSharedTestingPreviewHost').and.returnValue(true);
+
+        const api = TestBed.inject(ConfigApiService) as jasmine.SpyObj<ConfigApiService>;
+        await service.loadSiteConfig('zoolandingpage.com.mx');
+
+        expect(api.getRuntimeBundle.calls.allArgs().map(([domain]) => domain)).toEqual(['zoolandingpage.com.mx']);
     });
 
     it('reuses the hydrated site config instead of calling the legacy site-config endpoint when the browser runtime bundle request fails', async () => {

@@ -107,6 +107,49 @@ test('content hub analytics events are blog-prefixed and forbid raw user payload
   ]);
 });
 
+test('content hub role policies cover product blog roles and action-scoped permissions', () => {
+  const plan = buildContentHubLocalContractPlan();
+  const policies = new Map((plan.rolePolicies ?? []).map((policy) => [policy.roleId, policy]));
+
+  for (const roleId of [
+    'hub-admin',
+    'blog-admin',
+    'blog-editor',
+    'blog-publisher',
+    'blog-reviewer',
+    'blog-moderator',
+    'blog-media-manager',
+    'blog-analyst',
+  ]) {
+    assert.ok(policies.has(roleId), `missing blog role policy ${roleId}`);
+    assert.ok(policies.get(roleId).groups.length > 0, `${roleId} must map to at least one auth group`);
+    assert.ok(policies.get(roleId).permissions.length > 0, `${roleId} must have action-scoped permissions`);
+  }
+
+  assert.ok(policies.get('blog-editor').permissions.includes('blog:article:update'));
+  assert.ok(policies.get('blog-publisher').permissions.includes('blog:article:publish'));
+  assert.ok(policies.get('blog-admin').permissions.includes('blog:taxonomy:read'));
+  assert.ok(policies.get('blog-admin').permissions.includes('blog:media:read'));
+  assert.ok(policies.get('blog-admin').permissions.includes('blog:moderation:read'));
+  assert.ok(policies.get('blog-editor').permissions.includes('blog:taxonomy:read'));
+  assert.ok(policies.get('blog-editor').permissions.includes('blog:media:read'));
+  assert.ok(policies.get('blog-moderator').permissions.includes('blog:moderation:moderate'));
+  assert.ok(policies.get('blog-moderator').permissions.includes('blog:moderation:read'));
+  assert.ok(policies.get('blog-media-manager').permissions.includes('blog:media:manage'));
+  assert.ok(policies.get('blog-media-manager').permissions.includes('blog:media:read'));
+  assert.ok(policies.get('blog-analyst').permissions.includes('blog:analytics:read'));
+  assert.deepEqual(policies.get('blog-editor').groups, ['zoosite-admin', 'zoosite-blog-editor']);
+  assert.deepEqual(policies.get('blog-publisher').groups, ['zoosite-admin', 'zoosite-blog-publisher']);
+  assert.deepEqual(policies.get('blog-moderator').groups, ['zoosite-admin', 'zoosite-blog-moderator']);
+  assert.deepEqual(policies.get('blog-media-manager').groups, ['zoosite-admin', 'zoosite-blog-media']);
+  assert.deepEqual(policies.get('blog-analyst').groups, ['zoosite-admin', 'zoosite-blog-analyst']);
+
+  for (const policy of policies.values()) {
+    assert.equal(policy.permissions.some((permission) => permission.includes('*')), false, `${policy.roleId} must not use wildcard permissions`);
+    assert.equal(policy.groups.includes('zoosite-client'), false, `${policy.roleId} must not grant blog admin permissions to client users`);
+  }
+});
+
 test('content hub harness rejects unsafe IDs before building a plan', () => {
   assert.throws(() => buildContentHubLocalContractPlan({ hubId: '../bad' }), /hubId/);
   assert.throws(() => buildContentHubLocalContractPlan({ renderDomain: '../bad' }), /renderDomain/);
@@ -119,6 +162,14 @@ test('content hub validator catches missing families and unsafe IAM changes', ()
   const broken = {
     ...plan,
     dynamoLayout: plan.dynamoLayout.filter((item) => item.itemFamily !== 'LOCK'),
+    rolePolicies: [
+      ...plan.rolePolicies.filter((policy) => policy.roleId !== 'blog-editor'),
+      {
+        roleId: 'bad-role',
+        groups: ['outside-group'],
+        permissions: ['blog:article:*'],
+      },
+    ],
     iamBoundaries: [
       ...plan.iamBoundaries,
       {
@@ -137,6 +188,9 @@ test('content hub validator catches missing families and unsafe IAM changes', ()
   assert.match(validation.errors.join('\n'), /Wildcard IAM action/);
   assert.match(validation.errors.join('\n'), /Secret store IAM action/);
   assert.match(validation.errors.join('\n'), /reject secrets/);
+  assert.match(validation.errors.join('\n'), /blog-editor/);
+  assert.match(validation.errors.join('\n'), /wildcards/);
+  assert.match(validation.errors.join('\n'), /Role policy group is not allowed/);
 });
 
 test('zoosite seed article fixture validates the first local no-AWS authoring lifecycle', async () => {

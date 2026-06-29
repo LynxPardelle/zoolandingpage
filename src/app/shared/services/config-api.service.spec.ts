@@ -175,6 +175,36 @@ describe('ConfigApiService', () => {
         expect(requestUrl).toContain('domain=zoositioweb.com.mx');
     });
 
+    it('lets SSR disable the runtime fallback when the server fallback env var is explicitly empty', async () => {
+        (environment as { configApiUrl: string }).configApiUrl = 'https://api.zoolandingpage.com.mx';
+        (environment as { configApiServerFallbackUrls?: Record<string, string> }).configApiServerFallbackUrls = {
+            production: 'https://prod-runtime.example.com/Prod',
+        };
+
+        const http = jasmine.createSpyObj<HttpClient>('HttpClient', ['get']);
+        http.get.and.returnValue(of(runtimeBundlePayload));
+
+        TestBed.configureTestingModule({
+            providers: [
+                ConfigApiService,
+                { provide: HttpClient, useValue: http },
+                { provide: REQUEST, useValue: { url: 'https://zoositioweb.com.mx/blog/web/runtime-dynamic-seo' } },
+            ],
+        });
+
+        const service = TestBed.inject(ConfigApiService);
+        spyOn<any>(service, 'hasServerEnv').and.callFake((name: string) => name === 'CONFIG_API_SERVER_FALLBACK_URL');
+        spyOn<any>(service, 'readServerEnv').and.callFake((name: string) => name === 'CONFIG_API_URL'
+            ? 'https://runtime-test.example.com'
+            : '');
+        await service.getRuntimeBundle('zoositioweb.com.mx', { path: '/blog/web/runtime-dynamic-seo', lang: 'es' });
+
+        expect(http.get).toHaveBeenCalledTimes(1);
+        const requestUrl = String(http.get.calls.mostRecent().args[0]);
+        expect(requestUrl).toContain('https://runtime-test.example.com/runtime-bundle');
+        expect(requestUrl).not.toContain('prod-runtime.example.com');
+    });
+
     it('uses local draft runtime endpoints first for localhost SSR draft previews', async () => {
         (environment as { configApiUrl: string }).configApiUrl = 'https://api.zoolandingpage.com.mx';
         (environment as { configApiServerFallbackUrl?: string }).configApiServerFallbackUrl =

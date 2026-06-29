@@ -1111,6 +1111,7 @@ describe('config-payload.validators', () => {
                                 path: '/blog/web/blog-builder-seo',
                                 categorySlug: 'web',
                                 tags: ['seo', 'builder'],
+                                visibility: 'public',
                                 publishedAt: '2026-06-21T15:00:00.000Z',
                                 updatedAt: '2026-06-21T15:00:00.000Z',
                                 authorLabel: 'Equipo zoositioweb',
@@ -1159,6 +1160,44 @@ describe('config-payload.validators', () => {
                         requiresUserGesture: true,
                         contentHub: {
                             action: 'publish',
+                            hubId: 'zoosite-main',
+                        },
+                    },
+                ],
+            },
+        };
+
+        expect(isDraftSiteConfigPayload(payload)).toBeTrue();
+    });
+
+    it('accepts content hub schedule list reads and cancel schedule actions', () => {
+        const payload = {
+            version: 1,
+            domain: 'zoositioweb.com.mx',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: minimalSiteConfig(),
+            runtime: {
+                dataSources: [
+                    {
+                        id: 'content-hub-schedules',
+                        kind: 'content-hub',
+                        proxySourceId: 'contentHubScheduleList',
+                        target: 'remote.contentHub.schedules',
+                        contentHub: {
+                            read: 'scheduleList',
+                            hubId: 'zoosite-main',
+                        },
+                    },
+                ],
+                apiActions: [
+                    {
+                        id: 'cancel-schedule',
+                        kind: 'content-hub',
+                        proxyActionId: 'contentHubCancelSchedule',
+                        inputFields: ['scheduleId'],
+                        requiresUserGesture: true,
+                        contentHub: {
+                            action: 'cancelSchedule',
                             hubId: 'zoosite-main',
                         },
                     },
@@ -1222,6 +1261,24 @@ describe('config-payload.validators', () => {
                 }],
             },
         })).withContext('server-only article key').toBeFalse();
+
+        expect(isDraftSiteConfigPayload({
+            ...base,
+            runtime: {
+                contentHubs: [{
+                    ...baseHub,
+                    publicArticles: [{
+                        articleId: 'art_20260620_blog_builder',
+                        locale: 'es',
+                        status: 'published',
+                        title: 'Artículo',
+                        path: '/blog/web/blog-builder-seo',
+                        visibility: 'private',
+                        publishedAt: '2026-06-21T15:00:00.000Z',
+                    }],
+                }],
+            },
+        })).withContext('non-public article visibility in publicArticles').toBeFalse();
     });
 
     it('rejects server-only content hub runtime data source and action fields', () => {

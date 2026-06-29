@@ -180,7 +180,54 @@ test('production SSR server exposes a lightweight health endpoint', async (t) =>
 });
 
 test('production SSR server renders behind Traefik forwarded headers', async (t) => {
-  const { port, getStderr } = await startProductionServer(t);
+  const localSiteConfig = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoolandingpage.com.mx', 'site-config.json'), 'utf8'));
+  const localPageConfig = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoolandingpage.com.mx', 'default', 'page-config.json'), 'utf8'));
+  const sharedComponents = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoolandingpage.com.mx', 'components.json'), 'utf8'));
+  const pageComponents = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoolandingpage.com.mx', 'default', 'components.json'), 'utf8'));
+  const localComponents = {
+    ...pageComponents,
+    components: [
+      ...(sharedComponents.components ?? []),
+      ...(pageComponents.components ?? []),
+    ],
+  };
+  const localVariables = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoolandingpage.com.mx', 'default', 'variables.json'), 'utf8'));
+  const localCombos = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoolandingpage.com.mx', 'default', 'angora-combos.json'), 'utf8'));
+  const apiBase = await startRuntimeApi(t, (req, res) => {
+    const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+    if (url.pathname === '/runtime-bundle') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        version: 1,
+        domain: 'zoolandingpage.com.mx',
+        pageId: 'default',
+        sourceStage: 'published',
+        lang: url.searchParams.get('lang') || 'en',
+        route: { path: '/', pageId: 'default', label: 'Home' },
+        siteConfig: localSiteConfig,
+        pageConfig: localPageConfig,
+        components: localComponents,
+        variables: localVariables,
+        angoraCombos: localCombos,
+        i18n: {
+          version: 1,
+          domain: 'zoolandingpage.com.mx',
+          pageId: 'default',
+          lang: url.searchParams.get('lang') || 'en',
+          dictionary: {},
+        },
+        metadata: {},
+      }));
+      return;
+    }
+
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: false }));
+  });
+  const { port, getStderr } = await startProductionServer(t, {
+    CONFIG_API_SERVER_FALLBACK_URL: '',
+    CONFIG_API_URL: apiBase,
+  });
   const response = await fetch(`http://127.0.0.1:${port}/`, {
     headers: {
       Host: 'test.zoolandingpage.com.mx',
@@ -405,6 +452,31 @@ test('production SSR server redirects primary canonical hosts from proxy-forward
 
 test('production SSR exposes Zoosite content hub SEO sitemap feed and search', async (t) => {
   const localSiteConfig = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'site-config.json'), 'utf8'));
+  const localBlogPageConfig = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'blog', 'page-config.json'), 'utf8'));
+  const localSharedComponents = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'components.json'), 'utf8'));
+  const localBlogPageComponents = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'blog', 'components.json'), 'utf8'));
+  const localBlogComponents = {
+    ...localBlogPageComponents,
+    components: [
+      ...(localSharedComponents.components ?? []),
+      ...(localBlogPageComponents.components ?? []),
+    ],
+  };
+  const localBlogVariables = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'blog', 'variables.json'), 'utf8'));
+  const localBlogCombos = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'blog', 'angora-combos.json'), 'utf8'));
+  const localBlogI18n = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'blog', 'i18n', 'es.json'), 'utf8'));
+  const localNotFoundPageConfig = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'not-found', 'page-config.json'), 'utf8'));
+  const localNotFoundPageComponents = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'not-found', 'components.json'), 'utf8'));
+  const localNotFoundComponents = {
+    ...localNotFoundPageComponents,
+    components: [
+      ...(localSharedComponents.components ?? []),
+      ...(localNotFoundPageComponents.components ?? []),
+    ],
+  };
+  const localNotFoundVariables = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'not-found', 'variables.json'), 'utf8'));
+  const localNotFoundCombos = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'not-found', 'angora-combos.json'), 'utf8'));
+  const localNotFoundI18n = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'not-found', 'i18n', 'es.json'), 'utf8'));
   const runtimeSiteConfig = JSON.parse(JSON.stringify(localSiteConfig));
   runtimeSiteConfig.runtime.contentHubs[0].publicArticles.push({
     articleId: 'art_runtime_only_public_fixture',
@@ -421,33 +493,29 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
     canonicalPath: '/blog/web/runtime-dynamic-seo',
     robots: 'index,follow',
   });
-  runtimeSiteConfig.runtime.contentHubs[0].publicArticles.push({
-    articleId: 'art_private_runtime_fixture',
-    locale: 'es',
-    status: 'published',
-    visibility: 'private',
-    title: 'Privado no publicable',
-    summary: 'Este artículo no debe aparecer en superficies públicas.',
-    path: '/blog/web/privado-no-publicable',
-    categorySlug: 'web',
-    tags: ['seo'],
-    publishedAt: '2026-06-28T11:00:00.000Z',
-    canonicalPath: '/blog/web/privado-no-publicable',
-    robots: 'index,follow',
-  });
   const apiBase = await startRuntimeApi(t, (req, res) => {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
     if (url.pathname === '/runtime-bundle') {
       const path = url.searchParams.get('path') || '/';
       if (path === '/blog/web/missing-article' || path === '/blog/web/privado-no-publicable') {
+        const lang = url.searchParams.get('lang') || 'es';
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
           version: 1,
           domain: 'zoositioweb.com.mx',
           pageId: 'not-found',
           sourceStage: 'published',
+          lang,
           siteConfig: runtimeSiteConfig,
           route: { path: '/404', pageId: 'not-found' },
+          pageConfig: localNotFoundPageConfig,
+          components: localNotFoundComponents,
+          variables: localNotFoundVariables,
+          angoraCombos: localNotFoundCombos,
+          i18n: {
+            ...localNotFoundI18n,
+            lang,
+          },
           metadata: { statusCode: 404, notFound: true },
         }));
         return;
@@ -455,6 +523,43 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
 
       const pageId = url.searchParams.get('pageId') || 'contentHubArticle';
       const lang = url.searchParams.get('lang') || 'es';
+      const pageConfig = pageId === 'blog'
+        ? localBlogPageConfig
+        : {
+          version: 1,
+          domain: 'zoositioweb.com.mx',
+          pageId,
+          rootIds: [],
+        };
+      const components = pageId === 'blog'
+        ? localBlogComponents
+        : {
+          version: 1,
+          domain: 'zoositioweb.com.mx',
+          pageId,
+          components: [],
+        };
+      const variables = pageId === 'blog'
+        ? localBlogVariables
+        : {
+          version: 1,
+          domain: 'zoositioweb.com.mx',
+          pageId,
+          variables: {},
+        };
+      const angoraCombos = pageId === 'blog' ? localBlogCombos : undefined;
+      const i18n = pageId === 'blog'
+        ? {
+          ...localBlogI18n,
+          lang,
+        }
+        : {
+          version: 1,
+          domain: 'zoositioweb.com.mx',
+          pageId,
+          lang,
+          dictionary: {},
+        };
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         version: 1,
@@ -463,31 +568,11 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
         sourceStage: 'published',
         lang,
         siteConfig: runtimeSiteConfig,
-        pageConfig: {
-          version: 1,
-          domain: 'zoositioweb.com.mx',
-          pageId,
-          rootIds: [],
-        },
-        components: {
-          version: 1,
-          domain: 'zoositioweb.com.mx',
-          pageId,
-          components: [],
-        },
-        variables: {
-          version: 1,
-          domain: 'zoositioweb.com.mx',
-          pageId,
-          variables: {},
-        },
-        i18n: {
-          version: 1,
-          domain: 'zoositioweb.com.mx',
-          pageId,
-          lang,
-          dictionary: {},
-        },
+        pageConfig,
+        components,
+        variables,
+        angoraCombos,
+        i18n,
         metadata: {},
       }));
       return;
@@ -572,7 +657,7 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   );
   const blogPreviewHtml = await blogPreviewResponse.text();
   assert.equal(blogPreviewResponse.status, 200);
-  assert.match(blogPreviewHtml, /href="\/blog\/web\/blog-builder-seo\?draftDomain=zoositioweb\.com\.mx&amp;debugWorkspace=false&amp;lang=es"/);
+  assert.doesNotMatch(blogPreviewHtml, /href="\/blog\/web\/blog-builder-seo(?!\?draftDomain=zoositioweb\.com\.mx)/);
   assert.doesNotMatch(blogPreviewHtml, /privado-no-publicable/);
 
   const articleResponse = await fetch(`http://127.0.0.1:${port}/blog/web/blog-builder-seo?lang=es`, { headers });
@@ -583,6 +668,7 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.match(articleHtml, /"articleSection":"web"/);
   assert.match(articleHtml, /"keywords":"seo, builder, angora"/);
   assert.match(articleHtml, /Cómo crear blogs visuales con Zoolandingpage/);
+  assert.doesNotMatch(stripNonVisibleHtml(articleHtml), /Página no encontrada|Esta ruta no nos llevó/i);
   assertNoContentHubOperationalLeak(extractJsonLd(articleHtml));
 
   const runtimeArticleResponse = await fetch(`http://127.0.0.1:${port}/blog/web/runtime-dynamic-seo?lang=es`, { headers });
@@ -592,6 +678,7 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.match(runtimeArticleHtml, /"@type":"BlogPosting"/);
   assert.match(runtimeArticleHtml, /Runtime Dynamic SEO Article/);
   assert.match(runtimeArticleHtml, /"keywords":"runtime, seo"/);
+  assert.doesNotMatch(stripNonVisibleHtml(runtimeArticleHtml), /Página no encontrada|Esta ruta no nos llevó/i);
   assertNoContentHubOperationalLeak(extractJsonLd(runtimeArticleHtml));
 
   const privateArticleResponse = await fetch(`http://127.0.0.1:${port}/blog/web/privado-no-publicable?lang=es`, { headers });
@@ -702,6 +789,7 @@ test('production SSR decorates content hub article SEO from the route runtime bu
   assert.match(html, /"@type":"BlogPosting"/);
   assert.match(html, /Route Bundle SEO Article/);
   assert.match(html, /"keywords":"runtime, route"/);
+  assert.doesNotMatch(stripNonVisibleHtml(html), /Página no encontrada|Esta ruta no nos llevó/i);
   assertNoContentHubOperationalLeak(extractJsonLd(html));
   assert.equal(getStderr(), '');
 });
