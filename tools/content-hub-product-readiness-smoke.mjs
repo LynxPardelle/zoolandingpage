@@ -36,6 +36,17 @@ function normalizeBaseUrl(value) {
   return baseUrl.replace(/\/+$/, '');
 }
 
+function urlWithPath(baseUrl, suffix) {
+  const normalized = normalizeBaseUrl(baseUrl);
+  const url = new URL(normalized);
+  const currentPath = url.pathname.replace(/\/+$/, '');
+  const suffixPath = `/${clean(suffix).replace(/^\/+/, '')}`;
+  url.pathname = currentPath.endsWith(suffixPath)
+    ? currentPath || '/'
+    : `${currentPath}${suffixPath}`.replace(/\/{2,}/g, '/');
+  return url;
+}
+
 function assertHttpsBaseUrl(value, flagName) {
   const baseUrl = normalizeBaseUrl(value);
   if (!baseUrl) {
@@ -86,7 +97,7 @@ function futureIso(date = new Date(), minutes = 60) {
 }
 
 function buildRuntimeBundleUrl({ runtimeBaseUrl, domain, pathName, lang, environment }) {
-  const url = new URL('/runtime-bundle', `${normalizeBaseUrl(runtimeBaseUrl)}/`);
+  const url = urlWithPath(runtimeBaseUrl, 'runtime-bundle');
   url.searchParams.set('domain', domain);
   url.searchParams.set('path', pathName);
   url.searchParams.set('lang', lang);
@@ -97,7 +108,7 @@ function buildRuntimeBundleUrl({ runtimeBaseUrl, domain, pathName, lang, environ
 }
 
 function buildPublicSearchUrl({ baseUrl, domain, lang, query, sharedPreview = true }) {
-  const url = new URL('/content-hub-search.json', `${normalizeBaseUrl(baseUrl)}/`);
+  const url = urlWithPath(baseUrl, 'content-hub-search.json');
   if (sharedPreview) {
     url.searchParams.set('draftDomain', domain);
   }

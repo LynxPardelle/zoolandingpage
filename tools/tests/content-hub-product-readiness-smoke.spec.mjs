@@ -35,7 +35,7 @@ test('cookieValue extracts csrf without exposing other cookies', () => {
 
 test('buildRuntimeBundleUrl preserves environment and article path', () => {
   const url = buildRuntimeBundleUrl({
-    runtimeBaseUrl: 'https://runtime.example.com/',
+    runtimeBaseUrl: 'https://runtime.example.com/Prod',
     domain: 'zoositioweb.com.mx',
     pathName: '/blog/qa/product-smoke',
     lang: 'es',
@@ -44,7 +44,22 @@ test('buildRuntimeBundleUrl preserves environment and article path', () => {
 
   assert.equal(
     url,
-    'https://runtime.example.com/runtime-bundle?domain=zoositioweb.com.mx&path=%2Fblog%2Fqa%2Fproduct-smoke&lang=es&environment=test',
+    'https://runtime.example.com/Prod/runtime-bundle?domain=zoositioweb.com.mx&path=%2Fblog%2Fqa%2Fproduct-smoke&lang=es&environment=test',
+  );
+});
+
+test('buildRuntimeBundleUrl accepts the full CloudFormation ApiUrl output without duplicating path', () => {
+  const url = buildRuntimeBundleUrl({
+    runtimeBaseUrl: 'https://jaay9p8gv5.execute-api.us-east-1.amazonaws.com/Prod/runtime-bundle',
+    domain: 'zoositioweb.com.mx',
+    pathName: '/blog/qa/product-smoke',
+    lang: 'es',
+    environment: 'test',
+  });
+
+  assert.equal(
+    url,
+    'https://jaay9p8gv5.execute-api.us-east-1.amazonaws.com/Prod/runtime-bundle?domain=zoositioweb.com.mx&path=%2Fblog%2Fqa%2Fproduct-smoke&lang=es&environment=test',
   );
 });
 
