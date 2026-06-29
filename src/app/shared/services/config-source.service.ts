@@ -18,11 +18,11 @@ import { LanguageService } from './language.service';
 
 type TConfigSource = {
     readonly loadSiteConfig: (domain: string) => Promise<TDraftSiteConfigPayload | null>;
-    readonly loadPageConfig: (domain: string, pageId: string) => Promise<TPageConfigPayload | null>;
-    readonly loadComponents: (domain: string, pageId: string) => Promise<TComponentsPayload | null>;
-    readonly loadVariables: (domain: string, pageId: string) => Promise<TVariablesPayload | null>;
-    readonly loadCombos: (domain: string, pageId: string) => Promise<TAngoraCombosPayload | null>;
-    readonly loadI18n: (domain: string, pageId: string, lang: string) => Promise<TI18nPayload | null>;
+    readonly loadPageConfig: (domain: string, pageId: string, opts?: { readonly path?: string }) => Promise<TPageConfigPayload | null>;
+    readonly loadComponents: (domain: string, pageId: string, opts?: { readonly path?: string }) => Promise<TComponentsPayload | null>;
+    readonly loadVariables: (domain: string, pageId: string, opts?: { readonly path?: string }) => Promise<TVariablesPayload | null>;
+    readonly loadCombos: (domain: string, pageId: string, opts?: { readonly path?: string }) => Promise<TAngoraCombosPayload | null>;
+    readonly loadI18n: (domain: string, pageId: string, lang: string, opts?: { readonly path?: string }) => Promise<TI18nPayload | null>;
 };
 
 @Injectable({ providedIn: 'root' })
@@ -59,16 +59,20 @@ export class ConfigSourceService {
             const bundle = await this.tryLoadRuntimeBundle(domain);
             return bundle?.siteConfig ?? this.resolveHydratedSiteConfig(domain) ?? this.legacyApiSource.loadSiteConfig(domain);
         },
-        loadPageConfig: async (domain, pageId) => {
-            const bundle = await this.tryLoadRuntimeBundle(domain, { pageId });
-            return bundle?.pageConfig ?? this.legacyApiSource.loadPageConfig(domain, pageId);
+        loadPageConfig: async (domain, pageId, opts) => {
+            const bundle = await this.tryLoadRuntimeBundle(domain, { pageId, path: opts?.path });
+            return this.isRenderablePageConfig(bundle?.pageConfig, pageId)
+                ? bundle.pageConfig
+                : this.legacyApiSource.loadPageConfig(domain, pageId);
         },
-        loadComponents: async (domain, pageId) => {
-            const bundle = await this.tryLoadRuntimeBundle(domain, { pageId });
-            return bundle?.components ?? this.legacyApiSource.loadComponents(domain, pageId);
+        loadComponents: async (domain, pageId, opts) => {
+            const bundle = await this.tryLoadRuntimeBundle(domain, { pageId, path: opts?.path });
+            return this.isRenderableComponentsPayload(bundle?.components, pageId)
+                ? bundle.components
+                : this.legacyApiSource.loadComponents(domain, pageId);
         },
-        loadVariables: async (domain, pageId) => {
-            const bundle = await this.tryLoadRuntimeBundle(domain, { pageId });
+        loadVariables: async (domain, pageId, opts) => {
+            const bundle = await this.tryLoadRuntimeBundle(domain, { pageId, path: opts?.path });
             if (bundle && Object.prototype.hasOwnProperty.call(bundle, 'variables')) {
                 return bundle.variables ?? null;
             }
@@ -76,8 +80,8 @@ export class ConfigSourceService {
             const resolved = this.resolveBundleIdentity(bundle, domain, pageId);
             return this.legacyApiSource.loadVariables(resolved.domain, resolved.pageId);
         },
-        loadCombos: async (domain, pageId) => {
-            const bundle = await this.tryLoadRuntimeBundle(domain, { pageId });
+        loadCombos: async (domain, pageId, opts) => {
+            const bundle = await this.tryLoadRuntimeBundle(domain, { pageId, path: opts?.path });
             if (bundle && Object.prototype.hasOwnProperty.call(bundle, 'angoraCombos')) {
                 return bundle.angoraCombos ?? null;
             }
@@ -85,8 +89,8 @@ export class ConfigSourceService {
             const resolved = this.resolveBundleIdentity(bundle, domain, pageId);
             return this.legacyApiSource.loadCombos(resolved.domain, resolved.pageId);
         },
-        loadI18n: async (domain, pageId, lang) => {
-            const bundle = await this.tryLoadRuntimeBundle(domain, { pageId, lang });
+        loadI18n: async (domain, pageId, lang, opts) => {
+            const bundle = await this.tryLoadRuntimeBundle(domain, { pageId, lang, path: opts?.path });
             return bundle?.i18n ?? this.legacyApiSource.loadI18n(domain, pageId, lang);
         },
     };
@@ -183,6 +187,22 @@ export class ConfigSourceService {
                 .map((entry) => String(entry ?? '').trim())
                 .filter(Boolean)
         ));
+    }
+
+    private isRenderablePageConfig(payload: TPageConfigPayload | null | undefined, pageId: string): payload is TPageConfigPayload {
+        const normalizedPageId = String(pageId ?? '').trim();
+        return !!payload
+            && String(payload.pageId ?? '').trim() === normalizedPageId
+            && Array.isArray(payload.rootIds)
+            && payload.rootIds.length > 0;
+    }
+
+    private isRenderableComponentsPayload(payload: TComponentsPayload | null | undefined, pageId: string): payload is TComponentsPayload {
+        const normalizedPageId = String(pageId ?? '').trim();
+        return !!payload
+            && String(payload.pageId ?? '').trim() === normalizedPageId
+            && Array.isArray(payload.components)
+            && payload.components.length > 0;
     }
 
     private collectRuntimeBundlePageIds(requestedPageId: string, payload: TRuntimeBundlePayload): readonly string[] {
@@ -490,24 +510,24 @@ export class ConfigSourceService {
         return this.source.loadSiteConfig(domain);
     }
 
-    loadPageConfig(domain: string, pageId: string): Promise<TPageConfigPayload | null> {
-        return this.source.loadPageConfig(domain, pageId);
+    loadPageConfig(domain: string, pageId: string, opts?: { readonly path?: string }): Promise<TPageConfigPayload | null> {
+        return this.source.loadPageConfig(domain, pageId, opts);
     }
 
-    loadComponents(domain: string, pageId: string): Promise<TComponentsPayload | null> {
-        return this.source.loadComponents(domain, pageId);
+    loadComponents(domain: string, pageId: string, opts?: { readonly path?: string }): Promise<TComponentsPayload | null> {
+        return this.source.loadComponents(domain, pageId, opts);
     }
 
-    loadVariables(domain: string, pageId: string): Promise<TVariablesPayload | null> {
-        return this.source.loadVariables(domain, pageId);
+    loadVariables(domain: string, pageId: string, opts?: { readonly path?: string }): Promise<TVariablesPayload | null> {
+        return this.source.loadVariables(domain, pageId, opts);
     }
 
-    loadCombos(domain: string, pageId: string): Promise<TAngoraCombosPayload | null> {
-        return this.source.loadCombos(domain, pageId);
+    loadCombos(domain: string, pageId: string, opts?: { readonly path?: string }): Promise<TAngoraCombosPayload | null> {
+        return this.source.loadCombos(domain, pageId, opts);
     }
 
-    loadI18n(domain: string, pageId: string, lang: string): Promise<TI18nPayload | null> {
-        return this.source.loadI18n(domain, pageId, lang);
+    loadI18n(domain: string, pageId: string, lang: string, opts?: { readonly path?: string }): Promise<TI18nPayload | null> {
+        return this.source.loadI18n(domain, pageId, lang, opts);
     }
 
     async prefetchRoute(domain: string, opts?: { pageId?: string; lang?: string; path?: string }): Promise<void> {

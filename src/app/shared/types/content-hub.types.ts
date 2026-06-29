@@ -22,6 +22,7 @@ export type TContentHubRuntimeReadKind =
     | 'moderationQueue'
     | 'assetList'
     | 'revisionList'
+    | 'scheduleList'
     | 'publicBundlePreview';
 export type TContentHubRuntimeActionKind =
     | 'createArticle'
@@ -35,6 +36,7 @@ export type TContentHubRuntimeActionKind =
     | 'unpublishArticle'
     | 'archiveArticle'
     | 'schedule'
+    | 'cancelSchedule'
     | 'queueComment'
     | 'moderateComment'
     | 'recordInteraction'
@@ -78,6 +80,7 @@ export type TContentHubRuntimeArticleSummary = {
     readonly path: string;
     readonly categorySlug?: string;
     readonly tags?: readonly string[];
+    readonly visibility?: 'public';
     readonly publishedAt: string;
     readonly updatedAt?: string;
     readonly authorLabel?: string;

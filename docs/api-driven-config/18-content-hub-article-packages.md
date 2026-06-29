@@ -91,6 +91,7 @@ Supported read bindings:
 - `moderationQueue`
 - `assetList`
 - `revisionList`
+- `scheduleList`
 - `publicBundlePreview`
 
 Supported action bindings:
@@ -105,6 +106,7 @@ Supported action bindings:
 - `unpublishArticle`
 - `archiveArticle`
 - `schedule`
+- `cancelSchedule`
 - `moderateComment`
 - `restoreRevision`
 
@@ -280,7 +282,7 @@ A schedule record must bind:
 - scheduled time and timezone
 - validation report pointer
 
-The protected BFF currently supports scheduled publish and scheduled unpublish intents. Draft UI must send `scheduleAction` as `publish` or `unpublish`; canceling an already queued schedule requires a future schedule-management action with a stable `scheduleId` and must not be simulated as an unpublish.
+The protected BFF supports listing schedules with `scheduleList`, scheduling publish/unpublish intents with `schedule`, and canceling a queued schedule with `cancelSchedule`. Draft UI must send `scheduleAction` as `publish` or `unpublish` for scheduling, and must send a stable `scheduleId` for cancellation; cancel must not be simulated as an unpublish.
 
 Revision storage should use snapshots plus deltas:
 

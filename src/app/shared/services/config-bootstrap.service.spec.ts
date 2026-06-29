@@ -311,7 +311,7 @@ describe('ConfigBootstrapService', () => {
             pageId: 'default',
         }));
 
-        expect(source.loadI18n.calls.allArgs()).toEqual([
+        expect(source.loadI18n.calls.allArgs().map((args) => args.slice(0, 3))).toEqual([
             ['zoolandingpage.com.mx', 'default', 'es'],
         ]);
         expect(setTimeoutSpy).toHaveBeenCalled();
@@ -321,7 +321,7 @@ describe('ConfigBootstrapService', () => {
         });
 
         scheduledFallback();
-        expect(source.loadI18n.calls.allArgs()).toEqual([
+        expect(source.loadI18n.calls.allArgs().map((args) => args.slice(0, 3))).toEqual([
             ['zoolandingpage.com.mx', 'default', 'es'],
             ['zoolandingpage.com.mx', 'default', 'en'],
         ]);

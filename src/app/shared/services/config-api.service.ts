@@ -168,6 +168,15 @@ export class ConfigApiService {
         return String(processLike?.env?.[name] ?? '').trim();
     }
 
+    private hasServerEnv(name: string): boolean {
+        if (!this.isServerRequest()) {
+            return false;
+        }
+
+        const processLike = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process;
+        return Object.prototype.hasOwnProperty.call(processLike?.env ?? {}, name);
+    }
+
     private resolveConfigApiBaseUrl(): string {
         return this.readServerEnv('CONFIG_API_URL') || String(environment.configApiUrl ?? environment.apiUrl ?? '').trim();
     }
@@ -176,9 +185,22 @@ export class ConfigApiService {
         const runtimeEnvironment = this.resolveRuntimeFallbackEnvironment(params);
         const serverFallbacks = environment.configApiServerFallbackUrls ?? {};
         const runtimeFallbacks = environment.configApiRuntimeFallbackUrls ?? {};
-        return this.readServerEnv('CONFIG_API_SERVER_FALLBACK_URL')
-            || this.readServerEnv('CONFIG_API_RUNTIME_FALLBACK_URL')
-            || String(serverFallbacks[runtimeEnvironment] ?? runtimeFallbacks[runtimeEnvironment] ?? '').trim()
+        const serverFallback = this.hasServerEnv('CONFIG_API_SERVER_FALLBACK_URL')
+            ? this.readServerEnv('CONFIG_API_SERVER_FALLBACK_URL')
+            : null;
+        const runtimeFallback = this.hasServerEnv('CONFIG_API_RUNTIME_FALLBACK_URL')
+            ? this.readServerEnv('CONFIG_API_RUNTIME_FALLBACK_URL')
+            : null;
+
+        if (serverFallback !== null) {
+            return serverFallback;
+        }
+
+        if (runtimeFallback !== null) {
+            return runtimeFallback;
+        }
+
+        return String(serverFallbacks[runtimeEnvironment] ?? runtimeFallbacks[runtimeEnvironment] ?? '').trim()
             || String(environment.configApiRuntimeFallbackUrl ?? environment.configApiServerFallbackUrl ?? '').trim();
     }
 
