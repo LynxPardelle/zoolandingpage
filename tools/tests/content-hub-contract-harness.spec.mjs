@@ -140,7 +140,9 @@ test('content hub role policies cover product blog roles and action-scoped permi
   assert.ok(policies.get('blog-analyst').permissions.includes('blog:analytics:read'));
   assert.deepEqual(policies.get('blog-editor').groups, ['zoosite-admin', 'zoosite-blog-editor']);
   assert.deepEqual(policies.get('blog-publisher').groups, ['zoosite-admin', 'zoosite-blog-publisher']);
+  assert.deepEqual(policies.get('blog-moderator').groups, ['zoosite-admin', 'zoosite-blog-moderator']);
   assert.deepEqual(policies.get('blog-media-manager').groups, ['zoosite-admin', 'zoosite-blog-media']);
+  assert.deepEqual(policies.get('blog-analyst').groups, ['zoosite-admin', 'zoosite-blog-analyst']);
 
   for (const policy of policies.values()) {
     assert.equal(policy.permissions.some((permission) => permission.includes('*')), false, `${policy.roleId} must not use wildcard permissions`);

@@ -13,6 +13,8 @@ const CONTENT_HUB_AUTH_PROFILE_ALLOWED_GROUPS = Object.freeze([
   'zoosite-blog-editor',
   'zoosite-blog-publisher',
   'zoosite-blog-media',
+  'zoosite-blog-moderator',
+  'zoosite-blog-analyst',
 ]);
 const CONTENT_HUB_ROLE_GROUPS = new Set(CONTENT_HUB_AUTH_PROFILE_ALLOWED_GROUPS.filter((group) => group !== 'zoosite-client'));
 
@@ -211,7 +213,7 @@ export const CONTENT_HUB_ROLE_POLICIES = Object.freeze([
   },
   {
     roleId: 'blog-moderator',
-    groups: ['zoosite-admin'],
+    groups: ['zoosite-admin', 'zoosite-blog-moderator'],
     permissions: [
       'blog:article:read',
       'blog:moderation:read',
@@ -229,7 +231,7 @@ export const CONTENT_HUB_ROLE_POLICIES = Object.freeze([
   },
   {
     roleId: 'blog-analyst',
-    groups: ['zoosite-admin'],
+    groups: ['zoosite-admin', 'zoosite-blog-analyst'],
     permissions: [
       'blog:article:read',
       'blog:analytics:read',
