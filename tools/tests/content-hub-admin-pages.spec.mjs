@@ -5,6 +5,7 @@ import path from 'node:path';
 
 const repoRoot = process.cwd();
 const draftRoot = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx');
+const qaChecklistPath = path.join(draftRoot, 'qa', 'admin-blog-qa-checklist.md');
 
 const pageIds = [
   'admin-blog',
@@ -64,6 +65,30 @@ const forbiddenPublicKeys = [
   'signedUrl',
 ];
 
+const productReadinessBlocks = [
+  'Editorial lifecycle',
+  'Blog roles and permissions',
+  'Rich text and component builder stability',
+  'Visual component catalog and advanced mode',
+  'Taxonomy product UX',
+  'Media lifecycle',
+  'Scheduling and revision history',
+  'Public interactions and moderation',
+  'SEO product completion',
+  'Analytics productization',
+  'Operations, observability, and audit',
+  'Full QA, release, and product readiness',
+];
+
+function sectionBody(markdown, heading) {
+  const lines = markdown.split(/\r?\n/u);
+  const headingLine = `## ${heading}`;
+  const start = lines.findIndex((line) => line.trim() === headingLine);
+  if (start === -1) return '';
+  const end = lines.findIndex((line, index) => index > start && line.startsWith('## '));
+  return lines.slice(start + 1, end === -1 ? undefined : end).join('\n');
+}
+
 async function readJson(relativePath) {
   return JSON.parse(await readFile(path.join(draftRoot, relativePath), 'utf8'));
 }
@@ -81,6 +106,19 @@ function componentById(components, id) {
 }
 
 describe('Zoosite blog admin draft pages', () => {
+  it('keeps the Zoosite blog QA checklist aligned with the 12 product-completion blocks', async () => {
+    const checklist = await readFile(qaChecklistPath, 'utf8');
+
+    for (const block of productReadinessBlocks) {
+      assert.match(checklist, new RegExp(`^## ${block}$`, 'mu'), `QA checklist must include block: ${block}`);
+      assert.match(sectionBody(checklist, block), /^- \[ \] /mu, `QA checklist block must include at least one actionable item: ${block}`);
+    }
+    const releaseBody = sectionBody(checklist, 'Full QA, release, and product readiness');
+    assert.match(releaseBody, /testing/iu, 'release QA block must require testing validation');
+    assert.match(releaseBody, /produccion|production/iu, 'release QA block must require production validation');
+    assert.match(releaseBody, /desktop.*mobile|mobile.*desktop/iu, 'release QA block must require desktop and mobile validation');
+  });
+
   it('ships complete draft package files for every admin blog page', async () => {
     const sharedComponents = flattenComponents(await readJson('components.json'));
     for (const pageId of pageIds) {
@@ -295,6 +333,81 @@ describe('Zoosite blog admin draft pages', () => {
     for (const expected of ['generic-rich-text', 'generic-file-dropzone', 'advancedMode', 'componentInspector', 'allowedComponentPreset']) {
       assert.ok(editorText.includes(expected), `missing editor capability ${expected}`);
     }
+  });
+
+  it('keeps editorial lifecycle action errors user-facing instead of raw backend passthrough', async () => {
+    const lifecycleErrorComponents = new Map([
+      ['admin-blog-articulos-nuevo', ['newArticleCreateError']],
+      ['admin-blog-articulo-editor', ['editorSaveError', 'editorUploadError']],
+      ['admin-blog-articulo-seo', ['seoValidateError', 'seoPublishError']],
+      ['admin-blog-programados', ['scheduledScheduleError', 'scheduledPublishError']],
+    ]);
+
+    for (const [pageId, errorComponentIds] of lifecycleErrorComponents) {
+      const payload = await readJson(`${pageId}/components.json`);
+      const text = textSearch(payload);
+      assert.equal(text.includes('Invalid id'), false, `${pageId} must not expose raw Invalid id copy`);
+
+      const components = flattenComponents(payload);
+      for (const componentId of errorComponentIds) {
+        const component = componentById(components, componentId);
+        assert.equal(component?.type, 'text', `${pageId}/${componentId} must be a user-facing text status`);
+        assert.equal(
+          String(component?.valueInstructions ?? '').includes('.error'),
+          false,
+          `${pageId}/${componentId} must not pass backend error text directly to authors`,
+        );
+        assert.match(
+          component?.config?.text ?? '',
+          /art[ií]culo|campos obligatorios|recarga|lista|servicio de contenido|permisos|sesi[oó]n/iu,
+          `${pageId}/${componentId} needs actionable editorial error copy`,
+        );
+      }
+    }
+  });
+
+  it('makes article identity and lifecycle action state explicit in create, editor, SEO, and schedule forms', async () => {
+    const createPayload = await readJson('admin-blog-articulos-nuevo/components.json');
+    const editorPayload = await readJson('admin-blog-articulo-editor/components.json');
+    const seoPayload = await readJson('admin-blog-articulo-seo/components.json');
+    const scheduledPayload = await readJson('admin-blog-programados/components.json');
+
+    const createComponents = flattenComponents(createPayload);
+    const editorComponents = flattenComponents(editorPayload);
+    const seoComponents = flattenComponents(seoPayload);
+    const scheduledComponents = flattenComponents(scheduledPayload);
+
+    const createIntro = componentById(createComponents, 'admin-blog-articulos-nuevoIntro');
+    const createButton = componentById(createComponents, 'newArticleCreateButton');
+    assert.equal(String(createIntro?.config?.text ?? '').includes('query string'), false);
+    assert.match(createIntro?.config?.text ?? '', /lista|editor|SEO|programaci[oó]n/iu);
+    assert.equal(createButton?.config?.disabledWhenInvalidScope, true);
+    assert.ok(componentById(createComponents, 'newArticleCreateIdle'));
+    assert.ok(componentById(createComponents, 'newArticleCreateSuccess'));
+    assert.ok(componentById(createComponents, 'newArticleCreateArticleId'));
+    assert.ok(componentById(createComponents, 'newArticleCreateEditorHint'));
+
+    const editorReadout = componentById(editorComponents, 'editorArticleIdReadoutValue');
+    const editorHiddenId = componentById(editorComponents, 'editorArticleId');
+    assert.equal(editorReadout?.valueInstructions, 'set:config.text,routeParamOr,id,Abre el editor desde la lista de artículos.');
+    assert.equal(editorHiddenId?.config?.readOnly, true);
+    assert.match(editorHiddenId?.config?.classes ?? '', /ank-display-none/);
+    assert.equal(editorHiddenId?.valueInstructions, 'set:config.value,routeParamOr,id,');
+    assert.ok(componentById(editorComponents, 'editorSaveIdle'));
+
+    const seoArticleId = componentById(seoComponents, 'seoArticleId');
+    assert.equal(seoArticleId?.config?.readOnly, true);
+    assert.equal(seoArticleId?.valueInstructions, 'set:config.value,routeParamOr,id,');
+    assert.ok(componentById(seoComponents, 'seoArticleIdGuidance'));
+    assert.ok(componentById(seoComponents, 'seoActionIdle'));
+
+    const scheduledArticleId = componentById(scheduledComponents, 'scheduledArticleId');
+    assert.equal(scheduledArticleId?.config?.readOnly, true);
+    assert.equal(scheduledArticleId?.config?.required, true);
+    assert.equal(scheduledArticleId?.valueInstructions, 'set:config.value,queryParamOr,articleId,');
+    assert.match(JSON.stringify(scheduledArticleId?.config?.validation ?? []), /Abre Programar desde la lista de art[ií]culos/iu);
+    assert.ok(componentById(scheduledComponents, 'scheduledArticleIdGuidance'));
+    assert.ok(componentById(scheduledComponents, 'scheduledActionIdle'));
   });
 
   it('implements dedicated SEO, revision, scheduling, moderation, media, analytics, taxonomy, and hub config surfaces', async () => {

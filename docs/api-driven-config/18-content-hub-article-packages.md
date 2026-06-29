@@ -344,8 +344,12 @@ Blog roles should exist from MVP:
 - `blog-publisher`
 - `blog-reviewer`
 - `blog-moderator`
+- `blog-media-manager`
+- `blog-analyst`
 
 Browser route groups and visible controls are not authorization. Backend policy maps auth groups to roles and roles to action-scoped permissions.
+
+The local content-hub contract harness must keep these product roles present in `rolePolicies`, with non-empty auth groups that match the draft auth profile and explicit three-part permissions such as `blog:article:update`, `blog:article:publish`, `blog:media:manage`, `blog:moderation:moderate`, or `blog:analytics:read`. Wildcard grants such as `blog:article:*` are invalid even for admin roles.
 
 ## Schemas
 

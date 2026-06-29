@@ -237,6 +237,7 @@ Use groups from the server-only auth profile as the bridge to feature roles:
 - `roles[].id` is feature-local and should describe product capability, not Cognito implementation.
 - `roles[].groups` must be a subset of the profile `allowedGroups` or narrower admin policy.
 - `roles[].permissions` should be action-scoped strings such as `blog:post:read`, `analytics:report:read`, or `settings:draft:write`.
+- Product features should reject wildcard permissions. For content hub, the local harness requires the roles `hub-admin`, `blog-admin`, `blog-editor`, `blog-publisher`, `blog-reviewer`, `blog-moderator`, `blog-media-manager`, and `blog-analyst`, each mapped to auth-profile groups and explicit action-scoped permissions.
 - Admin pages must re-check fresh server-side account state before every mutation, not only session snapshot groups.
 - Pending, suspended, rejected, expired, and environment-mismatched users must fail closed.
 
