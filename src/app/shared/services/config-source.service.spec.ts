@@ -352,6 +352,16 @@ describe('ConfigSourceService', () => {
         ]);
     });
 
+    it('loads the canonical Zoolanding bundle directly on the shared testing host', async () => {
+        const service = TestBed.inject(ConfigSourceService);
+        spyOn<any>(service, 'isSharedTestingPreviewHost').and.returnValue(true);
+
+        const api = TestBed.inject(ConfigApiService) as jasmine.SpyObj<ConfigApiService>;
+        await service.loadSiteConfig('zoolandingpage.com.mx');
+
+        expect(api.getRuntimeBundle.calls.allArgs().map(([domain]) => domain)).toEqual(['zoolandingpage.com.mx']);
+    });
+
     it('reuses the hydrated site config instead of calling the legacy site-config endpoint when the browser runtime bundle request fails', async () => {
         const service = TestBed.inject(ConfigSourceService);
         const api = TestBed.inject(ConfigApiService) as jasmine.SpyObj<ConfigApiService>;

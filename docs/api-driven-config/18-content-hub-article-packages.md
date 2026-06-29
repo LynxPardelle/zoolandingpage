@@ -210,7 +210,7 @@ Required item families:
 - `TAXONOMY_OVERRIDE`: per-draft visibility and label overrides.
 - `REVISION`: snapshot/delta pointers and reconstruction metadata.
 - `LOCK`: editor locks.
-- `SCHEDULE`: publish/unpublish/reschedule jobs tied to immutable revisions.
+- `SCHEDULE`: publish/unpublish jobs tied to immutable revisions when a publish action points to a revision.
 - `MODERATION`: comments/forms/interactions moderation queue state.
 - `ASSET`: media metadata and usage references.
 - `INTERACTION`: aggregate public interaction state and moderation/spam decisions.
@@ -274,11 +274,13 @@ A schedule record must bind:
 - hub ID
 - article ID
 - language
-- immutable revision ID
+- immutable revision ID for scheduled publish actions
 - target environment
 - publish or unpublish action
 - scheduled time and timezone
 - validation report pointer
+
+The protected BFF currently supports scheduled publish and scheduled unpublish intents. Draft UI must send `scheduleAction` as `publish` or `unpublish`; canceling an already queued schedule requires a future schedule-management action with a stable `scheduleId` and must not be simulated as an unpublish.
 
 Revision storage should use snapshots plus deltas:
 

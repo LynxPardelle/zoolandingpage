@@ -11,6 +11,7 @@ export type TResolvedDomain = {
 @Injectable({ providedIn: 'root' })
 export class DomainResolverService {
     private readonly testingDraftPreviewHost = 'test.zoolandingpage.com.mx';
+    private readonly testingDraftPreviewFallbackDomain = 'zoolandingpage.com.mx';
     private readonly platformId = inject(PLATFORM_ID);
     private readonly request = inject(REQUEST, { optional: true });
     private readonly configStore = inject(ConfigStoreService);
@@ -132,6 +133,10 @@ export class DomainResolverService {
         if (requestUrl?.hostname) {
             const host = requestUrl.hostname.trim();
             if (host.length > 0 && !this.isLocalHost(host)) {
+                if (host.toLowerCase() === this.testingDraftPreviewHost) {
+                    return { domain: this.testingDraftPreviewFallbackDomain, source: 'urlHost' };
+                }
+
                 return { domain: host, source: 'urlHost' };
             }
         }
@@ -139,6 +144,10 @@ export class DomainResolverService {
         if (this.isBrowser && window.location?.hostname) {
             const host = window.location.hostname.trim();
             if (host.length > 0 && !this.isLocalHost(host)) {
+                if (host.toLowerCase() === this.testingDraftPreviewHost) {
+                    return { domain: this.testingDraftPreviewFallbackDomain, source: 'urlHost' };
+                }
+
                 return { domain: host, source: 'urlHost' };
             }
         }

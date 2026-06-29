@@ -283,6 +283,10 @@ export class ConfigSourceService {
             return normalized ? [normalized] : [];
         }
 
+        if (this.normalizeHost(normalized) === 'zoolandingpage.com.mx') {
+            return [normalized];
+        }
+
         return Array.from(new Set([
             ...this.testAliasesForDomain(normalized),
             normalized,

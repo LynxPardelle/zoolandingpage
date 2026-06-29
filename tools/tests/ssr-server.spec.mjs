@@ -180,7 +180,54 @@ test('production SSR server exposes a lightweight health endpoint', async (t) =>
 });
 
 test('production SSR server renders behind Traefik forwarded headers', async (t) => {
-  const { port, getStderr } = await startProductionServer(t);
+  const localSiteConfig = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoolandingpage.com.mx', 'site-config.json'), 'utf8'));
+  const localPageConfig = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoolandingpage.com.mx', 'default', 'page-config.json'), 'utf8'));
+  const sharedComponents = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoolandingpage.com.mx', 'components.json'), 'utf8'));
+  const pageComponents = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoolandingpage.com.mx', 'default', 'components.json'), 'utf8'));
+  const localComponents = {
+    ...pageComponents,
+    components: [
+      ...(sharedComponents.components ?? []),
+      ...(pageComponents.components ?? []),
+    ],
+  };
+  const localVariables = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoolandingpage.com.mx', 'default', 'variables.json'), 'utf8'));
+  const localCombos = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoolandingpage.com.mx', 'default', 'angora-combos.json'), 'utf8'));
+  const apiBase = await startRuntimeApi(t, (req, res) => {
+    const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+    if (url.pathname === '/runtime-bundle') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        version: 1,
+        domain: 'zoolandingpage.com.mx',
+        pageId: 'default',
+        sourceStage: 'published',
+        lang: url.searchParams.get('lang') || 'en',
+        route: { path: '/', pageId: 'default', label: 'Home' },
+        siteConfig: localSiteConfig,
+        pageConfig: localPageConfig,
+        components: localComponents,
+        variables: localVariables,
+        angoraCombos: localCombos,
+        i18n: {
+          version: 1,
+          domain: 'zoolandingpage.com.mx',
+          pageId: 'default',
+          lang: url.searchParams.get('lang') || 'en',
+          dictionary: {},
+        },
+        metadata: {},
+      }));
+      return;
+    }
+
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: false }));
+  });
+  const { port, getStderr } = await startProductionServer(t, {
+    CONFIG_API_SERVER_FALLBACK_URL: '',
+    CONFIG_API_URL: apiBase,
+  });
   const response = await fetch(`http://127.0.0.1:${port}/`, {
     headers: {
       Host: 'test.zoolandingpage.com.mx',
