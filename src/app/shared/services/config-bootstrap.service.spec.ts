@@ -1,5 +1,6 @@
 import { PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import type { TContentHubRuntimeArticleSummary } from '../types/content-hub.types';
 import type { TComponentPayloadEntry, TComponentsPayload, TDraftSiteConfigPayload } from '../types/config-payloads.types';
 import { ConfigBootstrapService } from './config-bootstrap.service';
 import { ConfigSourceService } from './config-source.service';
@@ -210,6 +211,17 @@ describe('ConfigBootstrapService', () => {
                             tags: ['release'],
                             publishedAt: '2026-06-27T13:00:00.000Z',
                         },
+                        {
+                            articleId: 'art_private',
+                            locale: 'es',
+                            status: 'published',
+                            visibility: 'private',
+                            title: 'Private Article',
+                            path: '/blog/web/private-note',
+                            categorySlug: 'web',
+                            tags: ['private'],
+                            publishedAt: '2026-06-27T14:00:00.000Z',
+                        } as TContentHubRuntimeArticleSummary & { readonly visibility: 'private' },
                     ],
                     publicTaxonomy: [
                         {
@@ -349,6 +361,9 @@ describe('ConfigBootstrapService', () => {
                 title: 'Web Article',
             }),
         ]);
+        expect(variableStore.get('contentHub.publicArticles.items')).not.toContain(jasmine.objectContaining({
+            articleId: 'art_private',
+        }));
         expect(variableStore.get('contentHub.categories.items')).toEqual([
             jasmine.objectContaining({
                 taxonomyId: 'cat_web',
@@ -383,6 +398,24 @@ describe('ConfigBootstrapService', () => {
             title: 'Web Article',
             categorySlug: 'web',
         }));
+    });
+
+    it('does not set private content hub articles as current article', async () => {
+        store.setSiteConfig(createContentHubSiteConfig());
+        mockSuccessfulBootstrapPayloads();
+
+        await service.load({
+            domain: 'zoolandingpage.com.mx',
+            pageId: 'blog-article',
+            lang: 'es',
+            routePath: '/blog/web/private-note',
+            routeParams: {
+                categorySlug: 'web',
+                articleSlug: 'private-note',
+            },
+        });
+
+        expect(variableStore.get('contentHub.currentArticle')).toBeNull();
     });
 
     it('reports missing modal config when a payload references a modal-owned dialog', () => {

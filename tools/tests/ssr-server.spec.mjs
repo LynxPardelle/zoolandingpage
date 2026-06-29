@@ -398,11 +398,25 @@ test('production SSR server redirects primary canonical hosts from proxy-forward
 
 test('production SSR exposes Zoosite content hub SEO sitemap feed and search', async (t) => {
   const siteConfig = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'site-config.json'), 'utf8'));
+  siteConfig.runtime.contentHubs[0].publicArticles.push({
+    articleId: 'art_private_runtime_fixture',
+    locale: 'es',
+    status: 'published',
+    visibility: 'private',
+    title: 'Privado no publicable',
+    summary: 'Este artículo no debe aparecer en superficies públicas.',
+    path: '/blog/web/privado-no-publicable',
+    categorySlug: 'web',
+    tags: ['seo'],
+    publishedAt: '2026-06-28T11:00:00.000Z',
+    canonicalPath: '/blog/web/privado-no-publicable',
+    robots: 'index,follow',
+  });
   const apiBase = await startRuntimeApi(t, (req, res) => {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
     if (url.pathname === '/runtime-bundle') {
       const path = url.searchParams.get('path') || '/';
-      if (path === '/blog/web/missing-article') {
+      if (path === '/blog/web/missing-article' || path === '/blog/web/privado-no-publicable') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
           version: 1,
@@ -481,6 +495,7 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.equal(sitemapResponse.status, 200);
   assert.match(sitemap, /https:\/\/zoositioweb\.com\.mx\/blog\/web<\/loc>/);
   assert.match(sitemap, /https:\/\/zoositioweb\.com\.mx\/blog\/web\/blog-builder-seo<\/loc>/);
+  assert.doesNotMatch(sitemap, /privado-no-publicable/);
   assert.doesNotMatch(sitemap, /\/admin\/blog/);
   assertNoContentHubOperationalLeak(sitemap);
 
@@ -490,6 +505,7 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.match(feedResponse.headers.get('content-type') ?? '', /application\/rss\+xml/);
   assert.match(feed, /Cómo crear blogs visuales con Zoolandingpage/);
   assert.match(feed, /https:\/\/zoositioweb\.com\.mx\/blog\/web\/blog-builder-seo/);
+  assert.doesNotMatch(feed, /Privado no publicable/);
   assertNoContentHubOperationalLeak(feed);
 
   const searchResponse = await fetch(`http://127.0.0.1:${port}/content-hub-search.json?lang=es&tag=seo&q=blogs`, { headers });
@@ -498,6 +514,7 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.equal(search.ok, true);
   assert.equal(search.count, 1);
   assert.equal(search.articles[0].path, '/blog/web/blog-builder-seo');
+  assert.equal(search.articles.some((article) => article.path === '/blog/web/privado-no-publicable'), false);
   assertNoContentHubOperationalLeak(JSON.stringify(search));
 
   const aliasFilterResponse = await fetch(`http://127.0.0.1:${port}/content-hub-search.json?lang=es&categorySlug=web&tagSlug=seo`, { headers });
@@ -522,6 +539,7 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.equal(blogPreviewResponse.status, 200);
   assert.match(blogPreviewHtml, /href="\/blog\/web\?draftDomain=zoositioweb\.com\.mx&amp;debugWorkspace=false&amp;lang=es"/);
   assert.match(blogPreviewHtml, /href="\/blog\/web\/blog-builder-seo\?draftDomain=zoositioweb\.com\.mx&amp;debugWorkspace=false&amp;lang=es"/);
+  assert.doesNotMatch(blogPreviewHtml, /privado-no-publicable/);
 
   const articleResponse = await fetch(`http://127.0.0.1:${port}/blog/web/blog-builder-seo?lang=es`, { headers });
   const articleHtml = await articleResponse.text();
@@ -532,6 +550,12 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.match(articleHtml, /"keywords":"seo, builder, angora"/);
   assert.match(articleHtml, /Cómo crear blogs visuales con Zoolandingpage/);
   assertNoContentHubOperationalLeak(extractJsonLd(articleHtml));
+
+  const privateArticleResponse = await fetch(`http://127.0.0.1:${port}/blog/web/privado-no-publicable?lang=es`, { headers });
+  const privateArticleHtml = await privateArticleResponse.text();
+  assert.equal(privateArticleResponse.status, 404);
+  assert.doesNotMatch(privateArticleHtml, /"@type":"BlogPosting"/);
+  assert.doesNotMatch(stripNonVisibleHtml(privateArticleHtml), /Privado no publicable/);
 
   const missingArticleResponse = await fetch(`http://127.0.0.1:${port}/blog/web/missing-article?lang=es`, { headers });
   const missingArticleHtml = await missingArticleResponse.text();

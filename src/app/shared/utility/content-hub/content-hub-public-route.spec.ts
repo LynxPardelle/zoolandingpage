@@ -24,6 +24,14 @@ describe('content hub public route helpers', () => {
                     categorySlug: 'web',
                     tags: ['draft'],
                 },
+                {
+                    articleId: 'art_private',
+                    status: 'published',
+                    visibility: 'private',
+                    path: '/blog/web/privado',
+                    categorySlug: 'web',
+                    tags: ['private'],
+                },
             ],
         },
     ];
@@ -37,11 +45,13 @@ describe('content hub public route helpers', () => {
     it('finds only published articles for public article paths', () => {
         expect(findPublishedContentHubArticleForPath(hubs, '/blog/web/guia-seo')?.articleId).toBe('art_public');
         expect(findPublishedContentHubArticleForPath(hubs, '/blog/web/borrador')).toBeNull();
+        expect(findPublishedContentHubArticleForPath(hubs, '/blog/web/privado')).toBeNull();
     });
 
     it('marks article-looking paths as missing when no published article exists', () => {
         expect(isMissingPublishedContentHubArticlePath(hubs, '/blog/web/no-existe')).toBeTrue();
         expect(isMissingPublishedContentHubArticlePath(hubs, '/blog/web/borrador')).toBeTrue();
+        expect(isMissingPublishedContentHubArticlePath(hubs, '/blog/web/privado')).toBeTrue();
     });
 
     it('does not treat non-article blog paths as missing articles', () => {
