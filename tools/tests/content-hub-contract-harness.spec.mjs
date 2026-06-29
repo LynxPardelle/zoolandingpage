@@ -128,8 +128,15 @@ test('content hub role policies cover product blog roles and action-scoped permi
 
   assert.ok(policies.get('blog-editor').permissions.includes('blog:article:update'));
   assert.ok(policies.get('blog-publisher').permissions.includes('blog:article:publish'));
+  assert.ok(policies.get('blog-admin').permissions.includes('blog:taxonomy:read'));
+  assert.ok(policies.get('blog-admin').permissions.includes('blog:media:read'));
+  assert.ok(policies.get('blog-admin').permissions.includes('blog:moderation:read'));
+  assert.ok(policies.get('blog-editor').permissions.includes('blog:taxonomy:read'));
+  assert.ok(policies.get('blog-editor').permissions.includes('blog:media:read'));
   assert.ok(policies.get('blog-moderator').permissions.includes('blog:moderation:moderate'));
+  assert.ok(policies.get('blog-moderator').permissions.includes('blog:moderation:read'));
   assert.ok(policies.get('blog-media-manager').permissions.includes('blog:media:manage'));
+  assert.ok(policies.get('blog-media-manager').permissions.includes('blog:media:read'));
   assert.ok(policies.get('blog-analyst').permissions.includes('blog:analytics:read'));
   assert.deepEqual(policies.get('blog-editor').groups, ['zoosite-admin', 'zoosite-blog-editor']);
   assert.deepEqual(policies.get('blog-publisher').groups, ['zoosite-admin', 'zoosite-blog-publisher']);
