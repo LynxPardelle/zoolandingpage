@@ -3,6 +3,7 @@ import { matchDraftRoute, normalizeDraftRoutePath } from '../route-matching/draf
 export type TContentHubPublicRouteArticle = {
     readonly articleId?: unknown;
     readonly status?: unknown;
+    readonly visibility?: unknown;
     readonly path?: unknown;
     readonly categorySlug?: unknown;
     readonly tags?: unknown;
@@ -56,7 +57,9 @@ export function findPublishedContentHubArticleForPath(
     const normalizedPath = normalizeDraftRoutePath(path);
     for (const hub of hubs) {
         const articles = Array.isArray(hub.publicArticles) ? hub.publicArticles : [];
-        const article = articles.find((entry: TContentHubPublicRouteArticle) => entry.status === 'published' && normalizeDraftRoutePath(entry.path) === normalizedPath);
+        const article = articles.find((entry: TContentHubPublicRouteArticle) => entry.status === 'published'
+            && (entry.visibility === undefined || entry.visibility === 'public')
+            && normalizeDraftRoutePath(entry.path) === normalizedPath);
         if (article) {
             return article;
         }

@@ -252,9 +252,15 @@ describe('proxyActionHandler', () => {
         const scope = TestBed.inject(InteractionScopeService);
         scope.configure({ scopeId: 'articleForm' });
         scope.registerField({ fieldId: 'articleTitle', initialValue: '', required: true });
+        scope.registerField({ fieldId: 'articleLanguage', initialValue: 'es', required: true });
+        scope.registerField({ fieldId: 'articleCategory', initialValue: '', required: true });
         scope.registerField({ fieldId: 'articleTags', initialValue: '', required: false });
+        scope.registerField({ fieldId: 'articleSlug', initialValue: '', required: true });
         scope.setFieldValue('articleTitle', 'Artículo desde scope');
+        scope.setFieldValue('articleLanguage', 'es');
+        scope.setFieldValue('articleCategory', 'web');
         scope.setFieldValue('articleTags', 'seo, builder');
+        scope.setFieldValue('articleSlug', 'articulo-desde-scope');
         configStore.setSiteConfig({
             version: 1,
             domain: 'zoositioweb.com.mx',
@@ -268,7 +274,13 @@ describe('proxyActionHandler', () => {
                             action: 'createArticle',
                             hubId: 'zoosite-main',
                         },
-                        inputFields: ['articleTitle', 'articleTags'],
+                        inputFields: [
+                            'articleTitle',
+                            'articleLanguage',
+                            'articleCategory',
+                            'articleTags',
+                            'articleSlug',
+                        ],
                     },
                 ],
             },
@@ -288,10 +300,17 @@ describe('proxyActionHandler', () => {
         }, ['create-article']);
 
         expect(contentHub.executeAction).toHaveBeenCalledOnceWith(jasmine.objectContaining({
-            input: jasmine.objectContaining({
+            input: {
+                contentHub: {
+                    action: 'createArticle',
+                    hubId: 'zoosite-main',
+                },
                 articleTitle: 'Artículo desde scope',
+                articleLanguage: 'es',
+                articleCategory: 'web',
                 articleTags: 'seo, builder',
-            }),
+                articleSlug: 'articulo-desde-scope',
+            },
         }));
     });
 
