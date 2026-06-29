@@ -15,12 +15,16 @@ const browserDistFolder = join(import.meta.dirname, '../browser');
 const DRAFTS_FOLDER_NAME = 'drafts';
 const DEBUG_DRAFT_DIRECTORY = '_debug';
 const DEFAULT_CONFIG_API_BASE_URL = 'https://api.zoolandingpage.com.mx';
-const DEFAULT_CONFIG_API_RAW_RUNTIME_BASE_URL = 'https://y84vk0v44l.execute-api.us-east-1.amazonaws.com/Prod';
+const DEFAULT_CONFIG_API_RAW_RUNTIME_BASE_URLS = {
+  dev: 'https://p5sbs2w8zb.execute-api.us-east-1.amazonaws.com/Prod',
+  test: 'https://jaay9p8gv5.execute-api.us-east-1.amazonaws.com/Prod',
+  production: 'https://y84vk0v44l.execute-api.us-east-1.amazonaws.com/Prod',
+} as const;
 const DEFAULT_CONFIG_API_URL = String(process.env['CONFIG_API_URL'] ?? DEFAULT_CONFIG_API_BASE_URL).trim();
 const DEFAULT_CONFIG_API_SERVER_FALLBACK_URL = String(
   process.env['CONFIG_API_SERVER_FALLBACK_URL']
     ?? process.env['CONFIG_API_RUNTIME_FALLBACK_URL']
-    ?? (DEFAULT_CONFIG_API_URL === DEFAULT_CONFIG_API_BASE_URL ? DEFAULT_CONFIG_API_RAW_RUNTIME_BASE_URL : ''),
+    ?? '',
 ).trim();
 const LOCAL_NOTE_FOLDER_NAMES = new Set(['ai_notes', 'findings', 'errors-reports']);
 const SERVER_ONLY_DRAFT_FOLDER_NAMES = new Set(['server']);
@@ -29,12 +33,6 @@ const SITE_CONFIG_CACHE_MAX_SIZE = 200;
 const RUNTIME_BUNDLE_FETCH_ATTEMPTS = 2;
 const RUNTIME_BUNDLE_FETCH_RETRY_DELAY_MS = 150;
 const CANONICAL_NOT_FOUND_DOMAIN = 'zoolandingpage.com.mx';
-const RUNTIME_BUNDLE_BASE_URLS = [
-  DEFAULT_CONFIG_API_SERVER_FALLBACK_URL,
-  DEFAULT_CONFIG_API_URL,
-]
-  .map((baseUrl) => baseUrl.replace(/\/$/, ''))
-  .filter((baseUrl, index, baseUrls) => baseUrl.length > 0 && baseUrls.indexOf(baseUrl) === index);
 const AD_QUERY_PARAMS = new Set([
   'gclid',
   'gbraid',
@@ -407,6 +405,45 @@ function normalizeRuntimeEnvironment(value: unknown): TRuntimeEnvironment | null
   }
 
   return null;
+}
+
+function runtimeEnvironmentFallbackSuffixes(environment: TRuntimeEnvironment): readonly string[] {
+  if (environment === 'production') {
+    return ['PROD', 'PRODUCTION'];
+  }
+
+  return [environment.toUpperCase()];
+}
+
+function readEnvironmentRuntimeFallbackBaseUrl(environment?: string): string {
+  const normalizedEnvironment = normalizeRuntimeEnvironment(environment) ?? 'production';
+  const envSpecific = runtimeEnvironmentFallbackSuffixes(normalizedEnvironment)
+    .flatMap((suffix) => [
+      process.env[`CONFIG_API_SERVER_FALLBACK_URL_${ suffix }`],
+      process.env[`CONFIG_API_RUNTIME_FALLBACK_URL_${ suffix }`],
+    ])
+    .find((value) => cleanString(value).length > 0);
+  const configured = cleanString(envSpecific) || DEFAULT_CONFIG_API_SERVER_FALLBACK_URL;
+  if (configured) {
+    return configured;
+  }
+
+  if (normalizedEnvironment === 'local') {
+    return '';
+  }
+
+  return DEFAULT_CONFIG_API_URL === DEFAULT_CONFIG_API_BASE_URL
+    ? DEFAULT_CONFIG_API_RAW_RUNTIME_BASE_URLS[normalizedEnvironment]
+    : '';
+}
+
+function resolveRuntimeBundleBaseUrls(environment?: string): readonly string[] {
+  return [
+    readEnvironmentRuntimeFallbackBaseUrl(environment),
+    DEFAULT_CONFIG_API_URL,
+  ]
+    .map((baseUrl) => baseUrl.replace(/\/$/, ''))
+    .filter((baseUrl, index, baseUrls) => baseUrl.length > 0 && baseUrls.indexOf(baseUrl) === index);
 }
 
 function resolveRuntimeEnvironment(host: string): TRuntimeEnvironment {
@@ -1239,7 +1276,8 @@ function loadLocalDebugWorkspacePayload(kind: string): Record<string, unknown> |
 
 async function loadRuntimeSiteConfig(domain: string, environment?: string): Promise<TLocalSiteConfig | null> {
   const normalizedDomain = normalizeHost(domain);
-  if (!normalizedDomain || RUNTIME_BUNDLE_BASE_URLS.length === 0) {
+  const baseUrls = resolveRuntimeBundleBaseUrls(environment);
+  if (!normalizedDomain || baseUrls.length === 0) {
     return null;
   }
 
@@ -1249,7 +1287,7 @@ async function loadRuntimeSiteConfig(domain: string, environment?: string): Prom
     return cached.siteConfig;
   }
 
-  for (const baseUrl of RUNTIME_BUNDLE_BASE_URLS) {
+  for (const baseUrl of baseUrls) {
     const payload = await fetchRuntimeBundlePayload(baseUrl, normalizedDomain, '/', environment);
     if (isRecord(payload?.siteConfig)) {
       const siteConfig = payload.siteConfig as TLocalSiteConfig;
@@ -1264,11 +1302,12 @@ async function loadRuntimeSiteConfig(domain: string, environment?: string): Prom
 
 async function loadRuntimePageConfig(domain: string, path: string, environment?: string): Promise<TLocalPageConfig | null> {
   const normalizedDomain = normalizeHost(domain);
-  if (!normalizedDomain || RUNTIME_BUNDLE_BASE_URLS.length === 0) {
+  const baseUrls = resolveRuntimeBundleBaseUrls(environment);
+  if (!normalizedDomain || baseUrls.length === 0) {
     return null;
   }
 
-  for (const baseUrl of RUNTIME_BUNDLE_BASE_URLS) {
+  for (const baseUrl of baseUrls) {
     const payload = await fetchRuntimeBundlePayload(baseUrl, normalizedDomain, path, environment);
     if (isRecord(payload?.pageConfig)) {
       return payload.pageConfig as TLocalPageConfig;
@@ -1280,12 +1319,13 @@ async function loadRuntimePageConfig(domain: string, path: string, environment?:
 
 async function loadRuntimeRouteStatus(domain: string, path: string, environment?: string): Promise<200 | 404 | null> {
   const normalizedDomain = normalizeHost(domain);
-  if (!normalizedDomain || RUNTIME_BUNDLE_BASE_URLS.length === 0) {
+  const baseUrls = resolveRuntimeBundleBaseUrls(environment);
+  if (!normalizedDomain || baseUrls.length === 0) {
     return null;
   }
 
   const normalizedPath = normalizeRoutePath(path);
-  for (const baseUrl of RUNTIME_BUNDLE_BASE_URLS) {
+  for (const baseUrl of baseUrls) {
     const payload = await fetchRuntimeBundlePayload(baseUrl, normalizedDomain, normalizedPath, environment);
     if (!payload) {
       continue;

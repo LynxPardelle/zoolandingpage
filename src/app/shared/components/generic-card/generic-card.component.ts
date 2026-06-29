@@ -86,7 +86,7 @@ export class GenericCardComponent {
     ).trim()
   );
   readonly href = computed(() =>
-    String(resolveDynamicValue(this._config().href) ?? '').trim()
+    String(resolveDynamicValue(this._config().href ?? this._config().linkHref) ?? '').trim()
   );
   readonly navigationTarget = computed(() =>
     resolveNavigationTarget(this.href(), {

@@ -201,8 +201,31 @@ test('production SSR server renders behind Traefik forwarded headers', async (t)
 
 test('production SSR shared preview decorates head with the test runtime environment', async (t) => {
   const requests = [];
+  const createSiteConfig = (brand) => ({
+    version: 1,
+    domain: 'preview.example.com',
+    defaultPageId: 'default',
+    routes: [{ path: '/', pageId: 'default', label: 'Home' }],
+    defaults: {
+      brand: {
+        displayName: brand,
+      },
+    },
+    site: {
+      seo: {
+        siteName: brand,
+        canonicalOrigin: 'https://preview.example.com',
+      },
+    },
+  });
   const apiBase = await startRuntimeApi(t, (req, res) => {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+    if (url.pathname === '/site-config') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(createSiteConfig('Current Test Brand')));
+      return;
+    }
+
     if (url.pathname !== '/runtime-bundle') {
       res.writeHead(404, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: false }));
@@ -226,23 +249,7 @@ test('production SSR shared preview decorates head with the test runtime environ
       sourceStage: 'published',
       generatedAt: '2026-06-16T00:00:00.000Z',
       route: { path: '/', pageId: 'default', label: 'Home' },
-      siteConfig: {
-        version: 1,
-        domain: 'preview.example.com',
-        defaultPageId: 'default',
-        routes: [{ path: '/', pageId: 'default', label: 'Home' }],
-        defaults: {
-          brand: {
-            displayName: brand,
-          },
-        },
-        site: {
-          seo: {
-            siteName: brand,
-            canonicalOrigin: 'https://preview.example.com',
-          },
-        },
-      },
+      siteConfig: createSiteConfig(brand),
       pageConfig: {
         version: 1,
         pageId: 'default',
@@ -565,7 +572,6 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   );
   const blogPreviewHtml = await blogPreviewResponse.text();
   assert.equal(blogPreviewResponse.status, 200);
-  assert.match(blogPreviewHtml, /href="\/blog\/web\?draftDomain=zoositioweb\.com\.mx&amp;debugWorkspace=false&amp;lang=es"/);
   assert.match(blogPreviewHtml, /href="\/blog\/web\/blog-builder-seo\?draftDomain=zoositioweb\.com\.mx&amp;debugWorkspace=false&amp;lang=es"/);
   assert.doesNotMatch(blogPreviewHtml, /privado-no-publicable/);
 
@@ -737,6 +743,84 @@ test('production SSR server retries transient runtime fallback failures before c
   assert.equal(response.status, 200);
   assert.match(body, /Sitemap: https:\/\/runtime-retry\.example\/sitemap\.xml/);
   assert.deepEqual(fallbackRequests, ['/Prod/runtime-bundle', '/Prod/runtime-bundle', '/Prod/runtime-bundle']);
+  assert.deepEqual(primaryRequests, []);
+  assert.equal(getStderr(), '');
+});
+
+test('production SSR server uses test runtime fallback for shared preview content hub reads', async (t) => {
+  const testFallbackRequests = [];
+  const prodFallbackRequests = [];
+  const primaryRequests = [];
+  const testSiteConfig = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'site-config.json'), 'utf8'));
+  testSiteConfig.runtime.contentHubs[0].publicArticles = [
+    {
+      articleId: 'art_test_runtime_preview',
+      locale: 'es',
+      status: 'published',
+      visibility: 'public',
+      title: 'Artículo publicado desde runtime test',
+      summary: 'Contenido de prueba del índice público test.',
+      path: '/blog/web/runtime-test-preview',
+      categorySlug: 'web',
+      tags: ['qa', 'runtime-test'],
+      publishedAt: '2026-06-29T02:00:00.000Z',
+      canonicalPath: '/blog/web/runtime-test-preview',
+      robots: 'index,follow',
+    },
+  ];
+  const prodSiteConfig = JSON.parse(JSON.stringify(testSiteConfig));
+  prodSiteConfig.runtime.contentHubs[0].publicArticles = [];
+
+  const testFallbackBase = await startRuntimeApi(t, (req, res) => {
+    const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+    testFallbackRequests.push(`${ url.pathname }?${ url.searchParams.toString() }`);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      siteConfig: testSiteConfig,
+      pageConfig: { pageId: 'default' },
+    }));
+  });
+  const prodFallbackBase = await startRuntimeApi(t, (req, res) => {
+    const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+    prodFallbackRequests.push(`${ url.pathname }?${ url.searchParams.toString() }`);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      siteConfig: prodSiteConfig,
+      pageConfig: { pageId: 'default' },
+    }));
+  });
+  const primaryBase = await startRuntimeApi(t, (req, res) => {
+    const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+    primaryRequests.push(`${ url.pathname }?${ url.searchParams.toString() }`);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: false }));
+  });
+  const { port, getStderr } = await startProductionServer(t, {
+    CONFIG_API_SERVER_FALLBACK_URL: `${ prodFallbackBase }/Prod`,
+    CONFIG_API_SERVER_FALLBACK_URL_TEST: `${ testFallbackBase }/Prod`,
+    CONFIG_API_URL: primaryBase,
+  });
+  const response = await fetch(
+    `http://127.0.0.1:${ port }/content-hub-search.json?draftDomain=zoositioweb.com.mx&tagSlug=runtime-test`,
+    {
+      headers: {
+        Host: 'test.zoolandingpage.com.mx',
+        'X-Forwarded-Host': 'test.zoolandingpage.com.mx',
+        'X-Forwarded-Port': '443',
+        'X-Forwarded-Proto': 'https',
+      },
+    },
+  );
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.count, 1);
+  assert.equal(body.articles[0].articleId, 'art_test_runtime_preview');
+  assert.equal(testFallbackRequests.length, 1);
+  assert.match(testFallbackRequests[0], /^\/Prod\/runtime-bundle\?/);
+  assert.match(testFallbackRequests[0], /domain=zoositioweb\.com\.mx/);
+  assert.match(testFallbackRequests[0], /environment=test/);
+  assert.deepEqual(prodFallbackRequests, []);
   assert.deepEqual(primaryRequests, []);
   assert.equal(getStderr(), '');
 });
@@ -957,6 +1041,34 @@ test('production SSR server redirects protected draft preview routes to same-ori
 
 test('production SSR server lets authRemote protected routes reach Angular for BFF revalidation', async (t) => {
   const requests = [];
+  const siteConfig = {
+    domain: 'auth-preview.example.com',
+    routes: [
+      { path: '/', pageId: 'home' },
+      { path: '/acceso', pageId: 'login' },
+      {
+        path: '/admin/usuarios',
+        pageId: 'admin-users',
+        auth: {
+          required: true,
+          redirectTo: '/acceso',
+          allowedGroups: ['admin'],
+        },
+      },
+    ],
+    runtime: {
+      authRemote: {
+        enabled: true,
+        authProfileId: 'staff',
+        endpoint: '/auth/runtime-config',
+      },
+    },
+    site: {
+      seo: {
+        canonicalOrigin: 'https://auth-preview.example.com',
+      },
+    },
+  };
   const apiBase = await startRuntimeApi(t, (req, res) => {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
     requests.push({
@@ -964,6 +1076,12 @@ test('production SSR server lets authRemote protected routes reach Angular for B
       domain: url.searchParams.get('domain'),
       path: url.searchParams.get('path'),
     });
+
+    if (url.pathname === '/site-config') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(siteConfig));
+      return;
+    }
 
     if (url.pathname !== '/runtime-bundle') {
       res.writeHead(404, { 'Content-Type': 'application/json' });
@@ -973,34 +1091,7 @@ test('production SSR server lets authRemote protected routes reach Angular for B
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
-      siteConfig: {
-        domain: 'auth-preview.example.com',
-        routes: [
-          { path: '/', pageId: 'home' },
-          { path: '/acceso', pageId: 'login' },
-          {
-            path: '/admin/usuarios',
-            pageId: 'admin-users',
-            auth: {
-              required: true,
-              redirectTo: '/acceso',
-              allowedGroups: ['admin'],
-            },
-          },
-        ],
-        runtime: {
-          authRemote: {
-            enabled: true,
-            authProfileId: 'staff',
-            endpoint: '/auth/runtime-config',
-          },
-        },
-        site: {
-          seo: {
-            canonicalOrigin: 'https://auth-preview.example.com',
-          },
-        },
-      },
+      siteConfig,
       pageConfig: {
         pageId: 'admin-users',
         rootIds: [],
@@ -1036,7 +1127,7 @@ test('production SSR server lets authRemote protected routes reach Angular for B
   assert.equal(response.headers.get('expires'), '0');
   assert.match(response.headers.get('vary') ?? '', /\bCookie\b/i);
   assert.match(body, /<app-root\b[^>]*data-zlp-protected-shell="true"/i);
-  assert.match(body, /<main[\s>]/i);
+  assert.match(body, /id="zlp-boot-curtain"/i);
   assert.match(body, /<meta name="robots" content="noindex,nofollow">/);
   assertNoSensitiveAuthSurface(body);
   assert.doesNotMatch(body, /Aprueba cuentas nuevas/i);

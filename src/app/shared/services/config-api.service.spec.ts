@@ -10,6 +10,8 @@ describe('ConfigApiService', () => {
     const originalConfigApiUrl = environment.configApiUrl;
     const originalFallbackUrl = environment.configApiServerFallbackUrl;
     const originalRuntimeFallbackUrl = environment.configApiRuntimeFallbackUrl;
+    const originalFallbackUrls = environment.configApiServerFallbackUrls;
+    const originalRuntimeFallbackUrls = environment.configApiRuntimeFallbackUrls;
     const nativeHistoryReplaceState = History.prototype.replaceState;
     const palette = {
         bgColor: '#ffffff',
@@ -109,6 +111,8 @@ describe('ConfigApiService', () => {
         (environment as { configApiUrl: string }).configApiUrl = originalConfigApiUrl;
         (environment as { configApiRuntimeFallbackUrl?: string }).configApiRuntimeFallbackUrl = originalRuntimeFallbackUrl;
         (environment as { configApiServerFallbackUrl?: string }).configApiServerFallbackUrl = originalFallbackUrl;
+        (environment as { configApiRuntimeFallbackUrls?: typeof originalRuntimeFallbackUrls }).configApiRuntimeFallbackUrls = originalRuntimeFallbackUrls;
+        (environment as { configApiServerFallbackUrls?: typeof originalFallbackUrls }).configApiServerFallbackUrls = originalFallbackUrls;
         clearRuntimeBundleServerCacheForTesting();
         TestBed.resetTestingModule();
     });
@@ -140,6 +144,35 @@ describe('ConfigApiService', () => {
         expect(fetchSpy).not.toHaveBeenCalled();
         expect(String(http.get.calls.mostRecent().args[0])).toContain('https://y84vk0v44l.execute-api.us-east-1.amazonaws.com/Prod/runtime-bundle');
         expect(String(http.get.calls.mostRecent().args[0])).toContain('domain=test.zoolandingpage.com.mx');
+    });
+
+    it('uses the test runtime fallback endpoint on the shared testing host', async () => {
+        (environment as { configApiUrl: string }).configApiUrl = 'https://api.zoolandingpage.com.mx';
+        (environment as { configApiServerFallbackUrl?: string }).configApiServerFallbackUrl =
+            'https://prod-runtime.example.com/Prod';
+        (environment as { configApiServerFallbackUrls?: Record<string, string> }).configApiServerFallbackUrls = {
+            test: 'https://test-runtime.example.com/Prod',
+            production: 'https://prod-runtime.example.com/Prod',
+        };
+
+        const http = jasmine.createSpyObj<HttpClient>('HttpClient', ['get']);
+        http.get.and.returnValue(of(runtimeBundlePayload));
+
+        TestBed.configureTestingModule({
+            providers: [
+                ConfigApiService,
+                { provide: HttpClient, useValue: http },
+                { provide: REQUEST, useValue: { url: 'https://test.zoolandingpage.com.mx/blog?draftDomain=zoositioweb.com.mx' } },
+            ],
+        });
+
+        const service = TestBed.inject(ConfigApiService);
+        await service.getRuntimeBundle('zoositioweb.com.mx', { path: '/', lang: 'es' });
+
+        expect(http.get).toHaveBeenCalledTimes(1);
+        const requestUrl = String(http.get.calls.mostRecent().args[0]);
+        expect(requestUrl).toContain('https://test-runtime.example.com/Prod/runtime-bundle');
+        expect(requestUrl).toContain('domain=zoositioweb.com.mx');
     });
 
     it('uses local draft runtime endpoints first for localhost SSR draft previews', async () => {

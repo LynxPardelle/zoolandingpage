@@ -116,6 +116,22 @@ describe('GenericCardComponent', () => {
         expect(link?.getAttribute('href')).toBe('/blog/web/qa-ssr?draftDomain=zoositioweb.com.mx&debugWorkspace=false&lang=es');
     });
 
+    it('accepts linkHref as a backwards-compatible card link alias', () => {
+        requestState.url = 'https://test.zoolandingpage.com.mx/blog?draftDomain=zoositioweb.com.mx&debugWorkspace=false&lang=es';
+        fixture.componentInstance.config = {
+            variant: 'feature',
+            title: 'Artículo alias',
+            linkHref: '/blog/web/qa-alias',
+            linkLabel: 'Leer artículo',
+        } as never;
+
+        fixture.detectChanges();
+
+        const link: HTMLAnchorElement | null = fixture.nativeElement.querySelector('a');
+
+        expect(link?.getAttribute('href')).toBe('/blog/web/qa-alias?draftDomain=zoositioweb.com.mx&debugWorkspace=false&lang=es');
+    });
+
     it('uses client-side navigation for internal card links', () => {
         fixture.componentInstance.config = {
             variant: 'feature',
