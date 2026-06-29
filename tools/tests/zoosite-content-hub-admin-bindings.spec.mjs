@@ -5,6 +5,7 @@ import path from 'node:path';
 
 const repoRoot = process.cwd();
 const siteConfigPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'site-config.json');
+const authProfileRegistryPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'server', 'auth-profile-registry.json');
 const adminArticlesComponentsPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'admin-blog-articulos', 'components.json');
 const adminOverviewComponentsPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'admin-blog', 'components.json');
 const adminEditorComponentsPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'admin-blog-articulo-editor', 'components.json');
@@ -27,6 +28,25 @@ const adminRoutes = [
   '/admin/blog/hub',
   '/admin/blog/configuracion',
 ];
+
+const blogEditorGroups = ['zoosite-admin', 'zoosite-blog-editor', 'zoosite-blog-publisher'];
+const adminRouteGroups = new Map([
+  ['/admin/blog', ['zoosite-admin']],
+  ['/admin/blog/articulos', blogEditorGroups],
+  ['/admin/blog/articulos/nuevo', blogEditorGroups],
+  ['/admin/blog/articulos/:id/editor', blogEditorGroups],
+  ['/admin/blog/articulos/:id/preview', blogEditorGroups],
+  ['/admin/blog/articulos/:id/seo', blogEditorGroups],
+  ['/admin/blog/articulos/:id/versiones', blogEditorGroups],
+  ['/admin/blog/programados', blogEditorGroups],
+  ['/admin/blog/moderacion', ['zoosite-admin']],
+  ['/admin/blog/medios', ['zoosite-admin', 'zoosite-blog-media', 'zoosite-blog-editor', 'zoosite-blog-publisher']],
+  ['/admin/blog/analiticas', ['zoosite-admin']],
+  ['/admin/blog/categorias', blogEditorGroups],
+  ['/admin/blog/tags', blogEditorGroups],
+  ['/admin/blog/hub', ['zoosite-admin']],
+  ['/admin/blog/configuracion', ['zoosite-admin']],
+]);
 
 const requiredReads = [
   'articleList',
@@ -78,6 +98,10 @@ async function loadSiteConfig() {
   return JSON.parse(await readFile(siteConfigPath, 'utf8'));
 }
 
+async function loadAuthProfileRegistry() {
+  return JSON.parse(await readFile(authProfileRegistryPath, 'utf8'));
+}
+
 async function loadDraftComponents(filePath) {
   return JSON.parse(await readFile(filePath, 'utf8'));
 }
@@ -102,6 +126,9 @@ function findComponentById(root, componentId) {
 describe('Zoosite content hub admin bindings', () => {
   it('keeps every blog admin route protected and out of the sitemap', async () => {
     const siteConfig = await loadSiteConfig();
+    const authProfileRegistry = await loadAuthProfileRegistry();
+    const authProfile = authProfileRegistry.profiles.find((profile) => profile.domain === 'zoositioweb.com.mx');
+    const profileGroups = new Set(authProfile?.allowedGroups ?? []);
     const routesByPath = new Map(siteConfig.routes.map((route) => [route.path, route]));
     const excluded = new Set(siteConfig.sitemap?.excludePaths ?? []);
 
@@ -109,9 +136,12 @@ describe('Zoosite content hub admin bindings', () => {
       const route = routesByPath.get(routePath);
       assert.ok(route, `missing route ${routePath}`);
       assert.equal(route.auth?.required, true, `${routePath} must be auth protected`);
-      assert.deepEqual(route.auth?.allowedGroups, ['zoosite-admin'], `${routePath} must be admin-only`);
+      assert.deepEqual(route.auth?.allowedGroups, adminRouteGroups.get(routePath), `${routePath} must use the expected auth groups`);
       assert.equal(route.auth?.redirectTo, '/acceso', `${routePath} must redirect to access`);
       assert.ok(excluded.has(routePath), `${routePath} must be excluded from sitemap`);
+      for (const group of route.auth?.allowedGroups ?? []) {
+        assert.ok(profileGroups.has(group), `${routePath} uses auth group missing from server profile: ${group}`);
+      }
     }
   });
 
