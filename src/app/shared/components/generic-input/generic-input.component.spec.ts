@@ -338,6 +338,35 @@ describe('GenericInputComponent', () => {
         expect(component.selectedOptionLabel()).toBe('Thunder Shock');
     });
 
+    it('reacts when autocomplete option sources are populated after first render', () => {
+        const variables = TestBed.inject(VariableStoreService);
+        variables.clearRuntimeValues();
+
+        const fixture = TestBed.createComponent(GenericInputComponent);
+        const component = fixture.componentInstance;
+
+        fixture.componentRef.setInput('config', {
+            fieldId: 'articleTags',
+            controlType: 'text',
+            value: '',
+            autocompleteMinLength: 1,
+            autocompleteOptions: {
+                source: 'var',
+                path: 'remote.contentHub.tags.items',
+                fallback: [{ value: 'seo', label: 'seo' }],
+            },
+        });
+        fixture.detectChanges();
+
+        variables.setRuntimeValue('remote.contentHub.tags.items', [
+            { value: 'content-hub', label: 'content-hub' },
+            { value: 'blog-builder', label: 'blog-builder' },
+        ]);
+        fixture.detectChanges();
+
+        expect(component.autocompleteOptions().map((option) => option.value)).toEqual(['content-hub', 'blog-builder']);
+    });
+
     it('renders a switch control and coerces string booleans safely', () => {
         const fixture = TestBed.createComponent(GenericInputComponent);
         const component = fixture.componentInstance;

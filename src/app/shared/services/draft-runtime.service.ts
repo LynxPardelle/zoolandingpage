@@ -231,7 +231,7 @@ export class DraftRuntimeService {
 
         const routeMatch = this.matchRouteWithParams(siteConfig, path);
         if (routeMatch) {
-            if (isMissingPublishedContentHubArticlePath(siteConfig?.runtime?.contentHubs, path)) {
+            if ((!this.isBrowser || environment.drafts.enabled) && isMissingPublishedContentHubArticlePath(siteConfig?.runtime?.contentHubs, path)) {
                 const notFoundResolution = await this.resolveNotFoundContext(domain, path, siteConfig)
                     ?? await this.resolveCanonicalNotFoundContext(path);
                 if (notFoundResolution) {
@@ -525,11 +525,12 @@ export class DraftRuntimeService {
             && components.components.length > 0;
     }
 
-    private async canRenderPage(domain: string, pageId: string): Promise<boolean> {
+    private async canRenderPage(domain: string, pageId: string, path?: string): Promise<boolean> {
         try {
+            const sourceOptions = path ? { path } : undefined;
             const [pageConfig, components] = await Promise.all([
-                this.configSource.loadPageConfig(domain, pageId),
-                this.configSource.loadComponents(domain, pageId),
+                this.configSource.loadPageConfig(domain, pageId, sourceOptions),
+                this.configSource.loadComponents(domain, pageId, sourceOptions),
             ]);
 
             return this.hasExpectedPagePayload(domain, pageId, pageConfig, components);
@@ -545,7 +546,7 @@ export class DraftRuntimeService {
     ): Promise<TNotFoundResolution | null> {
         const normalizedDomain = String(domain ?? '').trim();
         const pageId = this.resolveNotFoundPageId(siteConfig);
-        if (!normalizedDomain || !pageId || !(await this.canRenderPage(normalizedDomain, pageId))) {
+        if (!normalizedDomain || !pageId || !(await this.canRenderPage(normalizedDomain, pageId, path))) {
             return null;
         }
 

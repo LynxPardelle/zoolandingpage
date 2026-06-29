@@ -474,6 +474,7 @@
           "type": "array",
           "items": { "$ref": "#/definitions/contentHubSafeId" }
         },
+        "visibility": { "type": "string", "const": "public" },
         "publishedAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" },
         "authorLabel": { "type": "string" },
@@ -502,7 +503,7 @@
       "properties": {
         "read": {
           "type": "string",
-          "enum": ["articleList", "articleDetail", "taxonomyList", "moderationQueue", "assetList", "revisionList", "publicBundlePreview"]
+          "enum": ["articleList", "articleDetail", "taxonomyList", "moderationQueue", "assetList", "revisionList", "scheduleList", "publicBundlePreview"]
         },
         "hubId": { "$ref": "#/definitions/contentHubSafeId" },
         "articleId": { "$ref": "#/definitions/contentHubSafeId" },
@@ -522,7 +523,7 @@
       "properties": {
         "action": {
           "type": "string",
-          "enum": ["createArticle", "updatePackage", "upsertTaxonomy", "uploadAsset", "validate", "submitReview", "publish", "schedule", "queueComment", "moderateComment", "recordInteraction", "restoreRevision"]
+          "enum": ["createArticle", "updatePackage", "upsertTaxonomy", "uploadAsset", "validate", "submitReview", "approveArticle", "publish", "unpublishArticle", "archiveArticle", "schedule", "cancelSchedule", "queueComment", "moderateComment", "recordInteraction", "restoreRevision"]
         },
         "hubId": { "$ref": "#/definitions/contentHubSafeId" },
         "articleId": { "$ref": "#/definitions/contentHubSafeId" },

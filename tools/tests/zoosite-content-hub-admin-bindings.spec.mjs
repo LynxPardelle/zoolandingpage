@@ -5,9 +5,13 @@ import path from 'node:path';
 
 const repoRoot = process.cwd();
 const siteConfigPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'site-config.json');
+const authProfileRegistryPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'server', 'auth-profile-registry.json');
 const adminArticlesComponentsPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'admin-blog-articulos', 'components.json');
 const adminOverviewComponentsPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'admin-blog', 'components.json');
 const adminEditorComponentsPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'admin-blog-articulo-editor', 'components.json');
+const adminNewArticleComponentsPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'admin-blog-articulos-nuevo', 'components.json');
+const adminCategoriesComponentsPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'admin-blog-categorias', 'components.json');
+const adminTagsComponentsPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'admin-blog-tags', 'components.json');
 
 const adminRoutes = [
   '/admin/blog',
@@ -27,6 +31,25 @@ const adminRoutes = [
   '/admin/blog/configuracion',
 ];
 
+const blogEditorGroups = ['zoosite-admin', 'zoosite-blog-editor', 'zoosite-blog-publisher'];
+const adminRouteGroups = new Map([
+  ['/admin/blog', ['zoosite-admin']],
+  ['/admin/blog/articulos', blogEditorGroups],
+  ['/admin/blog/articulos/nuevo', blogEditorGroups],
+  ['/admin/blog/articulos/:id/editor', blogEditorGroups],
+  ['/admin/blog/articulos/:id/preview', blogEditorGroups],
+  ['/admin/blog/articulos/:id/seo', blogEditorGroups],
+  ['/admin/blog/articulos/:id/versiones', blogEditorGroups],
+  ['/admin/blog/programados', blogEditorGroups],
+  ['/admin/blog/moderacion', ['zoosite-admin', 'zoosite-blog-moderator']],
+  ['/admin/blog/medios', ['zoosite-admin', 'zoosite-blog-media', 'zoosite-blog-editor', 'zoosite-blog-publisher']],
+  ['/admin/blog/analiticas', ['zoosite-admin', 'zoosite-blog-analyst']],
+  ['/admin/blog/categorias', blogEditorGroups],
+  ['/admin/blog/tags', blogEditorGroups],
+  ['/admin/blog/hub', ['zoosite-admin']],
+  ['/admin/blog/configuracion', ['zoosite-admin']],
+]);
+
 const requiredReads = [
   'articleList',
   'articleDetail',
@@ -43,7 +66,11 @@ const requiredActions = [
   'upsertTaxonomy',
   'uploadAsset',
   'validate',
+  'submitReview',
+  'approveArticle',
   'publish',
+  'unpublishArticle',
+  'archiveArticle',
   'schedule',
   'queueComment',
   'moderateComment',
@@ -73,13 +100,37 @@ async function loadSiteConfig() {
   return JSON.parse(await readFile(siteConfigPath, 'utf8'));
 }
 
+async function loadAuthProfileRegistry() {
+  return JSON.parse(await readFile(authProfileRegistryPath, 'utf8'));
+}
+
 async function loadDraftComponents(filePath) {
   return JSON.parse(await readFile(filePath, 'utf8'));
+}
+
+function findComponentById(root, componentId) {
+  const stack = [root];
+  while (stack.length) {
+    const current = stack.pop();
+    if (!current || typeof current !== 'object') continue;
+    if (current.id === componentId) return current;
+    for (const value of Object.values(current)) {
+      if (Array.isArray(value)) {
+        stack.push(...value);
+      } else if (value && typeof value === 'object') {
+        stack.push(value);
+      }
+    }
+  }
+  return null;
 }
 
 describe('Zoosite content hub admin bindings', () => {
   it('keeps every blog admin route protected and out of the sitemap', async () => {
     const siteConfig = await loadSiteConfig();
+    const authProfileRegistry = await loadAuthProfileRegistry();
+    const authProfile = authProfileRegistry.profiles.find((profile) => profile.domain === 'zoositioweb.com.mx');
+    const profileGroups = new Set(authProfile?.allowedGroups ?? []);
     const routesByPath = new Map(siteConfig.routes.map((route) => [route.path, route]));
     const excluded = new Set(siteConfig.sitemap?.excludePaths ?? []);
 
@@ -87,9 +138,12 @@ describe('Zoosite content hub admin bindings', () => {
       const route = routesByPath.get(routePath);
       assert.ok(route, `missing route ${routePath}`);
       assert.equal(route.auth?.required, true, `${routePath} must be auth protected`);
-      assert.deepEqual(route.auth?.allowedGroups, ['zoosite-admin'], `${routePath} must be admin-only`);
+      assert.deepEqual(route.auth?.allowedGroups, adminRouteGroups.get(routePath), `${routePath} must use the expected auth groups`);
       assert.equal(route.auth?.redirectTo, '/acceso', `${routePath} must redirect to access`);
       assert.ok(excluded.has(routePath), `${routePath} must be excluded from sitemap`);
+      for (const group of route.auth?.allowedGroups ?? []) {
+        assert.ok(profileGroups.has(group), `${routePath} uses auth group missing from server profile: ${group}`);
+      }
     }
   });
 
@@ -140,6 +194,31 @@ describe('Zoosite content hub admin bindings', () => {
       key: 'articleId',
       transforms: ['trim'],
     });
+
+    const categories = dataSources.find((source) => source.id === 'content_hub_categories');
+    assert.equal(categories?.contentHub?.read, 'taxonomyList');
+    assert.deepEqual(categories?.input?.taxonomyKind, { source: 'literal', value: 'category' });
+    assert.ok(categories?.pageIds?.includes('admin-blog-articulos-nuevo'));
+    assert.ok(categories?.pageIds?.includes('admin-blog-articulo-editor'));
+    assert.equal(categories?.target, 'remote.contentHub.categories');
+    assert.deepEqual(categories?.mapper?.fields?.value, { path: 'slug' });
+    assert.deepEqual(categories?.mapper?.fields?.label, {
+      path: 'label',
+      transform: 'titleCase',
+      fallback: 'Sin nombre',
+    });
+
+    const tags = dataSources.find((source) => source.id === 'content_hub_tags');
+    assert.equal(tags?.contentHub?.read, 'taxonomyList');
+    assert.deepEqual(tags?.input?.taxonomyKind, { source: 'literal', value: 'tag' });
+    assert.ok(tags?.pageIds?.includes('admin-blog-articulos-nuevo'));
+    assert.ok(tags?.pageIds?.includes('admin-blog-articulo-editor'));
+    assert.equal(tags?.target, 'remote.contentHub.tags');
+    assert.deepEqual(tags?.mapper?.fields?.value, { path: 'slug' });
+    assert.deepEqual(tags?.mapper?.fields?.label, {
+      path: 'slug',
+      fallback: 'Sin tag',
+    });
   });
 
   it('declares content-hub actions for every phase-6 admin mutation contract', async () => {
@@ -172,5 +251,64 @@ describe('Zoosite content hub admin bindings', () => {
       assert.equal(serialized.includes('/seo?articleId='), false, `${filePath} must not duplicate SEO articleId`);
       assert.equal(serialized.includes('/versiones?articleId='), false, `${filePath} must not duplicate versions articleId`);
     }
+  });
+
+  it('hydrates article category and tag controls from protected taxonomy reads', async () => {
+    const siteConfig = await loadSiteConfig();
+    const newArticleComponents = await loadDraftComponents(adminNewArticleComponentsPath);
+    const editorComponents = await loadDraftComponents(adminEditorComponentsPath);
+    const categoryComponents = await loadDraftComponents(adminCategoriesComponentsPath);
+    const tagComponents = await loadDraftComponents(adminTagsComponentsPath);
+    const articleDetailSource = siteConfig.runtime.dataSources.find((source) => source.id === 'content_hub_article_detail');
+    assert.equal(
+      articleDetailSource?.mapper?.fields?.articleContent?.path,
+      'articleContent',
+      'article detail mapper must expose editable rich text content to draft components',
+    );
+
+    const newCategory = findComponentById(newArticleComponents, 'newArticleCategory');
+    assert.equal(newCategory?.config?.controlType, 'select');
+    assert.deepEqual(newCategory?.config?.options, {
+      source: 'var',
+      path: 'remote.contentHub.categories.items',
+      fallback: [
+        { value: 'web', label: 'Web' },
+        { value: 'seo', label: 'SEO' },
+        { value: 'builder', label: 'Builder visual' },
+        { value: 'angora', label: 'Angora CSS' },
+      ],
+    });
+
+    const newTags = findComponentById(newArticleComponents, 'newArticleTags');
+    assert.deepEqual(newTags?.config?.autocompleteOptions, {
+      source: 'var',
+      path: 'remote.contentHub.tags.items',
+      fallback: [
+        { value: 'seo', label: 'seo' },
+        { value: 'blog-builder', label: 'blog-builder' },
+        { value: 'sitios-web', label: 'sitios-web' },
+        { value: 'content-hub', label: 'content-hub' },
+      ],
+    });
+
+    const editorCategory = findComponentById(editorComponents, 'editorCategoryInput');
+    assert.deepEqual(editorCategory?.config?.options, newCategory?.config?.options);
+
+    const editorTags = findComponentById(editorComponents, 'editorTagsInput');
+    assert.deepEqual(editorTags?.config?.autocompleteOptions, newTags?.config?.autocompleteOptions);
+
+    const editorRichText = findComponentById(editorComponents, 'articleRichText');
+    assert.equal(
+      editorRichText?.valueInstructions,
+      'set:config.value,varOr,remote.contentHub.articleDetail.items.0.articleContent,',
+      'article editor rich text must hydrate from articleDetail package content',
+    );
+
+    const categoriesTable = findComponentById(categoryComponents, 'categoriesTable');
+    const tagsTable = findComponentById(tagComponents, 'tagsTable');
+    assert.equal(categoriesTable?.config?.rowsSource?.path, 'remote.contentHub.categories.items');
+    assert.equal(tagsTable?.config?.rowsSource?.path, 'remote.contentHub.tags.items');
+    assert.equal(categoriesTable?.config?.columns?.some((column) => column.id === 'kind'), false);
+    assert.equal(tagsTable?.config?.columns?.some((column) => column.id === 'kind'), false);
   });
 });

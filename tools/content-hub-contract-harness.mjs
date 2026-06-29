@@ -7,6 +7,16 @@ const ZOOSITE_SEED_FIXTURE_ROOT = new URL('./tests/fixtures/content-hub/zoosite-
 const SERVER_ONLY_PUBLIC_KEY_PATTERN = /(?:credentialRef|clientSecret|accessToken|refreshToken|idToken|privateKey|signedUrl|serverPolicy|lambdaArn|tableName|bucketName|userPoolId|tenantId|groupsToRoles|authorizationDecision|lockId|moderationQueue|scheduleExecutor)/iu;
 const UNSAFE_PUBLIC_STRING_PATTERN = /(?:javascript:|data:|X-Amz-Signature|X-Amz-Credential|X-Amz-Security-Token|Signature=|Expires=|ssm:\/|secretsmanager:\/)/iu;
 const PII_ANALYTICS_FIELD_PATTERN = /^(?:email|mail|phone|telefono|tel[eé]fono|name|commentText|commentBody|formBody|subject|cognitoUsername|username)$/iu;
+const CONTENT_HUB_AUTH_PROFILE_ALLOWED_GROUPS = Object.freeze([
+  'zoosite-client',
+  'zoosite-admin',
+  'zoosite-blog-editor',
+  'zoosite-blog-publisher',
+  'zoosite-blog-media',
+  'zoosite-blog-moderator',
+  'zoosite-blog-analyst',
+]);
+const CONTENT_HUB_ROLE_GROUPS = new Set(CONTENT_HUB_AUTH_PROFILE_ALLOWED_GROUPS.filter((group) => group !== 'zoosite-client'));
 
 export const CONTENT_HUB_REQUIRED_ITEM_FAMILIES = Object.freeze([
   'HUB',
@@ -102,6 +112,142 @@ export const CONTENT_HUB_ANALYTICS_EVENTS = Object.freeze([
     requiredFields: ['appName', 'timestamp', 'hubId', 'articleId', 'outcome'],
     forbiddenFields: ['email', 'name', 'commentText', 'commentBody'],
   },
+]);
+
+export const CONTENT_HUB_ROLE_POLICIES = Object.freeze([
+  {
+    roleId: 'hub-admin',
+    groups: ['zoosite-admin'],
+    permissions: [
+      'hub:hub:read',
+      'hub:hub:update',
+      'hub:connection:manage',
+      'blog:article:read',
+      'blog:article:create',
+      'blog:article:update',
+      'blog:article:validate',
+      'blog:article:submit-review',
+      'blog:article:approve',
+      'blog:article:publish',
+      'blog:article:unpublish',
+      'blog:article:schedule',
+      'blog:article:archive',
+      'blog:revision:read',
+      'blog:revision:restore',
+      'blog:taxonomy:read',
+      'blog:taxonomy:manage',
+      'blog:media:read',
+      'blog:media:manage',
+      'blog:moderation:read',
+      'blog:moderation:moderate',
+      'blog:analytics:read',
+      'blog:settings:manage',
+    ],
+  },
+  {
+    roleId: 'blog-admin',
+    groups: ['zoosite-admin'],
+    permissions: [
+      'blog:article:read',
+      'blog:article:create',
+      'blog:article:update',
+      'blog:article:validate',
+      'blog:article:submit-review',
+      'blog:article:approve',
+      'blog:article:publish',
+      'blog:article:unpublish',
+      'blog:article:schedule',
+      'blog:article:archive',
+      'blog:revision:read',
+      'blog:revision:restore',
+      'blog:taxonomy:read',
+      'blog:taxonomy:manage',
+      'blog:media:read',
+      'blog:media:manage',
+      'blog:moderation:read',
+      'blog:moderation:moderate',
+      'blog:analytics:read',
+      'blog:settings:manage',
+    ],
+  },
+  {
+    roleId: 'blog-editor',
+    groups: ['zoosite-admin', 'zoosite-blog-editor'],
+    permissions: [
+      'blog:article:read',
+      'blog:article:create',
+      'blog:article:update',
+      'blog:article:validate',
+      'blog:article:submit-review',
+      'blog:revision:read',
+      'blog:taxonomy:read',
+      'blog:media:read',
+      'blog:media:manage',
+    ],
+  },
+  {
+    roleId: 'blog-publisher',
+    groups: ['zoosite-admin', 'zoosite-blog-publisher'],
+    permissions: [
+      'blog:article:read',
+      'blog:article:validate',
+      'blog:article:approve',
+      'blog:article:publish',
+      'blog:article:unpublish',
+      'blog:article:schedule',
+      'blog:article:archive',
+      'blog:revision:read',
+      'blog:revision:restore',
+    ],
+  },
+  {
+    roleId: 'blog-reviewer',
+    groups: ['zoosite-admin', 'zoosite-blog-publisher'],
+    permissions: [
+      'blog:article:read',
+      'blog:article:validate',
+      'blog:article:approve',
+      'blog:article:request-changes',
+      'blog:revision:read',
+    ],
+  },
+  {
+    roleId: 'blog-moderator',
+    groups: ['zoosite-admin', 'zoosite-blog-moderator'],
+    permissions: [
+      'blog:article:read',
+      'blog:moderation:read',
+      'blog:moderation:moderate',
+    ],
+  },
+  {
+    roleId: 'blog-media-manager',
+    groups: ['zoosite-admin', 'zoosite-blog-media'],
+    permissions: [
+      'blog:article:read',
+      'blog:media:read',
+      'blog:media:manage',
+    ],
+  },
+  {
+    roleId: 'blog-analyst',
+    groups: ['zoosite-admin', 'zoosite-blog-analyst'],
+    permissions: [
+      'blog:article:read',
+      'blog:analytics:read',
+    ],
+  },
+]);
+
+const REQUIRED_CONTENT_HUB_ROLE_IDS = Object.freeze([
+  'hub-admin',
+  'blog-admin',
+  'blog-editor',
+  'blog-publisher',
+  'blog-reviewer',
+  'blog-moderator',
+  'blog-media-manager',
+  'blog-analyst',
 ]);
 
 export const CONTENT_HUB_DYNAMO_LAYOUT = Object.freeze([
@@ -441,6 +587,7 @@ export function buildContentHubLocalContractPlan(input = {}) {
     mode: 'local-no-aws',
     context,
     repositoryDecisions: CONTENT_HUB_REPOSITORY_DECISIONS,
+    rolePolicies: CONTENT_HUB_ROLE_POLICIES,
     analyticsEvents: CONTENT_HUB_ANALYTICS_EVENTS,
     dynamoLayout: CONTENT_HUB_DYNAMO_LAYOUT,
     s3Layouts: renderedS3Layouts,
@@ -450,6 +597,7 @@ export function buildContentHubLocalContractPlan(input = {}) {
       'All S3 keys are deterministic and scoped by environment plus hub.',
       'Article package, snapshot, delta, published bundle, and validation report keys include article, locale, and revision where applicable.',
       'Runtime reads are read-only and cannot write package or metadata state.',
+      'Blog roles map auth groups to explicit action-scoped permissions without wildcard grants.',
       'No capability receives secretsmanager, ssm, wildcard IAM actions, raw secrets, or cross-capability table access by default.',
       'Analytics events use blog-prefixed event names and forbid raw PII/comment/form body fields.',
     ],
@@ -493,6 +641,41 @@ export function validateContentHubLocalContractPlan(plan) {
   ]) {
     if (!decisions.has(capability)) {
       errors.push(`Missing repository decision for capability: ${capability}`);
+    }
+  }
+
+  const rolePolicies = Array.isArray(plan?.rolePolicies) ? plan.rolePolicies : [];
+  const roleIds = new Set(rolePolicies.map((policy) => policy?.roleId));
+  for (const roleId of REQUIRED_CONTENT_HUB_ROLE_IDS) {
+    if (!roleIds.has(roleId)) {
+      errors.push(`Missing content hub role policy: ${roleId}`);
+    }
+  }
+  for (const policy of rolePolicies) {
+    if (!SAFE_SEGMENT_PATTERN.test(cleanString(policy?.roleId))) {
+      errors.push(`Role policy id is not safe: ${policy?.roleId ?? '<empty>'}`);
+    }
+    if (!Array.isArray(policy?.groups) || policy.groups.length === 0) {
+      errors.push(`Role policy must map to at least one auth group: ${policy?.roleId ?? '<empty>'}`);
+    }
+    for (const group of policy?.groups ?? []) {
+      if (!SAFE_SEGMENT_PATTERN.test(cleanString(group))) {
+        errors.push(`Role policy group is not safe: ${policy?.roleId ?? '<empty>'}.${group ?? '<empty>'}`);
+      }
+      if (!CONTENT_HUB_ROLE_GROUPS.has(cleanString(group))) {
+        errors.push(`Role policy group is not allowed for content hub: ${policy?.roleId ?? '<empty>'}.${group ?? '<empty>'}`);
+      }
+    }
+    if (!Array.isArray(policy?.permissions) || policy.permissions.length === 0) {
+      errors.push(`Role policy must declare permissions: ${policy?.roleId ?? '<empty>'}`);
+    }
+    for (const permission of policy?.permissions ?? []) {
+      if (typeof permission !== 'string' || !/^[a-z][a-z0-9-]*:[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$/u.test(permission)) {
+        errors.push(`Role policy permission must be action-scoped: ${policy?.roleId ?? '<empty>'}.${permission ?? '<empty>'}`);
+      }
+      if (String(permission).includes('*')) {
+        errors.push(`Role policy permission must not use wildcards: ${policy?.roleId ?? '<empty>'}.${permission}`);
+      }
     }
   }
 

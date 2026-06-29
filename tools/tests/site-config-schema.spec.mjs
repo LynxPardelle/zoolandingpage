@@ -84,6 +84,7 @@ test('site-config schema exposes content hub data source and action contracts wi
     assert.equal(contentHubRuntime.properties.publicArticles.items.$ref, '#/definitions/contentHubPublicArticle');
     assert.equal(contentHubRuntime.properties.publicTaxonomy.items.$ref, '#/definitions/contentHubPublicTaxonomy');
     assert.equal(schema.definitions.contentHubPublicArticle.properties.path.$ref, '#/definitions/sameOriginPath');
+    assert.equal(schema.definitions.contentHubPublicArticle.properties.visibility.const, 'public');
     assert.equal(schema.definitions.contentHubPublicArticle.properties.credentialRef, undefined);
     assert.equal(schema.definitions.contentHubPublicTaxonomy.properties.path.$ref, '#/definitions/sameOriginPath');
 
@@ -97,6 +98,7 @@ test('site-config schema exposes content hub data source and action contracts wi
         'moderationQueue',
         'assetList',
         'revisionList',
+        'scheduleList',
         'publicBundlePreview',
     ]);
     assert.equal(contentHubRead.properties.credentialRef, undefined);
@@ -112,8 +114,12 @@ test('site-config schema exposes content hub data source and action contracts wi
         'uploadAsset',
         'validate',
         'submitReview',
+        'approveArticle',
         'publish',
+        'unpublishArticle',
+        'archiveArticle',
         'schedule',
+        'cancelSchedule',
         'queueComment',
         'moderateComment',
         'recordInteraction',

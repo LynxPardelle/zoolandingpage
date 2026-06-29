@@ -333,16 +333,17 @@ export class ConfigBootstrapService {
         this.store.resetPagePayloads();
         this.store.setStage('page-config');
         this.error.set(null);
+        const sourceOptions = opts?.routePath ? { path: opts.routePath } : undefined;
 
-        const pageConfig = await this.loadPageConfig(domain, pageId);
+        const pageConfig = await this.loadPageConfig(domain, pageId, sourceOptions);
         this.store.setPageConfig(pageConfig);
 
         this.store.setStage('components');
-        const components = await this.loadComponents(domain, pageId);
+        const components = await this.loadComponents(domain, pageId, sourceOptions);
         this.store.setComponents(components);
 
         this.store.setStage('variables');
-        const loadedVariables = await this.loadVariables(domain, pageId);
+        const loadedVariables = await this.loadVariables(domain, pageId, sourceOptions);
         const draftLanguages = this.buildDraftLanguageDefinitions(siteConfig, loadedVariables);
         const defaultLanguage = this.defaultDraftLanguage(siteConfig, loadedVariables, draftLanguages);
         this.language.configureLanguages(
@@ -354,7 +355,7 @@ export class ConfigBootstrapService {
 
         const variables = loadedVariables;
         this.store.setStage('angora-combos');
-        const combos = await this.loadCombos(domain, pageId);
+        const combos = await this.loadCombos(domain, pageId, sourceOptions);
         this.store.setVariables(variables);
         this.store.setCombos(combos);
         this.variablesStore.setPayload(variables, siteConfig);
@@ -364,7 +365,7 @@ export class ConfigBootstrapService {
         }));
 
         this.store.setStage('i18n');
-        const i18nPayload = await this.loadI18n(domain, pageId, lang);
+        const i18nPayload = await this.loadI18n(domain, pageId, lang, sourceOptions);
         this.store.setI18n(i18nPayload);
 
         const seo = pageConfig?.seo ?? null;
@@ -518,9 +519,9 @@ export class ConfigBootstrapService {
         return segments.at(-1) ?? '';
     }
 
-    private async loadPageConfig(domain: string, pageId: string): Promise<TPageConfigPayload | null> {
+    private async loadPageConfig(domain: string, pageId: string, opts?: { readonly path?: string }): Promise<TPageConfigPayload | null> {
         try {
-            const payload = await this.source.loadPageConfig(domain, pageId);
+            const payload = await this.source.loadPageConfig(domain, pageId, opts);
             return payload && isPageConfigPayload(payload) ? payload : null;
         } catch (error) {
             this.captureError('page-config', error);
@@ -528,9 +529,9 @@ export class ConfigBootstrapService {
         }
     }
 
-    private async loadComponents(domain: string, pageId: string): Promise<TComponentsPayload | null> {
+    private async loadComponents(domain: string, pageId: string, opts?: { readonly path?: string }): Promise<TComponentsPayload | null> {
         try {
-            const payload = await this.source.loadComponents(domain, pageId);
+            const payload = await this.source.loadComponents(domain, pageId, opts);
             return payload && isComponentsPayload(payload) ? payload : null;
         } catch (error) {
             this.captureError('components', error);
@@ -538,9 +539,9 @@ export class ConfigBootstrapService {
         }
     }
 
-    private async loadVariables(domain: string, pageId: string): Promise<TVariablesPayload | null> {
+    private async loadVariables(domain: string, pageId: string, opts?: { readonly path?: string }): Promise<TVariablesPayload | null> {
         try {
-            const payload = await this.source.loadVariables(domain, pageId);
+            const payload = await this.source.loadVariables(domain, pageId, opts);
             return payload && isVariablesPayload(payload) ? payload : null;
         } catch (error) {
             this.captureError('variables', error);
@@ -548,9 +549,9 @@ export class ConfigBootstrapService {
         }
     }
 
-    private async loadCombos(domain: string, pageId: string): Promise<TAngoraCombosPayload | null> {
+    private async loadCombos(domain: string, pageId: string, opts?: { readonly path?: string }): Promise<TAngoraCombosPayload | null> {
         try {
-            const payload = await this.source.loadCombos(domain, pageId);
+            const payload = await this.source.loadCombos(domain, pageId, opts);
             return payload && isAngoraCombosPayload(payload) ? payload : null;
         } catch (error) {
             this.captureError('angora-combos', error);
@@ -558,9 +559,9 @@ export class ConfigBootstrapService {
         }
     }
 
-    private async loadI18n(domain: string, pageId: string, lang: string): Promise<TI18nPayload | null> {
+    private async loadI18n(domain: string, pageId: string, lang: string, opts?: { readonly path?: string }): Promise<TI18nPayload | null> {
         try {
-            const payload = await this.source.loadI18n(domain, pageId, lang);
+            const payload = await this.source.loadI18n(domain, pageId, lang, opts);
             return payload && isI18nPayload(payload) ? payload : null;
         } catch (error) {
             this.captureError('i18n', error);
