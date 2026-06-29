@@ -21,6 +21,8 @@ type TRuntimeBundleCacheEntry = {
     readonly payload: TRuntimeBundlePayload;
 };
 
+type TRuntimeFallbackEnvironment = 'dev' | 'test' | 'production';
+
 const serverRuntimeBundleCache = new Map<string, TRuntimeBundleCacheEntry>();
 
 export function clearRuntimeBundleServerCacheForTesting(): void {
@@ -74,6 +76,28 @@ export class ConfigApiService {
     private isLocalHostname(hostname: string): boolean {
         const normalized = String(hostname ?? '').trim().toLowerCase();
         return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1';
+    }
+
+    private normalizeRuntimeFallbackEnvironment(value: unknown): TRuntimeFallbackEnvironment | null {
+        const normalized = String(value ?? '').trim().toLowerCase();
+        return normalized === 'dev' || normalized === 'test' || normalized === 'production'
+            ? normalized
+            : null;
+    }
+
+    private resolveRuntimeFallbackEnvironment(params: Record<string, string | undefined>): TRuntimeFallbackEnvironment {
+        const explicit = this.normalizeRuntimeFallbackEnvironment(params['environment']);
+        if (explicit) {
+            return explicit;
+        }
+
+        const currentUrl = this.resolveCurrentUrl();
+        const hostname = String(currentUrl?.hostname ?? '').trim().toLowerCase();
+        if (hostname.startsWith('test.') || hostname.includes('.test.')) {
+            return 'test';
+        }
+
+        return 'production';
     }
 
     private readSearchParam(params: URLSearchParams, key: string): string {
@@ -148,9 +172,13 @@ export class ConfigApiService {
         return this.readServerEnv('CONFIG_API_URL') || String(environment.configApiUrl ?? environment.apiUrl ?? '').trim();
     }
 
-    private resolveRuntimeFallbackBaseUrl(): string {
+    private resolveRuntimeFallbackBaseUrl(params: Record<string, string | undefined>): string {
+        const runtimeEnvironment = this.resolveRuntimeFallbackEnvironment(params);
+        const serverFallbacks = environment.configApiServerFallbackUrls ?? {};
+        const runtimeFallbacks = environment.configApiRuntimeFallbackUrls ?? {};
         return this.readServerEnv('CONFIG_API_SERVER_FALLBACK_URL')
             || this.readServerEnv('CONFIG_API_RUNTIME_FALLBACK_URL')
+            || String(serverFallbacks[runtimeEnvironment] ?? runtimeFallbacks[runtimeEnvironment] ?? '').trim()
             || String(environment.configApiRuntimeFallbackUrl ?? environment.configApiServerFallbackUrl ?? '').trim();
     }
 
@@ -159,7 +187,7 @@ export class ConfigApiService {
             return null;
         }
 
-        const fallbackBase = this.resolveRuntimeFallbackBaseUrl();
+        const fallbackBase = this.resolveRuntimeFallbackBaseUrl(params);
         if (!fallbackBase) {
             return null;
         }
