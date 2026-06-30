@@ -280,7 +280,7 @@ describe('Zoosite blog admin draft pages', () => {
   });
 
   it('keeps visible admin copy free of raw technical placeholders', async () => {
-    const rawVisibleCopyPattern = /\b(?:articleId|revisionId|assetId|fileName|query string|backend|BFF|CSRF|endpoint|payload|tenant|buckets?|authorizer policy|commentQueue|taxonomyList|languageFallback|seoDefaults|connectedDrafts|authorizedHubs|defaultCommentPolicy|usageRefs|publicability|content hub|hub|bundle|package|paquete|MVP|noindex|server-only|publicBundlePreview|approve|reject|archive|reschedule|cancelSchedule|Choose files)\b|\[object Object\]|Invalid id|Invalid identifier/iu;
+    const rawVisibleCopyPattern = /\b(?:articleId|revisionId|assetId|fileName|query string|backend|BFF|CSRF|endpoint|payload|tenant|buckets?|authorizer policy|commentQueue|taxonomyList|languageFallback|seoDefaults|connectedDrafts|authorizedHubs|defaultCommentPolicy|usageRefs|publicability|content hub|hub|bundle|package|paquete|MVP|noindex|server-only|publicBundlePreview|approve|reject|archive|reschedule|cancelSchedule|Choose files|gestor seguro|gestor de contenido|identificador|zoosite-main|views|readProgress|ctaClicks|assetDownloads)\b|\[object Object\]|Invalid id|Invalid identifier/iu;
     const rawStatusInstructionPattern = /set:config\.(?:text|errorText),varOr,remoteStatus\.contentHub\.[^,]+\.error/;
     const forbiddenFragments = [
       'articleId pendiente',
@@ -319,6 +319,7 @@ describe('Zoosite blog admin draft pages', () => {
         const translations = await readJson(`${pageId}/i18n/${language}.json`);
         for (const [trail, value] of collectAllStrings(translations)) {
           if (trail.endsWith('pageId')) continue;
+          if (trail.endsWith('hubId') || trail.endsWith('draftDomain')) continue;
           assert.equal(rawVisibleCopyPattern.test(value), false, `${pageId}/i18n/${language}.json/${trail} has raw technical copy: ${value}`);
         }
       }
@@ -326,7 +327,7 @@ describe('Zoosite blog admin draft pages', () => {
   });
 
   it('keeps Zoosite blog public and admin visible copy product-facing', async () => {
-    const rawBlogCopyPattern = /\b(?:content hub|hub|bundle|package|paquete|MVP|noindex|server-only|BFF|backend|commentQueue|taxonomyList|languageFallback|seoDefaults|connectedDrafts|authorizedHubs|defaultCommentPolicy|usageRefs|publicability|approve|reject|archive|reschedule|cancelSchedule|Choose files|assetId|fileName|tags?|SEO-ready|publicBundlePreview)\b|builder visual|Editor visual visual|El gestión|un publicación|publicación publicado/iu;
+    const rawBlogCopyPattern = /\b(?:content hub|hub|bundle|package|paquete|MVP|noindex|server-only|BFF|backend|commentQueue|taxonomyList|languageFallback|seoDefaults|connectedDrafts|authorizedHubs|defaultCommentPolicy|usageRefs|publicability|approve|reject|archive|reschedule|cancelSchedule|Choose files|assetId|fileName|tags?|SEO-ready|publicBundlePreview|gestor seguro|gestor de contenido|identificador|zoosite-main|views|readProgress|ctaClicks|assetDownloads)\b|builder visual|Editor visual visual|El gestión|un publicación|publicación publicado/iu;
     const copyPages = [
       ...pageIds,
       'blog',
@@ -439,6 +440,29 @@ describe('Zoosite blog admin draft pages', () => {
       );
       assert.equal(navigationTemplate.includes('{articleId}'), true, `${action.id} must include the selected article id`);
       assert.equal(navigationTemplate.includes('art_20260620_blog_builder'), false, `${action.id} must not hardcode seed article ids`);
+    }
+  });
+
+  it('keeps the blog overview free of ambiguous article mutations', async () => {
+    const payload = await readJson('admin-blog/components.json');
+    const components = flattenComponents(payload);
+    const shell = componentById(components, 'admin-blogShell');
+    const status = componentById(components, 'adminBlogMvpStatus');
+    const table = componentById(components, 'admin-blogArticlesTable');
+    const rowActions = table?.config?.rowActions ?? [];
+    const rawPayload = JSON.stringify(payload);
+
+    assert.equal(shell?.config?.components?.includes('admin-blogArticlesTable'), true);
+    assert.equal(status?.config?.components?.includes('adminBlogActionIdle'), true);
+    assert.equal(componentById(components, 'adminBlogValidateButton'), undefined);
+    assert.equal(componentById(components, 'adminBlogPublishButton'), undefined);
+    assert.equal(componentById(components, 'adminBlogActionStatus'), undefined);
+    assert.equal(rawPayload.includes('proxyAction:content_hub_validate_article'), false);
+    assert.equal(rawPayload.includes('proxyAction:content_hub_publish_article'), false);
+    assert.equal(rawPayload.includes('Publicar artículo seleccionado'), false);
+    for (const action of rowActions) {
+      const hrefTemplate = String(action.hrefTemplate ?? '');
+      assert.equal(hrefTemplate.includes('{articleId}'), true, `${action.id} must stay scoped to the selected row`);
     }
   });
 
@@ -760,7 +784,7 @@ describe('Zoosite blog admin draft pages', () => {
       ['admin-blog-programados', ['publishAt', 'unpublishAt', 'timezone', 'publish', 'unpublish']],
       ['admin-blog-moderacion', ['Comentarios por revisar', 'spam', 'approve', 'reject', 'archive', 'audit']],
       ['admin-blog-medios', ['upload', 'Biblioteca registrada', 'metadata', 'usageRefs', 'publicability', 'archive']],
-      ['admin-blog-analiticas', ['views', 'readProgress', 'ctaClicks', 'reactions', 'comments', 'shares', 'assetDownloads']],
+      ['admin-blog-analiticas', ['Visitas', 'Avance de lectura', 'Clics en llamados', 'Reacciones', 'Comentarios', 'Compartidos', 'Descargas']],
       ['admin-blog-categorias', ['translation', 'slug', 'seoDescription', 'visible', 'redirectWarning']],
       ['admin-blog-tags', ['translation', 'slug', 'seoDescription', 'visible', 'redirectWarning']],
       ['admin-blog-hub', ['Sitios conectados', 'Visibilidad', 'Conexiones autorizadas']],

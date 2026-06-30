@@ -4,6 +4,7 @@ import { resolveDynamicValue } from '../utility/component-orchestrator.utility';
 import { provideConditionHandlers } from '../utility/condition-handler/provide-condition-handlers';
 import { provideValueHandlers } from '../utility/value-handler/provide-value-handlers';
 import { ValueOrchestrator } from './value-orchestrator';
+import { VariableStoreService } from './variable-store.service';
 
 describe('ValueOrchestrator', () => {
     beforeEach(() => {
@@ -68,5 +69,41 @@ describe('ValueOrchestrator', () => {
 
         expect(typeof resolvedTextThunk).toBe('function');
         expect(resolvedText).toBe('Categoría: web');
+    });
+
+    it('resolves Quill delta rich text variables as safe HTML for generic text', () => {
+        const orchestrator = TestBed.inject(ValueOrchestrator);
+        const variables = TestBed.inject(VariableStoreService);
+        variables.setPayload({
+            variables: {
+                articleContent: {
+                    ops: [
+                        { insert: 'Texto ' },
+                        { insert: 'importante', attributes: { bold: true } },
+                        { insert: ' con enlace', attributes: { link: 'https://zoositioweb.com.mx/blog' } },
+                        { insert: '.\n' },
+                    ],
+                },
+            },
+        } as any);
+        const component = {
+            id: 'articleBody',
+            type: 'text',
+            config: {
+                tag: 'p',
+                text: 'Fallback',
+                html: '',
+            },
+            valueInstructions: 'set:config.html,richTextHtmlOr,articleContent,Fallback',
+        } as unknown as TGenericComponent;
+
+        const resolved = orchestrator.apply(component, { host: {} });
+        const resolvedHtmlThunk = (resolved as any).config?.html;
+        const resolvedHtml = resolveDynamicValue(resolvedHtmlThunk);
+
+        expect(typeof resolvedHtmlThunk).toBe('function');
+        expect(resolvedHtml).toContain('<p>Texto <strong>importante</strong>');
+        expect(resolvedHtml).toContain('<a href="https://zoositioweb.com.mx/blog"> con enlace</a>');
+        expect(resolvedHtml).not.toContain('[object Object]');
     });
 });

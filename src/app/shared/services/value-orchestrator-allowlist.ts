@@ -26,6 +26,8 @@ export const DEFAULT_ALLOWED_VALUE_IDS = [
     'scopeOr',
     'var',
     'varOr',
+    'richTextTextOr',
+    'richTextHtmlOr',
 ] as const;
 
 /**

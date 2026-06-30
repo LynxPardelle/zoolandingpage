@@ -333,7 +333,7 @@ describe('Zoosite content hub admin bindings', () => {
         { value: 'seo', label: 'seo' },
         { value: 'blog-builder', label: 'blog-builder' },
         { value: 'sitios-web', label: 'sitios-web' },
-        { value: 'content-hub', label: 'gestor de contenido' },
+        { value: 'content-hub', label: 'herramientas del blog' },
       ],
     });
 
