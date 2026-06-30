@@ -412,6 +412,8 @@ async function runSmoke(options) {
           { insert: `Contenido editado por smoke ${token}.\n` },
         ],
       },
+      advancedMode: true,
+      allowedComponentPreset: 'advanced',
       editorNotes: `QA smoke ${token}`,
     },
   });

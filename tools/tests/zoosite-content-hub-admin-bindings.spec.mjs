@@ -256,6 +256,13 @@ describe('Zoosite content hub admin bindings', () => {
       ['articleId', 'eventType', 'targetId', 'value', 'path'],
       'recordInteraction must not expose free-form metadata from draft UI',
     );
+    const updatePackageFields = actions.find((action) => action.id === 'content_hub_update_package')?.inputFields ?? [];
+    for (const field of ['articleContent', 'advancedMode', 'allowedComponentPreset']) {
+      assert.ok(
+        updatePackageFields.includes(field),
+        `updatePackage must preserve editor builder field ${field}`,
+      );
+    }
   });
 
   it('does not expose server-only content-hub policy in public site config', async () => {

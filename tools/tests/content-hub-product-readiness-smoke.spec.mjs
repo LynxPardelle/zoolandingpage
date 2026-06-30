@@ -375,6 +375,8 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
         assert.deepEqual(body.input.articleContent, {
           ops: [{ insert: 'Contenido editado por smoke 20260630040000.\n' }],
         });
+        assert.equal(body.input.advancedMode, true);
+        assert.equal(body.input.allowedComponentPreset, 'advanced');
         return new Response(JSON.stringify({
           ok: true,
           data: { revision: { revisionId: 'rev_20260630040000' } },
