@@ -356,11 +356,12 @@ function setCachedRuntimeSiteConfig(cacheKey: string, siteConfig: TLocalSiteConf
   runtimeSiteConfigCache.set(cacheKey, { siteConfig, expiresAt: Date.now() + SITE_CONFIG_CACHE_TTL_MS });
 }
 
-function buildRuntimeSiteConfigCacheKey(domain: string, environment?: string, routePath?: string): string {
+function buildRuntimeSiteConfigCacheKey(domain: string, environment?: string, routePath?: string, lang?: string): string {
   const normalizedEnvironment = cleanString(environment);
   const normalizedRoutePath = normalizeRoutePath(routePath || '/');
+  const normalizedLang = normalizeLanguageCode(lang);
   const baseKey = normalizedEnvironment ? `${ normalizedEnvironment }::${ domain }` : domain;
-  return `${ baseKey }::${ normalizedRoutePath }`;
+  return `${ baseKey }::${ normalizedRoutePath }::${ normalizedLang || 'default' }`;
 }
 
 function isDirectory(path: string): boolean {
@@ -629,13 +630,17 @@ function normalizeRoutePath(value: unknown): string {
   return normalizeDraftRoutePath(value);
 }
 
-function buildRuntimeBundleUrl(baseUrl: string, domain: string, routePath: string, environment?: string): string {
+function buildRuntimeBundleUrl(baseUrl: string, domain: string, routePath: string, environment?: string, lang?: string): string {
   const url = new URL('runtime-bundle', `${baseUrl.replace(/\/$/, '')}/`);
   url.searchParams.set('domain', domain);
   url.searchParams.set('path', normalizeRoutePath(routePath));
   const normalizedEnvironment = cleanString(environment);
   if (normalizedEnvironment) {
     url.searchParams.set('environment', normalizedEnvironment);
+  }
+  const normalizedLang = normalizeLanguageCode(lang);
+  if (normalizedLang) {
+    url.searchParams.set('lang', normalizedLang);
   }
   return url.toString();
 }
@@ -649,8 +654,9 @@ async function fetchRuntimeBundlePayload(
   domain: string,
   routePath: string,
   environment?: string,
+  lang?: string,
 ): Promise<TRuntimeBundlePayload | null> {
-  const url = buildRuntimeBundleUrl(baseUrl, domain, routePath, environment);
+  const url = buildRuntimeBundleUrl(baseUrl, domain, routePath, environment, lang);
 
   for (let attempt = 1; attempt <= RUNTIME_BUNDLE_FETCH_ATTEMPTS; attempt += 1) {
     try {
@@ -1285,22 +1291,24 @@ async function loadRuntimeSiteConfig(
   domain: string,
   environment?: string,
   routePath: string = '/',
+  lang?: string,
 ): Promise<TLocalSiteConfig | null> {
   const normalizedDomain = normalizeHost(domain);
   const normalizedRoutePath = normalizeRoutePath(routePath || '/');
+  const normalizedLang = normalizeLanguageCode(lang);
   const baseUrls = resolveRuntimeBundleBaseUrls(environment);
   if (!normalizedDomain || baseUrls.length === 0) {
     return null;
   }
 
-  const cacheKey = buildRuntimeSiteConfigCacheKey(normalizedDomain, environment, normalizedRoutePath);
+  const cacheKey = buildRuntimeSiteConfigCacheKey(normalizedDomain, environment, normalizedRoutePath, normalizedLang);
   const cached = runtimeSiteConfigCache.get(cacheKey);
   if (cached && Date.now() < cached.expiresAt) {
     return cached.siteConfig;
   }
 
   for (const baseUrl of baseUrls) {
-    const payload = await fetchRuntimeBundlePayload(baseUrl, normalizedDomain, normalizedRoutePath, environment);
+    const payload = await fetchRuntimeBundlePayload(baseUrl, normalizedDomain, normalizedRoutePath, environment, normalizedLang);
     if (isRecord(payload?.siteConfig)) {
       const siteConfig = payload.siteConfig as TLocalSiteConfig;
       setCachedRuntimeSiteConfig(cacheKey, siteConfig);
@@ -1337,13 +1345,14 @@ async function loadRuntimeRouteSiteConfigForRequest(
 
   const host = resolveRequestHost(req);
   const baseUrls = resolveRuntimeBundleBaseUrls(environment);
+  const lang = resolveRequestLanguage(req, siteConfig);
   if (baseUrls.length === 0) {
     return null;
   }
 
   for (const lookupDomain of listRuntimeLookupDomainsForRequest(req, host, domain, siteConfig)) {
     for (const baseUrl of baseUrls) {
-      const payload = await fetchRuntimeBundlePayload(baseUrl, lookupDomain, normalizedPath, environment);
+      const payload = await fetchRuntimeBundlePayload(baseUrl, lookupDomain, normalizedPath, environment, lang);
       if (isRecord(payload?.siteConfig)) {
         return payload.siteConfig as TLocalSiteConfig;
       }
@@ -1431,21 +1440,40 @@ function resolvePublicContentHubRoutePath(siteConfig: TLocalSiteConfig | null): 
   return normalizeRoutePath(configuredRoute || '/blog');
 }
 
-async function loadPublicContentHubSiteConfigForHost(domain: string, environment?: string): Promise<TLocalSiteConfig | null> {
+async function loadPublicContentHubSiteConfigForHost(domain: string, environment?: string, lang?: string): Promise<TLocalSiteConfig | null> {
   if (environment === 'local') {
     return loadSiteConfigForHost(domain, environment);
   }
 
   const localSiteConfig = loadLocalSiteConfig(domain);
+  const lookupLang = normalizeLanguageCode(lang) || normalizeLanguageCode(localSiteConfig?.site?.i18n?.defaultLanguage);
   const contentHubRoutePath = resolvePublicContentHubRoutePath(localSiteConfig);
-  const runtimeSiteConfig = await loadRuntimeSiteConfig(domain, environment, contentHubRoutePath);
+  const runtimeSiteConfig = await loadRuntimeSiteConfig(domain, environment, contentHubRoutePath, lookupLang);
+  if (!lookupLang) {
+    const runtimeDefaultLang = normalizeLanguageCode(runtimeSiteConfig?.site?.i18n?.defaultLanguage);
+    if (runtimeDefaultLang) {
+      const localizedRuntimeSiteConfig = await loadRuntimeSiteConfig(domain, environment, contentHubRoutePath, runtimeDefaultLang);
+      if (hasPublicContentHubRuntimeEntries(localizedRuntimeSiteConfig)) {
+        return localizedRuntimeSiteConfig;
+      }
+    }
+  }
   if (hasPublicContentHubRuntimeEntries(runtimeSiteConfig)) {
     return runtimeSiteConfig;
   }
 
   const rootRuntimeSiteConfig = contentHubRoutePath === '/'
     ? runtimeSiteConfig
-    : await loadRuntimeSiteConfig(domain, environment, '/');
+    : await loadRuntimeSiteConfig(domain, environment, '/', lookupLang);
+  if (!lookupLang) {
+    const runtimeDefaultLang = normalizeLanguageCode(rootRuntimeSiteConfig?.site?.i18n?.defaultLanguage);
+    if (runtimeDefaultLang) {
+      const localizedRootRuntimeSiteConfig = await loadRuntimeSiteConfig(domain, environment, '/', runtimeDefaultLang);
+      if (hasPublicContentHubRuntimeEntries(localizedRootRuntimeSiteConfig)) {
+        return localizedRootRuntimeSiteConfig;
+      }
+    }
+  }
   if (hasPublicContentHubRuntimeEntries(rootRuntimeSiteConfig)) {
     return rootRuntimeSiteConfig;
   }
@@ -2690,7 +2718,8 @@ async function decorateHtmlResponse(req: express.Request, response: Response): P
   const lookupDomain = resolveNotFoundLookupDomain(req, host);
   const environment = resolveRuntimeEnvironment(host);
   const siteConfig = await loadSiteConfigForHost(lookupDomain, environment);
-  const publicContentHubSiteConfig = await loadPublicContentHubSiteConfigForHost(lookupDomain, environment);
+  const requestLang = resolveRequestLanguage(req, siteConfig);
+  const publicContentHubSiteConfig = await loadPublicContentHubSiteConfigForHost(lookupDomain, environment, requestLang);
   const routeContentHubSiteConfig = response.status === 404
     ? null
     : await loadRuntimeRouteSiteConfigForRequest(req, lookupDomain, siteConfig, environment);
@@ -2930,21 +2959,24 @@ app.get('/robots.txt', async (req, res) => {
 app.get('/sitemap.xml', async (req, res) => {
   const host = resolveRequestHost(req);
   const lookupDomain = resolveNotFoundLookupDomain(req, host);
-  const siteConfig = await loadPublicContentHubSiteConfigForHost(lookupDomain, resolveRuntimeEnvironment(host));
+  const environment = resolveRuntimeEnvironment(host);
+  const siteConfig = await loadPublicContentHubSiteConfigForHost(lookupDomain, environment, firstQueryParam(req.query['lang']));
   res.type('application/xml').send(await buildSitemapXml(req, lookupDomain, siteConfig));
 });
 
 app.get(['/feed.xml', '/rss.xml', '/atom.xml'], async (req, res) => {
   const host = resolveRequestHost(req);
   const lookupDomain = resolveNotFoundLookupDomain(req, host);
-  const siteConfig = await loadPublicContentHubSiteConfigForHost(lookupDomain, resolveRuntimeEnvironment(host));
+  const environment = resolveRuntimeEnvironment(host);
+  const siteConfig = await loadPublicContentHubSiteConfigForHost(lookupDomain, environment, firstQueryParam(req.query['lang']));
   res.type('application/rss+xml').send(buildRssFeedXml(req, lookupDomain, siteConfig));
 });
 
 app.get('/content-hub-search.json', async (req, res) => {
   const host = resolveRequestHost(req);
   const lookupDomain = resolveNotFoundLookupDomain(req, host);
-  const siteConfig = await loadPublicContentHubSiteConfigForHost(lookupDomain, resolveRuntimeEnvironment(host));
+  const environment = resolveRuntimeEnvironment(host);
+  const siteConfig = await loadPublicContentHubSiteConfigForHost(lookupDomain, environment, firstQueryParam(req.query['lang']));
   res
     .status(200)
     .type('application/json')
