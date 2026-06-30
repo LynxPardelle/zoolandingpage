@@ -538,6 +538,7 @@ describe('Zoosite blog admin draft pages', () => {
     const commentScope = componentById(components, 'blogArticleCommentScope');
     const reactionButton = componentById(components, 'blogArticleUsefulButton');
     const shareButton = componentById(components, 'blogArticleShareButton');
+    const commentLoginLink = componentById(components, 'blogArticleCommentLoginLink');
     const commentBody = componentById(components, 'blogArticleCommentBody');
     const commentButton = componentById(components, 'blogArticleCommentButton');
 
@@ -555,6 +556,8 @@ describe('Zoosite blog admin draft pages', () => {
     assert.match(String(reactionButton?.valueInstructions ?? ''), /setScopeValue:eventType,reaction/);
     assert.match(String(shareButton?.valueInstructions ?? ''), /proxyAction:content_hub_record_interaction/);
     assert.match(String(shareButton?.valueInstructions ?? ''), /setScopeValue:eventType,share/);
+    assert.equal(commentLoginLink?.type, 'link');
+    assert.equal(commentLoginLink?.config?.href, '/acceso');
     assert.equal(commentBody?.config?.fieldId, 'commentBody');
     assert.equal(commentBody?.config?.controlType, 'textarea');
     assert.equal(commentButton?.config?.disabledWhenInvalidScope, true);
