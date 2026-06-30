@@ -242,6 +242,11 @@ describe('Zoosite content hub admin bindings', () => {
       assert.match(action.statusTarget, /^remoteStatus\.contentHub\./);
       assert.ok(Array.isArray(action.inputFields), `${action.id} must declare safe inputFields`);
     }
+    assert.deepEqual(
+      actions.find((action) => action.id === 'content_hub_record_interaction')?.inputFields,
+      ['articleId', 'eventType', 'targetId', 'value', 'path'],
+      'recordInteraction must not expose free-form metadata from draft UI',
+    );
   });
 
   it('does not expose server-only content-hub policy in public site config', async () => {

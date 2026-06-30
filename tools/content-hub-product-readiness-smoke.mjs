@@ -450,6 +450,41 @@ async function runSmoke(options) {
     throw new Error('Restore revision did not return the restored revision.');
   }
 
+  for (const readCheck of [
+    {
+      label: 'asset list',
+      pageId: 'admin-blog-medios',
+      operationId: 'content_hub_asset_list',
+      binding: { read: 'assetList', articleId: created.articleId },
+    },
+    {
+      label: 'moderation queue',
+      pageId: 'admin-blog-moderacion',
+      operationId: 'content_hub_moderation_queue',
+      binding: { read: 'moderationQueue' },
+    },
+  ]) {
+    const payload = buildContentHubPayload({
+      domain,
+      pageId: readCheck.pageId,
+      operationId: readCheck.operationId,
+      hubId,
+      kind: 'read',
+      input: {
+        contentHub: readCheck.binding,
+        articleId: created.articleId,
+      },
+    });
+    const response = await fetchJson(endpoint('read'), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+    }, timeoutMs);
+    if (!Array.isArray(response?.data?.items)) {
+      throw new Error(`Content hub ${readCheck.label} did not return an item list.`);
+    }
+  }
+
   const validatePayload = buildContentHubPayload({
     domain,
     pageId: 'admin-blog-articulo-seo',
@@ -701,6 +736,8 @@ async function runSmoke(options) {
       revisionList: true,
       publicBundlePreview: true,
       restoreRevision: true,
+      assetList: true,
+      moderationQueue: true,
       validate: true,
       submitReview: true,
       approveArticle: true,

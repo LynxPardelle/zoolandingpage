@@ -400,6 +400,19 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
           },
         }), { status: 200 });
       }
+      if (read === 'assetList') {
+        assert.equal(body.input.articleId, 'art_smoke');
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { items: [] },
+        }), { status: 200 });
+      }
+      if (read === 'moderationQueue') {
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { items: [] },
+        }), { status: 200 });
+      }
       assert.equal(read, 'scheduleList');
       return new Response(JSON.stringify({
         ok: true,
@@ -478,6 +491,8 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
   assert.deepEqual(readSequence, [
     'revisionList',
     'publicBundlePreview',
+    'assetList',
+    'moderationQueue',
     'scheduleList',
   ]);
   assert.deepEqual(xmlPaths, [
