@@ -5,10 +5,12 @@ import {
   buildContentHubPayload,
   buildPublicArticleUrl,
   buildPublicSearchUrl,
+  buildPublicXmlUrl,
   buildRuntimeBundleUrl,
   cookieValue,
   extractCreateResult,
   parseArgs,
+  publicCanonicalArticleUrl,
   redact,
   runSmoke,
   safeSmokeErrorMessage,
@@ -93,6 +95,25 @@ test('buildPublicArticleUrl preserves shared preview draft context', () => {
   assert.equal(
     url,
     'https://test.zoolandingpage.com.mx/blog/qa/product-smoke?draftDomain=zoositioweb.com.mx&lang=es',
+  );
+});
+
+test('buildPublicXmlUrl preserves shared preview context without changing canonical article URLs', () => {
+  const url = buildPublicXmlUrl({
+    baseUrl: 'https://test.zoolandingpage.com.mx/',
+    domain: 'zoositioweb.com.mx',
+    pathName: '/feed.xml',
+    lang: 'es',
+    sharedPreview: true,
+  });
+
+  assert.equal(
+    url,
+    'https://test.zoolandingpage.com.mx/feed.xml?draftDomain=zoositioweb.com.mx&lang=es',
+  );
+  assert.equal(
+    publicCanonicalArticleUrl('zoositioweb.com.mx', '/blog/qa/product-smoke'),
+    'https://zoositioweb.com.mx/blog/qa/product-smoke',
   );
 });
 
@@ -253,6 +274,7 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
   const searchQueries = [];
   const actionSequence = [];
   const readSequence = [];
+  const xmlPaths = [];
   const now = new Date('2026-06-30T04:00:00.000Z');
   const title = 'QA Product Smoke 20260630040000';
   const slug = 'qa-product-smoke-20260630040000';
@@ -401,6 +423,17 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
       assert.equal(parsed.searchParams.get('draftDomain'), 'zoositioweb.com.mx');
       return new Response(`<html><title>${title}</title><body>${title}</body></html>`, { status: 200 });
     }
+    if (parsed.pathname === '/sitemap.xml') {
+      assert.equal(parsed.searchParams.get('draftDomain'), 'zoositioweb.com.mx');
+      xmlPaths.push(parsed.pathname);
+      return new Response(`<urlset><url><loc>https://zoositioweb.com.mx${path}</loc></url></urlset>`, { status: 200 });
+    }
+    if (parsed.pathname === '/feed.xml') {
+      assert.equal(parsed.searchParams.get('draftDomain'), 'zoositioweb.com.mx');
+      assert.equal(parsed.searchParams.get('lang'), 'es');
+      xmlPaths.push(parsed.pathname);
+      return new Response(`<rss><channel><item><link>https://zoositioweb.com.mx${path}</link><guid>https://zoositioweb.com.mx${path}</guid></item></channel></rss>`, { status: 200 });
+    }
     return new Response(JSON.stringify({ ok: false, error: 'unexpected request' }), { status: 500 });
   };
 
@@ -446,5 +479,9 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
     'revisionList',
     'publicBundlePreview',
     'scheduleList',
+  ]);
+  assert.deepEqual(xmlPaths, [
+    '/sitemap.xml',
+    '/feed.xml',
   ]);
 });

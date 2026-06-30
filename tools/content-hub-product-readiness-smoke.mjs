@@ -130,6 +130,21 @@ function buildPublicArticleUrl({ baseUrl, domain, pathName, lang, sharedPreview 
   return url.toString();
 }
 
+function buildPublicXmlUrl({ baseUrl, domain, pathName, lang, sharedPreview = true }) {
+  const url = urlWithPath(baseUrl, pathName);
+  if (sharedPreview) {
+    url.searchParams.set('draftDomain', domain);
+  }
+  if (lang) {
+    url.searchParams.set('lang', lang);
+  }
+  return url.toString();
+}
+
+function publicCanonicalArticleUrl(domain, pathName) {
+  return `https://${domain}${clean(pathName).startsWith('/') ? clean(pathName) : `/${clean(pathName)}`}`;
+}
+
 function buildContentHubPayload({ domain, pageId, operationId, hubId, kind, input = {} }) {
   const idKey = kind === 'read' ? 'sourceId' : 'actionId';
   const bindingKey = kind === 'read' ? 'read' : 'action';
@@ -581,6 +596,27 @@ async function runSmoke(options) {
     throw new Error('Published public article HTML did not include the smoke article.');
   }
 
+  const canonicalArticleUrl = publicCanonicalArticleUrl(domain, published.path);
+  for (const xmlCheck of [
+    { label: 'sitemap', pathName: '/sitemap.xml', lang: '', root: '<urlset', needles: [`<loc>${canonicalArticleUrl}</loc>`] },
+    { label: 'feed', pathName: '/feed.xml', lang, root: '<rss', needles: [`<link>${canonicalArticleUrl}</link>`, `<guid>${canonicalArticleUrl}</guid>`] },
+  ]) {
+    const xmlUrl = buildPublicXmlUrl({
+      baseUrl,
+      domain,
+      pathName: xmlCheck.pathName,
+      lang: xmlCheck.lang,
+      sharedPreview,
+    });
+    const xmlText = await fetchText(xmlUrl, {
+      method: 'GET',
+      headers: { Accept: 'application/xml,text/xml,*/*' },
+    }, timeoutMs);
+    if (!xmlText.includes(xmlCheck.root) || !xmlCheck.needles.some((needle) => xmlText.includes(needle))) {
+      throw new Error(`Public ${xmlCheck.label} did not include the published article.`);
+    }
+  }
+
   const schedulePayload = buildContentHubPayload({
     domain,
     pageId: 'admin-blog-programados',
@@ -672,6 +708,8 @@ async function runSmoke(options) {
       runtimeBundle: true,
       publicSearch: true,
       publicArticleHtml: true,
+      sitemap: true,
+      feed: true,
       scheduleList: true,
       cancelSchedule: true,
     },
@@ -734,10 +772,12 @@ export {
   buildContentHubPayload,
   buildPublicArticleUrl,
   buildPublicSearchUrl,
+  buildPublicXmlUrl,
   buildRuntimeBundleUrl,
   cookieValue,
   extractCreateResult,
   parseArgs,
+  publicCanonicalArticleUrl,
   redact,
   runSmoke,
   safeSmokeErrorMessage,
