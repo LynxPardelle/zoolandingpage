@@ -437,6 +437,12 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
           data: { items: [] },
         }), { status: 200 });
       }
+      if (read === 'analyticsSummary') {
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { items: [{ articleId: 'art_smoke', views: 0, ctaClicks: 0 }] },
+        }), { status: 200 });
+      }
       assert.equal(read, 'scheduleList');
       return new Response(JSON.stringify({
         ok: true,
@@ -517,6 +523,7 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
     'publicBundlePreview',
     'assetList',
     'moderationQueue',
+    'analyticsSummary',
     'scheduleList',
   ]);
   assert.deepEqual(xmlPaths, [

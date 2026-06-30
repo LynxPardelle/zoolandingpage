@@ -480,6 +480,12 @@ async function runSmoke(options) {
       operationId: 'content_hub_moderation_queue',
       binding: { read: 'moderationQueue' },
     },
+    {
+      label: 'analytics summary',
+      pageId: 'admin-blog-analiticas',
+      operationId: 'content_hub_analytics_summary',
+      binding: { read: 'analyticsSummary' },
+    },
   ]) {
     const payload = buildContentHubPayload({
       domain,

@@ -93,6 +93,7 @@ Supported read bindings:
 - `revisionList`
 - `scheduleList`
 - `publicBundlePreview`
+- `analyticsSummary`
 
 Supported action bindings:
 
