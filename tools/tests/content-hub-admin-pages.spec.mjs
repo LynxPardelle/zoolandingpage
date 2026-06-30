@@ -600,8 +600,14 @@ describe('Zoosite blog admin draft pages', () => {
     const editorHiddenId = componentById(editorComponents, 'editorArticleId');
     assert.equal(editorReadout?.valueInstructions, 'set:config.text,routeParamOr,id,Abre el editor desde la lista de artículos.');
     assert.equal(editorHiddenId?.config?.readOnly, true);
+    assert.equal(editorHiddenId?.config?.required, true);
+    assert.deepEqual(editorHiddenId?.config?.validation, [{
+      type: 'required',
+      message: 'Abre el editor desde la lista de artículos.',
+    }]);
     assert.match(editorHiddenId?.config?.classes ?? '', /ank-display-none/);
     assert.equal(editorHiddenId?.valueInstructions, 'set:config.value,routeParamOr,id,');
+    assert.equal(componentById(editorComponents, 'editorSaveButton')?.config?.disabledWhenInvalidScope, true);
     assert.ok(componentById(editorComponents, 'editorSaveIdle'));
 
     const previewArticleId = componentById(previewComponents, 'previewArticleId');
@@ -609,6 +615,14 @@ describe('Zoosite blog admin draft pages', () => {
     assert.equal(previewArticleId?.config?.required, true);
     assert.equal(previewArticleId?.valueInstructions, 'set:config.value,routeParamOr,id,');
     assert.equal(componentById(previewComponents, 'previewRevisionId')?.config?.required, true);
+    assert.equal(
+      componentById(previewComponents, 'previewSeoLink')?.valueInstructions,
+      'set:config.articleId,routeParamOr,id,;set:config.href,concat,/admin/blog/articulos/,eval:config.articleId,/seo',
+    );
+    assert.equal(
+      componentById(previewComponents, 'previewVersionsLink')?.valueInstructions,
+      'set:config.articleId,routeParamOr,id,;set:config.href,concat,/admin/blog/articulos/,eval:config.articleId,/versiones',
+    );
 
     const seoArticleId = componentById(seoComponents, 'seoArticleId');
     assert.equal(seoArticleId?.config?.readOnly, true);
