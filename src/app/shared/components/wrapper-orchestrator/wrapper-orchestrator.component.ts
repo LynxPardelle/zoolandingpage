@@ -133,6 +133,14 @@ export class WrapperOrchestrator {
     return resolveDynamicValue(value as never);
   }
 
+  resolveEventInstructions(value: unknown): string | undefined {
+    const resolved = this.resolveValue(value);
+    const normalized = typeof resolved === 'string'
+      ? resolved.trim()
+      : String(resolved ?? '').trim();
+    return normalized || undefined;
+  }
+
   private withResolvedDomId<TConfig>(
     componentId: string,
     componentType: string,
@@ -390,14 +398,14 @@ export class WrapperOrchestrator {
     meta_title?: string;
     eventName: string;
     eventData?: unknown;
-    eventInstructions?: string;
+    eventInstructions?: unknown;
   }) {
     const dispatchedEvent = {
       componentId: event.component,
       meta_title: event.meta_title,
       eventName: event.eventName,
       eventData: event.eventData,
-      eventInstructions: event.eventInstructions,
+      eventInstructions: this.resolveEventInstructions(event.eventInstructions),
     };
 
     this._configurationsOrchestratorService.handleComponentEvent(

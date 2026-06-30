@@ -22,6 +22,7 @@ import type { TGenericTableConfig } from "../generic-table/generic-table.types";
 import { TGenericTextConfig } from "../generic-text/generic-text.types";
 import type { TooltipConfig } from "../generic-tooltip/generic-tooltip.types";
 import type { TInteractionScopeConfig } from "../interaction-scope/interaction-scope.types";
+import type { TDynamicValue } from '../../types/component-runtime.types';
 
 export type TGenericStatsCounterOrchestratorConfig = () => TGenericStatsCounterConfig;
 export type TGenericStatsCounterConfigInput = TGenericStatsCounterConfig | (() => TGenericStatsCounterConfig);
@@ -175,7 +176,7 @@ export type TGenericComponent = {
         * - string: DSL for ConditionOrchestrator (e.g. all:varEq,theme.defaultMode,dark)
      */
     readonly condition?: boolean | string | (() => boolean);
-    readonly eventInstructions?: string;
+    readonly eventInstructions?: TDynamicValue<string>;
     /**
      * String DSL for resolving dynamic config values (labels/text/etc) via ValueOrchestrator.
      * Example: set:config.label,i18n,hero.primary.label

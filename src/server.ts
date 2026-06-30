@@ -276,6 +276,7 @@ type TContentHubPublicArticle = {
   readonly visibility?: string;
   readonly title?: string;
   readonly summary?: string;
+  readonly slug?: string;
   readonly path?: string;
   readonly categorySlug?: string;
   readonly tags?: readonly string[];
@@ -2446,7 +2447,13 @@ function filterPublicContentHubArticles(
   return articles
     .filter((article) => !q
       || cleanString(article.title).toLowerCase().includes(q)
-      || cleanString(article.summary).toLowerCase().includes(q))
+      || cleanString(article.summary).toLowerCase().includes(q)
+      || cleanString(article.articleId).toLowerCase().includes(q)
+      || cleanString(article.slug).toLowerCase().includes(q)
+      || cleanString(article.path).toLowerCase().includes(q)
+      || cleanString(article.canonicalPath).toLowerCase().includes(q)
+      || cleanString(article.categorySlug).toLowerCase().includes(q)
+      || (Array.isArray(article.tags) && article.tags.some((entry) => cleanString(entry).toLowerCase().includes(q))))
     .filter((article) => !category || cleanString(article.categorySlug).toLowerCase() === category)
     .filter((article) => !tag || (Array.isArray(article.tags) && article.tags.some((entry) => cleanString(entry).toLowerCase() === tag)))
     .filter((article) => !author || cleanString(article.authorLabel).toLowerCase().includes(author))
