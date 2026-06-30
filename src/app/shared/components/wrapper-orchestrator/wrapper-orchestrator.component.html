@@ -69,11 +69,15 @@
   </generic-dropdown>
 } @placeholder {
   <span aria-hidden="true"></span>
+} @error {
+  <span aria-hidden="true"></span>
 }
 } @case('embed-frame') {
 @defer (on viewport) {
   <generic-embed-frame [config]="$any(embedFrameConfig(component))"></generic-embed-frame>
 } @placeholder {
+  <span aria-hidden="true"></span>
+} @error {
   <span aria-hidden="true"></span>
 }
 } @case('generic-card') {
@@ -153,6 +157,8 @@
   ></generic-rich-text>
 } @placeholder {
   <span aria-hidden="true"></span>
+} @error {
+  <span aria-hidden="true"></span>
 }
 } @case('generic-table') {
 @defer (on viewport) {
@@ -188,6 +194,8 @@
     "
   ></generic-table>
 } @placeholder {
+  <span aria-hidden="true"></span>
+} @error {
   <span aria-hidden="true"></span>
 }
 } @case('input') {
@@ -234,6 +242,8 @@
     "
   ></generic-search-box>
 } @placeholder {
+  <span aria-hidden="true"></span>
+} @error {
   <span aria-hidden="true"></span>
 }
 } @case('stats-counter') {

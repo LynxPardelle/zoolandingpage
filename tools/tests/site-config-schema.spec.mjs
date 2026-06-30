@@ -100,6 +100,7 @@ test('site-config schema exposes content hub data source and action contracts wi
         'revisionList',
         'scheduleList',
         'publicBundlePreview',
+        'analyticsSummary',
     ]);
     assert.equal(contentHubRead.properties.credentialRef, undefined);
     assert.equal(contentHubRead.properties.serverPolicy, undefined);

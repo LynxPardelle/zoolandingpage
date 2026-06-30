@@ -71,11 +71,14 @@ Use data sources for generic reads:
 Allowed read operations are:
 
 - `articleList`
+- `articleDetail`
 - `taxonomyList`
 - `moderationQueue`
 - `assetList`
 - `revisionList`
+- `scheduleList`
 - `publicBundlePreview`
+- `analyticsSummary`
 
 Use API actions for mutations:
 
