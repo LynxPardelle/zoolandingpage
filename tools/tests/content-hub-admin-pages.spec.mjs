@@ -280,7 +280,7 @@ describe('Zoosite blog admin draft pages', () => {
   });
 
   it('keeps visible admin copy free of raw technical placeholders', async () => {
-    const rawVisibleCopyPattern = /\b(?:articleId|revisionId|assetId|fileName|query string|backend|BFF|CSRF|endpoint|payload|tenant|buckets?|authorizer policy|commentQueue|taxonomyList|languageFallback|seoDefaults|connectedDrafts|authorizedHubs|defaultCommentPolicy|usageRefs|publicability|content hub|hub|bundle|package|paquete|MVP|noindex|server-only|publicBundlePreview|approve|reject|archive|reschedule|cancelSchedule|Choose files)\b|\[object Object\]|Invalid id|Invalid identifier/iu;
+    const rawVisibleCopyPattern = /\b(?:articleId|revisionId|assetId|fileName|query string|backend|BFF|CSRF|endpoint|payload|tenant|buckets?|authorizer policy|commentQueue|taxonomyList|languageFallback|seoDefaults|connectedDrafts|authorizedHubs|defaultCommentPolicy|usageRefs|publicability|content hub|hub|bundle|package|paquete|MVP|noindex|server-only|publicBundlePreview|approve|reject|archive|reschedule|cancelSchedule|Choose files|gestor seguro|gestor de contenido|identificador|zoosite-main|views|readProgress|ctaClicks|assetDownloads)\b|\[object Object\]|Invalid id|Invalid identifier/iu;
     const rawStatusInstructionPattern = /set:config\.(?:text|errorText),varOr,remoteStatus\.contentHub\.[^,]+\.error/;
     const forbiddenFragments = [
       'articleId pendiente',
@@ -319,6 +319,7 @@ describe('Zoosite blog admin draft pages', () => {
         const translations = await readJson(`${pageId}/i18n/${language}.json`);
         for (const [trail, value] of collectAllStrings(translations)) {
           if (trail.endsWith('pageId')) continue;
+          if (trail.endsWith('hubId') || trail.endsWith('draftDomain')) continue;
           assert.equal(rawVisibleCopyPattern.test(value), false, `${pageId}/i18n/${language}.json/${trail} has raw technical copy: ${value}`);
         }
       }
@@ -326,7 +327,7 @@ describe('Zoosite blog admin draft pages', () => {
   });
 
   it('keeps Zoosite blog public and admin visible copy product-facing', async () => {
-    const rawBlogCopyPattern = /\b(?:content hub|hub|bundle|package|paquete|MVP|noindex|server-only|BFF|backend|commentQueue|taxonomyList|languageFallback|seoDefaults|connectedDrafts|authorizedHubs|defaultCommentPolicy|usageRefs|publicability|approve|reject|archive|reschedule|cancelSchedule|Choose files|assetId|fileName|tags?|SEO-ready|publicBundlePreview)\b|builder visual|Editor visual visual|El gestión|un publicación|publicación publicado/iu;
+    const rawBlogCopyPattern = /\b(?:content hub|hub|bundle|package|paquete|MVP|noindex|server-only|BFF|backend|commentQueue|taxonomyList|languageFallback|seoDefaults|connectedDrafts|authorizedHubs|defaultCommentPolicy|usageRefs|publicability|approve|reject|archive|reschedule|cancelSchedule|Choose files|assetId|fileName|tags?|SEO-ready|publicBundlePreview|gestor seguro|gestor de contenido|identificador|zoosite-main|views|readProgress|ctaClicks|assetDownloads)\b|builder visual|Editor visual visual|El gestión|un publicación|publicación publicado/iu;
     const copyPages = [
       ...pageIds,
       'blog',
@@ -783,7 +784,7 @@ describe('Zoosite blog admin draft pages', () => {
       ['admin-blog-programados', ['publishAt', 'unpublishAt', 'timezone', 'publish', 'unpublish']],
       ['admin-blog-moderacion', ['Comentarios por revisar', 'spam', 'approve', 'reject', 'archive', 'audit']],
       ['admin-blog-medios', ['upload', 'Biblioteca registrada', 'metadata', 'usageRefs', 'publicability', 'archive']],
-      ['admin-blog-analiticas', ['views', 'readProgress', 'ctaClicks', 'reactions', 'comments', 'shares', 'assetDownloads']],
+      ['admin-blog-analiticas', ['Visitas', 'Avance de lectura', 'Clics en llamados', 'Reacciones', 'Comentarios', 'Compartidos', 'Descargas']],
       ['admin-blog-categorias', ['translation', 'slug', 'seoDescription', 'visible', 'redirectWarning']],
       ['admin-blog-tags', ['translation', 'slug', 'seoDescription', 'visible', 'redirectWarning']],
       ['admin-blog-hub', ['Sitios conectados', 'Visibilidad', 'Conexiones autorizadas']],
