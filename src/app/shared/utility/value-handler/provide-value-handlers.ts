@@ -10,7 +10,7 @@ import { literalValueHandler } from './handlers/literal.value-handlers';
 import { queryParamOrValueHandler, queryParamValueHandler } from './handlers/query-param.value-handlers';
 import { routeParamOrValueHandler, routeParamValueHandler } from './handlers/route-param.value-handlers';
 import { scopeOrValueHandler, scopeValueHandler } from './handlers/scope.value-handlers';
-import { coalesceValueHandler, lowerValueHandler, upperValueHandler } from './handlers/string.value-handlers';
+import { coalesceValueHandler, joinTextValueHandler, lowerValueHandler, upperValueHandler } from './handlers/string.value-handlers';
 import { themePickValueHandler, themeValueHandler } from './handlers/theme.value-handlers';
 import { variableOrValueHandler, variableValueHandler } from './handlers/variable.value-handlers';
 import { VALUE_HANDLERS } from './value-handlers.token';
@@ -32,6 +32,7 @@ export const provideValueHandlers = (): Provider[] => {
         { provide: VALUE_HANDLERS, multi: true, useFactory: coalesceValueHandler },
         { provide: VALUE_HANDLERS, multi: true, useFactory: upperValueHandler },
         { provide: VALUE_HANDLERS, multi: true, useFactory: lowerValueHandler },
+        { provide: VALUE_HANDLERS, multi: true, useFactory: joinTextValueHandler },
 
         { provide: VALUE_HANDLERS, multi: true, useFactory: languageValueHandler },
         { provide: VALUE_HANDLERS, multi: true, useFactory: languageLabelValueHandler },

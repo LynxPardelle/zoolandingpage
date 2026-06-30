@@ -16,6 +16,7 @@ export const DEFAULT_ALLOWED_VALUE_IDS = [
     'coalesce',
     'upper',
     'lower',
+    'joinText',
     'language',
     'languageLabel',
     'langPick',

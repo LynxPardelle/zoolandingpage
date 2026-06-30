@@ -49,4 +49,24 @@ describe('ValueOrchestrator', () => {
         expect(typeof resolvedClassesThunk).toBe('function');
         expect(resolvedClasses as string | null).toBe('header-dark ank-color-white');
     });
+
+    it('joins dynamic text segments without relying on trimmed literal spaces', () => {
+        const orchestrator = TestBed.inject(ValueOrchestrator);
+        const component = {
+            id: 'categoryLink',
+            type: 'link',
+            config: {
+                categorySlug: 'web',
+                text: 'Categoría: Web',
+            },
+            valueInstructions: 'set:config.text,joinText,Categoría:,eval:config.categorySlug',
+        } as unknown as TGenericComponent;
+
+        const resolved = orchestrator.apply(component, { host: {} });
+        const resolvedTextThunk = (resolved as any).config?.text;
+        const resolvedText = resolveDynamicValue(resolvedTextThunk);
+
+        expect(typeof resolvedTextThunk).toBe('function');
+        expect(resolvedText).toBe('Categoría: web');
+    });
 });

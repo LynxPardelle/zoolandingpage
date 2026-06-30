@@ -297,10 +297,10 @@ describe('Zoosite content hub admin bindings', () => {
       source: 'var',
       path: 'remote.contentHub.categories.items',
       fallback: [
-        { value: 'web', label: 'Web' },
-        { value: 'seo', label: 'SEO' },
-        { value: 'builder', label: 'Builder visual' },
-        { value: 'angora', label: 'Angora CSS' },
+      { value: 'web', label: 'Web' },
+      { value: 'seo', label: 'SEO' },
+      { value: 'builder', label: 'Editor visual' },
+      { value: 'angora', label: 'Diseño del sitio CSS' },
       ],
     });
 

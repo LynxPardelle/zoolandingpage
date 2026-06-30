@@ -185,15 +185,15 @@ describe('GenericRichTextComponent', () => {
       fieldId: 'articleSummary',
       provider: 'quill',
       format: 'plain-text',
-      toolbar: ['bold', 'italic', 'heading', 'bulletList', 'orderedList', 'link', 'clean'],
+      toolbar: ['bold', 'italic', 'underline', 'heading', 'bulletList', 'orderedList', 'blockquote', 'link', 'clean'],
     });
     fixture.detectChanges();
 
     expect(fixture.componentInstance.quillModules().toolbar).toEqual([
-      ['bold', 'italic'],
+      ['bold', 'italic', 'underline'],
       [{ header: [1, 2, 3, false] }],
       [{ list: 'bullet' }, { list: 'ordered' }],
-      ['link'],
+      ['blockquote', 'link'],
       ['clean'],
     ]);
   });
