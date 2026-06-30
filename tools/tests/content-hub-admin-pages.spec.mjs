@@ -411,6 +411,19 @@ describe('Zoosite blog admin draft pages', () => {
     assert.match(String(table?.valueInstructions ?? ''), /remoteStatus\.contentHub\.schedules/);
   });
 
+  it('keeps public article tracking bound to the current published article', async () => {
+    const payload = await readJson('blog-article/components.json');
+    const text = textSearch(payload);
+    const components = flattenComponents(payload);
+    const articleCta = componentById(components, 'blogArticleCta');
+
+    assert.doesNotMatch(text, /eventInstructions"\s*:\s*"trackEvent:blog_view/);
+    assert.doesNotMatch(text, /articleId,art_20260620_blog_builder/);
+    assert.match(String(articleCta?.valueInstructions ?? ''), /set:eventInstructions,concat/);
+    assert.match(String(articleCta?.valueInstructions ?? ''), /contentHub\.currentArticle\.articleId/);
+    assert.match(String(articleCta?.valueInstructions ?? ''), /contentHub\.currentArticle\.path/);
+  });
+
   it('implements create and editor controls with draft-configured field IDs', async () => {
     const createPayload = await readJson('admin-blog-articulos-nuevo/components.json');
     const editorPayload = await readJson('admin-blog-articulo-editor/components.json');
