@@ -569,6 +569,37 @@ describe('Zoosite blog admin draft pages', () => {
     assert.doesNotMatch(String(articleBody?.valueInstructions ?? ''), /contentHub\.currentArticle\.summary/);
   });
 
+  it('requires media uploads to have an article context and a selected file before submit', async () => {
+    const payload = await readJson('admin-blog-medios/components.json');
+    const components = flattenComponents(payload);
+    const articleId = componentById(components, 'mediaArticleId');
+    const dropzone = componentById(components, 'mediaDropzone');
+    const uploadButton = componentById(components, 'mediaUploadButton');
+    const table = componentById(components, 'mediaAssetsTable');
+    const editorPayload = await readJson('admin-blog-articulo-editor/components.json');
+    const editorComponents = flattenComponents(editorPayload);
+    const editorWorkspace = componentById(editorComponents, 'editorWorkspace');
+    const editorMediaScope = componentById(editorComponents, 'editorMediaScope');
+    const editorMediaArticleId = componentById(editorComponents, 'editorMediaArticleId');
+    const editorDropzone = componentById(editorComponents, 'editorDropzone');
+    const editorUploadButton = componentById(editorComponents, 'editorUploadButton');
+
+    assert.equal(articleId?.config?.required, true);
+    assert.match(JSON.stringify(articleId?.config?.validation ?? []), /Abre Medios desde la fila del artículo/);
+    assert.equal(dropzone?.type, 'generic-file-dropzone');
+    assert.equal(dropzone?.config?.required, true);
+    assert.equal(uploadButton?.config?.disabledWhenInvalidScope, true);
+    assert.equal(uploadButton?.eventInstructions, 'proxyAction:content_hub_upload_asset');
+    assert.match(String(table?.valueInstructions ?? ''), /remoteStatus\.contentHub\.assets/);
+    assert.deepEqual(editorWorkspace?.config?.components, ['editorCard', 'editorMediaScope']);
+    assert.equal(editorMediaScope?.type, 'interaction-scope');
+    assert.equal(editorMediaScope?.config?.components?.includes('editorSideRail'), true);
+    assert.equal(editorMediaArticleId?.config?.required, true);
+    assert.match(String(editorMediaArticleId?.valueInstructions ?? ''), /remote\.contentHub\.articleDetail\.items\.0\.articleId/);
+    assert.equal(editorDropzone?.config?.required, true);
+    assert.equal(editorUploadButton?.config?.disabledWhenInvalidScope, true);
+  });
+
   it('implements create and editor controls with draft-configured field IDs', async () => {
     const createPayload = await readJson('admin-blog-articulos-nuevo/components.json');
     const editorPayload = await readJson('admin-blog-articulo-editor/components.json');

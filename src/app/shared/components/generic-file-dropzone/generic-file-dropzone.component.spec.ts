@@ -88,4 +88,30 @@ describe('GenericFileDropzoneComponent', () => {
 
     expect(scope.submit().values['upload']).toBe(file);
   });
+
+  it('can require a selected file inside the nearest interaction scope', () => {
+    const scope = TestBed.inject(InteractionScopeService);
+    scope.configure({ scopeId: 'mediaUpload' });
+    fixture.componentRef.setInput('config', {
+      fieldId: 'upload',
+      required: true,
+      accept: 'image/*',
+      multiple: false,
+    });
+    fixture.detectChanges();
+
+    expect(scope.submit().valid).toBeFalse();
+
+    const input = fixture.nativeElement.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['ok'], 'cover.png', { type: 'image/png' });
+    Object.defineProperty(input, 'files', {
+      configurable: true,
+      value: [file],
+    });
+
+    input.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(scope.submit().valid).toBeTrue();
+  });
 });

@@ -37,7 +37,7 @@ export class GenericFileDropzoneComponent {
         this.scope?.registerField({
           fieldId,
           initialValue: this.multiple() ? [] : null,
-          required: false,
+          required: this.required(),
           disabled,
           readOnly: disabled,
         });
@@ -58,6 +58,7 @@ export class GenericFileDropzoneComponent {
   readonly maxFileSizeBytes = computed(() => this.asNumber(this.config().maxFileSizeBytes));
   readonly maxSizeLabel = computed(() => this.asString(this.config().maxSizeLabel));
   readonly multiple = computed(() => this.asBoolean(this.config().multiple));
+  readonly required = computed(() => this.asBoolean(this.config().required));
   readonly disabled = computed(() => this.asBoolean(this.config().disabled));
   readonly loading = computed(() => this.asBoolean(this.config().loading));
   readonly loadingText = computed(() => this.asString(this.config().loadingText) || 'Loading files');
