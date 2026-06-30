@@ -9,6 +9,7 @@ import {
   extractCreateResult,
   parseArgs,
   redact,
+  runSmoke,
   slugify,
 } from '../content-hub-product-readiness-smoke.mjs';
 
@@ -136,4 +137,104 @@ test('redact removes caller-supplied session values from structured output', () 
 
 test('slugify keeps article URLs deterministic and safe', () => {
   assert.equal(slugify('QA Product Smoke 2026: Español!'), 'qa-product-smoke-2026-espanol');
+});
+
+test('runSmoke verifies public search by title, slug, path, category, and tag', async () => {
+  const originalFetch = globalThis.fetch;
+  const searchQueries = [];
+  const now = new Date('2026-06-30T04:00:00.000Z');
+  const title = 'QA Product Smoke 20260630040000';
+  const slug = 'qa-product-smoke-20260630040000';
+  const path = `/blog/qa/${slug}`;
+
+  globalThis.fetch = async (url, init = {}) => {
+    const parsed = new URL(String(url));
+    const body = init.body ? JSON.parse(String(init.body)) : null;
+    if (parsed.pathname.endsWith('/features/content-hub/action')) {
+      const action = body?.input?.contentHub?.action;
+      if (action === 'createArticle') {
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            article: {
+              articleId: 'art_smoke',
+              latestRevisionId: 'rev_smoke',
+              path,
+            },
+            revision: { revisionId: 'rev_smoke' },
+          },
+        }), { status: 200 });
+      }
+      if (action === 'publish') {
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            articleId: 'art_smoke',
+            revisionId: 'rev_smoke',
+            path,
+          },
+        }), { status: 200 });
+      }
+      if (action === 'schedule') {
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { schedule: { scheduleId: 'schedule_smoke' } },
+        }), { status: 200 });
+      }
+      if (action === 'cancelSchedule') {
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { schedule: { scheduleId: 'schedule_smoke', status: 'canceled' } },
+        }), { status: 200 });
+      }
+    }
+    if (parsed.pathname.endsWith('/features/content-hub/read')) {
+      return new Response(JSON.stringify({
+        ok: true,
+        data: { items: [{ scheduleId: 'schedule_smoke' }] },
+      }), { status: 200 });
+    }
+    if (parsed.pathname.endsWith('/runtime-bundle')) {
+      return new Response(JSON.stringify({
+        ok: true,
+        runtime: { contentHubs: [{ publicArticles: [{ articleId: 'art_smoke', title, path }] }] },
+      }), { status: 200 });
+    }
+    if (parsed.pathname.endsWith('/content-hub-search.json')) {
+      searchQueries.push(parsed.searchParams.get('q'));
+      return new Response(JSON.stringify({
+        ok: true,
+        articles: [{ articleId: 'art_smoke', title, path, category: 'qa', tags: ['product-smoke'] }],
+      }), { status: 200 });
+    }
+    return new Response(JSON.stringify({ ok: false, error: 'unexpected request' }), { status: 500 });
+  };
+
+  try {
+    await runSmoke({
+      baseUrl: 'https://test.zoolandingpage.com.mx',
+      runtimeBaseUrl: 'https://runtime.example.com/Prod',
+      domain: 'zoositioweb.com.mx',
+      authProfileId: 'staff',
+      hubId: 'zoosite-main',
+      environment: 'test',
+      lang: 'es',
+      pageId: 'admin-blog-articulos',
+      cookieHeader: '__Host-zlp_session=session; zlp_csrf=csrf-token',
+      csrf: 'csrf-token',
+      timeoutMs: 1000,
+      sharedPreview: true,
+      now,
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  assert.deepEqual(searchQueries, [
+    title,
+    slug,
+    path,
+    'qa',
+    'product-smoke',
+  ]);
 });
