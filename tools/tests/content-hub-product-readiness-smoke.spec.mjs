@@ -213,6 +213,21 @@ test('safeSmokeErrorMessage keeps service failures actionable without raw payloa
   assert.doesNotMatch(message, /private\.internal|runtime-bundle/i);
 });
 
+test('safeSmokeErrorMessage keeps local smoke setup errors distinct', () => {
+  assert.equal(
+    safeSmokeErrorMessage('--runtime-base-url is required.'),
+    'Runtime-read base URL is required. Pass --runtime-base-url or ZLP_RUNTIME_READ_BASE_URL.',
+  );
+  assert.equal(
+    safeSmokeErrorMessage('Provide an authenticated cookie through --cookie-file or ZLP_CONTENT_HUB_SMOKE_COOKIE.'),
+    'Authentication cookie is required. Sign in and pass --cookie-file or ZLP_CONTENT_HUB_SMOKE_COOKIE.',
+  );
+  assert.equal(
+    safeSmokeErrorMessage("CSRF cookie 'zlp_csrf' was not found in the provided cookie header."),
+    'CSRF cookie was not found in the provided session cookie. Sign in again and retry the smoke.',
+  );
+});
+
 test('slugify keeps article URLs deterministic and safe', () => {
   assert.equal(slugify('QA Product Smoke 2026: Español!'), 'qa-product-smoke-2026-espanol');
 });

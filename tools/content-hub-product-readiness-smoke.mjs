@@ -204,6 +204,15 @@ function redact(value, secrets) {
 function safeSmokeErrorMessage(error, status = 0) {
   const raw = clean(error).toLowerCase();
   const prefix = status ? `HTTP ${status}: ` : '';
+  if (raw.includes('--runtime-base-url') && raw.includes('required')) {
+    return 'Runtime-read base URL is required. Pass --runtime-base-url or ZLP_RUNTIME_READ_BASE_URL.';
+  }
+  if (raw.includes('provide an authenticated cookie')) {
+    return 'Authentication cookie is required. Sign in and pass --cookie-file or ZLP_CONTENT_HUB_SMOKE_COOKIE.';
+  }
+  if (raw.includes('csrf cookie') && raw.includes('not found')) {
+    return 'CSRF cookie was not found in the provided session cookie. Sign in again and retry the smoke.';
+  }
   if (status === 401 || raw.includes('auth_required') || raw.includes('unauthorized')) {
     return `${prefix}Authentication is required. Sign in again and retry the smoke.`;
   }

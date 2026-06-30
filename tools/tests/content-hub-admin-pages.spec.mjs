@@ -442,6 +442,29 @@ describe('Zoosite blog admin draft pages', () => {
     }
   });
 
+  it('keeps the blog overview free of ambiguous article mutations', async () => {
+    const payload = await readJson('admin-blog/components.json');
+    const components = flattenComponents(payload);
+    const shell = componentById(components, 'admin-blogShell');
+    const status = componentById(components, 'adminBlogMvpStatus');
+    const table = componentById(components, 'admin-blogArticlesTable');
+    const rowActions = table?.config?.rowActions ?? [];
+    const rawPayload = JSON.stringify(payload);
+
+    assert.equal(shell?.config?.components?.includes('admin-blogArticlesTable'), true);
+    assert.equal(status?.config?.components?.includes('adminBlogActionIdle'), true);
+    assert.equal(componentById(components, 'adminBlogValidateButton'), undefined);
+    assert.equal(componentById(components, 'adminBlogPublishButton'), undefined);
+    assert.equal(componentById(components, 'adminBlogActionStatus'), undefined);
+    assert.equal(rawPayload.includes('proxyAction:content_hub_validate_article'), false);
+    assert.equal(rawPayload.includes('proxyAction:content_hub_publish_article'), false);
+    assert.equal(rawPayload.includes('Publicar artículo seleccionado'), false);
+    for (const action of rowActions) {
+      const hrefTemplate = String(action.hrefTemplate ?? '');
+      assert.equal(hrefTemplate.includes('{articleId}'), true, `${action.id} must stay scoped to the selected row`);
+    }
+  });
+
   it('uses real schedule rows and cancel actions on the scheduling page', async () => {
     const payload = await readJson('admin-blog-programados/components.json');
     const components = flattenComponents(payload);
