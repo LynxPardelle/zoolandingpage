@@ -110,7 +110,7 @@ function slugify(value) {
 }
 
 function futureIso(date = new Date(), minutes = 60) {
-  return new Date(date.getTime() + minutes * 60 * 1000).toISOString();
+  return new Date(date.getTime() + minutes * 60 * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
 
 function buildRuntimeBundleUrl({ runtimeBaseUrl, domain, pathName, lang, environment }) {

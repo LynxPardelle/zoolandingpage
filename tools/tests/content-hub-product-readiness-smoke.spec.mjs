@@ -409,6 +409,7 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
         assert.equal(body.input.revisionId, 'rev_20260630040000');
         assert.equal(body.input.scheduleAction, 'unpublish');
         assert.equal(typeof body.input.unpublishAt, 'string');
+        assert.match(body.input.unpublishAt, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
         assert.equal(body.input.publishAt, undefined);
         return new Response(JSON.stringify({
           ok: true,
