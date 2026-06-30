@@ -22,7 +22,7 @@ export class GenericLink {
 
   readonly config = input.required<TGenericLinkConfig>();
   readonly componentId = input<string | undefined>(undefined);
-  readonly eventInstructions = input<string | undefined>(undefined);
+  readonly eventInstructions = input<unknown>(undefined);
   readonly styles = computed(() => resolveStyleRecord(this.config().styles));
 
   @Output() clicked = new EventEmitter<MouseEvent>();
@@ -119,8 +119,11 @@ export class GenericLink {
   }
 
   eventInstructionsAttribute(): string | null {
-    const raw = this.eventInstructions()?.trim();
-    return raw ? raw : null;
+    const resolved = resolveDynamicValue<unknown>(this.eventInstructions() as never);
+    const raw = typeof resolved === 'string'
+      ? resolved.trim()
+      : String(resolved ?? '').trim();
+    return raw || null;
   }
 
   componentTokens(): readonly string[] {

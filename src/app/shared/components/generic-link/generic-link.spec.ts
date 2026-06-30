@@ -342,4 +342,19 @@ describe('GenericLink', () => {
     expect(anchor.getAttribute('aria-controls')).toBe('faq-panel');
     expect(anchor.getAttribute('aria-current')).toBe('page');
   });
+
+  it('should resolve dynamic event instructions for analytics attributes', () => {
+    fixture.componentRef.setInput('config', {
+      id: 'spec',
+      href: '/blog/web/qa',
+      text: 'Artículo',
+    });
+    fixture.componentRef.setInput('eventInstructions', () => 'trackEvent:blog_cta_click,blog,qa');
+    fixture.detectChanges();
+
+    const anchor = fixture.nativeElement.querySelector('a') as HTMLAnchorElement;
+
+    expect(component.eventInstructionsAttribute()).toBe('trackEvent:blog_cta_click,blog,qa');
+    expect(anchor.getAttribute('data-event-instructions')).toBe('trackEvent:blog_cta_click,blog,qa');
+  });
 });

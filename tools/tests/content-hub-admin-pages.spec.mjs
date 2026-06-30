@@ -393,6 +393,37 @@ describe('Zoosite blog admin draft pages', () => {
     }
   });
 
+  it('uses real schedule rows and cancel actions on the scheduling page', async () => {
+    const payload = await readJson('admin-blog-programados/components.json');
+    const components = flattenComponents(payload);
+    const table = componentById(components, 'scheduledTable');
+    const columns = table?.config?.columns ?? [];
+    const rowActions = table?.config?.rowActions ?? [];
+
+    assert.equal(table?.config?.rowsSource?.path, 'remote.contentHub.schedules.items');
+    assert.equal(table?.config?.rowIdPath, 'scheduleId');
+    assert.deepEqual(table?.config?.eventPayloadFields, ['scheduleId', 'articleId', 'revisionId', 'action', 'scheduledAt']);
+    for (const columnId of ['action', 'scheduledAt', 'timezone', 'articleId', 'revisionId']) {
+      assert.ok(columns.some((column) => column.id === columnId), `missing schedule column ${columnId}`);
+    }
+    assert.deepEqual(rowActions.map((action) => action.id), ['cancelSchedule']);
+    assert.equal(rowActions[0]?.eventInstructions, 'proxyAction:content_hub_cancel_schedule');
+    assert.match(String(table?.valueInstructions ?? ''), /remoteStatus\.contentHub\.schedules/);
+  });
+
+  it('keeps public article tracking bound to the current published article', async () => {
+    const payload = await readJson('blog-article/components.json');
+    const text = textSearch(payload);
+    const components = flattenComponents(payload);
+    const articleCta = componentById(components, 'blogArticleCta');
+
+    assert.doesNotMatch(text, /eventInstructions"\s*:\s*"trackEvent:blog_view/);
+    assert.doesNotMatch(text, /articleId,art_20260620_blog_builder/);
+    assert.match(String(articleCta?.valueInstructions ?? ''), /set:eventInstructions,concat/);
+    assert.match(String(articleCta?.valueInstructions ?? ''), /contentHub\.currentArticle\.articleId/);
+    assert.match(String(articleCta?.valueInstructions ?? ''), /contentHub\.currentArticle\.path/);
+  });
+
   it('implements create and editor controls with draft-configured field IDs', async () => {
     const createPayload = await readJson('admin-blog-articulos-nuevo/components.json');
     const editorPayload = await readJson('admin-blog-articulo-editor/components.json');
@@ -635,7 +666,7 @@ describe('Zoosite blog admin draft pages', () => {
     assert.equal(restoreButton?.config?.disabledWhenInvalidScope, true);
     assert.ok(componentById(versionsComponents, 'versionsRestoreIdle'));
 
-    for (const pageId of ['admin-blog', 'admin-blog-articulos', 'admin-blog-programados']) {
+    for (const pageId of ['admin-blog', 'admin-blog-articulos']) {
       const pageText = textSearch(await readJson(`${pageId}/components.json`));
       assert.ok(pageText.includes('/admin/blog/programados?articleId={articleId}&revisionId={latestRevisionId}'), `${pageId} schedule link must preserve article and revision ids`);
     }

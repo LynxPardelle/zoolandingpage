@@ -318,6 +318,24 @@ describe('WrapperOrchestrator', () => {
     });
   });
 
+  it('resolves dynamic event instructions before dispatching component events', () => {
+    component.eventEmitted({
+      component: 'articleCta',
+      eventName: 'clicked',
+      eventData: '/blog/web/qa',
+      eventInstructions: () => 'trackEvent:blog_cta_click,blog,article-cta',
+    });
+
+    expect(handleComponentEvent).toHaveBeenCalledOnceWith(
+      jasmine.objectContaining({
+        componentId: 'articleCta',
+        eventName: 'clicked',
+        eventInstructions: 'trackEvent:blog_cta_click,blog,article-cta',
+      }),
+      jasmine.objectContaining({ handleComponentEvent }),
+    );
+  });
+
   it('forwards row action instructions emitted by generic tables', async () => {
     componentsById = {
       adminTable: {

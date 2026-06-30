@@ -646,6 +646,14 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.equal(runtimeSearch.articles[0].path, '/blog/web/runtime-dynamic-seo');
   assertNoContentHubOperationalLeak(JSON.stringify(runtimeSearch));
 
+  const slugSearchResponse = await fetch(`http://127.0.0.1:${port}/content-hub-search.json?lang=es&q=blog-builder-seo`, { headers });
+  const slugSearch = await slugSearchResponse.json();
+  assert.equal(slugSearchResponse.status, 200);
+  assert.equal(slugSearch.ok, true);
+  assert.equal(slugSearch.count, 1);
+  assert.equal(slugSearch.articles[0].path, '/blog/web/blog-builder-seo');
+  assertNoContentHubOperationalLeak(JSON.stringify(slugSearch));
+
   const previewHeaders = {
     ...headers,
     Host: 'test.zoolandingpage.com.mx',
