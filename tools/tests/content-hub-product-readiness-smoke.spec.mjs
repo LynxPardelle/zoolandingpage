@@ -11,6 +11,7 @@ import {
   parseArgs,
   redact,
   runSmoke,
+  safeSmokeErrorMessage,
   slugify,
 } from '../content-hub-product-readiness-smoke.mjs';
 
@@ -149,6 +150,22 @@ test('redact removes caller-supplied session values from structured output', () 
   }, ['__Host-zlp_session=session.secret', 'csrf-secret']);
 
   assert.equal(safe.error, 'HTTP 403 for [REDACTED] and [REDACTED]');
+});
+
+test('safeSmokeErrorMessage hides raw backend identity errors', () => {
+  const message = safeSmokeErrorMessage('Invalid id: tableName=zoolanding-content payload secret-value', 400);
+
+  assert.match(message, /^HTTP 400:/);
+  assert.match(message, /could not identify the target article or revision/);
+  assert.doesNotMatch(message, /Invalid id|tableName|secret-value/i);
+});
+
+test('safeSmokeErrorMessage keeps service failures actionable without raw payloads', () => {
+  const message = safeSmokeErrorMessage('upstream timeout from https://private.internal/runtime-bundle', 503);
+
+  assert.match(message, /^HTTP 503:/);
+  assert.match(message, /deployed content service/);
+  assert.doesNotMatch(message, /private\.internal|runtime-bundle/i);
 });
 
 test('slugify keeps article URLs deterministic and safe', () => {

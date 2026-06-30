@@ -169,6 +169,48 @@ function redact(value, secrets) {
   return typeof value === 'string' ? raw : JSON.parse(raw);
 }
 
+function safeSmokeErrorMessage(error, status = 0) {
+  const raw = clean(error).toLowerCase();
+  const prefix = status ? `HTTP ${status}: ` : '';
+  if (status === 401 || raw.includes('auth_required') || raw.includes('unauthorized')) {
+    return `${prefix}Authentication is required. Sign in again and retry the smoke.`;
+  }
+  if (status === 403 || raw.includes('forbidden') || raw.includes('csrf') || raw.includes('permission')) {
+    return `${prefix}The signed-in user does not have permission for this content action.`;
+  }
+  if (
+    status === 404
+    || raw.includes('not_found')
+    || raw.includes('invalid id')
+    || raw.includes('invalid identifier')
+    || raw.includes('articleid')
+    || raw.includes('revisionid')
+  ) {
+    return `${prefix}The smoke could not identify the target article or revision. Open the action from the article list and retry.`;
+  }
+  if (status === 409 || raw.includes('conflict') || raw.includes('already exists') || raw.includes('slug')) {
+    return `${prefix}The smoke found a conflicting URL, slug, or existing record.`;
+  }
+  if (status === 400 || raw.includes('validation') || raw.includes('invalid ') || raw.includes('required')) {
+    return `${prefix}The smoke sent a value the content service could not accept. Check the article form inputs.`;
+  }
+  if (status === 429 || raw.includes('rate_limited') || raw.includes('too many')) {
+    return `${prefix}The content service is rate limiting requests. Wait and retry.`;
+  }
+  if (
+    status >= 500
+    || raw.includes('timeout')
+    || raw.includes('timed out')
+    || raw.includes('upstream')
+    || raw.includes('unavailable')
+    || raw.includes('runtime bundle')
+    || raw.includes('public search')
+  ) {
+    return `${prefix}A deployed content service did not respond as expected. Check the service logs and retry.`;
+  }
+  return `${prefix}The content-hub product smoke failed. Check the deployment logs and retry.`;
+}
+
 function extractCreateResult(response) {
   const data = response?.data ?? {};
   const article = data.article ?? {};
@@ -213,7 +255,7 @@ async function fetchJson(url, init, timeoutMs) {
     parsed = null;
   }
   if (!response.ok || parsed?.ok === false) {
-    throw new Error(`HTTP ${response.status}: ${parsed?.error || raw.slice(0, 240) || 'Request failed'}`);
+    throw new Error(safeSmokeErrorMessage(parsed?.code || parsed?.error || raw.slice(0, 240) || 'Request failed', response.status));
   }
   return parsed ?? { ok: response.ok };
 }
@@ -225,7 +267,7 @@ async function fetchText(url, init, timeoutMs) {
   });
   const raw = await response.text();
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${raw.slice(0, 240) || 'Request failed'}`);
+    throw new Error(safeSmokeErrorMessage(raw.slice(0, 240) || 'Request failed', response.status));
   }
   return raw;
 }
@@ -613,9 +655,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   main().catch((error) => {
     const cookie = clean(process.env.ZLP_CONTENT_HUB_SMOKE_COOKIE);
     const csrf = clean(process.env.ZLP_CONTENT_HUB_SMOKE_CSRF) || cookieValue(cookie, DEFAULT_CSRF_COOKIE_NAME);
+    const rawError = error instanceof Error ? error.message : String(error);
     const payload = redact({
       ok: false,
-      error: error instanceof Error ? error.message : String(error),
+      error: /^HTTP \d{3}: /.test(rawError) ? rawError : safeSmokeErrorMessage(rawError),
     }, [cookie, csrf]);
     process.stderr.write(`${JSON.stringify(payload, null, 2)}\n`);
     process.exitCode = 1;
@@ -632,5 +675,6 @@ export {
   parseArgs,
   redact,
   runSmoke,
+  safeSmokeErrorMessage,
   slugify,
 };
