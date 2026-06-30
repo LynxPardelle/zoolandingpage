@@ -565,11 +565,15 @@ describe('Zoosite blog admin draft pages', () => {
 
     const previewArticleId = componentById(previewComponents, 'previewArticleId');
     assert.equal(previewArticleId?.config?.readOnly, true);
+    assert.equal(previewArticleId?.config?.required, true);
     assert.equal(previewArticleId?.valueInstructions, 'set:config.value,routeParamOr,id,');
+    assert.equal(componentById(previewComponents, 'previewRevisionId')?.config?.required, true);
 
     const seoArticleId = componentById(seoComponents, 'seoArticleId');
     assert.equal(seoArticleId?.config?.readOnly, true);
+    assert.equal(seoArticleId?.config?.required, true);
     assert.equal(seoArticleId?.valueInstructions, 'set:config.value,routeParamOr,id,');
+    assert.equal(componentById(seoComponents, 'seoRevisionId')?.config?.required, true);
     assert.ok(componentById(seoComponents, 'seoArticleIdGuidance'));
     assert.ok(componentById(seoComponents, 'seoActionIdle'));
     for (const [componentId, actionId] of [
@@ -582,7 +586,7 @@ describe('Zoosite blog admin draft pages', () => {
       const button = componentById(seoComponents, componentId);
       assert.equal(button?.type, 'button', `${componentId} must be a draft-composed generic button`);
       assert.equal(button?.eventInstructions, `proxyAction:${actionId}`);
-      assert.equal(button?.config?.disabledWhenInvalidScope, false);
+      assert.equal(button?.config?.disabledWhenInvalidScope, true);
     }
     for (const componentId of [
       'seoSubmitReviewError',

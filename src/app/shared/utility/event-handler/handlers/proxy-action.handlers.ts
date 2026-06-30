@@ -23,7 +23,7 @@ const statusTargetFor = (action: TRuntimeApiActionConfig): string =>
 
 const SAFE_RESPONSE_REFERENCE_PATHS: Record<string, readonly string[]> = {
     articleId: ['articleId', 'article.articleId', 'createdArticle.articleId', 'created.articleId', 'result.articleId'],
-    revisionId: ['revisionId', 'revision.revisionId', 'createdRevision.revisionId', 'created.revisionId', 'result.revisionId'],
+    revisionId: ['revisionId', 'revision.revisionId', 'article.latestRevisionId', 'createdArticle.latestRevisionId', 'createdRevision.revisionId', 'created.revisionId', 'result.revisionId', 'result.latestRevisionId'],
     latestRevisionId: ['latestRevisionId', 'article.latestRevisionId', 'createdArticle.latestRevisionId', 'result.latestRevisionId'],
     assetId: ['assetId', 'asset.assetId', 'createdAsset.assetId', 'result.assetId'],
     fileName: ['fileName', 'asset.fileName', 'createdAsset.fileName', 'result.fileName'],
