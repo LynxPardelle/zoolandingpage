@@ -17,7 +17,7 @@ const DEBUG_DRAFT_DIRECTORY = '_debug';
 const DEFAULT_CONFIG_API_BASE_URL = 'https://api.zoolandingpage.com.mx';
 const DEFAULT_CONFIG_API_RAW_RUNTIME_BASE_URLS = {
   dev: 'https://p5sbs2w8zb.execute-api.us-east-1.amazonaws.com/Prod',
-  test: 'https://jaay9p8gv5.execute-api.us-east-1.amazonaws.com/Prod',
+  test: 'https://y84vk0v44l.execute-api.us-east-1.amazonaws.com/Prod',
   production: 'https://y84vk0v44l.execute-api.us-east-1.amazonaws.com/Prod',
 } as const;
 const DEFAULT_CONFIG_API_URL = String(process.env['CONFIG_API_URL'] ?? DEFAULT_CONFIG_API_BASE_URL).trim();
