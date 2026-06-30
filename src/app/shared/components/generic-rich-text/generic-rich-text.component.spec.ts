@@ -231,6 +231,43 @@ describe('GenericRichTextComponent', () => {
     });
   });
 
+  it('resolves dynamic config values before hydrating Quill delta content', () => {
+    const dynamicValue = {
+      ops: [
+        { insert: 'Contenido remoto desde articleDetail', attributes: { bold: true } },
+        { insert: '\n' },
+      ],
+    };
+
+    fixture.componentRef.setInput('config', {
+      fieldId: 'articleContent',
+      provider: 'quill',
+      format: 'quill-delta-object',
+      value: () => dynamicValue,
+    });
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.currentValue()).toBe(dynamicValue);
+    expect(fixture.componentInstance.quillModel).toBe(dynamicValue);
+    expect(JSON.stringify(fixture.componentInstance.quillModel)).not.toContain('=>');
+  });
+
+  it('resolves dynamic config values before hydrating legacy plain text content', () => {
+    fixture.componentRef.setInput('config', {
+      fieldId: 'articleContent',
+      provider: 'quill',
+      format: 'quill-delta-object',
+      value: () => 'Texto remoto legado',
+    });
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.currentValue()).toBe('Texto remoto legado');
+    expect(fixture.componentInstance.quillModel).toEqual({
+      ops: [{ insert: 'Texto remoto legado\n' }],
+    });
+    expect(JSON.stringify(fixture.componentInstance.quillModel)).not.toContain('=>');
+  });
+
   it('does not mark the interaction scope dirty for programmatic Quill updates', () => {
     const emitted: TGenericRichTextValueChange[] = [];
     const scope = TestBed.inject(InteractionScopeService);

@@ -44,7 +44,7 @@ export class GenericRichTextComponent {
 
   constructor() {
     effect(() => {
-      const configValue = this.config().value ?? '';
+      const configValue = this.resolveValue(this.config().value) ?? '';
       const fieldId = this.fieldId();
       const required = this.required();
       const disabled = this.disabled();
@@ -256,19 +256,23 @@ export class GenericRichTextComponent {
   }
 
   private asString(value: unknown): string {
-    const resolved = resolveDynamicValue(value as never);
+    const resolved = this.resolveValue(value);
     return resolved == null ? '' : String(resolved);
   }
 
   private asNumber(value: unknown): number | undefined {
-    const resolved = resolveDynamicValue(value as never);
+    const resolved = this.resolveValue(value);
     return typeof resolved === 'number' && Number.isFinite(resolved) ? resolved : undefined;
   }
 
   private asBoolean(value: unknown): boolean {
-    const resolved = resolveDynamicValue(value as never);
+    const resolved = this.resolveValue(value);
     if (typeof resolved === 'boolean') return resolved;
     if (resolved == null || resolved === '') return false;
     return !['false', '0', 'off', 'no'].includes(String(resolved).trim().toLowerCase());
+  }
+
+  private resolveValue(value: unknown): unknown {
+    return resolveDynamicValue(value as never);
   }
 }
