@@ -373,6 +373,47 @@ async function runSmoke(options) {
     throw new Error('Update package did not preserve the requested revisionId.');
   }
 
+  const revisionListPayload = buildContentHubPayload({
+    domain,
+    pageId: 'admin-blog-articulo-versiones',
+    operationId: 'content_hub_revision_list',
+    hubId,
+    kind: 'read',
+    input: {
+      contentHub: { read: 'revisionList', articleId: created.articleId },
+      articleId: created.articleId,
+    },
+  });
+  const revisionListResponse = await fetchJson(endpoint('read'), {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(revisionListPayload),
+  }, timeoutMs);
+  if (!hasNeedle(revisionListResponse, updatedRevisionId)) {
+    throw new Error('Revision list did not include the updated revision.');
+  }
+
+  const previewPayload = buildContentHubPayload({
+    domain,
+    pageId: 'admin-blog-articulo-preview',
+    operationId: 'content_hub_public_bundle_preview',
+    hubId,
+    kind: 'read',
+    input: {
+      contentHub: { read: 'publicBundlePreview', articleId: created.articleId },
+      articleId: created.articleId,
+      revisionId: updatedRevisionId,
+    },
+  });
+  const previewResponse = await fetchJson(endpoint('read'), {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(previewPayload),
+  }, timeoutMs);
+  if (!hasNeedle(previewResponse, updatedRevisionId)) {
+    throw new Error('Public bundle preview did not include the updated revision.');
+  }
+
   const validatePayload = buildContentHubPayload({
     domain,
     pageId: 'admin-blog-articulo-seo',
@@ -600,6 +641,8 @@ async function runSmoke(options) {
     checks: {
       createArticle: true,
       updatePackage: true,
+      revisionList: true,
+      publicBundlePreview: true,
       validate: true,
       submitReview: true,
       approveArticle: true,

@@ -172,10 +172,76 @@ test('slugify keeps article URLs deterministic and safe', () => {
   assert.equal(slugify('QA Product Smoke 2026: Español!'), 'qa-product-smoke-2026-espanol');
 });
 
+test('runSmoke fails when preview does not reflect the updated revision', async () => {
+  const originalFetch = globalThis.fetch;
+  const now = new Date('2026-06-30T04:00:00.000Z');
+  const path = '/blog/qa/qa-product-smoke-20260630040000';
+
+  globalThis.fetch = async (url, init = {}) => {
+    const parsed = new URL(String(url));
+    const body = init.body ? JSON.parse(String(init.body)) : null;
+    if (parsed.pathname.endsWith('/features/content-hub/action')) {
+      const action = body?.input?.contentHub?.action;
+      if (action === 'createArticle') {
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            article: { articleId: 'art_smoke', latestRevisionId: 'rev_smoke', path },
+            revision: { revisionId: 'rev_smoke' },
+          },
+        }), { status: 200 });
+      }
+      if (action === 'updatePackage') {
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { revision: { revisionId: 'rev_20260630040000' } },
+        }), { status: 200 });
+      }
+    }
+    if (parsed.pathname.endsWith('/features/content-hub/read')) {
+      const read = body?.input?.contentHub?.read;
+      if (read === 'revisionList') {
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { items: [{ revisionId: 'rev_20260630040000', articleId: 'art_smoke' }] },
+        }), { status: 200 });
+      }
+      if (read === 'publicBundlePreview') {
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { item: { articleId: 'art_smoke', revisionId: 'rev_old' } },
+        }), { status: 200 });
+      }
+    }
+    return new Response(JSON.stringify({ ok: false, error: 'unexpected request' }), { status: 500 });
+  };
+
+  try {
+    await assert.rejects(() => runSmoke({
+      baseUrl: 'https://test.zoolandingpage.com.mx',
+      runtimeBaseUrl: 'https://runtime.example.com/Prod',
+      domain: 'zoositioweb.com.mx',
+      authProfileId: 'staff',
+      hubId: 'zoosite-main',
+      environment: 'test',
+      lang: 'es',
+      pageId: 'admin-blog-articulos',
+      cookieHeader: '__Host-zlp_session=session; zlp_csrf=csrf-token',
+      csrf: 'csrf-token',
+      timeoutMs: 1000,
+      sharedPreview: true,
+      now,
+    }), /Public bundle preview did not include the updated revision/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('runSmoke verifies public search by title, slug, path, category, and tag', async () => {
   const originalFetch = globalThis.fetch;
   const searchQueries = [];
   const actionSequence = [];
+  const readSequence = [];
   const now = new Date('2026-06-30T04:00:00.000Z');
   const title = 'QA Product Smoke 20260630040000';
   const slug = 'qa-product-smoke-20260630040000';
@@ -263,6 +329,34 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
       }
     }
     if (parsed.pathname.endsWith('/features/content-hub/read')) {
+      const read = body?.input?.contentHub?.read;
+      readSequence.push(read);
+      if (read === 'revisionList') {
+        assert.equal(body.input.articleId, 'art_smoke');
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            items: [
+              { revisionId: 'rev_20260630040000', articleId: 'art_smoke' },
+            ],
+          },
+        }), { status: 200 });
+      }
+      if (read === 'publicBundlePreview') {
+        assert.equal(body.input.articleId, 'art_smoke');
+        assert.equal(body.input.revisionId, 'rev_20260630040000');
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            item: {
+              articleId: 'art_smoke',
+              revisionId: 'rev_20260630040000',
+              title,
+            },
+          },
+        }), { status: 200 });
+      }
+      assert.equal(read, 'scheduleList');
       return new Response(JSON.stringify({
         ok: true,
         data: { items: [{ scheduleId: 'schedule_smoke' }] },
@@ -324,5 +418,10 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
     'publish',
     'schedule',
     'cancelSchedule',
+  ]);
+  assert.deepEqual(readSequence, [
+    'revisionList',
+    'publicBundlePreview',
+    'scheduleList',
   ]);
 });
