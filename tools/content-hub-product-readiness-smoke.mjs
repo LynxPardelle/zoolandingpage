@@ -356,6 +356,7 @@ async function runSmoke(options) {
   const slug = slugify(title);
   const category = 'qa';
   const expectedPath = `/blog/${category}/${slug}`;
+  const articleBodyNeedle = `Contenido editado por smoke ${token}`;
 
   const createPayload = buildContentHubPayload({
     domain,
@@ -409,7 +410,7 @@ async function runSmoke(options) {
       articleSlug: slug,
       articleContent: {
         ops: [
-          { insert: `Contenido editado por smoke ${token}.\n` },
+          { insert: `${articleBodyNeedle}.\n` },
         ],
       },
       advancedMode: true,
@@ -675,6 +676,9 @@ async function runSmoke(options) {
   if (!publicArticleHtml.includes(title) && !publicArticleHtml.includes(published.path)) {
     throw new Error('Published public article HTML did not include the smoke article.');
   }
+  if (!publicArticleHtml.includes(articleBodyNeedle)) {
+    throw new Error('Published public article HTML did not include the edited article body.');
+  }
 
   const canonicalArticleUrl = publicCanonicalArticleUrl(domain, published.path);
   for (const xmlCheck of [
@@ -790,6 +794,7 @@ async function runSmoke(options) {
       runtimeBundle: true,
       publicSearch: true,
       publicArticleHtml: true,
+      publicArticleBody: true,
       sitemap: true,
       feed: true,
       scheduleList: true,

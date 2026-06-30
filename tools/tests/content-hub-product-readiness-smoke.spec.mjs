@@ -329,6 +329,7 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
   const title = 'QA Product Smoke 20260630040000';
   const slug = 'qa-product-smoke-20260630040000';
   const path = `/blog/qa/${slug}`;
+  const articleBody = 'Contenido editado por smoke 20260630040000';
 
   globalThis.fetch = async (url, init = {}) => {
     const parsed = new URL(String(url));
@@ -493,7 +494,7 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
     }
     if (parsed.pathname === path) {
       assert.equal(parsed.searchParams.get('draftDomain'), 'zoositioweb.com.mx');
-      return new Response(`<html><title>${title}</title><body>${title}</body></html>`, { status: 200 });
+      return new Response(`<html><title>${title}</title><body>${title}<article>${articleBody}.</article></body></html>`, { status: 200 });
     }
     if (parsed.pathname === '/sitemap.xml') {
       assert.equal(parsed.searchParams.get('draftDomain'), 'zoositioweb.com.mx');
