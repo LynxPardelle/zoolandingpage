@@ -11,7 +11,11 @@ export type TContentHubPublicRouteArticle = {
 
 export type TContentHubPublicRouteConfig = {
     readonly articlePathPattern?: unknown;
-    readonly publicArticles?: readonly TContentHubPublicRouteArticle[];
+    readonly publicArticles?: TContentHubPublicRouteCollection<TContentHubPublicRouteArticle>;
+};
+
+export type TContentHubPublicRouteCollection<T> = readonly T[] | {
+    readonly items?: readonly T[];
 };
 
 export type TContentHubArticleRouteMatch = {
@@ -56,7 +60,7 @@ export function findPublishedContentHubArticleForPath(
 
     const normalizedPath = normalizeDraftRoutePath(path);
     for (const hub of hubs) {
-        const articles = Array.isArray(hub.publicArticles) ? hub.publicArticles : [];
+        const articles = readContentHubPublicRouteCollection<TContentHubPublicRouteArticle>(hub.publicArticles);
         const article = articles.find((entry: TContentHubPublicRouteArticle) => entry.status === 'published'
             && (entry.visibility === undefined || entry.visibility === 'public')
             && normalizeDraftRoutePath(entry.path) === normalizedPath);
@@ -73,4 +77,17 @@ export function isMissingPublishedContentHubArticlePath(
     path: unknown,
 ): boolean {
     return !!matchContentHubArticleRoute(hubs, path) && !findPublishedContentHubArticleForPath(hubs, path);
+}
+
+function readContentHubPublicRouteCollection<T>(
+    collection: TContentHubPublicRouteCollection<T> | null | undefined,
+): readonly T[] {
+    if (Array.isArray(collection)) {
+        return collection;
+    }
+
+    const indexedCollection = collection as { readonly items?: unknown };
+    return !!collection && typeof collection === 'object' && Array.isArray(indexedCollection.items)
+        ? indexedCollection.items as readonly T[]
+        : [];
 }

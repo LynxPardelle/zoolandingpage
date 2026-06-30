@@ -1170,6 +1170,54 @@ describe('config-payload.validators', () => {
         expect(isDraftSiteConfigPayload(payload)).toBeTrue();
     });
 
+    it('accepts content hub public indexes as runtime collection objects', () => {
+        const payload = {
+            version: 1,
+            domain: 'zoositioweb.com.mx',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: minimalSiteConfig(),
+            runtime: {
+                contentHubs: [
+                    {
+                        hubId: 'zoosite-main',
+                        ownerDraftDomain: 'zoositioweb.com.mx',
+                        source: 'primary',
+                        routeBasePath: '/blog',
+                        listPath: '/blog',
+                        articlePathPattern: '/blog/:categorySlug/:articleSlug',
+                        defaultLocale: 'es',
+                        locales: ['es'],
+                        canonicalMode: 'host-adaptive',
+                        publicArticles: {
+                            items: [{
+                                articleId: 'art_20260620_blog_builder',
+                                locale: 'es',
+                                status: 'published',
+                                title: 'Cómo crear blogs visuales',
+                                path: '/blog/web/blog-builder-seo',
+                                visibility: 'public',
+                                publishedAt: '2026-06-21T15:00:00.000Z',
+                            }],
+                        },
+                        publicTaxonomy: {
+                            items: [{
+                                taxonomyId: 'web',
+                                kind: 'category',
+                                slug: 'web',
+                                label: 'Web',
+                                locale: 'es',
+                                visible: true,
+                                path: '/blog/web',
+                            }],
+                        },
+                    },
+                ],
+            },
+        };
+
+        expect(isDraftSiteConfigPayload(payload)).toBeTrue();
+    });
+
     it('accepts content hub schedule list reads and cancel schedule actions', () => {
         const payload = {
             version: 1,
