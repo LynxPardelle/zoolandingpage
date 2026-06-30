@@ -1017,6 +1017,7 @@ test('production SSR server uses test runtime fallback for shared preview conten
   assert.equal(testFallbackRequests.length, 1);
   assert.match(testFallbackRequests[0], /^\/Prod\/runtime-bundle\?/);
   assert.match(testFallbackRequests[0], /domain=zoositioweb\.com\.mx/);
+  assert.match(testFallbackRequests[0], /path=%2Fblog/);
   assert.match(testFallbackRequests[0], /environment=test/);
   assert.deepEqual(prodFallbackRequests, []);
   assert.deepEqual(primaryRequests, []);
