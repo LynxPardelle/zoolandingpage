@@ -55,8 +55,11 @@ export class SeoMetadataService {
             const fallbackDescription = this.cleanString(siteSeo?.description) || this.runtimeConfig.appDescription();
             const seoTitle = draftTitle || this.cleanString(siteSeo?.title) || fallbackSiteName;
             const seoDescription = draftDescription || fallbackDescription || '';
+            const pathname = this.normalizePathname(doc.defaultView?.location?.pathname);
             const seoKeywords = this.resolveMetaList(seo?.keywords, lang) || this.resolveMetaList(siteSeo?.keywords, lang);
-            const seoRobots = this.resolveLocalizedText(seo?.robots, lang) || this.resolveLocalizedText(siteSeo?.robots, lang);
+            const seoRobots = this.isContentHubTagFilterPath(pathname)
+                ? 'noindex,nofollow'
+                : this.resolveLocalizedText(seo?.robots, lang) || this.resolveLocalizedText(siteSeo?.robots, lang);
 
             this.title.setTitle(seoTitle);
             this.meta.updateTag({ name: 'description', content: seoDescription });
@@ -66,11 +69,13 @@ export class SeoMetadataService {
             const origin = this.cleanString(siteSeo?.canonicalOrigin)
                 || this.cleanString(doc.defaultView?.location?.origin)
                 || this.defaultOrigin();
-            const pathname = this.normalizePathname(doc.defaultView?.location?.pathname);
             const search = this.cleanString(doc.defaultView?.location?.search);
             const url = `${ origin }${ pathname }${ search }`;
+            const rawCanonicalUrl = this.isContentHubTagFilterPath(pathname)
+                ? `${ origin }${ pathname }`
+                : this.resolveLocalizedText(seo?.canonical, lang) || url;
             const canonicalUrl = this.resolveEffectiveCanonicalUrl(
-                this.resolveLocalizedText(seo?.canonical, lang) || url,
+                rawCanonicalUrl,
                 origin,
                 siteSeo,
             );
@@ -484,6 +489,11 @@ export class SeoMetadataService {
     private normalizePathname(value: unknown): string {
         const pathname = this.cleanString(value) || '/';
         return pathname.startsWith('/') ? pathname : `/${ pathname }`;
+    }
+
+    private isContentHubTagFilterPath(pathname: string): boolean {
+        const normalized = this.normalizePathname(pathname).toLowerCase();
+        return normalized === '/blog/tag' || normalized.startsWith('/blog/tag/');
     }
 
     private readQueryParam(key: string): string | undefined {

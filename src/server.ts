@@ -2308,11 +2308,17 @@ function isPathExcludedFromSitemap(siteConfig: TLocalSiteConfig | null, path: st
   return excludedPaths.some((entry) => isPathMatchedByPrefixRule(path, entry));
 }
 
+function isContentHubTagFilterPath(path: string): boolean {
+  const normalizedPath = normalizeRoutePath(path).toLowerCase();
+  return normalizedPath === '/blog/tag' || normalizedPath.startsWith('/blog/tag/');
+}
+
 function shouldForceNoindexForRequestPath(siteConfig: TLocalSiteConfig | null, path: string): boolean {
   const normalizedPath = normalizeRoutePath(path);
   const route = resolveLocalRoute(siteConfig, normalizedPath);
   return route?.auth?.required === true
     || isPathExcludedFromSitemap(siteConfig, normalizedPath)
+    || isContentHubTagFilterPath(normalizedPath)
     || ROBOTS_DISALLOW_PATHS.some((entry) => isPathMatchedByPrefixRule(normalizedPath, entry));
 }
 
@@ -2411,8 +2417,11 @@ function buildCanonicalHeadHtml(
   pageConfig: TLocalPageConfig | null,
 ): string {
   const origin = resolveCanonicalOrigin(req, host, siteConfig).replace(/\/$/, '');
-  const configuredCanonical = cleanString(pageConfig?.seo?.canonical);
-  const rawCanonical = configuredCanonical && !configuredCanonical.includes('{{')
+  const isTagFilterPath = isContentHubTagFilterPath(req.path);
+  const configuredCanonical = isTagFilterPath ? '' : cleanString(pageConfig?.seo?.canonical);
+  const rawCanonical = isTagFilterPath
+    ? new URL(normalizeRoutePath(req.path), `${origin}/`).toString()
+    : configuredCanonical && !configuredCanonical.includes('{{')
     ? new URL(configuredCanonical, `${origin}/`).toString()
     : new URL(req.originalUrl || req.url || '/', `${origin}/`).toString();
   const canonicalUrl = resolveEffectiveCanonicalUrl(rawCanonical, `${origin}/`, host, siteConfig);

@@ -108,6 +108,7 @@ function componentById(components, id) {
 const userFacingStringKeys = new Set([
   'text',
   'label',
+  'header',
   'helperText',
   'placeholder',
   'emptyText',
@@ -116,6 +117,9 @@ const userFacingStringKeys = new Set([
   'successText',
   'ariaLabel',
   'tooltip',
+  'description',
+  'title',
+  'summary',
 ]);
 
 function collectUserFacingStrings(value, trail = [], hits = []) {
@@ -277,7 +281,7 @@ describe('Zoosite blog admin draft pages', () => {
   });
 
   it('keeps visible admin copy free of raw technical placeholders', async () => {
-    const rawVisibleCopyPattern = /\b(?:articleId|revisionId|query string|backend|BFF|CSRF|endpoint|payload|tenant|buckets?|authorizer policy)\b|\[object Object\]|Invalid id/iu;
+    const rawVisibleCopyPattern = /\b(?:articleId|revisionId|query string|backend|BFF|CSRF|endpoint|payload|tenant|buckets?|authorizer policy|commentQueue|taxonomyList|languageFallback|seoDefaults|connectedDrafts|authorizedHubs|usageRefs|publicability|content hub|bundle|publicBundlePreview|approve|reject|archive)\b|\[object Object\]|Invalid id/iu;
     const rawStatusInstructionPattern = /set:config\.text,varOr,remoteStatus\.contentHub\.[^,]+\.error/;
     const forbiddenFragments = [
       'articleId pendiente',
@@ -312,7 +316,49 @@ describe('Zoosite blog admin draft pages', () => {
       for (const language of ['es', 'en']) {
         const translations = await readJson(`${pageId}/i18n/${language}.json`);
         for (const [trail, value] of collectAllStrings(translations)) {
+          if (trail.endsWith('pageId')) continue;
           assert.equal(rawVisibleCopyPattern.test(value), false, `${pageId}/i18n/${language}.json/${trail} has raw technical copy: ${value}`);
+        }
+      }
+    }
+  });
+
+  it('keeps Zoosite blog public and admin visible copy product-facing', async () => {
+    const rawBlogCopyPattern = /\b(?:content hub|bundle|BFF|backend|commentQueue|taxonomyList|languageFallback|seoDefaults|connectedDrafts|authorizedHubs|usageRefs|publicability|approve|reject|archive|tags?|SEO-ready|publicBundlePreview)\b|builder visual|Editor visual visual|El gestión|un publicación|publicación publicado/iu;
+    const copyPages = [
+      ...pageIds,
+      'blog',
+      'blog-article',
+      'blog-category',
+    ];
+
+    for (const pageId of copyPages) {
+      for (const fileName of ['components.json', 'variables.json', 'page-config.json']) {
+        let payload;
+        try {
+          payload = await readJson(`${pageId}/${fileName}`);
+        } catch (error) {
+          if (error?.code === 'ENOENT') continue;
+          throw error;
+        }
+
+        for (const [trail, value] of collectUserFacingStrings(payload)) {
+          assert.equal(rawBlogCopyPattern.test(value), false, `${pageId}/${fileName}/${trail} has internal product copy: ${value}`);
+        }
+      }
+    }
+
+    const siteConfig = await readJson('site-config.json');
+    for (const [trail, value] of collectUserFacingStrings(siteConfig)) {
+      assert.equal(rawBlogCopyPattern.test(value), false, `site-config.json/${trail} has internal product copy: ${value}`);
+    }
+
+    const rawPublicFallbackPattern = /\b(?:content hub|SEO-ready|BFF|backend|bundle|publicBundlePreview)\b/iu;
+    for (const pageId of ['blog', 'blog-article', 'blog-category']) {
+      for (const fileName of ['components.json', 'variables.json']) {
+        const payload = await readJson(`${pageId}/${fileName}`);
+        for (const [trail, value] of collectAllStrings(payload)) {
+          assert.equal(rawPublicFallbackPattern.test(value), false, `${pageId}/${fileName}/${trail} has internal public fallback copy: ${value}`);
         }
       }
     }
@@ -372,7 +418,7 @@ describe('Zoosite blog admin draft pages', () => {
     assert.equal(tagsColumn?.format, 'list');
     assert.equal(tagsColumn?.itemPath, 'label');
     assert.equal(tagsColumn?.separator, ', ');
-    assert.equal(tagsColumn?.emptyText, 'Sin tags');
+    assert.equal(tagsColumn?.emptyText, 'Sin etiquetas');
     for (const actionId of ['edit', 'preview', 'seo', 'versions', 'schedule']) {
       assert.ok(rowActions.some((action) => action.id === actionId), `missing article row action ${actionId}`);
     }
@@ -709,12 +755,12 @@ describe('Zoosite blog admin draft pages', () => {
       ['admin-blog-articulo-seo', ['canonical', 'hreflang', 'socialPreview', 'structuredData', 'robots', 'sitemap']],
       ['admin-blog-articulo-versiones', ['revisionId', 'delta', 'snapshot', 'compare', 'restore']],
       ['admin-blog-programados', ['publishAt', 'unpublishAt', 'timezone', 'publish', 'unpublish']],
-      ['admin-blog-moderacion', ['commentQueue', 'spam', 'approve', 'reject', 'archive', 'audit']],
+      ['admin-blog-moderacion', ['Comentarios por revisar', 'spam', 'approve', 'reject', 'archive', 'audit']],
       ['admin-blog-medios', ['upload', 'assetList', 'metadata', 'usageRefs', 'publicability', 'archive']],
       ['admin-blog-analiticas', ['views', 'readProgress', 'ctaClicks', 'reactions', 'comments', 'shares', 'assetDownloads']],
       ['admin-blog-categorias', ['translation', 'slug', 'seoDescription', 'visible', 'redirectWarning']],
       ['admin-blog-tags', ['translation', 'slug', 'seoDescription', 'visible', 'redirectWarning']],
-      ['admin-blog-hub', ['connectedDrafts', 'visibility', 'authorizedHubs']],
+      ['admin-blog-hub', ['Sitios conectados', 'Visibilidad', 'Conexiones autorizadas']],
       ['admin-blog-configuracion', ['defaultCommentPolicy', 'contentSafetyPolicy', 'componentAllowlistPreset', 'languageFallback', 'seoDefaults']],
     ]);
 
