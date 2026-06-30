@@ -287,6 +287,8 @@ describe('Zoosite blog admin draft pages', () => {
       'revisionId pendiente',
       'La respuesta no incluyó articleId',
       'La respuesta no incluyó revisionId',
+      'Artículo seleccionado pendiente',
+      'Versión seleccionada pendiente',
       'query string',
       'backend',
       'Invalid id',
