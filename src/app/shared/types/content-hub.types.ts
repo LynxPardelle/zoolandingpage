@@ -68,8 +68,12 @@ export type TContentHubRuntimeConfig = {
     readonly runtimeSourceId?: string;
     readonly publicApiBasePath?: string;
     readonly analyticsContext?: TContentHubAnalyticsContext;
-    readonly publicArticles?: readonly TContentHubRuntimeArticleSummary[];
-    readonly publicTaxonomy?: readonly TContentHubRuntimeTaxonomySummary[];
+    readonly publicArticles?: TContentHubRuntimeCollection<TContentHubRuntimeArticleSummary>;
+    readonly publicTaxonomy?: TContentHubRuntimeCollection<TContentHubRuntimeTaxonomySummary>;
+};
+
+export type TContentHubRuntimeCollection<T> = readonly T[] | {
+    readonly items?: readonly T[];
 };
 
 export type TContentHubRuntimeArticleSummary = {

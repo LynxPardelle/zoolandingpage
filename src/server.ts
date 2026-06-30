@@ -265,8 +265,12 @@ type TContentHubRuntimeConfig = {
   readonly routeBasePath?: string;
   readonly listPath?: string;
   readonly defaultLocale?: string;
-  readonly publicArticles?: readonly TContentHubPublicArticle[];
-  readonly publicTaxonomy?: readonly TContentHubPublicTaxonomy[];
+  readonly publicArticles?: TContentHubPublicCollection<TContentHubPublicArticle>;
+  readonly publicTaxonomy?: TContentHubPublicCollection<TContentHubPublicTaxonomy>;
+};
+
+type TContentHubPublicCollection<T> = readonly T[] | {
+  readonly items?: readonly T[];
 };
 
 type TContentHubPublicArticle = {
@@ -1886,10 +1890,20 @@ function readContentHubRuntimeConfigs(siteConfig: TLocalSiteConfig | null): read
   return Array.isArray(hubs) ? hubs.filter(isRecord) as readonly TContentHubRuntimeConfig[] : [];
 }
 
+function readContentHubPublicCollection<T>(collection: TContentHubPublicCollection<T> | undefined): readonly T[] {
+  if (Array.isArray(collection)) {
+    return collection;
+  }
+
+  return isRecord(collection) && Array.isArray(collection.items)
+    ? collection.items
+    : [];
+}
+
 function hasPublicContentHubRuntimeEntries(siteConfig: TLocalSiteConfig | null): boolean {
   return readContentHubRuntimeConfigs(siteConfig)
-    .some((hub) => (Array.isArray(hub.publicArticles) && hub.publicArticles.length > 0)
-      || (Array.isArray(hub.publicTaxonomy) && hub.publicTaxonomy.length > 0));
+    .some((hub) => readContentHubPublicCollection(hub.publicArticles).length > 0
+      || readContentHubPublicCollection(hub.publicTaxonomy).length > 0);
 }
 
 function readPublicContentHubArticles(
@@ -1898,7 +1912,7 @@ function readPublicContentHubArticles(
 ): readonly TContentHubPublicArticle[] {
   const normalizedLang = normalizeLanguageCode(lang);
   return readContentHubRuntimeConfigs(siteConfig)
-    .flatMap((hub) => Array.isArray(hub.publicArticles) ? hub.publicArticles : [])
+    .flatMap((hub) => readContentHubPublicCollection(hub.publicArticles))
     .filter((article) => article.status === 'published' && (!article.visibility || article.visibility === 'public'))
     .filter((article) => !normalizedLang || normalizeLanguageCode(article.locale) === normalizedLang)
     .filter((article) => normalizeRoutePath(article.path));
@@ -1910,7 +1924,7 @@ function readPublicContentHubTaxonomy(
 ): readonly TContentHubPublicTaxonomy[] {
   const normalizedLang = normalizeLanguageCode(lang);
   return readContentHubRuntimeConfigs(siteConfig)
-    .flatMap((hub) => Array.isArray(hub.publicTaxonomy) ? hub.publicTaxonomy : [])
+    .flatMap((hub) => readContentHubPublicCollection(hub.publicTaxonomy))
     .filter((entry) => entry.visible !== false)
     .filter((entry) => !normalizedLang || normalizeLanguageCode(entry.locale) === normalizedLang)
     .filter((entry) => cleanString(entry.slug));

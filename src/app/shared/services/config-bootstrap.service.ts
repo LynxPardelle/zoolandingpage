@@ -1,5 +1,6 @@
 import { formatLocaleLabel, normalizeLocaleCode } from '@/app/shared/i18n/locale.utils';
 import type {
+    TContentHubRuntimeCollection,
     TContentHubRuntimeArticleSummary,
     TContentHubRuntimeTaxonomySummary,
 } from '@/app/shared/types/content-hub.types';
@@ -429,12 +430,12 @@ export class ConfigBootstrapService {
         }
 
         const articles = hubs
-            .flatMap((hub) => Array.isArray(hub.publicArticles) ? hub.publicArticles : [])
+            .flatMap((hub) => this.readContentHubRuntimeCollection<TContentHubRuntimeArticleSummary>(hub.publicArticles))
             .filter((article): article is TContentHubRuntimeArticleSummary => article.status === 'published'
                 && ((article as { readonly visibility?: unknown }).visibility === undefined
                     || (article as { readonly visibility?: unknown }).visibility === 'public'));
         const taxonomy = hubs
-            .flatMap((hub) => Array.isArray(hub.publicTaxonomy) ? hub.publicTaxonomy : [])
+            .flatMap((hub) => this.readContentHubRuntimeCollection<TContentHubRuntimeTaxonomySummary>(hub.publicTaxonomy))
             .filter((entry): entry is TContentHubRuntimeTaxonomySummary => entry.visible !== false);
 
         const currentArticle = this.findContentHubCurrentArticle(articles, context);
@@ -452,6 +453,17 @@ export class ConfigBootstrapService {
             },
             'contentHub.currentArticle': currentArticle,
         };
+    }
+
+    private readContentHubRuntimeCollection<T>(collection: TContentHubRuntimeCollection<T> | null | undefined): readonly T[] {
+        if (Array.isArray(collection)) {
+            return collection;
+        }
+
+        const indexedCollection = collection as { readonly items?: unknown };
+        return !!collection && typeof collection === 'object' && Array.isArray(indexedCollection.items)
+            ? indexedCollection.items as readonly T[]
+            : [];
     }
 
     private findContentHubCurrentArticle(

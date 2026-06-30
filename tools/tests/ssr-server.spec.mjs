@@ -478,21 +478,29 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   const localNotFoundCombos = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'not-found', 'angora-combos.json'), 'utf8'));
   const localNotFoundI18n = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'not-found', 'i18n', 'es.json'), 'utf8'));
   const runtimeSiteConfig = JSON.parse(JSON.stringify(localSiteConfig));
-  runtimeSiteConfig.runtime.contentHubs[0].publicArticles.push({
-    articleId: 'art_runtime_only_public_fixture',
-    locale: 'es',
-    status: 'published',
-    visibility: 'public',
-    title: 'Runtime Dynamic SEO Article',
-    summary: 'Artículo publicado dinámicamente desde runtime para búsqueda pública.',
-    path: '/blog/web/runtime-dynamic-seo',
-    categorySlug: 'web',
-    tags: ['runtime', 'seo'],
-    publishedAt: '2026-06-28T12:00:00.000Z',
-    updatedAt: '2026-06-28T12:30:00.000Z',
-    canonicalPath: '/blog/web/runtime-dynamic-seo',
-    robots: 'index,follow',
-  });
+  runtimeSiteConfig.runtime.contentHubs[0].publicArticles = {
+    items: [
+      ...runtimeSiteConfig.runtime.contentHubs[0].publicArticles,
+      {
+        articleId: 'art_runtime_only_public_fixture',
+        locale: 'es',
+        status: 'published',
+        visibility: 'public',
+        title: 'Runtime Dynamic SEO Article',
+        summary: 'Artículo publicado dinámicamente desde runtime para búsqueda pública.',
+        path: '/blog/web/runtime-dynamic-seo',
+        categorySlug: 'web',
+        tags: ['runtime', 'seo'],
+        publishedAt: '2026-06-28T12:00:00.000Z',
+        updatedAt: '2026-06-28T12:30:00.000Z',
+        canonicalPath: '/blog/web/runtime-dynamic-seo',
+        robots: 'index,follow',
+      },
+    ],
+  };
+  runtimeSiteConfig.runtime.contentHubs[0].publicTaxonomy = {
+    items: runtimeSiteConfig.runtime.contentHubs[0].publicTaxonomy,
+  };
   const apiBase = await startRuntimeApi(t, (req, res) => {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
     if (url.pathname === '/runtime-bundle') {

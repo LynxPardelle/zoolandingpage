@@ -2,6 +2,7 @@ import {
     findPublishedContentHubArticleForPath,
     isMissingPublishedContentHubArticlePath,
     matchContentHubArticleRoute,
+    type TContentHubPublicRouteArticle,
     type TContentHubPublicRouteConfig,
 } from './content-hub-public-route';
 
@@ -46,6 +47,22 @@ describe('content hub public route helpers', () => {
         expect(findPublishedContentHubArticleForPath(hubs, '/blog/web/guia-seo')?.articleId).toBe('art_public');
         expect(findPublishedContentHubArticleForPath(hubs, '/blog/web/borrador')).toBeNull();
         expect(findPublishedContentHubArticleForPath(hubs, '/blog/web/privado')).toBeNull();
+    });
+
+    it('supports runtime public article collections with items', () => {
+        const articles = hubs[0].publicArticles;
+        expect(Array.isArray(articles)).toBeTrue();
+        const runtimeIndexedHubs: readonly TContentHubPublicRouteConfig[] = [
+            {
+                ...hubs[0],
+                publicArticles: {
+                    items: articles as readonly TContentHubPublicRouteArticle[],
+                },
+            },
+        ];
+
+        expect(findPublishedContentHubArticleForPath(runtimeIndexedHubs, '/blog/web/guia-seo')?.articleId).toBe('art_public');
+        expect(isMissingPublishedContentHubArticlePath(runtimeIndexedHubs, '/blog/web/guia-seo')).toBeFalse();
     });
 
     it('marks article-looking paths as missing when no published article exists', () => {
