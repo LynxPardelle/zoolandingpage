@@ -1224,6 +1224,20 @@ const isContentHubRuntimeTaxonomySummary = (value: unknown): boolean => {
     return true;
 };
 
+const isContentHubPublicRuntimeCollection = (
+    value: unknown,
+    itemGuard: (item: unknown) => boolean,
+): boolean => {
+    if (Array.isArray(value)) {
+        return value.every(itemGuard);
+    }
+
+    return isRecord(value)
+        && hasOnlyKnownKeys(value, new Set(['items']))
+        && Array.isArray(value['items'])
+        && value['items'].every(itemGuard);
+};
+
 const isContentHubRuntimeConfig = (value: unknown): value is TContentHubRuntimeConfig => {
     if (!isRecord(value)) return false;
     if (!hasNoForbiddenRuntimeKeysDeep(value)) return false;
@@ -1256,9 +1270,9 @@ const isContentHubRuntimeConfig = (value: unknown): value is TContentHubRuntimeC
     if (value['publicApiBasePath'] !== undefined && !isSafeSameOriginPath(value['publicApiBasePath'])) return false;
     if (value['analyticsContext'] !== undefined && !isContentHubAnalyticsContext(value['analyticsContext'])) return false;
     if (value['publicArticles'] !== undefined
-        && (!Array.isArray(value['publicArticles']) || !value['publicArticles'].every(isContentHubRuntimeArticleSummary))) return false;
+        && !isContentHubPublicRuntimeCollection(value['publicArticles'], isContentHubRuntimeArticleSummary)) return false;
     if (value['publicTaxonomy'] !== undefined
-        && (!Array.isArray(value['publicTaxonomy']) || !value['publicTaxonomy'].every(isContentHubRuntimeTaxonomySummary))) return false;
+        && !isContentHubPublicRuntimeCollection(value['publicTaxonomy'], isContentHubRuntimeTaxonomySummary)) return false;
     return true;
 };
 

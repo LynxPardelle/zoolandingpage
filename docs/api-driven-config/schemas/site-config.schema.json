@@ -448,16 +448,48 @@
         "runtimeSourceId": { "$ref": "#/definitions/contentHubSafeId" },
         "publicApiBasePath": { "$ref": "#/definitions/sameOriginPath" },
         "analyticsContext": { "$ref": "#/definitions/contentHubAnalyticsContext" },
-        "publicArticles": {
+        "publicArticles": { "$ref": "#/definitions/contentHubPublicArticleCollection" },
+        "publicTaxonomy": { "$ref": "#/definitions/contentHubPublicTaxonomyCollection" }
+      },
+      "additionalProperties": false
+    },
+    "contentHubPublicArticleCollection": {
+      "oneOf": [
+        {
           "type": "array",
           "items": { "$ref": "#/definitions/contentHubPublicArticle" }
         },
-        "publicTaxonomy": {
+        {
+          "type": "object",
+          "required": ["items"],
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/contentHubPublicArticle" }
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "contentHubPublicTaxonomyCollection": {
+      "oneOf": [
+        {
           "type": "array",
           "items": { "$ref": "#/definitions/contentHubPublicTaxonomy" }
+        },
+        {
+          "type": "object",
+          "required": ["items"],
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/contentHubPublicTaxonomy" }
+            }
+          },
+          "additionalProperties": false
         }
-      },
-      "additionalProperties": false
+      ]
     },
     "contentHubPublicArticle": {
       "type": "object",

@@ -81,8 +81,12 @@ test('site-config schema exposes content hub data source and action contracts wi
     const contentHubAction = schema.definitions?.contentHubRuntimeActionBinding;
     const safeRuntimeInputFieldName = schema.definitions?.safeRuntimeInputFieldName;
 
-    assert.equal(contentHubRuntime.properties.publicArticles.items.$ref, '#/definitions/contentHubPublicArticle');
-    assert.equal(contentHubRuntime.properties.publicTaxonomy.items.$ref, '#/definitions/contentHubPublicTaxonomy');
+    assert.equal(contentHubRuntime.properties.publicArticles.$ref, '#/definitions/contentHubPublicArticleCollection');
+    assert.equal(contentHubRuntime.properties.publicTaxonomy.$ref, '#/definitions/contentHubPublicTaxonomyCollection');
+    assert.equal(schema.definitions.contentHubPublicArticleCollection.oneOf[0].items.$ref, '#/definitions/contentHubPublicArticle');
+    assert.equal(schema.definitions.contentHubPublicArticleCollection.oneOf[1].properties.items.items.$ref, '#/definitions/contentHubPublicArticle');
+    assert.equal(schema.definitions.contentHubPublicTaxonomyCollection.oneOf[0].items.$ref, '#/definitions/contentHubPublicTaxonomy');
+    assert.equal(schema.definitions.contentHubPublicTaxonomyCollection.oneOf[1].properties.items.items.$ref, '#/definitions/contentHubPublicTaxonomy');
     assert.equal(schema.definitions.contentHubPublicArticle.properties.path.$ref, '#/definitions/sameOriginPath');
     assert.equal(schema.definitions.contentHubPublicArticle.properties.visibility.const, 'public');
     assert.equal(schema.definitions.contentHubPublicArticle.properties.credentialRef, undefined);
