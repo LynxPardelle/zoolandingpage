@@ -668,6 +668,13 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.doesNotMatch(blogPreviewHtml, /href="\/blog\/web\/blog-builder-seo(?!\?draftDomain=zoositioweb\.com\.mx)/);
   assert.doesNotMatch(blogPreviewHtml, /privado-no-publicable/);
 
+  const tagFilterResponse = await fetch(`http://127.0.0.1:${port}/blog/tag/seo?lang=es`, { headers });
+  const tagFilterHtml = await tagFilterResponse.text();
+  assert.equal(tagFilterResponse.status, 200);
+  assert.match(tagFilterHtml, /<meta name="robots" content="noindex,nofollow">/);
+  assert.match(tagFilterHtml, /<link rel="canonical" href="https:\/\/zoositioweb\.com\.mx\/blog\/tag\/seo">/);
+  assert.doesNotMatch(tagFilterHtml, /<link rel="canonical" href="https:\/\/zoositioweb\.com\.mx\/blog\/web">/);
+
   const articleResponse = await fetch(`http://127.0.0.1:${port}/blog/web/blog-builder-seo?lang=es`, { headers });
   const articleHtml = await articleResponse.text();
   assert.equal(articleResponse.status, 200);

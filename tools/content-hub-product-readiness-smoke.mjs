@@ -119,6 +119,17 @@ function buildPublicSearchUrl({ baseUrl, domain, lang, query, sharedPreview = tr
   return url.toString();
 }
 
+function buildPublicArticleUrl({ baseUrl, domain, pathName, lang, sharedPreview = true }) {
+  const url = urlWithPath(baseUrl, pathName);
+  if (sharedPreview) {
+    url.searchParams.set('draftDomain', domain);
+  }
+  if (lang) {
+    url.searchParams.set('lang', lang);
+  }
+  return url.toString();
+}
+
 function buildContentHubPayload({ domain, pageId, operationId, hubId, kind, input = {} }) {
   const idKey = kind === 'read' ? 'sourceId' : 'actionId';
   const bindingKey = kind === 'read' ? 'read' : 'action';
@@ -207,6 +218,18 @@ async function fetchJson(url, init, timeoutMs) {
   return parsed ?? { ok: response.ok };
 }
 
+async function fetchText(url, init, timeoutMs) {
+  const response = await fetch(url, {
+    ...init,
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  const raw = await response.text();
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${raw.slice(0, 240) || 'Request failed'}`);
+  }
+  return raw;
+}
+
 async function runSmoke(options) {
   const {
     baseUrl,
@@ -273,16 +296,111 @@ async function runSmoke(options) {
     throw new Error('Create response did not include articleId and revisionId.');
   }
 
+  const updatedRevisionId = `rev_${token}`;
+  const updatePayload = buildContentHubPayload({
+    domain,
+    pageId: 'admin-blog-articulo-editor',
+    operationId: 'content_hub_update_package',
+    hubId,
+    kind: 'action',
+    input: {
+      contentHub: { action: 'updatePackage', articleId: created.articleId },
+      articleId: created.articleId,
+      revisionId: updatedRevisionId,
+      articleTitle: title,
+      articleLanguage: lang,
+      articleCategory: category,
+      articleTags: 'qa, product-smoke, content-hub, edited',
+      articleSummary: `Smoke editado ${token} para validar edición antes de publicación.`,
+      articleSlug: slug,
+      articleContent: {
+        ops: [
+          { insert: `Contenido editado por smoke ${token}.\n` },
+        ],
+      },
+      editorNotes: `QA smoke ${token}`,
+    },
+  });
+  const updateResponse = await fetchJson(endpoint('action'), {
+    method: 'POST',
+    headers: actionHeaders,
+    body: JSON.stringify(updatePayload),
+  }, timeoutMs);
+  const updated = extractCreateResult(updateResponse);
+  if ((updated.revisionId || updatedRevisionId) !== updatedRevisionId) {
+    throw new Error('Update package did not preserve the requested revisionId.');
+  }
+
+  const validatePayload = buildContentHubPayload({
+    domain,
+    pageId: 'admin-blog-articulo-seo',
+    operationId: 'content_hub_validate_article',
+    hubId,
+    kind: 'action',
+    input: {
+      contentHub: { action: 'validate', articleId: created.articleId },
+      articleId: created.articleId,
+      revisionId: updatedRevisionId,
+      validationScope: 'publish',
+    },
+  });
+  const validateResponse = await fetchJson(endpoint('action'), {
+    method: 'POST',
+    headers: actionHeaders,
+    body: JSON.stringify(validatePayload),
+  }, timeoutMs);
+  if (validateResponse?.data?.valid === false) {
+    throw new Error('Article validation failed before review.');
+  }
+
+  const submitReviewPayload = buildContentHubPayload({
+    domain,
+    pageId: 'admin-blog-articulo-seo',
+    operationId: 'content_hub_submit_review_article',
+    hubId,
+    kind: 'action',
+    input: {
+      contentHub: { action: 'submitReview', articleId: created.articleId },
+      articleId: created.articleId,
+      revisionId: updatedRevisionId,
+      reviewMessage: `QA smoke ${token}`,
+      validationState: 'valid',
+    },
+  });
+  await fetchJson(endpoint('action'), {
+    method: 'POST',
+    headers: actionHeaders,
+    body: JSON.stringify(submitReviewPayload),
+  }, timeoutMs);
+
+  const approvePayload = buildContentHubPayload({
+    domain,
+    pageId: 'admin-blog-articulo-seo',
+    operationId: 'content_hub_approve_article',
+    hubId,
+    kind: 'action',
+    input: {
+      contentHub: { action: 'approveArticle', articleId: created.articleId },
+      articleId: created.articleId,
+      revisionId: updatedRevisionId,
+    },
+  });
+  await fetchJson(endpoint('action'), {
+    method: 'POST',
+    headers: actionHeaders,
+    body: JSON.stringify(approvePayload),
+  }, timeoutMs);
+
   const publishPayload = buildContentHubPayload({
     domain,
-    pageId,
+    pageId: 'admin-blog-articulo-seo',
     operationId: 'content_hub_publish_article',
     hubId,
     kind: 'action',
     input: {
       contentHub: { action: 'publish', articleId: created.articleId },
       articleId: created.articleId,
-      revisionId: created.revisionId,
+      revisionId: updatedRevisionId,
       seoTitle: title,
       seoDescription: `Validación automática redacted del content hub ${token}.`,
       renderDomain: domain,
@@ -344,6 +462,21 @@ async function runSmoke(options) {
     }
   }
 
+  const publicArticleUrl = buildPublicArticleUrl({
+    baseUrl,
+    domain,
+    pathName: published.path,
+    lang,
+    sharedPreview,
+  });
+  const publicArticleHtml = await fetchText(publicArticleUrl, {
+    method: 'GET',
+    headers: { Accept: 'text/html' },
+  }, timeoutMs);
+  if (!publicArticleHtml.includes(title) && !publicArticleHtml.includes(published.path)) {
+    throw new Error('Published public article HTML did not include the smoke article.');
+  }
+
   const schedulePayload = buildContentHubPayload({
     domain,
     pageId: 'admin-blog-programados',
@@ -353,10 +486,10 @@ async function runSmoke(options) {
     input: {
       contentHub: { action: 'schedule', articleId: created.articleId },
       articleId: created.articleId,
-      revisionId: created.revisionId,
-      publishAt: futureIso(now, 120),
+      revisionId: updatedRevisionId,
+      unpublishAt: futureIso(now, 120),
       timezone: 'America/Mexico_City',
-      scheduleAction: 'publish',
+      scheduleAction: 'unpublish',
       publishMessage: `QA smoke ${token}`,
     },
   });
@@ -418,14 +551,20 @@ async function runSmoke(options) {
     environment,
     hubId,
     articleId: created.articleId,
-    revisionId: created.revisionId,
+    revisionId: updatedRevisionId,
     path: published.path,
+    publicArticleUrl,
     scheduleId,
     checks: {
       createArticle: true,
+      updatePackage: true,
+      validate: true,
+      submitReview: true,
+      approveArticle: true,
       publish: true,
       runtimeBundle: true,
       publicSearch: true,
+      publicArticleHtml: true,
       scheduleList: true,
       cancelSchedule: true,
     },
@@ -485,6 +624,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
 
 export {
   buildContentHubPayload,
+  buildPublicArticleUrl,
   buildPublicSearchUrl,
   buildRuntimeBundleUrl,
   cookieValue,

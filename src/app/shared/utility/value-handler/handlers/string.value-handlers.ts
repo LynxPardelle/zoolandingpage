@@ -21,3 +21,11 @@ export const lowerValueHandler = (): ValueHandler => ({
     id: 'lower',
     resolve: (_ctx, args) => String(args?.[0] ?? '').toLowerCase(),
 });
+
+export const joinTextValueHandler = (): ValueHandler => ({
+    id: 'joinText',
+    resolve: (_ctx, args) => (args ?? [])
+        .map((value) => (value == null ? '' : String(value).trim()))
+        .filter(Boolean)
+        .join(' '),
+});

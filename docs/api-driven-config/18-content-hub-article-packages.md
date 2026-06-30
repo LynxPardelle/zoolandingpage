@@ -399,7 +399,7 @@ After deploying content-hub and runtime-read to dev/test, run the redacted smoke
 npm run content-hub:smoke -- --runtime-base-url=https://<runtime-read-api>/Prod --environment=test --domain=zoositioweb.com.mx
 ```
 
-The smoke creates a unique QA article, publishes it, verifies runtime-read `/runtime-bundle`, verifies `/content-hub-search.json` by title, slug, path, category, and tag, creates a future schedule, lists it, and cancels it. Output is limited to sanitized IDs, paths, environment, and boolean checks.
+The smoke creates a unique QA article, updates the draft package, validates it, submits it for review, approves it, publishes it, verifies runtime-read `/runtime-bundle`, verifies `/content-hub-search.json` by title, slug, path, category, and tag, fetches the public article HTML, creates a future schedule, lists it, and cancels it. Output is limited to sanitized IDs, paths, environment, and boolean checks.
 
 ## Current Known Gap
 
