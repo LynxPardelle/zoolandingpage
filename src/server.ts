@@ -341,7 +341,7 @@ function setCachedSiteConfigPath(domain: string, path: string | null): void {
   siteConfigPathCache.set(domain, { path, expiresAt: Date.now() + SITE_CONFIG_CACHE_TTL_MS });
 }
 
-function setCachedRuntimeSiteConfig(domain: string, siteConfig: TLocalSiteConfig | null): void {
+function setCachedRuntimeSiteConfig(cacheKey: string, siteConfig: TLocalSiteConfig | null): void {
   if (runtimeSiteConfigCache.size >= SITE_CONFIG_CACHE_MAX_SIZE) {
     const oldestKey = runtimeSiteConfigCache.keys().next().value;
     if (oldestKey !== undefined) {
@@ -349,12 +349,14 @@ function setCachedRuntimeSiteConfig(domain: string, siteConfig: TLocalSiteConfig
     }
   }
 
-  runtimeSiteConfigCache.set(domain, { siteConfig, expiresAt: Date.now() + SITE_CONFIG_CACHE_TTL_MS });
+  runtimeSiteConfigCache.set(cacheKey, { siteConfig, expiresAt: Date.now() + SITE_CONFIG_CACHE_TTL_MS });
 }
 
-function buildRuntimeSiteConfigCacheKey(domain: string, environment?: string): string {
+function buildRuntimeSiteConfigCacheKey(domain: string, environment?: string, routePath?: string): string {
   const normalizedEnvironment = cleanString(environment);
-  return normalizedEnvironment ? `${ normalizedEnvironment }::${ domain }` : domain;
+  const normalizedRoutePath = normalizeRoutePath(routePath || '/');
+  const baseKey = normalizedEnvironment ? `${ normalizedEnvironment }::${ domain }` : domain;
+  return `${ baseKey }::${ normalizedRoutePath }`;
 }
 
 function isDirectory(path: string): boolean {
@@ -1275,21 +1277,26 @@ function loadLocalDebugWorkspacePayload(kind: string): Record<string, unknown> |
   return readJsonFile(join(draftsFolder, DEBUG_DRAFT_DIRECTORY, 'debug-workspace', fileName));
 }
 
-async function loadRuntimeSiteConfig(domain: string, environment?: string): Promise<TLocalSiteConfig | null> {
+async function loadRuntimeSiteConfig(
+  domain: string,
+  environment?: string,
+  routePath: string = '/',
+): Promise<TLocalSiteConfig | null> {
   const normalizedDomain = normalizeHost(domain);
+  const normalizedRoutePath = normalizeRoutePath(routePath || '/');
   const baseUrls = resolveRuntimeBundleBaseUrls(environment);
   if (!normalizedDomain || baseUrls.length === 0) {
     return null;
   }
 
-  const cacheKey = buildRuntimeSiteConfigCacheKey(normalizedDomain, environment);
+  const cacheKey = buildRuntimeSiteConfigCacheKey(normalizedDomain, environment, normalizedRoutePath);
   const cached = runtimeSiteConfigCache.get(cacheKey);
   if (cached && Date.now() < cached.expiresAt) {
     return cached.siteConfig;
   }
 
   for (const baseUrl of baseUrls) {
-    const payload = await fetchRuntimeBundlePayload(baseUrl, normalizedDomain, '/', environment);
+    const payload = await fetchRuntimeBundlePayload(baseUrl, normalizedDomain, normalizedRoutePath, environment);
     if (isRecord(payload?.siteConfig)) {
       const siteConfig = payload.siteConfig as TLocalSiteConfig;
       setCachedRuntimeSiteConfig(cacheKey, siteConfig);
@@ -1412,18 +1419,34 @@ async function loadSiteConfigForHost(domain: string, environment?: string): Prom
   return loadLocalSiteConfig(domain) ?? await loadRuntimeSiteConfig(domain, environment);
 }
 
+function resolvePublicContentHubRoutePath(siteConfig: TLocalSiteConfig | null): string {
+  const configuredRoute = readContentHubRuntimeConfigs(siteConfig)
+    .map((hub) => cleanString(hub.routeBasePath))
+    .find(Boolean);
+
+  return normalizeRoutePath(configuredRoute || '/blog');
+}
+
 async function loadPublicContentHubSiteConfigForHost(domain: string, environment?: string): Promise<TLocalSiteConfig | null> {
   if (environment === 'local') {
     return loadSiteConfigForHost(domain, environment);
   }
 
   const localSiteConfig = loadLocalSiteConfig(domain);
-  const runtimeSiteConfig = await loadRuntimeSiteConfig(domain, environment);
+  const contentHubRoutePath = resolvePublicContentHubRoutePath(localSiteConfig);
+  const runtimeSiteConfig = await loadRuntimeSiteConfig(domain, environment, contentHubRoutePath);
   if (hasPublicContentHubRuntimeEntries(runtimeSiteConfig)) {
     return runtimeSiteConfig;
   }
 
-  return localSiteConfig ?? runtimeSiteConfig;
+  const rootRuntimeSiteConfig = contentHubRoutePath === '/'
+    ? runtimeSiteConfig
+    : await loadRuntimeSiteConfig(domain, environment, '/');
+  if (hasPublicContentHubRuntimeEntries(rootRuntimeSiteConfig)) {
+    return rootRuntimeSiteConfig;
+  }
+
+  return localSiteConfig ?? runtimeSiteConfig ?? rootRuntimeSiteConfig;
 }
 
 type THostHeaderValidationResult =
