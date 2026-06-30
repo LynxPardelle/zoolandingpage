@@ -281,7 +281,7 @@ describe('Zoosite blog admin draft pages', () => {
   });
 
   it('keeps visible admin copy free of raw technical placeholders', async () => {
-    const rawVisibleCopyPattern = /\b(?:articleId|revisionId|query string|backend|BFF|CSRF|endpoint|payload|tenant|buckets?|authorizer policy|commentQueue|taxonomyList|languageFallback|seoDefaults|connectedDrafts|authorizedHubs|usageRefs|publicability|content hub|bundle|publicBundlePreview|approve|reject|archive)\b|\[object Object\]|Invalid id/iu;
+    const rawVisibleCopyPattern = /\b(?:articleId|revisionId|query string|backend|BFF|CSRF|endpoint|payload|tenant|buckets?|authorizer policy|commentQueue|taxonomyList|languageFallback|seoDefaults|connectedDrafts|authorizedHubs|defaultCommentPolicy|usageRefs|publicability|content hub|bundle|package|MVP|noindex|server-only|publicBundlePreview|approve|reject|archive|reschedule|cancelSchedule|Choose files)\b|\[object Object\]|Invalid id/iu;
     const rawStatusInstructionPattern = /set:config\.text,varOr,remoteStatus\.contentHub\.[^,]+\.error/;
     const forbiddenFragments = [
       'articleId pendiente',
@@ -324,7 +324,7 @@ describe('Zoosite blog admin draft pages', () => {
   });
 
   it('keeps Zoosite blog public and admin visible copy product-facing', async () => {
-    const rawBlogCopyPattern = /\b(?:content hub|bundle|BFF|backend|commentQueue|taxonomyList|languageFallback|seoDefaults|connectedDrafts|authorizedHubs|usageRefs|publicability|approve|reject|archive|tags?|SEO-ready|publicBundlePreview)\b|builder visual|Editor visual visual|El gestión|un publicación|publicación publicado/iu;
+    const rawBlogCopyPattern = /\b(?:content hub|bundle|package|MVP|noindex|server-only|BFF|backend|commentQueue|taxonomyList|languageFallback|seoDefaults|connectedDrafts|authorizedHubs|defaultCommentPolicy|usageRefs|publicability|approve|reject|archive|reschedule|cancelSchedule|Choose files|tags?|SEO-ready|publicBundlePreview)\b|builder visual|Editor visual visual|El gestión|un publicación|publicación publicado/iu;
     const copyPages = [
       ...pageIds,
       'blog',
