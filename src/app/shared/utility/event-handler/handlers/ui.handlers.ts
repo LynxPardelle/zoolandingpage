@@ -225,6 +225,55 @@ export const navigateWithScopeQueryHandler = (): EventHandler => ({
     },
 });
 
+export const shareCurrentPageHandler = (): EventHandler => ({
+    id: 'shareCurrentPage',
+    handle: (_ctx, args) => {
+        if (typeof window === 'undefined') return;
+
+        const url = resolveShareUrl(args?.[0]);
+        if (!url) return;
+
+        const title = normalizeShareText(args?.[1]);
+        const text = normalizeShareText(args?.[2]);
+        const payload: ShareData = {
+            url,
+            ...(title ? { title } : {}),
+            ...(text ? { text } : {}),
+        };
+
+        if (typeof navigator.share === 'function') {
+            void navigator.share(payload).catch(() => copyShareUrl(url));
+            return;
+        }
+
+        void copyShareUrl(url);
+    },
+});
+
+function resolveShareUrl(target: unknown): string | null {
+    const currentHref = window.location.href;
+    const rawTarget = String(target ?? '').trim();
+    if (!rawTarget) return currentHref;
+
+    const resolved = resolveNavigationTarget(rawTarget, {
+        currentHref,
+        stickyQueryParams: DRAFT_RUNTIME_STICKY_QUERY_PARAMS,
+    });
+    if (!resolved.internal || !resolved.href) return null;
+
+    return new URL(resolved.href, window.location.origin).href;
+}
+
+function normalizeShareText(value: unknown): string | undefined {
+    const normalized = String(value ?? '').trim();
+    return normalized || undefined;
+}
+
+async function copyShareUrl(url: string): Promise<void> {
+    if (typeof navigator.clipboard?.writeText !== 'function') return;
+    await navigator.clipboard.writeText(url);
+}
+
 function resolveScopeQueryMappingValue(eventData: unknown, source: string): unknown {
     if (!source.startsWith('values.')
         && !source.startsWith('fields.')

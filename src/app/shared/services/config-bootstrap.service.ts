@@ -360,17 +360,18 @@ export class ConfigBootstrapService {
         this.store.setVariables(variables);
         this.store.setCombos(combos);
         this.variablesStore.setPayload(variables, siteConfig);
-        this.variablesStore.patchRuntimeValues(this.buildContentHubRuntimeVariables(siteConfig, {
+        const contentHubRuntime = this.buildContentHubRuntimeProjection(siteConfig, {
             routePath: opts?.routePath,
             routeParams: opts?.routeParams,
-        }));
+        });
+        this.variablesStore.patchRuntimeValues(contentHubRuntime.values);
 
         this.store.setStage('i18n');
         const i18nPayload = await this.loadI18n(domain, pageId, lang, sourceOptions);
         this.store.setI18n(i18nPayload);
 
-        const seo = pageConfig?.seo ?? null;
-        const structuredData = pageConfig?.structuredData ?? null;
+        const seo = this.buildContentHubSeo(pageConfig?.seo ?? null, contentHubRuntime.currentArticle, siteConfig);
+        const structuredData = this.buildContentHubStructuredData(pageConfig?.structuredData ?? null, contentHubRuntime.currentArticle, siteConfig);
         const loadedAnalytics = pageConfig?.analytics ?? null;
         const analytics = this.buildResolvedAnalyticsConfig(
             this.store.siteConfig()?.runtime?.analytics,
@@ -420,13 +421,13 @@ export class ConfigBootstrapService {
         };
     }
 
-    private buildContentHubRuntimeVariables(
+    private buildContentHubRuntimeProjection(
         siteConfig: TDraftSiteConfigPayload | null,
         context: Pick<TConfigBootstrapLoadOptions, 'routePath' | 'routeParams'>,
-    ): Record<string, unknown> {
+    ): { readonly values: Record<string, unknown>; readonly currentArticle: TContentHubRuntimeArticleSummary | null } {
         const hubs = siteConfig?.runtime?.contentHubs;
         if (!Array.isArray(hubs) || hubs.length === 0) {
-            return {};
+            return { values: {}, currentArticle: null };
         }
 
         const articles = hubs
@@ -442,17 +443,119 @@ export class ConfigBootstrapService {
         const filteredArticles = this.filterContentHubArticlesForRoute(articles, context);
 
         return {
-            'contentHub.publicArticles': {
-                items: filteredArticles,
+            currentArticle,
+            values: {
+                'contentHub.publicArticles': {
+                    items: filteredArticles,
+                },
+                'contentHub.categories': {
+                    items: taxonomy.filter((entry) => entry.kind === 'category'),
+                },
+                'contentHub.tags': {
+                    items: taxonomy.filter((entry) => entry.kind === 'tag'),
+                },
+                'contentHub.currentArticle': currentArticle,
             },
-            'contentHub.categories': {
-                items: taxonomy.filter((entry) => entry.kind === 'category'),
-            },
-            'contentHub.tags': {
-                items: taxonomy.filter((entry) => entry.kind === 'tag'),
-            },
-            'contentHub.currentArticle': currentArticle,
         };
+    }
+
+    private buildContentHubSeo(
+        pageSeo: TSeoPayload | null,
+        article: TContentHubRuntimeArticleSummary | null,
+        siteConfig: TDraftSiteConfigPayload | null,
+    ): TSeoPayload | null {
+        if (!article) return pageSeo;
+        const title = this.cleanString(article.title) || pageSeo?.title;
+        const description = this.cleanString(article.summary) || pageSeo?.description;
+        const canonical = this.resolveContentHubCanonicalUrl(article, siteConfig) || pageSeo?.canonical;
+        const image = this.resolveContentHubSocialImage(siteConfig, pageSeo);
+        const pageOpenGraph = this.isRecord(pageSeo?.openGraph) ? pageSeo.openGraph : {};
+
+        return {
+            ...(pageSeo ?? {}),
+            title,
+            description,
+            canonical,
+            keywords: Array.isArray(article.tags) && article.tags.length > 0 ? article.tags : pageSeo?.keywords,
+            robots: this.cleanString(article.robots) || pageSeo?.robots,
+            openGraph: {
+                ...pageOpenGraph,
+                ...(title ? { title } : {}),
+                ...(description ? { description } : {}),
+                ...(canonical ? { url: canonical } : {}),
+                ...(image ? { image } : {}),
+                type: 'article',
+            },
+        };
+    }
+
+    private buildContentHubStructuredData(
+        pageStructuredData: TStructuredDataPayload | null,
+        article: TContentHubRuntimeArticleSummary | null,
+        siteConfig: TDraftSiteConfigPayload | null,
+    ): TStructuredDataPayload | null {
+        if (!article) return pageStructuredData;
+        const canonical = this.resolveContentHubCanonicalUrl(article, siteConfig);
+        const image = this.resolveContentHubSocialImage(siteConfig);
+        const publisherName = this.cleanString(siteConfig?.site?.seo?.siteName) || this.cleanString(siteConfig?.domain);
+        const title = this.cleanString(article.title);
+        const description = this.cleanString(article.summary);
+        const authorName = this.cleanString(article.authorLabel);
+        const categorySlug = this.cleanString(article.categorySlug);
+        const keywords = Array.isArray(article.tags) ? article.tags.map((tag) => this.cleanString(tag)).filter(Boolean).join(', ') : '';
+
+        return {
+            entries: [
+                ...(pageStructuredData?.entries ?? []),
+                {
+                    '@context': 'https://schema.org',
+                    '@type': 'BlogPosting',
+                    headline: title,
+                    description,
+                    url: canonical,
+                    mainEntityOfPage: canonical,
+                    datePublished: this.cleanString(article.publishedAt),
+                    dateModified: this.cleanString(article.updatedAt) || this.cleanString(article.publishedAt),
+                    ...(authorName ? { author: { '@type': 'Organization', name: authorName } } : {}),
+                    ...(publisherName ? { publisher: { '@type': 'Organization', name: publisherName } } : {}),
+                    ...(image ? { image } : {}),
+                    ...(categorySlug ? { articleSection: categorySlug } : {}),
+                    ...(keywords ? { keywords } : {}),
+                },
+            ],
+        };
+    }
+
+    private resolveContentHubCanonicalUrl(
+        article: TContentHubRuntimeArticleSummary,
+        siteConfig: TDraftSiteConfigPayload | null,
+    ): string {
+        const path = this.cleanString(article.canonicalPath) || this.cleanString(article.path);
+        if (!path) return '';
+
+        const origin = this.cleanString(siteConfig?.site?.seo?.canonicalOrigin).replace(/\/+$/, '');
+        if (!origin) return path;
+
+        try {
+            return new URL(path, `${ origin }/`).toString();
+        } catch {
+            return path;
+        }
+    }
+
+    private resolveContentHubSocialImage(
+        siteConfig: TDraftSiteConfigPayload | null,
+        pageSeo: TSeoPayload | null = null,
+    ): string {
+        const pageOpenGraph = this.isRecord(pageSeo?.openGraph) ? pageSeo.openGraph : {};
+        const siteOpenGraph = this.isRecord(siteConfig?.site?.seo?.openGraph) ? siteConfig.site.seo.openGraph : {};
+        return this.cleanString(pageOpenGraph['image'])
+            || this.cleanString(siteOpenGraph['image'])
+            || this.cleanString(siteConfig?.site?.seo?.defaultImage);
+    }
+
+    private cleanString(value: unknown): string {
+        return typeof value === 'string' ? value.trim() : '';
     }
 
     private readContentHubRuntimeCollection<T>(collection: TContentHubRuntimeCollection<T> | null | undefined): readonly T[] {

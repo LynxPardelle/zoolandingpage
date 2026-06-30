@@ -438,6 +438,7 @@ const ALLOWED_GENERIC_FILE_DROPZONE_CONFIG_KEYS = new Set([
     'maxFileSizeBytes',
     'maxSizeLabel',
     'multiple',
+    'required',
     'disabled',
     'loading',
     'loadingText',
@@ -1944,6 +1945,7 @@ const isGenericFileDropzoneConfig = (value: unknown): boolean => {
     if (stringFields.some((field) => !isStringThunkFriendly(value[field]))) return false;
     if (value['maxFileSizeBytes'] !== undefined && !isNumberThunkFriendly(value['maxFileSizeBytes'])) return false;
     if (value['multiple'] !== undefined && !isBooleanThunkFriendly(value['multiple'])) return false;
+    if (value['required'] !== undefined && !isBooleanThunkFriendly(value['required'])) return false;
     if (value['disabled'] !== undefined && !isBooleanThunkFriendly(value['disabled'])) return false;
     if (value['loading'] !== undefined && !isBooleanThunkFriendly(value['loading'])) return false;
     return true;

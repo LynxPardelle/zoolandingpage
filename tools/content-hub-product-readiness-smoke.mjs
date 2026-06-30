@@ -276,6 +276,29 @@ function extractScheduleId(response) {
   return clean(response?.data?.schedule?.scheduleId) || clean(response?.data?.scheduleId);
 }
 
+function metricNumber(item, key) {
+  const value = Number(item?.[key] ?? 0);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function findAnalyticsItem(response, articleId) {
+  const items = Array.isArray(response?.data?.items) ? response.data.items : [];
+  return items.find((item) => clean(item.articleId) === articleId) ?? null;
+}
+
+function hasPublicInteractionMetrics(response, articleId) {
+  const item = findAnalyticsItem(response, articleId);
+  return !!item
+    && metricNumber(item, 'ctaClicks') > 0
+    && metricNumber(item, 'reactions') > 0
+    && metricNumber(item, 'shares') > 0
+    && metricNumber(item, 'comments') > 0;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function readSessionCookie(args) {
   if (args['cookie-file']) {
     return clean(await readFile(args['cookie-file'], 'utf8'));
@@ -678,6 +701,81 @@ async function runSmoke(options) {
   }
   if (!publicArticleHtml.includes(articleBodyNeedle)) {
     throw new Error('Published public article HTML did not include the edited article body.');
+  }
+
+  for (const interaction of [
+    { label: 'cta', eventType: 'cta_click', targetId: 'primary_cta', value: 'lead' },
+    { label: 'reaction', eventType: 'reaction', targetId: 'helpful', value: 'helpful' },
+    { label: 'share', eventType: 'share', targetId: 'share_current_page', value: 'copy' },
+  ]) {
+    const interactionPayload = buildContentHubPayload({
+      domain,
+      pageId: 'blog-article',
+      operationId: 'content_hub_record_interaction',
+      hubId,
+      kind: 'action',
+      input: {
+        contentHub: { action: 'recordInteraction', articleId: created.articleId },
+        articleId: created.articleId,
+        eventType: interaction.eventType,
+        targetId: interaction.targetId,
+        value: interaction.value,
+        path: published.path,
+      },
+    });
+    await smokeStep(`recordInteraction:${interaction.label}`, () => fetchJson(endpoint('action'), {
+      method: 'POST',
+      headers: actionHeaders,
+      body: JSON.stringify(interactionPayload),
+    }, timeoutMs));
+  }
+
+  const commentPayload = buildContentHubPayload({
+    domain,
+    pageId: 'blog-article',
+    operationId: 'content_hub_queue_comment',
+    hubId,
+    kind: 'action',
+    input: {
+      contentHub: { action: 'queueComment', articleId: created.articleId },
+      articleId: created.articleId,
+      commentBody: `QA smoke moderated comment ${token}`,
+      commentPolicy: 'authenticated-moderation',
+    },
+  });
+  await smokeStep('queueComment', () => fetchJson(endpoint('action'), {
+    method: 'POST',
+    headers: actionHeaders,
+    body: JSON.stringify(commentPayload),
+  }, timeoutMs));
+
+  const analyticsAfterInteractionsPayload = buildContentHubPayload({
+    domain,
+    pageId: 'admin-blog-analiticas',
+    operationId: 'content_hub_analytics_summary',
+    hubId,
+    kind: 'read',
+    input: {
+      contentHub: { read: 'analyticsSummary' },
+      articleId: created.articleId,
+    },
+  });
+  let analyticsAfterInteractionsResponse = null;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    analyticsAfterInteractionsResponse = await smokeStep(`analyticsSummary:publicInteractions:${attempt}`, () => fetchJson(endpoint('read'), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(analyticsAfterInteractionsPayload),
+    }, timeoutMs));
+    if (hasPublicInteractionMetrics(analyticsAfterInteractionsResponse, created.articleId)) {
+      break;
+    }
+    if (attempt < 3) {
+      await sleep(350);
+    }
+  }
+  if (!hasPublicInteractionMetrics(analyticsAfterInteractionsResponse, created.articleId)) {
+    throw new Error('Analytics summary did not include CTA, reaction, share, and comment counts for the published article.');
   }
 
   const canonicalArticleUrl = publicCanonicalArticleUrl(domain, published.path);

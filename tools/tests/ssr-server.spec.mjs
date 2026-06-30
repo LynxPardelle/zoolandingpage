@@ -690,6 +690,8 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.match(articleHtml, /"@type":"BlogPosting"/);
   assert.match(articleHtml, /"articleSection":"web"/);
   assert.match(articleHtml, /"keywords":"seo, builder, angora"/);
+  assert.match(articleHtml, /"publisher":\{[^}]*"name":"zoositioweb"[^}]*\}/);
+  assert.match(articleHtml, /"image":"https:\/\/assets\.zoolandingpage\.com\.mx\/zoolandingpage\.com\.mx\/shared\/seo-images\/zoolandingpage-zoositioweb-default-logo-card\.jpg"/);
   assert.match(articleHtml, /Cómo crear blogs visuales con Zoolandingpage/);
   assert.doesNotMatch(stripNonVisibleHtml(articleHtml), /Página no encontrada|Esta ruta no nos llevó/i);
   assertNoContentHubOperationalLeak(extractJsonLd(articleHtml));

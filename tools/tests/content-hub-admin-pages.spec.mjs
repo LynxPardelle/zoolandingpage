@@ -80,6 +80,12 @@ const productReadinessBlocks = [
   'Full QA, release, and product readiness',
 ];
 
+it('keeps component event dispatch free of raw payload console logs', async () => {
+  const source = await readFile(path.join(repoRoot, 'src/app/shared/services/component-event-dispatcher.service.ts'), 'utf8');
+
+  assert.doesNotMatch(source, /console\.(?:log|debug|info)\(/);
+});
+
 function sectionBody(markdown, heading) {
   const lines = markdown.split(/\r?\n/u);
   const headingLine = `## ${heading}`;
@@ -443,6 +449,24 @@ describe('Zoosite blog admin draft pages', () => {
     }
   });
 
+  it('shows every declared blog analytics metric in the analytics table', async () => {
+    const payload = await readJson('admin-blog-analiticas/components.json');
+    const table = componentById(flattenComponents(payload), 'analyticsTable');
+    const columnIds = (table?.config?.columns ?? []).map((column) => column.id);
+
+    for (const columnId of [
+      'views',
+      'readProgress',
+      'ctaClicks',
+      'reactions',
+      'comments',
+      'shares',
+      'assetDownloads',
+    ]) {
+      assert.ok(columnIds.includes(columnId), `missing analytics metric column ${columnId}`);
+    }
+  });
+
   it('keeps the blog overview free of ambiguous article mutations', async () => {
     const payload = await readJson('admin-blog/components.json');
     const components = flattenComponents(payload);
@@ -464,6 +488,38 @@ describe('Zoosite blog admin draft pages', () => {
       const hrefTemplate = String(action.hrefTemplate ?? '');
       assert.equal(hrefTemplate.includes('{articleId}'), true, `${action.id} must stay scoped to the selected row`);
     }
+  });
+
+  it('moderates comments from queue rows instead of manual ids', async () => {
+    const payload = await readJson('admin-blog-moderacion/components.json');
+    const components = flattenComponents(payload);
+    const workspace = componentById(components, 'moderationWorkspace');
+    const controls = componentById(components, 'moderationControls');
+    const scope = componentById(components, 'moderationScope');
+    const table = componentById(components, 'moderationTable');
+    const rowActions = table?.config?.rowActions ?? [];
+
+    assert.equal(workspace?.config?.components?.includes('moderationActions'), false);
+    assert.equal(controls?.config?.components?.includes('moderationCommentId'), false);
+    assert.equal(controls?.config?.components?.includes('moderationDecision'), false);
+    assert.equal(componentById(components, 'moderationActions'), undefined);
+    assert.equal(componentById(components, 'moderationCommentId'), undefined);
+    assert.equal(componentById(components, 'moderationDecision'), undefined);
+    assert.match(scope?.config?.valueInstructions ?? '', /collectFields:decision,reason,audit/);
+    assert.equal(table?.config?.rowIdPath, 'commentId');
+    assert.deepEqual(table?.config?.eventPayloadFields, ['commentId', 'articleId', 'moderationStatus', 'spam', 'createdAt']);
+    assert.equal(table?.config?.actionColumnLabel, 'Acciones');
+    assert.equal(table?.config?.actionLabelMode, 'tooltip');
+    assert.deepEqual(rowActions.map((action) => action.id), ['approve', 'reject', 'archive']);
+    assert.deepEqual(
+      rowActions.map((action) => action.eventInstructions),
+      [
+        'setScopeValue:decision,approve;proxyAction:content_hub_moderate_comment',
+        'setScopeValue:decision,reject;proxyAction:content_hub_moderate_comment',
+        'setScopeValue:decision,archive;proxyAction:content_hub_moderate_comment',
+      ],
+    );
+    assert.ok(String(table?.config?.actionButtonClasses ?? '').includes('ank-minWidth-54px'));
   });
 
   it('uses real schedule rows and cancel actions on the scheduling page', async () => {
@@ -496,15 +552,71 @@ describe('Zoosite blog admin draft pages', () => {
     const components = flattenComponents(payload);
     const articleCta = componentById(components, 'blogArticleCta');
     const articleBody = componentById(components, 'blogArticleBody');
+    const interactionScope = componentById(components, 'blogArticleInteractionsScope');
+    const commentScope = componentById(components, 'blogArticleCommentScope');
+    const reactionButton = componentById(components, 'blogArticleUsefulButton');
+    const shareButton = componentById(components, 'blogArticleShareButton');
+    const commentLoginLink = componentById(components, 'blogArticleCommentLoginLink');
+    const commentBody = componentById(components, 'blogArticleCommentBody');
+    const commentButton = componentById(components, 'blogArticleCommentButton');
 
     assert.doesNotMatch(text, /eventInstructions"\s*:\s*"trackEvent:blog_view/);
     assert.doesNotMatch(text, /articleId,art_20260620_blog_builder/);
+    assert.equal(interactionScope?.type, 'interaction-scope');
+    assert.equal(commentScope?.type, 'interaction-scope');
+    assert.deepEqual(interactionScope?.config?.components, ['blogArticleCta', 'blogArticleReactionPanel']);
+    assert.deepEqual(commentScope?.config?.components, ['blogArticleCommentPanel']);
     assert.match(String(articleCta?.valueInstructions ?? ''), /set:eventInstructions,concat/);
     assert.match(String(articleCta?.valueInstructions ?? ''), /contentHub\.currentArticle\.articleId/);
     assert.match(String(articleCta?.valueInstructions ?? ''), /contentHub\.currentArticle\.path/);
+    assert.match(String(articleCta?.valueInstructions ?? ''), /proxyAction:content_hub_record_interaction/);
+    assert.match(String(reactionButton?.valueInstructions ?? ''), /proxyAction:content_hub_record_interaction/);
+    assert.match(String(reactionButton?.valueInstructions ?? ''), /setScopeValue:eventType,reaction/);
+    assert.match(String(shareButton?.valueInstructions ?? ''), /shareCurrentPage/);
+    assert.match(String(shareButton?.valueInstructions ?? ''), /proxyAction:content_hub_record_interaction/);
+    assert.match(String(shareButton?.valueInstructions ?? ''), /setScopeValue:eventType,share/);
+    assert.equal(commentLoginLink?.type, 'link');
+    assert.equal(commentLoginLink?.config?.href, '/acceso');
+    assert.equal(commentBody?.config?.fieldId, 'commentBody');
+    assert.equal(commentBody?.config?.controlType, 'textarea');
+    assert.equal(commentButton?.config?.disabledWhenInvalidScope, true);
+    assert.match(String(commentButton?.valueInstructions ?? ''), /contentHub\.currentArticle\.articleId/);
+    assert.match(String(commentButton?.valueInstructions ?? ''), /setScopeValue:commentPolicy,authenticated-moderation/);
+    assert.match(String(commentButton?.valueInstructions ?? ''), /proxyAction:content_hub_queue_comment/);
     assert.match(String(articleBody?.valueInstructions ?? ''), /richTextHtmlOr,articleContent,/);
     assert.doesNotMatch(String(articleBody?.valueInstructions ?? ''), /varOr,articleContent,/);
     assert.doesNotMatch(String(articleBody?.valueInstructions ?? ''), /contentHub\.currentArticle\.summary/);
+  });
+
+  it('requires media uploads to have an article context and a selected file before submit', async () => {
+    const payload = await readJson('admin-blog-medios/components.json');
+    const components = flattenComponents(payload);
+    const articleId = componentById(components, 'mediaArticleId');
+    const dropzone = componentById(components, 'mediaDropzone');
+    const uploadButton = componentById(components, 'mediaUploadButton');
+    const table = componentById(components, 'mediaAssetsTable');
+    const editorPayload = await readJson('admin-blog-articulo-editor/components.json');
+    const editorComponents = flattenComponents(editorPayload);
+    const editorWorkspace = componentById(editorComponents, 'editorWorkspace');
+    const editorMediaScope = componentById(editorComponents, 'editorMediaScope');
+    const editorMediaArticleId = componentById(editorComponents, 'editorMediaArticleId');
+    const editorDropzone = componentById(editorComponents, 'editorDropzone');
+    const editorUploadButton = componentById(editorComponents, 'editorUploadButton');
+
+    assert.equal(articleId?.config?.required, true);
+    assert.match(JSON.stringify(articleId?.config?.validation ?? []), /Abre Medios desde la fila del artículo/);
+    assert.equal(dropzone?.type, 'generic-file-dropzone');
+    assert.equal(dropzone?.config?.required, true);
+    assert.equal(uploadButton?.config?.disabledWhenInvalidScope, true);
+    assert.equal(uploadButton?.eventInstructions, 'proxyAction:content_hub_upload_asset');
+    assert.match(String(table?.valueInstructions ?? ''), /remoteStatus\.contentHub\.assets/);
+    assert.deepEqual(editorWorkspace?.config?.components, ['editorCard', 'editorMediaScope']);
+    assert.equal(editorMediaScope?.type, 'interaction-scope');
+    assert.equal(editorMediaScope?.config?.components?.includes('editorSideRail'), true);
+    assert.equal(editorMediaArticleId?.config?.required, true);
+    assert.match(String(editorMediaArticleId?.valueInstructions ?? ''), /remote\.contentHub\.articleDetail\.items\.0\.articleId/);
+    assert.equal(editorDropzone?.config?.required, true);
+    assert.equal(editorUploadButton?.config?.disabledWhenInvalidScope, true);
   });
 
   it('implements create and editor controls with draft-configured field IDs', async () => {
