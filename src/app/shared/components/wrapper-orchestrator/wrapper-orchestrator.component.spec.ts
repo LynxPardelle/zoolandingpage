@@ -285,6 +285,28 @@ describe('WrapperOrchestrator', () => {
     expect(text).not.toContain('unknown');
   });
 
+  it('renders a silent fallback when a deferred generic component fails to load', async () => {
+    componentsById = {
+      adminTable: {
+        id: 'adminTable',
+        type: 'generic-table',
+        config: {
+          columns: [{ id: 'title', header: 'Título' }],
+          rows: [{ title: 'Artículo' }],
+        },
+      } as never,
+    };
+
+    fixture.componentRef.setInput('componentsIds', ['adminTable']);
+    fixture.detectChanges();
+    const [tableBlock] = await fixture.getDeferBlocks();
+    await tableBlock.render(DeferBlockState.Error);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('span[aria-hidden="true"]')).not.toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('unknown');
+  });
+
   it('offers child value changes to an interaction scope auto-submit hook after dispatching the event', () => {
     const autoSubmitInteractionScope = jasmine.createSpy('autoSubmitInteractionScope');
     const scopeHost = {

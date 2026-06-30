@@ -272,8 +272,7 @@ describe('Zoosite blog admin draft pages', () => {
           `${pageId}/${component.id} must not render a static protected-data error before the read runs`,
         );
         assert.ok(
-          /set:config\.errorText,varOr,remoteStatus\.contentHub\.[^;\s]+\.error,/.test(valueInstructions)
-            || /set:config\.errorText,when,"all:varEq,remoteStatus\.contentHub\.[^"]+\.state,error"/.test(valueInstructions),
+          /set:config\.errorText,when,"all:varEq,remoteStatus\.contentHub\.[^"]+\.state,error"/.test(valueInstructions),
           `${pageId}/${component.id} must bind errorText to the remote content-hub status`,
         );
       }
@@ -281,8 +280,8 @@ describe('Zoosite blog admin draft pages', () => {
   });
 
   it('keeps visible admin copy free of raw technical placeholders', async () => {
-    const rawVisibleCopyPattern = /\b(?:articleId|revisionId|query string|backend|BFF|CSRF|endpoint|payload|tenant|buckets?|authorizer policy|commentQueue|taxonomyList|languageFallback|seoDefaults|connectedDrafts|authorizedHubs|defaultCommentPolicy|usageRefs|publicability|content hub|bundle|package|MVP|noindex|server-only|publicBundlePreview|approve|reject|archive|reschedule|cancelSchedule|Choose files)\b|\[object Object\]|Invalid id/iu;
-    const rawStatusInstructionPattern = /set:config\.text,varOr,remoteStatus\.contentHub\.[^,]+\.error/;
+    const rawVisibleCopyPattern = /\b(?:articleId|revisionId|assetId|fileName|query string|backend|BFF|CSRF|endpoint|payload|tenant|buckets?|authorizer policy|commentQueue|taxonomyList|languageFallback|seoDefaults|connectedDrafts|authorizedHubs|defaultCommentPolicy|usageRefs|publicability|content hub|hub|bundle|package|paquete|MVP|noindex|server-only|publicBundlePreview|approve|reject|archive|reschedule|cancelSchedule|Choose files)\b|\[object Object\]|Invalid id|Invalid identifier/iu;
+    const rawStatusInstructionPattern = /set:config\.(?:text|errorText),varOr,remoteStatus\.contentHub\.[^,]+\.error/;
     const forbiddenFragments = [
       'articleId pendiente',
       'revisionId pendiente',
@@ -291,10 +290,11 @@ describe('Zoosite blog admin draft pages', () => {
       'query string',
       'backend',
       'Invalid id',
+      'Invalid identifier',
       '[object Object]',
     ];
 
-    for (const pageId of pageIds.filter((id) => id.startsWith('admin-blog-'))) {
+    for (const pageId of pageIds.filter((id) => id === 'admin-blog' || id.startsWith('admin-blog-'))) {
       const payload = await readJson(`${pageId}/components.json`);
       const serialized = textSearch(payload);
       for (const fragment of forbiddenFragments) {
@@ -324,7 +324,7 @@ describe('Zoosite blog admin draft pages', () => {
   });
 
   it('keeps Zoosite blog public and admin visible copy product-facing', async () => {
-    const rawBlogCopyPattern = /\b(?:content hub|bundle|package|MVP|noindex|server-only|BFF|backend|commentQueue|taxonomyList|languageFallback|seoDefaults|connectedDrafts|authorizedHubs|defaultCommentPolicy|usageRefs|publicability|approve|reject|archive|reschedule|cancelSchedule|Choose files|tags?|SEO-ready|publicBundlePreview)\b|builder visual|Editor visual visual|El gestión|un publicación|publicación publicado/iu;
+    const rawBlogCopyPattern = /\b(?:content hub|hub|bundle|package|paquete|MVP|noindex|server-only|BFF|backend|commentQueue|taxonomyList|languageFallback|seoDefaults|connectedDrafts|authorizedHubs|defaultCommentPolicy|usageRefs|publicability|approve|reject|archive|reschedule|cancelSchedule|Choose files|assetId|fileName|tags?|SEO-ready|publicBundlePreview)\b|builder visual|Editor visual visual|El gestión|un publicación|publicación publicado/iu;
     const copyPages = [
       ...pageIds,
       'blog',
@@ -756,7 +756,7 @@ describe('Zoosite blog admin draft pages', () => {
       ['admin-blog-articulo-versiones', ['revisionId', 'delta', 'snapshot', 'compare', 'restore']],
       ['admin-blog-programados', ['publishAt', 'unpublishAt', 'timezone', 'publish', 'unpublish']],
       ['admin-blog-moderacion', ['Comentarios por revisar', 'spam', 'approve', 'reject', 'archive', 'audit']],
-      ['admin-blog-medios', ['upload', 'assetList', 'metadata', 'usageRefs', 'publicability', 'archive']],
+      ['admin-blog-medios', ['upload', 'Biblioteca registrada', 'metadata', 'usageRefs', 'publicability', 'archive']],
       ['admin-blog-analiticas', ['views', 'readProgress', 'ctaClicks', 'reactions', 'comments', 'shares', 'assetDownloads']],
       ['admin-blog-categorias', ['translation', 'slug', 'seoDescription', 'visible', 'redirectWarning']],
       ['admin-blog-tags', ['translation', 'slug', 'seoDescription', 'visible', 'redirectWarning']],
