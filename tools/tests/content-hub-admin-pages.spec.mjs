@@ -80,6 +80,12 @@ const productReadinessBlocks = [
   'Full QA, release, and product readiness',
 ];
 
+it('keeps component event dispatch free of raw payload console logs', async () => {
+  const source = await readFile(path.join(repoRoot, 'src/app/shared/services/component-event-dispatcher.service.ts'), 'utf8');
+
+  assert.doesNotMatch(source, /console\.(?:log|debug|info)\(/);
+});
+
 function sectionBody(markdown, heading) {
   const lines = markdown.split(/\r?\n/u);
   const headingLine = `## ${heading}`;
@@ -464,6 +470,38 @@ describe('Zoosite blog admin draft pages', () => {
       const hrefTemplate = String(action.hrefTemplate ?? '');
       assert.equal(hrefTemplate.includes('{articleId}'), true, `${action.id} must stay scoped to the selected row`);
     }
+  });
+
+  it('moderates comments from queue rows instead of manual ids', async () => {
+    const payload = await readJson('admin-blog-moderacion/components.json');
+    const components = flattenComponents(payload);
+    const workspace = componentById(components, 'moderationWorkspace');
+    const controls = componentById(components, 'moderationControls');
+    const scope = componentById(components, 'moderationScope');
+    const table = componentById(components, 'moderationTable');
+    const rowActions = table?.config?.rowActions ?? [];
+
+    assert.equal(workspace?.config?.components?.includes('moderationActions'), false);
+    assert.equal(controls?.config?.components?.includes('moderationCommentId'), false);
+    assert.equal(controls?.config?.components?.includes('moderationDecision'), false);
+    assert.equal(componentById(components, 'moderationActions'), undefined);
+    assert.equal(componentById(components, 'moderationCommentId'), undefined);
+    assert.equal(componentById(components, 'moderationDecision'), undefined);
+    assert.match(scope?.config?.valueInstructions ?? '', /collectFields:decision,reason,audit/);
+    assert.equal(table?.config?.rowIdPath, 'commentId');
+    assert.deepEqual(table?.config?.eventPayloadFields, ['commentId', 'articleId', 'moderationStatus', 'spam', 'createdAt']);
+    assert.equal(table?.config?.actionColumnLabel, 'Acciones');
+    assert.equal(table?.config?.actionLabelMode, 'tooltip');
+    assert.deepEqual(rowActions.map((action) => action.id), ['approve', 'reject', 'archive']);
+    assert.deepEqual(
+      rowActions.map((action) => action.eventInstructions),
+      [
+        'setScopeValue:decision,approve;proxyAction:content_hub_moderate_comment',
+        'setScopeValue:decision,reject;proxyAction:content_hub_moderate_comment',
+        'setScopeValue:decision,archive;proxyAction:content_hub_moderate_comment',
+      ],
+    );
+    assert.ok(String(table?.config?.actionButtonClasses ?? '').includes('ank-minWidth-54px'));
   });
 
   it('uses real schedule rows and cancel actions on the scheduling page', async () => {
