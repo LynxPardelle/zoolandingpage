@@ -503,7 +503,7 @@
       "properties": {
         "read": {
           "type": "string",
-          "enum": ["articleList", "articleDetail", "taxonomyList", "moderationQueue", "assetList", "revisionList", "scheduleList", "publicBundlePreview"]
+          "enum": ["articleList", "articleDetail", "taxonomyList", "moderationQueue", "assetList", "revisionList", "scheduleList", "publicBundlePreview", "analyticsSummary"]
         },
         "hubId": { "$ref": "#/definitions/contentHubSafeId" },
         "articleId": { "$ref": "#/definitions/contentHubSafeId" },

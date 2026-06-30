@@ -25,6 +25,10 @@
 <generic-modal-host [config]="(orchestrator.modalHostConfig$ | async) ?? orchestrator.fallbackModalHostConfig">
   <wrapper-orchestrator [componentsIds]="modalRootIds()"></wrapper-orchestrator>
 </generic-modal-host>
+} @error {
+<span aria-hidden="true"></span>
 } @defer (when showDebugWorkspace()) {
 <debug-workspace></debug-workspace>
+} @error {
+<span aria-hidden="true"></span>
 }

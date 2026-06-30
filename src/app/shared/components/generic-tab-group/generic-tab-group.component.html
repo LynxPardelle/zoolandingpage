@@ -113,6 +113,8 @@
       <ng-content select="[tab-content-{{ t.id }}]"></ng-content>
       } @placeholder {
       <div [class]="config().panelLoadingClasses || ''">{{ i18n.t("ui.common.loadingPanel") }}</div>
+      } @error {
+      <div [class]="config().panelLoadingClasses || ''">{{ i18n.t("ui.common.loadingPanel") }}</div>
       }
     </div>
     } }

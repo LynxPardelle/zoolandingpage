@@ -5,12 +5,16 @@ import {
   buildContentHubPayload,
   buildPublicArticleUrl,
   buildPublicSearchUrl,
+  buildPublicXmlUrl,
   buildRuntimeBundleUrl,
   cookieValue,
   extractCreateResult,
   parseArgs,
+  publicCanonicalArticleUrl,
   redact,
+  resolvePublicSmokeTarget,
   runSmoke,
+  safeSmokeErrorMessage,
   slugify,
 } from '../content-hub-product-readiness-smoke.mjs';
 
@@ -95,6 +99,48 @@ test('buildPublicArticleUrl preserves shared preview draft context', () => {
   );
 });
 
+test('buildPublicXmlUrl preserves shared preview context without changing canonical article URLs', () => {
+  const url = buildPublicXmlUrl({
+    baseUrl: 'https://test.zoolandingpage.com.mx/',
+    domain: 'zoositioweb.com.mx',
+    pathName: '/feed.xml',
+    lang: 'es',
+    sharedPreview: true,
+  });
+
+  assert.equal(
+    url,
+    'https://test.zoolandingpage.com.mx/feed.xml?draftDomain=zoositioweb.com.mx&lang=es',
+  );
+  assert.equal(
+    publicCanonicalArticleUrl('zoositioweb.com.mx', '/blog/qa/product-smoke'),
+    'https://zoositioweb.com.mx/blog/qa/product-smoke',
+  );
+});
+
+test('resolvePublicSmokeTarget requires explicit production host and disables shared preview', () => {
+  assert.throws(
+    () => resolvePublicSmokeTarget({ environment: 'production' }, {}),
+    /--base-url is required for production smoke/,
+  );
+  assert.throws(
+    () => resolvePublicSmokeTarget({ environment: 'production', 'base-url': 'https://zoositioweb.com.mx' }, {}),
+    /--shared-preview=false is required for production smoke/,
+  );
+  assert.deepEqual(
+    resolvePublicSmokeTarget({
+      environment: 'production',
+      'base-url': 'https://zoositioweb.com.mx/',
+      'shared-preview': 'false',
+    }, {}),
+    {
+      baseUrl: 'https://zoositioweb.com.mx',
+      environment: 'production',
+      sharedPreview: false,
+    },
+  );
+});
+
 test('buildContentHubPayload includes contentHub binding and no session material', () => {
   const payload = buildContentHubPayload({
     domain: 'zoositioweb.com.mx',
@@ -151,14 +197,108 @@ test('redact removes caller-supplied session values from structured output', () 
   assert.equal(safe.error, 'HTTP 403 for [REDACTED] and [REDACTED]');
 });
 
+test('safeSmokeErrorMessage hides raw backend identity errors', () => {
+  const message = safeSmokeErrorMessage('Invalid id: tableName=zoolanding-content payload secret-value', 400);
+
+  assert.match(message, /^HTTP 400:/);
+  assert.match(message, /could not identify the target article or revision/);
+  assert.doesNotMatch(message, /Invalid id|tableName|secret-value/i);
+});
+
+test('safeSmokeErrorMessage keeps service failures actionable without raw payloads', () => {
+  const message = safeSmokeErrorMessage('upstream timeout from https://private.internal/runtime-bundle', 503);
+
+  assert.match(message, /^HTTP 503:/);
+  assert.match(message, /deployed content service/);
+  assert.doesNotMatch(message, /private\.internal|runtime-bundle/i);
+});
+
 test('slugify keeps article URLs deterministic and safe', () => {
   assert.equal(slugify('QA Product Smoke 2026: Español!'), 'qa-product-smoke-2026-espanol');
+});
+
+test('runSmoke fails when preview does not reflect the updated revision', async () => {
+  const originalFetch = globalThis.fetch;
+  const now = new Date('2026-06-30T04:00:00.000Z');
+  const path = '/blog/qa/qa-product-smoke-20260630040000';
+
+  globalThis.fetch = async (url, init = {}) => {
+    const parsed = new URL(String(url));
+    const body = init.body ? JSON.parse(String(init.body)) : null;
+    if (parsed.pathname.endsWith('/features/content-hub/action')) {
+      const action = body?.input?.contentHub?.action;
+      if (action === 'createArticle') {
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            article: { articleId: 'art_smoke', latestRevisionId: 'rev_smoke', path },
+            revision: { revisionId: 'rev_smoke' },
+          },
+        }), { status: 200 });
+      }
+      if (action === 'updatePackage') {
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { revision: { revisionId: 'rev_20260630040000' } },
+        }), { status: 200 });
+      }
+      if (action === 'restoreRevision') {
+        assert.equal(body.input.articleId, 'art_smoke');
+        assert.equal(body.input.revisionId, 'rev_20260630040000');
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            articleId: 'art_smoke',
+            revisionId: 'rev_20260630040000',
+          },
+        }), { status: 200 });
+      }
+    }
+    if (parsed.pathname.endsWith('/features/content-hub/read')) {
+      const read = body?.input?.contentHub?.read;
+      if (read === 'revisionList') {
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { items: [{ revisionId: 'rev_20260630040000', articleId: 'art_smoke' }] },
+        }), { status: 200 });
+      }
+      if (read === 'publicBundlePreview') {
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { item: { articleId: 'art_smoke', revisionId: 'rev_old' } },
+        }), { status: 200 });
+      }
+    }
+    return new Response(JSON.stringify({ ok: false, error: 'unexpected request' }), { status: 500 });
+  };
+
+  try {
+    await assert.rejects(() => runSmoke({
+      baseUrl: 'https://test.zoolandingpage.com.mx',
+      runtimeBaseUrl: 'https://runtime.example.com/Prod',
+      domain: 'zoositioweb.com.mx',
+      authProfileId: 'staff',
+      hubId: 'zoosite-main',
+      environment: 'test',
+      lang: 'es',
+      pageId: 'admin-blog-articulos',
+      cookieHeader: '__Host-zlp_session=session; zlp_csrf=csrf-token',
+      csrf: 'csrf-token',
+      timeoutMs: 1000,
+      sharedPreview: true,
+      now,
+    }), /Public bundle preview did not include the updated revision/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test('runSmoke verifies public search by title, slug, path, category, and tag', async () => {
   const originalFetch = globalThis.fetch;
   const searchQueries = [];
   const actionSequence = [];
+  const readSequence = [];
+  const xmlPaths = [];
   const now = new Date('2026-06-30T04:00:00.000Z');
   const title = 'QA Product Smoke 20260630040000';
   const slug = 'qa-product-smoke-20260630040000';
@@ -228,6 +368,17 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
           data: { articleId: 'art_smoke', status: 'review' },
         }), { status: 200 });
       }
+      if (action === 'restoreRevision') {
+        assert.equal(body.input.articleId, 'art_smoke');
+        assert.equal(body.input.revisionId, 'rev_20260630040000');
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            articleId: 'art_smoke',
+            revisionId: 'rev_20260630040000',
+          },
+        }), { status: 200 });
+      }
       if (action === 'schedule') {
         assert.equal(body.input.revisionId, 'rev_20260630040000');
         assert.equal(body.input.scheduleAction, 'unpublish');
@@ -246,6 +397,53 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
       }
     }
     if (parsed.pathname.endsWith('/features/content-hub/read')) {
+      const read = body?.input?.contentHub?.read;
+      readSequence.push(read);
+      if (read === 'revisionList') {
+        assert.equal(body.input.articleId, 'art_smoke');
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            items: [
+              { revisionId: 'rev_20260630040000', articleId: 'art_smoke' },
+            ],
+          },
+        }), { status: 200 });
+      }
+      if (read === 'publicBundlePreview') {
+        assert.equal(body.input.articleId, 'art_smoke');
+        assert.equal(body.input.revisionId, 'rev_20260630040000');
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            item: {
+              articleId: 'art_smoke',
+              revisionId: 'rev_20260630040000',
+              title,
+            },
+          },
+        }), { status: 200 });
+      }
+      if (read === 'assetList') {
+        assert.equal(body.input.articleId, 'art_smoke');
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { items: [] },
+        }), { status: 200 });
+      }
+      if (read === 'moderationQueue') {
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { items: [] },
+        }), { status: 200 });
+      }
+      if (read === 'analyticsSummary') {
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { items: [{ articleId: 'art_smoke', views: 0, ctaClicks: 0 }] },
+        }), { status: 200 });
+      }
+      assert.equal(read, 'scheduleList');
       return new Response(JSON.stringify({
         ok: true,
         data: { items: [{ scheduleId: 'schedule_smoke' }] },
@@ -267,6 +465,17 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
     if (parsed.pathname === path) {
       assert.equal(parsed.searchParams.get('draftDomain'), 'zoositioweb.com.mx');
       return new Response(`<html><title>${title}</title><body>${title}</body></html>`, { status: 200 });
+    }
+    if (parsed.pathname === '/sitemap.xml') {
+      assert.equal(parsed.searchParams.get('draftDomain'), 'zoositioweb.com.mx');
+      xmlPaths.push(parsed.pathname);
+      return new Response(`<urlset><url><loc>https://zoositioweb.com.mx${path}</loc></url></urlset>`, { status: 200 });
+    }
+    if (parsed.pathname === '/feed.xml') {
+      assert.equal(parsed.searchParams.get('draftDomain'), 'zoositioweb.com.mx');
+      assert.equal(parsed.searchParams.get('lang'), 'es');
+      xmlPaths.push(parsed.pathname);
+      return new Response(`<rss><channel><item><link>https://zoositioweb.com.mx${path}</link><guid>https://zoositioweb.com.mx${path}</guid></item></channel></rss>`, { status: 200 });
     }
     return new Response(JSON.stringify({ ok: false, error: 'unexpected request' }), { status: 500 });
   };
@@ -301,11 +510,24 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
   assert.deepEqual(actionSequence, [
     'createArticle',
     'updatePackage',
+    'restoreRevision',
     'validate',
     'submitReview',
     'approveArticle',
     'publish',
     'schedule',
     'cancelSchedule',
+  ]);
+  assert.deepEqual(readSequence, [
+    'revisionList',
+    'publicBundlePreview',
+    'assetList',
+    'moderationQueue',
+    'analyticsSummary',
+    'scheduleList',
+  ]);
+  assert.deepEqual(xmlPaths, [
+    '/sitemap.xml',
+    '/feed.xml',
   ]);
 });

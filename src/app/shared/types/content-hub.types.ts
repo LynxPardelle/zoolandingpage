@@ -23,7 +23,8 @@ export type TContentHubRuntimeReadKind =
     | 'assetList'
     | 'revisionList'
     | 'scheduleList'
-    | 'publicBundlePreview';
+    | 'publicBundlePreview'
+    | 'analyticsSummary';
 export type TContentHubRuntimeActionKind =
     | 'createArticle'
     | 'updatePackage'

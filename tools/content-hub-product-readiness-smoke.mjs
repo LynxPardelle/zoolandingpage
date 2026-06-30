@@ -64,6 +64,23 @@ function booleanArg(value, fallback = false) {
   return ['1', 'true', 'yes', 'on'].includes(clean(value).toLowerCase());
 }
 
+function resolvePublicSmokeTarget(args, env = process.env) {
+  const environment = clean(args.environment) || DEFAULT_ENVIRONMENT;
+  const explicitBaseUrl = clean(args['base-url'] || env.ZLP_CONTENT_HUB_SMOKE_BASE_URL);
+  const sharedPreview = booleanArg(args['shared-preview'], true);
+  if (environment === 'production' && !explicitBaseUrl) {
+    throw new Error('--base-url is required for production smoke.');
+  }
+  if (environment === 'production' && sharedPreview) {
+    throw new Error('--shared-preview=false is required for production smoke.');
+  }
+  return {
+    baseUrl: assertHttpsBaseUrl(explicitBaseUrl || DEFAULT_BASE_URL, '--base-url'),
+    environment,
+    sharedPreview,
+  };
+}
+
 function cookieValue(cookieHeader, name) {
   const target = clean(name);
   return clean(cookieHeader)
@@ -130,6 +147,21 @@ function buildPublicArticleUrl({ baseUrl, domain, pathName, lang, sharedPreview 
   return url.toString();
 }
 
+function buildPublicXmlUrl({ baseUrl, domain, pathName, lang, sharedPreview = true }) {
+  const url = urlWithPath(baseUrl, pathName);
+  if (sharedPreview) {
+    url.searchParams.set('draftDomain', domain);
+  }
+  if (lang) {
+    url.searchParams.set('lang', lang);
+  }
+  return url.toString();
+}
+
+function publicCanonicalArticleUrl(domain, pathName) {
+  return `https://${domain}${clean(pathName).startsWith('/') ? clean(pathName) : `/${clean(pathName)}`}`;
+}
+
 function buildContentHubPayload({ domain, pageId, operationId, hubId, kind, input = {} }) {
   const idKey = kind === 'read' ? 'sourceId' : 'actionId';
   const bindingKey = kind === 'read' ? 'read' : 'action';
@@ -167,6 +199,48 @@ function redact(value, secrets) {
     raw = raw.split(secret).join('[REDACTED]');
   }
   return typeof value === 'string' ? raw : JSON.parse(raw);
+}
+
+function safeSmokeErrorMessage(error, status = 0) {
+  const raw = clean(error).toLowerCase();
+  const prefix = status ? `HTTP ${status}: ` : '';
+  if (status === 401 || raw.includes('auth_required') || raw.includes('unauthorized')) {
+    return `${prefix}Authentication is required. Sign in again and retry the smoke.`;
+  }
+  if (status === 403 || raw.includes('forbidden') || raw.includes('csrf') || raw.includes('permission')) {
+    return `${prefix}The signed-in user does not have permission for this content action.`;
+  }
+  if (
+    status === 404
+    || raw.includes('not_found')
+    || raw.includes('invalid id')
+    || raw.includes('invalid identifier')
+    || raw.includes('articleid')
+    || raw.includes('revisionid')
+  ) {
+    return `${prefix}The smoke could not identify the target article or revision. Open the action from the article list and retry.`;
+  }
+  if (status === 409 || raw.includes('conflict') || raw.includes('already exists') || raw.includes('slug')) {
+    return `${prefix}The smoke found a conflicting URL, slug, or existing record.`;
+  }
+  if (status === 400 || raw.includes('validation') || raw.includes('invalid ') || raw.includes('required')) {
+    return `${prefix}The smoke sent a value the content service could not accept. Check the article form inputs.`;
+  }
+  if (status === 429 || raw.includes('rate_limited') || raw.includes('too many')) {
+    return `${prefix}The content service is rate limiting requests. Wait and retry.`;
+  }
+  if (
+    status >= 500
+    || raw.includes('timeout')
+    || raw.includes('timed out')
+    || raw.includes('upstream')
+    || raw.includes('unavailable')
+    || raw.includes('runtime bundle')
+    || raw.includes('public search')
+  ) {
+    return `${prefix}A deployed content service did not respond as expected. Check the service logs and retry.`;
+  }
+  return `${prefix}The content-hub product smoke failed. Check the deployment logs and retry.`;
 }
 
 function extractCreateResult(response) {
@@ -213,7 +287,7 @@ async function fetchJson(url, init, timeoutMs) {
     parsed = null;
   }
   if (!response.ok || parsed?.ok === false) {
-    throw new Error(`HTTP ${response.status}: ${parsed?.error || raw.slice(0, 240) || 'Request failed'}`);
+    throw new Error(safeSmokeErrorMessage(parsed?.code || parsed?.error || raw.slice(0, 240) || 'Request failed', response.status));
   }
   return parsed ?? { ok: response.ok };
 }
@@ -225,7 +299,7 @@ async function fetchText(url, init, timeoutMs) {
   });
   const raw = await response.text();
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${raw.slice(0, 240) || 'Request failed'}`);
+    throw new Error(safeSmokeErrorMessage(raw.slice(0, 240) || 'Request failed', response.status));
   }
   return raw;
 }
@@ -329,6 +403,109 @@ async function runSmoke(options) {
   const updated = extractCreateResult(updateResponse);
   if ((updated.revisionId || updatedRevisionId) !== updatedRevisionId) {
     throw new Error('Update package did not preserve the requested revisionId.');
+  }
+
+  const revisionListPayload = buildContentHubPayload({
+    domain,
+    pageId: 'admin-blog-articulo-versiones',
+    operationId: 'content_hub_revision_list',
+    hubId,
+    kind: 'read',
+    input: {
+      contentHub: { read: 'revisionList', articleId: created.articleId },
+      articleId: created.articleId,
+    },
+  });
+  const revisionListResponse = await fetchJson(endpoint('read'), {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(revisionListPayload),
+  }, timeoutMs);
+  if (!hasNeedle(revisionListResponse, updatedRevisionId)) {
+    throw new Error('Revision list did not include the updated revision.');
+  }
+
+  const previewPayload = buildContentHubPayload({
+    domain,
+    pageId: 'admin-blog-articulo-preview',
+    operationId: 'content_hub_public_bundle_preview',
+    hubId,
+    kind: 'read',
+    input: {
+      contentHub: { read: 'publicBundlePreview', articleId: created.articleId },
+      articleId: created.articleId,
+      revisionId: updatedRevisionId,
+    },
+  });
+  const previewResponse = await fetchJson(endpoint('read'), {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(previewPayload),
+  }, timeoutMs);
+  if (!hasNeedle(previewResponse, updatedRevisionId)) {
+    throw new Error('Public bundle preview did not include the updated revision.');
+  }
+
+  const restorePayload = buildContentHubPayload({
+    domain,
+    pageId: 'admin-blog-articulo-versiones',
+    operationId: 'content_hub_restore_revision',
+    hubId,
+    kind: 'action',
+    input: {
+      contentHub: { action: 'restoreRevision', articleId: created.articleId },
+      articleId: created.articleId,
+      revisionId: updatedRevisionId,
+    },
+  });
+  const restoreResponse = await fetchJson(endpoint('action'), {
+    method: 'POST',
+    headers: actionHeaders,
+    body: JSON.stringify(restorePayload),
+  }, timeoutMs);
+  if (!hasNeedle(restoreResponse, updatedRevisionId)) {
+    throw new Error('Restore revision did not return the restored revision.');
+  }
+
+  for (const readCheck of [
+    {
+      label: 'asset list',
+      pageId: 'admin-blog-medios',
+      operationId: 'content_hub_asset_list',
+      binding: { read: 'assetList', articleId: created.articleId },
+    },
+    {
+      label: 'moderation queue',
+      pageId: 'admin-blog-moderacion',
+      operationId: 'content_hub_moderation_queue',
+      binding: { read: 'moderationQueue' },
+    },
+    {
+      label: 'analytics summary',
+      pageId: 'admin-blog-analiticas',
+      operationId: 'content_hub_analytics_summary',
+      binding: { read: 'analyticsSummary' },
+    },
+  ]) {
+    const payload = buildContentHubPayload({
+      domain,
+      pageId: readCheck.pageId,
+      operationId: readCheck.operationId,
+      hubId,
+      kind: 'read',
+      input: {
+        contentHub: readCheck.binding,
+        articleId: created.articleId,
+      },
+    });
+    const response = await fetchJson(endpoint('read'), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+    }, timeoutMs);
+    if (!Array.isArray(response?.data?.items)) {
+      throw new Error(`Content hub ${readCheck.label} did not return an item list.`);
+    }
   }
 
   const validatePayload = buildContentHubPayload({
@@ -477,6 +654,27 @@ async function runSmoke(options) {
     throw new Error('Published public article HTML did not include the smoke article.');
   }
 
+  const canonicalArticleUrl = publicCanonicalArticleUrl(domain, published.path);
+  for (const xmlCheck of [
+    { label: 'sitemap', pathName: '/sitemap.xml', lang: '', root: '<urlset', needles: [`<loc>${canonicalArticleUrl}</loc>`] },
+    { label: 'feed', pathName: '/feed.xml', lang, root: '<rss', needles: [`<link>${canonicalArticleUrl}</link>`, `<guid>${canonicalArticleUrl}</guid>`] },
+  ]) {
+    const xmlUrl = buildPublicXmlUrl({
+      baseUrl,
+      domain,
+      pathName: xmlCheck.pathName,
+      lang: xmlCheck.lang,
+      sharedPreview,
+    });
+    const xmlText = await fetchText(xmlUrl, {
+      method: 'GET',
+      headers: { Accept: 'application/xml,text/xml,*/*' },
+    }, timeoutMs);
+    if (!xmlText.includes(xmlCheck.root) || !xmlCheck.needles.some((needle) => xmlText.includes(needle))) {
+      throw new Error(`Public ${xmlCheck.label} did not include the published article.`);
+    }
+  }
+
   const schedulePayload = buildContentHubPayload({
     domain,
     pageId: 'admin-blog-programados',
@@ -558,6 +756,11 @@ async function runSmoke(options) {
     checks: {
       createArticle: true,
       updatePackage: true,
+      revisionList: true,
+      publicBundlePreview: true,
+      restoreRevision: true,
+      assetList: true,
+      moderationQueue: true,
       validate: true,
       submitReview: true,
       approveArticle: true,
@@ -565,6 +768,8 @@ async function runSmoke(options) {
       runtimeBundle: true,
       publicSearch: true,
       publicArticleHtml: true,
+      sitemap: true,
+      feed: true,
       scheduleList: true,
       cancelSchedule: true,
     },
@@ -573,7 +778,7 @@ async function runSmoke(options) {
 
 async function main(rawArgs = process.argv.slice(2)) {
   const args = parseArgs(rawArgs);
-  const baseUrl = assertHttpsBaseUrl(args['base-url'] || process.env.ZLP_CONTENT_HUB_SMOKE_BASE_URL || DEFAULT_BASE_URL, '--base-url');
+  const publicTarget = resolvePublicSmokeTarget(args);
   const runtimeBaseUrl = assertHttpsBaseUrl(args['runtime-base-url'] || process.env.ZLP_RUNTIME_READ_BASE_URL, '--runtime-base-url');
   const cookieHeader = await readSessionCookie(args);
   if (!cookieHeader) {
@@ -591,18 +796,18 @@ async function main(rawArgs = process.argv.slice(2)) {
   }
 
   const result = await runSmoke({
-    baseUrl,
+    baseUrl: publicTarget.baseUrl,
     runtimeBaseUrl,
     domain: clean(args.domain) || DEFAULT_DOMAIN,
     authProfileId: clean(args['auth-profile-id']) || DEFAULT_AUTH_PROFILE_ID,
     hubId: clean(args['hub-id']) || DEFAULT_HUB_ID,
-    environment: clean(args.environment) || DEFAULT_ENVIRONMENT,
+    environment: publicTarget.environment,
     lang: clean(args.lang) || DEFAULT_LANG,
     pageId: clean(args['page-id']) || DEFAULT_PAGE_ID,
     cookieHeader,
     csrf,
     timeoutMs,
-    sharedPreview: booleanArg(args['shared-preview'], true),
+    sharedPreview: publicTarget.sharedPreview,
   });
 
   process.stdout.write(`${JSON.stringify(redact(result, [cookieHeader, csrf]), null, 2)}\n`);
@@ -613,9 +818,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   main().catch((error) => {
     const cookie = clean(process.env.ZLP_CONTENT_HUB_SMOKE_COOKIE);
     const csrf = clean(process.env.ZLP_CONTENT_HUB_SMOKE_CSRF) || cookieValue(cookie, DEFAULT_CSRF_COOKIE_NAME);
+    const rawError = error instanceof Error ? error.message : String(error);
     const payload = redact({
       ok: false,
-      error: error instanceof Error ? error.message : String(error),
+      error: /^HTTP \d{3}: /.test(rawError) ? rawError : safeSmokeErrorMessage(rawError),
     }, [cookie, csrf]);
     process.stderr.write(`${JSON.stringify(payload, null, 2)}\n`);
     process.exitCode = 1;
@@ -626,11 +832,15 @@ export {
   buildContentHubPayload,
   buildPublicArticleUrl,
   buildPublicSearchUrl,
+  buildPublicXmlUrl,
   buildRuntimeBundleUrl,
   cookieValue,
   extractCreateResult,
   parseArgs,
+  publicCanonicalArticleUrl,
   redact,
+  resolvePublicSmokeTarget,
   runSmoke,
+  safeSmokeErrorMessage,
   slugify,
 };

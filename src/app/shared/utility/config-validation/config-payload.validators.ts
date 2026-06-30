@@ -149,6 +149,7 @@ const ALLOWED_CONTENT_HUB_READS = new Set([
     'revisionList',
     'scheduleList',
     'publicBundlePreview',
+    'analyticsSummary',
 ]);
 const ALLOWED_CONTENT_HUB_ACTIONS = new Set([
     'createArticle',

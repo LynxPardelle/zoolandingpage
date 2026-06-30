@@ -35,7 +35,7 @@ The BFF reuses auth-admin server-cookie sessions:
 - Requests include `X-ZLP-Domain`, `X-ZLP-Auth-Profile-Id`, and `X-ZLP-Content-Hub-Id`.
 - The service rechecks session context, current user state, approval status, enabled status, session version, hub authorization, and action-scoped roles server-side.
 
-Initial reads are `articleList`, `articleDetail`, `taxonomyList`, `assetList`, `revisionList`, `scheduleList`, `moderationQueue`, and `publicBundlePreview`.
+Initial reads are `articleList`, `articleDetail`, `taxonomyList`, `assetList`, `revisionList`, `scheduleList`, `moderationQueue`, `publicBundlePreview`, and `analyticsSummary`.
 
 Initial actions are `createArticle`, `updatePackage`, `validate`, `submitReview`, `approveArticle`, `publish`, `unpublishArticle`, `archiveArticle`, `schedule`, `cancelSchedule`, `uploadAsset`, `moderateComment`, and `restoreRevision`.
 

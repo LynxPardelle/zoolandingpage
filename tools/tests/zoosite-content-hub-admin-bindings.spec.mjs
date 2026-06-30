@@ -12,6 +12,7 @@ const adminEditorComponentsPath = path.join(repoRoot, 'drafts', 'zoositioweb.com
 const adminNewArticleComponentsPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'admin-blog-articulos-nuevo', 'components.json');
 const adminCategoriesComponentsPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'admin-blog-categorias', 'components.json');
 const adminTagsComponentsPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'admin-blog-tags', 'components.json');
+const adminAnalyticsComponentsPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'admin-blog-analiticas', 'components.json');
 
 const adminRoutes = [
   '/admin/blog',
@@ -66,6 +67,7 @@ const requiredReads = [
   'assetList',
   'moderationQueue',
   'publicBundlePreview',
+  'analyticsSummary',
 ];
 
 const requiredActions = [
@@ -80,6 +82,7 @@ const requiredActions = [
   'unpublishArticle',
   'archiveArticle',
   'schedule',
+  'cancelSchedule',
   'queueComment',
   'moderateComment',
   'recordInteraction',
@@ -227,6 +230,12 @@ describe('Zoosite content hub admin bindings', () => {
       path: 'slug',
       fallback: 'Sin tag',
     });
+
+    const analytics = dataSources.find((source) => source.id === 'content_hub_analytics_summary');
+    assert.equal(analytics?.contentHub?.read, 'analyticsSummary');
+    assert.equal(analytics?.target, 'remote.contentHub.analytics');
+    assert.equal(analytics?.statusTarget, 'remoteStatus.contentHub.analytics');
+    assert.deepEqual(analytics?.pageIds, ['admin-blog-analiticas']);
   });
 
   it('declares content-hub actions for every phase-6 admin mutation contract', async () => {
@@ -242,6 +251,11 @@ describe('Zoosite content hub admin bindings', () => {
       assert.match(action.statusTarget, /^remoteStatus\.contentHub\./);
       assert.ok(Array.isArray(action.inputFields), `${action.id} must declare safe inputFields`);
     }
+    assert.deepEqual(
+      actions.find((action) => action.id === 'content_hub_record_interaction')?.inputFields,
+      ['articleId', 'eventType', 'targetId', 'value', 'path'],
+      'recordInteraction must not expose free-form metadata from draft UI',
+    );
   });
 
   it('does not expose server-only content-hub policy in public site config', async () => {
@@ -312,7 +326,7 @@ describe('Zoosite content hub admin bindings', () => {
         { value: 'seo', label: 'seo' },
         { value: 'blog-builder', label: 'blog-builder' },
         { value: 'sitios-web', label: 'sitios-web' },
-        { value: 'content-hub', label: 'content-hub' },
+        { value: 'content-hub', label: 'gestor de contenido' },
       ],
     });
 
@@ -335,5 +349,10 @@ describe('Zoosite content hub admin bindings', () => {
     assert.equal(tagsTable?.config?.rowsSource?.path, 'remote.contentHub.tags.items');
     assert.equal(categoriesTable?.config?.columns?.some((column) => column.id === 'kind'), false);
     assert.equal(tagsTable?.config?.columns?.some((column) => column.id === 'kind'), false);
+
+    const analyticsComponents = await loadDraftComponents(adminAnalyticsComponentsPath);
+    const analyticsTable = findComponentById(analyticsComponents, 'analyticsTable');
+    assert.equal(analyticsTable?.config?.rowsSource?.path, 'remote.contentHub.analytics.items');
+    assert.match(String(analyticsTable?.valueInstructions ?? ''), /remoteStatus\.contentHub\.analytics/);
   });
 });

@@ -1188,6 +1188,16 @@ describe('config-payload.validators', () => {
                             hubId: 'zoosite-main',
                         },
                     },
+                    {
+                        id: 'content-hub-analytics',
+                        kind: 'content-hub',
+                        proxySourceId: 'contentHubAnalyticsSummary',
+                        target: 'remote.contentHub.analytics',
+                        contentHub: {
+                            read: 'analyticsSummary',
+                            hubId: 'zoosite-main',
+                        },
+                    },
                 ],
                 apiActions: [
                     {
