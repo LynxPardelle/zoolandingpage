@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
+import { QuillEditorComponent } from 'ngx-quill';
 import { InteractionScopeService } from '../interaction-scope/interaction-scope.service';
 import { GenericRichTextComponent } from './generic-rich-text.component';
 import type { TGenericRichTextValueChange } from './generic-rich-text.types';
@@ -178,6 +180,130 @@ describe('GenericRichTextComponent', () => {
 
     expect(component.currentValue()).toBe('Contenido escrito por el usuario');
     expect(component.quillModel).toBe(userModel);
+  });
+
+  it('does not reset dirty Quill delta-object edits when the parent replays stale config', () => {
+    fixture.componentRef.setInput('config', {
+      fieldId: 'articleContent',
+      provider: 'quill',
+      format: 'quill-delta-object',
+      value: { ops: [] },
+    });
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    const userModel = {
+      ops: [
+        { insert: 'Contenido enriquecido', attributes: { bold: true } },
+        { insert: '\n' },
+      ],
+    };
+
+    component.onQuillContentChanged({
+      content: userModel,
+      text: 'Contenido enriquecido\n',
+      source: 'user',
+    });
+    fixture.componentRef.setInput('config', {
+      fieldId: 'articleContent',
+      provider: 'quill',
+      format: 'quill-delta-object',
+      value: { ops: [] },
+      helperText: 'La config se recalculó sin valor nuevo.',
+    });
+    fixture.detectChanges();
+
+    expect(component.currentValue()).toBe(userModel);
+    expect(component.quillModel).toBe(userModel);
+  });
+
+  it('hydrates legacy plain text into a Quill delta object', () => {
+    fixture.componentRef.setInput('config', {
+      fieldId: 'articleContent',
+      provider: 'quill',
+      format: 'quill-delta-object',
+      value: 'Contenido legado sin Delta',
+    });
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.quillModel).toEqual({
+      ops: [{ insert: 'Contenido legado sin Delta\n' }],
+    });
+  });
+
+  it('resolves dynamic config values before hydrating Quill delta content', () => {
+    const dynamicValue = {
+      ops: [
+        { insert: 'Contenido remoto desde articleDetail', attributes: { bold: true } },
+        { insert: '\n' },
+      ],
+    };
+
+    fixture.componentRef.setInput('config', {
+      fieldId: 'articleContent',
+      provider: 'quill',
+      format: 'quill-delta-object',
+      value: () => dynamicValue,
+    });
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.currentValue()).toBe(dynamicValue);
+    expect(fixture.componentInstance.quillModel).toBe(dynamicValue);
+    expect(JSON.stringify(fixture.componentInstance.quillModel)).not.toContain('=>');
+  });
+
+  it('resolves dynamic config values before hydrating legacy plain text content', () => {
+    fixture.componentRef.setInput('config', {
+      fieldId: 'articleContent',
+      provider: 'quill',
+      format: 'quill-delta-object',
+      value: () => 'Texto remoto legado',
+    });
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.currentValue()).toBe('Texto remoto legado');
+    expect(fixture.componentInstance.quillModel).toEqual({
+      ops: [{ insert: 'Texto remoto legado\n' }],
+    });
+    expect(JSON.stringify(fixture.componentInstance.quillModel)).not.toContain('=>');
+  });
+
+  it('does not mark the interaction scope dirty for programmatic Quill updates', () => {
+    const emitted: TGenericRichTextValueChange[] = [];
+    const scope = TestBed.inject(InteractionScopeService);
+    const initialValue = { ops: [{ insert: 'Contenido inicial\n' }] };
+    scope.configure({ scopeId: 'articleEditor' });
+    fixture.componentRef.setInput('config', {
+      fieldId: 'articleContent',
+      provider: 'quill',
+      format: 'quill-delta-object',
+      value: initialValue,
+    });
+    fixture.componentInstance.valueChanged.subscribe((event) => emitted.push(event));
+    fixture.detectChanges();
+
+    fixture.componentInstance.onQuillContentChanged({
+      content: initialValue,
+      text: 'Contenido inicial\n',
+      source: 'api',
+    });
+
+    expect(emitted).toEqual([]);
+    expect(scope.getFieldState('articleContent')?.dirty).toBe(false);
+    expect(scope.getFieldState('articleContent')?.value).toEqual(initialValue);
+  });
+
+  it('asks ngx-quill to compare delta values before resetting the editor model', () => {
+    fixture.componentRef.setInput('config', {
+      fieldId: 'articleContent',
+      provider: 'quill',
+      format: 'quill-delta-object',
+      value: { ops: [{ insert: 'Contenido\n' }] },
+    });
+    fixture.detectChanges();
+
+    const quill = fixture.debugElement.query(By.directive(QuillEditorComponent));
+    expect(quill.componentInstance.compareValues()).toBe(true);
   });
 
   it('keeps configured toolbar groups for headings, lists, links, and cleanup', () => {

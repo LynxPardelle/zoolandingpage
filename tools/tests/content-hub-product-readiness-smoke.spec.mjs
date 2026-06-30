@@ -15,6 +15,7 @@ import {
   resolvePublicSmokeTarget,
   runSmoke,
   safeSmokeErrorMessage,
+  smokeStep,
   slugify,
 } from '../content-hub-product-readiness-smoke.mjs';
 
@@ -213,6 +214,31 @@ test('safeSmokeErrorMessage keeps service failures actionable without raw payloa
   assert.doesNotMatch(message, /private\.internal|runtime-bundle/i);
 });
 
+test('safeSmokeErrorMessage keeps local smoke setup errors distinct', () => {
+  assert.equal(
+    safeSmokeErrorMessage('--runtime-base-url is required.'),
+    'Runtime-read base URL is required. Pass --runtime-base-url or ZLP_RUNTIME_READ_BASE_URL.',
+  );
+  assert.equal(
+    safeSmokeErrorMessage('Provide an authenticated cookie through --cookie-file or ZLP_CONTENT_HUB_SMOKE_COOKIE.'),
+    'Authentication cookie is required. Sign in and pass --cookie-file or ZLP_CONTENT_HUB_SMOKE_COOKIE.',
+  );
+  assert.equal(
+    safeSmokeErrorMessage("CSRF cookie 'zlp_csrf' was not found in the provided cookie header."),
+    'CSRF cookie was not found in the provided session cookie. Sign in again and retry the smoke.',
+  );
+});
+
+test('smokeStep tags failures without changing the safe message', async () => {
+  await assert.rejects(
+    smokeStep('publicBundlePreview', () => {
+      throw new Error('HTTP 404: The smoke could not identify the target article or revision.');
+    }),
+    (error) => error?.smokeStep === 'publicBundlePreview'
+      && error?.message === 'HTTP 404: The smoke could not identify the target article or revision.',
+  );
+});
+
 test('slugify keeps article URLs deterministic and safe', () => {
   assert.equal(slugify('QA Product Smoke 2026: Español!'), 'qa-product-smoke-2026-espanol');
 });
@@ -303,6 +329,7 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
   const title = 'QA Product Smoke 20260630040000';
   const slug = 'qa-product-smoke-20260630040000';
   const path = `/blog/qa/${slug}`;
+  const articleBody = 'Contenido editado por smoke 20260630040000';
 
   globalThis.fetch = async (url, init = {}) => {
     const parsed = new URL(String(url));
@@ -349,6 +376,8 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
         assert.deepEqual(body.input.articleContent, {
           ops: [{ insert: 'Contenido editado por smoke 20260630040000.\n' }],
         });
+        assert.equal(body.input.advancedMode, true);
+        assert.equal(body.input.allowedComponentPreset, 'advanced');
         return new Response(JSON.stringify({
           ok: true,
           data: { revision: { revisionId: 'rev_20260630040000' } },
@@ -383,6 +412,7 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
         assert.equal(body.input.revisionId, 'rev_20260630040000');
         assert.equal(body.input.scheduleAction, 'unpublish');
         assert.equal(typeof body.input.unpublishAt, 'string');
+        assert.match(body.input.unpublishAt, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
         assert.equal(body.input.publishAt, undefined);
         return new Response(JSON.stringify({
           ok: true,
@@ -464,7 +494,7 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
     }
     if (parsed.pathname === path) {
       assert.equal(parsed.searchParams.get('draftDomain'), 'zoositioweb.com.mx');
-      return new Response(`<html><title>${title}</title><body>${title}</body></html>`, { status: 200 });
+      return new Response(`<html><title>${title}</title><body>${title}<article>${articleBody}.</article></body></html>`, { status: 200 });
     }
     if (parsed.pathname === '/sitemap.xml') {
       assert.equal(parsed.searchParams.get('draftDomain'), 'zoositioweb.com.mx');

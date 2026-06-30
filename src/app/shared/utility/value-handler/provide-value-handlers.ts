@@ -12,7 +12,12 @@ import { routeParamOrValueHandler, routeParamValueHandler } from './handlers/rou
 import { scopeOrValueHandler, scopeValueHandler } from './handlers/scope.value-handlers';
 import { coalesceValueHandler, joinTextValueHandler, lowerValueHandler, upperValueHandler } from './handlers/string.value-handlers';
 import { themePickValueHandler, themeValueHandler } from './handlers/theme.value-handlers';
-import { variableOrValueHandler, variableValueHandler } from './handlers/variable.value-handlers';
+import {
+    richTextHtmlOrValueHandler,
+    richTextTextOrValueHandler,
+    variableOrValueHandler,
+    variableValueHandler,
+} from './handlers/variable.value-handlers';
 import { VALUE_HANDLERS } from './value-handlers.token';
 
 export const provideValueHandlers = (): Provider[] => {
@@ -46,5 +51,7 @@ export const provideValueHandlers = (): Provider[] => {
 
         { provide: VALUE_HANDLERS, multi: true, useFactory: variableValueHandler },
         { provide: VALUE_HANDLERS, multi: true, useFactory: variableOrValueHandler },
+        { provide: VALUE_HANDLERS, multi: true, useFactory: richTextTextOrValueHandler },
+        { provide: VALUE_HANDLERS, multi: true, useFactory: richTextHtmlOrValueHandler },
     ];
 };

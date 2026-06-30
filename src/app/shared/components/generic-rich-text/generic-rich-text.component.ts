@@ -44,7 +44,7 @@ export class GenericRichTextComponent {
 
   constructor() {
     effect(() => {
-      const configValue = this.config().value ?? '';
+      const configValue = this.resolveValue(this.config().value) ?? '';
       const fieldId = this.fieldId();
       const required = this.required();
       const disabled = this.disabled();
@@ -132,9 +132,11 @@ export class GenericRichTextComponent {
   onQuillContentChanged(event: TQuillContentChangedEvent): void {
     const plainText = String(event.text ?? '').replace(/\n$/, '');
     const value = this.resolveQuillValue(event, plainText);
+    const source = this.normalizeSource(event.source);
     this.currentValue.set(value);
     this.quillModel = event.content ?? this.toQuillModel(value);
-    this.emitValue(value, plainText, this.normalizeSource(event.source));
+    if (source === 'api' || source === 'silent') return;
+    this.emitValue(value, plainText, source);
   }
 
   onBlur(): void {
@@ -175,11 +177,13 @@ export class GenericRichTextComponent {
 
     if (this.format() === 'quill-delta-object') {
       if (value && typeof value === 'object') return value;
+      const text = String(value ?? '');
+      if (!text) return { ops: [] };
       try {
-        const parsed = JSON.parse(String(value ?? '{}'));
+        const parsed = JSON.parse(text);
         return parsed && typeof parsed === 'object' ? parsed : { ops: [] };
       } catch {
-        return { ops: [] };
+        return this.toQuillDeltaFromText(text);
       }
     }
 
@@ -191,7 +195,18 @@ export class GenericRichTextComponent {
       }
     }
 
-    return String(value ?? '');
+    const text = String(value ?? '');
+    if (!text) return JSON.stringify({ ops: [] });
+    try {
+      JSON.parse(text);
+      return text;
+    } catch {
+      return JSON.stringify(this.toQuillDeltaFromText(text));
+    }
+  }
+
+  private toQuillDeltaFromText(text: string): { ops: Array<{ insert: string }> } {
+    return { ops: [{ insert: text.endsWith('\n') ? text : `${text}\n` }] };
   }
 
   private emitValue(value: unknown, plainText: string, source: TGenericRichTextValueChange['source']): void {
@@ -241,19 +256,23 @@ export class GenericRichTextComponent {
   }
 
   private asString(value: unknown): string {
-    const resolved = resolveDynamicValue(value as never);
+    const resolved = this.resolveValue(value);
     return resolved == null ? '' : String(resolved);
   }
 
   private asNumber(value: unknown): number | undefined {
-    const resolved = resolveDynamicValue(value as never);
+    const resolved = this.resolveValue(value);
     return typeof resolved === 'number' && Number.isFinite(resolved) ? resolved : undefined;
   }
 
   private asBoolean(value: unknown): boolean {
-    const resolved = resolveDynamicValue(value as never);
+    const resolved = this.resolveValue(value);
     if (typeof resolved === 'boolean') return resolved;
     if (resolved == null || resolved === '') return false;
     return !['false', '0', 'off', 'no'].includes(String(resolved).trim().toLowerCase());
+  }
+
+  private resolveValue(value: unknown): unknown {
+    return resolveDynamicValue(value as never);
   }
 }
