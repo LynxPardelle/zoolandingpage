@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import {
   buildContentHubPayload,
@@ -18,6 +20,26 @@ import {
   smokeStep,
   slugify,
 } from '../content-hub-product-readiness-smoke.mjs';
+
+const smokeCliPath = fileURLToPath(new URL('../content-hub-product-readiness-smoke.mjs', import.meta.url));
+
+function runSmokeCli(args = [], env = {}) {
+  const cleanEnv = { ...process.env, ...env };
+  delete cleanEnv.ZLP_RUNTIME_READ_BASE_URL;
+  delete cleanEnv.ZLP_CONTENT_HUB_SMOKE_COOKIE;
+  delete cleanEnv.ZLP_CONTENT_HUB_SMOKE_CSRF;
+  for (const [key, value] of Object.entries(env)) {
+    if (value === undefined) {
+      delete cleanEnv[key];
+    } else {
+      cleanEnv[key] = value;
+    }
+  }
+  return spawnSync(process.execPath, [smokeCliPath, ...args], {
+    encoding: 'utf8',
+    env: cleanEnv,
+  });
+}
 
 test('parseArgs reads explicit smoke options', () => {
   const args = parseArgs([
@@ -227,6 +249,32 @@ test('safeSmokeErrorMessage keeps local smoke setup errors distinct', () => {
     safeSmokeErrorMessage("CSRF cookie 'zlp_csrf' was not found in the provided cookie header."),
     'CSRF cookie was not found in the provided session cookie. Sign in again and retry the smoke.',
   );
+});
+
+test('cli reports missing runtime base URL as local smoke setup', () => {
+  const result = runSmokeCli();
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /Runtime-read base URL is required/);
+  assert.doesNotMatch(result.stderr, /content service could not accept|deployment logs/i);
+});
+
+test('cli reports missing authenticated cookie as local smoke setup', () => {
+  const result = runSmokeCli(['--runtime-base-url=https://runtime.example.com/Prod']);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /Authentication cookie is required/);
+  assert.doesNotMatch(result.stderr, /deployment logs|permission/i);
+});
+
+test('cli reports missing csrf as local smoke setup', () => {
+  const result = runSmokeCli(['--runtime-base-url=https://runtime.example.com/Prod'], {
+    ZLP_CONTENT_HUB_SMOKE_COOKIE: '__Host-zlp_session=session-only',
+  });
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /CSRF cookie was not found/);
+  assert.doesNotMatch(result.stderr, /permission|deployment logs/i);
 });
 
 test('smokeStep tags failures without changing the safe message', async () => {
