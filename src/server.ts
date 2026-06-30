@@ -2622,6 +2622,20 @@ function findContentHubArticleForRequest(
   return undefined;
 }
 
+function resolveContentHubArticleStructuredDataImage(seo: TSiteSeoConfig | null, origin: string): string {
+  const openGraphImage = isRecord(seo?.openGraph) ? cleanString(seo.openGraph['image']) : '';
+  const image = openGraphImage || cleanString(seo?.defaultImage);
+  if (!image) {
+    return '';
+  }
+
+  try {
+    return new URL(image, `${origin.replace(/\/$/, '')}/`).toString();
+  } catch {
+    return image;
+  }
+}
+
 function buildContentHubArticleStructuredData(
   req: express.Request,
   host: string,
@@ -2629,12 +2643,15 @@ function buildContentHubArticleStructuredData(
   article: TContentHubPublicArticle,
 ): Record<string, unknown> {
   const origin = resolveCanonicalOrigin(req, host, siteConfig).replace(/\/$/, '');
+  const seo = resolveEffectiveSeoConfig(host, siteConfig);
   const canonicalUrl = resolveEffectiveCanonicalUrl(
     new URL(normalizeRoutePath(article.canonicalPath || article.path), `${origin}/`).toString(),
     `${origin}/`,
     host,
     siteConfig,
   );
+  const image = resolveContentHubArticleStructuredDataImage(seo, origin);
+  const publisherName = cleanString(seo?.siteName) || cleanString(siteConfig?.domain);
   return {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
@@ -2645,6 +2662,8 @@ function buildContentHubArticleStructuredData(
     datePublished: cleanString(article.publishedAt),
     dateModified: cleanString(article.updatedAt) || cleanString(article.publishedAt),
     author: cleanString(article.authorLabel) ? { '@type': 'Organization', name: cleanString(article.authorLabel) } : undefined,
+    publisher: publisherName ? { '@type': 'Organization', name: publisherName } : undefined,
+    image: image || undefined,
     articleSection: cleanString(article.categorySlug) || undefined,
     keywords: Array.isArray(article.tags) ? article.tags.map(cleanString).filter(Boolean).join(', ') || undefined : undefined,
   };

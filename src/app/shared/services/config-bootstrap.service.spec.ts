@@ -178,6 +178,14 @@ describe('ConfigBootstrapService', () => {
 
     const createContentHubSiteConfig = (): TDraftSiteConfigPayload => ({
         ...createSiteConfig(),
+        site: {
+            ...createSiteConfig().site,
+            seo: {
+                canonicalOrigin: 'https://zoositioweb.com.mx',
+                siteName: 'zoositioweb',
+                defaultImage: 'https://assets.zoolandingpage.com.mx/zoolandingpage.com.mx/shared/seo-images/zoolandingpage-zoositioweb-default-logo-card.jpg',
+            },
+        },
         runtime: {
             contentHubs: [
                 {
@@ -196,10 +204,15 @@ describe('ConfigBootstrapService', () => {
                             locale: 'es',
                             status: 'published',
                             title: 'Web Article',
+                            summary: 'Article summary for SEO',
                             path: '/blog/web/blog-builder-seo',
                             categorySlug: 'web',
                             tags: ['seo', 'builder'],
                             publishedAt: '2026-06-27T12:00:00.000Z',
+                            updatedAt: '2026-06-28T12:00:00.000Z',
+                            canonicalPath: '/blog/web/blog-builder-seo',
+                            robots: 'index,follow',
+                            authorLabel: 'Zoosite editorial',
                         },
                         {
                             articleId: 'art_news',
@@ -397,6 +410,68 @@ describe('ConfigBootstrapService', () => {
             articleId: 'art_web',
             title: 'Web Article',
             categorySlug: 'web',
+        }));
+    });
+
+    it('uses the current content hub article for client-side seo and structured data', async () => {
+        store.setSiteConfig(createContentHubSiteConfig());
+        mockSuccessfulBootstrapPayloads();
+        source.loadPageConfig.and.resolveTo({
+            version: 1,
+            pageId: 'blog-article',
+            domain: 'zoolandingpage.com.mx',
+            rootIds: ['blogRoot'],
+            modalRootIds: [],
+            seo: {
+                title: 'Generic blog article',
+                description: 'Generic article description',
+                canonical: '/blog',
+            },
+            structuredData: {
+                entries: [{ '@context': 'https://schema.org', '@type': 'WebPage' }],
+            },
+        });
+
+        await service.load({
+            domain: 'zoolandingpage.com.mx',
+            pageId: 'blog-article',
+            lang: 'es',
+            routePath: '/blog/web/blog-builder-seo',
+            routeParams: {
+                categorySlug: 'web',
+                articleSlug: 'blog-builder-seo',
+            },
+        });
+
+        expect(store.seo()).toEqual(jasmine.objectContaining({
+            title: 'Web Article',
+            description: 'Article summary for SEO',
+            canonical: 'https://zoositioweb.com.mx/blog/web/blog-builder-seo',
+            robots: 'index,follow',
+            keywords: ['seo', 'builder'],
+            openGraph: jasmine.objectContaining({
+                type: 'article',
+                title: 'Web Article',
+                description: 'Article summary for SEO',
+                url: 'https://zoositioweb.com.mx/blog/web/blog-builder-seo',
+                image: 'https://assets.zoolandingpage.com.mx/zoolandingpage.com.mx/shared/seo-images/zoolandingpage-zoositioweb-default-logo-card.jpg',
+            }),
+        }));
+        expect(store.structuredData()?.entries).toContain(jasmine.objectContaining({
+            '@type': 'BlogPosting',
+            headline: 'Web Article',
+            description: 'Article summary for SEO',
+            url: 'https://zoositioweb.com.mx/blog/web/blog-builder-seo',
+            mainEntityOfPage: 'https://zoositioweb.com.mx/blog/web/blog-builder-seo',
+            datePublished: '2026-06-27T12:00:00.000Z',
+            dateModified: '2026-06-28T12:00:00.000Z',
+            articleSection: 'web',
+            keywords: 'seo, builder',
+            image: 'https://assets.zoolandingpage.com.mx/zoolandingpage.com.mx/shared/seo-images/zoolandingpage-zoositioweb-default-logo-card.jpg',
+            publisher: jasmine.objectContaining({
+                '@type': 'Organization',
+                name: 'zoositioweb',
+            }),
         }));
     });
 
