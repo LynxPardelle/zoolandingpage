@@ -982,7 +982,7 @@ describe('RuntimeService', () => {
         });
     });
 
-    it('keeps protected auth-admin browser routes hidden until initial data sources settle', async () => {
+    it('renders protected auth-admin browser routes after auth while initial data sources settle', async () => {
         const service = TestBed.inject(RuntimeService);
         let resolveDataSources!: () => void;
         const dataSourcesLoaded = new Promise<void>((resolve) => {
@@ -1059,11 +1059,9 @@ describe('RuntimeService', () => {
             dataSources: authAdminDataSources,
             mode: 'all',
         });
-        expect(service.rootComponentsIds()).toEqual([]);
-        expect(setExternalComponentsFromPayload).not.toHaveBeenCalled();
+        await initialize;
 
         resolveDataSources();
-        await initialize;
 
         expect(service.rootComponentsIds()).toEqual(['mi-cuenta-root']);
         expect(setExternalComponentsFromPayload).toHaveBeenCalledWith(jasmine.objectContaining({
@@ -1071,7 +1069,7 @@ describe('RuntimeService', () => {
         }));
     });
 
-    it('exposes private-route loading while server-cookie auth and initial data sources settle', async () => {
+    it('exposes private-route loading while server-cookie auth settles before rendering protected content', async () => {
         const service = TestBed.inject(RuntimeService);
         const privateRouteLoading = () => (service as any).privateRouteLoading?.();
         let resolveMe!: () => void;
@@ -1156,14 +1154,8 @@ describe('RuntimeService', () => {
             await flushPostBootstrapBrowserWork();
         }
 
-        expect(privateRouteLoading()).toEqual({
-            active: true,
-            phase: 'content',
-        });
-        expect(service.rootComponentsIds()).toEqual([]);
-
-        resolveDataSources();
         await initialize;
+        resolveDataSources();
 
         expect(privateRouteLoading()).toEqual({
             active: false,

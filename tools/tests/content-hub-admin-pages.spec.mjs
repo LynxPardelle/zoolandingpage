@@ -502,7 +502,8 @@ describe('Zoosite blog admin draft pages', () => {
     assert.match(String(articleCta?.valueInstructions ?? ''), /set:eventInstructions,concat/);
     assert.match(String(articleCta?.valueInstructions ?? ''), /contentHub\.currentArticle\.articleId/);
     assert.match(String(articleCta?.valueInstructions ?? ''), /contentHub\.currentArticle\.path/);
-    assert.match(String(articleBody?.valueInstructions ?? ''), /varOr,articleContent,/);
+    assert.match(String(articleBody?.valueInstructions ?? ''), /richTextHtmlOr,articleContent,/);
+    assert.doesNotMatch(String(articleBody?.valueInstructions ?? ''), /varOr,articleContent,/);
     assert.doesNotMatch(String(articleBody?.valueInstructions ?? ''), /contentHub\.currentArticle\.summary/);
   });
 

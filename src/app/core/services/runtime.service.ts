@@ -333,7 +333,7 @@ export class RuntimeService {
 
             const dataSources = this.configStore.siteConfig()?.runtime?.dataSources ?? [];
             const dataSourcesLoaded = this.startRuntimeDataSources(domain, pageId, dataSources, context.routeParams);
-            if (!this.isBrowser || this.shouldWaitForProtectedInitialDataSources(context.route, pageId, dataSources)) {
+            if (!this.isBrowser) {
                 await dataSourcesLoaded;
             }
 
@@ -402,32 +402,6 @@ export class RuntimeService {
                 console.error('[Runtime] Runtime data source bootstrap failed.', error);
             }
         });
-    }
-
-    private shouldWaitForProtectedInitialDataSources(
-        route: TDraftSiteRouteEntry | null | undefined,
-        pageId: string,
-        dataSources: readonly TRuntimeDataSourceConfig[],
-    ): boolean {
-        if (!this.isBrowser || route?.auth?.required !== true) {
-            return false;
-        }
-
-        return dataSources.some((source) => (
-            source.kind === 'auth-admin'
-            && source.enabled !== false
-            && this.matchesDataSourcePage(source, pageId)
-        ));
-    }
-
-    private matchesDataSourcePage(source: TRuntimeDataSourceConfig, pageId: string): boolean {
-        if (!Array.isArray(source.pageIds) || source.pageIds.length === 0) {
-            return true;
-        }
-
-        const normalizedPageId = String(pageId ?? '').trim();
-        return !!normalizedPageId
-            && source.pageIds.some((entry) => String(entry ?? '').trim() === normalizedPageId);
     }
 
     private scheduleRenderedComponentsCssUpdate(): void {
