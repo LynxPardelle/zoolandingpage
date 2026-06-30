@@ -313,6 +313,17 @@ async function fetchText(url, init, timeoutMs) {
   return raw;
 }
 
+async function smokeStep(step, operation) {
+  try {
+    return await operation();
+  } catch (error) {
+    if (error && typeof error === 'object' && !error.smokeStep) {
+      error.smokeStep = step;
+    }
+    throw error;
+  }
+}
+
 async function runSmoke(options) {
   const {
     baseUrl,
@@ -369,11 +380,11 @@ async function runSmoke(options) {
       articlePublishIntent: 'draft',
     },
   });
-  const createResponse = await fetchJson(endpoint('action'), {
+  const createResponse = await smokeStep('createArticle', () => fetchJson(endpoint('action'), {
     method: 'POST',
     headers: actionHeaders,
     body: JSON.stringify(createPayload),
-  }, timeoutMs);
+  }, timeoutMs));
   const created = extractCreateResult(createResponse);
   if (!created.articleId || !created.revisionId) {
     throw new Error('Create response did not include articleId and revisionId.');
@@ -404,11 +415,11 @@ async function runSmoke(options) {
       editorNotes: `QA smoke ${token}`,
     },
   });
-  const updateResponse = await fetchJson(endpoint('action'), {
+  const updateResponse = await smokeStep('updatePackage', () => fetchJson(endpoint('action'), {
     method: 'POST',
     headers: actionHeaders,
     body: JSON.stringify(updatePayload),
-  }, timeoutMs);
+  }, timeoutMs));
   const updated = extractCreateResult(updateResponse);
   if ((updated.revisionId || updatedRevisionId) !== updatedRevisionId) {
     throw new Error('Update package did not preserve the requested revisionId.');
@@ -425,11 +436,11 @@ async function runSmoke(options) {
       articleId: created.articleId,
     },
   });
-  const revisionListResponse = await fetchJson(endpoint('read'), {
+  const revisionListResponse = await smokeStep('revisionList', () => fetchJson(endpoint('read'), {
     method: 'POST',
     headers,
     body: JSON.stringify(revisionListPayload),
-  }, timeoutMs);
+  }, timeoutMs));
   if (!hasNeedle(revisionListResponse, updatedRevisionId)) {
     throw new Error('Revision list did not include the updated revision.');
   }
@@ -446,11 +457,11 @@ async function runSmoke(options) {
       revisionId: updatedRevisionId,
     },
   });
-  const previewResponse = await fetchJson(endpoint('read'), {
+  const previewResponse = await smokeStep('publicBundlePreview', () => fetchJson(endpoint('read'), {
     method: 'POST',
     headers,
     body: JSON.stringify(previewPayload),
-  }, timeoutMs);
+  }, timeoutMs));
   if (!hasNeedle(previewResponse, updatedRevisionId)) {
     throw new Error('Public bundle preview did not include the updated revision.');
   }
@@ -467,11 +478,11 @@ async function runSmoke(options) {
       revisionId: updatedRevisionId,
     },
   });
-  const restoreResponse = await fetchJson(endpoint('action'), {
+  const restoreResponse = await smokeStep('restoreRevision', () => fetchJson(endpoint('action'), {
     method: 'POST',
     headers: actionHeaders,
     body: JSON.stringify(restorePayload),
-  }, timeoutMs);
+  }, timeoutMs));
   if (!hasNeedle(restoreResponse, updatedRevisionId)) {
     throw new Error('Restore revision did not return the restored revision.');
   }
@@ -507,11 +518,11 @@ async function runSmoke(options) {
         articleId: created.articleId,
       },
     });
-    const response = await fetchJson(endpoint('read'), {
+    const response = await smokeStep(readCheck.operationId, () => fetchJson(endpoint('read'), {
       method: 'POST',
       headers,
       body: JSON.stringify(payload),
-    }, timeoutMs);
+    }, timeoutMs));
     if (!Array.isArray(response?.data?.items)) {
       throw new Error(`Content hub ${readCheck.label} did not return an item list.`);
     }
@@ -530,11 +541,11 @@ async function runSmoke(options) {
       validationScope: 'publish',
     },
   });
-  const validateResponse = await fetchJson(endpoint('action'), {
+  const validateResponse = await smokeStep('validate', () => fetchJson(endpoint('action'), {
     method: 'POST',
     headers: actionHeaders,
     body: JSON.stringify(validatePayload),
-  }, timeoutMs);
+  }, timeoutMs));
   if (validateResponse?.data?.valid === false) {
     throw new Error('Article validation failed before review.');
   }
@@ -553,11 +564,11 @@ async function runSmoke(options) {
       validationState: 'valid',
     },
   });
-  await fetchJson(endpoint('action'), {
+  await smokeStep('submitReview', () => fetchJson(endpoint('action'), {
     method: 'POST',
     headers: actionHeaders,
     body: JSON.stringify(submitReviewPayload),
-  }, timeoutMs);
+  }, timeoutMs));
 
   const approvePayload = buildContentHubPayload({
     domain,
@@ -571,11 +582,11 @@ async function runSmoke(options) {
       revisionId: updatedRevisionId,
     },
   });
-  await fetchJson(endpoint('action'), {
+  await smokeStep('approveArticle', () => fetchJson(endpoint('action'), {
     method: 'POST',
     headers: actionHeaders,
     body: JSON.stringify(approvePayload),
-  }, timeoutMs);
+  }, timeoutMs));
 
   const publishPayload = buildContentHubPayload({
     domain,
@@ -592,11 +603,11 @@ async function runSmoke(options) {
       renderDomain: domain,
     },
   });
-  const publishResponse = await fetchJson(endpoint('action'), {
+  const publishResponse = await smokeStep('publish', () => fetchJson(endpoint('action'), {
     method: 'POST',
     headers: actionHeaders,
     body: JSON.stringify(publishPayload),
-  }, timeoutMs);
+  }, timeoutMs));
   const published = extractPublishResult(publishResponse, { ...created, path: expectedPath });
   if (!published.path.startsWith('/blog/')) {
     throw new Error('Publish response did not include a public blog path.');
@@ -609,10 +620,10 @@ async function runSmoke(options) {
     lang,
     environment,
   });
-  const runtimeResponse = await fetchJson(runtimeUrl, {
+  const runtimeResponse = await smokeStep('runtimeBundle', () => fetchJson(runtimeUrl, {
     method: 'GET',
     headers: { Accept: 'application/json' },
-  }, timeoutMs);
+  }, timeoutMs));
   const runtimeHasArticle = hasNeedle(runtimeResponse, created.articleId)
     || hasNeedle(runtimeResponse, title)
     || hasNeedle(runtimeResponse, published.path);
@@ -635,10 +646,10 @@ async function runSmoke(options) {
       query: check.query,
       sharedPreview,
     });
-    const searchResponse = await fetchJson(searchUrl, {
+    const searchResponse = await smokeStep(`publicSearch:${check.label}`, () => fetchJson(searchUrl, {
       method: 'GET',
       headers: { Accept: 'application/json' },
-    }, timeoutMs);
+    }, timeoutMs));
     const articles = Array.isArray(searchResponse?.articles) ? searchResponse.articles : [];
     const searchHasArticle = articles.some((article) => clean(article.articleId) === created.articleId
       || clean(article.path) === published.path
@@ -655,10 +666,10 @@ async function runSmoke(options) {
     lang,
     sharedPreview,
   });
-  const publicArticleHtml = await fetchText(publicArticleUrl, {
+  const publicArticleHtml = await smokeStep('publicArticleHtml', () => fetchText(publicArticleUrl, {
     method: 'GET',
     headers: { Accept: 'text/html' },
-  }, timeoutMs);
+  }, timeoutMs));
   if (!publicArticleHtml.includes(title) && !publicArticleHtml.includes(published.path)) {
     throw new Error('Published public article HTML did not include the smoke article.');
   }
@@ -675,10 +686,10 @@ async function runSmoke(options) {
       lang: xmlCheck.lang,
       sharedPreview,
     });
-    const xmlText = await fetchText(xmlUrl, {
+    const xmlText = await smokeStep(xmlCheck.label, () => fetchText(xmlUrl, {
       method: 'GET',
       headers: { Accept: 'application/xml,text/xml,*/*' },
-    }, timeoutMs);
+    }, timeoutMs));
     if (!xmlText.includes(xmlCheck.root) || !xmlCheck.needles.some((needle) => xmlText.includes(needle))) {
       throw new Error(`Public ${xmlCheck.label} did not include the published article.`);
     }
@@ -700,11 +711,11 @@ async function runSmoke(options) {
       publishMessage: `QA smoke ${token}`,
     },
   });
-  const scheduleResponse = await fetchJson(endpoint('action'), {
+  const scheduleResponse = await smokeStep('schedule', () => fetchJson(endpoint('action'), {
     method: 'POST',
     headers: actionHeaders,
     body: JSON.stringify(schedulePayload),
-  }, timeoutMs);
+  }, timeoutMs));
   const scheduleId = extractScheduleId(scheduleResponse);
   if (!scheduleId) {
     throw new Error('Schedule response did not include scheduleId.');
@@ -721,11 +732,11 @@ async function runSmoke(options) {
       articleId: created.articleId,
     },
   });
-  const scheduleListResponse = await fetchJson(endpoint('read'), {
+  const scheduleListResponse = await smokeStep('scheduleList', () => fetchJson(endpoint('read'), {
     method: 'POST',
     headers,
     body: JSON.stringify(scheduleListPayload),
-  }, timeoutMs);
+  }, timeoutMs));
   const scheduleItems = Array.isArray(scheduleListResponse?.data?.items) ? scheduleListResponse.data.items : [];
   if (!scheduleItems.some((item) => clean(item.scheduleId) === scheduleId)) {
     throw new Error('Schedule list did not include the created schedule.');
@@ -743,11 +754,11 @@ async function runSmoke(options) {
       scheduleId,
     },
   });
-  const cancelResponse = await fetchJson(endpoint('action'), {
+  const cancelResponse = await smokeStep('cancelSchedule', () => fetchJson(endpoint('action'), {
     method: 'POST',
     headers: actionHeaders,
     body: JSON.stringify(cancelPayload),
-  }, timeoutMs);
+  }, timeoutMs));
   if (clean(cancelResponse?.data?.schedule?.status) !== 'canceled') {
     throw new Error('Cancel schedule did not return canceled status.');
   }
@@ -828,8 +839,12 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     const cookie = clean(process.env.ZLP_CONTENT_HUB_SMOKE_COOKIE);
     const csrf = clean(process.env.ZLP_CONTENT_HUB_SMOKE_CSRF) || cookieValue(cookie, DEFAULT_CSRF_COOKIE_NAME);
     const rawError = error instanceof Error ? error.message : String(error);
+    const step = error && typeof error === 'object' && typeof error.smokeStep === 'string'
+      ? error.smokeStep
+      : undefined;
     const payload = redact({
       ok: false,
+      ...(step ? { step } : {}),
       error: /^HTTP \d{3}: /.test(rawError) ? rawError : safeSmokeErrorMessage(rawError),
     }, [cookie, csrf]);
     process.stderr.write(`${JSON.stringify(payload, null, 2)}\n`);
@@ -851,5 +866,6 @@ export {
   resolvePublicSmokeTarget,
   runSmoke,
   safeSmokeErrorMessage,
+  smokeStep,
   slugify,
 };

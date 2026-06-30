@@ -15,6 +15,7 @@ import {
   resolvePublicSmokeTarget,
   runSmoke,
   safeSmokeErrorMessage,
+  smokeStep,
   slugify,
 } from '../content-hub-product-readiness-smoke.mjs';
 
@@ -225,6 +226,16 @@ test('safeSmokeErrorMessage keeps local smoke setup errors distinct', () => {
   assert.equal(
     safeSmokeErrorMessage("CSRF cookie 'zlp_csrf' was not found in the provided cookie header."),
     'CSRF cookie was not found in the provided session cookie. Sign in again and retry the smoke.',
+  );
+});
+
+test('smokeStep tags failures without changing the safe message', async () => {
+  await assert.rejects(
+    smokeStep('publicBundlePreview', () => {
+      throw new Error('HTTP 404: The smoke could not identify the target article or revision.');
+    }),
+    (error) => error?.smokeStep === 'publicBundlePreview'
+      && error?.message === 'HTTP 404: The smoke could not identify the target article or revision.',
   );
 });
 
