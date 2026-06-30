@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { ConfigStoreService } from './config-store.service';
+import { LanguageService } from './language.service';
 import type {
     TRuntimeApiProxyActionRequest,
     TRuntimeApiProxyReadRequest,
@@ -15,6 +16,7 @@ type TContentHubSerializableRequest = TRuntimeApiProxyReadRequest | TRuntimeApiP
 @Injectable({ providedIn: 'root' })
 export class ContentHubClientService {
     private readonly configStore = inject(ConfigStoreService);
+    private readonly language = inject(LanguageService);
 
     readSource<T = unknown>(request: TRuntimeApiProxyReadRequest): Promise<TRuntimeApiProxyResponse<T>> {
         return this.requestJson<TRuntimeApiProxyResponse<T>>('read', request, false);
@@ -59,12 +61,12 @@ export class ContentHubClientService {
             });
             const parsed = await this.parseJson<T & { readonly ok?: boolean; readonly error?: unknown }>(response);
             if (!response.ok || parsed.ok === false) {
-                throw new Error(this.clean(parsed.error) || 'Content hub request failed.');
+                throw new Error(this.safeErrorMessage(parsed.error, response.status));
             }
             return parsed;
         } catch (error) {
             if (this.isAbortError(error)) {
-                throw new Error('Content hub request timed out.');
+                throw new Error(this.localizedMessage('timeout'));
             }
             throw error;
         } finally {
@@ -122,7 +124,7 @@ export class ContentHubClientService {
 
     private async serializeFile(file: File): Promise<Record<string, unknown>> {
         if (file.size > CONTENT_HUB_UPLOAD_JSON_MAX_BYTES) {
-            throw new Error('Content hub upload file is too large for the browser upload bridge.');
+            throw new Error(this.localizedMessage('validation'));
         }
 
         const bytes = new Uint8Array(await file.arrayBuffer());
@@ -209,6 +211,94 @@ export class ContentHubClientService {
 
     private clean(value: unknown): string {
         return typeof value === 'string' ? value.trim() : '';
+    }
+
+    private safeErrorMessage(error: unknown, status?: number): string {
+        const raw = this.clean(error).toLowerCase();
+        if (status === 401 || raw.includes('auth_required') || raw.includes('unauthorized')) {
+            return this.localizedMessage('auth');
+        }
+        if (status === 403 || raw.includes('forbidden') || raw.includes('csrf') || raw.includes('permission')) {
+            return this.localizedMessage('permission');
+        }
+        if (
+            status === 404
+            || raw.includes('not_found')
+            || raw.includes('not found')
+            || raw.includes('invalid id')
+            || raw.includes('invalid identifier')
+            || raw.includes('articleid is required')
+            || raw.includes('revision not found')
+        ) {
+            return this.localizedMessage('identity');
+        }
+        if (
+            status === 409
+            || raw.includes('conflict')
+            || raw.includes('already exists')
+            || raw.includes('slug')
+        ) {
+            return this.localizedMessage('conflict');
+        }
+        if (
+            status === 400
+            || raw.includes('validation')
+            || raw.includes('invalid ')
+            || raw.includes('required')
+            || raw.includes('too large')
+        ) {
+            return this.localizedMessage('validation');
+        }
+        if (
+            status === 429
+            || raw.includes('rate_limited')
+            || raw.includes('too many')
+        ) {
+            return this.localizedMessage('rateLimit');
+        }
+        if (
+            raw.includes('timed out')
+            || raw.includes('timeout')
+            || raw.includes('failed to fetch')
+            || raw.includes('upstream')
+            || raw.includes('unavailable')
+            || status === 500
+            || status === 502
+            || status === 503
+            || status === 504
+        ) {
+            return this.localizedMessage('service');
+        }
+
+        return this.localizedMessage('generic');
+    }
+
+    private localizedMessage(kind: 'auth' | 'permission' | 'identity' | 'conflict' | 'validation' | 'rateLimit' | 'service' | 'timeout' | 'generic'): string {
+        const isSpanish = this.clean(this.language.currentLanguage()).toLowerCase().startsWith('es');
+        const messages = isSpanish
+            ? {
+                auth: 'Tu sesión no está activa. Inicia sesión de nuevo y vuelve a intentar.',
+                permission: 'No tienes permisos para completar esta acción en el gestor de contenido.',
+                identity: 'No pudimos identificar el artículo o la versión. Abre la acción desde la lista y vuelve a intentar.',
+                conflict: 'No pudimos guardar porque hay un conflicto con una URL, slug o registro existente.',
+                validation: 'Revisa los campos del formulario. Hay un valor que el gestor de contenido no puede aceptar.',
+                rateLimit: 'Hay demasiadas solicitudes por ahora. Espera un momento y vuelve a intentar.',
+                service: 'El servicio seguro de contenido no respondió correctamente. Vuelve a intentar en unos segundos.',
+                timeout: 'El servicio seguro de contenido tardó demasiado. Vuelve a intentar en unos segundos.',
+                generic: 'No pudimos completar la operación en el gestor de contenido. Vuelve a intentar.',
+            }
+            : {
+                auth: 'Your session is not active. Sign in again and retry.',
+                permission: 'You do not have permission to complete this content action.',
+                identity: 'We could not identify the article or revision. Open the action from the list and retry.',
+                conflict: 'We could not save because a URL, slug, or record already conflicts.',
+                validation: 'Review the form fields. One value cannot be accepted by the content service.',
+                rateLimit: 'There are too many requests right now. Wait a moment and retry.',
+                service: 'The secure content service did not respond correctly. Retry in a few seconds.',
+                timeout: 'The secure content service took too long. Retry in a few seconds.',
+                generic: 'We could not complete the content operation. Retry.',
+            };
+        return messages[kind];
     }
 
     private isRecord(value: unknown): value is Record<string, unknown> {

@@ -2,6 +2,7 @@ import { REQUEST } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ConfigStoreService } from './config-store.service';
 import { ContentHubClientService } from './content-hub-client.service';
+import { LanguageService } from './language.service';
 
 describe('ContentHubClientService', () => {
     let fetchSpy: jasmine.Spy;
@@ -50,6 +51,10 @@ describe('ContentHubClientService', () => {
             },
             site: {},
         } as any);
+        TestBed.inject(LanguageService).configureLanguages(['es', 'en'], {
+            defaultLanguage: 'es',
+            requestedLanguage: 'es',
+        });
     });
 
     afterEach(() => {
@@ -159,5 +164,51 @@ describe('ContentHubClientService', () => {
             }),
         ]);
         expect(JSON.stringify(body)).not.toContain('credentialRef');
+    });
+
+    it('maps technical content hub identity errors to safe user-facing copy', async () => {
+        fetchSpy.and.resolveTo(new Response(JSON.stringify({
+            ok: false,
+            error: 'Invalid id',
+        }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+        }));
+        const service = TestBed.inject(ContentHubClientService);
+
+        await expectAsync(service.executeAction({
+            domain: 'zoositioweb.com.mx',
+            pageId: 'admin-blog-articulos-nuevo',
+            actionId: 'contentHubCreateArticle',
+            input: {
+                contentHub: {
+                    action: 'createArticle',
+                    hubId: 'zoosite-main',
+                },
+            },
+        })).toBeRejectedWithError('No pudimos identificar el artículo o la versión. Abre la acción desde la lista y vuelve a intentar.');
+    });
+
+    it('maps authorization failures without exposing raw backend terms', async () => {
+        fetchSpy.and.resolveTo(new Response(JSON.stringify({
+            ok: false,
+            error: 'forbidden',
+        }), {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' },
+        }));
+        const service = TestBed.inject(ContentHubClientService);
+
+        await expectAsync(service.readSource({
+            domain: 'zoositioweb.com.mx',
+            pageId: 'admin-blog-articulos',
+            sourceId: 'contentHubArticleList',
+            input: {
+                contentHub: {
+                    read: 'articleList',
+                    hubId: 'zoosite-main',
+                },
+            },
+        })).toBeRejectedWithError('No tienes permisos para completar esta acción en el gestor de contenido.');
     });
 });
