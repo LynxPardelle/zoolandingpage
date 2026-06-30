@@ -32,8 +32,16 @@ const adminRoutes = [
 ];
 
 const blogEditorGroups = ['zoosite-admin', 'zoosite-blog-editor', 'zoosite-blog-publisher'];
+const blogEntryGroups = [
+  'zoosite-admin',
+  'zoosite-blog-editor',
+  'zoosite-blog-publisher',
+  'zoosite-blog-media',
+  'zoosite-blog-moderator',
+  'zoosite-blog-analyst',
+];
 const adminRouteGroups = new Map([
-  ['/admin/blog', ['zoosite-admin']],
+  ['/admin/blog', blogEntryGroups],
   ['/admin/blog/articulos', blogEditorGroups],
   ['/admin/blog/articulos/nuevo', blogEditorGroups],
   ['/admin/blog/articulos/:id/editor', blogEditorGroups],
@@ -240,6 +248,23 @@ describe('Zoosite content hub admin bindings', () => {
     const serialized = JSON.stringify(await loadSiteConfig());
     for (const key of forbiddenKeys) {
       assert.equal(serialized.includes(key), false, `site-config leaked ${key}`);
+    }
+  });
+
+  it('shows the account blog admin entry to dedicated blog roles without widening user admin access', async () => {
+    const accountComponentsPath = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'mi-cuenta', 'components.json');
+    const components = await loadDraftComponents(accountComponentsPath);
+    const userAdminLink = findComponentById(components, 'miCuentaAdminLink');
+    const blogAdminLink = findComponentById(components, 'miCuentaAdminBlogLink');
+
+    assert.equal(userAdminLink?.condition, 'all:varEq,remote.auth.account.items.0.isAdminText,Administrador');
+    assert.equal(blogAdminLink?.config?.href, '/admin/blog');
+    for (const group of blogEntryGroups) {
+      assert.match(
+        blogAdminLink?.condition ?? '',
+        new RegExp(`varIncludes,remote\\.auth\\.account\\.items\\.0\\.rolesText,${group}`),
+        `account blog link must be discoverable for ${group}`,
+      );
     }
   });
 

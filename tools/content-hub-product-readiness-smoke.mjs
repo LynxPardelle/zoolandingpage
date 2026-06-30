@@ -316,23 +316,32 @@ async function runSmoke(options) {
     throw new Error('Runtime bundle did not include the published article.');
   }
 
-  const searchUrl = buildPublicSearchUrl({
-    baseUrl,
-    domain,
-    lang,
-    query: title,
-    sharedPreview,
-  });
-  const searchResponse = await fetchJson(searchUrl, {
-    method: 'GET',
-    headers: { Accept: 'application/json' },
-  }, timeoutMs);
-  const articles = Array.isArray(searchResponse?.articles) ? searchResponse.articles : [];
-  const searchHasArticle = articles.some((article) => clean(article.articleId) === created.articleId
-    || clean(article.path) === published.path
-    || clean(article.title) === title);
-  if (!searchHasArticle) {
-    throw new Error('Public content-hub search did not include the published article.');
+  const searchChecks = [
+    { label: 'title', query: title },
+    { label: 'slug', query: slug },
+    { label: 'path', query: published.path },
+    { label: 'category', query: category },
+    { label: 'tag', query: 'product-smoke' },
+  ].filter((entry, index, entries) => entry.query && entries.findIndex((candidate) => candidate.query === entry.query) === index);
+  for (const check of searchChecks) {
+    const searchUrl = buildPublicSearchUrl({
+      baseUrl,
+      domain,
+      lang,
+      query: check.query,
+      sharedPreview,
+    });
+    const searchResponse = await fetchJson(searchUrl, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+    }, timeoutMs);
+    const articles = Array.isArray(searchResponse?.articles) ? searchResponse.articles : [];
+    const searchHasArticle = articles.some((article) => clean(article.articleId) === created.articleId
+      || clean(article.path) === published.path
+      || clean(article.title) === title);
+    if (!searchHasArticle) {
+      throw new Error(`Public content-hub search did not include the published article by ${check.label}.`);
+    }
   }
 
   const schedulePayload = buildContentHubPayload({

@@ -399,6 +399,7 @@ describe('Zoosite blog admin draft pages', () => {
     const table = componentById(components, 'scheduledTable');
     const columns = table?.config?.columns ?? [];
     const rowActions = table?.config?.rowActions ?? [];
+    const status = componentById(components, 'scheduledStatus');
 
     assert.equal(table?.config?.rowsSource?.path, 'remote.contentHub.schedules.items');
     assert.equal(table?.config?.rowIdPath, 'scheduleId');
@@ -408,6 +409,11 @@ describe('Zoosite blog admin draft pages', () => {
     }
     assert.deepEqual(rowActions.map((action) => action.id), ['cancelSchedule']);
     assert.equal(rowActions[0]?.eventInstructions, 'proxyAction:content_hub_cancel_schedule');
+    for (const componentId of ['scheduledCancelLoading', 'scheduledCancelError', 'scheduledCancelSuccess']) {
+      assert.equal(status?.config?.components?.includes(componentId), true, `scheduled status must include ${componentId}`);
+    }
+    assert.equal(componentById(components, 'scheduledCancelError')?.type, 'text');
+    assert.equal(String(componentById(components, 'scheduledCancelError')?.valueInstructions ?? '').includes('.error'), false);
     assert.match(String(table?.valueInstructions ?? ''), /remoteStatus\.contentHub\.schedules/);
   });
 
@@ -518,8 +524,12 @@ describe('Zoosite blog admin draft pages', () => {
 
     const categoriesGrid = componentById(categoryComponents, 'categoriesGrid');
     const tagsGrid = componentById(tagComponents, 'tagsGrid');
-    assert.equal(categoriesGrid?.config?.components?.includes('categoriesKind'), false);
-    assert.equal(tagsGrid?.config?.components?.includes('tagsKind'), false);
+    assert.equal(categoriesGrid?.config?.components?.includes('categoriesKind'), true);
+    assert.equal(tagsGrid?.config?.components?.includes('tagsKind'), true);
+    assert.match(componentById(categoryComponents, 'categoriesKind')?.config?.classes ?? '', /ank-display-none/);
+    assert.match(componentById(tagComponents, 'tagsKind')?.config?.classes ?? '', /ank-display-none/);
+    assert.equal(componentById(categoryComponents, 'categoriesKind')?.config?.value, 'category');
+    assert.equal(componentById(tagComponents, 'tagsKind')?.config?.value, 'tag');
 
     const categoriesTable = componentById(categoryComponents, 'categoriesTable');
     const tagsTable = componentById(tagComponents, 'tagsTable');
@@ -534,7 +544,7 @@ describe('Zoosite blog admin draft pages', () => {
       ['admin-blog-articulos-nuevo', ['newArticleCreateError']],
       ['admin-blog-articulo-editor', ['editorSaveError', 'editorUploadError']],
       ['admin-blog-articulo-seo', ['seoValidateError', 'seoPublishError']],
-      ['admin-blog-programados', ['scheduledScheduleError', 'scheduledPublishError']],
+      ['admin-blog-programados', ['scheduledScheduleError', 'scheduledPublishError', 'scheduledCancelError']],
       ['admin-blog-articulo-versiones', ['versionsRestoreError']],
     ]);
 
@@ -590,8 +600,14 @@ describe('Zoosite blog admin draft pages', () => {
     const editorHiddenId = componentById(editorComponents, 'editorArticleId');
     assert.equal(editorReadout?.valueInstructions, 'set:config.text,routeParamOr,id,Abre el editor desde la lista de artículos.');
     assert.equal(editorHiddenId?.config?.readOnly, true);
+    assert.equal(editorHiddenId?.config?.required, true);
+    assert.deepEqual(editorHiddenId?.config?.validation, [{
+      type: 'required',
+      message: 'Abre el editor desde la lista de artículos.',
+    }]);
     assert.match(editorHiddenId?.config?.classes ?? '', /ank-display-none/);
     assert.equal(editorHiddenId?.valueInstructions, 'set:config.value,routeParamOr,id,');
+    assert.equal(componentById(editorComponents, 'editorSaveButton')?.config?.disabledWhenInvalidScope, true);
     assert.ok(componentById(editorComponents, 'editorSaveIdle'));
 
     const previewArticleId = componentById(previewComponents, 'previewArticleId');
@@ -599,6 +615,14 @@ describe('Zoosite blog admin draft pages', () => {
     assert.equal(previewArticleId?.config?.required, true);
     assert.equal(previewArticleId?.valueInstructions, 'set:config.value,routeParamOr,id,');
     assert.equal(componentById(previewComponents, 'previewRevisionId')?.config?.required, true);
+    assert.equal(
+      componentById(previewComponents, 'previewSeoLink')?.valueInstructions,
+      'set:config.articleId,routeParamOr,id,;set:config.href,concat,/admin/blog/articulos/,eval:config.articleId,/seo',
+    );
+    assert.equal(
+      componentById(previewComponents, 'previewVersionsLink')?.valueInstructions,
+      'set:config.articleId,routeParamOr,id,;set:config.href,concat,/admin/blog/articulos/,eval:config.articleId,/versiones',
+    );
 
     const seoArticleId = componentById(seoComponents, 'seoArticleId');
     assert.equal(seoArticleId?.config?.readOnly, true);
