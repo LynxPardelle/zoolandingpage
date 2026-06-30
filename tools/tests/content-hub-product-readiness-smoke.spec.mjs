@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   buildContentHubPayload,
+  buildPublicArticleUrl,
   buildPublicSearchUrl,
   buildRuntimeBundleUrl,
   cookieValue,
@@ -79,6 +80,21 @@ test('buildPublicSearchUrl keeps shared preview draftDomain scoped', () => {
   );
 });
 
+test('buildPublicArticleUrl preserves shared preview draft context', () => {
+  const url = buildPublicArticleUrl({
+    baseUrl: 'https://test.zoolandingpage.com.mx/',
+    domain: 'zoositioweb.com.mx',
+    pathName: '/blog/qa/product-smoke',
+    lang: 'es',
+    sharedPreview: true,
+  });
+
+  assert.equal(
+    url,
+    'https://test.zoolandingpage.com.mx/blog/qa/product-smoke?draftDomain=zoositioweb.com.mx&lang=es',
+  );
+});
+
 test('buildContentHubPayload includes contentHub binding and no session material', () => {
   const payload = buildContentHubPayload({
     domain: 'zoositioweb.com.mx',
@@ -142,6 +158,7 @@ test('slugify keeps article URLs deterministic and safe', () => {
 test('runSmoke verifies public search by title, slug, path, category, and tag', async () => {
   const originalFetch = globalThis.fetch;
   const searchQueries = [];
+  const actionSequence = [];
   const now = new Date('2026-06-30T04:00:00.000Z');
   const title = 'QA Product Smoke 20260630040000';
   const slug = 'qa-product-smoke-20260630040000';
@@ -152,6 +169,7 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
     const body = init.body ? JSON.parse(String(init.body)) : null;
     if (parsed.pathname.endsWith('/features/content-hub/action')) {
       const action = body?.input?.contentHub?.action;
+      actionSequence.push(action);
       if (action === 'createArticle') {
         return new Response(JSON.stringify({
           ok: true,
@@ -166,6 +184,7 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
         }), { status: 200 });
       }
       if (action === 'publish') {
+        assert.equal(body.input.revisionId, 'rev_20260630040000');
         return new Response(JSON.stringify({
           ok: true,
           data: {
@@ -184,7 +203,33 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
           },
         }), { status: 200 });
       }
+      if (action === 'updatePackage') {
+        assert.equal(body.input.articleId, 'art_smoke');
+        assert.equal(body.input.revisionId, 'rev_20260630040000');
+        assert.deepEqual(body.input.articleContent, {
+          ops: [{ insert: 'Contenido editado por smoke 20260630040000.\n' }],
+        });
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { revision: { revisionId: 'rev_20260630040000' } },
+        }), { status: 200 });
+      }
+      if (action === 'validate') {
+        assert.equal(body.input.revisionId, 'rev_20260630040000');
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { valid: true, articleId: 'art_smoke', issues: [] },
+        }), { status: 200 });
+      }
+      if (action === 'submitReview') {
+        assert.equal(body.input.validationState, 'valid');
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { articleId: 'art_smoke', status: 'review' },
+        }), { status: 200 });
+      }
       if (action === 'schedule') {
+        assert.equal(body.input.revisionId, 'rev_20260630040000');
         return new Response(JSON.stringify({
           ok: true,
           data: { schedule: { scheduleId: 'schedule_smoke' } },
@@ -216,6 +261,10 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
         articles: [{ articleId: 'art_smoke', title, path, category: 'qa', tags: ['product-smoke'] }],
       }), { status: 200 });
     }
+    if (parsed.pathname === path) {
+      assert.equal(parsed.searchParams.get('draftDomain'), 'zoositioweb.com.mx');
+      return new Response(`<html><title>${title}</title><body>${title}</body></html>`, { status: 200 });
+    }
     return new Response(JSON.stringify({ ok: false, error: 'unexpected request' }), { status: 500 });
   };
 
@@ -245,5 +294,15 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
     path,
     'qa',
     'product-smoke',
+  ]);
+  assert.deepEqual(actionSequence, [
+    'createArticle',
+    'updatePackage',
+    'validate',
+    'submitReview',
+    'approveArticle',
+    'publish',
+    'schedule',
+    'cancelSchedule',
   ]);
 });
