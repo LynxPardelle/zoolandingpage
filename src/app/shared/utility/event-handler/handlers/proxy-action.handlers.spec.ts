@@ -206,6 +206,7 @@ describe('proxyActionHandler', () => {
         await handler.handle(context, ['create-article']);
 
         expect(variables.get('remoteStatus.contentHub.create.articleId')).toBe('art_created');
+        expect(variables.get('remoteStatus.contentHub.create.revisionId')).toBe('rev_created');
         expect(variables.get('remoteStatus.contentHub.create.latestRevisionId')).toBe('rev_created');
         expect(variables.get('remoteStatus.contentHub.create.path')).toBe('/blog/web/intro');
         expect(variables.get('remoteStatus.contentHub.create.status')).toBe('draft');
