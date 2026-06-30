@@ -230,6 +230,9 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
       }
       if (action === 'schedule') {
         assert.equal(body.input.revisionId, 'rev_20260630040000');
+        assert.equal(body.input.scheduleAction, 'unpublish');
+        assert.equal(typeof body.input.unpublishAt, 'string');
+        assert.equal(body.input.publishAt, undefined);
         return new Response(JSON.stringify({
           ok: true,
           data: { schedule: { scheduleId: 'schedule_smoke' } },

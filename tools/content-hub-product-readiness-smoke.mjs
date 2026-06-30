@@ -487,9 +487,9 @@ async function runSmoke(options) {
       contentHub: { action: 'schedule', articleId: created.articleId },
       articleId: created.articleId,
       revisionId: updatedRevisionId,
-      publishAt: futureIso(now, 120),
+      unpublishAt: futureIso(now, 120),
       timezone: 'America/Mexico_City',
-      scheduleAction: 'publish',
+      scheduleAction: 'unpublish',
       publishMessage: `QA smoke ${token}`,
     },
   });
