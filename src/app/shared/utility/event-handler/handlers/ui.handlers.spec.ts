@@ -8,7 +8,7 @@ import { PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import type { EventExecutionContext } from '../event-handler.types';
 import { openModalHandler } from './legal-modal.handlers';
-import { navigateToUrlHandler, navigateWithEventDataHandler, navigateWithScopeQueryHandler, setLanguageHandler } from './ui.handlers';
+import { navigateToUrlHandler, navigateWithEventDataHandler, navigateWithScopeQueryHandler, setLanguageHandler, shareCurrentPageHandler } from './ui.handlers';
 import { openFaqCtaWhatsAppHandler, openFinalCtaWhatsAppHandler, openWhatsAppHandler } from './whatsapp.handlers';
 
 const nativeHistoryPushState = History.prototype.pushState;
@@ -305,6 +305,58 @@ describe('navigateWithScopeQueryHandler', () => {
         ]);
 
         expect(pushState).toHaveBeenCalledWith({}, '', expectedPath);
+    });
+});
+
+describe('shareCurrentPageHandler', () => {
+    let context: EventExecutionContext;
+
+    beforeEach(() => {
+        TestBed.resetTestingModule();
+        restoreNativeHistoryStateMethods();
+        setBrowserUrl('/blog/web/articulo?draftDomain=zoositioweb.com.mx&debugWorkspace=false&lang=es');
+        TestBed.configureTestingModule({ providers: [] });
+        context = {
+            event: {
+                componentId: 'shareButton',
+                eventName: 'clicked',
+            },
+            host: null,
+        };
+    });
+
+    afterEach(() => {
+        delete (navigator as any).share;
+        delete (navigator as any).clipboard;
+        setBrowserUrl('/context.html');
+        TestBed.resetTestingModule();
+    });
+
+    it('uses native share for same-origin paths and keeps preview query params', () => {
+        const share = jasmine.createSpy('share').and.returnValue(Promise.resolve());
+        Object.defineProperty(navigator, 'share', { configurable: true, value: share });
+        const handler = TestBed.runInInjectionContext(() => shareCurrentPageHandler());
+        const expectedUrl = `${window.location.origin}/blog/web/articulo?draftDomain=zoositioweb.com.mx&debugWorkspace=false&lang=es`;
+
+        handler.handle(context, ['/blog/web/articulo', 'Titulo publico']);
+
+        expect(share).toHaveBeenCalledOnceWith({
+            url: expectedUrl,
+            title: 'Titulo publico',
+        });
+    });
+
+    it('falls back to clipboard when native share is unavailable', async () => {
+        const writeText = jasmine.createSpy('writeText').and.returnValue(Promise.resolve());
+        Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
+        Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+        const handler = TestBed.runInInjectionContext(() => shareCurrentPageHandler());
+        const expectedUrl = `${window.location.origin}/blog/web/articulo?draftDomain=zoositioweb.com.mx&debugWorkspace=false&lang=es`;
+
+        handler.handle(context, ['/blog/web/articulo']);
+        await Promise.resolve();
+
+        expect(writeText).toHaveBeenCalledOnceWith(expectedUrl);
     });
 });
 

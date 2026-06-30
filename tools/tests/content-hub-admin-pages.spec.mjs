@@ -554,6 +554,7 @@ describe('Zoosite blog admin draft pages', () => {
     assert.match(String(articleCta?.valueInstructions ?? ''), /proxyAction:content_hub_record_interaction/);
     assert.match(String(reactionButton?.valueInstructions ?? ''), /proxyAction:content_hub_record_interaction/);
     assert.match(String(reactionButton?.valueInstructions ?? ''), /setScopeValue:eventType,reaction/);
+    assert.match(String(shareButton?.valueInstructions ?? ''), /shareCurrentPage/);
     assert.match(String(shareButton?.valueInstructions ?? ''), /proxyAction:content_hub_record_interaction/);
     assert.match(String(shareButton?.valueInstructions ?? ''), /setScopeValue:eventType,share/);
     assert.equal(commentLoginLink?.type, 'link');

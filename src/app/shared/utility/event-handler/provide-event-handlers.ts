@@ -38,7 +38,7 @@ import {
     showErrorToastHandler,
     showPositionDemoHandler,
 } from './handlers/toast-demo.handlers';
-import { navigateToUrlHandler, navigateWithEventDataHandler, navigateWithScopeQueryHandler, setLanguageHandler, toggleLanguageHandler, toggleThemeHandler } from './handlers/ui.handlers';
+import { navigateToUrlHandler, navigateWithEventDataHandler, navigateWithScopeQueryHandler, setLanguageHandler, shareCurrentPageHandler, toggleLanguageHandler, toggleThemeHandler } from './handlers/ui.handlers';
 import {
     openFaqCtaWhatsAppHandler,
     openFinalCtaWhatsAppHandler,
@@ -59,6 +59,7 @@ const baseEventHandlerProviders: Provider[] = [
     { provide: EVENT_HANDLERS, multi: true, useFactory: navigateToUrlHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: navigateWithEventDataHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: navigateWithScopeQueryHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: shareCurrentPageHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: authActionHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: authAdminActionHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: authFormActionHandler },
