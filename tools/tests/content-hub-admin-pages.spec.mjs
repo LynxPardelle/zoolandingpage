@@ -410,7 +410,8 @@ describe('Zoosite blog admin draft pages', () => {
     assert.equal(typeof statusFilter?.config?.dropdownConfig?.menuContainerClasses, 'string');
     assert.ok(componentById(components, 'adminBlogArticulosPagination'));
     assert.equal(pagination?.config?.hideWhenSinglePage, false);
-    assert.ok(componentById(components, 'adminBlogArticulosValidateButton'));
+    assert.equal(componentById(components, 'adminBlogArticulosValidateButton'), undefined);
+    assert.equal(JSON.stringify(payload).includes('Validar selección'), false);
     assert.ok(componentById(components, 'adminBlogArticulosValidateIdle'));
     assert.ok(componentById(components, 'adminBlogArticulosNewLink'));
     for (const columnId of ['title', 'status', 'language', 'category', 'tags', 'schedule', 'updatedAt']) {
