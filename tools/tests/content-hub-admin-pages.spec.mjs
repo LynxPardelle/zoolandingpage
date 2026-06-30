@@ -449,6 +449,24 @@ describe('Zoosite blog admin draft pages', () => {
     }
   });
 
+  it('shows every declared blog analytics metric in the analytics table', async () => {
+    const payload = await readJson('admin-blog-analiticas/components.json');
+    const table = componentById(flattenComponents(payload), 'analyticsTable');
+    const columnIds = (table?.config?.columns ?? []).map((column) => column.id);
+
+    for (const columnId of [
+      'views',
+      'readProgress',
+      'ctaClicks',
+      'reactions',
+      'comments',
+      'shares',
+      'assetDownloads',
+    ]) {
+      assert.ok(columnIds.includes(columnId), `missing analytics metric column ${columnId}`);
+    }
+  });
+
   it('keeps the blog overview free of ambiguous article mutations', async () => {
     const payload = await readJson('admin-blog/components.json');
     const components = flattenComponents(payload);
