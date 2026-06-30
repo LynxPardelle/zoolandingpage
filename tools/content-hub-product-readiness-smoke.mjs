@@ -64,6 +64,23 @@ function booleanArg(value, fallback = false) {
   return ['1', 'true', 'yes', 'on'].includes(clean(value).toLowerCase());
 }
 
+function resolvePublicSmokeTarget(args, env = process.env) {
+  const environment = clean(args.environment) || DEFAULT_ENVIRONMENT;
+  const explicitBaseUrl = clean(args['base-url'] || env.ZLP_CONTENT_HUB_SMOKE_BASE_URL);
+  const sharedPreview = booleanArg(args['shared-preview'], true);
+  if (environment === 'production' && !explicitBaseUrl) {
+    throw new Error('--base-url is required for production smoke.');
+  }
+  if (environment === 'production' && sharedPreview) {
+    throw new Error('--shared-preview=false is required for production smoke.');
+  }
+  return {
+    baseUrl: assertHttpsBaseUrl(explicitBaseUrl || DEFAULT_BASE_URL, '--base-url'),
+    environment,
+    sharedPreview,
+  };
+}
+
 function cookieValue(cookieHeader, name) {
   const target = clean(name);
   return clean(cookieHeader)
@@ -755,7 +772,7 @@ async function runSmoke(options) {
 
 async function main(rawArgs = process.argv.slice(2)) {
   const args = parseArgs(rawArgs);
-  const baseUrl = assertHttpsBaseUrl(args['base-url'] || process.env.ZLP_CONTENT_HUB_SMOKE_BASE_URL || DEFAULT_BASE_URL, '--base-url');
+  const publicTarget = resolvePublicSmokeTarget(args);
   const runtimeBaseUrl = assertHttpsBaseUrl(args['runtime-base-url'] || process.env.ZLP_RUNTIME_READ_BASE_URL, '--runtime-base-url');
   const cookieHeader = await readSessionCookie(args);
   if (!cookieHeader) {
@@ -773,18 +790,18 @@ async function main(rawArgs = process.argv.slice(2)) {
   }
 
   const result = await runSmoke({
-    baseUrl,
+    baseUrl: publicTarget.baseUrl,
     runtimeBaseUrl,
     domain: clean(args.domain) || DEFAULT_DOMAIN,
     authProfileId: clean(args['auth-profile-id']) || DEFAULT_AUTH_PROFILE_ID,
     hubId: clean(args['hub-id']) || DEFAULT_HUB_ID,
-    environment: clean(args.environment) || DEFAULT_ENVIRONMENT,
+    environment: publicTarget.environment,
     lang: clean(args.lang) || DEFAULT_LANG,
     pageId: clean(args['page-id']) || DEFAULT_PAGE_ID,
     cookieHeader,
     csrf,
     timeoutMs,
-    sharedPreview: booleanArg(args['shared-preview'], true),
+    sharedPreview: publicTarget.sharedPreview,
   });
 
   process.stdout.write(`${JSON.stringify(redact(result, [cookieHeader, csrf]), null, 2)}\n`);
@@ -816,6 +833,7 @@ export {
   parseArgs,
   publicCanonicalArticleUrl,
   redact,
+  resolvePublicSmokeTarget,
   runSmoke,
   safeSmokeErrorMessage,
   slugify,

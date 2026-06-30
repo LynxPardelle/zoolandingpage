@@ -80,6 +80,7 @@ const requiredActions = [
   'unpublishArticle',
   'archiveArticle',
   'schedule',
+  'cancelSchedule',
   'queueComment',
   'moderateComment',
   'recordInteraction',

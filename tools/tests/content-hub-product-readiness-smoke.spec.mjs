@@ -12,6 +12,7 @@ import {
   parseArgs,
   publicCanonicalArticleUrl,
   redact,
+  resolvePublicSmokeTarget,
   runSmoke,
   safeSmokeErrorMessage,
   slugify,
@@ -114,6 +115,29 @@ test('buildPublicXmlUrl preserves shared preview context without changing canoni
   assert.equal(
     publicCanonicalArticleUrl('zoositioweb.com.mx', '/blog/qa/product-smoke'),
     'https://zoositioweb.com.mx/blog/qa/product-smoke',
+  );
+});
+
+test('resolvePublicSmokeTarget requires explicit production host and disables shared preview', () => {
+  assert.throws(
+    () => resolvePublicSmokeTarget({ environment: 'production' }, {}),
+    /--base-url is required for production smoke/,
+  );
+  assert.throws(
+    () => resolvePublicSmokeTarget({ environment: 'production', 'base-url': 'https://zoositioweb.com.mx' }, {}),
+    /--shared-preview=false is required for production smoke/,
+  );
+  assert.deepEqual(
+    resolvePublicSmokeTarget({
+      environment: 'production',
+      'base-url': 'https://zoositioweb.com.mx/',
+      'shared-preview': 'false',
+    }, {}),
+    {
+      baseUrl: 'https://zoositioweb.com.mx',
+      environment: 'production',
+      sharedPreview: false,
+    },
   );
 });
 
