@@ -175,6 +175,15 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
           },
         }), { status: 200 });
       }
+      if (action === 'approveArticle') {
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            articleId: 'art_smoke',
+            status: 'approved',
+          },
+        }), { status: 200 });
+      }
       if (action === 'schedule') {
         return new Response(JSON.stringify({
           ok: true,

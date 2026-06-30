@@ -422,12 +422,15 @@ describe('Zoosite blog admin draft pages', () => {
     const text = textSearch(payload);
     const components = flattenComponents(payload);
     const articleCta = componentById(components, 'blogArticleCta');
+    const articleBody = componentById(components, 'blogArticleBody');
 
     assert.doesNotMatch(text, /eventInstructions"\s*:\s*"trackEvent:blog_view/);
     assert.doesNotMatch(text, /articleId,art_20260620_blog_builder/);
     assert.match(String(articleCta?.valueInstructions ?? ''), /set:eventInstructions,concat/);
     assert.match(String(articleCta?.valueInstructions ?? ''), /contentHub\.currentArticle\.articleId/);
     assert.match(String(articleCta?.valueInstructions ?? ''), /contentHub\.currentArticle\.path/);
+    assert.match(String(articleBody?.valueInstructions ?? ''), /varOr,articleContent,/);
+    assert.doesNotMatch(String(articleBody?.valueInstructions ?? ''), /contentHub\.currentArticle\.summary/);
   });
 
   it('implements create and editor controls with draft-configured field IDs', async () => {

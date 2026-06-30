@@ -273,6 +273,23 @@ async function runSmoke(options) {
     throw new Error('Create response did not include articleId and revisionId.');
   }
 
+  const approvePayload = buildContentHubPayload({
+    domain,
+    pageId,
+    operationId: 'content_hub_approve_article',
+    hubId,
+    kind: 'action',
+    input: {
+      contentHub: { action: 'approveArticle', articleId: created.articleId },
+      articleId: created.articleId,
+    },
+  });
+  await fetchJson(endpoint('action'), {
+    method: 'POST',
+    headers: actionHeaders,
+    body: JSON.stringify(approvePayload),
+  }, timeoutMs);
+
   const publishPayload = buildContentHubPayload({
     domain,
     pageId,
@@ -423,6 +440,7 @@ async function runSmoke(options) {
     scheduleId,
     checks: {
       createArticle: true,
+      approveArticle: true,
       publish: true,
       runtimeBundle: true,
       publicSearch: true,
