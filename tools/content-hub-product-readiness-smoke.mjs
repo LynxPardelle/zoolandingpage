@@ -414,6 +414,27 @@ async function runSmoke(options) {
     throw new Error('Public bundle preview did not include the updated revision.');
   }
 
+  const restorePayload = buildContentHubPayload({
+    domain,
+    pageId: 'admin-blog-articulo-versiones',
+    operationId: 'content_hub_restore_revision',
+    hubId,
+    kind: 'action',
+    input: {
+      contentHub: { action: 'restoreRevision', articleId: created.articleId },
+      articleId: created.articleId,
+      revisionId: updatedRevisionId,
+    },
+  });
+  const restoreResponse = await fetchJson(endpoint('action'), {
+    method: 'POST',
+    headers: actionHeaders,
+    body: JSON.stringify(restorePayload),
+  }, timeoutMs);
+  if (!hasNeedle(restoreResponse, updatedRevisionId)) {
+    throw new Error('Restore revision did not return the restored revision.');
+  }
+
   const validatePayload = buildContentHubPayload({
     domain,
     pageId: 'admin-blog-articulo-seo',
@@ -643,6 +664,7 @@ async function runSmoke(options) {
       updatePackage: true,
       revisionList: true,
       publicBundlePreview: true,
+      restoreRevision: true,
       validate: true,
       submitReview: true,
       approveArticle: true,

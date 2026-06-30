@@ -197,6 +197,17 @@ test('runSmoke fails when preview does not reflect the updated revision', async 
           data: { revision: { revisionId: 'rev_20260630040000' } },
         }), { status: 200 });
       }
+      if (action === 'restoreRevision') {
+        assert.equal(body.input.articleId, 'art_smoke');
+        assert.equal(body.input.revisionId, 'rev_20260630040000');
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            articleId: 'art_smoke',
+            revisionId: 'rev_20260630040000',
+          },
+        }), { status: 200 });
+      }
     }
     if (parsed.pathname.endsWith('/features/content-hub/read')) {
       const read = body?.input?.contentHub?.read;
@@ -311,6 +322,17 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
           data: { articleId: 'art_smoke', status: 'review' },
         }), { status: 200 });
       }
+      if (action === 'restoreRevision') {
+        assert.equal(body.input.articleId, 'art_smoke');
+        assert.equal(body.input.revisionId, 'rev_20260630040000');
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            articleId: 'art_smoke',
+            revisionId: 'rev_20260630040000',
+          },
+        }), { status: 200 });
+      }
       if (action === 'schedule') {
         assert.equal(body.input.revisionId, 'rev_20260630040000');
         assert.equal(body.input.scheduleAction, 'unpublish');
@@ -412,6 +434,7 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
   assert.deepEqual(actionSequence, [
     'createArticle',
     'updatePackage',
+    'restoreRevision',
     'validate',
     'submitReview',
     'approveArticle',
