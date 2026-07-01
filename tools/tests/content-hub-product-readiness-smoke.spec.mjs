@@ -710,7 +710,7 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
       if (action === 'recordInteraction') {
         assert.equal(body.input.articleId, 'art_smoke');
         assert.equal(body.input.path, path);
-        assert.ok(['cta_click', 'reaction', 'share'].includes(body.input.eventType));
+        assert.ok(['readProgress', 'cta_click', 'reaction', 'share', 'assetDownload', 'form'].includes(body.input.eventType));
         interactionEvents.push(body.input.eventType);
         return new Response(JSON.stringify({
           ok: true,
@@ -875,12 +875,13 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
             items: [{
               articleId: 'art_smoke',
               views: 1,
-              readProgress: 0,
+              readProgress: interactionEvents.includes('readProgress') ? 1 : 0,
               ctaClicks: interactionEvents.includes('cta_click') ? 1 : 0,
               reactions: interactionEvents.includes('reaction') ? 1 : 0,
               shares: interactionEvents.includes('share') ? 1 : 0,
               comments: queuedComments,
-              assetDownloads: 0,
+              assetDownloads: interactionEvents.includes('assetDownload') ? 1 : 0,
+              forms: interactionEvents.includes('form') ? 1 : 0,
             }],
           },
         }), { status: 200 });
@@ -972,13 +973,16 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
     'recordInteraction',
     'recordInteraction',
     'recordInteraction',
+    'recordInteraction',
+    'recordInteraction',
+    'recordInteraction',
     'queueComment',
     'moderateComment',
     'schedule',
     'cancelSchedule',
     'unpublishArticle',
   ]);
-  assert.deepEqual(interactionEvents.sort(), ['cta_click', 'reaction', 'share']);
+  assert.deepEqual(interactionEvents.sort(), ['assetDownload', 'cta_click', 'form', 'reaction', 'readProgress', 'share']);
   assert.equal(queuedComments, 1);
   assert.deepEqual(readSequence, [
     'taxonomyList',
@@ -1003,9 +1007,12 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
   assert.equal(result?.checks?.taxonomyCategoryList, true);
   assert.equal(result?.checks?.taxonomyTagList, true);
   assert.equal(result?.checks?.uploadAsset, true);
+  assert.equal(result?.checks?.recordInteractionReadProgress, true);
   assert.equal(result?.checks?.recordInteractionCta, true);
   assert.equal(result?.checks?.recordInteractionReaction, true);
   assert.equal(result?.checks?.recordInteractionShare, true);
+  assert.equal(result?.checks?.recordInteractionAssetDownload, true);
+  assert.equal(result?.checks?.recordInteractionForm, true);
   assert.equal(result?.checks?.queueComment, true);
   assert.equal(result?.checks?.moderationQueueAfterComment, true);
   assert.equal(result?.checks?.moderateComment, true);

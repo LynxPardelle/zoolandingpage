@@ -365,10 +365,13 @@ function findAnalyticsItem(response, articleId) {
 function hasPublicInteractionMetrics(response, articleId) {
   const item = findAnalyticsItem(response, articleId);
   return !!item
+    && metricNumber(item, 'readProgress') > 0
     && metricNumber(item, 'ctaClicks') > 0
     && metricNumber(item, 'reactions') > 0
     && metricNumber(item, 'shares') > 0
-    && metricNumber(item, 'comments') > 0;
+    && metricNumber(item, 'comments') > 0
+    && metricNumber(item, 'assetDownloads') > 0
+    && metricNumber(item, 'forms') > 0;
 }
 
 function sleep(ms) {
@@ -931,9 +934,12 @@ async function runSmoke(options) {
   }
 
   for (const interaction of [
+    { label: 'readProgress', eventType: 'readProgress', targetId: 'article_body', value: '75' },
     { label: 'cta', eventType: 'cta_click', targetId: 'primary_cta', value: 'lead' },
     { label: 'reaction', eventType: 'reaction', targetId: 'helpful', value: 'helpful' },
     { label: 'share', eventType: 'share', targetId: 'share_current_page', value: 'copy' },
+    { label: 'assetDownload', eventType: 'assetDownload', targetId: asset.assetId, value: 'downloaded' },
+    { label: 'form', eventType: 'form', targetId: 'lead_form', value: 'submitted' },
   ]) {
     const interactionPayload = buildContentHubPayload({
       domain,
@@ -1069,7 +1075,7 @@ async function runSmoke(options) {
     }
   }
   if (!hasPublicInteractionMetrics(analyticsAfterInteractionsResponse, created.articleId)) {
-    throw new Error('Analytics summary did not include CTA, reaction, share, and comment counts for the published article.');
+    throw new Error('Analytics summary did not include read-progress, CTA, reaction, share, asset-download, form, and comment counts for the published article.');
   }
 
   const canonicalArticleUrl = publicCanonicalArticleUrl(domain, published.path);
@@ -1248,9 +1254,12 @@ async function runSmoke(options) {
       submitReview: true,
       approveArticle: true,
       publish: true,
+      recordInteractionReadProgress: true,
       recordInteractionCta: true,
       recordInteractionReaction: true,
       recordInteractionShare: true,
+      recordInteractionAssetDownload: true,
+      recordInteractionForm: true,
       queueComment: true,
       moderationQueueAfterComment: true,
       moderateComment: true,
