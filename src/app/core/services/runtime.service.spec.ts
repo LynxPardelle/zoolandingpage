@@ -75,7 +75,6 @@ describe('RuntimeService', () => {
     let bootstrapLoad: jasmine.Spy;
     let setCombos: jasmine.Spy;
     let store: ConfigStoreService;
-    let runtimeHref = 'http://localhost/home?draftDomain=pamelabetancourt.com';
     let draftRuntimeResolveActiveDraftContext: jasmine.Spy;
 
     const normalizePath = (path: string): string => {
@@ -96,13 +95,12 @@ describe('RuntimeService', () => {
 
     const setRuntimeUrl = (href: string): URL => {
         const url = new URL(href, 'http://localhost');
-        runtimeHref = url.href;
         nativeHistoryReplaceState.call(window.history, {}, '', `${ url.pathname }${ url.search }${ url.hash }`);
         return url;
     };
 
     const resolveRuntimeContext = async () => {
-        const url = new URL(runtimeHref);
+        const url = new URL(window.location.href);
         const domain = 'pamelabetancourt.com';
         const siteConfig = await loadSiteConfig(domain);
         store?.setSiteConfig(siteConfig);
@@ -844,6 +842,67 @@ describe('RuntimeService', () => {
             rootIds: [],
             modalRootIds: expectedModalRootIds,
         });
+    });
+
+    it('renders the login route after an unauthenticated protected-route redirect during initial bootstrap', async () => {
+        const service = TestBed.inject(RuntimeService);
+        spyOn(window, 'fetch').and.resolveTo(new Response(JSON.stringify({ ok: false }), {
+            status: 401,
+            headers: { 'Content-Type': 'application/json' },
+        }));
+        loadSiteConfig.and.resolveTo({
+            version: 1,
+            domain: 'pamelabetancourt.com',
+            defaultPageId: 'home',
+            routes: [
+                { path: '/acceso', pageId: 'acceso' },
+                {
+                    path: '/admin/blog',
+                    pageId: 'admin-blog',
+                    auth: {
+                        required: true,
+                        allowedGroups: ['zoosite-admin'],
+                        redirectTo: '/acceso',
+                    },
+                },
+            ],
+            runtime: {
+                auth: {
+                    enabled: true,
+                    authProfileId: 'staff',
+                    provider: 'cognito',
+                    issuer: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_PREVIEW',
+                    clientId: 'public-web-client',
+                    hostedUiDomain: 'https://preview.auth.us-east-1.amazoncognito.com',
+                    scopes: ['openid'],
+                    redirectPath: '/auth/callback',
+                    logoutPath: '/acceso',
+                    loginPath: '/acceso',
+                    session: {
+                        mode: 'server-cookie',
+                        mePath: '/auth/session/me',
+                    },
+                },
+            },
+            site: {},
+        } as any);
+
+        setRuntimeUrl('/admin/blog?draftDomain=pamelabetancourt.com&lang=es');
+        await service.initialize('es');
+        await flushPostBootstrapBrowserWork();
+
+        expect(window.location.pathname).toBe('/acceso');
+        expect(window.location.search).toContain('draftDomain=pamelabetancourt.com');
+        expect(service.rootComponentsIds()).toEqual(['acceso-root']);
+        expect(bootstrapLoad.calls.allArgs()).toEqual([[
+            {
+                domain: 'pamelabetancourt.com',
+                pageId: 'acceso',
+                lang: 'es',
+                routePath: '/acceso',
+                routeParams: undefined,
+            },
+        ]]);
     });
 
     it('loads authored debug workspace roots when debug workspace is enabled', async () => {
