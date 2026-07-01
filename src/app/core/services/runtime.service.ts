@@ -69,6 +69,7 @@ export class RuntimeService {
     private postBootstrapBrowserWorkId = 0;
     private renderedCssUpdateId = 0;
     private loadingCurtainReadyId = 0;
+    private lastInitializeLanguage: string | undefined;
     private readonly cssReadyRetryDelayMs = 250;
     private readonly cssRenderedComboRetryDelayMs = 50;
     private readonly cssReadyAttemptWaitMs = 750;
@@ -80,6 +81,10 @@ export class RuntimeService {
         { className: 'sectionSubtitle', tokenName: 'secondaryTitleColor' },
         { className: 'heroCaption', tokenName: 'secondaryTitleColor' },
     ] as const;
+
+    constructor() {
+        this.bindNavigationRefresh();
+    }
 
     connect(options: {
         host: HTMLElement;
@@ -145,7 +150,10 @@ export class RuntimeService {
     }
 
     async initialize(lang?: string): Promise<void> {
-        const nextLanguage = lang;
+        const nextLanguage = lang ?? this.lastInitializeLanguage;
+        if (lang !== undefined) {
+            this.lastInitializeLanguage = lang;
+        }
         this.initializeQueue = this.initializeQueue
             .catch(() => undefined)
             .then(async () => {
