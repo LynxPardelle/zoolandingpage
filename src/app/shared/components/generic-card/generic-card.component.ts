@@ -9,9 +9,10 @@ import {
   Output,
   signal,
 } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { I18nService } from '../../services/i18n.service';
 import { DRAFT_RUNTIME_STICKY_QUERY_PARAMS } from '../../services/draft-runtime.service';
-import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
+import { resolveDynamicValue, resolveStyleRecord } from '../../utility/component-orchestrator.utility';
 import { navigateInCurrentWindow } from '../../utility/navigation/browser-navigation.utility';
 import { resolveNavigationTarget } from '../../utility/navigation/navigation-target.utility';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
@@ -20,7 +21,7 @@ import { TGenericCardAction, TGenericCardConfig } from './generic-card.types';
 
 @Component({
   selector: 'generic-card',
-  imports: [GenericButtonComponent, GenericIconComponent],
+  imports: [CommonModule, GenericButtonComponent, GenericIconComponent],
   templateUrl: './generic-card.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -105,6 +106,7 @@ export class GenericCardComponent {
       resolveDynamicValue(this._config().linkEventInstructions) ?? ''
     ).trim()
   );
+  readonly linkStyles = computed(() => resolveStyleRecord(this._config().linkStyles));
   readonly actions = computed<readonly TGenericCardAction[]>(() => {
     const value = resolveDynamicValue(this._config().actions);
     return Array.isArray(value) ? value : [];

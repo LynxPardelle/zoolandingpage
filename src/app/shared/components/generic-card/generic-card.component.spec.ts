@@ -40,6 +40,7 @@ describe('GenericCardComponent', () => {
             linkLabel: 'Open on TIDAL',
             linkEventInstructions: 'trackEvent:cta_click,cta,album-card,location,card',
             linkClasses: 'album-link',
+            linkStyles: { minHeight: '44px', display: 'inline-flex' },
             target: '_blank',
             rel: 'noopener noreferrer',
             classes: 'album-card',
@@ -58,6 +59,8 @@ describe('GenericCardComponent', () => {
         expect(link?.getAttribute('rel')).toBe('noopener noreferrer');
         expect(link?.getAttribute('data-event-instructions')).toBe('trackEvent:cta_click,cta,album-card,location,card');
         expect(link?.textContent?.trim()).toBe('Open on TIDAL');
+        expect(link?.style.minHeight).toBe('44px');
+        expect(link?.style.display).toBe('inline-flex');
     });
 
     it('emits optional link analytics metadata without blocking navigation', () => {
