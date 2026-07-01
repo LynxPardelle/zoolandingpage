@@ -500,6 +500,50 @@ describe('config-payload.validators', () => {
         expect(isDraftSiteConfigPayload(payload)).toBeTrue();
     });
 
+    it('accepts optional public combo catalog runtime references', () => {
+        const payload = {
+            version: 1,
+            domain: TEST_DOMAIN,
+            defaultPageId: 'default',
+            routes: [{ path: '/', pageId: 'default' }],
+            runtime: {
+                comboCatalog: {
+                    enabled: true,
+                    endpoint: '/features/combo-catalog/read',
+                    authProfileId: 'staff',
+                    draftDomain: TEST_DOMAIN,
+                },
+            },
+            site: minimalSiteConfig(),
+        };
+
+        expect(isDraftSiteConfigPayload(payload)).toBeTrue();
+
+        for (const unsafeField of ['credentialRef', 'clientSecret', 'accessToken', 'tableName', 'serverPolicy']) {
+            expect(isDraftSiteConfigPayload({
+                ...payload,
+                runtime: {
+                    comboCatalog: {
+                        ...payload.runtime.comboCatalog,
+                        [unsafeField]: 'must-not-travel',
+                    },
+                },
+            })).withContext(`runtime.comboCatalog.${ unsafeField }`).toBeFalse();
+        }
+
+        for (const endpoint of ['http://example.com/read', '//evil.example/read', 'javascript:alert(1)', '/safe\\bad']) {
+            expect(isDraftSiteConfigPayload({
+                ...payload,
+                runtime: {
+                    comboCatalog: {
+                        ...payload.runtime.comboCatalog,
+                        endpoint,
+                    },
+                },
+            })).withContext(`runtime.comboCatalog.endpoint ${ endpoint }`).toBeFalse();
+        }
+    });
+
     it('accepts safe auth session and admin endpoint paths in public runtime auth', () => {
         const payload = {
             version: 1,

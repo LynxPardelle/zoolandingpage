@@ -399,6 +399,7 @@
         "analytics": { "$ref": "#/definitions/analyticsRuntime" },
         "auth": { "$ref": "#/definitions/authRuntime" },
         "authRemote": { "$ref": "#/definitions/authRemoteRuntime" },
+        "comboCatalog": { "$ref": "#/definitions/comboCatalogRuntime" },
         "contentHubs": {
           "type": "array",
           "items": { "$ref": "#/definitions/contentHubRuntime" }
@@ -909,6 +910,23 @@
             { "$ref": "#/definitions/httpsAbsoluteUrl" }
           ]
         }
+      },
+      "additionalProperties": false
+    },
+    "comboCatalogRuntime": {
+      "type": "object",
+      "required": ["endpoint"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "endpoint": {
+          "type": "string",
+          "anyOf": [
+            { "$ref": "#/definitions/sameOriginPath" },
+            { "$ref": "#/definitions/httpsAbsoluteUrl" }
+          ]
+        },
+        "authProfileId": { "$ref": "#/definitions/contentHubSafeId" },
+        "draftDomain": { "$ref": "#/definitions/contentHubDomainName" }
       },
       "additionalProperties": false
     },

@@ -5,6 +5,7 @@ import { ConfigBootstrapService } from '@/app/shared/services/config-bootstrap.s
 import { ConfigSourceService } from '@/app/shared/services/config-source.service';
 import { ConfigStoreService } from '@/app/shared/services/config-store.service';
 import { ConfigurationsOrchestratorService } from '@/app/shared/services/configurations-orchestrator';
+import { ComboCatalogRuntimeService } from '@/app/shared/services/combo-catalog-runtime.service';
 import { DRAFT_RUNTIME_STICKY_QUERY_PARAMS, DraftRuntimeService } from '@/app/shared/services/draft-runtime.service';
 import { RuntimeDataSourceService } from '@/app/shared/services/runtime-data-source.service';
 import { RuntimeConfigService } from '@/app/shared/services/runtime-config.service';
@@ -35,6 +36,7 @@ export class RuntimeService {
     private readonly runtimeDataSources = inject(RuntimeDataSourceService);
     private readonly configStore = inject(ConfigStoreService);
     private readonly runtimeConfig = inject(RuntimeConfigService);
+    private readonly comboCatalogRuntime = inject(ComboCatalogRuntimeService);
     private readonly auth = inject(AuthFacade);
     private readonly authRuntime = inject(AuthRuntimeService);
     private readonly authBrowserFlow = inject(AuthBrowserFlowService);
@@ -340,6 +342,10 @@ export class RuntimeService {
             }
 
             const dataSources = this.configStore.siteConfig()?.runtime?.dataSources ?? [];
+            const comboCatalogLoaded = await this.comboCatalogRuntime.load(domain, pageId);
+            if (!comboCatalogLoaded && this.runtimeConfig.isDebugMode()) {
+                console.warn('[Runtime] Combo catalog runtime resolution failed; continuing with local draft combos.');
+            }
             const dataSourcesLoaded = this.startRuntimeDataSources(domain, pageId, dataSources, context.routeParams);
             if (!this.isBrowser) {
                 await dataSourcesLoaded;
