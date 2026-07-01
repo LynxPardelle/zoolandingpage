@@ -398,13 +398,16 @@ describe('proxyActionHandler', () => {
     });
 
     it('writes an error status when a configured proxy action fails', async () => {
-        proxy.executeAction.and.rejectWith(new Error('Action failed'));
+        const failure = new Error('Action failed') as Error & { requestId?: string };
+        failure.requestId = 'req-safe-456';
+        proxy.executeAction.and.rejectWith(failure);
 
         const handler = TestBed.runInInjectionContext(() => proxyActionHandler());
         await handler.handle(context, ['newsletter-signup']);
 
         expect(variables.get('remoteStatus.newsletterSignup.state')).toBe('error');
         expect(variables.get('remoteStatus.newsletterSignup.error')).toBe('Action failed');
+        expect(variables.get('remoteStatus.newsletterSignup.requestId')).toBe('req-safe-456');
     });
 
     it('ignores unknown action ids', async () => {

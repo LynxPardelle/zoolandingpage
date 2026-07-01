@@ -18,6 +18,13 @@ const asRecord = (value: unknown): Record<string, unknown> =>
 const errorMessage = (error: unknown): string =>
     error instanceof Error ? error.message : 'API proxy action failed.';
 
+const errorRequestId = (error: unknown): string => {
+    const value = asRecord(error)['requestId'];
+    return typeof value === 'string' && /^req-[A-Za-z0-9._:-]{1,120}$/.test(value)
+        ? value
+        : '';
+};
+
 const statusTargetFor = (action: TRuntimeApiActionConfig): string =>
     action.statusTarget || `remoteStatus.${ action.id }`;
 
@@ -78,12 +85,14 @@ const writeStatus = (
     state: TProxyActionStatusState,
     error: string | null,
     data?: unknown,
+    requestId = '',
 ): void => {
     const references = state === 'success' ? responseReferences(data) : {};
     variables.setRuntimeValue(statusTargetFor(action), {
         state,
         updatedAt: state === 'loading' ? null : new Date().toISOString(),
         error,
+        ...(state === 'error' && requestId ? { requestId } : {}),
         ...(state === 'success' ? { data } : {}),
         ...references,
     });
@@ -162,7 +171,7 @@ export const proxyActionHandler = (): EventHandler => {
                 });
                 writeStatus(variables, action, 'success', null, response.data);
             } catch (error) {
-                writeStatus(variables, action, 'error', errorMessage(error));
+                writeStatus(variables, action, 'error', errorMessage(error), undefined, errorRequestId(error));
             }
         },
     };
