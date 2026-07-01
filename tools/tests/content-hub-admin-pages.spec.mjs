@@ -489,6 +489,7 @@ describe('Zoosite blog admin draft pages', () => {
       'comments',
       'shares',
       'assetDownloads',
+      'forms',
     ]) {
       assert.ok(columnIds.includes(columnId), `missing analytics metric column ${columnId}`);
     }
@@ -1008,7 +1009,7 @@ describe('Zoosite blog admin draft pages', () => {
       ['admin-blog-programados', ['publishAt', 'unpublishAt', 'timezone', 'publish', 'unpublish']],
       ['admin-blog-moderacion', ['Comentarios por revisar', 'spam', 'approve', 'reject', 'archive', 'audit']],
       ['admin-blog-medios', ['upload', 'Biblioteca registrada', 'metadata', 'usageRefs', 'publicability', 'archive']],
-      ['admin-blog-analiticas', ['Visitas', 'Avance de lectura', 'Clics en llamados', 'Reacciones', 'Comentarios', 'Compartidos', 'Descargas']],
+      ['admin-blog-analiticas', ['Visitas', 'Avance de lectura', 'Clics en llamados', 'Reacciones', 'Comentarios', 'Compartidos', 'Descargas', 'Formularios']],
       ['admin-blog-categorias', ['translation', 'slug', 'seoDescription', 'visible', 'redirectWarning']],
       ['admin-blog-tags', ['translation', 'slug', 'seoDescription', 'visible', 'redirectWarning']],
       ['admin-blog-hub', ['Sitios conectados', 'Visibilidad', 'Conexiones autorizadas']],

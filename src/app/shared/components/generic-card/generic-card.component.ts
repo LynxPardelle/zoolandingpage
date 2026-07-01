@@ -42,11 +42,13 @@ export class GenericCardComponent {
   @Output() readonly linkClicked = new EventEmitter<{
     href: string;
     eventInstructions?: string;
+    userGesture?: boolean;
   }>();
   @Output() readonly actionClicked = new EventEmitter<{
     label: string;
     index: number;
     eventInstructions?: string;
+    userGesture?: boolean;
   }>();
 
   readonly variant = computed(() =>
@@ -177,6 +179,7 @@ export class GenericCardComponent {
     this.linkClicked.emit({
       href,
       eventInstructions: this.linkEventInstructions() || undefined,
+      ...(event?.isTrusted === true ? { userGesture: true } : {}),
     });
   };
 
@@ -234,6 +237,7 @@ export class GenericCardComponent {
       index,
       label: this.actionLabel(action),
       eventInstructions: this.actionEventInstructions(action),
+      ...(_event?.isTrusted === true ? { userGesture: true } : {}),
     });
   };
 }

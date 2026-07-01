@@ -399,13 +399,16 @@ export class WrapperOrchestrator {
     eventName: string;
     eventData?: unknown;
     eventInstructions?: unknown;
+    userGesture?: unknown;
   }) {
+    const userGesture = event.userGesture === true || this.isTrustedDomEvent(event.eventData);
     const dispatchedEvent = {
       componentId: event.component,
       meta_title: event.meta_title,
       eventName: event.eventName,
       eventData: event.eventData,
       eventInstructions: this.resolveEventInstructions(event.eventInstructions),
+      ...(userGesture ? { userGesture: true } : {}),
     };
 
     this._configurationsOrchestratorService.handleComponentEvent(
@@ -425,5 +428,9 @@ export class WrapperOrchestrator {
     return `${this.i18n.t('ui.debugPanel.unknownComponentPrefix')}: ${String(
       type ?? ''
     )}`;
+  }
+
+  private isTrustedDomEvent(value: unknown): boolean {
+    return typeof Event !== 'undefined' && value instanceof Event && value.isTrusted === true;
   }
 }

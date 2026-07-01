@@ -4,7 +4,7 @@ import type { TRuntimeDataSourceConfig } from '@/app/shared/types/config-payload
 import { AuthAdminClientService } from '@/app/state/auth/auth-admin-client.service';
 import { ContentHubClientService } from './content-hub-client.service';
 import { RuntimeApiProxyClientService, type TRuntimeApiProxyResponse } from './runtime-api-proxy-client.service';
-import { buildContentHubRuntimeInput } from './content-hub-runtime-request';
+import { buildContentHubRuntimeInput, CONTENT_HUB_SAFE_ID_INPUT_KEYS, isContentHubSafePublicId } from './content-hub-runtime-request';
 import { RuntimeDataSourceMapperService } from './runtime-data-source-mapper.service';
 import { VariableStoreService } from './variable-store.service';
 
@@ -127,6 +127,9 @@ export class RuntimeDataSourceService {
 
         const input = this.resolvePreparedInput(source, routeParams);
         if (!this.hasRequiredInputValues(source.requiredInputKeys, input)) {
+            return null;
+        }
+        if (source.kind === 'content-hub' && !this.hasSafeContentHubRequiredIds(source.requiredInputKeys, input)) {
             return null;
         }
 
@@ -278,9 +281,32 @@ export class RuntimeDataSourceService {
 
     private hasResolvedInputValue(value: unknown): boolean {
         if (value == null) return false;
-        if (typeof value === 'string') return value.trim().length > 0;
+        if (typeof value === 'string') {
+            const normalized = value.trim().toLowerCase();
+            return !!normalized
+                && normalized !== 'undefined'
+                && normalized !== 'null'
+                && !/^\{[^{}]+\}$/.test(normalized);
+        }
         if (Array.isArray(value)) return value.length > 0;
         return true;
+    }
+
+    private hasSafeContentHubRequiredIds(
+        requiredKeys: readonly string[] | undefined,
+        input: Record<string, unknown> | undefined,
+    ): boolean {
+        if (!Array.isArray(requiredKeys) || requiredKeys.length === 0) {
+            return true;
+        }
+
+        return requiredKeys
+            .map((entry) => String(entry ?? '').trim())
+            .filter((key) => CONTENT_HUB_SAFE_ID_INPUT_KEYS.has(key))
+            .every((key) => {
+                const value = input?.[key];
+                return isContentHubSafePublicId(value);
+            });
     }
 
     private resolveInput(

@@ -100,6 +100,7 @@ export type TGenericTableActionEvent = TGenericTableRowEvent & {
   readonly actionId: string;
   readonly label: string;
   readonly eventInstructions?: string;
+  readonly userGesture?: boolean;
 };
 
 export type TGenericTableSelectionEvent = {

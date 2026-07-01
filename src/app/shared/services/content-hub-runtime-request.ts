@@ -79,6 +79,23 @@ export const CONTENT_HUB_SAFE_READ_INPUT_KEYS = new Set([
     'visibility',
 ]);
 
+export const CONTENT_HUB_SAFE_ID_INPUT_KEYS = new Set([
+    'articleId',
+    'assetId',
+    'categoryId',
+    'categorySlug',
+    'commentId',
+    'latestRevisionId',
+    'revisionId',
+    'scheduleId',
+    'slug',
+    'tagId',
+    'tagSlug',
+    'taxonomyId',
+]);
+
+const CONTENT_HUB_SAFE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$/;
+
 const CONTENT_HUB_BINDING_KEYS = new Set([
     'action',
     'articleId',
@@ -98,6 +115,9 @@ export const isForbiddenContentHubPublicInputKey = (key: string): boolean =>
 
 export const isForbiddenContentHubPublicInputValue = (value: unknown): boolean =>
     typeof value === 'string' && CONTENT_HUB_FORBIDDEN_PUBLIC_INPUT_VALUE_PATTERN.test(value);
+
+export const isContentHubSafePublicId = (value: unknown): value is string =>
+    typeof value === 'string' && CONTENT_HUB_SAFE_ID_PATTERN.test(value.trim());
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     !!value && typeof value === 'object' && !Array.isArray(value);
@@ -145,6 +165,9 @@ export const sanitizeContentHubRuntimeInput = (
             return acc;
         }
         const safeValue = sanitizeValue(value);
+        if (CONTENT_HUB_SAFE_ID_INPUT_KEYS.has(key) && !isContentHubSafePublicId(safeValue)) {
+            return acc;
+        }
         if (safeValue !== undefined) {
             acc[key] = safeValue;
         }

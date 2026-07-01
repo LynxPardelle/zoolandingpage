@@ -12,6 +12,8 @@ import { Observable, ReplaySubject, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ToastService } from '../components/generic-toast';
 import { TAnalyticsEvent, TDataDropResponse, TExpandedAnalytics } from '../types/analytics.type';
+import { findPublishedContentHubArticleForPath, matchContentHubArticleRoute } from '../utility/content-hub/content-hub-public-route';
+import { normalizeDraftRoutePath } from '../utility/route-matching/draft-route-matching';
 import { AnalyticsCategories, AnalyticsEvents } from './analytics.events';
 import { ConfigStoreService } from './config-store.service';
 import { GoogleTagService } from './google-tag.service';
@@ -192,7 +194,7 @@ export class AnalyticsService {
             category: AnalyticsCategories.Navigation,
             label: `${ milestone }%`,
             value: milestone,
-            meta: { depthPercent: milestone },
+            meta: this.buildEngagementMeta({ depthPercent: milestone }),
           });
         }
       }
@@ -339,6 +341,7 @@ export class AnalyticsService {
             void this.track(AnalyticsEvents.SectionView, {
               category: AnalyticsCategories.Navigation,
               label: id,
+              meta: this.buildEngagementMeta({ sectionId: id }),
             });
           }
         }
@@ -378,6 +381,74 @@ export class AnalyticsService {
       clearInterval(intervalId);
     });
   }
+
+  private buildEngagementMeta(base: Record<string, unknown>): Record<string, unknown> {
+    const contentHubMeta = this.resolveCurrentContentHubArticleMeta();
+    return contentHubMeta ? { ...base, ...contentHubMeta } : base;
+  }
+
+  private resolveCurrentContentHubArticleMeta(): Record<string, unknown> | null {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+
+    const hubs = this.configStore.siteConfig()?.runtime?.contentHubs ?? [];
+    if (!Array.isArray(hubs) || hubs.length === 0) {
+      return null;
+    }
+
+    const path = normalizeDraftRoutePath(`${ window.location.pathname || '/' }${ window.location.search || '' }${ window.location.hash || '' }`);
+    for (const hub of hubs) {
+      const match = matchContentHubArticleRoute([hub], path);
+      if (!match) {
+        continue;
+      }
+
+      const eventPrefix = this.cleanAnalyticsString(hub.analyticsContext?.eventPrefix);
+      const contentGroup = this.cleanAnalyticsString(hub.analyticsContext?.contentGroup);
+      const hubId = this.cleanAnalyticsString(hub.hubId);
+      if (!eventPrefix || !contentGroup || !hubId) {
+        continue;
+      }
+
+      const article = findPublishedContentHubArticleForPath([hub], path);
+      if (!article) {
+        continue;
+      }
+
+      const articleId = this.cleanAnalyticsString(article.articleId);
+      const category = this.cleanAnalyticsString(article.categorySlug);
+      const tags = this.cleanAnalyticsTags(article.tags);
+
+      return {
+        hubId,
+        contentGroup,
+        ...(articleId ? { articleId } : {}),
+        ...(category ? { category } : {}),
+        ...(tags.length ? { tags } : {}),
+        path,
+        params: match.params,
+      };
+    }
+
+    return null;
+  }
+
+  private cleanAnalyticsString(value: unknown): string {
+    return typeof value === 'string' ? value.trim() : '';
+  }
+
+  private cleanAnalyticsTags(value: unknown): readonly string[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value
+      .map((entry) => this.cleanAnalyticsString(entry))
+      .filter(Boolean)
+      .slice(0, 20);
+  }
+
   private timesSended: number = 0;
   // Timer for re-prompting after snooze (kept in-memory per session)
   private snoozeTimer: ReturnType<typeof setTimeout> | null = null;
