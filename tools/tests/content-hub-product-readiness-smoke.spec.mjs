@@ -556,6 +556,7 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
   const xmlPaths = [];
   const interactionEvents = [];
   let queuedComments = 0;
+  let moderationStatus = 'none';
   const now = new Date('2026-06-30T04:00:00.000Z');
   const title = 'QA Product Smoke 20260630040000';
   const slug = 'qa-product-smoke-20260630040000';
@@ -721,9 +722,37 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
         assert.equal(body.input.commentPolicy, 'authenticated-moderation');
         assert.match(body.input.commentBody, /^QA smoke moderated comment /);
         queuedComments += 1;
+        moderationStatus = 'queued';
         return new Response(JSON.stringify({
           ok: true,
-          data: { articleId: 'art_smoke', commentId: 'comment_smoke', moderationStatus: 'pending' },
+          data: {
+            comment: {
+              articleId: 'art_smoke',
+              commentId: 'comment_smoke',
+              status: 'queued',
+              bodyPreview: 'QA smoke moderated comment 20260630040000',
+              queuedAt: '2026-06-30T04:00:00Z',
+            },
+          },
+        }), { status: 200 });
+      }
+      if (action === 'moderateComment') {
+        assert.equal(body.input.commentId, 'comment_smoke');
+        assert.equal(body.input.decision, 'approved');
+        assert.equal(body.input.reason, 'QA smoke approval');
+        moderationStatus = 'approved';
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            moderation: {
+              articleId: 'art_smoke',
+              commentId: 'comment_smoke',
+              status: 'approved',
+              bodyPreview: 'QA smoke moderated comment 20260630040000',
+              queuedAt: '2026-06-30T04:00:00Z',
+              moderatedAt: '2026-06-30T04:05:00Z',
+            },
+          },
         }), { status: 200 });
       }
       if (action === 'schedule') {
@@ -824,9 +853,19 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
         }), { status: 200 });
       }
       if (read === 'moderationQueue') {
+        const items = moderationStatus === 'none'
+          ? []
+          : [{
+            articleId: 'art_smoke',
+            commentId: 'comment_smoke',
+            status: moderationStatus,
+            bodyPreview: 'QA smoke moderated comment 20260630040000',
+            queuedAt: '2026-06-30T04:00:00Z',
+            ...(moderationStatus === 'approved' ? { moderatedAt: '2026-06-30T04:05:00Z' } : {}),
+          }];
         return new Response(JSON.stringify({
           ok: true,
-          data: { items: [] },
+          data: { items },
         }), { status: 200 });
       }
       if (read === 'analyticsSummary') {
@@ -934,6 +973,7 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
     'recordInteraction',
     'recordInteraction',
     'queueComment',
+    'moderateComment',
     'schedule',
     'cancelSchedule',
     'unpublishArticle',
@@ -948,6 +988,8 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
     'assetList',
     'moderationQueue',
     'analyticsSummary',
+    'moderationQueue',
+    'moderationQueue',
     'analyticsSummary',
     'scheduleList',
     'articleDetail',
@@ -965,6 +1007,9 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
   assert.equal(result?.checks?.recordInteractionReaction, true);
   assert.equal(result?.checks?.recordInteractionShare, true);
   assert.equal(result?.checks?.queueComment, true);
+  assert.equal(result?.checks?.moderationQueueAfterComment, true);
+  assert.equal(result?.checks?.moderateComment, true);
+  assert.equal(result?.checks?.moderationQueueAfterModeration, true);
   assert.equal(result?.checks?.publicInteractionAnalytics, true);
   assert.equal(result?.checks?.unpublishArticle, true);
   assert.equal(result?.checks?.articleDetailAfterUnpublish, true);

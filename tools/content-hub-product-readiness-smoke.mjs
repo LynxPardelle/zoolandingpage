@@ -82,6 +82,30 @@ function assertAssetRecord(record, expected, context) {
   }
 }
 
+function assertNoInternalModerationFields(value, context) {
+  const raw = JSON.stringify(value ?? {});
+  for (const forbidden of ['"bodyHash"', '"createdByHash"', '"moderatedBy"', '"pk"', '"sk"', '"hubId"']) {
+    if (raw.includes(forbidden)) {
+      throw new Error(`${context} exposed internal moderation metadata.`);
+    }
+  }
+}
+
+function assertModerationRecord(record, expected, context) {
+  assertNoInternalModerationFields(record, context);
+  const mismatches = [
+    ['articleId', clean(record?.articleId), expected.articleId],
+    ['commentId', clean(record?.commentId), expected.commentId],
+    ['status', clean(record?.status), expected.status],
+  ].filter(([, actual, wanted]) => actual !== wanted);
+  if (mismatches.length > 0 || !hasNeedle(record?.bodyPreview, expected.previewNeedle) || !clean(record?.queuedAt)) {
+    throw new Error(`Moderation ${context} did not match expected public fields.`);
+  }
+  if (expected.moderated && !clean(record?.moderatedAt)) {
+    throw new Error(`Moderation ${context} did not include moderatedAt.`);
+  }
+}
+
 function normalizeBaseUrl(value) {
   const baseUrl = clean(value);
   if (!baseUrl) return '';
@@ -435,6 +459,7 @@ async function runSmoke(options) {
   const taxonomyTagId = `qa_tag_${token}`;
   const expectedPath = `/blog/${category}/${slug}`;
   const articleBodyNeedle = `Contenido editado por smoke ${token}`;
+  const commentPreviewNeedle = `QA smoke moderated comment ${token}`;
   const asset = {
     assetId: `asset_${token}`,
     kind: 'document',
@@ -945,11 +970,78 @@ async function runSmoke(options) {
       commentPolicy: 'authenticated-moderation',
     },
   });
-  await smokeStep('queueComment', () => fetchJson(endpoint('action'), {
+  const queueCommentResponse = await smokeStep('queueComment', () => fetchJson(endpoint('action'), {
     method: 'POST',
     headers: actionHeaders,
     body: JSON.stringify(commentPayload),
   }, timeoutMs));
+  const commentId = clean(queueCommentResponse?.data?.comment?.commentId || queueCommentResponse?.data?.commentId);
+  if (!commentId) {
+    throw new Error('Queue comment response did not include a commentId.');
+  }
+
+  const readModerationQueue = async (status, label) => {
+    const payload = buildContentHubPayload({
+      domain,
+      pageId: 'admin-blog-moderacion',
+      operationId: 'content_hub_moderation_queue',
+      hubId,
+      kind: 'read',
+      input: {
+        contentHub: { read: 'moderationQueue' },
+        articleId: created.articleId,
+      },
+    });
+    const response = await smokeStep(`moderationQueue:${label}`, () => fetchJson(endpoint('read'), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+    }, timeoutMs));
+    assertNoInternalModerationFields(response?.data, `moderation queue ${label}`);
+    const item = Array.isArray(response?.data?.items)
+      ? response.data.items.find((candidate) => clean(candidate.commentId) === commentId)
+      : null;
+    if (!item) {
+      throw new Error(`Moderation queue did not include the ${label} smoke comment.`);
+    }
+    assertModerationRecord(item, {
+      articleId: created.articleId,
+      commentId,
+      status,
+      previewNeedle: commentPreviewNeedle,
+      moderated: status !== 'queued',
+    }, label);
+  };
+
+  await readModerationQueue('queued', 'queued');
+
+  const moderateCommentPayload = buildContentHubPayload({
+    domain,
+    pageId: 'admin-blog-moderacion',
+    operationId: 'content_hub_moderate_comment',
+    hubId,
+    kind: 'action',
+    input: {
+      contentHub: { action: 'moderateComment', commentId },
+      commentId,
+      decision: 'approved',
+      reason: 'QA smoke approval',
+    },
+  });
+  const moderateCommentResponse = await smokeStep('moderateComment', () => fetchJson(endpoint('action'), {
+    method: 'POST',
+    headers: actionHeaders,
+    body: JSON.stringify(moderateCommentPayload),
+  }, timeoutMs));
+  assertModerationRecord(moderateCommentResponse?.data?.moderation ?? {}, {
+    articleId: created.articleId,
+    commentId,
+    status: 'approved',
+    previewNeedle: commentPreviewNeedle,
+    moderated: true,
+  }, 'approve');
+
+  await readModerationQueue('approved', 'approved');
 
   const analyticsAfterInteractionsPayload = buildContentHubPayload({
     domain,
@@ -1160,6 +1252,9 @@ async function runSmoke(options) {
       recordInteractionReaction: true,
       recordInteractionShare: true,
       queueComment: true,
+      moderationQueueAfterComment: true,
+      moderateComment: true,
+      moderationQueueAfterModeration: true,
       publicInteractionAnalytics: true,
       runtimeBundle: true,
       publicSearch: true,
