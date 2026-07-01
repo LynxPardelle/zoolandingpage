@@ -380,6 +380,7 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
   const slug = 'qa-product-smoke-20260630040000';
   const path = `/blog/qa/${slug}`;
   const articleBody = 'Contenido editado por smoke 20260630040000';
+  let unpublished = false;
 
   globalThis.fetch = async (url, init = {}) => {
     const parsed = new URL(String(url));
@@ -495,6 +496,19 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
           data: { schedule: { scheduleId: 'schedule_smoke', status: 'canceled' } },
         }), { status: 200 });
       }
+      if (action === 'unpublishArticle') {
+        assert.equal(body.input.articleId, 'art_smoke');
+        unpublished = true;
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            articleId: 'art_smoke',
+            status: 'unpublished',
+            path,
+            unpublishedAt: '2026-06-30T05:00:00Z',
+          },
+        }), { status: 200 });
+      }
     }
     if (parsed.pathname.endsWith('/features/content-hub/read')) {
       const read = body?.input?.contentHub?.read;
@@ -552,6 +566,14 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
               assetDownloads: 0,
             }],
           },
+        }), { status: 200 });
+      }
+      if (read === 'articleDetail') {
+        assert.equal(unpublished, true);
+        assert.equal(body.input.articleId, 'art_smoke');
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { item: { articleId: 'art_smoke', status: 'unpublished', visibility: 'private' } },
         }), { status: 200 });
       }
       assert.equal(read, 'scheduleList');
@@ -633,6 +655,7 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
     'queueComment',
     'schedule',
     'cancelSchedule',
+    'unpublishArticle',
   ]);
   assert.deepEqual(interactionEvents.sort(), ['cta_click', 'reaction', 'share']);
   assert.equal(queuedComments, 1);
@@ -644,6 +667,7 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
     'analyticsSummary',
     'analyticsSummary',
     'scheduleList',
+    'articleDetail',
   ]);
   assert.deepEqual(xmlPaths, [
     '/sitemap.xml',
@@ -654,4 +678,6 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
   assert.equal(result?.checks?.recordInteractionShare, true);
   assert.equal(result?.checks?.queueComment, true);
   assert.equal(result?.checks?.publicInteractionAnalytics, true);
+  assert.equal(result?.checks?.unpublishArticle, true);
+  assert.equal(result?.checks?.articleDetailAfterUnpublish, true);
 });

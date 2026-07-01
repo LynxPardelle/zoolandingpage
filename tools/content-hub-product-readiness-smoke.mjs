@@ -867,6 +867,66 @@ async function runSmoke(options) {
     throw new Error('Cancel schedule did not return canceled status.');
   }
 
+  const unpublishPayload = buildContentHubPayload({
+    domain,
+    pageId: 'admin-blog-programados',
+    operationId: 'content_hub_unpublish_article',
+    hubId,
+    kind: 'action',
+    input: {
+      contentHub: { action: 'unpublishArticle', articleId: created.articleId },
+      articleId: created.articleId,
+      renderDomain: domain,
+    },
+  });
+  const unpublishResponse = await smokeStep('unpublishArticle', () => fetchJson(endpoint('action'), {
+    method: 'POST',
+    headers: actionHeaders,
+    body: JSON.stringify(unpublishPayload),
+  }, timeoutMs));
+  if (clean(unpublishResponse?.data?.status) !== 'unpublished') {
+    throw new Error('Unpublish article did not return unpublished status.');
+  }
+  if (clean(unpublishResponse?.data?.articleId) !== created.articleId) {
+    throw new Error('Unpublish article did not return the smoke article ID.');
+  }
+  if (clean(unpublishResponse?.data?.path) !== published.path) {
+    throw new Error('Unpublish article did not return the published path.');
+  }
+  if (!clean(unpublishResponse?.data?.unpublishedAt)) {
+    throw new Error('Unpublish article did not return unpublishedAt.');
+  }
+
+  const unpublishedDetailPayload = buildContentHubPayload({
+    domain,
+    pageId: 'admin-blog-articulo-editor',
+    operationId: 'content_hub_article_detail',
+    hubId,
+    kind: 'read',
+    input: {
+      contentHub: { read: 'articleDetail', articleId: created.articleId },
+      articleId: created.articleId,
+    },
+  });
+  let unpublishedDetail = null;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const response = await smokeStep(`articleDetailAfterUnpublish:${attempt}`, () => fetchJson(endpoint('read'), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(unpublishedDetailPayload),
+    }, timeoutMs));
+    unpublishedDetail = response?.data?.item ?? null;
+    if (clean(unpublishedDetail?.status) === 'unpublished' && clean(unpublishedDetail?.visibility) === 'private') {
+      break;
+    }
+    if (attempt < 3) {
+      await sleep(350);
+    }
+  }
+  if (clean(unpublishedDetail?.status) !== 'unpublished' || clean(unpublishedDetail?.visibility) !== 'private') {
+    throw new Error('Article detail did not show unpublished/private after unpublish.');
+  }
+
   return {
     ok: true,
     domain,
@@ -902,6 +962,8 @@ async function runSmoke(options) {
       feed: true,
       scheduleList: true,
       cancelSchedule: true,
+      unpublishArticle: true,
+      articleDetailAfterUnpublish: true,
     },
   };
 }
