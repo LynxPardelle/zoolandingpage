@@ -591,8 +591,9 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
     return new Response(JSON.stringify({ ok: false, error: 'unexpected request' }), { status: 500 });
   };
 
+  let result = null;
   try {
-    await runSmoke({
+    result = await runSmoke({
       baseUrl: 'https://test.zoolandingpage.com.mx',
       runtimeBaseUrl: 'https://runtime.example.com/Prod',
       domain: 'zoositioweb.com.mx',
@@ -648,4 +649,9 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
     '/sitemap.xml',
     '/feed.xml',
   ]);
+  assert.equal(result?.checks?.recordInteractionCta, true);
+  assert.equal(result?.checks?.recordInteractionReaction, true);
+  assert.equal(result?.checks?.recordInteractionShare, true);
+  assert.equal(result?.checks?.queueComment, true);
+  assert.equal(result?.checks?.publicInteractionAnalytics, true);
 });

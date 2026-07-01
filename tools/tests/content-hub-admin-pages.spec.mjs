@@ -6,6 +6,7 @@ import path from 'node:path';
 const repoRoot = process.cwd();
 const draftRoot = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx');
 const qaChecklistPath = path.join(draftRoot, 'qa', 'admin-blog-qa-checklist.md');
+const productSmokePath = path.join(repoRoot, 'tools', 'content-hub-product-readiness-smoke.mjs');
 
 const pageIds = [
   'admin-blog',
@@ -158,6 +159,20 @@ function collectAllStrings(value, trail = [], hits = []) {
   return hits;
 }
 
+function extractSmokeCheckKeys(source) {
+  const match = source.match(/checks:\s*\{(?<body>[\s\S]*?)\r?\n\s*\},\r?\n\s*\};/u);
+  assert.ok(match?.groups?.body, 'content-hub smoke must return a checks object');
+  return [...match.groups.body.matchAll(/^\s*([A-Za-z][A-Za-z0-9]*):\s*true,?\s*$/gmu)]
+    .map((entry) => entry[1]);
+}
+
+function extractChecklistSmokeCheckKeys(checklist) {
+  const smokeLine = checklist.split(/\r?\n/u).find((line) => line.includes('El smoke debe devolver'));
+  assert.ok(smokeLine, 'QA checklist must document returned smoke checks');
+  return [...smokeLine.matchAll(/`([A-Za-z][A-Za-z0-9]*)`/gu)]
+    .map((entry) => entry[1]);
+}
+
 describe('Zoosite blog admin draft pages', () => {
   it('keeps the Zoosite blog QA checklist aligned with the 12 product-completion blocks', async () => {
     const checklist = await readFile(qaChecklistPath, 'utf8');
@@ -170,6 +185,18 @@ describe('Zoosite blog admin draft pages', () => {
     assert.match(releaseBody, /testing/iu, 'release QA block must require testing validation');
     assert.match(releaseBody, /produccion|production/iu, 'release QA block must require production validation');
     assert.match(releaseBody, /desktop.*mobile|mobile.*desktop/iu, 'release QA block must require desktop and mobile validation');
+    assert.match(checklist, /Pendiente para cerrar producto: smoke autenticado real/iu);
+    assert.match(checklist, /No basta que exista la configuracion; debe verse el comportamiento real/iu);
+  });
+
+  it('keeps the redacted live smoke checklist aligned with the CLI success checks', async () => {
+    const checklist = await readFile(qaChecklistPath, 'utf8');
+    const smokeSource = await readFile(productSmokePath, 'utf8');
+
+    assert.deepEqual(
+      extractChecklistSmokeCheckKeys(checklist),
+      extractSmokeCheckKeys(smokeSource),
+    );
   });
 
   it('ships complete draft package files for every admin blog page', async () => {
