@@ -190,7 +190,7 @@ export class GenericTableComponent {
   onAction(action: TGenericTableRowActionConfig, row: unknown, pageRowIndex: number, event: Event): void {
     event.stopPropagation();
     if (this.asBoolean(action.disabled) || this.asBoolean(action.loading)) return;
-    this.emitAction(action, row, pageRowIndex);
+    this.emitAction(action, row, pageRowIndex, event);
   }
 
   onActionLink(action: TGenericTableRowActionConfig, row: unknown, pageRowIndex: number, event: Event): void {
@@ -199,7 +199,7 @@ export class GenericTableComponent {
     if (this.asBoolean(action.disabled) || this.asBoolean(action.loading)) return;
 
     const href = this.actionHref(action, row);
-    this.emitAction(action, row, pageRowIndex);
+    this.emitAction(action, row, pageRowIndex, event);
     if (href) {
       navigateInCurrentWindow(href);
     }
@@ -227,7 +227,7 @@ export class GenericTableComponent {
     return typeof window !== 'undefined' ? window.location.href : undefined;
   }
 
-  private emitAction(action: TGenericTableRowActionConfig, row: unknown, pageRowIndex: number): void {
+  private emitAction(action: TGenericTableRowActionConfig, row: unknown, pageRowIndex: number, event?: Event): void {
     const rowIndex = this.absoluteRowIndex(pageRowIndex);
     this.rowAction.emit({
       rowId: this.rowId(row, rowIndex),
@@ -236,6 +236,7 @@ export class GenericTableComponent {
       actionId: action.id,
       label: this.asString(action.label),
       eventInstructions: this.asString(action.eventInstructions) || undefined,
+      ...(event?.isTrusted === true ? { userGesture: true } : {}),
     });
   }
 

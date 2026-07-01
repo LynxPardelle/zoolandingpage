@@ -8,6 +8,7 @@ export type ComponentEvent = {
     eventName: string;
     eventData?: unknown;
     eventInstructions?: string;
+    userGesture?: boolean;
 };
 
 export type ComponentEventDispatchContext = {

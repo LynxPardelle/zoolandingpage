@@ -422,6 +422,47 @@ describe('RuntimeDataSourceService', () => {
         });
     });
 
+    it('skips content hub reads when required safe ids resolve to placeholders or invalid values', async () => {
+        contentHub.readSource.and.resolveTo({ ok: true, data: { item: { title: 'Should not load' } } } as any);
+        mapper.mapResponse.and.returnValue({ items: [{ title: 'Should not load' }] });
+
+        const startWithArticleId = async (articleId: string): Promise<void> => {
+            setRuntimeUrl(`/admin/blog/programados?articleId=${ encodeURIComponent(articleId) }`);
+            await service.start({
+                domain: 'zoositioweb.com.mx',
+                pageId: 'admin-blog-programados',
+                dataSources: [
+                    {
+                        id: 'content_hub_schedule_list',
+                        kind: 'content-hub',
+                        proxySourceId: 'content_hub_schedule_list',
+                        target: 'remote.contentHub.schedules',
+                        contentHub: {
+                            source: 'primary',
+                            hubId: 'zoosite-main',
+                            read: 'scheduleList',
+                        },
+                        requiredInputKeys: ['articleId'],
+                        input: {
+                            articleId: {
+                                source: 'queryParam',
+                                key: 'articleId',
+                                transforms: ['trim'],
+                            },
+                        },
+                    } as any,
+                ],
+            });
+        };
+
+        for (const articleId of ['{articleId}', 'undefined', 'null', 'bad/id']) {
+            await startWithArticleId(articleId);
+        }
+
+        expect(contentHub.readSource).not.toHaveBeenCalled();
+        expect(variables.get('remoteStatus.content_hub_schedule_list')).toBeUndefined();
+    });
+
     it('resolves query-param page offsets before calling the proxy', async () => {
         proxy.readSource.and.resolveTo({ ok: true, data: { results: [] } });
         mapper.mapResponse.and.returnValue({ items: [] });
@@ -696,7 +737,9 @@ describe('RuntimeDataSourceService', () => {
         variables.setRuntimeValue('remote.music.releases', {
             items: [{ title: 'Existing' }],
         });
-        proxy.readSource.and.rejectWith(new Error('Proxy unavailable'));
+        const failure = new Error('Proxy unavailable') as Error & { requestId?: string };
+        failure.requestId = 'req-read-123';
+        proxy.readSource.and.rejectWith(failure);
 
         await service.start({
             domain: 'music.lynxpardelle.com',
@@ -712,6 +755,27 @@ describe('RuntimeDataSourceService', () => {
         expect(variables.get('remote.music.releases.items')).toEqual([{ title: 'Existing' }]);
         expect(variables.get('remoteStatus.spotify-releases.state')).toBe('error');
         expect(variables.get('remoteStatus.spotify-releases.error')).toBe('Proxy unavailable');
+        expect(variables.get('remoteStatus.spotify-releases.requestId')).toBe('req-read-123');
+    });
+
+    it('does not write malformed request ids from failed data source reads', async () => {
+        const failure = new Error('Proxy unavailable') as Error & { requestId?: string };
+        failure.requestId = 'req-unsafe/<script>';
+        proxy.readSource.and.rejectWith(failure);
+
+        await service.start({
+            domain: 'music.lynxpardelle.com',
+            dataSources: [
+                {
+                    id: 'spotify-releases',
+                    proxySourceId: 'spotifyArtistAlbums',
+                    target: 'remote.music.releases',
+                },
+            ],
+        });
+
+        expect(variables.get('remoteStatus.spotify-releases.state')).toBe('error');
+        expect(variables.get('remoteStatus.spotify-releases.requestId')).toBeUndefined();
     });
 
     it('can append mapped API items into one catalog target while preserving fallback fields', async () => {

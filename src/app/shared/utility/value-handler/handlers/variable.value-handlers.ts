@@ -1,5 +1,6 @@
 import { VariableStoreService } from '@/app/shared/services/variable-store.service';
 import { inject } from '@angular/core';
+import { I18nService } from '@/app/shared/services/i18n.service';
 import type { ValueHandler } from '../value-handler.types';
 
 type TDeltaOperation = {
@@ -113,6 +114,28 @@ export const richTextHtmlOrValueHandler = (): ValueHandler => {
             const value = path ? store.get(path) : undefined;
             const html = richTextToHtml(value);
             return html || escapeHtml(fallback);
+        },
+    };
+};
+
+export const supportIdOrValueHandler = (): ValueHandler => {
+    const store = inject(VariableStoreService);
+    const i18n = inject(I18nService);
+    return {
+        id: 'supportIdOr',
+        resolve: (_ctx, args) => {
+            const path = String(args?.[0] ?? '').trim();
+            const i18nKey = String(args?.[1] ?? '').trim();
+            const fallback = String(args?.[2] ?? 'ID de soporte: {{ id }}');
+            const value = path ? store.get(path) : undefined;
+            const requestId = typeof value === 'string' ? value.trim() : '';
+            return /^req-[A-Za-z0-9._:-]{1,120}$/.test(requestId)
+                ? i18n.tOr(
+                    i18nKey,
+                    fallback.replace(/\{\{\s*id\s*\}\}/g, requestId),
+                    { id: requestId },
+                )
+                : '';
         },
     };
 };

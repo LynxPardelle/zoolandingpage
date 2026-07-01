@@ -157,6 +157,94 @@ describe('proxyActionHandler', () => {
         });
     });
 
+    it('blocks configured proxy actions that require a direct user gesture', async () => {
+        configStore.setSiteConfig({
+            version: 1,
+            domain: 'zoositioweb.com.mx',
+            routes: [],
+            runtime: {
+                apiActions: [
+                    {
+                        id: 'record-interaction',
+                        kind: 'content-hub',
+                        proxyActionId: 'contentHubRecordInteraction',
+                        statusTarget: 'remoteStatus.contentHub.interaction',
+                        requiresUserGesture: true,
+                        inputFields: ['articleId', 'eventType'],
+                        contentHub: {
+                            action: 'recordInteraction',
+                            hubId: 'zoosite-main',
+                        },
+                    },
+                ],
+            },
+            site: {},
+        } as any);
+        context = {
+            event: {
+                componentId: 'autoTracker',
+                eventName: 'sectionView',
+                eventData: {
+                    articleId: 'art_intro',
+                    eventType: 'reaction',
+                },
+                userGesture: false,
+            },
+            host: {},
+        };
+
+        const handler = TestBed.runInInjectionContext(() => proxyActionHandler());
+        await handler.handle(context, ['record-interaction']);
+
+        expect(contentHub.executeAction).not.toHaveBeenCalled();
+        expect(variables.get('remoteStatus.contentHub.interaction.state')).toBe('error');
+        expect(variables.get('remoteStatus.contentHub.interaction.error')).toBe('This action requires a direct user action.');
+    });
+
+    it('blocks content hub actions when allowlisted id fields are invalid', async () => {
+        configStore.setSiteConfig({
+            version: 1,
+            domain: 'zoositioweb.com.mx',
+            routes: [],
+            runtime: {
+                apiActions: [
+                    {
+                        id: 'schedule-article',
+                        kind: 'content-hub',
+                        proxyActionId: 'contentHubSchedule',
+                        statusTarget: 'remoteStatus.contentHub.schedule',
+                        inputFields: ['articleId', 'revisionId', 'publishAt'],
+                        contentHub: {
+                            action: 'schedule',
+                            hubId: 'zoosite-main',
+                        },
+                    },
+                ],
+            },
+            site: {},
+        } as any);
+        context = {
+            event: {
+                componentId: 'scheduleButton',
+                eventName: 'pressed',
+                eventData: {
+                    articleId: '{articleId}',
+                    revisionId: 'rev_ok',
+                    publishAt: '2026-06-30T07:11:00-06:00',
+                },
+                userGesture: true,
+            },
+            host: {},
+        };
+
+        const handler = TestBed.runInInjectionContext(() => proxyActionHandler());
+        await handler.handle(context, ['schedule-article']);
+
+        expect(contentHub.executeAction).not.toHaveBeenCalled();
+        expect(variables.get('remoteStatus.contentHub.schedule.state')).toBe('error');
+        expect(variables.get('remoteStatus.contentHub.schedule.error')).toBe('Select a valid content item before continuing.');
+    });
+
     it('mirrors safe response identifiers into the configured action status target', async () => {
         configStore.setSiteConfig({
             version: 1,
@@ -398,13 +486,16 @@ describe('proxyActionHandler', () => {
     });
 
     it('writes an error status when a configured proxy action fails', async () => {
-        proxy.executeAction.and.rejectWith(new Error('Action failed'));
+        const failure = new Error('Action failed') as Error & { requestId?: string };
+        failure.requestId = 'req-safe-456';
+        proxy.executeAction.and.rejectWith(failure);
 
         const handler = TestBed.runInInjectionContext(() => proxyActionHandler());
         await handler.handle(context, ['newsletter-signup']);
 
         expect(variables.get('remoteStatus.newsletterSignup.state')).toBe('error');
         expect(variables.get('remoteStatus.newsletterSignup.error')).toBe('Action failed');
+        expect(variables.get('remoteStatus.newsletterSignup.requestId')).toBe('req-safe-456');
     });
 
     it('ignores unknown action ids', async () => {

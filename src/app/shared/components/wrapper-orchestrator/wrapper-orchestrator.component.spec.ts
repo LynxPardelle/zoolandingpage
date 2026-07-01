@@ -1,9 +1,11 @@
 import { signal } from '@angular/core';
 import { ComponentFixture, DeferBlockState, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 
 import { ConditionOrchestrator } from '../../services/condition-orchestrator';
 import { ConfigurationsOrchestratorService } from '../../services/configurations-orchestrator';
 import { ValueOrchestrator } from '../../services/value-orchestrator';
+import { GenericRichTextComponent } from '../generic-rich-text';
 import { InteractionScopeService } from '../interaction-scope/interaction-scope.service';
 import { WrapperOrchestrator } from './wrapper-orchestrator.component';
 import type { TGenericComponent } from './wrapper-orchestrator.types';
@@ -88,6 +90,76 @@ describe('WrapperOrchestrator', () => {
 
     const secondComponent = component.components()[0] as Extract<TGenericComponent, { type: 'text' }> | undefined;
     expect(secondComponent?.config.text).toBe('Second page');
+  });
+
+  it('keeps dirty rich-text scope values when payload refreshes replay stale config', async () => {
+    componentsById = {
+      editorScope: {
+        id: 'editorScope',
+        type: 'interaction-scope',
+        config: {
+          scopeId: 'editorScope',
+          components: ['articleRichText'],
+        },
+      } as never,
+      articleRichText: {
+        id: 'articleRichText',
+        type: 'generic-rich-text',
+        config: {
+          fieldId: 'articleContent',
+          provider: 'quill',
+          format: 'quill-delta-object',
+          value: { ops: [] },
+        },
+      } as never,
+    };
+
+    fixture.componentRef.setInput('componentsIds', ['editorScope']);
+    fixture.detectChanges();
+    const [richTextBlock] = await fixture.getDeferBlocks();
+    await richTextBlock.render(DeferBlockState.Complete);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const richText = fixture.debugElement.query(
+      By.directive(GenericRichTextComponent)
+    ).componentInstance as GenericRichTextComponent;
+    const userModel = {
+      ops: [
+        { insert: 'Contenido que no debe resetearse', attributes: { bold: true } },
+        { insert: '\n' },
+      ],
+    };
+    richText.onQuillContentChanged({
+      content: userModel,
+      text: 'Contenido que no debe resetearse\n',
+      source: 'user',
+    });
+
+    componentsById = {
+      ...componentsById,
+      articleRichText: {
+        id: 'articleRichText',
+        type: 'generic-rich-text',
+        config: {
+          fieldId: 'articleContent',
+          provider: 'quill',
+          format: 'quill-delta-object',
+          value: { ops: [] },
+          helperText: 'Payload refreshed before save completed.',
+        },
+      } as never,
+    };
+    componentsRevision.update((value: number) => value + 1);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const refreshed = fixture.debugElement.query(
+      By.directive(GenericRichTextComponent)
+    ).componentInstance as GenericRichTextComponent;
+    expect(refreshed).toBe(richText);
+    expect(refreshed.currentValue()).toBe(userModel);
+    expect(refreshed.quillModel).toBe(userModel);
   });
 
   it('evaluates string conditions against the provided host context', () => {

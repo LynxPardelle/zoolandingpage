@@ -113,6 +113,7 @@
   <a
     [href]="linkHref()"
     [class]="classValue('linkClasses')"
+    [ngStyle]="linkStyles()"
     [attr.target]="target()"
     [attr.rel]="rel()"
     [attr.data-event-instructions]="linkEventInstructions() || null"
