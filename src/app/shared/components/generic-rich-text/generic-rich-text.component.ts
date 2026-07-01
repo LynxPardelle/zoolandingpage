@@ -39,6 +39,8 @@ export class GenericRichTextComponent {
 
   private readonly platformId = inject(PLATFORM_ID);
   private readonly scope = inject(InteractionScopeService, { optional: true });
+  private lastToolbarKey = '';
+  private lastQuillModules: QuillModules = { toolbar: [] };
   readonly currentValue = signal<unknown>('');
   quillModel: unknown = { ops: [] };
 
@@ -119,9 +121,7 @@ export class GenericRichTextComponent {
     if (this.format() === 'plain-text') return 'object';
     return 'json';
   });
-  readonly quillModules = computed<QuillModules>(() => ({
-    toolbar: this.resolveToolbar(),
-  }));
+  readonly quillModules = computed<QuillModules>(() => this.resolveQuillModules());
 
   onTextareaInput(event: Event): void {
     const value = (event.target as HTMLTextAreaElement).value;
@@ -245,6 +245,17 @@ export class GenericRichTextComponent {
     if (block.length) groups.push(block);
     if (toolbar.includes('clean')) groups.push(['clean']);
     return groups as QuillModules['toolbar'];
+  }
+
+  private resolveQuillModules(): QuillModules {
+    const toolbar = this.resolveToolbar();
+    const key = this.stableValueKey(toolbar);
+    if (key === this.lastToolbarKey) {
+      return this.lastQuillModules;
+    }
+    this.lastToolbarKey = key;
+    this.lastQuillModules = { toolbar };
+    return this.lastQuillModules;
   }
 
   private pickToolbar(toolbar: readonly TGenericRichTextToolbarItem[] | undefined, allowed: readonly TGenericRichTextToolbarItem[]): string[] {

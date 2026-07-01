@@ -245,6 +245,97 @@ describe('proxyActionHandler', () => {
         expect(variables.get('remoteStatus.contentHub.schedule.error')).toBe('Select a valid content item before continuing.');
     });
 
+    it('blocks targeted content hub actions when required ids are missing', async () => {
+        configStore.setSiteConfig({
+            version: 1,
+            domain: 'zoositioweb.com.mx',
+            routes: [],
+            runtime: {
+                apiActions: [
+                    {
+                        id: 'update-package',
+                        kind: 'content-hub',
+                        proxyActionId: 'contentHubUpdatePackage',
+                        statusTarget: 'remoteStatus.contentHub.update',
+                        inputFields: ['articleId', 'articleTitle'],
+                        contentHub: {
+                            action: 'updatePackage',
+                            hubId: 'zoosite-main',
+                        },
+                    },
+                ],
+            },
+            site: {},
+        } as any);
+        context = {
+            event: {
+                componentId: 'saveButton',
+                eventName: 'pressed',
+                eventData: {
+                    articleTitle: 'Sin artículo',
+                },
+                userGesture: true,
+            },
+            host: {},
+        };
+
+        const handler = TestBed.runInInjectionContext(() => proxyActionHandler());
+        await handler.handle(context, ['update-package']);
+
+        expect(contentHub.executeAction).not.toHaveBeenCalled();
+        expect(variables.get('remoteStatus.contentHub.update.state')).toBe('error');
+        expect(variables.get('remoteStatus.contentHub.update.error')).toBe('Select a valid content item before continuing.');
+    });
+
+    it('allows taxonomy creation without a pre-existing taxonomy id', async () => {
+        configStore.setSiteConfig({
+            version: 1,
+            domain: 'zoositioweb.com.mx',
+            routes: [],
+            runtime: {
+                apiActions: [
+                    {
+                        id: 'upsert-taxonomy',
+                        kind: 'content-hub',
+                        proxyActionId: 'contentHubUpsertTaxonomy',
+                        statusTarget: 'remoteStatus.contentHub.taxonomy',
+                        inputFields: ['taxonomyKind', 'taxonomyId', 'taxonomyLabel', 'slug'],
+                        contentHub: {
+                            action: 'upsertTaxonomy',
+                            hubId: 'zoosite-main',
+                        },
+                    },
+                ],
+            },
+            site: {},
+        } as any);
+        context = {
+            event: {
+                componentId: 'taxonomyButton',
+                eventName: 'pressed',
+                eventData: {
+                    taxonomyKind: 'category',
+                    taxonomyLabel: 'Web',
+                    slug: 'web',
+                },
+                userGesture: true,
+            },
+            host: {},
+        };
+        contentHub.executeAction.and.resolveTo({ ok: true, data: { taxonomy: { taxonomyId: 'web' } } });
+
+        const handler = TestBed.runInInjectionContext(() => proxyActionHandler());
+        await handler.handle(context, ['upsert-taxonomy']);
+
+        expect(contentHub.executeAction).toHaveBeenCalledOnceWith(jasmine.objectContaining({
+            input: jasmine.objectContaining({
+                taxonomyKind: 'category',
+                taxonomyLabel: 'Web',
+                slug: 'web',
+            }),
+        }));
+    });
+
     it('mirrors safe response identifiers into the configured action status target', async () => {
         configStore.setSiteConfig({
             version: 1,

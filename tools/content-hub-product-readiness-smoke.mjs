@@ -13,6 +13,37 @@ const DEFAULT_PAGE_ID = 'admin-blog-articulos';
 const DEFAULT_TIMEOUT_MS = 20000;
 const DEFAULT_CSRF_COOKIE_NAME = 'zlp_csrf';
 const SENSITIVE_INPUT_KEYS = new Set(['cookie', 'cookies', 'csrf', 'session', 'token', 'secret', 'authorization']);
+const COMMON_FORBIDDEN_PUBLIC_RESPONSE_PATTERNS = [
+  [/"pk"\s*:/i, 'partition key'],
+  [/"sk"\s*:/i, 'sort key'],
+  [/"hubId"\s*:/i, 'hub id'],
+  [/"tenantId"\s*:/i, 'tenant policy'],
+  [/"updatedBy"\s*:/i, 'updater identity'],
+  [/"createdBy"\s*:/i, 'creator identity'],
+  [/"createdByHash"\s*:/i, 'creator hash'],
+  [/"bodyHash"\s*:/i, 'body hash'],
+  [/"moderatedBy"\s*:/i, 'moderator identity'],
+  [/"objectKey"\s*:/i, 'storage object key'],
+  [/"bucket"\s*:/i, 'storage bucket'],
+  [/"prefix"\s*:/i, 'storage prefix'],
+  [/"tableName"\s*:/i, 'table name'],
+  [/"metadata"\s*:/i, 'raw metadata'],
+  [/"actorHash"\s*:/i, 'actor hash'],
+  [/"actorId"\s*:/i, 'actor id'],
+  [/"rawEvent/i, 'raw event payload'],
+  [/credentialRef/i, 'credential reference'],
+  [/__Host-zlp_session/i, 'session cookie'],
+  [/zlp_csrf/i, 'csrf cookie'],
+  [/X-Amz-Signature/i, 'signed storage URL'],
+  [/X-Amz-Credential/i, 'signed storage credential'],
+  [/content-hubs\//i, 'storage path'],
+  [/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i, 'email address'],
+  [/"phone(Number)?"\s*:/i, 'phone field'],
+  [/"whatsapp"\s*:/i, 'whatsapp field'],
+  [/accessToken/i, 'access token'],
+  [/refreshToken/i, 'refresh token'],
+  [/idToken/i, 'id token'],
+];
 
 function parseArgs(rawArgs) {
   const parsed = {};
@@ -30,13 +61,17 @@ function clean(value) {
   return String(value ?? '').trim();
 }
 
-function assertNoInternalTaxonomyFields(value, context) {
+function assertNoForbiddenPublicResponseFields(value, context, extraPatterns = []) {
   const raw = JSON.stringify(value ?? {});
-  for (const field of ['"pk"', '"sk"', '"hubId"', '"updatedBy"']) {
-    if (raw.includes(field)) {
-      throw new Error(`${context} exposed internal taxonomy metadata.`);
+  for (const [pattern, label] of [...COMMON_FORBIDDEN_PUBLIC_RESPONSE_PATTERNS, ...extraPatterns]) {
+    if (pattern.test(raw)) {
+      throw new Error(`${context} exposed ${label}.`);
     }
   }
+}
+
+function assertNoInternalTaxonomyFields(value, context) {
+  assertNoForbiddenPublicResponseFields(value, context);
 }
 
 function assertTaxonomyRecord(record, expected, context) {
@@ -58,12 +93,11 @@ function assertTaxonomyRecord(record, expected, context) {
 }
 
 function assertNoInternalAssetFields(value, context) {
-  const raw = JSON.stringify(value ?? {});
-  for (const forbidden of ['"objectKey"', '"createdBy"', '"pk"', '"sk"', '"hubId"', 'content-hubs/', 'X-Amz-Signature']) {
-    if (raw.includes(forbidden)) {
-      throw new Error(`${context} exposed internal asset metadata.`);
-    }
-  }
+  assertNoForbiddenPublicResponseFields(value, context, [
+    [/"grant"\s*:/i, 'upload grant'],
+    [/"signedUrl"\s*:/i, 'signed storage URL'],
+    [/"urlExpiresAt"\s*:/i, 'signed storage URL expiry'],
+  ]);
 }
 
 function assertAssetRecord(record, expected, context) {
@@ -83,12 +117,13 @@ function assertAssetRecord(record, expected, context) {
 }
 
 function assertNoInternalModerationFields(value, context) {
-  const raw = JSON.stringify(value ?? {});
-  for (const forbidden of ['"bodyHash"', '"createdByHash"', '"moderatedBy"', '"pk"', '"sk"', '"hubId"']) {
-    if (raw.includes(forbidden)) {
-      throw new Error(`${context} exposed internal moderation metadata.`);
-    }
-  }
+  assertNoForbiddenPublicResponseFields(value, context, [
+    [/"body"\s*:/i, 'raw comment body'],
+    [/"rawBody"\s*:/i, 'raw comment body'],
+    [/"authorEmail"\s*:/i, 'author email'],
+    [/"authorPhone"\s*:/i, 'author phone'],
+    [/"privateTail"\s*:/i, 'private moderation tail'],
+  ]);
 }
 
 function assertModerationRecord(record, expected, context) {
@@ -800,6 +835,10 @@ async function runSmoke(options) {
         throw new Error('Content hub asset list did not include the uploaded smoke asset.');
       }
       assertAssetRecord(uploadedAsset, asset, 'list');
+    } else if (readCheck.binding.read === 'moderationQueue') {
+      assertNoInternalModerationFields(response?.data, 'moderation queue');
+    } else if (readCheck.binding.read === 'analyticsSummary') {
+      assertNoForbiddenPublicResponseFields(response?.data, 'analytics summary');
     }
   }
 
@@ -1082,6 +1121,7 @@ async function runSmoke(options) {
       headers,
       body: JSON.stringify(analyticsAfterInteractionsPayload),
     }, timeoutMs));
+    assertNoForbiddenPublicResponseFields(analyticsAfterInteractionsResponse?.data, 'analytics summary');
     if (hasPublicInteractionMetrics(analyticsAfterInteractionsResponse, created.articleId)) {
       break;
     }
@@ -1318,6 +1358,46 @@ async function runSmoke(options) {
     throw new Error('Public feed still includes the unpublished article.');
   }
 
+  const archivePayload = buildContentHubPayload({
+    domain,
+    pageId: 'admin-blog-articulos',
+    operationId: 'content_hub_archive_article',
+    hubId,
+    kind: 'action',
+    input: {
+      contentHub: { action: 'archiveArticle', articleId: created.articleId },
+      articleId: created.articleId,
+      archiveReason: `QA smoke cleanup ${token}`,
+    },
+  });
+  const archiveResponse = await smokeStep('archiveArticle', () => fetchJson(endpoint('action'), {
+    method: 'POST',
+    headers: actionHeaders,
+    body: JSON.stringify(archivePayload),
+  }, timeoutMs));
+  if (clean(archiveResponse?.data?.status) !== 'archived') {
+    throw new Error('Archive article did not return archived status.');
+  }
+
+  let archivedDetail = null;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const response = await smokeStep(`articleDetailAfterArchive:${attempt}`, () => fetchJson(endpoint('read'), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(unpublishedDetailPayload),
+    }, timeoutMs));
+    archivedDetail = response?.data?.item ?? null;
+    if (clean(archivedDetail?.status) === 'archived' && clean(archivedDetail?.visibility) === 'private') {
+      break;
+    }
+    if (attempt < 3) {
+      await sleep(350);
+    }
+  }
+  if (clean(archivedDetail?.status) !== 'archived' || clean(archivedDetail?.visibility) !== 'private') {
+    throw new Error('Article detail did not show archived/private after archive.');
+  }
+
   return {
     ok: true,
     domain,
@@ -1370,6 +1450,8 @@ async function runSmoke(options) {
       publicArticleAfterUnpublish: true,
       sitemapAfterUnpublish: true,
       feedAfterUnpublish: true,
+      archiveArticle: true,
+      articleDetailAfterArchive: true,
     },
   };
 }
@@ -1431,6 +1513,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
 }
 
 export {
+  assertNoForbiddenPublicResponseFields,
   buildContentHubPayload,
   buildPublicArticleUrl,
   buildPublicSearchUrl,

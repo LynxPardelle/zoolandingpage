@@ -363,6 +363,7 @@ export class ConfigBootstrapService {
         const contentHubRuntime = this.buildContentHubRuntimeProjection(siteConfig, {
             routePath: opts?.routePath,
             routeParams: opts?.routeParams,
+            lang,
         });
         this.variablesStore.patchRuntimeValues(contentHubRuntime.values);
 
@@ -423,21 +424,24 @@ export class ConfigBootstrapService {
 
     private buildContentHubRuntimeProjection(
         siteConfig: TDraftSiteConfigPayload | null,
-        context: Pick<TConfigBootstrapLoadOptions, 'routePath' | 'routeParams'>,
+        context: Pick<TConfigBootstrapLoadOptions, 'routePath' | 'routeParams'> & { readonly lang?: string | null },
     ): { readonly values: Record<string, unknown>; readonly currentArticle: TContentHubRuntimeArticleSummary | null } {
         const hubs = siteConfig?.runtime?.contentHubs;
         if (!Array.isArray(hubs) || hubs.length === 0) {
             return { values: {}, currentArticle: null };
         }
 
+        const lang = this.normalizeContentHubLanguage(context.lang);
         const articles = hubs
             .flatMap((hub) => this.readContentHubRuntimeCollection<TContentHubRuntimeArticleSummary>(hub.publicArticles))
             .filter((article): article is TContentHubRuntimeArticleSummary => article.status === 'published'
                 && ((article as { readonly visibility?: unknown }).visibility === undefined
-                    || (article as { readonly visibility?: unknown }).visibility === 'public'));
+                    || (article as { readonly visibility?: unknown }).visibility === 'public'))
+            .filter((article) => !lang || this.normalizeContentHubLanguage(article.locale) === lang);
         const taxonomy = hubs
             .flatMap((hub) => this.readContentHubRuntimeCollection<TContentHubRuntimeTaxonomySummary>(hub.publicTaxonomy))
-            .filter((entry): entry is TContentHubRuntimeTaxonomySummary => entry.visible !== false);
+            .filter((entry): entry is TContentHubRuntimeTaxonomySummary => entry.visible !== false)
+            .filter((entry) => !lang || this.normalizeContentHubLanguage(entry.locale) === lang);
 
         const currentArticle = this.findContentHubCurrentArticle(articles, context);
         const filteredArticles = this.filterContentHubArticlesForRoute(articles, context);
@@ -627,6 +631,14 @@ export class ConfigBootstrapService {
 
     private normalizeContentHubSlug(value: unknown): string {
         return typeof value === 'string' ? value.trim().toLocaleLowerCase() : '';
+    }
+
+    private normalizeContentHubLanguage(value: unknown): string {
+        const raw = this.cleanString(value).replace(/_/g, '-');
+        if (!raw) return '';
+        const [base, ...rest] = raw.split('-').filter(Boolean);
+        if (!base) return '';
+        return [base.toLowerCase(), ...rest.map((part) => part.length === 2 ? part.toUpperCase() : part)].join('-');
     }
 
     private lastContentHubPathSegment(path: unknown): string {

@@ -4,6 +4,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import {
+  assertNoForbiddenPublicResponseFields,
   buildContentHubPayload,
   buildPublicArticleUrl,
   buildPublicSearchUrl,
@@ -291,6 +292,45 @@ test('slugify keeps article URLs deterministic and safe', () => {
   assert.equal(slugify('QA Product Smoke 2026: Español!'), 'qa-product-smoke-2026-espanol');
 });
 
+test('public response guard rejects analytics internals and contact data', () => {
+  assert.doesNotThrow(() => assertNoForbiddenPublicResponseFields({
+    items: [
+      {
+        articleId: 'art_public',
+        views: 3,
+        readProgress: 2,
+        ctaClicks: 1,
+      },
+    ],
+  }, 'analytics summary'));
+
+  assert.throws(
+    () => assertNoForbiddenPublicResponseFields({
+      items: [
+        {
+          articleId: 'art_public',
+          metadata: { rawEvent: true },
+          actorHash: 'hash',
+        },
+      ],
+    }, 'analytics summary'),
+    /analytics summary exposed raw metadata/,
+  );
+
+  assert.throws(
+    () => assertNoForbiddenPublicResponseFields({
+      items: [
+        {
+          commentId: 'comment_public',
+          bodyPreview: 'Comentario público seguro',
+          authorEmail: 'qa@example.com',
+        },
+      ],
+    }, 'moderation queue'),
+    /moderation queue exposed email address|moderation queue exposed author email/,
+  );
+});
+
 test('runSmoke fails when preview does not reflect the updated revision', async () => {
   const originalFetch = globalThis.fetch;
   const now = new Date('2026-06-30T04:00:00.000Z');
@@ -542,7 +582,7 @@ test('runSmoke fails when asset upload exposes internal storage metadata', async
       timeoutMs: 1000,
       sharedPreview: true,
       now,
-    }), /upload exposed internal asset metadata/);
+    }), /upload exposed storage object key|upload exposed internal asset metadata/);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -576,6 +616,7 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
   const path = `/blog/${category}/${slug}`;
   const articleBody = 'Contenido editado por smoke 20260630040000';
   let unpublished = false;
+  let archived = false;
 
   globalThis.fetch = async (url, init = {}) => {
     const parsed = new URL(String(url));
@@ -785,6 +826,18 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
           },
         }), { status: 200 });
       }
+      if (action === 'archiveArticle') {
+        assert.equal(body.input.articleId, 'art_smoke');
+        archived = true;
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            articleId: 'art_smoke',
+            status: 'archived',
+            visibility: 'private',
+          },
+        }), { status: 200 });
+      }
     }
     if (parsed.pathname.endsWith('/features/content-hub/read')) {
       const read = body?.input?.contentHub?.read;
@@ -889,9 +942,10 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
       if (read === 'articleDetail') {
         assert.equal(unpublished, true);
         assert.equal(body.input.articleId, 'art_smoke');
+        const status = archived ? 'archived' : 'unpublished';
         return new Response(JSON.stringify({
           ok: true,
-          data: { item: { articleId: 'art_smoke', status: 'unpublished', visibility: 'private' } },
+          data: { item: { articleId: 'art_smoke', status, visibility: 'private' } },
         }), { status: 200 });
       }
       assert.equal(read, 'scheduleList');
@@ -993,6 +1047,7 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
     'schedule',
     'cancelSchedule',
     'unpublishArticle',
+    'archiveArticle',
   ]);
   assert.deepEqual(interactionEvents.sort(), ['assetDownload', 'cta_click', 'form', 'reaction', 'readProgress', 'share']);
   assert.equal(queuedComments, 1);
@@ -1008,6 +1063,7 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
     'moderationQueue',
     'analyticsSummary',
     'scheduleList',
+    'articleDetail',
     'articleDetail',
   ]);
   assert.deepEqual(xmlPaths, [
@@ -1032,6 +1088,8 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
   assert.equal(result?.checks?.publicInteractionAnalytics, true);
   assert.equal(result?.checks?.unpublishArticle, true);
   assert.equal(result?.checks?.articleDetailAfterUnpublish, true);
+  assert.equal(result?.checks?.archiveArticle, true);
+  assert.equal(result?.checks?.articleDetailAfterArchive, true);
 });
 
 test('runSmoke fails when unpublished articles remain publicly visible', async () => {

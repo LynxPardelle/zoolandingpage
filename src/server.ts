@@ -1962,8 +1962,9 @@ function buildContentHubSitemapEntries(
   origin: string,
   siteConfig: TLocalSiteConfig | null,
   host: string,
+  lang?: string,
 ): readonly TSitemapEntry[] {
-  const articleEntries = readPublicContentHubArticles(siteConfig)
+  const articleEntries = readPublicContentHubArticles(siteConfig, lang)
     .filter((article) => !cleanString(article.robots).startsWith('noindex'))
     .map((article) => ({
       url: resolveEffectiveCanonicalUrl(new URL(normalizeRoutePath(article.canonicalPath || article.path), origin).toString(), origin, host, siteConfig),
@@ -1971,7 +1972,7 @@ function buildContentHubSitemapEntries(
       priority: '0.8',
     }));
 
-  const taxonomyEntries = readPublicContentHubTaxonomy(siteConfig)
+  const taxonomyEntries = readPublicContentHubTaxonomy(siteConfig, lang)
     .filter((entry) => cleanString(entry.kind) === 'category' && cleanString(entry.path))
     .map((entry) => ({
       url: resolveEffectiveCanonicalUrl(new URL(normalizeRoutePath(entry.path), origin).toString(), origin, host, siteConfig),
@@ -2029,6 +2030,7 @@ function buildSitemapEntryXml(entry: TSitemapEntry): string {
 
 async function buildSitemapXml(req: express.Request, host: string, siteConfig: TLocalSiteConfig | null): Promise<string> {
   const origin = `${resolveCanonicalOrigin(req, host, siteConfig).replace(/\/$/, '')}/`;
+  const lang = resolveRequestLanguage(req, siteConfig);
   const excludedPaths = new Set(
     (Array.isArray(siteConfig?.sitemap?.excludePaths) ? siteConfig.sitemap.excludePaths : [])
       .map((entry) => normalizeRoutePath(entry)),
@@ -2061,7 +2063,7 @@ async function buildSitemapXml(req: express.Request, host: string, siteConfig: T
   [
     ...resolvedEntries,
     ...resolveConfiguredSitemapUrls(origin, siteConfig, sitemapDomain, host),
-    ...buildContentHubSitemapEntries(origin, siteConfig, host),
+    ...buildContentHubSitemapEntries(origin, siteConfig, host, lang),
   ].forEach((entry) => {
     if (!entriesByUrl.has(entry.url)) {
       entriesByUrl.set(entry.url, entry);
@@ -2378,6 +2380,17 @@ function isContentHubTagFilterPath(path: string): boolean {
   return normalizedPath === '/blog/tag' || normalizedPath.startsWith('/blog/tag/');
 }
 
+function isContentHubCategoryFilterPath(siteConfig: TLocalSiteConfig | null, path: string, lang?: string): boolean {
+  const normalizedPath = normalizeRoutePath(path);
+  if (normalizedPath === '/blog' || normalizedPath.startsWith('/blog/tag/')) {
+    return false;
+  }
+
+  return readPublicContentHubTaxonomy(siteConfig, lang)
+    .some((entry) => cleanString(entry.kind) === 'category'
+      && normalizeRoutePath(entry.path) === normalizedPath);
+}
+
 function shouldForceNoindexForRequestPath(siteConfig: TLocalSiteConfig | null, path: string): boolean {
   const normalizedPath = normalizeRoutePath(path);
   const route = resolveLocalRoute(siteConfig, normalizedPath);
@@ -2480,11 +2493,15 @@ function buildCanonicalHeadHtml(
   host: string,
   siteConfig: TLocalSiteConfig | null,
   pageConfig: TLocalPageConfig | null,
+  contentHubSiteConfig: TLocalSiteConfig | null = siteConfig,
 ): string {
   const origin = resolveCanonicalOrigin(req, host, siteConfig).replace(/\/$/, '');
+  const lang = resolveRequestLanguage(req, siteConfig);
   const isTagFilterPath = isContentHubTagFilterPath(req.path);
-  const configuredCanonical = isTagFilterPath ? '' : cleanString(pageConfig?.seo?.canonical);
-  const rawCanonical = isTagFilterPath
+  const isCategoryFilterPath = isContentHubCategoryFilterPath(contentHubSiteConfig, req.path, lang);
+  const usesRequestCanonical = isTagFilterPath || isCategoryFilterPath;
+  const configuredCanonical = usesRequestCanonical ? '' : cleanString(pageConfig?.seo?.canonical);
+  const rawCanonical = usesRequestCanonical
     ? new URL(normalizeRoutePath(req.path), `${origin}/`).toString()
     : configuredCanonical && !configuredCanonical.includes('{{')
     ? new URL(configuredCanonical, `${origin}/`).toString()
@@ -2761,7 +2778,7 @@ async function decorateHtmlResponse(req: express.Request, response: Response): P
     buildBrowserIconsHeadHtml(siteConfig),
     buildRobotsHeadHtml(req, siteConfig, pageConfig),
     buildStructuredDataHeadHtml(pageConfig),
-    buildCanonicalHeadHtml(req, lookupDomain, siteConfig, pageConfig),
+    buildCanonicalHeadHtml(req, lookupDomain, siteConfig, pageConfig, publicContentHubSiteConfig),
     buildHreflangHeadHtml(req, lookupDomain, siteConfig),
   ].filter(Boolean).join('\n');
 
