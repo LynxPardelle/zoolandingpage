@@ -15,6 +15,7 @@ import { themePickValueHandler, themeValueHandler } from './handlers/theme.value
 import {
     richTextHtmlOrValueHandler,
     richTextTextOrValueHandler,
+    supportIdOrValueHandler,
     variableOrValueHandler,
     variableValueHandler,
 } from './handlers/variable.value-handlers';
@@ -53,5 +54,6 @@ export const provideValueHandlers = (): Provider[] => {
         { provide: VALUE_HANDLERS, multi: true, useFactory: variableOrValueHandler },
         { provide: VALUE_HANDLERS, multi: true, useFactory: richTextTextOrValueHandler },
         { provide: VALUE_HANDLERS, multi: true, useFactory: richTextHtmlOrValueHandler },
+        { provide: VALUE_HANDLERS, multi: true, useFactory: supportIdOrValueHandler },
     ];
 };

@@ -30,6 +30,82 @@ function clean(value) {
   return String(value ?? '').trim();
 }
 
+function assertNoInternalTaxonomyFields(value, context) {
+  const raw = JSON.stringify(value ?? {});
+  for (const field of ['"pk"', '"sk"', '"hubId"', '"updatedBy"']) {
+    if (raw.includes(field)) {
+      throw new Error(`${context} exposed internal taxonomy metadata.`);
+    }
+  }
+}
+
+function assertTaxonomyRecord(record, expected, context) {
+  assertNoInternalTaxonomyFields(record, context);
+  const mismatches = [
+    ['taxonomyId', clean(record?.taxonomyId), expected.taxonomyId],
+    ['kind', clean(record?.kind), expected.kind],
+    ['slug', clean(record?.slug), expected.slug],
+    ['label', clean(record?.label), expected.label],
+    ['description', clean(record?.description), expected.description],
+    ['locale', clean(record?.locale), expected.locale],
+    ['seoTitle', clean(record?.seoTitle), expected.seoTitle],
+    ['seoDescription', clean(record?.seoDescription), expected.seoDescription],
+    ['visible', Boolean(record?.visible), true],
+  ].filter(([, actual, wanted]) => actual !== wanted);
+  if (mismatches.length > 0 || !clean(record?.updatedAt)) {
+    throw new Error(`Taxonomy ${context} did not match expected public fields.`);
+  }
+}
+
+function assertNoInternalAssetFields(value, context) {
+  const raw = JSON.stringify(value ?? {});
+  for (const forbidden of ['"objectKey"', '"createdBy"', '"pk"', '"sk"', '"hubId"', 'content-hubs/', 'X-Amz-Signature']) {
+    if (raw.includes(forbidden)) {
+      throw new Error(`${context} exposed internal asset metadata.`);
+    }
+  }
+}
+
+function assertAssetRecord(record, expected, context) {
+  assertNoInternalAssetFields(record, context);
+  const mismatches = [
+    ['assetId', clean(record?.assetId), expected.assetId],
+    ['kind', clean(record?.kind), expected.kind],
+    ['fileName', clean(record?.fileName), expected.fileName],
+    ['mimeType', clean(record?.mimeType), expected.mimeType],
+    ['bytes', Number(record?.bytes), expected.bytes],
+    ['title', clean(record?.title), expected.title],
+    ['alt', clean(record?.alt), expected.alt],
+  ].filter(([, actual, wanted]) => actual !== wanted);
+  if (mismatches.length > 0 || !clean(record?.createdAt)) {
+    throw new Error(`Asset ${context} did not match expected public fields.`);
+  }
+}
+
+function assertNoInternalModerationFields(value, context) {
+  const raw = JSON.stringify(value ?? {});
+  for (const forbidden of ['"bodyHash"', '"createdByHash"', '"moderatedBy"', '"pk"', '"sk"', '"hubId"']) {
+    if (raw.includes(forbidden)) {
+      throw new Error(`${context} exposed internal moderation metadata.`);
+    }
+  }
+}
+
+function assertModerationRecord(record, expected, context) {
+  assertNoInternalModerationFields(record, context);
+  const mismatches = [
+    ['articleId', clean(record?.articleId), expected.articleId],
+    ['commentId', clean(record?.commentId), expected.commentId],
+    ['status', clean(record?.status), expected.status],
+  ].filter(([, actual, wanted]) => actual !== wanted);
+  if (mismatches.length > 0 || !hasNeedle(record?.bodyPreview, expected.previewNeedle) || !clean(record?.queuedAt)) {
+    throw new Error(`Moderation ${context} did not match expected public fields.`);
+  }
+  if (expected.moderated && !clean(record?.moderatedAt)) {
+    throw new Error(`Moderation ${context} did not include moderatedAt.`);
+  }
+}
+
 function normalizeBaseUrl(value) {
   const baseUrl = clean(value);
   if (!baseUrl) return '';
@@ -286,13 +362,23 @@ function findAnalyticsItem(response, articleId) {
   return items.find((item) => clean(item.articleId) === articleId) ?? null;
 }
 
+function publicSearchIncludesArticle(response, articleId, pathName, title) {
+  const articles = Array.isArray(response?.articles) ? response.articles : [];
+  return articles.some((article) => clean(article.articleId) === articleId
+    || clean(article.path) === pathName
+    || clean(article.title) === title);
+}
+
 function hasPublicInteractionMetrics(response, articleId) {
   const item = findAnalyticsItem(response, articleId);
   return !!item
+    && metricNumber(item, 'readProgress') > 0
     && metricNumber(item, 'ctaClicks') > 0
     && metricNumber(item, 'reactions') > 0
     && metricNumber(item, 'shares') > 0
-    && metricNumber(item, 'comments') > 0;
+    && metricNumber(item, 'comments') > 0
+    && metricNumber(item, 'assetDownloads') > 0
+    && metricNumber(item, 'forms') > 0;
 }
 
 function sleep(ms) {
@@ -336,6 +422,18 @@ async function fetchText(url, init, timeoutMs) {
   return raw;
 }
 
+async function fetchTextResult(url, init, timeoutMs) {
+  const response = await fetch(url, {
+    ...init,
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  return {
+    ok: response.ok,
+    status: response.status,
+    text: await response.text(),
+  };
+}
+
 async function smokeStep(step, operation) {
   try {
     return await operation();
@@ -377,9 +475,123 @@ async function runSmoke(options) {
   const token = compactTimestamp(now);
   const title = `QA Product Smoke ${token}`;
   const slug = slugify(title);
-  const category = 'qa';
+  const category = `qa-${token}`;
+  const taxonomyCategoryId = `qa_category_${token}`;
+  const tag = `product-smoke-${token}`;
+  const taxonomyTagId = `qa_tag_${token}`;
   const expectedPath = `/blog/${category}/${slug}`;
   const articleBodyNeedle = `Contenido editado por smoke ${token}`;
+  const commentPreviewNeedle = `QA smoke moderated comment ${token}`;
+  const asset = {
+    assetId: `asset_${token}`,
+    kind: 'document',
+    fileName: `qa-smoke-${token}.txt`,
+    mimeType: 'text/plain',
+    bytes: Buffer.byteLength(`Smoke asset ${token}`, 'utf8'),
+    title: `Smoke asset ${token}`,
+    alt: `Archivo de prueba ${token}`,
+  };
+
+  const upsertTaxonomy = async ({ taxonomyKind, taxonomyId, taxonomySlug, label }) => {
+    const expected = {
+      taxonomyId,
+      kind: taxonomyKind,
+      slug: taxonomySlug,
+      label,
+      description: `QA taxonomy smoke ${token}`,
+      locale: lang,
+      seoTitle: label,
+      seoDescription: `SEO QA taxonomy smoke ${token}`,
+    };
+    const payload = buildContentHubPayload({
+      domain,
+      pageId: taxonomyKind === 'category' ? 'admin-blog-categorias' : 'admin-blog-tags',
+      operationId: 'content_hub_upsert_taxonomy',
+      hubId,
+      kind: 'action',
+      input: {
+        contentHub: { action: 'upsertTaxonomy' },
+        taxonomyKind,
+        taxonomyId,
+        slug: taxonomySlug,
+        translation: label,
+        taxonomyDescription: expected.description,
+        seoTitle: label,
+        seoDescription: expected.seoDescription,
+        visible: true,
+      },
+    });
+    const response = await smokeStep(`upsertTaxonomy:${taxonomyKind}`, () => fetchJson(endpoint('action'), {
+      method: 'POST',
+      headers: actionHeaders,
+      body: JSON.stringify(payload),
+    }, timeoutMs));
+    const taxonomy = response?.data?.taxonomy ?? {};
+    assertTaxonomyRecord(taxonomy, expected, `${taxonomyKind} upsert`);
+  };
+
+  const readTaxonomy = async ({ taxonomyKind, taxonomyId, taxonomySlug, label }) => {
+    const expected = {
+      taxonomyId,
+      kind: taxonomyKind,
+      slug: taxonomySlug,
+      label,
+      description: `QA taxonomy smoke ${token}`,
+      locale: lang,
+      seoTitle: label,
+      seoDescription: `SEO QA taxonomy smoke ${token}`,
+    };
+    const payload = buildContentHubPayload({
+      domain,
+      pageId: taxonomyKind === 'category' ? 'admin-blog-categorias' : 'admin-blog-tags',
+      operationId: 'content_hub_taxonomy_list',
+      hubId,
+      kind: 'read',
+      input: {
+        contentHub: { read: 'taxonomyList' },
+        taxonomyKind,
+      },
+    });
+    const response = await smokeStep(`taxonomyList:${taxonomyKind}`, () => fetchJson(endpoint('read'), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+    }, timeoutMs));
+    assertNoInternalTaxonomyFields(response?.data, `${taxonomyKind} list`);
+    const items = taxonomyKind === 'category' ? response?.data?.categories : response?.data?.tags;
+    const item = Array.isArray(items)
+      ? items.find((candidate) => clean(candidate.taxonomyId) === taxonomyId && clean(candidate.slug) === taxonomySlug)
+      : null;
+    if (!item) {
+      throw new Error(`Taxonomy ${taxonomyKind} list did not include the smoke record.`);
+    }
+    assertTaxonomyRecord(item, expected, `${taxonomyKind} list`);
+  };
+
+  await upsertTaxonomy({
+    taxonomyKind: 'category',
+    taxonomyId: taxonomyCategoryId,
+    taxonomySlug: category,
+    label: `QA ${token}`,
+  });
+  await upsertTaxonomy({
+    taxonomyKind: 'tag',
+    taxonomyId: taxonomyTagId,
+    taxonomySlug: tag,
+    label: `Product Smoke ${token}`,
+  });
+  await readTaxonomy({
+    taxonomyKind: 'category',
+    taxonomyId: taxonomyCategoryId,
+    taxonomySlug: category,
+    label: `QA ${token}`,
+  });
+  await readTaxonomy({
+    taxonomyKind: 'tag',
+    taxonomyId: taxonomyTagId,
+    taxonomySlug: tag,
+    label: `Product Smoke ${token}`,
+  });
 
   const createPayload = buildContentHubPayload({
     domain,
@@ -392,7 +604,7 @@ async function runSmoke(options) {
       articleTitle: title,
       articleLanguage: lang,
       articleCategory: category,
-      articleTags: 'qa, product-smoke, content-hub',
+      articleTags: `qa, ${tag}, content-hub`,
       articleSummary: `Smoke público ${token} para validar publicación completa.`,
       articleSeoTitle: title,
       articleSeoDescription: `Validación automática redacted del content hub ${token}.`,
@@ -428,7 +640,7 @@ async function runSmoke(options) {
       articleTitle: title,
       articleLanguage: lang,
       articleCategory: category,
-      articleTags: 'qa, product-smoke, content-hub, edited',
+      articleTags: `qa, ${tag}, content-hub, edited`,
       articleSummary: `Smoke editado ${token} para validar edición antes de publicación.`,
       articleSlug: slug,
       articleContent: {
@@ -513,6 +725,35 @@ async function runSmoke(options) {
     throw new Error('Restore revision did not return the restored revision.');
   }
 
+  const uploadAssetPayload = buildContentHubPayload({
+    domain,
+    pageId: 'admin-blog-medios',
+    operationId: 'content_hub_upload_asset',
+    hubId,
+    kind: 'action',
+    input: {
+      contentHub: { action: 'uploadAsset', articleId: created.articleId },
+      articleId: created.articleId,
+      assetId: asset.assetId,
+      upload: {
+        fileName: asset.fileName,
+        mimeType: asset.mimeType,
+        dataBase64: Buffer.from(`Smoke asset ${token}`, 'utf8').toString('base64'),
+        bytes: asset.bytes,
+      },
+      metadata: {
+        alt: asset.alt,
+      },
+      title: asset.title,
+    },
+  });
+  const uploadAssetResponse = await smokeStep('uploadAsset', () => fetchJson(endpoint('action'), {
+    method: 'POST',
+    headers: actionHeaders,
+    body: JSON.stringify(uploadAssetPayload),
+  }, timeoutMs));
+  assertAssetRecord(uploadAssetResponse?.data?.asset ?? {}, asset, 'upload');
+
   for (const readCheck of [
     {
       label: 'asset list',
@@ -551,6 +792,14 @@ async function runSmoke(options) {
     }, timeoutMs));
     if (!Array.isArray(response?.data?.items)) {
       throw new Error(`Content hub ${readCheck.label} did not return an item list.`);
+    }
+    if (readCheck.binding.read === 'assetList') {
+      assertNoInternalAssetFields(response?.data, 'asset list');
+      const uploadedAsset = response.data.items.find((item) => clean(item.assetId) === asset.assetId);
+      if (!uploadedAsset) {
+        throw new Error('Content hub asset list did not include the uploaded smoke asset.');
+      }
+      assertAssetRecord(uploadedAsset, asset, 'list');
     }
   }
 
@@ -662,7 +911,7 @@ async function runSmoke(options) {
     { label: 'slug', query: slug },
     { label: 'path', query: published.path },
     { label: 'category', query: category },
-    { label: 'tag', query: 'product-smoke' },
+    { label: 'tag', query: tag },
   ].filter((entry, index, entries) => entry.query && entries.findIndex((candidate) => candidate.query === entry.query) === index);
   for (const check of searchChecks) {
     const searchUrl = buildPublicSearchUrl({
@@ -676,11 +925,7 @@ async function runSmoke(options) {
       method: 'GET',
       headers: { Accept: 'application/json' },
     }, timeoutMs));
-    const articles = Array.isArray(searchResponse?.articles) ? searchResponse.articles : [];
-    const searchHasArticle = articles.some((article) => clean(article.articleId) === created.articleId
-      || clean(article.path) === published.path
-      || clean(article.title) === title);
-    if (!searchHasArticle) {
+    if (!publicSearchIncludesArticle(searchResponse, created.articleId, published.path, title)) {
       throw new Error(`Public content-hub search did not include the published article by ${check.label}.`);
     }
   }
@@ -704,9 +949,12 @@ async function runSmoke(options) {
   }
 
   for (const interaction of [
+    { label: 'readProgress', eventType: 'readProgress', targetId: 'article_body', value: '75' },
     { label: 'cta', eventType: 'cta_click', targetId: 'primary_cta', value: 'lead' },
     { label: 'reaction', eventType: 'reaction', targetId: 'helpful', value: 'helpful' },
     { label: 'share', eventType: 'share', targetId: 'share_current_page', value: 'copy' },
+    { label: 'assetDownload', eventType: 'assetDownload', targetId: asset.assetId, value: 'downloaded' },
+    { label: 'form', eventType: 'form', targetId: 'lead_form', value: 'submitted' },
   ]) {
     const interactionPayload = buildContentHubPayload({
       domain,
@@ -743,11 +991,78 @@ async function runSmoke(options) {
       commentPolicy: 'authenticated-moderation',
     },
   });
-  await smokeStep('queueComment', () => fetchJson(endpoint('action'), {
+  const queueCommentResponse = await smokeStep('queueComment', () => fetchJson(endpoint('action'), {
     method: 'POST',
     headers: actionHeaders,
     body: JSON.stringify(commentPayload),
   }, timeoutMs));
+  const commentId = clean(queueCommentResponse?.data?.comment?.commentId || queueCommentResponse?.data?.commentId);
+  if (!commentId) {
+    throw new Error('Queue comment response did not include a commentId.');
+  }
+
+  const readModerationQueue = async (status, label) => {
+    const payload = buildContentHubPayload({
+      domain,
+      pageId: 'admin-blog-moderacion',
+      operationId: 'content_hub_moderation_queue',
+      hubId,
+      kind: 'read',
+      input: {
+        contentHub: { read: 'moderationQueue' },
+        articleId: created.articleId,
+      },
+    });
+    const response = await smokeStep(`moderationQueue:${label}`, () => fetchJson(endpoint('read'), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+    }, timeoutMs));
+    assertNoInternalModerationFields(response?.data, `moderation queue ${label}`);
+    const item = Array.isArray(response?.data?.items)
+      ? response.data.items.find((candidate) => clean(candidate.commentId) === commentId)
+      : null;
+    if (!item) {
+      throw new Error(`Moderation queue did not include the ${label} smoke comment.`);
+    }
+    assertModerationRecord(item, {
+      articleId: created.articleId,
+      commentId,
+      status,
+      previewNeedle: commentPreviewNeedle,
+      moderated: status !== 'queued',
+    }, label);
+  };
+
+  await readModerationQueue('queued', 'queued');
+
+  const moderateCommentPayload = buildContentHubPayload({
+    domain,
+    pageId: 'admin-blog-moderacion',
+    operationId: 'content_hub_moderate_comment',
+    hubId,
+    kind: 'action',
+    input: {
+      contentHub: { action: 'moderateComment', commentId },
+      commentId,
+      decision: 'approved',
+      reason: 'QA smoke approval',
+    },
+  });
+  const moderateCommentResponse = await smokeStep('moderateComment', () => fetchJson(endpoint('action'), {
+    method: 'POST',
+    headers: actionHeaders,
+    body: JSON.stringify(moderateCommentPayload),
+  }, timeoutMs));
+  assertModerationRecord(moderateCommentResponse?.data?.moderation ?? {}, {
+    articleId: created.articleId,
+    commentId,
+    status: 'approved',
+    previewNeedle: commentPreviewNeedle,
+    moderated: true,
+  }, 'approve');
+
+  await readModerationQueue('approved', 'approved');
 
   const analyticsAfterInteractionsPayload = buildContentHubPayload({
     domain,
@@ -775,7 +1090,7 @@ async function runSmoke(options) {
     }
   }
   if (!hasPublicInteractionMetrics(analyticsAfterInteractionsResponse, created.articleId)) {
-    throw new Error('Analytics summary did not include CTA, reaction, share, and comment counts for the published article.');
+    throw new Error('Analytics summary did not include read-progress, CTA, reaction, share, asset-download, form, and comment counts for the published article.');
   }
 
   const canonicalArticleUrl = publicCanonicalArticleUrl(domain, published.path);
@@ -867,6 +1182,142 @@ async function runSmoke(options) {
     throw new Error('Cancel schedule did not return canceled status.');
   }
 
+  const unpublishPayload = buildContentHubPayload({
+    domain,
+    pageId: 'admin-blog-programados',
+    operationId: 'content_hub_unpublish_article',
+    hubId,
+    kind: 'action',
+    input: {
+      contentHub: { action: 'unpublishArticle', articleId: created.articleId },
+      articleId: created.articleId,
+      renderDomain: domain,
+    },
+  });
+  const unpublishResponse = await smokeStep('unpublishArticle', () => fetchJson(endpoint('action'), {
+    method: 'POST',
+    headers: actionHeaders,
+    body: JSON.stringify(unpublishPayload),
+  }, timeoutMs));
+  if (clean(unpublishResponse?.data?.status) !== 'unpublished') {
+    throw new Error('Unpublish article did not return unpublished status.');
+  }
+  if (clean(unpublishResponse?.data?.articleId) !== created.articleId) {
+    throw new Error('Unpublish article did not return the smoke article ID.');
+  }
+  if (clean(unpublishResponse?.data?.path) !== published.path) {
+    throw new Error('Unpublish article did not return the published path.');
+  }
+  if (!clean(unpublishResponse?.data?.unpublishedAt)) {
+    throw new Error('Unpublish article did not return unpublishedAt.');
+  }
+
+  const unpublishedDetailPayload = buildContentHubPayload({
+    domain,
+    pageId: 'admin-blog-articulo-editor',
+    operationId: 'content_hub_article_detail',
+    hubId,
+    kind: 'read',
+    input: {
+      contentHub: { read: 'articleDetail', articleId: created.articleId },
+      articleId: created.articleId,
+    },
+  });
+  let unpublishedDetail = null;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const response = await smokeStep(`articleDetailAfterUnpublish:${attempt}`, () => fetchJson(endpoint('read'), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(unpublishedDetailPayload),
+    }, timeoutMs));
+    unpublishedDetail = response?.data?.item ?? null;
+    if (clean(unpublishedDetail?.status) === 'unpublished' && clean(unpublishedDetail?.visibility) === 'private') {
+      break;
+    }
+    if (attempt < 3) {
+      await sleep(350);
+    }
+  }
+  if (clean(unpublishedDetail?.status) !== 'unpublished' || clean(unpublishedDetail?.visibility) !== 'private') {
+    throw new Error('Article detail did not show unpublished/private after unpublish.');
+  }
+
+  const publicAbsenceSearchUrl = buildPublicSearchUrl({
+    baseUrl,
+    domain,
+    lang,
+    query: slug,
+    sharedPreview,
+  });
+  const publicAbsenceArticleUrl = buildPublicArticleUrl({
+    baseUrl,
+    domain,
+    pathName: published.path,
+    lang,
+    sharedPreview,
+  });
+  const publicAbsenceSitemapUrl = buildPublicXmlUrl({
+    baseUrl,
+    domain,
+    pathName: '/sitemap.xml',
+    lang: '',
+    sharedPreview,
+  });
+  const publicAbsenceFeedUrl = buildPublicXmlUrl({
+    baseUrl,
+    domain,
+    pathName: '/feed.xml',
+    lang,
+    sharedPreview,
+  });
+  let publicAbsence = null;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const searchResponse = await smokeStep(`publicSearchAfterUnpublish:${attempt}`, () => fetchJson(publicAbsenceSearchUrl, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+    }, timeoutMs));
+    const articleResponse = await smokeStep(`publicArticleAfterUnpublish:${attempt}`, () => fetchTextResult(publicAbsenceArticleUrl, {
+      method: 'GET',
+      headers: { Accept: 'text/html' },
+    }, timeoutMs));
+    const sitemapResponse = await smokeStep(`sitemapAfterUnpublish:${attempt}`, () => fetchTextResult(publicAbsenceSitemapUrl, {
+      method: 'GET',
+      headers: { Accept: 'application/xml,text/xml,*/*' },
+    }, timeoutMs));
+    const feedResponse = await smokeStep(`feedAfterUnpublish:${attempt}`, () => fetchTextResult(publicAbsenceFeedUrl, {
+      method: 'GET',
+      headers: { Accept: 'application/xml,text/xml,*/*' },
+    }, timeoutMs));
+    publicAbsence = {
+      search: publicSearchIncludesArticle(searchResponse, created.articleId, published.path, title),
+      article: articleResponse.ok && (
+        articleResponse.text.includes(title)
+        || articleResponse.text.includes(articleBodyNeedle)
+        || articleResponse.text.includes(published.path)
+      ),
+      sitemap: sitemapResponse.ok && sitemapResponse.text.includes(canonicalArticleUrl),
+      feed: feedResponse.ok && feedResponse.text.includes(canonicalArticleUrl),
+    };
+    if (!publicAbsence.search && !publicAbsence.article && !publicAbsence.sitemap && !publicAbsence.feed) {
+      break;
+    }
+    if (attempt < 3) {
+      await sleep(350);
+    }
+  }
+  if (publicAbsence?.search) {
+    throw new Error('Public search still includes the unpublished article.');
+  }
+  if (publicAbsence?.article) {
+    throw new Error('Public article page still includes the unpublished article.');
+  }
+  if (publicAbsence?.sitemap) {
+    throw new Error('Public sitemap still includes the unpublished article.');
+  }
+  if (publicAbsence?.feed) {
+    throw new Error('Public feed still includes the unpublished article.');
+  }
+
   return {
     ok: true,
     domain,
@@ -879,6 +1330,11 @@ async function runSmoke(options) {
     scheduleId,
     checks: {
       createArticle: true,
+      upsertCategory: true,
+      upsertTag: true,
+      taxonomyCategoryList: true,
+      taxonomyTagList: true,
+      uploadAsset: true,
       updatePackage: true,
       revisionList: true,
       publicBundlePreview: true,
@@ -889,6 +1345,17 @@ async function runSmoke(options) {
       submitReview: true,
       approveArticle: true,
       publish: true,
+      recordInteractionReadProgress: true,
+      recordInteractionCta: true,
+      recordInteractionReaction: true,
+      recordInteractionShare: true,
+      recordInteractionAssetDownload: true,
+      recordInteractionForm: true,
+      queueComment: true,
+      moderationQueueAfterComment: true,
+      moderateComment: true,
+      moderationQueueAfterModeration: true,
+      publicInteractionAnalytics: true,
       runtimeBundle: true,
       publicSearch: true,
       publicArticleHtml: true,
@@ -897,6 +1364,12 @@ async function runSmoke(options) {
       feed: true,
       scheduleList: true,
       cancelSchedule: true,
+      unpublishArticle: true,
+      articleDetailAfterUnpublish: true,
+      publicSearchAfterUnpublish: true,
+      publicArticleAfterUnpublish: true,
+      sitemapAfterUnpublish: true,
+      feedAfterUnpublish: true,
     },
   };
 }

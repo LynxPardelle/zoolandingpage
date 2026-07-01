@@ -170,23 +170,61 @@ describe('ContentHubClientService', () => {
         fetchSpy.and.resolveTo(new Response(JSON.stringify({
             ok: false,
             error: 'Invalid id',
+            requestId: 'req-safe-123',
         }), {
             status: 400,
             headers: { 'Content-Type': 'application/json' },
         }));
         const service = TestBed.inject(ContentHubClientService);
 
-        await expectAsync(service.executeAction({
-            domain: 'zoositioweb.com.mx',
-            pageId: 'admin-blog-articulos-nuevo',
-            actionId: 'contentHubCreateArticle',
-            input: {
-                contentHub: {
-                    action: 'createArticle',
-                    hubId: 'zoosite-main',
+        try {
+            await service.executeAction({
+                domain: 'zoositioweb.com.mx',
+                pageId: 'admin-blog-articulos-nuevo',
+                actionId: 'contentHubCreateArticle',
+                input: {
+                    contentHub: {
+                        action: 'createArticle',
+                        hubId: 'zoosite-main',
+                    },
                 },
-            },
-        })).toBeRejectedWithError('No pudimos identificar el artículo o la versión. Abre la acción desde la lista y vuelve a intentar.');
+            });
+            fail('expected content hub request to fail');
+        } catch (error) {
+            expect(error).toEqual(jasmine.any(Error));
+            expect((error as Error).message).toBe('No pudimos identificar el artículo o la versión. Abre la acción desde la lista y vuelve a intentar.');
+            expect((error as Error & { requestId?: string }).requestId).toBe('req-safe-123');
+        }
+    });
+
+    it('does not expose malformed content hub request ids', async () => {
+        fetchSpy.and.resolveTo(new Response(JSON.stringify({
+            ok: false,
+            error: 'Invalid id',
+            requestId: 'req-unsafe/<script>',
+        }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+        }));
+        const service = TestBed.inject(ContentHubClientService);
+
+        try {
+            await service.executeAction({
+                domain: 'zoositioweb.com.mx',
+                pageId: 'admin-blog-articulos-nuevo',
+                actionId: 'contentHubCreateArticle',
+                input: {
+                    contentHub: {
+                        action: 'createArticle',
+                        hubId: 'zoosite-main',
+                    },
+                },
+            });
+            fail('expected content hub request to fail');
+        } catch (error) {
+            expect(error).toEqual(jasmine.any(Error));
+            expect((error as Error & { requestId?: string }).requestId).toBeUndefined();
+        }
     });
 
     it('maps authorization failures without exposing raw backend terms', async () => {

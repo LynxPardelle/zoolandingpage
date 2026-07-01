@@ -59,9 +59,16 @@ export class ContentHubClientService {
                 body: JSON.stringify(bodyPayload),
                 ...(controller ? { signal: controller.signal } : {}),
             });
-            const parsed = await this.parseJson<T & { readonly ok?: boolean; readonly error?: unknown }>(response);
+            const parsed = await this.parseJson<T & {
+                readonly ok?: boolean;
+                readonly error?: unknown;
+                readonly requestId?: unknown;
+            }>(response);
             if (!response.ok || parsed.ok === false) {
-                throw new Error(this.safeErrorMessage(parsed.error, response.status));
+                throw this.errorWithRequestId(
+                    this.safeErrorMessage(parsed.error, response.status),
+                    parsed.requestId,
+                );
             }
             return parsed;
         } catch (error) {
@@ -211,6 +218,22 @@ export class ContentHubClientService {
 
     private clean(value: unknown): string {
         return typeof value === 'string' ? value.trim() : '';
+    }
+
+    private errorWithRequestId(message: string, requestId: unknown): Error {
+        const error = new Error(message) as Error & { requestId?: string };
+        const safeRequestId = this.safeRequestId(requestId);
+        if (safeRequestId) {
+            error.requestId = safeRequestId;
+        }
+        return error;
+    }
+
+    private safeRequestId(value: unknown): string {
+        const requestId = this.clean(value);
+        return /^req-[A-Za-z0-9._:-]{1,120}$/.test(requestId)
+            ? requestId
+            : '';
     }
 
     private safeErrorMessage(error: unknown, status?: number): string {

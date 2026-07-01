@@ -106,4 +106,42 @@ describe('ValueOrchestrator', () => {
         expect(resolvedHtml).toContain('<a href="https://zoositioweb.com.mx/blog"> con enlace</a>');
         expect(resolvedHtml).not.toContain('[object Object]');
     });
+
+    it('formats safe support request ids for draft-visible error states', () => {
+        const orchestrator = TestBed.inject(ValueOrchestrator);
+        const variables = TestBed.inject(VariableStoreService);
+        variables.setRuntimeValue('remoteStatus.contentHub.publish.requestId', 'req-safe-123');
+        const component = {
+            id: 'publishSupportId',
+            type: 'text',
+            config: {
+                text: '',
+            },
+            valueInstructions: 'set:config.text,supportIdOr,remoteStatus.contentHub.publish.requestId,blog.supportId,ID de soporte: {{ id }}',
+        } as unknown as TGenericComponent;
+
+        const resolved = orchestrator.apply(component, { host: {} });
+        const resolvedText = resolveDynamicValue((resolved as any).config?.text);
+
+        expect(resolvedText).toBe('ID de soporte: req-safe-123');
+    });
+
+    it('does not format malformed support request ids', () => {
+        const orchestrator = TestBed.inject(ValueOrchestrator);
+        const variables = TestBed.inject(VariableStoreService);
+        variables.setRuntimeValue('remoteStatus.contentHub.publish.requestId', 'req-unsafe/<script>');
+        const component = {
+            id: 'publishSupportId',
+            type: 'text',
+            config: {
+                text: '',
+            },
+            valueInstructions: 'set:config.text,supportIdOr,remoteStatus.contentHub.publish.requestId,blog.supportId,ID de soporte: {{ id }}',
+        } as unknown as TGenericComponent;
+
+        const resolved = orchestrator.apply(component, { host: {} });
+        const resolvedText = resolveDynamicValue((resolved as any).config?.text);
+
+        expect(resolvedText).toBe('');
+    });
 });

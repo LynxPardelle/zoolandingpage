@@ -294,13 +294,36 @@ test('slugify keeps article URLs deterministic and safe', () => {
 test('runSmoke fails when preview does not reflect the updated revision', async () => {
   const originalFetch = globalThis.fetch;
   const now = new Date('2026-06-30T04:00:00.000Z');
-  const path = '/blog/qa/qa-product-smoke-20260630040000';
+  const path = '/blog/qa-20260630040000/qa-product-smoke-20260630040000';
+  const taxonomyDescription = 'QA taxonomy smoke 20260630040000';
+  const taxonomySeoDescription = 'SEO QA taxonomy smoke 20260630040000';
 
   globalThis.fetch = async (url, init = {}) => {
     const parsed = new URL(String(url));
     const body = init.body ? JSON.parse(String(init.body)) : null;
     if (parsed.pathname.endsWith('/features/content-hub/action')) {
       const action = body?.input?.contentHub?.action;
+      if (action === 'upsertTaxonomy') {
+        const kind = body.input.taxonomyKind;
+        const label = kind === 'category' ? 'QA 20260630040000' : 'Product Smoke 20260630040000';
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            taxonomy: {
+              taxonomyId: kind === 'category' ? 'qa_category_20260630040000' : 'qa_tag_20260630040000',
+              kind,
+              slug: kind === 'category' ? 'qa-20260630040000' : 'product-smoke-20260630040000',
+              label,
+              description: taxonomyDescription,
+              locale: 'es',
+              seoTitle: label,
+              seoDescription: taxonomySeoDescription,
+              visible: true,
+              updatedAt: '2026-06-30T04:00:00Z',
+            },
+          },
+        }), { status: 200 });
+      }
       if (action === 'createArticle') {
         return new Response(JSON.stringify({
           ok: true,
@@ -330,6 +353,30 @@ test('runSmoke fails when preview does not reflect the updated revision', async 
     }
     if (parsed.pathname.endsWith('/features/content-hub/read')) {
       const read = body?.input?.contentHub?.read;
+      if (read === 'taxonomyList') {
+        const kind = body.input.taxonomyKind;
+        const label = kind === 'category' ? 'QA 20260630040000' : 'Product Smoke 20260630040000';
+        const item = {
+          taxonomyId: kind === 'category' ? 'qa_category_20260630040000' : 'qa_tag_20260630040000',
+          kind,
+          slug: kind === 'category' ? 'qa-20260630040000' : 'product-smoke-20260630040000',
+          label,
+          description: taxonomyDescription,
+          locale: 'es',
+          seoTitle: label,
+          seoDescription: taxonomySeoDescription,
+          visible: true,
+          updatedAt: '2026-06-30T04:00:00Z',
+        };
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            items: [item],
+            categories: kind === 'category' ? [item] : [],
+            tags: kind === 'tag' ? [item] : [],
+          },
+        }), { status: 200 });
+      }
       if (read === 'revisionList') {
         return new Response(JSON.stringify({
           ok: true,
@@ -367,6 +414,140 @@ test('runSmoke fails when preview does not reflect the updated revision', async 
   }
 });
 
+test('runSmoke fails when asset upload exposes internal storage metadata', async () => {
+  const originalFetch = globalThis.fetch;
+  const now = new Date('2026-06-30T04:00:00.000Z');
+  const path = '/blog/qa-20260630040000/qa-product-smoke-20260630040000';
+
+  globalThis.fetch = async (url, init = {}) => {
+    const parsed = new URL(String(url));
+    const body = init.body ? JSON.parse(String(init.body)) : null;
+    if (parsed.pathname.endsWith('/features/content-hub/action')) {
+      const action = body?.input?.contentHub?.action;
+      if (action === 'upsertTaxonomy') {
+        const kind = body.input.taxonomyKind;
+        const label = kind === 'category' ? 'QA 20260630040000' : 'Product Smoke 20260630040000';
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            taxonomy: {
+              taxonomyId: kind === 'category' ? 'qa_category_20260630040000' : 'qa_tag_20260630040000',
+              kind,
+              slug: kind === 'category' ? 'qa-20260630040000' : 'product-smoke-20260630040000',
+              label,
+              description: 'QA taxonomy smoke 20260630040000',
+              locale: 'es',
+              seoTitle: label,
+              seoDescription: 'SEO QA taxonomy smoke 20260630040000',
+              visible: true,
+              updatedAt: '2026-06-30T04:00:00Z',
+            },
+          },
+        }), { status: 200 });
+      }
+      if (action === 'createArticle') {
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            article: { articleId: 'art_smoke', latestRevisionId: 'rev_smoke', path },
+            revision: { revisionId: 'rev_smoke' },
+          },
+        }), { status: 200 });
+      }
+      if (action === 'updatePackage') {
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { revision: { revisionId: 'rev_20260630040000' } },
+        }), { status: 200 });
+      }
+      if (action === 'restoreRevision') {
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { articleId: 'art_smoke', revisionId: 'rev_20260630040000' },
+        }), { status: 200 });
+      }
+      if (action === 'uploadAsset') {
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            asset: {
+              assetId: 'asset_20260630040000',
+              kind: 'document',
+              fileName: 'qa-smoke-20260630040000.txt',
+              mimeType: 'text/plain',
+              bytes: Buffer.byteLength('Smoke asset 20260630040000', 'utf8'),
+              title: 'Smoke asset 20260630040000',
+              alt: 'Archivo de prueba 20260630040000',
+              objectKey: 'content-hubs/test/zoosite-main/assets/asset_20260630040000/original/qa-smoke-20260630040000.txt',
+              createdAt: '2026-06-30T04:00:00Z',
+            },
+          },
+        }), { status: 200 });
+      }
+    }
+    if (parsed.pathname.endsWith('/features/content-hub/read')) {
+      const read = body?.input?.contentHub?.read;
+      if (read === 'taxonomyList') {
+        const kind = body.input.taxonomyKind;
+        const label = kind === 'category' ? 'QA 20260630040000' : 'Product Smoke 20260630040000';
+        const item = {
+          taxonomyId: kind === 'category' ? 'qa_category_20260630040000' : 'qa_tag_20260630040000',
+          kind,
+          slug: kind === 'category' ? 'qa-20260630040000' : 'product-smoke-20260630040000',
+          label,
+          description: 'QA taxonomy smoke 20260630040000',
+          locale: 'es',
+          seoTitle: label,
+          seoDescription: 'SEO QA taxonomy smoke 20260630040000',
+          visible: true,
+          updatedAt: '2026-06-30T04:00:00Z',
+        };
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            items: [item],
+            categories: kind === 'category' ? [item] : [],
+            tags: kind === 'tag' ? [item] : [],
+          },
+        }), { status: 200 });
+      }
+      if (read === 'revisionList') {
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { items: [{ revisionId: 'rev_20260630040000', articleId: 'art_smoke' }] },
+        }), { status: 200 });
+      }
+      if (read === 'publicBundlePreview') {
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { item: { articleId: 'art_smoke', revisionId: 'rev_20260630040000' } },
+        }), { status: 200 });
+      }
+    }
+    return new Response(JSON.stringify({ ok: false, error: 'unexpected request' }), { status: 500 });
+  };
+
+  try {
+    await assert.rejects(() => runSmoke({
+      baseUrl: 'https://test.zoolandingpage.com.mx',
+      runtimeBaseUrl: 'https://runtime.example.com/Prod',
+      domain: 'zoositioweb.com.mx',
+      authProfileId: 'staff',
+      hubId: 'zoosite-main',
+      environment: 'test',
+      lang: 'es',
+      pageId: 'admin-blog-articulos',
+      cookieHeader: '__Host-zlp_session=session; zlp_csrf=csrf-token',
+      csrf: 'csrf-token',
+      timeoutMs: 1000,
+      sharedPreview: true,
+      now,
+    }), /upload exposed internal asset metadata/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('runSmoke verifies public search by title, slug, path, category, and tag', async () => {
   const originalFetch = globalThis.fetch;
   const searchQueries = [];
@@ -375,11 +556,26 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
   const xmlPaths = [];
   const interactionEvents = [];
   let queuedComments = 0;
+  let moderationStatus = 'none';
   const now = new Date('2026-06-30T04:00:00.000Z');
   const title = 'QA Product Smoke 20260630040000';
   const slug = 'qa-product-smoke-20260630040000';
-  const path = `/blog/qa/${slug}`;
+  const category = 'qa-20260630040000';
+  const tag = 'product-smoke-20260630040000';
+  const taxonomyDescription = 'QA taxonomy smoke 20260630040000';
+  const taxonomySeoDescription = 'SEO QA taxonomy smoke 20260630040000';
+  const asset = {
+    assetId: 'asset_20260630040000',
+    kind: 'document',
+    fileName: 'qa-smoke-20260630040000.txt',
+    mimeType: 'text/plain',
+    bytes: Buffer.byteLength('Smoke asset 20260630040000', 'utf8'),
+    title: 'Smoke asset 20260630040000',
+    alt: 'Archivo de prueba 20260630040000',
+  };
+  const path = `/blog/${category}/${slug}`;
   const articleBody = 'Contenido editado por smoke 20260630040000';
+  let unpublished = false;
 
   globalThis.fetch = async (url, init = {}) => {
     const parsed = new URL(String(url));
@@ -387,7 +583,40 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
     if (parsed.pathname.endsWith('/features/content-hub/action')) {
       const action = body?.input?.contentHub?.action;
       actionSequence.push(action);
+      if (action === 'upsertTaxonomy') {
+        const kind = body.input.taxonomyKind;
+        assert.ok(['category', 'tag'].includes(kind));
+        const taxonomyId = kind === 'category' ? 'qa_category_20260630040000' : 'qa_tag_20260630040000';
+        const label = kind === 'category' ? 'QA 20260630040000' : 'Product Smoke 20260630040000';
+        const taxonomySlug = kind === 'category' ? category : tag;
+        assert.equal(body.input.taxonomyId, taxonomyId);
+        assert.equal(body.input.slug, taxonomySlug);
+        assert.equal(body.input.translation, label);
+        assert.equal(body.input.taxonomyDescription, taxonomyDescription);
+        assert.equal(body.input.seoTitle, label);
+        assert.equal(body.input.seoDescription, taxonomySeoDescription);
+        assert.equal(body.input.visible, true);
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            taxonomy: {
+              taxonomyId,
+              kind,
+              slug: taxonomySlug,
+              label,
+              description: taxonomyDescription,
+              locale: 'es',
+              seoTitle: label,
+              seoDescription: taxonomySeoDescription,
+              visible: true,
+              updatedAt: '2026-06-30T04:00:00Z',
+            },
+          },
+        }), { status: 200 });
+      }
       if (action === 'createArticle') {
+        assert.equal(body.input.articleCategory, category);
+        assert.equal(body.input.articleTags, `qa, ${tag}, content-hub`);
         return new Response(JSON.stringify({
           ok: true,
           data: {
@@ -458,10 +687,30 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
           },
         }), { status: 200 });
       }
+      if (action === 'uploadAsset') {
+        assert.equal(body.input.articleId, 'art_smoke');
+        assert.equal(body.input.assetId, asset.assetId);
+        assert.equal(body.input.upload.fileName, asset.fileName);
+        assert.equal(body.input.upload.mimeType, asset.mimeType);
+        assert.equal(body.input.upload.bytes, asset.bytes);
+        assert.equal(body.input.upload.dataBase64, Buffer.from('Smoke asset 20260630040000', 'utf8').toString('base64'));
+        assert.equal(body.input.metadata.alt, asset.alt);
+        assert.equal(body.input.title, asset.title);
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            asset: {
+              ...asset,
+              publicUrl: '',
+              createdAt: '2026-06-30T04:00:00Z',
+            },
+          },
+        }), { status: 200 });
+      }
       if (action === 'recordInteraction') {
         assert.equal(body.input.articleId, 'art_smoke');
         assert.equal(body.input.path, path);
-        assert.ok(['cta_click', 'reaction', 'share'].includes(body.input.eventType));
+        assert.ok(['readProgress', 'cta_click', 'reaction', 'share', 'assetDownload', 'form'].includes(body.input.eventType));
         interactionEvents.push(body.input.eventType);
         return new Response(JSON.stringify({
           ok: true,
@@ -473,9 +722,37 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
         assert.equal(body.input.commentPolicy, 'authenticated-moderation');
         assert.match(body.input.commentBody, /^QA smoke moderated comment /);
         queuedComments += 1;
+        moderationStatus = 'queued';
         return new Response(JSON.stringify({
           ok: true,
-          data: { articleId: 'art_smoke', commentId: 'comment_smoke', moderationStatus: 'pending' },
+          data: {
+            comment: {
+              articleId: 'art_smoke',
+              commentId: 'comment_smoke',
+              status: 'queued',
+              bodyPreview: 'QA smoke moderated comment 20260630040000',
+              queuedAt: '2026-06-30T04:00:00Z',
+            },
+          },
+        }), { status: 200 });
+      }
+      if (action === 'moderateComment') {
+        assert.equal(body.input.commentId, 'comment_smoke');
+        assert.equal(body.input.decision, 'approved');
+        assert.equal(body.input.reason, 'QA smoke approval');
+        moderationStatus = 'approved';
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            moderation: {
+              articleId: 'art_smoke',
+              commentId: 'comment_smoke',
+              status: 'approved',
+              bodyPreview: 'QA smoke moderated comment 20260630040000',
+              queuedAt: '2026-06-30T04:00:00Z',
+              moderatedAt: '2026-06-30T04:05:00Z',
+            },
+          },
         }), { status: 200 });
       }
       if (action === 'schedule') {
@@ -495,10 +772,48 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
           data: { schedule: { scheduleId: 'schedule_smoke', status: 'canceled' } },
         }), { status: 200 });
       }
+      if (action === 'unpublishArticle') {
+        assert.equal(body.input.articleId, 'art_smoke');
+        unpublished = true;
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            articleId: 'art_smoke',
+            status: 'unpublished',
+            path,
+            unpublishedAt: '2026-06-30T05:00:00Z',
+          },
+        }), { status: 200 });
+      }
     }
     if (parsed.pathname.endsWith('/features/content-hub/read')) {
       const read = body?.input?.contentHub?.read;
       readSequence.push(read);
+      if (read === 'taxonomyList') {
+        const kind = body.input.taxonomyKind;
+        assert.ok(['category', 'tag'].includes(kind));
+        const label = kind === 'category' ? 'QA 20260630040000' : 'Product Smoke 20260630040000';
+        const item = {
+          taxonomyId: kind === 'category' ? 'qa_category_20260630040000' : 'qa_tag_20260630040000',
+          kind,
+          slug: kind === 'category' ? category : tag,
+          label,
+          description: taxonomyDescription,
+          locale: 'es',
+          seoTitle: label,
+          seoDescription: taxonomySeoDescription,
+          visible: true,
+          updatedAt: '2026-06-30T04:00:00Z',
+        };
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            items: [item],
+            categories: kind === 'category' ? [item] : [],
+            tags: kind === 'tag' ? [item] : [],
+          },
+        }), { status: 200 });
+      }
       if (read === 'revisionList') {
         assert.equal(body.input.articleId, 'art_smoke');
         return new Response(JSON.stringify({
@@ -528,13 +843,29 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
         assert.equal(body.input.articleId, 'art_smoke');
         return new Response(JSON.stringify({
           ok: true,
-          data: { items: [] },
+          data: {
+            items: [{
+              ...asset,
+              publicUrl: '',
+              createdAt: '2026-06-30T04:00:00Z',
+            }],
+          },
         }), { status: 200 });
       }
       if (read === 'moderationQueue') {
+        const items = moderationStatus === 'none'
+          ? []
+          : [{
+            articleId: 'art_smoke',
+            commentId: 'comment_smoke',
+            status: moderationStatus,
+            bodyPreview: 'QA smoke moderated comment 20260630040000',
+            queuedAt: '2026-06-30T04:00:00Z',
+            ...(moderationStatus === 'approved' ? { moderatedAt: '2026-06-30T04:05:00Z' } : {}),
+          }];
         return new Response(JSON.stringify({
           ok: true,
-          data: { items: [] },
+          data: { items },
         }), { status: 200 });
       }
       if (read === 'analyticsSummary') {
@@ -544,14 +875,23 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
             items: [{
               articleId: 'art_smoke',
               views: 1,
-              readProgress: 0,
+              readProgress: interactionEvents.includes('readProgress') ? 1 : 0,
               ctaClicks: interactionEvents.includes('cta_click') ? 1 : 0,
               reactions: interactionEvents.includes('reaction') ? 1 : 0,
               shares: interactionEvents.includes('share') ? 1 : 0,
               comments: queuedComments,
-              assetDownloads: 0,
+              assetDownloads: interactionEvents.includes('assetDownload') ? 1 : 0,
+              forms: interactionEvents.includes('form') ? 1 : 0,
             }],
           },
+        }), { status: 200 });
+      }
+      if (read === 'articleDetail') {
+        assert.equal(unpublished, true);
+        assert.equal(body.input.articleId, 'art_smoke');
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { item: { articleId: 'art_smoke', status: 'unpublished', visibility: 'private' } },
         }), { status: 200 });
       }
       assert.equal(read, 'scheduleList');
@@ -567,32 +907,45 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
       }), { status: 200 });
     }
     if (parsed.pathname.endsWith('/content-hub-search.json')) {
+      if (unpublished) {
+        return new Response(JSON.stringify({ ok: true, articles: [] }), { status: 200 });
+      }
       searchQueries.push(parsed.searchParams.get('q'));
       return new Response(JSON.stringify({
         ok: true,
-        articles: [{ articleId: 'art_smoke', title, path, category: 'qa', tags: ['product-smoke'] }],
+        articles: [{ articleId: 'art_smoke', title, path, category, tags: [tag] }],
       }), { status: 200 });
     }
     if (parsed.pathname === path) {
       assert.equal(parsed.searchParams.get('draftDomain'), 'zoositioweb.com.mx');
+      if (unpublished) {
+        return new Response('not found', { status: 404 });
+      }
       return new Response(`<html><title>${title}</title><body>${title}<article>${articleBody}.</article></body></html>`, { status: 200 });
     }
     if (parsed.pathname === '/sitemap.xml') {
       assert.equal(parsed.searchParams.get('draftDomain'), 'zoositioweb.com.mx');
+      if (unpublished) {
+        return new Response('<urlset></urlset>', { status: 200 });
+      }
       xmlPaths.push(parsed.pathname);
       return new Response(`<urlset><url><loc>https://zoositioweb.com.mx${path}</loc></url></urlset>`, { status: 200 });
     }
     if (parsed.pathname === '/feed.xml') {
       assert.equal(parsed.searchParams.get('draftDomain'), 'zoositioweb.com.mx');
       assert.equal(parsed.searchParams.get('lang'), 'es');
+      if (unpublished) {
+        return new Response('<rss><channel></channel></rss>', { status: 200 });
+      }
       xmlPaths.push(parsed.pathname);
       return new Response(`<rss><channel><item><link>https://zoositioweb.com.mx${path}</link><guid>https://zoositioweb.com.mx${path}</guid></item></channel></rss>`, { status: 200 });
     }
     return new Response(JSON.stringify({ ok: false, error: 'unexpected request' }), { status: 500 });
   };
 
+  let result = null;
   try {
-    await runSmoke({
+    result = await runSmoke({
       baseUrl: 'https://test.zoolandingpage.com.mx',
       runtimeBaseUrl: 'https://runtime.example.com/Prod',
       domain: 'zoositioweb.com.mx',
@@ -615,13 +968,16 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
     title,
     slug,
     path,
-    'qa',
-    'product-smoke',
+    category,
+    tag,
   ]);
   assert.deepEqual(actionSequence, [
+    'upsertTaxonomy',
+    'upsertTaxonomy',
     'createArticle',
     'updatePackage',
     'restoreRevision',
+    'uploadAsset',
     'validate',
     'submitReview',
     'approveArticle',
@@ -629,23 +985,280 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
     'recordInteraction',
     'recordInteraction',
     'recordInteraction',
+    'recordInteraction',
+    'recordInteraction',
+    'recordInteraction',
     'queueComment',
+    'moderateComment',
     'schedule',
     'cancelSchedule',
+    'unpublishArticle',
   ]);
-  assert.deepEqual(interactionEvents.sort(), ['cta_click', 'reaction', 'share']);
+  assert.deepEqual(interactionEvents.sort(), ['assetDownload', 'cta_click', 'form', 'reaction', 'readProgress', 'share']);
   assert.equal(queuedComments, 1);
   assert.deepEqual(readSequence, [
+    'taxonomyList',
+    'taxonomyList',
     'revisionList',
     'publicBundlePreview',
     'assetList',
     'moderationQueue',
     'analyticsSummary',
+    'moderationQueue',
+    'moderationQueue',
     'analyticsSummary',
     'scheduleList',
+    'articleDetail',
   ]);
   assert.deepEqual(xmlPaths, [
     '/sitemap.xml',
     '/feed.xml',
   ]);
+  assert.equal(result?.checks?.upsertCategory, true);
+  assert.equal(result?.checks?.upsertTag, true);
+  assert.equal(result?.checks?.taxonomyCategoryList, true);
+  assert.equal(result?.checks?.taxonomyTagList, true);
+  assert.equal(result?.checks?.uploadAsset, true);
+  assert.equal(result?.checks?.recordInteractionReadProgress, true);
+  assert.equal(result?.checks?.recordInteractionCta, true);
+  assert.equal(result?.checks?.recordInteractionReaction, true);
+  assert.equal(result?.checks?.recordInteractionShare, true);
+  assert.equal(result?.checks?.recordInteractionAssetDownload, true);
+  assert.equal(result?.checks?.recordInteractionForm, true);
+  assert.equal(result?.checks?.queueComment, true);
+  assert.equal(result?.checks?.moderationQueueAfterComment, true);
+  assert.equal(result?.checks?.moderateComment, true);
+  assert.equal(result?.checks?.moderationQueueAfterModeration, true);
+  assert.equal(result?.checks?.publicInteractionAnalytics, true);
+  assert.equal(result?.checks?.unpublishArticle, true);
+  assert.equal(result?.checks?.articleDetailAfterUnpublish, true);
+});
+
+test('runSmoke fails when unpublished articles remain publicly visible', async () => {
+  const originalFetch = globalThis.fetch;
+  const now = new Date('2026-06-30T04:00:00.000Z');
+  const title = 'QA Product Smoke 20260630040000';
+  const slug = 'qa-product-smoke-20260630040000';
+  const category = 'qa-20260630040000';
+  const path = `/blog/${category}/${slug}`;
+  let unpublished = false;
+  let moderationStatus = 'none';
+
+  globalThis.fetch = async (url, init = {}) => {
+    const parsed = new URL(String(url));
+    const body = init.body ? JSON.parse(String(init.body)) : null;
+    if (parsed.pathname.endsWith('/features/content-hub/action')) {
+      const action = body?.input?.contentHub?.action;
+      if (action === 'createArticle') {
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            article: { articleId: 'art_smoke', latestRevisionId: 'rev_smoke', path },
+            revision: { revisionId: 'rev_smoke' },
+          },
+        }), { status: 200 });
+      }
+      if (action === 'updatePackage') {
+        return new Response(JSON.stringify({ ok: true, data: { revision: { revisionId: 'rev_20260630040000' } } }), { status: 200 });
+      }
+      if (action === 'uploadAsset') {
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            asset: {
+              assetId: 'asset_20260630040000',
+              kind: 'document',
+              fileName: 'qa-smoke-20260630040000.txt',
+              mimeType: 'text/plain',
+              bytes: Buffer.byteLength('Smoke asset 20260630040000', 'utf8'),
+              title: 'Smoke asset 20260630040000',
+              alt: 'Archivo de prueba 20260630040000',
+              createdAt: '2026-06-30T04:00:00Z',
+            },
+          },
+        }), { status: 200 });
+      }
+      if (action === 'validate') {
+        return new Response(JSON.stringify({ ok: true, data: { valid: true } }), { status: 200 });
+      }
+      if (action === 'approveArticle' || action === 'submitReview' || action === 'restoreRevision') {
+        return new Response(JSON.stringify({ ok: true, data: { articleId: 'art_smoke', revisionId: 'rev_20260630040000' } }), { status: 200 });
+      }
+      if (action === 'publish') {
+        return new Response(JSON.stringify({ ok: true, data: { articleId: 'art_smoke', revisionId: 'rev_20260630040000', path } }), { status: 200 });
+      }
+      if (action === 'recordInteraction') {
+        return new Response(JSON.stringify({ ok: true, data: {} }), { status: 200 });
+      }
+      if (action === 'queueComment') {
+        moderationStatus = 'queued';
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            comment: {
+              articleId: 'art_smoke',
+              commentId: 'comment_smoke',
+              status: 'queued',
+              bodyPreview: 'QA smoke moderated comment 20260630040000',
+              queuedAt: '2026-06-30T04:00:00Z',
+            },
+          },
+        }), { status: 200 });
+      }
+      if (action === 'moderateComment') {
+        moderationStatus = 'approved';
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            moderation: {
+              articleId: 'art_smoke',
+              commentId: 'comment_smoke',
+              status: 'approved',
+              bodyPreview: 'QA smoke moderated comment 20260630040000',
+              queuedAt: '2026-06-30T04:00:00Z',
+              moderatedAt: '2026-06-30T04:05:00Z',
+            },
+          },
+        }), { status: 200 });
+      }
+      if (action === 'schedule') {
+        return new Response(JSON.stringify({ ok: true, data: { schedule: { scheduleId: 'schedule_smoke' } } }), { status: 200 });
+      }
+      if (action === 'cancelSchedule') {
+        return new Response(JSON.stringify({ ok: true, data: { schedule: { scheduleId: 'schedule_smoke', status: 'canceled' } } }), { status: 200 });
+      }
+      if (action === 'unpublishArticle') {
+        unpublished = true;
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { articleId: 'art_smoke', status: 'unpublished', path, unpublishedAt: '2026-06-30T05:00:00Z' },
+        }), { status: 200 });
+      }
+      if (action === 'upsertTaxonomy') {
+        const kind = body.input.taxonomyKind;
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            taxonomy: {
+              taxonomyId: kind === 'category' ? 'qa_category_20260630040000' : 'qa_tag_20260630040000',
+              kind,
+              slug: kind === 'category' ? category : 'product-smoke-20260630040000',
+              label: kind === 'category' ? 'QA 20260630040000' : 'Product Smoke 20260630040000',
+              description: 'QA taxonomy smoke 20260630040000',
+              locale: 'es',
+              seoTitle: kind === 'category' ? 'QA 20260630040000' : 'Product Smoke 20260630040000',
+              seoDescription: 'SEO QA taxonomy smoke 20260630040000',
+              visible: true,
+              updatedAt: '2026-06-30T04:00:00Z',
+            },
+          },
+        }), { status: 200 });
+      }
+    }
+    if (parsed.pathname.endsWith('/features/content-hub/read')) {
+      const read = body?.input?.contentHub?.read;
+      if (read === 'taxonomyList') {
+        const kind = body.input.taxonomyKind;
+        const item = {
+          taxonomyId: kind === 'category' ? 'qa_category_20260630040000' : 'qa_tag_20260630040000',
+          kind,
+          slug: kind === 'category' ? category : 'product-smoke-20260630040000',
+          label: kind === 'category' ? 'QA 20260630040000' : 'Product Smoke 20260630040000',
+          description: 'QA taxonomy smoke 20260630040000',
+          locale: 'es',
+          seoTitle: kind === 'category' ? 'QA 20260630040000' : 'Product Smoke 20260630040000',
+          seoDescription: 'SEO QA taxonomy smoke 20260630040000',
+          visible: true,
+          updatedAt: '2026-06-30T04:00:00Z',
+        };
+        return new Response(JSON.stringify({ ok: true, data: { categories: kind === 'category' ? [item] : [], tags: kind === 'tag' ? [item] : [] } }), { status: 200 });
+      }
+      if (read === 'revisionList') {
+        return new Response(JSON.stringify({ ok: true, data: { items: [{ revisionId: 'rev_20260630040000' }] } }), { status: 200 });
+      }
+      if (read === 'publicBundlePreview') {
+        return new Response(JSON.stringify({ ok: true, data: { item: { articleId: 'art_smoke', revisionId: 'rev_20260630040000', title } } }), { status: 200 });
+      }
+      if (read === 'assetList') {
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            items: [{
+              assetId: 'asset_20260630040000',
+              kind: 'document',
+              fileName: 'qa-smoke-20260630040000.txt',
+              mimeType: 'text/plain',
+              bytes: Buffer.byteLength('Smoke asset 20260630040000', 'utf8'),
+              title: 'Smoke asset 20260630040000',
+              alt: 'Archivo de prueba 20260630040000',
+              createdAt: '2026-06-30T04:00:00Z',
+            }],
+          },
+        }), { status: 200 });
+      }
+      if (read === 'moderationQueue') {
+        const items = moderationStatus === 'none'
+          ? []
+          : [{
+            articleId: 'art_smoke',
+            commentId: 'comment_smoke',
+            status: moderationStatus,
+            bodyPreview: 'QA smoke moderated comment 20260630040000',
+            queuedAt: '2026-06-30T04:00:00Z',
+            ...(moderationStatus === 'approved' ? { moderatedAt: '2026-06-30T04:05:00Z' } : {}),
+          }];
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { items },
+        }), { status: 200 });
+      }
+      if (read === 'analyticsSummary') {
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { items: [{ articleId: 'art_smoke', readProgress: 1, ctaClicks: 1, reactions: 1, shares: 1, comments: 1, assetDownloads: 1, forms: 1 }] },
+        }), { status: 200 });
+      }
+      if (read === 'articleDetail') {
+        return new Response(JSON.stringify({ ok: true, data: { item: { articleId: 'art_smoke', status: 'unpublished', visibility: 'private' } } }), { status: 200 });
+      }
+      return new Response(JSON.stringify({ ok: true, data: { items: [{ scheduleId: 'schedule_smoke' }] } }), { status: 200 });
+    }
+    if (parsed.pathname.endsWith('/runtime-bundle')) {
+      return new Response(JSON.stringify({ ok: true, runtime: { contentHubs: [{ publicArticles: [{ articleId: 'art_smoke', title, path }] }] } }), { status: 200 });
+    }
+    if (parsed.pathname.endsWith('/content-hub-search.json')) {
+      return new Response(JSON.stringify({ ok: true, articles: [{ articleId: 'art_smoke', title, path, category, tags: ['product-smoke-20260630040000'] }] }), { status: 200 });
+    }
+    if (parsed.pathname === path) {
+      return new Response(`<html><title>${title}</title><body>${title}<article>Contenido editado por smoke 20260630040000.</article></body></html>`, { status: 200 });
+    }
+    if (parsed.pathname === '/sitemap.xml') {
+      return new Response(`<urlset><url><loc>https://zoositioweb.com.mx${path}</loc></url></urlset>`, { status: 200 });
+    }
+    if (parsed.pathname === '/feed.xml') {
+      return new Response(`<rss><channel><item><link>https://zoositioweb.com.mx${path}</link><guid>https://zoositioweb.com.mx${path}</guid></item></channel></rss>`, { status: 200 });
+    }
+    return new Response(JSON.stringify({ ok: false, error: 'unexpected request' }), { status: 500 });
+  };
+
+  try {
+    await assert.rejects(() => runSmoke({
+      baseUrl: 'https://test.zoolandingpage.com.mx',
+      runtimeBaseUrl: 'https://runtime.example.com/Prod',
+      domain: 'zoositioweb.com.mx',
+      authProfileId: 'staff',
+      hubId: 'zoosite-main',
+      environment: 'test',
+      lang: 'es',
+      pageId: 'admin-blog-articulos',
+      cookieHeader: '__Host-zlp_session=session; zlp_csrf=csrf-token',
+      csrf: 'csrf-token',
+      timeoutMs: 1000,
+      sharedPreview: true,
+      now,
+    }), /Public search still includes the unpublished article/);
+    assert.equal(unpublished, true);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });

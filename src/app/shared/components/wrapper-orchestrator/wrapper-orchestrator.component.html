@@ -89,7 +89,8 @@
       meta_title: component.meta_title,
       eventName: 'linkClicked',
       eventData: $event.href,
-      eventInstructions: $event.eventInstructions || component.eventInstructions
+      eventInstructions: $event.eventInstructions || component.eventInstructions,
+      userGesture: $event.userGesture
     })
   "
   (actionClicked)="
@@ -98,7 +99,8 @@
       meta_title: component.meta_title,
       eventName: 'actionClicked',
       eventData: $event.label,
-      eventInstructions: $event.eventInstructions || component.eventInstructions
+      eventInstructions: $event.eventInstructions || component.eventInstructions,
+      userGesture: $event.userGesture
     })
   "
 ></generic-card>
@@ -180,7 +182,8 @@
         meta_title: component.meta_title,
         eventName: 'rowAction',
         eventData: $event,
-        eventInstructions: $event.eventInstructions || component.eventInstructions
+        eventInstructions: $event.eventInstructions || component.eventInstructions,
+        userGesture: $event.userGesture
       })
     "
     (selectionChanged)="
@@ -278,7 +281,8 @@
       meta_title: component.meta_title,
       eventName: 'clicked',
       eventData: resolveValue(component.config.href),
-      eventInstructions: component.eventInstructions
+      eventInstructions: component.eventInstructions,
+      userGesture: $event.isTrusted
     })
   "
 >

@@ -4,7 +4,7 @@ import type { TRuntimeDataSourceConfig } from '@/app/shared/types/config-payload
 import { AuthAdminClientService } from '@/app/state/auth/auth-admin-client.service';
 import { ContentHubClientService } from './content-hub-client.service';
 import { RuntimeApiProxyClientService, type TRuntimeApiProxyResponse } from './runtime-api-proxy-client.service';
-import { buildContentHubRuntimeInput } from './content-hub-runtime-request';
+import { buildContentHubRuntimeInput, CONTENT_HUB_SAFE_ID_INPUT_KEYS, isContentHubSafePublicId } from './content-hub-runtime-request';
 import { RuntimeDataSourceMapperService } from './runtime-data-source-mapper.service';
 import { VariableStoreService } from './variable-store.service';
 
@@ -84,7 +84,12 @@ export class RuntimeDataSourceService {
             this.writeMappedResult(prepared.source, mapped);
             this.writeStatus(prepared.source, this.hasItems(mapped) ? 'success' : 'empty', null);
         } catch (error) {
-            this.writeStatus(prepared.source, 'error', error instanceof Error ? error.message : 'API proxy request failed');
+            this.writeStatus(
+                prepared.source,
+                'error',
+                error instanceof Error ? error.message : 'API proxy request failed',
+                this.errorRequestId(error),
+            );
         }
     }
 
@@ -122,6 +127,9 @@ export class RuntimeDataSourceService {
 
         const input = this.resolvePreparedInput(source, routeParams);
         if (!this.hasRequiredInputValues(source.requiredInputKeys, input)) {
+            return null;
+        }
+        if (source.kind === 'content-hub' && !this.hasSafeContentHubRequiredIds(source.requiredInputKeys, input)) {
             return null;
         }
 
@@ -273,9 +281,32 @@ export class RuntimeDataSourceService {
 
     private hasResolvedInputValue(value: unknown): boolean {
         if (value == null) return false;
-        if (typeof value === 'string') return value.trim().length > 0;
+        if (typeof value === 'string') {
+            const normalized = value.trim().toLowerCase();
+            return !!normalized
+                && normalized !== 'undefined'
+                && normalized !== 'null'
+                && !/^\{[^{}]+\}$/.test(normalized);
+        }
         if (Array.isArray(value)) return value.length > 0;
         return true;
+    }
+
+    private hasSafeContentHubRequiredIds(
+        requiredKeys: readonly string[] | undefined,
+        input: Record<string, unknown> | undefined,
+    ): boolean {
+        if (!Array.isArray(requiredKeys) || requiredKeys.length === 0) {
+            return true;
+        }
+
+        return requiredKeys
+            .map((entry) => String(entry ?? '').trim())
+            .filter((key) => CONTENT_HUB_SAFE_ID_INPUT_KEYS.has(key))
+            .every((key) => {
+                const value = input?.[key];
+                return isContentHubSafePublicId(value);
+            });
     }
 
     private resolveInput(
@@ -451,12 +482,26 @@ export class RuntimeDataSourceService {
         return null;
     }
 
-    private writeStatus(source: TRuntimeDataSourceConfig, state: TRemoteStatusState, error: string | null): void {
+    private writeStatus(
+        source: TRuntimeDataSourceConfig,
+        state: TRemoteStatusState,
+        error: string | null,
+        requestId = '',
+    ): void {
         this.variables.setRuntimeValue(source.statusTarget || `remoteStatus.${ source.id }`, {
             state,
             updatedAt: state === 'loading' ? null : new Date().toISOString(),
             error,
+            ...(state === 'error' && requestId ? { requestId } : {}),
         });
+    }
+
+    private errorRequestId(error: unknown): string {
+        if (!this.isRecord(error)) return '';
+        const requestId = typeof error['requestId'] === 'string' ? error['requestId'].trim() : '';
+        return /^req-[A-Za-z0-9._:-]{1,120}$/.test(requestId)
+            ? requestId
+            : '';
     }
 
     private clearTargetForLoading(source: TRuntimeDataSourceConfig): void {

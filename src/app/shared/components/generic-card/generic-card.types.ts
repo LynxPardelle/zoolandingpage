@@ -39,6 +39,7 @@ export type TGenericCardConfig = {
     readonly imageContainerClasses?: string;
     readonly imageClasses?: string;
     readonly linkClasses?: string;
+    readonly linkStyles?: Readonly<Record<string, string | number | null | undefined>>;
     readonly actionListClasses?: string;
     readonly actionButtonClasses?: string;
 

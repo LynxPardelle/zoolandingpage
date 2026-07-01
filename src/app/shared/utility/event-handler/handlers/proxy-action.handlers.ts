@@ -1,6 +1,6 @@
 import { ConfigStoreService } from '@/app/shared/services/config-store.service';
 import { ContentHubClientService } from '@/app/shared/services/content-hub-client.service';
-import { buildContentHubRuntimeInput } from '@/app/shared/services/content-hub-runtime-request';
+import { buildContentHubRuntimeInput, CONTENT_HUB_SAFE_ID_INPUT_KEYS, isContentHubSafePublicId } from '@/app/shared/services/content-hub-runtime-request';
 import { RuntimeApiProxyClientService } from '@/app/shared/services/runtime-api-proxy-client.service';
 import { VariableStoreService } from '@/app/shared/services/variable-store.service';
 import type { TRuntimeApiActionConfig } from '@/app/shared/types/config-payloads.types';
@@ -18,8 +18,18 @@ const asRecord = (value: unknown): Record<string, unknown> =>
 const errorMessage = (error: unknown): string =>
     error instanceof Error ? error.message : 'API proxy action failed.';
 
+const errorRequestId = (error: unknown): string => {
+    const value = asRecord(error)['requestId'];
+    return typeof value === 'string' && /^req-[A-Za-z0-9._:-]{1,120}$/.test(value)
+        ? value
+        : '';
+};
+
 const statusTargetFor = (action: TRuntimeApiActionConfig): string =>
     action.statusTarget || `remoteStatus.${ action.id }`;
+
+const userGestureError = 'This action requires a direct user action.';
+const safeContentHubIdError = 'Select a valid content item before continuing.';
 
 const SAFE_RESPONSE_REFERENCE_PATHS: Record<string, readonly string[]> = {
     articleId: ['articleId', 'article.articleId', 'createdArticle.articleId', 'created.articleId', 'result.articleId'],
@@ -78,12 +88,14 @@ const writeStatus = (
     state: TProxyActionStatusState,
     error: string | null,
     data?: unknown,
+    requestId = '',
 ): void => {
     const references = state === 'success' ? responseReferences(data) : {};
     variables.setRuntimeValue(statusTargetFor(action), {
         state,
         updatedAt: state === 'loading' ? null : new Date().toISOString(),
         error,
+        ...(state === 'error' && requestId ? { requestId } : {}),
         ...(state === 'success' ? { data } : {}),
         ...references,
     });
@@ -116,15 +128,43 @@ const pickActionInput = (
 
 const resolveActionInput = (
     action: TRuntimeApiActionConfig,
-    eventData: Record<string, unknown>,
-    ctx: EventExecutionContext,
+    input: Record<string, unknown> | undefined,
 ): Record<string, unknown> | undefined => {
-    const input = pickActionInput(action, eventData, ctx);
     if (action.kind !== 'content-hub') {
         return input;
     }
 
     return buildContentHubRuntimeInput(action.contentHub, input, action.inputFields ?? []);
+};
+
+const hasSafeContentHubActionIds = (
+    action: TRuntimeApiActionConfig,
+    rawInput: Record<string, unknown> | undefined,
+): boolean => {
+    if (action.kind !== 'content-hub') {
+        return true;
+    }
+
+    return (action.inputFields ?? [])
+        .map((field) => String(field ?? '').trim())
+        .filter((field) => CONTENT_HUB_SAFE_ID_INPUT_KEYS.has(field))
+        .every((field) => {
+            if (!rawInput || !Object.prototype.hasOwnProperty.call(rawInput, field)) {
+                return true;
+            }
+
+            const value = rawInput[field];
+            if (value == null) {
+                return true;
+            }
+
+            const normalized = String(value).trim().toLowerCase();
+            if (!normalized || normalized === 'undefined' || normalized === 'null') {
+                return true;
+            }
+
+            return isContentHubSafePublicId(value);
+        });
 };
 
 export const proxyActionHandler = (): EventHandler => {
@@ -150,19 +190,30 @@ export const proxyActionHandler = (): EventHandler => {
             const proxyActionId = String(action.proxyActionId || action.id).trim();
             if (!proxyActionId) return;
 
-            writeStatus(variables, action, 'loading', null);
+            if (action.requiresUserGesture === true && ctx.event.userGesture !== true) {
+                writeStatus(variables, action, 'error', userGestureError);
+                return;
+            }
 
             try {
+                const rawInput = pickActionInput(action, asRecord(ctx.event.eventData), ctx);
+                if (!hasSafeContentHubActionIds(action, rawInput)) {
+                    writeStatus(variables, action, 'error', safeContentHubIdError);
+                    return;
+                }
+                const input = resolveActionInput(action, rawInput);
+
+                writeStatus(variables, action, 'loading', null);
                 const client = action.kind === 'content-hub' ? contentHub : proxy;
                 const response = await client.executeAction({
                     domain,
                     pageId,
                     actionId: proxyActionId,
-                    input: resolveActionInput(action, asRecord(ctx.event.eventData), ctx),
+                    input,
                 });
                 writeStatus(variables, action, 'success', null, response.data);
             } catch (error) {
-                writeStatus(variables, action, 'error', errorMessage(error));
+                writeStatus(variables, action, 'error', errorMessage(error), undefined, errorRequestId(error));
             }
         },
     };
