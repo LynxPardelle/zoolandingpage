@@ -98,6 +98,7 @@ Supported read bindings:
 Supported action bindings:
 
 - `createArticle`
+- `upsertTaxonomy`
 - `updatePackage`
 - `uploadAsset`
 - `validate`
@@ -108,7 +109,9 @@ Supported action bindings:
 - `archiveArticle`
 - `schedule`
 - `cancelSchedule`
+- `queueComment`
 - `moderateComment`
+- `recordInteraction`
 - `restoreRevision`
 
 The public request envelope is intentionally narrow. It may include `domain`, `pageId`, a public source/action ID, `contentHub.hubId`, public article/taxonomy/asset/comment/schedule identifiers, language/revision identifiers, and explicitly allowlisted safe input fields. It must not include server-only policy, table names, bucket names, upstream URLs, credential refs, tokens, tenant IDs, authorizer policy, group-to-role mapping, signed URL policy, or authorization decisions.
