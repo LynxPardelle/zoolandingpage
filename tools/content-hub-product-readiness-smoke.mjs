@@ -30,6 +30,33 @@ function clean(value) {
   return String(value ?? '').trim();
 }
 
+function assertNoInternalTaxonomyFields(value, context) {
+  const raw = JSON.stringify(value ?? {});
+  for (const field of ['"pk"', '"sk"', '"hubId"', '"updatedBy"']) {
+    if (raw.includes(field)) {
+      throw new Error(`${context} exposed internal taxonomy metadata.`);
+    }
+  }
+}
+
+function assertTaxonomyRecord(record, expected, context) {
+  assertNoInternalTaxonomyFields(record, context);
+  const mismatches = [
+    ['taxonomyId', clean(record?.taxonomyId), expected.taxonomyId],
+    ['kind', clean(record?.kind), expected.kind],
+    ['slug', clean(record?.slug), expected.slug],
+    ['label', clean(record?.label), expected.label],
+    ['description', clean(record?.description), expected.description],
+    ['locale', clean(record?.locale), expected.locale],
+    ['seoTitle', clean(record?.seoTitle), expected.seoTitle],
+    ['seoDescription', clean(record?.seoDescription), expected.seoDescription],
+    ['visible', Boolean(record?.visible), true],
+  ].filter(([, actual, wanted]) => actual !== wanted);
+  if (mismatches.length > 0 || !clean(record?.updatedAt)) {
+    throw new Error(`Taxonomy ${context} did not match expected public fields.`);
+  }
+}
+
 function normalizeBaseUrl(value) {
   const baseUrl = clean(value);
   if (!baseUrl) return '';
@@ -377,9 +404,113 @@ async function runSmoke(options) {
   const token = compactTimestamp(now);
   const title = `QA Product Smoke ${token}`;
   const slug = slugify(title);
-  const category = 'qa';
+  const category = `qa-${token}`;
+  const taxonomyCategoryId = `qa_category_${token}`;
+  const tag = `product-smoke-${token}`;
+  const taxonomyTagId = `qa_tag_${token}`;
   const expectedPath = `/blog/${category}/${slug}`;
   const articleBodyNeedle = `Contenido editado por smoke ${token}`;
+
+  const upsertTaxonomy = async ({ taxonomyKind, taxonomyId, taxonomySlug, label }) => {
+    const expected = {
+      taxonomyId,
+      kind: taxonomyKind,
+      slug: taxonomySlug,
+      label,
+      description: `QA taxonomy smoke ${token}`,
+      locale: lang,
+      seoTitle: label,
+      seoDescription: `SEO QA taxonomy smoke ${token}`,
+    };
+    const payload = buildContentHubPayload({
+      domain,
+      pageId: taxonomyKind === 'category' ? 'admin-blog-categorias' : 'admin-blog-tags',
+      operationId: 'content_hub_upsert_taxonomy',
+      hubId,
+      kind: 'action',
+      input: {
+        contentHub: { action: 'upsertTaxonomy' },
+        taxonomyKind,
+        taxonomyId,
+        slug: taxonomySlug,
+        translation: label,
+        taxonomyDescription: expected.description,
+        seoTitle: label,
+        seoDescription: expected.seoDescription,
+        visible: true,
+      },
+    });
+    const response = await smokeStep(`upsertTaxonomy:${taxonomyKind}`, () => fetchJson(endpoint('action'), {
+      method: 'POST',
+      headers: actionHeaders,
+      body: JSON.stringify(payload),
+    }, timeoutMs));
+    const taxonomy = response?.data?.taxonomy ?? {};
+    assertTaxonomyRecord(taxonomy, expected, `${taxonomyKind} upsert`);
+  };
+
+  const readTaxonomy = async ({ taxonomyKind, taxonomyId, taxonomySlug, label }) => {
+    const expected = {
+      taxonomyId,
+      kind: taxonomyKind,
+      slug: taxonomySlug,
+      label,
+      description: `QA taxonomy smoke ${token}`,
+      locale: lang,
+      seoTitle: label,
+      seoDescription: `SEO QA taxonomy smoke ${token}`,
+    };
+    const payload = buildContentHubPayload({
+      domain,
+      pageId: taxonomyKind === 'category' ? 'admin-blog-categorias' : 'admin-blog-tags',
+      operationId: 'content_hub_taxonomy_list',
+      hubId,
+      kind: 'read',
+      input: {
+        contentHub: { read: 'taxonomyList' },
+        taxonomyKind,
+      },
+    });
+    const response = await smokeStep(`taxonomyList:${taxonomyKind}`, () => fetchJson(endpoint('read'), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+    }, timeoutMs));
+    assertNoInternalTaxonomyFields(response?.data, `${taxonomyKind} list`);
+    const items = taxonomyKind === 'category' ? response?.data?.categories : response?.data?.tags;
+    const item = Array.isArray(items)
+      ? items.find((candidate) => clean(candidate.taxonomyId) === taxonomyId && clean(candidate.slug) === taxonomySlug)
+      : null;
+    if (!item) {
+      throw new Error(`Taxonomy ${taxonomyKind} list did not include the smoke record.`);
+    }
+    assertTaxonomyRecord(item, expected, `${taxonomyKind} list`);
+  };
+
+  await upsertTaxonomy({
+    taxonomyKind: 'category',
+    taxonomyId: taxonomyCategoryId,
+    taxonomySlug: category,
+    label: `QA ${token}`,
+  });
+  await upsertTaxonomy({
+    taxonomyKind: 'tag',
+    taxonomyId: taxonomyTagId,
+    taxonomySlug: tag,
+    label: `Product Smoke ${token}`,
+  });
+  await readTaxonomy({
+    taxonomyKind: 'category',
+    taxonomyId: taxonomyCategoryId,
+    taxonomySlug: category,
+    label: `QA ${token}`,
+  });
+  await readTaxonomy({
+    taxonomyKind: 'tag',
+    taxonomyId: taxonomyTagId,
+    taxonomySlug: tag,
+    label: `Product Smoke ${token}`,
+  });
 
   const createPayload = buildContentHubPayload({
     domain,
@@ -392,7 +523,7 @@ async function runSmoke(options) {
       articleTitle: title,
       articleLanguage: lang,
       articleCategory: category,
-      articleTags: 'qa, product-smoke, content-hub',
+      articleTags: `qa, ${tag}, content-hub`,
       articleSummary: `Smoke público ${token} para validar publicación completa.`,
       articleSeoTitle: title,
       articleSeoDescription: `Validación automática redacted del content hub ${token}.`,
@@ -428,7 +559,7 @@ async function runSmoke(options) {
       articleTitle: title,
       articleLanguage: lang,
       articleCategory: category,
-      articleTags: 'qa, product-smoke, content-hub, edited',
+      articleTags: `qa, ${tag}, content-hub, edited`,
       articleSummary: `Smoke editado ${token} para validar edición antes de publicación.`,
       articleSlug: slug,
       articleContent: {
@@ -662,7 +793,7 @@ async function runSmoke(options) {
     { label: 'slug', query: slug },
     { label: 'path', query: published.path },
     { label: 'category', query: category },
-    { label: 'tag', query: 'product-smoke' },
+    { label: 'tag', query: tag },
   ].filter((entry, index, entries) => entry.query && entries.findIndex((candidate) => candidate.query === entry.query) === index);
   for (const check of searchChecks) {
     const searchUrl = buildPublicSearchUrl({
@@ -939,6 +1070,10 @@ async function runSmoke(options) {
     scheduleId,
     checks: {
       createArticle: true,
+      upsertCategory: true,
+      upsertTag: true,
+      taxonomyCategoryList: true,
+      taxonomyTagList: true,
       updatePackage: true,
       revisionList: true,
       publicBundlePreview: true,

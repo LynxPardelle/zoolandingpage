@@ -294,13 +294,36 @@ test('slugify keeps article URLs deterministic and safe', () => {
 test('runSmoke fails when preview does not reflect the updated revision', async () => {
   const originalFetch = globalThis.fetch;
   const now = new Date('2026-06-30T04:00:00.000Z');
-  const path = '/blog/qa/qa-product-smoke-20260630040000';
+  const path = '/blog/qa-20260630040000/qa-product-smoke-20260630040000';
+  const taxonomyDescription = 'QA taxonomy smoke 20260630040000';
+  const taxonomySeoDescription = 'SEO QA taxonomy smoke 20260630040000';
 
   globalThis.fetch = async (url, init = {}) => {
     const parsed = new URL(String(url));
     const body = init.body ? JSON.parse(String(init.body)) : null;
     if (parsed.pathname.endsWith('/features/content-hub/action')) {
       const action = body?.input?.contentHub?.action;
+      if (action === 'upsertTaxonomy') {
+        const kind = body.input.taxonomyKind;
+        const label = kind === 'category' ? 'QA 20260630040000' : 'Product Smoke 20260630040000';
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            taxonomy: {
+              taxonomyId: kind === 'category' ? 'qa_category_20260630040000' : 'qa_tag_20260630040000',
+              kind,
+              slug: kind === 'category' ? 'qa-20260630040000' : 'product-smoke-20260630040000',
+              label,
+              description: taxonomyDescription,
+              locale: 'es',
+              seoTitle: label,
+              seoDescription: taxonomySeoDescription,
+              visible: true,
+              updatedAt: '2026-06-30T04:00:00Z',
+            },
+          },
+        }), { status: 200 });
+      }
       if (action === 'createArticle') {
         return new Response(JSON.stringify({
           ok: true,
@@ -330,6 +353,30 @@ test('runSmoke fails when preview does not reflect the updated revision', async 
     }
     if (parsed.pathname.endsWith('/features/content-hub/read')) {
       const read = body?.input?.contentHub?.read;
+      if (read === 'taxonomyList') {
+        const kind = body.input.taxonomyKind;
+        const label = kind === 'category' ? 'QA 20260630040000' : 'Product Smoke 20260630040000';
+        const item = {
+          taxonomyId: kind === 'category' ? 'qa_category_20260630040000' : 'qa_tag_20260630040000',
+          kind,
+          slug: kind === 'category' ? 'qa-20260630040000' : 'product-smoke-20260630040000',
+          label,
+          description: taxonomyDescription,
+          locale: 'es',
+          seoTitle: label,
+          seoDescription: taxonomySeoDescription,
+          visible: true,
+          updatedAt: '2026-06-30T04:00:00Z',
+        };
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            items: [item],
+            categories: kind === 'category' ? [item] : [],
+            tags: kind === 'tag' ? [item] : [],
+          },
+        }), { status: 200 });
+      }
       if (read === 'revisionList') {
         return new Response(JSON.stringify({
           ok: true,
@@ -378,7 +425,11 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
   const now = new Date('2026-06-30T04:00:00.000Z');
   const title = 'QA Product Smoke 20260630040000';
   const slug = 'qa-product-smoke-20260630040000';
-  const path = `/blog/qa/${slug}`;
+  const category = 'qa-20260630040000';
+  const tag = 'product-smoke-20260630040000';
+  const taxonomyDescription = 'QA taxonomy smoke 20260630040000';
+  const taxonomySeoDescription = 'SEO QA taxonomy smoke 20260630040000';
+  const path = `/blog/${category}/${slug}`;
   const articleBody = 'Contenido editado por smoke 20260630040000';
   let unpublished = false;
 
@@ -388,7 +439,40 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
     if (parsed.pathname.endsWith('/features/content-hub/action')) {
       const action = body?.input?.contentHub?.action;
       actionSequence.push(action);
+      if (action === 'upsertTaxonomy') {
+        const kind = body.input.taxonomyKind;
+        assert.ok(['category', 'tag'].includes(kind));
+        const taxonomyId = kind === 'category' ? 'qa_category_20260630040000' : 'qa_tag_20260630040000';
+        const label = kind === 'category' ? 'QA 20260630040000' : 'Product Smoke 20260630040000';
+        const taxonomySlug = kind === 'category' ? category : tag;
+        assert.equal(body.input.taxonomyId, taxonomyId);
+        assert.equal(body.input.slug, taxonomySlug);
+        assert.equal(body.input.translation, label);
+        assert.equal(body.input.taxonomyDescription, taxonomyDescription);
+        assert.equal(body.input.seoTitle, label);
+        assert.equal(body.input.seoDescription, taxonomySeoDescription);
+        assert.equal(body.input.visible, true);
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            taxonomy: {
+              taxonomyId,
+              kind,
+              slug: taxonomySlug,
+              label,
+              description: taxonomyDescription,
+              locale: 'es',
+              seoTitle: label,
+              seoDescription: taxonomySeoDescription,
+              visible: true,
+              updatedAt: '2026-06-30T04:00:00Z',
+            },
+          },
+        }), { status: 200 });
+      }
       if (action === 'createArticle') {
+        assert.equal(body.input.articleCategory, category);
+        assert.equal(body.input.articleTags, `qa, ${tag}, content-hub`);
         return new Response(JSON.stringify({
           ok: true,
           data: {
@@ -513,6 +597,31 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
     if (parsed.pathname.endsWith('/features/content-hub/read')) {
       const read = body?.input?.contentHub?.read;
       readSequence.push(read);
+      if (read === 'taxonomyList') {
+        const kind = body.input.taxonomyKind;
+        assert.ok(['category', 'tag'].includes(kind));
+        const label = kind === 'category' ? 'QA 20260630040000' : 'Product Smoke 20260630040000';
+        const item = {
+          taxonomyId: kind === 'category' ? 'qa_category_20260630040000' : 'qa_tag_20260630040000',
+          kind,
+          slug: kind === 'category' ? category : tag,
+          label,
+          description: taxonomyDescription,
+          locale: 'es',
+          seoTitle: label,
+          seoDescription: taxonomySeoDescription,
+          visible: true,
+          updatedAt: '2026-06-30T04:00:00Z',
+        };
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            items: [item],
+            categories: kind === 'category' ? [item] : [],
+            tags: kind === 'tag' ? [item] : [],
+          },
+        }), { status: 200 });
+      }
       if (read === 'revisionList') {
         assert.equal(body.input.articleId, 'art_smoke');
         return new Response(JSON.stringify({
@@ -592,7 +701,7 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
       searchQueries.push(parsed.searchParams.get('q'));
       return new Response(JSON.stringify({
         ok: true,
-        articles: [{ articleId: 'art_smoke', title, path, category: 'qa', tags: ['product-smoke'] }],
+        articles: [{ articleId: 'art_smoke', title, path, category, tags: [tag] }],
       }), { status: 200 });
     }
     if (parsed.pathname === path) {
@@ -638,10 +747,12 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
     title,
     slug,
     path,
-    'qa',
-    'product-smoke',
+    category,
+    tag,
   ]);
   assert.deepEqual(actionSequence, [
+    'upsertTaxonomy',
+    'upsertTaxonomy',
     'createArticle',
     'updatePackage',
     'restoreRevision',
@@ -660,6 +771,8 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
   assert.deepEqual(interactionEvents.sort(), ['cta_click', 'reaction', 'share']);
   assert.equal(queuedComments, 1);
   assert.deepEqual(readSequence, [
+    'taxonomyList',
+    'taxonomyList',
     'revisionList',
     'publicBundlePreview',
     'assetList',
@@ -673,6 +786,10 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
     '/sitemap.xml',
     '/feed.xml',
   ]);
+  assert.equal(result?.checks?.upsertCategory, true);
+  assert.equal(result?.checks?.upsertTag, true);
+  assert.equal(result?.checks?.taxonomyCategoryList, true);
+  assert.equal(result?.checks?.taxonomyTagList, true);
   assert.equal(result?.checks?.recordInteractionCta, true);
   assert.equal(result?.checks?.recordInteractionReaction, true);
   assert.equal(result?.checks?.recordInteractionShare, true);
