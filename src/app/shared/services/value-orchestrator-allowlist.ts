@@ -28,6 +28,7 @@ export const DEFAULT_ALLOWED_VALUE_IDS = [
     'varOr',
     'richTextTextOr',
     'richTextHtmlOr',
+    'supportIdOr',
 ] as const;
 
 /**

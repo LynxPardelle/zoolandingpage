@@ -801,6 +801,76 @@ describe('Zoosite blog admin draft pages', () => {
     }
   });
 
+  it('shows safe support ids for content action errors when the backend provides one', async () => {
+    const lifecycleErrorComponents = new Map([
+      ['admin-blog-articulos-nuevo', ['newArticleCreateError']],
+      ['admin-blog-articulo-editor', ['editorSaveError', 'editorUploadError']],
+      ['admin-blog-articulo-preview', ['previewSourceError', 'previewValidateError', 'previewPublishError']],
+      ['admin-blog-articulo-seo', [
+        'seoValidateError',
+        'seoSubmitReviewError',
+        'seoApproveError',
+        'seoPublishError',
+        'seoUnpublishError',
+        'seoArchiveError',
+      ]],
+      ['admin-blog-articulo-versiones', ['versionsRestoreError']],
+      ['admin-blog-articulos', ['adminBlogArticulosValidateError']],
+      ['admin-blog-medios', ['mediaUploadError']],
+      ['admin-blog-moderacion', ['moderationModerateError']],
+      ['admin-blog-programados', ['scheduledScheduleError', 'scheduledPublishError', 'scheduledCancelError']],
+    ]);
+
+    for (const [pageId, errorComponentIds] of lifecycleErrorComponents) {
+      const payload = await readJson(`${pageId}/components.json`);
+      const components = flattenComponents(payload);
+      for (const errorComponentId of errorComponentIds) {
+        const errorComponent = componentById(components, errorComponentId);
+        const supportComponent = componentById(components, `${errorComponentId}SupportId`);
+        const statusPath = String(errorComponent?.condition ?? '').match(/all:varEq,(remoteStatus\.contentHub\.[^.]+)\.state,error/)?.[1];
+        assert.ok(statusPath, `${pageId}/${errorComponentId} must expose an error status path`);
+        assert.equal(supportComponent?.type, 'text', `${pageId}/${errorComponentId} needs a support-id text component`);
+        assert.match(
+          supportComponent?.condition ?? '',
+          new RegExp(`all:varEq,${statusPath.replaceAll('.', '\\.')}.state,error`),
+          `${pageId}/${supportComponent?.id} must only show in the matching error state`,
+        );
+        assert.match(
+          supportComponent?.condition ?? '',
+          new RegExp(`all:var,${statusPath.replaceAll('.', '\\.')}.requestId`),
+          `${pageId}/${supportComponent?.id} must require a requestId`,
+        );
+        assert.equal(
+          supportComponent?.valueInstructions,
+          `set:config.text,supportIdOr,${statusPath}.requestId,adminBlog.supportId,ID de soporte: {{ id }}`,
+          `${pageId}/${supportComponent?.id} must format request ids through supportIdOr`,
+        );
+
+        const parent = components.find((component) => Array.isArray(component?.config?.components)
+          && component.config.components.includes(errorComponentId));
+        assert.ok(parent, `${pageId}/${errorComponentId} must be rendered by a parent container`);
+        const children = parent.config.components;
+        assert.equal(
+          children[children.indexOf(errorComponentId) + 1],
+          `${errorComponentId}SupportId`,
+          `${pageId}/${errorComponentId} support id must render directly after the error copy`,
+        );
+      }
+    }
+
+    for (const pageId of pageIds) {
+      for (const language of ['es', 'en']) {
+        const translations = await readJson(`${pageId}/i18n/${language}.json`);
+        const expected = language === 'en' ? 'Support ID: {{ id }}' : 'ID de soporte: {{ id }}';
+        assert.equal(
+          translations.dictionary?.adminBlog?.supportId,
+          expected,
+          `${pageId}/i18n/${language}.json must translate support ids`,
+        );
+      }
+    }
+  });
+
   it('makes article identity and lifecycle action state explicit in create, editor, SEO, and schedule forms', async () => {
     const createPayload = await readJson('admin-blog-articulos-nuevo/components.json');
     const editorPayload = await readJson('admin-blog-articulo-editor/components.json');
