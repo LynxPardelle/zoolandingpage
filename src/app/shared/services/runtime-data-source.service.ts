@@ -84,7 +84,12 @@ export class RuntimeDataSourceService {
             this.writeMappedResult(prepared.source, mapped);
             this.writeStatus(prepared.source, this.hasItems(mapped) ? 'success' : 'empty', null);
         } catch (error) {
-            this.writeStatus(prepared.source, 'error', error instanceof Error ? error.message : 'API proxy request failed');
+            this.writeStatus(
+                prepared.source,
+                'error',
+                error instanceof Error ? error.message : 'API proxy request failed',
+                this.errorRequestId(error),
+            );
         }
     }
 
@@ -451,12 +456,26 @@ export class RuntimeDataSourceService {
         return null;
     }
 
-    private writeStatus(source: TRuntimeDataSourceConfig, state: TRemoteStatusState, error: string | null): void {
+    private writeStatus(
+        source: TRuntimeDataSourceConfig,
+        state: TRemoteStatusState,
+        error: string | null,
+        requestId = '',
+    ): void {
         this.variables.setRuntimeValue(source.statusTarget || `remoteStatus.${ source.id }`, {
             state,
             updatedAt: state === 'loading' ? null : new Date().toISOString(),
             error,
+            ...(state === 'error' && requestId ? { requestId } : {}),
         });
+    }
+
+    private errorRequestId(error: unknown): string {
+        if (!this.isRecord(error)) return '';
+        const requestId = typeof error['requestId'] === 'string' ? error['requestId'].trim() : '';
+        return /^req-[A-Za-z0-9._:-]{1,120}$/.test(requestId)
+            ? requestId
+            : '';
     }
 
     private clearTargetForLoading(source: TRuntimeDataSourceConfig): void {

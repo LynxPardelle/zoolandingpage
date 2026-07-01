@@ -696,7 +696,9 @@ describe('RuntimeDataSourceService', () => {
         variables.setRuntimeValue('remote.music.releases', {
             items: [{ title: 'Existing' }],
         });
-        proxy.readSource.and.rejectWith(new Error('Proxy unavailable'));
+        const failure = new Error('Proxy unavailable') as Error & { requestId?: string };
+        failure.requestId = 'req-read-123';
+        proxy.readSource.and.rejectWith(failure);
 
         await service.start({
             domain: 'music.lynxpardelle.com',
@@ -712,6 +714,27 @@ describe('RuntimeDataSourceService', () => {
         expect(variables.get('remote.music.releases.items')).toEqual([{ title: 'Existing' }]);
         expect(variables.get('remoteStatus.spotify-releases.state')).toBe('error');
         expect(variables.get('remoteStatus.spotify-releases.error')).toBe('Proxy unavailable');
+        expect(variables.get('remoteStatus.spotify-releases.requestId')).toBe('req-read-123');
+    });
+
+    it('does not write malformed request ids from failed data source reads', async () => {
+        const failure = new Error('Proxy unavailable') as Error & { requestId?: string };
+        failure.requestId = 'req-unsafe/<script>';
+        proxy.readSource.and.rejectWith(failure);
+
+        await service.start({
+            domain: 'music.lynxpardelle.com',
+            dataSources: [
+                {
+                    id: 'spotify-releases',
+                    proxySourceId: 'spotifyArtistAlbums',
+                    target: 'remote.music.releases',
+                },
+            ],
+        });
+
+        expect(variables.get('remoteStatus.spotify-releases.state')).toBe('error');
+        expect(variables.get('remoteStatus.spotify-releases.requestId')).toBeUndefined();
     });
 
     it('can append mapped API items into one catalog target while preserving fallback fields', async () => {
