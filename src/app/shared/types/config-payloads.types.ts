@@ -488,6 +488,13 @@ export type TRuntimeApiActionConfig = {
     readonly requiresUserGesture?: boolean;
 };
 
+export type TComboCatalogRuntimeConfig = {
+    readonly enabled?: boolean;
+    readonly endpoint: string;
+    readonly authProfileId?: string;
+    readonly draftDomain?: string;
+};
+
 export type TDraftSiteRuntimeConfig = {
     readonly localStorage?: TDraftLocalStorageRuntimeConfig;
     readonly features?: TDraftFeatureRuntimeConfig;
@@ -495,6 +502,7 @@ export type TDraftSiteRuntimeConfig = {
     readonly navigation?: TDraftNavigationRuntimeConfig;
     readonly auth?: TDraftAuthRuntimeConfig;
     readonly authRemote?: TDraftAuthRemoteRuntimeConfig;
+    readonly comboCatalog?: TComboCatalogRuntimeConfig;
     readonly contentHubs?: readonly TContentHubRuntimeConfig[];
     readonly dataSources?: readonly TRuntimeDataSourceConfig[];
     readonly apiActions?: readonly TRuntimeApiActionConfig[];

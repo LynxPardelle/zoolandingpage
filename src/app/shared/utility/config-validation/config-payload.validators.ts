@@ -12,6 +12,7 @@ import type {
     TAngoraCombosPayload,
     TAuthoringDraftFile,
     TAuthoringDraftPackage,
+    TComboCatalogRuntimeConfig,
     TComponentsPayload,
     TConfigRegistryPayload,
     TConfigVersionPointer,
@@ -100,9 +101,16 @@ const ALLOWED_DRAFT_RUNTIME_CONFIG_KEYS = new Set([
     'navigation',
     'auth',
     'authRemote',
+    'comboCatalog',
     'contentHubs',
     'dataSources',
     'apiActions',
+]);
+const ALLOWED_COMBO_CATALOG_RUNTIME_CONFIG_KEYS = new Set([
+    'enabled',
+    'endpoint',
+    'authProfileId',
+    'draftDomain',
 ]);
 const ALLOWED_RUNTIME_DATA_SOURCE_KEYS = new Set([
     'id',
@@ -1422,6 +1430,16 @@ const isDraftAuthRemoteRuntimeConfig = (value: unknown): value is TDraftAuthRemo
     return isSafeSameOriginPath(value['endpoint']) || isHttpsAbsoluteUrl(value['endpoint']);
 };
 
+const isComboCatalogRuntimeConfig = (value: unknown): value is TComboCatalogRuntimeConfig => {
+    if (!isRecord(value)) return false;
+    if (!hasOnlyKnownKeys(value, ALLOWED_COMBO_CATALOG_RUNTIME_CONFIG_KEYS)) return false;
+    if (value['enabled'] !== undefined && typeof value['enabled'] !== 'boolean') return false;
+    if (!isSafeSameOriginPath(value['endpoint']) && !isHttpsAbsoluteUrl(value['endpoint'])) return false;
+    if (value['authProfileId'] !== undefined && !isContentHubSafeId(value['authProfileId'])) return false;
+    if (value['draftDomain'] !== undefined && !isContentHubDomainName(value['draftDomain'])) return false;
+    return true;
+};
+
 const isDraftSiteRuntimeConfig = (value: unknown): value is TDraftSiteRuntimeConfig => {
     if (!isRecord(value)) return false;
     if (!hasOnlyKnownKeys(value, ALLOWED_DRAFT_RUNTIME_CONFIG_KEYS)) return false;
@@ -1433,6 +1451,7 @@ const isDraftSiteRuntimeConfig = (value: unknown): value is TDraftSiteRuntimeCon
     if (value['navigation'] !== undefined && !isDraftNavigationRuntimeConfig(value['navigation'])) return false;
     if (value['auth'] !== undefined && !isDraftAuthRuntimeConfig(value['auth'])) return false;
     if (value['authRemote'] !== undefined && !isDraftAuthRemoteRuntimeConfig(value['authRemote'])) return false;
+    if (value['comboCatalog'] !== undefined && !isComboCatalogRuntimeConfig(value['comboCatalog'])) return false;
     if (value['contentHubs'] !== undefined
         && (!Array.isArray(value['contentHubs']) || !value['contentHubs'].every(isContentHubRuntimeConfig))) return false;
     if (value['dataSources'] !== undefined

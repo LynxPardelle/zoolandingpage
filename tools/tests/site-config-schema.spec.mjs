@@ -53,6 +53,23 @@ test('site-config schema documents remote auth as a public minimal reference', a
     assert.equal(authRemote.additionalProperties, false);
 });
 
+test('site-config schema documents combo catalog as a public minimal reference', async () => {
+    const schema = JSON.parse(await readFile(schemaPath, 'utf8'));
+    const runtime = schema.definitions?.runtimeConfig;
+    const comboCatalog = schema.definitions?.comboCatalogRuntime;
+
+    assert.equal(runtime.properties.comboCatalog.$ref, '#/definitions/comboCatalogRuntime');
+    assert.deepEqual(comboCatalog.required, ['endpoint']);
+    assert.equal(comboCatalog.properties.endpoint.anyOf[0].$ref, '#/definitions/sameOriginPath');
+    assert.equal(comboCatalog.properties.endpoint.anyOf[1].$ref, '#/definitions/httpsAbsoluteUrl');
+    assert.equal(comboCatalog.properties.authProfileId.$ref, '#/definitions/contentHubSafeId');
+    assert.equal(comboCatalog.properties.draftDomain.$ref, '#/definitions/contentHubDomainName');
+    assert.equal(comboCatalog.properties.credentialRef, undefined);
+    assert.equal(comboCatalog.properties.clientSecret, undefined);
+    assert.equal(comboCatalog.properties.tableName, undefined);
+    assert.equal(comboCatalog.additionalProperties, false);
+});
+
 test('site-config schema supports auth-admin data sources with single-item account mappers', async () => {
     const schema = JSON.parse(await readFile(schemaPath, 'utf8'));
     const mapper = schema.definitions?.runtimeDataSourceMapper;
