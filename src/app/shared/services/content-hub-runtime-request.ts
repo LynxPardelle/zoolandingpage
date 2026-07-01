@@ -95,6 +95,7 @@ export const CONTENT_HUB_SAFE_ID_INPUT_KEYS = new Set([
 ]);
 
 const CONTENT_HUB_SAFE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$/;
+const CONTENT_HUB_PLACEHOLDER_ID_VALUES = new Set(['null', 'undefined', 'unknown']);
 
 const CONTENT_HUB_BINDING_KEYS = new Set([
     'action',
@@ -117,7 +118,9 @@ export const isForbiddenContentHubPublicInputValue = (value: unknown): boolean =
     typeof value === 'string' && CONTENT_HUB_FORBIDDEN_PUBLIC_INPUT_VALUE_PATTERN.test(value);
 
 export const isContentHubSafePublicId = (value: unknown): value is string =>
-    typeof value === 'string' && CONTENT_HUB_SAFE_ID_PATTERN.test(value.trim());
+    typeof value === 'string'
+    && CONTENT_HUB_SAFE_ID_PATTERN.test(value.trim())
+    && !CONTENT_HUB_PLACEHOLDER_ID_VALUES.has(value.trim().toLowerCase());
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     !!value && typeof value === 'object' && !Array.isArray(value);

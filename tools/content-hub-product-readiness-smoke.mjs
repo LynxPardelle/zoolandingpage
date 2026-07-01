@@ -362,6 +362,13 @@ function findAnalyticsItem(response, articleId) {
   return items.find((item) => clean(item.articleId) === articleId) ?? null;
 }
 
+function publicSearchIncludesArticle(response, articleId, pathName, title) {
+  const articles = Array.isArray(response?.articles) ? response.articles : [];
+  return articles.some((article) => clean(article.articleId) === articleId
+    || clean(article.path) === pathName
+    || clean(article.title) === title);
+}
+
 function hasPublicInteractionMetrics(response, articleId) {
   const item = findAnalyticsItem(response, articleId);
   return !!item
@@ -413,6 +420,18 @@ async function fetchText(url, init, timeoutMs) {
     throw new Error(safeSmokeErrorMessage(raw.slice(0, 240) || 'Request failed', response.status));
   }
   return raw;
+}
+
+async function fetchTextResult(url, init, timeoutMs) {
+  const response = await fetch(url, {
+    ...init,
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  return {
+    ok: response.ok,
+    status: response.status,
+    text: await response.text(),
+  };
 }
 
 async function smokeStep(step, operation) {
@@ -906,11 +925,7 @@ async function runSmoke(options) {
       method: 'GET',
       headers: { Accept: 'application/json' },
     }, timeoutMs));
-    const articles = Array.isArray(searchResponse?.articles) ? searchResponse.articles : [];
-    const searchHasArticle = articles.some((article) => clean(article.articleId) === created.articleId
-      || clean(article.path) === published.path
-      || clean(article.title) === title);
-    if (!searchHasArticle) {
+    if (!publicSearchIncludesArticle(searchResponse, created.articleId, published.path, title)) {
       throw new Error(`Public content-hub search did not include the published article by ${check.label}.`);
     }
   }
@@ -1227,6 +1242,82 @@ async function runSmoke(options) {
     throw new Error('Article detail did not show unpublished/private after unpublish.');
   }
 
+  const publicAbsenceSearchUrl = buildPublicSearchUrl({
+    baseUrl,
+    domain,
+    lang,
+    query: slug,
+    sharedPreview,
+  });
+  const publicAbsenceArticleUrl = buildPublicArticleUrl({
+    baseUrl,
+    domain,
+    pathName: published.path,
+    lang,
+    sharedPreview,
+  });
+  const publicAbsenceSitemapUrl = buildPublicXmlUrl({
+    baseUrl,
+    domain,
+    pathName: '/sitemap.xml',
+    lang: '',
+    sharedPreview,
+  });
+  const publicAbsenceFeedUrl = buildPublicXmlUrl({
+    baseUrl,
+    domain,
+    pathName: '/feed.xml',
+    lang,
+    sharedPreview,
+  });
+  let publicAbsence = null;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const searchResponse = await smokeStep(`publicSearchAfterUnpublish:${attempt}`, () => fetchJson(publicAbsenceSearchUrl, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+    }, timeoutMs));
+    const articleResponse = await smokeStep(`publicArticleAfterUnpublish:${attempt}`, () => fetchTextResult(publicAbsenceArticleUrl, {
+      method: 'GET',
+      headers: { Accept: 'text/html' },
+    }, timeoutMs));
+    const sitemapResponse = await smokeStep(`sitemapAfterUnpublish:${attempt}`, () => fetchTextResult(publicAbsenceSitemapUrl, {
+      method: 'GET',
+      headers: { Accept: 'application/xml,text/xml,*/*' },
+    }, timeoutMs));
+    const feedResponse = await smokeStep(`feedAfterUnpublish:${attempt}`, () => fetchTextResult(publicAbsenceFeedUrl, {
+      method: 'GET',
+      headers: { Accept: 'application/xml,text/xml,*/*' },
+    }, timeoutMs));
+    publicAbsence = {
+      search: publicSearchIncludesArticle(searchResponse, created.articleId, published.path, title),
+      article: articleResponse.ok && (
+        articleResponse.text.includes(title)
+        || articleResponse.text.includes(articleBodyNeedle)
+        || articleResponse.text.includes(published.path)
+      ),
+      sitemap: sitemapResponse.ok && sitemapResponse.text.includes(canonicalArticleUrl),
+      feed: feedResponse.ok && feedResponse.text.includes(canonicalArticleUrl),
+    };
+    if (!publicAbsence.search && !publicAbsence.article && !publicAbsence.sitemap && !publicAbsence.feed) {
+      break;
+    }
+    if (attempt < 3) {
+      await sleep(350);
+    }
+  }
+  if (publicAbsence?.search) {
+    throw new Error('Public search still includes the unpublished article.');
+  }
+  if (publicAbsence?.article) {
+    throw new Error('Public article page still includes the unpublished article.');
+  }
+  if (publicAbsence?.sitemap) {
+    throw new Error('Public sitemap still includes the unpublished article.');
+  }
+  if (publicAbsence?.feed) {
+    throw new Error('Public feed still includes the unpublished article.');
+  }
+
   return {
     ok: true,
     domain,
@@ -1275,6 +1366,10 @@ async function runSmoke(options) {
       cancelSchedule: true,
       unpublishArticle: true,
       articleDetailAfterUnpublish: true,
+      publicSearchAfterUnpublish: true,
+      publicArticleAfterUnpublish: true,
+      sitemapAfterUnpublish: true,
+      feedAfterUnpublish: true,
     },
   };
 }

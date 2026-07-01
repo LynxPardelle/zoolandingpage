@@ -78,13 +78,15 @@ describe('content hub runtime request helpers', () => {
         });
     });
 
-    it('drops allowlisted content hub id fields when they are unresolved or unsafe', () => {
+    it('drops allowlisted content hub id fields when they are unresolved, placeholder, or unsafe', () => {
         const result = sanitizeContentHubRuntimeInput({
             articleId: '{articleId}',
             revisionId: 'rev_ok',
             scheduleId: 'bad/id',
+            commentId: 'unknown',
+            assetId: 'null',
             status: 'draft',
-        }, ['articleId', 'revisionId', 'scheduleId', 'status']);
+        }, ['articleId', 'revisionId', 'scheduleId', 'commentId', 'assetId', 'status']);
 
         expect(result).toEqual({
             revisionId: 'rev_ok',
