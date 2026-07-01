@@ -68,6 +68,7 @@ const requiredReads = [
   'moderationQueue',
   'publicBundlePreview',
   'analyticsSummary',
+  'scheduleList',
 ];
 
 const requiredActions = [
@@ -205,6 +206,15 @@ describe('Zoosite content hub admin bindings', () => {
       key: 'articleId',
       transforms: ['trim'],
     });
+    assert.deepEqual(mediaAssets?.requiredInputKeys, ['articleId']);
+
+    const schedules = dataSources.find((source) => source.contentHub?.read === 'scheduleList');
+    assert.deepEqual(schedules?.input?.articleId, {
+      source: 'queryParam',
+      key: 'articleId',
+      transforms: ['trim'],
+    });
+    assert.deepEqual(schedules?.requiredInputKeys, ['articleId']);
 
     const categories = dataSources.find((source) => source.id === 'content_hub_categories');
     assert.equal(categories?.contentHub?.read, 'taxonomyList');

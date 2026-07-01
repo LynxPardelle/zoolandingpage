@@ -129,6 +129,8 @@ This component does not upload files by itself. It emits accepted `File` objects
 
 Current public draft uploads should go through the hub workflow in [../12-public-assets-and-file-uploads.md](../12-public-assets-and-file-uploads.md). Do not put upload grants or signed URLs in content-builder draft payloads.
 
+When a protected upload action must not run without a selected file, set `required: true` and place the dropzone inside an `interaction-scope`. Pair the submit button with `disabledWhenInvalidScope: true` so the browser blocks empty local selection before the backend performs its own authorization and validation.
+
 ```json
 {
   "id": "articleAssets",
@@ -143,7 +145,8 @@ Current public draft uploads should go through the hub workflow in [../12-public
     "acceptLabel": "Imágenes o PDF",
     "maxFileSizeBytes": 5242880,
     "maxSizeLabel": "Máximo 5 MB por archivo",
-    "multiple": true
+    "multiple": true,
+    "required": true
   }
 }
 ```

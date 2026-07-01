@@ -1962,6 +1962,7 @@ describe('config-payload.validators', () => {
                     accept: 'image/*,.pdf',
                     maxFileSizeBytes: 5242880,
                     multiple: true,
+                    required: true,
                     dropLabel: 'Arrastra archivos',
                 },
             },

@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import {
   buildContentHubPayload,
@@ -18,6 +20,26 @@ import {
   smokeStep,
   slugify,
 } from '../content-hub-product-readiness-smoke.mjs';
+
+const smokeCliPath = fileURLToPath(new URL('../content-hub-product-readiness-smoke.mjs', import.meta.url));
+
+function runSmokeCli(args = [], env = {}) {
+  const cleanEnv = { ...process.env, ...env };
+  delete cleanEnv.ZLP_RUNTIME_READ_BASE_URL;
+  delete cleanEnv.ZLP_CONTENT_HUB_SMOKE_COOKIE;
+  delete cleanEnv.ZLP_CONTENT_HUB_SMOKE_CSRF;
+  for (const [key, value] of Object.entries(env)) {
+    if (value === undefined) {
+      delete cleanEnv[key];
+    } else {
+      cleanEnv[key] = value;
+    }
+  }
+  return spawnSync(process.execPath, [smokeCliPath, ...args], {
+    encoding: 'utf8',
+    env: cleanEnv,
+  });
+}
 
 test('parseArgs reads explicit smoke options', () => {
   const args = parseArgs([
@@ -229,6 +251,32 @@ test('safeSmokeErrorMessage keeps local smoke setup errors distinct', () => {
   );
 });
 
+test('cli reports missing runtime base URL as local smoke setup', () => {
+  const result = runSmokeCli();
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /Runtime-read base URL is required/);
+  assert.doesNotMatch(result.stderr, /content service could not accept|deployment logs/i);
+});
+
+test('cli reports missing authenticated cookie as local smoke setup', () => {
+  const result = runSmokeCli(['--runtime-base-url=https://runtime.example.com/Prod']);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /Authentication cookie is required/);
+  assert.doesNotMatch(result.stderr, /deployment logs|permission/i);
+});
+
+test('cli reports missing csrf as local smoke setup', () => {
+  const result = runSmokeCli(['--runtime-base-url=https://runtime.example.com/Prod'], {
+    ZLP_CONTENT_HUB_SMOKE_COOKIE: '__Host-zlp_session=session-only',
+  });
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /CSRF cookie was not found/);
+  assert.doesNotMatch(result.stderr, /permission|deployment logs/i);
+});
+
 test('smokeStep tags failures without changing the safe message', async () => {
   await assert.rejects(
     smokeStep('publicBundlePreview', () => {
@@ -325,6 +373,8 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
   const actionSequence = [];
   const readSequence = [];
   const xmlPaths = [];
+  const interactionEvents = [];
+  let queuedComments = 0;
   const now = new Date('2026-06-30T04:00:00.000Z');
   const title = 'QA Product Smoke 20260630040000';
   const slug = 'qa-product-smoke-20260630040000';
@@ -408,6 +458,26 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
           },
         }), { status: 200 });
       }
+      if (action === 'recordInteraction') {
+        assert.equal(body.input.articleId, 'art_smoke');
+        assert.equal(body.input.path, path);
+        assert.ok(['cta_click', 'reaction', 'share'].includes(body.input.eventType));
+        interactionEvents.push(body.input.eventType);
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { articleId: 'art_smoke', eventType: body.input.eventType },
+        }), { status: 200 });
+      }
+      if (action === 'queueComment') {
+        assert.equal(body.input.articleId, 'art_smoke');
+        assert.equal(body.input.commentPolicy, 'authenticated-moderation');
+        assert.match(body.input.commentBody, /^QA smoke moderated comment /);
+        queuedComments += 1;
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { articleId: 'art_smoke', commentId: 'comment_smoke', moderationStatus: 'pending' },
+        }), { status: 200 });
+      }
       if (action === 'schedule') {
         assert.equal(body.input.revisionId, 'rev_20260630040000');
         assert.equal(body.input.scheduleAction, 'unpublish');
@@ -470,7 +540,18 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
       if (read === 'analyticsSummary') {
         return new Response(JSON.stringify({
           ok: true,
-          data: { items: [{ articleId: 'art_smoke', views: 0, ctaClicks: 0 }] },
+          data: {
+            items: [{
+              articleId: 'art_smoke',
+              views: 1,
+              readProgress: 0,
+              ctaClicks: interactionEvents.includes('cta_click') ? 1 : 0,
+              reactions: interactionEvents.includes('reaction') ? 1 : 0,
+              shares: interactionEvents.includes('share') ? 1 : 0,
+              comments: queuedComments,
+              assetDownloads: 0,
+            }],
+          },
         }), { status: 200 });
       }
       assert.equal(read, 'scheduleList');
@@ -545,14 +626,21 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
     'submitReview',
     'approveArticle',
     'publish',
+    'recordInteraction',
+    'recordInteraction',
+    'recordInteraction',
+    'queueComment',
     'schedule',
     'cancelSchedule',
   ]);
+  assert.deepEqual(interactionEvents.sort(), ['cta_click', 'reaction', 'share']);
+  assert.equal(queuedComments, 1);
   assert.deepEqual(readSequence, [
     'revisionList',
     'publicBundlePreview',
     'assetList',
     'moderationQueue',
+    'analyticsSummary',
     'analyticsSummary',
     'scheduleList',
   ]);
