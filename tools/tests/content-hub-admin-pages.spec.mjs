@@ -673,6 +673,20 @@ describe('Zoosite blog admin draft pages', () => {
     }
   });
 
+  it('keeps the unfinished component catalog explicitly disabled and labeled', async () => {
+    const payload = await readJson('admin-blog-articulo-editor/components.json');
+    const components = flattenComponents(payload);
+    const catalogButton = componentById(components, 'componentInspectorButton');
+    const catalogCopy = componentById(components, 'componentInspectorCopy');
+    const advancedHelp = componentById(components, 'advancedModeHelp');
+
+    assert.equal(catalogButton?.config?.disabled, true);
+    assert.equal(catalogButton?.eventInstructions ?? '', '');
+    assert.match(catalogCopy?.config?.text ?? '', /Catálogo visual pendiente/);
+    assert.match(catalogCopy?.config?.text ?? '', /se activará cuando exista el catálogo validado/);
+    assert.match(advancedHelp?.config?.text ?? '', /botón de catálogo queda deshabilitado/);
+  });
+
   it('shows direct post-create next-step links bound to the created article ids', async () => {
     const payload = await readJson('admin-blog-articulos-nuevo/components.json');
     const components = flattenComponents(payload);
