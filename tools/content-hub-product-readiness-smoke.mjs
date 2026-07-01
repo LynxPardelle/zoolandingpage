@@ -57,6 +57,31 @@ function assertTaxonomyRecord(record, expected, context) {
   }
 }
 
+function assertNoInternalAssetFields(value, context) {
+  const raw = JSON.stringify(value ?? {});
+  for (const forbidden of ['"objectKey"', '"createdBy"', '"pk"', '"sk"', '"hubId"', 'content-hubs/', 'X-Amz-Signature']) {
+    if (raw.includes(forbidden)) {
+      throw new Error(`${context} exposed internal asset metadata.`);
+    }
+  }
+}
+
+function assertAssetRecord(record, expected, context) {
+  assertNoInternalAssetFields(record, context);
+  const mismatches = [
+    ['assetId', clean(record?.assetId), expected.assetId],
+    ['kind', clean(record?.kind), expected.kind],
+    ['fileName', clean(record?.fileName), expected.fileName],
+    ['mimeType', clean(record?.mimeType), expected.mimeType],
+    ['bytes', Number(record?.bytes), expected.bytes],
+    ['title', clean(record?.title), expected.title],
+    ['alt', clean(record?.alt), expected.alt],
+  ].filter(([, actual, wanted]) => actual !== wanted);
+  if (mismatches.length > 0 || !clean(record?.createdAt)) {
+    throw new Error(`Asset ${context} did not match expected public fields.`);
+  }
+}
+
 function normalizeBaseUrl(value) {
   const baseUrl = clean(value);
   if (!baseUrl) return '';
@@ -410,6 +435,15 @@ async function runSmoke(options) {
   const taxonomyTagId = `qa_tag_${token}`;
   const expectedPath = `/blog/${category}/${slug}`;
   const articleBodyNeedle = `Contenido editado por smoke ${token}`;
+  const asset = {
+    assetId: `asset_${token}`,
+    kind: 'document',
+    fileName: `qa-smoke-${token}.txt`,
+    mimeType: 'text/plain',
+    bytes: Buffer.byteLength(`Smoke asset ${token}`, 'utf8'),
+    title: `Smoke asset ${token}`,
+    alt: `Archivo de prueba ${token}`,
+  };
 
   const upsertTaxonomy = async ({ taxonomyKind, taxonomyId, taxonomySlug, label }) => {
     const expected = {
@@ -644,6 +678,35 @@ async function runSmoke(options) {
     throw new Error('Restore revision did not return the restored revision.');
   }
 
+  const uploadAssetPayload = buildContentHubPayload({
+    domain,
+    pageId: 'admin-blog-medios',
+    operationId: 'content_hub_upload_asset',
+    hubId,
+    kind: 'action',
+    input: {
+      contentHub: { action: 'uploadAsset', articleId: created.articleId },
+      articleId: created.articleId,
+      assetId: asset.assetId,
+      upload: {
+        fileName: asset.fileName,
+        mimeType: asset.mimeType,
+        dataBase64: Buffer.from(`Smoke asset ${token}`, 'utf8').toString('base64'),
+        bytes: asset.bytes,
+      },
+      metadata: {
+        alt: asset.alt,
+      },
+      title: asset.title,
+    },
+  });
+  const uploadAssetResponse = await smokeStep('uploadAsset', () => fetchJson(endpoint('action'), {
+    method: 'POST',
+    headers: actionHeaders,
+    body: JSON.stringify(uploadAssetPayload),
+  }, timeoutMs));
+  assertAssetRecord(uploadAssetResponse?.data?.asset ?? {}, asset, 'upload');
+
   for (const readCheck of [
     {
       label: 'asset list',
@@ -682,6 +745,14 @@ async function runSmoke(options) {
     }, timeoutMs));
     if (!Array.isArray(response?.data?.items)) {
       throw new Error(`Content hub ${readCheck.label} did not return an item list.`);
+    }
+    if (readCheck.binding.read === 'assetList') {
+      assertNoInternalAssetFields(response?.data, 'asset list');
+      const uploadedAsset = response.data.items.find((item) => clean(item.assetId) === asset.assetId);
+      if (!uploadedAsset) {
+        throw new Error('Content hub asset list did not include the uploaded smoke asset.');
+      }
+      assertAssetRecord(uploadedAsset, asset, 'list');
     }
   }
 
@@ -1074,6 +1145,7 @@ async function runSmoke(options) {
       upsertTag: true,
       taxonomyCategoryList: true,
       taxonomyTagList: true,
+      uploadAsset: true,
       updatePackage: true,
       revisionList: true,
       publicBundlePreview: true,
