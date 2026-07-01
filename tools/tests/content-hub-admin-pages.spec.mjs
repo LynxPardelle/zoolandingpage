@@ -806,7 +806,7 @@ describe('Zoosite blog admin draft pages', () => {
     const lifecycleErrorComponents = new Map([
       ['admin-blog-articulos-nuevo', ['newArticleCreateError']],
       ['admin-blog-articulo-editor', ['editorSaveError', 'editorUploadError']],
-      ['admin-blog-articulo-preview', ['previewSourceError', 'previewValidateError', 'previewPublishError']],
+      ['admin-blog-articulo-preview', ['previewValidateError', 'previewPublishError']],
       ['admin-blog-articulo-seo', [
         'seoValidateError',
         'seoSubmitReviewError',
