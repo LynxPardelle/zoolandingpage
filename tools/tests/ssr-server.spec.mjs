@@ -496,10 +496,45 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
         canonicalPath: '/blog/web/runtime-dynamic-seo',
         robots: 'index,follow',
       },
+      {
+        articleId: 'art_runtime_only_english_fixture',
+        locale: 'en',
+        status: 'published',
+        visibility: 'public',
+        title: 'Runtime English SEO Article',
+        summary: 'English article that must not leak into Spanish public outputs.',
+        path: '/blog/web/runtime-english-seo',
+        categorySlug: 'web',
+        tags: ['runtime', 'english'],
+        publishedAt: '2026-06-28T13:00:00.000Z',
+        updatedAt: '2026-06-28T13:30:00.000Z',
+        canonicalPath: '/blog/web/runtime-english-seo',
+        robots: 'index,follow',
+      },
     ],
   };
   runtimeSiteConfig.runtime.contentHubs[0].publicTaxonomy = {
-    items: runtimeSiteConfig.runtime.contentHubs[0].publicTaxonomy,
+    items: [
+      ...runtimeSiteConfig.runtime.contentHubs[0].publicTaxonomy,
+      {
+        taxonomyId: 'marketing',
+        kind: 'category',
+        slug: 'marketing',
+        label: 'Marketing',
+        locale: 'es',
+        visible: true,
+        path: '/blog/marketing',
+      },
+      {
+        taxonomyId: 'web_en',
+        kind: 'category',
+        slug: 'web',
+        label: 'Web EN',
+        locale: 'en',
+        visible: true,
+        path: '/blog/web-en',
+      },
+    ],
   };
   const apiBase = await startRuntimeApi(t, (req, res) => {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
@@ -533,6 +568,16 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
       const lang = url.searchParams.get('lang') || 'es';
       const pageConfig = pageId === 'blog'
         ? localBlogPageConfig
+        : pageId === 'blog-category'
+        ? {
+          version: 1,
+          domain: 'zoositioweb.com.mx',
+          pageId,
+          rootIds: [],
+          seo: {
+            canonical: 'https://zoositioweb.com.mx/blog/web',
+          },
+        }
         : {
           version: 1,
           domain: 'zoositioweb.com.mx',
@@ -606,12 +651,15 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
     'X-Forwarded-Proto': 'https',
   };
 
-  const sitemapResponse = await fetch(`http://127.0.0.1:${port}/sitemap.xml`, { headers });
+  const sitemapResponse = await fetch(`http://127.0.0.1:${port}/sitemap.xml?lang=es`, { headers });
   const sitemap = await sitemapResponse.text();
   assert.equal(sitemapResponse.status, 200);
   assert.match(sitemap, /https:\/\/zoositioweb\.com\.mx\/blog\/web<\/loc>/);
+  assert.match(sitemap, /https:\/\/zoositioweb\.com\.mx\/blog\/marketing<\/loc>/);
   assert.match(sitemap, /https:\/\/zoositioweb\.com\.mx\/blog\/web\/blog-builder-seo<\/loc>/);
   assert.match(sitemap, /https:\/\/zoositioweb\.com\.mx\/blog\/web\/runtime-dynamic-seo<\/loc>/);
+  assert.doesNotMatch(sitemap, /runtime-english-seo/);
+  assert.doesNotMatch(sitemap, /\/blog\/web-en/);
   assert.doesNotMatch(sitemap, /privado-no-publicable/);
   assert.doesNotMatch(sitemap, /\/admin\/blog/);
   assertNoContentHubOperationalLeak(sitemap);
@@ -705,6 +753,12 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.match(runtimeArticleHtml, /"keywords":"runtime, seo"/);
   assert.doesNotMatch(stripNonVisibleHtml(runtimeArticleHtml), /Página no encontrada|Esta ruta no nos llevó/i);
   assertNoContentHubOperationalLeak(extractJsonLd(runtimeArticleHtml));
+
+  const categoryResponse = await fetch(`http://127.0.0.1:${port}/blog/marketing?lang=es`, { headers });
+  const categoryHtml = await categoryResponse.text();
+  assert.equal(categoryResponse.status, 200);
+  assert.match(categoryHtml, /<link rel="canonical" href="https:\/\/zoositioweb\.com\.mx\/blog\/marketing">/);
+  assert.doesNotMatch(categoryHtml, /<link rel="canonical" href="https:\/\/zoositioweb\.com\.mx\/blog\/web">/);
 
   const privateArticleResponse = await fetch(`http://127.0.0.1:${port}/blog/web/privado-no-publicable?lang=es`, { headers });
   const privateArticleHtml = await privateArticleResponse.text();

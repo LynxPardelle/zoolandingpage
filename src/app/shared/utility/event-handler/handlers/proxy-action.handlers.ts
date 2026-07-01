@@ -30,6 +30,22 @@ const statusTargetFor = (action: TRuntimeApiActionConfig): string =>
 
 const userGestureError = 'This action requires a direct user action.';
 const safeContentHubIdError = 'Select a valid content item before continuing.';
+const REQUIRED_CONTENT_HUB_ACTION_IDS: Record<string, readonly string[]> = {
+    updatePackage: ['articleId'],
+    uploadAsset: ['articleId'],
+    validate: ['articleId'],
+    submitReview: ['articleId', 'revisionId'],
+    approveArticle: ['articleId', 'revisionId'],
+    publish: ['articleId', 'revisionId'],
+    unpublishArticle: ['articleId'],
+    archiveArticle: ['articleId'],
+    schedule: ['articleId'],
+    cancelSchedule: ['scheduleId'],
+    moderateComment: ['commentId'],
+    queueComment: ['articleId'],
+    recordInteraction: ['articleId'],
+    restoreRevision: ['articleId', 'revisionId'],
+};
 
 const SAFE_RESPONSE_REFERENCE_PATHS: Record<string, readonly string[]> = {
     articleId: ['articleId', 'article.articleId', 'createdArticle.articleId', 'created.articleId', 'result.articleId'],
@@ -145,22 +161,24 @@ const hasSafeContentHubActionIds = (
         return true;
     }
 
+    const requiredFields = new Set(REQUIRED_CONTENT_HUB_ACTION_IDS[String(action.contentHub?.action ?? '')] ?? []);
+
     return (action.inputFields ?? [])
         .map((field) => String(field ?? '').trim())
         .filter((field) => CONTENT_HUB_SAFE_ID_INPUT_KEYS.has(field))
         .every((field) => {
             if (!rawInput || !Object.prototype.hasOwnProperty.call(rawInput, field)) {
-                return true;
+                return !requiredFields.has(field);
             }
 
             const value = rawInput[field];
             if (value == null) {
-                return true;
+                return !requiredFields.has(field);
             }
 
             const normalized = String(value).trim().toLowerCase();
             if (!normalized || normalized === 'undefined' || normalized === 'null') {
-                return true;
+                return !requiredFields.has(field);
             }
 
             return isContentHubSafePublicId(value);

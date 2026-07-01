@@ -711,7 +711,8 @@ describe('Zoosite blog admin draft pages', () => {
     for (const [componentId, requiredFragments] of expectations) {
       const component = componentById(components, componentId);
       assert.equal(component?.type, 'link', `${componentId} must be a direct generic link`);
-      assert.equal(component?.condition, successCondition, `${componentId} must only show after createArticle succeeds`);
+      assert.equal(String(component?.condition ?? '').includes(successCondition), true, `${componentId} must only show after createArticle succeeds`);
+      assert.equal(String(component?.condition ?? '').includes('all:var,remoteStatus.contentHub.content_hub_create_article.articleId'), true, `${componentId} must only show when createArticle returns an articleId`);
       assert.equal(String(component?.valueInstructions ?? '').includes(articleIdInstruction), true, `${componentId} must use the created articleId`);
       for (const fragment of requiredFragments) {
         assert.equal(String(component?.valueInstructions ?? '').includes(fragment), true, `${componentId} must build href with ${fragment}`);
@@ -727,6 +728,11 @@ describe('Zoosite blog admin draft pages', () => {
       String(scheduleLink?.valueInstructions ?? '').includes(revisionIdInstruction),
       true,
       'schedule success link must use the created revisionId',
+    );
+    assert.equal(
+      String(scheduleLink?.condition ?? '').includes('all:var,remoteStatus.contentHub.content_hub_create_article.revisionId'),
+      true,
+      'schedule success link must only show when createArticle returns a revisionId',
     );
   });
 

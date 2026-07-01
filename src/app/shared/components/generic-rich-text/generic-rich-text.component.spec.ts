@@ -323,4 +323,30 @@ describe('GenericRichTextComponent', () => {
       ['clean'],
     ]);
   });
+
+  it('keeps the same Quill modules reference when only unrelated config changes', () => {
+    const toolbar = ['bold', 'italic', 'heading', 'bulletList', 'orderedList'] as const;
+    fixture.componentRef.setInput('config', {
+      fieldId: 'articleSummary',
+      provider: 'quill',
+      format: 'plain-text',
+      value: 'Texto inicial',
+      helperText: 'Primer texto',
+      toolbar,
+    });
+    fixture.detectChanges();
+
+    const before = fixture.componentInstance.quillModules();
+    fixture.componentRef.setInput('config', {
+      fieldId: 'articleSummary',
+      provider: 'quill',
+      format: 'plain-text',
+      value: 'Texto inicial',
+      helperText: 'El estado cambió, la barra no.',
+      toolbar,
+    });
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.quillModules()).toBe(before);
+  });
 });
