@@ -303,35 +303,9 @@ export class ConfigSourceService {
         return this.resolveRuntimeHost() === 'test.zoolandingpage.com.mx';
     }
 
-    private testAliasesForDomain(domain: string): readonly string[] {
-        const normalized = this.normalizeHost(domain);
-        if (!normalized || normalized.startsWith('test.')) {
-            return normalized ? [normalized] : [];
-        }
-
-        const names = new Set<string>([`test.${ normalized }`]);
-        const firstLabel = normalized.split('.')[0];
-        if (!normalized.endsWith('zoolandingpage.com.mx') && firstLabel) {
-            names.add(`test.${ firstLabel }.zoolandingpage.com.mx`);
-        }
-
-        return Array.from(names);
-    }
-
     private runtimeBundleRequestDomains(domain: string): readonly string[] {
         const normalized = String(domain ?? '').trim();
-        if (!normalized || !this.isSharedTestingPreviewHost()) {
-            return normalized ? [normalized] : [];
-        }
-
-        if (this.normalizeHost(normalized) === 'zoolandingpage.com.mx') {
-            return [normalized];
-        }
-
-        return Array.from(new Set([
-            normalized,
-            ...this.testAliasesForDomain(normalized),
-        ]));
+        return normalized ? [normalized] : [];
     }
 
     private runtimeBundleRequestEnvironment(): string | undefined {
@@ -461,7 +435,7 @@ export class ConfigSourceService {
                     return payload;
                 }
             } catch {
-                // Try the next shared-preview alias candidate before giving up.
+                // Try the next allowed runtime candidate before giving up.
             }
         }
 
