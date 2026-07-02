@@ -1447,6 +1447,7 @@ test('production SSR server renders a safe shell for Zoosite protected article d
     assert.match(body, /app-root\[data-zlp-protected-shell="true"\]\{display:none!important;visibility:hidden!important\}/, suffix);
     assert.match(body, /<app-root\b[^>]*data-zlp-protected-shell="true"/i, suffix);
     assert.match(body, /<app-root\b[^>]*aria-hidden="true"/i, suffix);
+    assert.match(body, /<app-root\b[^>]*ngSkipHydration=""/i, suffix);
     assert.match(protectedOverlay, /<main\b/i, suffix);
     assert.match(protectedOverlay, /Validando acceso/i, suffix);
     assert.doesNotMatch(protectedOverlay, /Página no encontrada|Esta ruta no está publicada/i, suffix);
