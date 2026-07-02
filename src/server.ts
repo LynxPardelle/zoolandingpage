@@ -2531,6 +2531,19 @@ function buildHreflangHeadHtml(req: express.Request, host: string, siteConfig: T
   ].join('\n');
 }
 
+function hasRenderedHreflangHeadHtml(html: string): boolean {
+  return (html.match(/<link\s+[^>]*>/gi) ?? [])
+    .some((tag) => /\brel=["']alternate["']/i.test(tag) && /\bhreflang=["'][^"']+["']/i.test(tag));
+}
+
+function stripRenderedHreflangHeadHtml(html: string): string {
+  return html.replace(/<link\s+[^>]*>\s*/gi, (tag) => (
+    /\brel=["']alternate["']/i.test(tag) && /\bhreflang=["'][^"']+["']/i.test(tag)
+      ? ''
+      : tag
+  ));
+}
+
 function filterPublicContentHubArticles(
   articles: readonly TContentHubPublicArticle[],
   query: Record<string, unknown>,
@@ -2738,6 +2751,9 @@ function injectHeadHtml(html: string, headHtml: string): string {
   if (headHtml.includes('rel="canonical"')) {
     sanitizedHtml = sanitizedHtml.replace(/<link\s+rel=["']canonical["'][^>]*>/gi, '');
   }
+  if (headHtml.includes('rel="alternate"') && headHtml.includes('hreflang=')) {
+    sanitizedHtml = stripRenderedHreflangHeadHtml(sanitizedHtml);
+  }
   if (headHtml.includes('name="robots"')) {
     sanitizedHtml = sanitizedHtml.replace(/<meta\s+[^>]*name=["']robots["'][^>]*>\s*/gi, '');
   }
@@ -2778,6 +2794,9 @@ async function decorateHtmlResponse(req: express.Request, response: Response): P
   applyProtectedHtmlCacheHeaders(headers, siteConfig, req.path);
 
   const html = await response.text();
+  const hreflangHeadHtml = hasRenderedHreflangHeadHtml(html)
+    ? ''
+    : buildHreflangHeadHtml(req, lookupDomain, siteConfig);
   const headHtml = [
     buildGoogleTagHeadHtml(lookupDomain, siteConfig),
     buildSearchConsoleHeadHtml(lookupDomain, siteConfig),
@@ -2785,7 +2804,7 @@ async function decorateHtmlResponse(req: express.Request, response: Response): P
     buildRobotsHeadHtml(req, siteConfig, pageConfig),
     buildStructuredDataHeadHtml(pageConfig),
     buildCanonicalHeadHtml(req, lookupDomain, siteConfig, pageConfig, publicContentHubSiteConfig),
-    buildHreflangHeadHtml(req, lookupDomain, siteConfig),
+    hreflangHeadHtml,
   ].filter(Boolean).join('\n');
 
   const decoratedHtml = decorateProtectedSsrShellHtml(
