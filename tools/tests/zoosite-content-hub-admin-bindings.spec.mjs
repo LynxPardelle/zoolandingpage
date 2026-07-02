@@ -276,7 +276,7 @@ describe('Zoosite content hub admin bindings', () => {
       'recordInteraction must not expose free-form metadata from draft UI',
     );
     const updatePackageFields = actions.find((action) => action.id === 'content_hub_update_package')?.inputFields ?? [];
-    for (const field of ['articleContent', 'advancedMode', 'allowedComponentPreset']) {
+    for (const field of ['articleContent', 'componentTreeJson', 'advancedMode', 'allowedComponentPreset']) {
       assert.ok(
         updatePackageFields.includes(field),
         `updatePackage must preserve editor builder field ${field}`,
@@ -367,6 +367,25 @@ describe('Zoosite content hub admin bindings', () => {
       editorRichText?.valueInstructions,
       'set:config.value,varOr,remote.contentHub.articleDetail.items.0.articleContent,',
       'article editor rich text must hydrate from articleDetail package content',
+    );
+
+    const editorScope = findComponentById(editorComponents, 'editorScope');
+    assert.match(
+      editorScope?.config?.valueInstructions ?? editorScope?.valueInstructions ?? '',
+      /componentTreeJson/,
+      'article editor scope must submit the advanced TGeneric JSON field',
+    );
+
+    const componentTreeJsonInput = findComponentById(editorComponents, 'componentTreeJsonInput');
+    assert.match(
+      componentTreeJsonInput?.valueInstructions ?? '',
+      /jsonVarOr,remote\.contentHub\.articleDetail\.items\.0\.components/,
+      'advanced component JSON editor must hydrate from articleDetail components',
+    );
+    assert.doesNotMatch(
+      componentTreeJsonInput?.config?.helperText ?? '',
+      /No guarda/i,
+      'advanced component JSON helper must not claim the saved field is local-only',
     );
 
     const categoriesTable = findComponentById(categoryComponents, 'categoriesTable');
