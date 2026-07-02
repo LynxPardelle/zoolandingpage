@@ -97,7 +97,7 @@ describe('ComboCatalogClientService', () => {
                 action: 'batchUpsertCombos',
                 batchJson: '[{"combo":"HeroCard","classes":["ank-d-flex"]}]',
                 categories: 'web, seo',
-                groups: 'corporativo, landing',
+                comboGroups: 'corporativo, landing',
                 scope: 'draft',
             },
         });
