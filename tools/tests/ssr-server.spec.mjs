@@ -172,6 +172,10 @@ function extractAppRootHtml(html) {
   return String(html ?? '').match(/<app-root\b[\s\S]*?<\/app-root>/i)?.[0] ?? '';
 }
 
+function extractProtectedSsrOverlayHtml(html) {
+  return String(html ?? '').match(/<div\b[^>]*data-zlp-protected-ssr-overlay=""[\s\S]*?<\/div>\s*<\/main>\s*<\/div>/i)?.[0] ?? '';
+}
+
 test('production SSR server exposes a lightweight health endpoint', async (t) => {
   const { port, getStderr } = await startProductionServer(t);
   const response = await waitForOk(`http://127.0.0.1:${port}/health`);
@@ -1432,7 +1436,8 @@ test('production SSR server renders a safe shell for Zoosite protected article d
       },
     );
     const body = await response.text();
-    const visibleAppRoot = stripNonVisibleHtml(extractAppRootHtml(body));
+    const appRoot = extractAppRootHtml(body);
+    const protectedOverlay = stripNonVisibleHtml(extractProtectedSsrOverlayHtml(body));
 
     assert.equal(response.status, 200, suffix);
     assert.equal(response.headers.get('location'), null, suffix);
@@ -1440,11 +1445,13 @@ test('production SSR server renders a safe shell for Zoosite protected article d
     assert.match(response.headers.get('vary') ?? '', /\bCookie\b/i, suffix);
     assert.match(body, /<title>Validando acceso \| zoositioweb<\/title>/, suffix);
     assert.match(body, /<app-root\b[^>]*data-zlp-protected-shell="true"/i, suffix);
-    assert.match(visibleAppRoot, /<main\b/i, suffix);
-    assert.match(visibleAppRoot, /Validando acceso/i, suffix);
-    assert.doesNotMatch(visibleAppRoot, /Página no encontrada|Esta ruta no está publicada/i, suffix);
-    assert.doesNotMatch(visibleAppRoot, /Editor de artículo|Vista previa|Versiones|SEO/i, suffix);
-    assertNoSensitiveAuthSurface(visibleAppRoot);
+    assert.match(body, /<app-root\b[^>]*aria-hidden="true"/i, suffix);
+    assert.match(protectedOverlay, /<main\b/i, suffix);
+    assert.match(protectedOverlay, /Validando acceso/i, suffix);
+    assert.doesNotMatch(protectedOverlay, /Página no encontrada|Esta ruta no está publicada/i, suffix);
+    assert.doesNotMatch(protectedOverlay, /Editor de artículo|Vista previa|Versiones|SEO/i, suffix);
+    assert.ok(appRoot.length > 0, suffix);
+    assertNoSensitiveAuthSurface(protectedOverlay);
   }
 
   assert.equal(getStderr(), '');

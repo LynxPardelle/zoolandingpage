@@ -2313,16 +2313,24 @@ function buildProtectedSsrShellContent(lang: string): string {
     : 'Revisando tu sesión segura y permisos antes de mostrar esta página.';
 
   return [
-    '<main class="zlp-private-route-loading" role="status" aria-live="polite" aria-busy="true">',
-    '<div class="zlp-private-route-loading__panel">',
-    '<span class="zlp-private-route-loading__title">',
+    '<style data-zlp-protected-ssr-style="">',
+    '.zlp-protected-ssr-overlay{position:fixed;inset:0;z-index:2147483001;display:grid;place-items:center;padding:1.25rem;background:color-mix(in srgb,var(--ank-bgColor,#f8fafc) 88%,transparent);color:var(--ank-textColor,#17202a);pointer-events:auto}',
+    '.zlp-protected-ssr-overlay__panel{display:grid;justify-items:center;gap:.85rem;width:min(26rem,100%);padding:1.25rem;border:1px solid color-mix(in srgb,var(--ank-accentColor,#0f948c) 28%,transparent);border-radius:.5rem;background:var(--ank-secondaryBgColor,#fff);box-shadow:0 1.25rem 3.5rem rgba(15,23,42,.16);text-align:center}',
+    '.zlp-protected-ssr-overlay__title{font-weight:800;font-size:1rem;line-height:1.3;color:var(--ank-titleColor,#111827)}',
+    '.zlp-protected-ssr-overlay__message{max-width:22rem;font-size:.92rem;line-height:1.45;color:var(--ank-secondaryTextColor,#334155)}',
+    '</style>',
+    '<div class="zlp-protected-ssr-overlay" data-zlp-protected-ssr-overlay="" role="presentation">',
+    '<main role="status" aria-live="polite" aria-busy="true">',
+    '<div class="zlp-protected-ssr-overlay__panel">',
+    '<span class="zlp-protected-ssr-overlay__title">',
     escapeHtmlText(title),
     '</span>',
-    '<span class="zlp-private-route-loading__message">',
+    '<span class="zlp-protected-ssr-overlay__message">',
     escapeHtmlText(message),
     '</span>',
     '</div>',
     '</main>',
+    '</div>',
   ].join('');
 }
 
@@ -2338,12 +2346,6 @@ function buildProtectedSsrTitle(siteConfig: TLocalSiteConfig | null, lang: strin
   return `${title} | ${siteName}`;
 }
 
-function replaceAppRootContent(html: string, content: string): string {
-  return html.replace(/(<app-root\b[^>]*>)[\s\S]*?(<\/app-root>)/i, (_match, open: string, close: string) => (
-    `${open}${content}${close}`
-  ));
-}
-
 function replaceDocumentTitle(html: string, title: string): string {
   const safeTitle = escapeHtmlText(title);
   if (/<title>[\s\S]*?<\/title>/i.test(html)) {
@@ -2353,16 +2355,26 @@ function replaceDocumentTitle(html: string, title: string): string {
   return html.replace(/<\/head>/i, `<title>${safeTitle}</title>\n</head>`);
 }
 
+function injectProtectedSsrOverlay(html: string, overlayHtml: string): string {
+  if (/<\/body>/i.test(html)) {
+    return html.replace(/<\/body>/i, `${overlayHtml}</body>`);
+  }
+
+  return `${html}${overlayHtml}`;
+}
+
 function decorateProtectedSsrShellHtml(html: string, siteConfig: TLocalSiteConfig | null, path: string, lang: string): string {
   if (!isProtectedRequestPath(siteConfig, path)) {
     return html;
   }
 
   const markedHtml = replaceDocumentTitle(
-    html.replace(/<app-root\b[^>]*>/i, (tag) => setHtmlAttribute(tag, 'data-zlp-protected-shell', 'true')),
+    html.replace(/<app-root\b[^>]*>/i, (tag) => (
+      setHtmlAttribute(setHtmlAttribute(tag, 'data-zlp-protected-shell', 'true'), 'aria-hidden', 'true')
+    )),
     buildProtectedSsrTitle(siteConfig, lang),
   );
-  return replaceAppRootContent(markedHtml, buildProtectedSsrShellContent(lang));
+  return injectProtectedSsrOverlay(markedHtml, buildProtectedSsrShellContent(lang));
 }
 
 function readStructuredDataEntries(pageConfig: TLocalPageConfig | null): readonly unknown[] {

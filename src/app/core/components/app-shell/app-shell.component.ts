@@ -222,6 +222,21 @@ export class AppShellComponent {
         return;
       }
 
+      const runtimeOwnsProtectedShell = this.privateRouteLoading().active
+        || this.rootComponentsIds().length > 0
+        || this.modalRootIds().length > 0
+        || this.showDebugWorkspace();
+
+      if (runtimeOwnsProtectedShell) {
+        this.releaseProtectedSsrOverlay();
+      }
+    });
+
+    effect(() => {
+      if (!this.isBrowser) {
+        return;
+      }
+
       const hasDynamicRoots = this.rootComponentsIds().length > 0 || this.modalRootIds().length > 0 || this.showDebugWorkspace();
       if (!hasDynamicRoots) {
         return;
@@ -260,6 +275,15 @@ export class AppShellComponent {
     }
 
     connect();
+  }
+
+  private releaseProtectedSsrOverlay(): void {
+    const documentRef = this.host.nativeElement.ownerDocument;
+    documentRef
+      .querySelectorAll('[data-zlp-protected-ssr-overlay], style[data-zlp-protected-ssr-style]')
+      .forEach((node: Element) => node.remove());
+    this.host.nativeElement.removeAttribute('aria-hidden');
+    this.host.nativeElement.removeAttribute('data-zlp-protected-shell');
   }
 
   // Unified analytics event handler (receives from any child component)
