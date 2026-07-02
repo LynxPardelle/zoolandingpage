@@ -436,6 +436,60 @@ describe('ConfigSourceService', () => {
         }));
     });
 
+    it('rejects a transferred or fallback runtime bundle that belongs to another domain', async () => {
+        const service = TestBed.inject(ConfigSourceService);
+        spyOn<any>(service, 'isSharedTestingPreviewHost').and.returnValue(true);
+
+        const api = TestBed.inject(ConfigApiService) as jasmine.SpyObj<ConfigApiService>;
+        api.getRuntimeBundle.and.resolveTo(createRuntimeBundle({
+            domain: 'zoolandingpage.com.mx',
+            pageId: 'not-found',
+            siteConfig: {
+                ...siteConfigPayload,
+                domain: 'zoolandingpage.com.mx',
+                aliases: ['test.zoolandingpage.com.mx'],
+                notFoundPageId: 'not-found',
+            },
+            pageConfig: {
+                ...pageConfigPayload,
+                domain: 'zoolandingpage.com.mx',
+                pageId: 'not-found',
+                rootIds: ['notFoundHero'],
+            },
+            components: {
+                ...componentsPayload,
+                domain: 'zoolandingpage.com.mx',
+                pageId: 'not-found',
+                components: [
+                    {
+                        id: 'notFoundHero',
+                        type: 'text',
+                        config: { text: 'Esta ruta no esta publicada.' },
+                    },
+                ],
+            },
+            metadata: {
+                requestId: 'req-wrong-domain',
+                requestedDomain: 'zoositioweb.com.mx',
+                resolvedAlias: null,
+                resolvedPath: '/admin/blog/articulos/art_20260620_blog_builder/editor',
+                statusCode: 404,
+                notFound: true,
+            },
+        }));
+
+        const result = await service.loadPageConfig('zoositioweb.com.mx', 'admin-blog-articulo-editor', {
+            path: '/admin/blog/articulos/art_20260620_blog_builder/editor',
+        });
+
+        expect(result).toBeNull();
+        expect(api.getRuntimeBundle).toHaveBeenCalledOnceWith('zoositioweb.com.mx', jasmine.objectContaining({
+            environment: 'test',
+            path: '/admin/blog/articulos/art_20260620_blog_builder/editor',
+        }));
+        expect(api.getPageConfig).not.toHaveBeenCalled();
+    });
+
     it('loads the canonical Zoolanding bundle directly on the shared testing host', async () => {
         const service = TestBed.inject(ConfigSourceService);
         spyOn<any>(service, 'isSharedTestingPreviewHost').and.returnValue(true);
