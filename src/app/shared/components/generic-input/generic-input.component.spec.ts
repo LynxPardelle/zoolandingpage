@@ -215,6 +215,32 @@ describe('GenericInputComponent', () => {
         expect(items.every((item) => item.classList.contains('isValid'))).toBeTrue();
     });
 
+    it('can validate JSON textareas continuously for advanced editors', () => {
+        const fixture = TestBed.createComponent(GenericInputComponent);
+
+        fixture.componentRef.setInput('config', {
+            fieldId: 'componentTreeJson',
+            controlType: 'textarea',
+            value: '{"type":"container","config":{}}',
+            showValidationChecklist: true,
+            validation: [
+                { type: 'json', message: 'Escribe JSON válido.' },
+            ],
+        });
+        fixture.detectChanges();
+
+        const textarea = fixture.nativeElement.querySelector('textarea') as HTMLTextAreaElement;
+        const checklist = fixture.nativeElement.querySelector('ul') as HTMLUListElement;
+        expect(checklist.textContent).toContain('Escribe JSON válido.');
+        expect(checklist.querySelector('li')?.getAttribute('data-valid')).toBe('true');
+
+        textarea.value = '{"type":';
+        textarea.dispatchEvent(new Event('input'));
+        fixture.detectChanges();
+
+        expect(checklist.querySelector('li')?.getAttribute('data-valid')).toBe('false');
+    });
+
     it('updates text field validation from deferred beforeinput fallback events', async () => {
         const fixture = TestBed.createComponent(GenericInputComponent);
 

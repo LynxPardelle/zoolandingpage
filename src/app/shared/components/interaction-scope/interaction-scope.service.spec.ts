@@ -144,4 +144,24 @@ describe('InteractionScopeService', () => {
 
         expect(service.snapshot().fields['confirmPassword'].valid).toBeTrue();
     });
+
+    it('validates JSON fields for advanced component editors', () => {
+        service.registerField({
+            fieldId: 'componentTreeJson',
+            initialValue: '{"type":"container","config":{}}',
+            validation: [
+                {
+                    type: 'json',
+                    message: 'Escribe JSON válido.',
+                },
+            ],
+        });
+
+        expect(service.snapshot().fields['componentTreeJson'].valid).toBeTrue();
+
+        service.setFieldValue('componentTreeJson', '{"type":', { markTouched: true });
+
+        expect(service.snapshot().fields['componentTreeJson'].valid).toBeFalse();
+        expect(service.snapshot().fields['componentTreeJson'].errors).toContain('Escribe JSON válido.');
+    });
 });

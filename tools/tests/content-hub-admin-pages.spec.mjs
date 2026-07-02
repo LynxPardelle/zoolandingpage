@@ -674,18 +674,28 @@ describe('Zoosite blog admin draft pages', () => {
     }
   });
 
-  it('keeps the unfinished component catalog explicitly disabled and labeled', async () => {
+  it('connects the editor to combos and keeps JSON validation isolated from article saves', async () => {
     const payload = await readJson('admin-blog-articulo-editor/components.json');
     const components = flattenComponents(payload);
+    const editorScope = componentById(components, 'editorScope');
     const catalogButton = componentById(components, 'componentInspectorButton');
     const catalogCopy = componentById(components, 'componentInspectorCopy');
+    const jsonScope = componentById(components, 'componentInspectorJsonScope');
+    const jsonInput = componentById(components, 'componentTreeJsonInput');
     const advancedHelp = componentById(components, 'advancedModeHelp');
 
-    assert.equal(catalogButton?.config?.disabled, true);
-    assert.equal(catalogButton?.eventInstructions ?? '', '');
-    assert.match(catalogCopy?.config?.text ?? '', /Catálogo visual pendiente/);
-    assert.match(catalogCopy?.config?.text ?? '', /se activará cuando exista el catálogo validado/);
-    assert.match(advancedHelp?.config?.text ?? '', /botón de catálogo queda deshabilitado/);
+    assert.equal(catalogButton?.type, 'link');
+    assert.equal(catalogButton?.config?.href, '/admin/combos');
+    assert.match(catalogButton?.config?.text ?? '', /catálogo de combos/i);
+    assert.match(catalogCopy?.config?.text ?? '', /Catálogo conectado/);
+    assert.match(catalogCopy?.config?.text ?? '', /todavía no se envía al guardado del artículo/);
+    assert.equal(jsonScope?.type, 'interaction-scope');
+    assert.equal(jsonInput?.type, 'input');
+    assert.equal(jsonInput?.config?.controlType, 'textarea');
+    assert.equal(jsonInput?.config?.fieldId, 'componentTreeJson');
+    assert.deepEqual(jsonInput?.config?.validation, [{ type: 'json', message: 'JSON válido para previsualización.' }]);
+    assert.doesNotMatch(editorScope?.config?.valueInstructions ?? '', /componentTreeJson/);
+    assert.match(advancedHelp?.config?.text ?? '', /allowlist del draft/);
   });
 
   it('shows direct post-create next-step links bound to the created article ids', async () => {

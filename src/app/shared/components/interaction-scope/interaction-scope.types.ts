@@ -42,6 +42,10 @@ export type TInteractionValidationRule =
         readonly type: 'matchesField';
         readonly fieldId: string;
         readonly message?: string;
+    }
+    | {
+        readonly type: 'json';
+        readonly message?: string;
     };
 
 export type TInteractionNumericSource =
