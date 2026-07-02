@@ -13,6 +13,7 @@ import { scopeOrValueHandler, scopeValueHandler } from './handlers/scope.value-h
 import { coalesceValueHandler, joinTextValueHandler, lowerValueHandler, upperValueHandler } from './handlers/string.value-handlers';
 import { themePickValueHandler, themeValueHandler } from './handlers/theme.value-handlers';
 import {
+    jsonVariableOrValueHandler,
     richTextHtmlOrValueHandler,
     richTextTextOrValueHandler,
     supportIdOrValueHandler,
@@ -52,6 +53,7 @@ export const provideValueHandlers = (): Provider[] => {
 
         { provide: VALUE_HANDLERS, multi: true, useFactory: variableValueHandler },
         { provide: VALUE_HANDLERS, multi: true, useFactory: variableOrValueHandler },
+        { provide: VALUE_HANDLERS, multi: true, useFactory: jsonVariableOrValueHandler },
         { provide: VALUE_HANDLERS, multi: true, useFactory: richTextTextOrValueHandler },
         { provide: VALUE_HANDLERS, multi: true, useFactory: richTextHtmlOrValueHandler },
         { provide: VALUE_HANDLERS, multi: true, useFactory: supportIdOrValueHandler },

@@ -93,4 +93,66 @@ describe('content hub runtime request helpers', () => {
             status: 'draft',
         });
     });
+
+    it('maps advanced editor componentTreeJson into sanitized updatePackage components', () => {
+        const result = buildContentHubRuntimeInput({
+            action: 'updatePackage',
+            hubId: 'zoosite-main',
+        }, {
+            articleId: 'art_intro',
+            advancedMode: true,
+            componentTreeJson: JSON.stringify({
+                type: 'container',
+                config: {
+                    classes: 'ank-p-16px',
+                    credentialRef: 'ssm:/must-not-travel',
+                },
+                components: [
+                    {
+                        type: 'text',
+                        config: {
+                            text: 'Contenido',
+                            signedUrl: 'https://cdn.example.test/file.png?X-Amz-Signature=abc',
+                        },
+                    },
+                ],
+            }),
+        }, ['articleId', 'advancedMode', 'componentTreeJson']);
+
+        expect(result).toEqual({
+            contentHub: {
+                action: 'updatePackage',
+                hubId: 'zoosite-main',
+            },
+            articleId: 'art_intro',
+            advancedMode: true,
+            components: [
+                {
+                    type: 'container',
+                    config: {
+                        classes: 'ank-p-16px',
+                    },
+                    components: [
+                        {
+                            type: 'text',
+                            config: {
+                                text: 'Contenido',
+                            },
+                        },
+                    ],
+                },
+            ],
+        });
+    });
+
+    it('fails closed when advanced editor componentTreeJson is malformed', () => {
+        expect(() => buildContentHubRuntimeInput({
+            action: 'updatePackage',
+            hubId: 'zoosite-main',
+        }, {
+            articleId: 'art_intro',
+            advancedMode: true,
+            componentTreeJson: '{"type":',
+        }, ['articleId', 'advancedMode', 'componentTreeJson'])).toThrowError('El JSON avanzado del articulo debe ser valido antes de guardar.');
+    });
 });
