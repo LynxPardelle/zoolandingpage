@@ -506,6 +506,14 @@ async function runSmoke(options) {
     'X-ZLP-Content-Hub-Id': hubId,
   };
   const actionHeaders = { ...headers, 'X-ZLP-CSRF': csrf };
+  const publicActionHeaders = {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    'X-ZLP-Domain': domain,
+    'X-ZLP-Auth-Profile-Id': authProfileId,
+    'X-ZLP-Content-Hub-Id': hubId,
+    Origin: baseUrl,
+  };
   const endpoint = (kind) => `${baseUrl}/features/content-hub/${kind}`;
   const token = compactTimestamp(now);
   const title = `QA Product Smoke ${token}`;
@@ -1010,9 +1018,9 @@ async function runSmoke(options) {
         path: published.path,
       },
     });
-    await smokeStep(`recordInteraction:${interaction.label}`, () => fetchJson(endpoint('action'), {
+    await smokeStep(`recordInteraction:${interaction.label}`, () => fetchJson(endpoint('public-action'), {
       method: 'POST',
-      headers: actionHeaders,
+      headers: publicActionHeaders,
       body: JSON.stringify(interactionPayload),
     }, timeoutMs));
   }

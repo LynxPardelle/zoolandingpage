@@ -12,6 +12,7 @@ const CONTENT_HUB_UPLOAD_JSON_MAX_BYTES = 5 * 1024 * 1024;
 const DEFAULT_CONTENT_HUB_BASE_PATH = '/features/content-hub';
 
 type TContentHubSerializableRequest = TRuntimeApiProxyReadRequest | TRuntimeApiProxyActionRequest;
+type TContentHubOperation = 'read' | 'action' | 'public-action';
 
 @Injectable({ providedIn: 'root' })
 export class ContentHubClientService {
@@ -23,11 +24,16 @@ export class ContentHubClientService {
     }
 
     executeAction<T = unknown>(request: TRuntimeApiProxyActionRequest): Promise<TRuntimeApiProxyResponse<T>> {
-        return this.requestJson<TRuntimeApiProxyResponse<T>>('action', request, true);
+        const isPublicInteraction = this.contentHubAction(request.input) === 'recordInteraction';
+        return this.requestJson<TRuntimeApiProxyResponse<T>>(
+            isPublicInteraction ? 'public-action' : 'action',
+            request,
+            !isPublicInteraction,
+        );
     }
 
     private async requestJson<T>(
-        operation: 'read' | 'action',
+        operation: TContentHubOperation,
         payload: TRuntimeApiProxyReadRequest | TRuntimeApiProxyActionRequest,
         csrf: boolean,
     ): Promise<T> {
@@ -47,7 +53,7 @@ export class ContentHubClientService {
         const timeout = controller
             ? globalThis.setTimeout(() => controller.abort(), CONTENT_HUB_REQUEST_TIMEOUT_MS)
             : null;
-        const bodyPayload = operation === 'action'
+        const bodyPayload = operation !== 'read'
             ? await this.serializeActionPayload(payload as TRuntimeApiProxyActionRequest)
             : payload;
 
@@ -154,7 +160,7 @@ export class ContentHubClientService {
         return btoa(binary);
     }
 
-    private operationPath(operation: 'read' | 'action', hubId: string | undefined): string {
+    private operationPath(operation: TContentHubOperation, hubId: string | undefined): string {
         const basePath = this.safePath(this.hubPublicApiBasePath(hubId)) || DEFAULT_CONTENT_HUB_BASE_PATH;
         return `${ basePath.replace(/\/$/, '') }/${ operation }`;
     }

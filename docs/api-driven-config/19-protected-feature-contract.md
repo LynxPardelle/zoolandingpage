@@ -25,8 +25,9 @@ It owns the same-origin browser endpoints expected by `ContentHubClientService`:
 
 - `POST /features/content-hub/read`
 - `POST /features/content-hub/action`
+- `POST /features/content-hub/public-action`
 
-The front door must route only those exact paths to the BFF. Do not route broad `/features/*`, `/features/content-hub/*`, or unrelated feature paths to this service.
+`read` and `action` require auth-admin session and CSRF when mutating. `public-action` is only for sanitized public interactions such as CTA clicks, reactions, shares, downloads, and non-PII form events; comments still use the protected moderation flow. The front door must route only those exact paths to the BFF. Do not route broad `/features/*`, `/features/content-hub/*`, or unrelated feature paths to this service.
 
 The BFF reuses auth-admin server-cookie sessions:
 

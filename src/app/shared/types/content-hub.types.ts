@@ -12,6 +12,8 @@ export type TContentHubVisibility = 'public' | 'unlisted' | 'protected' | 'priva
 export type TContentHubTaxonomyKind = 'category' | 'tag';
 export type TContentHubCommentMode = 'off' | 'authenticated';
 export type TContentHubModerationMode = 'off' | 'queue' | 'spam-check' | 'manual';
+export type TContentHubRuntimeCommentPolicy = 'disabled' | 'moderated' | 'authenticated';
+export type TContentHubRuntimeContentSafetyRating = 'general' | 'sensitive' | 'restricted';
 export type TContentHubHtmlFreedom = 'strict' | 'balanced' | 'advanced' | 'trusted';
 export type TContentHubAnalyticsPiiPolicy = 'no-pii' | 'metadata-only';
 export type TContentHubRevisionKind = 'snapshot' | 'delta';
@@ -91,6 +93,16 @@ export type TContentHubRuntimeArticleSummary = {
     readonly authorLabel?: string;
     readonly canonicalPath?: string;
     readonly robots?: 'index,follow' | 'noindex,follow' | 'noindex,nofollow';
+    readonly commentPolicy?: TContentHubRuntimeCommentPolicy;
+    readonly contentSafety?: {
+        readonly rating: TContentHubRuntimeContentSafetyRating;
+        readonly warnings?: readonly string[];
+    };
+    readonly interactions?: {
+        readonly reactions?: TContentHubInteractionPolicy;
+        readonly ctas?: TContentHubInteractionPolicy;
+        readonly forms?: TContentHubInteractionPolicy;
+    };
 };
 
 export type TContentHubRuntimeTaxonomySummary = {

@@ -108,7 +108,44 @@
         "updatedAt": { "type": "string", "format": "date-time" },
         "authorLabel": { "type": "string" },
         "canonicalPath": { "$ref": "#/definitions/sameOriginPath" },
-        "robots": { "enum": ["index,follow", "noindex,follow", "noindex,nofollow"] }
+        "robots": { "enum": ["index,follow", "noindex,follow", "noindex,nofollow"] },
+        "commentPolicy": { "$ref": "#/definitions/publicCommentPolicy" },
+        "contentSafety": { "$ref": "#/definitions/publicContentSafety" },
+        "interactions": { "$ref": "#/definitions/publicInteractionPolicies" }
+      }
+    },
+    "publicCommentPolicy": {
+      "enum": ["disabled", "moderated", "authenticated"]
+    },
+    "publicContentSafety": {
+      "type": "object",
+      "required": ["rating"],
+      "additionalProperties": false,
+      "properties": {
+        "rating": { "enum": ["general", "sensitive", "restricted"] },
+        "warnings": {
+          "type": "array",
+          "maxItems": 10,
+          "items": { "type": "string", "minLength": 1, "maxLength": 120 }
+        }
+      }
+    },
+    "publicInteractionPolicy": {
+      "type": "object",
+      "required": ["enabled", "moderation"],
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "moderation": { "enum": ["queue", "spam-check", "manual"] }
+      }
+    },
+    "publicInteractionPolicies": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "reactions": { "$ref": "#/definitions/publicInteractionPolicy" },
+        "ctas": { "$ref": "#/definitions/publicInteractionPolicy" },
+        "forms": { "$ref": "#/definitions/publicInteractionPolicy" }
       }
     },
     "publicTaxonomy": {

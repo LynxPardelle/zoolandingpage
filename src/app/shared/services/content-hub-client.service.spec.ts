@@ -134,6 +134,38 @@ describe('ContentHubClientService', () => {
         }));
     });
 
+    it('sends public content interactions without csrf to the public action endpoint', async () => {
+        Object.defineProperty(document, 'cookie', {
+            configurable: true,
+            value: 'zlp_csrf=csrf-token',
+        });
+        const service = TestBed.inject(ContentHubClientService);
+
+        await service.executeAction({
+            domain: 'zoositioweb.com.mx',
+            pageId: 'blog-article',
+            actionId: 'contentHubRecordInteraction',
+            input: {
+                contentHub: {
+                    action: 'recordInteraction',
+                    hubId: 'zoosite-main',
+                },
+                articleId: 'intro',
+                eventType: 'cta_click',
+            },
+        });
+
+        const [url, init] = fetchSpy.calls.mostRecent().args as [string, RequestInit];
+        expect(url).toBe('/features/content-hub/public-action');
+        expect(init.credentials).toBe('include');
+        expect(init.headers).toEqual(jasmine.objectContaining({
+            'X-ZLP-Domain': 'zoositioweb.com.mx',
+            'X-ZLP-Auth-Profile-Id': 'staff',
+            'X-ZLP-Content-Hub-Id': 'zoosite-main',
+        }));
+        expect((init.headers as Record<string, string>)['X-ZLP-CSRF']).toBeUndefined();
+    });
+
     it('serializes uploadAsset browser files into bounded JSON payloads', async () => {
         const service = TestBed.inject(ContentHubClientService);
         const file = new File(['asset'], 'cover.png', { type: 'image/png' });

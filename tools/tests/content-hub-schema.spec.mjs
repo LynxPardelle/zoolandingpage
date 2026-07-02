@@ -178,6 +178,16 @@ function buildPublicConfig() {
             authorLabel: 'Zoolandingpage',
             canonicalPath: '/blog/web/blog-builder-seo',
             robots: 'index,follow',
+            commentPolicy: 'authenticated',
+            contentSafety: {
+              rating: 'general',
+              warnings: [],
+            },
+            interactions: {
+              reactions: { enabled: true, moderation: 'spam-check' },
+              ctas: { enabled: true, moderation: 'spam-check' },
+              forms: { enabled: true, moderation: 'queue' },
+            },
           },
         ],
         publicTaxonomy: [
