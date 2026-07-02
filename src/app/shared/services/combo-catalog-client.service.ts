@@ -17,6 +17,7 @@ const COMMA_LIST_FIELDS = new Set([
     'allowedGroups',
     'categories',
     'comboIds',
+    'comboGroups',
     'components',
     'deniedCombos',
     'deniedComponents',
@@ -158,7 +159,7 @@ export class ComboCatalogClientService {
     private normalizeActionPayload(input: Record<string, unknown>): Record<string, unknown> {
         return Object.entries(input).reduce<Record<string, unknown>>((acc, [key, value]) => {
             if (COMMA_LIST_FIELDS.has(key) && typeof value === 'string') {
-                acc[key] = value
+                acc[key === 'comboGroups' ? 'groups' : key] = value
                     .split(',')
                     .map((entry) => entry.trim())
                     .filter(Boolean);

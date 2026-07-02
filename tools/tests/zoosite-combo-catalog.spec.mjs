@@ -88,6 +88,16 @@ describe('Zoosite combo catalog draft contract', () => {
       assert.equal(actions.get(id)?.comboCatalog?.action, operation, `${id} operation`);
       assert.equal(actions.get(id)?.requiresUserGesture, true, `${id} must require user gesture`);
     }
+
+    assert.equal(
+      (actions.get('combo_catalog_create_combo')?.inputFields ?? []).includes('groups'),
+      false,
+      'combo creation must not expose groups as a public runtime input field',
+    );
+    assert.ok(
+      (actions.get('combo_catalog_create_combo')?.inputFields ?? []).includes('comboGroups'),
+      'combo creation should use comboGroups and map it client-side to backend groups',
+    );
   });
 
   it('uses the shared site header/footer and generic components for the admin combos surface', async () => {
