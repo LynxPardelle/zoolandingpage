@@ -2,6 +2,7 @@ import { PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { RuntimeApiProxyClientService } from './runtime-api-proxy-client.service';
 import { AuthAdminClientService } from '@/app/state/auth/auth-admin-client.service';
+import { ComboCatalogClientService } from './combo-catalog-client.service';
 import { ContentHubClientService } from './content-hub-client.service';
 import { RuntimeDataSourceMapperService } from './runtime-data-source-mapper.service';
 import { RuntimeDataSourceService } from './runtime-data-source.service';
@@ -12,6 +13,7 @@ describe('RuntimeDataSourceService', () => {
     let variables: VariableStoreService;
     let proxy: jasmine.SpyObj<RuntimeApiProxyClientService>;
     let authAdmin: jasmine.SpyObj<AuthAdminClientService>;
+    let comboCatalog: jasmine.SpyObj<ComboCatalogClientService>;
     let contentHub: jasmine.SpyObj<ContentHubClientService>;
     let mapper: jasmine.SpyObj<RuntimeDataSourceMapperService>;
     let runtimeSearchParams: URLSearchParams;
@@ -26,6 +28,7 @@ describe('RuntimeDataSourceService', () => {
     beforeEach(() => {
         proxy = jasmine.createSpyObj<RuntimeApiProxyClientService>('RuntimeApiProxyClientService', ['readSource', 'executeAction']);
         authAdmin = jasmine.createSpyObj<AuthAdminClientService>('AuthAdminClientService', ['me', 'listUsers']);
+        comboCatalog = jasmine.createSpyObj<ComboCatalogClientService>('ComboCatalogClientService', ['readSource', 'executeAction']);
         contentHub = jasmine.createSpyObj<ContentHubClientService>('ContentHubClientService', ['readSource', 'executeAction']);
         mapper = jasmine.createSpyObj<RuntimeDataSourceMapperService>('RuntimeDataSourceMapperService', ['mapResponse']);
         runtimeSearchParams = new URLSearchParams();
@@ -37,6 +40,7 @@ describe('RuntimeDataSourceService', () => {
                 { provide: PLATFORM_ID, useValue: 'browser' },
                 { provide: RuntimeApiProxyClientService, useValue: proxy },
                 { provide: AuthAdminClientService, useValue: authAdmin },
+                { provide: ComboCatalogClientService, useValue: comboCatalog },
                 { provide: ContentHubClientService, useValue: contentHub },
                 { provide: RuntimeDataSourceMapperService, useValue: mapper },
             ],
@@ -684,6 +688,46 @@ describe('RuntimeDataSourceService', () => {
                 },
                 limit: 20,
                 status: 'draft',
+            },
+        });
+    });
+
+    it('sends combo catalog reads through the combo catalog client with browser-safe input only', async () => {
+        comboCatalog.readSource.and.resolveTo({ ok: true, data: { items: [{ combo: 'HeroCard' }] } } as any);
+        mapper.mapResponse.and.returnValue({ items: [{ combo: 'HeroCard' }] });
+
+        await service.start({
+            domain: 'zoositioweb.com.mx',
+            pageId: 'admin-combos',
+            dataSources: [
+                {
+                    id: 'combo_catalog_combo_list',
+                    kind: 'combo-catalog',
+                    proxySourceId: 'comboCatalogComboList',
+                    target: 'remote.comboCatalog.combos',
+                    comboCatalog: {
+                        read: 'comboList',
+                    },
+                    input: {
+                        credentialRef: 'ssm:/must-not-travel',
+                        query: 'hero',
+                        scope: 'draft',
+                        tableName: 'server-only',
+                    },
+                } as any,
+            ],
+        });
+
+        expect(proxy.readSource).not.toHaveBeenCalled();
+        expect(contentHub.readSource).not.toHaveBeenCalled();
+        expect(comboCatalog.readSource).toHaveBeenCalledOnceWith({
+            domain: 'zoositioweb.com.mx',
+            pageId: 'admin-combos',
+            sourceId: 'comboCatalogComboList',
+            input: {
+                read: 'comboList',
+                query: 'hero',
+                scope: 'draft',
             },
         });
     });

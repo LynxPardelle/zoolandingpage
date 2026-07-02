@@ -2,6 +2,8 @@ import { isPlatformBrowser } from '@angular/common';
 import { Injectable, PLATFORM_ID, REQUEST, inject } from '@angular/core';
 import type { TRuntimeDataSourceConfig } from '@/app/shared/types/config-payloads.types';
 import { AuthAdminClientService } from '@/app/state/auth/auth-admin-client.service';
+import { ComboCatalogClientService } from './combo-catalog-client.service';
+import { buildComboCatalogRuntimeInput } from './combo-catalog-runtime-request';
 import { ContentHubClientService } from './content-hub-client.service';
 import { RuntimeApiProxyClientService, type TRuntimeApiProxyResponse } from './runtime-api-proxy-client.service';
 import { buildContentHubRuntimeInput, CONTENT_HUB_SAFE_ID_INPUT_KEYS, isContentHubSafePublicId } from './content-hub-runtime-request';
@@ -29,6 +31,7 @@ export class RuntimeDataSourceService {
     private readonly proxy = inject(RuntimeApiProxyClientService);
     private readonly authAdmin = inject(AuthAdminClientService);
     private readonly contentHub = inject(ContentHubClientService);
+    private readonly comboCatalog = inject(ComboCatalogClientService);
     private readonly mapper = inject(RuntimeDataSourceMapperService);
     private readonly variables = inject(VariableStoreService);
     private readonly platformId = inject(PLATFORM_ID);
@@ -153,6 +156,14 @@ export class RuntimeDataSourceService {
                 input,
             });
         }
+        if (source.kind === 'combo-catalog') {
+            return this.comboCatalog.readSource({
+                domain: options.domain,
+                pageId: options.pageId,
+                sourceId,
+                input,
+            });
+        }
 
         let lastError: unknown;
         const attempts = this.loadRetryDelaysMs.length + 1;
@@ -194,11 +205,14 @@ export class RuntimeDataSourceService {
         routeParams?: Readonly<Record<string, string>>,
     ): Record<string, unknown> | undefined {
         const input = this.resolveInput(source.input, routeParams);
-        if (source.kind !== 'content-hub') {
-            return input;
+        if (source.kind === 'content-hub') {
+            return buildContentHubRuntimeInput(source.contentHub, input);
+        }
+        if (source.kind === 'combo-catalog') {
+            return buildComboCatalogRuntimeInput(source.comboCatalog, input);
         }
 
-        return buildContentHubRuntimeInput(source.contentHub, input);
+        return input;
     }
 
     private wait(ms: number): Promise<void> {

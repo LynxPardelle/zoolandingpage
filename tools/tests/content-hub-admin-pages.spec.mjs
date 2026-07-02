@@ -637,6 +637,8 @@ describe('Zoosite blog admin draft pages', () => {
     assert.equal(dropzone?.config?.required, true);
     assert.equal(uploadButton?.config?.disabledWhenInvalidScope, true);
     assert.equal(uploadButton?.eventInstructions, 'proxyAction:content_hub_upload_asset');
+    assert.equal(table?.config?.rowIdPath, 'assetId');
+    assert.deepEqual(table?.config?.eventPayloadFields, ['assetId', 'name', 'kind', 'usageRefs', 'publicability']);
     assert.match(String(table?.valueInstructions ?? ''), /remoteStatus\.contentHub\.assets/);
     assert.deepEqual(editorWorkspace?.config?.components, ['editorCard', 'editorMediaScope']);
     assert.equal(editorMediaScope?.type, 'interaction-scope');
@@ -645,6 +647,7 @@ describe('Zoosite blog admin draft pages', () => {
     assert.match(String(editorMediaArticleId?.valueInstructions ?? ''), /remote\.contentHub\.articleDetail\.items\.0\.articleId/);
     assert.equal(editorDropzone?.config?.required, true);
     assert.equal(editorUploadButton?.config?.disabledWhenInvalidScope, true);
+    assert.equal(componentById(editorComponents, 'editorAssetsTable')?.config?.rowIdPath, 'assetId');
   });
 
   it('implements create and editor controls with draft-configured field IDs', async () => {
@@ -674,18 +677,49 @@ describe('Zoosite blog admin draft pages', () => {
     }
   });
 
-  it('keeps the unfinished component catalog explicitly disabled and labeled', async () => {
+  it('connects the editor to combos and keeps JSON validation isolated from article saves', async () => {
+    const pageConfig = await readJson('admin-blog-articulo-editor/page-config.json');
+    const siteConfig = await readJson('site-config.json');
     const payload = await readJson('admin-blog-articulo-editor/components.json');
     const components = flattenComponents(payload);
+    const editorScope = componentById(components, 'editorScope');
     const catalogButton = componentById(components, 'componentInspectorButton');
+    const catalogLink = componentById(components, 'componentInspectorCatalogLink');
     const catalogCopy = componentById(components, 'componentInspectorCopy');
+    const modalRoot = componentById(components, 'articleComponentInspectorModalRoot');
+    const catalogPanel = componentById(components, 'componentCatalogPanel');
+    const previewPanel = componentById(components, 'componentPreviewPanel');
+    const comboSelect = componentById(components, 'componentComboSelect');
+    const modalClose = componentById(components, 'componentInspectorModalClose');
+    const jsonScope = componentById(components, 'componentInspectorJsonScope');
+    const jsonInput = componentById(components, 'componentTreeJsonInput');
     const advancedHelp = componentById(components, 'advancedModeHelp');
+    const comboOptionsSource = siteConfig.runtime.dataSources.find((source) => source.id === 'combo_catalog_combo_options');
 
-    assert.equal(catalogButton?.config?.disabled, true);
-    assert.equal(catalogButton?.eventInstructions ?? '', '');
-    assert.match(catalogCopy?.config?.text ?? '', /Catálogo visual pendiente/);
-    assert.match(catalogCopy?.config?.text ?? '', /se activará cuando exista el catálogo validado/);
-    assert.match(advancedHelp?.config?.text ?? '', /botón de catálogo queda deshabilitado/);
+    assert.ok(pageConfig.modalRootIds.includes('articleComponentInspectorModalRoot'));
+    assert.equal(catalogButton?.type, 'button');
+    assert.match(catalogButton?.eventInstructions ?? '', /openModal:article-component-inspector/);
+    assert.equal(catalogLink?.type, 'link');
+    assert.equal(catalogLink?.config?.href, '/admin/combos');
+    assert.match(catalogCopy?.config?.text ?? '', /abre el inspector/i);
+    assert.equal(modalRoot?.condition, 'all:modalRefId,article-component-inspector');
+    assert.equal(catalogPanel?.config?.components?.includes('componentCatalogRichText'), true);
+    assert.equal(previewPanel?.config?.components?.includes('componentPreviewCard'), true);
+    assert.equal(comboSelect?.config?.options?.source, 'var');
+    assert.equal(comboSelect?.config?.options?.path, 'remote.comboCatalog.comboOptions.items');
+    assert.equal(modalClose?.eventInstructions, 'closeModal');
+    assert.equal(jsonScope?.type, 'interaction-scope');
+    assert.equal(jsonInput?.type, 'input');
+    assert.equal(jsonInput?.config?.controlType, 'textarea');
+    assert.equal(jsonInput?.config?.fieldId, 'componentTreeJson');
+    assert.deepEqual(jsonInput?.config?.validation, [{ type: 'json', message: 'JSON válido para previsualización.' }]);
+    assert.doesNotMatch(editorScope?.config?.valueInstructions ?? '', /componentTreeJson/);
+    assert.equal(comboOptionsSource?.kind, 'combo-catalog');
+    assert.equal(comboOptionsSource?.target, 'remote.comboCatalog.comboOptions');
+    assert.ok(comboOptionsSource?.pageIds?.includes('admin-blog-articulo-editor'));
+    assert.deepEqual(comboOptionsSource?.mapper?.fields?.value, { path: 'comboId' });
+    assert.deepEqual(comboOptionsSource?.mapper?.fields?.label, { path: 'comboId', transform: 'titleCase' });
+    assert.match(advancedHelp?.config?.text ?? '', /allowlist del draft/);
   });
 
   it('shows direct post-create next-step links bound to the created article ids', async () => {
@@ -774,6 +808,15 @@ describe('Zoosite blog admin draft pages', () => {
     assert.equal(tagsTable?.config?.rowsSource?.path, 'remote.contentHub.tags.items');
     assert.equal(categoriesTable?.config?.columns?.some((column) => column.id === 'kind'), false);
     assert.equal(tagsTable?.config?.columns?.some((column) => column.id === 'kind'), false);
+    assert.deepEqual(categoriesTable?.config?.eventPayloadFields, ['taxonomyId', 'slug', 'label', 'seoDescription', 'visible', 'redirectWarning']);
+    assert.deepEqual(tagsTable?.config?.eventPayloadFields, ['taxonomyId', 'slug', 'label', 'seoDescription', 'visible', 'redirectWarning']);
+    assert.equal(categoriesTable?.config?.actionColumnLabel, 'Acciones');
+    assert.equal(tagsTable?.config?.actionColumnLabel, 'Acciones');
+    assert.equal(categoriesTable?.config?.rowActions?.[0]?.hrefTemplate, '/admin/blog/articulos?category={slug}');
+    assert.equal(tagsTable?.config?.rowActions?.[0]?.hrefTemplate, '/admin/blog/articulos?tag={slug}');
+    assert.deepEqual(categoriesGrid?.config?.components?.slice(0, 2), ['categoriesKind', 'categoriesTaxonomyId']);
+    assert.equal(componentById(categoryComponents, 'categoriesWorkspace')?.config?.components?.at(-1), 'categoriesSaveNotice');
+    assert.equal(componentById(tagComponents, 'tagsWorkspace')?.config?.components?.at(-1), 'tagsSaveNotice');
   });
 
   it('keeps editorial lifecycle action errors user-facing instead of raw backend passthrough', async () => {

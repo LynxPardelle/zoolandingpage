@@ -7,6 +7,8 @@ import { ConfigStoreService } from './config-store.service';
 
 export type TAngoraCombosMap = Record<string, readonly string[]>;
 
+const LOW_PRECEDENCE_AUXILIARY_SCOPES = new Set(['combo-catalog']);
+
 type TAngoraRuntimeDebugBridge = {
     appliedCombos: () => TAngoraCombosMap;
     comboKeys: () => string[];
@@ -533,9 +535,17 @@ export class AngoraCombosService {
     }
 
     private mergeCombos(): TAngoraCombosMap {
-        const merged: Record<string, readonly string[]> = { ...this.draftCombos };
+        const merged: Record<string, readonly string[]> = {};
 
-        this.auxiliaryCombos.forEach((combos) => {
+        this.auxiliaryCombos.forEach((combos, scope) => {
+            if (!LOW_PRECEDENCE_AUXILIARY_SCOPES.has(scope)) return;
+            Object.assign(merged, combos);
+        });
+
+        Object.assign(merged, this.draftCombos);
+
+        this.auxiliaryCombos.forEach((combos, scope) => {
+            if (LOW_PRECEDENCE_AUXILIARY_SCOPES.has(scope)) return;
             Object.assign(merged, combos);
         });
 

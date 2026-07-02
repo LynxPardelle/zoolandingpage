@@ -247,6 +247,60 @@ describe('AngoraCombosService', () => {
         expect(pushCombos.calls.argsFor(1)).toEqual([{ hero: ['ank-bg-primary'], debugBtnBase: ['ank-d-flex'] }]);
     });
 
+    it('lets draft combos override combo catalog combos', () => {
+        const service = configure('browser');
+
+        service.setAuxiliaryCombos('combo-catalog', {
+            version: 1,
+            pageId: 'default',
+            domain: 'catalog',
+            combos: {
+                card: ['ank-bg-catalog'],
+                remoteOnly: ['ank-d-flex'],
+            },
+        });
+
+        store.setCombos({
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            combos: {
+                card: ['ank-bg-local'],
+            },
+        });
+        TestBed.flushEffects();
+
+        expect(pushCombos.calls.mostRecent().args).toEqual([{
+            card: ['ank-bg-local'],
+            remoteOnly: ['ank-d-flex'],
+        }]);
+    });
+
+    it('lets temporary auxiliary combos override draft combos', () => {
+        const service = configure('browser');
+
+        store.setCombos({
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            combos: {
+                card: ['ank-bg-local'],
+            },
+        });
+        TestBed.flushEffects();
+
+        service.setAuxiliaryCombos('debug-workspace', {
+            version: 1,
+            pageId: 'default',
+            domain: 'debug-workspace',
+            combos: {
+                card: ['ank-bg-preview'],
+            },
+        });
+
+        expect(pushCombos.calls.mostRecent().args).toEqual([{ card: ['ank-bg-preview'] }]);
+    });
+
     it('keeps the earliest pending cssCreate request', () => {
         jasmine.clock().install();
         try {

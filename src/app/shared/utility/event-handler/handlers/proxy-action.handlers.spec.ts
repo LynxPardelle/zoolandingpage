@@ -1,4 +1,5 @@
 import { ConfigStoreService } from '@/app/shared/services/config-store.service';
+import { ComboCatalogClientService } from '@/app/shared/services/combo-catalog-client.service';
 import { ContentHubClientService } from '@/app/shared/services/content-hub-client.service';
 import { RuntimeApiProxyClientService } from '@/app/shared/services/runtime-api-proxy-client.service';
 import { VariableStoreService } from '@/app/shared/services/variable-store.service';
@@ -9,6 +10,7 @@ import { proxyActionHandler } from './proxy-action.handlers';
 
 describe('proxyActionHandler', () => {
     let proxy: jasmine.SpyObj<RuntimeApiProxyClientService>;
+    let comboCatalog: jasmine.SpyObj<ComboCatalogClientService>;
     let contentHub: jasmine.SpyObj<ContentHubClientService>;
     let configStore: ConfigStoreService;
     let variables: VariableStoreService;
@@ -16,6 +18,7 @@ describe('proxyActionHandler', () => {
 
     beforeEach(() => {
         proxy = jasmine.createSpyObj<RuntimeApiProxyClientService>('RuntimeApiProxyClientService', ['readSource', 'executeAction']);
+        comboCatalog = jasmine.createSpyObj<ComboCatalogClientService>('ComboCatalogClientService', ['readSource', 'executeAction']);
         contentHub = jasmine.createSpyObj<ContentHubClientService>('ContentHubClientService', ['readSource', 'executeAction']);
 
         TestBed.configureTestingModule({
@@ -24,6 +27,7 @@ describe('proxyActionHandler', () => {
                 InteractionScopeService,
                 VariableStoreService,
                 { provide: RuntimeApiProxyClientService, useValue: proxy },
+                { provide: ComboCatalogClientService, useValue: comboCatalog },
                 { provide: ContentHubClientService, useValue: contentHub },
             ],
         });
@@ -537,6 +541,68 @@ describe('proxyActionHandler', () => {
                 revisionId: 'rev_1',
             }),
         }));
+    });
+
+    it('executes combo catalog actions with safe combo context and allowlisted event data only', async () => {
+        configStore.setSiteConfig({
+            version: 1,
+            domain: 'zoositioweb.com.mx',
+            routes: [],
+            runtime: {
+                apiActions: [
+                    {
+                        id: 'update-combo',
+                        kind: 'combo-catalog',
+                        proxyActionId: 'comboCatalogUpdateCombo',
+                        statusTarget: 'remoteStatus.comboCatalog.update',
+                        inputFields: ['comboId', 'credentialRef', 'groups', 'scope', 'updatedAt'],
+                        comboCatalog: {
+                            action: 'updateCombo',
+                        },
+                    },
+                ],
+            },
+            site: {},
+        } as any);
+        context = {
+            event: {
+                componentId: 'comboUpdateButton',
+                eventName: 'pressed',
+                eventData: {
+                    comboId: 'HeroCard',
+                    credentialRef: 'ssm:/must-not-travel',
+                    groups: 'corporativo, landing',
+                    scope: 'draft',
+                    tableName: 'server-only',
+                    updatedAt: '2026-07-01T18:11:00-06:00',
+                },
+                userGesture: true,
+            },
+            host: {},
+        };
+        comboCatalog.executeAction.and.resolveTo({
+            ok: true,
+            data: { combo: { combo: 'HeroCard' } },
+        });
+
+        const handler = TestBed.runInInjectionContext(() => proxyActionHandler());
+        await handler.handle(context, ['update-combo']);
+
+        expect(proxy.executeAction).not.toHaveBeenCalled();
+        expect(contentHub.executeAction).not.toHaveBeenCalled();
+        expect(comboCatalog.executeAction).toHaveBeenCalledOnceWith({
+            domain: 'zoositioweb.com.mx',
+            pageId: 'default',
+            actionId: 'comboCatalogUpdateCombo',
+            input: {
+                action: 'updateCombo',
+                comboId: 'HeroCard',
+                groups: 'corporativo, landing',
+                scope: 'draft',
+                updatedAt: '2026-07-01T18:11:00-06:00',
+            },
+        });
+        expect(variables.get('remoteStatus.comboCatalog.update.state')).toBe('success');
     });
 
     it('extracts taxonomy, comment and interaction response references', async () => {

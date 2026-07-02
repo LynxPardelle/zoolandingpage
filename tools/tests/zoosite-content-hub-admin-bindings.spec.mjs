@@ -161,7 +161,8 @@ describe('Zoosite content hub admin bindings', () => {
 
   it('declares content-hub data sources for every phase-6 admin read surface', async () => {
     const siteConfig = await loadSiteConfig();
-    const dataSources = siteConfig.runtime?.dataSources?.filter((source) => source.kind === 'content-hub') ?? [];
+    const allDataSources = siteConfig.runtime?.dataSources ?? [];
+    const dataSources = allDataSources.filter((source) => source.kind === 'content-hub');
     const reads = new Set(dataSources.map((source) => source.contentHub?.read));
 
     for (const read of requiredReads) {
@@ -240,6 +241,14 @@ describe('Zoosite content hub admin bindings', () => {
       path: 'slug',
       fallback: 'Sin tag',
     });
+
+    const comboOptions = allDataSources.find((source) => source.id === 'combo_catalog_combo_options');
+    assert.equal(comboOptions?.kind, 'combo-catalog');
+    assert.equal(comboOptions?.comboCatalog?.read, 'comboList');
+    assert.ok(comboOptions?.pageIds?.includes('admin-blog-articulo-editor'));
+    assert.equal(comboOptions?.target, 'remote.comboCatalog.comboOptions');
+    assert.deepEqual(comboOptions?.mapper?.fields?.value, { path: 'comboId' });
+    assert.deepEqual(comboOptions?.mapper?.fields?.label, { path: 'comboId', transform: 'titleCase' });
 
     const analytics = dataSources.find((source) => source.id === 'content_hub_analytics_summary');
     assert.equal(analytics?.contentHub?.read, 'analyticsSummary');
@@ -366,6 +375,10 @@ describe('Zoosite content hub admin bindings', () => {
     assert.equal(tagsTable?.config?.rowsSource?.path, 'remote.contentHub.tags.items');
     assert.equal(categoriesTable?.config?.columns?.some((column) => column.id === 'kind'), false);
     assert.equal(tagsTable?.config?.columns?.some((column) => column.id === 'kind'), false);
+    assert.deepEqual(categoriesTable?.config?.eventPayloadFields, ['taxonomyId', 'slug', 'label', 'seoDescription', 'visible', 'redirectWarning']);
+    assert.deepEqual(tagsTable?.config?.eventPayloadFields, ['taxonomyId', 'slug', 'label', 'seoDescription', 'visible', 'redirectWarning']);
+    assert.equal(categoriesTable?.config?.rowActions?.[0]?.hrefTemplate, '/admin/blog/articulos?category={slug}');
+    assert.equal(tagsTable?.config?.rowActions?.[0]?.hrefTemplate, '/admin/blog/articulos?tag={slug}');
 
     const analyticsComponents = await loadDraftComponents(adminAnalyticsComponentsPath);
     const analyticsTable = findComponentById(analyticsComponents, 'analyticsTable');
