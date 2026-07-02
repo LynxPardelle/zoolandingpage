@@ -178,6 +178,28 @@ describe('GenericTableComponent', () => {
     expect(alphaLink?.style.minHeight).toBe('52px');
   });
 
+  it('keeps row action touch targets usable when draft styles are too small', () => {
+    fixture.componentRef.setInput('config', {
+      ...tableConfig,
+      actionLabelMode: 'tooltip',
+      actionButtonStyles: {
+        height: '22px',
+        minHeight: '20px',
+        minWidth: '18px',
+        width: '24px',
+      },
+    });
+    fixture.detectChanges();
+
+    const editButton = fixture.nativeElement.querySelector('button[aria-label="Editar"]') as HTMLButtonElement | null;
+
+    expect(editButton).toBeTruthy();
+    expect(editButton?.style.height).toBe('44px');
+    expect(editButton?.style.minHeight).toBe('44px');
+    expect(editButton?.style.minWidth).toBe('44px');
+    expect(editButton?.style.width).toBe('44px');
+  });
+
   it('can hide the Material paginator when every row fits on one page', () => {
     fixture.componentRef.setInput('config', {
       ...tableConfig,

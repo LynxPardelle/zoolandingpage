@@ -1452,6 +1452,12 @@ test('production SSR server renders a safe shell for Zoosite protected article d
     assert.doesNotMatch(protectedOverlay, /Página no encontrada|Esta ruta no está publicada/i, suffix);
     assert.doesNotMatch(protectedOverlay, /Editor de artículo|Vista previa|Versiones|SEO/i, suffix);
     assert.ok(appRoot.length > 0, suffix);
+    assert.doesNotMatch(
+      stripNonVisibleHtml(appRoot),
+      /notFoundHero|Página no encontrada|Esta ruta no está publicada/i,
+      `protected app-root must not hide a not-found document for ${suffix}`,
+    );
+    assert.match(appRoot, /zlp-private-route-loading/i, suffix);
     assertNoSensitiveAuthSurface(protectedOverlay);
   }
 
