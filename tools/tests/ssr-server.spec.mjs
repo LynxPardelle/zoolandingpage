@@ -1451,6 +1451,7 @@ test('production SSR server renders a safe shell for Zoosite protected article d
     assert.match(body, /<app-root\b[^>]*aria-hidden="true"/i, suffix);
     assert.doesNotMatch(body, /<!--nghm-->/i, suffix);
     assert.doesNotMatch(body, /<script\b[^>]*\bid=(["'])ng-state\1/i, suffix);
+    assert.doesNotMatch(body, /<script\b[^>]*application\/ld\+json[^>]*>[\s\S]*?Página no encontrada[\s\S]*?<\/script>/i, suffix);
     const appRootOpeningTag = appRoot.match(/^<app-root\b[^>]*>/i)?.[0] ?? '';
     assert.doesNotMatch(appRootOpeningTag, /(?:ng-version|ng-server-context|ngh=|_nghost-|_ngcontent-|ngSkipHydration)/i, suffix);
     assert.match(protectedOverlay, /<main\b/i, suffix);

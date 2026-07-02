@@ -2365,7 +2365,8 @@ function replaceProtectedSsrAppRootContent(html: string, lang: string): string {
 function removeAngularHydrationContract(html: string): string {
   return html
     .replace(/<!--nghm-->/gi, '')
-    .replace(/<script\b[^>]*\bid=(["'])ng-state\1[^>]*>[\s\S]*?<\/script>/gi, '');
+    .replace(/<script\b[^>]*\bid=(["'])ng-state\1[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<script\b[^>]*\btype=(["'])application\/ld\+json\1[^>]*>[\s\S]*?<\/script>/gi, '');
 }
 
 function buildProtectedSsrTitle(siteConfig: TLocalSiteConfig | null, lang: string): string {
