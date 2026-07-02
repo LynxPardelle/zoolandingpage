@@ -20,6 +20,7 @@ import {
   safeSmokeErrorMessage,
   smokeStep,
   slugify,
+  withCacheBust,
 } from '../content-hub-product-readiness-smoke.mjs';
 
 const smokeCliPath = fileURLToPath(new URL('../content-hub-product-readiness-smoke.mjs', import.meta.url));
@@ -105,6 +106,18 @@ test('buildPublicSearchUrl keeps shared preview draftDomain scoped', () => {
   assert.equal(
     url,
     'https://test.zoolandingpage.com.mx/content-hub-search.json?draftDomain=zoositioweb.com.mx&lang=es&q=QA+Product+Smoke',
+  );
+});
+
+test('withCacheBust preserves existing public preview query params', () => {
+  const url = withCacheBust(
+    'https://test.zoolandingpage.com.mx/content-hub-search.json?draftDomain=zoositioweb.com.mx&lang=es&q=QA+Product+Smoke',
+    'qa-unpublish-1',
+  );
+
+  assert.equal(
+    url,
+    'https://test.zoolandingpage.com.mx/content-hub-search.json?draftDomain=zoositioweb.com.mx&lang=es&q=QA+Product+Smoke&cacheBust=qa-unpublish-1',
   );
 });
 
@@ -761,7 +774,8 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
       if (action === 'queueComment') {
         assert.equal(body.input.articleId, 'art_smoke');
         assert.equal(body.input.commentPolicy, 'authenticated-moderation');
-        assert.match(body.input.commentBody, /^QA smoke moderated comment /);
+        assert.match(body.input.commentBody, /^QA smoke moderated comment qa-\d{4}$/);
+        assert.doesNotMatch(body.input.commentBody, /\d{8,}/);
         queuedComments += 1;
         moderationStatus = 'queued';
         return new Response(JSON.stringify({
@@ -771,7 +785,7 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
               articleId: 'art_smoke',
               commentId: 'comment_smoke',
               status: 'queued',
-              bodyPreview: 'QA smoke moderated comment 20260630040000',
+              bodyPreview: 'QA smoke moderated comment qa-0000',
               queuedAt: '2026-06-30T04:00:00Z',
             },
           },
@@ -789,7 +803,7 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
               articleId: 'art_smoke',
               commentId: 'comment_smoke',
               status: 'approved',
-              bodyPreview: 'QA smoke moderated comment 20260630040000',
+              bodyPreview: 'QA smoke moderated comment qa-0000',
               queuedAt: '2026-06-30T04:00:00Z',
               moderatedAt: '2026-06-30T04:05:00Z',
             },
@@ -912,7 +926,7 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
             articleId: 'art_smoke',
             commentId: 'comment_smoke',
             status: moderationStatus,
-            bodyPreview: 'QA smoke moderated comment 20260630040000',
+            bodyPreview: 'QA smoke moderated comment qa-0000',
             queuedAt: '2026-06-30T04:00:00Z',
             ...(moderationStatus === 'approved' ? { moderatedAt: '2026-06-30T04:05:00Z' } : {}),
           }];
@@ -1157,7 +1171,7 @@ test('runSmoke fails when unpublished articles remain publicly visible', async (
               articleId: 'art_smoke',
               commentId: 'comment_smoke',
               status: 'queued',
-              bodyPreview: 'QA smoke moderated comment 20260630040000',
+              bodyPreview: 'QA smoke moderated comment qa-0000',
               queuedAt: '2026-06-30T04:00:00Z',
             },
           },
@@ -1172,7 +1186,7 @@ test('runSmoke fails when unpublished articles remain publicly visible', async (
               articleId: 'art_smoke',
               commentId: 'comment_smoke',
               status: 'approved',
-              bodyPreview: 'QA smoke moderated comment 20260630040000',
+              bodyPreview: 'QA smoke moderated comment qa-0000',
               queuedAt: '2026-06-30T04:00:00Z',
               moderatedAt: '2026-06-30T04:05:00Z',
             },
@@ -1261,7 +1275,7 @@ test('runSmoke fails when unpublished articles remain publicly visible', async (
             articleId: 'art_smoke',
             commentId: 'comment_smoke',
             status: moderationStatus,
-            bodyPreview: 'QA smoke moderated comment 20260630040000',
+            bodyPreview: 'QA smoke moderated comment qa-0000',
             queuedAt: '2026-06-30T04:00:00Z',
             ...(moderationStatus === 'approved' ? { moderatedAt: '2026-06-30T04:05:00Z' } : {}),
           }];
@@ -1313,6 +1327,8 @@ test('runSmoke fails when unpublished articles remain publicly visible', async (
       csrf: 'csrf-token',
       timeoutMs: 1000,
       sharedPreview: true,
+      publicAbsenceAttempts: 2,
+      publicAbsenceDelayMs: 5,
       now,
     }), /Public search still includes the unpublished article/);
     assert.equal(unpublished, true);
