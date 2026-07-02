@@ -736,6 +736,7 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.equal(articleResponse.status, 200);
   assert.match(articleHtml, /<link rel="canonical" href="https:\/\/zoositioweb\.com\.mx\/blog\/web\/blog-builder-seo">/);
   assert.match(articleHtml, /"@type":"BlogPosting"/);
+  assert.equal((articleHtml.match(/"@type":"BlogPosting"/g) ?? []).length, 1);
   assert.match(articleHtml, /"articleSection":"web"/);
   assert.match(articleHtml, /"keywords":"seo, builder, angora"/);
   assert.match(articleHtml, /"publisher":\{[^}]*"name":"zoositioweb"[^}]*\}/);
@@ -749,6 +750,7 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.equal(runtimeArticleResponse.status, 200);
   assert.match(runtimeArticleHtml, /<link rel="canonical" href="https:\/\/zoositioweb\.com\.mx\/blog\/web\/runtime-dynamic-seo">/);
   assert.match(runtimeArticleHtml, /"@type":"BlogPosting"/);
+  assert.equal((runtimeArticleHtml.match(/"@type":"BlogPosting"/g) ?? []).length, 1);
   assert.match(runtimeArticleHtml, /Runtime Dynamic SEO Article/);
   assert.match(runtimeArticleHtml, /"keywords":"runtime, seo"/);
   assert.doesNotMatch(stripNonVisibleHtml(runtimeArticleHtml), /Página no encontrada|Esta ruta no nos llevó/i);
