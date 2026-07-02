@@ -848,6 +848,7 @@ test('built SSR server decorates configured drafts with Google tag, Search Conso
   const dirtySeoHtml = await dirtySeoResponse.text();
   assert.match(dirtySeoHtml, /<link rel="canonical" href="https:\/\/zoositioweb\.com\.mx\/">/);
   assert.match(dirtySeoHtml, /hreflang="en" href="https:\/\/zoositioweb\.com\.mx\/\?lang=en"/);
+  assert.equal([...dirtySeoHtml.matchAll(/<link rel="alternate" hreflang=/g)].length, 3);
   assert.doesNotMatch(dirtySeoHtml, /<link[^>]+href="[^"]*(draftDomain=|debugWorkspace=|cacheBust=|utm_source=)/);
   assert.doesNotMatch(dirtySeoHtml, /<meta[^>]+content="[^"]*(draftDomain=|debugWorkspace=|cacheBust=|utm_source=)/);
 
