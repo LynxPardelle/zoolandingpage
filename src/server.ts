@@ -2335,47 +2335,27 @@ function buildProtectedSsrShellContent(lang: string): string {
   ].join('');
 }
 
-function buildProtectedSsrAppRootContent(lang: string): string {
-  const normalizedLang = normalizeLanguageCode(lang);
-  const title = normalizedLang === 'en'
-    ? 'Validating access'
-    : 'Validando acceso';
-  const message = normalizedLang === 'en'
-    ? 'Checking your secure session and permissions before showing this page.'
-    : 'Revisando tu sesión segura y permisos antes de mostrar esta página.';
-
-  return [
-    '<main class="zlp-private-route-loading" role="status" aria-live="polite" aria-busy="true">',
-    '<div class="zlp-private-route-loading__panel">',
-    '<strong class="zlp-private-route-loading__title">',
-    escapeHtmlText(title),
-    '</strong>',
-    '<span class="zlp-private-route-loading__message">',
-    escapeHtmlText(message),
-    '</span>',
-    '</div>',
-    '</main>',
-  ].join('');
-}
-
 function markProtectedAppRootTag(tag: string): string {
+  const sanitizedTag = tag
+    .replace(/\s+ng-version=(["']).*?\1/gi, '')
+    .replace(/\s+ng-server-context=(["']).*?\1/gi, '')
+    .replace(/\s+ngh=(["']).*?\1/gi, '')
+    .replace(/\s+_nghost-[a-z0-9-]+(?:=(["']).*?\1)?/gi, '')
+    .replace(/\s+_ngcontent-[a-z0-9-]+(?:=(["']).*?\1)?/gi, '')
+    .replace(/\s+ngskiphydration(?:=(["']).*?\1)?/gi, '');
+
   return setHtmlAttribute(
-    setHtmlAttribute(
-      setHtmlAttribute(tag, 'data-zlp-protected-shell', 'true'),
-      'aria-hidden',
-      'true',
-    ),
-    'ngSkipHydration',
-    '',
+    setHtmlAttribute(sanitizedTag, 'data-zlp-protected-shell', 'true'),
+    'aria-hidden',
+    'true',
   );
 }
 
 function replaceProtectedSsrAppRootContent(html: string, lang: string): string {
-  const protectedContent = buildProtectedSsrAppRootContent(lang);
   if (/<app-root\b[\s\S]*?<\/app-root>/i.test(html)) {
     return html.replace(/<app-root\b[^>]*>[\s\S]*?<\/app-root>/i, (match) => {
       const openingTag = match.match(/^<app-root\b[^>]*>/i)?.[0] ?? '<app-root>';
-      return `${markProtectedAppRootTag(openingTag)}${protectedContent}</app-root>`;
+      return `${markProtectedAppRootTag(openingTag)}</app-root>`;
     });
   }
 
