@@ -105,7 +105,7 @@ export class GenericTableComponent {
       baseStyles['width'] = '48px';
     }
 
-    return { ...baseStyles, ...(configuredStyles ?? {}) };
+    return this.enforceActionTouchTarget({ ...baseStyles, ...(configuredStyles ?? {}) });
   });
   readonly actionIconClasses = computed(() =>
     this.asString(this.config().actionIconClasses)
@@ -425,6 +425,32 @@ export class GenericTableComponent {
   private asString(value: unknown): string {
     const resolved = this.resolve(value);
     return resolved == null ? '' : String(resolved);
+  }
+
+  private enforceActionTouchTarget(
+    styles: Readonly<Record<string, string | number | null | undefined>>,
+  ): Record<string, string | number | null | undefined> {
+    const result = { ...styles };
+    for (const property of ['height', 'minHeight', 'minWidth', 'width'] as const) {
+      const normalized = this.minPixelValue(result[property], 44);
+      if (normalized) result[property] = normalized;
+    }
+    return result;
+  }
+
+  private minPixelValue(value: unknown, min: number): string | null {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return `${Math.max(min, value)}px`;
+    }
+
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    const match = /^(\d+(?:\.\d+)?)px$/i.exec(trimmed);
+    if (!match) return trimmed;
+
+    const numeric = Number(match[1]);
+    if (!Number.isFinite(numeric)) return trimmed;
+    return `${Math.max(min, numeric)}px`;
   }
 
   private asNumber(value: unknown): number | undefined {
