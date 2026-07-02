@@ -67,6 +67,11 @@ describe('Zoosite combo catalog draft contract', () => {
 
     assert.equal(sources.get('combo_catalog_combo_list')?.kind, 'combo-catalog');
     assert.equal(sources.get('combo_catalog_combo_list')?.comboCatalog?.read, 'comboList');
+    assert.equal(sources.get('combo_catalog_combo_options')?.comboCatalog?.read, 'comboList');
+    assert.equal(sources.get('combo_catalog_combo_options')?.target, 'remote.comboCatalog.comboOptions');
+    assert.ok(sources.get('combo_catalog_combo_options')?.pageIds?.includes('admin-blog-articulo-editor'));
+    assert.deepEqual(sources.get('combo_catalog_combo_options')?.mapper?.fields?.value, { path: 'comboId' });
+    assert.deepEqual(sources.get('combo_catalog_combo_options')?.mapper?.fields?.label, { path: 'comboId', transform: 'titleCase' });
     assert.equal(sources.get('combo_catalog_group_list')?.comboCatalog?.read, 'groupList');
     assert.equal(sources.get('combo_catalog_draft_policy')?.comboCatalog?.read, 'draftPolicy');
 
