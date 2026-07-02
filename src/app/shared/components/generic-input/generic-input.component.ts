@@ -47,6 +47,10 @@ import type {
   host: {
     '[attr.data-zlp-field-id]': 'fieldId()',
     '[attr.data-zlp-field-valid]': 'fieldState().valid ? "true" : "false"',
+    '[style.box-sizing]': '"border-box"',
+    '[style.display]': '"block"',
+    '[style.min-width]': '"0"',
+    '[style.width]': '"100%"',
   },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

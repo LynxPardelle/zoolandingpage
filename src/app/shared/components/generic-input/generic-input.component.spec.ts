@@ -37,6 +37,23 @@ describe('GenericInputComponent', () => {
         );
     });
 
+    it('renders as a full-width block grid item for responsive draft forms', () => {
+        const fixture = TestBed.createComponent(GenericInputComponent);
+
+        fixture.componentRef.setInput('config', {
+            fieldId: 'articleTitle',
+            controlType: 'text',
+            value: 'Draft title',
+        });
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        expect(host.style.display).toBe('block');
+        expect(host.style.width).toBe('100%');
+        expect(host.style.minWidth).toBe('0px');
+        expect(host.style.boxSizing).toBe('border-box');
+    });
+
     it('supports native local date-time inputs for schedulers', () => {
         const fixture = TestBed.createComponent(GenericInputComponent);
 
