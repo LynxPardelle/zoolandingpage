@@ -341,7 +341,7 @@ test('runSmoke fails when preview does not reflect the updated revision', async 
   globalThis.fetch = async (url, init = {}) => {
     const parsed = new URL(String(url));
     const body = init.body ? JSON.parse(String(init.body)) : null;
-    if (parsed.pathname.endsWith('/features/content-hub/action')) {
+    if (parsed.pathname.endsWith('/features/content-hub/action') || parsed.pathname.endsWith('/features/content-hub/public-action')) {
       const action = body?.input?.contentHub?.action;
       if (action === 'upsertTaxonomy') {
         const kind = body.input.taxonomyKind;
@@ -462,7 +462,7 @@ test('runSmoke fails when asset upload exposes internal storage metadata', async
   globalThis.fetch = async (url, init = {}) => {
     const parsed = new URL(String(url));
     const body = init.body ? JSON.parse(String(init.body)) : null;
-    if (parsed.pathname.endsWith('/features/content-hub/action')) {
+    if (parsed.pathname.endsWith('/features/content-hub/action') || parsed.pathname.endsWith('/features/content-hub/public-action')) {
       const action = body?.input?.contentHub?.action;
       if (action === 'upsertTaxonomy') {
         const kind = body.input.taxonomyKind;
@@ -621,7 +621,7 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
   globalThis.fetch = async (url, init = {}) => {
     const parsed = new URL(String(url));
     const body = init.body ? JSON.parse(String(init.body)) : null;
-    if (parsed.pathname.endsWith('/features/content-hub/action')) {
+    if (parsed.pathname.endsWith('/features/content-hub/action') || parsed.pathname.endsWith('/features/content-hub/public-action')) {
       const action = body?.input?.contentHub?.action;
       actionSequence.push(action);
       if (action === 'upsertTaxonomy') {
@@ -1105,7 +1105,7 @@ test('runSmoke fails when unpublished articles remain publicly visible', async (
   globalThis.fetch = async (url, init = {}) => {
     const parsed = new URL(String(url));
     const body = init.body ? JSON.parse(String(init.body)) : null;
-    if (parsed.pathname.endsWith('/features/content-hub/action')) {
+    if (parsed.pathname.endsWith('/features/content-hub/action') || parsed.pathname.endsWith('/features/content-hub/public-action')) {
       const action = body?.input?.contentHub?.action;
       if (action === 'createArticle') {
         return new Response(JSON.stringify({

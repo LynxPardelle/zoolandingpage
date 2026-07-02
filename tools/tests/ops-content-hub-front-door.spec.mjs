@@ -32,6 +32,7 @@ test('routeRule scopes content-hub routes without stealing future features', () 
   assert.match(rule, /Host\(`zoositioweb\.com\.mx`\)/);
   assert.match(rule, /Path\(`\/features\/content-hub\/read`\)/);
   assert.match(rule, /Path\(`\/features\/content-hub\/action`\)/);
+  assert.match(rule, /Path\(`\/features\/content-hub\/public-action`\)/);
   assert.doesNotMatch(rule, /PathPrefix\(`\/features\/content-hub/);
   assert.doesNotMatch(rule, /PathPrefix\(`\/features/);
 });

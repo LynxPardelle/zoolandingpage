@@ -106,6 +106,9 @@ test('site-config schema exposes content hub data source and action contracts wi
     assert.equal(schema.definitions.contentHubPublicTaxonomyCollection.oneOf[1].properties.items.items.$ref, '#/definitions/contentHubPublicTaxonomy');
     assert.equal(schema.definitions.contentHubPublicArticle.properties.path.$ref, '#/definitions/sameOriginPath');
     assert.equal(schema.definitions.contentHubPublicArticle.properties.visibility.const, 'public');
+    assert.equal(schema.definitions.contentHubPublicArticle.properties.commentPolicy.$ref, '#/definitions/contentHubPublicCommentPolicy');
+    assert.equal(schema.definitions.contentHubPublicArticle.properties.contentSafety.$ref, '#/definitions/contentHubPublicContentSafety');
+    assert.equal(schema.definitions.contentHubPublicArticle.properties.interactions.$ref, '#/definitions/contentHubPublicInteractionPolicies');
     assert.equal(schema.definitions.contentHubPublicArticle.properties.credentialRef, undefined);
     assert.equal(schema.definitions.contentHubPublicTaxonomy.properties.path.$ref, '#/definitions/sameOriginPath');
 
