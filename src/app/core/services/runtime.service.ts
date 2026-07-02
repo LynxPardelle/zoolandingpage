@@ -247,6 +247,7 @@ export class RuntimeService {
 
     private async doInitialize(lang?: string): Promise<void> {
         let protectedRouteLoadingStarted = false;
+        let keepPrivateRouteLoading = false;
         try {
             const context = await this.draftRuntime.resolveActiveDraftContext();
             if (!context.domain || !context.pageId) {
@@ -263,7 +264,7 @@ export class RuntimeService {
                 return;
             }
 
-            protectedRouteLoadingStarted = this.isProtectedBrowserRoute(context.route);
+            protectedRouteLoadingStarted = this.isProtectedRoute(context.route);
             if (protectedRouteLoadingStarted) {
                 this.setPrivateRouteLoading('session');
             } else {
@@ -296,6 +297,7 @@ export class RuntimeService {
                 this.auth.requestSignIn(this.authRuntime.profile()?.provider);
                 this.loadingCurtain.hideWhenReady(`auth-route-${ routeAccess.reason }`);
                 // SSR has no response redirect hook in this runtime; protected drafts render no private content.
+                keepPrivateRouteLoading = !this.isBrowser && protectedRouteLoadingStarted;
                 if (this.isBrowser && routeAccess.redirectTo) {
                     navigateInCurrentWindow(this.resolveAuthRedirectHref(routeAccess.redirectTo), {
                         scrollRestoration: this.runtimeConfig.siteRuntime()?.navigation?.scrollRestoration,
@@ -370,14 +372,18 @@ export class RuntimeService {
                 this.trackInitialPageView(initialPageViewLabel);
             });
         } finally {
-            if (protectedRouteLoadingStarted) {
+            if (protectedRouteLoadingStarted && !keepPrivateRouteLoading) {
                 this.clearPrivateRouteLoading();
             }
         }
     }
 
+    private isProtectedRoute(route: TDraftSiteRouteEntry | null | undefined): boolean {
+        return route?.auth?.required === true;
+    }
+
     private isProtectedBrowserRoute(route: TDraftSiteRouteEntry | null | undefined): boolean {
-        return this.isBrowser && route?.auth?.required === true;
+        return this.isBrowser && this.isProtectedRoute(route);
     }
 
     private setPrivateRouteLoading(phase: 'session' | 'content'): void {
