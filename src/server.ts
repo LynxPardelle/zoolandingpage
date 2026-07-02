@@ -1166,7 +1166,7 @@ function resolveLocalRuntimePage(opts: {
 
   const route = resolveLocalRoute(opts.siteConfig, normalizedPath);
   if (route) {
-    if (isMissingPublishedContentHubArticlePath(opts.siteConfig.runtime?.contentHubs, normalizedPath)) {
+    if (route.auth?.required !== true && isMissingPublishedContentHubArticlePath(opts.siteConfig.runtime?.contentHubs, normalizedPath)) {
       return resolveLocalNotFoundRuntimePage(opts.requestedDomain, opts.siteConfig, opts.requestedDomain);
     }
 
@@ -2885,7 +2885,7 @@ async function shouldServeNotFoundDocument(req: express.Request): Promise<boolea
 
   const route = resolveLocalRoute(siteConfig, normalizedPath);
   if (route) {
-    if (isMissingPublishedContentHubArticlePath(siteConfig.runtime?.contentHubs, normalizedPath)) {
+    if (route.auth?.required !== true && isMissingPublishedContentHubArticlePath(siteConfig.runtime?.contentHubs, normalizedPath)) {
       const runtimeStatusDomain = resolveRuntimeStatusLookupDomain(req, host, lookupDomain, siteConfig);
       const runtimeRouteStatus = await loadRuntimeRouteStatus(runtimeStatusDomain || lookupDomain, normalizedPath, environment);
       if (runtimeRouteStatus === 200) {
