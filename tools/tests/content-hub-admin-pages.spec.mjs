@@ -286,6 +286,25 @@ describe('Zoosite blog admin draft pages', () => {
     }
   });
 
+  it('keeps article detail page configs aligned with dynamic admin routes', async () => {
+    const expectedRoutes = new Map([
+      ['admin-blog-articulo-editor', '/admin/blog/articulos/:id/editor'],
+      ['admin-blog-articulo-preview', '/admin/blog/articulos/:id/preview'],
+      ['admin-blog-articulo-seo', '/admin/blog/articulos/:id/seo'],
+      ['admin-blog-articulo-versiones', '/admin/blog/articulos/:id/versiones'],
+    ]);
+
+    for (const [pageId, route] of expectedRoutes) {
+      const pageConfig = await readJson(`${pageId}/page-config.json`);
+      assert.equal(pageConfig.route, route, `${pageId} must publish the dynamic article route`);
+      assert.equal(
+        pageConfig.seo?.canonical,
+        `https://zoositioweb.com.mx${route}`,
+        `${pageId} canonical must not point to a static detail URL`,
+      );
+    }
+  });
+
   it('uses only generic/admin-safe component types and no server-only fields', async () => {
     for (const pageId of pageIds) {
       const payload = await readJson(`${pageId}/components.json`);
