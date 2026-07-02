@@ -1223,6 +1223,81 @@ describe('RuntimeService', () => {
         expect(service.rootComponentsIds()).toEqual(['mi-cuenta-root']);
     });
 
+    it('fails closed instead of keeping a protected browser route loading forever when session validation stalls', async () => {
+        const service = TestBed.inject(RuntimeService);
+        (service as any).protectedRouteAccessTimeoutMs = 1;
+        const privateRouteLoading = () => (service as any).privateRouteLoading?.();
+        spyOn(window, 'fetch').and.returnValue(new Promise<Response>(() => undefined));
+        const protectedSiteConfig = {
+            version: 1,
+            domain: 'pamelabetancourt.com',
+            defaultPageId: 'home',
+            routes: [
+                {
+                    path: '/admin/blog/articulos/:id/editor',
+                    pageId: 'admin-blog-articulo-editor',
+                    auth: {
+                        required: true,
+                        allowedGroups: ['zoosite-admin'],
+                        redirectTo: '/acceso',
+                    },
+                },
+            ],
+            runtime: {
+                auth: {
+                    enabled: true,
+                    authProfileId: 'staff',
+                    provider: 'cognito',
+                    issuer: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_PREVIEW',
+                    clientId: 'public-web-client',
+                    hostedUiDomain: 'https://preview.auth.us-east-1.amazoncognito.com',
+                    scopes: ['openid'],
+                    redirectPath: '/auth/callback',
+                    logoutPath: '/acceso',
+                    loginPath: '/acceso',
+                    session: {
+                        mode: 'server-cookie',
+                        mePath: '/auth/session/me',
+                    },
+                },
+            },
+            site: {},
+        } as any;
+        loadSiteConfig.and.resolveTo(protectedSiteConfig);
+        store.setSiteConfig(protectedSiteConfig);
+        draftRuntimeResolveActiveDraftContext.and.resolveTo({
+            domain: 'pamelabetancourt.com',
+            pageId: 'admin-blog-articulo-editor',
+            path: '/admin/blog/articulos/art_20260623/editor',
+            route: {
+                path: '/admin/blog/articulos/:id/editor',
+                pageId: 'admin-blog-articulo-editor',
+                auth: {
+                    required: true,
+                    allowedGroups: ['zoosite-admin'],
+                    redirectTo: '/acceso',
+                },
+            },
+            routeParams: { id: 'art_20260623' },
+            explicitPageId: false,
+        });
+
+        setRuntimeUrl('/admin/blog/articulos/art_20260623/editor?draftDomain=pamelabetancourt.com&lang=es');
+        await service.initialize('es');
+        await new Promise<void>((resolve) => window.setTimeout(resolve, 5));
+        await flushPostBootstrapBrowserWork();
+
+        expect(window.fetch).toHaveBeenCalled();
+        expect(privateRouteLoading()).toEqual({
+            active: false,
+            phase: null,
+        });
+        expect(service.rootComponentsIds()).toEqual([]);
+        expect(window.location.pathname).toBe('/acceso');
+        expect(window.location.search).toContain('draftDomain=pamelabetancourt.com');
+        expect(bootstrapLoad).not.toHaveBeenCalled();
+    });
+
     it('keeps a safe protected-route shell during SSR when route access cannot be authorized server-side', async () => {
         const service = TestBed.inject(RuntimeService);
         (service as any).isBrowser = false;

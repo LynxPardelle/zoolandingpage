@@ -27,6 +27,7 @@ import type { TDraftSiteRouteEntry, TRuntimeDataSourceConfig } from '@/app/share
 @Injectable({ providedIn: 'root' })
 export class RuntimeService {
     private readonly prefetchSiblingCap = 5;
+    private readonly protectedRouteAccessTimeoutMs = 12_000;
     private readonly configBootstrap = inject(ConfigBootstrapService);
     private readonly configSource = inject(ConfigSourceService);
     private readonly orchestrator = inject(ConfigurationsOrchestratorService);
@@ -271,7 +272,11 @@ export class RuntimeService {
                 this.clearPrivateRouteLoading();
             }
 
-            const remoteAuthResolved = await this.runtimeConfig.resolveRemoteAuth(context.domain);
+            const remoteAuthResolved = await this.withProtectedRouteTimeout(
+                this.runtimeConfig.resolveRemoteAuth(context.domain),
+                protectedRouteLoadingStarted,
+                false,
+            );
             if (!remoteAuthResolved && this.runtimeConfig.isDebugMode()) {
                 console.warn('[Runtime] Remote auth runtime resolution failed closed.', {
                     reason: this.runtimeConfig.remoteAuthError(),
@@ -279,7 +284,11 @@ export class RuntimeService {
             }
 
             this.auth.restoreSession();
-            const callbackResult = await this.authBrowserFlow.completeCallbackFromCurrentUrl();
+            const callbackResult = await this.withProtectedRouteTimeout(
+                this.authBrowserFlow.completeCallbackFromCurrentUrl(),
+                protectedRouteLoadingStarted,
+                { handled: false, redirectTo: null, reason: 'not-callback-route' },
+            );
             if (callbackResult.handled && callbackResult.redirectTo) {
                 this.clearRenderedDraft(context.domain, context.pageId);
                 this.loadingCurtain.hideWhenReady(`auth-callback-${ callbackResult.reason }`);
@@ -291,7 +300,16 @@ export class RuntimeService {
                 return;
             }
 
-            const routeAccess = await this.authRuntime.evaluateRouteAccessAsync(context.route);
+            const routeAccess = await this.withProtectedRouteTimeout(
+                this.authRuntime.evaluateRouteAccessAsync(context.route),
+                protectedRouteLoadingStarted,
+                {
+                    allowed: false,
+                    reason: 'auth-required',
+                    redirectTo: context.route?.auth?.redirectTo ?? '/acceso',
+                    requiredGroups: context.route?.auth?.allowedGroups ?? [],
+                },
+            );
             if (!routeAccess.allowed) {
                 this.clearRenderedDraft(context.domain, context.pageId);
                 this.auth.requestSignIn(this.authRuntime.profile()?.provider);
@@ -380,6 +398,22 @@ export class RuntimeService {
 
     private isProtectedRoute(route: TDraftSiteRouteEntry | null | undefined): boolean {
         return route?.auth?.required === true;
+    }
+
+    private withProtectedRouteTimeout<T>(promise: Promise<T>, active: boolean, fallback: T): Promise<T> {
+        if (!active || !this.isBrowser || this.protectedRouteAccessTimeoutMs <= 0) {
+            return promise;
+        }
+
+        return new Promise<T>((resolve) => {
+            const timeout = window.setTimeout(() => {
+                resolve(fallback);
+            }, this.protectedRouteAccessTimeoutMs);
+
+            promise
+                .then(resolve, () => resolve(fallback))
+                .finally(() => window.clearTimeout(timeout));
+        });
     }
 
     private isProtectedBrowserRoute(route: TDraftSiteRouteEntry | null | undefined): boolean {
