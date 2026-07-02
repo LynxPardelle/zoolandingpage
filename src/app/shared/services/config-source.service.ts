@@ -210,6 +210,30 @@ export class ConfigSourceService {
         ));
     }
 
+    private collectRuntimeBundlePayloadDomains(payload: TRuntimeBundlePayload): readonly string[] {
+        const candidates = [
+            payload.domain,
+            payload.siteConfig?.domain,
+            payload.metadata?.['resolvedAlias'],
+            ...(Array.isArray(payload.siteConfig?.aliases) ? payload.siteConfig.aliases : []),
+        ];
+
+        return Array.from(new Set(
+            candidates
+                .map((entry) => this.normalizeHost(entry))
+                .filter(Boolean)
+        ));
+    }
+
+    private isRuntimeBundleForRequestedDomain(requestedDomain: string, payload: TRuntimeBundlePayload): boolean {
+        const normalizedRequestedDomain = this.normalizeHost(requestedDomain);
+        if (!normalizedRequestedDomain) {
+            return false;
+        }
+
+        return this.collectRuntimeBundlePayloadDomains(payload).includes(normalizedRequestedDomain);
+    }
+
     private isRenderablePageConfig(payload: TPageConfigPayload | null | undefined, pageId: string): payload is TPageConfigPayload {
         const normalizedPageId = String(pageId ?? '').trim();
         return !!payload
@@ -426,6 +450,11 @@ export class ConfigSourceService {
                 .then((payload) => isRuntimeBundlePayload(payload) ? payload : null)
                 .then((payload) => {
                     if (!payload) {
+                        this.runtimeBundleCache.delete(candidateKey);
+                        return null;
+                    }
+
+                    if (!this.isRuntimeBundleForRequestedDomain(normalizedDomain, payload)) {
                         this.runtimeBundleCache.delete(candidateKey);
                         return null;
                     }
