@@ -2359,7 +2359,15 @@ function buildProtectedSsrAppRootContent(lang: string): string {
 }
 
 function markProtectedAppRootTag(tag: string): string {
-  return setHtmlAttribute(setHtmlAttribute(tag, 'data-zlp-protected-shell', 'true'), 'aria-hidden', 'true');
+  return setHtmlAttribute(
+    setHtmlAttribute(
+      setHtmlAttribute(tag, 'data-zlp-protected-shell', 'true'),
+      'aria-hidden',
+      'true',
+    ),
+    'ngSkipHydration',
+    '',
+  );
 }
 
 function replaceProtectedSsrAppRootContent(html: string, lang: string): string {
