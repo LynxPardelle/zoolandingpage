@@ -197,6 +197,9 @@ const ALLOWED_COMBO_CATALOG_ACTIONS = new Set([
 ]);
 const ALLOWED_COMBO_CATALOG_BINDING_KEYS = new Set(['read', 'action']);
 const ALLOWED_CONTENT_HUB_TAXONOMY_KINDS = new Set(['category', 'tag']);
+const ALLOWED_CONTENT_HUB_RUNTIME_COMMENT_POLICIES = new Set(['disabled', 'moderated', 'authenticated']);
+const ALLOWED_CONTENT_HUB_RUNTIME_SAFETY_RATINGS = new Set(['general', 'sensitive', 'restricted']);
+const ALLOWED_CONTENT_HUB_PUBLIC_INTERACTION_MODES = new Set(['queue', 'spam-check', 'manual']);
 const ALLOWED_CONTENT_HUB_BINDING_KEYS = new Set([
     'read',
     'action',
@@ -1260,6 +1263,35 @@ const isContentHubAnalyticsContext = (value: unknown): boolean => {
     return true;
 };
 
+const isContentHubPublicInteractionPolicy = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasOnlyKnownKeys(value, new Set(['enabled', 'moderation']))) return false;
+    if (typeof value['enabled'] !== 'boolean') return false;
+    if (!ALLOWED_CONTENT_HUB_PUBLIC_INTERACTION_MODES.has(String(value['moderation']))) return false;
+    return true;
+};
+
+const isContentHubPublicInteractionPolicies = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasNoForbiddenRuntimeKeysDeep(value)) return false;
+    if (!hasOnlyKnownKeys(value, new Set(['reactions', 'ctas', 'forms']))) return false;
+    if (value['reactions'] !== undefined && !isContentHubPublicInteractionPolicy(value['reactions'])) return false;
+    if (value['ctas'] !== undefined && !isContentHubPublicInteractionPolicy(value['ctas'])) return false;
+    if (value['forms'] !== undefined && !isContentHubPublicInteractionPolicy(value['forms'])) return false;
+    return true;
+};
+
+const isContentHubPublicContentSafety = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasNoForbiddenRuntimeKeysDeep(value)) return false;
+    if (!hasOnlyKnownKeys(value, new Set(['rating', 'warnings']))) return false;
+    if (!ALLOWED_CONTENT_HUB_RUNTIME_SAFETY_RATINGS.has(String(value['rating']))) return false;
+    if (value['warnings'] !== undefined
+        && (!Array.isArray(value['warnings'])
+            || !value['warnings'].every((entry) => typeof entry === 'string' && entry.trim().length > 0 && entry.length <= 120))) return false;
+    return true;
+};
+
 const isContentHubRuntimeArticleSummary = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
     if (!hasNoForbiddenRuntimeKeysDeep(value)) return false;
@@ -1278,6 +1310,9 @@ const isContentHubRuntimeArticleSummary = (value: unknown): boolean => {
         'authorLabel',
         'canonicalPath',
         'robots',
+        'commentPolicy',
+        'contentSafety',
+        'interactions',
     ]))) return false;
     if (!isContentHubSafeId(value['articleId'])) return false;
     if (!isContentHubLocale(value['locale'])) return false;
@@ -1293,6 +1328,9 @@ const isContentHubRuntimeArticleSummary = (value: unknown): boolean => {
     if (value['authorLabel'] !== undefined && typeof value['authorLabel'] !== 'string') return false;
     if (value['canonicalPath'] !== undefined && !isSafeSameOriginPath(value['canonicalPath'])) return false;
     if (value['robots'] !== undefined && !['index,follow', 'noindex,follow', 'noindex,nofollow'].includes(String(value['robots']))) return false;
+    if (value['commentPolicy'] !== undefined && !ALLOWED_CONTENT_HUB_RUNTIME_COMMENT_POLICIES.has(String(value['commentPolicy']))) return false;
+    if (value['contentSafety'] !== undefined && !isContentHubPublicContentSafety(value['contentSafety'])) return false;
+    if (value['interactions'] !== undefined && !isContentHubPublicInteractionPolicies(value['interactions'])) return false;
     return true;
 };
 

@@ -530,7 +530,45 @@
         "updatedAt": { "type": "string", "format": "date-time" },
         "authorLabel": { "type": "string" },
         "canonicalPath": { "$ref": "#/definitions/sameOriginPath" },
-        "robots": { "type": "string", "enum": ["index,follow", "noindex,follow", "noindex,nofollow"] }
+        "robots": { "type": "string", "enum": ["index,follow", "noindex,follow", "noindex,nofollow"] },
+        "commentPolicy": { "$ref": "#/definitions/contentHubPublicCommentPolicy" },
+        "contentSafety": { "$ref": "#/definitions/contentHubPublicContentSafety" },
+        "interactions": { "$ref": "#/definitions/contentHubPublicInteractionPolicies" }
+      },
+      "additionalProperties": false
+    },
+    "contentHubPublicCommentPolicy": {
+      "type": "string",
+      "enum": ["disabled", "moderated", "authenticated"]
+    },
+    "contentHubPublicContentSafety": {
+      "type": "object",
+      "required": ["rating"],
+      "properties": {
+        "rating": { "type": "string", "enum": ["general", "sensitive", "restricted"] },
+        "warnings": {
+          "type": "array",
+          "maxItems": 10,
+          "items": { "type": "string", "minLength": 1, "maxLength": 120 }
+        }
+      },
+      "additionalProperties": false
+    },
+    "contentHubPublicInteractionPolicy": {
+      "type": "object",
+      "required": ["enabled", "moderation"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "moderation": { "type": "string", "enum": ["queue", "spam-check", "manual"] }
+      },
+      "additionalProperties": false
+    },
+    "contentHubPublicInteractionPolicies": {
+      "type": "object",
+      "properties": {
+        "reactions": { "$ref": "#/definitions/contentHubPublicInteractionPolicy" },
+        "ctas": { "$ref": "#/definitions/contentHubPublicInteractionPolicy" },
+        "forms": { "$ref": "#/definitions/contentHubPublicInteractionPolicy" }
       },
       "additionalProperties": false
     },

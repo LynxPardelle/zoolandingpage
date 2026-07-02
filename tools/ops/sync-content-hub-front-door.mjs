@@ -18,6 +18,7 @@ const DEFAULT_PROD_HOSTS = ['zoositioweb.com.mx', 'zoositioweb.com'];
 const PATH_RULE = [
   'Path(`/features/content-hub/read`)',
   'Path(`/features/content-hub/action`)',
+  'Path(`/features/content-hub/public-action`)',
 ].join(' || ');
 
 function parseArgs(rawArgs) {

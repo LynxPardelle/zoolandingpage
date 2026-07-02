@@ -479,8 +479,17 @@ describe('Zoosite blog admin draft pages', () => {
 
   it('shows every declared blog analytics metric in the analytics table', async () => {
     const payload = await readJson('admin-blog-analiticas/components.json');
-    const table = componentById(flattenComponents(payload), 'analyticsTable');
+    const components = flattenComponents(payload);
+    const table = componentById(components, 'analyticsTable');
+    const filters = componentById(components, 'analyticsFiltersScope');
     const columnIds = (table?.config?.columns ?? []).map((column) => column.id);
+
+    assert.equal(filters?.type, 'interaction-scope');
+    assert.match(String(filters?.config?.submitEventInstructions ?? ''), /articleId=values\.articleId/);
+    assert.match(String(filters?.config?.submitEventInstructions ?? ''), /category=values\.category/);
+    assert.match(String(filters?.config?.submitEventInstructions ?? ''), /tag=values\.tag/);
+    assert.match(String(filters?.config?.submitEventInstructions ?? ''), /from=values\.from/);
+    assert.match(String(filters?.config?.submitEventInstructions ?? ''), /to=values\.to/);
 
     for (const columnId of [
       'views',
@@ -585,6 +594,8 @@ describe('Zoosite blog admin draft pages', () => {
     const commentScope = componentById(components, 'blogArticleCommentScope');
     const reactionButton = componentById(components, 'blogArticleUsefulButton');
     const shareButton = componentById(components, 'blogArticleShareButton');
+    const formPanel = componentById(components, 'blogArticleFormPanel');
+    const formButton = componentById(components, 'blogArticleFormButton');
     const commentLoginLink = componentById(components, 'blogArticleCommentLoginLink');
     const commentBody = componentById(components, 'blogArticleCommentBody');
     const commentButton = componentById(components, 'blogArticleCommentButton');
@@ -593,8 +604,10 @@ describe('Zoosite blog admin draft pages', () => {
     assert.doesNotMatch(text, /articleId,art_20260620_blog_builder/);
     assert.equal(interactionScope?.type, 'interaction-scope');
     assert.equal(commentScope?.type, 'interaction-scope');
-    assert.deepEqual(interactionScope?.config?.components, ['blogArticleCta', 'blogArticleReactionPanel']);
+    assert.deepEqual(interactionScope?.config?.components, ['blogArticleCta', 'blogArticleReactionPanel', 'blogArticleFormPanel']);
     assert.deepEqual(commentScope?.config?.components, ['blogArticleCommentPanel']);
+    assert.match(String(articleCta?.condition ?? ''), /interactions\.ctas\.enabled/);
+    assert.match(String(formPanel?.condition ?? ''), /interactions\.forms\.enabled/);
     assert.match(String(articleCta?.valueInstructions ?? ''), /set:eventInstructions,concat/);
     assert.match(String(articleCta?.valueInstructions ?? ''), /contentHub\.currentArticle\.articleId/);
     assert.match(String(articleCta?.valueInstructions ?? ''), /contentHub\.currentArticle\.path/);
@@ -604,6 +617,10 @@ describe('Zoosite blog admin draft pages', () => {
     assert.match(String(shareButton?.valueInstructions ?? ''), /shareCurrentPage/);
     assert.match(String(shareButton?.valueInstructions ?? ''), /proxyAction:content_hub_record_interaction/);
     assert.match(String(shareButton?.valueInstructions ?? ''), /setScopeValue:eventType,share/);
+    assert.match(String(formButton?.valueInstructions ?? ''), /setScopeValue:eventType,form/);
+    assert.match(String(formButton?.valueInstructions ?? ''), /proxyAction:content_hub_record_interaction/);
+    assert.match(String(commentScope?.config?.components ?? ''), /blogArticleCommentPanel/);
+    assert.match(String(componentById(components, 'blogArticleCommentPanel')?.condition ?? ''), /commentPolicy,disabled/);
     assert.equal(commentLoginLink?.type, 'link');
     assert.equal(commentLoginLink?.config?.href, '/acceso');
     assert.equal(commentBody?.config?.fieldId, 'commentBody');

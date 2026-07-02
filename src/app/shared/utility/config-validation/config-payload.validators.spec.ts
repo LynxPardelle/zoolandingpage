@@ -1161,6 +1161,16 @@ describe('config-payload.validators', () => {
                                 authorLabel: 'Equipo zoositioweb',
                                 canonicalPath: '/blog/web/blog-builder-seo',
                                 robots: 'index,follow',
+                                commentPolicy: 'authenticated',
+                                contentSafety: {
+                                    rating: 'general',
+                                    warnings: [],
+                                },
+                                interactions: {
+                                    reactions: { enabled: true, moderation: 'spam-check' },
+                                    ctas: { enabled: true, moderation: 'spam-check' },
+                                    forms: { enabled: true, moderation: 'queue' },
+                                },
                             },
                         ],
                         publicTaxonomy: [
@@ -1381,6 +1391,44 @@ describe('config-payload.validators', () => {
                 }],
             },
         })).withContext('non-public article visibility in publicArticles').toBeFalse();
+
+        expect(isDraftSiteConfigPayload({
+            ...base,
+            runtime: {
+                contentHubs: [{
+                    ...baseHub,
+                    publicArticles: [{
+                        articleId: 'art_20260620_blog_builder',
+                        locale: 'es',
+                        status: 'published',
+                        title: 'Artículo',
+                        path: '/blog/web/blog-builder-seo',
+                        publishedAt: '2026-06-21T15:00:00.000Z',
+                        commentPolicy: 'raw-comments',
+                    }],
+                }],
+            },
+        })).withContext('unsafe public comment policy').toBeFalse();
+
+        expect(isDraftSiteConfigPayload({
+            ...base,
+            runtime: {
+                contentHubs: [{
+                    ...baseHub,
+                    publicArticles: [{
+                        articleId: 'art_20260620_blog_builder',
+                        locale: 'es',
+                        status: 'published',
+                        title: 'Artículo',
+                        path: '/blog/web/blog-builder-seo',
+                        publishedAt: '2026-06-21T15:00:00.000Z',
+                        interactions: {
+                            reactions: { enabled: true, moderation: 'off' },
+                        },
+                    }],
+                }],
+            },
+        })).withContext('unsafe public interaction moderation').toBeFalse();
     });
 
     it('rejects server-only content hub runtime data source and action fields', () => {
