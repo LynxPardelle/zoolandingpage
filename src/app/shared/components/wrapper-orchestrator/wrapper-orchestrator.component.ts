@@ -13,6 +13,7 @@ import { GenericAccordionComponent } from '../generic-accordion';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { GenericCardComponent } from '../generic-card';
 import { GenericCellComponent } from '../generic-cell/generic-cell.component';
+import { GenericComponentPreviewComponent } from '../generic-component-preview/generic-component-preview.component';
 import { GenericContainerComponent } from '../generic-container/generic-container';
 import { GenericDropdown } from '../generic-dropdown';
 import { GenericEmbedFrameComponent } from '../generic-embed-frame/generic-embed-frame.component';
@@ -58,6 +59,7 @@ import type { TGenericComponent } from './wrapper-orchestrator.types';
     GenericButtonComponent,
     GenericCardComponent,
     GenericCellComponent,
+    GenericComponentPreviewComponent,
     GenericContainerComponent,
     GenericDropdown,
     GenericEmbedFrameComponent,
@@ -242,6 +244,16 @@ export class WrapperOrchestrator {
   genericCellConfig(
     component: Extract<TGenericComponent, { type: 'generic-cell' }>
   ): Extract<TGenericComponent, { type: 'generic-cell' }>['config'] {
+    return this.withResolvedDomId(
+      component.id,
+      component.type,
+      component.config
+    );
+  }
+
+  genericComponentPreviewConfig(
+    component: Extract<TGenericComponent, { type: 'generic-component-preview' }>
+  ): Extract<TGenericComponent, { type: 'generic-component-preview' }>['config'] {
     return this.withResolvedDomId(
       component.id,
       component.type,

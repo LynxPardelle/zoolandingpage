@@ -1997,6 +1997,34 @@ describe('config-payload.validators', () => {
                     sanitizerPolicyId: 'trusted-authors',
                 },
             },
+            articlePreview: {
+                id: 'articlePreview',
+                type: 'generic-component-preview',
+                config: {
+                    label: 'Preview',
+                    description: 'Renderiza el árbol avanzado actual.',
+                    source: {
+                        type: 'scope',
+                        path: 'fields.componentTreeJson.value',
+                        fallback: [
+                            {
+                                id: 'previewFallback',
+                                type: 'text',
+                                config: {
+                                    tag: 'p',
+                                    text: 'Agrega JSON válido.',
+                                },
+                            },
+                        ],
+                    },
+                    allowedTypes: ['container', 'text', 'generic-rich-text', 'button'],
+                    maxComponents: 40,
+                    emptyText: 'Sin JSON.',
+                    invalidText: 'JSON inválido.',
+                    classes: 'previewShell',
+                    previewClasses: 'previewBody',
+                },
+            },
             articleAssets: {
                 id: 'articleAssets',
                 type: 'generic-file-dropzone',
@@ -2040,6 +2068,28 @@ describe('config-payload.validators', () => {
                 config: {
                     fieldId: 'assets',
                     maxFileSizeBytes: 'large',
+                },
+            },
+            articlePreview: {
+                id: 'articlePreview',
+                type: 'generic-component-preview',
+                config: {
+                    source: {
+                        type: 'scope',
+                        path: 'fields.componentTreeJson.value',
+                        fallback: [
+                            {
+                                id: 'previewFallback',
+                                type: 'button',
+                                eventInstructions: 'runtimeApi:deleteEverything',
+                                config: {
+                                    label: 'Unsafe',
+                                },
+                            },
+                        ],
+                    },
+                    allowedTypes: ['modal'],
+                    maxComponents: 500,
                 },
             },
         });

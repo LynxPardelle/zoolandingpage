@@ -31,6 +31,7 @@ const allowedGenericTypes = new Set([
   'generic-button',
   'generic-card',
   'generic-cell',
+  'generic-component-preview',
   'generic-file-dropzone',
   'generic-link',
   'generic-loading-spinner',
@@ -689,6 +690,7 @@ describe('Zoosite blog admin draft pages', () => {
     const modalRoot = componentById(components, 'articleComponentInspectorModalRoot');
     const catalogPanel = componentById(components, 'componentCatalogPanel');
     const previewPanel = componentById(components, 'componentPreviewPanel');
+    const livePreview = componentById(components, 'componentTreeLivePreview');
     const comboSelect = componentById(components, 'componentComboSelect');
     const modalClose = componentById(components, 'componentInspectorModalClose');
     const jsonScope = componentById(components, 'componentInspectorJsonScope');
@@ -704,7 +706,34 @@ describe('Zoosite blog admin draft pages', () => {
     assert.match(catalogCopy?.config?.text ?? '', /abre el inspector/i);
     assert.equal(modalRoot?.condition, 'all:modalRefId,article-component-inspector');
     assert.equal(catalogPanel?.config?.components?.includes('componentCatalogRichText'), true);
-    assert.equal(previewPanel?.config?.components?.includes('componentPreviewCard'), true);
+    assert.equal(previewPanel?.config?.components?.includes('componentTreeLivePreview'), true);
+    assert.equal(livePreview?.type, 'generic-component-preview');
+    assert.deepEqual(livePreview?.config?.source, {
+      type: 'scope',
+      path: 'fields.componentTreeJson.value',
+      fallback: [
+        {
+          id: 'previewFallbackBlock',
+          type: 'container',
+          config: {
+            tag: 'article',
+            classes: 'ank-bg-bgColor ank-border-1px__solid__textColorOPA__0_18 ank-borderRadius-8px ank-p-14px ank-display-flex ank-flexDirection-column ank-gap-8px',
+            components: ['previewFallbackCopy'],
+          },
+        },
+        {
+          id: 'previewFallbackCopy',
+          type: 'text',
+          config: {
+            tag: 'p',
+            text: 'Agrega JSON válido para ver aquí el bloque avanzado del artículo.',
+            classes: 'ank-m-0 ank-fontSize-14px ank-lineHeight-1_55 ank-color-secondaryTextColor ank-fontWeight-800',
+          },
+        },
+      ],
+    });
+    assert.ok(livePreview?.config?.allowedTypes?.includes('generic-rich-text'));
+    assert.doesNotMatch(JSON.stringify(livePreview), /queda para|editor avanzado final/i);
     assert.equal(comboSelect?.config?.options?.source, 'var');
     assert.equal(comboSelect?.config?.options?.path, 'remote.comboCatalog.comboOptions.items');
     assert.equal(modalClose?.eventInstructions, 'closeModal');
@@ -993,6 +1022,16 @@ describe('Zoosite blog admin draft pages', () => {
       assert.equal(button?.type, 'button', `${componentId} must be a draft-composed generic button`);
       assert.equal(button?.eventInstructions, `proxyAction:${actionId}`);
       assert.equal(button?.config?.disabledWhenInvalidScope, true);
+      assert.match(
+        String(button?.valueInstructions ?? ''),
+        /set:config\.disabled,when,/,
+        `${componentId} must disable itself when article status cannot run the lifecycle action`,
+      );
+      assert.match(
+        String(button?.valueInstructions ?? ''),
+        /remote\.contentHub\.articleDetail\.items\.0\.status/,
+        `${componentId} must use protected article detail status for lifecycle affordances`,
+      );
     }
     for (const componentId of [
       'seoSubmitReviewError',
@@ -1020,6 +1059,19 @@ describe('Zoosite blog admin draft pages', () => {
     assert.match(componentById(scheduledComponents, 'scheduledAction')?.config?.label ?? '', /acci[oó]n/i);
     assert.ok(componentById(scheduledComponents, 'scheduledArticleIdGuidance'));
     assert.ok(componentById(scheduledComponents, 'scheduledActionIdle'));
+    for (const componentId of ['scheduledScheduleButton', 'scheduledPublishButton']) {
+      const button = componentById(scheduledComponents, componentId);
+      assert.match(
+        String(button?.valueInstructions ?? ''),
+        /set:config\.disabled,when,/,
+        `${componentId} must disable itself when article status cannot run the scheduling action`,
+      );
+      assert.match(
+        String(button?.valueInstructions ?? ''),
+        /remote\.contentHub\.articleDetail\.items\.0\.status/,
+        `${componentId} must use protected article detail status for scheduling affordances`,
+      );
+    }
 
     const versionsIntro = componentById(versionsComponents, 'admin-blog-articulo-versionesIntro');
     assert.equal(String(versionsIntro?.config?.text ?? '').includes('_'), false);

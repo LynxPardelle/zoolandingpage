@@ -331,6 +331,7 @@ const ALLOWED_COMPONENT_TYPES = new Set([
     'embed-frame',
     'generic-card',
     'generic-cell',
+    'generic-component-preview',
     'generic-file-dropzone',
     'generic-rich-text',
     'generic-table',
@@ -352,6 +353,46 @@ const ALLOWED_COMPONENT_TYPES = new Set([
     'toast',
     'tooltip',
     'none',
+]);
+const ALLOWED_GENERIC_COMPONENT_PREVIEW_CONFIG_KEYS = new Set([
+    'id',
+    'label',
+    'description',
+    'source',
+    'value',
+    'allowedTypes',
+    'maxComponents',
+    'emptyText',
+    'invalidText',
+    'classes',
+    'labelClasses',
+    'descriptionClasses',
+    'stateClasses',
+    'previewClasses',
+]);
+const ALLOWED_GENERIC_COMPONENT_PREVIEW_SOURCE_KEYS = new Set(['type', 'path', 'value', 'fallback']);
+const ALLOWED_GENERIC_COMPONENT_PREVIEW_SOURCE_TYPES = new Set(['scope', 'var', 'literal']);
+const ALLOWED_GENERIC_COMPONENT_PREVIEW_TYPES = new Set([
+    'accordion',
+    'button',
+    'container',
+    'embed-frame',
+    'generic-card',
+    'generic-cell',
+    'generic-rich-text',
+    'generic-table',
+    'icon',
+    'input',
+    'link',
+    'loading-spinner',
+    'media',
+    'pagination',
+    'qr-code',
+    'search-box',
+    'stats-counter',
+    'tab-group',
+    'text',
+    'tooltip',
 ]);
 
 const ALLOWED_QR_CODE_CONFIG_KEYS = new Set([
@@ -591,6 +632,23 @@ const hasNoForbiddenRuntimeKeysDeep = (value: unknown): boolean => {
     }
     return Object.entries(value).every(([key, entry]) =>
         !isForbiddenPublicRuntimeInputKey(key) && hasNoForbiddenRuntimeKeysDeep(entry),
+    );
+};
+
+const hasNoUnsafePreviewKeysDeep = (value: unknown): boolean => {
+    if (Array.isArray(value)) {
+        return value.every(hasNoUnsafePreviewKeysDeep);
+    }
+    if (isForbiddenPublicRuntimeInputValue(value)) {
+        return false;
+    }
+    if (!isRecord(value)) {
+        return true;
+    }
+    return Object.entries(value).every(([key, entry]) =>
+        key !== 'eventInstructions'
+        && !isForbiddenPublicRuntimeInputKey(key)
+        && hasNoUnsafePreviewKeysDeep(entry),
     );
 };
 
@@ -2361,6 +2419,59 @@ const isInteractionScopeConfig = (value: unknown): boolean => {
     return true;
 };
 
+const isGenericComponentPreviewSource = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasOnlyKnownKeys(value, ALLOWED_GENERIC_COMPONENT_PREVIEW_SOURCE_KEYS)) return false;
+    if (!ALLOWED_GENERIC_COMPONENT_PREVIEW_SOURCE_TYPES.has(String(value['type'] ?? ''))) return false;
+    if (!hasNoUnsafePreviewKeysDeep(value['value'])) return false;
+    if (!hasNoUnsafePreviewKeysDeep(value['fallback'])) return false;
+
+    if (value['type'] === 'literal') {
+        if (value['path'] !== undefined && typeof value['path'] !== 'string') return false;
+        return true;
+    }
+
+    return typeof value['path'] === 'string' && value['path'].trim().length > 0;
+};
+
+const isGenericComponentPreviewAllowedTypes = (value: unknown): boolean =>
+    Array.isArray(value)
+    && value.length > 0
+    && value.every((entry) =>
+        typeof entry === 'string'
+        && ALLOWED_GENERIC_COMPONENT_PREVIEW_TYPES.has(entry)
+    );
+
+const isGenericComponentPreviewConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasOnlyKnownKeys(value, ALLOWED_GENERIC_COMPONENT_PREVIEW_CONFIG_KEYS)) return false;
+    if (!hasNoUnsafePreviewKeysDeep(value['value'])) return false;
+
+    const stringFields = [
+        'id',
+        'label',
+        'description',
+        'emptyText',
+        'invalidText',
+        'classes',
+        'labelClasses',
+        'descriptionClasses',
+        'stateClasses',
+        'previewClasses',
+    ] as const;
+    if (stringFields.some((field) => !isStringThunkFriendly(value[field]))) return false;
+
+    if (value['source'] !== undefined && !isGenericComponentPreviewSource(value['source'])) return false;
+    if (value['allowedTypes'] !== undefined && !isGenericComponentPreviewAllowedTypes(value['allowedTypes'])) return false;
+    if (value['maxComponents'] !== undefined) {
+        if (!isNumberThunkFriendly(value['maxComponents'])) return false;
+        const maxComponents = Number(value['maxComponents']);
+        if (!Number.isFinite(maxComponents) || maxComponents < 1 || maxComponents > 120) return false;
+    }
+
+    return true;
+};
+
 const isComponentPayloadRecord = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
     if (typeof value['id'] !== 'string' || value['id'].trim().length === 0) return false;
@@ -2379,6 +2490,10 @@ const isComponentPayloadRecord = (value: unknown): boolean => {
 
     if (value['type'] === 'generic-cell') {
         return isGenericCellConfig(value['config']);
+    }
+
+    if (value['type'] === 'generic-component-preview') {
+        return isGenericComponentPreviewConfig(value['config']);
     }
 
     if (value['type'] === 'generic-file-dropzone') {
