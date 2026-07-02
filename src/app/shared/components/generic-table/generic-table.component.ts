@@ -77,7 +77,10 @@ export class GenericTableComponent {
   readonly classes = computed(() => this.asString(this.config().classes));
   readonly labelClasses = computed(() => this.asString(this.config().labelClasses));
   readonly descriptionClasses = computed(() => this.asString(this.config().descriptionClasses));
-  readonly tableWrapperClasses = computed(() => this.asString(this.config().tableWrapperClasses));
+  readonly tableWrapperClasses = computed(() =>
+    this.asString(this.config().tableWrapperClasses)
+    || 'ank-width-100per ank-overflow-auto'
+  );
   readonly tableClasses = computed(() => this.asString(this.config().tableClasses));
   readonly headerCellClasses = computed(() => this.asString(this.config().headerCellClasses));
   readonly rowClasses = computed(() => this.asString(this.config().rowClasses));

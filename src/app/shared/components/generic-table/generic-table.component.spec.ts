@@ -53,6 +53,21 @@ describe('GenericTableComponent', () => {
     expect(text).not.toContain('blog-admin');
   });
 
+  it('uses a responsive overflow wrapper by default without overriding draft classes', () => {
+    fixture.componentRef.setInput('config', tableConfig);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.tableWrapperClasses()).toBe('ank-width-100per ank-overflow-auto');
+
+    fixture.componentRef.setInput('config', {
+      ...tableConfig,
+      tableWrapperClasses: 'custom-table-shell',
+    });
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.tableWrapperClasses()).toBe('custom-table-shell');
+  });
+
   it('renders loading, error, and empty states from draft text', () => {
     fixture.componentRef.setInput('config', {
       ...tableConfig,

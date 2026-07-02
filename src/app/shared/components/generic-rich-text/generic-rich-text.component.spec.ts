@@ -17,6 +17,17 @@ describe('GenericRichTextComponent', () => {
     fixture = TestBed.createComponent(GenericRichTextComponent);
   });
 
+  it('keeps rich text toolbar controls large enough for touch input', () => {
+    const componentMetadata = GenericRichTextComponent as unknown as {
+      readonly ɵcmp?: { readonly styles?: readonly string[] };
+    };
+    const styles = (componentMetadata.ɵcmp?.styles ?? []).join('\n');
+
+    expect(styles).toContain('min-height: 44px');
+    expect(styles).toContain('min-width: 44px');
+    expect(styles).toContain('touch-action: manipulation');
+  });
+
   it('renders draft-configured textarea copy and classes', () => {
     fixture.componentRef.setInput('config', {
       fieldId: 'body',

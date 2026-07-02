@@ -103,6 +103,7 @@ describe('Zoosite combo catalog draft contract', () => {
   it('uses the shared site header/footer and generic components for the admin combos surface', async () => {
     const pageConfig = await readJson(pageConfigPath);
     const components = await readJson(componentsPath);
+    const serialized = JSON.stringify(components);
 
     assert.deepEqual(pageConfig.rootIds, [
       'skipToMainLink',
@@ -114,11 +115,36 @@ describe('Zoosite combo catalog draft contract', () => {
     assert.ok(findComponentById(components, 'adminCombosEditorCard'));
     assert.ok(findComponentById(components, 'adminCombosPolicyCard'));
     assert.ok(findComponentById(components, 'adminCombosPreviewCard'));
-    assert.ok(JSON.stringify(components).includes('"type":"interaction-scope"') || JSON.stringify(components).includes('"type": "interaction-scope"'));
-    assert.ok(JSON.stringify(components).includes('"type":"generic-table"') || JSON.stringify(components).includes('"type": "generic-table"'));
-    assert.ok(JSON.stringify(components).includes('proxyAction:combo_catalog_create_combo'));
-    assert.ok(JSON.stringify(components).includes('proxyAction:combo_catalog_set_draft_policy'));
-    assert.equal(JSON.stringify(components).includes('/admin/blog'), false, 'combo admin page must not be nested under blog UI');
+    assert.ok(serialized.includes('"type":"interaction-scope"') || serialized.includes('"type": "interaction-scope"'));
+    assert.ok(serialized.includes('"type":"generic-table"') || serialized.includes('"type": "generic-table"'));
+    assert.ok(serialized.includes('proxyAction:combo_catalog_create_combo'));
+    assert.ok(serialized.includes('proxyAction:combo_catalog_set_draft_policy'));
+    assert.equal(serialized.includes('/admin/blog'), false, 'combo admin page must not be nested under blog UI');
+    assert.equal(serialized.includes('endpoint serverless'), false, 'combo admin page must not expose infrastructure wording');
+    assert.equal(serialized.includes('Guardar batch'), false, 'combo admin page must use product-facing Spanish copy');
+  });
+
+  it('requires valid scoped data before protected combo mutations', async () => {
+    const components = await readJson(componentsPath);
+    const batchJson = findComponentById(components, 'adminCombosBatchJson');
+    const groupId = findComponentById(components, 'adminCombosGroupId');
+
+    assert.equal(batchJson?.config?.required, true);
+    assert.ok(
+      (batchJson?.config?.validation ?? []).some((rule) => rule.type === 'json'),
+      'batch input must validate JSON before saving',
+    );
+    assert.equal(groupId?.config?.required, true);
+
+    for (const id of [
+      'adminCombosBatchButton',
+      'adminCombosCreateGroupButton',
+      'adminCombosUpdateGroupButton',
+      'adminCombosPolicyButton',
+    ]) {
+      const component = findComponentById(components, id);
+      assert.equal(component?.config?.disabledWhenInvalidScope, true, `${id} must require a valid interaction scope`);
+    }
   });
 
   it('ships valid i18n payloads for the protected admin combos page', async () => {

@@ -30,6 +30,29 @@ type TQuillToolbarGroup = Array<string | Record<string, unknown>>;
     '[class]': 'classes()',
   },
   templateUrl: './generic-rich-text.component.html',
+  styles: [`
+    :host ::ng-deep .ql-toolbar.ql-snow {
+      align-items: center;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    :host ::ng-deep .ql-toolbar.ql-snow button,
+    :host ::ng-deep .ql-toolbar.ql-snow .ql-picker-label {
+      align-items: center;
+      display: inline-flex;
+      justify-content: center;
+      min-height: 44px;
+      min-width: 44px;
+      padding: 8px;
+      touch-action: manipulation;
+    }
+
+    :host ::ng-deep .ql-toolbar.ql-snow .ql-picker {
+      min-height: 44px;
+    }
+  `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GenericRichTextComponent {
