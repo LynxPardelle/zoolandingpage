@@ -630,6 +630,10 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
   const articleBody = 'Contenido editado por smoke 20260630040000';
   let unpublished = false;
   let archived = false;
+  const taxonomyVisibility = {
+    category: true,
+    tag: true,
+  };
 
   globalThis.fetch = async (url, init = {}) => {
     const parsed = new URL(String(url));
@@ -649,7 +653,8 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
         assert.equal(body.input.taxonomyDescription, taxonomyDescription);
         assert.equal(body.input.seoTitle, label);
         assert.equal(body.input.seoDescription, taxonomySeoDescription);
-        assert.equal(body.input.visible, true);
+        assert.equal(typeof body.input.visible, 'boolean');
+        taxonomyVisibility[kind] = body.input.visible;
         return new Response(JSON.stringify({
           ok: true,
           data: {
@@ -662,7 +667,7 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
               locale: 'es',
               seoTitle: label,
               seoDescription: taxonomySeoDescription,
-              visible: true,
+              visible: body.input.visible,
               updatedAt: '2026-06-30T04:00:00Z',
             },
           },
@@ -869,7 +874,7 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
           locale: 'es',
           seoTitle: label,
           seoDescription: taxonomySeoDescription,
-          visible: true,
+          visible: taxonomyVisibility[kind],
           updatedAt: '2026-06-30T04:00:00Z',
         };
         return new Response(JSON.stringify({
@@ -1062,6 +1067,8 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
     'cancelSchedule',
     'unpublishArticle',
     'archiveArticle',
+    'upsertTaxonomy',
+    'upsertTaxonomy',
   ]);
   assert.deepEqual(interactionEvents.sort(), ['assetDownload', 'cta_click', 'form', 'reaction', 'readProgress', 'share']);
   assert.equal(queuedComments, 1);
@@ -1079,6 +1086,10 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
     'scheduleList',
     'articleDetail',
     'articleDetail',
+    'taxonomyList',
+    'taxonomyList',
+    'taxonomyList',
+    'taxonomyList',
   ]);
   assert.deepEqual(xmlPaths, [
     '/sitemap.xml',
@@ -1104,6 +1115,7 @@ test('runSmoke verifies public search by title, slug, path, category, and tag', 
   assert.equal(result?.checks?.articleDetailAfterUnpublish, true);
   assert.equal(result?.checks?.archiveArticle, true);
   assert.equal(result?.checks?.articleDetailAfterArchive, true);
+  assert.equal(result?.checks?.taxonomyCleanup, true);
 });
 
 test('runSmoke fails when unpublished articles remain publicly visible', async () => {
