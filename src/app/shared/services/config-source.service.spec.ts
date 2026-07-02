@@ -304,14 +304,9 @@ describe('ConfigSourceService', () => {
         ]);
     });
 
-    it('falls back to the legacy page payload when the route runtime bundle has no renderable roots', async () => {
+    it('does not call the legacy page endpoint in the browser when the route runtime bundle has no renderable roots', async () => {
         const service = TestBed.inject(ConfigSourceService);
         const api = TestBed.inject(ConfigApiService) as jasmine.SpyObj<ConfigApiService>;
-        const fallbackPageConfig: TPageConfigPayload = {
-            ...pageConfigPayload,
-            pageId: 'blog-article',
-            rootIds: ['articleShell'],
-        };
 
         api.getRuntimeBundle.and.resolveTo(createRuntimeBundle({
             pageId: 'blog-article',
@@ -321,30 +316,18 @@ describe('ConfigSourceService', () => {
                 rootIds: [],
             },
         }));
-        api.getPageConfig.and.resolveTo(fallbackPageConfig);
 
         const result = await service.loadPageConfig('alecfest-voliii.zoolandingpage.com.mx', 'blog-article', {
             path: '/blog/web/runtime-only',
         });
 
-        expect(result).toEqual(fallbackPageConfig);
-        expect(api.getPageConfig).toHaveBeenCalledWith('alecfest-voliii.zoolandingpage.com.mx', 'blog-article');
+        expect(result).toBeNull();
+        expect(api.getPageConfig).not.toHaveBeenCalled();
     });
 
-    it('falls back to the legacy component payload when the route runtime bundle has no renderable components', async () => {
+    it('does not call the legacy components endpoint in the browser when the route runtime bundle has no renderable components', async () => {
         const service = TestBed.inject(ConfigSourceService);
         const api = TestBed.inject(ConfigApiService) as jasmine.SpyObj<ConfigApiService>;
-        const fallbackComponents: TComponentsPayload = {
-            ...componentsPayload,
-            pageId: 'blog-article',
-            components: [
-                {
-                    id: 'articleShell',
-                    type: 'container',
-                    config: { components: [] },
-                },
-            ],
-        };
 
         api.getRuntimeBundle.and.resolveTo(createRuntimeBundle({
             pageId: 'blog-article',
@@ -354,14 +337,13 @@ describe('ConfigSourceService', () => {
                 components: [],
             },
         }));
-        api.getComponents.and.resolveTo(fallbackComponents);
 
         const result = await service.loadComponents('alecfest-voliii.zoolandingpage.com.mx', 'blog-article', {
             path: '/blog/web/runtime-only',
         });
 
-        expect(result).toEqual(fallbackComponents);
-        expect(api.getComponents).toHaveBeenCalledWith('alecfest-voliii.zoolandingpage.com.mx', 'blog-article');
+        expect(result).toBeNull();
+        expect(api.getComponents).not.toHaveBeenCalled();
     });
 
     it('reuses the alias runtime bundle when a site-config request resolves the canonical page identity', async () => {
@@ -527,6 +509,18 @@ describe('ConfigSourceService', () => {
         const result = await service.loadSiteConfig('alecfest-voliii.com');
 
         expect(result).toEqual(siteConfigPayload);
+        expect(api.getSiteConfig).not.toHaveBeenCalled();
+    });
+
+    it('returns null instead of calling the legacy site-config endpoint when browser runtime loading fails before hydration', async () => {
+        const service = TestBed.inject(ConfigSourceService);
+        const api = TestBed.inject(ConfigApiService) as jasmine.SpyObj<ConfigApiService>;
+
+        api.getRuntimeBundle.and.rejectWith(new Error('runtime unavailable'));
+
+        const result = await service.loadSiteConfig('zoositioweb.com.mx');
+
+        expect(result).toBeNull();
         expect(api.getSiteConfig).not.toHaveBeenCalled();
     });
 

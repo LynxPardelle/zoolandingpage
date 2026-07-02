@@ -57,19 +57,21 @@ export class ConfigSourceService {
     private readonly apiSource: TConfigSource = {
         loadSiteConfig: async (domain) => {
             const bundle = await this.tryLoadRuntimeBundle(domain);
-            return bundle?.siteConfig ?? this.resolveHydratedSiteConfig(domain) ?? this.legacyApiSource.loadSiteConfig(domain);
+            return bundle?.siteConfig
+                ?? this.resolveHydratedSiteConfig(domain)
+                ?? this.loadLegacyApiFallback(() => this.legacyApiSource.loadSiteConfig(domain));
         },
         loadPageConfig: async (domain, pageId, opts) => {
             const bundle = await this.tryLoadRuntimeBundle(domain, { pageId, path: opts?.path });
             return this.isRenderablePageConfig(bundle?.pageConfig, pageId)
                 ? bundle.pageConfig
-                : this.legacyApiSource.loadPageConfig(domain, pageId);
+                : this.loadLegacyApiFallback(() => this.legacyApiSource.loadPageConfig(domain, pageId));
         },
         loadComponents: async (domain, pageId, opts) => {
             const bundle = await this.tryLoadRuntimeBundle(domain, { pageId, path: opts?.path });
             return this.isRenderableComponentsPayload(bundle?.components, pageId)
                 ? bundle.components
-                : this.legacyApiSource.loadComponents(domain, pageId);
+                : this.loadLegacyApiFallback(() => this.legacyApiSource.loadComponents(domain, pageId));
         },
         loadVariables: async (domain, pageId, opts) => {
             const bundle = await this.tryLoadRuntimeBundle(domain, { pageId, path: opts?.path });
@@ -78,7 +80,9 @@ export class ConfigSourceService {
             }
 
             const resolved = this.resolveBundleIdentity(bundle, domain, pageId);
-            return this.legacyApiSource.loadVariables(resolved.domain, resolved.pageId);
+            return this.loadLegacyApiFallback(() => this.legacyApiSource.loadVariables(resolved.domain, resolved.pageId), {
+                allowBrowser: true,
+            });
         },
         loadCombos: async (domain, pageId, opts) => {
             const bundle = await this.tryLoadRuntimeBundle(domain, { pageId, path: opts?.path });
@@ -87,13 +91,30 @@ export class ConfigSourceService {
             }
 
             const resolved = this.resolveBundleIdentity(bundle, domain, pageId);
-            return this.legacyApiSource.loadCombos(resolved.domain, resolved.pageId);
+            return this.loadLegacyApiFallback(() => this.legacyApiSource.loadCombos(resolved.domain, resolved.pageId), {
+                allowBrowser: true,
+            });
         },
         loadI18n: async (domain, pageId, lang, opts) => {
             const bundle = await this.tryLoadRuntimeBundle(domain, { pageId, lang, path: opts?.path });
-            return bundle?.i18n ?? this.legacyApiSource.loadI18n(domain, pageId, lang);
+            return bundle?.i18n ?? this.loadLegacyApiFallback(() => this.legacyApiSource.loadI18n(domain, pageId, lang));
         },
     };
+
+    private async loadLegacyApiFallback<T>(
+        load: () => Promise<T | null>,
+        options: { readonly allowBrowser?: boolean } = {},
+    ): Promise<T | null> {
+        if (this.isBrowser && options.allowBrowser !== true) {
+            return null;
+        }
+
+        try {
+            return await load();
+        } catch {
+            return null;
+        }
+    }
 
     private parseRequestUrl(): URL | null {
         if (this.isBrowser) {

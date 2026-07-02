@@ -1,10 +1,9 @@
 import type { TAngoraCombosPayload, TComboCatalogRuntimeConfig } from '@/app/shared/types/config-payloads.types';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { inject, Injectable, PLATFORM_ID, REQUEST } from '@angular/core';
+import { inject, Injectable, PLATFORM_ID } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { isAngoraCombosPayload } from '../utility/config-validation/config-payload.validators';
-import { buildAuthEndpointUrl } from '../utility/auth/auth-api-url.utility';
 import { AngoraCombosService } from './angora-combos.service';
 import { ConfigStoreService } from './config-store.service';
 
@@ -22,7 +21,6 @@ export class ComboCatalogRuntimeService {
     private readonly configStore = inject(ConfigStoreService);
     private readonly combos = inject(AngoraCombosService);
     private readonly http = inject(HttpClient, { optional: true });
-    private readonly request = inject(REQUEST, { optional: true });
     private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
     private readonly resolutions = new Map<string, Promise<boolean>>();
 
@@ -104,8 +102,7 @@ export class ComboCatalogRuntimeService {
     }
 
     private requestUrl(endpoint: string): string {
-        const requestUrl = typeof this.request?.url === 'string' ? this.request.url : null;
-        return buildAuthEndpointUrl(endpoint, requestUrl, { preserveRelativeOutsideTesting: true });
+        return endpoint;
     }
 
     private cleanString(value: unknown): string {
