@@ -392,27 +392,36 @@ describe('ConfigSourceService', () => {
             domain: 'zoositioweb.com.mx',
             aliases: ['sitiosweb.zoolandingpage.com.mx'],
         };
-        api.getRuntimeBundle.and.callFake((domain: string, options?: { readonly path?: string }) => Promise.resolve(createRuntimeBundle({
-            domain: 'zoositioweb.com.mx',
-            pageId: 'admin-blog-articulo-editor',
-            siteConfig: zoositeSiteConfig,
-            pageConfig: {
-                ...pageConfigPayload,
+        api.getRuntimeBundle.and.callFake((domain: string, options?: { readonly path?: string }) => {
+            const bundle = createRuntimeBundle({
                 domain: 'zoositioweb.com.mx',
                 pageId: 'admin-blog-articulo-editor',
-            },
-            components: {
-                ...componentsPayload,
-                domain: 'zoositioweb.com.mx',
-                pageId: 'admin-blog-articulo-editor',
-            },
-            metadata: {
-                requestId: 'req-zoosite-editor',
-                requestedDomain: domain,
-                resolvedAlias: null,
-                resolvedPath: options?.path,
-            },
-        })));
+                siteConfig: zoositeSiteConfig,
+                pageConfig: {
+                    ...pageConfigPayload,
+                    domain: 'zoositioweb.com.mx',
+                    pageId: 'admin-blog-articulo-editor',
+                },
+                components: {
+                    ...componentsPayload,
+                    domain: 'zoositioweb.com.mx',
+                    pageId: 'admin-blog-articulo-editor',
+                },
+                metadata: {
+                    requestId: 'req-zoosite-editor',
+                    requestedDomain: domain,
+                    resolvedAlias: null,
+                    resolvedPath: options?.path,
+                },
+            });
+            return Promise.resolve({
+                ...bundle,
+                components: {
+                    ...bundle.components,
+                    components: Object.fromEntries(bundle.components.components.map((component) => [component.id, component])),
+                },
+            } as any);
+        });
 
         const result = await service.loadPageConfig('zoositioweb.com.mx', 'admin-blog-articulo-editor', {
             path: '/admin/blog/articulos/art_20260620_blog_builder/editor',
