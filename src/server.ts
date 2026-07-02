@@ -2324,8 +2324,50 @@ function readStructuredDataEntries(pageConfig: TLocalPageConfig | null): readonl
   return [];
 }
 
+function hasStructuredDataType(entry: unknown, type: string): boolean {
+  if (!isRecord(entry)) {
+    return false;
+  }
+
+  const rawType = entry['@type'];
+  const types = Array.isArray(rawType) ? rawType : [rawType];
+  const normalizedType = type.toLowerCase();
+  return types.some((value) => cleanString(value).toLowerCase() === normalizedType);
+}
+
+function structuredDataDedupeKey(entry: unknown): string {
+  if (!isRecord(entry)) {
+    return JSON.stringify(entry);
+  }
+
+  const rawType = entry['@type'];
+  const type = Array.isArray(rawType)
+    ? rawType.map(cleanString).filter(Boolean).sort().join(',')
+    : cleanString(rawType);
+  const identity = cleanString(entry['url'])
+    || cleanString(entry['mainEntityOfPage'])
+    || cleanString(entry['@id'])
+    || cleanString(entry['headline'])
+    || JSON.stringify(entry);
+  return `${type}:${identity}`;
+}
+
+function dedupeStructuredDataEntries(entries: readonly unknown[]): readonly unknown[] {
+  const seen = new Set<string>();
+  const result: unknown[] = [];
+  for (const entry of entries) {
+    const key = structuredDataDedupeKey(entry);
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    result.push(entry);
+  }
+  return result;
+}
+
 function buildStructuredDataHeadHtml(pageConfig: TLocalPageConfig | null): string {
-  const entries = readStructuredDataEntries(pageConfig);
+  const entries = dedupeStructuredDataEntries(readStructuredDataEntries(pageConfig));
   if (entries.length === 0) {
     return '';
   }
@@ -2544,6 +2586,13 @@ function stripRenderedHreflangHeadHtml(html: string): string {
   ));
 }
 
+function stripRenderedStructuredDataHeadHtml(html: string): string {
+  return html.replace(
+    /<script\b(?=[^>]*\btype=["']application\/ld\+json["'])[^>]*>[\s\S]*?<\/script>\s*/gi,
+    '',
+  );
+}
+
 function filterPublicContentHubArticles(
   articles: readonly TContentHubPublicArticle[],
   query: Record<string, unknown>,
@@ -2735,7 +2784,7 @@ function withContentHubSeoPageConfig(
     },
     structuredData: {
       entries: [
-        ...readStructuredDataEntries(pageConfig),
+        ...readStructuredDataEntries(pageConfig).filter((entry) => !hasStructuredDataType(entry, 'BlogPosting')),
         buildContentHubArticleStructuredData(req, host, siteConfig, article),
       ],
     },
@@ -2753,6 +2802,9 @@ function injectHeadHtml(html: string, headHtml: string): string {
   }
   if (headHtml.includes('rel="alternate"') && headHtml.includes('hreflang=')) {
     sanitizedHtml = stripRenderedHreflangHeadHtml(sanitizedHtml);
+  }
+  if (headHtml.includes('application/ld+json')) {
+    sanitizedHtml = stripRenderedStructuredDataHeadHtml(sanitizedHtml);
   }
   if (headHtml.includes('name="robots"')) {
     sanitizedHtml = sanitizedHtml.replace(/<meta\s+[^>]*name=["']robots["'][^>]*>\s*/gi, '');
