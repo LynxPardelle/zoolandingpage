@@ -43,6 +43,12 @@ const AD_QUERY_PARAMS = new Set([
   'utm_term',
   'utm_content',
 ]);
+const SEO_PRIVATE_QUERY_PARAMS = new Set([
+  'cacheBust',
+  'debugWorkspace',
+  'draftDomain',
+  'draftPageId',
+]);
 const SENSITIVE_QUERY_PARAM_PATTERN = /(email|mail|phone|telefono|tel[eé]fono|whatsapp|address|direcci[oó]n|rfc|curp)/i;
 const ROBOTS_DISALLOW_PATHS = [
   '/admin/',
@@ -1816,7 +1822,7 @@ function stripAdQueryParamsFromUrl(rawUrl: string): string {
   try {
     const url = new URL(rawUrl);
     Array.from(url.searchParams.keys()).forEach((param) => {
-      if (AD_QUERY_PARAMS.has(param) || SENSITIVE_QUERY_PARAM_PATTERN.test(param)) {
+      if (AD_QUERY_PARAMS.has(param) || SEO_PRIVATE_QUERY_PARAMS.has(param) || SENSITIVE_QUERY_PARAM_PATTERN.test(param)) {
         url.searchParams.delete(param);
       }
     });
