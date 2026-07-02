@@ -4,6 +4,10 @@ import type { ToastUiConfig } from '../components/generic-toast/generic-toast.ty
 import type { TInteractionScopeConfig } from '../components/interaction-scope/interaction-scope.types';
 import type { TTrackOptions } from './analytics.type';
 import type {
+    TComboCatalogRuntimeActionBinding,
+    TComboCatalogRuntimeReadBinding,
+} from './combo-catalog.types';
+import type {
     TContentHubRuntimeActionBinding,
     TContentHubRuntimeConfig,
     TContentHubRuntimeReadBinding,
@@ -457,10 +461,11 @@ export type TRuntimeDataSourceInputResolverConfig = {
 
 export type TRuntimeDataSourceConfig = {
     readonly id: string;
-    readonly kind?: 'api-proxy' | 'auth-admin' | 'content-hub';
+    readonly kind?: 'api-proxy' | 'auth-admin' | 'content-hub' | 'combo-catalog';
     readonly proxySourceId?: string;
     readonly authAdminSource?: 'account' | 'adminUsers';
     readonly contentHub?: TContentHubRuntimeReadBinding;
+    readonly comboCatalog?: TComboCatalogRuntimeReadBinding;
     readonly target: string;
     readonly statusTarget?: string;
     readonly mergeMode?: 'replace' | 'appendItems';
@@ -477,10 +482,11 @@ export type TRuntimeDataSourceConfig = {
 
 export type TRuntimeApiActionConfig = {
     readonly id: string;
-    readonly kind?: 'api-proxy' | 'auth-admin' | 'content-hub';
+    readonly kind?: 'api-proxy' | 'auth-admin' | 'content-hub' | 'combo-catalog';
     readonly proxyActionId?: string;
     readonly authAdminAction?: 'approveUser' | 'setUserGroups' | 'suspendUser' | 'reactivateUser' | 'resetUserMfa';
     readonly contentHub?: TContentHubRuntimeActionBinding;
+    readonly comboCatalog?: TComboCatalogRuntimeActionBinding;
     readonly method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
     readonly statusTarget?: string;
     readonly enabled?: boolean;
