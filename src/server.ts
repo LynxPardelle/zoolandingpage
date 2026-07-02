@@ -2362,6 +2362,12 @@ function replaceProtectedSsrAppRootContent(html: string, lang: string): string {
   return html.replace(/<app-root\b[^>]*>/i, (tag) => markProtectedAppRootTag(tag));
 }
 
+function removeAngularHydrationContract(html: string): string {
+  return html
+    .replace(/<!--nghm-->/gi, '')
+    .replace(/<script\b[^>]*\bid=(["'])ng-state\1[^>]*>[\s\S]*?<\/script>/gi, '');
+}
+
 function buildProtectedSsrTitle(siteConfig: TLocalSiteConfig | null, lang: string): string {
   const normalizedLang = normalizeLanguageCode(lang);
   const title = normalizedLang === 'en'
@@ -2397,7 +2403,7 @@ function decorateProtectedSsrShellHtml(html: string, siteConfig: TLocalSiteConfi
   }
 
   const markedHtml = replaceDocumentTitle(
-    replaceProtectedSsrAppRootContent(html, lang),
+    removeAngularHydrationContract(replaceProtectedSsrAppRootContent(html, lang)),
     buildProtectedSsrTitle(siteConfig, lang),
   );
   return injectProtectedSsrOverlay(markedHtml, buildProtectedSsrShellContent(lang));

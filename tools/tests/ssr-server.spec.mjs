@@ -1401,6 +1401,8 @@ test('production SSR server lets authRemote protected routes reach Angular for B
   assert.equal(response.headers.get('expires'), '0');
   assert.match(response.headers.get('vary') ?? '', /\bCookie\b/i);
   assert.match(body, /<app-root\b[^>]*data-zlp-protected-shell="true"/i);
+  assert.doesNotMatch(body, /<!--nghm-->/i);
+  assert.doesNotMatch(body, /<script\b[^>]*\bid=(["'])ng-state\1/i);
   assert.match(body, /id="zlp-boot-curtain"/i);
   assert.match(body, /<meta name="robots" content="noindex,nofollow">/);
   assertNoSensitiveAuthSurface(body);
@@ -1447,6 +1449,8 @@ test('production SSR server renders a safe shell for Zoosite protected article d
     assert.match(body, /app-root\[data-zlp-protected-shell="true"\]\{display:none!important;visibility:hidden!important\}/, suffix);
     assert.match(body, /<app-root\b[^>]*data-zlp-protected-shell="true"/i, suffix);
     assert.match(body, /<app-root\b[^>]*aria-hidden="true"/i, suffix);
+    assert.doesNotMatch(body, /<!--nghm-->/i, suffix);
+    assert.doesNotMatch(body, /<script\b[^>]*\bid=(["'])ng-state\1/i, suffix);
     const appRootOpeningTag = appRoot.match(/^<app-root\b[^>]*>/i)?.[0] ?? '';
     assert.doesNotMatch(appRootOpeningTag, /(?:ng-version|ng-server-context|ngh=|_nghost-|_ngcontent-|ngSkipHydration)/i, suffix);
     assert.match(protectedOverlay, /<main\b/i, suffix);
