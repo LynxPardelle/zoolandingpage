@@ -210,11 +210,24 @@ export class AppShellComponent {
     }
 
     effect(() => {
-      this.seo.apply(this._lang.currentLanguage(), this.configStore.seo());
+      const currentLanguage = this._lang.currentLanguage();
+      const seoConfig = this.configStore.seo();
+
+      if (this.shouldDeferHeadUpdatesForProtectedSsrShell()) {
+        return;
+      }
+
+      this.seo.apply(currentLanguage, seoConfig);
     });
 
     effect(() => {
-      this.structuredData.applyEntries(this.configStore.structuredData()?.entries, 'sd:bootstrap');
+      const structuredDataEntries = this.configStore.structuredData()?.entries;
+
+      if (this.shouldDeferHeadUpdatesForProtectedSsrShell()) {
+        return;
+      }
+
+      this.structuredData.applyEntries(structuredDataEntries, 'sd:bootstrap');
     });
 
     effect(() => {
@@ -297,6 +310,14 @@ export class AppShellComponent {
       .forEach((node: Element) => node.remove());
     this.host.nativeElement.removeAttribute('aria-hidden');
     this.host.nativeElement.removeAttribute('data-zlp-protected-shell');
+    this.seo.apply(this._lang.currentLanguage(), this.configStore.seo());
+    this.structuredData.applyEntries(this.configStore.structuredData()?.entries, 'sd:bootstrap');
+  }
+
+  private shouldDeferHeadUpdatesForProtectedSsrShell(): boolean {
+    return this.isBrowser
+      && this.host.nativeElement.hasAttribute('data-zlp-protected-shell')
+      && !!this.host.nativeElement.ownerDocument.querySelector('[data-zlp-protected-ssr-overlay]');
   }
 
   private canReleaseProtectedSsrOverlay(documentRef: Document): boolean {
