@@ -605,6 +605,44 @@ describe('DraftRuntimeService', () => {
     });
   });
 
+  it('does not resolve protected admin detail routes to not-found when content-hub public validation would miss', async () => {
+    const { service } = configure(
+      'https://test.zoolandingpage.com.mx/admin/blog/articulos/art_20260623T074011Z/editor?draftDomain=zoositioweb.com.mx&debugWorkspace=false',
+      {
+        version: 1,
+        domain: 'zoositioweb.com.mx',
+        defaultPageId: 'default',
+        notFoundPageId: 'not-found',
+        routes: [
+          { path: '/', pageId: 'default' },
+          { path: '/404', pageId: 'not-found' },
+          {
+            path: '/admin/blog/articulos/:id/editor',
+            pageId: 'admin-blog-articulo-editor',
+            auth: { required: true, redirectTo: '/acceso' },
+          },
+        ],
+        runtime: {
+          contentHubs: [
+            {
+              articlePathPattern: '/admin/blog/articulos/:id/editor',
+              publicArticles: [],
+            },
+          ],
+        },
+      },
+      { browserMode: false },
+    );
+
+    const context = await service.resolveActiveDraftContext();
+
+    expect(context.pageId).toBe('admin-blog-articulo-editor');
+    expect(context.notFound).not.toBeTrue();
+    expect(context.routeParams).toEqual({
+      id: 'art_20260623T074011Z',
+    });
+  });
+
   it('auto-enables the debug workspace on localhost when no draft identity is resolved', () => {
     const { service } = configure(
       'http://localhost:4200/',

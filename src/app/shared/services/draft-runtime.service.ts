@@ -231,7 +231,12 @@ export class DraftRuntimeService {
 
         const routeMatch = this.matchRouteWithParams(siteConfig, path);
         if (routeMatch) {
-            if ((!this.isBrowser || environment.drafts.enabled) && isMissingPublishedContentHubArticlePath(siteConfig?.runtime?.contentHubs, path)) {
+            const routeRequiresAuth = routeMatch.route.auth?.required === true;
+            if (
+                !routeRequiresAuth
+                && (!this.isBrowser || environment.drafts.enabled)
+                && isMissingPublishedContentHubArticlePath(siteConfig?.runtime?.contentHubs, path)
+            ) {
                 const notFoundResolution = await this.resolveNotFoundContext(domain, path, siteConfig)
                     ?? await this.resolveCanonicalNotFoundContext(path);
                 if (notFoundResolution) {
