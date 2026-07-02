@@ -504,6 +504,8 @@ async function runSmoke(options) {
     sharedPreview,
     publicAbsenceAttempts = DEFAULT_PUBLIC_ABSENCE_ATTEMPTS,
     publicAbsenceDelayMs = DEFAULT_PUBLIC_ABSENCE_DELAY_MS,
+    publicPresenceAttempts = publicAbsenceAttempts,
+    publicPresenceDelayMs = publicAbsenceDelayMs,
     now = new Date(),
   } = options;
 
@@ -620,6 +622,72 @@ async function runSmoke(options) {
       throw new Error(`Taxonomy ${taxonomyKind} list did not include the smoke record.`);
     }
     assertTaxonomyRecord(item, expected, `${taxonomyKind} list`);
+  };
+
+  const taxonomyItems = async (taxonomyKind) => {
+    const payload = buildContentHubPayload({
+      domain,
+      pageId: taxonomyKind === 'category' ? 'admin-blog-categorias' : 'admin-blog-tags',
+      operationId: 'content_hub_taxonomy_list',
+      hubId,
+      kind: 'read',
+      input: {
+        contentHub: { read: 'taxonomyList' },
+        taxonomyKind,
+      },
+    });
+    const response = await smokeStep(`taxonomyCleanupList:${taxonomyKind}`, () => fetchJson(endpoint('read'), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+    }, timeoutMs));
+    return taxonomyKind === 'category' ? response?.data?.categories : response?.data?.tags;
+  };
+
+  const setTaxonomyVisibility = async ({ taxonomyKind, taxonomyId, taxonomySlug, label, visible }) => {
+    const payload = buildContentHubPayload({
+      domain,
+      pageId: taxonomyKind === 'category' ? 'admin-blog-categorias' : 'admin-blog-tags',
+      operationId: 'content_hub_upsert_taxonomy',
+      hubId,
+      kind: 'action',
+      input: {
+        contentHub: { action: 'upsertTaxonomy' },
+        taxonomyKind,
+        taxonomyId,
+        slug: taxonomySlug,
+        translation: label,
+        taxonomyDescription: `QA taxonomy smoke ${token}`,
+        seoTitle: label,
+        seoDescription: `SEO QA taxonomy smoke ${token}`,
+        visible,
+      },
+    });
+    const response = await smokeStep(`setTaxonomyVisibility:${taxonomyKind}:${taxonomyId}`, () => fetchJson(endpoint('action'), {
+      method: 'POST',
+      headers: actionHeaders,
+      body: JSON.stringify(payload),
+    }, timeoutMs));
+    if (Boolean(response?.data?.taxonomy?.visible) !== visible) {
+      throw new Error(`Taxonomy ${taxonomyKind} cleanup did not update visibility.`);
+    }
+  };
+
+  const hideSmokeTaxonomySlug = async ({ taxonomyKind, taxonomySlug, label }) => {
+    const beforeList = await taxonomyItems(taxonomyKind);
+    const beforeItems = Array.isArray(beforeList) ? beforeList : [];
+    const matchingIds = beforeItems
+      .filter((item) => clean(item?.slug) === taxonomySlug)
+      .map((item) => clean(item?.taxonomyId))
+      .filter(Boolean);
+    for (const taxonomyId of [...new Set(matchingIds.length > 0 ? matchingIds : [taxonomySlug])]) {
+      await setTaxonomyVisibility({ taxonomyKind, taxonomyId, taxonomySlug, label, visible: false });
+    }
+    const afterList = await taxonomyItems(taxonomyKind);
+    const afterItems = Array.isArray(afterList) ? afterList : [];
+    if (afterItems.some((item) => clean(item?.slug) === taxonomySlug && item?.visible !== false)) {
+      throw new Error(`Taxonomy ${taxonomyKind} cleanup left a visible QA slug.`);
+    }
   };
 
   await upsertTaxonomy({
@@ -946,6 +1014,9 @@ async function runSmoke(options) {
     throw new Error('Publish response did not include a public blog path.');
   }
 
+  const canonicalArticleUrl = publicCanonicalArticleUrl(domain, published.path);
+  const presenceAttempts = Math.max(1, Number.parseInt(String(publicPresenceAttempts), 10) || DEFAULT_PUBLIC_ABSENCE_ATTEMPTS);
+  const presenceDelayMs = Math.max(0, Number.parseInt(String(publicPresenceDelayMs), 10) || DEFAULT_PUBLIC_ABSENCE_DELAY_MS);
   const runtimeUrl = buildRuntimeBundleUrl({
     runtimeBaseUrl,
     domain,
@@ -964,6 +1035,30 @@ async function runSmoke(options) {
     throw new Error('Runtime bundle did not include the published article.');
   }
 
+  const waitForPublicSearch = async (check) => {
+    const searchUrl = buildPublicSearchUrl({
+      baseUrl,
+      domain,
+      lang,
+      query: check.query,
+      sharedPreview,
+    });
+    let searchResponse = null;
+    for (let attempt = 1; attempt <= presenceAttempts; attempt += 1) {
+      searchResponse = await smokeStep(`publicSearch:${check.label}:${attempt}`, () => fetchJson(withCacheBust(searchUrl, `${token}-publish-${check.label}-${attempt}`), {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      }, timeoutMs));
+      if (publicSearchIncludesArticle(searchResponse, created.articleId, published.path, title)) {
+        return searchResponse;
+      }
+      if (attempt < presenceAttempts) {
+        await sleep(presenceDelayMs);
+      }
+    }
+    throw new Error(`Public content-hub search did not include the published article by ${check.label}.`);
+  };
+
   const searchChecks = [
     { label: 'title', query: title },
     { label: 'slug', query: slug },
@@ -972,20 +1067,7 @@ async function runSmoke(options) {
     { label: 'tag', query: tag },
   ].filter((entry, index, entries) => entry.query && entries.findIndex((candidate) => candidate.query === entry.query) === index);
   for (const check of searchChecks) {
-    const searchUrl = buildPublicSearchUrl({
-      baseUrl,
-      domain,
-      lang,
-      query: check.query,
-      sharedPreview,
-    });
-    const searchResponse = await smokeStep(`publicSearch:${check.label}`, () => fetchJson(searchUrl, {
-      method: 'GET',
-      headers: { Accept: 'application/json' },
-    }, timeoutMs));
-    if (!publicSearchIncludesArticle(searchResponse, created.articleId, published.path, title)) {
-      throw new Error(`Public content-hub search did not include the published article by ${check.label}.`);
-    }
+    await waitForPublicSearch(check);
   }
 
   const publicArticleUrl = buildPublicArticleUrl({
@@ -995,10 +1077,24 @@ async function runSmoke(options) {
     lang,
     sharedPreview,
   });
-  const publicArticleHtml = await smokeStep('publicArticleHtml', () => fetchText(publicArticleUrl, {
-    method: 'GET',
-    headers: { Accept: 'text/html' },
-  }, timeoutMs));
+  let publicArticleHtml = '';
+  for (let attempt = 1; attempt <= presenceAttempts; attempt += 1) {
+    const publicArticleResponse = await smokeStep(`publicArticleHtml:${attempt}`, () => fetchTextResult(withCacheBust(publicArticleUrl, `${token}-publish-article-${attempt}`), {
+      method: 'GET',
+      headers: { Accept: 'text/html' },
+    }, timeoutMs));
+    publicArticleHtml = publicArticleResponse.text;
+    if (publicArticleResponse.ok && (
+      publicArticleHtml.includes(title)
+      || publicArticleHtml.includes(published.path)
+      || publicArticleHtml.includes(articleBodyNeedle)
+    )) {
+      break;
+    }
+    if (attempt < presenceAttempts) {
+      await sleep(presenceDelayMs);
+    }
+  }
   if (!publicArticleHtml.includes(title) && !publicArticleHtml.includes(published.path)) {
     throw new Error('Published public article HTML did not include the smoke article.');
   }
@@ -1152,7 +1248,6 @@ async function runSmoke(options) {
     throw new Error('Analytics summary did not include read-progress, CTA, reaction, share, asset-download, form, and comment counts for the published article.');
   }
 
-  const canonicalArticleUrl = publicCanonicalArticleUrl(domain, published.path);
   for (const xmlCheck of [
     { label: 'sitemap', pathName: '/sitemap.xml', lang: '', root: '<urlset', needles: [`<loc>${canonicalArticleUrl}</loc>`] },
     { label: 'feed', pathName: '/feed.xml', lang, root: '<rss', needles: [`<link>${canonicalArticleUrl}</link>`, `<guid>${canonicalArticleUrl}</guid>`] },
@@ -1164,10 +1259,20 @@ async function runSmoke(options) {
       lang: xmlCheck.lang,
       sharedPreview,
     });
-    const xmlText = await smokeStep(xmlCheck.label, () => fetchText(xmlUrl, {
-      method: 'GET',
-      headers: { Accept: 'application/xml,text/xml,*/*' },
-    }, timeoutMs));
+    let xmlText = '';
+    for (let attempt = 1; attempt <= presenceAttempts; attempt += 1) {
+      const xmlResponse = await smokeStep(`${xmlCheck.label}:${attempt}`, () => fetchTextResult(withCacheBust(xmlUrl, `${token}-publish-${xmlCheck.label}-${attempt}`), {
+        method: 'GET',
+        headers: { Accept: 'application/xml,text/xml,*/*' },
+      }, timeoutMs));
+      xmlText = xmlResponse.text;
+      if (xmlResponse.ok && xmlText.includes(xmlCheck.root) && xmlCheck.needles.some((needle) => xmlText.includes(needle))) {
+        break;
+      }
+      if (attempt < presenceAttempts) {
+        await sleep(presenceDelayMs);
+      }
+    }
     if (!xmlText.includes(xmlCheck.root) || !xmlCheck.needles.some((needle) => xmlText.includes(needle))) {
       throw new Error(`Public ${xmlCheck.label} did not include the published article.`);
     }
@@ -1420,6 +1525,13 @@ async function runSmoke(options) {
     throw new Error('Article detail did not show archived/private after archive.');
   }
 
+  for (const taxonomyCleanup of [
+    { taxonomyKind: 'category', taxonomySlug: category, label: `QA ${token}` },
+    { taxonomyKind: 'tag', taxonomySlug: tag, label: `Product Smoke ${token}` },
+  ]) {
+    await hideSmokeTaxonomySlug(taxonomyCleanup);
+  }
+
   return {
     ok: true,
     domain,
@@ -1474,6 +1586,7 @@ async function runSmoke(options) {
       feedAfterUnpublish: true,
       archiveArticle: true,
       articleDetailAfterArchive: true,
+      taxonomyCleanup: true,
     },
   };
 }
@@ -1528,6 +1641,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       ok: false,
       ...(step ? { step } : {}),
       error: /^HTTP \d{3}: /.test(rawError) ? rawError : safeSmokeErrorMessage(rawError),
+      ...(process.env.ZLP_CONTENT_HUB_SMOKE_DEBUG === '1' ? { rawError } : {}),
     }, [cookie, csrf]);
     process.stderr.write(`${JSON.stringify(payload, null, 2)}\n`);
     process.exitCode = 1;
