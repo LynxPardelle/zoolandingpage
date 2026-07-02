@@ -8,6 +8,7 @@ import type { DropdownConfig, DropdownItem } from "../generic-dropdown/generic-d
 import type { TGenericEmbedFrameConfig } from '../generic-embed-frame/generic-embed-frame.types';
 import { TGenericIconConfig } from "../generic-icon/generic-icon.types";
 import type { TGenericCellConfig } from "../generic-cell/generic-cell.types";
+import type { TGenericComponentPreviewConfig } from "../generic-component-preview/generic-component-preview.types";
 import type { TGenericFileDropzoneConfig } from "../generic-file-dropzone/generic-file-dropzone.types";
 import type { TGenericInputConfig } from "../generic-input/generic-input.types";
 import { TGenericLinkConfig } from "../generic-link/generic-link.types";
@@ -145,6 +146,7 @@ export type TGenericComponentType =
     | 'dropdown'
     | 'embed-frame'
     | 'generic-cell'
+    | 'generic-component-preview'
     | 'generic-file-dropzone'
     | 'generic-rich-text'
     | 'generic-table'
@@ -205,6 +207,10 @@ export type TGenericComponent = {
         {
             readonly type: 'generic-cell';
             readonly config: TGenericCellConfig;
+        } |
+        {
+            readonly type: 'generic-component-preview';
+            readonly config: TGenericComponentPreviewConfig;
         } |
         {
             readonly type: 'generic-file-dropzone';

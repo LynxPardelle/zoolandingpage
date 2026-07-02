@@ -182,6 +182,16 @@ describe('Zoosite content hub admin bindings', () => {
     });
     assert.deepEqual(articleDetail?.requiredInputKeys, ['articleId']);
 
+    const scheduleArticleDetail = dataSources.find((source) => source.id === 'content_hub_schedule_article_detail');
+    assert.equal(scheduleArticleDetail?.contentHub?.read, 'articleDetail');
+    assert.ok(scheduleArticleDetail?.pageIds?.includes('admin-blog-programados'));
+    assert.deepEqual(scheduleArticleDetail?.input?.articleId, {
+      source: 'queryParam',
+      key: 'articleId',
+      transforms: ['trim'],
+    });
+    assert.deepEqual(scheduleArticleDetail?.requiredInputKeys, ['articleId']);
+
     for (const read of ['revisionList', 'publicBundlePreview']) {
       const source = dataSources.find((entry) => entry.contentHub?.read === read);
       assert.deepEqual(source?.input?.articleId, {
@@ -386,6 +396,15 @@ describe('Zoosite content hub admin bindings', () => {
       componentTreeJsonInput?.config?.helperText ?? '',
       /No guarda/i,
       'advanced component JSON helper must not claim the saved field is local-only',
+    );
+
+    const componentTreeLivePreview = findComponentById(editorComponents, 'componentTreeLivePreview');
+    assert.equal(componentTreeLivePreview?.type, 'generic-component-preview');
+    assert.equal(componentTreeLivePreview?.config?.source?.type, 'scope');
+    assert.equal(componentTreeLivePreview?.config?.source?.path, 'fields.componentTreeJson.value');
+    assert.ok(
+      componentTreeLivePreview?.config?.allowedTypes?.includes('generic-rich-text'),
+      'advanced component preview must render allowed generic components from the current JSON field',
     );
 
     const categoriesTable = findComponentById(categoryComponents, 'categoriesTable');

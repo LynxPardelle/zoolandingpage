@@ -112,6 +112,12 @@
   [value]="resolveValue(component.config.value)"
   [hostContext]="effectiveHost()"
 ></generic-cell>
+} @case('generic-component-preview') {
+<generic-component-preview
+  [config]="$any(genericComponentPreviewConfig(component))"
+  [hostContext]="effectiveHost()"
+  [componentId]="component.id"
+></generic-component-preview>
 } @case('generic-file-dropzone') {
 <generic-file-dropzone
   [config]="$any(genericFileDropzoneConfig(component))"
