@@ -1,0 +1,21 @@
+<section [class]="classes()">
+  @if (label()) {
+    <h3 [class]="labelClasses()">{{ label() }}</h3>
+  }
+  @if (description()) {
+    <p [class]="descriptionClasses()">{{ description() }}</p>
+  }
+
+  @if (invalidMessage()) {
+    <p [class]="stateClasses()">{{ invalidMessage() }}</p>
+  } @else if (rootIds().length === 0) {
+    <p [class]="stateClasses()">{{ emptyMessage() }}</p>
+  } @else {
+    <div [class]="previewClasses()">
+      <wrapper-orchestrator
+        [componentsIds]="rootIds()"
+        [hostContext]="hostContext()"
+      ></wrapper-orchestrator>
+    </div>
+  }
+</section>
