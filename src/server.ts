@@ -2303,12 +2303,66 @@ function decorateBootCurtainHtml(html: string, siteConfig: TLocalSiteConfig | nu
     });
 }
 
-function decorateProtectedSsrShellHtml(html: string, siteConfig: TLocalSiteConfig | null, path: string): string {
+function buildProtectedSsrShellContent(lang: string): string {
+  const normalizedLang = normalizeLanguageCode(lang);
+  const title = normalizedLang === 'en'
+    ? 'Validating access'
+    : 'Validando acceso';
+  const message = normalizedLang === 'en'
+    ? 'Checking your secure session and permissions before showing this page.'
+    : 'Revisando tu sesión segura y permisos antes de mostrar esta página.';
+
+  return [
+    '<main class="zlp-private-route-loading" role="status" aria-live="polite" aria-busy="true">',
+    '<div class="zlp-private-route-loading__panel">',
+    '<span class="zlp-private-route-loading__title">',
+    escapeHtmlText(title),
+    '</span>',
+    '<span class="zlp-private-route-loading__message">',
+    escapeHtmlText(message),
+    '</span>',
+    '</div>',
+    '</main>',
+  ].join('');
+}
+
+function buildProtectedSsrTitle(siteConfig: TLocalSiteConfig | null, lang: string): string {
+  const normalizedLang = normalizeLanguageCode(lang);
+  const title = normalizedLang === 'en'
+    ? 'Validating access'
+    : 'Validando acceso';
+  const siteName = resolveLocalizedSeoString(siteConfig?.site?.seo?.siteName, normalizedLang)
+    || cleanString(siteConfig?.domain)
+    || 'ZoolandingPage';
+
+  return `${title} | ${siteName}`;
+}
+
+function replaceAppRootContent(html: string, content: string): string {
+  return html.replace(/(<app-root\b[^>]*>)[\s\S]*?(<\/app-root>)/i, (_match, open: string, close: string) => (
+    `${open}${content}${close}`
+  ));
+}
+
+function replaceDocumentTitle(html: string, title: string): string {
+  const safeTitle = escapeHtmlText(title);
+  if (/<title>[\s\S]*?<\/title>/i.test(html)) {
+    return html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${safeTitle}</title>`);
+  }
+
+  return html.replace(/<\/head>/i, `<title>${safeTitle}</title>\n</head>`);
+}
+
+function decorateProtectedSsrShellHtml(html: string, siteConfig: TLocalSiteConfig | null, path: string, lang: string): string {
   if (!isProtectedRequestPath(siteConfig, path)) {
     return html;
   }
 
-  return html.replace(/<app-root\b[^>]*>/i, (tag) => setHtmlAttribute(tag, 'data-zlp-protected-shell', 'true'));
+  const markedHtml = replaceDocumentTitle(
+    html.replace(/<app-root\b[^>]*>/i, (tag) => setHtmlAttribute(tag, 'data-zlp-protected-shell', 'true')),
+    buildProtectedSsrTitle(siteConfig, lang),
+  );
+  return replaceAppRootContent(markedHtml, buildProtectedSsrShellContent(lang));
 }
 
 function readStructuredDataEntries(pageConfig: TLocalPageConfig | null): readonly unknown[] {
@@ -2850,7 +2904,7 @@ async function decorateHtmlResponse(req: express.Request, response: Response): P
     ? ''
     : buildHreflangHeadHtml(req, lookupDomain, siteConfig);
   const headHtml = [
-    buildGoogleTagHeadHtml(lookupDomain, siteConfig),
+    buildGoogleTagHeadHtml(host, siteConfig),
     buildSearchConsoleHeadHtml(lookupDomain, siteConfig),
     buildBrowserIconsHeadHtml(siteConfig),
     buildRobotsHeadHtml(req, siteConfig, pageConfig),
@@ -2863,6 +2917,7 @@ async function decorateHtmlResponse(req: express.Request, response: Response): P
     decorateBootCurtainHtml(injectHeadHtml(html, headHtml), siteConfig),
     siteConfig,
     req.path,
+    requestLang,
   );
 
   return new Response(decoratedHtml, {

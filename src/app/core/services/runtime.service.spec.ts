@@ -1223,6 +1223,72 @@ describe('RuntimeService', () => {
         expect(service.rootComponentsIds()).toEqual(['mi-cuenta-root']);
     });
 
+    it('keeps a safe protected-route shell during SSR when route access cannot be authorized server-side', async () => {
+        const service = TestBed.inject(RuntimeService);
+        (service as any).isBrowser = false;
+        const privateRouteLoading = () => (service as any).privateRouteLoading?.();
+        loadSiteConfig.and.resolveTo({
+            version: 1,
+            domain: 'pamelabetancourt.com',
+            defaultPageId: 'home',
+            routes: [
+                {
+                    path: '/admin/blog/articulos/:id/editor',
+                    pageId: 'admin-blog-articulo-editor',
+                    auth: {
+                        required: true,
+                        allowedGroups: ['zoosite-admin'],
+                        redirectTo: '/acceso',
+                    },
+                },
+            ],
+            runtime: {
+                auth: {
+                    enabled: true,
+                    authProfileId: 'staff',
+                    provider: 'cognito',
+                    issuer: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_PREVIEW',
+                    clientId: 'public-web-client',
+                    hostedUiDomain: 'https://preview.auth.us-east-1.amazoncognito.com',
+                    scopes: ['openid'],
+                    redirectPath: '/auth/callback',
+                    logoutPath: '/acceso',
+                    loginPath: '/acceso',
+                    session: {
+                        mode: 'server-cookie',
+                        mePath: '/auth/session/me',
+                    },
+                },
+            },
+            site: {},
+        } as any);
+        draftRuntimeResolveActiveDraftContext.and.resolveTo({
+            domain: 'pamelabetancourt.com',
+            pageId: 'admin-blog-articulo-editor',
+            path: '/admin/blog/articulos/art_20260623/editor',
+            route: {
+                path: '/admin/blog/articulos/:id/editor',
+                pageId: 'admin-blog-articulo-editor',
+                auth: {
+                    required: true,
+                    allowedGroups: ['zoosite-admin'],
+                    redirectTo: '/acceso',
+                },
+            },
+            routeParams: { id: 'art_20260623' },
+            explicitPageId: false,
+        });
+
+        await service.initialize('es');
+
+        expect(privateRouteLoading()).toEqual({
+            active: true,
+            phase: 'session',
+        });
+        expect(service.rootComponentsIds()).toEqual([]);
+        expect(bootstrapLoad).not.toHaveBeenCalled();
+    });
+
     it('marks runtime data sources loading before refreshing after client navigation', async () => {
         const service = TestBed.inject(RuntimeService);
         const host = document.createElement('div');

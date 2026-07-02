@@ -168,6 +168,10 @@ function stripNonVisibleHtml(html) {
     .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '');
 }
 
+function extractAppRootHtml(html) {
+  return String(html ?? '').match(/<app-root\b[\s\S]*?<\/app-root>/i)?.[0] ?? '';
+}
+
 test('production SSR server exposes a lightweight health endpoint', async (t) => {
   const { port, getStderr } = await startProductionServer(t);
   const response = await waitForOk(`http://127.0.0.1:${port}/health`);
@@ -1402,6 +1406,47 @@ test('production SSR server lets authRemote protected routes reach Angular for B
     domain: 'auth-preview.example.com',
     path: '/',
   });
+  assert.equal(getStderr(), '');
+});
+
+test('production SSR server renders a safe shell for Zoosite protected article detail routes', async (t) => {
+  const { port, getStderr } = await startProductionServer(t, {
+    CONFIG_API_SERVER_FALLBACK_URL: '',
+    ZLP_RUNTIME_ENV: 'test',
+  });
+  const articleId = 'art_ssr_route_param_regression';
+  const routeSuffixes = ['editor', 'preview', 'seo', 'versiones'];
+
+  for (const suffix of routeSuffixes) {
+    const response = await fetch(
+      `http://127.0.0.1:${port}/admin/blog/articulos/${articleId}/${suffix}?draftDomain=zoositioweb.com.mx&debugWorkspace=false&lang=es`,
+      {
+        redirect: 'manual',
+        headers: {
+          Host: 'test.zoolandingpage.com.mx',
+          'X-Forwarded-Host': 'test.zoolandingpage.com.mx',
+          'X-Forwarded-Port': '443',
+          'X-Forwarded-Proto': 'https',
+          'X-Forwarded-Server': 'dokploy-traefik',
+        },
+      },
+    );
+    const body = await response.text();
+    const visibleAppRoot = stripNonVisibleHtml(extractAppRootHtml(body));
+
+    assert.equal(response.status, 200, suffix);
+    assert.equal(response.headers.get('location'), null, suffix);
+    assert.equal(response.headers.get('cache-control'), 'no-store', suffix);
+    assert.match(response.headers.get('vary') ?? '', /\bCookie\b/i, suffix);
+    assert.match(body, /<title>Validando acceso \| zoositioweb<\/title>/, suffix);
+    assert.match(body, /<app-root\b[^>]*data-zlp-protected-shell="true"/i, suffix);
+    assert.match(visibleAppRoot, /<main\b/i, suffix);
+    assert.match(visibleAppRoot, /Validando acceso/i, suffix);
+    assert.doesNotMatch(visibleAppRoot, /Página no encontrada|Esta ruta no está publicada/i, suffix);
+    assert.doesNotMatch(visibleAppRoot, /Editor de artículo|Vista previa|Versiones|SEO/i, suffix);
+    assertNoSensitiveAuthSurface(visibleAppRoot);
+  }
+
   assert.equal(getStderr(), '');
 });
 
