@@ -40,6 +40,7 @@ The draft filesystem under `drafts/{domain}/...`, served locally at `/drafts/...
 - Optional draft auth through browser-safe `site-config.json.runtime.auth` plus server-only auth profile registry policy.
 - Server-only protected feature descriptors for blogs, dashboards, analytics, config, uploads, and other authenticated draft capabilities.
 - Content hubs and blog articles as draft-like packages with public runtime references, server-only hub policy, taxonomy overrides, SEO-ready published bundles, and validation reports.
+- Generic combo catalog runtime references for shared Angora combo presets that can be consumed by blogs, draft builders, and future feature editors.
 - Shared domain defaults plus page-level overrides.
 - Locale-aware content and metadata.
 - Draft-owned appearance through `angora-combos.json`, theme palettes, and payload-owned classes.
@@ -56,6 +57,7 @@ The draft filesystem under `drafts/{domain}/...`, served locally at `/drafts/...
 - `server/integrations.json`: server-only proxy integration policy, upstream credential references, and user access gates.
 - `server/protected-features.json`: server-only protected feature ownership, roles, resources, endpoints, audit, error, and rollout policy.
 - `content-hubs/{environment}/{hubId}/...`: draft-like article package files, revision snapshots/deltas, published bundles, taxonomy files, validation reports, feeds, and media manifests.
+- `runtime.comboCatalog`: optional browser-safe reference to the generic combo catalog read endpoint. The source-of-truth catalog and write policy stay server-side in the dedicated combo catalog Lambda.
 
 ## Start here
 
@@ -78,6 +80,7 @@ The draft filesystem under `drafts/{domain}/...`, served locally at `/drafts/...
 - [18-draft-auth-audit-matrix.md](18-draft-auth-audit-matrix.md)
 - [19-protected-feature-contract.md](19-protected-feature-contract.md)
 - [20-generic-content-builder-primitives.md](20-generic-content-builder-primitives.md)
+- [21-generic-combo-catalog.md](21-generic-combo-catalog.md)
 
 ## Practical rule for new contributors
 
@@ -94,7 +97,8 @@ If you are trying to change behavior and you do not know whether to edit code or
 9. Is this tenant ownership, Cognito provisioning, groups policy, callback allowlists, or social IdP credentials? Keep it server-only in an Auth Profile Registry.
 10. Is this protected feature ownership, DynamoDB isolation, Lambda/BFF routing, audit policy, or protected error contract? Keep it server-only in a protected feature descriptor.
 11. Is this blog/content-hub article content? Store large draft-like article package files in S3-compatible content hub package layout and keep small indexes/metadata in DynamoDB.
-12. Is this binary media? Upload it through the approved media/upload flow and store only safe public URLs or media manifest references in payloads.
+12. Is this a reusable Angora combo preset shared across builders? Use the generic combo catalog runtime reference and keep catalog writes behind auth-admin plus CSRF.
+13. Is this binary media? Upload it through the approved media/upload flow and store only safe public URLs or media manifest references in payloads.
 
 ## Schemas
 

@@ -300,10 +300,11 @@
       "required": ["id", "target"],
       "properties": {
         "id": { "type": "string", "minLength": 1 },
-        "kind": { "type": "string", "enum": ["api-proxy", "auth-admin", "content-hub"] },
+        "kind": { "type": "string", "enum": ["api-proxy", "auth-admin", "content-hub", "combo-catalog"] },
         "proxySourceId": { "type": "string" },
         "authAdminSource": { "type": "string", "enum": ["account", "adminUsers"] },
         "contentHub": { "$ref": "#/definitions/contentHubRuntimeReadBinding" },
+        "comboCatalog": { "$ref": "#/definitions/comboCatalogRuntimeReadBinding" },
         "target": { "type": "string", "minLength": 1 },
         "statusTarget": { "type": "string" },
         "mergeMode": { "type": "string", "enum": ["replace", "appendItems"] },
@@ -340,6 +341,14 @@
               "proxySourceId": { "$ref": "#/definitions/contentHubSafeId" }
             }
           }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "combo-catalog" } } },
+          "then": {
+            "properties": {
+              "proxySourceId": { "$ref": "#/definitions/contentHubSafeId" }
+            }
+          }
         }
       ],
       "additionalProperties": false
@@ -363,13 +372,14 @@
       "required": ["id"],
       "properties": {
         "id": { "type": "string", "minLength": 1 },
-        "kind": { "type": "string", "enum": ["api-proxy", "auth-admin", "content-hub"] },
+        "kind": { "type": "string", "enum": ["api-proxy", "auth-admin", "content-hub", "combo-catalog"] },
         "proxyActionId": { "type": "string" },
         "authAdminAction": {
           "type": "string",
           "enum": ["approveUser", "setUserGroups", "suspendUser", "reactivateUser", "resetUserMfa"]
         },
         "contentHub": { "$ref": "#/definitions/contentHubRuntimeActionBinding" },
+        "comboCatalog": { "$ref": "#/definitions/comboCatalogRuntimeActionBinding" },
         "method": { "type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"] },
         "statusTarget": { "type": "string" },
         "enabled": { "type": "boolean" },
@@ -387,6 +397,14 @@
               "proxyActionId": { "$ref": "#/definitions/contentHubSafeId" }
             }
           }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "combo-catalog" } } },
+          "then": {
+            "properties": {
+              "proxyActionId": { "$ref": "#/definitions/contentHubSafeId" }
+            }
+          }
         }
       ],
       "additionalProperties": false
@@ -399,6 +417,7 @@
         "analytics": { "$ref": "#/definitions/analyticsRuntime" },
         "auth": { "$ref": "#/definitions/authRuntime" },
         "authRemote": { "$ref": "#/definitions/authRemoteRuntime" },
+        "comboCatalog": { "$ref": "#/definitions/comboCatalogRuntime" },
         "contentHubs": {
           "type": "array",
           "items": { "$ref": "#/definitions/contentHubRuntime" }
@@ -566,6 +585,28 @@
         "assetId": { "$ref": "#/definitions/contentHubSafeId" },
         "commentId": { "$ref": "#/definitions/contentHubSafeId" },
         "scheduleId": { "$ref": "#/definitions/contentHubSafeId" }
+      },
+      "additionalProperties": false
+    },
+    "comboCatalogRuntimeReadBinding": {
+      "type": "object",
+      "required": ["read"],
+      "properties": {
+        "read": {
+          "type": "string",
+          "enum": ["runtimeCombos", "comboList", "comboDetail", "groupList", "draftPolicy"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "comboCatalogRuntimeActionBinding": {
+      "type": "object",
+      "required": ["action"],
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": ["createCombo", "updateCombo", "batchUpsertCombos", "softDeleteCombo", "createGroup", "updateGroup", "setDraftPolicy"]
+        }
       },
       "additionalProperties": false
     },
@@ -909,6 +950,23 @@
             { "$ref": "#/definitions/httpsAbsoluteUrl" }
           ]
         }
+      },
+      "additionalProperties": false
+    },
+    "comboCatalogRuntime": {
+      "type": "object",
+      "required": ["endpoint"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "endpoint": {
+          "type": "string",
+          "anyOf": [
+            { "$ref": "#/definitions/sameOriginPath" },
+            { "$ref": "#/definitions/httpsAbsoluteUrl" }
+          ]
+        },
+        "authProfileId": { "$ref": "#/definitions/contentHubSafeId" },
+        "draftDomain": { "$ref": "#/definitions/contentHubDomainName" }
       },
       "additionalProperties": false
     },

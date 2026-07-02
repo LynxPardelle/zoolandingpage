@@ -12,6 +12,7 @@ import type {
     TAngoraCombosPayload,
     TAuthoringDraftFile,
     TAuthoringDraftPackage,
+    TComboCatalogRuntimeConfig,
     TComponentsPayload,
     TConfigRegistryPayload,
     TConfigVersionPointer,
@@ -100,9 +101,16 @@ const ALLOWED_DRAFT_RUNTIME_CONFIG_KEYS = new Set([
     'navigation',
     'auth',
     'authRemote',
+    'comboCatalog',
     'contentHubs',
     'dataSources',
     'apiActions',
+]);
+const ALLOWED_COMBO_CATALOG_RUNTIME_CONFIG_KEYS = new Set([
+    'enabled',
+    'endpoint',
+    'authProfileId',
+    'draftDomain',
 ]);
 const ALLOWED_RUNTIME_DATA_SOURCE_KEYS = new Set([
     'id',
@@ -110,6 +118,7 @@ const ALLOWED_RUNTIME_DATA_SOURCE_KEYS = new Set([
     'proxySourceId',
     'authAdminSource',
     'contentHub',
+    'comboCatalog',
     'target',
     'statusTarget',
     'mergeMode',
@@ -129,6 +138,7 @@ const ALLOWED_RUNTIME_API_ACTION_KEYS = new Set([
     'proxyActionId',
     'authAdminAction',
     'contentHub',
+    'comboCatalog',
     'method',
     'statusTarget',
     'enabled',
@@ -169,6 +179,23 @@ const ALLOWED_CONTENT_HUB_ACTIONS = new Set([
     'recordInteraction',
     'restoreRevision',
 ]);
+const ALLOWED_COMBO_CATALOG_READS = new Set([
+    'runtimeCombos',
+    'comboList',
+    'comboDetail',
+    'groupList',
+    'draftPolicy',
+]);
+const ALLOWED_COMBO_CATALOG_ACTIONS = new Set([
+    'createCombo',
+    'updateCombo',
+    'batchUpsertCombos',
+    'softDeleteCombo',
+    'createGroup',
+    'updateGroup',
+    'setDraftPolicy',
+]);
+const ALLOWED_COMBO_CATALOG_BINDING_KEYS = new Set(['read', 'action']);
 const ALLOWED_CONTENT_HUB_TAXONOMY_KINDS = new Set(['category', 'tag']);
 const ALLOWED_CONTENT_HUB_BINDING_KEYS = new Set([
     'read',
@@ -1306,15 +1333,35 @@ const isContentHubRuntimeActionBinding = (value: unknown): value is TContentHubR
     return isContentHubRuntimeBindingBase(value);
 };
 
+const isComboCatalogRuntimeReadBinding = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasNoForbiddenRuntimeKeysDeep(value)) return false;
+    if (!hasOnlyKnownKeys(value, ALLOWED_COMBO_CATALOG_BINDING_KEYS)) return false;
+    if (!ALLOWED_COMBO_CATALOG_READS.has(String(value['read']))) return false;
+    if (value['action'] !== undefined) return false;
+    return true;
+};
+
+const isComboCatalogRuntimeActionBinding = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasNoForbiddenRuntimeKeysDeep(value)) return false;
+    if (!hasOnlyKnownKeys(value, ALLOWED_COMBO_CATALOG_BINDING_KEYS)) return false;
+    if (!ALLOWED_COMBO_CATALOG_ACTIONS.has(String(value['action']))) return false;
+    if (value['read'] !== undefined) return false;
+    return true;
+};
+
 const isRuntimeDataSourceConfig = (value: unknown): value is TRuntimeDataSourceConfig => {
     if (!isRecord(value)) return false;
     if (!hasOnlyKnownKeys(value, ALLOWED_RUNTIME_DATA_SOURCE_KEYS)) return false;
     if (typeof value['id'] !== 'string' || value['id'].trim().length === 0) return false;
-    if (value['kind'] !== undefined && !['api-proxy', 'auth-admin', 'content-hub'].includes(String(value['kind']))) return false;
+    if (value['kind'] !== undefined && !['api-proxy', 'auth-admin', 'content-hub', 'combo-catalog'].includes(String(value['kind']))) return false;
     if (value['proxySourceId'] !== undefined && typeof value['proxySourceId'] !== 'string') return false;
     if (value['kind'] === 'content-hub' && value['proxySourceId'] !== undefined && !isContentHubSafeId(value['proxySourceId'])) return false;
+    if (value['kind'] === 'combo-catalog' && value['proxySourceId'] !== undefined && !isContentHubSafeId(value['proxySourceId'])) return false;
     if (value['authAdminSource'] !== undefined && !['account', 'adminUsers'].includes(String(value['authAdminSource']))) return false;
     if (value['contentHub'] !== undefined && !isContentHubRuntimeReadBinding(value['contentHub'])) return false;
+    if (value['comboCatalog'] !== undefined && !isComboCatalogRuntimeReadBinding(value['comboCatalog'])) return false;
     if (typeof value['target'] !== 'string' || value['target'].trim().length === 0) return false;
     if (value['statusTarget'] !== undefined && typeof value['statusTarget'] !== 'string') return false;
     if (value['mergeMode'] !== undefined && value['mergeMode'] !== 'replace' && value['mergeMode'] !== 'appendItems') return false;
@@ -1340,12 +1387,14 @@ const isRuntimeApiActionConfig = (value: unknown): value is TRuntimeApiActionCon
     if (!isRecord(value)) return false;
     if (!hasOnlyKnownKeys(value, ALLOWED_RUNTIME_API_ACTION_KEYS)) return false;
     if (typeof value['id'] !== 'string' || value['id'].trim().length === 0) return false;
-    if (value['kind'] !== undefined && !['api-proxy', 'auth-admin', 'content-hub'].includes(String(value['kind']))) return false;
+    if (value['kind'] !== undefined && !['api-proxy', 'auth-admin', 'content-hub', 'combo-catalog'].includes(String(value['kind']))) return false;
     if (value['proxyActionId'] !== undefined && typeof value['proxyActionId'] !== 'string') return false;
     if (value['kind'] === 'content-hub' && value['proxyActionId'] !== undefined && !isContentHubSafeId(value['proxyActionId'])) return false;
+    if (value['kind'] === 'combo-catalog' && value['proxyActionId'] !== undefined && !isContentHubSafeId(value['proxyActionId'])) return false;
     if (value['authAdminAction'] !== undefined
         && !['approveUser', 'setUserGroups', 'suspendUser', 'reactivateUser', 'resetUserMfa'].includes(String(value['authAdminAction']))) return false;
     if (value['contentHub'] !== undefined && !isContentHubRuntimeActionBinding(value['contentHub'])) return false;
+    if (value['comboCatalog'] !== undefined && !isComboCatalogRuntimeActionBinding(value['comboCatalog'])) return false;
     if (value['method'] !== undefined
         && (typeof value['method'] !== 'string' || !ALLOWED_RUNTIME_API_ACTION_METHODS.has(value['method']))) return false;
     if (value['statusTarget'] !== undefined && typeof value['statusTarget'] !== 'string') return false;
@@ -1422,6 +1471,16 @@ const isDraftAuthRemoteRuntimeConfig = (value: unknown): value is TDraftAuthRemo
     return isSafeSameOriginPath(value['endpoint']) || isHttpsAbsoluteUrl(value['endpoint']);
 };
 
+const isComboCatalogRuntimeConfig = (value: unknown): value is TComboCatalogRuntimeConfig => {
+    if (!isRecord(value)) return false;
+    if (!hasOnlyKnownKeys(value, ALLOWED_COMBO_CATALOG_RUNTIME_CONFIG_KEYS)) return false;
+    if (value['enabled'] !== undefined && typeof value['enabled'] !== 'boolean') return false;
+    if (!isSafeSameOriginPath(value['endpoint']) && !isHttpsAbsoluteUrl(value['endpoint'])) return false;
+    if (value['authProfileId'] !== undefined && !isContentHubSafeId(value['authProfileId'])) return false;
+    if (value['draftDomain'] !== undefined && !isContentHubDomainName(value['draftDomain'])) return false;
+    return true;
+};
+
 const isDraftSiteRuntimeConfig = (value: unknown): value is TDraftSiteRuntimeConfig => {
     if (!isRecord(value)) return false;
     if (!hasOnlyKnownKeys(value, ALLOWED_DRAFT_RUNTIME_CONFIG_KEYS)) return false;
@@ -1433,6 +1492,7 @@ const isDraftSiteRuntimeConfig = (value: unknown): value is TDraftSiteRuntimeCon
     if (value['navigation'] !== undefined && !isDraftNavigationRuntimeConfig(value['navigation'])) return false;
     if (value['auth'] !== undefined && !isDraftAuthRuntimeConfig(value['auth'])) return false;
     if (value['authRemote'] !== undefined && !isDraftAuthRemoteRuntimeConfig(value['authRemote'])) return false;
+    if (value['comboCatalog'] !== undefined && !isComboCatalogRuntimeConfig(value['comboCatalog'])) return false;
     if (value['contentHubs'] !== undefined
         && (!Array.isArray(value['contentHubs']) || !value['contentHubs'].every(isContentHubRuntimeConfig))) return false;
     if (value['dataSources'] !== undefined

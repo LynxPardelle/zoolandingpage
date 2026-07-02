@@ -1,4 +1,6 @@
 import { ConfigStoreService } from '@/app/shared/services/config-store.service';
+import { ComboCatalogClientService } from '@/app/shared/services/combo-catalog-client.service';
+import { buildComboCatalogRuntimeInput } from '@/app/shared/services/combo-catalog-runtime-request';
 import { ContentHubClientService } from '@/app/shared/services/content-hub-client.service';
 import { buildContentHubRuntimeInput, CONTENT_HUB_SAFE_ID_INPUT_KEYS, isContentHubSafePublicId } from '@/app/shared/services/content-hub-runtime-request';
 import { RuntimeApiProxyClientService } from '@/app/shared/services/runtime-api-proxy-client.service';
@@ -147,7 +149,9 @@ const resolveActionInput = (
     input: Record<string, unknown> | undefined,
 ): Record<string, unknown> | undefined => {
     if (action.kind !== 'content-hub') {
-        return input;
+        return action.kind === 'combo-catalog'
+            ? buildComboCatalogRuntimeInput(action.comboCatalog, input, 'action')
+            : input;
     }
 
     return buildContentHubRuntimeInput(action.contentHub, input, action.inputFields ?? []);
@@ -188,6 +192,7 @@ const hasSafeContentHubActionIds = (
 export const proxyActionHandler = (): EventHandler => {
     const configStore = inject(ConfigStoreService);
     const contentHub = inject(ContentHubClientService);
+    const comboCatalog = inject(ComboCatalogClientService);
     const proxy = inject(RuntimeApiProxyClientService);
     const variables = inject(VariableStoreService);
 
@@ -222,7 +227,11 @@ export const proxyActionHandler = (): EventHandler => {
                 const input = resolveActionInput(action, rawInput);
 
                 writeStatus(variables, action, 'loading', null);
-                const client = action.kind === 'content-hub' ? contentHub : proxy;
+                const client = action.kind === 'content-hub'
+                    ? contentHub
+                    : action.kind === 'combo-catalog'
+                        ? comboCatalog
+                        : proxy;
                 const response = await client.executeAction({
                     domain,
                     pageId,
