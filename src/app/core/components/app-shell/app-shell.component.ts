@@ -222,12 +222,7 @@ export class AppShellComponent {
         return;
       }
 
-      const runtimeOwnsProtectedShell = this.privateRouteLoading().active
-        || this.rootComponentsIds().length > 0
-        || this.modalRootIds().length > 0
-        || this.showDebugWorkspace();
-
-      if (runtimeOwnsProtectedShell) {
+      if (this.privateRouteLoading().active) {
         this.releaseProtectedSsrOverlay();
       }
     });
