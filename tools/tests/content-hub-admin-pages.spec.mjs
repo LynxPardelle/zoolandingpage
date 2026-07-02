@@ -26,6 +26,11 @@ const pageIds = [
   'admin-blog-configuracion',
 ];
 
+const adminSurfacePageIds = [
+  ...pageIds,
+  'admin-combos',
+];
+
 const allowedGenericTypes = new Set([
   'container',
   'generic-button',
@@ -174,6 +179,60 @@ function extractChecklistSmokeCheckKeys(checklist) {
     .map((entry) => entry[1]);
 }
 
+function splitDelimited(value, delimiter) {
+  const tokens = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index];
+    const next = value[index + 1];
+
+    if (char === '"' && inQuotes && next === '"') {
+      current += '"';
+      index += 1;
+      continue;
+    }
+
+    if (char === '"') {
+      inQuotes = !inQuotes;
+      continue;
+    }
+
+    if (char === delimiter && !inQuotes) {
+      tokens.push(current);
+      current = '';
+      continue;
+    }
+
+    current += char;
+  }
+
+  tokens.push(current);
+  return tokens;
+}
+
+function parseInstructionCommand(command) {
+  const trimmed = String(command ?? '').trim();
+  if (!trimmed) return { id: '', args: [] };
+  const colonIndex = trimmed.indexOf(':');
+  if (colonIndex === -1) return { id: trimmed, args: [] };
+  return {
+    id: trimmed.slice(0, colonIndex).trim(),
+    args: splitDelimited(trimmed.slice(colonIndex + 1), ',').map((entry) => entry.trim()),
+  };
+}
+
+function instructionCommands(instructions) {
+  return splitDelimited(String(instructions ?? ''), ';')
+    .map(parseInstructionCommand)
+    .filter((command) => command.id);
+}
+
+function quotedConstantsBeforeInjectionToken(source) {
+  return new Set([...source.matchAll(/'([^']+)'/gu)].map((match) => match[1]));
+}
+
 describe('Zoosite blog admin draft pages', () => {
   it('keeps the Zoosite blog QA checklist aligned with the 12 product-completion blocks', async () => {
     const checklist = await readFile(qaChecklistPath, 'utf8');
@@ -287,6 +346,61 @@ describe('Zoosite blog admin draft pages', () => {
         if (component.type === 'generic-file-dropzone') {
           assert.equal(component.config?.maxFiles, undefined, `${pageId}/${component.id} dropzone maxFiles is not runtime-supported`);
           assert.equal(component.config?.uploadActionId, undefined, `${pageId}/${component.id} upload action must be wired through event handlers`);
+        }
+      }
+    }
+  });
+
+  it('keeps admin value and event instructions on registered runtime command ids', async () => {
+    const valueAllowlist = quotedConstantsBeforeInjectionToken(
+      await readFile(path.join(repoRoot, 'src/app/shared/services/value-orchestrator-allowlist.ts'), 'utf8'),
+    );
+    const eventAllowlist = quotedConstantsBeforeInjectionToken(
+      await readFile(path.join(repoRoot, 'src/app/shared/services/event-orchestrator-allowlist.ts'), 'utf8'),
+    );
+
+    for (const pageId of adminSurfacePageIds) {
+      const payload = await readJson(`${pageId}/components.json`);
+      for (const component of flattenComponents(payload)) {
+        const scopedValueInstructions = component.config?.valueInstructions;
+        if (typeof scopedValueInstructions === 'string') {
+          assert.equal(
+            component.type,
+            'interaction-scope',
+            `${pageId}/${component.id} config.valueInstructions is only supported by interaction-scope`,
+          );
+          assert.match(
+            scopedValueInstructions,
+            /^collectFields:/u,
+            `${pageId}/${component.id} config.valueInstructions must use interaction-scope collectFields`,
+          );
+        }
+
+        for (const command of instructionCommands(component.valueInstructions)) {
+          assert.equal(command.id, 'set', `${pageId}/${component.id} uses unsupported value command ${command.id}`);
+          const resolverId = String(command.args[1] ?? '').trim();
+          assert.ok(valueAllowlist.has(resolverId), `${pageId}/${component.id} uses unregistered value resolver ${resolverId}`);
+        }
+
+        for (const command of instructionCommands(component.eventInstructions)) {
+          assert.ok(eventAllowlist.has(command.id), `${pageId}/${component.id} uses unregistered event command ${command.id}`);
+        }
+
+        const rowActions = Array.isArray(component.config?.rowActions) ? component.config.rowActions : [];
+        for (const action of rowActions) {
+          for (const command of instructionCommands(action.eventInstructions)) {
+            assert.ok(
+              eventAllowlist.has(command.id),
+              `${pageId}/${component.id}/${action.id ?? 'rowAction'} uses unregistered event command ${command.id}`,
+            );
+          }
+        }
+
+        const submitEventInstructions = component.type === 'interaction-scope'
+          ? component.config?.submitEventInstructions
+          : undefined;
+        for (const command of instructionCommands(submitEventInstructions)) {
+          assert.ok(eventAllowlist.has(command.id), `${pageId}/${component.id} uses unregistered submit command ${command.id}`);
         }
       }
     }
