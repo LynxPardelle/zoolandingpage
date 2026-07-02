@@ -336,6 +336,39 @@ export class ConfigSourceService {
             && payloadDomain !== normalizedRequestedDomain;
     }
 
+    private isRecord(value: unknown): value is Record<string, unknown> {
+        return !!value && typeof value === 'object' && !Array.isArray(value);
+    }
+
+    private normalizeRuntimeBundlePayload(value: unknown): unknown {
+        if (!this.isRecord(value)) {
+            return value;
+        }
+
+        const componentsPayload = value['components'];
+        if (!this.isRecord(componentsPayload)) {
+            return value;
+        }
+
+        const components = componentsPayload['components'];
+        if (Array.isArray(components) || !this.isRecord(components)) {
+            return value;
+        }
+
+        return {
+            ...value,
+            components: {
+                ...componentsPayload,
+                components: Object.entries(components)
+                    .filter(([, component]) => this.isRecord(component))
+                    .map(([id, component]) => ({
+                        id,
+                        ...(component as Record<string, unknown>),
+                    })),
+            },
+        };
+    }
+
     private async loadRuntimeBundle(domain: string, opts?: {
         pageId?: string;
         lang?: string;
@@ -389,6 +422,7 @@ export class ConfigSourceService {
                 path: currentPath,
                 environment: requestEnvironment,
             })
+                .then((payload) => this.normalizeRuntimeBundlePayload(payload))
                 .then((payload) => isRuntimeBundlePayload(payload) ? payload : null)
                 .then((payload) => {
                     if (!payload) {
