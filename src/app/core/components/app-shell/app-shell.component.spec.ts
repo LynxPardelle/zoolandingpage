@@ -354,6 +354,48 @@ describe('AppShellComponent', () => {
     expect(panel?.textContent).toContain('Validando acceso');
   });
 
+  it('keeps the protected SSR overlay until protected-route loading owns the shell', async () => {
+    const routeLoading = signal<{ active: boolean; phase: 'session' | 'content' | null }>({
+      active: false,
+      phase: null,
+    });
+    const rootIds = signal<readonly string[]>([]);
+    TestBed.overrideProvider(RuntimeService, {
+      useValue: {
+        rootComponentsIds: rootIds.asReadonly(),
+        modalRootIds: signal<readonly string[]>([]).asReadonly(),
+        privateRouteLoading: routeLoading.asReadonly(),
+        connect: jasmine.createSpy('runtime.connect'),
+        requestRenderedComponentsCssUpdate: jasmine.createSpy('runtime.requestRenderedComponentsCssUpdate'),
+      },
+    });
+
+    const overlay = document.createElement('div');
+    overlay.setAttribute('data-zlp-protected-ssr-overlay', '');
+    overlay.textContent = 'Validando acceso';
+    document.body.appendChild(overlay);
+
+    const fixture = TestBed.createComponent(AppShellComponent);
+    fixture.nativeElement.setAttribute('data-zlp-protected-shell', 'true');
+    fixture.nativeElement.setAttribute('aria-hidden', 'true');
+    fixture.detectChanges();
+
+    rootIds.set(['notFoundRoot']);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(document.querySelector('[data-zlp-protected-ssr-overlay]')).toBeTruthy();
+    expect(fixture.nativeElement.getAttribute('data-zlp-protected-shell')).toBe('true');
+
+    routeLoading.set({ active: true, phase: 'session' });
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(document.querySelector('[data-zlp-protected-ssr-overlay]')).toBeFalsy();
+    expect(fixture.nativeElement.hasAttribute('data-zlp-protected-shell')).toBeFalse();
+    expect(fixture.nativeElement.hasAttribute('aria-hidden')).toBeFalse();
+  });
+
   it('does not render the debug workspace during SSR', () => {
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
