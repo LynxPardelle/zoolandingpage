@@ -1444,6 +1444,7 @@ test('production SSR server renders a safe shell for Zoosite protected article d
     assert.equal(response.headers.get('cache-control'), 'no-store', suffix);
     assert.match(response.headers.get('vary') ?? '', /\bCookie\b/i, suffix);
     assert.match(body, /<title>Validando acceso \| zoositioweb<\/title>/, suffix);
+    assert.match(body, /app-root\[data-zlp-protected-shell="true"\]\{display:none!important;visibility:hidden!important\}/, suffix);
     assert.match(body, /<app-root\b[^>]*data-zlp-protected-shell="true"/i, suffix);
     assert.match(body, /<app-root\b[^>]*aria-hidden="true"/i, suffix);
     assert.match(protectedOverlay, /<main\b/i, suffix);

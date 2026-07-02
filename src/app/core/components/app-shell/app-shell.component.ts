@@ -222,9 +222,13 @@ export class AppShellComponent {
         return;
       }
 
-      if (this.privateRouteLoading().active) {
-        this.releaseProtectedSsrOverlay();
+      const hasClientLoadingShell = this.privateRouteLoading().active;
+      const hasRenderedDraftShell = this.rootComponentsIds().length > 0 || this.modalRootIds().length > 0 || this.showDebugWorkspace();
+      if (!hasClientLoadingShell && !hasRenderedDraftShell) {
+        return;
       }
+
+      this.releaseProtectedSsrOverlayAfterRender();
     });
 
     effect(() => {
@@ -272,13 +276,47 @@ export class AppShellComponent {
     connect();
   }
 
-  private releaseProtectedSsrOverlay(): void {
+  private releaseProtectedSsrOverlayAfterRender(): void {
+    runInInjectionContext(this.injector, () => {
+      afterNextRender(() => {
+        window.setTimeout(() => {
+          this.releaseProtectedSsrOverlayIfReady();
+        }, 0);
+      });
+    });
+  }
+
+  private releaseProtectedSsrOverlayIfReady(): void {
     const documentRef = this.host.nativeElement.ownerDocument;
+    if (!this.canReleaseProtectedSsrOverlay(documentRef)) {
+      return;
+    }
+
     documentRef
       .querySelectorAll('[data-zlp-protected-ssr-overlay], style[data-zlp-protected-ssr-style]')
       .forEach((node: Element) => node.remove());
     this.host.nativeElement.removeAttribute('aria-hidden');
     this.host.nativeElement.removeAttribute('data-zlp-protected-shell');
+  }
+
+  private canReleaseProtectedSsrOverlay(documentRef: Document): boolean {
+    if (!this.host.nativeElement.hasAttribute('data-zlp-protected-shell')) {
+      return true;
+    }
+
+    if (documentRef.querySelector('.zlp-private-route-loading')) {
+      return true;
+    }
+
+    const pageId = String(this.configStore.pageConfig()?.pageId ?? '').trim().toLowerCase();
+    const rootIds = this.rootComponentsIds().map((id) => String(id ?? '').trim().toLowerCase());
+    const hasRenderedRoots = rootIds.length > 0 || this.modalRootIds().length > 0 || this.showDebugWorkspace();
+    if (!hasRenderedRoots) {
+      return false;
+    }
+
+    return pageId !== 'not-found'
+      && !rootIds.some((id) => id.includes('notfound') || id.includes('not-found') || id === '404');
   }
 
   // Unified analytics event handler (receives from any child component)

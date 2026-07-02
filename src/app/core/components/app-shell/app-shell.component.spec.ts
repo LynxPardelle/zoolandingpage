@@ -383,6 +383,7 @@ describe('AppShellComponent', () => {
     rootIds.set(['notFoundRoot']);
     fixture.detectChanges();
     await fixture.whenStable();
+    await new Promise((resolve) => setTimeout(resolve, 10));
 
     expect(document.querySelector('[data-zlp-protected-ssr-overlay]')).toBeTruthy();
     expect(fixture.nativeElement.getAttribute('data-zlp-protected-shell')).toBe('true');
@@ -390,6 +391,8 @@ describe('AppShellComponent', () => {
     routeLoading.set({ active: true, phase: 'session' });
     fixture.detectChanges();
     await fixture.whenStable();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    fixture.detectChanges();
 
     expect(document.querySelector('[data-zlp-protected-ssr-overlay]')).toBeFalsy();
     expect(fixture.nativeElement.hasAttribute('data-zlp-protected-shell')).toBeFalse();

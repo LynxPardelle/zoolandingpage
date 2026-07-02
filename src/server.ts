@@ -2314,6 +2314,7 @@ function buildProtectedSsrShellContent(lang: string): string {
 
   return [
     '<style data-zlp-protected-ssr-style="">',
+    'app-root[data-zlp-protected-shell="true"]{display:none!important;visibility:hidden!important}',
     '.zlp-protected-ssr-overlay{position:fixed;inset:0;z-index:2147483001;display:grid;place-items:center;padding:1.25rem;background:color-mix(in srgb,var(--ank-bgColor,#f8fafc) 88%,transparent);color:var(--ank-textColor,#17202a);pointer-events:auto}',
     '.zlp-protected-ssr-overlay__panel{display:grid;justify-items:center;gap:.85rem;width:min(26rem,100%);padding:1.25rem;border:1px solid color-mix(in srgb,var(--ank-accentColor,#0f948c) 28%,transparent);border-radius:.5rem;background:var(--ank-secondaryBgColor,#fff);box-shadow:0 1.25rem 3.5rem rgba(15,23,42,.16);text-align:center}',
     '.zlp-protected-ssr-overlay__title{font-weight:800;font-size:1rem;line-height:1.3;color:var(--ank-titleColor,#111827)}',
