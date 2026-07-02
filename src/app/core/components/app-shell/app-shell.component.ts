@@ -178,19 +178,7 @@ export class AppShellComponent {
   ));
 
   constructor() {
-    afterNextRender(() => {
-      this.browserState.connect({
-        document: this.host.nativeElement.ownerDocument,
-        destroyRef: this.destroyRef,
-      });
-
-      this.runtime.connect({
-        host: this.host.nativeElement,
-        destroyRef: this.destroyRef,
-        showDebugWorkspace: () => this.showDebugWorkspace(),
-        currentLanguage: () => this._lang.currentLanguage(),
-      });
-    });
+    this.connectRuntime();
 
     if (this.isBrowser) {
       const handleClientNavigationStart = () => this.showRouteTransition();
@@ -247,6 +235,31 @@ export class AppShellComponent {
         });
       });
     });
+  }
+
+  private connectRuntime(): void {
+    const connect = () => {
+      if (this.isBrowser) {
+        this.browserState.connect({
+          document: this.host.nativeElement.ownerDocument,
+          destroyRef: this.destroyRef,
+        });
+      }
+
+      this.runtime.connect({
+        host: this.host.nativeElement,
+        destroyRef: this.destroyRef,
+        showDebugWorkspace: () => this.showDebugWorkspace(),
+        currentLanguage: () => this._lang.currentLanguage(),
+      });
+    };
+
+    if (this.isBrowser) {
+      afterNextRender(connect);
+      return;
+    }
+
+    connect();
   }
 
   // Unified analytics event handler (receives from any child component)
