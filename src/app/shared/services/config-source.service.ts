@@ -308,8 +308,8 @@ export class ConfigSourceService {
         }
 
         return Array.from(new Set([
-            ...this.testAliasesForDomain(normalized),
             normalized,
+            ...this.testAliasesForDomain(normalized),
         ]));
     }
 

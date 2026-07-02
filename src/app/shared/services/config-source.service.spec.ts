@@ -427,23 +427,69 @@ describe('ConfigSourceService', () => {
             },
         });
 
-        api.getRuntimeBundle.and.callFake((domain: string) => Promise.resolve(
-            domain === 'erosbarajas.com' ? erosBundle : createNotFoundBundle(domain)
-        ));
+        api.getRuntimeBundle.and.callFake((domain: string) => {
+            if (domain === 'erosbarajas.com') {
+                return Promise.reject(new Error('canonical runtime unavailable'));
+            }
+
+            return Promise.resolve(domain === 'test.erosbarajas.com' ? erosBundle : createNotFoundBundle(domain));
+        });
 
         const result = await service.loadSiteConfig('erosbarajas.com');
 
         expect(result).toEqual(erosSiteConfig);
         expect(api.getRuntimeBundle.calls.allArgs().map(([domain]) => domain)).toEqual([
-            'test.erosbarajas.com',
-            'test.erosbarajas.zoolandingpage.com.mx',
             'erosbarajas.com',
+            'test.erosbarajas.com',
         ]);
         expect(api.getRuntimeBundle.calls.allArgs().map(([, options]) => options?.environment)).toEqual([
             'test',
             'test',
-            'test',
         ]);
+    });
+
+    it('requests the canonical draft domain first on shared testing detail routes', async () => {
+        const service = TestBed.inject(ConfigSourceService);
+        spyOn<any>(service, 'isSharedTestingPreviewHost').and.returnValue(true);
+
+        const api = TestBed.inject(ConfigApiService) as jasmine.SpyObj<ConfigApiService>;
+        const zoositeSiteConfig: TDraftSiteConfigPayload = {
+            ...siteConfigPayload,
+            domain: 'zoositioweb.com.mx',
+            aliases: ['sitiosweb.zoolandingpage.com.mx'],
+        };
+        api.getRuntimeBundle.and.callFake((domain: string, options?: { readonly path?: string }) => Promise.resolve(createRuntimeBundle({
+            domain: 'zoositioweb.com.mx',
+            pageId: 'admin-blog-articulo-editor',
+            siteConfig: zoositeSiteConfig,
+            pageConfig: {
+                ...pageConfigPayload,
+                domain: 'zoositioweb.com.mx',
+                pageId: 'admin-blog-articulo-editor',
+            },
+            components: {
+                ...componentsPayload,
+                domain: 'zoositioweb.com.mx',
+                pageId: 'admin-blog-articulo-editor',
+            },
+            metadata: {
+                requestId: 'req-zoosite-editor',
+                requestedDomain: domain,
+                resolvedAlias: null,
+                resolvedPath: options?.path,
+            },
+        })));
+
+        const result = await service.loadPageConfig('zoositioweb.com.mx', 'admin-blog-articulo-editor', {
+            path: '/admin/blog/articulos/art_20260620_blog_builder/editor',
+        });
+
+        expect(result?.pageId).toBe('admin-blog-articulo-editor');
+        expect(api.getRuntimeBundle.calls.first().args[0]).toBe('zoositioweb.com.mx');
+        expect(api.getRuntimeBundle.calls.first().args[1]).toEqual(jasmine.objectContaining({
+            environment: 'test',
+            path: '/admin/blog/articulos/art_20260620_blog_builder/editor',
+        }));
     });
 
     it('loads the canonical Zoolanding bundle directly on the shared testing host', async () => {
