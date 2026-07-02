@@ -152,3 +152,25 @@ export const variableOrValueHandler = (): ValueHandler => {
         },
     };
 };
+
+export const jsonVariableOrValueHandler = (): ValueHandler => {
+    const store = inject(VariableStoreService);
+    return {
+        id: 'jsonVarOr',
+        resolve: (_ctx, args) => {
+            const path = String(args?.[0] ?? '').trim();
+            const fallback = args?.[1] ?? '';
+            const spacing = Number.isFinite(Number(args?.[2]))
+                ? Math.max(0, Math.min(8, Number(args?.[2])))
+                : 2;
+            const value = path ? store.get(path) : undefined;
+            const source = value == null ? fallback : value;
+            if (typeof source === 'string') return source;
+            try {
+                return JSON.stringify(source, null, spacing) ?? '';
+            } catch {
+                return typeof fallback === 'string' ? fallback : '';
+            }
+        },
+    };
+};

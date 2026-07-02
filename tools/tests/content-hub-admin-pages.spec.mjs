@@ -677,7 +677,7 @@ describe('Zoosite blog admin draft pages', () => {
     }
   });
 
-  it('connects the editor to combos and keeps JSON validation isolated from article saves', async () => {
+  it('connects the editor to combos and includes the advanced visual structure in article saves', async () => {
     const pageConfig = await readJson('admin-blog-articulo-editor/page-config.json');
     const siteConfig = await readJson('site-config.json');
     const payload = await readJson('admin-blog-articulo-editor/components.json');
@@ -713,13 +713,14 @@ describe('Zoosite blog admin draft pages', () => {
     assert.equal(jsonInput?.config?.controlType, 'textarea');
     assert.equal(jsonInput?.config?.fieldId, 'componentTreeJson');
     assert.deepEqual(jsonInput?.config?.validation, [{ type: 'json', message: 'JSON válido para previsualización.' }]);
-    assert.doesNotMatch(editorScope?.config?.valueInstructions ?? '', /componentTreeJson/);
+    assert.match(editorScope?.config?.valueInstructions ?? '', /componentTreeJson/);
+    assert.match(jsonInput?.valueInstructions ?? '', /jsonVarOr,remote\.contentHub\.articleDetail\.items\.0\.components/);
     assert.equal(comboOptionsSource?.kind, 'combo-catalog');
     assert.equal(comboOptionsSource?.target, 'remote.comboCatalog.comboOptions');
     assert.ok(comboOptionsSource?.pageIds?.includes('admin-blog-articulo-editor'));
     assert.deepEqual(comboOptionsSource?.mapper?.fields?.value, { path: 'comboId' });
     assert.deepEqual(comboOptionsSource?.mapper?.fields?.label, { path: 'comboId', transform: 'titleCase' });
-    assert.match(advancedHelp?.config?.text ?? '', /allowlist del draft/);
+    assert.match(advancedHelp?.config?.text ?? '', /bloques permitidos/);
   });
 
   it('shows direct post-create next-step links bound to the created article ids', async () => {
