@@ -11,6 +11,8 @@ const DEFAULT_ENVIRONMENT = 'test';
 const DEFAULT_LANG = 'es';
 const DEFAULT_PAGE_ID = 'admin-blog-articulos';
 const DEFAULT_TIMEOUT_MS = 20000;
+const DEFAULT_PUBLIC_ABSENCE_ATTEMPTS = 30;
+const DEFAULT_PUBLIC_ABSENCE_DELAY_MS = 2000;
 const DEFAULT_CSRF_COOKIE_NAME = 'zlp_csrf';
 const SENSITIVE_INPUT_KEYS = new Set(['cookie', 'cookies', 'csrf', 'session', 'token', 'secret', 'authorization']);
 const COMMON_FORBIDDEN_PUBLIC_RESPONSE_PATTERNS = [
@@ -273,6 +275,12 @@ function publicCanonicalArticleUrl(domain, pathName) {
   return `https://${domain}${clean(pathName).startsWith('/') ? clean(pathName) : `/${clean(pathName)}`}`;
 }
 
+function withCacheBust(url, value) {
+  const next = new URL(url);
+  next.searchParams.set('cacheBust', clean(value) || String(Date.now()));
+  return next.toString();
+}
+
 function buildContentHubPayload({ domain, pageId, operationId, hubId, kind, input = {} }) {
   const idKey = kind === 'read' ? 'sourceId' : 'actionId';
   const bindingKey = kind === 'read' ? 'read' : 'action';
@@ -494,6 +502,8 @@ async function runSmoke(options) {
     csrf,
     timeoutMs,
     sharedPreview,
+    publicAbsenceAttempts = DEFAULT_PUBLIC_ABSENCE_ATTEMPTS,
+    publicAbsenceDelayMs = DEFAULT_PUBLIC_ABSENCE_DELAY_MS,
     now = new Date(),
   } = options;
 
@@ -524,7 +534,8 @@ async function runSmoke(options) {
   const taxonomyTagId = `qa_tag_${token}`;
   const expectedPath = `/blog/${category}/${slug}`;
   const articleBodyNeedle = `Contenido editado por smoke ${token}`;
-  const commentPreviewNeedle = `QA smoke moderated comment ${token}`;
+  const commentBody = `QA smoke moderated comment qa-${token.slice(-4)}`;
+  const commentPreviewNeedle = 'QA smoke moderated comment';
   const asset = {
     assetId: `asset_${token}`,
     kind: 'document',
@@ -1034,7 +1045,7 @@ async function runSmoke(options) {
     input: {
       contentHub: { action: 'queueComment', articleId: created.articleId },
       articleId: created.articleId,
-      commentBody: `QA smoke moderated comment ${token}`,
+      commentBody,
       commentPolicy: 'authenticated-moderation',
     },
   });
@@ -1319,20 +1330,23 @@ async function runSmoke(options) {
     sharedPreview,
   });
   let publicAbsence = null;
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
-    const searchResponse = await smokeStep(`publicSearchAfterUnpublish:${attempt}`, () => fetchJson(publicAbsenceSearchUrl, {
+  const absenceAttempts = Math.max(1, Number.parseInt(String(publicAbsenceAttempts), 10) || DEFAULT_PUBLIC_ABSENCE_ATTEMPTS);
+  const absenceDelayMs = Math.max(0, Number.parseInt(String(publicAbsenceDelayMs), 10) || DEFAULT_PUBLIC_ABSENCE_DELAY_MS);
+  for (let attempt = 1; attempt <= absenceAttempts; attempt += 1) {
+    const cacheBust = `${token}-unpublish-${attempt}`;
+    const searchResponse = await smokeStep(`publicSearchAfterUnpublish:${attempt}`, () => fetchJson(withCacheBust(publicAbsenceSearchUrl, cacheBust), {
       method: 'GET',
       headers: { Accept: 'application/json' },
     }, timeoutMs));
-    const articleResponse = await smokeStep(`publicArticleAfterUnpublish:${attempt}`, () => fetchTextResult(publicAbsenceArticleUrl, {
+    const articleResponse = await smokeStep(`publicArticleAfterUnpublish:${attempt}`, () => fetchTextResult(withCacheBust(publicAbsenceArticleUrl, cacheBust), {
       method: 'GET',
       headers: { Accept: 'text/html' },
     }, timeoutMs));
-    const sitemapResponse = await smokeStep(`sitemapAfterUnpublish:${attempt}`, () => fetchTextResult(publicAbsenceSitemapUrl, {
+    const sitemapResponse = await smokeStep(`sitemapAfterUnpublish:${attempt}`, () => fetchTextResult(withCacheBust(publicAbsenceSitemapUrl, cacheBust), {
       method: 'GET',
       headers: { Accept: 'application/xml,text/xml,*/*' },
     }, timeoutMs));
-    const feedResponse = await smokeStep(`feedAfterUnpublish:${attempt}`, () => fetchTextResult(publicAbsenceFeedUrl, {
+    const feedResponse = await smokeStep(`feedAfterUnpublish:${attempt}`, () => fetchTextResult(withCacheBust(publicAbsenceFeedUrl, cacheBust), {
       method: 'GET',
       headers: { Accept: 'application/xml,text/xml,*/*' },
     }, timeoutMs));
@@ -1349,8 +1363,8 @@ async function runSmoke(options) {
     if (!publicAbsence.search && !publicAbsence.article && !publicAbsence.sitemap && !publicAbsence.feed) {
       break;
     }
-    if (attempt < 3) {
-      await sleep(350);
+    if (attempt < absenceAttempts) {
+      await sleep(absenceDelayMs);
     }
   }
   if (publicAbsence?.search) {
@@ -1537,4 +1551,5 @@ export {
   safeSmokeErrorMessage,
   smokeStep,
   slugify,
+  withCacheBust,
 };
