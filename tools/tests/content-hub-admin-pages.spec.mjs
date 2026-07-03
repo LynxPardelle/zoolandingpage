@@ -742,9 +742,8 @@ describe('Zoosite blog admin draft pages', () => {
     assert.doesNotMatch(text, /eventInstructions"\s*:\s*"trackEvent:blog_view/);
     assert.doesNotMatch(text, /articleId,art_20260620_blog_builder/);
     assert.equal(interactionScope?.type, 'interaction-scope');
-    assert.equal(commentScope?.type, 'interaction-scope');
-    assert.deepEqual(interactionScope?.config?.components, ['blogArticleCta', 'blogArticleReactionPanel', 'blogArticleFormPanel']);
-    assert.deepEqual(commentScope?.config?.components, ['blogArticleCommentPanel']);
+    assert.equal(commentScope, undefined);
+    assert.deepEqual(interactionScope?.config?.components, ['blogArticleCta', 'blogArticleReactionPanel', 'blogArticleFormPanel', 'blogArticleCommentPanel']);
     assert.match(String(articleCta?.condition ?? ''), /interactions\.ctas\.enabled/);
     assert.match(String(formPanel?.condition ?? ''), /interactions\.forms\.enabled/);
     assert.match(String(articleCta?.valueInstructions ?? ''), /set:eventInstructions,concat/);
@@ -758,7 +757,6 @@ describe('Zoosite blog admin draft pages', () => {
     assert.match(String(shareButton?.valueInstructions ?? ''), /setScopeValue:eventType,share/);
     assert.match(String(formButton?.valueInstructions ?? ''), /setScopeValue:eventType,form/);
     assert.match(String(formButton?.valueInstructions ?? ''), /proxyAction:content_hub_record_interaction/);
-    assert.match(String(commentScope?.config?.components ?? ''), /blogArticleCommentPanel/);
     assert.match(String(componentById(components, 'blogArticleCommentPanel')?.condition ?? ''), /commentPolicy,disabled/);
     assert.equal(commentLoginLink?.type, 'link');
     assert.equal(commentLoginLink?.config?.href, '/acceso');

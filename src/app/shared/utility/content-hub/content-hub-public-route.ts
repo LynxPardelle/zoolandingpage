@@ -5,6 +5,7 @@ export type TContentHubPublicRouteArticle = {
     readonly status?: unknown;
     readonly visibility?: unknown;
     readonly path?: unknown;
+    readonly localizations?: unknown;
     readonly categorySlug?: unknown;
     readonly tags?: unknown;
 };
@@ -76,7 +77,7 @@ export function findPublishedContentHubArticleForPath(
         const articles = readContentHubPublicRouteCollection<TContentHubPublicRouteArticle>(hub.publicArticles);
         const article = articles.find((entry: TContentHubPublicRouteArticle) => entry.status === 'published'
             && (entry.visibility === undefined || entry.visibility === 'public')
-            && normalizeDraftRoutePath(entry.path) === normalizedPath);
+            && articleHasPublicPath(entry, normalizedPath));
         if (article) {
             return article;
         }
@@ -195,4 +196,19 @@ function contentHubBasePath(hub: TContentHubPublicRouteConfig): string {
 
 function cleanSlug(value: unknown): string {
     return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
+function articleHasPublicPath(article: TContentHubPublicRouteArticle, normalizedPath: string): boolean {
+    if (normalizeDraftRoutePath(article.path) === normalizedPath) {
+        return true;
+    }
+
+    if (!article.localizations || typeof article.localizations !== 'object' || Array.isArray(article.localizations)) {
+        return false;
+    }
+
+    return Object.values(article.localizations as Record<string, { readonly path?: unknown }>).some((localization) =>
+        !!localization
+        && typeof localization === 'object'
+        && normalizeDraftRoutePath(localization.path) === normalizedPath);
 }
