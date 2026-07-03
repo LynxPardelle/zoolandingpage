@@ -13,6 +13,7 @@ This file is durable project memory, not a changelog. Keep it short, stable, and
 ## Content Hub Runtime
 
 - Public content-hub article metadata is language-scoped. Drafts may provide localized `runtime.contentHubs.publicArticles[].localizations` and optional `articleContent` fallback bodies, but canonical source text should stay valid UTF-8; mojibake repair exists only as defensive compatibility for already-published legacy metadata.
+- SSR must resolve public content-hub route status with the requested `lang` and the most specific runtime bundle available. Localized article paths that exist in runtime metadata return HTTP 200; missing article, category, or tag paths still return HTTP 404.
 
 ## Canonical Paths
 

@@ -554,17 +554,24 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
       },
     ],
   };
+  const runtimeBundleRequests = [];
   const apiBase = await startRuntimeApi(t, (req, res) => {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
     if (url.pathname === '/runtime-bundle') {
       const path = url.searchParams.get('path') || '/';
+      const lang = url.searchParams.get('lang') || 'es';
+      runtimeBundleRequests.push({
+        path,
+        lang,
+        pageId: url.searchParams.get('pageId') || '',
+      });
       if (
         path === '/blog/web/missing-article'
         || path === '/blog/web/privado-no-publicable'
         || path === '/blog/bienvenido-al-blog-de-zoosite'
         || path === '/blog/tag/no-existe'
+        || (path === '/blog/web/runtime-dynamic-seo-en' && lang !== 'en')
       ) {
-        const lang = url.searchParams.get('lang') || 'es';
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
           version: 1,
@@ -588,7 +595,6 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
       }
 
       const pageId = url.searchParams.get('pageId') || 'contentHubArticle';
-      const lang = url.searchParams.get('lang') || 'es';
       const pageConfig = pageId === 'blog'
         ? localBlogPageConfig
         : pageId === 'blog-category'
@@ -790,7 +796,7 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
 
   const localizedRuntimeArticleResponse = await fetch(`http://127.0.0.1:${port}/blog/web/runtime-dynamic-seo-en?lang=en`, { headers });
   const localizedRuntimeArticleHtml = await localizedRuntimeArticleResponse.text();
-  assert.equal(localizedRuntimeArticleResponse.status, 200);
+  assert.equal(localizedRuntimeArticleResponse.status, 200, JSON.stringify(runtimeBundleRequests.filter((entry) => entry.path.includes('runtime-dynamic-seo-en'))));
   assert.match(localizedRuntimeArticleHtml, /<link rel="canonical" href="https:\/\/zoositioweb\.com\.mx\/blog\/web\/runtime-dynamic-seo-en">/);
   assert.match(localizedRuntimeArticleHtml, /"@type":"BlogPosting"/);
   assert.match(localizedRuntimeArticleHtml, /Runtime Dynamic SEO Article EN/);

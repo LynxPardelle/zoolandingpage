@@ -86,6 +86,25 @@ export function findPublishedContentHubArticleForPath(
     return null;
 }
 
+export function hasPublishedContentHubPublicPath(
+    hubs: readonly TContentHubPublicRouteConfig[] | null | undefined,
+    path: unknown,
+): boolean {
+    if (findPublishedContentHubArticleForPath(hubs, path)) {
+        return true;
+    }
+
+    const taxonomyRoute = matchContentHubTaxonomyRoute(hubs, path);
+    return !!taxonomyRoute && hasVisibleContentHubTaxonomyRoute(taxonomyRoute);
+}
+
+export function isContentHubPublicPath(
+    hubs: readonly TContentHubPublicRouteConfig[] | null | undefined,
+    path: unknown,
+): boolean {
+    return !!matchContentHubArticleRoute(hubs, path) || !!matchContentHubTaxonomyRoute(hubs, path);
+}
+
 export function isMissingPublishedContentHubArticlePath(
     hubs: readonly TContentHubPublicRouteConfig[] | null | undefined,
     path: unknown,
@@ -97,12 +116,7 @@ export function isMissingPublishedContentHubPublicPath(
     hubs: readonly TContentHubPublicRouteConfig[] | null | undefined,
     path: unknown,
 ): boolean {
-    if (isMissingPublishedContentHubArticlePath(hubs, path)) {
-        return true;
-    }
-
-    const taxonomyRoute = matchContentHubTaxonomyRoute(hubs, path);
-    return !!taxonomyRoute && !hasVisibleContentHubTaxonomyRoute(taxonomyRoute);
+    return isContentHubPublicPath(hubs, path) && !hasPublishedContentHubPublicPath(hubs, path);
 }
 
 function readContentHubPublicRouteCollection<T>(
