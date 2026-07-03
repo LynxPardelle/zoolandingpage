@@ -71,6 +71,26 @@ describe('ValueOrchestrator', () => {
         expect(resolvedText).toBe('Categoría: web');
     });
 
+    it('formats ISO dates without exposing raw timestamp text', () => {
+        const orchestrator = TestBed.inject(ValueOrchestrator);
+        const variables = TestBed.inject(VariableStoreService);
+        variables.setRuntimeValue('contentHub.currentArticle.publishedAt', '2026-06-21T15:00:00.000Z');
+        const component = {
+            id: 'publishedAt',
+            type: 'text',
+            config: {
+                text: 'Publicado recientemente',
+            },
+            valueInstructions: 'set:config.publishedAt,varOr,contentHub.currentArticle.publishedAt,"";set:config.text,formatDate,eval:config.publishedAt,Publicado recientemente,long',
+        } as unknown as TGenericComponent;
+
+        const resolved = orchestrator.apply(component, { host: {} });
+        const resolvedText = resolveDynamicValue((resolved as any).config?.text);
+
+        expect(resolvedText).toContain('2026');
+        expect(resolvedText).not.toContain('2026-06-21T15:00:00.000Z');
+    });
+
     it('resolves Quill delta rich text variables as safe HTML for generic text', () => {
         const orchestrator = TestBed.inject(ValueOrchestrator);
         const variables = TestBed.inject(VariableStoreService);

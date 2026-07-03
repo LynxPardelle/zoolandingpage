@@ -17,6 +17,7 @@ export const DEFAULT_ALLOWED_VALUE_IDS = [
     'upper',
     'lower',
     'joinText',
+    'formatDate',
     'language',
     'languageLabel',
     'langPick',
