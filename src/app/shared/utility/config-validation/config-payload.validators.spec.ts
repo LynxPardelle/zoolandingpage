@@ -1169,6 +1169,9 @@ describe('config-payload.validators', () => {
                                 interactions: {
                                     reactions: { enabled: true, moderation: 'spam-check' },
                                     ctas: { enabled: true, moderation: 'spam-check' },
+                                    shares: { enabled: true, moderation: 'spam-check' },
+                                    readProgress: { enabled: true, moderation: 'spam-check' },
+                                    assetDownloads: { enabled: true, moderation: 'spam-check' },
                                     forms: { enabled: true, moderation: 'queue' },
                                 },
                             },

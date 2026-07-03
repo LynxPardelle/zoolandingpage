@@ -1,6 +1,7 @@
 import type { Provider } from '@angular/core';
 import { classJoinValueHandler, whenValueHandler } from './handlers/class.value-handlers';
 import { concatValueHandler } from './handlers/concat.value-handlers';
+import { formatDateValueHandler } from './handlers/date.value-handlers';
 import { i18nValueHandler } from './handlers/i18n.value-handlers';
 import { i18nGetIndexValueHandler } from './handlers/i18nGetIndex.value-handlers';
 import { i18nParamsValueHandler } from './handlers/i18nParams.value-handlers';
@@ -40,6 +41,7 @@ export const provideValueHandlers = (): Provider[] => {
         { provide: VALUE_HANDLERS, multi: true, useFactory: upperValueHandler },
         { provide: VALUE_HANDLERS, multi: true, useFactory: lowerValueHandler },
         { provide: VALUE_HANDLERS, multi: true, useFactory: joinTextValueHandler },
+        { provide: VALUE_HANDLERS, multi: true, useFactory: formatDateValueHandler },
 
         { provide: VALUE_HANDLERS, multi: true, useFactory: languageValueHandler },
         { provide: VALUE_HANDLERS, multi: true, useFactory: languageLabelValueHandler },

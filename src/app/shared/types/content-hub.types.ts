@@ -101,6 +101,9 @@ export type TContentHubRuntimeArticleSummary = {
     readonly interactions?: {
         readonly reactions?: TContentHubInteractionPolicy;
         readonly ctas?: TContentHubInteractionPolicy;
+        readonly shares?: TContentHubInteractionPolicy;
+        readonly readProgress?: TContentHubInteractionPolicy;
+        readonly assetDownloads?: TContentHubInteractionPolicy;
         readonly forms?: TContentHubInteractionPolicy;
     };
 };
@@ -191,6 +194,9 @@ export type TContentHubInteractionPolicy = {
 export type TContentHubInteractionPolicies = {
     readonly reactions?: TContentHubInteractionPolicy;
     readonly ctas?: TContentHubInteractionPolicy;
+    readonly shares?: TContentHubInteractionPolicy;
+    readonly readProgress?: TContentHubInteractionPolicy;
+    readonly assetDownloads?: TContentHubInteractionPolicy;
     readonly forms?: TContentHubInteractionPolicy;
 };
 
