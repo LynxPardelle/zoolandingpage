@@ -831,6 +831,7 @@ describe('Zoosite blog admin draft pages', () => {
   it('connects the editor to combos and includes the advanced visual structure in article saves', async () => {
     const pageConfig = await readJson('admin-blog-articulo-editor/page-config.json');
     const siteConfig = await readJson('site-config.json');
+    const variables = await readJson('variables.json');
     const payload = await readJson('admin-blog-articulo-editor/components.json');
     const components = flattenComponents(payload);
     const editorScope = componentById(components, 'editorScope');
@@ -847,10 +848,16 @@ describe('Zoosite blog admin draft pages', () => {
     const jsonInput = componentById(components, 'componentTreeJsonInput');
     const advancedHelp = componentById(components, 'advancedModeHelp');
     const comboOptionsSource = siteConfig.runtime.dataSources.find((source) => source.id === 'combo_catalog_combo_options');
+    const inspectorModalConfig = variables?.variables?.ui?.modals?.['article-component-inspector'];
 
     assert.ok(pageConfig.modalRootIds.includes('articleComponentInspectorModalRoot'));
     assert.equal(catalogButton?.type, 'button');
     assert.match(catalogButton?.eventInstructions ?? '', /openModal:article-component-inspector/);
+    assert.ok(inspectorModalConfig, 'article component inspector modal must be declared in variables.ui.modals');
+    assert.ok(
+      inspectorModalConfig.ariaLabel || inspectorModalConfig.ariaLabelKey,
+      'article component inspector modal must expose an aria label or aria label key',
+    );
     assert.equal(catalogLink?.type, 'link');
     assert.equal(catalogLink?.config?.href, '/admin/combos');
     assert.match(catalogCopy?.config?.text ?? '', /abre el inspector/i);
