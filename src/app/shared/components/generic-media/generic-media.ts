@@ -7,10 +7,12 @@ import {
   input,
   ViewChild,
 } from '@angular/core';
+import { NgStyle } from '@angular/common';
 import {
   composeDomId,
   resolveComponentRootDomId,
   resolveDynamicValue,
+  resolveStyleRecord,
 } from '../../utility/component-orchestrator.utility';
 import type {
   GenericMediaImageDecoding,
@@ -23,7 +25,7 @@ import type {
 @Component({
   selector: 'generic-media',
   standalone: true,
-  imports: [],
+  imports: [NgStyle],
   templateUrl: './generic-media.html',
   styleUrl: './generic-media.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -60,6 +62,7 @@ export class GenericMedia implements AfterViewInit {
   readonly classes = computed(
     () => this.resolveOptionalString(this.config().classes) ?? ''
   );
+  readonly styles = computed(() => resolveStyleRecord(this.config().styles));
   readonly src = computed(() => this.resolveRequiredString(this.config().src));
   readonly alt = computed(() => this.resolveOptionalString(this.config().alt));
   readonly linkLabel = computed(() => this.alt() ?? this.src());
