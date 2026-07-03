@@ -78,6 +78,24 @@ export type TContentHubRuntimeCollection<T> = readonly T[] | {
     readonly items?: readonly T[];
 };
 
+export type TContentHubRuntimeArticleContent = string | {
+    readonly html?: string;
+};
+
+export type TContentHubRuntimeArticleLocalization = {
+    readonly title?: string;
+    readonly summary?: string;
+    readonly path?: string;
+    readonly categorySlug?: string;
+    readonly tags?: readonly string[];
+    readonly publishedAt?: string;
+    readonly updatedAt?: string;
+    readonly authorLabel?: string;
+    readonly canonicalPath?: string;
+    readonly robots?: 'index,follow' | 'noindex,follow' | 'noindex,nofollow';
+    readonly articleContent?: TContentHubRuntimeArticleContent;
+};
+
 export type TContentHubRuntimeArticleSummary = {
     readonly articleId: TContentHubArticleId;
     readonly locale: TContentHubLocale;
@@ -93,6 +111,8 @@ export type TContentHubRuntimeArticleSummary = {
     readonly authorLabel?: string;
     readonly canonicalPath?: string;
     readonly robots?: 'index,follow' | 'noindex,follow' | 'noindex,nofollow';
+    readonly articleContent?: TContentHubRuntimeArticleContent;
+    readonly localizations?: Readonly<Record<TContentHubLocale, TContentHubRuntimeArticleLocalization>>;
     readonly commentPolicy?: TContentHubRuntimeCommentPolicy;
     readonly contentSafety?: {
         readonly rating: TContentHubRuntimeContentSafetyRating;

@@ -531,9 +531,56 @@
         "authorLabel": { "type": "string" },
         "canonicalPath": { "$ref": "#/definitions/sameOriginPath" },
         "robots": { "type": "string", "enum": ["index,follow", "noindex,follow", "noindex,nofollow"] },
+        "articleContent": { "$ref": "#/definitions/contentHubPublicArticleContent" },
+        "localizations": { "$ref": "#/definitions/contentHubPublicArticleLocalizations" },
         "commentPolicy": { "$ref": "#/definitions/contentHubPublicCommentPolicy" },
         "contentSafety": { "$ref": "#/definitions/contentHubPublicContentSafety" },
         "interactions": { "$ref": "#/definitions/contentHubPublicInteractionPolicies" }
+      },
+      "additionalProperties": false
+    },
+    "contentHubPublicArticleContent": {
+      "oneOf": [
+        {
+          "type": "string",
+          "maxLength": 50000
+        },
+        {
+          "type": "object",
+          "properties": {
+            "html": {
+              "type": "string",
+              "maxLength": 50000
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "contentHubPublicArticleLocalization": {
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "summary": { "type": "string" },
+        "path": { "$ref": "#/definitions/sameOriginPath" },
+        "categorySlug": { "$ref": "#/definitions/contentHubSafeId" },
+        "tags": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/contentHubSafeId" }
+        },
+        "publishedAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "authorLabel": { "type": "string" },
+        "canonicalPath": { "$ref": "#/definitions/sameOriginPath" },
+        "robots": { "type": "string", "enum": ["index,follow", "noindex,follow", "noindex,nofollow"] },
+        "articleContent": { "$ref": "#/definitions/contentHubPublicArticleContent" }
+      },
+      "additionalProperties": false
+    },
+    "contentHubPublicArticleLocalizations": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-z]{2,3}(-[A-Z]{2})?$": { "$ref": "#/definitions/contentHubPublicArticleLocalization" }
       },
       "additionalProperties": false
     },

@@ -1,6 +1,7 @@
 import { formatLocaleLabel, normalizeLocaleCode } from '@/app/shared/i18n/locale.utils';
 import type {
     TContentHubRuntimeCollection,
+    TContentHubRuntimeArticleLocalization,
     TContentHubRuntimeArticleSummary,
     TContentHubRuntimeTaxonomySummary,
 } from '@/app/shared/types/content-hub.types';
@@ -437,7 +438,8 @@ export class ConfigBootstrapService {
             .filter((article): article is TContentHubRuntimeArticleSummary => article.status === 'published'
                 && ((article as { readonly visibility?: unknown }).visibility === undefined
                     || (article as { readonly visibility?: unknown }).visibility === 'public'))
-            .filter((article) => !lang || this.normalizeContentHubLanguage(article.locale) === lang);
+            .map((article) => this.localizeContentHubArticle(article, lang))
+            .filter((article): article is TContentHubRuntimeArticleSummary => article !== null);
         const taxonomy = hubs
             .flatMap((hub) => this.readContentHubRuntimeCollection<TContentHubRuntimeTaxonomySummary>(hub.publicTaxonomy))
             .filter((entry): entry is TContentHubRuntimeTaxonomySummary => entry.visible !== false)
@@ -459,8 +461,86 @@ export class ConfigBootstrapService {
                     items: taxonomy.filter((entry) => entry.kind === 'tag'),
                 },
                 'contentHub.currentArticle': currentArticle,
+                'articleContent': currentArticle?.articleContent ?? null,
             },
         };
+    }
+
+    private localizeContentHubArticle(
+        article: TContentHubRuntimeArticleSummary,
+        lang: string,
+    ): TContentHubRuntimeArticleSummary | null {
+        if (!lang) {
+            return article;
+        }
+
+        const articleLocale = this.normalizeContentHubLanguage(article.locale);
+        const localization = this.findContentHubArticleLocalization(article.localizations, lang);
+        if (articleLocale !== lang && !localization) {
+            return null;
+        }
+
+        if (!localization) {
+            return this.normalizeContentHubArticleText(article);
+        }
+
+        return this.normalizeContentHubArticleText({
+            ...article,
+            ...localization,
+            locale: lang,
+        });
+    }
+
+    private findContentHubArticleLocalization(
+        localizations: TContentHubRuntimeArticleSummary['localizations'] | undefined,
+        lang: string,
+    ): TContentHubRuntimeArticleLocalization | null {
+        if (!localizations) {
+            return null;
+        }
+
+        for (const [locale, localization] of Object.entries(localizations)) {
+            if (this.normalizeContentHubLanguage(locale) === lang) {
+                return localization;
+            }
+        }
+
+        return null;
+    }
+
+    private normalizeContentHubArticleText(article: TContentHubRuntimeArticleSummary): TContentHubRuntimeArticleSummary {
+        return {
+            ...article,
+            title: this.repairMojibakeText(article.title),
+            summary: article.summary ? this.repairMojibakeText(article.summary) : article.summary,
+            authorLabel: article.authorLabel ? this.repairMojibakeText(article.authorLabel) : article.authorLabel,
+            localizations: article.localizations ? Object.fromEntries(Object.entries(article.localizations).map(([locale, localization]) => [
+                locale,
+                {
+                    ...localization,
+                    title: localization.title ? this.repairMojibakeText(localization.title) : localization.title,
+                    summary: localization.summary ? this.repairMojibakeText(localization.summary) : localization.summary,
+                    authorLabel: localization.authorLabel ? this.repairMojibakeText(localization.authorLabel) : localization.authorLabel,
+                },
+            ])) : article.localizations,
+        };
+    }
+
+    private repairMojibakeText(text: string): string {
+        if (!/[ÃÂâ]/u.test(text)) {
+            return text;
+        }
+        try {
+            const bytes = new Uint8Array(Array.from(text, (character) => character.charCodeAt(0) & 0xff));
+            const repaired = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+            return this.mojibakeScore(repaired) < this.mojibakeScore(text) ? repaired : text;
+        } catch {
+            return text;
+        }
+    }
+
+    private mojibakeScore(text: string): number {
+        return (text.match(/[ÃÂâ]/gu) ?? []).length;
     }
 
     private buildContentHubSeo(

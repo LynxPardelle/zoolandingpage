@@ -721,8 +721,13 @@ describe('Zoosite blog admin draft pages', () => {
     const payload = await readJson('blog-article/components.json');
     const text = textSearch(payload);
     const components = flattenComponents(payload);
+    const blogPayload = await readJson('blog/components.json');
+    const blogComponents = flattenComponents(blogPayload);
+    const cardTemplate = componentById(blogComponents, 'blogArticleCardTemplate');
     const articleCta = componentById(components, 'blogArticleCta');
     const articleBody = componentById(components, 'blogArticleBody');
+    const articleMeta = componentById(components, 'blogArticleMeta');
+    const articlePublished = componentById(components, 'blogArticlePublished');
     const interactionScope = componentById(components, 'blogArticleInteractionsScope');
     const commentScope = componentById(components, 'blogArticleCommentScope');
     const reactionButton = componentById(components, 'blogArticleUsefulButton');
@@ -733,6 +738,7 @@ describe('Zoosite blog admin draft pages', () => {
     const commentBody = componentById(components, 'blogArticleCommentBody');
     const commentButton = componentById(components, 'blogArticleCommentButton');
 
+    assert.equal(cardTemplate?.config?.icon, undefined);
     assert.doesNotMatch(text, /eventInstructions"\s*:\s*"trackEvent:blog_view/);
     assert.doesNotMatch(text, /articleId,art_20260620_blog_builder/);
     assert.equal(interactionScope?.type, 'interaction-scope');
@@ -763,6 +769,10 @@ describe('Zoosite blog admin draft pages', () => {
     assert.match(String(commentButton?.valueInstructions ?? ''), /setScopeValue:commentPolicy,authenticated-moderation/);
     assert.match(String(commentButton?.valueInstructions ?? ''), /proxyAction:content_hub_queue_comment/);
     assert.match(String(articleBody?.valueInstructions ?? ''), /richTextHtmlOr,articleContent,/);
+    assert.match(String(articleBody?.config?.classes ?? ''), /ank-alignSelf-center/);
+    assert.equal(articleBody?.config?.styles?.margin, '0 auto');
+    assert.match(String(articleMeta?.config?.classes ?? ''), /ank-justifyContent-center/);
+    assert.equal(articlePublished?.config?.styles?.minHeight, '48px');
     assert.doesNotMatch(String(articleBody?.valueInstructions ?? ''), /varOr,articleContent,/);
     assert.doesNotMatch(String(articleBody?.valueInstructions ?? ''), /contentHub\.currentArticle\.summary/);
   });
