@@ -1,6 +1,7 @@
 import {
     findPublishedContentHubArticleForPath,
     isMissingPublishedContentHubArticlePath,
+    isMissingPublishedContentHubPublicPath,
     matchContentHubArticleRoute,
     type TContentHubPublicRouteArticle,
     type TContentHubPublicRouteConfig,
@@ -9,6 +10,7 @@ import {
 describe('content hub public route helpers', () => {
     const hubs: readonly TContentHubPublicRouteConfig[] = [
         {
+            routeBasePath: '/blog',
             articlePathPattern: '/blog/:categorySlug/:articleSlug',
             publicArticles: [
                 {
@@ -32,6 +34,19 @@ describe('content hub public route helpers', () => {
                     path: '/blog/web/privado',
                     categorySlug: 'web',
                     tags: ['private'],
+                },
+            ],
+            publicTaxonomy: [
+                {
+                    kind: 'category',
+                    slug: 'web',
+                    visible: true,
+                    path: '/blog/web',
+                },
+                {
+                    kind: 'tag',
+                    slug: 'seo',
+                    visible: true,
                 },
             ],
         },
@@ -74,5 +89,18 @@ describe('content hub public route helpers', () => {
     it('does not treat non-article blog paths as missing articles', () => {
         expect(isMissingPublishedContentHubArticlePath(hubs, '/blog')).toBeFalse();
         expect(isMissingPublishedContentHubArticlePath(hubs, '/blog/web')).toBeFalse();
+    });
+
+    it('marks category and tag listing paths as missing only when no public taxonomy or article exists', () => {
+        expect(isMissingPublishedContentHubPublicPath(hubs, '/blog')).toBeFalse();
+        expect(isMissingPublishedContentHubPublicPath(hubs, '/blog/web')).toBeFalse();
+        expect(isMissingPublishedContentHubPublicPath(hubs, '/blog/tag/seo')).toBeFalse();
+        expect(isMissingPublishedContentHubPublicPath(hubs, '/blog/bienvenido-al-blog-de-zoosite')).toBeTrue();
+        expect(isMissingPublishedContentHubPublicPath(hubs, '/blog/tag/no-existe')).toBeTrue();
+    });
+
+    it('does not let reserved tag routes masquerade as article routes', () => {
+        expect(matchContentHubArticleRoute(hubs, '/blog/tag/seo')).toBeNull();
+        expect(isMissingPublishedContentHubArticlePath(hubs, '/blog/tag/seo')).toBeFalse();
     });
 });
