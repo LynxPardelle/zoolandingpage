@@ -1800,6 +1800,7 @@ const isInteractionValidationRule = (value: unknown): boolean => {
     switch (value['type']) {
         case 'required':
         case 'email':
+        case 'json':
             return value['message'] === undefined || typeof value['message'] === 'string';
         case 'matchesField':
             return typeof value['fieldId'] === 'string'
