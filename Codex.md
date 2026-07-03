@@ -10,6 +10,10 @@ This file is durable project memory, not a changelog. Keep it short, stable, and
 - Put reusable procedures and deeper guidance in `ai-notes/`.
 - Put runtime, test, and development logs under `logs/`.
 
+## Content Hub Runtime
+
+- Public content-hub article metadata is language-scoped. Drafts may provide localized `runtime.contentHubs.publicArticles[].localizations` and optional `articleContent` fallback bodies, but canonical source text should stay valid UTF-8; mojibake repair exists only as defensive compatibility for already-published legacy metadata.
+
 ## Canonical Paths
 
 - App source: `src/`
