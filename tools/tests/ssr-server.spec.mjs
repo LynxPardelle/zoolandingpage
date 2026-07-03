@@ -548,7 +548,12 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
     if (url.pathname === '/runtime-bundle') {
       const path = url.searchParams.get('path') || '/';
-      if (path === '/blog/web/missing-article' || path === '/blog/web/privado-no-publicable') {
+      if (
+        path === '/blog/web/missing-article'
+        || path === '/blog/web/privado-no-publicable'
+        || path === '/blog/bienvenido-al-blog-de-zoosite'
+        || path === '/blog/tag/no-existe'
+      ) {
         const lang = url.searchParams.get('lang') || 'es';
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
@@ -769,6 +774,18 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.equal(categoryResponse.status, 200);
   assert.match(categoryHtml, /<link rel="canonical" href="https:\/\/zoositioweb\.com\.mx\/blog\/marketing">/);
   assert.doesNotMatch(categoryHtml, /<link rel="canonical" href="https:\/\/zoositioweb\.com\.mx\/blog\/web">/);
+
+  const missingCategoryResponse = await fetch(`http://127.0.0.1:${port}/blog/bienvenido-al-blog-de-zoosite?lang=es`, { headers });
+  const missingCategoryHtml = await missingCategoryResponse.text();
+  assert.equal(missingCategoryResponse.status, 404);
+  assert.doesNotMatch(stripNonVisibleHtml(missingCategoryHtml), /Cómo crear blogs visuales con Zoolandingpage|Runtime Dynamic SEO Article/);
+  assert.match(stripNonVisibleHtml(missingCategoryHtml), /Página no encontrada/);
+
+  const missingTagResponse = await fetch(`http://127.0.0.1:${port}/blog/tag/no-existe?lang=es`, { headers });
+  const missingTagHtml = await missingTagResponse.text();
+  assert.equal(missingTagResponse.status, 404);
+  assert.doesNotMatch(stripNonVisibleHtml(missingTagHtml), /Cómo crear blogs visuales con Zoolandingpage|Runtime Dynamic SEO Article/);
+  assert.match(stripNonVisibleHtml(missingTagHtml), /Página no encontrada/);
 
   const privateArticleResponse = await fetch(`http://127.0.0.1:${port}/blog/web/privado-no-publicable?lang=es`, { headers });
   const privateArticleHtml = await privateArticleResponse.text();
