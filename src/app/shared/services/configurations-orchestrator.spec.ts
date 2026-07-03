@@ -963,6 +963,28 @@ describe('ConfigurationsOrchestratorService', () => {
     expect(console.error).toHaveBeenCalled();
   });
 
+  it('accepts runtime-read component maps before rendering external draft components', () => {
+    service.setExternalComponentsFromPayload({
+      version: 1,
+      domain: 'zoositioweb.com.mx',
+      pageId: 'admin-blog-articulo-editor',
+      components: {
+        siteHeader: {
+          type: 'container',
+          config: { tag: 'header', components: ['siteHeaderTitle'] },
+        },
+        siteHeaderTitle: {
+          id: 'siteHeaderTitle',
+          type: 'text',
+          config: { tag: 'p', text: 'Header' },
+        },
+      },
+    } as any);
+
+    expect((service.getComponentById('siteHeader') as any)?.config?.components).toEqual(['siteHeaderTitle']);
+    expect((service.getComponentById('siteHeaderTitle') as any)?.config?.text).toBe('Header');
+  });
+
   it('does not warn about unresolved loop sources when only collecting classes', () => {
     const warnSpy = spyOn(console, 'warn');
 
