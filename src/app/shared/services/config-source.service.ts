@@ -17,7 +17,7 @@ import { ConfigStoreService } from './config-store.service';
 import { LanguageService } from './language.service';
 
 type TConfigSource = {
-    readonly loadSiteConfig: (domain: string) => Promise<TDraftSiteConfigPayload | null>;
+    readonly loadSiteConfig: (domain: string, opts?: { readonly path?: string; readonly lang?: string }) => Promise<TDraftSiteConfigPayload | null>;
     readonly loadPageConfig: (domain: string, pageId: string, opts?: { readonly path?: string }) => Promise<TPageConfigPayload | null>;
     readonly loadComponents: (domain: string, pageId: string, opts?: { readonly path?: string }) => Promise<TComponentsPayload | null>;
     readonly loadVariables: (domain: string, pageId: string, opts?: { readonly path?: string }) => Promise<TVariablesPayload | null>;
@@ -55,8 +55,8 @@ export class ConfigSourceService {
     };
 
     private readonly apiSource: TConfigSource = {
-        loadSiteConfig: async (domain) => {
-            const bundle = await this.tryLoadRuntimeBundle(domain);
+        loadSiteConfig: async (domain, opts) => {
+            const bundle = await this.tryLoadRuntimeBundle(domain, { lang: opts?.lang, path: opts?.path });
             return bundle?.siteConfig
                 ?? this.resolveHydratedSiteConfig(domain)
                 ?? this.loadLegacyApiFallback(() => this.legacyApiSource.loadSiteConfig(domain));
@@ -171,6 +171,11 @@ export class ConfigSourceService {
         const explicit = String(explicitLang ?? '').trim();
         if (explicit) {
             return explicit;
+        }
+
+        const requestLang = String(this.parseRequestUrl()?.searchParams.get('lang') ?? '').trim();
+        if (requestLang) {
+            return requestLang;
         }
 
         const active = String(this.language.currentLanguage() ?? '').trim();
@@ -564,8 +569,8 @@ export class ConfigSourceService {
         return environment.drafts.enabled ? this.draftSource : this.apiSource;
     }
 
-    loadSiteConfig(domain: string): Promise<TDraftSiteConfigPayload | null> {
-        return this.source.loadSiteConfig(domain);
+    loadSiteConfig(domain: string, opts?: { readonly path?: string; readonly lang?: string }): Promise<TDraftSiteConfigPayload | null> {
+        return this.source.loadSiteConfig(domain, opts);
     }
 
     loadPageConfig(domain: string, pageId: string, opts?: { readonly path?: string }): Promise<TPageConfigPayload | null> {

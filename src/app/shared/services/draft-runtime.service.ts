@@ -214,7 +214,10 @@ export class DraftRuntimeService {
             return emptyContext;
         }
 
-        const siteConfig = await this.loadSiteConfig(domain);
+        const siteConfig = await this.loadSiteConfig(domain, {
+            path,
+            lang: this.resolveRequestedLanguage(),
+        });
 
         if (explicitPageId) {
             const explicitContext = {
@@ -462,12 +465,24 @@ export class DraftRuntimeService {
         return normalizeDraftRoutePath(path);
     }
 
-    private async loadSiteConfig(domain: string): Promise<TDraftSiteConfigPayload | null> {
+    private resolveRequestedLanguage(): string {
+        if (this.isBrowser && window.location?.search) {
+            return String(new URLSearchParams(window.location.search).get('lang') ?? '').trim();
+        }
+
+        const requestUrl = this.parseRequestUrl();
+        return String(requestUrl?.searchParams.get('lang') ?? '').trim();
+    }
+
+    private async loadSiteConfig(
+        domain: string,
+        opts?: { readonly path?: string; readonly lang?: string },
+    ): Promise<TDraftSiteConfigPayload | null> {
         if (!domain) {
             return null;
         }
 
-        return this.configSource.loadSiteConfig(domain);
+        return this.configSource.loadSiteConfig(domain, opts);
     }
 
     private matchRoute(siteConfig: TDraftSiteConfigPayload | null, path: string): TDraftSiteRouteEntry | null {

@@ -1,5 +1,7 @@
 import {
     findPublishedContentHubArticleForPath,
+    hasPublishedContentHubPublicPath,
+    isContentHubPublicPath,
     isMissingPublishedContentHubArticlePath,
     isMissingPublishedContentHubPublicPath,
     matchContentHubArticleRoute,
@@ -118,9 +120,15 @@ describe('content hub public route helpers', () => {
     });
 
     it('marks category and tag listing paths as missing only when no public taxonomy or article exists', () => {
+        expect(isContentHubPublicPath(hubs, '/blog/web')).toBeTrue();
+        expect(isContentHubPublicPath(hubs, '/blog/tag/seo')).toBeTrue();
+        expect(hasPublishedContentHubPublicPath(hubs, '/blog/web')).toBeTrue();
+        expect(hasPublishedContentHubPublicPath(hubs, '/blog/tag/seo')).toBeTrue();
         expect(isMissingPublishedContentHubPublicPath(hubs, '/blog')).toBeFalse();
         expect(isMissingPublishedContentHubPublicPath(hubs, '/blog/web')).toBeFalse();
         expect(isMissingPublishedContentHubPublicPath(hubs, '/blog/tag/seo')).toBeFalse();
+        expect(isContentHubPublicPath(hubs, '/blog/bienvenido-al-blog-de-zoosite')).toBeTrue();
+        expect(hasPublishedContentHubPublicPath(hubs, '/blog/bienvenido-al-blog-de-zoosite')).toBeFalse();
         expect(isMissingPublishedContentHubPublicPath(hubs, '/blog/bienvenido-al-blog-de-zoosite')).toBeTrue();
         expect(isMissingPublishedContentHubPublicPath(hubs, '/blog/tag/no-existe')).toBeTrue();
     });
