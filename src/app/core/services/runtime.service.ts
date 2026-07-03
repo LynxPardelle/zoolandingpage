@@ -22,7 +22,7 @@ import { DestroyRef, inject, Injectable, PLATFORM_ID, signal } from '@angular/co
 import { LoadingCurtainService } from './loading-curtain.service';
 import { AuthBrowserFlowService } from '@/app/state/auth/auth-browser-flow.service';
 import type { AnalyticsEventPayload } from '@/app/shared/services/analytics.events';
-import type { TDraftSiteRouteEntry, TRuntimeDataSourceConfig } from '@/app/shared/types/config-payloads.types';
+import type { TComponentsPayload, TDraftSiteRouteEntry, TRuntimeDataSourceConfig } from '@/app/shared/types/config-payloads.types';
 
 @Injectable({ providedIn: 'root' })
 export class RuntimeService {
@@ -366,16 +366,14 @@ export class RuntimeService {
             if (!comboCatalogLoaded && this.runtimeConfig.isDebugMode()) {
                 console.warn('[Runtime] Combo catalog runtime resolution failed; continuing with local draft combos.');
             }
-            const dataSourcesLoaded = this.startRuntimeDataSources(domain, pageId, dataSources, context.routeParams);
-            if (!this.isBrowser) {
-                await dataSourcesLoaded;
-            }
 
-            this.orchestrator.setExternalComponentsFromPayload(componentsPayload);
-            this.prewarmAuthoredComponentsCss();
-            this.rootComponentsIds.set(rootIds);
-            this.modalRootIds.set(modalRootIds);
-            this.orchestrator.setDraftExportContext({ domain, pageId, rootIds, modalRootIds });
+            if (this.isBrowser) {
+                this.installRenderedDraft(domain, pageId, componentsPayload, rootIds, modalRootIds);
+                void this.startRuntimeDataSources(domain, pageId, dataSources, context.routeParams);
+            } else {
+                await this.startRuntimeDataSources(domain, pageId, dataSources, context.routeParams);
+                this.installRenderedDraft(domain, pageId, componentsPayload, rootIds, modalRootIds);
+            }
 
             this.scheduleRenderedComponentsCssUpdate();
             const initialPageViewLabel = this.resolveCurrentBrowserUrlLabel();
@@ -420,6 +418,20 @@ export class RuntimeService {
         return this.isBrowser && this.isProtectedRoute(route);
     }
 
+    private installRenderedDraft(
+        domain: string,
+        pageId: string,
+        componentsPayload: TComponentsPayload,
+        rootIds: readonly string[],
+        modalRootIds: readonly string[],
+    ): void {
+        this.orchestrator.setExternalComponentsFromPayload(componentsPayload);
+        this.prewarmAuthoredComponentsCss();
+        this.rootComponentsIds.set(rootIds);
+        this.modalRootIds.set(modalRootIds);
+        this.orchestrator.setDraftExportContext({ domain, pageId, rootIds, modalRootIds });
+    }
+
     private setPrivateRouteLoading(phase: 'session' | 'content'): void {
         this.privateRouteLoadingState.set({ active: true, phase });
         this.loadingCurtain.setStatus?.({
@@ -445,17 +457,24 @@ export class RuntimeService {
             return Promise.resolve();
         }
 
-        return this.runtimeDataSources.start({
-            domain,
-            pageId,
-            ...(routeParams && Object.keys(routeParams).length > 0 ? { routeParams } : {}),
-            dataSources,
-            mode: this.isBrowser ? 'all' : 'ssr',
-        }).catch((error) => {
+        try {
+            return this.runtimeDataSources.start({
+                domain,
+                pageId,
+                ...(routeParams && Object.keys(routeParams).length > 0 ? { routeParams } : {}),
+                dataSources,
+                mode: this.isBrowser ? 'all' : 'ssr',
+            }).catch((error) => {
+                if (this.runtimeConfig.isDebugMode()) {
+                    console.error('[Runtime] Runtime data source bootstrap failed.', error);
+                }
+            });
+        } catch (error) {
             if (this.runtimeConfig.isDebugMode()) {
                 console.error('[Runtime] Runtime data source bootstrap failed.', error);
             }
-        });
+            return Promise.resolve();
+        }
     }
 
     private scheduleRenderedComponentsCssUpdate(): void {
