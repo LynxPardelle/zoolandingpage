@@ -192,6 +192,7 @@ describe('RuntimeService', () => {
         analyticsStartPageEngagementTracking.calls.reset();
         analyticsStopPageEngagementTracking.calls.reset();
         runtimeDataSourcesStart.calls.reset();
+        runtimeDataSourcesStart.and.resolveTo(undefined);
         runtimeDataSourcesMarkInitialSourcesLoading.calls.reset();
         runtimeDataSourcesStop.calls.reset();
         prefetchRoute.calls.reset();
@@ -1125,6 +1126,95 @@ describe('RuntimeService', () => {
         expect(service.rootComponentsIds()).toEqual(['mi-cuenta-root']);
         expect(setExternalComponentsFromPayload).toHaveBeenCalledWith(jasmine.objectContaining({
             pageId: 'mi-cuenta',
+        }));
+    });
+
+    it('keeps protected browser routes renderable when a runtime data source fails synchronously', async () => {
+        const service = TestBed.inject(RuntimeService);
+        const authAdminDataSources = [
+            {
+                id: 'content-hub-article-detail',
+                kind: 'content-hub',
+                target: 'remote.contentHub.article',
+                pageIds: ['admin-blog-articulo-editor'],
+            },
+        ];
+        runtimeDataSourcesStart.and.callFake(() => {
+            throw new Error('sync data source failure');
+        });
+        spyOn(window, 'fetch').and.resolveTo(new Response(JSON.stringify({
+            ok: true,
+            account: {
+                subject: 'admin-sub',
+                email: 'admin@example.test',
+                roles: ['zoosite-admin'],
+                enabled: true,
+            },
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        }));
+
+        const protectedSiteConfig = {
+            version: 1,
+            domain: 'pamelabetancourt.com',
+            defaultPageId: 'home',
+            routes: [
+                {
+                    path: '/admin/blog/articulos/:id/editor',
+                    pageId: 'admin-blog-articulo-editor',
+                    auth: {
+                        required: true,
+                        allowedGroups: ['zoosite-admin'],
+                        redirectTo: '/acceso',
+                    },
+                },
+            ],
+            runtime: {
+                auth: {
+                    enabled: true,
+                    authProfileId: 'staff',
+                    provider: 'cognito',
+                    issuer: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_PREVIEW',
+                    clientId: 'public-web-client',
+                    hostedUiDomain: 'https://preview.auth.us-east-1.amazoncognito.com',
+                    scopes: ['openid'],
+                    redirectPath: '/auth/callback',
+                    logoutPath: '/acceso',
+                    loginPath: '/acceso',
+                    session: {
+                        mode: 'server-cookie',
+                        mePath: '/auth/session/me',
+                    },
+                },
+                dataSources: authAdminDataSources,
+            },
+            site: {},
+        } as any;
+        loadSiteConfig.and.resolveTo(protectedSiteConfig);
+        store.setSiteConfig(protectedSiteConfig);
+        draftRuntimeResolveActiveDraftContext.and.resolveTo({
+            domain: 'pamelabetancourt.com',
+            pageId: 'admin-blog-articulo-editor',
+            path: '/admin/blog/articulos/art_20260623/editor',
+            route: protectedSiteConfig.routes[0],
+            routeParams: { id: 'art_20260623' },
+            explicitPageId: false,
+        });
+
+        setRuntimeUrl('/admin/blog/articulos/art_20260623/editor?draftDomain=pamelabetancourt.com&lang=es');
+        await service.initialize('es');
+
+        expect(runtimeDataSourcesStart).toHaveBeenCalledWith({
+            domain: 'pamelabetancourt.com',
+            pageId: 'admin-blog-articulo-editor',
+            routeParams: { id: 'art_20260623' },
+            dataSources: authAdminDataSources,
+            mode: 'all',
+        });
+        expect(service.rootComponentsIds()).toEqual(['admin-blog-articulo-editor-root']);
+        expect(setExternalComponentsFromPayload).toHaveBeenCalledWith(jasmine.objectContaining({
+            pageId: 'admin-blog-articulo-editor',
         }));
     });
 
