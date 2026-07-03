@@ -1291,6 +1291,54 @@ const isContentHubPublicContentSafety = (value: unknown): boolean => {
     return true;
 };
 
+const isContentHubRuntimeArticleContent = (value: unknown): boolean => {
+    if (typeof value === 'string') {
+        return value.length <= 50000;
+    }
+
+    return isRecord(value)
+        && hasNoForbiddenRuntimeKeysDeep(value)
+        && hasOnlyKnownKeys(value, new Set(['html']))
+        && (value['html'] === undefined || (typeof value['html'] === 'string' && value['html'].length <= 50000));
+};
+
+const isContentHubRuntimeArticleLocalization = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasNoForbiddenRuntimeKeysDeep(value)) return false;
+    if (!hasOnlyKnownKeys(value, new Set([
+        'title',
+        'summary',
+        'path',
+        'categorySlug',
+        'tags',
+        'publishedAt',
+        'updatedAt',
+        'authorLabel',
+        'canonicalPath',
+        'robots',
+        'articleContent',
+    ]))) return false;
+    if (value['title'] !== undefined && (typeof value['title'] !== 'string' || value['title'].trim().length === 0)) return false;
+    if (value['summary'] !== undefined && typeof value['summary'] !== 'string') return false;
+    if (value['path'] !== undefined && !isSafeSameOriginPath(value['path'])) return false;
+    if (value['categorySlug'] !== undefined && !isContentHubSafeId(value['categorySlug'])) return false;
+    if (value['tags'] !== undefined && (!Array.isArray(value['tags']) || !value['tags'].every(isContentHubSafeId))) return false;
+    if (value['publishedAt'] !== undefined && (typeof value['publishedAt'] !== 'string' || Number.isNaN(Date.parse(value['publishedAt'])))) return false;
+    if (value['updatedAt'] !== undefined && (typeof value['updatedAt'] !== 'string' || Number.isNaN(Date.parse(value['updatedAt'])))) return false;
+    if (value['authorLabel'] !== undefined && typeof value['authorLabel'] !== 'string') return false;
+    if (value['canonicalPath'] !== undefined && !isSafeSameOriginPath(value['canonicalPath'])) return false;
+    if (value['robots'] !== undefined && !['index,follow', 'noindex,follow', 'noindex,nofollow'].includes(String(value['robots']))) return false;
+    if (value['articleContent'] !== undefined && !isContentHubRuntimeArticleContent(value['articleContent'])) return false;
+    return true;
+};
+
+const isContentHubRuntimeArticleLocalizations = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasNoForbiddenRuntimeKeysDeep(value)) return false;
+    return Object.entries(value)
+        .every(([locale, localization]) => isContentHubLocale(locale) && isContentHubRuntimeArticleLocalization(localization));
+};
+
 const isContentHubRuntimeArticleSummary = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
     if (!hasNoForbiddenRuntimeKeysDeep(value)) return false;
@@ -1309,6 +1357,8 @@ const isContentHubRuntimeArticleSummary = (value: unknown): boolean => {
         'authorLabel',
         'canonicalPath',
         'robots',
+        'articleContent',
+        'localizations',
         'commentPolicy',
         'contentSafety',
         'interactions',
@@ -1327,6 +1377,8 @@ const isContentHubRuntimeArticleSummary = (value: unknown): boolean => {
     if (value['authorLabel'] !== undefined && typeof value['authorLabel'] !== 'string') return false;
     if (value['canonicalPath'] !== undefined && !isSafeSameOriginPath(value['canonicalPath'])) return false;
     if (value['robots'] !== undefined && !['index,follow', 'noindex,follow', 'noindex,nofollow'].includes(String(value['robots']))) return false;
+    if (value['articleContent'] !== undefined && !isContentHubRuntimeArticleContent(value['articleContent'])) return false;
+    if (value['localizations'] !== undefined && !isContentHubRuntimeArticleLocalizations(value['localizations'])) return false;
     if (value['commentPolicy'] !== undefined && !ALLOWED_CONTENT_HUB_RUNTIME_COMMENT_POLICIES.has(String(value['commentPolicy']))) return false;
     if (value['contentSafety'] !== undefined && !isContentHubPublicContentSafety(value['contentSafety'])) return false;
     if (value['interactions'] !== undefined && !isContentHubPublicInteractionPolicies(value['interactions'])) return false;

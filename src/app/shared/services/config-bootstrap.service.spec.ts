@@ -213,6 +213,22 @@ describe('ConfigBootstrapService', () => {
                             canonicalPath: '/blog/web/blog-builder-seo',
                             robots: 'index,follow',
                             authorLabel: 'Zoosite editorial',
+                            articleContent: {
+                                html: '<h2>Spanish article body</h2><p>Contenido propio.</p>',
+                            },
+                            localizations: {
+                                en: {
+                                    title: 'Localized Web Article',
+                                    summary: 'Localized article summary',
+                                    path: '/blog/web/localized-builder',
+                                    canonicalPath: '/blog/web/localized-builder',
+                                    categorySlug: 'web',
+                                    tags: ['seo', 'builder'],
+                                    articleContent: {
+                                        html: '<h2>English article body</h2><p>Own localized content.</p>',
+                                    },
+                                },
+                            },
                         },
                         {
                             articleId: 'art_news',
@@ -438,6 +454,93 @@ describe('ConfigBootstrapService', () => {
             articleId: 'art_web',
             title: 'Web Article',
             categorySlug: 'web',
+        }));
+        expect(variableStore.get('articleContent')).toEqual({
+            html: '<h2>Spanish article body</h2><p>Contenido propio.</p>',
+        });
+    });
+
+    it('uses localized content hub article fields for multilingual public routes', async () => {
+        language.currentLanguage.and.returnValue('en');
+        store.setSiteConfig(createContentHubSiteConfig());
+        mockSuccessfulBootstrapPayloads();
+
+        await service.load({
+            domain: 'zoolandingpage.com.mx',
+            pageId: 'blog-article',
+            lang: 'en',
+            routePath: '/blog/web/localized-builder',
+            routeParams: {
+                categorySlug: 'web',
+                articleSlug: 'localized-builder',
+            },
+        });
+
+        expect(variableStore.get('contentHub.publicArticles.items')).toEqual([
+            jasmine.objectContaining({
+                articleId: 'art_web',
+                locale: 'en',
+                title: 'Localized Web Article',
+                path: '/blog/web/localized-builder',
+            }),
+            jasmine.objectContaining({
+                articleId: 'art_web_en',
+                locale: 'en',
+                title: 'English Web Article',
+            }),
+        ]);
+        expect(variableStore.get('contentHub.currentArticle')).toEqual(jasmine.objectContaining({
+            articleId: 'art_web',
+            locale: 'en',
+            title: 'Localized Web Article',
+            summary: 'Localized article summary',
+        }));
+        expect(variableStore.get('articleContent')).toEqual({
+            html: '<h2>English article body</h2><p>Own localized content.</p>',
+        });
+    });
+
+    it('repairs mojibake in public content hub article metadata', async () => {
+        const siteConfig = createContentHubSiteConfig();
+        const hub = siteConfig.runtime?.contentHubs?.[0] as any;
+        hub.publicArticles = [
+            {
+                articleId: 'art_mojibake',
+                locale: 'es',
+                status: 'published',
+                title: 'CÃ³mo crear artÃ­culos visuales',
+                summary: 'GuÃ­a prÃ¡ctica para publicar con mediciÃ³n.',
+                path: '/blog/web/mojibake',
+                categorySlug: 'web',
+                tags: ['seo'],
+                publishedAt: '2026-06-27T12:00:00.000Z',
+                localizations: {
+                    en: {
+                        title: 'Visual articles',
+                        summary: 'Clean localized summary',
+                        path: '/blog/web/visual-articles',
+                    },
+                },
+            },
+        ];
+        store.setSiteConfig(siteConfig);
+        mockSuccessfulBootstrapPayloads();
+
+        await service.load({
+            domain: 'zoolandingpage.com.mx',
+            pageId: 'blog-article',
+            lang: 'es',
+            routePath: '/blog/web/mojibake',
+            routeParams: {
+                categorySlug: 'web',
+                articleSlug: 'mojibake',
+            },
+        });
+
+        expect(variableStore.get('contentHub.currentArticle')).toEqual(jasmine.objectContaining({
+            articleId: 'art_mojibake',
+            title: 'Cómo crear artículos visuales',
+            summary: 'Guía práctica para publicar con medición.',
         }));
     });
 
