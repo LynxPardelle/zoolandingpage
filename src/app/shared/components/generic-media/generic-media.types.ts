@@ -18,6 +18,9 @@ export type TGenericMediaConfig = {
     readonly tag: TDynamicValue<GenericMediaTag>;
     readonly alt?: TDynamicValue<string>;
     readonly classes?: TDynamicValue<string>;
+    readonly styles?: TDynamicValue<
+      Readonly<Record<string, string | number | null | undefined>>
+    >;
     readonly width?: TDynamicValue<string | number>;
     readonly height?: TDynamicValue<string | number>;
     readonly loading?: TDynamicValue<GenericMediaImageLoading>;

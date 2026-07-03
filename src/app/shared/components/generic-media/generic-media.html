@@ -1,13 +1,14 @@
 @if (src()) {
 @switch (tag()) { @case ('audio') {
-<audio [id]="id()" [class]="classes()" [src]="src()" controls></audio>
+<audio [id]="id()" [class]="classes()" [ngStyle]="styles()" [src]="src()" controls></audio>
 } @case ('video') {
-<video [id]="id()" [class]="classes()" [src]="src()" controls></video>
+<video [id]="id()" [class]="classes()" [ngStyle]="styles()" [src]="src()" controls></video>
 } @case ('image') {
 <img
   #imageElement
   [id]="id()"
   [class]="classes()"
+  [ngStyle]="styles()"
   [src]="src()"
   [attr.alt]="alt()"
   [attr.width]="width()"
@@ -20,11 +21,11 @@
   (error)="handleImageError($event)"
 />
 } @case ('document') {
-<a [id]="id()" [class]="classes()" [href]="src()" target="_blank" rel="noopener noreferrer">
+<a [id]="id()" [class]="classes()" [ngStyle]="styles()" [href]="src()" target="_blank" rel="noopener noreferrer">
   <span [attr.id]="linkContentId()">{{ linkLabel() }}</span>
 </a>
 } @default {
-<a [id]="id()" [class]="classes()" [href]="src()" target="_blank" rel="noopener noreferrer">
+<a [id]="id()" [class]="classes()" [ngStyle]="styles()" [href]="src()" target="_blank" rel="noopener noreferrer">
   <span [attr.id]="linkContentId()">{{ linkLabel() }}</span>
 </a>
 } }

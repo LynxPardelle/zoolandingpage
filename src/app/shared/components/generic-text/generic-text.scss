@@ -1,0 +1,47 @@
+:host ::ng-deep figure,
+:host ::ng-deep img,
+:host ::ng-deep video,
+:host ::ng-deep iframe,
+:host ::ng-deep table,
+:host ::ng-deep pre,
+:host ::ng-deep blockquote {
+  max-width: 100%;
+}
+
+:host ::ng-deep figure {
+  box-sizing: border-box;
+  margin: 1.5rem 0;
+}
+
+:host ::ng-deep img,
+:host ::ng-deep video {
+  display: block;
+  height: auto;
+}
+
+:host ::ng-deep iframe {
+  display: block;
+}
+
+:host ::ng-deep table {
+  display: block;
+  overflow-x: auto;
+}
+
+:host ::ng-deep pre {
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+:host ::ng-deep p,
+:host ::ng-deep li,
+:host ::ng-deep blockquote,
+:host ::ng-deep figcaption,
+:host ::ng-deep h1,
+:host ::ng-deep h2,
+:host ::ng-deep h3,
+:host ::ng-deep h4,
+:host ::ng-deep h5,
+:host ::ng-deep h6 {
+  overflow-wrap: anywhere;
+}
