@@ -2,15 +2,18 @@ import { isPlatformBrowser } from '@angular/common';
 import { Injectable, PLATFORM_ID, REQUEST, inject } from '@angular/core';
 import type { TRuntimeDataSourceConfig } from '@/app/shared/types/config-payloads.types';
 import { AuthAdminClientService } from '@/app/state/auth/auth-admin-client.service';
+import { ComboCatalogClientService } from './combo-catalog-client.service';
+import { buildComboCatalogRuntimeInput } from './combo-catalog-runtime-request';
 import { ContentHubClientService } from './content-hub-client.service';
 import { RuntimeApiProxyClientService, type TRuntimeApiProxyResponse } from './runtime-api-proxy-client.service';
-import { buildContentHubRuntimeInput } from './content-hub-runtime-request';
+import { buildContentHubRuntimeInput, CONTENT_HUB_SAFE_ID_INPUT_KEYS, isContentHubSafePublicId } from './content-hub-runtime-request';
 import { RuntimeDataSourceMapperService } from './runtime-data-source-mapper.service';
 import { VariableStoreService } from './variable-store.service';
 
 export type TRuntimeDataSourceStartOptions = {
     readonly domain: string;
     readonly pageId?: string;
+    readonly routeParams?: Readonly<Record<string, string>>;
     readonly dataSources?: readonly TRuntimeDataSourceConfig[] | null;
     readonly mode?: 'all' | 'ssr';
 };
@@ -28,6 +31,7 @@ export class RuntimeDataSourceService {
     private readonly proxy = inject(RuntimeApiProxyClientService);
     private readonly authAdmin = inject(AuthAdminClientService);
     private readonly contentHub = inject(ContentHubClientService);
+    private readonly comboCatalog = inject(ComboCatalogClientService);
     private readonly mapper = inject(RuntimeDataSourceMapperService);
     private readonly variables = inject(VariableStoreService);
     private readonly platformId = inject(PLATFORM_ID);
@@ -43,7 +47,7 @@ export class RuntimeDataSourceService {
             .filter((source) => source.enabled !== false)
             .filter((source) => this.matchesActivePage(source, options.pageId))
             .filter((source) => this.matchesMode(source, options.mode));
-        const preparedSources = this.prepareSources(sources);
+        const preparedSources = this.prepareSources(sources, options.routeParams);
         this.markPreparedSourcesLoading(preparedSources);
         await this.loadPreparedSources(options, preparedSources);
 
@@ -65,7 +69,7 @@ export class RuntimeDataSourceService {
     }
 
     private async loadSource(options: TRuntimeDataSourceStartOptions, source: TRuntimeDataSourceConfig): Promise<void> {
-        const prepared = this.prepareSource(source);
+        const prepared = this.prepareSource(source, options.routeParams);
         if (!prepared) return;
 
         this.writeStatus(source, 'loading', null);
@@ -83,7 +87,12 @@ export class RuntimeDataSourceService {
             this.writeMappedResult(prepared.source, mapped);
             this.writeStatus(prepared.source, this.hasItems(mapped) ? 'success' : 'empty', null);
         } catch (error) {
-            this.writeStatus(prepared.source, 'error', error instanceof Error ? error.message : 'API proxy request failed');
+            this.writeStatus(
+                prepared.source,
+                'error',
+                error instanceof Error ? error.message : 'API proxy request failed',
+                this.errorRequestId(error),
+            );
         }
     }
 
@@ -91,14 +100,15 @@ export class RuntimeDataSourceService {
         options: TRuntimeDataSourceStartOptions,
         preparedSources: readonly TPreparedRuntimeDataSource[],
     ): Promise<void> {
-        for (const prepared of preparedSources) {
-            await this.loadPreparedSource(options, prepared);
-        }
+        await Promise.all(preparedSources.map((prepared) => this.loadPreparedSource(options, prepared)));
     }
 
-    private prepareSources(sources: readonly TRuntimeDataSourceConfig[]): readonly TPreparedRuntimeDataSource[] {
+    private prepareSources(
+        sources: readonly TRuntimeDataSourceConfig[],
+        routeParams?: Readonly<Record<string, string>>,
+    ): readonly TPreparedRuntimeDataSource[] {
         return sources
-            .map((source) => this.prepareSource(source))
+            .map((source) => this.prepareSource(source, routeParams))
             .filter((source): source is TPreparedRuntimeDataSource => !!source);
     }
 
@@ -109,14 +119,20 @@ export class RuntimeDataSourceService {
         });
     }
 
-    private prepareSource(source: TRuntimeDataSourceConfig): TPreparedRuntimeDataSource | null {
+    private prepareSource(
+        source: TRuntimeDataSourceConfig,
+        routeParams?: Readonly<Record<string, string>>,
+    ): TPreparedRuntimeDataSource | null {
         const sourceId = this.resolveProxySourceId(source);
         if (this.shouldSkipForQueryParams(source.skipWhenQueryParams)) {
             return null;
         }
 
-        const input = this.resolvePreparedInput(source);
+        const input = this.resolvePreparedInput(source, routeParams);
         if (!this.hasRequiredInputValues(source.requiredInputKeys, input)) {
+            return null;
+        }
+        if (source.kind === 'content-hub' && !this.hasSafeContentHubRequiredIds(source.requiredInputKeys, input)) {
             return null;
         }
 
@@ -134,6 +150,14 @@ export class RuntimeDataSourceService {
         }
         if (source.kind === 'content-hub') {
             return this.contentHub.readSource({
+                domain: options.domain,
+                pageId: options.pageId,
+                sourceId,
+                input,
+            });
+        }
+        if (source.kind === 'combo-catalog') {
+            return this.comboCatalog.readSource({
                 domain: options.domain,
                 pageId: options.pageId,
                 sourceId,
@@ -176,13 +200,19 @@ export class RuntimeDataSourceService {
         throw new Error('Auth admin data source is invalid.');
     }
 
-    private resolvePreparedInput(source: TRuntimeDataSourceConfig): Record<string, unknown> | undefined {
-        const input = this.resolveInput(source.input);
-        if (source.kind !== 'content-hub') {
-            return input;
+    private resolvePreparedInput(
+        source: TRuntimeDataSourceConfig,
+        routeParams?: Readonly<Record<string, string>>,
+    ): Record<string, unknown> | undefined {
+        const input = this.resolveInput(source.input, routeParams);
+        if (source.kind === 'content-hub') {
+            return buildContentHubRuntimeInput(source.contentHub, input);
+        }
+        if (source.kind === 'combo-catalog') {
+            return buildComboCatalogRuntimeInput(source.comboCatalog, input);
         }
 
-        return buildContentHubRuntimeInput(source.contentHub, input);
+        return input;
     }
 
     private wait(ms: number): Promise<void> {
@@ -265,18 +295,44 @@ export class RuntimeDataSourceService {
 
     private hasResolvedInputValue(value: unknown): boolean {
         if (value == null) return false;
-        if (typeof value === 'string') return value.trim().length > 0;
+        if (typeof value === 'string') {
+            const normalized = value.trim().toLowerCase();
+            return !!normalized
+                && normalized !== 'undefined'
+                && normalized !== 'null'
+                && !/^\{[^{}]+\}$/.test(normalized);
+        }
         if (Array.isArray(value)) return value.length > 0;
         return true;
     }
 
-    private resolveInput(input: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+    private hasSafeContentHubRequiredIds(
+        requiredKeys: readonly string[] | undefined,
+        input: Record<string, unknown> | undefined,
+    ): boolean {
+        if (!Array.isArray(requiredKeys) || requiredKeys.length === 0) {
+            return true;
+        }
+
+        return requiredKeys
+            .map((entry) => String(entry ?? '').trim())
+            .filter((key) => CONTENT_HUB_SAFE_ID_INPUT_KEYS.has(key))
+            .every((key) => {
+                const value = input?.[key];
+                return isContentHubSafePublicId(value);
+            });
+    }
+
+    private resolveInput(
+        input: Record<string, unknown> | undefined,
+        routeParams?: Readonly<Record<string, string>>,
+    ): Record<string, unknown> | undefined {
         if (!input || typeof input !== 'object' || Array.isArray(input)) {
             return undefined;
         }
 
         return Object.entries(input).reduce<Record<string, unknown>>((acc, [key, value]) => {
-            const resolved = this.resolveInputValue(value);
+            const resolved = this.resolveInputValue(value, routeParams);
             if (resolved !== undefined) {
                 acc[key] = resolved;
             }
@@ -284,7 +340,7 @@ export class RuntimeDataSourceService {
         }, {});
     }
 
-    private resolveInputValue(value: unknown): unknown {
+    private resolveInputValue(value: unknown, routeParams?: Readonly<Record<string, string>>): unknown {
         if (!this.isInputResolver(value)) {
             return value;
         }
@@ -294,6 +350,8 @@ export class RuntimeDataSourceService {
             resolved = Object.prototype.hasOwnProperty.call(value, 'value') ? value.value : value.fallback;
         } else if (value.source === 'queryParam') {
             resolved = this.readQueryParam(String(value.key ?? '')) ?? value.fallback;
+        } else if (value.source === 'routeParam') {
+            resolved = this.readRouteParam(routeParams, String(value.key ?? '')) ?? value.fallback;
         } else if (value.source === 'queryParamPageOffset') {
             resolved = this.resolveQueryParamPageOffset(value);
         } else {
@@ -304,7 +362,7 @@ export class RuntimeDataSourceService {
     }
 
     private isInputResolver(value: unknown): value is {
-        readonly source: 'literal' | 'queryParam' | 'var' | 'queryParamPageOffset';
+        readonly source: 'literal' | 'queryParam' | 'routeParam' | 'var' | 'queryParamPageOffset';
         readonly key?: string;
         readonly pageKey?: string;
         readonly pageSizeKey?: string;
@@ -325,6 +383,9 @@ export class RuntimeDataSourceService {
             return true;
         }
         if (source === 'queryParam') {
+            return typeof (value as { readonly key?: unknown }).key === 'string';
+        }
+        if (source === 'routeParam') {
             return typeof (value as { readonly key?: unknown }).key === 'string';
         }
         if (source === 'var') {
@@ -408,6 +469,16 @@ export class RuntimeDataSourceService {
         return params?.get(normalizedKey) ?? undefined;
     }
 
+    private readRouteParam(routeParams: Readonly<Record<string, string>> | undefined, key: string): string | undefined {
+        const normalizedKey = String(key ?? '').trim();
+        if (!normalizedKey || !routeParams) {
+            return undefined;
+        }
+
+        const value = routeParams[normalizedKey];
+        return value == null ? undefined : String(value);
+    }
+
     private currentSearchParams(): URLSearchParams | null {
         const requestUrl = this.isBrowser ? '' : String(this.request?.url ?? '').trim();
         if (requestUrl) {
@@ -425,12 +496,26 @@ export class RuntimeDataSourceService {
         return null;
     }
 
-    private writeStatus(source: TRuntimeDataSourceConfig, state: TRemoteStatusState, error: string | null): void {
+    private writeStatus(
+        source: TRuntimeDataSourceConfig,
+        state: TRemoteStatusState,
+        error: string | null,
+        requestId = '',
+    ): void {
         this.variables.setRuntimeValue(source.statusTarget || `remoteStatus.${ source.id }`, {
             state,
             updatedAt: state === 'loading' ? null : new Date().toISOString(),
             error,
+            ...(state === 'error' && requestId ? { requestId } : {}),
         });
+    }
+
+    private errorRequestId(error: unknown): string {
+        if (!this.isRecord(error)) return '';
+        const requestId = typeof error['requestId'] === 'string' ? error['requestId'].trim() : '';
+        return /^req-[A-Za-z0-9._:-]{1,120}$/.test(requestId)
+            ? requestId
+            : '';
     }
 
     private clearTargetForLoading(source: TRuntimeDataSourceConfig): void {

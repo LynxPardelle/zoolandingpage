@@ -30,6 +30,7 @@ const AUTH_SESSION_KEYS = new Set([
   'challengeCsrfCookieName',
   'mfaEnrollCsrfCookieName',
   'csrfHeaderName',
+  'routeAccessCacheMs',
 ]);
 const AUTH_ADMIN_KEYS = new Set([
   'usersPath',
@@ -248,12 +249,20 @@ function validatePublicAuthServiceMetadata(profile, index, errors) {
     } else {
       validateKnownKeys(profile.session, AUTH_SESSION_KEYS, sessionPrefix, errors);
       pushIf(profile.session.mode !== undefined && profile.session.mode !== 'server-cookie', errors, `${sessionPrefix}.mode must be server-cookie`);
-      for (const key of ['signinPath', 'mePath', 'logoutPath', 'challengeRespondPath', 'mfaSetupPath', 'mfaVerifyPath']) {
+      for (const key of ['signinPath', 'mePath', 'logoutPath', 'challengeRespondPath', 'mfaSetupPath', 'mfaVerifyPath', 'mfaEnrollStartPath', 'mfaEnrollVerifyPath', 'mfaDisablePath']) {
         pushIf(profile.session[key] !== undefined && !isSafeSameOriginPath(profile.session[key]), errors, `${sessionPrefix}.${key} must be a same-origin path`);
       }
-      for (const key of ['csrfCookieName', 'challengeCsrfCookieName', 'csrfHeaderName']) {
+      for (const key of ['csrfCookieName', 'challengeCsrfCookieName', 'mfaEnrollCsrfCookieName', 'csrfHeaderName']) {
         pushIf(profile.session[key] !== undefined && (typeof profile.session[key] !== 'string' || hasUnsafeChars(profile.session[key])), errors, `${sessionPrefix}.${key} is invalid`);
       }
+      pushIf(
+        profile.session.routeAccessCacheMs !== undefined
+          && (!Number.isInteger(profile.session.routeAccessCacheMs)
+            || profile.session.routeAccessCacheMs < 0
+            || profile.session.routeAccessCacheMs > 60000),
+        errors,
+        `${sessionPrefix}.routeAccessCacheMs must be an integer from 0 to 60000`,
+      );
     }
   }
 
@@ -439,9 +448,14 @@ function publicAuthSessionMetadata(session) {
     ...(session.challengeRespondPath ? { challengeRespondPath: session.challengeRespondPath } : {}),
     ...(session.mfaSetupPath ? { mfaSetupPath: session.mfaSetupPath } : {}),
     ...(session.mfaVerifyPath ? { mfaVerifyPath: session.mfaVerifyPath } : {}),
+    ...(session.mfaEnrollStartPath ? { mfaEnrollStartPath: session.mfaEnrollStartPath } : {}),
+    ...(session.mfaEnrollVerifyPath ? { mfaEnrollVerifyPath: session.mfaEnrollVerifyPath } : {}),
+    ...(session.mfaDisablePath ? { mfaDisablePath: session.mfaDisablePath } : {}),
     ...(session.csrfCookieName ? { csrfCookieName: session.csrfCookieName } : {}),
     ...(session.challengeCsrfCookieName ? { challengeCsrfCookieName: session.challengeCsrfCookieName } : {}),
+    ...(session.mfaEnrollCsrfCookieName ? { mfaEnrollCsrfCookieName: session.mfaEnrollCsrfCookieName } : {}),
     ...(session.csrfHeaderName ? { csrfHeaderName: session.csrfHeaderName } : {}),
+    ...(Number.isInteger(session.routeAccessCacheMs) ? { routeAccessCacheMs: session.routeAccessCacheMs } : {}),
   };
 }
 

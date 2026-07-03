@@ -24,6 +24,7 @@ export type TGenericFileDropzoneConfig = {
   readonly maxFileSizeBytes?: TDynamicNumberValue;
   readonly maxSizeLabel?: TDynamicStringValue;
   readonly multiple?: TDynamicBooleanValue;
+  readonly required?: TDynamicBooleanValue;
   readonly disabled?: TDynamicBooleanValue;
   readonly loading?: TDynamicBooleanValue;
   readonly loadingText?: TDynamicStringValue;

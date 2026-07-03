@@ -4,6 +4,10 @@ import type { ToastUiConfig } from '../components/generic-toast/generic-toast.ty
 import type { TInteractionScopeConfig } from '../components/interaction-scope/interaction-scope.types';
 import type { TTrackOptions } from './analytics.type';
 import type {
+    TComboCatalogRuntimeActionBinding,
+    TComboCatalogRuntimeReadBinding,
+} from './combo-catalog.types';
+import type {
     TContentHubRuntimeActionBinding,
     TContentHubRuntimeConfig,
     TContentHubRuntimeReadBinding,
@@ -197,6 +201,7 @@ export type TDraftAuthSessionRuntimeConfig = {
     readonly challengeCsrfCookieName?: string;
     readonly mfaEnrollCsrfCookieName?: string;
     readonly csrfHeaderName?: string;
+    readonly routeAccessCacheMs?: number;
 };
 
 export type TDraftAuthAdminRuntimeConfig = {
@@ -396,7 +401,8 @@ export type TRuntimeDataSourceFieldTransform =
     | 'uriComponent'
     | 'lastPathSegment'
     | 'lastPathSegmentNumber'
-    | 'titleCase';
+    | 'titleCase'
+    | 'joinList';
 
 export type TRuntimeDataSourceFieldMapping =
     | string
@@ -435,6 +441,11 @@ export type TRuntimeDataSourceInputResolverConfig = {
     readonly fallback?: unknown;
     readonly transforms?: readonly TRuntimeDataSourceInputTransform[];
 } | {
+    readonly source: 'routeParam';
+    readonly key: string;
+    readonly fallback?: unknown;
+    readonly transforms?: readonly TRuntimeDataSourceInputTransform[];
+} | {
     readonly source: 'var';
     readonly path: string;
     readonly fallback?: unknown;
@@ -450,10 +461,11 @@ export type TRuntimeDataSourceInputResolverConfig = {
 
 export type TRuntimeDataSourceConfig = {
     readonly id: string;
-    readonly kind?: 'api-proxy' | 'auth-admin' | 'content-hub';
+    readonly kind?: 'api-proxy' | 'auth-admin' | 'content-hub' | 'combo-catalog';
     readonly proxySourceId?: string;
     readonly authAdminSource?: 'account' | 'adminUsers';
     readonly contentHub?: TContentHubRuntimeReadBinding;
+    readonly comboCatalog?: TComboCatalogRuntimeReadBinding;
     readonly target: string;
     readonly statusTarget?: string;
     readonly mergeMode?: 'replace' | 'appendItems';
@@ -470,15 +482,23 @@ export type TRuntimeDataSourceConfig = {
 
 export type TRuntimeApiActionConfig = {
     readonly id: string;
-    readonly kind?: 'api-proxy' | 'auth-admin' | 'content-hub';
+    readonly kind?: 'api-proxy' | 'auth-admin' | 'content-hub' | 'combo-catalog';
     readonly proxyActionId?: string;
     readonly authAdminAction?: 'approveUser' | 'setUserGroups' | 'suspendUser' | 'reactivateUser' | 'resetUserMfa';
     readonly contentHub?: TContentHubRuntimeActionBinding;
+    readonly comboCatalog?: TComboCatalogRuntimeActionBinding;
     readonly method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
     readonly statusTarget?: string;
     readonly enabled?: boolean;
     readonly inputFields?: readonly string[];
     readonly requiresUserGesture?: boolean;
+};
+
+export type TComboCatalogRuntimeConfig = {
+    readonly enabled?: boolean;
+    readonly endpoint: string;
+    readonly authProfileId?: string;
+    readonly draftDomain?: string;
 };
 
 export type TDraftSiteRuntimeConfig = {
@@ -488,6 +508,7 @@ export type TDraftSiteRuntimeConfig = {
     readonly navigation?: TDraftNavigationRuntimeConfig;
     readonly auth?: TDraftAuthRuntimeConfig;
     readonly authRemote?: TDraftAuthRemoteRuntimeConfig;
+    readonly comboCatalog?: TComboCatalogRuntimeConfig;
     readonly contentHubs?: readonly TContentHubRuntimeConfig[];
     readonly dataSources?: readonly TRuntimeDataSourceConfig[];
     readonly apiActions?: readonly TRuntimeApiActionConfig[];

@@ -53,6 +53,23 @@ test('site-config schema documents remote auth as a public minimal reference', a
     assert.equal(authRemote.additionalProperties, false);
 });
 
+test('site-config schema documents combo catalog as a public minimal reference', async () => {
+    const schema = JSON.parse(await readFile(schemaPath, 'utf8'));
+    const runtime = schema.definitions?.runtimeConfig;
+    const comboCatalog = schema.definitions?.comboCatalogRuntime;
+
+    assert.equal(runtime.properties.comboCatalog.$ref, '#/definitions/comboCatalogRuntime');
+    assert.deepEqual(comboCatalog.required, ['endpoint']);
+    assert.equal(comboCatalog.properties.endpoint.anyOf[0].$ref, '#/definitions/sameOriginPath');
+    assert.equal(comboCatalog.properties.endpoint.anyOf[1].$ref, '#/definitions/httpsAbsoluteUrl');
+    assert.equal(comboCatalog.properties.authProfileId.$ref, '#/definitions/contentHubSafeId');
+    assert.equal(comboCatalog.properties.draftDomain.$ref, '#/definitions/contentHubDomainName');
+    assert.equal(comboCatalog.properties.credentialRef, undefined);
+    assert.equal(comboCatalog.properties.clientSecret, undefined);
+    assert.equal(comboCatalog.properties.tableName, undefined);
+    assert.equal(comboCatalog.additionalProperties, false);
+});
+
 test('site-config schema supports auth-admin data sources with single-item account mappers', async () => {
     const schema = JSON.parse(await readFile(schemaPath, 'utf8'));
     const mapper = schema.definitions?.runtimeDataSourceMapper;
@@ -61,6 +78,15 @@ test('site-config schema supports auth-admin data sources with single-item accou
     assert.equal(mapper.properties.singleItem.type, 'boolean');
     assert.deepEqual(dataSource.properties.authAdminSource.enum, ['account', 'adminUsers']);
     assert.equal(dataSource.properties.clearTargetOnLoad.type, 'boolean');
+});
+
+test('site-config schema bounds server-cookie route access cache metadata', async () => {
+    const schema = JSON.parse(await readFile(schemaPath, 'utf8'));
+    const session = schema.definitions?.authSessionRuntime;
+
+    assert.equal(session.properties.routeAccessCacheMs.type, 'integer');
+    assert.equal(session.properties.routeAccessCacheMs.minimum, 0);
+    assert.equal(session.properties.routeAccessCacheMs.maximum, 60000);
 });
 
 test('site-config schema exposes content hub data source and action contracts without server-only fields', async () => {
@@ -72,9 +98,17 @@ test('site-config schema exposes content hub data source and action contracts wi
     const contentHubAction = schema.definitions?.contentHubRuntimeActionBinding;
     const safeRuntimeInputFieldName = schema.definitions?.safeRuntimeInputFieldName;
 
-    assert.equal(contentHubRuntime.properties.publicArticles.items.$ref, '#/definitions/contentHubPublicArticle');
-    assert.equal(contentHubRuntime.properties.publicTaxonomy.items.$ref, '#/definitions/contentHubPublicTaxonomy');
+    assert.equal(contentHubRuntime.properties.publicArticles.$ref, '#/definitions/contentHubPublicArticleCollection');
+    assert.equal(contentHubRuntime.properties.publicTaxonomy.$ref, '#/definitions/contentHubPublicTaxonomyCollection');
+    assert.equal(schema.definitions.contentHubPublicArticleCollection.oneOf[0].items.$ref, '#/definitions/contentHubPublicArticle');
+    assert.equal(schema.definitions.contentHubPublicArticleCollection.oneOf[1].properties.items.items.$ref, '#/definitions/contentHubPublicArticle');
+    assert.equal(schema.definitions.contentHubPublicTaxonomyCollection.oneOf[0].items.$ref, '#/definitions/contentHubPublicTaxonomy');
+    assert.equal(schema.definitions.contentHubPublicTaxonomyCollection.oneOf[1].properties.items.items.$ref, '#/definitions/contentHubPublicTaxonomy');
     assert.equal(schema.definitions.contentHubPublicArticle.properties.path.$ref, '#/definitions/sameOriginPath');
+    assert.equal(schema.definitions.contentHubPublicArticle.properties.visibility.const, 'public');
+    assert.equal(schema.definitions.contentHubPublicArticle.properties.commentPolicy.$ref, '#/definitions/contentHubPublicCommentPolicy');
+    assert.equal(schema.definitions.contentHubPublicArticle.properties.contentSafety.$ref, '#/definitions/contentHubPublicContentSafety');
+    assert.equal(schema.definitions.contentHubPublicArticle.properties.interactions.$ref, '#/definitions/contentHubPublicInteractionPolicies');
     assert.equal(schema.definitions.contentHubPublicArticle.properties.credentialRef, undefined);
     assert.equal(schema.definitions.contentHubPublicTaxonomy.properties.path.$ref, '#/definitions/sameOriginPath');
 
@@ -83,11 +117,14 @@ test('site-config schema exposes content hub data source and action contracts wi
     assert.equal(dataSource.allOf[0].then.properties.proxySourceId.$ref, '#/definitions/contentHubSafeId');
     assert.deepEqual(contentHubRead.properties.read.enum, [
         'articleList',
+        'articleDetail',
         'taxonomyList',
         'moderationQueue',
         'assetList',
         'revisionList',
+        'scheduleList',
         'publicBundlePreview',
+        'analyticsSummary',
     ]);
     assert.equal(contentHubRead.properties.credentialRef, undefined);
     assert.equal(contentHubRead.properties.serverPolicy, undefined);
@@ -98,12 +135,19 @@ test('site-config schema exposes content hub data source and action contracts wi
     assert.deepEqual(contentHubAction.properties.action.enum, [
         'createArticle',
         'updatePackage',
+        'upsertTaxonomy',
         'uploadAsset',
         'validate',
         'submitReview',
+        'approveArticle',
         'publish',
+        'unpublishArticle',
+        'archiveArticle',
         'schedule',
+        'cancelSchedule',
+        'queueComment',
         'moderateComment',
+        'recordInteraction',
         'restoreRevision',
     ]);
     assert.equal(contentHubAction.properties.credentialRef, undefined);

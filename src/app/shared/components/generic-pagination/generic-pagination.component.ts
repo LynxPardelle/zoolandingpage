@@ -27,6 +27,16 @@ import type {
   standalone: true,
   imports: [],
   templateUrl: './generic-pagination.component.html',
+  styles: [`
+    a.zlp-pagination-disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+
+    a.zlp-pagination-disabled:hover {
+      cursor: not-allowed;
+    }
+  `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GenericPaginationComponent {
@@ -112,8 +122,9 @@ export class GenericPaginationComponent {
 
   disabledLinkClasses(): string {
     return this.joinClasses(
-      this.asString(this.config().linkClasses),
-      this.asString(this.config().disabledLinkClasses)
+      this.withoutPointerCursorClasses(this.asString(this.config().linkClasses)),
+      this.asString(this.config().disabledLinkClasses),
+      'zlp-pagination-disabled'
     );
   }
 
@@ -392,6 +403,13 @@ export class GenericPaginationComponent {
     return classes
       .map((entry) => entry.trim())
       .filter(Boolean)
+      .join(' ');
+  }
+
+  private withoutPointerCursorClasses(classes: string): string {
+    return classes
+      .split(/\s+/)
+      .filter((className) => className !== 'ank-cursor-pointer' && className !== 'ank-cur-pointer')
       .join(' ');
   }
 }

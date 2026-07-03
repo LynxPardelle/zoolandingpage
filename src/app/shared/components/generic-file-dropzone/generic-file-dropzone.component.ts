@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
+import { InteractionScopeService } from '../interaction-scope/interaction-scope.service';
 import type {
   TGenericFileDropzoneConfig,
   TGenericFileDropzoneFileSummary,
@@ -24,8 +25,25 @@ export class GenericFileDropzoneComponent {
   readonly valueChanged = output<TGenericFileDropzoneValueChange>();
   readonly rejectedFiles = output<readonly TGenericFileDropzoneRejectedFile[]>();
 
+  private readonly scope = inject(InteractionScopeService, { optional: true });
   private readonly filesState = signal<readonly File[]>([]);
   private readonly dragActiveState = signal(false);
+
+  constructor() {
+    effect(() => {
+      const fieldId = this.fieldId();
+      const disabled = this.disabled() || this.loading();
+      untracked(() => {
+        this.scope?.registerField({
+          fieldId,
+          initialValue: this.multiple() ? [] : null,
+          required: this.required(),
+          disabled,
+          readOnly: disabled,
+        });
+      });
+    });
+  }
 
   readonly id = computed(() => this.asString(this.config().id) || this.fieldId());
   readonly fieldId = computed(() => String(this.config().fieldId ?? '').trim());
@@ -40,6 +58,7 @@ export class GenericFileDropzoneComponent {
   readonly maxFileSizeBytes = computed(() => this.asNumber(this.config().maxFileSizeBytes));
   readonly maxSizeLabel = computed(() => this.asString(this.config().maxSizeLabel));
   readonly multiple = computed(() => this.asBoolean(this.config().multiple));
+  readonly required = computed(() => this.asBoolean(this.config().required));
   readonly disabled = computed(() => this.asBoolean(this.config().disabled));
   readonly loading = computed(() => this.asBoolean(this.config().loading));
   readonly loadingText = computed(() => this.asString(this.config().loadingText) || 'Loading files');
@@ -106,6 +125,7 @@ export class GenericFileDropzoneComponent {
 
     const nextFiles = this.multiple() ? accepted : accepted.slice(0, 1);
     this.filesState.set(nextFiles);
+    this.scope?.setFieldValue(this.fieldId(), this.multiple() ? nextFiles : (nextFiles[0] ?? null), { markTouched: true });
 
     const event = {
       fieldId: this.fieldId(),

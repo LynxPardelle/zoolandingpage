@@ -115,6 +115,62 @@ export const navigateToUrlHandler = (): EventHandler => {
     };
 };
 
+export const navigateWithEventDataHandler = (): EventHandler => {
+    return {
+        id: 'navigateWithEventData',
+        handle: (ctx, args) => {
+            const template = String(args?.[0] ?? '').trim();
+            if (!template || typeof window === 'undefined') return;
+
+            const interpolated = interpolateEventDataTemplate(template, ctx.event.eventData);
+            if (!interpolated || !interpolated.startsWith('/') || interpolated.startsWith('//')) return;
+
+            const currentHref = String(args?.[3] ?? '').trim() || undefined;
+            const resolved = resolveNavigationTarget(interpolated, {
+                currentHref,
+                stickyQueryParams: DRAFT_RUNTIME_STICKY_QUERY_PARAMS,
+            });
+            if (!resolved.internal || !resolved.href) return;
+
+            navigateInCurrentWindow(resolved.href, {
+                scrollRestoration: resolveNavigationScrollRestoration(args?.[2]),
+            });
+        },
+    };
+};
+
+function interpolateEventDataTemplate(template: string, eventData: unknown): string | null {
+    let missing = false;
+    const output = template.replace(/\{([^{}]+)\}/g, (_match, token: string) => {
+        const value = resolveEventDataToken(eventData, String(token).trim());
+        if (value == null || value === '') {
+            missing = true;
+            return '';
+        }
+        return encodeURIComponent(String(value));
+    });
+
+    return missing || /\{[^{}]+\}/.test(output) ? null : output;
+}
+
+function resolveEventDataToken(eventData: unknown, token: string): unknown {
+    if (!token) return undefined;
+    if (!isRecord(eventData)) return undefined;
+    if (token in eventData) return eventData[token];
+
+    const rowData = eventData['rowData'];
+    if (!isRecord(rowData)) return undefined;
+
+    const rowPath = token.startsWith('rowData.') ? token.slice('rowData.'.length) : token;
+    return rowPath
+        .split('.')
+        .filter(Boolean)
+        .reduce<unknown>((current, segment) => {
+            if (!isRecord(current)) return undefined;
+            return current[segment];
+        }, rowData);
+}
+
 function resolveNavigationScrollRestoration(value: unknown): TDraftNavigationScrollRestorationConfig | undefined {
     const mode = String(value ?? '').trim();
     if (mode === 'top') {
@@ -168,6 +224,55 @@ export const navigateWithScopeQueryHandler = (): EventHandler => ({
         navigateInCurrentWindow(`${ targetUrl.pathname }${ search ? `?${ search }` : '' }${ fragment }`);
     },
 });
+
+export const shareCurrentPageHandler = (): EventHandler => ({
+    id: 'shareCurrentPage',
+    handle: (_ctx, args) => {
+        if (typeof window === 'undefined') return;
+
+        const url = resolveShareUrl(args?.[0]);
+        if (!url) return;
+
+        const title = normalizeShareText(args?.[1]);
+        const text = normalizeShareText(args?.[2]);
+        const payload: ShareData = {
+            url,
+            ...(title ? { title } : {}),
+            ...(text ? { text } : {}),
+        };
+
+        if (typeof navigator.share === 'function') {
+            void navigator.share(payload).catch(() => copyShareUrl(url));
+            return;
+        }
+
+        void copyShareUrl(url);
+    },
+});
+
+function resolveShareUrl(target: unknown): string | null {
+    const currentHref = window.location.href;
+    const rawTarget = String(target ?? '').trim();
+    if (!rawTarget) return currentHref;
+
+    const resolved = resolveNavigationTarget(rawTarget, {
+        currentHref,
+        stickyQueryParams: DRAFT_RUNTIME_STICKY_QUERY_PARAMS,
+    });
+    if (!resolved.internal || !resolved.href) return null;
+
+    return new URL(resolved.href, window.location.origin).href;
+}
+
+function normalizeShareText(value: unknown): string | undefined {
+    const normalized = String(value ?? '').trim();
+    return normalized || undefined;
+}
+
+async function copyShareUrl(url: string): Promise<void> {
+    if (typeof navigator.clipboard?.writeText !== 'function') return;
+    await navigator.clipboard.writeText(url);
+}
 
 function resolveScopeQueryMappingValue(eventData: unknown, source: string): unknown {
     if (!source.startsWith('values.')

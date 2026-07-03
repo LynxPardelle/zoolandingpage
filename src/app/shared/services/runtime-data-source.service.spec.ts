@@ -2,6 +2,7 @@ import { PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { RuntimeApiProxyClientService } from './runtime-api-proxy-client.service';
 import { AuthAdminClientService } from '@/app/state/auth/auth-admin-client.service';
+import { ComboCatalogClientService } from './combo-catalog-client.service';
 import { ContentHubClientService } from './content-hub-client.service';
 import { RuntimeDataSourceMapperService } from './runtime-data-source-mapper.service';
 import { RuntimeDataSourceService } from './runtime-data-source.service';
@@ -12,6 +13,7 @@ describe('RuntimeDataSourceService', () => {
     let variables: VariableStoreService;
     let proxy: jasmine.SpyObj<RuntimeApiProxyClientService>;
     let authAdmin: jasmine.SpyObj<AuthAdminClientService>;
+    let comboCatalog: jasmine.SpyObj<ComboCatalogClientService>;
     let contentHub: jasmine.SpyObj<ContentHubClientService>;
     let mapper: jasmine.SpyObj<RuntimeDataSourceMapperService>;
     let runtimeSearchParams: URLSearchParams;
@@ -26,6 +28,7 @@ describe('RuntimeDataSourceService', () => {
     beforeEach(() => {
         proxy = jasmine.createSpyObj<RuntimeApiProxyClientService>('RuntimeApiProxyClientService', ['readSource', 'executeAction']);
         authAdmin = jasmine.createSpyObj<AuthAdminClientService>('AuthAdminClientService', ['me', 'listUsers']);
+        comboCatalog = jasmine.createSpyObj<ComboCatalogClientService>('ComboCatalogClientService', ['readSource', 'executeAction']);
         contentHub = jasmine.createSpyObj<ContentHubClientService>('ContentHubClientService', ['readSource', 'executeAction']);
         mapper = jasmine.createSpyObj<RuntimeDataSourceMapperService>('RuntimeDataSourceMapperService', ['mapResponse']);
         runtimeSearchParams = new URLSearchParams();
@@ -37,6 +40,7 @@ describe('RuntimeDataSourceService', () => {
                 { provide: PLATFORM_ID, useValue: 'browser' },
                 { provide: RuntimeApiProxyClientService, useValue: proxy },
                 { provide: AuthAdminClientService, useValue: authAdmin },
+                { provide: ComboCatalogClientService, useValue: comboCatalog },
                 { provide: ContentHubClientService, useValue: contentHub },
                 { provide: RuntimeDataSourceMapperService, useValue: mapper },
             ],
@@ -92,6 +96,56 @@ describe('RuntimeDataSourceService', () => {
         expect(variables.get('remote.blog.posts.items')).toEqual([{ title: 'mapped:cmsRecentPosts' }]);
         expect(variables.get('remoteStatus.spotify-releases.state')).toBe('success');
         expect(variables.get('remoteStatus.blog-posts.state')).toBe('success');
+    });
+
+    it('starts independent data source reads concurrently so protected admin pages do not serialize permission checks', async () => {
+        let slowResolve!: (value: any) => void;
+        const slowResponse = new Promise((resolve) => {
+            slowResolve = resolve;
+        });
+        let fastStarted = false;
+
+        proxy.readSource.and.callFake((request) => {
+            if (request.sourceId === 'slowAdminRead') {
+                return slowResponse as any;
+            }
+
+            if (request.sourceId === 'fastAdminRead') {
+                fastStarted = true;
+                return Promise.resolve({ ok: true, data: { upstream: request.sourceId } }) as any;
+            }
+
+            return Promise.reject(new Error(`unexpected source ${ request.sourceId }`)) as any;
+        });
+        mapper.mapResponse.and.callFake((response) => ({
+            items: [{ title: `mapped:${ (response as any).upstream }` }],
+        }));
+
+        const started = service.start({
+            domain: 'zoositioweb.com.mx',
+            pageId: 'admin-blog-articulos',
+            dataSources: [
+                {
+                    id: 'slow-admin-read',
+                    proxySourceId: 'slowAdminRead',
+                    target: 'remote.slow',
+                },
+                {
+                    id: 'fast-admin-read',
+                    proxySourceId: 'fastAdminRead',
+                    target: 'remote.fast',
+                },
+            ],
+        });
+
+        await Promise.resolve();
+        expect(fastStarted).toBeTrue();
+
+        slowResolve({ ok: true, data: { upstream: 'slowAdminRead' } });
+        await started;
+
+        expect(variables.get('remote.slow.items')).toEqual([{ title: 'mapped:slowAdminRead' }]);
+        expect(variables.get('remote.fast.items')).toEqual([{ title: 'mapped:fastAdminRead' }]);
     });
 
     it('loads auth-admin account data sources without using the public api proxy', async () => {
@@ -185,7 +239,7 @@ describe('RuntimeDataSourceService', () => {
         expect(variables.get('remoteStatus.account-profile')).toBeUndefined();
     });
 
-    it('loads initial data sources in order to avoid browser proxy request bursts', async () => {
+    it('loads initial data sources concurrently while keeping per-source loading state', async () => {
         let resolveFirst!: (value: { ok: true; data: { upstream: string } }) => void;
         const firstResponse = new Promise<{ ok: true; data: { upstream: string } }>((resolve) => {
             resolveFirst = resolve;
@@ -224,8 +278,8 @@ describe('RuntimeDataSourceService', () => {
 
         await Promise.resolve();
 
-        expect(proxy.readSource.calls.count()).toBe(1);
-        expect(proxy.readSource.calls.mostRecent().args[0].sourceId).toBe('firstSource');
+        expect(proxy.readSource.calls.count()).toBe(2);
+        expect(proxy.readSource.calls.allArgs().map(([request]) => request.sourceId)).toEqual(['firstSource', 'secondSource']);
         expect(variables.get('remoteStatus.first.state')).toBe('loading');
         expect(variables.get('remoteStatus.second.state')).toBe('loading');
 
@@ -233,7 +287,6 @@ describe('RuntimeDataSourceService', () => {
         await startPromise;
 
         expect(proxy.readSource.calls.count()).toBe(2);
-        expect(proxy.readSource.calls.mostRecent().args[0].sourceId).toBe('secondSource');
         expect(variables.get('remote.first.items')).toEqual([{ title: 'mapped:firstSource' }]);
         expect(variables.get('remote.second.items')).toEqual([{ title: 'mapped:secondSource' }]);
     });
@@ -331,6 +384,87 @@ describe('RuntimeDataSourceService', () => {
         expect(proxy.readSource.calls.mostRecent().args[0].input).toEqual({
             pokemonName: 'charizard',
         });
+    });
+
+    it('resolves route-param input values before calling content hub reads', async () => {
+        contentHub.readSource.and.resolveTo({ ok: true, data: { item: { title: 'Hydrated article' } } } as any);
+        mapper.mapResponse.and.returnValue({ items: [{ title: 'Hydrated article' }] });
+
+        await service.start({
+            domain: 'zoositioweb.com.mx',
+            pageId: 'admin-blog-articulo-editor',
+            routeParams: { id: 'art_20260623T074011Z' },
+            dataSources: [
+                {
+                    id: 'content_hub_article_detail',
+                    kind: 'content-hub',
+                    proxySourceId: 'content_hub_article_detail',
+                    target: 'remote.contentHub.articleDetail',
+                    contentHub: {
+                        source: 'primary',
+                        hubId: 'zoosite-main',
+                        read: 'articleDetail',
+                    },
+                    requiredInputKeys: ['articleId'],
+                    input: {
+                        articleId: {
+                            source: 'routeParam',
+                            key: 'id',
+                            transforms: ['trim'],
+                        },
+                    },
+                } as any,
+            ],
+        });
+
+        expect(contentHub.readSource.calls.mostRecent().args[0].input).toEqual({
+            contentHub: {
+                hubId: 'zoosite-main',
+                read: 'articleDetail',
+            },
+            articleId: 'art_20260623T074011Z',
+        });
+    });
+
+    it('skips content hub reads when required safe ids resolve to placeholders or invalid values', async () => {
+        contentHub.readSource.and.resolveTo({ ok: true, data: { item: { title: 'Should not load' } } } as any);
+        mapper.mapResponse.and.returnValue({ items: [{ title: 'Should not load' }] });
+
+        const startWithArticleId = async (articleId: string): Promise<void> => {
+            setRuntimeUrl(`/admin/blog/programados?articleId=${ encodeURIComponent(articleId) }`);
+            await service.start({
+                domain: 'zoositioweb.com.mx',
+                pageId: 'admin-blog-programados',
+                dataSources: [
+                    {
+                        id: 'content_hub_schedule_list',
+                        kind: 'content-hub',
+                        proxySourceId: 'content_hub_schedule_list',
+                        target: 'remote.contentHub.schedules',
+                        contentHub: {
+                            source: 'primary',
+                            hubId: 'zoosite-main',
+                            read: 'scheduleList',
+                        },
+                        requiredInputKeys: ['articleId'],
+                        input: {
+                            articleId: {
+                                source: 'queryParam',
+                                key: 'articleId',
+                                transforms: ['trim'],
+                            },
+                        },
+                    } as any,
+                ],
+            });
+        };
+
+        for (const articleId of ['{articleId}', 'undefined', 'null', 'bad/id']) {
+            await startWithArticleId(articleId);
+        }
+
+        expect(contentHub.readSource).not.toHaveBeenCalled();
+        expect(variables.get('remoteStatus.content_hub_schedule_list')).toBeUndefined();
     });
 
     it('resolves query-param page offsets before calling the proxy', async () => {
@@ -558,6 +692,46 @@ describe('RuntimeDataSourceService', () => {
         });
     });
 
+    it('sends combo catalog reads through the combo catalog client with browser-safe input only', async () => {
+        comboCatalog.readSource.and.resolveTo({ ok: true, data: { items: [{ combo: 'HeroCard' }] } } as any);
+        mapper.mapResponse.and.returnValue({ items: [{ combo: 'HeroCard' }] });
+
+        await service.start({
+            domain: 'zoositioweb.com.mx',
+            pageId: 'admin-combos',
+            dataSources: [
+                {
+                    id: 'combo_catalog_combo_list',
+                    kind: 'combo-catalog',
+                    proxySourceId: 'comboCatalogComboList',
+                    target: 'remote.comboCatalog.combos',
+                    comboCatalog: {
+                        read: 'comboList',
+                    },
+                    input: {
+                        credentialRef: 'ssm:/must-not-travel',
+                        query: 'hero',
+                        scope: 'draft',
+                        tableName: 'server-only',
+                    },
+                } as any,
+            ],
+        });
+
+        expect(proxy.readSource).not.toHaveBeenCalled();
+        expect(contentHub.readSource).not.toHaveBeenCalled();
+        expect(comboCatalog.readSource).toHaveBeenCalledOnceWith({
+            domain: 'zoositioweb.com.mx',
+            pageId: 'admin-combos',
+            sourceId: 'comboCatalogComboList',
+            input: {
+                read: 'comboList',
+                query: 'hero',
+                scope: 'draft',
+            },
+        });
+    });
+
     it('writes an empty status when mapped source items are empty', async () => {
         proxy.readSource.and.resolveTo({ ok: true, data: { items: [] } });
         mapper.mapResponse.and.returnValue({ items: [] });
@@ -607,7 +781,9 @@ describe('RuntimeDataSourceService', () => {
         variables.setRuntimeValue('remote.music.releases', {
             items: [{ title: 'Existing' }],
         });
-        proxy.readSource.and.rejectWith(new Error('Proxy unavailable'));
+        const failure = new Error('Proxy unavailable') as Error & { requestId?: string };
+        failure.requestId = 'req-read-123';
+        proxy.readSource.and.rejectWith(failure);
 
         await service.start({
             domain: 'music.lynxpardelle.com',
@@ -623,6 +799,27 @@ describe('RuntimeDataSourceService', () => {
         expect(variables.get('remote.music.releases.items')).toEqual([{ title: 'Existing' }]);
         expect(variables.get('remoteStatus.spotify-releases.state')).toBe('error');
         expect(variables.get('remoteStatus.spotify-releases.error')).toBe('Proxy unavailable');
+        expect(variables.get('remoteStatus.spotify-releases.requestId')).toBe('req-read-123');
+    });
+
+    it('does not write malformed request ids from failed data source reads', async () => {
+        const failure = new Error('Proxy unavailable') as Error & { requestId?: string };
+        failure.requestId = 'req-unsafe/<script>';
+        proxy.readSource.and.rejectWith(failure);
+
+        await service.start({
+            domain: 'music.lynxpardelle.com',
+            dataSources: [
+                {
+                    id: 'spotify-releases',
+                    proxySourceId: 'spotifyArtistAlbums',
+                    target: 'remote.music.releases',
+                },
+            ],
+        });
+
+        expect(variables.get('remoteStatus.spotify-releases.state')).toBe('error');
+        expect(variables.get('remoteStatus.spotify-releases.requestId')).toBeUndefined();
     });
 
     it('can append mapped API items into one catalog target while preserving fallback fields', async () => {

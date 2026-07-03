@@ -1,4 +1,8 @@
-import { hasStaticInteractiveControls, hasStaticRenderableContent } from './static-interactive-controls.utility';
+import {
+  hasProtectedSsrShell,
+  hasStaticInteractiveControls,
+  hasStaticRenderableContent,
+} from './static-interactive-controls.utility';
 
 describe('hasStaticInteractiveControls', () => {
   it('detects SSR form controls that should hydrate before release', () => {
@@ -43,5 +47,21 @@ describe('hasStaticRenderableContent', () => {
 
   it('treats a missing app root as needing immediate client bootstrap', () => {
     expect(hasStaticRenderableContent(null)).toBeFalse();
+  });
+});
+
+describe('hasProtectedSsrShell', () => {
+  it('detects SSR shells for protected draft routes', () => {
+    const host = document.createElement('app-root');
+    host.setAttribute('data-zlp-protected-shell', 'true');
+
+    expect(hasProtectedSsrShell(host)).toBeTrue();
+  });
+
+  it('ignores normal public SSR shells', () => {
+    const host = document.createElement('app-root');
+    host.innerHTML = '<main><h1>Blog</h1></main>';
+
+    expect(hasProtectedSsrShell(host)).toBeFalse();
   });
 });

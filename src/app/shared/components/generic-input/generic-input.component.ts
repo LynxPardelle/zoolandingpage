@@ -37,9 +37,20 @@ import type {
   standalone: true,
   imports: [GenericButtonComponent, GenericDropdown, GenericTextComponent],
   templateUrl: './generic-input.component.html',
+  styles: [`
+    .zlp-joined-search-input {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+      border-right: 0;
+    }
+  `],
   host: {
     '[attr.data-zlp-field-id]': 'fieldId()',
     '[attr.data-zlp-field-valid]': 'fieldState().valid ? "true" : "false"',
+    '[style.box-sizing]': '"border-box"',
+    '[style.display]': '"block"',
+    '[style.min-width]': '"0"',
+    '[style.width]': '"100%"',
   },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -583,7 +594,10 @@ export class GenericInputComponent {
   }
 
   isOptionSelected(option: TGenericInputOption): boolean {
-    return this.currentValue() === option.value;
+    const current = this.currentValue();
+    if (current === option.value) return true;
+    if (current == null || option.value == null) return false;
+    return String(current) === String(option.value);
   }
 
   private updateValue(nextValue: unknown): void {

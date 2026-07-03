@@ -26,7 +26,7 @@ describe('GenericTooltipComponent', () => {
   let host: HostCmp;
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [HostCmp],
+      imports: [HostCmp, TooltipByIdHostCmp],
     }).compileComponents();
     fixture = TestBed.createComponent(HostCmp);
     host = fixture.componentInstance;
@@ -36,4 +36,25 @@ describe('GenericTooltipComponent', () => {
     const btn = host.btn.nativeElement;
     expect(btn.hasAttribute('aria-describedby')).toBeTrue();
   });
+
+  it('should attach aria-describedby when the anchor is provided by id', () => {
+    const fixtureById = TestBed.createComponent(TooltipByIdHostCmp);
+    fixtureById.detectChanges();
+
+    const btn = fixtureById.nativeElement.querySelector('#button-by-id') as HTMLButtonElement | null;
+
+    expect(btn?.hasAttribute('aria-describedby')).toBeTrue();
+  });
 });
+
+@Component({
+  imports: [GenericTooltipComponent],
+  changeDetection: ChangeDetectionStrategy.Eager,
+  template: `<button id="button-by-id">Buscar</button
+    ><generic-tooltip
+      anchorFor="button-by-id"
+      [content]="'Buscar'"
+      [config]="{ trigger: 'both' }"
+    />`,
+})
+class TooltipByIdHostCmp {}

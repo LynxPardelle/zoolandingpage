@@ -12,6 +12,7 @@ import type {
     TAngoraCombosPayload,
     TAuthoringDraftFile,
     TAuthoringDraftPackage,
+    TComboCatalogRuntimeConfig,
     TComponentsPayload,
     TConfigRegistryPayload,
     TConfigVersionPointer,
@@ -100,9 +101,16 @@ const ALLOWED_DRAFT_RUNTIME_CONFIG_KEYS = new Set([
     'navigation',
     'auth',
     'authRemote',
+    'comboCatalog',
     'contentHubs',
     'dataSources',
     'apiActions',
+]);
+const ALLOWED_COMBO_CATALOG_RUNTIME_CONFIG_KEYS = new Set([
+    'enabled',
+    'endpoint',
+    'authProfileId',
+    'draftDomain',
 ]);
 const ALLOWED_RUNTIME_DATA_SOURCE_KEYS = new Set([
     'id',
@@ -110,6 +118,7 @@ const ALLOWED_RUNTIME_DATA_SOURCE_KEYS = new Set([
     'proxySourceId',
     'authAdminSource',
     'contentHub',
+    'comboCatalog',
     'target',
     'statusTarget',
     'mergeMode',
@@ -129,37 +138,68 @@ const ALLOWED_RUNTIME_API_ACTION_KEYS = new Set([
     'proxyActionId',
     'authAdminAction',
     'contentHub',
+    'comboCatalog',
     'method',
     'statusTarget',
     'enabled',
     'inputFields',
     'requiresUserGesture',
 ]);
-const ALLOWED_RUNTIME_DATA_SOURCE_INPUT_SOURCES = new Set(['literal', 'queryParam', 'var', 'queryParamPageOffset']);
+const ALLOWED_RUNTIME_DATA_SOURCE_INPUT_SOURCES = new Set(['literal', 'queryParam', 'routeParam', 'var', 'queryParamPageOffset']);
 const ALLOWED_RUNTIME_DATA_SOURCE_INPUT_TRANSFORMS = new Set(['trim', 'lowercase', 'uppercase']);
-const ALLOWED_RUNTIME_DATA_SOURCE_FIELD_TRANSFORMS = new Set(['uriComponent', 'lastPathSegment', 'lastPathSegmentNumber', 'titleCase']);
+const ALLOWED_RUNTIME_DATA_SOURCE_FIELD_TRANSFORMS = new Set(['uriComponent', 'lastPathSegment', 'lastPathSegmentNumber', 'titleCase', 'joinList']);
 const ALLOWED_CONTENT_HUB_RUNTIME_SOURCES = new Set(['primary', 'authorized']);
 const ALLOWED_CONTENT_HUB_CANONICAL_MODES = new Set(['owner-canonical', 'host-adaptive', 'noindex-shared']);
 const ALLOWED_CONTENT_HUB_READS = new Set([
     'articleList',
+    'articleDetail',
     'taxonomyList',
     'moderationQueue',
     'assetList',
     'revisionList',
+    'scheduleList',
     'publicBundlePreview',
+    'analyticsSummary',
 ]);
 const ALLOWED_CONTENT_HUB_ACTIONS = new Set([
     'createArticle',
     'updatePackage',
+    'upsertTaxonomy',
     'uploadAsset',
     'validate',
     'submitReview',
+    'approveArticle',
     'publish',
+    'unpublishArticle',
+    'archiveArticle',
     'schedule',
+    'cancelSchedule',
+    'queueComment',
     'moderateComment',
+    'recordInteraction',
     'restoreRevision',
 ]);
+const ALLOWED_COMBO_CATALOG_READS = new Set([
+    'runtimeCombos',
+    'comboList',
+    'comboDetail',
+    'groupList',
+    'draftPolicy',
+]);
+const ALLOWED_COMBO_CATALOG_ACTIONS = new Set([
+    'createCombo',
+    'updateCombo',
+    'batchUpsertCombos',
+    'softDeleteCombo',
+    'createGroup',
+    'updateGroup',
+    'setDraftPolicy',
+]);
+const ALLOWED_COMBO_CATALOG_BINDING_KEYS = new Set(['read', 'action']);
 const ALLOWED_CONTENT_HUB_TAXONOMY_KINDS = new Set(['category', 'tag']);
+const ALLOWED_CONTENT_HUB_RUNTIME_COMMENT_POLICIES = new Set(['disabled', 'moderated', 'authenticated']);
+const ALLOWED_CONTENT_HUB_RUNTIME_SAFETY_RATINGS = new Set(['general', 'sensitive', 'restricted']);
+const ALLOWED_CONTENT_HUB_PUBLIC_INTERACTION_MODES = new Set(['queue', 'spam-check', 'manual']);
 const ALLOWED_CONTENT_HUB_BINDING_KEYS = new Set([
     'read',
     'action',
@@ -253,6 +293,7 @@ const ALLOWED_AUTH_SESSION_CONFIG_KEYS = new Set([
     'challengeCsrfCookieName',
     'mfaEnrollCsrfCookieName',
     'csrfHeaderName',
+    'routeAccessCacheMs',
 ]);
 const ALLOWED_AUTH_ADMIN_CONFIG_KEYS = new Set([
     'usersPath',
@@ -293,6 +334,7 @@ const ALLOWED_COMPONENT_TYPES = new Set([
     'embed-frame',
     'generic-card',
     'generic-cell',
+    'generic-component-preview',
     'generic-file-dropzone',
     'generic-rich-text',
     'generic-table',
@@ -314,6 +356,46 @@ const ALLOWED_COMPONENT_TYPES = new Set([
     'toast',
     'tooltip',
     'none',
+]);
+const ALLOWED_GENERIC_COMPONENT_PREVIEW_CONFIG_KEYS = new Set([
+    'id',
+    'label',
+    'description',
+    'source',
+    'value',
+    'allowedTypes',
+    'maxComponents',
+    'emptyText',
+    'invalidText',
+    'classes',
+    'labelClasses',
+    'descriptionClasses',
+    'stateClasses',
+    'previewClasses',
+]);
+const ALLOWED_GENERIC_COMPONENT_PREVIEW_SOURCE_KEYS = new Set(['type', 'path', 'value', 'fallback']);
+const ALLOWED_GENERIC_COMPONENT_PREVIEW_SOURCE_TYPES = new Set(['scope', 'var', 'literal']);
+const ALLOWED_GENERIC_COMPONENT_PREVIEW_TYPES = new Set([
+    'accordion',
+    'button',
+    'container',
+    'embed-frame',
+    'generic-card',
+    'generic-cell',
+    'generic-rich-text',
+    'generic-table',
+    'icon',
+    'input',
+    'link',
+    'loading-spinner',
+    'media',
+    'pagination',
+    'qr-code',
+    'search-box',
+    'stats-counter',
+    'tab-group',
+    'text',
+    'tooltip',
 ]);
 
 const ALLOWED_QR_CODE_CONFIG_KEYS = new Set([
@@ -346,16 +428,19 @@ const ALLOWED_GENERIC_CELL_CONFIG_KEYS = new Set([
     'emptyText',
     'trueText',
     'falseText',
+    'itemPath',
+    'separator',
     'componentId',
     'componentIds',
     'classes',
     'valueClasses',
 ]);
-const ALLOWED_GENERIC_CELL_FORMATS = new Set(['text', 'number', 'date', 'boolean', 'json']);
+const ALLOWED_GENERIC_CELL_FORMATS = new Set(['text', 'number', 'date', 'boolean', 'json', 'list']);
 const ALLOWED_GENERIC_TABLE_CONFIG_KEYS = new Set([
     'id',
     'label',
     'description',
+    'actionColumnLabel',
     'rows',
     'rowsSource',
     'columns',
@@ -381,9 +466,13 @@ const ALLOWED_GENERIC_TABLE_CONFIG_KEYS = new Set([
     'rowClasses',
     'actionCellClasses',
     'actionButtonClasses',
+    'actionButtonStyles',
+    'actionIconClasses',
+    'actionLabelMode',
     'selectionCellClasses',
     'stateClasses',
 ]);
+const ALLOWED_GENERIC_TABLE_ACTION_LABEL_MODES = new Set(['visible', 'tooltip']);
 const ALLOWED_GENERIC_TABLE_COLUMN_KEYS = new Set([
     'id',
     'header',
@@ -394,6 +483,8 @@ const ALLOWED_GENERIC_TABLE_COLUMN_KEYS = new Set([
     'emptyText',
     'trueText',
     'falseText',
+    'itemPath',
+    'separator',
     'componentId',
     'componentIds',
     'classes',
@@ -418,6 +509,7 @@ const ALLOWED_GENERIC_FILE_DROPZONE_CONFIG_KEYS = new Set([
     'maxFileSizeBytes',
     'maxSizeLabel',
     'multiple',
+    'required',
     'disabled',
     'loading',
     'loadingText',
@@ -543,6 +635,23 @@ const hasNoForbiddenRuntimeKeysDeep = (value: unknown): boolean => {
     }
     return Object.entries(value).every(([key, entry]) =>
         !isForbiddenPublicRuntimeInputKey(key) && hasNoForbiddenRuntimeKeysDeep(entry),
+    );
+};
+
+const hasNoUnsafePreviewKeysDeep = (value: unknown): boolean => {
+    if (Array.isArray(value)) {
+        return value.every(hasNoUnsafePreviewKeysDeep);
+    }
+    if (isForbiddenPublicRuntimeInputValue(value)) {
+        return false;
+    }
+    if (!isRecord(value)) {
+        return true;
+    }
+    return Object.entries(value).every(([key, entry]) =>
+        key !== 'eventInstructions'
+        && !isForbiddenPublicRuntimeInputKey(key)
+        && hasNoUnsafePreviewKeysDeep(entry),
     );
 };
 
@@ -1117,7 +1226,8 @@ const isRuntimeDataSourceInputResolverConfig = (value: Record<string, unknown>):
     if (source === undefined) return true;
     if (typeof source !== 'string' || !ALLOWED_RUNTIME_DATA_SOURCE_INPUT_SOURCES.has(source)) return false;
 
-    if (source === 'queryParam' && (typeof value['key'] !== 'string' || value['key'].trim().length === 0)) return false;
+    if ((source === 'queryParam' || source === 'routeParam')
+        && (typeof value['key'] !== 'string' || value['key'].trim().length === 0)) return false;
     if (source === 'var' && (typeof value['path'] !== 'string' || value['path'].trim().length === 0)) return false;
     if (source === 'queryParamPageOffset') {
         if (value['pageKey'] !== undefined && (typeof value['pageKey'] !== 'string' || value['pageKey'].trim().length === 0)) return false;
@@ -1153,6 +1263,35 @@ const isContentHubAnalyticsContext = (value: unknown): boolean => {
     return true;
 };
 
+const isContentHubPublicInteractionPolicy = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasOnlyKnownKeys(value, new Set(['enabled', 'moderation']))) return false;
+    if (typeof value['enabled'] !== 'boolean') return false;
+    if (!ALLOWED_CONTENT_HUB_PUBLIC_INTERACTION_MODES.has(String(value['moderation']))) return false;
+    return true;
+};
+
+const isContentHubPublicInteractionPolicies = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasNoForbiddenRuntimeKeysDeep(value)) return false;
+    if (!hasOnlyKnownKeys(value, new Set(['reactions', 'ctas', 'forms']))) return false;
+    if (value['reactions'] !== undefined && !isContentHubPublicInteractionPolicy(value['reactions'])) return false;
+    if (value['ctas'] !== undefined && !isContentHubPublicInteractionPolicy(value['ctas'])) return false;
+    if (value['forms'] !== undefined && !isContentHubPublicInteractionPolicy(value['forms'])) return false;
+    return true;
+};
+
+const isContentHubPublicContentSafety = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasNoForbiddenRuntimeKeysDeep(value)) return false;
+    if (!hasOnlyKnownKeys(value, new Set(['rating', 'warnings']))) return false;
+    if (!ALLOWED_CONTENT_HUB_RUNTIME_SAFETY_RATINGS.has(String(value['rating']))) return false;
+    if (value['warnings'] !== undefined
+        && (!Array.isArray(value['warnings'])
+            || !value['warnings'].every((entry) => typeof entry === 'string' && entry.trim().length > 0 && entry.length <= 120))) return false;
+    return true;
+};
+
 const isContentHubRuntimeArticleSummary = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
     if (!hasNoForbiddenRuntimeKeysDeep(value)) return false;
@@ -1165,11 +1304,15 @@ const isContentHubRuntimeArticleSummary = (value: unknown): boolean => {
         'path',
         'categorySlug',
         'tags',
+        'visibility',
         'publishedAt',
         'updatedAt',
         'authorLabel',
         'canonicalPath',
         'robots',
+        'commentPolicy',
+        'contentSafety',
+        'interactions',
     ]))) return false;
     if (!isContentHubSafeId(value['articleId'])) return false;
     if (!isContentHubLocale(value['locale'])) return false;
@@ -1179,11 +1322,15 @@ const isContentHubRuntimeArticleSummary = (value: unknown): boolean => {
     if (!isSafeSameOriginPath(value['path'])) return false;
     if (value['categorySlug'] !== undefined && !isContentHubSafeId(value['categorySlug'])) return false;
     if (value['tags'] !== undefined && (!Array.isArray(value['tags']) || !value['tags'].every(isContentHubSafeId))) return false;
+    if (value['visibility'] !== undefined && value['visibility'] !== 'public') return false;
     if (typeof value['publishedAt'] !== 'string' || Number.isNaN(Date.parse(value['publishedAt']))) return false;
     if (value['updatedAt'] !== undefined && (typeof value['updatedAt'] !== 'string' || Number.isNaN(Date.parse(value['updatedAt'])))) return false;
     if (value['authorLabel'] !== undefined && typeof value['authorLabel'] !== 'string') return false;
     if (value['canonicalPath'] !== undefined && !isSafeSameOriginPath(value['canonicalPath'])) return false;
     if (value['robots'] !== undefined && !['index,follow', 'noindex,follow', 'noindex,nofollow'].includes(String(value['robots']))) return false;
+    if (value['commentPolicy'] !== undefined && !ALLOWED_CONTENT_HUB_RUNTIME_COMMENT_POLICIES.has(String(value['commentPolicy']))) return false;
+    if (value['contentSafety'] !== undefined && !isContentHubPublicContentSafety(value['contentSafety'])) return false;
+    if (value['interactions'] !== undefined && !isContentHubPublicInteractionPolicies(value['interactions'])) return false;
     return true;
 };
 
@@ -1199,6 +1346,20 @@ const isContentHubRuntimeTaxonomySummary = (value: unknown): boolean => {
     if (value['visible'] !== undefined && typeof value['visible'] !== 'boolean') return false;
     if (value['path'] !== undefined && !isSafeSameOriginPath(value['path'])) return false;
     return true;
+};
+
+const isContentHubPublicRuntimeCollection = (
+    value: unknown,
+    itemGuard: (item: unknown) => boolean,
+): boolean => {
+    if (Array.isArray(value)) {
+        return value.every(itemGuard);
+    }
+
+    return isRecord(value)
+        && hasOnlyKnownKeys(value, new Set(['items']))
+        && Array.isArray(value['items'])
+        && value['items'].every(itemGuard);
 };
 
 const isContentHubRuntimeConfig = (value: unknown): value is TContentHubRuntimeConfig => {
@@ -1233,9 +1394,9 @@ const isContentHubRuntimeConfig = (value: unknown): value is TContentHubRuntimeC
     if (value['publicApiBasePath'] !== undefined && !isSafeSameOriginPath(value['publicApiBasePath'])) return false;
     if (value['analyticsContext'] !== undefined && !isContentHubAnalyticsContext(value['analyticsContext'])) return false;
     if (value['publicArticles'] !== undefined
-        && (!Array.isArray(value['publicArticles']) || !value['publicArticles'].every(isContentHubRuntimeArticleSummary))) return false;
+        && !isContentHubPublicRuntimeCollection(value['publicArticles'], isContentHubRuntimeArticleSummary)) return false;
     if (value['publicTaxonomy'] !== undefined
-        && (!Array.isArray(value['publicTaxonomy']) || !value['publicTaxonomy'].every(isContentHubRuntimeTaxonomySummary))) return false;
+        && !isContentHubPublicRuntimeCollection(value['publicTaxonomy'], isContentHubRuntimeTaxonomySummary)) return false;
     return true;
 };
 
@@ -1268,15 +1429,35 @@ const isContentHubRuntimeActionBinding = (value: unknown): value is TContentHubR
     return isContentHubRuntimeBindingBase(value);
 };
 
+const isComboCatalogRuntimeReadBinding = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasNoForbiddenRuntimeKeysDeep(value)) return false;
+    if (!hasOnlyKnownKeys(value, ALLOWED_COMBO_CATALOG_BINDING_KEYS)) return false;
+    if (!ALLOWED_COMBO_CATALOG_READS.has(String(value['read']))) return false;
+    if (value['action'] !== undefined) return false;
+    return true;
+};
+
+const isComboCatalogRuntimeActionBinding = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasNoForbiddenRuntimeKeysDeep(value)) return false;
+    if (!hasOnlyKnownKeys(value, ALLOWED_COMBO_CATALOG_BINDING_KEYS)) return false;
+    if (!ALLOWED_COMBO_CATALOG_ACTIONS.has(String(value['action']))) return false;
+    if (value['read'] !== undefined) return false;
+    return true;
+};
+
 const isRuntimeDataSourceConfig = (value: unknown): value is TRuntimeDataSourceConfig => {
     if (!isRecord(value)) return false;
     if (!hasOnlyKnownKeys(value, ALLOWED_RUNTIME_DATA_SOURCE_KEYS)) return false;
     if (typeof value['id'] !== 'string' || value['id'].trim().length === 0) return false;
-    if (value['kind'] !== undefined && !['api-proxy', 'auth-admin', 'content-hub'].includes(String(value['kind']))) return false;
+    if (value['kind'] !== undefined && !['api-proxy', 'auth-admin', 'content-hub', 'combo-catalog'].includes(String(value['kind']))) return false;
     if (value['proxySourceId'] !== undefined && typeof value['proxySourceId'] !== 'string') return false;
     if (value['kind'] === 'content-hub' && value['proxySourceId'] !== undefined && !isContentHubSafeId(value['proxySourceId'])) return false;
+    if (value['kind'] === 'combo-catalog' && value['proxySourceId'] !== undefined && !isContentHubSafeId(value['proxySourceId'])) return false;
     if (value['authAdminSource'] !== undefined && !['account', 'adminUsers'].includes(String(value['authAdminSource']))) return false;
     if (value['contentHub'] !== undefined && !isContentHubRuntimeReadBinding(value['contentHub'])) return false;
+    if (value['comboCatalog'] !== undefined && !isComboCatalogRuntimeReadBinding(value['comboCatalog'])) return false;
     if (typeof value['target'] !== 'string' || value['target'].trim().length === 0) return false;
     if (value['statusTarget'] !== undefined && typeof value['statusTarget'] !== 'string') return false;
     if (value['mergeMode'] !== undefined && value['mergeMode'] !== 'replace' && value['mergeMode'] !== 'appendItems') return false;
@@ -1302,12 +1483,14 @@ const isRuntimeApiActionConfig = (value: unknown): value is TRuntimeApiActionCon
     if (!isRecord(value)) return false;
     if (!hasOnlyKnownKeys(value, ALLOWED_RUNTIME_API_ACTION_KEYS)) return false;
     if (typeof value['id'] !== 'string' || value['id'].trim().length === 0) return false;
-    if (value['kind'] !== undefined && !['api-proxy', 'auth-admin', 'content-hub'].includes(String(value['kind']))) return false;
+    if (value['kind'] !== undefined && !['api-proxy', 'auth-admin', 'content-hub', 'combo-catalog'].includes(String(value['kind']))) return false;
     if (value['proxyActionId'] !== undefined && typeof value['proxyActionId'] !== 'string') return false;
     if (value['kind'] === 'content-hub' && value['proxyActionId'] !== undefined && !isContentHubSafeId(value['proxyActionId'])) return false;
+    if (value['kind'] === 'combo-catalog' && value['proxyActionId'] !== undefined && !isContentHubSafeId(value['proxyActionId'])) return false;
     if (value['authAdminAction'] !== undefined
         && !['approveUser', 'setUserGroups', 'suspendUser', 'reactivateUser', 'resetUserMfa'].includes(String(value['authAdminAction']))) return false;
     if (value['contentHub'] !== undefined && !isContentHubRuntimeActionBinding(value['contentHub'])) return false;
+    if (value['comboCatalog'] !== undefined && !isComboCatalogRuntimeActionBinding(value['comboCatalog'])) return false;
     if (value['method'] !== undefined
         && (typeof value['method'] !== 'string' || !ALLOWED_RUNTIME_API_ACTION_METHODS.has(value['method']))) return false;
     if (value['statusTarget'] !== undefined && typeof value['statusTarget'] !== 'string') return false;
@@ -1332,6 +1515,11 @@ const isDraftAuthSessionRuntimeConfig = (value: unknown): boolean => {
         if (value[key] !== undefined
             && (typeof value[key] !== 'string' || value[key].trim().length === 0 || /[\s\u0000-\u001F\u007F]/.test(value[key]))) return false;
     }
+    if (value['routeAccessCacheMs'] !== undefined
+        && (typeof value['routeAccessCacheMs'] !== 'number'
+            || !Number.isInteger(value['routeAccessCacheMs'])
+            || value['routeAccessCacheMs'] < 0
+            || value['routeAccessCacheMs'] > 60000)) return false;
     return true;
 };
 
@@ -1379,6 +1567,16 @@ const isDraftAuthRemoteRuntimeConfig = (value: unknown): value is TDraftAuthRemo
     return isSafeSameOriginPath(value['endpoint']) || isHttpsAbsoluteUrl(value['endpoint']);
 };
 
+const isComboCatalogRuntimeConfig = (value: unknown): value is TComboCatalogRuntimeConfig => {
+    if (!isRecord(value)) return false;
+    if (!hasOnlyKnownKeys(value, ALLOWED_COMBO_CATALOG_RUNTIME_CONFIG_KEYS)) return false;
+    if (value['enabled'] !== undefined && typeof value['enabled'] !== 'boolean') return false;
+    if (!isSafeSameOriginPath(value['endpoint']) && !isHttpsAbsoluteUrl(value['endpoint'])) return false;
+    if (value['authProfileId'] !== undefined && !isContentHubSafeId(value['authProfileId'])) return false;
+    if (value['draftDomain'] !== undefined && !isContentHubDomainName(value['draftDomain'])) return false;
+    return true;
+};
+
 const isDraftSiteRuntimeConfig = (value: unknown): value is TDraftSiteRuntimeConfig => {
     if (!isRecord(value)) return false;
     if (!hasOnlyKnownKeys(value, ALLOWED_DRAFT_RUNTIME_CONFIG_KEYS)) return false;
@@ -1390,6 +1588,7 @@ const isDraftSiteRuntimeConfig = (value: unknown): value is TDraftSiteRuntimeCon
     if (value['navigation'] !== undefined && !isDraftNavigationRuntimeConfig(value['navigation'])) return false;
     if (value['auth'] !== undefined && !isDraftAuthRuntimeConfig(value['auth'])) return false;
     if (value['authRemote'] !== undefined && !isDraftAuthRemoteRuntimeConfig(value['authRemote'])) return false;
+    if (value['comboCatalog'] !== undefined && !isComboCatalogRuntimeConfig(value['comboCatalog'])) return false;
     if (value['contentHubs'] !== undefined
         && (!Array.isArray(value['contentHubs']) || !value['contentHubs'].every(isContentHubRuntimeConfig))) return false;
     if (value['dataSources'] !== undefined
@@ -1601,6 +1800,7 @@ const isInteractionValidationRule = (value: unknown): boolean => {
     switch (value['type']) {
         case 'required':
         case 'email':
+        case 'json':
             return value['message'] === undefined || typeof value['message'] === 'string';
         case 'matchesField':
             return typeof value['fieldId'] === 'string'
@@ -1705,6 +1905,13 @@ const isGenericInputConfig = (value: unknown): boolean => {
         return false;
     }
 
+    if (
+        value['inputType'] !== undefined
+        && !['text', 'email', 'password', 'search', 'tel', 'url', 'date', 'time', 'datetime-local'].includes(String(value['inputType'] ?? ''))
+    ) {
+        return false;
+    }
+
     if (value['options'] !== undefined && !isGenericInputOptionsConfig(value['options'])) {
         return false;
     }
@@ -1791,7 +1998,7 @@ const isGenericCellConfig = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
     if (!hasOnlyKnownKeys(value, ALLOWED_GENERIC_CELL_CONFIG_KEYS)) return false;
 
-    const stringFields = ['id', 'valuePath', 'emptyText', 'trueText', 'falseText', 'componentId', 'classes', 'valueClasses'] as const;
+    const stringFields = ['id', 'valuePath', 'emptyText', 'trueText', 'falseText', 'itemPath', 'separator', 'componentId', 'classes', 'valueClasses'] as const;
     if (stringFields.some((field) => !isStringThunkFriendly(value[field]))) return false;
     if (value['format'] !== undefined && !ALLOWED_GENERIC_CELL_FORMATS.has(String(value['format']))) return false;
     if (value['componentIds'] !== undefined && !isStringArray(value['componentIds'])) return false;
@@ -1803,7 +2010,7 @@ const isGenericTableColumnConfig = (value: unknown): boolean => {
     if (!hasOnlyKnownKeys(value, ALLOWED_GENERIC_TABLE_COLUMN_KEYS)) return false;
     if (typeof value['id'] !== 'string' || value['id'].trim().length === 0) return false;
 
-    const stringFields = ['header', 'valuePath', 'emptyText', 'trueText', 'falseText', 'componentId', 'classes', 'headerClasses', 'cellClasses', 'valueClasses'] as const;
+    const stringFields = ['header', 'valuePath', 'emptyText', 'trueText', 'falseText', 'itemPath', 'separator', 'componentId', 'classes', 'headerClasses', 'cellClasses', 'valueClasses'] as const;
     if (stringFields.some((field) => !isStringThunkFriendly(value[field]))) return false;
     if (value['format'] !== undefined && !ALLOWED_GENERIC_CELL_FORMATS.has(String(value['format']))) return false;
     if (value['sortable'] !== undefined && !isBooleanThunkFriendly(value['sortable'])) return false;
@@ -1837,6 +2044,7 @@ const isGenericTablePaginationConfig = (value: unknown): boolean => {
     if (value['pageSize'] !== undefined && !isNumberThunkFriendly(value['pageSize'])) return false;
     if (value['pageSizeOptions'] !== undefined && !isNumberArray(value['pageSizeOptions'])) return false;
     if (value['hidePageSize'] !== undefined && !isBooleanThunkFriendly(value['hidePageSize'])) return false;
+    if (value['hideWhenSinglePage'] !== undefined && !isBooleanThunkFriendly(value['hideWhenSinglePage'])) return false;
     if (value['showFirstLastButtons'] !== undefined && !isBooleanThunkFriendly(value['showFirstLastButtons'])) return false;
     return true;
 };
@@ -1856,7 +2064,7 @@ const isGenericTableRowActionConfig = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
     if (typeof value['id'] !== 'string' || value['id'].trim().length === 0) return false;
     if (typeof value['label'] !== 'string' || value['label'].trim().length === 0) return false;
-    const stringFields = ['ariaLabel', 'icon', 'classes', 'eventInstructions'] as const;
+    const stringFields = ['ariaLabel', 'icon', 'classes', 'hrefTemplate', 'eventInstructions'] as const;
     if (stringFields.some((field) => !isStringThunkFriendly(value[field]))) return false;
     if (value['disabled'] !== undefined && !isBooleanThunkFriendly(value['disabled'])) return false;
     if (value['loading'] !== undefined && !isBooleanThunkFriendly(value['loading'])) return false;
@@ -1874,9 +2082,11 @@ const isGenericTableConfig = (value: unknown): boolean => {
     if (value['selection'] !== undefined && !isGenericTableSelectionConfig(value['selection'])) return false;
     if (value['rowActions'] !== undefined && (!Array.isArray(value['rowActions']) || !value['rowActions'].every(isGenericTableRowActionConfig))) return false;
     if (value['eventPayloadFields'] !== undefined && !isStringArray(value['eventPayloadFields'])) return false;
+    if (value['actionButtonStyles'] !== undefined && !isStyleRecord(value['actionButtonStyles'])) return false;
 
-    const stringFields = ['id', 'label', 'description', 'rowIdPath', 'loadingText', 'error', 'errorText', 'emptyText', 'classes', 'labelClasses', 'descriptionClasses', 'tableWrapperClasses', 'tableClasses', 'headerCellClasses', 'rowClasses', 'actionCellClasses', 'actionButtonClasses', 'selectionCellClasses', 'stateClasses'] as const;
+    const stringFields = ['id', 'label', 'description', 'actionColumnLabel', 'rowIdPath', 'loadingText', 'error', 'errorText', 'emptyText', 'classes', 'labelClasses', 'descriptionClasses', 'tableWrapperClasses', 'tableClasses', 'headerCellClasses', 'rowClasses', 'actionCellClasses', 'actionButtonClasses', 'actionIconClasses', 'selectionCellClasses', 'stateClasses'] as const;
     if (stringFields.some((field) => !isStringThunkFriendly(value[field]))) return false;
+    if (value['actionLabelMode'] !== undefined && !ALLOWED_GENERIC_TABLE_ACTION_LABEL_MODES.has(String(value['actionLabelMode']))) return false;
 
     const booleanFields = ['sortable', 'emitOnRowClick', 'loading'] as const;
     if (booleanFields.some((field) => !isBooleanThunkFriendly(value[field]))) return false;
@@ -1892,6 +2102,7 @@ const isGenericFileDropzoneConfig = (value: unknown): boolean => {
     if (stringFields.some((field) => !isStringThunkFriendly(value[field]))) return false;
     if (value['maxFileSizeBytes'] !== undefined && !isNumberThunkFriendly(value['maxFileSizeBytes'])) return false;
     if (value['multiple'] !== undefined && !isBooleanThunkFriendly(value['multiple'])) return false;
+    if (value['required'] !== undefined && !isBooleanThunkFriendly(value['required'])) return false;
     if (value['disabled'] !== undefined && !isBooleanThunkFriendly(value['disabled'])) return false;
     if (value['loading'] !== undefined && !isBooleanThunkFriendly(value['loading'])) return false;
     return true;
@@ -2139,7 +2350,7 @@ const isTabGroupConfig = (value: unknown): boolean => {
 const isTooltipConfig = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
 
-    const stringFields = ['id', 'ariaDescription', 'surfaceClasses', 'arrowClasses', 'motionClasses'] as const;
+    const stringFields = ['id', 'for', 'content', 'ariaDescription', 'surfaceClasses', 'arrowClasses', 'motionClasses'] as const;
     if (stringFields.some((field) => value[field] !== undefined && typeof value[field] !== 'string')) return false;
 
     if (value['position'] !== undefined && !['top', 'bottom', 'left', 'right'].includes(String(value['position']))) return false;
@@ -2247,6 +2458,59 @@ const isInteractionScopeConfig = (value: unknown): boolean => {
     return true;
 };
 
+const isGenericComponentPreviewSource = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasOnlyKnownKeys(value, ALLOWED_GENERIC_COMPONENT_PREVIEW_SOURCE_KEYS)) return false;
+    if (!ALLOWED_GENERIC_COMPONENT_PREVIEW_SOURCE_TYPES.has(String(value['type'] ?? ''))) return false;
+    if (!hasNoUnsafePreviewKeysDeep(value['value'])) return false;
+    if (!hasNoUnsafePreviewKeysDeep(value['fallback'])) return false;
+
+    if (value['type'] === 'literal') {
+        if (value['path'] !== undefined && typeof value['path'] !== 'string') return false;
+        return true;
+    }
+
+    return typeof value['path'] === 'string' && value['path'].trim().length > 0;
+};
+
+const isGenericComponentPreviewAllowedTypes = (value: unknown): boolean =>
+    Array.isArray(value)
+    && value.length > 0
+    && value.every((entry) =>
+        typeof entry === 'string'
+        && ALLOWED_GENERIC_COMPONENT_PREVIEW_TYPES.has(entry)
+    );
+
+const isGenericComponentPreviewConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasOnlyKnownKeys(value, ALLOWED_GENERIC_COMPONENT_PREVIEW_CONFIG_KEYS)) return false;
+    if (!hasNoUnsafePreviewKeysDeep(value['value'])) return false;
+
+    const stringFields = [
+        'id',
+        'label',
+        'description',
+        'emptyText',
+        'invalidText',
+        'classes',
+        'labelClasses',
+        'descriptionClasses',
+        'stateClasses',
+        'previewClasses',
+    ] as const;
+    if (stringFields.some((field) => !isStringThunkFriendly(value[field]))) return false;
+
+    if (value['source'] !== undefined && !isGenericComponentPreviewSource(value['source'])) return false;
+    if (value['allowedTypes'] !== undefined && !isGenericComponentPreviewAllowedTypes(value['allowedTypes'])) return false;
+    if (value['maxComponents'] !== undefined) {
+        if (!isNumberThunkFriendly(value['maxComponents'])) return false;
+        const maxComponents = Number(value['maxComponents']);
+        if (!Number.isFinite(maxComponents) || maxComponents < 1 || maxComponents > 120) return false;
+    }
+
+    return true;
+};
+
 const isComponentPayloadRecord = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
     if (typeof value['id'] !== 'string' || value['id'].trim().length === 0) return false;
@@ -2265,6 +2529,10 @@ const isComponentPayloadRecord = (value: unknown): boolean => {
 
     if (value['type'] === 'generic-cell') {
         return isGenericCellConfig(value['config']);
+    }
+
+    if (value['type'] === 'generic-component-preview') {
+        return isGenericComponentPreviewConfig(value['config']);
     }
 
     if (value['type'] === 'generic-file-dropzone') {

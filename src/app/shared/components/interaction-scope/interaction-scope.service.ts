@@ -123,6 +123,15 @@ export const validateInteractionValue = (
             if (String(value) !== String(otherValue ?? '')) {
                 errors.push(rule.message ?? 'The values do not match.');
             }
+            return;
+        }
+
+        if (rule.type === 'json') {
+            try {
+                JSON.parse(String(value));
+            } catch {
+                errors.push(rule.message ?? 'The value must be valid JSON.');
+            }
         }
     });
 
@@ -253,6 +262,7 @@ export class InteractionScopeService {
         const currentStates = this.fieldStates();
         const existing = currentStates[fieldId];
         const initialValue = config.initialValue ?? this.initialValues()[fieldId] ?? DEFAULT_EMPTY_VALUE;
+        const nextValue = existing?.dirty ? existing.value : initialValue;
         const nextStates = this.rebuildFieldStates(
             {
                 ...currentStates,
@@ -263,12 +273,12 @@ export class InteractionScopeService {
                         errors: [],
                         valid: true,
                     }),
-                    value: existing?.value ?? initialValue,
+                    value: nextValue,
                 },
             },
             {
                 [fieldId]: {
-                    value: existing?.value ?? initialValue,
+                    value: nextValue,
                     definition: config,
                     previous: existing,
                 },

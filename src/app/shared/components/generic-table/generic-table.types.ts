@@ -28,6 +28,7 @@ export type TGenericTablePaginationConfig = {
   readonly pageSize?: TDynamicNumberValue;
   readonly pageSizeOptions?: readonly number[];
   readonly hidePageSize?: TDynamicBooleanValue;
+  readonly hideWhenSinglePage?: TDynamicBooleanValue;
   readonly showFirstLastButtons?: TDynamicBooleanValue;
 };
 
@@ -48,6 +49,7 @@ export type TGenericTableRowActionConfig = {
   readonly classes?: TDynamicStringValue;
   readonly disabled?: TDynamicBooleanValue;
   readonly loading?: TDynamicBooleanValue;
+  readonly hrefTemplate?: TDynamicStringValue;
   readonly eventInstructions?: TDynamicStringValue;
 };
 
@@ -55,6 +57,7 @@ export type TGenericTableConfig = {
   readonly id?: TDynamicStringValue;
   readonly label?: TDynamicStringValue;
   readonly description?: TDynamicStringValue;
+  readonly actionColumnLabel?: TDynamicStringValue;
   readonly rows?: readonly unknown[];
   readonly rowsSource?: TDynamicValue<TGenericTableRowsSource>;
   readonly columns: readonly TGenericCellColumnConfig[];
@@ -80,6 +83,9 @@ export type TGenericTableConfig = {
   readonly rowClasses?: TDynamicStringValue;
   readonly actionCellClasses?: TDynamicStringValue;
   readonly actionButtonClasses?: TDynamicStringValue;
+  readonly actionButtonStyles?: TDynamicValue<Readonly<Record<string, string | number | null>>>;
+  readonly actionIconClasses?: TDynamicStringValue;
+  readonly actionLabelMode?: TDynamicValue<'visible' | 'tooltip'>;
   readonly selectionCellClasses?: TDynamicStringValue;
   readonly stateClasses?: TDynamicStringValue;
 };
@@ -94,6 +100,7 @@ export type TGenericTableActionEvent = TGenericTableRowEvent & {
   readonly actionId: string;
   readonly label: string;
   readonly eventInstructions?: string;
+  readonly userGesture?: boolean;
 };
 
 export type TGenericTableSelectionEvent = {

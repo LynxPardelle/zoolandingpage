@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  REQUEST,
   computed,
   EventEmitter,
   inject,
@@ -8,20 +9,25 @@ import {
   Output,
   signal,
 } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { I18nService } from '../../services/i18n.service';
-import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
+import { DRAFT_RUNTIME_STICKY_QUERY_PARAMS } from '../../services/draft-runtime.service';
+import { resolveDynamicValue, resolveStyleRecord } from '../../utility/component-orchestrator.utility';
+import { navigateInCurrentWindow } from '../../utility/navigation/browser-navigation.utility';
+import { resolveNavigationTarget } from '../../utility/navigation/navigation-target.utility';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { GenericIconComponent } from '../generic-icon/generic-icon.component';
 import { TGenericCardAction, TGenericCardConfig } from './generic-card.types';
 
 @Component({
   selector: 'generic-card',
-  imports: [GenericButtonComponent, GenericIconComponent],
+  imports: [CommonModule, GenericButtonComponent, GenericIconComponent],
   templateUrl: './generic-card.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GenericCardComponent {
   private readonly i18n = inject(I18nService);
+  private readonly request = inject(REQUEST, { optional: true });
   private readonly _config = signal<TGenericCardConfig>({});
   readonly stars = signal<readonly number[]>([1, 2, 3, 4, 5]);
 
@@ -37,11 +43,13 @@ export class GenericCardComponent {
   @Output() readonly linkClicked = new EventEmitter<{
     href: string;
     eventInstructions?: string;
+    userGesture?: boolean;
   }>();
   @Output() readonly actionClicked = new EventEmitter<{
     label: string;
     index: number;
     eventInstructions?: string;
+    userGesture?: boolean;
   }>();
 
   readonly variant = computed(() =>
@@ -81,8 +89,15 @@ export class GenericCardComponent {
     ).trim()
   );
   readonly href = computed(() =>
-    String(resolveDynamicValue(this._config().href) ?? '').trim()
+    String(resolveDynamicValue(this._config().href ?? this._config().linkHref) ?? '').trim()
   );
+  readonly navigationTarget = computed(() =>
+    resolveNavigationTarget(this.href(), {
+      currentHref: this.currentRequestHref(),
+      stickyQueryParams: DRAFT_RUNTIME_STICKY_QUERY_PARAMS,
+    })
+  );
+  readonly linkHref = computed(() => this.navigationTarget().href);
   readonly linkLabel = computed(() =>
     String(resolveDynamicValue(this._config().linkLabel) ?? '').trim()
   );
@@ -91,13 +106,17 @@ export class GenericCardComponent {
       resolveDynamicValue(this._config().linkEventInstructions) ?? ''
     ).trim()
   );
+  readonly linkStyles = computed(() => resolveStyleRecord(this._config().linkStyles));
   readonly actions = computed<readonly TGenericCardAction[]>(() => {
     const value = resolveDynamicValue(this._config().actions);
     return Array.isArray(value) ? value : [];
   });
   readonly target = computed(
-    () =>
-      String(resolveDynamicValue(this._config().target) ?? '').trim() || null
+    () => {
+      const target = String(resolveDynamicValue(this._config().target) ?? '').trim();
+      if (target === '_blank' && this.navigationTarget().internal) return null;
+      return target || null;
+    }
   );
   readonly rel = computed(() =>
     String(
@@ -140,17 +159,29 @@ export class GenericCardComponent {
     return ['material-icons', classes].filter(Boolean).join(' ');
   };
 
+  private readonly currentRequestHref = (): string | undefined => {
+    const requestUrl = String(this.request?.url ?? '').trim();
+    return requestUrl || undefined;
+  };
+
   readonly onButtonPressed = (_event?: MouseEvent): void => {
     this._config().onCta?.(this.title());
   };
 
-  readonly onLinkClicked = (_event?: MouseEvent): void => {
-    const href = this.href();
+  readonly onLinkClicked = (event?: MouseEvent): void => {
+    const target = this.navigationTarget();
+    const href = target.href;
     if (!href) return;
+
+    if (target.internal) {
+      event?.preventDefault();
+      navigateInCurrentWindow(href);
+    }
 
     this.linkClicked.emit({
       href,
       eventInstructions: this.linkEventInstructions() || undefined,
+      ...(event?.isTrusted === true ? { userGesture: true } : {}),
     });
   };
 
@@ -208,6 +239,7 @@ export class GenericCardComponent {
       index,
       label: this.actionLabel(action),
       eventInstructions: this.actionEventInstructions(action),
+      ...(_event?.isTrusted === true ? { userGesture: true } : {}),
     });
   };
 }

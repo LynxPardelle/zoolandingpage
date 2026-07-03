@@ -402,6 +402,70 @@ describe('SeoMetadataService', () => {
         });
     });
 
+    it('keeps content hub tag filter routes noindex with their own clean canonical after hydration', () => {
+        TestBed.resetTestingModule();
+
+        title = jasmine.createSpyObj<Title>('Title', ['setTitle']);
+        meta = jasmine.createSpyObj<Meta>('Meta', ['updateTag', 'removeTag']);
+
+        const baseDoc = document.implementation.createHTMLDocument('seo');
+        const seoDoc = {
+            documentElement: baseDoc.documentElement,
+            head: baseDoc.head,
+            createElement: baseDoc.createElement.bind(baseDoc),
+            defaultView: {
+                location: {
+                    origin: 'https://zoositioweb.com.mx',
+                    pathname: '/blog/tag/seo',
+                    search: '?draftDomain=zoositioweb.com.mx&lang=es',
+                },
+            },
+        } as unknown as Document;
+
+        TestBed.configureTestingModule({
+            providers: [
+                SeoMetadataService,
+                { provide: DOCUMENT, useValue: seoDoc },
+                { provide: Title, useValue: title },
+                { provide: Meta, useValue: meta },
+                {
+                    provide: DomainResolverService,
+                    useValue: {
+                        resolveDomain: () => ({ domain: 'zoositioweb.com.mx' }),
+                    },
+                },
+                {
+                    provide: RuntimeConfigService,
+                    useValue: {
+                        seoDefaults: () => ({
+                            siteName: 'zoositioweb',
+                            canonicalOrigin: 'https://zoositioweb.com.mx',
+                            enforceCanonicalHost: true,
+                            robots: 'index,follow,max-image-preview:large',
+                        }),
+                        appName: () => 'zoositioweb',
+                        appDescription: () => 'Sitios web medibles.',
+                    },
+                },
+            ],
+        });
+
+        service = TestBed.inject(SeoMetadataService);
+        service.apply('es', {
+            title: 'Categoría web',
+            description: 'Filtro de blog.',
+            canonical: 'https://zoositioweb.com.mx/blog/web',
+            robots: 'index,follow',
+        } as never);
+
+        expect(meta.updateTag).toHaveBeenCalledWith({
+            name: 'robots',
+            content: 'noindex,nofollow',
+        });
+        expect(seoDoc.head.querySelector('link[rel="canonical"]')?.getAttribute('href'))
+            .toBe('https://zoositioweb.com.mx/blog/tag/seo');
+    });
+
     it('falls back to site-config keywords and robots when the page omits them', () => {
         TestBed.resetTestingModule();
 

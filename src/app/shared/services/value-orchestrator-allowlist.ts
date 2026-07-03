@@ -7,6 +7,8 @@ export const DEFAULT_ALLOWED_VALUE_IDS = [
     'literal',
     'queryParam',
     'queryParamOr',
+    'routeParam',
+    'routeParamOr',
     'concat',
     'json',
     'classJoin',
@@ -14,6 +16,7 @@ export const DEFAULT_ALLOWED_VALUE_IDS = [
     'coalesce',
     'upper',
     'lower',
+    'joinText',
     'language',
     'languageLabel',
     'langPick',
@@ -23,6 +26,10 @@ export const DEFAULT_ALLOWED_VALUE_IDS = [
     'scopeOr',
     'var',
     'varOr',
+    'jsonVarOr',
+    'richTextTextOr',
+    'richTextHtmlOr',
+    'supportIdOr',
 ] as const;
 
 /**

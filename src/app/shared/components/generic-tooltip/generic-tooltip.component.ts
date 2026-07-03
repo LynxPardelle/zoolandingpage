@@ -2,11 +2,14 @@ import { OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
 import { CommonModule } from '@angular/common';
 import {
+  AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   ElementRef,
   Input,
+  Injector,
   TemplateRef,
+  ViewChild,
   ViewContainerRef,
   computed,
   inject,
@@ -23,18 +26,32 @@ import { TooltipConfig, TooltipPosition } from './generic-tooltip.types';
   styleUrls: ['./generic-tooltip.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class GenericTooltipComponent {
-  private readonly pos = inject(OverlayPositioningService);
+export class GenericTooltipComponent implements AfterViewInit {
   private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly injector = inject(Injector);
   private readonly vcr = inject(ViewContainerRef);
   private overlayRef: OverlayRef | null = null;
-  @Input() for?: HTMLElement | string; // anchor element or id
+  private anchorRef?: HTMLElement | string;
+  private boundAnchor: HTMLElement | null = null;
+
+  @Input('for')
+  set forInput(value: HTMLElement | string | undefined) {
+    this.anchorRef = value;
+    this.bindToAnchor();
+  }
+
+  @Input()
+  set anchorFor(value: HTMLElement | string | undefined) {
+    this.anchorRef = value;
+    this.bindToAnchor();
+  }
 
   readonly config = input<TooltipConfig | null>(null);
   readonly visible = signal(false);
   readonly content = input<string>('');
   @Input() arrow = true;
   @Input() richTemplate?: TemplateRef<unknown>; // optional ng-template for rich content
+  @ViewChild('tooltipTpl', { static: true }) tooltipTpl!: TemplateRef<unknown>;
   private showTimer: ReturnType<typeof setTimeout> | null = null;
   private hideTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -45,9 +62,27 @@ export class GenericTooltipComponent {
   readonly arrowClasses = computed(() => this.config()?.arrowClasses || '');
 
   ngOnInit(): void {
+    this.bindToAnchor();
+  }
+
+  ngAfterViewInit(): void {
+    queueMicrotask(() => this.bindToAnchor());
+  }
+
+  ngOnDestroy(): void {
+    this.clearTimers();
+    this.destroyOverlay();
+    this.unbindAnchor();
+  }
+
+  private bindToAnchor(): void {
+    if (typeof document === 'undefined') return;
     const trigger = this.resolveTrigger();
     const anchor = this.resolveAnchor();
     if (!anchor) return;
+    if (this.boundAnchor === anchor) return;
+
+    this.unbindAnchor();
     if (trigger !== 'focus') {
       anchor.addEventListener('mouseenter', this.scheduleShow);
       anchor.addEventListener('mouseleave', this.scheduleHide);
@@ -57,26 +92,25 @@ export class GenericTooltipComponent {
       anchor.addEventListener('blur', this.scheduleHide);
     }
     anchor.setAttribute('aria-describedby', this.id());
+    this.boundAnchor = anchor;
   }
-  ngOnDestroy(): void {
-    this.clearTimers();
-    this.destroyOverlay();
-    const anchor = this.resolveAnchor();
-    if (anchor) {
-      anchor.removeAttribute('aria-describedby');
-      anchor.removeEventListener('mouseenter', this.scheduleShow);
-      anchor.removeEventListener('mouseleave', this.scheduleHide);
-      anchor.removeEventListener('focus', this.scheduleShow);
-      anchor.removeEventListener('blur', this.scheduleHide);
-    }
+
+  private unbindAnchor(): void {
+    if (!this.boundAnchor) return;
+    this.boundAnchor.removeAttribute('aria-describedby');
+    this.boundAnchor.removeEventListener('mouseenter', this.scheduleShow);
+    this.boundAnchor.removeEventListener('mouseleave', this.scheduleHide);
+    this.boundAnchor.removeEventListener('focus', this.scheduleShow);
+    this.boundAnchor.removeEventListener('blur', this.scheduleHide);
+    this.boundAnchor = null;
   }
 
   private resolveTrigger(): 'hover' | 'focus' | 'both' {
     return this.config()?.trigger || 'both';
   }
   private resolveAnchor(): HTMLElement | null {
-    if (this.for instanceof HTMLElement) return this.for;
-    if (typeof this.for === 'string') return document.getElementById(this.for) as HTMLElement;
+    if (this.anchorRef instanceof HTMLElement) return this.anchorRef;
+    if (typeof this.anchorRef === 'string') return document.getElementById(this.anchorRef) as HTMLElement;
     return this.host.nativeElement.parentElement; // fallback: wrapper pattern
   }
   private scheduleShow = () => {
@@ -100,12 +134,13 @@ export class GenericTooltipComponent {
     }
   }
   show(): void {
+    if (typeof document === 'undefined' || typeof window === 'undefined') return;
     if (this.visible() || !this.content()) return;
     const anchor = this.resolveAnchor();
     if (!anchor) return;
     const position = this.config()?.position || 'top';
     const positions = this.buildPositions(position);
-    this.overlayRef = this.pos.createConnected(new ElementRef(anchor), {
+    this.overlayRef = this.injector.get(OverlayPositioningService).createConnected(new ElementRef(anchor), {
       hasBackdrop: false,
       backdropClass: 'cdk-overlay-transparent-backdrop',
       positions,
@@ -127,6 +162,7 @@ export class GenericTooltipComponent {
       this.overlayRef.dispose();
       this.overlayRef = null;
     }
+    if (typeof window === 'undefined') return;
     window.removeEventListener('scroll', this.onViewportChange, true);
     window.removeEventListener('resize', this.onViewportChange, true);
   }
@@ -170,6 +206,4 @@ export class GenericTooltipComponent {
       this.overlayRef.updatePosition();
     }
   }
-
-  @Input('tooltipTpl') tooltipTpl!: TemplateRef<unknown>; // template reference
 }

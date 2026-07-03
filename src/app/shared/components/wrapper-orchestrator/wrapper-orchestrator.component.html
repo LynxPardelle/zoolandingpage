@@ -69,11 +69,15 @@
   </generic-dropdown>
 } @placeholder {
   <span aria-hidden="true"></span>
+} @error {
+  <span aria-hidden="true"></span>
 }
 } @case('embed-frame') {
 @defer (on viewport) {
   <generic-embed-frame [config]="$any(embedFrameConfig(component))"></generic-embed-frame>
 } @placeholder {
+  <span aria-hidden="true"></span>
+} @error {
   <span aria-hidden="true"></span>
 }
 } @case('generic-card') {
@@ -85,7 +89,8 @@
       meta_title: component.meta_title,
       eventName: 'linkClicked',
       eventData: $event.href,
-      eventInstructions: $event.eventInstructions || component.eventInstructions
+      eventInstructions: $event.eventInstructions || component.eventInstructions,
+      userGesture: $event.userGesture
     })
   "
   (actionClicked)="
@@ -94,7 +99,8 @@
       meta_title: component.meta_title,
       eventName: 'actionClicked',
       eventData: $event.label,
-      eventInstructions: $event.eventInstructions || component.eventInstructions
+      eventInstructions: $event.eventInstructions || component.eventInstructions,
+      userGesture: $event.userGesture
     })
   "
 ></generic-card>
@@ -106,6 +112,12 @@
   [value]="resolveValue(component.config.value)"
   [hostContext]="effectiveHost()"
 ></generic-cell>
+} @case('generic-component-preview') {
+<generic-component-preview
+  [config]="$any(genericComponentPreviewConfig(component))"
+  [hostContext]="effectiveHost()"
+  [componentId]="component.id"
+></generic-component-preview>
 } @case('generic-file-dropzone') {
 <generic-file-dropzone
   [config]="$any(genericFileDropzoneConfig(component))"
@@ -153,6 +165,8 @@
   ></generic-rich-text>
 } @placeholder {
   <span aria-hidden="true"></span>
+} @error {
+  <span aria-hidden="true"></span>
 }
 } @case('generic-table') {
 @defer (on viewport) {
@@ -174,7 +188,8 @@
         meta_title: component.meta_title,
         eventName: 'rowAction',
         eventData: $event,
-        eventInstructions: component.eventInstructions
+        eventInstructions: $event.eventInstructions || component.eventInstructions,
+        userGesture: $event.userGesture
       })
     "
     (selectionChanged)="
@@ -188,6 +203,8 @@
     "
   ></generic-table>
 } @placeholder {
+  <span aria-hidden="true"></span>
+} @error {
   <span aria-hidden="true"></span>
 }
 } @case('input') {
@@ -235,6 +252,8 @@
   ></generic-search-box>
 } @placeholder {
   <span aria-hidden="true"></span>
+} @error {
+  <span aria-hidden="true"></span>
 }
 } @case('stats-counter') {
 <generic-stats-counter [config]="resolveStatsCounterConfig(component.config)"></generic-stats-counter>
@@ -268,7 +287,8 @@
       meta_title: component.meta_title,
       eventName: 'clicked',
       eventData: resolveValue(component.config.href),
-      eventInstructions: component.eventInstructions
+      eventInstructions: component.eventInstructions,
+      userGesture: $event.isTrusted
     })
   "
 >
@@ -303,6 +323,12 @@
     [ngTemplateOutletContext]="{ $implicit: component }"
   ></ng-container>
 </generic-text>
+} @case('tooltip') {
+<generic-tooltip
+  [anchorFor]="$any(tooltipConfig(component)).for"
+  [content]="tooltipContent(component)"
+  [config]="$any(tooltipConfig(component))"
+></generic-tooltip>
 } @default {
 <span>{{ unknownComponentLabel(component.type) }}</span>
 } } } }

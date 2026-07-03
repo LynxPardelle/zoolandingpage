@@ -8,6 +8,7 @@ export type ComponentEvent = {
     eventName: string;
     eventData?: unknown;
     eventInstructions?: string;
+    userGesture?: boolean;
 };
 
 export type ComponentEventDispatchContext = {
@@ -28,14 +29,6 @@ export class ComponentEventDispatcherService {
     private readonly allowedEventIds = inject(ALLOWED_EVENT_IDS);
 
     dispatch(ctx: ComponentEventDispatchContext, options: ComponentEventDispatchOptions): void {
-        const { event } = ctx;
-        console.log(
-            `Event "${ event.eventName }" triggered from component with id "${ event.componentId }" with the following data: `,
-            event.eventData,
-            ' // and the following instructions: ',
-            event.eventInstructions,
-        );
-
         this.eventOrchestrator.execute(ctx, {
             allowedActions: options.allowedActions ?? this.allowedEventIds,
             fallback: options.fallback,

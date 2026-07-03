@@ -37,6 +37,39 @@ describe('GenericInputComponent', () => {
         );
     });
 
+    it('renders as a full-width block grid item for responsive draft forms', () => {
+        const fixture = TestBed.createComponent(GenericInputComponent);
+
+        fixture.componentRef.setInput('config', {
+            fieldId: 'articleTitle',
+            controlType: 'text',
+            value: 'Draft title',
+        });
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        expect(host.style.display).toBe('block');
+        expect(host.style.width).toBe('100%');
+        expect(host.style.minWidth).toBe('0px');
+        expect(host.style.boxSizing).toBe('border-box');
+    });
+
+    it('supports native local date-time inputs for schedulers', () => {
+        const fixture = TestBed.createComponent(GenericInputComponent);
+
+        fixture.componentRef.setInput('config', {
+            fieldId: 'publishAt',
+            controlType: 'text',
+            inputType: 'datetime-local',
+            value: '2026-06-24T09:00',
+        });
+        fixture.detectChanges();
+
+        const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+        expect(input.type).toBe('datetime-local');
+        expect(input.value).toBe('2026-06-24T09:00');
+    });
+
     it('writes values into the nearest interaction scope', () => {
         const scope = TestBed.inject(InteractionScopeService);
         scope.configure({ scopeId: 'leadForm' });
@@ -199,6 +232,32 @@ describe('GenericInputComponent', () => {
         expect(items.every((item) => item.classList.contains('isValid'))).toBeTrue();
     });
 
+    it('can validate JSON textareas continuously for advanced editors', () => {
+        const fixture = TestBed.createComponent(GenericInputComponent);
+
+        fixture.componentRef.setInput('config', {
+            fieldId: 'componentTreeJson',
+            controlType: 'textarea',
+            value: '{"type":"container","config":{}}',
+            showValidationChecklist: true,
+            validation: [
+                { type: 'json', message: 'Escribe JSON válido.' },
+            ],
+        });
+        fixture.detectChanges();
+
+        const textarea = fixture.nativeElement.querySelector('textarea') as HTMLTextAreaElement;
+        const checklist = fixture.nativeElement.querySelector('ul') as HTMLUListElement;
+        expect(checklist.textContent).toContain('Escribe JSON válido.');
+        expect(checklist.querySelector('li')?.getAttribute('data-valid')).toBe('true');
+
+        textarea.value = '{"type":';
+        textarea.dispatchEvent(new Event('input'));
+        fixture.detectChanges();
+
+        expect(checklist.querySelector('li')?.getAttribute('data-valid')).toBe('false');
+    });
+
     it('updates text field validation from deferred beforeinput fallback events', async () => {
         const fixture = TestBed.createComponent(GenericInputComponent);
 
@@ -322,6 +381,35 @@ describe('GenericInputComponent', () => {
         expect(component.selectedOptionLabel()).toBe('Thunder Shock');
     });
 
+    it('reacts when autocomplete option sources are populated after first render', () => {
+        const variables = TestBed.inject(VariableStoreService);
+        variables.clearRuntimeValues();
+
+        const fixture = TestBed.createComponent(GenericInputComponent);
+        const component = fixture.componentInstance;
+
+        fixture.componentRef.setInput('config', {
+            fieldId: 'articleTags',
+            controlType: 'text',
+            value: '',
+            autocompleteMinLength: 1,
+            autocompleteOptions: {
+                source: 'var',
+                path: 'remote.contentHub.tags.items',
+                fallback: [{ value: 'seo', label: 'seo' }],
+            },
+        });
+        fixture.detectChanges();
+
+        variables.setRuntimeValue('remote.contentHub.tags.items', [
+            { value: 'content-hub', label: 'content-hub' },
+            { value: 'blog-builder', label: 'blog-builder' },
+        ]);
+        fixture.detectChanges();
+
+        expect(component.autocompleteOptions().map((option) => option.value)).toEqual(['content-hub', 'blog-builder']);
+    });
+
     it('renders a switch control and coerces string booleans safely', () => {
         const fixture = TestBed.createComponent(GenericInputComponent);
         const component = fixture.componentInstance;
@@ -382,6 +470,26 @@ describe('GenericInputComponent', () => {
         expect(fixture.nativeElement.textContent).toContain('v');
         expect(fixture.nativeElement.querySelector('.selectTrigger')).toBeTruthy();
         expect(fixture.nativeElement.querySelector('.selectIndicator')).toBeTruthy();
+    });
+
+    it('matches select options when numeric value instructions resolve string options to numbers', () => {
+        const fixture = TestBed.createComponent(GenericInputComponent);
+        const component = fixture.componentInstance;
+
+        fixture.componentRef.setInput('config', {
+            fieldId: 'pageSize',
+            controlType: 'select',
+            value: 10,
+            options: [
+                { value: '3', label: '3' },
+                { value: '5', label: '5' },
+                { value: '10', label: '10' },
+            ],
+        });
+        fixture.detectChanges();
+
+        expect(component.selectedOptionLabel()).toBe('10');
+        expect(component.dropdownConfig().selectedItemId).toBe('10');
     });
 
     it('updates select-like controls through the generic dropdown adapter', () => {

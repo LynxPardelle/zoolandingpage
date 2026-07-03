@@ -13,6 +13,7 @@ test('components schema documents scoped auth form validation controls', async (
   assert.equal(input.properties.showValidationChecklist.type, 'boolean');
   assert.equal(input.properties.validationChecklistClasses.type, 'string');
   assert.equal(input.properties.validationChecklistValidIcon.type, 'string');
+  assert.ok(input.properties.inputType.enum.includes('datetime-local'));
 
   assert.equal(button.properties.loading.type, 'boolean');
   assert.equal(button.properties.loadingLabel.type, 'string');
@@ -28,8 +29,13 @@ test('components schema documents generic content-builder primitives', async () 
   const schema = JSON.parse(await readFile(componentsSchemaPath, 'utf8'));
 
   assert.equal(schema.definitions?.genericTableConfig.required.includes('columns'), true);
+  assert.equal(schema.definitions?.genericTableConfig.properties.actionColumnLabel.type, 'string');
+  assert.equal(schema.definitions?.genericTableConfig.properties.actionIconClasses.type, 'string');
+  assert.ok(schema.definitions?.genericTableConfig.properties.actionLabelMode.enum.includes('tooltip'));
   assert.equal(schema.definitions?.genericTableConfig.properties.eventPayloadFields.items.type, 'string');
   assert.equal(schema.definitions?.genericTableConfig.properties.rowActions.items.additionalProperties, false);
+  assert.equal(schema.definitions?.genericTableConfig.properties.rowActions.items.properties.hrefTemplate.type, 'string');
+  assert.equal(schema.definitions?.genericTableConfig.properties.pagination.properties.hideWhenSinglePage.type, 'boolean');
   assert.equal(schema.definitions?.genericCellConfig.properties.componentIds.items.type, 'string');
   assert.equal(schema.definitions?.genericRichTextConfig.properties.provider.enum.includes('quill'), true);
   assert.equal(schema.definitions?.genericRichTextConfig.properties.format.enum.includes('quill-delta-json'), true);

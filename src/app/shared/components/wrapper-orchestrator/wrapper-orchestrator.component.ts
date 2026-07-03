@@ -13,6 +13,7 @@ import { GenericAccordionComponent } from '../generic-accordion';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { GenericCardComponent } from '../generic-card';
 import { GenericCellComponent } from '../generic-cell/generic-cell.component';
+import { GenericComponentPreviewComponent } from '../generic-component-preview/generic-component-preview.component';
 import { GenericContainerComponent } from '../generic-container/generic-container';
 import { GenericDropdown } from '../generic-dropdown';
 import { GenericEmbedFrameComponent } from '../generic-embed-frame/generic-embed-frame.component';
@@ -33,6 +34,7 @@ import type { TGenericStatsCounterConfig } from '../generic-stats-counter/generi
 import { GenericTabGroupComponent } from '../generic-tab-group/generic-tab-group.component';
 import { GenericTableComponent } from '../generic-table/generic-table.component';
 import { GenericTextComponent } from '../generic-text/generic-text';
+import { GenericTooltipComponent } from '../generic-tooltip/generic-tooltip.component';
 import { InteractionScopeComponent } from '../interaction-scope/interaction-scope.component';
 import { findInteractionScopeHost } from '../interaction-scope/interaction-scope.service';
 import type { TGenericCellColumnConfig } from '../generic-cell/generic-cell.types';
@@ -57,6 +59,7 @@ import type { TGenericComponent } from './wrapper-orchestrator.types';
     GenericButtonComponent,
     GenericCardComponent,
     GenericCellComponent,
+    GenericComponentPreviewComponent,
     GenericContainerComponent,
     GenericDropdown,
     GenericEmbedFrameComponent,
@@ -75,6 +78,7 @@ import type { TGenericComponent } from './wrapper-orchestrator.types';
     GenericRichTextComponent,
     GenericTabGroupComponent,
     GenericTableComponent,
+    GenericTooltipComponent,
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './wrapper-orchestrator.component.html',
@@ -129,6 +133,14 @@ export class WrapperOrchestrator {
 
   resolveValue(value: unknown): unknown {
     return resolveDynamicValue(value as never);
+  }
+
+  resolveEventInstructions(value: unknown): string | undefined {
+    const resolved = this.resolveValue(value);
+    const normalized = typeof resolved === 'string'
+      ? resolved.trim()
+      : String(resolved ?? '').trim();
+    return normalized || undefined;
   }
 
   private withResolvedDomId<TConfig>(
@@ -239,6 +251,16 @@ export class WrapperOrchestrator {
     );
   }
 
+  genericComponentPreviewConfig(
+    component: Extract<TGenericComponent, { type: 'generic-component-preview' }>
+  ): Extract<TGenericComponent, { type: 'generic-component-preview' }>['config'] {
+    return this.withResolvedDomId(
+      component.id,
+      component.type,
+      component.config
+    );
+  }
+
   genericCellColumnConfig(
     component: Extract<TGenericComponent, { type: 'generic-cell' }>
   ): TGenericCellColumnConfig {
@@ -328,6 +350,21 @@ export class WrapperOrchestrator {
     );
   }
 
+  tooltipConfig(
+    component: Extract<TGenericComponent, { type: 'tooltip' }>
+  ): Extract<TGenericComponent, { type: 'tooltip' }>['config'] {
+    return this.withResolvedDomId(
+      component.id,
+      component.type,
+      component.config
+    );
+  }
+
+  tooltipContent(component: Extract<TGenericComponent, { type: 'tooltip' }>): string {
+    const resolved = this.resolveValue(this.tooltipConfig(component).content);
+    return resolved == null ? '' : String(resolved);
+  }
+
   resolveSearchConfig(config: unknown): SearchBoxConfig | null {
     const resolved = this.resolveValue(config);
     if (!resolved || typeof resolved !== 'object') {
@@ -373,14 +410,17 @@ export class WrapperOrchestrator {
     meta_title?: string;
     eventName: string;
     eventData?: unknown;
-    eventInstructions?: string;
+    eventInstructions?: unknown;
+    userGesture?: unknown;
   }) {
+    const userGesture = event.userGesture === true || this.isTrustedDomEvent(event.eventData);
     const dispatchedEvent = {
       componentId: event.component,
       meta_title: event.meta_title,
       eventName: event.eventName,
       eventData: event.eventData,
-      eventInstructions: event.eventInstructions,
+      eventInstructions: this.resolveEventInstructions(event.eventInstructions),
+      ...(userGesture ? { userGesture: true } : {}),
     };
 
     this._configurationsOrchestratorService.handleComponentEvent(
@@ -400,5 +440,9 @@ export class WrapperOrchestrator {
     return `${this.i18n.t('ui.debugPanel.unknownComponentPrefix')}: ${String(
       type ?? ''
     )}`;
+  }
+
+  private isTrustedDomEvent(value: unknown): boolean {
+    return typeof Event !== 'undefined' && value instanceof Event && value.isTrusted === true;
   }
 }

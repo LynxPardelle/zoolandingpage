@@ -1,6 +1,7 @@
 import { PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import type { TComponentPayloadEntry, TComponentsPayload } from '../types/config-payloads.types';
+import type { TContentHubRuntimeArticleSummary } from '../types/content-hub.types';
+import type { TComponentPayloadEntry, TComponentsPayload, TDraftSiteConfigPayload } from '../types/config-payloads.types';
 import { ConfigBootstrapService } from './config-bootstrap.service';
 import { ConfigSourceService } from './config-source.service';
 import { ConfigStoreService } from './config-store.service';
@@ -83,6 +84,7 @@ describe('ConfigBootstrapService', () => {
     let i18n: jasmine.SpyObj<I18nService>;
     let language: jasmine.SpyObj<LanguageService>;
     let store: ConfigStoreService;
+    let variableStore: VariableStoreService;
 
     beforeEach(() => {
         source = jasmine.createSpyObj<ConfigSourceService>('ConfigSourceService', [
@@ -140,6 +142,151 @@ describe('ConfigBootstrapService', () => {
 
         service = TestBed.inject(ConfigBootstrapService);
         store = TestBed.inject(ConfigStoreService);
+        variableStore = TestBed.inject(VariableStoreService);
+    });
+
+    const mockSuccessfulBootstrapPayloads = () => {
+        source.loadPageConfig.and.resolveTo({
+            version: 1,
+            pageId: 'blog',
+            domain: 'zoolandingpage.com.mx',
+            rootIds: ['blogRoot'],
+            modalRootIds: [],
+        });
+        source.loadComponents.and.resolveTo(createComponentsPayload({
+            blogRoot: {
+                id: 'blogRoot',
+                type: 'container',
+                config: { tag: 'main', components: [] },
+            },
+        }));
+        source.loadVariables.and.resolveTo({
+            version: 1,
+            pageId: 'blog',
+            domain: 'zoolandingpage.com.mx',
+            variables: {},
+        });
+        source.loadCombos.and.resolveTo(null);
+        source.loadI18n.and.resolveTo({
+            version: 1,
+            pageId: 'blog',
+            domain: 'zoolandingpage.com.mx',
+            lang: 'es',
+            dictionary: {},
+        });
+    };
+
+    const createContentHubSiteConfig = (): TDraftSiteConfigPayload => ({
+        ...createSiteConfig(),
+        site: {
+            ...createSiteConfig().site,
+            seo: {
+                canonicalOrigin: 'https://zoositioweb.com.mx',
+                siteName: 'zoositioweb',
+                defaultImage: 'https://assets.zoolandingpage.com.mx/zoolandingpage.com.mx/shared/seo-images/zoolandingpage-zoositioweb-default-logo-card.jpg',
+            },
+        },
+        runtime: {
+            contentHubs: [
+                {
+                    hubId: 'zoosite-main',
+                    ownerDraftDomain: 'zoositioweb.com.mx',
+                    source: 'primary',
+                    routeBasePath: '/blog',
+                    listPath: '/blog',
+                    articlePathPattern: '/blog/:categorySlug/:articleSlug',
+                    defaultLocale: 'es',
+                    locales: ['es', 'en'],
+                    canonicalMode: 'host-adaptive',
+                    publicArticles: [
+                        {
+                            articleId: 'art_web',
+                            locale: 'es',
+                            status: 'published',
+                            title: 'Web Article',
+                            summary: 'Article summary for SEO',
+                            path: '/blog/web/blog-builder-seo',
+                            categorySlug: 'web',
+                            tags: ['seo', 'builder'],
+                            publishedAt: '2026-06-27T12:00:00.000Z',
+                            updatedAt: '2026-06-28T12:00:00.000Z',
+                            canonicalPath: '/blog/web/blog-builder-seo',
+                            robots: 'index,follow',
+                            authorLabel: 'Zoosite editorial',
+                        },
+                        {
+                            articleId: 'art_news',
+                            locale: 'es',
+                            status: 'published',
+                            title: 'News Article',
+                            path: '/blog/noticias/release-note',
+                            categorySlug: 'noticias',
+                            tags: ['release'],
+                            publishedAt: '2026-06-27T13:00:00.000Z',
+                        },
+                        {
+                            articleId: 'art_web_en',
+                            locale: 'en',
+                            status: 'published',
+                            title: 'English Web Article',
+                            path: '/blog/web/english-builder',
+                            categorySlug: 'web',
+                            tags: ['seo'],
+                            publishedAt: '2026-06-27T13:30:00.000Z',
+                        },
+                        {
+                            articleId: 'art_private',
+                            locale: 'es',
+                            status: 'published',
+                            visibility: 'private',
+                            title: 'Private Article',
+                            path: '/blog/web/private-note',
+                            categorySlug: 'web',
+                            tags: ['private'],
+                            publishedAt: '2026-06-27T14:00:00.000Z',
+                        } as TContentHubRuntimeArticleSummary & { readonly visibility: 'private' },
+                    ],
+                    publicTaxonomy: [
+                        {
+                            taxonomyId: 'cat_web',
+                            kind: 'category',
+                            slug: 'web',
+                            label: 'Web',
+                            locale: 'es',
+                            visible: true,
+                            path: '/blog/web',
+                        },
+                        {
+                            taxonomyId: 'cat_web_en',
+                            kind: 'category',
+                            slug: 'web',
+                            label: 'Web EN',
+                            locale: 'en',
+                            visible: true,
+                            path: '/blog/web',
+                        },
+                        {
+                            taxonomyId: 'tag_seo',
+                            kind: 'tag',
+                            slug: 'seo',
+                            label: 'SEO',
+                            locale: 'es',
+                            visible: true,
+                            path: '/blog/tag/seo',
+                        },
+                        {
+                            taxonomyId: 'tag_seo_en',
+                            kind: 'tag',
+                            slug: 'seo',
+                            label: 'SEO EN',
+                            locale: 'en',
+                            visible: true,
+                            path: '/blog/tag/seo',
+                        },
+                    ],
+                },
+            ],
+        },
     });
 
     it('does not block bootstrap completion on the fallback language prefetch', async () => {
@@ -205,7 +352,7 @@ describe('ConfigBootstrapService', () => {
             pageId: 'default',
         }));
 
-        expect(source.loadI18n.calls.allArgs()).toEqual([
+        expect(source.loadI18n.calls.allArgs().map((args) => args.slice(0, 3))).toEqual([
             ['zoolandingpage.com.mx', 'default', 'es'],
         ]);
         expect(setTimeoutSpy).toHaveBeenCalled();
@@ -215,7 +362,7 @@ describe('ConfigBootstrapService', () => {
         });
 
         scheduledFallback();
-        expect(source.loadI18n.calls.allArgs()).toEqual([
+        expect(source.loadI18n.calls.allArgs().map((args) => args.slice(0, 3))).toEqual([
             ['zoolandingpage.com.mx', 'default', 'es'],
             ['zoolandingpage.com.mx', 'default', 'en'],
         ]);
@@ -233,6 +380,145 @@ describe('ConfigBootstrapService', () => {
             cache: true,
             applyIfCurrent: false,
         });
+    });
+
+    it('hydrates content hub runtime variables and filters category routes', async () => {
+        store.setSiteConfig(createContentHubSiteConfig());
+        mockSuccessfulBootstrapPayloads();
+
+        await service.load({
+            domain: 'zoolandingpage.com.mx',
+            pageId: 'blog-category',
+            lang: 'es',
+            routePath: '/blog/web',
+            routeParams: {
+                categorySlug: 'web',
+            },
+        });
+
+        expect(variableStore.get('contentHub.publicArticles.items')).toEqual([
+            jasmine.objectContaining({
+                articleId: 'art_web',
+                title: 'Web Article',
+            }),
+        ]);
+        expect(variableStore.get('contentHub.publicArticles.items')).not.toContain(jasmine.objectContaining({
+            articleId: 'art_private',
+        }));
+        expect(variableStore.get('contentHub.categories.items')).toEqual([
+            jasmine.objectContaining({
+                taxonomyId: 'cat_web',
+                slug: 'web',
+            }),
+        ]);
+        expect(variableStore.get('contentHub.tags.items')).toEqual([
+            jasmine.objectContaining({
+                taxonomyId: 'tag_seo',
+                slug: 'seo',
+            }),
+        ]);
+    });
+
+    it('sets the current content hub article from article routes', async () => {
+        store.setSiteConfig(createContentHubSiteConfig());
+        mockSuccessfulBootstrapPayloads();
+
+        await service.load({
+            domain: 'zoolandingpage.com.mx',
+            pageId: 'blog-article',
+            lang: 'es',
+            routePath: '/blog/web/blog-builder-seo',
+            routeParams: {
+                categorySlug: 'web',
+                articleSlug: 'blog-builder-seo',
+            },
+        });
+
+        expect(variableStore.get('contentHub.currentArticle')).toEqual(jasmine.objectContaining({
+            articleId: 'art_web',
+            title: 'Web Article',
+            categorySlug: 'web',
+        }));
+    });
+
+    it('uses the current content hub article for client-side seo and structured data', async () => {
+        store.setSiteConfig(createContentHubSiteConfig());
+        mockSuccessfulBootstrapPayloads();
+        source.loadPageConfig.and.resolveTo({
+            version: 1,
+            pageId: 'blog-article',
+            domain: 'zoolandingpage.com.mx',
+            rootIds: ['blogRoot'],
+            modalRootIds: [],
+            seo: {
+                title: 'Generic blog article',
+                description: 'Generic article description',
+                canonical: '/blog',
+            },
+            structuredData: {
+                entries: [{ '@context': 'https://schema.org', '@type': 'WebPage' }],
+            },
+        });
+
+        await service.load({
+            domain: 'zoolandingpage.com.mx',
+            pageId: 'blog-article',
+            lang: 'es',
+            routePath: '/blog/web/blog-builder-seo',
+            routeParams: {
+                categorySlug: 'web',
+                articleSlug: 'blog-builder-seo',
+            },
+        });
+
+        expect(store.seo()).toEqual(jasmine.objectContaining({
+            title: 'Web Article',
+            description: 'Article summary for SEO',
+            canonical: 'https://zoositioweb.com.mx/blog/web/blog-builder-seo',
+            robots: 'index,follow',
+            keywords: ['seo', 'builder'],
+            openGraph: jasmine.objectContaining({
+                type: 'article',
+                title: 'Web Article',
+                description: 'Article summary for SEO',
+                url: 'https://zoositioweb.com.mx/blog/web/blog-builder-seo',
+                image: 'https://assets.zoolandingpage.com.mx/zoolandingpage.com.mx/shared/seo-images/zoolandingpage-zoositioweb-default-logo-card.jpg',
+            }),
+        }));
+        expect(store.structuredData()?.entries).toContain(jasmine.objectContaining({
+            '@type': 'BlogPosting',
+            headline: 'Web Article',
+            description: 'Article summary for SEO',
+            url: 'https://zoositioweb.com.mx/blog/web/blog-builder-seo',
+            mainEntityOfPage: 'https://zoositioweb.com.mx/blog/web/blog-builder-seo',
+            datePublished: '2026-06-27T12:00:00.000Z',
+            dateModified: '2026-06-28T12:00:00.000Z',
+            articleSection: 'web',
+            keywords: 'seo, builder',
+            image: 'https://assets.zoolandingpage.com.mx/zoolandingpage.com.mx/shared/seo-images/zoolandingpage-zoositioweb-default-logo-card.jpg',
+            publisher: jasmine.objectContaining({
+                '@type': 'Organization',
+                name: 'zoositioweb',
+            }),
+        }));
+    });
+
+    it('does not set private content hub articles as current article', async () => {
+        store.setSiteConfig(createContentHubSiteConfig());
+        mockSuccessfulBootstrapPayloads();
+
+        await service.load({
+            domain: 'zoolandingpage.com.mx',
+            pageId: 'blog-article',
+            lang: 'es',
+            routePath: '/blog/web/private-note',
+            routeParams: {
+                categorySlug: 'web',
+                articleSlug: 'private-note',
+            },
+        });
+
+        expect(variableStore.get('contentHub.currentArticle')).toBeNull();
     });
 
     it('reports missing modal config when a payload references a modal-owned dialog', () => {

@@ -2,6 +2,7 @@ import { REQUEST } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ConfigStoreService } from './config-store.service';
 import { ContentHubClientService } from './content-hub-client.service';
+import { LanguageService } from './language.service';
 
 describe('ContentHubClientService', () => {
     let fetchSpy: jasmine.Spy;
@@ -50,6 +51,10 @@ describe('ContentHubClientService', () => {
             },
             site: {},
         } as any);
+        TestBed.inject(LanguageService).configureLanguages(['es', 'en'], {
+            defaultLanguage: 'es',
+            requestedLanguage: 'es',
+        });
     });
 
     afterEach(() => {
@@ -127,5 +132,153 @@ describe('ContentHubClientService', () => {
             'X-ZLP-Auth-Profile-Id': 'staff',
             'X-ZLP-Content-Hub-Id': 'zoosite-main',
         }));
+    });
+
+    it('sends public content interactions without csrf to the public action endpoint', async () => {
+        Object.defineProperty(document, 'cookie', {
+            configurable: true,
+            value: 'zlp_csrf=csrf-token',
+        });
+        const service = TestBed.inject(ContentHubClientService);
+
+        await service.executeAction({
+            domain: 'zoositioweb.com.mx',
+            pageId: 'blog-article',
+            actionId: 'contentHubRecordInteraction',
+            input: {
+                contentHub: {
+                    action: 'recordInteraction',
+                    hubId: 'zoosite-main',
+                },
+                articleId: 'intro',
+                eventType: 'cta_click',
+            },
+        });
+
+        const [url, init] = fetchSpy.calls.mostRecent().args as [string, RequestInit];
+        expect(url).toBe('/features/content-hub/public-action');
+        expect(init.credentials).toBe('include');
+        expect(init.headers).toEqual(jasmine.objectContaining({
+            'X-ZLP-Domain': 'zoositioweb.com.mx',
+            'X-ZLP-Auth-Profile-Id': 'staff',
+            'X-ZLP-Content-Hub-Id': 'zoosite-main',
+        }));
+        expect((init.headers as Record<string, string>)['X-ZLP-CSRF']).toBeUndefined();
+    });
+
+    it('serializes uploadAsset browser files into bounded JSON payloads', async () => {
+        const service = TestBed.inject(ContentHubClientService);
+        const file = new File(['asset'], 'cover.png', { type: 'image/png' });
+
+        await service.executeAction({
+            domain: 'zoositioweb.com.mx',
+            pageId: 'admin-blog-medios',
+            actionId: 'contentHubUploadAsset',
+            input: {
+                contentHub: {
+                    action: 'uploadAsset',
+                    hubId: 'zoosite-main',
+                },
+                articleId: 'intro',
+                files: [file],
+            },
+        });
+
+        const [, init] = fetchSpy.calls.mostRecent().args as [string, RequestInit];
+        const body = JSON.parse(String(init.body));
+        expect(body.input.files).toEqual([
+            jasmine.objectContaining({
+                kind: 'browser-file',
+                name: 'cover.png',
+                mimeType: 'image/png',
+                size: 5,
+                dataBase64: 'YXNzZXQ=',
+            }),
+        ]);
+        expect(JSON.stringify(body)).not.toContain('credentialRef');
+    });
+
+    it('maps technical content hub identity errors to safe user-facing copy', async () => {
+        fetchSpy.and.resolveTo(new Response(JSON.stringify({
+            ok: false,
+            error: 'Invalid id',
+            requestId: 'req-safe-123',
+        }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+        }));
+        const service = TestBed.inject(ContentHubClientService);
+
+        try {
+            await service.executeAction({
+                domain: 'zoositioweb.com.mx',
+                pageId: 'admin-blog-articulos-nuevo',
+                actionId: 'contentHubCreateArticle',
+                input: {
+                    contentHub: {
+                        action: 'createArticle',
+                        hubId: 'zoosite-main',
+                    },
+                },
+            });
+            fail('expected content hub request to fail');
+        } catch (error) {
+            expect(error).toEqual(jasmine.any(Error));
+            expect((error as Error).message).toBe('No pudimos identificar el artículo o la versión. Abre la acción desde la lista y vuelve a intentar.');
+            expect((error as Error & { requestId?: string }).requestId).toBe('req-safe-123');
+        }
+    });
+
+    it('does not expose malformed content hub request ids', async () => {
+        fetchSpy.and.resolveTo(new Response(JSON.stringify({
+            ok: false,
+            error: 'Invalid id',
+            requestId: 'req-unsafe/<script>',
+        }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+        }));
+        const service = TestBed.inject(ContentHubClientService);
+
+        try {
+            await service.executeAction({
+                domain: 'zoositioweb.com.mx',
+                pageId: 'admin-blog-articulos-nuevo',
+                actionId: 'contentHubCreateArticle',
+                input: {
+                    contentHub: {
+                        action: 'createArticle',
+                        hubId: 'zoosite-main',
+                    },
+                },
+            });
+            fail('expected content hub request to fail');
+        } catch (error) {
+            expect(error).toEqual(jasmine.any(Error));
+            expect((error as Error & { requestId?: string }).requestId).toBeUndefined();
+        }
+    });
+
+    it('maps authorization failures without exposing raw backend terms', async () => {
+        fetchSpy.and.resolveTo(new Response(JSON.stringify({
+            ok: false,
+            error: 'forbidden',
+        }), {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' },
+        }));
+        const service = TestBed.inject(ContentHubClientService);
+
+        await expectAsync(service.readSource({
+            domain: 'zoositioweb.com.mx',
+            pageId: 'admin-blog-articulos',
+            sourceId: 'contentHubArticleList',
+            input: {
+                contentHub: {
+                    read: 'articleList',
+                    hubId: 'zoosite-main',
+                },
+            },
+        })).toBeRejectedWithError('No tienes permisos para completar esta acción en el gestor de contenido.');
     });
 });

@@ -19,9 +19,10 @@
     [maxLength]="maxLength()"
     [required]="required()"
     [debounceTime]="debounceMs()"
+    [compareValues]="true"
     [sanitize]="true"
     [classes]="editorClasses()"
-    [ngModel]="currentValue()"
+    [ngModel]="quillModel"
     (onContentChanged)="onQuillContentChanged($event)"
     (onBlur)="onBlur()"
   ></quill-editor>

@@ -7,6 +7,8 @@ export type TEnvironment = {
     readonly configApiUrl: string;
     readonly configApiRuntimeFallbackUrl?: string;
     readonly configApiServerFallbackUrl?: string;
+    readonly configApiRuntimeFallbackUrls?: Partial<Record<'dev' | 'test' | 'production', string>>;
+    readonly configApiServerFallbackUrls?: Partial<Record<'dev' | 'test' | 'production', string>>;
     readonly drafts: {
         readonly enabled: boolean;
         readonly basePath: string;

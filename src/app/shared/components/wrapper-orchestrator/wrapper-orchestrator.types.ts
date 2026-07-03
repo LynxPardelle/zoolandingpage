@@ -8,6 +8,7 @@ import type { DropdownConfig, DropdownItem } from "../generic-dropdown/generic-d
 import type { TGenericEmbedFrameConfig } from '../generic-embed-frame/generic-embed-frame.types';
 import { TGenericIconConfig } from "../generic-icon/generic-icon.types";
 import type { TGenericCellConfig } from "../generic-cell/generic-cell.types";
+import type { TGenericComponentPreviewConfig } from "../generic-component-preview/generic-component-preview.types";
 import type { TGenericFileDropzoneConfig } from "../generic-file-dropzone/generic-file-dropzone.types";
 import type { TGenericInputConfig } from "../generic-input/generic-input.types";
 import { TGenericLinkConfig } from "../generic-link/generic-link.types";
@@ -20,7 +21,9 @@ import type { SearchBoxConfig } from '../generic-search-box/generic-search-box.t
 import type { TabGroupConfig } from "../generic-tab-group/generic-tab-group.types";
 import type { TGenericTableConfig } from "../generic-table/generic-table.types";
 import { TGenericTextConfig } from "../generic-text/generic-text.types";
+import type { TooltipConfig } from "../generic-tooltip/generic-tooltip.types";
 import type { TInteractionScopeConfig } from "../interaction-scope/interaction-scope.types";
+import type { TDynamicValue } from '../../types/component-runtime.types';
 
 export type TGenericStatsCounterOrchestratorConfig = () => TGenericStatsCounterConfig;
 export type TGenericStatsCounterConfigInput = TGenericStatsCounterConfig | (() => TGenericStatsCounterConfig);
@@ -32,6 +35,11 @@ export type TGenericDropdownOrchestratorConfig = {
 };
 
 export type TGenericSearchBoxConfig = SearchBoxConfig;
+
+export type TGenericTooltipConfig = TooltipConfig & {
+    readonly for?: string;
+    readonly content?: string;
+};
 
 export type TLoopBindingTransform = 'i18nKey' | 'locale' | 'navigationHref' | 'uriComponent';
 
@@ -138,6 +146,7 @@ export type TGenericComponentType =
     | 'dropdown'
     | 'embed-frame'
     | 'generic-cell'
+    | 'generic-component-preview'
     | 'generic-file-dropzone'
     | 'generic-rich-text'
     | 'generic-table'
@@ -169,7 +178,7 @@ export type TGenericComponent = {
         * - string: DSL for ConditionOrchestrator (e.g. all:varEq,theme.defaultMode,dark)
      */
     readonly condition?: boolean | string | (() => boolean);
-    readonly eventInstructions?: string;
+    readonly eventInstructions?: TDynamicValue<string>;
     /**
      * String DSL for resolving dynamic config values (labels/text/etc) via ValueOrchestrator.
      * Example: set:config.label,i18n,hero.primary.label
@@ -198,6 +207,10 @@ export type TGenericComponent = {
         {
             readonly type: 'generic-cell';
             readonly config: TGenericCellConfig;
+        } |
+        {
+            readonly type: 'generic-component-preview';
+            readonly config: TGenericComponentPreviewConfig;
         } |
         {
             readonly type: 'generic-file-dropzone';
@@ -242,6 +255,10 @@ export type TGenericComponent = {
         {
             readonly type: 'text';
             readonly config: TGenericTextConfig;
+        } |
+        {
+            readonly type: 'tooltip';
+            readonly config: TGenericTooltipConfig;
         } |
         {
             readonly type: 'link';

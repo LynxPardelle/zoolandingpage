@@ -270,6 +270,82 @@ describe('ConfigSourceService', () => {
         expect(api.getRuntimeBundle.calls.count()).toBe(1);
     });
 
+    it('keeps runtime bundle cache entries separate for the same page id on different paths', async () => {
+        const service = TestBed.inject(ConfigSourceService);
+        const api = TestBed.inject(ConfigApiService) as jasmine.SpyObj<ConfigApiService>;
+        api.getRuntimeBundle.and.callFake((_domain: string, options?: { readonly path?: string }) => Promise.resolve(createRuntimeBundle({
+            pageId: 'blog-article',
+            pageConfig: {
+                ...pageConfigPayload,
+                pageId: 'blog-article',
+                rootIds: [options?.path === '/blog/web/two' ? 'twoRoot' : 'oneRoot'],
+            },
+            metadata: {
+                requestId: 'req-path',
+                requestedDomain: 'alecfest-voliii.zoolandingpage.com.mx',
+                resolvedAlias: 'alecfest-voliii.zoolandingpage.com.mx',
+                resolvedPath: options?.path,
+            },
+        })));
+
+        const first = await service.loadPageConfig('alecfest-voliii.zoolandingpage.com.mx', 'blog-article', {
+            path: '/blog/web/one',
+        });
+        const second = await service.loadPageConfig('alecfest-voliii.zoolandingpage.com.mx', 'blog-article', {
+            path: '/blog/web/two',
+        });
+
+        expect(first?.rootIds).toEqual(['oneRoot']);
+        expect(second?.rootIds).toEqual(['twoRoot']);
+        expect(api.getRuntimeBundle.calls.count()).toBe(2);
+        expect(api.getRuntimeBundle.calls.allArgs().map(([, options]) => options?.path)).toEqual([
+            '/blog/web/one',
+            '/blog/web/two',
+        ]);
+    });
+
+    it('does not call the legacy page endpoint in the browser when the route runtime bundle has no renderable roots', async () => {
+        const service = TestBed.inject(ConfigSourceService);
+        const api = TestBed.inject(ConfigApiService) as jasmine.SpyObj<ConfigApiService>;
+
+        api.getRuntimeBundle.and.resolveTo(createRuntimeBundle({
+            pageId: 'blog-article',
+            pageConfig: {
+                ...pageConfigPayload,
+                pageId: 'blog-article',
+                rootIds: [],
+            },
+        }));
+
+        const result = await service.loadPageConfig('alecfest-voliii.zoolandingpage.com.mx', 'blog-article', {
+            path: '/blog/web/runtime-only',
+        });
+
+        expect(result).toBeNull();
+        expect(api.getPageConfig).not.toHaveBeenCalled();
+    });
+
+    it('does not call the legacy components endpoint in the browser when the route runtime bundle has no renderable components', async () => {
+        const service = TestBed.inject(ConfigSourceService);
+        const api = TestBed.inject(ConfigApiService) as jasmine.SpyObj<ConfigApiService>;
+
+        api.getRuntimeBundle.and.resolveTo(createRuntimeBundle({
+            pageId: 'blog-article',
+            components: {
+                ...componentsPayload,
+                pageId: 'blog-article',
+                components: [],
+            },
+        }));
+
+        const result = await service.loadComponents('alecfest-voliii.zoolandingpage.com.mx', 'blog-article', {
+            path: '/blog/web/runtime-only',
+        });
+
+        expect(result).toBeNull();
+        expect(api.getComponents).not.toHaveBeenCalled();
+    });
+
     it('reuses the alias runtime bundle when a site-config request resolves the canonical page identity', async () => {
         const service = TestBed.inject(ConfigSourceService);
         const api = TestBed.inject(ConfigApiService) as jasmine.SpyObj<ConfigApiService>;
@@ -281,75 +357,147 @@ describe('ConfigSourceService', () => {
         expect(api.getRuntimeBundle.calls.count()).toBe(1);
     });
 
-    it('skips synthetic shared-preview fallback 404 bundles before trying the canonical domain', async () => {
+    it('does not try synthesized shared-preview aliases when the canonical draft runtime is unavailable', async () => {
         const service = TestBed.inject(ConfigSourceService);
         spyOn<any>(service, 'isSharedTestingPreviewHost').and.returnValue(true);
 
         const api = TestBed.inject(ConfigApiService) as jasmine.SpyObj<ConfigApiService>;
-        const createNotFoundBundle = (candidateDomain: string) => createRuntimeBundle({
+        api.getRuntimeBundle.and.callFake((domain: string) => {
+            if (domain === 'erosbarajas.com') {
+                return Promise.reject(new Error('canonical runtime unavailable'));
+            }
+
+            return Promise.reject(new Error(`unexpected runtime domain ${ domain }`));
+        });
+
+        const result = await (service as unknown as {
+            loadRuntimeBundle(domain: string): Promise<unknown>;
+        }).loadRuntimeBundle('erosbarajas.com');
+
+        expect(result).toBeNull();
+        expect(api.getRuntimeBundle.calls.allArgs().map(([domain]) => domain)).toEqual(['erosbarajas.com']);
+        expect(api.getRuntimeBundle.calls.allArgs().map(([, options]) => options?.environment)).toEqual([
+            'test',
+        ]);
+        expect(api.getSiteConfig).not.toHaveBeenCalled();
+    });
+
+    it('requests the canonical draft domain first on shared testing detail routes', async () => {
+        const service = TestBed.inject(ConfigSourceService);
+        spyOn<any>(service, 'isSharedTestingPreviewHost').and.returnValue(true);
+
+        const api = TestBed.inject(ConfigApiService) as jasmine.SpyObj<ConfigApiService>;
+        const zoositeSiteConfig: TDraftSiteConfigPayload = {
+            ...siteConfigPayload,
+            domain: 'zoositioweb.com.mx',
+            aliases: ['sitiosweb.zoolandingpage.com.mx'],
+        };
+        api.getRuntimeBundle.and.callFake((domain: string, options?: { readonly path?: string }) => {
+            const bundle = createRuntimeBundle({
+                domain: 'zoositioweb.com.mx',
+                pageId: 'admin-blog-articulo-editor',
+                siteConfig: zoositeSiteConfig,
+                pageConfig: {
+                    ...pageConfigPayload,
+                    domain: 'zoositioweb.com.mx',
+                    pageId: 'admin-blog-articulo-editor',
+                },
+                components: {
+                    ...componentsPayload,
+                    domain: 'zoositioweb.com.mx',
+                    pageId: 'admin-blog-articulo-editor',
+                },
+                metadata: {
+                    requestId: 'req-zoosite-editor',
+                    requestedDomain: domain,
+                    resolvedAlias: null,
+                    resolvedPath: options?.path,
+                },
+            });
+            return Promise.resolve({
+                ...bundle,
+                components: {
+                    ...bundle.components,
+                    components: Object.fromEntries(bundle.components.components.map((component) => [component.id, component])),
+                },
+            } as any);
+        });
+
+        const result = await service.loadPageConfig('zoositioweb.com.mx', 'admin-blog-articulo-editor', {
+            path: '/admin/blog/articulos/art_20260620_blog_builder/editor',
+        });
+
+        expect(result?.pageId).toBe('admin-blog-articulo-editor');
+        expect(api.getRuntimeBundle.calls.allArgs().map(([domain]) => domain)).toEqual(['zoositioweb.com.mx']);
+        expect(api.getRuntimeBundle.calls.first().args[0]).toBe('zoositioweb.com.mx');
+        expect(api.getRuntimeBundle.calls.first().args[1]).toEqual(jasmine.objectContaining({
+            environment: 'test',
+            path: '/admin/blog/articulos/art_20260620_blog_builder/editor',
+        }));
+    });
+
+    it('rejects a transferred or fallback runtime bundle that belongs to another domain', async () => {
+        const service = TestBed.inject(ConfigSourceService);
+        spyOn<any>(service, 'isSharedTestingPreviewHost').and.returnValue(true);
+
+        const api = TestBed.inject(ConfigApiService) as jasmine.SpyObj<ConfigApiService>;
+        api.getRuntimeBundle.and.resolveTo(createRuntimeBundle({
             domain: 'zoolandingpage.com.mx',
             pageId: 'not-found',
+            siteConfig: {
+                ...siteConfigPayload,
+                domain: 'zoolandingpage.com.mx',
+                aliases: ['test.zoolandingpage.com.mx'],
+                notFoundPageId: 'not-found',
+            },
             pageConfig: {
                 ...pageConfigPayload,
                 domain: 'zoolandingpage.com.mx',
                 pageId: 'not-found',
+                rootIds: ['notFoundHero'],
             },
             components: {
                 ...componentsPayload,
                 domain: 'zoolandingpage.com.mx',
                 pageId: 'not-found',
+                components: [
+                    {
+                        id: 'notFoundHero',
+                        type: 'text',
+                        config: { text: 'Esta ruta no esta publicada.' },
+                    },
+                ],
             },
             metadata: {
-                requestId: 'req-404',
-                requestedDomain: candidateDomain,
+                requestId: 'req-wrong-domain',
+                requestedDomain: 'zoositioweb.com.mx',
                 resolvedAlias: null,
-                fallbackFromDomain: candidateDomain,
-                resolvedPath: '/',
+                resolvedPath: '/admin/blog/articulos/art_20260620_blog_builder/editor',
                 statusCode: 404,
                 notFound: true,
             },
-        });
-        const erosSiteConfig = {
-            ...siteConfigPayload,
-            domain: 'erosbarajas.com',
-            aliases: [],
-        };
-        const erosBundle = createRuntimeBundle({
-            domain: 'erosbarajas.com',
-            siteConfig: erosSiteConfig,
-            pageConfig: {
-                ...pageConfigPayload,
-                domain: 'erosbarajas.com',
-            },
-            components: {
-                ...componentsPayload,
-                domain: 'erosbarajas.com',
-            },
-            metadata: {
-                requestId: 'req-eros',
-                requestedDomain: 'erosbarajas.com',
-                resolvedAlias: null,
-                resolvedPath: '/',
-            },
+        }));
+
+        const result = await service.loadPageConfig('zoositioweb.com.mx', 'admin-blog-articulo-editor', {
+            path: '/admin/blog/articulos/art_20260620_blog_builder/editor',
         });
 
-        api.getRuntimeBundle.and.callFake((domain: string) => Promise.resolve(
-            domain === 'erosbarajas.com' ? erosBundle : createNotFoundBundle(domain)
-        ));
+        expect(result).toBeNull();
+        expect(api.getRuntimeBundle).toHaveBeenCalledOnceWith('zoositioweb.com.mx', jasmine.objectContaining({
+            environment: 'test',
+            path: '/admin/blog/articulos/art_20260620_blog_builder/editor',
+        }));
+        expect(api.getPageConfig).not.toHaveBeenCalled();
+    });
 
-        const result = await service.loadSiteConfig('erosbarajas.com');
+    it('loads the canonical Zoolanding bundle directly on the shared testing host', async () => {
+        const service = TestBed.inject(ConfigSourceService);
+        spyOn<any>(service, 'isSharedTestingPreviewHost').and.returnValue(true);
 
-        expect(result).toEqual(erosSiteConfig);
-        expect(api.getRuntimeBundle.calls.allArgs().map(([domain]) => domain)).toEqual([
-            'test.erosbarajas.com',
-            'test.erosbarajas.zoolandingpage.com.mx',
-            'erosbarajas.com',
-        ]);
-        expect(api.getRuntimeBundle.calls.allArgs().map(([, options]) => options?.environment)).toEqual([
-            'test',
-            'test',
-            'test',
-        ]);
+        const api = TestBed.inject(ConfigApiService) as jasmine.SpyObj<ConfigApiService>;
+        await service.loadSiteConfig('zoolandingpage.com.mx');
+
+        expect(api.getRuntimeBundle.calls.allArgs().map(([domain]) => domain)).toEqual(['zoolandingpage.com.mx']);
     });
 
     it('reuses the hydrated site config instead of calling the legacy site-config endpoint when the browser runtime bundle request fails', async () => {
@@ -377,6 +525,18 @@ describe('ConfigSourceService', () => {
         const result = await service.loadSiteConfig('alecfest-voliii.com');
 
         expect(result).toEqual(siteConfigPayload);
+        expect(api.getSiteConfig).not.toHaveBeenCalled();
+    });
+
+    it('returns null instead of calling the legacy site-config endpoint when browser runtime loading fails before hydration', async () => {
+        const service = TestBed.inject(ConfigSourceService);
+        const api = TestBed.inject(ConfigApiService) as jasmine.SpyObj<ConfigApiService>;
+
+        api.getRuntimeBundle.and.rejectWith(new Error('runtime unavailable'));
+
+        const result = await service.loadSiteConfig('zoositioweb.com.mx');
+
+        expect(result).toBeNull();
         expect(api.getSiteConfig).not.toHaveBeenCalled();
     });
 

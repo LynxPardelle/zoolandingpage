@@ -79,6 +79,24 @@ export const CONTENT_HUB_SAFE_READ_INPUT_KEYS = new Set([
     'visibility',
 ]);
 
+export const CONTENT_HUB_SAFE_ID_INPUT_KEYS = new Set([
+    'articleId',
+    'assetId',
+    'categoryId',
+    'categorySlug',
+    'commentId',
+    'latestRevisionId',
+    'revisionId',
+    'scheduleId',
+    'slug',
+    'tagId',
+    'tagSlug',
+    'taxonomyId',
+]);
+
+const CONTENT_HUB_SAFE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$/;
+const CONTENT_HUB_PLACEHOLDER_ID_VALUES = new Set(['null', 'undefined', 'unknown']);
+
 const CONTENT_HUB_BINDING_KEYS = new Set([
     'action',
     'articleId',
@@ -99,12 +117,50 @@ export const isForbiddenContentHubPublicInputKey = (key: string): boolean =>
 export const isForbiddenContentHubPublicInputValue = (value: unknown): boolean =>
     typeof value === 'string' && CONTENT_HUB_FORBIDDEN_PUBLIC_INPUT_VALUE_PATTERN.test(value);
 
+export const isContentHubSafePublicId = (value: unknown): value is string =>
+    typeof value === 'string'
+    && CONTENT_HUB_SAFE_ID_PATTERN.test(value.trim())
+    && !CONTENT_HUB_PLACEHOLDER_ID_VALUES.has(value.trim().toLowerCase());
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     !!value && typeof value === 'object' && !Array.isArray(value);
+
+const isBrowserFile = (value: unknown): value is File =>
+    typeof File !== 'undefined' && value instanceof File;
+
+const isTruthyAdvancedFlag = (value: unknown): boolean =>
+    value === true
+    || value === 1
+    || (typeof value === 'string' && ['1', 'true', 'yes', 'on', 'advanced'].includes(value.trim().toLowerCase()));
+
+const parseComponentTreeJson = (value: unknown): unknown[] | undefined => {
+    if (value == null) return undefined;
+    if (Array.isArray(value)) return value;
+    if (isRecord(value)) return [value];
+    if (typeof value !== 'string') return undefined;
+
+    const text = value.trim();
+    if (!text) return undefined;
+
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(text);
+    } catch (error) {
+        throw new Error('El JSON avanzado del articulo debe ser valido antes de guardar.');
+    }
+
+    if (Array.isArray(parsed)) return parsed;
+    if (isRecord(parsed)) return [parsed];
+    throw new Error('El JSON avanzado del articulo debe ser un componente o una lista de componentes.');
+};
 
 const sanitizeValue = (value: unknown): unknown => {
     if (Array.isArray(value)) {
         return value.map(sanitizeValue).filter((entry) => entry !== undefined);
+    }
+
+    if (isBrowserFile(value)) {
+        return value;
     }
 
     if (!isRecord(value)) {
@@ -138,6 +194,9 @@ export const sanitizeContentHubRuntimeInput = (
             return acc;
         }
         const safeValue = sanitizeValue(value);
+        if (CONTENT_HUB_SAFE_ID_INPUT_KEYS.has(key) && !isContentHubSafePublicId(safeValue)) {
+            return acc;
+        }
         if (safeValue !== undefined) {
             acc[key] = safeValue;
         }
@@ -172,7 +231,24 @@ export const buildContentHubRuntimeInput = (
     allowedInputKeys?: ReadonlySet<string> | readonly string[],
 ): Record<string, unknown> | undefined => {
     const contentHub = sanitizeContentHubRuntimeBinding(binding);
-    const safeInput = sanitizeContentHubRuntimeInput(input, allowedInputKeys);
+    let safeInput = sanitizeContentHubRuntimeInput(input, allowedInputKeys);
+    if (
+        contentHub?.['action'] === 'updatePackage'
+        && input
+        && isTruthyAdvancedFlag(input['advancedMode'] ?? safeInput?.['advancedMode'])
+        && Object.prototype.hasOwnProperty.call(input, 'componentTreeJson')
+    ) {
+        const nextInput = { ...(safeInput ?? {}) };
+        const components = parseComponentTreeJson(input['componentTreeJson']);
+        delete nextInput['componentTreeJson'];
+        if (components) {
+            const sanitizedComponents = sanitizeValue(components);
+            if (Array.isArray(sanitizedComponents)) {
+                nextInput['components'] = sanitizedComponents;
+            }
+        }
+        safeInput = Object.keys(nextInput).length ? nextInput : undefined;
+    }
     if (!contentHub && !safeInput) return undefined;
 
     return {

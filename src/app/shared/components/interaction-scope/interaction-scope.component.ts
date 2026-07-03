@@ -116,10 +116,10 @@ export class InteractionScopeComponent implements OnInit {
   onSubmit(event: Event): void {
     event.preventDefault();
     event.stopPropagation();
-    this.submitScope();
+    this.submitScope(event);
   }
 
-  private submitScope() {
+  private submitScope(event?: Event) {
     const snapshot = this.scope.submit();
     const instructions = String(
       this.config().submitEventInstructions ?? ''
@@ -133,6 +133,7 @@ export class InteractionScopeComponent implements OnInit {
           eventName: 'submitScope',
           eventData: snapshot,
           eventInstructions: instructions,
+          ...(event?.isTrusted === true ? { userGesture: true } : {}),
         },
         this.hostContext()
       );

@@ -5,6 +5,7 @@ import { ConfigBootstrapService } from '@/app/shared/services/config-bootstrap.s
 import { ConfigSourceService } from '@/app/shared/services/config-source.service';
 import { ConfigStoreService } from '@/app/shared/services/config-store.service';
 import { ConfigurationsOrchestratorService } from '@/app/shared/services/configurations-orchestrator';
+import { ComboCatalogRuntimeService } from '@/app/shared/services/combo-catalog-runtime.service';
 import { DRAFT_RUNTIME_STICKY_QUERY_PARAMS, DraftRuntimeService } from '@/app/shared/services/draft-runtime.service';
 import { RuntimeDataSourceService } from '@/app/shared/services/runtime-data-source.service';
 import { RuntimeConfigService } from '@/app/shared/services/runtime-config.service';
@@ -13,19 +14,20 @@ import { I18nService } from '@/app/shared/services/i18n.service';
 import { AuthFacade } from '@/app/state/auth/auth.facade';
 import { AuthRuntimeService } from '@/app/state/auth/auth-runtime.service';
 import { applyNavigationScroll, currentBrowserPath, dispatchClientNavigationEnd, navigateInCurrentWindow } from '@/app/shared/utility/navigation/browser-navigation.utility';
-import { matchDraftRoute, normalizeDraftRoutePath } from '@/app/shared/utility/route-matching/draft-route-matching';
+import { findPublishedContentHubArticleForPath, matchContentHubArticleRoute } from '@/app/shared/utility/content-hub/content-hub-public-route';
+import { normalizeDraftRoutePath } from '@/app/shared/utility/route-matching/draft-route-matching';
 import { environment } from '@/environments/environment';
 import { isPlatformBrowser } from '@angular/common';
 import { DestroyRef, inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
 import { LoadingCurtainService } from './loading-curtain.service';
 import { AuthBrowserFlowService } from '@/app/state/auth/auth-browser-flow.service';
 import type { AnalyticsEventPayload } from '@/app/shared/services/analytics.events';
-import type { TContentHubRuntimeConfig } from '@/app/shared/types/content-hub.types';
-import type { TDraftSiteRouteEntry, TRuntimeDataSourceConfig } from '@/app/shared/types/config-payloads.types';
+import type { TComponentsPayload, TDraftSiteRouteEntry, TRuntimeDataSourceConfig } from '@/app/shared/types/config-payloads.types';
 
 @Injectable({ providedIn: 'root' })
 export class RuntimeService {
     private readonly prefetchSiblingCap = 5;
+    private readonly protectedRouteAccessTimeoutMs = 12_000;
     private readonly configBootstrap = inject(ConfigBootstrapService);
     private readonly configSource = inject(ConfigSourceService);
     private readonly orchestrator = inject(ConfigurationsOrchestratorService);
@@ -35,6 +37,7 @@ export class RuntimeService {
     private readonly runtimeDataSources = inject(RuntimeDataSourceService);
     private readonly configStore = inject(ConfigStoreService);
     private readonly runtimeConfig = inject(RuntimeConfigService);
+    private readonly comboCatalogRuntime = inject(ComboCatalogRuntimeService);
     private readonly auth = inject(AuthFacade);
     private readonly authRuntime = inject(AuthRuntimeService);
     private readonly authBrowserFlow = inject(AuthBrowserFlowService);
@@ -69,6 +72,7 @@ export class RuntimeService {
     private postBootstrapBrowserWorkId = 0;
     private renderedCssUpdateId = 0;
     private loadingCurtainReadyId = 0;
+    private lastInitializeLanguage: string | undefined;
     private readonly cssReadyRetryDelayMs = 250;
     private readonly cssRenderedComboRetryDelayMs = 50;
     private readonly cssReadyAttemptWaitMs = 750;
@@ -80,6 +84,10 @@ export class RuntimeService {
         { className: 'sectionSubtitle', tokenName: 'secondaryTitleColor' },
         { className: 'heroCaption', tokenName: 'secondaryTitleColor' },
     ] as const;
+
+    constructor() {
+        this.bindNavigationRefresh();
+    }
 
     connect(options: {
         host: HTMLElement;
@@ -145,7 +153,10 @@ export class RuntimeService {
     }
 
     async initialize(lang?: string): Promise<void> {
-        const nextLanguage = lang;
+        const nextLanguage = lang ?? this.lastInitializeLanguage;
+        if (lang !== undefined) {
+            this.lastInitializeLanguage = lang;
+        }
         this.initializeQueue = this.initializeQueue
             .catch(() => undefined)
             .then(async () => {
@@ -237,6 +248,7 @@ export class RuntimeService {
 
     private async doInitialize(lang?: string): Promise<void> {
         let protectedRouteLoadingStarted = false;
+        let keepPrivateRouteLoading = false;
         try {
             const context = await this.draftRuntime.resolveActiveDraftContext();
             if (!context.domain || !context.pageId) {
@@ -253,14 +265,18 @@ export class RuntimeService {
                 return;
             }
 
-            protectedRouteLoadingStarted = this.isProtectedBrowserRoute(context.route);
+            protectedRouteLoadingStarted = this.isProtectedRoute(context.route);
             if (protectedRouteLoadingStarted) {
                 this.setPrivateRouteLoading('session');
             } else {
                 this.clearPrivateRouteLoading();
             }
 
-            const remoteAuthResolved = await this.runtimeConfig.resolveRemoteAuth(context.domain);
+            const remoteAuthResolved = await this.withProtectedRouteTimeout(
+                this.runtimeConfig.resolveRemoteAuth(context.domain),
+                protectedRouteLoadingStarted,
+                false,
+            );
             if (!remoteAuthResolved && this.runtimeConfig.isDebugMode()) {
                 console.warn('[Runtime] Remote auth runtime resolution failed closed.', {
                     reason: this.runtimeConfig.remoteAuthError(),
@@ -268,7 +284,11 @@ export class RuntimeService {
             }
 
             this.auth.restoreSession();
-            const callbackResult = await this.authBrowserFlow.completeCallbackFromCurrentUrl();
+            const callbackResult = await this.withProtectedRouteTimeout(
+                this.authBrowserFlow.completeCallbackFromCurrentUrl(),
+                protectedRouteLoadingStarted,
+                { handled: false, redirectTo: null, reason: 'not-callback-route' },
+            );
             if (callbackResult.handled && callbackResult.redirectTo) {
                 this.clearRenderedDraft(context.domain, context.pageId);
                 this.loadingCurtain.hideWhenReady(`auth-callback-${ callbackResult.reason }`);
@@ -280,12 +300,22 @@ export class RuntimeService {
                 return;
             }
 
-            const routeAccess = await this.authRuntime.evaluateRouteAccessAsync(context.route);
+            const routeAccess = await this.withProtectedRouteTimeout(
+                this.authRuntime.evaluateRouteAccessAsync(context.route),
+                protectedRouteLoadingStarted,
+                {
+                    allowed: false,
+                    reason: 'auth-required',
+                    redirectTo: context.route?.auth?.redirectTo ?? '/acceso',
+                    requiredGroups: context.route?.auth?.allowedGroups ?? [],
+                },
+            );
             if (!routeAccess.allowed) {
                 this.clearRenderedDraft(context.domain, context.pageId);
                 this.auth.requestSignIn(this.authRuntime.profile()?.provider);
                 this.loadingCurtain.hideWhenReady(`auth-route-${ routeAccess.reason }`);
                 // SSR has no response redirect hook in this runtime; protected drafts render no private content.
+                keepPrivateRouteLoading = !this.isBrowser && protectedRouteLoadingStarted;
                 if (this.isBrowser && routeAccess.redirectTo) {
                     navigateInCurrentWindow(this.resolveAuthRedirectHref(routeAccess.redirectTo), {
                         scrollRestoration: this.runtimeConfig.siteRuntime()?.navigation?.scrollRestoration,
@@ -303,6 +333,8 @@ export class RuntimeService {
                 domain: context.domain,
                 pageId,
                 lang,
+                routePath: context.path,
+                routeParams: context.routeParams,
             });
 
             const domain = boot.domain || context.domain;
@@ -330,16 +362,18 @@ export class RuntimeService {
             }
 
             const dataSources = this.configStore.siteConfig()?.runtime?.dataSources ?? [];
-            const dataSourcesLoaded = this.startRuntimeDataSources(domain, pageId, dataSources);
-            if (!this.isBrowser || this.shouldWaitForProtectedInitialDataSources(context.route, pageId, dataSources)) {
-                await dataSourcesLoaded;
+            const comboCatalogLoaded = await this.comboCatalogRuntime.load(domain, pageId);
+            if (!comboCatalogLoaded && this.runtimeConfig.isDebugMode()) {
+                console.warn('[Runtime] Combo catalog runtime resolution failed; continuing with local draft combos.');
             }
 
-            this.orchestrator.setExternalComponentsFromPayload(componentsPayload);
-            this.prewarmAuthoredComponentsCss();
-            this.rootComponentsIds.set(rootIds);
-            this.modalRootIds.set(modalRootIds);
-            this.orchestrator.setDraftExportContext({ domain, pageId, rootIds, modalRootIds });
+            if (this.isBrowser) {
+                this.installRenderedDraft(domain, pageId, componentsPayload, rootIds, modalRootIds);
+                void this.startRuntimeDataSources(domain, pageId, dataSources, context.routeParams);
+            } else {
+                await this.startRuntimeDataSources(domain, pageId, dataSources, context.routeParams);
+                this.installRenderedDraft(domain, pageId, componentsPayload, rootIds, modalRootIds);
+            }
 
             this.scheduleRenderedComponentsCssUpdate();
             const initialPageViewLabel = this.resolveCurrentBrowserUrlLabel();
@@ -354,14 +388,48 @@ export class RuntimeService {
                 this.trackInitialPageView(initialPageViewLabel);
             });
         } finally {
-            if (protectedRouteLoadingStarted) {
+            if (protectedRouteLoadingStarted && !keepPrivateRouteLoading) {
                 this.clearPrivateRouteLoading();
             }
         }
     }
 
+    private isProtectedRoute(route: TDraftSiteRouteEntry | null | undefined): boolean {
+        return route?.auth?.required === true;
+    }
+
+    private withProtectedRouteTimeout<T>(promise: Promise<T>, active: boolean, fallback: T): Promise<T> {
+        if (!active || !this.isBrowser || this.protectedRouteAccessTimeoutMs <= 0) {
+            return promise;
+        }
+
+        return new Promise<T>((resolve) => {
+            const timeout = window.setTimeout(() => {
+                resolve(fallback);
+            }, this.protectedRouteAccessTimeoutMs);
+
+            promise
+                .then(resolve, () => resolve(fallback))
+                .finally(() => window.clearTimeout(timeout));
+        });
+    }
+
     private isProtectedBrowserRoute(route: TDraftSiteRouteEntry | null | undefined): boolean {
-        return this.isBrowser && route?.auth?.required === true;
+        return this.isBrowser && this.isProtectedRoute(route);
+    }
+
+    private installRenderedDraft(
+        domain: string,
+        pageId: string,
+        componentsPayload: TComponentsPayload,
+        rootIds: readonly string[],
+        modalRootIds: readonly string[],
+    ): void {
+        this.orchestrator.setExternalComponentsFromPayload(componentsPayload);
+        this.prewarmAuthoredComponentsCss();
+        this.rootComponentsIds.set(rootIds);
+        this.modalRootIds.set(modalRootIds);
+        this.orchestrator.setDraftExportContext({ domain, pageId, rootIds, modalRootIds });
     }
 
     private setPrivateRouteLoading(phase: 'session' | 'content'): void {
@@ -382,48 +450,31 @@ export class RuntimeService {
         domain: string,
         pageId: string,
         dataSources: readonly TRuntimeDataSourceConfig[] = this.configStore.siteConfig()?.runtime?.dataSources ?? [],
+        routeParams?: Readonly<Record<string, string>>,
     ): Promise<void> {
         if (!dataSources.length) {
             this.runtimeDataSources.stop();
             return Promise.resolve();
         }
 
-        return this.runtimeDataSources.start({
-            domain,
-            pageId,
-            dataSources,
-            mode: this.isBrowser ? 'all' : 'ssr',
-        }).catch((error) => {
+        try {
+            return this.runtimeDataSources.start({
+                domain,
+                pageId,
+                ...(routeParams && Object.keys(routeParams).length > 0 ? { routeParams } : {}),
+                dataSources,
+                mode: this.isBrowser ? 'all' : 'ssr',
+            }).catch((error) => {
+                if (this.runtimeConfig.isDebugMode()) {
+                    console.error('[Runtime] Runtime data source bootstrap failed.', error);
+                }
+            });
+        } catch (error) {
             if (this.runtimeConfig.isDebugMode()) {
                 console.error('[Runtime] Runtime data source bootstrap failed.', error);
             }
-        });
-    }
-
-    private shouldWaitForProtectedInitialDataSources(
-        route: TDraftSiteRouteEntry | null | undefined,
-        pageId: string,
-        dataSources: readonly TRuntimeDataSourceConfig[],
-    ): boolean {
-        if (!this.isBrowser || route?.auth?.required !== true) {
-            return false;
+            return Promise.resolve();
         }
-
-        return dataSources.some((source) => (
-            source.kind === 'auth-admin'
-            && source.enabled !== false
-            && this.matchesDataSourcePage(source, pageId)
-        ));
-    }
-
-    private matchesDataSourcePage(source: TRuntimeDataSourceConfig, pageId: string): boolean {
-        if (!Array.isArray(source.pageIds) || source.pageIds.length === 0) {
-            return true;
-        }
-
-        const normalizedPageId = String(pageId ?? '').trim();
-        return !!normalizedPageId
-            && source.pageIds.some((entry) => String(entry ?? '').trim() === normalizedPageId);
     }
 
     private scheduleRenderedComponentsCssUpdate(): void {
@@ -655,7 +706,7 @@ export class RuntimeService {
 
         const path = normalizeDraftRoutePath(currentUrl);
         for (const hub of hubs) {
-            const match = this.matchContentHubArticlePath(hub, path);
+            const match = matchContentHubArticleRoute([hub], path);
             if (!match) {
                 continue;
             }
@@ -666,6 +717,14 @@ export class RuntimeService {
             if (!eventPrefix || !contentGroup || !hubId) {
                 continue;
             }
+            const article = findPublishedContentHubArticleForPath([hub], path);
+            if (!article) {
+                continue;
+            }
+
+            const articleId = this.cleanAnalyticsString(article?.articleId);
+            const category = this.cleanAnalyticsString(article?.categorySlug);
+            const tags = this.cleanAnalyticsTags(article?.tags);
 
             return {
                 name: `${ eventPrefix }_view`,
@@ -675,6 +734,9 @@ export class RuntimeService {
                     meta: {
                         hubId,
                         contentGroup,
+                        ...(articleId ? { articleId } : {}),
+                        ...(category ? { category } : {}),
+                        ...(tags.length ? { tags } : {}),
                         path,
                         params: match.params,
                     },
@@ -685,21 +747,19 @@ export class RuntimeService {
         return null;
     }
 
-    private matchContentHubArticlePath(
-        hub: TContentHubRuntimeConfig,
-        path: string,
-    ): { readonly params: Readonly<Record<string, string>> } | null {
-        const pattern = String(hub.articlePathPattern ?? '').trim();
-        if (!pattern) {
-            return null;
+    private cleanAnalyticsString(value: unknown): string {
+        return typeof value === 'string' ? value.trim() : '';
+    }
+
+    private cleanAnalyticsTags(value: unknown): readonly string[] {
+        if (!Array.isArray(value)) {
+            return [];
         }
 
-        const match = matchDraftRoute([{ path: pattern }], path);
-        if (!match) {
-            return null;
-        }
-
-        return { params: match.params };
+        return value
+            .map((entry) => this.cleanAnalyticsString(entry))
+            .filter(Boolean)
+            .slice(0, 20);
     }
 
     private resolveCurrentBrowserUrlLabel(): string {

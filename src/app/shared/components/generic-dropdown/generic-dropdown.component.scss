@@ -10,3 +10,24 @@
   margin: 0;
   padding: 0;
 }
+
+:host ::ng-deep .zlp-dropdown-caret {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  min-width: 1em;
+  line-height: 1;
+  transform-origin: center;
+  transition: transform 140ms ease;
+}
+
+:host ::ng-deep button[aria-expanded='true'] .zlp-dropdown-caret {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host ::ng-deep .zlp-dropdown-caret {
+    transition: none;
+  }
+}

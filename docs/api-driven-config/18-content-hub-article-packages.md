@@ -86,22 +86,32 @@ Content hub entries use `kind: "content-hub"` plus a browser-safe `contentHub` b
 Supported read bindings:
 
 - `articleList`
+- `articleDetail`
 - `taxonomyList`
 - `moderationQueue`
 - `assetList`
 - `revisionList`
+- `scheduleList`
 - `publicBundlePreview`
+- `analyticsSummary`
 
 Supported action bindings:
 
 - `createArticle`
+- `upsertTaxonomy`
 - `updatePackage`
 - `uploadAsset`
 - `validate`
 - `submitReview`
+- `approveArticle`
 - `publish`
+- `unpublishArticle`
+- `archiveArticle`
 - `schedule`
+- `cancelSchedule`
+- `queueComment`
 - `moderateComment`
+- `recordInteraction`
 - `restoreRevision`
 
 The public request envelope is intentionally narrow. It may include `domain`, `pageId`, a public source/action ID, `contentHub.hubId`, public article/taxonomy/asset/comment/schedule identifiers, language/revision identifiers, and explicitly allowlisted safe input fields. It must not include server-only policy, table names, bucket names, upstream URLs, credential refs, tokens, tenant IDs, authorizer policy, group-to-role mapping, signed URL policy, or authorization decisions.
@@ -206,7 +216,7 @@ Required item families:
 - `TAXONOMY_OVERRIDE`: per-draft visibility and label overrides.
 - `REVISION`: snapshot/delta pointers and reconstruction metadata.
 - `LOCK`: editor locks.
-- `SCHEDULE`: publish/unpublish/reschedule jobs tied to immutable revisions.
+- `SCHEDULE`: publish/unpublish jobs tied to immutable revisions when a publish action points to a revision.
 - `MODERATION`: comments/forms/interactions moderation queue state.
 - `ASSET`: media metadata and usage references.
 - `INTERACTION`: aggregate public interaction state and moderation/spam decisions.
@@ -270,11 +280,13 @@ A schedule record must bind:
 - hub ID
 - article ID
 - language
-- immutable revision ID
+- immutable revision ID for scheduled publish actions
 - target environment
 - publish or unpublish action
 - scheduled time and timezone
 - validation report pointer
+
+The protected BFF supports listing schedules with `scheduleList`, scheduling publish/unpublish intents with `schedule`, and canceling a queued schedule with `cancelSchedule`. Draft UI must send `scheduleAction` as `publish` or `unpublish` for scheduling, and must send a stable `scheduleId` for cancellation; cancel must not be simulated as an unpublish.
 
 Revision storage should use snapshots plus deltas:
 
@@ -343,8 +355,12 @@ Blog roles should exist from MVP:
 - `blog-publisher`
 - `blog-reviewer`
 - `blog-moderator`
+- `blog-media-manager`
+- `blog-analyst`
 
 Browser route groups and visible controls are not authorization. Backend policy maps auth groups to roles and roles to action-scoped permissions.
+
+The local content-hub contract harness must keep these product roles present in `rolePolicies`, with non-empty auth groups that match the draft auth profile and explicit three-part permissions such as `blog:article:read`, `blog:article:update`, `blog:article:publish`, `blog:taxonomy:read`, `blog:media:read`, `blog:media:manage`, `blog:moderation:read`, `blog:moderation:moderate`, or `blog:analytics:read`. Wildcard grants such as `blog:article:*` are invalid even for admin roles.
 
 ## Schemas
 
@@ -379,8 +395,24 @@ The harness defines the first vertical-slice contract for:
 
 The detailed phase decision record lives in `.superpowers/blog-content-hub/evidence/repo-boundary-decision.md`.
 
+## Live Product-Readiness Smoke
+
+After deploying content-hub and runtime-read to dev/test, run the redacted smoke from an authenticated browser session instead of storing credentials in the repo. The cookie can come from a temporary local file or the `ZLP_CONTENT_HUB_SMOKE_COOKIE` environment variable; the script derives `zlp_csrf` from that cookie unless `ZLP_CONTENT_HUB_SMOKE_CSRF` is set. Do not paste those values into notes, commits, PRs, or chat logs.
+
+```powershell
+npm run content-hub:smoke -- --runtime-base-url=https://<runtime-read-api>/Prod --environment=test --domain=zoositioweb.com.mx
+```
+
+For production, pass the real public host explicitly and disable shared-preview query parameters:
+
+```powershell
+npm run content-hub:smoke -- --base-url=https://zoositioweb.com.mx --shared-preview=false --runtime-base-url=https://<runtime-read-api>/Prod --environment=production --domain=zoositioweb.com.mx
+```
+
+The smoke creates and lists a unique QA category and tag, creates a unique QA article, updates the draft package, verifies revision/preview/restore reads, registers a small public-safe asset through `uploadAsset`, verifies `assetList`, validates the article, submits it for review, approves it, publishes it, records safe aggregate interactions for read progress, CTA, reaction, share, asset download, and form outcome, queues a moderated comment, verifies `moderationQueue`, runs `moderateComment`, verifies the moderated queue row, verifies the aggregate analytics counters, verifies runtime-read `/runtime-bundle`, verifies `/content-hub-search.json` by title, slug, path, category, and tag, fetches the public article HTML, verifies sitemap/feed entries, creates a future schedule, lists it, cancels it, unpublishes the article, and verifies protected article detail after unpublish. Output is limited to sanitized IDs, paths, environment, and boolean checks. The smoke must fail if taxonomy, asset, interaction, analytics, or moderation responses expose internal storage metadata, signed URL parameters, cookies, CSRF values, raw grants, raw comment bodies, raw form/contact values, or internal moderation hashes.
+
 ## Current Known Gap
 
 Draft runtime route resolution supports `:param` path patterns for route-to-page matching, including SEO-friendly article patterns such as `/blog/:categorySlug/:articleSlug`.
-Captured params are available to the matcher and content-hub analytics, but they are not yet exposed as first-class runtime data-source inputs for generic components.
-Until the published-bundle lookup is connected to the runtime-read backend, an unknown article slug can still resolve to the configured article page shell instead of returning a content-aware 404.
+Captured params are available as first-class runtime data-source inputs through `{ "source": "routeParam", "key": "id" }`, so detail pages can hydrate article metadata without duplicating IDs in query strings.
+Runtime-read can look up published content-hub bundles for configured article routes and use that public projection for article hydration, sitemap/feed/search, and content-aware missing-article handling. Keep running a live redacted product-readiness smoke after BFF/runtime-read deploys so unknown slugs, newly published slugs, and public indexes are verified against the deployed draft environment instead of relying only on local fixtures.

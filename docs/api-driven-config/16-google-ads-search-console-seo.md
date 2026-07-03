@@ -177,7 +177,7 @@ Add browser icon settings under `site-config.json.site.icons` when a draft needs
 }
 ```
 
-Use root-relative app assets or HTTPS public asset URLs. For uploaded icon files, save the final `publicUrl` returned by `image-upload/presign`; do not save the presigned `uploadUrl` because it expires and can expose upload capability while it is valid.
+Use root-relative app assets or HTTPS public asset URLs. For uploaded icon files, save the final `publicUrl` returned by the grant-protected hub upload workflow; do not save upload grants or presigned `uploadUrl` values because they expire and can expose upload capability while valid.
 
 ## Social share images
 

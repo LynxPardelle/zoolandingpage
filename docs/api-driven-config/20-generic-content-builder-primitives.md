@@ -21,6 +21,8 @@ The table supports:
 
 By default, row events do not emit full rows. If an action needs row data, declare `eventPayloadFields`.
 
+Row actions can also declare `hrefTemplate` for same-origin navigation based on row fields. Use `{fieldName}` placeholders and keep the template rooted at `/`. External URLs and protocol-relative links are ignored by the component.
+
 ```json
 {
   "id": "articleAdminTable",
@@ -38,7 +40,12 @@ By default, row events do not emit full rows. If an action needs row data, decla
     "pagination": { "enabled": true, "pageSize": 10, "pageSizeOptions": [10, 25] },
     "selection": { "enabled": true, "mode": "multiple", "label": "Seleccionar artículo" },
     "rowActions": [
-      { "id": "edit", "label": "Editar", "icon": "edit" }
+      {
+        "id": "edit",
+        "label": "Editar",
+        "icon": "edit",
+        "hrefTemplate": "/admin/blog/articulos/{articleId}/editor?articleId={articleId}"
+      }
     ]
   }
 }
@@ -46,7 +53,9 @@ By default, row events do not emit full rows. If an action needs row data, decla
 
 ## `generic-cell`
 
-Use for a standalone cell value or as the table cell renderer. It formats text, number, date, boolean, and JSON values.
+Use for a standalone cell value or as the table cell renderer. It formats text, number, date, boolean, JSON, and list values.
+
+Use `format: "list"` for arrays of strings or objects. `itemPath` selects the field to render from each object, and `separator` controls the join text. When `itemPath` is omitted, object values fall back to `label`, `name`, `slug`, `taxonomyId`, or `id`.
 
 When `componentId` or `componentIds` is configured, the cell lazy-loads `wrapper-orchestrator` and passes this host context:
 
@@ -65,6 +74,22 @@ When `componentId` or `componentIds` is configured, the cell lazy-loads `wrapper
     "format": "boolean",
     "trueText": "Publicado",
     "falseText": "Borrador"
+  }
+}
+```
+
+```json
+{
+  "id": "tagsCell",
+  "type": "generic-cell",
+  "config": {
+    "value": [
+      { "label": "SEO" },
+      { "label": "Builder" }
+    ],
+    "format": "list",
+    "itemPath": "label",
+    "separator": ", "
   }
 }
 ```
@@ -102,6 +127,10 @@ Use when basic `generic-input` file controls are not enough: drag/drop, multiple
 
 This component does not upload files by itself. It emits accepted `File` objects and file summaries to the configured event flow; upload authorization and storage policy stay server-side.
 
+Current public draft uploads should go through the hub workflow in [../12-public-assets-and-file-uploads.md](../12-public-assets-and-file-uploads.md). Do not put upload grants or signed URLs in content-builder draft payloads.
+
+When a protected upload action must not run without a selected file, set `required: true` and place the dropzone inside an `interaction-scope`. Pair the submit button with `disabledWhenInvalidScope: true` so the browser blocks empty local selection before the backend performs its own authorization and validation.
+
 ```json
 {
   "id": "articleAssets",
@@ -116,7 +145,8 @@ This component does not upload files by itself. It emits accepted `File` objects
     "acceptLabel": "Imágenes o PDF",
     "maxFileSizeBytes": 5242880,
     "maxSizeLabel": "Máximo 5 MB por archivo",
-    "multiple": true
+    "multiple": true,
+    "required": true
   }
 }
 ```

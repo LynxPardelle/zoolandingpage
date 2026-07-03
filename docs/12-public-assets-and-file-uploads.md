@@ -1,259 +1,159 @@
 # Public Assets and File Uploads
 
-This guide explains how to upload files for use in landing pages and how those files differ from config payloads.
+This guide explains how clients, teammates, and AI agents upload public images for Zoolanding drafts.
 
-## Config payloads versus public assets
+## Security Model
 
-Keep these two storage types separate:
+Public assets are served from the public asset CDN, but upload permission is not public.
 
-- `config payloads`: JSON files such as `site-config.json`, `page-config.json`, `components.json`, `variables.json`, `angora-combos.json`, and `i18n/*.json`
-- `public assets`: images and other media files used by those payloads
+Every upload request to `zoolanding-image-upload` must include a temporary upload grant. The grant is an opaque token whose hash is stored server-side in DynamoDB with:
 
-Config payloads belong in the config authoring/runtime platform. Public assets belong in the public files bucket and CDN path.
+- one canonical draft domain
+- allowed page IDs and asset kinds
+- allowed image content types
+- max byte size
+- usage limit
+- expiration
+- overwrite permission
 
-## Upload endpoint
+The uploader does not accept unauthenticated legacy uploads. If a request has no grant, an invalid grant, an expired grant, a domain mismatch, or a forbidden asset kind/content type, the backend denies it and emits the `Zoolanding/ImageUpload UploadGrantDenied` CloudWatch metric. Production deploys should subscribe the operator emails to the upload-abuse SNS topic.
 
-Use the image upload endpoint:
+Do not commit grants, tokens, signed upload URLs, `.env*`, `.zlp/`, or generated grant files.
 
-```text
-POST https://api.zoolandingpage.com.mx/image-upload/presign
-```
+## What Clients Should Ask For
 
-This endpoint returns:
+When a client or teammate needs to upload images, they should ask Alec or an authorized Zoolanding developer for a temporary upload grant and provide:
 
-- `uploadStrategy`: `direct` or `presigned-put`
-- `uploadUrl`: presigned S3 `PUT` URL
-- `publicUrl`: final public URL you should store in draft config
-- `key`: final object key
-- `contentType`: content type to reuse in the upload request
-- `headers`: required headers for the upload request
-- `expiresIn`: presign expiry in seconds
+- the draft domain, such as `pamelabetancourt.com`
+- expected asset kinds, such as `images`, `hero-images`, `logos`, or `seo-images`
+- expected number of uploads
+- whether any existing asset must be intentionally replaced
+- whether any file is larger than the normal direct-upload limit
 
-When the request includes `imageBase64` for a supported image type, the backend can also upload directly and return:
+Default grants should be short-lived, scoped to one domain, limited to common image types, and unable to overwrite existing keys.
 
-- `uploadStrategy: direct`
-- `compression`: optimization metadata such as source bytes, stored bytes, stored dimensions, and quality used
+## Local Secret Files
 
-When the request omits `imageBase64`, the endpoint stays backward compatible and returns a presigned `PUT` response.
-
-## Current storage model
-
-- public asset bucket: `zoolandingpage-public-files`
-- public CDN/base URL: `https://assets.zoolandingpage.com.mx`
-- key pattern: `{domain}/{pageId}/{assetKind}/{assetId}.{ext}`
-
-If an asset is shared across many pages, use `shared` as the page segment.
-
-## Request body fields
-
-Base request fields:
-
-- `domain`: canonical site domain
-- `pageId`: page identifier, or `shared` for shared assets
-- `assetKind`: logical group such as `hero-images`, `logos`, `seo-images`
-- `assetId`: stable identifier for the asset
-- `fileName`: original file name
-- `contentType`: MIME type, currently restricted to image uploads
-
-Optional optimization fields:
-
-- `maxWidth`: resize target width before storage
-- `maxHeight`: resize target height before storage
-- `quality`: JPEG/WebP quality value used by direct upload compression
-- `pngCompressLevel`: PNG compression level used by direct upload compression
-
-Optional direct upload field:
-
-- `imageBase64`: base64-encoded image payload for server-side compression and upload
-
-Example request:
-
-```json
-{
-  "domain": "zoolandingpage.com.mx",
-  "pageId": "default",
-  "assetKind": "hero-images",
-  "assetId": "headline-art",
-  "fileName": "headline-art.png",
-  "contentType": "image/png"
-}
-```
-
-## Step-by-step upload flow
-
-There are now two supported flows.
-
-### Flow A. Direct upload with server-side compression
-
-Use this when the caller already has the file bytes in memory and wants the backend to optimize JPEG, PNG, or WebP before storing the final object.
-
-```bash
-curl -X POST "https://api.zoolandingpage.com.mx/image-upload/presign" \
-  -H "Content-Type: application/json" \
-  -d '{"domain":"zoolandingpage.com.mx","pageId":"default","assetKind":"hero-images","assetId":"headline-art","fileName":"headline-art.jpg","contentType":"image/jpeg","maxWidth":1600,"maxHeight":1600,"quality":82,"imageBase64":"<base64>"}'
-```
-
-Expected response shape:
-
-```json
-{
-  "ok": true,
-  "uploadStrategy": "direct",
-  "publicUrl": "https://assets.zoolandingpage.com.mx/zoolandingpage.com.mx/default/hero-images/headline-art.jpg",
-  "compression": {
-    "optimized": true,
-    "sourceBytes": 2400000,
-    "storedBytes": 620000,
-    "storedWidth": 1600,
-    "storedHeight": 1067,
-    "quality": 82
-  }
-}
-```
-
-In this flow there is no second browser-to-S3 `PUT` request. Save the returned `publicUrl` in draft config.
-
-### Flow B. Presigned browser upload
-
-Use this when you want the browser to upload directly to S3 or when the file type should not go through backend optimization.
-
-### 1. Request a presigned upload URL
-
-```bash
-curl -X POST "https://api.zoolandingpage.com.mx/image-upload/presign" \
-  -H "Content-Type: application/json" \
-  -d '{"domain":"zoolandingpage.com.mx","pageId":"default","assetKind":"hero-images","assetId":"headline-art","fileName":"headline-art.png","contentType":"image/png"}'
-```
-
-### 2. Upload the file to the returned `uploadUrl`
-
-Example with `curl`:
-
-```bash
-curl -X PUT "<uploadUrl>" \
-  -H "Content-Type: image/png" \
-  --upload-file ./headline-art.png
-```
-
-Example in PowerShell:
+Store received grants outside git-tracked files. The recommended local shape is:
 
 ```powershell
-Invoke-WebRequest -Method Put -Uri "<uploadUrl>" -Headers @{ "Content-Type" = "image/png" } -InFile .\headline-art.png
+New-Item -ItemType Directory -Force .zlp\upload-grants
+Set-Content -NoNewline .zlp\upload-grants\pamelabetancourt-com.token "<grant-token>"
 ```
 
-### 3. Save the returned `publicUrl` in draft config
+The hub `.gitignore` and draft repo templates ignore `.zlp/`, `.env*`, `*.token`, `*.grant`, and `upload-grants/`.
 
-The config field depends on the draft you are authoring, but the rule is always the same: store the final `publicUrl`, not the presigned `uploadUrl`.
+## Upload A Draft Asset
 
-Site-level browser icons also follow this rule. For favicon, mask icon, app icon, or manifest assets, write the returned public URL into `site-config.json.site.icons`.
+Run this from the `zoolandingpage` hub repo root:
 
-Example snippet in a draft variable payload:
-
-```json
-{
-  "variables": {
-    "hero": {
-      "backgroundImage": "https://assets.zoolandingpage.com.mx/zoolandingpage.com.mx/default/hero-images/headline-art.png"
-    }
-  }
-}
+```powershell
+node tools/upload-draft-asset.mjs `
+  --domain=pamelabetancourt.com `
+  --page=shared `
+  --kind=images `
+  --id=hero-principal `
+  --file="C:\path\hero.webp" `
+  --grant-file=".zlp\upload-grants\pamelabetancourt-com.token"
 ```
 
-## Recommended asset naming
+The tool prints the final `publicUrl`, not the grant:
 
-Use stable, semantic names for `assetKind` and `assetId` so payload diffs stay readable.
-
-Good examples:
-
-- `hero-images/headline-art`
-- `logos/brand-mark`
-- `seo-images/default-og-card`
-
-Avoid random or temporary names unless the asset is truly temporary.
-
-## Common asset usage patterns
-
-Use uploaded public URLs for:
-
-- hero images
-- logos
-- social share images
-- structured-data image references
-- illustrations referenced by `variables.json` or `components.json`
-
-For default social previews, use a shared raster card under `shared/seo-images` instead of reusing a favicon. The current Zoolandingpage/Zoosite fallback card is `https://assets.zoolandingpage.com.mx/zoolandingpage.com.mx/shared/seo-images/zoolandingpage-zoositioweb-default-logo-card.jpg`.
-
-Do not use the config platform for storing binary media itself.
-
-## Draft-configured upload UI
-
-Drafts can now expose public image uploads through the generic config system instead of custom Angular code.
-
-Recommended pattern:
-
-- wrap the upload UI in an `interaction-scope`
-- use a `generic-input` with `controlType: 'file'`
-- trigger `uploadPublicImage` from `eventInstructions`
-- read upload state back through `scope` or `scopeOr`
-- show success, error, or preview UI through `scope*` conditions
-
-Example authoring shape:
-
-```json
-{
-  "id": "heroImageScope",
-  "type": "interaction-scope",
-  "config": {
-    "scopeId": "heroImageScope",
-    "components": ["heroImageInput", "heroImageStatus"]
-  }
-}
+```text
+publicUrl: https://assets.zoolandingpage.com.mx/pamelabetancourt.com/shared/images/hero-principal.webp
 ```
 
-```json
-{
-  "id": "heroImageInput",
-  "type": "input",
-  "config": {
-    "fieldId": "heroImage",
-    "controlType": "file",
-    "accept": "image/jpeg,image/png,image/webp"
-  },
-  "eventInstructions": "uploadPublicImage:heroImageUpload,event.eventData.value,hero-image,hero-images,1600,1600,82"
-}
+Write that `publicUrl` into the relevant draft JSON. The exact field depends on the draft component or SEO setting. Never write the presigned `uploadUrl`; it expires and can grant temporary upload capability while active.
+
+## Common Asset Keys
+
+Use stable, semantic names so JSON diffs stay readable:
+
+- `shared/images/hero-principal`
+- `shared/logos/brand-mark`
+- `shared/seo-images/default-og-card`
+- `{pageId}/hero-images/main-visual`
+
+The final storage key is:
+
+```text
+{domain}/{pageId}/{assetKind}/{assetId}.{ext}
 ```
 
-```json
-{
-  "id": "heroImageStatus",
-  "type": "text",
-  "config": {
-    "text": ""
-  },
-  "valueInstructions": "set:config.text,scopeOr,heroImageUpload.publicUrl,Upload an image to generate a public URL",
-  "condition": "all:scope,heroImageUpload"
-}
+## Overwrites
+
+Overwrites are blocked by default. If an asset must be replaced, ask for an overwrite grant and run:
+
+```powershell
+node tools/upload-draft-asset.mjs `
+  --domain=pamelabetancourt.com `
+  --page=shared `
+  --kind=images `
+  --id=hero-principal `
+  --file="C:\path\hero.webp" `
+  --grant-file=".zlp\upload-grants\pamelabetancourt-com-overwrite.token" `
+  --overwrite
 ```
 
-The nearest `interaction-scope` receives the upload state object, including `status`, `publicUrl`, `uploadStrategy`, `compression`, and `error`.
+Both the grant and the command must allow overwrite.
 
-## Operational notes
+## Large Files And Presigned PUT
 
-- browser uploads require bucket-level CORS for your site origins
-- the returned `publicUrl` is the stable value to keep in payloads
-- the presigned `uploadUrl` expires and should never be committed to draft files
-- direct uploads return the final stored object immediately and may include compression metadata
-- if the object exists in the bucket but does not load publicly, check CDN routing and DNS as well as S3 object presence
+The preferred path is direct upload. The tool sends small images as base64 to the backend. The backend can resize/compress JPEG, PNG, and WebP when Pillow is packaged; otherwise it stores the original image bytes unchanged.
+
+For larger files, presigned PUT can be enabled only when the grant explicitly allows it:
+
+```powershell
+node tools/upload-draft-asset.mjs `
+  --domain=pamelabetancourt.com `
+  --page=shared `
+  --kind=images `
+  --id=large-background `
+  --file="C:\path\large-background.avif" `
+  --grant-file=".zlp\upload-grants\pamelabetancourt-com-large.token" `
+  --presigned
+```
+
+Do not request presigned PUT unless direct upload cannot handle the file size.
+
+## Authorized Developer: Issue A Grant
+
+Only Alec or an authorized Zoolanding developer should issue grants. The tool requires AWS access to invoke the deployed `zoolanding-image-upload` Lambda or to resolve the Lambda name from the CloudFormation stack.
+
+```powershell
+node tools/issue-upload-grant.mjs `
+  --domain=pamelabetancourt.com `
+  --usage-limit=10 `
+  --expires-seconds=28800 `
+  --max-bytes=5242880 `
+  --kinds=images,hero-images,logos,seo-images `
+  --issued-by="Alec"
+```
+
+The token is written to `.zlp/upload-grants/...token` and is not printed. The metadata JSON beside it omits the token.
+
+Useful options:
+
+- `--allow-overwrite=true` for intentional replacements
+- `--allow-presigned-put=true` for large-file direct-to-S3 uploads
+- `--content-types=image/jpeg,image/png,image/webp,image/gif,image/avif`
+- `--pages=shared,home`
+- `--profile=<aws-profile>`
+- `--function-name=<lambda-function-name>`
+
+After issuing a grant, send only the token or token file contents through a secure channel. Do not paste grants into GitHub issues, commits, draft JSON, changelogs, screenshots, or public chat.
 
 ## Troubleshooting
 
-- presign request fails: verify `domain`, `contentType`, and API access
-- upload `PUT` fails: verify `Content-Type` matches the presign response and that the URL has not expired
-- direct upload returns an error: verify `imageBase64` is valid and the file type is one of the supported image formats
-- uploaded file exists but is not visible on the site: verify the payload uses `publicUrl`, not `uploadUrl`
-- public URL returns 404 or does not resolve: verify the object key, CDN/base URL, and Route53 or CloudFront wiring
+- `Upload grant is required`: provide `--grant-file`, `--grant`, `ZLP_UPLOAD_GRANT_FILE`, or `ZLP_UPLOAD_GRANT`.
+- `domain_mismatch`: ask for a grant for the exact canonical draft domain.
+- `asset_kind_not_allowed`: ask for a grant that includes the desired `--kind`.
+- `content_type_not_allowed`: convert the file to an allowed image type or ask for a broader grant.
+- `asset_exists`: use a new `--id` or ask for an overwrite grant.
+- `presigned_put_not_allowed`: use a smaller direct upload or ask for a grant that allows presigned PUT.
+- Uploaded URL returns `404`: verify the command succeeded, use the returned `publicUrl`, and check CDN/object propagation.
 
-## Related docs
+## Related Docs
 
 - [11-draft-lifecycle.md](11-draft-lifecycle.md)
 - [06-deployment.md](06-deployment.md)

@@ -25,6 +25,13 @@ export type TAuthRouteAccessDecision = {
 
 @Injectable({ providedIn: 'root' })
 export class AuthRuntimeService {
+    private readonly defaultRouteAccessCacheMs = 15_000;
+    private serverCookieAccountCache: {
+        readonly account: TAuthAdminAccount;
+        readonly authProfileId: string;
+        readonly expiresAtEpochMs: number;
+    } | null = null;
+    private serverCookieAccountRequest: Promise<TAuthAdminAccount | null> | null = null;
     private readonly runtimeConfig = inject(RuntimeConfigService);
     private readonly auth = inject(AuthFacade);
     private readonly authAdmin = inject(AuthAdminClientService);
@@ -79,8 +86,7 @@ export class AuthRuntimeService {
             : decision;
 
         try {
-            const response = await this.authAdmin.me();
-            const account = response.account;
+            const account = await this.loadServerCookieAccount();
             if (!account?.subject) {
                 this.auth.requestSignOut();
                 return deniedFallback;
@@ -132,6 +138,55 @@ export class AuthRuntimeService {
         }
         const remoteAuth = this.runtimeConfig.authRemote();
         return remoteAuth?.enabled === true && !!this.cleanPath(remoteAuth.authProfileId);
+    }
+
+    private async loadServerCookieAccount(): Promise<TAuthAdminAccount | null> {
+        const authProfileId = this.currentAuthProfileId();
+        const now = Date.now();
+        if (this.serverCookieAccountCache
+            && this.serverCookieAccountCache.authProfileId === authProfileId
+            && this.serverCookieAccountCache.expiresAtEpochMs > now) {
+            return this.serverCookieAccountCache.account;
+        }
+
+        if (!this.serverCookieAccountRequest) {
+            this.serverCookieAccountRequest = this.authAdmin.me()
+                .then((response) => {
+                    const account = response.account ?? null;
+                    if (account?.subject) {
+                        this.serverCookieAccountCache = {
+                            account,
+                            authProfileId,
+                            expiresAtEpochMs: Date.now() + this.routeAccessCacheMs(),
+                        };
+                    } else {
+                        this.serverCookieAccountCache = null;
+                    }
+                    return account;
+                })
+                .catch((error) => {
+                    this.serverCookieAccountCache = null;
+                    throw error;
+                })
+                .finally(() => {
+                    this.serverCookieAccountRequest = null;
+                });
+        }
+
+        return this.serverCookieAccountRequest;
+    }
+
+    private routeAccessCacheMs(): number {
+        const value = this.profile()?.session?.routeAccessCacheMs;
+        if (typeof value !== 'number' || !Number.isFinite(value)) {
+            return this.defaultRouteAccessCacheMs;
+        }
+        return Math.max(0, Math.min(60000, Math.floor(value)));
+    }
+
+    private currentAuthProfileId(): string {
+        return this.cleanPath(this.profile()?.authProfileId)
+            || this.cleanPath(this.runtimeConfig.authRemote()?.authProfileId);
     }
 
     private serverCookieDecision(

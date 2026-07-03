@@ -1,5 +1,10 @@
 import { formatLocaleLabel, normalizeLocaleCode } from '@/app/shared/i18n/locale.utils';
 import type {
+    TContentHubRuntimeCollection,
+    TContentHubRuntimeArticleSummary,
+    TContentHubRuntimeTaxonomySummary,
+} from '@/app/shared/types/content-hub.types';
+import type {
     TAnalyticsConfigPayload,
     TAngoraCombosPayload,
     TComponentsPayload,
@@ -22,6 +27,7 @@ import {
     isPageConfigPayload,
     isVariablesPayload,
 } from '@/app/shared/utility/config-validation/config-payload.validators';
+import { normalizeDraftRoutePath } from '@/app/shared/utility/route-matching/draft-route-matching';
 import { isPlatformBrowser } from '@angular/common';
 import { inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
 import { ConfigSourceService } from './config-source.service';
@@ -45,6 +51,14 @@ export type TBootstrapResult = {
     readonly structuredData?: TStructuredDataPayload | null;
     readonly analytics?: TResolvedAnalyticsConfig | null;
     readonly structuredDataApplied: boolean;
+};
+
+export type TConfigBootstrapLoadOptions = {
+    readonly domain?: string;
+    readonly pageId?: string;
+    readonly lang?: string;
+    readonly routePath?: string;
+    readonly routeParams?: Readonly<Record<string, string>>;
 };
 
 const EXPECTED_CONFIG_VERSION = 1;
@@ -299,7 +313,7 @@ export class ConfigBootstrapService {
         return String(value ?? '').trim().toLowerCase().replace(/:\d+$/, '');
     }
 
-    async load(opts?: { domain?: string; pageId?: string; lang?: string }): Promise<TBootstrapResult> {
+    async load(opts?: TConfigBootstrapLoadOptions): Promise<TBootstrapResult> {
         const resolved = this.resolver.resolveDomain();
         const siteConfig = this.store.siteConfig();
         const domain = String(opts?.domain ?? resolved.domain ?? '').trim();
@@ -320,16 +334,17 @@ export class ConfigBootstrapService {
         this.store.resetPagePayloads();
         this.store.setStage('page-config');
         this.error.set(null);
+        const sourceOptions = opts?.routePath ? { path: opts.routePath } : undefined;
 
-        const pageConfig = await this.loadPageConfig(domain, pageId);
+        const pageConfig = await this.loadPageConfig(domain, pageId, sourceOptions);
         this.store.setPageConfig(pageConfig);
 
         this.store.setStage('components');
-        const components = await this.loadComponents(domain, pageId);
+        const components = await this.loadComponents(domain, pageId, sourceOptions);
         this.store.setComponents(components);
 
         this.store.setStage('variables');
-        const loadedVariables = await this.loadVariables(domain, pageId);
+        const loadedVariables = await this.loadVariables(domain, pageId, sourceOptions);
         const draftLanguages = this.buildDraftLanguageDefinitions(siteConfig, loadedVariables);
         const defaultLanguage = this.defaultDraftLanguage(siteConfig, loadedVariables, draftLanguages);
         this.language.configureLanguages(
@@ -341,17 +356,23 @@ export class ConfigBootstrapService {
 
         const variables = loadedVariables;
         this.store.setStage('angora-combos');
-        const combos = await this.loadCombos(domain, pageId);
+        const combos = await this.loadCombos(domain, pageId, sourceOptions);
         this.store.setVariables(variables);
         this.store.setCombos(combos);
         this.variablesStore.setPayload(variables, siteConfig);
+        const contentHubRuntime = this.buildContentHubRuntimeProjection(siteConfig, {
+            routePath: opts?.routePath,
+            routeParams: opts?.routeParams,
+            lang,
+        });
+        this.variablesStore.patchRuntimeValues(contentHubRuntime.values);
 
         this.store.setStage('i18n');
-        const i18nPayload = await this.loadI18n(domain, pageId, lang);
+        const i18nPayload = await this.loadI18n(domain, pageId, lang, sourceOptions);
         this.store.setI18n(i18nPayload);
 
-        const seo = pageConfig?.seo ?? null;
-        const structuredData = pageConfig?.structuredData ?? null;
+        const seo = this.buildContentHubSeo(pageConfig?.seo ?? null, contentHubRuntime.currentArticle, siteConfig);
+        const structuredData = this.buildContentHubStructuredData(pageConfig?.structuredData ?? null, contentHubRuntime.currentArticle, siteConfig);
         const loadedAnalytics = pageConfig?.analytics ?? null;
         const analytics = this.buildResolvedAnalyticsConfig(
             this.store.siteConfig()?.runtime?.analytics,
@@ -401,9 +422,233 @@ export class ConfigBootstrapService {
         };
     }
 
-    private async loadPageConfig(domain: string, pageId: string): Promise<TPageConfigPayload | null> {
+    private buildContentHubRuntimeProjection(
+        siteConfig: TDraftSiteConfigPayload | null,
+        context: Pick<TConfigBootstrapLoadOptions, 'routePath' | 'routeParams'> & { readonly lang?: string | null },
+    ): { readonly values: Record<string, unknown>; readonly currentArticle: TContentHubRuntimeArticleSummary | null } {
+        const hubs = siteConfig?.runtime?.contentHubs;
+        if (!Array.isArray(hubs) || hubs.length === 0) {
+            return { values: {}, currentArticle: null };
+        }
+
+        const lang = this.normalizeContentHubLanguage(context.lang);
+        const articles = hubs
+            .flatMap((hub) => this.readContentHubRuntimeCollection<TContentHubRuntimeArticleSummary>(hub.publicArticles))
+            .filter((article): article is TContentHubRuntimeArticleSummary => article.status === 'published'
+                && ((article as { readonly visibility?: unknown }).visibility === undefined
+                    || (article as { readonly visibility?: unknown }).visibility === 'public'))
+            .filter((article) => !lang || this.normalizeContentHubLanguage(article.locale) === lang);
+        const taxonomy = hubs
+            .flatMap((hub) => this.readContentHubRuntimeCollection<TContentHubRuntimeTaxonomySummary>(hub.publicTaxonomy))
+            .filter((entry): entry is TContentHubRuntimeTaxonomySummary => entry.visible !== false)
+            .filter((entry) => !lang || this.normalizeContentHubLanguage(entry.locale) === lang);
+
+        const currentArticle = this.findContentHubCurrentArticle(articles, context);
+        const filteredArticles = this.filterContentHubArticlesForRoute(articles, context);
+
+        return {
+            currentArticle,
+            values: {
+                'contentHub.publicArticles': {
+                    items: filteredArticles,
+                },
+                'contentHub.categories': {
+                    items: taxonomy.filter((entry) => entry.kind === 'category'),
+                },
+                'contentHub.tags': {
+                    items: taxonomy.filter((entry) => entry.kind === 'tag'),
+                },
+                'contentHub.currentArticle': currentArticle,
+            },
+        };
+    }
+
+    private buildContentHubSeo(
+        pageSeo: TSeoPayload | null,
+        article: TContentHubRuntimeArticleSummary | null,
+        siteConfig: TDraftSiteConfigPayload | null,
+    ): TSeoPayload | null {
+        if (!article) return pageSeo;
+        const title = this.cleanString(article.title) || pageSeo?.title;
+        const description = this.cleanString(article.summary) || pageSeo?.description;
+        const canonical = this.resolveContentHubCanonicalUrl(article, siteConfig) || pageSeo?.canonical;
+        const image = this.resolveContentHubSocialImage(siteConfig, pageSeo);
+        const pageOpenGraph = this.isRecord(pageSeo?.openGraph) ? pageSeo.openGraph : {};
+
+        return {
+            ...(pageSeo ?? {}),
+            title,
+            description,
+            canonical,
+            keywords: Array.isArray(article.tags) && article.tags.length > 0 ? article.tags : pageSeo?.keywords,
+            robots: this.cleanString(article.robots) || pageSeo?.robots,
+            openGraph: {
+                ...pageOpenGraph,
+                ...(title ? { title } : {}),
+                ...(description ? { description } : {}),
+                ...(canonical ? { url: canonical } : {}),
+                ...(image ? { image } : {}),
+                type: 'article',
+            },
+        };
+    }
+
+    private buildContentHubStructuredData(
+        pageStructuredData: TStructuredDataPayload | null,
+        article: TContentHubRuntimeArticleSummary | null,
+        siteConfig: TDraftSiteConfigPayload | null,
+    ): TStructuredDataPayload | null {
+        if (!article) return pageStructuredData;
+        const canonical = this.resolveContentHubCanonicalUrl(article, siteConfig);
+        const image = this.resolveContentHubSocialImage(siteConfig);
+        const publisherName = this.cleanString(siteConfig?.site?.seo?.siteName) || this.cleanString(siteConfig?.domain);
+        const title = this.cleanString(article.title);
+        const description = this.cleanString(article.summary);
+        const authorName = this.cleanString(article.authorLabel);
+        const categorySlug = this.cleanString(article.categorySlug);
+        const keywords = Array.isArray(article.tags) ? article.tags.map((tag) => this.cleanString(tag)).filter(Boolean).join(', ') : '';
+
+        return {
+            entries: [
+                ...(pageStructuredData?.entries ?? []),
+                {
+                    '@context': 'https://schema.org',
+                    '@type': 'BlogPosting',
+                    headline: title,
+                    description,
+                    url: canonical,
+                    mainEntityOfPage: canonical,
+                    datePublished: this.cleanString(article.publishedAt),
+                    dateModified: this.cleanString(article.updatedAt) || this.cleanString(article.publishedAt),
+                    ...(authorName ? { author: { '@type': 'Organization', name: authorName } } : {}),
+                    ...(publisherName ? { publisher: { '@type': 'Organization', name: publisherName } } : {}),
+                    ...(image ? { image } : {}),
+                    ...(categorySlug ? { articleSection: categorySlug } : {}),
+                    ...(keywords ? { keywords } : {}),
+                },
+            ],
+        };
+    }
+
+    private resolveContentHubCanonicalUrl(
+        article: TContentHubRuntimeArticleSummary,
+        siteConfig: TDraftSiteConfigPayload | null,
+    ): string {
+        const path = this.cleanString(article.canonicalPath) || this.cleanString(article.path);
+        if (!path) return '';
+
+        const origin = this.cleanString(siteConfig?.site?.seo?.canonicalOrigin).replace(/\/+$/, '');
+        if (!origin) return path;
+
         try {
-            const payload = await this.source.loadPageConfig(domain, pageId);
+            return new URL(path, `${ origin }/`).toString();
+        } catch {
+            return path;
+        }
+    }
+
+    private resolveContentHubSocialImage(
+        siteConfig: TDraftSiteConfigPayload | null,
+        pageSeo: TSeoPayload | null = null,
+    ): string {
+        const pageOpenGraph = this.isRecord(pageSeo?.openGraph) ? pageSeo.openGraph : {};
+        const siteOpenGraph = this.isRecord(siteConfig?.site?.seo?.openGraph) ? siteConfig.site.seo.openGraph : {};
+        return this.cleanString(pageOpenGraph['image'])
+            || this.cleanString(siteOpenGraph['image'])
+            || this.cleanString(siteConfig?.site?.seo?.defaultImage);
+    }
+
+    private cleanString(value: unknown): string {
+        return typeof value === 'string' ? value.trim() : '';
+    }
+
+    private readContentHubRuntimeCollection<T>(collection: TContentHubRuntimeCollection<T> | null | undefined): readonly T[] {
+        if (Array.isArray(collection)) {
+            return collection;
+        }
+
+        const indexedCollection = collection as { readonly items?: unknown };
+        return !!collection && typeof collection === 'object' && Array.isArray(indexedCollection.items)
+            ? indexedCollection.items as readonly T[]
+            : [];
+    }
+
+    private findContentHubCurrentArticle(
+        articles: readonly TContentHubRuntimeArticleSummary[],
+        context: Pick<TConfigBootstrapLoadOptions, 'routePath' | 'routeParams'>,
+    ): TContentHubRuntimeArticleSummary | null {
+        const normalizedRoutePath = normalizeDraftRoutePath(context.routePath);
+        const exactMatch = articles.find((article) => normalizeDraftRoutePath(article.path) === normalizedRoutePath);
+        if (exactMatch) {
+            return exactMatch;
+        }
+
+        const articleSlug = this.normalizeContentHubSlug(context.routeParams?.['articleSlug']);
+        if (!articleSlug) {
+            return null;
+        }
+
+        const categorySlug = this.normalizeContentHubSlug(context.routeParams?.['categorySlug']);
+        return articles.find((article) => {
+            const articlePathSlug = this.normalizeContentHubSlug(this.lastContentHubPathSegment(article.path));
+            if (articlePathSlug !== articleSlug) {
+                return false;
+            }
+
+            return !categorySlug || this.normalizeContentHubSlug(article.categorySlug) === categorySlug;
+        }) ?? null;
+    }
+
+    private filterContentHubArticlesForRoute(
+        articles: readonly TContentHubRuntimeArticleSummary[],
+        context: Pick<TConfigBootstrapLoadOptions, 'routePath' | 'routeParams'>,
+    ): readonly TContentHubRuntimeArticleSummary[] {
+        const tagSlug = this.normalizeContentHubSlug(context.routeParams?.['tagSlug']);
+        if (tagSlug) {
+            return articles.filter((article) => (article.tags ?? []).some((tag) => this.normalizeContentHubSlug(tag) === tagSlug));
+        }
+
+        if (this.isContentHubArticleRoute(context)) {
+            return articles;
+        }
+
+        const categorySlug = this.normalizeContentHubSlug(context.routeParams?.['categorySlug']);
+        if (categorySlug) {
+            return articles.filter((article) => this.normalizeContentHubSlug(article.categorySlug) === categorySlug);
+        }
+
+        return articles;
+    }
+
+    private isContentHubArticleRoute(context: Pick<TConfigBootstrapLoadOptions, 'routePath' | 'routeParams'>): boolean {
+        if (this.isNonEmptyString(context.routeParams?.['articleSlug'])) {
+            return true;
+        }
+
+        const normalizedPath = normalizeDraftRoutePath(context.routePath);
+        return normalizedPath.split('/').filter(Boolean).length >= 3;
+    }
+
+    private normalizeContentHubSlug(value: unknown): string {
+        return typeof value === 'string' ? value.trim().toLocaleLowerCase() : '';
+    }
+
+    private normalizeContentHubLanguage(value: unknown): string {
+        const raw = this.cleanString(value).replace(/_/g, '-');
+        if (!raw) return '';
+        const [base, ...rest] = raw.split('-').filter(Boolean);
+        if (!base) return '';
+        return [base.toLowerCase(), ...rest.map((part) => part.length === 2 ? part.toUpperCase() : part)].join('-');
+    }
+
+    private lastContentHubPathSegment(path: unknown): string {
+        const segments = normalizeDraftRoutePath(path).split('/').filter(Boolean);
+        return segments.at(-1) ?? '';
+    }
+
+    private async loadPageConfig(domain: string, pageId: string, opts?: { readonly path?: string }): Promise<TPageConfigPayload | null> {
+        try {
+            const payload = await this.source.loadPageConfig(domain, pageId, opts);
             return payload && isPageConfigPayload(payload) ? payload : null;
         } catch (error) {
             this.captureError('page-config', error);
@@ -411,9 +656,9 @@ export class ConfigBootstrapService {
         }
     }
 
-    private async loadComponents(domain: string, pageId: string): Promise<TComponentsPayload | null> {
+    private async loadComponents(domain: string, pageId: string, opts?: { readonly path?: string }): Promise<TComponentsPayload | null> {
         try {
-            const payload = await this.source.loadComponents(domain, pageId);
+            const payload = await this.source.loadComponents(domain, pageId, opts);
             return payload && isComponentsPayload(payload) ? payload : null;
         } catch (error) {
             this.captureError('components', error);
@@ -421,9 +666,9 @@ export class ConfigBootstrapService {
         }
     }
 
-    private async loadVariables(domain: string, pageId: string): Promise<TVariablesPayload | null> {
+    private async loadVariables(domain: string, pageId: string, opts?: { readonly path?: string }): Promise<TVariablesPayload | null> {
         try {
-            const payload = await this.source.loadVariables(domain, pageId);
+            const payload = await this.source.loadVariables(domain, pageId, opts);
             return payload && isVariablesPayload(payload) ? payload : null;
         } catch (error) {
             this.captureError('variables', error);
@@ -431,9 +676,9 @@ export class ConfigBootstrapService {
         }
     }
 
-    private async loadCombos(domain: string, pageId: string): Promise<TAngoraCombosPayload | null> {
+    private async loadCombos(domain: string, pageId: string, opts?: { readonly path?: string }): Promise<TAngoraCombosPayload | null> {
         try {
-            const payload = await this.source.loadCombos(domain, pageId);
+            const payload = await this.source.loadCombos(domain, pageId, opts);
             return payload && isAngoraCombosPayload(payload) ? payload : null;
         } catch (error) {
             this.captureError('angora-combos', error);
@@ -441,9 +686,9 @@ export class ConfigBootstrapService {
         }
     }
 
-    private async loadI18n(domain: string, pageId: string, lang: string): Promise<TI18nPayload | null> {
+    private async loadI18n(domain: string, pageId: string, lang: string, opts?: { readonly path?: string }): Promise<TI18nPayload | null> {
         try {
-            const payload = await this.source.loadI18n(domain, pageId, lang);
+            const payload = await this.source.loadI18n(domain, pageId, lang, opts);
             return payload && isI18nPayload(payload) ? payload : null;
         } catch (error) {
             this.captureError('i18n', error);

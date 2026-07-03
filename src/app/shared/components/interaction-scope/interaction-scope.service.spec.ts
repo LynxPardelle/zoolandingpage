@@ -68,6 +68,30 @@ describe('InteractionScopeService', () => {
         expect(service.resolvePath('values.visitors')).toBe(1000);
     });
 
+    it('syncs new initial values until the user edits the field', () => {
+        service.registerField({
+            fieldId: 'pageSize',
+            initialValue: '10',
+        });
+
+        expect(service.snapshot().values['pageSize']).toBe('10');
+
+        service.registerField({
+            fieldId: 'pageSize',
+            initialValue: '3',
+        });
+
+        expect(service.snapshot().values['pageSize']).toBe('3');
+
+        service.setFieldValue('pageSize', '5', { markTouched: true });
+        service.registerField({
+            fieldId: 'pageSize',
+            initialValue: '20',
+        });
+
+        expect(service.snapshot().values['pageSize']).toBe('5');
+    });
+
     it('revalidates fields that depend on another field value', () => {
         service.registerField({
             fieldId: 'password',
@@ -119,5 +143,25 @@ describe('InteractionScopeService', () => {
         });
 
         expect(service.snapshot().fields['confirmPassword'].valid).toBeTrue();
+    });
+
+    it('validates JSON fields for advanced component editors', () => {
+        service.registerField({
+            fieldId: 'componentTreeJson',
+            initialValue: '{"type":"container","config":{}}',
+            validation: [
+                {
+                    type: 'json',
+                    message: 'Escribe JSON válido.',
+                },
+            ],
+        });
+
+        expect(service.snapshot().fields['componentTreeJson'].valid).toBeTrue();
+
+        service.setFieldValue('componentTreeJson', '{"type":', { markTouched: true });
+
+        expect(service.snapshot().fields['componentTreeJson'].valid).toBeFalse();
+        expect(service.snapshot().fields['componentTreeJson'].errors).toContain('Escribe JSON válido.');
     });
 });

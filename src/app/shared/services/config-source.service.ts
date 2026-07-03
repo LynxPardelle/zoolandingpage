@@ -18,11 +18,11 @@ import { LanguageService } from './language.service';
 
 type TConfigSource = {
     readonly loadSiteConfig: (domain: string) => Promise<TDraftSiteConfigPayload | null>;
-    readonly loadPageConfig: (domain: string, pageId: string) => Promise<TPageConfigPayload | null>;
-    readonly loadComponents: (domain: string, pageId: string) => Promise<TComponentsPayload | null>;
-    readonly loadVariables: (domain: string, pageId: string) => Promise<TVariablesPayload | null>;
-    readonly loadCombos: (domain: string, pageId: string) => Promise<TAngoraCombosPayload | null>;
-    readonly loadI18n: (domain: string, pageId: string, lang: string) => Promise<TI18nPayload | null>;
+    readonly loadPageConfig: (domain: string, pageId: string, opts?: { readonly path?: string }) => Promise<TPageConfigPayload | null>;
+    readonly loadComponents: (domain: string, pageId: string, opts?: { readonly path?: string }) => Promise<TComponentsPayload | null>;
+    readonly loadVariables: (domain: string, pageId: string, opts?: { readonly path?: string }) => Promise<TVariablesPayload | null>;
+    readonly loadCombos: (domain: string, pageId: string, opts?: { readonly path?: string }) => Promise<TAngoraCombosPayload | null>;
+    readonly loadI18n: (domain: string, pageId: string, lang: string, opts?: { readonly path?: string }) => Promise<TI18nPayload | null>;
 };
 
 @Injectable({ providedIn: 'root' })
@@ -57,39 +57,64 @@ export class ConfigSourceService {
     private readonly apiSource: TConfigSource = {
         loadSiteConfig: async (domain) => {
             const bundle = await this.tryLoadRuntimeBundle(domain);
-            return bundle?.siteConfig ?? this.resolveHydratedSiteConfig(domain) ?? this.legacyApiSource.loadSiteConfig(domain);
+            return bundle?.siteConfig
+                ?? this.resolveHydratedSiteConfig(domain)
+                ?? this.loadLegacyApiFallback(() => this.legacyApiSource.loadSiteConfig(domain));
         },
-        loadPageConfig: async (domain, pageId) => {
-            const bundle = await this.tryLoadRuntimeBundle(domain, { pageId });
-            return bundle?.pageConfig ?? this.legacyApiSource.loadPageConfig(domain, pageId);
+        loadPageConfig: async (domain, pageId, opts) => {
+            const bundle = await this.tryLoadRuntimeBundle(domain, { pageId, path: opts?.path });
+            return this.isRenderablePageConfig(bundle?.pageConfig, pageId)
+                ? bundle.pageConfig
+                : this.loadLegacyApiFallback(() => this.legacyApiSource.loadPageConfig(domain, pageId));
         },
-        loadComponents: async (domain, pageId) => {
-            const bundle = await this.tryLoadRuntimeBundle(domain, { pageId });
-            return bundle?.components ?? this.legacyApiSource.loadComponents(domain, pageId);
+        loadComponents: async (domain, pageId, opts) => {
+            const bundle = await this.tryLoadRuntimeBundle(domain, { pageId, path: opts?.path });
+            return this.isRenderableComponentsPayload(bundle?.components, pageId)
+                ? bundle.components
+                : this.loadLegacyApiFallback(() => this.legacyApiSource.loadComponents(domain, pageId));
         },
-        loadVariables: async (domain, pageId) => {
-            const bundle = await this.tryLoadRuntimeBundle(domain, { pageId });
+        loadVariables: async (domain, pageId, opts) => {
+            const bundle = await this.tryLoadRuntimeBundle(domain, { pageId, path: opts?.path });
             if (bundle && Object.prototype.hasOwnProperty.call(bundle, 'variables')) {
                 return bundle.variables ?? null;
             }
 
             const resolved = this.resolveBundleIdentity(bundle, domain, pageId);
-            return this.legacyApiSource.loadVariables(resolved.domain, resolved.pageId);
+            return this.loadLegacyApiFallback(() => this.legacyApiSource.loadVariables(resolved.domain, resolved.pageId), {
+                allowBrowser: true,
+            });
         },
-        loadCombos: async (domain, pageId) => {
-            const bundle = await this.tryLoadRuntimeBundle(domain, { pageId });
+        loadCombos: async (domain, pageId, opts) => {
+            const bundle = await this.tryLoadRuntimeBundle(domain, { pageId, path: opts?.path });
             if (bundle && Object.prototype.hasOwnProperty.call(bundle, 'angoraCombos')) {
                 return bundle.angoraCombos ?? null;
             }
 
             const resolved = this.resolveBundleIdentity(bundle, domain, pageId);
-            return this.legacyApiSource.loadCombos(resolved.domain, resolved.pageId);
+            return this.loadLegacyApiFallback(() => this.legacyApiSource.loadCombos(resolved.domain, resolved.pageId), {
+                allowBrowser: true,
+            });
         },
-        loadI18n: async (domain, pageId, lang) => {
-            const bundle = await this.tryLoadRuntimeBundle(domain, { pageId, lang });
-            return bundle?.i18n ?? this.legacyApiSource.loadI18n(domain, pageId, lang);
+        loadI18n: async (domain, pageId, lang, opts) => {
+            const bundle = await this.tryLoadRuntimeBundle(domain, { pageId, lang, path: opts?.path });
+            return bundle?.i18n ?? this.loadLegacyApiFallback(() => this.legacyApiSource.loadI18n(domain, pageId, lang));
         },
     };
+
+    private async loadLegacyApiFallback<T>(
+        load: () => Promise<T | null>,
+        options: { readonly allowBrowser?: boolean } = {},
+    ): Promise<T | null> {
+        if (this.isBrowser && options.allowBrowser !== true) {
+            return null;
+        }
+
+        try {
+            return await load();
+        } catch {
+            return null;
+        }
+    }
 
     private parseRequestUrl(): URL | null {
         if (this.isBrowser) {
@@ -185,6 +210,46 @@ export class ConfigSourceService {
         ));
     }
 
+    private collectRuntimeBundlePayloadDomains(payload: TRuntimeBundlePayload): readonly string[] {
+        const candidates = [
+            payload.domain,
+            payload.siteConfig?.domain,
+            payload.metadata?.['resolvedAlias'],
+            ...(Array.isArray(payload.siteConfig?.aliases) ? payload.siteConfig.aliases : []),
+        ];
+
+        return Array.from(new Set(
+            candidates
+                .map((entry) => this.normalizeHost(entry))
+                .filter(Boolean)
+        ));
+    }
+
+    private isRuntimeBundleForRequestedDomain(requestedDomain: string, payload: TRuntimeBundlePayload): boolean {
+        const normalizedRequestedDomain = this.normalizeHost(requestedDomain);
+        if (!normalizedRequestedDomain) {
+            return false;
+        }
+
+        return this.collectRuntimeBundlePayloadDomains(payload).includes(normalizedRequestedDomain);
+    }
+
+    private isRenderablePageConfig(payload: TPageConfigPayload | null | undefined, pageId: string): payload is TPageConfigPayload {
+        const normalizedPageId = String(pageId ?? '').trim();
+        return !!payload
+            && String(payload.pageId ?? '').trim() === normalizedPageId
+            && Array.isArray(payload.rootIds)
+            && payload.rootIds.length > 0;
+    }
+
+    private isRenderableComponentsPayload(payload: TComponentsPayload | null | undefined, pageId: string): payload is TComponentsPayload {
+        const normalizedPageId = String(pageId ?? '').trim();
+        return !!payload
+            && String(payload.pageId ?? '').trim() === normalizedPageId
+            && Array.isArray(payload.components)
+            && payload.components.length > 0;
+    }
+
     private collectRuntimeBundlePageIds(requestedPageId: string, payload: TRuntimeBundlePayload): readonly string[] {
         return Array.from(new Set(
             [requestedPageId, payload.pageId]
@@ -262,31 +327,9 @@ export class ConfigSourceService {
         return this.resolveRuntimeHost() === 'test.zoolandingpage.com.mx';
     }
 
-    private testAliasesForDomain(domain: string): readonly string[] {
-        const normalized = this.normalizeHost(domain);
-        if (!normalized || normalized.startsWith('test.')) {
-            return normalized ? [normalized] : [];
-        }
-
-        const names = new Set<string>([`test.${ normalized }`]);
-        const firstLabel = normalized.split('.')[0];
-        if (!normalized.endsWith('zoolandingpage.com.mx') && firstLabel) {
-            names.add(`test.${ firstLabel }.zoolandingpage.com.mx`);
-        }
-
-        return Array.from(names);
-    }
-
     private runtimeBundleRequestDomains(domain: string): readonly string[] {
         const normalized = String(domain ?? '').trim();
-        if (!normalized || !this.isSharedTestingPreviewHost()) {
-            return normalized ? [normalized] : [];
-        }
-
-        return Array.from(new Set([
-            ...this.testAliasesForDomain(normalized),
-            normalized,
-        ]));
+        return normalized ? [normalized] : [];
     }
 
     private runtimeBundleRequestEnvironment(): string | undefined {
@@ -315,6 +358,39 @@ export class ConfigSourceService {
             && fallbackFromDomain === normalizedCandidateDomain
             && !resolvedAlias
             && payloadDomain !== normalizedRequestedDomain;
+    }
+
+    private isRecord(value: unknown): value is Record<string, unknown> {
+        return !!value && typeof value === 'object' && !Array.isArray(value);
+    }
+
+    private normalizeRuntimeBundlePayload(value: unknown): unknown {
+        if (!this.isRecord(value)) {
+            return value;
+        }
+
+        const componentsPayload = value['components'];
+        if (!this.isRecord(componentsPayload)) {
+            return value;
+        }
+
+        const components = componentsPayload['components'];
+        if (Array.isArray(components) || !this.isRecord(components)) {
+            return value;
+        }
+
+        return {
+            ...value,
+            components: {
+                ...componentsPayload,
+                components: Object.entries(components)
+                    .filter(([, component]) => this.isRecord(component))
+                    .map(([id, component]) => ({
+                        id,
+                        ...(component as Record<string, unknown>),
+                    })),
+            },
+        };
     }
 
     private async loadRuntimeBundle(domain: string, opts?: {
@@ -370,9 +446,15 @@ export class ConfigSourceService {
                 path: currentPath,
                 environment: requestEnvironment,
             })
+                .then((payload) => this.normalizeRuntimeBundlePayload(payload))
                 .then((payload) => isRuntimeBundlePayload(payload) ? payload : null)
                 .then((payload) => {
                     if (!payload) {
+                        this.runtimeBundleCache.delete(candidateKey);
+                        return null;
+                    }
+
+                    if (!this.isRuntimeBundleForRequestedDomain(normalizedDomain, payload)) {
                         this.runtimeBundleCache.delete(candidateKey);
                         return null;
                     }
@@ -416,7 +498,7 @@ export class ConfigSourceService {
                     return payload;
                 }
             } catch {
-                // Try the next shared-preview alias candidate before giving up.
+                // Try the next allowed runtime candidate before giving up.
             }
         }
 
@@ -486,24 +568,24 @@ export class ConfigSourceService {
         return this.source.loadSiteConfig(domain);
     }
 
-    loadPageConfig(domain: string, pageId: string): Promise<TPageConfigPayload | null> {
-        return this.source.loadPageConfig(domain, pageId);
+    loadPageConfig(domain: string, pageId: string, opts?: { readonly path?: string }): Promise<TPageConfigPayload | null> {
+        return this.source.loadPageConfig(domain, pageId, opts);
     }
 
-    loadComponents(domain: string, pageId: string): Promise<TComponentsPayload | null> {
-        return this.source.loadComponents(domain, pageId);
+    loadComponents(domain: string, pageId: string, opts?: { readonly path?: string }): Promise<TComponentsPayload | null> {
+        return this.source.loadComponents(domain, pageId, opts);
     }
 
-    loadVariables(domain: string, pageId: string): Promise<TVariablesPayload | null> {
-        return this.source.loadVariables(domain, pageId);
+    loadVariables(domain: string, pageId: string, opts?: { readonly path?: string }): Promise<TVariablesPayload | null> {
+        return this.source.loadVariables(domain, pageId, opts);
     }
 
-    loadCombos(domain: string, pageId: string): Promise<TAngoraCombosPayload | null> {
-        return this.source.loadCombos(domain, pageId);
+    loadCombos(domain: string, pageId: string, opts?: { readonly path?: string }): Promise<TAngoraCombosPayload | null> {
+        return this.source.loadCombos(domain, pageId, opts);
     }
 
-    loadI18n(domain: string, pageId: string, lang: string): Promise<TI18nPayload | null> {
-        return this.source.loadI18n(domain, pageId, lang);
+    loadI18n(domain: string, pageId: string, lang: string, opts?: { readonly path?: string }): Promise<TI18nPayload | null> {
+        return this.source.loadI18n(domain, pageId, lang, opts);
     }
 
     async prefetchRoute(domain: string, opts?: { pageId?: string; lang?: string; path?: string }): Promise<void> {

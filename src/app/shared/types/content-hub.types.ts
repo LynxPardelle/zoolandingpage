@@ -12,25 +12,37 @@ export type TContentHubVisibility = 'public' | 'unlisted' | 'protected' | 'priva
 export type TContentHubTaxonomyKind = 'category' | 'tag';
 export type TContentHubCommentMode = 'off' | 'authenticated';
 export type TContentHubModerationMode = 'off' | 'queue' | 'spam-check' | 'manual';
+export type TContentHubRuntimeCommentPolicy = 'disabled' | 'moderated' | 'authenticated';
+export type TContentHubRuntimeContentSafetyRating = 'general' | 'sensitive' | 'restricted';
 export type TContentHubHtmlFreedom = 'strict' | 'balanced' | 'advanced' | 'trusted';
 export type TContentHubAnalyticsPiiPolicy = 'no-pii' | 'metadata-only';
 export type TContentHubRevisionKind = 'snapshot' | 'delta';
 export type TContentHubRuntimeReadKind =
     | 'articleList'
+    | 'articleDetail'
     | 'taxonomyList'
     | 'moderationQueue'
     | 'assetList'
     | 'revisionList'
-    | 'publicBundlePreview';
+    | 'scheduleList'
+    | 'publicBundlePreview'
+    | 'analyticsSummary';
 export type TContentHubRuntimeActionKind =
     | 'createArticle'
     | 'updatePackage'
+    | 'upsertTaxonomy'
     | 'uploadAsset'
     | 'validate'
     | 'submitReview'
+    | 'approveArticle'
     | 'publish'
+    | 'unpublishArticle'
+    | 'archiveArticle'
     | 'schedule'
+    | 'cancelSchedule'
+    | 'queueComment'
     | 'moderateComment'
+    | 'recordInteraction'
     | 'restoreRevision';
 
 export type TContentHubPackagePointer = {
@@ -58,8 +70,12 @@ export type TContentHubRuntimeConfig = {
     readonly runtimeSourceId?: string;
     readonly publicApiBasePath?: string;
     readonly analyticsContext?: TContentHubAnalyticsContext;
-    readonly publicArticles?: readonly TContentHubRuntimeArticleSummary[];
-    readonly publicTaxonomy?: readonly TContentHubRuntimeTaxonomySummary[];
+    readonly publicArticles?: TContentHubRuntimeCollection<TContentHubRuntimeArticleSummary>;
+    readonly publicTaxonomy?: TContentHubRuntimeCollection<TContentHubRuntimeTaxonomySummary>;
+};
+
+export type TContentHubRuntimeCollection<T> = readonly T[] | {
+    readonly items?: readonly T[];
 };
 
 export type TContentHubRuntimeArticleSummary = {
@@ -71,11 +87,22 @@ export type TContentHubRuntimeArticleSummary = {
     readonly path: string;
     readonly categorySlug?: string;
     readonly tags?: readonly string[];
+    readonly visibility?: 'public';
     readonly publishedAt: string;
     readonly updatedAt?: string;
     readonly authorLabel?: string;
     readonly canonicalPath?: string;
     readonly robots?: 'index,follow' | 'noindex,follow' | 'noindex,nofollow';
+    readonly commentPolicy?: TContentHubRuntimeCommentPolicy;
+    readonly contentSafety?: {
+        readonly rating: TContentHubRuntimeContentSafetyRating;
+        readonly warnings?: readonly string[];
+    };
+    readonly interactions?: {
+        readonly reactions?: TContentHubInteractionPolicy;
+        readonly ctas?: TContentHubInteractionPolicy;
+        readonly forms?: TContentHubInteractionPolicy;
+    };
 };
 
 export type TContentHubRuntimeTaxonomySummary = {

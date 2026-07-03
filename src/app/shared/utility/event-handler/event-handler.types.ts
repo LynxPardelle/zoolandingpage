@@ -4,6 +4,7 @@ export type OrchestratorEvent = {
     meta_title?: string;
     eventData?: unknown;
     eventInstructions?: string;
+    userGesture?: boolean;
 };
 
 export type EventHost = unknown;

@@ -162,7 +162,7 @@
       "properties": {
         "fieldId": { "type": "string" },
         "controlType": { "enum": ["text", "textarea", "number", "range", "checkbox", "switch", "select", "file", "button-group"] },
-        "inputType": { "enum": ["text", "email", "password", "search", "tel", "url"] },
+        "inputType": { "enum": ["text", "email", "password", "search", "tel", "url", "date", "time", "datetime-local"] },
         "name": { "type": "string" },
         "label": { "type": "string" },
         "description": { "type": "string" },
@@ -465,10 +465,12 @@
         "value": {},
         "row": {},
         "valuePath": { "type": "string" },
-        "format": { "enum": ["text", "number", "date", "boolean", "json"] },
+        "format": { "enum": ["text", "number", "date", "boolean", "json", "list"] },
         "emptyText": { "type": "string" },
         "trueText": { "type": "string" },
         "falseText": { "type": "string" },
+        "itemPath": { "type": "string" },
+        "separator": { "type": "string" },
         "componentId": { "type": "string" },
         "componentIds": {
           "type": "array",
@@ -486,12 +488,14 @@
         "id": { "type": "string", "minLength": 1 },
         "header": { "type": "string" },
         "valuePath": { "type": "string" },
-        "format": { "enum": ["text", "number", "date", "boolean", "json"] },
+        "format": { "enum": ["text", "number", "date", "boolean", "json", "list"] },
         "sortable": { "type": "boolean" },
         "align": { "enum": ["start", "center", "end"] },
         "emptyText": { "type": "string" },
         "trueText": { "type": "string" },
         "falseText": { "type": "string" },
+        "itemPath": { "type": "string" },
+        "separator": { "type": "string" },
         "componentId": { "type": "string" },
         "componentIds": {
           "type": "array",
@@ -562,6 +566,7 @@
               "items": { "type": "number" }
             },
             "hidePageSize": { "type": "boolean" },
+            "hideWhenSinglePage": { "type": "boolean" },
             "showFirstLastButtons": { "type": "boolean" }
           },
           "additionalProperties": false
@@ -594,6 +599,7 @@
               "classes": { "type": "string" },
               "disabled": { "type": "boolean" },
               "loading": { "type": "boolean" },
+              "hrefTemplate": { "type": "string" },
               "eventInstructions": { "type": "string" }
             },
             "additionalProperties": false
@@ -612,12 +618,15 @@
         "classes": { "type": "string" },
         "labelClasses": { "type": "string" },
         "descriptionClasses": { "type": "string" },
+        "actionColumnLabel": { "type": "string" },
         "tableWrapperClasses": { "type": "string" },
         "tableClasses": { "type": "string" },
         "headerCellClasses": { "type": "string" },
         "rowClasses": { "type": "string" },
         "actionCellClasses": { "type": "string" },
         "actionButtonClasses": { "type": "string" },
+        "actionIconClasses": { "type": "string" },
+        "actionLabelMode": { "enum": ["visible", "tooltip"] },
         "selectionCellClasses": { "type": "string" },
         "stateClasses": { "type": "string" }
       },

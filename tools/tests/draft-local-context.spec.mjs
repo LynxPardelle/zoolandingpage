@@ -840,6 +840,18 @@ test('built SSR server decorates configured drafts with Google tag, Search Conso
   assert.match(html, /"@type":"WebSite"/);
   assert.match(html, /hreflang="en"/);
 
+  const dirtySeoResponse = await fetch(
+    `http://127.0.0.1:${port}/?draftDomain=ignored.example.com&debugWorkspace=false&cacheBust=123&utm_source=qa&lang=es`,
+    { headers: fixtureHeaders },
+  );
+  assert.equal(dirtySeoResponse.status, 200, serverOutput);
+  const dirtySeoHtml = await dirtySeoResponse.text();
+  assert.match(dirtySeoHtml, /<link rel="canonical" href="https:\/\/zoositioweb\.com\.mx\/">/);
+  assert.match(dirtySeoHtml, /hreflang="en" href="https:\/\/zoositioweb\.com\.mx\/\?lang=en"/);
+  assert.equal([...dirtySeoHtml.matchAll(/<link rel="alternate" hreflang=/g)].length, 3);
+  assert.doesNotMatch(dirtySeoHtml, /<link[^>]+href="[^"]*(draftDomain=|debugWorkspace=|cacheBust=|utm_source=)/);
+  assert.doesNotMatch(dirtySeoHtml, /<meta[^>]+content="[^"]*(draftDomain=|debugWorkspace=|cacheBust=|utm_source=)/);
+
   const verificationResponse = await fetch(`http://127.0.0.1:${port}/googleabc123.html`, { headers: fixtureHeaders });
   assert.equal(verificationResponse.status, 200, serverOutput);
   assert.equal(await verificationResponse.text(), 'google-site-verification: googleabc123.html');

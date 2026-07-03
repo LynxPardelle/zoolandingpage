@@ -159,13 +159,13 @@ This distinction matters because a successful publish does not guarantee that th
 
 Public media is uploaded separately from config payloads. Do not try to store binary files inside draft packages.
 
-Use the image upload presign endpoint:
+Use the hub upload tool with a temporary upload grant:
 
-```text
-POST https://api.zoolandingpage.com.mx/image-upload/presign
+```bash
+node tools/upload-draft-asset.mjs --domain=zoolandingpage.com.mx --page=default --kind=hero-images --id=headline-art --file="./local/headline-art.webp" --grant-file=".zlp/upload-grants/zoolandingpage-com.token"
 ```
 
-Then upload the file with the returned `uploadUrl` and save the returned `publicUrl` into the draft payload field that needs it.
+Save the returned `publicUrl` into the draft payload field that needs it. Never save upload grants, signed upload URLs, or local file paths into draft JSON.
 
 For the full flow, read [11-draft-lifecycle.md](11-draft-lifecycle.md) and [12-public-assets-and-file-uploads.md](12-public-assets-and-file-uploads.md).
 

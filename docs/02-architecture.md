@@ -30,7 +30,7 @@ The frontend renders the same internal component model in both local and product
 
 - `zoolanding-config-authoring`: create, pull, update, and publish draft packages.
 - `zoolanding-config-runtime-read`: resolve `domain + path + lang` into one runtime bundle.
-- `zoolanding-image-upload`: issue presigned upload URLs for public assets.
+- `zoolanding-image-upload`: upload public assets only with temporary upload grants.
 
 ### Related analytics repos
 
@@ -78,10 +78,10 @@ Local draft files
 ### Public asset flow
 
 ```text
-Author requests presign
-  -> image-upload API
-  -> presigned PUT URL + final publicUrl
-  -> browser or tool uploads file to S3
+Author requests temporary upload grant from an authorized developer
+  -> hub upload tool calls image-upload API with the grant
+  -> Lambda writes the object directly or returns an allowed presigned PUT URL
+  -> tool returns final publicUrl
   -> draft JSON references returned publicUrl
 ```
 
@@ -231,7 +231,7 @@ Instead:
 - public media lives in `zoolandingpage-public-files`
 - the public URL base is expected to be `https://assets.zoolandingpage.com.mx`
 
-The image upload API returns a presigned upload URL and a final `publicUrl` that should be written into the relevant draft payload field.
+The image upload API requires a temporary upload grant before it returns or writes any public asset. The hub upload tool returns the final `publicUrl`, which should be written into the relevant draft payload field. Do not store upload grants, signed URLs, or raw tokens in public draft payloads.
 
 ## Common debugging boundary
 

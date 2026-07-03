@@ -116,6 +116,8 @@ The action writes a structured state object into the nearest `interaction-scope`
 
 This makes uploads composable with existing `valueInstructions` and `condition` DSLs.
 
+This browser action must not be used in public drafts until a server-side authenticated grant bridge is connected. Public draft payloads cannot contain upload grants or signed URLs. For current client and teammate uploads, use the hub workflow in [../12-public-assets-and-file-uploads.md](../12-public-assets-and-file-uploads.md).
+
 ## Adding new actions
 
 Actions are implemented in the centralized event handler (see `ConfigurationsOrchestratorService.handleComponentEvent` and related utilities).

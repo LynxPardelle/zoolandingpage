@@ -2,6 +2,7 @@ import { environment } from '@/environments/environment';
 import { isPlatformBrowser } from '@angular/common';
 import { computed, DestroyRef, inject, Injectable, NgZone, PLATFORM_ID, REQUEST, signal } from '@angular/core';
 import { navigateInCurrentWindow } from '../utility/navigation/browser-navigation.utility';
+import { isMissingPublishedContentHubArticlePath } from '../utility/content-hub/content-hub-public-route';
 import { matchDraftRoute, normalizeDraftRoutePath } from '../utility/route-matching/draft-route-matching';
 import type { TComponentsPayload, TDraftSiteConfigPayload, TDraftSiteRouteEntry, TPageConfigPayload } from '../types/config-payloads.types';
 import { ConfigSourceService } from './config-source.service';
@@ -25,6 +26,7 @@ export type TResolvedDraftContext = {
     readonly pageId: string;
     readonly path: string;
     readonly route: TDraftSiteRouteEntry | null;
+    readonly routeParams?: Readonly<Record<string, string>>;
     readonly explicitPageId: boolean;
     readonly notFound?: boolean;
 };
@@ -53,6 +55,7 @@ export class DraftRuntimeService {
     readonly resolvedDraftPageId = signal('');
     readonly resolvedDraftPath = signal('/');
     readonly resolvedDraftRoute = signal<TDraftSiteRouteEntry | null>(null);
+    readonly resolvedDraftRouteParams = signal<Readonly<Record<string, string>>>({});
     readonly activeDraftDomain = computed(() => {
         this.locationRevision();
         return this.resolveSanitizedRequestedDraftIdentity().domain;
@@ -226,13 +229,29 @@ export class DraftRuntimeService {
             return explicitContext;
         }
 
-        const route = this.matchRoute(siteConfig, path);
-        if (route) {
+        const routeMatch = this.matchRouteWithParams(siteConfig, path);
+        if (routeMatch) {
+            const routeRequiresAuth = routeMatch.route.auth?.required === true;
+            if (
+                !routeRequiresAuth
+                && (!this.isBrowser || environment.drafts.enabled)
+                && isMissingPublishedContentHubArticlePath(siteConfig?.runtime?.contentHubs, path)
+            ) {
+                const notFoundResolution = await this.resolveNotFoundContext(domain, path, siteConfig)
+                    ?? await this.resolveCanonicalNotFoundContext(path);
+                if (notFoundResolution) {
+                    this.configStore.setSiteConfig(notFoundResolution.siteConfig);
+                    this.applyResolvedContext(notFoundResolution.context);
+                    return notFoundResolution.context;
+                }
+            }
+
             const resolvedContext = {
                 domain,
-                pageId: route.pageId,
+                pageId: routeMatch.route.pageId,
                 path,
-                route,
+                route: routeMatch.route,
+                routeParams: routeMatch.params,
                 explicitPageId: false,
             } satisfies TResolvedDraftContext;
 
@@ -459,6 +478,25 @@ export class DraftRuntimeService {
         return matchDraftRoute(siteConfig.routes, path)?.route ?? null;
     }
 
+    private matchRouteWithParams(
+        siteConfig: TDraftSiteConfigPayload | null,
+        path: string,
+    ): { readonly route: TDraftSiteRouteEntry; readonly params: Readonly<Record<string, string>> } | null {
+        if (!siteConfig?.routes?.length) {
+            return null;
+        }
+
+        const match = matchDraftRoute(siteConfig.routes, path);
+        if (!match) {
+            return null;
+        }
+
+        return {
+            route: match.route,
+            params: match.params,
+        };
+    }
+
     private matchRouteByPageId(siteConfig: TDraftSiteConfigPayload | null, pageId: string): TDraftSiteRouteEntry | null {
         const normalizedPageId = String(pageId ?? '').trim();
         if (!normalizedPageId || !siteConfig?.routes?.length) {
@@ -492,11 +530,12 @@ export class DraftRuntimeService {
             && components.components.length > 0;
     }
 
-    private async canRenderPage(domain: string, pageId: string): Promise<boolean> {
+    private async canRenderPage(domain: string, pageId: string, path?: string): Promise<boolean> {
         try {
+            const sourceOptions = path ? { path } : undefined;
             const [pageConfig, components] = await Promise.all([
-                this.configSource.loadPageConfig(domain, pageId),
-                this.configSource.loadComponents(domain, pageId),
+                this.configSource.loadPageConfig(domain, pageId, sourceOptions),
+                this.configSource.loadComponents(domain, pageId, sourceOptions),
             ]);
 
             return this.hasExpectedPagePayload(domain, pageId, pageConfig, components);
@@ -512,7 +551,7 @@ export class DraftRuntimeService {
     ): Promise<TNotFoundResolution | null> {
         const normalizedDomain = String(domain ?? '').trim();
         const pageId = this.resolveNotFoundPageId(siteConfig);
-        if (!normalizedDomain || !pageId || !(await this.canRenderPage(normalizedDomain, pageId))) {
+        if (!normalizedDomain || !pageId || !(await this.canRenderPage(normalizedDomain, pageId, path))) {
             return null;
         }
 
@@ -538,6 +577,7 @@ export class DraftRuntimeService {
         this.resolvedDraftPageId.set(context.pageId);
         this.resolvedDraftPath.set(context.path);
         this.resolvedDraftRoute.set(context.route);
+        this.resolvedDraftRouteParams.set(context.routeParams ?? {});
     }
 
     private composeDraftKey(domain: string, pageId: string): string {

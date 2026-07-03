@@ -28,6 +28,12 @@ function parseArgs(argv) {
       env.ZOOLANDING_RUNTIME_FALLBACK_URL ??
       env.npm_config_runtime_fallback_url ??
       DEFAULT_RUNTIME_FALLBACK_BASE,
+    draftDomain: normalizeHost(env.ZOOLANDING_HEALTH_DRAFT_DOMAIN ?? env.npm_config_draft_domain ?? ''),
+    pagePath: env.ZOOLANDING_HEALTH_PAGE_PATH ?? env.npm_config_page_path ?? '/',
+    runtimeEnvironment: env.ZOOLANDING_RUNTIME_ENVIRONMENT ?? env.npm_config_runtime_environment ?? '',
+    expectedRuntimeVersionId: env.ZOOLANDING_EXPECTED_RUNTIME_VERSION_ID ?? env.npm_config_expected_runtime_version_id ?? '',
+    expectContentHub: truthy(env.ZOOLANDING_EXPECT_CONTENT_HUB ?? env.npm_config_expect_content_hub),
+    checkContentHubUnauth: truthy(env.ZOOLANDING_CHECK_CONTENT_HUB_UNAUTH ?? env.npm_config_check_content_hub_unauth),
     skipHealth: truthy(env.ZOOLANDING_SKIP_HEALTH ?? env.npm_config_skip_health),
     failOnAaaa: truthy(env.ZOOLANDING_FAIL_ON_AAAA ?? env.npm_config_fail_on_aaaa),
     retryAttempts: Number(env.ZOOLANDING_HEALTH_RETRY_ATTEMPTS ?? env.npm_config_retry_attempts ?? 8),
@@ -84,6 +90,50 @@ function parseArgs(argv) {
 
     if (arg === '--runtime-fallback-url' && next) {
       args.runtimeFallbackUrl = next.replace(/\/$/, '');
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith('--draft-domain=')) {
+      args.draftDomain = normalizeHost(arg.slice('--draft-domain='.length));
+      continue;
+    }
+
+    if (arg === '--draft-domain' && next) {
+      args.draftDomain = normalizeHost(next);
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith('--page-path=')) {
+      args.pagePath = arg.slice('--page-path='.length).trim() || '/';
+      continue;
+    }
+
+    if (arg === '--page-path' && next) {
+      args.pagePath = next.trim() || '/';
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith('--runtime-environment=')) {
+      args.runtimeEnvironment = arg.slice('--runtime-environment='.length).trim();
+      continue;
+    }
+
+    if (arg === '--runtime-environment' && next) {
+      args.runtimeEnvironment = next.trim();
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith('--expected-runtime-version-id=')) {
+      args.expectedRuntimeVersionId = arg.slice('--expected-runtime-version-id='.length).trim();
+      continue;
+    }
+
+    if (arg === '--expected-runtime-version-id' && next) {
+      args.expectedRuntimeVersionId = next.trim();
       index += 1;
       continue;
     }
@@ -153,6 +203,16 @@ function parseArgs(argv) {
       continue;
     }
 
+    if (arg === '--expect-content-hub') {
+      args.expectContentHub = true;
+      continue;
+    }
+
+    if (arg === '--check-content-hub-unauth') {
+      args.checkContentHubUnauth = true;
+      continue;
+    }
+
     if (arg === '--markdown') {
       args.markdown = true;
       continue;
@@ -179,6 +239,7 @@ function parseArgs(argv) {
 
   args.runtimeBaseUrl = args.runtimeBaseUrl.replace(/\/$/, '');
   args.runtimeFallbackUrl = args.runtimeFallbackUrl.replace(/\/$/, '');
+  args.pagePath = normalizePagePath(args.pagePath);
 
   return args;
 }
@@ -195,6 +256,14 @@ function normalizeHost(value) {
     .split('/', 1)[0]
     .split(':', 1)[0]
     .replace(/\.$/, '');
+}
+
+function normalizePagePath(value) {
+  const pathName = String(value ?? '').trim() || '/';
+  if (!pathName.startsWith('/') || pathName.startsWith('//') || pathName.includes('\\')) {
+    throw new Error('--page-path must be a same-origin path that starts with /');
+  }
+  return pathName;
 }
 
 function parseExpectedRuntimeDomains(value) {
@@ -327,19 +396,23 @@ async function checkDns(host, options) {
 }
 
 async function checkPage(host, options) {
-  const url = `https://${host}/`;
+  const url = new URL(options.pagePath, `https://${host}`);
+  if (options.draftDomain) {
+    url.searchParams.set('draftDomain', options.draftDomain);
+  }
   const check = {
     name: `page:${host}`,
     host,
     category: 'page',
     ok: false,
-    details: { url },
+    details: { url: url.toString() },
   };
 
   try {
     const { response, body, attempts, failures } = await fetchTextWithRetries(url, options);
     const title = body.match(/<title>(.*?)<\/title>/is)?.[1]?.trim() ?? '';
     const hasMain = /<main[\s>]/i.test(body);
+    const scriptEntrypoint = body.match(/<script[^>]+src="([^"]*main-[^"]+\.js)"/i)?.[1] ?? '';
 
     check.details.attempts = attempts;
     if (failures.length > 0) {
@@ -348,6 +421,7 @@ async function checkPage(host, options) {
     check.details.status = response.status;
     check.details.title = title;
     check.details.hasMain = hasMain;
+    check.details.scriptEntrypoint = scriptEntrypoint || null;
     check.details.bytes = body.length;
 
     check.ok = response.status >= 200 && response.status < 300 && title.length > 0 && hasMain;
@@ -404,10 +478,14 @@ async function checkHealth(host, options) {
 
 async function checkRuntimeBundle(host, options) {
   const normalizedHost = normalizeHost(host);
+  const runtimeDomain = options.draftDomain || host;
   const url = new URL(`${options.runtimeBaseUrl}/runtime-bundle`);
-  url.searchParams.set('domain', host);
-  url.searchParams.set('path', '/');
+  url.searchParams.set('domain', runtimeDomain);
+  url.searchParams.set('path', options.pagePath);
   url.searchParams.set('lang', 'es');
+  if (options.runtimeEnvironment) {
+    url.searchParams.set('environment', options.runtimeEnvironment);
+  }
 
   const check = {
     name: `runtime:${host}`,
@@ -473,22 +551,105 @@ async function checkRuntimeBundle(host, options) {
     check.details.domain = payload?.domain ?? null;
     check.details.resolvedAlias = payload?.metadata?.resolvedAlias ?? null;
     check.details.versionId = payload?.versionId ?? null;
+    check.details.runtimeEnvironment = options.runtimeEnvironment || null;
+
+    const contentHubs = [
+      payload?.runtime?.contentHubs,
+      payload?.siteConfig?.runtime?.contentHubs,
+      payload?.config?.runtime?.contentHubs,
+      payload?.runtimeConfig?.contentHubs,
+      payload?.contentHubs,
+    ].find((candidate) => Array.isArray(candidate)) ?? [];
+    check.details.contentHubBasePaths = contentHubs
+      .map((entry) => entry?.publicApiBasePath)
+      .filter(Boolean);
 
     check.ok = response.status === 200 && payload?.ok === true;
-    const expectedDomain = options.expectedRuntimeDomains?.get(normalizedHost);
+    const expectedDomain = options.draftDomain || options.expectedRuntimeDomains?.get(normalizedHost);
     if (check.ok && expectedDomain) {
       check.details.expectedDomain = expectedDomain;
       if (normalizeHost(check.details.domain) !== expectedDomain) {
         check.ok = false;
         check.details.reason = 'runtime-bundle resolved an unexpected canonical domain';
-      } else if (expectedDomain !== normalizedHost && normalizeHost(check.details.resolvedAlias) !== normalizedHost) {
+      } else if (!options.draftDomain && expectedDomain !== normalizedHost && normalizeHost(check.details.resolvedAlias) !== normalizedHost) {
         check.ok = false;
         check.details.reason = 'runtime-bundle did not report the expected resolved alias';
       }
     }
 
+    if (check.ok && options.expectedRuntimeVersionId) {
+      check.details.expectedRuntimeVersionId = options.expectedRuntimeVersionId;
+      if (check.details.versionId !== options.expectedRuntimeVersionId) {
+        check.ok = false;
+        check.details.reason = 'runtime-bundle versionId did not match expected value';
+      }
+    }
+
+    if (check.ok && options.expectContentHub) {
+      if (!check.details.contentHubBasePaths.includes('/features/content-hub')) {
+        check.ok = false;
+        check.details.reason = 'runtime-bundle did not expose the expected content-hub public API path';
+      }
+    }
+
     if (!check.ok) {
       check.details.reason ??= 'runtime-bundle did not return HTTP 200 with ok=true';
+      check.details.bodyPrefix = body.slice(0, 200);
+    }
+  } catch (error) {
+    check.details.attempts = error.attempts ?? options.retryAttempts;
+    if (Array.isArray(error.failures) && error.failures.length > 0) {
+      check.details.transientFailures = error.failures.join(' | ');
+    }
+    check.details.reason = error.message;
+  }
+
+  return check;
+}
+
+async function checkContentHubUnauthRoute(host, options) {
+  const domain = options.draftDomain || host;
+  const url = `https://${host}/features/content-hub/read`;
+  const check = {
+    name: `content-hub-unauth:${host}`,
+    host,
+    category: 'content-hub',
+    ok: false,
+    details: { url, domain },
+  };
+
+  try {
+    const { response, body, attempts, failures } = await fetchTextWithRetries(url, options, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-ZLP-Domain': domain,
+        'X-ZLP-Auth-Profile-Id': 'staff',
+        'X-ZLP-Content-Hub-Id': 'zoosite-main',
+      },
+      body: JSON.stringify({
+        domain,
+        pageId: 'admin-blog-articulos',
+        sourceId: 'content_hub_article_list',
+        input: {
+          contentHub: {
+            read: 'articleList',
+            hubId: 'zoosite-main',
+          },
+        },
+      }),
+    });
+
+    check.details.attempts = attempts;
+    if (failures.length > 0) {
+      check.details.transientFailures = failures.join(' | ');
+    }
+    check.details.status = response.status;
+    check.ok = response.status === 401;
+
+    if (!check.ok) {
+      check.details.reason = 'content-hub unauthenticated read should return HTTP 401';
       check.details.bodyPrefix = body.slice(0, 200);
     }
   } catch (error) {
@@ -558,6 +719,10 @@ async function main() {
     }
 
     checks.push(await checkRuntimeBundle(host, options));
+
+    if (options.checkContentHubUnauth) {
+      checks.push(await checkContentHubUnauthRoute(host, options));
+    }
   }
 
   const result = {
@@ -587,6 +752,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
 }
 
 export {
+  checkContentHubUnauthRoute,
+  checkPage,
   checkRuntimeBundle,
   parseArgs,
   parseExpectedRuntimeDomains,

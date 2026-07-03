@@ -178,19 +178,7 @@ export class AppShellComponent {
   ));
 
   constructor() {
-    afterNextRender(() => {
-      this.browserState.connect({
-        document: this.host.nativeElement.ownerDocument,
-        destroyRef: this.destroyRef,
-      });
-
-      this.runtime.connect({
-        host: this.host.nativeElement,
-        destroyRef: this.destroyRef,
-        showDebugWorkspace: () => this.showDebugWorkspace(),
-        currentLanguage: () => this._lang.currentLanguage(),
-      });
-    });
+    this.connectRuntime();
 
     if (this.isBrowser) {
       const handleClientNavigationStart = () => this.showRouteTransition();
@@ -222,11 +210,38 @@ export class AppShellComponent {
     }
 
     effect(() => {
-      this.seo.apply(this._lang.currentLanguage(), this.configStore.seo());
+      const currentLanguage = this._lang.currentLanguage();
+      const seoConfig = this.configStore.seo();
+
+      if (this.shouldDeferHeadUpdatesForProtectedSsrShell()) {
+        return;
+      }
+
+      this.seo.apply(currentLanguage, seoConfig);
     });
 
     effect(() => {
-      this.structuredData.applyEntries(this.configStore.structuredData()?.entries, 'sd:bootstrap');
+      const structuredDataEntries = this.configStore.structuredData()?.entries;
+
+      if (this.shouldDeferHeadUpdatesForProtectedSsrShell()) {
+        return;
+      }
+
+      this.structuredData.applyEntries(structuredDataEntries, 'sd:bootstrap');
+    });
+
+    effect(() => {
+      if (!this.isBrowser) {
+        return;
+      }
+
+      const hasClientLoadingShell = this.privateRouteLoading().active;
+      const hasRenderedDraftShell = this.rootComponentsIds().length > 0 || this.modalRootIds().length > 0 || this.showDebugWorkspace();
+      if (!hasClientLoadingShell && !hasRenderedDraftShell) {
+        return;
+      }
+
+      this.releaseProtectedSsrOverlayAfterRender();
     });
 
     effect(() => {
@@ -247,6 +262,82 @@ export class AppShellComponent {
         });
       });
     });
+  }
+
+  private connectRuntime(): void {
+    const connect = () => {
+      if (this.isBrowser) {
+        this.browserState.connect({
+          document: this.host.nativeElement.ownerDocument,
+          destroyRef: this.destroyRef,
+        });
+      }
+
+      this.runtime.connect({
+        host: this.host.nativeElement,
+        destroyRef: this.destroyRef,
+        showDebugWorkspace: () => this.showDebugWorkspace(),
+        currentLanguage: () => this._lang.currentLanguage(),
+      });
+    };
+
+    if (this.isBrowser) {
+      afterNextRender(connect);
+      return;
+    }
+
+    connect();
+  }
+
+  private releaseProtectedSsrOverlayAfterRender(): void {
+    runInInjectionContext(this.injector, () => {
+      afterNextRender(() => {
+        window.setTimeout(() => {
+          this.releaseProtectedSsrOverlayIfReady();
+        }, 0);
+      });
+    });
+  }
+
+  private releaseProtectedSsrOverlayIfReady(): void {
+    const documentRef = this.host.nativeElement.ownerDocument;
+    if (!this.canReleaseProtectedSsrOverlay(documentRef)) {
+      return;
+    }
+
+    documentRef
+      .querySelectorAll('[data-zlp-protected-ssr-overlay], style[data-zlp-protected-ssr-style]')
+      .forEach((node: Element) => node.remove());
+    this.host.nativeElement.removeAttribute('aria-hidden');
+    this.host.nativeElement.removeAttribute('data-zlp-protected-shell');
+    this.seo.apply(this._lang.currentLanguage(), this.configStore.seo());
+    this.structuredData.applyEntries(this.configStore.structuredData()?.entries, 'sd:bootstrap');
+  }
+
+  private shouldDeferHeadUpdatesForProtectedSsrShell(): boolean {
+    return this.isBrowser
+      && this.host.nativeElement.hasAttribute('data-zlp-protected-shell')
+      && !!this.host.nativeElement.ownerDocument.querySelector('[data-zlp-protected-ssr-overlay]');
+  }
+
+  private canReleaseProtectedSsrOverlay(documentRef: Document): boolean {
+    if (!this.host.nativeElement.hasAttribute('data-zlp-protected-shell')) {
+      return true;
+    }
+
+    if (documentRef.querySelector('.zlp-private-route-loading')) {
+      return true;
+    }
+
+    const pageId = String(this.configStore.pageConfig()?.pageId ?? '').trim().toLowerCase();
+    const rootIds = this.rootComponentsIds().map((id) => String(id ?? '').trim().toLowerCase());
+    const hasRenderedRoots = rootIds.length > 0 || this.modalRootIds().length > 0 || this.showDebugWorkspace();
+    if (!hasRenderedRoots) {
+      return false;
+    }
+
+    return pageId !== 'not-found'
+      && !rootIds.some((id) => id.includes('notfound') || id.includes('not-found') || id === '404');
   }
 
   // Unified analytics event handler (receives from any child component)

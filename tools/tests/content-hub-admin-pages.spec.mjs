@@ -5,6 +5,8 @@ import path from 'node:path';
 
 const repoRoot = process.cwd();
 const draftRoot = path.join(repoRoot, 'drafts', 'zoositioweb.com.mx');
+const qaChecklistPath = path.join(draftRoot, 'qa', 'admin-blog-qa-checklist.md');
+const productSmokePath = path.join(repoRoot, 'tools', 'content-hub-product-readiness-smoke.mjs');
 
 const pageIds = [
   'admin-blog',
@@ -24,11 +26,17 @@ const pageIds = [
   'admin-blog-configuracion',
 ];
 
+const adminSurfacePageIds = [
+  ...pageIds,
+  'admin-combos',
+];
+
 const allowedGenericTypes = new Set([
   'container',
   'generic-button',
   'generic-card',
   'generic-cell',
+  'generic-component-preview',
   'generic-file-dropzone',
   'generic-link',
   'generic-loading-spinner',
@@ -45,6 +53,7 @@ const allowedGenericTypes = new Set([
   'pagination',
   'search-box',
   'text',
+  'tooltip',
   'toast',
 ]);
 
@@ -63,6 +72,36 @@ const forbiddenPublicKeys = [
   'signedUrl',
 ];
 
+const productReadinessBlocks = [
+  'Editorial lifecycle',
+  'Blog roles and permissions',
+  'Rich text and component builder stability',
+  'Visual component catalog and advanced mode',
+  'Taxonomy product UX',
+  'Media lifecycle',
+  'Scheduling and revision history',
+  'Public interactions and moderation',
+  'SEO product completion',
+  'Analytics productization',
+  'Operations, observability, and audit',
+  'Full QA, release, and product readiness',
+];
+
+it('keeps component event dispatch free of raw payload console logs', async () => {
+  const source = await readFile(path.join(repoRoot, 'src/app/shared/services/component-event-dispatcher.service.ts'), 'utf8');
+
+  assert.doesNotMatch(source, /console\.(?:log|debug|info)\(/);
+});
+
+function sectionBody(markdown, heading) {
+  const lines = markdown.split(/\r?\n/u);
+  const headingLine = `## ${heading}`;
+  const start = lines.findIndex((line) => line.trim() === headingLine);
+  if (start === -1) return '';
+  const end = lines.findIndex((line, index) => index > start && line.startsWith('## '));
+  return lines.slice(start + 1, end === -1 ? undefined : end).join('\n');
+}
+
 async function readJson(relativePath) {
   return JSON.parse(await readFile(path.join(draftRoot, relativePath), 'utf8'));
 }
@@ -79,8 +118,149 @@ function componentById(components, id) {
   return components.find((component) => component.id === id);
 }
 
+const userFacingStringKeys = new Set([
+  'text',
+  'label',
+  'header',
+  'helperText',
+  'placeholder',
+  'emptyText',
+  'loadingText',
+  'errorText',
+  'successText',
+  'ariaLabel',
+  'tooltip',
+  'description',
+  'title',
+  'summary',
+]);
+
+function collectUserFacingStrings(value, trail = [], hits = []) {
+  if (!value || typeof value !== 'object') return hits;
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => collectUserFacingStrings(item, [...trail, String(index)], hits));
+    return hits;
+  }
+  for (const [key, child] of Object.entries(value)) {
+    if (typeof child === 'string' && userFacingStringKeys.has(key)) {
+      hits.push([`${[...trail, key].join('.')}`, child]);
+      continue;
+    }
+    collectUserFacingStrings(child, [...trail, key], hits);
+  }
+  return hits;
+}
+
+function collectAllStrings(value, trail = [], hits = []) {
+  if (typeof value === 'string') {
+    hits.push([trail.join('.'), value]);
+    return hits;
+  }
+  if (!value || typeof value !== 'object') return hits;
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => collectAllStrings(item, [...trail, String(index)], hits));
+    return hits;
+  }
+  for (const [key, child] of Object.entries(value)) collectAllStrings(child, [...trail, key], hits);
+  return hits;
+}
+
+function extractSmokeCheckKeys(source) {
+  const match = source.match(/checks:\s*\{(?<body>[\s\S]*?)\r?\n\s*\},\r?\n\s*\};/u);
+  assert.ok(match?.groups?.body, 'content-hub smoke must return a checks object');
+  return [...match.groups.body.matchAll(/^\s*([A-Za-z][A-Za-z0-9]*):\s*true,?\s*$/gmu)]
+    .map((entry) => entry[1]);
+}
+
+function extractChecklistSmokeCheckKeys(checklist) {
+  const smokeLine = checklist.split(/\r?\n/u).find((line) => line.includes('El smoke debe devolver'));
+  assert.ok(smokeLine, 'QA checklist must document returned smoke checks');
+  return [...smokeLine.matchAll(/`([A-Za-z][A-Za-z0-9]*)`/gu)]
+    .map((entry) => entry[1]);
+}
+
+function splitDelimited(value, delimiter) {
+  const tokens = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index];
+    const next = value[index + 1];
+
+    if (char === '"' && inQuotes && next === '"') {
+      current += '"';
+      index += 1;
+      continue;
+    }
+
+    if (char === '"') {
+      inQuotes = !inQuotes;
+      continue;
+    }
+
+    if (char === delimiter && !inQuotes) {
+      tokens.push(current);
+      current = '';
+      continue;
+    }
+
+    current += char;
+  }
+
+  tokens.push(current);
+  return tokens;
+}
+
+function parseInstructionCommand(command) {
+  const trimmed = String(command ?? '').trim();
+  if (!trimmed) return { id: '', args: [] };
+  const colonIndex = trimmed.indexOf(':');
+  if (colonIndex === -1) return { id: trimmed, args: [] };
+  return {
+    id: trimmed.slice(0, colonIndex).trim(),
+    args: splitDelimited(trimmed.slice(colonIndex + 1), ',').map((entry) => entry.trim()),
+  };
+}
+
+function instructionCommands(instructions) {
+  return splitDelimited(String(instructions ?? ''), ';')
+    .map(parseInstructionCommand)
+    .filter((command) => command.id);
+}
+
+function quotedConstantsBeforeInjectionToken(source) {
+  return new Set([...source.matchAll(/'([^']+)'/gu)].map((match) => match[1]));
+}
+
 describe('Zoosite blog admin draft pages', () => {
+  it('keeps the Zoosite blog QA checklist aligned with the 12 product-completion blocks', async () => {
+    const checklist = await readFile(qaChecklistPath, 'utf8');
+
+    for (const block of productReadinessBlocks) {
+      assert.match(checklist, new RegExp(`^## ${block}$`, 'mu'), `QA checklist must include block: ${block}`);
+      assert.match(sectionBody(checklist, block), /^- \[ \] /mu, `QA checklist block must include at least one actionable item: ${block}`);
+    }
+    const releaseBody = sectionBody(checklist, 'Full QA, release, and product readiness');
+    assert.match(releaseBody, /testing/iu, 'release QA block must require testing validation');
+    assert.match(releaseBody, /produccion|production/iu, 'release QA block must require production validation');
+    assert.match(releaseBody, /desktop.*mobile|mobile.*desktop/iu, 'release QA block must require desktop and mobile validation');
+    assert.match(checklist, /Pendiente para cerrar producto: smoke autenticado real/iu);
+    assert.match(checklist, /No basta que exista la configuracion; debe verse el comportamiento real/iu);
+  });
+
+  it('keeps the redacted live smoke checklist aligned with the CLI success checks', async () => {
+    const checklist = await readFile(qaChecklistPath, 'utf8');
+    const smokeSource = await readFile(productSmokePath, 'utf8');
+
+    assert.deepEqual(
+      extractChecklistSmokeCheckKeys(checklist),
+      extractSmokeCheckKeys(smokeSource),
+    );
+  });
+
   it('ships complete draft package files for every admin blog page', async () => {
+    const sharedComponents = flattenComponents(await readJson('components.json'));
     for (const pageId of pageIds) {
       const pageConfig = await readJson(`${pageId}/page-config.json`);
       const components = await readJson(`${pageId}/components.json`);
@@ -93,7 +273,7 @@ describe('Zoosite blog admin draft pages', () => {
       assert.ok(Array.isArray(pageConfig.rootIds), `${pageId} must declare rootIds`);
       assert.ok(pageConfig.rootIds.length > 0, `${pageId} must declare at least one root component`);
       assert.equal(components.pageId, pageId);
-      const componentIds = new Set(flattenComponents(components).map((component) => component.id));
+      const componentIds = new Set([...sharedComponents, ...flattenComponents(components)].map((component) => component.id));
       for (const rootId of pageConfig.rootIds) {
         assert.ok(componentIds.has(rootId), `${pageId} rootIds references missing component ${rootId}`);
       }
@@ -103,6 +283,25 @@ describe('Zoosite blog admin draft pages', () => {
       assert.equal(en.pageId, pageId);
       assert.equal(combos.pageId, pageId);
       assert.ok(pageConfig.seo?.robots?.default?.includes('noindex'), `${pageId} must stay noindex`);
+    }
+  });
+
+  it('keeps article detail page configs aligned with dynamic admin routes', async () => {
+    const expectedRoutes = new Map([
+      ['admin-blog-articulo-editor', '/admin/blog/articulos/:id/editor'],
+      ['admin-blog-articulo-preview', '/admin/blog/articulos/:id/preview'],
+      ['admin-blog-articulo-seo', '/admin/blog/articulos/:id/seo'],
+      ['admin-blog-articulo-versiones', '/admin/blog/articulos/:id/versiones'],
+    ]);
+
+    for (const [pageId, route] of expectedRoutes) {
+      const pageConfig = await readJson(`${pageId}/page-config.json`);
+      assert.equal(pageConfig.route, route, `${pageId} must publish the dynamic article route`);
+      assert.equal(
+        pageConfig.seo?.canonical,
+        `https://zoositioweb.com.mx${route}`,
+        `${pageId} canonical must not point to a static detail URL`,
+      );
     }
   });
 
@@ -171,24 +370,435 @@ describe('Zoosite blog admin draft pages', () => {
     }
   });
 
+  it('keeps admin value and event instructions on registered runtime command ids', async () => {
+    const valueAllowlist = quotedConstantsBeforeInjectionToken(
+      await readFile(path.join(repoRoot, 'src/app/shared/services/value-orchestrator-allowlist.ts'), 'utf8'),
+    );
+    const eventAllowlist = quotedConstantsBeforeInjectionToken(
+      await readFile(path.join(repoRoot, 'src/app/shared/services/event-orchestrator-allowlist.ts'), 'utf8'),
+    );
+
+    for (const pageId of adminSurfacePageIds) {
+      const payload = await readJson(`${pageId}/components.json`);
+      for (const component of flattenComponents(payload)) {
+        const scopedValueInstructions = component.config?.valueInstructions;
+        if (typeof scopedValueInstructions === 'string') {
+          assert.equal(
+            component.type,
+            'interaction-scope',
+            `${pageId}/${component.id} config.valueInstructions is only supported by interaction-scope`,
+          );
+          assert.match(
+            scopedValueInstructions,
+            /^collectFields:/u,
+            `${pageId}/${component.id} config.valueInstructions must use interaction-scope collectFields`,
+          );
+        }
+
+        for (const command of instructionCommands(component.valueInstructions)) {
+          assert.equal(command.id, 'set', `${pageId}/${component.id} uses unsupported value command ${command.id}`);
+          const resolverId = String(command.args[1] ?? '').trim();
+          assert.ok(valueAllowlist.has(resolverId), `${pageId}/${component.id} uses unregistered value resolver ${resolverId}`);
+        }
+
+        for (const command of instructionCommands(component.eventInstructions)) {
+          assert.ok(eventAllowlist.has(command.id), `${pageId}/${component.id} uses unregistered event command ${command.id}`);
+        }
+
+        const rowActions = Array.isArray(component.config?.rowActions) ? component.config.rowActions : [];
+        for (const action of rowActions) {
+          for (const command of instructionCommands(action.eventInstructions)) {
+            assert.ok(
+              eventAllowlist.has(command.id),
+              `${pageId}/${component.id}/${action.id ?? 'rowAction'} uses unregistered event command ${command.id}`,
+            );
+          }
+        }
+
+        const submitEventInstructions = component.type === 'interaction-scope'
+          ? component.config?.submitEventInstructions
+          : undefined;
+        for (const command of instructionCommands(submitEventInstructions)) {
+          assert.ok(eventAllowlist.has(command.id), `${pageId}/${component.id} uses unregistered submit command ${command.id}`);
+        }
+      }
+    }
+  });
+
+  it('keeps protected admin table errors state-driven instead of always visible', async () => {
+    for (const pageId of pageIds) {
+      const payload = await readJson(`${pageId}/components.json`);
+      for (const component of flattenComponents(payload)) {
+        if (component.type !== 'generic-table') continue;
+        const valueInstructions = String(component.valueInstructions ?? '');
+        if (!valueInstructions.includes('remoteStatus.contentHub.')) continue;
+
+        assert.equal(
+          component.config?.errorText,
+          undefined,
+          `${pageId}/${component.id} must not render a static protected-data error before the read runs`,
+        );
+        assert.ok(
+          /set:config\.errorText,when,"all:varEq,remoteStatus\.contentHub\.[^"]+\.state,error"/.test(valueInstructions),
+          `${pageId}/${component.id} must bind errorText to the remote content-hub status`,
+        );
+      }
+    }
+  });
+
+  it('keeps visible admin copy free of raw technical placeholders', async () => {
+    const rawVisibleCopyPattern = /\b(?:articleId|revisionId|assetId|fileName|query string|backend|BFF|CSRF|endpoint|payload|tenant|buckets?|authorizer policy|commentQueue|taxonomyList|languageFallback|seoDefaults|connectedDrafts|authorizedHubs|defaultCommentPolicy|usageRefs|publicability|content hub|hub|bundle|package|paquete|MVP|noindex|server-only|publicBundlePreview|approve|reject|archive|reschedule|cancelSchedule|Choose files|gestor seguro|gestor de contenido|identificador|zoosite-main|views|readProgress|ctaClicks|assetDownloads)\b|\[object Object\]|Invalid id|Invalid identifier/iu;
+    const rawStatusInstructionPattern = /set:config\.(?:text|errorText),varOr,remoteStatus\.contentHub\.[^,]+\.error/;
+    const forbiddenFragments = [
+      'articleId pendiente',
+      'revisionId pendiente',
+      'La respuesta no incluyó articleId',
+      'La respuesta no incluyó revisionId',
+      'Artículo seleccionado pendiente',
+      'Versión seleccionada pendiente',
+      'query string',
+      'backend',
+      'Invalid id',
+      'Invalid identifier',
+      '[object Object]',
+    ];
+
+    for (const pageId of pageIds.filter((id) => id === 'admin-blog' || id.startsWith('admin-blog-'))) {
+      const payload = await readJson(`${pageId}/components.json`);
+      const serialized = textSearch(payload);
+      for (const fragment of forbiddenFragments) {
+        assert.equal(serialized.includes(fragment), false, `${pageId} must not include raw visible fragment: ${fragment}`);
+      }
+
+      for (const component of flattenComponents(payload)) {
+        assert.equal(
+          rawStatusInstructionPattern.test(String(component.valueInstructions ?? '')),
+          false,
+          `${pageId}/${component.id} must not pass raw content-hub error text into visible text`,
+        );
+      }
+
+      for (const [trail, value] of collectUserFacingStrings(payload)) {
+        assert.equal(rawVisibleCopyPattern.test(value), false, `${pageId}/${trail} has raw technical copy: ${value}`);
+      }
+
+      for (const language of ['es', 'en']) {
+        const translations = await readJson(`${pageId}/i18n/${language}.json`);
+        for (const [trail, value] of collectAllStrings(translations)) {
+          if (trail.endsWith('pageId')) continue;
+          if (trail.endsWith('hubId') || trail.endsWith('draftDomain')) continue;
+          assert.equal(rawVisibleCopyPattern.test(value), false, `${pageId}/i18n/${language}.json/${trail} has raw technical copy: ${value}`);
+        }
+      }
+    }
+  });
+
+  it('keeps Zoosite blog public and admin visible copy product-facing', async () => {
+    const rawBlogCopyPattern = /\b(?:content hub|hub|bundle|package|paquete|MVP|noindex|server-only|BFF|backend|commentQueue|taxonomyList|languageFallback|seoDefaults|connectedDrafts|authorizedHubs|defaultCommentPolicy|usageRefs|publicability|approve|reject|archive|reschedule|cancelSchedule|Choose files|assetId|fileName|tags?|SEO-ready|publicBundlePreview|gestor seguro|gestor de contenido|identificador|zoosite-main|views|readProgress|ctaClicks|assetDownloads)\b|builder visual|Editor visual visual|El gestión|un publicación|publicación publicado/iu;
+    const copyPages = [
+      ...pageIds,
+      'blog',
+      'blog-article',
+      'blog-category',
+    ];
+
+    for (const pageId of copyPages) {
+      for (const fileName of ['components.json', 'variables.json', 'page-config.json']) {
+        let payload;
+        try {
+          payload = await readJson(`${pageId}/${fileName}`);
+        } catch (error) {
+          if (error?.code === 'ENOENT') continue;
+          throw error;
+        }
+
+        for (const [trail, value] of collectUserFacingStrings(payload)) {
+          assert.equal(rawBlogCopyPattern.test(value), false, `${pageId}/${fileName}/${trail} has internal product copy: ${value}`);
+        }
+      }
+    }
+
+    const siteConfig = await readJson('site-config.json');
+    for (const [trail, value] of collectUserFacingStrings(siteConfig)) {
+      assert.equal(rawBlogCopyPattern.test(value), false, `site-config.json/${trail} has internal product copy: ${value}`);
+    }
+
+    const rawPublicFallbackPattern = /\b(?:content hub|SEO-ready|BFF|backend|bundle|publicBundlePreview)\b/iu;
+    for (const pageId of ['blog', 'blog-article', 'blog-category']) {
+      for (const fileName of ['components.json', 'variables.json']) {
+        const payload = await readJson(`${pageId}/${fileName}`);
+        for (const [trail, value] of collectAllStrings(payload)) {
+          assert.equal(rawPublicFallbackPattern.test(value), false, `${pageId}/${fileName}/${trail} has internal public fallback copy: ${value}`);
+        }
+      }
+    }
+  });
+
   it('implements the article index controls required by phase 6', async () => {
     const payload = await readJson('admin-blog-articulos/components.json');
     const components = flattenComponents(payload);
+    const shell = componentById(components, 'admin-blog-articulosShell');
+    const toolbar = componentById(components, 'adminBlogArticulosToolbar');
+    const filtersScope = componentById(components, 'adminBlogArticulosFiltersScope');
+    const search = componentById(components, 'adminBlogArticulosSearch');
+    const searchButton = componentById(components, 'adminBlogArticulosSearchButton');
+    const statusFilter = componentById(components, 'adminBlogArticulosStatusFilter');
+    const pageSizeFilter = componentById(components, 'adminBlogArticulosPageSize');
     const table = componentById(components, 'adminBlogArticulosTable');
+    const pagination = componentById(components, 'adminBlogArticulosPagination');
     const columns = table?.config?.columns ?? [];
     const columnIds = columns.map((column) => column.id);
     const rowActions = table?.config?.rowActions ?? [];
 
-    assert.ok(componentById(components, 'adminBlogArticulosSearch'));
+    assert.equal(shell?.config?.components?.includes('adminBlogArticulosPagination'), true);
+    assert.deepEqual(toolbar?.config?.components, [
+      'adminBlogArticulosMutationNotice',
+      'adminBlogArticulosFiltersScope',
+      'adminBlogArticulosSearchTooltip',
+      'adminBlogArticulosActionStatus',
+    ]);
+    assert.equal(filtersScope?.type, 'interaction-scope');
+    assert.match(filtersScope?.config?.submitEventInstructions ?? '', /^navigateWithScopeQuery:\/admin\/blog\/articulos,,q=values\.search,status=values\.status,pageSize=values\.pageSize,page=1$/);
+    assert.equal(search?.type, 'input');
+    assert.equal(search?.config?.inputType, 'search');
+    assert.equal(search?.config?.value, '');
+    assert.equal(search?.valueInstructions, 'set:config.value,queryParamOr,q,');
+    assert.equal(searchButton?.type, 'button');
+    assert.equal(searchButton?.config?.type, 'submit');
+    assert.equal(statusFilter?.config?.value, 'all');
+    assert.equal(statusFilter?.valueInstructions, 'set:config.value,queryParamOr,status,all');
+    assert.equal(pageSizeFilter?.config?.value, '10');
+    assert.equal(pageSizeFilter?.valueInstructions, 'set:config.value,queryParamOr,pageSize,10');
+    assert.equal(statusFilter?.config?.dropdownIndicatorText, '▼');
+    assert.equal(pageSizeFilter?.config?.dropdownIndicatorText, '▼');
+    assert.deepEqual(
+      pageSizeFilter?.config?.options?.map((option) => String(option.value)),
+      ['3', '5', '10', '20', '50'],
+    );
+    assert.equal(typeof statusFilter?.config?.dropdownConfig?.menuContainerClasses, 'string');
     assert.ok(componentById(components, 'adminBlogArticulosPagination'));
-    assert.ok(componentById(components, 'adminBlogArticulosValidateButton'));
+    assert.equal(pagination?.config?.hideWhenSinglePage, false);
+    assert.equal(componentById(components, 'adminBlogArticulosValidateButton'), undefined);
+    assert.equal(JSON.stringify(payload).includes('Validar selección'), false);
+    assert.ok(componentById(components, 'adminBlogArticulosValidateIdle'));
     assert.ok(componentById(components, 'adminBlogArticulosNewLink'));
     for (const columnId of ['title', 'status', 'language', 'category', 'tags', 'schedule', 'updatedAt']) {
       assert.ok(columnIds.includes(columnId), `missing article index column ${columnId}`);
     }
+    const tagsColumn = columns.find((column) => column.id === 'tags');
+    assert.equal(tagsColumn?.format, 'list');
+    assert.equal(tagsColumn?.itemPath, 'label');
+    assert.equal(tagsColumn?.separator, ', ');
+    assert.equal(tagsColumn?.emptyText, 'Sin etiquetas');
     for (const actionId of ['edit', 'preview', 'seo', 'versions', 'schedule']) {
       assert.ok(rowActions.some((action) => action.id === actionId), `missing article row action ${actionId}`);
     }
+    assert.equal(table?.config?.rowIdPath, 'articleId');
+    assert.deepEqual(table?.config?.eventPayloadFields, ['articleId', 'status', 'latestRevisionId', 'path']);
+    assert.equal(table?.config?.rowsSource?.fallback, undefined);
+    assert.equal(table?.config?.pagination?.enabled, false);
+    assert.equal(pagination?.config?.hideWhenSinglePage, false);
+    for (const action of rowActions) {
+      assert.equal(action.disabled, undefined, `${action.id} must not stay visually disabled after BFF contract exists`);
+      const navigationTemplate = String(action.hrefTemplate ?? action.eventInstructions ?? '');
+      assert.ok(
+        navigationTemplate.startsWith('/') || navigationTemplate.startsWith('navigateWithEventData:/'),
+        `${action.id} must use dynamic row navigation`,
+      );
+      assert.equal(navigationTemplate.includes('{articleId}'), true, `${action.id} must include the selected article id`);
+      assert.equal(navigationTemplate.includes('art_20260620_blog_builder'), false, `${action.id} must not hardcode seed article ids`);
+    }
+  });
+
+  it('shows every declared blog analytics metric in the analytics table', async () => {
+    const payload = await readJson('admin-blog-analiticas/components.json');
+    const components = flattenComponents(payload);
+    const table = componentById(components, 'analyticsTable');
+    const filters = componentById(components, 'analyticsFiltersScope');
+    const columnIds = (table?.config?.columns ?? []).map((column) => column.id);
+
+    assert.equal(filters?.type, 'interaction-scope');
+    assert.match(String(filters?.config?.submitEventInstructions ?? ''), /articleId=values\.articleId/);
+    assert.match(String(filters?.config?.submitEventInstructions ?? ''), /category=values\.category/);
+    assert.match(String(filters?.config?.submitEventInstructions ?? ''), /tag=values\.tag/);
+    assert.match(String(filters?.config?.submitEventInstructions ?? ''), /from=values\.from/);
+    assert.match(String(filters?.config?.submitEventInstructions ?? ''), /to=values\.to/);
+
+    for (const columnId of [
+      'views',
+      'readProgress',
+      'ctaClicks',
+      'reactions',
+      'comments',
+      'shares',
+      'assetDownloads',
+      'forms',
+    ]) {
+      assert.ok(columnIds.includes(columnId), `missing analytics metric column ${columnId}`);
+    }
+  });
+
+  it('keeps the blog overview free of ambiguous article mutations', async () => {
+    const payload = await readJson('admin-blog/components.json');
+    const components = flattenComponents(payload);
+    const shell = componentById(components, 'admin-blogShell');
+    const status = componentById(components, 'adminBlogMvpStatus');
+    const table = componentById(components, 'admin-blogArticlesTable');
+    const rowActions = table?.config?.rowActions ?? [];
+    const rawPayload = JSON.stringify(payload);
+
+    assert.equal(shell?.config?.components?.includes('admin-blogArticlesTable'), true);
+    assert.equal(status?.config?.components?.includes('adminBlogActionIdle'), true);
+    assert.equal(componentById(components, 'adminBlogValidateButton'), undefined);
+    assert.equal(componentById(components, 'adminBlogPublishButton'), undefined);
+    assert.equal(componentById(components, 'adminBlogActionStatus'), undefined);
+    assert.equal(rawPayload.includes('proxyAction:content_hub_validate_article'), false);
+    assert.equal(rawPayload.includes('proxyAction:content_hub_publish_article'), false);
+    assert.equal(rawPayload.includes('Publicar artículo seleccionado'), false);
+    for (const action of rowActions) {
+      const hrefTemplate = String(action.hrefTemplate ?? '');
+      assert.equal(hrefTemplate.includes('{articleId}'), true, `${action.id} must stay scoped to the selected row`);
+    }
+  });
+
+  it('moderates comments from queue rows instead of manual ids', async () => {
+    const payload = await readJson('admin-blog-moderacion/components.json');
+    const components = flattenComponents(payload);
+    const workspace = componentById(components, 'moderationWorkspace');
+    const controls = componentById(components, 'moderationControls');
+    const scope = componentById(components, 'moderationScope');
+    const table = componentById(components, 'moderationTable');
+    const rowActions = table?.config?.rowActions ?? [];
+
+    assert.equal(workspace?.config?.components?.includes('moderationActions'), false);
+    assert.equal(controls?.config?.components?.includes('moderationCommentId'), false);
+    assert.equal(controls?.config?.components?.includes('moderationDecision'), false);
+    assert.equal(componentById(components, 'moderationActions'), undefined);
+    assert.equal(componentById(components, 'moderationCommentId'), undefined);
+    assert.equal(componentById(components, 'moderationDecision'), undefined);
+    assert.match(scope?.config?.valueInstructions ?? '', /collectFields:decision,reason,audit/);
+    assert.equal(table?.config?.rowIdPath, 'commentId');
+    assert.deepEqual(table?.config?.eventPayloadFields, ['commentId', 'articleId', 'moderationStatus', 'spam', 'createdAt']);
+    assert.equal(table?.config?.actionColumnLabel, 'Acciones');
+    assert.equal(table?.config?.actionLabelMode, 'tooltip');
+    assert.deepEqual(rowActions.map((action) => action.id), ['approve', 'reject', 'archive']);
+    assert.deepEqual(
+      rowActions.map((action) => action.eventInstructions),
+      [
+        'setScopeValue:decision,approve;proxyAction:content_hub_moderate_comment',
+        'setScopeValue:decision,reject;proxyAction:content_hub_moderate_comment',
+        'setScopeValue:decision,archive;proxyAction:content_hub_moderate_comment',
+      ],
+    );
+    assert.ok(String(table?.config?.actionButtonClasses ?? '').includes('ank-minWidth-54px'));
+  });
+
+  it('uses real schedule rows and cancel actions on the scheduling page', async () => {
+    const payload = await readJson('admin-blog-programados/components.json');
+    const components = flattenComponents(payload);
+    const table = componentById(components, 'scheduledTable');
+    const columns = table?.config?.columns ?? [];
+    const rowActions = table?.config?.rowActions ?? [];
+    const status = componentById(components, 'scheduledStatus');
+
+    assert.equal(table?.config?.rowsSource?.path, 'remote.contentHub.schedules.items');
+    assert.equal(table?.config?.rowIdPath, 'scheduleId');
+    assert.deepEqual(table?.config?.eventPayloadFields, ['scheduleId', 'articleId', 'revisionId', 'action', 'scheduledAt']);
+    for (const columnId of ['action', 'scheduledAt', 'timezone', 'articleId', 'revisionId']) {
+      assert.ok(columns.some((column) => column.id === columnId), `missing schedule column ${columnId}`);
+    }
+    assert.deepEqual(rowActions.map((action) => action.id), ['cancelSchedule']);
+    assert.equal(rowActions[0]?.eventInstructions, 'proxyAction:content_hub_cancel_schedule');
+    for (const componentId of ['scheduledCancelLoading', 'scheduledCancelError', 'scheduledCancelSuccess']) {
+      assert.equal(status?.config?.components?.includes(componentId), true, `scheduled status must include ${componentId}`);
+    }
+    assert.equal(componentById(components, 'scheduledCancelError')?.type, 'text');
+    assert.equal(String(componentById(components, 'scheduledCancelError')?.valueInstructions ?? '').includes('.error'), false);
+    assert.match(String(table?.valueInstructions ?? ''), /remoteStatus\.contentHub\.schedules/);
+  });
+
+  it('keeps public article tracking bound to the current published article', async () => {
+    const payload = await readJson('blog-article/components.json');
+    const text = textSearch(payload);
+    const components = flattenComponents(payload);
+    const articleCta = componentById(components, 'blogArticleCta');
+    const articleBody = componentById(components, 'blogArticleBody');
+    const interactionScope = componentById(components, 'blogArticleInteractionsScope');
+    const commentScope = componentById(components, 'blogArticleCommentScope');
+    const reactionButton = componentById(components, 'blogArticleUsefulButton');
+    const shareButton = componentById(components, 'blogArticleShareButton');
+    const formPanel = componentById(components, 'blogArticleFormPanel');
+    const formButton = componentById(components, 'blogArticleFormButton');
+    const commentLoginLink = componentById(components, 'blogArticleCommentLoginLink');
+    const commentBody = componentById(components, 'blogArticleCommentBody');
+    const commentButton = componentById(components, 'blogArticleCommentButton');
+
+    assert.doesNotMatch(text, /eventInstructions"\s*:\s*"trackEvent:blog_view/);
+    assert.doesNotMatch(text, /articleId,art_20260620_blog_builder/);
+    assert.equal(interactionScope?.type, 'interaction-scope');
+    assert.equal(commentScope?.type, 'interaction-scope');
+    assert.deepEqual(interactionScope?.config?.components, ['blogArticleCta', 'blogArticleReactionPanel', 'blogArticleFormPanel']);
+    assert.deepEqual(commentScope?.config?.components, ['blogArticleCommentPanel']);
+    assert.match(String(articleCta?.condition ?? ''), /interactions\.ctas\.enabled/);
+    assert.match(String(formPanel?.condition ?? ''), /interactions\.forms\.enabled/);
+    assert.match(String(articleCta?.valueInstructions ?? ''), /set:eventInstructions,concat/);
+    assert.match(String(articleCta?.valueInstructions ?? ''), /contentHub\.currentArticle\.articleId/);
+    assert.match(String(articleCta?.valueInstructions ?? ''), /contentHub\.currentArticle\.path/);
+    assert.match(String(articleCta?.valueInstructions ?? ''), /proxyAction:content_hub_record_interaction/);
+    assert.match(String(reactionButton?.valueInstructions ?? ''), /proxyAction:content_hub_record_interaction/);
+    assert.match(String(reactionButton?.valueInstructions ?? ''), /setScopeValue:eventType,reaction/);
+    assert.match(String(shareButton?.valueInstructions ?? ''), /shareCurrentPage/);
+    assert.match(String(shareButton?.valueInstructions ?? ''), /proxyAction:content_hub_record_interaction/);
+    assert.match(String(shareButton?.valueInstructions ?? ''), /setScopeValue:eventType,share/);
+    assert.match(String(formButton?.valueInstructions ?? ''), /setScopeValue:eventType,form/);
+    assert.match(String(formButton?.valueInstructions ?? ''), /proxyAction:content_hub_record_interaction/);
+    assert.match(String(commentScope?.config?.components ?? ''), /blogArticleCommentPanel/);
+    assert.match(String(componentById(components, 'blogArticleCommentPanel')?.condition ?? ''), /commentPolicy,disabled/);
+    assert.equal(commentLoginLink?.type, 'link');
+    assert.equal(commentLoginLink?.config?.href, '/acceso');
+    assert.equal(commentBody?.config?.fieldId, 'commentBody');
+    assert.equal(commentBody?.config?.controlType, 'textarea');
+    assert.equal(commentButton?.config?.disabledWhenInvalidScope, true);
+    assert.match(String(commentButton?.valueInstructions ?? ''), /contentHub\.currentArticle\.articleId/);
+    assert.match(String(commentButton?.valueInstructions ?? ''), /setScopeValue:commentPolicy,authenticated-moderation/);
+    assert.match(String(commentButton?.valueInstructions ?? ''), /proxyAction:content_hub_queue_comment/);
+    assert.match(String(articleBody?.valueInstructions ?? ''), /richTextHtmlOr,articleContent,/);
+    assert.doesNotMatch(String(articleBody?.valueInstructions ?? ''), /varOr,articleContent,/);
+    assert.doesNotMatch(String(articleBody?.valueInstructions ?? ''), /contentHub\.currentArticle\.summary/);
+  });
+
+  it('requires media uploads to have an article context and a selected file before submit', async () => {
+    const payload = await readJson('admin-blog-medios/components.json');
+    const components = flattenComponents(payload);
+    const articleId = componentById(components, 'mediaArticleId');
+    const dropzone = componentById(components, 'mediaDropzone');
+    const uploadButton = componentById(components, 'mediaUploadButton');
+    const table = componentById(components, 'mediaAssetsTable');
+    const editorPayload = await readJson('admin-blog-articulo-editor/components.json');
+    const editorComponents = flattenComponents(editorPayload);
+    const editorWorkspace = componentById(editorComponents, 'editorWorkspace');
+    const editorMediaScope = componentById(editorComponents, 'editorMediaScope');
+    const editorMediaArticleId = componentById(editorComponents, 'editorMediaArticleId');
+    const editorDropzone = componentById(editorComponents, 'editorDropzone');
+    const editorUploadButton = componentById(editorComponents, 'editorUploadButton');
+
+    assert.equal(articleId?.config?.required, true);
+    assert.match(JSON.stringify(articleId?.config?.validation ?? []), /Abre Medios desde la fila del artículo/);
+    assert.equal(dropzone?.type, 'generic-file-dropzone');
+    assert.equal(dropzone?.config?.required, true);
+    assert.equal(uploadButton?.config?.disabledWhenInvalidScope, true);
+    assert.equal(uploadButton?.eventInstructions, 'proxyAction:content_hub_upload_asset');
+    assert.equal(table?.config?.rowIdPath, 'assetId');
+    assert.deepEqual(table?.config?.eventPayloadFields, ['assetId', 'name', 'kind', 'usageRefs', 'publicability']);
+    assert.match(String(table?.valueInstructions ?? ''), /remoteStatus\.contentHub\.assets/);
+    assert.deepEqual(editorWorkspace?.config?.components, ['editorCard', 'editorMediaScope']);
+    assert.equal(editorMediaScope?.type, 'interaction-scope');
+    assert.equal(editorMediaScope?.config?.components?.includes('editorSideRail'), true);
+    assert.equal(editorMediaArticleId?.config?.required, true);
+    assert.match(String(editorMediaArticleId?.valueInstructions ?? ''), /remote\.contentHub\.articleDetail\.items\.0\.articleId/);
+    assert.equal(editorDropzone?.config?.required, true);
+    assert.equal(editorUploadButton?.config?.disabledWhenInvalidScope, true);
+    assert.equal(componentById(editorComponents, 'editorAssetsTable')?.config?.rowIdPath, 'assetId');
   });
 
   it('implements create and editor controls with draft-configured field IDs', async () => {
@@ -218,17 +828,450 @@ describe('Zoosite blog admin draft pages', () => {
     }
   });
 
+  it('connects the editor to combos and includes the advanced visual structure in article saves', async () => {
+    const pageConfig = await readJson('admin-blog-articulo-editor/page-config.json');
+    const siteConfig = await readJson('site-config.json');
+    const variables = await readJson('variables.json');
+    const payload = await readJson('admin-blog-articulo-editor/components.json');
+    const components = flattenComponents(payload);
+    const editorScope = componentById(components, 'editorScope');
+    const catalogButton = componentById(components, 'componentInspectorButton');
+    const catalogLink = componentById(components, 'componentInspectorCatalogLink');
+    const catalogCopy = componentById(components, 'componentInspectorCopy');
+    const modalRoot = componentById(components, 'articleComponentInspectorModalRoot');
+    const catalogPanel = componentById(components, 'componentCatalogPanel');
+    const previewPanel = componentById(components, 'componentPreviewPanel');
+    const livePreview = componentById(components, 'componentTreeLivePreview');
+    const comboSelect = componentById(components, 'componentComboSelect');
+    const modalClose = componentById(components, 'componentInspectorModalClose');
+    const jsonScope = componentById(components, 'componentInspectorJsonScope');
+    const jsonInput = componentById(components, 'componentTreeJsonInput');
+    const advancedHelp = componentById(components, 'advancedModeHelp');
+    const comboOptionsSource = siteConfig.runtime.dataSources.find((source) => source.id === 'combo_catalog_combo_options');
+    const inspectorModalConfig = variables?.variables?.ui?.modals?.['article-component-inspector'];
+
+    assert.ok(pageConfig.modalRootIds.includes('articleComponentInspectorModalRoot'));
+    assert.equal(catalogButton?.type, 'button');
+    assert.match(catalogButton?.eventInstructions ?? '', /openModal:article-component-inspector/);
+    assert.ok(inspectorModalConfig, 'article component inspector modal must be declared in variables.ui.modals');
+    assert.ok(
+      inspectorModalConfig.ariaLabel || inspectorModalConfig.ariaLabelKey,
+      'article component inspector modal must expose an aria label or aria label key',
+    );
+    assert.equal(catalogLink?.type, 'link');
+    assert.equal(catalogLink?.config?.href, '/admin/combos');
+    assert.match(catalogCopy?.config?.text ?? '', /abre el inspector/i);
+    assert.equal(modalRoot?.condition, 'all:modalRefId,article-component-inspector');
+    assert.equal(catalogPanel?.config?.components?.includes('componentCatalogRichText'), true);
+    assert.equal(previewPanel?.config?.components?.includes('componentTreeLivePreview'), true);
+    assert.equal(livePreview?.type, 'generic-component-preview');
+    assert.deepEqual(livePreview?.config?.source, {
+      type: 'scope',
+      path: 'fields.componentTreeJson.value',
+      fallback: [
+        {
+          id: 'previewFallbackBlock',
+          type: 'container',
+          config: {
+            tag: 'article',
+            classes: 'ank-bg-bgColor ank-border-1px__solid__textColorOPA__0_18 ank-borderRadius-8px ank-p-14px ank-display-flex ank-flexDirection-column ank-gap-8px',
+            components: ['previewFallbackCopy'],
+          },
+        },
+        {
+          id: 'previewFallbackCopy',
+          type: 'text',
+          config: {
+            tag: 'p',
+            text: 'Agrega JSON válido para ver aquí el bloque avanzado del artículo.',
+            classes: 'ank-m-0 ank-fontSize-14px ank-lineHeight-1_55 ank-color-secondaryTextColor ank-fontWeight-800',
+          },
+        },
+      ],
+    });
+    assert.ok(livePreview?.config?.allowedTypes?.includes('generic-rich-text'));
+    assert.doesNotMatch(JSON.stringify(livePreview), /queda para|editor avanzado final/i);
+    assert.equal(comboSelect?.config?.options?.source, 'var');
+    assert.equal(comboSelect?.config?.options?.path, 'remote.comboCatalog.comboOptions.items');
+    assert.equal(modalClose?.eventInstructions, 'closeModal');
+    assert.equal(jsonScope?.type, 'interaction-scope');
+    assert.equal(jsonInput?.type, 'input');
+    assert.equal(jsonInput?.config?.controlType, 'textarea');
+    assert.equal(jsonInput?.config?.fieldId, 'componentTreeJson');
+    assert.deepEqual(jsonInput?.config?.validation, [{ type: 'json', message: 'JSON válido para previsualización.' }]);
+    assert.match(editorScope?.config?.valueInstructions ?? '', /componentTreeJson/);
+    assert.match(jsonInput?.valueInstructions ?? '', /jsonVarOr,remote\.contentHub\.articleDetail\.items\.0\.components/);
+    assert.equal(comboOptionsSource?.kind, 'combo-catalog');
+    assert.equal(comboOptionsSource?.target, 'remote.comboCatalog.comboOptions');
+    assert.ok(comboOptionsSource?.pageIds?.includes('admin-blog-articulo-editor'));
+    assert.deepEqual(comboOptionsSource?.mapper?.fields?.value, { path: 'comboId' });
+    assert.deepEqual(comboOptionsSource?.mapper?.fields?.label, { path: 'comboId', transform: 'titleCase' });
+    assert.match(advancedHelp?.config?.text ?? '', /bloques permitidos/);
+  });
+
+  it('shows direct post-create next-step links bound to the created article ids', async () => {
+    const payload = await readJson('admin-blog-articulos-nuevo/components.json');
+    const components = flattenComponents(payload);
+    const status = componentById(components, 'newArticleCreateStatus');
+    const successCondition = 'all:varEq,remoteStatus.contentHub.content_hub_create_article.state,success';
+    const articleIdInstruction = 'set:config.articleId,varOr,remoteStatus.contentHub.content_hub_create_article.articleId,';
+    const revisionIdInstruction = 'set:config.revisionId,varOr,remoteStatus.contentHub.content_hub_create_article.revisionId,';
+
+    const expectations = new Map([
+      ['newArticleCreateEditorLink', ['/admin/blog/articulos/', '/editor']],
+      ['newArticleCreatePreviewLink', ['/admin/blog/articulos/', '/preview']],
+      ['newArticleCreateSeoLink', ['/admin/blog/articulos/', '/seo']],
+      ['newArticleCreateVersionsLink', ['/admin/blog/articulos/', '/versiones']],
+      ['newArticleCreateScheduleLink', ['/admin/blog/programados?articleId=', '&revisionId=']],
+    ]);
+
+    for (const componentId of expectations.keys()) {
+      assert.equal(status?.config?.components?.includes(componentId), true, `create success state must include ${componentId}`);
+    }
+
+    for (const [componentId, requiredFragments] of expectations) {
+      const component = componentById(components, componentId);
+      assert.equal(component?.type, 'link', `${componentId} must be a direct generic link`);
+      assert.equal(String(component?.condition ?? '').includes(successCondition), true, `${componentId} must only show after createArticle succeeds`);
+      assert.equal(String(component?.condition ?? '').includes('all:var,remoteStatus.contentHub.content_hub_create_article.articleId'), true, `${componentId} must only show when createArticle returns an articleId`);
+      assert.equal(String(component?.valueInstructions ?? '').includes(articleIdInstruction), true, `${componentId} must use the created articleId`);
+      for (const fragment of requiredFragments) {
+        assert.equal(String(component?.valueInstructions ?? '').includes(fragment), true, `${componentId} must build href with ${fragment}`);
+      }
+      assert.equal(String(component?.config?.href ?? '').startsWith('/admin/'), true, `${componentId} fallback href must stay same-origin so sticky draft query context is preserved`);
+      assert.equal(String(component?.config?.href ?? '').includes('draftDomain='), false, `${componentId} must not hardcode draftDomain`);
+      assert.equal(String(component?.config?.href ?? '').includes('debugWorkspace='), false, `${componentId} must not hardcode debugWorkspace`);
+      assert.equal(String(component?.config?.href ?? '').includes('lang='), false, `${componentId} must not hardcode lang`);
+    }
+
+    const scheduleLink = componentById(components, 'newArticleCreateScheduleLink');
+    assert.equal(
+      String(scheduleLink?.valueInstructions ?? '').includes(revisionIdInstruction),
+      true,
+      'schedule success link must use the created revisionId',
+    );
+    assert.equal(
+      String(scheduleLink?.condition ?? '').includes('all:var,remoteStatus.contentHub.content_hub_create_article.revisionId'),
+      true,
+      'schedule success link must only show when createArticle returns a revisionId',
+    );
+  });
+
+  it('hydrates preview and SEO revision ids from protected article detail', async () => {
+    const previewComponents = flattenComponents(await readJson('admin-blog-articulo-preview/components.json'));
+    const seoComponents = flattenComponents(await readJson('admin-blog-articulo-seo/components.json'));
+
+    for (const [pageId, component] of [
+      ['admin-blog-articulo-preview', componentById(previewComponents, 'previewRevisionId')],
+      ['admin-blog-articulo-seo', componentById(seoComponents, 'seoRevisionId')],
+    ]) {
+      assert.equal(component?.type, 'input', `${pageId} revision control must stay a generic input`);
+      assert.equal(component?.config?.fieldId, 'revisionId', `${pageId} revision control must submit revisionId for actions`);
+      assert.equal(component?.config?.readOnly, true, `${pageId} revisionId must not depend on empty editable input`);
+      assert.equal(
+        component?.valueInstructions,
+        'set:config.value,varOr,remote.contentHub.articleDetail.items.0.latestRevisionId,',
+        `${pageId} revisionId must hydrate from articleDetail.latestRevisionId`,
+      );
+    }
+  });
+
+  it('keeps category and tag admin tables scoped to their dedicated taxonomy reads', async () => {
+    const categoryComponents = flattenComponents(await readJson('admin-blog-categorias/components.json'));
+    const tagComponents = flattenComponents(await readJson('admin-blog-tags/components.json'));
+
+    const categoriesGrid = componentById(categoryComponents, 'categoriesGrid');
+    const tagsGrid = componentById(tagComponents, 'tagsGrid');
+    assert.equal(categoriesGrid?.config?.components?.includes('categoriesKind'), true);
+    assert.equal(tagsGrid?.config?.components?.includes('tagsKind'), true);
+    assert.match(componentById(categoryComponents, 'categoriesKind')?.config?.classes ?? '', /ank-display-none/);
+    assert.match(componentById(tagComponents, 'tagsKind')?.config?.classes ?? '', /ank-display-none/);
+    assert.equal(componentById(categoryComponents, 'categoriesKind')?.config?.value, 'category');
+    assert.equal(componentById(tagComponents, 'tagsKind')?.config?.value, 'tag');
+
+    const categoriesTable = componentById(categoryComponents, 'categoriesTable');
+    const tagsTable = componentById(tagComponents, 'tagsTable');
+    assert.equal(categoriesTable?.config?.rowsSource?.path, 'remote.contentHub.categories.items');
+    assert.equal(tagsTable?.config?.rowsSource?.path, 'remote.contentHub.tags.items');
+    assert.equal(categoriesTable?.config?.columns?.some((column) => column.id === 'kind'), false);
+    assert.equal(tagsTable?.config?.columns?.some((column) => column.id === 'kind'), false);
+    assert.deepEqual(categoriesTable?.config?.eventPayloadFields, ['taxonomyId', 'slug', 'label', 'seoDescription', 'visible', 'redirectWarning']);
+    assert.deepEqual(tagsTable?.config?.eventPayloadFields, ['taxonomyId', 'slug', 'label', 'seoDescription', 'visible', 'redirectWarning']);
+    assert.equal(categoriesTable?.config?.actionColumnLabel, 'Acciones');
+    assert.equal(tagsTable?.config?.actionColumnLabel, 'Acciones');
+    assert.equal(categoriesTable?.config?.rowActions?.[0]?.hrefTemplate, '/admin/blog/articulos?category={slug}');
+    assert.equal(tagsTable?.config?.rowActions?.[0]?.hrefTemplate, '/admin/blog/articulos?tag={slug}');
+    assert.deepEqual(categoriesGrid?.config?.components?.slice(0, 2), ['categoriesKind', 'categoriesTaxonomyId']);
+    assert.equal(componentById(categoryComponents, 'categoriesWorkspace')?.config?.components?.at(-1), 'categoriesSaveNotice');
+    assert.equal(componentById(tagComponents, 'tagsWorkspace')?.config?.components?.at(-1), 'tagsSaveNotice');
+  });
+
+  it('keeps editorial lifecycle action errors user-facing instead of raw backend passthrough', async () => {
+    const lifecycleErrorComponents = new Map([
+      ['admin-blog-articulos-nuevo', ['newArticleCreateError']],
+      ['admin-blog-articulo-editor', ['editorSaveError', 'editorUploadError']],
+      ['admin-blog-articulo-seo', ['seoValidateError', 'seoPublishError']],
+      ['admin-blog-programados', ['scheduledScheduleError', 'scheduledPublishError', 'scheduledCancelError']],
+      ['admin-blog-articulo-versiones', ['versionsRestoreError']],
+    ]);
+
+    for (const [pageId, errorComponentIds] of lifecycleErrorComponents) {
+      const payload = await readJson(`${pageId}/components.json`);
+      const text = textSearch(payload);
+      assert.equal(text.includes('Invalid id'), false, `${pageId} must not expose raw Invalid id copy`);
+
+      const components = flattenComponents(payload);
+      for (const componentId of errorComponentIds) {
+        const component = componentById(components, componentId);
+        assert.equal(component?.type, 'text', `${pageId}/${componentId} must be a user-facing text status`);
+        assert.equal(
+          String(component?.valueInstructions ?? '').includes('.error'),
+          false,
+          `${pageId}/${componentId} must not pass backend error text directly to authors`,
+        );
+        assert.match(
+          component?.config?.text ?? '',
+          /art[ií]culo|campos obligatorios|recarga|lista|servicio de contenido|permisos|sesi[oó]n/iu,
+          `${pageId}/${componentId} needs actionable editorial error copy`,
+        );
+      }
+    }
+  });
+
+  it('shows safe support ids for content action errors when the backend provides one', async () => {
+    const lifecycleErrorComponents = new Map([
+      ['admin-blog-articulos-nuevo', ['newArticleCreateError']],
+      ['admin-blog-articulo-editor', ['editorSaveError', 'editorUploadError']],
+      ['admin-blog-articulo-preview', ['previewValidateError', 'previewPublishError']],
+      ['admin-blog-articulo-seo', [
+        'seoValidateError',
+        'seoSubmitReviewError',
+        'seoApproveError',
+        'seoPublishError',
+        'seoUnpublishError',
+        'seoArchiveError',
+      ]],
+      ['admin-blog-articulo-versiones', ['versionsRestoreError']],
+      ['admin-blog-articulos', ['adminBlogArticulosValidateError']],
+      ['admin-blog-medios', ['mediaUploadError']],
+      ['admin-blog-moderacion', ['moderationModerateError']],
+      ['admin-blog-programados', ['scheduledScheduleError', 'scheduledPublishError', 'scheduledCancelError']],
+    ]);
+
+    for (const [pageId, errorComponentIds] of lifecycleErrorComponents) {
+      const payload = await readJson(`${pageId}/components.json`);
+      const components = flattenComponents(payload);
+      for (const errorComponentId of errorComponentIds) {
+        const errorComponent = componentById(components, errorComponentId);
+        const supportComponent = componentById(components, `${errorComponentId}SupportId`);
+        const statusPath = String(errorComponent?.condition ?? '').match(/all:varEq,(remoteStatus\.contentHub\.[^.]+)\.state,error/)?.[1];
+        assert.ok(statusPath, `${pageId}/${errorComponentId} must expose an error status path`);
+        assert.equal(supportComponent?.type, 'text', `${pageId}/${errorComponentId} needs a support-id text component`);
+        assert.match(
+          supportComponent?.condition ?? '',
+          new RegExp(`all:varEq,${statusPath.replaceAll('.', '\\.')}.state,error`),
+          `${pageId}/${supportComponent?.id} must only show in the matching error state`,
+        );
+        assert.match(
+          supportComponent?.condition ?? '',
+          new RegExp(`all:var,${statusPath.replaceAll('.', '\\.')}.requestId`),
+          `${pageId}/${supportComponent?.id} must require a requestId`,
+        );
+        assert.equal(
+          supportComponent?.valueInstructions,
+          `set:config.text,supportIdOr,${statusPath}.requestId,adminBlog.supportId,ID de soporte: {{ id }}`,
+          `${pageId}/${supportComponent?.id} must format request ids through supportIdOr`,
+        );
+
+        const parent = components.find((component) => Array.isArray(component?.config?.components)
+          && component.config.components.includes(errorComponentId));
+        assert.ok(parent, `${pageId}/${errorComponentId} must be rendered by a parent container`);
+        const children = parent.config.components;
+        assert.equal(
+          children[children.indexOf(errorComponentId) + 1],
+          `${errorComponentId}SupportId`,
+          `${pageId}/${errorComponentId} support id must render directly after the error copy`,
+        );
+      }
+    }
+
+    for (const pageId of pageIds) {
+      for (const language of ['es', 'en']) {
+        const translations = await readJson(`${pageId}/i18n/${language}.json`);
+        const expected = language === 'en' ? 'Support ID: {{ id }}' : 'ID de soporte: {{ id }}';
+        assert.equal(
+          translations.dictionary?.adminBlog?.supportId,
+          expected,
+          `${pageId}/i18n/${language}.json must translate support ids`,
+        );
+      }
+    }
+  });
+
+  it('makes article identity and lifecycle action state explicit in create, editor, SEO, and schedule forms', async () => {
+    const createPayload = await readJson('admin-blog-articulos-nuevo/components.json');
+    const editorPayload = await readJson('admin-blog-articulo-editor/components.json');
+    const previewPayload = await readJson('admin-blog-articulo-preview/components.json');
+    const seoPayload = await readJson('admin-blog-articulo-seo/components.json');
+    const scheduledPayload = await readJson('admin-blog-programados/components.json');
+    const versionsPayload = await readJson('admin-blog-articulo-versiones/components.json');
+
+    const createComponents = flattenComponents(createPayload);
+    const editorComponents = flattenComponents(editorPayload);
+    const previewComponents = flattenComponents(previewPayload);
+    const seoComponents = flattenComponents(seoPayload);
+    const scheduledComponents = flattenComponents(scheduledPayload);
+    const versionsComponents = flattenComponents(versionsPayload);
+
+    const createIntro = componentById(createComponents, 'admin-blog-articulos-nuevoIntro');
+    const createButton = componentById(createComponents, 'newArticleCreateButton');
+    assert.equal(String(createIntro?.config?.text ?? '').includes('query string'), false);
+    assert.match(createIntro?.config?.text ?? '', /lista|editor|SEO|programaci[oó]n/iu);
+    assert.equal(createButton?.config?.disabledWhenInvalidScope, true);
+    assert.ok(componentById(createComponents, 'newArticleCreateIdle'));
+    assert.ok(componentById(createComponents, 'newArticleCreateSuccess'));
+    assert.ok(componentById(createComponents, 'newArticleCreateArticleId'));
+    assert.ok(componentById(createComponents, 'newArticleCreateEditorHint'));
+
+    const editorReadout = componentById(editorComponents, 'editorArticleIdReadoutValue');
+    const editorHiddenId = componentById(editorComponents, 'editorArticleId');
+    assert.equal(editorReadout?.valueInstructions, 'set:config.text,routeParamOr,id,Abre el editor desde la lista de artículos.');
+    assert.equal(editorHiddenId?.config?.readOnly, true);
+    assert.equal(editorHiddenId?.config?.required, true);
+    assert.deepEqual(editorHiddenId?.config?.validation, [{
+      type: 'required',
+      message: 'Abre el editor desde la lista de artículos.',
+    }]);
+    assert.match(editorHiddenId?.config?.classes ?? '', /ank-display-none/);
+    assert.equal(editorHiddenId?.valueInstructions, 'set:config.value,routeParamOr,id,');
+    assert.equal(componentById(editorComponents, 'editorSaveButton')?.config?.disabledWhenInvalidScope, true);
+    assert.ok(componentById(editorComponents, 'editorSaveIdle'));
+
+    const previewArticleId = componentById(previewComponents, 'previewArticleId');
+    assert.equal(previewArticleId?.config?.readOnly, true);
+    assert.equal(previewArticleId?.config?.required, true);
+    assert.equal(previewArticleId?.valueInstructions, 'set:config.value,routeParamOr,id,');
+    assert.equal(componentById(previewComponents, 'previewRevisionId')?.config?.required, true);
+    assert.equal(
+      componentById(previewComponents, 'previewSeoLink')?.valueInstructions,
+      'set:config.articleId,routeParamOr,id,;set:config.href,concat,/admin/blog/articulos/,eval:config.articleId,/seo',
+    );
+    assert.equal(
+      componentById(previewComponents, 'previewVersionsLink')?.valueInstructions,
+      'set:config.articleId,routeParamOr,id,;set:config.href,concat,/admin/blog/articulos/,eval:config.articleId,/versiones',
+    );
+
+    const seoArticleId = componentById(seoComponents, 'seoArticleId');
+    assert.equal(seoArticleId?.config?.readOnly, true);
+    assert.equal(seoArticleId?.config?.required, true);
+    assert.equal(seoArticleId?.valueInstructions, 'set:config.value,routeParamOr,id,');
+    assert.equal(componentById(seoComponents, 'seoRevisionId')?.config?.required, true);
+    assert.ok(componentById(seoComponents, 'seoArticleIdGuidance'));
+    assert.ok(componentById(seoComponents, 'seoActionIdle'));
+    for (const [componentId, actionId] of [
+      ['seoSubmitReviewButton', 'content_hub_submit_review_article'],
+      ['seoApproveButton', 'content_hub_approve_article'],
+      ['seoPublishButton', 'content_hub_publish_article'],
+      ['seoUnpublishButton', 'content_hub_unpublish_article'],
+      ['seoArchiveButton', 'content_hub_archive_article'],
+    ]) {
+      const button = componentById(seoComponents, componentId);
+      assert.equal(button?.type, 'button', `${componentId} must be a draft-composed generic button`);
+      assert.equal(button?.eventInstructions, `proxyAction:${actionId}`);
+      assert.equal(button?.config?.disabledWhenInvalidScope, true);
+      assert.match(
+        String(button?.valueInstructions ?? ''),
+        /set:config\.disabled,when,/,
+        `${componentId} must disable itself when article status cannot run the lifecycle action`,
+      );
+      assert.match(
+        String(button?.valueInstructions ?? ''),
+        /remote\.contentHub\.articleDetail\.items\.0\.status/,
+        `${componentId} must use protected article detail status for lifecycle affordances`,
+      );
+    }
+    for (const componentId of [
+      'seoSubmitReviewError',
+      'seoApproveError',
+      'seoPublishError',
+      'seoUnpublishError',
+      'seoArchiveError',
+    ]) {
+      const component = componentById(seoComponents, componentId);
+      assert.equal(component?.type, 'text', `${componentId} must be a safe text status`);
+      assert.equal(String(component?.valueInstructions ?? '').includes('.error'), false, `${componentId} must not expose raw backend errors`);
+      assert.match(component?.config?.text ?? '', /art[ií]culo|permisos|sesi[oó]n/iu);
+    }
+
+    const scheduledArticleId = componentById(scheduledComponents, 'scheduledArticleId');
+    assert.equal(scheduledArticleId?.config?.readOnly, true);
+    assert.equal(scheduledArticleId?.config?.required, true);
+    assert.equal(scheduledArticleId?.valueInstructions, 'set:config.value,queryParamOr,articleId,');
+    assert.match(JSON.stringify(scheduledArticleId?.config?.validation ?? []), /Abre Programar desde la lista de art[ií]culos/iu);
+    const scheduledRevisionId = componentById(scheduledComponents, 'scheduledRevisionId');
+    assert.equal(scheduledRevisionId?.config?.required, true);
+    assert.equal(scheduledRevisionId?.valueInstructions, 'set:config.value,queryParamOr,revisionId,');
+    assert.match(scheduledRevisionId?.config?.label ?? '', /versi[oó]n/i);
+    assert.match(componentById(scheduledComponents, 'scheduledTimezone')?.config?.label ?? '', /zona horaria/i);
+    assert.match(componentById(scheduledComponents, 'scheduledAction')?.config?.label ?? '', /acci[oó]n/i);
+    assert.ok(componentById(scheduledComponents, 'scheduledArticleIdGuidance'));
+    assert.ok(componentById(scheduledComponents, 'scheduledActionIdle'));
+    for (const componentId of ['scheduledScheduleButton', 'scheduledPublishButton']) {
+      const button = componentById(scheduledComponents, componentId);
+      assert.match(
+        String(button?.valueInstructions ?? ''),
+        /set:config\.disabled,when,/,
+        `${componentId} must disable itself when article status cannot run the scheduling action`,
+      );
+      assert.match(
+        String(button?.valueInstructions ?? ''),
+        /remote\.contentHub\.articleDetail\.items\.0\.status/,
+        `${componentId} must use protected article detail status for scheduling affordances`,
+      );
+    }
+
+    const versionsIntro = componentById(versionsComponents, 'admin-blog-articulo-versionesIntro');
+    assert.equal(String(versionsIntro?.config?.text ?? '').includes('_'), false);
+    assert.match(versionsIntro?.config?.text ?? '', /versiones|restaura|historial/iu);
+    const versionsArticleId = componentById(versionsComponents, 'versionsArticleId');
+    assert.equal(versionsArticleId?.config?.required, true);
+    assert.equal(versionsArticleId?.valueInstructions, 'set:config.value,routeParamOr,id,');
+    assert.match(JSON.stringify(versionsArticleId?.config?.validation ?? []), /lista de art[ií]culos/iu);
+    const versionsRevisionId = componentById(versionsComponents, 'versionsRevisionId');
+    assert.equal(versionsRevisionId?.config?.required, true);
+    assert.match(JSON.stringify(versionsRevisionId?.config?.validation ?? []), /versi[oó]n/iu);
+    const versionsTable = componentById(versionsComponents, 'versionsTable');
+    assert.deepEqual(
+      versionsTable?.config?.eventPayloadFields,
+      ['articleId', 'revisionId', 'delta', 'snapshot', 'status'],
+    );
+    assert.equal(/remoteStatus\.contentHub\.[^;\s]+\.error/.test(String(versionsTable?.valueInstructions ?? '')), false);
+    const restoreButton = componentById(versionsComponents, 'versionsRestoreButton');
+    assert.equal(restoreButton?.config?.disabledWhenInvalidScope, true);
+    assert.ok(componentById(versionsComponents, 'versionsRestoreIdle'));
+
+    for (const pageId of ['admin-blog', 'admin-blog-articulos']) {
+      const pageText = textSearch(await readJson(`${pageId}/components.json`));
+      assert.ok(pageText.includes('/admin/blog/programados?articleId={articleId}&revisionId={latestRevisionId}'), `${pageId} schedule link must preserve article and revision ids`);
+    }
+
+    const mediaPayload = await readJson('admin-blog-medios/components.json');
+    const mediaArticleId = componentById(flattenComponents(mediaPayload), 'mediaArticleId');
+    assert.equal(mediaArticleId?.config?.readOnly, true);
+    assert.equal(mediaArticleId?.valueInstructions, 'set:config.value,queryParamOr,articleId,');
+  });
+
   it('implements dedicated SEO, revision, scheduling, moderation, media, analytics, taxonomy, and hub config surfaces', async () => {
     const expectations = new Map([
       ['admin-blog-articulo-seo', ['canonical', 'hreflang', 'socialPreview', 'structuredData', 'robots', 'sitemap']],
       ['admin-blog-articulo-versiones', ['revisionId', 'delta', 'snapshot', 'compare', 'restore']],
-      ['admin-blog-programados', ['publishAt', 'unpublishAt', 'timezone', 'reschedule', 'cancelSchedule']],
-      ['admin-blog-moderacion', ['commentQueue', 'spam', 'approve', 'reject', 'archive', 'audit']],
-      ['admin-blog-medios', ['upload', 'assetList', 'metadata', 'usageRefs', 'publicability', 'archive']],
-      ['admin-blog-analiticas', ['views', 'readProgress', 'ctaClicks', 'reactions', 'comments', 'shares', 'assetDownloads']],
+      ['admin-blog-programados', ['publishAt', 'unpublishAt', 'timezone', 'publish', 'unpublish']],
+      ['admin-blog-moderacion', ['Comentarios por revisar', 'spam', 'approve', 'reject', 'archive', 'audit']],
+      ['admin-blog-medios', ['upload', 'Biblioteca registrada', 'metadata', 'usageRefs', 'publicability', 'archive']],
+      ['admin-blog-analiticas', ['Visitas', 'Avance de lectura', 'Clics en llamados', 'Reacciones', 'Comentarios', 'Compartidos', 'Descargas', 'Formularios']],
       ['admin-blog-categorias', ['translation', 'slug', 'seoDescription', 'visible', 'redirectWarning']],
       ['admin-blog-tags', ['translation', 'slug', 'seoDescription', 'visible', 'redirectWarning']],
-      ['admin-blog-hub', ['connectedDrafts', 'visibility', 'authorizedHubs']],
+      ['admin-blog-hub', ['Sitios conectados', 'Visibilidad', 'Conexiones autorizadas']],
       ['admin-blog-configuracion', ['defaultCommentPolicy', 'contentSafetyPolicy', 'componentAllowlistPreset', 'languageFallback', 'seoDefaults']],
     ]);
 

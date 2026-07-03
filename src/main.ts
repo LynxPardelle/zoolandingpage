@@ -1,6 +1,10 @@
 import { CLIENT_BOOTSTRAP_DELAY_MS, CLIENT_BOOTSTRAP_READY_EVENT, STATIC_BOOT_CURTAIN_FALLBACK_MS } from './app/core/constants/client-bootstrap.constants';
 import { hasReadableCriticalTextContrast } from './app/core/utility/critical-text-contrast.utility';
-import { hasStaticInteractiveControls, hasStaticRenderableContent } from './app/core/utility/static-interactive-controls.utility';
+import {
+    hasProtectedSsrShell,
+    hasStaticInteractiveControls,
+    hasStaticRenderableContent,
+} from './app/core/utility/static-interactive-controls.utility';
 import { hasStaticStyleCoverage } from './app/core/utility/static-style-coverage.utility';
 import { environment } from './environments/environment';
 
@@ -100,6 +104,13 @@ function scheduleBootstrapAfterDocumentReady(): void {
     clearBootstrapTimer();
 
     const appRoot = document.querySelector('app-root');
+    if (hasProtectedSsrShell(appRoot)) {
+        removeBootstrapStartListeners();
+        clearBootCurtainFallbackTimer();
+        void bootstrapClient();
+        return;
+    }
+
     if (!hasStaticRenderableContent(appRoot)) {
         removeBootstrapStartListeners();
         clearBootCurtainFallbackTimer();

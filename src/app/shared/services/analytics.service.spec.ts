@@ -833,4 +833,72 @@ describe('AnalyticsService', () => {
 
     expect(svc.resolveScrollElement(doc)).toBe(doc.body);
   });
+
+  it('enriches article engagement events with current content hub article context', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        ConfigStoreService,
+        {
+          provide: HttpClient,
+          useValue: {
+            post: jasmine.createSpy('post').and.returnValue(of({ ok: true })),
+          } as any,
+        },
+      ],
+    });
+
+    const store = TestBed.inject(ConfigStoreService);
+    store.setSiteConfig({
+      version: 1,
+      domain: 'zoositioweb.com.mx',
+      routes: [],
+      site: {},
+      runtime: {
+        contentHubs: [
+          {
+            hubId: 'zoosite-main',
+            ownerDraftDomain: 'zoositioweb.com.mx',
+            source: 'primary',
+            articlePathPattern: '/blog/:categorySlug/:slug',
+            defaultLocale: 'es',
+            locales: ['es'],
+            canonicalMode: 'host-adaptive',
+            analyticsContext: {
+              eventPrefix: 'blog',
+              contentGroup: 'zoosite-blog',
+            },
+            publicArticles: [
+              {
+                articleId: 'art_public',
+                status: 'published',
+                visibility: 'public',
+                path: '/blog/web/guia-seo',
+                categorySlug: 'web',
+                tags: ['seo', 'sites'],
+                locale: 'es',
+                title: 'Guia SEO',
+              },
+            ],
+          },
+        ],
+      },
+    } as any);
+    setSpecUrl('/blog/web/guia-seo?draftDomain=zoositioweb.com.mx');
+
+    const svc = TestBed.inject(AnalyticsService) as any;
+
+    expect(svc.buildEngagementMeta({ depthPercent: 50 })).toEqual(jasmine.objectContaining({
+      depthPercent: 50,
+      hubId: 'zoosite-main',
+      contentGroup: 'zoosite-blog',
+      articleId: 'art_public',
+      category: 'web',
+      tags: ['seo', 'sites'],
+      path: '/blog/web/guia-seo',
+      params: jasmine.objectContaining({
+        categorySlug: 'web',
+        slug: 'guia-seo',
+      }),
+    }));
+  });
 });

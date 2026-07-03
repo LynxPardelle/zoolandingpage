@@ -3,6 +3,19 @@ import { TestBed } from '@angular/core/testing';
 import { DomainResolverService } from './domain-resolver.service';
 
 describe('DomainResolverService', () => {
+  const originalUrl = window.location.pathname + window.location.search + window.location.hash;
+  const nativeHistoryReplaceState = History.prototype.replaceState;
+
+  const setBrowserUrl = (href: string): void => {
+    const url = new URL(href);
+    nativeHistoryReplaceState.call(window.history, {}, '', `${ url.pathname }${ url.search }${ url.hash }`);
+  };
+
+  afterEach(() => {
+    nativeHistoryReplaceState.call(window.history, {}, '', originalUrl);
+    TestBed.resetTestingModule();
+  });
+
   it('uses REQUEST query params from the shared testing preview host', () => {
     TestBed.configureTestingModule({
       providers: [
@@ -20,6 +33,26 @@ describe('DomainResolverService', () => {
     expect(service.resolveDomain()).toEqual({
       domain: 'despacholegalastralex.com',
       source: 'queryParam',
+    });
+  });
+
+  it('uses the canonical Zoolanding domain on the shared testing host without a draftDomain', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        DomainResolverService,
+        { provide: PLATFORM_ID, useValue: 'server' },
+        {
+          provide: REQUEST,
+          useValue: new Request('https://test.zoolandingpage.com.mx/'),
+        },
+      ],
+    });
+
+    const service = TestBed.inject(DomainResolverService);
+
+    expect(service.resolveDomain()).toEqual({
+      domain: 'zoolandingpage.com.mx',
+      source: 'urlHost',
     });
   });
 
@@ -122,6 +155,27 @@ describe('DomainResolverService', () => {
 
     expect(service.resolveDomain()).toEqual({
       domain: 'zoolandingpage.com.mx',
+      source: 'queryParam',
+    });
+  });
+
+  it('uses browser query params on dynamic routes from the shared testing preview host', () => {
+    setBrowserUrl('https://test.zoolandingpage.com.mx/admin/blog/articulos/art_123/editor?draftDomain=zoositioweb.com.mx&debugWorkspace=false&lang=es');
+    TestBed.configureTestingModule({
+      providers: [
+        DomainResolverService,
+        { provide: PLATFORM_ID, useValue: 'browser' },
+        {
+          provide: REQUEST,
+          useValue: new Request('https://test.zoolandingpage.com.mx/admin/blog/articulos/art_123/editor'),
+        },
+      ],
+    });
+
+    const service = TestBed.inject(DomainResolverService);
+
+    expect(service.resolveDomain()).toEqual({
+      domain: 'zoositioweb.com.mx',
       source: 'queryParam',
     });
   });

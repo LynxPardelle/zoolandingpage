@@ -519,7 +519,7 @@ function validateDataSources(siteConfig, accountPageId, adminPageId, clientGroup
   if (!accountSource) {
     issues.push(issue('data-source-account', 'Missing auth-admin account data source.'));
   } else {
-    if (!accountSource.pageIds?.includes(accountPageId)) {
+    if (Array.isArray(accountSource.pageIds) && !accountSource.pageIds.includes(accountPageId)) {
       issues.push(issue('data-source-account', `Account data source must target pageId '${accountPageId}'.`, {
         actual: accountSource.pageIds,
       }));

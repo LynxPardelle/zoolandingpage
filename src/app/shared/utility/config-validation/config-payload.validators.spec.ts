@@ -500,6 +500,50 @@ describe('config-payload.validators', () => {
         expect(isDraftSiteConfigPayload(payload)).toBeTrue();
     });
 
+    it('accepts optional public combo catalog runtime references', () => {
+        const payload = {
+            version: 1,
+            domain: TEST_DOMAIN,
+            defaultPageId: 'default',
+            routes: [{ path: '/', pageId: 'default' }],
+            runtime: {
+                comboCatalog: {
+                    enabled: true,
+                    endpoint: '/features/combo-catalog/read',
+                    authProfileId: 'staff',
+                    draftDomain: TEST_DOMAIN,
+                },
+            },
+            site: minimalSiteConfig(),
+        };
+
+        expect(isDraftSiteConfigPayload(payload)).toBeTrue();
+
+        for (const unsafeField of ['credentialRef', 'clientSecret', 'accessToken', 'tableName', 'serverPolicy']) {
+            expect(isDraftSiteConfigPayload({
+                ...payload,
+                runtime: {
+                    comboCatalog: {
+                        ...payload.runtime.comboCatalog,
+                        [unsafeField]: 'must-not-travel',
+                    },
+                },
+            })).withContext(`runtime.comboCatalog.${ unsafeField }`).toBeFalse();
+        }
+
+        for (const endpoint of ['http://example.com/read', '//evil.example/read', 'javascript:alert(1)', '/safe\\bad']) {
+            expect(isDraftSiteConfigPayload({
+                ...payload,
+                runtime: {
+                    comboCatalog: {
+                        ...payload.runtime.comboCatalog,
+                        endpoint,
+                    },
+                },
+            })).withContext(`runtime.comboCatalog.endpoint ${ endpoint }`).toBeFalse();
+        }
+    });
+
     it('accepts safe auth session and admin endpoint paths in public runtime auth', () => {
         const payload = {
             version: 1,
@@ -532,6 +576,7 @@ describe('config-payload.validators', () => {
                         challengeCsrfCookieName: 'zlp_challenge_csrf',
                         mfaEnrollCsrfCookieName: 'zlp_mfa_enroll_csrf',
                         csrfHeaderName: 'X-ZLP-CSRF',
+                        routeAccessCacheMs: 15000,
                     },
                     admin: {
                         usersPath: '/auth/admin/users',
@@ -577,6 +622,18 @@ describe('config-payload.validators', () => {
                     session: {
                         mode: 'server-cookie',
                         signinPath: 'https://evil.example/auth/session/signin',
+                    },
+                },
+            },
+        })).toBeFalse();
+        expect(isDraftSiteConfigPayload({
+            ...base,
+            runtime: {
+                auth: {
+                    ...baseAuth,
+                    session: {
+                        mode: 'server-cookie',
+                        routeAccessCacheMs: 120000,
                     },
                 },
             },
@@ -995,6 +1052,11 @@ describe('config-payload.validators', () => {
                                 fallback: 'pikachu',
                                 transforms: ['trim', 'lowercase'],
                             },
+                            articleId: {
+                                source: 'routeParam',
+                                key: 'id',
+                                transforms: ['trim'],
+                            },
                             offset: {
                                 source: 'queryParamPageOffset',
                                 pageKey: 'page',
@@ -1051,6 +1113,10 @@ describe('config-payload.validators', () => {
                                     transform: 'uriComponent',
                                     prefix: '/pokemon?name=',
                                 },
+                                tagsText: {
+                                    path: 'tags',
+                                    transform: 'joinList',
+                                },
                             },
                         },
                     },
@@ -1089,11 +1155,22 @@ describe('config-payload.validators', () => {
                                 path: '/blog/web/blog-builder-seo',
                                 categorySlug: 'web',
                                 tags: ['seo', 'builder'],
+                                visibility: 'public',
                                 publishedAt: '2026-06-21T15:00:00.000Z',
                                 updatedAt: '2026-06-21T15:00:00.000Z',
                                 authorLabel: 'Equipo zoositioweb',
                                 canonicalPath: '/blog/web/blog-builder-seo',
                                 robots: 'index,follow',
+                                commentPolicy: 'authenticated',
+                                contentSafety: {
+                                    rating: 'general',
+                                    warnings: [],
+                                },
+                                interactions: {
+                                    reactions: { enabled: true, moderation: 'spam-check' },
+                                    ctas: { enabled: true, moderation: 'spam-check' },
+                                    forms: { enabled: true, moderation: 'queue' },
+                                },
                             },
                         ],
                         publicTaxonomy: [
@@ -1137,6 +1214,102 @@ describe('config-payload.validators', () => {
                         requiresUserGesture: true,
                         contentHub: {
                             action: 'publish',
+                            hubId: 'zoosite-main',
+                        },
+                    },
+                ],
+            },
+        };
+
+        expect(isDraftSiteConfigPayload(payload)).toBeTrue();
+    });
+
+    it('accepts content hub public indexes as runtime collection objects', () => {
+        const payload = {
+            version: 1,
+            domain: 'zoositioweb.com.mx',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: minimalSiteConfig(),
+            runtime: {
+                contentHubs: [
+                    {
+                        hubId: 'zoosite-main',
+                        ownerDraftDomain: 'zoositioweb.com.mx',
+                        source: 'primary',
+                        routeBasePath: '/blog',
+                        listPath: '/blog',
+                        articlePathPattern: '/blog/:categorySlug/:articleSlug',
+                        defaultLocale: 'es',
+                        locales: ['es'],
+                        canonicalMode: 'host-adaptive',
+                        publicArticles: {
+                            items: [{
+                                articleId: 'art_20260620_blog_builder',
+                                locale: 'es',
+                                status: 'published',
+                                title: 'Cómo crear blogs visuales',
+                                path: '/blog/web/blog-builder-seo',
+                                visibility: 'public',
+                                publishedAt: '2026-06-21T15:00:00.000Z',
+                            }],
+                        },
+                        publicTaxonomy: {
+                            items: [{
+                                taxonomyId: 'web',
+                                kind: 'category',
+                                slug: 'web',
+                                label: 'Web',
+                                locale: 'es',
+                                visible: true,
+                                path: '/blog/web',
+                            }],
+                        },
+                    },
+                ],
+            },
+        };
+
+        expect(isDraftSiteConfigPayload(payload)).toBeTrue();
+    });
+
+    it('accepts content hub schedule list reads and cancel schedule actions', () => {
+        const payload = {
+            version: 1,
+            domain: 'zoositioweb.com.mx',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: minimalSiteConfig(),
+            runtime: {
+                dataSources: [
+                    {
+                        id: 'content-hub-schedules',
+                        kind: 'content-hub',
+                        proxySourceId: 'contentHubScheduleList',
+                        target: 'remote.contentHub.schedules',
+                        contentHub: {
+                            read: 'scheduleList',
+                            hubId: 'zoosite-main',
+                        },
+                    },
+                    {
+                        id: 'content-hub-analytics',
+                        kind: 'content-hub',
+                        proxySourceId: 'contentHubAnalyticsSummary',
+                        target: 'remote.contentHub.analytics',
+                        contentHub: {
+                            read: 'analyticsSummary',
+                            hubId: 'zoosite-main',
+                        },
+                    },
+                ],
+                apiActions: [
+                    {
+                        id: 'cancel-schedule',
+                        kind: 'content-hub',
+                        proxyActionId: 'contentHubCancelSchedule',
+                        inputFields: ['scheduleId'],
+                        requiresUserGesture: true,
+                        contentHub: {
+                            action: 'cancelSchedule',
                             hubId: 'zoosite-main',
                         },
                     },
@@ -1200,6 +1373,62 @@ describe('config-payload.validators', () => {
                 }],
             },
         })).withContext('server-only article key').toBeFalse();
+
+        expect(isDraftSiteConfigPayload({
+            ...base,
+            runtime: {
+                contentHubs: [{
+                    ...baseHub,
+                    publicArticles: [{
+                        articleId: 'art_20260620_blog_builder',
+                        locale: 'es',
+                        status: 'published',
+                        title: 'Artículo',
+                        path: '/blog/web/blog-builder-seo',
+                        visibility: 'private',
+                        publishedAt: '2026-06-21T15:00:00.000Z',
+                    }],
+                }],
+            },
+        })).withContext('non-public article visibility in publicArticles').toBeFalse();
+
+        expect(isDraftSiteConfigPayload({
+            ...base,
+            runtime: {
+                contentHubs: [{
+                    ...baseHub,
+                    publicArticles: [{
+                        articleId: 'art_20260620_blog_builder',
+                        locale: 'es',
+                        status: 'published',
+                        title: 'Artículo',
+                        path: '/blog/web/blog-builder-seo',
+                        publishedAt: '2026-06-21T15:00:00.000Z',
+                        commentPolicy: 'raw-comments',
+                    }],
+                }],
+            },
+        })).withContext('unsafe public comment policy').toBeFalse();
+
+        expect(isDraftSiteConfigPayload({
+            ...base,
+            runtime: {
+                contentHubs: [{
+                    ...baseHub,
+                    publicArticles: [{
+                        articleId: 'art_20260620_blog_builder',
+                        locale: 'es',
+                        status: 'published',
+                        title: 'Artículo',
+                        path: '/blog/web/blog-builder-seo',
+                        publishedAt: '2026-06-21T15:00:00.000Z',
+                        interactions: {
+                            reactions: { enabled: true, moderation: 'off' },
+                        },
+                    }],
+                }],
+            },
+        })).withContext('unsafe public interaction moderation').toBeFalse();
     });
 
     it('rejects server-only content hub runtime data source and action fields', () => {
@@ -1665,6 +1894,7 @@ describe('config-payload.validators', () => {
                     validationChecklistClasses: 'checklist',
                     validation: [
                         { type: 'email' },
+                        { type: 'json', message: 'Must be valid JSON.' },
                         { type: 'matchesField', fieldId: 'confirmEmail', message: 'Emails must match.' },
                     ],
                 },
@@ -1768,13 +1998,29 @@ describe('config-payload.validators', () => {
                     rowsSource: { source: 'var', path: 'contentHub.articles', fallback: [] },
                     rowIdPath: 'articleId',
                     eventPayloadFields: ['articleId', 'status'],
+                    actionColumnLabel: 'Acciones',
+                    actionLabelMode: 'tooltip',
+                    actionButtonStyles: {
+                        display: 'inline-flex',
+                        minHeight: '44px',
+                        padding: '0',
+                    },
+                    actionIconClasses: 'ank-width-14px ank-height-14px',
                     columns: [
                         { id: 'title', header: 'Título', valuePath: 'title' },
                         { id: 'status', header: 'Estado', valuePath: 'status' },
+                        { id: 'tags', header: 'Tags', valuePath: 'tags', format: 'list', itemPath: 'label', separator: ', ' },
                     ],
                     pagination: { enabled: true, pageSize: 10, pageSizeOptions: [10, 25] },
                     selection: { enabled: true, mode: 'multiple', label: 'Seleccionar artículo' },
-                    rowActions: [{ id: 'edit', label: 'Editar', icon: 'edit' }],
+                    rowActions: [
+                        {
+                            id: 'edit',
+                            label: 'Editar',
+                            icon: 'edit',
+                            hrefTemplate: '/admin/blog/articulos/{articleId}/editor?articleId={articleId}',
+                        },
+                    ],
                 },
             },
             articleStatusCell: {
@@ -1785,6 +2031,7 @@ describe('config-payload.validators', () => {
                     value: 'published',
                     format: 'text',
                     componentIds: ['statusBadge'],
+                    separator: ', ',
                 },
             },
             articleBody: {
@@ -1799,6 +2046,34 @@ describe('config-payload.validators', () => {
                     sanitizerPolicyId: 'trusted-authors',
                 },
             },
+            articlePreview: {
+                id: 'articlePreview',
+                type: 'generic-component-preview',
+                config: {
+                    label: 'Preview',
+                    description: 'Renderiza el árbol avanzado actual.',
+                    source: {
+                        type: 'scope',
+                        path: 'fields.componentTreeJson.value',
+                        fallback: [
+                            {
+                                id: 'previewFallback',
+                                type: 'text',
+                                config: {
+                                    tag: 'p',
+                                    text: 'Agrega JSON válido.',
+                                },
+                            },
+                        ],
+                    },
+                    allowedTypes: ['container', 'text', 'generic-rich-text', 'button'],
+                    maxComponents: 40,
+                    emptyText: 'Sin JSON.',
+                    invalidText: 'JSON inválido.',
+                    classes: 'previewShell',
+                    previewClasses: 'previewBody',
+                },
+            },
             articleAssets: {
                 id: 'articleAssets',
                 type: 'generic-file-dropzone',
@@ -1808,6 +2083,7 @@ describe('config-payload.validators', () => {
                     accept: 'image/*,.pdf',
                     maxFileSizeBytes: 5242880,
                     multiple: true,
+                    required: true,
                     dropLabel: 'Arrastra archivos',
                 },
             },
@@ -1841,6 +2117,28 @@ describe('config-payload.validators', () => {
                 config: {
                     fieldId: 'assets',
                     maxFileSizeBytes: 'large',
+                },
+            },
+            articlePreview: {
+                id: 'articlePreview',
+                type: 'generic-component-preview',
+                config: {
+                    source: {
+                        type: 'scope',
+                        path: 'fields.componentTreeJson.value',
+                        fallback: [
+                            {
+                                id: 'previewFallback',
+                                type: 'button',
+                                eventInstructions: 'runtimeApi:deleteEverything',
+                                config: {
+                                    label: 'Unsafe',
+                                },
+                            },
+                        ],
+                    },
+                    allowedTypes: ['modal'],
+                    maxComponents: 500,
                 },
             },
         });
@@ -2102,6 +2400,15 @@ describe('config-payload.validators', () => {
                     },
                 },
             },
+            publishAtInput: {
+                id: 'publishAtInput',
+                type: 'input',
+                config: {
+                    fieldId: 'publishAt',
+                    controlType: 'text',
+                    inputType: 'datetime-local',
+                },
+            },
             attackFilter: {
                 id: 'attackFilter',
                 type: 'input',
@@ -2203,6 +2510,28 @@ describe('config-payload.validators', () => {
                     formatMode: 'prefix',
                     formatPrefix: '+',
                     formatSuffix: '',
+                },
+            },
+        }, TEST_DOMAIN);
+
+        expect(isComponentsPayload(valid)).toBeTrue();
+    });
+
+    it('accepts tooltip payloads with safe anchor and content fields', () => {
+        const valid = createComponentsPayload({
+            searchTooltip: {
+                id: 'searchTooltip',
+                type: 'tooltip',
+                valueInstructions: 'set:config.content,i18n,actions.search,Search',
+                config: {
+                    for: 'search-button',
+                    content: 'Search',
+                    position: 'top',
+                    trigger: 'both',
+                    showDelayMs: 120,
+                    hideDelayMs: 80,
+                    surfaceClasses: 'tooltip-surface',
+                    arrowClasses: 'tooltip-arrow',
                 },
             },
         }, TEST_DOMAIN);

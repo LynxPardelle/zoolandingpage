@@ -5,7 +5,8 @@ export type TGenericCellValueFormat =
   | 'number'
   | 'date'
   | 'boolean'
-  | 'json';
+  | 'json'
+  | 'list';
 
 export type TGenericCellColumnConfig = {
   readonly id: string;
@@ -17,6 +18,8 @@ export type TGenericCellColumnConfig = {
   readonly emptyText?: TDynamicStringValue;
   readonly trueText?: TDynamicStringValue;
   readonly falseText?: TDynamicStringValue;
+  readonly itemPath?: TDynamicStringValue;
+  readonly separator?: TDynamicStringValue;
   readonly componentId?: TDynamicStringValue;
   readonly componentIds?: readonly string[];
   readonly classes?: TDynamicStringValue;
@@ -34,6 +37,8 @@ export type TGenericCellConfig = {
   readonly emptyText?: TDynamicStringValue;
   readonly trueText?: TDynamicStringValue;
   readonly falseText?: TDynamicStringValue;
+  readonly itemPath?: TDynamicStringValue;
+  readonly separator?: TDynamicStringValue;
   readonly componentId?: TDynamicStringValue;
   readonly componentIds?: readonly string[];
   readonly classes?: TDynamicStringValue;

@@ -21,6 +21,11 @@ Output/
 # Secrets and private local files
 .env
 .env.*
+.zlp/
+.zlp-*/
+*.grant
+*.token
+upload-grants/
 *.pem
 *.key
 *.p12

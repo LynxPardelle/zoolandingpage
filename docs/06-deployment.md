@@ -39,11 +39,11 @@ Recommended AWS resource names:
 Recommended deployment order:
 
 1. Use the existing `zoolanding-config-payloads`, `zoolandingpage-public-files`, and `zoolanding-config-registry` resources.
-2. Configure S3 CORS on `zoolandingpage-public-files` for browser `PUT` uploads from `https://zoolandingpage.com.mx` and `https://test.zoolandingpage.com.mx`.
+2. Configure S3 CORS on `zoolandingpage-public-files` for the approved app origins. Browser `PUT` uploads are allowed only when a temporary upload grant explicitly enables presigned PUT.
 3. Create or reuse a CloudFront distribution in front of `zoolandingpage-public-files` and attach the alias `assets.zoolandingpage.com.mx`.
 4. Deploy `zoolanding-config-runtime-read` behind API Gateway and map `/runtime-bundle` under `https://api.zoolandingpage.com.mx`.
 5. Deploy `zoolanding-config-authoring` behind API Gateway and map `/config-authoring` under `https://api.zoolandingpage.com.mx`.
-6. Deploy `zoolanding-image-upload` behind API Gateway and map `/image-upload/presign` under `https://api.zoolandingpage.com.mx`.
+6. Deploy `zoolanding-image-upload` behind API Gateway and map `/image-upload/presign` under `https://api.zoolandingpage.com.mx`. Grant issuance uses IAM-protected Lambda invocation or `/image-upload/grants`; do not expose grant issuance publicly.
 7. Deploy `zoolanding-data-dropper-lambda` behind API Gateway and map `/analytics` under `https://api.zoolandingpage.com.mx`.
 8. Deploy `zoolanding-api-proxy` behind API Gateway and map `/api-proxy/*` under `https://api.zoolandingpage.com.mx`.
 9. Seed or update the canonical production site under `zoolandingpage.com.mx`, and declare any preview or alternate hosts in `site-config.json.aliases`.
@@ -60,8 +60,8 @@ Notes for preview and alternate domains:
 - You do not need a second DynamoDB site entry just for a preview host when it should reuse the canonical site's config.
 - Most REST APIs currently answer CORS preflight with `Access-Control-Allow-Origin: *`, `Content-Type,Authorization`, and the expected route methods. The runtime API proxy uses a stricter origin allowlist for `https://zoolandingpage.com.mx`, `https://test.zoolandingpage.com.mx`, and local QA origins.
 - The CloudFront distribution for `api.zoolandingpage.com.mx` must forward `Origin`, `Access-Control-Request-Method`, `Access-Control-Request-Headers`, query strings, and `OPTIONS` requests to preserve browser CORS behavior.
-- Browser uploads to S3 still require bucket-level CORS on `zoolandingpage-public-files`.
-- The public files bucket already allows `GET`, `HEAD`, and `PUT` from `https://zoolandingpage.com.mx` and `https://test.zoolandingpage.com.mx`.
+- Browser uploads to S3 still require bucket-level CORS on `zoolandingpage-public-files`, but the application must not request presigned PUT unless the upload grant allows it.
+- The public files bucket already allows `GET`, `HEAD`, and `PUT` from `https://zoolandingpage.com.mx` and `https://test.zoolandingpage.com.mx`; backend grant validation remains the upload authorization boundary.
 
 ## SAM Deployment For Config Platform
 
@@ -78,7 +78,7 @@ Current smoke-test status before the first site upload:
 
 - authoring endpoint is live and returns `404 Site metadata not found` for `zoolandingpage.com.mx`, which is expected before `createSite`
 - runtime endpoint is live and returns `404 Site metadata not found` for `zoolandingpage.com.mx`, which is expected before the first upload and publish
-- image-upload endpoint is live and returns `200` with a presigned upload URL
+- image-upload endpoint is live and denies unauthenticated upload attempts; successful uploads require a temporary grant
 
 Current custom-domain routing through CloudFront:
 
@@ -136,7 +136,7 @@ Set-Location "C:\Users\lince\Documents\GitHub\zoolanding-config-runtime-read"
 sam deploy --stack-name zoolanding-config-runtime-read --region us-east-1 --capabilities CAPABILITY_IAM --resolve-s3 --no-confirm-changeset --no-fail-on-empty-changeset --parameter-overrides ConfigTableName=zoolanding-config-registry ConfigPayloadsBucketName=zoolanding-config-payloads LogLevel=INFO
 
 Set-Location "C:\Users\lince\Documents\GitHub\zoolanding-image-upload"
-sam deploy --stack-name zoolanding-image-upload --region us-east-1 --capabilities CAPABILITY_IAM --resolve-s3 --no-confirm-changeset --no-fail-on-empty-changeset --parameter-overrides PublicFilesBucketName=zoolandingpage-public-files PublicFilesBaseUrl=https://assets.zoolandingpage.com.mx PresignExpirationSeconds=900 LogLevel=INFO
+sam deploy --stack-name zoolanding-image-upload --region us-east-1 --capabilities CAPABILITY_IAM --resolve-s3 --no-confirm-changeset --no-fail-on-empty-changeset --parameter-overrides PublicFilesBucketName=zoolandingpage-public-files PublicFilesBaseUrl=https://assets.zoolandingpage.com.mx PresignExpirationSeconds=900 UploadGrantsTableName=zoolanding-image-upload-grants UploadGrantDefaultExpiresSeconds=28800 UploadGrantMaxExpiresSeconds=86400 UploadGrantDefaultMaxBytes=5242880 UploadGrantMaxBytes=15728640 UploadGrantDefaultUsageLimit=25 UploadGrantMaxUsageLimit=500 AbuseMetricNamespace=Zoolanding/ImageUpload UploadGrantDeniedAlarmThreshold=5 AbuseNotificationEmail1=<operator-email-1> AbuseNotificationEmail2=<operator-email-2> PublicFileCacheControl=public,max-age=31536000,immutable LogLevel=INFO
 
 Set-Location "C:\Users\lince\Documents\GitHub\zoolanding-api-proxy"
 sam deploy --stack-name zoolanding-api-proxy --region us-east-1 --capabilities CAPABILITY_IAM --resolve-s3 --no-confirm-changeset --no-fail-on-empty-changeset --parameter-overrides ConfigTableName=zoolanding-config-registry ConfigPayloadsBucketName=zoolanding-config-payloads AllowedCorsOrigins=https://zoolandingpage.com.mx,https://test.zoolandingpage.com.mx SecretNamePrefix=zoolanding/api/ LogLevel=INFO
@@ -244,11 +244,29 @@ Set environment variables:
 - `PUBLIC_FILES_BUCKET_NAME=zoolandingpage-public-files`
 - `PUBLIC_FILES_BASE_URL=https://assets.zoolandingpage.com.mx`
 - `PRESIGN_EXPIRATION_SECONDS=900`
+- `UPLOAD_GRANTS_TABLE_NAME=zoolanding-image-upload-grants`
+- `UPLOAD_GRANT_DEFAULT_EXPIRES_SECONDS=28800`
+- `UPLOAD_GRANT_MAX_EXPIRES_SECONDS=86400`
+- `UPLOAD_GRANT_DEFAULT_MAX_BYTES=5242880`
+- `UPLOAD_GRANT_MAX_BYTES=15728640`
+- `UPLOAD_GRANT_DEFAULT_USAGE_LIMIT=25`
+- `UPLOAD_GRANT_MAX_USAGE_LIMIT=500`
+- `ABUSE_METRIC_NAMESPACE=Zoolanding/ImageUpload`
 - `LOG_LEVEL=INFO`
 
 Attach permissions:
 
+- `s3:GetObject` on `zoolandingpage-public-files/*`
 - `s3:PutObject` on `zoolandingpage-public-files/*`
+- `s3:ListBucket` on `zoolandingpage-public-files` so `HeadObject` can distinguish missing keys from denied reads before overwrite checks
+- `dynamodb:GetItem`, `dynamodb:PutItem`, and `dynamodb:UpdateItem` on the upload grants table
+- `cloudwatch:PutMetricData` for the `Zoolanding/ImageUpload` namespace
+
+Create or verify these supporting resources:
+
+- DynamoDB upload grants table with `pk` and `sk` string keys, pay-per-request billing, server-side encryption, and TTL enabled on `expiresAtEpoch`.
+- SNS topic for upload-abuse alerts, with operator email subscriptions added through deployment parameters or the console.
+- CloudWatch alarm on denied upload-grant attempts. Email subscriptions remain inactive until each recipient confirms the SNS email.
 
 Suggested execution settings:
 
@@ -293,7 +311,7 @@ CORS requirements through CloudFront:
 3. Forward query strings for `/runtime-bundle` so `domain`, `path`, and `lang` reach the runtime API.
 4. Keep API Gateway route-level preflight enabled for the three APIs.
 5. Keep Lambda proxy responses returning `Access-Control-Allow-Origin`.
-6. Keep S3 bucket CORS for presigned browser uploads.
+6. Keep S3 bucket CORS for presigned uploads that are explicitly enabled by a temporary grant.
 
 Runtime API burst guard:
 
@@ -447,12 +465,10 @@ curl -X POST "https://api.zoolandingpage.com.mx/config-authoring" \
   -d '{"action":"getSite","domain":"zoolandingpage.com.mx","stage":"published"}'
 ```
 
-Image upload presign:
+Image upload with a temporary grant:
 
 ```bash
-curl -X POST "https://api.zoolandingpage.com.mx/image-upload/presign" \
-  -H "Content-Type: application/json" \
-  -d '{"domain":"zoolandingpage.com.mx","pageId":"default","assetKind":"hero-images","assetId":"headline-art","fileName":"headline-art.png","contentType":"image/png"}'
+node tools/upload-draft-asset.mjs --domain=zoolandingpage.com.mx --page=default --kind=hero-images --id=headline-art --file="./local/headline-art.webp" --grant-file=".zlp/upload-grants/zoolandingpage-com.token"
 ```
 
 ### 9. AWS Console fallback

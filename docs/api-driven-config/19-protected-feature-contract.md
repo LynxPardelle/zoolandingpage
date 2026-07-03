@@ -17,6 +17,31 @@ Source Of Truth:
 Confidence: Medium; this is a reusable contract and plan-only schema, not a deployed feature runtime.
 Last Reviewed: 2026-06-18 (Central Time)
 
+## Implemented Content Hub BFF
+
+The first protected-feature BFF implementation is the generic `zoolanding-content-hub` service.
+
+It owns the same-origin browser endpoints expected by `ContentHubClientService`:
+
+- `POST /features/content-hub/read`
+- `POST /features/content-hub/action`
+- `POST /features/content-hub/public-action`
+
+`read` and `action` require auth-admin session and CSRF when mutating. `public-action` is only for sanitized public interactions such as CTA clicks, reactions, shares, downloads, and non-PII form events; comments still use the protected moderation flow. The front door must route only those exact paths to the BFF. Do not route broad `/features/*`, `/features/content-hub/*`, or unrelated feature paths to this service.
+
+The BFF reuses auth-admin server-cookie sessions:
+
+- `__Host-zlp_session` stays HttpOnly.
+- Mutations require the readable CSRF cookie and matching `X-ZLP-CSRF` header.
+- Requests include `X-ZLP-Domain`, `X-ZLP-Auth-Profile-Id`, and `X-ZLP-Content-Hub-Id`.
+- The service rechecks session context, current user state, approval status, enabled status, session version, hub authorization, and action-scoped roles server-side.
+
+Initial reads are `articleList`, `articleDetail`, `taxonomyList`, `assetList`, `revisionList`, `scheduleList`, `moderationQueue`, `publicBundlePreview`, and `analyticsSummary`.
+
+Initial actions are `createArticle`, `updatePackage`, `validate`, `submitReview`, `approveArticle`, `publish`, `unpublishArticle`, `archiveArticle`, `schedule`, `cancelSchedule`, `uploadAsset`, `moderateComment`, and `restoreRevision`.
+
+Publishing creates validated internal content-hub published bundles in BFF-owned storage. The runtime-read bridge can now project published content-hub bundles into public Angular SEO indexes (`runtime.contentHubs.publicArticles` and `publicTaxonomy`) so public blog routes, sitemap, feeds, and search JSON can see published BFF content. Product readiness still requires a live per-draft smoke that proves the authenticated create/publish path reaches the runtime-read API and public SSR surface without exposing cookies, CSRF values, buckets, or server-only policy.
+
 ## Purpose
 
 A protected feature is any draft-scoped capability that reads or mutates non-public customer data after authentication. Examples include client blogs, dashboards, analytics, private uploads, and draft configuration panels.
@@ -213,6 +238,7 @@ Use groups from the server-only auth profile as the bridge to feature roles:
 - `roles[].id` is feature-local and should describe product capability, not Cognito implementation.
 - `roles[].groups` must be a subset of the profile `allowedGroups` or narrower admin policy.
 - `roles[].permissions` should be action-scoped strings such as `blog:post:read`, `analytics:report:read`, or `settings:draft:write`.
+- Product features should reject wildcard permissions. For content hub, the local harness requires the roles `hub-admin`, `blog-admin`, `blog-editor`, `blog-publisher`, `blog-reviewer`, `blog-moderator`, `blog-media-manager`, and `blog-analyst`, each mapped to auth-profile groups and explicit action-scoped permissions.
 - Admin pages must re-check fresh server-side account state before every mutation, not only session snapshot groups.
 - Pending, suspended, rejected, expired, and environment-mismatched users must fail closed.
 
