@@ -80,6 +80,28 @@ describe('GenericMedia', () => {
     expect(image?.getAttribute('sizes')).toBe('(max-width: 768px) 100vw, 50vw');
   });
 
+  it('applies dynamic styles to rendered media elements', () => {
+    fixture.componentRef.setInput('config', {
+      id: 'responsive-hero',
+      tag: 'image',
+      src: '/assets/hero.webp',
+      alt: 'Responsive hero',
+      styles: () => ({
+        width: '100%',
+        maxWidth: '920px',
+        height: 'auto',
+      }),
+    });
+
+    fixture.detectChanges();
+
+    const image: HTMLImageElement | null = fixture.nativeElement.querySelector('img');
+
+    expect(image?.style.width).toBe('100%');
+    expect(image?.style.maxWidth).toBe('920px');
+    expect(image?.style.height).toBe('auto');
+  });
+
   it('lazy loads non-priority images by default', () => {
     fixture.componentRef.setInput('config', {
       id: 'gallery-image',
