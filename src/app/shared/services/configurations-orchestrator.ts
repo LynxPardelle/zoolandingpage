@@ -230,7 +230,16 @@ export class ConfigurationsOrchestratorService {
     readonly componentsRevision = computed(() => this.externalComponentsRevision());
 
     private parseComponentsPayload(payload: TComponentsPayload | null): readonly TGenericComponent[] {
-        const entries = Array.isArray(payload?.components) ? payload.components : [];
+        const rawComponents = payload?.components as unknown;
+        const entries = Array.isArray(rawComponents)
+            ? rawComponents
+            : rawComponents && typeof rawComponents === 'object'
+                ? Object.entries(rawComponents)
+                    .map(([id, component]) => component && typeof component === 'object'
+                        ? { id, ...(component as Record<string, unknown>) }
+                        : null)
+                    .filter((component): component is { id: string } & Record<string, unknown> => !!component)
+                : [];
         return entries
             .map((entry) => {
                 if (!entry || typeof entry !== 'object') return null;
