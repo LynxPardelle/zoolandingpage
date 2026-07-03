@@ -1894,6 +1894,7 @@ describe('config-payload.validators', () => {
                     validationChecklistClasses: 'checklist',
                     validation: [
                         { type: 'email' },
+                        { type: 'json', message: 'Must be valid JSON.' },
                         { type: 'matchesField', fieldId: 'confirmEmail', message: 'Emails must match.' },
                     ],
                 },
