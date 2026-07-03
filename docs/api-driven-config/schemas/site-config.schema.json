@@ -568,6 +568,9 @@
       "properties": {
         "reactions": { "$ref": "#/definitions/contentHubPublicInteractionPolicy" },
         "ctas": { "$ref": "#/definitions/contentHubPublicInteractionPolicy" },
+        "shares": { "$ref": "#/definitions/contentHubPublicInteractionPolicy" },
+        "readProgress": { "$ref": "#/definitions/contentHubPublicInteractionPolicy" },
+        "assetDownloads": { "$ref": "#/definitions/contentHubPublicInteractionPolicy" },
         "forms": { "$ref": "#/definitions/contentHubPublicInteractionPolicy" }
       },
       "additionalProperties": false

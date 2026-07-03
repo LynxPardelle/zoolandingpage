@@ -82,6 +82,18 @@ set:config.classes,when,"all:hostGt,runtimeState.viewport.scrollY,16","ank-bg-HA
 
 - Purpose: string casing.
 
+### `formatDate`
+
+- Purpose: format an ISO date string using the active runtime language.
+- Argument shape: `(dateValue, fallback, dateStyle)`.
+- `dateStyle` supports `full`, `long`, `medium`, and `short`; default is `long`.
+- Typical usage:
+
+```text
+set:config.publishedAt,varOr,contentHub.currentArticle.publishedAt,"";
+set:config.text,formatDate,eval:config.publishedAt,Published recently,long
+```
+
 ### `language`
 
 - Purpose: return the current language code.

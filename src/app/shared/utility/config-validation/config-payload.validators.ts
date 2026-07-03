@@ -1274,10 +1274,9 @@ const isContentHubPublicInteractionPolicy = (value: unknown): boolean => {
 const isContentHubPublicInteractionPolicies = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
     if (!hasNoForbiddenRuntimeKeysDeep(value)) return false;
-    if (!hasOnlyKnownKeys(value, new Set(['reactions', 'ctas', 'forms']))) return false;
-    if (value['reactions'] !== undefined && !isContentHubPublicInteractionPolicy(value['reactions'])) return false;
-    if (value['ctas'] !== undefined && !isContentHubPublicInteractionPolicy(value['ctas'])) return false;
-    if (value['forms'] !== undefined && !isContentHubPublicInteractionPolicy(value['forms'])) return false;
+    const policyKeys = ['reactions', 'ctas', 'shares', 'readProgress', 'assetDownloads', 'forms'];
+    if (!hasOnlyKnownKeys(value, new Set(policyKeys))) return false;
+    if (!policyKeys.every((key) => value[key] === undefined || isContentHubPublicInteractionPolicy(value[key]))) return false;
     return true;
 };
 
