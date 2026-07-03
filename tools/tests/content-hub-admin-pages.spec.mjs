@@ -534,6 +534,36 @@ describe('Zoosite blog admin draft pages', () => {
     }
   });
 
+  it('keeps public blog index i18n dictionaries nested for dotted value instructions', async () => {
+    const components = flattenComponents(await readJson('blog/components.json'));
+    const i18nKeys = components
+      .flatMap((component) => instructionCommands(component.valueInstructions))
+      .filter((command) => String(command.args[1] ?? '').trim() === 'i18n')
+      .map((command) => String(command.args[2] ?? '').trim())
+      .filter(Boolean);
+
+    assert.ok(i18nKeys.length > 0, 'blog/components.json must use i18n value instructions for public index copy');
+
+    for (const language of ['es', 'en']) {
+      const translations = await readJson(`blog/i18n/${language}.json`);
+      for (const key of i18nKeys) {
+        assert.equal(
+          Object.prototype.hasOwnProperty.call(translations.dictionary, key),
+          false,
+          `blog/i18n/${language}.json must not use flat key "${key}"; use nested dictionaries`,
+        );
+
+        const resolved = key
+          .split('.')
+          .reduce((current, part) => (
+            current && typeof current === 'object' ? current[part] : undefined
+          ), translations.dictionary);
+        assert.equal(typeof resolved, 'string', `blog/i18n/${language}.json must resolve ${key} as nested string`);
+        assert.ok(resolved.trim().length > 0, `blog/i18n/${language}.json must not leave ${key} empty`);
+      }
+    }
+  });
+
   it('implements the article index controls required by phase 6', async () => {
     const payload = await readJson('admin-blog-articulos/components.json');
     const components = flattenComponents(payload);
