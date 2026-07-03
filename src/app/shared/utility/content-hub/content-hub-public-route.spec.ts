@@ -17,6 +17,11 @@ describe('content hub public route helpers', () => {
                     articleId: 'art_public',
                     status: 'published',
                     path: '/blog/web/guia-seo',
+                    localizations: {
+                        en: {
+                            path: '/blog/web/seo-guide',
+                        },
+                    },
                     categorySlug: 'web',
                     tags: ['seo'],
                 },
@@ -24,6 +29,11 @@ describe('content hub public route helpers', () => {
                     articleId: 'art_draft',
                     status: 'draft',
                     path: '/blog/web/borrador',
+                    localizations: {
+                        en: {
+                            path: '/blog/web/draft',
+                        },
+                    },
                     categorySlug: 'web',
                     tags: ['draft'],
                 },
@@ -32,6 +42,11 @@ describe('content hub public route helpers', () => {
                     status: 'published',
                     visibility: 'private',
                     path: '/blog/web/privado',
+                    localizations: {
+                        en: {
+                            path: '/blog/web/private',
+                        },
+                    },
                     categorySlug: 'web',
                     tags: ['private'],
                 },
@@ -62,6 +77,17 @@ describe('content hub public route helpers', () => {
         expect(findPublishedContentHubArticleForPath(hubs, '/blog/web/guia-seo')?.articleId).toBe('art_public');
         expect(findPublishedContentHubArticleForPath(hubs, '/blog/web/borrador')).toBeNull();
         expect(findPublishedContentHubArticleForPath(hubs, '/blog/web/privado')).toBeNull();
+    });
+
+    it('finds published articles by localized paths only when the base article is public', () => {
+        expect(findPublishedContentHubArticleForPath(hubs, '/blog/web/seo-guide')?.articleId).toBe('art_public');
+        expect(isMissingPublishedContentHubArticlePath(hubs, '/blog/web/seo-guide')).toBeFalse();
+        expect(isMissingPublishedContentHubPublicPath(hubs, '/blog/web/seo-guide')).toBeFalse();
+
+        expect(findPublishedContentHubArticleForPath(hubs, '/blog/web/draft')).toBeNull();
+        expect(findPublishedContentHubArticleForPath(hubs, '/blog/web/private')).toBeNull();
+        expect(isMissingPublishedContentHubArticlePath(hubs, '/blog/web/draft')).toBeTrue();
+        expect(isMissingPublishedContentHubArticlePath(hubs, '/blog/web/private')).toBeTrue();
     });
 
     it('supports runtime public article collections with items', () => {

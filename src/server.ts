@@ -295,6 +295,7 @@ type TContentHubPublicArticle = {
   readonly authorLabel?: string;
   readonly canonicalPath?: string;
   readonly robots?: string;
+  readonly localizations?: Record<string, Partial<TContentHubPublicArticle>>;
 };
 
 type TContentHubPublicTaxonomy = {
@@ -1948,8 +1949,33 @@ function readPublicContentHubArticles(
   return readContentHubRuntimeConfigs(siteConfig)
     .flatMap((hub) => readContentHubPublicCollection(hub.publicArticles))
     .filter((article) => article.status === 'published' && (!article.visibility || article.visibility === 'public'))
-    .filter((article) => !normalizedLang || normalizeLanguageCode(article.locale) === normalizedLang)
+    .map((article) => localizeContentHubArticle(article, normalizedLang))
+    .filter((article): article is TContentHubPublicArticle => article !== null)
     .filter((article) => normalizeRoutePath(article.path));
+}
+
+function localizeContentHubArticle(
+  article: TContentHubPublicArticle,
+  normalizedLang?: string,
+): TContentHubPublicArticle | null {
+  if (!normalizedLang || normalizeLanguageCode(article.locale) === normalizedLang) {
+    return article;
+  }
+
+  const localization = article.localizations?.[normalizedLang];
+  if (!isRecord(localization)) {
+    return null;
+  }
+
+  return {
+    ...article,
+    ...localization,
+    locale: normalizedLang,
+    status: article.status,
+    visibility: article.visibility,
+    articleId: article.articleId,
+    localizations: article.localizations,
+  };
 }
 
 function readPublicContentHubTaxonomy(

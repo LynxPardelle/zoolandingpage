@@ -503,6 +503,16 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
         updatedAt: '2026-06-28T12:30:00.000Z',
         canonicalPath: '/blog/web/runtime-dynamic-seo',
         robots: 'index,follow',
+        localizations: {
+          en: {
+            title: 'Runtime Dynamic SEO Article EN',
+            summary: 'Localized runtime article from content hub public metadata.',
+            path: '/blog/web/runtime-dynamic-seo-en',
+            canonicalPath: '/blog/web/runtime-dynamic-seo-en',
+            categorySlug: 'web',
+            tags: ['runtime', 'seo'],
+          },
+        },
       },
       {
         articleId: 'art_runtime_only_english_fixture',
@@ -672,23 +682,32 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.match(sitemap, /https:\/\/zoositioweb\.com\.mx\/blog\/web\/blog-builder-seo<\/loc>/);
   assert.match(sitemap, /https:\/\/zoositioweb\.com\.mx\/blog\/web\/runtime-dynamic-seo<\/loc>/);
   assert.doesNotMatch(sitemap, /runtime-english-seo/);
+  assert.doesNotMatch(sitemap, /runtime-dynamic-seo-en/);
   assert.doesNotMatch(sitemap, /\/blog\/web-en/);
   assert.doesNotMatch(sitemap, /privado-no-publicable/);
   assert.doesNotMatch(sitemap, /\/admin\/blog/);
   assertNoContentHubOperationalLeak(sitemap);
 
+  const englishSitemapResponse = await fetch(`http://127.0.0.1:${port}/sitemap.xml?lang=en`, { headers });
+  const englishSitemap = await englishSitemapResponse.text();
+  assert.equal(englishSitemapResponse.status, 200);
+  assert.match(englishSitemap, /https:\/\/zoositioweb\.com\.mx\/blog\/web\/runtime-dynamic-seo-en<\/loc>/);
+  assert.doesNotMatch(englishSitemap, /https:\/\/zoositioweb\.com\.mx\/blog\/web\/runtime-dynamic-seo<\/loc>/);
+  assertNoContentHubOperationalLeak(englishSitemap);
+
   const feedResponse = await fetch(`http://127.0.0.1:${port}/feed.xml?lang=es`, { headers });
   const feed = await feedResponse.text();
   assert.equal(feedResponse.status, 200);
   assert.match(feedResponse.headers.get('content-type') ?? '', /application\/rss\+xml/);
-  assert.match(feed, /Cómo crear blogs visuales con Zoolandingpage/);
+  assert.match(feed, /Bienvenido al blog de Zoosite/);
+  assert.match(feed, /Cómo crear artículos visuales con Zoosite/);
   assert.match(feed, /Runtime Dynamic SEO Article/);
   assert.match(feed, /https:\/\/zoositioweb\.com\.mx\/blog\/web\/blog-builder-seo/);
   assert.match(feed, /https:\/\/zoositioweb\.com\.mx\/blog\/web\/runtime-dynamic-seo/);
   assert.doesNotMatch(feed, /Privado no publicable/);
   assertNoContentHubOperationalLeak(feed);
 
-  const searchResponse = await fetch(`http://127.0.0.1:${port}/content-hub-search.json?lang=es&tag=seo&q=blogs`, { headers });
+  const searchResponse = await fetch(`http://127.0.0.1:${port}/content-hub-search.json?lang=es&tag=seo&q=visuales`, { headers });
   const search = await searchResponse.json();
   assert.equal(searchResponse.status, 200);
   assert.equal(search.ok, true);
@@ -703,7 +722,7 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.equal(aliasFilterSearch.ok, true);
   assert.equal(aliasFilterSearch.count, 2);
   assert.equal(aliasFilterSearch.articles[0].categorySlug, 'web');
-  assert.deepEqual(aliasFilterSearch.articles[0].tags, ['seo', 'builder', 'angora']);
+  assert.deepEqual(aliasFilterSearch.articles[0].tags, ['seo', 'blog-builder', 'guias', 'componentes']);
   assert.equal(aliasFilterSearch.articles.some((article) => article.path === '/blog/web/runtime-dynamic-seo'), true);
   assertNoContentHubOperationalLeak(JSON.stringify(aliasFilterSearch));
 
@@ -751,10 +770,10 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.match(articleHtml, /"@type":"BlogPosting"/);
   assert.equal((articleHtml.match(/"@type":"BlogPosting"/g) ?? []).length, 1);
   assert.match(articleHtml, /"articleSection":"web"/);
-  assert.match(articleHtml, /"keywords":"seo, builder, angora"/);
+  assert.match(articleHtml, /"keywords":"seo, blog-builder, guias, componentes"/);
   assert.match(articleHtml, /"publisher":\{[^}]*"name":"zoositioweb"[^}]*\}/);
   assert.match(articleHtml, /"image":"https:\/\/assets\.zoolandingpage\.com\.mx\/zoolandingpage\.com\.mx\/shared\/seo-images\/zoolandingpage-zoositioweb-default-logo-card\.jpg"/);
-  assert.match(articleHtml, /Cómo crear blogs visuales con Zoolandingpage/);
+  assert.match(articleHtml, /Cómo crear artículos visuales con Zoosite/);
   assert.doesNotMatch(stripNonVisibleHtml(articleHtml), /Página no encontrada|Esta ruta no nos llevó/i);
   assertNoContentHubOperationalLeak(extractJsonLd(articleHtml));
 
@@ -769,6 +788,16 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.doesNotMatch(stripNonVisibleHtml(runtimeArticleHtml), /Página no encontrada|Esta ruta no nos llevó/i);
   assertNoContentHubOperationalLeak(extractJsonLd(runtimeArticleHtml));
 
+  const localizedRuntimeArticleResponse = await fetch(`http://127.0.0.1:${port}/blog/web/runtime-dynamic-seo-en?lang=en`, { headers });
+  const localizedRuntimeArticleHtml = await localizedRuntimeArticleResponse.text();
+  assert.equal(localizedRuntimeArticleResponse.status, 200);
+  assert.match(localizedRuntimeArticleHtml, /<link rel="canonical" href="https:\/\/zoositioweb\.com\.mx\/blog\/web\/runtime-dynamic-seo-en">/);
+  assert.match(localizedRuntimeArticleHtml, /"@type":"BlogPosting"/);
+  assert.match(localizedRuntimeArticleHtml, /Runtime Dynamic SEO Article EN/);
+  assert.match(localizedRuntimeArticleHtml, /"keywords":"runtime, seo"/);
+  assert.doesNotMatch(stripNonVisibleHtml(localizedRuntimeArticleHtml), /Página no encontrada|Esta ruta no nos llevó/i);
+  assertNoContentHubOperationalLeak(extractJsonLd(localizedRuntimeArticleHtml));
+
   const categoryResponse = await fetch(`http://127.0.0.1:${port}/blog/marketing?lang=es`, { headers });
   const categoryHtml = await categoryResponse.text();
   assert.equal(categoryResponse.status, 200);
@@ -778,13 +807,13 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   const missingCategoryResponse = await fetch(`http://127.0.0.1:${port}/blog/bienvenido-al-blog-de-zoosite?lang=es`, { headers });
   const missingCategoryHtml = await missingCategoryResponse.text();
   assert.equal(missingCategoryResponse.status, 404);
-  assert.doesNotMatch(stripNonVisibleHtml(missingCategoryHtml), /Cómo crear blogs visuales con Zoolandingpage|Runtime Dynamic SEO Article/);
+  assert.doesNotMatch(stripNonVisibleHtml(missingCategoryHtml), /Cómo crear artículos visuales con Zoosite|Runtime Dynamic SEO Article/);
   assert.match(stripNonVisibleHtml(missingCategoryHtml), /Página no encontrada/);
 
   const missingTagResponse = await fetch(`http://127.0.0.1:${port}/blog/tag/no-existe?lang=es`, { headers });
   const missingTagHtml = await missingTagResponse.text();
   assert.equal(missingTagResponse.status, 404);
-  assert.doesNotMatch(stripNonVisibleHtml(missingTagHtml), /Cómo crear blogs visuales con Zoolandingpage|Runtime Dynamic SEO Article/);
+  assert.doesNotMatch(stripNonVisibleHtml(missingTagHtml), /Cómo crear artículos visuales con Zoosite|Runtime Dynamic SEO Article/);
   assert.match(stripNonVisibleHtml(missingTagHtml), /Página no encontrada/);
 
   const privateArticleResponse = await fetch(`http://127.0.0.1:${port}/blog/web/privado-no-publicable?lang=es`, { headers });
@@ -798,7 +827,7 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   const missingArticleVisibleHtml = stripNonVisibleHtml(missingArticleHtml);
   assert.equal(missingArticleResponse.status, 404);
   assert.doesNotMatch(missingArticleHtml, /"@type":"BlogPosting"/);
-  assert.doesNotMatch(missingArticleVisibleHtml, /Cómo crear blogs visuales con Zoolandingpage/);
+  assert.doesNotMatch(missingArticleVisibleHtml, /Cómo crear artículos visuales con Zoosite/);
   assert.match(missingArticleVisibleHtml, /Página no encontrada/);
   assertNoContentHubOperationalLeak(extractJsonLd(missingArticleHtml));
   assert.equal(getStderr(), '');
