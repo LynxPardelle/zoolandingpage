@@ -8,7 +8,13 @@ import compression from 'compression';
 import express from 'express';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { isMissingPublishedContentHubPublicPath, matchContentHubArticleRoute } from '@/app/shared/utility/content-hub/content-hub-public-route';
+import {
+  findPublishedContentHubArticleForPath,
+  hasPublishedContentHubPublicPath,
+  isContentHubPublicPath,
+  isMissingPublishedContentHubPublicPath,
+  matchContentHubArticleRoute,
+} from '@/app/shared/utility/content-hub/content-hub-public-route';
 import { matchDraftRoute, normalizeDraftRoutePath } from '@/app/shared/utility/route-matching/draft-route-matching';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
@@ -1346,10 +1352,6 @@ async function loadRuntimeRouteSiteConfigForRequest(
   environment?: string,
 ): Promise<TLocalSiteConfig | null> {
   const normalizedPath = normalizeRoutePath(req.path);
-  if (!matchContentHubArticleRoute(siteConfig?.runtime?.contentHubs, normalizedPath)) {
-    return null;
-  }
-
   const host = resolveRequestHost(req);
   const baseUrls = resolveRuntimeBundleBaseUrls(environment);
   const lang = resolveRequestLanguage(req, siteConfig);
@@ -1386,7 +1388,7 @@ async function loadRuntimePageConfig(domain: string, path: string, environment?:
   return null;
 }
 
-async function loadRuntimeRouteStatus(domain: string, path: string, environment?: string): Promise<200 | 404 | null> {
+async function loadRuntimeRouteStatus(domain: string, path: string, environment?: string, lang?: string): Promise<200 | 404 | null> {
   const normalizedDomain = normalizeHost(domain);
   const baseUrls = resolveRuntimeBundleBaseUrls(environment);
   if (!normalizedDomain || baseUrls.length === 0) {
@@ -1395,7 +1397,7 @@ async function loadRuntimeRouteStatus(domain: string, path: string, environment?
 
   const normalizedPath = normalizeRoutePath(path);
   for (const baseUrl of baseUrls) {
-    const payload = await fetchRuntimeBundlePayload(baseUrl, normalizedDomain, normalizedPath, environment);
+    const payload = await fetchRuntimeBundlePayload(baseUrl, normalizedDomain, normalizedPath, environment, lang);
     if (!payload) {
       continue;
     }
@@ -2503,9 +2505,23 @@ function buildStructuredDataHeadHtml(pageConfig: TLocalPageConfig | null): strin
 }
 
 function resolveRequestLanguage(req: express.Request, siteConfig: TLocalSiteConfig | null): string {
+  const rawUrl = String(req.originalUrl ?? req.url ?? '').trim();
+  if (rawUrl) {
+    try {
+      const urlLang = new URL(rawUrl, 'http://localhost').searchParams.get('lang');
+      const normalizedUrlLang = normalizeLanguageCode(urlLang);
+      if (normalizedUrlLang) {
+        return normalizedUrlLang;
+      }
+    } catch {
+      // Fall back to Express query parsing below.
+    }
+  }
+
   const queryLang = firstQueryParam(req.query['lang']);
-  if (queryLang) {
-    return queryLang;
+  const normalizedQueryLang = normalizeLanguageCode(queryLang);
+  if (normalizedQueryLang) {
+    return normalizedQueryLang;
   }
 
   return normalizeLanguageCode(siteConfig?.site?.i18n?.defaultLanguage) || 'es';
@@ -2955,11 +2971,25 @@ async function decorateHtmlResponse(req: express.Request, response: Response): P
   const siteConfig = await loadSiteConfigForHost(lookupDomain, environment);
   const requestLang = resolveRequestLanguage(req, siteConfig);
   const publicContentHubSiteConfig = await loadPublicContentHubSiteConfigForHost(lookupDomain, environment, requestLang);
-  const routeContentHubSiteConfig = response.status === 404
-    ? null
-    : await loadRuntimeRouteSiteConfigForRequest(req, lookupDomain, siteConfig, environment);
+  const shouldLoadRouteContentHubSiteConfig = response.status === 404
+    || !!matchContentHubArticleRoute(siteConfig?.runtime?.contentHubs, req.path);
+  const routeContentHubSiteConfig = shouldLoadRouteContentHubSiteConfig
+    ? await loadRuntimeRouteSiteConfigForRequest(req, lookupDomain, siteConfig, environment)
+    : null;
+  const contentHubStatusSiteConfigs = [routeContentHubSiteConfig, publicContentHubSiteConfig, siteConfig];
+  const hasPublishedRouteContentHubArticle = contentHubStatusSiteConfigs
+    .some((candidate) => !!findPublishedContentHubArticleForPath(candidate?.runtime?.contentHubs, req.path));
+  const hasPublishedRouteContentHubPublicPath = contentHubStatusSiteConfigs
+    .some((candidate) => hasPublishedContentHubPublicPath(candidate?.runtime?.contentHubs, req.path));
+  const isKnownMissingRouteContentHubPublicPath = !hasPublishedRouteContentHubPublicPath
+    && contentHubStatusSiteConfigs.some((candidate) => isContentHubPublicPath(candidate?.runtime?.contentHubs, req.path));
+  const effectiveStatus = hasPublishedRouteContentHubArticle
+    ? 200
+    : isKnownMissingRouteContentHubPublicPath
+      ? 404
+      : response.status;
   const requestPageConfig = await loadPageConfigForRequest(req, lookupDomain, siteConfig);
-  const pageConfig = response.status === 404
+  const pageConfig = effectiveStatus === 404
     ? requestPageConfig
     : withContentHubSeoPageConfig(req, lookupDomain, [
       routeContentHubSiteConfig,
@@ -2993,8 +3023,8 @@ async function decorateHtmlResponse(req: express.Request, response: Response): P
 
   return new Response(decoratedHtml, {
     headers,
-    status: response.status,
-    statusText: response.statusText,
+    status: effectiveStatus,
+    statusText: effectiveStatus === 200 ? 'OK' : response.statusText,
   });
 }
 
@@ -3004,6 +3034,7 @@ async function shouldServeNotFoundDocument(req: express.Request): Promise<boolea
   const normalizedPath = normalizeRoutePath(req.path);
   const environment = resolveRuntimeEnvironment(host);
   const siteConfig = await loadSiteConfigForHost(lookupDomain, environment);
+  const requestLang = resolveRequestLanguage(req, siteConfig);
 
   if (!siteConfig) {
     return (!isLocalHost(host) || lookupDomain !== host) && normalizedPath !== '/';
@@ -3013,7 +3044,7 @@ async function shouldServeNotFoundDocument(req: express.Request): Promise<boolea
   if (route) {
     if (route.auth?.required !== true && isMissingPublishedContentHubPublicPath(siteConfig.runtime?.contentHubs, normalizedPath)) {
       const runtimeStatusDomain = resolveRuntimeStatusLookupDomain(req, host, lookupDomain, siteConfig);
-      const runtimeRouteStatus = await loadRuntimeRouteStatus(runtimeStatusDomain || lookupDomain, normalizedPath, environment);
+      const runtimeRouteStatus = await loadRuntimeRouteStatus(runtimeStatusDomain || lookupDomain, normalizedPath, environment, requestLang);
       if (runtimeRouteStatus === 200) {
         return false;
       }
@@ -3028,7 +3059,7 @@ async function shouldServeNotFoundDocument(req: express.Request): Promise<boolea
   }
 
   const runtimeStatusDomain = resolveRuntimeStatusLookupDomain(req, host, lookupDomain, siteConfig);
-  const runtimeRouteStatus = await loadRuntimeRouteStatus(runtimeStatusDomain || lookupDomain, normalizedPath, environment);
+  const runtimeRouteStatus = await loadRuntimeRouteStatus(runtimeStatusDomain || lookupDomain, normalizedPath, environment, requestLang);
   if (runtimeRouteStatus === 200) {
     return false;
   }
@@ -3296,6 +3327,11 @@ app.use((req, res, next) => {
         return decorateHtmlResponse(req, response)
           .then((decoratedResponse) => {
             if (!notFoundDocument) {
+              writeResponseToNodeResponse(decoratedResponse, res);
+              return;
+            }
+
+            if (decoratedResponse.status === 200) {
               writeResponseToNodeResponse(decoratedResponse, res);
               return;
             }
