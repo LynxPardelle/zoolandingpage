@@ -65,8 +65,11 @@ export class GenericCardComponent {
     String(resolveDynamicValue(this._config().buttonClasses) ?? '').trim()
   );
 
+  readonly rawIcon = computed(
+    () => String(resolveDynamicValue(this._config().icon) ?? '').trim()
+  );
   readonly icon = computed(
-    () => resolveDynamicValue(this._config().icon) ?? ''
+    () => this.imageSrc() ? '' : this.rawIcon()
   );
   readonly title = computed(() =>
     String(resolveDynamicValue(this._config().title) ?? '')

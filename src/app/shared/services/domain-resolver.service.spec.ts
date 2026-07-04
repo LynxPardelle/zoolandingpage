@@ -148,6 +148,61 @@ describe('DomainResolverService', () => {
     });
   });
 
+  it('uses a forwarded draft host when Angular SSR sees the platform front door URL', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        DomainResolverService,
+        { provide: PLATFORM_ID, useValue: 'server' },
+        {
+          provide: REQUEST,
+          useValue: {
+            url: 'https://zoolandingpage.com.mx/blog',
+            headers: {
+              host: 'zoolandingpage.com.mx',
+              'x-forwarded-host': 'zoositioweb.com.mx',
+              'x-forwarded-proto': 'https',
+            },
+          },
+        },
+      ],
+    });
+
+    const service = TestBed.inject(DomainResolverService);
+
+    expect(service.resolveDomain()).toEqual({
+      domain: 'zoositioweb.com.mx',
+      source: 'urlHost',
+    });
+  });
+
+  it('uses the server-resolved effective host when Angular SSR receives a front door URL', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        DomainResolverService,
+        { provide: PLATFORM_ID, useValue: 'server' },
+        {
+          provide: REQUEST,
+          useValue: {
+            url: 'https://zoolandingpage.com.mx/blog',
+            headers: {
+              host: 'zoolandingpage.com.mx',
+              'x-forwarded-host': 'zoolandingpage.com.mx',
+              'x-forwarded-proto': 'https',
+              'x-zlp-effective-host': 'zoositioweb.com.mx',
+            },
+          },
+        },
+      ],
+    });
+
+    const service = TestBed.inject(DomainResolverService);
+
+    expect(service.resolveDomain()).toEqual({
+      domain: 'zoositioweb.com.mx',
+      source: 'urlHost',
+    });
+  });
+
   it('normalizes absolute local SSR URLs to the forwarded branded host', () => {
     TestBed.configureTestingModule({
       providers: [

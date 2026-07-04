@@ -68,6 +68,7 @@ export class RuntimeService {
     private showDebugWorkspaceResolver: (() => boolean) | null = null;
     private renderedClassesRoot: HTMLElement | null = null;
     private hasCompletedInitialBootstrap = false;
+    private hasRequestedInitialBootstrap = false;
     private initialPageViewTracked = false;
     private postBootstrapBrowserWorkId = 0;
     private renderedCssUpdateId = 0;
@@ -107,8 +108,13 @@ export class RuntimeService {
         options.destroyRef.onDestroy(() => this.disconnect());
 
         if (!this.hasCompletedInitialBootstrap) {
+            if (this.hasRequestedInitialBootstrap) {
+                return;
+            }
+
             void this.initialize(options.currentLanguage())
                 .catch((error) => {
+                    this.hasRequestedInitialBootstrap = false;
                     console.error('[Runtime] Initial page bootstrap failed.', error);
                 });
             return;
@@ -153,6 +159,10 @@ export class RuntimeService {
     }
 
     async initialize(lang?: string): Promise<void> {
+        if (!this.hasCompletedInitialBootstrap) {
+            this.hasRequestedInitialBootstrap = true;
+        }
+
         const nextLanguage = lang ?? this.lastInitializeLanguage;
         if (lang !== undefined) {
             this.lastInitializeLanguage = lang;

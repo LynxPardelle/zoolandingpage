@@ -220,7 +220,20 @@ export class GenericSearchBoxComponent implements OnDestroy {
   private asString(value: unknown, fallback = ''): string {
     const resolved = resolveDynamicValue(value as never);
     const normalized = String(resolved ?? '').trim();
+    if (this.looksLikeSerializedFunction(normalized)) {
+      return fallback;
+    }
     return normalized || fallback;
+  }
+
+  private looksLikeSerializedFunction(value: string): boolean {
+    if (!value) {
+      return false;
+    }
+
+    return /^(?:async\s*)?(?:function\b|\(?[\w\s,]*\)?\s*=>)/.test(value)
+      || value.includes('=>')
+      || value.includes('this.');
   }
 
   ngOnDestroy(): void {

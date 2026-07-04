@@ -86,6 +86,10 @@ const STATIC_ALLOWED_HOST_PATTERNS = [
   'lynxpardelle.com',
   '*.lynxpardelle.com',
 ];
+const PLATFORM_FRONT_DOOR_HOSTS = new Set([
+  'zoolandingpage.com.mx',
+  'test.zoolandingpage.com.mx',
+]);
 
 type TRuntimeEnvironment = 'local' | 'test' | 'production';
 
@@ -1596,6 +1600,10 @@ function readFirstHeaderHost(value: unknown): string {
     .trim();
 }
 
+function isPlatformFrontDoorHost(host: string): boolean {
+  return PLATFORM_FRONT_DOOR_HOSTS.has(normalizeHost(host));
+}
+
 function resolveRequestHost(req: express.Request): string {
   const directHost = normalizeHost(readFirstHeaderHost(req.headers.host));
   const forwardedHost = String(req.headers['x-forwarded-host'] ?? '')
@@ -1604,10 +1612,102 @@ function resolveRequestHost(req: express.Request): string {
   const normalizedForwardedHost = normalizeHost(forwardedHost);
 
   if (directHost && normalizedForwardedHost && directHost !== normalizedForwardedHost && !isLocalHost(directHost)) {
+    if (isPlatformFrontDoorHost(directHost) && !isPlatformFrontDoorHost(normalizedForwardedHost)) {
+      return normalizedForwardedHost;
+    }
+
     return directHost;
   }
 
   return normalizedForwardedHost || directHost;
+}
+
+function resolveAngularSsrHostOverride(req: express.Request): string | null {
+  const directHost = normalizeHost(readFirstHeaderHost(req.headers.host));
+  const forwardedHost = String(req.headers['x-forwarded-host'] ?? '')
+    .split(',')[0]
+    .trim();
+  const normalizedForwardedHost = normalizeHost(forwardedHost);
+
+  if (
+    directHost
+    && normalizedForwardedHost
+    && directHost !== normalizedForwardedHost
+    && isPlatformFrontDoorHost(directHost)
+    && !isPlatformFrontDoorHost(normalizedForwardedHost)
+  ) {
+    return forwardedHost;
+  }
+
+  return null;
+}
+
+function appendAngularSsrHeader(headers: Headers, name: string, value: unknown): void {
+  if (!name || name.startsWith(':') || value === undefined) {
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      if (entry !== undefined) {
+        headers.append(name, String(entry));
+      }
+    }
+    return;
+  }
+
+  headers.set(name, String(value));
+}
+
+function createAngularSsrRequest(req: express.Request): Request | express.Request {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    return req;
+  }
+
+  const effectiveHost = resolveRequestHost(req);
+  if (!effectiveHost) {
+    return req;
+  }
+
+  const protocol = readFirstHeaderHost(req.headers['x-forwarded-proto']) || req.protocol || 'https';
+  const baseUrl = protocol + '://' + effectiveHost;
+  const rawUrl = String(req.originalUrl || req.url || '/');
+  let requestUrl: URL;
+
+  try {
+    requestUrl = new URL(rawUrl, baseUrl);
+  } catch {
+    requestUrl = new URL('/', baseUrl);
+  }
+
+  const parsedHost = normalizeHost(requestUrl.hostname);
+  if (
+    parsedHost
+    && parsedHost !== normalizeHost(effectiveHost)
+    && (
+      isLocalHost(parsedHost)
+      || (isPlatformFrontDoorHost(parsedHost) && !isPlatformFrontDoorHost(effectiveHost))
+    )
+  ) {
+    requestUrl = new URL(requestUrl.pathname + requestUrl.search + requestUrl.hash, baseUrl);
+  }
+
+  const headers = new Headers();
+  for (const [name, value] of Object.entries(req.headers)) {
+    appendAngularSsrHeader(headers, name, value);
+  }
+
+  headers.set('host', effectiveHost);
+  headers.set('x-forwarded-host', effectiveHost);
+  headers.set('x-zlp-effective-host', effectiveHost);
+  if (!headers.get('x-forwarded-proto')) {
+    headers.set('x-forwarded-proto', protocol);
+  }
+
+  return new Request(requestUrl, {
+    headers,
+    method: req.method,
+  });
 }
 
 function resolveLocalRequestAuthority(req: express.Request, host: string): string {
@@ -3563,8 +3663,18 @@ app.use(
  */
 app.use((req, res, next) => {
   const angularApp = getAngularAppEngine(resolveRequestAllowedHosts(res));
+  const originalHostHeader = req.headers.host;
+  const originalEffectiveHostHeader = req.headers['x-zlp-effective-host'];
+  const angularSsrEffectiveHost = resolveRequestHost(req);
+  const angularSsrHostOverride = resolveAngularSsrHostOverride(req);
+  req.headers['x-zlp-effective-host'] = angularSsrEffectiveHost;
+  if (angularSsrHostOverride) {
+    req.headers.host = angularSsrHostOverride;
+  }
+  const angularSsrRequest = createAngularSsrRequest(req);
+
   shouldServeNotFoundDocument(req)
-    .then((notFoundDocument) => angularApp.handle(req)
+    .then((notFoundDocument) => angularApp.handle(angularSsrRequest)
       .then((response) => {
         if (!response) {
           next();
@@ -3590,7 +3700,15 @@ app.use((req, res, next) => {
             }), res);
           });
       }))
-    .catch(next);
+    .catch(next)
+    .finally(() => {
+      req.headers.host = originalHostHeader;
+      if (originalEffectiveHostHeader === undefined) {
+        delete req.headers['x-zlp-effective-host'];
+      } else {
+        req.headers['x-zlp-effective-host'] = originalEffectiveHostHeader;
+      }
+    });
 });
 
 /**

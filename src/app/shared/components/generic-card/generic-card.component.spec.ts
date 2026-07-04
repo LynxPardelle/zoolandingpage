@@ -76,6 +76,23 @@ describe('GenericCardComponent', () => {
         expect(fixture.nativeElement.querySelector('.empty-icon-shell')).toBeNull();
     });
 
+    it('prefers the feature image over a decorative icon when both are configured', () => {
+        fixture.componentInstance.config = {
+            variant: 'feature',
+            title: 'Artículo con portada',
+            description: 'La portada debe ocupar el primer bloque visual.',
+            imageSrc: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3',
+            imageAlt: 'Portada editorial',
+            icon: 'book-open',
+            featureIconContainerClasses: 'icon-shell',
+        } as never;
+
+        fixture.detectChanges();
+
+        expect(fixture.nativeElement.querySelector('img')).not.toBeNull();
+        expect(fixture.nativeElement.querySelector('.icon-shell')).toBeNull();
+    });
+
     it('emits optional link analytics metadata without blocking navigation', () => {
         fixture.componentInstance.config = {
             variant: 'feature',

@@ -7,6 +7,11 @@ type THeadersLike = {
     readonly get?: (name: string) => unknown;
 };
 
+const PLATFORM_FRONT_DOOR_HOSTS = new Set([
+    'zoolandingpage.com.mx',
+    'test.zoolandingpage.com.mx',
+]);
+
 export function firstSsrHeaderValue(value: unknown): string {
     return String(value ?? '').split(',')[0]?.trim() ?? '';
 }
@@ -58,7 +63,17 @@ export function isLocalRequestHostname(hostname: unknown): boolean {
     return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1';
 }
 
+export function isPlatformFrontDoorHostname(hostname: unknown): boolean {
+    return PLATFORM_FRONT_DOOR_HOSTS.has(hostnameFromSsrAuthority(hostname));
+}
+
 export function resolveSsrRequestAuthorityHost(request: unknown): string {
+    const effectiveHost = firstSsrHeaderValue(readSsrRequestHeader(request, 'x-zlp-effective-host'));
+    const effectiveHostname = hostnameFromSsrAuthority(effectiveHost);
+    if (effectiveHost && effectiveHostname) {
+        return effectiveHost;
+    }
+
     const directHost = firstSsrHeaderValue(readSsrRequestHeader(request, 'host'));
     const forwardedHost = firstSsrHeaderValue(readSsrRequestHeader(request, 'x-forwarded-host'));
     const directHostname = hostnameFromSsrAuthority(directHost);
@@ -72,6 +87,10 @@ export function resolveSsrRequestAuthorityHost(request: unknown): string {
         && directHostname !== forwardedHostname
         && !isLocalRequestHostname(directHostname)
     ) {
+        if (isPlatformFrontDoorHostname(directHostname) && !isPlatformFrontDoorHostname(forwardedHostname)) {
+            return forwardedHost;
+        }
+
         return directHost;
     }
 
@@ -98,7 +117,15 @@ export function parseSsrRequestUrl(request: unknown): URL | null {
         const baseUrl = resolveSsrRequestBaseUrl(request);
         const parsed = new URL(requestUrl, baseUrl);
         const authorityHost = hostnameFromSsrAuthority(resolveSsrRequestAuthorityHost(request));
-        if (isLocalRequestHostname(parsed.hostname) && authorityHost && !isLocalRequestHostname(authorityHost)) {
+        const parsedHostname = hostnameFromSsrAuthority(parsed.hostname);
+        const shouldRewriteToAuthorityHost = authorityHost
+            && !isLocalRequestHostname(authorityHost)
+            && (
+                isLocalRequestHostname(parsedHostname)
+                || (isPlatformFrontDoorHostname(parsedHostname) && !isPlatformFrontDoorHostname(authorityHost))
+            );
+
+        if (shouldRewriteToAuthorityHost) {
             return new URL(`${ parsed.pathname }${ parsed.search }${ parsed.hash }`, baseUrl);
         }
 
