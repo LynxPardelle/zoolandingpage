@@ -217,7 +217,7 @@ describe('DraftRuntimeService', () => {
 
     const context = await service.resolveActiveDraftContext();
 
-    expect(loadSiteConfig).toHaveBeenCalledOnceWith('pamelabetancourt.com');
+    expect(loadSiteConfig).toHaveBeenCalledOnceWith('pamelabetancourt.com', { path: '/servicios', lang: '' });
     expect(context.pageId).toBe('servicios');
     expect(context.path).toBe('/servicios');
     expect(service.activeDraftPageId()).toBe('servicios');
@@ -238,7 +238,7 @@ describe('DraftRuntimeService', () => {
 
     const context = await service.resolveActiveDraftContext();
 
-    expect(loadSiteConfig).toHaveBeenCalledOnceWith('pamelabetancourt.com');
+    expect(loadSiteConfig).toHaveBeenCalledOnceWith('pamelabetancourt.com', { path: '/servicios', lang: '' });
     expect(context.pageId).toBe('contactame');
     expect(context.explicitPageId).toBeTrue();
     expect(service.activeDraftPageId()).toBe('contactame');
@@ -388,7 +388,7 @@ describe('DraftRuntimeService', () => {
 
     const context = await service.resolveActiveDraftContext();
 
-    expect(loadSiteConfig).toHaveBeenCalledOnceWith('music.lynxpardelle.com');
+    expect(loadSiteConfig).toHaveBeenCalledOnceWith('music.lynxpardelle.com', { path: '/', lang: '' });
     expect(context.domain).toBe('music.lynxpardelle.com');
     expect(context.pageId).toBe('default');
   });
@@ -525,6 +525,53 @@ describe('DraftRuntimeService', () => {
       categorySlug: 'web',
       articleSlug: 'runtime-route-only-seo',
     });
+  });
+
+  it('does not use a stale public article index as an SSR 404 gate when the runtime route payload is renderable', async () => {
+    (environment.drafts as { enabled: boolean }).enabled = false;
+    const { service, loadPageConfig, loadComponents } = configure(
+      'https://zoositioweb.com.mx/blog/web/runtime-route-only-seo',
+      {
+        version: 1,
+        domain: 'zoositioweb.com.mx',
+        defaultPageId: 'default',
+        notFoundPageId: 'not-found',
+        routes: [
+          { path: '/', pageId: 'default' },
+          { path: '/404', pageId: 'not-found' },
+          { path: '/blog/:categorySlug/:articleSlug', pageId: 'blog-article' },
+        ],
+        runtime: {
+          contentHubs: [
+            {
+              hubId: 'zoosite-main',
+              ownerDraftDomain: 'zoositioweb.com.mx',
+              source: 'primary',
+              routeBasePath: '/blog',
+              listPath: '/blog',
+              articlePathPattern: '/blog/:categorySlug/:articleSlug',
+              defaultLocale: 'es',
+              locales: ['es'],
+              canonicalMode: 'host-adaptive',
+              publicArticles: [],
+            },
+          ],
+        },
+      },
+      { browserMode: false },
+    );
+
+    const context = await service.resolveActiveDraftContext();
+
+    expect(context.domain).toBe('zoositioweb.com.mx');
+    expect(context.pageId).toBe('blog-article');
+    expect(context.notFound).not.toBeTrue();
+    expect(context.routeParams).toEqual({
+      categorySlug: 'web',
+      articleSlug: 'runtime-route-only-seo',
+    });
+    expect(loadPageConfig).toHaveBeenCalledWith('zoositioweb.com.mx', 'blog-article', { path: '/blog/web/runtime-route-only-seo' });
+    expect(loadComponents).toHaveBeenCalledWith('zoositioweb.com.mx', 'blog-article', { path: '/blog/web/runtime-route-only-seo' });
   });
 
   it('resolves unknown content hub article paths to the draft not-found page', async () => {
@@ -757,7 +804,7 @@ describe('DraftRuntimeService', () => {
 
     const context = await service.resolveActiveDraftContext();
 
-    expect(loadSiteConfig).toHaveBeenCalledOnceWith('zoolandingpage.com.mx');
+    expect(loadSiteConfig).toHaveBeenCalledOnceWith('zoolandingpage.com.mx', { path: '/', lang: '' });
     expect(context.domain).toBe('zoolandingpage.com.mx');
     expect(context.pageId).toBe('default');
     expect(service.activeDraftDomain()).toBe('zoolandingpage.com.mx');
