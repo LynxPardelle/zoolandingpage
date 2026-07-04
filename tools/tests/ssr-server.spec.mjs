@@ -753,6 +753,8 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   const blogIndexVisibleHtml = stripNonVisibleHtml(blogIndexHtml);
   assert.equal(blogIndexResponse.status, 200);
   assert.doesNotMatch(blogIndexHtml, /data-zlp-not-found-ssr|Página no encontrada \| ZoolandingPage/);
+  assert.match(blogIndexHtml, /<title>Blog \| zoositioweb<\/title>/);
+  assert.match(blogIndexHtml, /<meta name="description" content="Artículos de zoositioweb sobre sitios web, SEO, analítica y crecimiento digital\.">/);
   assert.match(blogIndexHtml, /<link rel="canonical" href="https:\/\/zoositioweb\.com\.mx\/blog">/);
   assert.match(blogIndexHtml, /<meta name="robots" content="index,follow,max-image-preview:large">/);
   assert.doesNotMatch(blogIndexVisibleHtml, /\(\)=>|\{component|this\.resol/);
@@ -761,6 +763,7 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   const blogSalesHtml = await blogSalesResponse.text();
   assert.equal(blogSalesResponse.status, 200);
   assert.doesNotMatch(blogSalesHtml, /data-zlp-not-found-ssr|Página no encontrada \| ZoolandingPage/);
+  assert.match(blogSalesHtml, /<title>Blogs para atraer clientes con contenido medible \| zoositioweb<\/title>/);
   assert.match(blogSalesHtml, /<link rel="canonical" href="https:\/\/zoositioweb\.com\.mx\/blogs">/);
 
   const previewHeaders = {
@@ -787,6 +790,7 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   const articleResponse = await fetch(`http://127.0.0.1:${port}/blog/web/blog-builder-seo?lang=es`, { headers });
   const articleHtml = await articleResponse.text();
   assert.equal(articleResponse.status, 200);
+  assert.match(articleHtml, /<title>Cómo crear artículos visuales con Zoosite(?: \| zoositioweb)?<\/title>/);
   assert.match(articleHtml, /<link rel="canonical" href="https:\/\/zoositioweb\.com\.mx\/blog\/web\/blog-builder-seo">/);
   assert.match(articleHtml, /"@type":"BlogPosting"/);
   assert.equal((articleHtml.match(/"@type":"BlogPosting"/g) ?? []).length, 1);
