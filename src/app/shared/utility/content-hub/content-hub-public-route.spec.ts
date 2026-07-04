@@ -108,6 +108,22 @@ describe('content hub public route helpers', () => {
         expect(isMissingPublishedContentHubArticlePath(runtimeIndexedHubs, '/blog/web/guia-seo')).toBeFalse();
     });
 
+    it('supports runtime contentHubs delivered as one hub object', () => {
+        const runtimeSingleHub = {
+            ...hubs[0],
+            publicArticles: {
+                items: hubs[0].publicArticles as readonly TContentHubPublicRouteArticle[],
+            },
+        };
+
+        expect(matchContentHubArticleRoute(runtimeSingleHub, '/blog/web/guia-seo')?.params)
+            .toEqual({ categorySlug: 'web', articleSlug: 'guia-seo' });
+        expect(findPublishedContentHubArticleForPath(runtimeSingleHub, '/blog/web/guia-seo')?.articleId).toBe('art_public');
+        expect(isContentHubPublicPath(runtimeSingleHub, '/blog/web')).toBeTrue();
+        expect(hasPublishedContentHubPublicPath(runtimeSingleHub, '/blog/web')).toBeTrue();
+        expect(isMissingPublishedContentHubPublicPath(runtimeSingleHub, '/blog/web')).toBeFalse();
+    });
+
     it('marks article-looking paths as missing when no published article exists', () => {
         expect(isMissingPublishedContentHubArticlePath(hubs, '/blog/web/no-existe')).toBeTrue();
         expect(isMissingPublishedContentHubArticlePath(hubs, '/blog/web/borrador')).toBeTrue();
