@@ -1590,11 +1590,24 @@ function getAngularAppEngine(allowedHosts: readonly string[]): AngularNodeAppEng
   return engine;
 }
 
+function readFirstHeaderHost(value: unknown): string {
+  return String(value ?? '')
+    .split(',')[0]
+    .trim();
+}
+
 function resolveRequestHost(req: express.Request): string {
+  const directHost = normalizeHost(readFirstHeaderHost(req.headers.host));
   const forwardedHost = String(req.headers['x-forwarded-host'] ?? '')
     .split(',')[0]
     .trim();
-  return normalizeHost(forwardedHost || req.headers.host);
+  const normalizedForwardedHost = normalizeHost(forwardedHost);
+
+  if (directHost && normalizedForwardedHost && directHost !== normalizedForwardedHost && !isLocalHost(directHost)) {
+    return directHost;
+  }
+
+  return normalizedForwardedHost || directHost;
 }
 
 function resolveLocalRequestAuthority(req: express.Request, host: string): string {

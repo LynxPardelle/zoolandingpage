@@ -63,6 +63,35 @@ describe('WrapperOrchestrator', () => {
     expect(component).toBeTruthy();
   });
 
+  it('renders authored dropdowns immediately for navigation controls', async () => {
+    componentsById = {
+      primaryMenu: {
+        id: 'primaryMenu',
+        type: 'dropdown',
+        config: {
+          items: [{ id: 'services', label: 'Servicios', href: '/servicios' }],
+          dropdownConfig: { ariaLabel: 'Servicios' },
+          components: ['primaryMenuLabel'],
+        },
+      },
+      primaryMenuLabel: {
+        id: 'primaryMenuLabel',
+        type: 'text',
+        config: { tag: 'span', text: 'Servicios' },
+      },
+    } as never;
+
+    fixture.componentRef.setInput('componentsIds', ['primaryMenu']);
+    fixture.detectChanges();
+
+    const trigger = fixture.nativeElement.querySelector('generic-dropdown button') as HTMLButtonElement | null;
+    const deferBlocks = await fixture.getDeferBlocks();
+
+    expect(trigger).not.toBeNull();
+    expect(trigger?.textContent).toContain('Servicios');
+    expect(deferBlocks).toEqual([]);
+  });
+
   it('re-resolves component ids when the orchestrator payload revision changes', () => {
     componentsById = {
       pageRoot: {
