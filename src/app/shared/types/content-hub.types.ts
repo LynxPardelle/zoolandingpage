@@ -94,6 +94,8 @@ export type TContentHubRuntimeArticleLocalization = {
     readonly canonicalPath?: string;
     readonly robots?: 'index,follow' | 'noindex,follow' | 'noindex,nofollow';
     readonly articleContent?: TContentHubRuntimeArticleContent;
+    readonly imageSrc?: string;
+    readonly imageAlt?: string;
 };
 
 export type TContentHubRuntimeArticleSummary = {
@@ -112,6 +114,8 @@ export type TContentHubRuntimeArticleSummary = {
     readonly canonicalPath?: string;
     readonly robots?: 'index,follow' | 'noindex,follow' | 'noindex,nofollow';
     readonly articleContent?: TContentHubRuntimeArticleContent;
+    readonly imageSrc?: string;
+    readonly imageAlt?: string;
     readonly localizations?: Readonly<Record<TContentHubLocale, TContentHubRuntimeArticleLocalization>>;
     readonly commentPolicy?: TContentHubRuntimeCommentPolicy;
     readonly contentSafety?: {

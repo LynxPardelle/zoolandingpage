@@ -31,6 +31,10 @@
       "maxLength": 256,
       "pattern": "^/(?!/)(?!.*[\\\\\\s\\u0000-\\u001F\\u007F])[^\\\\\\s\\u0000-\\u001F\\u007F]*$"
     },
+    "httpsAbsoluteUrl": {
+      "type": "string",
+      "pattern": "^https://(?![^/?#]*@)(?!.*[\\\\\\s\\u0000-\\u001F\\u007F])[^\\\\\\s\\u0000-\\u001F\\u007F]+$"
+    },
     "locale": {
       "type": "string",
       "minLength": 2,
@@ -109,6 +113,14 @@
         "authorLabel": { "type": "string" },
         "canonicalPath": { "$ref": "#/definitions/sameOriginPath" },
         "robots": { "enum": ["index,follow", "noindex,follow", "noindex,nofollow"] },
+        "imageSrc": {
+          "type": "string",
+          "anyOf": [
+            { "$ref": "#/definitions/sameOriginPath" },
+            { "$ref": "#/definitions/httpsAbsoluteUrl" }
+          ]
+        },
+        "imageAlt": { "type": "string" },
         "commentPolicy": { "$ref": "#/definitions/publicCommentPolicy" },
         "contentSafety": { "$ref": "#/definitions/publicContentSafety" },
         "interactions": { "$ref": "#/definitions/publicInteractionPolicies" }

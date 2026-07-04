@@ -532,6 +532,14 @@
         "canonicalPath": { "$ref": "#/definitions/sameOriginPath" },
         "robots": { "type": "string", "enum": ["index,follow", "noindex,follow", "noindex,nofollow"] },
         "articleContent": { "$ref": "#/definitions/contentHubPublicArticleContent" },
+        "imageSrc": {
+          "type": "string",
+          "anyOf": [
+            { "$ref": "#/definitions/sameOriginPath" },
+            { "$ref": "#/definitions/httpsAbsoluteUrl" }
+          ]
+        },
+        "imageAlt": { "type": "string" },
         "localizations": { "$ref": "#/definitions/contentHubPublicArticleLocalizations" },
         "commentPolicy": { "$ref": "#/definitions/contentHubPublicCommentPolicy" },
         "contentSafety": { "$ref": "#/definitions/contentHubPublicContentSafety" },
@@ -573,7 +581,15 @@
         "authorLabel": { "type": "string" },
         "canonicalPath": { "$ref": "#/definitions/sameOriginPath" },
         "robots": { "type": "string", "enum": ["index,follow", "noindex,follow", "noindex,nofollow"] },
-        "articleContent": { "$ref": "#/definitions/contentHubPublicArticleContent" }
+        "articleContent": { "$ref": "#/definitions/contentHubPublicArticleContent" },
+        "imageSrc": {
+          "type": "string",
+          "anyOf": [
+            { "$ref": "#/definitions/sameOriginPath" },
+            { "$ref": "#/definitions/httpsAbsoluteUrl" }
+          ]
+        },
+        "imageAlt": { "type": "string" }
       },
       "additionalProperties": false
     },

@@ -178,6 +178,8 @@ function buildPublicConfig() {
             authorLabel: 'Zoolandingpage',
             canonicalPath: '/blog/web/blog-builder-seo',
             robots: 'index,follow',
+            imageSrc: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3',
+            imageAlt: 'Equipo revisando contenido visual',
             commentPolicy: 'authenticated',
             contentSafety: {
               rating: 'general',
