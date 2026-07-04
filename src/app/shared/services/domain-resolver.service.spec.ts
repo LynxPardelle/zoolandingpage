@@ -1,6 +1,6 @@
 import { PLATFORM_ID, REQUEST } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { DomainResolverService } from './domain-resolver.service';
+import { DomainResolverService, resolveBrowserHostDomain } from './domain-resolver.service';
 
 describe('DomainResolverService', () => {
   const originalUrl = window.location.pathname + window.location.search + window.location.hash;
@@ -285,6 +285,13 @@ describe('DomainResolverService', () => {
     expect(service.resolveDomain()).toEqual({
       domain: 'zoositioweb.com.mx',
       source: 'queryParam',
+    });
+  });
+
+  it('resolves a branded browser host before stale SSR request metadata can be used', () => {
+    expect(resolveBrowserHostDomain('zoositioweb.com.mx')).toEqual({
+      domain: 'zoositioweb.com.mx',
+      source: 'urlHost',
     });
   });
 });
