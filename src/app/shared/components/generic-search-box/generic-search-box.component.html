@@ -39,8 +39,8 @@
           #searchInput
           type="search"
           [class]="inputClasses()"
-          [attr.placeholder]="config?.placeholder || i18n.t('ui.common.search')"
-          [attr.aria-label]="config?.ariaLabel || i18n.t('ui.common.search')"
+          [attr.placeholder]="placeholder()"
+          [attr.aria-label]="ariaLabel()"
           [attr.role]="'combobox'"
           [attr.aria-autocomplete]="'list'"
           [attr.aria-controls]="listboxId"
@@ -61,8 +61,8 @@
     #searchInput
     type="search"
     [class]="inputClasses()"
-    [attr.placeholder]="config?.placeholder || i18n.t('ui.common.search')"
-    [attr.aria-label]="config?.ariaLabel || i18n.t('ui.common.search')"
+    [attr.placeholder]="placeholder()"
+    [attr.aria-label]="ariaLabel()"
     [attr.role]="'combobox'"
     [attr.aria-autocomplete]="'list'"
     [attr.aria-controls]="listboxId"

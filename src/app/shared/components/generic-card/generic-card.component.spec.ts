@@ -63,6 +63,19 @@ describe('GenericCardComponent', () => {
         expect(link?.style.display).toBe('inline-flex');
     });
 
+    it('does not render a decorative icon container when a feature card has no icon', () => {
+        fixture.componentInstance.config = {
+            variant: 'feature',
+            title: 'Artículo sin icono',
+            description: 'Debe iniciar con texto o imagen real.',
+            featureIconContainerClasses: 'empty-icon-shell',
+        } as never;
+
+        fixture.detectChanges();
+
+        expect(fixture.nativeElement.querySelector('.empty-icon-shell')).toBeNull();
+    });
+
     it('emits optional link analytics metadata without blocking navigation', () => {
         fixture.componentInstance.config = {
             variant: 'feature',
