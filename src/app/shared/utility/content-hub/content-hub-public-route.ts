@@ -24,6 +24,12 @@ export type TContentHubPublicRouteConfig = {
     readonly publicTaxonomy?: TContentHubPublicRouteCollection<TContentHubPublicRouteTaxonomy>;
 };
 
+export type TContentHubPublicRouteConfigInput =
+    | TContentHubPublicRouteConfig
+    | readonly TContentHubPublicRouteConfig[]
+    | null
+    | undefined;
+
 export type TContentHubPublicRouteCollection<T> = readonly T[] | {
     readonly items?: readonly T[];
 };
@@ -34,15 +40,12 @@ export type TContentHubArticleRouteMatch = {
 };
 
 export function matchContentHubArticleRoute(
-    hubs: readonly TContentHubPublicRouteConfig[] | null | undefined,
+    hubs: TContentHubPublicRouteConfigInput,
     path: unknown,
 ): TContentHubArticleRouteMatch | null {
-    if (!Array.isArray(hubs)) {
-        return null;
-    }
-
+    const normalizedHubs = normalizeContentHubPublicRouteConfigs(hubs);
     const normalizedPath = normalizeDraftRoutePath(path);
-    for (const hub of hubs) {
+    for (const hub of normalizedHubs) {
         if (isReservedTaxonomyPath(hub, normalizedPath)) {
             continue;
         }
@@ -65,15 +68,12 @@ export function matchContentHubArticleRoute(
 }
 
 export function findPublishedContentHubArticleForPath(
-    hubs: readonly TContentHubPublicRouteConfig[] | null | undefined,
+    hubs: TContentHubPublicRouteConfigInput,
     path: unknown,
 ): TContentHubPublicRouteArticle | null {
-    if (!Array.isArray(hubs)) {
-        return null;
-    }
-
+    const normalizedHubs = normalizeContentHubPublicRouteConfigs(hubs);
     const normalizedPath = normalizeDraftRoutePath(path);
-    for (const hub of hubs) {
+    for (const hub of normalizedHubs) {
         const articles = readContentHubPublicRouteCollection<TContentHubPublicRouteArticle>(hub.publicArticles);
         const article = articles.find((entry: TContentHubPublicRouteArticle) => entry.status === 'published'
             && (entry.visibility === undefined || entry.visibility === 'public')
@@ -87,7 +87,7 @@ export function findPublishedContentHubArticleForPath(
 }
 
 export function hasPublishedContentHubPublicPath(
-    hubs: readonly TContentHubPublicRouteConfig[] | null | undefined,
+    hubs: TContentHubPublicRouteConfigInput,
     path: unknown,
 ): boolean {
     if (findPublishedContentHubArticleForPath(hubs, path)) {
@@ -99,24 +99,35 @@ export function hasPublishedContentHubPublicPath(
 }
 
 export function isContentHubPublicPath(
-    hubs: readonly TContentHubPublicRouteConfig[] | null | undefined,
+    hubs: TContentHubPublicRouteConfigInput,
     path: unknown,
 ): boolean {
     return !!matchContentHubArticleRoute(hubs, path) || !!matchContentHubTaxonomyRoute(hubs, path);
 }
 
 export function isMissingPublishedContentHubArticlePath(
-    hubs: readonly TContentHubPublicRouteConfig[] | null | undefined,
+    hubs: TContentHubPublicRouteConfigInput,
     path: unknown,
 ): boolean {
     return !!matchContentHubArticleRoute(hubs, path) && !findPublishedContentHubArticleForPath(hubs, path);
 }
 
 export function isMissingPublishedContentHubPublicPath(
-    hubs: readonly TContentHubPublicRouteConfig[] | null | undefined,
+    hubs: TContentHubPublicRouteConfigInput,
     path: unknown,
 ): boolean {
     return isContentHubPublicPath(hubs, path) && !hasPublishedContentHubPublicPath(hubs, path);
+}
+
+function normalizeContentHubPublicRouteConfigs(
+    hubs: TContentHubPublicRouteConfigInput,
+): readonly TContentHubPublicRouteConfig[] {
+    if (Array.isArray(hubs)) {
+        return hubs;
+    }
+
+    const singleHub = hubs as TContentHubPublicRouteConfig | null | undefined;
+    return !!singleHub && typeof singleHub === 'object' ? [singleHub] : [];
 }
 
 function readContentHubPublicRouteCollection<T>(
@@ -133,15 +144,12 @@ function readContentHubPublicRouteCollection<T>(
 }
 
 function matchContentHubTaxonomyRoute(
-    hubs: readonly TContentHubPublicRouteConfig[] | null | undefined,
+    hubs: TContentHubPublicRouteConfigInput,
     path: unknown,
 ): { readonly hub: TContentHubPublicRouteConfig; readonly kind: 'category' | 'tag'; readonly slug: string; readonly path: string } | null {
-    if (!Array.isArray(hubs)) {
-        return null;
-    }
-
+    const normalizedHubs = normalizeContentHubPublicRouteConfigs(hubs);
     const normalizedPath = normalizeDraftRoutePath(path);
-    for (const hub of hubs) {
+    for (const hub of normalizedHubs) {
         const basePath = contentHubBasePath(hub);
         if (!basePath || normalizedPath === basePath || !normalizedPath.startsWith(`${ basePath }/`)) {
             continue;
