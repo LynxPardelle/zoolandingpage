@@ -1,7 +1,7 @@
-:host a {
+:host a:not([class*='ank-color-']):not([class*='ank-text-']) {
   color: inherit;
 }
 
-:host a:visited {
+:host a:visited:not([class*='ank-color-']):not([class*='ank-text-']) {
   color: inherit;
 }

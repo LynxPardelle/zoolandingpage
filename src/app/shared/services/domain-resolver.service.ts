@@ -1,6 +1,7 @@
 import { isPlatformBrowser } from '@angular/common';
 import { inject, Injectable, PLATFORM_ID, REQUEST } from '@angular/core';
 import type { TDraftLocalStorageSlot } from '../types/config-payloads.types';
+import { isLocalRequestHostname, parseSsrRequestUrl } from '../utility/request/ssr-request-url.utility';
 import { ConfigStoreService } from './config-store.service';
 
 export type TResolvedDomain = {
@@ -17,90 +18,12 @@ export class DomainResolverService {
     private readonly configStore = inject(ConfigStoreService);
     private readonly isBrowser = isPlatformBrowser(this.platformId);
 
-    private readRequestHeader(name: string): string {
-        const headers = (this.request as { headers?: Headers | Record<string, string | readonly string[] | undefined> } | null)?.headers;
-        if (!headers) {
-            return '';
-        }
-
-        if (typeof (headers as Headers).get === 'function') {
-            return String((headers as Headers).get(name) ?? '').trim();
-        }
-
-        const normalizedName = name.toLowerCase();
-        const entryKey = Object.keys(headers).find((key) => key.toLowerCase() === normalizedName);
-        const value = entryKey ? (headers as Record<string, string | readonly string[] | undefined>)[entryKey] : '';
-
-        if (Array.isArray(value)) {
-            return String(value[0] ?? '').trim();
-        }
-
-        return String(value ?? '').trim();
-    }
-
-    private firstHeaderValue(value: string): string {
-        return String(value ?? '').split(',')[0]?.trim() ?? '';
-    }
-
-    private hostnameFromAuthority(value: string): string {
-        const trimmed = String(value ?? '').trim();
-        if (!trimmed) {
-            return '';
-        }
-
-        try {
-            return new URL(`https://${ trimmed }`).hostname.trim().toLowerCase();
-        } catch {
-            return trimmed.split(':')[0]?.trim().toLowerCase() ?? '';
-        }
-    }
-
-    private resolveRequestAuthorityHost(): string {
-        const directHost = this.firstHeaderValue(this.readRequestHeader('host'));
-        const forwardedHost = this.firstHeaderValue(this.readRequestHeader('x-forwarded-host'));
-        const directHostname = this.hostnameFromAuthority(directHost);
-        const forwardedHostname = this.hostnameFromAuthority(forwardedHost);
-
-        if (
-            directHost
-            && forwardedHost
-            && directHostname
-            && forwardedHostname
-            && directHostname !== forwardedHostname
-            && !this.isLocalHost(directHostname)
-        ) {
-            return directHost;
-        }
-
-        return forwardedHost || directHost;
-    }
-
-    private resolveRequestBaseUrl(): string {
-        const host = this.resolveRequestAuthorityHost();
-        if (!host) {
-            return 'http://localhost';
-        }
-
-        const protocol = this.firstHeaderValue(this.readRequestHeader('x-forwarded-proto')) || 'https';
-        return `${ protocol }://${ host }`;
-    }
-
     private parseRequestUrl(): URL | null {
-        const requestUrl = String(this.request?.url ?? '').trim();
-        if (requestUrl.length === 0) {
-            return null;
-        }
-
-        try {
-            return new URL(requestUrl, this.resolveRequestBaseUrl());
-        } catch {
-            return null;
-        }
+        return parseSsrRequestUrl(this.request);
     }
 
     private isLocalHost(hostname: string): boolean {
-        const normalized = String(hostname ?? '').trim().toLowerCase();
-        return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1';
+        return isLocalRequestHostname(hostname);
     }
 
     canUseDraftQueryParamsOnHost(hostname: string): boolean {
