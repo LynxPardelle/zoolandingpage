@@ -107,8 +107,18 @@ test('site-config schema exposes content hub data source and action contracts wi
     assert.equal(schema.definitions.contentHubPublicArticle.properties.path.$ref, '#/definitions/sameOriginPath');
     assert.equal(schema.definitions.contentHubPublicArticle.properties.visibility.const, 'public');
     assert.equal(schema.definitions.contentHubPublicArticle.properties.articleContent.$ref, '#/definitions/contentHubPublicArticleContent');
+    assert.deepEqual(
+        schema.definitions.contentHubPublicArticle.properties.imageSrc.anyOf.map((entry) => entry.$ref),
+        ['#/definitions/sameOriginPath', '#/definitions/httpsAbsoluteUrl'],
+    );
+    assert.equal(schema.definitions.contentHubPublicArticle.properties.imageAlt.type, 'string');
     assert.equal(schema.definitions.contentHubPublicArticle.properties.localizations.$ref, '#/definitions/contentHubPublicArticleLocalizations');
     assert.equal(schema.definitions.contentHubPublicArticleLocalization.properties.articleContent.$ref, '#/definitions/contentHubPublicArticleContent');
+    assert.deepEqual(
+        schema.definitions.contentHubPublicArticleLocalization.properties.imageSrc.anyOf.map((entry) => entry.$ref),
+        ['#/definitions/sameOriginPath', '#/definitions/httpsAbsoluteUrl'],
+    );
+    assert.equal(schema.definitions.contentHubPublicArticleLocalization.properties.imageAlt.type, 'string');
     assert.equal(schema.definitions.contentHubPublicArticle.properties.commentPolicy.$ref, '#/definitions/contentHubPublicCommentPolicy');
     assert.equal(schema.definitions.contentHubPublicArticle.properties.contentSafety.$ref, '#/definitions/contentHubPublicContentSafety');
     assert.equal(schema.definitions.contentHubPublicArticle.properties.interactions.$ref, '#/definitions/contentHubPublicInteractionPolicies');
