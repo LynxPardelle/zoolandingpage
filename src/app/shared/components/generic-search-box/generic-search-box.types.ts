@@ -1,3 +1,5 @@
+import type { TDynamicValue } from '../../types/component-runtime.types';
+
 export type SearchSuggestion = {
   readonly id: string;
   readonly label: string;
@@ -8,8 +10,8 @@ export type SearchSuggestion = {
 export type SearchBoxConfig = {
   readonly minLength?: number; // default 2
   readonly debounceMs?: number; // default 200
-  readonly ariaLabel?: string;
-  readonly placeholder?: string;
+  readonly ariaLabel?: TDynamicValue<string>;
+  readonly placeholder?: TDynamicValue<string>;
   readonly classes?: string;
   readonly showBackdrop?: boolean;
   readonly inputClasses?: string;
@@ -17,8 +19,8 @@ export type SearchBoxConfig = {
   readonly collapsed?: boolean;
   readonly triggerIcon?: string;
   readonly closeIcon?: string;
-  readonly triggerAriaLabel?: string;
-  readonly closeAriaLabel?: string;
+  readonly triggerAriaLabel?: TDynamicValue<string>;
+  readonly closeAriaLabel?: TDynamicValue<string>;
   readonly triggerClasses?: string;
   readonly resultItemClasses?: string;
   readonly statusItemClasses?: string;

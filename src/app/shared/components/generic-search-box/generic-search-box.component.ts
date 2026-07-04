@@ -19,6 +19,7 @@ import {
 } from '@angular/core';
 import { I18nService } from '../../services/i18n.service';
 import { OverlayPositioningService } from '../../services/overlay-positioning.service';
+import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import { GenericLoadingSpinnerComponent } from '../generic-loading-spinner';
 import { filterSearchSuggestions, SEARCH_BOX_MAX_RESULTS } from './generic-search-box.constants';
@@ -73,8 +74,10 @@ export class GenericSearchBoxComponent implements OnDestroy {
   panelContentClasses = () => this.config?.panelContentClasses ?? 'ank-width-100per ank-display-flex ank-alignItems-center ank-gap-16px';
   panelInputWrapperClasses = () => this.config?.panelInputWrapperClasses ?? '';
   triggerClasses = () => this.config?.triggerClasses ?? 'ank-display-inlineFlex ank-alignItems-center ank-justifyContent-center ank-bg-transparent ank-border-none ank-cursor-pointer ank-color-titleColor';
-  triggerAriaLabel = () => this.config?.triggerAriaLabel ?? this.i18n.t('ui.common.search');
-  closeAriaLabel = () => this.config?.closeAriaLabel ?? this.config?.ariaLabel ?? this.i18n.t('ui.common.search');
+  placeholder = () => this.asString(this.config?.placeholder, this.i18n.t('ui.common.search'));
+  ariaLabel = () => this.asString(this.config?.ariaLabel, this.i18n.t('ui.common.search'));
+  triggerAriaLabel = () => this.asString(this.config?.triggerAriaLabel, this.i18n.t('ui.common.search'));
+  closeAriaLabel = () => this.asString(this.config?.closeAriaLabel ?? this.config?.ariaLabel, this.i18n.t('ui.common.search'));
   triggerIcon = () => this.config?.triggerIcon ?? '';
   closeIcon = () => this.config?.closeIcon ?? '';
 
@@ -212,6 +215,12 @@ export class GenericSearchBoxComponent implements OnDestroy {
     return Array.isArray(this.config?.suggestions)
       ? this.config.suggestions.filter((entry): entry is SearchSuggestion => !!entry && typeof entry.label === 'string')
       : [];
+  }
+
+  private asString(value: unknown, fallback = ''): string {
+    const resolved = resolveDynamicValue(value as never);
+    const normalized = String(resolved ?? '').trim();
+    return normalized || fallback;
   }
 
   ngOnDestroy(): void {

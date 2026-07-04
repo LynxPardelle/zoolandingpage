@@ -23,6 +23,22 @@ describe('SearchBoxComponent', () => {
     expect(input.getAttribute('role')).toBe('combobox');
     expect(input.getAttribute('aria-autocomplete')).toBe('list');
   });
+
+  it('should resolve dynamic placeholder and aria labels before rendering', () => {
+    fixture.componentRef.setInput('config', {
+      minLength: 1,
+      placeholder: () => 'Buscar guías por tema',
+      ariaLabel: () => 'Buscar en el blog',
+      suggestions: [],
+    });
+    fixture.detectChanges();
+
+    const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+    expect(input.getAttribute('placeholder')).toBe('Buscar guías por tema');
+    expect(input.getAttribute('aria-label')).toBe('Buscar en el blog');
+    expect(input.getAttribute('placeholder')).not.toContain('=>');
+  });
+
   it('should show results and allow keyboard selection', async () => {
     const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
     input.value = 'a';
