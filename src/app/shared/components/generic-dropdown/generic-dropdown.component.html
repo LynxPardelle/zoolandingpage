@@ -28,7 +28,7 @@
             [attr.href]="itemHref(it)"
             [class]="itemClasses(it)"
             tabindex="-1"
-            (click)="$event.preventDefault(); !itemDisabled(it) && select(it)"
+            (click)="onItemClick($event, it)"
           >
             {{ itemLabel(it) }}
           </a>

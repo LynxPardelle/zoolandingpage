@@ -121,6 +121,33 @@ describe('DomainResolverService', () => {
     });
   });
 
+  it('prefers a non-local request host over a conflicting forwarded host during SSR', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        DomainResolverService,
+        { provide: PLATFORM_ID, useValue: 'server' },
+        {
+          provide: REQUEST,
+          useValue: {
+            url: '/blog',
+            headers: {
+              host: 'zoositioweb.com.mx',
+              'x-forwarded-host': 'zoolandingpage.com.mx',
+              'x-forwarded-proto': 'https',
+            },
+          },
+        },
+      ],
+    });
+
+    const service = TestBed.inject(DomainResolverService);
+
+    expect(service.resolveDomain()).toEqual({
+      domain: 'zoositioweb.com.mx',
+      source: 'urlHost',
+    });
+  });
+
   it('derives runtime-safe storage keys from the resolved domain', () => {
     TestBed.configureTestingModule({
       providers: [

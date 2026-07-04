@@ -3,8 +3,9 @@ import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { AngoraCombosService } from '../../services/angora-combos.service';
 import { LanguageService } from '../../services/language.service';
+import { currentBrowserPath } from '../../utility/navigation/browser-navigation.utility';
 import { GenericDropdown } from './generic-dropdown.component';
-import type { DropdownItem } from './generic-dropdown.types';
+import type { DropdownConfig, DropdownItem } from './generic-dropdown.types';
 
 @Component({
   template: `<generic-dropdown [items]="items" [config]="config"
@@ -18,7 +19,7 @@ class HostTestComponent {
     { id: '1', label: 'One' },
     { id: '2', label: 'Two' },
   ];
-  config = {
+  config: DropdownConfig = {
     ariaLabel: 'Choose an option',
     triggerRole: 'combobox',
     menuRole: 'listbox' as const,
@@ -130,5 +131,30 @@ describe('GenericDropdown', () => {
     fixture.detectChanges();
 
     expect(component.opened()).toBeFalse();
+  });
+
+  it('navigates internal menu hrefs while preserving draft query params', () => {
+    window.history.pushState({}, '', '/?draftDomain=grupoastralegal.com&debugWorkspace=false&lang=es');
+    fixture.destroy();
+    fixture = TestBed.createComponent(HostTestComponent);
+    fixture.componentInstance.items = [
+      { id: 'services', label: 'Services', href: '/servicios' },
+    ];
+    fixture.componentInstance.config = {
+      ...fixture.componentInstance.config,
+      menuRole: 'menu',
+      itemRole: 'menuitem',
+    };
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    button.click();
+    fixture.detectChanges();
+
+    const link = overlayContainer.getContainerElement().querySelector('a[role="menuitem"]') as HTMLAnchorElement;
+    link.click();
+    fixture.detectChanges();
+
+    expect(currentBrowserPath()).toBe('/servicios?draftDomain=grupoastralegal.com&debugWorkspace=false&lang=es');
   });
 });

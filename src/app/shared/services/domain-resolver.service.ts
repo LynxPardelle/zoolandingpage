@@ -42,8 +42,41 @@ export class DomainResolverService {
         return String(value ?? '').split(',')[0]?.trim() ?? '';
     }
 
+    private hostnameFromAuthority(value: string): string {
+        const trimmed = String(value ?? '').trim();
+        if (!trimmed) {
+            return '';
+        }
+
+        try {
+            return new URL(`https://${ trimmed }`).hostname.trim().toLowerCase();
+        } catch {
+            return trimmed.split(':')[0]?.trim().toLowerCase() ?? '';
+        }
+    }
+
+    private resolveRequestAuthorityHost(): string {
+        const directHost = this.firstHeaderValue(this.readRequestHeader('host'));
+        const forwardedHost = this.firstHeaderValue(this.readRequestHeader('x-forwarded-host'));
+        const directHostname = this.hostnameFromAuthority(directHost);
+        const forwardedHostname = this.hostnameFromAuthority(forwardedHost);
+
+        if (
+            directHost
+            && forwardedHost
+            && directHostname
+            && forwardedHostname
+            && directHostname !== forwardedHostname
+            && !this.isLocalHost(directHostname)
+        ) {
+            return directHost;
+        }
+
+        return forwardedHost || directHost;
+    }
+
     private resolveRequestBaseUrl(): string {
-        const host = this.firstHeaderValue(this.readRequestHeader('x-forwarded-host') || this.readRequestHeader('host'));
+        const host = this.resolveRequestAuthorityHost();
         if (!host) {
             return 'http://localhost';
         }
