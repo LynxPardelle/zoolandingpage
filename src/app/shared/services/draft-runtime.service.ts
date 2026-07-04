@@ -227,20 +227,6 @@ export class DraftRuntimeService {
         const routeMatch = this.matchRouteWithParams(siteConfig, path);
         if (routeMatch) {
             const routeRequiresAuth = routeMatch.route.auth?.required === true;
-            if (
-                !routeRequiresAuth
-                && (!this.isBrowser || environment.drafts.enabled)
-                && isMissingPublishedContentHubPublicPath(siteConfig?.runtime?.contentHubs, path)
-            ) {
-                const notFoundResolution = await this.resolveNotFoundContext(domain, path, siteConfig)
-                    ?? await this.resolveCanonicalNotFoundContext(path);
-                if (notFoundResolution) {
-                    this.configStore.setSiteConfig(notFoundResolution.siteConfig);
-                    this.applyResolvedContext(notFoundResolution.context);
-                    return notFoundResolution.context;
-                }
-            }
-
             const resolvedContext = {
                 domain,
                 pageId: routeMatch.route.pageId,
@@ -249,6 +235,25 @@ export class DraftRuntimeService {
                 routeParams: routeMatch.params,
                 explicitPageId: false,
             } satisfies TResolvedDraftContext;
+
+            if (
+                !routeRequiresAuth
+                && (!this.isBrowser || environment.drafts.enabled)
+                && isMissingPublishedContentHubPublicPath(siteConfig?.runtime?.contentHubs, path)
+            ) {
+                const routePayloadIsRenderable = !this.isBrowser
+                    && !environment.drafts.enabled
+                    && await this.canRenderPage(domain, routeMatch.route.pageId, path);
+                if (!routePayloadIsRenderable) {
+                    const notFoundResolution = await this.resolveNotFoundContext(domain, path, siteConfig)
+                        ?? await this.resolveCanonicalNotFoundContext(path);
+                    if (notFoundResolution) {
+                        this.configStore.setSiteConfig(notFoundResolution.siteConfig);
+                        this.applyResolvedContext(notFoundResolution.context);
+                        return notFoundResolution.context;
+                    }
+                }
+            }
 
             this.configStore.setSiteConfig(siteConfig);
             this.applyResolvedContext(resolvedContext);
