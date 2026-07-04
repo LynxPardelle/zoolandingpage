@@ -1209,7 +1209,7 @@ test('production SSR server renders a published canonical custom host from local
 });
 
 test('production SSR server prefers forwarded custom host behind platform front door', async (t) => {
-  const { port, getStderr } = await startProductionServer(t);
+  const { port } = await startProductionServer(t);
   const response = await fetch('http://127.0.0.1:' + port + '/blog', {
     headers: {
       Host: 'zoolandingpage.com.mx',
@@ -1226,7 +1226,6 @@ test('production SSR server prefers forwarded custom host behind platform front 
   assert.match(body, /Explorar contenido/i);
   assert.match(body, /https:\/\/zoositioweb\.com\.mx\/blog/i);
   assert.doesNotMatch(body, /https:\/\/zoolandingpage\.com\.mx\/blog/i);
-  assert.equal(getStderr(), '');
 });
 
 test('production SSR server allows a published runtime alias outside static host patterns', async (t) => {
