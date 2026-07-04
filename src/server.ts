@@ -2637,6 +2637,56 @@ function resolveLocalizedSeoString(value: unknown, lang: string): string {
     || cleanString(value['en']);
 }
 
+function resolveLocalizedSeoRecord(value: unknown, lang: string): Record<string, unknown> {
+  if (!isRecord(value)) {
+    return {};
+  }
+
+  const directLanguage = value[lang];
+  if (isRecord(directLanguage)) {
+    return directLanguage;
+  }
+
+  const normalizedLanguage = value[normalizeLanguageCode(lang)];
+  if (isRecord(normalizedLanguage)) {
+    return normalizedLanguage;
+  }
+
+  const defaultLanguage = value['default'];
+  if (isRecord(defaultLanguage)) {
+    return defaultLanguage;
+  }
+
+  const spanish = value['es'];
+  if (isRecord(spanish)) {
+    return spanish;
+  }
+
+  const english = value['en'];
+  if (isRecord(english)) {
+    return english;
+  }
+
+  return value;
+}
+
+function resolveSeoMetaList(value: unknown, lang: string): string {
+  const resolved = resolveLocalizedSeoString(value, lang);
+  if (resolved) {
+    return resolved;
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .flatMap((entry) => Array.isArray(entry) ? entry : [entry])
+      .map(cleanString)
+      .filter(Boolean)
+      .join(', ');
+  }
+
+  return '';
+}
+
 function isPathMatchedByPrefixRule(path: string, rulePath: string): boolean {
   const normalizedPath = normalizeRoutePath(path);
   const normalizedRulePath = normalizeRoutePath(rulePath);
@@ -3032,6 +3082,21 @@ function injectHeadHtml(html: string, headHtml: string): string {
   }
 
   let sanitizedHtml = html;
+  if (headHtml.includes('<title>')) {
+    sanitizedHtml = sanitizedHtml.replace(/<title>[\s\S]*?<\/title>\s*/i, '');
+  }
+  if (headHtml.includes('name="description"')) {
+    sanitizedHtml = sanitizedHtml.replace(/<meta\s+[^>]*name=["']description["'][^>]*>\s*/gi, '');
+  }
+  if (headHtml.includes('name="keywords"')) {
+    sanitizedHtml = sanitizedHtml.replace(/<meta\s+[^>]*name=["']keywords["'][^>]*>\s*/gi, '');
+  }
+  if (headHtml.includes('property="og:')) {
+    sanitizedHtml = sanitizedHtml.replace(/<meta\s+[^>]*property=["']og:[^"']+["'][^>]*>\s*/gi, '');
+  }
+  if (headHtml.includes('name="twitter:')) {
+    sanitizedHtml = sanitizedHtml.replace(/<meta\s+[^>]*name=["']twitter:[^"']+["'][^>]*>\s*/gi, '');
+  }
   if (headHtml.includes('rel="canonical"')) {
     sanitizedHtml = sanitizedHtml.replace(/<link\s+rel=["']canonical["'][^>]*>/gi, '');
   }
@@ -3051,6 +3116,88 @@ function injectHeadHtml(html: string, headHtml: string): string {
   }
 
   return sanitizedHtml.replace(/<\/head>/i, `${headHtml}\n</head>`);
+}
+
+function buildSeoTextHeadHtml(
+  req: express.Request,
+  host: string,
+  siteConfig: TLocalSiteConfig | null,
+  pageConfig: TLocalPageConfig | null,
+): string {
+  const lang = resolveRequestLanguage(req, siteConfig);
+  const pageSeo = pageConfig?.seo;
+  const siteSeo = resolveEffectiveSeoConfig(host, siteConfig);
+  const pageSeoRecord: Record<string, unknown> = isRecord(pageSeo) ? pageSeo : {};
+  const siteSeoRecord: Record<string, unknown> = isRecord(siteSeo) ? siteSeo : {};
+  const brandDefaults = isRecord(siteConfig?.defaults?.['brand']) ? siteConfig?.defaults?.['brand'] : {};
+  const fallbackSiteName = resolveLocalizedSeoString(siteSeo?.siteName, lang)
+    || cleanString(siteConfig?.site?.appIdentity?.name)
+    || cleanString(brandDefaults?.['displayName'])
+    || cleanString(siteConfig?.domain)
+    || 'ZoolandingPage';
+  const seoTitle = resolveLocalizedSeoString(pageSeo?.title, lang)
+    || resolveLocalizedSeoString(siteSeo?.title, lang)
+    || fallbackSiteName;
+  const seoDescription = resolveLocalizedSeoString(pageSeo?.description, lang)
+    || resolveLocalizedSeoString(siteSeo?.description, lang);
+  const seoKeywords = resolveSeoMetaList(pageSeoRecord['keywords'], lang)
+    || resolveSeoMetaList(siteSeoRecord['keywords'], lang);
+  const canonicalUrl = buildRequestCanonicalUrl(req, host, siteConfig);
+  const openGraphDefaults = resolveLocalizedSeoRecord(siteSeo?.openGraph, lang);
+  const twitterDefaults = resolveLocalizedSeoRecord(siteSeo?.twitter, lang);
+  const openGraph = {
+    ...openGraphDefaults,
+    ...resolveLocalizedSeoRecord(pageSeo?.openGraph, lang),
+  };
+  const twitter = {
+    ...twitterDefaults,
+    ...resolveLocalizedSeoRecord(pageSeo?.twitter, lang),
+  };
+  const ogTitle = cleanString(openGraph['title']) || seoTitle;
+  const ogDescription = cleanString(openGraph['description']) || seoDescription;
+  const ogType = cleanString(openGraph['type']) || 'website';
+  const ogUrl = cleanString(openGraph['url']) || canonicalUrl;
+  const ogImage = cleanString(openGraph['image'])
+    || cleanString(siteSeo?.defaultImage)
+    || cleanString(openGraphDefaults['image']);
+  const twitterCard = cleanString(twitter['card']) || 'summary_large_image';
+  const twitterTitle = cleanString(twitter['title']) || seoTitle;
+  const twitterDescription = cleanString(twitter['description']) || seoDescription;
+  const twitterImage = cleanString(twitter['image']) || ogImage;
+
+  return [
+    `<title>${escapeHtmlText(seoTitle)}</title>`,
+    seoDescription ? `<meta name="description" content="${escapeHtmlAttribute(seoDescription)}">` : '',
+    seoKeywords ? `<meta name="keywords" content="${escapeHtmlAttribute(seoKeywords)}">` : '',
+    `<meta property="og:title" content="${escapeHtmlAttribute(ogTitle)}">`,
+    ogDescription ? `<meta property="og:description" content="${escapeHtmlAttribute(ogDescription)}">` : '',
+    `<meta property="og:type" content="${escapeHtmlAttribute(ogType)}">`,
+    `<meta property="og:url" content="${escapeHtmlAttribute(ogUrl)}">`,
+    ogImage ? `<meta property="og:image" content="${escapeHtmlAttribute(ogImage)}">` : '',
+    `<meta property="og:site_name" content="${escapeHtmlAttribute(fallbackSiteName)}">`,
+    `<meta name="twitter:card" content="${escapeHtmlAttribute(twitterCard)}">`,
+    `<meta name="twitter:title" content="${escapeHtmlAttribute(twitterTitle)}">`,
+    twitterDescription ? `<meta name="twitter:description" content="${escapeHtmlAttribute(twitterDescription)}">` : '',
+    twitterImage ? `<meta name="twitter:image" content="${escapeHtmlAttribute(twitterImage)}">` : '',
+  ].filter(Boolean).join('\n');
+}
+
+function buildNotFoundSeoTextHeadHtml(siteConfig: TLocalSiteConfig | null, lang: string): string {
+  const title = buildNotFoundSsrTitle(siteConfig, lang);
+  const description = normalizeLanguageCode(lang).startsWith('en')
+    ? 'This page is not published or is no longer available.'
+    : 'Esta página no está publicada o ya no está disponible.';
+
+  return [
+    `<title>${escapeHtmlText(title)}</title>`,
+    `<meta name="description" content="${escapeHtmlAttribute(description)}">`,
+    `<meta property="og:title" content="${escapeHtmlAttribute(title)}">`,
+    `<meta property="og:description" content="${escapeHtmlAttribute(description)}">`,
+    '<meta property="og:type" content="website">',
+    `<meta name="twitter:card" content="summary">`,
+    `<meta name="twitter:title" content="${escapeHtmlAttribute(title)}">`,
+    `<meta name="twitter:description" content="${escapeHtmlAttribute(description)}">`,
+  ].join('\n');
 }
 
 async function decorateHtmlResponse(req: express.Request, response: Response): Promise<Response> {
@@ -3099,6 +3246,9 @@ async function decorateHtmlResponse(req: express.Request, response: Response): P
     ? ''
     : buildHreflangHeadHtml(req, lookupDomain, siteConfig);
   const headHtml = [
+    effectiveStatus === 404
+      ? buildNotFoundSeoTextHeadHtml(siteConfig, requestLang)
+      : buildSeoTextHeadHtml(req, lookupDomain, siteConfig, pageConfig),
     buildGoogleTagHeadHtml(host, siteConfig),
     buildSearchConsoleHeadHtml(lookupDomain, siteConfig),
     buildBrowserIconsHeadHtml(siteConfig),
