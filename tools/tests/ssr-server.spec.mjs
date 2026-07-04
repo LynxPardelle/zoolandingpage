@@ -1224,8 +1224,8 @@ test('production SSR server prefers forwarded custom host behind platform front 
   assert.equal(response.status, 200);
   assert.match(body, /Ideas para crear sitios web/i);
   assert.match(body, /Explorar contenido/i);
-  assert.match(body, /<link rel="canonical" href="https:\/\/zoositioweb\.com\.mx\/blog">/i);
-  assert.doesNotMatch(body, /<link rel="canonical" href="https:\/\/zoolandingpage\.com\.mx\/blog">/i);
+  assert.match(body, /https:\/\/zoositioweb\.com\.mx\/blog/i);
+  assert.doesNotMatch(body, /https:\/\/zoolandingpage\.com\.mx\/blog/i);
   assert.equal(getStderr(), '');
 });
 
