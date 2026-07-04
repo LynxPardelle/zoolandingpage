@@ -9,6 +9,24 @@ export type TResolvedDomain = {
     readonly source: 'queryParam' | 'urlHost' | 'unresolved';
 };
 
+export function resolveBrowserHostDomain(
+    hostname: string,
+    testingDraftPreviewHost = 'test.zoolandingpage.com.mx',
+    testingDraftPreviewFallbackDomain = 'zoolandingpage.com.mx',
+): TResolvedDomain | null {
+    const host = String(hostname ?? '').trim();
+    const normalized = host.toLowerCase();
+    if (!host || normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1') {
+        return null;
+    }
+
+    if (normalized === testingDraftPreviewHost) {
+        return { domain: testingDraftPreviewFallbackDomain, source: 'urlHost' };
+    }
+
+    return { domain: host, source: 'urlHost' };
+}
+
 @Injectable({ providedIn: 'root' })
 export class DomainResolverService {
     private readonly testingDraftPreviewHost = 'test.zoolandingpage.com.mx';
@@ -86,19 +104,19 @@ export class DomainResolverService {
             }
         }
 
-        if (requestUrl?.hostname) {
-            const host = requestUrl.hostname.trim();
-            if (host.length > 0 && !this.isLocalHost(host)) {
-                if (host.toLowerCase() === this.testingDraftPreviewHost) {
-                    return { domain: this.testingDraftPreviewFallbackDomain, source: 'urlHost' };
-                }
-
-                return { domain: host, source: 'urlHost' };
+        if (this.isBrowser && window.location?.hostname) {
+            const browserHost = resolveBrowserHostDomain(
+                window.location.hostname,
+                this.testingDraftPreviewHost,
+                this.testingDraftPreviewFallbackDomain,
+            );
+            if (browserHost) {
+                return browserHost;
             }
         }
 
-        if (this.isBrowser && window.location?.hostname) {
-            const host = window.location.hostname.trim();
+        if (requestUrl?.hostname) {
+            const host = requestUrl.hostname.trim();
             if (host.length > 0 && !this.isLocalHost(host)) {
                 if (host.toLowerCase() === this.testingDraftPreviewHost) {
                     return { domain: this.testingDraftPreviewFallbackDomain, source: 'urlHost' };
