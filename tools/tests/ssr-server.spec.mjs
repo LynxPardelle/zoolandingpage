@@ -554,6 +554,7 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
       },
     ],
   };
+  runtimeSiteConfig.runtime.contentHubs = runtimeSiteConfig.runtime.contentHubs[0];
   const runtimeBundleRequests = [];
   const apiBase = await startRuntimeApi(t, (req, res) => {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');

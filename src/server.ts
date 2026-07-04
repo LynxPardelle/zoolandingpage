@@ -2037,7 +2037,11 @@ function resolveConfiguredSitemapUrls(
 
 function readContentHubRuntimeConfigs(siteConfig: TLocalSiteConfig | null): readonly TContentHubRuntimeConfig[] {
   const hubs = siteConfig?.runtime?.contentHubs;
-  return Array.isArray(hubs) ? hubs.filter(isRecord) as readonly TContentHubRuntimeConfig[] : [];
+  if (Array.isArray(hubs)) {
+    return hubs.filter(isRecord) as readonly TContentHubRuntimeConfig[];
+  }
+
+  return isRecord(hubs) ? [hubs as TContentHubRuntimeConfig] : [];
 }
 
 function readContentHubPublicCollection<T>(collection: TContentHubPublicCollection<T> | undefined): readonly T[] {
