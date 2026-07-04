@@ -520,6 +520,89 @@ describe('ConfigSourceService', () => {
         }));
     });
 
+    it('lets the runtime choose the draft default language during SSR when the request has no lang', async () => {
+        TestBed.resetTestingModule();
+        (environment.drafts as { enabled: boolean }).enabled = false;
+        const zoositeSiteConfig: TDraftSiteConfigPayload = {
+            ...siteConfigPayload,
+            domain: 'zoositioweb.com.mx',
+            aliases: [],
+        };
+        const api = {
+            getRuntimeBundle: jasmine.createSpy('getRuntimeBundle').and.resolveTo(createRuntimeBundle({
+                domain: 'zoositioweb.com.mx',
+                pageId: 'blog',
+                siteConfig: zoositeSiteConfig,
+                metadata: {
+                    requestId: 'req-ssr-blog-default-lang',
+                    requestedDomain: 'zoositioweb.com.mx',
+                    resolvedAlias: null,
+                    resolvedPath: '/blog',
+                    statusCode: 200,
+                    notFound: false,
+                },
+            })),
+            getSiteConfig: jasmine.createSpy('getSiteConfig').and.resolveTo(null),
+            getPageConfig: jasmine.createSpy('getPageConfig').and.resolveTo(null),
+            getComponents: jasmine.createSpy('getComponents').and.resolveTo(null),
+            getVariables: jasmine.createSpy('getVariables').and.resolveTo(null),
+            getAngoraCombos: jasmine.createSpy('getAngoraCombos').and.resolveTo(null),
+            getI18n: jasmine.createSpy('getI18n').and.resolveTo(null),
+            getDebugWorkspacePageConfig: jasmine.createSpy('getDebugWorkspacePageConfig').and.resolveTo(null),
+            getDebugWorkspaceComponents: jasmine.createSpy('getDebugWorkspaceComponents').and.resolveTo(null),
+            getDebugWorkspaceAngoraCombos: jasmine.createSpy('getDebugWorkspaceAngoraCombos').and.resolveTo(null),
+        };
+
+        TestBed.configureTestingModule({
+            providers: [
+                ConfigSourceService,
+                { provide: PLATFORM_ID, useValue: 'server' },
+                {
+                    provide: REQUEST,
+                    useValue: {
+                        url: 'https://zoositioweb.com.mx/blog',
+                        headers: {
+                            host: 'zoositioweb.com.mx',
+                            'x-forwarded-proto': 'https',
+                        },
+                    },
+                },
+                { provide: ConfigApiService, useValue: api },
+                {
+                    provide: DraftConfigLoaderService,
+                    useValue: {
+                        loadSiteConfig: jasmine.createSpy('loadSiteConfig').and.resolveTo(null),
+                        loadPageConfig: jasmine.createSpy('loadPageConfig').and.resolveTo(null),
+                        loadComponents: jasmine.createSpy('loadComponents').and.resolveTo(null),
+                        loadVariables: jasmine.createSpy('loadVariables').and.resolveTo(null),
+                        loadAngoraCombos: jasmine.createSpy('loadAngoraCombos').and.resolveTo(null),
+                        loadI18n: jasmine.createSpy('loadI18n').and.resolveTo(null),
+                        loadDebugWorkspacePageConfig: jasmine.createSpy('loadDebugWorkspacePageConfig').and.resolveTo(null),
+                        loadDebugWorkspaceComponents: jasmine.createSpy('loadDebugWorkspaceComponents').and.resolveTo(null),
+                        loadDebugWorkspaceCombos: jasmine.createSpy('loadDebugWorkspaceCombos').and.resolveTo(null),
+                    },
+                },
+                ConfigStoreService,
+                {
+                    provide: LanguageService,
+                    useValue: {
+                        currentLanguage: () => 'en',
+                    },
+                },
+            ],
+        });
+
+        const service = TestBed.inject(ConfigSourceService);
+        const result = await service.loadSiteConfig('zoositioweb.com.mx');
+
+        expect(result?.domain).toBe('zoositioweb.com.mx');
+        expect(api.getRuntimeBundle).toHaveBeenCalledOnceWith('zoositioweb.com.mx', jasmine.objectContaining({
+            lang: '',
+            path: '/blog',
+            environment: undefined,
+        }));
+    });
+
     it('rejects a transferred or fallback runtime bundle that belongs to another domain', async () => {
         const service = TestBed.inject(ConfigSourceService);
         spyOn<any>(service, 'isSharedTestingPreviewHost').and.returnValue(true);

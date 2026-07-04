@@ -170,6 +170,10 @@ export class ConfigSourceService {
             return requestLang;
         }
 
+        if (!this.isBrowser) {
+            return '';
+        }
+
         const active = String(this.language.currentLanguage() ?? '').trim();
         return active || 'en';
     }
