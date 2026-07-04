@@ -39,6 +39,19 @@ describe('SearchBoxComponent', () => {
     expect(input.getAttribute('placeholder')).not.toContain('=>');
   });
 
+  it('should not render serialized function text as public placeholder copy', () => {
+    fixture.componentRef.setInput('config', {
+      minLength: 1,
+      placeholder: '()=>${let Ze=(component,g,host,T),Ht=se.map(Bt=>this.resolveArg(Bt))}',
+      suggestions: [],
+    });
+    fixture.detectChanges();
+
+    const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+    expect(input.getAttribute('placeholder')).toBe('Buscar');
+    expect(input.getAttribute('placeholder')).not.toContain('=>');
+  });
+
   it('should show results and allow keyboard selection', async () => {
     const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
     input.value = 'a';
