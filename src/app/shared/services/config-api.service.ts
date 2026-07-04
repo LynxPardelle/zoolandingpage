@@ -11,6 +11,7 @@ import { environment } from '@/environments/environment';
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, makeStateKey, REQUEST, TransferState } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { parseSsrRequestUrl } from '../utility/request/ssr-request-url.utility';
 
 const RUNTIME_BUNDLE_ENDPOINT = 'runtime-bundle';
 const RUNTIME_BUNDLE_TRANSFER_STATE_PREFIX = 'zlp-runtime-bundle:';
@@ -36,13 +37,9 @@ export class ConfigApiService {
     private readonly transferState = inject(TransferState, { optional: true });
 
     private resolveOrigin(): string {
-        const requestUrl = String(this.request?.url ?? '').trim();
+        const requestUrl = parseSsrRequestUrl(this.request);
         if (requestUrl) {
-            try {
-                return new URL(requestUrl, 'http://localhost').origin;
-            } catch {
-                // Fall through to browser or localhost origin.
-            }
+            return requestUrl.origin;
         }
 
         if (typeof window !== 'undefined' && window.location?.origin) {
@@ -53,13 +50,9 @@ export class ConfigApiService {
     }
 
     private resolveCurrentUrl(): URL | null {
-        const requestUrl = String(this.request?.url ?? '').trim();
+        const requestUrl = parseSsrRequestUrl(this.request);
         if (requestUrl) {
-            try {
-                return new URL(requestUrl, 'http://localhost');
-            } catch {
-                return null;
-            }
+            return requestUrl;
         }
 
         if (typeof window !== 'undefined' && window.location?.href) {

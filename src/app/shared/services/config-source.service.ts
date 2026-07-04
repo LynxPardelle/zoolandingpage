@@ -8,6 +8,7 @@ import type {
     TVariablesPayload,
 } from '@/app/shared/types/config-payloads.types';
 import { isRuntimeBundlePayload } from '@/app/shared/utility/config-validation/config-payload.validators';
+import { parseSsrRequestUrl, resolveSsrRequestHostname } from '@/app/shared/utility/request/ssr-request-url.utility';
 import { environment } from '@/environments/environment';
 import { isPlatformBrowser } from '@angular/common';
 import { inject, Injectable, PLATFORM_ID, REQUEST } from '@angular/core';
@@ -121,16 +122,7 @@ export class ConfigSourceService {
             return null;
         }
 
-        const requestUrl = String(this.request?.url ?? '').trim();
-        if (!requestUrl) {
-            return null;
-        }
-
-        try {
-            return new URL(requestUrl, 'http://localhost');
-        } catch {
-            return null;
-        }
+        return parseSsrRequestUrl(this.request);
     }
 
     private normalizePath(path: string): string {
@@ -319,13 +311,7 @@ export class ConfigSourceService {
             return this.normalizeHost(window.location?.hostname);
         }
 
-        const requestHeaders = this.request?.headers as Headers | undefined;
-        const forwardedHost = String(requestHeaders?.get?.('x-forwarded-host') ?? '')
-            .split(',')[0]
-            .trim();
-        const headerHost = String(requestHeaders?.get?.('host') ?? '').trim();
-        const requestUrl = this.parseRequestUrl();
-        return this.normalizeHost(forwardedHost || headerHost || requestUrl?.hostname);
+        return this.normalizeHost(resolveSsrRequestHostname(this.request));
     }
 
     private isSharedTestingPreviewHost(): boolean {

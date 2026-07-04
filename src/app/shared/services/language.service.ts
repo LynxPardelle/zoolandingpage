@@ -6,6 +6,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { computed, inject, Injectable, PLATFORM_ID, REQUEST, signal } from '@angular/core';
 import { formatLocaleLabel, normalizeLocaleCode, resolveBestLocaleMatch } from '../i18n/locale.utils';
 import { SupportedLanguage } from '../types/navigation.types';
+import { parseSsrRequestUrl } from '../utility/request/ssr-request-url.utility';
 import { DomainResolverService } from './domain-resolver.service';
 
 const FRAMEWORK_DEFAULT_LANGUAGE = 'en';
@@ -168,16 +169,7 @@ export class LanguageService {
   }
 
   private parseRequestUrl(): URL | null {
-    const requestUrl = String(this.request?.url ?? '').trim();
-    if (!requestUrl) {
-      return null;
-    }
-
-    try {
-      return new URL(requestUrl, 'http://localhost');
-    } catch {
-      return null;
-    }
+    return parseSsrRequestUrl(this.request);
   }
 
   private parseCurrentBrowserUrl(): URL | null {

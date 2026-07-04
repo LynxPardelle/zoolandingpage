@@ -148,6 +148,32 @@ describe('DomainResolverService', () => {
     });
   });
 
+  it('normalizes absolute local SSR URLs to the forwarded branded host', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        DomainResolverService,
+        { provide: PLATFORM_ID, useValue: 'server' },
+        {
+          provide: REQUEST,
+          useValue: {
+            url: 'http://127.0.0.1:4307/blog?lang=es',
+            headers: {
+              host: 'zoositioweb.com.mx',
+              'x-forwarded-proto': 'https',
+            },
+          },
+        },
+      ],
+    });
+
+    const service = TestBed.inject(DomainResolverService);
+
+    expect(service.resolveDomain()).toEqual({
+      domain: 'zoositioweb.com.mx',
+      source: 'urlHost',
+    });
+  });
+
   it('derives runtime-safe storage keys from the resolved domain', () => {
     TestBed.configureTestingModule({
       providers: [
