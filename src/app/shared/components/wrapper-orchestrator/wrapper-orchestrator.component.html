@@ -46,32 +46,26 @@
   ></ng-container>
 </generic-container>
 } @case('dropdown') {
-@defer (on viewport) {
-  <generic-dropdown
-    [items]="component.config.items"
-    [config]="component.config.dropdownConfig || null"
-    (selectItem)="
-      eventEmitted({
-        component: component.id,
-        meta_title: component.meta_title,
-        eventName: 'selectItem',
-        eventData: $event,
-        eventInstructions: component.eventInstructions
-      })
-    "
-  >
-    <ng-container trigger>
-      <ng-container
-        [ngTemplateOutlet]="wrapperOrchestratorTpl"
-        [ngTemplateOutletContext]="{ $implicit: component }"
-      ></ng-container>
-    </ng-container>
-  </generic-dropdown>
-} @placeholder {
-  <span aria-hidden="true"></span>
-} @error {
-  <span aria-hidden="true"></span>
-}
+<generic-dropdown
+  [items]="component.config.items"
+  [config]="component.config.dropdownConfig || null"
+  (selectItem)="
+    eventEmitted({
+      component: component.id,
+      meta_title: component.meta_title,
+      eventName: 'selectItem',
+      eventData: $event,
+      eventInstructions: component.eventInstructions
+    })
+  "
+>
+  <ng-container trigger>
+    <ng-container
+      [ngTemplateOutlet]="wrapperOrchestratorTpl"
+      [ngTemplateOutletContext]="{ $implicit: component }"
+    ></ng-container>
+  </ng-container>
+</generic-dropdown>
 } @case('embed-frame') {
 @defer (on viewport) {
   <generic-embed-frame [config]="$any(embedFrameConfig(component))"></generic-embed-frame>

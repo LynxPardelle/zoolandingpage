@@ -22,8 +22,10 @@ import { resolveLocaleMapValue } from '../../i18n/locale.utils';
 import { AngoraCombosService } from '../../services/angora-combos.service';
 import { LanguageService } from '../../services/language.service';
 import { OverlayPositioningService } from '../../services/overlay-positioning.service';
+import { DRAFT_RUNTIME_STICKY_QUERY_PARAMS } from '../../services/draft-runtime.service';
 import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
-import { toNavigationHref } from '../../utility/navigation/navigation-target.utility';
+import { navigateInCurrentWindow } from '../../utility/navigation/browser-navigation.utility';
+import { resolveNavigationTarget, toNavigationHref } from '../../utility/navigation/navigation-target.utility';
 import { GenericButtonComponent } from '../generic-button/generic-button.component';
 import type {
   DropdownConfig,
@@ -330,6 +332,17 @@ export class GenericDropdown {
     this.handleSelect(it);
   }
 
+  onItemClick(event: MouseEvent, item: DropdownItem): void {
+    event.preventDefault();
+    if (this.itemDisabled(item)) return;
+
+    const href = this.itemHref(item);
+    this.handleSelect(item);
+    if (this.itemHasNavigationTarget(item) && href && href !== '#') {
+      navigateInCurrentWindow(href);
+    }
+  }
+
   @HostListener('keydown', ['$event']) onHostKey(e: KeyboardEvent): void {
     if (!this.opened()) {
       if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && !e.altKey) {
@@ -475,11 +488,25 @@ export class GenericDropdown {
       (item as Record<string, unknown>)['href']
     );
     if (typeof explicitHref === 'string' && explicitHref.trim().length > 0) {
-      return toNavigationHref(explicitHref) || '#';
+      return this.navigationHref(explicitHref);
     }
 
     const value = this.itemValue(item).trim();
-    return toNavigationHref(value) || '#';
+    return this.navigationHref(value);
+  }
+
+  private navigationHref(value: unknown): string {
+    return resolveNavigationTarget(toNavigationHref(value), {
+      stickyQueryParams: DRAFT_RUNTIME_STICKY_QUERY_PARAMS,
+    }).href || '#';
+  }
+
+  private itemHasNavigationTarget(item: DropdownItem): boolean {
+    const explicitHref = this.resolveValue((item as Record<string, unknown>)['href']);
+    if (typeof explicitHref === 'string' && explicitHref.trim().length > 0) return true;
+
+    const value = this.itemValue(item).trim();
+    return value.startsWith('/') || value.startsWith('#') || /^[a-z][a-z0-9+.-]*:/i.test(value);
   }
 
   itemAriaLabel(item: DropdownItem): string {
