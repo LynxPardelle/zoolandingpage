@@ -3,6 +3,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { computed, DestroyRef, inject, Injectable, NgZone, PLATFORM_ID, REQUEST, signal } from '@angular/core';
 import { navigateInCurrentWindow } from '../utility/navigation/browser-navigation.utility';
 import { isMissingPublishedContentHubPublicPath } from '../utility/content-hub/content-hub-public-route';
+import { parseSsrRequestUrl } from '../utility/request/ssr-request-url.utility';
 import { matchDraftRoute, normalizeDraftRoutePath } from '../utility/route-matching/draft-route-matching';
 import type { TComponentsPayload, TDraftSiteConfigPayload, TDraftSiteRouteEntry, TPageConfigPayload } from '../types/config-payloads.types';
 import { ConfigSourceService } from './config-source.service';
@@ -96,16 +97,7 @@ export class DraftRuntimeService {
     });
 
     private parseRequestUrl(): URL | null {
-        const requestUrl = String(this.request?.url ?? '').trim();
-        if (!requestUrl) {
-            return null;
-        }
-
-        try {
-            return new URL(requestUrl, 'http://localhost');
-        } catch {
-            return null;
-        }
+        return parseSsrRequestUrl(this.request);
     }
 
     private readSearchParam(params: URLSearchParams, key: string): string {

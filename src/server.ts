@@ -2451,6 +2451,87 @@ function decorateProtectedSsrShellHtml(html: string, siteConfig: TLocalSiteConfi
   return injectProtectedSsrOverlay(markedHtml, buildProtectedSsrShellContent(lang));
 }
 
+function buildNotFoundSsrShellContent(siteConfig: TLocalSiteConfig | null, lang: string): string {
+  const normalizedLang = normalizeLanguageCode(lang);
+  const title = normalizedLang === 'en'
+    ? 'Page not found'
+    : 'Página no encontrada';
+  const message = normalizedLang === 'en'
+    ? 'This route is not published or is no longer available.'
+    : 'Esta ruta no está publicada o ya no está disponible.';
+  const homeLabel = normalizedLang === 'en'
+    ? 'Go to home'
+    : 'Ir al inicio';
+  const homeHref = normalizeRoutePath(resolveLocalRoute(siteConfig, '/')?.path ?? '/');
+
+  return [
+    '<style data-zlp-not-found-ssr-style="">',
+    'app-root[data-zlp-not-found-shell="true"]{display:none!important;visibility:hidden!important}',
+    '.zlp-not-found-ssr{min-height:100vh;display:grid;place-items:center;padding:clamp(1.25rem,4vw,3rem);background:var(--ank-bgColor,#f8fafc);color:var(--ank-textColor,#17202a)}',
+    '.zlp-not-found-ssr__panel{width:min(34rem,100%);padding:clamp(1.25rem,3vw,2rem);border:1px solid color-mix(in srgb,var(--ank-accentColor,#0f948c) 28%,transparent);border-radius:.5rem;background:var(--ank-secondaryBgColor,#fff);box-shadow:0 1.25rem 3.5rem rgba(15,23,42,.14)}',
+    '.zlp-not-found-ssr__eyebrow{margin:0 0 .75rem;font-size:.78rem;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:var(--ank-accentColor,#0f948c)}',
+    '.zlp-not-found-ssr__title{margin:0;font-size:clamp(2rem,5vw,3rem);line-height:1.05;font-weight:900;color:var(--ank-titleColor,#111827)}',
+    '.zlp-not-found-ssr__message{margin:1rem 0 0;font-size:1rem;line-height:1.55;color:var(--ank-secondaryTextColor,#334155)}',
+    '.zlp-not-found-ssr__link{display:inline-flex;align-items:center;justify-content:center;min-height:48px;margin-top:1.25rem;padding:.7rem 1rem;border-radius:.5rem;background:var(--ank-accentColor,#0f948c);color:var(--ank-onSuccessColor,#06110f);font-weight:900;text-decoration:none}',
+    '</style>',
+    '<main class="zlp-not-found-ssr" data-zlp-not-found-ssr="">',
+    '<section class="zlp-not-found-ssr__panel" aria-labelledby="zlp-not-found-title">',
+    '<p class="zlp-not-found-ssr__eyebrow">404</p>',
+    '<h1 id="zlp-not-found-title" class="zlp-not-found-ssr__title">',
+    escapeHtmlText(title),
+    '</h1>',
+    '<p class="zlp-not-found-ssr__message">',
+    escapeHtmlText(message),
+    '</p>',
+    '<a class="zlp-not-found-ssr__link" href="',
+    escapeHtmlAttribute(homeHref),
+    '">',
+    escapeHtmlText(homeLabel),
+    '</a>',
+    '</section>',
+    '</main>',
+  ].join('');
+}
+
+function markNotFoundAppRootTag(tag: string): string {
+  return setHtmlAttribute(
+    setHtmlAttribute(markProtectedAppRootTag(tag), 'data-zlp-not-found-shell', 'true'),
+    'aria-hidden',
+    'true',
+  );
+}
+
+function replaceNotFoundSsrAppRootContent(html: string): string {
+  if (/<app-root\b[\s\S]*?<\/app-root>/i.test(html)) {
+    return html.replace(/<app-root\b[^>]*>[\s\S]*?<\/app-root>/i, (match) => {
+      const openingTag = match.match(/^<app-root\b[^>]*>/i)?.[0] ?? '<app-root>';
+      return `${markNotFoundAppRootTag(openingTag)}</app-root>`;
+    });
+  }
+
+  return html.replace(/<app-root\b[^>]*>/i, (tag) => markNotFoundAppRootTag(tag));
+}
+
+function buildNotFoundSsrTitle(siteConfig: TLocalSiteConfig | null, lang: string): string {
+  const normalizedLang = normalizeLanguageCode(lang);
+  const title = normalizedLang === 'en'
+    ? 'Page not found'
+    : 'Página no encontrada';
+  const siteName = resolveLocalizedSeoString(siteConfig?.site?.seo?.siteName, normalizedLang)
+    || cleanString(siteConfig?.domain)
+    || 'ZoolandingPage';
+
+  return `${title} | ${siteName}`;
+}
+
+function decorateNotFoundSsrShellHtml(html: string, siteConfig: TLocalSiteConfig | null, lang: string): string {
+  const markedHtml = replaceDocumentTitle(
+    removeAngularHydrationContract(replaceNotFoundSsrAppRootContent(html)),
+    buildNotFoundSsrTitle(siteConfig, lang),
+  );
+  return injectProtectedSsrOverlay(markedHtml, buildNotFoundSsrShellContent(siteConfig, lang));
+}
+
 function readStructuredDataEntries(pageConfig: TLocalPageConfig | null): readonly unknown[] {
   const structuredData = pageConfig?.structuredData;
   if (Array.isArray(structuredData)) {
@@ -3027,12 +3108,15 @@ async function decorateHtmlResponse(req: express.Request, response: Response): P
     hreflangHeadHtml,
   ].filter(Boolean).join('\n');
 
-  const decoratedHtml = decorateProtectedSsrShellHtml(
+  const baseDecoratedHtml = decorateProtectedSsrShellHtml(
     decorateBootCurtainHtml(injectHeadHtml(html, headHtml), siteConfig),
     siteConfig,
     req.path,
     requestLang,
   );
+  const decoratedHtml = effectiveStatus === 404
+    ? decorateNotFoundSsrShellHtml(baseDecoratedHtml, siteConfig, requestLang)
+    : baseDecoratedHtml;
 
   return new Response(decoratedHtml, {
     headers,

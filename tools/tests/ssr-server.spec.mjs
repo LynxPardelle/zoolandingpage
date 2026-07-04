@@ -748,6 +748,21 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.equal(slugSearch.articles[0].path, '/blog/web/blog-builder-seo');
   assertNoContentHubOperationalLeak(JSON.stringify(slugSearch));
 
+  const blogIndexResponse = await fetch(`http://127.0.0.1:${port}/blog?lang=es`, { headers });
+  const blogIndexHtml = await blogIndexResponse.text();
+  const blogIndexVisibleHtml = stripNonVisibleHtml(blogIndexHtml);
+  assert.equal(blogIndexResponse.status, 200);
+  assert.doesNotMatch(blogIndexHtml, /data-zlp-not-found-ssr|Página no encontrada \| ZoolandingPage/);
+  assert.match(blogIndexHtml, /<link rel="canonical" href="https:\/\/zoositioweb\.com\.mx\/blog">/);
+  assert.match(blogIndexHtml, /<meta name="robots" content="index,follow,max-image-preview:large">/);
+  assert.doesNotMatch(blogIndexVisibleHtml, /\(\)=>|\{component|this\.resol/);
+
+  const blogSalesResponse = await fetch(`http://127.0.0.1:${port}/blogs?lang=es`, { headers });
+  const blogSalesHtml = await blogSalesResponse.text();
+  assert.equal(blogSalesResponse.status, 200);
+  assert.doesNotMatch(blogSalesHtml, /data-zlp-not-found-ssr|Página no encontrada \| ZoolandingPage/);
+  assert.match(blogSalesHtml, /<link rel="canonical" href="https:\/\/zoositioweb\.com\.mx\/blogs">/);
+
   const previewHeaders = {
     ...headers,
     Host: 'test.zoolandingpage.com.mx',
