@@ -564,6 +564,52 @@ describe('Zoosite blog admin draft pages', () => {
     }
   });
 
+  it('keeps the public blog index visually complete and routes blog-service CTAs to /blogs', async () => {
+    const siteConfig = await readJson('site-config.json');
+    const blogComponents = flattenComponents(await readJson('blog/components.json'));
+    const articleComponents = flattenComponents(await readJson('blog-article/components.json'));
+    const blogsPage = await readJson('blogs/page-config.json');
+    const blogsComponents = flattenComponents(await readJson('blogs/components.json'));
+    const routes = siteConfig.routes ?? [];
+    const blogsRouteIndex = routes.findIndex((route) => route.path === '/blogs');
+    const dynamicBlogRouteIndex = routes.findIndex((route) => route.path === '/blog/:categorySlug');
+    const discovery = componentById(blogComponents, 'blogDiscovery');
+    const search = componentById(blogComponents, 'blogSearch');
+    const articleList = componentById(blogComponents, 'blogArticleList');
+    const cardTemplate = componentById(blogComponents, 'blogArticleCardTemplate');
+    const footerCta = componentById(blogComponents, 'blogFooterCta');
+    const articleCta = componentById(articleComponents, 'blogArticleCta');
+    const publicArticles = siteConfig.runtime?.contentHubs?.flatMap((hub) => hub.publicArticles ?? []) ?? [];
+
+    assert.ok(blogsRouteIndex > -1, 'site-config.json must expose /blogs');
+    assert.ok(blogsRouteIndex < dynamicBlogRouteIndex, '/blogs must be registered before /blog/:categorySlug');
+    assert.deepEqual(blogsPage.rootIds, ['skipToMainLink', 'siteHeader', 'blogsPage', 'floatingWhatsAppCta', 'siteFooter']);
+    assert.ok(blogsComponents.some((component) => component.id === 'blogsPrimaryCta'), 'blogs page must include a primary CTA');
+
+    assert.match(String(discovery?.config?.classes ?? ''), /ank-flexDirection-column/);
+    assert.doesNotMatch(JSON.stringify(search), /=>\s*\{/u);
+    assert.match(String(search?.config?.placeholder ?? ''), /Buscar|Search/u);
+    assert.match(String(articleList?.config?.styles?.gridAutoRows ?? ''), /1fr/);
+    assert.match(String(cardTemplate?.config?.classes ?? ''), /ank-height-100per/);
+    assert.match(String(cardTemplate?.config?.imageSrc ?? ''), /^https:\/\//u);
+    assert.match(String(cardTemplate?.config?.imageContainerClasses ?? ''), /ank-height-180px/);
+    assert.equal(cardTemplate?.config?.icon, undefined);
+    assert.equal(footerCta?.config?.href, '/blogs');
+    assert.equal(articleCta?.config?.href, '/blogs');
+    assert.ok(publicArticles.length > 0, 'site-config.json must expose public blog articles');
+    for (const article of publicArticles) {
+      assert.match(String(article.imageSrc ?? ''), /^https:\/\//u, `${article.articleId} must provide a cover image`);
+      assert.ok(String(article.imageAlt ?? '').trim().length > 0, `${article.articleId} must provide cover alt text`);
+    }
+
+    for (const language of ['es', 'en']) {
+      const translations = await readJson(`blog/i18n/${language}.json`);
+      const placeholder = translations.dictionary?.blog?.searchPlaceholder;
+      assert.equal(typeof placeholder, 'string');
+      assert.doesNotMatch(placeholder, /=>|\{|\}/u);
+    }
+  });
+
   it('implements the article index controls required by phase 6', async () => {
     const payload = await readJson('admin-blog-articulos/components.json');
     const components = flattenComponents(payload);

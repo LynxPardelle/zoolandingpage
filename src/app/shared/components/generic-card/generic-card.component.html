@@ -54,8 +54,8 @@
     />
   </div>
   }
+  @if (icon()) {
   <div [class]="classValue('featureIconContainerClasses')">
-    @if (icon()) {
     <generic-icon
       [config]="{
         iconName: icon(),
@@ -63,8 +63,8 @@
         ariaHidden: true
       }"
     />
-    }
   </div>
+  }
   <h3 [class]="classValue('featureTitleClasses')">{{ title() }}</h3>
   <p [class]="classValue('featureDescriptionClasses')">{{ description() }}</p>
   @if (benefits().length) {
