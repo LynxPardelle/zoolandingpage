@@ -1161,6 +1161,8 @@ describe('config-payload.validators', () => {
                                 authorLabel: 'Equipo zoositioweb',
                                 canonicalPath: '/blog/web/blog-builder-seo',
                                 robots: 'index,follow',
+                                imageSrc: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3',
+                                imageAlt: 'Equipo revisando contenido visual',
                                 commentPolicy: 'authenticated',
                                 contentSafety: {
                                     rating: 'general',
@@ -1432,6 +1434,25 @@ describe('config-payload.validators', () => {
                 }],
             },
         })).withContext('unsafe public interaction moderation').toBeFalse();
+
+        expect(isDraftSiteConfigPayload({
+            ...base,
+            runtime: {
+                contentHubs: [{
+                    ...baseHub,
+                    publicArticles: [{
+                        articleId: 'art_20260620_blog_builder',
+                        locale: 'es',
+                        status: 'published',
+                        title: 'Artículo',
+                        path: '/blog/web/blog-builder-seo',
+                        publishedAt: '2026-06-21T15:00:00.000Z',
+                        imageSrc: 'javascript:alert(1)',
+                        imageAlt: 'Portada',
+                    }],
+                }],
+            },
+        })).withContext('unsafe public article image source').toBeFalse();
     });
 
     it('rejects server-only content hub runtime data source and action fields', () => {
