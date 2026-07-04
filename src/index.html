@@ -41,6 +41,12 @@
         --zlp-boot-accent: var(--ank-accentColor, #25d366);
       }
 
+      :root[data-zlp-boot-use-alt="true"] {
+        --zlp-boot-bg: var(--ank-altBgColor, var(--ank-bgColor, #11161d));
+        --zlp-boot-fg: var(--ank-altTextColor, var(--ank-textColor, #edf3f8));
+        --zlp-boot-accent: var(--ank-altAccentColor, var(--ank-accentColor, #25d366));
+      }
+
       .zlp-boot-curtain {
         position: fixed;
         inset: 0;
@@ -194,6 +200,7 @@
           var canUseDraftParam = isLocal || String(window.location.hostname || "").toLowerCase() === "test.zoolandingpage.com.mx";
           var draftDomain = params.get("draftDomain");
           var namespace = token(draftDomain && canUseDraftParam ? draftDomain : window.location.hostname) || "app";
+          var ssrTheme = resolveTheme(document.documentElement.getAttribute("data-zlp-ssr-theme"));
           var theme = resolveTheme(window.localStorage.getItem(namespace + ":theme"));
 
           if (!theme && window.localStorage) {
@@ -212,6 +219,9 @@
 
           if (theme) {
             document.documentElement.setAttribute("data-zlp-boot-theme", theme);
+            if (ssrTheme && theme !== ssrTheme) {
+              document.documentElement.setAttribute("data-zlp-boot-use-alt", "true");
+            }
           }
         } catch {
           // Keep CSS media-query fallback when storage is unavailable.

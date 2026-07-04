@@ -90,6 +90,26 @@ const PLATFORM_FRONT_DOOR_HOSTS = new Set([
   'zoolandingpage.com.mx',
   'test.zoolandingpage.com.mx',
 ]);
+const SSR_THEME_COLOR_KEYS = [
+  'bgColor',
+  'textColor',
+  'titleColor',
+  'linkColor',
+  'accentColor',
+  'secondaryBgColor',
+  'secondaryTextColor',
+  'secondaryTitleColor',
+  'secondaryLinkColor',
+  'secondaryAccentColor',
+  'successColor',
+  'onSuccessColor',
+  'errorColor',
+  'onErrorColor',
+  'warningColor',
+  'onWarningColor',
+  'infoColor',
+  'onInfoColor',
+];
 
 type TRuntimeEnvironment = 'local' | 'test' | 'production';
 
@@ -1670,7 +1690,7 @@ function createAngularSsrRequest(req: express.Request): Request | express.Reques
   }
 
   const protocol = readFirstHeaderHost(req.headers['x-forwarded-proto']) || req.protocol || 'https';
-  const baseUrl = protocol + '://' + effectiveHost;
+  const baseUrl = `${ protocol }://${ effectiveHost }`;
   const rawUrl = String(req.originalUrl || req.url || '/');
   let requestUrl: URL;
 
@@ -1689,7 +1709,7 @@ function createAngularSsrRequest(req: express.Request): Request | express.Reques
       || (isPlatformFrontDoorHost(parsedHost) && !isPlatformFrontDoorHost(effectiveHost))
     )
   ) {
-    requestUrl = new URL(requestUrl.pathname + requestUrl.search + requestUrl.hash, baseUrl);
+    requestUrl = new URL(`${ requestUrl.pathname }${ requestUrl.search }${ requestUrl.hash }`, baseUrl);
   }
 
   const headers = new Headers();
@@ -2368,6 +2388,37 @@ function isSafeBootCurtainCssValue(value: string): boolean {
   return value.length > 0 && !/[;{}]/.test(value) && !/url\s*\(/i.test(value);
 }
 
+function resolveThemePalette(siteConfig: TLocalSiteConfig | null, mode: 'light' | 'dark'): Record<string, unknown> | null {
+  const site = isRecord(siteConfig?.site) ? siteConfig.site : {};
+  const theme = readRecordEntry(site, 'theme');
+  const palettes = readRecordEntry(theme, 'palettes');
+  return readRecordEntry(palettes, mode);
+}
+
+function buildSsrThemeStyleEntries(siteConfig: TLocalSiteConfig | null): string[] {
+  const mode = resolveSsrThemeMode(siteConfig) === 'dark' ? 'dark' : 'light';
+  const altMode = mode === 'dark' ? 'light' : 'dark';
+  const currentPalette = resolveThemePalette(siteConfig, mode);
+  const altPalette = resolveThemePalette(siteConfig, altMode);
+  const entries: string[] = [];
+
+  for (const key of SSR_THEME_COLOR_KEYS) {
+    const value = readStringEntry(currentPalette, key);
+    if (isSafeBootCurtainCssValue(value)) {
+      entries.push(`--ank-${key}: ${value}`);
+    }
+  }
+
+  for (const key of SSR_THEME_COLOR_KEYS) {
+    const value = readStringEntry(altPalette, key);
+    if (isSafeBootCurtainCssValue(value)) {
+      entries.push(`--ank-alt${key[0].toUpperCase()}${key.slice(1)}: ${value}`);
+    }
+  }
+
+  return entries;
+}
+
 function resolveBootCurtainConfig(siteConfig: TLocalSiteConfig | null): Record<string, string> {
   const defaults = isRecord(siteConfig?.defaults) ? siteConfig.defaults : {};
   const site = isRecord(siteConfig?.site) ? siteConfig.site : {};
@@ -2400,6 +2451,12 @@ function resolveBootCurtainConfig(siteConfig: TLocalSiteConfig | null): Record<s
   };
 }
 
+function resolveSsrThemeMode(siteConfig: TLocalSiteConfig | null): string {
+  const site = isRecord(siteConfig?.site) ? siteConfig.site : {};
+  const theme = readRecordEntry(site, 'theme');
+  return readStringEntry(theme, 'defaultMode') === 'dark' ? 'dark' : 'light';
+}
+
 function setHtmlAttribute(tag: string, name: string, value: string): string {
   const withoutExisting = tag.replace(new RegExp(`\\s${name}(?:=(?:"[^"]*"|'[^']*'|[^\\s>]+))?`, 'gi'), '');
   return withoutExisting.replace(/\s*\/?>$/, (ending) => ` ${name}="${escapeHtmlAttribute(value)}"${ending}`);
@@ -2409,12 +2466,31 @@ function removeHtmlAttribute(tag: string, name: string): string {
   return tag.replace(new RegExp(`\\s${name}(?:=(?:"[^"]*"|'[^']*'|[^\\s>]+))?`, 'gi'), '');
 }
 
+function setHtmlStyleVariables(tag: string, entries: string[]): string {
+  if (entries.length === 0) {
+    return tag;
+  }
+
+  const styleMatch = tag.match(/\sstyle=(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
+  const existingStyle = styleMatch?.[1] ?? styleMatch?.[2] ?? styleMatch?.[3] ?? '';
+  const cleanedStyle = existingStyle
+    .replace(/(?:^|;)\s*--ank-[^:;]+:\s*[^;]*/g, '')
+    .replace(/;\s*;/g, ';')
+    .replace(/^;\s*/, '')
+    .trim();
+  const themeStyle = entries.join('; ');
+  const style = `${cleanedStyle ? `${cleanedStyle}; ` : ''}${themeStyle}`;
+
+  return setHtmlAttribute(removeHtmlAttribute(tag, 'style'), 'style', style);
+}
+
 function decorateBootCurtainHtml(html: string, siteConfig: TLocalSiteConfig | null): string {
   if (!html.includes('id="zlp-boot-curtain"')) {
     return html;
   }
 
   const config = resolveBootCurtainConfig(siteConfig);
+  const themeStyleEntries = buildSsrThemeStyleEntries(siteConfig);
   const styleEntries = [
     ['--zlp-boot-bg', config['background']],
     ['--zlp-boot-fg', config['foreground']],
@@ -2424,6 +2500,10 @@ function decorateBootCurtainHtml(html: string, siteConfig: TLocalSiteConfig | nu
     .map(([name, value]) => `${name}: ${value}`);
 
   return html
+    .replace(/<html\b[^>]*>/i, (tag) => setHtmlStyleVariables(
+      setHtmlAttribute(tag, 'data-zlp-ssr-theme', resolveSsrThemeMode(siteConfig)),
+      themeStyleEntries,
+    ))
     .replace(
       /(<[^>]+data-zlp-boot-title[^>]*>)([\s\S]*?)(<\/[^>]+>)/i,
       (_match, open: string, _content: string, close: string) => `${open}${escapeHtmlText(config['title'])}${close}`,

@@ -267,6 +267,54 @@ test('production SSR shared preview decorates head with the test runtime environ
       },
     },
     site: {
+      theme: {
+        defaultMode: 'light',
+        palettes: {
+          light: {
+            bgColor: '#fafafa',
+            textColor: '#222222',
+            titleColor: '#111111',
+            linkColor: '#b00020',
+            accentColor: '#c7a900',
+            secondaryBgColor: '#f0f0f0',
+            secondaryTextColor: '#333333',
+            secondaryTitleColor: '#222222',
+            secondaryLinkColor: '#b00020',
+            secondaryAccentColor: '#dddddd',
+            successColor: '#198754',
+            onSuccessColor: '#052e1c',
+            errorColor: '#dc3545',
+            onErrorColor: '#fff5f5',
+            warningColor: '#f59e0b',
+            onWarningColor: '#3a2400',
+            infoColor: '#0d6efd',
+            onInfoColor: '#041b44',
+          },
+          dark: {
+            bgColor: '#101010',
+            textColor: '#f5f5f5',
+            titleColor: '#ffffff',
+            linkColor: '#ff6b8a',
+            accentColor: '#f3c63b',
+            secondaryBgColor: '#1f1f1f',
+            secondaryTextColor: '#dddddd',
+            secondaryTitleColor: '#ffffff',
+            secondaryLinkColor: '#ff6b8a',
+            secondaryAccentColor: '#444444',
+            successColor: '#32d583',
+            onSuccessColor: '#f3fff8',
+            errorColor: '#ff6b6b',
+            onErrorColor: '#fff5f5',
+            warningColor: '#f3c63b',
+            onWarningColor: '#1f1600',
+            infoColor: '#8bb5f0',
+            onInfoColor: '#f5fbff',
+          },
+        },
+      },
+      icons: {
+        favicon: 'https://assets.example.com/current-test-brand.png',
+      },
       seo: {
         siteName: brand,
         canonicalOrigin: 'https://preview.example.com',
@@ -352,6 +400,9 @@ test('production SSR shared preview decorates head with the test runtime environ
   assert.match(body, /Current Test Brand/);
   assert.doesNotMatch(body, /Old Production Brand/);
   assert.match(body, /data-zlp-boot-title="">Current Test Brand<\/strong>/);
+  assert.match(body, /<html\b[^>]*data-zlp-ssr-theme="light"/);
+  assert.match(body, /<html\b[^>]*style="[^"]*--ank-bgColor: #fafafa[^"]*--ank-altBgColor: #101010/i);
+  assert.match(body, /data-zlp-boot-logo=""[^>]*src="https:\/\/assets\.example\.com\/current-test-brand\.png"/);
   assert(requests.some((request) => request.environment === 'test'));
   assert.equal(getStderr(), '');
 });
@@ -1211,7 +1262,7 @@ test('production SSR server renders a published canonical custom host from local
 
 test('production SSR server prefers forwarded custom host behind platform front door', async (t) => {
   const { port } = await startProductionServer(t);
-  const response = await fetch('http://127.0.0.1:' + port + '/blog', {
+  const response = await fetch(`http://127.0.0.1:${port}/blog`, {
     headers: {
       Host: 'zoolandingpage.com.mx',
       'X-Forwarded-Host': 'zoositioweb.com.mx',
