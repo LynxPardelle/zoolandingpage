@@ -312,7 +312,7 @@ export class ConfigApiService {
 
         const url = this.buildUrlForBase(this.resolveConfigApiBaseUrl(), path, params);
         const fallbackUrl = this.resolveRuntimeFallbackUrl(path, params);
-        if (fallbackUrl) {
+        if (fallbackUrl && this.isServerRequest()) {
             try {
                 const payload = await this.fetchJson<T>(fallbackUrl);
                 this.writeCachedRuntimeBundle(runtimeCacheKey, payload);
@@ -324,9 +324,19 @@ export class ConfigApiService {
             }
         }
 
-        const payload = await firstValueFrom(this.http.get<T>(url));
-        this.writeCachedRuntimeBundle(runtimeCacheKey, payload);
-        return payload;
+        try {
+            const payload = await firstValueFrom(this.http.get<T>(url));
+            this.writeCachedRuntimeBundle(runtimeCacheKey, payload);
+            return payload;
+        } catch (error) {
+            if (!fallbackUrl) {
+                throw error;
+            }
+
+            const payload = await this.fetchJson<T>(fallbackUrl);
+            this.writeCachedRuntimeBundle(runtimeCacheKey, payload);
+            return payload;
+        }
     }
 
     getSiteConfig(domain: string): Promise<TDraftSiteConfigPayload> {
