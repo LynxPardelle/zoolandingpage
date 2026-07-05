@@ -11,6 +11,7 @@ import { environment } from './environments/environment';
 const BOOT_CURTAIN_ID = 'zlp-boot-curtain';
 const BOOT_CURTAIN_EXIT_CLASS = 'zlp-boot-curtain--leaving';
 const BOOT_CURTAIN_EXIT_DURATION_MS = 420;
+const STATIC_ANGORA_READINESS_SELECTOR = '.sectionTitle, .sectionSubtitle, .heroCaption';
 let bootstrapPromise: Promise<void> | null = null;
 let bootstrapTimer: number | null = null;
 let bootCurtainTimer: number | null = null;
@@ -100,6 +101,19 @@ function startBootstrap(): void {
     void bootstrapClient();
 }
 
+function hasStaticAngoraReadinessHooks(root: Element | null): boolean {
+    return !!root?.querySelector(STATIC_ANGORA_READINESS_SELECTOR);
+}
+
+function bootstrapStaticSsrContentWithRuntimeCurtain(): void {
+    removeBootstrapStartListeners();
+    clearBootCurtainFallbackTimer();
+    void bootstrapClient();
+    bootCurtainFallbackTimer = window.setTimeout(() => {
+        releaseBootCurtainForStaticSsrContent({ allowIncompleteCriticalStyles: true });
+    }, STATIC_BOOT_CURTAIN_FALLBACK_MS);
+}
+
 function scheduleBootstrapAfterDocumentReady(): void {
     clearBootstrapTimer();
 
@@ -115,6 +129,11 @@ function scheduleBootstrapAfterDocumentReady(): void {
         removeBootstrapStartListeners();
         clearBootCurtainFallbackTimer();
         void bootstrapClient();
+        return;
+    }
+
+    if (hasStaticAngoraReadinessHooks(appRoot)) {
+        bootstrapStaticSsrContentWithRuntimeCurtain();
         return;
     }
 
