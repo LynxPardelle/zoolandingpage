@@ -403,7 +403,7 @@ describe('RuntimeService', () => {
         expect(hideLoadingCurtain).toHaveBeenCalledWith('rendered-components-css-updated');
     });
 
-    it('does not wait for the full CSS timeout when rendered text is already safe', async () => {
+    it('waits for the full CSS timeout when rendered text is safe but Angora CSS is not ready', async () => {
         let now = 0;
         const dateNowSpy = spyOn(Date, 'now').and.callFake(() => now);
 
@@ -419,6 +419,12 @@ describe('RuntimeService', () => {
             expect(hideLoadingCurtain).not.toHaveBeenCalledWith('rendered-components-css-updated');
 
             now = 3_000;
+            await new Promise<void>((resolve) => window.setTimeout(resolve, 300));
+            await flushCssReadinessPasses();
+
+            expect(hideLoadingCurtain).not.toHaveBeenCalledWith('rendered-components-css-updated');
+
+            now = 20_500;
             await new Promise<void>((resolve) => window.setTimeout(resolve, 300));
             await flushCssReadinessPasses();
 

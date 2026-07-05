@@ -468,7 +468,7 @@ describe('AngoraCombosService', () => {
         }
     });
 
-    it('keeps combo CSS pending when the marker exists but the rendered color is stale', async () => {
+    it('keeps critical text combo CSS pending when the marker exists but the rendered color is stale', async () => {
         const service = configure('browser');
         const style = document.createElement('style');
         const element = document.createElement('h1');
@@ -476,10 +476,10 @@ describe('AngoraCombosService', () => {
         const previousTitleColor = rootStyle.getPropertyValue('--ank-titleColor');
         style.textContent = `
             :root { --ank-titleColor: rgb(32, 23, 18); }
-            .ank-colorSEL__COM_qaCombo-titleColor, .qaCombo { color: rgb(250, 250, 250); }
+            .ank-colorSEL__COM_sectionTitle-titleColor, .sectionTitle { color: rgb(250, 250, 250); }
         `;
         rootStyle.setProperty('--ank-titleColor', 'rgb(32, 23, 18)');
-        element.className = 'qaCombo';
+        element.className = 'sectionTitle';
         element.textContent = 'Title';
         document.head.appendChild(style);
         document.body.appendChild(element);
@@ -487,11 +487,45 @@ describe('AngoraCombosService', () => {
         cssCreate.and.callFake((classes?: string[], primordial?: boolean) => {
             if (classes === undefined && primordial === true) {
                 style.sheet?.insertRule(
-                    '.ank-colorSEL__COM_qaCombo-titleColor, .qaCombo { color: var(--ank-titleColor); }',
+                    '.ank-colorSEL__COM_sectionTitle-titleColor, .sectionTitle { color: var(--ank-titleColor); }',
                     style.sheet.cssRules.length,
                 );
             }
         });
+
+        try {
+            store.setCombos({
+                version: 1,
+                pageId: 'default',
+                domain: 'zoolandingpage.com.mx',
+                combos: {
+                    sectionTitle: ['ank-color-titleColor'],
+                },
+            });
+            TestBed.flushEffects();
+            cssCreate.calls.reset();
+
+            await expectAsync(service.waitForCssReady(250, ['sectionTitle'])).toBeResolvedTo(true);
+
+            expect(getComputedStyle(element).color).toBe('rgb(32, 23, 18)');
+            expect(cssCreate).toHaveBeenCalledWith(['sectionTitle']);
+            expect(cssCreate).toHaveBeenCalledWith(undefined, true);
+        } finally {
+            element.remove();
+            style.remove();
+            if (previousTitleColor) {
+                rootStyle.setProperty('--ank-titleColor', previousTitleColor);
+            } else {
+                rootStyle.removeProperty('--ank-titleColor');
+            }
+        }
+    });
+
+    it('does not block CSS readiness on color combos that are not rendered in the current DOM', async () => {
+        const service = configure('browser');
+        const style = document.createElement('style');
+        style.textContent = '.ank-colorSEL__COM_qaCombo-titleColor, .qaCombo { color: var(--ank-titleColor); }';
+        document.head.appendChild(style);
 
         try {
             store.setCombos({
@@ -507,17 +541,40 @@ describe('AngoraCombosService', () => {
 
             await expectAsync(service.waitForCssReady(250, ['qaCombo'])).toBeResolvedTo(true);
 
-            expect(getComputedStyle(element).color).toBe('rgb(32, 23, 18)');
+            expect(document.querySelector('.qaCombo')).toBeNull();
             expect(cssCreate).toHaveBeenCalledWith(['qaCombo']);
-            expect(cssCreate).toHaveBeenCalledWith(undefined, true);
         } finally {
-            element.remove();
             style.remove();
-            if (previousTitleColor) {
-                rootStyle.setProperty('--ank-titleColor', previousTitleColor);
-            } else {
-                rootStyle.removeProperty('--ank-titleColor');
-            }
+        }
+    });
+
+    it('accepts generated CSS markers for rendered combo value variants', async () => {
+        const service = configure('browser');
+        const style = document.createElement('style');
+        const variant = 'qaButtonVALSVLaccentColorVLtextColorVL';
+        style.textContent = `
+            .ank-bgSEL__COM_${ variant }-accentColor, .${ variant } { background-color: rgb(200, 191, 180); }
+            .ank-textSEL__COM_${ variant }-textColor, .${ variant } { color: rgb(47, 45, 43); }
+        `;
+        document.head.appendChild(style);
+
+        try {
+            store.setCombos({
+                version: 1,
+                pageId: 'default',
+                domain: 'zoolandingpage.com.mx',
+                combos: {
+                    qaButton: ['ank-bg-VAL0 ank-text-VAL1'],
+                },
+            });
+            TestBed.flushEffects();
+            cssCreate.calls.reset();
+
+            await expectAsync(service.waitForCssReady(250, [variant])).toBeResolvedTo(true);
+
+            expect(cssCreate).toHaveBeenCalledWith([variant]);
+        } finally {
+            style.remove();
         }
     });
 

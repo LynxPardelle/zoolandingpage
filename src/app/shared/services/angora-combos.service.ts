@@ -8,6 +8,7 @@ import { ConfigStoreService } from './config-store.service';
 export type TAngoraCombosMap = Record<string, readonly string[]>;
 
 const LOW_PRECEDENCE_AUXILIARY_SCOPES = new Set(['combo-catalog']);
+const CRITICAL_COMPUTED_COLOR_COMBO_KEYS = new Set(['sectionTitle', 'sectionSubtitle', 'heroCaption']);
 
 type TAngoraRuntimeDebugBridge = {
     appliedCombos: () => TAngoraCombosMap;
@@ -365,7 +366,7 @@ export class AngoraCombosService {
 
         const comboKey = this.findMatchingComboKey(className);
         if (comboKey) {
-            return this.hasComboCssRule(comboKey);
+            return this.hasComboCssRule(className) || this.hasComboCssRule(comboKey);
         }
 
         const escapedClassName = this.escapeCssClass(className);
@@ -380,7 +381,7 @@ export class AngoraCombosService {
         if (requiredMarkers.length > 0) {
             return requiredMarkers.every((marker) => Array.from(document.styleSheets ?? [])
                 .some((sheet) => this.stylesheetHasText(sheet, marker)))
-                && this.hasComputedComboColor(comboKey);
+                && (!CRITICAL_COMPUTED_COLOR_COMBO_KEYS.has(comboKey) || this.hasComputedComboColor(comboKey));
         }
 
         const comboRuleMarker = `__COM_${ comboKey }`;
@@ -416,7 +417,7 @@ export class AngoraCombosService {
         const selector = `.${ this.escapeCssClass(comboKey) }`;
         const elements = Array.from(document.querySelectorAll<HTMLElement>(selector));
         if (elements.length === 0) {
-            return false;
+            return true;
         }
 
         return elements.every((element) => expectedColors.includes(getComputedStyle(element).color));
