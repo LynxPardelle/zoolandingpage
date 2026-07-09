@@ -30,10 +30,7 @@ await cp(browserDir, path.join(stagingDir, 'browser'), { recursive: true });
 await cp(serverDir, path.join(stagingDir, 'server'), { recursive: true });
 await cp(serverlessHttpDir, path.join(stagingDir, 'node_modules', 'serverless-http'), { recursive: true });
 
-await writeFile(
-  path.join(stagingDir, 'index.mjs'),
-  `import serverless from 'serverless-http';\nimport { reqHandler } from './server/server.mjs';\n\nconst angularHandler = serverless(reqHandler, {\n  provider: 'aws',\n});\n\nexport const handler = async (event, context) => angularHandler(event, context);\n`,
-);
+await writeFile(path.join(stagingDir, 'index.mjs'), lambdaHandlerSource());
 
 await writeFile(
   path.join(stagingDir, 'package.json'),
@@ -68,6 +65,64 @@ const manifest = {
 await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 
 console.log(JSON.stringify({ zipPath, manifestPath, releaseId, sha256 }, null, 2));
+
+function lambdaHandlerSource() {
+  return `import serverless from 'serverless-http';
+import { reqHandler } from './server/server.mjs';
+
+const angularHandler = serverless(reqHandler, {
+  provider: 'aws',
+});
+
+export const handler = async (event, context) => angularHandler(normalizeLambdaFunctionUrlHost(event), context);
+
+function normalizeLambdaFunctionUrlHost(event) {
+  const headers = event && typeof event === 'object' && event.headers && typeof event.headers === 'object'
+    ? event.headers
+    : null;
+  if (!headers) {
+    return event;
+  }
+
+  const host = firstHeaderValue(headers.host ?? headers.Host);
+  const forwardedHost = firstHeaderValue(headers['x-forwarded-host'] ?? headers['X-Forwarded-Host']);
+  if (!isLambdaFunctionUrlHost(host) || !isPlainHost(forwardedHost)) {
+    return event;
+  }
+
+  headers.host = forwardedHost;
+  headers.Host = forwardedHost;
+  headers['x-forwarded-host'] = forwardedHost;
+  headers['X-Forwarded-Host'] = forwardedHost;
+
+  const forwardedProto = firstHeaderValue(headers['cloudfront-forwarded-proto'] ?? headers['CloudFront-Forwarded-Proto']) || 'https';
+  if (!firstHeaderValue(headers['x-forwarded-proto'] ?? headers['X-Forwarded-Proto'])) {
+    headers['x-forwarded-proto'] = forwardedProto;
+    headers['X-Forwarded-Proto'] = forwardedProto;
+  }
+
+  return event;
+}
+
+function firstHeaderValue(value) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return String(raw ?? '').split(',')[0].trim();
+}
+
+function isLambdaFunctionUrlHost(value) {
+  return /^[-a-z0-9]+\\.lambda-url\\.[-a-z0-9]+\\.on\\.aws$/i.test(firstHeaderValue(value));
+}
+
+function isPlainHost(value) {
+  const host = firstHeaderValue(value);
+  return host.length > 0
+    && host.length <= 253
+    && !/[\\s/@?#]/.test(host)
+    && !host.includes('..')
+    && /^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/i.test(host);
+}
+`;
+}
 
 async function assertDirectory(directory, message) {
   try {
