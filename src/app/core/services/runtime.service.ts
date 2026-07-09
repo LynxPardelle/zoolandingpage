@@ -563,11 +563,6 @@ export class RuntimeService {
                 const elapsedAfterAttemptMs = Date.now() - startedAt;
                 const criticalTextReady = this.renderedCriticalTextColorsReady();
 
-                if (!ready && elapsedAfterAttemptMs >= this.cssReadySoftFallbackMs && criticalTextReady) {
-                    this.loadingCurtain.hideWhenReady(reason);
-                    return;
-                }
-
                 if (!ready && elapsedAfterAttemptMs < this.cssReadyMaxWaitMs) {
                     window.setTimeout(() => {
                         if (readyId !== this.loadingCurtainReadyId) {

@@ -36,6 +36,7 @@ describe('LoadingCurtainService', () => {
 
     afterEach(() => {
         documentRef.getElementById('zlp-boot-curtain')?.remove();
+        documentRef.documentElement.removeAttribute('data-zlp-boot-use-alt');
         TestBed.resetTestingModule();
     });
 
@@ -193,6 +194,43 @@ describe('LoadingCurtainService', () => {
             title.remove();
             style.remove();
             jasmine.clock().uninstall();
+        }
+    });
+
+    it('checks critical text against the alternate boot palette when a saved theme overrides the draft default', () => {
+        const curtain = addCurtain();
+        const style = documentRef.createElement('style');
+        const title = documentRef.createElement('h1');
+        style.textContent = '.sectionTitle { color: rgb(255, 248, 230); }';
+        title.className = 'sectionTitle';
+        title.textContent = 'Title';
+        documentRef.documentElement.setAttribute('data-zlp-boot-use-alt', 'true');
+        documentRef.head.appendChild(style);
+        documentRef.body.appendChild(title);
+
+        try {
+            variables.setPayload({
+                version: 1,
+                domain: 'erosbarajas.com',
+                pageId: 'default',
+                variables: {
+                    theme: {
+                        defaultMode: 'light',
+                        palettes: {
+                            light: { titleColor: '#201712' },
+                            dark: { titleColor: '#fff8e6' },
+                        },
+                    },
+                },
+            } as any);
+
+            service.configureFromDraft();
+            service.hideWhenReady('css-ready');
+
+            expect(curtain.classList.contains('zlp-boot-curtain--leaving')).toBeTrue();
+        } finally {
+            title.remove();
+            style.remove();
         }
     });
 

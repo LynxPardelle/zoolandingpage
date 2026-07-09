@@ -226,10 +226,17 @@ export class LoadingCurtainService {
 
     private resolveExpectedThemeColor(tokenName: string): string | null {
         const theme = this.variables.theme();
-        const mode = theme?.defaultMode === 'dark' ? 'dark' : 'light';
+        const defaultMode = theme?.defaultMode === 'dark' ? 'dark' : 'light';
+        const mode = this.usesAlternateBootPalette()
+            ? (defaultMode === 'dark' ? 'light' : 'dark')
+            : defaultMode;
         const palette = theme?.palettes?.[mode] as Record<string, string> | undefined;
         const value = palette?.[tokenName];
         return this.resolveCssColorValue(value);
+    }
+
+    private usesAlternateBootPalette(): boolean {
+        return this.documentRef.documentElement?.getAttribute('data-zlp-boot-use-alt') === 'true';
     }
 
     private resolveCssColorValue(value: string | undefined): string | null {
