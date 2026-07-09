@@ -288,6 +288,47 @@ describe('DomainResolverService', () => {
     });
   });
 
+  it('uses browser query params on generated CloudFront audit hosts', () => {
+    setBrowserUrl('https://d2ysmvtb9lup56.cloudfront.net/?draftDomain=zoositioweb.com.mx');
+    TestBed.configureTestingModule({
+      providers: [
+        DomainResolverService,
+        { provide: PLATFORM_ID, useValue: 'browser' },
+        {
+          provide: REQUEST,
+          useValue: new Request('https://d2ysmvtb9lup56.cloudfront.net/'),
+        },
+      ],
+    });
+
+    const service = TestBed.inject(DomainResolverService);
+
+    expect(service.resolveDomain()).toEqual({
+      domain: 'zoositioweb.com.mx',
+      source: 'queryParam',
+    });
+  });
+
+  it('does not treat lookalike CloudFront hostnames as audit hosts', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        DomainResolverService,
+        { provide: PLATFORM_ID, useValue: 'server' },
+        {
+          provide: REQUEST,
+          useValue: new Request('https://fake-cloudfront.net/?draftDomain=zoositioweb.com.mx'),
+        },
+      ],
+    });
+
+    const service = TestBed.inject(DomainResolverService);
+
+    expect(service.resolveDomain()).toEqual({
+      domain: 'fake-cloudfront.net',
+      source: 'urlHost',
+    });
+  });
+
   it('resolves a branded browser host before stale SSR request metadata can be used', () => {
     expect(resolveBrowserHostDomain('zoositioweb.com.mx')).toEqual({
       domain: 'zoositioweb.com.mx',
