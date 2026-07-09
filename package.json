@@ -16,6 +16,7 @@
     "serve:ssr:zoolandingpage": "node dist/zoolandingpage/server/server.mjs",
     "serve:ssr": "npm run serve:ssr:zoolandingpage",
     "serve:ssr:logged": "node tools/run-with-logs.mjs --name ssr -- npm run serve:ssr:zoolandingpage",
+    "package:ssr:lambda": "npm run build && node tools/package-ssr-lambda.mjs",
     "perf:baseline": "node tools/perf-baseline.mjs",
     "config:pack": "node tools/config-draft-sync.mjs pack",
     "config:unpack": "node tools/config-draft-sync.mjs unpack",
@@ -89,6 +90,7 @@
     "ngx-quill": "^31.0.0",
     "quill": "2.0.2",
     "rxjs": "~7.8.0",
+    "serverless-http": "^4.0.0",
     "simple-icons": "^16.14.0",
     "tslib": "^2.8.1",
     "uqr": "^0.1.3"

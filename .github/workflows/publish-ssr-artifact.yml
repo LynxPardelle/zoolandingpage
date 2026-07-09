@@ -1,0 +1,99 @@
+name: Publish SSR artifact
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options:
+          - dev
+          - test
+          - production
+        default: dev
+      release_id:
+        description: Optional release id; defaults to the commit SHA
+        required: false
+        type: string
+  push:
+    branches:
+      - dev
+      - test
+      - main
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish Angular SSR artifact
+    runs-on: ubuntu-latest
+    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || (github.ref_name == 'main' && 'production' || github.ref_name) }}
+    env:
+      DEPLOY_ENV: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || (github.ref_name == 'main' && 'production' || github.ref_name) }}
+      RELEASE_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.release_id || github.sha }}
+      CONFIG_API_URL: https://api.zoolandingpage.com.mx
+      ARTIFACT_BUCKET: ${{ vars.FRONTEND_ARTIFACT_BUCKET }}
+      STATIC_BUCKET: ${{ vars.FRONTEND_STATIC_BUCKET || 'zoolandingpage-public-files' }}
+      AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+    steps:
+      - uses: actions/checkout@v7.0.0
+
+      - uses: actions/setup-node@v6.4.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npm audit --omit=dev
+      - run: npm run package:ssr:lambda
+
+      - name: Validate AWS environment variables
+        env:
+          AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+        run: |
+          set -euo pipefail
+          if [ -z "$AWS_ROLE_ARN" ]; then
+            echo "::error::AWS_ROLE_ARN environment variable is required for artifact publishing."
+            exit 1
+          fi
+          if [ -z "$AWS_REGION" ]; then
+            echo "::error::AWS_REGION environment variable is required for artifact publishing."
+            exit 1
+          fi
+          if [ -z "$ARTIFACT_BUCKET" ]; then
+            echo "::error::FRONTEND_ARTIFACT_BUCKET environment variable is required for artifact publishing."
+            exit 1
+          fi
+          if [ -z "$STATIC_BUCKET" ]; then
+            echo "::error::FRONTEND_STATIC_BUCKET environment variable is required for static artifact publishing."
+            exit 1
+          fi
+
+      - uses: aws-actions/configure-aws-credentials@v6.1.1
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Confirm AWS caller identity
+        run: aws sts get-caller-identity
+
+      - name: Upload immutable SSR artifact
+        run: |
+          set -euo pipefail
+          base_prefix="frontend/angular-ssr/${DEPLOY_ENV}/releases/${RELEASE_ID}"
+          aws s3 cp dist/ssr-lambda/staging/browser "s3://${STATIC_BUCKET}/${base_prefix}/browser" \
+            --recursive \
+            --cache-control "public,max-age=31536000,immutable"
+          aws s3 cp dist/ssr-lambda/ssr-handler.zip "s3://${ARTIFACT_BUCKET}/${base_prefix}/server/ssr-handler.zip" \
+            --cache-control "private,max-age=31536000,immutable"
+          aws s3 cp dist/ssr-lambda/manifest.json "s3://${ARTIFACT_BUCKET}/${base_prefix}/manifest.json" \
+            --cache-control "no-cache"
+
+      - name: Print release coordinates
+        run: |
+          echo "release_id=${RELEASE_ID}"
+          echo "manifest=s3://${ARTIFACT_BUCKET}/frontend/angular-ssr/${DEPLOY_ENV}/releases/${RELEASE_ID}/manifest.json"
+          echo "browser=s3://${STATIC_BUCKET}/frontend/angular-ssr/${DEPLOY_ENV}/releases/${RELEASE_ID}/browser"
