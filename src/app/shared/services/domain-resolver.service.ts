@@ -31,6 +31,7 @@ export function resolveBrowserHostDomain(
 export class DomainResolverService {
     private readonly testingDraftPreviewHost = 'test.zoolandingpage.com.mx';
     private readonly testingDraftPreviewFallbackDomain = 'zoolandingpage.com.mx';
+    private readonly cloudFrontAuditHostSuffix = '.cloudfront.net';
     private readonly platformId = inject(PLATFORM_ID);
     private readonly request = inject(REQUEST, { optional: true });
     private readonly configStore = inject(ConfigStoreService);
@@ -46,7 +47,9 @@ export class DomainResolverService {
 
     canUseDraftQueryParamsOnHost(hostname: string): boolean {
         const normalized = String(hostname ?? '').trim().toLowerCase();
-        return this.isLocalHost(normalized) || normalized === this.testingDraftPreviewHost;
+        return this.isLocalHost(normalized)
+            || normalized === this.testingDraftPreviewHost
+            || normalized.endsWith(this.cloudFrontAuditHostSuffix);
     }
 
     private sanitizeToken(value: unknown): string {

@@ -197,7 +197,8 @@
         try {
           var params = new URLSearchParams(window.location.search || "");
           var isLocal = /^(localhost|127\.0\.0\.1|::1)$/i.test(window.location.hostname || "");
-          var canUseDraftParam = isLocal || String(window.location.hostname || "").toLowerCase() === "test.zoolandingpage.com.mx";
+          var host = String(window.location.hostname || "").toLowerCase();
+          var canUseDraftParam = isLocal || host === "test.zoolandingpage.com.mx" || host.endsWith(".cloudfront.net");
           var draftDomain = params.get("draftDomain");
           var namespace = token(draftDomain && canUseDraftParam ? draftDomain : window.location.hostname) || "app";
           var ssrTheme = resolveTheme(document.documentElement.getAttribute("data-zlp-ssr-theme"));
