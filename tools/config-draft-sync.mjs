@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, lstatSync } from 'node:fs';
 import { mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { assertValidRuntimeDataSourceConditionReferences } from './runtime-data-source-condition-guard.mjs';
@@ -7,6 +7,11 @@ const DEFAULT_DRAFTS_ROOT = path.resolve('drafts');
 const DEFAULT_REQUEST_TIMEOUT_MS = 20000;
 const DEFAULT_RETRY_ATTEMPTS = 2;
 const DEFAULT_RETRY_DELAY_MS = 250;
+const MAX_HOSTNAME_LENGTH = 253;
+const HOSTNAME_LABEL_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+const WINDOWS_INVALID_PATH_CHARACTER_PATTERN = /[<>:"|?*]/;
+const WINDOWS_RESERVED_PATH_BASENAME_PATTERN = /^(?:con|prn|aux|nul|com[1-9¹²³]|lpt[1-9¹²³])$/i;
+const UNSAFE_UNICODE_PATH_CHARACTER_PATTERN = /[\p{Cc}\p{Cf}]/u;
 const LOCAL_DRAFT_CONTEXT_FOLDERS = new Set(['ai_notes', 'findings', 'errors-reports']);
 const LOCAL_DRAFT_CONTEXT_FILES = new Set(['draft-repo.config.json']);
 const DEFAULT_AUTHORING_ENDPOINT_FALLBACKS = new Map([
@@ -23,8 +28,8 @@ function parseArgs(rawArgs) {
     if (!arg.startsWith('--')) continue;
     const [rawKey, ...valueParts] = arg.slice(2).split('=');
     const key = rawKey.trim();
-    const value = valueParts.length > 0 ? valueParts.join('=').trim() : 'true';
-    parsed[key] = value;
+    const value = valueParts.length > 0 ? valueParts.join('=') : 'true';
+    parsed[key] = key === 'domain' ? value : value.trim();
   }
 
   return parsed;
@@ -36,6 +41,14 @@ function getRequiredArg(args, key) {
     throw new Error(`Missing required argument --${key}`);
   }
   return value;
+}
+
+function getRequiredDomainArg(args) {
+  const value = args.domain;
+  if (typeof value !== 'string' || !value) {
+    throw new Error('Missing required argument --domain');
+  }
+  return assertSafeDraftDomain(value);
 }
 
 function getIntegerArg(args, key, fallback) {
@@ -209,6 +222,107 @@ async function cleanAuthoredDraftFiles(rootDir) {
   }
 }
 
+function assertSafeDraftDomain(domain) {
+  if (typeof domain !== 'string') {
+    throw new Error('Refusing to use unsafe domain');
+  }
+
+  const labels = domain.split('.');
+  if (
+    !domain ||
+    domain.length > MAX_HOSTNAME_LENGTH ||
+    domain !== domain.trim() ||
+    labels.some(label => !HOSTNAME_LABEL_PATTERN.test(label)) ||
+    isWindowsReservedPathSegment(domain)
+  ) {
+    throw new Error('Refusing to use unsafe domain');
+  }
+  return domain;
+}
+
+function isWindowsReservedPathSegment(segment) {
+  const baseName = segment.split('.')[0].replace(/[ .]+$/g, '');
+  return WINDOWS_RESERVED_PATH_BASENAME_PATTERN.test(baseName);
+}
+
+function assertSafeExistingPathComponents(domainRoot, targetPath, targetKind) {
+  const relativeToDomain = path.relative(domainRoot, targetPath);
+  const components = relativeToDomain ? relativeToDomain.split(path.sep) : [];
+  let currentPath = domainRoot;
+
+  for (const [index, component] of ['', ...components].entries()) {
+    if (component) {
+      currentPath = path.join(currentPath, component);
+    }
+
+    try {
+      const stats = lstatSync(currentPath);
+      const isTarget = index === components.length;
+      if (
+        stats.isSymbolicLink() ||
+        (!isTarget && !stats.isDirectory()) ||
+        (isTarget && targetKind === 'directory' && !stats.isDirectory()) ||
+        (isTarget && targetKind === 'file' && (!stats.isFile() || stats.nlink > 1))
+      ) {
+        throw new Error('Refusing to use unsafe path');
+      }
+    } catch (error) {
+      if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+        return;
+      }
+      throw error;
+    }
+  }
+}
+
+function resolveContainedDraftFile(draftsRoot, domainRoot, domain, relativePath) {
+  if (typeof relativePath !== 'string') {
+    throw new Error('Refusing to write unsafe path');
+  }
+  const segments = relativePath.split('/');
+  const isUnsafe =
+    !relativePath ||
+    relativePath !== relativePath.trim() ||
+    relativePath !== relativePath.normalize('NFC') ||
+    path.posix.isAbsolute(relativePath) ||
+    path.win32.isAbsolute(relativePath) ||
+    relativePath.includes('\\') ||
+    WINDOWS_INVALID_PATH_CHARACTER_PATTERN.test(relativePath) ||
+    UNSAFE_UNICODE_PATH_CHARACTER_PATTERN.test(relativePath) ||
+    !relativePath.endsWith('.json') ||
+    segments.length < 2 ||
+    segments[0] !== domain ||
+    segments
+      .slice(1)
+      .some(segment => LOCAL_DRAFT_CONTEXT_FOLDERS.has(segment) || LOCAL_DRAFT_CONTEXT_FILES.has(segment)) ||
+    segments.some(
+      segment =>
+        !segment ||
+        segment === '.' ||
+        segment === '..' ||
+        /[. ]$/.test(segment) ||
+        isWindowsReservedPathSegment(segment)
+    );
+
+  if (isUnsafe) {
+    throw new Error('Refusing to write unsafe path');
+  }
+
+  const resolved = path.resolve(draftsRoot, ...segments);
+  const relativeToDomain = path.relative(domainRoot, resolved);
+  if (
+    !relativeToDomain ||
+    relativeToDomain === '..' ||
+    relativeToDomain.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relativeToDomain)
+  ) {
+    throw new Error('Refusing to write unsafe path');
+  }
+
+  assertSafeExistingPathComponents(domainRoot, resolved, 'file');
+  return resolved;
+}
+
 function inferKind(domain, relativePath) {
   const normalized = relativePath.replace(/\\/g, '/');
   if (normalized === `${domain}/site-config.json`) return 'site-config';
@@ -243,7 +357,9 @@ function inferLang(relativePath) {
 }
 
 async function buildDraftPackage({ domain, draftsRoot, stage }) {
-  const domainRoot = path.resolve(draftsRoot, domain);
+  const safeDomain = assertSafeDraftDomain(domain);
+  const domainRoot = path.resolve(draftsRoot, safeDomain);
+  assertSafeExistingPathComponents(domainRoot, domainRoot, 'directory');
   if (!existsSync(domainRoot)) {
     throw new Error(`Draft folder not found: ${domainRoot}`);
   }
@@ -253,10 +369,11 @@ async function buildDraftPackage({ domain, draftsRoot, stage }) {
 
   for (const filePath of files) {
     const relativePath = path.relative(draftsRoot, filePath).replace(/\\/g, '/');
+    assertSafeExistingPathComponents(domainRoot, filePath, 'file');
     packageFiles.push({
       path: relativePath,
-      kind: inferKind(domain, relativePath),
-      pageId: inferPageId(domain, relativePath),
+      kind: inferKind(safeDomain, relativePath),
+      pageId: inferPageId(safeDomain, relativePath),
       lang: inferLang(relativePath),
       content: await readJson(filePath),
     });
@@ -264,7 +381,7 @@ async function buildDraftPackage({ domain, draftsRoot, stage }) {
 
   const draftPackage = {
     version: 1,
-    domain,
+    domain: safeDomain,
     stage,
     files: packageFiles,
   };
@@ -274,29 +391,32 @@ async function buildDraftPackage({ domain, draftsRoot, stage }) {
 }
 
 async function unpackDraftPackage(draftPackage, draftsRoot, { cleanDomain = false } = {}) {
-  const domain = String(draftPackage?.domain ?? '').trim();
-  if (!domain) {
+  const rawDomain = draftPackage?.domain;
+  if (rawDomain === undefined || rawDomain === null || rawDomain === '') {
     throw new Error('Draft package is missing domain');
   }
   if (!Array.isArray(draftPackage.files)) {
     throw new Error('Draft package is missing files');
   }
 
+  const domain = assertSafeDraftDomain(rawDomain);
   const domainRoot = path.resolve(draftsRoot, domain);
+  assertSafeExistingPathComponents(domainRoot, domainRoot, 'directory');
+  const files = draftPackage.files.map(entry => {
+    const relativePath = entry?.path;
+    const filePath = resolveContainedDraftFile(draftsRoot, domainRoot, domain, relativePath);
+    if (!entry?.content || typeof entry.content !== 'object' || Array.isArray(entry.content)) {
+      throw new Error(`File '${relativePath}' does not contain a JSON object`);
+    }
+    return { content: entry.content, filePath };
+  });
+
   if (cleanDomain && existsSync(domainRoot)) {
     await cleanAuthoredDraftFiles(domainRoot);
   }
 
-  for (const entry of draftPackage.files) {
-    const relativePath = String(entry?.path ?? '').trim();
-    if (!relativePath.startsWith(`${domain}/`)) {
-      throw new Error(`Refusing to write unexpected path '${relativePath}'`);
-    }
-    if (!entry?.content || typeof entry.content !== 'object' || Array.isArray(entry.content)) {
-      throw new Error(`File '${relativePath}' does not contain a JSON object`);
-    }
-
-    await writeJson(path.resolve(draftsRoot, relativePath), entry.content);
+  for (const file of files) {
+    await writeJson(file.filePath, file.content);
   }
 }
 
@@ -437,7 +557,7 @@ async function main() {
   }
 
   if (command === 'pack') {
-    const domain = getRequiredArg(args, 'domain');
+    const domain = getRequiredDomainArg(args);
     const draftsRoot = path.resolve(args['drafts-root'] ?? DEFAULT_DRAFTS_ROOT);
     const stage = normalizeStage(args.stage);
     const draftPackage = await buildDraftPackage({ domain, draftsRoot, stage });
@@ -458,7 +578,7 @@ async function main() {
 
   if (command === 'pull') {
     const endpoint = getRequiredArg(args, 'endpoint');
-    const domain = getRequiredArg(args, 'domain');
+    const domain = getRequiredDomainArg(args);
     const stage = normalizeStage(args.stage);
     const draftsRoot = path.resolve(args['drafts-root'] ?? DEFAULT_DRAFTS_ROOT);
     const response = await callAuthoringEndpoint(
@@ -478,7 +598,7 @@ async function main() {
 
   if (command === 'push' || command === 'create') {
     const endpoint = getRequiredArg(args, 'endpoint');
-    const domain = getRequiredArg(args, 'domain');
+    const domain = getRequiredDomainArg(args);
     const draftsRoot = path.resolve(args['drafts-root'] ?? DEFAULT_DRAFTS_ROOT);
     const stage = normalizeStage(args.stage);
     const draftPackage = await buildDraftPackage({ domain, draftsRoot, stage });
@@ -507,7 +627,7 @@ async function main() {
 
   if (command === 'publish') {
     const endpoint = getRequiredArg(args, 'endpoint');
-    const domain = getRequiredArg(args, 'domain');
+    const domain = getRequiredDomainArg(args);
     const response = await callAuthoringEndpoint(
       endpoint,
       {
