@@ -1,6 +1,6 @@
 # Changelog
 
-Use this folder for chronological history. Keep durable decisions and standing rules in [../Codex.md](../Codex.md) or [../ai-notes/](../ai-notes/).
+Use this folder for chronological history. Keep durable current decisions and standing rules in the owning document routed from [../docs/README.md](../docs/README.md) or in focused reusable guidance under [../ai-notes/](../ai-notes/).
 
 ## Structure
 

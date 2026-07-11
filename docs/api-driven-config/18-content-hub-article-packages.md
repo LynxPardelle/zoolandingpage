@@ -393,7 +393,7 @@ The harness defines the first vertical-slice contract for:
 - sanitized blog analytics events compatible with the existing `appName` and `timestamp` raw-sink envelope
 - unsafe ID/domain/path rejection
 
-The detailed phase decision record lives in `.superpowers/blog-content-hub/evidence/repo-boundary-decision.md`.
+The durable ownership decision is enforced by the harness: config authoring owns draft-like content package writes, runtime read owns published public bundle reads, data dropper accepts only sanitized analytics events, and image upload remains limited to simple public images until a separate media-lifecycle boundary is justified. See the [repository map](../repository-map.md) for the owning repositories. Local planning evidence is not required to understand or verify this committed contract.
 
 ## Live Product-Readiness Smoke
 

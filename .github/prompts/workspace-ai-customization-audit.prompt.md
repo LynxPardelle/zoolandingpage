@@ -9,18 +9,14 @@ Review the shared AI customization layer for the Zoolanding workspace with `zool
 
 Start from these sources:
 
+- [Repository Map](../../docs/repository-map.md)
+- [Draft Registry](../../docs/drafts-registry.json)
 - [Workspace File](../../zoolandingpage.code-workspace)
 - [Workspace AI Customization Rollout](../../ai-notes/notes/workspace-ai-customization-rollout.md)
 - [Copilot Skill Routing](../../ai-notes/notes/copilot-skill-routing.md)
 - [Agent Task Workflow](../../ai-notes/notes/agent-task-workflow.md)
 
-Then inspect the hub customizations in this repo and the local `.github/` trees in sibling repos when relevant:
-
-- `../../../zoolanding-data-dropper-lambda/.github/`
-- `../../../zoolanding-quick-stats-lambda/.github/`
-- `../../../zoolanding-config-authoring/.github/`
-- `../../../zoolanding-config-runtime-read/.github/`
-- `../../../zoolanding-image-upload/.github/`
+Treat the repository map and draft registry as the fleet inventory. The VS Code workspace is only a curated working view. Inspect the hub customizations and the `.github/` tree of each relevant mapped repository; resolve its checkout or canonical GitHub URL explicitly instead of assuming a sibling-relative path.
 
 Use the user's arguments plus the current diff or changed files.
 

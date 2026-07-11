@@ -4,8 +4,11 @@ Status: Active
 Applies To: Draft repos named `draft-*`, config authoring API, runtime-read alias resolution, GitHub Actions deployments
 Source Of Truth:
 
-- `plan/feature-secure-draft-repo-release-workflow-1.md`
-- `Codex.md`
+- `docs/11-draft-lifecycle.md`
+- `docs/drafts-registry.json`
+- `tools/draft-github-setup.mjs`
+- `tools/draft-repo-preflight.mjs`
+- `tools/draft-public-safety-audit.mjs`
 - User direction from 2026-05-16 planning conversation
 - Official GitHub and AWS OIDC guidance
 
