@@ -4,16 +4,16 @@
   "defaultBaseDir": "drafts",
   "drafts": [
     {
+      "domain": "agent-guide-claude-codex.com",
+      "repo": "draft-agent-guide-claude-codex-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-agent-guide-claude-codex-com.git",
+      "localPath": "drafts/agent-guide-claude-codex.com"
+    },
+    {
       "domain": "alecfest-voliii.com",
       "repo": "draft-alecfest-voliii-com",
       "githubUrl": "https://github.com/LynxPardelle/draft-alecfest-voliii-com.git",
       "localPath": "drafts/alecfest-voliii.com"
-    },
-    {
-      "domain": "despacholegalastralex.com",
-      "repo": "draft-despacholegalastralex-com",
-      "githubUrl": "https://github.com/LynxPardelle/draft-despacholegalastralex-com.git",
-      "localPath": "drafts/despacholegalastralex.com"
     },
     {
       "domain": "erosbarajas.com",
@@ -22,10 +22,10 @@
       "localPath": "drafts/erosbarajas.com"
     },
     {
-      "domain": "agent-guide-claude-codex.com",
-      "repo": "draft-agent-guide-claude-codex-com",
-      "githubUrl": "https://github.com/LynxPardelle/draft-agent-guide-claude-codex-com.git",
-      "localPath": "drafts/agent-guide-claude-codex.com"
+      "domain": "grupoastralegal.com",
+      "repo": "draft-grupoastralegal-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-grupoastralegal-com.git",
+      "localPath": "drafts/grupoastralegal.com"
     },
     {
       "domain": "music.lynxpardelle.com",
