@@ -198,8 +198,12 @@ async function resolveBrowserCommand(explicitBrowserPath) {
   ].filter(Boolean);
 
   for (const candidate of candidates) {
-    if (candidate.includes(path.sep) && !existsSync(candidate)) {
-      continue;
+    if (candidate.includes(path.sep)) {
+      if (!existsSync(candidate)) {
+        continue;
+      }
+
+      return candidate;
     }
 
     if (await canExecute(candidate)) {
