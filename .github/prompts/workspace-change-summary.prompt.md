@@ -9,12 +9,14 @@ Create a consolidated workspace summary with `zoolandingpage` as the hub repo.
 
 Start from these sources:
 
+- [Repository Map](../../docs/repository-map.md)
+- [Draft Registry](../../docs/drafts-registry.json)
 - [Workspace File](../../zoolandingpage.code-workspace)
 - [Workspace AI Customization Rollout](../../ai-notes/notes/workspace-ai-customization-rollout.md)
 - [Copilot Skill Routing](../../ai-notes/notes/copilot-skill-routing.md)
 - [Agent Task Workflow](../../ai-notes/notes/agent-task-workflow.md)
 
-Then inspect the relevant `.github/` changes in this repo and any sibling repos named in the user's request.
+Treat the repository map and draft registry as the inventory; the VS Code workspace is only a curated working view. Inspect relevant `.github/` changes in this repo and mapped repositories named by the user or changed in the supplied diff. Resolve each checkout/URL explicitly instead of assuming sibling-relative paths.
 
 Use the user's arguments plus the current diff or changed files.
 

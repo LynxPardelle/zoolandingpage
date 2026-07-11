@@ -19,10 +19,10 @@ Do not treat those as the same thing. A local file edit affects only state 1 unt
 
 Before starting a new draft or major refinement pass, read:
 
-1. [../Codex.md](../Codex.md)
-2. [../ai-notes/README.md](../ai-notes/README.md)
-3. the relevant committed note under `ai-notes/`
-4. `drafts/{domain}/ai_notes/`, `drafts/{domain}/findings/`, and `drafts/{domain}/errors-reports/` if the task depends on an existing local draft
+1. [Documentation router](./README.md)
+2. [Draft registry](./drafts-registry.json) for the canonical repo/path
+3. [ai-notes index](../ai-notes/README.md) only when reusable guidance is needed
+4. the draft README and curated `drafts/{domain}/ai_notes/README.md` when present; open findings/error history only when the task requires it
 
 After durable work, update the canonical notes so future agents do not have to rediscover the same rules.
 

@@ -5,6 +5,13 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 
+import {
+  discoverDraftRepos as discoverCanonicalDraftRepos,
+  inspectRegisteredDraftRepo,
+  readDraftRegistry,
+  registeredDraftRepoPath,
+} from './draft-repo-preflight.mjs';
+
 const execFileAsync = promisify(execFile);
 const MAX_FILE_BYTES = 2 * 1024 * 1024;
 const MAX_FINDINGS_PER_RULE = 50;
@@ -345,25 +352,87 @@ async function auditRepo(repoPath, { includeHistory = true } = {}) {
 
 async function resolveTargetRepos(args, cwd = process.cwd()) {
   if (args.repo.length > 0) {
-    return args.repo.map(repo => path.resolve(cwd, repo));
+    return args.repo.map(repo => ({ repoPath: path.resolve(cwd, repo) }));
   }
-  return discoverDraftRepos(path.resolve(cwd, args['base-dir'] || 'drafts/_repos'));
+  if (args['base-dir']) {
+    return (await discoverDraftRepos(path.resolve(cwd, args['base-dir'])))
+      .map(repoPath => ({ repoPath }));
+  }
+
+  const registryPath = path.resolve(cwd, args.registry || 'docs/drafts-registry.json');
+  if (!existsSync(registryPath)) {
+    throw new Error(`Draft registry not found: ${registryPath}`);
+  }
+  const registry = await readDraftRegistry(registryPath);
+  if (registry.drafts.length === 0) {
+    throw new Error(`Draft registry has no entries: ${registryPath}`);
+  }
+  const registeredTargets = registry.drafts.map(draft => ({
+    draft,
+    registryRoot: cwd,
+    defaultBaseDir: registry.defaultBaseDir,
+    repoPath: registeredDraftRepoPath(draft, cwd, registry.defaultBaseDir),
+  }));
+  const registeredPaths = new Set(registeredTargets.map(target => path.resolve(target.repoPath)));
+  const discoveredRepos = await discoverCanonicalDraftRepos(path.resolve(cwd, registry.defaultBaseDir));
+  const unregisteredTargets = discoveredRepos
+    .filter(repoPath => !registeredPaths.has(path.resolve(repoPath)))
+    .map(repoPath => ({ repoPath, unregistered: true }));
+  return [...registeredTargets, ...unregisteredTargets];
 }
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const includeHistory = truthy(args.history, true);
   const summary = truthy(args.summary, false);
-  const repos = await resolveTargetRepos(args);
+  const targets = await resolveTargetRepos(args);
   const results = [];
-  for (const repoPath of repos) {
-    results.push(await auditRepo(repoPath, { includeHistory }));
+  for (const target of targets) {
+    if (target.unregistered) {
+      const audited = await auditRepo(target.repoPath, { includeHistory });
+      results.push({
+        ...audited,
+        status: 'unregistered',
+        inspectedStatus: audited.status,
+        okToPublic: false,
+      });
+      continue;
+    }
+    if (!target.draft) {
+      results.push(await auditRepo(target.repoPath, { includeHistory }));
+      continue;
+    }
+
+    const inspected = await inspectRegisteredDraftRepo(target.draft, {
+      cwd: target.registryRoot,
+      defaultBaseDir: target.defaultBaseDir,
+    });
+    if (inspected.status !== 'present') {
+      results.push({
+        domain: target.draft.domain,
+        repo: target.draft.repo,
+        repoPath: target.repoPath,
+        status: inspected.status,
+        okToPublic: false,
+      });
+      continue;
+    }
+
+    results.push({
+      ...(await auditRepo(target.repoPath, { includeHistory })),
+      domain: target.draft.domain,
+      repo: target.draft.repo,
+      repoPath: target.repoPath,
+    });
   }
   const blockingRepos = results.filter(result => !result.okToPublic);
   const outputResults = summary
     ? results.map(result => ({
       repo: result.repo,
+      domain: result.domain,
+      repoPath: result.repoPath,
       status: result.status,
+      inspectedStatus: result.inspectedStatus,
       okToPublic: result.okToPublic,
       currentBlockedPathCount: result.currentBlockedPaths?.length ?? 0,
       historyBlockedPathCount: result.historyBlockedPaths?.length ?? 0,
