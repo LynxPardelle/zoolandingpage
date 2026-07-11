@@ -37,6 +37,7 @@ test('reusable PR safety workflow is pinned and read-only', () => {
 
   assert.match(workflow, /workflow_call:/);
   assert.match(workflow, /permissions:\s*\n\s+contents: read/);
+  assert.match(workflow, /timeout-minutes: 10/);
   assert.equal(workflow.match(new RegExp(`actions/checkout@${checkoutSha}`, 'g'))?.length, 2);
   assert.match(workflow, /ref: d8494f0ae446a51d5ca9740a4831635e43bd5a79/);
   assert.match(workflow, /fetch-depth: 0/);
