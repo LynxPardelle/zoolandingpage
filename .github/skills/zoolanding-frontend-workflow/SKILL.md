@@ -18,10 +18,9 @@ Use this skill for work inside the Angular app and its platform-facing docs.
 
 1. Read the repo memory first.
 
-   - Read `Codex.md`.
-   - Read `ai-notes/README.md`.
-   - Read the relevant committed note before editing.
-   - Inspect `drafts/{domain}/ai_notes/`, `drafts/{domain}/findings/`, and `drafts/{domain}/errors-reports/` when the task depends on an existing local draft.
+   - Start at `AGENTS.md` and follow the task route in `docs/README.md`.
+   - Read `ai-notes/README.md` and one focused note only when reusable guidance is needed.
+   - For an existing draft, begin with its README and curated `ai_notes/README.md`; open findings/error history only when required.
 
 2. Identify which config state is involved.
 

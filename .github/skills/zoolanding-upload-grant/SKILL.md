@@ -9,9 +9,9 @@ Use this skill from the `zoolandingpage` hub repo when creating temporary image 
 
 ## Read First
 
-1. Read `Codex.md`.
-2. Read `docs/12-public-assets-and-file-uploads.md`.
-3. If the draft exists locally, read `drafts/{domain}/Codex.md`.
+1. Read `AGENTS.md`, then `docs/12-public-assets-and-file-uploads.md`.
+2. Confirm the canonical draft path in `docs/drafts-registry.json`.
+3. If the draft exists locally, read its `AGENTS.md` when present and its README.
 
 ## Ask For Missing Inputs
 

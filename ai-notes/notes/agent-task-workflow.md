@@ -1,26 +1,26 @@
 # Agent Task Workflow
 
-Date: 2026-04-19 (Central Time)
+Date: 2026-07-11 (Central Time)
 Scope: Shared workflow for AI agents and developers working in this repo.
 Status: Active
 Applies To: Every new draft task, feature task, or review task
 Source Of Truth:
 
 - `AGENTS.md`
-- `Codex.md`
+- `docs/README.md`
 - `docs/DEVELOPER_ONBOARDING.md`
 - `docs/03-development-guide.md`
 
 Confidence: High
-Last Reviewed: 2026-04-20 (Central Time)
+Last Reviewed: 2026-07-11 (Central Time)
 
 ## Before Work
 
-1. Read `Codex.md`.
-2. Read `ai-notes/README.md`.
-3. Read the relevant committed notes for the task.
-4. If the task touches an existing local draft, inspect `drafts/{domain}/ai_notes/`, `drafts/{domain}/findings/`, and `drafts/{domain}/errors-reports/` when available.
-5. Read the implementation docs for the task area.
+1. Start at `AGENTS.md`, then use `docs/README.md` to open the implementation contract for the task.
+2. Read `docs/repository-map.md` only for cross-repository ownership or entrypoints.
+3. Read `ai-notes/README.md` and one focused note only when reusable guidance is needed.
+4. For an existing draft, start with its README and curated `ai_notes/README.md`; open findings/error history only when the task needs it.
+5. Read changelogs only when historical implementation, QA, release, or publication evidence is relevant.
 
 ## During Work
 
@@ -43,7 +43,7 @@ Last Reviewed: 2026-04-20 (Central Time)
 - If no suitable note exists, create one from a template.
 - Add a changelog entry only when the app or a draft needs retained chronological history for the completed pass.
 - Audit the work, fix findings, and rerun the audit at least three times before declaring it correct.
-- For draft-affecting tasks, finish with browser QA on every affected draft route in both desktop and mobile viewports.
+- For changes that affect draft payloads or rendered behavior, finish with browser QA on every affected route in desktop and mobile. Documentation-only edits use link, workflow, and public-safety checks.
 - Do a security scrub before saving the note.
 
 ## Security Scrub

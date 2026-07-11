@@ -159,20 +159,11 @@ docs/api-driven-config/             Config payload reference and DSL docs
 
 ## Related repositories
 
-Workspace repos:
-
-- `../zoolanding-data-dropper-lambda`
-- `../zoolanding-quick-stats-lambda`
-
-Related platform repos used by this frontend:
-
-- `../zoolanding-config-authoring`
-- `../zoolanding-config-runtime-read`
-- `../zoolanding-image-upload`
+Use the [Zoolanding repository map](docs/repository-map.md) for ownership, canonical GitHub URLs, default branches, and entrypoints. Do not infer fleet membership from sibling folders or the VS Code workspace.
 
 ## Contributing
 
-When you update payloads, workflows, or endpoint behavior, update documentation in the same change. Start with [ai-notes/README.md](ai-notes/README.md) plus the relevant committed note before new work, inspect local `drafts/{domain}/ai_notes/`, `drafts/{domain}/findings/`, and `drafts/{domain}/errors-reports/` when a task depends on an existing draft, and distill only reusable learnings back into the canonical folder before closing the task. Finish draft-affecting work with three audit passes and browser QA in desktop and mobile viewports. The main repo should remain the source of truth for platform-level behavior; the Lambda repos should stay focused on their own contracts and deployment details.
+When you update payloads, workflows, or endpoint behavior, update the owning documentation in the same change. Start at [docs/README.md](docs/README.md), open one focused reusable note only when needed, and begin existing-draft work at that draft's README/curated index. Finish with three audit passes; rendered draft changes require desktop/mobile browser QA. The hub owns shared contracts, while each service owns its implementation, trust boundaries, deployment, and rollback.
 
 ## License
 

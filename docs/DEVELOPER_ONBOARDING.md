@@ -101,9 +101,9 @@ If you are touching analytics or stats integrations, also read:
 
 Before new draft or feature work:
 
-1. Open [../Codex.md](../Codex.md).
-2. Open [../ai-notes/README.md](../ai-notes/README.md).
-3. Read the relevant committed note and inspect local draft `ai_notes/`, `findings/`, and `errors-reports/` folders when they exist before editing files.
+1. Open [README.md](./README.md) and follow the route for the task.
+2. Open [../ai-notes/README.md](../ai-notes/README.md) only when reusable authoring or workflow guidance is needed.
+3. For an existing draft, begin with its README and curated `ai_notes/README.md`; inspect findings/error history only when the task depends on it.
 
 After durable work:
 
