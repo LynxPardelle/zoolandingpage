@@ -11,7 +11,7 @@ Use this skill for performance/accessibility work that must survive local SSR, d
 
 1. Read repo context first.
 
-   - Read `Codex.md`.
+   - Start at `AGENTS.md` and follow the release/QA route in `docs/README.md`.
    - Read `.github/skills/zoolanding-frontend-workflow/SKILL.md`.
    - Use `systematic-debugging` and `test-driven-development` before changing behavior.
    - Use `zoolanding-browser-qa` when browser evidence is required.

@@ -1,51 +1,42 @@
 # Zoolandingpage Agent Workflow
 
-Use this file as the repo-level entrypoint for future AI agents and new contributors.
+This is the mandatory repo entrypoint. Keep it short: route to canonical documents instead of copying them here.
 
-## Read Order Before Editing
+## Read Before Editing
 
-1. Read [Codex.md](./Codex.md).
-2. Read [ai-notes/README.md](./ai-notes/README.md).
-3. Read [ai-notes/notes/copilot-skill-routing.md](./ai-notes/notes/copilot-skill-routing.md) when the task depends on choosing among installed general skills.
-4. Read [ai-notes/notes/workspace-ai-customization-rollout.md](./ai-notes/notes/workspace-ai-customization-rollout.md) when the task depends on shared workspace prompts, multi-repo AI tooling, or customization parity.
-5. Read the most relevant committed note under [ai-notes/](./ai-notes/).
-6. Read the relevant app or draft changelog under [changelog/](./changelog/) when the task depends on prior implementation, QA, release, or publish history.
-7. If the task touches an existing local draft, inspect `drafts/{domain}/ai_notes/`, `drafts/{domain}/findings/`, and `drafts/{domain}/errors-reports/` when those folders exist.
-8. Read the implementation docs that match the task, especially under [docs/](./docs/).
+1. Start at [docs/README.md](./docs/README.md) and open only the documents routed for the task.
+2. For cross-repository work, verify ownership and entrypoints in [docs/repository-map.md](./docs/repository-map.md).
+3. For reusable authoring or workflow constraints, use the focused index in [ai-notes/README.md](./ai-notes/README.md).
+4. Read [changelog/](./changelog/) only when implementation, QA, release, or publish history is needed.
+5. For an existing draft, begin with `drafts/{domain}/README.md` and its curated `ai_notes/README.md` when present. Open `findings/`, `errors-reports/`, evidence, or coordination history only when the task requires it.
 
-## Working Rules
+[Codex.md](./Codex.md) is a compatibility pointer, not a default read or a knowledge store. It never overrides verified code, workflows, manifests, or the canonical documents above.
 
-- Treat `drafts/` as the local draft source tree and local draft-specific scratch workspace.
-- Treat `drafts/{domain}/ai_notes/`, `drafts/{domain}/findings/`, and `drafts/{domain}/errors-reports/` as local-only historical, investigative, or incident material, not as canonical committed guidance.
-- Treat [ai-notes/](./ai-notes/) as the shared, curated, long-lived knowledge base for reusable workflow guidance.
-- Treat [changelog/](./changelog/) as the only committed home for chronological app and draft history.
-- Treat [Codex.md](./Codex.md) and this file as durable memory and workflow rules only, not as changelogs.
-- Treat `devonly/` only as optional local-only untracked scratch if you need repo-level temporary investigation space.
-- Treat `.superpowers/` as the only allowed location for Superpowers plans, specs, QA evidence, scripts, and companion artifacts; never commit or push `.superpowers/` or `docs/superpowers/` content.
-- During work, update committed notes only when the lesson is reusable beyond one draft. Use the templates in [ai-notes/templates/](./ai-notes/templates/) instead of inventing new note shapes.
-- After finishing work, distill reusable learnings back into the canonical folder and keep draft-specific detail in `drafts/{domain}/ai_notes/`, `drafts/{domain}/findings/`, or `drafts/{domain}/errors-reports/`.
-- Put app/runtime/tooling history in `changelog/app/` and draft authoring/QA/publish history in `changelog/drafts/`.
-- Put all process logs under `logs/`; do not leave `*.log` files in the repo root, `Output/`, `reports/`, `devonly/`, or draft folders.
-- Keep note timestamps in Central Time.
+## Repository Boundaries
 
-## Closeout Mantra
+- `drafts/{domain}` is the canonical local draft path. Do not assume `drafts/_repos` is current.
+- `ai-notes/` contains curated, reusable guidance—not session history.
+- `changelog/app/` owns notable app/runtime/tooling chronology; `changelog/drafts/` owns notable draft chronology.
+- Draft-local `ai_notes/`, `findings/`, and `errors-reports/` are local investigative/history surfaces, not shared canonical guidance.
+- `.superpowers/` is the only location for local Superpowers plans, specs, scripts, and evidence. Never commit `.superpowers/` or `docs/superpowers/`.
+- `devonly/` is optional ignored scratch. Put process logs under `logs/`, never at the repo root or inside draft folders.
+- Put generated Microsoft documents, PDFs, and images under the ignored `Output/` directory.
+- Write shared repository documentation in English by default. Direct quotations and source material may remain in their original language.
+- Keep timestamps in Central Time.
 
-- Before declaring a task correct, audit it, fix what you find, and rerun the audit at least three times.
-- For draft-affecting work, finish with browser QA on every affected draft route in both desktop and mobile viewports and correct any issue found there before closing.
+## Safety And Delivery
 
-## Safety And Security Rules
+- Never store secrets, credentials, tokens, raw environment values, signed URLs, private customer data, or PII in code, docs, notes, logs, examples, or retrieval tools.
+- Describe sensitive dependencies abstractly. If code/runtime and documentation disagree, record the mismatch and verify the implementation before updating guidance.
+- Preserve each repository's verified branch, release, rollback, and trust boundaries. Do not infer that sibling repositories share the hub's topology.
+- Treat nested draft repositories as independent Git repositories. Stage, commit, and push from their own roots.
+- Do not overwrite dirty, detached, unclassified, or unrelated user work. Do not mix changes into another active PR.
+- Before declaring work correct, audit, fix, and rerun the audit at least three times.
+- Draft changes that affect payloads, routes, styles, scripts, or rendered behavior require desktop and mobile browser QA on every affected route. Documentation-only changes require link, workflow, and public-safety validation instead.
 
-- Do not store secrets, credentials, tokens, raw environment-variable values, signed URLs, private customer data, or other PII in any note.
-- If a workflow depends on sensitive data, describe the dependency abstractly instead of copying the sensitive detail into committed notes.
-- If code or runtime behavior disagrees with a note, do not guess. Record the mismatch and update the reusable note after verification.
+## Update The Right Surface
 
-## Update Triggers
-
-Update the canonical shared notes when you:
-
-- discover a reusable visual-parity rule or authoring constraint
-- find a routing, slug, embed, or Angora limitation that will affect future work
-- identify a durable QA, release, or authoring workflow improvement
-- extract a reusable rule from one draft that future drafts should inherit
-
-Update the changelog instead when you are only recording what changed, what was verified, what was published, or what evidence was produced in one app or draft pass.
+- Update canonical docs or `ai-notes/` only for verified guidance reusable beyond one draft.
+- Update a draft-local index for durable context specific to that draft.
+- Update `changelog/` for what changed, was verified, was deployed, or was published.
+- Do not add chronology to this file or `Codex.md`.

@@ -1,25 +1,26 @@
 # Workspace AI Customization Rollout
 
-Date: 2026-04-21 (Central Time)
+Date: 2026-07-11 (Central Time)
 Scope: Shared AI customization rollout and hub responsibilities across the Zoolanding multi-root workspace.
 Status: Active
 Applies To: Shared prompts, workspace-level tooling, cross-repo customization audits, and multi-repo handoff notes.
 Source Of Truth:
 
-- `zoolandingpage.code-workspace`
 - `AGENTS.md`
-- `Codex.md`
+- `docs/repository-map.md`
+- `docs/drafts-registry.json`
+- `zoolandingpage.code-workspace`
 - `ai-notes/README.md`
 - `ai-notes/notes/copilot-skill-routing.md`
 - `.github/prompts/`
 - sibling repo `.github/` customizations in this workspace
 
 Confidence: High
-Last Reviewed: 2026-04-21 (Central Time)
+Last Reviewed: 2026-07-11 (Central Time)
 
 ## Workspace Decision
 
-`zoolandingpage` is the canonical home for shared or community AI tooling in this workspace because it owns the checked-in `zoolandingpage.code-workspace` file used by Visual Studio Code.
+`zoolandingpage` is the canonical home for shared or community AI tooling across the mapped Zoolanding repositories. [docs/repository-map.md](../../docs/repository-map.md) and [docs/drafts-registry.json](../../docs/drafts-registry.json) define the inventory; the checked-in VS Code workspace is only a curated convenience view.
 
 Shared prompts, rollout notes, and other community guidance that apply to more than one Zoolanding repo should live here unless there is a strong reason to keep them repo-local.
 
@@ -36,17 +37,16 @@ Shared prompts, rollout notes, and other community guidance that apply to more t
 - service-specific workflow skills such as each repo `zoolanding-lambda-workflow`
 - repo-local agents and skills that describe one service contract or deployment surface
 
-## Rollout Summary
+## Ownership Boundary
 
-- `zoolandingpage` owns the workspace file, shared prompt hub, frontend workflow skill, browser QA skill, PR follow-up skill, and canonical routing notes.
-- `zoolanding-data-dropper-lambda` vendors its own Lambda workflow layer, deploy prompt, PR follow-up skill, and audit agents for the analytics sink.
-- `zoolanding-quick-stats-lambda` vendors the same portable Lambda workflow layer for quick-stats behavior and deploy review.
-- `zoolanding-config-authoring` vendors the same portable Lambda workflow layer for authoring contract work and deploy review.
-- `zoolanding-config-runtime-read` vendors the same portable Lambda workflow layer for runtime bundle resolution and deploy review.
-- `zoolanding-image-upload` vendors the same portable Lambda workflow layer for image-upload behavior, packaging, and deploy review.
+- `zoolandingpage` owns the shared prompt hub, frontend/draft workflows, fleet routing, and cross-repository audit prompts.
+- Each service owns customizations that encode its runtime contract, trust boundary, validation, deployment, or rollback behavior.
+- Generic engineering guidance should be referenced from the hub or a global installation, not copied into every service repository.
+- A local customization is not promoted merely because two old copies happen to match; verify that the underlying repository semantics are actually shared.
 
 ## Reusable Rule
 
 - If a prompt, note, or other AI tool applies to more than one Zoolanding repo, add the community version in `zoolandingpage` first.
 - Keep only the service-specific layer inside each Lambda repo.
 - Prefer referencing the shared hub asset from local repo docs instead of cloning the same community prompt into every repo.
+- Derive audit scope from the repository map and draft registry, never from the VS Code workspace or a hard-coded sibling list.

@@ -1,272 +1,72 @@
-# Zoolandingpage Documentation 🦁
+# Zoolandingpage Documentation
 
-> A meta-landing page that showcases the power of effective landing pages while promoting landing page creation services
+Use this page as the shared start-here index for developers and agents. Open only the section that matches the task.
 
-## 📚 Documentation Index
+## Start Here
 
-This documentation is organized into focused guides to help new developers quickly understand and contribute to the project:
+- [Developer onboarding](./DEVELOPER_ONBOARDING.md): first-day setup, local draft workflow, and safe first exercise.
+- [Getting started](./01-getting-started.md): install and run the application.
+- [Development guide](./03-development-guide.md): day-to-day Angular development.
+- [Architecture](./02-architecture.md): frontend, runtime configuration, and service boundaries.
+- [Repository map](./repository-map.md): which Zoolanding repository owns each cross-repository responsibility.
 
-### 🚀 [Getting Started](./01-getting-started.md)
+## Draft Authoring And Publication
 
-Essential setup guide for new developers.
+- [Draft lifecycle](./11-draft-lifecycle.md): local, testing, and production states; pack/pull/publish workflows.
+- [API-driven configuration](./api-driven-config/README.md): configuration model and authoring contracts.
+- [Public assets and uploads](./12-public-assets-and-file-uploads.md): asset ownership and upload flow.
+- [Managed alias front door](./13-managed-alias-front-door.md): canonical domains, aliases, and front-door routing.
+- [Draft registry](./drafts-registry.json): canonical repository and local path for each registered draft.
 
-- Requirements and prerequisites
-- Docker development (recommended)
-- Local development setup
-- Environment configuration
-- Quick commands reference
-- Troubleshooting guide
+For an existing draft, continue at `drafts/{domain}/README.md`, then its curated `ai_notes/README.md` if present. Do not load draft findings, error reports, evidence, or coordination history by default.
 
-### 🏗 [Project Architecture](./02-architecture.md)
+## Runtime And Integration Contracts
 
-Technical architecture and project structure.
+- [Component model](./api-driven-config/02-component-model.md)
+- [Value handlers](./api-driven-config/04-value-handlers-catalog.md)
+- [Event instructions](./api-driven-config/05-event-instructions.md)
+- [Conditions](./api-driven-config/09-condition-instructions.md)
+- [Loops](./api-driven-config/13-loop-config.md)
+- [API proxy data sources](./api-driven-config/15-runtime-api-proxy-data-sources.md)
+- [Auth profile registry](./api-driven-config/17-auth-profile-registry.md)
+- [Content hub article packages](./api-driven-config/18-content-hub-article-packages.md)
+- [Protected feature contract](./api-driven-config/19-protected-feature-contract.md)
+- [Generic content-builder primitives](./api-driven-config/20-generic-content-builder-primitives.md)
+- [Generic combo catalog](./api-driven-config/21-generic-combo-catalog.md)
 
-- Component hierarchy and organization
-- Service architecture patterns
-- Styling architecture with SCSS
-- Data flow and state management
-- Build and deployment architecture
-- Performance and security considerations
+The owning service repository remains canonical for implementation, deployment, rollback, and trust-boundary detail. Use the [repository map](./repository-map.md) before editing a sibling.
 
-### 💻 [Development Guide](./03-development-guide.md)
+## Operations, Release, And Observability
 
-Coding standards and development workflow.
+- [Deployment guide](./06-deployment.md)
+- [Analytics and tracking](./05-analytics-tracking.md)
+- [Analytics centralization](./08-analytics-centralization.md)
+- [Data dropper integration](./08-data-dropper-lambda.md)
+- [Quick stats integration](./09-quick-stats-lambda.md)
+- [Wrapper orchestrator](./10-wrapper-orchestrator.md)
 
-- TypeScript guidelines and best practices
-- Component architecture standards
-- Git workflow and commit conventions
-- Testing strategies and implementation
-- Performance optimization guidelines
-- Security best practices
+Verify operational instructions against current workflows, manifests, and live state when applicable. Historical paths and stack outputs are evidence, not current configuration.
 
-### 🧠 [ai-notes](../ai-notes/README.md)
+## UI, Angora, And Frontend Reference
 
-Canonical, long-lived guidance promoted from local draft context and sanitized local-only operational notes.
+- [Ngx Angora CSS integration](./04-ngx-angora-css.md)
+- [Ngx Angora CSS usage guide](./ngx-angora-css-usage-guide.md)
+- [Animations and Angora integration](./07-animations-and-angora-integration.md)
+- [Current Angular feature guide](./angular-latest-features-guide.md)
+- [Centralized i18n implementation](./CENTRALIZED_I18N_IMPLEMENTATION.md)
 
-- Shared draft-authoring and QA rules
-- Shared draft-authoring constraints, QA rules, and reusable workflow guidance
-- Templates for future AI and developer notes
-- Agent workflow guidance for reading and updating durable knowledge
+## Reusable Knowledge And History
 
-### 🎨 [NGX-Angora-CSS Integration](./04-ngx-angora-css.md)
+- [ai-notes index](../ai-notes/README.md): curated reusable constraints, knowledge, and procedures.
+- [App changelog](../changelog/app/): notable application/runtime/tooling chronology.
+- [Draft changelog](../changelog/drafts/): notable draft authoring, QA, and publication chronology.
 
-Comprehensive styling system guide.
+Read changelogs only when history is relevant. Root entrypoints and canonical contracts must describe current rules, not replay past work.
 
-- Project-specific integration patterns
-- Brand color system and custom combos
-- Component integration examples
-- Responsive design patterns
-- Animation and interaction patterns
-- Performance optimization for styling
+## Documentation Rules
 
-### 📊 [Analytics & Tracking](./05-analytics-tracking.md)
-
-User behavior and performance monitoring.
-
-- Analytics architecture and event types
-- Real-time WebSocket integration
-- Component-level tracking implementation
-- Form analytics and conversion tracking
-- Performance monitoring (Core Web Vitals)
-- Privacy compliance and GDPR
-
-### 🚀 [Deployment Guide](./06-deployment.md)
-
-Production deployment and operations.
-
-- Docker deployment strategies
-- Cloud deployment (AWS, Digital Ocean, Heroku)
-- Environment configuration
-- CI/CD pipeline setup
-- Monitoring and observability
-- Security considerations
-
-### 📖 [NGX-Angora-CSS Reference](./ngx-angora-css-usage-guide.md)
-
-Complete NGX-Angora-CSS documentation.
-
-- Comprehensive usage guide
-- API reference and examples
-- Advanced patterns and techniques
-
-### 🗃️ [Data Dropper Lambda Integration](./08-data-dropper-lambda.md)
-
-Post raw analytics/events to S3 via the Data Dropper Lambda using `environment.apiUrl`.
-
-### 🧩 [Quick Stats Lambda Integration](./09-quick-stats-lambda.md)
-
-How to use the AWS Lambda–backed endpoint for simple per-app stats updates using `environment.apiUrl`.
-
-### 🧱 [API‑Driven Configuration (Generic App Mode)](./api-driven-config/README.md)
-
-How to build landing pages from **configuration only** (AI-friendly):
-
-- `TGenericComponent` data model
-- `valueInstructions` (dynamic values without JS)
-- handler allowlist/catalog
-- `eventInstructions` patterns
-- example payload shape for storing/loading configs from an API
-
-## 🎯 Project Overview
-
-### What is Zoolandingpage?
-
-Zoolandingpage serves dual purposes:
-
-1. **Educational Tool**: Teaches visitors about landing pages, data analytics, cloud security, and AI integration
-2. **Service Showcase**: Demonstrates effective landing page design while promoting landing page creation services
-
-### Core Value Proposition
-
-> "Experience the power of effective landing pages while learning why your business needs one"
-
-## ✨ Key Features
-
-### 🎯 Content & User Experience
-
-- **Multi-language Support**: Spanish (primary) and English
-- **Interactive Tutorial**: Sketch-style animations showing landing page anatomy
-- **Educational Sections**: Landing pages, Data & BI, Cloud Security, AI Integration
-- **Dual CTA Strategy**: WhatsApp direct contact + lead capture form
-- **Social Proof**: Case studies, testimonials, and conversion metrics
-- **Responsive Design**: Mobile-first approach with PWA capabilities
-
-### 📱 Interactive Elements
-
-- **Sketch-style Animations**: Hand-drawn feel for tutorial sections
-- **Interactive Wireframe Builder**: Let visitors create mini landing pages
-- **Live Analytics Dashboard**: Real-time visitor behavior (anonymized)
-- **Generic Interaction Scopes**: Reusable local state system for authored forms, calculators, and other dynamic experiences
-
-### 🔧 Technical Features
-
-- **Server-Side Rendering (SSR)**: Optimized for SEO and performance
-- **Progressive Web App**: Offline capabilities and app-like experience
-- **Real-time Analytics**: WebSocket-based tracking system
-- **Privacy Compliant**: GDPR/CCPA compliant data collection
-
-## 🛠 Tech Stack
-
-### Core Framework
-
-- **Angular 20+** with standalone components
-- **TypeScript 5.8+** (strict mode)
-- **SCSS** for styling architecture
-- **Express.js** for SSR server
-
-### Styling & UI
-
-- **NGX-Angora-CSS** for dynamic styling and design system
-- **Custom Animation Library** with sketch-style effects
-- **Responsive Grid System** with mobile-first approach
-
-### Development Tools
-
-- **ESLint + Prettier** for code quality
-- **Husky** for pre-commit hooks
-- **Conventional Commits** for versioning
-- **Karma + Jasmine** for testing
-
-### Analytics & Monitoring
-
-- **WebSocket Integration** for real-time data
-- **Custom Analytics Service** for user behavior tracking
-- **Performance Monitoring** with Core Web Vitals
-
-## 🚀 Quick Start
-
-### For New Developers
-
-1. **Start Here**: [Getting Started Guide](./01-getting-started.md)
-2. **Read The Canonical AI Notes**: [ai-notes](../ai-notes/README.md)
-3. **Understand the Architecture**: [Project Architecture](./02-architecture.md)
-4. **Learn the Standards**: [Development Guide](./03-development-guide.md)
-5. **Master the Styling**: [NGX-Angora-CSS Integration](./04-ngx-angora-css.md)
-
-### Docker Development (Recommended)
-
-```bash
-# Clone and start development
-git clone https://github.com/LynxPardelle/zoolandingpage.git
-cd zoolandingpage
-make dev
-
-# Your app will be available at http://localhost:6161
-```
-
-### Local Development
-
-```bash
-# Traditional setup
-npm install
-npm run start
-
-# Available at http://localhost:4200
-```
-
-## 🗺 Project Roadmap
-
-### Phase 1 (MVP - 4-6 weeks) ✅
-
-- [x] Project setup and architecture
-- [x] Documentation structure
-- [x] NGX-Angora-CSS integration
-- [x] Basic landing page structure
-- [x] Spanish/English translation support
-- [x] Core analytics implementation
-- [x] WhatsApp integration
-- [x] Basic responsive design
-
-### Phase 2 (Enhanced - 3-4 weeks) 🚧
-
-- [ ] Interactive tutorial with animations
-- [ ] Advanced responsive optimizations
-- [ ] WebSocket analytics dashboard
-- [ ] Performance monitoring
-- [ ] SEO enhancements
-- [ ] PWA capabilities
-
-### Phase 3 (Advanced - 6-8 weeks) 📋
-
-- [ ] AI-powered content suggestions
-- [ ] Advanced personalization
-- [ ] A/B testing framework
-- [ ] Industry-specific content
-- [ ] Advanced analytics dashboard
-
-## 🤝 Contributing
-
-### Development Workflow
-
-1. **Read the Documentation**: Start with [Getting Started](./01-getting-started.md)
-2. **Follow Standards**: Use [Development Guide](./03-development-guide.md) conventions
-3. **Create Feature Branch**: `feature/your-feature-name`
-4. **Submit Pull Request**: Include tests and documentation updates
-
-### Code Review Checklist
-
-- [ ] TypeScript strict mode compliance
-- [ ] NGX-Angora-CSS client-side only usage
-- [ ] Responsive design implementation
-- [ ] Analytics tracking integration
-- [ ] Performance optimization
-- [ ] Accessibility compliance (WCAG 2.1 AA)
-- [ ] Documentation updates
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](../LICENSE) file for details.
-
-## 📞 Contact
-
-For questions about landing page services or this project:
-
-- **WhatsApp**: [Contact directly](https://wa.me/+525522699563)
-- **Email**: [lynxpardelle@lynxpardelle.com](mailto:lynxpardelle@lynxpardelle.com)
-- **GitHub**: [@LynxPardelle](https://github.com/LynxPardelle)
-
----
-
-Built with ❤️ using Angular and NGX-Angora-CSS.
-
-_This documentation serves as both comprehensive guides and a demonstration of clear, organized project documentation - a key component of professional web development._
+- Prefer one canonical owner and links over copied explanations.
+- Keep current contracts separate from dated evidence.
+- Do not link committed guidance to local `.superpowers/`, `devonly/`, raw evidence, or absolute machine paths.
+- Do not put secrets, raw environment values, signed URLs, private customer data, or PII in documentation.
+- When code and docs disagree, verify the implementation before changing the canonical contract.

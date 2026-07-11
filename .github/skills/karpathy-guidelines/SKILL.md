@@ -25,8 +25,8 @@ Use this repo-local version to keep Karpathy-style execution portable across clo
 
 2. Read the real context first.
 
-   - Read `Codex.md`, `ai-notes/README.md`, and the most relevant note.
-   - If the task touches an existing draft, inspect `drafts/{domain}/ai_notes/`, `drafts/{domain}/findings/`, and `drafts/{domain}/errors-reports/`.
+   - Start at `AGENTS.md` and route through `docs/README.md`; read one focused `ai-notes` entry only when needed.
+   - For an existing draft, begin with its README and curated `ai_notes/README.md`; open findings/error history only when needed.
 
 3. Choose the smallest affected surface.
 

@@ -1,13 +1,14 @@
 # ai-notes
 
-Date: 2026-04-20 (Central Time)
+Date: 2026-07-11 (Central Time)
 Scope: Canonical long-lived AI and developer guidance for Zoolandingpage.
 Status: Active
 Applies To: Reusable workflow, authoring, QA, operations, and release guidance
 Source Of Truth:
 
 - `AGENTS.md`
-- `Codex.md`
+- `docs/README.md`
+- `docs/repository-map.md`
 - `docs/DEVELOPER_ONBOARDING.md`
 - `docs/03-development-guide.md`
 - `docs/11-draft-lifecycle.md`
@@ -15,7 +16,7 @@ Source Of Truth:
 - Sanitized operational lessons promoted from local-only recovery work
 
 Confidence: High
-Last Reviewed: 2026-04-20 (Central Time)
+Last Reviewed: 2026-07-11 (Central Time)
 
 This folder is the canonical home for reusable guidance that should survive beyond one task or one chat.
 
@@ -23,13 +24,15 @@ It is not the repo changelog. Chronological app and draft history belongs under 
 
 ## Read This Folder In This Order
 
-1. Read [../Codex.md](../Codex.md).
-2. Read [notes/agent-task-workflow.md](./notes/agent-task-workflow.md).
-3. Read [notes/copilot-skill-routing.md](./notes/copilot-skill-routing.md) when selecting among installed general skills for repo work.
-4. Read [notes/workspace-ai-customization-rollout.md](./notes/workspace-ai-customization-rollout.md) when the task depends on shared workspace prompts, multi-repo AI tooling, or customization parity.
-5. Read the most relevant file under [knowledge/](./knowledge/), [constraints/](./constraints/), [how-to/](./how-to/), [future-features-ideas/](./future-features-ideas/), or [error-reports/](./error-reports/).
-6. If the task depends on an existing local draft, inspect `drafts/{domain}/ai_notes/`, `drafts/{domain}/findings/`, and `drafts/{domain}/errors-reports/` when those folders exist.
-7. Use the templates in [templates/](./templates/) when creating new committed notes.
+1. Start with the task route in [../docs/README.md](../docs/README.md).
+2. Read [notes/agent-task-workflow.md](./notes/agent-task-workflow.md) for the shared work/closeout contract.
+3. Read [notes/copilot-skill-routing.md](./notes/copilot-skill-routing.md) only when selecting among checked-in general skills.
+4. Read [notes/workspace-ai-customization-rollout.md](./notes/workspace-ai-customization-rollout.md) only for shared workspace prompts, multi-repo AI tooling, or customization parity.
+5. Open the single most relevant file under [knowledge/](./knowledge/), [constraints/](./constraints/), [how-to/](./how-to/), [future-features-ideas/](./future-features-ideas/), or [error-reports/](./error-reports/).
+6. For an existing draft, start with its `README.md` and curated `ai_notes/README.md` when present. Open findings/error history only when required.
+7. Use [templates/](./templates/) only when a new reusable note is genuinely needed.
+
+Root `Codex.md` is a temporary compatibility file and is not part of this default read order.
 
 ## What Belongs Here
 

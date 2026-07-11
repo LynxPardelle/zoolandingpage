@@ -81,5 +81,8 @@ test('CLI dry run writes generated config to a requested output file', async () 
   });
 
   assert.equal(result.status, 0, result.stderr);
-  assert.match(await readFile(outputPath, 'utf8'), /zlp-auth-admin-test-secure/);
+  const yaml = await readFile(outputPath, 'utf8');
+  assert.match(yaml, /zlp-auth-admin-test-secure/);
+  assert.match(yaml, /test\.zoolandingpage\.com\.mx/);
+  assert.doesNotMatch(yaml, /test\.zoositioweb\.com\.mx/);
 });

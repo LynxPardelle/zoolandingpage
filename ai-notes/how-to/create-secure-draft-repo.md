@@ -4,9 +4,11 @@ Status: Active
 Applies To: New `draft-*` GitHub repositories
 Source Of Truth:
 
-- `plan/feature-secure-draft-repo-release-workflow-1.md`
+- `docs/11-draft-lifecycle.md`
 - `ai-notes/notes/secure-draft-release-workflow.md`
-- `Codex.md`
+- `tools/draft-github-setup.mjs`
+- `tools/draft-repo-preflight.mjs`
+- `tools/draft-public-safety-audit.mjs`
 - `docs/drafts-registry.json`
 
 Confidence: Medium

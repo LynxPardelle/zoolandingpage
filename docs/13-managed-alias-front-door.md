@@ -29,9 +29,11 @@ Required inputs:
 
 Defaults:
 
-- test hosts: `test.zoolandingpage.com.mx`, `test.zoositioweb.com.mx`
+- test host: `test.zoolandingpage.com.mx`
 - production hosts: `zoositioweb.com.mx`, `zoositioweb.com`
 - remote file: `/etc/dokploy/traefik/dynamic/zoolanding-auth-admin.yml`
+
+Dedicated draft test hosts are opt-in. `test.zoositioweb.com.mx` is not a default and must not be added to generated front-door rules unless the user explicitly approves it and a current DNS, TLS, HTTP, and browser health check passes. Use `https://test.zoolandingpage.com.mx/?draftDomain=zoositioweb.com.mx` as the shared preview.
 
 The generated rules route only `/auth/session`, `/auth/session/*`, `/auth/admin`, and `/auth/admin/*`. Do not replace this with `/auth/*`, because `/auth/callback` remains an Angular-rendered draft route.
 
