@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -9,8 +9,11 @@ import { promisify } from 'node:util';
 import {
   discoverDraftRepos,
   ensureRegisteredDraftRepos,
+  inspectRepo,
+  inspectRegisteredDraftRepo,
   parseArgs,
   readDraftRegistry,
+  registeredDraftRepoPath,
   resolveTargetRepos,
 } from '../draft-repo-preflight.mjs';
 import { bootstrapDraftRepo } from '../draft-repo-bootstrap.mjs';
@@ -27,14 +30,16 @@ test('parseArgs accepts repeated repo flags', () => {
 
 test('discoverDraftRepos ignores non-draft folders', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'zlp-draft-repos-'));
-  await mkdir(path.join(root, 'draft-example'), { recursive: true });
+  await execFileAsync('git', ['init'], { cwd: root, windowsHide: true });
+  await mkdir(path.join(root, 'unregistered.example.com'), { recursive: true });
+  await mkdir(path.join(root, 'plain.example.com'), { recursive: true });
   await mkdir(path.join(root, 'not-a-draft'), { recursive: true });
-  await execFileAsync('git', ['init'], { cwd: path.join(root, 'draft-example'), windowsHide: true });
+  await execFileAsync('git', ['init'], { cwd: path.join(root, 'unregistered.example.com'), windowsHide: true });
   await execFileAsync('git', ['init'], { cwd: path.join(root, 'not-a-draft'), windowsHide: true });
 
   const repos = await discoverDraftRepos(root);
 
-  assert.deepEqual(repos, [path.join(root, 'draft-example')]);
+  assert.deepEqual(repos, [path.join(root, 'unregistered.example.com')]);
 });
 
 test('readDraftRegistry parses draft GitHub links', async () => {
@@ -42,6 +47,7 @@ test('readDraftRegistry parses draft GitHub links', async () => {
   const registryPath = path.join(root, 'drafts-registry.json');
   await writeFile(registryPath, JSON.stringify({
     version: 1,
+    owner: 'LynxPardelle',
     defaultBaseDir: 'drafts',
     drafts: [
       {
@@ -58,6 +64,115 @@ test('readDraftRegistry parses draft GitHub links', async () => {
   assert.equal(registry.drafts.length, 1);
   assert.equal(registry.drafts[0].domain, 'example.com');
   assert.equal(registry.drafts[0].githubUrl, 'https://github.com/LynxPardelle/draft-example-com.git');
+});
+
+test('readDraftRegistry permits a safe direct-child path during a documented domain transition', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zlp-draft-registry-transition-'));
+  const registryPath = path.join(root, 'drafts-registry.json');
+  await writeFile(registryPath, JSON.stringify({
+    version: 1,
+    owner: 'LynxPardelle',
+    defaultBaseDir: 'drafts',
+    drafts: [{
+      domain: 'old.example.com',
+      repo: 'draft-new-example-com',
+      githubUrl: 'https://github.com/LynxPardelle/draft-new-example-com.git',
+      localPath: 'drafts/new.example.com',
+    }],
+  }), 'utf8');
+
+  const registry = await readDraftRegistry(registryPath);
+  assert.equal(registry.drafts[0].localPath, 'drafts/new.example.com');
+});
+
+test('readDraftRegistry rejects paths, duplicates, and remote identities outside the canonical contract', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zlp-draft-registry-invalid-'));
+  const registryPath = path.join(root, 'drafts-registry.json');
+  const base = {
+    version: 1,
+    owner: 'LynxPardelle',
+    defaultBaseDir: 'drafts',
+  };
+  const valid = {
+    domain: 'example.com',
+    repo: 'draft-example-com',
+    githubUrl: 'https://github.com/LynxPardelle/draft-example-com.git',
+    localPath: 'drafts/example.com',
+  };
+
+  for (const localPath of ['../outside', 'drafts/../outside', 'C:/outside', '/outside']) {
+    await writeFile(registryPath, JSON.stringify({ ...base, drafts: [{ ...valid, localPath }] }), 'utf8');
+    await assert.rejects(readDraftRegistry(registryPath), /localPath/i);
+  }
+
+  await writeFile(registryPath, JSON.stringify({
+    ...base,
+    drafts: [valid, { ...valid, repo: 'draft-other', githubUrl: 'https://github.com/LynxPardelle/draft-other.git' }],
+  }), 'utf8');
+  await assert.rejects(readDraftRegistry(registryPath), /duplicate domain|duplicate localPath/i);
+
+  await writeFile(registryPath, JSON.stringify({
+    ...base,
+    drafts: [{ ...valid, githubUrl: 'https://github.com/AnotherOwner/draft-example-com.git' }],
+  }), 'utf8');
+  await assert.rejects(readDraftRegistry(registryPath), /githubUrl/i);
+});
+
+test('registeredDraftRepoPath refuses to escape the canonical drafts root', () => {
+  const root = path.resolve('workspace');
+  assert.throws(
+    () => registeredDraftRepoPath({ repo: 'draft-example', localPath: '../outside' }, root, 'drafts'),
+    /localPath/i
+  );
+});
+
+test('registered draft inspection rejects remote mismatch and junction escape', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zlp-draft-inspection-'));
+  const draftsRoot = path.join(root, 'drafts');
+  const repoPath = path.join(draftsRoot, 'example.com');
+  await mkdir(repoPath, { recursive: true });
+  await execFileAsync('git', ['init'], { cwd: repoPath, windowsHide: true });
+  await execFileAsync(
+    'git',
+    ['remote', 'add', 'origin', 'https://github.com/LynxPardelle/wrong-repo.git'],
+    { cwd: repoPath, windowsHide: true }
+  );
+  const draft = {
+    domain: 'example.com',
+    repo: 'draft-example-com',
+    githubUrl: 'https://github.com/LynxPardelle/draft-example-com.git',
+    localPath: 'drafts/example.com',
+  };
+
+  const mismatch = await inspectRegisteredDraftRepo(draft, { cwd: root, defaultBaseDir: 'drafts' });
+  assert.equal(mismatch.status, 'remote-mismatch');
+
+  const junctionRoot = await mkdtemp(path.join(os.tmpdir(), 'zlp-draft-junction-'));
+  const outsideRepo = path.join(junctionRoot, 'outside-repo');
+  const hub = path.join(junctionRoot, 'hub');
+  await mkdir(path.join(hub, 'drafts'), { recursive: true });
+  await mkdir(outsideRepo, { recursive: true });
+  await execFileAsync('git', ['init'], { cwd: outsideRepo, windowsHide: true });
+  await execFileAsync(
+    'git',
+    ['remote', 'add', 'origin', draft.githubUrl],
+    { cwd: outsideRepo, windowsHide: true }
+  );
+  await symlink(outsideRepo, path.join(hub, 'drafts', 'example.com'), 'junction');
+
+  const escaped = await inspectRegisteredDraftRepo(draft, { cwd: hub, defaultBaseDir: 'drafts' });
+  assert.equal(escaped.status, 'path-escape');
+});
+
+test('unregistered draft inspection never pulls before ownership is classified', async t => {
+  const repoPath = await mkdtemp(path.join(os.tmpdir(), 'zlp-draft-unregistered-pull-'));
+  t.after(() => rm(repoPath, { recursive: true, force: true }));
+  await execFileAsync('git', ['init'], { cwd: repoPath, windowsHide: true });
+
+  const result = await inspectRepo(repoPath, { pull: true, unregistered: true });
+
+  assert.equal(result.status, 'clean');
+  assert.equal(result.pulled, false);
 });
 
 test('ensureRegisteredDraftRepos reports missing repos without cloning when disabled', async () => {
@@ -88,8 +203,14 @@ test('resolveTargetRepos includes registered in-tree draft repos', async () => {
   await mkdir(path.join(hub, 'docs'), { recursive: true });
   await mkdir(draft, { recursive: true });
   await execFileAsync('git', ['init'], { cwd: draft, windowsHide: true });
+  await execFileAsync(
+    'git',
+    ['remote', 'add', 'origin', 'https://github.com/LynxPardelle/draft-example-com.git'],
+    { cwd: draft, windowsHide: true }
+  );
   await writeFile(path.join(hub, 'docs', 'drafts-registry.json'), JSON.stringify({
     version: 1,
+    owner: 'LynxPardelle',
     defaultBaseDir: 'drafts',
     drafts: [
       {
@@ -106,6 +227,32 @@ test('resolveTargetRepos includes registered in-tree draft repos', async () => {
   assert.equal(resolved.registry.drafts.length, 1);
   assert.equal(resolved.registeredRepos[0].status, 'present');
   assert.deepEqual(resolved.repos, [draft, hub].sort());
+  assert.deepEqual(resolved.unregisteredRepos, []);
+});
+
+test('resolveTargetRepos exposes unregistered domain repos as classification gaps', async () => {
+  const workspace = await mkdtemp(path.join(os.tmpdir(), 'zlp-draft-unregistered-'));
+  const hub = path.join(workspace, 'zoolandingpage');
+  const unregistered = path.join(hub, 'drafts', 'unregistered.example.com');
+  await mkdir(path.join(hub, 'docs'), { recursive: true });
+  await mkdir(unregistered, { recursive: true });
+  await execFileAsync('git', ['init'], { cwd: unregistered, windowsHide: true });
+  await writeFile(path.join(hub, 'docs', 'drafts-registry.json'), JSON.stringify({
+    version: 1,
+    owner: 'LynxPardelle',
+    defaultBaseDir: 'drafts',
+    drafts: [{
+      domain: 'missing.example.com',
+      repo: 'draft-missing-example-com',
+      githubUrl: 'https://github.com/LynxPardelle/draft-missing-example-com.git',
+      localPath: 'drafts/missing.example.com',
+    }],
+  }), 'utf8');
+
+  const resolved = await resolveTargetRepos({ repo: [], clone: 'false' }, hub);
+
+  assert.deepEqual(resolved.unregisteredRepos, [unregistered]);
+  assert.ok(resolved.repos.includes(unregistered));
 });
 
 test('deploy template normalizes domains and environments', () => {
@@ -159,4 +306,9 @@ test('bootstrapDraftRepo copies deploy templates and writes non-secret config', 
   const config = JSON.parse(await import('node:fs/promises').then(fs => fs.readFile(path.join(repoPath, 'draft-repo.config.json'), 'utf8')));
   assert.equal(config.domain, 'example.com');
   assert.equal(config.authoringEndpoint, 'https://api.example.com/config-authoring');
+  const agents = await import('node:fs/promises').then(fs => fs.readFile(path.join(repoPath, 'AGENTS.md'), 'utf8'));
+  assert.match(agents, /dev -> test -> main/);
+  assert.match(agents, /https:\/\/github\.com\/LynxPardelle\/zoolandingpage/);
+  assert.doesNotMatch(agents, /^\s*[-*]\s+20\d{2}-\d{2}-\d{2}\b/m);
+  assert.ok(Buffer.byteLength(agents, 'utf8') <= 4 * 1024);
 });
