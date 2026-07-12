@@ -21,10 +21,6 @@ export class GenericEmbedFrameComponent {
   readonly classes = computed(() => this.optionalString(this.config().classes));
   readonly height = computed(() => this.optionalString(this.config().height));
   readonly loading = computed(() => this.config().loading ?? 'lazy');
-  readonly allow = computed(() => this.optionalString(this.config().allow));
-  readonly referrerPolicy = computed(() => this.optionalString(this.config().referrerPolicy));
-  readonly sandbox = computed(() => this.optionalString(this.config().sandbox));
-  readonly allowFullscreen = computed(() => resolveDynamicValue(this.config().allowFullscreen) === true);
 
   private requiredString(value: TDynamicValue<string>): string {
     return String(resolveDynamicValue(value) ?? '');
