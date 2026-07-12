@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "owner": "LynxPardelle",
+  "satellites": [
+    {
+      "repo": "zoolanding-config-runtime-read",
+      "githubUrl": "https://github.com/LynxPardelle/zoolanding-config-runtime-read.git",
+      "localPath": "../zoolanding-config-runtime-read",
+      "requiredBranches": ["dev", "test", "main"],
+      "requiredWorkflows": ["ci.yml", "deploy-dev.yml", "deploy-test.yml", "deploy-production.yml", "pr-safety.yml"],
+      "routes": [
+        { "task": "Draft lifecycle and runtime publication", "path": "docs/11-draft-lifecycle.md" },
+        { "task": "Runtime data-source contract", "path": "docs/api-driven-config/15-runtime-api-proxy-data-sources.md" },
+        { "task": "Domain and alias behavior", "path": "docs/13-managed-alias-front-door.md" },
+        { "task": "Fleet ownership", "path": "docs/repository-map.md" }
+      ]
+    },
+    {
+      "repo": "zoolanding-auth-admin",
+      "githubUrl": "https://github.com/LynxPardelle/zoolanding-auth-admin.git",
+      "localPath": "../zoolanding-auth-admin",
+      "requiredBranches": ["dev", "test", "main"],
+      "requiredWorkflows": ["ci.yml", "deploy-dev.yml", "deploy-test.yml", "deploy-production.yml", "pr-safety.yml"],
+      "routes": [
+        { "task": "Auth profile contract", "path": "docs/api-driven-config/17-auth-profile-registry.md" },
+        { "task": "Protected feature contract", "path": "docs/api-driven-config/19-protected-feature-contract.md" },
+        { "task": "Draft auth audit", "path": "docs/api-driven-config/18-draft-auth-audit-matrix.md" },
+        { "task": "Fleet ownership", "path": "docs/repository-map.md" }
+      ]
+    },
+    {
+      "repo": "zoolanding-content-hub",
+      "githubUrl": "https://github.com/LynxPardelle/zoolanding-content-hub.git",
+      "localPath": "../zoolanding-content-hub",
+      "requiredBranches": ["dev", "test", "main"],
+      "requiredWorkflows": ["ci.yml", "deploy-dev.yml", "deploy-test.yml", "deploy-production.yml", "pr-safety.yml"],
+      "routes": [
+        { "task": "Article package contract", "path": "docs/api-driven-config/18-content-hub-article-packages.md" },
+        { "task": "Protected feature contract", "path": "docs/api-driven-config/19-protected-feature-contract.md" },
+        { "task": "Draft lifecycle and publication", "path": "docs/11-draft-lifecycle.md" },
+        { "task": "Fleet ownership", "path": "docs/repository-map.md" }
+      ]
+    }
+  ]
+}
