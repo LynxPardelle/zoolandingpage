@@ -40,6 +40,8 @@ From the hub, run `npm run fleet:knowledge` for a read-only local fleet audit. U
 
 For independent clones kept outside the in-tree draft source, pass `--checkout-root=<directory>`; each registered repository is resolved as `<directory>/<repo-name>`. This keeps Git operations out of the hub's tracked `drafts/{domain}` content tree.
 
+For registered drafts, apply mode also refreshes the canonical PR-source guard so branch names enter shell steps through environment variables rather than direct expression interpolation. Satellite deploy and promotion workflows remain repository-owned and are never replaced by this command.
+
 `draft-grupoastralegal-com` is in a verified domain transition: its GitHub identity and canonical local path use `grupoastralegal`, while the registered production domain remains `despacholegalastralex.com`; `dev` and `test` currently carry `grupoastralegal.com`. Bulk setup is blocked for this mismatch. Do not change production domain, aliases, roles, or environment variables until that promotion is explicitly approved and verified.
 
 ### Draft-specific safety holds

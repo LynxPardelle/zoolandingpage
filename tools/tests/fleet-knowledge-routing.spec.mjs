@@ -51,8 +51,8 @@ async function createRepoFixture() {
   await writeFile(path.join(repoPath, 'AGENTS.md'), '# Custom agent rules\n\nKeep this safety rule.\n', 'utf8');
   await git(repoPath, 'add', '.');
   await git(repoPath, 'commit', '-m', 'fixture');
-  await git(repoPath, 'branch', 'test');
-  await git(repoPath, 'branch', 'main');
+  await git(repoPath, 'update-ref', 'refs/remotes/origin/test', 'HEAD');
+  await git(repoPath, 'update-ref', 'refs/remotes/origin/main', 'HEAD');
 
   return { hubRoot, repoPath };
 }
@@ -86,11 +86,20 @@ test('applyRouting preserves local docs and a second apply is a no-op', async ()
   const readme = await readFile(path.join(repoPath, 'README.md'), 'utf8');
   const agents = await readFile(path.join(repoPath, 'AGENTS.md'), 'utf8');
 
-  assert.deepEqual(first.changed.sort(), ['.github/workflows/pr-safety.yml', 'AGENTS.md', 'README.md']);
+  assert.deepEqual(first.changed.sort(), [
+    '.github/workflows/guard-pr-source.yml',
+    '.github/workflows/pr-safety.yml',
+    'AGENTS.md',
+    'README.md',
+  ]);
   assert.deepEqual(second.changed, []);
   assert.deepEqual(postApplyAudit.issues, []);
   assert.match(readme, /Keep this introduction/);
   assert.match(agents, /Keep this safety rule/);
+  assert.match(
+    await readFile(path.join(repoPath, '.github', 'workflows', 'guard-pr-source.yml'), 'utf8'),
+    /HEAD_REF: \$\{\{ github\.head_ref \}\}/
+  );
 });
 
 test('applyRouting rejects a mismatched origin before writing', async () => {
