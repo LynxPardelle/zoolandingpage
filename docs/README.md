@@ -1,5 +1,7 @@
 # Zoolandingpage Documentation
 
+Use this page as a task router. Open only the document needed for the current task, then verify its claims against executable code, JSON, workflows, or live state.
+
 Use this page as the shared start-here index for developers and agents. Open only the section that matches the task.
 
 ## Start Here
@@ -9,6 +11,8 @@ Use this page as the shared start-here index for developers and agents. Open onl
 - [Development guide](./03-development-guide.md): day-to-day Angular development.
 - [Architecture](./02-architecture.md): frontend, runtime configuration, and service boundaries.
 - [Repository map](./repository-map.md): which Zoolanding repository owns each cross-repository responsibility.
+- [Draft registry](./drafts-registry.json): machine-readable ownership for all `draft-*` repositories.
+- [Satellite registry](./satellite-repositories.json): machine-readable routing and CI/CD expectations for the managed satellite pilot.
 
 ## Draft Authoring And Publication
 

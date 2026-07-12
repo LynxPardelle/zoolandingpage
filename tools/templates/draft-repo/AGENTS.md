@@ -2,6 +2,21 @@
 
 Use this file as the mandatory local entrypoint. Start with this draft's README and `draft-repo.config.json`; open draft-local `ai_notes/README.md` only when it exists and the task needs that context.
 
+## Task Routing
+
+Read only the row needed for the current task, then inspect the executable JSON or workflow that owns the behavior.
+
+| Task | Read |
+| --- | --- |
+| Edit draft content or routes | Local `site-config.json`, page JSON, and task-specific local docs |
+| Create or bootstrap a draft | https://github.com/LynxPardelle/zoolandingpage/blob/main/ai-notes/how-to/create-secure-draft-repo.md |
+| Promote, deploy, or configure branches | https://github.com/LynxPardelle/zoolandingpage/blob/main/docs/11-draft-lifecycle.md and local `.github/workflows/` |
+| Upload public assets | https://github.com/LynxPardelle/zoolandingpage/blob/main/docs/12-public-assets-and-file-uploads.md |
+| Configure domains or aliases | https://github.com/LynxPardelle/zoolandingpage/blob/main/docs/13-managed-alias-front-door.md |
+| Work across repositories | https://github.com/LynxPardelle/zoolandingpage/blob/main/docs/repository-map.md |
+
+Do not load the whole hub, local documentation tree, or changelog unless the routed document requires it.
+
 ## Git And Publication
 
 - Work on `dev`; promote with separate pull requests `dev -> test -> main`.
@@ -17,15 +32,6 @@ Use this file as the mandatory local entrypoint. Start with this draft's README 
 - Keep `ai_notes/`, `findings/`, and `errors-reports/` local/ignored unless a sanitized reusable lesson is deliberately promoted to the hub.
 - Public contact details are allowed only when intentionally client-facing. Source CVs, identity documents, private photos, raw research, and unapproved domains/aliases stay local.
 - Before PR, merge, visibility changes, or publication, run the hub public-safety audit and resolve every blocking finding.
-
-## Shared Guidance
-
-- Draft lifecycle: https://github.com/LynxPardelle/zoolandingpage/blob/main/docs/11-draft-lifecycle.md
-- Public assets/uploads: https://github.com/LynxPardelle/zoolandingpage/blob/main/docs/12-public-assets-and-file-uploads.md
-- Managed aliases: https://github.com/LynxPardelle/zoolandingpage/blob/main/docs/13-managed-alias-front-door.md
-- Fleet ownership: https://github.com/LynxPardelle/zoolandingpage/blob/main/docs/repository-map.md
-
-Keep critical draft-specific safety and release rules here; link extended shared procedures instead of copying the hub history.
 
 ## Closeout
 

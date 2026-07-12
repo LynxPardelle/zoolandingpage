@@ -28,6 +28,7 @@
     "drafts:upload-status": "node tools/draft-upload-status.mjs --all=true --stage=published",
     "drafts:repo-preflight": "node tools/draft-repo-preflight.mjs --pull=true",
     "drafts:repo-bootstrap": "node tools/draft-repo-bootstrap.mjs",
+    "fleet:knowledge": "node tools/fleet-knowledge-routing.mjs",
     "drafts:public-safety-audit": "node tools/draft-public-safety-audit.mjs",
     "drafts:auth-audit": "node tools/draft-auth-audit.mjs",
     "drafts:aws-oidc-setup": "node tools/draft-aws-oidc-setup.mjs",

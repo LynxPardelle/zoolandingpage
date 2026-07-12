@@ -309,6 +309,27 @@ test('bootstrapDraftRepo copies deploy templates and writes non-secret config', 
   const agents = await import('node:fs/promises').then(fs => fs.readFile(path.join(repoPath, 'AGENTS.md'), 'utf8'));
   assert.match(agents, /dev -> test -> main/);
   assert.match(agents, /https:\/\/github\.com\/LynxPardelle\/zoolandingpage/);
+  assert.match(agents, /Create or bootstrap a draft/i);
+  assert.match(agents, /ai-notes\/how-to\/create-secure-draft-repo\.md/);
   assert.doesNotMatch(agents, /^\s*[-*]\s+20\d{2}-\d{2}-\d{2}\b/m);
   assert.ok(Buffer.byteLength(agents, 'utf8') <= 4 * 1024);
+
+  const readme = await import('node:fs/promises').then(fs => fs.readFile(path.join(repoPath, 'README.md'), 'utf8'));
+  assert.match(readme, /AGENTS\.md/);
+  assert.match(readme, /Zoolandingpage documentation hub/i);
+
+  const prSafety = await import('node:fs/promises').then(fs => fs.readFile(
+    path.join(repoPath, '.github', 'workflows', 'pr-safety.yml'),
+    'utf8'
+  ));
+  assert.match(prSafety, /LynxPardelle\/zoolandingpage\/.github\/workflows\/reusable-pr-safety\.yml@[0-9a-f]{40}/);
+  assert.doesNotMatch(prSafety, /reusable-pr-safety\.yml@(?:main|dev|test)\b/);
+  assert.match(prSafety, /pull_request:/);
+
+  const promotionGuard = await import('node:fs/promises').then(fs => fs.readFile(
+    path.join(repoPath, '.github', 'workflows', 'guard-pr-source.yml'),
+    'utf8'
+  ));
+  assert.match(promotionGuard, /env:\s*\n\s+BASE_REF: \$\{\{ github\.base_ref \}\}\s*\n\s+HEAD_REF: \$\{\{ github\.head_ref \}\}/);
+  assert.doesNotMatch(promotionGuard, /(?:base|head)="\$\{\{ github\.(?:base_ref|head_ref) \}\}"/);
 });

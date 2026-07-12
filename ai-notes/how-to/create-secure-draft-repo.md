@@ -12,7 +12,7 @@ Source Of Truth:
 - `docs/drafts-registry.json`
 
 Confidence: Medium
-Last Reviewed: 2026-05-17 (Central Time)
+Last Reviewed: 2026-07-12 (Central Time)
 
 # Create A Secure Draft Repo
 
@@ -36,10 +36,10 @@ Use this checklist when creating a new draft repository after the secure release
 4. Run the bootstrap helper from the hub repo:
 
    ```bash
-   npm run drafts:repo-bootstrap -- --repo=drafts/example.com --domain=example.com --authoring-endpoint=https://o4upx3fsz3d3dwfwz4lbnefjze0eetyn.lambda-url.us-east-1.on.aws/
+   npm run drafts:repo-bootstrap -- --repo=drafts/example.com --domain=example.com --authoring-endpoint=https://api.zoolandingpage.com.mx/config-authoring
    ```
 
-   This copies the standard repo memory, GitHub Actions workflow templates, OIDC deploy script, `.gitignore`, and non-secret `draft-repo.config.json`.
+   This copies the routed `AGENTS.md`, human `README.md`, compatibility `Codex.md`, pinned C1 caller, deployment workflows, OIDC deploy script, `.gitignore`, and non-secret `draft-repo.config.json`.
 5. Confirm `.gitignore` excludes:
    - `.env*`
    - private keys and certificates
@@ -95,6 +95,11 @@ Use this checklist when creating a new draft repository after the secure release
 24. Confirm post-merge deploy workflow for `main`.
 25. Verify test deploy against every test alias.
 26. Verify production deploy against every production alias.
+27. Run the hub routing audit:
+
+   ```bash
+   npm run fleet:knowledge -- --repo=draft-example-com
+   ```
 
 ## Acceptance Checks
 
@@ -111,6 +116,9 @@ Use this checklist when creating a new draft repository after the secure release
 - Merge to `test` deploys only test aliases.
 - Merge to `main` deploys only production aliases.
 - AWS CloudTrail/API logs show assumed OIDC role, not long-lived AWS keys.
+- `AGENTS.md` routes each task to one exact local or hub document; `README.md` points humans to that router; `Codex.md` does not duplicate procedures or chronology.
+- The C1 caller references the reusable hub workflow by immutable commit SHA.
+- `npm run fleet:knowledge -- --repo=draft-example-com` passes without changing files.
 
 ## Notes
 

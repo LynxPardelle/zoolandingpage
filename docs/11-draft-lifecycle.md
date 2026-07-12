@@ -53,10 +53,14 @@ node tools/draft-repo-preflight.mjs --pull=true
 New draft repos should be bootstrapped from the hub templates:
 
 ```bash
-npm run drafts:repo-bootstrap -- --repo=drafts/example.com --domain=example.com --authoring-endpoint=https://o4upx3fsz3d3dwfwz4lbnefjze0eetyn.lambda-url.us-east-1.on.aws/
+npm run drafts:repo-bootstrap -- --repo=drafts/example.com --domain=example.com --authoring-endpoint=https://api.zoolandingpage.com.mx/config-authoring
 ```
 
 Every new draft repo must also be added to [drafts-registry.json](./drafts-registry.json) with its canonical domain, repo name, GitHub clone URL, and in-tree local path under `drafts/{domain}`.
+
+The bootstrap must produce `AGENTS.md` as the small task router, `README.md` as the human index, `Codex.md` as a compatibility pointer, and the pinned C1 caller. Agents should follow one task-specific route from `AGENTS.md` instead of loading the hub, local documentation tree, or changelog by default.
+
+After bootstrap or routing changes, run `npm run fleet:knowledge -- --repo=draft-example-com` from the hub to verify links, branches, required workflows, the origin remote, and C1 without writing files.
 
 As of 2026-05-17 CT, the authoring API is IAM-protected, runtime-read supports environment-aware published pointers, OIDC roles are configured per draft repo/environment, and the current public `draft-*` repos have GitHub Environments, deployment workflows, and native GitHub branch protection on `test` and `main`. GitHub Actions deploys use the IAM-protected Lambda Function URL. Protected branches require the `guard` status and zero approvals so the repository owner can merge after checks pass; deployment workflows also reject push-triggered deploys unless `test` receives a merge commit from `dev` or `main` receives a merge commit from `test`.
 

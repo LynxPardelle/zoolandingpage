@@ -46,9 +46,10 @@ Approved target: use separate deploy trust per draft repository and environment.
 Current hub helpers:
 
 - `node tools/draft-repo-preflight.mjs --pull=true` reads `docs/drafts-registry.json`, clones missing registered `draft-*` remote repos into their in-tree `drafts/{domain}` local paths, pulls clean repos with `git pull --ff-only`, and refuses dirty or invalid repos.
-- `npm run drafts:repo-bootstrap -- --repo=drafts/example.com --domain=example.com --authoring-endpoint=https://o4upx3fsz3d3dwfwz4lbnefjze0eetyn.lambda-url.us-east-1.on.aws/` copies the standard draft repo templates.
+- `npm run drafts:repo-bootstrap -- --repo=drafts/example.com --domain=example.com --authoring-endpoint=https://api.zoolandingpage.com.mx/config-authoring` copies the standard draft repo templates.
 - `npm run drafts:aws-oidc-setup` creates or updates per-draft/per-environment IAM roles and prints the Lambda authorization matrix.
 - `npm run drafts:github-setup` clones/configures draft repos, writes templates, creates `dev`/`test` branches, configures GitHub Environments, sets non-secret environment variables, and attempts branch protection.
+- `npm run fleet:knowledge` audits registered draft and pilot satellite entrypoints, exact hub routes, remotes, branches, workflows, and immutable C1 callers. `--apply` changes only marked routing blocks and C1 in explicitly selected clean repositories; it never commits, pushes, merges, or changes cloud/GitHub configuration.
 
 GitHub Actions deploys use the IAM-protected Lambda Function URL, not the public custom authoring API front door. The custom/API Gateway endpoint still returns `403` for unsigned requests.
 

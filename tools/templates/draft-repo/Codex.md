@@ -1,18 +1,5 @@
-# Draft Repo Memory
+# Compatibility Pointer
 
-This repository follows the secure Zoolanding draft release workflow.
+Start with [AGENTS.md](AGENTS.md), then use [README.md](README.md) and [draft-repo.config.json](draft-repo.config.json) for local context.
 
-- Run `git pull --ff-only` before work when the worktree is clean.
-- For multi-repo work, also pull the hub repo and every affected `draft-*` repo when clean.
-- If the worktree is dirty, report it before pulling or changing files.
-- Work on `dev`, promote with PR `dev -> test`, then PR `test -> main`.
-- `dev` does not deploy.
-- `test` deploys the test draft only after merge to `test`.
-- `main` deploys production only after merge to `main`.
-- Native GitHub branch protection should protect `test` and `main` when the account plan supports it. If GitHub blocks protection for private repos, the deploy workflow still rejects push-triggered deploys unless the commit is a merge from the expected source branch, but GitHub cannot block the push itself.
-- Treat this repository as public unless verified otherwise. Before making it public, before PR, and before merge, run the hub repo public-safety audit and resolve every blocking finding.
-- Use the public `zoolandingpage` hub repo documentation for shared workflows such as local preview, asset uploads, upload grants, validation, and publication. Do not duplicate those procedures in this draft unless a draft-specific exception is required.
-- Public assets must be uploaded with the hub repo tools documented in `zoolandingpage/docs/12-public-assets-and-file-uploads.md`. Upload grants are temporary credentials; keep them in local `.env*` or `.zlp/` files only.
-- Do not commit secrets, tokens, upload grants, API keys, signed URLs, `.env*`, `.zlp/`, local logs, PDFs/CVs, private keys, certificates, local databases, credential JSON, local agent state, `ai_notes/`, `findings/`, or `errors-reports/`.
-- Public contact details in draft content are allowed only when they are intentionally client-facing; personal source files, CVs, private photos, identity documents, and raw research stay local-only.
-- Deployment uses GitHub OIDC to assume AWS IAM roles split by repo and environment; do not add long-lived AWS access keys.
+Keep durable draft-specific decisions here only when they cannot be derived from executable configuration. Do not copy hub procedures or chronology into this file.
