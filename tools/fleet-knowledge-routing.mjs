@@ -12,6 +12,7 @@ const START = '<!-- zoolanding-hub-routing:start -->';
 const END = '<!-- zoolanding-hub-routing:end -->';
 const TOOL_ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PR_SAFETY_TEMPLATE = path.join(TOOL_ROOT, 'templates', 'draft-repo', '.github', 'workflows', 'pr-safety.yml');
+const PROMOTION_GUARD_TEMPLATE = path.join(TOOL_ROOT, 'templates', 'draft-repo', '.github', 'workflows', 'guard-pr-source.yml');
 
 const DRAFT_ROUTES = [
   ['Edit draft content or routes', null, 'Local `site-config.json`, page JSON, and task-specific local docs'],
@@ -115,13 +116,17 @@ async function applyRouting(repoPath, definition, { hubRoot, allowDirty = false 
     }
   }
 
-  const safetyPath = path.join(repoPath, '.github', 'workflows', 'pr-safety.yml');
-  const safety = await readFile(PR_SAFETY_TEMPLATE, 'utf8');
-  const currentSafety = await exists(safetyPath) ? await readFile(safetyPath, 'utf8') : '';
-  if (currentSafety !== safety) {
-    await mkdir(path.dirname(safetyPath), { recursive: true });
-    await writeFile(safetyPath, safety, 'utf8');
-    changed.push('.github/workflows/pr-safety.yml');
+  const workflowTemplates = [['pr-safety.yml', PR_SAFETY_TEMPLATE]];
+  if (definition.type === 'draft') workflowTemplates.push(['guard-pr-source.yml', PROMOTION_GUARD_TEMPLATE]);
+  for (const [fileName, templatePath] of workflowTemplates) {
+    const relativePath = `.github/workflows/${fileName}`;
+    const targetPath = path.join(repoPath, relativePath);
+    const expected = await readFile(templatePath, 'utf8');
+    const current = await exists(targetPath) ? await readFile(targetPath, 'utf8') : '';
+    if (current === expected) continue;
+    await mkdir(path.dirname(targetPath), { recursive: true });
+    await writeFile(targetPath, expected, 'utf8');
+    changed.push(relativePath);
   }
   return { repoPath, changed };
 }
@@ -138,7 +143,7 @@ async function auditRepository(repoPath, definition, { hubRoot, allowDirty = fal
 
   const branches = (await git(repoPath, ['branch', '-a', '--format=%(refname:short)']))
     .split(/\r?\n/)
-    .map(branch => branch.replace(/^remotes\/origin\//, ''));
+    .map(branch => branch.replace(/^(?:remotes\/)?origin\//, ''));
   for (const branch of definition.requiredBranches) {
     if (!branches.includes(branch)) issues.push(`branch missing: ${branch}`);
   }
