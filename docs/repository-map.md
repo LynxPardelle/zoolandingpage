@@ -38,6 +38,8 @@ Do not use `drafts/_repos`, the VS Code workspace, deployment worktrees, or a si
 
 From the hub, run `npm run fleet:knowledge` for a read-only local fleet audit. Use `npm run fleet:knowledge -- --apply --repo=<registered-repo>` only against a verified clean checkout; it updates marked routing blocks and the pinned C1 caller without committing, pushing, merging, changing GitHub settings, or touching AWS.
 
+For independent clones kept outside the in-tree draft source, pass `--checkout-root=<directory>`; each registered repository is resolved as `<directory>/<repo-name>`. This keeps Git operations out of the hub's tracked `drafts/{domain}` content tree.
+
 `draft-grupoastralegal-com` is in a verified domain transition: its GitHub identity and canonical local path use `grupoastralegal`, while the registered production domain remains `despacholegalastralex.com`; `dev` and `test` currently carry `grupoastralegal.com`. Bulk setup is blocked for this mismatch. Do not change production domain, aliases, roles, or environment variables until that promotion is explicitly approved and verified.
 
 ### Draft-specific safety holds
