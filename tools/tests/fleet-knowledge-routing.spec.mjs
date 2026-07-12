@@ -198,6 +198,11 @@ test('buildInventory routes registered drafts and satellites from the hub', asyn
   assert.equal(inventory[0].repoPath, path.join(hubRoot, 'drafts', 'example.com'));
   assert.equal(inventory[1].type, 'satellite');
   assert.equal(inventory[1].repoPath, path.join(root, 'zoolanding-service'));
+
+  const checkoutRoot = path.join(root, 'fleet-checkouts');
+  const checkoutInventory = await buildInventory(hubRoot, { checkoutRoot });
+  assert.equal(checkoutInventory[0].repoPath, path.join(checkoutRoot, 'draft-example-com'));
+  assert.equal(checkoutInventory[1].repoPath, path.join(checkoutRoot, 'zoolanding-service'));
 });
 
 test('parseArgs keeps apply explicit and accepts selected repositories', () => {

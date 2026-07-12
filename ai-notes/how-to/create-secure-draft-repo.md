@@ -101,6 +101,8 @@ Use this checklist when creating a new draft repository after the secure release
    npm run fleet:knowledge -- --repo=draft-example-com
    ```
 
+   When the Git checkout is an independent clone rather than the hub's in-tree draft source, add `--checkout-root=<directory-containing-repo-clones>`.
+
 ## Acceptance Checks
 
 - No local-only folders or PII-risk files are tracked.
