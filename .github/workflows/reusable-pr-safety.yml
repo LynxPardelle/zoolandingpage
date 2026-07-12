@@ -70,6 +70,7 @@ jobs:
           done < <(git -C caller ls-files -z -- '*.js' '*.mjs' '*.cjs')
 
       - name: Run canonical public-safety audit
+        if: ${{ hashFiles('caller/draft-repo.config.json') != '' }}
         run: node policy/tools/draft-public-safety-audit.mjs --repo=caller --history=true --summary=true
 
       - name: Scan full history for secrets
@@ -77,4 +78,11 @@ jobs:
           GITLEAKS_CONFIG_TOML: |
             [extend]
             useDefault = true
-        run: gitleaks git --log-opts="--all" --redact --no-banner caller
+        shell: bash
+        run: |
+          set -euo pipefail
+          ignore_args=()
+          if [[ -f caller/.gitleaksignore ]]; then
+            ignore_args+=(--gitleaks-ignore-path=caller/.gitleaksignore)
+          fi
+          gitleaks git --log-opts="--all" --redact --no-banner "${ignore_args[@]}" caller

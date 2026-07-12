@@ -45,8 +45,11 @@ test('reusable PR safety workflow is pinned and read-only', () => {
   assert.match(workflow, /8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8/);
   assert.match(workflow, /551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb/);
   assert.match(workflow, /draft-public-safety-audit\.mjs --repo=caller --history=true/);
+  assert.match(workflow, /hashFiles\('caller\/draft-repo\.config\.json'\) != ''/);
   assert.match(workflow, /GITLEAKS_CONFIG_TOML:[\s\S]*useDefault = true/);
-  assert.match(workflow, /gitleaks git --log-opts="--all" --redact/);
+  assert.match(workflow, /caller\/\.gitleaksignore/);
+  assert.match(workflow, /--gitleaks-ignore-path=caller\/\.gitleaksignore/);
+  assert.match(workflow, /gitleaks git --log-opts="--all" --redact --no-banner "\$\{ignore_args\[@\]\}" caller/);
   assert.doesNotMatch(workflow, /^\s+(?:environment|id-token|secrets):/m);
   assert.doesNotMatch(workflow, /^\s+(?:pull_request|push|workflow_dispatch):/m);
   assert.doesNotMatch(workflow, /aws-actions|\baws\b/i);
