@@ -32,6 +32,12 @@ This is the fleet router, not a release dashboard. Default branches can change a
 
 Do not use `drafts/_repos`, the VS Code workspace, deployment worktrees, or a sibling-directory scan as the draft registry. An unregistered draft is a classification gap, not permission to infer ownership or publication state.
 
+## Managed Knowledge Routing
+
+[docs/satellite-repositories.json](./satellite-repositories.json) is the machine-readable routing and CI/CD audit source for the Runtime Read, Auth Admin, and Content Hub pilot. It does not replace this ownership map or each service's local deployment and rollback documentation.
+
+From the hub, run `npm run fleet:knowledge` for a read-only local fleet audit. Use `npm run fleet:knowledge -- --apply --repo=<registered-repo>` only against a verified clean checkout; it updates marked routing blocks and the pinned C1 caller without committing, pushing, merging, changing GitHub settings, or touching AWS.
+
 `draft-grupoastralegal-com` is in a verified domain transition: its GitHub identity and canonical local path use `grupoastralegal`, while the registered production domain remains `despacholegalastralex.com`; `dev` and `test` currently carry `grupoastralegal.com`. Bulk setup is blocked for this mismatch. Do not change production domain, aliases, roles, or environment variables until that promotion is explicitly approved and verified.
 
 ### Draft-specific safety holds

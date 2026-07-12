@@ -15,10 +15,13 @@ jobs:
     steps:
       - name: Enforce promotion graph
         shell: bash
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
         run: |
           set -euo pipefail
-          base="${{ github.base_ref }}"
-          head="${{ github.head_ref }}"
+          base="$BASE_REF"
+          head="$HEAD_REF"
           if [[ "$base" == "test" && "$head" != "dev" ]]; then
             echo "PRs into test must come from dev. Got: $head"
             exit 1
