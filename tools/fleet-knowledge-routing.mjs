@@ -195,7 +195,7 @@ async function readSatelliteRegistry(registryPath) {
   return registry;
 }
 
-async function buildInventory(hubRoot) {
+async function buildInventory(hubRoot, { checkoutRoot } = {}) {
   const draftRegistry = await readDraftRegistry(path.join(hubRoot, 'docs', 'drafts-registry.json'));
   const satelliteRegistry = await readSatelliteRegistry(path.join(hubRoot, 'docs', 'satellite-repositories.json'));
   const draftWorkflows = ['deploy-test.yml', 'deploy-production.yml', 'guard-pr-source.yml', 'pr-safety.yml'];
@@ -203,14 +203,14 @@ async function buildInventory(hubRoot) {
     ...draftRegistry.drafts.map(draft => ({
       ...draft,
       type: 'draft',
-      repoPath: path.resolve(hubRoot, draft.localPath),
+      repoPath: checkoutRoot ? path.resolve(checkoutRoot, draft.repo) : path.resolve(hubRoot, draft.localPath),
       requiredBranches: ['dev', 'test', 'main'],
       requiredWorkflows: draftWorkflows,
     })),
     ...satelliteRegistry.satellites.map(satellite => ({
       ...satellite,
       type: 'satellite',
-      repoPath: path.resolve(hubRoot, satellite.localPath),
+      repoPath: checkoutRoot ? path.resolve(checkoutRoot, satellite.repo) : path.resolve(hubRoot, satellite.localPath),
     })),
   ].sort((a, b) => a.repo.localeCompare(b.repo));
 }
@@ -231,8 +231,9 @@ function parseArgs(rawArgs) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const hubRoot = path.resolve(args.hub ?? '.');
+  const checkoutRoot = args['checkout-root'] ? path.resolve(args['checkout-root']) : undefined;
   const selected = new Set(args.repo ?? []);
-  const inventory = (await buildInventory(hubRoot)).filter(item => selected.size === 0 || selected.has(item.repo));
+  const inventory = (await buildInventory(hubRoot, { checkoutRoot })).filter(item => selected.size === 0 || selected.has(item.repo));
   if (selected.size > 0 && inventory.length !== selected.size) {
     const found = new Set(inventory.map(item => item.repo));
     throw new Error(`Unregistered repositories: ${[...selected].filter(repo => !found.has(repo)).join(', ')}`);
