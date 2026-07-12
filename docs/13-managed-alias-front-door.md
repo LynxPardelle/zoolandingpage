@@ -97,7 +97,7 @@ Run a dry run before every apply:
 $env:ZOOLANDING_FRONT_DOOR_IPV4 = "<front-door-ipv4>"
 $env:ZOOLANDING_TRAEFIK_UPSTREAM_URL = "http://<dokploy-service-name>:4000"
 
-node tools/ops/sync-managed-alias-front-door.mjs --domain=despacholegalastralex.com --environment=all --traefik-output=logs/ops/managed-aliases-traefik.yml
+node tools/ops/sync-managed-alias-front-door.mjs --domain=grupoastralegal.com --environment=all --traefik-output=logs/ops/managed-aliases-traefik.yml
 ```
 
 Expected dry-run output:
@@ -113,7 +113,7 @@ After reviewing the dry run:
 
 ```powershell
 node tools/ops/sync-managed-alias-front-door.mjs `
-  --domain=despacholegalastralex.com `
+  --domain=grupoastralegal.com `
   --environment=all `
   --traefik-mode=full-file `
   --apply `
@@ -131,7 +131,7 @@ If the target dynamic file already contains hand-managed or Dokploy-generated ro
 
 ```powershell
 node tools/ops/sync-managed-alias-front-door.mjs `
-  --domain=despacholegalastralex.com `
+  --domain=grupoastralegal.com `
   --environment=test `
   --target-ip="<front-door-ipv4>" `
   --upstream-url="http://<dokploy-service-name>:4000" `
