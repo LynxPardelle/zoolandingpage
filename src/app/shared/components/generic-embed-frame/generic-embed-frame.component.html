@@ -1,12 +1,10 @@
 <iframe
   [attr.id]="id()"
+  referrerpolicy="strict-origin-when-cross-origin"
+  sandbox="allow-forms allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"
   [src]="src()"
   [attr.title]="title()"
   [attr.loading]="loading()"
-  [attr.allow]="allow()"
-  [attr.referrerpolicy]="referrerPolicy()"
-  [attr.sandbox]="sandbox()"
-  [attr.allowfullscreen]="allowFullscreen() ? '' : null"
   [attr.height]="height()"
   [class]="classes()"
 ></iframe>
