@@ -42,6 +42,8 @@ For independent clones kept outside the in-tree draft source, pass `--checkout-r
 
 For registered drafts, apply mode also refreshes the canonical PR-source guard so branch names enter shell steps through environment variables rather than direct expression interpolation. Satellite deploy and promotion workflows remain repository-owned and are never replaced by this command.
 
+C1 runs the draft public-safety audit only when the caller contains `draft-repo.config.json`. Full-history Gitleaks remains mandatory for every caller; a repository may suppress a verified false positive only with an exact committed `.gitleaksignore` fingerprint.
+
 `draft-grupoastralegal-com` is in a verified domain transition: its GitHub identity and canonical local path use `grupoastralegal`, while the registered production domain remains `despacholegalastralex.com`; `dev` and `test` currently carry `grupoastralegal.com`. Bulk setup is blocked for this mismatch. Do not change production domain, aliases, roles, or environment variables until that promotion is explicitly approved and verified.
 
 ### Draft-specific safety holds
