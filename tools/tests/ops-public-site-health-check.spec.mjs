@@ -4,6 +4,7 @@ import test from 'node:test';
 
 import {
   checkContentHubUnauthRoute,
+  checkPage,
   checkRuntimeBundle,
   parseArgs,
   parseExpectedRuntimeDomains,
@@ -156,6 +157,35 @@ test('checkRuntimeBundle fails on an unexpected runtime version', async () => {
     assert.equal(check.ok, false);
     assert.equal(check.details.reason, 'runtime-bundle versionId did not match expected value');
   });
+});
+
+test('checkPage follows canonical redirects for public aliases', async () => {
+  const originalFetch = globalThis.fetch;
+  const requests = [];
+  globalThis.fetch = async (url, init = {}) => {
+    requests.push({ url: String(url), init });
+    if (init.redirect !== 'follow') {
+      return new Response('moved', { status: 301, headers: { Location: 'https://canonical.example/' } });
+    }
+
+    return new Response('<html><head><title>Canonical</title></head><body><main>Ok</main></body></html>', {
+      status: 200,
+    });
+  };
+
+  try {
+    const check = await checkPage('alias.example', {
+      pagePath: '/',
+      timeoutMs: 1000,
+      retryAttempts: 1,
+      retryDelayMs: 0,
+    });
+
+    assert.equal(check.ok, true);
+    assert.equal(requests[0].init.redirect, 'follow');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test('checkContentHubUnauthRoute proves content-hub route denies missing session without secrets', async () => {
