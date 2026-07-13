@@ -409,7 +409,7 @@ async function checkPage(host, options) {
   };
 
   try {
-    const { response, body, attempts, failures } = await fetchTextWithRetries(url, options);
+    const { response, body, attempts, failures } = await fetchTextWithRetries(url, options, { redirect: 'follow' });
     const title = body.match(/<title>(.*?)<\/title>/is)?.[1]?.trim() ?? '';
     const hasMain = /<main[\s>]/i.test(body);
     const scriptEntrypoint = body.match(/<script[^>]+src="([^"]*main-[^"]+\.js)"/i)?.[1] ?? '';
