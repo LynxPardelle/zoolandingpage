@@ -5,3 +5,5 @@ The mandatory repository entrypoint is [AGENTS.md](./AGENTS.md). Use [docs/READM
 Do not add chronology here. Record notable app/tooling events in [changelog/app/](./changelog/app/), draft events in [changelog/drafts/](./changelog/drafts/), and reusable verified guidance under [ai-notes/](./ai-notes/). Use Git history only for targeted lookup of removed legacy memory, and verify historical claims against current code, workflows, manifests, and live state.
 
 Local development must not provision or deploy AWS `dev` resources. Local drafts and harnesses remain first; any remote read needed from localhost uses the deployed `test` services and data.
+
+All repository changes must be promoted by protected pull requests in order: `dev -> test -> main`. Before each promotion, synchronize the target branch history back into the source branch through a validated PR when needed so the promotion is conflict-free and no branch history is discarded.
