@@ -11,6 +11,8 @@ The frontend can work in two different config modes:
 2. `Runtime API mode`
    The app loads one `TRuntimeBundlePayload` from the runtime API.
 
+Local development has no AWS `dev` environment. When a local draft or local harness cannot satisfy a remote read, the app uses the deployed `test` services and data. Do not add cloud deployment workflows, stacks, buckets, tables, Lambdas, APIs, or remote hosts for `dev`.
+
 For most feature work, local draft mode is the safest place to start.
 
 ## Recommended local workflow

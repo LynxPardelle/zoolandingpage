@@ -22,7 +22,7 @@ type TRuntimeBundleCacheEntry = {
     readonly payload: TRuntimeBundlePayload;
 };
 
-type TRuntimeFallbackEnvironment = 'dev' | 'test' | 'production';
+type TRuntimeFallbackEnvironment = 'test' | 'production';
 
 const serverRuntimeBundleCache = new Map<string, TRuntimeBundleCacheEntry>();
 
@@ -73,7 +73,7 @@ export class ConfigApiService {
 
     private normalizeRuntimeFallbackEnvironment(value: unknown): TRuntimeFallbackEnvironment | null {
         const normalized = String(value ?? '').trim().toLowerCase();
-        return normalized === 'dev' || normalized === 'test' || normalized === 'production'
+        return normalized === 'test' || normalized === 'production'
             ? normalized
             : null;
     }
@@ -87,6 +87,10 @@ export class ConfigApiService {
         const currentUrl = this.resolveCurrentUrl();
         const hostname = String(currentUrl?.hostname ?? '').trim().toLowerCase();
         if (hostname.startsWith('test.') || hostname.includes('.test.')) {
+            return 'test';
+        }
+
+        if (this.isLocalHostname(hostname)) {
             return 'test';
         }
 
@@ -310,8 +314,12 @@ export class ConfigApiService {
             }
         }
 
-        const url = this.buildUrlForBase(this.resolveConfigApiBaseUrl(), path, params);
-        const fallbackUrl = this.resolveRuntimeFallbackUrl(path, params);
+        const currentHostname = this.resolveCurrentUrl()?.hostname ?? '';
+        const remoteParams = path === RUNTIME_BUNDLE_ENDPOINT && !params['environment'] && this.isLocalHostname(currentHostname)
+            ? { ...params, environment: 'test' }
+            : params;
+        const url = this.buildUrlForBase(this.resolveConfigApiBaseUrl(), path, remoteParams);
+        const fallbackUrl = this.resolveRuntimeFallbackUrl(path, remoteParams);
         if (fallbackUrl && this.isServerRequest()) {
             try {
                 const payload = await this.fetchJson<T>(fallbackUrl);

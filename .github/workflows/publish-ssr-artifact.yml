@@ -8,17 +8,15 @@ on:
         required: true
         type: choice
         options:
-          - dev
           - test
           - production
-        default: dev
+        default: test
       release_id:
         description: Optional release id; defaults to the commit SHA
         required: false
         type: string
   push:
     branches:
-      - dev
       - test
       - main
 
