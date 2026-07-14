@@ -14,7 +14,7 @@ const stagingDir = path.join(outputRoot, 'staging');
 const zipPath = path.join(outputRoot, 'ssr-handler.zip');
 const manifestPath = path.join(outputRoot, 'manifest.json');
 const releaseId = process.env.RELEASE_ID || gitValue(['rev-parse', '--short=12', 'HEAD']);
-const environmentName = process.env.DEPLOY_ENV || 'dev';
+const environmentName = process.env.DEPLOY_ENV || 'test';
 const apiBaseUrl = process.env.CONFIG_API_URL || 'https://api.zoolandingpage.com.mx';
 const artifactBasePrefix = `frontend/angular-ssr/${environmentName}`;
 const serverlessHttpDir = path.join(root, 'node_modules', 'serverless-http');

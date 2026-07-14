@@ -120,7 +120,7 @@ describe('ConfigApiService', () => {
     it('uses the runtime fallback endpoint through HttpClient first on SSR so hydration can reuse it', async () => {
         (environment as { configApiUrl: string }).configApiUrl = 'https://api.zoolandingpage.com.mx';
         (environment as { configApiServerFallbackUrl?: string }).configApiServerFallbackUrl =
-            'https://y84vk0v44l.execute-api.us-east-1.amazonaws.com/Prod';
+            'https://jaay9p8gv5.execute-api.us-east-1.amazonaws.com/Prod';
 
         const http = jasmine.createSpyObj<HttpClient>('HttpClient', ['get']);
         http.get.and.returnValue(of(runtimeBundlePayload));
@@ -142,7 +142,7 @@ describe('ConfigApiService', () => {
         expect(payload.domain).toBe('zoolandingpage.com.mx');
         expect(http.get).toHaveBeenCalledTimes(1);
         expect(fetchSpy).not.toHaveBeenCalled();
-        expect(String(http.get.calls.mostRecent().args[0])).toContain('https://y84vk0v44l.execute-api.us-east-1.amazonaws.com/Prod/runtime-bundle');
+        expect(String(http.get.calls.mostRecent().args[0])).toContain('https://jaay9p8gv5.execute-api.us-east-1.amazonaws.com/Prod/runtime-bundle');
         expect(String(http.get.calls.mostRecent().args[0])).toContain('domain=test.zoolandingpage.com.mx');
     });
 
@@ -348,7 +348,7 @@ describe('ConfigApiService', () => {
 
         expect(payload.domain).toBe('zoolandingpage.com.mx');
         expect(http.get).toHaveBeenCalledTimes(2);
-        expect(String(http.get.calls.argsFor(0)[0])).toContain('https://y84vk0v44l.execute-api.us-east-1.amazonaws.com/Prod/runtime-bundle');
+        expect(String(http.get.calls.argsFor(0)[0])).toContain('https://jaay9p8gv5.execute-api.us-east-1.amazonaws.com/Prod/runtime-bundle');
         expect(String(http.get.calls.argsFor(1)[0])).toContain('https://api.zoolandingpage.com.mx/runtime-bundle');
         expect(fetchSpy).not.toHaveBeenCalled();
     });
@@ -378,6 +378,36 @@ describe('ConfigApiService', () => {
         expect(http.get).toHaveBeenCalledTimes(1);
         expect(fetchSpy).not.toHaveBeenCalled();
         expect(String(http.get.calls.mostRecent().args[0])).toContain('https://api.zoolandingpage.com.mx/runtime-bundle');
+    });
+
+    it('uses the test runtime fallback endpoint when a localhost draft is unavailable', async () => {
+        (environment as { configApiUrl: string }).configApiUrl = 'https://api.zoolandingpage.com.mx';
+        (environment as { configApiRuntimeFallbackUrls?: Record<string, string> }).configApiRuntimeFallbackUrls = {
+            test: 'https://test-runtime.example.com/Prod',
+            production: 'https://prod-runtime.example.com/Prod',
+        };
+
+        const http = jasmine.createSpyObj<HttpClient>('HttpClient', ['get']);
+        http.get.and.returnValues(
+            throwError(() => new Error('local draft unavailable')),
+            throwError(() => new Error('stable runtime unavailable')),
+            of(runtimeBundlePayload),
+        );
+
+        TestBed.configureTestingModule({
+            providers: [
+                ConfigApiService,
+                { provide: HttpClient, useValue: http },
+            ],
+        });
+
+        const service = TestBed.inject(ConfigApiService);
+        spyOn<any>(service, 'resolveCurrentUrl').and.returnValue(new URL('http://localhost:4200/?draftDomain=zoositioweb.com.mx'));
+        await service.getRuntimeBundle('zoositioweb.com.mx', { path: '/', lang: 'es' });
+
+        expect(String(http.get.calls.argsFor(1)[0])).toContain('environment=test');
+        expect(String(http.get.calls.mostRecent().args[0])).toContain('environment=test');
+        expect(String(http.get.calls.mostRecent().args[0])).toContain('https://test-runtime.example.com/Prod/runtime-bundle');
     });
 
     it('falls back to the runtime fallback endpoint in the browser when the stable config endpoint fails', async () => {
