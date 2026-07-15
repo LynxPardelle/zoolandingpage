@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
           repository: LynxPardelle/zoolandingpage
-          ref: d8494f0ae446a51d5ca9740a4831635e43bd5a79
+          ref: 92445c8670e4ecae63c1c1dfde9de8925f4b88c8
           persist-credentials: false
           path: policy
 
