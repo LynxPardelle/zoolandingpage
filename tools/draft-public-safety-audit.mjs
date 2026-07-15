@@ -36,6 +36,12 @@ const BLOCKED_PATH_RULES = [
 
 const SECRET_RULES = SECRET_PATTERN_DEFINITIONS;
 const REVIEW_RULES = REVIEW_PATTERN_DEFINITIONS;
+const DYNAMIC_SECRET_REFERENCE_PATTERNS = Object.freeze([
+  /^\$(?:[A-Za-z_][A-Za-z0-9_]*|\{[A-Za-z_][A-Za-z0-9_]*\})$/,
+  /^\$env:[A-Za-z_][A-Za-z0-9_]*$/i,
+  /^%[A-Za-z_][A-Za-z0-9_]*%$/,
+  /^\$\{\{\s*(?:(?:secrets|env)\.[A-Za-z_][A-Za-z0-9_]*|github\.token)\s*\}\}$/i,
+]);
 
 const TEXT_EXTENSIONS = new Set([
   '',
@@ -97,6 +103,24 @@ function isLikelyTextFile(filePath) {
   return TEXT_EXTENSIONS.has(path.extname(normalized));
 }
 
+function isPureDynamicSecretReference(value) {
+  return DYNAMIC_SECRET_REFERENCE_PATTERNS.some(pattern => pattern.test(value));
+}
+
+function isSafeDynamicSecretAssignment(line, rule) {
+  if (rule.id !== 'generic-secret-assignment') return false;
+  const flags = rule.regex.flags.includes('g') ? rule.regex.flags : `${rule.regex.flags}g`;
+  const matches = [...line.matchAll(new RegExp(rule.regex.source, flags))];
+  return matches.length > 0 && matches.every(match => {
+    const assignment = match[0];
+    const separatorIndex = assignment.search(/[:=]/);
+    if (separatorIndex < 0) return false;
+    return isPureDynamicSecretReference(
+      assignment.slice(separatorIndex + 1).trim().replace(/^["']/, ''),
+    );
+  });
+}
+
 function lineHits(text, filePath, rules, context = {}) {
   const hits = [];
   const lines = text.split(/\r?\n/);
@@ -104,6 +128,7 @@ function lineHits(text, filePath, rules, context = {}) {
     for (const rule of rules) {
       rule.regex.lastIndex = 0;
       if (!rule.regex.test(line)) continue;
+      if (isSafeDynamicSecretAssignment(line, rule)) continue;
       hits.push({
         rule: rule.id,
         file: normalizeGitPath(filePath),
@@ -265,10 +290,11 @@ async function scanHistory(scope, rules) {
       ]);
       if (!output) continue;
       for (const line of output.split('\n')) {
-        const match = line.match(/^([0-9a-f]{40}):(.+?):(\d+):/);
+        const match = line.match(/^([0-9a-f]{40}):(.+?):(\d+):(.*)$/);
         if (!match) continue;
-        const [, commit, file, lineNumber] = match;
+        const [, commit, file, lineNumber, sourceLine] = match;
         if (!isLikelyTextFile(file)) continue;
+        if (isSafeDynamicSecretAssignment(sourceLine, rule)) continue;
         const key = `${rule.id}:${file}:${lineNumber}`;
         if (seen.has(key)) continue;
         seen.add(key);

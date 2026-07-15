@@ -86,9 +86,11 @@ jobs:
           )
           manifest_sha256="$(sha256sum "$artifact_dir/deployment-plan.sha256" | awk '{print $1}')"
           version_id="production-${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          printf 'artifact_name=%s\n' "$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
-          printf 'manifest_sha256=%s\n' "$manifest_sha256" >> "$GITHUB_OUTPUT"
-          printf 'version_id=%s\n' "$version_id" >> "$GITHUB_OUTPUT"
+          {
+            printf 'artifact_name=%s\n' "$ARTIFACT_NAME"
+            printf 'manifest_sha256=%s\n' "$manifest_sha256"
+            printf 'version_id=%s\n' "$version_id"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Upload validated deployment plan
         if: steps.provenance.outputs.deploy_required == 'true'
@@ -354,13 +356,15 @@ jobs:
           post_action() {
             local payload_file="$1"
             local http_code
+            local session_token_header
+            session_token_header="$(printf '%s: %s' 'x-amz-security-token' "$AWS_SESSION_TOKEN")"
             if ! http_code="$(curl --silent \
               --output "$response_file" \
               --write-out '%{http_code}' \
               --aws-sigv4 "aws:amz:${AWS_REGION}:${signing_service}" \
               --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}" \
               --header 'content-type: application/json' \
-              --header "x-amz-security-token: ${AWS_SESSION_TOKEN}" \
+              --header "$session_token_header" \
               --data-binary "@$payload_file" \
               "$AUTHORING_ENDPOINT")"; then
               echo "Draft authoring request failed."

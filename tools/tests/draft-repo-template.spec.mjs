@@ -513,6 +513,35 @@ test('manual template deploys enforce the protected branch and promotion ancestr
   }
 });
 
+test('deployment plan outputs use one grouped GitHub output redirect', async () => {
+  for (const name of ['deploy-test.yml', 'deploy-production.yml']) {
+    const workflow = await readFile(
+      path.join(repoRoot, 'tools', 'templates', 'draft-repo', '.github', 'workflows', name),
+      'utf8',
+    );
+    const planStep = workflow.slice(
+      workflow.indexOf('      - name: Prepare deterministic deployment plan'),
+      workflow.indexOf('      - name: Upload validated deployment plan'),
+    );
+    assert.equal((planStep.match(/>> "\$GITHUB_OUTPUT"/g) ?? []).length, 1);
+    assert.match(planStep, /\{[\s\S]*\}\s*>> "\$GITHUB_OUTPUT"/);
+  }
+});
+
+test('template builds the AWS session header without inline or echoed secret text', async () => {
+  for (const name of ['deploy-test.yml', 'deploy-production.yml']) {
+    const workflow = await readFile(
+      path.join(repoRoot, 'tools', 'templates', 'draft-repo', '.github', 'workflows', name),
+      'utf8',
+    );
+    const deployJob = workflow.slice(workflow.indexOf('\n  deploy:'));
+    assert.doesNotMatch(deployJob, /x-amz-security-token:\s*\$\{AWS_SESSION_TOKEN\}/);
+    assert.match(deployJob, /local session_token_header\s+session_token_header="\$\(printf '%s: %s' 'x-amz-security-token' "\$AWS_SESSION_TOKEN"\)"/);
+    assert.match(deployJob, /--header "\$session_token_header"/);
+    assert.doesNotMatch(deployJob, /^\s*(?:echo|printf)\b[^\n]*(?:AWS_SESSION_TOKEN|session_token_header)/m);
+  }
+});
+
 test('privileged template jobs validate the closed plan before OIDC and never print HTTP bodies', async () => {
   for (const [name, environment] of [['deploy-test.yml', 'test'], ['deploy-production.yml', 'production']]) {
     const workflow = await readFile(

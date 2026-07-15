@@ -82,6 +82,46 @@ test('template security helpers do not self-trigger while literal secrets remain
   assert.equal(result.okToPublic, false);
 });
 
+test('pure dynamic secret references stay public-safe while literal and fallback values remain blocking', async t => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zlp-public-audit-dynamic-refs-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const repoPath = path.join(root, 'draft-example-com');
+  await mkdir(repoPath, { recursive: true });
+  await git(repoPath, ['init']);
+  await git(repoPath, ['config', 'user.email', 'test@example.com']);
+  await git(repoPath, ['config', 'user.name', 'Test User']);
+  await writeFile(path.join(repoPath, 'dynamic-references.txt'), [
+    '--header "x-amz-security-token: ${AWS_SESSION_TOKEN}"',
+    'api_key = "${API_KEY}"',
+    'password = "$PASSWORD_VALUE"',
+    'access_token = "$env:ACCESS_TOKEN"',
+    'refresh_token = "${{secrets.REFRESH_TOKEN}}"',
+    'client_secret = "${{env.CLIENT_SECRET}}"',
+    'token = "${{github.token}}"',
+  ].join('\n'), 'utf8');
+  await writeFile(path.join(repoPath, 'literal-secrets.txt'), [
+    'api_key = "synthetic-literal-api-value"', // gitleaks:allow -- intentional scanner fixture
+    'password = "synthetic-literal-password-value"', // gitleaks:allow -- intentional scanner fixture
+    'client_secret = "${CLIENT_SECRET:-synthetic-literal-fallback}"', // gitleaks:allow -- intentional scanner fixture
+  ].join('\n'), 'utf8');
+  await git(repoPath, ['add', '.']);
+  await git(repoPath, ['commit', '-m', 'seed dynamic and literal fixtures']);
+
+  const result = await auditRepo(repoPath, { includeHistory: true });
+  const findingLocations = findings => findings
+    .filter(finding => finding.rule === 'generic-secret-assignment')
+    .map(finding => `${finding.file}:${finding.line}`);
+  const expectedLiteralLocations = [
+    'literal-secrets.txt:1',
+    'literal-secrets.txt:2',
+    'literal-secrets.txt:3',
+  ];
+
+  assert.deepEqual(findingLocations(result.currentSecretFindings), expectedLiteralLocations);
+  assert.deepEqual(findingLocations(result.historySecretFindings), expectedLiteralLocations);
+  assert.equal(result.okToPublic, false);
+});
+
 test('auditRepo scopes status and history when auditing an in-tree draft path', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'zlp-in-tree-public-audit-'));
   const draftPath = path.join(root, 'drafts', 'example.com');
