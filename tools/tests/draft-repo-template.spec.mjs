@@ -56,6 +56,21 @@ test('template server kind map stays synchronized with the canonical map', async
   }
 });
 
+test('template secret-reference matching stays synchronized without weakening ARN validation', async () => {
+  const canonical = await import('../lib/sensitive-value-patterns.mjs');
+  const template = await import('../templates/draft-repo/tools/lib/sensitive-value-patterns.mjs');
+  const reference = [
+    'arn:aws:secretsmanager:us-east-1:123456789012:secret',
+    'example/path-AbCdEf',
+  ].join(':');
+
+  assert.equal(template.OPAQUE_SECRET_REFERENCE_PATTERN.source, canonical.OPAQUE_SECRET_REFERENCE_PATTERN.source);
+  assert.equal(canonical.isOpaqueSecretReference(reference), true);
+  assert.equal(template.isOpaqueSecretReference(reference), true);
+  assert.equal(canonical.isOpaqueSecretReference('synthetic-placeholder-value'), false);
+  assert.equal(template.isOpaqueSecretReference('synthetic-placeholder-value'), false);
+});
+
 test('new protected binding kinds require a bounded capability', async () => {
   const schema = JSON.parse(await readFile(path.join(repoRoot, 'docs', 'api-driven-config', 'schemas', 'protected-features.schema.json'), 'utf8'));
   for (const binding of [schema.definitions.runtimeDataSourceBinding, schema.definitions.runtimeApiActionBinding]) {

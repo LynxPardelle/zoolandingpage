@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -11,6 +11,7 @@ import { auditRepo, matchesRules, parseArgs } from '../draft-public-safety-audit
 
 const execFileAsync = promisify(execFile);
 const auditCliPath = fileURLToPath(new URL('../draft-public-safety-audit.mjs', import.meta.url));
+const templateRoot = fileURLToPath(new URL('../templates/draft-repo/', import.meta.url));
 
 async function git(cwd, args) {
   return execFileAsync('git', args, { cwd, windowsHide: true });
@@ -46,6 +47,39 @@ test('auditRepo blocks tracked local-only paths and secret assignments without e
   assert.equal(result.currentBlockedPaths.some(finding => finding.file === 'CVs_N_photos/private.txt'), true);
   assert.equal(result.currentSecretFindings.some(finding => finding.rule === 'generic-secret-assignment'), true);
   assert.equal(JSON.stringify(result).includes('abcdef1234567890'), false);
+});
+
+test('template security helpers do not self-trigger while literal secrets remain blocking', async t => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zlp-public-audit-template-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const repoPath = path.join(root, 'draft-example-com');
+  await mkdir(path.join(repoPath, 'tools', 'lib'), { recursive: true });
+  await git(repoPath, ['init']);
+  await git(repoPath, ['config', 'user.email', 'test@example.com']);
+  await git(repoPath, ['config', 'user.name', 'Test User']);
+  await copyFile(
+    path.join(templateRoot, 'tools', 'lib', 'sensitive-value-patterns.mjs'),
+    path.join(repoPath, 'tools', 'lib', 'sensitive-value-patterns.mjs'),
+  );
+  await copyFile(
+    path.join(templateRoot, 'tools', 'verify-promotion-commit.mjs'),
+    path.join(repoPath, 'tools', 'verify-promotion-commit.mjs'),
+  );
+  await writeFile(
+    path.join(repoPath, 'unsafe-fixture.mjs'),
+    "export const config = { token: 'synthetic-placeholder-value' };\n", // gitleaks:allow -- intentional scanner fixture
+    'utf8',
+  );
+  await git(repoPath, ['add', '.']);
+  await git(repoPath, ['commit', '-m', 'seed scanner fixtures']);
+
+  const result = await auditRepo(repoPath, { includeHistory: true });
+  const currentGeneric = result.currentSecretFindings.filter(finding => finding.rule === 'generic-secret-assignment');
+  const historyGeneric = result.historySecretFindings.filter(finding => finding.rule === 'generic-secret-assignment');
+
+  assert.deepEqual(currentGeneric.map(finding => finding.file), ['unsafe-fixture.mjs']);
+  assert.deepEqual(historyGeneric.map(finding => finding.file), ['unsafe-fixture.mjs']);
+  assert.equal(result.okToPublic, false);
 });
 
 test('auditRepo scopes status and history when auditing an in-tree draft path', async () => {

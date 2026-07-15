@@ -80,7 +80,7 @@ export async function fetchAssociatedPullRequests({
   apiUrl,
   repository,
   sha,
-  token,
+  githubToken,
   attempts = 3,
   retryDelayMs = 1500,
   fetchImpl = fetch,
@@ -89,7 +89,7 @@ export async function fetchAssociatedPullRequests({
   if (!REPOSITORY_PATTERN.test(repository ?? '') || !SHA_PATTERN.test(sha ?? '')) {
     fail('promotion_context_invalid');
   }
-  if (typeof token !== 'string' || token.length < 1) fail('promotion_api_token_missing');
+  if (typeof githubToken !== 'string' || githubToken.length < 1) fail('promotion_api_token_missing');
   if (!Number.isSafeInteger(attempts) || attempts < 1 || attempts > 3) fail('promotion_retry_policy_invalid');
   const baseUrl = new URL(apiUrl ?? 'https://api.github.com');
   if (baseUrl.protocol !== 'https:') fail('promotion_api_url_invalid');
@@ -102,7 +102,7 @@ export async function fetchAssociatedPullRequests({
       response = await fetchImpl(url, {
         headers: {
           Accept: 'application/vnd.github+json',
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${githubToken}`,
           'User-Agent': 'zoolanding-draft-promotion-guard',
           'X-GitHub-Api-Version': '2026-03-10',
         },
@@ -131,7 +131,7 @@ export async function fetchTargetBranchSha({
   apiUrl,
   repository,
   targetBranch,
-  token,
+  githubToken,
   attempts = 3,
   retryDelayMs = 1500,
   fetchImpl = fetch,
@@ -140,7 +140,7 @@ export async function fetchTargetBranchSha({
   if (!REPOSITORY_PATTERN.test(repository ?? '') || !BRANCH_PATTERN.test(targetBranch ?? '')) {
     fail('promotion_context_invalid');
   }
-  if (typeof token !== 'string' || token.length < 1) fail('promotion_api_token_missing');
+  if (typeof githubToken !== 'string' || githubToken.length < 1) fail('promotion_api_token_missing');
   if (!Number.isSafeInteger(attempts) || attempts < 1 || attempts > 3) fail('promotion_retry_policy_invalid');
   const baseUrl = new URL(apiUrl ?? 'https://api.github.com');
   if (baseUrl.protocol !== 'https:') fail('promotion_api_url_invalid');
@@ -153,7 +153,7 @@ export async function fetchTargetBranchSha({
       response = await fetchImpl(url, {
         headers: {
           Accept: 'application/vnd.github+json',
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${githubToken}`,
           'User-Agent': 'zoolanding-draft-promotion-guard',
           'X-GitHub-Api-Version': '2026-03-10',
         },
@@ -204,7 +204,7 @@ async function main() {
     apiUrl: process.env.GITHUB_API_URL ?? 'https://api.github.com',
     repository,
     targetBranch: args.target,
-    token: process.env.GITHUB_TOKEN,
+    githubToken: process.env.GITHUB_TOKEN,
   });
   if (targetTipSha !== sha) fail('promotion_target_tip_mismatch');
   if (args['tip-only'] === 'true') {
@@ -228,7 +228,7 @@ async function main() {
     apiUrl: process.env.GITHUB_API_URL ?? 'https://api.github.com',
     repository,
     sha,
-    token: process.env.GITHUB_TOKEN,
+    githubToken: process.env.GITHUB_TOKEN,
   });
   validatePromotionEvidence({
     repository,
