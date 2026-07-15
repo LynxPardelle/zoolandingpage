@@ -3,11 +3,15 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 
-import {
+import * as promotionVerifier from '../templates/draft-repo/tools/verify-promotion-commit.mjs';
+
+const {
+  classifyPromotionChanges,
   fetchAssociatedPullRequests,
   fetchTargetBranchSha,
   validatePromotionEvidence,
-} from '../templates/draft-repo/tools/verify-promotion-commit.mjs';
+  verifyPromotion,
+} = promotionVerifier;
 
 const repoRoot = path.resolve(new URL('../..', import.meta.url).pathname.replace(/^\/(?:[A-Za-z]:)/, value => value.slice(1)));
 const repository = 'LynxPardelle/draft-example-com';
@@ -20,7 +24,7 @@ function evidence(overrides = {}) {
     state: 'closed',
     merged_at: '2026-07-14T22:00:00Z',
     merge_commit_sha: mergeSha,
-    base: { ref: 'test', repo: { full_name: repository } },
+    base: { ref: 'test', sha: baseSha, repo: { full_name: repository } },
     head: { ref: 'dev', sha: headSha, repo: { full_name: repository } },
   };
   return {
@@ -71,6 +75,15 @@ test('rejects a synthetic merge that uses an older allowed source ancestor', () 
   assert.throws(
     () => validatePromotionEvidence(evidence({ parents: [baseSha, 'd'.repeat(40)] })),
     /promotion_second_parent_mismatch/,
+  );
+});
+
+test('binds the merge first parent to the associated PR base SHA', () => {
+  const staleBase = evidence().pullRequests[0];
+  staleBase.base.sha = 'd'.repeat(40);
+  assert.throws(
+    () => validatePromotionEvidence(evidence({ pullRequests: [staleBase] })),
+    /promotion_first_parent_mismatch/,
   );
 });
 
@@ -231,7 +244,89 @@ test('reads the exact current target branch SHA and rejects malformed evidence',
   }), /promotion_api_invalid_response/);
 });
 
-test('deploy templates request read-only PR metadata and invoke the verifier without OIDC', async () => {
+test('rechecks the target tip after validating remote promotion evidence', async () => {
+  const targetTips = [mergeSha, mergeSha];
+  let targetReads = 0;
+  const result = await verifyPromotion({
+    ...evidence(),
+    githubToken: 'synthetic-test-token',
+    changes: [{ status: 'M', path: 'tools/verify-promotion-commit.mjs' }],
+    fetchTargetSha: async () => {
+      targetReads += 1;
+      return targetTips.shift();
+    },
+    fetchPullRequests: async () => evidence().pullRequests,
+  });
+  assert.equal(targetReads, 2);
+  assert.deepEqual(result, { deployRequired: false, reason: 'tooling_only' });
+
+  await assert.rejects(verifyPromotion({
+    ...evidence(),
+    githubToken: 'synthetic-test-token',
+    changes: [{ status: 'M', path: 'tools/verify-promotion-commit.mjs' }],
+    fetchTargetSha: async () => targetReads++ % 2 === 0 ? mergeSha : 'f'.repeat(40),
+    fetchPullRequests: async () => evidence().pullRequests,
+  }), /promotion_target_tip_mismatch/);
+});
+
+test('skips push publication only for added or modified paths in the exact rollout allowlist', () => {
+  assert.deepEqual(classifyPromotionChanges({
+    eventName: 'push',
+    changes: [
+      { status: 'M', path: '.github/workflows/deploy-production.yml' },
+      { status: 'A', path: 'tools/verify-promotion-commit.mjs' },
+    ],
+  }), { deployRequired: false, reason: 'tooling_only' });
+
+  for (const change of [
+    { status: 'M', path: 'example.com/components.json' },
+    { status: 'D', path: 'example.com/components.json' },
+    { status: 'R100', path: 'example.com/new.json', previousPath: 'example.com/old.json' },
+    { status: 'M', path: 'tools/not-in-rollout-closure.mjs' },
+  ]) {
+    assert.deepEqual(classifyPromotionChanges({ eventName: 'push', changes: [change] }), {
+      deployRequired: true,
+      reason: 'content_or_non_allowlisted_change',
+    });
+  }
+});
+
+test('fails closed when an allowlisted control is deleted or renamed or a diff status is impossible', () => {
+  for (const changes of [
+    [{ status: 'D', path: 'tools/verify-promotion-commit.mjs' }],
+    [{ status: 'T', path: 'tools/verify-promotion-commit.mjs' }],
+    [{
+      status: 'R100',
+      path: 'tools/renamed-verifier.mjs',
+      previousPath: 'tools/verify-promotion-commit.mjs',
+    }],
+  ]) {
+    assert.throws(
+      () => classifyPromotionChanges({ eventName: 'push', changes }),
+      /promotion_tooling_change_unsafe/,
+    );
+  }
+  for (const status of ['?', 'R101', 'C999', 'R01']) {
+    assert.throws(
+      () => classifyPromotionChanges({
+        eventName: 'push',
+        changes: status.startsWith('R') || status.startsWith('C')
+          ? [{ status, previousPath: 'example.com/old.json', path: 'example.com/new.json' }]
+          : [{ status, path: 'example.com/components.json' }],
+      }),
+      /promotion_diff_invalid/,
+    );
+  }
+});
+
+test('workflow dispatch always requires a content deployment', () => {
+  assert.deepEqual(classifyPromotionChanges({
+    eventName: 'workflow_dispatch',
+    changes: [{ status: 'M', path: 'tools/verify-promotion-commit.mjs' }],
+  }), { deployRequired: true, reason: 'manual_dispatch' });
+});
+
+test('deploy templates isolate validated artifacts from OIDC and serialize without cancellation', async () => {
   const verifier = await readFile(
     path.join(repoRoot, 'tools', 'templates', 'draft-repo', 'tools', 'verify-promotion-commit.mjs'),
     'utf8',
@@ -257,16 +352,49 @@ test('deploy templates request read-only PR metadata and invoke the verifier wit
     assert.match(workflow, /node tools\/verify-promotion-commit\.mjs/);
     assert.match(workflow, new RegExp(`--source=${sourceBranch}`));
     assert.match(workflow, new RegExp(`--target=${targetBranch}`));
-    assert.match(workflow, /--tip-only=true/);
-    assert.match(workflow, /concurrency:[\s\S]*cancel-in-progress:\s*true/);
+    assert.doesNotMatch(workflow, /--tip-only=true/);
+    assert.match(workflow, /concurrency:[\s\S]*cancel-in-progress:\s*false/);
     assert.ok(
       workflow.indexOf('concurrency:') > workflow.indexOf('\n  deploy:'),
       `${name} must serialize only the privileged deploy job so an invalid historical rerun cannot cancel validation`,
     );
     assert.doesNotMatch(workflow, /HEAD\^2|merge-base --is-ancestor/);
-    assert.ok(
-      workflow.indexOf('actions/setup-node@v5') < workflow.indexOf('node tools/verify-promotion-commit.mjs'),
-      `${name} must select its pinned Node runtime before running the provenance verifier`,
-    );
+    const deployJob = workflow.slice(workflow.indexOf('\n  deploy:'));
+    assert.doesNotMatch(deployJob, /actions\/checkout|actions\/setup-node|node tools\//);
+    assert.match(deployJob, /actions\/download-artifact@[a-f0-9]{40}/);
+    assert.match(workflow, /actions\/upload-artifact@[a-f0-9]{40}/);
+    assert.match(workflow, /retention-days:\s*1/);
+    assert.match(workflow, /artifact_id:\s*\$\{\{ steps\.upload_plan\.outputs\.artifact-id \}\}/);
+    assert.match(workflow, /artifact_name:\s*\$\{\{ steps\.prepare_plan\.outputs\.artifact_name \}\}/);
+    assert.match(workflow, /manifest_sha256:\s*\$\{\{ steps\.prepare_plan\.outputs\.manifest_sha256 \}\}/);
+    assert.match(workflow, /version_id:\s*\$\{\{ steps\.prepare_plan\.outputs\.version_id \}\}/);
+    assert.match(workflow, /id:\s*upload_plan/);
+    assert.match(workflow, /github\.run_id/);
+    assert.match(workflow, /github\.run_attempt/);
+    assert.match(workflow, /github\.sha/);
+    assert.match(workflow, /needs\.validate\.outputs\.deploy_required\s*==\s*'true'/);
+    assert.match(deployJob, /artifact-ids:\s*\$\{\{ needs\.validate\.outputs\.artifact_id \}\}/);
+    assert.match(deployJob, /merge-multiple:\s*true/);
+    assert.doesNotMatch(deployJob, /name:\s*\$\{\{ needs\.validate\.outputs\.artifact_name \}\}/);
+    assert.doesNotMatch(deployJob, /github\.run_attempt/);
+    assert.match(deployJob, /EXPECTED_ARTIFACT_NAME:\s*\$\{\{ needs\.validate\.outputs\.artifact_name \}\}/);
+    assert.match(deployJob, /EXPECTED_MANIFEST_SHA256:\s*\$\{\{ needs\.validate\.outputs\.manifest_sha256 \}\}/);
+    assert.match(deployJob, /EXPECTED_VERSION_ID:\s*\$\{\{ needs\.validate\.outputs\.version_id \}\}/);
+    assert.match(deployJob, /\$EXPECTED_ARTIFACT_ID[^\n]*\^\[1-9\]\[0-9\]/);
+    assert.match(deployJob, /BASH_REMATCH/);
+    assert.match(deployJob, /find\s+"\$artifact_dir"[^\n]*-mindepth 1/);
+    assert.match(deployJob, /test "\$actual_manifest_sha256" = "\$EXPECTED_MANIFEST_SHA256"/);
+    assert.match(deployJob, /sha256sum\s+--check\s+--strict/);
+    const coordinateCheckIndex = deployJob.indexOf('Validate immutable artifact coordinates');
+    const artifactDownloadIndex = deployJob.indexOf('actions/download-artifact@');
+    assert.ok(coordinateCheckIndex > -1 && coordinateCheckIndex < artifactDownloadIndex);
+    const externalManifestCheckIndex = deployJob.indexOf('test "$actual_manifest_sha256" = "$EXPECTED_MANIFEST_SHA256"');
+    const strictManifestCheckIndex = deployJob.indexOf('sha256sum --check --strict');
+    assert.ok(externalManifestCheckIndex > -1 && externalManifestCheckIndex < strictManifestCheckIndex);
+    assert.match(deployJob, /curl\s+[\s\S]*--aws-sigv4/);
+    assert.doesNotMatch(deployJob, /createHmac|AWS4-HMAC-SHA256/);
+    const tipRecheckIndex = deployJob.indexOf('Recheck current target tip');
+    const configureCredentialsIndex = deployJob.indexOf('aws-actions/configure-aws-credentials@');
+    assert.ok(tipRecheckIndex > -1 && tipRecheckIndex < configureCredentialsIndex);
   }
 });

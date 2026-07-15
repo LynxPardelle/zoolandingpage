@@ -80,8 +80,14 @@ Use this checklist when creating a new draft repository after the secure release
    - PR to `test` must come from `dev`.
    - PR to `main` must come from `test`.
    - Post-merge deploy validation must find exactly one associated merged PR for the deployed commit, from the same repository and exact source/base pair.
-   - For the configured merge-commit-only policy, the deployed commit must have exactly two parents, its second parent must equal the PR head, and a push event's first parent must equal the event's `before` SHA.
+   - For the configured merge-commit-only policy, the deployed commit must have exactly two parents, its first parent must equal both the PR base SHA and a push event's `before` SHA, and its second parent must equal the PR head.
    - The validation job may receive only `contents: read` and `pull-requests: read`; OIDC remains isolated to the dependent deploy job for the exact validated commit.
+   - For a push, compute the exact first-parent `name-status` diff. Only added or modified files in the verifier's code-owned 15-path rollout closure may skip authoring; outside changes require deployment, while delete/rename/type-change of an allowlisted control fails closed. Manual dispatch always deploys.
+   - Build the closed deployment plan before OIDC. Bind its artifact name and SHA-256 manifest to run ID, run attempt, and target SHA; retain it for one day. Export the single numeric artifact ID, name, captured version ID, and SHA-256 of the manifest as validation-job outputs so the digest anchor is outside the artifact.
+   - Derive official version IDs from environment, full target SHA, run ID, and run attempt. Require an explicit bounded version ID for local plan mode without GitHub run metadata.
+   - Write plans only to a new relative path beneath the draft root. Reject absolute/traversal paths, missing or symlink/junction parents, and existing or linked targets. If the workflow replaces `.draft-deploy`, unlink a root link without following it and recursively remove only a verified real directory.
+   - Do not put the authoring API endpoint, credentials, tokens, responses, fiscal PII, or raw provider payloads in the plan. `server-only` excludes data from the public runtime projection; it is not a confidentiality label for a public repository or artifact.
+   - The OIDC job must not check out or execute repository code. Its first step must validate output grammar and artifact/version coordinates before downloading exactly one artifact by ID. Require the exact two-file set, external manifest digest, strict checksum, closed schema, exact coordinates/action order, structural path-kind metadata, and current target tip before configuring credentials, then use native `curl --aws-sigv4` with redacted failure output.
 13. Add GitHub Environment `test`.
 14. Add GitHub Environment `production`.
 15. Restrict test environment deployment branches to `test`.
@@ -129,6 +135,11 @@ Use this checklist when creating a new draft repository after the secure release
 - PR from an invalid source branch is blocked by required checks.
 - A synthetic merge using an older allowed source ancestor, a direct/forced push, an unrelated PR, or a fork PR cannot pass post-merge deploy provenance.
 - A historical rerun fails when its commit is no longer the target branch tip, and environment-scoped concurrency prevents overlapping publishes.
+- A tooling-only push skips authoring only when every change is an addition/modification in the exact rollout closure; manual dispatch and every content or non-allowlisted change deploy.
+- A deployment artifact has one-day retention, a run/attempt/SHA-bound name, one numeric artifact ID, an external SHA-256 anchor for its manifest, an exact two-file set, and no authoring API endpoint, credentials, tokens, response bodies, fiscal PII, or raw provider payload.
+- Plan output cannot escape the draft root or follow a symlink/junction through its parent or target, and the workflow's `.draft-deploy` replacement does not delete through a root link.
+- The OIDC job has no checkout or repository-code execution and validates the closed plan plus current target tip immediately before credentials.
+- Repeating validation for the same run attempt produces the same version ID; a new validation attempt produces a new version ID. Rerunning only a failed deploy consumes the captured validation artifact/name/version instead of recalculating them from the newer job attempt. `version_already_exists` remains a fail-closed error, and a partial upsert may leave an immutable unpublished version for future cleanup.
 - A workflow committed only to `dev` cannot use either deployment Environment or assume either AWS deploy role.
 - `dev` changes do not deploy.
 - Clean target repos are pulled before work starts; dirty repos are reported before changes.
