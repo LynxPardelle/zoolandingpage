@@ -9,7 +9,7 @@ import test from 'node:test';
 const repoRoot = path.resolve(new URL('../..', import.meta.url).pathname.replace(/^\/(?:[A-Za-z]:)/, value => value.slice(1)));
 const templateRoot = path.join(repoRoot, 'tools', 'templates', 'draft-repo');
 const auditorCommit = '4cd1d0ad844145864bbbed6347daf7094c19d89b';
-const promotionVerifierSha256 = '345e5ea1704e27b2b82ceab6f05ffa50ef690c17ba11fcfb82aef04adc69000e';
+const promotionVerifierSha256 = '8aeada2e40e21c0693099dbb0fc8fbc63a225e11f88b4b61dae3235c875ca5d2';
 const rolloutClosure = Object.freeze([
   '.github/workflows/deploy-production.yml',
   '.github/workflows/deploy-test.yml',
