@@ -22,6 +22,7 @@ const LOCAL_ONLY_DRAFT_DIRECTORY_NAMES = new Set([
   'devonly',
   '.superpowers',
   '.agent-coordination',
+  '.draft-deploy',
   'tools',
 ]);
 
