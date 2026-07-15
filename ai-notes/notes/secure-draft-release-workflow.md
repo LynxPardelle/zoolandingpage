@@ -13,7 +13,7 @@ Source Of Truth:
 - Official GitHub and AWS OIDC guidance
 
 Confidence: High
-Last Reviewed: 2026-07-14 (Central Time)
+Last Reviewed: 2026-07-15 (Central Time)
 
 # Secure Draft Release Workflow
 
@@ -94,12 +94,14 @@ Before any Zoolanding or draft repo work, run `node tools/draft-repo-preflight.m
 
 After this workflow is implemented, Git is the source of truth for draft content. Do not use S3 published state as the normal freshness check before work. Use S3/API inspection only for incident response, migration verification, or deploy verification.
 
-When a new draft repo is created, copy this pull rule into that repo's `Codex.md` or equivalent repo memory so future agents do not rely only on the hub memory.
+When a new draft repo is created, route this pull rule from that repo's `AGENTS.md` to its canonical workflow document so future agents do not rely only on hub guidance. Keep `Codex.md` as a compatibility pointer.
 
 ## Active State
 
-As of 2026-05-17 CT, the authoring API requires IAM-signed requests, runtime-read supports environment-aware published pointers, OIDC roles exist for the current draft repos, and the current public `draft-*` repos have `dev`, `test`, and `main` branches plus GitHub Environment variables. GitHub Actions were bootstrapped with `[skip ci]`; no initial deploy ran during setup. A manual pilot deploy for `draft-zoolandingpage-com-mx` test passed through GitHub OIDC and published `test.zoolandingpage.com.mx` to the test environment without changing the production pointer.
+As of 2026-07-15 CT, the authoring API requires IAM-signed requests, runtime-read supports environment-aware published pointers, and the hardened Config Authoring build is deployed to test and production from an explicit allowlisted SAM artifact. A successful PokeAPI test canary exercised create/update and separate publication through GitHub OIDC; unsigned Function URL and API Gateway requests remain denied.
 
-After public-safety audit, the current draft repos were made public and native GitHub branch protection was applied on `test` and `main` with required `guard` status checks and zero required approvals.
+The controlled fleet rollout is active for all 11 registered draft repositories. All 22 `test`/`main` branch-protection endpoints require strict `guard` pinned to GitHub Actions app ID `15368`, a pull request, and admin enforcement while blocking force-push/deletion and allowing no named PR bypass. All 22 GitHub Environments select only their exact deployment branch, and all 22 per-draft IAM roles independently require the matching repository, Environment, and exact `ref`. The exact-PR verifier, current-tip recheck, per-environment concurrency, readback checks, and scoped Lambda invocation policies are now live.
 
-Read-only audit on 2026-07-14 CT confirmed the 22 registered `test`/`main` branch-protection endpoints require strict `guard`, a PR, admin enforcement, and no force-push/deletion or named PR bypass. All 22 currently leave `guard` unpinned to a GitHub App. It also confirmed that the 22 live GitHub Environments are still unrestricted and their 22 AWS roles still lack the exact branch `ref`; checked-out draft workflows still use the older general-ancestor proof. The exact-PR verifier, GitHub Actions app pin, selected-branch Environment policy, exact-ref IAM trust, readback checks, and concurrency are local target controls only until a separately authorized fleet rollout changes GitHub and AWS. GitHub's public app endpoint identified `github-actions` as app ID `15368` during this audit; if that identity ever changes or the API rejects it, fail closed and reverify rather than substituting an app ID.
+The exact generic rollout bundle is present on `dev` and `test` in all 11 draft repositories. The later one-file caller repin also reached all 11 `test` branches; its test runs validated the exact change and skipped planning, artifact upload, OIDC, and AWS deployment. At closeout, callers pin reusable workflow `c8b04670b5cca800ccf0f723815813897e596600`, which pins auditor `92445c8670e4ecae63c1c1dfde9de8925f4b88c8`; template main is `ef21066041373349c856f95f5819a2bf1342eb79`. The rollout deliberately did not merge any draft repository to `main` or publish production draft content. Any future production draft release still requires the independently reviewed `test -> main` promotion and its production deployment evidence. If the GitHub Actions app identity ever changes or the API rejects it, fail closed and reverify rather than substituting an app ID.
+
+Runtime Read now applies the reusable two-identity deployment pattern in test and production: an exact repository/Environment/branch OIDC caller passes only a retained CloudFormation service role, and that service role updates only the bounded stack surface. SAM deployments require the exact transform ARN on the service role. Attach and simulate the Lambda execution boundary before first supplying `--role-arn`, because CloudFormation persists the stack `RoleARN` after the deployment. Any exact-role `iam:DeleteRolePermissionsBoundary` bootstrap grant is temporary and must be absent after all environments migrate; retired caller roles keep no trust `Allow` during their explicit rollback window.

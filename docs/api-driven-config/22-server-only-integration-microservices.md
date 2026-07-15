@@ -2,7 +2,7 @@
 
 Date: 2026-07-14 (Central Time)
 Scope: Draft-scoped server-only descriptors and the approved service boundaries that consume them.
-Status: Phase 1 local contract; no integration microservice or live provider path is deployed by this document.
+Status: Phase 1 contract and active authoring guard; no integration microservice or live provider path is deployed by this document.
 Source Of Truth:
 
 - [Approved implementation plan](../../plan/infrastructure-server-only-integrations-1.md)
@@ -14,8 +14,8 @@ Source Of Truth:
 - [`draft-feature-readiness.mjs`](../../tools/draft-feature-readiness.mjs)
 - [Repository map](../repository-map.md)
 
-Confidence: High for the local Phase 1 descriptor and readiness contract; planned for service implementation, infrastructure, and live-provider behavior.
-Last Reviewed: 2026-07-14 (Central Time)
+Confidence: High for the Phase 1 descriptor, readiness, and authoring-enforcement contract; planned for service implementation, infrastructure, and live-provider behavior.
+Last Reviewed: 2026-07-15 (Central Time)
 
 ## Contract Status
 
@@ -25,8 +25,9 @@ This document separates what exists in the current Zoolandingpage worktree from 
 | --- | --- |
 | Four closed, bounded JSON Schemas | Present locally in Phase 1 |
 | Dependency-free schema and semantic readiness validation | Present locally in Phase 1 |
-| Pre-S3 enforcement in Config Authoring | Phase 1 cross-repository work; must be verified before it is treated as active |
-| Browser/SSR draft artifact boundary | Local allowlist and regression guard present; the currently deployed test/production artifact remains an incident gate until an authorized sanitized release and invalidation are verified |
+| Pre-S3 enforcement in Config Authoring | Active in test and production from an explicit allowlisted SAM artifact; invalid packages and stored-package publication failures are fail-closed |
+| Browser/SSR draft artifact boundary | Sanitized boundary-fix releases are active and private-path probes return `404`; incident closure remains gated by historical access limitations and final browser/risk acceptance evidence |
+| Runtime Read public/server boundary and deployment identities | Active in test and production with exact GitHub OIDC callers, retained CloudFormation service roles, code-owned execution boundaries, unchanged Lambda/API physical IDs, and verified denial of server-only descriptor reads |
 | Data Spaces, Commerce, Integrations, and Notifications services | Approved target for later phases; not deployed by this contract |
 | Stripe Connect, Checkout, Billing, and webhook handling | Stripe-specific adapter target; live setup is gated |
 | HostGator SMTP delivery | Notification-adapter target; real SMTP remains gated |
@@ -311,6 +312,7 @@ Later phases must add service unit/contract tests, cross-draft and wrong-environ
 - Local work may explicitly call deployed test services when no local substitute exists; `config-draft-sync` requires an explicit environment, maps an explicit remote dev read to test, rejects every dev mutation before an HTTP request, and verifies the returned domain/environment/stage before any local clean or write.
 - Pull requests follow `dev -> test -> main`. Draft test and production validation runs in a job without OIDC; only a dependent deploy job checking out the exact validated commit receives `id-token: write`. SSR build and artifact validation likewise run without OIDC; only a dependent publication job that downloads and rechecks the validated artifact receives `id-token: write`.
 - Test and production use separate stacks, tables, queues, secrets, webhook endpoints, Stripe modes, recipient policies, and idempotency namespaces.
+- Runtime Read deployment separates the exact repository/Environment/branch OIDC caller from its retained CloudFormation service role. The caller can pass only that role; the service role owns the bounded Lambda/API update surface and exact SAM transform access, and may attach only the code-owned execution boundary. CloudFormation persists the stack `RoleARN`; steady state has no `iam:DeleteRolePermissionsBoundary`, and retired callers retain no trust `Allow` during their rollback window.
 - Frontend builds copy only the exact public draft JSON shapes and approved media extensions. Recursive `drafts/**` copying, encoded or traversal-shaped path segments, private/local folders, repository metadata, `draft-repo.config.json`, and every `server/` descriptor are forbidden; packaging must run the artifact boundary guard before AWS credentials or upload.
 - Feature enablement is per draft and default-off. Test pilots begin with `zoositioweb.com.mx` and `sulandingpage.com.mx`; production remains off until test evidence is accepted.
 - Reverting the Config Registry published pointer reactivates a previously validated immutable descriptor package. Service rollback also requires stopping new admission, reconciling in-flight provider work, inspecting/redriving queues, and restoring the previous service artifact.
@@ -321,7 +323,7 @@ No workflow, route, stack, secret, connected account, or pilot descriptor become
 
 The following remain blocking and must not be inferred from placeholder or test data:
 
-1. Authorized incident mitigation for the exposed live draft artifacts: publish a sanitized release, invalidate affected caches, quarantine/audit older releases without printing content, review access evidence, rotate only verified potentially exposed credentials, and complete production/test browser QA. A local patch alone does not close this gate.
+1. Final incident closure for the formerly exposed live draft artifacts. Sanitized releases are active, current private-path probes return `404`, the current test/production release-prefix inventory contains no forbidden draft objects, and 44 desktop/mobile browser views passed without blocking responses, runtime failures, console errors, or overflow. Historical S3/CloudFront access logging was not enabled, so prior access cannot be reconstructed from those sources; keep the gate open until an explicit residual-risk/credential decision is recorded.
 2. Accountant/legal approval for fiscal fields, retention, access, request window, and the manual CFDI operating procedure. Until then, production fiscal capture is disabled.
 3. Confirmed Stripe account topology for each merchant binding, current official SDK/API compatibility, live tax responsibility/registration proof, webhook endpoint setup, and explicit test evidence. Platform commission remains disabled; optional application fees are future work.
 4. Written HostGator authorization and measured SMTP limits/deliverability, or an explicitly approved alternative provider. Until then, no real SMTP secret or production delivery is enabled.
