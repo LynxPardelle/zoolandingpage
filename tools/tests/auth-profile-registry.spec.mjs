@@ -217,6 +217,19 @@ test('validateAuthProfileRegistry rejects embedded secrets and unsafe urls', () 
   assert.match(validateAuthProfileRegistry(bad).errors.join('\n'), /clientSecret/);
 });
 
+test('validateAuthProfileRegistry rejects signed URLs disguised as secret references', () => {
+  const bad = structuredClone(registry);
+  bad.profiles[0].socialIdpSecretRefs.google = 'https://example.invalid/file?X-Amz-Signature=SYNTHETIC';
+
+  const result = validateAuthProfileRegistry(bad);
+  assert.equal(result.valid, false);
+  assert.match(result.errors.join('\n'), /SSM or Secrets Manager reference/);
+
+  const traversal = structuredClone(registry);
+  traversal.profiles[0].socialIdpSecretRefs.google = '/zoolanding/../google';
+  assert.equal(validateAuthProfileRegistry(traversal).valid, false);
+});
+
 test('validateAuthProfileRegistry rejects unsafe callback and logout URLs', () => {
   const bad = {
     version: 1,
@@ -728,6 +741,24 @@ test('validateServerIntegrations rejects unsafe user access and raw credential m
   assert.match(result.errors.join('\n'), /access\.allowedGroups/);
   assert.match(result.errors.join('\n'), /auth.*upstream credentials/);
   assert.match(result.errors.join('\n'), /token/);
+});
+
+test('validateServerIntegrations rejects signed URLs disguised as credential references', () => {
+  const integrations = {
+    version: 1,
+    sources: [{
+      id: 'signedUrlCredential',
+      method: 'GET',
+      url: 'https://content.example.com/posts',
+      credentialRef: 'https://example.invalid/file?X-Amz-Signature=SYNTHETIC',
+      auth: { type: 'bearer' },
+    }],
+    actions: [],
+  };
+
+  const result = validateServerIntegrations(integrations);
+  assert.equal(result.valid, false);
+  assert.match(result.errors.join('\n'), /credentialRef/);
 });
 
 test('Zoosite server-only auth registry fixture validates as plan-only without raw secrets', async () => {

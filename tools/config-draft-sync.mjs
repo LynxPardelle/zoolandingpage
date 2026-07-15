@@ -2,6 +2,7 @@ import { existsSync, lstatSync } from 'node:fs';
 import { mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { assertValidRuntimeDataSourceConditionReferences } from './runtime-data-source-condition-guard.mjs';
+import { inferServerDescriptorKind, isLocalOnlyDraftDirectoryName } from './lib/server-descriptor-kinds.mjs';
 
 const DEFAULT_DRAFTS_ROOT = path.resolve('drafts');
 const DEFAULT_REQUEST_TIMEOUT_MS = 20000;
@@ -83,6 +84,13 @@ function normalizeEnvironment(environment) {
   if (!normalized) return undefined;
   if (['production', 'test', 'dev'].includes(normalized)) return normalized;
   throw new Error(`Invalid environment '${environment}'. Expected 'production', 'test', or 'dev'.`);
+}
+
+function normalizeRemoteEnvironment(environment, { allowDevRead = false } = {}) {
+  const normalized = normalizeEnvironment(environment);
+  if (normalized !== 'dev') return normalized;
+  if (allowDevRead) return 'test';
+  throw new Error('dev environment is local-only; use test for remote mutations.');
 }
 
 function resolveFallbackEndpoint(endpoint, explicitFallbackEndpoint) {
@@ -173,14 +181,14 @@ async function walkJsonFiles(rootDir) {
   for (const entry of entries) {
     const fullPath = path.join(rootDir, entry.name);
     if (entry.isDirectory()) {
-      if (LOCAL_DRAFT_CONTEXT_FOLDERS.has(entry.name)) {
+      if (LOCAL_DRAFT_CONTEXT_FOLDERS.has(entry.name.toLowerCase()) || isLocalOnlyDraftDirectoryName(entry.name)) {
         continue;
       }
       files.push(...(await walkJsonFiles(fullPath)));
       continue;
     }
     if (entry.isFile() && entry.name.endsWith('.json')) {
-      if (LOCAL_DRAFT_CONTEXT_FILES.has(entry.name)) {
+      if (LOCAL_DRAFT_CONTEXT_FILES.has(entry.name.toLowerCase())) {
         continue;
       }
       files.push(fullPath);
@@ -200,7 +208,7 @@ async function cleanAuthoredDraftFiles(rootDir) {
   for (const entry of entries) {
     const fullPath = path.join(rootDir, entry.name);
     if (entry.isDirectory()) {
-      if (LOCAL_DRAFT_CONTEXT_FOLDERS.has(entry.name)) {
+      if (LOCAL_DRAFT_CONTEXT_FOLDERS.has(entry.name.toLowerCase()) || isLocalOnlyDraftDirectoryName(entry.name)) {
         continue;
       }
 
@@ -214,7 +222,7 @@ async function cleanAuthoredDraftFiles(rootDir) {
     }
 
     if (entry.isFile() && entry.name.endsWith('.json')) {
-      if (LOCAL_DRAFT_CONTEXT_FILES.has(entry.name)) {
+      if (LOCAL_DRAFT_CONTEXT_FILES.has(entry.name.toLowerCase())) {
         continue;
       }
       await rm(fullPath, { force: true });
@@ -294,7 +302,14 @@ function resolveContainedDraftFile(draftsRoot, domainRoot, domain, relativePath)
     segments[0] !== domain ||
     segments
       .slice(1)
-      .some(segment => LOCAL_DRAFT_CONTEXT_FOLDERS.has(segment) || LOCAL_DRAFT_CONTEXT_FILES.has(segment)) ||
+      .some(segment => {
+        try {
+          return isLocalOnlyDraftDirectoryName(segment)
+            || LOCAL_DRAFT_CONTEXT_FILES.has(segment.toLowerCase());
+        } catch {
+          return true;
+        }
+      }) ||
     segments.some(
       segment =>
         !segment ||
@@ -325,12 +340,12 @@ function resolveContainedDraftFile(draftsRoot, domainRoot, domain, relativePath)
 
 function inferKind(domain, relativePath) {
   const normalized = relativePath.replace(/\\/g, '/');
+  const serverKind = inferServerDescriptorKind(domain, normalized);
+  if (serverKind) return serverKind;
   if (normalized === `${domain}/site-config.json`) return 'site-config';
   if (normalized === `${domain}/components.json`) return 'shared-components';
   if (normalized === `${domain}/variables.json`) return 'shared-variables';
   if (normalized === `${domain}/angora-combos.json`) return 'shared-angora-combos';
-  if (normalized === `${domain}/server/auth-profile-registry.json`) return 'server-auth-profile-registry';
-  if (normalized === `${domain}/server/integrations.json`) return 'server-integrations';
   if (normalized.startsWith(`${domain}/i18n/`) && normalized.endsWith('.json')) return 'shared-i18n';
   if (normalized.endsWith('/page-config.json')) return 'page-config';
   if (normalized.endsWith('/components.json')) return 'page-components';
@@ -547,10 +562,11 @@ async function main() {
         'Commands:',
         '  pack    --domain=example.com [--drafts-root=drafts] [--stage=draft] [--output=package.json]',
         '  unpack  --input=package.json [--drafts-root=drafts] [--clean-domain=true]',
-        '  pull    --endpoint=https://... --domain=example.com [--stage=draft] [--drafts-root=drafts] [--clean-domain=true] [--request-timeout-ms=20000] [--fallback-endpoint=https://...] [--retry-attempts=2] [--retry-delay-ms=250]',
-        '  push    --endpoint=https://... --domain=example.com [--environment=production|test|dev] [--drafts-root=drafts] [--updated-by=name] [--request-timeout-ms=20000] [--fallback-endpoint=https://...] [--retry-attempts=2] [--retry-delay-ms=250]',
-        '  create  --endpoint=https://... --domain=newsite.example [--environment=production|test|dev] [--drafts-root=drafts] [--publish-on-create=true] [--request-timeout-ms=20000] [--fallback-endpoint=https://...] [--retry-attempts=2] [--retry-delay-ms=250]',
-        '  publish --endpoint=https://... --domain=example.com [--environment=production|test|dev] [--version-id=...] [--request-timeout-ms=20000] [--fallback-endpoint=https://...] [--retry-attempts=2] [--retry-delay-ms=250]',
+        '  pull    --endpoint=https://... --domain=example.com --environment=test|production|dev [--stage=draft] [--drafts-root=drafts] [--clean-domain=true] [--request-timeout-ms=20000] [--fallback-endpoint=https://...] [--retry-attempts=2] [--retry-delay-ms=250]',
+        '          dev is read-only and maps explicitly to test; dev never has its own remote environment.',
+        '  push    --endpoint=https://... --domain=example.com --environment=production|test [--drafts-root=drafts] [--updated-by=name] [--request-timeout-ms=20000] [--fallback-endpoint=https://...] [--retry-attempts=2] [--retry-delay-ms=250]',
+        '  create  --endpoint=https://... --domain=newsite.example --environment=production|test [--drafts-root=drafts] [--publish-on-create=true] [--request-timeout-ms=20000] [--fallback-endpoint=https://...] [--retry-attempts=2] [--retry-delay-ms=250]',
+        '  publish --endpoint=https://... --domain=example.com --environment=production|test [--version-id=...] [--request-timeout-ms=20000] [--fallback-endpoint=https://...] [--retry-attempts=2] [--retry-delay-ms=250]',
       ].join('\n') + '\n'
     );
     return;
@@ -580,10 +596,11 @@ async function main() {
     const endpoint = getRequiredArg(args, 'endpoint');
     const domain = getRequiredDomainArg(args);
     const stage = normalizeStage(args.stage);
+    const environment = normalizeRemoteEnvironment(getRequiredArg(args, 'environment'), { allowDevRead: true });
     const draftsRoot = path.resolve(args['drafts-root'] ?? DEFAULT_DRAFTS_ROOT);
     const response = await callAuthoringEndpoint(
       endpoint,
-      { action: 'getSite', domain, stage },
+      { action: 'getSite', domain, stage, environment },
       {
         requestTimeoutMs: getIntegerArg(args, 'request-timeout-ms', DEFAULT_REQUEST_TIMEOUT_MS),
         fallbackEndpoint: args['fallback-endpoint'],
@@ -591,6 +608,9 @@ async function main() {
         retryDelayMs: getIntegerArg(args, 'retry-delay-ms', DEFAULT_RETRY_DELAY_MS),
       }
     );
+    if (response?.domain !== domain || response?.stage !== stage || response?.environment !== environment) {
+      throw new Error('Authoring response scope mismatch.');
+    }
     await unpackDraftPackage(response, draftsRoot, { cleanDomain: String(args['clean-domain'] ?? 'true') === 'true' });
     process.stdout.write(`Pulled ${response.files.length} files for ${domain} (${stage}) into ${draftsRoot}\n`);
     return;
@@ -599,6 +619,7 @@ async function main() {
   if (command === 'push' || command === 'create') {
     const endpoint = getRequiredArg(args, 'endpoint');
     const domain = getRequiredDomainArg(args);
+    const environment = normalizeRemoteEnvironment(getRequiredArg(args, 'environment'));
     const draftsRoot = path.resolve(args['drafts-root'] ?? DEFAULT_DRAFTS_ROOT);
     const stage = normalizeStage(args.stage);
     const draftPackage = await buildDraftPackage({ domain, draftsRoot, stage });
@@ -608,7 +629,7 @@ async function main() {
       {
         action,
         domain,
-        environment: normalizeEnvironment(args.environment),
+        environment,
         files: draftPackage.files,
         updatedBy: args['updated-by'],
         publishOnCreate: String(args['publish-on-create'] ?? 'false') === 'true',
@@ -628,12 +649,13 @@ async function main() {
   if (command === 'publish') {
     const endpoint = getRequiredArg(args, 'endpoint');
     const domain = getRequiredDomainArg(args);
+    const environment = normalizeRemoteEnvironment(getRequiredArg(args, 'environment'));
     const response = await callAuthoringEndpoint(
       endpoint,
       {
         action: 'publishDraft',
         domain,
-        environment: normalizeEnvironment(args.environment),
+        environment,
         versionId: args['version-id'],
         updatedBy: args['updated-by'],
       },

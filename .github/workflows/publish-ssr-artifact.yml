@@ -22,22 +22,45 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
-  publish:
-    name: Publish Angular SSR artifact
+  validate:
+    name: Validate Angular SSR artifact
     runs-on: ubuntu-latest
-    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || (github.ref_name == 'main' && 'production' || github.ref_name) }}
     env:
       DEPLOY_ENV: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || (github.ref_name == 'main' && 'production' || github.ref_name) }}
       RELEASE_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.release_id || github.sha }}
       CONFIG_API_URL: https://api.zoolandingpage.com.mx
-      ARTIFACT_BUCKET: ${{ vars.FRONTEND_ARTIFACT_BUCKET }}
-      STATIC_BUCKET: ${{ vars.FRONTEND_STATIC_BUCKET || 'zoolandingpage-public-files' }}
-      AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
     steps:
       - uses: actions/checkout@v7.0.0
+
+      - name: Verify protected target branch
+        shell: bash
+        env:
+          CURRENT_REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          if [[ "$DEPLOY_ENV" == "test" && "$CURRENT_REF" != "refs/heads/test" ]]; then
+            echo "Test artifacts must be published from refs/heads/test."
+            exit 1
+          fi
+          if [[ "$DEPLOY_ENV" == "production" && "$CURRENT_REF" != "refs/heads/main" ]]; then
+            echo "Production artifacts must be published from refs/heads/main."
+            exit 1
+          fi
+
+      - name: Validate artifact coordinates
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]]; then
+            echo "Release id must be a bounded opaque identifier."
+            exit 1
+          fi
+          if [[ "$DEPLOY_ENV" != "test" && "$DEPLOY_ENV" != "production" ]]; then
+            echo "Deployment environment must be test or production."
+            exit 1
+          fi
 
       - uses: actions/setup-node@v6.4.0
         with:
@@ -47,6 +70,83 @@ jobs:
       - run: npm ci
       - run: npm audit --omit=dev
       - run: npm run package:ssr:lambda
+      - run: npm run test:draft-public-artifact-boundary
+
+      - name: Upload validated SSR artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ssr-${{ env.DEPLOY_ENV }}-${{ env.RELEASE_ID }}
+          path: |
+            dist/ssr-lambda/staging/browser
+            dist/ssr-lambda/ssr-handler.zip
+            dist/ssr-lambda/manifest.json
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+          include-hidden-files: false
+
+  publish:
+    name: Publish validated Angular SSR artifact
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || (github.ref_name == 'main' && 'production' || github.ref_name) }}
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      DEPLOY_ENV: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || (github.ref_name == 'main' && 'production' || github.ref_name) }}
+      RELEASE_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.release_id || github.sha }}
+      ARTIFACT_BUCKET: ${{ vars.FRONTEND_ARTIFACT_BUCKET }}
+      STATIC_BUCKET: ${{ vars.FRONTEND_STATIC_BUCKET || 'zoolandingpage-public-files' }}
+      AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+    steps:
+      - name: Verify protected target branch and coordinates
+        shell: bash
+        env:
+          CURRENT_REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          if [[ "$DEPLOY_ENV" == "test" && "$CURRENT_REF" != "refs/heads/test" ]]; then
+            echo "Test artifacts must be published from refs/heads/test."
+            exit 1
+          fi
+          if [[ "$DEPLOY_ENV" == "production" && "$CURRENT_REF" != "refs/heads/main" ]]; then
+            echo "Production artifacts must be published from refs/heads/main."
+            exit 1
+          fi
+          if [[ ! "$RELEASE_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]]; then
+            echo "Release id must be a bounded opaque identifier."
+            exit 1
+          fi
+          if [[ "$DEPLOY_ENV" != "test" && "$DEPLOY_ENV" != "production" ]]; then
+            echo "Deployment environment must be test or production."
+            exit 1
+          fi
+
+      - name: Download validated SSR artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ssr-${{ env.DEPLOY_ENV }}-${{ env.RELEASE_ID }}
+          path: dist/ssr-lambda
+
+      - name: Verify downloaded artifact coordinates and checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d dist/ssr-lambda/staging/browser
+          test -f dist/ssr-lambda/ssr-handler.zip
+          test -f dist/ssr-lambda/manifest.json
+          base_prefix="frontend/angular-ssr/${DEPLOY_ENV}/releases/${RELEASE_ID}"
+          test "$(jq -r '.schemaVersion // empty' dist/ssr-lambda/manifest.json)" = "1"
+          test "$(jq -r '.environment // empty' dist/ssr-lambda/manifest.json)" = "$DEPLOY_ENV"
+          test "$(jq -r '.releaseId // empty' dist/ssr-lambda/manifest.json)" = "$RELEASE_ID"
+          test "$(jq -r '.sourceCommit // empty' dist/ssr-lambda/manifest.json)" = "$GITHUB_SHA"
+          test "$(jq -r '.browserPrefix // empty' dist/ssr-lambda/manifest.json)" = "${base_prefix}/browser"
+          test "$(jq -r '.serverBundleKey // empty' dist/ssr-lambda/manifest.json)" = "${base_prefix}/server/ssr-handler.zip"
+          expected_sha="$(jq -r '.checksums["server/ssr-handler.zip"] // empty' dist/ssr-lambda/manifest.json)"
+          actual_sha="$(sha256sum dist/ssr-lambda/ssr-handler.zip | awk '{print $1}')"
+          test -n "$expected_sha"
+          test "$actual_sha" = "$expected_sha"
 
       - name: Validate AWS environment variables
         env:

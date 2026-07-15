@@ -9,10 +9,15 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
 import {
+  branchProtectionPayload,
+  branchProtectionMatches,
   bootstrapFlags,
+  deploymentBranchForEnvironment,
+  environmentProtectionMatches,
   inspectRegisteredRepo,
   preflightDraftSetups,
   repoNameForDomain,
+  setupResultOk,
   testAliasesFor,
 } from '../draft-github-setup.mjs';
 
@@ -53,6 +58,199 @@ test('draft setup does not overwrite existing templates without explicit flags',
     forceTemplates: true,
     forceGitignore: true,
   });
+});
+
+test('deployment environments allow only their exact protected branch', () => {
+  assert.equal(deploymentBranchForEnvironment('test'), 'test');
+  assert.equal(deploymentBranchForEnvironment('production'), 'main');
+  assert.throws(() => deploymentBranchForEnvironment('dev'), /unsupported_deployment_environment/);
+
+  const environment = {
+    deployment_branch_policy: {
+      protected_branches: false,
+      custom_branch_policies: true,
+    },
+  };
+  assert.equal(environmentProtectionMatches(environment, [
+    { name: 'test', type: 'branch' },
+  ], 'test'), true);
+  assert.equal(environmentProtectionMatches(environment, [
+    { name: 'test' },
+  ], 'test'), true);
+  assert.equal(environmentProtectionMatches(environment, [
+    { name: 'test', type: 'tag' },
+  ], 'test'), false);
+  assert.equal(environmentProtectionMatches(environment, [], 'test'), false);
+  assert.equal(environmentProtectionMatches(environment, [
+    { name: 'test', type: 'branch' },
+    { name: 'dev', type: 'branch' },
+  ], 'test'), false);
+  assert.equal(environmentProtectionMatches({ deployment_branch_policy: null }, [
+    { name: 'test', type: 'branch' },
+  ], 'test'), false);
+});
+
+test('branch protection readback must match the complete release policy', () => {
+  const protection = {
+    required_status_checks: {
+      strict: true,
+      contexts: ['guard'],
+      checks: [{ context: 'guard', app_id: 15368 }],
+    },
+    enforce_admins: { enabled: true },
+    required_pull_request_reviews: {
+      required_approving_review_count: 0,
+      dismiss_stale_reviews: false,
+      require_code_owner_reviews: false,
+      require_last_push_approval: false,
+      bypass_pull_request_allowances: {
+        users: [],
+        teams: [],
+        apps: [],
+      },
+    },
+    restrictions: null,
+    required_linear_history: { enabled: false },
+    allow_force_pushes: { enabled: false },
+    allow_deletions: { enabled: false },
+  };
+
+  assert.equal(branchProtectionMatches(protection, ['guard']), true);
+  assert.equal(branchProtectionMatches({
+    ...protection,
+    required_status_checks: { strict: false, contexts: ['guard'] },
+  }, ['guard']), false);
+  assert.equal(branchProtectionMatches({
+    ...protection,
+    required_status_checks: {
+      strict: true,
+      contexts: ['guard', 'extra'],
+      checks: [{ context: 'guard', app_id: 15368 }],
+    },
+  }, ['guard']), false);
+  assert.equal(branchProtectionMatches({
+    ...protection,
+    required_status_checks: {
+      strict: true,
+      contexts: ['guard'],
+      checks: [{ context: 'guard', app_id: -1 }],
+    },
+  }, ['guard']), false);
+  assert.equal(branchProtectionMatches({
+    ...protection,
+    enforce_admins: { enabled: false },
+  }, ['guard']), false);
+  assert.equal(branchProtectionMatches({
+    ...protection,
+    required_pull_request_reviews: null,
+  }, ['guard']), false);
+  assert.equal(branchProtectionMatches({
+    ...protection,
+    required_pull_request_reviews: {
+      ...protection.required_pull_request_reviews,
+      bypass_pull_request_allowances: {
+        users: [{ login: 'bypass-user' }],
+        teams: [],
+        apps: [],
+      },
+    },
+  }, ['guard']), false);
+  assert.equal(branchProtectionMatches({
+    ...protection,
+    allow_force_pushes: { enabled: true },
+  }, ['guard']), false);
+  assert.equal(branchProtectionMatches({
+    ...protection,
+    allow_deletions: { enabled: true },
+  }, ['guard']), false);
+});
+
+test('full branch protection payload preserves the legacy status-check context and clears PR bypasses', () => {
+  const payload = branchProtectionPayload(['guard']);
+  assert.deepEqual(payload.required_status_checks, {
+    strict: true,
+    contexts: ['guard'],
+  });
+  assert.equal(Object.hasOwn(payload.required_status_checks, 'checks'), false);
+  assert.deepEqual(payload.required_pull_request_reviews.bypass_pull_request_allowances, {
+    users: [],
+    teams: [],
+    apps: [],
+  });
+});
+
+test('status check subresource payload pins guard to GitHub Actions', async () => {
+  const setupModule = await import('../draft-github-setup.mjs');
+  assert.equal(typeof setupModule.requiredStatusChecksPayload, 'function');
+  assert.deepEqual(setupModule.requiredStatusChecksPayload(['guard']), {
+    strict: true,
+    checks: [{ context: 'guard', app_id: 15368 }],
+  });
+});
+
+test('applied setup fails closed when either protected branch was not configured', () => {
+  const protectedResult = {
+    repoStatus: 'ready',
+    branchProtection: {
+      test: { protected: true },
+      main: { protected: true },
+    },
+    environmentProtection: {
+      test: { protected: true },
+      production: { protected: true },
+    },
+  };
+  assert.equal(setupResultOk(protectedResult, true), true);
+  assert.equal(setupResultOk({
+    ...protectedResult,
+    branchProtection: {
+      test: { protected: false, blockedByPlan: true },
+      main: { protected: true },
+    },
+  }, true), false);
+  assert.equal(setupResultOk({
+    ...protectedResult,
+    branchProtection: {
+      test: { protected: true },
+      main: { protected: false, blockedByPlan: true },
+    },
+  }, true), false);
+  assert.equal(setupResultOk({
+    ...protectedResult,
+    environmentProtection: {
+      test: { protected: true },
+      production: { protected: false },
+    },
+  }, true), false);
+  assert.equal(setupResultOk({
+    repoStatus: 'ready',
+    branchProtection: protectedResult.branchProtection,
+  }, true), false);
+  assert.equal(setupResultOk({ repoStatus: 'ready' }, false), true);
+});
+
+test('setup configures branch protection before deployment environments and variables', async () => {
+  const source = await import('node:fs/promises').then(({ readFile }) => readFile(setupCliPath, 'utf8'));
+  const setupStart = source.indexOf('async function setupDraft');
+  const setupEnd = source.indexOf('\nasync function main', setupStart);
+  const setup = source.slice(setupStart, setupEnd);
+  assert.ok(setup.indexOf('protectBranch(') < setup.indexOf('ensureEnvironment('));
+  assert.ok(setup.indexOf('ensureEnvironment(') < setup.indexOf('setVariable('));
+});
+
+test('branch setup pins status checks through the dedicated API before readback', async () => {
+  const source = await import('node:fs/promises').then(({ readFile }) => readFile(setupCliPath, 'utf8'));
+  const protectStart = source.indexOf('async function protectBranch');
+  const protectEnd = source.indexOf('\nasync function setupDraft', protectStart);
+  const protect = source.slice(protectStart, protectEnd);
+  const fullProtection = protect.indexOf("'PUT'");
+  const statusPatch = protect.indexOf("'PATCH'", fullProtection);
+  const statusChecks = protect.indexOf('/required_status_checks', statusPatch);
+  const readback = protect.indexOf('branchProtectionMatches');
+  assert.ok(fullProtection >= 0);
+  assert.ok(statusPatch > fullProtection);
+  assert.ok(statusChecks > statusPatch);
+  assert.ok(readback > statusChecks);
 });
 
 test('draft setup blocks unresolved domain-to-local-path transitions', async () => {

@@ -19,6 +19,7 @@ const apiBaseUrl = process.env.CONFIG_API_URL || 'https://api.zoolandingpage.com
 const artifactBasePrefix = `frontend/angular-ssr/${environmentName}`;
 const serverlessHttpDir = path.join(root, 'node_modules', 'serverless-http');
 
+assertSafeReleaseCoordinates(releaseId, environmentName);
 await assertDirectory(browserDir, 'Run `npm run build` before packaging; browser output is missing.');
 await assertDirectory(serverDir, 'Run `npm run build` before packaging; server output is missing.');
 await assertDirectory(serverlessHttpDir, 'Run `npm install` before packaging; serverless-http is missing.');
@@ -65,6 +66,15 @@ const manifest = {
 await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 
 console.log(JSON.stringify({ zipPath, manifestPath, releaseId, sha256 }, null, 2));
+
+function assertSafeReleaseCoordinates(candidateReleaseId, candidateEnvironment) {
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(candidateReleaseId)) {
+    throw new Error('RELEASE_ID must be a bounded opaque identifier.');
+  }
+  if (!['test', 'production'].includes(candidateEnvironment)) {
+    throw new Error('DEPLOY_ENV must be test or production.');
+  }
+}
 
 function lambdaHandlerSource() {
   return `import serverless from 'serverless-http';

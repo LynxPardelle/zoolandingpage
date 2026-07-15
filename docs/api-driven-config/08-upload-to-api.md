@@ -160,10 +160,12 @@ Core fields:
 ### Pull the current authoring draft into the repo
 
 ```bash
-node tools/config-draft-sync.mjs pull --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx
+node tools/config-draft-sync.mjs pull --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --environment=test
 ```
 
 For the standard Zoolanding custom-domain authoring URL, the CLI now retries automatically through the raw API Gateway endpoint if the front door resets the connection or the request times out. You can override the retry target with `--fallback-endpoint=https://...`, adjust the timeout with `--request-timeout-ms=20000`, increase retry coverage with `--retry-attempts=3`, and tune the retry delay with `--retry-delay-ms=250`.
+
+`--environment` is mandatory for every remote authoring operation. `dev` has no AWS environment and is a read-only `pull` alias for test. Before cleaning or writing local files, the client requires the authoring response to match the requested domain, resolved environment, and stage exactly. `push`, `create`, and `publish` accept only an explicit `test` or `production` environment and reject `dev` before sending an HTTP request; use local files/harnesses or an explicitly selected test mutation.
 
 ### Pack the current local draft tree
 
@@ -174,7 +176,7 @@ node tools/config-draft-sync.mjs pack --domain=zoolandingpage.com.mx --output=.t
 ### Push local changes to the authoring draft
 
 ```bash
-node tools/config-draft-sync.mjs push --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --updated-by="Your Name"
+node tools/config-draft-sync.mjs push --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --environment=test --updated-by="Your Name"
 ```
 
 Direct local push requires signed AWS credentials and should not be the normal workflow. Use per-draft GitHub Actions deploys instead.
@@ -182,13 +184,13 @@ Direct local push requires signed AWS credentials and should not be the normal w
 ### Create a new site from a local draft tree
 
 ```bash
-node tools/config-draft-sync.mjs create --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=newsite.example --publish-on-create=false
+node tools/config-draft-sync.mjs create --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=newsite.example --environment=test --publish-on-create=false
 ```
 
 ### Publish the current draft via API
 
 ```bash
-node tools/config-draft-sync.mjs publish --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --updated-by="Your Name"
+node tools/config-draft-sync.mjs publish --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --environment=test --updated-by="Your Name"
 ```
 
 Publish should be performed by the post-merge draft repo workflow, not a local machine.

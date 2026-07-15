@@ -18,6 +18,7 @@ const DEFAULT_OWNER = 'LynxPardelle';
 const DEFAULT_REGION = 'us-east-1';
 const DEFAULT_AUTHORING_ENDPOINT = 'https://o4upx3fsz3d3dwfwz4lbnefjze0eetyn.lambda-url.us-east-1.on.aws/';
 const DEFAULT_ACCOUNT_ID = '765932874577';
+const GITHUB_ACTIONS_APP_ID = 15368;
 
 function parseArgs(rawArgs) {
   const args = {};
@@ -241,9 +242,150 @@ async function setVariable(owner, repo, environment, name, value, apply) {
   await gh(['variable', 'set', name, '--repo', `${owner}/${repo}`, '--env', environment, '--body', value]);
 }
 
+function deploymentBranchForEnvironment(environment) {
+  if (environment === 'test') return 'test';
+  if (environment === 'production') return 'main';
+  throw new Error('unsupported_deployment_environment');
+}
+
+function environmentProtectionMatches(environment, policies, expectedBranch) {
+  return environment?.deployment_branch_policy?.protected_branches === false
+    && environment.deployment_branch_policy.custom_branch_policies === true
+    && Array.isArray(policies)
+    && policies.length === 1
+    && policies[0]?.name === expectedBranch
+    && (policies[0]?.type === undefined || policies[0]?.type === 'branch');
+}
+
+function branchProtectionMatches(protection, requiredContexts) {
+  const actualContexts = protection?.required_status_checks?.contexts;
+  const expectedContexts = [...requiredContexts].sort();
+  const normalizedActualContexts = Array.isArray(actualContexts) ? [...actualContexts].sort() : [];
+  const contextsMatch = normalizedActualContexts.length === 0 || (
+    normalizedActualContexts.length === expectedContexts.length
+    && normalizedActualContexts.every((context, index) => context === expectedContexts[index])
+  );
+  const actualChecks = protection?.required_status_checks?.checks;
+  const normalizedActualChecks = Array.isArray(actualChecks)
+    ? [...actualChecks].sort((a, b) => String(a?.context).localeCompare(String(b?.context)))
+    : [];
+  const checksMatch = normalizedActualChecks.length === expectedContexts.length
+    && normalizedActualChecks.every((check, index) => (
+      check?.context === expectedContexts[index]
+      && check?.app_id === GITHUB_ACTIONS_APP_ID
+    ));
+  const reviews = protection?.required_pull_request_reviews;
+  const bypasses = reviews?.bypass_pull_request_allowances;
+  const noBypasses = bypasses === undefined || bypasses === null || ['users', 'teams', 'apps'].every(key => (
+    bypasses[key] === undefined
+    || (Array.isArray(bypasses[key]) && bypasses[key].length === 0)
+  ));
+  return protection?.required_status_checks?.strict === true
+    && contextsMatch
+    && checksMatch
+    && protection?.enforce_admins?.enabled === true
+    && reviews !== null
+    && typeof reviews === 'object'
+    && reviews.required_approving_review_count === 0
+    && reviews.dismiss_stale_reviews === false
+    && reviews.require_code_owner_reviews === false
+    && reviews.require_last_push_approval === false
+    && noBypasses
+    && protection?.restrictions === null
+    && protection?.required_linear_history?.enabled === false
+    && protection?.allow_force_pushes?.enabled === false
+    && protection?.allow_deletions?.enabled === false;
+}
+
+function branchProtectionPayload(requiredContexts) {
+  return {
+    required_status_checks: {
+      strict: true,
+      contexts: [...requiredContexts],
+    },
+    enforce_admins: true,
+    required_pull_request_reviews: {
+      required_approving_review_count: 0,
+      dismiss_stale_reviews: false,
+      require_code_owner_reviews: false,
+      require_last_push_approval: false,
+      bypass_pull_request_allowances: {
+        users: [],
+        teams: [],
+        apps: [],
+      },
+    },
+    restrictions: null,
+    required_linear_history: false,
+    allow_force_pushes: false,
+    allow_deletions: false,
+  };
+}
+
+function requiredStatusChecksPayload(requiredContexts) {
+  return {
+    strict: true,
+    checks: requiredContexts.map(context => ({
+      context,
+      app_id: GITHUB_ACTIONS_APP_ID,
+    })),
+  };
+}
+
+async function ghJson(args, options = {}) {
+  const output = await gh(args, options);
+  try {
+    return JSON.parse(output);
+  } catch {
+    throw new Error('github_api_invalid_response');
+  }
+}
+
 async function ensureEnvironment(owner, repo, environment, apply) {
-  if (!apply) return;
-  await gh(['api', '--method', 'PUT', `/repos/${owner}/${repo}/environments/${environment}`]);
+  const branch = deploymentBranchForEnvironment(environment);
+  if (!apply) return { protected: false, skipped: true, branch };
+  const environmentPath = `/repos/${owner}/${repo}/environments/${environment}`;
+  const policyPath = `${environmentPath}/deployment-branch-policies`;
+  await gh([
+    'api',
+    '--method',
+    'PUT',
+    environmentPath,
+    '--input',
+    '-',
+  ], {
+    input: JSON.stringify({
+      deployment_branch_policy: {
+        protected_branches: false,
+        custom_branch_policies: true,
+      },
+    }),
+  });
+
+  let policyList = await ghJson(['api', `${policyPath}?per_page=100`]);
+  let policies = Array.isArray(policyList?.branch_policies) ? policyList.branch_policies : [];
+  if (policyList?.total_count !== policies.length) throw new Error('github_environment_policy_list_incomplete');
+  for (const policy of policies) {
+    if (!Number.isSafeInteger(policy?.id)) throw new Error('github_environment_policy_invalid');
+    await gh(['api', '--method', 'DELETE', `${policyPath}/${policy.id}`]);
+  }
+  await gh([
+    'api',
+    '--method',
+    'POST',
+    policyPath,
+    '--input',
+    '-',
+  ], { input: JSON.stringify({ name: branch, type: 'branch' }) });
+
+  const configuredEnvironment = await ghJson(['api', environmentPath]);
+  policyList = await ghJson(['api', `${policyPath}?per_page=100`]);
+  policies = Array.isArray(policyList?.branch_policies) ? policyList.branch_policies : [];
+  if (policyList?.total_count !== policies.length) throw new Error('github_environment_policy_list_incomplete');
+  if (!environmentProtectionMatches(configuredEnvironment, policies, branch)) {
+    throw new Error('github_environment_policy_not_applied');
+  }
+  return { protected: true, branch };
 }
 
 async function configureMergePolicy(owner, repo, apply) {
@@ -267,32 +409,32 @@ async function configureMergePolicy(owner, repo, apply) {
 
 async function protectBranch(owner, repo, branch, requiredContexts, apply) {
   if (!apply) return { protected: false, skipped: true };
-  const payload = {
-    required_status_checks: {
-      strict: true,
-      contexts: requiredContexts,
-    },
-    enforce_admins: true,
-    required_pull_request_reviews: {
-      required_approving_review_count: 0,
-      dismiss_stale_reviews: false,
-      require_code_owner_reviews: false,
-      require_last_push_approval: false,
-    },
-    restrictions: null,
-    required_linear_history: false,
-    allow_force_pushes: false,
-    allow_deletions: false,
-  };
+  const payload = branchProtectionPayload(requiredContexts);
+  const protectionPath = `/repos/${owner}/${repo}/branches/${branch}/protection`;
   try {
     await gh([
       'api',
       '--method',
       'PUT',
-      `/repos/${owner}/${repo}/branches/${branch}/protection`,
+      protectionPath,
       '--input',
       '-',
     ], { input: JSON.stringify(payload) });
+    await gh([
+      'api',
+      '--method',
+      'PATCH',
+      `${protectionPath}/required_status_checks`,
+      '--input',
+      '-',
+    ], { input: JSON.stringify(requiredStatusChecksPayload(requiredContexts)) });
+    const configuredProtection = await ghJson([
+      'api',
+      protectionPath,
+    ]);
+    if (!branchProtectionMatches(configuredProtection, requiredContexts)) {
+      throw new Error('github_branch_protection_not_applied');
+    }
     return { protected: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -330,8 +472,30 @@ async function setupDraft({ draft, owner, accountId, region, authoringEndpoint, 
   }
   await git(repoPath, ['checkout', 'dev']);
 
+  const mergePolicy = await configureMergePolicy(owner, draft.repo, apply);
+  const branchProtection = {
+    test: await protectBranch(owner, draft.repo, 'test', ['guard'], apply),
+    main: await protectBranch(owner, draft.repo, 'main', ['guard'], apply),
+  };
+
+  if (!branchProtection.test.protected || !branchProtection.main.protected) {
+    return {
+      repo: draft.repo,
+      domain: draft.domain,
+      repoPath,
+      changed: true,
+      mergePolicy,
+      branchProtection,
+      environmentProtection: {
+        test: { protected: false, skipped: true },
+        production: { protected: false, skipped: true },
+      },
+    };
+  }
+
+  const environmentProtection = {};
   for (const environment of ['test', 'production']) {
-    await ensureEnvironment(owner, draft.repo, environment, apply);
+    environmentProtection[environment] = await ensureEnvironment(owner, draft.repo, environment, apply);
     await setVariable(owner, draft.repo, environment, 'AWS_ROLE_ARN', roleArnFor(accountId, draft.domain, environment), apply);
     await setVariable(owner, draft.repo, environment, 'AWS_REGION', region, apply);
     await setVariable(owner, draft.repo, environment, 'DRAFT_DOMAIN', draft.domain, apply);
@@ -339,13 +503,15 @@ async function setupDraft({ draft, owner, accountId, region, authoringEndpoint, 
     await setVariable(owner, draft.repo, environment, 'AUTHORING_ENDPOINT', authoringEndpoint, apply);
   }
 
-  const mergePolicy = await configureMergePolicy(owner, draft.repo, apply);
-  const branchProtection = {
-    test: await protectBranch(owner, draft.repo, 'test', ['guard'], apply),
-    main: await protectBranch(owner, draft.repo, 'main', ['guard'], apply),
+  return {
+    repo: draft.repo,
+    domain: draft.domain,
+    repoPath,
+    changed: true,
+    mergePolicy,
+    branchProtection,
+    environmentProtection,
   };
-
-  return { repo: draft.repo, domain: draft.domain, repoPath, changed: true, mergePolicy, branchProtection };
 }
 
 async function main() {
@@ -373,9 +539,18 @@ async function main() {
     }));
   }
 
-  const ok = results.every(result => result.repoStatus === undefined || result.repoStatus === 'ready');
+  const ok = results.every(result => setupResultOk(result, apply));
   console.log(JSON.stringify({ ok, apply, registryPath, results }, null, 2));
   if (!ok) process.exitCode = 1;
+}
+
+function setupResultOk(result, apply) {
+  if (result.repoStatus !== undefined && result.repoStatus !== 'ready') return false;
+  if (!apply) return true;
+  return result.branchProtection?.test?.protected === true
+    && result.branchProtection?.main?.protected === true
+    && result.environmentProtection?.test?.protected === true
+    && result.environmentProtection?.production?.protected === true;
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
@@ -386,10 +561,16 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
 }
 
 export {
+  branchProtectionPayload,
+  branchProtectionMatches,
   bootstrapFlags,
+  deploymentBranchForEnvironment,
+  environmentProtectionMatches,
   inspectRegisteredRepo,
   preflightDraftSetups,
   readRegisteredDraftInventory,
+  requiredStatusChecksPayload,
   repoNameForDomain,
+  setupResultOk,
   testAliasesFor,
 };

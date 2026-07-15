@@ -14,7 +14,7 @@
     },
     "secretRef": {
       "type": "string",
-      "pattern": "^(?:/[^\\\\\\s\\u0000-\\u001F\\u007F]+|[^/\\\\\\s\\u0000-\\u001F\\u007F]+/[^\\\\\\s\\u0000-\\u001F\\u007F]+|arn:aws:(?:ssm|secretsmanager):[^\\\\\\s\\u0000-\\u001F\\u007F]+)$"
+      "pattern": "^(?!.*//)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?:(?:/)?(?:[A-Za-z0-9_.+=@-]+/)+[A-Za-z0-9_.+=@-]+|arn:(?:aws|aws-us-gov|aws-cn):(?:ssm:[a-z0-9-]+:\\d{12}:parameter/|secretsmanager:[a-z0-9-]+:\\d{12}:secret:)[A-Za-z0-9_.+=@/-]+)$"
     },
     "accessPolicy": {
       "type": "object",

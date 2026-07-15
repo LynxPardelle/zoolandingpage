@@ -122,19 +122,19 @@ node tools/config-draft-sync.mjs help
 Pull the current authoring draft into your local `drafts` tree:
 
 ```bash
-node tools/config-draft-sync.mjs pull --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx
+node tools/config-draft-sync.mjs pull --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --environment=test
 ```
 
 Push local changes back to the authoring draft:
 
 ```bash
-node tools/config-draft-sync.mjs push --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --updated-by="Your Name"
+node tools/config-draft-sync.mjs push --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --environment=test --updated-by="Your Name"
 ```
 
 Publish the current authoring draft:
 
 ```bash
-node tools/config-draft-sync.mjs publish --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --updated-by="Your Name"
+node tools/config-draft-sync.mjs publish --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --environment=test --updated-by="Your Name"
 ```
 
 ## Where to debug each problem
