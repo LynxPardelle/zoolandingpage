@@ -496,7 +496,7 @@ test('resolveAuthoringTarget falls back to the exact logical resource when the o
       return {
         Stacks: [{
           StackStatus: 'UPDATE_COMPLETE',
-          Parameters: [{ ParameterKey: 'EnvironmentName', ParameterValue: 'prod' }],
+          Parameters: [{ ParameterKey: 'EnvironmentName', ParameterValue: 'production' }],
           Outputs: [],
         }],
       };
@@ -525,6 +525,27 @@ test('resolveAuthoringTarget falls back to the exact logical resource when the o
   });
   assert.equal(target.functionArn, functionArn);
   assert.equal(target.source, 'stack-resource-readback');
+});
+
+test('resolveAuthoringTarget rejects the retired prod environment parameter', async () => {
+  await assert.rejects(async () => oidcSetup.resolveAuthoringTarget({
+    accountId: '123456789012',
+    environment: 'production',
+    region: 'us-east-1',
+    stackName: 'authoring-production-stack',
+    awsJsonFn: async args => {
+      if (args[0] === 'cloudformation' && args[1] === 'describe-stacks') {
+        return {
+          Stacks: [{
+            StackStatus: 'UPDATE_COMPLETE',
+            Parameters: [{ ParameterKey: 'EnvironmentName', ParameterValue: 'prod' }],
+            Outputs: [],
+          }],
+        };
+      }
+      throw new Error(`unexpected_call:${args.join(':')}`);
+    },
+  }), /authoring_stack_environment_mismatch/);
 });
 
 test('resolveAuthoringTarget fails closed on missing, ambiguous, mismatched, or unsafe resources', async () => {
