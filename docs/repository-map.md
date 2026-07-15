@@ -10,7 +10,7 @@ This is the fleet router, not a release dashboard. Default branches can change a
 | Repository | Owns | GitHub default | Start here |
 | --- | --- | --- | --- |
 | [`zoolandingpage`](https://github.com/LynxPardelle/zoolandingpage) | Angular app, draft source tree, shared authoring contracts, and this fleet map | `main` | Root `AGENTS.md`, then `docs/README.md` |
-| [`zoolanding-config-authoring`](https://github.com/LynxPardelle/zoolanding-config-authoring) | Signed create/pull/update/publish and lifecycle writes for versioned draft packages | `main` | Repo README; deployment is blocked until the validated security-hardening lane closes |
+| [`zoolanding-config-authoring`](https://github.com/LynxPardelle/zoolanding-config-authoring) | Signed create/pull/update/publish and lifecycle writes for versioned draft packages | `main` | Repo README and deployment/rollback guidance |
 | [`zoolanding-config-runtime-read`](https://github.com/LynxPardelle/zoolanding-config-runtime-read) | Public runtime bundle resolution, routes, aliases, lifecycle fallbacks, and safe content metadata | `main` | Repo README and local agent instructions |
 | [`zoolanding-api-proxy`](https://github.com/LynxPardelle/zoolanding-api-proxy) | Server-side upstream/API calls, public auth metadata, and guarded Cognito provisioning | `main` | Repo README and local trust-boundary contract |
 | [`zoolanding-auth-admin`](https://github.com/LynxPardelle/zoolanding-auth-admin) | Private auth-admin BFF, sessions, account/admin flows, CSRF, MFA, and audit behavior | `main` | Repo README and security model |
