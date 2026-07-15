@@ -44,6 +44,7 @@ Last Reviewed: 2026-07-11 (Central Time)
 - Add a changelog entry only when the app or a draft needs retained chronological history for the completed pass.
 - Audit the work, fix findings, and rerun the audit at least three times before declaring it correct.
 - For changes that affect draft payloads or rendered behavior, finish with browser QA on every affected route in desktop and mobile. Documentation-only edits use link, workflow, and public-safety checks.
+- Treat optional security UIs as supplemental evidence, never as a release gate. If one is unavailable or blank, record the failure and use deterministic tests, diff and secret scans, live policy readback when applicable, and an independent security-focused review; an empty view is not a clean result.
 - Do a security scrub before saving the note.
 
 ## Security Scrub

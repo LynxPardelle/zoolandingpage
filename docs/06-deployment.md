@@ -32,9 +32,19 @@ dev -> test -> main
 The checked-in workflows currently provide:
 
 - `.github/workflows/angular-validate.yml`: runs on pull requests and pushes to `dev`, `test`, and `main`; installs with `npm ci`, audits production dependencies, and builds/packages the SSR Lambda artifact.
-- `.github/workflows/publish-ssr-artifact.yml`: runs on pushes to `dev`, `test`, and `main` or an explicit dispatch; maps `main` to the `production` environment, obtains AWS credentials through OIDC, and uploads immutable browser/server artifacts by release ID.
+- `.github/workflows/publish-ssr-artifact.yml`: runs only on pushes to `test` and `main`, or an explicit dispatch whose only choices are `test` and `production`; it obtains AWS credentials through the matching protected Environment and uploads immutable browser/server artifacts by release ID. A `dev` push cannot enter this workflow.
 
 Required GitHub environment variables are validated by the workflow before AWS authentication. Do not replace OIDC with long-lived AWS keys or record raw variable values in documentation.
+
+`dev` is CI/local only across the mapped platform repositories. It may run validation, but no current remote workflow may combine a `dev` trigger or Environment with OIDC or AWS credential configuration. Treat any leftover GitHub Environment named `dev` as retired metadata, not as authority to deploy: verify that no current workflow references it and that any referenced cloud role is already retired before removing its variables or secrets. Deleting an Environment is not a substitute for rotating an independently active credential.
+
+### Runtime Read deployment identities
+
+Runtime Read uses two identities in each remote environment. GitHub assumes an OIDC caller restricted to the exact repository, protected Environment, and deployment branch. That caller may operate only the environment's exact stack and artifact prefix and may pass only the retained CloudFormation service role. CloudFormation, not GitHub, assumes the service role to update the exact Lambda/API surface and attach only the code-owned execution boundary.
+
+The service role must allow the exact SAM transform ARN required to create a change set. The Lambda execution boundary must be attached and simulated before the first deployment that supplies `--role-arn`. CloudFormation persists the stack `RoleARN`; a later deployment that omits `--role-arn` does not detach the role. Replace this design only with an explicit rollback/migration procedure, never by removing the flag and assuming the previous deployment identity returns.
+
+During migration, retain the previous caller only for a time-boxed rollback window and remove every trust-policy `Allow` from it after the scoped caller succeeds. A temporary exact-role `iam:DeleteRolePermissionsBoundary` bootstrap permission may exist only while rollback can require detaching the new boundary; remove it from both environments after migration. Runtime Read application workflows must not gain IAM-policy mutation authority.
 
 `zoolandingpage-aws-infra` consumes the immutable release coordinates and owns activation/rollback. Its default branch was `dev` when the repository map was verified; read that repository's current runbooks before any apply.
 
