@@ -235,7 +235,7 @@ async function resolveAuthoringTarget({
   const environmentParameters = (stacks[0].Parameters || [])
     .filter(parameter => parameter.ParameterKey === 'EnvironmentName')
     .map(parameter => parameter.ParameterValue);
-  const expectedEnvironmentName = { test: 'test', production: 'prod' }[environment];
+  const expectedEnvironmentName = { test: 'test', production: 'production' }[environment];
   if (!expectedEnvironmentName) throw new Error('unsupported_authoring_environment');
   if (environmentParameters.length !== 1 || environmentParameters[0] !== expectedEnvironmentName) {
     throw new Error('authoring_stack_environment_mismatch');
