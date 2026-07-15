@@ -12,7 +12,7 @@ Source Of Truth:
 - `docs/drafts-registry.json`
 
 Confidence: Medium
-Last Reviewed: 2026-07-12 (Central Time)
+Last Reviewed: 2026-07-14 (Central Time)
 
 # Create A Secure Draft Repo
 
@@ -74,13 +74,20 @@ Use this checklist when creating a new draft repository after the secure release
 11. Protect `main`.
    - Public draft repos on GitHub Free support branch protection.
    - If the repo must remain private and GitHub returns `Upgrade to GitHub Pro or make this repository public`, record branch protection as blocked by plan. In that blocked state, the deploy workflows still reject push-triggered deploys unless the push is a merge commit from the expected source branch, but GitHub cannot block the direct push itself.
+   - Read both protection documents back after writing them and require the complete expected status, PR, admin, force-push, deletion, and linear-history policy before continuing.
+   - Pin the required `guard` check to the verified GitHub Actions app and require empty PR bypass user/team/app lists. Do not accept `app_id: -1`, an unpinned check, or named bypass identities.
 12. Add required PR source guard check:
    - PR to `test` must come from `dev`.
    - PR to `main` must come from `test`.
+   - Post-merge deploy validation must find exactly one associated merged PR for the deployed commit, from the same repository and exact source/base pair.
+   - For the configured merge-commit-only policy, the deployed commit must have exactly two parents, its second parent must equal the PR head, and a push event's first parent must equal the event's `before` SHA.
+   - The validation job may receive only `contents: read` and `pull-requests: read`; OIDC remains isolated to the dependent deploy job for the exact validated commit.
 13. Add GitHub Environment `test`.
 14. Add GitHub Environment `production`.
 15. Restrict test environment deployment branches to `test`.
 16. Restrict production environment deployment branches to `main`.
+   - Use selected branch policies, not an unrestricted Environment or the broader "protected branches" option.
+   - Read the Environment and its custom branch-policy list back after configuration; require exactly one branch rule.
 17. Add non-secret environment variables:
    - canonical domain
    - deploy environment
@@ -88,6 +95,10 @@ Use this checklist when creating a new draft repository after the secure release
    - authoring endpoint
 18. Create or attach AWS IAM test deploy role.
 19. Create or attach AWS IAM production deploy role.
+   - Test trust must require both `environment:test` and `ref:refs/heads/test`.
+   - Production trust must require both `environment:production` and `ref:refs/heads/main`.
+   - Generate the role set only from `docs/drafts-registry.json`, never by scanning arbitrary local draft folders.
+   - Use the registry owner as canonical; reject a conflicting `--owner`, generated role-name collisions, invalid names, and names longer than IAM allows before any AWS mutation.
 20. Generate or update role trust policies from repo/environment config, not by hand-editing unique JSON per repo.
 21. Store role ARNs and domain metadata as non-secret GitHub Environment variables.
 22. Confirm repo memory requires `git pull --ff-only` before work when clean, including pull checks for related draft repos in multi-repo tasks.
@@ -112,7 +123,13 @@ Use this checklist when creating a new draft repository after the secure release
 - Direct push to `test` and `main` is blocked when native GitHub branch protection is available.
 - If native branch protection is blocked by plan, direct-push deploys fail in the workflow guard and the limitation is documented.
 - Public draft repos have `test` and `main` protected with required `guard` status and zero required approvals so the repository owner can merge after checks pass.
+- `guard` is accepted only from the verified GitHub Actions app, and no user, team, or app has PR bypass allowance.
+- Every writer/merger is explicitly treated as a trusted deployment authority while approvals remain at zero; broaden that set only after adding an independent approval or externally controlled immutable verifier.
+- An applied setup reports failure when either protected branch could not be configured; it must not return a successful aggregate result based only on repository availability.
 - PR from an invalid source branch is blocked by required checks.
+- A synthetic merge using an older allowed source ancestor, a direct/forced push, an unrelated PR, or a fork PR cannot pass post-merge deploy provenance.
+- A historical rerun fails when its commit is no longer the target branch tip, and environment-scoped concurrency prevents overlapping publishes.
+- A workflow committed only to `dev` cannot use either deployment Environment or assume either AWS deploy role.
 - `dev` changes do not deploy.
 - Clean target repos are pulled before work starts; dirty repos are reported before changes.
 - Merge to `test` deploys only test aliases.

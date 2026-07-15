@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs';
 import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { inferServerDescriptorKind, isLocalOnlyDraftDirectoryName } from './lib/server-descriptor-kinds.mjs';
 
 const DEFAULT_DRAFTS_ROOT = path.resolve('drafts');
 const DEFAULT_AUTHORING_ENDPOINT = 'https://api.zoolandingpage.com.mx/config-authoring';
@@ -232,7 +233,7 @@ async function walkJsonFiles(rootDir) {
   for (const entry of entries) {
     const fullPath = path.join(rootDir, entry.name);
     if (entry.isDirectory()) {
-      if (LOCAL_DRAFT_CONTEXT_FOLDERS.has(entry.name)) {
+      if (LOCAL_DRAFT_CONTEXT_FOLDERS.has(entry.name.toLowerCase()) || isLocalOnlyDraftDirectoryName(entry.name)) {
         continue;
       }
       files.push(...(await walkJsonFiles(fullPath)));
@@ -248,12 +249,12 @@ async function walkJsonFiles(rootDir) {
 
 function inferKind(domain, relativePath) {
   const normalized = relativePath.replace(/\\/g, '/');
+  const serverKind = inferServerDescriptorKind(domain, normalized);
+  if (serverKind) return serverKind;
   if (normalized === `${domain}/site-config.json`) return 'site-config';
   if (normalized === `${domain}/components.json`) return 'shared-components';
   if (normalized === `${domain}/variables.json`) return 'shared-variables';
   if (normalized === `${domain}/angora-combos.json`) return 'shared-angora-combos';
-  if (normalized === `${domain}/server/auth-profile-registry.json`) return 'server-auth-profile-registry';
-  if (normalized === `${domain}/server/integrations.json`) return 'server-integrations';
   if (normalized.startsWith(`${domain}/i18n/`) && normalized.endsWith('.json')) return 'shared-i18n';
   if (normalized.endsWith('/page-config.json')) return 'page-config';
   if (normalized.endsWith('/components.json')) return 'page-components';

@@ -1,9 +1,10 @@
+import { isOpaqueSecretReference } from './lib/sensitive-value-patterns.mjs';
+
 const PROFILE_STATUSES = new Set(['planned', 'provisioning', 'active', 'suspended', 'failed']);
 const INTEGRATION_METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
 const UPSTREAM_AUTH_TYPES = new Set(['bearer', 'api-key-header', 'oauth2-client-credentials']);
 const SAFE_ID = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
 const SAFE_DOMAIN = /^(?!-)(?:[a-z0-9-]{1,63}\.)+[a-z]{2,63}$/;
-const SECRET_REF = /^(\/[^\s\\]+|[^/\s\\]+\/[^\s\\]+|arn:aws:(ssm|secretsmanager):[^\s\\]+)$/;
 const CUSTOM_ENVIRONMENT_CLAIM = /^custom:[A-Za-z0-9_]{1,20}$/;
 const ENVIRONMENT_CLAIM_MODES = new Set(['single', 'list']);
 const DEFAULT_GROUPS_CLAIM = 'cognito:groups';
@@ -137,7 +138,7 @@ function validateSocialIdpSecretRefs(refs, index, errors) {
       continue;
     }
     if (typeof providerRefs === 'string') {
-      if (!SECRET_REF.test(providerRefs)) {
+      if (!isOpaqueSecretReference(providerRefs)) {
         errors.push(`${prefix}.${provider} must be an SSM or Secrets Manager reference, not a raw credential value`);
       }
       continue;
@@ -147,7 +148,7 @@ function validateSocialIdpSecretRefs(refs, index, errors) {
       continue;
     }
     for (const [key, value] of Object.entries(providerRefs)) {
-      if (typeof value !== 'string' || !SECRET_REF.test(value)) {
+      if (typeof value !== 'string' || !isOpaqueSecretReference(value)) {
         errors.push(`${prefix}.${provider}.${key} must be an SSM or Secrets Manager reference, not a raw credential value`);
       }
     }
@@ -659,7 +660,7 @@ function validateIntegrationEntry(entry, kind, index, errors) {
   pushIf(entry.urlTemplate !== undefined && typeof entry.urlTemplate !== 'string', errors, `${prefix}.urlTemplate must be a string when present`);
   pushIf(entry.url === undefined && entry.urlTemplate === undefined, errors, `${prefix}.url or urlTemplate is required`);
   pushIf(entry.allowedInputFields !== undefined && !isNonEmptyStringArray(entry.allowedInputFields), errors, `${prefix}.allowedInputFields must be a string array when present`);
-  pushIf(entry.credentialRef !== undefined && (typeof entry.credentialRef !== 'string' || !SECRET_REF.test(entry.credentialRef)), errors, `${prefix}.credentialRef must be an SSM or Secrets Manager reference`);
+  pushIf(entry.credentialRef !== undefined && (typeof entry.credentialRef !== 'string' || !isOpaqueSecretReference(entry.credentialRef)), errors, `${prefix}.credentialRef must be an SSM or Secrets Manager reference`);
   pushIf(entry.auth !== undefined && entry.credentialRef === undefined, errors, `${prefix}.credentialRef is required when auth is present`);
   pushIf(entry.credentialRef !== undefined && entry.auth === undefined, errors, `${prefix}.auth is required when credentialRef is present`);
 

@@ -107,25 +107,25 @@ The `package.json` scripts wrap the same commands, but the direct `node` form is
 ### Pull a draft from the authoring API
 
 ```bash
-node tools/config-draft-sync.mjs pull --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx
+node tools/config-draft-sync.mjs pull --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --environment=test
 ```
 
 ### Push the current local draft back to the authoring API
 
 ```bash
-node tools/config-draft-sync.mjs push --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --updated-by="Your Name"
+node tools/config-draft-sync.mjs push --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --environment=test --updated-by="Your Name"
 ```
 
 ### Create a new site in the authoring API from an existing local draft tree
 
 ```bash
-node tools/config-draft-sync.mjs create --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=newsite.example --publish-on-create=false
+node tools/config-draft-sync.mjs create --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=newsite.example --environment=test --publish-on-create=false
 ```
 
 ### Publish the current authoring draft
 
 ```bash
-node tools/config-draft-sync.mjs publish --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --updated-by="Your Name"
+node tools/config-draft-sync.mjs publish --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --environment=test --updated-by="Your Name"
 ```
 
 ## When to use each command

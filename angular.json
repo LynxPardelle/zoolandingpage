@@ -27,10 +27,29 @@
                 "input": "public"
               },
               {
-                "glob": "**/*",
+                "glob": "{*/site-config.json,*/components.json,*/variables.json,*/angora-combos.json,*/i18n/*.json,*/*/page-config.json,*/*/components.json,*/*/variables.json,*/*/angora-combos.json,*/*/i18n/*.json,**/*.png,**/*.jpg,**/*.jpeg,**/*.webp,**/*.svg,**/*.gif,**/*.avif,**/*.ico}",
                 "input": "drafts",
                 "output": "drafts",
-                "ignore": ["**/ai_notes/**", "**/findings/**", "**/errors-reports/**", "**/*.md", "**/.gitignore"]
+                "ignore": [
+                  "_repos/**",
+                  "**/server/**",
+                  "**/.git/**",
+                  "**/.github/**",
+                  "**/ai_notes/**",
+                  "**/findings/**",
+                  "**/errors-reports/**",
+                  "**/CVs_N_photos/**",
+                  "**/tools/**",
+                  "**/Output/**",
+                  "**/logs/**",
+                  "**/reports/**",
+                  "**/devonly/**",
+                  "**/.superpowers/**",
+                  "**/.agent-coordination/**",
+                  "**/draft-repo.config.json",
+                  "**/*.md",
+                  "**/.gitignore"
+                ]
               }
             ],
             "styles": [
@@ -143,10 +162,29 @@
                 "input": "public"
               },
               {
-                "glob": "**/*",
+                "glob": "{*/site-config.json,*/components.json,*/variables.json,*/angora-combos.json,*/i18n/*.json,*/*/page-config.json,*/*/components.json,*/*/variables.json,*/*/angora-combos.json,*/*/i18n/*.json,**/*.png,**/*.jpg,**/*.jpeg,**/*.webp,**/*.svg,**/*.gif,**/*.avif,**/*.ico}",
                 "input": "drafts",
                 "output": "drafts",
-                "ignore": ["**/ai_notes/**", "**/findings/**", "**/errors-reports/**", "**/*.md", "**/.gitignore"]
+                "ignore": [
+                  "_repos/**",
+                  "**/server/**",
+                  "**/.git/**",
+                  "**/.github/**",
+                  "**/ai_notes/**",
+                  "**/findings/**",
+                  "**/errors-reports/**",
+                  "**/CVs_N_photos/**",
+                  "**/tools/**",
+                  "**/Output/**",
+                  "**/logs/**",
+                  "**/reports/**",
+                  "**/devonly/**",
+                  "**/.superpowers/**",
+                  "**/.agent-coordination/**",
+                  "**/draft-repo.config.json",
+                  "**/*.md",
+                  "**/.gitignore"
+                ]
               }
             ],
             "styles": [

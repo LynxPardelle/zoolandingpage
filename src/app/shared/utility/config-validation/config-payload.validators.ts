@@ -577,6 +577,10 @@ const ALLOWED_AUTHORING_FILE_KINDS = new Set([
     'i18n',
     'server-auth-profile-registry',
     'server-integrations',
+    'server-data-spaces',
+    'server-commerce',
+    'server-integration-bindings',
+    'server-notification-policies',
 ]);
 
 const ALLOWED_LOOP_BINDING_TRANSFORMS = new Set([

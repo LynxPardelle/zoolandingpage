@@ -1,0 +1,335 @@
+# Server-Only Integration Foundation
+
+Date: 2026-07-14 (Central Time)
+Scope: Draft-scoped server-only descriptors and the approved service boundaries that consume them.
+Status: Phase 1 local contract; no integration microservice or live provider path is deployed by this document.
+Source Of Truth:
+
+- [Approved implementation plan](../../plan/infrastructure-server-only-integrations-1.md)
+- [Data Spaces schema](./schemas/data-spaces.schema.json)
+- [Commerce schema](./schemas/commerce.schema.json)
+- [Integration Bindings schema](./schemas/integration-bindings.schema.json)
+- [Notification Policies schema](./schemas/notification-policies.schema.json)
+- [Protected Feature Contract](./19-protected-feature-contract.md)
+- [`draft-feature-readiness.mjs`](../../tools/draft-feature-readiness.mjs)
+- [Repository map](../repository-map.md)
+
+Confidence: High for the local Phase 1 descriptor and readiness contract; planned for service implementation, infrastructure, and live-provider behavior.
+Last Reviewed: 2026-07-14 (Central Time)
+
+## Contract Status
+
+This document separates what exists in the current Zoolandingpage worktree from the approved target architecture.
+
+| Surface | Current status |
+| --- | --- |
+| Four closed, bounded JSON Schemas | Present locally in Phase 1 |
+| Dependency-free schema and semantic readiness validation | Present locally in Phase 1 |
+| Pre-S3 enforcement in Config Authoring | Phase 1 cross-repository work; must be verified before it is treated as active |
+| Browser/SSR draft artifact boundary | Local allowlist and regression guard present; the currently deployed test/production artifact remains an incident gate until an authorized sanitized release and invalidation are verified |
+| Data Spaces, Commerce, Integrations, and Notifications services | Approved target for later phases; not deployed by this contract |
+| Stripe Connect, Checkout, Billing, and webhook handling | Stripe-specific adapter target; live setup is gated |
+| HostGator SMTP delivery | Notification-adapter target; real SMTP remains gated |
+
+A descriptor authorizes nothing by itself. It is policy input that a service must load from the exact published package version and enforce server-side.
+
+## Platform Boundary
+
+Zoolandingpage remains a generic renderer, component configurator, and action/data-source orchestrator. It does not own a central platform-administration UI. A draft may compose its own public or protected administration routes from generic components, and drafts that do not need integrations may omit all four new descriptors.
+
+The platform core is provider-neutral:
+
+- Data Spaces owns bounded generic collection policy and records.
+- Commerce owns sellables, offer versions, stock, orders, fulfillment, commercial subscription state, and isolated fiscal requests.
+- Integrations owns connection bindings, provider mappings, provider snapshots, webhook receipts, and provider-side migration execution.
+- Notifications owns delivery attempts, retry/circuit state, and the final `accepted_by_smtp` status.
+
+Stripe is the first Integrations adapter, not the architecture. Stripe-specific choices stay inside the `stripe` binding block and the Integrations adapter: merchant accounts, direct charges, connected-account fee payer, Stripe tax mode, hosted onboarding/Checkout/Portal, signature verification, and provider resource mappings. A future provider requires a code-owned adapter, allowlisted egress and redirects, bounded timeouts and responses, and contract tests. A draft can never supply an arbitrary URL, hostname, secret path, or credential-forwarding target.
+
+## Service Ownership
+
+The approved target uses four independently deployable repositories, with multiple small Lambdas inside each service boundary when IAM, exposure, scaling, timeout, or blast radius differs.
+
+| Service | Exclusive ownership | Does not own |
+| --- | --- | --- |
+| `zoolanding-data-spaces` | Collection schemas, generic records, public projection, revisions, and record/schema audit | Prices, stock, payments, subscriptions, fiscal data, or credentials |
+| `zoolanding-commerce` | Catalog projection, immutable `OfferVersion` and `DiscountVersion`, stock/reservations, orders, fulfillment, commercial payment/subscription projection, migration requests/approval, and fiscal requests | Canonical Stripe state, provider credentials, or generic content storage |
+| `zoolanding-integrations` | Generic connections/bindings, provider mappings and snapshots, webhook receipts/outboxes, Stripe adapter, and provider migration jobs/items | Commercial order/access decisions or draft publication |
+| `zoolanding-notifications` | Delivery ledger, retry attempts, rate/circuit state, and SMTP acceptance | Payment truth, arbitrary recipients, mailbox reading, or customer receipts |
+
+Services do not read each other's domain tables. Exact AWS IAM-protected APIs carry synchronous commands; publisher-owned SNS topics and consumer-owned SQS queues/DLQs carry confirmed asynchronous state. The only inherited read-only dependencies are the existing Auth Admin session/current-state contract and the exact Config Registry/S3 published descriptor lookup.
+
+## Server Descriptor Files
+
+The packaging kind map is exact. Unknown `server/*.json` files and caller-supplied kind mismatches must fail validation.
+
+| Draft file | Package kind | Contract |
+| --- | --- | --- |
+| `server/auth-profile-registry.json` | `server-auth-profile-registry` | Existing auth policy |
+| `server/integrations.json` | `server-integrations` | Existing API-proxy integration policy |
+| `server/data-spaces.json` | `server-data-spaces` | New Data Spaces policy |
+| `server/commerce.json` | `server-commerce` | New Commerce policy |
+| `server/integration-bindings.json` | `server-integration-bindings` | New provider binding policy |
+| `server/notification-policies.json` | `server-notification-policies` | New notification policy |
+
+Every new descriptor uses `version: 1` and the same closed scope:
+
+```json
+{
+  "environment": "test",
+  "tenantId": "tenant-example",
+  "draftId": "draft-example",
+  "domain": "example.com"
+}
+```
+
+`environment` is only `test` or `production`. IDs are bounded lowercase ASCII identifiers. A descriptor scope that disagrees with the requested environment or canonical domain is blocking.
+
+### Data Spaces
+
+`server/data-spaces.json` declares one or more spaces, whether each is active, optional Auth Profile access and action-scoped capabilities, public-read policy, allowed `public`/`internal` classifications, and hard limits. It does not declare tables, keys, indexes, expressions, executable code, or unrestricted queries.
+
+Phase 1 accepts only the code-owned capabilities `data-space:record:read`, `data-space:record:write`, `data-space:schema:write`, and `data-space:publish`. Adding a future operation requires a reviewed schema/validator/service release; a draft cannot mint a capability string.
+
+The MVP isolates each new Data Space by `environment + tenantId + draftId`. Existing Content Hub blogs continue unchanged. Cross-draft Data Space sharing is not inferred from matching IDs or domains and requires a separately approved owner/share-binding contract.
+
+### Commerce
+
+`server/commerce.json` declares the enabled sellable types (`physical`, `service`, `subscription`, and `add_on`), an opaque payment `bindingId`, supported payment operations, inventory/shipping policy, optional manual fiscal-request policy, and same-origin Checkout/legal/support paths.
+
+Prices, stock, orders, payment/subscription projections, and fiscal data stay out of Data Spaces. Money uses integer minor units in Commerce implementation. Physical products require enabled inventory and shipping; backorders, multi-warehouse inventory, physical recurring offers, and mixed physical/subscription carts are outside the MVP.
+
+Fiscal collection is opt-in, manual, and isolated. It cannot be enabled in production until the accountant-approved retention/access policy exists. No PAC integration, CFDI generation, or automatic invoice delivery is part of this contract.
+
+The only Phase 1 fiscal disclosure ID is `manual-invoice-v1`. Commerce administration accepts only `commerce:catalog:read`, `commerce:catalog:write`, `commerce:inventory:write`, and `commerce:subscription:manage`. Declaring `subscription` as a sellable type requires recurring payments to be enabled. These code-owned registries are extensible through versioned platform releases, not draft-authored strings.
+
+### Integration Bindings
+
+`server/integration-bindings.json` declares generic provider, adapter version, opaque `connectionId`, status, mode, and capabilities. It never contains a provider account ID, credential value, access token, webhook secret, arbitrary endpoint, or secret path.
+
+The first adapter-specific block is Stripe:
+
+```json
+{
+  "id": "stripe-primary",
+  "provider": "stripe",
+  "adapterVersion": "v1",
+  "connectionId": "stripe-primary",
+  "status": "active",
+  "mode": "test",
+  "capabilities": ["connect-onboarding", "checkout", "subscriptions"],
+  "stripe": {
+    "accountModel": "merchant",
+    "chargeType": "direct",
+    "feePayer": "connected-account",
+    "taxMode": "unconfigured",
+    "platformFeeMode": "disabled",
+    "webhookIngress": "direct-integrations-api"
+  }
+}
+```
+
+This synthetic example is valid for local/test authoring, not production. A draft-supplied `taxApprovalId` never proves approval: production stays blocked by a server-controlled live gate until the tax decision is recorded outside the draft and checked by the owning service. `platformFeeMode` remains `disabled`. Real Stripe account ownership and webhook account binding are later server-side Integrations checks, not draft fields.
+
+### Notification Policies
+
+`server/notification-policies.json` declares notification types, code-owned template IDs, opaque SMTP connection ID, immutable recipient-set/member IDs, retry limit, and `accepted_by_smtp`. It never contains an email address, SMTP credential, message body, fiscal field, provider payload, or secret reference.
+
+One recipient-set version contains exactly one recipient in the MVP. The actual address is provisioned separately as a secret and is never printed or copied into draft files. Phase 1 supports only `payment-succeeded` -> `payment-succeeded-v1` and `payment-failed` -> `payment-failed-v1`; type/template sets must match exactly. At most 20 unique active SMTP plus recipient secret references may be checked per package. A draft-supplied `transportApprovalId` never opens production; the server-controlled transport live gate remains blocking.
+
+Complete synthetic examples live under [`tools/tests/fixtures/server-features/valid/example.com/server/`](../../tools/tests/fixtures/server-features/valid/example.com/server/).
+
+## Secret Boundary
+
+Real credentials belong only in AWS Secrets Manager. Operational records and descriptors use opaque IDs.
+
+For Phase 1 publication readiness, notification secret names are derived only from these templates after strict lowercase ID validation:
+
+```text
+/zoolanding/{environment}/{tenantId}/{draftId}/notifications/smtp/{connectionId}
+/zoolanding/{environment}/{tenantId}/{draftId}/notifications/recipients/{recipientSetId}/{recipientSetVersion}/{recipientMemberId}
+```
+
+Publication checks may call `DescribeSecret` only; they must never call `GetSecretValue`. Every notification secret requires exact ownership tags:
+
+- `zoolanding:environment`
+- `zoolanding:tenant-id`
+- `zoolanding:draft-id`
+- `zoolanding:secret-purpose`
+- `zoolanding:enabled=true`
+
+SMTP secrets additionally require `zoolanding:connection-id`. Recipient secrets require `zoolanding:recipient-set-id`, `zoolanding:recipient-set-version`, and `zoolanding:recipient-member-id`. Missing or mismatched tags, `DeletedDate`, or an enabled tag absent/not exactly `true` must fail closed. Error output must not contain a secret name, ARN, tag set, descriptor value, or provider response.
+
+## Authorization
+
+Authorization is enforced at the service boundary, never by route visibility or descriptor presence.
+
+- Every protected read and mutation resolves and compares `domain + authProfileId + tenantId + environment` server-side and defaults to deny.
+- A protected Data Spaces or Commerce policy must reference an existing active profile in `server/auth-profile-registry.json`; its tenant and optional domain must match the descriptor scope. Missing, inactive, or cross-scope profiles block publication.
+- Drafts that include protected user administration reuse Auth Admin HttpOnly sessions. Mutations require CSRF, fresh account state, and an action-scoped capability.
+- Data Spaces capabilities approved in the plan are `data-space:record:read`, `data-space:record:write`, `data-space:schema:write`, and `data-space:publish`.
+- Integrations uses `integration:read` and `integration:manage`. Bulk migration execution additionally requires `subscription:migration:execute`, a fresh authorization check, exact dry-run revision matching, and explicit confirmation.
+- Public actions use only an allowlisted configured action, server-resolved prices/policies, origin binding, rate/payload limits, and abuse controls. A browser-supplied price, tenant, provider account, table, key, or authorization decision is untrusted.
+- Auth is optional at draft level, but only genuinely public operations may run without it. A draft without user management does not gain an implicit administration bypass.
+
+Public runtime bindings may identify only configured data-source/action IDs, safe targets, and the planned kinds `data-space`, `commerce`, and `integrations`; existing `api-proxy` and `auth-admin` kinds remain supported. Runtime bindings are UI wiring, not authorization.
+
+## Approved Route Surface
+
+These are approved target paths for later service phases. They are not evidence that an endpoint is currently deployed.
+
+### Browser-facing exact paths
+
+| Service | Exact path | Exposure |
+| --- | --- | --- |
+| Data Spaces | `/features/data-spaces/read` | Protected read |
+| Data Spaces | `/features/data-spaces/action` | Protected mutation |
+| Data Spaces | `/features/data-spaces/public-read` | Sanitized published read |
+| Commerce | `/features/commerce/read` | Protected read |
+| Commerce | `/features/commerce/action` | Protected mutation |
+| Commerce | `/features/commerce/public-action` | Allowlisted public action/Checkout admission |
+| Commerce | `/features/commerce/fiscal/request` | Fiscal opt-in request |
+| Commerce | `/features/commerce/fiscal/admin` | Protected accountant/operator action |
+| Integrations | `/features/integrations/read` | Sanitized protected connection state |
+| Integrations | `/features/integrations/action` | Protected generic connection action |
+| Integrations | `/features/integrations/stripe/onboarding` | Stripe-only onboarding action with narrower secret IAM |
+
+CloudFront must route only these literal paths, with protected/payment caching disabled. Broad `/features/*` and service-family wildcards are forbidden.
+
+### Internal AWS IAM paths
+
+Data Spaces exposes only `/internal/v1/data-spaces/record-snapshot` for an allowlisted immutable record snapshot. The approved Integrations command paths are:
+
+- `POST /internal/v1/stripe/offer`
+- `POST /internal/v1/stripe/product-presentation`
+- `POST /internal/v1/stripe/discount`
+- `POST /internal/v1/stripe/discount-lifecycle`
+- `POST /internal/v1/stripe/checkout`
+- `GET /internal/v1/stripe/checkout-status`
+- `POST /internal/v1/stripe/subscription/change`
+- `POST /internal/v1/stripe/subscription/discount`
+- `POST /internal/v1/stripe/subscription/pause`
+- `POST /internal/v1/stripe/customer-portal`
+- `POST /internal/v1/stripe/migrations/preview`
+- `POST /internal/v1/stripe/migrations/execute`
+- `POST /internal/v1/stripe/migrations/control`
+- `GET /internal/v1/stripe/migrations/status`
+- `POST /internal/v1/integrations/connection-register`
+- `POST /internal/v1/integrations/connection-resolve`
+
+No wildcard internal Commerce API is planned. Notifications has no API Gateway route; it consumes its queue and calls only the exact connection-resolve path.
+
+### Stripe webhook ingress
+
+`/webhooks/stripe/connect` is a direct Integrations API Gateway path. It must not traverse draft domains or the frontend CloudFront distribution. The handler must verify the signature over unmodified bytes, configured timestamp tolerance, connected account binding, and `livemode` before atomically storing an idempotent receipt plus ingress outbox.
+
+## Data Flow
+
+1. A draft package is validated locally and again by Config Authoring before any S3 write. Test and production publication are blocking; invalid packages cannot move the published pointer.
+2. Each service resolves its own descriptor from the Config Registry pointer for `environment + draft`, then loads the exact immutable object under that published version. Cache keys include `environment + draft + versionId`; missing or mismatched policy fails closed.
+3. The browser calls only exact same-origin feature routes. Protected handlers revalidate session, CSRF when mutating, fresh account state, scope, and capability.
+4. Commerce may obtain an immutable Data Spaces snapshot through the exact AWS IAM route, then owns the resulting commercial state. Checkout never performs a live generic-data join.
+5. Commerce reserves stock and creates its internal order before sending an idempotent Checkout command to Integrations. Browser success/cancel routes never prove payment.
+6. Stripe sends signed events directly to Integrations. Integrations owns the canonical provider snapshot and publishes only normalized confirmed-state events through its outbox and SNS topic; Commerce consumes through its own SQS queue/inbox.
+7. Commerce publishes `notification.requested.v1` only after a confirmed state change. Notifications reloads the policy from that event's exact `publishedVersionId`, rechecks current secret lifecycle tags, resolves the connection through AWS IAM, and attempts SMTP over TLS.
+8. A payment or notification never publishes, unpublishes, suspends, or deletes a draft.
+
+## Event Contract
+
+Detailed per-event JSON Schemas belong to the owning service phases and are not yet implemented. The approved envelope constraints are fixed:
+
+- every state-changing operation carries `requestId`, `correlationId`, `environment`, `draftId`, `tenantId`, an actor hash when authenticated, and an idempotency key;
+- asynchronous events are versioned, at-least-once safe, idempotent, and draft/environment scoped;
+- events contain no secret, raw PII, email address, fiscal field, signed URL, provider-hosted URL, or raw Stripe object;
+- provider IDs alone never authorize or partition a lookup.
+
+The first confirmed consumer event is `notification.requested.v1`. Its contract includes opaque IDs, notification type, exact `publishedVersionId`, code-owned `templateId`, `recipientSetId`, immutable `recipientSetVersion`, one opaque `recipientMemberId`, bounded typed variables, source reference, environment/draft/tenant, and a dedupe key. It excludes addresses and message bodies.
+
+Integrations will emit versioned normalized payment, Checkout, refund, subscription, and account state events only when a real consumer exists. The migration result events already approved by name are `migration.preview_ready.v1`, `migration.progressed.v1`, `migration.item_needs_review.v1`, and `migration.completed.v1`. Exact payload schemas remain a later owning-service deliverable.
+
+## Error Contracts
+
+Protected service APIs reuse `zlp-protected-feature-error-v1`:
+
+```json
+{
+  "error": {
+    "code": "forbidden",
+    "message": "You do not have access to this resource.",
+    "requestId": "request-example",
+    "retryable": false
+  }
+}
+```
+
+The established safe codes are `auth_required`, `forbidden`, `tenant_mismatch`, `environment_mismatch`, `group_mismatch`, `validation_error`, `not_found`, `conflict`, `rate_limited`, `upstream_unavailable`, and `internal_error`. Service-specific additions require a versioned owning-service contract; raw exceptions and provider responses are never returned.
+
+The Phase 1 readiness command returns a separate redacted report envelope with `ok`, `mode`, `domain`, `environment`, `fileCount`, `featureFileCount`, `blockingCount`, `warningCount`, and `findings`. Each finding exposes only `code`, `severity`, optional safe `server/<filename>`, and JSON pointer. Blocking codes currently include:
+
+- structural/safety: `duplicate_path`, `invalid_server_descriptor_path`, `unknown_server_descriptor`, `non_json_value_forbidden`, `secret_value_forbidden`, `pii_value_forbidden`, `provider_resource_id_forbidden`, `descriptor_too_large`, and `schema_*`;
+- scope/relationship: `domain_mismatch`, `environment_mismatch`, `tenant_scope_mismatch`, `draft_scope_mismatch`, `duplicate_id`, `binding_not_found`, `binding_inactive`, `binding_mode_mismatch`, `notification_binding_not_found`, `notification_policy_not_found`, `auth_profile_registry_required`, `auth_profile_not_found`, `auth_profile_inactive`, `auth_profile_scope_mismatch`, `stripe_settings_required`, and `stripe_settings_not_allowed`;
+- code-owned contracts: `provider_not_supported`, `adapter_version_not_supported`, `provider_capability_not_supported`, `data_space_capability_not_supported`, `commerce_capability_not_supported`, `unknown_fiscal_disclosure`, `notification_type_not_supported`, `notification_template_not_supported`, `notification_template_mismatch`, and `notification_secret_limit_exceeded`;
+- feature combinations: `physical_inventory_required`, `physical_shipping_required`, `subscription_payments_required`, `commerce_provider_capability_required`, and `notification_send_capability_required`;
+- production gates: `live_binding_required`, `tax_configuration_unapproved`, `stripe_tax_live_gate_pending`, `platform_fee_not_supported`, `fiscal_approval_required`, `fiscal_live_gate_pending`, `notification_transport_approval_required`, and `notification_transport_live_gate_pending`;
+- controlled fallback: `readiness_internal_error`.
+
+`dev` reports findings but does not upload. Invalid `test` or `production` readiness exits nonzero. In Phase 1, an account mismatch means only an environment/mode/opaque `connectionId` mismatch; real provider-account ownership remains a server-side Integrations responsibility.
+
+## Reliability And Idempotency
+
+- Local state changes and their outbox record are written atomically; only an outbox relay publishes.
+- Consumers maintain idempotent inbox/receipt records and tolerate duplicate and out-of-order delivery according to their owning event contract.
+- The Stripe webhook replay key includes event ID, account, mode, and payload hash. An identical duplicate returns `2xx` and resumes incomplete work; a changed account, mode, or hash is rejected and alerted.
+- Webhook receipts and technical idempotency records expire after 90 days unless an incident hold applies. Business/financial records do not inherit that TTL.
+- Unknown provider outcomes are reconciled before stock release or a new provider mutation. They are not treated as confirmed failures.
+- SMTP cannot provide exactly-once delivery. A crash after SMTP accepts but before ledger commit can produce a duplicate retry; status stops at `accepted_by_smtp`, never guaranteed inbox delivery.
+
+## Observability
+
+Logs and audit records contain only sanitized IDs, decision codes, correlation/request IDs, actor hashes, and aggregate counters. They exclude request bodies, raw provider errors, connection-resolution responses, emails (including masked forms), fiscal fields, tokens, secret metadata, and signed/provider-hosted URLs.
+
+Each service must expose redacted latency, error, throttling, DLQ depth, oldest-message age, and domain-specific failure metrics. The approved alarms cover 5xx, webhook age/signature failures, queue/DLQ age, stale reservations, migration backlog/failures, SMTP circuit state, and test/live mismatch. SNS is limited to intended event fan-out and operator alarms.
+
+## Validation And Tests
+
+Phase 1 uses the dependency-free validator and the same synthetic corpus for every validator implementation. Unsupported JSON Schema keywords, excessive schema/instance depth, oversized descriptors, and excessive findings fail safely.
+
+Current local checks:
+
+```powershell
+node --test tools/tests/draft-feature-readiness.spec.mjs
+npm run test:draft-public-artifact-boundary
+```
+
+The readiness tests cover valid optional/complete descriptor sets, closed schemas, unknown properties, duplicate IDs, secrets/PII/provider-resource IDs including legacy server descriptors, valid opaque SSM and Secrets Manager references, code-owned capabilities/templates/disclosures, Auth Profile existence/scope, secret-reference limits, missing bindings, invalid feature combinations, domain/environment mismatch, test/live separation, stricter production requirements, exact packaging kinds, OIDC-free pre-deploy validation, and template-schema parity. The artifact test verifies the exact public projection and inspects generated browser plus SSR staging trees without printing private paths.
+
+Later phases must add service unit/contract tests, cross-draft and wrong-environment denial, webhook signature/replay tests, provider timeout/idempotency tests, inventory contention and reservation reconciliation, migration interruption/resume, SMTP duplicate/revocation/TLS tests, failure injection at every cross-service boundary, load tests, and desktop/mobile browser QA for every affected pilot route.
+
+## Deployment And Rollback
+
+- `dev` is local/CI only. It must not create an AWS stack, bucket, table, queue, function, API, distribution, parameter, role, environment, or deploy workflow.
+- Local work may explicitly call deployed test services when no local substitute exists; `config-draft-sync` requires an explicit environment, maps an explicit remote dev read to test, rejects every dev mutation before an HTTP request, and verifies the returned domain/environment/stage before any local clean or write.
+- Pull requests follow `dev -> test -> main`. Draft test and production validation runs in a job without OIDC; only a dependent deploy job checking out the exact validated commit receives `id-token: write`. SSR build and artifact validation likewise run without OIDC; only a dependent publication job that downloads and rechecks the validated artifact receives `id-token: write`.
+- Test and production use separate stacks, tables, queues, secrets, webhook endpoints, Stripe modes, recipient policies, and idempotency namespaces.
+- Frontend builds copy only the exact public draft JSON shapes and approved media extensions. Recursive `drafts/**` copying, encoded or traversal-shaped path segments, private/local folders, repository metadata, `draft-repo.config.json`, and every `server/` descriptor are forbidden; packaging must run the artifact boundary guard before AWS credentials or upload.
+- Feature enablement is per draft and default-off. Test pilots begin with `zoositioweb.com.mx` and `sulandingpage.com.mx`; production remains off until test evidence is accepted.
+- Reverting the Config Registry published pointer reactivates a previously validated immutable descriptor package. Service rollback also requires stopping new admission, reconciling in-flight provider work, inspecting/redriving queues, and restoring the previous service artifact.
+
+No workflow, route, stack, secret, connected account, or pilot descriptor becomes active merely because it is described here.
+
+## Deferred Live Gates
+
+The following remain blocking and must not be inferred from placeholder or test data:
+
+1. Authorized incident mitigation for the exposed live draft artifacts: publish a sanitized release, invalidate affected caches, quarantine/audit older releases without printing content, review access evidence, rotate only verified potentially exposed credentials, and complete production/test browser QA. A local patch alone does not close this gate.
+2. Accountant/legal approval for fiscal fields, retention, access, request window, and the manual CFDI operating procedure. Until then, production fiscal capture is disabled.
+3. Confirmed Stripe account topology for each merchant binding, current official SDK/API compatibility, live tax responsibility/registration proof, webhook endpoint setup, and explicit test evidence. Platform commission remains disabled; optional application fees are future work.
+4. Written HostGator authorization and measured SMTP limits/deliverability, or an explicitly approved alternative provider. Until then, no real SMTP secret or production delivery is enabled.
+5. Implemented and audited owning-service repositories, least-privilege IAM, exact infrastructure routes, alarms, smoke evidence, and explicit deployment authorization.
+6. Clean pilot draft preflight plus validated test configuration. No payment result automates draft publication or suspension.
+
+## Explicit MVP Limits
+
+The MVP does not add a central Zoolanding administration UI, migrate existing Content Hub blogs, store restricted PII in Data Spaces, store customer contact/shipping data in Commerce, enable automatic CFDI/PAC work, use SES, read mail over IMAP, provide a mailbox UI, send newsletters, integrate carriers, support backorders/multiple warehouses, accept delayed methods for tracked stock, stack coupons, calculate a platform fee, or introduce Kafka, a general event bus, Step Functions, containers, distributed locks, two-phase commit, event sourcing, or WAF. The new `protected-features` runtime kinds remain a schema-level future extension until their package kind, authoring persistence, runtime resolver, and owning service are implemented and tested end-to-end.
+
+Add any of these only through a separately approved contract with cost, security, retention, authorization, failure, and rollout analysis.

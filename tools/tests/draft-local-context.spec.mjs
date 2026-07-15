@@ -110,6 +110,22 @@ async function stopServer(child) {
   });
 }
 
+function requestRawPathStatus(port, requestPath) {
+  return new Promise((resolve, reject) => {
+    const request = http.request({
+      host: '127.0.0.1',
+      port,
+      method: 'GET',
+      path: requestPath,
+    }, response => {
+      response.resume();
+      response.once('end', () => resolve(response.statusCode));
+    });
+    request.once('error', reject);
+    request.end();
+  });
+}
+
 test('config-draft-sync excludes local-only folders and preserves them during clean unpack', async t => {
   const tempRoot = await mkdtemp(path.join(tmpdir(), 'zoolanding-draft-sync-'));
   t.after(async () => {
@@ -174,6 +190,7 @@ test('config-draft-sync excludes local-only folders and preserves them during cl
   await writeJson(path.join(domainRoot, 'ai_notes', 'keep.json'), { keep: 'ai-notes' });
   await writeJson(path.join(domainRoot, 'findings', 'keep.json'), { keep: 'findings' });
   await writeJson(path.join(domainRoot, 'errors-reports', 'keep.json'), { keep: 'errors-reports' });
+  await writeJson(path.join(domainRoot, 'tools', 'schemas', 'commerce.schema.json'), { keep: 'tooling' });
 
   await runCommand(process.execPath, [
     draftSyncCliPath,
@@ -220,6 +237,7 @@ test('config-draft-sync excludes local-only folders and preserves them during cl
   assert.equal(existsSync(path.join(domainRoot, 'ai_notes', 'keep.json')), true);
   assert.equal(existsSync(path.join(domainRoot, 'findings', 'keep.json')), true);
   assert.equal(existsSync(path.join(domainRoot, 'errors-reports', 'keep.json')), true);
+  assert.equal(existsSync(path.join(domainRoot, 'tools', 'schemas', 'commerce.schema.json')), true);
 });
 
 test('requested draft aliases canonicalize to their primary domains', async () => {
@@ -232,21 +250,12 @@ test('requested draft aliases canonicalize to their primary domains', async () =
     {
       domain: 'sulandingpage.com.mx',
       canonicalOrigin: 'https://sulandingpage.com.mx',
-      hosts: [
-        'sulandingpage.com',
-        'sulanding.zoolandingpage.com.mx',
-      ],
+      hosts: ['sulandingpage.com'],
     },
     {
       domain: 'zoositioweb.com.mx',
       canonicalOrigin: 'https://zoositioweb.com.mx',
-      hosts: [
-        'zoositioweb.com',
-        'sitiosweb.zoolandingpage.com.mx',
-        'quierounsitioweb.zoolandingpage.com.mx',
-        'crearpaginaweb.zoolandingpage.com.mx',
-        'test.zoositioweb.com.mx',
-      ],
+      hosts: ['zoositioweb.com', 'test.zoositioweb.com.mx'],
     },
   ];
 
@@ -278,16 +287,12 @@ test('requested GA4 alias hosts render with the central Zoosite Google tag while
       domain: 'sulandingpage.com.mx',
       hosts: {
         'sulandingpage.com': centralMeasurementId,
-        'sulanding.zoolandingpage.com.mx': centralMeasurementId,
       },
     },
     {
       domain: 'zoositioweb.com.mx',
       hosts: {
         'zoositioweb.com': centralMeasurementId,
-        'sitiosweb.zoolandingpage.com.mx': centralMeasurementId,
-        'quierounsitioweb.zoolandingpage.com.mx': centralMeasurementId,
-        'crearpaginaweb.zoolandingpage.com.mx': centralMeasurementId,
       },
     },
   ];
@@ -347,6 +352,7 @@ test('config-draft-sync pull retries through a fallback endpoint after a reset p
     const payload = JSON.parse(Buffer.concat(chunks).toString('utf8'));
     assert.equal(payload.action, 'getSite');
     assert.equal(payload.domain, 'fixture.example.com');
+    assert.equal(payload.environment, 'test');
     assert.equal(payload.stage, 'published');
 
     res.setHeader('Content-Type', 'application/json');
@@ -355,6 +361,7 @@ test('config-draft-sync pull retries through a fallback endpoint after a reset p
         ok: true,
         version: 1,
         domain: 'fixture.example.com',
+        environment: 'test',
         stage: 'published',
         files: [
           {
@@ -403,6 +410,7 @@ test('config-draft-sync pull retries through a fallback endpoint after a reset p
     draftSyncCliPath,
     'pull',
     '--domain=fixture.example.com',
+    '--environment=test',
     '--stage=published',
     `--drafts-root=${draftsRoot}`,
     `--endpoint=http://127.0.0.1:${primaryPort}/config-authoring`,
@@ -448,6 +456,7 @@ test('config-draft-sync pull retries a transient fallback failure and logs actio
     const payload = JSON.parse(Buffer.concat(chunks).toString('utf8'));
     assert.equal(payload.action, 'getSite');
     assert.equal(payload.domain, 'fixture.example.com');
+    assert.equal(payload.environment, 'test');
     assert.equal(payload.stage, 'published');
 
     res.setHeader('Content-Type', 'application/json');
@@ -456,6 +465,7 @@ test('config-draft-sync pull retries a transient fallback failure and logs actio
         ok: true,
         version: 1,
         domain: 'fixture.example.com',
+        environment: 'test',
         stage: 'published',
         files: [
           {
@@ -492,6 +502,7 @@ test('config-draft-sync pull retries a transient fallback failure and logs actio
     draftSyncCliPath,
     'pull',
     '--domain=fixture.example.com',
+    '--environment=test',
     '--stage=published',
     `--drafts-root=${draftsRoot}`,
     `--endpoint=http://127.0.0.1:${primaryPort}/config-authoring`,
@@ -538,6 +549,13 @@ test('built SSR server hides local-only draft folders from registry and static s
   await writeJson(path.join(domainRoot, 'ai_notes', 'note.json'), { hidden: true });
   await writeJson(path.join(domainRoot, 'findings', 'note.json'), { hidden: true });
   await writeJson(path.join(domainRoot, 'errors-reports', 'note.json'), { hidden: true });
+  await writeJson(path.join(domainRoot, '.git', 'config.json'), { hidden: true });
+  await writeJson(path.join(domainRoot, '.github', 'workflows', 'publish.json'), { hidden: true });
+  await writeJson(path.join(domainRoot, 'tools', 'schemas', 'commerce.schema.json'), { hidden: true });
+  await writeJson(path.join(domainRoot, 'draft-repo.config.json'), { hidden: true });
+  await writeFile(path.join(domainRoot, 'private.md'), 'hidden', 'utf8');
+  await mkdir(path.join(workspaceRoot, 'drafts', 'other.example.com', 'images'), { recursive: true });
+  await writeFile(path.join(workspaceRoot, 'drafts', 'other.example.com', 'images', 'public.svg'), '<svg/>', 'utf8');
 
   const port = await getFreePort();
   const child = spawn(process.execPath, [builtServerPath], {
@@ -590,6 +608,45 @@ test('built SSR server hides local-only draft folders from registry and static s
     `http://127.0.0.1:${port}/drafts/fixture.example.com/server/integrations.json`
   );
   assert.equal(serverIntegrationsResponse.status, 404, serverOutput);
+
+  for (const privatePath of [
+    'SERVER/integrations.json',
+    '%73erver/integrations.json',
+    '%2573erver/integrations.json',
+    'AI_NOTES/note.json',
+    '%61i_notes/note.json',
+    '.git/config.json',
+    '%2Egit/config.json',
+    '.github/workflows/publish.json',
+    'tools/schemas/commerce.schema.json',
+    'draft-repo.config.json',
+    'private%2Emd',
+  ]) {
+    const privateResponse = await fetch(
+      `http://127.0.0.1:${port}/drafts/fixture.example.com/${privatePath}`,
+    );
+    assert.equal(privateResponse.status, 404, `${privatePath}\n${serverOutput}`);
+  }
+
+  for (const traversalPath of [
+    '/drafts/fixture.example.com/../other.example.com/images/public.svg',
+    '/drafts/fixture.example.com/%2e%2e/other.example.com/images/public.svg',
+  ]) {
+    assert.equal(await requestRawPathStatus(port, traversalPath), 404, traversalPath);
+  }
+
+  for (const namespaceVariant of [
+    '/DRAFTS/fixture.example.com/site-config.json',
+    '/dr%61fts/fixture.example.com/site-config.json',
+    '/draft%73/fixture.example.com/site-config.json',
+    '/drafts%2Ffixture.example.com%2Fsite-config.json',
+    '/dr%2561fts/fixture.example.com/site-config.json',
+    '/%2Fdrafts/fixture.example.com/site-config.json',
+    '/.%2Fdrafts/fixture.example.com/site-config.json',
+    '/other%2F..%2Fdrafts/fixture.example.com/site-config.json',
+  ]) {
+    assert.equal(await requestRawPathStatus(port, namespaceVariant), 404, namespaceVariant);
+  }
 
   const robotsResponse = await fetch(`http://127.0.0.1:${port}/robots.txt`, {
     headers: {

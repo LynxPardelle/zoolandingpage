@@ -741,7 +741,7 @@ describe('config-payload.validators', () => {
         }
     });
 
-    it('accepts server-only auth registry and integrations in authoring draft packages', () => {
+    it('accepts every supported server-only kind in authoring draft packages', () => {
         const draftPackage = {
             version: 1,
             domain: TEST_DOMAIN,
@@ -774,6 +774,16 @@ describe('config-payload.validators', () => {
                         actions: [],
                     },
                 },
+                ...[
+                    ['data-spaces.json', 'server-data-spaces'],
+                    ['commerce.json', 'server-commerce'],
+                    ['integration-bindings.json', 'server-integration-bindings'],
+                    ['notification-policies.json', 'server-notification-policies'],
+                ].map(([fileName, kind]) => ({
+                    path: `${ TEST_DOMAIN }/server/${ fileName }`,
+                    kind,
+                    content: { version: 1 },
+                })),
             ],
         };
 

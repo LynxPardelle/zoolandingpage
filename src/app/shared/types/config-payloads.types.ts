@@ -678,7 +678,11 @@ export type TAuthoringDraftFileKind =
     | 'angora-combos'
     | 'i18n'
     | 'server-auth-profile-registry'
-    | 'server-integrations';
+    | 'server-integrations'
+    | 'server-data-spaces'
+    | 'server-commerce'
+    | 'server-integration-bindings'
+    | 'server-notification-policies';
 
 export type TAuthoringDraftFile = {
     readonly path: string;

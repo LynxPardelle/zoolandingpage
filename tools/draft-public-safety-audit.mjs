@@ -11,6 +11,7 @@ import {
   readDraftRegistry,
   registeredDraftRepoPath,
 } from './draft-repo-preflight.mjs';
+import { REVIEW_PATTERN_DEFINITIONS, SECRET_PATTERN_DEFINITIONS } from './lib/sensitive-value-patterns.mjs';
 
 const execFileAsync = promisify(execFile);
 const MAX_FILE_BYTES = 2 * 1024 * 1024;
@@ -33,25 +34,8 @@ const BLOCKED_PATH_RULES = [
   { id: 'pii-source-material', regex: /\.(?:pdf|doc|docx|xls|xlsx|ppt|pptx|zip|7z|rar|tar|gz)$/i },
 ];
 
-const SECRET_RULES = [
-  { id: 'aws-access-key-id', regex: /\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/, grep: '\\b(?:AKIA|ASIA)[A-Z0-9]{16}\\b' },
-  { id: 'private-key-block', regex: /-----BEGIN (?:RSA |DSA |EC |OPENSSH |PGP )?PRIVATE KEY-----/, grep: '-----BEGIN (?:RSA |DSA |EC |OPENSSH |PGP )?PRIVATE KEY-----' },
-  { id: 'github-token', regex: /\bgh[pousr]_[A-Za-z0-9_]{36,255}\b/, grep: '\\bgh[pousr]_[A-Za-z0-9_]{36,255}\\b' },
-  { id: 'google-api-key', regex: /\bAIza[0-9A-Za-z_-]{35}\b/, grep: '\\bAIza[0-9A-Za-z_-]{35}\\b' },
-  { id: 'stripe-secret-key', regex: /\b(?:sk|rk)_(?:live|test)_[0-9A-Za-z]{16,}\b/, grep: '\\b(?:sk|rk)_(?:live|test)_[0-9A-Za-z]{16,}\\b' },
-  { id: 'slack-token', regex: /\bxox[baprs]-[A-Za-z0-9-]{10,}\b/, grep: '\\bxox[baprs]-[A-Za-z0-9-]{10,}\\b' },
-  {
-    id: 'generic-secret-assignment',
-    regex: /\b(?:api[_-]?key|secret|token|password|passwd|pwd|client_secret|private_key|access_token|refresh_token)\b\s*[:=]\s*["']?[^"'`\s]{8,}/i,
-    grep: "\\b(?:api[_-]?key|secret|token|password|passwd|pwd|client_secret|private_key|access_token|refresh_token)\\b\\s*[:=]\\s*[\"']?[^\"'`\\s]{8,}",
-  },
-];
-
-const REVIEW_RULES = [
-  { id: 'email-address', regex: /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i, grep: '\\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\b' },
-  { id: 'phone-or-whatsapp', regex: /(?:wa\.me\/\d{8,}|\+\d[\d\s().-]{7,}\d)/i, grep: '(?:wa\\.me/\\d{8,}|\\+\\d[\\d\\s().-]{7,}\\d)' },
-  { id: 'identity-keyword', regex: /\b(?:CURP|RFC|NSS|SSN|passport|pasaporte|INE|credencial(?:es)?|identificacion|identificación)\b/i, grep: '\\b(?:CURP|RFC|NSS|SSN|passport|pasaporte|INE|credencial(?:es)?|identificacion|identificación)\\b' },
-];
+const SECRET_RULES = SECRET_PATTERN_DEFINITIONS;
+const REVIEW_RULES = REVIEW_PATTERN_DEFINITIONS;
 
 const TEXT_EXTENSIONS = new Set([
   '',
