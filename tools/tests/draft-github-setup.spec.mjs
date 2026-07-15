@@ -165,17 +165,26 @@ test('branch protection readback must match the complete release policy', () => 
   }, ['guard']), false);
 });
 
-test('branch protection payload pins guard to GitHub Actions and clears PR bypasses', () => {
+test('full branch protection payload preserves the legacy status-check context and clears PR bypasses', () => {
   const payload = branchProtectionPayload(['guard']);
   assert.deepEqual(payload.required_status_checks, {
     strict: true,
-    checks: [{ context: 'guard', app_id: 15368 }],
+    contexts: ['guard'],
   });
-  assert.equal(Object.hasOwn(payload.required_status_checks, 'contexts'), false);
+  assert.equal(Object.hasOwn(payload.required_status_checks, 'checks'), false);
   assert.deepEqual(payload.required_pull_request_reviews.bypass_pull_request_allowances, {
     users: [],
     teams: [],
     apps: [],
+  });
+});
+
+test('status check subresource payload pins guard to GitHub Actions', async () => {
+  const setupModule = await import('../draft-github-setup.mjs');
+  assert.equal(typeof setupModule.requiredStatusChecksPayload, 'function');
+  assert.deepEqual(setupModule.requiredStatusChecksPayload(['guard']), {
+    strict: true,
+    checks: [{ context: 'guard', app_id: 15368 }],
   });
 });
 
@@ -227,6 +236,21 @@ test('setup configures branch protection before deployment environments and vari
   const setup = source.slice(setupStart, setupEnd);
   assert.ok(setup.indexOf('protectBranch(') < setup.indexOf('ensureEnvironment('));
   assert.ok(setup.indexOf('ensureEnvironment(') < setup.indexOf('setVariable('));
+});
+
+test('branch setup pins status checks through the dedicated API before readback', async () => {
+  const source = await import('node:fs/promises').then(({ readFile }) => readFile(setupCliPath, 'utf8'));
+  const protectStart = source.indexOf('async function protectBranch');
+  const protectEnd = source.indexOf('\nasync function setupDraft', protectStart);
+  const protect = source.slice(protectStart, protectEnd);
+  const fullProtection = protect.indexOf("'PUT'");
+  const statusPatch = protect.indexOf("'PATCH'", fullProtection);
+  const statusChecks = protect.indexOf('/required_status_checks', statusPatch);
+  const readback = protect.indexOf('branchProtectionMatches');
+  assert.ok(fullProtection >= 0);
+  assert.ok(statusPatch > fullProtection);
+  assert.ok(statusChecks > statusPatch);
+  assert.ok(readback > statusChecks);
 });
 
 test('draft setup blocks unresolved domain-to-local-path transitions', async () => {
