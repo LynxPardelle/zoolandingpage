@@ -20,6 +20,11 @@
       "type": "string",
       "pattern": "^[a-z][a-z0-9.-]*:[a-z][a-z0-9.-]*:[a-z][a-z0-9.-]*$"
     },
+    "capability": {
+      "type": "string",
+      "maxLength": 128,
+      "pattern": "^[a-z][a-z0-9-]*(?::[a-z][a-z0-9-]*){1,2}$"
+    },
     "role": {
       "type": "object",
       "required": ["id", "groups", "permissions"],
@@ -327,13 +332,25 @@
         "id": { "$ref": "#/definitions/safeId" },
         "kind": {
           "type": "string",
-          "enum": ["api-proxy", "auth-admin"]
+          "enum": ["api-proxy", "auth-admin", "data-space", "commerce", "integrations"]
         },
+        "capability": { "$ref": "#/definitions/capability" },
         "target": {
           "type": "string",
           "pattern": "^[A-Za-z][A-Za-z0-9._:-]{0,127}$"
         }
       },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": { "enum": ["data-space", "commerce", "integrations"] }
+            },
+            "required": ["kind"]
+          },
+          "then": { "required": ["capability"] }
+        }
+      ],
       "additionalProperties": false
     },
     "runtimeApiActionBinding": {
@@ -343,9 +360,21 @@
         "id": { "$ref": "#/definitions/safeId" },
         "kind": {
           "type": "string",
-          "enum": ["api-proxy", "auth-admin"]
-        }
+          "enum": ["api-proxy", "auth-admin", "data-space", "commerce", "integrations"]
+        },
+        "capability": { "$ref": "#/definitions/capability" }
       },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": { "enum": ["data-space", "commerce", "integrations"] }
+            },
+            "required": ["kind"]
+          },
+          "then": { "required": ["capability"] }
+        }
+      ],
       "additionalProperties": false
     },
     "runtimeBindings": {

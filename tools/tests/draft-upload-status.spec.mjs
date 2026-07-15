@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -122,6 +122,7 @@ test('buildLocalDraftPackage ignores local context folders and infers package me
   await mkdir(path.join(domainRoot, 'server'), { recursive: true });
   await mkdir(path.join(domainRoot, 'ai_notes'), { recursive: true });
   await mkdir(path.join(domainRoot, 'findings'), { recursive: true });
+  await mkdir(path.join(domainRoot, 'tools', 'schemas'), { recursive: true });
   await writeFile(
     path.join(domainRoot, 'site-config.json'),
     JSON.stringify({ version: 1, domain: 'example.com' }),
@@ -147,8 +148,12 @@ test('buildLocalDraftPackage ignores local context folders and infers package me
     JSON.stringify({ version: 1, sources: [], actions: [] }),
     'utf8'
   );
+  for (const name of ['commerce.json', 'data-spaces.json', 'integration-bindings.json', 'notification-policies.json']) {
+    await writeFile(path.join(domainRoot, 'server', name), JSON.stringify({ version: 1 }), 'utf8');
+  }
   await writeFile(path.join(domainRoot, 'ai_notes', 'private.md'), 'local only', 'utf8');
   await writeFile(path.join(domainRoot, 'findings', 'research.json'), '{"ignore":true}', 'utf8');
+  await writeFile(path.join(domainRoot, 'tools', 'schemas', 'commerce.schema.json'), '{"ignore":true}', 'utf8');
 
   const draftPackage = await buildLocalDraftPackage({ domain: 'example.com', draftsRoot });
 
@@ -158,7 +163,11 @@ test('buildLocalDraftPackage ignores local context folders and infers package me
       'example.com/default/i18n/es.json',
       'example.com/default/page-config.json',
       'example.com/server/auth-profile-registry.json',
+      'example.com/server/commerce.json',
+      'example.com/server/data-spaces.json',
+      'example.com/server/integration-bindings.json',
       'example.com/server/integrations.json',
+      'example.com/server/notification-policies.json',
       'example.com/site-config.json',
     ]
   );
@@ -168,7 +177,31 @@ test('buildLocalDraftPackage ignores local context folders and infers package me
   assert.equal(draftPackage.files[1].kind, 'page-config');
   assert.equal(draftPackage.files[2].kind, 'server-auth-profile-registry');
   assert.equal(draftPackage.files[2].pageId, undefined);
-  assert.equal(draftPackage.files[3].kind, 'server-integrations');
-  assert.equal(draftPackage.files[3].pageId, undefined);
-  assert.equal(draftPackage.files[4].kind, 'site-config');
+  assert.deepEqual(
+    draftPackage.files.slice(2, 8).map(file => file.kind),
+    [
+      'server-auth-profile-registry',
+      'server-commerce',
+      'server-data-spaces',
+      'server-integration-bindings',
+      'server-integrations',
+      'server-notification-policies',
+    ],
+  );
+  assert.equal(draftPackage.files.slice(2, 8).every(file => file.pageId === undefined), true);
+  assert.equal(draftPackage.files[8].kind, 'site-config');
+});
+
+test('buildLocalDraftPackage rejects unknown server descriptors', async t => {
+  const draftsRoot = await mkdtemp(path.join(os.tmpdir(), 'zlp-upload-server-kind-'));
+  t.after(() => rm(draftsRoot, { recursive: true, force: true }));
+  const domainRoot = path.join(draftsRoot, 'example.com');
+  await mkdir(path.join(domainRoot, 'server'), { recursive: true });
+  await writeFile(path.join(domainRoot, 'site-config.json'), '{"version":1}', 'utf8');
+  await writeFile(path.join(domainRoot, 'server', 'unknown.json'), '{"version":1}', 'utf8');
+
+  await assert.rejects(
+    buildLocalDraftPackage({ domain: 'example.com', draftsRoot }),
+    /unknown_server_descriptor/,
+  );
 });

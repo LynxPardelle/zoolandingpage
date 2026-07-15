@@ -275,6 +275,11 @@ test('auth profile registry schema documents server-only draft auth fields', asy
   ]);
   assert.equal(profile.properties.clientSecret, undefined);
   assert.equal(profile.properties.socialIdpSecretRefs.additionalProperties.anyOf.length, 2);
+  const secretRefPattern = new RegExp(schema.definitions.secretRef.pattern);
+  assert.equal(secretRefPattern.test('/zoolanding/auth/example/google'), true);
+  assert.equal(secretRefPattern.test('arn:aws-us-gov:ssm:us-gov-west-1:123456789012:parameter/zoolanding/auth/google'), true);
+  assert.equal(secretRefPattern.test('/zoolanding/../google'), false);
+  assert.equal(secretRefPattern.test('https://example.invalid/file?X-Amz-Signature=SYNTHETIC'), false);
 });
 
 test('auth profile registry schema documents optional custom auth form policies', async () => {
@@ -323,6 +328,10 @@ test('integrations schema keeps user access separate from upstream auth credenti
   assert.equal(source.properties.credentialRef.$ref, '#/definitions/secretRef');
   assert.equal(source.properties.access.$ref, '#/definitions/accessPolicy');
   assert.equal(source.properties.auth.$ref, '#/definitions/upstreamAuth');
+  const secretRefPattern = new RegExp(schema.definitions.secretRef.pattern);
+  assert.equal(secretRefPattern.test('zoolanding/upstream/content/oauth'), true);
+  assert.equal(secretRefPattern.test('zoolanding/../oauth'), false);
+  assert.equal(secretRefPattern.test('https://example.invalid/file?X-Amz-Signature=SYNTHETIC'), false);
 });
 
 test('protected features schema documents server-only feature boundaries', async () => {

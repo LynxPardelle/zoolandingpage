@@ -39,6 +39,7 @@ The draft filesystem under `drafts/{domain}/...`, served locally at `/drafts/...
 - Runtime API data sources and actions through `site-config.json.runtime.dataSources` / `runtime.apiActions`, including `kind: "content-hub"` bindings for content hub reads and mutations.
 - Optional draft auth through browser-safe `site-config.json.runtime.auth` plus server-only auth profile registry policy.
 - Server-only protected feature descriptors for blogs, dashboards, analytics, config, uploads, and other authenticated draft capabilities.
+- Server-only Data Spaces, Commerce, provider-binding, and notification descriptors, validated before upload and consumed only by their owning services.
 - Content hubs and blog articles as draft-like packages with public runtime references, server-only hub policy, taxonomy overrides, SEO-ready published bundles, and validation reports.
 - Generic combo catalog runtime references for shared Angora combo presets that can be consumed by blogs, draft builders, and future feature editors.
 - Shared domain defaults plus page-level overrides.
@@ -56,6 +57,10 @@ The draft filesystem under `drafts/{domain}/...`, served locally at `/drafts/...
 - `server/auth-profile-registry.json`: server-only auth profile registry for tenant/auth policy.
 - `server/integrations.json`: server-only proxy integration policy, upstream credential references, and user access gates.
 - `server/protected-features.json`: server-only protected feature ownership, roles, resources, endpoints, audit, error, and rollout policy.
+- `server/data-spaces.json`: bounded generic collection/read/access policy; never database internals or restricted data.
+- `server/commerce.json`: sellable, payment-binding, inventory, shipping, fiscal-request, and Checkout route policy.
+- `server/integration-bindings.json`: generic opaque provider bindings plus adapter-specific safe settings; never credentials or provider account IDs.
+- `server/notification-policies.json`: notification types, code-owned templates, opaque connection/recipient IDs, retry policy, and SMTP acceptance status.
 - `content-hubs/{environment}/{hubId}/...`: draft-like article package files, revision snapshots/deltas, published bundles, taxonomy files, validation reports, feeds, and media manifests.
 - `runtime.comboCatalog`: optional browser-safe reference to the generic combo catalog read endpoint. The source-of-truth catalog and write policy stay server-side in the dedicated combo catalog Lambda.
 
@@ -81,6 +86,7 @@ The draft filesystem under `drafts/{domain}/...`, served locally at `/drafts/...
 - [19-protected-feature-contract.md](19-protected-feature-contract.md)
 - [20-generic-content-builder-primitives.md](20-generic-content-builder-primitives.md)
 - [21-generic-combo-catalog.md](21-generic-combo-catalog.md)
+- [22-server-only-integration-microservices.md](22-server-only-integration-microservices.md)
 
 ## Practical rule for new contributors
 
@@ -99,6 +105,7 @@ If you are trying to change behavior and you do not know whether to edit code or
 11. Is this blog/content-hub article content? Store large draft-like article package files in S3-compatible content hub package layout and keep small indexes/metadata in DynamoDB.
 12. Is this a reusable Angora combo preset shared across builders? Use the generic combo catalog runtime reference and keep catalog writes behind auth-admin plus CSRF.
 13. Is this binary media? Upload it through the approved media/upload flow and store only safe public URLs or media manifest references in payloads.
+14. Is this generic record, commerce, provider-binding, or notification policy? Use the corresponding `server/*.json` descriptor and keep every credential, account identifier, recipient address, customer/fiscal datum, and provider payload outside draft/runtime files.
 
 ## Schemas
 
@@ -117,6 +124,10 @@ If you are trying to change behavior and you do not know whether to edit code or
 - [schemas/content-hub-server-policy.schema.json](schemas/content-hub-server-policy.schema.json)
 - [schemas/content-hub-taxonomy.schema.json](schemas/content-hub-taxonomy.schema.json)
 - [schemas/content-hub-publish-validation.schema.json](schemas/content-hub-publish-validation.schema.json)
+- [schemas/data-spaces.schema.json](schemas/data-spaces.schema.json)
+- [schemas/commerce.schema.json](schemas/commerce.schema.json)
+- [schemas/integration-bindings.schema.json](schemas/integration-bindings.schema.json)
+- [schemas/notification-policies.schema.json](schemas/notification-policies.schema.json)
 
 ## Related docs
 

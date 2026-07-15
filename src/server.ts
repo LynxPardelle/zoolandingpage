@@ -33,6 +33,34 @@ const DEFAULT_CONFIG_API_SERVER_FALLBACK_URL = String(
 ).trim();
 const LOCAL_NOTE_FOLDER_NAMES = new Set(['ai_notes', 'findings', 'errors-reports']);
 const SERVER_ONLY_DRAFT_FOLDER_NAMES = new Set(['server']);
+const PRIVATE_DRAFT_STATIC_SEGMENTS = new Set([
+  '.git',
+  '.github',
+  '_repos',
+  'cvs_n_photos',
+  'tools',
+  'output',
+  'logs',
+  'reports',
+  'devonly',
+  '.superpowers',
+  '.agent-coordination',
+  ...LOCAL_NOTE_FOLDER_NAMES,
+  ...SERVER_ONLY_DRAFT_FOLDER_NAMES,
+]);
+const PUBLIC_DRAFT_ROOT_JSON_FILES = new Set([
+  'site-config.json',
+  'components.json',
+  'variables.json',
+  'angora-combos.json',
+]);
+const PUBLIC_DRAFT_PAGE_JSON_FILES = new Set([
+  'page-config.json',
+  'components.json',
+  'variables.json',
+  'angora-combos.json',
+]);
+const PUBLIC_DRAFT_MEDIA_EXTENSION = /\.(?:png|jpe?g|webp|svg|gif|avif|ico)$/i;
 const SITE_CONFIG_CACHE_TTL_MS = 60_000;
 const SITE_CONFIG_CACHE_MAX_SIZE = 200;
 const RUNTIME_BUNDLE_FETCH_ATTEMPTS = 2;
@@ -3383,7 +3411,11 @@ function buildNotFoundSeoTextHeadHtml(siteConfig: TLocalSiteConfig | null, lang:
   ].join('\n');
 }
 
-async function decorateHtmlResponse(req: express.Request, response: Response): Promise<Response> {
+async function decorateHtmlResponse(
+  req: express.Request,
+  response: Response,
+  notFoundDocument = false,
+): Promise<Response> {
   const contentType = response.headers.get('content-type') ?? '';
   if (!contentType.toLowerCase().includes('text/html')) {
     return response;
@@ -3411,7 +3443,9 @@ async function decorateHtmlResponse(req: express.Request, response: Response): P
     ? 200
     : isKnownMissingRouteContentHubPublicPath
       ? 404
-      : response.status;
+      : notFoundDocument
+        ? 404
+        : response.status;
   const requestPageConfig = await loadPageConfigForRequest(req, lookupDomain, siteConfig);
   const pageConfig = effectiveStatus === 404
     ? requestPageConfig
@@ -3711,23 +3745,107 @@ app.use((req, res, next) => {
 
 const draftsFolder = resolveDraftsFolder();
 
-if (draftsFolder) {
-  app.use('/drafts', (req, res, next) => {
-    const segments = req.path.split('/').filter(Boolean);
-    if (
-      segments.some((segment) => LOCAL_NOTE_FOLDER_NAMES.has(segment) || SERVER_ONLY_DRAFT_FOLDER_NAMES.has(segment))
-      || req.path.toLowerCase().endsWith('.md')
-    ) {
-      res.sendStatus(404);
-      return;
-    }
+app.use((req, res, next) => {
+  const draftStaticPath = canonicalDraftStaticSubpath(req.originalUrl || req.url);
+  if (
+    (draftStaticPath !== null && !isPublicDraftStaticPath(draftStaticPath))
+    || (draftStaticPath === null && normalizesToDraftStaticNamespace(req.originalUrl || req.url))
+  ) {
+    res.sendStatus(404);
+    return;
+  }
+  next();
+});
 
-    next();
-  }, express.static(draftsFolder, {
+if (draftsFolder) {
+  app.use('/drafts', express.static(draftsFolder, {
     maxAge: '0',
     index: false,
     redirect: false,
   }));
+}
+
+function canonicalDraftStaticSubpath(rawUrl: string): string | null {
+  const rawPath = String(rawUrl ?? '').split('?', 1)[0];
+  return /^\/drafts(?:\/|$)/.test(rawPath) ? rawPath.slice('/drafts'.length) : null;
+}
+
+function normalizesToDraftStaticNamespace(rawUrl: string): boolean {
+  let candidate = String(rawUrl ?? '').split('?', 1)[0];
+
+  for (let decodePass = 0; decodePass < 8; decodePass += 1) {
+    const normalizedSegments: string[] = [];
+    for (const segment of candidate.replace(/\\/g, '/').split('/')) {
+      if (!segment || segment === '.') continue;
+      if (segment === '..') normalizedSegments.pop();
+      else normalizedSegments.push(segment);
+    }
+    if (normalizedSegments[0]?.toLowerCase() === 'drafts') return true;
+    try {
+      const decoded = decodeURIComponent(candidate);
+      if (decoded === candidate) return false;
+      candidate = decoded;
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
+}
+
+function isPublicDraftStaticPath(rawPath: string): boolean {
+  const segments = decodeDraftStaticPathSegments(rawPath);
+  if (!segments || segments.length < 2 || segments.some(segment => PRIVATE_DRAFT_STATIC_SEGMENTS.has(segment))) {
+    return false;
+  }
+
+  const relativeSegments = segments.slice(1);
+  const fileName = relativeSegments.at(-1) ?? '';
+  if (fileName === 'draft-repo.config.json' || fileName.endsWith('.md')) {
+    return false;
+  }
+
+  if (PUBLIC_DRAFT_MEDIA_EXTENSION.test(fileName)) {
+    return true;
+  }
+
+  if (relativeSegments.length === 1) {
+    return PUBLIC_DRAFT_ROOT_JSON_FILES.has(fileName);
+  }
+
+  if (relativeSegments.length === 2) {
+    return relativeSegments[0] === 'i18n'
+      ? fileName.endsWith('.json')
+      : PUBLIC_DRAFT_PAGE_JSON_FILES.has(fileName);
+  }
+
+  return relativeSegments.length === 3
+    && relativeSegments[1] === 'i18n'
+    && fileName.endsWith('.json');
+}
+
+function decodeDraftStaticPathSegments(rawPath: string): string[] | null {
+  const decodedSegments: string[] = [];
+  for (const rawSegment of rawPath.split('/').filter(Boolean)) {
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(rawSegment);
+    } catch {
+      return null;
+    }
+
+    if (
+      decoded === '.'
+      || decoded === '..'
+      || /%[0-9a-f]{2}/i.test(decoded)
+      || /[\\/\u0000-\u001f\u007f]/.test(decoded)
+    ) {
+      return null;
+    }
+    decodedSegments.push(decoded.toLowerCase());
+  }
+
+  return decodedSegments;
 }
 
 /**
@@ -3764,23 +3882,9 @@ app.use((req, res, next) => {
           return;
         }
 
-        return decorateHtmlResponse(req, response)
+        return decorateHtmlResponse(req, response, notFoundDocument)
           .then((decoratedResponse) => {
-            if (!notFoundDocument) {
-              writeResponseToNodeResponse(decoratedResponse, res);
-              return;
-            }
-
-            if (decoratedResponse.status === 200) {
-              writeResponseToNodeResponse(decoratedResponse, res);
-              return;
-            }
-
-            writeResponseToNodeResponse(new Response(decoratedResponse.body, {
-              headers: decoratedResponse.headers,
-              status: 404,
-              statusText: 'Not Found',
-            }), res);
+            writeResponseToNodeResponse(decoratedResponse, res);
           });
       }))
     .catch(next)

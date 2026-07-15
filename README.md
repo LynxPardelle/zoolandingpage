@@ -104,9 +104,9 @@ The package scripts in `package.json` wrap the same commands, but the direct `no
 ### Typical round-trip
 
 ```bash
-node tools/config-draft-sync.mjs pull --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx
-node tools/config-draft-sync.mjs push --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --updated-by="Your Name"
-node tools/config-draft-sync.mjs publish --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --updated-by="Your Name"
+node tools/config-draft-sync.mjs pull --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --environment=test
+node tools/config-draft-sync.mjs push --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --environment=test --updated-by="Your Name"
+node tools/config-draft-sync.mjs publish --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --environment=test --updated-by="Your Name"
 ```
 
 If the custom domain `https://api.zoolandingpage.com.mx/config-authoring` resets the connection during publish, retry through the raw API Gateway authoring endpoint documented in [docs/06-deployment.md](docs/06-deployment.md) to separate front-door transport problems from authoring-Lambda problems.

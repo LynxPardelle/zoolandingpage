@@ -3,6 +3,8 @@ import { existsSync } from 'node:fs';
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { validateDraftFeatureReadiness } from './draft-feature-readiness.mjs';
+import { inferServerDescriptorKind, isLocalOnlyDraftDirectoryName } from './lib/server-descriptor-kinds.mjs';
 import { assertValidRuntimeDataSourceConditionReferences } from './runtime-data-source-condition-guard.mjs';
 
 const IGNORED_DIRS = new Set([
@@ -19,7 +21,7 @@ const IGNORED_DIRS = new Set([
   'devonly',
 ]);
 
-const IGNORED_FILE_NAMES = new Set(['.DS_Store']);
+const IGNORED_FILE_NAMES = new Set(['.DS_Store', 'draft-repo.config.json']);
 const JSON_SUFFIX = '.json';
 
 function parseArgs(rawArgs) {
@@ -70,12 +72,8 @@ function sanitizeVersionSegment(value) {
 
 function inferKind(relativePath) {
   const parts = relativePath.split('/');
-  if (parts.length === 3 && parts[1] === 'server' && parts[2] === 'auth-profile-registry.json') {
-    return 'server-auth-profile-registry';
-  }
-  if (parts.length === 3 && parts[1] === 'server' && parts[2] === 'integrations.json') {
-    return 'server-integrations';
-  }
+  const serverKind = inferServerDescriptorKind(parts[0], relativePath);
+  if (serverKind) return serverKind;
   if (relativePath.endsWith('site-config.json')) return 'site-config';
   if (relativePath.endsWith('/components.json') && relativePath.split('/').length === 2) return 'shared-components';
   if (relativePath.endsWith('/variables.json') && relativePath.split('/').length === 2) return 'shared-variables';
@@ -109,7 +107,7 @@ async function collectJsonFiles(root, domain, current = root) {
 
   for (const entry of entries) {
     if (entry.isDirectory()) {
-      if (IGNORED_DIRS.has(entry.name)) continue;
+      if (IGNORED_DIRS.has(entry.name) || isLocalOnlyDraftDirectoryName(entry.name)) continue;
       files.push(...(await collectJsonFiles(root, domain, path.join(current, entry.name))));
       continue;
     }
@@ -222,6 +220,10 @@ async function main() {
     throw new Error(`No JSON draft files found under ${draftRoot}`);
   }
   assertValidRuntimeDataSourceConditionReferences({ version: 1, domain, stage: 'draft', files });
+  const readiness = await validateDraftFeatureReadiness({ domain, environment, mode: environment, files });
+  if (!readiness.ok) {
+    throw new Error(`draft_feature_readiness_failed:${readiness.blockingCount}`);
+  }
   if (validateOnly) {
     console.log(JSON.stringify({ ok: true, domain, environment, fileCount: files.length, validatedOnly: true }, null, 2));
     return;
@@ -253,7 +255,10 @@ async function main() {
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch(error => {
-    console.error(error instanceof Error ? error.message : String(error));
+    const safeCode = error instanceof Error && /^draft_feature_readiness_failed:\d+$/.test(error.message)
+      ? error.message
+      : 'draft_deploy_failed';
+    console.error(JSON.stringify({ ok: false, error: { code: safeCode } }));
     process.exitCode = 1;
   });
 }

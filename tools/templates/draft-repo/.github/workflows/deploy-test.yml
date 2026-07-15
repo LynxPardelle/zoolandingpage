@@ -8,34 +8,84 @@ on:
 
 permissions:
   contents: read
-  id-token: write
+  pull-requests: read
 
 jobs:
-  deploy:
+  validate:
+    name: Validate test draft
     runs-on: ubuntu-latest
-    environment: test
+    outputs:
+      draft_domain: ${{ steps.validate_draft.outputs.domain }}
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - name: Verify dev-to-test merge
-        if: github.event_name == 'push'
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Verify protected target branch
+        shell: bash
+        env:
+          CURRENT_REF: ${{ github.ref }}
+          TARGET_REF: refs/heads/test
+        run: |
+          set -euo pipefail
+          if [[ "$CURRENT_REF" != "$TARGET_REF" ]]; then
+            echo "Test deploys must run from $TARGET_REF."
+            exit 1
+          fi
+
+      - name: Verify exact dev-to-test merged PR
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node tools/verify-promotion-commit.mjs --source=dev --target=test
+
+      - name: Validate test draft
+        id: validate_draft
         shell: bash
         run: |
-          git fetch origin dev --depth=50
-          if ! git rev-parse HEAD^2 >/dev/null 2>&1; then
-            echo "test deploys require a merge commit from dev into test."
-            exit 1
-          fi
-          if ! git merge-base --is-ancestor HEAD^2 origin/dev; then
-            echo "test deploy source must be dev."
-            exit 1
-          fi
+          set -euo pipefail
+          draft_domain="$(node -e "process.stdout.write(JSON.parse(require('node:fs').readFileSync('draft-repo.config.json', 'utf8')).domain)")"
+          node tools/deploy-draft.mjs --domain="$draft_domain" --draft-root=. --environment=test --validate-only=true
+          printf 'domain=%s\n' "$draft_domain" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    name: Deploy validated test draft
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: test
+    concurrency:
+      group: draft-test-${{ github.repository }}
+      cancel-in-progress: true
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Verify validated commit identity
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
 
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
+
+      - name: Verify test is still the current target tip
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node tools/verify-promotion-commit.mjs --target=test --tip-only=true
 
       - uses: aws-actions/configure-aws-credentials@v6
         with:
@@ -45,7 +95,7 @@ jobs:
       - name: Deploy test draft
         run: node tools/deploy-draft.mjs --environment=test
         env:
-          DRAFT_DOMAIN: ${{ vars.DRAFT_DOMAIN }}
-          DRAFT_ROOT: ${{ vars.DRAFT_ROOT || '.' }}
+          DRAFT_DOMAIN: ${{ needs.validate.outputs.draft_domain }}
+          DRAFT_ROOT: .
           AUTHORING_ENDPOINT: ${{ vars.AUTHORING_ENDPOINT }}
           AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}

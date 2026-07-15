@@ -62,7 +62,7 @@ The bootstrap must produce `AGENTS.md` as the small task router, `README.md` as 
 
 After bootstrap or routing changes, run `npm run fleet:knowledge -- --repo=draft-example-com` from the hub to verify links, branches, required workflows, the origin remote, and C1 without writing files.
 
-As of 2026-05-17 CT, the authoring API is IAM-protected, runtime-read supports environment-aware published pointers, OIDC roles are configured per draft repo/environment, and the current public `draft-*` repos have GitHub Environments, deployment workflows, and native GitHub branch protection on `test` and `main`. GitHub Actions deploys use the IAM-protected Lambda Function URL. Protected branches require the `guard` status and zero approvals so the repository owner can merge after checks pass; deployment workflows also reject push-triggered deploys unless `test` receives a merge commit from `dev` or `main` receives a merge commit from `test`.
+The target release contract requires the deployed commit's exact associated, merged, same-repository PR with the fixed `dev -> test` or `test -> main` source/base pair, matching merge parents, and current target tip; a general ancestor relationship is insufficient. Required `guard` must be pinned to the verified GitHub Actions app with no PR bypass identities. Test and production Environments must independently allow only `test` and `main`, workflows must serialize per repository/environment, and AWS trust must require the same exact branch ref as the Environment. Read-only audit on 2026-07-14 CT confirmed native branch protection on all 22 registered `test`/`main` branches and no named bypasses, but all 22 leave `guard` unpinned, the registered live Environments remain unrestricted, their IAM trust lacks exact `ref`, and checked-out draft workflows still use the older ancestry proof. Therefore the stronger contract is not live until the controlled GitHub/AWS/workflow rollout is explicitly authorized and verified.
 
 ## Local draft structure
 
@@ -163,10 +163,12 @@ Supported commands today:
 This replaces your local draft tree with the current API state for that domain.
 
 ```bash
-node tools/config-draft-sync.mjs pull --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx
+node tools/config-draft-sync.mjs pull --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --environment=test
 ```
 
 Use `--stage=published` if you need the published state instead of the current draft.
+
+`--environment` is required for remote reads. `dev` maps explicitly to the deployed `test` environment; the client verifies the returned domain, environment, and stage before it cleans or writes any local draft file.
 
 For the standard Zoolanding custom-domain authoring URL, the CLI now retries automatically through the raw API Gateway endpoint if the front door resets the connection or the request times out. You can override the retry target with `--fallback-endpoint=https://...`, change the request timeout with `--request-timeout-ms=20000`, raise the retry budget with `--retry-attempts=3`, and shorten or extend the wait between retries with `--retry-delay-ms=250`.
 
@@ -181,7 +183,7 @@ node tools/config-draft-sync.mjs pack --domain=zoolandingpage.com.mx --output=.t
 ## Push local changes to the authoring draft
 
 ```bash
-node tools/config-draft-sync.mjs push --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --updated-by="Your Name"
+node tools/config-draft-sync.mjs push --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --environment=test --updated-by="Your Name"
 ```
 
 This unsigned local command is legacy documentation. The deployed authoring API now requires IAM-signed requests, so normal draft publishing should happen through the per-draft GitHub Actions workflow after merge.
@@ -207,7 +209,7 @@ Use `--domain=example.com` to limit the check, `--include-file-details=true` to 
 If the site does not exist yet in the backend, use `create` instead of `push`.
 
 ```bash
-node tools/config-draft-sync.mjs create --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=newsite.example --publish-on-create=false
+node tools/config-draft-sync.mjs create --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=newsite.example --environment=test --publish-on-create=false
 ```
 
 That command uploads the local file tree as a new authoring draft. It does not require a separate manual package-building step.
@@ -215,7 +217,7 @@ That command uploads the local file tree as a new authoring draft. It does not r
 ## Publish the current authoring draft
 
 ```bash
-node tools/config-draft-sync.mjs publish --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --updated-by="Your Name"
+node tools/config-draft-sync.mjs publish --endpoint=https://api.zoolandingpage.com.mx/config-authoring --domain=zoolandingpage.com.mx --environment=test --updated-by="Your Name"
 ```
 
 This unsigned local command is legacy documentation. The deployed authoring API now requires IAM-signed requests, and normal publish should happen through the per-draft GitHub Actions workflow. Publishing changes the authoring state only insofar as it promotes the current draft to the published version pointer. It does not guarantee that live frontend caches or deployments have already refreshed.

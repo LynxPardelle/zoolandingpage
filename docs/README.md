@@ -37,6 +37,7 @@ For an existing draft, continue at `drafts/{domain}/README.md`, then its curated
 - [Protected feature contract](./api-driven-config/19-protected-feature-contract.md)
 - [Generic content-builder primitives](./api-driven-config/20-generic-content-builder-primitives.md)
 - [Generic combo catalog](./api-driven-config/21-generic-combo-catalog.md)
+- [Server-only integration foundation](./api-driven-config/22-server-only-integration-microservices.md)
 
 The owning service repository remains canonical for implementation, deployment, rollback, and trust-boundary detail. Use the [repository map](./repository-map.md) before editing a sibling.
 
