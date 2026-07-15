@@ -1,10 +1,28 @@
 import { spawnSync } from 'node:child_process';
-import { readFile } from 'node:fs/promises';
+import { appendFile, readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 
 const SHA_PATTERN = /^[a-f0-9]{40}$/;
 const REPOSITORY_PATTERN = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 const BRANCH_PATTERN = /^[A-Za-z0-9._/-]{1,100}$/;
+const SIMILARITY_STATUS_PATTERN = /^[RC](?:100|0[0-9]{2})$/;
+const TOOLING_ONLY_PATHS = new Set([
+  '.github/workflows/deploy-production.yml',
+  '.github/workflows/deploy-test.yml',
+  '.github/workflows/guard-pr-source.yml',
+  '.github/workflows/pr-safety.yml',
+  'tools/deploy-draft.mjs',
+  'tools/draft-feature-readiness.mjs',
+  'tools/lib/sensitive-value-patterns.mjs',
+  'tools/lib/server-descriptor-kinds.mjs',
+  'tools/lib/server-feature-contract-validator.mjs',
+  'tools/runtime-data-source-condition-guard.mjs',
+  'tools/schemas/commerce.schema.json',
+  'tools/schemas/data-spaces.schema.json',
+  'tools/schemas/integration-bindings.schema.json',
+  'tools/schemas/notification-policies.schema.json',
+  'tools/verify-promotion-commit.mjs',
+]);
 
 function fail(code) {
   throw new Error(code);
@@ -22,6 +40,7 @@ function exactMergedPullRequests({ repository, sha, sourceBranch, targetBranch, 
       || pullRequest.merge_commit_sha === sha
     )
     && pullRequest.base?.ref === targetBranch
+    && SHA_PATTERN.test(pullRequest.base?.sha ?? '')
     && pullRequest.base?.repo?.full_name === repository
     && pullRequest.head?.ref === sourceBranch
     && pullRequest.head?.repo?.full_name === repository
@@ -63,6 +82,7 @@ export function validatePromotionEvidence({
   if (matches.length === 0) fail('promotion_pr_not_found');
   if (matches.length !== 1) fail('promotion_pr_ambiguous');
   const pullRequest = matches[0];
+  if (parents[0] !== pullRequest.base.sha) fail('promotion_first_parent_mismatch');
   if (parents[1] !== pullRequest.head.sha) fail('promotion_second_parent_mismatch');
 
   if (eventName === 'push') {
@@ -78,6 +98,39 @@ export function validatePromotionEvidence({
   }
 
   return { ok: true };
+}
+
+export function classifyPromotionChanges({ eventName, changes }) {
+  if (!Array.isArray(changes)) fail('promotion_diff_invalid');
+  let deployRequired = false;
+
+  for (const change of changes) {
+    const status = typeof change?.status === 'string' ? change.status : '';
+    const kind = status[0];
+    const isKnown = /^[AMDT]$/.test(status) || SIMILARITY_STATUS_PATTERN.test(status);
+    if (!isKnown || typeof change?.path !== 'string' || change.path.length === 0) {
+      fail('promotion_diff_invalid');
+    }
+    const affectedPaths = [change.path];
+    if (kind === 'R' || kind === 'C') {
+      if (typeof change.previousPath !== 'string' || change.previousPath.length === 0) {
+        fail('promotion_diff_invalid');
+      }
+      affectedPaths.push(change.previousPath);
+    }
+    if (!['A', 'M'].includes(kind) && affectedPaths.some(candidate => TOOLING_ONLY_PATHS.has(candidate))) {
+      fail('promotion_tooling_change_unsafe');
+    }
+    if (!['A', 'M'].includes(kind) || !TOOLING_ONLY_PATHS.has(change.path)) {
+      deployRequired = true;
+    }
+  }
+
+  if (eventName === 'workflow_dispatch') return { deployRequired: true, reason: 'manual_dispatch' };
+  if (eventName !== 'push') fail('promotion_event_not_allowed');
+  return deployRequired
+    ? { deployRequired: true, reason: 'content_or_non_allowlisted_change' }
+    : { deployRequired: false, reason: 'tooling_only' };
 }
 
 export async function fetchAssociatedPullRequests({
@@ -180,6 +233,51 @@ export async function fetchTargetBranchSha({
   fail('promotion_api_unavailable');
 }
 
+export async function verifyPromotion({
+  repository,
+  sha,
+  ref,
+  sourceBranch,
+  targetBranch,
+  eventName,
+  event,
+  parents,
+  changes,
+  githubToken,
+  apiUrl = 'https://api.github.com',
+  fetchTargetSha = fetchTargetBranchSha,
+  fetchPullRequests = fetchAssociatedPullRequests,
+}) {
+  const fetchTarget = () => fetchTargetSha({
+    apiUrl,
+    repository,
+    targetBranch,
+    githubToken,
+  });
+  const initialTargetTip = await fetchTarget();
+  if (initialTargetTip !== sha) fail('promotion_target_tip_mismatch');
+  const pullRequests = await fetchPullRequests({
+    apiUrl,
+    repository,
+    sha,
+    githubToken,
+  });
+  validatePromotionEvidence({
+    repository,
+    sha,
+    ref,
+    sourceBranch,
+    targetBranch,
+    eventName,
+    event,
+    targetTipSha: initialTargetTip,
+    parents,
+    pullRequests,
+  });
+  if (await fetchTarget() !== sha) fail('promotion_target_tip_mismatch');
+  return classifyPromotionChanges({ eventName, changes });
+}
+
 function parseArgs(argv) {
   return Object.fromEntries(argv.map(argument => {
     const match = /^--([^=]+)=(.+)$/.exec(argument);
@@ -200,18 +298,59 @@ function readParents(sha) {
   return parts.slice(1);
 }
 
+function parsePromotionDiff(output) {
+  if (!Buffer.isBuffer(output)) fail('promotion_diff_invalid');
+  const fields = output.toString('utf8').split('\0');
+  if (fields.at(-1) === '') fields.pop();
+  const changes = [];
+  for (let index = 0; index < fields.length;) {
+    const status = fields[index++];
+    if (SIMILARITY_STATUS_PATTERN.test(status)) {
+      const previousPath = fields[index++];
+      const changedPath = fields[index++];
+      if (!previousPath || !changedPath) fail('promotion_diff_invalid');
+      changes.push({ status, previousPath, path: changedPath });
+      continue;
+    }
+    if (!/^[AMDT]$/.test(status)) fail('promotion_diff_invalid');
+    const changedPath = fields[index++];
+    if (!changedPath) fail('promotion_diff_invalid');
+    changes.push({ status, path: changedPath });
+  }
+  return changes;
+}
+
+function readPromotionChanges(sha, firstParent) {
+  const result = spawnSync('git', [
+    'diff',
+    '--name-status',
+    '-z',
+    '--no-renames',
+    '--no-ext-diff',
+    '--no-textconv',
+    firstParent,
+    sha,
+    '--',
+  ], {
+    maxBuffer: 1024 * 1024,
+    windowsHide: true,
+  });
+  if (result.status !== 0) fail('promotion_git_evidence_unavailable');
+  return parsePromotionDiff(result.stdout);
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const repository = process.env.GITHUB_REPOSITORY;
   const sha = process.env.GITHUB_SHA;
-  const targetTipSha = await fetchTargetBranchSha({
-    apiUrl: process.env.GITHUB_API_URL ?? 'https://api.github.com',
-    repository,
-    targetBranch: args.target,
-    githubToken: process.env.GITHUB_TOKEN,
-  });
-  if (targetTipSha !== sha) fail('promotion_target_tip_mismatch');
   if (args['tip-only'] === 'true') {
+    const targetTipSha = await fetchTargetBranchSha({
+      apiUrl: process.env.GITHUB_API_URL ?? 'https://api.github.com',
+      repository,
+      targetBranch: args.target,
+      githubToken: process.env.GITHUB_TOKEN,
+    });
+    if (targetTipSha !== sha) fail('promotion_target_tip_mismatch');
     console.log('promotion_target_tip_verified');
     return;
   }
@@ -228,13 +367,8 @@ async function main() {
     fail('promotion_event_invalid');
   }
 
-  const pullRequests = await fetchAssociatedPullRequests({
-    apiUrl: process.env.GITHUB_API_URL ?? 'https://api.github.com',
-    repository,
-    sha,
-    githubToken: process.env.GITHUB_TOKEN,
-  });
-  validatePromotionEvidence({
+  const parents = readParents(sha);
+  const result = await verifyPromotion({
     repository,
     sha,
     ref: process.env.GITHUB_REF,
@@ -242,10 +376,14 @@ async function main() {
     targetBranch: args.target,
     eventName: process.env.GITHUB_EVENT_NAME,
     event,
-    targetTipSha,
-    parents: readParents(sha),
-    pullRequests,
+    parents,
+    changes: readPromotionChanges(sha, parents[0]),
+    githubToken: process.env.GITHUB_TOKEN,
+    apiUrl: process.env.GITHUB_API_URL ?? 'https://api.github.com',
   });
+  if (process.env.GITHUB_OUTPUT) {
+    await appendFile(process.env.GITHUB_OUTPUT, `deploy_required=${result.deployRequired}\n`, 'utf8');
+  }
   console.log('promotion_provenance_verified');
 }
 

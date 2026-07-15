@@ -688,7 +688,7 @@ test('protected feature runtime kinds preserve existing bindings and require cap
   assert.match(schema.definitions.capability.pattern, /\{1,2\}/);
 });
 
-test('template validate-only needs no AWS credentials and workflows validate before credentials', async () => {
+test('template validation needs no AWS credentials and workflows materialize and verify plans before credentials', async () => {
   const deployScript = path.join(repoRoot, 'tools', 'templates', 'draft-repo', 'tools', 'deploy-draft.mjs');
   const result = spawnSync(process.execPath, [
     deployScript,
@@ -706,8 +706,11 @@ test('template validate-only needs no AWS credentials and workflows validate bef
 
   for (const fileName of ['deploy-test.yml', 'deploy-production.yml']) {
     const workflow = await readFile(path.join(repoRoot, 'tools', 'templates', 'draft-repo', '.github', 'workflows', fileName), 'utf8');
-    assert.ok(workflow.indexOf('--validate-only=true') >= 0);
-    assert.ok(workflow.indexOf('--validate-only=true') < workflow.indexOf('aws-actions/configure-aws-credentials'));
+    const planIndex = workflow.indexOf('--plan-output=');
+    const closedPlanIndex = workflow.indexOf('Validate artifact manifest and closed deployment plan');
+    const credentialIndex = workflow.indexOf('aws-actions/configure-aws-credentials');
+    assert.ok(planIndex >= 0);
+    assert.ok(planIndex < closedPlanIndex && closedPlanIndex < credentialIndex);
   }
   const guard = await readFile(path.join(repoRoot, 'tools', 'templates', 'draft-repo', '.github', 'workflows', 'guard-pr-source.yml'), 'utf8');
   assert.match(guard, /--validate-only=true/);

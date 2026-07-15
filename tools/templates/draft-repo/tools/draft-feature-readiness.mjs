@@ -501,11 +501,6 @@ async function validateDraftFeatureReadiness({
       }
     }
     const name = descriptorName(normalizedPath);
-    if (!name) continue;
-    if (containsNonJsonValue(file.content)) {
-      addFinding(findings, makeFinding('non_json_value_forbidden', name));
-      continue;
-    }
     const allowLegacySecretReference = name === 'auth-profile-registry.json'
       ? isAllowedLegacySocialIdpSecretReference
       : undefined;
@@ -519,6 +514,11 @@ async function validateDraftFeatureReadiness({
       isOpaqueSecretReference,
     )) {
       addFinding(findings, makeFinding('secret_value_forbidden', name));
+    }
+    if (!name) continue;
+    if (containsNonJsonValue(file.content)) {
+      addFinding(findings, makeFinding('non_json_value_forbidden', name));
+      continue;
     }
     if (containsPattern(file.content, REVIEW_PATTERN_DEFINITIONS.map(rule => rule.regex), PII_FIELD_NAME_PATTERN)) {
       addFinding(findings, makeFinding('pii_value_forbidden', name));
