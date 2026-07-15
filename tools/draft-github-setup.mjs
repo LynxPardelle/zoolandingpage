@@ -301,10 +301,7 @@ function branchProtectionPayload(requiredContexts) {
   return {
     required_status_checks: {
       strict: true,
-      checks: requiredContexts.map(context => ({
-        context,
-        app_id: GITHUB_ACTIONS_APP_ID,
-      })),
+      contexts: [...requiredContexts],
     },
     enforce_admins: true,
     required_pull_request_reviews: {
@@ -322,6 +319,16 @@ function branchProtectionPayload(requiredContexts) {
     required_linear_history: false,
     allow_force_pushes: false,
     allow_deletions: false,
+  };
+}
+
+function requiredStatusChecksPayload(requiredContexts) {
+  return {
+    strict: true,
+    checks: requiredContexts.map(context => ({
+      context,
+      app_id: GITHUB_ACTIONS_APP_ID,
+    })),
   };
 }
 
@@ -403,18 +410,27 @@ async function configureMergePolicy(owner, repo, apply) {
 async function protectBranch(owner, repo, branch, requiredContexts, apply) {
   if (!apply) return { protected: false, skipped: true };
   const payload = branchProtectionPayload(requiredContexts);
+  const protectionPath = `/repos/${owner}/${repo}/branches/${branch}/protection`;
   try {
     await gh([
       'api',
       '--method',
       'PUT',
-      `/repos/${owner}/${repo}/branches/${branch}/protection`,
+      protectionPath,
       '--input',
       '-',
     ], { input: JSON.stringify(payload) });
+    await gh([
+      'api',
+      '--method',
+      'PATCH',
+      `${protectionPath}/required_status_checks`,
+      '--input',
+      '-',
+    ], { input: JSON.stringify(requiredStatusChecksPayload(requiredContexts)) });
     const configuredProtection = await ghJson([
       'api',
-      `/repos/${owner}/${repo}/branches/${branch}/protection`,
+      protectionPath,
     ]);
     if (!branchProtectionMatches(configuredProtection, requiredContexts)) {
       throw new Error('github_branch_protection_not_applied');
@@ -553,6 +569,7 @@ export {
   inspectRegisteredRepo,
   preflightDraftSetups,
   readRegisteredDraftInventory,
+  requiredStatusChecksPayload,
   repoNameForDomain,
   setupResultOk,
   testAliasesFor,
