@@ -1,11 +1,12 @@
 import { execFile } from 'node:child_process';
-import { readFile, writeFile } from 'node:fs/promises';
+import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 
+import { readDraftRegistry } from './draft-repo-preflight.mjs';
+
 const execFileAsync = promisify(execFile);
-const DEFAULT_OWNER = 'LynxPardelle';
 const DEFAULT_REGION = 'us-east-1';
 const DEFAULT_AUTHORING_API_ID = '2dvjmiwjod';
 const DEFAULT_AUTHORING_FUNCTION_NAME = 'zoolanding-config-authorin-ConfigAuthoringFunction-AjQO0sTiyOev';
@@ -44,10 +45,6 @@ function domainSlug(domain) {
   return normalizeDomain(domain).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }
 
-function repoNameForDomain(domain) {
-  return `draft-${domainSlug(domain)}`;
-}
-
 function roleNameFor(domain, environment) {
   return `draft-${domainSlug(domain)}-${environment}-deploy`;
 }
@@ -62,24 +59,44 @@ async function awsText(args, options = {}) {
   return result.stdout.trim();
 }
 
-async function readSiteConfigs(draftsRoot) {
-  const { readdir } = await import('node:fs/promises');
-  const entries = await readdir(draftsRoot, { withFileTypes: true });
-  const configs = [];
-  for (const entry of entries) {
-    if (!entry.isDirectory() || entry.name.startsWith('_')) continue;
-    const filePath = path.join(draftsRoot, entry.name, 'site-config.json');
-    try {
-      const config = JSON.parse(await readFile(filePath, 'utf8'));
-      const domain = normalizeDomain(config.domain || entry.name);
-      if (domain) {
-        configs.push({ domain, repo: repoNameForDomain(domain) });
+async function readRegisteredDraftInventory(registryPath) {
+  const registry = await readDraftRegistry(registryPath);
+  return {
+    owner: registry.owner,
+    drafts: registry.drafts
+      .map(draft => ({ domain: draft.domain, repo: draft.repo }))
+      .sort((a, b) => a.domain.localeCompare(b.domain)),
+  };
+}
+
+async function readRegisteredDrafts(registryPath) {
+  return (await readRegisteredDraftInventory(registryPath)).drafts;
+}
+
+function resolveRegistryOwner(registryOwner, requestedOwner) {
+  if (requestedOwner && requestedOwner !== registryOwner) {
+    throw new Error('registry_owner_mismatch');
+  }
+  return registryOwner;
+}
+
+function buildDeploymentRoleInventory(drafts) {
+  const inventory = [];
+  const seenRoleNames = new Set();
+  for (const draft of drafts) {
+    for (const environment of ['test', 'production']) {
+      const roleName = roleNameFor(draft.domain, environment);
+      if (roleName.length > 64 || !/^[a-z0-9-]+$/.test(roleName)) {
+        throw new Error(`invalid_deployment_role_name:${roleName}`);
       }
-    } catch {
-      // Ignore incomplete local draft folders.
+      if (seenRoleNames.has(roleName)) {
+        throw new Error(`duplicate_deployment_role_name:${roleName}`);
+      }
+      seenRoleNames.add(roleName);
+      inventory.push({ ...draft, environment, roleName });
     }
   }
-  return configs.sort((a, b) => a.domain.localeCompare(b.domain));
+  return inventory;
 }
 
 async function getAccountId() {
@@ -114,6 +131,12 @@ async function ensureOidcProvider({ accountId, apply }) {
 }
 
 function trustPolicy({ providerArn, owner, repo, environment }) {
+  const branch = environment === 'test'
+    ? 'test'
+    : environment === 'production'
+      ? 'main'
+      : undefined;
+  if (!branch) throw new Error('unsupported_deployment_environment');
   return {
     Version: '2012-10-17',
     Statement: [
@@ -125,6 +148,7 @@ function trustPolicy({ providerArn, owner, repo, environment }) {
           StringEquals: {
             [`${GITHUB_OIDC_HOST}:aud`]: 'sts.amazonaws.com',
             [`${GITHUB_OIDC_HOST}:sub`]: `repo:${owner}/${repo}:environment:${environment}`,
+            [`${GITHUB_OIDC_HOST}:ref`]: `refs/heads/${branch}`,
           },
         },
       },
@@ -242,31 +266,30 @@ function deployAuthzConfig(roles) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const apply = truthy(args.apply);
-  const owner = args.owner || DEFAULT_OWNER;
   const region = args.region || DEFAULT_REGION;
   const authoringApiId = args['authoring-api-id'] || DEFAULT_AUTHORING_API_ID;
   const authoringFunctionName = args['authoring-function-name'] || DEFAULT_AUTHORING_FUNCTION_NAME;
-  const draftsRoot = path.resolve(args['drafts-root'] || 'drafts');
+  const registryPath = path.resolve(args.registry || 'docs/drafts-registry.json');
+  const registeredInventory = await readRegisteredDraftInventory(registryPath);
+  const owner = resolveRegistryOwner(registeredInventory.owner, args.owner);
+  const roleInventory = buildDeploymentRoleInventory(registeredInventory.drafts);
   const accountId = await getAccountId();
   const provider = await ensureOidcProvider({ accountId, apply });
-  const drafts = await readSiteConfigs(draftsRoot);
   const roles = [];
 
-  for (const draft of drafts) {
-    for (const environment of ['test', 'production']) {
-      roles.push(await ensureRole({
-        accountId,
-        providerArn: provider.arn,
-        owner,
-        region,
-        authoringApiId,
-        authoringFunctionName,
-        domain: draft.domain,
-        repo: draft.repo,
-        environment,
-        apply,
-      }));
-    }
+  for (const role of roleInventory) {
+    roles.push(await ensureRole({
+      accountId,
+      providerArn: provider.arn,
+      owner,
+      region,
+      authoringApiId,
+      authoringFunctionName,
+      domain: role.domain,
+      repo: role.repo,
+      environment: role.environment,
+      apply,
+    }));
   }
 
   const result = {
@@ -277,6 +300,7 @@ async function main() {
     region,
     authoringApiId,
     authoringFunctionName,
+    registryPath,
     oidcProvider: provider,
     roles,
     deployAuthzConfig: deployAuthzConfig(roles),
@@ -291,4 +315,13 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   });
 }
 
-export { deployAuthzConfig, domainSlug, readSiteConfigs, roleNameFor, trustPolicy };
+export {
+  buildDeploymentRoleInventory,
+  deployAuthzConfig,
+  domainSlug,
+  readRegisteredDraftInventory,
+  readRegisteredDrafts,
+  resolveRegistryOwner,
+  roleNameFor,
+  trustPolicy,
+};

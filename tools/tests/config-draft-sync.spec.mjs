@@ -37,6 +37,9 @@ test('config-draft-sync packs server-only draft files without page ids', async (
   await writeFile(path.join(domainRoot, 'draft-repo.config.json'), '{"domain":"example.com"}', 'utf8');
   await writeFile(path.join(domainRoot, 'server', 'auth-profile-registry.json'), '{"version":1,"profiles":[]}', 'utf8');
   await writeFile(path.join(domainRoot, 'server', 'integrations.json'), '{"version":1,"sources":[],"actions":[]}', 'utf8');
+  for (const name of ['commerce.json', 'data-spaces.json', 'integration-bindings.json', 'notification-policies.json']) {
+    await writeFile(path.join(domainRoot, 'server', name), '{"version":1}', 'utf8');
+  }
 
   const outputPath = path.join(draftsRoot, 'package.json');
   await execFileAsync(
@@ -67,11 +70,50 @@ test('config-draft-sync packs server-only draft files without page ids', async (
         pageId: undefined,
       },
       {
+        path: 'example.com/server/commerce.json',
+        kind: 'server-commerce',
+        pageId: undefined,
+      },
+      {
+        path: 'example.com/server/data-spaces.json',
+        kind: 'server-data-spaces',
+        pageId: undefined,
+      },
+      {
+        path: 'example.com/server/integration-bindings.json',
+        kind: 'server-integration-bindings',
+        pageId: undefined,
+      },
+      {
         path: 'example.com/server/integrations.json',
         kind: 'server-integrations',
         pageId: undefined,
       },
+      {
+        path: 'example.com/server/notification-policies.json',
+        kind: 'server-notification-policies',
+        pageId: undefined,
+      },
     ]
+  );
+});
+
+test('config-draft-sync rejects unknown server descriptors', async t => {
+  const draftsRoot = await mkdtemp(path.join(os.tmpdir(), 'zlp-config-server-kind-'));
+  t.after(() => rm(draftsRoot, { recursive: true, force: true }));
+  const domainRoot = path.join(draftsRoot, 'example.com');
+  await mkdir(path.join(domainRoot, 'server'), { recursive: true });
+  await writeFile(path.join(domainRoot, 'site-config.json'), '{"version":1}', 'utf8');
+  await writeFile(path.join(domainRoot, 'server', 'unknown.json'), '{"version":1}', 'utf8');
+
+  await assert.rejects(
+    runConfigSync([
+      'pack',
+      '--domain=example.com',
+      `--drafts-root=${draftsRoot}`,
+      `--output=${path.join(draftsRoot, 'package.json')}`,
+    ]),
+    /unknown_server_descriptor/,
   );
 });
 
@@ -110,6 +152,136 @@ test('config-draft-sync publish forwards explicit environment', async t => {
   assert.equal(capturedBody.domain, 'example.com');
   assert.equal(capturedBody.environment, 'test');
   assert.equal(capturedBody.versionId, 'version-1');
+});
+
+test('dev mutations are local-only and make zero authoring requests', async t => {
+  let requestCount = 0;
+  const server = http.createServer((_request, response) => {
+    requestCount += 1;
+    response.writeHead(500);
+    response.end();
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => server.close());
+
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), 'zlp-config-dev-local-'));
+  t.after(() => rm(tempRoot, { recursive: true, force: true }));
+  await writeJson(path.join(tempRoot, 'example.com', 'site-config.json'), { version: 1 });
+  const endpoint = `http://127.0.0.1:${server.address().port}/config-authoring`;
+
+  for (const command of ['push', 'create', 'publish']) {
+    await assert.rejects(
+      runConfigSync([
+        command,
+        `--endpoint=${endpoint}`,
+        '--domain=example.com',
+        '--environment=dev',
+        `--drafts-root=${tempRoot}`,
+      ]),
+      /dev environment is local-only/,
+    );
+  }
+  assert.equal(requestCount, 0);
+});
+
+test('remote mutations require an explicit environment and make zero authoring requests when omitted', async t => {
+  let requestCount = 0;
+  const server = http.createServer((_request, response) => {
+    requestCount += 1;
+    response.writeHead(500);
+    response.end();
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => server.close());
+
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), 'zlp-config-required-environment-'));
+  t.after(() => rm(tempRoot, { recursive: true, force: true }));
+  await writeJson(path.join(tempRoot, 'example.com', 'site-config.json'), { version: 1 });
+  const endpoint = `http://127.0.0.1:${server.address().port}/config-authoring`;
+
+  for (const command of ['push', 'create', 'publish']) {
+    await assert.rejects(
+      runConfigSync([
+        command,
+        `--endpoint=${endpoint}`,
+        '--domain=example.com',
+        `--drafts-root=${tempRoot}`,
+      ]),
+      /Missing required argument --environment/,
+    );
+  }
+  assert.equal(requestCount, 0);
+});
+
+test('dev remote reads explicitly map to the test environment', async t => {
+  let capturedBody = null;
+  const server = http.createServer((request, response) => {
+    let raw = '';
+    request.setEncoding('utf8');
+    request.on('data', chunk => { raw += chunk; });
+    request.on('end', () => {
+      capturedBody = JSON.parse(raw);
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end(JSON.stringify({
+        version: 1,
+        domain: 'example.com',
+        environment: 'test',
+        stage: 'draft',
+        files: [],
+      }));
+    });
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => server.close());
+
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), 'zlp-config-dev-read-'));
+  t.after(() => rm(tempRoot, { recursive: true, force: true }));
+  await runConfigSync([
+    'pull',
+    `--endpoint=http://127.0.0.1:${server.address().port}/config-authoring`,
+    '--domain=example.com',
+    '--environment=dev',
+    `--drafts-root=${tempRoot}`,
+  ]);
+
+  assert.equal(capturedBody.environment, 'test');
+});
+
+test('pull rejects a crossed authoring scope before cleaning or writing any draft', async t => {
+  const server = http.createServer((_request, response) => {
+    response.writeHead(200, { 'content-type': 'application/json' });
+    response.end(JSON.stringify({
+      version: 1,
+      domain: 'other.example.com',
+      environment: 'test',
+      stage: 'draft',
+      files: [{
+        path: 'other.example.com/site-config.json',
+        content: { state: 'crossed-response' },
+      }],
+    }));
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => server.close());
+
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), 'zlp-config-crossed-pull-'));
+  t.after(() => rm(tempRoot, { recursive: true, force: true }));
+  const preservedPath = path.join(tempRoot, 'other.example.com', 'preserved.json');
+  await writeJson(preservedPath, { state: 'preserved' });
+
+  await assert.rejects(
+    runConfigSync([
+      'pull',
+      `--endpoint=http://127.0.0.1:${server.address().port}/config-authoring`,
+      '--domain=example.com',
+      '--environment=test',
+      `--drafts-root=${tempRoot}`,
+      '--clean-domain=true',
+    ]),
+    /Authoring response scope mismatch/,
+  );
+  assert.deepEqual(JSON.parse(await readFile(preservedPath, 'utf8')), { state: 'preserved' });
+  await assert.rejects(readFile(path.join(tempRoot, 'other.example.com', 'site-config.json'), 'utf8'));
 });
 
 test('config-draft-sync pack rejects a domain that escapes the drafts root', async t => {
@@ -238,6 +410,11 @@ test('config-draft-sync unpack rejects unsafe file path forms', async t => {
     ['non-normalized unicode', 'example.com/pa\u0301gina/site-config.json'],
     ['non-json file', 'example.com/README.md'],
     ['local context folder', 'example.com/ai_notes/keep.json'],
+    ['local tooling folder', 'example.com/tools/keep.json'],
+    ['case-folded local tooling folder', 'example.com/TOOLS/keep.json'],
+    ['encoded local tooling folder', 'example.com/%74ools/keep.json'],
+    ['double-encoded local tooling folder', 'example.com/%2574ools/keep.json'],
+    ['case-folded git folder', 'example.com/.Git/keep.json'],
     ['local context file', 'example.com/draft-repo.config.json'],
     ['non-string', 123],
   ];
