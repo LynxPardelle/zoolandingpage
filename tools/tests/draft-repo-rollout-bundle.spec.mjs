@@ -9,7 +9,7 @@ import test from 'node:test';
 const repoRoot = path.resolve(new URL('../..', import.meta.url).pathname.replace(/^\/(?:[A-Za-z]:)/, value => value.slice(1)));
 const templateRoot = path.join(repoRoot, 'tools', 'templates', 'draft-repo');
 const auditorCommit = '4cd1d0ad844145864bbbed6347daf7094c19d89b';
-const promotionVerifierSha256 = 'bdfd767c64c4f72a7002f4ae325083669ed56a822f2600534949a077c90f7456';
+const promotionVerifierSha256 = '345e5ea1704e27b2b82ceab6f05ffa50ef690c17ba11fcfb82aef04adc69000e';
 const rolloutClosure = Object.freeze([
   '.github/workflows/deploy-production.yml',
   '.github/workflows/deploy-test.yml',
@@ -35,6 +35,10 @@ async function fileHash(filePath) {
     if (error?.code === 'ENOENT') return null;
     throw error;
   }
+}
+
+async function normalizedTextFileHash(filePath) {
+  return createHash('sha256').update((await readFile(filePath, 'utf8')).replaceAll('\r\n', '\n')).digest('hex');
 }
 
 async function applyRolloutClosure(targetRoot) {
@@ -63,7 +67,7 @@ test('legacy rollout closure is self-contained and distinguishes closure from ch
   assert.equal(generic.changedPaths.length, 15);
   assert.equal(generic.changedPaths.includes('tools/verify-promotion-commit.mjs'), true);
   assert.equal(
-    await fileHash(path.join(genericRoot, 'tools', 'verify-promotion-commit.mjs')),
+    await normalizedTextFileHash(path.join(genericRoot, 'tools', 'verify-promotion-commit.mjs')),
     promotionVerifierSha256,
   );
 
@@ -76,7 +80,7 @@ test('legacy rollout closure is self-contained and distinguishes closure from ch
   assert.equal(zoosite.changedPaths.includes(existingGuard), false);
   assert.equal(zoosite.changedPaths.includes('tools/verify-promotion-commit.mjs'), true);
   assert.equal(
-    await fileHash(path.join(zoositeRoot, 'tools', 'verify-promotion-commit.mjs')),
+    await normalizedTextFileHash(path.join(zoositeRoot, 'tools', 'verify-promotion-commit.mjs')),
     promotionVerifierSha256,
   );
 
