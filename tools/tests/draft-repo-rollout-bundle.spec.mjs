@@ -9,6 +9,7 @@ import test from 'node:test';
 const repoRoot = path.resolve(new URL('../..', import.meta.url).pathname.replace(/^\/(?:[A-Za-z]:)/, value => value.slice(1)));
 const templateRoot = path.join(repoRoot, 'tools', 'templates', 'draft-repo');
 const auditorCommit = '4cd1d0ad844145864bbbed6347daf7094c19d89b';
+const promotionVerifierSha256 = 'bdfd767c64c4f72a7002f4ae325083669ed56a822f2600534949a077c90f7456';
 const rolloutClosure = Object.freeze([
   '.github/workflows/deploy-production.yml',
   '.github/workflows/deploy-test.yml',
@@ -60,6 +61,11 @@ test('legacy rollout closure is self-contained and distinguishes closure from ch
   const generic = await applyRolloutClosure(genericRoot);
   assert.equal(generic.closureCount, 15);
   assert.equal(generic.changedPaths.length, 15);
+  assert.equal(generic.changedPaths.includes('tools/verify-promotion-commit.mjs'), true);
+  assert.equal(
+    await fileHash(path.join(genericRoot, 'tools', 'verify-promotion-commit.mjs')),
+    promotionVerifierSha256,
+  );
 
   const existingGuard = 'tools/runtime-data-source-condition-guard.mjs';
   await mkdir(path.dirname(path.join(zoositeRoot, existingGuard)), { recursive: true });
@@ -68,6 +74,11 @@ test('legacy rollout closure is self-contained and distinguishes closure from ch
   assert.equal(zoosite.closureCount, 15);
   assert.equal(zoosite.changedPaths.length, 14);
   assert.equal(zoosite.changedPaths.includes(existingGuard), false);
+  assert.equal(zoosite.changedPaths.includes('tools/verify-promotion-commit.mjs'), true);
+  assert.equal(
+    await fileHash(path.join(zoositeRoot, 'tools', 'verify-promotion-commit.mjs')),
+    promotionVerifierSha256,
+  );
 
   const draftRoot = path.join(zoositeRoot, 'example.com');
   await mkdir(draftRoot, { recursive: true });

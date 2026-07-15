@@ -16,7 +16,11 @@ function exactMergedPullRequests({ repository, sha, sourceBranch, targetBranch, 
     pullRequest?.state === 'closed'
     && typeof pullRequest.merged_at === 'string'
     && pullRequest.merged_at.length > 0
-    && pullRequest.merge_commit_sha === sha
+    && (
+      pullRequest.merge_commit_sha === undefined
+      || pullRequest.merge_commit_sha === null
+      || pullRequest.merge_commit_sha === sha
+    )
     && pullRequest.base?.ref === targetBranch
     && pullRequest.base?.repo?.full_name === repository
     && pullRequest.head?.ref === sourceBranch
