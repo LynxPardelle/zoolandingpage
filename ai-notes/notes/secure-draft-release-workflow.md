@@ -13,7 +13,7 @@ Source Of Truth:
 - Official GitHub and AWS OIDC guidance
 
 Confidence: High
-Last Reviewed: 2026-07-14 (Central Time)
+Last Reviewed: 2026-07-15 (Central Time)
 
 # Secure Draft Release Workflow
 
@@ -98,8 +98,8 @@ When a new draft repo is created, copy this pull rule into that repo's `Codex.md
 
 ## Active State
 
-As of 2026-05-17 CT, the authoring API requires IAM-signed requests, runtime-read supports environment-aware published pointers, OIDC roles exist for the current draft repos, and the current public `draft-*` repos have `dev`, `test`, and `main` branches plus GitHub Environment variables. GitHub Actions were bootstrapped with `[skip ci]`; no initial deploy ran during setup. A manual pilot deploy for `draft-zoolandingpage-com-mx` test passed through GitHub OIDC and published `test.zoolandingpage.com.mx` to the test environment without changing the production pointer.
+As of 2026-07-15 CT, the authoring API requires IAM-signed requests, runtime-read supports environment-aware published pointers, and the hardened Config Authoring build is deployed to test and production from an explicit allowlisted SAM artifact. A successful PokeAPI test canary exercised create/update and separate publication through GitHub OIDC; unsigned Function URL and API Gateway requests remain denied.
 
-After public-safety audit, the current draft repos were made public and native GitHub branch protection was applied on `test` and `main` with required `guard` status checks and zero required approvals.
+The controlled fleet rollout is active for all 11 registered draft repositories. All 22 `test`/`main` branch-protection endpoints require strict `guard` pinned to GitHub Actions app ID `15368`, a pull request, and admin enforcement while blocking force-push/deletion and allowing no named PR bypass. All 22 GitHub Environments select only their exact deployment branch, and all 22 per-draft IAM roles independently require the matching repository, Environment, and exact `ref`. The exact-PR verifier, current-tip recheck, per-environment concurrency, readback checks, and scoped Lambda invocation policies are now live.
 
-Read-only audit on 2026-07-14 CT confirmed the 22 registered `test`/`main` branch-protection endpoints require strict `guard`, a PR, admin enforcement, and no force-push/deletion or named PR bypass. All 22 currently leave `guard` unpinned to a GitHub App. It also confirmed that the 22 live GitHub Environments are still unrestricted and their 22 AWS roles still lack the exact branch `ref`; checked-out draft workflows still use the older general-ancestor proof. The exact-PR verifier, GitHub Actions app pin, selected-branch Environment policy, exact-ref IAM trust, readback checks, and concurrency are local target controls only until a separately authorized fleet rollout changes GitHub and AWS. GitHub's public app endpoint identified `github-actions` as app ID `15368` during this audit; if that identity ever changes or the API rejects it, fail closed and reverify rather than substituting an app ID.
+The exact generic rollout bundle is present on `dev` and `test` in all 11 draft repositories. Nine current tips have a successful promotion-push deployment; the exact AlecFest and PokeAPI tips have successful manual-dispatch closure evidence after the authoring backend was corrected. The rollout deliberately did not merge any draft repository to `main` or publish production draft content. Any future production draft release still requires the independently reviewed `test -> main` promotion and its production deployment evidence. If the GitHub Actions app identity ever changes or the API rejects it, fail closed and reverify rather than substituting an app ID.

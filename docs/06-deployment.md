@@ -4,9 +4,9 @@ This document describes the current hub-owned release path. Service-specific dep
 
 ## Current Safety Gate
 
-Do not deploy `zoolanding-config-authoring` until its validated authorization, alias-ownership, and path-containment fixes are merged and verified. Do not use the legacy `publishOnCreate` shortcut. Draft publication must remain a separately authorized action for an explicit environment.
+`zoolanding-config-authoring` test and production were deployed on 2026-07-15 CT after authorization, alias ownership, path containment, response serialization, and the repository-root SAM `CodeUri` boundary were fixed and verified. The build now packages only the explicit allowlisted runtime files; unsigned requests remain denied. Do not restore the legacy `publishOnCreate` shortcut. Draft publication remains a separately authorized action for an explicit environment.
 
-This gate does not block local Angular development, documentation work, or independent services that do not invoke the affected authoring path.
+Future Config Authoring changes must repeat the repository's focused tests, SAM lint/build and artifact-boundary verification, promote through `dev -> test -> main`, and confirm IAM-only access after deployment. Provider activation for Commerce or Notifications remains gated separately by its provider, fiscal, volume, and secret-readiness evidence.
 
 ## Ownership
 
