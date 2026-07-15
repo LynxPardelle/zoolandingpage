@@ -48,6 +48,25 @@ test('accepts an exact same-repository dev-to-test merge push', () => {
   assert.doesNotThrow(() => validatePromotionEvidence(evidence()));
 });
 
+test('accepts GitHub API 2026 associated PRs when merge_commit_sha is null or absent', () => {
+  const withNull = evidence().pullRequests[0];
+  withNull.merge_commit_sha = null;
+  assert.doesNotThrow(() => validatePromotionEvidence(evidence({ pullRequests: [withNull] })));
+
+  const withoutField = structuredClone(evidence().pullRequests[0]);
+  delete withoutField.merge_commit_sha;
+  assert.doesNotThrow(() => validatePromotionEvidence(evidence({ pullRequests: [withoutField] })));
+});
+
+test('rejects an associated PR when a provided merge_commit_sha points elsewhere', () => {
+  const incorrectAssociation = evidence().pullRequests[0];
+  incorrectAssociation.merge_commit_sha = 'd'.repeat(40);
+  assert.throws(
+    () => validatePromotionEvidence(evidence({ pullRequests: [incorrectAssociation] })),
+    /promotion_pr_not_found/,
+  );
+});
+
 test('rejects a synthetic merge that uses an older allowed source ancestor', () => {
   assert.throws(
     () => validatePromotionEvidence(evidence({ parents: [baseSha, 'd'.repeat(40)] })),
@@ -68,6 +87,15 @@ test('rejects direct, forced, created, and deleted pushes', () => {
   }
 });
 
+test('rejects squash and rebase promotions because they are not exact two-parent merges', () => {
+  for (const parents of [[baseSha], ['d'.repeat(40)]]) {
+    assert.throws(
+      () => validatePromotionEvidence(evidence({ parents })),
+      /promotion_merge_commit_required/,
+    );
+  }
+});
+
 test('rejects a merge whose push before SHA is not its first parent', () => {
   assert.throws(
     () => validatePromotionEvidence(evidence({ event: { ...evidence().event, before: 'e'.repeat(40) } })),
@@ -79,6 +107,15 @@ test('rejects a valid historical promotion commit that is no longer the target t
   assert.throws(
     () => validatePromotionEvidence(evidence({ targetTipSha: 'f'.repeat(40) })),
     /promotion_target_tip_mismatch/,
+  );
+});
+
+test('rejects rollback reuse when the push predecessor is not the merge first parent', () => {
+  assert.throws(
+    () => validatePromotionEvidence(evidence({
+      event: { ...evidence().event, before: 'f'.repeat(40) },
+    })),
+    /promotion_first_parent_mismatch/,
   );
 });
 
@@ -117,6 +154,7 @@ test('accepts manual dispatch only when the current tip is the exact merged PR c
 
 test('retries empty associated-PR responses and returns the first non-empty response', async () => {
   let calls = 0;
+  let requestedUrl;
   const expected = evidence().pullRequests;
   const result = await fetchAssociatedPullRequests({
     apiUrl: 'https://api.github.com',
@@ -126,8 +164,9 @@ test('retries empty associated-PR responses and returns the first non-empty resp
     attempts: 3,
     retryDelayMs: 0,
     sleep: async () => {},
-    fetchImpl: async () => {
+    fetchImpl: async url => {
       calls += 1;
+      requestedUrl = url;
       return {
         ok: true,
         status: 200,
@@ -136,6 +175,10 @@ test('retries empty associated-PR responses and returns the first non-empty resp
     },
   });
   assert.equal(calls, 3);
+  assert.equal(
+    requestedUrl.href,
+    `https://api.github.com/repos/LynxPardelle/draft-example-com/commits/${mergeSha}/pulls?per_page=100`,
+  );
   assert.deepEqual(result, expected);
 });
 
@@ -189,6 +232,13 @@ test('reads the exact current target branch SHA and rejects malformed evidence',
 });
 
 test('deploy templates request read-only PR metadata and invoke the verifier without OIDC', async () => {
+  const verifier = await readFile(
+    path.join(repoRoot, 'tools', 'templates', 'draft-repo', 'tools', 'verify-promotion-commit.mjs'),
+    'utf8',
+  );
+  assert.match(verifier, /'X-GitHub-Api-Version': '2026-03-10'/);
+  assert.doesNotMatch(verifier, /2022-11-28/);
+
   for (const [name, sourceBranch, targetBranch] of [
     ['deploy-test.yml', 'dev', 'test'],
     ['deploy-production.yml', 'test', 'main'],
