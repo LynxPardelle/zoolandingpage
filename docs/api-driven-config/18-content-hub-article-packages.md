@@ -49,7 +49,7 @@ Browser requests for blog features should send only public IDs and allowlisted f
 
 ## Public Runtime Config
 
-`site-config.json.runtime.contentHubs` is a browser-safe list of hub references.
+`site-config.json.runtime.contentHubs` is a browser-safe list of hub references. Its JSON Schema accepts at most four hubs, matching the bounded Runtime Read request budget.
 
 Each entry identifies the hub and how the current draft renders it:
 
