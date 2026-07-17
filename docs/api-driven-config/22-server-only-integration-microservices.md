@@ -1,8 +1,8 @@
 # Server-Only Integration Foundation
 
-Date: 2026-07-14 (Central Time)
+Date: 2026-07-16 (Central Time)
 Scope: Draft-scoped server-only descriptors and the approved service boundaries that consume them.
-Status: Phase 1 contract and active authoring guard; no integration microservice or live provider path is deployed by this document.
+Status: Phase 1 contract/authoring boundary is active; Data Spaces is implemented locally only; no Data Spaces AWS stack or live provider path is deployed by this document.
 Source Of Truth:
 
 - [Approved implementation plan](../../plan/infrastructure-server-only-integrations-1.md)
@@ -14,8 +14,8 @@ Source Of Truth:
 - [`draft-feature-readiness.mjs`](../../tools/draft-feature-readiness.mjs)
 - [Repository map](../repository-map.md)
 
-Confidence: High for the Phase 1 descriptor, readiness, and authoring-enforcement contract; planned for service implementation, infrastructure, and live-provider behavior.
-Last Reviewed: 2026-07-15 (Central Time)
+Confidence: High for the Phase 1 descriptor/readiness/authoring contract and local Data Spaces implementation; planned for live service infrastructure and provider behavior.
+Last Reviewed: 2026-07-16 (Central Time)
 
 ## Contract Status
 
@@ -27,8 +27,9 @@ This document separates what exists in the current Zoolandingpage worktree from 
 | Dependency-free schema and semantic readiness validation | Present locally in Phase 1 |
 | Pre-S3 enforcement in Config Authoring | Active in test and production from an explicit allowlisted SAM artifact; invalid packages and stored-package publication failures are fail-closed |
 | Browser/SSR draft artifact boundary | Sanitized boundary-fix releases are active and private-path probes return `404`; incident closure remains gated by historical access limitations and final browser/risk acceptance evidence |
-| Runtime Read public/server boundary and deployment identities | Active in test and production with exact GitHub OIDC callers, retained CloudFormation service roles, code-owned execution boundaries, unchanged Lambda/API physical IDs, and verified denial of server-only descriptor reads |
-| Data Spaces, Commerce, Integrations, and Notifications services | Approved target for later phases; not deployed by this contract |
+| Runtime Read public/server boundary and deployment identities | Active in test and production with exact GitHub OIDC callers, retained CloudFormation service roles, code-owned execution boundaries, unchanged Lambda/API physical IDs, bounded public/S3 work, verified denial of server-only descriptor reads, and exact `GET /runtime-bundle` throttle 25/burst 50 |
+| Data Spaces service | Implemented and verified in the local `Z:\GitHub\zoolanding-data-spaces` repository; no remote or AWS resource exists yet |
+| Commerce, Integrations, and Notifications services | Approved target for later phases; not implemented or deployed by this contract |
 | Stripe Connect, Checkout, Billing, and webhook handling | Stripe-specific adapter target; live setup is gated |
 | HostGator SMTP delivery | Notification-adapter target; real SMTP remains gated |
 
@@ -93,6 +94,8 @@ Every new descriptor uses `version: 1` and the same closed scope:
 Phase 1 accepts only the code-owned capabilities `data-space:record:read`, `data-space:record:write`, `data-space:schema:write`, and `data-space:publish`. Adding a future operation requires a reviewed schema/validator/service release; a draft cannot mint a capability string.
 
 The MVP isolates each new Data Space by `environment + tenantId + draftId`. Existing Content Hub blogs continue unchanged. Cross-draft Data Space sharing is not inferred from matching IDs or domains and requires a separately approved owner/share-binding contract.
+
+The completed local Phase 2 service uses one PAY_PER_REQUEST/SSE/PITR table with server-derived keys, conditional transactions, immutable schema/record revisions, and TTL only on 90-day idempotency receipts. Protected reads/actions reuse fresh Auth Admin state and the exact code-owned capabilities above; mutations also require CSRF. Public reads use only explicit published projections and have an exact API Gateway method throttle in the undeployed template. Once records exist, schema evolution preserves every existing field definition so an already-public value cannot survive a later `public -> internal` reclassification. The AWS_IAM snapshot path additionally requires the exact configured trusted Commerce role, an exact revision and field allowlist, and returns a canonical SHA-256 content hash. This is implementation evidence, not deployment evidence: no Data Spaces AWS resource, public route, remote repository, or production data exists yet. Free-text PII/secret detection is defense-in-depth rather than proof; Data Spaces remains operationally prohibited for customer PII or sensitive submissions.
 
 ### Commerce
 
