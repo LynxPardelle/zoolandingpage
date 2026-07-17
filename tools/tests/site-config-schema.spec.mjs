@@ -70,6 +70,14 @@ test('site-config schema documents combo catalog as a public minimal reference',
     assert.equal(comboCatalog.additionalProperties, false);
 });
 
+test('site-config schema caps runtime content hubs to the runtime read request budget', async () => {
+    const schema = JSON.parse(await readFile(schemaPath, 'utf8'));
+    const contentHubs = schema.definitions?.runtimeConfig?.properties?.contentHubs;
+
+    assert.equal(contentHubs.type, 'array');
+    assert.equal(contentHubs.maxItems, 4);
+});
+
 test('site-config schema supports auth-admin data sources with single-item account mappers', async () => {
     const schema = JSON.parse(await readFile(schemaPath, 'utf8'));
     const mapper = schema.definitions?.runtimeDataSourceMapper;

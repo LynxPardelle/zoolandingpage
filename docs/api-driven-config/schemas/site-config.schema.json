@@ -420,6 +420,7 @@
         "comboCatalog": { "$ref": "#/definitions/comboCatalogRuntime" },
         "contentHubs": {
           "type": "array",
+          "maxItems": 4,
           "items": { "$ref": "#/definitions/contentHubRuntime" }
         },
         "dataSources": {
