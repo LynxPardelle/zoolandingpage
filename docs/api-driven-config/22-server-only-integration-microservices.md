@@ -29,9 +29,10 @@ This document separates what exists in the current Zoolandingpage worktree from 
 | Browser/SSR draft artifact boundary | Sanitized boundary-fix releases are active and private-path probes return `404`; incident closure remains gated by historical access limitations and final browser/risk acceptance evidence |
 | Runtime Read public/server boundary and deployment identities | Active in test and production with exact GitHub OIDC callers, retained CloudFormation service roles, code-owned execution boundaries, unchanged Lambda/API physical IDs, bounded public/S3 work, verified denial of server-only descriptor reads, and exact `GET /runtime-bundle` throttle 25/burst 50 |
 | Data Spaces service | Implemented and verified in the local `Z:\GitHub\zoolanding-data-spaces` repository; no remote or AWS resource exists yet |
-| Commerce, Integrations, and Notifications services | Approved target for later phases; not implemented or deployed by this contract |
+| Commerce service | TASK-025 scaffold and PAT-007 Commerce policy resolver are implemented and verified in the local `Z:\GitHub\zoolanding-commerce` repository; tables, handlers, routes, remote CI, and AWS resources do not exist yet |
+| Integrations and Notifications services | Approved target for later phases; not implemented or deployed by this contract |
 | Stripe Connect, Checkout, Billing, and webhook handling | Stripe-specific adapter target; live setup is gated |
-| SMTP2GO outbound delivery | Approved first Notifications transport; account provisioning, sender-domain verification, credentials, quotas, and delivery evidence remain gated |
+| SMTP2GO outbound delivery | The standalone test account and `zoolandingpage.com.mx` sender domain are verified, and two sandboxed pilot-specific SMTP users exist. Credential rotation into canonical Secrets Manager bindings, final recipient policy, quota/cost approval, and acceptance/delivery evidence remain gated |
 
 A descriptor authorizes nothing by itself. It is policy input that a service must load from the exact published package version and enforce server-side.
 
