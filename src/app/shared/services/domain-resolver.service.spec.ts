@@ -1,18 +1,17 @@
 import { PLATFORM_ID, REQUEST } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { setTestBrowserUrl } from '@/test-browser-state';
 import { DomainResolverService, resolveBrowserHostDomain } from './domain-resolver.service';
 
 describe('DomainResolverService', () => {
   const originalUrl = window.location.pathname + window.location.search + window.location.hash;
-  const nativeHistoryReplaceState = History.prototype.replaceState;
-
   const setBrowserUrl = (href: string): void => {
     const url = new URL(href);
-    nativeHistoryReplaceState.call(window.history, {}, '', `${ url.pathname }${ url.search }${ url.hash }`);
+    setTestBrowserUrl(`${ url.pathname }${ url.search }${ url.hash }`);
   };
 
   afterEach(() => {
-    nativeHistoryReplaceState.call(window.history, {}, '', originalUrl);
+    setTestBrowserUrl(originalUrl);
     TestBed.resetTestingModule();
   });
 

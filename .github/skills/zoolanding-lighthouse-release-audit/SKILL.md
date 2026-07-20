@@ -45,7 +45,7 @@ Use this skill for performance/accessibility work that must survive local SSR, d
    - Run `npm run build`.
    - Run `node --test tools/tests/ssr-server.spec.mjs`.
    - Run `npm run test:draft-smoke` when drafts/routes are involved.
-   - Run full `npx ng test --watch=false --browsers=ChromeHeadless` before release when shared services changed.
+   - Run full `npx ng test --watch=false --browsers=ChromeHeadlessStable` before release when shared services changed.
    - Use Puppeteer/Chrome or the in-app browser to verify interactive flows.
 
 6. Produce Lighthouse evidence.
