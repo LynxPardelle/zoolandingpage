@@ -1,6 +1,6 @@
 # Server-Only Integration Foundation
 
-Date: 2026-07-17 (Central Time)
+Date: 2026-07-20 (Central Time)
 Scope: Draft-scoped server-only descriptors and the approved service boundaries that consume them.
 Status: Phase 1 contract/authoring boundary is active; Data Spaces is implemented locally only; no Data Spaces AWS stack or live provider path is deployed by this document.
 Source Of Truth:
@@ -14,8 +14,8 @@ Source Of Truth:
 - [`draft-feature-readiness.mjs`](../../tools/draft-feature-readiness.mjs)
 - [Repository map](../repository-map.md)
 
-Confidence: High for the Phase 1 descriptor/readiness/authoring contract and local Data Spaces implementation; planned for live service infrastructure and provider behavior.
-Last Reviewed: 2026-07-17 (Central Time)
+Confidence: High for the Phase 1 descriptor/readiness/authoring contract, local Data Spaces implementation, and local Commerce TASK-025 through TASK-027 foundation; planned for live service infrastructure and provider behavior.
+Last Reviewed: 2026-07-20 (Central Time)
 
 ## Contract Status
 
@@ -29,7 +29,7 @@ This document separates what exists in the current Zoolandingpage worktree from 
 | Browser/SSR draft artifact boundary | Sanitized boundary-fix releases are active and private-path probes return `404`; incident closure remains gated by historical access limitations and final browser/risk acceptance evidence |
 | Runtime Read public/server boundary and deployment identities | Active in test and production with exact GitHub OIDC callers, retained CloudFormation service roles, code-owned execution boundaries, unchanged Lambda/API physical IDs, bounded public/S3 work, verified denial of server-only descriptor reads, and exact `GET /runtime-bundle` throttle 25/burst 50 |
 | Data Spaces service | Implemented and verified in the local `Z:\GitHub\zoolanding-data-spaces` repository; no remote or AWS resource exists yet |
-| Commerce service | TASK-025/TASK-026 are implemented and verified in the local `Z:\GitHub\zoolanding-commerce` repository: PAT-007 plus an undeployed three-table storage foundation; handlers, routes, event-source mappings, queues, roles, indexes, remote CI, and deployed AWS resources do not exist yet |
+| Commerce service | TASK-025 through TASK-027 are implemented and verified in the local `Z:\GitHub\zoolanding-commerce` repository: PAT-007, an undeployed three-table storage foundation, and pure provider-neutral domain invariants; handlers, routes, event-source mappings, queues, roles, indexes, remote CI, and deployed AWS resources do not exist yet |
 | Integrations and Notifications services | Approved target for later phases; not implemented or deployed by this contract |
 | Stripe Connect, Checkout, Billing, and webhook handling | Stripe-specific adapter target; live setup is gated |
 | SMTP2GO outbound delivery | The standalone test account and `zoolandingpage.com.mx` sender domain are verified, and two sandboxed pilot-specific SMTP users exist. Credential rotation into canonical Secrets Manager bindings, final recipient policy, quota/cost approval, and acceptance/delivery evidence remain gated |
@@ -107,6 +107,8 @@ The completed local Phase 2 service uses one PAY_PER_REQUEST/SSE/PITR table with
 `server/commerce.json` declares the enabled sellable types (`physical`, `service`, `subscription`, and `add_on`), an opaque payment `bindingId`, supported payment operations, inventory/shipping policy, optional manual fiscal-request policy, and same-origin Checkout/legal/support paths.
 
 Prices, stock, orders, payment/subscription projections, and fiscal data stay out of Data Spaces. Money uses integer minor units in Commerce implementation. Physical products require enabled inventory and shipping; backorders, multi-warehouse inventory, physical recurring offers, and mixed physical/subscription carts are outside the MVP.
+
+The completed local TASK-027 domain layer keeps sellable, shipping, fiscal-disclosure, and tax-behavior registries closed; requires immutable non-negative integer money and quantities; calculates line totals without floating point; and rejects physical recurring offers. Every money value must also carry the immutable currency allowlist resolved by its owning server-side policy, so a well-formed but unsupported three-letter code fails closed without coupling the core to Stripe or embedding a stale currency registry. Offer versions, stock transitions, persistence, handlers, authorization, and provider calls remain assigned to later tasks.
 
 Fiscal collection is opt-in, manual, and isolated. It cannot be enabled in production until the accountant-approved retention/access policy exists. No PAC integration, CFDI generation, or automatic invoice delivery is part of this contract.
 
