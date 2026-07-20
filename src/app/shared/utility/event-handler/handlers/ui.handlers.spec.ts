@@ -6,30 +6,14 @@ import { LanguageService } from '@/app/shared/services/language.service';
 import { VariableStoreService } from '@/app/shared/services/variable-store.service';
 import { PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { restoreTestBrowserHistory, setTestBrowserUrl } from '@/test-browser-state';
 import type { EventExecutionContext } from '../event-handler.types';
 import { openModalHandler } from './legal-modal.handlers';
 import { navigateToUrlHandler, navigateWithEventDataHandler, navigateWithScopeQueryHandler, setLanguageHandler, shareCurrentPageHandler } from './ui.handlers';
 import { openFaqCtaWhatsAppHandler, openFinalCtaWhatsAppHandler, openWhatsAppHandler } from './whatsapp.handlers';
 
-const nativeHistoryPushState = History.prototype.pushState;
-const nativeHistoryReplaceState = History.prototype.replaceState;
-
-const restoreNativeHistoryStateMethods = (): void => {
-    Object.defineProperty(window.history, 'pushState', {
-        configurable: true,
-        writable: true,
-        value: nativeHistoryPushState.bind(window.history),
-    });
-    Object.defineProperty(window.history, 'replaceState', {
-        configurable: true,
-        writable: true,
-        value: nativeHistoryReplaceState.bind(window.history),
-    });
-};
-
-const setBrowserUrl = (url: string): void => {
-    nativeHistoryReplaceState.call(window.history, {}, '', url);
-};
+const restoreNativeHistoryStateMethods = restoreTestBrowserHistory;
+const setBrowserUrl = setTestBrowserUrl;
 
 describe('setLanguageHandler', () => {
     let analytics: jasmine.SpyObj<AnalyticsService>;
@@ -123,7 +107,7 @@ describe('navigateToUrlHandler', () => {
 
     it('should keep internal _blank URLs in the same tab', () => {
         const handler = TestBed.runInInjectionContext(() => navigateToUrlHandler());
-        const pushState = spyOn(window.history, 'pushState').and.stub();
+        const pushState = spyOn(window.history, 'pushState').and.callThrough();
 
         handler.handle(context, ['/servicios?draftDomain=pamelabetancourt.com', '_blank', undefined, draftHref]);
 
@@ -134,7 +118,7 @@ describe('navigateToUrlHandler', () => {
 
     it('should preserve debugWorkspace on internal same-tab navigation', () => {
         const handler = TestBed.runInInjectionContext(() => navigateToUrlHandler());
-        const pushState = spyOn(window.history, 'pushState').and.stub();
+        const pushState = spyOn(window.history, 'pushState').and.callThrough();
 
         handler.handle(context, ['/acerca-de-mi?draftDomain=pamelabetancourt.com', '_self', undefined, draftHref]);
 
@@ -143,7 +127,7 @@ describe('navigateToUrlHandler', () => {
 
     it('should preserve the active draftDomain on internal navigation when the target omits it', () => {
         const handler = TestBed.runInInjectionContext(() => navigateToUrlHandler());
-        const pushState = spyOn(window.history, 'pushState').and.stub();
+        const pushState = spyOn(window.history, 'pushState').and.callThrough();
 
         handler.handle(context, ['/servicios', '_self', undefined, draftHref]);
 
@@ -153,7 +137,7 @@ describe('navigateToUrlHandler', () => {
     it('should optionally scroll to top on internal same-tab navigation', () => {
         const handler = TestBed.runInInjectionContext(() => navigateToUrlHandler());
         const scrollTo = spyOn(window, 'scrollTo');
-        const pushState = spyOn(window.history, 'pushState').and.stub();
+        const pushState = spyOn(window.history, 'pushState').and.callThrough();
 
         handler.handle(context, ['/servicios', '_self', 'top', draftHref]);
 
@@ -164,7 +148,7 @@ describe('navigateToUrlHandler', () => {
 
     it('should avoid double-encoding unicode internal routes', () => {
         const handler = TestBed.runInInjectionContext(() => navigateToUrlHandler());
-        const pushState = spyOn(window.history, 'pushState').and.stub();
+        const pushState = spyOn(window.history, 'pushState').and.callThrough();
 
         handler.handle(context, ['/cont%C3%A1ctame?draftDomain=pamelabetancourt.com', '_self', undefined, draftHref]);
 
@@ -216,7 +200,7 @@ describe('navigateWithEventDataHandler', () => {
 
     it('builds an internal URL from row action payload data and preserves draft query params', () => {
         const handler = TestBed.runInInjectionContext(() => navigateWithEventDataHandler());
-        const pushState = spyOn(window.history, 'pushState').and.stub();
+        const pushState = spyOn(window.history, 'pushState').and.callThrough();
 
         handler.handle(context, ['/admin/blog/articulos/{articleId}/editor', '_self', undefined, draftHref]);
 
@@ -225,7 +209,7 @@ describe('navigateWithEventDataHandler', () => {
 
     it('encodes interpolated row values', () => {
         const handler = TestBed.runInInjectionContext(() => navigateWithEventDataHandler());
-        const pushState = spyOn(window.history, 'pushState').and.stub();
+        const pushState = spyOn(window.history, 'pushState').and.callThrough();
 
         handler.handle(context, ['/admin/blog/articulos/{rowData.slug}/preview', '_self', undefined, draftHref]);
 
@@ -234,7 +218,7 @@ describe('navigateWithEventDataHandler', () => {
 
     it('does not navigate when a template token is missing', () => {
         const handler = TestBed.runInInjectionContext(() => navigateWithEventDataHandler());
-        const pushState = spyOn(window.history, 'pushState').and.stub();
+        const pushState = spyOn(window.history, 'pushState').and.callThrough();
 
         handler.handle(context, ['/admin/blog/articulos/{missing}/editor', '_self', undefined, draftHref]);
 
@@ -243,7 +227,7 @@ describe('navigateWithEventDataHandler', () => {
 
     it('does not navigate to external or protocol-relative URLs', () => {
         const handler = TestBed.runInInjectionContext(() => navigateWithEventDataHandler());
-        const pushState = spyOn(window.history, 'pushState').and.stub();
+        const pushState = spyOn(window.history, 'pushState').and.callThrough();
 
         handler.handle(context, ['https://example.com/{articleId}', '_self', undefined, draftHref]);
         handler.handle(context, ['//example.com/{articleId}', '_self', undefined, draftHref]);

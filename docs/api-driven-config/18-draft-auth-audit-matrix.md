@@ -39,7 +39,7 @@ Run focused platform checks:
 
 ```powershell
 node --test tools/tests/draft-auth-audit.spec.mjs tools/tests/runtime-data-source-condition-guard.spec.mjs tools/tests/auth-profile-registry.spec.mjs tools/tests/site-config-schema.spec.mjs
-npm run test -- --watch=false --browsers=ChromeHeadless --include src/app/state/auth/*.spec.ts --include src/app/shared/utility/event-handler/handlers/auth-admin-action.handlers.spec.ts --include src/app/shared/utility/event-handler/handlers/auth-form-action.handlers.spec.ts --include src/app/shared/utility/config-validation/config-payload.validators.spec.ts
+npm run test -- --watch=false --browsers=ChromeHeadlessStable --include src/app/state/auth/*.spec.ts --include src/app/shared/utility/event-handler/handlers/auth-admin-action.handlers.spec.ts --include src/app/shared/utility/event-handler/handlers/auth-form-action.handlers.spec.ts --include src/app/shared/utility/config-validation/config-payload.validators.spec.ts
 ```
 
 Run BFF checks in `zoolanding-auth-admin`:

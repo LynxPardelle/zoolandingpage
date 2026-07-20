@@ -3,16 +3,16 @@ import {
   currentBrowserPath,
   navigateInCurrentWindow,
 } from './browser-navigation.utility';
+import { setTestBrowserUrl } from '@/test-browser-state';
 
 describe('browser navigation utility', () => {
-  const nativeReplaceState = History.prototype.replaceState;
-
   beforeEach(() => {
-    nativeReplaceState.call(window.history, {}, '', '/current?draftDomain=zoositioweb.com.mx');
+    setTestBrowserUrl('/current?draftDomain=zoositioweb.com.mx');
+    expect(currentBrowserPath()).toBe('/current?draftDomain=zoositioweb.com.mx');
   });
 
   afterEach(() => {
-    nativeReplaceState.call(window.history, {}, '', '/context.html');
+    setTestBrowserUrl('/context.html');
   });
 
   it('dispatches a client navigation start event before same-origin popstate refresh', () => {

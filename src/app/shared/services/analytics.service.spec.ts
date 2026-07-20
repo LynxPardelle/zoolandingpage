@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
+import { restoreTestBrowserHistory, setTestBrowserUrl } from '@/test-browser-state';
 import { of } from 'rxjs';
 import { AnalyticsCategories, AnalyticsEvents } from './analytics.events';
 import { AnalyticsService } from './analytics.service';
@@ -8,25 +9,9 @@ import { GoogleTagService } from './google-tag.service';
 import { QuickStatsService } from './quick-stats.service';
 import { RuntimeConfigService } from './runtime-config.service';
 
-const nativeHistoryPushState = History.prototype.pushState;
-const nativeHistoryReplaceState = History.prototype.replaceState;
-
-const restoreNativeHistoryStateMethods = (): void => {
-  Object.defineProperty(window.history, 'pushState', {
-    configurable: true,
-    writable: true,
-    value: nativeHistoryPushState.bind(window.history),
-  });
-  Object.defineProperty(window.history, 'replaceState', {
-    configurable: true,
-    writable: true,
-    value: nativeHistoryReplaceState.bind(window.history),
-  });
-};
-
 const setSpecUrl = (url: string): void => {
-  restoreNativeHistoryStateMethods();
-  nativeHistoryReplaceState.call(window.history, {}, '', url);
+  restoreTestBrowserHistory();
+  setTestBrowserUrl(url);
 };
 
 describe('AnalyticsService', () => {

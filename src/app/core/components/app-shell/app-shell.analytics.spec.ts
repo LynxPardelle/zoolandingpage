@@ -1,4 +1,5 @@
 import { AsyncPipe } from '@angular/common';
+import { setTestBrowserUrl } from '@/test-browser-state';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -43,10 +44,7 @@ class DebugWorkspaceStub {}
 
 const PRIMARY_DOMAIN = 'preview.example.test';
 const draftPreviewUrl = `/?draftDomain=${PRIMARY_DOMAIN}&draftPageId=default`;
-const nativeHistoryReplaceState = History.prototype.replaceState;
-const setBrowserUrl = (url: string): void => {
-  nativeHistoryReplaceState.call(window.history, {}, '', url);
-};
+const setBrowserUrl = setTestBrowserUrl;
 
 const createComponentsPayload = (
   components: Record<string, TComponentPayloadEntry>
@@ -215,8 +213,6 @@ describe('AppShellComponent analytics', () => {
       originalDevelopment;
     (environment as { development: boolean; production: boolean }).production =
       originalProduction;
-    setBrowserUrl('/context.html');
-    TestBed.resetTestingModule();
   });
 
   it('tracks the initial bootstrap page view once and records later navigations separately', async () => {

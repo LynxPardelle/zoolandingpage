@@ -1,11 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { PLATFORM_ID, REQUEST } from '@angular/core';
+import { setTestBrowserUrl } from '@/test-browser-state';
 import { LanguageService } from './language.service';
 
-const nativeHistoryReplaceState = History.prototype.replaceState;
-const setBrowserUrl = (url: string): void => {
-    nativeHistoryReplaceState.call(window.history, {}, '', url);
-};
+const setBrowserUrl = setTestBrowserUrl;
 
 describe('LanguageService', () => {
     let service: LanguageService;
