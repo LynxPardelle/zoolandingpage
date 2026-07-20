@@ -1,8 +1,8 @@
 # Server-Only Integration Foundation
 
-Date: 2026-07-14 (Central Time)
+Date: 2026-07-17 (Central Time)
 Scope: Draft-scoped server-only descriptors and the approved service boundaries that consume them.
-Status: Phase 1 contract and active authoring guard; no integration microservice or live provider path is deployed by this document.
+Status: Phase 1 contract/authoring boundary is active; Data Spaces is implemented locally only; no Data Spaces AWS stack or live provider path is deployed by this document.
 Source Of Truth:
 
 - [Approved implementation plan](../../plan/infrastructure-server-only-integrations-1.md)
@@ -14,8 +14,8 @@ Source Of Truth:
 - [`draft-feature-readiness.mjs`](../../tools/draft-feature-readiness.mjs)
 - [Repository map](../repository-map.md)
 
-Confidence: High for the Phase 1 descriptor, readiness, and authoring-enforcement contract; planned for service implementation, infrastructure, and live-provider behavior.
-Last Reviewed: 2026-07-15 (Central Time)
+Confidence: High for the Phase 1 descriptor/readiness/authoring contract and local Data Spaces implementation; planned for live service infrastructure and provider behavior.
+Last Reviewed: 2026-07-17 (Central Time)
 
 ## Contract Status
 
@@ -27,10 +27,12 @@ This document separates what exists in the current Zoolandingpage worktree from 
 | Dependency-free schema and semantic readiness validation | Present locally in Phase 1 |
 | Pre-S3 enforcement in Config Authoring | Active in test and production from an explicit allowlisted SAM artifact; invalid packages and stored-package publication failures are fail-closed |
 | Browser/SSR draft artifact boundary | Sanitized boundary-fix releases are active and private-path probes return `404`; incident closure remains gated by historical access limitations and final browser/risk acceptance evidence |
-| Runtime Read public/server boundary and deployment identities | Active in test and production with exact GitHub OIDC callers, retained CloudFormation service roles, code-owned execution boundaries, unchanged Lambda/API physical IDs, and verified denial of server-only descriptor reads |
-| Data Spaces, Commerce, Integrations, and Notifications services | Approved target for later phases; not deployed by this contract |
+| Runtime Read public/server boundary and deployment identities | Active in test and production with exact GitHub OIDC callers, retained CloudFormation service roles, code-owned execution boundaries, unchanged Lambda/API physical IDs, bounded public/S3 work, verified denial of server-only descriptor reads, and exact `GET /runtime-bundle` throttle 25/burst 50 |
+| Data Spaces service | Implemented and verified in the local `Z:\GitHub\zoolanding-data-spaces` repository; no remote or AWS resource exists yet |
+| Commerce service | TASK-025/TASK-026 are implemented and verified in the local `Z:\GitHub\zoolanding-commerce` repository: PAT-007 plus an undeployed three-table storage foundation; handlers, routes, event-source mappings, queues, roles, indexes, remote CI, and deployed AWS resources do not exist yet |
+| Integrations and Notifications services | Approved target for later phases; not implemented or deployed by this contract |
 | Stripe Connect, Checkout, Billing, and webhook handling | Stripe-specific adapter target; live setup is gated |
-| HostGator SMTP delivery | Notification-adapter target; real SMTP remains gated |
+| SMTP2GO outbound delivery | The standalone test account and `zoolandingpage.com.mx` sender domain are verified, and two sandboxed pilot-specific SMTP users exist. Credential rotation into canonical Secrets Manager bindings, final recipient policy, quota/cost approval, and acceptance/delivery evidence remain gated |
 
 A descriptor authorizes nothing by itself. It is policy input that a service must load from the exact published package version and enforce server-side.
 
@@ -46,6 +48,10 @@ The platform core is provider-neutral:
 - Notifications owns delivery attempts, retry/circuit state, and the final `accepted_by_smtp` status.
 
 Stripe is the first Integrations adapter, not the architecture. Stripe-specific choices stay inside the `stripe` binding block and the Integrations adapter: merchant accounts, direct charges, connected-account fee payer, Stripe tax mode, hosted onboarding/Checkout/Portal, signature verification, and provider resource mappings. A future provider requires a code-owned adapter, allowlisted egress and redirects, bounded timeouts and responses, and contract tests. A draft can never supply an arbitrary URL, hostname, secret path, or credential-forwarding target.
+
+SMTP2GO is the first Notifications transport, not the notification contract. Draft descriptors continue to request the generic `email.smtp` provider and `accepted_by_smtp` result; the owning services select the code-owned `smtp2go-smtp-v1` adapter, endpoint, port, account binding, and credential. Test uses the standalone SMTP2GO account designated for `zoolandingpage.com.mx`, once provisioned and verified, with a unique SMTP user/credential, connection, and server-enforced sender/rate namespace per test draft. Public plan documentation lists unlimited SMTP users; if the live account contradicts that entitlement, activation fails closed and the plan is repriced rather than sharing a credential. Production uses one standalone SMTP2GO account and credential set per `draftId + canonical sending domain`; production account or credential reuse across drafts or sending domains is forbidden. A second production sending domain requires a separately approved connection rather than implicit reuse.
+
+SMTP2GO is outbound-only in this contract. Existing inbound MX/mailbox service remains independent, and receiving, synchronization, replies, IMAP, and mailbox UI remain deferred. The MVP does not add SMTP2GO REST sending, provider webhooks, archiving, open tracking, or click tracking.
 
 ## Service Ownership
 
@@ -93,6 +99,8 @@ Every new descriptor uses `version: 1` and the same closed scope:
 Phase 1 accepts only the code-owned capabilities `data-space:record:read`, `data-space:record:write`, `data-space:schema:write`, and `data-space:publish`. Adding a future operation requires a reviewed schema/validator/service release; a draft cannot mint a capability string.
 
 The MVP isolates each new Data Space by `environment + tenantId + draftId`. Existing Content Hub blogs continue unchanged. Cross-draft Data Space sharing is not inferred from matching IDs or domains and requires a separately approved owner/share-binding contract.
+
+The completed local Phase 2 service uses one PAY_PER_REQUEST/SSE/PITR table with server-derived keys, conditional transactions, immutable schema/record revisions, and TTL only on 90-day idempotency receipts. Protected reads/actions reuse fresh Auth Admin state and the exact code-owned capabilities above; mutations also require CSRF. Public reads use only explicit published projections and have an exact API Gateway method throttle in the undeployed template. Once records exist, schema evolution preserves every existing field definition so an already-public value cannot survive a later `public -> internal` reclassification. The AWS_IAM snapshot path additionally requires the exact configured trusted Commerce role, an exact revision and field allowlist, and returns a canonical SHA-256 content hash. This is implementation evidence, not deployment evidence: no Data Spaces AWS resource, public route, remote repository, or production data exists yet. Free-text PII/secret detection is defense-in-depth rather than proof; Data Spaces remains operationally prohibited for customer PII or sensitive submissions.
 
 ### Commerce
 
@@ -160,6 +168,8 @@ Publication checks may call `DescribeSecret` only; they must never call `GetSecr
 - `zoolanding:enabled=true`
 
 SMTP secrets additionally require `zoolanding:connection-id`. Recipient secrets require `zoolanding:recipient-set-id`, `zoolanding:recipient-set-version`, and `zoolanding:recipient-member-id`. Missing or mismatched tags, `DeletedDate`, or an enabled tag absent/not exactly `true` must fail closed. Error output must not contain a secret name, ARN, tag set, descriptor value, or provider response.
+
+The connection registry binds each notification secret to the code-owned SMTP2GO adapter and expected sending domain without exposing a provider account identifier to the draft. Before test activation, operators verify the `zoolandingpage.com.mx` test account, its selected plan limits, sender authentication, and recipient policy. Before production activation, operators verify a standalone account owned for that exact draft/domain, a unique credential, the exact verified sender domain, and sender restrictions. The contract does not assume a stable provider account identifier until SMTP2GO documents and the implementation validates one, so account separation is an explicit audited live gate; deterministic secret paths and server-side sender enforcement remain mandatory defense in depth.
 
 ## Authorization
 
@@ -232,7 +242,7 @@ No wildcard internal Commerce API is planned. Notifications has no API Gateway r
 4. Commerce may obtain an immutable Data Spaces snapshot through the exact AWS IAM route, then owns the resulting commercial state. Checkout never performs a live generic-data join.
 5. Commerce reserves stock and creates its internal order before sending an idempotent Checkout command to Integrations. Browser success/cancel routes never prove payment.
 6. Stripe sends signed events directly to Integrations. Integrations owns the canonical provider snapshot and publishes only normalized confirmed-state events through its outbox and SNS topic; Commerce consumes through its own SQS queue/inbox.
-7. Commerce publishes `notification.requested.v1` only after a confirmed state change. Notifications reloads the policy from that event's exact `publishedVersionId`, rechecks current secret lifecycle tags, resolves the connection through AWS IAM, and attempts SMTP over TLS.
+7. Commerce publishes `notification.requested.v1` only after a confirmed state change. Notifications reloads the policy from that event's exact `publishedVersionId`, rechecks current secret lifecycle tags, resolves the connection through AWS IAM, enforces the bound draft/domain sender policy, and attempts SMTP over TLS through the code-owned SMTP2GO endpoint.
 8. A payment or notification never publishes, unpublishes, suspends, or deletes a draft.
 
 ## Event Contract
@@ -284,6 +294,8 @@ The Phase 1 readiness command returns a separate redacted report envelope with `
 - Webhook receipts and technical idempotency records expire after 90 days unless an incident hold applies. Business/financial records do not inherit that TTL.
 - Unknown provider outcomes are reconciled before stock release or a new provider mutation. They are not treated as confirmed failures.
 - SMTP cannot provide exactly-once delivery. A crash after SMTP accepts but before ledger commit can produce a duplicate retry; status stops at `accepted_by_smtp`, never guaranteed inbox delivery.
+- Notifications writes `prepared` and `sending` ledger states before the SMTP attempt. A confirmed SMTP `4xx` may retry and a confirmed `5xx` fails permanently; a timeout, connection loss, stale `sending` lease, or crash with no explicit rejection becomes `uncertain` and must not trigger a blind resend. An operator must manually investigate the matching SMTP2GO dashboard activity and record the decision before authorizing another attempt.
+- Automated SMTP2GO API/webhook ingestion is not part of the MVP. The delivery ledger records acceptance only from the bounded SMTP result; the provider dashboard is manual supporting evidence for an ambiguous attempt and later delivery, bounce, or complaint investigation. Any automated event reconciliation requires a separately approved event-ingress contract. This does not add a Zoolandingpage administration UI.
 
 ## Observability
 
@@ -304,7 +316,7 @@ npm run test:draft-public-artifact-boundary
 
 The readiness tests cover valid optional/complete descriptor sets, closed schemas, unknown properties, duplicate IDs, secrets/PII/provider-resource IDs including legacy server descriptors, valid opaque SSM and Secrets Manager references, code-owned capabilities/templates/disclosures, Auth Profile existence/scope, secret-reference limits, missing bindings, invalid feature combinations, domain/environment mismatch, test/live separation, stricter production requirements, exact packaging kinds, OIDC-free pre-deploy validation, and template-schema parity. The artifact test verifies the exact public projection and inspects generated browser plus SSR staging trees without printing private paths.
 
-Later phases must add service unit/contract tests, cross-draft and wrong-environment denial, webhook signature/replay tests, provider timeout/idempotency tests, inventory contention and reservation reconciliation, migration interruption/resume, SMTP duplicate/revocation/TLS tests, failure injection at every cross-service boundary, load tests, and desktop/mobile browser QA for every affected pilot route.
+Later phases must add service unit/contract tests, cross-draft and wrong-environment denial, Stripe webhook signature/replay tests, provider timeout/idempotency tests, inventory contention and reservation reconciliation, migration interruption/resume, SMTP duplicate/revocation/TLS tests, SMTP2GO endpoint/port allowlisting, production account/credential reuse denial, test sender-domain restrictions, failure injection at every cross-service boundary, load tests, and desktop/mobile browser QA for every affected pilot route.
 
 ## Deployment And Rollback
 
@@ -312,6 +324,7 @@ Later phases must add service unit/contract tests, cross-draft and wrong-environ
 - Local work may explicitly call deployed test services when no local substitute exists; `config-draft-sync` requires an explicit environment, maps an explicit remote dev read to test, rejects every dev mutation before an HTTP request, and verifies the returned domain/environment/stage before any local clean or write.
 - Pull requests follow `dev -> test -> main`. Draft test and production validation runs in a job without OIDC; only a dependent deploy job checking out the exact validated commit receives `id-token: write`. SSR build and artifact validation likewise run without OIDC; only a dependent publication job that downloads and rechecks the validated artifact receives `id-token: write`.
 - Test and production use separate stacks, tables, queues, secrets, webhook endpoints, Stripe modes, recipient policies, and idempotency namespaces.
+- Test notification delivery uses only the SMTP2GO account for `zoolandingpage.com.mx`; each test draft has a unique SMTP user/credential and connection/rate namespace, and production never resolves any test account or credential. Each production draft/canonical sending domain has its own standalone SMTP2GO account and secret. If the live test account cannot issue the distinct credentials documented for the selected plan, activation fails closed and the plan is repriced rather than weakening isolation.
 - Runtime Read deployment separates the exact repository/Environment/branch OIDC caller from its retained CloudFormation service role. The caller can pass only that role; the service role owns the bounded Lambda/API update surface and exact SAM transform access, and may attach only the code-owned execution boundary. CloudFormation persists the stack `RoleARN`; steady state has no `iam:DeleteRolePermissionsBoundary`, and retired callers retain no trust `Allow` during their rollback window.
 - Frontend builds copy only the exact public draft JSON shapes and approved media extensions. Recursive `drafts/**` copying, encoded or traversal-shaped path segments, private/local folders, repository metadata, `draft-repo.config.json`, and every `server/` descriptor are forbidden; packaging must run the artifact boundary guard before AWS credentials or upload.
 - Feature enablement is per draft and default-off. Test pilots begin with `zoositioweb.com.mx` and `sulandingpage.com.mx`; production remains off until test evidence is accepted.
@@ -326,7 +339,7 @@ The following remain blocking and must not be inferred from placeholder or test 
 1. Final incident closure for the formerly exposed live draft artifacts. Sanitized releases are active, current private-path probes return `404`, the current test/production release-prefix inventory contains no forbidden draft objects, and 44 desktop/mobile browser views passed without blocking responses, runtime failures, console errors, or overflow. Historical S3/CloudFront access logging was not enabled, so prior access cannot be reconstructed from those sources; keep the gate open until an explicit residual-risk/credential decision is recorded.
 2. Accountant/legal approval for fiscal fields, retention, access, request window, and the manual CFDI operating procedure. Until then, production fiscal capture is disabled.
 3. Confirmed Stripe account topology for each merchant binding, current official SDK/API compatibility, live tax responsibility/registration proof, webhook endpoint setup, and explicit test evidence. Platform commission remains disabled; optional application fees are future work.
-4. Written HostGator authorization and measured SMTP limits/deliverability, or an explicitly approved alternative provider. Until then, no real SMTP secret or production delivery is enabled.
+4. SMTP2GO test-account plan/limit verification, `zoolandingpage.com.mx` sender authentication, test recipient restrictions, and acceptance/delivery evidence; plus a separately verified standalone SMTP2GO account, unique credential, canonical sender domain, quota, and DNS authentication for every production draft. Until those checks pass, no real production SMTP secret or delivery is enabled.
 5. Implemented and audited owning-service repositories, least-privilege IAM, exact infrastructure routes, alarms, smoke evidence, and explicit deployment authorization.
 6. Clean pilot draft preflight plus validated test configuration. No payment result automates draft publication or suspension.
 
