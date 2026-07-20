@@ -145,8 +145,7 @@ describe('GenericAccordionComponent', () => {
         },
       ],
     };
-    i18n.setTranslations('es', processTranslations, { applyIfCurrent: true });
-    i18n.setTranslations('en', processTranslations, { applyIfCurrent: true });
+    i18n.setTranslations(i18n.currentLang(), processTranslations, { applyIfCurrent: true });
 
     fixture.componentRef.setInput('config', {
       renderMode: 'detail',

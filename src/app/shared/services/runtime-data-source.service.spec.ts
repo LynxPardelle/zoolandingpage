@@ -7,6 +7,7 @@ import { ContentHubClientService } from './content-hub-client.service';
 import { RuntimeDataSourceMapperService } from './runtime-data-source-mapper.service';
 import { RuntimeDataSourceService } from './runtime-data-source.service';
 import { VariableStoreService } from './variable-store.service';
+import { setTestBrowserUrl } from '@/test-browser-state';
 
 describe('RuntimeDataSourceService', () => {
     let service: RuntimeDataSourceService;
@@ -17,12 +18,10 @@ describe('RuntimeDataSourceService', () => {
     let contentHub: jasmine.SpyObj<ContentHubClientService>;
     let mapper: jasmine.SpyObj<RuntimeDataSourceMapperService>;
     let runtimeSearchParams: URLSearchParams;
-    const nativeHistoryReplaceState = History.prototype.replaceState;
-
     const setRuntimeUrl = (href: string): void => {
         const url = new URL(href, 'http://localhost');
         runtimeSearchParams = new URLSearchParams(url.search);
-        nativeHistoryReplaceState.call(window.history, {}, '', `${ url.pathname }${ url.search }${ url.hash }`);
+        setTestBrowserUrl(`${ url.pathname }${ url.search }${ url.hash }`);
     };
 
     beforeEach(() => {
@@ -146,6 +145,36 @@ describe('RuntimeDataSourceService', () => {
 
         expect(variables.get('remote.slow.items')).toEqual([{ title: 'mapped:slowAdminRead' }]);
         expect(variables.get('remote.fast.items')).toEqual([{ title: 'mapped:fastAdminRead' }]);
+    });
+
+    it('does not publish stale results or schedule refreshes after an in-flight run is stopped', async () => {
+        let resolveRead!: (value: any) => void;
+        proxy.readSource.and.returnValue(new Promise((resolve) => {
+            resolveRead = resolve;
+        }) as any);
+        mapper.mapResponse.and.returnValue({ items: [{ title: 'stale' }] });
+        const setIntervalSpy = spyOn(window, 'setInterval').and.callThrough();
+
+        const started = service.start({
+            domain: 'music.lynxpardelle.com',
+            pageId: 'default',
+            dataSources: [{
+                id: 'stale-source',
+                proxySourceId: 'staleSource',
+                target: 'remote.stale',
+                refresh: { mode: 'interval', intervalMs: 30_000 },
+            }],
+        });
+
+        await Promise.resolve();
+        expect(proxy.readSource).toHaveBeenCalledTimes(1);
+        service.stop();
+        resolveRead({ ok: true, data: { items: [{ title: 'stale' }] } });
+        await started;
+
+        expect(mapper.mapResponse).not.toHaveBeenCalled();
+        expect(variables.get('remote.stale')).toBeUndefined();
+        expect(setIntervalSpy).not.toHaveBeenCalled();
     });
 
     it('loads auth-admin account data sources without using the public api proxy', async () => {

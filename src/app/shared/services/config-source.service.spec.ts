@@ -10,16 +10,14 @@ import type {
 import { environment } from '@/environments/environment';
 import { PLATFORM_ID, REQUEST } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { setTestBrowserUrl } from '@/test-browser-state';
 import { ConfigApiService } from './config-api.service';
 import { ConfigSourceService } from './config-source.service';
 import { ConfigStoreService } from './config-store.service';
 import { DraftConfigLoaderService } from './draft-config-loader.service';
 import { LanguageService } from './language.service';
 
-const nativeHistoryReplaceState = History.prototype.replaceState;
-const setBrowserUrl = (url: string): void => {
-    nativeHistoryReplaceState.call(window.history, {}, '', url);
-};
+const setBrowserUrl = setTestBrowserUrl;
 
 describe('ConfigSourceService', () => {
     let originalDraftsEnabled: boolean;

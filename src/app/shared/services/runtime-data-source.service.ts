@@ -39,9 +39,11 @@ export class RuntimeDataSourceService {
     private readonly isBrowser = isPlatformBrowser(this.platformId);
     private readonly timers = new Set<ReturnType<typeof setInterval>>();
     private readonly loadRetryDelaysMs = [150, 500];
+    private activeRunId = 0;
 
     async start(options: TRuntimeDataSourceStartOptions): Promise<void> {
         this.stop();
+        const runId = this.activeRunId;
 
         const sources = (options.dataSources ?? [])
             .filter((source) => source.enabled !== false)
@@ -49,9 +51,10 @@ export class RuntimeDataSourceService {
             .filter((source) => this.matchesMode(source, options.mode));
         const preparedSources = this.prepareSources(sources, options.routeParams);
         this.markPreparedSourcesLoading(preparedSources);
-        await this.loadPreparedSources(options, preparedSources);
+        await this.loadPreparedSources(options, preparedSources, runId);
+        if (!this.isRunActive(runId)) return;
 
-        sources.forEach((source) => this.scheduleRefresh(options, source));
+        sources.forEach((source) => this.scheduleRefresh(options, source, runId));
     }
 
     markInitialSourcesLoading(options: Pick<TRuntimeDataSourceStartOptions, 'pageId' | 'dataSources' | 'mode'>): void {
@@ -64,29 +67,44 @@ export class RuntimeDataSourceService {
     }
 
     stop(): void {
+        this.activeRunId += 1;
         this.timers.forEach((timer) => clearInterval(timer));
         this.timers.clear();
     }
 
-    private async loadSource(options: TRuntimeDataSourceStartOptions, source: TRuntimeDataSourceConfig): Promise<void> {
+    private async loadSource(
+        options: TRuntimeDataSourceStartOptions,
+        source: TRuntimeDataSourceConfig,
+        runId: number,
+    ): Promise<void> {
+        if (!this.isRunActive(runId)) return;
         const prepared = this.prepareSource(source, options.routeParams);
         if (!prepared) return;
 
         this.writeStatus(source, 'loading', null);
         this.clearTargetForLoading(source);
-        await this.loadPreparedSource(options, prepared);
+        await this.loadPreparedSource(options, prepared, runId);
     }
 
     private async loadPreparedSource(
         options: TRuntimeDataSourceStartOptions,
         prepared: TPreparedRuntimeDataSource,
+        runId: number,
     ): Promise<void> {
         try {
-            const response = await this.readSourceWithRetry(options, prepared.source, prepared.sourceId, prepared.input);
+            const response = await this.readSourceWithRetry(
+                options,
+                prepared.source,
+                prepared.sourceId,
+                prepared.input,
+                runId,
+            );
+            if (!this.isRunActive(runId)) return;
             const mapped = this.mapper.mapResponse(response.data, prepared.source.mapper);
             this.writeMappedResult(prepared.source, mapped);
             this.writeStatus(prepared.source, this.hasItems(mapped) ? 'success' : 'empty', null);
         } catch (error) {
+            if (!this.isRunActive(runId)) return;
             this.writeStatus(
                 prepared.source,
                 'error',
@@ -99,8 +117,9 @@ export class RuntimeDataSourceService {
     private async loadPreparedSources(
         options: TRuntimeDataSourceStartOptions,
         preparedSources: readonly TPreparedRuntimeDataSource[],
+        runId: number,
     ): Promise<void> {
-        await Promise.all(preparedSources.map((prepared) => this.loadPreparedSource(options, prepared)));
+        await Promise.all(preparedSources.map((prepared) => this.loadPreparedSource(options, prepared, runId)));
     }
 
     private prepareSources(
@@ -144,6 +163,7 @@ export class RuntimeDataSourceService {
         source: TRuntimeDataSourceConfig,
         sourceId: string,
         input: Record<string, unknown> | undefined,
+        runId: number,
     ): Promise<TRuntimeApiProxyResponse<unknown>> {
         if (source.kind === 'auth-admin') {
             return this.readAuthAdminSource(source);
@@ -169,6 +189,9 @@ export class RuntimeDataSourceService {
         const attempts = this.loadRetryDelaysMs.length + 1;
 
         for (let attempt = 0; attempt < attempts; attempt++) {
+            if (!this.isRunActive(runId)) {
+                throw lastError instanceof Error ? lastError : new Error('Runtime data source run cancelled.');
+            }
             try {
                 return await this.proxy.readSource({
                     domain: options.domain,
@@ -178,6 +201,9 @@ export class RuntimeDataSourceService {
                 });
             } catch (error) {
                 lastError = error;
+                if (!this.isRunActive(runId)) {
+                    throw error;
+                }
                 if (attempt >= this.loadRetryDelaysMs.length) {
                     break;
                 }
@@ -219,7 +245,11 @@ export class RuntimeDataSourceService {
         return new Promise((resolve) => setTimeout(resolve, ms));
     }
 
-    private scheduleRefresh(options: TRuntimeDataSourceStartOptions, source: TRuntimeDataSourceConfig): void {
+    private scheduleRefresh(
+        options: TRuntimeDataSourceStartOptions,
+        source: TRuntimeDataSourceConfig,
+        runId: number,
+    ): void {
         if (!this.isBrowser) return;
         if (source.refresh?.mode !== 'interval') return;
 
@@ -227,9 +257,13 @@ export class RuntimeDataSourceService {
         if (!Number.isFinite(intervalMs) || intervalMs <= 0) return;
 
         const timer = setInterval(() => {
-            void this.loadSource(options, source);
+            void this.loadSource(options, source, runId);
         }, intervalMs);
         this.timers.add(timer);
+    }
+
+    private isRunActive(runId: number): boolean {
+        return runId === this.activeRunId;
     }
 
     private resolveProxySourceId(source: TRuntimeDataSourceConfig): string {

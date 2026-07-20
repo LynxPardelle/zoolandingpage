@@ -8,6 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { setTestBrowserUrl } from '@/test-browser-state';
 import { Router, provideRouter, withInMemoryScrolling } from '@angular/router';
 import { NgxAngoraService } from 'ngx-angora-css';
 import { of } from 'rxjs';
@@ -68,10 +69,7 @@ const LEGAL_DOMAIN = 'legal.example.test';
 const DEBUG_MODAL_ROOT_IDS = ['modalDemoRoot'];
 const draftPreviewUrl = (domain: string, pageId = 'default'): string =>
   `/?draftDomain=${domain}&draftPageId=${pageId}`;
-const nativeHistoryReplaceState = History.prototype.replaceState;
-const setBrowserUrl = (url: string): void => {
-  nativeHistoryReplaceState.call(window.history, {}, '', url);
-};
+const setBrowserUrl = setTestBrowserUrl;
 
 const flushDeferredBootstrapWork = async (
   fixture: ComponentFixture<AppShellComponent>,
@@ -261,11 +259,6 @@ describe('AppShellComponent', () => {
         imports: [WrapperOrchestratorStub, DebugWorkspaceStub, AsyncPipe],
       },
     });
-  });
-
-  afterEach(() => {
-    setBrowserUrl('/context.html');
-    TestBed.resetTestingModule();
   });
 
   it('should render main with id main-content and skip link', () => {

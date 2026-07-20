@@ -12,7 +12,7 @@
     "build": "node ./node_modules/@angular/cli/bin/ng.js build",
     "watch": "node ./node_modules/@angular/cli/bin/ng.js build --watch --configuration development",
     "test": "node ./node_modules/@angular/cli/bin/ng.js test",
-    "test:logged": "node tools/run-with-logs.mjs --name ng-test -- npm run test -- --watch=false --browsers=ChromeHeadless",
+    "test:logged": "node tools/run-with-logs.mjs --name ng-test -- npm run test -- --watch=false --browsers=ChromeHeadlessStable",
     "serve:ssr:zoolandingpage": "node dist/zoolandingpage/server/server.mjs",
     "serve:ssr": "npm run serve:ssr:zoolandingpage",
     "serve:ssr:logged": "node tools/run-with-logs.mjs --name ssr -- npm run serve:ssr:zoolandingpage",

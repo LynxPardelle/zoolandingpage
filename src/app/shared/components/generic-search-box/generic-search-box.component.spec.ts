@@ -1,11 +1,15 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { I18nService } from '../../services/i18n.service';
 import { GenericSearchBoxComponent } from './generic-search-box.component';
 
 describe('SearchBoxComponent', () => {
   let fixture: ComponentFixture<GenericSearchBoxComponent>;
   let comp: GenericSearchBoxComponent;
   beforeEach(async () => {
-    await TestBed.configureTestingModule({ imports: [GenericSearchBoxComponent] }).compileComponents();
+    await TestBed.configureTestingModule({
+      imports: [GenericSearchBoxComponent],
+      providers: [{ provide: I18nService, useValue: { t: () => 'Buscar' } }],
+    }).compileComponents();
     fixture = TestBed.createComponent(GenericSearchBoxComponent);
     comp = fixture.componentInstance;
     fixture.componentRef.setInput('config', {

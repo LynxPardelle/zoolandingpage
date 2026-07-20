@@ -2,6 +2,7 @@ import { PLATFORM_ID, REQUEST } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { environment } from '@/environments/environment';
 import { of } from 'rxjs';
+import { setTestBrowserUrl } from '@/test-browser-state';
 import { ConfigSourceService } from './config-source.service';
 import { DomainResolverService } from './domain-resolver.service';
 import { DraftRegistryService } from './draft-registry.service';
@@ -12,7 +13,6 @@ describe('DraftRuntimeService', () => {
   const originalProduction = environment.production;
   const originalDevelopment = environment.development;
   const originalDraftsEnabled = environment.drafts.enabled;
-  const nativeHistoryReplaceState = History.prototype.replaceState;
 
   const readSearchParam = (params: URLSearchParams, key: string): string => {
     const direct = String(params.get(key) ?? '').trim();
@@ -73,7 +73,7 @@ describe('DraftRuntimeService', () => {
 
   const setBrowserUrl = (requestUrl: string): void => {
     const nextUrl = new URL(requestUrl);
-    nativeHistoryReplaceState.call(window.history, {}, '', `${ nextUrl.pathname }${ nextUrl.search }${ nextUrl.hash }`);
+    setTestBrowserUrl(`${ nextUrl.pathname }${ nextUrl.search }${ nextUrl.hash }`);
   };
 
   const validPageConfig = (domain: string, pageId: string) => ({
@@ -197,7 +197,7 @@ describe('DraftRuntimeService', () => {
     (environment as { production: boolean; development: boolean }).production = originalProduction;
     (environment as { production: boolean; development: boolean }).development = originalDevelopment;
     (environment.drafts as { enabled: boolean }).enabled = originalDraftsEnabled;
-    nativeHistoryReplaceState.call(window.history, {}, '', originalUrl);
+    setTestBrowserUrl(originalUrl);
     TestBed.resetTestingModule();
   });
 

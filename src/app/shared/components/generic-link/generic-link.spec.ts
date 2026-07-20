@@ -1,5 +1,6 @@
 import { REQUEST } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { setTestBrowserUrl } from '@/test-browser-state';
 import { ConfigStoreService } from '../../services/config-store.service';
 import { DRAFT_RUNTIME_STICKY_QUERY_PARAMS } from '../../services/draft-runtime.service';
 import { resolveNavigationTarget } from '../../utility/navigation/navigation-target.utility';
@@ -8,14 +9,13 @@ import { GenericLink } from './generic-link';
 
 describe('GenericLink', () => {
   const draftPreviewUrl = '/home?draftDomain=pamelabetancourt.com&debugWorkspace=true';
-  const nativeHistoryReplaceState = History.prototype.replaceState;
   let component: GenericLink;
   let fixture: ComponentFixture<GenericLink>;
   let store: ConfigStoreService;
   let requestState: { url: string };
 
   const resetDraftPreviewUrl = (url = draftPreviewUrl): void => {
-    nativeHistoryReplaceState.call(window.history, {}, '', url);
+    setTestBrowserUrl(url);
     requestState.url = new URL(url, window.location.origin).toString();
   };
 
@@ -43,7 +43,7 @@ describe('GenericLink', () => {
   });
 
   afterEach(() => {
-    nativeHistoryReplaceState.call(window.history, {}, '', '/context.html');
+    setTestBrowserUrl('/context.html');
   });
 
   it('should create', () => {
@@ -168,7 +168,7 @@ describe('GenericLink', () => {
   });
 
   it('should use the request URL to carry draft params during SSR', () => {
-    nativeHistoryReplaceState.call(window.history, {}, '', '/context.html');
+    setTestBrowserUrl('/context.html');
     requestState.url = 'https://test.zoolandingpage.com.mx/blog?draftDomain=zoositioweb.com.mx&debugWorkspace=false&lang=es';
     fixture.componentRef.setInput('config', {
       id: 'spec',

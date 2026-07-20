@@ -15,6 +15,7 @@ import { environment } from '@/environments/environment';
 import { PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
+import { setTestBrowserUrl } from '@/test-browser-state';
 import { LoadingCurtainService } from './loading-curtain.service';
 import { RuntimeService } from './runtime.service';
 
@@ -40,8 +41,6 @@ const flushCssReadinessPasses = async (): Promise<void> => {
         await Promise.resolve();
     }
 };
-
-const nativeHistoryReplaceState = History.prototype.replaceState;
 
 describe('RuntimeService', () => {
     const originalUrl = window.location.pathname + window.location.search + window.location.hash;
@@ -95,7 +94,7 @@ describe('RuntimeService', () => {
 
     const setRuntimeUrl = (href: string): URL => {
         const url = new URL(href, 'http://localhost');
-        nativeHistoryReplaceState.call(window.history, {}, '', `${ url.pathname }${ url.search }${ url.hash }`);
+        setTestBrowserUrl(`${ url.pathname }${ url.search }${ url.hash }`);
         return url;
     };
 
@@ -895,8 +894,15 @@ describe('RuntimeService', () => {
         } as any);
 
         setRuntimeUrl('/admin/blog?draftDomain=pamelabetancourt.com&lang=es');
-        await service.initialize('es');
-        await flushPostBootstrapBrowserWork();
+        service.connect({
+            host: document.createElement('main'),
+            destroyRef: { destroyed: false, onDestroy: () => () => undefined } as any,
+            showDebugWorkspace: () => false,
+            currentLanguage: () => 'es',
+        });
+        for (let attempt = 0; attempt < 8 && service.rootComponentsIds().length === 0; attempt++) {
+            await flushPostBootstrapBrowserWork();
+        }
 
         expect(window.location.pathname).toBe('/acceso');
         expect(window.location.search).toContain('draftDomain=pamelabetancourt.com');
@@ -1518,5 +1524,58 @@ describe('RuntimeService', () => {
         service.disconnect();
 
         expect(runtimeDataSourcesStop).toHaveBeenCalled();
+    });
+
+    it('does not continue an in-flight initialization after disconnect', async () => {
+        let releaseContext!: () => void;
+        let markContextRequested!: () => void;
+        const contextRequested = new Promise<void>((resolve) => {
+            markContextRequested = resolve;
+        });
+        draftRuntimeResolveActiveDraftContext.and.callFake(() => new Promise((resolve) => {
+            releaseContext = () => resolve({
+                domain: 'pamelabetancourt.com',
+                pageId: 'home',
+                path: '/home',
+                route: { path: '/home', pageId: 'home' },
+                explicitPageId: false,
+            });
+            markContextRequested();
+        }));
+        const service = TestBed.inject(RuntimeService);
+        const initialization = service.initialize('es');
+
+        await contextRequested;
+        service.disconnect();
+        releaseContext();
+        await initialization;
+
+        expect(bootstrapLoad).not.toHaveBeenCalled();
+        expect(setExternalComponentsFromPayload).not.toHaveBeenCalled();
+    });
+
+    it('does not connect runtime work after its host has already been destroyed', () => {
+        const service = TestBed.inject(RuntimeService);
+        const initialize = spyOn(service, 'initialize').and.resolveTo();
+        const onDestroy = jasmine.createSpy('onDestroy');
+
+        service.connect({
+            host: document.createElement('main'),
+            destroyRef: { destroyed: true, onDestroy } as any,
+            showDebugWorkspace: () => false,
+            currentLanguage: () => 'es',
+        });
+
+        expect(onDestroy).not.toHaveBeenCalled();
+        expect(initialize).not.toHaveBeenCalled();
+    });
+
+    it('does not listen for browser navigation before connecting to a host', () => {
+        const service = TestBed.inject(RuntimeService);
+        const initialize = spyOn(service, 'initialize').and.resolveTo();
+
+        window.dispatchEvent(new PopStateEvent('popstate', { state: window.history.state }));
+
+        expect(initialize).not.toHaveBeenCalled();
     });
 });
