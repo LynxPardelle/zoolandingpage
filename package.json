@@ -67,6 +67,9 @@
     "ci:budgets": "node ./node_modules/@angular/cli/bin/ng.js build --configuration production",
     "ci:perf": "node tools/perf-baseline.mjs"
   },
+  "overrides": {
+    "vite": "7.3.6"
+  },
   "prettier": {
     "overrides": [
       {
@@ -79,17 +82,17 @@
   },
   "private": false,
   "dependencies": {
-    "@angular/animations": "^22.0.4",
-    "@angular/cdk": "^22.0.1",
-    "@angular/common": "^22.0.4",
-    "@angular/compiler": "^22.0.4",
-    "@angular/core": "^22.0.4",
-    "@angular/forms": "^22.0.4",
-    "@angular/material": "^22.0.1",
-    "@angular/platform-browser": "^22.0.4",
-    "@angular/platform-server": "^22.0.4",
-    "@angular/router": "^22.0.4",
-    "@angular/ssr": "^22.0.4",
+    "@angular/animations": "^22.0.7",
+    "@angular/cdk": "^22.0.5",
+    "@angular/common": "^22.0.7",
+    "@angular/compiler": "^22.0.7",
+    "@angular/core": "^22.0.7",
+    "@angular/forms": "^22.0.7",
+    "@angular/material": "^22.0.5",
+    "@angular/platform-browser": "^22.0.7",
+    "@angular/platform-server": "^22.0.7",
+    "@angular/router": "^22.0.7",
+    "@angular/ssr": "^22.0.7",
     "compression": "^1.8.1",
     "express": "^5.1.0",
     "ngx-angora-css": "^1.6.1",
@@ -102,9 +105,9 @@
     "uqr": "^0.1.3"
   },
   "devDependencies": {
-    "@angular/build": "^22.0.4",
-    "@angular/cli": "^22.0.4",
-    "@angular/compiler-cli": "^22.0.4",
+    "@angular/build": "^22.0.7",
+    "@angular/cli": "^22.0.7",
+    "@angular/compiler-cli": "^22.0.7",
     "@types/compression": "^1.8.1",
     "@types/express": "^5.0.3",
     "@types/jasmine": "^5.1.9",
