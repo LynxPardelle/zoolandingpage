@@ -1,4 +1,5 @@
 import { AsyncPipe } from '@angular/common';
+import { setTestBrowserUrl } from '@/test-browser-state';
 import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
@@ -48,10 +49,7 @@ class WrapperOrchestratorStub {
 class DebugWorkspaceStub {}
 
 const PRIMARY_DOMAIN = 'preview.example.test';
-const nativeHistoryReplaceState = History.prototype.replaceState;
-const setBrowserUrl = (url: string): void => {
-  nativeHistoryReplaceState.call(window.history, {}, '', url);
-};
+const setBrowserUrl = setTestBrowserUrl;
 
 const createComponentsPayload = (
   components: Record<string, TComponentPayloadEntry>
@@ -167,11 +165,6 @@ describe('AppShellComponent a11y', () => {
         imports: [WrapperOrchestratorStub, DebugWorkspaceStub, AsyncPipe],
       },
     });
-  });
-
-  afterEach(() => {
-    setBrowserUrl('/context.html');
-    TestBed.resetTestingModule();
   });
 
   it('skip link moves focus to main landmark', async () => {

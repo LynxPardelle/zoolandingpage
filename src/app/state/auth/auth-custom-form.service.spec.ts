@@ -33,6 +33,7 @@ describe('AuthCustomFormService', () => {
             '',
             '/acceso?draftDomain=zoositioweb.com.mx&debugWorkspace=false&lang=es',
         );
+        expect(window.location.pathname).toBe('/acceso');
         TestBed.inject(ConfigStoreService).setSiteConfig({
             version: 1,
             domain: 'zoositioweb.com.mx',

@@ -1,3 +1,4 @@
+import { environment } from '@/environments/environment';
 import { buildAuthEndpointUrl } from './auth-api-url.utility';
 
 describe('buildAuthEndpointUrl', () => {
@@ -16,10 +17,10 @@ describe('buildAuthEndpointUrl', () => {
         )).toBe('/auth/runtime-config');
     });
 
-    it('routes production custom auth forms to the stable API domain', () => {
+    it('routes custom auth forms through the active environment API base', () => {
         expect(buildAuthEndpointUrl(
             '/auth/signin',
             'https://zoositioweb.com.mx/acceso',
-        )).toBe('https://api.zoolandingpage.com.mx/auth/signin');
+        )).toBe(new URL('/auth/signin', environment.apiUrl).toString());
     });
 });

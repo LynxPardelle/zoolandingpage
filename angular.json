@@ -152,6 +152,7 @@
         "test": {
           "builder": "@angular/build:karma",
           "options": {
+            "karmaConfig": "karma.conf.cjs",
             "polyfills": [],
             "main": "src/test.ts",
             "tsConfig": "tsconfig.spec.json",
@@ -191,7 +192,7 @@
               "src/styles.scss"
             ],
             "watch": false,
-            "browsers": "ChromeHeadless"
+            "browsers": "ChromeHeadlessStable"
           }
         }
       }

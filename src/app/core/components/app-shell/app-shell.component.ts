@@ -266,6 +266,10 @@ export class AppShellComponent {
 
   private connectRuntime(): void {
     const connect = () => {
+      if (this.destroyRef.destroyed) {
+        return;
+      }
+
       if (this.isBrowser) {
         this.browserState.connect({
           document: this.host.nativeElement.ownerDocument,

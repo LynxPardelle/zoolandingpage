@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { makeStateKey, REQUEST, TransferState } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
+import { setTestBrowserUrl } from '@/test-browser-state';
 import { clearRuntimeBundleServerCacheForTesting, ConfigApiService } from './config-api.service';
 
 describe('ConfigApiService', () => {
@@ -12,7 +13,6 @@ describe('ConfigApiService', () => {
     const originalRuntimeFallbackUrl = environment.configApiRuntimeFallbackUrl;
     const originalFallbackUrls = environment.configApiServerFallbackUrls;
     const originalRuntimeFallbackUrls = environment.configApiRuntimeFallbackUrls;
-    const nativeHistoryReplaceState = History.prototype.replaceState;
     const palette = {
         bgColor: '#ffffff',
         textColor: '#111111',
@@ -104,7 +104,7 @@ describe('ConfigApiService', () => {
     beforeEach(() => {
         TestBed.resetTestingModule();
         clearRuntimeBundleServerCacheForTesting();
-        nativeHistoryReplaceState.call(window.history, {}, '', '/context.html');
+        setTestBrowserUrl('/context.html');
     });
 
     afterEach(() => {

@@ -69,6 +69,7 @@ export class RuntimeService {
     private renderedClassesRoot: HTMLElement | null = null;
     private hasCompletedInitialBootstrap = false;
     private hasRequestedInitialBootstrap = false;
+    private initializeId = 0;
     private initialPageViewTracked = false;
     private postBootstrapBrowserWorkId = 0;
     private renderedCssUpdateId = 0;
@@ -86,16 +87,16 @@ export class RuntimeService {
         { className: 'heroCaption', tokenName: 'secondaryTitleColor' },
     ] as const;
 
-    constructor() {
-        this.bindNavigationRefresh();
-    }
-
     connect(options: {
         host: HTMLElement;
         destroyRef: DestroyRef;
         showDebugWorkspace: () => boolean;
         currentLanguage: () => string;
     }): void {
+        if (options.destroyRef.destroyed) {
+            return;
+        }
+
         this.currentLanguageResolver = options.currentLanguage;
         this.showDebugWorkspaceResolver = options.showDebugWorkspace;
         this.debugWorkspaceEnabled = options.showDebugWorkspace();
@@ -124,6 +125,10 @@ export class RuntimeService {
     }
 
     disconnect(): void {
+        this.initializeId++;
+        if (!this.hasCompletedInitialBootstrap) {
+            this.hasRequestedInitialBootstrap = false;
+        }
         this.analytics.stopPageEngagementTracking();
         this.runtimeDataSources.stop();
         this.combosService.stopCssRuntime();
@@ -167,12 +172,16 @@ export class RuntimeService {
         if (lang !== undefined) {
             this.lastInitializeLanguage = lang;
         }
+        const initializeId = this.initializeId;
         this.initializeQueue = this.initializeQueue
             .catch(() => undefined)
             .then(async () => {
+                if (initializeId !== this.initializeId) return;
                 this.debugWorkspaceEnabled = this.showDebugWorkspaceResolver?.() ?? false;
                 await this.ensureDebugWorkspaceConfigured();
-                await this.doInitialize(nextLanguage);
+                if (initializeId !== this.initializeId) return;
+                await this.doInitialize(nextLanguage, initializeId);
+                if (initializeId !== this.initializeId) return;
                 this.hasCompletedInitialBootstrap = this.hasRenderableState();
             });
 
@@ -256,11 +265,12 @@ export class RuntimeService {
             && !/[\s\u0000-\u001F\u007F]/.test(value);
     }
 
-    private async doInitialize(lang?: string): Promise<void> {
+    private async doInitialize(lang: string | undefined, initializeId: number): Promise<void> {
         let protectedRouteLoadingStarted = false;
         let keepPrivateRouteLoading = false;
         try {
             const context = await this.draftRuntime.resolveActiveDraftContext();
+            if (initializeId !== this.initializeId) return;
             if (!context.domain || !context.pageId) {
                 this.clearPrivateRouteLoading();
                 this.clearRenderedDraft(context.domain, context.pageId);
@@ -287,6 +297,7 @@ export class RuntimeService {
                 protectedRouteLoadingStarted,
                 false,
             );
+            if (initializeId !== this.initializeId) return;
             if (!remoteAuthResolved && this.runtimeConfig.isDebugMode()) {
                 console.warn('[Runtime] Remote auth runtime resolution failed closed.', {
                     reason: this.runtimeConfig.remoteAuthError(),
@@ -299,6 +310,7 @@ export class RuntimeService {
                 protectedRouteLoadingStarted,
                 { handled: false, redirectTo: null, reason: 'not-callback-route' },
             );
+            if (initializeId !== this.initializeId) return;
             if (callbackResult.handled && callbackResult.redirectTo) {
                 this.clearRenderedDraft(context.domain, context.pageId);
                 this.loadingCurtain.hideWhenReady(`auth-callback-${ callbackResult.reason }`);
@@ -320,6 +332,7 @@ export class RuntimeService {
                     requiredGroups: context.route?.auth?.allowedGroups ?? [],
                 },
             );
+            if (initializeId !== this.initializeId) return;
             if (!routeAccess.allowed) {
                 this.clearRenderedDraft(context.domain, context.pageId);
                 this.auth.requestSignIn(this.authRuntime.profile()?.provider);
@@ -346,6 +359,7 @@ export class RuntimeService {
                 routePath: context.path,
                 routeParams: context.routeParams,
             });
+            if (initializeId !== this.initializeId) return;
 
             const domain = boot.domain || context.domain;
             this.loadingCurtain.configureFromDraft();
@@ -373,6 +387,7 @@ export class RuntimeService {
 
             const dataSources = this.configStore.siteConfig()?.runtime?.dataSources ?? [];
             const comboCatalogLoaded = await this.comboCatalogRuntime.load(domain, pageId);
+            if (initializeId !== this.initializeId) return;
             if (!comboCatalogLoaded && this.runtimeConfig.isDebugMode()) {
                 console.warn('[Runtime] Combo catalog runtime resolution failed; continuing with local draft combos.');
             }
@@ -382,6 +397,7 @@ export class RuntimeService {
                 void this.startRuntimeDataSources(domain, pageId, dataSources, context.routeParams);
             } else {
                 await this.startRuntimeDataSources(domain, pageId, dataSources, context.routeParams);
+                if (initializeId !== this.initializeId) return;
                 this.installRenderedDraft(domain, pageId, componentsPayload, rootIds, modalRootIds);
             }
 
