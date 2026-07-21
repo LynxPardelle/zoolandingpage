@@ -86,6 +86,92 @@ test('four server descriptor schemas are closed and bounded', async () => {
   );
 });
 
+test('commerce subscription policies match runtime and reject browser-owned authority', async () => {
+  const { validateSchema } = await validatorModule();
+  const { validateDraftFeatureReadiness } = await readinessModule();
+  const schema = await readJson(path.join(schemaDir, 'commerce.schema.json'));
+  const payments = schema.definitions.payments;
+  assert.deepEqual(payments.required, [
+    'bindingId',
+    'supportedCurrencies',
+    'oneTime',
+    'subscriptions',
+    'editablePrices',
+    'coupons',
+    'planChangePolicy',
+    'pausePolicy',
+  ]);
+  assert.deepEqual(payments.properties.planChangePolicy, { $ref: '#/definitions/planChangePolicy' });
+  assert.deepEqual(payments.properties.pausePolicy, { $ref: '#/definitions/pausePolicy' });
+  assert.deepEqual(schema.definitions.planChangePolicy.properties.mode.enum, [
+    'disabled',
+    'next-renewal',
+    'immediate-prorated',
+  ]);
+  assert.deepEqual(schema.definitions.pausePolicy.oneOf, [
+    { $ref: '#/definitions/pausePolicyDisabled' },
+    { $ref: '#/definitions/pausePolicyEnabled' },
+  ]);
+  assert.deepEqual(schema.definitions.pausePolicyEnabled.required, [
+    'enabled',
+    'newInvoiceBehavior',
+    'existingInvoiceBehavior',
+    'accessBehavior',
+    'resume',
+    'onResume',
+  ]);
+  assert.deepEqual(schema.definitions.pausePolicyEnabled.properties.newInvoiceBehavior.enum, [
+    'void',
+    'keep-as-draft',
+    'mark-uncollectible',
+  ]);
+  assert.deepEqual(schema.definitions.pausePolicyEnabled.properties.existingInvoiceBehavior, { const: 'unchanged' });
+  assert.deepEqual(schema.definitions.pausePolicyEnabled.properties.accessBehavior.enum, ['retain', 'suspend']);
+  assert.deepEqual(schema.definitions.pauseResumePolicy, {
+    type: 'object',
+    required: ['mode'],
+    properties: { mode: { const: 'manual' } },
+    additionalProperties: false,
+  });
+  assert.deepEqual(schema.definitions.pauseOnResumePolicy, {
+    type: 'object',
+    required: ['collection', 'access'],
+    properties: {
+      collection: { const: 'restore' },
+      access: { const: 'restore-if-suspended' },
+    },
+    additionalProperties: false,
+  });
+
+  const scenarios = [
+    paymentsValue => { paymentsValue.operatorPauses = true; },
+    paymentsValue => { paymentsValue.proration = 'operator-selectable'; },
+    paymentsValue => { paymentsValue.planChangePolicy.previewTimestamp = 1; },
+    paymentsValue => { paymentsValue.planChangePolicy.stripePriceId = 'price_synthetic'; },
+    paymentsValue => { paymentsValue.pausePolicy.billingBehavior = 'void'; },
+    paymentsValue => { paymentsValue.pausePolicy.resumeAt = 'https://attacker.invalid'; },
+    paymentsValue => { paymentsValue.pausePolicy.stripeSubscriptionId = 'sub_synthetic'; },
+  ];
+  for (const mutate of scenarios) {
+    const files = await fixtureFiles();
+    const commerceDescriptor = files.find(file => file.path.endsWith('/commerce.json')).content;
+    mutate(commerceDescriptor.commerce.payments);
+    const schemaErrorCodes = new Set(validateSchema(schema, commerceDescriptor).map(error => error.code));
+    assert.equal(
+      ['property_not_allowed', 'one_of'].some(code => schemaErrorCodes.has(code)),
+      true,
+    );
+    const report = await validateDraftFeatureReadiness({
+      domain: 'example.com', environment: 'test', mode: 'test', files,
+    });
+    assert.equal(report.ok, false);
+    assert.equal(
+      report.findings.some(finding => ['schema_property_not_allowed', 'schema_one_of'].includes(finding.code)),
+      true,
+    );
+  }
+});
+
 test('the dependency-free validator enforces every schema keyword in use', async () => {
   const { assertSupportedSchema, validateSchema } = await validatorModule();
   const keywordSchema = {
