@@ -261,9 +261,28 @@ No wildcard internal Commerce API is planned. Notifications has no API Gateway r
 
 The four migration paths remain present as closed contract boundaries during Phase 4, but they return a sanitized fail-closed response and perform no Stripe call or provider/job mutation until the Phase 5 migration engine is implemented.
 
+### Phase 4 Stripe command contract
+
+Phase 4 does not add another internal route. `POST /internal/v1/stripe/offer` has the closed operation `provision|deactivate`: `provision` requires the immutable OfferVersion resource ID, revision, schema version, economic snapshot, and verified content hash; `deactivate` requires the mapped OfferVersion resource ID, a newer revision, and its verified lifecycle content hash. `POST /internal/v1/stripe/product-presentation` remains the only product-presentation command. The existing discount lifecycle route remains discount-specific. `POST /internal/v1/stripe/subscription/discount` has the closed action `apply|remove`; `discountVersionId` is required for `apply` and forbidden for `remove`. Removal proceeds only when the canonical subscription has exactly the expected platform-managed discount mapping; an absent, external, legacy, stacked, or ambiguous discount returns `needs_review` without a provider mutation.
+
+The ordinary command response is exactly `{commandId, status}`, where `status` is `accepted|pending|needs_review`. A successful Checkout or Customer Portal handoff is instead exactly `{commandId, status: "accepted", redirectUrl, expiresAt}`. `redirectUrl` is a server-generated allowlisted provider URL and `expiresAt` is a positive server-owned not-after epoch; both exist only in that immediate response, which carries `Cache-Control: no-store`, and neither value is persisted, logged, analyzed, or emitted. A redirect command that is pending or needs review uses the ordinary response and has no redirect fields. Checkout status is exactly `{orderId, paymentAttemptId, revision, status}` with `status` in `not_created|pending|paid|terminal_unpaid|unknown`; it contains no Stripe ID, URL, customer field, shipping field, email, or other PII.
+
+`needs_review` is a durable Integrations service status meaning safe automation stopped and protected operator review is required. It is not an HTTP error code, a provider-success substitute, or an asynchronous Commerce event. The service must not claim `accepted` after an ambiguous provider mutation; it records `pending`, re-fetches canonical state, and only then produces a terminal normalized result.
+
+Commerce resolves subscription policy from the exact published server package before invoking Integrations. A change command contains only `subscriptionId`, `expectedRevision`, `targetOfferVersionId`, the closed server-resolved `planChangePolicy`, and `previewTimestamp` when and only when the mode is `immediate-prorated`. Pause/resume contains only `subscriptionId`, `expectedRevision`, `action: pause|resume`, and the closed server-resolved `pausePolicy`. These policy fields are forbidden in browser input and are revalidated by Integrations; Stripe IDs remain resolved exclusively from scoped mappings.
+
+Phase 4 `next-renewal` is deliberately narrow: it may create a Schedule only when the canonical subscription has exactly one unambiguous licensed item, an exact current and target OfferVersion mapping, explicit preserved quantity, no existing Schedule, no pending update, and no invoice, payment, discount, or tax ambiguity. It keeps the current Price through the current period end and places only the target Price with the same quantity in the future phase. Any existing Schedule, multiple item, unsupported field, or state that cannot be reproduced losslessly returns `needs_review`; Phase 5 owns general schedule reconstruction. `immediate-prorated` previews and applies the exact item, quantity, policy, and same `previewTimestamp`; a preview/apply mismatch or unknown outcome cannot become a successful response.
+
 ### Stripe webhook ingress
 
-`/webhooks/stripe/connect` is a direct Integrations API Gateway path. It must not traverse draft domains or the frontend CloudFront distribution. The handler verifies the signature over unmodified bytes and configured timestamp tolerance before using the signed account ID. One immutable, non-authorizing sentinel keyed by `environment + mode + hash(accountId)` routes to the exact scoped connection; the handler then revalidates environment, tenant, draft, connection, account, and `livemode`. A second immutable global replay sentinel keyed by `environment + provider + eventId` binds the scoped reference, account hash, mode, and payload hash so the SEC-006B matrix is enforceable across drafts. Supported events atomically store only allowlisted receipt metadata, payload hash, and ingress outbox. The full Stripe payload is never persisted. A valid signed but unsupported event is acknowledged safely without provider-state mutation or ingress work.
+`/webhooks/stripe/connect` is a direct Integrations API Gateway path. It must not traverse draft domains or the frontend CloudFront distribution. The handler verifies the signature over unmodified bytes and configured timestamp tolerance before using the signed account ID. One immutable, non-authorizing sentinel keyed by `environment + mode + hash(accountId)` routes to the exact scoped connection; the handler then revalidates environment, tenant, draft, connection, account, and `livemode`. A second immutable global replay sentinel keyed by `environment + provider + eventId` binds the scoped reference, account hash, mode, and payload hash so the SEC-006B matrix is enforceable across drafts. Supported events atomically store only allowlisted receipt metadata, payload hash, and ingress outbox. The full Stripe payload is never persisted. A valid signed event outside the following exact allowlist returns controlled `2xx` with no receipt/outbox work, provider re-fetch, provider-state mutation, or Commerce event:
+
+| Stripe event allowlist | Canonical re-fetch as the exact connected account | Allowed Commerce result |
+|---|---|---|
+| `checkout.session.completed`, `checkout.session.expired`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed` | Event, then Checkout Session; referenced PaymentIntent when present; referenced Subscription and latest Invoice for subscription mode | `commerce.payment.succeeded.v1` or `commerce.payment.terminal_unpaid.v1` only after canonical paid/terminal truth; subscription mode may also produce `commerce.subscription.updated.v1` |
+| `refund.created`, `refund.updated` | Event, then Refund and its referenced PaymentIntent or Charge | `commerce.refund.confirmed.v1` only when the canonical Refund is succeeded |
+| `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted` | Event, then Subscription and latest Invoice when present | `commerce.subscription.updated.v1` |
+| `invoice.paid`, `invoice.payment_failed` | Event, then Invoice and its referenced Subscription | `commerce.subscription.updated.v1` from canonical subscription state |
 
 ## Data Flow
 
@@ -278,7 +297,7 @@ The four migration paths remain present as closed contract boundaries during Pha
 
 ## Event Contract
 
-Detailed per-event JSON Schemas belong to the owning service phases and are not yet implemented. The approved envelope constraints are fixed:
+Detailed JSON Schemas remain owned by the emitting and consuming services. The four Commerce consumer shapes are already implemented and Phase 4 must reuse them unchanged; the approved envelope constraints are fixed:
 
 - every state-changing operation carries `requestId`, `correlationId`, `environment`, `draftId`, `tenantId`, an actor hash when authenticated, and an idempotency key;
 - asynchronous events are versioned, at-least-once safe, idempotent, and draft/environment scoped;
@@ -308,6 +327,8 @@ Protected service APIs reuse `zlp-protected-feature-error-v1`:
 
 The established safe codes are `auth_required`, `forbidden`, `tenant_mismatch`, `environment_mismatch`, `group_mismatch`, `validation_error`, `not_found`, `conflict`, `rate_limited`, `upstream_unavailable`, and `internal_error`. Service-specific additions require a versioned owning-service contract; raw exceptions and provider responses are never returned.
 
+`needs_review` is not added to this HTTP error-code list. It appears only as the typed Integrations command status defined above and never authorizes a retry, reports provider success, or creates a new event family.
+
 The Phase 1 readiness command returns a separate redacted report envelope with `ok`, `mode`, `domain`, `environment`, `fileCount`, `featureFileCount`, `blockingCount`, `warningCount`, and `findings`. Each finding exposes only `code`, `severity`, optional safe `server/<filename>`, and JSON pointer. Blocking codes currently include:
 
 - structural/safety: `duplicate_path`, `invalid_server_descriptor_path`, `unknown_server_descriptor`, `non_json_value_forbidden`, `secret_value_forbidden`, `pii_value_forbidden`, `provider_resource_id_forbidden`, `descriptor_too_large`, and `schema_*`;
@@ -323,6 +344,7 @@ The Phase 1 readiness command returns a separate redacted report envelope with `
 
 - Local state changes and their outbox record are written atomically; only an outbox relay publishes.
 - Consumers maintain idempotent inbox/receipt records and tolerate duplicate and out-of-order delivery according to their owning event contract.
+- Every TASK-041 through TASK-045 Stripe mutation uses the literal `integrations-command-v1` namespace. Its provider idempotency key is `integrations-command-v1:<digest>`, where `<digest>` is the lowercase SHA-256 of canonical UTF-8 JSON containing exactly the scope (`environment`, `tenantId`, `draftId`, `domain`), opaque `connectionId`, route operation/action, internal resource ID, positive revision, and `contentHash`. Snapshot commands use their verified immutable snapshot/lifecycle hash; other commands calculate `contentHash` from the complete closed server-to-server input after excluding the idempotency key and hash field. Checkout uses `paymentAttemptId` as its internal resource ID, so this is the approved `PaymentAttemptId + revision` derivation without forwarding the browser recovery capability. The same key and hash replay the stored result; the same key with a different request hash is `conflict` and makes no provider call.
 - The Stripe webhook replay key includes event ID, account, mode, and payload hash. An identical duplicate returns `2xx` and resumes incomplete work; a changed account, mode, or hash is rejected and alerted.
 - Business records remain partitioned by environment + tenant + draft. PAT-003 permits only the immutable non-authorizing hashed account-routing sentinel and global replay sentinel described above; neither contains a raw provider account ID or grants access, and every route result is revalidated against the full scoped binding.
 - Webhook receipts and technical idempotency records expire after 90 days unless an incident hold applies. Business/financial records do not inherit that TTL.
