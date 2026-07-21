@@ -156,6 +156,38 @@ test('Stripe Connect architecture fixes the platform secret and twelve-event all
   assert.match(ingressSection, /https:\/\/docs\.stripe\.com\/connect\/webhooks/);
 });
 
+test('Phase 4 architecture closes portal, tax approval, OAuth error, and reconnect boundaries', async () => {
+  const [architecture, plan] = await Promise.all([
+    readFile(integrationArchitecturePath, 'utf8'),
+    readFile(integrationPlanPath, 'utf8'),
+  ]);
+
+  for (const contract of [architecture, plan]) {
+    assert.match(contract, /`customerPortalReturnPath`/);
+    assert.match(contract, /published canonical domain[^\n]+front door/i);
+    assert.match(contract, /server-owned Registry approval record/i);
+    for (const field of [
+      'environment', 'tenantId', 'draftId', 'domain', 'connectionId',
+      'accountHash', 'mode', 'revision',
+    ]) {
+      assert.match(contract, new RegExp('`' + field + '`'));
+    }
+    assert.match(contract, /absent[^\n]+fail(?:s)? closed/i);
+    assert.match(contract, /test[^\n]+inject(?:ed|able)? verifier/i);
+    assert.match(contract, /exactly one of `code` or sanitized `error`/i);
+    assert.match(contract, /validat(?:e|es|ed|ing)[^\n]+`state`[^\n]+before/i);
+    assert.match(contract, /OAuth access and refresh tokens[^\n]+never[^\n]+browser/i);
+    assert.match(contract, /`requestReconnect`[^\n]+same[^\n]+account[^\n]+`deauthorize`/i);
+  }
+
+  assert.match(architecture, /`amountMinor`[^\n]+99,999,999/);
+  assert.match(architecture, /revision[^\n]+9,999,999,999/i);
+  assert.match(architecture, /`displayName`[^\n]+160/);
+  assert.match(architecture, /repeating[^\n]+36/);
+  assert.match(architecture, /redemption[^\n]+1,000,000/i);
+  assert.match(architecture, /runtime mutations[^\n]+not draft descriptor fields/i);
+});
+
 test('commerce subscription policies match runtime and reject browser-owned authority', async () => {
   const { validateSchema } = await validatorModule();
   const { validateDraftFeatureReadiness } = await readinessModule();
@@ -429,6 +461,71 @@ test('Stripe Connect onboarding requires manage authorization and same-origin ro
     });
     assert.equal(report.findings.some(finding => finding.code.startsWith('schema_')), true);
   }
+});
+
+test('customer portal capability requires only a safe same-origin return path', async () => {
+  const { validateSchema } = await validatorModule();
+  const { validateDraftFeatureReadiness } = await readinessModule();
+  const schema = await readJson(path.join(schemaDir, 'integration-bindings.schema.json'));
+
+  const validFiles = await fixtureFiles();
+  const validBinding = validFiles.find(file => file.path.endsWith('/integration-bindings.json'))
+    .content.bindings[0];
+  assert.equal(validBinding.stripe.customerPortalReturnPath, '/admin/suscripcion');
+  assert.deepEqual(validateSchema(
+    schema,
+    validFiles.find(file => file.path.endsWith('/integration-bindings.json')).content,
+  ), []);
+
+  const missingFiles = await fixtureFiles();
+  const missingDescriptor = missingFiles.find(file => file.path.endsWith('/integration-bindings.json')).content;
+  delete missingDescriptor.bindings[0].stripe.customerPortalReturnPath;
+  assert.equal(
+    validateSchema(schema, missingDescriptor).some(error => error.code === 'required'),
+    true,
+  );
+  const missingReport = await validateDraftFeatureReadiness({
+    domain: 'example.com', environment: 'test', mode: 'test', files: missingFiles,
+  });
+  assert.equal(missingReport.findings.some(finding => finding.code === 'schema_required'), true);
+
+  const unusedFiles = await fixtureFiles();
+  const unusedDescriptor = unusedFiles.find(file => file.path.endsWith('/integration-bindings.json')).content;
+  const unusedBinding = unusedDescriptor.bindings[0];
+  unusedBinding.capabilities = unusedBinding.capabilities
+    .filter(capability => capability !== 'customer-portal');
+  assert.equal(
+    validateSchema(schema, unusedDescriptor).some(error => error.code === 'not_allowed'),
+    true,
+  );
+  delete unusedBinding.stripe.customerPortalReturnPath;
+  assert.deepEqual(validateSchema(schema, unusedDescriptor), []);
+
+  for (const value of [
+    'https://evil.example/portal',
+    '//evil.example/portal',
+    '/portal?next=/admin',
+    '/portal#account',
+  ]) {
+    const files = await fixtureFiles();
+    files.find(file => file.path.endsWith('/integration-bindings.json'))
+      .content.bindings[0].stripe.customerPortalReturnPath = value;
+    const report = await validateDraftFeatureReadiness({
+      domain: 'example.com', environment: 'test', mode: 'test', files,
+    });
+    assert.equal(report.findings.some(finding => finding.code === 'schema_string_pattern'), true, value);
+  }
+
+  const providerIdFiles = await fixtureFiles();
+  providerIdFiles.find(file => file.path.endsWith('/integration-bindings.json'))
+    .content.bindings[0].stripe.customerPortalReturnPath = '/portal/accounts/acct_synthetic';
+  const providerIdReport = await validateDraftFeatureReadiness({
+    domain: 'example.com', environment: 'test', mode: 'test', files: providerIdFiles,
+  });
+  assert.equal(
+    providerIdReport.findings.some(finding => finding.code === 'provider_resource_id_forbidden'),
+    true,
+  );
 });
 
 test('integration administration links an active same-scope Auth Profile with valid groups', async () => {
