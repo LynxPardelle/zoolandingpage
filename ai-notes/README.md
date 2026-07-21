@@ -68,6 +68,10 @@ Chronological history lives outside this folder:
 - [../changelog/app/](../changelog/app/): app, runtime, tooling, deploy, and release history
 - [../changelog/drafts/](../changelog/drafts/): draft authoring, QA, and publish history
 
+## Common Procedures
+
+- [Spreadsheet-driven QA release](./how-to/spreadsheet-driven-qa-release.md): one branch per QA ID, evidence-backed spreadsheet updates, triple audit, protected promotion, and desktop/mobile verification in test and production.
+
 ## Taxonomy Rules
 
 - Use `knowledge/` for evergreen distilled reference that should stay true after the original task is forgotten.
