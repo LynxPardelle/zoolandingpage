@@ -65,6 +65,7 @@ const COMMERCE_CAPABILITIES = Object.freeze([
   'commerce:catalog:write',
   'commerce:inventory:write',
   'commerce:subscription:manage',
+  'subscription:migration:execute',
   'commerce:fiscal:manage',
 ]);
 const FISCAL_DISCLOSURES = Object.freeze(['manual-invoice-v1']);

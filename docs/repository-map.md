@@ -1,6 +1,6 @@
 # Zoolanding Repository Map
 
-**Verified:** 2026-07-21 (Central Time) for the Phase 4 local service entries; previously listed GitHub metadata was not reclassified by this documentation closeout.
+**Verified:** 2026-07-21 (Central Time) for the Phase 5 local service entries; previously listed GitHub metadata was not reclassified by this documentation closeout.
 **Owner:** `LynxPardelle` unless a repository states otherwise.
 
 This is the fleet router, not a release dashboard. Default branches can change and do not imply a shared promotion path. Before editing a sibling, fetch its current metadata and read its own entrypoint, branch rules, tests, deployment, and rollback guidance.
@@ -18,8 +18,8 @@ This is the fleet router, not a release dashboard. Default branches can change a
 | [`zoolanding-content-hub`](https://github.com/LynxPardelle/zoolanding-content-hub) | Generic content read/authoring BFF and publication policy | `main` | Repo README; do not edit the known detached local checkout |
 | [`zoolanding-combo-catalog`](https://github.com/LynxPardelle/zoolanding-combo-catalog) | Reusable Angora combos, groups, draft policy, and guarded mutations | `main` | Repo `AGENTS.md`, then README |
 | `zoolanding-data-spaces` (local only; no GitHub remote) | Generic draft-scoped collection schemas, records, immutable revisions, and published projections | n/a | Local `AGENTS.md`, then README; Phase 2 forbids AWS deployment |
-| `zoolanding-commerce` (local only; no GitHub remote) | Provider-neutral catalog, inventory, Checkout, subscription, Integrations gateway, event/outbox, reconciliation, and isolated manual fiscal workflows | n/a | Local `AGENTS.md`, then README; Phase 4 Commerce wiring is complete locally and AWS deployment remains blocked |
-| `zoolanding-integrations` (local only; no GitHub remote) | Generic connection registry, Stripe Connect onboarding/adapter, provider mappings, hosted Checkout/portal commands, webhook normalization, and Integrations event outbox | n/a | Local `AGENTS.md`, then README; Phase 4 is complete locally, migrations remain fail closed until Phase 5, and AWS/provider activation remains blocked |
+| `zoolanding-commerce` (local only; no GitHub remote) | Provider-neutral catalog, inventory, Checkout, subscription, migration requests/approval, Integrations gateway, event/outbox, reconciliation, and isolated manual fiscal workflows | n/a | Local `AGENTS.md`, then README; Phase 5 Commerce migration orchestration is complete locally and AWS deployment remains blocked |
+| `zoolanding-integrations` (local only; no GitHub remote) | Generic connection registry, Stripe Connect onboarding/adapter, provider mappings, hosted Checkout/portal commands, webhook normalization, event outbox, and bounded bulk subscription migration | n/a | Local `AGENTS.md`, then README; Phase 5 migration execution is complete locally and AWS/provider activation remains blocked |
 | [`zoolanding-image-upload`](https://github.com/LynxPardelle/zoolanding-image-upload) | Temporary-grant validation and public image upload/compression | `main` | Repo README |
 | [`zoolanding-data-dropper-lambda`](https://github.com/LynxPardelle/zoolanding-data-dropper-lambda) | Raw analytics validation and date-partitioned S3 ingestion | `main` | Repo README; hub owns the cross-platform event model |
 | [`zoolanding-quick-stats-lambda`](https://github.com/LynxPardelle/zoolanding-quick-stats-lambda) | Lightweight per-app `stats.json` reads and updates | `main` | Repo README; hub owns frontend integration |

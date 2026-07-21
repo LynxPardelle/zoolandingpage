@@ -125,7 +125,7 @@ test('Stripe account strategies fail closed and keep Accounts v2 out of draft po
   assert.equal(report.findings.some(finding => finding.code === 'schema_enum_mismatch'), true);
 });
 
-test('Stripe Connect architecture fixes the platform secret and twelve-event allowlist', async () => {
+test('Stripe Connect architecture fixes the platform secret and fourteen-event allowlist', async () => {
   const [architecture, plan] = await Promise.all([
     readFile(integrationArchitecturePath, 'utf8'),
     readFile(integrationPlanPath, 'utf8'),
@@ -146,6 +146,8 @@ test('Stripe Connect architecture fixes the platform secret and twelve-event all
     'checkout.session.expired',
     'customer.subscription.created',
     'customer.subscription.deleted',
+    'customer.subscription.pending_update_applied',
+    'customer.subscription.pending_update_expired',
     'customer.subscription.updated',
     'invoice.paid',
     'invoice.payment_failed',
@@ -205,6 +207,17 @@ test('commerce subscription policies match runtime and reject browser-owned auth
   ]);
   assert.deepEqual(payments.properties.planChangePolicy, { $ref: '#/definitions/planChangePolicy' });
   assert.deepEqual(payments.properties.pausePolicy, { $ref: '#/definitions/pausePolicy' });
+  assert.deepEqual(payments.properties.migrationPolicy, { $ref: '#/definitions/migrationPolicy' });
+  assert.equal(payments.required.includes('migrationPolicy'), false);
+  assert.deepEqual(schema.definitions.migrationPolicy, {
+    type: 'object',
+    required: ['canarySize', 'accountConcurrency'],
+    properties: {
+      canarySize: { type: 'integer', minimum: 1, maximum: 25 },
+      accountConcurrency: { type: 'integer', minimum: 1, maximum: 5 },
+    },
+    additionalProperties: false,
+  });
   assert.deepEqual(schema.definitions.planChangePolicy.properties.mode.enum, [
     'disabled',
     'next-renewal',
@@ -253,6 +266,9 @@ test('commerce subscription policies match runtime and reject browser-owned auth
     paymentsValue => { paymentsValue.pausePolicy.billingBehavior = 'void'; },
     paymentsValue => { paymentsValue.pausePolicy.resumeAt = 'https://attacker.invalid'; },
     paymentsValue => { paymentsValue.pausePolicy.stripeSubscriptionId = 'sub_synthetic'; },
+    paymentsValue => { paymentsValue.migrationPolicy.canarySize = 26; },
+    paymentsValue => { paymentsValue.migrationPolicy.accountConcurrency = 0; },
+    paymentsValue => { paymentsValue.migrationPolicy.providerAccountId = 'acct_synthetic'; },
   ];
   for (const mutate of scenarios) {
     const files = await fixtureFiles();
@@ -260,7 +276,8 @@ test('commerce subscription policies match runtime and reject browser-owned auth
     mutate(commerceDescriptor.commerce.payments);
     const schemaErrorCodes = new Set(validateSchema(schema, commerceDescriptor).map(error => error.code));
     assert.equal(
-      ['property_not_allowed', 'one_of'].some(code => schemaErrorCodes.has(code)),
+      ['property_not_allowed', 'one_of', 'number_minimum', 'number_maximum']
+        .some(code => schemaErrorCodes.has(code)),
       true,
     );
     const report = await validateDraftFeatureReadiness({
@@ -268,7 +285,12 @@ test('commerce subscription policies match runtime and reject browser-owned auth
     });
     assert.equal(report.ok, false);
     assert.equal(
-      report.findings.some(finding => ['schema_property_not_allowed', 'schema_one_of'].includes(finding.code)),
+      report.findings.some(finding => [
+        'schema_property_not_allowed',
+        'schema_one_of',
+        'schema_number_minimum',
+        'schema_number_maximum',
+      ].includes(finding.code)),
       true,
     );
   }
@@ -763,6 +785,53 @@ test('fiscal administration is an explicit code-owned commerce capability', asyn
     domain: 'example.com', environment: 'test', mode: 'test', files,
   });
   assert.equal(report.findings.some(finding => finding.code === 'commerce_capability_not_supported'), false);
+});
+
+test('bulk subscription migration requires the exact code-owned execution capability in every authoring mirror', async () => {
+  const canonical = await readinessModule();
+  const template = await import('../templates/draft-repo/tools/draft-feature-readiness.mjs');
+  const capability = 'subscription:migration:execute';
+  const nearMiss = 'commerce:subscription:migration:execute';
+  const schema = await readJson(path.join(schemaDir, 'commerce.schema.json'));
+  const templateSchema = await readJson(path.join(
+    repoRoot,
+    'tools',
+    'templates',
+    'draft-repo',
+    'tools',
+    'schemas',
+    'commerce.schema.json',
+  ));
+
+  assert.equal(canonical.COMMERCE_CAPABILITIES.includes(capability), true);
+  assert.equal(template.COMMERCE_CAPABILITIES.includes(capability), true);
+  assert.equal(schema.definitions.capability.enum.includes(capability), true);
+  assert.equal(templateSchema.definitions.capability.enum.includes(capability), true);
+  assert.equal(schema.definitions.capability.enum.includes(nearMiss), false);
+
+  for (const validator of [canonical, template]) {
+    const acceptedFiles = await fixtureFiles();
+    acceptedFiles.find(file => file.path.endsWith('/commerce.json'))
+      .content.commerce.adminAccess.capabilities = [capability];
+    const accepted = await validator.validateDraftFeatureReadiness({
+      domain: 'example.com', environment: 'test', mode: 'test', files: acceptedFiles,
+    });
+    assert.equal(
+      accepted.findings.some(finding => finding.code === 'commerce_capability_not_supported'),
+      false,
+    );
+
+    const rejectedFiles = await fixtureFiles();
+    rejectedFiles.find(file => file.path.endsWith('/commerce.json'))
+      .content.commerce.adminAccess.capabilities = [nearMiss];
+    const rejected = await validator.validateDraftFeatureReadiness({
+      domain: 'example.com', environment: 'test', mode: 'test', files: rejectedFiles,
+    });
+    assert.equal(
+      rejected.findings.some(finding => finding.code === 'commerce_capability_not_supported'),
+      true,
+    );
+  }
 });
 
 test('fiscal enablement requires an auth profile with fiscal administration capability', async () => {
