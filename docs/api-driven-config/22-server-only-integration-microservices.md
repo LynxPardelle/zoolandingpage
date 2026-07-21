@@ -122,31 +122,49 @@ The only Phase 1 fiscal disclosure ID is `manual-invoice-v1`. Commerce administr
 
 ### Integration Bindings
 
-The Phase 4 contract extends `server/integration-bindings.json` with generic `adminAccess` alongside provider, adapter version, opaque `connectionId`, status, mode, and provider capabilities. Config Authoring and its schema must adopt this amendment before any protected Integrations browser route is enabled. `adminAccess` reuses Commerce's closed shape: `mode` is `none` or `auth-profile`, and the latter carries one `authProfileId` plus only `integration:read` and/or `integration:manage`. Provider capabilities describe adapter operations and never grant human authorization. The descriptor never contains a provider account ID, credential value, access token, webhook secret, arbitrary endpoint, or secret path.
+The Phase 4 contract extends `server/integration-bindings.json` with generic `adminAccess` alongside provider, adapter version, opaque `connectionId`, status, mode, and provider capabilities. The hub and Config Authoring schemas now carry the same reviewed local contract; no protected Integrations browser route or production path becomes active until the later deployment and live gates close. `adminAccess` reuses Commerce's closed shape: `mode` is `none` or `auth-profile`, and the latter carries one `authProfileId` plus only `integration:read` and/or `integration:manage`. Provider capabilities describe adapter operations and never grant human authorization. A referenced Auth Profile must be active and match the descriptor scope, must declare nonempty `allowedGroups` and `adminGroups`, and every admin group must be allowed. The descriptor never contains a provider account ID, credential value, access token, webhook secret, arbitrary endpoint, or secret path.
 
 The first adapter-specific block is Stripe:
 
 ```json
 {
-  "id": "stripe-primary",
-  "provider": "stripe",
-  "adapterVersion": "v1",
-  "connectionId": "stripe-primary",
-  "status": "active",
-  "mode": "test",
-  "capabilities": ["connect-onboarding", "checkout", "subscriptions"],
-  "stripe": {
-    "accountModel": "merchant",
-    "chargeType": "direct",
-    "feePayer": "connected-account",
-    "taxMode": "unconfigured",
-    "platformFeeMode": "disabled",
-    "webhookIngress": "direct-integrations-api"
-  }
+  "version": 1,
+  "scope": {
+    "environment": "test",
+    "tenantId": "tenant-example",
+    "draftId": "draft-example",
+    "domain": "example.com"
+  },
+  "adminAccess": {
+    "mode": "auth-profile",
+    "authProfileId": "staff",
+    "capabilities": ["integration:read", "integration:manage"]
+  },
+  "bindings": [{
+    "id": "stripe-primary",
+    "provider": "stripe",
+    "adapterVersion": "v1",
+    "connectionId": "stripe-primary",
+    "status": "active",
+    "mode": "test",
+    "capabilities": ["connect-onboarding", "checkout", "subscriptions"],
+    "stripe": {
+      "accountModel": "merchant",
+      "chargeType": "direct",
+      "feePayer": "connected-account",
+      "taxMode": "unconfigured",
+      "platformFeeMode": "disabled",
+      "webhookIngress": "direct-integrations-api",
+      "onboardingRoutes": {
+        "returnPath": "/admin/integrations/stripe/return",
+        "refreshPath": "/admin/integrations/stripe/refresh"
+      }
+    }
+  }]
 }
 ```
 
-This synthetic example is valid for local/test authoring, not production. A draft-supplied `taxApprovalId` never proves approval: production stays blocked by a server-controlled live gate until the tax decision is recorded outside the draft and checked by the owning service. `platformFeeMode` remains `disabled`. Real Stripe account ownership and webhook account binding are later server-side Integrations checks, not draft fields.
+This synthetic example is valid for local/test authoring only when the referenced server-only Auth Profile satisfies the group policy; it is not a production approval. `connect-onboarding` requires `integration:manage` and both route values are bounded same-origin paths, never URLs or origins. A draft-supplied `taxApprovalId` never proves approval: production stays blocked by a server-controlled live gate until the tax decision is recorded outside the draft and checked by the owning service. `platformFeeMode` remains `disabled`. Real Stripe account ownership and webhook account binding are later server-side Integrations checks, not draft fields.
 
 ### Notification Policies
 

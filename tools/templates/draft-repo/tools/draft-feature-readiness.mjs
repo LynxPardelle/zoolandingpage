@@ -50,6 +50,10 @@ const INTEGRATION_PROVIDER_CONTRACTS = Object.freeze({
     capabilities: Object.freeze(['send']),
   }),
 });
+const INTEGRATION_ADMIN_CAPABILITIES = Object.freeze([
+  'integration:read',
+  'integration:manage',
+]);
 const DATA_SPACE_CAPABILITIES = Object.freeze([
   'data-space:record:read',
   'data-space:record:write',
@@ -253,6 +257,18 @@ function validateDescriptorSemantics(descriptors, legacyDescriptors, findings, e
 
   const integrationBindings = descriptors.get('integration-bindings.json');
   addDuplicateIdFindings(integrationBindings?.bindings, 'integration-bindings.json', '$/bindings', findings);
+  const integrationAdminAccess = integrationBindings?.adminAccess;
+  if (
+    integrationAdminAccess?.mode === 'auth-profile'
+    && Array.isArray(integrationAdminAccess.capabilities)
+    && integrationAdminAccess.capabilities.some(capability => !INTEGRATION_ADMIN_CAPABILITIES.includes(capability))
+  ) {
+    addFinding(findings, makeFinding(
+      'integration_capability_not_supported',
+      'integration-bindings.json',
+      '$/adminAccess/capabilities',
+    ));
+  }
   const bindings = integrationBindings?.bindings ?? [];
   const expectedMode = environment === 'production' ? 'live' : 'test';
   for (const binding of bindings) {
@@ -275,6 +291,26 @@ function validateDescriptorSemantics(descriptors, legacyDescriptors, findings, e
     }
     if (binding?.provider !== 'stripe' && binding?.stripe !== undefined) {
       addFinding(findings, makeFinding('stripe_settings_not_allowed', 'integration-bindings.json', '$/bindings/stripe'));
+    }
+    if (binding?.capabilities?.includes('connect-onboarding')) {
+      if (
+        integrationAdminAccess?.mode !== 'auth-profile'
+        || !integrationAdminAccess.capabilities?.includes('integration:manage')
+      ) {
+        addFinding(findings, makeFinding(
+          'integration_admin_access_required',
+          'integration-bindings.json',
+          '$/adminAccess',
+        ));
+      }
+      const onboardingRoutes = binding?.stripe?.onboardingRoutes;
+      if (!onboardingRoutes || typeof onboardingRoutes !== 'object' || Array.isArray(onboardingRoutes)) {
+        addFinding(findings, makeFinding(
+          'integration_onboarding_routes_required',
+          'integration-bindings.json',
+          '$/bindings/stripe/onboardingRoutes',
+        ));
+      }
     }
   }
 
@@ -392,6 +428,15 @@ function validateDescriptorSemantics(descriptors, legacyDescriptors, findings, e
       pointer: '$/commerce/adminAccess/authProfileId',
     });
   }
+  if (integrationAdminAccess?.mode === 'auth-profile') {
+    authProfileReferences.push({
+      id: integrationAdminAccess.authProfileId,
+      scope: integrationBindings?.scope,
+      file: 'integration-bindings.json',
+      pointer: '$/adminAccess/authProfileId',
+      requireGroupPolicy: true,
+    });
+  }
   if (authProfileReferences.length > 0) {
     const authRegistry = legacyDescriptors.get('auth-profile-registry.json');
     if (!authRegistry) {
@@ -415,6 +460,31 @@ function validateDescriptorSemantics(descriptors, legacyDescriptors, findings, e
         }
         if (profile.tenantId !== reference.scope?.tenantId || (profile.domain !== undefined && profile.domain !== reference.scope?.domain)) {
           addFinding(findings, makeFinding('auth_profile_scope_mismatch', reference.file, reference.pointer));
+        }
+        if (reference.requireGroupPolicy) {
+          const allowedGroups = profile.allowedGroups;
+          const adminGroups = profile.adminGroups;
+          const validGroup = group => (
+            typeof group === 'string'
+            && /^[a-z0-9][a-z0-9._-]{0,63}$/.test(group)
+          );
+          if (
+            !Array.isArray(allowedGroups)
+            || allowedGroups.length === 0
+            || !Array.isArray(adminGroups)
+            || adminGroups.length === 0
+            || !allowedGroups.every(validGroup)
+            || !adminGroups.every(validGroup)
+            || new Set(allowedGroups).size !== allowedGroups.length
+            || new Set(adminGroups).size !== adminGroups.length
+            || !adminGroups.every(group => allowedGroups.includes(group))
+          ) {
+            addFinding(findings, makeFinding(
+              'auth_profile_group_policy_invalid',
+              reference.file,
+              reference.pointer,
+            ));
+          }
         }
       }
     }
@@ -623,6 +693,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
 export {
   collectJsonFiles,
   INTEGRATION_PROVIDER_CONTRACTS,
+  INTEGRATION_ADMIN_CAPABILITIES,
   COMMERCE_CAPABILITIES,
   DATA_SPACE_CAPABILITIES,
   FISCAL_DISCLOSURES,

@@ -26,7 +26,7 @@ const REVIEW_PATTERN_DEFINITIONS = Object.freeze([
 
 const SECRET_FIELD_NAME_PATTERN = /^(?:api[-_]?key|secret|token|password|passwd|pwd|client[-_]?secret|private[-_]?key|access[-_]?token|refresh[-_]?token)$/i;
 const PII_FIELD_NAME_PATTERN = /^(?:email|mail|phone|telefono|teléfono|whatsapp|address|direccion|dirección|rfc|curp|nss|ssn|passport|pasaporte|ine)$/i;
-const PROVIDER_RESOURCE_ID_PATTERN = /^(?:acct|cus|price|prod|sub|si|cs|pi|pm|src|ch|in|evt|seti|sess)_[A-Za-z0-9]/i;
+const PROVIDER_RESOURCE_ID_PATTERN = /(?<![A-Za-z0-9])(?:acct|cus|price|prod|sub|si|cs|pi|pm|src|ch|in|evt|seti|sess)_[A-Za-z0-9]/i;
 const OPAQUE_SECRET_REFERENCE_PATTERN = /^(?!.*\/\/)(?!.*(?:^|\/)\.{1,2}(?:\/|$))(?:(?:\/)?(?:[A-Za-z0-9_.+=@-]+\/)+[A-Za-z0-9_.+=@-]+|arn:(?:aws|aws-us-gov|aws-cn):(?:ssm:[a-z0-9-]+:\d{12}:parameter\/|secretsmanager:[a-z0-9-]+:\d{12}:secret\x3a)[A-Za-z0-9_.+=@\/-]+)$/;
 
 function isOpaqueSecretReference(value) {

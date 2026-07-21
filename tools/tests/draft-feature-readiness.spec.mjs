@@ -69,6 +69,21 @@ test('four server descriptor schemas are closed and bounded', async () => {
     items: { type: 'string', pattern: '^[A-Z]{3}$' },
   });
   assert.equal(commerceSchema.definitions.commerce.properties.notificationPolicyIds.maxItems, 1);
+  const integrationSchema = await readJson(path.join(schemaDir, 'integration-bindings.schema.json'));
+  assert.equal(integrationSchema.required.includes('adminAccess'), true);
+  assert.deepEqual(integrationSchema.definitions.integrationCapability.enum, [
+    'integration:read',
+    'integration:manage',
+  ]);
+  assert.deepEqual(integrationSchema.definitions.onboardingRoutes.required, [
+    'returnPath',
+    'refreshPath',
+  ]);
+  assert.equal(integrationSchema.definitions.onboardingRoutes.additionalProperties, false);
+  assert.equal(
+    integrationSchema.definitions.stripeSettings.properties.onboardingRoutes.$ref,
+    '#/definitions/onboardingRoutes',
+  );
 });
 
 test('the dependency-free validator enforces every schema keyword in use', async () => {
@@ -166,6 +181,217 @@ test('valid synthetic feature descriptors pass in test', async () => {
   assert.equal(report.ok, true);
   assert.equal(report.blockingCount, 0);
   assert.equal(report.featureFileCount, 4);
+});
+
+test('integration administration is required, closed, and distinct from provider capabilities', async () => {
+  const { INTEGRATION_ADMIN_CAPABILITIES, validateDraftFeatureReadiness } = await readinessModule();
+  assert.deepEqual(INTEGRATION_ADMIN_CAPABILITIES, ['integration:read', 'integration:manage']);
+
+  const missingFiles = await fixtureFiles();
+  delete missingFiles.find(file => file.path.endsWith('/integration-bindings.json')).content.adminAccess;
+  const missingReport = await validateDraftFeatureReadiness({
+    domain: 'example.com', environment: 'test', mode: 'test', files: missingFiles,
+  });
+  assert.equal(missingReport.findings.some(finding => finding.code === 'schema_required'), true);
+
+  for (const capability of ['integration:delegate', 'checkout']) {
+    const files = await fixtureFiles();
+    files.find(file => file.path.endsWith('/integration-bindings.json')).content.adminAccess.capabilities = [capability];
+    const report = await validateDraftFeatureReadiness({
+      domain: 'example.com', environment: 'test', mode: 'test', files,
+    });
+    assert.equal(
+      report.findings.some(finding => finding.code === 'integration_capability_not_supported'),
+      true,
+      capability,
+    );
+  }
+
+  const internalFiles = await fixtureFiles();
+  const internal = internalFiles.find(file => file.path.endsWith('/integration-bindings.json')).content;
+  internal.adminAccess = { mode: 'none' };
+  internal.bindings[0].capabilities = internal.bindings[0].capabilities
+    .filter(capability => capability !== 'connect-onboarding');
+  delete internal.bindings[0].stripe.onboardingRoutes;
+  const internalReport = await validateDraftFeatureReadiness({
+    domain: 'example.com', environment: 'test', mode: 'test', files: internalFiles,
+  });
+  assert.equal(internalReport.ok, true);
+
+  const readOnlyFiles = await fixtureFiles();
+  const readOnly = readOnlyFiles.find(file => file.path.endsWith('/integration-bindings.json')).content;
+  readOnly.adminAccess.capabilities = ['integration:read'];
+  readOnly.bindings[0].capabilities = readOnly.bindings[0].capabilities
+    .filter(capability => capability !== 'connect-onboarding');
+  delete readOnly.bindings[0].stripe.onboardingRoutes;
+  const readOnlyReport = await validateDraftFeatureReadiness({
+    domain: 'example.com', environment: 'test', mode: 'test', files: readOnlyFiles,
+  });
+  assert.equal(readOnlyReport.ok, true);
+});
+
+test('Stripe Connect onboarding requires manage authorization and same-origin routes', async () => {
+  const { validateDraftFeatureReadiness } = await readinessModule();
+  for (const adminAccess of [
+    { mode: 'none' },
+    { mode: 'auth-profile', authProfileId: 'staff', capabilities: ['integration:read'] },
+  ]) {
+    const files = await fixtureFiles();
+    files.find(file => file.path.endsWith('/integration-bindings.json')).content.adminAccess = adminAccess;
+    const report = await validateDraftFeatureReadiness({
+      domain: 'example.com', environment: 'test', mode: 'test', files,
+    });
+    assert.equal(
+      report.findings.some(finding => finding.code === 'integration_admin_access_required'),
+      true,
+    );
+  }
+
+  const missingRoutesFiles = await fixtureFiles();
+  const missingRoutesBinding = missingRoutesFiles
+    .find(file => file.path.endsWith('/integration-bindings.json')).content.bindings[0];
+  delete missingRoutesBinding.stripe.onboardingRoutes;
+  const missingRoutesReport = await validateDraftFeatureReadiness({
+    domain: 'example.com', environment: 'test', mode: 'test', files: missingRoutesFiles,
+  });
+  assert.equal(
+    missingRoutesReport.findings.some(finding => finding.code === 'integration_onboarding_routes_required'),
+    true,
+  );
+
+  for (const mutate of [
+    routes => { routes.returnPath = 'https://untrusted.example/return'; },
+    routes => { routes.refreshPath = '/return?next=https://untrusted.example'; },
+    routes => { routes.origin = 'https://untrusted.example'; },
+  ]) {
+    const files = await fixtureFiles();
+    const routes = files.find(file => file.path.endsWith('/integration-bindings.json'))
+      .content.bindings[0].stripe.onboardingRoutes;
+    mutate(routes);
+    const report = await validateDraftFeatureReadiness({
+      domain: 'example.com', environment: 'test', mode: 'test', files,
+    });
+    assert.equal(report.findings.some(finding => finding.code.startsWith('schema_')), true);
+  }
+});
+
+test('integration administration links an active same-scope Auth Profile with valid groups', async () => {
+  const { validateDraftFeatureReadiness } = await readinessModule();
+  const scenarios = [
+    {
+      code: 'auth_profile_not_found',
+      mutate: files => {
+        files.find(file => file.path.endsWith('/integration-bindings.json'))
+          .content.adminAccess.authProfileId = 'missing-profile';
+      },
+    },
+    {
+      code: 'auth_profile_inactive',
+      mutate: files => {
+        files.find(file => file.path.endsWith('/auth-profile-registry.json'))
+          .content.profiles[0].status = 'suspended';
+      },
+    },
+    {
+      code: 'auth_profile_scope_mismatch',
+      mutate: files => {
+        files.find(file => file.path.endsWith('/auth-profile-registry.json'))
+          .content.profiles[0].domain = 'other.example.com';
+      },
+    },
+    {
+      code: 'auth_profile_group_policy_invalid',
+      mutate: files => {
+        files.find(file => file.path.endsWith('/auth-profile-registry.json'))
+          .content.profiles[0].allowedGroups = [];
+      },
+    },
+    {
+      code: 'auth_profile_group_policy_invalid',
+      mutate: files => {
+        files.find(file => file.path.endsWith('/auth-profile-registry.json'))
+          .content.profiles[0].adminGroups = [];
+      },
+    },
+    {
+      code: 'auth_profile_group_policy_invalid',
+      mutate: files => {
+        files.find(file => file.path.endsWith('/auth-profile-registry.json'))
+          .content.profiles[0].adminGroups = ['not-allowed'];
+      },
+    },
+  ];
+  for (const { code, mutate } of scenarios) {
+    const files = await fixtureFiles();
+    mutate(files);
+    const report = await validateDraftFeatureReadiness({
+      domain: 'example.com', environment: 'test', mode: 'test', files,
+    });
+    assert.equal(report.findings.some(finding => finding.code === code), true, code);
+  }
+});
+
+test('integration onboarding routes reject sensitive values and embedded provider ids', async () => {
+  const { validateDraftFeatureReadiness } = await readinessModule();
+  const secretSentinel = ['sk', 'test', 'route-do-not-echo'].join('_');
+  const cases = [
+    { value: `/stripe/return/${secretSentinel}`, code: 'secret_value_forbidden' },
+    { value: '/stripe/accounts/acct_synthetic/return', code: 'provider_resource_id_forbidden' },
+  ];
+  for (const { value, code } of cases) {
+    const files = await fixtureFiles();
+    files.find(file => file.path.endsWith('/integration-bindings.json'))
+      .content.bindings[0].stripe.onboardingRoutes.returnPath = value;
+    const report = await validateDraftFeatureReadiness({
+      domain: 'example.com', environment: 'test', mode: 'test', files,
+    });
+    assert.equal(report.findings.some(finding => finding.code === code), true, code);
+    assert.equal(JSON.stringify(report).includes(value), false);
+  }
+});
+
+test('draft template readiness mirrors Phase 4 integration semantics', async () => {
+  const canonical = await readinessModule();
+  const template = await import('../templates/draft-repo/tools/draft-feature-readiness.mjs');
+  const scenarios = [
+    {
+      code: 'integration_admin_access_required',
+      mutate: files => {
+        files.find(file => file.path.endsWith('/integration-bindings.json'))
+          .content.adminAccess.capabilities = ['integration:read'];
+      },
+    },
+    {
+      code: 'integration_onboarding_routes_required',
+      mutate: files => {
+        delete files.find(file => file.path.endsWith('/integration-bindings.json'))
+          .content.bindings[0].stripe.onboardingRoutes;
+      },
+    },
+    {
+      code: 'auth_profile_group_policy_invalid',
+      mutate: files => {
+        files.find(file => file.path.endsWith('/auth-profile-registry.json'))
+          .content.profiles[0].adminGroups = ['not-allowed'];
+      },
+    },
+    {
+      code: 'provider_resource_id_forbidden',
+      mutate: files => {
+        files.find(file => file.path.endsWith('/integration-bindings.json'))
+          .content.bindings[0].stripe.onboardingRoutes.returnPath = '/stripe/acct_synthetic/return';
+      },
+    },
+  ];
+  for (const { code, mutate } of scenarios) {
+    const files = await fixtureFiles();
+    mutate(files);
+    const args = { domain: 'example.com', environment: 'test', mode: 'test', files };
+    const canonicalReport = await canonical.validateDraftFeatureReadiness(args);
+    const templateReport = await template.validateDraftFeatureReadiness(args);
+    assert.equal(canonicalReport.findings.some(finding => finding.code === code), true, code);
+    assert.equal(templateReport.findings.some(finding => finding.code === code), true, code);
+  }
 });
 
 test('legacy social IdP secret fields accept only opaque references', async () => {
