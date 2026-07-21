@@ -61,6 +61,7 @@ const COMMERCE_CAPABILITIES = Object.freeze([
   'commerce:catalog:write',
   'commerce:inventory:write',
   'commerce:subscription:manage',
+  'commerce:fiscal:manage',
 ]);
 const FISCAL_DISCLOSURES = Object.freeze(['manual-invoice-v1']);
 const NOTIFICATION_TEMPLATE_BY_TYPE = Object.freeze({
@@ -358,6 +359,12 @@ function validateDescriptorSemantics(descriptors, legacyDescriptors, findings, e
   }
   if (commerce?.fiscal?.enabled === true && !FISCAL_DISCLOSURES.includes(commerce.fiscal.disclosureId)) {
     addFinding(findings, makeFinding('unknown_fiscal_disclosure', 'commerce.json', '$/commerce/fiscal/disclosureId'));
+  }
+  if (commerce?.fiscal?.enabled === true && (
+    commerce?.adminAccess?.mode !== 'auth-profile'
+    || !commerce.adminAccess.capabilities?.includes('commerce:fiscal:manage')
+  )) {
+    addFinding(findings, makeFinding('fiscal_admin_access_required', 'commerce.json', '$/commerce/adminAccess'));
   }
   const notificationPolicyIds = new Set((notificationPolicies?.policies ?? []).map(policy => policy?.id).filter(Boolean));
   for (const policyId of commerce?.notificationPolicyIds ?? []) {
