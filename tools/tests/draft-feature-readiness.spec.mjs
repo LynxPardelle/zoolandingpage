@@ -99,6 +99,9 @@ test('four server descriptor schemas are closed and bounded', async () => {
     integrationSchema.definitions.stripeSettings.properties.accountStrategy.enum,
     ['oauth-standard-v1', 'controller-account-link-v1'],
   );
+  const notificationSchema = await readJson(path.join(schemaDir, 'notification-policies.schema.json'));
+  assert.equal(notificationSchema.definitions.policy.properties.recipientSets.minItems, 1);
+  assert.equal(notificationSchema.definitions.policy.properties.recipientSets.maxItems, 1);
 });
 
 test('Stripe account strategies fail closed and keep Accounts v2 out of draft policy', async () => {
@@ -188,6 +191,39 @@ test('Phase 4 architecture closes portal, tax approval, OAuth error, and reconne
   assert.match(architecture, /repeating[^\n]+36/);
   assert.match(architecture, /redemption[^\n]+1,000,000/i);
   assert.match(architecture, /runtime mutations[^\n]+not draft descriptor fields/i);
+});
+
+test('Phase 6 architecture pins notification authority and ambiguous SMTP outcomes', async () => {
+  const [architecture, plan] = await Promise.all([
+    readFile(integrationArchitecturePath, 'utf8'),
+    readFile(integrationPlanPath, 'utf8'),
+  ]);
+
+  for (const contract of [architecture, plan]) {
+    for (const field of [
+      'notificationPolicyId', 'notificationType', 'publishedVersionId', 'templateId',
+      'recipientSetId', 'recipientSetVersion', 'recipientMemberId', 'source', 'dedupeKey',
+    ]) {
+      assert.match(contract, new RegExp('`' + field + '`'));
+    }
+    assert.match(contract, /`smtp2go-smtp-v1`/);
+    assert.match(contract, /`mail\.smtp2go\.com`[^\n]+`465`[^\n]+implicit TLS/i);
+    assert.match(contract, /timeout[^\n]+`uncertain`[^\n]+no blind resend/i);
+  }
+
+  assert.match(
+    architecture,
+    /exact historical manifest[^\n]+exact descriptor[^\n]+never[^\n]+current pointer/i,
+  );
+  assert.match(
+    architecture,
+    /`payment-succeeded`[^\n]+`payment-succeeded-v1`[^\n]+`payment-failed`[^\n]+`payment-failed-v1`/i,
+  );
+  assert.match(architecture, /test[^\n]+`zoolandingpage\.com\.mx`[^\n]+production[^\n]+canonical domain/i);
+
+  for (const task of ['054', '055', '056', '057', '058']) {
+    assert.match(plan, new RegExp('\\| TASK-' + task + ' \\|[^\\n]+\\| PASS \\(local only; see final matrix\\) \\|'));
+  }
 });
 
 test('commerce subscription policies match runtime and reject browser-owned authority', async () => {
