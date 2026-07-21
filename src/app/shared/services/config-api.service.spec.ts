@@ -380,6 +380,35 @@ describe('ConfigApiService', () => {
         expect(String(http.get.calls.mostRecent().args[0])).toContain('https://api.zoolandingpage.com.mx/runtime-bundle');
     });
 
+    it('uses the environment-specific test runtime endpoint first in the browser on the shared testing host', async () => {
+        (environment as { configApiUrl: string }).configApiUrl = 'https://api.zoolandingpage.com.mx';
+        (environment as { configApiRuntimeFallbackUrls?: Record<string, string> }).configApiRuntimeFallbackUrls = {
+            test: 'https://test-runtime.example.com/Prod',
+            production: 'https://prod-runtime.example.com/Prod',
+        };
+
+        const http = jasmine.createSpyObj<HttpClient>('HttpClient', ['get']);
+        http.get.and.returnValue(of(runtimeBundlePayload));
+
+        TestBed.configureTestingModule({
+            providers: [
+                ConfigApiService,
+                { provide: HttpClient, useValue: http },
+            ],
+        });
+
+        const service = TestBed.inject(ConfigApiService);
+        spyOn<any>(service, 'resolveCurrentUrl').and.returnValue(new URL('https://test.zoolandingpage.com.mx/'));
+        await service.getRuntimeBundle('zoositioweb.com.mx', {
+            path: '/',
+            lang: 'es',
+            environment: 'test',
+        });
+
+        expect(http.get).toHaveBeenCalledTimes(1);
+        expect(String(http.get.calls.mostRecent().args[0])).toContain('https://test-runtime.example.com/Prod/runtime-bundle');
+    });
+
     it('uses the test runtime fallback endpoint when a localhost draft is unavailable', async () => {
         (environment as { configApiUrl: string }).configApiUrl = 'https://api.zoolandingpage.com.mx';
         (environment as { configApiRuntimeFallbackUrls?: Record<string, string> }).configApiRuntimeFallbackUrls = {

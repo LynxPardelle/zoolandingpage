@@ -219,6 +219,19 @@ export class ConfigApiService {
         return this.buildUrlForBase(fallbackBase, path, params);
     }
 
+    private shouldPreferRuntimeFallback(params: Record<string, string | undefined>): boolean {
+        if (this.isServerRequest()) {
+            return true;
+        }
+
+        const hostname = String(this.resolveCurrentUrl()?.hostname ?? '').trim().toLowerCase();
+        const testFallback = String(environment.configApiRuntimeFallbackUrls?.test ?? '').trim();
+
+        return hostname === 'test.zoolandingpage.com.mx'
+            && this.resolveRuntimeFallbackEnvironment(params) === 'test'
+            && testFallback.length > 0;
+    }
+
     private async fetchJson<T>(url: string): Promise<T> {
         return await firstValueFrom(this.http.get<T>(url));
     }
@@ -320,7 +333,7 @@ export class ConfigApiService {
             : params;
         const url = this.buildUrlForBase(this.resolveConfigApiBaseUrl(), path, remoteParams);
         const fallbackUrl = this.resolveRuntimeFallbackUrl(path, remoteParams);
-        if (fallbackUrl && this.isServerRequest()) {
+        if (fallbackUrl && this.shouldPreferRuntimeFallback(remoteParams)) {
             try {
                 const payload = await this.fetchJson<T>(fallbackUrl);
                 this.writeCachedRuntimeBundle(runtimeCacheKey, payload);

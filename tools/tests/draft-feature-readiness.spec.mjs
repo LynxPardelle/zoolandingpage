@@ -60,6 +60,15 @@ test('four server descriptor schemas are closed and bounded', async () => {
   assert.equal(commerceSchema.definitions.fiscalEnabled.required.includes('disclosureId'), true);
   assert.equal(commerceSchema.definitions.fiscalEnabled.properties.disclosure, undefined);
   assert.equal(commerceSchema.definitions.fiscalEnabled.properties.disclosureId.const, 'manual-invoice-v1');
+  assert.equal(commerceSchema.definitions.payments.required.includes('supportedCurrencies'), true);
+  assert.deepEqual(commerceSchema.definitions.payments.properties.supportedCurrencies, {
+    type: 'array',
+    minItems: 1,
+    maxItems: 16,
+    uniqueItems: true,
+    items: { type: 'string', pattern: '^[A-Z]{3}$' },
+  });
+  assert.equal(commerceSchema.definitions.commerce.properties.notificationPolicyIds.maxItems, 1);
 });
 
 test('the dependency-free validator enforces every schema keyword in use', async () => {
@@ -264,6 +273,64 @@ test('code-owned capabilities, fiscal disclosures, and notification contracts fa
   }
 });
 
+test('fiscal administration is an explicit code-owned commerce capability', async () => {
+  const { COMMERCE_CAPABILITIES, validateDraftFeatureReadiness } = await readinessModule();
+  assert.equal(COMMERCE_CAPABILITIES.includes('commerce:fiscal:manage'), true);
+  const files = await fixtureFiles();
+  files.find(file => file.path.endsWith('/commerce.json')).content.commerce.adminAccess.capabilities = [
+    'commerce:fiscal:manage',
+  ];
+  const report = await validateDraftFeatureReadiness({
+    domain: 'example.com', environment: 'test', mode: 'test', files,
+  });
+  assert.equal(report.findings.some(finding => finding.code === 'commerce_capability_not_supported'), false);
+});
+
+test('fiscal enablement requires an auth profile with fiscal administration capability', async () => {
+  const { validateDraftFeatureReadiness } = await readinessModule();
+  const fiscal = {
+    enabled: true,
+    manual: true,
+    disclosureId: 'manual-invoice-v1',
+    taxBehavior: 'exclusive',
+    retentionDays: 90,
+    requestWindowHours: 24,
+  };
+  for (const adminAccess of [
+    { mode: 'none' },
+    {
+      mode: 'auth-profile',
+      authProfileId: 'staff',
+      capabilities: ['commerce:catalog:read'],
+    },
+  ]) {
+    const files = await fixtureFiles();
+    const commerce = files.find(file => file.path.endsWith('/commerce.json')).content.commerce;
+    commerce.fiscal = fiscal;
+    commerce.adminAccess = adminAccess;
+    const report = await validateDraftFeatureReadiness({
+      domain: 'example.com', environment: 'test', mode: 'test', files,
+    });
+    assert.equal(
+      report.findings.some(finding => finding.code === 'fiscal_admin_access_required'),
+      true,
+    );
+    assert.equal(report.findings.some(finding => finding.code.startsWith('schema_')), true);
+  }
+
+  const disabledFiles = await fixtureFiles();
+  disabledFiles.find(file => file.path.endsWith('/commerce.json')).content.commerce.adminAccess = {
+    mode: 'none',
+  };
+  const disabled = await validateDraftFeatureReadiness({
+    domain: 'example.com', environment: 'test', mode: 'test', files: disabledFiles,
+  });
+  assert.equal(
+    disabled.findings.some(finding => finding.code === 'fiscal_admin_access_required'),
+    false,
+  );
+});
+
 test('subscription sellables require recurring payments', async () => {
   const { validateDraftFeatureReadiness } = await readinessModule();
   const files = await fixtureFiles();
@@ -272,6 +339,40 @@ test('subscription sellables require recurring payments', async () => {
     domain: 'example.com', environment: 'test', mode: 'test', files,
   });
   assert.equal(report.findings.some(finding => finding.code === 'subscription_payments_required'), true);
+});
+
+test('commerce currency allowlists and notification policy cardinality fail closed', async () => {
+  const { validateDraftFeatureReadiness } = await readinessModule();
+  const scenarios = [
+    {
+      mutate: commerce => { delete commerce.payments.supportedCurrencies; },
+      code: 'schema_required',
+    },
+    {
+      mutate: commerce => { commerce.payments.supportedCurrencies = []; },
+      code: 'schema_array_min_items',
+    },
+    {
+      mutate: commerce => { commerce.payments.supportedCurrencies = ['MXN', 'MXN']; },
+      code: 'schema_array_unique',
+    },
+    {
+      mutate: commerce => { commerce.payments.supportedCurrencies = ['mxn']; },
+      code: 'schema_string_pattern',
+    },
+    {
+      mutate: commerce => { commerce.notificationPolicyIds = ['billing-ops', 'backup-ops']; },
+      code: 'schema_array_max_items',
+    },
+  ];
+  for (const { mutate, code } of scenarios) {
+    const files = await fixtureFiles();
+    mutate(files.find(file => file.path.endsWith('/commerce.json')).content.commerce);
+    const report = await validateDraftFeatureReadiness({
+      domain: 'example.com', environment: 'test', mode: 'test', files,
+    });
+    assert.equal(report.findings.some(finding => finding.code === code), true, code);
+  }
 });
 
 test('notification secret references are bounded before any AWS lookup', async () => {
