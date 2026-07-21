@@ -17,6 +17,8 @@ In local development, the app renders draft JSON from the repo-root `drafts/` tr
 - `zoolandingpage`: Angular app, local draft preview, frontend runtime integration.
 - `zoolanding-config-authoring`: create, pull, update, and publish draft packages.
 - `zoolanding-config-runtime-read`: return one effective runtime bundle for `domain + path + lang`.
+- `zoolanding-commerce` (local only): own provider-neutral commercial state and the Phase 4 Integrations gateway; no AWS deployment is active.
+- `zoolanding-integrations` (local only): own generic connection/provider mappings, the first Stripe adapter, and normalized Integrations events; Phase 4 is local-only and provider activation remains blocked.
 - `zoolanding-image-upload`: upload public landing-page assets only with temporary upload grants.
 - `zoolanding-data-dropper-lambda`: collect raw analytics events.
 - `zoolanding-quick-stats-lambda`: maintain simple per-app counters and stats in S3.

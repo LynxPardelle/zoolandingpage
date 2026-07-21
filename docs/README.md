@@ -39,6 +39,8 @@ For an existing draft, continue at `drafts/{domain}/README.md`, then its curated
 - [Generic combo catalog](./api-driven-config/21-generic-combo-catalog.md)
 - [Server-only integration foundation](./api-driven-config/22-server-only-integration-microservices.md)
 
+Local implementation ownership for the Phase 4 services is routed through the [repository map](./repository-map.md): begin `zoolanding-commerce` and `zoolanding-integrations` work at each local repository's `AGENTS.md`, then its README. Both remain local-only and undeployed.
+
 The owning service repository remains canonical for implementation, deployment, rollback, and trust-boundary detail. Use the [repository map](./repository-map.md) before editing a sibling.
 
 ## Operations, Release, And Observability
