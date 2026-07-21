@@ -15,6 +15,13 @@ const schemaNames = [
   'integration-bindings.schema.json',
   'notification-policies.schema.json',
 ];
+const integrationArchitecturePath = path.join(
+  repoRoot,
+  'docs',
+  'api-driven-config',
+  '22-server-only-integration-microservices.md',
+);
+const integrationPlanPath = path.join(repoRoot, 'plan', 'infrastructure-server-only-integrations-1.md');
 
 async function readJson(filePath) {
   return JSON.parse(await readFile(filePath, 'utf8'));
@@ -84,6 +91,69 @@ test('four server descriptor schemas are closed and bounded', async () => {
     integrationSchema.definitions.stripeSettings.properties.onboardingRoutes.$ref,
     '#/definitions/onboardingRoutes',
   );
+  assert.equal(
+    integrationSchema.definitions.stripeSettings.required.includes('accountStrategy'),
+    true,
+  );
+  assert.deepEqual(
+    integrationSchema.definitions.stripeSettings.properties.accountStrategy.enum,
+    ['oauth-standard-v1', 'controller-account-link-v1'],
+  );
+});
+
+test('Stripe account strategies fail closed and keep Accounts v2 out of draft policy', async () => {
+  const { validateSchema } = await validatorModule();
+  const { validateDraftFeatureReadiness } = await readinessModule();
+  const schema = await readJson(path.join(schemaDir, 'integration-bindings.schema.json'));
+
+  const missingFiles = await fixtureFiles();
+  const missingDescriptor = missingFiles.find(file => file.path.endsWith('/integration-bindings.json')).content;
+  const missingBinding = missingDescriptor.bindings[0];
+  delete missingBinding.stripe.accountStrategy;
+  const missingCodes = new Set(
+    validateSchema(schema, missingDescriptor).map(error => error.code),
+  );
+  assert.equal(missingCodes.has('required'), true);
+
+  const unknownFiles = await fixtureFiles();
+  const unknownBinding = unknownFiles.find(file => file.path.endsWith('/integration-bindings.json')).content.bindings[0];
+  unknownBinding.stripe.accountStrategy = 'accounts-v2';
+  const report = await validateDraftFeatureReadiness({
+    domain: 'example.com', environment: 'test', mode: 'test', files: unknownFiles,
+  });
+  assert.equal(report.ok, false);
+  assert.equal(report.findings.some(finding => finding.code === 'schema_enum_mismatch'), true);
+});
+
+test('Stripe Connect architecture fixes the platform secret and twelve-event allowlist', async () => {
+  const [architecture, plan] = await Promise.all([
+    readFile(integrationArchitecturePath, 'utf8'),
+    readFile(integrationPlanPath, 'utf8'),
+  ]);
+  const exactSecretPath = '/zoolanding/{environment}/integrations/stripe/connect-platform';
+  assert.equal(architecture.includes(exactSecretPath), true);
+  assert.equal(plan.includes(exactSecretPath), true);
+  assert.match(architecture, /structured secret[^\n]+`clientId`[^\n]+`secretKey`/i);
+
+  const ingressSection = architecture.split('### Stripe webhook ingress')[1]?.split('## Data Flow')[0] ?? '';
+  const eventNames = [...ingressSection.matchAll(/`((?:checkout|refund|customer|invoice|account)\.[a-z0-9_.]+)`/g)]
+    .map(match => match[1]);
+  assert.deepEqual([...new Set(eventNames)].sort(), [
+    'account.application.deauthorized',
+    'checkout.session.async_payment_failed',
+    'checkout.session.async_payment_succeeded',
+    'checkout.session.completed',
+    'checkout.session.expired',
+    'customer.subscription.created',
+    'customer.subscription.deleted',
+    'customer.subscription.updated',
+    'invoice.paid',
+    'invoice.payment_failed',
+    'refund.created',
+    'refund.updated',
+  ]);
+  assert.match(ingressSection, /`account\.application\.deauthorized`[^\n]+no Commerce event/i);
+  assert.match(ingressSection, /https:\/\/docs\.stripe\.com\/connect\/webhooks/);
 });
 
 test('commerce subscription policies match runtime and reject browser-owned authority', async () => {

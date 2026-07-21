@@ -15,7 +15,7 @@ Source Of Truth:
 - [Repository map](../repository-map.md)
 
 Confidence: High for the Phase 1 descriptor/readiness/authoring contract, local Data Spaces implementation, and local Commerce TASK-025 through TASK-029 foundation; planned for live service infrastructure and provider behavior.
-Last Reviewed: 2026-07-20 (Central Time)
+Last Reviewed: 2026-07-21 (Central Time)
 
 ## Contract Status
 
@@ -122,7 +122,7 @@ The only Phase 1 fiscal disclosure ID is `manual-invoice-v1`. Commerce administr
 
 ### Integration Bindings
 
-The Phase 4 contract extends `server/integration-bindings.json` with generic `adminAccess` alongside provider, adapter version, opaque `connectionId`, status, mode, and provider capabilities. The hub and Config Authoring schemas now carry the same reviewed local contract; no protected Integrations browser route or production path becomes active until the later deployment and live gates close. `adminAccess` reuses Commerce's closed shape: `mode` is `none` or `auth-profile`, and the latter carries one `authProfileId` plus only `integration:read` and/or `integration:manage`. Provider capabilities describe adapter operations and never grant human authorization. A referenced Auth Profile must be active and match the descriptor scope, must declare nonempty `allowedGroups` and `adminGroups`, and every admin group must be allowed. The descriptor never contains a provider account ID, credential value, access token, webhook secret, arbitrary endpoint, or secret path.
+The Phase 4 contract extends `server/integration-bindings.json` with generic `adminAccess` alongside provider, adapter version, opaque `connectionId`, status, mode, and provider capabilities. The hub and Config Authoring schemas now carry the same reviewed local contract; no protected Integrations browser route or production path becomes active until the later deployment and live gates close. `adminAccess` reuses Commerce's closed shape: `mode` is `none` or `auth-profile`, and the latter carries one `authProfileId` plus only `integration:read` and/or `integration:manage`. Provider capabilities describe adapter operations and never grant human authorization. A referenced Auth Profile must be active and match the descriptor scope, must declare nonempty `allowedGroups` and `adminGroups`, and every admin group must be allowed. Every Stripe binding selects exactly one Accounts v1 strategy through `accountStrategy`: `oauth-standard-v1` connects an externally owned Standard account, while `controller-account-link-v1` uses Account Links for a platform-created controller account whose controller properties are fixed in code. Accounts v2 cannot be selected by a draft and remains blocked pending the Mexico Sandbox proof. The descriptor never contains a provider account ID, derived account ownership, controller property, client ID, credential value, token, webhook secret, arbitrary endpoint, or secret path.
 
 The first adapter-specific block is Stripe:
 
@@ -149,6 +149,7 @@ The first adapter-specific block is Stripe:
     "mode": "test",
     "capabilities": ["connect-onboarding", "checkout", "subscriptions"],
     "stripe": {
+      "accountStrategy": "oauth-standard-v1",
       "accountModel": "merchant",
       "chargeType": "direct",
       "feePayer": "connected-account",
@@ -164,7 +165,9 @@ The first adapter-specific block is Stripe:
 }
 ```
 
-This synthetic example is valid for local/test authoring only when the referenced server-only Auth Profile satisfies the group policy; it is not a production approval. `connect-onboarding` requires `integration:manage` and both route values are bounded same-origin paths, never URLs or origins. A draft-supplied `taxApprovalId` never proves approval: production stays blocked by a server-controlled live gate until the tax decision is recorded outside the draft and checked by the owning service. `platformFeeMode` remains `disabled`. Real Stripe account ownership and webhook account binding are later server-side Integrations checks, not draft fields.
+This synthetic example is valid for local/test authoring only when the referenced server-only Auth Profile satisfies the group policy; it is not a production approval. `connect-onboarding` requires `integration:manage` and both route values are bounded same-origin paths, never URLs or origins. The one Stripe-only onboarding endpoint remains `POST /features/integrations/stripe/onboarding` with the closed operations `start|return|deauthorize`. Every operation requires the same scoped active Auth Profile, fresh account state, CSRF for mutation, and `integration:manage`. `start` accepts only `bindingId`. OAuth `return` accepts only `bindingId`, one-time `state`, and `code`; the server validates the state binding and exchanges the code, then immediately discards the OAuth access and refresh tokens without storing or logging them. Controller return accepts only `bindingId` and one-time `state`. `deauthorize` accepts only `bindingId`, disables the server-resolved connection and routing claim, and never accepts an account ID or token. The browser never supplies account IDs, return URLs, controller properties, ownership, client credentials, or proof of readiness.
+
+Integrations derives immutable `accountOwnership` from the selected strategy: `external-oauth` for `oauth-standard-v1` and `platform-controller` for `controller-account-link-v1`. It stores ownership and only a safe account-reference mapping server-side, re-fetches canonical status after return, and exposes only sanitized readiness and requirement summaries. A draft-supplied `taxApprovalId` never proves approval: production stays blocked by a server-controlled live gate until the tax decision is recorded outside the draft and checked by the owning service. `platformFeeMode` remains `disabled`.
 
 ### Notification Policies
 
@@ -177,6 +180,8 @@ Complete synthetic examples live under [`tools/tests/fixtures/server-features/va
 ## Secret Boundary
 
 Real credentials belong only in AWS Secrets Manager. Operational records and descriptors use opaque IDs.
+
+Stripe Connect uses one environment-owned structured secret at the exact code-derived path `/zoolanding/{environment}/integrations/stripe/connect-platform`. Its closed JSON object contains only `clientId` and `secretKey`; test and production use different secrets. The path and fields are infrastructure-only: they never appear in a draft, public/runtime payload, browser input, log, event, or provider result, and the client credentials are not duplicated per draft. Only Stripe-specific Integrations onboarding/provider-command Lambdas may call `GetSecretValue` for their environment's exact secret; generic connection and browser Lambdas have no value-read permission. Config Authoring does not inspect this secret, and internal callers cannot select or override its path.
 
 For Phase 1 publication readiness, notification secret names are derived only from these templates after strict lowercase ID validation:
 
@@ -232,7 +237,7 @@ These are approved target paths for later service phases. They are not evidence 
 | Commerce | `/features/commerce/fiscal/admin` | Protected accountant/operator action |
 | Integrations | `/features/integrations/read` | Sanitized protected connection state |
 | Integrations | `/features/integrations/action` | Protected generic connection action |
-| Integrations | `/features/integrations/stripe/onboarding` | Stripe-only onboarding action with narrower secret IAM |
+| Integrations | `/features/integrations/stripe/onboarding` | Stripe-only `start|return|deauthorize` onboarding action with exact environment-secret IAM |
 
 CloudFront must route only these literal paths, with protected/payment caching disabled. Broad `/features/*` and service-family wildcards are forbidden. Catalog, inventory, and subscription actions are separate Lambda/IAM boundaries; no Lambda dispatches among them from a request-body operation.
 
@@ -275,7 +280,7 @@ Phase 4 `next-renewal` is deliberately narrow: it may create a Schedule only whe
 
 ### Stripe webhook ingress
 
-`/webhooks/stripe/connect` is a direct Integrations API Gateway path. It must not traverse draft domains or the frontend CloudFront distribution. The handler verifies the signature over unmodified bytes and configured timestamp tolerance before using the signed account ID. One immutable, non-authorizing sentinel keyed by `environment + mode + hash(accountId)` routes to the exact scoped connection; the handler then revalidates environment, tenant, draft, connection, account, and `livemode`. A second immutable global replay sentinel keyed by `environment + provider + eventId` binds the scoped reference, account hash, mode, and payload hash so the SEC-006B matrix is enforceable across drafts. Supported events atomically store only allowlisted receipt metadata, payload hash, and ingress outbox. The full Stripe payload is never persisted. A valid signed event outside the following exact allowlist returns controlled `2xx` with no receipt/outbox work, provider re-fetch, provider-state mutation, or Commerce event:
+`/webhooks/stripe/connect` is a direct Integrations API Gateway path. It must not traverse draft domains or the frontend CloudFront distribution. The handler verifies the signature over unmodified bytes and configured timestamp tolerance before using the signed account ID. One immutable, non-authorizing sentinel keyed by `environment + mode + hash(accountId)` routes to the exact scoped connection; the handler then revalidates environment, tenant, draft, connection, account, and `livemode`. A second immutable global replay sentinel keyed by `environment + provider + eventId` binds the scoped reference, account hash, mode, and payload hash so the SEC-006B matrix is enforceable across drafts. Supported events atomically store only allowlisted receipt metadata, payload hash, and ingress outbox. The full Stripe payload is never persisted. The exact 12-event list includes Stripe's Connect deauthorization event following the official [Stripe Connect webhook guidance](https://docs.stripe.com/connect/webhooks). A valid signed event outside the following exact allowlist returns controlled `2xx` with no receipt/outbox work, provider re-fetch, provider-state mutation, or Commerce event:
 
 | Stripe event allowlist | Canonical re-fetch as the exact connected account | Allowed Commerce result |
 |---|---|---|
@@ -283,6 +288,7 @@ Phase 4 `next-renewal` is deliberately narrow: it may create a Schedule only whe
 | `refund.created`, `refund.updated` | Event, then Refund and its referenced PaymentIntent or Charge | `commerce.refund.confirmed.v1` only when the canonical Refund is succeeded |
 | `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted` | Event, then Subscription and latest Invoice when present | `commerce.subscription.updated.v1` |
 | `invoice.paid`, `invoice.payment_failed` | Event, then Invoice and its referenced Subscription | `commerce.subscription.updated.v1` from canonical subscription state |
+| `account.application.deauthorized` | Event, then the exact server-owned connection/routing claim | Disable the connection internally; no Commerce event |
 
 ## Data Flow
 
@@ -291,7 +297,7 @@ Phase 4 `next-renewal` is deliberately narrow: it may create a Schedule only whe
 3. The browser calls only exact same-origin feature routes. Protected handlers revalidate session, CSRF when mutating, fresh account state, scope, and capability.
 4. Commerce may obtain an immutable Data Spaces snapshot through the exact AWS IAM route, then owns the resulting commercial state. Checkout never performs a live generic-data join.
 5. Commerce reserves stock and creates its internal order before sending an idempotent Checkout command to Integrations. Browser success/cancel routes never prove payment.
-6. Stripe sends signed events directly to Integrations. The receipt keeps only allowlisted metadata and a payload hash; the worker re-fetches the event and canonical object as the exact connected account. Integrations owns the canonical provider snapshot and publishes only the four existing Commerce consumer contracts through its outbox and SNS topic; Commerce consumes through its own SQS queue/inbox.
+6. Stripe sends signed events directly to Integrations. The receipt keeps only allowlisted metadata and a payload hash; the worker re-fetches the event and canonical object as the exact connected account. Integrations owns the canonical provider snapshot and publishes only the four existing Commerce consumer contracts through its outbox and SNS topic; Commerce consumes through its own SQS queue/inbox. `account.application.deauthorized` instead disables the exact connection/routing claim internally and publishes no Commerce event.
 7. Commerce publishes `notification.requested.v1` only after a confirmed state change. Notifications reloads the policy from that event's exact `publishedVersionId`, rechecks current secret lifecycle tags, resolves the connection through AWS IAM, enforces the bound draft/domain sender policy, and attempts SMTP over TLS through the code-owned SMTP2GO endpoint.
 8. A payment or notification never publishes, unpublishes, suspends, or deletes a draft.
 
@@ -372,7 +378,7 @@ npm run test:draft-public-artifact-boundary
 
 The readiness tests cover valid optional/complete descriptor sets, closed schemas, unknown properties, duplicate IDs, secrets/PII/provider-resource IDs including legacy server descriptors, valid opaque SSM and Secrets Manager references, code-owned capabilities/templates/disclosures, Auth Profile existence/scope, secret-reference limits, missing bindings, invalid feature combinations, domain/environment mismatch, test/live separation, stricter production requirements, exact packaging kinds, OIDC-free pre-deploy validation, and template-schema parity. The artifact test verifies the exact public projection and inspects generated browser plus SSR staging trees without printing private paths.
 
-Later phases must add service unit/contract tests for generic Integrations `adminAccess`, separation from provider capabilities, cross-draft and wrong-environment denial, Accounts v2 blocked without Mexico Sandbox proof, Accounts v1/OAuth fallback, immutable hashed account routing, global Stripe webhook signature/replay handling, absence of full provider payloads, exact four-event emission, safe unsupported-event acknowledgement, provider timeout/idempotency, `pause_collection` without a false paused-subscription status, fail-closed Phase 4 migration routes, inventory contention and reservation reconciliation, Phase 5 migration interruption/resume, SMTP duplicate/revocation/TLS, SMTP2GO endpoint/port allowlisting, production account/credential reuse denial, test sender-domain restrictions, failure injection at every cross-service boundary, load tests, and desktop/mobile browser QA for every affected pilot route.
+Later phases must add service unit/contract tests for generic Integrations `adminAccess`, separation from provider capabilities, cross-draft and wrong-environment denial, Accounts v2 blocked without Mexico Sandbox proof, Accounts v1/OAuth fallback, immutable hashed account routing, the exact 12-event Stripe allowlist and global signature/replay handling, absence of full provider payloads, exact four-event Commerce emission, internal-only deauthorization handling, safe unsupported-event acknowledgement, provider timeout/idempotency, `pause_collection` without a false paused-subscription status, fail-closed Phase 4 migration routes, inventory contention and reservation reconciliation, Phase 5 migration interruption/resume, SMTP duplicate/revocation/TLS, SMTP2GO endpoint/port allowlisting, production account/credential reuse denial, test sender-domain restrictions, failure injection at every cross-service boundary, load tests, and desktop/mobile browser QA for every affected pilot route.
 
 ## Deployment And Rollback
 
@@ -385,7 +391,7 @@ Later phases must add service unit/contract tests for generic Integrations `admi
 - Frontend builds copy only the exact public draft JSON shapes and approved media extensions. Recursive `drafts/**` copying, encoded or traversal-shaped path segments, private/local folders, repository metadata, `draft-repo.config.json`, and every `server/` descriptor are forbidden; packaging must run the artifact boundary guard before AWS credentials or upload.
 - Feature enablement is per draft and default-off. Test pilots begin with `zoositioweb.com.mx` and `sulandingpage.com.mx`; production remains off until test evidence is accepted.
 - Reverting the Config Registry published pointer reactivates a previously validated immutable descriptor package. Service rollback also requires stopping new admission, reconciling in-flight provider work, inspecting/redriving queues, and restoring the previous service artifact.
-- Phase 4 is local-only. Live connected accounts, webhook endpoints, secrets, stacks, routes, queues, tables, and all other AWS/provider resources remain Phase 8 deployment work requiring explicit authorization.
+- Phase 4 is local-only. Live connected accounts, webhook endpoints, secrets, stacks, routes, queues, tables, and all other AWS/provider resources remain Phase 8 deployment work; pilot configuration and activation remain Phase 9. Both require explicit authorization.
 
 No workflow, route, stack, secret, connected account, or pilot descriptor becomes active merely because it is described here.
 
