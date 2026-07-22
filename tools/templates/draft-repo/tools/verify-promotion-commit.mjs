@@ -16,6 +16,7 @@ const TOOLING_ONLY_PATHS = new Set([
   'tools/lib/sensitive-value-patterns.mjs',
   'tools/lib/server-descriptor-kinds.mjs',
   'tools/lib/server-feature-contract-validator.mjs',
+  'tools/lib/server-feature-runtime-config-guard.mjs',
   'tools/runtime-data-source-condition-guard.mjs',
   'tools/schemas/commerce.schema.json',
   'tools/schemas/data-spaces.schema.json',

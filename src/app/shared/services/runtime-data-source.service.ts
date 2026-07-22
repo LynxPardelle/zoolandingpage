@@ -5,6 +5,14 @@ import { AuthAdminClientService } from '@/app/state/auth/auth-admin-client.servi
 import { ComboCatalogClientService } from './combo-catalog-client.service';
 import { buildComboCatalogRuntimeInput } from './combo-catalog-runtime-request';
 import { ContentHubClientService } from './content-hub-client.service';
+import { CommerceClientService } from './commerce-client.service';
+import { DataSpaceClientService } from './data-space-client.service';
+import { IntegrationPlatformClientService } from './integration-platform-client.service';
+import {
+    buildCommerceRuntimeInput,
+    buildDataSpaceRuntimeInput,
+    buildIntegrationPlatformRuntimeInput,
+} from './server-feature-runtime-request';
 import { RuntimeApiProxyClientService, type TRuntimeApiProxyResponse } from './runtime-api-proxy-client.service';
 import { buildContentHubRuntimeInput, CONTENT_HUB_SAFE_ID_INPUT_KEYS, isContentHubSafePublicId } from './content-hub-runtime-request';
 import { RuntimeDataSourceMapperService } from './runtime-data-source-mapper.service';
@@ -26,12 +34,22 @@ type TPreparedRuntimeDataSource = {
     readonly input: Record<string, unknown> | undefined;
 };
 
+type TRuntimeDataSourceResponse = {
+    readonly ok?: boolean;
+    readonly data?: unknown;
+    readonly error?: string;
+    readonly requestId?: string;
+};
+
 @Injectable({ providedIn: 'root' })
 export class RuntimeDataSourceService {
     private readonly proxy = inject(RuntimeApiProxyClientService);
     private readonly authAdmin = inject(AuthAdminClientService);
     private readonly contentHub = inject(ContentHubClientService);
     private readonly comboCatalog = inject(ComboCatalogClientService);
+    private readonly commerce = inject(CommerceClientService);
+    private readonly dataSpaces = inject(DataSpaceClientService);
+    private readonly integrations = inject(IntegrationPlatformClientService);
     private readonly mapper = inject(RuntimeDataSourceMapperService);
     private readonly variables = inject(VariableStoreService);
     private readonly platformId = inject(PLATFORM_ID);
@@ -164,7 +182,7 @@ export class RuntimeDataSourceService {
         sourceId: string,
         input: Record<string, unknown> | undefined,
         runId: number,
-    ): Promise<TRuntimeApiProxyResponse<unknown>> {
+    ): Promise<TRuntimeDataSourceResponse> {
         if (source.kind === 'auth-admin') {
             return this.readAuthAdminSource(source);
         }
@@ -183,6 +201,15 @@ export class RuntimeDataSourceService {
                 sourceId,
                 input,
             });
+        }
+        if (source.kind === 'data-space') {
+            return this.dataSpaces.readSource({ domain: options.domain, pageId: options.pageId, sourceId, input });
+        }
+        if (source.kind === 'commerce') {
+            return this.commerce.readSource({ domain: options.domain, pageId: options.pageId, sourceId, input });
+        }
+        if (source.kind === 'integrations') {
+            return this.integrations.readSource({ domain: options.domain, pageId: options.pageId, sourceId, input });
         }
 
         let lastError: unknown;
@@ -237,6 +264,9 @@ export class RuntimeDataSourceService {
         if (source.kind === 'combo-catalog') {
             return buildComboCatalogRuntimeInput(source.comboCatalog, input);
         }
+        if (source.kind === 'data-space') return buildDataSpaceRuntimeInput(source.dataSpace, input);
+        if (source.kind === 'commerce') return buildCommerceRuntimeInput(source.commerce, input, 'read');
+        if (source.kind === 'integrations') return buildIntegrationPlatformRuntimeInput(source.integrations, input);
 
         return input;
     }
@@ -288,7 +318,10 @@ export class RuntimeDataSourceService {
             return true;
         }
 
-        return source.kind !== 'auth-admin' && source.ssr === true;
+        if (source.ssr !== true || source.kind === 'auth-admin' || source.kind === 'integrations') return false;
+        if (source.kind === 'data-space') return source.dataSpace?.access === 'public';
+        if (source.kind === 'commerce') return source.commerce?.access === 'public';
+        return true;
     }
 
     private shouldSkipForQueryParams(queryParams: readonly string[] | undefined): boolean {
@@ -547,7 +580,7 @@ export class RuntimeDataSourceService {
     private errorRequestId(error: unknown): string {
         if (!this.isRecord(error)) return '';
         const requestId = typeof error['requestId'] === 'string' ? error['requestId'].trim() : '';
-        return /^req-[A-Za-z0-9._:-]{1,120}$/.test(requestId)
+        return /^[A-Za-z0-9._:-]{1,128}$/.test(requestId)
             ? requestId
             : '';
     }

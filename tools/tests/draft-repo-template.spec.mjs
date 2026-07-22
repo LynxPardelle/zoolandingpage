@@ -1,15 +1,18 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { execFile, spawnSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { promisify } from 'node:util';
 import { pathToFileURL } from 'node:url';
 
 const repoRoot = path.resolve(new URL('../..', import.meta.url).pathname.replace(/^\/(?:[A-Za-z]:)/, value => value.slice(1)));
 const deployScript = path.join(repoRoot, 'tools', 'templates', 'draft-repo', 'tools', 'deploy-draft.mjs');
 const jqExecutable = process.env.JQ_PATH?.trim() || 'jq';
 const jqAvailable = spawnSync(jqExecutable, ['--version'], { encoding: 'utf8' }).status === 0;
+const execFileAsync = promisify(execFile);
 
 function extractPlanFilter(workflow) {
   const startMarker = '            --arg version "$EXPECTED_VERSION_ID" \'';
@@ -186,6 +189,93 @@ test('template never echoes malformed JSON or upstream error text', async () => 
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }
+});
+
+test('template validate-only rejects invalid server-feature runtime config', async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), 'zlp-template-runtime-guard-'));
+  try {
+    const draftRoot = path.join(tempRoot, 'example.com');
+    await mkdir(draftRoot, { recursive: true });
+    await writeFile(path.join(draftRoot, 'site-config.json'), JSON.stringify({
+      version: 1,
+      domain: 'example.com',
+      routes: [],
+      runtime: {
+        dataSources: [{
+          id: 'invalid-records',
+          kind: 'data-space',
+          proxySourceId: 'legacy-alias',
+          dataSpace: { read: 'recordList', spaceId: 'example-space' },
+          target: 'records',
+        }],
+      },
+    }));
+
+    const result = spawnSync(process.execPath, [
+      deployScript,
+      '--domain=example.com',
+      `--draft-root=${tempRoot}`,
+      '--environment=test',
+      '--validate-only=true',
+    ], { encoding: 'utf8' });
+    assert.equal(result.status, 1, `${result.stdout}${result.stderr}`);
+    assert.match(result.stderr, /server_feature_runtime_config_failed/);
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test('template makes zero signed posts for invalid server-feature runtime config', async t => {
+  let requestCount = 0;
+  const server = http.createServer((_request, response) => {
+    requestCount += 1;
+    response.writeHead(200, { 'content-type': 'application/json' });
+    response.end(JSON.stringify({ published: true }));
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => server.close());
+
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), 'zlp-template-runtime-no-post-'));
+  t.after(() => rm(tempRoot, { recursive: true, force: true }));
+  const draftRoot = path.join(tempRoot, 'example.com');
+  await mkdir(draftRoot, { recursive: true });
+  await writeFile(path.join(draftRoot, 'site-config.json'), JSON.stringify({
+    version: 1,
+    domain: 'example.com',
+    routes: [],
+    runtime: {
+      apiActions: [{
+        id: 'invalid-create-record',
+        kind: 'data-space',
+        method: 'GET',
+        dataSpace: { action: 'createRecord', spaceId: 'example-space' },
+        inputFields: ['collectionId'],
+      }],
+    },
+  }));
+  const endpoint = `http://127.0.0.1:${server.address().port}/config-authoring`;
+
+  await assert.rejects(
+    execFileAsync(process.execPath, [
+      deployScript,
+      '--domain=example.com',
+      `--draft-root=${tempRoot}`,
+      '--environment=test',
+      `--endpoint=${endpoint}`,
+      '--region=us-east-1',
+      '--version-id=test-runtime-guard',
+    ], {
+      cwd: repoRoot,
+      windowsHide: true,
+      env: {
+        ...process.env,
+        AWS_ACCESS_KEY_ID: 'SYNTHETICACCESSKEY',
+        AWS_SECRET_ACCESS_KEY: 'synthetic-secret-for-local-test',
+      },
+    }),
+    error => /server_feature_runtime_config_failed/.test(String(error?.stderr ?? '')),
+  );
+  assert.equal(requestCount, 0);
 });
 
 test('template writes a closed deterministic deployment plan without privileged or private runtime values', async () => {

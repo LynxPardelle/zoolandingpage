@@ -68,6 +68,44 @@ export class EventOrchestrator {
     }
   }
 
+  async executeAsync(
+    ctx: EventExecutionContext,
+    opts?: {
+      allowedActions?: ReadonlyArray<string>;
+      fallback?: (action: string, args: unknown[], ctx: EventExecutionContext) => void | Promise<void>;
+    },
+  ): Promise<void> {
+    const instructions = ctx.event.eventInstructions;
+    if (!instructions) return;
+
+    const allowed = opts?.allowedActions ? new Set(opts.allowedActions) : undefined;
+    const handlers = this.handlerById();
+    const commands = instructions
+      .split(';')
+      .map((command) => command.trim())
+      .filter(Boolean);
+
+    for (const command of commands) {
+      const { id, rawArgs } = this.parseCommand(command);
+      if (!id || (allowed && !allowed.has(id))) continue;
+
+      const args = rawArgs.map((arg) => this.resolveArg(arg, ctx.event));
+      const handler = handlers.get(id);
+      if (handler) {
+        await handler.handle(ctx, args);
+        continue;
+      }
+
+      if (opts?.fallback) {
+        await opts.fallback(id, args, ctx);
+        continue;
+      }
+
+      // Intentionally non-fatal; configs may contain older actions.
+      console.warn(`[EventOrchestrator] No handler registered for id: ${ id }`);
+    }
+  }
+
   private parseCommand(command: string): { id: string; rawArgs: string[] } {
     const trimmed = command.trim();
     if (!trimmed) return { id: '', rawArgs: [] };

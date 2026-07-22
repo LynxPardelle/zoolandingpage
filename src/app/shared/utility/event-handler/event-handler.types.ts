@@ -12,6 +12,8 @@ export type EventHost = unknown;
 export type EventExecutionContext = {
     event: OrchestratorEvent;
     host: EventHost;
+    /** Trusted active page identity supplied by the runtime for pre-bootstrap actions. */
+    pageId?: string;
 };
 
 export type EventHandler = {

@@ -1,6 +1,7 @@
 const path = require('node:path');
 
 module.exports = (config) => {
+  const jasmineSeed = String(process.env.KARMA_JASMINE_SEED ?? '').trim();
   config.set({
     basePath: '',
     frameworks: ['jasmine'],
@@ -19,6 +20,12 @@ module.exports = (config) => {
       reporters: [{ type: 'html' }, { type: 'text-summary' }],
     },
     reporters: ['progress', 'kjhtml'],
+    client: {
+      jasmine: {
+        random: true,
+        ...(jasmineSeed ? { seed: jasmineSeed } : {}),
+      },
+    },
     customLaunchers: {
       ChromeHeadlessStable: {
         base: 'ChromeHeadless',

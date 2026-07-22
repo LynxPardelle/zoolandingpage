@@ -300,11 +300,14 @@
       "required": ["id", "target"],
       "properties": {
         "id": { "type": "string", "minLength": 1 },
-        "kind": { "type": "string", "enum": ["api-proxy", "auth-admin", "content-hub", "combo-catalog"] },
+        "kind": { "type": "string", "enum": ["api-proxy", "auth-admin", "content-hub", "combo-catalog", "data-space", "commerce", "integrations"] },
         "proxySourceId": { "type": "string" },
         "authAdminSource": { "type": "string", "enum": ["account", "adminUsers"] },
         "contentHub": { "$ref": "#/definitions/contentHubRuntimeReadBinding" },
         "comboCatalog": { "$ref": "#/definitions/comboCatalogRuntimeReadBinding" },
+        "dataSpace": { "$ref": "#/definitions/dataSpaceRuntimeReadBinding" },
+        "commerce": { "$ref": "#/definitions/commerceRuntimeReadBinding" },
+        "integrations": { "$ref": "#/definitions/integrationRuntimeReadBinding" },
         "target": { "type": "string", "minLength": 1 },
         "statusTarget": { "type": "string" },
         "mergeMode": { "type": "string", "enum": ["replace", "appendItems"] },
@@ -349,6 +352,89 @@
               "proxySourceId": { "$ref": "#/definitions/contentHubSafeId" }
             }
           }
+        },
+        {
+          "if": { "required": ["kind"], "properties": { "kind": { "const": "data-space" } } },
+          "then": {
+            "required": ["dataSpace"],
+            "not": { "anyOf": [{ "required": ["proxySourceId"] }, { "required": ["commerce"] }, { "required": ["integrations"] }, { "required": ["contentHub"] }, { "required": ["comboCatalog"] }, { "required": ["authAdminSource"] }] },
+            "allOf": [
+              {
+                "if": { "required": ["ssr"], "properties": { "ssr": { "const": true } } },
+                "then": { "properties": { "dataSpace": { "required": ["access"], "properties": { "access": { "const": "public" } } } } }
+              },
+              {
+                "if": { "properties": { "dataSpace": { "properties": { "read": { "enum": ["collectionSchema", "recordList", "recordDetail"] } } } } },
+                "then": { "required": ["input"], "properties": { "input": { "required": ["collectionId"] } } }
+              },
+              {
+                "if": { "properties": { "dataSpace": { "properties": { "read": { "const": "recordDetail" } } } } },
+                "then": { "required": ["input"], "properties": { "input": { "required": ["collectionId", "recordId"] } } }
+              }
+            ]
+          }
+        },
+        {
+          "if": { "required": ["kind"], "properties": { "kind": { "const": "commerce" } } },
+          "then": {
+            "required": ["commerce"],
+            "not": { "anyOf": [{ "required": ["proxySourceId"] }, { "required": ["dataSpace"] }, { "required": ["integrations"] }, { "required": ["contentHub"] }, { "required": ["comboCatalog"] }, { "required": ["authAdminSource"] }] },
+            "allOf": [
+              {
+                "if": { "required": ["ssr"], "properties": { "ssr": { "const": true } } },
+                "then": { "properties": { "commerce": { "required": ["access"], "properties": { "access": { "const": "public" } } } } }
+              },
+              {
+                "if": { "properties": { "commerce": { "properties": { "read": { "enum": ["itemDetail", "discountDetail"] } } } } },
+                "then": { "required": ["input"], "properties": { "input": { "required": ["resourceId"] } } }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "commerce": {
+                      "properties": { "read": { "const": "offerDetail" } },
+                      "not": { "required": ["access"], "properties": { "access": { "const": "public" } } }
+                    }
+                  }
+                },
+                "then": { "required": ["input"], "properties": { "input": { "required": ["resourceId"] } } }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "commerce": {
+                      "required": ["access"],
+                      "properties": { "read": { "const": "offerDetail" }, "access": { "const": "public" } }
+                    }
+                  }
+                },
+                "then": {
+                  "required": ["input"],
+                  "properties": { "input": { "required": ["offerVersionId"], "not": { "required": ["resourceId"] } } }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "if": { "required": ["kind"], "properties": { "kind": { "const": "integrations" } } },
+          "then": {
+            "required": ["integrations"],
+            "not": { "anyOf": [{ "required": ["proxySourceId"] }, { "required": ["dataSpace"] }, { "required": ["commerce"] }, { "required": ["contentHub"] }, { "required": ["comboCatalog"] }, { "required": ["authAdminSource"] }] },
+            "properties": {
+              "ssr": { "const": false },
+              "input": { "maxProperties": 0 }
+            }
+          }
+        },
+        {
+          "if": {
+            "anyOf": [
+              { "not": { "required": ["kind"] } },
+              { "required": ["kind"], "properties": { "kind": { "enum": ["api-proxy", "auth-admin", "content-hub", "combo-catalog"] } } }
+            ]
+          },
+          "then": { "not": { "anyOf": [{ "required": ["dataSpace"] }, { "required": ["commerce"] }, { "required": ["integrations"] }] } }
         }
       ],
       "additionalProperties": false
@@ -369,10 +455,11 @@
     },
     "runtimeApiAction": {
       "type": "object",
+      "$comment": "Cross-config validation additionally requires each route-load action to target exactly one page with exactly one protected route, to have one callback consumer, and to differ from configured auth callback paths/page IDs after normalized and parameterized route matching.",
       "required": ["id"],
       "properties": {
         "id": { "type": "string", "minLength": 1 },
-        "kind": { "type": "string", "enum": ["api-proxy", "auth-admin", "content-hub", "combo-catalog"] },
+        "kind": { "type": "string", "enum": ["api-proxy", "auth-admin", "content-hub", "combo-catalog", "data-space", "commerce", "integrations"] },
         "proxyActionId": { "type": "string" },
         "authAdminAction": {
           "type": "string",
@@ -380,14 +467,26 @@
         },
         "contentHub": { "$ref": "#/definitions/contentHubRuntimeActionBinding" },
         "comboCatalog": { "$ref": "#/definitions/comboCatalogRuntimeActionBinding" },
+        "dataSpace": { "$ref": "#/definitions/dataSpaceRuntimeActionBinding" },
+        "commerce": { "$ref": "#/definitions/commerceRuntimeActionBinding" },
+        "integrations": { "$ref": "#/definitions/integrationRuntimeActionBinding" },
         "method": { "type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"] },
         "statusTarget": { "type": "string" },
         "enabled": { "type": "boolean" },
         "inputFields": {
           "type": "array",
+          "uniqueItems": true,
           "items": { "$ref": "#/definitions/safeRuntimeInputFieldName" }
         },
-        "requiresUserGesture": { "type": "boolean" }
+        "requiresUserGesture": { "type": "boolean" },
+        "trigger": { "const": "route-load" },
+        "pageIds": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
       },
       "allOf": [
         {
@@ -405,6 +504,240 @@
               "proxyActionId": { "$ref": "#/definitions/contentHubSafeId" }
             }
           }
+        },
+        {
+          "if": { "required": ["kind"], "properties": { "kind": { "const": "data-space" } } },
+          "then": {
+            "required": ["dataSpace"],
+            "not": { "anyOf": [{ "required": ["proxyActionId"] }, { "required": ["commerce"] }, { "required": ["integrations"] }, { "required": ["contentHub"] }, { "required": ["comboCatalog"] }, { "required": ["authAdminAction"] }] },
+            "properties": { "method": { "const": "POST" } },
+            "allOf": [
+              {
+                "if": { "properties": { "dataSpace": { "properties": { "action": { "const": "createCollection" } } } } },
+                "then": {
+                  "required": ["inputFields"],
+                  "properties": { "inputFields": { "allOf": [{ "contains": { "const": "collectionId" } }, { "contains": { "const": "schema" } }] } }
+                }
+              },
+              {
+                "if": { "properties": { "dataSpace": { "properties": { "action": { "const": "updateCollection" } } } } },
+                "then": {
+                  "required": ["inputFields"],
+                  "properties": { "inputFields": { "allOf": [{ "contains": { "const": "collectionId" } }, { "contains": { "const": "schema" } }, { "contains": { "const": "expectedRevision" } }] } }
+                }
+              },
+              {
+                "if": { "properties": { "dataSpace": { "properties": { "action": { "const": "createRecord" } } } } },
+                "then": {
+                  "required": ["inputFields"],
+                  "properties": { "inputFields": { "allOf": [{ "contains": { "const": "collectionId" } }, { "contains": { "const": "recordId" } }, { "contains": { "const": "data" } }] } }
+                }
+              },
+              {
+                "if": { "properties": { "dataSpace": { "properties": { "action": { "const": "updateRecord" } } } } },
+                "then": {
+                  "required": ["inputFields"],
+                  "properties": { "inputFields": { "allOf": [{ "contains": { "const": "collectionId" } }, { "contains": { "const": "recordId" } }, { "contains": { "const": "data" } }, { "contains": { "const": "expectedRevision" } }] } }
+                }
+              },
+              {
+                "if": { "properties": { "dataSpace": { "properties": { "action": { "enum": ["publishRecord", "unpublishRecord"] } } } } },
+                "then": {
+                  "required": ["inputFields"],
+                  "properties": { "inputFields": { "allOf": [{ "contains": { "const": "collectionId" } }, { "contains": { "const": "recordId" } }, { "contains": { "const": "expectedRevision" } }] } }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "if": { "required": ["kind"], "properties": { "kind": { "const": "commerce" } } },
+          "then": {
+            "required": ["commerce"],
+            "not": { "anyOf": [{ "required": ["proxyActionId"] }, { "required": ["dataSpace"] }, { "required": ["integrations"] }, { "required": ["contentHub"] }, { "required": ["comboCatalog"] }, { "required": ["authAdminAction"] }] },
+            "properties": { "method": { "const": "POST" } },
+            "allOf": [
+              {
+                "if": { "properties": { "commerce": { "required": ["action"], "properties": { "action": { "enum": ["admitCheckout", "openPortal"] } } } } },
+                "then": { "required": ["requiresUserGesture"], "properties": { "requiresUserGesture": { "const": true } } }
+              },
+              {
+                "if": { "properties": { "commerce": { "required": ["action"], "properties": { "action": { "const": "admitCheckout" } } } } },
+                "then": {
+                  "required": ["inputFields"],
+                  "properties": { "inputFields": { "contains": { "const": "lines" }, "items": { "enum": ["lines", "discountVersionId"] } } }
+                }
+              },
+              {
+                "if": { "properties": { "commerce": { "properties": { "action": { "const": "createItem" } } } } },
+                "then": {
+                  "required": ["inputFields"],
+                  "properties": { "inputFields": { "allOf": [{ "contains": { "const": "itemId" } }, { "contains": { "const": "sellableType" } }] } }
+                }
+              },
+              {
+                "if": { "properties": { "commerce": { "properties": { "action": { "const": "createOfferVersion" } } } } },
+                "then": {
+                  "required": ["inputFields"],
+                  "properties": {
+                    "inputFields": {
+                      "allOf": [
+                        { "contains": { "const": "versionId" } },
+                        { "contains": { "const": "catalogItemId" } },
+                        { "contains": { "const": "revision" } },
+                        { "contains": { "const": "sellableType" } },
+                        { "contains": { "const": "unitPrice" } },
+                        { "contains": { "const": "taxBehavior" } }
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "if": { "properties": { "commerce": { "properties": { "action": { "const": "createDiscountVersion" } } } } },
+                "then": {
+                  "required": ["inputFields"],
+                  "properties": {
+                    "inputFields": {
+                      "allOf": [
+                        { "contains": { "const": "versionId" } },
+                        { "contains": { "const": "revision" } },
+                        { "contains": { "const": "duration" } }
+                      ],
+                      "oneOf": [
+                        { "contains": { "const": "percentageBasisPoints" } },
+                        { "contains": { "const": "fixedAmount" } }
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "if": { "properties": { "commerce": { "properties": { "action": { "enum": ["advanceOfferLifecycle", "advanceDiscountLifecycle"] } } } } },
+                "then": {
+                  "required": ["inputFields"],
+                  "properties": { "inputFields": { "allOf": [{ "contains": { "const": "versionId" } }, { "contains": { "const": "targetState" } }, { "contains": { "const": "expectedRevision" } }] } }
+                }
+              },
+              {
+                "if": { "properties": { "commerce": { "properties": { "action": { "enum": ["updateOfferPresentation", "updateDiscountPresentation"] } } } } },
+                "then": {
+                  "required": ["inputFields"],
+                  "properties": { "inputFields": { "allOf": [{ "contains": { "const": "versionId" } }, { "contains": { "const": "expectedRevision" } }] } }
+                }
+              },
+              {
+                "if": { "properties": { "commerce": { "properties": { "action": { "const": "adjustStock" } } } } },
+                "then": {
+                  "required": ["inputFields"],
+                  "properties": { "inputFields": { "allOf": [{ "contains": { "const": "stockId" } }, { "contains": { "const": "delta" } }, { "contains": { "const": "expectedRevision" } }] } }
+                }
+              },
+              {
+                "if": { "properties": { "commerce": { "properties": { "action": { "const": "changePlan" } } } } },
+                "then": {
+                  "required": ["inputFields"],
+                  "properties": { "inputFields": { "allOf": [{ "contains": { "const": "subscriptionId" } }, { "contains": { "const": "targetOfferVersionId" } }, { "contains": { "const": "expectedRevision" } }] } }
+                }
+              },
+              {
+                "if": { "properties": { "commerce": { "properties": { "action": { "const": "applyDiscount" } } } } },
+                "then": {
+                  "required": ["inputFields"],
+                  "properties": { "inputFields": { "allOf": [{ "contains": { "const": "subscriptionId" } }, { "contains": { "const": "discountVersionId" } }, { "contains": { "const": "expectedRevision" } }] } }
+                }
+              },
+              {
+                "if": { "properties": { "commerce": { "properties": { "action": { "enum": ["removeDiscount", "pause", "resume"] } } } } },
+                "then": {
+                  "required": ["inputFields"],
+                  "properties": { "inputFields": { "allOf": [{ "contains": { "const": "subscriptionId" } }, { "contains": { "const": "expectedRevision" } }] } }
+                }
+              },
+              {
+                "if": { "properties": { "commerce": { "properties": { "action": { "const": "openPortal" } } } } },
+                "then": {
+                  "required": ["inputFields"],
+                  "properties": { "inputFields": { "contains": { "const": "subscriptionId" } } }
+                }
+              },
+              {
+                "if": { "properties": { "commerce": { "properties": { "action": { "const": "migrationPreview" } } } } },
+                "then": {
+                  "required": ["inputFields"],
+                  "properties": { "inputFields": { "allOf": [{ "contains": { "const": "sourceOfferVersionId" } }, { "contains": { "const": "targetOfferVersionId" } }] } }
+                }
+              },
+              {
+                "if": { "properties": { "commerce": { "properties": { "action": { "const": "migrationExecute" } } } } },
+                "then": {
+                  "required": ["inputFields"],
+                  "properties": { "inputFields": { "allOf": [{ "contains": { "const": "commercialRequestId" } }, { "contains": { "const": "dryRunRevision" } }, { "contains": { "const": "dryRunHash" } }, { "contains": { "const": "confirmation" } }] } }
+                }
+              },
+              {
+                "if": { "properties": { "commerce": { "properties": { "action": { "enum": ["migrationPause", "migrationResume", "migrationCancel"] } } } } },
+                "then": {
+                  "required": ["inputFields"],
+                  "properties": { "inputFields": { "allOf": [{ "contains": { "const": "commercialRequestId" } }, { "contains": { "const": "expectedRevision" } }] } }
+                }
+              },
+              {
+                "if": { "properties": { "commerce": { "properties": { "action": { "const": "migrationStatus" } } } } },
+                "then": {
+                  "required": ["inputFields"],
+                  "properties": { "inputFields": { "contains": { "const": "commercialRequestId" } } }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "if": { "required": ["kind"], "properties": { "kind": { "const": "integrations" } } },
+          "then": {
+            "required": ["integrations"],
+            "not": { "anyOf": [{ "required": ["proxyActionId"] }, { "required": ["dataSpace"] }, { "required": ["commerce"] }, { "required": ["contentHub"] }, { "required": ["comboCatalog"] }, { "required": ["authAdminAction"] }] },
+            "properties": { "method": { "const": "POST" } },
+            "allOf": [
+              {
+                "if": { "properties": { "integrations": { "required": ["action"], "properties": { "action": { "enum": ["stripeOnboardingStart", "stripeOnboardingDeauthorize"] } } } } },
+                "then": { "required": ["requiresUserGesture"], "properties": { "requiresUserGesture": { "const": true } } }
+              },
+              {
+                "if": { "properties": { "integrations": { "required": ["action"], "properties": { "action": { "const": "stripeOnboardingReturn" } } } } },
+                "then": { "not": { "required": ["inputFields"] } }
+              },
+              {
+                "if": { "properties": { "integrations": { "properties": { "action": { "enum": ["disable", "requestReconnect"] } } } } },
+                "then": {
+                  "required": ["inputFields"],
+                  "properties": { "inputFields": { "allOf": [{ "contains": { "const": "connectionId" } }, { "contains": { "const": "expectedRevision" } }] } }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "if": { "required": ["trigger"] },
+          "then": {
+            "required": ["pageIds", "integrations"],
+            "properties": {
+              "kind": { "const": "integrations" },
+              "integrations": {
+                "properties": { "action": { "const": "stripeOnboardingReturn" } }
+              }
+            },
+            "not": { "anyOf": [{ "required": ["inputFields"] }, { "required": ["requiresUserGesture"] }] }
+          }
+        },
+        {
+          "if": {
+            "anyOf": [
+              { "not": { "required": ["kind"] } },
+              { "required": ["kind"], "properties": { "kind": { "enum": ["api-proxy", "auth-admin", "content-hub", "combo-catalog"] } } }
+            ]
+          },
+          "then": { "not": { "anyOf": [{ "required": ["dataSpace"] }, { "required": ["commerce"] }, { "required": ["integrations"] }] } }
         }
       ],
       "additionalProperties": false
@@ -429,6 +762,8 @@
         },
         "apiActions": {
           "type": "array",
+          "$comment": "The semantic validator additionally requires every runtime apiActions id to be globally unique.",
+          "uniqueItems": true,
           "items": { "$ref": "#/definitions/runtimeApiAction" }
         }
       },
@@ -715,6 +1050,81 @@
       },
       "additionalProperties": false
     },
+    "dataSpaceRuntimeReadBinding": {
+      "type": "object",
+      "required": ["read", "spaceId"],
+      "properties": {
+        "read": { "type": "string", "enum": ["collectionList", "collectionSchema", "recordList", "recordDetail"] },
+        "spaceId": { "$ref": "#/definitions/serverFeatureSafeId" },
+        "access": { "type": "string", "enum": ["protected", "public"] }
+      },
+      "allOf": [
+        {
+          "if": { "required": ["access"], "properties": { "access": { "const": "public" } } },
+          "then": { "properties": { "read": { "enum": ["recordList", "recordDetail"] } } }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "dataSpaceRuntimeActionBinding": {
+      "type": "object",
+      "required": ["action", "spaceId"],
+      "properties": {
+        "action": { "type": "string", "enum": ["createCollection", "updateCollection", "createRecord", "updateRecord", "publishRecord", "unpublishRecord"] },
+        "spaceId": { "$ref": "#/definitions/serverFeatureSafeId" }
+      },
+      "additionalProperties": false
+    },
+    "commerceRuntimeReadBinding": {
+      "type": "object",
+      "required": ["read"],
+      "properties": {
+        "read": { "type": "string", "enum": ["itemList", "itemDetail", "offerList", "offerDetail", "discountList", "discountDetail"] },
+        "access": { "type": "string", "enum": ["protected", "public"] }
+      },
+      "allOf": [
+        {
+          "if": { "required": ["access"], "properties": { "access": { "const": "public" } } },
+          "then": { "properties": { "read": { "enum": ["offerList", "offerDetail"] } } }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "commerceRuntimeActionBinding": {
+      "type": "object",
+      "required": ["action"],
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": ["createItem", "createOfferVersion", "createDiscountVersion", "advanceOfferLifecycle", "updateOfferPresentation", "advanceDiscountLifecycle", "updateDiscountPresentation", "adjustStock", "changePlan", "applyDiscount", "removeDiscount", "pause", "resume", "openPortal", "migrationPreview", "migrationExecute", "migrationPause", "migrationResume", "migrationCancel", "migrationStatus", "admitCheckout"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "integrationRuntimeReadBinding": {
+      "type": "object",
+      "required": ["read"],
+      "properties": {
+        "read": { "const": "connectionList" }
+      },
+      "additionalProperties": false
+    },
+    "integrationRuntimeActionBinding": {
+      "type": "object",
+      "required": ["action"],
+      "properties": {
+        "action": { "type": "string", "enum": ["disable", "requestReconnect", "stripeOnboardingStart", "stripeOnboardingReturn", "stripeOnboardingDeauthorize"] },
+        "bindingId": { "$ref": "#/definitions/serverFeatureSafeId" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "action": { "enum": ["stripeOnboardingStart", "stripeOnboardingReturn", "stripeOnboardingDeauthorize"] } } },
+          "then": { "required": ["bindingId"] },
+          "else": { "not": { "required": ["bindingId"] } }
+        }
+      ],
+      "additionalProperties": false
+    },
     "safeRuntimeInputObject": {
       "type": "object",
       "propertyNames": { "$ref": "#/definitions/safeRuntimeInputFieldName" },
@@ -751,6 +1161,9 @@
           "access",
           "access_token",
           "accessToken",
+          "account",
+          "account_id",
+          "accountId",
           "auth",
           "authorization",
           "authorizer",
@@ -762,22 +1175,38 @@
           "bucket_name",
           "client_secret",
           "clientSecret",
+          "connected_account",
+          "connectedAccount",
           "credential_ref",
           "credentialRef",
           "credentials",
+          "domain",
+          "draft",
+          "draft_id",
+          "draftId",
+          "environment",
           "groups",
           "groups_to_roles",
           "groupsToRoles",
           "id_token",
           "idToken",
+          "iam",
           "jwks",
           "lambdaArn",
           "lambda_arn",
           "partitionKey",
           "partition_key",
           "policy",
+          "provider",
+          "provider_account",
+          "providerAccount",
+          "provider_account_id",
+          "providerAccountId",
           "refresh_token",
           "refreshToken",
+          "role",
+          "role_arn",
+          "roleArn",
           "secret",
           "secretArn",
           "secret_arn",
@@ -804,6 +1233,12 @@
           "X-Amz-Signature"
         ]
       }
+    },
+    "serverFeatureSafeId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
     },
     "contentHubSafeId": {
       "type": "string",

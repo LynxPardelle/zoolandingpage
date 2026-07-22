@@ -5,6 +5,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { validateDraftFeatureReadiness } from './draft-feature-readiness.mjs';
 import { inferServerDescriptorKind, isLocalOnlyDraftDirectoryName } from './lib/server-descriptor-kinds.mjs';
+import { assertValidServerFeatureRuntimeConfig } from './lib/server-feature-runtime-config-guard.mjs';
 import { assertValidRuntimeDataSourceConditionReferences } from './runtime-data-source-condition-guard.mjs';
 
 const IGNORED_DIRS = new Set([
@@ -337,6 +338,7 @@ async function main() {
     throw new Error(`No JSON draft files found under ${draftRoot}`);
   }
   assertValidRuntimeDataSourceConditionReferences({ version: 1, domain, stage: 'draft', files });
+  assertValidServerFeatureRuntimeConfig({ version: 1, domain, stage: 'draft', files });
   const readiness = await validateDraftFeatureReadiness({ domain, environment, mode: environment, files });
   if (!readiness.ok) {
     throw new Error(`draft_feature_readiness_failed:${readiness.blockingCount}`);
@@ -395,7 +397,7 @@ async function main() {
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch(error => {
-    const safeCode = error instanceof Error && /^draft_feature_readiness_failed:\d+$/.test(error.message)
+    const safeCode = error instanceof Error && /^(?:draft_feature_readiness|server_feature_runtime_config)_failed:\d+$/.test(error.message)
       ? error.message
       : 'draft_deploy_failed';
     console.error(JSON.stringify({ ok: false, error: { code: safeCode } }));

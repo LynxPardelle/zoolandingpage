@@ -150,6 +150,44 @@ describe('RuntimeConfigService remote auth', () => {
         expect((store.siteConfig()?.runtime as Record<string, unknown>)['authRemote']).toBeUndefined();
     });
 
+    it('rejects remote auth hydration when its callback collides with a Stripe route-load return', async () => {
+        const config = minimalSiteConfig({
+            authRemote: {
+                enabled: true,
+                authProfileId: 'staff',
+                endpoint: '/auth/runtime-config',
+            },
+            apiActions: [{
+                id: 'stripe-return',
+                kind: 'integrations',
+                integrations: { action: 'stripeOnboardingReturn', bindingId: 'stripe-main' },
+                trigger: 'route-load',
+                pageIds: ['stripe-return'],
+            }],
+        });
+        config.routes.push({
+            path: '/stripe/return',
+            pageId: 'stripe-return',
+            auth: { required: true, redirectTo: '/login' },
+        });
+        store.setSiteConfig(config);
+
+        const resolved = (service as any).resolveRemoteAuth(TEST_DOMAIN);
+        http.expectOne('/auth/runtime-config').flush({
+            ok: true,
+            domain: TEST_DOMAIN,
+            auth: {
+                ...publicAuth,
+                redirectPath: '/stripe/return',
+                callbackPageId: 'stripe-return',
+            },
+        });
+
+        await expectAsync(resolved).toBeResolvedTo(false);
+        expect(service.auth()).toBeNull();
+        expect((store.siteConfig()?.runtime as Record<string, unknown>)['authRemote']).toBeDefined();
+    });
+
     it('hydrates valid disabled remote auth metadata for non-active profiles', async () => {
         store.setSiteConfig(minimalSiteConfig({
             authRemote: {

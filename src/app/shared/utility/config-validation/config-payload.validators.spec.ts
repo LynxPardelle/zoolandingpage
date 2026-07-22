@@ -3272,4 +3272,291 @@ describe('config-payload.validators', () => {
         };
         expect(isAnalyticsConfigPayload(valid)).toBeTrue();
     });
+
+    it('accepts exact browser-safe Data Spaces, Commerce, and Integrations runtime bindings', () => {
+        const payload = {
+            version: 1,
+            domain: 'preview.example.test',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: minimalSiteConfig(),
+            runtime: {
+                dataSources: [
+                    {
+                        id: 'published-products', kind: 'data-space', target: 'remote.products', ssr: true,
+                        dataSpace: { read: 'recordList', spaceId: 'catalog-content', access: 'public' },
+                        input: { collectionId: 'products', limit: 20 },
+                    },
+                    {
+                        id: 'offers', kind: 'commerce', target: 'remote.offers', ssr: true,
+                        commerce: { read: 'offerList', access: 'public' },
+                        input: { limit: 20 },
+                    },
+                    {
+                        id: 'connections', kind: 'integrations', target: 'remote.connections',
+                        integrations: { read: 'connectionList' },
+                    },
+                ],
+                apiActions: [
+                    {
+                        id: 'update-product', kind: 'data-space', inputFields: ['collectionId', 'recordId', 'data', 'expectedRevision'],
+                        dataSpace: { action: 'updateRecord', spaceId: 'catalog-content' },
+                    },
+                    {
+                        id: 'checkout', kind: 'commerce', inputFields: ['lines', 'discountVersionId'], requiresUserGesture: true,
+                        commerce: { action: 'admitCheckout' },
+                    },
+                    {
+                        id: 'stripe-start', kind: 'integrations', requiresUserGesture: true,
+                        integrations: { action: 'stripeOnboardingStart', bindingId: 'stripe-main' },
+                    },
+                ],
+            },
+        };
+
+        expect(isDraftSiteConfigPayload(payload)).toBeTrue();
+    });
+
+    it('rejects missing, crossed, invalid-public, and protected-SSR feature bindings', () => {
+        const base = {
+            version: 1,
+            domain: 'preview.example.test',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: minimalSiteConfig(),
+        };
+        const source = (value: Record<string, unknown>) => ({
+            ...base,
+            runtime: { dataSources: [{ id: 'feature', target: 'remote.feature', ...value }] },
+        });
+
+        expect(isDraftSiteConfigPayload(source({ kind: 'data-space' }))).withContext('missing binding').toBeFalse();
+        expect(isDraftSiteConfigPayload(source({
+            kind: 'data-space',
+            dataSpace: { read: 'recordList', spaceId: 'catalog' },
+            commerce: { read: 'offerList' },
+        }))).withContext('crossed binding').toBeFalse();
+        expect(isDraftSiteConfigPayload(source({
+            kind: 'data-space',
+            dataSpace: { read: 'collectionList', spaceId: 'catalog', access: 'public' },
+        }))).withContext('invalid public operation').toBeFalse();
+        expect(isDraftSiteConfigPayload(source({
+            kind: 'commerce', ssr: true,
+            commerce: { read: 'itemList', access: 'protected' },
+        }))).withContext('protected SSR').toBeFalse();
+        expect(isDraftSiteConfigPayload(source({
+            kind: 'integrations', ssr: true,
+            integrations: { read: 'connectionList' },
+        }))).withContext('integrations SSR').toBeFalse();
+        expect(isDraftSiteConfigPayload(source({
+            kind: 'data-space',
+            dataSpace: { read: 'recordList', spaceId: 'Catalog_Main' },
+        }))).withContext('uppercase backend id').toBeFalse();
+        expect(isDraftSiteConfigPayload(source({
+            kind: 'data-space',
+            dataSpace: { read: 'recordList', spaceId: `a${ 'b'.repeat(64) }` },
+        }))).withContext('backend id over 64 characters').toBeFalse();
+        expect(isDraftSiteConfigPayload(source({
+            kind: 'api-proxy',
+            commerce: { read: 'offerList', access: 'public' },
+        }))).withContext('api proxy with feature binding').toBeFalse();
+        expect(isDraftSiteConfigPayload(source({
+            kind: 'content-hub',
+            contentHub: { read: 'articleList', hubId: 'main-hub' },
+            dataSpace: { read: 'recordList', spaceId: 'catalog' },
+        }))).withContext('existing kind with crossed feature binding').toBeFalse();
+        expect(isDraftSiteConfigPayload(source({
+            kind: 'data-space',
+            proxySourceId: 'ignoredAlias',
+            dataSpace: { read: 'recordList', spaceId: 'catalog' },
+            input: { collectionId: 'products' },
+        }))).withContext('ignored proxy source alias').toBeFalse();
+        expect(isDraftSiteConfigPayload(source({
+            kind: 'commerce',
+            commerce: { read: 'itemDetail' },
+        }))).withContext('missing required protected detail id').toBeFalse();
+        expect(isDraftSiteConfigPayload(source({
+            kind: 'commerce',
+            commerce: { read: 'offerDetail', access: 'public' },
+            input: { resourceId: 'offer-v1' },
+        }))).withContext('wrong public offer detail id').toBeFalse();
+        expect(isDraftSiteConfigPayload(source({
+            kind: 'data-space',
+            dataSpace: { read: 'recordDetail', spaceId: 'catalog' },
+            input: { collectionId: 'products' },
+        }))).withContext('missing record id').toBeFalse();
+    });
+
+    it('rejects unsafe redirect and OAuth action configuration', () => {
+        const payload = (action: Record<string, unknown>) => ({
+            version: 1,
+            domain: 'preview.example.test',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: minimalSiteConfig(),
+            runtime: { apiActions: [{ id: 'feature-action', ...action }] },
+        });
+
+        expect(isDraftSiteConfigPayload(payload({
+            kind: 'commerce', inputFields: ['subscriptionId'], commerce: { action: 'openPortal' },
+        }))).withContext('portal without gesture').toBeFalse();
+        expect(isDraftSiteConfigPayload(payload({
+            kind: 'integrations', inputFields: ['state'],
+            integrations: { action: 'stripeOnboardingReturn', bindingId: 'stripe-main' },
+        }))).withContext('OAuth state from generic fields').toBeFalse();
+        expect(isDraftSiteConfigPayload(payload({
+            kind: 'integrations', requiresUserGesture: true,
+            integrations: { action: 'stripeOnboardingStart', bindingId: 'Stripe_Main' },
+        }))).withContext('uppercase onboarding binding id').toBeFalse();
+        expect(isDraftSiteConfigPayload(payload({
+            kind: 'commerce', requiresUserGesture: true,
+            inputFields: ['lines', 'amountMinor'], commerce: { action: 'admitCheckout' },
+        }))).withContext('browser price field').toBeFalse();
+        expect(isDraftSiteConfigPayload(payload({
+            kind: 'data-space', proxyActionId: 'ignoredAlias',
+            inputFields: ['collectionId', 'schema'],
+            dataSpace: { action: 'createCollection', spaceId: 'catalog' },
+        }))).withContext('ignored proxy action alias').toBeFalse();
+        expect(isDraftSiteConfigPayload(payload({
+            kind: 'commerce', method: 'PATCH',
+            inputFields: ['versionId', 'targetState', 'expectedRevision'],
+            commerce: { action: 'advanceOfferLifecycle' },
+        }))).withContext('non-POST feature action method').toBeFalse();
+        expect(isDraftSiteConfigPayload(payload({
+            kind: 'commerce',
+            inputFields: ['subscriptionId'],
+            commerce: { action: 'changePlan' },
+        }))).withContext('missing required action fields').toBeFalse();
+        expect(isDraftSiteConfigPayload(payload({
+            kind: 'commerce',
+            inputFields: ['versionId', 'revision', 'duration', 'percentageBasisPoints', 'fixedAmount'],
+            commerce: { action: 'createDiscountVersion' },
+        }))).withContext('ambiguous discount amount').toBeFalse();
+        expect(isDraftSiteConfigPayload({
+            version: 1,
+            domain: 'preview.example.test',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: minimalSiteConfig(),
+            runtime: {
+                apiActions: [{ id: 'duplicate-action' }, { id: 'duplicate-action', statusTarget: 'second' }],
+            },
+        })).withContext('duplicate runtime action id').toBeFalse();
+    });
+
+    it('accepts route-load Stripe returns only on protected declared pages', () => {
+        const valid = {
+            version: 1,
+            domain: 'preview.example.test',
+            routes: [{
+                path: '/integraciones/stripe/retorno',
+                pageId: 'stripe-return',
+                auth: { required: true },
+            }],
+            site: minimalSiteConfig(),
+            runtime: {
+                apiActions: [{
+                    id: 'complete-stripe-onboarding',
+                    kind: 'integrations',
+                    integrations: { action: 'stripeOnboardingReturn', bindingId: 'stripe-main' },
+                    trigger: 'route-load',
+                    pageIds: ['stripe-return'],
+                }],
+            },
+        };
+
+        expect(isDraftSiteConfigPayload(valid)).toBeTrue();
+        expect(isDraftSiteConfigPayload({
+            ...valid,
+            routes: [{ path: '/integraciones/stripe/retorno', pageId: 'stripe-return' }],
+        })).withContext('public callback route').toBeFalse();
+        expect(isDraftSiteConfigPayload({
+            ...valid,
+            runtime: {
+                apiActions: [{
+                    ...valid.runtime.apiActions[0],
+                    pageIds: ['missing-page'],
+                }],
+            },
+        })).withContext('unknown callback page').toBeFalse();
+        expect(isDraftSiteConfigPayload({
+            ...valid,
+            routes: [
+                valid.routes[0],
+                { path: '/integraciones/stripe/otro-retorno', pageId: 'stripe-return-other', auth: { required: true } },
+            ],
+            runtime: {
+                apiActions: [{
+                    ...valid.runtime.apiActions[0],
+                    pageIds: ['stripe-return', 'stripe-return-other'],
+                }],
+            },
+        })).withContext('multiple callback pages for one route-load action').toBeFalse();
+        expect(isDraftSiteConfigPayload({
+            ...valid,
+            routes: [
+                valid.routes[0],
+                { path: '/integraciones/stripe/retorno-alterno', pageId: 'stripe-return', auth: { required: true } },
+            ],
+        })).withContext('multiple routes for one callback page').toBeFalse();
+        expect(isDraftSiteConfigPayload({
+            ...valid,
+            runtime: {
+                apiActions: [{
+                    ...valid.runtime.apiActions[0],
+                    integrations: { action: 'stripeOnboardingStart', bindingId: 'stripe-main' },
+                    requiresUserGesture: true,
+                }],
+            },
+        })).withContext('route load on interactive action').toBeFalse();
+        expect(isDraftSiteConfigPayload({
+            ...valid,
+            runtime: {
+                apiActions: [
+                    valid.runtime.apiActions[0],
+                    { ...valid.runtime.apiActions[0], id: 'complete-stripe-onboarding-again' },
+                ],
+            },
+        })).withContext('multiple callback consumers for one page').toBeFalse();
+
+        const auth = {
+            enabled: true,
+            authProfileId: 'staff',
+            provider: 'cognito',
+            issuer: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_PREVIEW',
+            clientId: 'public-web-client',
+            hostedUiDomain: 'https://preview.auth.us-east-1.amazoncognito.com',
+            scopes: ['openid'],
+            redirectPath: '/auth/callback',
+            logoutPath: '/acceso',
+            callbackPageId: 'auth-callback',
+        };
+        expect(isDraftSiteConfigPayload({
+            ...valid,
+            routes: [{
+                ...valid.routes[0],
+                path: '/auth/callback',
+            }],
+            runtime: { auth, apiActions: valid.runtime.apiActions },
+        })).withContext('Stripe return route equals auth callback path').toBeFalse();
+        expect(isDraftSiteConfigPayload({
+            ...valid,
+            routes: [{
+                ...valid.routes[0],
+                path: 'auth//callback/',
+            }],
+            runtime: { auth, apiActions: valid.runtime.apiActions },
+        })).withContext('normalized Stripe return route equals auth callback path').toBeFalse();
+        expect(isDraftSiteConfigPayload({
+            ...valid,
+            routes: [{
+                ...valid.routes[0],
+                path: '/auth/:result',
+            }],
+            runtime: { auth, apiActions: valid.runtime.apiActions },
+        })).withContext('parameterized Stripe return route matches auth callback path').toBeFalse();
+        expect(isDraftSiteConfigPayload({
+            ...valid,
+            runtime: {
+                auth: { ...auth, callbackPageId: 'stripe-return' },
+                apiActions: valid.runtime.apiActions,
+            },
+        })).withContext('Stripe return page equals auth callback page').toBeFalse();
+    });
 });

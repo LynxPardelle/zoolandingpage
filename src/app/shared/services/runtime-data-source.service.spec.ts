@@ -4,6 +4,9 @@ import { RuntimeApiProxyClientService } from './runtime-api-proxy-client.service
 import { AuthAdminClientService } from '@/app/state/auth/auth-admin-client.service';
 import { ComboCatalogClientService } from './combo-catalog-client.service';
 import { ContentHubClientService } from './content-hub-client.service';
+import { CommerceClientService } from './commerce-client.service';
+import { DataSpaceClientService } from './data-space-client.service';
+import { IntegrationPlatformClientService } from './integration-platform-client.service';
 import { RuntimeDataSourceMapperService } from './runtime-data-source-mapper.service';
 import { RuntimeDataSourceService } from './runtime-data-source.service';
 import { VariableStoreService } from './variable-store.service';
@@ -16,6 +19,9 @@ describe('RuntimeDataSourceService', () => {
     let authAdmin: jasmine.SpyObj<AuthAdminClientService>;
     let comboCatalog: jasmine.SpyObj<ComboCatalogClientService>;
     let contentHub: jasmine.SpyObj<ContentHubClientService>;
+    let commerce: jasmine.SpyObj<CommerceClientService>;
+    let dataSpaces: jasmine.SpyObj<DataSpaceClientService>;
+    let integrations: jasmine.SpyObj<IntegrationPlatformClientService>;
     let mapper: jasmine.SpyObj<RuntimeDataSourceMapperService>;
     let runtimeSearchParams: URLSearchParams;
     const setRuntimeUrl = (href: string): void => {
@@ -29,6 +35,9 @@ describe('RuntimeDataSourceService', () => {
         authAdmin = jasmine.createSpyObj<AuthAdminClientService>('AuthAdminClientService', ['me', 'listUsers']);
         comboCatalog = jasmine.createSpyObj<ComboCatalogClientService>('ComboCatalogClientService', ['readSource', 'executeAction']);
         contentHub = jasmine.createSpyObj<ContentHubClientService>('ContentHubClientService', ['readSource', 'executeAction']);
+        commerce = jasmine.createSpyObj<CommerceClientService>('CommerceClientService', ['readSource', 'executeAction']);
+        dataSpaces = jasmine.createSpyObj<DataSpaceClientService>('DataSpaceClientService', ['readSource', 'executeAction']);
+        integrations = jasmine.createSpyObj<IntegrationPlatformClientService>('IntegrationPlatformClientService', ['readSource', 'executeAction']);
         mapper = jasmine.createSpyObj<RuntimeDataSourceMapperService>('RuntimeDataSourceMapperService', ['mapResponse']);
         runtimeSearchParams = new URLSearchParams();
 
@@ -41,6 +50,9 @@ describe('RuntimeDataSourceService', () => {
                 { provide: AuthAdminClientService, useValue: authAdmin },
                 { provide: ComboCatalogClientService, useValue: comboCatalog },
                 { provide: ContentHubClientService, useValue: contentHub },
+                { provide: CommerceClientService, useValue: commerce },
+                { provide: DataSpaceClientService, useValue: dataSpaces },
+                { provide: IntegrationPlatformClientService, useValue: integrations },
                 { provide: RuntimeDataSourceMapperService, useValue: mapper },
             ],
         });
@@ -759,6 +771,78 @@ describe('RuntimeDataSourceService', () => {
                 scope: 'draft',
             },
         });
+    });
+
+    it('dispatches configured Data Spaces, Commerce, and Integrations reads to their exact clients', async () => {
+        dataSpaces.readSource.and.resolveTo({ ok: true, data: { items: [] } });
+        commerce.readSource.and.resolveTo({ ok: true, data: { items: [] } });
+        integrations.readSource.and.resolveTo({ ok: true, data: { connections: [] } });
+        mapper.mapResponse.and.returnValue({ items: [] });
+
+        await service.start({
+            domain: 'preview.example.test',
+            pageId: 'admin',
+            dataSources: [
+                {
+                    id: 'products', kind: 'data-space', target: 'remote.products',
+                    dataSpace: { read: 'recordList', spaceId: 'catalog', access: 'protected' },
+                    input: { collectionId: 'products', limit: 20, providerAccountId: 'must-not-travel' },
+                },
+                {
+                    id: 'offers', kind: 'commerce', target: 'remote.offers',
+                    commerce: { read: 'offerList', access: 'protected' }, input: { limit: 20 },
+                },
+                {
+                    id: 'connections', kind: 'integrations', target: 'remote.connections',
+                    integrations: { read: 'connectionList' },
+                },
+            ],
+        });
+
+        expect(dataSpaces.readSource).toHaveBeenCalledOnceWith(jasmine.objectContaining({
+            sourceId: 'products',
+            input: {
+                dataSpace: { read: 'recordList', spaceId: 'catalog', access: 'protected' },
+                collectionId: 'products', limit: 20,
+            },
+        }));
+        expect(commerce.readSource).toHaveBeenCalledOnceWith(jasmine.objectContaining({
+            sourceId: 'offers',
+            input: { commerce: { read: 'offerList', access: 'protected' }, limit: 20 },
+        }));
+        expect(integrations.readSource).toHaveBeenCalledOnceWith(jasmine.objectContaining({
+            sourceId: 'connections',
+            input: { integrations: { read: 'connectionList' } },
+        }));
+        expect(proxy.readSource).not.toHaveBeenCalled();
+    });
+
+    it('allows SSR only for explicitly public Data Spaces or Commerce reads', async () => {
+        commerce.readSource.and.resolveTo({ ok: true, data: { items: [] } });
+        mapper.mapResponse.and.returnValue({ items: [] });
+
+        await service.start({
+            domain: 'preview.example.test', pageId: 'public', mode: 'ssr',
+            dataSources: [
+                {
+                    id: 'private-records', kind: 'data-space', target: 'remote.private', ssr: true,
+                    dataSpace: { read: 'recordList', spaceId: 'catalog', access: 'protected' },
+                    input: { collectionId: 'products' },
+                },
+                {
+                    id: 'public-offers', kind: 'commerce', target: 'remote.offers', ssr: true,
+                    commerce: { read: 'offerList', access: 'public' },
+                },
+                {
+                    id: 'connections', kind: 'integrations', target: 'remote.connections', ssr: true,
+                    integrations: { read: 'connectionList' },
+                },
+            ] as any,
+        });
+
+        expect(commerce.readSource).toHaveBeenCalledTimes(1);
+        expect(dataSpaces.readSource).not.toHaveBeenCalled();
+        expect(integrations.readSource).not.toHaveBeenCalled();
     });
 
     it('writes an empty status when mapped source items are empty', async () => {

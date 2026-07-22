@@ -19,7 +19,7 @@ import type {
 import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, REQUEST, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { isDraftAuthRuntimeConfig } from '../utility/config-validation/config-payload.validators';
+import { isDraftAuthRuntimeConfig, isDraftSiteConfigPayload } from '../utility/config-validation/config-payload.validators';
 import { buildAuthEndpointUrl } from '../utility/auth/auth-api-url.utility';
 import { ConfigStoreService } from './config-store.service';
 import { DomainResolverService } from './domain-resolver.service';
@@ -278,6 +278,9 @@ export class RuntimeConfigService {
                 auth,
             },
         };
+        if (!isDraftSiteConfigPayload(nextConfig)) {
+            return false;
+        }
 
         this.configStore.setSiteConfig(nextConfig);
         return true;

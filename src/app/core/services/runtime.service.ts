@@ -11,6 +11,8 @@ import { RuntimeDataSourceService } from '@/app/shared/services/runtime-data-sou
 import { RuntimeConfigService } from '@/app/shared/services/runtime-config.service';
 import { ThemeService } from '@/app/shared/services/theme.service';
 import { I18nService } from '@/app/shared/services/i18n.service';
+import { EventOrchestrator } from '@/app/shared/services/event-orchestrator';
+import { VariableStoreService } from '@/app/shared/services/variable-store.service';
 import { AuthFacade } from '@/app/state/auth/auth.facade';
 import { AuthRuntimeService } from '@/app/state/auth/auth-runtime.service';
 import { applyNavigationScroll, currentBrowserPath, dispatchClientNavigationEnd, navigateInCurrentWindow } from '@/app/shared/utility/navigation/browser-navigation.utility';
@@ -22,7 +24,17 @@ import { DestroyRef, inject, Injectable, PLATFORM_ID, signal } from '@angular/co
 import { LoadingCurtainService } from './loading-curtain.service';
 import { AuthBrowserFlowService } from '@/app/state/auth/auth-browser-flow.service';
 import type { AnalyticsEventPayload } from '@/app/shared/services/analytics.events';
-import type { TComponentsPayload, TDraftSiteRouteEntry, TRuntimeDataSourceConfig } from '@/app/shared/types/config-payloads.types';
+import type { TComponentsPayload, TDraftSiteRouteEntry, TRuntimeApiActionConfig, TRuntimeDataSourceConfig } from '@/app/shared/types/config-payloads.types';
+
+type TRouteLoadStatusReceipt = {
+    readonly target: string;
+    readonly value: Readonly<Record<string, unknown>>;
+};
+
+const routeLoadStatusRecord = (value: unknown): Record<string, unknown> =>
+    value && typeof value === 'object' && !Array.isArray(value)
+        ? value as Record<string, unknown>
+        : {};
 
 @Injectable({ providedIn: 'root' })
 export class RuntimeService {
@@ -43,6 +55,8 @@ export class RuntimeService {
     private readonly authBrowserFlow = inject(AuthBrowserFlowService);
     private readonly theme = inject(ThemeService);
     private readonly i18n = inject(I18nService);
+    private readonly eventOrchestrator = inject(EventOrchestrator);
+    private readonly variables = inject(VariableStoreService);
     private readonly loadingCurtain = inject(LoadingCurtainService);
     private readonly platformId = inject(PLATFORM_ID);
     private readonly isBrowser = isPlatformBrowser(this.platformId);
@@ -86,6 +100,7 @@ export class RuntimeService {
         { className: 'sectionSubtitle', tokenName: 'secondaryTitleColor' },
         { className: 'heroCaption', tokenName: 'secondaryTitleColor' },
     ] as const;
+    private readonly routeLoadActionReceipts = new Set<string>();
 
     connect(options: {
         host: HTMLElement;
@@ -126,6 +141,7 @@ export class RuntimeService {
 
     disconnect(): void {
         this.initializeId++;
+        this.routeLoadActionReceipts.clear();
         if (!this.hasCompletedInitialBootstrap) {
             this.hasRequestedInitialBootstrap = false;
         }
@@ -352,6 +368,9 @@ export class RuntimeService {
             }
 
             const pageId = context.pageId;
+            const routeLoadReceipts = await this.runRouteLoadActions(pageId, initializeId);
+            if (initializeId !== this.initializeId) return;
+
             const boot = await this.configBootstrap.load({
                 domain: context.domain,
                 pageId,
@@ -360,6 +379,7 @@ export class RuntimeService {
                 routeParams: context.routeParams,
             });
             if (initializeId !== this.initializeId) return;
+            this.restoreRouteLoadStatuses(routeLoadReceipts);
 
             const domain = boot.domain || context.domain;
             this.loadingCurtain.configureFromDraft();
@@ -422,6 +442,111 @@ export class RuntimeService {
 
     private isProtectedRoute(route: TDraftSiteRouteEntry | null | undefined): boolean {
         return route?.auth?.required === true;
+    }
+
+    private async runRouteLoadActions(pageId: string, initializeId: number): Promise<readonly TRouteLoadStatusReceipt[]> {
+        if (!this.isBrowser) return [];
+
+        const actions = this.configStore.siteConfig()?.runtime?.apiActions ?? [];
+        const receipts: TRouteLoadStatusReceipt[] = [];
+        for (const action of actions) {
+            if (action.enabled === false
+                || action.trigger !== 'route-load'
+                || !action.pageIds?.includes(pageId)) continue;
+
+            const receipt = `${ initializeId }:${ action.id }`;
+            if (this.routeLoadActionReceipts.has(receipt)) continue;
+            this.routeLoadActionReceipts.add(receipt);
+
+            await this.eventOrchestrator.executeAsync({
+                event: {
+                    componentId: `route-load:${ action.id }`,
+                    eventName: 'route-load',
+                    eventInstructions: `proxyAction:${ action.id }`,
+                    eventData: {},
+                    userGesture: false,
+            },
+            host: null,
+            pageId,
+            }, {
+                allowedActions: ['proxyAction'],
+            });
+
+            const statusReceipt = this.safeStripeReturnStatusReceipt(action);
+            if (statusReceipt) {
+                // Replace the short-lived handler result immediately with its closed safe projection.
+                this.variables.setRuntimeValue(statusReceipt.target, statusReceipt.value);
+                receipts.push(statusReceipt);
+            }
+        }
+        return receipts;
+    }
+
+    private restoreRouteLoadStatuses(receipts: readonly TRouteLoadStatusReceipt[]): void {
+        receipts.forEach((receipt) => this.variables.setRuntimeValue(receipt.target, receipt.value));
+    }
+
+    private safeStripeReturnStatusReceipt(action: TRuntimeApiActionConfig): TRouteLoadStatusReceipt | null {
+        if (action.kind !== 'integrations'
+            || action.integrations?.action !== 'stripeOnboardingReturn') return null;
+        const target = String(action.statusTarget || `remoteStatus.${ action.id }`).trim();
+        if (!target) return null;
+
+        const status = routeLoadStatusRecord(this.variables.get(target));
+        const state = status['state'];
+        if (state === 'error') {
+            const rawError = typeof status['error'] === 'string' ? status['error'].trim() : '';
+            const safeError = rawError.length > 0
+                && rawError.length <= 256
+                && !/[\u0000-\u001F\u007F]/.test(rawError)
+                ? rawError
+                : 'The secure onboarding return could not be completed.';
+            const requestId = typeof status['requestId'] === 'string' ? status['requestId'].trim() : '';
+            return {
+                target,
+                value: {
+                    state: 'error',
+                    updatedAt: new Date().toISOString(),
+                    error: safeError,
+                    ...(/^[A-Za-z0-9._:-]{1,128}$/.test(requestId) ? { requestId } : {}),
+                },
+            };
+        }
+        if (state !== 'success') return null;
+
+        const rawData = routeLoadStatusRecord(status['data']);
+        const onboardingStatus = rawData['status'];
+        if (!['pending', 'ready'].includes(String(onboardingStatus))) {
+            return {
+                target,
+                value: {
+                    state: 'error',
+                    updatedAt: new Date().toISOString(),
+                    error: 'The secure onboarding service returned an unsupported status.',
+                },
+            };
+        }
+        const data: Record<string, unknown> = { status: onboardingStatus };
+        for (const field of ['chargesEnabled', 'payoutsEnabled', 'detailsSubmitted', 'capabilitiesReady']) {
+            if (typeof rawData[field] === 'boolean') data[field] = rawData[field];
+        }
+        const requirementsDueCount = rawData['requirementsDueCount'];
+        if (typeof requirementsDueCount === 'number'
+            && Number.isInteger(requirementsDueCount)
+            && requirementsDueCount >= 0
+            && requirementsDueCount <= 100) {
+            data['requirementsDueCount'] = requirementsDueCount;
+        }
+        return {
+            target,
+            value: {
+                state: 'success',
+                updatedAt: new Date().toISOString(),
+                error: null,
+                data,
+                status: onboardingStatus,
+            },
+        };
     }
 
     private withProtectedRouteTimeout<T>(promise: Promise<T>, active: boolean, fallback: T): Promise<T> {

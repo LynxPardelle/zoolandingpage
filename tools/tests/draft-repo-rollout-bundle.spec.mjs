@@ -9,7 +9,7 @@ import test from 'node:test';
 const repoRoot = path.resolve(new URL('../..', import.meta.url).pathname.replace(/^\/(?:[A-Za-z]:)/, value => value.slice(1)));
 const templateRoot = path.join(repoRoot, 'tools', 'templates', 'draft-repo');
 const auditorCommit = 'c8b04670b5cca800ccf0f723815813897e596600';
-const promotionVerifierSha256 = '8aeada2e40e21c0693099dbb0fc8fbc63a225e11f88b4b61dae3235c875ca5d2';
+const promotionVerifierSha256 = '6a513e34b321dd7c5be200422bb01cd66987dc838cae1546a85de6d463eabc4f';
 const rolloutClosure = Object.freeze([
   '.github/workflows/deploy-production.yml',
   '.github/workflows/deploy-test.yml',
@@ -20,6 +20,7 @@ const rolloutClosure = Object.freeze([
   'tools/lib/sensitive-value-patterns.mjs',
   'tools/lib/server-descriptor-kinds.mjs',
   'tools/lib/server-feature-contract-validator.mjs',
+  'tools/lib/server-feature-runtime-config-guard.mjs',
   'tools/runtime-data-source-condition-guard.mjs',
   'tools/schemas/commerce.schema.json',
   'tools/schemas/data-spaces.schema.json',
@@ -63,8 +64,8 @@ test('legacy rollout closure is self-contained and distinguishes closure from ch
   const zoositeRoot = path.join(root, 'zoosite');
 
   const generic = await applyRolloutClosure(genericRoot);
-  assert.equal(generic.closureCount, 15);
-  assert.equal(generic.changedPaths.length, 15);
+  assert.equal(generic.closureCount, 16);
+  assert.equal(generic.changedPaths.length, 16);
   assert.equal(generic.changedPaths.includes('tools/verify-promotion-commit.mjs'), true);
   assert.equal(
     await normalizedTextFileHash(path.join(genericRoot, 'tools', 'verify-promotion-commit.mjs')),
@@ -75,8 +76,8 @@ test('legacy rollout closure is self-contained and distinguishes closure from ch
   await mkdir(path.dirname(path.join(zoositeRoot, existingGuard)), { recursive: true });
   await copyFile(path.join(templateRoot, existingGuard), path.join(zoositeRoot, existingGuard));
   const zoosite = await applyRolloutClosure(zoositeRoot);
-  assert.equal(zoosite.closureCount, 15);
-  assert.equal(zoosite.changedPaths.length, 14);
+  assert.equal(zoosite.closureCount, 16);
+  assert.equal(zoosite.changedPaths.length, 15);
   assert.equal(zoosite.changedPaths.includes(existingGuard), false);
   assert.equal(zoosite.changedPaths.includes('tools/verify-promotion-commit.mjs'), true);
   assert.equal(
@@ -123,4 +124,7 @@ test('PR safety pins the corrected auditor commit and guards require no deployme
     assert.doesNotMatch(workflow, /id-token:\s*write/);
     assert.doesNotMatch(workflow, /\b(?:secrets|AUTHORING_ENDPOINT|AWS_ROLE_ARN)\b/);
   }
+
+  const promotionVerifier = await readFile(path.join(templateRoot, 'tools', 'verify-promotion-commit.mjs'), 'utf8');
+  assert.match(promotionVerifier, /tools\/lib\/server-feature-runtime-config-guard\.mjs/);
 });

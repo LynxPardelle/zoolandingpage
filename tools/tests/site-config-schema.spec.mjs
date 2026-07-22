@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import Ajv from 'ajv';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
@@ -182,6 +183,148 @@ test('site-config schema exposes content hub data source and action contracts wi
     assert.equal(safeFieldPattern.test('articleId'), true);
     assert.equal(safeFieldPattern.test('accessToken'), false);
     assert.match(JSON.stringify(schema.definitions.safeRuntimeInputValue), /X-Amz-Signature/);
+});
+
+test('site-config schema exposes only browser-safe generic server feature bindings', async () => {
+    const schema = await readJson(schemaPath);
+    const source = schema.definitions.runtimeDataSource;
+    const action = schema.definitions.runtimeApiAction;
+
+    for (const kind of ['data-space', 'commerce', 'integrations']) {
+        assert.ok(source.properties.kind.enum.includes(kind));
+        assert.ok(action.properties.kind.enum.includes(kind));
+    }
+    assert.equal(source.properties.dataSpace.$ref, '#/definitions/dataSpaceRuntimeReadBinding');
+    assert.equal(source.properties.commerce.$ref, '#/definitions/commerceRuntimeReadBinding');
+    assert.equal(source.properties.integrations.$ref, '#/definitions/integrationRuntimeReadBinding');
+    assert.equal(action.properties.dataSpace.$ref, '#/definitions/dataSpaceRuntimeActionBinding');
+    assert.equal(action.properties.commerce.$ref, '#/definitions/commerceRuntimeActionBinding');
+    assert.equal(action.properties.integrations.$ref, '#/definitions/integrationRuntimeActionBinding');
+    assert.deepEqual(schema.definitions.dataSpaceRuntimeReadBinding.properties.access.enum, ['protected', 'public']);
+    assert.deepEqual(schema.definitions.commerceRuntimeReadBinding.properties.access.enum, ['protected', 'public']);
+    assert.equal(schema.definitions.serverFeatureSafeId.pattern, '^[a-z0-9][a-z0-9._-]{0,63}$');
+    assert.equal(schema.definitions.dataSpaceRuntimeReadBinding.properties.spaceId.$ref, '#/definitions/serverFeatureSafeId');
+    assert.equal(schema.definitions.integrationRuntimeActionBinding.properties.bindingId.$ref, '#/definitions/serverFeatureSafeId');
+    for (const definition of [
+        'dataSpaceRuntimeReadBinding', 'dataSpaceRuntimeActionBinding', 'commerceRuntimeReadBinding',
+        'commerceRuntimeActionBinding', 'integrationRuntimeReadBinding', 'integrationRuntimeActionBinding',
+    ]) {
+        assert.equal(schema.definitions[definition].additionalProperties, false);
+        assert.equal(schema.definitions[definition].properties.credentialRef, undefined);
+        assert.equal(schema.definitions[definition].properties.providerAccountId, undefined);
+        assert.equal(schema.definitions[definition].properties.tenantId, undefined);
+    }
+});
+
+test('site-config schema enforces SSR, gesture, Checkout, and OAuth runtime guards', async () => {
+    const schema = await readJson(schemaPath);
+    const ajv = new Ajv({ allErrors: true, strict: false });
+    const definitionValidator = definition => ajv.compile({
+        $schema: schema.$schema,
+        definitions: schema.definitions,
+        $ref: `#/definitions/${ definition }`,
+    });
+    const source = definitionValidator('runtimeDataSource');
+    const action = definitionValidator('runtimeApiAction');
+
+    assert.equal(source({
+        id: 'private-records', kind: 'data-space', target: 'remote.private', ssr: true,
+        dataSpace: { read: 'recordList', spaceId: 'catalog', access: 'protected' },
+    }), false);
+    assert.equal(source({
+        id: 'public-records', kind: 'data-space', target: 'remote.public', ssr: true,
+        dataSpace: { read: 'recordList', spaceId: 'catalog', access: 'public' },
+        input: { collectionId: 'products' },
+    }), true);
+    assert.equal(source({
+        id: 'public-records', kind: 'data-space', target: 'remote.public', ssr: true,
+        dataSpace: { read: 'recordList', spaceId: 'catalog', access: 'public' },
+    }), false);
+    assert.equal(source({
+        id: 'private-items', kind: 'commerce', target: 'remote.items', ssr: true,
+        commerce: { read: 'itemList', access: 'protected' },
+    }), false);
+    assert.equal(source({
+        id: 'public-offers', kind: 'commerce', target: 'remote.offers', ssr: true,
+        commerce: { read: 'offerList', access: 'public' },
+    }), true);
+    assert.equal(source({
+        id: 'connections', kind: 'integrations', target: 'remote.connections', ssr: true,
+        integrations: { read: 'connectionList' },
+    }), false);
+    assert.equal(source({
+        id: 'connections', kind: 'integrations', target: 'remote.connections',
+        integrations: { read: 'connectionList' }, input: { connectionId: 'browser-supplied' },
+    }), false);
+    assert.equal(source({
+        id: 'aliased', kind: 'data-space', target: 'remote.private', proxySourceId: 'ignoredAlias',
+        dataSpace: { read: 'recordList', spaceId: 'catalog' }, input: { collectionId: 'products' },
+    }), false);
+
+    assert.equal(action({ id: 'checkout', kind: 'commerce', commerce: { action: 'admitCheckout' } }), false);
+    assert.equal(action({
+        id: 'checkout', kind: 'commerce', commerce: { action: 'admitCheckout' },
+        requiresUserGesture: true, inputFields: ['lines', 'discountVersionId'],
+    }), true);
+    assert.equal(action({
+        id: 'checkout', kind: 'commerce', commerce: { action: 'admitCheckout' },
+        requiresUserGesture: true, inputFields: ['lines', 'amountMinor'],
+    }), false);
+    assert.equal(action({ id: 'portal', kind: 'commerce', commerce: { action: 'openPortal' } }), false);
+    assert.equal(action({
+        id: 'onboarding', kind: 'integrations',
+        integrations: { action: 'stripeOnboardingStart', bindingId: 'stripe-main' },
+    }), false);
+    assert.equal(action({
+        id: 'onboarding', kind: 'integrations', requiresUserGesture: true,
+        integrations: { action: 'stripeOnboardingStart', bindingId: 'stripe-main' },
+    }), true);
+    assert.equal(action({
+        id: 'oauth-return', kind: 'integrations', inputFields: ['state'],
+        integrations: { action: 'stripeOnboardingReturn', bindingId: 'stripe-main' },
+    }), false);
+    assert.equal(action({
+        id: 'oauth-return', kind: 'integrations',
+        integrations: { action: 'stripeOnboardingReturn', bindingId: 'stripe-main' },
+    }), true);
+    assert.equal(action({
+        id: 'oauth-return', kind: 'integrations', trigger: 'route-load', pageIds: ['stripe-return'],
+        integrations: { action: 'stripeOnboardingReturn', bindingId: 'stripe-main' },
+    }), true);
+    assert.equal(action({
+        id: 'oauth-return', kind: 'integrations', trigger: 'route-load',
+        integrations: { action: 'stripeOnboardingReturn', bindingId: 'stripe-main' },
+    }), false);
+    assert.equal(action({
+        id: 'oauth-return', kind: 'integrations', trigger: 'route-load', pageIds: ['stripe-return', 'other-return'],
+        integrations: { action: 'stripeOnboardingReturn', bindingId: 'stripe-main' },
+    }), false);
+    assert.equal(action({
+        id: 'onboarding', kind: 'integrations', trigger: 'route-load', pageIds: ['stripe-return'],
+        requiresUserGesture: true,
+        integrations: { action: 'stripeOnboardingStart', bindingId: 'stripe-main' },
+    }), false);
+    assert.equal(action({
+        id: 'aliased', kind: 'commerce', proxyActionId: 'ignoredAlias',
+        inputFields: ['stockId', 'delta', 'expectedRevision'], commerce: { action: 'adjustStock' },
+    }), false);
+    assert.equal(action({
+        id: 'wrong-method', kind: 'commerce', method: 'PATCH',
+        inputFields: ['stockId', 'delta', 'expectedRevision'], commerce: { action: 'adjustStock' },
+    }), false);
+    assert.equal(action({
+        id: 'missing-fields', kind: 'commerce',
+        inputFields: ['subscriptionId'], commerce: { action: 'changePlan' },
+    }), false);
+    assert.equal(action({
+        id: 'discount', kind: 'commerce',
+        inputFields: ['versionId', 'revision', 'duration', 'percentageBasisPoints', 'fixedAmount'],
+        commerce: { action: 'createDiscountVersion' },
+    }), false);
+
+    const actions = schema.definitions.runtimeConfig.properties.apiActions;
+    assert.equal(actions.uniqueItems, true);
+    assert.match(actions.$comment, /globally unique/);
 });
 
 test('Zoosite auth pilot fixture uses public authRemote and protected account routing without server-only fields', async () => {

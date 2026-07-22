@@ -71,6 +71,14 @@ test('test providers force Angular TestBed into zoneless mode', () => {
   assert.doesNotMatch(source, /provideZoneChangeDetection/);
 });
 
+test('Karma keeps randomized execution and accepts an explicit reproducibility seed', () => {
+  const karmaConfig = readFileSync(path.join(repoRoot, 'karma.conf.cjs'), 'utf8');
+
+  assert.match(karmaConfig, /KARMA_JASMINE_SEED/);
+  assert.match(karmaConfig, /random:\s*true/);
+  assert.match(karmaConfig, /seed:\s*jasmineSeed/);
+});
+
 test('application compilation excludes the Karma-only harness', () => {
   const appTsConfig = JSON.parse(readFileSync(path.join(repoRoot, 'tsconfig.app.json'), 'utf8'));
 

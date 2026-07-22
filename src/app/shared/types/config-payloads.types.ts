@@ -12,6 +12,18 @@ import type {
     TContentHubRuntimeConfig,
     TContentHubRuntimeReadBinding,
 } from './content-hub.types';
+import type {
+    TDataSpaceRuntimeActionBinding,
+    TDataSpaceRuntimeReadBinding,
+} from './data-space.types';
+import type {
+    TCommerceRuntimeActionBinding,
+    TCommerceRuntimeReadBinding,
+} from './commerce.types';
+import type {
+    TIntegrationPlatformRuntimeActionBinding,
+    TIntegrationPlatformRuntimeReadBinding,
+} from './integration-platform.types';
 import type { TThemeVariableConfig } from './theme.types';
 
 export type TDraftLanguageDefinition = {
@@ -461,11 +473,14 @@ export type TRuntimeDataSourceInputResolverConfig = {
 
 export type TRuntimeDataSourceConfig = {
     readonly id: string;
-    readonly kind?: 'api-proxy' | 'auth-admin' | 'content-hub' | 'combo-catalog';
+    readonly kind?: 'api-proxy' | 'auth-admin' | 'content-hub' | 'combo-catalog' | 'data-space' | 'commerce' | 'integrations';
     readonly proxySourceId?: string;
     readonly authAdminSource?: 'account' | 'adminUsers';
     readonly contentHub?: TContentHubRuntimeReadBinding;
     readonly comboCatalog?: TComboCatalogRuntimeReadBinding;
+    readonly dataSpace?: TDataSpaceRuntimeReadBinding;
+    readonly commerce?: TCommerceRuntimeReadBinding;
+    readonly integrations?: TIntegrationPlatformRuntimeReadBinding;
     readonly target: string;
     readonly statusTarget?: string;
     readonly mergeMode?: 'replace' | 'appendItems';
@@ -482,14 +497,19 @@ export type TRuntimeDataSourceConfig = {
 
 export type TRuntimeApiActionConfig = {
     readonly id: string;
-    readonly kind?: 'api-proxy' | 'auth-admin' | 'content-hub' | 'combo-catalog';
+    readonly kind?: 'api-proxy' | 'auth-admin' | 'content-hub' | 'combo-catalog' | 'data-space' | 'commerce' | 'integrations';
     readonly proxyActionId?: string;
     readonly authAdminAction?: 'approveUser' | 'setUserGroups' | 'suspendUser' | 'reactivateUser' | 'resetUserMfa';
     readonly contentHub?: TContentHubRuntimeActionBinding;
     readonly comboCatalog?: TComboCatalogRuntimeActionBinding;
+    readonly dataSpace?: TDataSpaceRuntimeActionBinding;
+    readonly commerce?: TCommerceRuntimeActionBinding;
+    readonly integrations?: TIntegrationPlatformRuntimeActionBinding;
     readonly method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
     readonly statusTarget?: string;
     readonly enabled?: boolean;
+    readonly trigger?: 'route-load';
+    readonly pageIds?: readonly string[];
     readonly inputFields?: readonly string[];
     readonly requiresUserGesture?: boolean;
 };

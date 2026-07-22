@@ -9,6 +9,7 @@ import { DomainResolverService } from '@/app/shared/services/domain-resolver.ser
 import { DraftRegistryService } from '@/app/shared/services/draft-registry.service';
 import { DraftRuntimeService } from '@/app/shared/services/draft-runtime.service';
 import { RuntimeDataSourceService } from '@/app/shared/services/runtime-data-source.service';
+import { EventOrchestrator } from '@/app/shared/services/event-orchestrator';
 import { ThemeService } from '@/app/shared/services/theme.service';
 import type { TComponentPayloadEntry, TComponentsPayload } from '@/app/shared/types/config-payloads.types';
 import { environment } from '@/environments/environment';
@@ -18,6 +19,8 @@ import { of } from 'rxjs';
 import { setTestBrowserUrl } from '@/test-browser-state';
 import { LoadingCurtainService } from './loading-curtain.service';
 import { RuntimeService } from './runtime.service';
+import { AuthRuntimeService } from '@/app/state/auth/auth-runtime.service';
+import { VariableStoreService } from '@/app/shared/services/variable-store.service';
 
 const createComponentsPayload = (
     components: Record<string, TComponentPayloadEntry>,
@@ -70,6 +73,7 @@ describe('RuntimeService', () => {
     const configureLoadingCurtain = jasmine.createSpy('configureFromDraft');
     const hideLoadingCurtain = jasmine.createSpy('hideWhenReady');
     const applyTheme = jasmine.createSpy('applyTheme');
+    const routeLoadExecuteAsync = jasmine.createSpy('executeAsync').and.resolveTo(undefined);
     let loadSiteConfig: jasmine.Spy;
     let bootstrapLoad: jasmine.Spy;
     let setCombos: jasmine.Spy;
@@ -198,6 +202,8 @@ describe('RuntimeService', () => {
         configureLoadingCurtain.calls.reset();
         hideLoadingCurtain.calls.reset();
         applyTheme.calls.reset();
+        routeLoadExecuteAsync.calls.reset();
+        routeLoadExecuteAsync.and.resolveTo(undefined);
 
         TestBed.configureTestingModule({
             providers: [
@@ -279,6 +285,12 @@ describe('RuntimeService', () => {
                         start: runtimeDataSourcesStart,
                         markInitialSourcesLoading: runtimeDataSourcesMarkInitialSourcesLoading,
                         stop: runtimeDataSourcesStop,
+                    },
+                },
+                {
+                    provide: EventOrchestrator,
+                    useValue: {
+                        executeAsync: routeLoadExecuteAsync,
                     },
                 },
                 {
@@ -1052,6 +1064,183 @@ describe('RuntimeService', () => {
             dataSources,
             mode: 'all',
         });
+    });
+
+    it('runs a protected Stripe return action once before rendered components and data sources', async () => {
+        spyOn(TestBed.inject(AuthRuntimeService), 'evaluateRouteAccessAsync').and.resolveTo({
+            allowed: true,
+            reason: 'authenticated',
+            redirectTo: null,
+            requiredGroups: ['draft-owner'],
+        });
+        const service = TestBed.inject(RuntimeService);
+        const protectedSiteConfig = {
+            version: 1,
+            domain: 'pamelabetancourt.com',
+            defaultPageId: 'stripe-return',
+            routes: [{
+                path: '/integraciones/stripe/retorno',
+                pageId: 'stripe-return',
+                auth: {
+                    required: true,
+                    allowedGroups: ['draft-owner'],
+                    redirectTo: '/acceso',
+                },
+            }],
+            runtime: {
+                apiActions: [{
+                    id: 'complete-stripe-onboarding',
+                    kind: 'integrations',
+                    integrations: {
+                        action: 'stripeOnboardingReturn',
+                        bindingId: 'stripe-main',
+                    },
+                    trigger: 'route-load',
+                    pageIds: ['stripe-return'],
+                }],
+                dataSources: [{
+                    id: 'integration-status',
+                    kind: 'integrations',
+                    integrations: { read: 'connectionList' },
+                    target: 'remote.integrations',
+                    pageIds: ['stripe-return'],
+                }],
+            },
+            site: {},
+        } as any;
+        loadSiteConfig.and.resolveTo(protectedSiteConfig);
+        store.setSiteConfig(protectedSiteConfig);
+        draftRuntimeResolveActiveDraftContext.and.resolveTo({
+            domain: 'pamelabetancourt.com',
+            pageId: 'stripe-return',
+            path: '/integraciones/stripe/retorno',
+            route: protectedSiteConfig.routes[0],
+            routeParams: undefined,
+            explicitPageId: false,
+        });
+        setRuntimeUrl('/integraciones/stripe/retorno?draftDomain=pamelabetancourt.com&state=opaque&code=opaque');
+
+        await service.initialize('es');
+        await service.initialize('es');
+
+        expect(routeLoadExecuteAsync).toHaveBeenCalledOnceWith({
+            event: {
+                componentId: 'route-load:complete-stripe-onboarding',
+                eventName: 'route-load',
+                eventInstructions: 'proxyAction:complete-stripe-onboarding',
+                eventData: {},
+                userGesture: false,
+            },
+            host: null,
+            pageId: 'stripe-return',
+        }, {
+            allowedActions: ['proxyAction'],
+        });
+        const routeLoadOrder = (routeLoadExecuteAsync.calls.first() as unknown as { invocationOrder: number }).invocationOrder;
+        const bootstrapOrder = (bootstrapLoad.calls.first() as unknown as { invocationOrder: number }).invocationOrder;
+        const componentOrder = (setExternalComponentsFromPayload.calls.first() as unknown as { invocationOrder: number }).invocationOrder;
+        const dataSourceOrder = (runtimeDataSourcesStart.calls.first() as unknown as { invocationOrder: number }).invocationOrder;
+        expect(routeLoadOrder).toBeLessThan(bootstrapOrder);
+        expect(routeLoadOrder).toBeLessThan(componentOrder);
+        expect(routeLoadOrder).toBeLessThan(dataSourceOrder);
+    });
+
+    it('restores only the safe Stripe return status after bootstrap clears runtime values', async () => {
+        spyOn(TestBed.inject(AuthRuntimeService), 'evaluateRouteAccessAsync').and.resolveTo({
+            allowed: true,
+            reason: 'authenticated',
+            redirectTo: null,
+            requiredGroups: ['draft-owner'],
+        });
+        const variables = TestBed.inject(VariableStoreService);
+        const statusTarget = 'admin.connections.onboardingReturn';
+        const protectedSiteConfig = {
+            version: 1,
+            domain: 'pamelabetancourt.com',
+            defaultPageId: 'stripe-return',
+            routes: [{
+                path: '/integraciones/stripe/retorno',
+                pageId: 'stripe-return',
+                auth: { required: true, allowedGroups: ['draft-owner'], redirectTo: '/acceso' },
+            }],
+            runtime: {
+                apiActions: [{
+                    id: 'complete-stripe-onboarding',
+                    kind: 'integrations',
+                    integrations: { action: 'stripeOnboardingReturn', bindingId: 'stripe-main' },
+                    trigger: 'route-load',
+                    pageIds: ['stripe-return'],
+                    statusTarget,
+                }],
+            },
+            site: {},
+        } as any;
+        loadSiteConfig.and.resolveTo(protectedSiteConfig);
+        store.setSiteConfig(protectedSiteConfig);
+        draftRuntimeResolveActiveDraftContext.and.resolveTo({
+            domain: 'pamelabetancourt.com',
+            pageId: 'stripe-return',
+            path: '/integraciones/stripe/retorno',
+            route: protectedSiteConfig.routes[0],
+            routeParams: undefined,
+            explicitPageId: false,
+        });
+        routeLoadExecuteAsync.and.callFake(async () => {
+            variables.setRuntimeValue(statusTarget, {
+                state: 'success',
+                updatedAt: '2026-07-21T22:00:00.000Z',
+                error: null,
+                data: {
+                    status: 'ready',
+                    chargesEnabled: true,
+                    payoutsEnabled: true,
+                    detailsSubmitted: true,
+                    capabilitiesReady: true,
+                    requirementsDueCount: 0,
+                    state: 'must-not-survive',
+                    code: 'must-not-survive',
+                    redirectUrl: 'https://example.invalid/must-not-survive',
+                },
+            });
+        });
+        bootstrapLoad.and.callFake(async () => {
+            variables.clearRuntimeValues();
+            return {
+                domain: 'pamelabetancourt.com',
+                pageId: 'stripe-return',
+                structuredDataApplied: false,
+                pageConfig: {
+                    version: 1,
+                    domain: 'pamelabetancourt.com',
+                    pageId: 'stripe-return',
+                    rootIds: [],
+                    modalRootIds: [],
+                },
+                components: null,
+                combos: null,
+            };
+        });
+        setRuntimeUrl('/integraciones/stripe/retorno?draftDomain=pamelabetancourt.com&state=opaque&code=opaque');
+
+        await TestBed.inject(RuntimeService).initialize('es');
+
+        expect(routeLoadExecuteAsync).toHaveBeenCalledTimes(1);
+        expect(variables.getRecord(statusTarget)).toEqual({
+            state: 'success',
+            updatedAt: jasmine.any(String),
+            error: null,
+            data: {
+                status: 'ready',
+                chargesEnabled: true,
+                payoutsEnabled: true,
+                detailsSubmitted: true,
+                capabilitiesReady: true,
+                requirementsDueCount: 0,
+            },
+            status: 'ready',
+        });
+        expect(JSON.stringify(variables.getRecord(statusTarget))).not.toContain('must-not-survive');
+        expect(runtimeDataSourcesStart).not.toHaveBeenCalled();
     });
 
     it('renders protected auth-admin browser routes after auth while initial data sources settle', async () => {

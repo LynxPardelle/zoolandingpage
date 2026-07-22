@@ -3,6 +3,7 @@ import { mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path';
 import { assertValidRuntimeDataSourceConditionReferences } from './runtime-data-source-condition-guard.mjs';
 import { inferServerDescriptorKind, isLocalOnlyDraftDirectoryName } from './lib/server-descriptor-kinds.mjs';
+import { assertValidServerFeatureRuntimeConfig } from './lib/server-feature-runtime-config-guard.mjs';
 
 const DEFAULT_DRAFTS_ROOT = path.resolve('drafts');
 const DEFAULT_REQUEST_TIMEOUT_MS = 20000;
@@ -402,6 +403,7 @@ async function buildDraftPackage({ domain, draftsRoot, stage }) {
   };
 
   assertValidRuntimeDataSourceConditionReferences(draftPackage);
+  assertValidServerFeatureRuntimeConfig(draftPackage);
   return draftPackage;
 }
 

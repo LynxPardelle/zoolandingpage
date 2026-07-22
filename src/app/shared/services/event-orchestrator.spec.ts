@@ -106,6 +106,56 @@ describe('EventOrchestrator', () => {
     expect(calls).toEqual(['a']);
   });
 
+  it('awaits async handlers in command order', async () => {
+    const calls: string[] = [];
+    let releaseFirst!: () => void;
+    const firstFinished = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: EVENT_HANDLERS,
+          multi: true,
+          useValue: {
+            id: 'first',
+            handle: async () => {
+              calls.push('first:start');
+              await firstFinished;
+              calls.push('first:end');
+            },
+          },
+        },
+        {
+          provide: EVENT_HANDLERS,
+          multi: true,
+          useValue: {
+            id: 'second',
+            handle: () => calls.push('second'),
+          },
+        },
+      ],
+    });
+    const sut = TestBed.inject(EventOrchestrator);
+    const execution = sut.executeAsync({
+      event: {
+        componentId: 'route-load:test',
+        eventName: 'route-load',
+        eventInstructions: 'first; second',
+      },
+      host: null,
+    });
+
+    await Promise.resolve();
+    expect(calls).toEqual(['first:start']);
+    releaseFirst();
+    await execution;
+
+    expect(calls).toEqual(['first:start', 'first:end', 'second']);
+  });
+
   it('calls fallback when no handler exists', () => {
     const fallbackCalls: Array<{ id: string; args: unknown[] }> = [];
 

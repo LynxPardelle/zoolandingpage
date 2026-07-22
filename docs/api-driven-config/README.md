@@ -36,7 +36,7 @@ The draft filesystem under `drafts/{domain}/...`, served locally at `/drafts/...
 - Actions through `eventInstructions`.
 - Visibility logic through `condition`.
 - Repeated structures through `loopConfig`.
-- Runtime API data sources and actions through `site-config.json.runtime.dataSources` / `runtime.apiActions`, including `kind: "content-hub"` bindings for content hub reads and mutations.
+- Runtime API data sources and actions through `site-config.json.runtime.dataSources` / `runtime.apiActions`, including `content-hub`, `data-space`, `commerce`, and `integrations` bindings for their bounded reads and mutations.
 - Optional draft auth through browser-safe `site-config.json.runtime.auth` plus server-only auth profile registry policy.
 - Server-only protected feature descriptors for blogs, dashboards, analytics, config, uploads, and other authenticated draft capabilities.
 - Server-only Data Spaces, Commerce, provider-binding, and notification descriptors, validated before upload and consumed only by their owning services.
@@ -87,6 +87,7 @@ The draft filesystem under `drafts/{domain}/...`, served locally at `/drafts/...
 - [20-generic-content-builder-primitives.md](20-generic-content-builder-primitives.md)
 - [21-generic-combo-catalog.md](21-generic-combo-catalog.md)
 - [22-server-only-integration-microservices.md](22-server-only-integration-microservices.md)
+- [23-generic-server-feature-clients.md](23-generic-server-feature-clients.md)
 
 ## Practical rule for new contributors
 
@@ -105,7 +106,8 @@ If you are trying to change behavior and you do not know whether to edit code or
 11. Is this blog/content-hub article content? Store large draft-like article package files in S3-compatible content hub package layout and keep small indexes/metadata in DynamoDB.
 12. Is this a reusable Angora combo preset shared across builders? Use the generic combo catalog runtime reference and keep catalog writes behind auth-admin plus CSRF.
 13. Is this binary media? Upload it through the approved media/upload flow and store only safe public URLs or media manifest references in payloads.
-14. Is this generic record, commerce, provider-binding, or notification policy? Use the corresponding `server/*.json` descriptor and keep every credential, account identifier, recipient address, customer/fiscal datum, and provider payload outside draft/runtime files.
+14. Is this generic record, commerce, or provider-integration UI wiring? Use the matching `data-space`, `commerce`, or `integrations` runtime binding and only its literal operation; see the generic server feature client contract.
+15. Is this generic record, commerce, provider-binding, or notification server policy? Use the corresponding `server/*.json` descriptor and keep every credential, account identifier, recipient address, customer/fiscal datum, and provider payload outside draft/runtime files.
 
 ## Schemas
 

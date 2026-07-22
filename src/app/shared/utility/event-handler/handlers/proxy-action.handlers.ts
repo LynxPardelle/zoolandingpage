@@ -2,6 +2,18 @@ import { ConfigStoreService } from '@/app/shared/services/config-store.service';
 import { ComboCatalogClientService } from '@/app/shared/services/combo-catalog-client.service';
 import { buildComboCatalogRuntimeInput } from '@/app/shared/services/combo-catalog-runtime-request';
 import { ContentHubClientService } from '@/app/shared/services/content-hub-client.service';
+import { CommerceClientService } from '@/app/shared/services/commerce-client.service';
+import { DataSpaceClientService } from '@/app/shared/services/data-space-client.service';
+import { IntegrationPlatformClientService } from '@/app/shared/services/integration-platform-client.service';
+import {
+    buildCommerceRuntimeInput,
+    buildDataSpaceRuntimeInput,
+    buildIntegrationPlatformRuntimeInput,
+} from '@/app/shared/services/server-feature-runtime-request';
+import {
+    projectStripeOnboardingStatusData,
+    ServerFeatureHandoffService,
+} from '@/app/shared/services/server-feature-handoff.service';
 import { buildContentHubRuntimeInput, CONTENT_HUB_SAFE_ID_INPUT_KEYS, isContentHubSafePublicId } from '@/app/shared/services/content-hub-runtime-request';
 import { RuntimeApiProxyClientService } from '@/app/shared/services/runtime-api-proxy-client.service';
 import { VariableStoreService } from '@/app/shared/services/variable-store.service';
@@ -22,7 +34,7 @@ const errorMessage = (error: unknown): string =>
 
 const errorRequestId = (error: unknown): string => {
     const value = asRecord(error)['requestId'];
-    return typeof value === 'string' && /^req-[A-Za-z0-9._:-]{1,120}$/.test(value)
+    return typeof value === 'string' && /^[A-Za-z0-9._:-]{1,128}$/.test(value)
         ? value
         : '';
 };
@@ -114,7 +126,7 @@ const writeStatus = (
         updatedAt: state === 'loading' ? null : new Date().toISOString(),
         error,
         ...(state === 'error' && requestId ? { requestId } : {}),
-        ...(state === 'success' ? { data } : {}),
+        ...(state === 'success' && data !== undefined ? { data } : {}),
         ...references,
     });
 };
@@ -149,9 +161,11 @@ const resolveActionInput = (
     input: Record<string, unknown> | undefined,
 ): Record<string, unknown> | undefined => {
     if (action.kind !== 'content-hub') {
-        return action.kind === 'combo-catalog'
-            ? buildComboCatalogRuntimeInput(action.comboCatalog, input, 'action')
-            : input;
+        if (action.kind === 'combo-catalog') return buildComboCatalogRuntimeInput(action.comboCatalog, input, 'action');
+        if (action.kind === 'data-space') return buildDataSpaceRuntimeInput(action.dataSpace, input);
+        if (action.kind === 'commerce') return buildCommerceRuntimeInput(action.commerce, input, 'action');
+        if (action.kind === 'integrations') return buildIntegrationPlatformRuntimeInput(action.integrations, input);
+        return input;
     }
 
     return buildContentHubRuntimeInput(action.contentHub, input, action.inputFields ?? []);
@@ -193,6 +207,10 @@ export const proxyActionHandler = (): EventHandler => {
     const configStore = inject(ConfigStoreService);
     const contentHub = inject(ContentHubClientService);
     const comboCatalog = inject(ComboCatalogClientService);
+    const commerce = inject(CommerceClientService);
+    const dataSpaces = inject(DataSpaceClientService);
+    const integrations = inject(IntegrationPlatformClientService);
+    const handoff = inject(ServerFeatureHandoffService);
     const proxy = inject(RuntimeApiProxyClientService);
     const variables = inject(VariableStoreService);
 
@@ -209,7 +227,9 @@ export const proxyActionHandler = (): EventHandler => {
             const domain = siteConfig?.domain;
             if (!action || !domain) return;
 
-            const pageId = configStore.pageConfig()?.pageId;
+            const runtimePageId = typeof ctx.pageId === 'string' ? ctx.pageId.trim() : '';
+            const pageId = runtimePageId || configStore.pageConfig()?.pageId;
+            if (action.pageIds?.length && (!pageId || !action.pageIds.includes(pageId))) return;
             const proxyActionId = String(action.proxyActionId || action.id).trim();
             if (!proxyActionId) return;
 
@@ -219,7 +239,10 @@ export const proxyActionHandler = (): EventHandler => {
             }
 
             try {
-                const rawInput = pickActionInput(action, asRecord(ctx.event.eventData), ctx);
+                const integrationAction = String(action.integrations?.action ?? '');
+                const rawInput = action.kind === 'integrations' && integrationAction === 'stripeOnboardingReturn'
+                    ? handoff.captureStripeOnboardingReturn()
+                    : pickActionInput(action, asRecord(ctx.event.eventData), ctx);
                 if (!hasSafeContentHubActionIds(action, rawInput)) {
                     writeStatus(variables, action, 'error', safeContentHubIdError);
                     return;
@@ -231,14 +254,25 @@ export const proxyActionHandler = (): EventHandler => {
                     ? contentHub
                     : action.kind === 'combo-catalog'
                         ? comboCatalog
-                        : proxy;
+                        : action.kind === 'data-space'
+                            ? dataSpaces
+                            : action.kind === 'commerce'
+                                ? commerce
+                                : action.kind === 'integrations'
+                                    ? integrations
+                                    : proxy;
                 const response = await client.executeAction({
                     domain,
                     pageId,
                     actionId: proxyActionId,
                     input,
                 });
-                writeStatus(variables, action, 'success', null, response.data);
+                const operation = String(action.commerce?.action ?? action.integrations?.action ?? '');
+                const redirected = handoff.consumeRedirect(operation, response.data);
+                const statusData = integrationAction === 'stripeOnboardingReturn'
+                    ? projectStripeOnboardingStatusData(response.data)
+                    : response.data;
+                writeStatus(variables, action, 'success', null, redirected ? undefined : statusData);
             } catch (error) {
                 writeStatus(variables, action, 'error', errorMessage(error), undefined, errorRequestId(error));
             }

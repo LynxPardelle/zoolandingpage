@@ -184,6 +184,48 @@ test('dev mutations are local-only and make zero authoring requests', async t =>
   assert.equal(requestCount, 0);
 });
 
+test('push rejects invalid server-feature runtime config before any authoring request', async t => {
+  let requestCount = 0;
+  const server = http.createServer((_request, response) => {
+    requestCount += 1;
+    response.writeHead(200, { 'content-type': 'application/json' });
+    response.end(JSON.stringify({ ok: true }));
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => server.close());
+
+  const draftsRoot = await mkdtemp(path.join(os.tmpdir(), 'zlp-config-runtime-guard-'));
+  t.after(() => rm(draftsRoot, { recursive: true, force: true }));
+  await writeJson(path.join(draftsRoot, 'example.com', 'site-config.json'), {
+    version: 1,
+    domain: 'example.com',
+    routes: [],
+    runtime: {
+      apiActions: [{
+        id: 'invalid-create-record',
+        kind: 'data-space',
+        proxyActionId: 'legacy-alias',
+        method: 'PATCH',
+        dataSpace: { action: 'createRecord', spaceId: 'example-space' },
+        inputFields: ['collectionId'],
+      }],
+    },
+  });
+  const endpoint = `http://127.0.0.1:${server.address().port}/config-authoring`;
+
+  await assert.rejects(
+    runConfigSync([
+      'push',
+      `--endpoint=${endpoint}`,
+      '--domain=example.com',
+      '--environment=test',
+      `--drafts-root=${draftsRoot}`,
+    ]),
+    error => /server_feature_runtime_config_failed/.test(String(error?.stderr ?? '')),
+  );
+  assert.equal(requestCount, 0);
+});
+
 test('remote mutations require an explicit environment and make zero authoring requests when omitted', async t => {
   let requestCount = 0;
   const server = http.createServer((_request, response) => {

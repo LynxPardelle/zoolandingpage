@@ -66,6 +66,7 @@ import {
     type TThemeColors,
     type TThemeVariableConfig,
 } from '@/app/shared/types/theme.types';
+import { matchDraftRoute } from '@/app/shared/utility/route-matching/draft-route-matching';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     !!value && typeof value === 'object' && !Array.isArray(value);
@@ -119,6 +120,9 @@ const ALLOWED_RUNTIME_DATA_SOURCE_KEYS = new Set([
     'authAdminSource',
     'contentHub',
     'comboCatalog',
+    'dataSpace',
+    'commerce',
+    'integrations',
     'target',
     'statusTarget',
     'mergeMode',
@@ -139,9 +143,14 @@ const ALLOWED_RUNTIME_API_ACTION_KEYS = new Set([
     'authAdminAction',
     'contentHub',
     'comboCatalog',
+    'dataSpace',
+    'commerce',
+    'integrations',
     'method',
     'statusTarget',
     'enabled',
+    'trigger',
+    'pageIds',
     'inputFields',
     'requiresUserGesture',
 ]);
@@ -196,6 +205,84 @@ const ALLOWED_COMBO_CATALOG_ACTIONS = new Set([
     'setDraftPolicy',
 ]);
 const ALLOWED_COMBO_CATALOG_BINDING_KEYS = new Set(['read', 'action']);
+const ALLOWED_DATA_SPACE_READS = new Set(['collectionList', 'collectionSchema', 'recordList', 'recordDetail']);
+const ALLOWED_DATA_SPACE_PUBLIC_READS = new Set(['recordList', 'recordDetail']);
+const ALLOWED_DATA_SPACE_ACTIONS = new Set([
+    'createCollection', 'updateCollection', 'createRecord', 'updateRecord', 'publishRecord', 'unpublishRecord',
+]);
+const ALLOWED_DATA_SPACE_BINDING_KEYS = new Set(['read', 'action', 'spaceId', 'access']);
+const ALLOWED_COMMERCE_READS = new Set(['itemList', 'itemDetail', 'offerList', 'offerDetail', 'discountList', 'discountDetail']);
+const ALLOWED_COMMERCE_PUBLIC_READS = new Set(['offerList', 'offerDetail']);
+const ALLOWED_COMMERCE_ACTIONS = new Set([
+    'createItem', 'createOfferVersion', 'createDiscountVersion', 'advanceOfferLifecycle',
+    'updateOfferPresentation', 'advanceDiscountLifecycle', 'updateDiscountPresentation', 'adjustStock',
+    'changePlan', 'applyDiscount', 'removeDiscount', 'pause', 'resume', 'openPortal',
+    'migrationPreview', 'migrationExecute', 'migrationPause', 'migrationResume', 'migrationCancel',
+    'migrationStatus', 'admitCheckout',
+]);
+const ALLOWED_COMMERCE_BINDING_KEYS = new Set(['read', 'action', 'access']);
+const ALLOWED_INTEGRATION_READS = new Set(['connectionList']);
+const ALLOWED_INTEGRATION_ACTIONS = new Set([
+    'disable', 'requestReconnect', 'stripeOnboardingStart', 'stripeOnboardingReturn', 'stripeOnboardingDeauthorize',
+]);
+const DATA_SPACE_READ_INPUTS: Readonly<Record<string, { readonly required: readonly string[]; readonly allowed: readonly string[] }>> = {
+    collectionList: { required: [], allowed: ['limit', 'cursor'] },
+    collectionSchema: { required: ['collectionId'], allowed: ['collectionId'] },
+    recordList: { required: ['collectionId'], allowed: ['collectionId', 'limit', 'cursor'] },
+    recordDetail: { required: ['collectionId', 'recordId'], allowed: ['collectionId', 'recordId'] },
+};
+const COMMERCE_READ_INPUTS: Readonly<Record<string, { readonly required: readonly string[]; readonly allowed: readonly string[] }>> = {
+    itemList: { required: [], allowed: ['limit', 'cursor'] },
+    itemDetail: { required: ['resourceId'], allowed: ['resourceId'] },
+    offerList: { required: [], allowed: ['limit', 'cursor'] },
+    offerDetail: { required: ['resourceId'], allowed: ['resourceId'] },
+    discountList: { required: [], allowed: ['limit', 'cursor'] },
+    discountDetail: { required: ['resourceId'], allowed: ['resourceId'] },
+};
+const SERVER_FEATURE_ACTION_INPUTS: Readonly<Record<string, { readonly required: readonly string[]; readonly allowed: readonly string[] }>> = {
+    createCollection: { required: ['collectionId', 'schema'], allowed: ['collectionId', 'schema'] },
+    updateCollection: { required: ['collectionId', 'schema', 'expectedRevision'], allowed: ['collectionId', 'schema', 'expectedRevision'] },
+    createRecord: { required: ['collectionId', 'recordId', 'data'], allowed: ['collectionId', 'recordId', 'data'] },
+    updateRecord: { required: ['collectionId', 'recordId', 'data', 'expectedRevision'], allowed: ['collectionId', 'recordId', 'data', 'expectedRevision'] },
+    publishRecord: { required: ['collectionId', 'recordId', 'expectedRevision'], allowed: ['collectionId', 'recordId', 'expectedRevision'] },
+    unpublishRecord: { required: ['collectionId', 'recordId', 'expectedRevision'], allowed: ['collectionId', 'recordId', 'expectedRevision'] },
+    createItem: { required: ['itemId', 'sellableType'], allowed: ['itemId', 'sellableType', 'variants', 'dataSpaceReference'] },
+    createOfferVersion: {
+        required: ['versionId', 'catalogItemId', 'revision', 'sellableType', 'unitPrice', 'taxBehavior'],
+        allowed: ['versionId', 'catalogItemId', 'revision', 'sellableType', 'unitPrice', 'taxBehavior', 'variantId', 'recurrence', 'displayName', 'displayDescription'],
+    },
+    createDiscountVersion: {
+        required: ['versionId', 'revision', 'duration'],
+        allowed: ['versionId', 'revision', 'duration', 'percentageBasisPoints', 'fixedAmount', 'durationInMonths', 'eligibleOfferVersionIds', 'redemptionLimit', 'redeemByEpoch', 'customerFacingCode', 'displayName', 'displayDescription'],
+    },
+    advanceOfferLifecycle: { required: ['versionId', 'targetState', 'expectedRevision'], allowed: ['versionId', 'targetState', 'expectedRevision'] },
+    updateOfferPresentation: { required: ['versionId', 'expectedRevision'], allowed: ['versionId', 'expectedRevision', 'displayName', 'displayDescription'] },
+    advanceDiscountLifecycle: { required: ['versionId', 'targetState', 'expectedRevision'], allowed: ['versionId', 'targetState', 'expectedRevision'] },
+    updateDiscountPresentation: { required: ['versionId', 'expectedRevision'], allowed: ['versionId', 'expectedRevision', 'displayName', 'displayDescription'] },
+    adjustStock: { required: ['stockId', 'delta', 'expectedRevision'], allowed: ['stockId', 'delta', 'expectedRevision'] },
+    changePlan: { required: ['subscriptionId', 'targetOfferVersionId', 'expectedRevision'], allowed: ['subscriptionId', 'targetOfferVersionId', 'expectedRevision'] },
+    applyDiscount: { required: ['subscriptionId', 'discountVersionId', 'expectedRevision'], allowed: ['subscriptionId', 'discountVersionId', 'expectedRevision'] },
+    removeDiscount: { required: ['subscriptionId', 'expectedRevision'], allowed: ['subscriptionId', 'expectedRevision'] },
+    pause: { required: ['subscriptionId', 'expectedRevision'], allowed: ['subscriptionId', 'expectedRevision'] },
+    resume: { required: ['subscriptionId', 'expectedRevision'], allowed: ['subscriptionId', 'expectedRevision'] },
+    openPortal: { required: ['subscriptionId'], allowed: ['subscriptionId'] },
+    migrationPreview: { required: ['sourceOfferVersionId', 'targetOfferVersionId'], allowed: ['sourceOfferVersionId', 'targetOfferVersionId'] },
+    migrationExecute: { required: ['commercialRequestId', 'dryRunRevision', 'dryRunHash', 'confirmation'], allowed: ['commercialRequestId', 'dryRunRevision', 'dryRunHash', 'confirmation'] },
+    migrationPause: { required: ['commercialRequestId', 'expectedRevision'], allowed: ['commercialRequestId', 'expectedRevision'] },
+    migrationResume: { required: ['commercialRequestId', 'expectedRevision'], allowed: ['commercialRequestId', 'expectedRevision'] },
+    migrationCancel: { required: ['commercialRequestId', 'expectedRevision'], allowed: ['commercialRequestId', 'expectedRevision'] },
+    migrationStatus: { required: ['commercialRequestId'], allowed: ['commercialRequestId', 'limit', 'cursor'] },
+    admitCheckout: { required: ['lines'], allowed: ['lines', 'discountVersionId'] },
+    disable: { required: ['connectionId', 'expectedRevision'], allowed: ['connectionId', 'expectedRevision'] },
+    requestReconnect: { required: ['connectionId', 'expectedRevision'], allowed: ['connectionId', 'expectedRevision'] },
+    stripeOnboardingStart: { required: [], allowed: [] },
+    stripeOnboardingReturn: { required: [], allowed: [] },
+    stripeOnboardingDeauthorize: { required: [], allowed: [] },
+};
+const ALLOWED_INTEGRATION_BINDING_KEYS = new Set(['read', 'action', 'bindingId']);
+const RUNTIME_KINDS = new Set([
+    'api-proxy', 'auth-admin', 'content-hub', 'combo-catalog', 'data-space', 'commerce', 'integrations',
+]);
 const ALLOWED_CONTENT_HUB_TAXONOMY_KINDS = new Set(['category', 'tag']);
 const ALLOWED_CONTENT_HUB_RUNTIME_COMMENT_POLICIES = new Set(['disabled', 'moderated', 'authenticated']);
 const ALLOWED_CONTENT_HUB_RUNTIME_SAFETY_RATINGS = new Set(['general', 'sensitive', 'restricted']);
@@ -216,6 +303,8 @@ const ALLOWED_CONTENT_HUB_BINDING_KEYS = new Set([
 const FORBIDDEN_PUBLIC_RUNTIME_INPUT_KEYS = new Set([
     'access',
     'accesstoken',
+    'account',
+    'accountid',
     'auth',
     'authorization',
     'authorizer',
@@ -225,16 +314,27 @@ const FORBIDDEN_PUBLIC_RUNTIME_INPUT_KEYS = new Set([
     'bucket',
     'bucketname',
     'clientsecret',
+    'connectedaccount',
     'credentialref',
     'credentials',
+    'domain',
+    'draft',
+    'draftid',
+    'environment',
     'groups',
     'groupstoroles',
     'idtoken',
+    'iam',
     'jwks',
     'lambdaarn',
     'partitionkey',
     'policy',
+    'provider',
+    'provideraccount',
+    'provideraccountid',
     'refreshtoken',
+    'role',
+    'rolearn',
     'secret',
     'secretarn',
     'secretref',
@@ -662,6 +762,9 @@ const hasNoUnsafePreviewKeysDeep = (value: unknown): boolean => {
 const isContentHubSafeId = (value: unknown): value is string =>
     typeof value === 'string'
     && /^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$/.test(value);
+
+const isServerFeatureSafeId = (value: unknown): value is string =>
+    typeof value === 'string' && /^[a-z0-9][a-z0-9._-]{0,63}$/.test(value);
 
 const isContentHubDomainName = (value: unknown): value is string =>
     typeof value === 'string'
@@ -1514,23 +1617,160 @@ const isComboCatalogRuntimeActionBinding = (value: unknown): boolean => {
     return true;
 };
 
+const isDataSpaceRuntimeReadBinding = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasOnlyKnownKeys(value, ALLOWED_DATA_SPACE_BINDING_KEYS)) return false;
+    if (!ALLOWED_DATA_SPACE_READS.has(String(value['read'])) || value['action'] !== undefined) return false;
+    if (!isServerFeatureSafeId(value['spaceId'])) return false;
+    if (value['access'] !== undefined && !['protected', 'public'].includes(String(value['access']))) return false;
+    return value['access'] !== 'public' || ALLOWED_DATA_SPACE_PUBLIC_READS.has(String(value['read']));
+};
+
+const isDataSpaceRuntimeActionBinding = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasOnlyKnownKeys(value, ALLOWED_DATA_SPACE_BINDING_KEYS)) return false;
+    return ALLOWED_DATA_SPACE_ACTIONS.has(String(value['action']))
+        && value['read'] === undefined
+        && value['access'] === undefined
+        && isServerFeatureSafeId(value['spaceId']);
+};
+
+const isCommerceRuntimeReadBinding = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasOnlyKnownKeys(value, ALLOWED_COMMERCE_BINDING_KEYS)) return false;
+    if (!ALLOWED_COMMERCE_READS.has(String(value['read'])) || value['action'] !== undefined) return false;
+    if (value['access'] !== undefined && !['protected', 'public'].includes(String(value['access']))) return false;
+    return value['access'] !== 'public' || ALLOWED_COMMERCE_PUBLIC_READS.has(String(value['read']));
+};
+
+const isCommerceRuntimeActionBinding = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasOnlyKnownKeys(value, ALLOWED_COMMERCE_BINDING_KEYS)) return false;
+    return ALLOWED_COMMERCE_ACTIONS.has(String(value['action']))
+        && value['read'] === undefined
+        && value['access'] === undefined;
+};
+
+const isIntegrationRuntimeReadBinding = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasOnlyKnownKeys(value, ALLOWED_INTEGRATION_BINDING_KEYS)) return false;
+    return ALLOWED_INTEGRATION_READS.has(String(value['read']))
+        && value['action'] === undefined
+        && value['bindingId'] === undefined;
+};
+
+const isIntegrationRuntimeActionBinding = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (!hasOnlyKnownKeys(value, ALLOWED_INTEGRATION_BINDING_KEYS)) return false;
+    const action = String(value['action']);
+    if (!ALLOWED_INTEGRATION_ACTIONS.has(action) || value['read'] !== undefined) return false;
+    const onboarding = action.startsWith('stripeOnboarding');
+    return onboarding ? isServerFeatureSafeId(value['bindingId']) : value['bindingId'] === undefined;
+};
+
+const hasExactNewRuntimeBinding = (
+    value: Record<string, unknown>,
+    mode: 'read' | 'action',
+): boolean => {
+    const kind = String(value['kind'] ?? '');
+    const expected = kind === 'data-space' ? 'dataSpace' : kind === 'commerce' ? 'commerce' : kind === 'integrations' ? 'integrations' : '';
+    const newBindings = ['dataSpace', 'commerce', 'integrations'].filter((key) => value[key] !== undefined);
+    if (!expected) return newBindings.length === 0;
+    const present = ['authAdminSource', 'contentHub', 'comboCatalog', 'dataSpace', 'commerce', 'integrations']
+        .filter((key) => value[key] !== undefined);
+    if (present.length !== 1 || present[0] !== expected) return false;
+    if (mode === 'read') {
+        return expected === 'dataSpace'
+            ? isDataSpaceRuntimeReadBinding(value[expected])
+            : expected === 'commerce'
+                ? isCommerceRuntimeReadBinding(value[expected])
+                : isIntegrationRuntimeReadBinding(value[expected]);
+    }
+    return expected === 'dataSpace'
+        ? isDataSpaceRuntimeActionBinding(value[expected])
+        : expected === 'commerce'
+            ? isCommerceRuntimeActionBinding(value[expected])
+        : isIntegrationRuntimeActionBinding(value[expected]);
+};
+
+const hasConfiguredReadInputs = (value: Record<string, unknown>): boolean => {
+    const kind = String(value['kind'] ?? '');
+    const binding = kind === 'data-space'
+        ? value['dataSpace']
+        : kind === 'commerce'
+            ? value['commerce']
+            : kind === 'integrations'
+                ? value['integrations']
+                : undefined;
+    if (!isRecord(binding)) return true;
+    const read = String(binding['read'] ?? '');
+    let contract = kind === 'data-space'
+        ? DATA_SPACE_READ_INPUTS[read]
+        : kind === 'commerce'
+            ? COMMERCE_READ_INPUTS[read]
+            : { required: [] as readonly string[], allowed: [] as readonly string[] };
+    if (kind === 'commerce' && read === 'offerDetail' && binding['access'] === 'public') {
+        contract = { required: ['offerVersionId'], allowed: ['offerVersionId'] };
+    }
+    if (!contract) return false;
+    const input = value['input'];
+    const keys = isRecord(input) ? Object.keys(input) : [];
+    return contract.required.every((field) => keys.includes(field))
+        && keys.every((field) => contract.allowed.includes(field));
+};
+
+const hasConfiguredActionInputs = (value: Record<string, unknown>): boolean => {
+    const binding = isRecord(value['dataSpace'])
+        ? value['dataSpace']
+        : isRecord(value['commerce'])
+            ? value['commerce']
+            : isRecord(value['integrations'])
+                ? value['integrations']
+                : undefined;
+    if (!binding) return true;
+    const action = String(binding['action'] ?? '');
+    const contract = SERVER_FEATURE_ACTION_INPUTS[action];
+    if (!contract) return false;
+    const fields = Array.isArray(value['inputFields'])
+        ? value['inputFields'].map((field) => String(field))
+        : [];
+    if (new Set(fields).size !== fields.length
+        || !contract.required.every((field) => fields.includes(field))
+        || !fields.every((field) => contract.allowed.includes(field))) return false;
+    if (action === 'createDiscountVersion') {
+        return Number(fields.includes('percentageBasisPoints')) + Number(fields.includes('fixedAmount')) === 1;
+    }
+    return true;
+};
+
 const isRuntimeDataSourceConfig = (value: unknown): value is TRuntimeDataSourceConfig => {
     if (!isRecord(value)) return false;
     if (!hasOnlyKnownKeys(value, ALLOWED_RUNTIME_DATA_SOURCE_KEYS)) return false;
     if (typeof value['id'] !== 'string' || value['id'].trim().length === 0) return false;
-    if (value['kind'] !== undefined && !['api-proxy', 'auth-admin', 'content-hub', 'combo-catalog'].includes(String(value['kind']))) return false;
+    if (value['kind'] !== undefined && !RUNTIME_KINDS.has(String(value['kind']))) return false;
     if (value['proxySourceId'] !== undefined && typeof value['proxySourceId'] !== 'string') return false;
     if (value['kind'] === 'content-hub' && value['proxySourceId'] !== undefined && !isContentHubSafeId(value['proxySourceId'])) return false;
     if (value['kind'] === 'combo-catalog' && value['proxySourceId'] !== undefined && !isContentHubSafeId(value['proxySourceId'])) return false;
+    if (['data-space', 'commerce', 'integrations'].includes(String(value['kind']))
+        && value['proxySourceId'] !== undefined) return false;
     if (value['authAdminSource'] !== undefined && !['account', 'adminUsers'].includes(String(value['authAdminSource']))) return false;
     if (value['contentHub'] !== undefined && !isContentHubRuntimeReadBinding(value['contentHub'])) return false;
     if (value['comboCatalog'] !== undefined && !isComboCatalogRuntimeReadBinding(value['comboCatalog'])) return false;
+    if (value['dataSpace'] !== undefined && !isDataSpaceRuntimeReadBinding(value['dataSpace'])) return false;
+    if (value['commerce'] !== undefined && !isCommerceRuntimeReadBinding(value['commerce'])) return false;
+    if (value['integrations'] !== undefined && !isIntegrationRuntimeReadBinding(value['integrations'])) return false;
+    if (!hasExactNewRuntimeBinding(value, 'read')) return false;
     if (typeof value['target'] !== 'string' || value['target'].trim().length === 0) return false;
     if (value['statusTarget'] !== undefined && typeof value['statusTarget'] !== 'string') return false;
     if (value['mergeMode'] !== undefined && value['mergeMode'] !== 'replace' && value['mergeMode'] !== 'appendItems') return false;
     if (value['clearTargetOnLoad'] !== undefined && typeof value['clearTargetOnLoad'] !== 'boolean') return false;
     if (value['enabled'] !== undefined && typeof value['enabled'] !== 'boolean') return false;
     if (value['ssr'] !== undefined && typeof value['ssr'] !== 'boolean') return false;
+    if (value['ssr'] === true && value['kind'] === 'integrations') return false;
+    if (value['ssr'] === true && value['kind'] === 'data-space'
+        && isRecord(value['dataSpace']) && value['dataSpace']['access'] !== 'public') return false;
+    if (value['ssr'] === true && value['kind'] === 'commerce'
+        && isRecord(value['commerce']) && value['commerce']['access'] !== 'public') return false;
     if (value['pageIds'] !== undefined
         && (!Array.isArray(value['pageIds'])
             || !value['pageIds'].every((entry) => typeof entry === 'string' && entry.trim().length > 0))) return false;
@@ -1543,6 +1783,8 @@ const isRuntimeDataSourceConfig = (value: unknown): value is TRuntimeDataSourceC
     if (value['input'] !== undefined && !isRuntimeDataSourceInputConfig(value['input'])) return false;
     if (value['mapper'] !== undefined && !isRuntimeDataSourceMapperConfig(value['mapper'])) return false;
     if (value['refresh'] !== undefined && !isRuntimeDataSourceRefreshConfig(value['refresh'])) return false;
+    if (['data-space', 'commerce', 'integrations'].includes(String(value['kind']))
+        && !hasConfiguredReadInputs(value)) return false;
     return true;
 };
 
@@ -1550,24 +1792,60 @@ const isRuntimeApiActionConfig = (value: unknown): value is TRuntimeApiActionCon
     if (!isRecord(value)) return false;
     if (!hasOnlyKnownKeys(value, ALLOWED_RUNTIME_API_ACTION_KEYS)) return false;
     if (typeof value['id'] !== 'string' || value['id'].trim().length === 0) return false;
-    if (value['kind'] !== undefined && !['api-proxy', 'auth-admin', 'content-hub', 'combo-catalog'].includes(String(value['kind']))) return false;
+    if (value['kind'] !== undefined && !RUNTIME_KINDS.has(String(value['kind']))) return false;
     if (value['proxyActionId'] !== undefined && typeof value['proxyActionId'] !== 'string') return false;
     if (value['kind'] === 'content-hub' && value['proxyActionId'] !== undefined && !isContentHubSafeId(value['proxyActionId'])) return false;
     if (value['kind'] === 'combo-catalog' && value['proxyActionId'] !== undefined && !isContentHubSafeId(value['proxyActionId'])) return false;
+    if (['data-space', 'commerce', 'integrations'].includes(String(value['kind']))
+        && value['proxyActionId'] !== undefined && !isContentHubSafeId(value['proxyActionId'])) return false;
     if (value['authAdminAction'] !== undefined
         && !['approveUser', 'setUserGroups', 'suspendUser', 'reactivateUser', 'resetUserMfa'].includes(String(value['authAdminAction']))) return false;
     if (value['contentHub'] !== undefined && !isContentHubRuntimeActionBinding(value['contentHub'])) return false;
     if (value['comboCatalog'] !== undefined && !isComboCatalogRuntimeActionBinding(value['comboCatalog'])) return false;
+    if (value['dataSpace'] !== undefined && !isDataSpaceRuntimeActionBinding(value['dataSpace'])) return false;
+    if (value['commerce'] !== undefined && !isCommerceRuntimeActionBinding(value['commerce'])) return false;
+    if (value['integrations'] !== undefined && !isIntegrationRuntimeActionBinding(value['integrations'])) return false;
+    if (!hasExactNewRuntimeBinding(value, 'action')) return false;
     if (value['method'] !== undefined
         && (typeof value['method'] !== 'string' || !ALLOWED_RUNTIME_API_ACTION_METHODS.has(value['method']))) return false;
     if (value['statusTarget'] !== undefined && typeof value['statusTarget'] !== 'string') return false;
     if (value['enabled'] !== undefined && typeof value['enabled'] !== 'boolean') return false;
+    if (value['trigger'] !== undefined && value['trigger'] !== 'route-load') return false;
+    if (value['pageIds'] !== undefined
+        && (!Array.isArray(value['pageIds'])
+            || value['pageIds'].length === 0
+            || new Set(value['pageIds']).size !== value['pageIds'].length
+            || !value['pageIds'].every((entry) => typeof entry === 'string' && entry.trim().length > 0))) return false;
     if (value['inputFields'] !== undefined
         && (!Array.isArray(value['inputFields'])
             || !value['inputFields'].every((entry) => typeof entry === 'string'
                 && entry.trim().length > 0
                 && !isForbiddenPublicRuntimeInputKey(entry)))) return false;
+    if (['data-space', 'commerce', 'integrations'].includes(String(value['kind']))) {
+        if (value['method'] !== undefined && value['method'] !== 'POST') return false;
+        if (value['proxyActionId'] !== undefined) return false;
+        if (!hasConfiguredActionInputs(value)) return false;
+    }
     if (value['requiresUserGesture'] !== undefined && typeof value['requiresUserGesture'] !== 'boolean') return false;
+    const commerceAction = isRecord(value['commerce']) ? String(value['commerce']['action'] ?? '') : '';
+    const integrationAction = isRecord(value['integrations']) ? String(value['integrations']['action'] ?? '') : '';
+    if (value['kind'] === 'commerce' && ['admitCheckout', 'openPortal'].includes(commerceAction)
+        && value['requiresUserGesture'] !== true) return false;
+    if (value['kind'] === 'commerce' && commerceAction === 'admitCheckout'
+        && Array.isArray(value['inputFields'])
+        && !value['inputFields'].every((field) => ['lines', 'discountVersionId'].includes(String(field)))) return false;
+    if (value['kind'] === 'integrations'
+        && ['stripeOnboardingStart', 'stripeOnboardingDeauthorize'].includes(integrationAction)
+        && value['requiresUserGesture'] !== true) return false;
+    if (value['kind'] === 'integrations' && integrationAction === 'stripeOnboardingReturn'
+        && value['inputFields'] !== undefined) return false;
+    if (value['trigger'] !== undefined
+        && (value['kind'] !== 'integrations'
+            || integrationAction !== 'stripeOnboardingReturn'
+            || value['requiresUserGesture'] !== undefined
+            || value['inputFields'] !== undefined
+            || !Array.isArray(value['pageIds'])
+            || value['pageIds'].length === 0)) return false;
     return true;
 };
 
@@ -1662,7 +1940,43 @@ const isDraftSiteRuntimeConfig = (value: unknown): value is TDraftSiteRuntimeCon
         && (!Array.isArray(value['dataSources']) || !value['dataSources'].every(isRuntimeDataSourceConfig))) return false;
     if (value['apiActions'] !== undefined
         && (!Array.isArray(value['apiActions']) || !value['apiActions'].every(isRuntimeApiActionConfig))) return false;
+    if (Array.isArray(value['apiActions'])) {
+        const actionIds = value['apiActions'].map((action) => isRecord(action) ? String(action['id']).trim() : '');
+        if (new Set(actionIds).size !== actionIds.length) return false;
+    }
     return true;
+};
+
+const hasProtectedRouteLoadActionTargets = (
+    runtime: unknown,
+    routes: readonly unknown[],
+): boolean => {
+    if (!isRecord(runtime) || !Array.isArray(runtime['apiActions'])) return true;
+    const routeRecords = routes.filter(isRecord);
+    const routeLoadActions = runtime['apiActions'].filter((candidate) =>
+        isRecord(candidate) && candidate['trigger'] === 'route-load',
+    ) as Record<string, unknown>[];
+    const targetPageIds = routeLoadActions.flatMap((candidate) =>
+        Array.isArray(candidate['pageIds']) ? candidate['pageIds'] : [],
+    );
+    if (new Set(targetPageIds).size !== targetPageIds.length) return false;
+
+    const auth = isRecord(runtime['auth']) ? runtime['auth'] : null;
+    const authCallbackPath = auth && typeof auth['redirectPath'] === 'string' ? auth['redirectPath'] : '';
+    const authCallbackPageId = auth && typeof auth['callbackPageId'] === 'string' ? auth['callbackPageId'] : '';
+    return routeLoadActions.every((candidate) => {
+        if (!Array.isArray(candidate['pageIds']) || candidate['pageIds'].length !== 1) return false;
+        return candidate['pageIds'].every((pageId) => {
+            if (pageId === authCallbackPageId) return false;
+            const matchingRoutes = routeRecords.filter((route) => route['pageId'] === pageId);
+            return matchingRoutes.length === 1
+                && matchingRoutes.every((route) =>
+                    isRecord(route['auth'])
+                    && route['auth']['required'] === true
+                    && (!authCallbackPath || matchDraftRoute([route], authCallbackPath) === null),
+                );
+        });
+    });
 };
 
 const isDraftSitemapConfig = (value: unknown): boolean => {
@@ -2880,6 +3194,7 @@ export const isDraftSiteConfigPayload = (value: unknown): value is TDraftSiteCon
     if (!Array.isArray(value['routes']) || !value['routes'].every(isDraftSiteRouteEntry)) return false;
     if (value['lifecycle'] !== undefined && !isSiteLifecycleConfig(value['lifecycle'])) return false;
     if (value['runtime'] !== undefined && !isDraftSiteRuntimeConfig(value['runtime'])) return false;
+    if (!hasProtectedRouteLoadActionTargets(value['runtime'], value['routes'])) return false;
     if (value['sitemap'] !== undefined && !isDraftSitemapConfig(value['sitemap'])) return false;
     if (!isDraftSiteSharedConfig(value['site'])) return false;
     if (value['defaults'] !== undefined && !isDraftSiteDefaultsConfig(value['defaults'])) return false;
