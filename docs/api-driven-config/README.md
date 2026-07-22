@@ -40,6 +40,7 @@ The draft filesystem under `drafts/{domain}/...`, served locally at `/drafts/...
 - Optional draft auth through browser-safe `site-config.json.runtime.auth` plus server-only auth profile registry policy.
 - Server-only protected feature descriptors for blogs, dashboards, analytics, config, uploads, and other authenticated draft capabilities.
 - Server-only Data Spaces, Commerce, provider-binding, and notification descriptors, validated before upload and consumed only by their owning services.
+- Local-only Phase 8 service infrastructure contracts, including exact routing, protected release workflows, SSM/IAM ownership, observability, and fresh same-environment readiness aggregation documented in the owning architecture contract.
 - Content hubs and blog articles as draft-like packages with public runtime references, server-only hub policy, taxonomy overrides, SEO-ready published bundles, and validation reports.
 - Generic combo catalog runtime references for shared Angora combo presets that can be consumed by blogs, draft builders, and future feature editors.
 - Shared domain defaults plus page-level overrides.
