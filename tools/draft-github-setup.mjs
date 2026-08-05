@@ -48,6 +48,14 @@ function resolveGithubSetupAccountId({ apply, accountId }) {
   return resolvedAccountId;
 }
 
+function resolveGithubSetupAuthoringEndpoint({ apply, authoringEndpoint }) {
+  const candidate = String(authoringEndpoint ?? '').trim();
+  if (apply && candidate === '') {
+    throw new Error('apply_requires_explicit_authoring_endpoint');
+  }
+  return candidate || DEFAULT_AUTHORING_ENDPOINT;
+}
+
 function bootstrapFlags(args) {
   const force = truthy(args.force);
   return {
@@ -346,6 +354,85 @@ function requiredStatusChecksPayload(requiredContexts) {
   };
 }
 
+function personalBranchRulesetPayload(branch, requiredContexts) {
+  return {
+    name: `zoolanding-${branch}-protection`,
+    target: 'branch',
+    enforcement: 'active',
+    bypass_actors: [],
+    conditions: {
+      ref_name: {
+        include: [`refs/heads/${branch}`],
+        exclude: [],
+      },
+    },
+    rules: [
+      { type: 'deletion' },
+      { type: 'non_fast_forward' },
+      {
+        type: 'pull_request',
+        parameters: {
+          allowed_merge_methods: ['merge'],
+          dismiss_stale_reviews_on_push: false,
+          require_code_owner_review: false,
+          require_last_push_approval: false,
+          required_approving_review_count: 0,
+          required_review_thread_resolution: false,
+        },
+      },
+      {
+        type: 'required_status_checks',
+        parameters: {
+          do_not_enforce_on_create: false,
+          required_status_checks: requiredContexts.map(context => ({
+            context,
+            integration_id: GITHUB_ACTIONS_APP_ID,
+          })),
+          strict_required_status_checks_policy: true,
+        },
+      },
+    ],
+  };
+}
+
+function personalBranchRulesetMatches(ruleset, branch, requiredContexts) {
+  const refName = ruleset?.conditions?.ref_name;
+  const bypassActors = ruleset?.bypass_actors;
+  const rules = Array.isArray(ruleset?.rules) ? ruleset.rules : [];
+  const rulesByType = new Map(rules.map(rule => [rule?.type, rule]));
+  if (rulesByType.size !== 4 || rules.length !== 4) return false;
+  const pullRequest = rulesByType.get('pull_request')?.parameters;
+  const statusChecks = rulesByType.get('required_status_checks')?.parameters;
+  const expectedChecks = requiredContexts.map(context => ({
+    context,
+    integration_id: GITHUB_ACTIONS_APP_ID,
+  }));
+  return ruleset?.name === `zoolanding-${branch}-protection`
+    && ruleset?.source_type === 'Repository'
+    && ruleset?.target === 'branch'
+    && ruleset?.enforcement === 'active'
+    && Array.isArray(bypassActors)
+    && bypassActors.length === 0
+    && Array.isArray(refName?.include)
+    && refName.include.length === 1
+    && refName.include[0] === `refs/heads/${branch}`
+    && Array.isArray(refName?.exclude)
+    && refName.exclude.length === 0
+    && rulesByType.has('deletion')
+    && rulesByType.has('non_fast_forward')
+    && Array.isArray(pullRequest?.allowed_merge_methods)
+    && pullRequest.allowed_merge_methods.length === 1
+    && pullRequest.allowed_merge_methods[0] === 'merge'
+    && pullRequest.dismiss_stale_reviews_on_push === false
+    && pullRequest.require_code_owner_review === false
+    && pullRequest.require_last_push_approval === false
+    && pullRequest.required_approving_review_count === 0
+    && pullRequest.required_review_thread_resolution === false
+    && statusChecks?.do_not_enforce_on_create === false
+    && statusChecks?.strict_required_status_checks_policy === true
+    && JSON.stringify(statusChecks?.required_status_checks) === JSON.stringify(expectedChecks);
+}
+
 async function ghJson(args, options = {}) {
   const output = await gh(args, options);
   try {
@@ -421,8 +508,56 @@ async function configureMergePolicy(owner, repo, apply) {
   return { configured: true };
 }
 
+async function ensurePersonalBranchRuleset(owner, repo, branch, requiredContexts) {
+  const payload = personalBranchRulesetPayload(branch, requiredContexts);
+  const rulesetPath = `/repos/${owner}/${repo}/rulesets`;
+  const apiVersion = ['-H', 'X-GitHub-Api-Version: 2026-03-10'];
+  const listed = await ghJson(['api', `${rulesetPath}?per_page=100&includes_parents=false`, ...apiVersion]);
+  if (!Array.isArray(listed)) throw new Error('github_ruleset_list_invalid');
+  const matches = listed.filter(ruleset => ruleset?.name === payload.name);
+  if (matches.length > 1) throw new Error('github_ruleset_name_ambiguous');
+
+  let rulesetId = matches[0]?.id;
+  if (matches.length === 0) {
+    const created = await ghJson([
+      'api',
+      '--method',
+      'POST',
+      rulesetPath,
+      ...apiVersion,
+      '--input',
+      '-',
+    ], { input: JSON.stringify(payload) });
+    rulesetId = created?.id;
+  } else {
+    if (!Number.isSafeInteger(rulesetId)) throw new Error('github_ruleset_id_invalid');
+    await gh([
+      'api',
+      '--method',
+      'PUT',
+      `${rulesetPath}/${rulesetId}`,
+      ...apiVersion,
+      '--input',
+      '-',
+    ], { input: JSON.stringify(payload) });
+  }
+  if (!Number.isSafeInteger(rulesetId)) throw new Error('github_ruleset_id_invalid');
+  const configured = await ghJson(['api', `${rulesetPath}/${rulesetId}?includes_parents=false`, ...apiVersion]);
+  if (!personalBranchRulesetMatches(configured, branch, requiredContexts)) {
+    throw new Error('github_ruleset_not_applied');
+  }
+  return { protected: true, mechanism: 'ruleset' };
+}
+
 async function protectBranch(owner, repo, branch, requiredContexts, apply) {
   if (!apply) return { protected: false, skipped: true };
+  const repository = await ghJson(['api', `/repos/${owner}/${repo}`]);
+  if (repository?.owner?.type === 'User') {
+    return ensurePersonalBranchRuleset(owner, repo, branch, requiredContexts);
+  }
+  if (repository?.owner?.type !== 'Organization') {
+    throw new Error('github_repository_owner_type_invalid');
+  }
   const payload = branchProtectionPayload(requiredContexts);
   const protectionPath = `/repos/${owner}/${repo}/branches/${branch}/protection`;
   try {
@@ -534,7 +669,10 @@ async function main() {
   const requestedDomain = assertScopedApply(apply, args.domain);
   const accountId = resolveGithubSetupAccountId({ apply, accountId: args['account-id'] });
   const region = args.region || DEFAULT_REGION;
-  const authoringEndpoint = args['authoring-endpoint'] || DEFAULT_AUTHORING_ENDPOINT;
+  const authoringEndpoint = resolveGithubSetupAuthoringEndpoint({
+    apply,
+    authoringEndpoint: args['authoring-endpoint'],
+  });
   const registryPath = path.resolve(args.registry || 'docs/drafts-registry.json');
   const inventory = await readRegisteredDraftInventory(registryPath);
   const selectedDrafts = selectRegisteredDrafts(inventory.drafts, requestedDomain);
@@ -583,11 +721,14 @@ export {
   deploymentBranchForEnvironment,
   environmentProtectionMatches,
   inspectRegisteredRepo,
+  personalBranchRulesetMatches,
+  personalBranchRulesetPayload,
   preflightDraftSetups,
   readRegisteredDraftInventory,
   requiredStatusChecksPayload,
   repoNameForDomain,
   resolveGithubSetupAccountId,
+  resolveGithubSetupAuthoringEndpoint,
   setupResultOk,
   testAliasesFor,
 };

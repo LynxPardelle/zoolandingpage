@@ -15,10 +15,13 @@ import {
   deploymentBranchForEnvironment,
   environmentProtectionMatches,
   inspectRegisteredRepo,
+  personalBranchRulesetMatches,
+  personalBranchRulesetPayload,
   preflightDraftSetups,
   readRegisteredDraftInventory,
   repoNameForDomain,
   resolveGithubSetupAccountId,
+  resolveGithubSetupAuthoringEndpoint,
   setupResultOk,
   testAliasesFor,
 } from '../draft-github-setup.mjs';
@@ -98,6 +101,20 @@ test('applied GitHub setup requires the account ID verified by AWS STS', () => {
   assert.throws(
     () => resolveGithubSetupAccountId({ apply: true, accountId: '123' }),
     /invalid_aws_account_id/,
+  );
+});
+
+test('applied GitHub setup requires an explicitly verified authoring endpoint', () => {
+  assert.throws(
+    () => resolveGithubSetupAuthoringEndpoint({ apply: true }),
+    /apply_requires_explicit_authoring_endpoint/,
+  );
+  assert.equal(
+    resolveGithubSetupAuthoringEndpoint({
+      apply: true,
+      authoringEndpoint: 'https://verified.example.test/',
+    }),
+    'https://verified.example.test/',
   );
 });
 
@@ -218,6 +235,50 @@ test('full branch protection payload preserves the legacy status-check context a
     teams: [],
     apps: [],
   });
+});
+
+test('personal repository ruleset enforces PRs, pinned checks, deletion, and force-push protection', () => {
+  const payload = personalBranchRulesetPayload('test', ['guard']);
+  assert.equal(payload.name, 'zoolanding-test-protection');
+  assert.deepEqual(payload.bypass_actors, []);
+  assert.deepEqual(payload.conditions.ref_name, {
+    include: ['refs/heads/test'],
+    exclude: [],
+  });
+  assert.deepEqual(payload.rules.map(rule => rule.type), [
+    'deletion',
+    'non_fast_forward',
+    'pull_request',
+    'required_status_checks',
+  ]);
+  assert.deepEqual(payload.rules.at(-1).parameters.required_status_checks, [
+    { context: 'guard', integration_id: 15368 },
+  ]);
+});
+
+test('personal repository ruleset readback rejects bypasses and unpinned checks', () => {
+  const payload = personalBranchRulesetPayload('main', ['guard']);
+  const readback = {
+    ...payload,
+    source_type: 'Repository',
+  };
+  assert.equal(personalBranchRulesetMatches(readback, 'main', ['guard']), true);
+  assert.equal(personalBranchRulesetMatches({
+    ...readback,
+    bypass_actors: [{ actor_id: 1, actor_type: 'User', bypass_mode: 'always' }],
+  }, 'main', ['guard']), false);
+  assert.equal(personalBranchRulesetMatches({
+    ...readback,
+    rules: readback.rules.map(rule => rule.type === 'required_status_checks'
+      ? {
+          ...rule,
+          parameters: {
+            ...rule.parameters,
+            required_status_checks: [{ context: 'guard', integration_id: -1 }],
+          },
+        }
+      : rule),
+  }, 'main', ['guard']), false);
 });
 
 test('status check subresource payload pins guard to GitHub Actions', async () => {
