@@ -104,7 +104,9 @@ Use this checklist when creating a new draft repository after the secure release
    - Test trust must require both `environment:test` and `ref:refs/heads/test`.
    - Production trust must require both `environment:production` and `ref:refs/heads/main`.
    - Generate the role set only from `docs/drafts-registry.json`, never by scanning arbitrary local draft folders.
-   - Use the registry owner as canonical; reject a conflicting `--owner`, generated role-name collisions, invalid names, and names longer than IAM allows before any AWS mutation.
+   - Use the owner resolved for each registry entry as canonical. The registry-level owner is only the fallback; an entry-level owner is required when a verified draft belongs to another GitHub account. Reject a conflicting owner assertion, generated role-name collisions, invalid names, and names longer than IAM allows before any AWS mutation.
+   - For mutating setup commands, pass `--domain=example.com` so preflight, GitHub configuration, and IAM role changes are limited to that exact registered draft. An unknown domain must fail before any mutation.
+   - Before applying GitHub setup, verify the active AWS account with STS and pass that exact 12-digit value as `--account-id`. Applied setup must not fall back to a historical account constant when it writes `AWS_ROLE_ARN`.
 20. Generate or update role trust policies from repo/environment config, not by hand-editing unique JSON per repo.
 21. Store role ARNs and domain metadata as non-secret GitHub Environment variables.
 22. Confirm repo memory requires `git pull --ff-only` before work when clean, including pull checks for related draft repos in multi-repo tasks.
@@ -123,7 +125,7 @@ Use this checklist when creating a new draft repository after the secure release
 ## Acceptance Checks
 
 - No local-only folders or PII-risk files are tracked.
-- `docs/drafts-registry.json` contains the draft's domain, repo, GitHub URL, and in-tree local path under `drafts/{domain}`.
+- `docs/drafts-registry.json` contains the draft's domain, resolved GitHub owner, repo, GitHub URL, and in-tree local path under `drafts/{domain}`.
 - `node tools/draft-repo-preflight.mjs --pull=true` can clone missing registered repos and pull clean repos.
 - `node tools/draft-public-safety-audit.mjs --history=true` passes for the draft repo before public visibility, PR, and merge.
 - Direct push to `test` and `main` is blocked when native GitHub branch protection is available.

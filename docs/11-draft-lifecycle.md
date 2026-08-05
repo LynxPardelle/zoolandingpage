@@ -56,7 +56,7 @@ New draft repos should be bootstrapped from the hub templates:
 npm run drafts:repo-bootstrap -- --repo=drafts/example.com --domain=example.com --authoring-endpoint=https://api.zoolandingpage.com.mx/config-authoring
 ```
 
-Every new draft repo must also be added to [drafts-registry.json](./drafts-registry.json) with its canonical domain, repo name, GitHub clone URL, and in-tree local path under `drafts/{domain}`.
+Every new draft repo must also be added to [drafts-registry.json](./drafts-registry.json) with its canonical domain, repo name, GitHub clone URL, and in-tree local path under `drafts/{domain}`. The registry-level `owner` remains the default GitHub owner; set an entry-level `owner` only when that draft is intentionally owned by a different verified GitHub account. The clone URL and OIDC trust must use the resolved owner for that entry.
 
 The bootstrap must produce `AGENTS.md` as the small task router, `README.md` as the human index, `Codex.md` as a compatibility pointer, and the pinned C1 caller. Agents should follow one task-specific route from `AGENTS.md` instead of loading the hub, local documentation tree, or changelog by default.
 

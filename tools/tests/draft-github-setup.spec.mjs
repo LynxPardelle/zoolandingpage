@@ -16,7 +16,9 @@ import {
   environmentProtectionMatches,
   inspectRegisteredRepo,
   preflightDraftSetups,
+  readRegisteredDraftInventory,
   repoNameForDomain,
+  resolveGithubSetupAccountId,
   setupResultOk,
   testAliasesFor,
 } from '../draft-github-setup.mjs';
@@ -58,6 +60,45 @@ test('draft setup does not overwrite existing templates without explicit flags',
     forceTemplates: true,
     forceGitignore: true,
   });
+});
+
+test('GitHub setup inventory preserves each draft owner', async t => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zlp-github-owner-registry-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const registryPath = path.join(root, 'drafts-registry.json');
+  await writeFile(registryPath, JSON.stringify({
+    version: 1,
+    owner: 'LynxPardelle',
+    defaultBaseDir: 'drafts',
+    drafts: [{
+      domain: 'example.com',
+      owner: 'Toydrum',
+      repo: 'draft-example-com',
+      githubUrl: 'https://github.com/Toydrum/draft-example-com.git',
+      localPath: 'drafts/example.com',
+    }],
+  }), 'utf8');
+
+  const inventory = await readRegisteredDraftInventory(registryPath, root);
+
+  assert.equal(inventory.owner, 'LynxPardelle');
+  assert.equal(inventory.drafts[0].owner, 'Toydrum');
+});
+
+test('applied GitHub setup requires the account ID verified by AWS STS', () => {
+  assert.equal(resolveGithubSetupAccountId({ apply: false }), '765932874577');
+  assert.equal(resolveGithubSetupAccountId({
+    apply: true,
+    accountId: '123456789012',
+  }), '123456789012');
+  assert.throws(
+    () => resolveGithubSetupAccountId({ apply: true }),
+    /apply_requires_explicit_account_id/,
+  );
+  assert.throws(
+    () => resolveGithubSetupAccountId({ apply: true, accountId: '123' }),
+    /invalid_aws_account_id/,
+  );
 });
 
 test('deployment environments allow only their exact protected branch', () => {
@@ -236,6 +277,17 @@ test('setup configures branch protection before deployment environments and vari
   const setup = source.slice(setupStart, setupEnd);
   assert.ok(setup.indexOf('protectBranch(') < setup.indexOf('ensureEnvironment('));
   assert.ok(setup.indexOf('ensureEnvironment(') < setup.indexOf('setVariable('));
+});
+
+test('GitHub setup scopes preflight and mutations to the requested draft domain', async () => {
+  const source = await import('node:fs/promises').then(({ readFile }) => readFile(setupCliPath, 'utf8'));
+  assert.match(source, /assertScopedApply\(apply, args\.domain\)/);
+  assert.match(source, /selectRegisteredDrafts\(inventory\.drafts, requestedDomain\)/);
+  assert.match(source, /preflightDraftSetups\(selectedDrafts\)/);
+  assert.match(source, /for \(const draft of selectedDrafts\)/);
+  const main = source.slice(source.indexOf('async function main'), source.indexOf('\nfunction setupResultOk'));
+  assert.ok(main.indexOf('assertScopedApply(') < main.indexOf('readRegisteredDraftInventory('));
+  assert.ok(main.indexOf('assertScopedApply(') < main.indexOf('preflightDraftSetups('));
 });
 
 test('branch setup pins status checks through the dedicated API before readback', async () => {

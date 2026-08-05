@@ -8,9 +8,11 @@ import { promisify } from 'node:util';
 import { bootstrapDraftRepo } from './draft-repo-bootstrap.mjs';
 import { domainSlug, roleNameFor } from './draft-aws-oidc-setup.mjs';
 import {
+  assertScopedApply,
   inspectRegisteredDraftRepo,
   readDraftRegistry,
   registeredDraftRepoPath,
+  selectRegisteredDrafts,
 } from './draft-repo-preflight.mjs';
 
 const execFileAsync = promisify(execFile);
@@ -32,6 +34,18 @@ function parseArgs(rawArgs) {
 
 function truthy(value) {
   return ['1', 'true', 'yes', 'on'].includes(String(value ?? '').trim().toLowerCase());
+}
+
+function resolveGithubSetupAccountId({ apply, accountId }) {
+  const candidate = String(accountId ?? '').trim();
+  if (apply && candidate === '') {
+    throw new Error('apply_requires_explicit_account_id');
+  }
+  const resolvedAccountId = candidate || DEFAULT_ACCOUNT_ID;
+  if (!/^\d{12}$/.test(resolvedAccountId)) {
+    throw new Error('invalid_aws_account_id');
+  }
+  return resolvedAccountId;
 }
 
 function bootstrapFlags(args) {
@@ -517,20 +531,22 @@ async function setupDraft({ draft, owner, accountId, region, authoringEndpoint, 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const apply = truthy(args.apply);
-  const accountId = args['account-id'] || DEFAULT_ACCOUNT_ID;
+  const requestedDomain = assertScopedApply(apply, args.domain);
+  const accountId = resolveGithubSetupAccountId({ apply, accountId: args['account-id'] });
   const region = args.region || DEFAULT_REGION;
   const authoringEndpoint = args['authoring-endpoint'] || DEFAULT_AUTHORING_ENDPOINT;
   const registryPath = path.resolve(args.registry || 'docs/drafts-registry.json');
   const inventory = await readRegisteredDraftInventory(registryPath);
+  const selectedDrafts = selectRegisteredDrafts(inventory.drafts, requestedDomain);
   const bootstrapOptions = bootstrapFlags(args);
   const results = [];
 
-  if (apply) await preflightDraftSetups(inventory.drafts);
+  if (apply) await preflightDraftSetups(selectedDrafts);
 
-  for (const draft of inventory.drafts) {
+  for (const draft of selectedDrafts) {
     results.push(await setupDraft({
       draft,
-      owner: inventory.owner || DEFAULT_OWNER,
+      owner: draft.owner || inventory.owner || DEFAULT_OWNER,
       accountId,
       region,
       authoringEndpoint,
@@ -571,6 +587,7 @@ export {
   readRegisteredDraftInventory,
   requiredStatusChecksPayload,
   repoNameForDomain,
+  resolveGithubSetupAccountId,
   setupResultOk,
   testAliasesFor,
 };

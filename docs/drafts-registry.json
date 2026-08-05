@@ -58,6 +58,13 @@
       "localPath": "drafts/sulandingpage.com.mx"
     },
     {
+      "domain": "thehairnarrative.com",
+      "owner": "Toydrum",
+      "repo": "draft-thehairnarrative-com",
+      "githubUrl": "https://github.com/Toydrum/draft-thehairnarrative-com.git",
+      "localPath": "drafts/thehairnarrative.com"
+    },
+    {
       "domain": "zoolandingpage.com.mx",
       "repo": "draft-zoolandingpage-com-mx",
       "githubUrl": "https://github.com/LynxPardelle/draft-zoolandingpage-com-mx.git",

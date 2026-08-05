@@ -16,6 +16,7 @@ import {
   registeredDraftRepoPath,
   resolveTargetRepos,
 } from '../draft-repo-preflight.mjs';
+import * as preflight from '../draft-repo-preflight.mjs';
 import { bootstrapDraftRepo } from '../draft-repo-bootstrap.mjs';
 import { collectJsonFiles, normalizeDomain, normalizeEnvironment } from '../templates/draft-repo/tools/deploy-draft.mjs';
 
@@ -64,6 +65,54 @@ test('readDraftRegistry parses draft GitHub links', async () => {
   assert.equal(registry.drafts.length, 1);
   assert.equal(registry.drafts[0].domain, 'example.com');
   assert.equal(registry.drafts[0].githubUrl, 'https://github.com/LynxPardelle/draft-example-com.git');
+});
+
+test('selectRegisteredDrafts limits mutations to one exact registered domain', () => {
+  assert.equal(typeof preflight.selectRegisteredDrafts, 'function');
+  const drafts = [
+    { domain: 'one.example.com', repo: 'draft-one-example-com' },
+    { domain: 'two.example.com', repo: 'draft-two-example-com' },
+  ];
+
+  assert.deepEqual(preflight.selectRegisteredDrafts(drafts), drafts);
+  assert.deepEqual(preflight.selectRegisteredDrafts(drafts, 'two.example.com'), [drafts[1]]);
+  assert.throws(
+    () => preflight.selectRegisteredDrafts(drafts, 'missing.example.com'),
+    /registered_draft_domain_not_found/,
+  );
+});
+
+test('assertScopedApply requires one explicit domain before a mutating setup', () => {
+  assert.equal(typeof preflight.assertScopedApply, 'function');
+  assert.equal(preflight.assertScopedApply(false), undefined);
+  assert.equal(preflight.assertScopedApply(true, 'example.com'), 'example.com');
+  assert.throws(() => preflight.assertScopedApply(true), /apply_requires_explicit_domain/);
+  assert.throws(() => preflight.assertScopedApply(true, '   '), /apply_requires_explicit_domain/);
+});
+
+test('readDraftRegistry allows one draft to override the default GitHub owner', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zlp-draft-registry-owner-'));
+  const registryPath = path.join(root, 'drafts-registry.json');
+  await writeFile(registryPath, JSON.stringify({
+    version: 1,
+    owner: 'LynxPardelle',
+    defaultBaseDir: 'drafts',
+    drafts: [
+      {
+        domain: 'example.com',
+        owner: 'Toydrum',
+        repo: 'draft-example-com',
+        githubUrl: 'https://github.com/Toydrum/draft-example-com.git',
+        localPath: 'drafts/example.com',
+      },
+    ],
+  }), 'utf8');
+
+  const registry = await readDraftRegistry(registryPath);
+
+  assert.equal(registry.owner, 'LynxPardelle');
+  assert.equal(registry.drafts[0].owner, 'Toydrum');
+  assert.equal(registry.drafts[0].githubUrl, 'https://github.com/Toydrum/draft-example-com.git');
 });
 
 test('readDraftRegistry permits a safe direct-child path during a documented domain transition', async () => {

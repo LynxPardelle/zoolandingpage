@@ -29,6 +29,7 @@ This is the fleet router, not a release dashboard. Default branches can change a
 [docs/drafts-registry.json](./drafts-registry.json) is the canonical machine-readable draft list. Each entry owns:
 
 - the canonical domain;
+- the GitHub owner when it intentionally differs from the registry default;
 - GitHub repository name and URL;
 - canonical local path under `drafts/{domain}`.
 

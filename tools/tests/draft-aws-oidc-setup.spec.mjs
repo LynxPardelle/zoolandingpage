@@ -10,11 +10,13 @@ import {
   domainSlug,
   readRegisteredDraftInventory,
   readRegisteredDrafts,
-  resolveRegistryOwner,
+  resolveSelectedDraftOwners,
   roleNameFor,
   trustPolicy,
 } from '../draft-aws-oidc-setup.mjs';
 import * as oidcSetup from '../draft-aws-oidc-setup.mjs';
+
+const oidcSetupPath = new URL('../draft-aws-oidc-setup.mjs', import.meta.url);
 
 test('domainSlug and roleNameFor create stable draft role names', () => {
   assert.equal(domainSlug('PokeAPI-Demo.zoolandingpage.com.mx'), 'pokeapi-demo-zoolandingpage-com-mx');
@@ -33,15 +35,6 @@ test('deployment role inventory rejects slug collisions and overlong names', () 
   assert.throws(() => buildDeploymentRoleInventory([
     { domain: `${'a'.repeat(63)}.${'b'.repeat(63)}.com`, repo: 'draft-long-domain' },
   ]), /invalid_deployment_role_name/);
-});
-
-test('OIDC owner is anchored to the canonical draft registry owner', () => {
-  assert.equal(resolveRegistryOwner('LynxPardelle'), 'LynxPardelle');
-  assert.equal(resolveRegistryOwner('LynxPardelle', 'LynxPardelle'), 'LynxPardelle');
-  assert.throws(
-    () => resolveRegistryOwner('LynxPardelle', 'different-owner'),
-    /registry_owner_mismatch/,
-  );
 });
 
 test('trustPolicy scopes GitHub OIDC to repo, environment, and exact deployment branch', () => {
@@ -120,12 +113,79 @@ test('OIDC setup provisions only drafts explicitly present in the registry', asy
     owner: 'LynxPardelle',
     drafts: [{
       domain: 'registered.example.com',
+      owner: 'LynxPardelle',
       repo: 'draft-registered-example-com',
     }],
   });
   assert.deepEqual(await readRegisteredDrafts(registryPath), [{
     domain: 'registered.example.com',
+    owner: 'LynxPardelle',
     repo: 'draft-registered-example-com',
+  }]);
+});
+
+test('per-draft owner flows from registry inventory into the final role trust', async () => {
+  const [role] = buildDeploymentRoleInventory([{
+    domain: 'thehairnarrative.com',
+    owner: 'Toydrum',
+    repo: 'draft-thehairnarrative-com',
+  }]);
+  const plan = await oidcSetup.planRole({
+    ...role,
+    accountId: '123456789012',
+    providerArn: 'arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com',
+    authoringFunctionArn: 'arn:aws:lambda:us-east-1:123456789012:function:authoring-test',
+    readRoleStateFn: async () => ({ exists: false, trust: null, policy: null }),
+  });
+
+  assert.equal(plan.owner, 'Toydrum');
+  assert.equal(
+    plan.targetTrust.Statement[0].Condition.StringEquals['token.actions.githubusercontent.com:sub'],
+    'repo:Toydrum/draft-thehairnarrative-com:environment:test',
+  );
+});
+
+test('OIDC owner assertion applies to the selected draft owners', () => {
+  const drafts = [{ owner: 'Toydrum' }, { owner: 'Toydrum' }];
+  assert.deepEqual(resolveSelectedDraftOwners(drafts), ['Toydrum']);
+  assert.deepEqual(resolveSelectedDraftOwners(drafts, 'Toydrum'), ['Toydrum']);
+  assert.throws(
+    () => resolveSelectedDraftOwners(drafts, 'LynxPardelle'),
+    /selected_draft_owner_mismatch/,
+  );
+});
+
+test('OIDC setup scopes role planning and writes to the requested draft domain', async () => {
+  const source = await import('node:fs/promises').then(({ readFile }) => readFile(oidcSetupPath, 'utf8'));
+  assert.match(source, /assertScopedApply\(apply, args\.domain\)/);
+  assert.match(source, /selectRegisteredDrafts\(registeredInventory\.drafts, requestedDomain\)/);
+  assert.match(source, /buildDeploymentRoleInventory\(selectedDrafts\)/);
+  const main = source.slice(source.indexOf('async function main'), source.indexOf('\nif (import.meta.url'));
+  assert.ok(main.indexOf('assertScopedApply(') < main.indexOf('readRegisteredDraftInventory('));
+  assert.ok(main.indexOf('assertScopedApply(') < main.indexOf('getAccountId('));
+});
+
+test('OIDC inventory preserves a per-draft GitHub owner override', async t => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zlp-oidc-owner-registry-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const registryPath = path.join(root, 'drafts-registry.json');
+  await writeFile(registryPath, JSON.stringify({
+    version: 1,
+    owner: 'LynxPardelle',
+    defaultBaseDir: 'drafts',
+    drafts: [{
+      domain: 'example.com',
+      owner: 'Toydrum',
+      repo: 'draft-example-com',
+      githubUrl: 'https://github.com/Toydrum/draft-example-com.git',
+      localPath: 'drafts/example.com',
+    }],
+  }), 'utf8');
+
+  assert.deepEqual(await readRegisteredDrafts(registryPath), [{
+    domain: 'example.com',
+    owner: 'Toydrum',
+    repo: 'draft-example-com',
   }]);
 });
 

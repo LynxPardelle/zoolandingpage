@@ -111,10 +111,14 @@ async function readDraftRegistry(registryPath) {
   }
   const raw = JSON.parse(await readFile(registryPath, 'utf8'));
   if (raw?.version !== 1) throw new Error('Draft registry version must be 1.');
-  const owner = requiredCanonicalString(raw.owner, 'owner');
-  if (!/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/.test(owner) || owner.endsWith('-')) {
-    throw new Error('Draft registry owner is not a valid GitHub owner.');
-  }
+  const validateGithubOwner = (value, label) => {
+    const candidate = requiredCanonicalString(value, label);
+    if (!/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/.test(candidate) || candidate.endsWith('-')) {
+      throw new Error(`Draft registry ${label} is not a valid GitHub owner.`);
+    }
+    return candidate;
+  };
+  const owner = validateGithubOwner(raw.owner, 'owner');
   const defaultBaseDir = requiredCanonicalString(raw.defaultBaseDir, 'defaultBaseDir');
   if (defaultBaseDir !== 'drafts') {
     throw new Error("Draft registry defaultBaseDir must be 'drafts'.");
@@ -131,12 +135,15 @@ async function readDraftRegistry(registryPath) {
   const drafts = raw.drafts.map((draft, index) => {
     const prefix = `drafts[${index}]`;
     const domain = validateDomain(draft?.domain, `${prefix}.domain`);
+    const draftOwner = draft?.owner === undefined
+      ? owner
+      : validateGithubOwner(draft.owner, `${prefix}.owner`);
     const repo = requiredCanonicalString(draft?.repo, `${prefix}.repo`);
     if (!/^[A-Za-z0-9._-]+$/.test(repo)) {
       throw new Error(`Draft registry ${prefix}.repo is invalid.`);
     }
     const githubUrl = requiredCanonicalString(draft?.githubUrl, `${prefix}.githubUrl`);
-    const expectedGithubUrl = `https://github.com/${owner}/${repo}.git`;
+    const expectedGithubUrl = `https://github.com/${draftOwner}/${repo}.git`;
     if (githubUrl !== expectedGithubUrl) {
       throw new Error(`Draft registry ${prefix}.githubUrl must be ${expectedGithubUrl}.`);
     }
@@ -156,7 +163,7 @@ async function readDraftRegistry(registryPath) {
       values.add(value);
     }
 
-    return { domain, repo, githubUrl, localPath };
+    return { domain, owner: draftOwner, repo, githubUrl, localPath };
   });
   return {
     registryPath,
@@ -164,6 +171,25 @@ async function readDraftRegistry(registryPath) {
     defaultBaseDir,
     drafts,
   };
+}
+
+function selectRegisteredDrafts(drafts, requestedDomain) {
+  if (requestedDomain === undefined || requestedDomain === null || requestedDomain === '') {
+    return drafts;
+  }
+  const domain = validateDomain(requestedDomain, 'domain');
+  const selectedDrafts = drafts.filter(draft => draft.domain === domain);
+  if (selectedDrafts.length === 0) {
+    throw new Error(`registered_draft_domain_not_found:${domain}`);
+  }
+  return selectedDrafts;
+}
+
+function assertScopedApply(apply, requestedDomain) {
+  if (apply && (typeof requestedDomain !== 'string' || requestedDomain.trim() === '')) {
+    throw new Error('apply_requires_explicit_domain');
+  }
+  return requestedDomain;
 }
 
 function registeredDraftRepoPath(draft, cwd, defaultBaseDir = 'drafts') {
@@ -363,6 +389,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
 }
 
 export {
+  assertScopedApply,
   discoverDraftRepos,
   ensureRegisteredDraftRepos,
   githubRepoIdentity,
@@ -372,4 +399,5 @@ export {
   readDraftRegistry,
   registeredDraftRepoPath,
   resolveTargetRepos,
+  selectRegisteredDrafts,
 };

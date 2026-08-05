@@ -4,7 +4,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { isDeepStrictEqual, promisify } from 'node:util';
 
-import { readDraftRegistry } from './draft-repo-preflight.mjs';
+import { assertScopedApply, readDraftRegistry, selectRegisteredDrafts } from './draft-repo-preflight.mjs';
 
 const execFileAsync = promisify(execFile);
 const DEFAULT_REGION = 'us-east-1';
@@ -84,7 +84,7 @@ async function readRegisteredDraftInventory(registryPath) {
   return {
     owner: registry.owner,
     drafts: registry.drafts
-      .map(draft => ({ domain: draft.domain, repo: draft.repo }))
+      .map(draft => ({ domain: draft.domain, owner: draft.owner ?? registry.owner, repo: draft.repo }))
       .sort((a, b) => a.domain.localeCompare(b.domain)),
   };
 }
@@ -93,11 +93,15 @@ async function readRegisteredDrafts(registryPath) {
   return (await readRegisteredDraftInventory(registryPath)).drafts;
 }
 
-function resolveRegistryOwner(registryOwner, requestedOwner) {
-  if (requestedOwner && requestedOwner !== registryOwner) {
-    throw new Error('registry_owner_mismatch');
+function resolveSelectedDraftOwners(drafts, requestedOwner) {
+  const owners = [...new Set(drafts.map(draft => draft.owner))].sort();
+  if (owners.length === 0 || owners.some(owner => typeof owner !== 'string' || owner.length === 0)) {
+    throw new Error('selected_draft_owner_missing');
   }
-  return registryOwner;
+  if (requestedOwner && (owners.length !== 1 || owners[0] !== requestedOwner)) {
+    throw new Error('selected_draft_owner_mismatch');
+  }
+  return owners;
 }
 
 function buildDeploymentRoleInventory(drafts) {
@@ -382,6 +386,7 @@ async function planRole({
   return {
     roleName,
     roleArn: `arn:aws:iam::${accountId}:role/${roleName}`,
+    owner,
     repo,
     domain,
     environment,
@@ -494,13 +499,15 @@ function deployAuthzConfig(roles) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const apply = truthy(args.apply);
+  const requestedDomain = assertScopedApply(apply, args.domain);
   const applyEnvironment = resolveApplyEnvironment({ apply, environment: args.environment });
   const region = args.region || DEFAULT_REGION;
   const authoringStackNames = resolveAuthoringStackNames(args);
   const registryPath = path.resolve(args.registry || 'docs/drafts-registry.json');
   const registeredInventory = await readRegisteredDraftInventory(registryPath);
-  const owner = resolveRegistryOwner(registeredInventory.owner, args.owner);
-  const roleInventory = buildDeploymentRoleInventory(registeredInventory.drafts);
+  const selectedDrafts = selectRegisteredDrafts(registeredInventory.drafts, requestedDomain);
+  const selectedOwners = resolveSelectedDraftOwners(selectedDrafts, args.owner);
+  const roleInventory = buildDeploymentRoleInventory(selectedDrafts);
   const accountId = await getAccountId();
   const authoringTargets = {};
   for (const environment of ['test', 'production']) {
@@ -519,7 +526,7 @@ async function main() {
     planRoleFn: role => planRole({
       accountId,
       providerArn: provider.arn,
-      owner,
+      owner: role.owner,
       authoringFunctionArn: authoringTargets[role.environment].functionArn,
       domain: role.domain,
       repo: role.repo,
@@ -534,7 +541,8 @@ async function main() {
     apply,
     applyEnvironment,
     accountId,
-    owner,
+    owner: selectedOwners.length === 1 ? selectedOwners[0] : registeredInventory.owner,
+    selectedOwners,
     region,
     authoringTargets: Object.fromEntries(Object.entries(authoringTargets).map(([environment, target]) => [environment, {
       stackName: target.stackName,
@@ -567,7 +575,7 @@ export {
   readRoleState,
   readRegisteredDraftInventory,
   readRegisteredDrafts,
-  resolveRegistryOwner,
+  resolveSelectedDraftOwners,
   resolveApplyEnvironment,
   resolveAuthoringStackNames,
   resolveAuthoringTarget,
