@@ -40,8 +40,7 @@ test('deployment role inventory rejects slug collisions and overlong names', () 
 test('trustPolicy scopes GitHub OIDC to repo, environment, and exact deployment branch', () => {
   const policy = trustPolicy({
     providerArn: 'arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com',
-    owner: 'LynxPardelle',
-    repo: 'draft-pamelabetancourt-com',
+    subject: 'repo:LynxPardelle/draft-pamelabetancourt-com:environment:test',
     environment: 'test',
   });
 
@@ -57,13 +56,20 @@ test('trustPolicy scopes GitHub OIDC to repo, environment, and exact deployment 
 
   const production = trustPolicy({
     providerArn: 'arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com',
-    owner: 'LynxPardelle',
-    repo: 'draft-pamelabetancourt-com',
+    subject: 'repo:LynxPardelle/draft-pamelabetancourt-com:environment:production',
     environment: 'production',
   });
   assert.equal(
     production.Statement[0].Condition.StringEquals['token.actions.githubusercontent.com:ref'],
     'refs/heads/main',
+  );
+  assert.throws(
+    () => trustPolicy({
+      providerArn: 'arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com',
+      subject: 'repo:LynxPardelle/draft-pamelabetancourt-com:environment:*',
+      environment: 'test',
+    }),
+    /invalid_github_oidc_subject/,
   );
 });
 
@@ -135,14 +141,233 @@ test('per-draft owner flows from registry inventory into the final role trust', 
     accountId: '123456789012',
     providerArn: 'arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com',
     authoringFunctionArn: 'arn:aws:lambda:us-east-1:123456789012:function:authoring-test',
+    readRepositoryOidcSubjectFn: async ({ owner, repo, environment }) => {
+      assert.deepEqual({ owner, repo, environment }, {
+        owner: 'Toydrum',
+        repo: 'draft-thehairnarrative-com',
+        environment: 'test',
+      });
+      const subjectPrefix = 'repo:Toydrum@123456/draft-thehairnarrative-com@789012';
+      return {
+        subjectPrefix,
+        subject: `${subjectPrefix}:environment:test`,
+        source: 'github-immutable-prefix',
+        evidence: { useDefault: true, immutable: true },
+      };
+    },
     readRoleStateFn: async () => ({ exists: false, trust: null, policy: null }),
   });
 
   assert.equal(plan.owner, 'Toydrum');
   assert.equal(
     plan.targetTrust.Statement[0].Condition.StringEquals['token.actions.githubusercontent.com:sub'],
-    'repo:Toydrum/draft-thehairnarrative-com:environment:test',
+    'repo:Toydrum@123456/draft-thehairnarrative-com@789012:environment:test',
   );
+  assert.equal(plan.oidcSubject.source, 'github-immutable-prefix');
+});
+
+test('readRepositoryOidcSubject uses the exact immutable GitHub prefix for an environment', async () => {
+  assert.equal(typeof oidcSetup.readRepositoryOidcSubject, 'function');
+  const calls = [];
+  const prefix = 'repo:Toydrum@123456/draft-thehairnarrative-com@789012';
+  const identity = await oidcSetup.readRepositoryOidcSubject({
+    owner: 'Toydrum',
+    repo: 'draft-thehairnarrative-com',
+    environment: 'test',
+    ghJsonFn: async args => {
+      calls.push(args);
+      return { use_default: true, sub_claim_prefix: prefix };
+    },
+  });
+
+  assert.deepEqual(identity, {
+    subject: `${prefix}:environment:test`,
+    subjectPrefix: prefix,
+    source: 'github-immutable-prefix',
+    evidence: { useDefault: true, immutable: true },
+  });
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][0], 'api');
+  assert.equal(calls[0][1], '/repos/Toydrum/draft-thehairnarrative-com/actions/oidc/customization/sub');
+  assert.ok(calls[0].includes('X-GitHub-Api-Version: 2026-03-10'));
+  assert.equal(calls[0].includes('-X'), false);
+});
+
+test('readRepositoryOidcSubject trusts an exact legacy prefix returned by the canonical API', async () => {
+  const subjectPrefix = 'repo:LynxPardelle/draft-pamelabetancourt-com';
+  const identity = await oidcSetup.readRepositoryOidcSubject({
+    owner: 'LynxPardelle',
+    repo: 'draft-pamelabetancourt-com',
+    environment: 'test',
+    ghJsonFn: async () => ({ use_default: true, sub_claim_prefix: subjectPrefix }),
+  });
+
+  assert.deepEqual(identity, {
+    subject: `${subjectPrefix}:environment:test`,
+    subjectPrefix,
+    source: 'github-default-prefix',
+    evidence: { useDefault: true, immutable: false },
+  });
+});
+
+test('readRepositoryOidcSubject treats an exact immutable prefix as authoritative during flag transition', async () => {
+  const subjectPrefix = 'repo:Toydrum@123/draft-thehairnarrative-com@456';
+  const identity = await oidcSetup.readRepositoryOidcSubject({
+    owner: 'Toydrum',
+    repo: 'draft-thehairnarrative-com',
+    environment: 'test',
+    ghJsonFn: async () => ({
+      use_default: true,
+      use_immutable_subject: false,
+      sub_claim_prefix: subjectPrefix,
+    }),
+  });
+
+  assert.deepEqual(identity, {
+    subject: `${subjectPrefix}:environment:test`,
+    subjectPrefix,
+    source: 'github-immutable-prefix',
+    evidence: { useDefault: true, immutable: true },
+  });
+});
+
+test('readRepositoryOidcSubject rejects ambiguous or mismatched immutable prefixes', async () => {
+  const cases = [
+    'repo:Toydrum@123/draft-thehairnarrative-com@456*',
+    'repo:OtherOwner@123/draft-thehairnarrative-com@456',
+    'repo:Toydrum@123/other-repo@456',
+    'repo:Toydrum@123/draft-thehairnarrative-com@456:environment:test',
+  ];
+
+  for (const subClaimPrefix of cases) {
+    await assert.rejects(
+      () => oidcSetup.readRepositoryOidcSubject({
+        owner: 'Toydrum',
+        repo: 'draft-thehairnarrative-com',
+        environment: 'test',
+        ghJsonFn: async () => ({ use_default: true, sub_claim_prefix: subClaimPrefix }),
+      }),
+      /invalid_github_oidc_subject_prefix|github_oidc_subject_repository_mismatch/,
+      subClaimPrefix,
+    );
+  }
+
+  await assert.rejects(
+    () => oidcSetup.readRepositoryOidcSubject({
+      owner: 'Toydrum',
+      repo: 'draft-thehairnarrative-com',
+      environment: 'test',
+      ghJsonFn: async () => ({
+        use_default: true,
+        use_immutable_subject: true,
+        sub_claim_prefix: 'repo:Toydrum/draft-thehairnarrative-com',
+      }),
+    }),
+    /github_oidc_subject_mode_mismatch/,
+  );
+
+  await assert.rejects(
+    () => oidcSetup.readRepositoryOidcSubject({
+      owner: 'Toydrum',
+      repo: 'draft-thehairnarrative-com',
+      environment: 'test',
+      ghJsonFn: async () => ({ use_default: false, include_claim_keys: ['repo'] }),
+    }),
+    /unsupported_github_oidc_customization/,
+  );
+});
+
+test('readRepositoryOidcSubject falls back to names only with canonical legacy evidence', async () => {
+  const calls = [];
+  const identity = await oidcSetup.readRepositoryOidcSubject({
+    owner: 'LynxPardelle',
+    repo: 'draft-pamelabetancourt-com',
+    environment: 'production',
+    ghJsonFn: async args => {
+      calls.push(args);
+      if (args[1].endsWith('/actions/oidc/customization/sub')) {
+        return { use_default: true, use_immutable_subject: false };
+      }
+      return {
+        id: 789012,
+        name: 'draft-pamelabetancourt-com',
+        full_name: 'LynxPardelle/draft-pamelabetancourt-com',
+        created_at: '2026-07-01T12:00:00Z',
+        owner: { id: 123456, login: 'LynxPardelle' },
+      };
+    },
+  });
+
+  assert.deepEqual(identity, {
+    subject: 'repo:LynxPardelle/draft-pamelabetancourt-com:environment:production',
+    subjectPrefix: 'repo:LynxPardelle/draft-pamelabetancourt-com',
+    source: 'github-legacy-default',
+    evidence: {
+      useDefault: true,
+      immutable: false,
+      repositoryCreatedAt: '2026-07-01T12:00:00Z',
+    },
+  });
+  assert.equal(calls.length, 2);
+  assert.equal(calls[1][1], '/repos/LynxPardelle/draft-pamelabetancourt-com');
+});
+
+test('readRepositoryOidcSubject refuses an unevidenced name-based fallback', async () => {
+  const unsafeCases = [
+    {
+      customization: { use_default: true, use_immutable_subject: true },
+      repository: {
+        id: 2,
+        name: 'draft-example-com',
+        full_name: 'LynxPardelle/draft-example-com',
+        created_at: '2026-07-01T12:00:00Z',
+        owner: { id: 1, login: 'LynxPardelle' },
+      },
+    },
+    {
+      customization: { use_default: true },
+      repository: {
+        id: 2,
+        name: 'draft-example-com',
+        full_name: 'LynxPardelle/draft-example-com',
+        created_at: '2026-07-20T12:00:00Z',
+        owner: { id: 1, login: 'LynxPardelle' },
+      },
+    },
+    {
+      customization: { use_default: true, use_immutable_subject: false },
+      repository: {
+        id: 2,
+        name: 'other-repo',
+        full_name: 'LynxPardelle/other-repo',
+        created_at: '2026-07-01T12:00:00Z',
+        owner: { id: 1, login: 'LynxPardelle' },
+      },
+    },
+    {
+      customization: { use_default: true, use_immutable_subject: false },
+      repository: {
+        id: 2,
+        name: 'draft-example-com',
+        full_name: 'LynxPardelle/draft-example-com',
+        created_at: 'July 1, 2026',
+        owner: { id: 1, login: 'LynxPardelle' },
+      },
+    },
+  ];
+
+  for (const item of unsafeCases) {
+    let call = 0;
+    await assert.rejects(
+      () => oidcSetup.readRepositoryOidcSubject({
+        owner: 'LynxPardelle',
+        repo: 'draft-example-com',
+        environment: 'test',
+        ghJsonFn: async () => (call++ === 0 ? item.customization : item.repository),
+      }),
+      /github_oidc_immutable_prefix_missing|github_oidc_legacy_evidence_missing|github_oidc_repository_mismatch/,
+    );
+  }
 });
 
 test('OIDC owner assertion applies to the selected draft owners', () => {
@@ -409,6 +634,12 @@ test('planRole builds the exact environment target policy from the preflight sna
     domain: 'example.com',
     repo: 'draft-example-com',
     environment: 'test',
+    readRepositoryOidcSubjectFn: async () => ({
+      subjectPrefix: 'repo:LynxPardelle/draft-example-com',
+      subject: 'repo:LynxPardelle/draft-example-com:environment:test',
+      source: 'github-default-prefix',
+      evidence: { useDefault: true, immutable: false },
+    }),
     readRoleStateFn: async roleName => {
       assert.equal(roleName, 'draft-example-com-test-deploy');
       return current;
@@ -417,6 +648,10 @@ test('planRole builds the exact environment target policy from the preflight sna
   assert.equal(plan.targetPolicy.Statement.length, 2);
   assert.ok(plan.targetPolicy.Statement.every(statement => statement.Resource === functionArn));
   assert.equal(plan.current, current);
+  assert.equal(
+    plan.targetTrust.Statement[0].Condition.StringEquals['token.actions.githubusercontent.com:sub'],
+    'repo:LynxPardelle/draft-example-com:environment:test',
+  );
   assert.deepEqual(plan.changes, { trust: true, policy: true });
 });
 
@@ -432,8 +667,18 @@ test('applyRolePlan revalidates before writes, narrows policy first, cleans file
   };
   const targetTrust = { Version: '2012-10-17', Statement: [{ Sid: 'new-trust' }] };
   const targetPolicy = { Version: '2012-10-17', Statement: [{ Sid: 'new-policy' }] };
+  const oidcSubject = {
+    subjectPrefix: 'repo:LynxPardelle@123456/draft-example-com@789012',
+    subject: 'repo:LynxPardelle@123456/draft-example-com@789012:environment:test',
+    source: 'github-immutable-prefix',
+    evidence: { useDefault: true, immutable: true },
+  };
   const plan = {
     roleName,
+    owner: 'LynxPardelle',
+    repo: 'draft-example-com',
+    environment: 'test',
+    oidcSubject,
     current,
     targetTrust,
     targetPolicy,
@@ -445,6 +690,7 @@ test('applyRolePlan revalidates before writes, narrows policy first, cleans file
   await assert.rejects(
     () => oidcSetup.applyRolePlan(plan, {
       cwd: root,
+      readRepositoryOidcSubjectFn: async () => structuredClone(oidcSubject),
       readRoleStateFn: async () => ({ ...current, policy: { changed: true } }),
       awsTextFn: async args => noWrites.push(args),
     }),
@@ -453,9 +699,19 @@ test('applyRolePlan revalidates before writes, narrows policy first, cleans file
   assert.deepEqual(noWrites, []);
 
   const commands = [];
+  let oidcReadbacks = 0;
   const snapshots = [current, { exists: true, trust: targetTrust, policy: targetPolicy }];
   assert.equal(await oidcSetup.applyRolePlan(plan, {
     cwd: root,
+    readRepositoryOidcSubjectFn: async args => {
+      oidcReadbacks += 1;
+      assert.deepEqual(args, {
+        owner: 'LynxPardelle',
+        repo: 'draft-example-com',
+        environment: 'test',
+      });
+      return structuredClone(oidcSubject);
+    },
     readRoleStateFn: async () => snapshots.shift(),
     awsTextFn: async args => commands.push(args),
   }), true);
@@ -463,18 +719,56 @@ test('applyRolePlan revalidates before writes, narrows policy first, cleans file
   assert.equal(commands[1][1], 'update-assume-role-policy');
   assert.equal(commands[0][commands[0].indexOf('--role-name') + 1], roleName);
   assert.equal(commands[1][commands[1].indexOf('--role-name') + 1], roleName);
+  assert.equal(oidcReadbacks, 2);
   assert.deepEqual(await readdir(root), []);
 
   const mismatchSnapshots = [current, { exists: true, trust: targetTrust, policy: current.policy }];
   await assert.rejects(
     () => oidcSetup.applyRolePlan(plan, {
       cwd: root,
+      readRepositoryOidcSubjectFn: async () => structuredClone(oidcSubject),
       readRoleStateFn: async () => mismatchSnapshots.shift(),
       awsTextFn: async () => {},
     }),
     /deployment_role_readback_mismatch/,
   );
   assert.deepEqual(await readdir(root), []);
+});
+
+test('applyRolePlan refuses changed GitHub OIDC identity before any AWS read or write', async () => {
+  const plannedIdentity = {
+    subjectPrefix: 'repo:Toydrum@123456/draft-thehairnarrative-com@789012',
+    subject: 'repo:Toydrum@123456/draft-thehairnarrative-com@789012:environment:test',
+    source: 'github-immutable-prefix',
+    evidence: { useDefault: true, immutable: true },
+  };
+  const changedIdentity = {
+    ...plannedIdentity,
+    subjectPrefix: 'repo:Toydrum@123456/draft-thehairnarrative-com@999999',
+    subject: 'repo:Toydrum@123456/draft-thehairnarrative-com@999999:environment:test',
+  };
+  const events = [];
+
+  await assert.rejects(
+    () => oidcSetup.applyRolePlan({
+      roleName: 'draft-thehairnarrative-com-test-deploy',
+      owner: 'Toydrum',
+      repo: 'draft-thehairnarrative-com',
+      environment: 'test',
+      oidcSubject: plannedIdentity,
+      current: { exists: false, trust: undefined, policy: undefined },
+      targetTrust: { Version: '2012-10-17', Statement: [] },
+      targetPolicy: { Version: '2012-10-17', Statement: [] },
+      changes: { trust: true, policy: true },
+      wouldChange: true,
+    }, {
+      readRepositoryOidcSubjectFn: async () => changedIdentity,
+      readRoleStateFn: async () => events.push('aws-read'),
+      awsTextFn: async () => events.push('aws-write'),
+    }),
+    /deployment_oidc_subject_changed_after_preflight/,
+  );
+  assert.deepEqual(events, []);
 });
 
 test('deploymentRoleChanges identifies only drifted trust or invocation policy documents', () => {

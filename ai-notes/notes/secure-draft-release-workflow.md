@@ -13,7 +13,7 @@ Source Of Truth:
 - Official GitHub and AWS OIDC guidance
 
 Confidence: High
-Last Reviewed: 2026-07-15 (Central Time)
+Last Reviewed: 2026-08-05 (Central Time)
 
 # Secure Draft Release Workflow
 
@@ -44,6 +44,8 @@ Preferred shape:
 - Lambda-side authorization constrained by action, canonical domain, aliases, and environment
 
 This keeps blast radius small while staying operationally manageable through bootstrap automation. The AWS role inventory comes only from `docs/drafts-registry.json`; a local draft folder that is not registered must never mint a role. The owner resolved for each entry is canonical: the registry owner is the fallback and an entry-level owner records an intentional exception. Setup must reject a conflicting owner assertion, duplicate generated role names, or names outside IAM's supported bounds before it creates or changes any AWS resource. Mutating setup for one draft must use `--domain=<canonical-domain>` and must fail before any write when that domain is not registered.
+
+The role helper must read each repository's effective default OIDC subject from GitHub before planning trust. When GitHub returns `sub_claim_prefix`, use that exact, owner/repository-validated prefix and append only `:environment:{environment}`; this covers both legacy name-based prefixes and the immutable owner-ID/repository-ID format used by newer repositories. The exact immutable prefix is authoritative during GitHub's rollout even if the adjacent `use_immutable_subject` flag still reads `false`; a flag claiming `true` with a legacy prefix remains invalid. A locally constructed name-based fallback is allowed only when the canonical endpoint omits the prefix and repository metadata proves a legacy default. Re-read the subject immediately before any IAM write and after role readback so a changed or ambiguous identity fails closed. Never use wildcard `sub` conditions.
 
 Approved target: use separate deploy trust per draft repository and environment. Keep it easy to configure by generating IAM roles, GitHub Environments, environment variables, and workflow files from a repeatable bootstrap command or IaC template. Store role ARNs and domain metadata as non-secret config; do not store long-lived AWS keys.
 

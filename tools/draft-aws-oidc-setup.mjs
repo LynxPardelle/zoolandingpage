@@ -17,6 +17,8 @@ const GITHUB_OIDC_THUMBPRINTS = [
   '6938fd4d98bab03faadb97b34396831e3780aea1',
   '1c58a3a8518e8759bf075b76b750d4f2df264fcd',
 ];
+const GITHUB_API_VERSION = '2026-03-10';
+const GITHUB_IMMUTABLE_SUBJECT_CUTOFF = Date.parse('2026-07-15T00:00:00Z');
 const DEPLOY_ACTIONS = ['createSite', 'upsertDraft', 'publishDraft', 'getSite'];
 
 function parseArgs(rawArgs) {
@@ -77,6 +79,11 @@ async function awsJson(args, options = {}) {
 async function awsText(args, options = {}) {
   const result = await execFileAsync('aws', args, { windowsHide: true, ...options });
   return result.stdout.trim();
+}
+
+async function ghJson(args, options = {}) {
+  const result = await execFileAsync('gh', args, { windowsHide: true, ...options });
+  return result.stdout.trim() ? JSON.parse(result.stdout) : {};
 }
 
 async function readRegisteredDraftInventory(registryPath) {
@@ -160,13 +167,211 @@ async function readOidcProvider({ accountId, awsJsonFn = awsJson }) {
   return { arn: providerArn, created: false, exists: true };
 }
 
-function trustPolicy({ providerArn, owner, repo, environment }) {
+function assertGitHubRepositoryCoordinates(owner, repo) {
+  if (
+    typeof owner !== 'string'
+    || owner.trim() !== owner
+    || !/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/.test(owner)
+  ) {
+    throw new Error('invalid_github_owner');
+  }
+  if (
+    typeof repo !== 'string'
+    || repo.trim() !== repo
+    || repo.length > 100
+    || !/^[A-Za-z0-9._-]+$/.test(repo)
+    || repo === '.'
+    || repo === '..'
+  ) {
+    throw new Error('invalid_github_repository');
+  }
+}
+
+function parseGitHubOidcSubjectPrefix(subjectPrefix, owner, repo) {
+  assertGitHubRepositoryCoordinates(owner, repo);
+  if (
+    typeof subjectPrefix !== 'string'
+    || subjectPrefix.trim() !== subjectPrefix
+    || subjectPrefix.includes('*')
+    || subjectPrefix.includes('?')
+  ) {
+    throw new Error('invalid_github_oidc_subject_prefix');
+  }
+  const immutable = subjectPrefix.match(
+    /^repo:([A-Za-z0-9](?:[A-Za-z0-9-]{0,38}))@([1-9][0-9]*)\/([A-Za-z0-9._-]+)@([1-9][0-9]*)$/,
+  );
+  const legacy = subjectPrefix.match(
+    /^repo:([A-Za-z0-9](?:[A-Za-z0-9-]{0,38}))\/([A-Za-z0-9._-]+)$/,
+  );
+  if (!immutable && !legacy) throw new Error('invalid_github_oidc_subject_prefix');
+  const prefixOwner = immutable?.[1] ?? legacy[1];
+  const prefixRepo = immutable?.[3] ?? legacy[2];
+  if (
+    prefixOwner.toLowerCase() !== owner.toLowerCase()
+    || prefixRepo.toLowerCase() !== repo.toLowerCase()
+  ) {
+    throw new Error('github_oidc_subject_repository_mismatch');
+  }
+  return { immutable: Boolean(immutable), subjectPrefix };
+}
+
+function githubApiHeaders() {
+  return [
+    '-H',
+    'Accept: application/vnd.github+json',
+    '-H',
+    `X-GitHub-Api-Version: ${GITHUB_API_VERSION}`,
+  ];
+}
+
+function parseCanonicalGitHubTimestamp(value) {
+  if (
+    typeof value !== 'string'
+    || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/.test(value)
+  ) {
+    return Number.NaN;
+  }
+  return Date.parse(value);
+}
+
+async function readRepositoryOidcSubject({
+  owner,
+  repo,
+  environment,
+  ghJsonFn = ghJson,
+}) {
+  assertGitHubRepositoryCoordinates(owner, repo);
+  if (!['test', 'production'].includes(environment)) {
+    throw new Error('unsupported_deployment_environment');
+  }
+  const customization = await ghJsonFn([
+    'api',
+    `/repos/${owner}/${repo}/actions/oidc/customization/sub`,
+    ...githubApiHeaders(),
+  ]);
+  if (!customization || typeof customization !== 'object' || Array.isArray(customization)) {
+    throw new Error('invalid_github_oidc_customization');
+  }
+  if (customization.use_default !== true) {
+    throw new Error('unsupported_github_oidc_customization');
+  }
+  if (
+    'use_immutable_subject' in customization
+    && typeof customization.use_immutable_subject !== 'boolean'
+  ) {
+    throw new Error('invalid_github_oidc_customization');
+  }
+
+  const suppliedPrefix = customization.sub_claim_prefix;
+  if (suppliedPrefix !== undefined && suppliedPrefix !== null) {
+    const parsed = parseGitHubOidcSubjectPrefix(suppliedPrefix, owner, repo);
+    if (customization.use_immutable_subject === true && !parsed.immutable) {
+      throw new Error('github_oidc_subject_mode_mismatch');
+    }
+    return {
+      subject: `${parsed.subjectPrefix}:environment:${environment}`,
+      subjectPrefix: parsed.subjectPrefix,
+      source: parsed.immutable ? 'github-immutable-prefix' : 'github-default-prefix',
+      evidence: { useDefault: true, immutable: parsed.immutable },
+    };
+  }
+  if (customization.use_immutable_subject === true) {
+    throw new Error('github_oidc_immutable_prefix_missing');
+  }
+
+  const repository = await ghJsonFn([
+    'api',
+    `/repos/${owner}/${repo}`,
+    ...githubApiHeaders(),
+  ]);
+  const canonicalOwner = repository?.owner?.login;
+  const canonicalRepo = repository?.name;
+  const fullName = repository?.full_name;
+  if (
+    !Number.isSafeInteger(repository?.id)
+    || repository.id <= 0
+    || !Number.isSafeInteger(repository?.owner?.id)
+    || repository.owner.id <= 0
+    || typeof canonicalOwner !== 'string'
+    || typeof canonicalRepo !== 'string'
+    || typeof fullName !== 'string'
+    || canonicalOwner.toLowerCase() !== owner.toLowerCase()
+    || canonicalRepo.toLowerCase() !== repo.toLowerCase()
+    || fullName.toLowerCase() !== `${owner}/${repo}`.toLowerCase()
+  ) {
+    throw new Error('github_oidc_repository_mismatch');
+  }
+  assertGitHubRepositoryCoordinates(canonicalOwner, canonicalRepo);
+  const createdAt = repository.created_at;
+  const createdAtMs = parseCanonicalGitHubTimestamp(createdAt);
+  const explicitLegacy = customization.use_immutable_subject === false;
+  if (!Number.isFinite(createdAtMs) || (!explicitLegacy && createdAtMs >= GITHUB_IMMUTABLE_SUBJECT_CUTOFF)) {
+    throw new Error('github_oidc_legacy_evidence_missing');
+  }
+  const subjectPrefix = `repo:${canonicalOwner}/${canonicalRepo}`;
+  return {
+    subject: `${subjectPrefix}:environment:${environment}`,
+    subjectPrefix,
+    source: 'github-legacy-default',
+    evidence: {
+      useDefault: true,
+      immutable: false,
+      repositoryCreatedAt: createdAt,
+    },
+  };
+}
+
+function assertResolvedRepositoryOidcSubject(identity, owner, repo, environment) {
+  if (!identity || typeof identity !== 'object' || Array.isArray(identity)) {
+    throw new Error('invalid_resolved_github_oidc_subject');
+  }
+  const parsed = parseGitHubOidcSubjectPrefix(identity.subjectPrefix, owner, repo);
+  if (identity.subject !== `${identity.subjectPrefix}:environment:${environment}`) {
+    throw new Error('invalid_resolved_github_oidc_subject');
+  }
+  const expectedSources = parsed.immutable
+    ? ['github-immutable-prefix']
+    : ['github-default-prefix', 'github-legacy-default'];
+  if (
+    !expectedSources.includes(identity.source)
+    || identity.evidence?.useDefault !== true
+    || identity.evidence?.immutable !== parsed.immutable
+  ) {
+    throw new Error('invalid_resolved_github_oidc_subject');
+  }
+  if (
+    identity.source === 'github-legacy-default'
+    && (
+      typeof identity.evidence.repositoryCreatedAt !== 'string'
+      || !Number.isFinite(parseCanonicalGitHubTimestamp(identity.evidence.repositoryCreatedAt))
+    )
+  ) {
+    throw new Error('invalid_resolved_github_oidc_subject');
+  }
+}
+
+function trustPolicy({ providerArn, subject, environment }) {
   const branch = environment === 'test'
     ? 'test'
     : environment === 'production'
       ? 'main'
       : undefined;
   if (!branch) throw new Error('unsupported_deployment_environment');
+  const suffix = `:environment:${environment}`;
+  if (typeof subject !== 'string' || !subject.endsWith(suffix)) {
+    throw new Error('invalid_github_oidc_subject');
+  }
+  const subjectPrefix = subject.slice(0, -suffix.length);
+  const immutable = subjectPrefix.match(
+    /^repo:([A-Za-z0-9](?:[A-Za-z0-9-]{0,38}))@[1-9][0-9]*\/([A-Za-z0-9._-]+)@[1-9][0-9]*$/,
+  );
+  const legacy = subjectPrefix.match(
+    /^repo:([A-Za-z0-9](?:[A-Za-z0-9-]{0,38}))\/([A-Za-z0-9._-]+)$/,
+  );
+  const subjectOwner = immutable?.[1] ?? legacy?.[1];
+  const subjectRepo = immutable?.[2] ?? legacy?.[2];
+  if (!subjectOwner || !subjectRepo) throw new Error('invalid_github_oidc_subject');
+  parseGitHubOidcSubjectPrefix(subjectPrefix, subjectOwner, subjectRepo);
   return {
     Version: '2012-10-17',
     Statement: [
@@ -177,7 +382,7 @@ function trustPolicy({ providerArn, owner, repo, environment }) {
         Condition: {
           StringEquals: {
             [`${GITHUB_OIDC_HOST}:aud`]: 'sts.amazonaws.com',
-            [`${GITHUB_OIDC_HOST}:sub`]: `repo:${owner}/${repo}:environment:${environment}`,
+            [`${GITHUB_OIDC_HOST}:sub`]: subject,
             [`${GITHUB_OIDC_HOST}:ref`]: `refs/heads/${branch}`,
           },
         },
@@ -370,10 +575,13 @@ async function planRole({
   domain,
   repo,
   environment,
+  readRepositoryOidcSubjectFn = readRepositoryOidcSubject,
   readRoleStateFn = readRoleState,
 }) {
   const roleName = roleNameFor(domain, environment);
-  const trust = trustPolicy({ providerArn, owner, repo, environment });
+  const oidcSubject = await readRepositoryOidcSubjectFn({ owner, repo, environment });
+  assertResolvedRepositoryOidcSubject(oidcSubject, owner, repo, environment);
+  const trust = trustPolicy({ providerArn, subject: oidcSubject.subject, environment });
   const policy = invokePolicy({ authoringFunctionArn });
   const current = await readRoleStateFn(roleName);
   const changes = deploymentRoleChanges({
@@ -390,6 +598,7 @@ async function planRole({
     repo,
     domain,
     environment,
+    oidcSubject,
     existed: current.exists,
     wouldChange: changes.trust || changes.policy,
     changed: false,
@@ -407,9 +616,27 @@ function roleMutationOrder({ exists, changes }) {
 
 async function applyRolePlan(plan, {
   cwd = process.cwd(),
+  readRepositoryOidcSubjectFn = readRepositoryOidcSubject,
   readRoleStateFn = readRoleState,
   awsTextFn = awsText,
 } = {}) {
+  const readAndVerifyOidcSubject = async () => {
+    const latestOidcSubject = await readRepositoryOidcSubjectFn({
+      owner: plan.owner,
+      repo: plan.repo,
+      environment: plan.environment,
+    });
+    assertResolvedRepositoryOidcSubject(
+      latestOidcSubject,
+      plan.owner,
+      plan.repo,
+      plan.environment,
+    );
+    if (!isDeepStrictEqual(latestOidcSubject, plan.oidcSubject)) {
+      throw new Error(`deployment_oidc_subject_changed_after_preflight:${plan.roleName}`);
+    }
+  };
+  await readAndVerifyOidcSubject();
   const latest = await readRoleStateFn(plan.roleName);
   if (!isDeepStrictEqual(latest, plan.current)) {
     throw new Error(`deployment_role_changed_after_preflight:${plan.roleName}`);
@@ -467,6 +694,7 @@ async function applyRolePlan(plan, {
   ) {
     throw new Error(`deployment_role_readback_mismatch:${plan.roleName}`);
   }
+  await readAndVerifyOidcSubject();
   return true;
 }
 
@@ -572,6 +800,7 @@ export {
   invokePolicy,
   planRole,
   readOidcProvider,
+  readRepositoryOidcSubject,
   readRoleState,
   readRegisteredDraftInventory,
   readRegisteredDrafts,
