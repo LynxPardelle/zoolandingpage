@@ -73,6 +73,21 @@ setScopeValue:planTier,premium
 
 These actions only affect the nearest `interaction-scope` host in the wrapper subtree.
 
+- Focus a conditionally rendered result or invalid field by DOM id:
+
+```text
+focusElementById:calculator-result
+```
+
+The action can be gated with strict actual/expected pairs. Values are compared after the event DSL has resolved references and coerced its literals:
+
+```text
+focusElementById:property-value,event.eventData.valid,false
+focusElementById:calculator-result,event.eventData.valid,true,event.eventData.submitted,true
+```
+
+`focusElementById` requires an id followed by zero or more complete actual/expected pairs. It does nothing unless every pair is strictly equal. The lookup is deferred until after the current event turn so a conditionally rendered target can exist; a found target is scrolled into the nearest view and focused. A missing target is a safe no-op. Give the target a programmatic focus point such as `tabindex: -1` when it is not naturally focusable.
+
 - Navigate with the current interaction scope encoded as query params:
 
 ```text

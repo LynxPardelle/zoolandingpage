@@ -32,6 +32,7 @@ const BASE_ALLOWED_EVENT_IDS = [
     // Accessibility
     'skipToMain',
     'scrollToSection',
+    'focusElementById',
     'proxyAction',
 ] as const;
 

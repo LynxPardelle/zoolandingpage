@@ -72,23 +72,31 @@ export const resolveNavigationTarget = (
         return { href: '', internal: false, hashOnly: false, path: null, queryParams: null, fragment: null };
     }
 
-    if (value.startsWith('#')) {
-        return {
-            href: value,
-            internal: true,
-            hashOnly: true,
-            path: null,
-            queryParams: null,
-            fragment: value.slice(1) || null,
-        };
-    }
-
     if (/^(mailto:|tel:|sms:)/i.test(value)) {
         return { href: value, internal: false, hashOnly: false, path: null, queryParams: null, fragment: null };
     }
 
     try {
         const currentUrl = new URL(String(options?.currentHref ?? currentLocationHref()));
+        if (value.startsWith('#')) {
+            const stickyQueryParams = new URLSearchParams();
+            for (const key of options?.stickyQueryParams ?? []) {
+                if (currentUrl.searchParams.has(key)) {
+                    stickyQueryParams.set(key, currentUrl.searchParams.get(key) ?? '');
+                }
+            }
+
+            const search = stickyQueryParams.toString();
+            return {
+                href: `${ normalizeInternalPathname(currentUrl.pathname) }${ search ? `?${ search }` : '' }${ value }`,
+                internal: true,
+                hashOnly: true,
+                path: null,
+                queryParams: null,
+                fragment: value.slice(1) || null,
+            };
+        }
+
         const targetUrl = new URL(value, currentUrl);
         const internal = targetUrl.origin === currentUrl.origin;
 
@@ -117,6 +125,17 @@ export const resolveNavigationTarget = (
             fragment: targetUrl.hash ? targetUrl.hash.slice(1) : null,
         };
     } catch {
+        if (value.startsWith('#')) {
+            return {
+                href: value,
+                internal: true,
+                hashOnly: true,
+                path: null,
+                queryParams: null,
+                fragment: value.slice(1) || null,
+            };
+        }
+
         return { href: value, internal: false, hashOnly: false, path: null, queryParams: null, fragment: null };
     }
 };

@@ -1131,6 +1131,189 @@ test('built SSR server resolves configurable 404 runtime bundles and excludes 40
   assert.doesNotMatch(sitemapXml, /\/404<\/loc>/);
 });
 
+test('built SSR server keeps exact fixed-language routes isolated across runtime, SEO, and sitemap', async t => {
+  assert.equal(
+    existsSync(builtServerPath),
+    true,
+    'Built SSR server not found. Build before running this test.'
+  );
+
+  const workspaceRoot = await mkdtemp(path.join(tmpdir(), 'zoolanding-fixed-language-'));
+  const draftsRoot = path.join(workspaceRoot, 'drafts');
+  const domain = 'fixture.example.com';
+  const pageId = 'china-campaign';
+  const domainRoot = path.join(draftsRoot, domain);
+  const pageRoot = path.join(domainRoot, pageId);
+
+  await writeJson(path.join(domainRoot, 'site-config.json'), {
+    version: 1,
+    domain,
+    defaultPageId: pageId,
+    notFoundPageId: 'not-found',
+    routes: [
+      { path: '/soft-landing-china/eng', pageId, language: 'en' },
+      { path: '/soft-landing-china/zh', pageId, language: 'zh' },
+      { path: '/servicios', pageId: 'servicios' },
+      { path: '/404', pageId: 'not-found' },
+    ],
+    site: {
+      appIdentity: { identifier: 'fixture', name: 'Fixture' },
+      theme: { defaultMode: 'light', palettes: {} },
+      i18n: {
+        defaultLanguage: 'es',
+        supportedLanguages: [
+          { code: 'es', label: 'ES' },
+          { code: 'en', label: 'EN' },
+          { code: 'zh', label: '中文' },
+        ],
+      },
+      seo: { canonicalOrigin: `https://${domain}` },
+    },
+  });
+  await writeJson(path.join(pageRoot, 'page-config.json'), {
+    version: 1,
+    domain,
+    pageId,
+    rootIds: ['campaignMain'],
+    modalRootIds: [],
+    seo: {
+      title: { en: 'English campaign', zh: '中文活动' },
+      canonical: {
+        es: `https://${domain}/soft-landing-china/eng`,
+        en: `https://${domain}/soft-landing-china/eng`,
+        zh: `https://${domain}/soft-landing-china/zh`,
+      },
+    },
+  });
+  await writeJson(path.join(pageRoot, 'components.json'), {
+    version: 1,
+    domain,
+    pageId,
+    components: [{ id: 'campaignMain', type: 'text', config: { tag: 'main', text: 'Campaign' } }],
+  });
+  await writeJson(path.join(pageRoot, 'variables.json'), { version: 1, domain, pageId, variables: {} });
+  await writeJson(path.join(pageRoot, 'i18n', 'en.json'), {
+    version: 1,
+    domain,
+    pageId,
+    lang: 'en',
+    dictionary: { campaign: { language: 'English' } },
+  });
+  await writeJson(path.join(pageRoot, 'i18n', 'zh.json'), {
+    version: 1,
+    domain,
+    pageId,
+    lang: 'zh',
+    dictionary: { campaign: { language: '中文' } },
+  });
+  const servicesRoot = path.join(domainRoot, 'servicios');
+  await writeJson(path.join(servicesRoot, 'page-config.json'), {
+    version: 1,
+    domain,
+    pageId: 'servicios',
+    rootIds: ['servicesMain'],
+    modalRootIds: [],
+  });
+  await writeJson(path.join(servicesRoot, 'components.json'), {
+    version: 1,
+    domain,
+    pageId: 'servicios',
+    components: [{ id: 'servicesMain', type: 'text', config: { tag: 'main', text: 'Services' } }],
+  });
+  await writeJson(path.join(servicesRoot, 'i18n', 'es.json'), {
+    version: 1,
+    domain,
+    pageId: 'servicios',
+    lang: 'es',
+    dictionary: { services: { language: 'Español' } },
+  });
+  const notFoundRoot = path.join(domainRoot, 'not-found');
+  await writeJson(path.join(notFoundRoot, 'page-config.json'), {
+    version: 1,
+    domain,
+    pageId: 'not-found',
+    rootIds: ['notFoundMain'],
+    modalRootIds: [],
+  });
+  await writeJson(path.join(notFoundRoot, 'components.json'), {
+    version: 1,
+    domain,
+    pageId: 'not-found',
+    components: [{ id: 'notFoundMain', type: 'text', config: { tag: 'main', text: 'Not found' } }],
+  });
+
+  const port = await getFreePort();
+  const child = spawn(process.execPath, [builtServerPath], {
+    cwd: workspaceRoot,
+    env: { ...process.env, PORT: String(port), ZLP_RUNTIME_ENV: 'local' },
+    stdio: ['ignore', 'pipe', 'pipe'],
+    windowsHide: true,
+  });
+  let serverOutput = '';
+  child.stdout.on('data', chunk => { serverOutput += chunk.toString(); });
+  child.stderr.on('data', chunk => { serverOutput += chunk.toString(); });
+  t.after(async () => {
+    await stopServer(child);
+    await rm(workspaceRoot, { recursive: true, force: true });
+  });
+  await waitForServer(`http://127.0.0.1:${port}/api/debug/drafts`);
+
+  for (const [routePath, conflictingLanguage, expectedLanguage] of [
+    ['/soft-landing-china/eng', 'zh', 'en'],
+    ['/soft-landing-china/zh', 'en', 'zh'],
+  ]) {
+    const response = await fetch(
+      `http://127.0.0.1:${port}/runtime-bundle?domain=${domain}&pageId=${pageId}&path=${routePath}&lang=${conflictingLanguage}`
+    );
+    assert.equal(response.status, 200, serverOutput);
+    const payload = await response.json();
+    assert.equal(payload.pageId, pageId);
+    assert.equal(payload.lang, expectedLanguage);
+    assert.equal(payload.route.path, routePath);
+    assert.equal(payload.route.language, expectedLanguage);
+    assert.equal(payload.i18n.lang, expectedLanguage);
+  }
+
+  const explicitPreviewResponse = await fetch(
+    `http://127.0.0.1:${port}/runtime-bundle?domain=${domain}&pageId=servicios&path=/soft-landing-china/zh&lang=es`
+  );
+  assert.equal(explicitPreviewResponse.status, 200, serverOutput);
+  const explicitPreviewPayload = await explicitPreviewResponse.json();
+  assert.equal(explicitPreviewPayload.pageId, 'servicios');
+  assert.equal(explicitPreviewPayload.lang, 'es');
+  assert.equal(explicitPreviewPayload.route, null);
+  assert.equal(explicitPreviewPayload.i18n.lang, 'es');
+
+  const fixtureHeaders = {
+    'x-forwarded-host': domain,
+    'x-forwarded-proto': 'https',
+  };
+  const htmlResponse = await fetch(
+    `http://127.0.0.1:${port}/soft-landing-china/zh?lang=en`,
+    { headers: fixtureHeaders }
+  );
+  assert.equal(htmlResponse.status, 200, serverOutput);
+  const html = await htmlResponse.text();
+  assert.match(html, /<html[^>]+lang="zh"/i);
+  assert.match(html, /<link[^>]+rel="canonical"[^>]+href="https:\/\/fixture\.example\.com\/soft-landing-china\/zh"/i);
+  assert.match(html, /<meta[^>]+property="og:url"[^>]+content="https:\/\/fixture\.example\.com\/soft-landing-china\/zh"/i);
+  assert.match(html, /hreflang="en"[^>]+href="https:\/\/fixture\.example\.com\/soft-landing-china\/eng"/i);
+  assert.match(html, /hreflang="zh"[^>]+href="https:\/\/fixture\.example\.com\/soft-landing-china\/zh"/i);
+  assert.match(html, /hreflang="x-default"[^>]+href="https:\/\/fixture\.example\.com\/soft-landing-china\/eng"/i);
+
+  const nestedResponse = await fetch(
+    `http://127.0.0.1:${port}/soft-landing-china/zh/missing?lang=en`,
+    { headers: fixtureHeaders }
+  );
+  assert.equal(nestedResponse.status, 404, serverOutput);
+
+  const sitemapResponse = await fetch(`http://127.0.0.1:${port}/sitemap.xml`, { headers: fixtureHeaders });
+  assert.equal(sitemapResponse.status, 200, serverOutput);
+  const sitemapXml = await sitemapResponse.text();
+  assert.equal((sitemapXml.match(/soft-landing-china\/eng<\/loc>/g) ?? []).length, 1);
+  assert.equal((sitemapXml.match(/soft-landing-china\/zh<\/loc>/g) ?? []).length, 1);
+});
+
 test('built SSR server can derive sitemap routes from the runtime bundle when local drafts are missing', async t => {
   assert.equal(
     existsSync(builtServerPath),

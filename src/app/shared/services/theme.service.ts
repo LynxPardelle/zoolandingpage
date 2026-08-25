@@ -110,6 +110,22 @@ export class ThemeService {
     return this._currentTheme();
   }
 
+  cssReadinessRevision(): string {
+    const config = this._draftThemeConfig();
+    if (!config) return `${ this.activeTheme() }:none`;
+
+    const serializeColors = (colors: TThemeColors): string => Object.entries(colors)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, value]) => `${ key }=${ value }`)
+      .join('|');
+
+    return [
+      this.activeTheme(),
+      `light:${ serializeColors(config.palettes.light) }`,
+      `dark:${ serializeColors(config.palettes.dark) }`,
+    ].join('::');
+  }
+
   getCurrentThemeConfig(): ThemeConfig {
     return this.activeTheme() === 'dark'
       ? this.requireThemeConfig(this._darkThemeConfig(), 'dark')

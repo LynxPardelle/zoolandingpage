@@ -1,6 +1,6 @@
 import type { Provider } from '@angular/core';
 import { EVENT_HANDLERS } from './event-handlers.token';
-import { scrollToSectionHandler, skipToMainHandler } from './handlers/accessibility.handlers';
+import { focusElementByIdHandler, scrollToSectionHandler, skipToMainHandler } from './handlers/accessibility.handlers';
 import {
     navigationToSectionHandler,
     trackEventHandler,
@@ -75,6 +75,7 @@ const baseEventHandlerProviders: Provider[] = [
     { provide: EVENT_HANDLERS, multi: true, useFactory: removeConsentRequestHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: scrollToSectionHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: skipToMainHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: focusElementByIdHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: proxyActionHandler },
 ];
 

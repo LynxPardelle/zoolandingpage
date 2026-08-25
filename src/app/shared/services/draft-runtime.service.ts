@@ -210,13 +210,20 @@ export class DraftRuntimeService {
             path,
             lang: this.resolveRequestedLanguage(),
         });
+        const routeMatch = this.matchRouteWithParams(siteConfig, path);
 
         if (explicitPageId) {
+            const pageId = this.requestedDraftPageId();
+            const agreeingRouteMatch = routeMatch
+                && String(routeMatch.route.pageId ?? '').trim() === pageId
+                ? routeMatch
+                : null;
             const explicitContext = {
                 domain,
-                pageId: this.requestedDraftPageId(),
+                pageId,
                 path,
-                route: null,
+                route: agreeingRouteMatch?.route ?? null,
+                ...(agreeingRouteMatch ? { routeParams: agreeingRouteMatch.params } : {}),
                 explicitPageId: true,
             } satisfies TResolvedDraftContext;
             this.configStore.setSiteConfig(siteConfig);
@@ -224,7 +231,6 @@ export class DraftRuntimeService {
             return explicitContext;
         }
 
-        const routeMatch = this.matchRouteWithParams(siteConfig, path);
         if (routeMatch) {
             const routeRequiresAuth = routeMatch.route.auth?.required === true;
             const resolvedContext = {

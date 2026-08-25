@@ -16,6 +16,9 @@ import {
   untracked,
 } from '@angular/core';
 import { resolveDynamicValue } from '../../utility/component-orchestrator.utility';
+import { normalizeLocaleCode } from '../../i18n/locale.utils';
+import { ConfigStoreService } from '../../services/config-store.service';
+import { LanguageService } from '../../services/language.service';
 import type { TGenericCellColumnConfig, TGenericCellConfig, TGenericCellContext } from './generic-cell.types';
 
 @Component({
@@ -40,6 +43,8 @@ export class GenericCellComponent implements AfterViewInit, OnDestroy {
   private wrapperHost?: ViewContainerRef;
 
   private readonly environmentInjector = inject(EnvironmentInjector);
+  private readonly configStore = inject(ConfigStoreService);
+  private readonly language = inject(LanguageService);
   private readonly viewReady = signal(false);
   private wrapperRef?: ComponentRef<unknown>;
   private renderVersion = 0;
@@ -131,6 +136,8 @@ export class GenericCellComponent implements AfterViewInit, OnDestroy {
         const parsed = Number(value);
         return Number.isFinite(parsed) ? String(parsed) : this.emptyText();
       }
+      case 'currency':
+        return this.formatCurrency(value);
       case 'date': {
         const date = new Date(String(value));
         return Number.isNaN(date.getTime()) ? this.emptyText() : date.toISOString().slice(0, 10);
@@ -147,6 +154,67 @@ export class GenericCellComponent implements AfterViewInit, OnDestroy {
       default:
         return String(value);
     }
+  }
+
+  private formatCurrency(value: unknown): string {
+    const currency = this.asString(this.config().currency ?? this.column().currency).trim();
+    const display = this.config().currencyDisplay ?? this.column().currencyDisplay ?? 'symbol';
+    const maximumFractionDigits = this.config().maximumFractionDigits ?? this.column().maximumFractionDigits ?? 2;
+    const showCurrencyCode = this.config().showCurrencyCode ?? this.column().showCurrencyCode ?? false;
+    const parsed = Number(value);
+
+    if (!/^[A-Z]{3}$/.test(currency)
+      || !['symbol', 'narrowSymbol', 'code', 'name'].includes(display)
+      || !Number.isInteger(maximumFractionDigits)
+      || maximumFractionDigits < 0
+      || maximumFractionDigits > 20
+      || typeof showCurrencyCode !== 'boolean'
+      || !Number.isFinite(parsed)) {
+      return this.emptyText();
+    }
+
+    try {
+      const locale = this.resolveCurrencyLocale();
+      const formatted = new Intl.NumberFormat(locale, {
+        style: 'currency',
+        currency,
+        currencyDisplay: display,
+        minimumFractionDigits: 0,
+        maximumFractionDigits,
+      }).formatToParts(parsed)
+        .map((part) => part.value)
+        .join('')
+        .replace(/[\u00a0\u202f]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (!showCurrencyCode || new RegExp(`(?:^|\\s)${currency}(?:$|\\s)`).test(formatted)) {
+        return formatted;
+      }
+      return `${formatted} ${currency}`;
+    } catch {
+      return this.emptyText();
+    }
+  }
+
+  private resolveCurrencyLocale(): string {
+    const candidates = [
+      this.language.currentLanguage(),
+      this.configStore.siteConfig()?.site.i18n.defaultLanguage,
+      'es',
+    ];
+    for (const candidate of candidates) {
+      const normalized = normalizeLocaleCode(candidate);
+      if (!normalized) continue;
+      if (normalized === 'es') return 'es-MX';
+      if (normalized === 'en') return 'en-US';
+      if (normalized === 'zh') return 'zh-CN';
+      try {
+        return Intl.getCanonicalLocales(normalized)[0] ?? 'es-MX';
+      } catch {
+        // Try the next fallback locale.
+      }
+    }
+    return 'es-MX';
   }
 
   private formatListValue(value: unknown): string {

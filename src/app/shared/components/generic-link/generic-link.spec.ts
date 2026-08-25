@@ -206,6 +206,57 @@ describe('GenericLink', () => {
     expect(anchor.getAttribute('href')).toContain('/servicios?draftDomain=pamelabetancourt.com&debugWorkspace=true&lang=es');
   });
 
+  it('can omit only the inherited language query parameter for fixed-language route links', () => {
+    const previewUrl = '/soft-landing-china/eng?draftDomain=pamelabetancourt.com&debugWorkspace=true&lang=zh';
+    resetDraftPreviewUrl(previewUrl);
+    fixture.componentRef.setInput('config', {
+      id: 'fixed-language-switch',
+      href: '/soft-landing-china/zh',
+      text: '中文',
+      preserveLanguageQueryParam: false,
+    } as any);
+    fixture.detectChanges();
+
+    const anchor = fixture.nativeElement.querySelector('a') as HTMLAnchorElement;
+
+    expect(component.href()).toBe('/soft-landing-china/zh?draftDomain=pamelabetancourt.com&debugWorkspace=true');
+    expect(component.routerLinkQueryParams()).toEqual({
+      draftDomain: 'pamelabetancourt.com',
+      debugWorkspace: 'true',
+    });
+    expect(anchor.getAttribute('href')).not.toContain('lang=');
+  });
+
+  it('serializes campaign hash links safely for copying or opening in a new tab while ordinary activation still scrolls', () => {
+    const previewUrl = '/soft-landing-china/eng?draftDomain=grupoastralegal.com&debugWorkspace=false&lang=en&ref=drop';
+    resetDraftPreviewUrl(previewUrl);
+    const target = document.createElement('section');
+    target.id = 'astra-china-services';
+    document.body.appendChild(target);
+    const scrollIntoView = jasmine.createSpy('scrollIntoView');
+    Object.defineProperty(target, 'scrollIntoView', { configurable: true, value: scrollIntoView });
+    const pushState = spyOn(window.history, 'pushState').and.callThrough();
+    fixture.componentRef.setInput('config', {
+      id: 'campaign-anchor',
+      href: '#astra-china-services',
+      text: 'Services',
+      preserveLanguageQueryParam: false,
+    });
+    fixture.detectChanges();
+
+    const anchor = fixture.nativeElement.querySelector('a') as HTMLAnchorElement;
+    const expectedHref = '/soft-landing-china/eng?draftDomain=grupoastralegal.com&debugWorkspace=false#astra-china-services';
+    expect(component.href()).toBe(expectedHref);
+    expect(anchor.getAttribute('href')).toBe(expectedHref);
+    expect(anchor.href).toBe(`${window.location.origin}${expectedHref}`);
+
+    anchor.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+
+    expect(pushState).toHaveBeenCalledWith({}, '', expectedHref);
+    expect(scrollIntoView).toHaveBeenCalledOnceWith({ behavior: 'smooth', block: 'start' });
+    target.remove();
+  });
+
   it('should normalize encoded unicode internal hrefs without double-encoding them', () => {
     const href = resolveDraftPreviewHref('/cont%C3%A1ctame?draftDomain=pamelabetancourt.com');
     resetDraftPreviewUrl();

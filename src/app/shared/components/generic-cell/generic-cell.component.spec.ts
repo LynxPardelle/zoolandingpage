@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { LanguageService } from '../../services/language.service';
+import { ConfigStoreService } from '../../services/config-store.service';
 import { GenericCellComponent } from './generic-cell.component';
 
 describe('GenericCellComponent', () => {
@@ -96,5 +98,94 @@ describe('GenericCellComponent', () => {
       value: 'Artículo',
       rowIndex: 3,
     });
+  });
+
+  for (const locale of ['es', 'en', 'zh']) {
+    it(`formats exact whole-peso MXN currency in ${locale}`, () => {
+      const language = TestBed.inject(LanguageService);
+      language.configureLanguages(['es', 'en', 'zh'], {
+        defaultLanguage: 'es',
+        requestedLanguage: locale,
+      });
+      fixture.componentRef.setInput('column', {
+        id: 'amount',
+        format: 'currency',
+        currency: 'MXN',
+        currencyDisplay: 'narrowSymbol',
+        maximumFractionDigits: 0,
+        showCurrencyCode: true,
+        emptyText: '--',
+      } as any);
+      fixture.componentRef.setInput('value', 400000);
+
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.textContent.trim()).toBe('$400,000 MXN');
+    });
+  }
+
+  it('formats zero as exact whole-peso MXN currency', () => {
+    const language = TestBed.inject(LanguageService);
+    language.configureLanguages(['es'], { defaultLanguage: 'es', requestedLanguage: 'es' });
+    fixture.componentRef.setInput('column', {
+      id: 'amount',
+      format: 'currency',
+      currency: 'MXN',
+      currencyDisplay: 'narrowSymbol',
+      maximumFractionDigits: 0,
+      showCurrencyCode: true,
+    } as any);
+    fixture.componentRef.setInput('value', 0);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent.trim()).toBe('$0 MXN');
+  });
+
+  it('keeps number formatting raw and fails invalid currency config safely', () => {
+    fixture.componentRef.setInput('column', { id: 'raw', format: 'number', emptyText: '--' });
+    fixture.componentRef.setInput('value', 400000);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent.trim()).toBe('400000');
+
+    fixture.componentRef.setInput('column', {
+      id: 'invalid',
+      format: 'currency',
+      currency: 'mxn',
+      emptyText: '--',
+    } as any);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent.trim()).toBe('--');
+  });
+
+  it('falls back from an invalid active locale to the configured site default locale', () => {
+    TestBed.inject(ConfigStoreService).setSiteConfig({
+      version: 1,
+      domain: 'example.test',
+      defaultPageId: 'home',
+      routes: [{ path: '/', pageId: 'home' }],
+      site: {
+        appIdentity: { identifier: 'example', name: 'Example' },
+        theme: { defaultMode: 'light', palettes: {} },
+        i18n: {
+          defaultLanguage: 'de',
+          supportedLanguages: ['x', 'de'],
+        },
+      },
+    } as any);
+    TestBed.inject(LanguageService).configureLanguages(['x', 'de'], {
+      defaultLanguage: 'de',
+      requestedLanguage: 'x',
+    });
+    fixture.componentRef.setInput('column', {
+      id: 'amount',
+      format: 'currency',
+      currency: 'EUR',
+      currencyDisplay: 'narrowSymbol',
+      maximumFractionDigits: 0,
+    } as any);
+    fixture.componentRef.setInput('value', 1234);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent.replace(/\s+/g, ' ').trim()).toBe('1.234 €');
   });
 });
