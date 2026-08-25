@@ -132,6 +132,16 @@ Author these fields in payloads when needed:
 
 Do not rely on a separate runtime fetcher function in API mode.
 
+### `media` config
+
+For `tag: "image"`, `alt` preserves the authored HTML distinction:
+
+- Use a non-empty `alt` for informative images.
+- Use an explicit empty string (`"alt": ""`) for a purely decorative image; the renderer keeps `alt=""` in the DOM.
+- Omitting `alt` omits the attribute. Do not use omission as a substitute for deciding whether an authored image is informative or decorative.
+
+For link-style media such as `tag: "document"`, a non-empty `alt` is the visible link label. Empty or omitted `alt` falls back to the source URL so the link never renders without text.
+
 ### `qr-code` config
 
 `qr-code` renders an encoded value as a styled module grid without writing that value into visible text, `alt`, `title`, or other ordinary DOM attributes.

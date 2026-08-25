@@ -305,6 +305,35 @@ describe('ConfigBootstrapService', () => {
         },
     });
 
+    it('passes an authoritative fixed route language separately from the requested language', async () => {
+        mockSuccessfulBootstrapPayloads();
+        const siteConfig = {
+            ...createSiteConfig(),
+            routes: [
+                { path: '/soft-landing-china/eng', pageId: 'blog', language: 'en' },
+                { path: '/soft-landing-china/zh', pageId: 'blog', language: 'zh' },
+            ],
+            site: {
+                ...createSiteConfig().site,
+                i18n: { defaultLanguage: 'es', supportedLanguages: ['es', 'en', 'zh'] },
+            },
+        } as TDraftSiteConfigPayload;
+        store.setSiteConfig(siteConfig);
+
+        await service.load({
+            domain: 'zoolandingpage.com.mx',
+            pageId: 'blog',
+            lang: 'zh',
+            routeLanguage: 'en',
+            routePath: '/soft-landing-china/eng',
+        } as never);
+
+        expect(language.configureLanguages).toHaveBeenCalledWith(
+            ['es', 'en', 'zh'],
+            { defaultLanguage: 'es', requestedLanguage: 'zh', routeLanguage: 'en' },
+        );
+    });
+
     it('does not block bootstrap completion on the fallback language prefetch', async () => {
         let resolveFallback!: (payload: unknown) => void;
         let scheduledFallback!: () => void;

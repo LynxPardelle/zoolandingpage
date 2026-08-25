@@ -138,7 +138,9 @@ export class GenericLink {
     const next = typeof resolved === 'string' ? resolved : String(resolved ?? '');
     return resolveNavigationTarget(next, {
       currentHref: this.currentRequestHref(),
-      stickyQueryParams: DRAFT_RUNTIME_STICKY_QUERY_PARAMS,
+      stickyQueryParams: this.config().preserveLanguageQueryParam === false
+        ? DRAFT_RUNTIME_STICKY_QUERY_PARAMS.filter((entry) => entry !== 'lang')
+        : DRAFT_RUNTIME_STICKY_QUERY_PARAMS,
     });
   }
 

@@ -3,6 +3,7 @@ import type { TDynamicBooleanValue, TDynamicStringValue } from '@/app/shared/typ
 export type TGenericCellValueFormat =
   | 'text'
   | 'number'
+  | 'currency'
   | 'date'
   | 'boolean'
   | 'json'
@@ -13,6 +14,10 @@ export type TGenericCellColumnConfig = {
   readonly header?: TDynamicStringValue;
   readonly valuePath?: TDynamicStringValue;
   readonly format?: TGenericCellValueFormat;
+  readonly currency?: string;
+  readonly currencyDisplay?: 'symbol' | 'narrowSymbol' | 'code' | 'name';
+  readonly maximumFractionDigits?: number;
+  readonly showCurrencyCode?: boolean;
   readonly sortable?: TDynamicBooleanValue;
   readonly align?: 'start' | 'center' | 'end';
   readonly emptyText?: TDynamicStringValue;
@@ -34,6 +39,10 @@ export type TGenericCellConfig = {
   readonly row?: unknown;
   readonly valuePath?: TDynamicStringValue;
   readonly format?: TGenericCellValueFormat;
+  readonly currency?: string;
+  readonly currencyDisplay?: 'symbol' | 'narrowSymbol' | 'code' | 'name';
+  readonly maximumFractionDigits?: number;
+  readonly showCurrencyCode?: boolean;
   readonly emptyText?: TDynamicStringValue;
   readonly trueText?: TDynamicStringValue;
   readonly falseText?: TDynamicStringValue;

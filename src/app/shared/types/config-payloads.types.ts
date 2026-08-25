@@ -179,6 +179,8 @@ export type TDraftSiteDefaultsConfig = Omit<TDraftVariableConfig, 'appIdentity' 
 export type TDraftSiteRouteEntry = {
     readonly path: string;
     readonly pageId: string;
+    /** Optional normalized locale that is authoritative only while this exact route is active. */
+    readonly language?: string;
     readonly label?: string;
     readonly labelKey?: string;
     readonly auth?: TDraftRouteAuthConfig;

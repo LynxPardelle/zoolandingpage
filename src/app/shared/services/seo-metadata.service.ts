@@ -4,9 +4,11 @@ import { inject, Injectable, REQUEST } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { normalizeLocaleCode, resolveLocaleMapValue, toOpenGraphLocale } from '../i18n/locale.utils';
 import { resolveMetadataTemplates } from '../utility/metadata-template.utility';
+import { normalizeDraftRoutePath } from '../utility/route-matching/draft-route-matching';
 import { DomainResolverService } from './domain-resolver.service';
 import { RuntimeConfigService } from './runtime-config.service';
 import { VariableStoreService } from './variable-store.service';
+import { ConfigStoreService } from './config-store.service';
 
 const AD_CANONICAL_QUERY_PARAMS = new Set([
     'gclid',
@@ -35,6 +37,7 @@ export class SeoMetadataService {
     private readonly domainResolver = inject(DomainResolverService);
     private readonly runtimeConfig = inject(RuntimeConfigService);
     private readonly variables = inject(VariableStoreService);
+    private readonly configStore = inject(ConfigStoreService);
     private readonly request = inject(REQUEST, { optional: true });
 
     apply(lang: string, seo: TSeoPayload | null): void {
@@ -153,7 +156,7 @@ export class SeoMetadataService {
                     head.appendChild(linkEl);
                 }
                 linkEl.setAttribute('href', canonicalUrl);
-                this.syncHreflangLinks(head, canonicalUrl, lang);
+                this.syncHreflangLinks(head, canonicalUrl, lang, seo);
                 this.syncBrowserIcons(head, this.resolveBrowserIcons());
             }
         } catch {
@@ -363,9 +366,24 @@ export class SeoMetadataService {
         }
     }
 
-    private syncHreflangLinks(head: HTMLElement, canonicalUrl: string, activeLang: string): void {
-        Array.from(head.querySelectorAll("link[rel='alternate'][data-zlp-hreflang='true']"))
+    private syncHreflangLinks(
+        head: HTMLElement,
+        canonicalUrl: string,
+        activeLang: string,
+        seo: TSeoPayload | null,
+    ): void {
+        Array.from(head.querySelectorAll("link[rel='alternate'][hreflang]"))
             .forEach((element) => element.remove());
+
+        const fixedSiblings = this.resolveFixedLanguageSiblings();
+        if (fixedSiblings.length > 1) {
+            fixedSiblings.forEach((route) => {
+                this.appendHreflangLink(head, route.language, this.routeUrl(canonicalUrl, route.path));
+            });
+            const xDefault = this.resolveFixedXDefault(fixedSiblings, seo, canonicalUrl);
+            this.appendHreflangLink(head, 'x-default', this.routeUrl(canonicalUrl, xDefault.path));
+            return;
+        }
 
         const languages = this.resolveSupportedLanguages();
         if (languages.length <= 1) {
@@ -377,6 +395,57 @@ export class SeoMetadataService {
             this.appendHreflangLink(head, language, this.withLangParam(canonicalUrl, language));
         });
         this.appendHreflangLink(head, 'x-default', this.withLangParam(canonicalUrl, defaultLanguage));
+    }
+
+    private resolveFixedLanguageSiblings(): readonly { readonly path: string; readonly pageId: string; readonly language: string }[] {
+        const siteConfig = this.configStore.siteConfig();
+        const pathname = this.normalizePathname(this.doc?.defaultView?.location?.pathname);
+        const activeRoute = siteConfig?.routes.find((route) =>
+            this.normalizePathname(route.path) === pathname && !!normalizeLocaleCode(route.language)
+        );
+        if (!activeRoute?.language) return [];
+
+        return siteConfig?.routes
+            .filter((route) => route.pageId === activeRoute.pageId && !!normalizeLocaleCode(route.language))
+            .map((route) => ({
+                path: this.normalizePathname(route.path),
+                pageId: route.pageId,
+                language: normalizeLocaleCode(route.language),
+            })) ?? [];
+    }
+
+    private resolveFixedXDefault(
+        siblings: readonly { readonly path: string; readonly pageId: string; readonly language: string }[],
+        seo: TSeoPayload | null,
+        canonicalUrl: string,
+    ): { readonly path: string; readonly pageId: string; readonly language: string } {
+        const configuredDefault = normalizeLocaleCode(this.configStore.siteConfig()?.site.i18n.defaultLanguage);
+        const defaultSibling = siblings.find((route) => route.language === configuredDefault);
+        if (defaultSibling) return defaultSibling;
+
+        const localizedCanonical = this.resolveLocalizedText(seo?.canonical, configuredDefault);
+        if (localizedCanonical) {
+            try {
+                const canonicalPath = this.normalizePathname(new URL(localizedCanonical, canonicalUrl).pathname);
+                const canonicalSibling = siblings.find((route) => route.path === canonicalPath);
+                if (canonicalSibling) return canonicalSibling;
+            } catch {
+                // Fall through to declaration order.
+            }
+        }
+
+        return siblings[0];
+    }
+
+    private routeUrl(canonicalUrl: string, routePath: string): string {
+        try {
+            const url = new URL(routePath, canonicalUrl);
+            url.search = '';
+            url.hash = '';
+            return url.toString();
+        } catch {
+            return routePath;
+        }
     }
 
     private appendHreflangLink(head: HTMLElement, hreflang: string, href: string): void {
@@ -487,8 +556,7 @@ export class SeoMetadataService {
     }
 
     private normalizePathname(value: unknown): string {
-        const pathname = this.cleanString(value) || '/';
-        return pathname.startsWith('/') ? pathname : `/${ pathname }`;
+        return normalizeDraftRoutePath(value);
     }
 
     private isContentHubTagFilterPath(pathname: string): boolean {

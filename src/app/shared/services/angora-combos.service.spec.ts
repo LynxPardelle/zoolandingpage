@@ -468,6 +468,43 @@ describe('AngoraCombosService', () => {
         }
     });
 
+    it('stops required-rule CSSOM work immediately when readiness is aborted', async () => {
+        const service = configure('browser') as unknown as {
+            waitForCssReady: (
+                timeoutMs: number,
+                requiredClasses: readonly string[],
+                signal?: AbortSignal,
+            ) => Promise<boolean>;
+        };
+        const controller = new AbortController();
+        cssCreate.and.callFake((classes?: string[], primordial?: boolean) => {
+            if (classes === undefined && primordial === true) {
+                controller.abort();
+            }
+        });
+
+        store.setCombos({
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            combos: {
+                qaCombo: ['ank-display-flex'],
+            },
+        });
+        TestBed.flushEffects();
+        cssCreate.calls.reset();
+
+        await expectAsync(service.waitForCssReady(750, ['qaCombo'], controller.signal))
+            .toBeResolvedTo(false);
+
+        expect(controller.signal.aborted).toBeTrue();
+        expect(cssCreate.calls.allArgs()).toEqual([
+            [['qaCombo']],
+            [['qaCombo']],
+            [undefined, true],
+        ]);
+    });
+
     it('keeps critical text combo CSS pending when the marker exists but the rendered color is stale', async () => {
         const service = configure('browser');
         const style = document.createElement('style');
@@ -608,6 +645,74 @@ describe('AngoraCombosService', () => {
         expect(cssCreate.calls.count()).toBe(2);
         expect(cssCreate.calls.argsFor(0)).toEqual([['ank-d-flex', 'ank-jc-center']]);
         expect(cssCreate.calls.argsFor(1)).toEqual([['ank-ai-center']]);
+    });
+
+    it('builds a stable ordered readiness signature from normalized effective classes and combo revision', () => {
+        const service = configure('browser');
+        const readiness = service as unknown as {
+            cssReadinessSignature: (classes: readonly string[]) => string;
+        };
+
+        store.setCombos({
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            combos: { hero: ['ank-display-flex'] },
+        });
+        TestBed.flushEffects();
+
+        const first = readiness.cssReadinessSignature([
+            'ank-justifyContent-center hero',
+            'ank-display-flex',
+        ]);
+        const equivalent = readiness.cssReadinessSignature([
+            'ank-d-flex',
+            'hero ank-jc-center',
+            'ank-display-flex',
+        ]);
+        expect(equivalent).toBe(first);
+
+        store.setCombos({
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            combos: { hero: ['ank-display-flex ank-alignItems-center'] },
+        });
+        TestBed.flushEffects();
+
+        expect(readiness.cssReadinessSignature(['hero', 'ank-d-flex', 'ank-jc-center']))
+            .not.toBe(first);
+    });
+
+    it('fingerprints a pending combo revision without touching CSSOM before the runtime cancels stale work', () => {
+        const service = configure('browser');
+
+        store.setCombos({
+            version: 1,
+            pageId: 'default',
+            domain: 'zoolandingpage.com.mx',
+            combos: { hero: ['ank-display-flex'] },
+        });
+
+        const signature = service.cssReadinessSignature(['hero']);
+
+        expect(signature).toContain('hero=ank-d-flex');
+        expect(pushCombos).not.toHaveBeenCalled();
+        expect(cssCreate).not.toHaveBeenCalled();
+
+        TestBed.flushEffects();
+        expect(pushCombos).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps readiness signature collection DOM-independent during SSR', () => {
+        const service = configure('server') as unknown as {
+            cssReadinessSignature: (classes: readonly string[]) => string;
+        };
+
+        expect(() => service.cssReadinessSignature(['ank-display-flex']))
+            .not.toThrow();
+        expect(cssCreate).not.toHaveBeenCalled();
+        expect(pushCombos).not.toHaveBeenCalled();
     });
 
     it('filters out classes that Angora does not manage', () => {

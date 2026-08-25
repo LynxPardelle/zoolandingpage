@@ -101,4 +101,21 @@ describe('GenericContainerComponent', () => {
     expect(element?.style.getPropertyValue('--card-accent')).toBe('#f7b731');
     expect(element?.style.opacity).toBe('1');
   });
+
+  it('binds authored status-region focus and live announcement attributes', () => {
+    fixture.componentRef.setInput('config', {
+      tag: 'section',
+      id: 'calculation-result',
+      role: 'status',
+      tabindex: -1,
+      ariaLive: 'polite',
+    } as any);
+
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement.querySelector('section') as HTMLElement;
+    expect(element.getAttribute('role')).toBe('status');
+    expect(element.getAttribute('tabindex')).toBe('-1');
+    expect(element.getAttribute('aria-live')).toBe('polite');
+  });
 });

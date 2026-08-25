@@ -26,6 +26,14 @@ export class GenericContainerComponent {
   );
   readonly classes = computed<string>(() => this.resolveString(this.config().classes).trim());
   readonly role = computed<string | undefined>(() => this.resolveOptionalString(this.config().role));
+  readonly tabIndex = computed<number | undefined>(() => {
+    const value = this.config().tabindex;
+    return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+  });
+  readonly ariaLive = computed<'off' | 'polite' | 'assertive' | undefined>(() => {
+    const value = resolveDynamicValue(this.config().ariaLive);
+    return value === 'off' || value === 'polite' || value === 'assertive' ? value : undefined;
+  });
   readonly ariaLabel = computed<string | undefined>(() => this.resolveOptionalString(this.config().ariaLabel));
   readonly ariaLabelledby = computed<string | undefined>(() => this.resolveOptionalString(this.config().ariaLabelledby));
   readonly ariaDescribedby = computed<string | undefined>(() => this.resolveOptionalString(this.config().ariaDescribedby));

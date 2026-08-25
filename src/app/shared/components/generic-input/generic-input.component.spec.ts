@@ -532,6 +532,163 @@ describe('GenericInputComponent', () => {
         expect(() => fixture.detectChanges()).not.toThrow();
         expect(scope.snapshot().fields['email'].errors).toContain('Email is required.');
     });
+
+    it('converges radio checked state and roving tabindex after the Angular frame that handles an Arrow key', async () => {
+        const fixture = TestBed.createComponent(GenericInputComponent);
+        const component = fixture.componentInstance;
+        spyOn(component.valueChanged, 'emit');
+
+        fixture.componentRef.setInput('config', {
+            fieldId: 'city',
+            controlType: 'button-group',
+            label: 'Where did you purchase?',
+            value: 'cdmx',
+            options: [
+                { value: 'cdmx', label: 'CDMX' },
+                { value: 'cabos', label: 'Los Cabos' },
+                { value: 'tulum', label: 'Tulum' },
+            ],
+        });
+        fixture.detectChanges();
+
+        const group = fixture.nativeElement.querySelector('[role="radiogroup"]') as HTMLElement;
+        const radios = Array.from(fixture.nativeElement.querySelectorAll('button[role="radio"]')) as HTMLButtonElement[];
+        expect(group.getAttribute('aria-labelledby')).toBe('city-label');
+        expect(radios.map((radio) => radio.getAttribute('aria-checked'))).toEqual(['true', 'false', 'false']);
+        expect(radios.map((radio) => radio.tabIndex)).toEqual([0, -1, -1]);
+
+        radios[0].focus();
+        radios[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+
+        let settledRadios: HTMLButtonElement[] | null = null;
+        for (let attempt = 0; attempt < 5 && !settledRadios; attempt += 1) {
+            fixture.detectChanges();
+            const current = Array.from(fixture.nativeElement.querySelectorAll('button[role="radio"]')) as HTMLButtonElement[];
+            if (current[1]?.getAttribute('aria-checked') === 'true'
+                && current[1]?.tabIndex === 0
+                && current.filter((radio) => radio.tabIndex === 0).length === 1) {
+                settledRadios = current;
+                break;
+            }
+            await fixture.whenStable();
+        }
+
+        expect(component.valueChanged.emit).toHaveBeenCalledWith(
+            jasmine.objectContaining({ fieldId: 'city', value: 'cabos' })
+        );
+        expect(settledRadios).withContext('radio state did not settle after Angular change detection').not.toBeNull();
+        expect(settledRadios?.map((radio) => radio.getAttribute('aria-checked'))).toEqual(['false', 'true', 'false']);
+        expect(settledRadios?.map((radio) => radio.tabIndex)).toEqual([-1, 0, -1]);
+        expect(document.activeElement).toBe(settledRadios?.[1] ?? null);
+    });
+
+    it('supports all radio Arrow keys while Tab leaves the group normally', () => {
+        const fixture = TestBed.createComponent(GenericInputComponent);
+        const component = fixture.componentInstance;
+        const emit = spyOn(component.valueChanged, 'emit');
+        fixture.componentRef.setInput('config', {
+            fieldId: 'city-keys',
+            controlType: 'button-group',
+            value: 'cdmx',
+            options: [
+                { value: 'cdmx', label: 'CDMX' },
+                { value: 'cabos', label: 'Los Cabos' },
+                { value: 'tulum', label: 'Tulum' },
+            ],
+        });
+        fixture.detectChanges();
+        const radios = Array.from(fixture.nativeElement.querySelectorAll('button[role="radio"]')) as HTMLButtonElement[];
+
+        for (const [button, key, expected] of [
+            [radios[0], 'ArrowDown', 'cabos'],
+            [radios[1], 'ArrowUp', 'cdmx'],
+            [radios[0], 'ArrowLeft', 'tulum'],
+            [radios[2], 'ArrowRight', 'cdmx'],
+        ] as const) {
+            emit.calls.reset();
+            button.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+            fixture.detectChanges();
+            expect(emit).withContext(key).toHaveBeenCalledWith(
+                jasmine.objectContaining({ fieldId: 'city-keys', value: expected })
+            );
+        }
+
+        emit.calls.reset();
+        radios[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+        expect(emit).not.toHaveBeenCalled();
+    });
+
+    it('keeps empty and non-finite number values empty while preserving finite out-of-range input', () => {
+        const fixture = TestBed.createComponent(GenericInputComponent);
+        const component = fixture.componentInstance;
+        spyOn(component.valueChanged, 'emit');
+
+        fixture.componentRef.setInput('config', {
+            fieldId: 'propertyValue',
+            controlType: 'number',
+            value: null,
+            min: 1000000,
+            max: 5000000,
+        });
+        fixture.detectChanges();
+
+        const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+        expect(input.value).toBe('');
+
+        input.value = '';
+        input.dispatchEvent(new Event('input'));
+        fixture.detectChanges();
+        expect(component.valueChanged.emit).toHaveBeenCalledWith(
+            jasmine.objectContaining({ fieldId: 'propertyValue', value: null })
+        );
+
+        input.value = '500000';
+        input.dispatchEvent(new Event('input'));
+        fixture.detectChanges();
+        expect(component.valueChanged.emit).toHaveBeenCalledWith(
+            jasmine.objectContaining({ fieldId: 'propertyValue', value: 500000 })
+        );
+
+        const nonFiniteFixture = TestBed.createComponent(GenericInputComponent);
+        nonFiniteFixture.componentRef.setInput('config', {
+            fieldId: 'nonFinitePropertyValue',
+            controlType: 'number',
+            value: Number.POSITIVE_INFINITY,
+            min: 1000000,
+        });
+        nonFiniteFixture.detectChanges();
+        const nonFiniteInput = nonFiniteFixture.nativeElement.querySelector('input') as HTMLInputElement;
+        expect(nonFiniteInput.value).toBe('');
+    });
+
+    it('associates visible validation errors and helper text with the native control', () => {
+        const scope = TestBed.inject(InteractionScopeService);
+        scope.configure({ scopeId: 'calculator' });
+        const fixture = TestBed.createComponent(GenericInputComponent);
+
+        fixture.componentRef.setInput('config', {
+            fieldId: 'propertyValue',
+            controlType: 'number',
+            label: 'Property value',
+            helperText: 'MXN',
+            value: 500000,
+            validation: [{ type: 'min', value: 1000000, message: 'Enter at least $1,000,000 MXN.' }],
+        });
+        fixture.detectChanges();
+        scope.submit();
+        fixture.detectChanges();
+
+        const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+        const error = fixture.nativeElement.querySelector('#propertyValue-error') as HTMLElement;
+        const helper = fixture.nativeElement.querySelector('#propertyValue-helper') as HTMLElement;
+        expect(error.textContent).toContain('Enter at least $1,000,000 MXN.');
+        expect(helper.textContent).toContain('MXN');
+        expect(input.getAttribute('aria-invalid')).toBe('true');
+        expect(input.getAttribute('aria-describedby')?.split(/\s+/)).toEqual([
+            'propertyValue-helper',
+            'propertyValue-error',
+        ]);
+    });
 });
 
 describe('GenericInputComponent without interaction scope', () => {
