@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { InteractionScopeService } from './interaction-scope.service';
+import { InteractionScopeService, validateInteractionValue } from './interaction-scope.service';
 
 describe('InteractionScopeService', () => {
     let service: InteractionScopeService;
@@ -61,6 +61,14 @@ describe('InteractionScopeService', () => {
         service.reset();
         expect(service.snapshot().values['email']).toBe('');
         expect(service.submitted()).toBeFalse();
+    });
+
+    it('preserves a configured required rule message when the field is also required', () => {
+        expect(validateInteractionValue(
+            '',
+            [{ type: 'required', message: 'Selecciona una opción.' }],
+            true,
+        )).toEqual(['Selecciona una opción.']);
     });
 
     it('exposes unregistered initial values through scope values', () => {

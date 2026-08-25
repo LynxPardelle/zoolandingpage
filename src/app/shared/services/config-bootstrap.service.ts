@@ -58,6 +58,7 @@ export type TConfigBootstrapLoadOptions = {
     readonly domain?: string;
     readonly pageId?: string;
     readonly lang?: string;
+    readonly routeLanguage?: string;
     readonly routePath?: string;
     readonly routeParams?: Readonly<Record<string, string>>;
 };
@@ -350,7 +351,7 @@ export class ConfigBootstrapService {
         const defaultLanguage = this.defaultDraftLanguage(siteConfig, loadedVariables, draftLanguages);
         this.language.configureLanguages(
             draftLanguages.map((entry) => entry.code),
-            { defaultLanguage, requestedLanguage: requestedLang }
+            { defaultLanguage, requestedLanguage: requestedLang, routeLanguage: opts?.routeLanguage }
         );
         const lang = this.language.currentLanguage();
         const fallbackLang = this.secondaryLanguage(lang, draftLanguages);

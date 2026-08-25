@@ -54,6 +54,36 @@ describe('GenericMedia', () => {
     expect(image?.getAttribute('alt')).toBe('Lynx Pardelle portrait');
   });
 
+  it('renders an explicitly empty image alt as a present decorative alt attribute', async () => {
+    fixture.componentRef.setInput('config', {
+      id: 'decorative-divider',
+      tag: 'image',
+      src: '/assets/decorative-divider.svg',
+      alt: '',
+    });
+
+    await fixture.whenStable();
+
+    const image: HTMLImageElement | null = fixture.nativeElement.querySelector('img');
+
+    expect(image?.hasAttribute('alt')).toBeTrue();
+    expect(image?.getAttribute('alt')).toBe('');
+  });
+
+  it('omits the image alt attribute when alt is not configured', async () => {
+    fixture.componentRef.setInput('config', {
+      id: 'unclassified-image',
+      tag: 'image',
+      src: '/assets/unclassified-image.svg',
+    });
+
+    await fixture.whenStable();
+
+    const image: HTMLImageElement | null = fixture.nativeElement.querySelector('img');
+
+    expect(image?.hasAttribute('alt')).toBeFalse();
+  });
+
   it('renders image sizing and loading attributes from config to reserve layout space', () => {
     fixture.componentRef.setInput('config', {
       id: 'poster',
@@ -222,5 +252,22 @@ describe('GenericMedia', () => {
     const link: HTMLAnchorElement | null = fixture.nativeElement.querySelector('a');
 
     expect(link?.textContent?.trim()).toBe('/assets/files/brief.pdf');
+  });
+
+  it('keeps a non-empty source fallback for document media with explicit empty alt text', async () => {
+    fixture.componentRef.setInput('config', {
+      id: 'decorative-document-link',
+      tag: 'document',
+      src: '/assets/files/legal-brief.pdf',
+      alt: '',
+    });
+
+    await fixture.whenStable();
+
+    const link: HTMLAnchorElement | null = fixture.nativeElement.querySelector('a');
+
+    expect(component.alt()).toBe('');
+    expect(component.linkLabel()).toBe('/assets/files/legal-brief.pdf');
+    expect(link?.textContent?.trim()).toBe('/assets/files/legal-brief.pdf');
   });
 });

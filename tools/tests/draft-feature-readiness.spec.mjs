@@ -239,6 +239,30 @@ test('unknown properties, duplicate ids, and invalid combinations fail closed', 
   assert.equal(codes.has('physical_inventory_required'), true);
 });
 
+test('tracked inventory requires inventory to be enabled in canonical and template readiness', async () => {
+  const readiness = await readinessModule();
+  const templateReadiness = await import('../templates/draft-repo/tools/draft-feature-readiness.mjs');
+  const files = await fixtureFiles();
+  const commerce = files.find(file => file.path.endsWith('/commerce.json')).content.commerce;
+  commerce.sellableTypes = ['service'];
+  commerce.inventory.enabled = false;
+  commerce.inventory.tracked = true;
+
+  for (const validateDraftFeatureReadiness of [
+    readiness.validateDraftFeatureReadiness,
+    templateReadiness.validateDraftFeatureReadiness,
+  ]) {
+    const report = await validateDraftFeatureReadiness({
+      domain: 'example.com', environment: 'test', mode: 'test', files,
+    });
+    assert.equal(report.ok, false);
+    assert.equal(
+      report.findings.some(finding => finding.code === 'inventory_tracking_requires_inventory'),
+      true,
+    );
+  }
+});
+
 test('code-owned capabilities, fiscal disclosures, and notification contracts fail closed', async () => {
   const { validateDraftFeatureReadiness } = await readinessModule();
   const files = await fixtureFiles();

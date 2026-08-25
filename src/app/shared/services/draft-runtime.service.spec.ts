@@ -223,7 +223,41 @@ describe('DraftRuntimeService', () => {
     expect(service.activeDraftPageId()).toBe('servicios');
   });
 
-  it('does not consult site-config when draftPageId is explicitly provided', async () => {
+  it('retains the exact fixed-language route when an explicit draftPageId agrees with it', async () => {
+    const { service, loadSiteConfig } = configure(
+      'https://test.zoolandingpage.com.mx/soft-landing-china/zh?draftDomain=pamelabetancourt.com&draftPageId=soft-landing-china&lang=en',
+      {
+        version: 1,
+        domain: 'pamelabetancourt.com',
+        defaultPageId: 'home',
+        routes: [
+          { path: '/soft-landing-china/eng', pageId: 'soft-landing-china', language: 'en' },
+          { path: '/soft-landing-china/zh', pageId: 'soft-landing-china', language: 'zh' },
+        ],
+      },
+    );
+
+    const context = await service.resolveActiveDraftContext();
+
+    expect(loadSiteConfig).toHaveBeenCalledOnceWith('pamelabetancourt.com', {
+      path: '/soft-landing-china/zh',
+      lang: 'en',
+    });
+    expect(context).toEqual(jasmine.objectContaining({
+      pageId: 'soft-landing-china',
+      path: '/soft-landing-china/zh',
+      route: jasmine.objectContaining({
+        path: '/soft-landing-china/zh',
+        pageId: 'soft-landing-china',
+        language: 'zh',
+      }),
+      routeParams: {},
+      explicitPageId: true,
+    }));
+    expect(service.resolvedDraftRoute()?.language).toBe('zh');
+  });
+
+  it('keeps explicit preview semantics when draftPageId intentionally differs from the exact route', async () => {
     const { service, loadSiteConfig } = configure(
       'https://test.zoolandingpage.com.mx/servicios?draftDomain=pamelabetancourt.com&draftPageId=contactame',
       {
@@ -240,6 +274,8 @@ describe('DraftRuntimeService', () => {
 
     expect(loadSiteConfig).toHaveBeenCalledOnceWith('pamelabetancourt.com', { path: '/servicios', lang: '' });
     expect(context.pageId).toBe('contactame');
+    expect(context.route).toBeNull();
+    expect(context.routeParams).toBeUndefined();
     expect(context.explicitPageId).toBeTrue();
     expect(service.activeDraftPageId()).toBe('contactame');
   });
@@ -262,6 +298,63 @@ describe('DraftRuntimeService', () => {
     expect(context.pageId).toBe('contactame');
     expect(context.path).toBe('/contáctame');
     expect(service.activeDraftPageId()).toBe('contactame');
+  });
+
+  it('retains the exact fixed-language route when siblings share one page id', async () => {
+    const { service } = configure(
+      'https://test.zoolandingpage.com.mx/soft-landing-china/zh?draftDomain=pamelabetancourt.com&lang=en',
+      {
+        version: 1,
+        domain: 'pamelabetancourt.com',
+        defaultPageId: 'home',
+        routes: [
+          { path: '/soft-landing-china/eng', pageId: 'china', language: 'en' },
+          { path: '/soft-landing-china/zh', pageId: 'china', language: 'zh' },
+        ],
+      },
+    );
+
+    const context = await service.resolveActiveDraftContext();
+
+    expect(context.pageId).toBe('china');
+    expect(context.route).toEqual(jasmine.objectContaining({
+      path: '/soft-landing-china/zh',
+      pageId: 'china',
+      language: 'zh',
+    }));
+  });
+
+  it('re-resolves an ordinary route after a popstate-style URL change from an explicit fixed route', async () => {
+    const initialUrl = 'https://test.zoolandingpage.com.mx/soft-landing-china/zh?draftDomain=pamelabetancourt.com&draftPageId=china&lang=en';
+    const { service, setUrl } = configure(
+      initialUrl,
+      {
+        version: 1,
+        domain: 'pamelabetancourt.com',
+        defaultPageId: 'home',
+        routes: [
+          { path: '/soft-landing-china/eng', pageId: 'china', language: 'en' },
+          { path: '/soft-landing-china/zh', pageId: 'china', language: 'zh' },
+          { path: '/servicios', pageId: 'servicios' },
+        ],
+      },
+      { browserMode: true },
+    );
+
+    const fixedContext = await service.resolveActiveDraftContext();
+    expect(fixedContext.route?.language).toBe('zh');
+
+    setUrl('https://test.zoolandingpage.com.mx/servicios?draftDomain=pamelabetancourt.com&lang=es');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    const ordinaryContext = await service.resolveActiveDraftContext();
+
+    expect(ordinaryContext).toEqual(jasmine.objectContaining({
+      pageId: 'servicios',
+      path: '/servicios',
+      route: jasmine.objectContaining({ path: '/servicios', pageId: 'servicios' }),
+      explicitPageId: false,
+    }));
+    expect(service.resolvedDraftRoute()?.language).toBeUndefined();
   });
 
   it('keeps the root route on the draft default page', async () => {

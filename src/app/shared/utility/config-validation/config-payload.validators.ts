@@ -1,4 +1,5 @@
 import type { TTrackOptions } from '@/app/shared/types/analytics.type';
+import { normalizeLocaleCode } from '@/app/shared/i18n/locale.utils';
 import type {
     TContentHubRuntimeActionBinding,
     TContentHubRuntimeConfig,
@@ -425,6 +426,10 @@ const ALLOWED_GENERIC_CELL_CONFIG_KEYS = new Set([
     'row',
     'valuePath',
     'format',
+    'currency',
+    'currencyDisplay',
+    'maximumFractionDigits',
+    'showCurrencyCode',
     'emptyText',
     'trueText',
     'falseText',
@@ -435,7 +440,8 @@ const ALLOWED_GENERIC_CELL_CONFIG_KEYS = new Set([
     'classes',
     'valueClasses',
 ]);
-const ALLOWED_GENERIC_CELL_FORMATS = new Set(['text', 'number', 'date', 'boolean', 'json', 'list']);
+const ALLOWED_GENERIC_CELL_FORMATS = new Set(['text', 'number', 'currency', 'date', 'boolean', 'json', 'list']);
+const ALLOWED_GENERIC_CELL_CURRENCY_DISPLAYS = new Set(['symbol', 'narrowSymbol', 'code', 'name']);
 const ALLOWED_GENERIC_TABLE_CONFIG_KEYS = new Set([
     'id',
     'label',
@@ -478,6 +484,10 @@ const ALLOWED_GENERIC_TABLE_COLUMN_KEYS = new Set([
     'header',
     'valuePath',
     'format',
+    'currency',
+    'currencyDisplay',
+    'maximumFractionDigits',
+    'showCurrencyCode',
     'sortable',
     'align',
     'emptyText',
@@ -559,6 +569,21 @@ const ALLOWED_GENERIC_RICH_TEXT_CONFIG_KEYS = new Set([
 const ALLOWED_GENERIC_RICH_TEXT_PROVIDERS = new Set(['quill', 'textarea']);
 const ALLOWED_GENERIC_RICH_TEXT_FORMATS = new Set(['quill-delta-json', 'quill-delta-object', 'markdown', 'plain-text']);
 const ALLOWED_GENERIC_RICH_TEXT_TOOLBAR_ITEMS = new Set(['bold', 'italic', 'underline', 'heading', 'bulletList', 'orderedList', 'blockquote', 'code', 'link', 'clean']);
+const ALLOWED_GENERIC_LINK_TARGETS = new Set(['_self', '_blank', '_parent', '_top']);
+const ALLOWED_GENERIC_CONTAINER_TAGS = new Set([
+    'span',
+    'div',
+    'section',
+    'main',
+    'header',
+    'footer',
+    'nav',
+    'article',
+    'ul',
+    'ol',
+    'li',
+    'aside',
+]);
 
 const ALLOWED_SITE_LIFECYCLE_STATUSES = new Set(['active', 'maintenance', 'suspended']);
 const ALLOWED_SITE_FALLBACK_MODES = new Set(['system', 'custom-message', 'redirect']);
@@ -863,6 +888,12 @@ const isDraftSiteRouteEntry = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
     if (typeof value['path'] !== 'string' || value['path'].trim().length === 0) return false;
     if (typeof value['pageId'] !== 'string' || value['pageId'].trim().length === 0) return false;
+    if (value['language'] !== undefined) {
+        if (typeof value['language'] !== 'string') return false;
+        const language = value['language'];
+        if (!/^[a-z]{2,3}(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|\d{3}))?(?:-(?:[A-Za-z0-9]{5,8}|\d[A-Za-z0-9]{3}))*$/.test(language)) return false;
+        if (normalizeLocaleCode(language) !== language) return false;
+    }
     if (value['label'] !== undefined && typeof value['label'] !== 'string') return false;
     if (value['labelKey'] !== undefined && typeof value['labelKey'] !== 'string') return false;
     if (value['auth'] !== undefined && !isDraftRouteAuthConfig(value['auth'])) return false;
@@ -1784,6 +1815,7 @@ const isGenericButtonConfig = (value: unknown): boolean => {
         'disabledWhenInvalidScope',
         'loading',
         'ariaSelected',
+        'ariaChecked',
         'ariaExpanded',
         'ariaHaspopup',
     ] as const;
@@ -2068,6 +2100,7 @@ const isGenericCellConfig = (value: unknown): boolean => {
     const stringFields = ['id', 'valuePath', 'emptyText', 'trueText', 'falseText', 'itemPath', 'separator', 'componentId', 'classes', 'valueClasses'] as const;
     if (stringFields.some((field) => !isStringThunkFriendly(value[field]))) return false;
     if (value['format'] !== undefined && !ALLOWED_GENERIC_CELL_FORMATS.has(String(value['format']))) return false;
+    if (!isGenericCellCurrencyConfig(value)) return false;
     if (value['componentIds'] !== undefined && !isStringArray(value['componentIds'])) return false;
     return true;
 };
@@ -2080,9 +2113,52 @@ const isGenericTableColumnConfig = (value: unknown): boolean => {
     const stringFields = ['header', 'valuePath', 'emptyText', 'trueText', 'falseText', 'itemPath', 'separator', 'componentId', 'classes', 'headerClasses', 'cellClasses', 'valueClasses'] as const;
     if (stringFields.some((field) => !isStringThunkFriendly(value[field]))) return false;
     if (value['format'] !== undefined && !ALLOWED_GENERIC_CELL_FORMATS.has(String(value['format']))) return false;
+    if (!isGenericCellCurrencyConfig(value)) return false;
     if (value['sortable'] !== undefined && !isBooleanThunkFriendly(value['sortable'])) return false;
     if (value['align'] !== undefined && !['start', 'center', 'end'].includes(String(value['align']))) return false;
     if (value['componentIds'] !== undefined && !isStringArray(value['componentIds'])) return false;
+    return true;
+};
+
+const isGenericLinkConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+    if (typeof value['href'] !== 'string') return false;
+
+    const stringFields = ['id', 'text', 'classes', 'rel', 'ariaLabel'] as const;
+    if (stringFields.some((field) => !isStringThunkFriendly(value[field]))) return false;
+    if (value['target'] !== undefined
+        && (typeof value['target'] !== 'string' || !ALLOWED_GENERIC_LINK_TARGETS.has(value['target']))) return false;
+    if (value['preserveLanguageQueryParam'] !== undefined
+        && typeof value['preserveLanguageQueryParam'] !== 'boolean') return false;
+    if (value['components'] !== undefined && !isStringArray(value['components'])) return false;
+    return true;
+};
+
+const isGenericContainerConfig = (value: unknown): boolean => {
+    if (!isRecord(value)) return false;
+
+    const stringFields = ['id', 'classes', 'role', 'ariaLabel', 'ariaLabelledby', 'ariaDescribedby'] as const;
+    if (stringFields.some((field) => !isStringThunkFriendly(value[field]))) return false;
+    if (value['tag'] !== undefined
+        && (typeof value['tag'] !== 'string' || !ALLOWED_GENERIC_CONTAINER_TAGS.has(value['tag']))) return false;
+    if (value['ariaLive'] !== undefined
+        && (typeof value['ariaLive'] !== 'string' || !['off', 'polite', 'assertive'].includes(value['ariaLive']))) return false;
+    if (value['tabindex'] !== undefined
+        && (typeof value['tabindex'] !== 'number' || !Number.isFinite(value['tabindex']))) return false;
+    if (value['components'] !== undefined && !isStringArray(value['components'])) return false;
+    return true;
+};
+
+const isGenericCellCurrencyConfig = (value: Record<string, unknown>): boolean => {
+    const currency = value['currency'];
+    if (currency !== undefined && (typeof currency !== 'string' || !/^[A-Z]{3}$/.test(currency))) return false;
+    if (value['format'] === 'currency' && currency === undefined) return false;
+    if (value['currencyDisplay'] !== undefined && !ALLOWED_GENERIC_CELL_CURRENCY_DISPLAYS.has(String(value['currencyDisplay']))) return false;
+    if (value['maximumFractionDigits'] !== undefined) {
+        const digits = value['maximumFractionDigits'];
+        if (typeof digits !== 'number' || !Number.isInteger(digits) || digits < 0 || digits > 20) return false;
+    }
+    if (value['showCurrencyCode'] !== undefined && typeof value['showCurrencyCode'] !== 'boolean') return false;
     return true;
 };
 
@@ -2618,6 +2694,14 @@ const isComponentPayloadRecord = (value: unknown): boolean => {
         return isGenericButtonConfig(value['config']);
     }
 
+    if (value['type'] === 'link') {
+        return isGenericLinkConfig(value['config']);
+    }
+
+    if (value['type'] === 'container') {
+        return isGenericContainerConfig(value['config']);
+    }
+
     if (value['type'] === 'accordion') {
         return isAccordionConfig(value['config']);
     }
@@ -2882,6 +2966,25 @@ export const isDraftSiteConfigPayload = (value: unknown): value is TDraftSiteCon
     if (value['runtime'] !== undefined && !isDraftSiteRuntimeConfig(value['runtime'])) return false;
     if (value['sitemap'] !== undefined && !isDraftSitemapConfig(value['sitemap'])) return false;
     if (!isDraftSiteSharedConfig(value['site'])) return false;
+    const supportedLanguages = new Set(
+        (value['site'] as Record<string, unknown>)['i18n']
+            && isRecord((value['site'] as Record<string, unknown>)['i18n'])
+            && Array.isArray(((value['site'] as Record<string, unknown>)['i18n'] as Record<string, unknown>)['supportedLanguages'])
+            ? (((value['site'] as Record<string, unknown>)['i18n'] as Record<string, unknown>)['supportedLanguages'] as unknown[])
+                .map((entry) => typeof entry === 'string' ? entry : isRecord(entry) ? entry['code'] : '')
+                .map((entry) => normalizeLocaleCode(entry))
+                .filter(Boolean)
+            : []
+    );
+    const routeLanguageKeys = new Set<string>();
+    for (const route of value['routes'] as Record<string, unknown>[]) {
+        const language = typeof route['language'] === 'string' ? route['language'] : '';
+        if (!language) continue;
+        if (!supportedLanguages.has(language)) return false;
+        const key = `${ String(route['pageId']).trim() }\u0000${ language }`;
+        if (routeLanguageKeys.has(key)) return false;
+        routeLanguageKeys.add(key);
+    }
     if (value['defaults'] !== undefined && !isDraftSiteDefaultsConfig(value['defaults'])) return false;
     return true;
 };

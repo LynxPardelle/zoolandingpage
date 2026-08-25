@@ -61,6 +61,7 @@ const COMMERCE_CAPABILITIES = Object.freeze([
   'commerce:catalog:write',
   'commerce:inventory:write',
   'commerce:subscription:manage',
+  'subscription:migration:execute',
   'commerce:fiscal:manage',
 ]);
 const FISCAL_DISCLOSURES = Object.freeze(['manual-invoice-v1']);
@@ -350,6 +351,9 @@ function validateDescriptorSemantics(descriptors, legacyDescriptors, findings, e
   }
   if (commerce?.sellableTypes?.includes('physical') && commerce?.inventory?.enabled !== true) {
     addFinding(findings, makeFinding('physical_inventory_required', 'commerce.json', '$/commerce/inventory'));
+  }
+  if (commerce?.inventory?.tracked === true && commerce?.inventory?.enabled !== true) {
+    addFinding(findings, makeFinding('inventory_tracking_requires_inventory', 'commerce.json', '$/commerce/inventory'));
   }
   if (commerce?.sellableTypes?.includes('physical') && commerce?.shipping?.enabled !== true) {
     addFinding(findings, makeFinding('physical_shipping_required', 'commerce.json', '$/commerce/shipping'));

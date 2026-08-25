@@ -150,9 +150,16 @@ export class AngoraCombosService {
     }
 
     private findMatchingComboKey(className: string): string | undefined {
+        return this.findMatchingComboKeyIn(className, this.appliedCombos);
+    }
+
+    private findMatchingComboKeyIn(
+        className: string,
+        combos: TAngoraCombosMap,
+    ): string | undefined {
         let matchedKey: string | undefined;
 
-        Object.keys(this.appliedCombos).forEach((key) => {
+        Object.keys(combos).forEach((key) => {
             if (className !== key && !className.startsWith(`${ key }VAL`)) {
                 return;
             }
@@ -233,18 +240,37 @@ export class AngoraCombosService {
         return this.ank.hasGeneratedCssRules?.() ?? false;
     }
 
-    waitForCssReady(timeoutMs = 1_500, requiredClasses: readonly string[] = []): Promise<boolean> {
+    waitForCssReady(
+        timeoutMs = 1_500,
+        requiredClasses: readonly string[] = [],
+        signal?: AbortSignal,
+    ): Promise<boolean> {
         if (!this.isBrowser) return Promise.resolve(true);
+        if (signal?.aborted) return Promise.resolve(false);
         this.syncDraftCombosFromStore();
 
         const required = this.normalizeClassEntries(requiredClasses)
             .filter((entry) => this.isRegisteredComboClass(entry));
 
         if (required.length > 0) {
-            return this.waitForRequiredCssRules(required, timeoutMs);
+            return this.waitForRequiredCssRules(required, timeoutMs, signal);
         }
 
-        return this.ank.waitForCssReady?.(timeoutMs) ?? Promise.resolve(this.hasGeneratedCssRules());
+        const readiness = this.ank.waitForCssReady?.(timeoutMs)
+            ?? Promise.resolve(this.hasGeneratedCssRules());
+        return this.resolveUntilAborted(readiness, signal);
+    }
+
+    cssReadinessSignature(classes: readonly string[]): string {
+        const pendingDraftCombos = this.sanitizeCombos(this.store.combos()?.combos ?? {});
+        const effectiveCombos = this.mergeCombos(pendingDraftCombos);
+        const effectiveClasses = this.normalizeClassEntries(classes)
+            .filter((entry) => (
+                this.isAngoraManagedClass(entry)
+                || !!this.findMatchingComboKeyIn(entry, effectiveCombos)
+            ))
+            .sort((left, right) => left.localeCompare(right));
+        return `${ this.signatureFor(effectiveCombos) }::${ effectiveClasses.join('|') }`;
     }
 
     containsRegisteredComboClass(classes: readonly string[]): boolean {
@@ -330,29 +356,41 @@ export class AngoraCombosService {
         ));
     }
 
-    private async waitForRequiredCssRules(classes: readonly string[], timeoutMs: number): Promise<boolean> {
+    private async waitForRequiredCssRules(
+        classes: readonly string[],
+        timeoutMs: number,
+        signal?: AbortSignal,
+    ): Promise<boolean> {
+        if (signal?.aborted) return false;
         this.updateClasses(classes);
+        if (signal?.aborted) return false;
 
         const timeoutAt = Date.now() + Math.max(0, timeoutMs);
         let fullScanRequested = false;
 
         while (Date.now() <= timeoutAt) {
+            if (signal?.aborted) return false;
             const missingClasses = this.missingCssRuleClasses(classes);
+            if (signal?.aborted) return false;
             if (missingClasses.length === 0) {
-                return this.waitForNextPaint(true);
+                return this.waitForNextPaint(true, signal);
             }
 
+            if (signal?.aborted) return false;
             this.ank.cssCreate(missingClasses);
+            if (signal?.aborted) return false;
 
             if (!fullScanRequested && missingClasses.some((className) => this.isRegisteredComboClass(className))) {
                 this.ank.cssCreate(undefined, true);
                 fullScanRequested = true;
             }
 
-            await this.waitForNextFrame();
+            if (signal?.aborted) return false;
+            await this.waitForNextFrame(signal);
         }
 
-        return this.waitForNextPaint(false);
+        if (signal?.aborted) return false;
+        return this.waitForNextPaint(false, signal);
     }
 
     private missingCssRuleClasses(classes: readonly string[]): string[] {
@@ -488,32 +526,76 @@ export class AngoraCombosService {
         return Array.from(nestedRules).some((nestedRule) => this.cssRuleContainsText(nestedRule, text));
     }
 
-    private waitForNextFrame(): Promise<void> {
+    private waitForNextFrame(signal?: AbortSignal): Promise<void> {
+        if (signal?.aborted) {
+            return Promise.resolve();
+        }
+
         if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
-            return new Promise((resolve) => globalThis.setTimeout(resolve, 16));
+            return new Promise((resolve) => {
+                let settled = false;
+                const settle = (): void => {
+                    if (settled) return;
+                    settled = true;
+                    globalThis.clearTimeout(timer);
+                    signal?.removeEventListener('abort', settle);
+                    resolve();
+                };
+                const timer = globalThis.setTimeout(settle, 16);
+                signal?.addEventListener('abort', settle, { once: true });
+            });
         }
 
         return new Promise((resolve) => {
             let settled = false;
-            const fallback = globalThis.setTimeout(() => {
-                if (settled) return;
-                settled = true;
-                resolve();
-            }, 50);
-
-            window.requestAnimationFrame(() => {
+            let frameId: number | null = null;
+            const settle = (): void => {
                 if (settled) return;
                 settled = true;
                 globalThis.clearTimeout(fallback);
+                if (frameId !== null) {
+                    window.cancelAnimationFrame(frameId);
+                }
+                signal?.removeEventListener('abort', settle);
                 resolve();
-            });
+            };
+            const fallback = globalThis.setTimeout(settle, 50);
+
+            frameId = window.requestAnimationFrame(settle);
+            signal?.addEventListener('abort', settle, { once: true });
         });
     }
 
-    private async waitForNextPaint<T>(value: T): Promise<T> {
-        await this.waitForNextFrame();
-        await this.waitForNextFrame();
-        return value;
+    private async waitForNextPaint(value: boolean, signal?: AbortSignal): Promise<boolean> {
+        await this.waitForNextFrame(signal);
+        if (signal?.aborted) return false;
+        await this.waitForNextFrame(signal);
+        return signal?.aborted ? false : value;
+    }
+
+    private resolveUntilAborted(readiness: Promise<boolean>, signal?: AbortSignal): Promise<boolean> {
+        if (!signal) return readiness;
+        if (signal.aborted) return Promise.resolve(false);
+
+        return new Promise<boolean>((resolve, reject) => {
+            const cleanup = (): void => signal.removeEventListener('abort', handleAbort);
+            const handleAbort = (): void => {
+                cleanup();
+                resolve(false);
+            };
+
+            signal.addEventListener('abort', handleAbort, { once: true });
+            readiness.then(
+                (ready) => {
+                    cleanup();
+                    resolve(ready);
+                },
+                (error) => {
+                    cleanup();
+                    reject(error);
+                },
+            );
+        });
     }
 
     private escapeCssClass(className: string): string {
@@ -535,7 +617,7 @@ export class AngoraCombosService {
             .join('||');
     }
 
-    private mergeCombos(): TAngoraCombosMap {
+    private mergeCombos(draftCombos: TAngoraCombosMap = this.draftCombos): TAngoraCombosMap {
         const merged: Record<string, readonly string[]> = {};
 
         this.auxiliaryCombos.forEach((combos, scope) => {
@@ -543,7 +625,7 @@ export class AngoraCombosService {
             Object.assign(merged, combos);
         });
 
-        Object.assign(merged, this.draftCombos);
+        Object.assign(merged, draftCombos);
 
         this.auxiliaryCombos.forEach((combos, scope) => {
             if (LOW_PRECEDENCE_AUXILIARY_SCOPES.has(scope)) return;
