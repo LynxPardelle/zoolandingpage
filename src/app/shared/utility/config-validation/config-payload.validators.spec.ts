@@ -2042,6 +2042,19 @@ describe('config-payload.validators', () => {
         }))).withContext('container tag and components remain optional').toBeTrue();
     });
 
+    it('accepts figure containers used by authored media captions', () => {
+        expect(isComponentsPayload(createComponentsPayload({
+            mediaFigure: {
+                id: 'mediaFigure',
+                type: 'container',
+                config: {
+                    tag: 'figure',
+                    components: ['mediaImage', 'mediaCaption'],
+                },
+            },
+        }))).toBeTrue();
+    });
+
     it('accepts generic button loading state payloads', () => {
         const valid = createComponentsPayload({
             signinButton: {

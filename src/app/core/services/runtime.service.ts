@@ -64,6 +64,7 @@ export class RuntimeService {
     private debugWorkspaceInit: Promise<void> | null = null;
     private cssMutationObserver: MutationObserver | null = null;
     private navigationUnlisten: (() => void) | null = null;
+    private pendingBrowserNavigationHref: string | null = null;
     private currentLanguageResolver: (() => string) | null = null;
     private showDebugWorkspaceResolver: (() => boolean) | null = null;
     private renderedClassesRoot: HTMLElement | null = null;
@@ -107,6 +108,7 @@ export class RuntimeService {
         if (this.isBrowser) {
             this.bindCssMutationRefresh(options.host);
             this.bindNavigationRefresh();
+            this.flushPendingBrowserNavigation();
         }
 
         options.destroyRef.onDestroy(() => this.disconnect());
@@ -143,6 +145,7 @@ export class RuntimeService {
         this.completedCssReadinessSignature = null;
         this.navigationUnlisten?.();
         this.navigationUnlisten = null;
+        this.pendingBrowserNavigationHref = null;
 
         try {
             this.cssMutationObserver?.disconnect();
@@ -364,9 +367,7 @@ export class RuntimeService {
                 this.clearRenderedDraft(context.domain, context.pageId);
                 this.loadingCurtain.hideWhenReady(`auth-callback-${ callbackResult.reason }`);
                 if (this.isBrowser) {
-                    navigateInCurrentWindow(this.resolveAuthRedirectHref(callbackResult.redirectTo), {
-                        scrollRestoration: this.runtimeConfig.siteRuntime()?.navigation?.scrollRestoration,
-                    });
+                    this.navigateWhenBrowserShellReady(this.resolveAuthRedirectHref(callbackResult.redirectTo));
                 }
                 return;
             }
@@ -389,9 +390,7 @@ export class RuntimeService {
                 // SSR has no response redirect hook in this runtime; protected drafts render no private content.
                 keepPrivateRouteLoading = !this.isBrowser && protectedRouteLoadingStarted;
                 if (this.isBrowser && routeAccess.redirectTo) {
-                    navigateInCurrentWindow(this.resolveAuthRedirectHref(routeAccess.redirectTo), {
-                        scrollRestoration: this.runtimeConfig.siteRuntime()?.navigation?.scrollRestoration,
-                    });
+                    this.navigateWhenBrowserShellReady(this.resolveAuthRedirectHref(routeAccess.redirectTo));
                 }
                 return;
             }
@@ -1040,6 +1039,29 @@ export class RuntimeService {
 
         window.addEventListener('popstate', handleNavigation);
         this.navigationUnlisten = () => window.removeEventListener('popstate', handleNavigation);
+    }
+
+    private navigateWhenBrowserShellReady(href: string): void {
+        if (!this.navigationUnlisten) {
+            this.pendingBrowserNavigationHref = href;
+            return;
+        }
+
+        navigateInCurrentWindow(href, {
+            scrollRestoration: this.runtimeConfig.siteRuntime()?.navigation?.scrollRestoration,
+        });
+    }
+
+    private flushPendingBrowserNavigation(): void {
+        const href = this.pendingBrowserNavigationHref;
+        if (!href) {
+            return;
+        }
+
+        this.pendingBrowserNavigationHref = null;
+        navigateInCurrentWindow(href, {
+            scrollRestoration: this.runtimeConfig.siteRuntime()?.navigation?.scrollRestoration,
+        });
     }
 
     private markRuntimeDataSourcesLoadingForNavigation(): void {

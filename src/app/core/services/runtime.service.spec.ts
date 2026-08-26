@@ -1187,6 +1187,73 @@ describe('RuntimeService', () => {
         ]]);
     });
 
+    it('renders the login route when the app initializer redirects before the shell connects', async () => {
+        const service = TestBed.inject(RuntimeService);
+        spyOn(window, 'fetch').and.resolveTo(new Response(JSON.stringify({ ok: false }), {
+            status: 401,
+            headers: { 'Content-Type': 'application/json' },
+        }));
+        loadSiteConfig.and.resolveTo({
+            version: 1,
+            domain: 'pamelabetancourt.com',
+            defaultPageId: 'home',
+            routes: [
+                { path: '/acceso', pageId: 'acceso' },
+                {
+                    path: '/admin/blog',
+                    pageId: 'admin-blog',
+                    auth: {
+                        required: true,
+                        allowedGroups: ['zoosite-admin'],
+                        redirectTo: '/acceso',
+                    },
+                },
+            ],
+            runtime: {
+                auth: {
+                    enabled: true,
+                    authProfileId: 'staff',
+                    provider: 'cognito',
+                    issuer: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_PREVIEW',
+                    clientId: 'public-web-client',
+                    hostedUiDomain: 'https://preview.auth.us-east-1.amazoncognito.com',
+                    scopes: ['openid'],
+                    redirectPath: '/auth/callback',
+                    logoutPath: '/acceso',
+                    loginPath: '/acceso',
+                    session: {
+                        mode: 'server-cookie',
+                        mePath: '/auth/session/me',
+                    },
+                },
+            },
+            site: {},
+        } as any);
+
+        setRuntimeUrl('/admin/blog?draftDomain=pamelabetancourt.com&lang=es');
+        await service.initialize('es');
+        service.connect({
+            host: document.createElement('main'),
+            destroyRef: { destroyed: false, onDestroy: () => () => undefined } as any,
+            showDebugWorkspace: () => false,
+            currentLanguage: () => 'es',
+        });
+        for (let attempt = 0; attempt < 8 && service.rootComponentsIds().length === 0; attempt++) {
+            await flushPostBootstrapBrowserWork();
+        }
+
+        expect(window.location.pathname).toBe('/acceso');
+        expect(window.location.search).toContain('draftDomain=pamelabetancourt.com');
+        expect(service.rootComponentsIds()).toEqual(['acceso-root']);
+        expect(bootstrapLoad).toHaveBeenCalledOnceWith({
+            domain: 'pamelabetancourt.com',
+            pageId: 'acceso',
+            lang: 'es',
+            routePath: '/acceso',
+            routeParams: undefined,
+        });
+    });
+
     it('loads authored debug workspace roots when debug workspace is enabled', async () => {
         const service = TestBed.inject(RuntimeService);
         const configSource = TestBed.inject(ConfigSourceService) as jasmine.SpyObj<ConfigSourceService>;
@@ -1655,6 +1722,12 @@ describe('RuntimeService', () => {
 
         setRuntimeUrl('/admin/blog/articulos/art_20260623/editor?draftDomain=pamelabetancourt.com&lang=es');
         await service.initialize('es');
+        service.connect({
+            host: document.createElement('main'),
+            destroyRef: { destroyed: false, onDestroy: () => () => undefined } as any,
+            showDebugWorkspace: () => false,
+            currentLanguage: () => 'es',
+        });
         await new Promise<void>((resolve) => window.setTimeout(resolve, 5));
         await flushPostBootstrapBrowserWork();
 

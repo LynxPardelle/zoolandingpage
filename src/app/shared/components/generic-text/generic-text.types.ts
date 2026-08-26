@@ -7,6 +7,7 @@ export type GenericTextTag =
     | 'small'
     | 'strong'
     | 'em'
+    | 'figcaption'
     | 'h1'
     | 'h2'
     | 'h3'
