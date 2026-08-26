@@ -91,7 +91,12 @@ async function readRegisteredDraftInventory(registryPath) {
   return {
     owner: registry.owner,
     drafts: registry.drafts
-      .map(draft => ({ domain: draft.domain, owner: draft.owner ?? registry.owner, repo: draft.repo }))
+      .map(draft => ({
+        domain: draft.domain,
+        owner: draft.owner ?? registry.owner,
+        repo: draft.repo,
+        deploymentEnvironments: draft.deploymentEnvironments,
+      }))
       .sort((a, b) => a.domain.localeCompare(b.domain)),
   };
 }
@@ -115,7 +120,7 @@ function buildDeploymentRoleInventory(drafts) {
   const inventory = [];
   const seenRoleNames = new Set();
   for (const draft of drafts) {
-    for (const environment of ['test', 'production']) {
+    for (const environment of draft.deploymentEnvironments ?? ['test', 'production']) {
       const roleName = roleNameFor(draft.domain, environment);
       if (roleName.length > 64 || !/^[a-z0-9-]+$/.test(roleName)) {
         throw new Error(`invalid_deployment_role_name:${roleName}`);
@@ -736,9 +741,13 @@ async function main() {
   const selectedDrafts = selectRegisteredDrafts(registeredInventory.drafts, requestedDomain);
   const selectedOwners = resolveSelectedDraftOwners(selectedDrafts, args.owner);
   const roleInventory = buildDeploymentRoleInventory(selectedDrafts);
+  if (apply && !roleInventory.some(role => role.environment === applyEnvironment)) {
+    throw new Error(`selected_draft_deployment_environment_not_allowed:${applyEnvironment}`);
+  }
   const accountId = await getAccountId();
   const authoringTargets = {};
-  for (const environment of ['test', 'production']) {
+  const selectedEnvironments = [...new Set(roleInventory.map(role => role.environment))];
+  for (const environment of selectedEnvironments) {
     authoringTargets[environment] = await resolveAuthoringTarget({
       accountId,
       environment,

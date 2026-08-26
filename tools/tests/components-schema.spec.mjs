@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 const componentsSchemaPath = new URL('../../docs/api-driven-config/schemas/components.schema.json', import.meta.url);
+const contentBuilderPrimitivesDocPath = new URL('../../docs/api-driven-config/20-generic-content-builder-primitives.md', import.meta.url);
 
 test('components schema documents scoped auth form validation controls', async () => {
   const schema = JSON.parse(await readFile(componentsSchemaPath, 'utf8'));
@@ -49,4 +50,45 @@ test('components schema documents generic content-builder primitives', async () 
   assert.ok(refs.includes('#/definitions/genericCellConfig'));
   assert.ok(refs.includes('#/definitions/genericRichTextConfig'));
   assert.ok(refs.includes('#/definitions/genericFileDropzoneConfig'));
+});
+
+test('components schema documents language opt-out, accessibility, and currency contracts', async () => {
+  const schema = JSON.parse(await readFile(componentsSchemaPath, 'utf8'));
+  const link = schema.definitions?.genericLinkConfig;
+  const button = schema.definitions?.genericButtonConfig;
+  const container = schema.definitions?.genericContainerConfig;
+  const cell = schema.definitions?.genericCellConfig;
+  const column = schema.definitions?.genericTableColumnConfig;
+
+  assert.ok(link.required?.includes('href'));
+  assert.equal(link.properties.href.type, 'string');
+  assert.deepEqual(link.properties.target.enum, ['_self', '_blank', '_parent', '_top']);
+  assert.equal(link.properties.components.items.type, 'string');
+  assert.equal(link.properties.preserveLanguageQueryParam.type, 'boolean');
+  assert.equal(button.properties.ariaChecked.type, 'boolean');
+  assert.deepEqual(container.properties.tag.enum, ['span', 'div', 'section', 'main', 'header', 'footer', 'nav', 'article', 'ul', 'ol', 'li', 'aside']);
+  assert.equal(container.properties.components.items.type, 'string');
+  assert.deepEqual(container.properties.ariaLive.enum, ['off', 'polite', 'assertive']);
+  assert.equal(container.properties.tabindex.type, 'number');
+
+  for (const config of [cell, column]) {
+    assert.ok(config.properties.format.enum.includes('currency'));
+    assert.equal(config.properties.currency.pattern, '^[A-Z]{3}$');
+    assert.deepEqual(config.properties.currencyDisplay.enum, ['symbol', 'narrowSymbol', 'code', 'name']);
+    assert.equal(config.properties.maximumFractionDigits.minimum, 0);
+    assert.equal(config.properties.maximumFractionDigits.maximum, 20);
+    assert.equal(config.properties.showCurrencyCode.type, 'boolean');
+    const currencyRequirement = config.allOf?.find((entry) => entry.if?.properties?.format?.const === 'currency');
+    assert.ok(currencyRequirement?.then?.required?.includes('currency'));
+  }
+});
+
+test('generic content-builder documentation uses the canonical container discriminator', async () => {
+  const markdown = await readFile(contentBuilderPrimitivesDocPath, 'utf8');
+  const jsonBlocks = Array.from(markdown.matchAll(/```json\r?\n([\s\S]*?)\r?\n```/g));
+  const resultRegionBlock = jsonBlocks.find((match) => match[1]?.includes('"id": "calculatorResult"'));
+
+  assert.ok(resultRegionBlock?.[1], 'expected the calculator result JSON example');
+  const resultRegion = JSON.parse(resultRegionBlock[1]);
+  assert.equal(resultRegion.type, 'container');
 });

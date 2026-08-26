@@ -26,6 +26,8 @@ The promotion path is:
 1. `dev` -> pull request -> `test` -> deploy test after merge.
 2. `test` -> pull request -> `main` -> deploy production after merge.
 
+`docs/drafts-registry.json` version 2 is the deployment authorization boundary. Every entry must declare exactly `['test']` or `['test', 'production']`; reversed, duplicated, unknown, empty, missing, and production-only scopes fail closed. A test-only draft remains in public-safety and knowledge-routing audits but stops at `dev -> test`. Bootstrap, GitHub setup, OIDC inventory, preflight, and alias synchronization must not create or infer any production surface for it. The retained production workflow template must reject a config that does not explicitly enable production before promotion validation, plan creation, or OIDC. Version 1 is transitional and implies both environments so older entries cannot silently become test-only.
+
 `dev` is the only intended unprotected branch and does not deploy. `test` and `main` deploy only after changes land and are protected with the required `guard` status and zero required approvals so the repository owner can merge their own PRs after checks pass. Deployment workflows query the read-only GitHub associated-pull-request endpoint and require one exact, merged, same-repository `dev -> test` or `test -> main` PR for the deployed commit. Because draft repos allow only merge commits, they also require exactly two parents, the PR head as the second parent, and—for push events—the event's prior target SHA as the first parent.
 
 Zero approvals makes every identity with write and merge access a trusted deployment authority: that identity can change the repository-owned workflow/verifier and promote it. This is acceptable only while all writers are fully trusted operators. If the writer set expands, add an independent required approval or host the privileged verifier in an immutable reusable workflow controlled outside each draft repo.
@@ -34,10 +36,10 @@ Zero approvals makes every identity with write and merge access a trusted deploy
 
 Use one GitHub OIDC identity provider per AWS account, but do not use one broad production deploy role for every repository.
 
-Preferred shape:
+Preferred shape for each environment declared by the draft:
 
 - one test role per draft repository
-- one production role per draft repository
+- one production role per production-enabled draft repository
 - required `guard` status pinned to the GitHub Actions app, with no PR bypass users, teams, or apps
 - trust policy constrained by GitHub repository, environment, and exact deployment branch ref
 - GitHub Environment deployment policy constrained independently to `test` for test and `main` for production
@@ -54,7 +56,7 @@ Current hub helpers:
 - `node tools/draft-repo-preflight.mjs --pull=true` reads `docs/drafts-registry.json`, clones missing registered `draft-*` remote repos into their in-tree `drafts/{domain}` local paths, pulls clean repos with `git pull --ff-only`, and refuses dirty or invalid repos.
 - `npm run drafts:repo-bootstrap -- --repo=drafts/example.com --domain=example.com --authoring-endpoint=https://api.zoolandingpage.com.mx/config-authoring` copies the standard draft repo templates.
 - `npm run drafts:aws-oidc-setup` audits registered test/production roles and prints the Lambda authorization matrix. Pass `--domain=<canonical-domain>` to scope one draft. Mutations require both that selector and one explicit `--environment=test|production`; the helper resolves that environment's Config Authoring Lambda from its CloudFormation stack, verifies the exact live `AWS_IAM`/`BUFFERED` Function URL, and writes only drifted role trust or invocation policy documents.
-- `npm run drafts:github-setup` clones/configures draft repos, writes templates, creates `dev`/`test` branches, configures GitHub Environments, sets non-secret environment variables, and attempts branch protection. Applied setup requires `--domain=<canonical-domain>` and the exact STS-verified `--account-id=<12-digit-account>` so `AWS_ROLE_ARN` cannot point at a different account from the role that was reviewed.
+- `npm run drafts:github-setup` audits registered repositories before setup. For a test-only draft it compares the current config and full workflow bytes (EOL-normalized only) with canonical GitHub `test` and `main`, obtains a complete paginated Environment inventory, and verifies the production role's absence through an STS-account-bound read-only IAM lookup. A hidden/partial GitHub result, stale remote ref, inaccessible IAM role, or present production surface fails closed. Applied setup requires `--domain=<canonical-domain>` and the exact STS-verified `--account-id=<12-digit-account>` so `AWS_ROLE_ARN` cannot point at a different account from the role that was reviewed. `--reconcile-test-only-production=true` is a separate local-only operation: from a clean non-`test`/non-`main` branch it can change only tracked, realpath-contained `draft-repo.config.json` and `.github/workflows/deploy-production.yml`, preserves unmanaged config fields, and never commits, pushes, deletes an Environment or variables, or changes IAM. Promote the diff through `dev -> test`; legacy production bytes on `main` require a separately authorized protected decommission-only PR to `main`, whose new config guard must stop before plan/OIDC. The report remains false until both remote refs and every GitHub/AWS production surface pass read-only absence checks.
 - `npm run fleet:knowledge` audits registered draft and pilot satellite entrypoints, exact hub routes, remotes, branches, workflows, and immutable C1 callers. `--apply` changes only marked routing blocks and C1 in explicitly selected clean repositories; it never commits, pushes, merges, or changes cloud/GitHub configuration.
 
 GitHub Actions deploys use the IAM-protected Lambda Function URL, not the public custom authoring API front door. The custom/API Gateway endpoint still returns `403` for unsigned requests.
@@ -79,10 +81,10 @@ When a new draft is created, create and configure its GitHub repository as part 
 2. `docs/drafts-registry.json` entry with domain, resolved GitHub owner, repo, GitHub URL, and in-tree local path under `drafts/{domain}`.
 3. Branches: `dev`, `test`, `main`.
 4. Protected `test` and `main`.
-5. Required PR source guard: only `dev -> test` and `test -> main`.
-6. GitHub Environments: `test` and `production`.
-7. Post-merge deploy workflows for `test` and `main`.
-8. OIDC role references for each environment.
+5. Required PR source guard: always `dev -> test`; add `test -> main` only when `deploymentEnvironments` declares `production`.
+6. GitHub Environments: exactly the environments declared by `deploymentEnvironments` (`test` always, `production` only when authorized).
+7. Active post-merge deploy workflows: `test` always and `main` only when production is authorized. A retained production workflow in a test-only repository must equal the reviewed template (allowing only EOL normalization) and stop before planning or OIDC.
+8. OIDC role references only for environments declared by `deploymentEnvironments`; never infer production from a workflow file, config copy, or local folder.
 9. `.gitignore` that keeps local-only context, PII, credentials, logs, PDFs, private keys, and scratch folders out of git.
 10. Secret/PII scan before deploy.
 

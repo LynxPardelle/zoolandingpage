@@ -89,6 +89,22 @@ describe('GenericButtonComponent', () => {
     expect(button.getAttribute('aria-label')).toBe('Submit dynamic label');
   });
 
+  it('should expose opt-in radio checked state without changing aria-selected', () => {
+    const fixture = TestBed.createComponent(GenericButtonComponent);
+
+    fixture.componentRef.setInput('config', {
+      label: 'CDMX',
+      role: 'radio',
+      ariaChecked: true,
+    } as any);
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    expect(button.getAttribute('role')).toBe('radio');
+    expect(button.getAttribute('aria-checked')).toBe('true');
+    expect(button.getAttribute('aria-selected')).toBeNull();
+  });
+
   it('should resolve dynamic inline styles', () => {
     const fixture = TestBed.createComponent(GenericButtonComponent);
 

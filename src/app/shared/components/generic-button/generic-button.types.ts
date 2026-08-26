@@ -40,6 +40,8 @@ export type TGenericButtonConfig = {
   readonly tabIndex?: number | (() => number);
   /** ARIA pressed attribute */
   readonly ariaSelected?: boolean | (() => boolean);
+  /** ARIA checked attribute, used by opt-in radio semantics. */
+  readonly ariaChecked?: boolean | (() => boolean);
   /** ARIA expanded attribute */
   readonly ariaExpanded?: boolean | (() => boolean);
   /** ARIA haspopup attribute */

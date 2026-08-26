@@ -26,18 +26,22 @@ Use this checklist when creating a new draft repository after the secure release
 - Draft payload has passed the public-safety audit against current files and git history.
 - AWS OIDC provider exists in the target AWS account.
 - The hub repo and any source draft repo have been updated with `git pull --ff-only` when clean.
-- `docs/drafts-registry.json` has or will receive the new draft domain, repo name, GitHub clone URL, and in-tree local path under `drafts/{domain}`.
+- `docs/drafts-registry.json` has or will receive the new draft domain, repo name, GitHub clone URL, in-tree local path under `drafts/{domain}`, and exact deployment scope: `['test']` or `['test', 'production']`.
 
 ## Setup Checklist
 
 1. Create GitHub repository named `draft-{domain}`. Prefer private during initial import, then make it public only after the public-safety audit passes.
-2. Add or update the draft entry in `docs/drafts-registry.json`.
+2. Add or update the draft entry in `docs/drafts-registry.json`. Version 2 requires `deploymentEnvironments`; production-only, reversed, duplicated, missing, and unknown values are invalid.
 3. Add sanitized draft payload and required public asset references only.
 4. Run the bootstrap helper from the hub repo:
 
    ```bash
    npm run drafts:repo-bootstrap -- --repo=drafts/example.com --domain=example.com --authoring-endpoint=https://api.zoolandingpage.com.mx/config-authoring
    ```
+
+   Add `--environments=test` when the registry marks the draft as test-only. The generated config then keeps `main` non-deploying and omits production variables.
+
+   For an already established test-only repository, first run `npm run drafts:github-setup -- --domain=<canonical-domain> --account-id=<verified-12-digit-account> [--profile=<aws-profile>]`. The audit checks local, GitHub `test`/`main`, the complete Environment inventory, and read-only role absence. If it reports stale local production config or a workflow that does not exactly match the reviewed template after EOL normalization, use `--reconcile-test-only-production=true` only from a clean branch other than `test` or `main`. That mode prepares only two tracked, realpath-contained local files, preserves other config fields, and does not commit, push, change `main`, or decommission GitHub/AWS state. Promote through `dev -> test`; legacy production bytes on `main` require a separately authorized protected decommission-only PR. Review and remove any reported production Environment, variables, or IAM role only under separate authority, then rerun until absence is proven.
 
    This copies the routed `AGENTS.md`, human `README.md`, compatibility `Codex.md`, pinned C1 caller, deployment workflows, OIDC deploy script, `.gitignore`, and non-secret `draft-repo.config.json`.
 5. Confirm `.gitignore` excludes:
@@ -78,7 +82,7 @@ Use this checklist when creating a new draft repository after the secure release
    - Pin the required `guard` check to the verified GitHub Actions app and require empty PR bypass user/team/app lists. Do not accept `app_id: -1`, an unpinned check, or named bypass identities.
 12. Add required PR source guard check:
    - PR to `test` must come from `dev`.
-   - PR to `main` must come from `test`.
+   - PR to `main` must come from `test` only when the registry declares `production`; test-only drafts stop at `test`.
    - Post-merge deploy validation must find exactly one associated merged PR for the deployed commit, from the same repository and exact source/base pair.
    - For the configured merge-commit-only policy, the deployed commit must have exactly two parents, its first parent must equal both the PR base SHA and a push event's `before` SHA, and its second parent must equal the PR head.
    - The validation job may receive only `contents: read` and `pull-requests: read`; OIDC remains isolated to the dependent deploy job for the exact validated commit.
@@ -89,9 +93,9 @@ Use this checklist when creating a new draft repository after the secure release
    - Do not put the authoring API endpoint, credentials, tokens, responses, fiscal PII, or raw provider payloads in the plan. `server-only` excludes data from the public runtime projection; it is not a confidentiality label for a public repository or artifact.
    - The OIDC job must not check out or execute repository code. Its first step must validate output grammar and artifact/version coordinates before downloading exactly one artifact by ID. Require the exact two-file set, external manifest digest, strict checksum, closed schema, exact coordinates/action order, structural path-kind metadata, and current target tip before configuring credentials, then use native `curl --aws-sigv4` with redacted failure output.
 13. Add GitHub Environment `test`.
-14. Add GitHub Environment `production`.
+14. Add GitHub Environment `production` only when the registry declares `production`.
 15. Restrict test environment deployment branches to `test`.
-16. Restrict production environment deployment branches to `main`.
+16. Restrict production environment deployment branches to `main` when production is declared.
    - Use selected branch policies, not an unrestricted Environment or the broader "protected branches" option.
    - Read the Environment and its custom branch-policy list back after configuration; require exactly one branch rule.
 17. Add non-secret environment variables:
@@ -100,7 +104,7 @@ Use this checklist when creating a new draft repository after the secure release
    - role ARN
    - authoring endpoint
 18. Create or attach AWS IAM test deploy role.
-19. Create or attach AWS IAM production deploy role.
+19. Create or attach AWS IAM production deploy role only when production is declared. A test-only draft must not receive one.
    - Test trust must require both `environment:test` and `ref:refs/heads/test`.
    - Production trust must require both `environment:production` and `ref:refs/heads/main`.
    - Generate the role set only from `docs/drafts-registry.json`, never by scanning arbitrary local draft folders.
@@ -111,9 +115,9 @@ Use this checklist when creating a new draft repository after the secure release
 21. Store role ARNs and domain metadata as non-secret GitHub Environment variables.
 22. Confirm repo memory requires `git pull --ff-only` before work when clean, including pull checks for related draft repos in multi-repo tasks.
 23. Confirm post-merge deploy workflow for `test`.
-24. Confirm post-merge deploy workflow for `main`.
+24. Confirm post-merge deploy workflow for `main` only when the registry declares `production`; otherwise confirm the retained workflow has the reviewed config guard and fails before planning or OIDC.
 25. Verify test deploy against every test alias.
-26. Verify production deploy against every production alias.
+26. When production is declared, verify production deploy against every production alias.
 27. Run the hub routing audit:
 
    ```bash
@@ -125,7 +129,7 @@ Use this checklist when creating a new draft repository after the secure release
 ## Acceptance Checks
 
 - No local-only folders or PII-risk files are tracked.
-- `docs/drafts-registry.json` contains the draft's domain, resolved GitHub owner, repo, GitHub URL, and in-tree local path under `drafts/{domain}`.
+- `docs/drafts-registry.json` contains the draft's domain, resolved GitHub owner, repo, GitHub URL, in-tree local path under `drafts/{domain}`, and exact allowed deployment environments.
 - `node tools/draft-repo-preflight.mjs --pull=true` can clone missing registered repos and pull clean repos.
 - `node tools/draft-public-safety-audit.mjs --history=true` passes for the draft repo before public visibility, PR, and merge.
 - Direct push to `test` and `main` is blocked when native GitHub branch protection is available.
@@ -146,7 +150,7 @@ Use this checklist when creating a new draft repository after the secure release
 - `dev` changes do not deploy.
 - Clean target repos are pulled before work starts; dirty repos are reported before changes.
 - Merge to `test` deploys only test aliases.
-- Merge to `main` deploys only production aliases.
+- When production is declared, merge to `main` deploys only production aliases; a test-only draft has no production promotion or alias deployment.
 - AWS CloudTrail/API logs show assumed OIDC role, not long-lived AWS keys.
 - `AGENTS.md` routes each task to one exact local or hub document; `README.md` points humans to that router; `Codex.md` does not duplicate procedures or chronology.
 - The C1 caller references the reusable hub workflow by immutable commit SHA.

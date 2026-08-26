@@ -26,6 +26,7 @@ export class LanguageService {
   private readonly _currentLanguage = signal<SupportedLanguage>(FRAMEWORK_DEFAULT_LANGUAGE);
   private readonly _defaultLanguage = signal<SupportedLanguage>(FRAMEWORK_DEFAULT_LANGUAGE);
   private readonly _availableLanguages = signal<readonly SupportedLanguage[]>([FRAMEWORK_DEFAULT_LANGUAGE]);
+  private readonly _routeLanguage = signal<SupportedLanguage | null>(null);
 
   // Public readonly signals
   readonly currentLanguage = computed(() => this._currentLanguage());
@@ -53,7 +54,7 @@ export class LanguageService {
   // Public methods
   configureLanguages(
     languages: readonly string[],
-    opts?: { defaultLanguage?: string; requestedLanguage?: string }
+    opts?: { defaultLanguage?: string; requestedLanguage?: string; routeLanguage?: string }
   ): void {
     const normalized = this.normalizeLanguages(languages);
     const fallback = this.normalizeSingleLanguage(opts?.defaultLanguage)
@@ -63,6 +64,14 @@ export class LanguageService {
     const nextAvailable = normalized.length > 0 ? normalized : [fallback];
     this._availableLanguages.set(nextAvailable);
     this._defaultLanguage.set(nextAvailable.includes(fallback) ? fallback : nextAvailable[0]);
+
+    const routeLanguage = this.normalizeSingleLanguage(opts?.routeLanguage);
+    if (routeLanguage && nextAvailable.includes(routeLanguage)) {
+      this._routeLanguage.set(routeLanguage);
+      this._currentLanguage.set(routeLanguage);
+      return;
+    }
+    this._routeLanguage.set(null);
 
     const requested = this.normalizeSingleLanguage(opts?.requestedLanguage);
     const preferred = requested
@@ -76,6 +85,12 @@ export class LanguageService {
   }
 
   setLanguage(language: SupportedLanguage): void {
+    const fixedRouteLanguage = this._routeLanguage();
+    if (fixedRouteLanguage) {
+      this._currentLanguage.set(fixedRouteLanguage);
+      return;
+    }
+
     const resolved = this.resolvePreferredLanguage(language);
     this._currentLanguage.set(resolved);
     this._saveLanguage(resolved);

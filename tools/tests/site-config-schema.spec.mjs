@@ -22,6 +22,27 @@ async function readZoositePilotPage(pageId) {
     return readJson(new URL(`./fixtures/zoosite-auth-pilot/${pageId}/page-config.json`, import.meta.url));
 }
 
+test('site-config schema documents normalized optional route language', async () => {
+    const schema = await readJson(schemaPath);
+    const language = schema.definitions?.siteRouteEntry?.properties?.language;
+
+    assert.equal(language.type, 'string');
+    assert.equal(language.minLength, 2);
+    const normalizedLocale = new RegExp(language.pattern);
+    assert.equal(normalizedLocale.test('en'), true);
+    assert.equal(normalizedLocale.test('zh'), true);
+    assert.equal(normalizedLocale.test('pt-BR'), true);
+    assert.equal(normalizedLocale.test('de-CH-1901'), true);
+    assert.equal(normalizedLocale.test('sl-rozaj-biske'), true);
+    assert.equal(normalizedLocale.test('en-Latn-US-oxendict'), true);
+    assert.equal(normalizedLocale.test('EN'), false);
+    assert.equal(normalizedLocale.test('en_us'), false);
+    assert.equal(normalizedLocale.test('sl-ROZAJ'), false);
+    assert.equal(normalizedLocale.test('de-CH-190A'), false);
+    assert.equal(normalizedLocale.test('de-CH-abcd'), false);
+    assert.equal(normalizedLocale.test(' en '), false);
+});
+
 test('site-config schema aligns HTTPS auth URL restrictions with runtime validators', async () => {
     const schema = JSON.parse(await readFile(schemaPath, 'utf8'));
     const pattern = schema.definitions?.httpsAbsoluteUrl?.pattern;

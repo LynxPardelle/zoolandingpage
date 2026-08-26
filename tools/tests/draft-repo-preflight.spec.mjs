@@ -65,6 +65,82 @@ test('readDraftRegistry parses draft GitHub links', async () => {
   assert.equal(registry.drafts.length, 1);
   assert.equal(registry.drafts[0].domain, 'example.com');
   assert.equal(registry.drafts[0].githubUrl, 'https://github.com/LynxPardelle/draft-example-com.git');
+  assert.deepEqual(registry.drafts[0].deploymentEnvironments, ['test', 'production']);
+});
+
+test('readDraftRegistry requires one exact safe deployment scope for every v2 draft', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zlp-draft-registry-v2-'));
+  const registryPath = path.join(root, 'drafts-registry.json');
+  const base = {
+    version: 2,
+    owner: 'LynxPardelle',
+    defaultBaseDir: 'drafts',
+  };
+  const draft = {
+    domain: 'example.com',
+    repo: 'draft-example-com',
+    githubUrl: 'https://github.com/LynxPardelle/draft-example-com.git',
+    localPath: 'drafts/example.com',
+  };
+
+  await writeFile(registryPath, JSON.stringify({
+    ...base,
+    drafts: [{ ...draft, deploymentEnvironments: ['test'] }],
+  }), 'utf8');
+  const testOnly = await readDraftRegistry(registryPath);
+  assert.equal(testOnly.version, 2);
+  assert.deepEqual(testOnly.drafts[0].deploymentEnvironments, ['test']);
+
+  for (const deploymentEnvironments of [
+    undefined,
+    [],
+    ['production'],
+    ['production', 'test'],
+    ['test', 'test'],
+    ['test', 'preview'],
+    ['test', 'production', 'preview'],
+  ]) {
+    const candidate = { ...draft };
+    if (deploymentEnvironments !== undefined) candidate.deploymentEnvironments = deploymentEnvironments;
+    await writeFile(registryPath, JSON.stringify({ ...base, drafts: [candidate] }), 'utf8');
+    await assert.rejects(readDraftRegistry(registryPath), /deploymentEnvironments/i);
+  }
+
+  await writeFile(registryPath, JSON.stringify({
+    ...base,
+    version: 1,
+    drafts: [{ ...draft, deploymentEnvironments: ['test'] }],
+  }), 'utf8');
+  await assert.rejects(readDraftRegistry(registryPath), /deploymentEnvironments/i);
+});
+
+test('canonical v2 registry keeps exactly one draft test-only', async () => {
+  const registry = await readDraftRegistry(path.resolve('docs/drafts-registry.json'));
+  assert.equal(registry.version, 2);
+  assert.equal(registry.drafts.length, 12);
+  assert.deepEqual(
+    registry.drafts
+      .filter(draft => !draft.deploymentEnvironments.includes('production'))
+      .map(draft => [draft.domain, draft.deploymentEnvironments]),
+    [['thehairnarrative.com', ['test']]],
+  );
+});
+
+test('selectRegisteredDraftsForEnvironment filters operational work but keeps all drafts for audits', () => {
+  assert.equal(typeof preflight.selectRegisteredDraftsForEnvironment, 'function');
+  const drafts = [
+    { domain: 'shared.example.com', deploymentEnvironments: ['test', 'production'] },
+    { domain: 'test-only.example.com', deploymentEnvironments: ['test'] },
+  ];
+
+  assert.deepEqual(preflight.selectRegisteredDraftsForEnvironment(drafts), drafts);
+  assert.deepEqual(preflight.selectRegisteredDraftsForEnvironment(drafts, 'all'), drafts);
+  assert.deepEqual(preflight.selectRegisteredDraftsForEnvironment(drafts, 'test'), drafts);
+  assert.deepEqual(preflight.selectRegisteredDraftsForEnvironment(drafts, 'production'), [drafts[0]]);
+  assert.throws(
+    () => preflight.selectRegisteredDraftsForEnvironment(drafts, 'preview'),
+    /deployment_environment/i,
+  );
 });
 
 test('selectRegisteredDrafts limits mutations to one exact registered domain', () => {
@@ -304,6 +380,54 @@ test('resolveTargetRepos exposes unregistered domain repos as classification gap
   assert.ok(resolved.repos.includes(unregistered));
 });
 
+test('resolveTargetRepos scopes operational preflight without misclassifying test-only drafts', async () => {
+  const workspace = await mkdtemp(path.join(os.tmpdir(), 'zlp-draft-environment-preflight-'));
+  const hub = path.join(workspace, 'zoolandingpage');
+  const shared = path.join(hub, 'drafts', 'shared.example.com');
+  const testOnly = path.join(hub, 'drafts', 'test-only.example.com');
+  await mkdir(path.join(hub, 'docs'), { recursive: true });
+  for (const [repoPath, remote] of [
+    [shared, 'https://github.com/LynxPardelle/draft-shared-example-com.git'],
+    [testOnly, 'https://github.com/LynxPardelle/draft-test-only-example-com.git'],
+  ]) {
+    await mkdir(repoPath, { recursive: true });
+    await execFileAsync('git', ['init'], { cwd: repoPath, windowsHide: true });
+    await execFileAsync('git', ['remote', 'add', 'origin', remote], { cwd: repoPath, windowsHide: true });
+  }
+  await writeFile(path.join(hub, 'docs', 'drafts-registry.json'), JSON.stringify({
+    version: 2,
+    owner: 'LynxPardelle',
+    defaultBaseDir: 'drafts',
+    drafts: [
+      {
+        domain: 'shared.example.com',
+        repo: 'draft-shared-example-com',
+        githubUrl: 'https://github.com/LynxPardelle/draft-shared-example-com.git',
+        localPath: 'drafts/shared.example.com',
+        deploymentEnvironments: ['test', 'production'],
+      },
+      {
+        domain: 'test-only.example.com',
+        repo: 'draft-test-only-example-com',
+        githubUrl: 'https://github.com/LynxPardelle/draft-test-only-example-com.git',
+        localPath: 'drafts/test-only.example.com',
+        deploymentEnvironments: ['test'],
+      },
+    ],
+  }), 'utf8');
+
+  const resolved = await resolveTargetRepos({
+    repo: [],
+    clone: 'false',
+    environment: 'production',
+  }, hub);
+
+  assert.deepEqual(resolved.registry.drafts.map(draft => draft.domain), ['shared.example.com']);
+  assert.deepEqual(resolved.registeredRepos.map(draft => draft.domain), ['shared.example.com']);
+  assert.ok(!resolved.repos.includes(testOnly));
+  assert.deepEqual(resolved.unregisteredRepos, []);
+});
+
 test('deploy template normalizes domains and environments', () => {
   assert.equal(normalizeDomain('https://Example.com:443/'), 'example.com');
   assert.equal(normalizeEnvironment('main'), 'production');
@@ -356,7 +480,8 @@ test('bootstrapDraftRepo copies deploy templates and writes non-secret config', 
   assert.equal(config.domain, 'example.com');
   assert.equal(config.authoringEndpoint, 'https://api.example.com/config-authoring');
   const agents = await import('node:fs/promises').then(fs => fs.readFile(path.join(repoPath, 'AGENTS.md'), 'utf8'));
-  assert.match(agents, /dev -> test -> main/);
+  assert.match(agents, /dev -> test/);
+  assert.match(agents, /test -> main` only when production is authorized/);
   assert.match(agents, /https:\/\/github\.com\/LynxPardelle\/zoolandingpage/);
   assert.match(agents, /Create or bootstrap a draft/i);
   assert.match(agents, /ai-notes\/how-to\/create-secure-draft-repo\.md/);
@@ -381,4 +506,43 @@ test('bootstrapDraftRepo copies deploy templates and writes non-secret config', 
   ));
   assert.match(promotionGuard, /env:\s*\n\s+BASE_REF: \$\{\{ github\.base_ref \}\}\s*\n\s+HEAD_REF: \$\{\{ github\.head_ref \}\}/);
   assert.doesNotMatch(promotionGuard, /(?:base|head)="\$\{\{ github\.(?:base_ref|head_ref) \}\}"/);
+});
+
+test('bootstrapDraftRepo disables production configuration for a test-only draft', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zlp-draft-bootstrap-test-only-'));
+  const repoPath = path.join(root, 'draft-example-com');
+
+  await bootstrapDraftRepo({
+    repoPath,
+    domain: 'example.com',
+    authoringEndpoint: 'https://api.example.com/config-authoring',
+    awsRegion: 'us-east-1',
+    deploymentEnvironments: ['test'],
+  });
+
+  const config = JSON.parse(await import('node:fs/promises').then(fs => fs.readFile(
+    path.join(repoPath, 'draft-repo.config.json'),
+    'utf8',
+  )));
+  assert.equal(config.branches.test.deploys, true);
+  assert.equal(config.branches.main.deploys, false);
+  assert.deepEqual(Object.keys(config.githubVariables), ['test']);
+  const productionWorkflow = await import('node:fs/promises').then(fs => fs.readFile(
+    path.join(repoPath, '.github', 'workflows', 'deploy-production.yml'),
+    'utf8',
+  ));
+  assert.match(productionWorkflow, /Production deployment is disabled for this draft\./);
+  assert.match(productionWorkflow, /config\?\.branches\?\.main\?\.deploys !== true/);
+  assert.ok(
+    productionWorkflow.indexOf('Production deployment is disabled for this draft.')
+      < productionWorkflow.indexOf('Prepare deterministic deployment plan'),
+  );
+
+  await assert.rejects(bootstrapDraftRepo({
+    repoPath: path.join(root, 'invalid'),
+    domain: 'invalid.example.com',
+    authoringEndpoint: 'https://api.example.com/config-authoring',
+    awsRegion: 'us-east-1',
+    deploymentEnvironments: ['production'],
+  }), /deploymentEnvironments/i);
 });

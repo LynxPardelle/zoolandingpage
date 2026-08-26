@@ -63,6 +63,29 @@ describe('WrapperOrchestrator', () => {
     expect(component).toBeTruthy();
   });
 
+  it('propagates currency options into the generic-cell column contract', () => {
+    const column = component.genericCellColumnConfig({
+      id: 'amountCell',
+      type: 'generic-cell',
+      config: {
+        value: 400000,
+        format: 'currency',
+        currency: 'MXN',
+        currencyDisplay: 'narrowSymbol',
+        maximumFractionDigits: 0,
+        showCurrencyCode: true,
+      },
+    } as never);
+
+    expect(column).toEqual(jasmine.objectContaining({
+      format: 'currency',
+      currency: 'MXN',
+      currencyDisplay: 'narrowSymbol',
+      maximumFractionDigits: 0,
+      showCurrencyCode: true,
+    }));
+  });
+
   it('renders authored dropdowns immediately for navigation controls', async () => {
     componentsById = {
       primaryMenu: {

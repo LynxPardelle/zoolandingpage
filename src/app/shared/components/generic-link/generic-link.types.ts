@@ -16,6 +16,8 @@ export type TGenericLinkConfig = {
     readonly ariaExpanded?: TDynamicValue<boolean>;
     readonly ariaControls?: TDynamicValue<string>;
     readonly ariaCurrent?: TDynamicValue<boolean | 'page' | 'step' | 'location' | 'true' | 'false'>;
+    /** Keep an inherited `lang` query parameter on internal navigation. Defaults to true. */
+    readonly preserveLanguageQueryParam?: boolean;
     readonly scrollRestoration?: TDraftNavigationScrollRestorationConfig;
     readonly components?: readonly TComponentChild[];
 };

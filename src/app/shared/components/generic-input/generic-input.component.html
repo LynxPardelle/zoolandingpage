@@ -4,17 +4,29 @@
   } @if (description()) {
   <generic-text [config]="descriptionTextConfig()"></generic-text>
   } @switch (controlType()) { @case ('button-group') {
-  <div [class]="optionContainerClasses()">
+  <div
+    [class]="optionContainerClasses()"
+    [attr.role]="multiple() ? null : 'radiogroup'"
+    [attr.aria-labelledby]="label() ? labelId() : null"
+    [attr.aria-label]="!label() ? ariaLabel() || null : null"
+    [attr.aria-invalid]="ariaInvalid()"
+    [attr.aria-describedby]="describedByIds()"
+  >
     @for (option of options(); track option.value + ':' + $index) {
     <generic-button
       [config]="{
+        id: optionDomId($index),
         type: 'button',
         classes: optionClasses() + (isOptionSelected(option) ? ' ' + activeOptionClasses() : ''),
         disabled: optionDisabled(option),
         ariaLabel: optionLabel(option),
-        ariaSelected: isOptionSelected(option)
+        role: multiple() ? undefined : 'radio',
+        ariaSelected: multiple() ? isOptionSelected(option) : undefined,
+        ariaChecked: multiple() ? undefined : isOptionSelected(option),
+        tabIndex: optionTabIndex(option, $index)
       }"
       (pressed)="onButtonGroupSelect(option)"
+      (keydown)="onButtonGroupKeydown($event, $index)"
     >
       <generic-text [config]="{ tag: 'span', text: optionLabel(option) }"></generic-text>
       @if (optionDescription(option)) {
@@ -44,6 +56,8 @@
       [disabled]="disabled()"
       [class]="inputClasses()"
       [attr.aria-label]="ariaLabel() || label()"
+      [attr.aria-invalid]="ariaInvalid()"
+      [attr.aria-describedby]="describedByIds()"
       (change)="onCheckboxInput($event)"
       (blur)="onBlur($event)"
     />
@@ -59,6 +73,8 @@
       [disabled]="disabled()"
       [class]="inputClasses()"
       [attr.aria-label]="ariaLabel() || label()"
+      [attr.aria-invalid]="ariaInvalid()"
+      [attr.aria-describedby]="describedByIds()"
       [attr.role]="'switch'"
       [attr.aria-checked]="currentBooleanValue()"
       (change)="onCheckboxInput($event)"
@@ -79,6 +95,8 @@
     [class]="fieldClasses() + ' ' + inputClasses()"
     [attr.accept]="accept() || null"
     [attr.aria-label]="ariaLabel() || label()"
+    [attr.aria-invalid]="ariaInvalid()"
+    [attr.aria-describedby]="describedByIds()"
     (change)="onFileInput($event)"
     (blur)="onBlur($event)"
   />
@@ -95,6 +113,8 @@
       [disabled]="disabled()"
       [class]="inputClasses()"
       [attr.aria-label]="ariaLabel() || label()"
+      [attr.aria-invalid]="ariaInvalid()"
+      [attr.aria-describedby]="describedByIds()"
       (input)="onNumberInput($event)"
       (blur)="onBlur($event)"
     />
@@ -116,6 +136,8 @@
     [placeholder]="placeholder()"
     [class]="fieldClasses() + ' ' + inputClasses()"
     [attr.aria-label]="ariaLabel() || label()"
+    [attr.aria-invalid]="ariaInvalid()"
+    [attr.aria-describedby]="describedByIds()"
     (input)="onNumberInput($event)"
     (blur)="onBlur($event)"
   />
@@ -130,6 +152,8 @@
     [placeholder]="placeholder()"
     [class]="fieldClasses() + ' ' + inputClasses()"
     [attr.aria-label]="ariaLabel() || label()"
+    [attr.aria-invalid]="ariaInvalid()"
+    [attr.aria-describedby]="describedByIds()"
     (beforeinput)="onDeferredTextInput($event)"
     (input)="onTextInput($event)"
     (change)="onTextInput($event)"
@@ -148,6 +172,8 @@
       [placeholder]="placeholder()"
       [class]="inputClasses()"
       [attr.aria-label]="ariaLabel() || label()"
+      [attr.aria-invalid]="ariaInvalid()"
+      [attr.aria-describedby]="describedByIds()"
       [attr.list]="visibleAutocompleteOptions().length > 0 ? autocompleteListId() : null"
       (beforeinput)="onDeferredTextInput($event)"
       (input)="onTextInput($event)"
@@ -176,6 +202,8 @@
     [placeholder]="placeholder()"
     [class]="fieldClasses() + ' ' + inputClasses()"
     [attr.aria-label]="ariaLabel() || label()"
+    [attr.aria-invalid]="ariaInvalid()"
+    [attr.aria-describedby]="describedByIds()"
     [attr.list]="visibleAutocompleteOptions().length > 0 ? autocompleteListId() : null"
     (beforeinput)="onDeferredTextInput($event)"
     (input)="onTextInput($event)"
@@ -204,7 +232,7 @@
     }
   </ul>
   } @if (visibleErrors().length > 0) {
-  <div [class]="errorClasses()">
+  <div [id]="errorId()" [class]="errorClasses()">
     @for (error of visibleErrors(); track error) {
     <generic-text [config]="errorTextConfig(error)"></generic-text>
     }

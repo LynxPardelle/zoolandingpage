@@ -53,7 +53,24 @@ Row actions can also declare `hrefTemplate` for same-origin navigation based on 
 
 ## `generic-cell`
 
-Use for a standalone cell value or as the table cell renderer. It formats text, number, date, boolean, JSON, and list values.
+Use for a standalone cell value or as the table cell renderer. It formats text, number, currency, date, boolean, JSON, and list values.
+
+Currency formatting is opt-in. Set `format: "currency"` and provide an uppercase ISO-style three-letter `currency`. `currencyDisplay` accepts `symbol`, `narrowSymbol`, `code`, or `name`; `maximumFractionDigits` accepts an integer from 0 through 20. Set `showCurrencyCode: true` to append exactly one code even when the selected display already includes it. The renderer uses the active language (`es-MX`, `en-US`, or `zh-CN` for the built-in language codes), then the site default language, then Spanish when it needs a locale fallback. Non-finite values render `emptyText` instead of a misleading amount.
+
+The same fields are available on a `generic-table` column:
+
+```json
+{
+  "id": "estimatedRefund",
+  "header": "Recuperación estimada",
+  "valuePath": "refund",
+  "format": "currency",
+  "currency": "MXN",
+  "currencyDisplay": "symbol",
+  "maximumFractionDigits": 0,
+  "showCurrencyCode": true
+}
+```
 
 Use `format: "list"` for arrays of strings or objects. `itemPath` selects the field to render from each object, and `separator` controls the join text. When `itemPath` is omitted, object values fall back to `label`, `name`, `slug`, `taxonomyId`, or `id`.
 
@@ -90,6 +107,30 @@ When `componentId` or `componentIds` is configured, the cell lazy-loads `wrapper
     "format": "list",
     "itemPath": "label",
     "separator": ", "
+  }
+}
+```
+
+## Opt-in navigation and accessibility fields
+
+These fields preserve existing behavior when omitted:
+
+- `generic-link.config.preserveLanguageQueryParam`: defaults to `true`. Set it to `false` on links between exact, language-bound routes so a stale `lang` query parameter is not carried to the destination. Other sticky runtime query parameters remain intact.
+- `generic-button.config.ariaChecked`: adds the boolean `aria-checked` state for buttons that intentionally implement a checked-state interaction.
+- `generic-container.config.ariaLive`: accepts `off`, `polite`, or `assertive`. Pair `ariaLive: "polite"` with `role: "status"` for a non-interrupting result announcement.
+- `generic-container.config.tabindex`: accepts a finite number and is bound on every supported container tag. Use `-1` for a result region that must be focusable by `focusElementById` without joining the normal Tab order.
+
+Single-select `generic-input` button groups expose `radiogroup`/`radio` semantics, checked state, a roving tabindex, and wrapping Arrow Left/Right/Up/Down navigation. Tab keeps its native browser behavior. Visible helper and validation text is associated with the native control through stable ids and `aria-describedby`; invalid controls expose `aria-invalid`. Number controls preserve any finite entered value, including finite values outside `min`/`max` so validation can report the constraint, while empty or non-finite values normalize to `null`.
+
+```json
+{
+  "id": "calculatorResult",
+  "type": "container",
+  "config": {
+    "tag": "section",
+    "role": "status",
+    "ariaLive": "polite",
+    "tabindex": -1
   }
 }
 ```

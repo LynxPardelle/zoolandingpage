@@ -37,6 +37,32 @@ test('deployment role inventory rejects slug collisions and overlong names', () 
   ]), /invalid_deployment_role_name/);
 });
 
+test('deployment role inventory never creates production for a test-only draft', () => {
+  const inventory = buildDeploymentRoleInventory([
+    {
+      domain: 'thehairnarrative.com',
+      owner: 'Toydrum',
+      repo: 'draft-thehairnarrative-com',
+      deploymentEnvironments: ['test'],
+    },
+    {
+      domain: 'example.com',
+      owner: 'LynxPardelle',
+      repo: 'draft-example-com',
+      deploymentEnvironments: ['test', 'production'],
+    },
+  ]);
+
+  assert.deepEqual(
+    inventory.map(role => [role.domain, role.environment]),
+    [
+      ['thehairnarrative.com', 'test'],
+      ['example.com', 'test'],
+      ['example.com', 'production'],
+    ],
+  );
+});
+
 test('trustPolicy scopes GitHub OIDC to repo, environment, and exact deployment branch', () => {
   const policy = trustPolicy({
     providerArn: 'arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com',
@@ -121,12 +147,14 @@ test('OIDC setup provisions only drafts explicitly present in the registry', asy
       domain: 'registered.example.com',
       owner: 'LynxPardelle',
       repo: 'draft-registered-example-com',
+      deploymentEnvironments: ['test', 'production'],
     }],
   });
   assert.deepEqual(await readRegisteredDrafts(registryPath), [{
     domain: 'registered.example.com',
     owner: 'LynxPardelle',
     repo: 'draft-registered-example-com',
+    deploymentEnvironments: ['test', 'production'],
   }]);
 });
 
@@ -411,6 +439,7 @@ test('OIDC inventory preserves a per-draft GitHub owner override', async t => {
     domain: 'example.com',
     owner: 'Toydrum',
     repo: 'draft-example-com',
+    deploymentEnvironments: ['test', 'production'],
   }]);
 });
 

@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   computed,
   effect,
   inject,
@@ -62,6 +63,7 @@ export class GenericInputComponent {
   private readonly scope = inject(InteractionScopeService, { optional: true });
   private readonly variables = inject(VariableStoreService);
   private readonly i18n = inject(I18nService);
+  private readonly host = inject(ElementRef<HTMLElement>);
   private readonly localValue = signal<unknown>(undefined);
   private readonly localTouched = signal(false);
   private readonly localDirty = signal(false);
@@ -93,6 +95,9 @@ export class GenericInputComponent {
   readonly fieldId = computed<string>(() =>
     String(this.config().fieldId ?? '').trim()
   );
+  readonly labelId = computed(() => `${this.fieldId() || 'input'}-label`);
+  readonly helperId = computed(() => `${this.fieldId() || 'input'}-helper`);
+  readonly errorId = computed(() => `${this.fieldId() || 'input'}-error`);
   readonly controlType = computed(() => this.config().controlType);
   readonly inputType = computed(() => this.config().inputType ?? 'text');
   readonly name = computed(() =>
@@ -358,9 +363,14 @@ export class GenericInputComponent {
   readonly currentTextValue = computed(() => String(this.currentValue() ?? ''));
   readonly currentNumberValue = computed(() => {
     const current = this.currentValue();
-    return typeof current === 'number'
-      ? current
-      : Number(current ?? this.min() ?? 0);
+    if (this.controlType() === 'range') {
+      const parsed = typeof current === 'number' ? current : Number(current ?? this.min() ?? 0);
+      return Number.isFinite(parsed) ? parsed : this.min() ?? 0;
+    }
+
+    if (current == null || current === '') return '';
+    const parsed = typeof current === 'number' ? current : Number(current);
+    return Number.isFinite(parsed) ? parsed : '';
   });
   readonly currentBooleanValue = computed(() =>
     this.asBoolean(this.currentValue())
@@ -390,6 +400,7 @@ export class GenericInputComponent {
   });
   readonly labelTextConfig = computed<TGenericTextConfig>(() =>
     this.buildTextConfig(this.label(), this.config().labelTextConfig, {
+      id: this.labelId(),
       tag: 'span',
       classes: this.labelClasses(),
       ariaLabel: this.ariaLabel() || undefined,
@@ -404,6 +415,7 @@ export class GenericInputComponent {
   );
   readonly helperTextConfig = computed<TGenericTextConfig>(() =>
     this.buildTextConfig(this.helperText(), this.config().helperTextConfig, {
+      id: this.helperId(),
       tag: 'p',
       classes: this.helperTextClasses(),
     })
@@ -510,6 +522,15 @@ export class GenericInputComponent {
   readonly visibleErrors = computed(() =>
     this.showErrors() ? this.fieldState().errors : []
   );
+  readonly ariaInvalid = computed(() => this.visibleErrors().length > 0 ? 'true' : null);
+  readonly describedByIds = computed(() => {
+    const ids: string[] = [];
+    if (this.helperText() && this.controlType() !== 'checkbox' && this.controlType() !== 'switch') {
+      ids.push(this.helperId());
+    }
+    if (this.visibleErrors().length > 0) ids.push(this.errorId());
+    return ids.join(' ') || null;
+  });
   readonly validationChecklistItems = computed(() =>
     this.validationRules()
       .filter((rule) => typeof rule.message === 'string' && rule.message.trim().length > 0)
@@ -530,7 +551,7 @@ export class GenericInputComponent {
 
   onNumberInput(event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.updateValue(input.valueAsNumber);
+    this.updateValue(input.value.trim() === '' ? null : input.valueAsNumber);
   }
 
   onCheckboxInput(event: Event): void {
@@ -574,6 +595,45 @@ export class GenericInputComponent {
   onButtonGroupSelect(option: TGenericInputOption): void {
     this.updateValue(option.value);
     this.onBlur();
+  }
+
+  onButtonGroupKeydown(event: KeyboardEvent, optionIndex: number): void {
+    if (this.multiple() || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
+
+    const enabledIndexes = this.options()
+      .map((option, index) => ({ option, index }))
+      .filter(({ option }) => !this.optionDisabled(option))
+      .map(({ index }) => index);
+    if (enabledIndexes.length === 0) return;
+
+    event.preventDefault();
+    const currentEnabledIndex = enabledIndexes.indexOf(optionIndex);
+    const direction = event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 1;
+    const nextEnabledIndex = currentEnabledIndex < 0
+      ? 0
+      : (currentEnabledIndex + direction + enabledIndexes.length) % enabledIndexes.length;
+    const nextOptionIndex = enabledIndexes[nextEnabledIndex];
+    const nextOption = this.options()[nextOptionIndex];
+    if (!nextOption) return;
+
+    this.onButtonGroupSelect(nextOption);
+    const nextId = this.optionDomId(nextOptionIndex);
+    const hostElement = this.host.nativeElement as HTMLElement;
+    const nextButton = (Array.from(hostElement.querySelectorAll('generic-button button')) as HTMLElement[])
+      .find((button) => button.id === nextId);
+    nextButton?.focus();
+  }
+
+  optionDomId(index: number): string {
+    return `${this.fieldId() || 'input'}-option-${index}`;
+  }
+
+  optionTabIndex(option: TGenericInputOption, index: number): number | undefined {
+    if (this.multiple()) return undefined;
+    if (this.optionDisabled(option)) return -1;
+    const selectedIndex = this.options().findIndex((entry) => this.isOptionSelected(entry) && !this.optionDisabled(entry));
+    const firstEnabledIndex = this.options().findIndex((entry) => !this.optionDisabled(entry));
+    return index === (selectedIndex >= 0 ? selectedIndex : firstEnabledIndex) ? 0 : -1;
   }
 
   togglePasswordVisibility(): void {
@@ -638,12 +698,15 @@ export class GenericInputComponent {
   }
 
   private normalizeValue(value: unknown): unknown {
-    if (this.controlType() === 'number' || this.controlType() === 'range') {
+    if (this.controlType() === 'number') {
+      if (value == null || value === '') return null;
       const parsed = typeof value === 'number' ? value : Number(value);
-      if (!Number.isFinite(parsed)) {
-        return this.min() ?? 0;
-      }
-      return parsed;
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    if (this.controlType() === 'range') {
+      const parsed = typeof value === 'number' ? value : Number(value);
+      return Number.isFinite(parsed) ? parsed : this.min() ?? 0;
     }
 
     if (this.controlType() === 'checkbox' || this.controlType() === 'switch') {
@@ -664,8 +727,8 @@ export class GenericInputComponent {
   private defaultValue(): unknown {
     if (this.controlType() === 'checkbox' || this.controlType() === 'switch')
       return false;
-    if (this.controlType() === 'number' || this.controlType() === 'range')
-      return this.min() ?? 0;
+    if (this.controlType() === 'number') return null;
+    if (this.controlType() === 'range') return this.min() ?? 0;
     if (this.controlType() === 'file') return this.multiple() ? [] : null;
     return '';
   }

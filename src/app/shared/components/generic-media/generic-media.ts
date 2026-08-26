@@ -64,8 +64,10 @@ export class GenericMedia implements AfterViewInit {
   );
   readonly styles = computed(() => resolveStyleRecord(this.config().styles));
   readonly src = computed(() => this.resolveRequiredString(this.config().src));
-  readonly alt = computed(() => this.resolveOptionalString(this.config().alt));
-  readonly linkLabel = computed(() => this.alt() ?? this.src());
+  readonly alt = computed(() =>
+    this.resolveOptionalStringPreservingEmpty(this.config().alt)
+  );
+  readonly linkLabel = computed(() => this.alt() || this.src());
   readonly width = computed(() =>
     this.resolvePositiveInteger(this.config().width)
   );
@@ -114,6 +116,11 @@ export class GenericMedia implements AfterViewInit {
     }
 
     return String(resolved);
+  }
+
+  private resolveOptionalStringPreservingEmpty(value: unknown): string | null {
+    const resolved = resolveDynamicValue(value as never);
+    return resolved == null ? null : String(resolved);
   }
 
   private resolvePositiveInteger(value: unknown): string | null {
