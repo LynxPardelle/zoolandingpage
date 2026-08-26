@@ -137,6 +137,19 @@ describe('ThemeService', () => {
         expect(rootStyle.getPropertyValue('--ank-accentColor')).toBe('#c7a900');
     });
 
+    it('does not send an unchanged palette to Angora more than once', () => {
+        setup();
+        variables.setPayload(createThemePayload('dark') as any);
+        TestBed.flushEffects();
+        const initialCalls = angora.pushColors.calls.count() + angora.updateColors.calls.count();
+
+        service.applyTheme();
+        service.applyTheme();
+        service.applyTheme();
+
+        expect(angora.pushColors.calls.count() + angora.updateColors.calls.count()).toBe(initialCalls);
+    });
+
     it('syncs CSS variables during server rendering without calling Angora DOM APIs', () => {
         spyOn(window.localStorage, 'getItem').and.returnValue(null);
         setItemSpy = spyOn(window.localStorage, 'setItem');
