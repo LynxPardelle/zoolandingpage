@@ -1170,6 +1170,84 @@ test('production SSR decorates content hub article SEO from the route runtime bu
   assert.equal(getStderr(), '');
 });
 
+test('production SSR loads taxonomy page SEO with the concrete request path', async (t) => {
+  const runtimeDomain = 'runtime-taxonomy.example.com';
+  const replaceDomain = (payload) => JSON.parse(
+    JSON.stringify(payload).replaceAll('zoositioweb.com.mx', runtimeDomain)
+  );
+  const siteConfig = replaceDomain(JSON.parse(
+    readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'site-config.json'), 'utf8')
+  ));
+  const categoryPageConfig = replaceDomain(JSON.parse(
+    readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'blog-category', 'page-config.json'), 'utf8')
+  ));
+  const categoryComponents = replaceDomain(JSON.parse(
+    readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'blog-category', 'components.json'), 'utf8')
+  ));
+  const categoryVariables = replaceDomain(JSON.parse(
+    readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'blog-category', 'variables.json'), 'utf8')
+  ));
+  const categoryI18n = replaceDomain(JSON.parse(
+    readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'blog-category', 'i18n', 'es.json'), 'utf8')
+  ));
+  const requestedPaths = [];
+
+  const apiBase = await startRuntimeApi(t, (req, res) => {
+    const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+    if (url.pathname !== '/runtime-bundle') {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false }));
+      return;
+    }
+
+    const path = url.searchParams.get('path') || '/';
+    requestedPaths.push(path);
+    const pageConfig = structuredClone(categoryPageConfig);
+    pageConfig.seo.title = path === '/blog/web'
+      ? 'Concrete taxonomy SEO title'
+      : path === '/blog/:categorySlug'
+        ? 'Pattern placeholder SEO title'
+        : pageConfig.seo.title;
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      ok: true,
+      version: 1,
+      domain: runtimeDomain,
+      pageId: 'blog-category',
+      sourceStage: 'published',
+      environment: 'production',
+      versionId: 'runtime-taxonomy-fixture',
+      lang: 'es',
+      siteConfig,
+      route: { path: '/blog/:categorySlug', pageId: 'blog-category' },
+      pageConfig,
+      components: categoryComponents,
+      variables: categoryVariables,
+      i18n: categoryI18n,
+      metadata: { statusCode: 200, notFound: false },
+    }));
+  });
+
+  const { port, getStderr } = await startProductionServer(t, {
+    CONFIG_API_SERVER_FALLBACK_URL: '',
+    CONFIG_API_URL: apiBase,
+  });
+  const headers = {
+    Host: runtimeDomain,
+    'X-Forwarded-Host': runtimeDomain,
+    'X-Forwarded-Port': '443',
+    'X-Forwarded-Proto': 'https',
+  };
+
+  const response = await fetch(`http://127.0.0.1:${port}/blog/web?lang=es`, { headers });
+  const html = await response.text();
+  assert.equal(response.status, 200);
+  assert.match(html, /<title>Concrete taxonomy SEO title<\/title>/);
+  assert.doesNotMatch(html, /Pattern placeholder SEO title/);
+  assert.ok(requestedPaths.includes('/blog/web'));
+  assert.equal(getStderr(), '');
+});
+
 test('production SSR server redirects public aliases to the primary canonical host', async (t) => {
   const { port, getStderr } = await startProductionServer(t);
   const response = await fetch(`http://127.0.0.1:${port}/planes?gclid=test&utm_source=google`, {

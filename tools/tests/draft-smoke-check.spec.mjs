@@ -5,6 +5,7 @@ import {
   DEFAULT_VIEWPORTS,
   buildSmokeReport,
   inspectPageWithRetries,
+  isExpectedBrowserConsoleError,
   resolveSmokeRoutePath,
   sanitizeBrowserFinding,
 } from '../draft-smoke-check.mjs';
@@ -61,6 +62,31 @@ test('passes the configured timeout as Playwright waitForFunction options', asyn
     src: '[redacted-browser-finding]',
     alt: '[redacted-browser-finding]',
   }]);
+});
+
+test('ignores only the expected unauthenticated session probe console error', () => {
+  const message = ({ text, url, type = 'error' }) => ({
+    type: () => type,
+    text: () => text,
+    location: () => ({ url, lineNumber: 0, columnNumber: 0 }),
+  });
+
+  assert.equal(isExpectedBrowserConsoleError(message({
+    text: 'Failed to load resource: the server responded with a status of 401 ()',
+    url: 'https://test.zoolandingpage.com.mx/auth/session/me',
+  }), 'https://test.zoolandingpage.com.mx/acceso'), true);
+  assert.equal(isExpectedBrowserConsoleError(message({
+    text: 'Failed to load resource: the server responded with a status of 401 ()',
+    url: 'https://third-party.example/auth/session/me',
+  }), 'https://test.zoolandingpage.com.mx/acceso'), false);
+  assert.equal(isExpectedBrowserConsoleError(message({
+    text: 'Failed to load resource: the server responded with a status of 401 ()',
+    url: 'https://test.zoolandingpage.com.mx/admin/users',
+  }), 'https://test.zoolandingpage.com.mx/acceso'), false);
+  assert.equal(isExpectedBrowserConsoleError(message({
+    text: 'Uncaught TypeError: failed',
+    url: 'https://test.zoolandingpage.com.mx/auth/session/me',
+  }), 'https://test.zoolandingpage.com.mx/acceso'), false);
 });
 
 test('redacts complete authorization credentials and standalone JWTs from browser findings', () => {
@@ -258,7 +284,7 @@ test('buildSmokeReport flags missing social metadata as local failures', async (
   assert.equal(report.summary.localFailures, 2);
 });
 
-test('flags the generic ZoolandingPage 404 on ordinary routes but allows the declared /404 route', async () => {
+test('flags multilingual draft not-found titles on ordinary routes but allows the declared /404 route', async () => {
   const report = await buildSmokeReport({
     definitions: [
       {
@@ -266,6 +292,7 @@ test('flags the generic ZoolandingPage 404 on ordinary routes but allows the dec
         managedAlias: null,
         routes: [
           { path: '/servicios', pageId: 'servicios' },
+          { path: '/zh', pageId: 'zh' },
           { path: '/404', pageId: 'not-found' },
         ],
       },
@@ -274,17 +301,24 @@ test('flags the generic ZoolandingPage 404 on ordinary routes but allows the dec
     localBaseUrl: 'http://127.0.0.1:4200',
     includeLive: false,
     liveScheme: 'https',
-    inspectPageSummary: async () => createSummary('fallback', {
-      title: 'Página no encontrada | ZoolandingPage',
-      firstHeading: 'Esta ruta no está publicada.',
-      bodySnippet: 'Página no encontrada Esta ruta no está publicada.',
-    }),
+    inspectPageSummary: async ({ route }) => route.path === '/zh'
+      ? createSummary('fallback', {
+          title: '页面未找到 | example.com',
+          firstHeading: '此页面尚未发布。',
+          bodySnippet: '页面未找到 此页面尚未发布。',
+        })
+      : createSummary('fallback', {
+          title: 'Página no encontrada | example.com',
+          firstHeading: 'Esta ruta no está publicada.',
+          bodySnippet: 'Página no encontrada Esta ruta no está publicada.',
+        }),
   });
 
-  const [ordinaryRoute, notFoundRoute] = report.results[0].routes;
-  assert.match(ordinaryRoute.viewports.desktop.localProblems[0], /generic ZoolandingPage not-found fallback/);
+  const [ordinaryRoute, chineseRoute, notFoundRoute] = report.results[0].routes;
+  assert.match(ordinaryRoute.viewports.desktop.localProblems[0], /not-found title/);
+  assert.match(chineseRoute.viewports.desktop.localProblems[0], /not-found title/);
   assert.deepEqual(notFoundRoute.viewports.desktop.localProblems, []);
-  assert.equal(report.summary.localFailures, 2);
+  assert.equal(report.summary.localFailures, 4);
 });
 
 test('records a local inspection timeout and continues every remaining viewport and route', async () => {

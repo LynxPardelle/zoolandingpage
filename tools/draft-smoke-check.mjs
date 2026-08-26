@@ -266,7 +266,7 @@ async function inspectPage(context, targetUrl, timeoutMs) {
   };
 
   page.on('console', message => {
-    if (message.type() === 'error') {
+    if (message.type() === 'error' && !isExpectedBrowserConsoleError(message, page.url())) {
       recordFinding(consoleErrors, message.text());
     }
   });
@@ -356,6 +356,24 @@ async function inspectPage(context, targetUrl, timeoutMs) {
     };
   } finally {
     await page.close();
+  }
+}
+
+function isExpectedBrowserConsoleError(message, pageUrl) {
+  if (message?.type?.() !== 'error') {
+    return false;
+  }
+
+  if (!/Failed to load resource:.*status of 401\b/i.test(String(message.text?.() ?? ''))) {
+    return false;
+  }
+
+  try {
+    const resourceUrl = new URL(String(message.location?.()?.url ?? ''));
+    const currentUrl = new URL(String(pageUrl ?? ''));
+    return resourceUrl.origin === currentUrl.origin && resourceUrl.pathname === '/auth/session/me';
+  } catch {
+    return false;
   }
 }
 
@@ -483,8 +501,8 @@ function validateLocalSummary(summary, { declaredNotFoundRoute = false } = {}) {
   if (!summary.twitterCard) problems.push('missing twitter:card meta');
   if (!summary.firstHeading) problems.push('missing first heading');
   if (summary.unresolvedDraft) problems.push('page rendered unresolved draft fallback');
-  if (summary.title?.trim() === 'Página no encontrada | ZoolandingPage' && !declaredNotFoundRoute) {
-    problems.push('page rendered generic ZoolandingPage not-found fallback');
+  if (/^(?:Página no encontrada|Page not found|页面未找到)(?:\s*\||$)/iu.test(summary.title?.trim() ?? '') && !declaredNotFoundRoute) {
+    problems.push('page rendered a not-found title on an ordinary route');
   }
   problems.push(...validateRuntimeSignals(summary));
 
@@ -804,6 +822,7 @@ export {
   buildSmokeReport,
   compareSummaries,
   inspectPageWithRetries,
+  isExpectedBrowserConsoleError,
   loadDraftDefinitions,
   normalizeViewportDefinitions,
   resolveSmokeRoutePath,
