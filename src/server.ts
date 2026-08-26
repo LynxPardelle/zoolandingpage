@@ -2304,7 +2304,9 @@ async function loadPageConfigForRequest(req: express.Request, domain: string, si
   const route = resolveLocalRoute(siteConfig, routePath);
   const environment = resolveRuntimeEnvironment(resolveRequestHost(req));
   if (route) {
-    return loadPageConfigForRoute(domain, route, environment);
+    const pageId = cleanString(route.pageId);
+    const localPageConfig = pageId ? loadLocalPageConfig(domain, pageId) : null;
+    return localPageConfig ?? loadRuntimePageConfig(domain, routePath, environment);
   }
 
   const pageId = routePath === '/'
