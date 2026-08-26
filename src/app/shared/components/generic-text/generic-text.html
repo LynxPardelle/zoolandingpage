@@ -62,6 +62,12 @@
 <em [id]="id()" [class]="classes()" [ngStyle]="styles()" [attr.aria-label]="ariaLabel()"
   ><ng-container [ngTemplateOutlet]="textTpl"></ng-container
 ></em>
+} } @case ('figcaption') { @if (useHtml()) {
+<figcaption [id]="id()" [class]="classes()" [ngStyle]="styles()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></figcaption>
+} @else {
+<figcaption [id]="id()" [class]="classes()" [ngStyle]="styles()" [attr.aria-label]="ariaLabel()">
+  <ng-container [ngTemplateOutlet]="textTpl"></ng-container>
+</figcaption>
 } } @case ('p') { @if (useHtml()) {
 <p [id]="id()" [class]="classes()" [ngStyle]="styles()" [attr.aria-label]="ariaLabel()" [innerHTML]="safeHtml()"></p>
 } @else {

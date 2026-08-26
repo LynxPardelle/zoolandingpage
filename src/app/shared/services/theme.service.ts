@@ -66,6 +66,7 @@ export class ThemeService {
   });
 
   private initialized: boolean = false;
+  private lastAppliedAngoraRevision: string | null = null;
   private readonly themeUtilityOverrideStyleId = 'zlp-theme-utility-overrides';
 
   constructor() {
@@ -186,51 +187,51 @@ export class ThemeService {
       return;
     }
 
-    // Use ngx-angora-css pushColors || updateColors for dynamic theme management
-    this._ank[!this.initialized ? 'pushColors' : 'updateColors']({
-      bgColor: themeColors.bgColor,
-      textColor: themeColors.textColor,
-      titleColor: themeColors.titleColor,
-      linkColor: themeColors.linkColor,
-      accentColor: themeColors.accentColor,
-      secondaryBgColor: themeColors.secondaryBgColor,
-      secondaryTextColor: themeColors.secondaryTextColor,
-      secondaryTitleColor: themeColors.secondaryTitleColor,
-      secondaryLinkColor: themeColors.secondaryLinkColor,
-      secondaryAccentColor: themeColors.secondaryAccentColor,
-      successColor: themeColors.successColor,
-      onSuccessColor: themeColors.onSuccessColor,
-      errorColor: themeColors.errorColor,
-      onErrorColor: themeColors.onErrorColor,
-      warningColor: themeColors.warningColor,
-      onWarningColor: themeColors.onWarningColor,
-      infoColor: themeColors.infoColor,
-      onInfoColor: themeColors.onInfoColor,
-      altBgColor: altThemeColors.bgColor,
-      altTextColor: altThemeColors.textColor,
-      altTitleColor: altThemeColors.titleColor,
-      altLinkColor: altThemeColors.linkColor,
-      altAccentColor: altThemeColors.accentColor,
-      altSecondaryBgColor: altThemeColors.secondaryBgColor,
-      altSecondaryTextColor: altThemeColors.secondaryTextColor,
-      altSecondaryTitleColor: altThemeColors.secondaryTitleColor,
-      altSecondaryLinkColor: altThemeColors.secondaryLinkColor,
-      altSecondaryAccentColor: altThemeColors.secondaryAccentColor,
-      altSuccessColor: altThemeColors.successColor,
-      altOnSuccessColor: altThemeColors.onSuccessColor,
-      altErrorColor: altThemeColors.errorColor,
-      altOnErrorColor: altThemeColors.onErrorColor,
-      altWarningColor: altThemeColors.warningColor,
-      altOnWarningColor: altThemeColors.onWarningColor,
-      altInfoColor: altThemeColors.infoColor,
-      altOnInfoColor: altThemeColors.onInfoColor,
-    });
-    this.syncThemeUtilityOverrides();
-    if (!this.initialized) this.initialized = true;
-    const angoraColors: { [key: string]: string } = {};
-    for (const [key, value] of Object.entries(themeColors)) {
-      angoraColors[key] = value;
+    const angoraRevision = this.cssReadinessRevision();
+    if (this.lastAppliedAngoraRevision !== angoraRevision) {
+      // Use ngx-angora-css pushColors || updateColors for dynamic theme management
+      this._ank[!this.initialized ? 'pushColors' : 'updateColors']({
+        bgColor: themeColors.bgColor,
+        textColor: themeColors.textColor,
+        titleColor: themeColors.titleColor,
+        linkColor: themeColors.linkColor,
+        accentColor: themeColors.accentColor,
+        secondaryBgColor: themeColors.secondaryBgColor,
+        secondaryTextColor: themeColors.secondaryTextColor,
+        secondaryTitleColor: themeColors.secondaryTitleColor,
+        secondaryLinkColor: themeColors.secondaryLinkColor,
+        secondaryAccentColor: themeColors.secondaryAccentColor,
+        successColor: themeColors.successColor,
+        onSuccessColor: themeColors.onSuccessColor,
+        errorColor: themeColors.errorColor,
+        onErrorColor: themeColors.onErrorColor,
+        warningColor: themeColors.warningColor,
+        onWarningColor: themeColors.onWarningColor,
+        infoColor: themeColors.infoColor,
+        onInfoColor: themeColors.onInfoColor,
+        altBgColor: altThemeColors.bgColor,
+        altTextColor: altThemeColors.textColor,
+        altTitleColor: altThemeColors.titleColor,
+        altLinkColor: altThemeColors.linkColor,
+        altAccentColor: altThemeColors.accentColor,
+        altSecondaryBgColor: altThemeColors.secondaryBgColor,
+        altSecondaryTextColor: altThemeColors.secondaryTextColor,
+        altSecondaryTitleColor: altThemeColors.secondaryTitleColor,
+        altSecondaryLinkColor: altThemeColors.secondaryLinkColor,
+        altSecondaryAccentColor: altThemeColors.secondaryAccentColor,
+        altSuccessColor: altThemeColors.successColor,
+        altOnSuccessColor: altThemeColors.onSuccessColor,
+        altErrorColor: altThemeColors.errorColor,
+        altOnErrorColor: altThemeColors.onErrorColor,
+        altWarningColor: altThemeColors.warningColor,
+        altOnWarningColor: altThemeColors.onWarningColor,
+        altInfoColor: altThemeColors.infoColor,
+        altOnInfoColor: altThemeColors.onInfoColor,
+      });
+      this.lastAppliedAngoraRevision = angoraRevision;
+      if (!this.initialized) this.initialized = true;
     }
+    this.syncThemeUtilityOverrides();
   }
 
   private storageKey(): string {

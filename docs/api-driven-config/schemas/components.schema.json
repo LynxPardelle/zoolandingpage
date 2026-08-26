@@ -245,7 +245,7 @@
     "genericContainerConfig": {
       "type": "object",
       "properties": {
-        "tag": { "enum": ["span", "div", "section", "main", "header", "footer", "nav", "article", "ul", "ol", "li", "aside"] },
+        "tag": { "enum": ["span", "div", "section", "main", "header", "footer", "nav", "article", "figure", "ul", "ol", "li", "aside"] },
         "id": { "type": "string" },
         "classes": { "type": "string" },
         "tabindex": { "type": "number" },

@@ -96,6 +96,21 @@
 >
   <ng-container [ngTemplateOutlet]="contentGenericContainerTpl"></ng-container>
 </article>
+} @case ('figure') {
+<figure
+  [id]="id()"
+  [class]="classes()"
+  [ngClass]="classMap()"
+  [ngStyle]="styles()"
+  [attr.role]="role()"
+  [attr.tabindex]="tabIndex() ?? null"
+  [attr.aria-live]="ariaLive() ?? null"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+>
+  <ng-container [ngTemplateOutlet]="contentGenericContainerTpl"></ng-container>
+</figure>
 } @case ('aside') {
 <aside
   [id]="id()"

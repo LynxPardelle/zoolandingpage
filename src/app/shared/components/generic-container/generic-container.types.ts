@@ -11,6 +11,7 @@ export type GenericContainerComponentTag =
     | 'footer'
     | 'nav'
     | 'article'
+    | 'figure'
     | 'ul'
     | 'ol'
     | 'li'

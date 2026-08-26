@@ -66,7 +66,7 @@ test('components schema documents language opt-out, accessibility, and currency 
   assert.equal(link.properties.components.items.type, 'string');
   assert.equal(link.properties.preserveLanguageQueryParam.type, 'boolean');
   assert.equal(button.properties.ariaChecked.type, 'boolean');
-  assert.deepEqual(container.properties.tag.enum, ['span', 'div', 'section', 'main', 'header', 'footer', 'nav', 'article', 'ul', 'ol', 'li', 'aside']);
+  assert.deepEqual(container.properties.tag.enum, ['span', 'div', 'section', 'main', 'header', 'footer', 'nav', 'article', 'figure', 'ul', 'ol', 'li', 'aside']);
   assert.equal(container.properties.components.items.type, 'string');
   assert.deepEqual(container.properties.ariaLive.enum, ['off', 'polite', 'assertive']);
   assert.equal(container.properties.tabindex.type, 'number');

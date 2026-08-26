@@ -57,6 +57,18 @@ describe('GenericContainerComponent', () => {
     expect(element?.className).toContain('ordered-list');
   });
 
+  it('renders authored figure containers without falling back to a div', () => {
+    fixture.componentRef.setInput('config', {
+      tag: 'figure',
+      id: 'media-figure',
+    } as any);
+
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('figure#media-figure')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('div#media-figure')).toBeFalsy();
+  });
+
   it('should derive a root id from the component id when config.id is missing', () => {
     fixture.componentRef.setInput('componentId', 'hero');
     fixture.componentRef.setInput('config', {

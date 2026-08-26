@@ -579,6 +579,7 @@ const ALLOWED_GENERIC_CONTAINER_TAGS = new Set([
     'footer',
     'nav',
     'article',
+    'figure',
     'ul',
     'ol',
     'li',
