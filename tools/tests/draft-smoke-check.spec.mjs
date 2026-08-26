@@ -28,6 +28,7 @@ function createSummary(label, overrides = {}) {
     pageErrors: [],
     horizontalOverflowPx: 0,
     brokenImages: [],
+    unresolvedMaterialIcons: [],
     ...overrides,
   };
 }
@@ -396,7 +397,7 @@ test('records a live inspection timeout and continues later routes', async () =>
   assert.deepEqual(report.summary.liveFailuresByViewport, { desktop: 1, mobile: 0 });
 });
 
-test('flags browser errors, horizontal overflow, and broken images as one failed viewport', async () => {
+test('flags browser errors, horizontal overflow, broken images, and unresolved material icons as one failed viewport', async () => {
   const report = await buildSmokeReport({
     definitions: [
       {
@@ -414,15 +415,17 @@ test('flags browser errors, horizontal overflow, and broken images as one failed
       pageErrors: ['uncaught exploded'],
       horizontalOverflowPx: 8,
       brokenImages: [{ src: 'https://example.com/broken.png', alt: 'Broken' }],
+      unresolvedMaterialIcons: ['flight_land'],
     }),
   });
 
   const problems = report.results[0].routes[0].viewports.desktop.localProblems;
-  assert.equal(problems.length, 4);
+  assert.equal(problems.length, 5);
   assert.match(problems[0], /console error/);
   assert.match(problems[1], /uncaught page error/);
   assert.match(problems[2], /horizontal overflow/);
   assert.match(problems[3], /broken image/);
+  assert.match(problems[4], /unresolved material icon: flight_land/);
   assert.equal(report.summary.localFailures, 1);
 });
 
