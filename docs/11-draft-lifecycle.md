@@ -56,7 +56,25 @@ New draft repos should be bootstrapped from the hub templates:
 npm run drafts:repo-bootstrap -- --repo=drafts/example.com --domain=example.com --authoring-endpoint=https://api.zoolandingpage.com.mx/config-authoring
 ```
 
-Every new draft repo must also be added to [drafts-registry.json](./drafts-registry.json) with its canonical domain, repo name, GitHub clone URL, and in-tree local path under `drafts/{domain}`.
+Every new draft repo must also be added to [drafts-registry.json](./drafts-registry.json) with its canonical domain, repo name, GitHub clone URL, and in-tree local path under `drafts/{domain}`. The registry-level `owner` remains the default GitHub owner; set an entry-level `owner` only when that draft is intentionally owned by a different verified GitHub account. The clone URL and OIDC trust must use the resolved owner for that entry.
+
+Registry version 2 also requires one exact `deploymentEnvironments` list per draft. Use `['test']` for a draft that is explicitly prohibited from production and `['test', 'production']` for the normal release path; no other value, order, duplicate, or production-only scope is valid. Version 1 remains readable only as a transitional format and implies both environments. Public-safety and knowledge audits still include test-only drafts. Operational preflight can use `--environment=test` or `--environment=production`; new GitHub, OIDC, bootstrap, and managed-alias plans omit production for a test-only draft. Do not treat that planning result as proof that an older repository or cloud surface was already decommissioned.
+
+For a test-only bootstrap, pass the same scope explicitly:
+
+```bash
+npm run drafts:repo-bootstrap -- --repo=drafts/example.com --domain=example.com --environments=test --authoring-endpoint=https://api.zoolandingpage.com.mx/config-authoring
+```
+
+The standard `dev -> test -> main` topology applies only when `production` is declared. A test-only draft stops after the protected `dev -> test` promotion; it must not receive a production Environment, production IAM role, production variables, or production alias synchronization. The recoverable production workflow template may remain in the repository, but it must verify that `branches.main.deploys` and its production environment are explicitly enabled in `draft-repo.config.json` before promotion validation, plan creation, or OIDC.
+
+Run `npm run drafts:github-setup -- --domain=<canonical-domain> --account-id=<verified-12-digit-account> [--profile=<aws-profile>]` before setup to audit an existing test-only repository. The report checks the current checkout plus the canonical GitHub `test` and `main` copies of the config and full reviewed workflow template. It also requires a complete paginated GitHub Environment inventory and an STS-account-verified read-only IAM role lookup. Stale production config, any workflow byte outside EOL normalization, a production Environment or role, an incomplete/unauthorized read, or missing remote promotion evidence keeps the report fail-closed. To prepare only the two managed local corrections, start from a clean branch other than `test` or `main` and run:
+
+```bash
+npm run drafts:github-setup -- --domain=<canonical-domain> --reconcile-test-only-production=true
+```
+
+This mode preserves other config fields, uses the reviewed workflow template, rejects tracked files reached through a symlink/junction outside the repository, and leaves an ordinary Git diff. It does not commit, push, check out or write `main`, or delete a GitHub Environment, its variables, or an AWS role. Review the diff and promote it through `dev -> test`. If legacy `main` still contains production-enabled bytes, a separately authorized, protected `test -> main` decommission-only PR is required so `main` receives the disabled config and guard; this is not a production release, and the new guard must stop before plan creation or OIDC on that merge. Remote refs plus GitHub/AWS production surfaces remain decommission-pending and keep the result fail-closed until their read-only audits prove absence.
 
 The bootstrap must produce `AGENTS.md` as the small task router, `README.md` as the human index, `Codex.md` as a compatibility pointer, and the pinned C1 caller. Agents should follow one task-specific route from `AGENTS.md` instead of loading the hub, local documentation tree, or changelog by default.
 

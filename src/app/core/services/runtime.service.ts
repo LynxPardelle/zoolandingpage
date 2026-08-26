@@ -64,6 +64,7 @@ export class RuntimeService {
     private debugWorkspaceInit: Promise<void> | null = null;
     private cssMutationObserver: MutationObserver | null = null;
     private navigationUnlisten: (() => void) | null = null;
+    private pendingBrowserNavigationHref: string | null = null;
     private currentLanguageResolver: (() => string) | null = null;
     private showDebugWorkspaceResolver: (() => boolean) | null = null;
     private renderedClassesRoot: HTMLElement | null = null;
@@ -73,14 +74,17 @@ export class RuntimeService {
     private initialPageViewTracked = false;
     private postBootstrapBrowserWorkId = 0;
     private renderedCssUpdateId = 0;
+    private renderedCssUpdateScheduled = false;
     private loadingCurtainReadyId = 0;
+    private activeCssReadinessSignature: string | null = null;
+    private completedCssReadinessSignature: string | null = null;
+    private cssReadinessAbortController: AbortController | null = null;
     private lastInitializeLanguage: string | undefined;
     private readonly cssReadyRetryDelayMs = 250;
     private readonly cssRenderedComboRetryDelayMs = 50;
     private readonly cssReadyAttemptWaitMs = 750;
     private readonly cssReadyMaxWaitMs = 20_000;
     private readonly cssReadySoftFallbackMs = 2_500;
-    private readonly cssReadyStabilityPasses = 2;
     private readonly criticalRenderedTextCombos = [
         { className: 'sectionTitle', tokenName: 'titleColor' },
         { className: 'sectionSubtitle', tokenName: 'secondaryTitleColor' },
@@ -104,6 +108,7 @@ export class RuntimeService {
         if (this.isBrowser) {
             this.bindCssMutationRefresh(options.host);
             this.bindNavigationRefresh();
+            this.flushPendingBrowserNavigation();
         }
 
         options.destroyRef.onDestroy(() => this.disconnect());
@@ -134,9 +139,13 @@ export class RuntimeService {
         this.combosService.stopCssRuntime();
         this.postBootstrapBrowserWorkId++;
         this.renderedCssUpdateId++;
+        this.renderedCssUpdateScheduled = false;
         this.loadingCurtainReadyId++;
+        this.cancelActiveCssReadinessCycle();
+        this.completedCssReadinessSignature = null;
         this.navigationUnlisten?.();
         this.navigationUnlisten = null;
+        this.pendingBrowserNavigationHref = null;
 
         try {
             this.cssMutationObserver?.disconnect();
@@ -155,12 +164,55 @@ export class RuntimeService {
     }
 
     requestRenderedComponentsCssUpdate(): void {
+        if (!this.isBrowser) {
+            return;
+        }
+
         const authoredClasses = this.orchestrator.getAllTheClassesFromComponents();
         const renderedClasses = this.combosService.collectRenderedDomClasses(this.renderedClassesRoot ?? undefined);
         const requiredCssClasses = [...authoredClasses, ...renderedClasses];
-        this.combosService.updateClasses(requiredCssClasses);
-        this.theme.applyTheme();
-        this.hideLoadingCurtainAfterCssReady('rendered-components-css-updated', Date.now(), requiredCssClasses);
+        const signature = this.cssReadinessSignature(requiredCssClasses);
+        this.beginCssReadinessCycle('rendered-components-css-updated', requiredCssClasses, signature);
+    }
+
+    private beginCssReadinessCycle(
+        reason: string,
+        requiredCssClasses: readonly string[],
+        signature: string,
+    ): void {
+        if (signature === this.activeCssReadinessSignature) {
+            return;
+        }
+
+        if (signature === this.completedCssReadinessSignature) {
+            if (this.activeCssReadinessSignature !== null) {
+                this.loadingCurtainReadyId++;
+                this.cancelActiveCssReadinessCycle();
+            }
+            return;
+        }
+
+        this.cancelActiveCssReadinessCycle();
+        const readyId = ++this.loadingCurtainReadyId;
+        const controller = new AbortController();
+        this.activeCssReadinessSignature = signature;
+        this.cssReadinessAbortController = controller;
+
+        try {
+            this.combosService.updateClasses(requiredCssClasses);
+            this.theme.applyTheme();
+            this.hideLoadingCurtainAfterCssReady(
+                reason,
+                Date.now(),
+                requiredCssClasses,
+                readyId,
+                signature,
+                controller.signal,
+            );
+        } catch (error) {
+            this.failCssReadinessCycle(readyId, signature, controller.signal);
+            throw error;
+        }
     }
 
     async initialize(lang?: string): Promise<void> {
@@ -315,9 +367,7 @@ export class RuntimeService {
                 this.clearRenderedDraft(context.domain, context.pageId);
                 this.loadingCurtain.hideWhenReady(`auth-callback-${ callbackResult.reason }`);
                 if (this.isBrowser) {
-                    navigateInCurrentWindow(this.resolveAuthRedirectHref(callbackResult.redirectTo), {
-                        scrollRestoration: this.runtimeConfig.siteRuntime()?.navigation?.scrollRestoration,
-                    });
+                    this.navigateWhenBrowserShellReady(this.resolveAuthRedirectHref(callbackResult.redirectTo));
                 }
                 return;
             }
@@ -340,9 +390,7 @@ export class RuntimeService {
                 // SSR has no response redirect hook in this runtime; protected drafts render no private content.
                 keepPrivateRouteLoading = !this.isBrowser && protectedRouteLoadingStarted;
                 if (this.isBrowser && routeAccess.redirectTo) {
-                    navigateInCurrentWindow(this.resolveAuthRedirectHref(routeAccess.redirectTo), {
-                        scrollRestoration: this.runtimeConfig.siteRuntime()?.navigation?.scrollRestoration,
-                    });
+                    this.navigateWhenBrowserShellReady(this.resolveAuthRedirectHref(routeAccess.redirectTo));
                 }
                 return;
             }
@@ -356,6 +404,7 @@ export class RuntimeService {
                 domain: context.domain,
                 pageId,
                 lang,
+                ...(context.route?.language ? { routeLanguage: context.route.language } : {}),
                 routePath: context.path,
                 routeParams: context.routeParams,
             });
@@ -508,8 +557,14 @@ export class RuntimeService {
             return;
         }
 
+        if (this.renderedCssUpdateScheduled) {
+            return;
+        }
+
+        this.renderedCssUpdateScheduled = true;
         const updateId = ++this.renderedCssUpdateId;
         window.setTimeout(() => {
+            this.renderedCssUpdateScheduled = false;
             if (updateId !== this.renderedCssUpdateId) {
                 return;
             }
@@ -534,75 +589,114 @@ export class RuntimeService {
 
     private hideLoadingCurtainAfterCssReady(
         reason: string,
-        startedAt = Date.now(),
-        requiredCssClasses: readonly string[] = [],
-        stableReadyPasses = 0,
+        startedAt: number,
+        requiredCssClasses: readonly string[],
+        readyId: number,
+        signature: string,
+        signal: AbortSignal,
     ): void {
-        if (!this.isBrowser) {
+        if (!this.isCurrentCssReadinessCycle(readyId, signature, signal)) {
             return;
         }
 
-        const readyId = ++this.loadingCurtainReadyId;
+        try {
+            this.runLoadingCurtainCssReadinessProbe(
+                reason,
+                startedAt,
+                requiredCssClasses,
+                readyId,
+                signature,
+                signal,
+            );
+        } catch (error) {
+            this.failCssReadinessCycle(readyId, signature, signal);
+            throw error;
+        }
+    }
+
+    private runLoadingCurtainCssReadinessProbe(
+        reason: string,
+        startedAt: number,
+        requiredCssClasses: readonly string[],
+        readyId: number,
+        signature: string,
+        signal: AbortSignal,
+    ): void {
+        if (!this.isCurrentCssReadinessCycle(readyId, signature, signal)) {
+            return;
+        }
+
         const cssClassesToVerify = this.collectCssClassesToVerify(requiredCssClasses);
+        const latestSignature = this.cssReadinessSignature(cssClassesToVerify);
+        if (latestSignature !== signature) {
+            this.beginCssReadinessCycle(reason, cssClassesToVerify, latestSignature);
+            return;
+        }
+
         const hasRenderedCombo = this.combosService.containsRegisteredComboClass(cssClassesToVerify);
 
         const elapsedBeforeComboMs = Date.now() - startedAt;
 
         if (!hasRenderedCombo && elapsedBeforeComboMs < this.cssReadySoftFallbackMs) {
             window.setTimeout(() => {
-                if (readyId !== this.loadingCurtainReadyId) {
+                if (!this.isCurrentCssReadinessCycle(readyId, signature, signal)) {
                     return;
                 }
 
-                this.hideLoadingCurtainAfterCssReady(reason, startedAt, cssClassesToVerify, stableReadyPasses);
+                this.hideLoadingCurtainAfterCssReady(
+                    reason,
+                    startedAt,
+                    cssClassesToVerify,
+                    readyId,
+                    signature,
+                    signal,
+                );
             }, this.cssRenderedComboRetryDelayMs);
             return;
         }
 
         if (!hasRenderedCombo) {
-            this.combosService.updateClasses(cssClassesToVerify);
-            this.loadingCurtain.hideWhenReady(reason);
+            this.completeCssReadinessCycle(reason, readyId, signature, signal);
             return;
         }
-
-        this.combosService.updateClasses(cssClassesToVerify);
 
         const elapsedMs = Date.now() - startedAt;
         const attemptWaitMs = Math.max(0, Math.min(this.cssReadyAttemptWaitMs, this.cssReadyMaxWaitMs - elapsedMs));
 
-        void this.combosService.waitForCssReady(attemptWaitMs, cssClassesToVerify)
+        void this.combosService.waitForCssReady(attemptWaitMs, cssClassesToVerify, signal)
             .then((ready) => {
-                if (readyId !== this.loadingCurtainReadyId) {
+                if (!this.isCurrentCssReadinessCycle(readyId, signature, signal)) {
                     return;
                 }
 
                 const elapsedAfterAttemptMs = Date.now() - startedAt;
-                const criticalTextReady = this.renderedCriticalTextColorsReady();
+                const latestClasses = this.collectCssClassesToVerify(cssClassesToVerify);
+                const signatureAfterAttempt = this.cssReadinessSignature(latestClasses);
+                if (signatureAfterAttempt !== signature) {
+                    this.beginCssReadinessCycle(reason, latestClasses, signatureAfterAttempt);
+                    return;
+                }
 
                 if (!ready && elapsedAfterAttemptMs < this.cssReadyMaxWaitMs) {
                     window.setTimeout(() => {
-                        if (readyId !== this.loadingCurtainReadyId) {
+                        if (!this.isCurrentCssReadinessCycle(readyId, signature, signal)) {
                             return;
                         }
 
-                        this.hideLoadingCurtainAfterCssReady(reason, startedAt, cssClassesToVerify);
+                        this.hideLoadingCurtainAfterCssReady(
+                            reason,
+                            startedAt,
+                            latestClasses,
+                            readyId,
+                            signature,
+                            signal,
+                        );
                     }, this.cssReadyRetryDelayMs);
                     return;
                 }
 
-                if (ready && stableReadyPasses < this.cssReadyStabilityPasses) {
-                    this.hideLoadingCurtainAfterCssReady(reason, startedAt, cssClassesToVerify, stableReadyPasses + 1);
-                    return;
-                }
-
-                if (ready && !criticalTextReady && elapsedAfterAttemptMs < this.cssReadyMaxWaitMs) {
-                    window.setTimeout(() => {
-                        if (readyId !== this.loadingCurtainReadyId) {
-                            return;
-                        }
-
-                        this.hideLoadingCurtainAfterCssReady(reason, startedAt, cssClassesToVerify, stableReadyPasses);
-                    }, this.cssRenderedComboRetryDelayMs);
+                if (ready && !this.renderedCriticalTextColorsReady() && elapsedAfterAttemptMs < this.cssReadyMaxWaitMs) {
+                    this.waitForCriticalTextCss(reason, startedAt, latestClasses, readyId, signature, signal);
                     return;
                 }
 
@@ -610,20 +704,27 @@ export class RuntimeService {
                     console.warn('[Runtime] Hiding loading curtain after CSS readiness timeout.', { reason });
                 }
 
-                this.loadingCurtain.hideWhenReady(reason);
+                this.completeCssReadinessCycle(reason, readyId, signature, signal);
             })
             .catch((error) => {
-                if (readyId !== this.loadingCurtainReadyId) {
+                if (!this.isCurrentCssReadinessCycle(readyId, signature, signal)) {
                     return;
                 }
 
                 if (Date.now() - startedAt < this.cssReadyMaxWaitMs) {
                     window.setTimeout(() => {
-                        if (readyId !== this.loadingCurtainReadyId) {
+                        if (!this.isCurrentCssReadinessCycle(readyId, signature, signal)) {
                             return;
                         }
 
-                        this.hideLoadingCurtainAfterCssReady(reason, startedAt, cssClassesToVerify);
+                        this.hideLoadingCurtainAfterCssReady(
+                            reason,
+                            startedAt,
+                            cssClassesToVerify,
+                            readyId,
+                            signature,
+                            signal,
+                        );
                     }, this.cssReadyRetryDelayMs);
                     return;
                 }
@@ -632,8 +733,84 @@ export class RuntimeService {
                     console.warn('[Runtime] Hiding loading curtain after CSS readiness error.', { reason, error });
                 }
 
-                this.loadingCurtain.hideWhenReady(reason);
+                this.completeCssReadinessCycle(reason, readyId, signature, signal);
             });
+    }
+
+    private waitForCriticalTextCss(
+        reason: string,
+        startedAt: number,
+        requiredCssClasses: readonly string[],
+        readyId: number,
+        signature: string,
+        signal: AbortSignal,
+    ): void {
+        window.setTimeout(() => {
+            if (!this.isCurrentCssReadinessCycle(readyId, signature, signal)) {
+                return;
+            }
+
+            const latestClasses = this.collectCssClassesToVerify(requiredCssClasses);
+            const latestSignature = this.cssReadinessSignature(latestClasses);
+            if (latestSignature !== signature) {
+                this.beginCssReadinessCycle(reason, latestClasses, latestSignature);
+                return;
+            }
+
+            if (!this.renderedCriticalTextColorsReady() && Date.now() - startedAt < this.cssReadyMaxWaitMs) {
+                this.waitForCriticalTextCss(reason, startedAt, latestClasses, readyId, signature, signal);
+                return;
+            }
+
+            this.completeCssReadinessCycle(reason, readyId, signature, signal);
+        }, this.cssRenderedComboRetryDelayMs);
+    }
+
+    private completeCssReadinessCycle(
+        reason: string,
+        readyId: number,
+        signature: string,
+        signal: AbortSignal,
+    ): void {
+        if (!this.isCurrentCssReadinessCycle(readyId, signature, signal)) {
+            return;
+        }
+
+        this.loadingCurtain.hideWhenReady(reason);
+        this.activeCssReadinessSignature = null;
+        this.cssReadinessAbortController = null;
+        this.completedCssReadinessSignature = signature;
+    }
+
+    private failCssReadinessCycle(readyId: number, signature: string, signal: AbortSignal): void {
+        if (!this.isCurrentCssReadinessCycle(readyId, signature, signal)) {
+            return;
+        }
+
+        this.loadingCurtainReadyId++;
+        this.cancelActiveCssReadinessCycle();
+    }
+
+    private cancelActiveCssReadinessCycle(): void {
+        this.cssReadinessAbortController?.abort();
+        this.cssReadinessAbortController = null;
+        this.activeCssReadinessSignature = null;
+    }
+
+    private isCurrentCssReadinessCycle(
+        readyId: number,
+        signature: string,
+        signal?: AbortSignal,
+    ): boolean {
+        return this.isBrowser
+            && readyId === this.loadingCurtainReadyId
+            && signature === this.activeCssReadinessSignature
+            && !signal?.aborted
+            && (!signal || signal === this.cssReadinessAbortController?.signal);
+    }
+
+    private cssReadinessSignature(classes: readonly string[]): string {
+        return `${ this.combosService.cssReadinessSignature(classes) }::theme=${ this.theme.cssReadinessRevision() }`;
     }
 
     private collectCssClassesToVerify(requiredCssClasses: readonly string[]): string[] {
@@ -851,7 +1028,7 @@ export class RuntimeService {
             this.trackConfiguredContentHubView(currentPath);
 
             this.markRuntimeDataSourcesLoadingForNavigation();
-            const lang = this.currentLanguageResolver?.();
+            const lang = this.currentUrlLanguage();
             void this.initialize(lang)
                 .then(() => this.applyConfiguredNavigationScroll())
                 .catch((error) => {
@@ -862,6 +1039,29 @@ export class RuntimeService {
 
         window.addEventListener('popstate', handleNavigation);
         this.navigationUnlisten = () => window.removeEventListener('popstate', handleNavigation);
+    }
+
+    private navigateWhenBrowserShellReady(href: string): void {
+        if (!this.navigationUnlisten) {
+            this.pendingBrowserNavigationHref = href;
+            return;
+        }
+
+        navigateInCurrentWindow(href, {
+            scrollRestoration: this.runtimeConfig.siteRuntime()?.navigation?.scrollRestoration,
+        });
+    }
+
+    private flushPendingBrowserNavigation(): void {
+        const href = this.pendingBrowserNavigationHref;
+        if (!href) {
+            return;
+        }
+
+        this.pendingBrowserNavigationHref = null;
+        navigateInCurrentWindow(href, {
+            scrollRestoration: this.runtimeConfig.siteRuntime()?.navigation?.scrollRestoration,
+        });
     }
 
     private markRuntimeDataSourcesLoadingForNavigation(): void {
@@ -916,10 +1116,22 @@ export class RuntimeService {
 
             void this.configSource.prefetchRoute(domain, {
                 pageId: routePageId,
-                lang,
+                lang: route.language ?? lang,
                 path: routePath,
             });
             prefetchCount++;
+        }
+    }
+
+    private currentUrlLanguage(): string {
+        if (!this.isBrowser || typeof window === 'undefined') {
+            return '';
+        }
+
+        try {
+            return String(new URL(window.location.href).searchParams.get('lang') ?? '').trim();
+        } catch {
+            return '';
         }
     }
 
@@ -933,7 +1145,7 @@ export class RuntimeService {
                 return;
             }
 
-            this.requestRenderedComponentsCssUpdate();
+            this.scheduleRenderedComponentsCssUpdate();
         });
 
         try {

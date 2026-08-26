@@ -120,6 +120,9 @@ export class GenericButtonComponent {
   readonly ariaSelected = computed<boolean | undefined>(
     () => this.booleanValue(this.config().ariaSelected)
   );
+  readonly ariaChecked = computed<boolean | undefined>(
+    () => this.booleanValue(this.config().ariaChecked)
+  );
   readonly ariaControls = computed<string | undefined>(
     () => this.optionalString(this.config().ariaControls)
   );

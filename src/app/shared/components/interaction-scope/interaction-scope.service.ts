@@ -45,7 +45,7 @@ export const validateInteractionValue = (
 ): readonly string[] => {
     const errors: string[] = [];
     const safeRules = normalizeValidationRules(rules);
-    const normalizedRules = required
+    const normalizedRules = required && !safeRules.some((rule) => rule.type === 'required')
         ? [{ type: 'required', message: undefined } as const, ...safeRules]
         : [...safeRules];
 

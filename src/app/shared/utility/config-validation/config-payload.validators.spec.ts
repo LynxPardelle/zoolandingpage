@@ -1856,9 +1856,203 @@ describe('config-payload.validators', () => {
         expect(isDraftSiteConfigPayload(invalid)).toBeFalse();
     });
 
+    it('accepts optional supported normalized route languages', () => {
+        const base = {
+            version: 1,
+            domain: 'zoolandingpage.com.mx',
+            site: {
+                ...minimalSiteConfig(),
+                i18n: {
+                    defaultLanguage: 'es',
+                    supportedLanguages: [
+                        'es',
+                        'en',
+                        { code: 'zh', label: '中文' },
+                        'de-CH-1901',
+                        'sl-rozaj-biske',
+                        'en-Latn-US-oxendict',
+                    ],
+                },
+            },
+        };
+
+        expect(isDraftSiteConfigPayload({
+            ...base,
+            routes: [
+                { path: '/', pageId: 'home' },
+                { path: '/soft-landing-china/eng', pageId: 'china', language: 'en' },
+                { path: '/soft-landing-china/zh', pageId: 'china', language: 'zh' },
+                { path: '/campaign/de', pageId: 'de-campaign', language: 'de-CH-1901' },
+                { path: '/campaign/sl', pageId: 'sl-campaign', language: 'sl-rozaj-biske' },
+                { path: '/campaign/en', pageId: 'en-campaign', language: 'en-Latn-US-oxendict' },
+            ],
+        })).toBeTrue();
+    });
+
+    it('rejects noncanonical or invalid route-language variant subtags', () => {
+        const payloadFor = (language: string, supportedLanguage: string) => ({
+            version: 1,
+            domain: 'zoolandingpage.com.mx',
+            routes: [{ path: '/campaign', pageId: 'campaign', language }],
+            site: {
+                ...minimalSiteConfig(),
+                i18n: {
+                    defaultLanguage: 'es',
+                    supportedLanguages: ['es', supportedLanguage],
+                },
+            },
+        });
+
+        expect(isDraftSiteConfigPayload(payloadFor('sl-ROZAJ', 'sl-rozaj'))).toBeFalse();
+        expect(isDraftSiteConfigPayload(payloadFor('de-CH-abcd', 'de-CH-abcd'))).toBeFalse();
+        expect(isDraftSiteConfigPayload(payloadFor('de_CH_1901', 'de-CH-1901'))).toBeFalse();
+        expect(isDraftSiteConfigPayload(payloadFor('de-CH-190', 'de-CH-190'))).toBeFalse();
+    });
+
+    it('rejects empty, malformed, non-normalized, unsupported, and duplicate route languages', () => {
+        const payloadFor = (routes: readonly Record<string, unknown>[]) => ({
+            version: 1,
+            domain: 'zoolandingpage.com.mx',
+            routes,
+            site: {
+                ...minimalSiteConfig(),
+                i18n: {
+                    defaultLanguage: 'es',
+                    supportedLanguages: ['es', 'en', 'zh'],
+                },
+            },
+        });
+
+        for (const language of ['', ' en ', 'EN', 'en_us', 'fr']) {
+            expect(isDraftSiteConfigPayload(payloadFor([
+                { path: '/campaign', pageId: 'campaign', language },
+            ]))).withContext(`language=${ JSON.stringify(language) }`).toBeFalse();
+        }
+
+        expect(isDraftSiteConfigPayload(payloadFor([
+            { path: '/campaign/en', pageId: 'campaign', language: 'en' },
+            { path: '/campaign/english', pageId: 'campaign', language: 'en' },
+        ]))).toBeFalse();
+    });
+
     it('validates components payloads', () => {
         const valid = createComponentsPayload({});
         expect(isComponentsPayload(valid)).toBeTrue();
+    });
+
+    it('validates opt-in link, button, container, and currency contracts', () => {
+        const valid = createComponentsPayload({
+            languageSwitch: {
+                id: 'languageSwitch',
+                type: 'link',
+                config: { href: '/soft-landing-china/zh', preserveLanguageQueryParam: false },
+            },
+            cityOption: {
+                id: 'cityOption',
+                type: 'button',
+                config: { label: 'CDMX', role: 'radio', ariaChecked: true },
+            },
+            result: {
+                id: 'result',
+                type: 'container',
+                config: { role: 'status', tabindex: -1, ariaLive: 'polite' },
+            },
+            amount: {
+                id: 'amount',
+                type: 'generic-cell',
+                config: {
+                    value: 400000,
+                    format: 'currency',
+                    currency: 'MXN',
+                    currencyDisplay: 'narrowSymbol',
+                    maximumFractionDigits: 0,
+                    showCurrencyCode: true,
+                },
+            },
+            rows: {
+                id: 'rows',
+                type: 'generic-table',
+                config: {
+                    columns: [{
+                        id: 'amount',
+                        format: 'currency',
+                        currency: 'MXN',
+                        currencyDisplay: 'narrowSymbol',
+                        maximumFractionDigits: 0,
+                        showCurrencyCode: true,
+                    }],
+                },
+            },
+        });
+
+        expect(isComponentsPayload(valid)).toBeTrue();
+    });
+
+    it('rejects malformed opt-in link, button, container, and currency contracts', () => {
+        const invalidConfigs = [
+            { id: 'link', type: 'link', config: { href: '/zh', preserveLanguageQueryParam: 'false' } },
+            { id: 'button', type: 'button', config: { label: 'CDMX', ariaChecked: 'true' } },
+            { id: 'container', type: 'container', config: { ariaLive: 'loud' } },
+            { id: 'cell-code', type: 'generic-cell', config: { format: 'currency', currency: 'mxn' } },
+            { id: 'cell-display', type: 'generic-cell', config: { format: 'currency', currency: 'MXN', currencyDisplay: 'symbolic' } },
+            { id: 'cell-digits', type: 'generic-cell', config: { format: 'currency', currency: 'MXN', maximumFractionDigits: -1 } },
+            { id: 'cell-show-code', type: 'generic-cell', config: { format: 'currency', currency: 'MXN', showCurrencyCode: 'yes' } },
+        ];
+
+        for (const component of invalidConfigs) {
+            expect(isComponentsPayload(createComponentsPayload({ entry: component as TComponentPayloadEntry })))
+                .withContext(component.id)
+                .toBeFalse();
+        }
+    });
+
+    it('rejects link and container configs that violate their canonical schema shapes', () => {
+        const invalidConfigs = [
+            { id: 'link-missing-href', type: 'link', config: { text: 'Missing href' } },
+            { id: 'link-non-string-href', type: 'link', config: { href: 42 } },
+            { id: 'link-invalid-target', type: 'link', config: { href: '/home', target: '_new' } },
+            { id: 'link-non-string-id', type: 'link', config: { href: '/home', id: 42 } },
+            { id: 'link-non-string-text', type: 'link', config: { href: '/home', text: false } },
+            { id: 'link-non-string-classes', type: 'link', config: { href: '/home', classes: [] } },
+            { id: 'link-non-string-rel', type: 'link', config: { href: '/home', rel: true } },
+            { id: 'link-non-string-aria-label', type: 'link', config: { href: '/home', ariaLabel: 42 } },
+            { id: 'link-non-string-components', type: 'link', config: { href: '/home', components: ['label', 42] } },
+            { id: 'container-invalid-tag', type: 'container', config: { tag: 'dialog' } },
+            { id: 'container-non-string-id', type: 'container', config: { id: 42 } },
+            { id: 'container-non-string-classes', type: 'container', config: { classes: [] } },
+            { id: 'container-non-string-role', type: 'container', config: { role: true } },
+            { id: 'container-non-string-aria-label', type: 'container', config: { ariaLabel: 42 } },
+            { id: 'container-non-string-aria-labelledby', type: 'container', config: { ariaLabelledby: false } },
+            { id: 'container-non-string-aria-describedby', type: 'container', config: { ariaDescribedby: [] } },
+            { id: 'container-non-string-components', type: 'container', config: { components: ['content', false] } },
+        ];
+
+        for (const component of invalidConfigs) {
+            expect(isComponentsPayload(createComponentsPayload({ entry: component as TComponentPayloadEntry })))
+                .withContext(component.id)
+                .toBeFalse();
+        }
+
+        expect(isComponentsPayload(createComponentsPayload({
+            legacyContainerDefaults: {
+                id: 'legacyContainerDefaults',
+                type: 'container',
+                config: {},
+            },
+        }))).withContext('container tag and components remain optional').toBeTrue();
+    });
+
+    it('accepts figure containers used by authored media captions', () => {
+        expect(isComponentsPayload(createComponentsPayload({
+            mediaFigure: {
+                id: 'mediaFigure',
+                type: 'container',
+                config: {
+                    tag: 'figure',
+                    components: ['mediaImage', 'mediaCaption'],
+                },
+            },
+        }))).toBeTrue();
     });
 
     it('accepts generic button loading state payloads', () => {

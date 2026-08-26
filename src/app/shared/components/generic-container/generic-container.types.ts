@@ -11,6 +11,7 @@ export type GenericContainerComponentTag =
     | 'footer'
     | 'nav'
     | 'article'
+    | 'figure'
     | 'ul'
     | 'ol'
     | 'li'
@@ -23,6 +24,7 @@ export type TGenericContainerConfig = {
     classes?: TDynamicStringValue;
     tabindex?: number;
     role?: TDynamicStringValue;
+    ariaLive?: TDynamicValue<'off' | 'polite' | 'assertive'>;
     ariaLabel?: TDynamicStringValue;
     ariaLabelledby?: TDynamicStringValue;
     ariaDescribedby?: TDynamicStringValue;

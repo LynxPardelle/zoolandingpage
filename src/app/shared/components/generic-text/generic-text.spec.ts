@@ -82,4 +82,28 @@ describe('GenericTextComponent', () => {
     expect(paragraph.style.color).toBe('rgb(238, 129, 48)');
     expect(paragraph.style.getPropertyValue('--text-accent')).toBe('#ee8130');
   });
+
+  it('renders authored figure captions with their styling and accessibility attributes', () => {
+    fixture.componentRef.setInput('config', {
+      tag: 'figcaption',
+      text: 'Evaluation caption',
+      classes: 'caption-class',
+      styles: {
+        fontSize: '.85rem',
+        textAlign: 'center',
+      },
+      ariaLabel: 'Evaluation result caption',
+    });
+
+    fixture.detectChanges();
+
+    const caption = fixture.nativeElement.querySelector('figcaption') as HTMLElement | null;
+
+    expect(caption).not.toBeNull();
+    expect(caption?.textContent).toContain('Evaluation caption');
+    expect(caption?.classList.contains('caption-class')).toBeTrue();
+    expect(caption?.style.fontSize).toBe('0.85rem');
+    expect(caption?.style.textAlign).toBe('center');
+    expect(caption?.getAttribute('aria-label')).toBe('Evaluation result caption');
+  });
 });

@@ -111,6 +111,34 @@ readonly translations = computed<TLandingPageTranslations>(() => {
 });
 ```
 
+### 5. Exact language-bound draft routes
+
+Draft site configuration can bind a route to a language with an optional normalized `routes[].language` value:
+
+```json
+{
+  "site": {
+    "i18n": {
+      "defaultLanguage": "es",
+      "supportedLanguages": ["es", "en", "zh"]
+    }
+  },
+  "routes": [
+    { "path": "/", "pageId": "campaign", "language": "es" },
+    { "path": "/eng", "pageId": "campaign", "language": "en" },
+    { "path": "/zh", "pageId": "campaign", "language": "zh" }
+  ]
+}
+```
+
+A declared route language must use the normalized restricted BCP 47 form (language, optional script, optional region, and optional valid variant subtags), must appear in `site.i18n.supportedLanguages`, and must be unique for the same `(pageId, language)` pair. Routes without `language` remain valid and retain query-driven language switching.
+
+For an exact language-bound route, the route language is authoritative over a conflicting `lang` query parameter. The binding is transient: it does not overwrite the visitor's saved language preference. When navigation returns to an ordinary route, resolution uses the established order of URL query, cookie, configured draft-local storage, browser locale, and site default.
+
+SSR and client metadata use the exact sibling paths for `canonical`, `og:url`, and `hreflang`. `x-default` selects the site default-language sibling first, then a localized canonical match, then declaration order. Sitemap entries use the exact localized route paths. On a link that intentionally moves between those exact paths, set `preserveLanguageQueryParam: false`; omission preserves the existing sticky-query behavior.
+
+The server-rendered not-found diagnostic shell uses the final runtime bundle language when a fixed-language not-found route resolves the request; otherwise it preserves the ordinary request-language behavior. Its title, description, visible message, and home action have aligned Spanish, English, and Chinese copy, and the final `<html lang>` uses that same language. Unknown Chinese routes must not fall through to Spanish diagnostic copy.
+
 ## Benefits Achieved
 
 1. **Single Source of Truth**: All text content now managed from landing-page.component.ts

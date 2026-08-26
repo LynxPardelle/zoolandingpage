@@ -178,7 +178,7 @@ type TSiteSeoConfig = {
   readonly title?: string;
   readonly description?: string;
   readonly robots?: unknown;
-  readonly canonical?: string;
+  readonly canonical?: unknown;
   readonly canonicalOrigin?: string;
   readonly enforceCanonicalHost?: boolean;
   readonly forceHttps?: boolean;
@@ -215,6 +215,7 @@ type TDraftRegistryEntry = {
 type TSiteConfigRouteEntry = {
   readonly path?: string;
   readonly pageId?: string;
+  readonly language?: string;
   readonly auth?: {
     readonly required?: boolean;
     readonly redirectTo?: string;
@@ -1127,11 +1128,12 @@ function resolveLocalRoute(siteConfig: TLocalSiteConfig | null, path: string, pa
   const normalizedPath = normalizeRoutePath(path);
   const normalizedPageId = String(pageId ?? '').trim();
 
-  if (normalizedPageId) {
-    return routes.find((route) => String(route.pageId ?? '').trim() === normalizedPageId);
-  }
+  const pathMatch = matchDraftRoute(routes, normalizedPath)?.route;
+  if (pathMatch) return pathMatch;
 
-  return matchDraftRoute(routes, normalizedPath)?.route;
+  return normalizedPageId
+    ? routes.find((route) => String(route.pageId ?? '').trim() === normalizedPageId)
+    : undefined;
 }
 
 function resolveLocalRuntimePageId(siteConfig: TLocalSiteConfig | null, path: string, pageId?: string): string {
@@ -1210,12 +1212,17 @@ function resolveLocalRuntimePage(opts: {
   const resolvedDomain = String(opts.siteConfig.domain ?? opts.requestedDomain).trim() || opts.requestedDomain;
 
   if (explicitPageId) {
+    const matchedRoute = resolveLocalRoute(opts.siteConfig, normalizedPath);
+    const agreeingRoute = matchedRoute
+      && String(matchedRoute.pageId ?? '').trim() === explicitPageId
+      ? matchedRoute
+      : null;
     return {
       requestedDomain: opts.requestedDomain,
       loadDomain: opts.requestedDomain,
       resolvedDomain,
       pageId: explicitPageId,
-      route: resolveLocalRoute(opts.siteConfig, normalizedPath, explicitPageId) ?? null,
+      route: agreeingRoute,
       siteConfig: opts.siteConfig,
       statusCode: 200,
       notFound: false,
@@ -1292,7 +1299,10 @@ function loadLocalRuntimeBundle(opts: {
 
   const resolvedDomain = resolution.resolvedDomain;
   const route = resolution.route;
-  const lang = String(opts.lang ?? '').trim() || 'es';
+  const lang = normalizeLanguageCode(route?.language)
+    || normalizeLanguageCode(opts.lang)
+    || normalizeLanguageCode(resolution.siteConfig.site?.i18n?.defaultLanguage)
+    || 'es';
 
   return {
     version: 1,
@@ -1396,12 +1406,12 @@ function listRuntimeLookupDomainsForRequest(
   ].map(normalizeRuntimeLookupDomain));
 }
 
-async function loadRuntimeRouteSiteConfigForRequest(
+async function loadRuntimeRouteBundleForRequest(
   req: express.Request,
   domain: string,
   siteConfig: TLocalSiteConfig | null,
   environment?: string,
-): Promise<TLocalSiteConfig | null> {
+): Promise<TRuntimeBundlePayload | null> {
   const normalizedPath = normalizeRoutePath(req.path);
   const host = resolveRequestHost(req);
   const baseUrls = resolveRuntimeBundleBaseUrls(environment);
@@ -1413,13 +1423,19 @@ async function loadRuntimeRouteSiteConfigForRequest(
   for (const lookupDomain of listRuntimeLookupDomainsForRequest(req, host, domain, siteConfig)) {
     for (const baseUrl of baseUrls) {
       const payload = await fetchRuntimeBundlePayload(baseUrl, lookupDomain, normalizedPath, environment, lang);
-      if (isRecord(payload?.siteConfig)) {
-        return payload.siteConfig as TLocalSiteConfig;
+      if (payload) {
+        return payload;
       }
     }
   }
 
   return null;
+}
+
+function resolveFinalNotFoundLanguage(runtimeBundle: TRuntimeBundlePayload | null, requestLang: string): string {
+  const route = isRecord(runtimeBundle?.route) ? runtimeBundle.route : null;
+  return normalizeLanguageCode(route?.['language'])
+    || requestLang;
 }
 
 async function loadRuntimePageConfig(domain: string, path: string, environment?: string): Promise<TLocalPageConfig | null> {
@@ -2035,8 +2051,12 @@ function resolveCanonicalSitemapUrl(
   host: string,
   siteConfig: TLocalSiteConfig | null,
   pageConfig: TLocalPageConfig | null,
+  routeLanguage?: string,
 ): string {
-  const canonical = String(pageConfig?.seo?.canonical ?? '').trim();
+  const language = normalizeLanguageCode(routeLanguage)
+    || normalizeLanguageCode(siteConfig?.site?.i18n?.defaultLanguage)
+    || 'es';
+  const canonical = resolveLocalizedSeoString(pageConfig?.seo?.canonical, language);
   if (!canonical || canonical.includes('{{')) {
     return resolveEffectiveCanonicalUrl(new URL(normalizeRoutePath(routePath), origin).toString(), origin, host, siteConfig);
   }
@@ -2252,7 +2272,7 @@ async function buildSitemapXml(req: express.Request, host: string, siteConfig: T
     const routePath = normalizeRoutePath(route.path);
     const pageId = cleanString(route.pageId) || resolveLocalRuntimePageId(siteConfig, routePath);
     return {
-      url: resolveCanonicalSitemapUrl(origin, routePath, host, siteConfig, pageConfig),
+      url: resolveCanonicalSitemapUrl(origin, routePath, host, siteConfig, pageConfig, route.language),
       lastmod: resolvePageLastModified(pageConfig, siteConfig, sitemapDomain, pageId),
       priority: routePath === '/' ? '1.0' : '0.7',
     };
@@ -2284,7 +2304,9 @@ async function loadPageConfigForRequest(req: express.Request, domain: string, si
   const route = resolveLocalRoute(siteConfig, routePath);
   const environment = resolveRuntimeEnvironment(resolveRequestHost(req));
   if (route) {
-    return loadPageConfigForRoute(domain, route, environment);
+    const pageId = cleanString(route.pageId);
+    const localPageConfig = pageId ? loadLocalPageConfig(domain, pageId) : null;
+    return localPageConfig ?? loadRuntimePageConfig(domain, routePath, environment);
   }
 
   const pageId = routePath === '/'
@@ -2662,17 +2684,41 @@ function decorateProtectedSsrShellHtml(html: string, siteConfig: TLocalSiteConfi
   return injectProtectedSsrOverlay(markedHtml, buildProtectedSsrShellContent(lang));
 }
 
+function resolveNotFoundSsrCopy(lang: string): {
+  readonly title: string;
+  readonly routeMessage: string;
+  readonly pageDescription: string;
+  readonly homeLabel: string;
+} {
+  const baseLanguage = normalizeLanguageCode(lang).split('-', 1)[0];
+  if (baseLanguage === 'en') {
+    return {
+      title: 'Page not found',
+      routeMessage: 'This route is not published or is no longer available.',
+      pageDescription: 'This page is not published or is no longer available.',
+      homeLabel: 'Go to home',
+    };
+  }
+
+  if (baseLanguage === 'zh') {
+    return {
+      title: '页面未找到',
+      routeMessage: '此路由尚未发布或已不再可用。',
+      pageDescription: '此页面尚未发布或已不再可用。',
+      homeLabel: '返回首页',
+    };
+  }
+
+  return {
+    title: 'Página no encontrada',
+    routeMessage: 'Esta ruta no está publicada o ya no está disponible.',
+    pageDescription: 'Esta página no está publicada o ya no está disponible.',
+    homeLabel: 'Ir al inicio',
+  };
+}
+
 function buildNotFoundSsrShellContent(siteConfig: TLocalSiteConfig | null, lang: string): string {
-  const normalizedLang = normalizeLanguageCode(lang);
-  const title = normalizedLang === 'en'
-    ? 'Page not found'
-    : 'Página no encontrada';
-  const message = normalizedLang === 'en'
-    ? 'This route is not published or is no longer available.'
-    : 'Esta ruta no está publicada o ya no está disponible.';
-  const homeLabel = normalizedLang === 'en'
-    ? 'Go to home'
-    : 'Ir al inicio';
+  const { title, routeMessage, homeLabel } = resolveNotFoundSsrCopy(lang);
   const homeHref = normalizeRoutePath(resolveLocalRoute(siteConfig, '/')?.path ?? '/');
 
   return [
@@ -2692,7 +2738,7 @@ function buildNotFoundSsrShellContent(siteConfig: TLocalSiteConfig | null, lang:
     escapeHtmlText(title),
     '</h1>',
     '<p class="zlp-not-found-ssr__message">',
-    escapeHtmlText(message),
+    escapeHtmlText(routeMessage),
     '</p>',
     '<a class="zlp-not-found-ssr__link" href="',
     escapeHtmlAttribute(homeHref),
@@ -2725,9 +2771,7 @@ function replaceNotFoundSsrAppRootContent(html: string): string {
 
 function buildNotFoundSsrTitle(siteConfig: TLocalSiteConfig | null, lang: string): string {
   const normalizedLang = normalizeLanguageCode(lang);
-  const title = normalizedLang === 'en'
-    ? 'Page not found'
-    : 'Página no encontrada';
+  const { title } = resolveNotFoundSsrCopy(normalizedLang);
   const siteName = resolveLocalizedSeoString(siteConfig?.site?.seo?.siteName, normalizedLang)
     || cleanString(siteConfig?.domain)
     || 'ZoolandingPage';
@@ -2810,6 +2854,11 @@ function buildStructuredDataHeadHtml(pageConfig: TLocalPageConfig | null): strin
 }
 
 function resolveRequestLanguage(req: express.Request, siteConfig: TLocalSiteConfig | null): string {
+  const routeLanguage = normalizeLanguageCode(resolveLocalRoute(siteConfig, req.path)?.language);
+  if (routeLanguage) {
+    return routeLanguage;
+  }
+
   const rawUrl = String(req.originalUrl ?? req.url ?? '').trim();
   if (rawUrl) {
     try {
@@ -3039,22 +3088,74 @@ function buildCanonicalHeadHtml(
   pageConfig: TLocalPageConfig | null,
   contentHubSiteConfig: TLocalSiteConfig | null = siteConfig,
 ): string {
+  const canonicalUrl = resolveCanonicalHeadUrl(req, host, siteConfig, pageConfig, contentHubSiteConfig);
+  return `<link rel="canonical" href="${escapeHtmlAttribute(canonicalUrl)}">`;
+}
+
+function resolveCanonicalHeadUrl(
+  req: express.Request,
+  host: string,
+  siteConfig: TLocalSiteConfig | null,
+  pageConfig: TLocalPageConfig | null,
+  contentHubSiteConfig: TLocalSiteConfig | null = siteConfig,
+): string {
   const origin = resolveCanonicalOrigin(req, host, siteConfig).replace(/\/$/, '');
   const lang = resolveRequestLanguage(req, siteConfig);
   const isTagFilterPath = isContentHubTagFilterPath(req.path);
   const isCategoryFilterPath = isContentHubCategoryFilterPath(contentHubSiteConfig, req.path, lang);
   const usesRequestCanonical = isTagFilterPath || isCategoryFilterPath;
-  const configuredCanonical = usesRequestCanonical ? '' : cleanString(pageConfig?.seo?.canonical);
+  const configuredCanonical = usesRequestCanonical ? '' : resolveLocalizedSeoString(pageConfig?.seo?.canonical, lang);
   const rawCanonical = usesRequestCanonical
     ? new URL(normalizeRoutePath(req.path), `${origin}/`).toString()
     : configuredCanonical && !configuredCanonical.includes('{{')
     ? new URL(configuredCanonical, `${origin}/`).toString()
     : new URL(req.originalUrl || req.url || '/', `${origin}/`).toString();
   const canonicalUrl = resolveEffectiveCanonicalUrl(rawCanonical, `${origin}/`, host, siteConfig);
-  return `<link rel="canonical" href="${escapeHtmlAttribute(canonicalUrl)}">`;
+  return canonicalUrl;
 }
 
-function buildHreflangHeadHtml(req: express.Request, host: string, siteConfig: TLocalSiteConfig | null): string {
+function buildHreflangHeadHtml(
+  req: express.Request,
+  host: string,
+  siteConfig: TLocalSiteConfig | null,
+  pageConfig: TLocalPageConfig | null,
+): string {
+  const activeRoute = resolveLocalRoute(siteConfig, req.path);
+  const activeRouteLanguage = normalizeLanguageCode(activeRoute?.language);
+  if (activeRouteLanguage && activeRoute?.pageId) {
+    const siblings = (siteConfig?.routes ?? [])
+      .filter((route) => String(route.pageId ?? '').trim() === String(activeRoute.pageId).trim())
+      .map((route) => ({ route, language: normalizeLanguageCode(route.language) }))
+      .filter((entry): entry is { route: TSiteConfigRouteEntry; language: string } => !!entry.language);
+    if (siblings.length > 1) {
+      const origin = resolveCanonicalOrigin(req, host, siteConfig).replace(/\/$/, '');
+      const exactHref = (route: TSiteConfigRouteEntry) => resolveEffectiveCanonicalUrl(
+        new URL(normalizeRoutePath(route.path), `${origin}/`).toString(),
+        `${origin}/`,
+        host,
+        siteConfig,
+      );
+      const defaultLanguage = normalizeLanguageCode(siteConfig?.site?.i18n?.defaultLanguage);
+      let xDefault = siblings.find((entry) => entry.language === defaultLanguage);
+      if (!xDefault) {
+        const configuredDefaultCanonical = resolveLocalizedSeoString(pageConfig?.seo?.canonical, defaultLanguage);
+        if (configuredDefaultCanonical) {
+          try {
+            const canonicalPath = normalizeRoutePath(new URL(configuredDefaultCanonical, `${origin}/`).pathname);
+            xDefault = siblings.find((entry) => normalizeRoutePath(entry.route.path) === canonicalPath);
+          } catch {
+            // Use declaration order below.
+          }
+        }
+      }
+      xDefault ??= siblings[0];
+      return [
+        ...siblings.map((entry) => `<link rel="alternate" hreflang="${escapeHtmlAttribute(entry.language)}" href="${escapeHtmlAttribute(exactHref(entry.route))}">`),
+        `<link rel="alternate" hreflang="x-default" href="${escapeHtmlAttribute(exactHref(xDefault.route))}">`,
+      ].join('\n');
+    }
+  }
+
   const languages = dedupeStrings((siteConfig?.site?.i18n?.supportedLanguages ?? []).map(normalizeLanguageEntry));
   if (languages.length <= 1) {
     return '';
@@ -3087,6 +3188,19 @@ function stripRenderedStructuredDataHeadHtml(html: string): string {
     /<script\b(?=[^>]*\btype=["']application\/ld\+json["'])[^>]*>[\s\S]*?<\/script>\s*/gi,
     '',
   );
+}
+
+function syncDocumentLanguage(html: string, language: string): string {
+  const normalized = normalizeLanguageCode(language);
+  if (!normalized) return html;
+
+  const escaped = escapeHtmlAttribute(normalized);
+  return html.replace(/<html\b[^>]*>/i, (tag) => {
+    if (/\blang\s*=\s*["'][^"']*["']/i.test(tag)) {
+      return tag.replace(/\blang\s*=\s*["'][^"']*["']/i, `lang="${escaped}"`);
+    }
+    return tag.replace(/>$/, ` lang="${escaped}">`);
+  });
 }
 
 function filterPublicContentHubArticles(
@@ -3353,7 +3467,7 @@ function buildSeoTextHeadHtml(
     || resolveLocalizedSeoString(siteSeo?.description, lang);
   const seoKeywords = resolveSeoMetaList(pageSeoRecord['keywords'], lang)
     || resolveSeoMetaList(siteSeoRecord['keywords'], lang);
-  const canonicalUrl = buildRequestCanonicalUrl(req, host, siteConfig);
+  const canonicalUrl = resolveCanonicalHeadUrl(req, host, siteConfig, pageConfig);
   const openGraphDefaults = resolveLocalizedSeoRecord(siteSeo?.openGraph, lang);
   const twitterDefaults = resolveLocalizedSeoRecord(siteSeo?.twitter, lang);
   const openGraph = {
@@ -3395,9 +3509,7 @@ function buildSeoTextHeadHtml(
 
 function buildNotFoundSeoTextHeadHtml(siteConfig: TLocalSiteConfig | null, lang: string): string {
   const title = buildNotFoundSsrTitle(siteConfig, lang);
-  const description = normalizeLanguageCode(lang).startsWith('en')
-    ? 'This page is not published or is no longer available.'
-    : 'Esta página no está publicada o ya no está disponible.';
+  const { pageDescription: description } = resolveNotFoundSsrCopy(lang);
 
   return [
     `<title>${escapeHtmlText(title)}</title>`,
@@ -3427,10 +3539,14 @@ async function decorateHtmlResponse(
   const siteConfig = await loadSiteConfigForHost(lookupDomain, environment);
   const requestLang = resolveRequestLanguage(req, siteConfig);
   const publicContentHubSiteConfig = await loadPublicContentHubSiteConfigForHost(lookupDomain, environment, requestLang);
-  const shouldLoadRouteContentHubSiteConfig = response.status === 404
+  const shouldLoadRouteRuntimeBundle = response.status === 404
+    || notFoundDocument
     || !!matchContentHubArticleRoute(siteConfig?.runtime?.contentHubs, req.path);
-  const routeContentHubSiteConfig = shouldLoadRouteContentHubSiteConfig
-    ? await loadRuntimeRouteSiteConfigForRequest(req, lookupDomain, siteConfig, environment)
+  const routeRuntimeBundle = shouldLoadRouteRuntimeBundle
+    ? await loadRuntimeRouteBundleForRequest(req, lookupDomain, siteConfig, environment)
+    : null;
+  const routeContentHubSiteConfig = isRecord(routeRuntimeBundle?.siteConfig)
+    ? routeRuntimeBundle.siteConfig as TLocalSiteConfig
     : null;
   const contentHubStatusSiteConfigs = [routeContentHubSiteConfig, publicContentHubSiteConfig, siteConfig];
   const hasPublishedRouteContentHubArticle = contentHubStatusSiteConfigs
@@ -3446,6 +3562,9 @@ async function decorateHtmlResponse(
       : notFoundDocument
         ? 404
         : response.status;
+  const responseLang = effectiveStatus === 404
+    ? resolveFinalNotFoundLanguage(routeRuntimeBundle, requestLang)
+    : requestLang;
   const requestPageConfig = await loadPageConfigForRequest(req, lookupDomain, siteConfig);
   const pageConfig = effectiveStatus === 404
     ? requestPageConfig
@@ -3461,10 +3580,10 @@ async function decorateHtmlResponse(
   const html = await response.text();
   const hreflangHeadHtml = hasRenderedHreflangHeadHtml(html)
     ? ''
-    : buildHreflangHeadHtml(req, lookupDomain, siteConfig);
+    : buildHreflangHeadHtml(req, lookupDomain, siteConfig, pageConfig);
   const headHtml = [
     effectiveStatus === 404
-      ? buildNotFoundSeoTextHeadHtml(siteConfig, requestLang)
+      ? buildNotFoundSeoTextHeadHtml(siteConfig, responseLang)
       : buildSeoTextHeadHtml(req, lookupDomain, siteConfig, pageConfig),
     buildGoogleTagHeadHtml(host, siteConfig),
     buildSearchConsoleHeadHtml(lookupDomain, siteConfig),
@@ -3479,13 +3598,13 @@ async function decorateHtmlResponse(
     decorateBootCurtainHtml(injectHeadHtml(html, headHtml), siteConfig),
     siteConfig,
     req.path,
-    requestLang,
+    responseLang,
   );
   const decoratedHtml = effectiveStatus === 404
-    ? decorateNotFoundSsrShellHtml(baseDecoratedHtml, siteConfig, requestLang)
+    ? decorateNotFoundSsrShellHtml(baseDecoratedHtml, siteConfig, responseLang)
     : baseDecoratedHtml;
 
-  return new Response(decoratedHtml, {
+  return new Response(syncDocumentLanguage(decoratedHtml, responseLang), {
     headers,
     status: effectiveStatus,
     statusText: effectiveStatus === 200 ? 'OK' : response.statusText,

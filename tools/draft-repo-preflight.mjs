@@ -110,11 +110,15 @@ async function readDraftRegistry(registryPath) {
     throw new Error(`Draft registry not found: ${registryPath}`);
   }
   const raw = JSON.parse(await readFile(registryPath, 'utf8'));
-  if (raw?.version !== 1) throw new Error('Draft registry version must be 1.');
-  const owner = requiredCanonicalString(raw.owner, 'owner');
-  if (!/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/.test(owner) || owner.endsWith('-')) {
-    throw new Error('Draft registry owner is not a valid GitHub owner.');
-  }
+  if (![1, 2].includes(raw?.version)) throw new Error('Draft registry version must be 1 or 2.');
+  const validateGithubOwner = (value, label) => {
+    const candidate = requiredCanonicalString(value, label);
+    if (!/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/.test(candidate) || candidate.endsWith('-')) {
+      throw new Error(`Draft registry ${label} is not a valid GitHub owner.`);
+    }
+    return candidate;
+  };
+  const owner = validateGithubOwner(raw.owner, 'owner');
   const defaultBaseDir = requiredCanonicalString(raw.defaultBaseDir, 'defaultBaseDir');
   if (defaultBaseDir !== 'drafts') {
     throw new Error("Draft registry defaultBaseDir must be 'drafts'.");
@@ -131,12 +135,15 @@ async function readDraftRegistry(registryPath) {
   const drafts = raw.drafts.map((draft, index) => {
     const prefix = `drafts[${index}]`;
     const domain = validateDomain(draft?.domain, `${prefix}.domain`);
+    const draftOwner = draft?.owner === undefined
+      ? owner
+      : validateGithubOwner(draft.owner, `${prefix}.owner`);
     const repo = requiredCanonicalString(draft?.repo, `${prefix}.repo`);
     if (!/^[A-Za-z0-9._-]+$/.test(repo)) {
       throw new Error(`Draft registry ${prefix}.repo is invalid.`);
     }
     const githubUrl = requiredCanonicalString(draft?.githubUrl, `${prefix}.githubUrl`);
-    const expectedGithubUrl = `https://github.com/${owner}/${repo}.git`;
+    const expectedGithubUrl = `https://github.com/${draftOwner}/${repo}.git`;
     if (githubUrl !== expectedGithubUrl) {
       throw new Error(`Draft registry ${prefix}.githubUrl must be ${expectedGithubUrl}.`);
     }
@@ -146,6 +153,21 @@ async function readDraftRegistry(registryPath) {
       throw new Error(`Draft registry ${prefix}.localPath must be a direct child of drafts/.`);
     }
     validateDomain(localParts[1], `${prefix}.localPath`);
+    let deploymentEnvironments;
+    if (raw.version === 1) {
+      if (draft?.deploymentEnvironments !== undefined) {
+        throw new Error(`Draft registry ${prefix}.deploymentEnvironments requires version 2.`);
+      }
+      deploymentEnvironments = ['test', 'production'];
+    } else {
+      const encoded = JSON.stringify(draft?.deploymentEnvironments);
+      if (encoded !== '["test"]' && encoded !== '["test","production"]') {
+        throw new Error(
+          `Draft registry ${prefix}.deploymentEnvironments must be exactly ["test"] or ["test","production"].`,
+        );
+      }
+      deploymentEnvironments = [...draft.deploymentEnvironments];
+    }
 
     for (const [label, value, values] of [
       ['domain', domain, seen.domains],
@@ -156,14 +178,45 @@ async function readDraftRegistry(registryPath) {
       values.add(value);
     }
 
-    return { domain, repo, githubUrl, localPath };
+    return { domain, owner: draftOwner, repo, githubUrl, localPath, deploymentEnvironments };
   });
   return {
     registryPath,
+    version: raw.version,
     owner,
     defaultBaseDir,
     drafts,
   };
+}
+
+function selectRegisteredDraftsForEnvironment(drafts, requestedEnvironment = 'all') {
+  const environment = requestedEnvironment === undefined || requestedEnvironment === null || requestedEnvironment === ''
+    ? 'all'
+    : String(requestedEnvironment).trim().toLowerCase();
+  if (!['all', 'test', 'production'].includes(environment)) {
+    throw new Error(`unsupported_deployment_environment:${environment}`);
+  }
+  if (environment === 'all') return drafts;
+  return drafts.filter(draft => (draft.deploymentEnvironments ?? ['test', 'production']).includes(environment));
+}
+
+function selectRegisteredDrafts(drafts, requestedDomain) {
+  if (requestedDomain === undefined || requestedDomain === null || requestedDomain === '') {
+    return drafts;
+  }
+  const domain = validateDomain(requestedDomain, 'domain');
+  const selectedDrafts = drafts.filter(draft => draft.domain === domain);
+  if (selectedDrafts.length === 0) {
+    throw new Error(`registered_draft_domain_not_found:${domain}`);
+  }
+  return selectedDrafts;
+}
+
+function assertScopedApply(apply, requestedDomain) {
+  if (apply && (typeof requestedDomain !== 'string' || requestedDomain.trim() === '')) {
+    throw new Error('apply_requires_explicit_domain');
+  }
+  return requestedDomain;
 }
 
 function registeredDraftRepoPath(draft, cwd, defaultBaseDir = 'drafts') {
@@ -274,18 +327,22 @@ async function resolveTargetRepos(args, cwd = process.cwd()) {
 
   const registryPath = path.resolve(cwd, args.registry || 'docs/drafts-registry.json');
   const registry = await readDraftRegistry(registryPath);
+  const selectedDrafts = selectRegisteredDraftsForEnvironment(registry.drafts, args.environment);
+  const selectedRegistry = { ...registry, drafts: selectedDrafts };
   const clone = isTruthy(args.clone, true);
-  const registeredRepos = await ensureRegisteredDraftRepos(registry, { cwd, clone });
+  const registeredRepos = await ensureRegisteredDraftRepos(selectedRegistry, { cwd, clone });
   const draftBase = path.resolve(cwd, registry.defaultBaseDir || 'drafts');
   const discoveredRepos = await discoverDraftRepos(draftBase);
-  const registeredPathSet = new Set(registeredRepos.map(result => path.resolve(result.repoPath)));
+  const registeredPathSet = new Set(registry.drafts.map(draft => path.resolve(
+    registeredDraftRepoPath(draft, cwd, registry.defaultBaseDir),
+  )));
   const registryRepoPaths = registeredRepos
     .filter(result => result.status === 'present')
     .map(result => result.repoPath);
   const unregisteredRepos = discoveredRepos.filter(repoPath => !registeredPathSet.has(path.resolve(repoPath)));
   const repos = [...new Set([cwd, ...registryRepoPaths, ...unregisteredRepos])].sort();
   return {
-    registry,
+    registry: selectedRegistry,
     registeredRepos,
     unregisteredRepos,
     repos,
@@ -363,6 +420,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
 }
 
 export {
+  assertScopedApply,
   discoverDraftRepos,
   ensureRegisteredDraftRepos,
   githubRepoIdentity,
@@ -372,4 +430,6 @@ export {
   readDraftRegistry,
   registeredDraftRepoPath,
   resolveTargetRepos,
+  selectRegisteredDrafts,
+  selectRegisteredDraftsForEnvironment,
 };

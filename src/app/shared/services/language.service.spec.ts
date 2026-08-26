@@ -87,6 +87,30 @@ describe('LanguageService', () => {
         expect(document.cookie).toContain('zlp_lang=es');
     });
 
+    it('uses a fixed route language transiently and restores the saved ordinary-route preference', () => {
+        setBrowserUrl('/soft-landing-china/eng?lang=zh');
+        document.cookie = 'zlp_lang=es; Path=/; SameSite=Lax';
+        const saveLanguage = spyOn<any>(service, '_saveLanguage').and.callThrough();
+
+        service.configureLanguages(['es', 'en', 'zh'], {
+            defaultLanguage: 'es',
+            requestedLanguage: 'zh',
+            routeLanguage: 'en',
+        } as any);
+
+        expect(service.currentLanguage()).toBe('en');
+        expect(saveLanguage).not.toHaveBeenCalled();
+        expect(document.cookie).toContain('zlp_lang=es');
+
+        setBrowserUrl('/servicios');
+        service.configureLanguages(['es', 'en', 'zh'], {
+            defaultLanguage: 'es',
+        } as any);
+
+        expect(service.currentLanguage()).toBe('es');
+        expect(document.cookie).toContain('zlp_lang=es');
+    });
+
     it('reads the SSR language preference from the request URL', () => {
         TestBed.resetTestingModule();
         TestBed.configureTestingModule({

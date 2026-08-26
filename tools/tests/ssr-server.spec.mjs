@@ -254,6 +254,170 @@ test('production SSR server renders behind Traefik forwarded headers', async (t)
   assert.doesNotMatch(getStderr(), /trustProxyHeaders/i);
 });
 
+test('production SSR server localizes an unknown zh route without Spanish not-found copy', async (t) => {
+  const { port, getStderr } = await startProductionServer(t, {
+    CONFIG_API_SERVER_FALLBACK_URL: '',
+    ZLP_RUNTIME_ENV: 'test',
+  });
+  const response = await fetch(
+    `http://127.0.0.1:${port}/ruta-desconocida?draftDomain=grupoastralegal.com&debugWorkspace=false&lang=zh`,
+    {
+      headers: {
+        Host: 'test.zoolandingpage.com.mx',
+        'X-Forwarded-Host': 'test.zoolandingpage.com.mx',
+        'X-Forwarded-Port': '443',
+        'X-Forwarded-Proto': 'https',
+        'X-Forwarded-Server': 'dokploy-traefik',
+      },
+    },
+  );
+  const body = await response.text();
+  const visibleHtml = stripNonVisibleHtml(body);
+
+  assert.equal(response.status, 404);
+  assert.match(body, /<html\b[^>]*\blang="zh"/i);
+  assert.match(body, /<title>页面未找到 \| Astra Legal<\/title>/i);
+  assert.match(visibleHtml, /data-zlp-not-found-ssr/);
+  assert.match(visibleHtml, /页面未找到/);
+  assert.match(visibleHtml, /此路由尚未发布或已不再可用。/);
+  assert.match(visibleHtml, /返回首页/);
+  assert.doesNotMatch(
+    body,
+    /Página no encontrada|Esta ruta no está publicada|Ir al inicio|Esta página no está publicada/i,
+  );
+  assert.equal(getStderr(), '');
+});
+
+test('production SSR server propagates a fixed not-found route language through the final head and shell', async (t) => {
+  const fixtureDomain = 'fixed-route-404.example.com';
+  const sourceSiteConfig = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'grupoastralegal.com', 'site-config.json'), 'utf8'));
+  const sourcePageConfig = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'grupoastralegal.com', 'not-found', 'page-config.json'), 'utf8'));
+  const sourceSharedComponents = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'grupoastralegal.com', 'components.json'), 'utf8'));
+  const sourcePageComponents = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'grupoastralegal.com', 'not-found', 'components.json'), 'utf8'));
+  const sourceVariables = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'grupoastralegal.com', 'not-found', 'variables.json'), 'utf8'));
+  const sourceCombos = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'grupoastralegal.com', 'not-found', 'angora-combos.json'), 'utf8'));
+  const sourceI18n = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'grupoastralegal.com', 'not-found', 'i18n', 'en.json'), 'utf8'));
+  const siteConfig = {
+    ...sourceSiteConfig,
+    domain: fixtureDomain,
+    aliases: [],
+    defaultPageId: 'default',
+    notFoundPageId: 'not-found',
+    routes: [
+      { path: '/', pageId: 'default' },
+      { path: '/404', pageId: 'not-found', language: 'en' },
+    ],
+    site: {
+      ...sourceSiteConfig.site,
+      i18n: {
+        ...sourceSiteConfig.site.i18n,
+        defaultLanguage: 'es',
+        supportedLanguages: ['es', 'en'],
+      },
+      seo: {
+        ...sourceSiteConfig.site.seo,
+        siteName: 'Fixed Route 404',
+      },
+    },
+  };
+  const pageConfig = {
+    ...sourcePageConfig,
+    domain: fixtureDomain,
+    pageId: 'not-found',
+  };
+  const components = {
+    ...sourcePageComponents,
+    domain: fixtureDomain,
+    pageId: 'not-found',
+    components: [
+      ...(sourceSharedComponents.components ?? []),
+      ...(sourcePageComponents.components ?? []),
+    ],
+  };
+  const variables = {
+    ...sourceVariables,
+    domain: fixtureDomain,
+    pageId: 'not-found',
+  };
+  const angoraCombos = {
+    ...sourceCombos,
+    domain: fixtureDomain,
+    pageId: 'not-found',
+  };
+  const runtimeRequests = [];
+  const apiBase = await startRuntimeApi(t, (req, res) => {
+    const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+    if (url.pathname !== '/runtime-bundle') {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false }));
+      return;
+    }
+
+    runtimeRequests.push({
+      path: url.searchParams.get('path'),
+      lang: url.searchParams.get('lang'),
+    });
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      version: 1,
+      domain: fixtureDomain,
+      pageId: 'not-found',
+      sourceStage: 'published',
+      lang: 'en',
+      route: { path: '/404', pageId: 'not-found', language: 'en' },
+      siteConfig,
+      pageConfig,
+      components,
+      variables,
+      angoraCombos,
+      i18n: {
+        ...sourceI18n,
+        domain: fixtureDomain,
+        pageId: 'not-found',
+        lang: 'en',
+      },
+      metadata: { statusCode: 404, notFound: true },
+    }));
+  });
+  const { port, getStderr } = await startProductionServer(t, {
+    CONFIG_API_SERVER_FALLBACK_URL: '',
+    CONFIG_API_URL: apiBase,
+  });
+  const response = await fetch(
+    `http://127.0.0.1:${port}/missing-fixed-route?draftDomain=${ fixtureDomain }&debugWorkspace=false&lang=es`,
+    {
+      headers: {
+        Host: 'test.zoolandingpage.com.mx',
+        'X-Forwarded-Host': 'test.zoolandingpage.com.mx',
+        'X-Forwarded-Port': '443',
+        'X-Forwarded-Proto': 'https',
+        'X-Forwarded-Server': 'dokploy-traefik',
+      },
+    },
+  );
+  const body = await response.text();
+  const visibleHtml = stripNonVisibleHtml(body);
+
+  assert.equal(response.status, 404);
+  assert.ok(
+    runtimeRequests.some((request) => request.path === '/missing-fixed-route' && request.lang === 'es'),
+    'the request resolver should initially query the runtime with the explicit request language',
+  );
+  assert.match(body, /<html\b[^>]*\blang="en"/i);
+  assert.match(body, /<title>Page not found \| Fixed Route 404<\/title>/i);
+  assert.match(body, /<meta name="description" content="This page is not published or is no longer available\."/i);
+  assert.match(body, /<meta property="og:title" content="Page not found \| Fixed Route 404"/i);
+  assert.match(visibleHtml, /data-zlp-not-found-ssr/);
+  assert.match(visibleHtml, /Page not found/);
+  assert.match(visibleHtml, /This route is not published or is no longer available\./);
+  assert.match(visibleHtml, /Go to home/);
+  assert.doesNotMatch(
+    body,
+    /Página no encontrada|Esta ruta no está publicada|Ir al inicio|Esta página no está publicada/i,
+  );
+  assert.equal(getStderr(), '');
+});
+
 test('production SSR shared preview decorates head with the test runtime environment', async (t) => {
   const requests = [];
   const createSiteConfig = (brand) => ({
@@ -1003,6 +1167,84 @@ test('production SSR decorates content hub article SEO from the route runtime bu
   assert.match(html, /"keywords":"runtime, route"/);
   assert.doesNotMatch(stripNonVisibleHtml(html), /Página no encontrada|Esta ruta no nos llevó/i);
   assertNoContentHubOperationalLeak(extractJsonLd(html));
+  assert.equal(getStderr(), '');
+});
+
+test('production SSR loads taxonomy page SEO with the concrete request path', async (t) => {
+  const runtimeDomain = 'runtime-taxonomy.example.com';
+  const replaceDomain = (payload) => JSON.parse(
+    JSON.stringify(payload).replaceAll('zoositioweb.com.mx', runtimeDomain)
+  );
+  const siteConfig = replaceDomain(JSON.parse(
+    readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'site-config.json'), 'utf8')
+  ));
+  const categoryPageConfig = replaceDomain(JSON.parse(
+    readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'blog-category', 'page-config.json'), 'utf8')
+  ));
+  const categoryComponents = replaceDomain(JSON.parse(
+    readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'blog-category', 'components.json'), 'utf8')
+  ));
+  const categoryVariables = replaceDomain(JSON.parse(
+    readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'blog-category', 'variables.json'), 'utf8')
+  ));
+  const categoryI18n = replaceDomain(JSON.parse(
+    readFileSync(join(repoRoot, 'drafts', 'zoositioweb.com.mx', 'blog-category', 'i18n', 'es.json'), 'utf8')
+  ));
+  const requestedPaths = [];
+
+  const apiBase = await startRuntimeApi(t, (req, res) => {
+    const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+    if (url.pathname !== '/runtime-bundle') {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false }));
+      return;
+    }
+
+    const path = url.searchParams.get('path') || '/';
+    requestedPaths.push(path);
+    const pageConfig = structuredClone(categoryPageConfig);
+    pageConfig.seo.title = path === '/blog/web'
+      ? 'Concrete taxonomy SEO title'
+      : path === '/blog/:categorySlug'
+        ? 'Pattern placeholder SEO title'
+        : pageConfig.seo.title;
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      ok: true,
+      version: 1,
+      domain: runtimeDomain,
+      pageId: 'blog-category',
+      sourceStage: 'published',
+      environment: 'production',
+      versionId: 'runtime-taxonomy-fixture',
+      lang: 'es',
+      siteConfig,
+      route: { path: '/blog/:categorySlug', pageId: 'blog-category' },
+      pageConfig,
+      components: categoryComponents,
+      variables: categoryVariables,
+      i18n: categoryI18n,
+      metadata: { statusCode: 200, notFound: false },
+    }));
+  });
+
+  const { port, getStderr } = await startProductionServer(t, {
+    CONFIG_API_SERVER_FALLBACK_URL: '',
+    CONFIG_API_URL: apiBase,
+  });
+  const headers = {
+    Host: runtimeDomain,
+    'X-Forwarded-Host': runtimeDomain,
+    'X-Forwarded-Port': '443',
+    'X-Forwarded-Proto': 'https',
+  };
+
+  const response = await fetch(`http://127.0.0.1:${port}/blog/web?lang=es`, { headers });
+  const html = await response.text();
+  assert.equal(response.status, 200);
+  assert.match(html, /<title>Concrete taxonomy SEO title<\/title>/);
+  assert.doesNotMatch(html, /Pattern placeholder SEO title/);
+  assert.ok(requestedPaths.includes('/blog/web'));
   assert.equal(getStderr(), '');
 });
 

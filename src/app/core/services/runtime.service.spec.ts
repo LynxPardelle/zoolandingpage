@@ -53,6 +53,7 @@ describe('RuntimeService', () => {
     const updateClasses = jasmine.createSpy('updateClasses');
     const updateRenderedDomClasses = jasmine.createSpy('updateRenderedDomClasses');
     const collectRenderedDomClasses = jasmine.createSpy('collectRenderedDomClasses').and.returnValue(['ank-d-flex']);
+    const cssReadinessSignature = jasmine.createSpy('cssReadinessSignature');
     const containsRegisteredComboClass = jasmine.createSpy('containsRegisteredComboClass').and.returnValue(true);
     const waitForCssReady = jasmine.createSpy('waitForCssReady').and.resolveTo(true);
     const setAuxiliaryCombos = jasmine.createSpy('setAuxiliaryCombos');
@@ -70,6 +71,9 @@ describe('RuntimeService', () => {
     const configureLoadingCurtain = jasmine.createSpy('configureFromDraft');
     const hideLoadingCurtain = jasmine.createSpy('hideWhenReady');
     const applyTheme = jasmine.createSpy('applyTheme');
+    const cssReadinessRevision = jasmine.createSpy('cssReadinessRevision');
+    let comboRevision: string;
+    let themeRevision: string;
     let loadSiteConfig: jasmine.Spy;
     let bootstrapLoad: jasmine.Spy;
     let setCombos: jasmine.Spy;
@@ -178,6 +182,14 @@ describe('RuntimeService', () => {
         updateRenderedDomClasses.calls.reset();
         collectRenderedDomClasses.calls.reset();
         collectRenderedDomClasses.and.returnValue(['ank-d-flex']);
+        comboRevision = 'combos-v1';
+        cssReadinessSignature.calls.reset();
+        cssReadinessSignature.and.callFake((classes: readonly string[]) => {
+            const normalized = Array.from(new Set(
+                classes.flatMap((entry) => String(entry).trim().split(/\s+/)).filter(Boolean)
+            )).sort();
+            return `${ comboRevision }::${ normalized.join('|') }`;
+        });
         containsRegisteredComboClass.calls.reset();
         containsRegisteredComboClass.and.returnValue(true);
         waitForCssReady.calls.reset();
@@ -198,6 +210,9 @@ describe('RuntimeService', () => {
         configureLoadingCurtain.calls.reset();
         hideLoadingCurtain.calls.reset();
         applyTheme.calls.reset();
+        themeRevision = 'theme-v1';
+        cssReadinessRevision.calls.reset();
+        cssReadinessRevision.and.callFake(() => themeRevision);
 
         TestBed.configureTestingModule({
             providers: [
@@ -254,6 +269,7 @@ describe('RuntimeService', () => {
                         updateClasses,
                         updateRenderedDomClasses,
                         collectRenderedDomClasses,
+                        cssReadinessSignature,
                         containsRegisteredComboClass,
                         waitForCssReady,
                         setAuxiliaryCombos,
@@ -292,6 +308,7 @@ describe('RuntimeService', () => {
                     provide: ThemeService,
                     useValue: {
                         applyTheme,
+                        cssReadinessRevision,
                     },
                 },
             ],
@@ -376,6 +393,83 @@ describe('RuntimeService', () => {
         });
     });
 
+    it('hands off fixed route language and prefetches each sibling with its own language', async () => {
+        spyOnProperty(navigator, 'userAgent', 'get').and.returnValue('Mozilla/5.0 Chrome/147.0.0.0 Safari/537.36');
+        spyOnProperty(navigator, 'webdriver', 'get').and.returnValue(false);
+        loadSiteConfig.and.resolveTo({
+            version: 1,
+            domain: 'pamelabetancourt.com',
+            defaultPageId: 'home',
+            routes: [
+                { path: '/soft-landing-china/eng', pageId: 'china', language: 'en' },
+                { path: '/soft-landing-china/zh', pageId: 'china', language: 'zh' },
+                { path: '/servicios', pageId: 'servicios' },
+            ],
+        });
+        const service = TestBed.inject(RuntimeService);
+
+        setRuntimeUrl('/soft-landing-china/zh?draftDomain=pamelabetancourt.com&draftPageId=china&lang=en');
+        await service.initialize('en');
+
+        expect(bootstrapLoad).toHaveBeenCalledWith({
+            domain: 'pamelabetancourt.com',
+            pageId: 'china',
+            lang: 'en',
+            routeLanguage: 'zh',
+            routePath: '/soft-landing-china/zh',
+            routeParams: undefined,
+        });
+
+        await flushPostBootstrapBrowserWork();
+        expect(prefetchRoute).toHaveBeenCalledWith('pamelabetancourt.com', {
+            pageId: 'china',
+            lang: 'en',
+            path: '/soft-landing-china/eng',
+        });
+        expect(prefetchRoute).toHaveBeenCalledWith('pamelabetancourt.com', {
+            pageId: 'servicios',
+            lang: 'en',
+            path: '/servicios',
+        });
+    });
+
+    it('clears fixed route language after popstate navigation reaches an ordinary route', async () => {
+        loadSiteConfig.and.resolveTo({
+            version: 1,
+            domain: 'pamelabetancourt.com',
+            defaultPageId: 'home',
+            routes: [
+                { path: '/soft-landing-china/eng', pageId: 'china', language: 'en' },
+                { path: '/soft-landing-china/zh', pageId: 'china', language: 'zh' },
+                { path: '/servicios', pageId: 'servicios' },
+            ],
+        });
+        const service = TestBed.inject(RuntimeService);
+        const host = document.createElement('main');
+
+        setRuntimeUrl('/soft-landing-china/zh?draftDomain=pamelabetancourt.com&draftPageId=china&lang=en');
+        await service.initialize('en');
+        service.connect({
+            host,
+            destroyRef: { onDestroy: () => undefined } as any,
+            showDebugWorkspace: () => false,
+            currentLanguage: () => 'zh',
+        });
+
+        bootstrapLoad.calls.reset();
+        setRuntimeUrl('/servicios?draftDomain=pamelabetancourt.com&lang=es');
+        window.dispatchEvent(new PopStateEvent('popstate'));
+        await flushPostBootstrapBrowserWork();
+
+        expect(bootstrapLoad).toHaveBeenCalledWith({
+            domain: 'pamelabetancourt.com',
+            pageId: 'servicios',
+            lang: 'es',
+            routePath: '/servicios',
+            routeParams: undefined,
+        });
+    });
+
     it('hides the boot curtain after rendered component classes are sent to Angora', async () => {
         const service = TestBed.inject(RuntimeService);
 
@@ -392,14 +486,190 @@ describe('RuntimeService', () => {
         expect(updateClasses.calls.allArgs()).toEqual([
             [['hero']],
             [['hero', 'ank-d-flex']],
-            [['hero', 'ank-d-flex']],
-            [['hero', 'ank-d-flex']],
-            [['hero', 'ank-d-flex']],
         ]);
         expect(waitForCssReady).toHaveBeenCalled();
-        expect(waitForCssReady).toHaveBeenCalledWith(jasmine.any(Number), ['hero', 'ank-d-flex']);
+        expect(waitForCssReady).toHaveBeenCalledWith(
+            jasmine.any(Number),
+            ['hero', 'ank-d-flex'],
+            jasmine.anything(),
+        );
         expect(updateRenderedDomClasses).not.toHaveBeenCalled();
         expect(hideLoadingCurtain).toHaveBeenCalledWith('rendered-components-css-updated');
+    });
+
+    it('runs one CSS readiness cycle for a stable normalized signature across bootstrap and equivalent mutations', async () => {
+        const service = TestBed.inject(RuntimeService);
+        const host = document.createElement('main');
+
+        await service.initialize('es');
+        service.connect({
+            host,
+            destroyRef: { onDestroy: () => undefined } as any,
+            showDebugWorkspace: () => false,
+            currentLanguage: () => 'es',
+        });
+
+        const first = document.createElement('div');
+        first.className = 'hero ank-d-flex';
+        host.appendChild(first);
+        await Promise.resolve();
+        first.className = 'ank-d-flex hero';
+        await Promise.resolve();
+
+        await flushCssReadinessPasses();
+
+        expect(waitForCssReady).toHaveBeenCalledTimes(1);
+        expect(hideLoadingCurtain).toHaveBeenCalledOnceWith('rendered-components-css-updated');
+    });
+
+    it('coalesces separate MutationObserver bursts into one scheduled rendered CSS task', async () => {
+        const service = TestBed.inject(RuntimeService);
+        const host = document.createElement('main');
+
+        await service.initialize('es');
+        await flushCssReadinessPasses();
+        service.connect({
+            host,
+            destroyRef: { onDestroy: () => undefined } as any,
+            showDebugWorkspace: () => false,
+            currentLanguage: () => 'es',
+        });
+        const requestUpdate = spyOn(service, 'requestRenderedComponentsCssUpdate').and.callThrough();
+
+        const child = document.createElement('div');
+        host.appendChild(child);
+        await Promise.resolve();
+        child.className = 'ank-d-flex';
+        await Promise.resolve();
+        await flushPostBootstrapBrowserWork();
+
+        expect(requestUpdate).toHaveBeenCalledTimes(1);
+    });
+
+    it('invalidates the readiness cache once for a real class-set change', async () => {
+        const service = TestBed.inject(RuntimeService);
+
+        await service.initialize('es');
+        await flushCssReadinessPasses();
+        waitForCssReady.calls.reset();
+        hideLoadingCurtain.calls.reset();
+        collectRenderedDomClasses.and.returnValue(['ank-d-flex', 'ank-ai-center']);
+
+        service.requestRenderedComponentsCssUpdate();
+        service.requestRenderedComponentsCssUpdate();
+        await flushCssReadinessPasses();
+
+        expect(waitForCssReady).toHaveBeenCalledTimes(1);
+        expect(hideLoadingCurtain).toHaveBeenCalledOnceWith('rendered-components-css-updated');
+    });
+
+    it('invalidates readiness once for theme and combo revision changes', async () => {
+        const service = TestBed.inject(RuntimeService);
+
+        await service.initialize('es');
+        await flushCssReadinessPasses();
+        waitForCssReady.calls.reset();
+        hideLoadingCurtain.calls.reset();
+
+        themeRevision = 'theme-v2';
+        service.requestRenderedComponentsCssUpdate();
+        service.requestRenderedComponentsCssUpdate();
+        await flushCssReadinessPasses();
+
+        comboRevision = 'combos-v2';
+        service.requestRenderedComponentsCssUpdate();
+        service.requestRenderedComponentsCssUpdate();
+        await flushCssReadinessPasses();
+
+        expect(waitForCssReady).toHaveBeenCalledTimes(2);
+        expect(hideLoadingCurtain).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not let an obsolete in-flight readiness completion hide the curtain for a newer signature', async () => {
+        const service = TestBed.inject(RuntimeService);
+        let resolveFirst!: (ready: boolean) => void;
+        let resolveSecond!: (ready: boolean) => void;
+        const first = new Promise<boolean>((resolve) => { resolveFirst = resolve; });
+        const second = new Promise<boolean>((resolve) => { resolveSecond = resolve; });
+        waitForCssReady.and.returnValues(first, second, Promise.resolve(true), Promise.resolve(true));
+
+        collectRenderedDomClasses.and.returnValue(['ank-d-flex']);
+        service.requestRenderedComponentsCssUpdate();
+        collectRenderedDomClasses.and.returnValue(['ank-d-flex', 'ank-ai-center']);
+        service.requestRenderedComponentsCssUpdate();
+
+        resolveFirst(true);
+        await flushCssReadinessPasses();
+        expect(hideLoadingCurtain).not.toHaveBeenCalled();
+
+        resolveSecond(true);
+        await flushCssReadinessPasses();
+
+        expect(waitForCssReady).toHaveBeenCalledTimes(2);
+        expect(hideLoadingCurtain).toHaveBeenCalledOnceWith('rendered-components-css-updated');
+    });
+
+    it('aborts stale Angora readiness work on signature changes and disconnect', () => {
+        const service = TestBed.inject(RuntimeService);
+        const readinessSignals: AbortSignal[] = [];
+        waitForCssReady.and.callFake((
+            _timeoutMs: number,
+            _requiredClasses: readonly string[],
+            signal?: AbortSignal,
+        ) => {
+            if (signal) readinessSignals.push(signal);
+            return new Promise<boolean>(() => undefined);
+        });
+
+        collectRenderedDomClasses.and.returnValue(['ank-d-flex']);
+        service.requestRenderedComponentsCssUpdate();
+        collectRenderedDomClasses.and.returnValue(['ank-d-flex', 'ank-ai-center']);
+        service.requestRenderedComponentsCssUpdate();
+
+        expect(readinessSignals.length).toBe(2);
+        expect(readinessSignals[0].aborted).toBeTrue();
+        expect(readinessSignals[1].aborted).toBeFalse();
+        expect(hideLoadingCurtain).not.toHaveBeenCalled();
+
+        service.disconnect();
+
+        expect(readinessSignals[1].aborted).toBeTrue();
+        expect(hideLoadingCurtain).not.toHaveBeenCalled();
+    });
+
+    it('releases the active signature when CSS cycle startup throws synchronously', async () => {
+        const service = TestBed.inject(RuntimeService);
+        updateClasses.and.throwError('css start failed');
+
+        expect(() => service.requestRenderedComponentsCssUpdate())
+            .toThrowError('css start failed');
+        expect(hideLoadingCurtain).not.toHaveBeenCalled();
+
+        updateClasses.and.stub();
+        service.requestRenderedComponentsCssUpdate();
+        await flushCssReadinessPasses();
+
+        expect(updateClasses).toHaveBeenCalledTimes(2);
+        expect(waitForCssReady).toHaveBeenCalledTimes(1);
+        expect(hideLoadingCurtain).toHaveBeenCalledOnceWith('rendered-components-css-updated');
+    });
+
+    it('releases the active signature when the readiness probe throws synchronously', async () => {
+        const service = TestBed.inject(RuntimeService);
+        waitForCssReady.and.callFake(() => {
+            throw new Error('css probe failed');
+        });
+
+        expect(() => service.requestRenderedComponentsCssUpdate())
+            .toThrowError('css probe failed');
+        expect(hideLoadingCurtain).not.toHaveBeenCalled();
+
+        waitForCssReady.and.resolveTo(true);
+        service.requestRenderedComponentsCssUpdate();
+        await flushCssReadinessPasses();
+
+        expect(waitForCssReady).toHaveBeenCalledTimes(2);
+        expect(hideLoadingCurtain).toHaveBeenCalledOnceWith('rendered-components-css-updated');
     });
 
     it('waits for the full CSS timeout when rendered text is safe but Angora CSS is not ready', async () => {
@@ -414,7 +684,7 @@ describe('RuntimeService', () => {
             await service.initialize('es');
             await flushCssReadinessPasses();
 
-            expect(waitForCssReady).toHaveBeenCalledWith(750, ['hero', 'ank-d-flex']);
+            expect(waitForCssReady).toHaveBeenCalledWith(750, ['hero', 'ank-d-flex'], jasmine.anything());
             expect(hideLoadingCurtain).not.toHaveBeenCalledWith('rendered-components-css-updated');
 
             now = 3_000;
@@ -474,9 +744,8 @@ describe('RuntimeService', () => {
         await flushCssReadinessPasses();
 
         expect(waitForCssReady.calls.allArgs()).toEqual([
-            [jasmine.any(Number), ['hero', 'navCombo']],
-            [jasmine.any(Number), ['hero', 'navCombo', 'sectionTitle']],
-            [jasmine.any(Number), ['hero', 'navCombo', 'sectionTitle']],
+            [jasmine.any(Number), ['hero', 'navCombo'], jasmine.anything()],
+            [jasmine.any(Number), ['hero', 'navCombo', 'sectionTitle'], jasmine.anything()],
         ]);
         expect(hideLoadingCurtain).toHaveBeenCalledWith('rendered-components-css-updated');
     });
@@ -916,6 +1185,73 @@ describe('RuntimeService', () => {
                 routeParams: undefined,
             },
         ]]);
+    });
+
+    it('renders the login route when the app initializer redirects before the shell connects', async () => {
+        const service = TestBed.inject(RuntimeService);
+        spyOn(window, 'fetch').and.resolveTo(new Response(JSON.stringify({ ok: false }), {
+            status: 401,
+            headers: { 'Content-Type': 'application/json' },
+        }));
+        loadSiteConfig.and.resolveTo({
+            version: 1,
+            domain: 'pamelabetancourt.com',
+            defaultPageId: 'home',
+            routes: [
+                { path: '/acceso', pageId: 'acceso' },
+                {
+                    path: '/admin/blog',
+                    pageId: 'admin-blog',
+                    auth: {
+                        required: true,
+                        allowedGroups: ['zoosite-admin'],
+                        redirectTo: '/acceso',
+                    },
+                },
+            ],
+            runtime: {
+                auth: {
+                    enabled: true,
+                    authProfileId: 'staff',
+                    provider: 'cognito',
+                    issuer: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_PREVIEW',
+                    clientId: 'public-web-client',
+                    hostedUiDomain: 'https://preview.auth.us-east-1.amazoncognito.com',
+                    scopes: ['openid'],
+                    redirectPath: '/auth/callback',
+                    logoutPath: '/acceso',
+                    loginPath: '/acceso',
+                    session: {
+                        mode: 'server-cookie',
+                        mePath: '/auth/session/me',
+                    },
+                },
+            },
+            site: {},
+        } as any);
+
+        setRuntimeUrl('/admin/blog?draftDomain=pamelabetancourt.com&lang=es');
+        await service.initialize('es');
+        service.connect({
+            host: document.createElement('main'),
+            destroyRef: { destroyed: false, onDestroy: () => () => undefined } as any,
+            showDebugWorkspace: () => false,
+            currentLanguage: () => 'es',
+        });
+        for (let attempt = 0; attempt < 8 && service.rootComponentsIds().length === 0; attempt++) {
+            await flushPostBootstrapBrowserWork();
+        }
+
+        expect(window.location.pathname).toBe('/acceso');
+        expect(window.location.search).toContain('draftDomain=pamelabetancourt.com');
+        expect(service.rootComponentsIds()).toEqual(['acceso-root']);
+        expect(bootstrapLoad).toHaveBeenCalledOnceWith({
+            domain: 'pamelabetancourt.com',
+            pageId: 'acceso',
+            lang: 'es',
+            routePath: '/acceso',
+            routeParams: undefined,
+        });
     });
 
     it('loads authored debug workspace roots when debug workspace is enabled', async () => {
@@ -1386,6 +1722,12 @@ describe('RuntimeService', () => {
 
         setRuntimeUrl('/admin/blog/articulos/art_20260623/editor?draftDomain=pamelabetancourt.com&lang=es');
         await service.initialize('es');
+        service.connect({
+            host: document.createElement('main'),
+            destroyRef: { destroyed: false, onDestroy: () => () => undefined } as any,
+            showDebugWorkspace: () => false,
+            currentLanguage: () => 'es',
+        });
         await new Promise<void>((resolve) => window.setTimeout(resolve, 5));
         await flushPostBootstrapBrowserWork();
 

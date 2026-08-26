@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { Meta, Title } from '@angular/platform-browser';
 import { DomainResolverService } from './domain-resolver.service';
 import { RuntimeConfigService } from './runtime-config.service';
+import { ConfigStoreService } from './config-store.service';
 import { SeoMetadataService } from './seo-metadata.service';
 import { VariableStoreService } from './variable-store.service';
 
@@ -663,13 +664,25 @@ describe('SeoMetadataService', () => {
             .toBe('https://pokeapi-demo.zoolandingpage.com.mx/pokemon?name=charizard');
     });
 
-    it('strips ad query parameters from canonicals and emits hreflang links for supported languages', () => {
+    it('reconciles SSR hreflang links idempotently for an ordinary three-language route', () => {
         TestBed.resetTestingModule();
 
         title = jasmine.createSpyObj<Title>('Title', ['setTitle']);
         meta = jasmine.createSpyObj<Meta>('Meta', ['updateTag', 'removeTag']);
 
         const baseDoc = document.implementation.createHTMLDocument('seo');
+        for (const [language, href] of [
+            ['es', 'https://zoositioweb.com.mx/contacto?ref=keep&lang=es'],
+            ['en', 'https://zoositioweb.com.mx/contacto?ref=keep&lang=en'],
+            ['zh', 'https://zoositioweb.com.mx/contacto?ref=keep&lang=zh'],
+            ['x-default', 'https://zoositioweb.com.mx/contacto?ref=keep&lang=es'],
+        ] as const) {
+            const link = baseDoc.createElement('link');
+            link.setAttribute('rel', 'alternate');
+            link.setAttribute('hreflang', language);
+            link.setAttribute('href', href);
+            baseDoc.head.appendChild(link);
+        }
         const seoDoc = {
             documentElement: baseDoc.documentElement,
             head: baseDoc.head,
@@ -721,7 +734,7 @@ describe('SeoMetadataService', () => {
                 theme: { palettes: {} },
                 i18n: {
                     defaultLanguage: 'es',
-                    supportedLanguages: ['es', 'en'],
+                    supportedLanguages: ['es', 'en', 'zh'],
                 },
             },
         } as never);
@@ -731,15 +744,200 @@ describe('SeoMetadataService', () => {
             description: 'Contacto por WhatsApp.',
             canonical: 'https://zoositioweb.com.mx/contacto?gclid=test&utm_source=google&ref=keep',
         } as never);
+        service.apply('es', {
+            title: 'Contacto',
+            description: 'Contacto por WhatsApp.',
+            canonical: 'https://zoositioweb.com.mx/contacto?gclid=test&utm_source=google&ref=keep',
+        } as never);
 
         expect(seoDoc.head.querySelector('link[rel="canonical"]')?.getAttribute('href'))
             .toBe('https://zoositioweb.com.mx/contacto?ref=keep');
+        expect(seoDoc.head.querySelectorAll('link[rel="alternate"][hreflang]').length).toBe(4);
+        for (const language of ['es', 'en', 'zh', 'x-default']) {
+            expect(seoDoc.head.querySelectorAll(`link[rel="alternate"][hreflang="${language}"]`).length)
+                .withContext(language)
+                .toBe(1);
+        }
         expect(seoDoc.head.querySelector('link[rel="alternate"][hreflang="es"]')?.getAttribute('href'))
             .toBe('https://zoositioweb.com.mx/contacto?ref=keep&lang=es');
         expect(seoDoc.head.querySelector('link[rel="alternate"][hreflang="en"]')?.getAttribute('href'))
             .toBe('https://zoositioweb.com.mx/contacto?ref=keep&lang=en');
+        expect(seoDoc.head.querySelector('link[rel="alternate"][hreflang="zh"]')?.getAttribute('href'))
+            .toBe('https://zoositioweb.com.mx/contacto?ref=keep&lang=zh');
         expect(seoDoc.head.querySelector('link[rel="alternate"][hreflang="x-default"]')?.getAttribute('href'))
             .toBe('https://zoositioweb.com.mx/contacto?ref=keep&lang=es');
+    });
+
+    it('emits exact fixed-language sibling paths for a trailing-slash pathname despite a conflicting query language', () => {
+        TestBed.resetTestingModule();
+        title = jasmine.createSpyObj<Title>('Title', ['setTitle']);
+        meta = jasmine.createSpyObj<Meta>('Meta', ['updateTag', 'removeTag']);
+        const baseDoc = document.implementation.createHTMLDocument('fixed-route-seo');
+        for (const [language, href] of [
+            ['en', 'https://grupoastralegal.com/soft-landing-china/eng'],
+            ['zh', 'https://grupoastralegal.com/soft-landing-china/zh'],
+            ['x-default', 'https://grupoastralegal.com/soft-landing-china/eng'],
+        ] as const) {
+            const link = baseDoc.createElement('link');
+            link.setAttribute('rel', 'alternate');
+            link.setAttribute('hreflang', language);
+            link.setAttribute('href', href);
+            baseDoc.head.appendChild(link);
+        }
+        const seoDoc = {
+            documentElement: baseDoc.documentElement,
+            head: baseDoc.head,
+            createElement: baseDoc.createElement.bind(baseDoc),
+            defaultView: {
+                location: {
+                    origin: 'https://grupoastralegal.com',
+                    pathname: '/soft-landing-china/zh/',
+                    search: '?lang=en',
+                },
+            },
+        } as unknown as Document;
+        TestBed.configureTestingModule({
+            providers: [
+                SeoMetadataService,
+                VariableStoreService,
+                ConfigStoreService,
+                { provide: DOCUMENT, useValue: seoDoc },
+                { provide: Title, useValue: title },
+                { provide: Meta, useValue: meta },
+                { provide: DomainResolverService, useValue: { resolveDomain: () => ({ domain: 'grupoastralegal.com' }) } },
+                {
+                    provide: RuntimeConfigService,
+                    useValue: {
+                        seoDefaults: () => ({ canonicalOrigin: 'https://grupoastralegal.com', siteName: 'Astra Legal' }),
+                        appName: () => 'Astra Legal',
+                        appDescription: () => '',
+                    },
+                },
+            ],
+        });
+        const siteConfig = {
+            version: 1,
+            domain: 'grupoastralegal.com',
+            routes: [
+                { path: '/soft-landing-china/eng', pageId: 'soft-landing-china', language: 'en' },
+                { path: '/soft-landing-china/zh', pageId: 'soft-landing-china', language: 'zh' },
+            ],
+            site: {
+                appIdentity: { identifier: 'astra', name: 'Astra Legal' },
+                theme: { palettes: {} },
+                i18n: { defaultLanguage: 'es', supportedLanguages: ['es', 'en', 'zh'] },
+            },
+        } as never;
+        TestBed.inject(ConfigStoreService).setSiteConfig(siteConfig);
+        TestBed.inject(VariableStoreService).setPayload(null, siteConfig);
+        service = TestBed.inject(SeoMetadataService);
+
+        service.apply('zh', {
+            canonical: {
+                es: 'https://grupoastralegal.com/soft-landing-china/eng',
+                en: 'https://grupoastralegal.com/soft-landing-china/eng',
+                zh: 'https://grupoastralegal.com/soft-landing-china/zh',
+            },
+        });
+        service.apply('zh', {
+            canonical: {
+                es: 'https://grupoastralegal.com/soft-landing-china/eng',
+                en: 'https://grupoastralegal.com/soft-landing-china/eng',
+                zh: 'https://grupoastralegal.com/soft-landing-china/zh',
+            },
+        });
+
+        expect(seoDoc.head.querySelector('link[rel="canonical"]')?.getAttribute('href'))
+            .toBe('https://grupoastralegal.com/soft-landing-china/zh');
+        expect(seoDoc.head.querySelectorAll('link[rel="alternate"][hreflang]').length).toBe(3);
+        for (const language of ['en', 'zh', 'x-default']) {
+            expect(seoDoc.head.querySelectorAll(`link[rel="alternate"][hreflang="${language}"]`).length)
+                .withContext(language)
+                .toBe(1);
+        }
+        expect(meta.updateTag).toHaveBeenCalledWith({
+            property: 'og:url',
+            content: 'https://grupoastralegal.com/soft-landing-china/zh',
+        });
+        expect(seoDoc.head.querySelector('link[rel="alternate"][hreflang="en"]')?.getAttribute('href'))
+            .toBe('https://grupoastralegal.com/soft-landing-china/eng');
+        expect(seoDoc.head.querySelector('link[rel="alternate"][hreflang="zh"]')?.getAttribute('href'))
+            .toBe('https://grupoastralegal.com/soft-landing-china/zh');
+        expect(seoDoc.head.querySelector('link[rel="alternate"][hreflang="x-default"]')?.getAttribute('href'))
+            .toBe('https://grupoastralegal.com/soft-landing-china/eng');
+    });
+
+    it('replaces unknown-path SSR alternates with one coherent canonical 404 set', () => {
+        TestBed.resetTestingModule();
+        title = jasmine.createSpyObj<Title>('Title', ['setTitle']);
+        meta = jasmine.createSpyObj<Meta>('Meta', ['updateTag', 'removeTag']);
+        const baseDoc = document.implementation.createHTMLDocument('unknown-route-seo');
+        for (const language of ['es', 'en', 'zh', 'x-default']) {
+            const link = baseDoc.createElement('link');
+            link.setAttribute('rel', 'alternate');
+            link.setAttribute('hreflang', language);
+            link.setAttribute('href', `https://grupoastralegal.com/ruta-que-no-existe?lang=${language === 'x-default' ? 'es' : language}`);
+            baseDoc.head.appendChild(link);
+        }
+        const seoDoc = {
+            documentElement: baseDoc.documentElement,
+            head: baseDoc.head,
+            createElement: baseDoc.createElement.bind(baseDoc),
+            defaultView: {
+                location: {
+                    origin: 'https://grupoastralegal.com',
+                    pathname: '/ruta-que-no-existe',
+                    search: '?lang=zh',
+                },
+            },
+        } as unknown as Document;
+        TestBed.configureTestingModule({
+            providers: [
+                SeoMetadataService,
+                VariableStoreService,
+                ConfigStoreService,
+                { provide: DOCUMENT, useValue: seoDoc },
+                { provide: Title, useValue: title },
+                { provide: Meta, useValue: meta },
+                { provide: DomainResolverService, useValue: { resolveDomain: () => ({ domain: 'grupoastralegal.com' }) } },
+                {
+                    provide: RuntimeConfigService,
+                    useValue: {
+                        seoDefaults: () => ({ canonicalOrigin: 'https://grupoastralegal.com', siteName: 'Astra Legal' }),
+                        appName: () => 'Astra Legal',
+                        appDescription: () => '',
+                    },
+                },
+            ],
+        });
+        const siteConfig = {
+            version: 1,
+            domain: 'grupoastralegal.com',
+            routes: [{ path: '/404', pageId: 'not-found' }],
+            site: {
+                appIdentity: { identifier: 'astra', name: 'Astra Legal' },
+                theme: { palettes: {} },
+                i18n: { defaultLanguage: 'es', supportedLanguages: ['es', 'en', 'zh'] },
+            },
+        } as never;
+        TestBed.inject(ConfigStoreService).setSiteConfig(siteConfig);
+        TestBed.inject(VariableStoreService).setPayload(null, siteConfig);
+        service = TestBed.inject(SeoMetadataService);
+
+        service.apply('es', { canonical: 'https://grupoastralegal.com/404' });
+        service.apply('es', { canonical: 'https://grupoastralegal.com/404' });
+
+        expect(seoDoc.head.querySelector('link[rel="canonical"]')?.getAttribute('href'))
+            .toBe('https://grupoastralegal.com/404');
+        const alternates = Array.from(seoDoc.head.querySelectorAll('link[rel="alternate"][hreflang]'));
+        expect(alternates.length).toBe(4);
+        expect(alternates.map((link) => link.getAttribute('hreflang'))).toEqual(['es', 'en', 'zh', 'x-default']);
+        expect(alternates.map((link) => link.getAttribute('href'))).toEqual([
+            'https://grupoastralegal.com/404?lang=es',
+            'https://grupoastralegal.com/404?lang=en',
+            'https://grupoastralegal.com/404?lang=zh',
+            'https://grupoastralegal.com/404?lang=es',
+        ]);
     });
 
     it('rebases absolute page canonicals to the active canonical host when enforced', () => {

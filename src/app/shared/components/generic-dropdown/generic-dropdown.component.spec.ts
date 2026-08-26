@@ -2,6 +2,7 @@ import { OverlayContainer } from '@angular/cdk/overlay';
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { AngoraCombosService } from '../../services/angora-combos.service';
+import { DRAFT_RUNTIME_STICKY_QUERY_PARAMS } from '../../services/draft-runtime.service';
 import { LanguageService } from '../../services/language.service';
 import { currentBrowserPath } from '../../utility/navigation/browser-navigation.utility';
 import { GenericDropdown } from './generic-dropdown.component';
@@ -95,9 +96,19 @@ describe('GenericDropdown', () => {
 
     const component = fixture.debugElement.children[0]
       .componentInstance as GenericDropdown;
+    const currentUrl = new URL(window.location.href);
+    const stickyQuery = new URLSearchParams();
+    DRAFT_RUNTIME_STICKY_QUERY_PARAMS.forEach((key) => {
+      if (currentUrl.searchParams.has(key)) {
+        stickyQuery.set(key, currentUrl.searchParams.get(key) ?? '');
+      }
+    });
+    const serializedStickyQuery = stickyQuery.toString();
     expect(component.normalizedItems()[0]?.label).toBe('Contacto');
     expect(component.normalizedItems()[0]?.value).toBe('contact');
-    expect(component.itemHref(component.normalizedItems()[0])).toBe('#contact');
+    expect(component.itemHref(component.normalizedItems()[0])).toBe(
+      `${currentUrl.pathname}${serializedStickyQuery ? `?${serializedStickyQuery}` : ''}#contact`
+    );
   });
 
   it('preserves the configured selected option when focus moves to the first opened item', () => {

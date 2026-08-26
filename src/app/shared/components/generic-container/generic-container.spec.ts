@@ -57,6 +57,18 @@ describe('GenericContainerComponent', () => {
     expect(element?.className).toContain('ordered-list');
   });
 
+  it('renders authored figure containers without falling back to a div', () => {
+    fixture.componentRef.setInput('config', {
+      tag: 'figure',
+      id: 'media-figure',
+    } as any);
+
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('figure#media-figure')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('div#media-figure')).toBeFalsy();
+  });
+
   it('should derive a root id from the component id when config.id is missing', () => {
     fixture.componentRef.setInput('componentId', 'hero');
     fixture.componentRef.setInput('config', {
@@ -100,5 +112,22 @@ describe('GenericContainerComponent', () => {
     const element = fixture.nativeElement.querySelector('div') as HTMLElement | null;
     expect(element?.style.getPropertyValue('--card-accent')).toBe('#f7b731');
     expect(element?.style.opacity).toBe('1');
+  });
+
+  it('binds authored status-region focus and live announcement attributes', () => {
+    fixture.componentRef.setInput('config', {
+      tag: 'section',
+      id: 'calculation-result',
+      role: 'status',
+      tabindex: -1,
+      ariaLive: 'polite',
+    } as any);
+
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement.querySelector('section') as HTMLElement;
+    expect(element.getAttribute('role')).toBe('status');
+    expect(element.getAttribute('tabindex')).toBe('-1');
+    expect(element.getAttribute('aria-live')).toBe('polite');
   });
 });

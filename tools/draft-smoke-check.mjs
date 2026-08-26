@@ -5,11 +5,13 @@ import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chromium } from 'playwright-core';
+import { REVIEW_PATTERN_DEFINITIONS, SECRET_PATTERN_DEFINITIONS } from './lib/sensitive-value-patterns.mjs';
 
 const DEFAULT_DRAFTS_ROOT = path.resolve('drafts');
 const DEFAULT_LOCAL_BASE_URL = 'http://127.0.0.1:4200';
 const DEFAULT_LIVE_SCHEME = 'https';
 const DEFAULT_BROWSER_TIMEOUT_MS = 20000;
+const MAX_BROWSER_FINDINGS = 10;
 const MANAGED_ALIAS_SUFFIX = '.zoolandingpage.com.mx';
 const DEBUG_DRAFT_DIRECTORY = '_debug';
 
@@ -65,6 +67,42 @@ function normalizeRoutePath(routePath) {
   }
 
   return raw.startsWith('/') ? raw : `/${raw}`;
+}
+
+function resolveSmokeRoutePath(routePath, siteConfig = {}) {
+  const declaredPath = normalizeRoutePath(routePath);
+  if (!/:([A-Za-z][A-Za-z0-9_]*)/.test(declaredPath)) {
+    return declaredPath;
+  }
+
+  const contentHubs = Array.isArray(siteConfig?.runtime?.contentHubs)
+    ? siteConfig.runtime.contentHubs
+    : [];
+  const publicArticles = contentHubs.flatMap(hub => Array.isArray(hub?.publicArticles) ? hub.publicArticles : []);
+  const publicTaxonomy = contentHubs.flatMap(hub => Array.isArray(hub?.publicTaxonomy) ? hub.publicTaxonomy : []);
+  const article = publicArticles.find(entry => typeof entry?.path === 'string' && entry.path.trim()) ?? null;
+  const articlePathParts = normalizeRoutePath(article?.path ?? '/').split('/').filter(Boolean);
+  const categorySlug = String(
+    article?.categorySlug
+      ?? publicTaxonomy.find(entry => entry?.kind === 'category')?.slug
+      ?? 'smoke-category'
+  ).trim();
+  const tagSlug = String(
+    publicTaxonomy.find(entry => entry?.kind === 'tag')?.slug
+      ?? (Array.isArray(article?.tags) ? article.tags.find(Boolean) : '')
+      ?? 'smoke-tag'
+  ).trim();
+  const articleSlug = articlePathParts.at(-1) || 'smoke-article';
+  const replacements = {
+    categorySlug,
+    tagSlug,
+    articleSlug,
+  };
+
+  return declaredPath.replace(/:([A-Za-z][A-Za-z0-9_]*)/g, (_match, paramName) => {
+    const replacement = replacements[paramName] || `smoke-${paramName.replace(/Slug$/, '').toLowerCase()}`;
+    return encodeURIComponent(replacement);
+  });
 }
 
 function dedupeRoutes(routes) {
@@ -132,6 +170,7 @@ async function loadDraftDefinitions(draftsRoot, requestedDomains) {
       Array.isArray(siteConfig.routes) && siteConfig.routes.length > 0
         ? siteConfig.routes.map(route => ({
             path: normalizeRoutePath(route?.path),
+            smokePath: resolveSmokeRoutePath(route?.path, siteConfig),
             pageId: String(route?.pageId ?? siteConfig.defaultPageId ?? 'default').trim() || 'default',
           }))
         : [
@@ -216,6 +255,22 @@ async function resolveBrowserCommand(explicitBrowserPath) {
 
 async function inspectPage(context, targetUrl, timeoutMs) {
   const page = await context.newPage();
+  const consoleErrors = [];
+  const pageErrors = [];
+
+  const recordFinding = (collection, value) => {
+    const normalized = sanitizeBrowserFinding(value);
+    if (normalized && !collection.includes(normalized) && collection.length < MAX_BROWSER_FINDINGS) {
+      collection.push(normalized);
+    }
+  };
+
+  page.on('console', message => {
+    if (message.type() === 'error' && !isExpectedBrowserConsoleError(message, page.url())) {
+      recordFinding(consoleErrors, message.text());
+    }
+  });
+  page.on('pageerror', error => recordFinding(pageErrors, error instanceof Error ? error.message : error));
 
   try {
     await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: timeoutMs });
@@ -225,13 +280,34 @@ async function inspectPage(context, targetUrl, timeoutMs) {
         const bodyText = document.body?.innerText || '';
         return Boolean(title) && (Boolean(document.querySelector('h1, h2, h3')) || /Unresolved draft/i.test(bodyText));
       },
+      undefined,
       { timeout: timeoutMs }
     );
     await page.waitForTimeout(500);
 
-    return await page.evaluate(() => {
+    const summary = await page.evaluate(({ consoleErrors, pageErrors, maxBrowserFindings }) => {
       const bodyText = (document.body?.innerText || '').replace(/\s+/g, ' ').trim();
       const mainHeading = document.querySelector('main h1, main h2, main h3');
+      const documentWidth = Math.max(document.documentElement.scrollWidth, document.body?.scrollWidth || 0);
+      const horizontalOverflowPx = Math.max(0, Math.ceil(documentWidth - document.documentElement.clientWidth));
+      const brokenImages = Array.from(document.images)
+        .filter(image => image.complete && Boolean(image.currentSrc) && image.naturalWidth === 0)
+        .slice(0, maxBrowserFindings)
+        .map(image => {
+          let src = image.currentSrc;
+          try {
+            const parsed = new URL(src, window.location.href);
+            parsed.search = '';
+            parsed.hash = '';
+            src = parsed.protocol === 'data:' ? '[inline-data]' : parsed.toString();
+          } catch {
+            src = '[unparseable-image-url]';
+          }
+          return {
+            src,
+            alt: (image.alt || '').trim().slice(0, 120),
+          };
+        });
       const hasSearchButton = Boolean(
         Array.from(document.querySelectorAll('button, [role="button"], a')).find(element => {
           const text = element.textContent || '';
@@ -261,11 +337,73 @@ async function inspectPage(context, targetUrl, timeoutMs) {
         hasHamburgerButton,
         unresolvedDraft: /Unresolved draft/i.test(bodyText),
         bodySnippet: bodyText.slice(0, 220),
+        consoleErrors,
+        pageErrors,
+        horizontalOverflowPx,
+        brokenImages,
       };
+    }, {
+      consoleErrors: consoleErrors.slice(0, MAX_BROWSER_FINDINGS),
+      pageErrors: pageErrors.slice(0, MAX_BROWSER_FINDINGS),
+      maxBrowserFindings: MAX_BROWSER_FINDINGS,
     });
+    return {
+      ...summary,
+      brokenImages: (summary.brokenImages || []).map(image => ({
+        src: sanitizeBrowserFinding(image.src),
+        alt: sanitizeBrowserFinding(image.alt),
+      })),
+    };
   } finally {
     await page.close();
   }
+}
+
+function isExpectedBrowserConsoleError(message, pageUrl) {
+  if (message?.type?.() !== 'error') {
+    return false;
+  }
+
+  if (!/Failed to load resource:.*status of 401\b/i.test(String(message.text?.() ?? ''))) {
+    return false;
+  }
+
+  try {
+    const resourceUrl = new URL(String(message.location?.()?.url ?? ''));
+    const currentUrl = new URL(String(pageUrl ?? ''));
+    return resourceUrl.origin === currentUrl.origin && resourceUrl.pathname === '/auth/session/me';
+  } catch {
+    return false;
+  }
+}
+
+function sanitizeBrowserFinding(value) {
+  const sanitized = String(value ?? '')
+    .replace(/https?:\/\/[^\s)\]}]+/gi, rawUrl => {
+      try {
+        const parsed = new URL(rawUrl);
+        parsed.search = '';
+        parsed.hash = '';
+        return parsed.toString();
+      } catch {
+        return '[redacted-url]';
+      }
+    })
+    .replace(/\bauthorization\s*[:=]\s*[^\r\n]*/gi, 'Authorization=[redacted]')
+    .replace(/\b(?:bearer|basic)\s+[A-Za-z0-9._~+/=-]+/gi, '[redacted-credential]')
+    .replace(/\beyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, '[redacted-jwt]')
+    .replace(/\b(token|secret|api[-_]?key|access[-_]?key|credential|signature|session[-_]?token|pass(?:word|wd)?)\s*[:=]\s*[^\s,;]+/gi, '$1=[redacted]')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 500);
+
+  return [...SECRET_PATTERN_DEFINITIONS, ...REVIEW_PATTERN_DEFINITIONS].some(rule => rule.regex.test(sanitized))
+    ? '[redacted-browser-finding]'
+    : sanitized;
+}
+
+function formatInspectionError(error) {
+  return sanitizeBrowserFinding(error instanceof Error ? error.message : error) || 'Unknown browser inspection error.';
 }
 
 async function inspectPageWithRetries(context, targetUrl, timeoutMs, attempts = 3) {
@@ -333,7 +471,26 @@ function compareSummaries(localSummary, liveSummary) {
   return mismatches;
 }
 
-function validateLocalSummary(summary) {
+function validateRuntimeSignals(summary) {
+  const problems = [];
+  const consoleErrors = Array.isArray(summary?.consoleErrors) ? summary.consoleErrors : [];
+  const pageErrors = Array.isArray(summary?.pageErrors) ? summary.pageErrors : [];
+  const brokenImages = Array.isArray(summary?.brokenImages) ? summary.brokenImages : [];
+  const horizontalOverflowPx = Number(summary?.horizontalOverflowPx ?? 0);
+
+  if (consoleErrors.length > 0) problems.push(`console error: ${consoleErrors[0]}`);
+  if (pageErrors.length > 0) problems.push(`uncaught page error: ${pageErrors[0]}`);
+  if (Number.isFinite(horizontalOverflowPx) && horizontalOverflowPx > 1) {
+    problems.push(`horizontal overflow: ${horizontalOverflowPx}px`);
+  }
+  if (brokenImages.length > 0) {
+    problems.push(`broken image: ${brokenImages[0]?.src || 'unknown source'}`);
+  }
+
+  return problems;
+}
+
+function validateLocalSummary(summary, { declaredNotFoundRoute = false } = {}) {
   const problems = [];
 
   if (!summary.title) problems.push('missing title');
@@ -344,6 +501,10 @@ function validateLocalSummary(summary) {
   if (!summary.twitterCard) problems.push('missing twitter:card meta');
   if (!summary.firstHeading) problems.push('missing first heading');
   if (summary.unresolvedDraft) problems.push('page rendered unresolved draft fallback');
+  if (/^(?:Página no encontrada|Page not found|页面未找到)(?:\s*\||$)/iu.test(summary.title?.trim() ?? '') && !declaredNotFoundRoute) {
+    problems.push('page rendered a not-found title on an ordinary route');
+  }
+  problems.push(...validateRuntimeSignals(summary));
 
   return problems;
 }
@@ -398,6 +559,19 @@ async function buildSmokeReport({
   let localFailures = 0;
   let liveFailures = 0;
   let skippedLiveRoutes = 0;
+  const inspectSafely = async inspection => {
+    try {
+      return {
+        summary: await inspectPageSummary(inspection),
+        error: null,
+      };
+    } catch (error) {
+      return {
+        summary: null,
+        error: formatInspectionError(error),
+      };
+    }
+  };
 
   for (const definition of definitions) {
     const draftResult = {
@@ -407,13 +581,15 @@ async function buildSmokeReport({
     };
 
     for (const route of definition.routes) {
-      const localUrl = buildLocalUrl(localBaseUrl, definition.domain, route.path);
+      const smokePath = route.smokePath || route.path;
+      const localUrl = buildLocalUrl(localBaseUrl, definition.domain, smokePath);
       const liveUrl =
-        includeLive && definition.managedAlias ? buildLiveUrl(definition.managedAlias, route.path, liveScheme) : null;
+        includeLive && definition.managedAlias ? buildLiveUrl(definition.managedAlias, smokePath, liveScheme) : null;
       const viewportResults = {};
+      const declaredNotFoundRoute = route.path === '/404';
 
       for (const viewport of normalizedViewports) {
-        const localSummary = await inspectPageSummary({
+        const localInspection = await inspectSafely({
           definition,
           route,
           surface: 'local',
@@ -423,7 +599,10 @@ async function buildSmokeReport({
           viewportId: viewport.id,
           attempts: 2,
         });
-        const localProblems = validateLocalSummary(localSummary);
+        const localSummary = localInspection.summary;
+        const localProblems = localInspection.error
+          ? [`inspection failed: ${localInspection.error}`]
+          : validateLocalSummary(localSummary, { declaredNotFoundRoute });
 
         if (localProblems.length > 0) {
           localFailures += 1;
@@ -441,15 +620,17 @@ async function buildSmokeReport({
             viewportId: viewport.id,
             domain: definition.domain,
             routePath: route.path,
-            details: `${localSummary.title} | ${localSummary.firstHeading}`,
+            details: `${localSummary?.title || ''} | ${localSummary?.firstHeading || ''}`,
           });
         }
 
         let liveSummary = null;
         let liveMismatches = [];
+        let liveInspectionError = null;
+        let liveComparisonSkipped = false;
 
         if (liveUrl) {
-          liveSummary = await inspectPageSummary({
+          const liveInspection = await inspectSafely({
             definition,
             route,
             surface: 'live',
@@ -459,7 +640,17 @@ async function buildSmokeReport({
             viewportId: viewport.id,
             attempts: 3,
           });
-          liveMismatches = compareSummaries(localSummary, liveSummary);
+          liveSummary = liveInspection.summary;
+          liveInspectionError = liveInspection.error;
+          if (liveInspectionError) {
+            liveMismatches = [`inspection failed: ${liveInspectionError}`];
+          } else {
+            liveComparisonSkipped = !localSummary;
+            const comparisonMismatches = localSummary ? compareSummaries(localSummary, liveSummary) : [];
+            const liveProblems = validateLocalSummary(liveSummary, { declaredNotFoundRoute })
+              .map(problem => `live ${problem}`);
+            liveMismatches = [...new Set([...comparisonMismatches, ...liveProblems])];
+          }
 
           if (liveMismatches.length > 0) {
             liveFailures += 1;
@@ -495,8 +686,11 @@ async function buildSmokeReport({
           viewport: { ...viewport },
           local: localSummary,
           localProblems,
+          localInspectionError: localInspection.error,
           live: liveSummary,
           liveMismatches,
+          liveInspectionError,
+          liveComparisonSkipped,
         };
       }
 
@@ -507,6 +701,7 @@ async function buildSmokeReport({
       const primaryResult = viewportResults[primaryViewportId] ?? Object.values(viewportResults)[0] ?? null;
       draftResult.routes.push({
         path: route.path,
+        smokePath,
         pageId: route.pageId,
         localUrl,
         liveUrl,
@@ -627,8 +822,11 @@ export {
   buildSmokeReport,
   compareSummaries,
   inspectPageWithRetries,
+  isExpectedBrowserConsoleError,
   loadDraftDefinitions,
   normalizeViewportDefinitions,
+  resolveSmokeRoutePath,
   runFromCli,
+  sanitizeBrowserFinding,
   validateLocalSummary,
 };

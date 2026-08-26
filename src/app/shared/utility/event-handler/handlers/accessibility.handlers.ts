@@ -45,3 +45,31 @@ export const scrollToSectionHandler = (): EventHandler => {
         },
     };
 };
+
+export const focusElementByIdHandler = (): EventHandler => {
+    const doc = inject(DOCUMENT);
+
+    return {
+        id: 'focusElementById',
+        handle: (_ctx, args) => {
+            const id = String(args[0] ?? '').trim();
+            const predicates = args.slice(1);
+            if (!id || predicates.length % 2 !== 0) return;
+
+            for (let index = 0; index < predicates.length; index += 2) {
+                if (predicates[index] !== predicates[index + 1]) return;
+            }
+
+            globalThis.setTimeout(() => {
+                try {
+                    const element = (doc as Document | null)?.getElementById(id) as HTMLElement | null;
+                    if (!element) return;
+                    element.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+                    element.focus();
+                } catch {
+                    // no-op for SSR, missing DOM APIs, or elements removed before the deferred turn.
+                }
+            }, 0);
+        },
+    };
+};
