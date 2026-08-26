@@ -214,6 +214,43 @@ test('buildInventory routes registered drafts and satellites from the hub', asyn
   assert.equal(checkoutInventory[1].repoPath, path.join(checkoutRoot, 'zoolanding-service'));
 });
 
+test('buildInventory keeps test-only drafts in knowledge audits without requiring production surfaces', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'zlp-fleet-test-only-'));
+  const hubRoot = path.join(root, 'hub');
+  await mkdir(path.join(hubRoot, 'docs'), { recursive: true });
+  await writeFile(path.join(hubRoot, 'docs', 'drafts-registry.json'), JSON.stringify({
+    version: 2,
+    owner: 'LynxPardelle',
+    defaultBaseDir: 'drafts',
+    drafts: [{
+      domain: 'thehairnarrative.com',
+      owner: 'Toydrum',
+      repo: 'draft-thehairnarrative-com',
+      githubUrl: 'https://github.com/Toydrum/draft-thehairnarrative-com.git',
+      localPath: 'drafts/thehairnarrative.com',
+      deploymentEnvironments: ['test'],
+    }],
+  }), 'utf8');
+  await writeFile(path.join(hubRoot, 'docs', 'satellite-repositories.json'), JSON.stringify({
+    version: 1,
+    owner: 'LynxPardelle',
+    satellites: [{
+      repo: 'zoolanding-service',
+      githubUrl: 'https://github.com/LynxPardelle/zoolanding-service.git',
+      localPath: '../zoolanding-service',
+      requiredBranches: ['main'],
+      requiredWorkflows: ['ci.yml'],
+      routes: [{ task: 'Operate service', path: 'docs/README.md' }],
+    }],
+  }), 'utf8');
+
+  const inventory = await buildInventory(hubRoot);
+  const hair = inventory.find(item => item.repo === 'draft-thehairnarrative-com');
+  assert.ok(hair);
+  assert.deepEqual(hair.requiredBranches, ['dev', 'test']);
+  assert.deepEqual(hair.requiredWorkflows, ['deploy-test.yml', 'guard-pr-source.yml', 'pr-safety.yml']);
+});
+
 test('parseArgs keeps apply explicit and accepts selected repositories', () => {
   assert.deepEqual(parseArgs(['--apply', '--repo=one,two', '--repo=three']), {
     apply: 'true',

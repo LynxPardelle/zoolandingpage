@@ -29,8 +29,12 @@ This is the fleet router, not a release dashboard. Default branches can change a
 [docs/drafts-registry.json](./drafts-registry.json) is the canonical machine-readable draft list. Each entry owns:
 
 - the canonical domain;
+- the GitHub owner when it intentionally differs from the registry default;
 - GitHub repository name and URL;
 - canonical local path under `drafts/{domain}`.
+- the exact allowed deployment environments (`test` only, or `test` and `production`).
+
+Registry version 2 requires `deploymentEnvironments` on every draft. Only `['test']` and `['test', 'production']` are valid, in that order. A test-only draft remains part of public-safety and knowledge-routing audits, but operational tooling must not create its production role, GitHub Environment, deployment variables, workflow requirement, or managed alias.
 
 Do not use `drafts/_repos`, the VS Code workspace, deployment worktrees, or a sibling-directory scan as the draft registry. An unregistered draft is a classification gap, not permission to infer ownership or publication state.
 

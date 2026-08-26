@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "owner": "LynxPardelle",
   "defaultBaseDir": "drafts",
   "drafts": [
@@ -7,67 +7,86 @@
       "domain": "alecfest-voliii.com",
       "repo": "draft-alecfest-voliii-com",
       "githubUrl": "https://github.com/LynxPardelle/draft-alecfest-voliii-com.git",
-      "localPath": "drafts/alecfest-voliii.com"
+      "localPath": "drafts/alecfest-voliii.com",
+      "deploymentEnvironments": ["test", "production"]
     },
     {
       "domain": "grupoastralegal.com",
       "repo": "draft-grupoastralegal-com",
       "githubUrl": "https://github.com/LynxPardelle/draft-grupoastralegal-com.git",
-      "localPath": "drafts/grupoastralegal.com"
+      "localPath": "drafts/grupoastralegal.com",
+      "deploymentEnvironments": ["test", "production"]
     },
     {
       "domain": "erosbarajas.com",
       "repo": "draft-erosbarajas-com",
       "githubUrl": "https://github.com/LynxPardelle/draft-erosbarajas-com.git",
-      "localPath": "drafts/erosbarajas.com"
+      "localPath": "drafts/erosbarajas.com",
+      "deploymentEnvironments": ["test", "production"]
     },
     {
       "domain": "agent-guide-claude-codex.com",
       "repo": "draft-agent-guide-claude-codex-com",
       "githubUrl": "https://github.com/LynxPardelle/draft-agent-guide-claude-codex-com.git",
-      "localPath": "drafts/agent-guide-claude-codex.com"
+      "localPath": "drafts/agent-guide-claude-codex.com",
+      "deploymentEnvironments": ["test", "production"]
     },
     {
       "domain": "music.lynxpardelle.com",
       "repo": "draft-music-lynxpardelle-com",
       "githubUrl": "https://github.com/LynxPardelle/draft-music-lynxpardelle-com.git",
-      "localPath": "drafts/music.lynxpardelle.com"
+      "localPath": "drafts/music.lynxpardelle.com",
+      "deploymentEnvironments": ["test", "production"]
     },
     {
       "domain": "pamelabetancourt.com",
       "repo": "draft-pamelabetancourt-com",
       "githubUrl": "https://github.com/LynxPardelle/draft-pamelabetancourt-com.git",
-      "localPath": "drafts/pamelabetancourt.com"
+      "localPath": "drafts/pamelabetancourt.com",
+      "deploymentEnvironments": ["test", "production"]
     },
     {
       "domain": "pokeapi-demo.zoolandingpage.com.mx",
       "repo": "draft-pokeapi-demo-zoolandingpage-com-mx",
       "githubUrl": "https://github.com/LynxPardelle/draft-pokeapi-demo-zoolandingpage-com-mx.git",
-      "localPath": "drafts/pokeapi-demo.zoolandingpage.com.mx"
+      "localPath": "drafts/pokeapi-demo.zoolandingpage.com.mx",
+      "deploymentEnvironments": ["test", "production"]
     },
     {
       "domain": "robertorodriguezrodriguez.com.mx",
       "repo": "draft-robertorodriguezrodriguez-com-mx",
       "githubUrl": "https://github.com/LynxPardelle/draft-robertorodriguezrodriguez-com-mx.git",
-      "localPath": "drafts/robertorodriguezrodriguez.com.mx"
+      "localPath": "drafts/robertorodriguezrodriguez.com.mx",
+      "deploymentEnvironments": ["test", "production"]
     },
     {
       "domain": "sulandingpage.com.mx",
       "repo": "draft-sulandingpage-com-mx",
       "githubUrl": "https://github.com/LynxPardelle/draft-sulandingpage-com-mx.git",
-      "localPath": "drafts/sulandingpage.com.mx"
+      "localPath": "drafts/sulandingpage.com.mx",
+      "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "thehairnarrative.com",
+      "owner": "Toydrum",
+      "repo": "draft-thehairnarrative-com",
+      "githubUrl": "https://github.com/Toydrum/draft-thehairnarrative-com.git",
+      "localPath": "drafts/thehairnarrative.com",
+      "deploymentEnvironments": ["test"]
     },
     {
       "domain": "zoolandingpage.com.mx",
       "repo": "draft-zoolandingpage-com-mx",
       "githubUrl": "https://github.com/LynxPardelle/draft-zoolandingpage-com-mx.git",
-      "localPath": "drafts/zoolandingpage.com.mx"
+      "localPath": "drafts/zoolandingpage.com.mx",
+      "deploymentEnvironments": ["test", "production"]
     },
     {
       "domain": "zoositioweb.com.mx",
       "repo": "draft-zoositioweb-com-mx",
       "githubUrl": "https://github.com/LynxPardelle/draft-zoositioweb-com-mx.git",
-      "localPath": "drafts/zoositioweb.com.mx"
+      "localPath": "drafts/zoositioweb.com.mx",
+      "deploymentEnvironments": ["test", "production"]
     }
   ]
 }
