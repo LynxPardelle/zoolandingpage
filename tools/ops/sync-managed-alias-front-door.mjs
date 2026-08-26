@@ -8,6 +8,8 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 
+import { readDraftRegistry } from '../draft-repo-preflight.mjs';
+
 const execFileAsync = promisify(execFile);
 
 const DEFAULT_ZONE = 'zoolandingpage.com.mx';
@@ -114,11 +116,19 @@ function extractManagedAliasesFromConfig({
   zoneName = DEFAULT_ZONE,
   requestedEnvironment = 'all',
   includeDomain = false,
+  allowedEnvironments = ['test', 'production'],
 }) {
   const aliases = [];
   const domain = normalizeHost(config?.domain);
+  const allowed = new Set(allowedEnvironments);
 
-  if (includeDomain && domain && isManagedAlias(domain, zoneName) && shouldIncludeEnvironment('production', requestedEnvironment)) {
+  if (
+    allowed.has('production')
+    && includeDomain
+    && domain
+    && isManagedAlias(domain, zoneName)
+    && shouldIncludeEnvironment('production', requestedEnvironment)
+  ) {
     aliases.push({
       host: domain,
       canonicalDomain: domain,
@@ -127,7 +137,7 @@ function extractManagedAliasesFromConfig({
     });
   }
 
-  if (shouldIncludeEnvironment('production', requestedEnvironment)) {
+  if (allowed.has('production') && shouldIncludeEnvironment('production', requestedEnvironment)) {
     for (const alias of Array.isArray(config?.aliases) ? config.aliases : []) {
       const host = normalizeHost(alias);
       if (host && isManagedAlias(host, zoneName)) {
@@ -146,6 +156,7 @@ function extractManagedAliasesFromConfig({
     : {};
   for (const [environmentName, environmentConfig] of Object.entries(environments)) {
     const environment = normalizeEnvironment(environmentName);
+    if (!allowed.has(environment)) continue;
     if (!shouldIncludeEnvironment(environment, requestedEnvironment)) continue;
     for (const alias of Array.isArray(environmentConfig?.aliases) ? environmentConfig.aliases : []) {
       const host = normalizeHost(alias);
@@ -173,19 +184,6 @@ async function writeTextFile(filePath, contents) {
   await writeFile(resolved, contents, 'utf8');
 }
 
-async function readDraftRegistry(registryPath) {
-  if (!registryPath || !existsSync(registryPath)) {
-    return { registryPath, drafts: [] };
-  }
-
-  const raw = await readJson(registryPath);
-  return {
-    registryPath,
-    defaultBaseDir: raw.defaultBaseDir || 'drafts',
-    drafts: Array.isArray(raw.drafts) ? raw.drafts : [],
-  };
-}
-
 async function findSiteConfigFiles({
   cwd = process.cwd(),
   registryPath = DEFAULT_REGISTRY_PATH,
@@ -193,8 +191,10 @@ async function findSiteConfigFiles({
   explicitConfigs = [],
   includeRegistry = true,
   includeDraftsRoot = true,
+  environment = 'all',
 }) {
   const candidates = [];
+  const registeredDraftByPath = new Map();
 
   for (const configPath of explicitConfigs) {
     candidates.push({
@@ -205,24 +205,36 @@ async function findSiteConfigFiles({
   }
 
   if (includeRegistry) {
-    const registry = await readDraftRegistry(path.resolve(cwd, registryPath));
+    const resolvedRegistryPath = path.resolve(cwd, registryPath);
+    const registry = existsSync(resolvedRegistryPath)
+      ? await readDraftRegistry(resolvedRegistryPath)
+      : { registryPath: resolvedRegistryPath, defaultBaseDir: 'drafts', drafts: [] };
     for (const draft of registry.drafts) {
       const repoPath = draft.localPath
         ? path.resolve(cwd, draft.localPath)
         : path.resolve(cwd, registry.defaultBaseDir, draft.repo);
       const rootConfig = path.join(repoPath, 'site-config.json');
       const nestedConfig = path.join(repoPath, String(draft.domain ?? ''), 'site-config.json');
+      const registeredDraft = {
+        domain: draft.domain,
+        deploymentEnvironments: draft.deploymentEnvironments,
+      };
+      registeredDraftByPath.set(path.resolve(rootConfig).toLowerCase(), registeredDraft);
+      registeredDraftByPath.set(path.resolve(nestedConfig).toLowerCase(), registeredDraft);
+      if (environment !== 'all' && !draft.deploymentEnvironments.includes(environment)) continue;
       if (existsSync(rootConfig)) {
         candidates.push({
           filePath: rootConfig,
           sourceKind: 'registry',
           registryDomain: String(draft.domain ?? '').trim() || null,
+          deploymentEnvironments: draft.deploymentEnvironments,
         });
       } else if (existsSync(nestedConfig)) {
         candidates.push({
           filePath: nestedConfig,
           sourceKind: 'registry',
           registryDomain: String(draft.domain ?? '').trim() || null,
+          deploymentEnvironments: draft.deploymentEnvironments,
         });
       }
     }
@@ -248,6 +260,17 @@ async function findSiteConfigFiles({
 
   const seen = new Set();
   return candidates
+    .map(candidate => {
+      const registeredDraft = registeredDraftByPath.get(
+        path.resolve(candidate.filePath).toLowerCase(),
+      );
+      return {
+        ...candidate,
+        registryDomain: registeredDraft?.domain ?? candidate.registryDomain,
+        deploymentEnvironments: registeredDraft?.deploymentEnvironments
+          ?? candidate.deploymentEnvironments,
+      };
+    })
     .filter(candidate => {
       const key = path.resolve(candidate.filePath).toLowerCase();
       if (seen.has(key)) return false;
@@ -261,8 +284,19 @@ async function collectManagedAliases(options = {}) {
   const cwd = options.cwd ?? process.cwd();
   const zoneName = normalizeZoneName(options.zoneName ?? DEFAULT_ZONE);
   const requestedEnvironment = normalizeEnvironment(options.environment ?? 'all');
+  const includeRegistry = options.includeRegistry ?? true;
   const includeDomain = Boolean(options.includeDomain);
   const domainFilter = new Set((options.domains ?? []).map(normalizeHost).filter(Boolean));
+  const registeredEnvironmentsByDomain = new Map();
+  if (includeRegistry) {
+    const resolvedRegistryPath = path.resolve(cwd, options.registryPath ?? DEFAULT_REGISTRY_PATH);
+    if (existsSync(resolvedRegistryPath)) {
+      const registry = await readDraftRegistry(resolvedRegistryPath);
+      for (const draft of registry.drafts) {
+        registeredEnvironmentsByDomain.set(draft.domain, draft.deploymentEnvironments);
+      }
+    }
+  }
 
   const files = await findSiteConfigFiles({
     cwd,
@@ -271,13 +305,19 @@ async function collectManagedAliases(options = {}) {
     explicitConfigs: options.explicitConfigs ?? [],
     includeRegistry: options.includeRegistry ?? true,
     includeDraftsRoot: options.includeDraftsRoot ?? false,
+    environment: requestedEnvironment,
   });
   const aliasesByHost = new Map();
   const scanned = [];
 
   for (const file of files) {
     const config = await readJson(file.filePath);
-    const canonicalDomain = normalizeHost(config?.domain || file.registryDomain);
+    const configDomain = normalizeHost(config?.domain);
+    const registryDomain = normalizeHost(file.registryDomain);
+    if (registryDomain && configDomain && configDomain !== registryDomain) {
+      throw new Error(`registry_domain_mismatch:${registryDomain}:${configDomain}`);
+    }
+    const canonicalDomain = configDomain || registryDomain;
     if (domainFilter.size > 0 && !domainFilter.has(canonicalDomain)) {
       continue;
     }
@@ -288,12 +328,19 @@ async function collectManagedAliases(options = {}) {
       sourceKind: file.sourceKind,
     });
 
+    const allowedEnvironments = file.deploymentEnvironments
+      ?? registeredEnvironmentsByDomain.get(canonicalDomain);
+    if (!allowedEnvironments && requestedEnvironment !== 'test') {
+      throw new Error(`deployment_scope_unknown:${canonicalDomain || 'unknown-domain'}`);
+    }
+
     for (const alias of extractManagedAliasesFromConfig({
       config,
       source: file.filePath,
       zoneName,
       requestedEnvironment,
       includeDomain,
+      allowedEnvironments: allowedEnvironments ?? ['test'],
     })) {
       const existing = aliasesByHost.get(alias.host);
       if (!existing || alias.environment === 'production') {
@@ -745,6 +792,9 @@ async function main() {
   const remoteFile = args['remote-traefik-file'] ?? env.ZOOLANDING_TRAEFIK_DYNAMIC_FILE ?? env.npm_config_remote_traefik_file;
   const ssmInstanceName = args['ssm-instance-name'] ?? env.ZOOLANDING_SSM_INSTANCE_NAME ?? env.npm_config_ssm_instance_name;
   const ttlSeconds = Number.parseInt(args.ttl ?? env.npm_config_ttl ?? DEFAULT_TTL_SECONDS, 10);
+  const requestedEnvironment = normalizeEnvironment(args.environment ?? env.npm_config_environment ?? 'all');
+  const registryPath = args.registry ?? env.npm_config_registry ?? DEFAULT_REGISTRY_PATH;
+  const includeRegistry = registryPath !== 'false';
 
   if (!Number.isFinite(ttlSeconds) || ttlSeconds <= 0) {
     throw new Error('--ttl must be a positive integer');
@@ -761,17 +811,20 @@ async function main() {
   if (!dryRun && !skipTraefik && !ssmInstanceName) {
     throw new Error('--ssm-instance-name or ZOOLANDING_SSM_INSTANCE_NAME is required for Traefik apply');
   }
+  if (!dryRun && requestedEnvironment !== 'test' && !includeRegistry) {
+    throw new Error('canonical_draft_registry_required_for_production_apply');
+  }
 
   const collected = await collectManagedAliases({
     cwd: process.cwd(),
     zoneName,
-    registryPath: args.registry ?? env.npm_config_registry ?? DEFAULT_REGISTRY_PATH,
+    registryPath,
     draftsRoot: args['drafts-root'] ?? env.npm_config_drafts_root ?? DEFAULT_DRAFTS_ROOT,
     explicitConfigs: args.config.length ? args.config : splitList(env.npm_config_config),
     domains: args.domain.length ? args.domain : splitList(env.npm_config_domain),
-    environment: args.environment ?? env.npm_config_environment ?? 'all',
+    environment: requestedEnvironment,
     includeDomain: truthy(args['include-domain'] ?? env.npm_config_include_domain),
-    includeRegistry: args.registry !== 'false',
+    includeRegistry,
     includeDraftsRoot: args['drafts-root']
       ? args['drafts-root'] !== 'false'
       : truthy(args['include-drafts-root'] ?? env.npm_config_include_drafts_root),

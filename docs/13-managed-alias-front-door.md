@@ -15,6 +15,8 @@ Use `tools/ops/sync-managed-alias-front-door.mjs` after a draft alias is declare
 - write that config to the Dokploy host through SSM
 - create a remote backup before replacing the Traefik dynamic file
 
+The registry's `deploymentEnvironments` boundary is authoritative. A config found at a registered draft path must declare that same registry domain; it cannot borrow another draft's production scope. A test-only draft can contribute test aliases when `--environment=test` or `--environment=all` is used, but its root and production aliases are excluded even if stale production-looking values remain in `site-config.json`. A production-only registry scope is invalid. Production or all-environment discovery rejects any explicit config or drafts-root entry whose canonical domain has no registry scope. Production apply also requires registry discovery; `--registry=false` cannot recover or write production aliases. Registry-free discovery is limited to an explicit test-only request and treats the unknown scope as `test`, never as both environments.
+
 No secrets, tokens, raw environment values, instance IDs, or account-specific identifiers should be committed. Pass operational values by environment variables or CLI flags.
 
 ## Auth Admin Same-Origin Routes

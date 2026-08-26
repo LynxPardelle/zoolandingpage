@@ -203,15 +203,26 @@ async function readSatelliteRegistry(registryPath) {
 async function buildInventory(hubRoot, { checkoutRoot } = {}) {
   const draftRegistry = await readDraftRegistry(path.join(hubRoot, 'docs', 'drafts-registry.json'));
   const satelliteRegistry = await readSatelliteRegistry(path.join(hubRoot, 'docs', 'satellite-repositories.json'));
-  const draftWorkflows = ['deploy-test.yml', 'deploy-production.yml', 'guard-pr-source.yml', 'pr-safety.yml'];
   return [
-    ...draftRegistry.drafts.map(draft => ({
-      ...draft,
-      type: 'draft',
-      repoPath: checkoutRoot ? path.resolve(checkoutRoot, draft.repo) : path.resolve(hubRoot, draft.localPath),
-      requiredBranches: ['dev', 'test', 'main'],
-      requiredWorkflows: draftWorkflows,
-    })),
+    ...draftRegistry.drafts.map(draft => {
+      const environments = draft.deploymentEnvironments ?? ['test', 'production'];
+      return {
+        ...draft,
+        type: 'draft',
+        repoPath: checkoutRoot ? path.resolve(checkoutRoot, draft.repo) : path.resolve(hubRoot, draft.localPath),
+        requiredBranches: [
+          'dev',
+          ...(environments.includes('test') ? ['test'] : []),
+          ...(environments.includes('production') ? ['main'] : []),
+        ],
+        requiredWorkflows: [
+          ...(environments.includes('test') ? ['deploy-test.yml'] : []),
+          ...(environments.includes('production') ? ['deploy-production.yml'] : []),
+          'guard-pr-source.yml',
+          'pr-safety.yml',
+        ],
+      };
+    }),
     ...satelliteRegistry.satellites.map(satellite => ({
       ...satellite,
       type: 'satellite',

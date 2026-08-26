@@ -122,10 +122,16 @@ async function bootstrapDraftRepo({
   domain,
   authoringEndpoint,
   awsRegion,
+  deploymentEnvironments = ['test', 'production'],
   force = false,
   forceTemplates = force,
   forceGitignore = force,
 }) {
+  const encodedEnvironments = JSON.stringify(deploymentEnvironments);
+  if (encodedEnvironments !== '["test"]' && encodedEnvironments !== '["test","production"]') {
+    throw new Error('deploymentEnvironments must be exactly ["test"] or ["test","production"].');
+  }
+  const productionEnabled = deploymentEnvironments.includes('production');
   const resolvedRepo = path.resolve(repoPath);
   await mkdir(resolvedRepo, { recursive: true });
   await cp(TEMPLATE_ROOT, resolvedRepo, { recursive: true, force: forceTemplates, errorOnExist: false });
@@ -137,12 +143,14 @@ async function bootstrapDraftRepo({
     branches: {
       dev: { deploys: false },
       test: { deploys: true, environment: 'test' },
-      main: { deploys: true, environment: 'production' },
+      main: productionEnabled
+        ? { deploys: true, environment: 'production' }
+        : { deploys: false },
     },
-    githubVariables: {
-      test: ['AWS_ROLE_ARN', 'AWS_REGION', 'DRAFT_DOMAIN', 'DRAFT_ROOT', 'AUTHORING_ENDPOINT'],
-      production: ['AWS_ROLE_ARN', 'AWS_REGION', 'DRAFT_DOMAIN', 'DRAFT_ROOT', 'AUTHORING_ENDPOINT'],
-    },
+    githubVariables: Object.fromEntries(deploymentEnvironments.map(environment => [
+      environment,
+      ['AWS_ROLE_ARN', 'AWS_REGION', 'DRAFT_DOMAIN', 'DRAFT_ROOT', 'AUTHORING_ENDPOINT'],
+    ])),
   };
 
   const wroteGitignore = await writeIfMissing(path.join(resolvedRepo, '.gitignore'), DEFAULT_GITIGNORE, forceGitignore);
@@ -168,6 +176,9 @@ async function main() {
     domain: required(args.domain, '--domain'),
     authoringEndpoint: required(args['authoring-endpoint'] ?? process.env.AUTHORING_ENDPOINT, '--authoring-endpoint'),
     awsRegion: args.region ?? process.env.AWS_REGION ?? 'us-east-1',
+    deploymentEnvironments: args.environments
+      ? args.environments.split(',').map(value => value.trim()).filter(Boolean)
+      : ['test', 'production'],
     force: truthy(args.force),
   });
   console.log(JSON.stringify({ ok: true, ...result }, null, 2));
