@@ -2592,6 +2592,7 @@ const isInteractionScopeConfig = (value: unknown): boolean => {
     if (value['scopeId'] !== undefined && typeof value['scopeId'] !== 'string') return false;
     if (value['id'] !== undefined && typeof value['id'] !== 'string') return false;
     if (value['tag'] !== undefined && !['div', 'section', 'form'].includes(String(value['tag']))) return false;
+    if (!isBooleanThunkFriendly(value['noValidate'])) return false;
     if (value['components'] !== undefined && !isStringArray(value['components'])) return false;
     if (value['initialValues'] !== undefined && !isRecord(value['initialValues'])) return false;
     if (value['autoSubmit'] !== undefined && !isInteractionAutoSubmitConfig(value['autoSubmit'])) return false;

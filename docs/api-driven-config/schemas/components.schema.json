@@ -475,6 +475,7 @@
         "scopeId": { "type": "string" },
         "id": { "type": "string" },
         "tag": { "enum": ["div", "section", "form"] },
+        "noValidate": { "type": "boolean" },
         "classes": { "type": "string" },
         "role": { "type": "string" },
         "ariaLabel": { "type": "string" },

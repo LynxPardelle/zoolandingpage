@@ -2094,6 +2094,17 @@ describe('config-payload.validators', () => {
         expect(isComponentsPayload(invalid)).toBeFalse();
     });
 
+    it('validates the optional interaction-scope native validation bypass', () => {
+        for (const noValidate of [undefined, false, true]) {
+            const payload = createComponentsPayload({ form: { id: 'form', type: 'interaction-scope', config: { tag: 'form', noValidate } } } as never);
+            expect(isComponentsPayload(payload)).toBeTrue();
+        }
+        for (const noValidate of [null, 'true', 1, {}, [], () => true]) {
+            const payload = createComponentsPayload({ form: { id: 'form', type: 'interaction-scope', config: { tag: 'form', noValidate } } } as never);
+            expect(isComponentsPayload(payload)).toBeFalse();
+        }
+    });
+
     it('accepts interaction-scope and input component payloads', () => {
         const valid = createComponentsPayload({
             leadScope: {
