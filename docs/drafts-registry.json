@@ -87,6 +87,13 @@
       "githubUrl": "https://github.com/LynxPardelle/draft-zoositioweb-com-mx.git",
       "localPath": "drafts/zoositioweb.com.mx",
       "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "somosgreenstock.mx",
+      "repo": "draft-somosgreenstock-mx",
+      "githubUrl": "https://github.com/LynxPardelle/draft-somosgreenstock-mx.git",
+      "localPath": "drafts/somosgreenstock.mx",
+      "deploymentEnvironments": ["test", "production"]
     }
   ]
 }
