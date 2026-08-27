@@ -1245,9 +1245,39 @@ test('built SSR server keeps exact fixed-language routes isolated across runtime
   });
 
   const port = await getFreePort();
+  const apiPort = await getFreePort();
+  const apiServer = http.createServer((req, res) => {
+    const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+    if (url.pathname !== '/runtime-bundle' || url.searchParams.get('domain') !== domain) {
+      res.statusCode = 404;
+      res.end('not found');
+      return;
+    }
+
+    // Reuse the real local bundle endpoint, without sending unrelated API misses back into SSR.
+    const request = http.get(`http://127.0.0.1:${port}${url.pathname}${url.search}`, response => {
+      res.writeHead(response.statusCode ?? 502, { 'Content-Type': 'application/json' });
+      response.pipe(res);
+    });
+    request.on('error', error => res.destroy(error));
+  });
+  await new Promise((resolve, reject) => {
+    apiServer.once('error', reject);
+    apiServer.listen(apiPort, '127.0.0.1', resolve);
+  });
+
   const child = spawn(process.execPath, [builtServerPath], {
     cwd: workspaceRoot,
-    env: { ...process.env, PORT: String(port), ZLP_RUNTIME_ENV: 'local' },
+    env: {
+      ...process.env,
+      PORT: String(port),
+      ZLP_RUNTIME_ENV: 'local',
+      // The production renderer must use this fixture's local bundle, not remote fallbacks.
+      CONFIG_API_URL: `http://127.0.0.1:${apiPort}`,
+      CONFIG_API_SERVER_FALLBACK_URL: '',
+      CONFIG_API_SERVER_FALLBACK_URL_LOCAL: '',
+      CONFIG_API_RUNTIME_FALLBACK_URL_LOCAL: '',
+    },
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,
   });
@@ -1256,6 +1286,7 @@ test('built SSR server keeps exact fixed-language routes isolated across runtime
   child.stderr.on('data', chunk => { serverOutput += chunk.toString(); });
   t.after(async () => {
     await stopServer(child);
+    await new Promise((resolve, reject) => apiServer.close(error => (error ? reject(error) : resolve())));
     await rm(workspaceRoot, { recursive: true, force: true });
   });
   await waitForServer(`http://127.0.0.1:${port}/api/debug/drafts`);
