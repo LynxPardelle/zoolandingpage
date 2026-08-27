@@ -308,6 +308,10 @@ async function inspectPage(context, targetUrl, timeoutMs) {
             alt: (image.alt || '').trim().slice(0, 120),
           };
         });
+      const unresolvedMaterialIcons = Array.from(document.querySelectorAll('span.material-icons'))
+        .map(element => (element.textContent || '').replace(/\s+/g, ' ').trim())
+        .filter(Boolean)
+        .slice(0, maxBrowserFindings);
       const hasSearchButton = Boolean(
         Array.from(document.querySelectorAll('button, [role="button"], a')).find(element => {
           const text = element.textContent || '';
@@ -341,6 +345,7 @@ async function inspectPage(context, targetUrl, timeoutMs) {
         pageErrors,
         horizontalOverflowPx,
         brokenImages,
+        unresolvedMaterialIcons,
       };
     }, {
       consoleErrors: consoleErrors.slice(0, MAX_BROWSER_FINDINGS),
@@ -353,6 +358,7 @@ async function inspectPage(context, targetUrl, timeoutMs) {
         src: sanitizeBrowserFinding(image.src),
         alt: sanitizeBrowserFinding(image.alt),
       })),
+      unresolvedMaterialIcons: (summary.unresolvedMaterialIcons || []).map(sanitizeBrowserFinding),
     };
   } finally {
     await page.close();
@@ -476,6 +482,9 @@ function validateRuntimeSignals(summary) {
   const consoleErrors = Array.isArray(summary?.consoleErrors) ? summary.consoleErrors : [];
   const pageErrors = Array.isArray(summary?.pageErrors) ? summary.pageErrors : [];
   const brokenImages = Array.isArray(summary?.brokenImages) ? summary.brokenImages : [];
+  const unresolvedMaterialIcons = Array.isArray(summary?.unresolvedMaterialIcons)
+    ? summary.unresolvedMaterialIcons
+    : [];
   const horizontalOverflowPx = Number(summary?.horizontalOverflowPx ?? 0);
 
   if (consoleErrors.length > 0) problems.push(`console error: ${consoleErrors[0]}`);
@@ -485,6 +494,9 @@ function validateRuntimeSignals(summary) {
   }
   if (brokenImages.length > 0) {
     problems.push(`broken image: ${brokenImages[0]?.src || 'unknown source'}`);
+  }
+  if (unresolvedMaterialIcons.length > 0) {
+    problems.push(`unresolved material icon: ${unresolvedMaterialIcons[0]}`);
   }
 
   return problems;
