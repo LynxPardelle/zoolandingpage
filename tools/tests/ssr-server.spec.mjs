@@ -176,6 +176,215 @@ function extractProtectedSsrOverlayHtml(html) {
   return String(html ?? '').match(/<div\b[^>]*data-zlp-protected-ssr-overlay=""[\s\S]*?<\/div>\s*<\/main>\s*<\/div>/i)?.[0] ?? '';
 }
 
+function extractNotFoundRecoveryHref(html) {
+  const shell = html.match(/<main\b[^>]*data-zlp-not-found-ssr=""[\s\S]*?<\/main>/i)?.[0] ?? '';
+  assert.equal((shell.match(/<h1\b/gi) ?? []).length, 1, 'the fallback shell has one heading');
+  assert.equal((html.match(/<main\b[^>]*data-zlp-not-found-ssr=""/gi) ?? []).length, 1);
+  const appRoot = extractAppRootHtml(html);
+  assert.match(appRoot, /data-zlp-not-found-shell="true"/);
+  assert.match(appRoot, /aria-hidden="true"/);
+  assert.doesNotMatch(appRoot, /<main\b|<h1\b/i, 'SSR must replace the obsolete app content, not duplicate it');
+  const encodedHref = shell.match(/<a\b[^>]*class="zlp-not-found-ssr__link"[^>]*href="([^"]*)"/i)?.[1];
+  assert.ok(encodedHref, 'the visible fallback has a recovery link');
+  assert.doesNotMatch(encodedHref, /&(?!amp;|quot;|lt;|gt;)/, 'query separators are HTML-escaped');
+  const href = encodedHref.replaceAll('&amp;', '&').replaceAll('&quot;', '"').replaceAll('&lt;', '<').replaceAll('&gt;', '>');
+  assert.match(href, /^\/(?!\/)/, 'recovery stays relative and same-origin');
+  return href;
+}
+
+async function startNotFoundRecoveryFixture(t) {
+  const domain = 'not-found-recovery.example.com';
+  const source = JSON.parse(readFileSync(join(repoRoot, 'drafts', 'grupoastralegal.com', 'site-config.json'), 'utf8'));
+  const siteConfig = {
+    ...source,
+    domain,
+    aliases: [`www.${domain}`],
+    environments: {},
+    defaultPageId: 'default',
+    notFoundPageId: 'not-found',
+    routes: [{ path: '/', pageId: 'default' }, { path: '/404', pageId: 'not-found' }],
+    site: {
+      ...source.site,
+      hostOverrides: {},
+      i18n: { defaultLanguage: 'es', supportedLanguages: ['es', 'es-MX', 'en', 'zh'] },
+      seo: { ...source.site.seo, siteName: 'Recovery fixture', canonicalOrigin: `https://${domain}` },
+    },
+  };
+  const apiBase = await startRuntimeApi(t, (req, res) => {
+    const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+    if (url.pathname !== '/runtime-bundle') {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false }));
+      return;
+    }
+    const notFound = (url.searchParams.get('path') || '/') !== '/';
+    const pageId = notFound ? 'not-found' : 'default';
+    const title = notFound ? 'Fixture missing page' : 'Recovery fixture home';
+    const identity = { version: 1, domain, pageId };
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      ...identity,
+      sourceStage: 'published',
+      lang: url.searchParams.get('lang') || 'es',
+      route: { path: notFound ? '/404' : '/', pageId },
+      siteConfig,
+      pageConfig: {
+        ...identity,
+        rootIds: ['recoveryMain'],
+        seo: { title, description: title, canonical: `https://${domain}/${notFound ? '404' : ''}` },
+      },
+      components: {
+        ...identity,
+        components: [
+          { id: 'recoveryMain', type: 'container', config: { tag: 'main', components: ['recoveryTitle'] } },
+          { id: 'recoveryTitle', type: 'text', config: { tag: 'h1', text: title } },
+        ],
+      },
+      variables: { ...identity, variables: {} },
+      angoraCombos: { ...identity, combos: {} },
+      i18n: { ...identity, lang: 'es', dictionary: {} },
+      metadata: { statusCode: notFound ? 404 : 200, notFound },
+    }));
+  });
+  const server = await startProductionServer(t, {
+    CONFIG_API_SERVER_FALLBACK_URL: '',
+    CONFIG_API_URL: apiBase,
+    ZLP_RUNTIME_ENV: 'test',
+  });
+  return { ...server, domain, siteConfig };
+}
+
+test('production SSR not-found recovery retains validated preview context and reaches home', async (t) => {
+  const { port, domain, getStderr } = await startNotFoundRecoveryFixture(t);
+  for (const host of ['127.0.0.1', 'test.zoolandingpage.com.mx']) {
+    await t.test(host, async () => {
+      const headers = { Host: host, 'X-Forwarded-Host': host };
+      // All discarded values below are synthetic test markers, never credentials.
+      const query = `draftDomain=${domain}&debugWorkspace=false&lang=es&draftPageId=missing-page&utm_source=discard-me&access_token=discard-me&returnTo=https%3A%2F%2Finvalid.example&unknown=discard-me`;
+      const response = await fetch(`http://127.0.0.1:${port}/unknown-recovery?${query}`, { headers });
+      assert.equal(response.status, 404);
+      const href = extractNotFoundRecoveryHref(await response.text());
+      assert.equal(href, `/?draftDomain=${domain}&debugWorkspace=false&lang=es`);
+      const home = await fetch(`http://127.0.0.1:${port}${href}`, { headers });
+      const homeHtml = await home.text();
+      assert.equal(home.status, 200);
+      assert.ok(/<title>Recovery fixture home<\/title>/.test(homeHtml), 'recovery resolves the home metadata');
+      const homeRoot = stripNonVisibleHtml(extractAppRootHtml(homeHtml));
+      assert.doesNotMatch(homeRoot, /data-zlp-not-found-shell="true"|aria-hidden="true"/);
+      const main = homeRoot.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i)?.[1] ?? '';
+      const heading = main.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i)?.[1] ?? '';
+      assert.equal(heading.replace(/<[^>]*>/g, '').trim(), 'Recovery fixture home', 'recovery renders real home content, including GenericText inline wrappers');
+      assert.ok(!homeHtml.includes('data-zlp-not-found-ssr=""'), 'recovery is no longer the fallback');
+    });
+  }
+  assert.equal(getStderr(), '');
+});
+
+test('production SSR not-found recovery drops malformed and untrusted query fields', async (t) => {
+  const { port, domain } = await startNotFoundRecoveryFixture(t);
+  const preview = `draftDomain=${domain}`;
+  const cases = [
+    ['normalized values', `draftDomain=${domain.toUpperCase()}&debugWorkspace=TRUE&lang=eS_mX`, `/?draftDomain=${domain}&debugWorkspace=true&lang=es-MX`],
+    ['recognized alias', `draftDomain=www.${domain}&debugWorkspace=false`, `/?draftDomain=www.${domain}&debugWorkspace=false`],
+    ['invalid boolean', `${preview}&debugWorkspace=1&lang=es`, `/?${preview}&lang=es`],
+    ['empty boolean', `${preview}&debugWorkspace=&lang=es`, `/?${preview}&lang=es`],
+    ['repeated boolean', `${preview}&debugWorkspace=true&debugWorkspace=false&lang=es`, `/?${preview}&lang=es`],
+    ['structured boolean', `${preview}&debugWorkspace=false&debugWorkspace[value]=true&lang=es`, `/?${preview}&lang=es`],
+    ['malformed language', `${preview}&debugWorkspace=false&lang=es%22%3E%3Cscript%3E`, `/?${preview}&debugWorkspace=false`],
+    ['unsupported language', `${preview}&lang=de`, `/?${preview}`],
+    ['repeated language', `${preview}&lang=es&lang=en`, `/?${preview}`],
+    ['structured language', `${preview}&lang=es&lang[value]=en`, `/?${preview}`],
+    ['repeated domain', `${preview}&${preview}&debugWorkspace=false&lang=es`, '/?lang=es'],
+    ['structured domain', `${preview}&draftDomain[value]=invalid.example&debugWorkspace=false&lang=es`, '/?lang=es'],
+    ['domain URL', `draftDomain=https%3A%2F%2F${domain}&lang=es`, '/?lang=es'],
+    ['domain credentials', `draftDomain=discard-me%40${domain}&lang=es`, '/?lang=es'],
+    ['domain port', `draftDomain=${domain}%3A443&lang=es`, '/?lang=es'],
+    ['domain control character', `draftDomain=${domain}%0A&lang=es`, '/?lang=es'],
+    ['domain attribute injection', `draftDomain=${domain}%22%20onclick%3D%22discard-me&lang=es`, '/?lang=es'],
+    ['unresolved domain', 'draftDomain=unrelated.example&debugWorkspace=false&lang=es', '/?lang=es'],
+    ['no context', '', '/'],
+  ];
+  for (const [label, query, expected] of cases) {
+    await t.test(label, async () => {
+      const response = await fetch(`http://127.0.0.1:${port}/unknown-recovery${query ? `?${query}` : ''}`);
+      assert.equal(response.status, 404);
+      assert.equal(extractNotFoundRecoveryHref(await response.text()), expected);
+    });
+  }
+});
+
+test('production SSR not-found recovery ignores preview context on a published host', async (t) => {
+  const { port, domain, siteConfig } = await startNotFoundRecoveryFixture(t);
+  const alias = `www.${domain}`;
+  // Both identities pass the config allowlist; the host-eligibility guard must still reject preview context.
+  assert.equal(siteConfig.domain, domain);
+  assert.ok(siteConfig.aliases.includes(alias));
+  const cases = [
+    ['no query', '', '/'],
+    ['unrelated domain', '?draftDomain=unrelated.example&debugWorkspace=true&draftPageId=missing-page&lang=en', '/?lang=en'],
+    ['matching canonical domain', `?draftDomain=${domain}&debugWorkspace=false`, '/'],
+    ['matching domain with normalized language', `?draftDomain=${domain}&debugWorkspace=true&lang=eS_mX`, '/?lang=es-MX'],
+    ['allowed alias with language', `?draftDomain=${alias}&debugWorkspace=false&lang=en`, '/?lang=en'],
+  ];
+  for (const [label, query, expected] of cases) {
+    await t.test(label, async () => {
+      const response = await fetch(`http://127.0.0.1:${port}/unknown-recovery${query}`, {
+        headers: { Host: domain, 'X-Forwarded-Host': domain },
+      });
+      assert.equal(response.status, 404);
+      assert.equal(extractNotFoundRecoveryHref(await response.text()), expected);
+    });
+  }
+});
+
+test('production SSR not-found recovery CTA and status label use readable neutral pairs in both themes', async (t) => {
+  const { port, domain } = await startNotFoundRecoveryFixture(t);
+  const response = await fetch(`http://127.0.0.1:${port}/unknown-recovery?draftDomain=${domain}`);
+  assert.equal(response.status, 404);
+  const html = await response.text();
+  const css = html.match(/\.zlp-not-found-ssr__link\{([^}]+)\}/)?.[1] ?? '';
+  const background = css.match(/(?:^|;)background:var\(--ank-([\w]+),([^)]*)\)/);
+  const foreground = css.match(/(?:^|;)color:var\(--ank-([\w]+),([^)]*)\)/);
+  assert.ok(background && foreground, 'the CTA has explicit themed colors and safe fallbacks');
+  assert.equal(background[1], 'textColor');
+  assert.equal(foreground[1], 'bgColor');
+  const labelCss = html.match(/\.zlp-not-found-ssr__eyebrow\{([^}]+)\}/)?.[1] ?? '';
+  const panelCss = html.match(/\.zlp-not-found-ssr__panel\{([^}]+)\}/)?.[1] ?? '';
+  const labelForeground = labelCss.match(/(?:^|;)color:var\(--ank-([\w]+),([^)]*)\)/);
+  const panelBackground = panelCss.match(/(?:^|;)background:var\(--ank-([\w]+),([^)]*)\)/);
+  assert.ok(labelForeground && panelBackground, 'the visible 404 label has explicit themed colors and safe fallbacks');
+
+  const luminance = (hex) => {
+    const color = hex.replace('#', '');
+    const expandedColor = color.length === 3 ? [...color].map((part) => part.repeat(2)).join('') : color;
+    const channels = expandedColor.match(/../g).map((part) => parseInt(part, 16) / 255)
+      .map((part) => part <= 0.04045 ? part / 12.92 : ((part + 0.055) / 1.055) ** 2.4);
+    return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+  };
+  const assertContrast = (label, bg, fg) => {
+    const values = [luminance(bg), luminance(fg)].sort((a, b) => a - b);
+    const ratio = (values[1] + 0.05) / (values[0] + 0.05);
+    assert.ok(ratio >= 4.5, `${label}: contrast ${ratio.toFixed(4)}:1 must meet AA for normal text`);
+  };
+  assertContrast('missing palette fallback', background[2], foreground[2]);
+  const fixturePalettes = {
+    orangeLight: { bgColor: '#F7F0E3', secondaryBgColor: '#E3D1B5', textColor: '#244737', accentColor: '#ED8B00', onSuccessColor: '#F7F0E3' },
+    orangeDark: { bgColor: '#10231B', secondaryBgColor: '#193629', textColor: '#F7F0E3', accentColor: '#ED8B00', onSuccessColor: '#F7F0E3' },
+  };
+  for (const fixtureDomain of ['grupoastralegal.com', 'zoolandingpage.com.mx', 'pamelabetancourt.com']) {
+    const config = JSON.parse(readFileSync(join(repoRoot, 'drafts', fixtureDomain, 'site-config.json'), 'utf8'));
+    for (const [mode, palette] of Object.entries(config.site.theme.palettes)) {
+      fixturePalettes[`${fixtureDomain}.${mode}`] = palette;
+    }
+  }
+  for (const [label, palette] of Object.entries(fixturePalettes)) {
+    assertContrast(label, palette[background[1]], palette[foreground[1]]);
+    assertContrast(`${label} status label`, palette[panelBackground[1]] ?? panelBackground[2], palette[labelForeground[1]] ?? labelForeground[2]);
+  }
+  assertContrast('missing palette status label fallback', panelBackground[2], labelForeground[2]);
+  assert.equal(labelForeground[1], 'textColor', 'small status text uses the existing neutral foreground, not an accent');
+});
+
 test('production SSR server exposes a lightweight health endpoint', async (t) => {
   const { port, getStderr } = await startProductionServer(t);
   const response = await waitForOk(`http://127.0.0.1:${port}/health`);
