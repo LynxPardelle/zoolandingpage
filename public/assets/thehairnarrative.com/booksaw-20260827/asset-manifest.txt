@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 1,
+  "domain": "thehairnarrative.com",
+  "assetSet": "booksaw-20260827",
+  "preparedOn": "2026-08-27",
+  "timeZone": "America/Mexico_City",
+  "intendedEnvironment": "test",
+  "publicBasePath": "/assets/thehairnarrative.com/booksaw-20260827",
+  "totalAssetBytes": 476614,
+  "handling": "Byte-identical copies. No resizing, re-encoding, upscaling, generation, font subsetting, or optimization was performed for this public asset set.",
+  "imageRights": "The client approved the images and reported a commercial template license. This manifest does not establish independent photo rights or authorize production publication; confirm applicable client/source rights before production.",
+  "resolutionCaveat": "The studio portrait is natively 234 x 234 pixels; the three client-sheet crops are natively 189-190 pixels per side. Display scaling does not add detail.",
+  "assets": [
+    {
+      "file": "images/narrative-hero.webp",
+      "publicPath": "/assets/thehairnarrative.com/booksaw-20260827/images/narrative-hero.webp",
+      "contentType": "image/webp",
+      "bytes": 59032,
+      "sha256": "c128eb1fb000840a5a60a07cf49b417970b6f8c81af976b139118150b3eeb061",
+      "width": 1672,
+      "height": 941,
+      "source": "Client-approved Booksaw-adapted draft image; copied unchanged from the reviewed draft asset."
+    },
+    {
+      "file": "images/journal-form-movement.webp",
+      "publicPath": "/assets/thehairnarrative.com/booksaw-20260827/images/journal-form-movement.webp",
+      "contentType": "image/webp",
+      "bytes": 47284,
+      "sha256": "7ce0c84c10f84e6ef294e315b1ae8d04dfe07b30fa8e4904f071d93f97fda8d7",
+      "width": 1448,
+      "height": 1086,
+      "source": "Client-approved Booksaw-adapted draft image; copied unchanged from the reviewed draft asset."
+    },
+    {
+      "file": "images/journal-observation-process.webp",
+      "publicPath": "/assets/thehairnarrative.com/booksaw-20260827/images/journal-observation-process.webp",
+      "contentType": "image/webp",
+      "bytes": 47096,
+      "sha256": "75b9ba90b7c1351ec36abd433966133db403cf781d3c93f9c45cfe8f11081458",
+      "width": 1448,
+      "height": 1086,
+      "source": "Client-approved Booksaw-adapted draft image; copied unchanged from the reviewed draft asset."
+    },
+    {
+      "file": "images/journal-bridal-forms.webp",
+      "publicPath": "/assets/thehairnarrative.com/booksaw-20260827/images/journal-bridal-forms.webp",
+      "contentType": "image/webp",
+      "bytes": 35654,
+      "sha256": "772c004bce663c753b705c9f183d873984a2357b1bb6d8b93776c26da5c6483c",
+      "width": 1448,
+      "height": 1086,
+      "source": "Client-approved Booksaw-adapted draft image; copied unchanged from the reviewed draft asset."
+    },
+    {
+      "file": "images/practice-journal-form-movement.webp",
+      "publicPath": "/assets/thehairnarrative.com/booksaw-20260827/images/practice-journal-form-movement.webp",
+      "contentType": "image/webp",
+      "bytes": 27950,
+      "sha256": "38c4791a1de262a05f52275e12be9732c1e5e1214188e7299868022114608546",
+      "width": 960,
+      "height": 720,
+      "source": "Client-approved Booksaw-adapted draft image; copied unchanged from the reviewed draft asset."
+    },
+    {
+      "file": "images/practice-journal-observation-process.webp",
+      "publicPath": "/assets/thehairnarrative.com/booksaw-20260827/images/practice-journal-observation-process.webp",
+      "contentType": "image/webp",
+      "bytes": 26778,
+      "sha256": "92ad7b7d2f5ccdf54562bc3d2a93dc780ae6c8772b2981ce5ba3d04d34e462ea",
+      "width": 960,
+      "height": 720,
+      "source": "Client-approved Booksaw-adapted draft image; copied unchanged from the reviewed draft asset."
+    },
+    {
+      "file": "images/practice-journal-bridal-forms.webp",
+      "publicPath": "/assets/thehairnarrative.com/booksaw-20260827/images/practice-journal-bridal-forms.webp",
+      "contentType": "image/webp",
+      "bytes": 19810,
+      "sha256": "d6f8eb21da1699c9908574633736c9daf55d934dfe9021e8601749cc793863df",
+      "width": 960,
+      "height": 720,
+      "source": "Client-approved Booksaw-adapted draft image; copied unchanged from the reviewed draft asset."
+    },
+    {
+      "file": "images/nina-studio-portrait.webp",
+      "publicPath": "/assets/thehairnarrative.com/booksaw-20260827/images/nina-studio-portrait.webp",
+      "contentType": "image/webp",
+      "bytes": 13394,
+      "sha256": "bedcbd95f97a49e8aa5083bcc01db0dcdf439879a2fba35156815be5a4204c9f",
+      "width": 234,
+      "height": 234,
+      "source": "Client-approved Booksaw-adapted draft image; copied unchanged from the reviewed draft asset."
+    },
+    {
+      "file": "images/practice-design-sketch.webp",
+      "publicPath": "/assets/thehairnarrative.com/booksaw-20260827/images/practice-design-sketch.webp",
+      "contentType": "image/webp",
+      "bytes": 12638,
+      "sha256": "530b15c77b6026757445665010a7c418ab4a3ed668312b0b98b476b69984e39d",
+      "width": 189,
+      "height": 189,
+      "source": "Client-approved Booksaw-adapted draft image; copied unchanged from the reviewed draft asset."
+    },
+    {
+      "file": "images/practice-references.webp",
+      "publicPath": "/assets/thehairnarrative.com/booksaw-20260827/images/practice-references.webp",
+      "contentType": "image/webp",
+      "bytes": 17796,
+      "sha256": "872eef00e34504f3ace9e3f280418c2a31cc29fbd3088e1505ad4638e7db5d0f",
+      "width": 190,
+      "height": 189,
+      "source": "Client-approved Booksaw-adapted draft image; copied unchanged from the reviewed draft asset."
+    },
+    {
+      "file": "images/practice-hands.webp",
+      "publicPath": "/assets/thehairnarrative.com/booksaw-20260827/images/practice-hands.webp",
+      "contentType": "image/webp",
+      "bytes": 13930,
+      "sha256": "5305e5301ea28623b85d0ec1451ef485bc12d53d065103a33ebc8c8e4d390369",
+      "width": 189,
+      "height": 189,
+      "source": "Client-approved Booksaw-adapted draft image; copied unchanged from the reviewed draft asset."
+    },
+    {
+      "file": "fonts/newsreader-latin-400-normal.woff2",
+      "publicPath": "/assets/thehairnarrative.com/booksaw-20260827/fonts/newsreader-latin-400-normal.woff2",
+      "contentType": "font/woff2",
+      "bytes": 57268,
+      "sha256": "725d78a558da7c48dd6753e4aa21bc40b4a5dc721c457e2b7d3ef782e8a9904b",
+      "family": "Newsreader",
+      "weight": 400,
+      "style": "normal",
+      "axes": [
+        {
+          "tag": "opsz",
+          "min": 6,
+          "default": 18,
+          "max": 72
+        }
+      ],
+      "source": "https://fonts.gstatic.com/s/newsreader/v26/cY9VfjOCX1hbuyalUrK49dLafXjalZCsZBsgBgbNJYQ.woff2",
+      "license": "fonts/Newsreader-OFL.txt"
+    },
+    {
+      "file": "fonts/newsreader-latin-500-normal.woff2",
+      "publicPath": "/assets/thehairnarrative.com/booksaw-20260827/fonts/newsreader-latin-500-normal.woff2",
+      "contentType": "font/woff2",
+      "bytes": 60724,
+      "sha256": "d411a65041e3042e040c79ab7d128b0707002718a72c3cdb72f4b5461376ab07",
+      "family": "Newsreader",
+      "weight": 500,
+      "style": "normal",
+      "axes": [
+        {
+          "tag": "opsz",
+          "min": 6,
+          "default": 18,
+          "max": 72
+        }
+      ],
+      "source": "https://fonts.gstatic.com/s/newsreader/v26/cY9VfjOCX1hbuyalUrK49dLafXjalZCsZBsSBgbNJYQ.woff2",
+      "license": "fonts/Newsreader-OFL.txt"
+    },
+    {
+      "file": "fonts/open-sans-latin-400-normal.woff2",
+      "publicPath": "/assets/thehairnarrative.com/booksaw-20260827/fonts/open-sans-latin-400-normal.woff2",
+      "contentType": "font/woff2",
+      "bytes": 18640,
+      "sha256": "0e44026ad31376af1b56593cd4acb4f353f8e8789c51759e18f64578e4ef296a",
+      "family": "Open Sans",
+      "weight": 400,
+      "style": "normal",
+      "axes": [],
+      "source": "https://fonts.gstatic.com/s/opensans/v44/memSYaGs126MiZpBA-UvWbX2vVnXBbObj2OVZyOOSr4dVJWUgsjZ0B4gaVI.woff2",
+      "license": "fonts/OpenSans-OFL.txt"
+    },
+    {
+      "file": "fonts/open-sans-latin-600-normal.woff2",
+      "publicPath": "/assets/thehairnarrative.com/booksaw-20260827/fonts/open-sans-latin-600-normal.woff2",
+      "contentType": "font/woff2",
+      "bytes": 18620,
+      "sha256": "a97a6ed7ef9f75c495e9224f5c59b2271d826e4a4345b738b390b0c76cc9f412",
+      "family": "Open Sans",
+      "weight": 600,
+      "style": "normal",
+      "axes": [],
+      "source": "https://fonts.gstatic.com/s/opensans/v44/memSYaGs126MiZpBA-UvWbX2vVnXBbObj2OVZyOOSr4dVJWUgsgH1x4gaVI.woff2",
+      "license": "fonts/OpenSans-OFL.txt"
+    }
+  ],
+  "licenses": [
+    {
+      "file": "fonts/Newsreader-OFL.txt",
+      "license": "SIL Open Font License 1.1",
+      "bytes": 4394,
+      "sha256": "fdfad38143ec470553cae82a1e45320bdd1b9ec70415d37bd0171051d8a4ded8",
+      "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/newsreader/OFL.txt"
+    },
+    {
+      "file": "fonts/OpenSans-OFL.txt",
+      "license": "SIL Open Font License 1.1",
+      "bytes": 4389,
+      "sha256": "fbbbcfef55318de350562559b671360de6d597112ecc5c73881b05092db89602",
+      "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/opensans/OFL.txt"
+    }
+  ]
+}

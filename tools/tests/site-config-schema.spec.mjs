@@ -22,6 +22,30 @@ async function readZoositePilotPage(pageId) {
     return readJson(new URL(`./fixtures/zoosite-auth-pilot/${pageId}/page-config.json`, import.meta.url));
 }
 
+test('site-config schema documents bounded, public WOFF2 font descriptors', async () => {
+    const schema = await readJson(schemaPath);
+    const fonts = schema.definitions.siteSharedConfig.properties.fonts;
+    assert.equal(fonts?.type, 'array');
+    assert.equal(fonts.maxItems, 8);
+    assert.equal(fonts.items.$ref, '#/definitions/siteFontFace');
+    const face = schema.definitions.siteFontFace;
+    assert.deepEqual(face.required, ['family', 'src']);
+    assert.equal(face.additionalProperties, false);
+    assert.deepEqual(face.properties.style.enum, ['normal', 'italic']);
+    const sourcePattern = new RegExp(face.properties.src.pattern);
+    for (const valid of ['/fonts/editorial.woff2', 'https://assets.example.test/fonts/editorial.woff2']) {
+        assert.equal(sourcePattern.test(valid), true, valid);
+    }
+    for (const invalid of [
+        '//assets.example.test/font.woff2', 'http://assets.example.test/font.woff2',
+        'https://user:password@assets.example.test/font.woff2', '/fonts/font.woff2?token=private',
+        '/fonts/../private/font.woff2', '/fonts/%2e%2e/font.woff2',
+        '/fonts/font.woff2\n', '/fonts/font.woff2#fragment',
+    ]) {
+        assert.equal(sourcePattern.test(invalid), false, invalid);
+    }
+});
+
 test('site-config schema documents normalized optional route language', async () => {
     const schema = await readJson(schemaPath);
     const language = schema.definitions?.siteRouteEntry?.properties?.language;

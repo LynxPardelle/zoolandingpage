@@ -1,1 +1,3 @@
 *.sh text eol=lf
+public/assets/thehairnarrative.com/booksaw-20260827/fonts/*-OFL.txt -text
+public/assets/thehairnarrative.com/booksaw-20260827/fonts/*.woff2 binary

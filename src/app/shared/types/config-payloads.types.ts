@@ -151,6 +151,14 @@ export type TDraftSiteIconConfig = {
     readonly manifest?: string;
 };
 
+/** One public WOFF2 face. Weight may be a single value or a variable range. */
+export type TDraftFontFaceConfig = {
+    readonly family: string;
+    readonly src: string;
+    readonly weight?: string;
+    readonly style?: 'normal' | 'italic';
+};
+
 export type TDraftVariableConfig = Record<string, unknown> & {
     readonly appIdentity?: TDraftAppIdentityVariableConfig;
     readonly brand?: TDraftBrandVariableConfig;
@@ -169,6 +177,7 @@ export type TDraftSiteSharedConfig = {
     readonly theme: TThemeVariableConfig;
     readonly i18n: TDraftI18nVariableConfig;
     readonly icons?: TDraftSiteIconConfig;
+    readonly fonts?: readonly TDraftFontFaceConfig[];
     readonly seo?: TDraftSiteSeoConfig;
     readonly searchConsole?: TSearchConsoleConfig;
     readonly hostOverrides?: Record<string, TDraftHostOverrideConfig>;

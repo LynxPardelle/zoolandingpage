@@ -272,3 +272,14 @@ Exception:
 - Missing ID: renderer will warn on lookup.
 - Wrong `type`: renderer will not find a matching case.
 - Dynamic value not applied: check resolver ID allowlist.
+
+### Container language and portalled menu behavior
+
+- `container.lang` optionally assigns a language to the container's complete semantic subtree, including `main`, `section`, `article`, and `figure`. This lets a fixed-language body coexist with a translated shared header/footer. It does not change the selected application language.
+- `container.tabindex` retains the existing finite-number contract. Prefer `-1` for a programmatic skip-link destination; avoid positive values in authored navigation because they reorder native keyboard focus. `ariaLive` and semantic-tag behavior remain unchanged.
+- Generic dropdown keyboard handling follows the actual rendered menu in either portal mode. Arrow keys, Home, and End move between enabled items; Escape closes and returns focus to the trigger. Tab and Shift+Tab close without preventing native sequential navigation. Test native focus order in the browser as well as unit-level events.
+- An action-only dropdown item has no synthetic `href="#"`. Enter and Space activate it once through the same item-selection path as a click. Real link items retain their authored navigation.
+
+### Link colors supplied by Angora combos
+
+Generic links inherit their surrounding text color unless the anchor itself has an explicit `ank-color-*` or `ank-text-*` utility. Utilities expanded inside a combo do not add those utility names to the anchor's class attribute. When a combo defines a link's base or hover color, also declare its matching base color directly in `config.classes`, for example `ank-color-linkColor myCtaCombo`. This keeps the inherited-color fallback from overriding the combo's hover state; no Angular style override is needed. Verify both the base and hover text/background contrast in the browser.

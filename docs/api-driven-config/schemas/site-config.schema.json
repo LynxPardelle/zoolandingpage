@@ -1217,6 +1217,29 @@
       },
       "additionalProperties": true
     },
+    "siteFontFace": {
+      "type": "object",
+      "required": ["family", "src"],
+      "properties": {
+        "family": {
+          "type": "string",
+          "maxLength": 80,
+          "pattern": "^(?!.*[\\u0000-\\u001F\\u007F])[A-Za-z][A-Za-z0-9]*(?:[ -][A-Za-z0-9]+)*$"
+        },
+        "src": {
+          "type": "string",
+          "maxLength": 2048,
+          "pattern": "^(?!.*[\\u0000-\\u0020\\u007f])(?:/(?!/)|https://[A-Za-z0-9.-]+/)(?!\\.{1,2}/)(?!.*[/]\\.{1,2}/)[A-Za-z0-9._/-]+\\.woff2$"
+        },
+        "weight": {
+          "type": "string",
+          "description": "An integer weight 1..1000 or an ascending variable range, such as 400 600. Ranges must not overlap within a family/style; the runtime validates ordering and overlap.",
+          "pattern": "^(?!.*[\\u0000-\\u001F\\u007F])(?:[1-9][0-9]{0,2}|1000)(?: (?:[1-9][0-9]{0,2}|1000))?$"
+        },
+        "style": { "enum": ["normal", "italic"] }
+      },
+      "additionalProperties": false
+    },
     "siteSharedConfig": {
       "type": "object",
       "required": ["appIdentity", "theme", "i18n"],
@@ -1225,6 +1248,11 @@
         "theme": { "$ref": "#/definitions/themeConfig" },
         "i18n": { "$ref": "#/definitions/draftI18nConfig" },
         "icons": { "$ref": "#/definitions/siteIconConfig" },
+        "fonts": {
+          "type": "array",
+          "maxItems": 8,
+          "items": { "$ref": "#/definitions/siteFontFace" }
+        },
         "seo": { "$ref": "#/definitions/siteSeoConfig" },
         "searchConsole": { "$ref": "#/definitions/searchConsoleConfig" },
         "hostOverrides": {
