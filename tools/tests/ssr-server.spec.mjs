@@ -463,6 +463,69 @@ test('production SSR server renders behind Traefik forwarded headers', async (t)
   assert.doesNotMatch(getStderr(), /trustProxyHeaders/i);
 });
 
+test('production SSR emits only the selected page font stylesheet without cross-request leakage', async (t) => {
+  const domain = 'font-fixture.example.com';
+  const enFont = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap';
+  const zhFont = 'https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;600&display=swap';
+  const palette = Object.fromEntries([
+    'bgColor', 'textColor', 'titleColor', 'linkColor', 'accentColor', 'secondaryBgColor',
+    'secondaryTextColor', 'secondaryTitleColor', 'secondaryLinkColor', 'secondaryAccentColor',
+    'successColor', 'onSuccessColor', 'errorColor', 'onErrorColor', 'warningColor',
+    'onWarningColor', 'infoColor', 'onInfoColor',
+  ].map((key) => [key, '#ffffff']));
+  const siteConfig = {
+    version: 1, domain, defaultPageId: 'default',
+    routes: [{ path: '/', pageId: 'default' }, { path: '/plain', pageId: 'plain' }],
+    site: {
+      appIdentity: { identifier: 'fontfixture', name: 'Font fixture' },
+      theme: { defaultMode: 'light', palettes: { light: palette, dark: palette } },
+      i18n: { defaultLanguage: 'en', supportedLanguages: ['en', 'zh'] },
+    },
+  };
+  const apiBase = await startRuntimeApi(t, (req, res) => {
+    const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    if (url.pathname === '/site-config') {
+      res.end(JSON.stringify(siteConfig));
+      return;
+    }
+    const plain = url.searchParams.get('path') === '/plain';
+    const pageId = plain ? 'plain' : 'default';
+    const lang = url.searchParams.get('lang') || 'en';
+    res.end(JSON.stringify({
+      version: 1, domain, pageId, sourceStage: 'published', lang,
+      route: { path: plain ? '/plain' : '/', pageId }, siteConfig,
+      pageConfig: {
+        version: 1, domain, pageId, rootIds: ['fontFixture'],
+        ...(!plain ? { googleFontsStylesheet: { en: enFont, zh: zhFont } } : {}),
+        seo: { title: 'Font fixture', description: 'Opt-in font isolation fixture' },
+      },
+      components: {
+        version: 1, domain, pageId,
+        components: [{ id: 'fontFixture', type: 'text', config: { tag: 'p', text: 'Font fixture content' } }],
+      },
+      i18n: { version: 1, domain, pageId, lang, dictionary: {} }, metadata: {},
+    }));
+  });
+  const { port, getStderr } = await startProductionServer(t, {
+    CONFIG_API_SERVER_FALLBACK_URL: '', CONFIG_API_URL: apiBase,
+  });
+  const headers = { Host: 'test.zoolandingpage.com.mx', 'X-Forwarded-Host': 'test.zoolandingpage.com.mx', 'X-Forwarded-Proto': 'https' };
+  for (const [path, lang, expected] of [['/', 'en', enFont], ['/', 'zh', zhFont], ['/plain', 'en', null]]) {
+    const response = await fetch(`http://127.0.0.1:${port}${path}?draftDomain=${domain}&lang=${lang}`, { headers });
+    const html = await response.text();
+    assert.equal(response.status, 200);
+    assert.match(html, /Font fixture content/);
+    const links = (html.match(/<link\b[^>]*>/gi) ?? []).filter((tag) => tag.includes('data-zlp-page-fonts'));
+    assert.equal(links.length, expected ? 1 : 0);
+    if (expected) {
+      assert(links[0].replaceAll('&amp;', '&').includes(`href="${expected}"`));
+      assert.match(links[0], /rel="stylesheet"/);
+    }
+  }
+  assert.equal(getStderr(), '');
+});
+
 test('production SSR server redirects the legacy favicon path to the Zoolandingpage fallback', async (t) => {
   const { port, getStderr } = await startProductionServer(t);
   const faviconUrl = `http://127.0.0.1:${port}/favicon.ico`;
