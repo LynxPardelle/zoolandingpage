@@ -31,7 +31,26 @@ describe('Angora numeric breakpoint CSS integration', () => {
             for (const original of defaults) {
                 expect(angora.getBPS().find(entry => entry.bp === original.bp)?.value).toBe(original.value);
             }
+            const registerGrid = (tokens: string[]) => {
+                service.setAuxiliaryCombos('cascade-test', {
+                    version: 1, pageId: 'page', domain: 'example.test',
+                    combos: { numericCascadeGrid: ['ank-gridTemplateColumns-1fr', ...tokens] },
+                });
+                service.updateClasses(['numericCascadeGrid']);
+            };
+            registerGrid(['ank-gridTemplateColumns-px901-repeatSD4COM1frED']);
             service.stopCssRuntime();
+            registerGrid([
+                'ank-gridTemplateColumns-px901-repeatSD4COM1frED',
+                'ank-gridTemplateColumns-px641-repeatSD3COM1frED',
+                'ank-gridTemplateColumns-px561-repeatSD2COM1frED',
+            ]);
+            const gridRules = Array.from(styles[1].sheet!.cssRules).filter(rule => rule.cssText.includes('numericCascadeGrid'));
+            expect(gridRules.map(rule => Number((rule as CSSMediaRule).conditionText.match(/min-width:\s*(\d+)px/)?.[1])))
+                .toEqual([561, 641, 901]);
+            expect(gridRules[2]?.cssText).toContain('grid-template-columns: repeat(4, 1fr)');
+            service.stopCssRuntime();
+            service.clearAuxiliaryCombos('cascade-test');
             service.clearAuxiliaryCombos('numeric-breakpoint-test');
         } finally {
             styles.forEach(element => element.remove());
