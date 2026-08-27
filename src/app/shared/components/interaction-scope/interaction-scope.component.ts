@@ -78,6 +78,10 @@ export class InteractionScopeComponent implements OnInit {
     resolveScopeTag(this.config().tag)
   );
 
+  readonly noValidate = computed(() =>
+    Boolean(resolveDynamicValue(this.config().noValidate))
+  );
+
   readonly id = computed<string | undefined>(() =>
     resolveComponentRootDomId(
       this.config().id,

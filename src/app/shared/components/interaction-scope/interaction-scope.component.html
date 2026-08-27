@@ -1,5 +1,5 @@
 @switch (tag()) { @case ('form') {
-<form [id]="id()" [class]="classes()" [attr.role]="role()" [attr.aria-label]="ariaLabel()" (submit)="onSubmit($event)">
+<form [id]="id()" [class]="classes()" [attr.role]="role()" [attr.aria-label]="ariaLabel()" [noValidate]="noValidate()" (submit)="onSubmit($event)">
   <wrapper-orchestrator [componentsIds]="components()" [hostContext]="hostContext()"></wrapper-orchestrator>
 </form>
 } @case ('section') {

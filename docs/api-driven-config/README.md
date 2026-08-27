@@ -87,6 +87,7 @@ The draft filesystem under `drafts/{domain}/...`, served locally at `/drafts/...
 - [20-generic-content-builder-primitives.md](20-generic-content-builder-primitives.md)
 - [21-generic-combo-catalog.md](21-generic-combo-catalog.md)
 - [22-server-only-integration-microservices.md](22-server-only-integration-microservices.md)
+- [23-draft-font-faces.md](23-draft-font-faces.md)
 
 ## Practical rule for new contributors
 

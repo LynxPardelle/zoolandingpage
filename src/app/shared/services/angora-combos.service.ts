@@ -70,6 +70,7 @@ export class AngoraCombosService {
     private appliedCombos: TAngoraCombosMap = {};
     private lastAppliedSignature = '';
     private readonly replayedClasses = new Set<string>();
+    private readonly numericBreakpoints = new Set<string>();
     private cssCreateTimer: number | null = null;
     private cssCreateDueAt: number | null = null;
 
@@ -119,6 +120,7 @@ export class AngoraCombosService {
                 this.clearRemovedCombos(removedKeys);
 
                 if (Object.keys(merged).length > 0) {
+                    this.registerNumericBreakpoints(Object.values(merged).flat());
                     this.ank.pushCombos(merged);
                 }
             });
@@ -144,7 +146,10 @@ export class AngoraCombosService {
             this.cssCreateTimer = window.setTimeout(() => {
                 this.cssCreateTimer = null;
                 this.cssCreateDueAt = null;
-                this.ank.cssCreate();
+                this.ank.runInCssCreateBatch(() => {
+                    this.registerNumericBreakpoints(this.collectRenderedDomClasses());
+                    this.ank.cssCreate();
+                });
             }, normalizedDelay);
         });
     }
@@ -221,6 +226,11 @@ export class AngoraCombosService {
         }
 
         this.zone.runOutsideAngular(() => {
+            this.ank.runInCssCreateBatch(() => {
+                this.registerNumericBreakpoints(normalized);
+            });
+            // pushBPS requests a full scan; replay explicit classes after its batch
+            // so classes not mounted in the DOM yet are not discarded by that scan.
             this.ank.cssCreate(normalized);
         });
         normalized.forEach((className) => this.replayedClasses.add(className));
@@ -354,6 +364,20 @@ export class AngoraCombosService {
                 .map((entry) => entry.trim())
                 .filter((entry) => entry.length > 0)
         ));
+    }
+
+    private registerNumericBreakpoints(classes: readonly string[]): void {
+        const indicator = String(this.ank.indicatorClass ?? 'ank');
+        const pending: { bp: string; value: string; class2Create: string }[] = [];
+        for (const token of this.normalizeClassEntries(classes)) {
+            const [prefix, , bp, value] = token.split('-');
+            if (prefix !== indicator || !value || !/^px[1-9]\d{0,3}$/.test(bp ?? '')) continue;
+            const width = Number(bp.slice(2));
+            if (width > 8192 || this.numericBreakpoints.has(bp)) continue;
+            this.numericBreakpoints.add(bp);
+            pending.push({ bp, value: `${width}px`, class2Create: '' });
+        }
+        if (pending.length > 0) this.ank.pushBPS(pending);
     }
 
     private async waitForRequiredCssRules(

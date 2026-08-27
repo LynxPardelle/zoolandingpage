@@ -8,6 +8,7 @@ import { ConfigurationsOrchestratorService } from '@/app/shared/services/configu
 import { DomainResolverService } from '@/app/shared/services/domain-resolver.service';
 import { DraftRegistryService } from '@/app/shared/services/draft-registry.service';
 import { DraftRuntimeService } from '@/app/shared/services/draft-runtime.service';
+import { DraftFontService } from '@/app/shared/services/draft-font.service';
 import { RuntimeDataSourceService } from '@/app/shared/services/runtime-data-source.service';
 import { ThemeService } from '@/app/shared/services/theme.service';
 import type { TComponentPayloadEntry, TComponentsPayload } from '@/app/shared/types/config-payloads.types';
@@ -328,6 +329,103 @@ describe('RuntimeService', () => {
         (environment as { production: boolean }).production = originalProduction;
         setRuntimeUrl(originalUrl);
         TestBed.resetTestingModule();
+    });
+
+    it('waits for draft font activation before installing the first rendered components', async () => {
+        const fonts = [{ family: 'Editorial Serif', src: '/fonts/editorial.woff2', weight: '400' }];
+        const config = await loadSiteConfig();
+        loadSiteConfig.and.resolveTo({ ...config, site: { fonts } });
+        const fontService = TestBed.inject(DraftFontService);
+        let releaseFonts: (() => void) | undefined;
+        const activate = spyOn(fontService, 'activate').and.returnValue(new Promise<void>(resolve => { releaseFonts = resolve; }));
+        const service = TestBed.inject(RuntimeService);
+        const pending = service.initialize('en');
+        await flushPostBootstrapBrowserWork();
+
+        expect(activate).toHaveBeenCalledWith('pamelabetancourt.com', fonts);
+        expect(service.rootComponentsIds()).toEqual([]);
+        releaseFonts?.();
+        await pending;
+        expect(service.rootComponentsIds()).toEqual(['home-root']);
+    });
+
+    it('restores draft fonts after reconnect without repeating a completed bootstrap', async () => {
+        const fonts = [{ family: 'Editorial Serif', src: '/fonts/editorial.woff2', weight: '400' }];
+        const config = await loadSiteConfig();
+        loadSiteConfig.and.resolveTo({ ...config, site: { fonts } });
+        loadSiteConfig.calls.reset();
+        const fontService = TestBed.inject(DraftFontService);
+        const activate = spyOn(fontService, 'activate').and.resolveTo();
+        const service = TestBed.inject(RuntimeService);
+
+        await service.initialize('en');
+        expect(activate).toHaveBeenCalledOnceWith('pamelabetancourt.com', fonts);
+        service.disconnect();
+        service.connect({
+            host: document.createElement('main'),
+            destroyRef: { destroyed: false, onDestroy: () => () => undefined } as any,
+            showDebugWorkspace: () => false,
+            currentLanguage: () => 'en',
+        });
+        await flushPostBootstrapBrowserWork();
+
+        expect(activate.calls.allArgs()).toEqual([
+            ['pamelabetancourt.com', fonts],
+            ['pamelabetancourt.com', fonts],
+        ]);
+        expect(bootstrapLoad).toHaveBeenCalledTimes(1);
+        expect(loadSiteConfig).toHaveBeenCalledTimes(1);
+        expect(setExternalComponentsFromPayload).toHaveBeenCalledTimes(1);
+        expect(service.rootComponentsIds()).toEqual(['home-root']);
+    });
+
+    it('clears draft fonts on disconnect and retries a cancelled font bootstrap on reconnect', async () => {
+        const fontService = TestBed.inject(DraftFontService);
+        let releaseFonts: (() => void) | undefined;
+        const activate = spyOn(fontService, 'activate').and.returnValue(new Promise<void>(resolve => { releaseFonts = resolve; }));
+        const clear = spyOn(fontService, 'clear').and.callThrough();
+        const service = TestBed.inject(RuntimeService);
+        const pending = service.initialize('en');
+        await flushPostBootstrapBrowserWork();
+        service.disconnect();
+        expect(clear).toHaveBeenCalled();
+        releaseFonts?.();
+        await pending;
+        expect(service.rootComponentsIds()).toEqual([]);
+
+        activate.and.resolveTo();
+        service.connect({
+            host: document.createElement('main'),
+            destroyRef: { destroyed: false, onDestroy: () => () => undefined } as any,
+            showDebugWorkspace: () => false,
+            currentLanguage: () => 'en',
+        });
+        await flushPostBootstrapBrowserWork();
+
+        expect(activate).toHaveBeenCalledTimes(2);
+        expect(bootstrapLoad).toHaveBeenCalledTimes(2);
+        expect(service.rootComponentsIds()).toEqual(['home-root']);
+    });
+
+    it('keeps the shared font declaration active when navigating to another draft page', async () => {
+        const fonts = [{ family: 'Editorial Serif', src: '/fonts/editorial.woff2', weight: '400' }];
+        const config = await loadSiteConfig();
+        loadSiteConfig.and.resolveTo({ ...config, site: { fonts } });
+        const fontService = TestBed.inject(DraftFontService);
+        const activate = spyOn(fontService, 'activate').and.resolveTo();
+        const clear = spyOn(fontService, 'clear').and.callThrough();
+        const service = TestBed.inject(RuntimeService);
+
+        await service.initialize('en');
+        setRuntimeUrl('/servicios?draftDomain=pamelabetancourt.com');
+        await service.initialize('en');
+
+        expect(service.rootComponentsIds()).toEqual(['servicios-root']);
+        expect(activate.calls.allArgs()).toEqual([
+            ['pamelabetancourt.com', fonts],
+            ['pamelabetancourt.com', fonts],
+        ]);
+        expect(clear).not.toHaveBeenCalled();
     });
 
     it('reinitializes the rendered draft when client navigation changes the route path', async () => {

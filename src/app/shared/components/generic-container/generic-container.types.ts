@@ -22,6 +22,7 @@ export type TGenericContainerConfig = {
 
     id?: TDynamicStringValue;
     classes?: TDynamicStringValue;
+    lang?: TDynamicStringValue;
     tabindex?: number;
     role?: TDynamicStringValue;
     ariaLive?: TDynamicValue<'off' | 'polite' | 'assertive'>;

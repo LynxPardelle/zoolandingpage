@@ -6,6 +6,7 @@ import { ConfigSourceService } from '@/app/shared/services/config-source.service
 import { ConfigStoreService } from '@/app/shared/services/config-store.service';
 import { ConfigurationsOrchestratorService } from '@/app/shared/services/configurations-orchestrator';
 import { ComboCatalogRuntimeService } from '@/app/shared/services/combo-catalog-runtime.service';
+import { DraftFontService } from '@/app/shared/services/draft-font.service';
 import { DRAFT_RUNTIME_STICKY_QUERY_PARAMS, DraftRuntimeService } from '@/app/shared/services/draft-runtime.service';
 import { RuntimeDataSourceService } from '@/app/shared/services/runtime-data-source.service';
 import { RuntimeConfigService } from '@/app/shared/services/runtime-config.service';
@@ -32,6 +33,7 @@ export class RuntimeService {
     private readonly configSource = inject(ConfigSourceService);
     private readonly orchestrator = inject(ConfigurationsOrchestratorService);
     private readonly draftRuntime = inject(DraftRuntimeService);
+    private readonly draftFonts = inject(DraftFontService);
     private readonly combosService = inject(AngoraCombosService);
     private readonly analytics = inject(AnalyticsService);
     private readonly runtimeDataSources = inject(RuntimeDataSourceService);
@@ -126,11 +128,15 @@ export class RuntimeService {
             return;
         }
 
+        // Completed payloads survive disconnect, but their document-scoped font faces do not.
+        const siteConfig = this.configStore.siteConfig();
+        if (siteConfig) void this.draftFonts.activate(siteConfig.domain, siteConfig.site?.fonts);
         this.configureDebugWorkspaceAfterConnect();
     }
 
     disconnect(): void {
         this.initializeId++;
+        this.draftFonts.clear();
         if (!this.hasCompletedInitialBootstrap) {
             this.hasRequestedInitialBootstrap = false;
         }
@@ -435,7 +441,10 @@ export class RuntimeService {
             }
 
             const dataSources = this.configStore.siteConfig()?.runtime?.dataSources ?? [];
-            const comboCatalogLoaded = await this.comboCatalogRuntime.load(domain, pageId);
+            const [comboCatalogLoaded] = await Promise.all([
+                this.comboCatalogRuntime.load(domain, pageId),
+                this.draftFonts.activate(domain, this.configStore.siteConfig()?.site?.fonts),
+            ]);
             if (initializeId !== this.initializeId) return;
             if (!comboCatalogLoaded && this.runtimeConfig.isDebugMode()) {
                 console.warn('[Runtime] Combo catalog runtime resolution failed; continuing with local draft combos.');
@@ -995,6 +1004,7 @@ export class RuntimeService {
     }
 
     clearRenderedDraft(domain: string, pageId: string): void {
+        this.draftFonts.clear();
         this.rootComponentsIds.set([]);
         this.modalRootIds.set(this.resolveModalRootIds([]));
         this.orchestrator.setExternalComponentsFromPayload(null);

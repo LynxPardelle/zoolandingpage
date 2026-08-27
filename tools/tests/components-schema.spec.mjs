@@ -5,6 +5,11 @@ import test from 'node:test';
 const componentsSchemaPath = new URL('../../docs/api-driven-config/schemas/components.schema.json', import.meta.url);
 const contentBuilderPrimitivesDocPath = new URL('../../docs/api-driven-config/20-generic-content-builder-primitives.md', import.meta.url);
 
+test('interaction scope schema exposes an opt-in native validation bypass', async () => {
+  const schema = JSON.parse(await readFile(componentsSchemaPath, 'utf8'));
+  assert.equal(schema.definitions.interactionScopeConfig.properties.noValidate?.type, 'boolean');
+});
+
 test('components schema documents scoped auth form validation controls', async () => {
   const schema = JSON.parse(await readFile(componentsSchemaPath, 'utf8'));
   const input = schema.definitions?.genericInputConfig;
@@ -91,4 +96,15 @@ test('generic content-builder documentation uses the canonical container discrim
   assert.ok(resultRegionBlock?.[1], 'expected the calculator result JSON example');
   const resultRegion = JSON.parse(resultRegionBlock[1]);
   assert.equal(resultRegion.type, 'container');
+});
+
+test('container language is explicit without narrowing existing accessibility contracts', async () => {
+  const schema = JSON.parse(await readFile(componentsSchemaPath, 'utf8'));
+  const container = schema.definitions.genericContainerConfig;
+
+  assert.equal(container.properties.lang?.type, 'string');
+  assert.equal(container.properties.tabindex.type, 'number');
+  assert.equal(container.properties.tabindex.maximum, undefined);
+  assert.ok(container.properties.tag.enum.includes('figure'));
+  assert.deepEqual(container.properties.ariaLive.enum, ['off', 'polite', 'assertive']);
 });

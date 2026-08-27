@@ -8,15 +8,17 @@ Source Of Truth:
 
 - `docs/11-draft-lifecycle.md`
 - `docs/DEVELOPER_ONBOARDING.md`
+- `src/server.ts`
 - Promoted from local draft notes and findings
 
 Confidence: High
-Last Reviewed: 2026-05-07 (Central Time)
+Last Reviewed: 2026-08-26 (Central Time)
 
 ## Preview Rules
 
 - Use `draftDomain` and `draftPageId` in local preview URLs so draft resolution stays explicit.
 - Do not embed those query parameters into authored navigation links.
+- Shared SSR not-found recovery returns to the home route with a relative, HTML-escaped link. It preserves only a single validated `draftDomain` and recognized boolean `debugWorkspace` on localhost/shared testing, plus a normalized configured language. Repeated, structured, malformed, unrelated, tracking, and authentication query fields are dropped; `draftPageId` is never carried into home recovery. Published custom hosts ignore cross-draft preview context.
 
 ## Authored Route Rules
 

@@ -25,6 +25,7 @@ export class GenericContainerComponent {
     resolveComponentRootDomId(this.config().id, this.componentId(), 'container')
   );
   readonly classes = computed<string>(() => this.resolveString(this.config().classes).trim());
+  readonly lang = computed<string | undefined>(() => this.resolveOptionalString(this.config().lang));
   readonly role = computed<string | undefined>(() => this.resolveOptionalString(this.config().role));
   readonly tabIndex = computed<number | undefined>(() => {
     const value = this.config().tabindex;

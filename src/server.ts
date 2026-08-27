@@ -16,6 +16,7 @@ import {
   matchContentHubArticleRoute,
 } from '@/app/shared/utility/content-hub/content-hub-public-route';
 import { matchDraftRoute, normalizeDraftRoutePath } from '@/app/shared/utility/route-matching/draft-route-matching';
+import { resolveNavigationTarget } from '@/app/shared/utility/navigation/navigation-target.utility';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
 const DRAFTS_FOLDER_NAME = 'drafts';
@@ -2717,19 +2718,53 @@ function resolveNotFoundSsrCopy(lang: string): {
   };
 }
 
-function buildNotFoundSsrShellContent(siteConfig: TLocalSiteConfig | null, lang: string): string {
+function resolveNotFoundHomeHref(req: express.Request, host: string, siteConfig: TLocalSiteConfig | null): string {
+  const readQuery = (key: string): string => {
+    const value = req.query[key];
+    const hasStructuredField = Object.keys(req.query).some((name) => name.startsWith(`${key}[`) || name.startsWith(`${key}.`));
+    return typeof value === 'string' && !hasStructuredField && !/[\s\u0000-\u001F\u007F]/.test(value) ? value : '';
+  };
+  // The origin only supports relative serialization; never reflect request authority or its raw query.
+  const context = new URL('http://localhost/');
+  const draftDomain = readQuery('draftDomain').toLowerCase();
+  const validDomain = draftDomain.length <= 253
+    && /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/.test(draftDomain);
+  if ((isLocalHost(host) || isSharedTestingPreviewHost(host)) && validDomain && isSiteConfigAllowedHost(draftDomain, siteConfig)) {
+    context.searchParams.set('draftDomain', draftDomain);
+    const debugWorkspace = readQuery('debugWorkspace').toLowerCase();
+    if (debugWorkspace === 'true' || debugWorkspace === 'false') {
+      context.searchParams.set('debugWorkspace', debugWorkspace);
+    }
+  }
+  const requestedLang = readQuery('lang');
+  if (/^[a-z]{2,3}(?:[-_][a-z0-9]{2,8})*$/i.test(requestedLang)) {
+    const normalizedLang = normalizeLanguageCode(requestedLang);
+    const supportedLang = [
+      normalizeLanguageCode(siteConfig?.site?.i18n?.defaultLanguage),
+      ...(siteConfig?.site?.i18n?.supportedLanguages ?? []).map(normalizeLanguageEntry),
+    ].find((candidate) => candidate.toLowerCase() === normalizedLang.toLowerCase());
+    if (supportedLang) {
+      context.searchParams.set('lang', supportedLang);
+    }
+  }
+  return resolveNavigationTarget(normalizeRoutePath(resolveLocalRoute(siteConfig, '/')?.path ?? '/'), {
+    currentHref: context.toString(),
+    stickyQueryParams: AUTH_REDIRECT_STICKY_QUERY_PARAMS,
+  }).href;
+}
+
+function buildNotFoundSsrShellContent(lang: string, homeHref: string): string {
   const { title, routeMessage, homeLabel } = resolveNotFoundSsrCopy(lang);
-  const homeHref = normalizeRoutePath(resolveLocalRoute(siteConfig, '/')?.path ?? '/');
 
   return [
     '<style data-zlp-not-found-ssr-style="">',
     'app-root[data-zlp-not-found-shell="true"]{display:none!important;visibility:hidden!important}',
     '.zlp-not-found-ssr{min-height:100vh;display:grid;place-items:center;padding:clamp(1.25rem,4vw,3rem);background:var(--ank-bgColor,#f8fafc);color:var(--ank-textColor,#17202a)}',
     '.zlp-not-found-ssr__panel{width:min(34rem,100%);padding:clamp(1.25rem,3vw,2rem);border:1px solid color-mix(in srgb,var(--ank-accentColor,#0f948c) 28%,transparent);border-radius:.5rem;background:var(--ank-secondaryBgColor,#fff);box-shadow:0 1.25rem 3.5rem rgba(15,23,42,.14)}',
-    '.zlp-not-found-ssr__eyebrow{margin:0 0 .75rem;font-size:.78rem;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:var(--ank-accentColor,#0f948c)}',
+    '.zlp-not-found-ssr__eyebrow{margin:0 0 .75rem;font-size:.78rem;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:var(--ank-textColor,#17202a)}',
     '.zlp-not-found-ssr__title{margin:0;font-size:clamp(2rem,5vw,3rem);line-height:1.05;font-weight:900;color:var(--ank-titleColor,#111827)}',
     '.zlp-not-found-ssr__message{margin:1rem 0 0;font-size:1rem;line-height:1.55;color:var(--ank-secondaryTextColor,#334155)}',
-    '.zlp-not-found-ssr__link{display:inline-flex;align-items:center;justify-content:center;min-height:48px;margin-top:1.25rem;padding:.7rem 1rem;border-radius:.5rem;background:var(--ank-accentColor,#0f948c);color:var(--ank-onSuccessColor,#06110f);font-weight:900;text-decoration:none}',
+    '.zlp-not-found-ssr__link{display:inline-flex;align-items:center;justify-content:center;min-height:48px;margin-top:1.25rem;padding:.7rem 1rem;border-radius:.5rem;background:var(--ank-textColor,#17202a);color:var(--ank-bgColor,#ffffff);font-weight:900;text-decoration:none}',
     '</style>',
     '<main class="zlp-not-found-ssr" data-zlp-not-found-ssr="">',
     '<section class="zlp-not-found-ssr__panel" aria-labelledby="zlp-not-found-title">',
@@ -2779,12 +2814,12 @@ function buildNotFoundSsrTitle(siteConfig: TLocalSiteConfig | null, lang: string
   return `${title} | ${siteName}`;
 }
 
-function decorateNotFoundSsrShellHtml(html: string, siteConfig: TLocalSiteConfig | null, lang: string): string {
+function decorateNotFoundSsrShellHtml(html: string, siteConfig: TLocalSiteConfig | null, lang: string, homeHref: string): string {
   const markedHtml = replaceDocumentTitle(
     removeAngularHydrationContract(replaceNotFoundSsrAppRootContent(html)),
     buildNotFoundSsrTitle(siteConfig, lang),
   );
-  return injectProtectedSsrOverlay(markedHtml, buildNotFoundSsrShellContent(siteConfig, lang));
+  return injectProtectedSsrOverlay(markedHtml, buildNotFoundSsrShellContent(lang, homeHref));
 }
 
 function readStructuredDataEntries(pageConfig: TLocalPageConfig | null): readonly unknown[] {
@@ -3612,7 +3647,7 @@ async function decorateHtmlResponse(
     responseLang,
   );
   const decoratedHtml = effectiveStatus === 404
-    ? decorateNotFoundSsrShellHtml(baseDecoratedHtml, siteConfig, responseLang)
+    ? decorateNotFoundSsrShellHtml(baseDecoratedHtml, siteConfig, responseLang, resolveNotFoundHomeHref(req, host, siteConfig))
     : baseDecoratedHtml;
 
   return new Response(syncDocumentLanguage(decoratedHtml, responseLang), {

@@ -7,6 +7,11 @@ export const setScopeValueHandler = (): EventHandler => ({
         const host = findInteractionScopeHost(ctx.host);
         const fieldId = String(args?.[0] ?? '').trim();
         if (!host || !fieldId) return;
+        const predicates = args.slice(2);
+        if (predicates.length % 2 !== 0) return;
+        for (let index = 0; index < predicates.length; index += 2) {
+            if (predicates[index] !== predicates[index + 1]) return;
+        }
         host.interactionScope.setFieldValue(fieldId, args?.[1], { markTouched: true });
     },
 });
