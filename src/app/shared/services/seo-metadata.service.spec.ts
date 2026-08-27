@@ -74,6 +74,24 @@ describe('SeoMetadataService page fonts', () => {
         expect(attributes).not.toContain('rel');
     });
 
+    it('normalizes accepted regional locale keys before falling back to the base language', () => {
+        setPage({ 'en-us': enUrl, en: zhUrl, fallback: zhUrl });
+        service.apply('en-US', null);
+        expect(fontLink()?.getAttribute('href')).toBe(enUrl);
+        setPage({ 'zh-hans': zhUrl, zh: enUrl, fallback: enUrl });
+        service.apply('zh-Hans', null);
+        expect(fontLink()?.getAttribute('href')).toBe(zhUrl);
+    });
+
+    it('keeps canonical keys authoritative when a differently cased duplicate exists', () => {
+        setPage({ 'en-us': zhUrl, 'en-US': enUrl });
+        service.apply('en-us', null);
+        expect(fontLink()?.getAttribute('href')).toBe(enUrl);
+        setPage({ 'zh-hans': enUrl, 'zh-Hans': zhUrl });
+        service.apply('zh-hans', null);
+        expect(fontLink()?.getAttribute('href')).toBe(zhUrl);
+    });
+
     it('waits for the final language when a new page is still bootstrapping', () => {
         setPage(enUrl);
         service.apply('en', null);

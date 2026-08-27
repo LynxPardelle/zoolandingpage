@@ -178,7 +178,12 @@ export class SeoMetadataService {
         let href: unknown = configured;
         if (this.isRecord(configured)) {
             // Unlike copy fallback, missing locale fonts must not load another language's family set.
-            const locale = [...getLocaleCandidates(lang), 'default', 'fallback'].find((key) => Object.hasOwn(configured, key));
+            const keys = Object.keys(configured);
+            const locale = [...getLocaleCandidates(lang), 'default', 'fallback']
+                .map((candidate) => Object.hasOwn(configured, candidate)
+                    ? candidate
+                    : keys.find((key) => normalizeLocaleCode(key) === candidate))
+                .find((key) => key !== undefined);
             href = locale ? configured[locale] : undefined;
         }
 
