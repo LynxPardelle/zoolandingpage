@@ -185,16 +185,15 @@ private setupCustomCombos(): void {
 
 ### Responsive Breakpoints
 
+The app also supports fixed numeric breakpoint aliases in normalized Angora utilities: `ank-display-px561-flex` applies `display: flex` from `min-width: 561px`. The alias must be `px` followed by a canonical integer from 1 through 8192 (no leading zeros, decimals, or signs). For example, use `px561`, `px641`, `px821`, and `px901` for those exact minimum widths.
+
+`AngoraCombosService` registers only aliases present in combo definitions or rendered/explicit classes, before CSS generation. Their meaning is derived from the name and retained across navigation; existing named breakpoints are not changed. Pages without these aliases register nothing. This uses the existing browser CSS lifecycle; SSR does not generate styles, while the static CSS collector captures the generated responsive stylesheet through its browser pass.
+
+When registering breakpoints directly, the installed library expects an array, not a name-to-number map:
+
 ```typescript
 private setupBreakpoints(): void {
-  this._ank.pushBPS({
-    'xs': 0,
-    'sm': 576,
-    'md': 768,
-    'lg': 992,
-    'xl': 1200,
-    'xxl': 1400
-  });
+  this._ank.pushBPS([{ bp: 'px901', value: '901px', class2Create: '' }]);
 }
 ```
 

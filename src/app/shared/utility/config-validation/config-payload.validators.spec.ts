@@ -82,6 +82,45 @@ const minimalSiteConfig = () => ({
 });
 
 describe('config-payload.validators', () => {
+    const fontUrl = 'https://fonts.googleapis.com/css2?family=Playfair+Display:opsz,wght@5..1200,500;5..1200,600&family=Inter:wght@400;600&display=swap';
+    const fontPage = (googleFontsStylesheet: unknown) => ({
+        version: 1, domain: TEST_DOMAIN, pageId: 'campaign', rootIds: [], googleFontsStylesheet,
+    });
+
+    it('accepts optional Google Fonts CSS2 links and locale-specific links', () => {
+        expect(isPageConfigPayload(fontPage(undefined))).toBeTrue();
+        expect(isPageConfigPayload(fontPage(fontUrl))).toBeTrue();
+        expect(isPageConfigPayload(fontPage({ en: fontUrl, zh: fontUrl, default: fontUrl }))).toBeTrue();
+    });
+
+    it('bounds page font locale maps to sixteen entries', () => {
+        const entries = Array.from({ length: 17 }, (_, index) => [`a${String.fromCharCode(97 + index)}`, fontUrl]);
+        expect(isPageConfigPayload(fontPage(Object.fromEntries(entries.slice(0, 16))))).toBeTrue();
+        expect(isPageConfigPayload(fontPage(Object.fromEntries(entries)))).toBeFalse();
+    });
+
+    for (const invalid of [
+        null, false, 1, [], {}, { en: 1 }, { arbitraryKey: fontUrl },
+        fontUrl.replace('https:', 'http:'), fontUrl.replace('fonts.googleapis.com', 'evil.example'),
+        fontUrl.replace('fonts.googleapis.com', 'fonts.googleapis.com.evil.example'),
+        fontUrl.replace('fonts.googleapis.com', 'user@fonts.googleapis.com'),
+        fontUrl.replace('fonts.googleapis.com', 'fonts.googleapis.com:443'),
+        fontUrl.replace('/css2?', '/css?'), fontUrl.replace('/css2?', '/other/../css2?'),
+        fontUrl.replace('display=swap', 'display=block'), `${fontUrl}&display=swap`,
+        fontUrl.replace('display=swap', '%64isplay=swap'), `${fontUrl}&`,
+        `${fontUrl}&text=private`, `${fontUrl}#fragment`, `${fontUrl}\n`,
+        'https://fonts.googleapis.com/css2?family=&display=swap',
+        'https://fonts.googleapis.com/css2?family=+++&display=swap',
+        'https://fonts.googleapis.com/css2?family=Inter%0A&display=swap',
+        'https://fonts.googleapis.com/css2?display=swap',
+        'javascript:alert(1)', 'data:text/css,body{}',
+        `https://fonts.googleapis.com/css2?family=${'a'.repeat(4096)}&display=swap`,
+    ]) {
+        it(`rejects unsafe or malformed page font configuration: ${JSON.stringify(invalid).slice(0, 100)}`, () => {
+            expect(isPageConfigPayload(fontPage(invalid))).toBeFalse();
+        });
+    }
+
     it('validates page-config payloads', () => {
         const valid = {
             version: 1,
@@ -2092,6 +2131,17 @@ describe('config-payload.validators', () => {
         });
 
         expect(isComponentsPayload(invalid)).toBeFalse();
+    });
+
+    it('validates the optional interaction-scope native validation bypass', () => {
+        for (const noValidate of [undefined, false, true]) {
+            const payload = createComponentsPayload({ form: { id: 'form', type: 'interaction-scope', config: { tag: 'form', noValidate } } } as never);
+            expect(isComponentsPayload(payload)).toBeTrue();
+        }
+        for (const noValidate of [null, 'true', 1, {}, [], () => true]) {
+            const payload = createComponentsPayload({ form: { id: 'form', type: 'interaction-scope', config: { tag: 'form', noValidate } } } as never);
+            expect(isComponentsPayload(payload)).toBeFalse();
+        }
     });
 
     it('accepts interaction-scope and input component payloads', () => {

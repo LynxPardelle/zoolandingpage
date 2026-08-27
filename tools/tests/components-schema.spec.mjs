@@ -5,6 +5,11 @@ import test from 'node:test';
 const componentsSchemaPath = new URL('../../docs/api-driven-config/schemas/components.schema.json', import.meta.url);
 const contentBuilderPrimitivesDocPath = new URL('../../docs/api-driven-config/20-generic-content-builder-primitives.md', import.meta.url);
 
+test('interaction scope schema exposes an opt-in native validation bypass', async () => {
+  const schema = JSON.parse(await readFile(componentsSchemaPath, 'utf8'));
+  assert.equal(schema.definitions.interactionScopeConfig.properties.noValidate?.type, 'boolean');
+});
+
 test('components schema documents scoped auth form validation controls', async () => {
   const schema = JSON.parse(await readFile(componentsSchemaPath, 'utf8'));
   const input = schema.definitions?.genericInputConfig;

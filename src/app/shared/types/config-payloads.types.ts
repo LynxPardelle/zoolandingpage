@@ -585,6 +585,7 @@ export type TPageConfigPayload = {
     readonly rootIds: readonly string[];
     readonly modalRootIds?: readonly string[];
     readonly metadata?: Record<string, unknown>;
+    readonly googleFontsStylesheet?: TLocalizedTextValue;
     readonly routes?: readonly { path: string; rootIds: readonly string[] }[];
     readonly seo?: TSeoPayload;
     readonly structuredData?: TStructuredDataPayload;

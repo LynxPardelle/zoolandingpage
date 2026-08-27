@@ -49,6 +49,26 @@ Use this checklist when asking an AI assistant to generate a new landing page co
 - Do not author legacy process-only aliases such as `description`, `detailedDescription`, `duration`, or `deliverables`.
 - Every key referenced by `components.json`, `valueInstructions`, handlers, or shell-owned debug UI must exist in the draft i18n payload. Raw key text in the UI means the draft is missing that translation.
 
+## Page fonts (opt-in)
+
+`page-config.json.googleFontsStylesheet` may contain one Google Fonts CSS2 URL or a map of locale codes to URLs:
+
+```json
+{
+  "googleFontsStylesheet": {
+    "en": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap",
+    "zh": "https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;600&display=swap"
+  }
+}
+```
+
+- Use the exact HTTPS `fonts.googleapis.com/css2` endpoint, nonempty `family` parameters, and exactly one `display=swap`. Preserve the required family weights and axes. URLs must be at most 4096 characters, with no credentials, explicit port, fragment, control characters, or other query parameters. Encode spaces as `+` or `%20`.
+- Locale maps contain at most 16 entries. Selection checks the exact locale, then its base language, then an explicit `default` or `fallback`. Missing locale coverage does not borrow the first unrelated language's fonts.
+- This loads font faces only. Apply `fontFamily` through page-owned component styles or combos, with appropriate serif/sans-serif/monospace fallback stacks. Do not change global app styles or shared draft components to style one page.
+- The SSR-safe head lifecycle owns one marked stylesheet link. It reuses that link during hydration, waits for page bootstrap to confirm the target and language, and removes it when the target has no option or bootstrap fails. An explicit reset after initialization also removes it. Other stylesheets are untouched; pages without the option create no font or preconnect links.
+- No arbitrary stylesheet, head-tag, script, CSS text, or metadata-template injection is supported by this option. Validate the page payload before publication.
+- Verify the target's CSP permits the external stylesheet under `style-src-elem` (or its `style-src` fallback) and font files under `font-src`. Do not weaken CSP or add global font imports to bypass a blocked font. Confirm the actual selected font, fallback behavior, navigation cleanup, and mobile/desktop rendering before release.
+
 ## Events
 
 - Put all interaction wiring in `eventInstructions`.

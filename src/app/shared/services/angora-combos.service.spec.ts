@@ -7,6 +7,7 @@ import { ConfigStoreService } from './config-store.service';
 
 describe('AngoraCombosService', () => {
     let pushCombos: jasmine.Spy;
+    let pushBPS: jasmine.Spy;
     let updateCombo: jasmine.Spy;
     let updateClasses: jasmine.Spy;
     let cssCreate: jasmine.Spy;
@@ -20,6 +21,7 @@ describe('AngoraCombosService', () => {
 
     const configure = (platformId: 'browser' | 'server'): AngoraCombosService => {
         const combos: Record<string, string[]> = {};
+        pushBPS = jasmine.createSpy('pushBPS');
         pushCombos = jasmine.createSpy('pushCombos').and.callFake((nextCombos: Record<string, string[]>) => {
             Object.assign(combos, nextCombos);
         });
@@ -54,6 +56,7 @@ describe('AngoraCombosService', () => {
                     provide: NgxAngoraService,
                     useValue: {
                         pushCombos,
+                        pushBPS,
                         updateCombo,
                         updateClasses,
                         cssCreate,
@@ -299,6 +302,72 @@ describe('AngoraCombosService', () => {
         });
 
         expect(pushCombos.calls.mostRecent().args).toEqual([{ card: ['ank-bg-preview'] }]);
+    });
+
+    it('registers canonical numeric breakpoints before creating normalized utilities, once across navigation', () => {
+        const service = configure('browser');
+        service.updateClasses(['ank-display-px561-flex', 'ank-d-px641-grid', 'ank-d-px821-block', 'ank-d-px901-none']);
+        expect(pushBPS).toHaveBeenCalledOnceWith([
+            { bp: 'px561', value: '561px', class2Create: '' },
+            { bp: 'px641', value: '641px', class2Create: '' },
+            { bp: 'px821', value: '821px', class2Create: '' },
+            { bp: 'px901', value: '901px', class2Create: '' },
+        ]);
+        expect(pushBPS).toHaveBeenCalledBefore(cssCreate);
+        service.stopCssRuntime();
+        service.updateClasses(['ank-d-px561-flex']);
+        expect(pushBPS).toHaveBeenCalledTimes(1);
+    });
+
+    it('registers combo breakpoints before pushing combos in the same batch', () => {
+        const service = configure('browser');
+        service.setAuxiliaryCombos('preview', {
+            version: 1, pageId: 'page', domain: 'example.test',
+            combos: { card: ['ank-display-px901-grid ank-display-px561-flex'] },
+        });
+        expect(pushBPS).toHaveBeenCalledBefore(pushCombos);
+        expect(pushBPS.calls.mostRecent()?.args[0]).toEqual([
+            { bp: 'px901', value: '901px', class2Create: '' },
+            { bp: 'px561', value: '561px', class2Create: '' },
+        ]);
+        expect(runInCssCreateBatch).toHaveBeenCalledTimes(1);
+    });
+
+    it('accepts bounded canonical integers only in the breakpoint position and leaves named defaults alone', () => {
+        const service = configure('browser');
+        service.updateClasses(['ank-d-sm-flex', 'ank-d-md-grid', 'ank-d-px0-flex', 'ank-d-px0561-flex',
+            'ank-d-px8193-flex', 'ank-d-px1.5-flex', 'ank-d-px-1-flex', 'other-d-px561-flex', 'ank-w-px561']);
+        expect(pushBPS).not.toHaveBeenCalled();
+        service.updateClasses(['ank-d-px1-flex', 'ank-d-px8192-flex']);
+        expect(pushBPS).toHaveBeenCalledOnceWith([
+            { bp: 'px1', value: '1px', class2Create: '' },
+            { bp: 'px8192', value: '8192px', class2Create: '' },
+        ]);
+    });
+
+    it('registers rendered numeric aliases before a scheduled full CSS scan', () => {
+        jasmine.clock().install();
+        try {
+            const service = configure('browser');
+            collectRenderedDomClasses.and.returnValue(['ank-display-px821-grid']);
+            service.scheduleCssCreate();
+            jasmine.clock().tick(0);
+            expect(pushBPS).toHaveBeenCalledOnceWith([{ bp: 'px821', value: '821px', class2Create: '' }]);
+            expect(pushBPS).toHaveBeenCalledBefore(cssCreate);
+        } finally {
+            jasmine.clock().uninstall();
+        }
+    });
+
+    it('does not register breakpoints or generate CSS during SSR', () => {
+        const service = configure('server');
+        service.updateClasses(['ank-d-px901-flex']);
+        service.setAuxiliaryCombos('preview', {
+            version: 1, pageId: 'page', domain: 'example.test', combos: { card: ['ank-d-px901-flex'] },
+        });
+        service.scheduleCssCreate();
+        expect(pushBPS).not.toHaveBeenCalled();
+        expect(cssCreate).not.toHaveBeenCalled();
     });
 
     it('keeps the earliest pending cssCreate request', () => {

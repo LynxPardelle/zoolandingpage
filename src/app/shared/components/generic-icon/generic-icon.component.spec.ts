@@ -22,6 +22,20 @@ describe('GenericIconComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  it('renders add as the existing plus SVG without changing the accordion chevron', () => {
+    for (const iconName of ['+', 'add']) {
+      fixture.componentRef.setInput('config', { iconName, ariaHidden: true });
+      fixture.detectChanges();
+      const svg = fixture.nativeElement.querySelector('svg') as SVGElement | null;
+      expect(svg?.querySelector('path')?.getAttribute('d')).toBe('M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z');
+      expect(svg?.getAttribute('aria-hidden')).toBe('true');
+      expect(fixture.nativeElement.textContent.trim()).toBe('');
+    }
+    fixture.componentRef.setInput('config', { iconName: 'expand_more', ariaHidden: true });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('path')?.getAttribute('d')).toBe('M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z');
+  });
+
   it('renders dynamic config values and aria-hidden', () => {
     fixture.componentRef.setInput('config', {
       iconName: () => 'search',

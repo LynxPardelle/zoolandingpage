@@ -59,6 +59,8 @@ Argument order for `openModal` is:
 submitScope;trackEvent:event.meta_title,cta,lead-form:submit,location,lead-form
 ```
 
+An `interaction-scope` with `tag: "form"` retains native browser constraint validation by default. Set its optional `noValidate: true` only when the scope declares the complete custom validation rules and submit/error/focus behavior. This lets the submit handler receive values that native `min` or `step` would otherwise block, including exact decimal numbers. It does not disable scope validation or any server-side validation. The JSON option is a boolean; local runtime configuration also supports a dynamic boolean. Other scopes and forms are unchanged.
+
 - Scoped interaction reset:
 
 ```text
@@ -72,6 +74,18 @@ setScopeValue:planTier,premium
 ```
 
 These actions only affect the nearest `interaction-scope` host in the wrapper subtree.
+
+`setScopeValue` accepts optional actual/expected predicate pairs after its field id and value. All pairs must be complete and strictly equal after argument resolution; otherwise the assignment is a no-op. Omitting predicates preserves existing behavior.
+
+Inputs dispatch both `valueChanged` and `blurred`. Gate linked-control synchronization and result invalidation on `valueChanged` so blur cannot copy a missing payload value:
+
+```text
+setScopeValue:propertyValue,event.eventData.value,event.eventName,valueChanged;setScopeValue:hasCalculated,false,event.eventName,valueChanged
+```
+
+Use distinct field IDs for a number input and a range input. Configure the range with `value: null` or `value: ""` for an initially unselected logical value (stored as `""`); omitting its value retains the minimum default. Its native thumb still displays the minimum while unselected. Range `input` updates continuously, and explicit click/selection-key release confirms a differing native value without duplicating a preceding input event. Tab and blur do not change the range model. The range's visual min/max/step may constrain its DOM value, but blur never copies that constrained representation back into the model. Keep manual-price validation and calculations on the number field.
+
+Number blur still captures a changed DOM value, but does not emit `valueChanged` again when the normalized value is unchanged. Text input blur behavior is unchanged.
 
 - Focus a conditionally rendered result or invalid field by DOM id:
 
