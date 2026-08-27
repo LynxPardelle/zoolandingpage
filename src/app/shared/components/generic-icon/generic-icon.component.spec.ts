@@ -68,4 +68,26 @@ describe('GenericIconComponent', () => {
     expect(fixture.nativeElement.querySelector('svg')).toBeTruthy();
     expect(fixture.nativeElement.textContent.trim()).not.toContain('light_mode');
   });
+
+  it('renders every Astra Legal service icon as local svg instead of leaking its name', () => {
+    const iconNames = [
+      'flight_land',
+      'account_balance_wallet',
+      'lightbulb',
+      'work_off',
+      'account_balance',
+    ];
+
+    for (const iconName of iconNames) {
+      fixture.componentRef.setInput('config', { iconName, ariaHidden: true });
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('svg'))
+        .withContext(iconName)
+        .toBeTruthy();
+      expect(fixture.nativeElement.textContent.trim())
+        .withContext(iconName)
+        .not.toContain(iconName);
+    }
+  });
 });
