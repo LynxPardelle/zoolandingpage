@@ -64,6 +64,8 @@
     "test:draft-asset-upload-tools": "node --test tools/tests/draft-asset-upload-tools.spec.mjs",
     "test:ops-front-door": "node --test tools/tests/ops-managed-alias-front-door.spec.mjs tools/tests/ops-auth-admin-front-door.spec.mjs tools/tests/ops-content-hub-front-door.spec.mjs tools/tests/ops-combo-catalog-front-door.spec.mjs tools/tests/ops-runtime-front-door-probe.spec.mjs tools/tests/ops-runtime-front-door-cache.spec.mjs tools/tests/ops-runtime-observability.spec.mjs tools/tests/ops-public-site-health-check.spec.mjs",
     "test:draft-context": "npm run build && node --test tools/tests/draft-local-context.spec.mjs",
+    "test:browser-icons": "npm run build && npm run test:browser-icons:built",
+    "test:browser-icons:built": "node --test tools/tests/browser-icon-contract.spec.mjs && node --test --test-name-pattern=\"decorates configured drafts\" tools/tests/draft-local-context.spec.mjs && node --test --test-name-pattern=\"legacy favicon\" tools/tests/ssr-server.spec.mjs && npm test -- --watch=false --browsers=ChromeHeadlessStable --include=src/app/shared/services/seo-metadata.service.spec.ts",
     "ci:budgets": "node ./node_modules/@angular/cli/bin/ng.js build --configuration production",
     "ci:perf": "node tools/perf-baseline.mjs"
   },

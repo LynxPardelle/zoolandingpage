@@ -254,6 +254,24 @@ test('production SSR server renders behind Traefik forwarded headers', async (t)
   assert.doesNotMatch(getStderr(), /trustProxyHeaders/i);
 });
 
+test('production SSR server redirects the legacy favicon path to the Zoolandingpage fallback', async (t) => {
+  const { port, getStderr } = await startProductionServer(t);
+  const faviconUrl = `http://127.0.0.1:${port}/favicon.ico`;
+  const response = await fetch(faviconUrl, {
+    redirect: 'manual',
+  });
+
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.get('location'), '/assets/brand/zoolandingpage-default-favicon.svg');
+  assert.match(response.headers.get('cache-control') ?? '', /no-store/i);
+
+  const followedResponse = await fetch(faviconUrl);
+  assert.equal(followedResponse.status, 200);
+  assert.match(followedResponse.headers.get('content-type') ?? '', /image\/svg\+xml/i);
+  assert.match(await followedResponse.text(), /<svg\b/i);
+  assert.equal(getStderr(), '');
+});
+
 test('production SSR server localizes an unknown zh route without Spanish not-found copy', async (t) => {
   const { port, getStderr } = await startProductionServer(t, {
     CONFIG_API_SERVER_FALLBACK_URL: '',

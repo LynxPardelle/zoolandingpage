@@ -3436,7 +3436,18 @@ function injectHeadHtml(html: string, headHtml: string): string {
   }
   if (headHtml.includes(MANAGED_BROWSER_ICON_ATTR)) {
     sanitizedHtml = sanitizedHtml
-      .replace(/<link\s+[^>]*rel=["'](?:icon|apple-touch-icon|mask-icon|manifest)["'][^>]*>\s*/gi, '')
+      .replace(/<link\b[^>]*>\s*/gi, (linkTag) => {
+        const rel = linkTag.match(/\brel\s*=\s*(["'])(.*?)\1/i)?.[2] ?? '';
+        const relTokens = rel.trim().toLowerCase().split(/\s+/).filter(Boolean);
+        const isBrowserIconLink = relTokens.some((token) => (
+          token === 'icon'
+          || token === 'apple-touch-icon'
+          || token === 'mask-icon'
+          || token === 'manifest'
+        ));
+
+        return isBrowserIconLink ? '' : linkTag;
+      })
       .replace(/<meta\s+[^>]*name=["']theme-color["'][^>]*>\s*/gi, '');
   }
 
@@ -3970,6 +3981,11 @@ function decodeDraftStaticPathSegments(rawPath: string): string[] | null {
 /**
  * Serve static files from /browser
  */
+app.get('/favicon.ico', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.redirect(302, DEFAULT_BROWSER_ICON_HREF);
+});
+
 app.use(
   express.static(browserDistFolder, {
     maxAge: '1y',
