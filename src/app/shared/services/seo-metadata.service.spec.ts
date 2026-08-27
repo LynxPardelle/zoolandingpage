@@ -7,6 +7,158 @@ import { ConfigStoreService } from './config-store.service';
 import { SeoMetadataService } from './seo-metadata.service';
 import { VariableStoreService } from './variable-store.service';
 
+describe('SeoMetadataService page fonts', () => {
+    const enUrl = 'https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Sans:wght@400;600&display=swap';
+    const zhUrl = 'https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600&family=Noto+Sans+SC:wght@400;600&display=swap';
+    let doc: Document;
+    let store: ConfigStoreService;
+    let service: SeoMetadataService;
+    const fontLink = () => doc.head.querySelector('link[data-zlp-page-fonts]');
+    const setPage = (googleFontsStylesheet?: string | Record<string, string>) => {
+        const page = { version: 1, domain: 'example.test', pageId: 'campaign', rootIds: [], googleFontsStylesheet };
+        store.setPageConfig(page);
+        store.setStage('done');
+    };
+
+    beforeEach(() => {
+        // A detached document exercises the SSR-compatible head API without requesting external fonts.
+        doc = document.implementation.createHTMLDocument('page-fonts');
+        TestBed.configureTestingModule({ providers: [
+            { provide: DOCUMENT, useValue: doc },
+            { provide: DomainResolverService, useValue: { resolveDomain: () => ({ domain: 'example.test' }) } },
+            { provide: RuntimeConfigService, useValue: { seoDefaults: () => null, appName: () => 'Example', appDescription: () => '' } },
+        ] });
+        store = TestBed.inject(ConfigStoreService);
+        service = TestBed.inject(SeoMetadataService);
+    });
+
+    it('leaves unconfigured pages and their font styles untouched', () => {
+        doc.body.style.fontFamily = 'sans-serif';
+        setPage();
+        service.apply('en', null);
+        expect(fontLink()).toBeNull();
+        expect(doc.head.querySelector('link[rel="preconnect"]')).toBeNull();
+        expect(doc.body.style.fontFamily).toBe('sans-serif');
+    });
+
+    it('emits one idempotent stylesheet on an SSR-compatible document', () => {
+        expect(doc.defaultView).toBeNull();
+        setPage(enUrl);
+        service.apply('en', null);
+        const link = fontLink();
+        expect(link?.getAttribute('href')).toBe(enUrl);
+        expect(link?.getAttribute('rel')).toBe('stylesheet');
+        service.apply('en', null);
+        expect(fontLink()).toBe(link);
+        expect(doc.head.querySelectorAll('link[data-zlp-page-fonts]').length).toBe(1);
+    });
+
+    it('loads only the active locale and changes it on a locale switch', () => {
+        setPage({ en: enUrl, zh: zhUrl });
+        service.apply('en', null);
+        expect(fontLink()?.getAttribute('href')).toBe(enUrl);
+        service.apply('zh-CN', null);
+        expect(fontLink()?.getAttribute('href')).toBe(zhUrl);
+        expect(doc.head.querySelectorAll('link[data-zlp-page-fonts]').length).toBe(1);
+    });
+
+    it('does not rewrite stylesheet attributes when the selected font is unchanged', () => {
+        setPage(enUrl);
+        service.apply('en', null);
+        const observer = new MutationObserver(() => undefined);
+        observer.observe(fontLink()!, { attributes: true });
+        service.apply('en', null);
+        const attributes = observer.takeRecords().map((record) => record.attributeName);
+        observer.disconnect();
+        expect(attributes).not.toContain('href');
+        expect(attributes).not.toContain('rel');
+    });
+
+    it('waits for the final language when a new page is still bootstrapping', () => {
+        setPage(enUrl);
+        service.apply('en', null);
+        setPage({ en: enUrl, zh: zhUrl });
+        store.setStage('i18n');
+        service.apply('zh', null);
+        expect(fontLink()?.getAttribute('href')).toBe(enUrl);
+        store.setStage('done');
+        service.apply('zh', null);
+        expect(fontLink()?.getAttribute('href')).toBe(zhUrl);
+    });
+
+    it('does not borrow another locale font unless an explicit fallback exists', () => {
+        setPage({ zh: zhUrl });
+        service.apply('en', null);
+        expect(fontLink()).toBeNull();
+        setPage({ zh: zhUrl, fallback: enUrl });
+        service.apply('en', null);
+        expect(fontLink()?.getAttribute('href')).toBe(enUrl);
+    });
+
+    it('preserves the server font during initial hydration and pending page bootstrap', () => {
+        const serverLink = doc.createElement('link');
+        serverLink.setAttribute('rel', 'stylesheet');
+        serverLink.setAttribute('data-zlp-page-fonts', 'true');
+        serverLink.setAttribute('href', enUrl);
+        doc.head.appendChild(serverLink);
+        service.apply('en', null);
+        expect(fontLink()).toBe(serverLink);
+        store.setStage('page-config');
+        service.apply('en', null);
+        expect(fontLink()).toBe(serverLink);
+        setPage(enUrl);
+        service.apply('en', null);
+        expect(fontLink()).toBe(serverLink);
+    });
+
+    it('removes only the owned font link after navigation resolves to a page without fonts', () => {
+        const unrelated = doc.createElement('link');
+        unrelated.setAttribute('rel', 'stylesheet');
+        unrelated.setAttribute('href', '/existing.css');
+        doc.head.appendChild(unrelated);
+        setPage(enUrl);
+        service.apply('en', null);
+        store.resetPagePayloads();
+        store.setStage('page-config');
+        service.apply('en', null);
+        expect(fontLink()?.getAttribute('href')).toBe(enUrl);
+        setPage();
+        service.apply('en', null);
+        expect(fontLink()).toBeNull();
+        expect(unrelated.parentElement).toBe(doc.head);
+    });
+
+    it('clears managed fonts on an explicit reset or failed bootstrap', () => {
+        setPage(enUrl);
+        service.apply('en', null);
+        expect(fontLink()?.getAttribute('href')).toBe(enUrl);
+        store.resetPagePayloads();
+        service.apply('en', null);
+        expect(fontLink()).toBeNull();
+        setPage(enUrl);
+        service.apply('en', null);
+        store.setStage('error');
+        service.apply('en', null);
+        expect(fontLink()).toBeNull();
+    });
+
+    it('fails closed if unsafe font configuration bypasses payload validation', () => {
+        setPage(enUrl);
+        service.apply('en', null);
+        expect(fontLink()?.getAttribute('href')).toBe(enUrl);
+        setPage('https://evil.example/style.css');
+        service.apply('en', null);
+        expect(fontLink()).toBeNull();
+        expect(doc.head.querySelector('script')).toBeNull();
+    });
+
+    it('does not borrow another locale when an invalid empty entry bypasses validation', () => {
+        setPage({ en: '', zh: zhUrl });
+        service.apply('en', null);
+        expect(fontLink()).toBeNull();
+    });
+});
+
 describe('SeoMetadataService', () => {
     let service: SeoMetadataService;
     let title: jasmine.SpyObj<Title>;

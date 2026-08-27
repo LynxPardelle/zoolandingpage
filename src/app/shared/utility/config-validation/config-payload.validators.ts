@@ -2940,6 +2940,33 @@ export const isThemeVariableConfig = (value: unknown): value is TThemeVariableCo
     return true;
 };
 
+export const isGoogleFontsStylesheetUrl = (value: unknown): value is string => {
+    if (typeof value !== 'string' || value.length > 4096) return false;
+    if (/[\u0000-\u0020\u007f#]/.test(value)) return false;
+    if (!/^https:\/\/fonts\.googleapis\.com\/css2\?(?=[^#\s]*family=)(?:family=[^&#\s]+&)*display=swap(?:&family=[^&#\s]+)*$/.test(value)) return false;
+    try {
+        const params = new URL(value).searchParams;
+        const families = params.getAll('family');
+        return families.length > 0
+            && families.every((family) => family.trim().length > 0 && !/[\u0000-\u001f\u007f]/.test(family))
+            && params.getAll('display').length === 1
+            && params.get('display') === 'swap'
+            && Array.from(params.keys()).every((key) => key === 'family' || key === 'display');
+    } catch {
+        return false;
+    }
+};
+
+const isGoogleFontsStylesheet = (value: unknown): boolean => {
+    if (typeof value === 'string') return isGoogleFontsStylesheetUrl(value);
+    if (!isRecord(value)) return false;
+    const entries = Object.entries(value);
+    return entries.length > 0 && entries.length <= 16
+        && entries.every(([locale, href]) =>
+            (locale === 'default' || locale === 'fallback' || isContentHubLocale(locale))
+            && isGoogleFontsStylesheetUrl(href));
+};
+
 export const isPageConfigPayload = (value: unknown): value is TPageConfigPayload => {
     if (!isRecord(value)) return false;
     if (typeof value['version'] !== 'number') return false;
@@ -2948,6 +2975,7 @@ export const isPageConfigPayload = (value: unknown): value is TPageConfigPayload
     if (!isStringArray(value['rootIds'])) return false;
     if (value['modalRootIds'] && !isStringArray(value['modalRootIds'])) return false;
     if (value['routes'] && !Array.isArray(value['routes'])) return false;
+    if (value['googleFontsStylesheet'] !== undefined && !isGoogleFontsStylesheet(value['googleFontsStylesheet'])) return false;
     if (value['seo'] !== undefined && !isSeoPayload(value['seo'])) return false;
     if (value['structuredData'] !== undefined && !isStructuredDataPayload(value['structuredData'])) return false;
     if (value['analytics'] !== undefined && !isAnalyticsConfigPayload(value['analytics'])) return false;
