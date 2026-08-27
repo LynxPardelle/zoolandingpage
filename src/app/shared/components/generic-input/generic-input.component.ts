@@ -253,7 +253,9 @@ export class GenericInputComponent {
     Boolean(this.resolveValue(this.config().multiple) ?? false)
   );
   readonly initialValue = computed<unknown>(() =>
-    this.normalizeValue(this.resolveValue(this.config().value))
+    this.controlType() === 'range' && this.config().value === undefined
+      ? this.min() ?? 0
+      : this.normalizeValue(this.resolveValue(this.config().value))
   );
   readonly validationRules = computed<readonly TInteractionValidationRule[]>(
     () => {
@@ -364,6 +366,7 @@ export class GenericInputComponent {
   readonly currentNumberValue = computed(() => {
     const current = this.currentValue();
     if (this.controlType() === 'range') {
+      if (current == null || current === '') return this.min() ?? 0;
       const parsed = typeof current === 'number' ? current : Number(current ?? this.min() ?? 0);
       return Number.isFinite(parsed) ? parsed : this.min() ?? 0;
     }
@@ -554,6 +557,15 @@ export class GenericInputComponent {
     this.updateValue(input.value.trim() === '' ? null : input.valueAsNumber);
   }
 
+  onRangeSelection(event: Event): void {
+    if (this.disabled()) return;
+    if (event instanceof KeyboardEvent && ![
+      'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown',
+    ].includes(event.key)) return;
+    const input = event.target as HTMLInputElement;
+    if (input.valueAsNumber !== this.currentValue()) this.onNumberInput(event);
+  }
+
   onCheckboxInput(event: Event): void {
     this.updateValue((event.target as HTMLInputElement).checked);
   }
@@ -583,7 +595,7 @@ export class GenericInputComponent {
   }
 
   onBlur(event?: Event): void {
-    this.updateTextTargetValue(event?.target ?? null);
+    if (this.controlType() !== 'range') this.updateTextTargetValue(event?.target ?? null);
     if (this.scope) {
       this.scope.markTouched(this.fieldId());
     } else {
@@ -687,6 +699,8 @@ export class GenericInputComponent {
       return;
     }
 
+    if (this.controlType() === 'number'
+      && this.normalizeValue(target.value) === this.normalizeValue(this.currentValue())) return;
     this.updateValue(target.value);
   }
 
@@ -705,6 +719,7 @@ export class GenericInputComponent {
     }
 
     if (this.controlType() === 'range') {
+      if (value === null || value === '') return '';
       const parsed = typeof value === 'number' ? value : Number(value);
       return Number.isFinite(parsed) ? parsed : this.min() ?? 0;
     }
