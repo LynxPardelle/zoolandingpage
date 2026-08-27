@@ -24,6 +24,8 @@ jobs:
           cache: npm
 
       - run: npm ci
+      - run: node --test tools/tests/components-schema.spec.mjs tools/tests/site-config-schema.spec.mjs tools/tests/the-hair-narrative-public-assets.spec.mjs tools/tests/draft-public-artifact-boundary.spec.mjs
+      - run: npm test -- --watch=false --browsers=ChromeHeadlessStable
       - run: npm audit --omit=dev
       - run: npm run package:ssr:lambda
       - run: npm run test:browser-icons:built

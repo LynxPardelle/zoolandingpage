@@ -292,3 +292,10 @@ Checks:
 - Ensure the active draft `site-config.json` sets `runtime.features.debugMode` when you need debug-only tooling.
 - Watch console for `[ConfigBootstrap]` errors.
 - Use the debug overlay to download draft payloads.
+
+### Draft font fallback
+
+- Validate optional `site.fonts` descriptors with the site schema and runtime guard; runtime range/overlap checks are stricter than the schema alone.
+- Verify the font file's public URL, MIME type, bytes, and CORS policy where relevant. A draft payload does not publish font binaries.
+- Check the loaded browser face set, not just the computed family name. Failed fonts or fonts that exceed the bounded initial wait keep the authored fallback stack.
+- Review wrapping and controls in every affected language/viewport after changing font weights. See [draft-owned font faces](23-draft-font-faces.md).

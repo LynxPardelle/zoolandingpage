@@ -133,6 +133,7 @@ export class GenericDropdown {
   );
   readonly activeIndex = signal<number>(-1); // exposed for aria-activedescendant
   private menuItems: HTMLElement[] = [];
+  private menuKeydownUnlisten: (() => void) | null = null;
   private triggerBtn!: HTMLButtonElement;
   private navigationUnlisten: (() => void) | null = null;
   @Input('menuTpl') menuTpl!: TemplateRef<unknown>; // scaffold placeholder (template reference)
@@ -211,6 +212,7 @@ export class GenericDropdown {
         select: (item: DropdownItem) => this.handleSelect(item),
       });
       this.inlineOutlet.attach(this.inlinePortal);
+      this.listenForMenuKeys(menuRoot);
       this.opened.set(true);
       this.scheduleCssRefresh();
       queueMicrotask(() => this.captureMenuItemsAndFocusFirst());
@@ -263,6 +265,7 @@ export class GenericDropdown {
       this.menuContext()
     );
     this.overlayRef.attach(portal);
+    this.listenForMenuKeys(this.overlayRef.overlayElement);
 
     if (matchWidth === 'origin') {
       const w = originRef.nativeElement.getBoundingClientRect().width;
@@ -286,7 +289,7 @@ export class GenericDropdown {
     this.selectItem.emit(normalized);
 
     const cfg = { ...DROPDOWN_DEFAULT, ...(this.config() || {}) };
-    if (cfg.closeOnSelect) this.close(false);
+    if (cfg.closeOnSelect) this.close(!this.itemHasNavigationTarget(it));
   }
 
   private menuContext(): MenuTemplateContext {
@@ -297,6 +300,9 @@ export class GenericDropdown {
   }
 
   close(restoreFocus = true): void {
+    this.menuKeydownUnlisten?.();
+    this.menuKeydownUnlisten = null;
+    this.menuItems = [];
     if (this.renderMode() === 'inline') {
       try {
         this.inlineOutlet?.detach();
@@ -344,6 +350,9 @@ export class GenericDropdown {
   }
 
   @HostListener('keydown', ['$event']) onHostKey(e: KeyboardEvent): void {
+    // Portals can also be attached inside the host. Only the trigger belongs to
+    // this listener; menu events are handled at their actual rendered root.
+    if (e.defaultPrevented || !this.triggerBtn?.contains(e.target as Node)) return;
     if (!this.opened()) {
       if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && !e.altKey) {
         this.open();
@@ -351,62 +360,89 @@ export class GenericDropdown {
       }
       return;
     }
-    const max = this.menuItems.length - 1;
+    // Let the native button click toggle the menu on Enter/Space, rather than
+    // selecting whichever menu item was most recently active.
+    if (e.key !== 'Enter' && e.key !== ' ') this.onMenuKey(e);
+  }
+
+  private listenForMenuKeys(root: HTMLElement): void {
+    this.menuKeydownUnlisten?.();
+    const listener = (event: KeyboardEvent) => this.onMenuKey(event);
+    root.addEventListener('keydown', listener);
+    this.menuKeydownUnlisten = () => root.removeEventListener('keydown', listener);
+  }
+
+  private onMenuKey(e: KeyboardEvent): void {
+    if (e.defaultPrevented || !this.opened()) return;
+    const focusedIndex = this.menuItems.findIndex((item) => item.contains(e.target as Node));
+    if (focusedIndex < 0 && !this.triggerBtn?.contains(e.target as Node)) return;
+    if (focusedIndex >= 0) this.activeIndex.set(focusedIndex);
+
     if (e.key === 'Escape') {
       this.close();
       e.preventDefault();
     } else if (e.key === 'ArrowDown') {
-      this.moveActive(1, max);
+      this.moveActive(1);
       e.preventDefault();
     } else if (e.key === 'ArrowUp') {
-      this.moveActive(-1, max);
+      this.moveActive(-1);
       e.preventDefault();
     } else if (e.key === 'Home') {
-      this.setActive(0);
+      this.focusBoundary();
       e.preventDefault();
     } else if (e.key === 'End') {
-      this.setActive(max);
+      this.focusBoundary(true);
       e.preventDefault();
     } else if (e.key === 'Enter' || e.key === ' ') {
-      const idx = this.activeIndex();
-      if (idx > -1) {
-        this.menuItems[idx]?.dispatchEvent(
-          new MouseEvent('click', { bubbles: true })
-        );
-      }
       e.preventDefault();
+      if (focusedIndex >= 0 && !this.isDisabled(this.menuItems[focusedIndex])) {
+        this.menuItems[focusedIndex].click();
+      }
     } else if (e.key === 'Tab') {
-      // close on tab to preserve natural tab order
+      // Restore the trigger before the native Tab default action so traversal
+      // starts from the menu's logical location, not a removed portal node.
       this.close();
     }
   }
 
   private captureMenuItemsAndFocusFirst(): void {
+    if (!this.opened()) return;
     const root =
       this.renderMode() === 'inline'
-        ? this.inlineMenuRoot ?? document
+        ? this.inlineMenuRoot
         : this.overlayRef?.overlayElement;
     const list = root?.querySelectorAll(`a[role="${this.itemRole()}"]`);
     this.menuItems = list ? (Array.from(list) as HTMLElement[]) : [];
-    if (this.menuItems.length) {
-      this.setActive(0);
-    }
+    this.focusBoundary();
   }
-  private moveActive(delta: number, max: number): void {
-    let idx = this.activeIndex();
-    do {
-      idx = (idx + delta + this.menuItems.length) % this.menuItems.length;
-    } while (
-      this.isDisabled(this.menuItems[idx]) &&
-      this.menuItems.some((i) => !this.isDisabled(i))
-    );
+
+  private focusBoundary(last = false): void {
+    const step = last ? -1 : 1;
+    let idx = last ? this.menuItems.length - 1 : 0;
+    while (idx >= 0 && idx < this.menuItems.length && this.isDisabled(this.menuItems[idx])) {
+      idx += step;
+    }
     this.setActive(idx);
   }
+
+  private moveActive(delta: number): void {
+    const count = this.menuItems.length;
+    for (let step = 1; step <= count; step++) {
+      const idx = (this.activeIndex() + delta * step + count) % count;
+      if (!this.isDisabled(this.menuItems[idx])) {
+        this.setActive(idx);
+        return;
+      }
+    }
+    this.setActive(-1);
+  }
+
   private setActive(idx: number): void {
-    this.activeIndex.set(idx);
+    const active = this.menuItems[idx] && !this.isDisabled(this.menuItems[idx]) ? idx : -1;
+    this.activeIndex.set(active);
     this.menuItems.forEach((el, i) => {
-      (el as HTMLElement).tabIndex = i === idx ? 0 : -1;
-      if (i === idx) (el as HTMLElement).focus();
+      el.tabIndex = i === active ? 0 : -1;
+      if (i === active) el.focus();
     });
   }
 
@@ -523,7 +559,7 @@ export class GenericDropdown {
       ...item,
       label: this.itemLabel(item),
       value: this.itemValue(item),
-      href: href === '#' ? undefined : href,
+      href: this.itemHasNavigationTarget(item) && href !== '#' ? href : undefined,
       ariaLabel: this.itemAriaLabel(item),
       disabled: this.itemDisabled(item),
     };
