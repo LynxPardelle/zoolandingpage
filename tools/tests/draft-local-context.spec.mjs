@@ -887,6 +887,8 @@ test('built SSR server decorates configured drafts with Google tag, Search Conso
   assert.match(html, /send_page_view["']?\s*:\s*false/);
   assert.match(html, /<meta name="google-site-verification" content="verification-token">/);
   assert.match(html, /<link rel="icon" href="https:\/\/assets\.zoolandingpage\.com\.mx\/zoositioweb\.com\.mx\/shared\/brand\/favicon\.svg" type="image\/svg\+xml" data-zlp-browser-icon="true">/);
+  assert.doesNotMatch(html, /<link\b[^>]*rel=["'][^"']*\b(?:alternate|shortcut)\s+icon\b[^"']*["'][^>]*>/i);
+  assert.doesNotMatch(html, /href=["']\/favicon\.ico["']/i);
   assert.match(html, /<link rel="mask-icon" href="https:\/\/assets\.zoolandingpage\.com\.mx\/zoositioweb\.com\.mx\/shared\/brand\/mask-icon\.svg" color="#128c7e" data-zlp-browser-icon="true">/);
   assert.match(html, /<meta name="theme-color" content="#128c7e" data-zlp-browser-icon="true">/);
   assert.match(html, /id="zlp-boot-curtain"[^>]+style="[^"]*--zlp-boot-bg: #ece7df; --zlp-boot-fg: #0d141c; --zlp-boot-accent: #128c7e/);

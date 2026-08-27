@@ -184,6 +184,10 @@ describe('SeoMetadataService', () => {
         meta = jasmine.createSpyObj<Meta>('Meta', ['updateTag', 'removeTag']);
 
         const baseDoc = document.implementation.createHTMLDocument('seo');
+        const staleAngularIcon = baseDoc.createElement('link');
+        staleAngularIcon.setAttribute('rel', 'alternate icon');
+        staleAngularIcon.setAttribute('href', '/favicon.ico');
+        baseDoc.head.appendChild(staleAngularIcon);
         const seoDoc = {
             documentElement: baseDoc.documentElement,
             head: baseDoc.head,
@@ -241,6 +245,10 @@ describe('SeoMetadataService', () => {
             .toBe('https://assets.zoolandingpage.com.mx/zoositioweb.com.mx/shared/brand/mask-icon.svg');
         expect(seoDoc.head.querySelector('link[rel="mask-icon"]')?.getAttribute('color')).toBe('#128c7e');
         expect(seoDoc.head.querySelector('meta[name="theme-color"]')?.getAttribute('content')).toBe('#128c7e');
+        expect(seoDoc.head.querySelector('link[rel="alternate icon"]')).toBeNull();
+        expect(Array.from(seoDoc.head.querySelectorAll('link[rel]')).filter(link => (
+            (link.getAttribute('rel') ?? '').toLowerCase().split(/\s+/).includes('icon')
+        )).length).toBe(1);
     });
 
     it('falls back to the default Zoolandingpage browser icon when the draft omits icon config', () => {
