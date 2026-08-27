@@ -117,7 +117,7 @@ test('readDraftRegistry requires one exact safe deployment scope for every v2 dr
 test('canonical v2 registry keeps exactly one draft test-only', async () => {
   const registry = await readDraftRegistry(path.resolve('docs/drafts-registry.json'));
   assert.equal(registry.version, 2);
-  assert.equal(registry.drafts.length, 12);
+  assert.equal(registry.drafts.length, 13);
   assert.deepEqual(
     registry.drafts
       .filter(draft => !draft.deploymentEnvironments.includes('production'))
