@@ -298,6 +298,8 @@ const MATERIAL_ICON_PATHS = new Map<string, string>([
   ],
 ]);
 
+MATERIAL_ICON_PATHS.set('add', MATERIAL_ICON_PATHS.get('+')!);
+
 @Component({
   selector: 'generic-icon',
   changeDetection: ChangeDetectionStrategy.Eager,
