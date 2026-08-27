@@ -279,6 +279,8 @@ export class SeoMetadataService {
     }
 
     private syncBrowserIcons(head: HTMLElement, icons: TDraftSiteIconConfig): void {
+        this.removeCompetingFaviconLinks(head);
+
         const favicon = this.cleanString(icons.favicon) || this.cleanString(DEFAULT_BROWSER_ICONS.favicon);
         this.syncBrowserIconLink(head, 'icon', favicon, { type: this.resolveIconMimeType(favicon) });
         this.syncBrowserIconLink(head, 'apple-touch-icon', this.cleanString(icons.appleTouchIcon));
@@ -287,6 +289,28 @@ export class SeoMetadataService {
         this.syncBrowserIconLink(head, 'mask-icon', this.cleanString(icons.maskIcon), { color: maskIconColor });
         this.syncBrowserIconLink(head, 'manifest', this.cleanString(icons.manifest));
         this.syncThemeColor(head, this.cleanString(icons.themeColor));
+    }
+
+    private removeCompetingFaviconLinks(head: HTMLElement): void {
+        let keptCanonicalIcon = false;
+
+        Array.from(head.querySelectorAll('link[rel]')).forEach(link => {
+            const relTokens = (link.getAttribute('rel') ?? '')
+                .trim()
+                .toLowerCase()
+                .split(/\s+/)
+                .filter(Boolean);
+
+            if (!relTokens.includes('icon')) return;
+
+            const isCanonicalIcon = relTokens.length === 1 && relTokens[0] === 'icon';
+            if (isCanonicalIcon && !keptCanonicalIcon) {
+                keptCanonicalIcon = true;
+                return;
+            }
+
+            link.remove();
+        });
     }
 
     private syncBrowserIconLink(head: HTMLElement, rel: string, href: string, attributes: Record<string, string> = {}): void {
