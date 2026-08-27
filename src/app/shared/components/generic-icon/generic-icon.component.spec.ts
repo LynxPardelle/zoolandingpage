@@ -69,13 +69,40 @@ describe('GenericIconComponent', () => {
     expect(fixture.nativeElement.textContent.trim()).not.toContain('light_mode');
   });
 
-  it('renders every Astra Legal service icon as local svg instead of leaking its name', () => {
+  it('renders every authored icon found by fleet QA as local svg instead of leaking its name', () => {
     const iconNames = [
-      'flight_land',
-      'account_balance_wallet',
-      'lightbulb',
-      'work_off',
+      '+',
       'account_balance',
+      'account_balance_wallet',
+      'ads_click',
+      'apartment',
+      'badge',
+      'chat',
+      'dashboard_customize',
+      'description',
+      'design_services',
+      'edit_note',
+      'flag',
+      'flight_land',
+      'forum',
+      'help',
+      'insights',
+      'inventory_2',
+      'lightbulb',
+      'location_city',
+      'manage_search',
+      'medical_services',
+      'monitoring',
+      'payments',
+      'photo_library',
+      'place',
+      'privacy_tip',
+      'rule',
+      'storefront',
+      'title',
+      'verified_user',
+      'view_quilt',
+      'work_off',
     ];
 
     for (const iconName of iconNames) {
@@ -85,6 +112,11 @@ describe('GenericIconComponent', () => {
       expect(fixture.nativeElement.querySelector('svg'))
         .withContext(iconName)
         .toBeTruthy();
+      const bounds = (
+        fixture.nativeElement.querySelector('path') as SVGPathElement
+      ).getBBox();
+      expect(bounds.width).withContext(iconName).toBeGreaterThan(0);
+      expect(bounds.height).withContext(iconName).toBeGreaterThan(0);
       expect(fixture.nativeElement.textContent.trim())
         .withContext(iconName)
         .not.toContain(iconName);
