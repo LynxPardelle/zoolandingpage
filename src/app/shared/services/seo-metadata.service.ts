@@ -2,7 +2,8 @@ import type { TDraftSiteIconConfig, TSeoPayload } from '@/app/shared/types/confi
 import { DOCUMENT } from '@angular/common';
 import { inject, Injectable, REQUEST } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
-import { normalizeLocaleCode, resolveLocaleMapValue, toOpenGraphLocale } from '../i18n/locale.utils';
+import { getLocaleCandidates, normalizeLocaleCode, resolveLocaleMapValue, toOpenGraphLocale } from '../i18n/locale.utils';
+import { isGoogleFontsStylesheetUrl } from '../utility/config-validation/config-payload.validators';
 import { resolveMetadataTemplates } from '../utility/metadata-template.utility';
 import { normalizeDraftRoutePath } from '../utility/route-matching/draft-route-matching';
 import { DomainResolverService } from './domain-resolver.service';
@@ -22,6 +23,7 @@ const AD_CANONICAL_QUERY_PARAMS = new Set([
 ]);
 const SENSITIVE_CANONICAL_QUERY_PARAM_PATTERN = /(email|mail|phone|telefono|tel[eé]fono|whatsapp|address|direcci[oó]n|rfc|curp)/i;
 const MANAGED_BROWSER_ICON_ATTR = 'data-zlp-browser-icon';
+const MANAGED_PAGE_FONT_ATTR = 'data-zlp-page-fonts';
 const DEFAULT_BROWSER_ICONS: TDraftSiteIconConfig = {
     favicon: '/assets/brand/zoolandingpage-default-favicon.svg',
 };
@@ -39,6 +41,7 @@ export class SeoMetadataService {
     private readonly variables = inject(VariableStoreService);
     private readonly configStore = inject(ConfigStoreService);
     private readonly request = inject(REQUEST, { optional: true });
+    private pageFontsInitialized = false;
 
     apply(lang: string, seo: TSeoPayload | null): void {
         try {
@@ -158,10 +161,44 @@ export class SeoMetadataService {
                 linkEl.setAttribute('href', canonicalUrl);
                 this.syncHreflangLinks(head, canonicalUrl, lang, seo);
                 this.syncBrowserIcons(head, this.resolveBrowserIcons());
+                this.syncPageFonts(head, lang);
             }
         } catch {
             // no-op for SSR
         }
+    }
+
+    private syncPageFonts(head: HTMLElement, lang: string): void {
+        const stage = this.configStore.stage();
+        // Keep SSR fonts through hydration/loading; reconcile when the target page is confirmed.
+        if (stage !== 'done' && stage !== 'error' && !(stage === 'idle' && this.pageFontsInitialized)) return;
+        this.pageFontsInitialized = true;
+
+        const configured = stage === 'done' ? this.configStore.pageConfig()?.googleFontsStylesheet : undefined;
+        let href: unknown = configured;
+        if (this.isRecord(configured)) {
+            // Unlike copy fallback, missing locale fonts must not load another language's family set.
+            const keys = Object.keys(configured);
+            const locale = [...getLocaleCandidates(lang), 'default', 'fallback']
+                .map((candidate) => Object.hasOwn(configured, candidate)
+                    ? candidate
+                    : keys.find((key) => normalizeLocaleCode(key) === candidate))
+                .find((key) => key !== undefined);
+            href = locale ? configured[locale] : undefined;
+        }
+
+        const links = Array.from(head.querySelectorAll(`link[${ MANAGED_PAGE_FONT_ATTR }]`));
+        if (!isGoogleFontsStylesheetUrl(href)) {
+            links.forEach((link) => link.remove());
+            return;
+        }
+
+        const link = links[0] ?? this.doc.createElement('link');
+        links.slice(1).forEach((duplicate) => duplicate.remove());
+        if (link.getAttribute('rel') !== 'stylesheet') link.setAttribute('rel', 'stylesheet');
+        if (link.getAttribute(MANAGED_PAGE_FONT_ATTR) !== 'true') link.setAttribute(MANAGED_PAGE_FONT_ATTR, 'true');
+        if (link.getAttribute('href') !== href) link.setAttribute('href', href);
+        if (!link.parentNode) head.appendChild(link);
     }
 
     private resolveLocalizedRecord(record: Record<string, unknown>, lang: string): Record<string, unknown> {

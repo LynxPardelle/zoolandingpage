@@ -105,6 +105,74 @@ describe('InteractionScopeComponent', () => {
     fixture = TestBed.createComponent(InteractionScopeComponent);
   });
 
+  it('preserves native validation by default and opts into custom validation for exact decimal submissions', () => {
+    componentsById = {
+      price: {
+        id: 'price', type: 'input', config: {
+          fieldId: 'propertyValue', controlType: 'number', value: 5555555.55,
+          min: 1000000, step: 1,
+          validation: [{ type: 'min', value: 1000000, message: 'Enter at least 1M.' }],
+        },
+      },
+    };
+    fixture.componentRef.setInput('config', {
+      scopeId: 'price-form', tag: 'form', components: ['price'], submitEventInstructions: 'focusElementById:result',
+    });
+    fixture.detectChanges();
+    const form = fixture.nativeElement.querySelector('form') as HTMLFormElement;
+    const input = form.querySelector('input') as HTMLInputElement;
+    const button = document.createElement('button');
+    button.type = 'submit';
+    form.appendChild(button);
+    expect(form.hasAttribute('novalidate')).toBeFalse();
+    expect(form.noValidate).toBeFalse();
+    expect(input.validity.stepMismatch).toBeTrue();
+    expect(form.checkValidity()).toBeFalse();
+    button.click();
+    expect(handleComponentEvent).not.toHaveBeenCalled();
+
+    input.step = 'any';
+    expect(form.checkValidity()).toBeTrue();
+    button.click();
+    expect(handleComponentEvent.calls.mostRecent().args[0].eventData.values.propertyValue).toBe(5555555.55);
+
+    handleComponentEvent.calls.reset();
+    input.value = '500000';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(input.validity.rangeUnderflow).toBeTrue();
+    button.click();
+    expect(handleComponentEvent).not.toHaveBeenCalled();
+
+    fixture.componentRef.setInput('config', {
+      scopeId: 'price-form', tag: 'form', components: ['price'], submitEventInstructions: 'focusElementById:result', noValidate: true,
+    });
+    fixture.detectChanges();
+    expect(form.noValidate).toBeTrue();
+    button.click();
+    const invalid = handleComponentEvent.calls.mostRecent()?.args[0].eventData;
+    expect(invalid?.valid).toBeFalse();
+    expect(invalid?.fields.propertyValue.errors).toEqual(['Enter at least 1M.']);
+
+    input.step = '1';
+    input.value = '5555555.55';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(input.validity.stepMismatch).toBeTrue();
+    button.click();
+    const exact = handleComponentEvent.calls.mostRecent()?.args[0].eventData;
+    expect(exact?.valid).toBeTrue();
+    expect(exact?.values.propertyValue).toBe(5555555.55);
+    fixture.componentRef.setInput('config', {
+      scopeId: 'price-form', tag: 'form', components: ['price'], submitEventInstructions: 'focusElementById:result', noValidate: () => false,
+    });
+    fixture.detectChanges();
+    expect(form.noValidate).toBeFalse();
+    handleComponentEvent.calls.reset();
+    button.click();
+    expect(handleComponentEvent).not.toHaveBeenCalled();
+  });
+
   it('can gate field auto-submit from a switch field inside the same scope', () => {
     componentsById = {
       autoSearchSwitch: {

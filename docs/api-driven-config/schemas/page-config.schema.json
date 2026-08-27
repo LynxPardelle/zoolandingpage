@@ -3,6 +3,12 @@
   "title": "PageConfigPayload",
   "type": "object",
   "definitions": {
+    "googleFontsStylesheetUrl": {
+      "type": "string",
+      "maxLength": 4096,
+      "pattern": "^https://fonts\\.googleapis\\.com/css2\\?(?=[^#\\s]*family=)(?:family=[^&#\\s]+&)*display=swap(?:&family=[^&#\\s]+)*$",
+      "not": { "pattern": "[\\u0000-\\u0020\\u007f#]" }
+    },
     "seoConfig": {
       "type": "object",
       "properties": {
@@ -109,6 +115,19 @@
     "metadata": {
       "type": "object",
       "additionalProperties": true
+    },
+    "googleFontsStylesheet": {
+      "description": "Opt-in Google Fonts CSS2 URL, or a locale map. Requires family parameters and display=swap; no arbitrary stylesheets.",
+      "oneOf": [
+        { "$ref": "#/definitions/googleFontsStylesheetUrl" },
+        {
+          "type": "object",
+          "minProperties": 1,
+          "maxProperties": 16,
+          "propertyNames": { "pattern": "^(?:[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*|default|fallback)$" },
+          "additionalProperties": { "$ref": "#/definitions/googleFontsStylesheetUrl" }
+        }
+      ]
     },
     "seo": {
       "$ref": "#/definitions/seoConfig"

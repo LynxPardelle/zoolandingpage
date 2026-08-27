@@ -1,4 +1,7 @@
 import { TestBed } from '@angular/core/testing';
+import { EventOrchestrator } from '../../services/event-orchestrator';
+import { EVENT_HANDLERS } from '../../utility/event-handler/event-handlers.token';
+import { setScopeValueHandler } from '../../utility/event-handler/handlers/interaction-scope.handlers';
 import { VariableStoreService } from '../../services/variable-store.service';
 import { InteractionScopeService } from '../interaction-scope/interaction-scope.service';
 import { GenericInputComponent } from './generic-input.component';
@@ -661,6 +664,113 @@ describe('GenericInputComponent', () => {
         expect(nonFiniteInput.value).toBe('');
     });
 
+    describe('native range selection', () => {
+        function setup(value: unknown = null, omitted = false) {
+            const scope = TestBed.inject(InteractionScopeService);
+            scope.configure({ scopeId: 'range-form' });
+            const fixture = TestBed.createComponent(GenericInputComponent);
+            fixture.componentRef.setInput('config', {
+                fieldId: 'priceSlider', controlType: 'range', min: 1000000,
+                max: 20000000, step: 100000,
+                ...(omitted ? {} : { value }),
+            });
+            fixture.detectChanges();
+            const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+            const changed = spyOn(fixture.componentInstance.valueChanged, 'emit');
+            return { fixture, scope, input, changed };
+        }
+
+        it('preserves explicitly empty state through reset but defaults omitted values to minimum', () => {
+            const { fixture, scope, input } = setup();
+            expect(scope.snapshot().values['priceSlider']).toBe('');
+            expect(input.valueAsNumber).toBe(1000000);
+            input.value = '3000000';
+            input.dispatchEvent(new Event('input'));
+            fixture.detectChanges();
+            scope.reset();
+            fixture.detectChanges();
+            expect(scope.snapshot().values['priceSlider']).toBe('');
+            expect(input.valueAsNumber).toBe(1000000);
+            fixture.destroy();
+            const omitted = setup(undefined, true);
+            expect(omitted.scope.snapshot().values['priceSlider']).toBe(1000000);
+        });
+
+        for (const value of [null, 25000000, 5555555, 500000]) {
+            it(`does not ingest the native range value on Tab or blur (${value})`, () => {
+                const { fixture, scope, input, changed } = setup(value);
+                const before = scope.snapshot().values['priceSlider'];
+                const blurred = spyOn(fixture.componentInstance.blurred, 'emit');
+                input.dispatchEvent(new KeyboardEvent('keyup', { key: 'Tab' }));
+                input.dispatchEvent(new Event('blur'));
+                expect(scope.snapshot().values['priceSlider']).toBe(before);
+                expect(changed).not.toHaveBeenCalled();
+                expect(blurred).toHaveBeenCalledWith({ fieldId: 'priceSlider' });
+                expect(scope.getFieldState('priceSlider')?.touched).toBeTrue();
+            });
+
+            it(`commits an explicit click even without a native input event (${value})`, () => {
+                const { scope, input, changed } = setup(value);
+                const selected = input.valueAsNumber;
+                expect(selected).toBe(value === 25000000 ? 20000000 : value === 5555555 ? 5600000 : 1000000);
+                input.dispatchEvent(new MouseEvent('click'));
+                expect(scope.snapshot().values['priceSlider']).toBe(selected);
+                expect(changed).toHaveBeenCalledTimes(1);
+                input.dispatchEvent(new MouseEvent('click'));
+                expect(changed).toHaveBeenCalledTimes(1);
+            });
+        }
+
+        it('confirms keyboard minimum selection but ignores unrelated keys', () => {
+            const { scope, input, changed } = setup();
+            input.dispatchEvent(new KeyboardEvent('keyup', { key: 'Escape' }));
+            expect(changed).not.toHaveBeenCalled();
+            input.dispatchEvent(new KeyboardEvent('keyup', { key: 'Home' }));
+            expect(scope.snapshot().values['priceSlider']).toBe(1000000);
+            expect(changed).toHaveBeenCalledTimes(1);
+        });
+
+        it('emits continuously for native input without duplicate click or selection-key emissions', () => {
+            const { input, changed } = setup();
+            for (const value of [2000000, 3000000]) {
+                input.value = String(value);
+                input.dispatchEvent(new Event('input'));
+                input.dispatchEvent(new MouseEvent('click'));
+                input.dispatchEvent(new KeyboardEvent('keyup', { key: 'ArrowRight' }));
+            }
+            expect(changed).toHaveBeenCalledTimes(2);
+        });
+
+        it('does not commit synthetic selection events on disabled controls', () => {
+            const { fixture, scope, input, changed } = setup();
+            fixture.componentRef.setInput('config', {
+                fieldId: 'priceSlider', controlType: 'range', min: 1000000,
+                max: 20000000, step: 100000, value: null, disabled: true,
+            });
+            fixture.detectChanges();
+            input.dispatchEvent(new MouseEvent('click'));
+            input.dispatchEvent(new KeyboardEvent('keyup', { key: 'Home' }));
+            expect(scope.snapshot().values['priceSlider']).toBe('');
+            expect(changed).not.toHaveBeenCalled();
+        });
+    });
+
+    it('still captures a changed number on blur without repeating an unchanged value', () => {
+        const fixture = TestBed.createComponent(GenericInputComponent);
+        fixture.componentRef.setInput('config', { fieldId: 'amount', controlType: 'number', value: null });
+        fixture.detectChanges();
+        const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+        const changed = spyOn(fixture.componentInstance.valueChanged, 'emit');
+        input.dispatchEvent(new Event('blur'));
+        expect(changed).not.toHaveBeenCalled();
+        input.value = '25000000.55';
+        input.dispatchEvent(new Event('blur'));
+        fixture.detectChanges();
+        expect(changed).toHaveBeenCalledOnceWith(jasmine.objectContaining({ value: 25000000.55 }));
+        input.dispatchEvent(new Event('blur'));
+        expect(changed).toHaveBeenCalledTimes(1);
+    });
+
     it('associates visible validation errors and helper text with the native control', () => {
         const scope = TestBed.inject(InteractionScopeService);
         scope.configure({ scopeId: 'calculator' });
@@ -688,6 +798,64 @@ describe('GenericInputComponent', () => {
             'propertyValue-helper',
             'propertyValue-error',
         ]);
+    });
+});
+
+describe('GenericInputComponent linked number and range', () => {
+    it('synchronizes real edits, preserves exact manual values on blur, and resets to empty', async () => {
+        await TestBed.configureTestingModule({
+            imports: [GenericInputComponent],
+            providers: [InteractionScopeService, { provide: EVENT_HANDLERS, multi: true, useFactory: setScopeValueHandler }],
+        }).compileComponents();
+        const scope = TestBed.inject(InteractionScopeService);
+        const events = TestBed.inject(EventOrchestrator);
+        scope.configure({ scopeId: 'linked-price', initialValues: { hasCalculated: false } });
+        function create(fieldId: string, target: string, controlType: 'number' | 'range') {
+            const fixture = TestBed.createComponent(GenericInputComponent);
+            fixture.componentRef.setInput('config', {
+                fieldId, controlType, value: null, min: 1000000,
+                ...(controlType === 'range' ? { max: 20000000, step: 100000 } : {}),
+            });
+            const dispatch = (eventName: string, eventData: unknown) => events.execute({
+                host: { interactionScope: scope },
+                event: { componentId: fieldId, eventName, eventData,
+                    eventInstructions: `setScopeValue:${target},event.eventData.value,event.eventName,valueChanged;setScopeValue:hasCalculated,false,event.eventName,valueChanged` },
+            });
+            fixture.componentInstance.valueChanged.subscribe(data => dispatch('valueChanged', data));
+            fixture.componentInstance.blurred.subscribe(data => dispatch('blurred', data));
+            fixture.detectChanges();
+            return { fixture, input: fixture.nativeElement.querySelector('input') as HTMLInputElement };
+        }
+        const number = create('price', 'slider', 'number');
+        const range = create('slider', 'price', 'range');
+        const refresh = () => { number.fixture.detectChanges(); range.fixture.detectChanges(); };
+        for (const value of [25000000, 5555555.55, 1000000]) {
+            number.input.value = String(value);
+            number.input.dispatchEvent(new Event('input'));
+            refresh();
+            expect(scope.snapshot().values['slider']).toBe(value);
+            expect(scope.snapshot().values['hasCalculated']).toBeFalse();
+            scope.setFieldValue('hasCalculated', true);
+            number.input.dispatchEvent(new Event('blur'));
+            range.input.dispatchEvent(new Event('blur'));
+            refresh();
+            expect(scope.snapshot().values['price']).toBe(value);
+            expect(scope.snapshot().values['hasCalculated']).toBeTrue();
+        }
+        range.input.value = '4000000';
+        range.input.dispatchEvent(new Event('input'));
+        refresh();
+        expect(number.input.valueAsNumber).toBe(4000000);
+        expect(scope.snapshot().values['hasCalculated']).toBeFalse();
+        scope.reset();
+        refresh();
+        expect(number.input.value).toBe('');
+        expect(scope.snapshot().values['slider']).toBe('');
+        range.input.dispatchEvent(new Event('blur'));
+        expect(number.input.value).toBe('');
+        range.input.dispatchEvent(new MouseEvent('click'));
+        refresh();
+        expect(number.input.valueAsNumber).toBe(1000000);
     });
 });
 
