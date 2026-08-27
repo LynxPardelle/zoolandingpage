@@ -1,5 +1,6 @@
 import type { TTrackOptions } from '@/app/shared/types/analytics.type';
 import { normalizeLocaleCode } from '@/app/shared/i18n/locale.utils';
+import { isDraftFontFaces } from '@/app/shared/utility/fonts/draft-font-config';
 import type {
     TContentHubRuntimeActionBinding,
     TContentHubRuntimeConfig,
@@ -2138,7 +2139,7 @@ const isGenericLinkConfig = (value: unknown): boolean => {
 const isGenericContainerConfig = (value: unknown): boolean => {
     if (!isRecord(value)) return false;
 
-    const stringFields = ['id', 'classes', 'role', 'ariaLabel', 'ariaLabelledby', 'ariaDescribedby'] as const;
+    const stringFields = ['id', 'classes', 'role', 'lang', 'ariaLabel', 'ariaLabelledby', 'ariaDescribedby'] as const;
     if (stringFields.some((field) => !isStringThunkFriendly(value[field]))) return false;
     if (value['tag'] !== undefined
         && (typeof value['tag'] !== 'string' || !ALLOWED_GENERIC_CONTAINER_TAGS.has(value['tag']))) return false;
@@ -2857,6 +2858,7 @@ const isDraftSiteSharedConfig = (value: unknown): value is TDraftSiteSharedConfi
     if (!isThemeVariableConfig(value['theme'])) return false;
     if (!isDraftI18nVariableConfig(value['i18n'])) return false;
     if (value['icons'] !== undefined && !isDraftSiteIconConfig(value['icons'])) return false;
+    if (value['fonts'] !== undefined && !isDraftFontFaces(value['fonts'])) return false;
     if (value['seo'] !== undefined && !isDraftSiteSeoConfig(value['seo'])) return false;
     if (value['searchConsole'] !== undefined && !isSearchConsoleConfig(value['searchConsole'])) return false;
     if (value['hostOverrides'] !== undefined && !isDraftHostOverrideMap(value['hostOverrides'])) return false;

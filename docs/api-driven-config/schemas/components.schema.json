@@ -248,6 +248,7 @@
         "tag": { "enum": ["span", "div", "section", "main", "header", "footer", "nav", "article", "figure", "ul", "ol", "li", "aside"] },
         "id": { "type": "string" },
         "classes": { "type": "string" },
+        "lang": { "type": "string" },
         "tabindex": { "type": "number" },
         "role": { "type": "string" },
         "ariaLive": { "enum": ["off", "polite", "assertive"] },

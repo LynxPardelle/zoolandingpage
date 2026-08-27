@@ -82,6 +82,76 @@ const minimalSiteConfig = () => ({
 });
 
 describe('config-payload.validators', () => {
+    it('validates optional container language without changing the existing focus and semantic contracts', () => {
+        const payload = (config: Record<string, unknown>) => createComponentsPayload({
+            main: { id: 'main', type: 'container', config: { tag: 'main', components: [], ...config } },
+        });
+        for (const config of [
+            {}, { lang: 'en', tabindex: -1 }, { lang: 'es-MX', tabindex: 0 }, { lang: '' },
+            { lang: 'en', tabindex: 1 }, { lang: 'en', tabindex: -0.5 },
+            { lang: 'en', tag: 'figure', ariaLive: 'polite' },
+        ]) {
+            expect(isComponentsPayload(payload(config))).withContext(JSON.stringify(config)).toBeTrue();
+        }
+        for (const config of [{ lang: {} }, { lang: 12 }, { tabindex: '0' }, { tabindex: Infinity }]) {
+            expect(isComponentsPayload(payload(config))).withContext(JSON.stringify(config)).toBeFalse();
+        }
+    });
+
+    describe('draft-owned font faces', () => {
+        const withFonts = (fonts: unknown) => ({
+            version: 1,
+            domain: TEST_DOMAIN,
+            defaultPageId: 'home',
+            routes: [{ path: '/', pageId: 'home' }],
+            site: { ...minimalSiteConfig(), fonts },
+        });
+        const face = (overrides: Record<string, unknown> = {}) => ({
+            family: 'Editorial Serif',
+            src: '/drafts/preview.example.test/assets/fonts/editorial.woff2',
+            weight: '400 600',
+            style: 'normal',
+            ...overrides,
+        });
+
+        it('accepts optional, bounded local or public HTTPS WOFF2 descriptors', () => {
+            expect(isDraftSiteConfigPayload(withFonts(undefined))).toBeTrue();
+            expect(isDraftSiteConfigPayload(withFonts([]))).toBeTrue();
+            expect(isDraftSiteConfigPayload(withFonts([
+                face(),
+                face({ family: 'Editorial Sans', src: 'https://assets.example.test/fonts/sans.woff2', weight: '400' }),
+            ]))).toBeTrue();
+        });
+
+        it('rejects font URLs that could contain CSS, credentials or non-public transport', () => {
+            for (const src of [
+                'https://assets.example.test/fonts.css', 'http://assets.example.test/font.woff2',
+                '//assets.example.test/font.woff2', 'javascript:font.woff2', 'data:font/woff2;base64,AAAA',
+                'https://user:password@assets.example.test/font.woff2',
+                '/fonts/font.woff2?token=private', '/fonts/font.woff2#fragment',
+                '/fonts/../private/font.woff2', '/fonts/%2e%2e/font.woff2',
+                '/fonts/font\\name.woff2', '/fonts/font name.woff2', '/fonts/font.woff2\n',
+                '/fonts/font.woff2\");url(\"https://example.test/other.woff2',
+            ]) {
+                expect(isDraftSiteConfigPayload(withFonts([face({ src })]))).withContext(src).toBeFalse();
+            }
+        });
+
+        it('rejects malformed faces, CSS descriptors and unbounded or overlapping collections', () => {
+            for (const fonts of [
+                null, {}, 'Editorial Serif', [null],
+                [face({ family: '' })], [face({ family: 'Serif; color: red' })],
+                [face({ weight: 'bold' })], [face({ weight: '600 400' })],
+                [face({ weight: '0' })], [face({ weight: '1001' })], [face({ weight: 400 })],
+                [face({ style: 'url(font)' })], [face({ css: '@import url(other)' })],
+                [face(), face()], [face(), face({ weight: '500' })],
+                Array.from({ length: 9 }, (_, index) => face({ family: `Family ${index}` })),
+            ]) {
+                expect(isDraftSiteConfigPayload(withFonts(fonts))).withContext(JSON.stringify(fonts)).toBeFalse();
+            }
+        });
+    });
+
     const fontUrl = 'https://fonts.googleapis.com/css2?family=Playfair+Display:opsz,wght@5..1200,500;5..1200,600&family=Inter:wght@400;600&display=swap';
     const fontPage = (googleFontsStylesheet: unknown) => ({
         version: 1, domain: TEST_DOMAIN, pageId: 'campaign', rootIds: [], googleFontsStylesheet,
