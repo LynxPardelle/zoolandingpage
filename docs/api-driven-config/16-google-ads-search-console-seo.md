@@ -179,6 +179,8 @@ Add browser icon settings under `site-config.json.site.icons` when a draft needs
 
 Use root-relative app assets or HTTPS public asset URLs. For uploaded icon files, save the final `publicUrl` returned by the grant-protected hub upload workflow; do not save upload grants or presigned `uploadUrl` values because they expire and can expose upload capability while valid.
 
+The shared runtime owns the document's browser-icon links and keeps exactly one effective `rel="icon"` after SSR and client hydration. Do not add `alternate icon` or `shortcut icon` to the shared shell: browsers may prefer or retain that competing icon instead of the configured draft asset. The legacy `/favicon.ico` path serves the committed Zoolandingpage Z ICO through static/CDN deployments and redirects without caching to the equivalent SVG under Express/Nginx. Invalidate the CDN path whenever that binary changes; draft identity still comes from `site.icons.favicon`.
+
 ## Social share images
 
 Use `site-config.json.site.seo.defaultImage`, `openGraph.image`, or page-level Open Graph/Twitter image fields when a draft has its own social artwork. If no social image is configured, the runtime falls back to the shared raster logo card:
