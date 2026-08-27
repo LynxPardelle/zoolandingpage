@@ -59,6 +59,8 @@ Argument order for `openModal` is:
 submitScope;trackEvent:event.meta_title,cta,lead-form:submit,location,lead-form
 ```
 
+An `interaction-scope` with `tag: "form"` retains native browser constraint validation by default. Set its optional `noValidate: true` only when the scope declares the complete custom validation rules and submit/error/focus behavior. This lets the submit handler receive values that native `min` or `step` would otherwise block, including exact decimal numbers. It does not disable scope validation or any server-side validation. The JSON option is a boolean; local runtime configuration also supports a dynamic boolean. Other scopes and forms are unchanged.
+
 - Scoped interaction reset:
 
 ```text

@@ -120,6 +120,7 @@ export type TInteractionScopeConfig = {
     readonly scopeId?: string;
     readonly id?: string;
     readonly tag?: TInteractionScopeTag;
+    readonly noValidate?: TDynamicBooleanValue;
     readonly classes?: string | (() => string);
     readonly role?: string | (() => string);
     readonly ariaLabel?: string | (() => string);
