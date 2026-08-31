@@ -1053,6 +1053,7 @@
       "properties": {
         "enabled": { "type": "boolean" },
         "authProfileId": { "type": "string", "minLength": 1 },
+        "requiredOrigin": { "const": "https://admin-test.thehairnarrative.com" },
         "endpoint": {
           "type": "string",
           "anyOf": [
@@ -1061,6 +1062,16 @@
           ]
         }
       },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "authProfileId": { "const": "journal-owner" } },
+            "required": ["authProfileId"]
+          },
+          "then": { "required": ["requiredOrigin"] },
+          "else": { "not": { "required": ["requiredOrigin"] } }
+        }
+      ],
       "additionalProperties": false
     },
     "comboCatalogRuntime": {

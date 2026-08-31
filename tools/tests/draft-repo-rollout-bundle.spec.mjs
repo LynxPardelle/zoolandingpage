@@ -9,7 +9,7 @@ import test from 'node:test';
 const repoRoot = path.resolve(new URL('../..', import.meta.url).pathname.replace(/^\/(?:[A-Za-z]:)/, value => value.slice(1)));
 const templateRoot = path.join(repoRoot, 'tools', 'templates', 'draft-repo');
 const auditorCommit = 'c8b04670b5cca800ccf0f723815813897e596600';
-const promotionVerifierSha256 = '8aeada2e40e21c0693099dbb0fc8fbc63a225e11f88b4b61dae3235c875ca5d2';
+const promotionVerifierSha256 = 'acd17dae536787113805778a6ec1a1afe60dc384d9f0bb9de4fb76b27f7f3182';
 const rolloutClosure = Object.freeze([
   '.github/workflows/deploy-production.yml',
   '.github/workflows/deploy-test.yml',
@@ -25,6 +25,7 @@ const rolloutClosure = Object.freeze([
   'tools/schemas/data-spaces.schema.json',
   'tools/schemas/integration-bindings.schema.json',
   'tools/schemas/notification-policies.schema.json',
+  'tools/schemas/protected-feature-bindings-v2.schema.json',
   'tools/verify-promotion-commit.mjs',
 ]);
 
@@ -63,8 +64,8 @@ test('legacy rollout closure is self-contained and distinguishes closure from ch
   const zoositeRoot = path.join(root, 'zoosite');
 
   const generic = await applyRolloutClosure(genericRoot);
-  assert.equal(generic.closureCount, 15);
-  assert.equal(generic.changedPaths.length, 15);
+  assert.equal(generic.closureCount, 16);
+  assert.equal(generic.changedPaths.length, 16);
   assert.equal(generic.changedPaths.includes('tools/verify-promotion-commit.mjs'), true);
   assert.equal(
     await normalizedTextFileHash(path.join(genericRoot, 'tools', 'verify-promotion-commit.mjs')),
@@ -75,8 +76,8 @@ test('legacy rollout closure is self-contained and distinguishes closure from ch
   await mkdir(path.dirname(path.join(zoositeRoot, existingGuard)), { recursive: true });
   await copyFile(path.join(templateRoot, existingGuard), path.join(zoositeRoot, existingGuard));
   const zoosite = await applyRolloutClosure(zoositeRoot);
-  assert.equal(zoosite.closureCount, 15);
-  assert.equal(zoosite.changedPaths.length, 14);
+  assert.equal(zoosite.closureCount, 16);
+  assert.equal(zoosite.changedPaths.length, 15);
   assert.equal(zoosite.changedPaths.includes(existingGuard), false);
   assert.equal(zoosite.changedPaths.includes('tools/verify-promotion-commit.mjs'), true);
   assert.equal(

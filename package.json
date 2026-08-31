@@ -56,7 +56,7 @@
     "test:draft-upload-status": "node --test tools/tests/draft-upload-status.spec.mjs",
     "test:draft-repo-preflight": "node --test tools/tests/draft-repo-preflight.spec.mjs",
     "test:draft-public-safety-audit": "node --test tools/tests/draft-public-safety-audit.spec.mjs",
-    "test:draft-feature-readiness": "node --test tools/tests/draft-feature-readiness.spec.mjs tools/tests/draft-repo-template.spec.mjs",
+    "test:draft-feature-readiness": "node --test tools/tests/draft-feature-readiness.spec.mjs tools/tests/draft-repo-template.spec.mjs tools/tests/protected-feature-bindings-v2-schema.spec.mjs",
     "test:draft-public-artifact-boundary": "node --test tools/tests/draft-public-artifact-boundary.spec.mjs",
     "test:draft-auth-audit": "node --test tools/tests/draft-auth-audit.spec.mjs",
     "test:draft-aws-oidc-setup": "node --test tools/tests/draft-aws-oidc-setup.spec.mjs",
