@@ -10,3 +10,9 @@ Date: 2026-09-07 (Central Time)
 - Gitleaks exceptions identify only reviewed synthetic historical scanner fixtures by exact fingerprint.
 
 Validation: parsed workflow boundary checks and Actionlint. Remote test results belong to the corresponding GitHub run, not this source document.
+
+The first remote run exposed missing independent draft fixtures in the clean
+runner. Validation now checks out the seven reviewed public fixture commits by
+full SHA, with no persisted credentials, before building and running SSR
+regressions. These read-only copies do not change another draft repository and
+remain QA inventory, not an approved production release inventory.
