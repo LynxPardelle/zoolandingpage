@@ -89,7 +89,7 @@ jobs:
       - name: Test and package the isolated frontend candidate
         run: |
           npm ci
-          node --test tools/tests/draft-public-safety-audit.spec.mjs tools/tests/ssr-delivery-contract.spec.mjs tools/tests/ops-thn-content-hub-v2-front-door.spec.mjs tools/tests/draft-public-artifact-boundary.spec.mjs tools/tests/the-hair-narrative-public-assets.spec.mjs
+          node --test tools/tests/draft-public-safety-audit.spec.mjs tools/tests/ssr-delivery-contract.spec.mjs tools/tests/legacy-ssr-recovery.spec.mjs tools/tests/ops-thn-content-hub-v2-front-door.spec.mjs tools/tests/draft-public-artifact-boundary.spec.mjs tools/tests/the-hair-narrative-public-assets.spec.mjs
           npm test -- --watch=false --browsers=ChromeHeadlessStable
           npm run package:ssr:lambda
           node --test tools/tests/ssr-server.spec.mjs

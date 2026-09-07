@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "environment": "test",
+  "releaseId": "01b6e9f8dbdbb52532502b78d89b170a96e6000c",
+  "sourceCommit": "01b6e9f8dbdbb52532502b78d89b170a96e6000c",
+  "sourceRunId": "33119345733",
+  "sourceRunAttempt": "1",
+  "manifestSha256": "862387fcd9d8d824800d1e0f46238a68c6edeaf1e52fd0c7c7f51426ea49417d",
+  "serverSha256": "12bb927642b2cfdf05c7a4afdab8185db195bb7a824261cd33c7b1ec52734c19"
+}

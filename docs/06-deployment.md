@@ -167,6 +167,48 @@ node tools/prepare-ssr-delivery.mjs --rollback
 
 The command is read-only and returns `activationAllowed:false`; the infrastructure repository still owns separately authorized activation. Missing, expired, failed, or cross-attempt evidence is rejected. A successful retry that reused another validation attempt is not automatically eligible: preserve its successful publication evidence for a separate owner review rather than silently treating a previously failed attempt as a successful rollback source. New releases do not acquire activation authority by passing these checks.
 
+### Legacy TEST recovery snapshots
+
+The existing TEST frontend predates `delivery.json`. Do not rebuild its source,
+rewrite its original manifest, invent a current CI artifact ID, or relax the
+modern rollback verifier. [The legacy snapshot verifier](../tools/prepare-legacy-ssr-recovery.mjs)
+is a separate, local-only bridge pinned to the one reviewed release in
+[the TEST baseline](../tools/ops/legacy-test-frontend-baseline.json).
+
+An authorized read-only capture preserves `payload/manifest.json`,
+`payload/server/ssr-handler.zip`, and every object under that release's
+`payload/browser/` prefix. It checks the original manifest and server SHA-256
+against the baseline and live Lambda, confirms the exact historical successful
+GitHub source run, reads every object twice, and compares the bounded object
+inventory and active TEST coordinates before and after capture. The sanitized
+capture input records the exact fields exercised by
+[the contract tests](../tools/tests/legacy-ssr-recovery.spec.mjs): source-run
+coordinates, before/after observations, paths, lengths, content hashes, hashed
+ETags and safe content/cache/encoding headers. Cloud credentials, raw cloud
+responses and private environment values are not part of that proof.
+
+Set `LEGACY_RECOVERY_ROOT` to the absolute local snapshot directory and
+`LEGACY_RECOVERY_CAPTURE` to the separately retained capture proof, then run
+`node tools/prepare-legacy-ssr-recovery.mjs --prepare`. Preparation validates all
+bytes and writes `legacy-recovery.json` exclusively; an existing receipt is
+never overwritten. Retain its returned SHA-256 separately. Recheck the copy
+with that value in `LEGACY_RECOVERY_DIGEST` and
+`node tools/prepare-legacy-ssr-recovery.mjs --verify`.
+
+The result is always `selection-only`, `activationAllowed:false`,
+`sourceClass:deployed-legacy-snapshot`, and `ciArtifactId:null`. The exact bytes
+of the legacy debug workspace may be retained in this local snapshot; this is
+not permission to publish it through the modern artifact pipeline. Keep these
+snapshots ignored, private and outside public draft/build directories. Never
+upload or commit them merely because verification passed.
+
+This proof establishes a stable copy of the existing deployed release, not an
+original CI digest for its browser files. Missing original browser/CI provenance
+is stated explicitly. It does not establish a historical CDK assembly, change
+the infrastructure rollback workflow, sign Workstream A, or activate the
+Journal. Infrastructure recovery selection/execution and any deployment remain
+separately reviewed and authorized owner-repository operations.
+
 ## Security And Evidence
 
 - Never paste secrets, cookies, tokens, signed URLs, raw env values, account IDs, customer data, or private endpoint credentials into commands, notes, PRs, or logs.
