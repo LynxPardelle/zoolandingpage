@@ -222,6 +222,56 @@ describe('SeoMetadataService', () => {
         expect(meta.updateTag).toHaveBeenCalledWith({ property: 'og:site_name', content: 'Zoo Landing Page' });
     });
 
+    it('removes the canonical link only while the page explicitly suppresses it', () => {
+        TestBed.resetTestingModule();
+
+        title = jasmine.createSpyObj<Title>('Title', ['setTitle']);
+        meta = jasmine.createSpyObj<Meta>('Meta', ['updateTag', 'removeTag']);
+        const baseDoc = document.implementation.createHTMLDocument('seo');
+        const existingCanonical = baseDoc.createElement('link');
+        existingCanonical.setAttribute('rel', 'canonical');
+        existingCanonical.setAttribute('href', 'https://example.com/stale');
+        baseDoc.head.appendChild(existingCanonical);
+        const seoDoc = {
+            documentElement: baseDoc.documentElement,
+            head: baseDoc.head,
+            createElement: baseDoc.createElement.bind(baseDoc),
+            defaultView: {
+                location: {
+                    origin: 'https://example.com',
+                    pathname: '/the-journal/an-observed-form',
+                    search: '',
+                },
+            },
+        } as unknown as Document;
+
+        TestBed.configureTestingModule({
+            providers: [
+                SeoMetadataService,
+                { provide: DOCUMENT, useValue: seoDoc },
+                { provide: Title, useValue: title },
+                { provide: Meta, useValue: meta },
+                { provide: DomainResolverService, useValue: { resolveDomain: () => ({ domain: 'example.com' }) } },
+                {
+                    provide: RuntimeConfigService,
+                    useValue: {
+                        seoDefaults: () => ({ canonicalOrigin: 'https://example.com' }),
+                        appName: () => 'Example',
+                        appDescription: () => '',
+                    },
+                },
+            ],
+        });
+
+        service = TestBed.inject(SeoMetadataService);
+        service.apply('en', { canonicalMode: 'none' });
+        expect(seoDoc.head.querySelector('link[rel="canonical"]')).toBeNull();
+
+        service.apply('en', null);
+        expect(seoDoc.head.querySelector('link[rel="canonical"]')?.getAttribute('href'))
+            .toBe('https://example.com/the-journal/an-observed-form');
+    });
+
     it('uses site-config seo defaults for shared metadata fallbacks', () => {
         TestBed.resetTestingModule();
 

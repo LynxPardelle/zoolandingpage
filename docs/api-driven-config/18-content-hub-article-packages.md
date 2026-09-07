@@ -68,6 +68,11 @@ Each entry identifies the hub and how the current draft renders it:
 - optional `publicArticles`
 - optional `publicTaxonomy`
 
+When a published bundle uses article-level `canonicalMode: "none"`, Runtime Read projects
+`pageConfig.seo.canonicalMode: "none"`. That page-only flag suppresses the rendered
+`<link rel="canonical">`; `self` and `custom` continue to materialize a normal `canonical`
+value. The page payload intentionally does not expose the broader article-mode vocabulary.
+
 The schema is `docs/api-driven-config/schemas/content-hub-public.schema.json`. The site config schema also exposes the same public shape through `contentHubRuntime`.
 
 `publicArticles` is intentionally small and public. It may carry only published article IDs, locale, title, summary, same-origin path, category slug, tags, published/updated timestamps, author display label, canonical path, robots, and optional safe cover image fields (`imageSrc` as same-origin or HTTPS plus `imageAlt`). `publicTaxonomy` may carry visible category/tag IDs, slug, label, locale, and an optional same-origin path. SSR can use these fields for sitemap, RSS/Atom-compatible feeds, basic public search, article cards, and article `BlogPosting` metadata while the dynamic runtime-read/DynamoDB content endpoints are still being connected.
@@ -170,6 +175,29 @@ A published bundle must not include:
 - executable scripts or event-handler attributes
 
 The schema is `docs/api-driven-config/schemas/content-hub-published-bundle.schema.json`.
+
+### Operational v1 shape
+
+The executable v1 bundle is direct, matching both Content Hub publication and Runtime Read consumption:
+
+- `components` is the public component array itself, not a `{ version, components }` wrapper.
+- `variables` is the public variables object itself, not a `{ version, variables }` wrapper.
+- `i18n` is the public dictionary object itself, not a `{ version, lang, dictionary }` wrapper.
+- The canonical article body is `variables.articleContent`; Runtime Read also projects it onto `contentHub.currentArticle.articleContent` for frontend compatibility.
+- `seo.canonical` may be a same-origin path, a public HTTPS URL, or empty when canonical output is disabled.
+- `revisionId` and `safeArticlePath` carry the immutable revision and validated route when emitted by the current publisher. They remain optional in the schema so older direct v1 bundles continue to validate.
+- Every public component has a unique `id`, one of the canonical public types `container`, `media`, `text`, or `link`, and the exact type-specific `config` accepted by the published-bundle schema. Producer-only aliases such as `generic-text` and `image` are never public contract values.
+- The Content Hub publication boundary owns compatibility normalization: it generates stable collision-free ids for legacy editable components, maps supported aliases to canonical public types, and rejects any source shape that cannot be compiled into this four-type public subset. Editable source revisions remain immutable and may continue using the broader legacy Angular editor vocabulary.
+
+The four-type vocabulary is a strict writer contract for newly published bundles, not a removal of the generic 24-type Angular reader/editor. `container` publishes a child-id list (empty when it has no children) and an optional allowlisted semantic tag; `media` v1 is an HTTPS public image with a dotted non-IP hostname, no explicit port, `tag: "image"`, and non-empty `alt`; `text` publishes an allowlisted text tag plus plain text; and `link` requires a same-origin `href` with an allowlisted target when present. Type-specific configs are closed objects, so nested navigation fields and unreviewed renderer options cannot cross the public boundary. The checked seed article uses exactly this subset. The current v1 publisher validates and bounds `variables.articleContent`; it does not sanitize or convert HTML. The future dedicated The Hair Narrative publisher owns server-side conversion and sanitization before it emits the fixed-template shape `components: []` plus `variables.articleContent: { "html": "..." }`. Private `generic-rich-text` editor configs and deltas such as `{ "ops": [...] }` are not that draft's public body contract.
+
+The public writer config keys are exact: `container` accepts only `components`, `classes`, and `tag`; `media` accepts only `src`, `tag`, `alt`, and `classes`; `text` accepts only `tag`, `text`, and `classes`; and `link` accepts only `href`, `text`, `classes`, `target`, `rel`, and `ariaLabel`. Renderer-ignored `variant` and private authoring `loopConfig` fields do not cross the v1 publication boundary. A bundle has at most 120 components. The schema also bounds individual public strings and recursive collection sizes; the publisher and Angular runtime validator enforce the additional total-node and depth limits that draft-07 cannot express safely through an unbounded recursive reference.
+
+Do not promote a strict-writer change into a shared environment until a read-only inventory confirms that every existing publisher can emit this subset or has an explicit compatibility migration. Runtime readers remain tolerant of already published legacy payloads; the schema governs new bundle writes.
+
+Runtime Read v1 currently hydrates the direct components, variables, i18n, and SEO fields. `structuredData` and `analytics` remain reserved public bundle metadata and are not injected as client configuration. SSR derives the supported article `BlogPosting` from the verified article projection, and page-owned analytics remains authoritative. Consuming publisher-provided custom JSON-LD or analytics instructions requires a separately versioned runtime contract and tests; bundle presence alone must not be interpreted as execution.
+
+The obsolete wrapped fixture shape was never the executable writer/reader contract and is rejected. Do not change Content Hub to emit wrappers without a separately versioned runtime migration.
 
 ## S3 Layout
 

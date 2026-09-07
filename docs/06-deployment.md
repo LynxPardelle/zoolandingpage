@@ -58,6 +58,20 @@ npm audit --omit=dev
 npm run package:ssr:lambda
 ```
 
+The Lambda ZIP must use relative POSIX entry names on every build host,
+including Windows. Packaging creates each Windows entry explicitly to avoid
+backslash paths from Windows PowerShell's directory ZIP helper. Verify the
+packaging contract with `node --test tools/tests/ssr-lambda-packaging.spec.mjs`.
+ZIP entry dates are fixed to the DOS epoch. The POSIX path also uses a sorted
+file inventory, UTC timestamps and no extended attributes. Source/build files
+are never retimed: normalization affects the staging copy or ZIP metadata only.
+Compare archive digests with the same runtime and compression toolchain; this
+does not claim that different operating systems or compressor versions emit
+identical bytes. `manifest.json` retains the actual build time outside the ZIP.
+A local build from uncommitted sources is a QA artifact, not an immutable
+release: its recorded Git HEAD identifies the base only. Do not promote it
+without the reviewed source/run/digest contract and intended public inventory.
+
 When server routing, forwarded headers, host validation, runtime bootstrap, or the SSR package changes, also run:
 
 ```powershell
@@ -138,6 +152,20 @@ Rollback the smallest owning surface:
 - managed alias/front door: use the repeatable owner-repo/tooling operation, not a one-off console edit.
 
 Do not rebuild an old source tree to approximate rollback when a verified immutable artifact exists.
+
+### Isolated Journal delivery contract
+
+SSR delivery validates the exact protected promotion, then seals every published browser file, the server ZIP, and the source manifest in `delivery.json`. Its external SHA-256, numeric GitHub artifact ID, full source SHA, run ID, and validation attempt are passed to the credential-bearing job. That job runs no downloaded repository code: it checks the complete inventory and hashes before OIDC. S3 writes use conditional creation, and the source manifest is written last as the completion marker. A partial upload is not a release; use a new release ID for a fresh attempt rather than overwriting an occupied immutable prefix.
+
+The optional The Hair Narrative admin inventory is **off by default**. `THN_ADMIN_ARTIFACT_ENABLED=true` is accepted only for TEST and requires Workstream B to emit `dist/zoolandingpage/thn-admin-release.json` with the exact version-1 release contract consumed by [the front-door planner](../tools/ops/sync-thn-content-hub-v2-front-door.mjs). Every selected `/browser/` path must exist in this artifact, be manifest-hashed and have an allowed static-media/code extension. The [closed route inventory](../tools/ops/thn-content-hub-v2-route-manifest.json) and release inventory are both sealed with the artifact. The generic shared browser output is not automatically an approved admin bundle. Missing or incompatible admin output stops preparation; production cannot opt in. This contract prepares data only: it neither creates the admin origin nor changes routes, DNS, authentication or a site binding.
+
+Successful publication records the external delivery digest and immutable coordinates in the run summary. Retain the corresponding artifact for the rollback window (the workflow requests 90 days, subject to the repository retention policy). Before a TEST rollback, retrieve the exact artifact ID and the original successful, attempt-specific workflow-run and artifact metadata from this repository; do not use latest-by-name selection. Set `ROLLBACK_ARTIFACT_ROOT`, `ROLLBACK_DELIVERY_SHA256`, `ROLLBACK_RELEASE_ID`, `ROLLBACK_SOURCE_SHA`, `ROLLBACK_SOURCE_RUN_ID`, `ROLLBACK_SOURCE_ATTEMPT`, `ROLLBACK_ARTIFACT_ID`, `ROLLBACK_RUN_METADATA_PATH`, and `ROLLBACK_ARTIFACT_METADATA_PATH` from that retained evidence, then run:
+
+```powershell
+node tools/prepare-ssr-delivery.mjs --rollback
+```
+
+The command is read-only and returns `activationAllowed:false`; the infrastructure repository still owns separately authorized activation. Missing, expired, failed, or cross-attempt evidence is rejected. A successful retry that reused another validation attempt is not automatically eligible: preserve its successful publication evidence for a separate owner review rather than silently treating a previously failed attempt as a successful rollback source. New releases do not acquire activation authority by passing these checks.
 
 ## Security And Evidence
 

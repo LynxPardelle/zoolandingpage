@@ -26,6 +26,7 @@ import {
     isComponentsPayload,
     isI18nPayload,
     isPageConfigPayload,
+    isContentHubRuntimeArticleContent,
     isVariablesPayload,
 } from '@/app/shared/utility/config-validation/config-payload.validators';
 import { normalizeDraftRoutePath } from '@/app/shared/utility/route-matching/draft-route-matching';
@@ -366,7 +367,7 @@ export class ConfigBootstrapService {
             routePath: opts?.routePath,
             routeParams: opts?.routeParams,
             lang,
-        });
+        }, variables);
         this.variablesStore.patchRuntimeValues(contentHubRuntime.values);
 
         this.store.setStage('i18n');
@@ -427,6 +428,7 @@ export class ConfigBootstrapService {
     private buildContentHubRuntimeProjection(
         siteConfig: TDraftSiteConfigPayload | null,
         context: Pick<TConfigBootstrapLoadOptions, 'routePath' | 'routeParams'> & { readonly lang?: string | null },
+        loadedVariables: TVariablesPayload | null,
     ): { readonly values: Record<string, unknown>; readonly currentArticle: TContentHubRuntimeArticleSummary | null } {
         const hubs = siteConfig?.runtime?.contentHubs;
         if (!Array.isArray(hubs) || hubs.length === 0) {
@@ -446,7 +448,10 @@ export class ConfigBootstrapService {
             .filter((entry): entry is TContentHubRuntimeTaxonomySummary => entry.visible !== false)
             .filter((entry) => !lang || this.normalizeContentHubLanguage(entry.locale) === lang);
 
-        const currentArticle = this.findContentHubCurrentArticle(articles, context);
+        const currentArticle = this.preserveRuntimeReadArticleContent(
+            this.findContentHubCurrentArticle(articles, context),
+            loadedVariables,
+        );
         const filteredArticles = this.filterContentHubArticlesForRoute(articles, context);
 
         return {
@@ -464,6 +469,33 @@ export class ConfigBootstrapService {
                 'contentHub.currentArticle': currentArticle,
                 'articleContent': currentArticle?.articleContent ?? null,
             },
+        };
+    }
+
+    private preserveRuntimeReadArticleContent(
+        currentArticle: TContentHubRuntimeArticleSummary | null,
+        loadedVariables: TVariablesPayload | null,
+    ): TContentHubRuntimeArticleSummary | null {
+        if (!currentArticle) return null;
+
+        const contentHub = this.isRecord(loadedVariables?.variables?.['contentHub'])
+            ? loadedVariables.variables['contentHub']
+            : null;
+        const loadedArticle = contentHub && this.isRecord(contentHub['currentArticle'])
+            ? contentHub['currentArticle']
+            : null;
+        if (!loadedArticle || this.cleanString(loadedArticle['articleId']) !== currentArticle.articleId) {
+            return currentArticle;
+        }
+
+        const articleContent = loadedArticle['articleContent'];
+        if (!isContentHubRuntimeArticleContent(articleContent)) {
+            return currentArticle;
+        }
+
+        return {
+            ...currentArticle,
+            articleContent,
         };
     }
 

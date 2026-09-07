@@ -1348,6 +1348,230 @@ describe('config-payload.validators', () => {
         expect(isDraftSiteConfigPayload(payload)).toBeTrue();
     });
 
+    it('accepts safe Delta and published JSON article content with index,nofollow robots', () => {
+        const payload = {
+            version: 1,
+            domain: 'thehairnarrative.com',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: minimalSiteConfig(),
+            runtime: {
+                contentHubs: [{
+                    hubId: 'the-hair-narrative',
+                    ownerDraftDomain: 'thehairnarrative.com',
+                    source: 'primary',
+                    routeBasePath: '/the-journal',
+                    listPath: '/the-journal',
+                    articlePathPattern: '/the-journal/:articleSlug',
+                    defaultLocale: 'en',
+                    locales: ['en', 'es'],
+                    canonicalMode: 'owner-canonical',
+                    publicArticles: [{
+                        articleId: 'art_observing_form',
+                        locale: 'en',
+                        status: 'published',
+                        title: 'Observing form',
+                        path: '/the-journal/observing-form',
+                        publishedAt: '2026-08-30T12:00:00.000Z',
+                        robots: 'index,nofollow',
+                        articleContent: {
+                            ops: [
+                                { insert: 'An editorial paragraph.' },
+                                { insert: '\n', attributes: { header: 2 } },
+                            ],
+                        },
+                        localizations: {
+                            es: {
+                                title: 'Observar la forma',
+                                path: '/the-journal/observar-la-forma',
+                                robots: 'index,nofollow',
+                                articleContent: {
+                                    version: 1,
+                                    blocks: [
+                                        { type: 'paragraph', text: 'Un párrafo editorial.' },
+                                        { type: 'image', assetId: 'asset_cover', decorative: false },
+                                    ],
+                                },
+                            },
+                        },
+                    }],
+                }],
+            },
+        };
+
+        expect(isDraftSiteConfigPayload(payload)).toBeTrue();
+    });
+
+    it('rejects unsafe or non-finite values in content hub article content', () => {
+        const payloadFor = (articleContent: unknown) => ({
+            version: 1,
+            domain: 'thehairnarrative.com',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: minimalSiteConfig(),
+            runtime: {
+                contentHubs: [{
+                    hubId: 'the-hair-narrative',
+                    ownerDraftDomain: 'thehairnarrative.com',
+                    source: 'primary',
+                    routeBasePath: '/the-journal',
+                    listPath: '/the-journal',
+                    articlePathPattern: '/the-journal/:articleSlug',
+                    defaultLocale: 'en',
+                    locales: ['en'],
+                    canonicalMode: 'owner-canonical',
+                    publicArticles: [{
+                        articleId: 'art_observing_form',
+                        locale: 'en',
+                        status: 'published',
+                        title: 'Observing form',
+                        path: '/the-journal/observing-form',
+                        publishedAt: '2026-08-30T12:00:00.000Z',
+                        articleContent,
+                    }],
+                }],
+            },
+        });
+
+        for (const articleContent of [
+            null,
+            true,
+            42,
+            { ops: [{ insert: Number.NaN }] },
+            { ops: [{ insert: Number.POSITIVE_INFINITY }] },
+            { ops: [{ insert: undefined }] },
+            { ops: [{ insert: 'https://example.test/private?X-Amz-Signature=unsafe' }] },
+            { ops: [{ insert: 'https://example.test/private?%58-Amz-Signature=unsafe' }] },
+            { ops: [{ insert: 'https://example.test/private?%2558-Amz-Signature=unsafe' }] },
+            { token: 'must-not-cross-the-public-contract' },
+            JSON.parse('{"__proto__":{"polluted":true}}'),
+        ]) {
+            expect(isDraftSiteConfigPayload(payloadFor(articleContent)))
+                .withContext(JSON.stringify(articleContent))
+                .toBeFalse();
+        }
+    });
+
+    it('rejects executable keys recursively while allowing prose metadata keys', () => {
+        const payloadFor = (articleContent: unknown) => ({
+            version: 1,
+            domain: 'thehairnarrative.com',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: minimalSiteConfig(),
+            runtime: {
+                contentHubs: [{
+                    hubId: 'the-hair-narrative',
+                    ownerDraftDomain: 'thehairnarrative.com',
+                    source: 'primary',
+                    routeBasePath: '/the-journal',
+                    listPath: '/the-journal',
+                    articlePathPattern: '/the-journal/:articleSlug',
+                    defaultLocale: 'en',
+                    locales: ['en'],
+                    canonicalMode: 'owner-canonical',
+                    publicArticles: [{
+                        articleId: 'art_observing_form',
+                        locale: 'en',
+                        status: 'published',
+                        title: 'Observing form',
+                        path: '/the-journal/observing-form',
+                        publishedAt: '2026-08-30T12:00:00.000Z',
+                        articleContent,
+                    }],
+                }],
+            },
+        });
+
+        expect(isDraftSiteConfigPayload(payloadFor({
+            variables: { description: 'Editorial description', seoDescription: 'SEO copy' },
+            i18n: { en: { transcription: 'Interview transcription' } },
+        }))).toBeTrue();
+
+        for (const key of ['onclick', 'onLoad', 'script', 'scriptUrl']) {
+            expect(isDraftSiteConfigPayload(payloadFor({ variables: { nested: { [key]: 'unsafe' } } })))
+                .withContext(key)
+                .toBeFalse();
+        }
+    });
+
+    it('rejects the complete signed-query key set after zero, one or two decoding passes', () => {
+        const payloadFor = (url: string) => ({
+            version: 1,
+            domain: 'thehairnarrative.com',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: minimalSiteConfig(),
+            runtime: {
+                contentHubs: [{
+                    hubId: 'the-hair-narrative', ownerDraftDomain: 'thehairnarrative.com', source: 'primary',
+                    routeBasePath: '/the-journal', listPath: '/the-journal', articlePathPattern: '/the-journal/:articleSlug',
+                    defaultLocale: 'en', locales: ['en'], canonicalMode: 'owner-canonical',
+                    publicArticles: [{
+                        articleId: 'art_observing_form', locale: 'en', status: 'published', title: 'Observing form',
+                        path: '/the-journal/observing-form', publishedAt: '2026-08-30T12:00:00.000Z',
+                        articleContent: { href: url },
+                    }],
+                }],
+            },
+        });
+        const signedKeys = [
+            'X-Amz-Algorithm', 'X-Amz-Credential', 'X-Amz-Date', 'X-Amz-Expires',
+            'X-Amz-SignedHeaders', 'X-Amz-Signature', 'X-Amz-Token', 'X-Amz-Security-Token',
+            'X-Goog-Algorithm', 'X-Goog-Credential', 'X-Goog-Date', 'X-Goog-Expires',
+            'X-Goog-SignedHeaders', 'X-Goog-Signature', 'X-Goog-Token', 'X-Goog-Security-Token',
+            'AwsAccessKeyId', 'GoogleAccessId', 'Signature', 'Policy', 'Key-Pair-Id', 'sig',
+        ];
+
+        for (const key of signedKeys) {
+            const raw = `https://assets.example.test/file.webp?${key}=unsafe`;
+            const encoded = `https://assets.example.test/file.webp?${encodeURIComponent(key)}%3Dunsafe`;
+            const doubleEncoded = `https://assets.example.test/file.webp?${encodeURIComponent(encodeURIComponent(key))}%253Dunsafe`;
+            for (const url of [raw, encoded, doubleEncoded]) {
+                expect(isDraftSiteConfigPayload(payloadFor(url))).withContext(url).toBeFalse();
+            }
+        }
+
+        for (const url of [
+            'https://assets.example.test/file.webp?utm_source=journal',
+            'https://assets.example.test/file.webp?redirect=%2Fnotes%2Fone',
+            'https://assets.example.test/file.webp?description=Signature%20style',
+        ]) {
+            expect(isDraftSiteConfigPayload(payloadFor(url))).withContext(url).toBeTrue();
+        }
+    });
+
+    it('accepts benign encoded URL values in content hub article content', () => {
+        const payload = {
+            version: 1,
+            domain: 'thehairnarrative.com',
+            routes: [{ path: '/', pageId: 'default' }],
+            site: minimalSiteConfig(),
+            runtime: {
+                contentHubs: [{
+                    hubId: 'the-hair-narrative',
+                    ownerDraftDomain: 'thehairnarrative.com',
+                    source: 'primary',
+                    routeBasePath: '/the-journal',
+                    listPath: '/the-journal',
+                    articlePathPattern: '/the-journal/:articleSlug',
+                    defaultLocale: 'en',
+                    locales: ['en'],
+                    canonicalMode: 'owner-canonical',
+                    publicArticles: [{
+                        articleId: 'art_observing_form',
+                        locale: 'en',
+                        status: 'published',
+                        title: 'Observing form',
+                        path: '/the-journal/observing-form',
+                        publishedAt: '2026-08-30T12:00:00.000Z',
+                        articleContent: {
+                            href: 'https://example.test/read?redirect=%2Fnotes%2Fone&utm_source=journal',
+                        },
+                    }],
+                }],
+            },
+        };
+
+        expect(isDraftSiteConfigPayload(payload)).toBeTrue();
+    });
+
     it('accepts content hub public indexes as runtime collection objects', () => {
         const payload = {
             version: 1,
@@ -2047,6 +2271,42 @@ describe('config-payload.validators', () => {
     it('validates components payloads', () => {
         const valid = createComponentsPayload({});
         expect(isComponentsPayload(valid)).toBeTrue();
+    });
+
+    it('accepts the strict canonical public article subset and rejects producer aliases', () => {
+        const canonical = createComponentsPayload({
+            articleRoot: {
+                id: 'articleRoot',
+                type: 'container',
+                config: { tag: 'article', components: ['articleTitle', 'articleCover', 'articleCta'] },
+            },
+            articleTitle: {
+                id: 'articleTitle',
+                type: 'text',
+                config: { tag: 'h1', text: 'Observing form' },
+            },
+            articleCover: {
+                id: 'articleCover',
+                type: 'media',
+                config: { tag: 'image', src: 'https://assets.example.com/cover.webp', alt: 'Editorial cover' },
+            },
+            articleCta: {
+                id: 'articleCta',
+                type: 'link',
+                config: { href: '/the-journal/observing-form', text: 'Read' },
+            },
+        });
+        expect(isComponentsPayload(canonical)).toBeTrue();
+
+        for (const type of ['generic-text', 'image']) {
+            const legacy = {
+                version: 1,
+                pageId: 'article',
+                domain: 'thehairnarrative.com',
+                components: [{ id: 'legacy', type, config: {} }],
+            };
+            expect(isComponentsPayload(legacy)).withContext(type).toBeFalse();
+        }
     });
 
     it('validates opt-in link, button, container, and currency contracts', () => {
@@ -3538,6 +3798,19 @@ describe('config-payload.validators', () => {
             robots: { default: 'index,follow,max-image-preview:large' },
         };
         expect(isSeoPayload(valid)).toBeTrue();
+    });
+
+    it('accepts only the explicit page-level canonical suppression mode', () => {
+        expect(isSeoPayload({ canonicalMode: 'none' })).toBeTrue();
+        expect(isSeoPayload({ canonicalMode: 'auto' })).toBeFalse();
+        expect(isSeoPayload({ canonicalMode: false })).toBeFalse();
+        expect(isPageConfigPayload({
+            version: 1,
+            pageId: 'article',
+            domain: 'zoolandingpage.com.mx',
+            rootIds: ['article'],
+            seo: { canonicalMode: 'none' },
+        })).toBeTrue();
     });
 
     it('rejects seo payloads with invalid localized keywords', () => {

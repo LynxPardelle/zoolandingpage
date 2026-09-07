@@ -118,6 +118,48 @@ async function startProductionServer(t, extraEnv = {}) {
   };
 }
 
+// Published-host routing tests must not depend on whichever draft is currently
+// published by an external API. Serve the unchanged, repository-owned fixtures.
+async function startPublishedDraftFixture(t, domain) {
+  const root = join(repoRoot, 'drafts', domain);
+  const read = relative => JSON.parse(readFileSync(join(root, relative), 'utf8'));
+  const siteConfig = read('site-config.json');
+  const merge = (left, right) => {
+    const result = { ...left };
+    for (const [key, value] of Object.entries(right)) {
+      result[key] = value && typeof value === 'object' && !Array.isArray(value)
+        && result[key] && typeof result[key] === 'object' && !Array.isArray(result[key])
+        ? merge(result[key], value) : value;
+    }
+    return result;
+  };
+  const apiBase = await startRuntimeApi(t, (req, res) => {
+    const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+    const route = siteConfig.routes.find(item => item.path === (url.searchParams.get('path') || '/'));
+    if (url.pathname !== '/runtime-bundle' || url.searchParams.get('domain') !== domain || !route) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false }));
+      return;
+    }
+    const { pageId } = route;
+    const lang = url.searchParams.get('lang') === 'en' ? 'en' : 'es';
+    const identity = { version: 1, domain, pageId };
+    const components = new Map([...read('components.json').components, ...read(`${pageId}/components.json`).components]
+      .map(component => [component.id, component]));
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      ...identity, lang, sourceStage: 'published', route, siteConfig,
+      pageConfig: read(`${pageId}/page-config.json`),
+      components: { ...identity, components: [...components.values()] },
+      variables: { ...identity, variables: merge(read('variables.json').variables, read(`${pageId}/variables.json`).variables) },
+      angoraCombos: { ...identity, combos: merge(read('angora-combos.json').combos, read(`${pageId}/angora-combos.json`).combos) },
+      i18n: { ...identity, lang, dictionary: merge(read(`i18n/${lang}.json`).dictionary, read(`${pageId}/i18n/${lang}.json`).dictionary) },
+      metadata: {},
+    }));
+  });
+  return startProductionServer(t, { CONFIG_API_SERVER_FALLBACK_URL: '', CONFIG_API_URL: apiBase });
+}
+
 function assertNoSensitiveAuthSurface(body) {
   const forbiddenPatterns = [
     [/id[_-]?token/i, 'id token'],
@@ -1034,6 +1076,20 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
         canonicalPath: '/blog/web/runtime-english-seo',
         robots: 'index,follow',
       },
+      {
+        articleId: 'art_canonical_none_fixture',
+        locale: 'es',
+        status: 'published',
+        visibility: 'public',
+        title: 'Artículo sin canonical',
+        summary: 'Artículo cuyo bundle publicado suprime explícitamente el enlace canonical.',
+        path: '/blog/web/sin-canonical',
+        categorySlug: 'web',
+        tags: ['canonical-none'],
+        publishedAt: '2026-06-28T14:00:00.000Z',
+        updatedAt: '2026-06-28T14:30:00.000Z',
+        robots: 'index,follow',
+      },
     ],
   };
   runtimeSiteConfig.runtime.contentHubs[0].publicTaxonomy = {
@@ -1111,6 +1167,17 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
           rootIds: [],
           seo: {
             canonical: 'https://zoositioweb.com.mx/blog/web',
+          },
+        }
+        : path === '/blog/web/sin-canonical'
+        ? {
+          version: 1,
+          domain: 'zoositioweb.com.mx',
+          pageId,
+          rootIds: [],
+          seo: {
+            title: 'Artículo sin canonical',
+            canonicalMode: 'none',
           },
         }
         : {
@@ -1328,6 +1395,13 @@ test('production SSR exposes Zoosite content hub SEO sitemap feed and search', a
   assert.match(localizedRuntimeArticleHtml, /"keywords":"runtime, seo"/);
   assert.doesNotMatch(stripNonVisibleHtml(localizedRuntimeArticleHtml), /Página no encontrada|Esta ruta no nos llevó/i);
   assertNoContentHubOperationalLeak(extractJsonLd(localizedRuntimeArticleHtml));
+
+  const canonicalNoneResponse = await fetch(`http://127.0.0.1:${port}/blog/web/sin-canonical?lang=es`, { headers });
+  const canonicalNoneHtml = await canonicalNoneResponse.text();
+  assert.equal(canonicalNoneResponse.status, 200);
+  assert.doesNotMatch(canonicalNoneHtml, /<link rel="canonical"/);
+  assert.match(canonicalNoneHtml, /Artículo sin canonical/);
+  assert.doesNotMatch(stripNonVisibleHtml(canonicalNoneHtml), /Página no encontrada|Esta ruta no nos llevó/i);
 
   const categoryResponse = await fetch(`http://127.0.0.1:${port}/blog/marketing?lang=es`, { headers });
   const categoryHtml = await categoryResponse.text();
@@ -1774,7 +1848,7 @@ test('production SSR server renders draft routes on aliased hosts', async (t) =>
 });
 
 test('production SSR server renders a published canonical custom host from local config', async (t) => {
-  const { port, getStderr } = await startProductionServer(t);
+  const { port, getStderr } = await startPublishedDraftFixture(t, 'erosbarajas.com');
   const response = await fetch(`http://127.0.0.1:${port}/`, {
     headers: {
       Host: 'erosbarajas.com',
@@ -1793,7 +1867,7 @@ test('production SSR server renders a published canonical custom host from local
 });
 
 test('production SSR server prefers forwarded custom host behind platform front door', async (t) => {
-  const { port } = await startProductionServer(t);
+  const { port } = await startPublishedDraftFixture(t, 'zoositioweb.com.mx');
   const response = await fetch(`http://127.0.0.1:${port}/blog`, {
     headers: {
       Host: 'zoolandingpage.com.mx',
@@ -1895,7 +1969,7 @@ test('production SSR server blocks unknown custom hosts before Angular SSR', asy
 });
 
 test('production SSR server supports test host draftDomain preview for a published custom host', async (t) => {
-  const { port, getStderr } = await startProductionServer(t);
+  const { port, getStderr } = await startPublishedDraftFixture(t, 'erosbarajas.com');
   const response = await fetch(`http://127.0.0.1:${port}/?draftDomain=erosbarajas.com&debugWorkspace=false`, {
     redirect: 'manual',
     headers: {
@@ -2199,7 +2273,7 @@ test('production SSR server preserves local port in protected-route redirects', 
 });
 
 test('production SSR server ignores draftDomain query params on published custom hosts', async (t) => {
-  const { port, getStderr } = await startProductionServer(t);
+  const { port, getStderr } = await startPublishedDraftFixture(t, 'erosbarajas.com');
   const response = await fetch(`http://127.0.0.1:${port}/?draftDomain=zoolandingpage.com.mx&debugWorkspace=false`, {
     headers: {
       Host: 'erosbarajas.com',

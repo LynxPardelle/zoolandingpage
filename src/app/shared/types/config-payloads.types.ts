@@ -574,6 +574,7 @@ export type TSeoPayload = {
     readonly openGraph?: Record<string, unknown>;
     readonly twitter?: Record<string, unknown>;
     readonly canonical?: TLocalizedTextValue;
+    readonly canonicalMode?: 'none';
     readonly keywords?: TLocalizedKeywordsValue;
     readonly robots?: TLocalizedTextValue;
 };

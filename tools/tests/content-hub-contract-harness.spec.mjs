@@ -210,9 +210,9 @@ test('zoosite seed article fixture fails closed for missing publish gates', asyn
   const broken = structuredClone(fixture);
   broken.manifest.seo.title = '';
   broken.manifest.seo.canonicalPath = '/blog/web/blog-builder-seo';
-  broken.publishedBundle.components.components[1].config.src = 'https://assets.example.com/file.webp?X-Amz-Signature=abc';
-  broken.publishedBundle.components.components[1].config.alt = '';
-  broken.publishedBundle.components.components[2].config.onClick = 'alert(1)';
+  broken.publishedBundle.components[1].config.src = 'https://assets.example.com/file.webp?X-Amz-Signature=abc';
+  broken.publishedBundle.components[1].config.alt = '';
+  broken.publishedBundle.components[2].config.onClick = 'alert(1)';
   broken.analyticsEvents[0].email = 'person@example.com';
 
   const validation = validateZoositeSeedArticleFixture(broken);
@@ -237,7 +237,19 @@ test('zoosite seed article publish/read path exposes only the public bundle and 
   assert.equal(publication.ok, true);
   assert.equal(bundle?.articleId, 'art_20260620_blog_builder');
   assert.equal(bundle?.seo.robots, 'index,follow');
-  assert.equal(bundle?.components.components.some((component) => component.id === 'articleCta'), true);
+  const articleCta = bundle?.components.find((component) => component.id === 'articleCta');
+  assert.deepEqual(
+    {
+      type: articleCta?.type,
+      text: articleCta?.config?.text,
+      href: articleCta?.config?.href,
+    },
+    {
+      type: 'link',
+      text: 'Planear mi blog',
+      href: '/contacto',
+    },
+  );
   assert.deepEqual(fixture.analyticsEvents.map((event) => event.eventName), ['blog_view', 'blog_cta_click']);
   assert.equal(JSON.stringify(bundle).includes('serverPolicy'), false);
   assert.equal(JSON.stringify(bundle).includes('tableName'), false);

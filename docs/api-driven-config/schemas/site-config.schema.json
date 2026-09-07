@@ -536,7 +536,7 @@
         "updatedAt": { "type": "string", "format": "date-time" },
         "authorLabel": { "type": "string" },
         "canonicalPath": { "$ref": "#/definitions/sameOriginPath" },
-        "robots": { "type": "string", "enum": ["index,follow", "noindex,follow", "noindex,nofollow"] },
+        "robots": { "type": "string", "enum": ["index,follow", "noindex,follow", "index,nofollow", "noindex,nofollow"] },
         "articleContent": { "$ref": "#/definitions/contentHubPublicArticleContent" },
         "imageSrc": {
           "type": "string",
@@ -586,7 +586,7 @@
         "updatedAt": { "type": "string", "format": "date-time" },
         "authorLabel": { "type": "string" },
         "canonicalPath": { "$ref": "#/definitions/sameOriginPath" },
-        "robots": { "type": "string", "enum": ["index,follow", "noindex,follow", "noindex,nofollow"] },
+        "robots": { "type": "string", "enum": ["index,follow", "noindex,follow", "index,nofollow", "noindex,nofollow"] },
         "articleContent": { "$ref": "#/definitions/contentHubPublicArticleContent" },
         "imageSrc": {
           "type": "string",

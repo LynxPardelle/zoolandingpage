@@ -78,9 +78,24 @@ export type TContentHubRuntimeCollection<T> = readonly T[] | {
     readonly items?: readonly T[];
 };
 
-export type TContentHubRuntimeArticleContent = string | {
-    readonly html?: string;
-};
+export type TContentHubRobotsPolicy =
+    | 'index,follow'
+    | 'noindex,follow'
+    | 'index,nofollow'
+    | 'noindex,nofollow';
+
+export type TContentHubJsonValue =
+    | null
+    | boolean
+    | number
+    | string
+    | readonly TContentHubJsonValue[]
+    | { readonly [key: string]: TContentHubJsonValue };
+
+export type TContentHubRuntimeArticleContent =
+    | string
+    | readonly TContentHubJsonValue[]
+    | { readonly [key: string]: TContentHubJsonValue };
 
 export type TContentHubRuntimeArticleLocalization = {
     readonly title?: string;
@@ -92,7 +107,7 @@ export type TContentHubRuntimeArticleLocalization = {
     readonly updatedAt?: string;
     readonly authorLabel?: string;
     readonly canonicalPath?: string;
-    readonly robots?: 'index,follow' | 'noindex,follow' | 'noindex,nofollow';
+    readonly robots?: TContentHubRobotsPolicy;
     readonly articleContent?: TContentHubRuntimeArticleContent;
     readonly imageSrc?: string;
     readonly imageAlt?: string;
@@ -112,7 +127,7 @@ export type TContentHubRuntimeArticleSummary = {
     readonly updatedAt?: string;
     readonly authorLabel?: string;
     readonly canonicalPath?: string;
-    readonly robots?: 'index,follow' | 'noindex,follow' | 'noindex,nofollow';
+    readonly robots?: TContentHubRobotsPolicy;
     readonly articleContent?: TContentHubRuntimeArticleContent;
     readonly imageSrc?: string;
     readonly imageAlt?: string;
@@ -181,7 +196,7 @@ export type TContentHubSeoPolicy = {
     readonly title: string;
     readonly description: string;
     readonly canonicalPath: string;
-    readonly robots: 'index,follow' | 'noindex,follow' | 'noindex,nofollow';
+    readonly robots: TContentHubRobotsPolicy;
     readonly structuredDataTypes?: readonly string[];
 };
 
@@ -260,31 +275,172 @@ export type TContentHubArticlePackageManifest = {
     readonly revisions: readonly TContentHubRevisionPointer[];
 };
 
+export type TContentHubPublishedCanonicalMode = 'self' | 'custom' | 'none';
+
+export type TContentHubPublishedRobotsPolicy = TContentHubRobotsPolicy;
+
+export type TContentHubPublishedJson = TContentHubJsonValue;
+
+export type TContentHubPublishedArticleContent = TContentHubRuntimeArticleContent;
+
+export type TContentHubPublishedVariables = Readonly<Record<string, TContentHubPublishedJson>> & {
+    readonly articleContent?: TContentHubPublishedArticleContent;
+};
+
+export type TContentHubPublishedTaxonomyRef = {
+    readonly taxonomyId?: string;
+    readonly slug?: string;
+    readonly label?: string;
+};
+
+export type TContentHubPublishedInteractionChannel = {
+    readonly enabled: boolean;
+    readonly moderation?: string;
+};
+
+export type TContentHubPublishedComponentType =
+    | 'container'
+    | 'media'
+    | 'text'
+    | 'link';
+
+export type TContentHubPublishedContainerTag =
+    | 'span'
+    | 'div'
+    | 'section'
+    | 'main'
+    | 'header'
+    | 'footer'
+    | 'nav'
+    | 'article'
+    | 'figure'
+    | 'ul'
+    | 'ol'
+    | 'li'
+    | 'aside';
+
+export type TContentHubPublishedTextTag =
+    | 'p'
+    | 'span'
+    | 'small'
+    | 'strong'
+    | 'em'
+    | 'figcaption'
+    | 'h1'
+    | 'h2'
+    | 'h3'
+    | 'h4'
+    | 'h5'
+    | 'h6';
+
+export type TContentHubPublishedLinkTarget = '_self' | '_blank' | '_parent' | '_top';
+
+export type TContentHubPublishedContainerConfig = {
+    readonly tag?: TContentHubPublishedContainerTag;
+    readonly components: readonly string[];
+    readonly classes?: string;
+};
+
+export type TContentHubPublishedMediaConfig = {
+    readonly tag: 'image';
+    readonly src: string;
+    readonly alt: string;
+    readonly classes?: string;
+};
+
+export type TContentHubPublishedTextConfig = {
+    readonly tag: TContentHubPublishedTextTag;
+    readonly text: string;
+    readonly classes?: string;
+};
+
+export type TContentHubPublishedLinkConfig = {
+    readonly href: string;
+    readonly text?: string;
+    readonly classes?: string;
+    readonly target?: TContentHubPublishedLinkTarget;
+    readonly rel?: string;
+    readonly ariaLabel?: string;
+};
+
+type TContentHubPublishedComponentBase = {
+    readonly id: string;
+    readonly condition?: boolean | string;
+    readonly valueInstructions?: string;
+    readonly eventInstructions?: string;
+    readonly order?: number;
+    readonly meta_title?: string;
+};
+
+export type TContentHubPublishedComponent = TContentHubPublishedComponentBase & (
+    | {
+        readonly type: 'container';
+        readonly config: TContentHubPublishedContainerConfig;
+    }
+    | {
+        readonly type: 'media';
+        readonly config: TContentHubPublishedMediaConfig;
+    }
+    | {
+        readonly type: 'text';
+        readonly config: TContentHubPublishedTextConfig;
+    }
+    | {
+        readonly type: 'link';
+        readonly config: TContentHubPublishedLinkConfig;
+    }
+);
+
 export type TContentHubPublishedBundle = {
     readonly version: 1;
     readonly bundleId: string;
     readonly hubId: TContentHubId;
     readonly articleId: TContentHubArticleId;
+    readonly kind?: 'content-hub-published-bundle';
+    readonly revisionId?: TContentHubRevisionId;
     readonly ownerDraftDomain: TContentHubDraftDomain;
     readonly renderDomain: TContentHubDraftDomain;
     readonly locale: TContentHubLocale;
     readonly path: string;
+    readonly safeArticlePath?: string;
     readonly status: 'published';
     readonly publishedAt: string;
+    readonly previewedAt?: '';
+    readonly title?: string;
+    readonly summary?: string;
+    readonly slug?: string;
+    readonly category?: TContentHubPublishedTaxonomyRef;
+    readonly tags?: readonly TContentHubPublishedTaxonomyRef[];
+    readonly commentPolicy?: TContentHubRuntimeCommentPolicy;
+    readonly contentSafety?: {
+        readonly rating: TContentHubRuntimeContentSafetyRating;
+        readonly warnings: readonly string[];
+    };
+    readonly interactions?: {
+        readonly ctas?: TContentHubPublishedInteractionChannel;
+        readonly reactions?: TContentHubPublishedInteractionChannel;
+        readonly shares?: TContentHubPublishedInteractionChannel;
+        readonly readProgress?: TContentHubPublishedInteractionChannel;
+        readonly assetDownloads?: TContentHubPublishedInteractionChannel;
+        readonly forms?: TContentHubPublishedInteractionChannel;
+    };
     readonly seo: {
         readonly title: string;
         readonly description: string;
         readonly canonical: string;
-        readonly robots: 'index,follow' | 'noindex,follow' | 'noindex,nofollow';
+        readonly canonicalMode?: TContentHubPublishedCanonicalMode;
+        readonly robots: TContentHubPublishedRobotsPolicy;
     };
     readonly structuredData?: readonly {
-        readonly type: string;
-        readonly json: Record<string, unknown>;
+        readonly type: 'Article' | 'BlogPosting' | 'BreadcrumbList' | 'FAQPage' | 'HowTo' | 'Product';
+        readonly json: Readonly<Record<string, TContentHubPublishedJson>>;
     }[];
-    readonly components: unknown;
-    readonly variables?: unknown;
-    readonly i18n?: unknown;
-    readonly analytics: TContentHubAnalyticsContext;
+    readonly components: readonly TContentHubPublishedComponent[];
+    readonly variables?: TContentHubPublishedVariables;
+    readonly i18n?: Readonly<Record<string, TContentHubPublishedJson>>;
+    readonly analytics: TContentHubAnalyticsContext & {
+        readonly piiPolicy: TContentHubAnalyticsPiiPolicy;
+    };
 };
 
 export type TContentHubTaxonomyRecord = {

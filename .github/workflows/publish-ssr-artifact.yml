@@ -22,17 +22,25 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
   validate:
     name: Validate Angular SSR artifact
     runs-on: ubuntu-latest
+    outputs:
+      artifact_id: ${{ steps.upload.outputs.artifact-id }}
+      delivery_sha256: ${{ steps.delivery.outputs.delivery_sha256 }}
+      source_attempt: ${{ github.run_attempt }}
     env:
       DEPLOY_ENV: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || (github.ref_name == 'main' && 'production' || github.ref_name) }}
       RELEASE_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.release_id || github.sha }}
       CONFIG_API_URL: https://api.zoolandingpage.com.mx
+      THN_ADMIN_ARTIFACT_ENABLED: ${{ vars.THN_ADMIN_ARTIFACT_ENABLED || 'false' }}
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          fetch-depth: 0
 
       - name: Verify protected target branch
         shell: bash
@@ -62,26 +70,44 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/setup-node@v6.4.0
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: 24
           cache: npm
 
+      - name: Verify exact protected promotion
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [[ "$DEPLOY_ENV" == test ]]; then source=dev; target=test; else source=test; target=main; fi
+          node tools/templates/draft-repo/tools/verify-promotion-commit.mjs --source="$source" --target="$target"
+
       - run: npm ci
       - run: npm audit --omit=dev
+      - run: node --test tools/tests/ssr-delivery-contract.spec.mjs tools/tests/ops-thn-content-hub-v2-front-door.spec.mjs
       - run: npm run package:ssr:lambda
       - run: npm run test:draft-public-artifact-boundary
 
+      - name: Bind complete artifact and optional admin inventory
+        id: delivery
+        run: node tools/prepare-ssr-delivery.mjs
+
       - name: Upload validated SSR artifact
+        id: upload
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: ssr-${{ env.DEPLOY_ENV }}-${{ env.RELEASE_ID }}
+          name: ssr-${{ env.DEPLOY_ENV }}-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
           path: |
             dist/ssr-lambda/staging/browser
             dist/ssr-lambda/ssr-handler.zip
             dist/ssr-lambda/manifest.json
+            dist/ssr-lambda/delivery.json
+            dist/ssr-lambda/thn-admin-release.json
+            dist/ssr-lambda/thn-route-manifest.json
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 90
           compression-level: 0
           include-hidden-files: false
 
@@ -89,6 +115,9 @@ jobs:
     name: Publish validated Angular SSR artifact
     needs: validate
     runs-on: ubuntu-latest
+    concurrency:
+      group: ssr-publish-${{ github.event_name == 'workflow_dispatch' && inputs.environment || (github.ref_name == 'main' && 'production' || github.ref_name) }}
+      cancel-in-progress: false
     environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || (github.ref_name == 'main' && 'production' || github.ref_name) }}
     permissions:
       contents: read
@@ -99,6 +128,9 @@ jobs:
       ARTIFACT_BUCKET: ${{ vars.FRONTEND_ARTIFACT_BUCKET }}
       STATIC_BUCKET: ${{ vars.FRONTEND_STATIC_BUCKET || 'zoolandingpage-public-files' }}
       AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+      EXPECTED_ARTIFACT_ID: ${{ needs.validate.outputs.artifact_id }}
+      EXPECTED_DELIVERY_SHA256: ${{ needs.validate.outputs.delivery_sha256 }}
+      EXPECTED_SOURCE_ATTEMPT: ${{ needs.validate.outputs.source_attempt }}
     steps:
       - name: Verify protected target branch and coordinates
         shell: bash
@@ -122,17 +154,77 @@ jobs:
             echo "Deployment environment must be test or production."
             exit 1
           fi
+          [[ "$EXPECTED_ARTIFACT_ID" =~ ^[1-9][0-9]{0,19}$ ]]
+          [[ "$EXPECTED_SOURCE_ATTEMPT" =~ ^[1-9][0-9]{0,9}$ ]]
+          [[ "$EXPECTED_DELIVERY_SHA256" =~ ^[a-f0-9]{64}$ ]]
 
       - name: Download validated SSR artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: ssr-${{ env.DEPLOY_ENV }}-${{ env.RELEASE_ID }}
+          artifact-ids: ${{ needs.validate.outputs.artifact_id }}
           path: dist/ssr-lambda
+          merge-multiple: true
 
       - name: Verify downloaded artifact coordinates and checksum
         shell: bash
         run: |
           set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, re, sys
+          try:
+              root = pathlib.Path('dist/ssr-lambda')
+              raw = (root / 'delivery.json').read_bytes()
+              assert hashlib.sha256(raw).hexdigest() == os.environ['EXPECTED_DELIVERY_SHA256']
+              delivery = json.loads(raw)
+              assert set(delivery) == {'schemaVersion','environment','releaseId','sourceCommit','runId','runAttempt','deployed','thnAdmin','files'}
+              assert type(delivery['schemaVersion']) is int and delivery['schemaVersion'] == 1 and delivery['deployed'] is False
+              for key, env in [('environment','DEPLOY_ENV'),('releaseId','RELEASE_ID'),('sourceCommit','GITHUB_SHA'),('runId','GITHUB_RUN_ID'),('runAttempt','EXPECTED_SOURCE_ATTEMPT')]:
+                  assert delivery[key] == os.environ[env]
+              assert type(delivery['files']) is list and len(delivery['files']) > 2
+              actual = []
+              for entry in root.rglob('*'):
+                  assert not entry.is_symlink()
+                  if entry.is_file(): actual.append(entry.relative_to(root).as_posix())
+                  else: assert entry.is_dir()
+              names = []
+              forbidden = {'server','.git','.github','tools','node_modules','ai_notes','findings','errors-reports','devonly','logs','reports','.superpowers','draft-repo.config.json'}
+              for item in delivery['files']:
+                  assert set(item) == {'path','sha256'}
+                  name = item['path']
+                  assert isinstance(name, str) and len(name) < 1024
+                  assert all(re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._~-]*', p) and '..' not in p and p.lower() not in forbidden for p in name.split('/'))
+                  assert name in {'manifest.json','ssr-handler.zip','thn-admin-release.json','thn-route-manifest.json'} or name.startswith('staging/browser/')
+                  assert re.fullmatch(r'[a-f0-9]{64}', item['sha256'])
+                  assert hashlib.sha256((root / name).read_bytes()).hexdigest() == item['sha256']
+                  names.append(name)
+              assert len(set(names)) == len(names) and names == sorted(names)
+              assert sorted(actual) == sorted(names + ['delivery.json'])
+              assert {'manifest.json','ssr-handler.zip'}.issubset(names)
+              assert any(n.startswith('staging/browser/') for n in names)
+              admin = delivery['thnAdmin']
+              if admin == {'enabled': False}:
+                  assert 'thn-admin-release.json' not in names and 'thn-route-manifest.json' not in names
+              else:
+                  assert admin == {'enabled': True, 'origin': 'https://admin-test.thehairnarrative.com'}
+                  assert delivery['environment'] == 'test'
+                  assert {'thn-admin-release.json','thn-route-manifest.json'}.issubset(names)
+                  release = json.loads((root / 'thn-admin-release.json').read_bytes())
+                  assert set(release) == {'version','environment','releaseId','staticAssetPaths'}
+                  assert release['version'] == 1 and release['environment'] == 'test' and release['releaseId'] == delivery['releaseId']
+                  assert release['staticAssetPaths'] and len(set(release['staticAssetPaths'])) == len(release['staticAssetPaths'])
+                  for asset in release['staticAssetPaths']:
+                      assert asset.startswith('/browser/') and 'staging' + asset in names
+                      assert re.search(r'(?:^|[._-])[a-f0-9]{8,64}(?=[._-])', pathlib.PurePosixPath(asset).name, re.I)
+                      assert re.search(r'\.(?:js|mjs|css|woff2?|ttf|otf|png|jpe?g|webp|avif|svg|ico)$', asset, re.I)
+              manifest = json.loads((root / 'manifest.json').read_bytes())
+              prefix = 'frontend/angular-ssr/' + delivery['environment'] + '/releases/' + delivery['releaseId']
+              assert manifest['schemaVersion'] == 1 and manifest['app'] == 'zoolandingpage'
+              for key in ['environment','releaseId','sourceCommit']: assert manifest[key] == delivery[key]
+              assert manifest['browserPrefix'] == prefix + '/browser' and manifest['serverBundleKey'] == prefix + '/server/ssr-handler.zip'
+              assert manifest['checksums']['server/ssr-handler.zip'] == hashlib.sha256((root / 'ssr-handler.zip').read_bytes()).hexdigest()
+          except Exception:
+              sys.exit('SSR delivery verification failed.')
+          PY
           test -d dist/ssr-lambda/staging/browser
           test -f dist/ssr-lambda/ssr-handler.zip
           test -f dist/ssr-lambda/manifest.json
@@ -169,29 +261,81 @@ jobs:
             echo "::error::FRONTEND_STATIC_BUCKET environment variable is required for static artifact publishing."
             exit 1
           fi
+          [[ "$AWS_ROLE_ARN" =~ ^arn:aws:iam::[0-9]{12}:role/[A-Za-z0-9+=,.@_/-]+$ ]]
+          [[ "$AWS_REGION" =~ ^[a-z]{2}(-[a-z0-9]+)+-[0-9]+$ ]]
+          [[ "$ARTIFACT_BUCKET" =~ ^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$ ]]
+          [[ "$STATIC_BUCKET" =~ ^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$ ]]
 
-      - uses: aws-actions/configure-aws-credentials@v6.1.1
+      - name: Recheck current protected target tip
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          target_sha="$(gh api "repos/$GITHUB_REPOSITORY/branches/$GITHUB_REF_NAME" --jq '.commit.sha')"
+          test "$target_sha" = "$GITHUB_SHA"
+
+      - uses: aws-actions/configure-aws-credentials@d979d5b3a71173a29b74b5b88418bfda9437d885 # v6.1.1
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Confirm AWS caller identity
-        run: aws sts get-caller-identity
+        env:
+          AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+        run: |
+          set -euo pipefail
+          expected_account="$(cut -d: -f5 <<< "$AWS_ROLE_ARN")"
+          test "$(aws sts get-caller-identity --query Account --output text)" = "$expected_account"
 
       - name: Upload immutable SSR artifact
         run: |
           set -euo pipefail
           base_prefix="frontend/angular-ssr/${DEPLOY_ENV}/releases/${RELEASE_ID}"
-          aws s3 cp dist/ssr-lambda/staging/browser "s3://${STATIC_BUCKET}/${base_prefix}/browser" \
-            --recursive \
-            --cache-control "public,max-age=31536000,immutable"
-          aws s3 cp dist/ssr-lambda/ssr-handler.zip "s3://${ARTIFACT_BUCKET}/${base_prefix}/server/ssr-handler.zip" \
-            --cache-control "private,max-age=31536000,immutable"
-          aws s3 cp dist/ssr-lambda/manifest.json "s3://${ARTIFACT_BUCKET}/${base_prefix}/manifest.json" \
-            --cache-control "no-cache"
+          put_once() {
+            aws s3api put-object --bucket "$1" --key "$2" --body "$3" \
+              --if-none-match '*' --checksum-algorithm SHA256 --content-type "$4" \
+              --cache-control "$5" >/dev/null
+          }
+          while IFS= read -r relative; do
+            case "$relative" in
+              *.js|*.mjs) mime=application/javascript ;;
+              *.css) mime=text/css ;;
+              *.html) mime=text/html ;;
+              *.json|*.map) mime=application/json ;;
+              *.svg) mime=image/svg+xml ;;
+              *.png) mime=image/png ;;
+              *.jpg|*.jpeg) mime=image/jpeg ;;
+              *.webp) mime=image/webp ;;
+              *.avif) mime=image/avif ;;
+              *.ico) mime=image/x-icon ;;
+              *.woff2) mime=font/woff2 ;;
+              *.woff) mime=font/woff ;;
+              *.ttf) mime=font/ttf ;;
+              *.otf) mime=font/otf ;;
+              *) mime=application/octet-stream ;;
+            esac
+            put_once "$STATIC_BUCKET" "${base_prefix}/${relative#staging/}" "dist/ssr-lambda/$relative" "$mime" 'public,max-age=31536000,immutable'
+          done < <(jq -r '.files[].path | select(startswith("staging/browser/"))' dist/ssr-lambda/delivery.json)
+          put_once "$ARTIFACT_BUCKET" "${base_prefix}/server/ssr-handler.zip" dist/ssr-lambda/ssr-handler.zip application/zip 'private,max-age=31536000,immutable'
+          if test -f dist/ssr-lambda/thn-admin-release.json; then
+            put_once "$ARTIFACT_BUCKET" "${base_prefix}/thn-admin-release.json" dist/ssr-lambda/thn-admin-release.json application/json 'private,max-age=31536000,immutable'
+            put_once "$ARTIFACT_BUCKET" "${base_prefix}/thn-route-manifest.json" dist/ssr-lambda/thn-route-manifest.json application/json 'private,max-age=31536000,immutable'
+          fi
+          put_once "$ARTIFACT_BUCKET" "${base_prefix}/delivery.json" dist/ssr-lambda/delivery.json application/json 'private,max-age=31536000,immutable'
+          # Publish the immutable completion marker last. No infrastructure release is selected here.
+          put_once "$ARTIFACT_BUCKET" "${base_prefix}/manifest.json" dist/ssr-lambda/manifest.json application/json no-cache
 
       - name: Print release coordinates
         run: |
           echo "release_id=${RELEASE_ID}"
           echo "manifest=s3://${ARTIFACT_BUCKET}/frontend/angular-ssr/${DEPLOY_ENV}/releases/${RELEASE_ID}/manifest.json"
           echo "browser=s3://${STATIC_BUCKET}/frontend/angular-ssr/${DEPLOY_ENV}/releases/${RELEASE_ID}/browser"
+          {
+            echo '### Immutable SSR artifact (not activated)'
+            printf 'Release: `%s`\n\n' "$RELEASE_ID"
+            printf 'Source: `%s`\n\n' "$GITHUB_SHA"
+            printf 'Source run/validation attempt: `%s/%s`\n\n' "$GITHUB_RUN_ID" "$EXPECTED_SOURCE_ATTEMPT"
+            printf 'Artifact ID: `%s`\n\n' "$EXPECTED_ARTIFACT_ID"
+            printf 'Delivery SHA-256: `%s`\n\n' "$EXPECTED_DELIVERY_SHA256"
+            echo 'For TEST rollback verify the complete recorded artifact with prepare-ssr-delivery.mjs --rollback; infrastructure activation remains separately owned.'
+          } >> "$GITHUB_STEP_SUMMARY"

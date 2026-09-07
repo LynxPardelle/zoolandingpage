@@ -489,6 +489,86 @@ describe('ConfigBootstrapService', () => {
         });
     });
 
+    it('preserves Runtime Read article content when the resolved article id matches', async () => {
+        const runtimeReadDelta = {
+            ops: [
+                { insert: 'Runtime Read article body' },
+                { insert: '\n', attributes: { header: 2 } },
+            ],
+        };
+        store.setSiteConfig(createContentHubSiteConfig());
+        mockSuccessfulBootstrapPayloads();
+        source.loadVariables.and.resolveTo({
+            version: 1,
+            pageId: 'blog-article',
+            domain: 'zoolandingpage.com.mx',
+            variables: {
+                contentHub: {
+                    currentArticle: {
+                        articleId: 'art_web',
+                        articleContent: runtimeReadDelta,
+                    },
+                },
+                articleContent: runtimeReadDelta,
+            },
+        });
+
+        await service.load({
+            domain: 'zoolandingpage.com.mx',
+            pageId: 'blog-article',
+            lang: 'es',
+            routePath: '/blog/web/blog-builder-seo',
+            routeParams: {
+                categorySlug: 'web',
+                articleSlug: 'blog-builder-seo',
+            },
+        });
+
+        expect(variableStore.get('contentHub.currentArticle')).toEqual(jasmine.objectContaining({
+            articleId: 'art_web',
+            articleContent: runtimeReadDelta,
+        }));
+        expect(variableStore.get('articleContent')).toEqual(runtimeReadDelta);
+    });
+
+    it('does not reuse Runtime Read article content for a different resolved article id', async () => {
+        const siteConfig = createContentHubSiteConfig();
+        const resolvedArticle = (siteConfig.runtime?.contentHubs?.[0]?.publicArticles as any[])[0];
+        delete resolvedArticle.articleContent;
+        store.setSiteConfig(siteConfig);
+        mockSuccessfulBootstrapPayloads();
+        source.loadVariables.and.resolveTo({
+            version: 1,
+            pageId: 'blog-article',
+            domain: 'zoolandingpage.com.mx',
+            variables: {
+                contentHub: {
+                    currentArticle: {
+                        articleId: 'art_news',
+                        articleContent: { ops: [{ insert: 'Body from another article' }] },
+                    },
+                },
+                articleContent: { ops: [{ insert: 'Body from another article' }] },
+            },
+        });
+
+        await service.load({
+            domain: 'zoolandingpage.com.mx',
+            pageId: 'blog-article',
+            lang: 'es',
+            routePath: '/blog/web/blog-builder-seo',
+            routeParams: {
+                categorySlug: 'web',
+                articleSlug: 'blog-builder-seo',
+            },
+        });
+
+        expect(variableStore.get('contentHub.currentArticle')).toEqual(jasmine.objectContaining({
+            articleId: 'art_web',
+        }));
+        expect(variableStore.get('articleContent')).toBeNull();
+    });
+
     it('uses localized content hub article fields for multilingual public routes', async () => {
         language.currentLanguage.and.returnValue('en');
         store.setSiteConfig(createContentHubSiteConfig());
@@ -632,6 +712,34 @@ describe('ConfigBootstrapService', () => {
                 '@type': 'Organization',
                 name: 'zoositioweb',
             }),
+        }));
+    });
+
+    it('preserves explicit canonical suppression while enriching article seo', async () => {
+        store.setSiteConfig(createContentHubSiteConfig());
+        mockSuccessfulBootstrapPayloads();
+        source.loadPageConfig.and.resolveTo({
+            version: 1,
+            pageId: 'blog-article',
+            domain: 'zoolandingpage.com.mx',
+            rootIds: ['blogRoot'],
+            seo: { canonicalMode: 'none' },
+        });
+
+        await service.load({
+            domain: 'zoolandingpage.com.mx',
+            pageId: 'blog-article',
+            lang: 'es',
+            routePath: '/blog/web/blog-builder-seo',
+            routeParams: {
+                categorySlug: 'web',
+                articleSlug: 'blog-builder-seo',
+            },
+        });
+
+        expect(store.seo()).toEqual(jasmine.objectContaining({
+            canonicalMode: 'none',
+            title: 'Web Article',
         }));
     });
 

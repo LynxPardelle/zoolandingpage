@@ -80,6 +80,7 @@ export class SeoMetadataService {
             const rawCanonicalUrl = this.isContentHubTagFilterPath(pathname)
                 ? `${ origin }${ pathname }`
                 : this.resolveLocalizedText(seo?.canonical, lang) || url;
+            const suppressCanonical = seo?.canonicalMode === 'none';
             const canonicalUrl = this.resolveEffectiveCanonicalUrl(
                 rawCanonicalUrl,
                 origin,
@@ -152,13 +153,17 @@ export class SeoMetadataService {
 
             const head = doc.head;
             if (head) {
-                let linkEl = head.querySelector("link[rel='canonical']") as HTMLLinkElement | null;
-                if (!linkEl) {
-                    linkEl = doc.createElement('link');
-                    linkEl.setAttribute('rel', 'canonical');
-                    head.appendChild(linkEl);
+                if (suppressCanonical) {
+                    head.querySelectorAll("link[rel='canonical']").forEach((link) => link.remove());
+                } else {
+                    let linkEl = head.querySelector("link[rel='canonical']") as HTMLLinkElement | null;
+                    if (!linkEl) {
+                        linkEl = doc.createElement('link');
+                        linkEl.setAttribute('rel', 'canonical');
+                        head.appendChild(linkEl);
+                    }
+                    linkEl.setAttribute('href', canonicalUrl);
                 }
-                linkEl.setAttribute('href', canonicalUrl);
                 this.syncHreflangLinks(head, canonicalUrl, lang, seo);
                 this.syncBrowserIcons(head, this.resolveBrowserIcons());
                 this.syncPageFonts(head, lang);

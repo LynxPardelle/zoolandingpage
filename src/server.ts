@@ -188,6 +188,10 @@ type TSiteSeoConfig = {
   readonly twitter?: Record<string, unknown>;
 };
 
+type TPageSeoConfig = TSiteSeoConfig & {
+  readonly canonicalMode?: 'none';
+};
+
 type THostOverrideConfig = {
   readonly seo?: TSiteSeoConfig;
   readonly searchConsole?: TSearchConsoleConfig;
@@ -230,7 +234,7 @@ type TLocalPageConfig = {
   readonly rootIds?: readonly string[];
   readonly modalRootIds?: readonly string[];
   readonly metadata?: Record<string, unknown>;
-  readonly seo?: TSiteSeoConfig;
+  readonly seo?: TPageSeoConfig;
   readonly structuredData?: {
     readonly entries?: readonly unknown[];
   } | unknown;
@@ -3122,7 +3126,11 @@ function buildCanonicalHeadHtml(
   siteConfig: TLocalSiteConfig | null,
   pageConfig: TLocalPageConfig | null,
   contentHubSiteConfig: TLocalSiteConfig | null = siteConfig,
+  allowCanonicalSuppression = true,
 ): string {
+  if (allowCanonicalSuppression && pageConfig?.seo?.canonicalMode === 'none') {
+    return '';
+  }
   const canonicalUrl = resolveCanonicalHeadUrl(req, host, siteConfig, pageConfig, contentHubSiteConfig);
   return `<link rel="canonical" href="${escapeHtmlAttribute(canonicalUrl)}">`;
 }
@@ -3458,7 +3466,7 @@ function injectHeadHtml(html: string, headHtml: string): string {
     sanitizedHtml = sanitizedHtml.replace(/<meta\s+[^>]*name=["']twitter:[^"']+["'][^>]*>\s*/gi, '');
   }
   if (headHtml.includes('rel="canonical"')) {
-    sanitizedHtml = sanitizedHtml.replace(/<link\s+rel=["']canonical["'][^>]*>/gi, '');
+    sanitizedHtml = stripRenderedCanonicalHeadHtml(sanitizedHtml);
   }
   if (headHtml.includes('rel="alternate"') && headHtml.includes('hreflang=')) {
     sanitizedHtml = stripRenderedHreflangHeadHtml(sanitizedHtml);
@@ -3487,6 +3495,13 @@ function injectHeadHtml(html: string, headHtml: string): string {
   }
 
   return sanitizedHtml.replace(/<\/head>/i, `${headHtml}\n</head>`);
+}
+
+function stripRenderedCanonicalHeadHtml(html: string): string {
+  return html.replace(/<link\b[^>]*>/gi, (linkTag) => {
+    const rel = linkTag.match(/\brel\s*=\s*(["'])(.*?)\1/i)?.[2] ?? '';
+    return rel.trim().toLowerCase().split(/\s+/).includes('canonical') ? '' : linkTag;
+  });
 }
 
 function buildSeoTextHeadHtml(
@@ -3611,7 +3626,11 @@ async function decorateHtmlResponse(
   const responseLang = effectiveStatus === 404
     ? resolveFinalNotFoundLanguage(routeRuntimeBundle, requestLang)
     : requestLang;
-  const requestPageConfig = await loadPageConfigForRequest(req, lookupDomain, siteConfig);
+  const routePageConfig = isRecord(routeRuntimeBundle?.pageConfig)
+    ? routeRuntimeBundle.pageConfig as TLocalPageConfig
+    : null;
+  const requestPageConfig = routePageConfig
+    ?? await loadPageConfigForRequest(req, lookupDomain, siteConfig);
   const pageConfig = effectiveStatus === 404
     ? requestPageConfig
     : withContentHubSeoPageConfig(req, lookupDomain, [
@@ -3624,7 +3643,11 @@ async function decorateHtmlResponse(
   applyProtectedHtmlCacheHeaders(headers, siteConfig, req.path);
 
   const html = await response.text();
-  const hreflangHeadHtml = hasRenderedHreflangHeadHtml(html)
+  const canonicalSuppressed = effectiveStatus !== 404 && pageConfig?.seo?.canonicalMode === 'none';
+  const canonicalSafeHtml = canonicalSuppressed
+    ? stripRenderedCanonicalHeadHtml(html)
+    : html;
+  const hreflangHeadHtml = hasRenderedHreflangHeadHtml(canonicalSafeHtml)
     ? ''
     : buildHreflangHeadHtml(req, lookupDomain, siteConfig, pageConfig);
   const headHtml = [
@@ -3636,12 +3659,19 @@ async function decorateHtmlResponse(
     buildBrowserIconsHeadHtml(siteConfig),
     buildRobotsHeadHtml(req, siteConfig, pageConfig),
     buildStructuredDataHeadHtml(pageConfig),
-    buildCanonicalHeadHtml(req, lookupDomain, siteConfig, pageConfig, publicContentHubSiteConfig),
+    buildCanonicalHeadHtml(
+      req,
+      lookupDomain,
+      siteConfig,
+      pageConfig,
+      publicContentHubSiteConfig,
+      effectiveStatus !== 404,
+    ),
     hreflangHeadHtml,
   ].filter(Boolean).join('\n');
 
   const baseDecoratedHtml = decorateProtectedSsrShellHtml(
-    decorateBootCurtainHtml(injectHeadHtml(html, headHtml), siteConfig),
+    decorateBootCurtainHtml(injectHeadHtml(canonicalSafeHtml, headHtml), siteConfig),
     siteConfig,
     req.path,
     responseLang,
