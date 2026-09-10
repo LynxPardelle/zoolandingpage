@@ -15,6 +15,10 @@ const schemaNames = [
   'integration-bindings.schema.json',
   'notification-policies.schema.json',
 ];
+const templateSchemaNames = [
+  ...schemaNames,
+  'protected-feature-bindings-v2.schema.json',
+];
 
 async function readJson(filePath) {
   return JSON.parse(await readFile(filePath, 'utf8'));
@@ -843,7 +847,7 @@ test('template validation needs no AWS credentials and workflows materialize and
 
 test('template schemas are byte-for-byte copies of canonical schemas', async () => {
   const templateSchemaDir = path.join(repoRoot, 'tools', 'templates', 'draft-repo', 'tools', 'schemas');
-  for (const name of schemaNames) {
+  for (const name of templateSchemaNames) {
     assert.equal(
       await readFile(path.join(templateSchemaDir, name), 'utf8'),
       await readFile(path.join(schemaDir, name), 'utf8'),

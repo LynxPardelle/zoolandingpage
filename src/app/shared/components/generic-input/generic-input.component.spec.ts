@@ -6,6 +6,22 @@ import { VariableStoreService } from '../../services/variable-store.service';
 import { InteractionScopeService } from '../interaction-scope/interaction-scope.service';
 import { GenericInputComponent } from './generic-input.component';
 
+describe('GenericInputComponent explicit document revision', () => {
+    it('replaces standalone dirty values only when the opt-in document revision changes', async () => {
+        TestBed.configureTestingModule({imports:[GenericInputComponent],providers:[{provide:InteractionScopeService,useValue:null}]});
+        const fixture=TestBed.createComponent(GenericInputComponent);
+        const config={fieldId:'title',controlType:'text',value:'English',valueRevision:'a:en'};
+        fixture.componentRef.setInput('config',config);fixture.detectChanges();
+        const input=fixture.nativeElement.querySelector('input') as HTMLInputElement;
+        input.value='New English';input.dispatchEvent(new Event('input'));fixture.detectChanges();
+        fixture.componentRef.setInput('config',{...config,value:'Old server'});fixture.detectChanges();
+        expect(input.value).toBe('New English');
+        fixture.componentRef.setInput('config',{...config,value:'Español',valueRevision:'a:es'});fixture.detectChanges();
+        await fixture.whenStable();fixture.detectChanges();
+        expect(fixture.nativeElement.querySelector('input').value).toBe('Español');
+    });
+});
+
 describe('GenericInputComponent', () => {
     beforeEach(async () => {
         await TestBed.configureTestingModule({

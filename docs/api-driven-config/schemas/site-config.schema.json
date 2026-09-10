@@ -466,6 +466,7 @@
           "minItems": 1,
           "items": { "$ref": "#/definitions/contentHubLocale" }
         },
+        "localePolicy": { "type": "string", "enum": ["published-only"] },
         "canonicalMode": {
           "type": "string",
           "enum": ["owner-canonical", "host-adaptive", "noindex-shared"]
@@ -536,7 +537,7 @@
         "updatedAt": { "type": "string", "format": "date-time" },
         "authorLabel": { "type": "string" },
         "canonicalPath": { "$ref": "#/definitions/sameOriginPath" },
-        "robots": { "type": "string", "enum": ["index,follow", "noindex,follow", "noindex,nofollow"] },
+        "robots": { "type": "string", "enum": ["index,follow", "noindex,follow", "index,nofollow", "noindex,nofollow"] },
         "articleContent": { "$ref": "#/definitions/contentHubPublicArticleContent" },
         "imageSrc": {
           "type": "string",
@@ -586,7 +587,7 @@
         "updatedAt": { "type": "string", "format": "date-time" },
         "authorLabel": { "type": "string" },
         "canonicalPath": { "$ref": "#/definitions/sameOriginPath" },
-        "robots": { "type": "string", "enum": ["index,follow", "noindex,follow", "noindex,nofollow"] },
+        "robots": { "type": "string", "enum": ["index,follow", "noindex,follow", "index,nofollow", "noindex,nofollow"] },
         "articleContent": { "$ref": "#/definitions/contentHubPublicArticleContent" },
         "imageSrc": {
           "type": "string",
@@ -1053,6 +1054,7 @@
       "properties": {
         "enabled": { "type": "boolean" },
         "authProfileId": { "type": "string", "minLength": 1 },
+        "requiredOrigin": { "const": "https://admin-test.thehairnarrative.com" },
         "endpoint": {
           "type": "string",
           "anyOf": [
@@ -1061,6 +1063,16 @@
           ]
         }
       },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "authProfileId": { "const": "journal-owner" } },
+            "required": ["authProfileId"]
+          },
+          "then": { "required": ["requiredOrigin"] },
+          "else": { "not": { "required": ["requiredOrigin"] } }
+        }
+      ],
       "additionalProperties": false
     },
     "comboCatalogRuntime": {

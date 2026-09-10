@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { cp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readFile, readdir, rm, stat, utimes, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
+import { verifyThnAdminArtifact } from './prepare-thn-admin-artifact.mjs';
 
 const root = process.cwd();
 const appName = 'zoolandingpage';
@@ -23,11 +24,19 @@ assertSafeReleaseCoordinates(releaseId, environmentName);
 await assertDirectory(browserDir, 'Run `npm run build` before packaging; browser output is missing.');
 await assertDirectory(serverDir, 'Run `npm run build` before packaging; server output is missing.');
 await assertDirectory(serverlessHttpDir, 'Run `npm install` before packaging; serverless-http is missing.');
+const adminFlag=process.env.THN_ADMIN_ARTIFACT_ENABLED??'false';
+if(!['true','false'].includes(adminFlag))throw new Error('THN admin artifact flag must be true or false.');
+await verifyThnAdminArtifact({browserRoot:browserDir,serverRoot:serverDir,releaseId,environment:environmentName,enabled:adminFlag==='true'});
 
 await rm(outputRoot, { force: true, recursive: true });
 await mkdir(stagingDir, { recursive: true });
 
-await cp(browserDir, path.join(stagingDir, 'browser'), { recursive: true });
+// This reserved local diagnostic payload is not a customer draft or a release dependency.
+// Exclude only this exact directory in staging; preserve source/dist and every other path.
+const localDebugWorkspace = path.join(browserDir, 'drafts', '_debug');
+await cp(browserDir, path.join(stagingDir, 'browser'), {
+  recursive: true, filter: source => path.resolve(source) !== localDebugWorkspace,
+});
 await cp(serverDir, path.join(stagingDir, 'server'), { recursive: true });
 await cp(serverlessHttpDir, path.join(stagingDir, 'node_modules', 'serverless-http'), { recursive: true });
 
@@ -154,7 +163,29 @@ async function createZip(sourceDir, destination) {
     const result = spawnSync('powershell', [
       '-NoProfile',
       '-Command',
-      `Add-Type -AssemblyName System.IO.Compression.FileSystem; if (Test-Path ${target}) { Remove-Item -LiteralPath ${target} -Force }; [System.IO.Compression.ZipFile]::CreateFromDirectory(${source}, ${target}, [System.IO.Compression.CompressionLevel]::Optimal, $false)`,
+      `$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName System.IO.Compression
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$sourcePrefix = [System.IO.Path]::GetFullPath(${source}).TrimEnd([System.IO.Path]::DirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
+$archive = [System.IO.Compression.ZipFile]::Open(${target}, [System.IO.Compression.ZipArchiveMode]::Create)
+try {
+  foreach ($file in (Get-ChildItem -LiteralPath ${source} -File -Recurse -Force | Sort-Object FullName)) {
+    if (-not $file.FullName.StartsWith($sourcePrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+      throw 'ZIP source escaped its staging directory.'
+    }
+    # Windows PowerShell's CreateFromDirectory emits backslashes; Lambda imports require POSIX names.
+    $entryName = $file.FullName.Substring($sourcePrefix.Length).Replace([char]92, [char]47)
+    $entry = $archive.CreateEntry($entryName, [System.IO.Compression.CompressionLevel]::Optimal)
+    $entry.LastWriteTime = [DateTimeOffset]::new(1980, 1, 1, 0, 0, 0, [TimeSpan]::Zero)
+    $inputStream = [System.IO.File]::OpenRead($file.FullName)
+    try {
+      $outputStream = $entry.Open()
+      try { $inputStream.CopyTo($outputStream) } finally { $outputStream.Dispose() }
+    } finally { $inputStream.Dispose() }
+  }
+} finally {
+  $archive.Dispose()
+}`,
     ], { stdio: 'inherit' });
     if (result.status !== 0) {
       throw new Error(`Zip creation failed with exit code ${result.status}.`);
@@ -162,13 +193,30 @@ async function createZip(sourceDir, destination) {
     return;
   }
 
-  const result = spawnSync('zip', ['-qr', destination, '.'], {
+  // Normalize only our staging copy; source/build timestamps remain untouched.
+  const entries = await zipFileInventory(sourceDir);
+  const epoch = new Date('1980-01-01T00:00:00Z');
+  for (const entry of entries) await utimes(path.join(sourceDir, entry), epoch, epoch);
+  const result = spawnSync('zip', ['-Xq', destination, '-@'], {
     cwd: sourceDir,
-    stdio: 'inherit',
+    input: `${entries.join('\n')}\n`,
+    stdio: ['pipe', 'inherit', 'inherit'],
+    env: { ...process.env, TZ: 'UTC', LC_ALL: 'C' },
   });
   if (result.status !== 0) {
     throw new Error('The `zip` command is required to package the Lambda SSR artifact.');
   }
+}
+
+async function zipFileInventory(directory, prefix = '') {
+  const entries = [];
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const name = prefix ? `${prefix}/${entry.name}` : entry.name;
+    if (/[\r\n]/.test(name)) throw new Error('ZIP entry names cannot contain line breaks.');
+    if (entry.isDirectory()) entries.push(...await zipFileInventory(path.join(directory, entry.name), name));
+    else entries.push(name);
+  }
+  return entries.sort();
 }
 
 async function hashFile(filePath) {

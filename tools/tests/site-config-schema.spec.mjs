@@ -5,6 +5,17 @@ import test from 'node:test';
 const schemaPath = new URL('../../docs/api-driven-config/schemas/site-config.schema.json', import.meta.url);
 const zoositePilotFixturePath = new URL('./fixtures/zoosite-auth-pilot/site-config.json', import.meta.url);
 
+test('content hub locale policy is a closed optional opt-in with no global default', async () => {
+    const schema = JSON.parse(await readFile(schemaPath, 'utf8'));
+    const publicSchema = JSON.parse(await readFile(
+        new URL('../../docs/api-driven-config/schemas/content-hub-public.schema.json', import.meta.url), 'utf8'));
+    for (const hub of [schema.definitions.contentHubRuntime, publicSchema.definitions.publicHub]) {
+        assert.deepEqual(hub.properties.localePolicy, { type: 'string', enum: ['published-only'] });
+        assert.equal(hub.required.includes('localePolicy'), false);
+        assert.equal(hub.additionalProperties, false);
+    }
+});
+
 const publicAuthDisallowedFields = [
     'access',
     'auth',

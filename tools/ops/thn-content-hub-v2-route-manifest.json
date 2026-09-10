@@ -1,0 +1,176 @@
+{
+  "version": 1,
+  "environment": "test",
+  "domain": "thehairnarrative.com",
+  "origins": {
+    "public": {
+      "host": "test.zoolandingpage.com.mx",
+      "originRole": "public",
+      "defaultDecision": "pass-through",
+      "denyPathPrefixes": [
+        "/admin/journal",
+        "/auth-v2",
+        "/features/content-hub-v2"
+      ],
+      "backendRoutes": [
+        {
+          "id": "thn-public-media-v2",
+          "owner": "thn-public-media-v2",
+          "target": "content-hub-v2-public-media",
+          "path": "/features/content-hub-v2/public-media/:articleId/:locale/:revisionId/:assetId/:variantId",
+          "methods": [
+            "GET"
+          ]
+        }
+      ]
+    },
+    "admin": {
+      "host": "admin-test.thehairnarrative.com",
+      "originRole": "protected-admin",
+      "defaultDecision": "deny",
+      "pageRoutes": [
+        {
+          "id": "thn-admin-access",
+          "owner": "thn-protected-admin-app",
+          "target": "angular-ssr-protected-admin",
+          "path": "/admin/journal/access",
+          "methods": [
+            "GET"
+          ]
+        },
+        {
+          "id": "thn-admin-mfa",
+          "owner": "thn-protected-admin-app",
+          "target": "angular-ssr-protected-admin",
+          "path": "/admin/journal/mfa",
+          "methods": [
+            "GET"
+          ]
+        },
+        {
+          "id": "thn-admin-list",
+          "owner": "thn-protected-admin-app",
+          "target": "angular-ssr-protected-admin",
+          "path": "/admin/journal",
+          "methods": [
+            "GET"
+          ]
+        },
+        {
+          "id": "thn-admin-new",
+          "owner": "thn-protected-admin-app",
+          "target": "angular-ssr-protected-admin",
+          "path": "/admin/journal/new",
+          "methods": [
+            "GET"
+          ]
+        },
+        {
+          "id": "thn-admin-edit",
+          "owner": "thn-protected-admin-app",
+          "target": "angular-ssr-protected-admin",
+          "path": "/admin/journal/:articleId/edit",
+          "methods": [
+            "GET"
+          ]
+        },
+        {
+          "id": "thn-admin-preview",
+          "owner": "thn-protected-admin-app",
+          "target": "angular-ssr-protected-admin",
+          "path": "/admin/journal/:articleId/preview",
+          "methods": [
+            "GET"
+          ]
+        }
+      ],
+      "staticAssets": {
+        "mode": "selected-release-manifest-only"
+      },
+      "backendRoutes": [
+        {
+          "id": "thn-auth-runtime-v2",
+          "owner": "thn-api-proxy-v2",
+          "target": "api-proxy-auth-runtime-v2",
+          "path": "/auth-v2/runtime-config",
+          "methods": [
+            "GET",
+            "POST"
+          ]
+        },
+        {
+          "id": "thn-auth-signin-v2",
+          "owner": "thn-auth-admin-v2",
+          "target": "auth-admin-v2",
+          "path": "/auth-v2/session/signin",
+          "methods": [
+            "POST"
+          ]
+        },
+        {
+          "id": "thn-auth-challenge-v2",
+          "owner": "thn-auth-admin-v2",
+          "target": "auth-admin-v2",
+          "path": "/auth-v2/session/challenge/respond",
+          "methods": [
+            "POST"
+          ]
+        },
+        {
+          "id": "thn-auth-mfa-setup-v2",
+          "owner": "thn-auth-admin-v2",
+          "target": "auth-admin-v2",
+          "path": "/auth-v2/session/mfa/setup",
+          "methods": [
+            "POST"
+          ]
+        },
+        {
+          "id": "thn-auth-mfa-verify-v2",
+          "owner": "thn-auth-admin-v2",
+          "target": "auth-admin-v2",
+          "path": "/auth-v2/session/mfa/verify",
+          "methods": [
+            "POST"
+          ]
+        },
+        {
+          "id": "thn-auth-session-me-v2",
+          "owner": "thn-auth-admin-v2",
+          "target": "auth-admin-v2",
+          "path": "/auth-v2/session/me",
+          "methods": [
+            "GET"
+          ]
+        },
+        {
+          "id": "thn-auth-logout-v2",
+          "owner": "thn-auth-admin-v2",
+          "target": "auth-admin-v2",
+          "path": "/auth-v2/session/logout",
+          "methods": [
+            "POST"
+          ]
+        },
+        {
+          "id": "thn-content-hub-read-v2",
+          "owner": "thn-content-hub-v2-authoring",
+          "target": "content-hub-v2-authoring",
+          "path": "/features/content-hub-v2/read",
+          "methods": [
+            "POST"
+          ]
+        },
+        {
+          "id": "thn-content-hub-action-v2",
+          "owner": "thn-content-hub-v2-authoring",
+          "target": "content-hub-v2-authoring",
+          "path": "/features/content-hub-v2/action",
+          "methods": [
+            "POST"
+          ]
+        }
+      ]
+    }
+  }
+}

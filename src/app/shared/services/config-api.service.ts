@@ -12,6 +12,7 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, makeStateKey, REQUEST, TransferState } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { parseSsrRequestUrl } from '../utility/request/ssr-request-url.utility';
+import { ProtectedOriginService } from './protected-origin.service';
 
 const RUNTIME_BUNDLE_ENDPOINT = 'runtime-bundle';
 const RUNTIME_BUNDLE_TRANSFER_STATE_PREFIX = 'zlp-runtime-bundle:';
@@ -35,6 +36,7 @@ export class ConfigApiService {
     private readonly http = inject(HttpClient);
     private readonly request = inject(REQUEST, { optional: true });
     private readonly transferState = inject(TransferState, { optional: true });
+    private readonly protectedOrigin = inject(ProtectedOriginService);
 
     private resolveOrigin(): string {
         const requestUrl = parseSsrRequestUrl(this.request);
@@ -79,6 +81,9 @@ export class ConfigApiService {
     }
 
     private resolveRuntimeFallbackEnvironment(params: Record<string, string | undefined>): TRuntimeFallbackEnvironment {
+        // The dedicated v2 admin binding is TEST-only; query parameters never
+        // promote that private workspace to production.
+        if (this.protectedOrigin.context?.originRole === 'protected-admin') return 'test';
         const explicit = this.normalizeRuntimeFallbackEnvironment(params['environment']);
         if (explicit) {
             return explicit;
@@ -328,7 +333,9 @@ export class ConfigApiService {
         }
 
         const currentHostname = this.resolveCurrentUrl()?.hostname ?? '';
-        const remoteParams = path === RUNTIME_BUNDLE_ENDPOINT && !params['environment'] && this.isLocalHostname(currentHostname)
+        const remoteParams = path === RUNTIME_BUNDLE_ENDPOINT
+            && (this.protectedOrigin.context?.originRole === 'protected-admin'
+                || (!params['environment'] && this.isLocalHostname(currentHostname)))
             ? { ...params, environment: 'test' }
             : params;
         const url = this.buildUrlForBase(this.resolveConfigApiBaseUrl(), path, remoteParams);

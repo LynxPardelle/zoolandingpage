@@ -8,6 +8,8 @@ import { formatLocaleLabel, normalizeLocaleCode, resolveBestLocaleMatch } from '
 import { SupportedLanguage } from '../types/navigation.types';
 import { parseSsrRequestUrl } from '../utility/request/ssr-request-url.utility';
 import { DomainResolverService } from './domain-resolver.service';
+import {isFixedJournal,journalLanguageUrl} from '../utility/content-hub/fixed-journal-public';
+import {navigateInCurrentWindow} from '../utility/navigation/browser-navigation.utility';
 
 const FRAMEWORK_DEFAULT_LANGUAGE = 'en';
 const LANGUAGE_QUERY_PARAM = 'lang';
@@ -27,6 +29,7 @@ export class LanguageService {
   private readonly _defaultLanguage = signal<SupportedLanguage>(FRAMEWORK_DEFAULT_LANGUAGE);
   private readonly _availableLanguages = signal<readonly SupportedLanguage[]>([FRAMEWORK_DEFAULT_LANGUAGE]);
   private readonly _routeLanguage = signal<SupportedLanguage | null>(null);
+  private journalHub:unknown=null;
 
   // Public readonly signals
   readonly currentLanguage = computed(() => this._currentLanguage());
@@ -54,8 +57,9 @@ export class LanguageService {
   // Public methods
   configureLanguages(
     languages: readonly string[],
-    opts?: { defaultLanguage?: string; requestedLanguage?: string; routeLanguage?: string }
+    opts?: { defaultLanguage?: string; requestedLanguage?: string; routeLanguage?: string; contentHubs?: readonly unknown[] }
   ): void {
+    this.journalHub=opts?.contentHubs?.find(isFixedJournal)??null;
     const normalized = this.normalizeLanguages(languages);
     const fallback = this.normalizeSingleLanguage(opts?.defaultLanguage)
       ?? normalized[0]
@@ -92,6 +96,12 @@ export class LanguageService {
     }
 
     const resolved = this.resolvePreferredLanguage(language);
+    if(this.isBrowser&&typeof window!=='undefined'&&this.journalHub) {
+      const target=journalLanguageUrl(this.journalHub,window.location.href,resolved);
+      if(target&&new URL(target).pathname!==window.location.pathname) {
+        this._saveLanguage(resolved);navigateInCurrentWindow(target,{scrollRestoration:{mode:'top'}});return;
+      }
+    }
     this._currentLanguage.set(resolved);
     this._saveLanguage(resolved);
     this.syncUrlLanguage(resolved);

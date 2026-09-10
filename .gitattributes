@@ -1,3 +1,5 @@
 *.sh text eol=lf
+docs/api-driven-config/schemas/protected-feature-bindings-v2.schema.json text eol=lf
+tools/templates/draft-repo/tools/schemas/protected-feature-bindings-v2.schema.json text eol=lf
 public/assets/thehairnarrative.com/booksaw-20260827/fonts/*-OFL.txt -text
 public/assets/thehairnarrative.com/booksaw-20260827/fonts/*.woff2 binary

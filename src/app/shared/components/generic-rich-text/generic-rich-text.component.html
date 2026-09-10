@@ -5,7 +5,7 @@
   <p [class]="descriptionClasses()">{{ description() }}</p>
 }
 
-@if (loading()) {
+@if (loading() || (sanitizerPolicyId() === 'fixed-article-v2' && !privateRegistry())) {
   <div [class]="helperTextClasses()" aria-live="polite">{{ loadingText() }}</div>
 } @else if (errorText()) {
   <div [class]="errorClasses()" role="alert">{{ errorText() }}</div>
@@ -14,6 +14,7 @@
     [format]="quillFormat()"
     [theme]="'snow'"
     [modules]="quillModules()"
+    [registry]="sanitizerPolicyId() === 'fixed-article-v2' ? privateRegistry() : undefined"
     [readOnly]="readOnly() || disabled()"
     [placeholder]="placeholder()"
     [maxLength]="maxLength()"

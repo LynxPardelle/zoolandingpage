@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -39,7 +40,7 @@ test('reusable PR safety workflow is pinned and read-only', () => {
   assert.match(workflow, /permissions:\s*\n\s+contents: read/);
   assert.match(workflow, /timeout-minutes: 10/);
   assert.equal(workflow.match(new RegExp(`actions/checkout@${checkoutSha}`, 'g'))?.length, 2);
-  assert.match(workflow, /ref: 92445c8670e4ecae63c1c1dfde9de8925f4b88c8/);
+  assert.match(workflow, /ref: db5b7253f17ca94b43f1014fbe735b4fb2e9430f/);
   assert.match(workflow, /fetch-depth: 0/);
   assert.equal(workflow.match(/persist-credentials: false/g)?.length, 2);
   assert.match(workflow, /8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8/);
@@ -53,4 +54,14 @@ test('reusable PR safety workflow is pinned and read-only', () => {
   assert.doesNotMatch(workflow, /^\s+(?:environment|id-token|secrets):/m);
   assert.doesNotMatch(workflow, /^\s+(?:pull_request|push|workflow_dispatch):/m);
   assert.doesNotMatch(workflow, /aws-actions|\baws\b/i);
+});
+
+test('PR safety refresh changes only the immutable policy pin, not scanners or permissions', () => {
+  const workflow = readFileSync(reusableSafetyWorkflow, 'utf8').replace(/\r\n/g, '\n');
+  const priorWorkflow = workflow.replace(
+    'ref: db5b7253f17ca94b43f1014fbe735b4fb2e9430f',
+    'ref: 92445c8670e4ecae63c1c1dfde9de8925f4b88c8',
+  );
+  // The previous c8b04670 workflow digest, independent of checkout depth.
+  assert.equal(createHash('sha256').update(priorWorkflow).digest('hex'), 'e86df16a57a3e5edcc7c5ce216ed8d2c643deee8b4df805f77496f696e6bea0e');
 });

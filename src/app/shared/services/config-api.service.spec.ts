@@ -1,5 +1,6 @@
 import type { TRuntimeBundlePayload } from '@/app/shared/types/config-payloads.types';
 import { environment } from '@/environments/environment';
+import { ProtectedOriginService } from './protected-origin.service';
 import { HttpClient } from '@angular/common/http';
 import { makeStateKey, REQUEST, TransferState } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
@@ -8,6 +9,20 @@ import { setTestBrowserUrl } from '@/test-browser-state';
 import { clearRuntimeBundleServerCacheForTesting, ConfigApiService } from './config-api.service';
 
 describe('ConfigApiService', () => {
+    it('pins the trusted dedicated admin to TEST even if an explicit parameter says production', async () => {
+        const http = jasmine.createSpyObj<HttpClient>('HttpClient', ['get']);
+        http.get.and.returnValue(of({version:1}));
+        const origin='https://admin-test.thehairnarrative.com';
+        TestBed.configureTestingModule({providers:[
+            {provide:HttpClient,useValue:http},
+            {provide:ProtectedOriginService,useValue:{context:{origin,domain:'thehairnarrative.com',originRole:'protected-admin'}}},
+        ]});
+        const service=TestBed.inject(ConfigApiService);
+        spyOn<any>(service,'resolveCurrentUrl').and.returnValue(new URL(origin+'/admin/journal'));
+        expect((service as any).resolveRuntimeFallbackEnvironment({environment:'production'})).toBe('test');
+        await service.getRuntimeBundle('thehairnarrative.com',{path:'/admin/journal',environment:'production'});
+        expect(String(http.get.calls.mostRecent().args[0])).toContain('environment=test');
+    });
     const originalConfigApiUrl = environment.configApiUrl;
     const originalFallbackUrl = environment.configApiServerFallbackUrl;
     const originalRuntimeFallbackUrl = environment.configApiRuntimeFallbackUrl;

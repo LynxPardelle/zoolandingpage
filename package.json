@@ -16,7 +16,7 @@
     "serve:ssr:zoolandingpage": "node dist/zoolandingpage/server/server.mjs",
     "serve:ssr": "npm run serve:ssr:zoolandingpage",
     "serve:ssr:logged": "node tools/run-with-logs.mjs --name ssr -- npm run serve:ssr:zoolandingpage",
-    "package:ssr:lambda": "npm run build && node tools/package-ssr-lambda.mjs",
+    "package:ssr:lambda": "npm run build && node tools/prepare-thn-admin-artifact.mjs && node tools/package-ssr-lambda.mjs",
     "perf:baseline": "node tools/perf-baseline.mjs",
     "knowledge:check": "node tools/knowledge-check.mjs",
     "config:pack": "node tools/config-draft-sync.mjs pack",
@@ -56,7 +56,7 @@
     "test:draft-upload-status": "node --test tools/tests/draft-upload-status.spec.mjs",
     "test:draft-repo-preflight": "node --test tools/tests/draft-repo-preflight.spec.mjs",
     "test:draft-public-safety-audit": "node --test tools/tests/draft-public-safety-audit.spec.mjs",
-    "test:draft-feature-readiness": "node --test tools/tests/draft-feature-readiness.spec.mjs tools/tests/draft-repo-template.spec.mjs",
+    "test:draft-feature-readiness": "node --test tools/tests/draft-feature-readiness.spec.mjs tools/tests/draft-repo-template.spec.mjs tools/tests/protected-feature-bindings-v2-schema.spec.mjs",
     "test:draft-public-artifact-boundary": "node --test tools/tests/draft-public-artifact-boundary.spec.mjs",
     "test:draft-auth-audit": "node --test tools/tests/draft-auth-audit.spec.mjs",
     "test:draft-aws-oidc-setup": "node --test tools/tests/draft-aws-oidc-setup.spec.mjs",
@@ -70,7 +70,8 @@
     "ci:perf": "node tools/perf-baseline.mjs"
   },
   "overrides": {
-    "vite": "7.3.6"
+    "vite": "7.3.6",
+    "qs": "6.16.0"
   },
   "prettier": {
     "overrides": [
@@ -114,6 +115,7 @@
     "@types/express": "^5.0.3",
     "@types/jasmine": "^5.1.9",
     "@types/node": "^20.17.19",
+    "ajv": "8.20.0",
     "istanbul-lib-instrument": "^6.0.3",
     "jasmine-core": "^5.10.0",
     "karma": "^6.4.4",
