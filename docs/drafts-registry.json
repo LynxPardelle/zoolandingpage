@@ -94,6 +94,13 @@
       "githubUrl": "https://github.com/LynxPardelle/draft-somosgreenstock-mx.git",
       "localPath": "drafts/somosgreenstock.mx",
       "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "pugestandar.com",
+      "repo": "draft-pugestandar-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-pugestandar-com.git",
+      "localPath": "drafts/pugestandar.com",
+      "deploymentEnvironments": ["test"]
     }
   ]
 }
