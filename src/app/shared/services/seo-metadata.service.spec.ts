@@ -6,8 +6,10 @@ import { RuntimeConfigService } from './runtime-config.service';
 import { ConfigStoreService } from './config-store.service';
 import { SeoMetadataService } from './seo-metadata.service';
 import { VariableStoreService } from './variable-store.service';
+import { ProtectedOriginService } from './protected-origin.service';
 
 describe('SeoMetadataService page fonts', () => {
+    let assetProjection:(value:string)=>string;
     const enUrl = 'https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Sans:wght@400;600&display=swap';
     const zhUrl = 'https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600&family=Noto+Sans+SC:wght@400;600&display=swap';
     let doc: Document;
@@ -21,15 +23,24 @@ describe('SeoMetadataService page fonts', () => {
     };
 
     beforeEach(() => {
+        assetProjection=value=>value;
         // A detached document exercises the SSR-compatible head API without requesting external fonts.
         doc = document.implementation.createHTMLDocument('page-fonts');
         TestBed.configureTestingModule({ providers: [
+            { provide: ProtectedOriginService, useValue: { assetUrl:(value:string)=>assetProjection(value) } },
             { provide: DOCUMENT, useValue: doc },
             { provide: DomainResolverService, useValue: { resolveDomain: () => ({ domain: 'example.test' }) } },
             { provide: RuntimeConfigService, useValue: { seoDefaults: () => null, appName: () => 'Example', appDescription: () => '' } },
         ] });
         store = TestBed.inject(ConfigStoreService);
         service = TestBed.inject(SeoMetadataService);
+    });
+
+    it('keeps the private favicon on the exact selected immutable asset path',()=>{
+        const selected='/browser/thn-admin-assets/abcdef0123456789.zoolandingpage-default-favicon.svg';
+        assetProjection=value=>value==='/assets/brand/zoolandingpage-default-favicon.svg'?selected:value;
+        setPage();service.apply('en',null);
+        expect(doc.head.querySelector('link[rel="icon"]')?.getAttribute('href')).toBe(selected);
     });
 
     it('leaves unconfigured pages and their font styles untouched', () => {
@@ -249,6 +260,7 @@ describe('SeoMetadataService', () => {
             providers: [
                 SeoMetadataService,
                 { provide: DOCUMENT, useValue: seoDoc },
+                { provide: ProtectedOriginService, useValue: { assetUrl: (value: string) => value } },
                 { provide: Title, useValue: title },
                 { provide: Meta, useValue: meta },
                 { provide: DomainResolverService, useValue: { resolveDomain: () => ({ domain: 'example.com' }) } },
@@ -345,6 +357,7 @@ describe('SeoMetadataService', () => {
             providers: [
                 SeoMetadataService,
                 { provide: DOCUMENT, useValue: seoDoc },
+                { provide: ProtectedOriginService, useValue: { assetUrl: (value: string) => value } },
                 { provide: Title, useValue: title },
                 { provide: Meta, useValue: meta },
                 {
@@ -425,6 +438,7 @@ describe('SeoMetadataService', () => {
             providers: [
                 SeoMetadataService,
                 { provide: DOCUMENT, useValue: seoDoc },
+                { provide: ProtectedOriginService, useValue: { assetUrl: (value: string) => value } },
                 { provide: Title, useValue: title },
                 { provide: Meta, useValue: meta },
                 {
@@ -495,6 +509,7 @@ describe('SeoMetadataService', () => {
             providers: [
                 SeoMetadataService,
                 { provide: DOCUMENT, useValue: seoDoc },
+                { provide: ProtectedOriginService, useValue: { assetUrl: (value: string) => value } },
                 { provide: Title, useValue: title },
                 { provide: Meta, useValue: meta },
                 {
@@ -549,6 +564,7 @@ describe('SeoMetadataService', () => {
             providers: [
                 SeoMetadataService,
                 { provide: DOCUMENT, useValue: seoDoc },
+                { provide: ProtectedOriginService, useValue: { assetUrl: (value: string) => value } },
                 { provide: Title, useValue: title },
                 { provide: Meta, useValue: meta },
                 {
@@ -655,6 +671,7 @@ describe('SeoMetadataService', () => {
             providers: [
                 SeoMetadataService,
                 { provide: DOCUMENT, useValue: seoDoc },
+                { provide: ProtectedOriginService, useValue: { assetUrl: (value: string) => value } },
                 { provide: Title, useValue: title },
                 { provide: Meta, useValue: meta },
                 {
@@ -771,6 +788,7 @@ describe('SeoMetadataService', () => {
             providers: [
                 SeoMetadataService,
                 { provide: DOCUMENT, useValue: seoDoc },
+                { provide: ProtectedOriginService, useValue: { assetUrl: (value: string) => value } },
                 { provide: Title, useValue: title },
                 { provide: Meta, useValue: meta },
                 {
@@ -837,6 +855,7 @@ describe('SeoMetadataService', () => {
                 SeoMetadataService,
                 VariableStoreService,
                 { provide: DOCUMENT, useValue: seoDoc },
+                { provide: ProtectedOriginService, useValue: { assetUrl: (value: string) => value } },
                 { provide: Title, useValue: title },
                 { provide: Meta, useValue: meta },
                 {
@@ -929,6 +948,7 @@ describe('SeoMetadataService', () => {
                 SeoMetadataService,
                 VariableStoreService,
                 { provide: DOCUMENT, useValue: seoDoc },
+                { provide: ProtectedOriginService, useValue: { assetUrl: (value: string) => value } },
                 { provide: Title, useValue: title },
                 { provide: Meta, useValue: meta },
                 {
@@ -1030,6 +1050,7 @@ describe('SeoMetadataService', () => {
                 VariableStoreService,
                 ConfigStoreService,
                 { provide: DOCUMENT, useValue: seoDoc },
+                { provide: ProtectedOriginService, useValue: { assetUrl: (value: string) => value } },
                 { provide: Title, useValue: title },
                 { provide: Meta, useValue: meta },
                 { provide: DomainResolverService, useValue: { resolveDomain: () => ({ domain: 'grupoastralegal.com' }) } },
@@ -1125,6 +1146,7 @@ describe('SeoMetadataService', () => {
                 VariableStoreService,
                 ConfigStoreService,
                 { provide: DOCUMENT, useValue: seoDoc },
+                { provide: ProtectedOriginService, useValue: { assetUrl: (value: string) => value } },
                 { provide: Title, useValue: title },
                 { provide: Meta, useValue: meta },
                 { provide: DomainResolverService, useValue: { resolveDomain: () => ({ domain: 'grupoastralegal.com' }) } },
@@ -1193,6 +1215,7 @@ describe('SeoMetadataService', () => {
                 SeoMetadataService,
                 VariableStoreService,
                 { provide: DOCUMENT, useValue: seoDoc },
+                { provide: ProtectedOriginService, useValue: { assetUrl: (value: string) => value } },
                 { provide: Title, useValue: title },
                 { provide: Meta, useValue: meta },
                 {

@@ -3,6 +3,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { cp, mkdir, readFile, readdir, rm, stat, utimes, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
+import { verifyThnAdminArtifact } from './prepare-thn-admin-artifact.mjs';
 
 const root = process.cwd();
 const appName = 'zoolandingpage';
@@ -23,11 +24,19 @@ assertSafeReleaseCoordinates(releaseId, environmentName);
 await assertDirectory(browserDir, 'Run `npm run build` before packaging; browser output is missing.');
 await assertDirectory(serverDir, 'Run `npm run build` before packaging; server output is missing.');
 await assertDirectory(serverlessHttpDir, 'Run `npm install` before packaging; serverless-http is missing.');
+const adminFlag=process.env.THN_ADMIN_ARTIFACT_ENABLED??'false';
+if(!['true','false'].includes(adminFlag))throw new Error('THN admin artifact flag must be true or false.');
+await verifyThnAdminArtifact({browserRoot:browserDir,serverRoot:serverDir,releaseId,environment:environmentName,enabled:adminFlag==='true'});
 
 await rm(outputRoot, { force: true, recursive: true });
 await mkdir(stagingDir, { recursive: true });
 
-await cp(browserDir, path.join(stagingDir, 'browser'), { recursive: true });
+// This reserved local diagnostic payload is not a customer draft or a release dependency.
+// Exclude only this exact directory in staging; preserve source/dist and every other path.
+const localDebugWorkspace = path.join(browserDir, 'drafts', '_debug');
+await cp(browserDir, path.join(stagingDir, 'browser'), {
+  recursive: true, filter: source => path.resolve(source) !== localDebugWorkspace,
+});
 await cp(serverDir, path.join(stagingDir, 'server'), { recursive: true });
 await cp(serverlessHttpDir, path.join(stagingDir, 'node_modules', 'serverless-http'), { recursive: true });
 

@@ -16,7 +16,7 @@
     "serve:ssr:zoolandingpage": "node dist/zoolandingpage/server/server.mjs",
     "serve:ssr": "npm run serve:ssr:zoolandingpage",
     "serve:ssr:logged": "node tools/run-with-logs.mjs --name ssr -- npm run serve:ssr:zoolandingpage",
-    "package:ssr:lambda": "npm run build && node tools/package-ssr-lambda.mjs",
+    "package:ssr:lambda": "npm run build && node tools/prepare-thn-admin-artifact.mjs && node tools/package-ssr-lambda.mjs",
     "perf:baseline": "node tools/perf-baseline.mjs",
     "knowledge:check": "node tools/knowledge-check.mjs",
     "config:pack": "node tools/config-draft-sync.mjs pack",

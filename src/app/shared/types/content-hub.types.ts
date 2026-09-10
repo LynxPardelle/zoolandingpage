@@ -66,6 +66,8 @@ export type TContentHubRuntimeConfig = {
     readonly articlePathPattern: string;
     readonly defaultLocale: TContentHubLocale;
     readonly locales: readonly TContentHubLocale[];
+    /** Omission keeps legacy fallback; opt-in serves only published translations. */
+    readonly localePolicy?: 'published-only';
     readonly canonicalMode: TContentHubCanonicalMode;
     readonly runtimeSourceId?: string;
     readonly publicApiBasePath?: string;

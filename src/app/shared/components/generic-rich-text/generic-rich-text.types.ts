@@ -41,6 +41,8 @@ export type TGenericRichTextConfig = {
   readonly debounceMs?: TDynamicNumberValue;
   readonly toolbar?: readonly TGenericRichTextToolbarItem[];
   readonly sanitizerPolicyId?: TDynamicStringValue;
+  /** In-memory Blob allowlist; used only by the opt-in fixed-article-v2 policy. */
+  readonly privateImageSources?: TDynamicValue<readonly string[]>;
   readonly classes?: TDynamicStringValue;
   readonly labelClasses?: TDynamicStringValue;
   readonly descriptionClasses?: TDynamicStringValue;

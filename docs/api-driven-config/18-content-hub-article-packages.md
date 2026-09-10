@@ -61,6 +61,7 @@ Each entry identifies the hub and how the current draft renders it:
 - `articlePathPattern`
 - `defaultLocale`
 - `locales`
+- optional `localePolicy`: `published-only`
 - `canonicalMode`
 - optional `runtimeSourceId`
 - optional `publicApiBasePath`
@@ -74,6 +75,28 @@ When a published bundle uses article-level `canonicalMode: "none"`, Runtime Read
 value. The page payload intentionally does not expose the broader article-mode vocabulary.
 
 The schema is `docs/api-driven-config/schemas/content-hub-public.schema.json`. The site config schema also exposes the same public shape through `contentHubRuntime`.
+
+### Published-localization opt-in
+
+Omitting `localePolicy` preserves the legacy reader behavior, including its
+existing localization and authored-index fallbacks. The only accepted present
+value is `published-only`; it is scoped to one hub, not a global default.
+
+For an opted-in hub, Runtime Read requires a nonempty published
+`localizations[requestedLocale]` with its own valid title, path and publication
+date. It does not borrow localized text, body, dates or cover fields from the
+selected top-level language. An article without the requested translation is
+excluded from the public index and its route resolves as missing.
+
+The dynamic article index is authoritative in this mode. Static `publicArticles`
+cannot restore a missing translation or unpublished article. If the metadata
+binding is absent or returns no eligible articles, the public article list stays
+empty. Other hubs in the same request retain their existing behavior.
+
+The producer is responsible for placing only published translations in
+`localizations`. This option is not authorization to publish or read private
+revisions. It requires a compatible Runtime Read release before opting in a
+published draft; local contract acceptance does not deploy or activate it.
 
 `publicArticles` is intentionally small and public. It may carry only published article IDs, locale, title, summary, same-origin path, category slug, tags, published/updated timestamps, author display label, canonical path, robots, and optional safe cover image fields (`imageSrc` as same-origin or HTTPS plus `imageAlt`). `publicTaxonomy` may carry visible category/tag IDs, slug, label, locale, and an optional same-origin path. SSR can use these fields for sitemap, RSS/Atom-compatible feeds, basic public search, article cards, and article `BlogPosting` metadata while the dynamic runtime-read/DynamoDB content endpoints are still being connected.
 
@@ -402,6 +425,50 @@ The local content-hub contract harness must keep these product roles present in 
 Focused schema tests live in `tools/tests/content-hub-schema.spec.mjs`.
 
 ## Local Contract Harness
+
+### Opt-in private fixed-article media (local candidate)
+
+The fixed editor's private media helper normalizes JPEG/PNG/WebP sources up to
+8 MiB into bounded, orientation-correct, metadata-free browser images. The
+private v2 transport independently enforces the 4 MiB normalized input, base64,
+metadata and complete-envelope limits. The legacy uploader retains its own
+5 MiB policy and is not used by this helper.
+
+Cover and inline uploads wait for acknowledged saves and submit only the
+current article/locale/concurrency token. A cancellation or locale change cannot
+attach a delayed result to another editor. Existing text remains intact on
+reauthentication, conflict or processing errors. Cancel stops association in
+the editor; an already accepted server invocation can still finish privately.
+
+Private image previews use the existing v2 `assetList` POST with an optional
+`assetId`, obtaining one image at a time with `no-store`. Blob URLs remain in
+memory and are revoked on editor disposal. Private bundle HTML uses inert
+`data-private-asset` references; the helper rejects active markup and hydrates
+only those references. No signed URL or new public GET endpoint is introduced.
+
+The opt-in helpers are wired to `FixedArticleDeskService` and the protected v2
+auth adapter. Draft primitives select this desk with `journalDeskConfig.template
+= "fixed-article-v2"`; other drafts keep the legacy path. The draft supplies six
+private route packages, but this does not activate the private origin or publish
+articles. The server must receive a separately reviewed exact-origin binding
+through `PROTECTED_ORIGIN_BINDING_PATH`. Client queries cannot select it.
+The current protected-origin integration is TEST-only: its runtime lookups stay
+on TEST even when a caller supplies an explicit production query option.
+
+Private SSR strips the entire hydration payload and retains only the validated
+origin/domain/role tuple needed for client bootstrap. Auth, session and article
+state are not transferred. Sign-in and MFA precede fresh session checks for list,
+editor and preview routes. Missing publisher integration stays unavailable.
+
+The per-instance Quill registry permits only images already registered as private
+Blob sources in that editor; it does not mutate Quill's global registry.
+`valueRevision` is an opt-in input reset for acknowledged document/locale changes.
+The reauthentication modal uses `closeOnEscape=false`; the default remains true.
+Focused tests live in
+`tools/tests/fixed-article-{client,editor,media}.spec.mjs` and
+`src/app/shared/utility/content-hub/fixed-article-media.browser.spec.ts`,
+`tools/tests/protected-origin.spec.mjs`, the protected case in
+`tools/tests/ssr-server.spec.mjs`, and `fixed-article-desk.service.spec.ts`.
 
 The backend boundary is checked locally before any AWS writes exist.
 

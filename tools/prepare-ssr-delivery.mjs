@@ -20,7 +20,7 @@ function assertCoordinates(c) {
 function safePath(value) {
   return typeof value === 'string' && value.length < 1024 && value.split('/').every(part => (
     /^[A-Za-z0-9][A-Za-z0-9._~-]*$/.test(part) && !part.includes('..')
-    && !privateSegments.has(part.toLowerCase()) && part !== 'draft-repo.config.json'
+    && !privateSegments.has(part.toLowerCase()) && !['draft-repo.config.json','thn-protected-origin-binding.json'].includes(part.toLowerCase())
   ));
 }
 
@@ -176,7 +176,7 @@ async function main() {
   const adminEnabled = flag === 'true';
   const root = path.resolve('dist/ssr-lambda');
   const routeManifest = JSON.parse(await readFile(new URL('./ops/thn-content-hub-v2-route-manifest.json', import.meta.url), 'utf8'));
-  // Workstream B supplies this explicit closed inventory. Never guess admin access from all browser files.
+  // The build's dependency-closure producer supplies this inventory, never the whole browser directory.
   const adminRelease = adminEnabled ? JSON.parse(await readFile('dist/zoolandingpage/thn-admin-release.json', 'utf8')) : undefined;
   const result = await prepareDelivery({ root, routeManifest, adminEnabled, adminRelease,
     environment: process.env.DEPLOY_ENV, releaseId: process.env.RELEASE_ID, sourceCommit: process.env.GITHUB_SHA,

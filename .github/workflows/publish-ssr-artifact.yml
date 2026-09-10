@@ -15,6 +15,11 @@ on:
         description: Optional release id; defaults to the commit SHA
         required: false
         type: string
+      thn_admin_artifact:
+        description: Include the approved private THN admin artifact (TEST only)
+        required: false
+        type: boolean
+        default: false
   push:
     branches:
       - test
@@ -36,7 +41,7 @@ jobs:
       DEPLOY_ENV: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || (github.ref_name == 'main' && 'production' || github.ref_name) }}
       RELEASE_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.release_id || github.sha }}
       CONFIG_API_URL: https://api.zoolandingpage.com.mx
-      THN_ADMIN_ARTIFACT_ENABLED: ${{ vars.THN_ADMIN_ARTIFACT_ENABLED || 'false' }}
+      THN_ADMIN_ARTIFACT_ENABLED: ${{ github.event_name == 'workflow_dispatch' && inputs.thn_admin_artifact && 'true' || 'false' }}
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
@@ -69,6 +74,10 @@ jobs:
             echo "Deployment environment must be test or production."
             exit 1
           fi
+          if [[ "$THN_ADMIN_ARTIFACT_ENABLED" == "true" && "$DEPLOY_ENV" != "test" ]]; then
+            echo "The private THN artifact is TEST only."
+            exit 1
+          fi
 
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
@@ -86,7 +95,7 @@ jobs:
 
       - run: npm ci
       - run: npm audit --omit=dev
-      - run: node --test tools/tests/ssr-delivery-contract.spec.mjs tools/tests/ops-thn-content-hub-v2-front-door.spec.mjs
+      - run: node --test tools/tests/ssr-delivery-contract.spec.mjs tools/tests/ops-thn-content-hub-v2-front-door.spec.mjs tools/tests/thn-admin-artifact.spec.mjs
       - run: npm run package:ssr:lambda
       - run: npm run test:draft-public-artifact-boundary
 
@@ -131,6 +140,8 @@ jobs:
       EXPECTED_ARTIFACT_ID: ${{ needs.validate.outputs.artifact_id }}
       EXPECTED_DELIVERY_SHA256: ${{ needs.validate.outputs.delivery_sha256 }}
       EXPECTED_SOURCE_ATTEMPT: ${{ needs.validate.outputs.source_attempt }}
+      EXPECTED_THN_ADMIN_ENABLED: ${{ github.event_name == 'workflow_dispatch' && inputs.thn_admin_artifact && 'true' || 'false' }}
+      THN_ADMIN_ARTIFACT_ALLOWED: ${{ vars.THN_ADMIN_ARTIFACT_ENABLED || 'false' }}
     steps:
       - name: Verify protected target branch and coordinates
         shell: bash
@@ -187,7 +198,7 @@ jobs:
                   if entry.is_file(): actual.append(entry.relative_to(root).as_posix())
                   else: assert entry.is_dir()
               names = []
-              forbidden = {'server','.git','.github','tools','node_modules','ai_notes','findings','errors-reports','devonly','logs','reports','.superpowers','draft-repo.config.json'}
+              forbidden = {'server','.git','.github','tools','node_modules','ai_notes','findings','errors-reports','devonly','logs','reports','.superpowers','draft-repo.config.json','thn-protected-origin-binding.json'}
               for item in delivery['files']:
                   assert set(item) == {'path','sha256'}
                   name = item['path']
@@ -202,6 +213,15 @@ jobs:
               assert {'manifest.json','ssr-handler.zip'}.issubset(names)
               assert any(n.startswith('staging/browser/') for n in names)
               admin = delivery['thnAdmin']
+              selected = os.environ['EXPECTED_THN_ADMIN_ENABLED']
+              assert selected in {'true','false'}
+              assert admin.get('enabled') is (selected == 'true')
+              if delivery['environment'] == 'test':
+                  # An enabled TEST deployment cannot be silently downgraded by a default-off push.
+                  allowed = os.environ.get('THN_ADMIN_ARTIFACT_ALLOWED', 'false')
+                  assert allowed in {'true','false'} and selected == allowed
+              else:
+                  assert selected == 'false'
               if admin == {'enabled': False}:
                   assert 'thn-admin-release.json' not in names and 'thn-route-manifest.json' not in names
               else:
@@ -214,7 +234,7 @@ jobs:
                   assert release['staticAssetPaths'] and len(set(release['staticAssetPaths'])) == len(release['staticAssetPaths'])
                   for asset in release['staticAssetPaths']:
                       assert asset.startswith('/browser/') and 'staging' + asset in names
-                      assert re.search(r'(?:^|[._-])[a-f0-9]{8,64}(?=[._-])', pathlib.PurePosixPath(asset).name, re.I)
+                      assert re.search(r'(?:^|[._-])(?:[A-Fa-f0-9]{8,64}|[A-Z2-7]{8})(?=[._-])', pathlib.PurePosixPath(asset).name)
                       assert re.search(r'\.(?:js|mjs|css|woff2?|ttf|otf|png|jpe?g|webp|avif|svg|ico)$', asset, re.I)
               manifest = json.loads((root / 'manifest.json').read_bytes())
               prefix = 'frontend/angular-ssr/' + delivery['environment'] + '/releases/' + delivery['releaseId']

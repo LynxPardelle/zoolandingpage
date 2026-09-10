@@ -466,6 +466,7 @@
           "minItems": 1,
           "items": { "$ref": "#/definitions/contentHubLocale" }
         },
+        "localePolicy": { "type": "string", "enum": ["published-only"] },
         "canonicalMode": {
           "type": "string",
           "enum": ["owner-canonical", "host-adaptive", "noindex-shared"]

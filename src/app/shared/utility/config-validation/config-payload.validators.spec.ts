@@ -1246,6 +1246,25 @@ describe('config-payload.validators', () => {
         expect(isDraftSiteConfigPayload(payload)).toBeTrue();
     });
 
+    it('accepts published-only locale policy only when explicitly selected by a hub', () => {
+        const hub = {
+            hubId: 'thehairnarrative-com-journal', ownerDraftDomain: 'thehairnarrative.com',
+            source: 'primary', routeBasePath: '/the-journal', listPath: '/the-journal',
+            articlePathPattern: '/the-journal/:seriesSlug/:articleSlug', defaultLocale: 'en',
+            locales: ['en', 'es'], canonicalMode: 'owner-canonical',
+        };
+        const payload = (config: Record<string, unknown>) => ({
+            version: 1, domain: 'thehairnarrative.com', routes: [{ path: '/', pageId: 'home' }],
+            site: minimalSiteConfig(), runtime: { contentHubs: [config] },
+        });
+        expect(isDraftSiteConfigPayload(payload(hub))).withContext('legacy option remains absent').toBeTrue();
+        expect(isDraftSiteConfigPayload(payload({ ...hub, localePolicy: 'published-only' }))).toBeTrue();
+        for (const value of [null, true, false, [], {}, '', 'published', ' published-only ']) {
+            expect(isDraftSiteConfigPayload(payload({ ...hub, localePolicy: value })))
+                .withContext(`invalid locale policy: ${JSON.stringify(value)}`).toBeFalse();
+        }
+    });
+
     it('accepts content hub runtime data sources and actions with public identifiers only', () => {
         const payload = {
             version: 1,

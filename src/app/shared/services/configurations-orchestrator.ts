@@ -106,6 +106,7 @@ export class ConfigurationsOrchestratorService {
             ariaLabel: this.resolveModalAriaLabel(modalId, payloadConfig),
             ariaDescribedBy: payloadConfig?.ariaDescribedBy,
             closeOnBackdrop: payloadConfig?.closeOnBackdrop ?? true,
+            closeOnEscape: payloadConfig?.closeOnEscape ?? true,
             showCloseButton: payloadConfig?.showCloseButton ?? true,
             size: payloadConfig?.size,
             showAccentBar: payloadConfig?.showAccentBar,

@@ -40,6 +40,7 @@ import { LanguageService } from './language.service';
 import { RuntimeConfigService } from './runtime-config.service';
 import { StructuredDataService } from './structured-data.service';
 import { VariableStoreService } from './variable-store.service';
+import {isFixedJournal,journalArticles,journalView,journalSeries} from '../utility/content-hub/fixed-journal-public';
 
 export type TBootstrapResult = {
     readonly domain: string;
@@ -352,7 +353,8 @@ export class ConfigBootstrapService {
         const defaultLanguage = this.defaultDraftLanguage(siteConfig, loadedVariables, draftLanguages);
         this.language.configureLanguages(
             draftLanguages.map((entry) => entry.code),
-            { defaultLanguage, requestedLanguage: requestedLang, routeLanguage: opts?.routeLanguage }
+            { defaultLanguage, requestedLanguage: requestedLang, routeLanguage: opts?.routeLanguage,
+                ...(siteConfig?.runtime?.contentHubs ? {contentHubs: siteConfig.runtime.contentHubs} : {}) }
         );
         const lang = this.language.currentLanguage();
         const fallbackLang = this.secondaryLanguage(lang, draftLanguages);
@@ -374,7 +376,7 @@ export class ConfigBootstrapService {
         const i18nPayload = await this.loadI18n(domain, pageId, lang, sourceOptions);
         this.store.setI18n(i18nPayload);
 
-        const seo = this.buildContentHubSeo(pageConfig?.seo ?? null, contentHubRuntime.currentArticle, siteConfig);
+        const seo = this.buildContentHubSeo(pageConfig?.seo ?? null, contentHubRuntime.currentArticle, siteConfig, opts?.routePath, lang);
         const structuredData = this.buildContentHubStructuredData(pageConfig?.structuredData ?? null, contentHubRuntime.currentArticle, siteConfig);
         const loadedAnalytics = pageConfig?.analytics ?? null;
         const analytics = this.buildResolvedAnalyticsConfig(
@@ -436,8 +438,9 @@ export class ConfigBootstrapService {
         }
 
         const lang = this.normalizeContentHubLanguage(context.lang);
+        const journalHub=hubs.find(isFixedJournal);
         const articles = hubs
-            .flatMap((hub) => this.readContentHubRuntimeCollection<TContentHubRuntimeArticleSummary>(hub.publicArticles))
+            .flatMap((hub) => isFixedJournal(hub)?journalArticles(hub,lang):this.readContentHubRuntimeCollection<TContentHubRuntimeArticleSummary>(hub.publicArticles))
             .filter((article): article is TContentHubRuntimeArticleSummary => article.status === 'published'
                 && ((article as { readonly visibility?: unknown }).visibility === undefined
                     || (article as { readonly visibility?: unknown }).visibility === 'public'))
@@ -448,15 +451,26 @@ export class ConfigBootstrapService {
             .filter((entry): entry is TContentHubRuntimeTaxonomySummary => entry.visible !== false)
             .filter((entry) => !lang || this.normalizeContentHubLanguage(entry.locale) === lang);
 
+        const matchedHub=hubs.find(hub=>normalizeDraftRoutePath(context.routePath).startsWith(hub.routeBasePath+'/'));
+        const taxonomyParam=matchedHub?.articlePathPattern.split('/').at(-2)?.replace(/^:/,'');
+        const routeContext=taxonomyParam?{...context,routeParams:{...context.routeParams,categorySlug:context.routeParams?.[taxonomyParam]??''}}:context;
+        const journal=journalHub?journalView(journalHub,normalizeDraftRoutePath(context.routePath),lang):null;
         const currentArticle = this.preserveRuntimeReadArticleContent(
-            this.findContentHubCurrentArticle(articles, context),
+            journalHub && normalizeDraftRoutePath(context.routePath).startsWith('/the-journal/')
+                ? journal?.current ?? null : this.findContentHubCurrentArticle(articles, routeContext),
             loadedVariables,
+            !!journalHub,
         );
-        const filteredArticles = this.filterContentHubArticlesForRoute(articles, context);
+        const filteredArticles = this.filterContentHubArticlesForRoute(articles, routeContext);
+        const body=this.isRecord(currentArticle?.articleContent)?currentArticle.articleContent:null;
+        const display=this.isRecord(loadedVariables?.variables?.['journalArticle'])?loadedVariables.variables['journalArticle']:{};
+        const focal=(key:string)=>typeof display[key]==='number'&&display[key]>=0&&display[key]<=100?display[key]:50;
 
         return {
             currentArticle,
             values: {
+                ...(journal?{'journalDelivery':{...journal,current:currentArticle,bodyHtml:typeof body?.['html']==='string'?body['html']:'',
+                    coverStyle:{width:'100%','aspect-ratio':'4 / 3','object-fit':'cover','object-position':`${focal('coverFocalX')}% ${focal('coverFocalY')}%`}}}:{}),
                 'contentHub.publicArticles': {
                     items: filteredArticles,
                 },
@@ -475,6 +489,7 @@ export class ConfigBootstrapService {
     private preserveRuntimeReadArticleContent(
         currentArticle: TContentHubRuntimeArticleSummary | null,
         loadedVariables: TVariablesPayload | null,
+        strict=false,
     ): TContentHubRuntimeArticleSummary | null {
         if (!currentArticle) return null;
 
@@ -487,8 +502,12 @@ export class ConfigBootstrapService {
         if (!loadedArticle || this.cleanString(loadedArticle['articleId']) !== currentArticle.articleId) {
             return currentArticle;
         }
+        if(strict&&(loadedArticle['locale']!==currentArticle.locale||loadedArticle['path']!==currentArticle.path)) return currentArticle;
 
-        const articleContent = loadedArticle['articleContent'];
+        const display = loadedVariables?.variables?.['journalArticle'];
+        const bundledBody = loadedVariables?.variables?.['articleContent'];
+        const articleContent = strict && this.isRecord(display) && display['path'] === currentArticle.path
+            && isContentHubRuntimeArticleContent(bundledBody) ? bundledBody : loadedArticle['articleContent'];
         if (!isContentHubRuntimeArticleContent(articleContent)) {
             return currentArticle;
         }
@@ -580,12 +599,23 @@ export class ConfigBootstrapService {
         pageSeo: TSeoPayload | null,
         article: TContentHubRuntimeArticleSummary | null,
         siteConfig: TDraftSiteConfigPayload | null,
+        routePath?: string,
+        language?: string,
     ): TSeoPayload | null {
+        const parts=normalizeDraftRoutePath(routePath).split('/').filter(Boolean);
+        const series=!article && siteConfig?.runtime?.contentHubs?.some(isFixedJournal) && parts.length===2 && parts[0]==='the-journal'
+            ?journalSeries(parts[1],language??'en'):null;
+        if(series) {
+            const canonical=new URL('/the-journal/'+series.slug,siteConfig?.site?.seo?.canonicalOrigin||'https://thehairnarrative.com');
+            canonical.searchParams.set('lang',language??'en');
+            return {...pageSeo,title:series.title+' | The Journal',canonical:canonical.href};
+        }
         if (!article) return pageSeo;
         const title = this.cleanString(article.title) || pageSeo?.title;
         const description = this.cleanString(article.summary) || pageSeo?.description;
         const canonical = this.resolveContentHubCanonicalUrl(article, siteConfig) || pageSeo?.canonical;
-        const image = this.resolveContentHubSocialImage(siteConfig, pageSeo);
+        const strict=siteConfig?.runtime?.contentHubs?.some(isFixedJournal) && article.path.startsWith('/the-journal/');
+        const image = strict&&article.imageSrc?new URL(article.imageSrc,String(siteConfig?.site?.seo?.canonicalOrigin||'https://thehairnarrative.com')).href:this.resolveContentHubSocialImage(siteConfig, pageSeo);
         const pageOpenGraph = this.isRecord(pageSeo?.openGraph) ? pageSeo.openGraph : {};
 
         return {
@@ -595,6 +625,7 @@ export class ConfigBootstrapService {
             canonical,
             keywords: Array.isArray(article.tags) && article.tags.length > 0 ? article.tags : pageSeo?.keywords,
             robots: this.cleanString(article.robots) || pageSeo?.robots,
+            ...(strict?{twitter:{card:'summary_large_image',title,description,image}}:{}),
             openGraph: {
                 ...pageOpenGraph,
                 ...(title ? { title } : {}),
@@ -613,7 +644,8 @@ export class ConfigBootstrapService {
     ): TStructuredDataPayload | null {
         if (!article) return pageStructuredData;
         const canonical = this.resolveContentHubCanonicalUrl(article, siteConfig);
-        const image = this.resolveContentHubSocialImage(siteConfig);
+        const strict=siteConfig?.runtime?.contentHubs?.some(isFixedJournal) && article.path.startsWith('/the-journal/');
+        const image = strict&&article.imageSrc?new URL(article.imageSrc,String(siteConfig?.site?.seo?.canonicalOrigin||'https://thehairnarrative.com')).href:this.resolveContentHubSocialImage(siteConfig);
         const publisherName = this.cleanString(siteConfig?.site?.seo?.siteName) || this.cleanString(siteConfig?.domain);
         const title = this.cleanString(article.title);
         const description = this.cleanString(article.summary);
@@ -623,7 +655,7 @@ export class ConfigBootstrapService {
 
         return {
             entries: [
-                ...(pageStructuredData?.entries ?? []),
+                ...(pageStructuredData?.entries ?? []).filter(entry=>!strict||entry['@type']!=='BlogPosting'),
                 {
                     '@context': 'https://schema.org',
                     '@type': 'BlogPosting',
@@ -654,7 +686,9 @@ export class ConfigBootstrapService {
         if (!origin) return path;
 
         try {
-            return new URL(path, `${ origin }/`).toString();
+            const url=new URL(path, `${ origin }/`);
+            if(siteConfig?.runtime?.contentHubs?.some(isFixedJournal)&&path.startsWith('/the-journal/')) url.searchParams.set('lang',article.locale);
+            return url.toString();
         } catch {
             return path;
         }

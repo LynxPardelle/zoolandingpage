@@ -35,7 +35,8 @@ const EXPECTED_PUBLIC_BACKEND = [
 ];
 
 const SAFE_SEGMENT = '[A-Za-z0-9][A-Za-z0-9._~-]{0,127}';
-const STATIC_ASSET_HASH = /(?:^|[._-])[a-f0-9]{8,64}(?=[._-])/i;
+// Angular's pinned esbuild output uses uppercase eight-character base32 hashes.
+const STATIC_ASSET_HASH = /(?:^|[._-])(?:[A-Fa-f0-9]{8,64}|[A-Z2-7]{8})(?=[._-])/;
 const ADMIN_DENY_PATH_PREFIXES = [
   '/runtime-bundle',
   '/features/content-hub-v2/public-media',

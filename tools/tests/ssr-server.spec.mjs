@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { createServer as createHttpServer } from 'node:http';
 import { createServer as createNetServer } from 'node:net';
 import { join, resolve } from 'node:path';
@@ -8,6 +9,40 @@ import { test } from 'node:test';
 
 const repoRoot = resolve(import.meta.dirname, '../..');
 const serverEntry = resolve(repoRoot, 'dist/zoolandingpage/server/server.mjs');
+
+test('THN strict Journal SSR preserves locale SEO, hydration ownership, empty series and private boundaries', async t=>{
+  const site=JSON.parse(readFileSync(join(repoRoot,'drafts/thehairnarrative.com/site-config.json'),'utf8'));
+  const article={articleId:'fixture-es',locale:'es',status:'published',visibility:'public',title:'Una forma de mirar',summary:'Una nota editorial.',
+    path:'/the-journal/formas-nupciales/una-forma',categorySlug:'formas-nupciales',publishedAt:'2026-09-01T12:00:00Z',
+    imageSrc:'/features/content-hub-v2/public-media/fixture-es/es/revision/cover/w1200',imageAlt:'Cabello'};
+  site.runtime.contentHubs[0].publicArticles=[article];
+  const api=await startRuntimeApi(t,(req,res)=>{
+    const u=new URL(req.url,'http://127.0.0.1'),p=u.searchParams.get('path')||'/';
+    const pageId=p===article.path?'the-journal-article':p==='/the-journal/formas-nupciales'?'the-journal-series':'the-journal';
+    if(!['/runtime-bundle','/site-config'].includes(u.pathname)){res.writeHead(404);res.end('{}');return;}
+    res.writeHead(200,{'content-type':'application/json'});
+    res.end(JSON.stringify(u.pathname==='/site-config'?site:{version:1,domain:site.domain,pageId,lang:u.searchParams.get('lang')||'en',sourceStage:'published',siteConfig:site,
+      route:{path:p,pageId},pageConfig:{version:1,domain:site.domain,pageId,rootIds:['pageTitle']},
+      components:{version:1,domain:site.domain,pageId,components:[{id:'pageTitle',type:'text',config:{tag:'h1',text:'the journal'}}]},
+      variables:{version:1,domain:site.domain,pageId,variables:{}},i18n:{version:1,domain:site.domain,pageId,lang:u.searchParams.get('lang')||'en',dictionary:{}},
+      metadata:{statusCode:200,notFound:false}}));
+  });
+  const {port}=await startProductionServer(t,{CONFIG_API_URL:api,CONFIG_API_SERVER_FALLBACK_URL:''});
+  const headers={Host:site.domain,'X-Forwarded-Host':site.domain,'X-Forwarded-Proto':'https'};
+  const get=p=>fetch(`http://127.0.0.1:${port}${p}`,{headers});
+  const response=await get(article.path+'?lang=es'),html=await response.text();assert.equal(response.status,200);
+  assert.match(html,/data-zlp-structured-data-key="sd:bootstrap:0"/);
+  assert.equal((html.match(/"@type":"BlogPosting"/g)||[]).length,1);
+  assert.ok(html.includes('href="https://thehairnarrative.com'+article.path+'?lang=es"'));
+  assert.ok(html.includes('content="https://thehairnarrative.com'+article.imageSrc+'"'));
+  assert.doesNotMatch(html,/hreflang="en"/);
+  for(const p of [article.path+'?lang=en','/the-journal/tag/hidden?lang=es','/the-journal/no-such-series?lang=es'])assert.equal((await get(p)).status,404,p);
+  const series=await get('/the-journal/observation-and-process?lang=en');assert.equal(series.status,200);
+  assert.ok((await series.text()).includes('rel="canonical" href="https://thehairnarrative.com/the-journal/observation-and-process?lang=en"'),'localized empty-series canonical');
+  const sitemap=await (await get('/sitemap.xml?lang=en')).text();assert.ok(sitemap.includes(article.path+'?lang=es'));
+  assert.doesNotMatch(sitemap,/\/admin\/|:seriesSlug|\/tag\//);
+  const search=await (await get('/content-hub-search.json?lang=en')).text();assert.ok(!search.includes(article.articleId));
+});
 
 async function getAvailablePort() {
   const server = createNetServer();
@@ -120,7 +155,7 @@ async function startProductionServer(t, extraEnv = {}) {
 
 // Published-host routing tests must not depend on whichever draft is currently
 // published by an external API. Serve the unchanged, repository-owned fixtures.
-async function startPublishedDraftFixture(t, domain) {
+async function startPublishedDraftFixture(t, domain, extraEnv = {}, onRequest = () => {}) {
   const root = join(repoRoot, 'drafts', domain);
   const read = relative => JSON.parse(readFileSync(join(root, relative), 'utf8'));
   const siteConfig = read('site-config.json');
@@ -135,6 +170,7 @@ async function startPublishedDraftFixture(t, domain) {
   };
   const apiBase = await startRuntimeApi(t, (req, res) => {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+    onRequest(url);
     const route = siteConfig.routes.find(item => item.path === (url.searchParams.get('path') || '/'));
     if (url.pathname !== '/runtime-bundle' || url.searchParams.get('domain') !== domain || !route) {
       res.writeHead(404, { 'Content-Type': 'application/json' });
@@ -157,8 +193,50 @@ async function startPublishedDraftFixture(t, domain) {
       metadata: {},
     }));
   });
-  return startProductionServer(t, { CONFIG_API_SERVER_FALLBACK_URL: '', CONFIG_API_URL: apiBase });
+  return startProductionServer(t, { CONFIG_API_SERVER_FALLBACK_URL: '', CONFIG_API_URL: apiBase, ...extraEnv });
 }
+
+test('protected SSR inventory is server-bound and never falls through to public draft selection', async t => {
+  const directory = mkdtempSync(join(tmpdir(), 'thn-protected-ssr-'));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const bindingPath = join(directory, 'binding.json');
+  writeFileSync(bindingPath, JSON.stringify({
+    origin: 'https://admin-test.thehairnarrative.com', domain: 'thehairnarrative.com',
+    pagePrefix: '/admin/journal',
+    pageRoutes: ['/admin/journal/access','/admin/journal/mfa','/admin/journal','/admin/journal/new',
+      '/admin/journal/:articleId/edit','/admin/journal/:articleId/preview'],
+    backendRoutes: [{path:'/auth-v2/session/me',methods:['GET']}],
+    backendPrefixes: ['/auth-v2','/features/content-hub-v2/read','/features/content-hub-v2/action'],
+    staticPaths: [],
+  }));
+  const environments=[];
+  const server = await startPublishedDraftFixture(t, 'thehairnarrative.com', {PROTECTED_ORIGIN_BINDING_PATH: bindingPath},
+    url=>{if(url.pathname==='/runtime-bundle')environments.push(url.searchParams.get('environment'));});
+  const fetchAs = (host, path) => fetch(`http://127.0.0.1:${server.port}${path}`,
+    {headers:{Host:host,'X-Forwarded-Host':host,'X-Forwarded-Proto':'https'}});
+  for (const path of ['/', '/the-journal', '/runtime-bundle',
+    '/admin/journal?draftDomain=another.test', '/auth-v2/session/me']) {
+    const response = await fetchAs('admin-test.thehairnarrative.com', path);
+    assert.equal(response.status,404,path);
+    assert.match(response.headers.get('cache-control'),/no-store/);
+  }
+  for (const path of ['/admin/journal','/%61dmin/journal','/auth-v2/session/me']) {
+    assert.equal((await fetchAs('test.zoolandingpage.com.mx', path)).status,404,path);
+  }
+  const access = await fetchAs('admin-test.thehairnarrative.com', '/admin/journal/access?lang=en');
+  assert.equal(access.status,200);
+  assert.match(access.headers.get('cache-control'),/no-store/);
+  assert.match(access.headers.get('x-robots-tag'),/noindex/);
+  const html = await access.text();
+  assert.match(html,/the hair narrative/i);
+  assert.match(html,/zlp-protected-origin/);
+  const state = JSON.parse(html.match(/<script id="ng-state" type="application\/json">([\s\S]*?)<\/script>/)[1]);
+  assert.deepEqual(state, {'zlp-protected-origin': {
+    origin:'https://admin-test.thehairnarrative.com',domain:'thehairnarrative.com',originRole:'protected-admin'}});
+  assert.doesNotMatch(html,/SUBJECT#|CURRENT_USER#|SESSION#|writerEpoch/);
+  assert.ok(environments.length>0);
+  assert.ok(environments.every(value=>value==='test'),JSON.stringify(environments));
+});
 
 function assertNoSensitiveAuthSurface(body) {
   const forbiddenPatterns = [

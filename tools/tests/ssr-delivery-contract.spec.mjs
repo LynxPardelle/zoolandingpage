@@ -106,7 +106,7 @@ test('the actual credential-job verifier accepts sealed files and denies extra f
   await cp(root, path.join(workspace, 'dist/ssr-lambda'), { recursive: true });
   const run = () => spawnSync('python', ['-c', script], { cwd: workspace, encoding: 'utf8', windowsHide: true,
     env: { ...process.env, EXPECTED_DELIVERY_SHA256: digest, DEPLOY_ENV: 'test', RELEASE_ID: sha, GITHUB_SHA: sha,
-      GITHUB_RUN_ID: '123', EXPECTED_SOURCE_ATTEMPT: '1' } });
+      GITHUB_RUN_ID: '123', EXPECTED_SOURCE_ATTEMPT: '1',EXPECTED_THN_ADMIN_ENABLED:'false' } });
   let result = run();
   assert.equal(result.status, 0, result.stderr);
   await writeFile(path.join(workspace, 'dist/ssr-lambda/extra.json'), '{}');
@@ -115,9 +115,33 @@ test('the actual credential-job verifier accepts sealed files and denies extra f
   assert.match(result.stderr, /SSR delivery verification failed/);
 });
 
+test('the actual credential-job verifier accepts only sealed Angular base32 admin assets', async () => {
+  const api = await tool();
+  const workflow = await readFile(new URL('../../.github/workflows/publish-ssr-artifact.yml', import.meta.url), 'utf8');
+  const script = workflow.match(/python3 - <<'PY'\r?\n([\s\S]*?)\r?\n          PY/)[1].replace(/^          /gm, '');
+  const workspace = await mkdtemp(path.join(os.tmpdir(), 'thn-inline-admin-verifier-'));
+  const { root, routes } = await fixture();
+  await writeFile(path.join(root, 'staging/browser/main-4LAYAEZF.js'), 'export const editor = "fixed-article-v2";');
+  const adminRelease = { version: 1, environment: 'test', releaseId: sha, staticAssetPaths: ['/browser/main-4LAYAEZF.js'] };
+  const { digest } = await api.prepareDelivery({ root, ...coords, routeManifest: routes, adminEnabled: true, adminRelease });
+  await api.verifyDelivery({ root, digest, ...coords });
+  const { cp } = await import('node:fs/promises');
+  await cp(root, path.join(workspace, 'dist/ssr-lambda'), { recursive: true });
+  const run = (extra={}) => spawnSync('python', ['-c', script], { cwd: workspace, encoding: 'utf8', windowsHide: true,
+    env: { ...process.env, EXPECTED_DELIVERY_SHA256: digest, DEPLOY_ENV: 'test', RELEASE_ID: sha, GITHUB_SHA: sha,
+      GITHUB_RUN_ID: '123', EXPECTED_SOURCE_ATTEMPT: '1', EXPECTED_THN_ADMIN_ENABLED:'true',THN_ADMIN_ARTIFACT_ALLOWED:'true',...extra } });
+  assert.equal(run().status, 0);
+  for(const extra of [{EXPECTED_THN_ADMIN_ENABLED:'false'},{THN_ADMIN_ARTIFACT_ALLOWED:'false'},
+    {THN_ADMIN_ARTIFACT_ALLOWED:''},{DEPLOY_ENV:'production'}])assert.notEqual(run(extra).status,0,JSON.stringify(extra));
+  await writeFile(path.join(workspace, 'dist/ssr-lambda/staging/browser/main-4LAYAEZF.js'), 'tampered');
+  assert.notEqual(run().status, 0);
+});
+
 test('packaging refuses private, encoded, linked, and executable admin-document paths', async () => {
   const api = await tool();
-  for (const name of ['server/binding.json', '.env', 'drafts/example.com/server/binding.json', '%73erver/x.json']) {
+  for (const name of ['server/binding.json', '.env', 'drafts/example.com/server/binding.json', '%73erver/x.json',
+    'thn-protected-origin-binding.json','assets/thn-protected-origin-binding.json',
+    'drafts/_unexpected/components.json','drafts/other.test/_debug/keep.json']) {
     const { root, routes } = await fixture();
     const file = path.join(root, 'staging/browser', name);
     await mkdir(path.dirname(file), { recursive: true });
@@ -140,8 +164,33 @@ test('SSR workflow binds artifact ID and external digest before OIDC and publish
   assert.doesNotMatch(workflow, /aws s3 cp/);
   assert.match(workflow, /retention-days: 90/);
   assert.match(workflow, /THN_ADMIN_ARTIFACT_ENABLED:.*'false'/);
+  assert.ok(workflow.indexOf("selected = os.environ['EXPECTED_THN_ADMIN_ENABLED']")<workflow.indexOf('- uses: aws-actions/configure-aws-credentials'));
+  assert.match(workflow,/THN_ADMIN_ARTIFACT_ALLOWED: \$\{\{ vars.THN_ADMIN_ARTIFACT_ENABLED \|\| 'false' \}\}/);
   const validation = await readFile(new URL('../../.github/workflows/angular-validate.yml', import.meta.url), 'utf8');
   assert.equal(validation.includes('tools/tests/ssr-delivery-contract.spec.mjs'), true, 'PR validation must run delivery contracts');
+});
+
+test('normal push/default-off TEST and production deliveries retain the baseline without any THN variable',async()=>{
+ const api=await tool();
+ const workflow=await readFile(new URL('../../.github/workflows/publish-ssr-artifact.yml',import.meta.url),'utf8');
+ const script=workflow.match(/python3 - <<'PY'\r?\n([\s\S]*?)\r?\n          PY/)[1].replace(/^          /gm,'');
+ for(const environment of ['test','production']) {
+  const {root,routes,manifest}=await fixture();
+  const prefix=`frontend/angular-ssr/${environment}/releases/${sha}`;
+  await writeFile(path.join(root,'manifest.json'),JSON.stringify({...manifest,environment,browserPrefix:`${prefix}/browser`,serverBundleKey:`${prefix}/server/ssr-handler.zip`}));
+  const {digest}=await api.prepareDelivery({root,...coords,environment,routeManifest:routes});
+  const workspace=await mkdtemp(path.join(os.tmpdir(),'thn-baseline-push-'));
+  const {cp}=await import('node:fs/promises');await cp(root,path.join(workspace,'dist/ssr-lambda'),{recursive:true});
+  const env={...process.env,EXPECTED_DELIVERY_SHA256:digest,DEPLOY_ENV:environment,RELEASE_ID:sha,GITHUB_SHA:sha,
+   GITHUB_RUN_ID:'123',EXPECTED_SOURCE_ATTEMPT:'1',EXPECTED_THN_ADMIN_ENABLED:'false'};
+  delete env.THN_ADMIN_ARTIFACT_ALLOWED;
+  const run=()=>spawnSync('python',['-c',script],{cwd:workspace,env,encoding:'utf8',windowsHide:true});
+  assert.equal(run().status,0,environment);
+  env.THN_ADMIN_ARTIFACT_ALLOWED='true';
+  assert.equal(run().status===0,environment==='production',environment+' no downgrade');
+  delete env.THN_ADMIN_ARTIFACT_ALLOWED;
+  env.EXPECTED_THN_ADMIN_ENABLED='true';assert.notEqual(run().status,0,environment+' mismatch');
+ }
 });
 
 test('SSR rollback requires a successful source run and one matching immutable artifact', async () => {

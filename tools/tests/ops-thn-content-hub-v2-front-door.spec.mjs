@@ -326,6 +326,17 @@ test('sync plan stays logical, TEST-only, default-off, and free of private polic
   assert.doesNotMatch(serialized, /production|prod/i);
 });
 
+test('selected assets accept pinned Angular base32 names without admitting unhashed or malformed paths', async () => {
+  const { validateReleaseManifest } = await loadTool();
+  const release = { version: 1, environment: 'test', releaseId: 'frontend-release-0123456789abcdef',
+    staticAssetPaths: ['/browser/main-4LAYAEZF.js', '/browser/chunk-2ZPUOXRY.js', '/browser/styles-4RCU3HW5.css'] };
+  assert.deepEqual(validateReleaseManifest(release).staticAssetPaths, [...release.staticAssetPaths].sort());
+  for (const asset of ['/browser/main.js', '/browser/main-AbcdEFGH.js', '/browser/main-ABCDEFG1.js',
+    '/browser/main-ABCDEFGH2.js', '/browser/main-4LAYAEZF.js?version=1', '/browser/../main-4LAYAEZF.js']) {
+    assert.throws(() => validateReleaseManifest({ ...release, staticAssetPaths: [asset] }), /exact|hashed/);
+  }
+});
+
 test('CLI writes only a dry-run sync plan and rejects apply in Workstream A', async () => {
   assert.equal(existsSync(toolPath), true, 'TASK-014 sync tool must exist');
   const root = await mkdtemp(path.join(os.tmpdir(), 'zlp-thn-v2-front-door-'));

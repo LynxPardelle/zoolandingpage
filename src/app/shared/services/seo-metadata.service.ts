@@ -10,6 +10,8 @@ import { DomainResolverService } from './domain-resolver.service';
 import { RuntimeConfigService } from './runtime-config.service';
 import { VariableStoreService } from './variable-store.service';
 import { ConfigStoreService } from './config-store.service';
+import { ProtectedOriginService } from './protected-origin.service';
+import {isFixedJournal, journalAlternatePaths} from '../utility/content-hub/fixed-journal-public';
 
 const AD_CANONICAL_QUERY_PARAMS = new Set([
     'gclid',
@@ -41,6 +43,7 @@ export class SeoMetadataService {
     private readonly variables = inject(VariableStoreService);
     private readonly configStore = inject(ConfigStoreService);
     private readonly request = inject(REQUEST, { optional: true });
+    private readonly protectedOrigin = inject(ProtectedOriginService);
     private pageFontsInitialized = false;
 
     apply(lang: string, seo: TSeoPayload | null): void {
@@ -356,6 +359,7 @@ export class SeoMetadataService {
     }
 
     private syncBrowserIconLink(head: HTMLElement, rel: string, href: string, attributes: Record<string, string> = {}): void {
+        href = this.protectedOrigin.assetUrl(href);
         let link = head.querySelector(`link[rel="${ rel }"]`) as HTMLLinkElement | null;
         if (!href) {
             if (link?.getAttribute(MANAGED_BROWSER_ICON_ATTR) === 'true') {
@@ -440,6 +444,18 @@ export class SeoMetadataService {
     ): void {
         Array.from(head.querySelectorAll("link[rel='alternate'][hreflang]"))
             .forEach((element) => element.remove());
+
+        const journal = this.configStore.siteConfig()?.runtime?.contentHubs?.find(isFixedJournal);
+        const alternatePaths = journalAlternatePaths(journal, new URL(canonicalUrl).pathname);
+        if (alternatePaths !== null) {
+            const entries = Object.entries(alternatePaths);
+            for (const [language, path] of entries) {
+                this.appendHreflangLink(head, language, this.withLangParam(this.routeUrl(canonicalUrl, path), language));
+            }
+            const primary = entries.find(([language]) => language === 'en') ?? entries[0];
+            if (primary) this.appendHreflangLink(head, 'x-default', this.withLangParam(this.routeUrl(canonicalUrl, primary[1]), primary[0]));
+            return;
+        }
 
         const fixedSiblings = this.resolveFixedLanguageSiblings();
         if (fixedSiblings.length > 1) {

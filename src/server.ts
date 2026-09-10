@@ -1,3 +1,4 @@
+import {isFixedJournal, journalArticles, journalAlternatePaths, JOURNAL_SERIES} from './app/shared/utility/content-hub/fixed-journal-public';
 import {
     AngularNodeAppEngine,
     createNodeRequestHandler,
@@ -6,6 +7,7 @@ import {
 } from '@angular/ssr/node';
 import compression from 'compression';
 import express from 'express';
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import {
@@ -17,8 +19,21 @@ import {
 } from '@/app/shared/utility/content-hub/content-hub-public-route';
 import { matchDraftRoute, normalizeDraftRoutePath } from '@/app/shared/utility/route-matching/draft-route-matching';
 import { resolveNavigationTarget } from '@/app/shared/utility/navigation/navigation-target.utility';
+import { classifyProtectedOriginRequest, isProtectedOriginBinding, projectProtectedAssetAttributes, readPackagedProtectedOrigin, type ProtectedOriginBinding, type ProtectedOriginContext } from '@/app/shared/utility/auth/protected-admin-origin.utility';
 
+// Deployment selection is server-owned. Never load an origin binding from draft query data.
+const protectedBindingPath = process.env['PROTECTED_ORIGIN_BINDING_PATH'];
 const browserDistFolder = join(import.meta.dirname, '../browser');
+const protectedOriginBinding: ProtectedOriginBinding | null = (() => {
+  try {
+    const value: unknown = JSON.parse(readFileSync(protectedBindingPath || join(import.meta.dirname,'thn-protected-origin-binding.json'), 'utf8'));
+    // The existing explicit local/server override cannot be supplied by a request.
+    if (protectedBindingPath && isProtectedOriginBinding(value)) return value;
+    return readPackagedProtectedOrigin(value,asset=>createHash('sha256').update(readFileSync(join(browserDistFolder,asset.slice('/browser/'.length)))).digest('hex'));
+  } catch { return null; }
+})();
+const protectedRequestContexts = new WeakMap<express.Request, ProtectedOriginContext>();
+
 const DRAFTS_FOLDER_NAME = 'drafts';
 const DEBUG_DRAFT_DIRECTORY = '_debug';
 const DEFAULT_CONFIG_API_BASE_URL = 'https://api.zoolandingpage.com.mx';
@@ -330,6 +345,7 @@ type TLocalSiteConfig = Record<string, unknown> & {
 };
 
 type TContentHubRuntimeConfig = {
+  readonly localePolicy?: 'published-only';
   readonly hubId?: string;
   readonly routeBasePath?: string;
   readonly listPath?: string;
@@ -343,6 +359,8 @@ type TContentHubPublicCollection<T> = readonly T[] | {
 };
 
 type TContentHubPublicArticle = {
+  readonly imageSrc?: string;
+  readonly imageAlt?: string;
   readonly articleId?: string;
   readonly locale?: string;
   readonly status?: string;
@@ -525,6 +543,7 @@ function resolveRuntimeBundleBaseUrls(environment?: string): readonly string[] {
 }
 
 function resolveRuntimeEnvironment(host: string): TRuntimeEnvironment {
+  if (protectedOriginBinding && normalizeHost(host) === new URL(protectedOriginBinding.origin).hostname) return 'test';
   const explicit = normalizeRuntimeEnvironment(process.env['ZLP_RUNTIME_ENV']);
   if (explicit) {
     return explicit;
@@ -1211,6 +1230,7 @@ function resolveLocalRuntimePage(opts: {
   readonly siteConfig: TLocalSiteConfig;
   readonly path: string;
   readonly pageId?: string;
+  readonly lang?: string;
 }): TLocalRuntimePageResolution | null {
   const explicitPageId = String(opts.pageId ?? '').trim();
   const normalizedPath = normalizeRoutePath(opts.path);
@@ -1236,7 +1256,7 @@ function resolveLocalRuntimePage(opts: {
 
   const route = resolveLocalRoute(opts.siteConfig, normalizedPath);
   if (route) {
-    if (route.auth?.required !== true && isMissingPublishedContentHubPublicPath(opts.siteConfig.runtime?.contentHubs, normalizedPath)) {
+    if (route.auth?.required !== true && isMissingPublishedContentHubPublicPath(opts.siteConfig.runtime?.contentHubs, normalizedPath, opts.lang)) {
       return resolveLocalNotFoundRuntimePage(opts.requestedDomain, opts.siteConfig, opts.requestedDomain);
     }
 
@@ -1289,6 +1309,7 @@ function loadLocalRuntimeBundle(opts: {
       siteConfig,
       path: normalizedPath,
       pageId: opts.pageId,
+      lang: opts.lang,
     })
     : resolveCanonicalLocalNotFoundRuntimePage(requestedDomain);
   if (!resolution) {
@@ -1633,6 +1654,7 @@ async function validateRequestAllowedHosts(req: express.Request): Promise<THostH
   }
 
   for (const host of hosts) {
+    if (protectedOriginBinding && host === new URL(protectedOriginBinding.origin).hostname) continue;
     if (!await isAllowedRequestHost(host)) {
       return { ok: false, message: `Header host "${host}" is not allowed.` };
     }
@@ -1795,6 +1817,8 @@ function resolveLocalRequestAuthority(req: express.Request, host: string): strin
 }
 
 function resolveNotFoundLookupDomain(req: express.Request, host: string): string {
+  const protectedContext = protectedRequestContexts.get(req);
+  if (protectedContext) return protectedContext.domain;
   const draftDomain = normalizeHost(req.query['draftDomain']);
   if ((isLocalHost(host) || isSharedTestingPreviewHost(host)) && draftDomain) {
     return draftDomain;
@@ -2138,7 +2162,7 @@ function readPublicContentHubArticles(
 ): readonly TContentHubPublicArticle[] {
   const normalizedLang = normalizeLanguageCode(lang);
   return readContentHubRuntimeConfigs(siteConfig)
-    .flatMap((hub) => readContentHubPublicCollection(hub.publicArticles))
+    .flatMap((hub) => isFixedJournal(hub) ? journalArticles(hub, normalizedLang || hub.defaultLocale || 'en') : readContentHubPublicCollection(hub.publicArticles))
     .filter((article) => article.status === 'published' && (!article.visibility || article.visibility === 'public'))
     .map((article) => localizeContentHubArticle(article, normalizedLang))
     .filter((article): article is TContentHubPublicArticle => article !== null)
@@ -2187,10 +2211,15 @@ function buildContentHubSitemapEntries(
   host: string,
   lang?: string,
 ): readonly TSitemapEntry[] {
-  const articleEntries = readPublicContentHubArticles(siteConfig, lang)
+  const journal = readContentHubRuntimeConfigs(siteConfig).find(isFixedJournal);
+  const articles = journal ? [
+    ...readPublicContentHubArticles(siteConfig, lang).filter(a => !cleanString(a.path).startsWith('/the-journal/')),
+    ...journalArticles(journal, 'en'), ...journalArticles(journal, 'es'),
+  ] : readPublicContentHubArticles(siteConfig, lang);
+  const articleEntries = articles
     .filter((article) => !cleanString(article.robots).startsWith('noindex'))
     .map((article) => ({
-      url: resolveEffectiveCanonicalUrl(new URL(normalizeRoutePath(article.canonicalPath || article.path), origin).toString(), origin, host, siteConfig),
+      url: articleCanonicalUrl(article, origin, host, siteConfig),
       lastmod: resolveLastModifiedValue(article.updatedAt) ?? resolveLastModifiedValue(article.publishedAt),
       priority: '0.8',
     }));
@@ -2203,7 +2232,10 @@ function buildContentHubSitemapEntries(
       priority: '0.6',
     }));
 
-  return [...articleEntries, ...taxonomyEntries];
+  const journalSeriesEntries = journal ? Object.values(JOURNAL_SERIES).flatMap(series => (['en','es'] as const).map(language => ({
+    url: addLangParam(new URL('/the-journal/' + series[language][0], origin).href, language), priority: '0.6',
+  }))) : [];
+  return [...articleEntries, ...taxonomyEntries, ...journalSeriesEntries];
 }
 
 function resolveLastModifiedValue(value: unknown): string | undefined {
@@ -2677,7 +2709,8 @@ function injectProtectedSsrOverlay(html: string, overlayHtml: string): string {
   return `${html}${overlayHtml}`;
 }
 
-function decorateProtectedSsrShellHtml(html: string, siteConfig: TLocalSiteConfig | null, path: string, lang: string): string {
+function decorateProtectedSsrShellHtml(html: string, siteConfig: TLocalSiteConfig | null, path: string, lang: string,
+  protectedContext?: ProtectedOriginContext): string {
   if (!isProtectedRequestPath(siteConfig, path)) {
     return html;
   }
@@ -2686,7 +2719,17 @@ function decorateProtectedSsrShellHtml(html: string, siteConfig: TLocalSiteConfi
     removeAngularHydrationContract(replaceProtectedSsrAppRootContent(html, lang)),
     buildProtectedSsrTitle(siteConfig, lang),
   );
-  return injectProtectedSsrOverlay(markedHtml, buildProtectedSsrShellContent(lang));
+  // Strip the private hydration payload first. Only this server-owned, public-safe
+  // tuple may bootstrap the dedicated client; never preserve auth or article state.
+  const bootstrap = protectedContext
+    ? '<script id="ng-state" type="application/json">' + JSON.stringify({
+      'zlp-protected-origin': {
+        origin: protectedContext.origin, domain: protectedContext.domain, originRole: 'protected-admin',
+        ...(protectedContext.assetUrls ? {assetUrls:protectedContext.assetUrls} : {}),
+      },
+    }).replace(/</g, '\\u003c') + '</script>'
+    : '';
+  return injectProtectedSsrOverlay(projectProtectedAssetAttributes(markedHtml,protectedContext?.assetUrls), buildProtectedSsrShellContent(lang) + bootstrap);
 }
 
 function resolveNotFoundSsrCopy(lang: string): {
@@ -2881,14 +2924,14 @@ function dedupeStructuredDataEntries(entries: readonly unknown[]): readonly unkn
   return result;
 }
 
-function buildStructuredDataHeadHtml(pageConfig: TLocalPageConfig | null): string {
+function buildStructuredDataHeadHtml(pageConfig: TLocalPageConfig | null, managedJournal = false): string {
   const entries = dedupeStructuredDataEntries(readStructuredDataEntries(pageConfig));
   if (entries.length === 0) {
     return '';
   }
 
   return entries
-    .map((entry) => `<script type="application/ld+json">${escapeScriptJson(entry)}</script>`)
+    .map((entry, index) => `<script type="application/ld+json"${managedJournal ? ` data-zlp-structured-data-key="sd:bootstrap:${index}"` : ''}>${escapeScriptJson(entry)}</script>`)
     .join('\n');
 }
 
@@ -3154,7 +3197,8 @@ function resolveCanonicalHeadUrl(
     ? new URL(configuredCanonical, `${origin}/`).toString()
     : new URL(req.originalUrl || req.url || '/', `${origin}/`).toString();
   const canonicalUrl = resolveEffectiveCanonicalUrl(rawCanonical, `${origin}/`, host, siteConfig);
-  return canonicalUrl;
+  return isCategoryFilterPath && readContentHubRuntimeConfigs(contentHubSiteConfig).some(isFixedJournal)
+    ? addLangParam(canonicalUrl, lang) : canonicalUrl;
 }
 
 function buildHreflangHeadHtml(
@@ -3163,6 +3207,16 @@ function buildHreflangHeadHtml(
   siteConfig: TLocalSiteConfig | null,
   pageConfig: TLocalPageConfig | null,
 ): string {
+  const journal = readContentHubRuntimeConfigs(siteConfig).find(isFixedJournal);
+  const alternatePaths = journalAlternatePaths(journal, normalizeRoutePath(req.path));
+  if (alternatePaths !== null) {
+    const entries = Object.entries(alternatePaths);
+    const origin = resolveCanonicalOrigin(req, host, siteConfig);
+    const href = (language: string, path: string) => addLangParam(new URL(path, origin).href, language);
+    const primary = entries.find(([language]) => language === 'en') ?? entries[0];
+    return [...entries.map(([language, path]) => `<link rel="alternate" hreflang="${language}" href="${escapeHtmlAttribute(href(language, path))}">`),
+      ...(primary ? [`<link rel="alternate" hreflang="x-default" href="${escapeHtmlAttribute(href(primary[0], primary[1]))}">`] : [])].join('\n');
+  }
   const activeRoute = resolveLocalRoute(siteConfig, req.path);
   const activeRouteLanguage = normalizeLanguageCode(activeRoute?.language);
   if (activeRouteLanguage && activeRoute?.pageId) {
@@ -3350,8 +3404,8 @@ function findContentHubArticleForRequest(
     const lang = resolveRequestLanguage(req, siteConfig ?? null);
     const article = readPublicContentHubArticles(siteConfig ?? null, lang)
       .find((entry) => normalizeRoutePath(entry.path) === path)
-      ?? readPublicContentHubArticles(siteConfig ?? null)
-        .find((entry) => normalizeRoutePath(entry.path) === path);
+      ?? (readContentHubRuntimeConfigs(siteConfig ?? null).some(isFixedJournal) && path.startsWith('/the-journal/')
+        ? undefined : readPublicContentHubArticles(siteConfig ?? null).find((entry) => normalizeRoutePath(entry.path) === path));
     if (article) {
       return article;
     }
@@ -3382,13 +3436,9 @@ function buildContentHubArticleStructuredData(
 ): Record<string, unknown> {
   const origin = resolveCanonicalOrigin(req, host, siteConfig).replace(/\/$/, '');
   const seo = resolveEffectiveSeoConfig(host, siteConfig);
-  const canonicalUrl = resolveEffectiveCanonicalUrl(
-    new URL(normalizeRoutePath(article.canonicalPath || article.path), `${origin}/`).toString(),
-    `${origin}/`,
-    host,
-    siteConfig,
-  );
-  const image = resolveContentHubArticleStructuredDataImage(seo, origin);
+  const canonicalUrl = articleCanonicalUrl(article, origin, host, siteConfig);
+  const image = fixedJournalArticle(siteConfig, article) && article.imageSrc
+    ? new URL(article.imageSrc, origin).href : resolveContentHubArticleStructuredDataImage(seo, origin);
   const publisherName = cleanString(seo?.siteName) || cleanString(siteConfig?.domain);
   return {
     '@context': 'https://schema.org',
@@ -3407,6 +3457,15 @@ function buildContentHubArticleStructuredData(
   };
 }
 
+function fixedJournalArticle(siteConfig: TLocalSiteConfig | null, article: TContentHubPublicArticle): boolean {
+  return readContentHubRuntimeConfigs(siteConfig).some(isFixedJournal) && cleanString(article.path).startsWith('/the-journal/');
+}
+
+function articleCanonicalUrl(article: TContentHubPublicArticle, origin: string, host: string, siteConfig: TLocalSiteConfig | null): string {
+  const url = resolveEffectiveCanonicalUrl(new URL(normalizeRoutePath(article.canonicalPath || article.path), origin).href, origin, host, siteConfig);
+  return fixedJournalArticle(siteConfig, article) ? addLangParam(url, cleanString(article.locale)) : url;
+}
+
 function withContentHubSeoPageConfig(
   req: express.Request,
   host: string,
@@ -3420,12 +3479,12 @@ function withContentHubSeoPageConfig(
 
   const siteConfig = siteConfigs.find(Boolean) ?? null;
   const origin = resolveCanonicalOrigin(req, host, siteConfig).replace(/\/$/, '');
-  const canonical = resolveEffectiveCanonicalUrl(
-    new URL(normalizeRoutePath(article.canonicalPath || article.path), `${origin}/`).toString(),
-    `${origin}/`,
-    host,
-    siteConfig,
-  );
+  const canonical = articleCanonicalUrl(article, origin, host, siteConfig);
+  const image = article.imageSrc ? new URL(article.imageSrc, origin).href : '';
+  const journalSocial = fixedJournalArticle(siteConfig, article) ? {
+    openGraph: {type:'article',title:cleanString(article.title),description:cleanString(article.summary),url:canonical,image,'image:alt':cleanString(article.imageAlt)},
+    twitter: {card:'summary_large_image',title:cleanString(article.title),description:cleanString(article.summary),image},
+  } : {};
   return {
     ...(pageConfig ?? {}),
     seo: {
@@ -3434,6 +3493,7 @@ function withContentHubSeoPageConfig(
       description: cleanString(article.summary) || pageConfig?.seo?.description,
       canonical,
       robots: cleanString(article.robots) || pageConfig?.seo?.robots,
+      ...journalSocial,
     },
     structuredData: {
       entries: [
@@ -3611,9 +3671,9 @@ async function decorateHtmlResponse(
     : null;
   const contentHubStatusSiteConfigs = [routeContentHubSiteConfig, publicContentHubSiteConfig, siteConfig];
   const hasPublishedRouteContentHubArticle = contentHubStatusSiteConfigs
-    .some((candidate) => !!findPublishedContentHubArticleForPath(candidate?.runtime?.contentHubs, req.path));
+    .some((candidate) => !!findPublishedContentHubArticleForPath(candidate?.runtime?.contentHubs, req.path, requestLang));
   const hasPublishedRouteContentHubPublicPath = contentHubStatusSiteConfigs
-    .some((candidate) => hasPublishedContentHubPublicPath(candidate?.runtime?.contentHubs, req.path));
+    .some((candidate) => hasPublishedContentHubPublicPath(candidate?.runtime?.contentHubs, req.path, requestLang));
   const isKnownMissingRouteContentHubPublicPath = !hasPublishedRouteContentHubPublicPath
     && contentHubStatusSiteConfigs.some((candidate) => isContentHubPublicPath(candidate?.runtime?.contentHubs, req.path));
   const effectiveStatus = hasPublishedRouteContentHubArticle
@@ -3644,12 +3704,15 @@ async function decorateHtmlResponse(
 
   const html = await response.text();
   const canonicalSuppressed = effectiveStatus !== 404 && pageConfig?.seo?.canonicalMode === 'none';
-  const canonicalSafeHtml = canonicalSuppressed
+  const baseCanonicalSafeHtml = canonicalSuppressed
     ? stripRenderedCanonicalHeadHtml(html)
     : html;
+  const journalSeoConfig = contentHubStatusSiteConfigs.find(candidate => readContentHubRuntimeConfigs(candidate ?? null).some(isFixedJournal)) ?? siteConfig;
+  const strictAlternates = readContentHubRuntimeConfigs(journalSeoConfig).some(isFixedJournal) && req.path.startsWith('/the-journal/');
+  const canonicalSafeHtml = strictAlternates ? stripRenderedHreflangHeadHtml(baseCanonicalSafeHtml) : baseCanonicalSafeHtml;
   const hreflangHeadHtml = hasRenderedHreflangHeadHtml(canonicalSafeHtml)
     ? ''
-    : buildHreflangHeadHtml(req, lookupDomain, siteConfig, pageConfig);
+    : buildHreflangHeadHtml(req, lookupDomain, journalSeoConfig, pageConfig);
   const headHtml = [
     effectiveStatus === 404
       ? buildNotFoundSeoTextHeadHtml(siteConfig, responseLang)
@@ -3658,7 +3721,7 @@ async function decorateHtmlResponse(
     buildSearchConsoleHeadHtml(lookupDomain, siteConfig),
     buildBrowserIconsHeadHtml(siteConfig),
     buildRobotsHeadHtml(req, siteConfig, pageConfig),
-    buildStructuredDataHeadHtml(pageConfig),
+    buildStructuredDataHeadHtml(pageConfig, !!journalSeoConfig?.runtime?.contentHubs?.some(isFixedJournal)),
     buildCanonicalHeadHtml(
       req,
       lookupDomain,
@@ -3675,6 +3738,7 @@ async function decorateHtmlResponse(
     siteConfig,
     req.path,
     responseLang,
+    protectedRequestContexts.get(req),
   );
   const decoratedHtml = effectiveStatus === 404
     ? decorateNotFoundSsrShellHtml(baseDecoratedHtml, siteConfig, responseLang, resolveNotFoundHomeHref(req, host, siteConfig))
@@ -3701,7 +3765,7 @@ async function shouldServeNotFoundDocument(req: express.Request): Promise<boolea
 
   const route = resolveLocalRoute(siteConfig, normalizedPath);
   if (route) {
-    if (route.auth?.required !== true && isMissingPublishedContentHubPublicPath(siteConfig.runtime?.contentHubs, normalizedPath)) {
+    if (route.auth?.required !== true && isMissingPublishedContentHubPublicPath(siteConfig.runtime?.contentHubs, normalizedPath, requestLang)) {
       const runtimeStatusDomain = resolveRuntimeStatusLookupDomain(req, host, lookupDomain, siteConfig);
       const runtimeRouteStatus = await loadRuntimeRouteStatus(runtimeStatusDomain || lookupDomain, normalizedPath, environment, requestLang);
       if (runtimeRouteStatus === 200) {
@@ -3757,6 +3821,24 @@ function listDraftRegistryEntries(): readonly TDraftRegistryEntry[] {
 
 const app = express();
 app.use(compression({ threshold: 1024 }));
+app.use((req, res, next) => {
+  if (!protectedOriginBinding) {
+    if (normalizeHost(resolveRequestHost(req))==='admin-test.thehairnarrative.com') {
+      res.status(404).set('Cache-Control','no-store').type('text/plain').send('Not found');return;
+    }
+    next(); return;
+  }
+  const decision = classifyProtectedOriginRequest(resolveRequestHost(req), req.originalUrl, req.method, protectedOriginBinding);
+  // Backend routes belong to the dedicated front door, never the Angular catch-all.
+  if (decision.kind === 'deny' || decision.kind === 'backend') {
+    res.status(404).set('Cache-Control','no-store').type('text/plain').send('Not found'); return;
+  }
+  if (decision.context) {
+    protectedRequestContexts.set(req, decision.context);
+    res.set('Cache-Control','no-store').set('X-Robots-Tag','noindex, nofollow').set('Referrer-Policy','no-referrer');
+  }
+  next();
+});
 
 /**
  * Example Express Rest API endpoints can be defined here.
@@ -4075,7 +4157,7 @@ app.use((req, res, next) => {
   const angularSsrRequest = createAngularSsrRequest(req);
 
   shouldServeNotFoundDocument(req)
-    .then((notFoundDocument) => angularApp.handle(angularSsrRequest)
+    .then((notFoundDocument) => angularApp.handle(angularSsrRequest, {protectedOrigin:protectedRequestContexts.get(req)})
       .then((response) => {
         if (!response) {
           next();

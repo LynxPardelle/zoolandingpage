@@ -314,6 +314,7 @@ const ALLOWED_AUTH_ADMIN_CONFIG_KEYS = new Set([
     'resetUserMfaPathTemplate',
 ]);
 const ALLOWED_AUTH_REMOTE_CONFIG_KEYS = new Set([
+    'requiredOrigin',
     'enabled',
     'authProfileId',
     'endpoint',
@@ -1538,6 +1539,7 @@ const isContentHubRuntimeConfig = (value: unknown): value is TContentHubRuntimeC
         'articlePathPattern',
         'defaultLocale',
         'locales',
+        'localePolicy',
         'canonicalMode',
         'runtimeSourceId',
         'publicApiBasePath',
@@ -1553,6 +1555,7 @@ const isContentHubRuntimeConfig = (value: unknown): value is TContentHubRuntimeC
     if (!isSafeSameOriginPath(value['articlePathPattern'])) return false;
     if (!isContentHubLocale(value['defaultLocale'])) return false;
     if (!Array.isArray(value['locales']) || value['locales'].length === 0 || !value['locales'].every(isContentHubLocale)) return false;
+    if (value['localePolicy'] !== undefined && value['localePolicy'] !== 'published-only') return false;
     if (!ALLOWED_CONTENT_HUB_CANONICAL_MODES.has(String(value['canonicalMode']))) return false;
     if (value['runtimeSourceId'] !== undefined && !isContentHubSafeId(value['runtimeSourceId'])) return false;
     if (value['publicApiBasePath'] !== undefined && !isSafeSameOriginPath(value['publicApiBasePath'])) return false;
@@ -1728,6 +1731,13 @@ const isDraftAuthRemoteRuntimeConfig = (value: unknown): value is TDraftAuthRemo
     if (!hasOnlyKnownKeys(value, ALLOWED_AUTH_REMOTE_CONFIG_KEYS)) return false;
     if (value['enabled'] !== undefined && typeof value['enabled'] !== 'boolean') return false;
     if (typeof value['authProfileId'] !== 'string' || value['authProfileId'].trim().length === 0) return false;
+    if (value['requiredOrigin'] !== undefined) {
+        try {
+            const origin = new URL(String(value['requiredOrigin']));
+            if (origin.protocol !== 'https:' || origin.origin !== value['requiredOrigin'] || origin.username || origin.password) return false;
+        } catch { return false; }
+        if (value['endpoint'] !== '/auth-v2/runtime-config') return false;
+    }
     return isSafeSameOriginPath(value['endpoint']) || isHttpsAbsoluteUrl(value['endpoint']);
 };
 

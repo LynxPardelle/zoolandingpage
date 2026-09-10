@@ -73,6 +73,7 @@
         "listPath": { "$ref": "#/definitions/sameOriginPath" },
         "articlePathPattern": { "$ref": "#/definitions/sameOriginPath" },
         "defaultLocale": { "$ref": "#/definitions/locale" },
+        "localePolicy": { "type": "string", "enum": ["published-only"] },
         "locales": {
           "type": "array",
           "minItems": 1,

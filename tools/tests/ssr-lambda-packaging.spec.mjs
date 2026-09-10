@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, mkdtemp, utimes, writeFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import os from 'node:os';
@@ -29,7 +29,7 @@ test('the generated Lambda ZIP uses relative POSIX paths on every build platform
     await writeFile(path.join(root, file), body);
   }
   const result = spawnSync(process.execPath, [fileURLToPath(new URL('../package-ssr-lambda.mjs', import.meta.url))], {
-    cwd: root, encoding: 'utf8', env: { ...process.env, RELEASE_ID: 'local-packaging-fixture', DEPLOY_ENV: 'test' },
+    cwd: root, encoding: 'utf8', env: { ...process.env, RELEASE_ID: 'local-packaging-fixture', DEPLOY_ENV: 'test', THN_ADMIN_ARTIFACT_ENABLED: 'false' },
   });
   assert.equal(result.status, 0, `Packaging failed: ${result.stderr}`);
   const bytes = readFileSync(path.join(root, 'dist/ssr-lambda/ssr-handler.zip'));
@@ -71,7 +71,7 @@ test('identical SSR inputs produce identical ZIP bytes regardless of source time
   }
   const packageArtifact = () => {
     const result = spawnSync(process.execPath, [fileURLToPath(new URL('../package-ssr-lambda.mjs', import.meta.url))], {
-      cwd: root, encoding: 'utf8', env: { ...process.env, RELEASE_ID: 'repeatable-fixture', DEPLOY_ENV: 'test' },
+      cwd: root, encoding: 'utf8', env: { ...process.env, RELEASE_ID: 'repeatable-fixture', DEPLOY_ENV: 'test', THN_ADMIN_ARTIFACT_ENABLED: 'false' },
     });
     assert.equal(result.status, 0, result.stderr);
     return createHash('sha256').update(readFileSync(path.join(root, 'dist/ssr-lambda/ssr-handler.zip'))).digest('hex');
@@ -81,4 +81,25 @@ test('identical SSR inputs produce identical ZIP bytes regardless of source time
     await utimes(path.join(root, file), new Date('2030-06-15T12:34:56Z'), new Date('2030-06-15T12:34:56Z'));
   }
   assert.equal(packageArtifact(), first, 'Source mtimes must not change an immutable SSR artifact');
+});
+
+test('release staging excludes only the reserved root debug workspace and preserves all other source bytes',async()=>{
+ const root=await mkdtemp(path.join(os.tmpdir(),'thn-exact-debug-exclusion-'));
+ const files={
+  'browser/index.html':'<app-root/>','browser/css/style.css':'body{color:black}',
+  'browser/drafts/_debug/debug-workspace/components.json':'{"debug":true}',
+  'browser/drafts/other.test/components.json':'{"public":true}',
+  'browser/drafts/other.test/_debug/keep.json':'{"unexpected":true}',
+  'browser/drafts/_unexpected/keep.json':'{}','server/server.mjs':'export const reqHandler=()=>{};'};
+ for(const[file,body]of Object.entries(files)){const target=path.join(root,'dist/zoolandingpage',file);await mkdir(path.dirname(target),{recursive:true});await writeFile(target,body);}
+ await mkdir(path.join(root,'node_modules/serverless-http'),{recursive:true});await writeFile(path.join(root,'node_modules/serverless-http/package.json'),'{}');
+ const result=spawnSync(process.execPath,[fileURLToPath(new URL('../package-ssr-lambda.mjs',import.meta.url))],{cwd:root,encoding:'utf8',windowsHide:true,
+  env:{...process.env,RELEASE_ID:'debug-exclusion-fixture',DEPLOY_ENV:'test',THN_ADMIN_ARTIFACT_ENABLED:'false'}});
+ assert.equal(result.status,0,result.stderr);
+ for(const[file,body]of Object.entries(files)){
+  assert.equal(readFileSync(path.join(root,'dist/zoolandingpage',file),'utf8'),body,'original '+file);
+  const staged=path.join(root,'dist/ssr-lambda/staging',file);
+  if(file.startsWith('browser/drafts/_debug/'))assert.equal(existsSync(staged),false);
+  else assert.equal(readFileSync(staged,'utf8'),body,'staged '+file);
+ }
 });
