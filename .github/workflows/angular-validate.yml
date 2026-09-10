@@ -24,7 +24,7 @@ jobs:
           cache: npm
 
       - run: npm ci
-      - run: node --test tools/tests/ssr-delivery-contract.spec.mjs tools/tests/legacy-ssr-recovery.spec.mjs tools/tests/ops-thn-content-hub-v2-front-door.spec.mjs tools/tests/thn-admin-artifact.spec.mjs
+      - run: node --test tools/tests/ssr-delivery-contract.spec.mjs tools/tests/legacy-ssr-recovery.spec.mjs tools/tests/ops-thn-content-hub-v2-front-door.spec.mjs tools/tests/thn-admin-artifact.spec.mjs tools/tests/query-string-safety.spec.mjs
       - run: node --test tools/tests/components-schema.spec.mjs tools/tests/site-config-schema.spec.mjs tools/tests/the-hair-narrative-public-assets.spec.mjs tools/tests/draft-public-artifact-boundary.spec.mjs
       - run: npm run test:draft-feature-readiness
       - run: npm test -- --watch=false --browsers=ChromeHeadlessStable

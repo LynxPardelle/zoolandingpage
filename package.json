@@ -70,7 +70,8 @@
     "ci:perf": "node tools/perf-baseline.mjs"
   },
   "overrides": {
-    "vite": "7.3.6"
+    "vite": "7.3.6",
+    "qs": "6.16.0"
   },
   "prettier": {
     "overrides": [
