@@ -427,6 +427,35 @@ describe('ConfigBootstrapService', () => {
         });
     });
 
+    it('projects the opt-in Journal with active-language cards, cover SEO and no stale-language body', async () => {
+        const site=createContentHubSiteConfig();
+        const path='/the-journal/formas-nupciales/carta';
+        const fields={title:'Una carta',summary:'Un resumen',path,categorySlug:'formas-nupciales',publishedAt:'2026-09-01T00:00:00Z',
+            imageSrc:'/features/content-hub-v2/public-media/a/es/r1/cover/w1200',imageAlt:'Cabello'};
+        store.setSiteConfig({...site,runtime:{...site.runtime,contentHubs:[{hubId:'thehairnarrative-com-journal',ownerDraftDomain:'thehairnarrative.com',
+            source:'primary',routeBasePath:'/the-journal',listPath:'/the-journal',articlePathPattern:'/the-journal/:categorySlug/:articleSlug',
+            defaultLocale:'en',locales:['en','es'],localePolicy:'published-only',canonicalMode:'owner-canonical',
+            publicArticles:[{articleId:'a',locale:'es',status:'published',...fields}]}]}});
+        mockSuccessfulBootstrapPayloads();
+        source.loadVariables.and.resolveTo({version:1,domain:site.domain,pageId:'journal-article',variables:{contentHub:{currentArticle:{articleId:'a',locale:'en',path:'/the-journal/bridal-forms/letter',articleContent:{html:'<p>Wrong language</p>'}}}}});
+        await service.load({domain:site.domain,pageId:'journal-article',lang:'es',routePath:path,routeParams:{categorySlug:'formas-nupciales',articleSlug:'carta'}});
+        expect(variableStore.get('journalDelivery.current.title')).toBe('Una carta');
+        expect(variableStore.get('journalDelivery.bodyHtml')).toBe('');
+        expect(String(store.seo()?.canonical)).toContain(path+'?lang=es');
+        expect(store.seo()?.openGraph?.['image']).toContain(fields.imageSrc);
+        expect(store.seo()?.twitter?.['title']).toBe('Una carta');
+        expect(store.structuredData()?.entries?.filter(entry=>entry['@type']==='BlogPosting').length).toBe(1);
+        // Actual Runtime Read merges the compiled bundle beside contentHub, not inside its index summary.
+        source.loadVariables.and.resolveTo({version:1,domain:site.domain,pageId:'journal-article',variables:{
+            contentHub:{currentArticle:{articleId:'a',locale:'es',...fields}},
+            articleContent:{html:'<p>Texto publicado.</p>'},journalArticle:{path,coverFocalX:35,coverFocalY:45},
+        }});
+        await service.load({domain:site.domain,pageId:'journal-article',lang:'es',routePath:path,routeParams:{seriesSlug:'formas-nupciales',articleSlug:'carta'}});
+        expect(variableStore.get('journalDelivery.bodyHtml')).toBe('<p>Texto publicado.</p>');
+        await service.load({domain:site.domain,pageId:'journal-article',lang:'es',routePath:'/the-journal/serie-desconocida/carta',routeParams:{seriesSlug:'serie-desconocida',articleSlug:'carta'}});
+        expect(variableStore.get('journalDelivery.bodyHtml')).toBe('');
+    });
+
     it('hydrates content hub runtime variables and filters category routes', async () => {
         store.setSiteConfig(createContentHubSiteConfig());
         mockSuccessfulBootstrapPayloads();
@@ -487,6 +516,86 @@ describe('ConfigBootstrapService', () => {
         expect(variableStore.get('articleContent')).toEqual({
             html: '<h2>Spanish article body</h2><p>Contenido propio.</p>',
         });
+    });
+
+    it('preserves Runtime Read article content when the resolved article id matches', async () => {
+        const runtimeReadDelta = {
+            ops: [
+                { insert: 'Runtime Read article body' },
+                { insert: '\n', attributes: { header: 2 } },
+            ],
+        };
+        store.setSiteConfig(createContentHubSiteConfig());
+        mockSuccessfulBootstrapPayloads();
+        source.loadVariables.and.resolveTo({
+            version: 1,
+            pageId: 'blog-article',
+            domain: 'zoolandingpage.com.mx',
+            variables: {
+                contentHub: {
+                    currentArticle: {
+                        articleId: 'art_web',
+                        articleContent: runtimeReadDelta,
+                    },
+                },
+                articleContent: runtimeReadDelta,
+            },
+        });
+
+        await service.load({
+            domain: 'zoolandingpage.com.mx',
+            pageId: 'blog-article',
+            lang: 'es',
+            routePath: '/blog/web/blog-builder-seo',
+            routeParams: {
+                categorySlug: 'web',
+                articleSlug: 'blog-builder-seo',
+            },
+        });
+
+        expect(variableStore.get('contentHub.currentArticle')).toEqual(jasmine.objectContaining({
+            articleId: 'art_web',
+            articleContent: runtimeReadDelta,
+        }));
+        expect(variableStore.get('articleContent')).toEqual(runtimeReadDelta);
+    });
+
+    it('does not reuse Runtime Read article content for a different resolved article id', async () => {
+        const siteConfig = createContentHubSiteConfig();
+        const resolvedArticle = (siteConfig.runtime?.contentHubs?.[0]?.publicArticles as any[])[0];
+        delete resolvedArticle.articleContent;
+        store.setSiteConfig(siteConfig);
+        mockSuccessfulBootstrapPayloads();
+        source.loadVariables.and.resolveTo({
+            version: 1,
+            pageId: 'blog-article',
+            domain: 'zoolandingpage.com.mx',
+            variables: {
+                contentHub: {
+                    currentArticle: {
+                        articleId: 'art_news',
+                        articleContent: { ops: [{ insert: 'Body from another article' }] },
+                    },
+                },
+                articleContent: { ops: [{ insert: 'Body from another article' }] },
+            },
+        });
+
+        await service.load({
+            domain: 'zoolandingpage.com.mx',
+            pageId: 'blog-article',
+            lang: 'es',
+            routePath: '/blog/web/blog-builder-seo',
+            routeParams: {
+                categorySlug: 'web',
+                articleSlug: 'blog-builder-seo',
+            },
+        });
+
+        expect(variableStore.get('contentHub.currentArticle')).toEqual(jasmine.objectContaining({
+            articleId: 'art_web',
+        }));
+        expect(variableStore.get('articleContent')).toBeNull();
     });
 
     it('uses localized content hub article fields for multilingual public routes', async () => {
@@ -632,6 +741,34 @@ describe('ConfigBootstrapService', () => {
                 '@type': 'Organization',
                 name: 'zoositioweb',
             }),
+        }));
+    });
+
+    it('preserves explicit canonical suppression while enriching article seo', async () => {
+        store.setSiteConfig(createContentHubSiteConfig());
+        mockSuccessfulBootstrapPayloads();
+        source.loadPageConfig.and.resolveTo({
+            version: 1,
+            pageId: 'blog-article',
+            domain: 'zoolandingpage.com.mx',
+            rootIds: ['blogRoot'],
+            seo: { canonicalMode: 'none' },
+        });
+
+        await service.load({
+            domain: 'zoolandingpage.com.mx',
+            pageId: 'blog-article',
+            lang: 'es',
+            routePath: '/blog/web/blog-builder-seo',
+            routeParams: {
+                categorySlug: 'web',
+                articleSlug: 'blog-builder-seo',
+            },
+        });
+
+        expect(store.seo()).toEqual(jasmine.objectContaining({
+            canonicalMode: 'none',
+            title: 'Web Article',
         }));
     });
 
@@ -829,6 +966,14 @@ describe('ConfigBootstrapService', () => {
         });
 
         expect(issues.some((issue: string) => issue.includes('badgeText__{{index}}'))).toBeFalse();
+    });
+
+    it('derives canonical metadata for an empty localized Journal series', () => {
+        const site=createSiteConfig();
+        const hub={localePolicy:'published-only',routeBasePath:'/the-journal',publicArticles:[]};
+        const seo=(service as any).buildContentHubSeo({title:'The Journal',description:'Notes'},null,{...site,domain:'thehairnarrative.com',site:{...site.site,seo:{canonicalOrigin:'https://thehairnarrative.com'}},runtime:{contentHubs:[hub]}},'/the-journal/formas-nupciales','es');
+        expect(seo.canonical).toBe('https://thehairnarrative.com/the-journal/formas-nupciales?lang=es');
+        expect(seo.title).toContain('Formas nupciales');
     });
 
     it('accepts localized seo values during bootstrap validation', () => {

@@ -3,6 +3,49 @@
 }
 
 /* You can add global styles to this file, and also import other style files */
+/* Opt-in fixed Journal templates, including the private reading preview. */
+.thnJournalCard {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  gap: 20px;
+  overflow-wrap: anywhere;
+}
+.thnJournalCardImage { width: 100%; aspect-ratio: 4 / 3; overflow: hidden; }
+.thnJournalReading { display: flex; flex-direction: column; gap: 28px; }
+.thnJournalReadingTitle {
+  margin: 0 auto;
+  max-width: 920px;
+  font-size: clamp(32px, 4vw, 58px);
+  line-height: 1.12;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.thnJournalCover { display: block; width: 100%; max-width: 1120px; margin: 16px auto; }
+.thnJournalArticleBody {
+  width: 100%;
+  max-width: 740px;
+  margin: 16px auto;
+  color: inherit;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.85;
+  overflow-wrap: anywhere;
+  p { margin: 0; text-indent: 1.65em; }
+  > p:first-child, :not(p) + p { text-indent: 0; }
+  h2, h3 { margin: 32px 0 18px; font-family: 'Newsreader', serif; font-weight: 400; line-height: 1.2; }
+  h2 { font-size: 32px; }
+  h3 { font-size: 27px; }
+  figure { margin: 32px 0; }
+  img { display: block; max-width: 100%; height: auto; }
+  figcaption { margin-top: 8px; font-size: 13px; text-align: center; }
+  blockquote { margin: 28px 0; padding-left: 20px; border-left: 1px solid #b8a68c; }
+  ul, ol { padding-left: 24px; }
+  a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+}
+
 html,
 body {
   height: 100%;

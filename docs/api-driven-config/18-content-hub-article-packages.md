@@ -61,6 +61,7 @@ Each entry identifies the hub and how the current draft renders it:
 - `articlePathPattern`
 - `defaultLocale`
 - `locales`
+- optional `localePolicy`: `published-only`
 - `canonicalMode`
 - optional `runtimeSourceId`
 - optional `publicApiBasePath`
@@ -68,7 +69,34 @@ Each entry identifies the hub and how the current draft renders it:
 - optional `publicArticles`
 - optional `publicTaxonomy`
 
+When a published bundle uses article-level `canonicalMode: "none"`, Runtime Read projects
+`pageConfig.seo.canonicalMode: "none"`. That page-only flag suppresses the rendered
+`<link rel="canonical">`; `self` and `custom` continue to materialize a normal `canonical`
+value. The page payload intentionally does not expose the broader article-mode vocabulary.
+
 The schema is `docs/api-driven-config/schemas/content-hub-public.schema.json`. The site config schema also exposes the same public shape through `contentHubRuntime`.
+
+### Published-localization opt-in
+
+Omitting `localePolicy` preserves the legacy reader behavior, including its
+existing localization and authored-index fallbacks. The only accepted present
+value is `published-only`; it is scoped to one hub, not a global default.
+
+For an opted-in hub, Runtime Read requires a nonempty published
+`localizations[requestedLocale]` with its own valid title, path and publication
+date. It does not borrow localized text, body, dates or cover fields from the
+selected top-level language. An article without the requested translation is
+excluded from the public index and its route resolves as missing.
+
+The dynamic article index is authoritative in this mode. Static `publicArticles`
+cannot restore a missing translation or unpublished article. If the metadata
+binding is absent or returns no eligible articles, the public article list stays
+empty. Other hubs in the same request retain their existing behavior.
+
+The producer is responsible for placing only published translations in
+`localizations`. This option is not authorization to publish or read private
+revisions. It requires a compatible Runtime Read release before opting in a
+published draft; local contract acceptance does not deploy or activate it.
 
 `publicArticles` is intentionally small and public. It may carry only published article IDs, locale, title, summary, same-origin path, category slug, tags, published/updated timestamps, author display label, canonical path, robots, and optional safe cover image fields (`imageSrc` as same-origin or HTTPS plus `imageAlt`). `publicTaxonomy` may carry visible category/tag IDs, slug, label, locale, and an optional same-origin path. SSR can use these fields for sitemap, RSS/Atom-compatible feeds, basic public search, article cards, and article `BlogPosting` metadata while the dynamic runtime-read/DynamoDB content endpoints are still being connected.
 
@@ -170,6 +198,29 @@ A published bundle must not include:
 - executable scripts or event-handler attributes
 
 The schema is `docs/api-driven-config/schemas/content-hub-published-bundle.schema.json`.
+
+### Operational v1 shape
+
+The executable v1 bundle is direct, matching both Content Hub publication and Runtime Read consumption:
+
+- `components` is the public component array itself, not a `{ version, components }` wrapper.
+- `variables` is the public variables object itself, not a `{ version, variables }` wrapper.
+- `i18n` is the public dictionary object itself, not a `{ version, lang, dictionary }` wrapper.
+- The canonical article body is `variables.articleContent`; Runtime Read also projects it onto `contentHub.currentArticle.articleContent` for frontend compatibility.
+- `seo.canonical` may be a same-origin path, a public HTTPS URL, or empty when canonical output is disabled.
+- `revisionId` and `safeArticlePath` carry the immutable revision and validated route when emitted by the current publisher. They remain optional in the schema so older direct v1 bundles continue to validate.
+- Every public component has a unique `id`, one of the canonical public types `container`, `media`, `text`, or `link`, and the exact type-specific `config` accepted by the published-bundle schema. Producer-only aliases such as `generic-text` and `image` are never public contract values.
+- The Content Hub publication boundary owns compatibility normalization: it generates stable collision-free ids for legacy editable components, maps supported aliases to canonical public types, and rejects any source shape that cannot be compiled into this four-type public subset. Editable source revisions remain immutable and may continue using the broader legacy Angular editor vocabulary.
+
+The four-type vocabulary is a strict writer contract for newly published bundles, not a removal of the generic 24-type Angular reader/editor. `container` publishes a child-id list (empty when it has no children) and an optional allowlisted semantic tag; `media` v1 is an HTTPS public image with a dotted non-IP hostname, no explicit port, `tag: "image"`, and non-empty `alt`; `text` publishes an allowlisted text tag plus plain text; and `link` requires a same-origin `href` with an allowlisted target when present. Type-specific configs are closed objects, so nested navigation fields and unreviewed renderer options cannot cross the public boundary. The checked seed article uses exactly this subset. The current v1 publisher validates and bounds `variables.articleContent`; it does not sanitize or convert HTML. The future dedicated The Hair Narrative publisher owns server-side conversion and sanitization before it emits the fixed-template shape `components: []` plus `variables.articleContent: { "html": "..." }`. Private `generic-rich-text` editor configs and deltas such as `{ "ops": [...] }` are not that draft's public body contract.
+
+The public writer config keys are exact: `container` accepts only `components`, `classes`, and `tag`; `media` accepts only `src`, `tag`, `alt`, and `classes`; `text` accepts only `tag`, `text`, and `classes`; and `link` accepts only `href`, `text`, `classes`, `target`, `rel`, and `ariaLabel`. Renderer-ignored `variant` and private authoring `loopConfig` fields do not cross the v1 publication boundary. A bundle has at most 120 components. The schema also bounds individual public strings and recursive collection sizes; the publisher and Angular runtime validator enforce the additional total-node and depth limits that draft-07 cannot express safely through an unbounded recursive reference.
+
+Do not promote a strict-writer change into a shared environment until a read-only inventory confirms that every existing publisher can emit this subset or has an explicit compatibility migration. Runtime readers remain tolerant of already published legacy payloads; the schema governs new bundle writes.
+
+Runtime Read v1 currently hydrates the direct components, variables, i18n, and SEO fields. `structuredData` and `analytics` remain reserved public bundle metadata and are not injected as client configuration. SSR derives the supported article `BlogPosting` from the verified article projection, and page-owned analytics remains authoritative. Consuming publisher-provided custom JSON-LD or analytics instructions requires a separately versioned runtime contract and tests; bundle presence alone must not be interpreted as execution.
+
+The obsolete wrapped fixture shape was never the executable writer/reader contract and is rejected. Do not change Content Hub to emit wrappers without a separately versioned runtime migration.
 
 ## S3 Layout
 
@@ -374,6 +425,50 @@ The local content-hub contract harness must keep these product roles present in 
 Focused schema tests live in `tools/tests/content-hub-schema.spec.mjs`.
 
 ## Local Contract Harness
+
+### Opt-in private fixed-article media (local candidate)
+
+The fixed editor's private media helper normalizes JPEG/PNG/WebP sources up to
+8 MiB into bounded, orientation-correct, metadata-free browser images. The
+private v2 transport independently enforces the 4 MiB normalized input, base64,
+metadata and complete-envelope limits. The legacy uploader retains its own
+5 MiB policy and is not used by this helper.
+
+Cover and inline uploads wait for acknowledged saves and submit only the
+current article/locale/concurrency token. A cancellation or locale change cannot
+attach a delayed result to another editor. Existing text remains intact on
+reauthentication, conflict or processing errors. Cancel stops association in
+the editor; an already accepted server invocation can still finish privately.
+
+Private image previews use the existing v2 `assetList` POST with an optional
+`assetId`, obtaining one image at a time with `no-store`. Blob URLs remain in
+memory and are revoked on editor disposal. Private bundle HTML uses inert
+`data-private-asset` references; the helper rejects active markup and hydrates
+only those references. No signed URL or new public GET endpoint is introduced.
+
+The opt-in helpers are wired to `FixedArticleDeskService` and the protected v2
+auth adapter. Draft primitives select this desk with `journalDeskConfig.template
+= "fixed-article-v2"`; other drafts keep the legacy path. The draft supplies six
+private route packages, but this does not activate the private origin or publish
+articles. The server must receive a separately reviewed exact-origin binding
+through `PROTECTED_ORIGIN_BINDING_PATH`. Client queries cannot select it.
+The current protected-origin integration is TEST-only: its runtime lookups stay
+on TEST even when a caller supplies an explicit production query option.
+
+Private SSR strips the entire hydration payload and retains only the validated
+origin/domain/role tuple needed for client bootstrap. Auth, session and article
+state are not transferred. Sign-in and MFA precede fresh session checks for list,
+editor and preview routes. Missing publisher integration stays unavailable.
+
+The per-instance Quill registry permits only images already registered as private
+Blob sources in that editor; it does not mutate Quill's global registry.
+`valueRevision` is an opt-in input reset for acknowledged document/locale changes.
+The reauthentication modal uses `closeOnEscape=false`; the default remains true.
+Focused tests live in
+`tools/tests/fixed-article-{client,editor,media}.spec.mjs` and
+`src/app/shared/utility/content-hub/fixed-article-media.browser.spec.ts`,
+`tools/tests/protected-origin.spec.mjs`, the protected case in
+`tools/tests/ssr-server.spec.mjs`, and `fixed-article-desk.service.spec.ts`.
 
 The backend boundary is checked locally before any AWS writes exist.
 

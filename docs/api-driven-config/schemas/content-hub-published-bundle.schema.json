@@ -20,23 +20,49 @@
   "additionalProperties": false,
   "properties": {
     "version": { "const": 1 },
-    "bundleId": { "$ref": "#/definitions/safeId" },
+    "bundleId": { "$ref": "#/definitions/bundleId" },
     "hubId": { "$ref": "#/definitions/safeId" },
     "articleId": { "$ref": "#/definitions/safeId" },
+    "kind": { "const": "content-hub-published-bundle" },
+    "revisionId": { "$ref": "#/definitions/safeId" },
     "ownerDraftDomain": { "$ref": "#/definitions/domainName" },
     "renderDomain": { "$ref": "#/definitions/domainName" },
     "locale": { "$ref": "#/definitions/locale" },
     "path": { "$ref": "#/definitions/sameOriginPath" },
+    "safeArticlePath": { "$ref": "#/definitions/sameOriginPath" },
     "status": { "const": "published" },
     "publishedAt": { "$ref": "#/definitions/isoDateTime" },
+    "previewedAt": { "const": "" },
+    "title": { "$ref": "#/definitions/articleTitle" },
+    "summary": { "$ref": "#/definitions/articleSummary" },
+    "slug": { "$ref": "#/definitions/safeId" },
+    "category": { "$ref": "#/definitions/taxonomyRef" },
+    "tags": {
+      "type": "array",
+      "maxItems": 20,
+      "items": { "$ref": "#/definitions/taxonomyRef" }
+    },
+    "commentPolicy": { "enum": ["disabled", "moderated", "authenticated"] },
+    "contentSafety": { "$ref": "#/definitions/contentSafety" },
+    "interactions": { "$ref": "#/definitions/interactions" },
     "seo": { "$ref": "#/definitions/seo" },
     "structuredData": { "type": "array", "items": { "$ref": "#/definitions/structuredDataEntry" } },
-    "components": { "$ref": "#/definitions/componentsPayload" },
-    "variables": { "$ref": "#/definitions/variablesPayload" },
-    "i18n": { "$ref": "#/definitions/i18nPayload" },
+    "components": {
+      "type": "array",
+      "maxItems": 120,
+      "items": { "$ref": "#/definitions/componentEntry" }
+    },
+    "variables": { "$ref": "#/definitions/directVariables" },
+    "i18n": { "$ref": "#/definitions/directI18n" },
     "analytics": { "$ref": "#/definitions/analyticsContext" }
   },
   "definitions": {
+    "bundleId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
     "safeId": {
       "type": "string",
       "minLength": 1,
@@ -56,30 +82,131 @@
       "pattern": "^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$"
     },
     "sameOriginPath": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 512,
-      "pattern": "^/(?!/)(?!.*[\\\\\\s\\u0000-\\u001F\\u007F])[^\\\\\\s\\u0000-\\u001F\\u007F]*$"
+      "allOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "pattern": "^/(?!/)(?!.*[\\\\\\s\\u0000-\\u001F\\u007F])[^\\\\\\s\\u0000-\\u001F\\u007F]*$"
+        },
+        { "$ref": "#/definitions/safePublicString" }
+      ]
     },
     "httpsPublicUrl": {
-      "type": "string",
-      "minLength": 8,
-      "maxLength": 2048,
-      "pattern": "^https://(?![^/?#]*@)(?!.*[\\\\\\s\\u0000-\\u001F\\u007F])(?!(?:[^?#]*[?#].*(?:X-Amz-Signature|X-Amz-Credential|X-Amz-Security-Token|Signature=|Expires=)))[^\\\\\\s\\u0000-\\u001F\\u007F]+$"
+      "allOf": [
+        {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 2048,
+          "pattern": "^https://(?![^/?#]*@)(?![^/?#]*\\.[Ll][Oo][Cc][Aa][Ll][Hh][Oo][Ss][Tt](?:[/?#]|$))(?![0-9.]+(?:[/?#]|$))(?!.*[\\\\\\s\\u0000-\\u001F\\u007F])(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+(?:[/?#][^\\\\\\s\\u0000-\\u001F\\u007F]*)?$"
+        },
+        { "$ref": "#/definitions/safePublicString" }
+      ]
     },
     "isoDateTime": {
       "type": "string",
       "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z$"
+    },
+    "articleTitle": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "articleSummary": {
+      "type": "string",
+      "maxLength": 320
     },
     "seo": {
       "type": "object",
       "required": ["title", "description", "canonical", "robots"],
       "additionalProperties": false,
       "properties": {
-        "title": { "type": "string", "minLength": 1, "maxLength": 140 },
-        "description": { "type": "string", "minLength": 1, "maxLength": 320 },
-        "canonical": { "$ref": "#/definitions/httpsPublicUrl" },
-        "robots": { "enum": ["index,follow", "noindex,follow", "noindex,nofollow"] }
+        "title": { "$ref": "#/definitions/articleTitle" },
+        "description": { "$ref": "#/definitions/articleSummary" },
+        "canonical": {
+          "anyOf": [
+            { "$ref": "#/definitions/httpsPublicUrl" },
+            { "$ref": "#/definitions/sameOriginPath" },
+            { "const": "" }
+          ]
+        },
+        "canonicalMode": { "enum": ["self", "custom", "none"] },
+        "robots": { "enum": ["index,follow", "noindex,follow", "index,nofollow", "noindex,nofollow"] }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": ["canonicalMode"],
+            "properties": { "canonicalMode": { "const": "none" } }
+          },
+          "then": { "properties": { "canonical": { "const": "" } } }
+        },
+        {
+          "if": {
+            "required": ["canonicalMode"],
+            "properties": { "canonicalMode": { "const": "self" } }
+          },
+          "then": { "properties": { "canonical": { "$ref": "#/definitions/sameOriginPath" } } }
+        },
+        {
+          "if": {
+            "required": ["canonicalMode"],
+            "properties": { "canonicalMode": { "const": "custom" } }
+          },
+          "then": {
+            "properties": {
+              "canonical": {
+                "anyOf": [
+                  { "$ref": "#/definitions/httpsPublicUrl" },
+                  { "$ref": "#/definitions/sameOriginPath" }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "taxonomyRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "taxonomyId": { "$ref": "#/definitions/safeId" },
+        "slug": { "$ref": "#/definitions/safeId" },
+        "label": { "type": "string", "maxLength": 120 }
+      }
+    },
+    "contentSafety": {
+      "type": "object",
+      "required": ["rating", "warnings"],
+      "additionalProperties": false,
+      "properties": {
+        "rating": { "enum": ["general", "sensitive", "restricted"] },
+        "warnings": {
+          "type": "array",
+          "maxItems": 10,
+          "items": { "type": "string", "maxLength": 80 }
+        }
+      }
+    },
+    "interactionChannel": {
+      "type": "object",
+      "required": ["enabled"],
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "moderation": { "type": "string", "maxLength": 40 }
+      }
+    },
+    "interactions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ctas": { "$ref": "#/definitions/interactionChannel" },
+        "reactions": { "$ref": "#/definitions/interactionChannel" },
+        "shares": { "$ref": "#/definitions/interactionChannel" },
+        "readProgress": { "$ref": "#/definitions/interactionChannel" },
+        "assetDownloads": { "$ref": "#/definitions/interactionChannel" },
+        "forms": { "$ref": "#/definitions/interactionChannel" }
       }
     },
     "structuredDataEntry": {
@@ -93,18 +220,29 @@
     },
     "safePublicKey": {
       "type": "string",
-      "not": {
-        "pattern": "(?:^[Oo][Nn][A-Za-z]|[Cc][Rr][Ee][Dd][Ee][Nn][Tt][Ii][Aa][Ll]_?[Rr][Ee][Ff]|[Ss][Ee][Cc][Rr][Ee][Tt]_?[Rr][Ee][Ff]|[Cc][Ll][Ii][Ee][Nn][Tt]_?[Ss][Ee][Cc][Rr][Ee][Tt]|[Aa][Cc][Cc][Ee][Ss][Ss]_?[Tt][Oo][Kk][Ee][Nn]|[Rr][Ee][Ff][Rr][Ee][Ss][Hh]_?[Tt][Oo][Kk][Ee][Nn]|[Ii][Dd]_?[Tt][Oo][Kk][Ee][Nn]|[Pp][Rr][Ii][Vv][Aa][Tt][Ee]_?[Kk][Ee][Yy]|[Ss][Ii][Gg][Nn][Ee][Dd]_?[Uu][Rr][Ll]|[Ss][Cc][Rr][Ii][Pp][Tt](?:_?[Uu][Rr][Ll])?|[Ll][Aa][Mm][Bb][Dd][Aa]_?[Aa][Rr][Nn]|[Tt][Aa][Bb][Ll][Ee]_?[Nn][Aa][Mm][Ee]|[Bb][Uu][Cc][Kk][Ee][Tt]_?[Nn][Aa][Mm][Ee]|[Ss][Ee][Rr][Vv][Ee][Rr]_?[Pp][Oo][Ll][Ii][Cc][Yy])"
-      }
+      "allOf": [
+        {
+          "not": {
+        "pattern": "(?:^[Oo][Nn][A-Za-z]|[Aa][Cc][Cc][Ee][Ss][Ss][_-]?[Tt][Oo][Kk][Ee][Nn]|[Rr][Ee][Ff][Rr][Ee][Ss][Hh][_-]?[Tt][Oo][Kk][Ee][Nn]|[Ii][Dd][_-]?[Tt][Oo][Kk][Ee][Nn]|[Cc][Ll][Ii][Ee][Nn][Tt][_-]?[Ss][Ee][Cc][Rr][Ee][Tt]|[Cc][Rr][Ee][Dd][Ee][Nn][Tt][Ii][Aa][Ll][_-]?[Rr][Ee][Ff]|[Ss][Ee][Cc][Rr][Ee][Tt][_-]?[Rr][Ee][Ff]|[Pp][Rr][Ii][Vv][Aa][Tt][Ee][_-]?[Kk][Ee][Yy]|[Ss][Ee][Rr][Vv][Ee][Rr][_-]?[Pp][Oo][Ll][Ii][Cc][Yy]|[Tt][Aa][Bb][Ll][Ee][_-]?[Nn][Aa][Mm][Ee]|[Bb][Uu][Cc][Kk][Ee][Tt][_-]?[Nn][Aa][Mm][Ee]|[Ll][Aa][Mm][Bb][Dd][Aa][_-]?[Aa][Rr][Nn]|[Gg][Rr][Oo][Uu][Pp][Ss][_-]?[Tt][Oo][_-]?[Rr][Oo][Ll][Ee][Ss]|[Aa][Uu][Tt][Hh][Oo][Rr][Ii][Zz][Aa][Tt][Ii][Oo][Nn][_-]?[Dd][Ee][Cc][Ii][Ss][Ii][Oo][Nn]|[Ss][Ii][Gg][Nn][Ee][Dd][_-]?[Uu][Rr][Ll]|[Tt][Ee][Nn][Aa][Nn][Tt][_-]?[Ii][Dd]|[Aa][Ww][Ss][_-]?[Ss][Ee][Cc][Rr][Ee][Tt]|[Aa][Ww][Ss][_-]?[Aa][Cc][Cc][Ee][Ss][Ss]|^[Ss][Cc][Rr][Ii][Pp][Tt](?:[_-]?[Uu][Rr][Ll])?$|^(?:[Aa][Pp][Ii][_-]?[Kk][Ee][Yy]|[Ss][Ee][Cc][Rr][Ee][Tt]|[Tt][Oo][Kk][Ee][Nn]|[Pp][Aa][Ss][Ss][_-]?(?:[Ww][Oo][Rr][Dd]|[Ww][Dd])|[Pp][Ww][Dd]|[Ss][Ee][Ss][Ss][Ii][Oo][Nn][_-]?[Tt][Oo][Kk][Ee][Nn])$)"
+          }
+        },
+        {
+          "not": {
+            "pattern": "^(?:__[Pp][Rr][Oo][Tt][Oo]__|[Cc][Oo][Nn][Ss][Tt][Rr][Uu][Cc][Tt][Oo][Rr]|[Pp][Rr][Oo][Tt][Oo][Tt][Yy][Pp][Ee])$"
+          }
+        }
+      ]
     },
     "safePublicString": {
       "type": "string",
+      "maxLength": 50000,
       "not": {
-        "pattern": "(?:javascript:|data:|X-Amz-Signature|X-Amz-Credential|X-Amz-Security-Token|Signature=|Expires=|ssm:/|secretsmanager:/)"
+        "pattern": "(?:^[\\s]*(?:[Jj][Aa][Vv][Aa][Ss][Cc][Rr][Ii][Pp][Tt]:|[Dd][Aa][Tt][Aa]:(?!\\s))|[?&](?:[Xx]-[Aa][Mm][Zz]-(?:[Aa][Ll][Gg][Oo][Rr][Ii][Tt][Hh][Mm]|[Cc][Rr][Ee][Dd][Ee][Nn][Tt][Ii][Aa][Ll]|[Dd][Aa][Tt][Ee]|[Ee][Xx][Pp][Ii][Rr][Ee][Ss]|[Ss][Ii][Gg][Nn][Ee][Dd][Hh][Ee][Aa][Dd][Ee][Rr][Ss]|[Ss][Ii][Gg][Nn][Aa][Tt][Uu][Rr][Ee]|[Ss][Ee][Cc][Uu][Rr][Ii][Tt][Yy]-[Tt][Oo][Kk][Ee][Nn])|[Xx]-[Gg][Oo][Oo][Gg]-(?:[Aa][Ll][Gg][Oo][Rr][Ii][Tt][Hh][Mm]|[Cc][Rr][Ee][Dd][Ee][Nn][Tt][Ii][Aa][Ll]|[Dd][Aa][Tt][Ee]|[Ee][Xx][Pp][Ii][Rr][Ee][Ss]|[Ss][Ii][Gg][Nn][Ee][Dd][Hh][Ee][Aa][Dd][Ee][Rr][Ss]|[Ss][Ii][Gg][Nn][Aa][Tt][Uu][Rr][Ee])|[Aa][Ww][Ss][Aa][Cc][Cc][Ee][Ss][Ss][Kk][Ee][Yy][Ii][Dd]|[Gg][Oo][Oo][Gg][Ll][Ee][Aa][Cc][Cc][Ee][Ss][Ss][Ii][Dd]|[Ss][Ii][Gg][Nn][Aa][Tt][Uu][Rr][Ee]|[Pp][Oo][Ll][Ii][Cc][Yy]|[Kk][Ee][Yy]-[Pp][Aa][Ii][Rr]-[Ii][Dd]|[Ss][Ii][Gg])=|[?&][^=&#]*%[^=&#]*=|[?&][^=&#]*%(?:25)*3[dD]|[Ss][Ss][Mm]:/|[Ss][Ee][Cc][Rr][Ee][Tt][Ss][Mm][Aa][Nn][Aa][Gg][Ee][Rr]:/)"
       }
     },
     "safePublicObject": {
       "type": "object",
+      "maxProperties": 5000,
       "propertyNames": { "$ref": "#/definitions/safePublicKey" },
       "additionalProperties": { "$ref": "#/definitions/safePublicJson" }
     },
@@ -116,25 +254,114 @@
         { "$ref": "#/definitions/safePublicString" },
         {
           "type": "array",
+          "maxItems": 5000,
           "items": { "$ref": "#/definitions/safePublicJson" }
         },
         { "$ref": "#/definitions/safePublicObject" }
       ]
     },
     "componentConfig": {
+      "type": "object"
+    },
+    "containerConfig": {
       "type": "object",
-      "propertyNames": { "$ref": "#/definitions/safePublicKey" },
-      "additionalProperties": { "$ref": "#/definitions/safePublicJson" },
+      "required": ["components"],
+      "additionalProperties": false,
       "properties": {
-        "text": { "type": "string" },
-        "label": { "type": "string" },
-        "href": { "$ref": "#/definitions/sameOriginPath" },
-        "src": { "$ref": "#/definitions/httpsPublicUrl" },
-        "alt": { "type": "string" },
-        "components": { "type": "array", "items": { "$ref": "#/definitions/safeId" } },
-        "classes": { "type": "string" },
-        "variant": { "type": "string" }
+        "tag": {
+          "enum": ["span", "div", "section", "main", "header", "footer", "nav", "article", "figure", "ul", "ol", "li", "aside"]
+        },
+        "components": {
+          "type": "array",
+          "maxItems": 120,
+          "uniqueItems": true,
+          "items": { "$ref": "#/definitions/safeId" }
+        },
+        "classes": {
+          "allOf": [
+            { "$ref": "#/definitions/safePublicString" },
+            { "type": "string", "maxLength": 4096 }
+          ]
+        }
       }
+    },
+    "mediaConfig": {
+      "type": "object",
+      "required": ["tag", "src", "alt"],
+      "additionalProperties": false,
+      "properties": {
+        "tag": { "const": "image" },
+        "src": { "$ref": "#/definitions/httpsPublicUrl" },
+        "alt": {
+          "allOf": [
+            { "$ref": "#/definitions/safePublicString" },
+            { "type": "string", "minLength": 1, "maxLength": 500, "pattern": "\\S" }
+          ]
+        },
+        "classes": {
+          "allOf": [
+            { "$ref": "#/definitions/safePublicString" },
+            { "type": "string", "maxLength": 4096 }
+          ]
+        }
+      }
+    },
+    "textConfig": {
+      "type": "object",
+      "required": ["tag", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "tag": { "enum": ["p", "span", "small", "strong", "em", "figcaption", "h1", "h2", "h3", "h4", "h5", "h6"] },
+        "text": {
+          "allOf": [
+            { "$ref": "#/definitions/safePublicString" },
+            { "type": "string", "maxLength": 50000 }
+          ]
+        },
+        "classes": {
+          "allOf": [
+            { "$ref": "#/definitions/safePublicString" },
+            { "type": "string", "maxLength": 4096 }
+          ]
+        }
+      }
+    },
+    "linkConfig": {
+      "type": "object",
+      "required": ["href"],
+      "additionalProperties": false,
+      "properties": {
+        "href": { "$ref": "#/definitions/sameOriginPath" },
+        "text": { "$ref": "#/definitions/safePublicString" },
+        "classes": {
+          "allOf": [
+            { "$ref": "#/definitions/safePublicString" },
+            { "type": "string", "maxLength": 4096 }
+          ]
+        },
+        "target": { "enum": ["_self", "_blank", "_parent", "_top"] },
+        "rel": { "$ref": "#/definitions/safePublicString" },
+        "ariaLabel": { "$ref": "#/definitions/safePublicString" }
+      }
+    },
+    "renderableComponentType": {
+      "enum": [
+        "container",
+        "media",
+        "text",
+        "link"
+      ]
+    },
+    "publishedArticleContent": {
+      "anyOf": [
+        { "$ref": "#/definitions/safePublicString" },
+        {
+          "type": "array",
+          "maxItems": 5000,
+          "items": { "$ref": "#/definitions/safePublicJson" }
+        },
+        { "$ref": "#/definitions/safePublicObject" }
+      ]
     },
     "componentEntry": {
       "type": "object",
@@ -142,7 +369,7 @@
       "additionalProperties": false,
       "properties": {
         "id": { "$ref": "#/definitions/safeId" },
-        "type": { "type": "string", "minLength": 1 },
+        "type": { "$ref": "#/definitions/renderableComponentType" },
         "config": { "$ref": "#/definitions/componentConfig" },
         "condition": {
           "anyOf": [
@@ -152,38 +379,74 @@
         },
         "valueInstructions": { "$ref": "#/definitions/safePublicString" },
         "eventInstructions": { "$ref": "#/definitions/safePublicString" },
-        "loopConfig": { "$ref": "#/definitions/safePublicObject" },
-        "order": { "type": "number" },
-        "meta_title": { "type": "string" }
-      }
+        "order": {
+          "type": "number",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "meta_title": { "$ref": "#/definitions/safePublicString" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "type": { "const": "container" } },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "config": { "$ref": "#/definitions/containerConfig" }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "media" } },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "config": { "$ref": "#/definitions/mediaConfig" }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "text" } },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "config": { "$ref": "#/definitions/textConfig" }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "link" } },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": {
+              "config": { "$ref": "#/definitions/linkConfig" }
+            }
+          }
+        }
+      ]
     },
-    "componentsPayload": {
+    "directVariables": {
       "type": "object",
-      "required": ["version", "components"],
-      "additionalProperties": false,
+      "maxProperties": 5000,
+      "propertyNames": { "$ref": "#/definitions/safePublicKey" },
       "properties": {
-        "version": { "const": 1 },
-        "components": { "type": "array", "items": { "$ref": "#/definitions/componentEntry" } }
-      }
+        "articleContent": { "$ref": "#/definitions/publishedArticleContent" }
+      },
+      "additionalProperties": { "$ref": "#/definitions/safePublicJson" }
     },
-    "variablesPayload": {
+    "directI18n": {
       "type": "object",
-      "required": ["version", "variables"],
-      "additionalProperties": false,
-      "properties": {
-        "version": { "const": 1 },
-        "variables": { "$ref": "#/definitions/safePublicObject" }
-      }
-    },
-    "i18nPayload": {
-      "type": "object",
-      "required": ["version", "lang", "dictionary"],
-      "additionalProperties": false,
-      "properties": {
-        "version": { "const": 1 },
-        "lang": { "$ref": "#/definitions/locale" },
-        "dictionary": { "$ref": "#/definitions/safePublicObject" }
-      }
+      "maxProperties": 5000,
+      "propertyNames": { "$ref": "#/definitions/safePublicKey" },
+      "additionalProperties": { "$ref": "#/definitions/safePublicJson" }
     },
     "analyticsContext": {
       "type": "object",

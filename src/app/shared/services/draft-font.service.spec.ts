@@ -2,6 +2,7 @@ import { DOCUMENT } from '@angular/common';
 import { PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import type { TDraftFontFaceConfig } from '../types/config-payloads.types';
+import { ProtectedOriginService } from './protected-origin.service';
 import { DraftFontService } from './draft-font.service';
 
 const FONT: TDraftFontFaceConfig = {
@@ -9,6 +10,7 @@ const FONT: TDraftFontFaceConfig = {
 };
 
 describe('DraftFontService', () => {
+    const privateAssets: Record<string,string> = {};
     let service: DraftFontService;
     let fontSet: Set<FontFace>;
     let requests: { face: FontFace; source: string; descriptors: FontFaceDescriptors; resolve: () => void; reject: () => void }[];
@@ -33,6 +35,7 @@ describe('DraftFontService', () => {
         documentStub = { fonts: fontSet, defaultView: { FontFace: PendingFontFace } };
         TestBed.configureTestingModule({ providers: [
             { provide: DOCUMENT, useValue: documentStub },
+            { provide: ProtectedOriginService, useValue: {assetUrl:(value:string)=>value} },
             { provide: PLATFORM_ID, useValue: 'browser' },
         ] });
         service = TestBed.inject(DraftFontService);
@@ -41,6 +44,17 @@ describe('DraftFontService', () => {
     afterEach(() => {
         service.clear();
         TestBed.resetTestingModule();
+    });
+
+    it('projects a selected private font without changing the authored descriptor', async () => {
+        TestBed.resetTestingModule();
+        TestBed.configureTestingModule({providers:[{provide:DOCUMENT,useValue:documentStub},
+            {provide:ProtectedOriginService,useValue:{assetUrl:(value:string)=>privateAssets[value]??value}}]});
+        privateAssets[FONT.src]='/browser/thn-admin-assets/abcdef0123456789.editorial.woff2';
+        service=TestBed.inject(DraftFontService);
+        const pending=service.activate('preview.example.test',[FONT]);
+        expect(requests[0].source).toBe('url("/browser/thn-admin-assets/abcdef0123456789.editorial.woff2") format("woff2")');
+        requests[0].resolve();await pending;delete privateAssets[FONT.src];
     });
 
     it('activates only decoded fonts and preserves the authored family, weight and style', async () => {
@@ -138,6 +152,7 @@ describe('DraftFontService', () => {
         TestBed.configureTestingModule({ providers: [
             { provide: DOCUMENT, useValue: documentStub },
             { provide: PLATFORM_ID, useValue: 'server' },
+            { provide: ProtectedOriginService, useValue: { assetUrl: (value: string) => value } },
         ] });
         service = TestBed.inject(DraftFontService);
         await service.activate('preview.example.test', [FONT]);
@@ -147,6 +162,7 @@ describe('DraftFontService', () => {
         TestBed.configureTestingModule({ providers: [
             { provide: DOCUMENT, useValue: documentStub },
             { provide: PLATFORM_ID, useValue: 'browser' },
+            { provide: ProtectedOriginService, useValue: { assetUrl: (value: string) => value } },
         ] });
         service = TestBed.inject(DraftFontService);
         await expectAsync(service.activate('preview.example.test', [FONT])).toBeResolved();

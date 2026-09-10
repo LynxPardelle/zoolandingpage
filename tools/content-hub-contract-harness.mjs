@@ -761,7 +761,7 @@ export function validateZoositeSeedArticleFixture(fixture) {
   const manifest = fixture?.manifest ?? {};
   const articlePackage = fixture?.articlePackage ?? {};
   const bundle = fixture?.publishedBundle ?? {};
-  const components = Array.isArray(bundle?.components?.components) ? bundle.components.components : [];
+  const components = Array.isArray(bundle?.components) ? bundle.components : [];
   const metadataItems = Array.isArray(fixture?.metadataTables?.contentHubMetadata)
     ? fixture.metadataTables.contentHubMetadata
     : [];
@@ -801,7 +801,10 @@ export function validateZoositeSeedArticleFixture(fixture) {
     const config = component?.config;
     if (config?.tag) headingTags.add(config.tag);
     collectPublicLeaks(component, `component.${id || '<empty>'}`, errors);
-    if (component?.type === 'image' && !cleanString(config?.alt)) {
+    const isImageComponent =
+      component?.type === 'image' ||
+      (component?.type === 'media' && cleanString(config?.tag).toLowerCase() === 'image');
+    if (isImageComponent && !cleanString(config?.alt)) {
       errors.push(`Image component ${id} requires alt text.`);
     }
   }

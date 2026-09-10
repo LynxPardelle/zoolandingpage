@@ -58,6 +58,20 @@ npm audit --omit=dev
 npm run package:ssr:lambda
 ```
 
+The Lambda ZIP must use relative POSIX entry names on every build host,
+including Windows. Packaging creates each Windows entry explicitly to avoid
+backslash paths from Windows PowerShell's directory ZIP helper. Verify the
+packaging contract with `node --test tools/tests/ssr-lambda-packaging.spec.mjs`.
+ZIP entry dates are fixed to the DOS epoch. The POSIX path also uses a sorted
+file inventory, UTC timestamps and no extended attributes. Source/build files
+are never retimed: normalization affects the staging copy or ZIP metadata only.
+Compare archive digests with the same runtime and compression toolchain; this
+does not claim that different operating systems or compressor versions emit
+identical bytes. `manifest.json` retains the actual build time outside the ZIP.
+A local build from uncommitted sources is a QA artifact, not an immutable
+release: its recorded Git HEAD identifies the base only. Do not promote it
+without the reviewed source/run/digest contract and intended public inventory.
+
 When server routing, forwarded headers, host validation, runtime bootstrap, or the SSR package changes, also run:
 
 ```powershell
@@ -138,6 +152,70 @@ Rollback the smallest owning surface:
 - managed alias/front door: use the repeatable owner-repo/tooling operation, not a one-off console edit.
 
 Do not rebuild an old source tree to approximate rollback when a verified immutable artifact exists.
+
+### Isolated Journal delivery contract
+
+SSR delivery validates the exact protected promotion, then seals every published browser file, the server ZIP, and the source manifest in `delivery.json`. Its external SHA-256, numeric GitHub artifact ID, full source SHA, run ID, and validation attempt are passed to the credential-bearing job. That job runs no downloaded repository code: it checks the complete inventory and hashes before OIDC. S3 writes use conditional creation, and the source manifest is written last as the completion marker. A partial upload is not a release; use a new release ID for a fresh attempt rather than overwriting an occupied immutable prefix.
+
+The optional The Hair Narrative admin inventory is **off by default**. A TEST workflow dispatch must explicitly select `thn_admin_artifact`; production rejects this selection. Before OIDC, the existing publish job compares the input, sealed delivery and TEST Environment's `THN_ADMIN_ARTIFACT_ENABLED` policy. They must agree. Once that policy requires the admin artifact, a default-off push cannot publish a replacement SSR without its binding: dispatch the reviewed TEST release with the explicit selection. Ordinary default-off TEST and production publication need no new Environment association in validation, permissions or secrets. Draft publication workflows are unchanged.
+
+The [private artifact producer](../tools/prepare-thn-admin-artifact.mjs) runs between Angular build and Lambda packaging. It emits `dist/zoolandingpage/thn-admin-release.json` using the closed version-1 contract consumed by [the front-door planner](../tools/ops/sync-thn-content-hub-v2-front-door.mjs). Its inventory includes only the compiled shell's static/literal module imports, recursive CSS dependencies, and the four THN fonts in the tracked public asset manifest. That manifest's closed font list and byte hashes are verified; CI never requires the ignored draft checkout. Local parity tests compare the reviewed draft font declarations when present. Unhashed resources receive immutable content-hash copies; public originals are unchanged. Exact filenames accept bounded hex tokens or Angular's eight-character uppercase base32 tokens. No directory wildcard or whole-browser admission is inferred. Every selected `/browser/` path must exist, have a permitted static extension and match its sealed digest.
+
+The producer also emits an optional server-only binding inside the Lambda ZIP. Packaging verifies the flag, TEST/release identity, exact map and all asset hashes before creating the ZIP. The existing shared SSR loads this binding only for the exact approved admin host; missing or invalid integrity closes that host without affecting other hosts. It projects selected asset URLs only into the private shell and trusted hydration context; font/icon services retain their public URLs elsewhere. The binding is forbidden in the public browser archive. No request or browser parameter selects the binding, QA mode or client-owner authority.
+
+Release staging excludes only `browser/drafts/_debug`, the reserved local diagnostic workspace; source files, development output and all other paths remain byte-identical. It is not an ordinary public-page dependency and is not part of TEST or production release payloads. Other unexpected underscore/private paths still fail the sealed-delivery validator; this exception does not widen any validator or affect customer draft publication.
+
+The [closed route inventory](../tools/ops/thn-content-hub-v2-route-manifest.json) and public-safe release inventory are both sealed with the delivery. Front-door activation must select the same immutable source/run/digest evidence and verify CloudFront behavior/function quotas for the actual inventory. Artifact publication does not activate an origin, route, DNS record, session or account. Infrastructure activation and owner MFA remain separate gates.
+
+Successful publication records the external delivery digest and immutable coordinates in the run summary. Retain the corresponding artifact for the rollback window (the workflow requests 90 days, subject to the repository retention policy). Before a TEST rollback, retrieve the exact artifact ID and the original successful, attempt-specific workflow-run and artifact metadata from this repository; do not use latest-by-name selection. Set `ROLLBACK_ARTIFACT_ROOT`, `ROLLBACK_DELIVERY_SHA256`, `ROLLBACK_RELEASE_ID`, `ROLLBACK_SOURCE_SHA`, `ROLLBACK_SOURCE_RUN_ID`, `ROLLBACK_SOURCE_ATTEMPT`, `ROLLBACK_ARTIFACT_ID`, `ROLLBACK_RUN_METADATA_PATH`, and `ROLLBACK_ARTIFACT_METADATA_PATH` from that retained evidence, then run:
+
+```powershell
+node tools/prepare-ssr-delivery.mjs --rollback
+```
+
+The command is read-only and returns `activationAllowed:false`; the infrastructure repository still owns separately authorized activation. Missing, expired, failed, or cross-attempt evidence is rejected. A successful retry that reused another validation attempt is not automatically eligible: preserve its successful publication evidence for a separate owner review rather than silently treating a previously failed attempt as a successful rollback source. New releases do not acquire activation authority by passing these checks.
+
+### Legacy TEST recovery snapshots
+
+The existing TEST frontend predates `delivery.json`. Do not rebuild its source,
+rewrite its original manifest, invent a current CI artifact ID, or relax the
+modern rollback verifier. [The legacy snapshot verifier](../tools/prepare-legacy-ssr-recovery.mjs)
+is a separate, local-only bridge pinned to the one reviewed release in
+[the TEST baseline](../tools/ops/legacy-test-frontend-baseline.json).
+
+An authorized read-only capture preserves `payload/manifest.json`,
+`payload/server/ssr-handler.zip`, and every object under that release's
+`payload/browser/` prefix. It checks the original manifest and server SHA-256
+against the baseline and live Lambda, confirms the exact historical successful
+GitHub source run, reads every object twice, and compares the bounded object
+inventory and active TEST coordinates before and after capture. The sanitized
+capture input records the exact fields exercised by
+[the contract tests](../tools/tests/legacy-ssr-recovery.spec.mjs): source-run
+coordinates, before/after observations, paths, lengths, content hashes, hashed
+ETags and safe content/cache/encoding headers. Cloud credentials, raw cloud
+responses and private environment values are not part of that proof.
+
+Set `LEGACY_RECOVERY_ROOT` to the absolute local snapshot directory and
+`LEGACY_RECOVERY_CAPTURE` to the separately retained capture proof, then run
+`node tools/prepare-legacy-ssr-recovery.mjs --prepare`. Preparation validates all
+bytes and writes `legacy-recovery.json` exclusively; an existing receipt is
+never overwritten. Retain its returned SHA-256 separately. Recheck the copy
+with that value in `LEGACY_RECOVERY_DIGEST` and
+`node tools/prepare-legacy-ssr-recovery.mjs --verify`.
+
+The result is always `selection-only`, `activationAllowed:false`,
+`sourceClass:deployed-legacy-snapshot`, and `ciArtifactId:null`. The exact bytes
+of the legacy debug workspace may be retained in this local snapshot; this is
+not permission to publish it through the modern artifact pipeline. Keep these
+snapshots ignored, private and outside public draft/build directories. Never
+upload or commit them merely because verification passed.
+
+This proof establishes a stable copy of the existing deployed release, not an
+original CI digest for its browser files. Missing original browser/CI provenance
+is stated explicitly. It does not establish a historical CDK assembly, change
+the infrastructure rollback workflow, sign Workstream A, or activate the
+Journal. Infrastructure recovery selection/execution and any deployment remain
+separately reviewed and authorized owner-repository operations.
 
 ## Security And Evidence
 

@@ -147,7 +147,7 @@ export class GenericModalComponent {
     if (this.config?.closeOnBackdrop ?? true) this.close();
   }
   @HostListener('document:keydown.escape') onEsc(): void {
-    if (this.isOpen()) this.close();
+    if (this.isOpen() && (this.config?.closeOnEscape ?? true)) this.close();
   }
 
   variant(): 'dialog' | 'sheet' {

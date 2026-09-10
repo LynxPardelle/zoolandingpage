@@ -782,6 +782,28 @@ describe('DraftRuntimeService', () => {
       id: 'art_20260623T074011Z',
     });
   });
+  it('resolves an unpublished strict Journal path to 404 in a production browser before bootstrap',async()=>{
+    (environment.drafts as {enabled:boolean}).enabled=false;
+    const {service}=configure('https://thehairnarrative.com/the-journal/bridal-forms/missing?lang=en',{
+      version:1,domain:'thehairnarrative.com',defaultPageId:'home',notFoundPageId:'not-found',
+      routes:[{path:'/',pageId:'home'},{path:'/404',pageId:'not-found'},{path:'/the-journal/:seriesSlug/:articleSlug',pageId:'the-journal-article'}],
+      runtime:{contentHubs:[{hubId:'journal',localePolicy:'published-only',routeBasePath:'/the-journal',articlePathPattern:'/the-journal/:seriesSlug/:articleSlug',publicArticles:[]}]},
+    },{browserMode:true});
+    const context=await service.resolveActiveDraftContext();expect(context.pageId).toBe('not-found');expect(context.notFound).toBeTrue();
+  });
+
+  it('uses the requested Spanish locale for opt-in Journal route validation',async()=>{
+    (environment.drafts as {enabled:boolean}).enabled=true;
+    const path='/the-journal/formas-nupciales/carta';
+    const {service}=configure('https://test.zoolandingpage.com.mx'+path+'?draftDomain=thehairnarrative.com&lang=es',{
+      version:1,domain:'thehairnarrative.com',defaultPageId:'home',notFoundPageId:'not-found',
+      routes:[{path:'/',pageId:'home'},{path:'/404',pageId:'not-found'},{path:'/the-journal/:seriesSlug/:articleSlug',pageId:'the-journal-article'}],
+      runtime:{contentHubs:[{hubId:'journal',localePolicy:'published-only',defaultLocale:'en',routeBasePath:'/the-journal',
+        articlePathPattern:'/the-journal/:seriesSlug/:articleSlug',publicArticles:[
+          {articleId:'a',locale:'es',status:'published',title:'Carta',path,categorySlug:'formas-nupciales',publishedAt:'2026-09-01T00:00:00Z'}]}]},
+    },{browserMode:false});
+    expect((await service.resolveActiveDraftContext()).pageId).toBe('the-journal-article');
+  });
 
   it('auto-enables the debug workspace on localhost when no draft identity is resolved', () => {
     const { service } = configure(

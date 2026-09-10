@@ -64,8 +64,7 @@
       "config": {
         "src": "https://assets.zoolandingpage.com.mx/zoolandingpage.com.mx/shared/seo-images/zoolandingpage-zoositioweb-default-logo-card.jpg",
         "alt": "Vista del editor visual de artículos de Zoosite",
-        "classes": "ank-width-100per ank-maxWidth-920px ank-borderRadius-8px ank-objectFit-cover",
-        "variant": "hero"
+        "classes": "ank-width-100per ank-maxWidth-920px ank-borderRadius-8px ank-objectFit-cover"
       }
     },
     {
@@ -88,10 +87,10 @@
     },
     {
       "id": "articleCta",
-      "type": "button",
+      "type": "link",
       "eventInstructions": "trackEvent:blog_cta_click,blog,zoosite-blog-builder-cta,hubId,zoosite-main,articleId,art_20260620_blog_builder,ctaId,primary-consultation",
       "config": {
-        "label": "Planear mi blog",
+        "text": "Planear mi blog",
         "href": "/contacto",
         "classes": "ank-minHeight-48px ank-px-22px ank-borderRadius-8px ank-bg-accentColor ank-color-onSuccessColor ank-fontWeight-900 ank-border-0 ank-cursor-pointer"
       }
