@@ -115,14 +115,14 @@ test('the actual credential-job verifier accepts sealed files and denies extra f
   assert.match(result.stderr, /SSR delivery verification failed/);
 });
 
-test('the actual credential-job verifier accepts only sealed Angular base32 admin assets', async () => {
+test('the actual credential-job verifier accepts only sealed Angular mixed-case admin assets', async () => {
   const api = await tool();
   const workflow = await readFile(new URL('../../.github/workflows/publish-ssr-artifact.yml', import.meta.url), 'utf8');
   const script = workflow.match(/python3 - <<'PY'\r?\n([\s\S]*?)\r?\n          PY/)[1].replace(/^          /gm, '');
   const workspace = await mkdtemp(path.join(os.tmpdir(), 'thn-inline-admin-verifier-'));
   const { root, routes } = await fixture();
-  await writeFile(path.join(root, 'staging/browser/main-4LAYAEZF.js'), 'export const editor = "fixed-article-v2";');
-  const adminRelease = { version: 1, environment: 'test', releaseId: sha, staticAssetPaths: ['/browser/main-4LAYAEZF.js'] };
+  await writeFile(path.join(root, 'staging/browser/chunk-KFx0GTIz.js'), 'export const editor = "fixed-article-v2";');
+  const adminRelease = { version: 1, environment: 'test', releaseId: sha, staticAssetPaths: ['/browser/chunk-KFx0GTIz.js'] };
   const { digest } = await api.prepareDelivery({ root, ...coords, routeManifest: routes, adminEnabled: true, adminRelease });
   await api.verifyDelivery({ root, digest, ...coords });
   const { cp } = await import('node:fs/promises');
@@ -133,7 +133,7 @@ test('the actual credential-job verifier accepts only sealed Angular base32 admi
   assert.equal(run().status, 0);
   for(const extra of [{EXPECTED_THN_ADMIN_ENABLED:'false'},{THN_ADMIN_ARTIFACT_ALLOWED:'false'},
     {THN_ADMIN_ARTIFACT_ALLOWED:''},{DEPLOY_ENV:'production'}])assert.notEqual(run(extra).status,0,JSON.stringify(extra));
-  await writeFile(path.join(workspace, 'dist/ssr-lambda/staging/browser/main-4LAYAEZF.js'), 'tampered');
+  await writeFile(path.join(workspace, 'dist/ssr-lambda/staging/browser/chunk-KFx0GTIz.js'), 'tampered');
   assert.notEqual(run().status, 0);
 });
 
