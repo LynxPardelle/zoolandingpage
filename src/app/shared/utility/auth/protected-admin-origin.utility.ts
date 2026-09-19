@@ -31,7 +31,7 @@ export function isProtectedAssetMap(value: unknown): value is Readonly<Record<st
   return entries.length>0 && entries.length<=64 && entries.every(([source,target])=>safePath(source)
     && !source.includes(':') && !source.split('/').some(p=>p.startsWith('_')||p==='server'||p==='drafts')
     && typeof target==='string' && safePath(target) && target.startsWith('/browser/')
-    && /(?:^|[._-])(?:[A-Fa-f0-9]{8,64}|[A-Z2-7]{8})(?=[._-])/.test(target.split('/').at(-1)??'')
+    && /(?:^|[._-])(?:[A-Fa-f0-9]{8,64}|[A-Za-z0-9_-]{8})(?=[._-])/.test(target.split('/').at(-1)??'')
     && /\.(js|mjs|css|woff2?|ttf|otf|png|jpe?g|webp|avif|svg|ico)$/.test(target));
 }
 /** Only explicit server-selected static resources are rewritten; navigation is unchanged. */

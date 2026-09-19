@@ -41,6 +41,7 @@ test('server-owned asset maps are exact, non-expansive and project only listed a
  const assetUrls={'/main.js':'/browser/main.abcdef012345.js'};
  const mapped={...binding,assetUrls};
  assert.equal(api.isProtectedOriginBinding(mapped),true);
+ assert.equal(api.isProtectedOriginBinding({...binding,staticPaths:['/browser/chunk-KFx0GTIz.js'],assetUrls:{'/chunk.js':'/browser/chunk-KFx0GTIz.js'}}),true);
  for(const candidate of [ {'/main.js':'https://other.test/file.js'}, {'/main.js':'/browser/other.abcdef012345.js'},
    {'/../main.js':'/browser/main.abcdef012345.js'}, {'/__proto__':'/browser/main.abcdef012345.js'}, {'/main.js':'/browser/%2e%2e/file.js'}]) {
   assert.equal(api.isProtectedOriginBinding({...binding,assetUrls:candidate}),false);
