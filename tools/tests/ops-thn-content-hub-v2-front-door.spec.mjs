@@ -326,12 +326,12 @@ test('sync plan stays logical, TEST-only, default-off, and free of private polic
   assert.doesNotMatch(serialized, /production|prod/i);
 });
 
-test('selected assets accept pinned Angular base32 names without admitting unhashed or malformed paths', async () => {
+test('selected assets accept exact Angular eight-character hashes without admitting malformed paths', async () => {
   const { validateReleaseManifest } = await loadTool();
   const release = { version: 1, environment: 'test', releaseId: 'frontend-release-0123456789abcdef',
-    staticAssetPaths: ['/browser/main-4LAYAEZF.js', '/browser/chunk-2ZPUOXRY.js', '/browser/styles-4RCU3HW5.css'] };
+    staticAssetPaths: ['/browser/main-4LAYAEZF.js', '/browser/chunk-KFx0GTIz.js', '/browser/styles-4RCU3HW5.css'] };
   assert.deepEqual(validateReleaseManifest(release).staticAssetPaths, [...release.staticAssetPaths].sort());
-  for (const asset of ['/browser/main.js', '/browser/main-AbcdEFGH.js', '/browser/main-ABCDEFG1.js',
+  for (const asset of ['/browser/main.js', '/browser/main-AbcdEFG.js', '/browser/main-ABCDEFG12.js',
     '/browser/main-ABCDEFGH2.js', '/browser/main-4LAYAEZF.js?version=1', '/browser/../main-4LAYAEZF.js']) {
     assert.throws(() => validateReleaseManifest({ ...release, staticAssetPaths: [asset] }), /exact|hashed/);
   }

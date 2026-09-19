@@ -7,7 +7,7 @@ import { validateReleaseManifest, validateRouteManifest } from './ops/sync-thn-c
 
 const fail = reason => { throw new Error(`THN private artifact rejected: ${reason}`); };
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
-const hashed = /(?:^|[._-])(?:[A-Fa-f0-9]{8,64}|[A-Z2-7]{8})(?=[._-])/;
+const hashed = /(?:^|[._-])(?:[A-Fa-f0-9]{8,64}|[A-Za-z0-9_-]{8})(?=[._-])/;
 const allowed = /\.(?:js|mjs|css|woff2?|ttf|otf|png|jpe?g|webp|avif|svg|ico)$/i;
 const forbidden = new Set(['server', 'drafts', '.git', '.github', 'tools', 'node_modules', 'ai_notes', 'findings', 'errors-reports', 'devonly', 'logs', 'reports', '.superpowers']);
 const bindingName = 'thn-protected-origin-binding.json';

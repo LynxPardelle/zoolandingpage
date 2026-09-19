@@ -63,6 +63,16 @@ test('private producer follows exact entry/import/CSS/font closure and leaves ev
   assert.equal((await readdir(options.browserRoot)).some(name => name.includes('binding')), false);
 });
 
+test('private producer accepts an exact reachable mixed-case Angular module hash', async () => {
+  const { prepareThnAdminArtifact } = await api();
+  const { options } = await fixture();
+  await writeFile(path.join(options.browserRoot, 'main-4LAYAEZF.js'), 'import "./chunk-KFx0GTIz.js";');
+  await writeFile(path.join(options.browserRoot, 'chunk-KFx0GTIz.js'), 'export const editor = true;');
+  const result = await prepareThnAdminArtifact(options);
+  assert.ok(result.release.staticAssetPaths.includes('/browser/chunk-KFx0GTIz.js'));
+  assert.ok(!result.release.staticAssetPaths.includes('/browser/chunk-2ZPUOXRY.js'));
+});
+
 test('private producer is default-off, rejects production and never overwrites an existing private artifact', async () => {
   const { prepareThnAdminArtifact } = await api();
   const { options } = await fixture();
