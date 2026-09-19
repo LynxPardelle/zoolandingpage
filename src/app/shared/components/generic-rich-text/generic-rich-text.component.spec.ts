@@ -4,6 +4,8 @@ import { QuillEditorComponent } from 'ngx-quill';
 import { InteractionScopeService } from '../interaction-scope/interaction-scope.service';
 import { GenericRichTextComponent } from './generic-rich-text.component';
 import type { TGenericRichTextValueChange } from './generic-rich-text.types';
+import {createFixedArticleRegistry} from '../../utility/content-hub/fixed-article-quill-registry';
+import type Image from 'quill/formats/image';
 
 describe('GenericRichTextComponent', () => {
   let fixture: ComponentFixture<GenericRichTextComponent>;
@@ -26,6 +28,34 @@ describe('GenericRichTextComponent', () => {
     expect(styles).toContain('min-height: 44px');
     expect(styles).toContain('min-width: 44px');
     expect(styles).toContain('touch-action: manipulation');
+  });
+  it('renders only registered private Blob images under the opt-in fixed article policy',async()=>{
+    const bytes=Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII='),c=>c.charCodeAt(0));
+    const url=URL.createObjectURL(new Blob([bytes],{type:'image/png'}));
+    try {
+      fixture.componentRef.setInput('config',{fieldId:'body',provider:'quill',format:'quill-delta-object',sanitizerPolicyId:'fixed-article-v2',privateImageSources:[url],value:{ops:[{insert:{image:url}},{insert:'\n'}]}});
+      fixture.detectChanges();await import('quill');await fixture.whenStable();fixture.detectChanges();await fixture.whenStable();
+      let src:string|null|undefined;
+      for(let i=0;i<60&&src!==url;i++) {
+        await new Promise(requestAnimationFrame);fixture.detectChanges();
+        const editor=fixture.debugElement.query(By.directive(QuillEditorComponent))?.componentInstance as QuillEditorComponent;
+        src=editor?.quillEditor?.root.querySelector('img')?.getAttribute('src');
+      }
+      expect(src).toBe(url);
+    } finally { URL.revokeObjectURL(url); }
+  });
+  it('keeps private image registrations instance-scoped and rejects pasted or stale sources',async()=>{
+    fixture.componentRef.setInput('config',{fieldId:'body'});
+    const {default:quill}=await import('quill');
+    const global=quill.import('formats/image') as typeof Image;
+    let sources=['blob:https://admin.example.test/private'];
+    const registry=createFixedArticleRegistry(quill,()=>sources);
+    const privateImage=registry.query('image') as typeof Image;
+    expect(privateImage.sanitize(sources[0])).toBe(sources[0]);
+    expect(global.sanitize(sources[0])).toBe('//:0');
+    expect(privateImage.sanitize('https://tracker.example.test/image')).not.toContain('tracker');
+    sources=[];
+    expect(privateImage.sanitize('blob:https://admin.example.test/private')).not.toContain('blob:');
   });
 
   it('renders draft-configured textarea copy and classes', () => {

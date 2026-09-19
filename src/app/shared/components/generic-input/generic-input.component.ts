@@ -67,9 +67,11 @@ export class GenericInputComponent {
   private readonly localValue = signal<unknown>(undefined);
   private readonly localTouched = signal(false);
   private readonly localDirty = signal(false);
+  private lastValueRevision: unknown;
 
   constructor() {
     effect(() => {
+      const revision = this.resolveValue(this.config().valueRevision);
       const registeredConfig = {
         fieldId: this.fieldId(),
         initialValue: this.initialValue(),
@@ -80,6 +82,15 @@ export class GenericInputComponent {
       };
 
       untracked(() => {
+        if (!this.scope && revision !== undefined && revision !== this.lastValueRevision) {
+          this.localDirty.set(false);
+          this.localTouched.set(false);
+          this.lastValueRevision = revision;
+          // Text controls intentionally use defaultValue to preserve typing in legacy drafts.
+          // Only a new opt-in document identity resets the live DOM value too.
+          const control = this.host.nativeElement.querySelector('input,textarea') as HTMLInputElement | HTMLTextAreaElement | null;
+          if (control) control.value = String(registeredConfig.initialValue ?? '');
+        }
         if (this.scope) {
           this.scope.registerField(registeredConfig);
           return;

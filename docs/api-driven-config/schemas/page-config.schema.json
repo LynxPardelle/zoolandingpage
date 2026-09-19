@@ -22,7 +22,8 @@
           "type": "object",
           "additionalProperties": true
         },
-        "canonical": { "type": "string" }
+        "canonical": { "type": "string" },
+        "canonicalMode": { "const": "none" }
       },
       "additionalProperties": false
     },

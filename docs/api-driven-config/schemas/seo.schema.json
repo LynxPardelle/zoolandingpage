@@ -44,6 +44,7 @@
     "openGraph": { "type": "object", "additionalProperties": true },
     "twitter": { "type": "object", "additionalProperties": true },
     "canonical": { "$ref": "#/definitions/localizedString" },
+    "canonicalMode": { "const": "none" },
     "keywords": { "$ref": "#/definitions/localizedKeywords" },
     "robots": { "$ref": "#/definitions/localizedString" }
   },

@@ -121,6 +121,15 @@ function isSafeDynamicSecretAssignment(line, rule) {
   });
 }
 
+function isWorkflowPermissionDenial(line, filePath, rule) {
+  // A complete negative workflow assertion contains permission names, not a
+  // token value. Match only this exact statement in test files: extra code,
+  // comments or substituted values must still be scanned, including history.
+  return rule.id === 'generic-secret-assignment'
+    && normalizeGitPath(filePath).endsWith('.spec.mjs')
+    && /^\s*assert\.doesNotMatch\(workflow, \/id-token: write\|environment: test\|configure-aws-credentials\/\);\s*$/.test(line);
+}
+
 function lineHits(text, filePath, rules, context = {}) {
   const hits = [];
   const lines = text.split(/\r?\n/);
@@ -129,6 +138,7 @@ function lineHits(text, filePath, rules, context = {}) {
       rule.regex.lastIndex = 0;
       if (!rule.regex.test(line)) continue;
       if (isSafeDynamicSecretAssignment(line, rule)) continue;
+      if (isWorkflowPermissionDenial(line, filePath, rule)) continue;
       hits.push({
         rule: rule.id,
         file: normalizeGitPath(filePath),
@@ -295,6 +305,7 @@ async function scanHistory(scope, rules) {
         const [, commit, file, lineNumber, sourceLine] = match;
         if (!isLikelyTextFile(file)) continue;
         if (isSafeDynamicSecretAssignment(sourceLine, rule)) continue;
+        if (isWorkflowPermissionDenial(sourceLine, file, rule)) continue;
         const key = `${rule.id}:${file}:${lineNumber}`;
         if (seen.has(key)) continue;
         seen.add(key);

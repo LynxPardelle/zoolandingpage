@@ -6,6 +6,7 @@ export type ModalConfig = {
   readonly id?: string;
   readonly size?: ModalSize;
   readonly closeOnBackdrop?: boolean;
+  readonly closeOnEscape?: boolean;
   readonly ariaLabel?: string;
   readonly ariaDescribedBy?: string;
   readonly showCloseButton?: boolean;

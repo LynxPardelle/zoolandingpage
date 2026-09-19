@@ -2,6 +2,8 @@ import type { TTrackOptions } from '@/app/shared/types/analytics.type';
 import { normalizeLocaleCode } from '@/app/shared/i18n/locale.utils';
 import { isDraftFontFaces } from '@/app/shared/utility/fonts/draft-font-config';
 import type {
+    TContentHubRuntimeArticleContent,
+    TContentHubRobotsPolicy,
     TContentHubRuntimeActionBinding,
     TContentHubRuntimeConfig,
     TContentHubRuntimeReadBinding,
@@ -202,6 +204,12 @@ const ALLOWED_CONTENT_HUB_TAXONOMY_KINDS = new Set(['category', 'tag']);
 const ALLOWED_CONTENT_HUB_RUNTIME_COMMENT_POLICIES = new Set(['disabled', 'moderated', 'authenticated']);
 const ALLOWED_CONTENT_HUB_RUNTIME_SAFETY_RATINGS = new Set(['general', 'sensitive', 'restricted']);
 const ALLOWED_CONTENT_HUB_PUBLIC_INTERACTION_MODES = new Set(['queue', 'spam-check', 'manual']);
+const ALLOWED_CONTENT_HUB_ROBOTS_POLICIES = new Set<TContentHubRobotsPolicy>([
+    'index,follow',
+    'noindex,follow',
+    'index,nofollow',
+    'noindex,nofollow',
+]);
 const ALLOWED_CONTENT_HUB_BINDING_KEYS = new Set([
     'read',
     'action',
@@ -255,7 +263,7 @@ const FORBIDDEN_PUBLIC_RUNTIME_INPUT_KEYS = new Set([
     'upstreamurl',
 ]);
 const FORBIDDEN_PUBLIC_RUNTIME_INPUT_VALUE_PATTERN =
-    /(?:ssm:\/|secretsmanager:\/|X-Amz-Signature|X-Amz-Credential|X-Amz-Security-Token|AWSAccessKeyId=|Signature=|Expires=)/i;
+    /(?:ssm:\/|secretsmanager:\/|[?&](?:X-Amz-(?:Algorithm|Credential|Date|Expires|SignedHeaders|Signature|(?:Security-)?Token)|X-Goog-(?:Algorithm|Credential|Date|Expires|SignedHeaders|Signature|(?:Security-)?Token)|AwsAccessKeyId|GoogleAccessId|Signature|Policy|Key-Pair-Id|sig)=)/i;
 const ALLOWED_AUTH_PROVIDERS = new Set(['cognito']);
 const ALLOWED_AUTH_CONFIG_KEYS = new Set([
     'enabled',
@@ -306,6 +314,7 @@ const ALLOWED_AUTH_ADMIN_CONFIG_KEYS = new Set([
     'resetUserMfaPathTemplate',
 ]);
 const ALLOWED_AUTH_REMOTE_CONFIG_KEYS = new Set([
+    'requiredOrigin',
     'enabled',
     'authProfileId',
     'endpoint',
@@ -649,10 +658,26 @@ const normalizedPublicRuntimeKey = (value: unknown): string =>
     typeof value === 'string' ? value.replace(/[-_\s]/g, '').toLowerCase() : '';
 
 const isForbiddenPublicRuntimeInputKey = (value: unknown): boolean =>
-    FORBIDDEN_PUBLIC_RUNTIME_INPUT_KEYS.has(normalizedPublicRuntimeKey(value));
+    FORBIDDEN_PUBLIC_RUNTIME_INPUT_KEYS.has(normalizedPublicRuntimeKey(value))
+    || /^(?:on[A-Za-z].*|script(?:[_-]?url)?)$/i.test(typeof value === 'string' ? value : '');
 
-const isForbiddenPublicRuntimeInputValue = (value: unknown): boolean =>
-    typeof value === 'string' && FORBIDDEN_PUBLIC_RUNTIME_INPUT_VALUE_PATTERN.test(value);
+const isForbiddenPublicRuntimeInputValue = (value: unknown): boolean => {
+    if (typeof value !== 'string') return false;
+
+    let candidate = value;
+    for (let depth = 0; depth <= 2; depth += 1) {
+        if (FORBIDDEN_PUBLIC_RUNTIME_INPUT_VALUE_PATTERN.test(candidate)) return true;
+        if (!candidate.includes('%')) return false;
+        try {
+            const decoded = decodeURIComponent(candidate);
+            if (decoded === candidate) return false;
+            candidate = decoded;
+        } catch {
+            return false;
+        }
+    }
+    return false;
+};
 
 const hasNoForbiddenRuntimeKeysDeep = (value: unknown): boolean => {
     if (Array.isArray(value)) {
@@ -1328,15 +1353,55 @@ const isContentHubPublicContentSafety = (value: unknown): boolean => {
     return true;
 };
 
-const isContentHubRuntimeArticleContent = (value: unknown): boolean => {
+const CONTENT_HUB_ARTICLE_CONTENT_MAX_DEPTH = 32;
+const CONTENT_HUB_ARTICLE_CONTENT_MAX_NODES = 10000;
+const CONTENT_HUB_ARTICLE_CONTENT_MAX_COLLECTION_SIZE = 5000;
+const CONTENT_HUB_ARTICLE_CONTENT_MAX_STRING_LENGTH = 50000;
+const FORBIDDEN_CONTENT_HUB_ARTICLE_JSON_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+type TContentHubArticleContentValidationState = {
+    nodes: number;
+    stringLength: number;
+};
+
+const isContentHubRuntimeArticleJsonValue = (
+    value: unknown,
+    depth: number,
+    state: TContentHubArticleContentValidationState,
+): boolean => {
+    if (depth > CONTENT_HUB_ARTICLE_CONTENT_MAX_DEPTH) return false;
+    state.nodes += 1;
+    if (state.nodes > CONTENT_HUB_ARTICLE_CONTENT_MAX_NODES) return false;
+
+    if (value === null || typeof value === 'boolean') return true;
+    if (typeof value === 'number') return Number.isFinite(value);
     if (typeof value === 'string') {
-        return value.length <= 50000;
+        state.stringLength += value.length;
+        return state.stringLength <= CONTENT_HUB_ARTICLE_CONTENT_MAX_STRING_LENGTH
+            && !isForbiddenPublicRuntimeInputValue(value);
     }
 
-    return isRecord(value)
-        && hasNoForbiddenRuntimeKeysDeep(value)
-        && hasOnlyKnownKeys(value, new Set(['html']))
-        && (value['html'] === undefined || (typeof value['html'] === 'string' && value['html'].length <= 50000));
+    if (Array.isArray(value)) {
+        return value.length <= CONTENT_HUB_ARTICLE_CONTENT_MAX_COLLECTION_SIZE
+            && value.every((entry) => isContentHubRuntimeArticleJsonValue(entry, depth + 1, state));
+    }
+
+    if (!isRecord(value)) return false;
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) return false;
+    const entries = Object.entries(value);
+    if (entries.length > CONTENT_HUB_ARTICLE_CONTENT_MAX_COLLECTION_SIZE) return false;
+
+    return entries.every(([key, entry]) =>
+        !FORBIDDEN_CONTENT_HUB_ARTICLE_JSON_KEYS.has(key.toLowerCase())
+        && !isForbiddenPublicRuntimeInputKey(key)
+        && isContentHubRuntimeArticleJsonValue(entry, depth + 1, state),
+    );
+};
+
+export const isContentHubRuntimeArticleContent = (value: unknown): value is TContentHubRuntimeArticleContent => {
+    if (typeof value !== 'string' && !Array.isArray(value) && !isRecord(value)) return false;
+    return isContentHubRuntimeArticleJsonValue(value, 0, { nodes: 0, stringLength: 0 });
 };
 
 const isContentHubRuntimeImageSrc = (value: unknown): boolean =>
@@ -1370,7 +1435,7 @@ const isContentHubRuntimeArticleLocalization = (value: unknown): boolean => {
     if (value['updatedAt'] !== undefined && (typeof value['updatedAt'] !== 'string' || Number.isNaN(Date.parse(value['updatedAt'])))) return false;
     if (value['authorLabel'] !== undefined && typeof value['authorLabel'] !== 'string') return false;
     if (value['canonicalPath'] !== undefined && !isSafeSameOriginPath(value['canonicalPath'])) return false;
-    if (value['robots'] !== undefined && !['index,follow', 'noindex,follow', 'noindex,nofollow'].includes(String(value['robots']))) return false;
+    if (value['robots'] !== undefined && !ALLOWED_CONTENT_HUB_ROBOTS_POLICIES.has(String(value['robots']) as TContentHubRobotsPolicy)) return false;
     if (value['articleContent'] !== undefined && !isContentHubRuntimeArticleContent(value['articleContent'])) return false;
     if (value['imageSrc'] !== undefined && !isContentHubRuntimeImageSrc(value['imageSrc'])) return false;
     if (value['imageAlt'] !== undefined && typeof value['imageAlt'] !== 'string') return false;
@@ -1423,7 +1488,7 @@ const isContentHubRuntimeArticleSummary = (value: unknown): boolean => {
     if (value['updatedAt'] !== undefined && (typeof value['updatedAt'] !== 'string' || Number.isNaN(Date.parse(value['updatedAt'])))) return false;
     if (value['authorLabel'] !== undefined && typeof value['authorLabel'] !== 'string') return false;
     if (value['canonicalPath'] !== undefined && !isSafeSameOriginPath(value['canonicalPath'])) return false;
-    if (value['robots'] !== undefined && !['index,follow', 'noindex,follow', 'noindex,nofollow'].includes(String(value['robots']))) return false;
+    if (value['robots'] !== undefined && !ALLOWED_CONTENT_HUB_ROBOTS_POLICIES.has(String(value['robots']) as TContentHubRobotsPolicy)) return false;
     if (value['articleContent'] !== undefined && !isContentHubRuntimeArticleContent(value['articleContent'])) return false;
     if (value['imageSrc'] !== undefined && !isContentHubRuntimeImageSrc(value['imageSrc'])) return false;
     if (value['imageAlt'] !== undefined && typeof value['imageAlt'] !== 'string') return false;
@@ -1474,6 +1539,7 @@ const isContentHubRuntimeConfig = (value: unknown): value is TContentHubRuntimeC
         'articlePathPattern',
         'defaultLocale',
         'locales',
+        'localePolicy',
         'canonicalMode',
         'runtimeSourceId',
         'publicApiBasePath',
@@ -1489,6 +1555,7 @@ const isContentHubRuntimeConfig = (value: unknown): value is TContentHubRuntimeC
     if (!isSafeSameOriginPath(value['articlePathPattern'])) return false;
     if (!isContentHubLocale(value['defaultLocale'])) return false;
     if (!Array.isArray(value['locales']) || value['locales'].length === 0 || !value['locales'].every(isContentHubLocale)) return false;
+    if (value['localePolicy'] !== undefined && value['localePolicy'] !== 'published-only') return false;
     if (!ALLOWED_CONTENT_HUB_CANONICAL_MODES.has(String(value['canonicalMode']))) return false;
     if (value['runtimeSourceId'] !== undefined && !isContentHubSafeId(value['runtimeSourceId'])) return false;
     if (value['publicApiBasePath'] !== undefined && !isSafeSameOriginPath(value['publicApiBasePath'])) return false;
@@ -1664,6 +1731,13 @@ const isDraftAuthRemoteRuntimeConfig = (value: unknown): value is TDraftAuthRemo
     if (!hasOnlyKnownKeys(value, ALLOWED_AUTH_REMOTE_CONFIG_KEYS)) return false;
     if (value['enabled'] !== undefined && typeof value['enabled'] !== 'boolean') return false;
     if (typeof value['authProfileId'] !== 'string' || value['authProfileId'].trim().length === 0) return false;
+    if (value['requiredOrigin'] !== undefined) {
+        try {
+            const origin = new URL(String(value['requiredOrigin']));
+            if (origin.protocol !== 'https:' || origin.origin !== value['requiredOrigin'] || origin.username || origin.password) return false;
+        } catch { return false; }
+        if (value['endpoint'] !== '/auth-v2/runtime-config') return false;
+    }
     return isSafeSameOriginPath(value['endpoint']) || isHttpsAbsoluteUrl(value['endpoint']);
 };
 
@@ -3139,6 +3213,7 @@ export const isSeoPayload = (value: unknown): value is TSeoPayload => {
     if (value['openGraph'] !== undefined && !isRecord(value['openGraph'])) return false;
     if (value['twitter'] !== undefined && !isRecord(value['twitter'])) return false;
     if (value['canonical'] !== undefined && typeof value['canonical'] !== 'string' && !isStringRecord(value['canonical'])) return false;
+    if (value['canonicalMode'] !== undefined && value['canonicalMode'] !== 'none') return false;
     if (value['keywords'] !== undefined && !isLocalizedKeywordValue(value['keywords'])) return false;
     if (value['robots'] !== undefined && typeof value['robots'] !== 'string' && !isStringRecord(value['robots'])) return false;
     return true;

@@ -14,6 +14,7 @@ import { ThemeService } from '@/app/shared/services/theme.service';
 import { I18nService } from '@/app/shared/services/i18n.service';
 import { AuthFacade } from '@/app/state/auth/auth.facade';
 import { AuthRuntimeService } from '@/app/state/auth/auth-runtime.service';
+import { FixedArticleDeskService } from '@/app/state/blog/fixed-article-desk.service';
 import { applyNavigationScroll, currentBrowserPath, dispatchClientNavigationEnd, navigateInCurrentWindow } from '@/app/shared/utility/navigation/browser-navigation.utility';
 import { findPublishedContentHubArticleForPath, matchContentHubArticleRoute } from '@/app/shared/utility/content-hub/content-hub-public-route';
 import { normalizeDraftRoutePath } from '@/app/shared/utility/route-matching/draft-route-matching';
@@ -42,6 +43,7 @@ export class RuntimeService {
     private readonly comboCatalogRuntime = inject(ComboCatalogRuntimeService);
     private readonly auth = inject(AuthFacade);
     private readonly authRuntime = inject(AuthRuntimeService);
+    private readonly articleDesk = inject(FixedArticleDeskService);
     private readonly authBrowserFlow = inject(AuthBrowserFlowService);
     private readonly theme = inject(ThemeService);
     private readonly i18n = inject(I18nService);
@@ -328,6 +330,7 @@ export class RuntimeService {
         let keepPrivateRouteLoading = false;
         try {
             const context = await this.draftRuntime.resolveActiveDraftContext();
+            if (!await this.articleDesk.prepareNavigation(context)) return;
             if (initializeId !== this.initializeId) return;
             if (!context.domain || !context.pageId) {
                 this.clearPrivateRouteLoading();
@@ -351,7 +354,7 @@ export class RuntimeService {
             }
 
             const remoteAuthResolved = await this.withProtectedRouteTimeout(
-                this.runtimeConfig.resolveRemoteAuth(context.domain),
+                this.runtimeConfig.resolveRemoteAuth(context.domain, context),
                 protectedRouteLoadingStarted,
                 false,
             );
@@ -452,6 +455,7 @@ export class RuntimeService {
 
             if (this.isBrowser) {
                 this.installRenderedDraft(domain, pageId, componentsPayload, rootIds, modalRootIds);
+                await this.articleDesk.start(context);
                 void this.startRuntimeDataSources(domain, pageId, dataSources, context.routeParams);
             } else {
                 await this.startRuntimeDataSources(domain, pageId, dataSources, context.routeParams);
@@ -465,6 +469,7 @@ export class RuntimeService {
                 if (this.shouldSkipPostBootstrapBrowserWork()) {
                     return;
                 }
+                if (context.originRole === 'protected-admin') return;
 
                 this.analytics.initializeRuntimeState();
                 this.analytics.startPageEngagementTracking(this.configStore.analytics());

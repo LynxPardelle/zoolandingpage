@@ -1,4 +1,5 @@
 import { matchDraftRoute, normalizeDraftRoutePath } from '../route-matching/draft-route-matching';
+import {isFixedJournal,journalArticles,journalSeries} from './fixed-journal-public';
 
 export type TContentHubPublicRouteArticle = {
     readonly articleId?: unknown;
@@ -18,6 +19,8 @@ export type TContentHubPublicRouteTaxonomy = {
 };
 
 export type TContentHubPublicRouteConfig = {
+    readonly localePolicy?: unknown;
+    readonly defaultLocale?: unknown;
     readonly routeBasePath?: unknown;
     readonly articlePathPattern?: unknown;
     readonly publicArticles?: TContentHubPublicRouteCollection<TContentHubPublicRouteArticle>;
@@ -70,10 +73,16 @@ export function matchContentHubArticleRoute(
 export function findPublishedContentHubArticleForPath(
     hubs: TContentHubPublicRouteConfigInput,
     path: unknown,
+    language?: string,
 ): TContentHubPublicRouteArticle | null {
     const normalizedHubs = normalizeContentHubPublicRouteConfigs(hubs);
     const normalizedPath = normalizeDraftRoutePath(path);
     for (const hub of normalizedHubs) {
+        if(isFixedJournal(hub)) {
+            const found=journalArticles(hub,language||String(hub.defaultLocale||'en')).find(article=>article.path===normalizedPath);
+            if(found) return found;
+            continue;
+        }
         const articles = readContentHubPublicRouteCollection<TContentHubPublicRouteArticle>(hub.publicArticles);
         const article = articles.find((entry: TContentHubPublicRouteArticle) => entry.status === 'published'
             && (entry.visibility === undefined || entry.visibility === 'public')
@@ -89,12 +98,15 @@ export function findPublishedContentHubArticleForPath(
 export function hasPublishedContentHubPublicPath(
     hubs: TContentHubPublicRouteConfigInput,
     path: unknown,
+    language?: string,
 ): boolean {
-    if (findPublishedContentHubArticleForPath(hubs, path)) {
+    if (findPublishedContentHubArticleForPath(hubs, path, language)) {
         return true;
     }
 
     const taxonomyRoute = matchContentHubTaxonomyRoute(hubs, path);
+    if(taxonomyRoute && isFixedJournal(taxonomyRoute.hub)) return taxonomyRoute.kind==='category'
+        && !!journalSeries(taxonomyRoute.slug,language||String(taxonomyRoute.hub.defaultLocale||'en'));
     return !!taxonomyRoute && hasVisibleContentHubTaxonomyRoute(taxonomyRoute);
 }
 
@@ -102,21 +114,24 @@ export function isContentHubPublicPath(
     hubs: TContentHubPublicRouteConfigInput,
     path: unknown,
 ): boolean {
+    if(normalizeContentHubPublicRouteConfigs(hubs).some(hub=>isFixedJournal(hub)&&normalizeDraftRoutePath(path).startsWith('/the-journal/'))) return true;
     return !!matchContentHubArticleRoute(hubs, path) || !!matchContentHubTaxonomyRoute(hubs, path);
 }
 
 export function isMissingPublishedContentHubArticlePath(
     hubs: TContentHubPublicRouteConfigInput,
     path: unknown,
+    language?: string,
 ): boolean {
-    return !!matchContentHubArticleRoute(hubs, path) && !findPublishedContentHubArticleForPath(hubs, path);
+    return !!matchContentHubArticleRoute(hubs, path) && !findPublishedContentHubArticleForPath(hubs, path,language);
 }
 
 export function isMissingPublishedContentHubPublicPath(
     hubs: TContentHubPublicRouteConfigInput,
     path: unknown,
+    language?: string,
 ): boolean {
-    return isContentHubPublicPath(hubs, path) && !hasPublishedContentHubPublicPath(hubs, path);
+    return isContentHubPublicPath(hubs, path) && !hasPublishedContentHubPublicPath(hubs, path,language);
 }
 
 function normalizeContentHubPublicRouteConfigs(
