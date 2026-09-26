@@ -2,10 +2,12 @@ import { HttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { restoreTestBrowserHistory, setTestBrowserUrl } from '@/test-browser-state';
 import { of } from 'rxjs';
+import { ToastService } from '../components/generic-toast';
 import { AnalyticsCategories, AnalyticsEvents } from './analytics.events';
 import { AnalyticsService } from './analytics.service';
 import { ConfigStoreService } from './config-store.service';
 import { GoogleTagService } from './google-tag.service';
+import { I18nService } from './i18n.service';
 import { QuickStatsService } from './quick-stats.service';
 import { RuntimeConfigService } from './runtime-config.service';
 
@@ -321,6 +323,153 @@ describe('AnalyticsService', () => {
     svc.initializeRuntimeState();
 
     expect(quickStats.inc).not.toHaveBeenCalled();
+  });
+
+  it('counts queued page views and conversion events once after analytics consent', async () => {
+    spyOnProperty(navigator, 'webdriver', 'get').and.returnValue(false);
+    localStorage.removeItem('consent-spec:allowAnalytics');
+
+    const quickStats = jasmine.createSpyObj<QuickStatsService>('QuickStatsService', ['inc', 'getNumber']);
+    quickStats.inc.and.returnValue(of({ ok: true }));
+    quickStats.getNumber.and.returnValue(undefined);
+
+    TestBed.configureTestingModule({
+      providers: [
+        ConfigStoreService,
+        { provide: QuickStatsService, useValue: quickStats },
+        {
+          provide: RuntimeConfigService,
+          useValue: {
+            appIdentifier: () => 'consent-spec',
+            isAnalyticsEnabled: () => true,
+            isDebugMode: () => false,
+            analyticsConsentMode: () => 'toast',
+            analyticsConsentSnoozeSeconds: () => 86400,
+            resolveStorageKey: (slot: string) => `consent-spec:${ slot }`,
+            track: () => [],
+          },
+        },
+        {
+          provide: HttpClient,
+          useValue: {
+            post: jasmine.createSpy('post').and.returnValue(of({ ok: true })),
+          } as any,
+        },
+      ],
+    });
+
+    const store = TestBed.inject(ConfigStoreService);
+    store.setAnalytics({
+      sectionIds: [],
+      scrollMilestones: [],
+      enabled: true,
+      consentUI: 'toast',
+      consentSnoozeSeconds: 86400,
+      quickStats: {
+        pageView: { event: 'page_view', path: 'metrics.pageViews', by: 1 },
+        events: [
+          { name: 'cta_click', path: 'metrics.ctaClicks', by: 1 },
+          { name: 'whatsapp_click', path: 'metrics.whatsappClicks', by: 1 },
+        ],
+      },
+    });
+
+    const svc = TestBed.inject(AnalyticsService) as any;
+    svc.isProduction = true;
+    svc.alreadyAskedForPermission = true;
+    svc.initializeRuntimeState();
+
+    await svc.track('page_view');
+    await svc.track('cta_click');
+    await svc.track('whatsapp_click');
+
+    expect(quickStats.inc).not.toHaveBeenCalled();
+
+    await svc.finishConsent(true);
+
+    expect(quickStats.inc.calls.allArgs()).toEqual([
+      ['metrics.pageViews', 1],
+      ['metrics.ctaClicks', 1],
+      ['metrics.whatsappClicks', 1],
+    ]);
+  });
+
+  it('requires an explicit analytics consent action instead of a dismiss-only state', () => {
+    const toast = jasmine.createSpyObj<ToastService>('ToastService', ['show', 'dismiss']);
+    toast.show.and.returnValue('analytics-consent');
+
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: ToastService, useValue: toast },
+        { provide: I18nService, useValue: { t: (key: string) => key } },
+        {
+          provide: HttpClient,
+          useValue: {
+            post: jasmine.createSpy('post').and.returnValue(of({ ok: true })),
+          } as any,
+        },
+      ],
+    });
+
+    const svc = TestBed.inject(AnalyticsService) as any;
+    void svc.promptConsentWithToast();
+
+    expect(toast.show).toHaveBeenCalledWith(jasmine.objectContaining({
+      autoCloseMs: 0,
+      dismissible: false,
+    }));
+  });
+
+  it('does not re-prompt while a persisted consent snooze is active', async () => {
+    spyOnProperty(navigator, 'webdriver', 'get').and.returnValue(false);
+    localStorage.removeItem('consent-spec:allowAnalytics');
+    localStorage.setItem('consent-spec:analyticsConsentSnooze', String(Date.now() + 60_000));
+
+    const toast = jasmine.createSpyObj<ToastService>('ToastService', ['show', 'dismiss']);
+    TestBed.configureTestingModule({
+      providers: [
+        ConfigStoreService,
+        { provide: ToastService, useValue: toast },
+        { provide: I18nService, useValue: { t: (key: string) => key } },
+        {
+          provide: RuntimeConfigService,
+          useValue: {
+            appIdentifier: () => 'consent-spec',
+            isAnalyticsEnabled: () => true,
+            isDebugMode: () => false,
+            analyticsConsentMode: () => 'toast',
+            analyticsConsentSnoozeSeconds: () => 86400,
+            resolveStorageKey: (slot: string) => `consent-spec:${ slot }`,
+            track: () => [],
+          },
+        },
+        {
+          provide: HttpClient,
+          useValue: {
+            post: jasmine.createSpy('post').and.returnValue(of({ ok: true })),
+          } as any,
+        },
+      ],
+    });
+
+    const store = TestBed.inject(ConfigStoreService);
+    store.setAnalytics({
+      sectionIds: [],
+      scrollMilestones: [],
+      enabled: true,
+      consentUI: 'toast',
+      consentSnoozeSeconds: 86400,
+    });
+
+    const svc = TestBed.inject(AnalyticsService) as any;
+    spyOn(svc, 'scheduleRePrompt');
+    svc.initializeRuntimeState();
+    await svc.track('page_view');
+
+    expect(svc.scheduleRePrompt).toHaveBeenCalled();
+    expect(toast.show).not.toHaveBeenCalled();
+
+    localStorage.removeItem('consent-spec:analyticsConsentSnooze');
   });
 
   it('mirrors internal page views to Google dataLayer with stored ad attribution but without ad params in page_location', async () => {
@@ -689,7 +838,7 @@ describe('AnalyticsService', () => {
     }
   });
 
-  it('falls back to default engagement milestones when none are configured', () => {
+  it('uses default engagement milestones only when none are configured', () => {
     TestBed.configureTestingModule({
       providers: [
         {
@@ -703,11 +852,12 @@ describe('AnalyticsService', () => {
 
     const svc = TestBed.inject(AnalyticsService) as any;
 
-    expect(svc.resolveScrollMilestones([])).toEqual([25, 50, 75, 100]);
+    expect(svc.resolveScrollMilestones(undefined)).toEqual([25, 50, 75, 100]);
+    expect(svc.resolveScrollMilestones([])).toEqual([]);
     expect(svc.resolveScrollMilestones([50, 25, 50, 100])).toEqual([25, 50, 100]);
   });
 
-  it('falls back to section ids found in the rendered document when none are configured', () => {
+  it('discovers section ids only when none are configured', () => {
     TestBed.configureTestingModule({
       providers: [
         {
@@ -727,7 +877,8 @@ describe('AnalyticsService', () => {
       <section id="games-section"></section>
     `;
 
-    expect(svc.resolveSectionIds([], doc)).toEqual(['home', 'games-section']);
+    expect(svc.resolveSectionIds(undefined, doc)).toEqual(['home', 'games-section']);
+    expect(svc.resolveSectionIds([], doc)).toEqual([]);
     expect(svc.resolveSectionIds(['custom-section'], doc)).toEqual(['custom-section']);
   });
 
@@ -763,6 +914,107 @@ describe('AnalyticsService', () => {
         navigationType: 'in-page',
       },
     });
+
+    svc.stopPageEngagementTracking();
+  });
+
+  it('tracks same-origin anchors serialized with the current path and sticky draft query', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: HttpClient,
+          useValue: {
+            post: jasmine.createSpy('post').and.returnValue(of({ ok: true })),
+          } as any,
+        },
+      ],
+    });
+
+    const svc = TestBed.inject(AnalyticsService);
+    spyOn(svc, 'track').and.returnValue(Promise.resolve());
+
+    const doc = document.implementation.createHTMLDocument('analytics');
+    const base = doc.createElement('base');
+    base.href = 'https://test.zoolandingpage.com.mx/?draftDomain=zooberiahsystems.com&draftPageId=default';
+    doc.head.appendChild(base);
+    const anchor = doc.createElement('a');
+    anchor.setAttribute('href', '/?draftDomain=zooberiahsystems.com#consultoria');
+    anchor.textContent = 'Consultoría';
+    doc.body.appendChild(anchor);
+
+    svc.startPageEngagementTracking({ sectionIds: [], scrollMilestones: [] }, doc);
+    anchor.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(svc.track).toHaveBeenCalledWith(AnalyticsEvents.NavClick, {
+      category: AnalyticsCategories.Navigation,
+      label: 'consultoria',
+      meta: {
+        href: '#consultoria',
+        navigationType: 'in-page',
+      },
+    });
+
+    svc.stopPageEngagementTracking();
+  });
+
+  it('does not treat cross-origin fragment links as site navigation', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: HttpClient,
+          useValue: {
+            post: jasmine.createSpy('post').and.returnValue(of({ ok: true })),
+          } as any,
+        },
+      ],
+    });
+
+    const svc = TestBed.inject(AnalyticsService);
+    spyOn(svc, 'track').and.returnValue(Promise.resolve());
+
+    const doc = document.implementation.createHTMLDocument('analytics');
+    const base = doc.createElement('base');
+    base.href = 'https://test.zoolandingpage.com.mx/?draftDomain=zooberiahsystems.com';
+    doc.head.appendChild(base);
+    const anchor = doc.createElement('a');
+    anchor.setAttribute('href', 'https://example.com/#consultoria');
+    doc.body.appendChild(anchor);
+
+    svc.startPageEngagementTracking({ sectionIds: [], scrollMilestones: [] }, doc);
+    anchor.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(svc.track).not.toHaveBeenCalledWith(AnalyticsEvents.NavClick, jasmine.anything());
+
+    svc.stopPageEngagementTracking();
+  });
+
+  it('does not treat a same-origin fragment on another path as in-page navigation', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: HttpClient,
+          useValue: {
+            post: jasmine.createSpy('post').and.returnValue(of({ ok: true })),
+          } as any,
+        },
+      ],
+    });
+
+    const svc = TestBed.inject(AnalyticsService);
+    spyOn(svc, 'track').and.returnValue(Promise.resolve());
+
+    const doc = document.implementation.createHTMLDocument('analytics');
+    const base = doc.createElement('base');
+    base.href = 'https://test.zoolandingpage.com.mx/?draftDomain=zooberiahsystems.com';
+    doc.head.appendChild(base);
+    const anchor = doc.createElement('a');
+    anchor.setAttribute('href', '/404?draftDomain=zooberiahsystems.com#contacto');
+    doc.body.appendChild(anchor);
+
+    svc.startPageEngagementTracking({ sectionIds: [], scrollMilestones: [] }, doc);
+    anchor.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(svc.track).not.toHaveBeenCalledWith(AnalyticsEvents.NavClick, jasmine.anything());
 
     svc.stopPageEngagementTracking();
   });

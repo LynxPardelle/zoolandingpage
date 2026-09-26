@@ -94,6 +94,13 @@
       "githubUrl": "https://github.com/LynxPardelle/draft-somosgreenstock-mx.git",
       "localPath": "drafts/somosgreenstock.mx",
       "deploymentEnvironments": ["test", "production"]
+    },
+    {
+      "domain": "zooberiahsystems.com",
+      "repo": "draft-zooberiahsystems-com",
+      "githubUrl": "https://github.com/LynxPardelle/draft-zooberiahsystems-com.git",
+      "localPath": "drafts/zooberiahsystems.com",
+      "deploymentEnvironments": ["test"]
     }
   ]
 }

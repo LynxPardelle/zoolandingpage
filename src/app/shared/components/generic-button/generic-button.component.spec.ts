@@ -41,6 +41,17 @@ describe('GenericButtonComponent', () => {
     expect(button.querySelector('#cta-button-content-icon-before')).toBeTruthy();
   });
 
+  it('should omit root and child ids when no id source is configured', () => {
+    const fixture = TestBed.createComponent(GenericButtonComponent);
+    fixture.componentRef.setInput('config', { label: 'Unscoped action' });
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+
+    expect(button.hasAttribute('id')).toBeFalse();
+    expect(button.querySelectorAll('[id]').length).toBe(0);
+  });
+
   it('should emit pressed event on click', () => {
     const fixture = TestBed.createComponent(GenericButtonComponent);
     const component = fixture.componentInstance;
