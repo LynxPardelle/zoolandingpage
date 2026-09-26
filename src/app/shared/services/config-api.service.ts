@@ -229,10 +229,17 @@ export class ConfigApiService {
             return true;
         }
 
-        const hostname = String(this.resolveCurrentUrl()?.hostname ?? '').trim().toLowerCase();
+        const currentUrl = this.resolveCurrentUrl();
+        const hostname = String(currentUrl?.hostname ?? '').trim().toLowerCase();
         const testFallback = String(environment.configApiRuntimeFallbackUrls?.test ?? '').trim();
+        const privateAdminOrigin = 'https://admin-test.thehairnarrative.com';
+        const privateAdmin = this.protectedOrigin.context;
+        const isTrustedPrivateJournal = currentUrl?.origin === privateAdminOrigin
+            && privateAdmin?.originRole === 'protected-admin'
+            && privateAdmin.origin === privateAdminOrigin
+            && privateAdmin.domain === 'thehairnarrative.com';
 
-        return hostname === 'test.zoolandingpage.com.mx'
+        return (hostname === 'test.zoolandingpage.com.mx' || isTrustedPrivateJournal)
             && this.resolveRuntimeFallbackEnvironment(params) === 'test'
             && testFallback.length > 0;
     }
