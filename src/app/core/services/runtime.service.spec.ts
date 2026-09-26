@@ -555,10 +555,15 @@ describe('RuntimeService', () => {
         });
 
         bootstrapLoad.calls.reset();
-        setRuntimeUrl('/servicios?draftDomain=pamelabetancourt.com&lang=es');
+        analyticsTrack.calls.reset();
+        setRuntimeUrl('/servicios?draftDomain=pamelabetancourt.com&lang=es&email=ana%40example.com#phone=525522699563');
         window.dispatchEvent(new PopStateEvent('popstate'));
         await flushPostBootstrapBrowserWork();
 
+        expect(analyticsTrack).toHaveBeenCalledWith('page_view', {
+            category: AnalyticsCategories.Navigation,
+            label: '/servicios',
+        });
         expect(bootstrapLoad).toHaveBeenCalledWith({
             domain: 'pamelabetancourt.com',
             pageId: 'servicios',
@@ -922,27 +927,26 @@ describe('RuntimeService', () => {
         expect(analyticsTrack).not.toHaveBeenCalled();
     });
 
-    it('tracks an initial page view on the first successful browser bootstrap', async () => {
+    it('tracks an initial page view with only the current path', async () => {
         spyOnProperty(navigator, 'userAgent', 'get').and.returnValue('Mozilla/5.0 Chrome/147.0.0.0 Safari/537.36');
         spyOnProperty(navigator, 'webdriver', 'get').and.returnValue(false);
         const service = TestBed.inject(RuntimeService);
-        spyOn<any>(service, 'resolveCurrentBrowserUrlLabel').and.returnValue('/home?draftDomain=pamelabetancourt.com');
 
-        setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/home?email=ana%40example.com#phone=525522699563');
         await service.initialize('es');
 
         expect(analyticsInitializeRuntimeState).not.toHaveBeenCalled();
         expect(analyticsPageViewEventName).not.toHaveBeenCalled();
         expect(analyticsTrack).not.toHaveBeenCalled();
 
-        setRuntimeUrl('/home?draftDomain=pamelabetancourt.com');
+        setRuntimeUrl('/home?email=ana%40example.com#phone=525522699563');
         await flushPostBootstrapBrowserWork();
 
         expect(analyticsInitializeRuntimeState).toHaveBeenCalled();
         expect(analyticsPageViewEventName).toHaveBeenCalled();
         expect(analyticsTrack).toHaveBeenCalledWith('page_view', {
             category: AnalyticsCategories.Navigation,
-            label: '/home?draftDomain=pamelabetancourt.com',
+            label: '/home',
         });
 
         await service.initialize('es');

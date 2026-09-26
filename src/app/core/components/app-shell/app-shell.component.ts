@@ -310,10 +310,11 @@ export class AppShellComponent {
     }
 
     documentRef
-      .querySelectorAll('[data-zlp-protected-ssr-overlay], style[data-zlp-protected-ssr-style]')
+      .querySelectorAll('[data-zlp-protected-ssr-overlay], style[data-zlp-protected-ssr-style], [data-zlp-not-found-ssr], style[data-zlp-not-found-ssr-style]')
       .forEach((node: Element) => node.remove());
     this.host.nativeElement.removeAttribute('aria-hidden');
     this.host.nativeElement.removeAttribute('data-zlp-protected-shell');
+    this.host.nativeElement.removeAttribute('data-zlp-not-found-shell');
     this.seo.apply(this._lang.currentLanguage(), this.configStore.seo());
     this.structuredData.applyEntries(this.configStore.structuredData()?.entries, 'sd:bootstrap');
   }
@@ -338,6 +339,10 @@ export class AppShellComponent {
     const hasRenderedRoots = rootIds.length > 0 || this.modalRootIds().length > 0 || this.showDebugWorkspace();
     if (!hasRenderedRoots) {
       return false;
+    }
+
+    if (this.host.nativeElement.hasAttribute('data-zlp-not-found-shell')) {
+      return true;
     }
 
     return pageId !== 'not-found'

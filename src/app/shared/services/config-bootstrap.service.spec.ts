@@ -305,6 +305,13 @@ describe('ConfigBootstrapService', () => {
         },
     });
 
+    it('preserves omitted engagement fields so runtime defaults remain available', () => {
+        const analytics = (service as any).buildResolvedAnalyticsConfig({ enabled: true }, null);
+
+        expect(analytics.sectionIds).toBeUndefined();
+        expect(analytics.scrollMilestones).toBeUndefined();
+    });
+
     it('passes an authoritative fixed route language separately from the requested language', async () => {
         mockSuccessfulBootstrapPayloads();
         const siteConfig = {

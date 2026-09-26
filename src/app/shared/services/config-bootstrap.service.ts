@@ -250,8 +250,8 @@ export class ConfigBootstrapService {
         const siteGoogleTag = this.mergeGoogleTagConfig(siteAnalytics?.googleTag, hostGoogleTag);
 
         return {
-            sectionIds: pageAnalytics?.sectionIds ?? [],
-            scrollMilestones: pageAnalytics?.scrollMilestones ?? [],
+            sectionIds: pageAnalytics?.sectionIds,
+            scrollMilestones: pageAnalytics?.scrollMilestones,
             enabled: siteAnalytics?.enabled ?? false,
             consentUI: siteAnalytics?.consentUI ?? 'none',
             consentSnoozeSeconds: siteAnalytics?.consentSnoozeSeconds ?? 86400,

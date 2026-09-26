@@ -979,7 +979,7 @@ export class RuntimeService {
             return '/';
         }
 
-        return `${ window.location.pathname || '/' }${ window.location.search || '' }${ window.location.hash || '' }` || '/';
+        return window.location.pathname || '/';
     }
 
     private isAutomatedBrowser(): boolean {
@@ -1038,7 +1038,7 @@ export class RuntimeService {
             const currentPath = currentBrowserPath();
             void this.analytics.track(this.analytics.pageViewEventName(), {
                 category: AnalyticsCategories.Navigation,
-                label: currentPath,
+                label: this.resolveCurrentBrowserUrlLabel(),
             });
             this.trackConfiguredContentHubView(currentPath);
 
