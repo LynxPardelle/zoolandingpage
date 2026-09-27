@@ -44,6 +44,82 @@ describe('GenericRichTextComponent', () => {
       expect(src).toBe(url);
     } finally { URL.revokeObjectURL(url); }
   });
+  it('shows a newly uploaded private image as soon as its preview source arrives',async()=>{
+    const bytes=Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII='),c=>c.charCodeAt(0));
+    const url=URL.createObjectURL(new Blob([bytes],{type:'image/png'}));
+    const text='Existing article text';
+    const config=(image:string|null,sources:readonly string[])=>({
+      fieldId:'body',provider:'quill',format:'quill-delta-object',sanitizerPolicyId:'fixed-article-v2',
+      privateImageSources:sources,
+      value:{ops:[{insert:`${text}\n`},...(image?[{insert:{image}}]:[]),{insert:'\n'}]},
+    });
+    try {
+      fixture.componentRef.setInput('config',config(null,[]));
+      fixture.detectChanges();await import('quill');await fixture.whenStable();fixture.detectChanges();
+      const editor=()=>fixture.debugElement.query(By.directive(QuillEditorComponent))?.componentInstance as QuillEditorComponent;
+      for(let i=0;i<60&&!editor()?.quillEditor;i++) {await new Promise(requestAnimationFrame);fixture.detectChanges();}
+      expect(editor()?.quillEditor?.root.textContent).toContain(text);
+
+      // The saved asset ID appears before the private preview read has returned.
+      fixture.componentRef.setInput('config',config('asset-1',[]));fixture.detectChanges();await fixture.whenStable();fixture.detectChanges();
+      expect(editor()?.quillEditor?.root.querySelector('img')?.getAttribute('src')).toContain('data:image/gif');
+
+      // Runtime values are propagated separately: the URL can reach Quill
+      // before the allowlist does, so it is initially sanitized to the GIF.
+      fixture.componentRef.setInput('config',config(url,[]));fixture.detectChanges();await fixture.whenStable();fixture.detectChanges();
+      expect(editor()?.quillEditor?.root.querySelector('img')?.getAttribute('src')).toContain('data:image/gif');
+      fixture.componentRef.setInput('config',config(url,[url]));fixture.detectChanges();await fixture.whenStable();
+      let src:string|null|undefined;
+      for(let i=0;i<60&&src!==url;i++) {
+        await new Promise(requestAnimationFrame);fixture.detectChanges();
+        src=editor()?.quillEditor?.root.querySelector('img')?.getAttribute('src');
+      }
+      expect(src).toBe(url);
+      expect(editor()?.quillEditor?.root.textContent).toContain(text);
+    } finally { URL.revokeObjectURL(url); }
+  });
+  it('keeps saved typing when an inline image is added in the same editing session',async()=>{
+    const bytes=Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII='),c=>c.charCodeAt(0));
+    const url=URL.createObjectURL(new Blob([bytes],{type:'image/png'}));
+    const text='Typed and saved before the upload';
+    const base={ops:[{insert:`${text}\n`}]};
+    try {
+      fixture.componentRef.setInput('config',{fieldId:'body',provider:'quill',format:'quill-delta-object',sanitizerPolicyId:'fixed-article-v2',privateImageSources:[],value:base});
+      fixture.detectChanges();await import('quill');await fixture.whenStable();fixture.detectChanges();
+      const editor=()=>fixture.debugElement.query(By.directive(QuillEditorComponent))?.componentInstance as QuillEditorComponent;
+      for(let i=0;i<60&&!editor()?.quillEditor;i++) {await new Promise(requestAnimationFrame);fixture.detectChanges();}
+      const scope=TestBed.inject(InteractionScopeService);
+      scope.setFieldValue('body',base,{markTouched:true});
+      expect(scope.getFieldState('body')?.dirty).toBeTrue();
+
+      const withImage={ops:[...base.ops,{insert:{image:url}},{insert:'\n'}]};
+      fixture.componentRef.setInput('config',{fieldId:'body',provider:'quill',format:'quill-delta-object',sanitizerPolicyId:'fixed-article-v2',privateImageSources:[url],value:withImage});
+      fixture.detectChanges();await fixture.whenStable();
+      let src:string|null|undefined;
+      for(let i=0;i<60&&src!==url;i++) {await new Promise(requestAnimationFrame);fixture.detectChanges();src=editor()?.quillEditor?.root.querySelector('img')?.getAttribute('src');}
+      expect(src).toBe(url);
+      expect(editor()?.quillEditor?.root.textContent).toContain(text);
+    } finally { URL.revokeObjectURL(url); }
+  });
+  it('does not replace divergent unsaved article text with an incoming image update',async()=>{
+    const bytes=Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII='),c=>c.charCodeAt(0));
+    const url=URL.createObjectURL(new Blob([bytes],{type:'image/png'}));
+    try {
+      fixture.componentRef.setInput('config',{fieldId:'body',provider:'quill',format:'quill-delta-object',sanitizerPolicyId:'fixed-article-v2',privateImageSources:[],value:{ops:[{insert:'Original\n'}]}});
+      fixture.detectChanges();await import('quill');await fixture.whenStable();fixture.detectChanges();
+      const editor=()=>fixture.debugElement.query(By.directive(QuillEditorComponent))?.componentInstance as QuillEditorComponent;
+      for(let i=0;i<60&&!editor()?.quillEditor;i++) {await new Promise(requestAnimationFrame);fixture.detectChanges();}
+      const local={ops:[{insert:'Unsaved local writing\n'}]};
+      editor().quillEditor.setContents(local.ops,'user');
+      fixture.componentInstance.onQuillContentChanged({content:local,text:'Unsaved local writing\n',source:'user'});
+      fixture.detectChanges();
+
+      fixture.componentRef.setInput('config',{fieldId:'body',provider:'quill',format:'quill-delta-object',sanitizerPolicyId:'fixed-article-v2',privateImageSources:[url],value:{ops:[{insert:'Different server text\n'},{insert:{image:url}},{insert:'\n'}]}});
+      fixture.detectChanges();await fixture.whenStable();fixture.detectChanges();
+      expect(editor().quillEditor.root.textContent).toContain('Unsaved local writing');
+      expect(editor().quillEditor.root.querySelector('img')).toBeNull();
+    } finally { URL.revokeObjectURL(url); }
+  });
   it('keeps private image registrations instance-scoped and rejects pasted or stale sources',async()=>{
     fixture.componentRef.setInput('config',{fieldId:'body'});
     const {default:quill}=await import('quill');
@@ -56,6 +132,13 @@ describe('GenericRichTextComponent', () => {
     expect(privateImage.sanitize('https://tracker.example.test/image')).not.toContain('tracker');
     sources=[];
     expect(privateImage.sanitize('blob:https://admin.example.test/private')).not.toContain('blob:');
+  });
+
+  it('does not defer image values for editors outside the private article policy',()=>{
+    const value={ops:[{insert:{image:'blob:https://example.test/other-editor'}},{insert:'\n'}]};
+    fixture.componentRef.setInput('config',{fieldId:'body',provider:'quill',format:'quill-delta-object',value});
+    fixture.detectChanges();
+    expect(fixture.componentInstance.currentValue()).toEqual(value);
   });
 
   it('renders draft-configured textarea copy and classes', () => {

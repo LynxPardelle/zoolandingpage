@@ -83,6 +83,16 @@ export class GenericRichTextComponent {
     });
     effect(() => {
       const configValue = this.resolveValue(this.config().value) ?? '';
+      const privateSources = this.sanitizerPolicyId() === 'fixed-article-v2'
+        ? this.resolveValue(this.config().privateImageSources) : [];
+      const allowedSources = new Set(Array.isArray(privateSources) ? privateSources : []);
+      const ops = configValue && typeof configValue === 'object' && 'ops' in configValue
+        ? (configValue as { ops?: unknown }).ops : undefined;
+      if (this.sanitizerPolicyId() === 'fixed-article-v2' && Array.isArray(ops) && ops.some((op) => {
+        const insert = op && typeof op === 'object' ? op.insert : undefined;
+        const image = insert && typeof insert === 'object' ? insert.image : undefined;
+        return typeof image === 'string' && image.startsWith('blob:') && !allowedSources.has(image);
+      })) return;
       const fieldId = this.fieldId();
       const required = this.required();
       const disabled = this.disabled();
@@ -90,12 +100,14 @@ export class GenericRichTextComponent {
       untracked(() => {
         const scopedState = this.scope?.getFieldState(fieldId);
         const hasDirtyScopedValue = Boolean(scopedState?.dirty);
-        const value = hasDirtyScopedValue ? scopedState?.value : configValue;
+        const acceptsSavedImage = hasDirtyScopedValue && this.isAppendedPrivateImage(scopedState?.value, configValue, allowedSources);
+        const value = hasDirtyScopedValue && !acceptsSavedImage ? scopedState?.value : configValue;
         const shouldSyncEditorModel = !this.valuesRepresentSameContent(value, this.currentValue());
         this.currentValue.set(value);
-        if (!hasDirtyScopedValue && shouldSyncEditorModel) {
+        if ((!hasDirtyScopedValue || acceptsSavedImage) && shouldSyncEditorModel) {
           this.quillModel = this.toQuillModel(value);
         }
+        if (acceptsSavedImage) this.scope?.setFieldValue(fieldId, value);
         if (this.scope && fieldId) {
           this.scope.registerField({
             fieldId,
@@ -192,6 +204,16 @@ export class GenericRichTextComponent {
   private valuesRepresentSameContent(left: unknown, right: unknown): boolean {
     if (left === right) return true;
     return this.stableValueKey(left) === this.stableValueKey(right);
+  }
+
+  private isAppendedPrivateImage(previous: unknown, incoming: unknown, allowedSources: ReadonlySet<unknown>): boolean {
+    const oldOps = previous && typeof previous === 'object' && 'ops' in previous ? previous.ops : undefined;
+    const newOps = incoming && typeof incoming === 'object' && 'ops' in incoming ? incoming.ops : undefined;
+    if (!Array.isArray(oldOps) || !Array.isArray(newOps) || newOps.length !== oldOps.length + 2) return false;
+    if (this.stableValueKey(newOps.slice(0, oldOps.length)) !== this.stableValueKey(oldOps)) return false;
+    const image = newOps[oldOps.length]?.insert?.image;
+    return typeof image === 'string' && image.startsWith('blob:') && allowedSources.has(image)
+      && newOps[oldOps.length + 1]?.insert === '\n';
   }
 
   private stableValueKey(value: unknown): string {
