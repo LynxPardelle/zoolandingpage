@@ -67,7 +67,9 @@ export class GenericRichTextComponent {
   private lastToolbarKey = '';
   private lastQuillModules: QuillModules = { toolbar: [] };
   readonly currentValue = signal<unknown>('');
-  quillModel: unknown = { ops: [] };
+  private readonly quillModelValue = signal<unknown>({ ops: [] });
+  get quillModel(): unknown { return this.quillModelValue(); }
+  set quillModel(value: unknown) { this.quillModelValue.set(value); }
   readonly privateRegistry=signal<Registry|undefined>(undefined);
   private registryLoading=false;
 
