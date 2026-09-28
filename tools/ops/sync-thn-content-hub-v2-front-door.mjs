@@ -3,6 +3,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { thnEnvironmentProfile } from '../lib/thn-environment-profile.mjs';
 
 const DEFAULT_MANIFEST_PATH = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -108,7 +109,8 @@ function validateRoute(route, label) {
   }
 }
 
-function validateRouteManifest(manifest) {
+function validateRouteManifest(manifest, expectedEnvironment = 'test') {
+  const profile = thnEnvironmentProfile(expectedEnvironment);
   if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) {
     throw new Error('THN route manifest must be an object');
   }
@@ -129,8 +131,8 @@ function validateRouteManifest(manifest) {
     ['mode'],
     'THN protected admin static asset contract',
   );
-  if (manifest.version !== 1 || manifest.environment !== 'test') {
-    throw new Error('THN route manifest must be version 1 and TEST-only');
+  if (manifest.version !== 1 || manifest.environment !== profile.environment) {
+    throw new Error('THN route manifest environment profile is not exact');
   }
   if (manifest.domain !== 'thehairnarrative.com') {
     throw new Error('THN route manifest domain must be exact');
@@ -138,14 +140,14 @@ function validateRouteManifest(manifest) {
   const publicOrigin = manifest.origins?.public;
   const adminOrigin = manifest.origins?.admin;
   if (
-    publicOrigin?.host !== 'test.zoolandingpage.com.mx'
+    publicOrigin?.host !== profile.publicHost
     || publicOrigin?.originRole !== 'public'
     || publicOrigin?.defaultDecision !== 'pass-through'
   ) {
     throw new Error('THN public origin contract is not exact');
   }
   if (
-    adminOrigin?.host !== 'admin-test.thehairnarrative.com'
+    adminOrigin?.host !== profile.adminHost
     || adminOrigin?.originRole !== 'protected-admin'
     || adminOrigin?.defaultDecision !== 'deny'
     || adminOrigin?.staticAssets?.mode !== 'selected-release-manifest-only'
@@ -300,18 +302,19 @@ function validateSelectedStaticAssets(paths) {
   return [...new Set(normalized)].sort((left, right) => left.localeCompare(right));
 }
 
-function validateReleaseManifest(releaseManifest) {
+function validateReleaseManifest(releaseManifest, expectedEnvironment = 'test') {
+  const profile = thnEnvironmentProfile(expectedEnvironment);
   assertExactObjectKeys(
     releaseManifest,
     ['version', 'environment', 'releaseId', 'staticAssetPaths'],
     'Selected frontend release manifest',
   );
-  if (releaseManifest.version !== 1 || releaseManifest.environment !== 'test') {
-    throw new Error('Selected frontend release manifest must be version 1 and TEST-only');
+  if (releaseManifest.version !== 1 || releaseManifest.environment !== profile.environment) {
+    throw new Error('Selected frontend release manifest environment profile is not exact');
   }
   return {
     version: 1,
-    environment: 'test',
+    environment: profile.environment,
     releaseId: releaseManifest.releaseId,
     staticAssetPaths: validateSelectedStaticAssets(releaseManifest.staticAssetPaths),
   };

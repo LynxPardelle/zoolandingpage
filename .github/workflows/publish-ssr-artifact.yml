@@ -16,7 +16,7 @@ on:
         required: false
         type: string
       thn_admin_artifact:
-        description: Include the approved private THN admin artifact (TEST only)
+        description: Include the approved private THN admin artifact for the selected environment
         required: false
         type: boolean
         default: false
@@ -35,6 +35,7 @@ jobs:
     if: ${{ github.event_name != 'push' || github.ref_name != 'test' || vars.THN_TEST_PRIVATE_MANUAL_ONLY != 'true' }}
     runs-on: ubuntu-latest
     outputs:
+      source_only: ${{ steps.release_mode.outputs.source_only }}
       artifact_id: ${{ steps.upload.outputs.artifact-id }}
       delivery_sha256: ${{ steps.delivery.outputs.delivery_sha256 }}
       source_attempt: ${{ github.run_attempt }}
@@ -75,14 +76,10 @@ jobs:
             echo "Deployment environment must be test or production."
             exit 1
           fi
-          if [[ "$THN_ADMIN_ARTIFACT_ENABLED" == "true" && "$DEPLOY_ENV" != "test" ]]; then
-            echo "The private THN artifact is TEST only."
-            exit 1
-          fi
 
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
-          node-version: 24
+          node-version: '24.19.0'
           cache: npm
 
       - name: Verify exact protected promotion
@@ -91,20 +88,34 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if [[ "$DEPLOY_ENV" == test ]]; then source=dev; target=test; else source=test; target=main; fi
+          if [[ "$DEPLOY_ENV" == test ]]; then source="dev"; target="test"; else source="test"; target="main"; fi
           node tools/templates/draft-repo/tools/verify-promotion-commit.mjs --source="$source" --target="$target"
 
-      - run: npm ci
-      - run: npm audit --omit=dev
-      - run: node --test tools/tests/ssr-delivery-contract.spec.mjs tools/tests/ops-thn-content-hub-v2-front-door.spec.mjs tools/tests/thn-admin-artifact.spec.mjs
-      - run: npm run package:ssr:lambda
-      - run: npm run test:draft-public-artifact-boundary
+      - name: Verify source-only production promotion
+        id: release_mode
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PRODUCTION_PROMOTION_SELECTION_JSON: ${{ vars.APP_PRODUCTION_PROMOTION_SELECTION_JSON }}
+        run: node tools/verify-thn-production-promotion.mjs
+
+      - if: steps.release_mode.outputs.source_only != 'true'
+        run: npm ci
+      - if: steps.release_mode.outputs.source_only != 'true'
+        run: npm audit --omit=dev
+      - if: steps.release_mode.outputs.source_only != 'true'
+        run: node --test tools/tests/ssr-delivery-contract.spec.mjs tools/tests/ops-thn-content-hub-v2-front-door.spec.mjs tools/tests/thn-admin-artifact.spec.mjs tools/tests/thn-production-promotion.spec.mjs
+      - if: steps.release_mode.outputs.source_only != 'true'
+        run: npm run package:ssr:lambda
+      - if: steps.release_mode.outputs.source_only != 'true'
+        run: npm run test:draft-public-artifact-boundary
 
       - name: Bind complete artifact and optional admin inventory
+        if: steps.release_mode.outputs.source_only != 'true'
         id: delivery
         run: node tools/prepare-ssr-delivery.mjs
 
       - name: Upload validated SSR artifact
+        if: steps.release_mode.outputs.source_only != 'true'
         id: upload
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -124,6 +135,7 @@ jobs:
   publish:
     name: Publish validated Angular SSR artifact
     needs: validate
+    if: needs.validate.outputs.source_only != 'true'
     runs-on: ubuntu-latest
     concurrency:
       group: ssr-publish-${{ github.event_name == 'workflow_dispatch' && inputs.environment || (github.ref_name == 'main' && 'production' || github.ref_name) }}
@@ -217,21 +229,23 @@ jobs:
               selected = os.environ['EXPECTED_THN_ADMIN_ENABLED']
               assert selected in {'true','false'}
               assert admin.get('enabled') is (selected == 'true')
-              if delivery['environment'] == 'test':
-                  # An enabled TEST deployment cannot be silently downgraded by a default-off push.
-                  allowed = os.environ.get('THN_ADMIN_ARTIFACT_ALLOWED', 'false')
-                  assert allowed in {'true','false'} and selected == allowed
-              else:
-                  assert selected == 'false'
+              # Each Environment owns its opt-in; no enabled deployment can be downgraded.
+              allowed = os.environ.get('THN_ADMIN_ARTIFACT_ALLOWED', 'false')
+              assert allowed in {'true','false'} and selected == allowed
+              hosts = {'test': ('test.zoolandingpage.com.mx','admin-test.thehairnarrative.com'), 'production': ('thehairnarrative.com','admin.thehairnarrative.com')}
+              public_host, admin_host = hosts[delivery['environment']]
               if admin == {'enabled': False}:
                   assert 'thn-admin-release.json' not in names and 'thn-route-manifest.json' not in names
               else:
-                  assert admin == {'enabled': True, 'origin': 'https://admin-test.thehairnarrative.com'}
-                  assert delivery['environment'] == 'test'
+                  assert admin == {'enabled': True, 'origin': 'https://' + admin_host}
                   assert {'thn-admin-release.json','thn-route-manifest.json'}.issubset(names)
                   release = json.loads((root / 'thn-admin-release.json').read_bytes())
                   assert set(release) == {'version','environment','releaseId','staticAssetPaths'}
-                  assert release['version'] == 1 and release['environment'] == 'test' and release['releaseId'] == delivery['releaseId']
+                  assert release['version'] == 1 and release['environment'] == delivery['environment'] and release['releaseId'] == delivery['releaseId']
+                  routes = json.loads((root / 'thn-route-manifest.json').read_bytes())
+                  assert set(routes) == {'version','environment','domain','origins'}
+                  assert routes['version'] == 1 and routes['environment'] == delivery['environment'] and routes['domain'] == 'thehairnarrative.com'
+                  assert routes['origins']['public']['host'] == public_host and routes['origins']['admin']['host'] == admin_host
                   assert release['staticAssetPaths'] and len(set(release['staticAssetPaths'])) == len(release['staticAssetPaths'])
                   for asset in release['staticAssetPaths']:
                       assert asset.startswith('/browser/') and 'staging' + asset in names
@@ -353,10 +367,15 @@ jobs:
           echo "browser=s3://${STATIC_BUCKET}/frontend/angular-ssr/${DEPLOY_ENV}/releases/${RELEASE_ID}/browser"
           {
             echo '### Immutable SSR artifact (not activated)'
+            # shellcheck disable=SC2016 # Markdown backticks are literal; values use printf arguments.
             printf 'Release: `%s`\n\n' "$RELEASE_ID"
+            # shellcheck disable=SC2016 # Markdown backticks are literal; values use printf arguments.
             printf 'Source: `%s`\n\n' "$GITHUB_SHA"
+            # shellcheck disable=SC2016 # Markdown backticks are literal; values use printf arguments.
             printf 'Source run/validation attempt: `%s/%s`\n\n' "$GITHUB_RUN_ID" "$EXPECTED_SOURCE_ATTEMPT"
+            # shellcheck disable=SC2016 # Markdown backticks are literal; values use printf arguments.
             printf 'Artifact ID: `%s`\n\n' "$EXPECTED_ARTIFACT_ID"
+            # shellcheck disable=SC2016 # Markdown backticks are literal; values use printf arguments.
             printf 'Delivery SHA-256: `%s`\n\n' "$EXPECTED_DELIVERY_SHA256"
             echo 'For TEST rollback verify the complete recorded artifact with prepare-ssr-delivery.mjs --rollback; infrastructure activation remains separately owned.'
           } >> "$GITHUB_STEP_SUMMARY"

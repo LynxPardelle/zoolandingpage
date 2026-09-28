@@ -3,6 +3,7 @@ import { appendFile, lstat, readFile, readdir, writeFile } from 'node:fs/promise
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { validateReleaseManifest, validateRouteManifest } from './ops/sync-thn-content-hub-v2-front-door.mjs';
+import { thnEnvironmentProfile } from './lib/thn-environment-profile.mjs';
 
 const sha256 = value => createHash('sha256').update(value).digest('hex');
 const fail = reason => { throw new Error(`SSR delivery rejected: ${reason}`); };
@@ -63,8 +64,9 @@ function assertSourceManifest(manifest, c, zipHash) {
 export async function prepareDelivery({ root, routeManifest, adminEnabled = false, adminRelease, ...c }) {
   assertCoordinates(c);
   if (typeof adminEnabled !== 'boolean') fail('admin flag');
-  if (adminEnabled && (c.environment !== 'test' || !adminRelease)) fail('admin manifest is required in TEST only');
-  validateRouteManifest(routeManifest);
+  if (adminEnabled && !adminRelease) fail('admin manifest is required');
+  const profile = thnEnvironmentProfile(c.environment);
+  validateRouteManifest(routeManifest, adminEnabled ? c.environment : routeManifest.environment);
   const browserFiles = await walk(root, 'staging/browser');
   if (!browserFiles.length) fail('empty browser artifact');
   const zip = await regularFile(path.join(root, 'ssr-handler.zip'));
@@ -73,7 +75,7 @@ export async function prepareDelivery({ root, routeManifest, adminEnabled = fals
   const files = ['manifest.json', 'ssr-handler.zip', ...browserFiles];
   let thnAdmin = { enabled: false };
   if (adminEnabled) {
-    const release = validateReleaseManifest(adminRelease);
+    const release = validateReleaseManifest(adminRelease, c.environment);
     if (release.releaseId !== c.releaseId || !release.staticAssetPaths.length) fail('admin release mismatch');
     for (const file of release.staticAssetPaths) {
       if (!adminAssetExtension.test(file) || !browserFiles.includes(`staging${file}`)) fail('admin asset is missing or not permitted');
@@ -81,7 +83,7 @@ export async function prepareDelivery({ root, routeManifest, adminEnabled = fals
     await writeFile(path.join(root, 'thn-admin-release.json'), `${JSON.stringify(release, null, 2)}\n`, { flag: 'wx' });
     await writeFile(path.join(root, 'thn-route-manifest.json'), `${JSON.stringify(routeManifest, null, 2)}\n`, { flag: 'wx' });
     files.push('thn-admin-release.json', 'thn-route-manifest.json');
-    thnAdmin = { enabled: true, origin: 'https://admin-test.thehairnarrative.com' };
+    thnAdmin = { enabled: true, origin: `https://${profile.adminHost}` };
   }
   const contract = { schemaVersion: 1, environment: c.environment, releaseId: c.releaseId, sourceCommit: c.sourceCommit,
     runId: c.runId, runAttempt: c.runAttempt, deployed: false, thnAdmin, files: [] };
@@ -109,11 +111,11 @@ export async function verifyDelivery({ root, digest, ...c }) {
     if (new Set(paths).size !== paths.length) fail('duplicate files');
     const expected = ['manifest.json', 'ssr-handler.zip', ...await walk(root, 'staging/browser')];
     if (contract.thnAdmin?.enabled === true) {
-      if (c.environment !== 'test' || Object.keys(contract.thnAdmin).sort().join(',') !== 'enabled,origin'
-        || contract.thnAdmin.origin !== 'https://admin-test.thehairnarrative.com') fail('admin origin');
+      if (Object.keys(contract.thnAdmin).sort().join(',') !== 'enabled,origin'
+        || contract.thnAdmin.origin !== `https://${thnEnvironmentProfile(c.environment).adminHost}`) fail('admin origin');
       const routes = JSON.parse(await regularFile(path.join(root, 'thn-route-manifest.json')));
-      validateRouteManifest(routes);
-      const release = validateReleaseManifest(JSON.parse(await regularFile(path.join(root, 'thn-admin-release.json'))));
+      validateRouteManifest(routes, c.environment);
+      const release = validateReleaseManifest(JSON.parse(await regularFile(path.join(root, 'thn-admin-release.json'))), c.environment);
       if (release.releaseId !== c.releaseId || !release.staticAssetPaths.length) fail('admin release');
       for (const file of release.staticAssetPaths) {
         if (!adminAssetExtension.test(file) || !paths.includes(`staging${file}`)) fail('admin asset');
@@ -138,23 +140,24 @@ export async function verifyDelivery({ root, digest, ...c }) {
   }
 }
 
-/** Validate downloaded, immutable TEST evidence; this never selects an infrastructure release. */
+/** Validate downloaded evidence in its original environment; this never activates infrastructure. */
 export async function prepareRollback({ sourceRun, artifact, expectedArtifactId, ...expected }) {
   try {
     const contract = await verifyDelivery(expected);
-    if (contract.environment !== 'test' || !/^[1-9][0-9]{0,19}$/.test(expectedArtifactId)
+    const sourceBranch = contract.environment === 'production' ? 'main' : 'test';
+    if (!/^[1-9][0-9]{0,19}$/.test(expectedArtifactId)
       || String(artifact.id) !== expectedArtifactId || artifact.expired !== false
       || sourceRun.repository?.full_name !== 'LynxPardelle/zoolandingpage'
       || sourceRun.path !== '.github/workflows/publish-ssr-artifact.yml'
-      || sourceRun.head_branch !== 'test' || sourceRun.head_sha !== contract.sourceCommit
+      || sourceRun.head_branch !== sourceBranch || sourceRun.head_sha !== contract.sourceCommit
       || String(sourceRun.id) !== contract.runId || String(sourceRun.run_attempt) !== contract.runAttempt
       || sourceRun.status !== 'completed' || sourceRun.conclusion !== 'success'
       || !['push', 'workflow_dispatch'].includes(sourceRun.event)
-      || artifact.name !== `ssr-test-${contract.runId}-${contract.runAttempt}-${contract.sourceCommit}`
+      || artifact.name !== `ssr-${contract.environment}-${contract.runId}-${contract.runAttempt}-${contract.sourceCommit}`
       || String(artifact.workflow_run?.id) !== contract.runId || artifact.workflow_run.head_sha !== contract.sourceCommit
-      || artifact.workflow_run.head_branch !== 'test') fail('rollback source');
+      || artifact.workflow_run.head_branch !== sourceBranch) fail('rollback source');
     return { schemaVersion: 1, mode: 'selection-only', activationAllowed: false, deployed: false,
-      environment: 'test', releaseId: contract.releaseId, sourceCommit: contract.sourceCommit,
+      environment: contract.environment, releaseId: contract.releaseId, sourceCommit: contract.sourceCommit,
       runId: contract.runId, runAttempt: contract.runAttempt, artifactId: expectedArtifactId, deliverySha256: expected.digest };
   } catch { fail('rollback evidence'); }
 }
@@ -162,7 +165,7 @@ export async function prepareRollback({ sourceRun, artifact, expectedArtifactId,
 async function main() {
   if (process.argv.length === 3 && process.argv[2] === '--rollback') {
     const result = await prepareRollback({ root: process.env.ROLLBACK_ARTIFACT_ROOT,
-      digest: process.env.ROLLBACK_DELIVERY_SHA256, environment: 'test', releaseId: process.env.ROLLBACK_RELEASE_ID,
+      digest: process.env.ROLLBACK_DELIVERY_SHA256, environment: process.env.ROLLBACK_ENVIRONMENT ?? 'test', releaseId: process.env.ROLLBACK_RELEASE_ID,
       sourceCommit: process.env.ROLLBACK_SOURCE_SHA, runId: process.env.ROLLBACK_SOURCE_RUN_ID,
       runAttempt: process.env.ROLLBACK_SOURCE_ATTEMPT, expectedArtifactId: process.env.ROLLBACK_ARTIFACT_ID,
       sourceRun: JSON.parse(await readFile(process.env.ROLLBACK_RUN_METADATA_PATH, 'utf8')),
@@ -175,7 +178,7 @@ async function main() {
   if (!['true', 'false'].includes(flag)) fail('admin flag');
   const adminEnabled = flag === 'true';
   const root = path.resolve('dist/ssr-lambda');
-  const routeManifest = JSON.parse(await readFile(new URL('./ops/thn-content-hub-v2-route-manifest.json', import.meta.url), 'utf8'));
+  const routeManifest = JSON.parse(await readFile(new URL(process.env.DEPLOY_ENV === 'production' ? './ops/thn-content-hub-v2-production-route-manifest.json' : './ops/thn-content-hub-v2-route-manifest.json', import.meta.url), 'utf8'));
   // The build's dependency-closure producer supplies this inventory, never the whole browser directory.
   const adminRelease = adminEnabled ? JSON.parse(await readFile('dist/zoolandingpage/thn-admin-release.json', 'utf8')) : undefined;
   const result = await prepareDelivery({ root, routeManifest, adminEnabled, adminRelease,
