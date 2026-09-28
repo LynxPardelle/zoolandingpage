@@ -11,3 +11,7 @@ Date: 2026-09-27 (Central Time).
 Production prerequisites, effective IAM proofs, immutable published coordinates, native inventory approval and live owner/visual acceptance remain pending. No accounts, articles or TEST artifacts are copied to production by this patch.
 
 The raw source-only selector also rejects repeated JSON keys, including equivalent escaped key names, before requesting remote source evidence. Verified with real CLI execution and duplicate-coordinate regressions.
+
+The real ShellCheck gate now recognizes intentional literal Markdown printf formats, and branch assignments use explicit quoted strings.
+No global lint exclusions were added; release coordinates, query arguments and
+summary bytes remain unchanged.

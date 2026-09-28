@@ -88,7 +88,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if [[ "$DEPLOY_ENV" == test ]]; then source=dev; target=test; else source=test; target=main; fi
+          if [[ "$DEPLOY_ENV" == test ]]; then source="dev"; target="test"; else source="test"; target="main"; fi
           node tools/templates/draft-repo/tools/verify-promotion-commit.mjs --source="$source" --target="$target"
 
       - name: Verify source-only production promotion
@@ -367,10 +367,15 @@ jobs:
           echo "browser=s3://${STATIC_BUCKET}/frontend/angular-ssr/${DEPLOY_ENV}/releases/${RELEASE_ID}/browser"
           {
             echo '### Immutable SSR artifact (not activated)'
+            # shellcheck disable=SC2016 # Markdown backticks are literal; values use printf arguments.
             printf 'Release: `%s`\n\n' "$RELEASE_ID"
+            # shellcheck disable=SC2016 # Markdown backticks are literal; values use printf arguments.
             printf 'Source: `%s`\n\n' "$GITHUB_SHA"
+            # shellcheck disable=SC2016 # Markdown backticks are literal; values use printf arguments.
             printf 'Source run/validation attempt: `%s/%s`\n\n' "$GITHUB_RUN_ID" "$EXPECTED_SOURCE_ATTEMPT"
+            # shellcheck disable=SC2016 # Markdown backticks are literal; values use printf arguments.
             printf 'Artifact ID: `%s`\n\n' "$EXPECTED_ARTIFACT_ID"
+            # shellcheck disable=SC2016 # Markdown backticks are literal; values use printf arguments.
             printf 'Delivery SHA-256: `%s`\n\n' "$EXPECTED_DELIVERY_SHA256"
             echo 'For TEST rollback verify the complete recorded artifact with prepare-ssr-delivery.mjs --rollback; infrastructure activation remains separately owned.'
           } >> "$GITHUB_STEP_SUMMARY"
