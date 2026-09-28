@@ -7,6 +7,13 @@ export type ProtectedOriginBinding = {
   assetUrls?: Readonly<Record<string,string>>;
 };
 export type ProtectedOriginDecision = {kind: 'deny' | 'public' | 'page' | 'asset' | 'backend'; context?: ProtectedOriginContext};
+/** Only a validated server binding chooses which runtime owns a private request. */
+export function resolveProtectedRuntimeEnvironment(host: string, binding: ProtectedOriginBinding): 'test' | 'production' | null {
+  if (!isProtectedOriginBinding(binding) || host.toLowerCase() !== new URL(binding.origin).host || binding.domain !== 'thehairnarrative.com') return null;
+  if (binding.origin === 'https://admin-test.thehairnarrative.com') return 'test';
+  if (binding.origin === 'https://admin.thehairnarrative.com') return 'production';
+  return null;
+}
 const safePath = (value: string): boolean => /^\/[A-Za-z0-9_./:-]*$/.test(value)
   && !value.includes('//') && !value.split('/').some(part => part === '.' || part === '..');
 export function isExactHttpsOrigin(value: unknown): value is string {
@@ -43,12 +50,14 @@ export function projectProtectedAssetAttributes(html: string, assetUrls?: Readon
   });
 }
 /** A malformed/mismatched optional artifact disables only the private surface. */
-export function readPackagedProtectedOrigin(value: unknown, assetHash: (path:string)=>string, expectedReleaseId?:string): ProtectedOriginBinding | null {
+export function readPackagedProtectedOrigin(value: unknown, assetHash: (path:string)=>string, expectedReleaseId?:string, expectedEnvironment: string = 'test'): ProtectedOriginBinding | null {
   try {
+    const hosts: Readonly<Record<string, string>> = {test: 'https://admin-test.thehairnarrative.com', production: 'https://admin.thehairnarrative.com'};
+    if (!Object.prototype.hasOwnProperty.call(hosts, expectedEnvironment)) return null;
     const v=value as {version:number;environment:string;releaseId:string;binding:ProtectedOriginBinding;assetHashes:Record<string,string>};
-    if (!v || Object.keys(v).sort().join(',')!=='assetHashes,binding,environment,releaseId,version' || v.version!==1 || v.environment!=='test'
+    if (!v || Object.keys(v).sort().join(',')!=='assetHashes,binding,environment,releaseId,version' || v.version!==1 || v.environment!==expectedEnvironment
       || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(v.releaseId) || (expectedReleaseId!==undefined&&v.releaseId!==expectedReleaseId)
-      || !isProtectedOriginBinding(v.binding) || v.binding.origin!=='https://admin-test.thehairnarrative.com'
+      || !isProtectedOriginBinding(v.binding) || v.binding.origin!==hosts[expectedEnvironment]
       || v.binding.domain!=='thehairnarrative.com' || !v.binding.assetUrls || v.binding.pagePrefix!=='/admin/journal') return null;
     if (Object.keys(v.binding).sort().join(',')!=='assetUrls,backendPrefixes,backendRoutes,domain,origin,pagePrefix,pageRoutes,staticPaths') return null;
     const pages=['/admin/journal','/admin/journal/access','/admin/journal/mfa','/admin/journal/new','/admin/journal/:articleId/edit','/admin/journal/:articleId/preview'];

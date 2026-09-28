@@ -81,9 +81,14 @@ export class ConfigApiService {
     }
 
     private resolveRuntimeFallbackEnvironment(params: Record<string, string | undefined>): TRuntimeFallbackEnvironment {
-        // The dedicated v2 admin binding is TEST-only; query parameters never
-        // promote that private workspace to production.
-        if (this.protectedOrigin.context?.originRole === 'protected-admin') return 'test';
+        // SSR selects the private origin; requests cannot select its environment.
+        const privateOrigin = this.protectedOrigin.context;
+        if (privateOrigin?.originRole === 'protected-admin') {
+            if (privateOrigin.domain !== 'thehairnarrative.com' || privateOrigin.origin !== this.resolveCurrentUrl()?.origin) throw new Error('Invalid protected runtime origin');
+            if (privateOrigin.origin === 'https://admin-test.thehairnarrative.com') return 'test';
+            if (privateOrigin.origin === 'https://admin.thehairnarrative.com') return 'production';
+            throw new Error('Invalid protected runtime origin');
+        }
         const explicit = this.normalizeRuntimeFallbackEnvironment(params['environment']);
         if (explicit) {
             return explicit;
@@ -231,17 +236,17 @@ export class ConfigApiService {
 
         const currentUrl = this.resolveCurrentUrl();
         const hostname = String(currentUrl?.hostname ?? '').trim().toLowerCase();
-        const testFallback = String(environment.configApiRuntimeFallbackUrls?.test ?? '').trim();
-        const privateAdminOrigin = 'https://admin-test.thehairnarrative.com';
+        const runtimeEnvironment = this.resolveRuntimeFallbackEnvironment(params);
+        const fallback = String(environment.configApiRuntimeFallbackUrls?.[runtimeEnvironment] ?? '').trim();
+        const privateAdminOrigin = runtimeEnvironment === 'production' ? 'https://admin.thehairnarrative.com' : 'https://admin-test.thehairnarrative.com';
         const privateAdmin = this.protectedOrigin.context;
         const isTrustedPrivateJournal = currentUrl?.origin === privateAdminOrigin
             && privateAdmin?.originRole === 'protected-admin'
             && privateAdmin.origin === privateAdminOrigin
             && privateAdmin.domain === 'thehairnarrative.com';
 
-        return (hostname === 'test.zoolandingpage.com.mx' || isTrustedPrivateJournal)
-            && this.resolveRuntimeFallbackEnvironment(params) === 'test'
-            && testFallback.length > 0;
+        return ((hostname === 'test.zoolandingpage.com.mx' && runtimeEnvironment === 'test') || isTrustedPrivateJournal)
+            && fallback.length > 0;
     }
 
     private async fetchJson<T>(url: string): Promise<T> {
@@ -320,6 +325,11 @@ export class ConfigApiService {
     }
 
     private async getJson<T>(path: string, params: Record<string, string | undefined>): Promise<T> {
+        if (path === RUNTIME_BUNDLE_ENDPOINT && this.protectedOrigin.context?.originRole === 'protected-admin') {
+            const selectedEnvironment = this.resolveRuntimeFallbackEnvironment(params);
+            if (params['domain'] !== this.protectedOrigin.context.domain) throw new Error('Invalid protected runtime domain');
+            params = { ...params, environment: selectedEnvironment };
+        }
         const localDraftUrl = this.buildLocalDraftApiUrl(path, params);
         const runtimeCacheKey = path === RUNTIME_BUNDLE_ENDPOINT
             ? localDraftUrl ?? this.resolveRuntimeCacheKey(path, params)
@@ -343,7 +353,7 @@ export class ConfigApiService {
         const remoteParams = path === RUNTIME_BUNDLE_ENDPOINT
             && (this.protectedOrigin.context?.originRole === 'protected-admin'
                 || (!params['environment'] && this.isLocalHostname(currentHostname)))
-            ? { ...params, environment: 'test' }
+            ? { ...params, environment: this.resolveRuntimeFallbackEnvironment(params) }
             : params;
         const url = this.buildUrlForBase(this.resolveConfigApiBaseUrl(), path, remoteParams);
         const fallbackUrl = this.resolveRuntimeFallbackUrl(path, remoteParams);

@@ -72,7 +72,7 @@ test('admin is opt-in, TEST only, with exact routes and an explicit existing ass
   const { root, routes } = await fixture();
   await assert.rejects(() => api.prepareDelivery({ root, ...coords, routeManifest: routes, adminEnabled: true }), /admin/i);
   const adminRelease = { version: 1, environment: 'test', releaseId: sha, staticAssetPaths: ['/browser/main.abcdef12.js'] };
-  await assert.rejects(() => api.prepareDelivery({ root, ...coords, environment: 'production', routeManifest: routes, adminEnabled: true, adminRelease }), /admin/i);
+  await assert.rejects(() => api.prepareDelivery({ root, ...coords, environment: 'production', routeManifest: routes, adminEnabled: true, adminRelease }), /admin|environment/i);
   await assert.rejects(() => api.prepareDelivery({ root, ...coords, routeManifest: routes, adminEnabled: true, adminRelease: { ...adminRelease, releaseId: 'b'.repeat(40) } }), /admin/i);
   await assert.rejects(() => api.prepareDelivery({ root, ...coords, routeManifest: routes, adminEnabled: true, adminRelease: { ...adminRelease, staticAssetPaths: ['/browser/missing.abcdef12.js'] } }), /admin/i);
   const badRoutes = structuredClone(routes);
@@ -84,6 +84,35 @@ test('admin is opt-in, TEST only, with exact routes and an explicit existing ass
   assert.equal(result.contract.files.some(file => file.path === 'thn-admin-release.json'), true);
   assert.equal(result.contract.files.some(file => file.path === 'thn-route-manifest.json'), true);
   await api.verifyDelivery({ root, digest: result.digest, ...coords });
+});
+
+test('production delivery requires a separately sealed production source, routes and release', async () => {
+  const api = await tool();
+  const { root, manifest, routes } = await fixture();
+  const production = { ...coords, environment: 'production' };
+  manifest.environment = 'production';
+  manifest.browserPrefix = `frontend/angular-ssr/production/releases/${sha}/browser`;
+  manifest.serverBundleKey = `frontend/angular-ssr/production/releases/${sha}/server/ssr-handler.zip`;
+  await writeFile(path.join(root, 'manifest.json'), JSON.stringify(manifest));
+  routes.environment = 'production';
+  routes.origins.public.host = 'thehairnarrative.com';
+  routes.origins.admin.host = 'admin.thehairnarrative.com';
+  const adminRelease = { version: 1, environment: 'production', releaseId: sha, staticAssetPaths: ['/browser/main.abcdef12.js'] };
+  const result = await api.prepareDelivery({ root, ...production, routeManifest: routes, adminEnabled: true, adminRelease });
+  assert.equal(result.contract.thnAdmin.origin, 'https://admin.thehairnarrative.com');
+  await api.verifyDelivery({ root, digest: result.digest, ...production });
+  await assert.rejects(() => api.verifyDelivery({ root, digest: result.digest, ...coords }), /verification/);
+  const workflow = await readFile(new URL('../../.github/workflows/publish-ssr-artifact.yml', import.meta.url), 'utf8');
+  const script = workflow.match(/python3 - <<'PY'\r?\n([\s\S]*?)\r?\n          PY/)[1].replace(/^          /gm, '');
+  const workspace = await mkdtemp(path.join(os.tmpdir(), 'thn-production-verifier-'));
+  const { cp } = await import('node:fs/promises');
+  await cp(root, path.join(workspace, 'dist/ssr-lambda'), { recursive: true });
+  const run = (extra = {}) => spawnSync('python', ['-c', script], { cwd: workspace, encoding: 'utf8', windowsHide: true,
+    env: { ...process.env, EXPECTED_DELIVERY_SHA256: result.digest, DEPLOY_ENV: 'production', RELEASE_ID: sha,
+      GITHUB_SHA: sha, GITHUB_RUN_ID: '123', EXPECTED_SOURCE_ATTEMPT: '1', EXPECTED_THN_ADMIN_ENABLED: 'true', THN_ADMIN_ARTIFACT_ALLOWED: 'true', ...extra } });
+  assert.equal(run().status, 0, 'credential job must accept the exact separately sealed production delivery');
+  assert.notEqual(run({ THN_ADMIN_ARTIFACT_ALLOWED: 'false' }).status, 0);
+  assert.notEqual(run({ DEPLOY_ENV: 'test' }).status, 0);
 });
 
 test('packaging rejects a linked staging ancestor', async () => {
@@ -187,7 +216,7 @@ test('normal push/default-off TEST and production deliveries retain the baseline
   const run=()=>spawnSync('python',['-c',script],{cwd:workspace,env,encoding:'utf8',windowsHide:true});
   assert.equal(run().status,0,environment);
   env.THN_ADMIN_ARTIFACT_ALLOWED='true';
-  assert.equal(run().status===0,environment==='production',environment+' no downgrade');
+  assert.notEqual(run().status,0,environment+' no downgrade');
   delete env.THN_ADMIN_ARTIFACT_ALLOWED;
   env.EXPECTED_THN_ADMIN_ENABLED='true';assert.notEqual(run().status,0,environment+' mismatch');
  }
@@ -216,4 +245,17 @@ test('SSR rollback requires a successful source run and one matching immutable a
     if (mutation === 'wrong-attempt') changed.sourceRun.run_attempt = 2;
     await assert.rejects(() => api.prepareRollback(changed), /rollback/i);
   }
+});
+
+test('production recovery selects only an immutable successful main artifact and never activates it', async () => {
+ const api=await tool(); const {root,routes,manifest}=await fixture();
+ const production={...coords,environment:'production'};
+ await writeFile(path.join(root,'manifest.json'),JSON.stringify({...manifest,environment:'production',browserPrefix:`frontend/angular-ssr/production/releases/${sha}/browser`,serverBundleKey:`frontend/angular-ssr/production/releases/${sha}/server/ssr-handler.zip`}));
+ const {digest}=await api.prepareDelivery({root,...production,routeManifest:routes});
+ const input={root,digest,...production,expectedArtifactId:'456',
+  sourceRun:{id:123,run_attempt:1,head_sha:sha,head_branch:'main',path:'.github/workflows/publish-ssr-artifact.yml',repository:{full_name:'LynxPardelle/zoolandingpage'},status:'completed',conclusion:'success',event:'workflow_dispatch'},
+  artifact:{id:456,expired:false,name:`ssr-production-123-1-${sha}`,workflow_run:{id:123,head_sha:sha,head_branch:'main'}}};
+ const result=await api.prepareRollback(input);assert.equal(result.environment,'production');assert.equal(result.activationAllowed,false);
+ await assert.rejects(()=>api.prepareRollback({...input,sourceRun:{...input.sourceRun,head_branch:'test'}}),/rollback/);
+ await assert.rejects(()=>api.prepareRollback({...input,artifact:{...input.artifact,name:`ssr-test-123-1-${sha}`}}),/rollback/);
 });

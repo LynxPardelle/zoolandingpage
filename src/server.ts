@@ -19,7 +19,7 @@ import {
 } from '@/app/shared/utility/content-hub/content-hub-public-route';
 import { matchDraftRoute, normalizeDraftRoutePath } from '@/app/shared/utility/route-matching/draft-route-matching';
 import { resolveNavigationTarget } from '@/app/shared/utility/navigation/navigation-target.utility';
-import { classifyProtectedOriginRequest, isProtectedOriginBinding, projectProtectedAssetAttributes, readPackagedProtectedOrigin, type ProtectedOriginBinding, type ProtectedOriginContext } from '@/app/shared/utility/auth/protected-admin-origin.utility';
+import { classifyProtectedOriginRequest, isProtectedOriginBinding, projectProtectedAssetAttributes, readPackagedProtectedOrigin, resolveProtectedRuntimeEnvironment, type ProtectedOriginBinding, type ProtectedOriginContext } from '@/app/shared/utility/auth/protected-admin-origin.utility';
 
 // Deployment selection is server-owned. Never load an origin binding from draft query data.
 const protectedBindingPath = process.env['PROTECTED_ORIGIN_BINDING_PATH'];
@@ -29,7 +29,7 @@ const protectedOriginBinding: ProtectedOriginBinding | null = (() => {
     const value: unknown = JSON.parse(readFileSync(protectedBindingPath || join(import.meta.dirname,'thn-protected-origin-binding.json'), 'utf8'));
     // The existing explicit local/server override cannot be supplied by a request.
     if (protectedBindingPath && isProtectedOriginBinding(value)) return value;
-    return readPackagedProtectedOrigin(value,asset=>createHash('sha256').update(readFileSync(join(browserDistFolder,asset.slice('/browser/'.length)))).digest('hex'));
+    return readPackagedProtectedOrigin(value,asset=>createHash('sha256').update(readFileSync(join(browserDistFolder,asset.slice('/browser/'.length)))).digest('hex'), process.env['ZLP_RELEASE_ID'], process.env['THN_DEPLOYMENT_ENVIRONMENT']);
   } catch { return null; }
 })();
 const protectedRequestContexts = new WeakMap<express.Request, ProtectedOriginContext>();
@@ -543,7 +543,8 @@ function resolveRuntimeBundleBaseUrls(environment?: string): readonly string[] {
 }
 
 function resolveRuntimeEnvironment(host: string): TRuntimeEnvironment {
-  if (protectedOriginBinding && normalizeHost(host) === new URL(protectedOriginBinding.origin).hostname) return 'test';
+  const protectedEnvironment = protectedOriginBinding && resolveProtectedRuntimeEnvironment(normalizeHost(host), protectedOriginBinding);
+  if (protectedEnvironment) return protectedEnvironment;
   const explicit = normalizeRuntimeEnvironment(process.env['ZLP_RUNTIME_ENV']);
   if (explicit) {
     return explicit;
@@ -3823,7 +3824,7 @@ const app = express();
 app.use(compression({ threshold: 1024 }));
 app.use((req, res, next) => {
   if (!protectedOriginBinding) {
-    if (normalizeHost(resolveRequestHost(req))==='admin-test.thehairnarrative.com') {
+    if (['admin-test.thehairnarrative.com','admin.thehairnarrative.com'].includes(normalizeHost(resolveRequestHost(req)))) {
       res.status(404).set('Cache-Control','no-store').type('text/plain').send('Not found');return;
     }
     next(); return;
