@@ -9,6 +9,33 @@ import test from 'node:test';
 import {fileURLToPath} from 'node:url';
 
 const producer = new URL('../prepare-thn-admin-artifact.mjs', import.meta.url);
+test('manual private TEST publication skips incompatible push builds without bypassing CI or publication guards', async () => {
+  const workflow = await readFile(new URL('../../.github/workflows/publish-ssr-artifact.yml', import.meta.url), 'utf8');
+  const validate = workflow.split('  publish:')[0];
+  const condition = validate.match(/^    if: \$\{\{ (.+) \}\}$/m)?.[1];
+  assert.ok(condition, 'artifact validation must have the TEST-only manual publication gate');
+  assert.equal(condition, "github.event_name != 'push' || github.ref_name != 'test' || vars.THN_TEST_PRIVATE_MANUAL_ONLY != 'true'");
+  // Execute the actual workflow expression for each supported event/policy combination.
+  const run = new Function('github', 'vars', `return ${condition};`);
+  for (const event of ['push', 'workflow_dispatch']) {
+    for (const branch of ['test', 'main', 'dev']) {
+      for (const policy of [undefined, '', 'false', 'true']) {
+        assert.equal(run({ event_name: event, ref_name: branch }, { THN_TEST_PRIVATE_MANUAL_ONLY: policy }),
+          !(event === 'push' && branch === 'test' && policy === 'true'), `${event}/${branch}/${policy}`);
+      }
+    }
+  }
+  const publish = workflow.split('  publish:')[1];
+  assert.match(publish, /^    needs: validate$/m);
+  assert.doesNotMatch(publish, /^    if:/m);
+  assert.match(validate, /THN_ADMIN_ARTIFACT_ENABLED:.*github.event_name == 'workflow_dispatch' && inputs.thn_admin_artifact/);
+  assert.match(publish, /selected == allowed/);
+  const ci = await readFile(new URL('../../.github/workflows/angular-validate.yml', import.meta.url), 'utf8');
+  assert.match(ci, /  pull_request:/);
+  assert.match(ci, /branches:[\s\S]*?- dev[\s\S]*?- test[\s\S]*?- main/);
+  assert.doesNotMatch(ci, /THN_TEST_PRIVATE_MANUAL_ONLY|^    if:/m);
+  assert.match(ci, /npm test -- --watch=false --browsers=ChromeHeadlessStable/);
+});
 const hash = value => createHash('sha256').update(value).digest('hex');
 async function api() {
   assert.ok(existsSync(producer), 'the private artifact dependency-closure producer must exist');
