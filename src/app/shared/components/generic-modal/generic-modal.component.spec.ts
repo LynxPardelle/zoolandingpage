@@ -59,4 +59,12 @@ describe('GenericModalComponent', () => {
   it('resolves default close button aria label', () => {
     expect(comp.closeButtonAriaLabel()).toBe('Close modal');
   });
+  it('keeps blocking reauthentication open on Escape, without changing the default',()=>{
+    spyOn(comp,'isOpen').and.returnValue(true);
+    comp.config={closeOnEscape:false} as never;
+    comp.onEsc();
+    expect(TestBed.inject(GenericModalService).close).not.toHaveBeenCalled();
+    comp.config={};comp.onEsc();
+    expect(TestBed.inject(GenericModalService).close).toHaveBeenCalledTimes(1);
+  });
 });

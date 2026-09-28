@@ -107,11 +107,11 @@ export function normalizeDomIdValue(value: unknown): string | undefined {
 }
 
 export function composeDomId(...parts: readonly unknown[]): string | undefined {
-    const normalizedParts = parts
-        .map((part) => normalizeDomIdValue(part))
-        .filter((part): part is string => typeof part === 'string' && part.length > 0);
+    const normalizedParts = parts.map((part) => normalizeDomIdValue(part));
 
-    return normalizedParts.length > 0 ? normalizedParts.join('-') : undefined;
+    return normalizedParts.length > 0 && normalizedParts.every((part): part is string => typeof part === 'string')
+        ? normalizedParts.join('-')
+        : undefined;
 }
 
 export function resolveComponentDomIdBase(configId: unknown, componentId: unknown): string | undefined {

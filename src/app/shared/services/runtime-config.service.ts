@@ -24,6 +24,8 @@ import { buildAuthEndpointUrl } from '../utility/auth/auth-api-url.utility';
 import { ConfigStoreService } from './config-store.service';
 import { DomainResolverService } from './domain-resolver.service';
 import { VariableStoreService } from './variable-store.service';
+import { ProtectedOriginService } from './protected-origin.service';
+import { canResolveProtectedAuth } from '../utility/auth/protected-admin-origin.utility';
 
 const DEFAULT_FEATURES: Required<TDraftFeatureRuntimeConfig> = {
     debugMode: false,
@@ -46,6 +48,8 @@ export class RuntimeConfigService {
     private readonly variableStore = inject(VariableStoreService);
     private readonly http = inject(HttpClient, { optional: true });
     private readonly request = inject(REQUEST, { optional: true });
+    private readonly protectedOrigin = inject(ProtectedOriginService);
+    private readonly protectedAuth = signal<{domain:string; origin:string; auth:TDraftAuthRuntimeConfig} | null>(null);
     private readonly remoteAuthResolutions = new Map<string, Promise<boolean>>();
     private readonly _remoteAuthError = signal<string | null>(null);
 
@@ -64,7 +68,12 @@ export class RuntimeConfigService {
         this.mergeSeoConfig(this.configStore.siteConfig()?.site?.seo, this.hostOverride()?.seo)
     );
     readonly browserIcons = computed<TDraftSiteIconConfig | null>(() => this.configStore.siteConfig()?.site?.icons ?? null);
-    readonly auth = computed<TDraftAuthRuntimeConfig | null>(() => this.siteRuntime()?.auth ?? null);
+    readonly auth = computed<TDraftAuthRuntimeConfig | null>(() => {
+        const remote = this.authRemote(); const resolved = this.protectedAuth();
+        if (remote?.requiredOrigin) return resolved?.domain === this.configStore.siteConfig()?.domain
+            && resolved?.origin === remote.requiredOrigin && this.protectedOrigin.context?.origin === remote.requiredOrigin ? resolved.auth : null;
+        return this.siteRuntime()?.auth ?? null;
+    });
     readonly authRemote = computed<TDraftAuthRemoteRuntimeConfig | null>(() => this.siteRuntime()?.authRemote ?? null);
     readonly remoteAuthError = this._remoteAuthError.asReadonly();
     readonly brand = computed(() => this.variableStore.brand());
@@ -106,11 +115,20 @@ export class RuntimeConfigService {
         return this.auth()?.enabled === true;
     }
 
-    async resolveRemoteAuth(domain: string): Promise<boolean> {
+    async resolveRemoteAuth(domain: string, context?: {path?:string; originRole?:string; route?: {auth?: {required?:boolean}} | null}): Promise<boolean> {
         const remote = this.authRemote();
         if (!remote || remote.enabled !== true) {
             this._remoteAuthError.set(null);
             return true;
+        }
+
+        if (remote.requiredOrigin) {
+            if (!this.protectedOrigin.context || !canResolveProtectedAuth(remote.requiredOrigin, this.protectedOrigin.origin, context ?? {})) {
+                this.protectedAuth.set(null);
+                this._remoteAuthError.set('remote-auth-wrong-origin');
+                return false;
+            }
+            if (this.auth()) return true;
         }
 
         if (this.auth()) {
@@ -268,6 +286,12 @@ export class RuntimeConfigService {
             || this.cleanString(remote.endpoint) !== expected.endpoint
         ) {
             return false;
+        }
+
+        if (remote.requiredOrigin) {
+            if (this.protectedOrigin.context?.origin !== remote.requiredOrigin) return false;
+            this.protectedAuth.set({domain:expected.domain,origin:remote.requiredOrigin,auth});
+            return true;
         }
 
         const { authRemote: _authRemote, ...runtimeWithoutRemote } = runtime as TDraftSiteRuntimeConfig & Record<string, unknown>;

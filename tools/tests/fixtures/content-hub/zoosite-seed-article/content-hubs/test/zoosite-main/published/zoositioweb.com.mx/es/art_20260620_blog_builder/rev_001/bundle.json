@@ -1,18 +1,50 @@
 {
   "version": 1,
-  "bundleId": "bundle_art_20260620_blog_builder_es",
+  "bundleId": "art_20260620_blog_builder:rev_001:zoositioweb.com.mx:es",
   "hubId": "zoosite-main",
   "articleId": "art_20260620_blog_builder",
+  "revisionId": "rev_001",
   "ownerDraftDomain": "zoositioweb.com.mx",
   "renderDomain": "zoositioweb.com.mx",
   "locale": "es",
   "path": "/blog/web/blog-builder-seo",
+  "safeArticlePath": "/blog/web/blog-builder-seo",
   "status": "published",
   "publishedAt": "2026-06-21T15:00:00.000Z",
+  "previewedAt": "",
+  "title": "Blog builder visual con SEO desde el inicio",
+  "summary": "Cómo Zoosite prepara un blog editable con componentes genéricos, rutas limpias, publicación programada y medición propia.",
+  "slug": "blog-builder-seo",
+  "category": {
+    "taxonomyId": "cat_web",
+    "slug": "web",
+    "label": "Web"
+  },
+  "tags": [
+    {
+      "taxonomyId": "tag_seo",
+      "slug": "seo",
+      "label": "SEO"
+    }
+  ],
+  "commentPolicy": "moderated",
+  "contentSafety": {
+    "rating": "general",
+    "warnings": []
+  },
+  "interactions": {
+    "ctas": { "enabled": true, "moderation": "spam-check" },
+    "reactions": { "enabled": true, "moderation": "spam-check" },
+    "shares": { "enabled": true },
+    "readProgress": { "enabled": true },
+    "assetDownloads": { "enabled": false },
+    "forms": { "enabled": false }
+  },
   "seo": {
     "title": "Blog builder visual con SEO desde el inicio",
     "description": "Cómo Zoosite prepara un blog editable con componentes genéricos, rutas limpias, publicación programada y medición propia.",
-    "canonical": "https://zoositioweb.com.mx/blog/web/blog-builder-seo",
+    "canonical": "/blog/web/blog-builder-seo",
+    "canonicalMode": "self",
     "robots": "index,follow"
   },
   "structuredData": [
@@ -48,9 +80,7 @@
       }
     }
   ],
-  "components": {
-    "version": 1,
-    "components": [
+  "components": [
       {
         "id": "articleRoot",
         "type": "container",
@@ -67,12 +97,12 @@
       },
       {
         "id": "articleCover",
-        "type": "image",
+        "type": "media",
         "config": {
+          "tag": "image",
           "src": "https://assets.zoolandingpage.com.mx/zoolandingpage.com.mx/shared/seo-images/zoolandingpage-zoositioweb-default-logo-card.jpg",
           "alt": "Vista del editor visual de artículos de Zoosite",
-          "classes": "ank-width-100per ank-maxWidth-920px ank-borderRadius-8px ank-objectFit-cover",
-          "variant": "hero"
+          "classes": "ank-width-100per ank-maxWidth-920px ank-borderRadius-8px ank-objectFit-cover"
         }
       },
       {
@@ -104,36 +134,28 @@
       },
       {
         "id": "articleCta",
-        "type": "button",
+        "type": "link",
         "eventInstructions": "trackEvent:blog_cta_click,blog,zoosite-blog-builder-cta,hubId,zoosite-main,articleId,art_20260620_blog_builder,ctaId,primary-consultation",
         "config": {
-          "label": "Planear mi blog",
+          "text": "Planear mi blog",
           "href": "/contacto",
           "classes": "ank-minHeight-48px ank-px-22px ank-borderRadius-8px ank-bg-accentColor ank-color-onSuccessColor ank-fontWeight-900 ank-border-0 ank-cursor-pointer"
         }
       }
-    ]
-  },
+  ],
   "variables": {
-    "version": 1,
-    "variables": {
-      "article": {
-        "hubId": "zoosite-main",
-        "articleId": "art_20260620_blog_builder",
-        "categorySlug": "web",
-        "slug": "blog-builder-seo",
-        "locale": "es",
-        "contentGroup": "blog"
-      }
+    "article": {
+      "hubId": "zoosite-main",
+      "articleId": "art_20260620_blog_builder",
+      "categorySlug": "web",
+      "slug": "blog-builder-seo",
+      "locale": "es",
+      "contentGroup": "blog"
     }
   },
   "i18n": {
-    "version": 1,
-    "lang": "es",
-    "dictionary": {
-      "article.title": "Blog builder visual con SEO desde el inicio",
-      "article.cta": "Planear mi blog"
-    }
+    "article.title": "Blog builder visual con SEO desde el inicio",
+    "article.cta": "Planear mi blog"
   },
   "analytics": {
     "contentGroup": "blog",

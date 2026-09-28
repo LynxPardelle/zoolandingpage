@@ -8,6 +8,8 @@ import { computed, inject, Injectable, PLATFORM_ID } from '@angular/core';
 import { RuntimeConfigService } from '../../shared/services/runtime-config.service';
 import { AuthAdminClientService, type TAuthAdminAccount } from './auth-admin-client.service';
 import { AuthFacade } from './auth.facade';
+import { ProtectedAuthorAuthService } from './protected-author-auth.service';
+import { ProtectedOriginService } from '../../shared/services/protected-origin.service';
 
 export type TAuthRouteAccessReason =
     | 'public-route'
@@ -35,6 +37,8 @@ export class AuthRuntimeService {
     private readonly runtimeConfig = inject(RuntimeConfigService);
     private readonly auth = inject(AuthFacade);
     private readonly authAdmin = inject(AuthAdminClientService);
+    private readonly protectedAuthor = inject(ProtectedAuthorAuthService);
+    private readonly protectedOrigin = inject(ProtectedOriginService);
     private readonly platformId = inject(PLATFORM_ID);
     private readonly isBrowser = isPlatformBrowser(this.platformId);
 
@@ -71,6 +75,21 @@ export class AuthRuntimeService {
     }
 
     async evaluateRouteAccessAsync(route: TDraftSiteRouteEntry | null | undefined): Promise<TAuthRouteAccessDecision> {
+        const requiredOrigin = this.runtimeConfig.authRemote()?.requiredOrigin;
+        if (requiredOrigin && route?.auth?.required) {
+            const groups = this.normalizeGroups(route.auth.allowedGroups);
+            const trusted = this.protectedOrigin.context;
+            const denied = this.decision(false, 'auth-required', '/admin/journal/access', groups);
+            if (!trusted || trusted.origin !== requiredOrigin || this.protectedOrigin.origin !== requiredOrigin
+                || !/^\/admin\/journal(?:\/|$)/.test(route.path)) return denied;
+            // Only the authentication forms may render before session establishment.
+            if (['/admin/journal/access','/admin/journal/mfa'].includes(route.path)) {
+                return this.decision(true, 'public-route', null, []);
+            }
+            if (!this.isBrowser || !this.profile()?.enabled) return denied;
+            return await this.protectedAuthor.session(groups)
+                ? this.decision(true, 'authenticated', null, groups) : denied;
+        }
         const decision = this.evaluateRouteAccess(route);
         if (!this.shouldRevalidateWithServerCookie(route)) {
             return decision;

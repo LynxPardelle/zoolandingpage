@@ -1,1 +1,5 @@
 0bda5c728150b59d1342f47652a7cb1f720248a6:tools/tests/draft-public-safety-audit.spec.mjs:generic-api-key:37
+# Exact historical, synthetic scanner fixtures; never used as credentials.
+7985da4bbc399ffc5f6c62849a6569f34021320e:tools/tests/draft-public-safety-audit.spec.mjs:generic-api-key:39
+bba01e8136f03f2ab315803e8ee94c29690b154d:tools/tests/draft-smoke-check.spec.mjs:aws-access-token:45
+bba01e8136f03f2ab315803e8ee94c29690b154d:tools/tests/draft-smoke-check.spec.mjs:aws-access-token:74

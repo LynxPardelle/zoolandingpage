@@ -10,6 +10,7 @@ import {
 import { authActionHandler } from './handlers/auth-action.handlers';
 import { authAdminActionHandler } from './handlers/auth-admin-action.handlers';
 import { authFormActionHandler } from './handlers/auth-form-action.handlers';
+import { fixedArticleActionHandler, protectedAuthorAuthHandler } from './handlers/fixed-article.handlers';
 import {
     acceptConsentHandler,
     declineConsentHandler,
@@ -46,6 +47,8 @@ import {
 } from './handlers/whatsapp.handlers';
 
 const baseEventHandlerProviders: Provider[] = [
+    { provide: EVENT_HANDLERS, multi: true, useFactory: fixedArticleActionHandler },
+    { provide: EVENT_HANDLERS, multi: true, useFactory: protectedAuthorAuthHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: openWhatsAppHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: trackEventHandler },
     { provide: EVENT_HANDLERS, multi: true, useFactory: trackEventWhenHandler },

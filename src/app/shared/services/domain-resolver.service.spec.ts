@@ -1,9 +1,20 @@
-import { PLATFORM_ID, REQUEST } from '@angular/core';
+import { PLATFORM_ID, REQUEST, REQUEST_CONTEXT } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { setTestBrowserUrl } from '@/test-browser-state';
 import { DomainResolverService, resolveBrowserHostDomain } from './domain-resolver.service';
 
 describe('DomainResolverService', () => {
+  it('uses only the trusted SSR canonical binding for the private origin', () => {
+    TestBed.configureTestingModule({ providers: [
+      { provide: PLATFORM_ID, useValue: 'server' },
+      { provide: REQUEST, useValue: new Request('https://admin.example.test/admin/journal') },
+      { provide: REQUEST_CONTEXT, useValue: { protectedOrigin: {
+        origin: 'https://admin.example.test', domain: 'example.test', originRole: 'protected-admin',
+      } } },
+    ] });
+    expect(TestBed.inject(DomainResolverService).resolveDomain().domain).toBe('example.test');
+  });
+
   const originalUrl = window.location.pathname + window.location.search + window.location.hash;
   const setBrowserUrl = (href: string): void => {
     const url = new URL(href);

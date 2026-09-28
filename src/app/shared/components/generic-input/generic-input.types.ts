@@ -44,6 +44,8 @@ export type TGenericInputConfig = {
     readonly inputType?: 'text' | 'email' | 'password' | 'search' | 'tel' | 'url' | 'date' | 'time' | 'datetime-local';
     readonly name?: TDynamicStringValue;
     readonly value?: unknown;
+    /** Opt-in standalone document identity; change only when switching records/locales. */
+    readonly valueRevision?: TDynamicStringValue;
     readonly label?: TDynamicStringValue;
     readonly description?: TDynamicStringValue;
     readonly helperText?: TDynamicStringValue;

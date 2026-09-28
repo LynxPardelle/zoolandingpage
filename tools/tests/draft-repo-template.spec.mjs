@@ -36,6 +36,7 @@ test('template packages only known server descriptors with exact kinds', async (
       'commerce.json': 'server-commerce',
       'integration-bindings.json': 'server-integration-bindings',
       'notification-policies.json': 'server-notification-policies',
+      'protected-feature-bindings-v2.json': 'server-protected-feature-bindings-v2',
     };
     for (const name of Object.keys(expectedKinds)) await writeFile(path.join(serverRoot, name), '{}');
     await writeFile(path.join(draftRoot, 'draft-repo.config.json'), '{}');

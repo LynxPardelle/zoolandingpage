@@ -10,6 +10,16 @@ import {
 } from './content-hub-public-route';
 
 describe('content hub public route helpers', () => {
+    it('keeps strict Journal paths in their published locale and rejects tags and unknown series', () => {
+        const hub={localePolicy:'published-only',defaultLocale:'en',routeBasePath:'/the-journal',articlePathPattern:'/the-journal/:categorySlug/:articleSlug',
+            publicArticles:[{articleId:'a',locale:'es',status:'published',title:'Carta',path:'/the-journal/formas-nupciales/carta',
+                categorySlug:'formas-nupciales',publishedAt:'2026-08-01T12:00:00Z'}]};
+        expect(findPublishedContentHubArticleForPath(hub,'/the-journal/formas-nupciales/carta','en')).toBeNull();
+        expect(findPublishedContentHubArticleForPath(hub,'/the-journal/formas-nupciales/carta','es')).not.toBeNull();
+        expect(isMissingPublishedContentHubPublicPath(hub,'/the-journal/tag/hair','en')).toBeTrue();
+        expect(isMissingPublishedContentHubPublicPath(hub,'/the-journal/unknown','en')).toBeTrue();
+        expect(hasPublishedContentHubPublicPath(hub,'/the-journal/bridal-forms','en')).toBeTrue();
+    });
     const hubs: readonly TContentHubPublicRouteConfig[] = [
         {
             routeBasePath: '/blog',

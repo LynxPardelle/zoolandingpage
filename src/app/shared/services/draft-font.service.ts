@@ -2,6 +2,7 @@ import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { inject, Injectable, OnDestroy, PLATFORM_ID } from '@angular/core';
 import type { TDraftFontFaceConfig } from '../types/config-payloads.types';
 import { isDraftFontFaces } from '../utility/fonts/draft-font-config';
+import { ProtectedOriginService } from './protected-origin.service';
 
 const FONT_LOAD_TIMEOUT_MS = 2_500;
 
@@ -9,6 +10,7 @@ const FONT_LOAD_TIMEOUT_MS = 2_500;
 export class DraftFontService implements OnDestroy {
     private readonly documentRef = inject(DOCUMENT);
     private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+    private readonly protectedOrigin = inject(ProtectedOriginService);
     private readonly ownedFaces = new Set<FontFace>();
     private generation = 0;
     private currentKey: string | null = null;
@@ -23,7 +25,7 @@ export class DraftFontService implements OnDestroy {
             return Promise.resolve();
         }
 
-        const faces = fonts.map(face => ({ ...face, weight: face.weight ?? '400', style: face.style ?? 'normal' }));
+        const faces = fonts.map(face => ({ ...face, src: this.protectedOrigin.assetUrl(face.src), weight: face.weight ?? '400', style: face.style ?? 'normal' }));
         const key = JSON.stringify([domain, faces]);
         if (key === this.currentKey) return this.completion;
         this.clear();

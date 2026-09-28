@@ -21,6 +21,7 @@ const TOOLING_ONLY_PATHS = new Set([
   'tools/schemas/data-spaces.schema.json',
   'tools/schemas/integration-bindings.schema.json',
   'tools/schemas/notification-policies.schema.json',
+  'tools/schemas/protected-feature-bindings-v2.schema.json',
   'tools/verify-promotion-commit.mjs',
 ]);
 

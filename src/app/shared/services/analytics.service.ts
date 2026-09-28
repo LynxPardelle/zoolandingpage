@@ -72,6 +72,10 @@ export class AnalyticsService {
   }
 
   private resolveScrollMilestones(milestones: readonly number[] | null | undefined): readonly number[] {
+    if (Array.isArray(milestones) && milestones.length === 0) {
+      return [];
+    }
+
     const normalized = [...new Set(
       (milestones ?? [])
         .map((value) => Number(value))
@@ -82,6 +86,10 @@ export class AnalyticsService {
   }
 
   private resolveSectionIds(sectionIds: readonly string[] | null | undefined, doc: Document): readonly string[] {
+    if (Array.isArray(sectionIds) && sectionIds.length === 0) {
+      return [];
+    }
+
     const normalized = [...new Set(
       (sectionIds ?? [])
         .map((value) => String(value).trim())
@@ -242,7 +250,7 @@ export class AnalyticsService {
         return;
       }
 
-      const anchor = target.closest('a[href^="#"]');
+      const anchor = target.closest('a[href]');
       if (!(anchor instanceof HTMLAnchorElement)) {
         return;
       }
@@ -253,7 +261,8 @@ export class AnalyticsService {
       }
 
       const rawHref = String(anchor.getAttribute('href') ?? '').trim();
-      const sectionId = rawHref.replace(/^#+/, '').trim();
+      const hash = this.resolveInPageAnchorHash(rawHref, doc);
+      const sectionId = hash.replace(/^#+/, '').trim();
       if (!sectionId) {
         return;
       }
@@ -272,6 +281,23 @@ export class AnalyticsService {
     this.registerTrackingCleanup(() => {
       doc.removeEventListener('click', onClick, true);
     });
+  }
+
+  private resolveInPageAnchorHash(rawHref: string, doc: Document): string {
+    if (rawHref.startsWith('#')) {
+      return rawHref;
+    }
+
+    try {
+      const locationHref = String(doc.location?.href ?? '');
+      const currentUrl = new URL(/^https?:/i.test(locationHref) ? locationHref : doc.baseURI);
+      const targetUrl = new URL(rawHref, currentUrl);
+      return targetUrl.origin === currentUrl.origin && targetUrl.pathname === currentUrl.pathname
+        ? targetUrl.hash
+        : '';
+    } catch {
+      return '';
+    }
   }
 
   private declaresNavClickTracking(eventInstructions: string): boolean {
@@ -524,6 +550,7 @@ export class AnalyticsService {
         }
       } else if (stored === null && now < snoozedUntil) {
         // Schedule re-prompt when snooze expires
+        this.alreadyAskedForPermission = true;
         const delay = Math.max(0, snoozedUntil - now);
         this.scheduleRePrompt(delay);
       }
@@ -814,6 +841,7 @@ export class AnalyticsService {
         for (const evt of queue) {
           await this.googleTag.forwardEvent(evt);
           await this.parseSend(evt);
+          this.bumpQuickStatsForEvent(evt.name);
         }
       }
 
@@ -846,6 +874,7 @@ export class AnalyticsService {
         title,
         text,
         autoCloseMs: 0,
+        dismissible: false,
         actions: [
           { label: allowLabel, style: 'primary', action: () => this.acceptConsent() },
           { label: declineLabel, style: 'secondary', action: () => this.declineConsent() },
@@ -946,8 +975,6 @@ export class AnalyticsService {
   private initializePersistentCounters(): void {
     // Track page view on initialization
     this.incrementPageViewCount();
-    // Also bump remote counter (non-blocking)
-    try { this.bumpRemotePageView(); } catch { /* ignore */ }
   }
 
   // Persistent counter methods
@@ -971,23 +998,13 @@ export class AnalyticsService {
     return Array.isArray(events) ? events.filter((entry) => typeof entry.path === 'string' && entry.path.trim().length > 0) : [];
   }
 
-  private bumpRemotePageView(): void {
-    if (!this.canSendRemoteQuickStats()) return;
-    const pageView = this.remotePageViewConfig();
-    if (!pageView) return;
-    this.quickStats.inc(pageView.path, pageView.by ?? 1).subscribe({
-      next: () => { },
-      error: () => {
-        if (this.runtimeConfig.isDebugMode()) {
-          console.warn('Quick stats page view increment failed.');
-        }
-      },
-    });
-  }
-
   private bumpQuickStatsForEvent(name: string): void {
     if (!this.canSendRemoteQuickStats()) return;
-    const bindings = this.remoteEventQuickStats().filter((entry) => entry.name === name);
+    const pageView = this.remotePageViewConfig();
+    const bindings = [
+      ...(pageView?.event === name ? [pageView] : []),
+      ...this.remoteEventQuickStats().filter((entry) => entry.name === name),
+    ];
     if (bindings.length === 0) {
       return;
     }

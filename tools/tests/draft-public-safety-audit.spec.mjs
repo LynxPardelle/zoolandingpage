@@ -122,6 +122,32 @@ test('pure dynamic secret references stay public-safe while literal and fallback
   assert.equal(result.okToPublic, false);
 });
 
+test('workflow permission denial assertion is not a credential but adjacent literals still block', async t => {
+  const repoPath = await mkdtemp(path.join(os.tmpdir(), 'zlp-public-audit-permissions-'));
+  t.after(() => rm(repoPath, { recursive: true, force: true }));
+  await git(repoPath, ['init']);
+  await git(repoPath, ['config', 'user.email', 'test@example.com']);
+  await git(repoPath, ['config', 'user.name', 'Test User']);
+  const denial = 'assert.doesNotMatch(workflow, /id-token: write|environment: test|configure-aws-credentials/);';
+  const literal = ['token', '=', JSON.stringify('synthetic-literal-value')].join(' ');
+  await writeFile(path.join(repoPath, 'permission.spec.mjs'), `  ${denial}\n`, 'utf8');
+  await writeFile(path.join(repoPath, 'unsafe.spec.mjs'), [
+    `${denial} ${literal};`,
+    denial.replace('write|environment: test', 'synthetic-literal-value'),
+    `${denial} // ${literal}`,
+    literal,
+  ].join('\n'), 'utf8');
+  await git(repoPath, ['add', '.']);
+  await git(repoPath, ['commit', '-m', 'seed permission audit regressions']);
+  const report = await auditRepo(repoPath, { includeHistory: true });
+  for (const findings of [report.currentSecretFindings, report.historySecretFindings]) {
+    assert.deepEqual(findings.map(finding => `${finding.file}:${finding.line}`), [
+      'unsafe.spec.mjs:1', 'unsafe.spec.mjs:2', 'unsafe.spec.mjs:3', 'unsafe.spec.mjs:4',
+    ]);
+  }
+  assert.equal(report.okToPublic, false);
+});
+
 test('auditRepo scopes status and history when auditing an in-tree draft path', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'zlp-in-tree-public-audit-'));
   const draftPath = path.join(root, 'drafts', 'example.com');

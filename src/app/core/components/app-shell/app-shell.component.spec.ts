@@ -16,6 +16,7 @@ import { WrapperOrchestrator } from '../../../shared/components/wrapper-orchestr
 import { AnalyticsService } from '../../../shared/services/analytics.service';
 import { ConfigBootstrapService } from '../../../shared/services/config-bootstrap.service';
 import { ConfigSourceService } from '../../../shared/services/config-source.service';
+import { ConfigStoreService } from '../../../shared/services/config-store.service';
 import { ConfigurationsOrchestratorService } from '../../../shared/services/configurations-orchestrator';
 import { DraftRuntimeService } from '../../../shared/services/draft-runtime.service';
 import { DraftRegistryService } from '../../../shared/services/draft-registry.service';
@@ -388,6 +389,49 @@ describe('AppShellComponent', () => {
     fixture.detectChanges();
 
     expect(document.querySelector('[data-zlp-protected-ssr-overlay]')).toBeFalsy();
+    expect(fixture.nativeElement.hasAttribute('data-zlp-protected-shell')).toBeFalse();
+    expect(fixture.nativeElement.hasAttribute('aria-hidden')).toBeFalse();
+  });
+
+  it('removes the SSR not-found fallback after the authored 404 renders', async () => {
+    const rootIds = signal<readonly string[]>([]);
+    TestBed.overrideProvider(RuntimeService, {
+      useValue: {
+        rootComponentsIds: rootIds.asReadonly(),
+        modalRootIds: signal<readonly string[]>([]).asReadonly(),
+        privateRouteLoading: signal({ active: false, phase: null }).asReadonly(),
+        connect: jasmine.createSpy('runtime.connect'),
+        requestRenderedComponentsCssUpdate: jasmine.createSpy('runtime.requestRenderedComponentsCssUpdate'),
+      },
+    });
+    TestBed.inject(ConfigStoreService).setPageConfig({
+      version: 1,
+      domain: LEGAL_DOMAIN,
+      pageId: 'not-found',
+      rootIds: ['notFoundRoot'],
+    });
+
+    const fallback = document.createElement('main');
+    fallback.setAttribute('data-zlp-not-found-ssr', '');
+    document.body.appendChild(fallback);
+    const fallbackStyle = document.createElement('style');
+    fallbackStyle.setAttribute('data-zlp-not-found-ssr-style', '');
+    document.head.appendChild(fallbackStyle);
+
+    const fixture = TestBed.createComponent(AppShellComponent);
+    fixture.nativeElement.setAttribute('data-zlp-protected-shell', 'true');
+    fixture.nativeElement.setAttribute('data-zlp-not-found-shell', 'true');
+    fixture.nativeElement.setAttribute('aria-hidden', 'true');
+    fixture.detectChanges();
+
+    rootIds.set(['notFoundRoot']);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    expect(document.querySelector('[data-zlp-not-found-ssr]')).toBeFalsy();
+    expect(document.querySelector('style[data-zlp-not-found-ssr-style]')).toBeFalsy();
+    expect(fixture.nativeElement.hasAttribute('data-zlp-not-found-shell')).toBeFalse();
     expect(fixture.nativeElement.hasAttribute('data-zlp-protected-shell')).toBeFalse();
     expect(fixture.nativeElement.hasAttribute('aria-hidden')).toBeFalse();
   });

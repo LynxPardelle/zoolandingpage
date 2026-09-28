@@ -12,6 +12,7 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, makeStateKey, REQUEST, TransferState } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { parseSsrRequestUrl } from '../utility/request/ssr-request-url.utility';
+import { ProtectedOriginService } from './protected-origin.service';
 
 const RUNTIME_BUNDLE_ENDPOINT = 'runtime-bundle';
 const RUNTIME_BUNDLE_TRANSFER_STATE_PREFIX = 'zlp-runtime-bundle:';
@@ -35,6 +36,7 @@ export class ConfigApiService {
     private readonly http = inject(HttpClient);
     private readonly request = inject(REQUEST, { optional: true });
     private readonly transferState = inject(TransferState, { optional: true });
+    private readonly protectedOrigin = inject(ProtectedOriginService);
 
     private resolveOrigin(): string {
         const requestUrl = parseSsrRequestUrl(this.request);
@@ -79,6 +81,14 @@ export class ConfigApiService {
     }
 
     private resolveRuntimeFallbackEnvironment(params: Record<string, string | undefined>): TRuntimeFallbackEnvironment {
+        // SSR selects the private origin; requests cannot select its environment.
+        const privateOrigin = this.protectedOrigin.context;
+        if (privateOrigin?.originRole === 'protected-admin') {
+            if (privateOrigin.domain !== 'thehairnarrative.com' || privateOrigin.origin !== this.resolveCurrentUrl()?.origin) throw new Error('Invalid protected runtime origin');
+            if (privateOrigin.origin === 'https://admin-test.thehairnarrative.com') return 'test';
+            if (privateOrigin.origin === 'https://admin.thehairnarrative.com') return 'production';
+            throw new Error('Invalid protected runtime origin');
+        }
         const explicit = this.normalizeRuntimeFallbackEnvironment(params['environment']);
         if (explicit) {
             return explicit;
@@ -224,12 +234,19 @@ export class ConfigApiService {
             return true;
         }
 
-        const hostname = String(this.resolveCurrentUrl()?.hostname ?? '').trim().toLowerCase();
-        const testFallback = String(environment.configApiRuntimeFallbackUrls?.test ?? '').trim();
+        const currentUrl = this.resolveCurrentUrl();
+        const hostname = String(currentUrl?.hostname ?? '').trim().toLowerCase();
+        const runtimeEnvironment = this.resolveRuntimeFallbackEnvironment(params);
+        const fallback = String(environment.configApiRuntimeFallbackUrls?.[runtimeEnvironment] ?? '').trim();
+        const privateAdminOrigin = runtimeEnvironment === 'production' ? 'https://admin.thehairnarrative.com' : 'https://admin-test.thehairnarrative.com';
+        const privateAdmin = this.protectedOrigin.context;
+        const isTrustedPrivateJournal = currentUrl?.origin === privateAdminOrigin
+            && privateAdmin?.originRole === 'protected-admin'
+            && privateAdmin.origin === privateAdminOrigin
+            && privateAdmin.domain === 'thehairnarrative.com';
 
-        return hostname === 'test.zoolandingpage.com.mx'
-            && this.resolveRuntimeFallbackEnvironment(params) === 'test'
-            && testFallback.length > 0;
+        return ((hostname === 'test.zoolandingpage.com.mx' && runtimeEnvironment === 'test') || isTrustedPrivateJournal)
+            && fallback.length > 0;
     }
 
     private async fetchJson<T>(url: string): Promise<T> {
@@ -308,6 +325,11 @@ export class ConfigApiService {
     }
 
     private async getJson<T>(path: string, params: Record<string, string | undefined>): Promise<T> {
+        if (path === RUNTIME_BUNDLE_ENDPOINT && this.protectedOrigin.context?.originRole === 'protected-admin') {
+            const selectedEnvironment = this.resolveRuntimeFallbackEnvironment(params);
+            if (params['domain'] !== this.protectedOrigin.context.domain) throw new Error('Invalid protected runtime domain');
+            params = { ...params, environment: selectedEnvironment };
+        }
         const localDraftUrl = this.buildLocalDraftApiUrl(path, params);
         const runtimeCacheKey = path === RUNTIME_BUNDLE_ENDPOINT
             ? localDraftUrl ?? this.resolveRuntimeCacheKey(path, params)
@@ -328,8 +350,10 @@ export class ConfigApiService {
         }
 
         const currentHostname = this.resolveCurrentUrl()?.hostname ?? '';
-        const remoteParams = path === RUNTIME_BUNDLE_ENDPOINT && !params['environment'] && this.isLocalHostname(currentHostname)
-            ? { ...params, environment: 'test' }
+        const remoteParams = path === RUNTIME_BUNDLE_ENDPOINT
+            && (this.protectedOrigin.context?.originRole === 'protected-admin'
+                || (!params['environment'] && this.isLocalHostname(currentHostname)))
+            ? { ...params, environment: this.resolveRuntimeFallbackEnvironment(params) }
             : params;
         const url = this.buildUrlForBase(this.resolveConfigApiBaseUrl(), path, remoteParams);
         const fallbackUrl = this.resolveRuntimeFallbackUrl(path, remoteParams);

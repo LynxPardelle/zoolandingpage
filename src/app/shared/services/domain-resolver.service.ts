@@ -3,10 +3,11 @@ import { inject, Injectable, PLATFORM_ID, REQUEST } from '@angular/core';
 import type { TDraftLocalStorageSlot } from '../types/config-payloads.types';
 import { isLocalRequestHostname, parseSsrRequestUrl } from '../utility/request/ssr-request-url.utility';
 import { ConfigStoreService } from './config-store.service';
+import { ProtectedOriginService } from './protected-origin.service';
 
 export type TResolvedDomain = {
     readonly domain: string;
-    readonly source: 'queryParam' | 'urlHost' | 'unresolved';
+    readonly source: 'queryParam' | 'urlHost' | 'unresolved' | 'protectedOrigin';
 };
 
 export function resolveBrowserHostDomain(
@@ -35,6 +36,7 @@ export class DomainResolverService {
     private readonly platformId = inject(PLATFORM_ID);
     private readonly request = inject(REQUEST, { optional: true });
     private readonly configStore = inject(ConfigStoreService);
+    private readonly protectedOrigin = inject(ProtectedOriginService);
     private readonly isBrowser = isPlatformBrowser(this.platformId);
 
     private parseRequestUrl(): URL | null {
@@ -91,6 +93,7 @@ export class DomainResolverService {
     }
 
     resolveDomain(): TResolvedDomain {
+        if (this.protectedOrigin.context) return {domain:this.protectedOrigin.context.domain,source:'protectedOrigin'};
         const requestUrl = this.parseRequestUrl();
 
         if (this.isBrowser && window.location?.search) {

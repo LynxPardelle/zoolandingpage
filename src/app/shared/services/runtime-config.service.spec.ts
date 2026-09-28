@@ -93,6 +93,15 @@ const plannedPublicAuth = {
 };
 
 describe('RuntimeConfigService remote auth', () => {
+    it('does not request private auth runtime from an untrusted public context', async () => {
+        store.setSiteConfig(minimalSiteConfig({authRemote:{enabled:true,authProfileId:'journal-owner',endpoint:'/auth-v2/runtime-config',requiredOrigin:'https://admin.example.test'}}));
+        const resolution = service.resolveRemoteAuth(TEST_DOMAIN);
+        // Detect a real HTTP request before waiting, so an incorrect request cannot hang the test.
+        const requests = http.match(() => true);
+        requests.forEach(request => request.flush({ok:false}));
+        expect(requests.length).toBe(0);
+        expect(await resolution).toBeFalse();
+    });
     let service: RuntimeConfigService;
     let store: ConfigStoreService;
     let http: HttpTestingController;

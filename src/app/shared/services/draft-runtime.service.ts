@@ -3,6 +3,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { computed, DestroyRef, inject, Injectable, NgZone, PLATFORM_ID, REQUEST, signal } from '@angular/core';
 import { navigateInCurrentWindow } from '../utility/navigation/browser-navigation.utility';
 import { isMissingPublishedContentHubPublicPath } from '../utility/content-hub/content-hub-public-route';
+import { isFixedJournal } from '../utility/content-hub/fixed-journal-public';
 import { parseSsrRequestUrl } from '../utility/request/ssr-request-url.utility';
 import { matchDraftRoute, normalizeDraftRoutePath } from '../utility/route-matching/draft-route-matching';
 import type { TComponentsPayload, TDraftSiteConfigPayload, TDraftSiteRouteEntry, TPageConfigPayload } from '../types/config-payloads.types';
@@ -11,6 +12,7 @@ import { ConfigStoreService } from './config-store.service';
 import { DomainResolverService } from './domain-resolver.service';
 import { DraftRegistryService, TDraftRegistryEntry } from './draft-registry.service';
 import { RuntimeConfigService } from './runtime-config.service';
+import { ProtectedOriginService } from './protected-origin.service';
 
 export const DRAFT_RUNTIME_STICKY_QUERY_PARAMS = ['draftDomain', 'debugWorkspace', 'lang'] as const;
 const INTERNAL_DEBUG_DRAFT_DOMAIN = '_debug';
@@ -23,6 +25,7 @@ export type TDraftOption = TDraftRegistryEntry & {
 };
 
 export type TResolvedDraftContext = {
+    readonly originRole?: 'public' | 'protected-admin';
     readonly domain: string;
     readonly pageId: string;
     readonly path: string;
@@ -41,6 +44,7 @@ type TNotFoundResolution = {
 export class DraftRuntimeService {
     private readonly draftRefreshIntervalMs = 5000;
     private readonly platformId = inject(PLATFORM_ID);
+    private readonly protectedOrigin = inject(ProtectedOriginService);
     private readonly request = inject(REQUEST, { optional: true });
     private readonly zone = inject(NgZone);
     private readonly draftRegistry = inject(DraftRegistryService);
@@ -234,6 +238,7 @@ export class DraftRuntimeService {
         if (routeMatch) {
             const routeRequiresAuth = routeMatch.route.auth?.required === true;
             const resolvedContext = {
+                originRole: this.protectedOrigin.context?.originRole ?? 'public',
                 domain,
                 pageId: routeMatch.route.pageId,
                 path,
@@ -244,8 +249,8 @@ export class DraftRuntimeService {
 
             if (
                 !routeRequiresAuth
-                && (!this.isBrowser || environment.drafts.enabled)
-                && isMissingPublishedContentHubPublicPath(siteConfig?.runtime?.contentHubs, path)
+                && (!this.isBrowser || environment.drafts.enabled || siteConfig?.runtime?.contentHubs?.some(isFixedJournal))
+                && isMissingPublishedContentHubPublicPath(siteConfig?.runtime?.contentHubs, path, this.resolveRequestedLanguage())
             ) {
                 const routePayloadIsRenderable = !this.isBrowser
                     && !environment.drafts.enabled

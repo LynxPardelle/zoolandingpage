@@ -1,6 +1,8 @@
 import { InjectionToken } from '@angular/core';
 
 const BASE_ALLOWED_EVENT_IDS = [
+    'fixedArticleAction',
+    'protectedAuthorAuth',
     'openModal',
     'openWhatsApp',
     'trackEvent',
